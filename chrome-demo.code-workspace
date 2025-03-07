@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "name": "nest",
+      "path": "apps/itab",
+    },
+    {
+      "name": "electron",
+      "path": "apps/devtools",
+    },
+  ],
+}

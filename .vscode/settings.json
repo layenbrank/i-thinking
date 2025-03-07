@@ -1,7 +1,145 @@
 {
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+  "editor.smoothScrolling": true,
+  "editor.cursorBlinking": "smooth",
+  "editor.cursorSmoothCaretAnimation": "on",
+  "workbench.startupEditor": "none",
+  "files.autoSave": "onFocusChange",
+  "workbench.list.smoothScrolling": true,
+  "editor.mouseWheelZoom": true,
+  "editor.wordWrap": "on",
+  "editor.lineHeight": 1.5,
+  "editor.fontSize": 16,
+  "editor.fontFamily": "MesloLGM Nerd Font",
+  "editor.fastScrollSensitivity": 10,
+  "editor.guides.bracketPairs": true,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.suggest.snippetsPreventQuickSuggestions": false,
+  "editor.acceptSuggestionOnEnter": "on",
+  "editor.suggestSelection": "recentlyUsedByPrefix",
+  "editor.suggest.insertMode": "replace",
+  "editor.autoClosingBrackets": "beforeWhitespace",
+  "editor.autoClosingDelete": "always",
+  "editor.autoClosingOvertype": "always",
+  "editor.autoClosingQuotes": "beforeWhitespace",
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "window.dialogStyle": "custom",
+  "debug.showBreakpointsInOverviewRuler": true,
+  "window.density.editorTabHeight": "compact",
+  "explorer.compactFolders": false,
+  "notebook.compactView": true,
+  "editor.linkedEditing": true,
+  "html.format.wrapAttributes": "preserve",
+  "html.format.wrapLineLength": 70,
+  "html.format.indentHandlebars": true,
+  "javascript.format.semicolons": "remove",
+  "typescript.format.semicolons": "remove",
+  "javascript.inlayHints.enumMemberValues.enabled": true,
+  "javascript.inlayHints.functionLikeReturnTypes.enabled": false,
+  "javascript.inlayHints.parameterNames.enabled": "none",
+  "typescript.inlayHints.enumMemberValues.enabled": true,
+  "typescript.locale": "zh-CN",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "javascript.suggest.autoImports": true,
+  "typescript.suggest.autoImports": true,
+  "javascript.preferences.quoteStyle": "single",
+  "typescript.preferences.quoteStyle": "single",
+  "vue.updateImportsOnFileMove.enabled": true,
+  "vue.inlayHints.missingProps": true,
+  "vue.autoInsert.dotValue": true,
+  "files.autoGuessEncoding": true,
+  "files.trimTrailingWhitespace": false,
+  "path-intellisense.mappings": {
+    "@": "${workspaceFolder}/src"
+  },
+  "search.searchEditor.singleClickBehaviour": "peekDefinition",
+  "editor.stickyScroll.enabled": true,
+  "workbench.tree.enableStickyScroll": true,
+  "scm.inputFontSize": 16,
+  "debug.console.fontSize": 16,
+  "terminal.integrated.fontSize": 16,
+  "terminal.explorerKind": "external",
+  "terminal.integrated.cursorStyle": "line",
+  "terminal.integrated.cursorBlinking": true,
+  "terminal.integrated.cursorStyleInactive": "line",
+  "terminal.integrated.smoothScrolling": true,
+  "terminal.integrated.stickyScroll.enabled": true,
+  "terminal.integrated.gpuAcceleration": "on",
+  "workbench.list.fastScrollSensitivity": 10,
+  "editor.foldingImportsByDefault": true,
+  "workbench.editor.customLabels.patterns": {
+    "**/index.vue": "${dirname}.vue",
+    "**/index.js": "${dirname}.js",
+    "**/index.ts": "${dirname}.ts",
+    "**/index.jsx": "${dirname}.jsx",
+    "**/index.tsx": "${dirname}.tsx"
+  },
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": true,
+    "strings": true
+  },
+  "editor.wordSeparators": "`~!@%^&*()=+[{]}\\|;:'\",.<>/?（），。；：",
+  "editor.minimap.enabled": true,
+  "editor.foldingStrategy": "indentation",
+
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact",
+    "typescript": "javascriptreact"
+  },
+  "emmet.excludeLanguages": ["javascript", "typescript"],
+  "search.followSymlinks": false,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/pnpm-lock.yaml": true,
+    "**/package-lock.json": true,
+    "**/.DS_Store": true,
+    "**/.git": true,
+    "**/.gitignore": true,
+    "**/.idea": true,
+    "**/.svn": true,
+    "**/.vscode": true,
+    "**/build": true,
+    "**/dist": true,
+    "**/tmp": true,
+    "**/yarn.lock": true
+  },
+  "editor.formatOnSave": true,
+  "workbench.editor.wrapTabs": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  "vscodeCustomCodeColor.highlightValue": [
+    "v-resize",
+    "v-intersection",
+    "v-debounce",
+    "v-viewport",
+    "v-infiniteScroll"
+  ],
+  "typescript.tsdk": "node_modules\\typescript\\lib",
+  "eslint.validate": ["javascript", "typescript", "vue"],
+
   "eslint.workingDirectories": [
     {
       "mode": "auto"
     }
-  ]
+  ],
+
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.env": "$(capture).env.*",
+    ".gitignore": ".gitattributes, .gitconfig, .gitpod.yml, .git*, git*",
+    "tsconfig.json": "tsconfig.*.json, env.d.ts",
+    "index.html": "*.html",
+    "dist.pem": "dist.*",
+    "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts",
+    "package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .eslint*, eslint*, .prettier*, prettier*, .editorconfig",
+    "tailwind.config.ts": "postcss.config.js, tailwind.config.ts, tailwind.config.cjs, tailwind.config.mjs, tailwind.config.jsx, tailwind.config.tsx, tailwind.config.jsx"
+  }
 }
