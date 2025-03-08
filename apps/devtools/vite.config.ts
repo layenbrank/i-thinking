@@ -6,23 +6,61 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
+import { dirname, resolve } from 'node:path'
+import { findUpSync } from 'find-up'
+import pkg from './package.json'
+import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
+import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 
-// https://vite.dev/config/
+// 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
+const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
+const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
+
 export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
-  console.log('process', process.cwd())
 
   return {
+    base: `/${pkg.name.replace(/^@desktop-widgets\//, '')}/`,
     plugins: [
       vue(),
       vueJsx(),
       vueDevTools(),
       AutoImport({
-        dts: './types/auto-imports.d.ts',
-        imports: ['vue', 'vue-router']
+        resolvers: [NaiveUiResolver()],
+        dts: 'src/types/auto-imports.d.ts',
+        imports: [
+          'vue',
+          'vue-router',
+          {
+            'naive-ui': ['useDialog', 'useMessage', 'useNotification', 'useLoadingBar']
+          }
+        ]
       }),
       Components({
-        dts: './types/components.d.ts'
+        resolvers: [NaiveUiResolver()],
+        dts: 'src/types/components.d.ts'
+      }),
+      createSvgIconsPlugin({
+        // 指定需要缓存的图标文件夹
+        iconDirs: [resolve(process.cwd(), 'src/assets/icons')],
+        // 指定symbolId格式
+        symbolId: 'icon-[dir]-[name]',
+        svgoOptions: {
+          plugins: [
+            {
+              name: 'preset-default',
+              params: {
+                overrides: {
+                  removeViewBox: false,
+                  removeTitle: false,
+                  removeDesc: { removeAny: true },
+                  removeUselessDefs: false
+                }
+              }
+            },
+            'removeDimensions'
+          ]
+        }
       })
     ],
     resolve: {
@@ -31,17 +69,38 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       }
     },
     build: {
-      outDir: 'dist',
+      // 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
+      outDir: resolve(rootDir, `dist/${pkg.name}`),
+      emptyOutDir: true,
       rollupOptions: {
         output: {
+          entryFileNames: '[name].js',
           manualChunks: {
             vue: ['vue', 'vue-router', 'pinia']
           }
         }
       }
     },
+    css: {
+      modules: {
+        // 生成的类名格式
+        generateScopedName: '[name]__[local]__[hash:base64:5]',
+        // 是否驼峰化 CSS 类名
+        localsConvention: 'camelCase',
+        // 哪些文件需要使用 CSS Modules（默认：/\.module\./）
+        scopeBehaviour: 'local',
+        // 自定义哈希函数
+        hashPrefix: 'prefix'
+      },
+      preprocessorOptions: {
+        scss: {
+          api: 'modern-compiler'
+          // additionalData: '@import "@/styles/variables.scss";',
+        }
+      }
+    },
     server: {
-      port: 8192
+      port: 1024
     }
   }
 })

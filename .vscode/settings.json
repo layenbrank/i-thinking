@@ -116,9 +116,7 @@
 
   "vscodeCustomCodeColor.highlightValue": [
     "v-resize",
-    "v-intersection",
     "v-debounce",
-    "v-viewport",
     "v-infiniteScroll"
   ],
   "typescript.tsdk": "node_modules\\typescript\\lib",

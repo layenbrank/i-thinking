@@ -1,0 +1,22 @@
+{
+  "name": "@desktop-widgets/tsconfig",
+  "keywords": [],
+  "author": "",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "type": "module",
+  "homepage": "https://github.com/desktop-widgets/desktop-widgets",
+  "bugs": {
+    "url": "https://github.com/desktop-widgets/desktop-widgets/issues"
+  },
+  "repository": {
+    "directory": "configs/tsconfig"
+  },
+  "files": [
+    "tsconfig.base.json",
+    "tsconfig.node.json",
+    "tsconfig.extension.json",
+    "tsconfig.electron.json"
+  ]
+}

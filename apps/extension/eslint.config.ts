@@ -36,6 +36,8 @@ export default defineConfigWithVueTs(
       eqeqeq: 'error',
       /* 对显式使用 `any` 类型发出警告，尽量避免使用 `any` 以保证类型安全 */
       '@typescript-eslint/no-explicit-any': 'off',
+      /* 避免在条件表达式中使用赋值语句，这可能导致逻辑错误 */
+      '@typescript-eslint/no-unused-expressions': 'off',
       /* 对不安全的赋值操作发出警告，确保赋值操作的类型安全 */
       '@typescript-eslint/no-unsafe-assignment': 'warn',
       /* 限制嵌套代码块的最大深度，保持代码的清晰结构 */
@@ -71,7 +73,7 @@ export default defineConfigWithVueTs(
       'vue/multi-word-component-names': [
         'error',
         {
-          ignores: ['TODO']
+          ignores: ['TODO', 'Bookmarks', 'Download']
         }
       ]
     }

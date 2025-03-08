@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "name": "nest",
+      "path": "apps/nest",
+    },
+    {
+      "name": "devtools",
+      "path": "apps/devtools",
+    },
+    {
+      "name": "extension",
+      "path": "apps/extension",
+    },
+    {
+      "name": "docs",
+      "path": "apps/docs",
+    },
+  ],
+}

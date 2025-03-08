@@ -1,6 +1,6 @@
-<script setup lang="ts">
+<script setup lang="tsx">
 defineOptions({
-  name: 'AboutView',
+  name: 'AboutView'
 })
 </script>
 

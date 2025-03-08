@@ -1,4 +1,35 @@
 {
-  "extends": "@repo/typescript-config/vite.json",
-  "include": ["src"]
+  "extends": "@desktop-widgets/tsconfig/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+
+    "declaration": true,
+    "declarationDir": "./typings",
+    "emitDeclarationOnly": true,
+
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+
+    "rootDir": "src",
+
+    "outDir": "dist",
+
+    "paths": {
+      "@/*": ["src/*"]
+    },
+
+    "types": ["vite/client"],
+    "tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo.core"
+  },
+  "exclude": ["dist", "node_modules"],
+  "include": [
+    "src/**/*.ts",
+    "src/types/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/shims-vue.d.ts"
+  ]
 }

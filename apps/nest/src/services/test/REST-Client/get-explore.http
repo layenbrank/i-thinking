@@ -1,0 +1,8 @@
+GET /test/explore HTTP/1.1
+Host: 192.168.0.26:3000
+Content-Type: application/json;charset=utf-8;
+
+{
+  "name": "test",
+  "age": 18
+} 

@@ -1,0 +1,30 @@
+{
+  "name": "@desktop-widgets/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core.css": "./dist/index.css"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "run-p type-check \"build-only {@}\" --",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build",
+    "preview": "vite preview",
+    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+    "lint:eslint": "eslint . --fix",
+    "lint": "run-s lint:*",
+    "format": "prettier --write src/"
+  }
+}

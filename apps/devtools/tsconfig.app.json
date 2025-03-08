@@ -5,6 +5,8 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
 
+    "types": ["vite/client", "@types/chrome", "naive-ui/volar"],
+
     "paths": {
       "@/*": ["./src/*"]
     }

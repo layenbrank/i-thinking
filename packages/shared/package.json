@@ -1,0 +1,30 @@
+{
+  "name": "@desktop-widgets/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/shared.js",
+  "module": "./dist/shared.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/shared.js"
+    },
+    "./shared.css": "./dist/shared.css"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "run-p type-check \"build-only {@}\" --",
+    "preview": "vite preview",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build",
+    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+    "lint:eslint": "eslint . --fix",
+    "lint": "run-s lint:*",
+    "format": "prettier --write src/"
+  }
+}
