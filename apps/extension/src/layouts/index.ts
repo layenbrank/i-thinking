@@ -7,6 +7,7 @@ import type {
 } from 'naive-ui'
 
 import BaseLayout from './base-layout/index.vue'
+import MacLayout from './mac-layout/index.vue'
 import type { ClassValue } from 'clsx'
 import type { CSSProperties } from 'vue'
 
@@ -44,4 +45,11 @@ export interface BaseLayoutOptions {
   baseFooter?: BaseFooterProps
 }
 
-export { BaseLayout }
+export interface MacLayoutOptions {
+  macLayout?: BaseLayoutProps
+  macHeader?: BaseHeaderProps
+  macContent?: BaseContentProps
+  macFooter?: BaseFooterProps
+}
+
+export { BaseLayout, MacLayout }

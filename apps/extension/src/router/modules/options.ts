@@ -2,17 +2,22 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export default {
   path: '/',
-  redirect: '/home',
+  redirect: '/mac-view',
   children: [
     {
-      path: '/home',
-      name: 'home',
-      component: () => import('@/views/HomeView.vue'),
+      path: '/base-view',
+      name: 'base-view',
+      component: () => import('@/views/BaseView.vue')
     },
     {
-      path: '/about',
-      name: 'about',
-      component: () => import('@/views/AboutView.vue'),
+      path: '/mac-view',
+      name: 'mac-view',
+      component: () => import('@/views/MacView.vue')
     },
-  ],
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/views/NotFoundView.vue')
+    }
+  ]
 } as RouteRecordRaw

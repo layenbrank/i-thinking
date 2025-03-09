@@ -14,8 +14,6 @@ withDefaults(defineProps<BaseLayoutOptions>(), {})
     :style="baseLayout?.style"
     :class="['base-layout', clsx(baseLayout?.class)]"
   >
-    <!-- <n-layout v-bind="baseSiderLayout" :class="['base-sider-layout', clsx(baseSiderLayout?.class)]"> -->
-    <!-- </n-layout> -->
     <n-layout-sider
       v-bind="baseSider"
       :style="baseSider?.style"
@@ -57,9 +55,6 @@ withDefaults(defineProps<BaseLayoutOptions>(), {})
 <style lang="scss" scoped>
 .base-layout {
   @apply w-full h-full;
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center center;
 }
 
 .base-main {

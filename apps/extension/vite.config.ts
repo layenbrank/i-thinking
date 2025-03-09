@@ -69,10 +69,12 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
     },
+
     build: {
       // 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
       outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-widgets\//, '')}`),
       emptyOutDir: true,
+
       rollupOptions: {
         output: {
           entryFileNames: '[name].js',

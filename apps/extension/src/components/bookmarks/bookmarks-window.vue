@@ -196,6 +196,8 @@ function RenderBookmarkItem(props: { bookmark: BookmarkTreeNode }) {
 
   return (
     <div
+      onMouseenter={handleMouseEnter}
+      onMouseleave={handleMouseLeave}
       ref={el => {
         if (el) {
           initSortable(el as HTMLElement)
@@ -208,7 +210,7 @@ function RenderBookmarkItem(props: { bookmark: BookmarkTreeNode }) {
         else window.open(props.bookmark.url, '_blank')
       }}
     >
-      <div class={['bookmarkContent']}>
+      <div class={['bookmarkContent', 'ignore-bookmark']}>
         <div class={['bookmarkIcon']}>{isFolder ? '📁' : '🔗'}</div>
         <div class={['bookmarkInfo']}>
           <div class={['bookmarkTitle']}>{props.bookmark.title ?? '未命名'}</div>
@@ -385,6 +387,16 @@ function recursion(nodes: BookmarkTreeNode[]): BookmarkTreeNode[] {
   flatten(nodes)
 
   return result
+}
+
+function handleMouseEnter(e: MouseEvent) {
+  const target = e.target as HTMLElement
+  target.closest('.bookmarkItem')?.classList.add('bookmarkItem-drag')
+  console.log('handleMouseEnter', target.closest('.bookmarkItem-drag'))
+}
+function handleMouseLeave(e: MouseEvent) {
+  const target = e.target as HTMLElement
+  target.closest('.bookmarkItem')?.classList.remove('bookmarkItem-drag')
 }
 
 onMounted(async function () {
@@ -592,6 +604,25 @@ onMounted(async function () {
 </template>
 
 <style lang="scss" scoped>
+/* 幽灵元素 - 原位置的占位符 */
+:global(.bookmarkItem-ghost) {
+}
+
+/* 拖动中的元素 */
+:global(.bookmarkItem-drag) {
+  box-shadow: 0 0px 16px 3px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.3s linear;
+}
+
+/* 回退元素 - 用于不支持 HTML5 拖放的浏览器 */
+:global(.bookmarkItem-fallback) {
+}
+
+/* 被选中的元素 */
+:global(.bookmarkItem-chosen) {
+  box-shadow: 0 16px 12px rgba(0, 0, 0, 0.15);
+}
+
 .bookmarksTabs {
   @apply w-full h-full;
 
@@ -620,7 +651,8 @@ onMounted(async function () {
     gap: 1rem;
 
     :deep(.bookmarkItem) {
-      @apply p-4 rounded-lg border border-solid border-gray-200 hover:bg-gray-50 cursor-pointer;
+      @apply p-4 rounded-lg bg-white cursor-pointer;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
 
       &.folder {
         @apply bg-blue-50 hover:bg-blue-100;

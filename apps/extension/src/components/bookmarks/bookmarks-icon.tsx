@@ -6,7 +6,7 @@ const AppIcon = defineComponent({
     return (
       <div
         class={[
-          'w-full h-full bg-gray-300 bg-opacity-30 flex items-center justify-center rounded-lg cursor-pointer',
+          'w-full h-full bg-white bg-opacity-30 flex items-center justify-center rounded-lg cursor-pointer'
         ]}
       >
         <NIcon color="#ffd766" size={40}>
@@ -14,7 +14,7 @@ const AppIcon = defineComponent({
         </NIcon>
       </div>
     )
-  },
+  }
 })
 
 export default AppIcon
