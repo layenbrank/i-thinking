@@ -20,56 +20,48 @@ interface AppStoreWindowOptions {
 const modules: SwiperModule[] = [A11y, Autoplay, Mousewheel, Navigation, Pagination]
 
 const activeKey = ref<AppStoreWindowOptions>({
-  label: 'All',
-  key: 'all'
+  label: '主页',
+  key: 'home'
 })
 
 const options: AppStoreWindowOptions[] = [
   {
-    label: 'All',
-    key: 'all'
+    label: '主页',
+    key: 'home'
   },
   {
-    label: 'Free',
-    key: 'free'
+    label: '应用',
+    key: 'application'
   },
   {
-    label: 'Paid',
-    key: 'paid'
+    label: '游戏',
+    key: 'game'
   },
   {
-    label: 'New',
-    key: 'new'
-  },
-  {
-    label: 'Trending',
-    key: 'trending'
-  },
-  {
-    label: 'TopRated',
-    key: 'toprated'
+    label: 'AI Hub',
+    key: 'ai'
   }
 ]
 
 const swiperOptions = ref([
   {
-    label: 'All',
-    key: 'all',
+    label: '主页',
+    key: 'home',
     image: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg'
   },
   {
-    label: 'Free',
-    key: 'free',
+    label: '应用',
+    key: 'application',
     image: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg'
   },
   {
-    label: 'Paid',
-    key: 'paid',
+    label: '游戏',
+    key: 'game',
     image: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg'
   },
   {
-    label: 'New',
-    key: 'new',
+    label: 'AI Hub',
+    key: 'ai',
     image: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg'
   }
 ])
@@ -99,21 +91,26 @@ function updateActiveKey(item: AppStoreWindowOptions) {
         @click="updateActiveKey(item)"
         v-for="item in options"
         :key="item.key"
-        class="appStore-category"
+        :class="[
+          'appStore-category',
+          {
+            'is-active': activeKey.key === item.key
+          }
+        ]"
       >
         {{ item.label }}
       </li>
     </ul>
     <ul class="appStore-content">
       <template v-for="item in options">
-        <li v-if="activeKey.key === item.key" :key="item.key">
+        <li v-if="activeKey.key === item.key" :key="item.key" class="content-item">
+          <!-- :autoplay="autoplay" -->
           <Swiper
             :slides-per-view="1"
             :space-between="30"
             :modules="modules"
             :mousewheel="true"
             :allow-touch-move="false"
-            :autoplay="autoplay"
             direction="horizontal"
             :navigation="false"
             :centeredSlides="true"
@@ -133,26 +130,39 @@ function updateActiveKey(item: AppStoreWindowOptions) {
 
 <style lang="scss" scoped>
 .appStore-window {
-  @apply h-full flex;
+  @apply h-full flex justify-between gap-x-2;
 
   .appStore-categories {
-    @apply w-20 h-full flex flex-col items-center gap-y-1 rounded-l-lg overflow-x-hidden overflow-y-scroll bg-red-300;
+    @apply w-20 h-full flex flex-col items-center gap-y-1 rounded-l-lg overflow-x-hidden overflow-y-scroll  bg-[#fbeff5] p-2;
     scrollbar-width: none;
 
     .appStore-category {
-      @apply w-full px-2 py-2 text-center rounded-md bg-gray-300 cursor-pointer transition-all duration-300;
+      @apply w-full px-2 py-2 text-center rounded-md cursor-pointer transition-all duration-300;
 
-      &:hover {
-        @apply bg-white bg-opacity-30;
+      &:hover,
+      &.is-active {
+        @apply bg-white;
       }
     }
   }
 
   .appStore-content {
-    @apply flex-1 rounded-r-lg overflow-x-hidden overflow-y-scroll bg-blue-300;
+    @apply flex-1 rounded-r-lg overflow-x-hidden overflow-y-scroll pt-2 pr-2 pb-2;
+    scrollbar-width: none;
     // --swiper-navigation-size: 30px;
 
+    .content-item {
+      @apply w-full h-full;
+    }
     .appStore-swiper {
+      @apply w-full h-full;
+      @apply overflow-hidden rounded-lg;
+
+      :deep(.swiper-wrapper) {
+        @apply w-full h-full;
+      }
+      :deep(.swiper-slide) {
+      }
       :deep(.swiper-pagination) {
         $bullet-height: 6px;
 
@@ -174,17 +184,8 @@ function updateActiveKey(item: AppStoreWindowOptions) {
     }
 
     .carousel-img {
-      @apply w-full h-full object-cover;
+      @apply w-full h-full rounded-lg;
     }
   }
-
-  // .n-tabs-nav {
-  //   .n-tabs-nav-scroll-wrapper {
-  //   }
-  // }
-
-  // .n-tab-pane {
-  //   @apply h-full bg-red-300;
-  // }
 }
 </style>
