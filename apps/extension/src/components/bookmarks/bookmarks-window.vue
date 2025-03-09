@@ -18,6 +18,7 @@ import {
 import Sortable from 'sortablejs'
 import Fuse, { type IFuseOptions } from 'fuse.js'
 import SvgIcon from '../SvgIcon.vue'
+import { initSortable } from './index.ts'
 
 import { useBookmarksStore } from '@/stores/bookmarks'
 
@@ -173,7 +174,9 @@ async function navigateToFolder(node: BookmarkTreeNode) {
     return 0
   })
 
-  initSortable()
+  if (bookmarkGridRef.value) {
+    initSortable(bookmarkGridRef.value)
+  }
 }
 
 function formatDate(timestamp: number) {
@@ -193,14 +196,16 @@ function RenderBookmarkItem(props: { bookmark: BookmarkTreeNode }) {
 
   return (
     <div
+      ref={el => {
+        if (el) {
+          initSortable(el as HTMLElement)
+        }
+      }}
       data-bookmark-id={props.bookmark.id}
       class={['bookmarkItem', isFolder ? 'bookmarkItem-folder' : 'bookmarkItem-link']}
       onClick={() => {
-        if (isFolder) {
-          navigateToFolder(props.bookmark)
-        } else {
-          window.open(props.bookmark.url, '_blank')
-        }
+        if (isFolder) navigateToFolder(props.bookmark)
+        else window.open(props.bookmark.url, '_blank')
       }}
     >
       <div class={['bookmarkContent']}>
@@ -253,78 +258,94 @@ async function redirectBookmark(node: BookmarkTreeNode) {
   }
 }
 
-async function initSortable() {
-  await nextTick()
-  console.log('bookmarkGridRef', bookmarkGridRef.value)
+// async function initSortable() {
+//   await nextTick()
+//   console.log('bookmarkGridRef', bookmarkGridRef.value)
 
-  if (bookmarkGridRef.value) {
-    Sortable.create(bookmarkGridRef.value, {
-      sort: true,
-      animation: 300,
-      dataIdAttr: 'data-bookmark-id',
-      ghostClass: 'bookmarkItem-ghost',
-      chosenClass: 'bookmarkItem-chosen',
-      dragClass: 'bookmarkItem-drag',
-      onStart(event) {
-        // console.log('onStart', event)
-        const bookmarkItem = event.item.closest('.bookmarkItem') as HTMLElement
-        const id = bookmarkItem.dataset.bookmarkId
-        // if (id) {
-        //   chrome.bookmarks.getSubTree(id, function (rs) {
-        //     // console.log('rs', rs)
-        //     rs.forEach(function (item) {
-        //       item.id === id && (source.value = item)
-        //     })
-        //   })
-        // }
-        // console.log('onStart bookmarkItem', id)
-      },
-      onMove(evt, originalEvent) {
-        // console.log('onMove', evt, originalEvent)
-        const bookmarkItem = evt.related.closest('.bookmarkItem') as HTMLElement
-        const id = bookmarkItem.dataset.bookmarkId
+//   if (bookmarkGridRef.value) {
 
-        // if (id && source.value?.id) {
-        //   chrome.bookmarks.getSubTree(id, function (rs) {
-        //     rs.forEach(function (item) {
-        //       item.id === id && (target.value = item)
-        //     })
-        //   })
-        //   // console.log('target', target.value)
-        // }
-        // console.log('onMove bookmarkItem', id)
-      },
-      onChange(evt) {
-        const bookmarkItem = evt.item.closest('.bookmarkItem') as HTMLElement
-        const id = bookmarkItem.dataset.bookmarkId
+//     // Sortable.create(bookmarkGridRef.value, {
+//     //   sort: true,
+//     //   animation: 300,
+//     //   group: {
+//     //     name: 'bookmark',
+//     //     pull: 'clone',
+//     //     put: false
+//     //   },
+//     //   swapThreshold: 0.05,
+//     //   dataIdAttr: 'data-bookmark-id',
+//     //   ghostClass: 'bookmarkItem-ghost',
+//     //   chosenClass: 'bookmarkItem-chosen',
+//     //   dragClass: 'bookmarkItem-drag',
+//     //   store: {
+//     //     get: function (_sortable: Sortable) {
+//     //       // console.log('get', sortable)
+//     //       return []
+//     //     },
+//     //     set: function (_sortable: Sortable) {
+//     //       // console.log('set', sortable)
+//     //     }
+//     //   },
+//     //   onStart(event) {
+//     //     // console.log('onStart', event)
+//     //     const bookmarkItem = event.item.closest('.bookmarkItem') as HTMLElement
+//     //     const id = bookmarkItem.dataset.bookmarkId
+//     //     // if (id) {
+//     //     //   chrome.bookmarks.getSubTree(id, function (rs) {
+//     //     //     // console.log('rs', rs)
+//     //     //     rs.forEach(function (item) {
+//     //     //       item.id === id && (source.value = item)
+//     //     //     })
+//     //     //   })
+//     //     // }
+//     //     // console.log('onStart bookmarkItem', id)
+//     //   },
+//     //   onMove(evt, originalEvent) {
+//     //     // console.log('onMove', evt, originalEvent)
+//     //     const bookmarkItem = evt.related.closest('.bookmarkItem') as HTMLElement
+//     //     const id = bookmarkItem.dataset.bookmarkId
 
-        // chrome.bookmarks.remove('0', function () {
-        //   console.log('remove')
-        // })
-        // chrome.bookmarks.removeTree('0', function () {
-        //   console.log('removeTree')
-        // })
-        // setTimeout(() => {
-        //   chrome.bookmarks.create(
-        //     {
-        //       index: bookmarksStore.bookmarks[0].index ?? 0,
-        //       title: bookmarksStore.bookmarks[0].title ?? '未命名',
-        //       url: bookmarksStore.bookmarks[0].url ?? '',
-        //     },
-        //     function (rs) {
-        //       console.log('create', rs)
-        //       rs.children = bookmarksStore.bookmarks[0].children
-        //     },
-        //   )
-        // }, 1000 * 5)
-      },
-      onUpdate(event) {
-        // console.log('source', source.value)
-        // console.log('target', target.value)
-      }
-    })
-  }
-}
+//     //     // if (id && source.value?.id) {
+//     //     //   chrome.bookmarks.getSubTree(id, function (rs) {
+//     //     //     rs.forEach(function (item) {
+//     //     //       item.id === id && (target.value = item)
+//     //     //     })
+//     //     //   })
+//     //     //   // console.log('target', target.value)
+//     //     // }
+//     //     // console.log('onMove bookmarkItem', id)
+//     //   },
+//     //   onChange(evt) {
+//     //     const bookmarkItem = evt.item.closest('.bookmarkItem') as HTMLElement
+//     //     const id = bookmarkItem.dataset.bookmarkId
+
+//     //     // chrome.bookmarks.remove('0', function () {
+//     //     //   console.log('remove')
+//     //     // })
+//     //     // chrome.bookmarks.removeTree('0', function () {
+//     //     //   console.log('removeTree')
+//     //     // })
+//     //     // setTimeout(() => {
+//     //     //   chrome.bookmarks.create(
+//     //     //     {
+//     //     //       index: bookmarksStore.bookmarks[0].index ?? 0,
+//     //     //       title: bookmarksStore.bookmarks[0].title ?? '未命名',
+//     //     //       url: bookmarksStore.bookmarks[0].url ?? '',
+//     //     //     },
+//     //     //     function (rs) {
+//     //     //       console.log('create', rs)
+//     //     //       rs.children = bookmarksStore.bookmarks[0].children
+//     //     //     },
+//     //     //   )
+//     //     // }, 1000 * 5)
+//     //   },
+//     //   onUpdate(event) {
+//     //     // console.log('source', source.value)
+//     //     // console.log('target', target.value)
+//     //   }
+//     // })
+//   }
+// }
 
 // 将嵌套书签扁平化为一维数组
 function recursion(nodes: BookmarkTreeNode[]): BookmarkTreeNode[] {
@@ -370,46 +391,17 @@ onMounted(async function () {
   // const bookmarksRes = await chrome.bookmarks.getTree()
   const bookmarksRes = bookmarksJSON.bookmarks as unknown as BookmarkTreeNode[]
 
-  // bookmarksRes.map((node) => {
-  //   Object.assign(node, {
-  //     children: node.children,
-  //     syncing: false,
-  //     dateAdded: node.dateAdded,
-  //     dateGroupModified: Date.now(),
-  //     id: node.id,
-  //     index: 0,
-  //     title: node.title.length ? node.title : '根目录',
-  //   })
-  // })
-
   console.log('bookmarksJSON', bookmarksJSON)
 
-  // 使用 recursion 函数扁平化书签数组
-  // const flattenedBookmarks = recursion(bookmarksRes)
-  // const flattenedBookmarks = bookmarksRes
-
-  // console.log('完全扁平化的书签数组：', flattenedBookmarks)
-
-  // 将 ID 转换为数字进行排序
-  // const sortedBookmarks = flattenedBookmarks
-  //   .sort((a, b) => Number(a.id) - Number(b.id))
-  //   .map(function (bookmark, index) {
-  //     bookmark.id = index.toString()
-  //     bookmark.index = index
-  //     bookmark.dateAdded = Date.now()
-  //     return bookmark
-  //   })
-
-  // console.log('排序后的书签数组：', sortedBookmarks)
-
-  // bookmarks.value = bookmarksStore.bookmarks
   bookmarks.value = bookmarksRes
 
   originalBookmarks.value = bookmarksRes
 
   shortcutBookmark.value = bookmarksRes
 
-  await initSortable()
+  if (bookmarkGridRef.value) {
+    initSortable(bookmarkGridRef.value)
+  }
 })
 </script>
 
