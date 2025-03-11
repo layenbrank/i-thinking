@@ -106,22 +106,41 @@ function updateActiveKey(item: AppStoreWindowOptions) {
         <li v-if="activeKey.key === item.key" :key="item.key" class="content-item">
           <!-- :autoplay="autoplay" -->
           <Swiper
-            :slides-per-view="1"
-            :space-between="30"
+            :slides-per-view="1.15"
+            :space-between="20"
             :modules="modules"
             :mousewheel="true"
             :allow-touch-move="false"
             direction="horizontal"
             :navigation="false"
-            :centeredSlides="true"
             :loop="hasMultipleSlides"
             :pagination="pagination"
             class="appStore-swiper w-full h-60"
           >
-            <swiper-slide v-for="item in swiperOptions" :key="item.key" class="w-full h-full">
-              <img :src="item.image" alt="" class="carousel-img" />
+            <swiper-slide
+              :style="{
+                backgroundImage: `url(${item.image})`
+              }"
+              v-for="item in swiperOptions"
+              :key="item.key"
+            >
+              <div class="image-container">
+                <img :src="item.image" alt="" class="carousel-img" />
+              </div>
             </swiper-slide>
           </Swiper>
+          <div>
+            <h3>热门应用</h3>
+            <ul class="grid grid-flow-dense grid-cols-3 grid-rows-2 gap-3">
+              <li
+                v-for="(item, index) in [...swiperOptions, ...swiperOptions, ...swiperOptions]"
+                :key="index"
+                class="h-[120px] px-5 py-3 rounded-lg hover:shadow-lg transition-all duration-300 cursor-pointer flex items-center justify-center bg-blue-300"
+              >
+                {{ item.label }}
+              </li>
+            </ul>
+          </div>
         </li>
       </template>
     </ul>
@@ -152,16 +171,38 @@ function updateActiveKey(item: AppStoreWindowOptions) {
     // --swiper-navigation-size: 30px;
 
     .content-item {
-      @apply w-full h-full;
+      @apply w-full h-full overflow-x-hidden overflow-y-scroll;
     }
+
     .appStore-swiper {
-      @apply w-full h-full;
+      @apply w-full h-[60%];
       @apply overflow-hidden rounded-lg;
+      --swiper-navigation-size: 30px;
 
       :deep(.swiper-wrapper) {
         @apply w-full h-full;
       }
+
       :deep(.swiper-slide) {
+        @apply w-full h-full rounded-lg overflow-hidden;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        background-attachment: fixed;
+
+        &.swiper-slide-active {
+        }
+        &.swiper-slide-next {
+        }
+      }
+
+      .image-container {
+        @apply w-full h-full flex items-center justify-center rounded-lg overflow-hidden;
+        backdrop-filter: blur(60px);
+        background-color: rgba(0, 0, 0, 0.52);
+      }
+      .carousel-img {
+        @apply h-full object-contain rounded-lg;
       }
       :deep(.swiper-pagination) {
         $bullet-height: 6px;
@@ -181,10 +222,6 @@ function updateActiveKey(item: AppStoreWindowOptions) {
           }
         }
       }
-    }
-
-    .carousel-img {
-      @apply w-full h-full rounded-lg;
     }
   }
 }
