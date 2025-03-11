@@ -1,18 +1,43 @@
 import Sortable from 'sortablejs'
 
 export function initSortable(el: HTMLElement) {
-  Sortable.create(el, {
+  const sort = Sortable.create(el, {
     sort: true,
     animation: 300,
     group: {
       name: 'bookmark',
       pull(to, from, dragEl, event) {
+        const target = to.el
+        const source = dragEl
+        const targetID = target.dataset.bookmarkId
+        const sourceID = source.dataset.bookmarkId
+        console.log('pull to', targetID)
+        console.log('pull dragEl', sourceID)
+
+        // console.log('pull', to, from, dragEl, event)
         return dragEl.classList.contains('bookmarkItem')
       },
-      // put(to, from, dragEl, event) {
-      //   return dragEl.classList.contains('bookmarkItem')
-      // }
-      put: false
+      put(to, from, dragEl, event) {
+        const target = to.el
+        const source = dragEl
+        const targetID = target.dataset.bookmarkId
+        const sourceID = source.dataset.bookmarkId
+        console.log('put to', targetID)
+        console.log('put dragEl', sourceID)
+
+        // console.log('put', to, from, dragEl, event)
+        return dragEl.classList.contains('bookmarkItem')
+      },
+      // put: false,
+      checkPull(sortable, activeSortable, dragEl, event) {
+        console.log('checkPull', sortable, activeSortable, dragEl, event)
+        return true
+      },
+      checkPut(sortable, activeSortable, dragEl, event) {
+        console.log('checkPut', sortable, activeSortable, dragEl, event)
+        return true
+      }
+      // put: false
     },
     dataIdAttr: 'data-bookmark-id',
     ghostClass: 'bookmarkItem-ghost',
@@ -38,11 +63,13 @@ export function initSortable(el: HTMLElement) {
       set(sortable: Sortable) {}
     },
     onStart(event) {
-      const target = event.item as HTMLElement
-      target.closest('.bookmarkItem')?.classList.remove('bookmarkItem-drag')
+      const source = event.item as HTMLElement
+      source.closest('.bookmarkItem')?.classList.remove('bookmarkItem-drag')
+      // console.log('source', source.closest('.bookmarkItem'))
     },
     onEnd(event) {
       const target = event.item as HTMLElement
+      // console.log('target', target.closest('.bookmarkItem'))
       target.closest('.bookmarkItem')?.classList.remove('bookmarkItem-drag')
     },
     onMove(evt, originalEvent) {

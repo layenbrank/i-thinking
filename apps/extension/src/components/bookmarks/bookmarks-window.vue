@@ -1,21 +1,10 @@
 <script setup lang="tsx">
-import type { Ref } from 'vue'
-import { useMessage, type DialogReactive } from 'naive-ui'
+import { useMessage } from 'naive-ui'
 import { useRefHistory, useMagicKeys, whenever } from '@vueuse/core'
 import type { DropdownMixedOption } from 'naive-ui/es/dropdown/src/interface'
 
-import {
-  LogInOutline,
-  ArrowBack,
-  ArrowForward,
-  ArrowUp,
-  Refresh,
-  Pulse,
-  AddSharp,
-  Close,
-  Folder
-} from '@vicons/ionicons5'
-import Sortable from 'sortablejs'
+import { ArrowBack, ArrowForward, Refresh, AddSharp, Close, Folder } from '@vicons/ionicons5'
+
 import Fuse, { type IFuseOptions } from 'fuse.js'
 import SvgIcon from '../SvgIcon.vue'
 import { initSortable } from './index.ts'
@@ -30,7 +19,7 @@ defineOptions({
   name: 'AppWindow'
 })
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     destroy: () => void
   }>(),
@@ -145,21 +134,25 @@ const {
   // },
 })
 
-const keys = useMagicKeys({
+const { Control_D } = useMagicKeys({
   passive: false,
   onEventFired(e) {
-    if (e.ctrlKey && e.type === 'keydown') {
-      if (e.key === 'd') {
-        e.preventDefault()
-        e.stopPropagation()
-      }
+    const keyMap: string[] = ['Enter', 'ArrowUp', 'ArrowDown', 'Control']
+
+    for (const key of keyMap) {
+      e.key === key && e.preventDefault()
     }
-    // console.log('onEventFired', e)
+
+    // if (e.ctrlKey && e.type === 'keydown') {
+    //   if (e.key === 'd') {
+    //     e.preventDefault()
+    //     e.stopPropagation()
+    //   }
+    // }
   }
 })
-
-whenever(keys.ctrl_d, pressed => {
-  console.log('ctrl_d', pressed)
+whenever(Control_D, () => {
+  console.log('Control_D', Control_D.value)
 })
 
 // 导航到指定书签文件夹
@@ -260,95 +253,96 @@ async function redirectBookmark(node: BookmarkTreeNode) {
   }
 }
 
-// async function initSortable() {
-//   await nextTick()
-//   console.log('bookmarkGridRef', bookmarkGridRef.value)
+/*
+async function initSortable() {
+  await nextTick()
+  console.log('bookmarkGridRef', bookmarkGridRef.value)
 
-//   if (bookmarkGridRef.value) {
+  if (bookmarkGridRef.value) {
 
-//     // Sortable.create(bookmarkGridRef.value, {
-//     //   sort: true,
-//     //   animation: 300,
-//     //   group: {
-//     //     name: 'bookmark',
-//     //     pull: 'clone',
-//     //     put: false
-//     //   },
-//     //   swapThreshold: 0.05,
-//     //   dataIdAttr: 'data-bookmark-id',
-//     //   ghostClass: 'bookmarkItem-ghost',
-//     //   chosenClass: 'bookmarkItem-chosen',
-//     //   dragClass: 'bookmarkItem-drag',
-//     //   store: {
-//     //     get: function (_sortable: Sortable) {
-//     //       // console.log('get', sortable)
-//     //       return []
-//     //     },
-//     //     set: function (_sortable: Sortable) {
-//     //       // console.log('set', sortable)
-//     //     }
-//     //   },
-//     //   onStart(event) {
-//     //     // console.log('onStart', event)
-//     //     const bookmarkItem = event.item.closest('.bookmarkItem') as HTMLElement
-//     //     const id = bookmarkItem.dataset.bookmarkId
-//     //     // if (id) {
-//     //     //   chrome.bookmarks.getSubTree(id, function (rs) {
-//     //     //     // console.log('rs', rs)
-//     //     //     rs.forEach(function (item) {
-//     //     //       item.id === id && (source.value = item)
-//     //     //     })
-//     //     //   })
-//     //     // }
-//     //     // console.log('onStart bookmarkItem', id)
-//     //   },
-//     //   onMove(evt, originalEvent) {
-//     //     // console.log('onMove', evt, originalEvent)
-//     //     const bookmarkItem = evt.related.closest('.bookmarkItem') as HTMLElement
-//     //     const id = bookmarkItem.dataset.bookmarkId
+Sortable.create(bookmarkGridRef.value, {
+  sort: true,
+  animation: 300,
+  group: {
+    name: 'bookmark',
+    pull: 'clone',
+    put: false
+  },
+  swapThreshold: 0.05,
+  dataIdAttr: 'data-bookmark-id',
+  ghostClass: 'bookmarkItem-ghost',
+  chosenClass: 'bookmarkItem-chosen',
+  dragClass: 'bookmarkItem-drag',
+  store: {
+    get: function (_sortable: Sortable) {
+console.log('get', sortable)
+      return []
+    },
+    set: function (_sortable: Sortable) {
+console.log('set', sortable)
+    }
+  },
+  onStart(event) {
+console.log('onStart', event)
+    const bookmarkItem = event.item.closest('.bookmarkItem') as HTMLElement
+    const id = bookmarkItem.dataset.bookmarkId
+if (id) {
+  chrome.bookmarks.getSubTree(id, function (rs) {
+console.log('rs', rs)
+    rs.forEach(function (item) {
+      item.id === id && (source.value = item)
+    })
+  })
+}
+console.log('onStart bookmarkItem', id)
+  },
+  onMove(evt, originalEvent) {
+console.log('onMove', evt, originalEvent)
+    const bookmarkItem = evt.related.closest('.bookmarkItem') as HTMLElement
+    const id = bookmarkItem.dataset.bookmarkId
 
-//     //     // if (id && source.value?.id) {
-//     //     //   chrome.bookmarks.getSubTree(id, function (rs) {
-//     //     //     rs.forEach(function (item) {
-//     //     //       item.id === id && (target.value = item)
-//     //     //     })
-//     //     //   })
-//     //     //   // console.log('target', target.value)
-//     //     // }
-//     //     // console.log('onMove bookmarkItem', id)
-//     //   },
-//     //   onChange(evt) {
-//     //     const bookmarkItem = evt.item.closest('.bookmarkItem') as HTMLElement
-//     //     const id = bookmarkItem.dataset.bookmarkId
+if (id && source.value?.id) {
+  chrome.bookmarks.getSubTree(id, function (rs) {
+    rs.forEach(function (item) {
+      item.id === id && (target.value = item)
+    })
+  })
+  // console.log('target', target.value)
+}
+    // console.log('onMove bookmarkItem', id)
+  },
+  onChange(evt) {
+    const bookmarkItem = evt.item.closest('.bookmarkItem') as HTMLElement
+    const id = bookmarkItem.dataset.bookmarkId
 
-//     //     // chrome.bookmarks.remove('0', function () {
-//     //     //   console.log('remove')
-//     //     // })
-//     //     // chrome.bookmarks.removeTree('0', function () {
-//     //     //   console.log('removeTree')
-//     //     // })
-//     //     // setTimeout(() => {
-//     //     //   chrome.bookmarks.create(
-//     //     //     {
-//     //     //       index: bookmarksStore.bookmarks[0].index ?? 0,
-//     //     //       title: bookmarksStore.bookmarks[0].title ?? '未命名',
-//     //     //       url: bookmarksStore.bookmarks[0].url ?? '',
-//     //     //     },
-//     //     //     function (rs) {
-//     //     //       console.log('create', rs)
-//     //     //       rs.children = bookmarksStore.bookmarks[0].children
-//     //     //     },
-//     //     //   )
-//     //     // }, 1000 * 5)
-//     //   },
-//     //   onUpdate(event) {
-//     //     // console.log('source', source.value)
-//     //     // console.log('target', target.value)
-//     //   }
-//     // })
-//   }
-// }
-
+chrome.bookmarks.remove('0', function () {
+  console.log('remove')
+})
+chrome.bookmarks.removeTree('0', function () {
+  console.log('removeTree')
+})
+setTimeout(() => {
+  chrome.bookmarks.create(
+    {
+      index: bookmarksStore.bookmarks[0].index ?? 0,
+      title: bookmarksStore.bookmarks[0].title ?? '未命名',
+      url: bookmarksStore.bookmarks[0].url ?? '',
+    },
+    function (rs) {
+      console.log('create', rs)
+      rs.children = bookmarksStore.bookmarks[0].children
+    },
+  )
+}, 1000 * 5)
+  },
+  onUpdate(event) {
+console.log('source', source.value)
+console.log('target', target.value)
+  }
+})
+}
+}
+ */
 // 将嵌套书签扁平化为一维数组
 function recursion(nodes: BookmarkTreeNode[]): BookmarkTreeNode[] {
   const result: BookmarkTreeNode[] = []
@@ -392,7 +386,7 @@ function recursion(nodes: BookmarkTreeNode[]): BookmarkTreeNode[] {
 function handleMouseEnter(e: MouseEvent) {
   const target = e.target as HTMLElement
   target.closest('.bookmarkItem')?.classList.add('bookmarkItem-drag')
-  console.log('handleMouseEnter', target.closest('.bookmarkItem-drag'))
+  // console.log('handleMouseEnter', target.closest('.bookmarkItem-drag'))
 }
 function handleMouseLeave(e: MouseEvent) {
   const target = e.target as HTMLElement
@@ -403,7 +397,7 @@ onMounted(async function () {
   // const bookmarksRes = await chrome.bookmarks.getTree()
   const bookmarksRes = bookmarksJSON.bookmarks as unknown as BookmarkTreeNode[]
 
-  console.log('bookmarksJSON', bookmarksJSON)
+  // console.log('bookmarksJSON', bookmarksJSON)
 
   bookmarks.value = bookmarksRes
 

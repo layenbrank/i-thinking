@@ -39,6 +39,8 @@ defineOptions({
 
 const contextMenuRef = useTemplateRef('contextMenuRef')
 
+const keyword = ref('')
+
 const timestamp = useTimestamp({
   interval: 'requestAnimationFrame'
 })
@@ -148,6 +150,14 @@ function handleResize(DOMRect: DOMRect) {
   contextMenuSize.height = DOMRect.height
 }
 
+function updateKeyword(value: string) {
+  keyword.value = value
+}
+
+function updateSearch() {
+  window.open(`https://cn.bing.com/search?q=${keyword.value}`, '_blank')
+}
+
 onMounted(() => {
   const contextMenu = contextMenuRef.value as HTMLElement
 
@@ -197,13 +207,26 @@ onUnmounted(function () {
             </n-icon>
           </template>
         </n-button>
-        <n-button :bordered="false" ghost strong>
-          <template #icon>
-            <n-icon size="20">
-              <SvgIcon name="Search"></SvgIcon>
-            </n-icon>
+        <n-popover placement="bottom" trigger="click" class="popover-input">
+          <template #trigger>
+            <n-button :bordered="false" ghost strong>
+              <template #icon>
+                <n-icon size="20">
+                  <SvgIcon name="Search"></SvgIcon>
+                </n-icon>
+              </template>
+            </n-button>
           </template>
-        </n-button>
+          <template #default>
+            <n-input
+              @keydown.enter="updateSearch"
+              :model-value="keyword"
+              @update-value="updateKeyword"
+              round
+              placeholder="请输入关键词!"
+            />
+          </template>
+        </n-popover>
         <n-button :bordered="false" ghost strong>
           <template #icon>
             <n-icon size="20">
@@ -313,6 +336,45 @@ onUnmounted(function () {
 
     .shortcut-label-icon {
       @apply w-4 h-4 text-white;
+    }
+  }
+}
+</style>
+<style lang="scss">
+div[class^='v-binder-follower-container'] {
+  .v-binder-follower-content {
+    .popover-input {
+      @apply rounded-2xl;
+      @apply bg-white bg-opacity-30;
+      --n-padding: 0px !important;
+
+      .n-popover-arrow-wrapper {
+      }
+      .n-popover-arrow {
+        @apply bg-white bg-opacity-30;
+      }
+      .n-popover__content {
+      }
+      .n-input:not(.n-input--disabled).n-input--focus {
+        @apply bg-transparent;
+      }
+      .n-input {
+        width: clamp(300px, 80%, 500px);
+        @apply bg-transparent;
+        --n-border: 0px solid transparent !important;
+        --n-border-focus: 0px solid transparent !important;
+        --n-border-hover: 0px solid transparent !important;
+        --n-box-shadow-focus: 0px 0px 0px transparent !important;
+      }
+
+      .n-input-wrapper {
+      }
+      .n-input__input {
+        @apply text-black;
+      }
+      .n-input__placeholder {
+        --n-placeholder-color: rgba(0, 0, 0, 0.6);
+      }
     }
   }
 }
