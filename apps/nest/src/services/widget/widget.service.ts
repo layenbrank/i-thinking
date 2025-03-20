@@ -8,8 +8,16 @@ export class WidgetService {
     return 'This action adds a new widget';
   }
 
-  findAll() {
-    return `This action returns all widget`;
+  async findAll() {
+    // return `This action returns all widget`;
+    const widgets = await import('../../constants/widget.constant.json');
+
+    return {
+      code: 200,
+      msg: '操作成功',
+      v: '3.0',
+      data: widgets,
+    };
   }
 
   findOne(id: number) {
