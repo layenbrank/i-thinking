@@ -1,4 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
+import { dirname, resolve } from 'node:path'
+import { findUpSync } from 'find-up'
 
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -6,28 +8,51 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
-import { dirname, resolve } from 'node:path'
-import { findUpSync } from 'find-up'
+import Icons from 'unplugin-icons/vite'
+import IconsResolver from 'unplugin-icons/resolver'
+import { FileSystemIconLoader } from 'unplugin-icons/loaders'
 import pkg from './package.json'
-import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
+
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 
-// 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
-const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
-const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
+const rootMarkerPath: Readonly<string | undefined> = findUpSync([
+  'turbo.json',
+  'pnpm-workspace.yaml'
+])
+const rootDir: Readonly<string> = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
+// const [lang, platform, project] = pkg.name.split('-')
+// const outputDir: Readonly<string> = `dist/${lang}/${platform}/${project}`
+const outputDir: Readonly<string> = pkg.name.replace(/^@turborepo-\//, '')
 
 export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
 
   return {
-    base: `/${pkg.name.replace(/^@desktop-widgets\//, '')}/`,
+    base: `/${pkg.name.replace(/^@turborepo-\//, '')}/`,
     plugins: [
       vue(),
       vueJsx(),
       vueDevTools(),
+      Icons({
+        compiler: 'vue3',
+        autoInstall: true,
+        scale: 1,
+        defaultStyle: '',
+        defaultClass: '',
+
+        jsx: 'react',
+        customCollections: {
+          // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
+          // 本地 SVG 图标文件夹路径
+          local: FileSystemIconLoader('./src/assets/icons', function (svg) {
+            return svg.replace(/^<svg /, '<svg fill="currentColor" ')
+          })
+        }
+      }),
       AutoImport({
         resolvers: [NaiveUiResolver()],
         dts: 'src/types/auto-imports.d.ts',
+        include: [/\.[tj]sx?$/, /\.vue$/, /\.vue\?vue/, /\.md$/],
         imports: [
           'vue',
           'vue-router',
@@ -37,30 +62,14 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         ]
       }),
       Components({
-        resolvers: [NaiveUiResolver()],
+        resolvers: [
+          NaiveUiResolver(),
+          IconsResolver({
+            prefix: 'Icon',
+            customCollections: ['local']
+          })
+        ],
         dts: 'src/types/components.d.ts'
-      }),
-      createSvgIconsPlugin({
-        // 指定需要缓存的图标文件夹
-        iconDirs: [resolve(process.cwd(), 'src/assets/icons')],
-        // 指定symbolId格式
-        symbolId: 'icon-[dir]-[name]',
-        svgoOptions: {
-          plugins: [
-            {
-              name: 'preset-default',
-              params: {
-                overrides: {
-                  removeViewBox: false,
-                  removeTitle: false,
-                  removeDesc: { removeAny: true },
-                  removeUselessDefs: false
-                }
-              }
-            },
-            'removeDimensions'
-          ]
-        }
       })
     ],
     resolve: {
@@ -69,8 +78,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       }
     },
     build: {
-      // 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
-      outDir: resolve(rootDir, `dist/${pkg.name}`),
+      outDir: resolve(rootDir, outputDir),
       emptyOutDir: true,
       rollupOptions: {
         output: {
@@ -100,7 +108,14 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       }
     },
     server: {
-      port: 1024
+      port: 1024,
+      proxy: {
+        '/bing': {
+          target: 'https://cn.bing.com',
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/bing/, '')
+        }
+      }
     }
   }
 })

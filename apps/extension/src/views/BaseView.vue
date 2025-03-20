@@ -199,7 +199,7 @@ const comboboxTrigger: Ref<ComboboxTriggerProps> = computed(() => {
       round: !visible.value,
       size: 'large',
       value: keyword.value,
-      async onUpdateValue(value) {
+      async onUpdateValue(value: string) {
         keyword.value = value
 
         // 如果输入为空，清空结果并返回
@@ -263,15 +263,15 @@ const menuOptions: MenuOption[] = [
   }
 ]
 
-whenever(Ctrl, value => {
+whenever(Ctrl, (value) => {
   message.info(`Ctrl: ${value}`)
 })
 
-whenever(Space, value => {
+whenever(Space, (value) => {
   message.info(`Space: ${value}`)
 })
 
-whenever(ArrowUp, value => {
+whenever(ArrowUp, (value) => {
   if (!visible.value) return
   if (activeIndex.value > 0) {
     activeIndex.value -= 1
@@ -291,7 +291,7 @@ whenever(ArrowUp, value => {
   }
 })
 
-whenever(ArrowDown, value => {
+whenever(ArrowDown, (value) => {
   if (!visible.value) return
   if (activeIndex.value < searchResult.value.length - 1) {
     activeIndex.value += 1
@@ -310,7 +310,7 @@ whenever(ArrowDown, value => {
   }
 })
 
-whenever(Enter, async value => {
+whenever(Enter, async (value) => {
   message.info(`Enter: ${value}`)
   if (!visible.value) return
   if (!searchResult.value.length) return
@@ -329,7 +329,7 @@ const AppController = defineComponent({
   render() {
     return (
       <div class="widget-container w-full h-full grid grid-cols-[repeat(auto-fill,70px)] grid-rows-[repeat(auto-fill,70px)] grid-flow-dense justify-center gap-3 rounded-lg">
-        {appModules.map(appModule => {
+        {appModules.map((appModule) => {
           return h(appModule, { key: appModule.name })
         })}
       </div>

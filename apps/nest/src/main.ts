@@ -1,11 +1,38 @@
 import { resolve } from 'node:path';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 
+import {
+  HttpStatus,
+  UnprocessableEntityException,
+  ValidationPipe,
+  VersioningType,
+  Logger,
+} from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+
+import { AppModule } from './app.module';
+import { HttpExceptionFilter } from '@/filters/http-exception.filter';
+import { ResponseInterceptor } from '@/interceptors/response-interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+    cors: true,
+  });
+
+  app.enableVersioning({
+    type: VersioningType.URI,
+    prefix: 'v',
+    defaultVersion: '1',
+  });
+
+  app.setGlobalPrefix('api', {
+    exclude: ['/', 'health', 'metrics'],
+  });
+
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -17,9 +44,32 @@ async function bootstrap() {
     maxAge: 3 /* 预检请求的缓存时间（单位：秒）。 3600 */,
   });
 
-  const port = 3000;
-  const hostname = '192.168.0.26';
-  // const hostname = '172.20.10.4';
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      transformOptions: { enableImplicitConversion: true },
+      // forbidNonWhitelisted: true, // 禁止 无装饰器验证的数据通过
+      errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+      stopAtFirstError: true,
+      exceptionFactory(errors) {
+        return new UnprocessableEntityException(
+          errors.map((e) => {
+            const rule = Object.keys(e.constraints!)[0];
+            const msg = e.constraints![rule];
+            return msg;
+          })[0],
+        );
+      },
+    }),
+  );
+
+  // 使用Winston日志记录器
+  const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
+  app.useLogger(logger);
+
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new ResponseInterceptor());
 
   /**
    * @description 静态资源托管
@@ -53,8 +103,24 @@ async function bootstrap() {
 
   app.useStaticAssets(staticPathTest);
 
-  await app.listen(port, hostname, function () {
-    console.log(`Application is running on: http://${hostname}:${port}`);
-  });
+  const swaggerOptions = new DocumentBuilder()
+    .setTitle('NestJS API')
+    .setDescription('NestJS API 接口文档')
+    .setVersion('v1')
+    .addBearerAuth()
+    .build();
+
+  const document = SwaggerModule.createDocument(app, swaggerOptions);
+  SwaggerModule.setup('/api/docs', app, document);
+
+  const configService = new ConfigService();
+
+  await app.listen(configService.get('PORT'));
+  const info = `Server is running on http://${configService.get('API_URL')}:${configService.get('PORT')}`;
+  const docs = `Docs is running on http://${configService.get('API_URL')}:${configService.get('PORT')}/api/docs`;
+  console.log(info);
+  console.log(docs);
+
+  return app;
 }
 bootstrap();

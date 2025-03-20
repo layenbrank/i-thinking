@@ -1,4 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
+import { dirname, resolve } from 'node:path'
+import { findUpSync } from 'find-up'
 
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -6,10 +8,11 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
-import { dirname, resolve } from 'node:path'
-import { findUpSync } from 'find-up'
+import Icons from 'unplugin-icons/vite'
+import IconsResolver from 'unplugin-icons/resolver'
+import { FileSystemIconLoader } from 'unplugin-icons/loaders'
 import pkg from './package.json'
-import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
+
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 
 // 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
@@ -25,6 +28,21 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       vue(),
       vueJsx(),
       vueDevTools(),
+      Icons({
+        compiler: 'vue3',
+        autoInstall: true,
+        scale: 1,
+        defaultStyle: '',
+        defaultClass: '',
+        jsx: 'react',
+        customCollections: {
+          // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
+          // 本地 SVG 图标文件夹路径
+          local: FileSystemIconLoader('./src/assets/icons', function (svg) {
+            return svg.replace(/^<svg /, '<svg fill="currentColor" ')
+          })
+        }
+      }),
       AutoImport({
         resolvers: [NaiveUiResolver()],
         dts: 'src/types/auto-imports.d.ts',
@@ -38,30 +56,14 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         ]
       }),
       Components({
-        resolvers: [NaiveUiResolver()],
+        resolvers: [
+          NaiveUiResolver(),
+          IconsResolver({
+            prefix: 'Icon',
+            customCollections: ['local']
+          })
+        ],
         dts: 'src/types/components.d.ts'
-      }),
-      createSvgIconsPlugin({
-        // 指定需要缓存的图标文件夹
-        iconDirs: [resolve(process.cwd(), 'src/assets/icons')],
-        // 指定symbolId格式
-        symbolId: 'icon-[dir]-[name]',
-        svgoOptions: {
-          plugins: [
-            {
-              name: 'preset-default',
-              params: {
-                overrides: {
-                  removeViewBox: false,
-                  removeTitle: false,
-                  removeDesc: { removeAny: true },
-                  removeUselessDefs: false
-                }
-              }
-            },
-            'removeDimensions'
-          ]
-        }
       })
     ],
     resolve: {
@@ -69,7 +71,9 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
     },
-
+    optimizeDeps: {
+      include: ['naive-ui', 'lodash', 'vue', 'vue-router', 'pinia']
+    },
     build: {
       // 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
       outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-widgets\//, '')}`),
