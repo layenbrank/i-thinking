@@ -25,6 +25,12 @@ async function bootstrap() {
     cors: true
   })
 
+  app.enableVersioning({
+    type: VersioningType.URI,
+    prefix: 'api/v',
+    defaultVersion: '1'
+  })
+
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',

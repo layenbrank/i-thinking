@@ -8,9 +8,12 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { dirname, resolve } from 'node:path'
 import { findUpSync } from 'find-up'
-import pkg from './package.json'
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
-import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
+import Icons from 'unplugin-icons/vite'
+import IconsResolver from 'unplugin-icons/resolver'
+import { FileSystemIconLoader } from 'unplugin-icons/loaders'
+import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
+import pkg from './package.json'
 
 // 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
@@ -25,20 +28,39 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       vue(),
       vueJsx(),
       vueDevTools(),
+      Icons({
+        compiler: 'vue3',
+        autoInstall: true,
+        scale: 1,
+        defaultStyle: '',
+        defaultClass: '',
+        jsx: 'react',
+        customCollections: {
+          // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
+          local: FileSystemIconLoader(
+            resolve(rootDir, 'packages/shared/src/assets/icons'),
+            function (svg) {
+              return svg.replace(/^<svg /, '<svg fill="currentColor" ')
+            }
+          )
+        }
+      }),
       AutoImport({
-        resolvers: [NaiveUiResolver()],
         dts: 'src/types/auto-imports.d.ts',
         include: [/\.[tj]sx?$/, /\.vue$/, /\.vue\?vue/, /\.md$/],
-        imports: [
-          'vue',
-          'vue-router',
-          {
-            'naive-ui': ['useDialog', 'useMessage', 'useNotification', 'useLoadingBar']
-          }
-        ]
+        imports: ['vue', 'vue-router', 'pinia']
       }),
       Components({
-        resolvers: [NaiveUiResolver()],
+        resolvers: [
+          AntDesignVueResolver({
+            importStyle: false
+          }),
+
+          IconsResolver({
+            prefix: 'Icon',
+            customCollections: ['local']
+          })
+        ],
         dts: 'src/types/components.d.ts'
       }),
       createSvgIconsPlugin({
@@ -152,7 +174,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
     css: {
       modules: {
         // 生成的类名格式
-        generateScopedName: '[name]__[local]__[hash:base64:5]',
+        generateScopedName: '[name]-[local]-[hash:base64:6]',
         // 是否驼峰化 CSS 类名
         localsConvention: 'camelCase',
         // 哪些文件需要使用 CSS Modules（默认：/\.module\./）

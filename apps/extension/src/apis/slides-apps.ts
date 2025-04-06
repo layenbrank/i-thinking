@@ -1,5 +1,5 @@
 import { extHttp } from '@/utils/http.ts'
 
-export function GET_SLIDES_APPS() {
-  extHttp.get('/api/slides/apps')
+export function GET_SLIDE_APP() {
+  return extHttp.get('/slide-app')
 }

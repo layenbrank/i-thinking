@@ -1,57 +1,45 @@
 <script setup lang="ts">
-import { createTheme, inputDark, datePickerDark, useOsTheme } from 'naive-ui'
-// locale & dateLocale
-import { zhCN, dateZhCN } from 'naive-ui'
-
-const darkTheme = createTheme([inputDark, datePickerDark])
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
+import enUS from 'ant-design-vue/es/locale/en_US'
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
+dayjs.locale('zh-cn')
+dayjs.locale('en-us')
 
 defineOptions({
   name: 'App'
 })
-const osThemeRef = useOsTheme()
-const theme = computed(() => (osThemeRef.value === 'dark' ? darkTheme : null))
-const osTheme = ref(osThemeRef)
-const loading = ref(false)
+
+const locale = zhCN
+// const locale = enUS
 </script>
 
 <template>
-  <n-config-provider :theme="theme" :locale="zhCN" :date-locale="dateZhCN" class="config-provider">
-    <n-message-provider>
-      <n-dialog-provider>
-        <n-modal-provider>
-          <n-loading-bar-provider>
-            <n-notification-provider>
-              <n-spin :show="loading" class="global-spin-loading">
-                <n-global-style />
-                <router-view />
-              </n-spin>
-            </n-notification-provider>
-          </n-loading-bar-provider>
-        </n-modal-provider>
-      </n-dialog-provider>
-    </n-message-provider>
-  </n-config-provider>
+  <a-config-provider :locale="locale" class="top-floor-config-provider">
+    <a-style-provider hash-priority="low">
+      <a-app class="top-floor-app">
+        <a-spin :spinning="false" tip="Loading..." wrapperClassName="top-floor-spin-wrapper">
+          <router-view />
+        </a-spin>
+      </a-app>
+    </a-style-provider>
+  </a-config-provider>
 </template>
 
 <style lang="scss" scoped>
-%full-screen {
-  width: 100%;
-  height: 100%;
+%screen-full {
+  @apply w-full h-full;
 }
 
-.config-provider {
-  @extend %full-screen;
+.top-floor-app {
+  @extend %screen-full;
+}
 
-  .global-spin-loading {
-    @extend %full-screen;
+.top-floor-spin-wrapper {
+  @extend %screen-full;
 
-    :deep(.n-spin-content) {
-      @extend %full-screen;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
+  & > :deep(.ant-spin-container) {
+    @extend %screen-full;
   }
 }
 </style>

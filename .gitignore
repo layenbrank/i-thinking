@@ -5,12 +5,12 @@ node_modules
 dist
 dist-ssr
 *.local
-.env
+# .env
 .cache
 cache
 server/dist
 public/dist
 
-
-auto-imports.d.ts
-components.d.ts
+pnpm-lock.yaml
+# apps/**/auto-imports.d.ts
+# apps/**/components.d.ts

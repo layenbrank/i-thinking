@@ -1,0 +1,7 @@
+* -crlf -diff -merge
+**/* -crlf -diff -merge
+**/.gitattributes -crlf -diff -merge
+* text=auto eol=lf
+
+# 设置不忽略文件大小写
+* -core.ignorecase=false

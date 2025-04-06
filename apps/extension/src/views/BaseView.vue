@@ -1,15 +1,10 @@
 <script setup lang="ts">
-import { BaseLayout, type BaseLayoutOptions } from '@/layouts/index.ts'
-// import AppController from '@/components/app-controller/app-controller.vue'
-import { GET_SLIDES } from '@/apis/slides'
-
-import slideviewbg from '@/assets/images/slide-view-bg.jpg'
-import { retry } from 'alova/server'
-import { Method } from 'alova'
-import { httpExt } from '@/utils/alova'
-import { useSlidesApps } from '@/hooks/useSlidesApps'
 import { Modal } from 'ant-design-vue'
-// import slideviewbg from '@/assets/images/slide-view-bg.webp'
+
+import { GET_SLIDE_APP } from '@/apis/slides-apps'
+import { BaseLayout, type BaseLayoutOptions } from '@/layouts/index.ts'
+
+import backgroundImage from '@/assets/images/r2e391.png'
 
 const AppController = defineAsyncComponent(
   () => import('@/components/app-controller/app-controller.vue')
@@ -19,17 +14,11 @@ defineOptions({
   name: 'slide-view-1'
 })
 
-const slides = ref<SlidesApps[]>([])
-
-const activeSlide = ref<SlidesApps>()
-
-const componentMap = ref<Record<string, string>>({})
-
 const baseLayout: BaseLayoutOptions = reactive({
   baseLayout: {
     hasSider: true,
     style: {
-      backgroundImage: `url(${slideviewbg})`,
+      backgroundImage: `url(${backgroundImage})`,
       backgroundRepeat: 'no-repeat',
       backgroundSize: 'cover',
       backgroundAttachment: 'fixed',
@@ -50,23 +39,10 @@ const baseLayout: BaseLayoutOptions = reactive({
   baseFooter: {}
 })
 
-const { updateComponentMap } = useSlidesApps()
-
-function updateActiveSlide(slide: SlidesApps) {
-  activeSlide.value = slides.value.find(item => item.id === slide.id)
-}
-
 onMounted(async () => {
-  const response = await GET_SLIDES().send()
-
-  if (response.data) {
-    console.log('GET_SLIDES', response.data)
-    const [slide] = (slides.value = response.data)
-    activeSlide.value = slide
-
-    updateComponentMap(slides, componentMap)
-    console.log('componentMap', componentMap.value)
-  }
+  GET_SLIDE_APP().subscribe(function (response) {
+    console.log('response', response)
+  })
 })
 
 onUnmounted(function () {
@@ -78,36 +54,19 @@ onUnmounted(function () {
   <BaseLayout v-bind="baseLayout">
     <template #sider>
       <a-avatar class="avatar">avatar</a-avatar>
-      <ul class="sider-menu">
-        <li
-          :data-id="slide.id"
-          v-for="slide in slides"
-          :key="slide.id"
-          @click="updateActiveSlide(slide)"
-          :class="[
-            'sider-menu-item',
-            'ghost',
-            {
-              'is-active': activeSlide?.id === slide.id
-            }
-          ]"
-        >
-          <img :src="slide.icon" alt="" class="item-icon" />
-          <span class="item-text">{{ slide.name }}</span>
-        </li>
-      </ul>
+      <ul class="sider-menu"></ul>
     </template>
     <template #header>
       <a-input size="large" :bordered="false" placeholder="Borderless" />
     </template>
     <template #content>
-      <TransitionGroup name="slide-controller-fade">
+      <!-- <TransitionGroup name="slide-controller-fade">
         <template v-for="slide in slides" :key="slide.id">
           <div v-if="activeSlide?.id === slide.id" class="slide-controller">
             <AppController :component-map="componentMap" :slideApps="slide.children" />
           </div>
         </template>
-      </TransitionGroup>
+      </TransitionGroup> -->
     </template>
     <template #footer></template>
   </BaseLayout>

@@ -10,23 +10,40 @@ const AppStore = defineAsyncComponent(() => import('@/components/app-store/index
 import SvgIcon from '@/components/SvgIcon.vue'
 
 import backgroundImage from '@/assets/images/r2e391.png'
+
 import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
 
-enum ContextMenuKeys {
-  添加图标 = 'add-icon',
-  换壁纸 = 'change-wallpaper',
-  设为电脑壁纸 = 'pc-wallpaper',
-  备份到云端 = 'backup-cloud',
-  排序模式 = 'sorting-mode',
-  文件夹模式 = 'folder-mode',
-  布局 = 'layouts',
-  删除 = 'single-delete',
-  批量删除 = 'batch-deletion',
-  设置 = 'settings',
-  编辑 = 'single-edit',
-  新标签页打开 = 'new-tab-open',
-  释放 = 'release'
-}
+// enum ContextMenuKeys {
+//   添加图标 = 'add-icon',
+//   换壁纸 = 'change-wallpaper',
+//   设为电脑壁纸 = 'pc-wallpaper',
+//   备份到云端 = 'backup-cloud',
+//   排序模式 = 'sorting-mode',
+//   文件夹模式 = 'folder-mode',
+//   布局 = 'layouts',
+//   删除 = 'single-delete',
+//   批量删除 = 'batch-deletion',
+//   设置 = 'settings',
+//   编辑 = 'single-edit',
+//   新标签页打开 = 'new-tab-open',
+//   释放 = 'release'
+// }
+
+type ContextMenuKeys =
+  | 'add-icon'
+  | 'change-wallpaper'
+  | 'pc-wallpaper'
+  | 'backup-cloud'
+  | 'sorting-mode'
+  | 'folder-mode'
+  | 'layouts'
+  | 'single-delete'
+  | 'batch-deletion'
+  | 'settings'
+  | 'single-edit'
+  | 'new-tab-open'
+  | 'release'
+
 interface MenuOptions {
   label: string
   key: ContextMenuKeys
@@ -71,7 +88,7 @@ const activeMenuKey = ref<ContextMenuKeys | null>(null)
 
 const appModules: Component[] = [Bookmarks, Notepad, AppStore]
 
-const macLayout: Ref<MacLayoutOptions> = computed(() => ({
+const macLayout = reactive<MacLayoutOptions>({
   macLayout: {
     style: {
       backgroundImage: `url(${backgroundImage})`,
@@ -83,35 +100,33 @@ const macLayout: Ref<MacLayoutOptions> = computed(() => ({
       backgroundPosition: 'center'
     }
   },
-  macContent: {
-    contentClass: 'p-5'
-  }
-}))
+  macContent: {}
+})
 
 const menuOptions = reactive<Array<MenuOptions>>([
   {
     label: '添加图标',
-    key: ContextMenuKeys.添加图标,
+    key: 'add-icon',
     icon: markRaw(Add)
   },
   {
     label: '换壁纸',
-    key: ContextMenuKeys.换壁纸,
+    key: 'change-wallpaper',
     icon: markRaw(Download)
   },
   {
     label: '设为电脑壁纸',
-    key: ContextMenuKeys.设为电脑壁纸,
+    key: 'pc-wallpaper',
     icon: markRaw(Download)
   },
   {
     label: '备份至云端',
-    key: ContextMenuKeys.备份到云端,
+    key: 'backup-cloud',
     icon: markRaw(Cloud)
   },
   {
     label: '设置',
-    key: ContextMenuKeys.设置,
+    key: 'settings',
     icon: markRaw(Settings)
   }
 ])
@@ -134,12 +149,12 @@ function updateActiveKey(value: MenuOptions) {
   activeMenuKey.value = value.key
 
   const contextMenuMap = new Map<ContextMenuKeys, () => void>([
-    [ContextMenuKeys.添加图标, () => {}],
-    [ContextMenuKeys.换壁纸, () => {}],
-    [ContextMenuKeys.设为电脑壁纸, () => {}],
-    [ContextMenuKeys.备份到云端, () => {}],
-    [ContextMenuKeys.排序模式, () => {}],
-    [ContextMenuKeys.设置, () => {}]
+    ['add-icon', () => {}],
+    ['change-wallpaper', () => {}],
+    ['pc-wallpaper', () => {}],
+    ['backup-cloud', () => {}],
+    ['sorting-mode', () => {}],
+    ['settings', () => {}]
   ])
 
   contextMenuMap.get(value.key)?.()
@@ -178,47 +193,51 @@ onUnmounted(function () {
 <template>
   <MacLayout v-bind="macLayout">
     <template #header>
-      <n-button-group>
-        <n-button :bordered="false" ghost strong>
-          <template #icon>
+      <a-button-group>
+        <a-button>
+          a
+          <!-- <template #icon>
             <n-icon size="20">
               <SvgIcon name="AppleFilled"></SvgIcon>
             </n-icon>
-          </template>
-        </n-button>
-        <n-button :bordered="false" ghost strong> 镜像 </n-button>
-        <n-button :bordered="false" ghost strong> 编辑 </n-button>
-        <n-button :bordered="false" ghost strong> 显示 </n-button>
-        <n-button :bordered="false" ghost strong> 窗口 </n-button>
-        <n-button :bordered="false" ghost strong> 帮助 </n-button>
-      </n-button-group>
-      <n-button-group>
-        <n-button :bordered="false" ghost strong>
-          <template #icon>
+          </template> -->
+        </a-button>
+        <a-button> 镜像 </a-button>
+        <a-button> 编辑 </a-button>
+        <a-button> 显示 </a-button>
+        <a-button> 窗口 </a-button>
+        <a-button> 帮助 </a-button>
+      </a-button-group>
+      <a-button-group>
+        <a-button>
+          a
+          <!-- <template #icon>
             <n-icon size="20">
               <SvgIcon name="Wifi"></SvgIcon>
             </n-icon>
-          </template>
-        </n-button>
-        <n-button :bordered="false" ghost strong>
-          <template #icon>
+          </template> -->
+        </a-button>
+        <a-button>
+          a
+          <!-- <template #icon>
             <n-icon size="20">
               <SvgIcon name="BatteryFullOutline"></SvgIcon>
             </n-icon>
-          </template>
-        </n-button>
-        <n-popover placement="bottom" trigger="click" class="popover-input">
+          </template> -->
+        </a-button>
+        <a-popover placement="bottom" trigger="click" class="popover-input">
           <template #trigger>
-            <n-button :bordered="false" ghost strong>
-              <template #icon>
+            <a-button>
+              a
+              <!-- <template #icon>
                 <n-icon size="20">
                   <SvgIcon name="Search"></SvgIcon>
                 </n-icon>
-              </template>
-            </n-button>
+              </template> -->
+            </a-button>
           </template>
           <template #default>
-            <n-input
+            <a-input
               @keydown.enter="updateSearch"
               :model-value="keyword"
               @update-value="updateKeyword"
@@ -226,26 +245,27 @@ onUnmounted(function () {
               placeholder="请输入关键词!"
             />
           </template>
-        </n-popover>
-        <n-button :bordered="false" ghost strong>
-          <template #icon>
+        </a-popover>
+        <a-button>
+          a
+          <!-- <template #icon>
             <n-icon size="20">
               <SvgIcon name="mac-toggle"></SvgIcon>
             </n-icon>
-          </template>
-        </n-button>
-        <n-button :bordered="false" ghost strong class="date-time">
+          </template> -->
+        </a-button>
+        <a-button class="date-time">
           <span>{{ date }}</span>
           <span>{{ week }}</span>
           <span>{{ time }}</span>
-        </n-button>
-      </n-button-group>
+        </a-button>
+      </a-button-group>
     </template>
     <template #content>
       <div ref="contextMenuRef" class="app-controller">
-        <template v-for="appModule in appModules" :key="appModule.name">
+        <!-- <template v-for="appModule in appModules" :key="appModule.name">
           <component :is="appModule" />
-        </template>
+        </template> -->
       </div>
       <Teleport to="body">
         <ul v-resize="handleResize" class="globalMenu context-menu" @contextmenu.prevent>
