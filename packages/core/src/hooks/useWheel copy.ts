@@ -1,16 +1,16 @@
-import { computed, ref, type Ref } from 'vue'
-import { useEventListener } from '@vueuse/core'
-import type { MaybeRefOrGetter } from '@vueuse/shared'
+import { computed, ref, type Ref } from "vue";
+import { useEventListener } from "@vueuse/core";
+import type { MaybeRefOrGetter } from "@vueuse/shared";
 
 export interface WheelState {
-  deltaX: number
-  deltaY: number
-  deltaZ: number
-  deltaMode: number
+  deltaX: number;
+  deltaY: number;
+  deltaZ: number;
+  deltaMode: number;
   // 累计滚动距离
-  totalX: number
-  totalY: number
-  totalZ: number
+  totalX: number;
+  totalY: number;
+  totalZ: number;
 }
 
 /**
@@ -56,42 +56,47 @@ export interface WheelState {
  * ```
  */
 export interface UseWheelOptions {
-  target?: MaybeRefOrGetter<Window | EventTarget | null | undefined>
-  preventDefault?: boolean
+  target?: MaybeRefOrGetter<Window | EventTarget | null | undefined>;
+  preventDefault?: boolean;
   /**
    * 滚动步长
    * @default 100
    */
-  step?: number
+  step?: number;
   /**
    * 滚轮事件回调
    * @param event - 原始滚轮事件对象
    * @param state - 当前滚轮状态
    * @returns 返回false时不更新累计值
    */
-  onWheel?: (event: WheelEvent, state: WheelState) => boolean | void
+  onWheel?: (event: WheelEvent, state: WheelState) => boolean | void;
 }
 
 export function useWheel(options: UseWheelOptions = {}) {
-  const { target = window, preventDefault = false, onWheel, step = 100 } = options
+  const {
+    target = window,
+    preventDefault = false,
+    onWheel,
+    step = 100,
+  } = options;
 
-  const deltaX = ref(0)
-  const deltaY = ref(0)
-  const deltaZ = ref(0)
-  const deltaMode = ref(0)
+  const deltaX = ref(0);
+  const deltaY = ref(0);
+  const deltaZ = ref(0);
+  const deltaMode = ref(0);
   // 添加累计距离的ref
-  const totalX = ref(0)
-  const totalY = ref(0)
-  const totalZ = ref(0)
+  const totalX = ref(0);
+  const totalY = ref(0);
+  const totalZ = ref(0);
 
   const handler = (event: WheelEvent) => {
-    if (preventDefault) event.preventDefault()
+    if (preventDefault) event.preventDefault();
 
     // 标准化 delta 值
-    deltaX.value = Math.sign(event.deltaX) * step
-    deltaY.value = Math.sign(event.deltaY) * step
-    deltaZ.value = Math.sign(event.deltaZ) * step
-    deltaMode.value = event.deltaMode
+    deltaX.value = Math.sign(event.deltaX) * step;
+    deltaY.value = Math.sign(event.deltaY) * step;
+    deltaZ.value = Math.sign(event.deltaZ) * step;
+    deltaMode.value = event.deltaMode;
 
     const state: WheelState = {
       deltaX: deltaX.value,
@@ -100,20 +105,20 @@ export function useWheel(options: UseWheelOptions = {}) {
       deltaMode: deltaMode.value,
       totalX: totalX.value,
       totalY: totalY.value,
-      totalZ: totalZ.value
-    }
+      totalZ: totalZ.value,
+    };
 
-    const shouldUpdate = onWheel?.(event, state)
+    const shouldUpdate = onWheel?.(event, state);
     if (shouldUpdate !== false) {
-      totalX.value += deltaX.value
-      totalY.value += deltaY.value
-      totalZ.value += deltaZ.value
+      totalX.value += deltaX.value;
+      totalY.value += deltaY.value;
+      totalZ.value += deltaZ.value;
     }
-  }
+  };
 
-  useEventListener(target, 'wheel', handler, {
-    passive: !preventDefault
-  })
+  useEventListener(target, "wheel", handler, {
+    passive: !preventDefault,
+  });
 
   return {
     // 当前滚动值
@@ -124,6 +129,6 @@ export function useWheel(options: UseWheelOptions = {}) {
     // 累计滚动值
     totalX: computed(() => totalX.value),
     totalY: computed(() => totalY.value),
-    totalZ: computed(() => totalZ.value)
-  }
+    totalZ: computed(() => totalZ.value),
+  };
 }

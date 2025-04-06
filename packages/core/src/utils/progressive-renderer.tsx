@@ -14,19 +14,19 @@ import {
   type ComponentPublicInstance,
   watch,
   createApp,
-  onMounted
-} from 'vue'
+  onMounted,
+} from "vue";
 
 /**
  * 渲染优先级
  */
 export enum RenderPriority {
   /** 高优先级 - 立即渲染 */
-  HIGH = 'high',
+  HIGH = "high",
   /** 中优先级 - 在requestAnimationFrame中渲染 */
-  MEDIUM = 'medium',
+  MEDIUM = "medium",
   /** 低优先级 - 在requestIdleCallback中渲染 */
-  LOW = 'low'
+  LOW = "low",
 }
 
 /**
@@ -38,13 +38,13 @@ export interface RenderStrategy {
    * @param task 渲染任务
    * @param callback 渲染回调
    */
-  execute(task: RenderTask, callback: () => void): void
+  execute(task: RenderTask, callback: () => void): void;
 
   /**
    * 取消渲染
    * @param task 渲染任务
    */
-  cancel(task: RenderTask): void
+  cancel(task: RenderTask): void;
 }
 
 /**
@@ -52,7 +52,7 @@ export interface RenderStrategy {
  */
 class ImmediateRenderStrategy implements RenderStrategy {
   execute(task: RenderTask, callback: () => void): void {
-    callback()
+    callback();
   }
 
   cancel(): void {
@@ -64,19 +64,19 @@ class ImmediateRenderStrategy implements RenderStrategy {
  * 动画帧渲染策略
  */
 class AnimationFrameRenderStrategy implements RenderStrategy {
-  private frameId: number | null = null
+  private frameId: number | null = null;
 
   execute(_: RenderTask, callback: () => void): void {
     this.frameId = requestAnimationFrame(() => {
-      this.frameId = null
-      callback()
-    })
+      this.frameId = null;
+      callback();
+    });
   }
 
   cancel(): void {
     if (this.frameId !== null) {
-      cancelAnimationFrame(this.frameId)
-      this.frameId = null
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
     }
   }
 }
@@ -85,8 +85,8 @@ class AnimationFrameRenderStrategy implements RenderStrategy {
  * IdleDeadline 接口定义
  */
 interface IdleDeadline {
-  timeRemaining: () => number
-  didTimeout: boolean
+  timeRemaining: () => number;
+  didTimeout: boolean;
 }
 
 /**
@@ -94,76 +94,78 @@ interface IdleDeadline {
  */
 type RequestIdleCallback = (
   callback: (deadline: IdleDeadline) => void,
-  options?: { timeout: number }
-) => number
+  options?: { timeout: number },
+) => number;
 
-type CancelIdleCallback = (handle: number) => void
+type CancelIdleCallback = (handle: number) => void;
 
 /**
  * 空闲时间渲染策略
  */
 class IdleCallbackRenderStrategy implements RenderStrategy {
-  private idleId: number | null = null
-  private timeoutId: number | null = null
+  private idleId: number | null = null;
+  private timeoutId: number | null = null;
   private readonly hasIdleCallback =
-    typeof window !== 'undefined' &&
-    'requestIdleCallback' in window &&
-    'cancelIdleCallback' in window
+    typeof window !== "undefined" &&
+    "requestIdleCallback" in window &&
+    "cancelIdleCallback" in window;
 
   execute(task: RenderTask, callback: () => void): void {
     // 清除之前的回调（如果存在）
-    this.cancel()
+    this.cancel();
 
     if (this.hasIdleCallback) {
       try {
-        const requestIdleCallback = window.requestIdleCallback as RequestIdleCallback
+        const requestIdleCallback =
+          window.requestIdleCallback as RequestIdleCallback;
 
         this.idleId = requestIdleCallback(
           (deadline: IdleDeadline) => {
-            this.idleId = null
+            this.idleId = null;
 
             // 如果有足够的空闲时间或已超时，则执行回调
             if (deadline.timeRemaining() > 0 || deadline.didTimeout) {
-              callback()
+              callback();
             } else {
               // 如果没有足够的空闲时间，则重新调度
-              this.execute(task, callback)
+              this.execute(task, callback);
             }
           },
-          { timeout: 500 } // 设置超时，确保最终会执行
-        )
+          { timeout: 500 }, // 设置超时，确保最终会执行
+        );
       } catch (error) {
-        console.error('Error in requestIdleCallback:', error)
+        console.error("Error in requestIdleCallback:", error);
         // 降级为setTimeout
-        this.fallbackToTimeout(callback)
+        this.fallbackToTimeout(callback);
       }
     } else {
       // 降级为setTimeout
-      this.fallbackToTimeout(callback)
+      this.fallbackToTimeout(callback);
     }
   }
 
   private fallbackToTimeout(callback: () => void): void {
     this.timeoutId = window.setTimeout(() => {
-      this.timeoutId = null
-      callback()
-    }, 100)
+      this.timeoutId = null;
+      callback();
+    }, 100);
   }
 
   cancel(): void {
     if (this.idleId !== null && this.hasIdleCallback) {
       try {
-        const cancelIdleCallback = window.cancelIdleCallback as CancelIdleCallback
-        cancelIdleCallback(this.idleId)
+        const cancelIdleCallback =
+          window.cancelIdleCallback as CancelIdleCallback;
+        cancelIdleCallback(this.idleId);
       } catch (error) {
-        console.error('Error in cancelIdleCallback:', error)
+        console.error("Error in cancelIdleCallback:", error);
       }
-      this.idleId = null
+      this.idleId = null;
     }
 
     if (this.timeoutId !== null) {
-      clearTimeout(this.timeoutId)
-      this.timeoutId = null
+      clearTimeout(this.timeoutId);
+      this.timeoutId = null;
     }
   }
 }
@@ -175,8 +177,8 @@ export class RenderStrategyFactory {
   private static strategies: Record<RenderPriority, RenderStrategy> = {
     [RenderPriority.HIGH]: new ImmediateRenderStrategy(),
     [RenderPriority.MEDIUM]: new AnimationFrameRenderStrategy(),
-    [RenderPriority.LOW]: new IdleCallbackRenderStrategy()
-  }
+    [RenderPriority.LOW]: new IdleCallbackRenderStrategy(),
+  };
 
   /**
    * 获取渲染策略
@@ -184,7 +186,7 @@ export class RenderStrategyFactory {
    * @returns 渲染策略
    */
   static getStrategy(priority: RenderPriority): RenderStrategy {
-    return this.strategies[priority]
+    return this.strategies[priority];
   }
 
   /**
@@ -192,8 +194,11 @@ export class RenderStrategyFactory {
    * @param priority 渲染优先级
    * @param strategy 渲染策略
    */
-  static registerStrategy(priority: RenderPriority, strategy: RenderStrategy): void {
-    this.strategies[priority] = strategy
+  static registerStrategy(
+    priority: RenderPriority,
+    strategy: RenderStrategy,
+  ): void {
+    this.strategies[priority] = strategy;
   }
 }
 
@@ -202,28 +207,30 @@ export class RenderStrategyFactory {
  */
 export interface ProgressiveRenderConfig {
   /** 渲染优先级 */
-  priority?: RenderPriority
+  priority?: RenderPriority;
   /** 每批渲染的组件数量 */
-  batchSize?: number
+  batchSize?: number;
   /** 批次间隔时间(ms) */
-  batchInterval?: number
+  batchInterval?: number;
   /** 是否显示加载占位符 */
-  showPlaceholder?: boolean
+  showPlaceholder?: boolean;
   /** 自定义加载占位符组件 */
-  placeholderComponent?: Component
+  placeholderComponent?: Component;
   /** 渲染完成回调 */
-  onComplete?: () => void
+  onComplete?: () => void;
   /** 每批渲染完成回调 */
-  onBatchComplete?: (renderedCount: number, totalCount: number) => void
+  onBatchComplete?: (renderedCount: number, totalCount: number) => void;
   /** 自定义渲染策略 */
-  renderStrategy?: RenderStrategy
+  renderStrategy?: RenderStrategy;
 }
 
 /**
  * 默认配置
  */
-const DEFAULT_CONFIG: Required<Omit<ProgressiveRenderConfig, 'renderStrategy'>> & {
-  renderStrategy: RenderStrategy | undefined
+const DEFAULT_CONFIG: Required<
+  Omit<ProgressiveRenderConfig, "renderStrategy">
+> & {
+  renderStrategy: RenderStrategy | undefined;
 } = {
   priority: RenderPriority.MEDIUM,
   batchSize: 5,
@@ -231,70 +238,80 @@ const DEFAULT_CONFIG: Required<Omit<ProgressiveRenderConfig, 'renderStrategy'>> 
   showPlaceholder: true,
   placeholderComponent: defineComponent({
     render() {
-      return <div class="progressive-renderer-placeholder">加载中...</div>
-    }
+      return <div class="progressive-renderer-placeholder">加载中...</div>;
+    },
   }),
   onComplete: () => {},
   onBatchComplete: () => {},
-  renderStrategy: undefined // 将在运行时根据priority设置
-}
+  renderStrategy: undefined, // 将在运行时根据priority设置
+};
 
 /**
  * 获取合并后的配置
  * @param config 用户配置
  * @returns 合并后的配置
  */
-function getMergedConfig(config: ProgressiveRenderConfig = {}): Required<ProgressiveRenderConfig> {
-  const mergedConfig = { ...DEFAULT_CONFIG, ...config } as Required<ProgressiveRenderConfig>
+function getMergedConfig(
+  config: ProgressiveRenderConfig = {},
+): Required<ProgressiveRenderConfig> {
+  const mergedConfig = {
+    ...DEFAULT_CONFIG,
+    ...config,
+  } as Required<ProgressiveRenderConfig>;
 
   // 如果没有指定渲染策略，则根据优先级获取
   if (!mergedConfig.renderStrategy) {
-    mergedConfig.renderStrategy = RenderStrategyFactory.getStrategy(mergedConfig.priority)
+    mergedConfig.renderStrategy = RenderStrategyFactory.getStrategy(
+      mergedConfig.priority,
+    );
   }
 
-  return mergedConfig
+  return mergedConfig;
 }
 
 /**
  * 渲染任务
  */
 interface RenderTask<
-  T extends Required<ProgressiveRenderConfig> = Required<ProgressiveRenderConfig>
+  T extends
+    Required<ProgressiveRenderConfig> = Required<ProgressiveRenderConfig>,
 > {
-  id: string
-  components: VNode[] | (() => VNode[])
-  config: T
-  renderedCount: Ref<number>
-  isComplete: Ref<boolean>
-  totalCount: number
-  timeoutId?: number
+  id: string;
+  components: VNode[] | (() => VNode[]);
+  config: T;
+  renderedCount: Ref<number>;
+  isComplete: Ref<boolean>;
+  totalCount: number;
+  timeoutId?: number;
 }
 
 /**
  * 任务管理器
  */
 export class TaskManager {
-  private static instance: TaskManager
-  private tasks: Map<string, RenderTask<any>> = new Map()
-  private isProcessorStarted = false
+  private static instance: TaskManager;
+  private tasks: Map<string, RenderTask<any>> = new Map();
+  private isProcessorStarted = false;
 
   /**
    * 获取任务管理器实例
    */
   static getInstance(): TaskManager {
     if (!TaskManager.instance) {
-      TaskManager.instance = new TaskManager()
+      TaskManager.instance = new TaskManager();
     }
-    return TaskManager.instance
+    return TaskManager.instance;
   }
 
   /**
    * 添加任务
    * @param task 渲染任务
    */
-  addTask<T extends Required<ProgressiveRenderConfig>>(task: RenderTask<T>): void {
-    this.tasks.set(task.id, task)
-    this.startTaskProcessor()
+  addTask<T extends Required<ProgressiveRenderConfig>>(
+    task: RenderTask<T>,
+  ): void {
+    this.tasks.set(task.id, task);
+    this.startTaskProcessor();
   }
 
   /**
@@ -302,30 +319,32 @@ export class TaskManager {
    * @param taskId 任务ID
    */
   removeTask(taskId: string): void {
-    const task = this.tasks.get(taskId)
+    const task = this.tasks.get(taskId);
     if (task && task.timeoutId) {
-      clearTimeout(task.timeoutId)
+      clearTimeout(task.timeoutId);
     }
-    this.tasks.delete(taskId)
+    this.tasks.delete(taskId);
   }
 
   /**
    * 获取任务
    * @param taskId 任务ID
    */
-  getTask<T extends Required<ProgressiveRenderConfig>>(taskId: string): RenderTask<T> | undefined {
-    return this.tasks.get(taskId) as RenderTask<T> | undefined
+  getTask<T extends Required<ProgressiveRenderConfig>>(
+    taskId: string,
+  ): RenderTask<T> | undefined {
+    return this.tasks.get(taskId) as RenderTask<T> | undefined;
   }
 
   /**
    * 启动任务处理器
    */
   private startTaskProcessor(): void {
-    if (this.isProcessorStarted) return
-    this.isProcessorStarted = true
+    if (this.isProcessorStarted) return;
+    this.isProcessorStarted = true;
 
     // 处理所有任务
-    this.processTasks()
+    this.processTasks();
   }
 
   /**
@@ -335,55 +354,61 @@ export class TaskManager {
     // 按优先级顺序处理任务（高 -> 中 -> 低）
     // 确保高优先级任务先执行完毕
     const highPriorityTasks = Array.from(this.tasks.values()).filter(
-      task => task.config.priority === RenderPriority.HIGH && !task.isComplete.value
-    )
+      (task) =>
+        task.config.priority === RenderPriority.HIGH && !task.isComplete.value,
+    );
 
     if (highPriorityTasks.length > 0) {
-      highPriorityTasks.forEach(task => this.renderNextBatch(task))
+      highPriorityTasks.forEach((task) => this.renderNextBatch(task));
       // 如果有高优先级任务，先处理完再继续
-      if (highPriorityTasks.some(task => !task.isComplete.value)) {
+      if (highPriorityTasks.some((task) => !task.isComplete.value)) {
         // 安排下一次处理
-        setTimeout(() => this.processTasks(), 16)
-        return
+        setTimeout(() => this.processTasks(), 16);
+        return;
       }
     }
 
     // 处理中优先级任务
     const mediumPriorityTasks = Array.from(this.tasks.values()).filter(
-      task => task.config.priority === RenderPriority.MEDIUM && !task.isComplete.value
-    )
+      (task) =>
+        task.config.priority === RenderPriority.MEDIUM &&
+        !task.isComplete.value,
+    );
 
     if (mediumPriorityTasks.length > 0) {
-      mediumPriorityTasks.forEach(task => this.renderNextBatch(task))
+      mediumPriorityTasks.forEach((task) => this.renderNextBatch(task));
       // 如果有中优先级任务，先处理完再继续
-      if (mediumPriorityTasks.some(task => !task.isComplete.value)) {
+      if (mediumPriorityTasks.some((task) => !task.isComplete.value)) {
         // 安排下一次处理
-        setTimeout(() => this.processTasks(), 16)
-        return
+        setTimeout(() => this.processTasks(), 16);
+        return;
       }
     }
 
     // 处理低优先级任务
     const lowPriorityTasks = Array.from(this.tasks.values()).filter(
-      task => task.config.priority === RenderPriority.LOW && !task.isComplete.value
-    )
+      (task) =>
+        task.config.priority === RenderPriority.LOW && !task.isComplete.value,
+    );
 
     if (lowPriorityTasks.length > 0) {
-      lowPriorityTasks.forEach(task => this.renderNextBatch(task))
+      lowPriorityTasks.forEach((task) => this.renderNextBatch(task));
       // 如果有低优先级任务，安排下一次处理
-      if (lowPriorityTasks.some(task => !task.isComplete.value)) {
-        setTimeout(() => this.processTasks(), 16)
+      if (lowPriorityTasks.some((task) => !task.isComplete.value)) {
+        setTimeout(() => this.processTasks(), 16);
       }
     }
 
     // 检查是否所有任务都已完成
-    const hasIncompleteTasks = Array.from(this.tasks.values()).some(task => !task.isComplete.value)
+    const hasIncompleteTasks = Array.from(this.tasks.values()).some(
+      (task) => !task.isComplete.value,
+    );
 
     // 如果还有未完成的任务，继续处理
     if (hasIncompleteTasks) {
-      this.isProcessorStarted = true
+      this.isProcessorStarted = true;
     } else {
-      this.isProcessorStarted = false
+      this.isProcessorStarted = false;
     }
   }
 
@@ -392,65 +417,69 @@ export class TaskManager {
    * @param task 渲染任务
    */
   private renderNextBatch(task: RenderTask): void {
-    if (task.isComplete.value) return
+    if (task.isComplete.value) return;
 
     // 清除之前的超时计时器（如果存在）
     if (task.timeoutId) {
-      clearTimeout(task.timeoutId)
-      task.timeoutId = undefined
+      clearTimeout(task.timeoutId);
+      task.timeoutId = undefined;
     }
 
     const strategy =
-      task.config.renderStrategy || RenderStrategyFactory.getStrategy(task.config.priority)
+      task.config.renderStrategy ||
+      RenderStrategyFactory.getStrategy(task.config.priority);
 
     try {
       strategy.execute(task, () => {
         const nextCount = Math.min(
           task.renderedCount.value + task.config.batchSize,
-          task.totalCount
-        )
+          task.totalCount,
+        );
 
         if (task.renderedCount.value < nextCount) {
           // 更新已渲染数量
-          task.renderedCount.value = nextCount
+          task.renderedCount.value = nextCount;
 
           // 触发批次完成回调
           try {
-            task.config.onBatchComplete(task.renderedCount.value, task.totalCount)
+            task.config.onBatchComplete(
+              task.renderedCount.value,
+              task.totalCount,
+            );
           } catch (error) {
-            console.error('Error in onBatchComplete callback:', error)
+            console.error("Error in onBatchComplete callback:", error);
           }
 
           if (task.renderedCount.value >= task.totalCount) {
             // 任务完成
-            task.isComplete.value = true
+            task.isComplete.value = true;
 
             // 触发完成回调
             try {
-              task.config.onComplete()
+              task.config.onComplete();
             } catch (error) {
-              console.error('Error in onComplete callback:', error)
+              console.error("Error in onComplete callback:", error);
             }
           } else {
             // 安排下一批渲染
             task.timeoutId = window.setTimeout(() => {
-              this.renderNextBatch(task)
-            }, task.config.batchInterval)
+              this.renderNextBatch(task);
+            }, task.config.batchInterval);
           }
         }
-      })
+      });
     } catch (error) {
-      console.error('Error executing render strategy:', error)
+      console.error("Error executing render strategy:", error);
 
       // 出错时，尝试使用立即渲染策略作为降级方案
       if (task.config.priority !== RenderPriority.HIGH) {
-        console.warn('Falling back to immediate render strategy due to error')
-        task.config.priority = RenderPriority.HIGH
-        this.renderNextBatch(task)
+        console.warn("Falling back to immediate render strategy due to error");
+        task.config.priority = RenderPriority.HIGH;
+        this.renderNextBatch(task);
       } else {
         // 如果已经是高优先级但仍然失败，标记为完成以避免无限循环
-        task.isComplete.value = true
-        console.error('Failed to render task even with high priority strategy')
+        task.isComplete.value = true;
+        console.error("Failed to render task even with high priority strategy");
       }
     }
   }
@@ -460,7 +489,10 @@ export class TaskManager {
  * 生成唯一ID
  */
 function generateId(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  return (
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15)
+  );
 }
 
 /**
@@ -471,49 +503,54 @@ function generateId(): string {
  */
 export function createProgressiveRenderer(
   components: VNode[] | (() => VNode[]),
-  config: ProgressiveRenderConfig = {}
+  config: ProgressiveRenderConfig = {},
 ): Component {
-  const mergedConfig = getMergedConfig(config)
+  const mergedConfig = getMergedConfig(config);
 
-  const renderedCount = ref(0)
-  const isComplete = ref(false)
+  const renderedCount = ref(0);
+  const isComplete = ref(false);
 
   // 计算组件总数
-  const getComponents = typeof components === 'function' ? components : () => components
-  const totalCount = typeof components === 'function' ? 0 : components.length
+  const getComponents =
+    typeof components === "function" ? components : () => components;
+  const totalCount = typeof components === "function" ? 0 : components.length;
 
-  const taskId = generateId()
+  const taskId = generateId();
   const task: RenderTask = {
     id: taskId,
     components,
     config: mergedConfig,
     renderedCount,
     isComplete,
-    totalCount
-  }
+    totalCount,
+  };
 
   // 返回包装后的组件
   return defineComponent({
-    name: 'ProgressiveRenderer',
+    name: "ProgressiveRenderer",
     setup() {
       // 如果是函数，则在setup中调用以获取实际组件
-      if (typeof components === 'function') {
-        const resolvedComponents = getComponents()
-        task.totalCount = resolvedComponents.length
+      if (typeof components === "function") {
+        const resolvedComponents = getComponents();
+        task.totalCount = resolvedComponents.length;
       }
 
       // 添加到任务管理器
-      TaskManager.getInstance().addTask(task)
+      TaskManager.getInstance().addTask(task);
 
       // 组件卸载时清理任务
       onBeforeUnmount(() => {
-        TaskManager.getInstance().removeTask(taskId)
-      })
+        TaskManager.getInstance().removeTask(taskId);
+      });
 
       return () => {
-        const currentComponents = typeof components === 'function' ? getComponents() : components
+        const currentComponents =
+          typeof components === "function" ? getComponents() : components;
 
-        const visibleComponents = currentComponents.slice(0, renderedCount.value)
+        const visibleComponents = currentComponents.slice(
+          0,
+          renderedCount.value,
+        );
 
         return (
           <div class="progressive-renderer">
@@ -524,10 +561,10 @@ export function createProgressiveRenderer(
               </div>
             )}
           </div>
-        )
-      }
-    }
-  })
+        );
+      };
+    },
+  });
 }
 
 /**
@@ -540,37 +577,40 @@ export function createProgressiveRenderer(
 export function createTimeSliceRenderer(
   renderFunction: (renderedCount: number, totalItems: number) => VNode[],
   totalItems: number,
-  config: ProgressiveRenderConfig = {}
+  config: ProgressiveRenderConfig = {},
 ): Component {
-  const mergedConfig = getMergedConfig(config)
+  const mergedConfig = getMergedConfig(config);
 
-  const renderedCount = ref(0)
-  const isComplete = ref(false)
+  const renderedCount = ref(0);
+  const isComplete = ref(false);
 
-  const taskId = generateId()
+  const taskId = generateId();
   const task: RenderTask = {
     id: taskId,
     components: () => renderFunction(renderedCount.value, totalItems),
     config: mergedConfig,
     renderedCount,
     isComplete,
-    totalCount: totalItems
-  }
+    totalCount: totalItems,
+  };
 
   // 返回包装后的组件
   return defineComponent({
-    name: 'TimeSliceRenderer',
+    name: "TimeSliceRenderer",
     setup() {
       // 添加到任务管理器
-      TaskManager.getInstance().addTask(task)
+      TaskManager.getInstance().addTask(task);
 
       // 组件卸载时清理任务
       onBeforeUnmount(() => {
-        TaskManager.getInstance().removeTask(taskId)
-      })
+        TaskManager.getInstance().removeTask(taskId);
+      });
 
       return () => {
-        const visibleComponents = renderFunction(renderedCount.value, totalItems)
+        const visibleComponents = renderFunction(
+          renderedCount.value,
+          totalItems,
+        );
 
         return (
           <div class="time-slice-renderer">
@@ -581,22 +621,23 @@ export function createTimeSliceRenderer(
               </div>
             )}
           </div>
-        )
-      }
-    }
-  })
+        );
+      };
+    },
+  });
 }
 
 /**
  * 虚拟列表渲染器配置
  */
-export interface VirtualProgressiveRenderConfig extends ProgressiveRenderConfig {
+export interface VirtualProgressiveRenderConfig
+  extends ProgressiveRenderConfig {
   /** 每项高度(px) */
-  itemHeight?: number
+  itemHeight?: number;
   /** 容器高度(px) */
-  containerHeight?: number
+  containerHeight?: number;
   /** 可视区域外预渲染的项目数量 */
-  overscan?: number
+  overscan?: number;
 }
 
 /**
@@ -605,16 +646,16 @@ export interface VirtualProgressiveRenderConfig extends ProgressiveRenderConfig 
  * @returns 合并后的配置
  */
 function getMergedVirtualConfig(
-  config: VirtualProgressiveRenderConfig = {}
+  config: VirtualProgressiveRenderConfig = {},
 ): Required<VirtualProgressiveRenderConfig> {
-  const baseConfig = getMergedConfig(config)
+  const baseConfig = getMergedConfig(config);
 
   return {
     ...baseConfig,
     itemHeight: config.itemHeight ?? 50,
     containerHeight: config.containerHeight ?? 500,
-    overscan: config.overscan ?? 5
-  }
+    overscan: config.overscan ?? 5,
+  };
 }
 
 /**
@@ -628,89 +669,94 @@ function getMergedVirtualConfig(
 export function createVirtualProgressiveRenderer<T>(
   items: T[],
   itemRenderer: (item: T, index: number) => VNode,
-  config: VirtualProgressiveRenderConfig = {}
+  config: VirtualProgressiveRenderConfig = {},
 ): Component {
   // 返回包装后的组件
   return defineComponent({
-    name: 'VirtualProgressiveRenderer',
+    name: "VirtualProgressiveRenderer",
     setup() {
-      const mergedConfig = getMergedVirtualConfig(config)
+      const mergedConfig = getMergedVirtualConfig(config);
 
-      const renderedCount = ref(0)
-      const isComplete = ref(false)
-      const scrollTop = ref(0)
-      const containerRef = ref<HTMLElement | null>(null)
-      const visibleItemsCount = ref(0)
+      const renderedCount = ref(0);
+      const isComplete = ref(false);
+      const scrollTop = ref(0);
+      const containerRef = ref<HTMLElement | null>(null);
+      const visibleItemsCount = ref(0);
 
-      const taskId = generateId()
+      const taskId = generateId();
       const task: RenderTask<Required<VirtualProgressiveRenderConfig>> = {
         id: taskId,
         components: () =>
-          items.slice(0, renderedCount.value).map((item, index) => itemRenderer(item, index)),
+          items
+            .slice(0, renderedCount.value)
+            .map((item, index) => itemRenderer(item, index)),
         config: mergedConfig,
         renderedCount,
         isComplete,
-        totalCount: items.length
-      }
+        totalCount: items.length,
+      };
 
       // 添加到任务管理器
-      TaskManager.getInstance().addTask(task)
+      TaskManager.getInstance().addTask(task);
 
       // 组件卸载时清理任务
       onBeforeUnmount(() => {
-        TaskManager.getInstance().removeTask(taskId)
-      })
+        TaskManager.getInstance().removeTask(taskId);
+      });
 
       // 计算可见区域的起始和结束索引
       const getVisibleRange = () => {
         if (!containerRef.value) {
-          return { start: 0, end: Math.min(20, renderedCount.value) }
+          return { start: 0, end: Math.min(20, renderedCount.value) };
         }
 
         const start = Math.max(
           0,
-          Math.floor(scrollTop.value / mergedConfig.itemHeight) - mergedConfig.overscan
-        )
+          Math.floor(scrollTop.value / mergedConfig.itemHeight) -
+            mergedConfig.overscan,
+        );
         const visibleCount =
           Math.ceil(mergedConfig.containerHeight / mergedConfig.itemHeight) +
-          mergedConfig.overscan * 2
+          mergedConfig.overscan * 2;
 
         // 确保不超过已渲染的数量
-        const end = Math.min(start + visibleCount, renderedCount.value)
+        const end = Math.min(start + visibleCount, renderedCount.value);
 
         // 更新可见项目数量（用于调试）
-        visibleItemsCount.value = end - start
+        visibleItemsCount.value = end - start;
 
         return {
           start,
-          end
-        }
-      }
+          end,
+        };
+      };
 
       // 处理滚动事件
       const handleScroll = (event: Event) => {
-        const target = event.target as HTMLElement
-        scrollTop.value = target.scrollTop
-      }
+        const target = event.target as HTMLElement;
+        scrollTop.value = target.scrollTop;
+      };
 
       // 在组件挂载后获取容器引用
       onMounted(() => {
         nextTick(() => {
-          const container = document.querySelector('.virtual-progressive-renderer') as HTMLElement
+          const container = document.querySelector(
+            ".virtual-progressive-renderer",
+          ) as HTMLElement;
           if (container) {
-            containerRef.value = container
-            console.log('虚拟列表容器已挂载', {
+            containerRef.value = container;
+            console.log("虚拟列表容器已挂载", {
               height: mergedConfig.containerHeight,
               itemHeight: mergedConfig.itemHeight,
               overscan: mergedConfig.overscan,
-              totalItems: items.length
-            })
+              totalItems: items.length,
+            });
           }
-        })
-      })
+        });
+      });
 
       return () => {
-        const { start, end } = getVisibleRange()
+        const { start, end } = getVisibleRange();
 
         // 只渲染可见区域的项目
         const visibleItems = items.slice(start, end).map((item, index) => {
@@ -718,28 +764,28 @@ export function createVirtualProgressiveRenderer<T>(
             <div
               key={`item-${start + index}`}
               style={{
-                position: 'absolute',
+                position: "absolute",
                 top: `${(start + index) * mergedConfig.itemHeight}px`,
                 height: `${mergedConfig.itemHeight}px`,
-                width: '100%'
+                width: "100%",
               }}
             >
               {itemRenderer(item, start + index)}
             </div>
-          )
-        })
+          );
+        });
 
         // 计算内容容器的总高度
         // 使用已渲染的项目数量而不是总项目数量
-        const contentHeight = renderedCount.value * mergedConfig.itemHeight
+        const contentHeight = renderedCount.value * mergedConfig.itemHeight;
 
         return (
           <div
             class="virtual-progressive-renderer"
             style={{
               height: `${mergedConfig.containerHeight}px`,
-              overflow: 'auto',
-              position: 'relative'
+              overflow: "auto",
+              position: "relative",
             }}
             onScroll={handleScroll}
           >
@@ -747,16 +793,16 @@ export function createVirtualProgressiveRenderer<T>(
             <div
               style={{
                 height: `${contentHeight}px`,
-                position: 'relative'
+                position: "relative",
               }}
             >
               {visibleItems}
               {!isComplete.value && mergedConfig.showPlaceholder && (
                 <div
                   style={{
-                    position: 'absolute',
+                    position: "absolute",
                     top: `${contentHeight}px`,
-                    width: '100%'
+                    width: "100%",
                   }}
                 >
                   {h(mergedConfig.placeholderComponent)}
@@ -764,35 +810,37 @@ export function createVirtualProgressiveRenderer<T>(
               )}
             </div>
             {/* 调试信息 */}
-            {import.meta.env?.MODE !== 'production' && (
+            {import.meta.env?.MODE !== "production" && (
               <div
                 style={{
-                  position: 'absolute',
-                  bottom: '0',
-                  right: '0',
-                  background: 'rgba(0,0,0,0.5)',
-                  color: 'white',
-                  padding: '4px',
-                  fontSize: '12px',
-                  borderRadius: '4px 0 0 0'
+                  position: "absolute",
+                  bottom: "0",
+                  right: "0",
+                  background: "rgba(0,0,0,0.5)",
+                  color: "white",
+                  padding: "4px",
+                  fontSize: "12px",
+                  borderRadius: "4px 0 0 0",
                 }}
               >
-                已渲染: {renderedCount.value}/{items.length} | 可见: {visibleItemsCount.value} |
-                滚动位置: {scrollTop.value}
+                已渲染: {renderedCount.value}/{items.length} | 可见:{" "}
+                {visibleItemsCount.value} | 滚动位置: {scrollTop.value}
               </div>
             )}
           </div>
-        )
-      }
-    }
-  })
+        );
+      };
+    },
+  });
 }
 
 /**
  * 全局配置
  */
-export function configureProgressiveRenderer(globalConfig: Partial<ProgressiveRenderConfig>): void {
-  Object.assign(DEFAULT_CONFIG, globalConfig)
+export function configureProgressiveRenderer(
+  globalConfig: Partial<ProgressiveRenderConfig>,
+): void {
+  Object.assign(DEFAULT_CONFIG, globalConfig);
 }
 
 /**
@@ -804,29 +852,32 @@ export function configureProgressiveRenderer(globalConfig: Partial<ProgressiveRe
  */
 export function createGroupProgressiveRenderer(
   groups: Array<{
-    components: VNode[] | (() => VNode[])
-    config?: ProgressiveRenderConfig
+    components: VNode[] | (() => VNode[]);
+    config?: ProgressiveRenderConfig;
   }>,
-  config: ProgressiveRenderConfig = {}
+  config: ProgressiveRenderConfig = {},
 ): Component {
-  const mergedConfig = getMergedConfig(config)
+  const mergedConfig = getMergedConfig(config);
 
   // 为每个组创建渐进式渲染器
-  const renderers = groups.map(group =>
-    createProgressiveRenderer(group.components, { ...mergedConfig, ...group.config })
-  )
+  const renderers = groups.map((group) =>
+    createProgressiveRenderer(group.components, {
+      ...mergedConfig,
+      ...group.config,
+    }),
+  );
 
   // 返回包装后的组件
   return defineComponent({
-    name: 'GroupProgressiveRenderer',
+    name: "GroupProgressiveRenderer",
     setup() {
       return () => (
         <div class="group-progressive-renderer">
           {renderers.map((renderer, index) => h(renderer, { key: index }))}
         </div>
-      )
-    }
-  })
+      );
+    },
+  });
 }
 
 /**
@@ -838,39 +889,39 @@ export function createGroupProgressiveRenderer(
  */
 export function createPriorityQueueRenderer(
   priorityGroups: {
-    [RenderPriority.HIGH]?: VNode[] | (() => VNode[])
-    [RenderPriority.MEDIUM]?: VNode[] | (() => VNode[])
-    [RenderPriority.LOW]?: VNode[] | (() => VNode[])
+    [RenderPriority.HIGH]?: VNode[] | (() => VNode[]);
+    [RenderPriority.MEDIUM]?: VNode[] | (() => VNode[]);
+    [RenderPriority.LOW]?: VNode[] | (() => VNode[]);
   },
-  config: ProgressiveRenderConfig = {}
+  config: ProgressiveRenderConfig = {},
 ): Component {
-  const groups = []
+  const groups = [];
 
   // 高优先级组
   if (priorityGroups[RenderPriority.HIGH]) {
     groups.push({
       components: priorityGroups[RenderPriority.HIGH],
-      config: { ...config, priority: RenderPriority.HIGH }
-    })
+      config: { ...config, priority: RenderPriority.HIGH },
+    });
   }
 
   // 中优先级组
   if (priorityGroups[RenderPriority.MEDIUM]) {
     groups.push({
       components: priorityGroups[RenderPriority.MEDIUM],
-      config: { ...config, priority: RenderPriority.MEDIUM }
-    })
+      config: { ...config, priority: RenderPriority.MEDIUM },
+    });
   }
 
   // 低优先级组
   if (priorityGroups[RenderPriority.LOW]) {
     groups.push({
       components: priorityGroups[RenderPriority.LOW],
-      config: { ...config, priority: RenderPriority.LOW }
-    })
+      config: { ...config, priority: RenderPriority.LOW },
+    });
   }
 
-  return createGroupProgressiveRenderer(groups, config)
+  return createGroupProgressiveRenderer(groups, config);
 }
 
 /**
@@ -880,38 +931,38 @@ function handleProgressiveFor(
   el: Element,
   binding: DirectiveBinding,
   vnode: VNode,
-  config: ProgressiveRenderConfig = {}
+  config: ProgressiveRenderConfig = {},
 ): void {
   // 获取指令值（应该是一个数组）
-  const items = binding.value
+  const items = binding.value;
 
   if (!Array.isArray(items)) {
-    console.error('[v-progressive-for] expects an array value')
-    return
+    console.error("[v-progressive-for] expects an array value");
+    return;
   }
 
   // 获取组件实例
-  const instance = getCurrentInstance()
-  if (!instance) return
+  const instance = getCurrentInstance();
+  if (!instance) return;
 
   // 清理旧任务（如果存在）
-  const oldTaskId = el.getAttribute('data-progressive-task-id')
+  const oldTaskId = el.getAttribute("data-progressive-task-id");
   if (oldTaskId) {
-    TaskManager.getInstance().removeTask(oldTaskId)
+    TaskManager.getInstance().removeTask(oldTaskId);
   }
 
   // 创建一个唯一ID
-  const id = `progressive-for-${generateId()}`
-  el.setAttribute('data-progressive-for-id', id)
+  const id = `progressive-for-${generateId()}`;
+  el.setAttribute("data-progressive-for-id", id);
 
   // 创建渲染任务
-  const renderedCount = ref(0)
-  const isComplete = ref(false)
+  const renderedCount = ref(0);
+  const isComplete = ref(false);
 
-  const taskId = generateId()
-  el.setAttribute('data-progressive-task-id', taskId)
+  const taskId = generateId();
+  el.setAttribute("data-progressive-task-id", taskId);
 
-  const mergedConfig = getMergedConfig(config)
+  const mergedConfig = getMergedConfig(config);
 
   const task: RenderTask = {
     id: taskId,
@@ -919,88 +970,88 @@ function handleProgressiveFor(
     config: mergedConfig,
     renderedCount,
     isComplete,
-    totalCount: items.length
-  }
+    totalCount: items.length,
+  };
 
   // 添加到任务管理器
-  TaskManager.getInstance().addTask(task)
+  TaskManager.getInstance().addTask(task);
 
   // 清理函数
   const cleanup = () => {
-    TaskManager.getInstance().removeTask(taskId)
-  }
+    TaskManager.getInstance().removeTask(taskId);
+  };
 
   // 在组件卸载时清理
   if (instance.proxy) {
-    onBeforeUnmount(cleanup)
+    onBeforeUnmount(cleanup);
   }
 
   // 初始渲染
   nextTick(() => {
     // 创建文档片段，用于批量更新DOM
-    const fragment = document.createDocumentFragment()
-    const container = document.createElement('div')
-    container.className = 'progressive-for-container'
+    const fragment = document.createDocumentFragment();
+    const container = document.createElement("div");
+    container.className = "progressive-for-container";
 
     // 监听渲染进度变化
-    const unwatch = watch(renderedCount, newCount => {
+    const unwatch = watch(renderedCount, (newCount) => {
       // 渲染新增的项目
-      const startIndex = Math.max(0, container.children.length)
-      const endIndex = Math.min(newCount, items.length)
+      const startIndex = Math.max(0, container.children.length);
+      const endIndex = Math.min(newCount, items.length);
 
       if (startIndex < endIndex) {
         // 创建新的元素
         for (let i = startIndex; i < endIndex; i++) {
-          const itemEl = document.createElement('div')
-          itemEl.className = 'progressive-for-item'
-          itemEl.dataset.index = i.toString()
+          const itemEl = document.createElement("div");
+          itemEl.className = "progressive-for-item";
+          itemEl.dataset.index = i.toString();
 
           // 这里应该使用Vue的渲染函数来渲染每个项目
           // 但这需要更复杂的实现，这里简化为文本内容
-          itemEl.textContent = JSON.stringify(items[i])
+          itemEl.textContent = JSON.stringify(items[i]);
 
-          container.appendChild(itemEl)
+          container.appendChild(itemEl);
         }
 
         // 触发批次完成回调
-        mergedConfig.onBatchComplete(newCount, items.length)
+        mergedConfig.onBatchComplete(newCount, items.length);
 
         // 检查是否完成
         if (newCount >= items.length) {
-          isComplete.value = true
-          mergedConfig.onComplete()
-          unwatch() // 停止监听
+          isComplete.value = true;
+          mergedConfig.onComplete();
+          unwatch(); // 停止监听
         }
       }
-    })
+    });
 
     // 添加容器到元素
-    el.innerHTML = ''
-    el.appendChild(container)
+    el.innerHTML = "";
+    el.appendChild(container);
 
     // 如果需要显示占位符
     if (mergedConfig.showPlaceholder) {
-      const placeholderContainer = document.createElement('div')
-      placeholderContainer.className = 'progressive-for-placeholder'
+      const placeholderContainer = document.createElement("div");
+      placeholderContainer.className = "progressive-for-placeholder";
 
       // 使用Vue渲染占位符组件
-      const placeholderVNode = h(mergedConfig.placeholderComponent)
+      const placeholderVNode = h(mergedConfig.placeholderComponent);
       const placeholderApp = createApp({
-        render: () => placeholderVNode
-      })
+        render: () => placeholderVNode,
+      });
 
-      placeholderApp.mount(placeholderContainer)
-      el.appendChild(placeholderContainer)
+      placeholderApp.mount(placeholderContainer);
+      el.appendChild(placeholderContainer);
 
       // 当渲染完成时移除占位符
-      watch(isComplete, complete => {
+      watch(isComplete, (complete) => {
         if (complete) {
-          placeholderApp.unmount()
-          el.removeChild(placeholderContainer)
+          placeholderApp.unmount();
+          el.removeChild(placeholderContainer);
         }
-      })
+      });
     }
-  })
+  });
 }
 
 /**
@@ -1008,7 +1059,7 @@ function handleProgressiveFor(
  */
 const progressiveForDirective = {
   mounted(el: Element, binding: DirectiveBinding, vnode: VNode) {
-    handleProgressiveFor(el, binding, vnode)
+    handleProgressiveFor(el, binding, vnode);
   },
 
   /**
@@ -1041,88 +1092,92 @@ const progressiveForDirective = {
    */
   updated(el: Element, binding: DirectiveBinding, vnode: VNode) {
     // 获取任务ID
-    const id = el.getAttribute('data-progressive-for-id')
-    if (!id) return
+    const id = el.getAttribute("data-progressive-for-id");
+    if (!id) return;
 
     // 重新处理
-    handleProgressiveFor(el, binding, vnode)
+    handleProgressiveFor(el, binding, vnode);
   },
   unmounted(el: Element) {
     // 获取任务ID
-    const id = el.getAttribute('data-progressive-for-id')
-    if (!id) return
+    const id = el.getAttribute("data-progressive-for-id");
+    if (!id) return;
 
     // 清理任务
-    const taskId = el.getAttribute('data-progressive-task-id')
+    const taskId = el.getAttribute("data-progressive-task-id");
     if (taskId) {
-      TaskManager.getInstance().removeTask(taskId)
+      TaskManager.getInstance().removeTask(taskId);
     }
 
     // 移除属性
-    el.removeAttribute('data-progressive-for-id')
-    el.removeAttribute('data-progressive-task-id')
-  }
-}
+    el.removeAttribute("data-progressive-for-id");
+    el.removeAttribute("data-progressive-task-id");
+  },
+};
 
 /**
  * 渐进式渲染组件
  */
 export const ProgressiveRenderer = defineComponent({
-  name: 'ProgressiveRenderer',
+  name: "ProgressiveRenderer",
   props: {
     items: {
       type: Array,
-      required: true
+      required: true,
     },
     renderItem: {
       type: Function,
-      required: true
+      required: true,
     },
     config: {
       type: Object,
-      default: () => ({})
-    }
+      default: () => ({}),
+    },
   },
   setup(props) {
     // 每次组件重新创建时，创建新的响应式状态
-    const mergedConfig = getMergedConfig(props.config as ProgressiveRenderConfig)
-    const renderedCount = ref(0)
-    const isComplete = ref(false)
+    const mergedConfig = getMergedConfig(
+      props.config as ProgressiveRenderConfig,
+    );
+    const renderedCount = ref(0);
+    const isComplete = ref(false);
 
     // 计算组件总数
-    const items = props.items as any[]
-    const renderItem = props.renderItem as (item: any, index: number) => VNode
-    const totalCount = items.length
+    const items = props.items as any[];
+    const renderItem = props.renderItem as (item: any, index: number) => VNode;
+    const totalCount = items.length;
 
-    const taskId = generateId()
+    const taskId = generateId();
     const task: RenderTask = {
       id: taskId,
       components: () =>
-        items.slice(0, renderedCount.value).map((item, index) => renderItem(item, index)),
+        items
+          .slice(0, renderedCount.value)
+          .map((item, index) => renderItem(item, index)),
       config: mergedConfig,
       renderedCount,
       isComplete,
-      totalCount
-    }
+      totalCount,
+    };
 
     // 添加到任务管理器
-    TaskManager.getInstance().addTask(task)
+    TaskManager.getInstance().addTask(task);
 
     // 组件挂载后打印调试信息
     onMounted(() => {
-      console.log('ProgressiveRenderer 组件已挂载', {
+      console.log("ProgressiveRenderer 组件已挂载", {
         items: items.length,
-        config: mergedConfig
-      })
-    })
+        config: mergedConfig,
+      });
+    });
 
     // 组件卸载时清理任务
     onBeforeUnmount(() => {
-      TaskManager.getInstance().removeTask(taskId)
-    })
+      TaskManager.getInstance().removeTask(taskId);
+    });
 
     return () => {
-      const visibleItems = items.slice(0, renderedCount.value)
+      const visibleItems = items.slice(0, renderedCount.value);
 
       return (
         <div class="progressive-renderer">
@@ -1133,180 +1188,189 @@ export const ProgressiveRenderer = defineComponent({
             </div>
           )}
           {/* 调试信息 */}
-          {import.meta.env?.MODE !== 'production' && (
+          {import.meta.env?.MODE !== "production" && (
             <div
               style={{
-                position: 'absolute',
-                bottom: '0',
-                right: '0',
-                background: 'rgba(0,0,0,0.5)',
-                color: 'white',
-                padding: '4px',
-                fontSize: '12px',
-                borderRadius: '4px 0 0 0'
+                position: "absolute",
+                bottom: "0",
+                right: "0",
+                background: "rgba(0,0,0,0.5)",
+                color: "white",
+                padding: "4px",
+                fontSize: "12px",
+                borderRadius: "4px 0 0 0",
               }}
             >
               已渲染: {renderedCount.value}/{items.length}
             </div>
           )}
         </div>
-      )
-    }
-  }
-})
+      );
+    };
+  },
+});
 
 /**
  * 虚拟列表组件
  */
 export const VirtualList = defineComponent({
-  name: 'VirtualList',
+  name: "VirtualList",
   props: {
     items: {
       type: Array,
-      required: true
+      required: true,
     },
     renderItem: {
       type: Function,
-      required: true
+      required: true,
     },
     config: {
       type: Object,
-      default: () => ({})
+      default: () => ({}),
     },
     itemHeight: {
       type: Number,
-      default: 40
+      default: 40,
     },
     overscan: {
       type: Number,
-      default: 5
-    }
+      default: 5,
+    },
   },
   setup(props) {
     // 每次组件重新创建时，创建新的响应式状态
-    const items = props.items as any[]
-    const renderItem = props.renderItem as (item: any, index: number) => VNode
+    const items = props.items as any[];
+    const renderItem = props.renderItem as (item: any, index: number) => VNode;
 
     // 合并配置，添加虚拟列表特有的配置
     const mergedConfig = {
       ...getMergedConfig(props.config as ProgressiveRenderConfig),
       itemHeight: props.itemHeight,
       overscan: props.overscan,
-      isVirtual: true
-    }
+      isVirtual: true,
+    };
 
     // 创建响应式状态
-    const renderedCount = ref(0)
-    const isComplete = ref(false)
-    const containerRef = ref<HTMLElement | null>(null)
-    const scrollTop = ref(0)
-    const visibleItemsCount = ref(0)
+    const renderedCount = ref(0);
+    const isComplete = ref(false);
+    const containerRef = ref<HTMLElement | null>(null);
+    const scrollTop = ref(0);
+    const visibleItemsCount = ref(0);
 
     // 计算组件总数
-    const totalCount = items.length
+    const totalCount = items.length;
 
     // 获取可见范围
     const getVisibleRange = () => {
       if (!containerRef.value) {
-        return { start: 0, end: Math.min(mergedConfig.batchSize, totalCount) }
+        return { start: 0, end: Math.min(mergedConfig.batchSize, totalCount) };
       }
 
-      const { itemHeight, overscan } = mergedConfig
-      const containerHeight = containerRef.value.clientHeight
+      const { itemHeight, overscan } = mergedConfig;
+      const containerHeight = containerRef.value.clientHeight;
 
       // 计算可见区域的起始和结束索引
-      const startIndex = Math.max(0, Math.floor(scrollTop.value / itemHeight) - overscan)
-      const visibleCount = Math.ceil(containerHeight / itemHeight) + overscan * 2
-      const endIndex = Math.min(totalCount, startIndex + visibleCount)
+      const startIndex = Math.max(
+        0,
+        Math.floor(scrollTop.value / itemHeight) - overscan,
+      );
+      const visibleCount =
+        Math.ceil(containerHeight / itemHeight) + overscan * 2;
+      const endIndex = Math.min(totalCount, startIndex + visibleCount);
 
-      visibleItemsCount.value = endIndex - startIndex
+      visibleItemsCount.value = endIndex - startIndex;
 
       return {
         start: startIndex,
-        end: endIndex
-      }
-    }
+        end: endIndex,
+      };
+    };
 
     // 处理滚动事件
     const handleScroll = (e: Event) => {
       if (e.target) {
-        scrollTop.value = (e.target as HTMLElement).scrollTop
+        scrollTop.value = (e.target as HTMLElement).scrollTop;
       }
-    }
+    };
 
     // 组件挂载后设置容器引用
     onMounted(async () => {
-      await nextTick()
+      await nextTick();
       // 打印调试信息
-      console.log('虚拟列表已挂载', {
+      console.log("虚拟列表已挂载", {
         items: items.length,
         config: mergedConfig,
-        container: containerRef.value
-      })
-    })
+        container: containerRef.value,
+      });
+    });
 
     // 创建任务
-    const taskId = generateId()
+    const taskId = generateId();
     const task: RenderTask = {
       id: taskId,
       components: () => {
         // 虚拟列表只渲染可见区域的组件
-        const { start, end } = getVisibleRange()
+        const { start, end } = getVisibleRange();
         return items
           .slice(0, renderedCount.value)
           .slice(start, end)
-          .map((item, index) => renderItem(item, start + index))
+          .map((item, index) => renderItem(item, start + index));
       },
       config: mergedConfig,
       renderedCount,
       isComplete,
-      totalCount
-    }
+      totalCount,
+    };
 
     // 添加到任务管理器
-    TaskManager.getInstance().addTask(task)
+    TaskManager.getInstance().addTask(task);
 
     // 组件卸载时清理任务
     onBeforeUnmount(() => {
-      TaskManager.getInstance().removeTask(taskId)
-    })
+      TaskManager.getInstance().removeTask(taskId);
+    });
 
     // 组件挂载后打印调试信息
     onMounted(() => {
-      console.log('VirtualList 组件已挂载', {
+      console.log("VirtualList 组件已挂载", {
         items: items.length,
-        config: mergedConfig
-      })
-    })
+        config: mergedConfig,
+      });
+    });
 
     return () => {
-      const { start, end } = getVisibleRange()
-      const visibleItems = items.slice(0, renderedCount.value).slice(start, end)
+      const { start, end } = getVisibleRange();
+      const visibleItems = items
+        .slice(0, renderedCount.value)
+        .slice(start, end);
 
       // 计算内容总高度
-      const contentHeight = totalCount * mergedConfig.itemHeight
+      const contentHeight = totalCount * mergedConfig.itemHeight;
 
       return (
         <div
           class="virtual-list-container"
-          style={{ height: '100%', overflow: 'auto', position: 'relative' }}
+          style={{ height: "100%", overflow: "auto", position: "relative" }}
           ref={containerRef}
           onScroll={handleScroll}
         >
           <div
             class="virtual-list-content"
-            style={{ height: `${contentHeight}px`, position: 'relative' }}
+            style={{ height: `${contentHeight}px`, position: "relative" }}
           >
             <div
               class="virtual-list-items"
               style={{
-                position: 'absolute',
+                position: "absolute",
                 top: `${start * mergedConfig.itemHeight}px`,
-                width: '100%'
+                width: "100%",
               }}
             >
               {visibleItems.map((item, index) => (
-                <div key={start + index} style={{ height: `${mergedConfig.itemHeight}px` }}>
+                <div
+                  key={start + index}
+                  style={{ height: `${mergedConfig.itemHeight}px` }}
+                >
                   {renderItem(item, start + index)}
                 </div>
               ))}
@@ -1317,45 +1381,45 @@ export const VirtualList = defineComponent({
               </div>
             )}
             {/* 调试信息 */}
-            {import.meta.env?.MODE !== 'production' && (
+            {import.meta.env?.MODE !== "production" && (
               <div
                 style={{
-                  position: 'absolute',
-                  bottom: '0',
-                  right: '0',
-                  background: 'rgba(0,0,0,0.5)',
-                  color: 'white',
-                  padding: '4px',
-                  fontSize: '12px',
-                  borderRadius: '4px 0 0 0',
-                  zIndex: 1000
+                  position: "absolute",
+                  bottom: "0",
+                  right: "0",
+                  background: "rgba(0,0,0,0.5)",
+                  color: "white",
+                  padding: "4px",
+                  fontSize: "12px",
+                  borderRadius: "4px 0 0 0",
+                  zIndex: 1000,
                 }}
               >
-                已渲染: {renderedCount.value}/{items.length} | 可见: {visibleItemsCount.value} |
-                滚动位置: {scrollTop.value}
+                已渲染: {renderedCount.value}/{items.length} | 可见:{" "}
+                {visibleItemsCount.value} | 滚动位置: {scrollTop.value}
               </div>
             )}
           </div>
         </div>
-      )
-    }
-  }
-})
+      );
+    };
+  },
+});
 
 /**
  * 插件选项
  */
 export interface ProgressiveRendererOptions {
   /** 全局配置 */
-  config?: ProgressiveRenderConfig
+  config?: ProgressiveRenderConfig;
   /** 是否注册指令 */
-  directive?: boolean
+  directive?: boolean;
   /** 是否注册组件 */
-  components?: boolean
+  components?: boolean;
   /** 自定义指令名称 */
-  directiveName?: string
+  directiveName?: string;
   /** 自定义组件名称前缀 */
-  componentPrefix?: string
+  componentPrefix?: string;
 }
 
 /**
@@ -1365,20 +1429,20 @@ export const ProgressiveRendererPlugin: Plugin = {
   install(app: App, options: ProgressiveRendererOptions = {}) {
     // 应用全局配置
     if (options.config) {
-      configureProgressiveRenderer(options.config)
+      configureProgressiveRenderer(options.config);
     }
 
     // 注册指令
     if (options.directive !== false) {
-      const directiveName = options.directiveName || 'progressive-for'
-      app.directive(directiveName, progressiveForDirective)
+      const directiveName = options.directiveName || "progressive-for";
+      app.directive(directiveName, progressiveForDirective);
     }
 
     // 注册组件
     if (options.components !== false) {
-      const prefix = options.componentPrefix || ''
-      app.component(`${prefix}ProgressiveRenderer`, ProgressiveRenderer)
-      app.component(`${prefix}VirtualList`, VirtualList)
+      const prefix = options.componentPrefix || "";
+      app.component(`${prefix}ProgressiveRenderer`, ProgressiveRenderer);
+      app.component(`${prefix}VirtualList`, VirtualList);
     }
 
     // 添加全局属性
@@ -1389,10 +1453,10 @@ export const ProgressiveRendererPlugin: Plugin = {
       createGroupProgressiveRenderer,
       createPriorityQueueRenderer,
       configureProgressiveRenderer,
-      RenderPriority
-    }
-  }
-}
+      RenderPriority,
+    };
+  },
+};
 
 // 默认导出插件
-export default ProgressiveRendererPlugin
+export default ProgressiveRendererPlugin;

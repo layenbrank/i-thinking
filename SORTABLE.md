@@ -98,7 +98,7 @@ declare class Sortable {
 
   option<K extends keyof Sortable.Options>(
     name: K,
-    value: Sortable.Options[K]
+    value: Sortable.Options[K],
   ): void;
   option<K extends keyof Sortable.Options>(name: K): Sortable.Options[K];
   closest(element: HTMLElement, selector?: string): HTMLElement | null;
@@ -153,7 +153,7 @@ namespace Sortable {
           to: Sortable,
           from: Sortable,
           dragEl: HTMLElement,
-          event: SortableEvent
+          event: SortableEvent,
         ) => PullResult)
       | undefined;
     put?:
@@ -162,7 +162,7 @@ namespace Sortable {
           to: Sortable,
           from: Sortable,
           dragEl: HTMLElement,
-          event: SortableEvent
+          event: SortableEvent,
         ) => PutResult)
       | undefined;
     // ... 更多属性
@@ -173,22 +173,22 @@ namespace Sortable {
     on(
       element: HTMLElement,
       event: string,
-      fn: EventListenerOrEventListenerObject
+      fn: EventListenerOrEventListenerObject,
     ): void;
     off(
       element: HTMLElement,
       event: string,
-      fn: EventListenerOrEventListenerObject
+      fn: EventListenerOrEventListenerObject,
     ): void;
     css(element: HTMLElement): CSSStyleDeclaration;
     css<K extends keyof CSSStyleDeclaration>(
       element: HTMLElement,
-      prop: K
+      prop: K,
     ): CSSStyleDeclaration[K];
     css<K extends keyof CSSStyleDeclaration>(
       element: HTMLElement,
       prop: K,
-      value: CSSStyleDeclaration[K]
+      value: CSSStyleDeclaration[K],
     ): void;
     // ... 更多方法
   }
@@ -292,7 +292,7 @@ interface SortableOptions {
     | ((
         evt: SortableEvent,
         target: HTMLElement,
-        dragEl: HTMLElement
+        dragEl: HTMLElement,
       ) => Direction)
     | Direction;
 
@@ -321,7 +321,7 @@ interface SortableOptions {
         this: Sortable,
         event: Event | TouchEvent,
         target: HTMLElement,
-        sortable: Sortable
+        sortable: Sortable,
       ) => boolean);
 
   // 列表内排序
@@ -424,7 +424,7 @@ const sortable = Sortable.create(
     // 移动元素 - 返回值控制行为
     onMove(
       evt: Sortable.MoveEvent,
-      originalEvent: Event
+      originalEvent: Event,
     ): boolean | number | void {
       // 访问移动事件特有的属性
       const draggedEl: HTMLElement = evt.dragged;
@@ -441,7 +441,7 @@ const sortable = Sortable.create(
 
       return true; // 允许移动
     },
-  }
+  },
 );
 ```
 
@@ -540,7 +540,7 @@ const groupOptions: Sortable.GroupOptions = {
     to: Sortable,
     from: Sortable,
     dragEl: HTMLElement,
-    event: Sortable.SortableEvent
+    event: Sortable.SortableEvent,
   ): Sortable.PullResult {
     // 根据条件返回不同的值
     if (dragEl.classList.contains("clone-item")) {
@@ -559,7 +559,7 @@ const groupOptions: Sortable.GroupOptions = {
     to: Sortable,
     from: Sortable,
     dragEl: HTMLElement,
-    event: Sortable.SortableEvent
+    event: Sortable.SortableEvent,
   ): Sortable.PutResult {
     // 根据条件返回不同的值
     if (to.el.children.length >= 5) {
@@ -749,7 +749,7 @@ const sortable = Sortable.create(
     // 常规选项
     animation: 150,
     ghostClass: "ghost",
-  }
+  },
 );
 ```
 
@@ -838,7 +838,7 @@ class KanbanBoard {
 
   private updateTaskStatus(
     taskId: string,
-    newStatus: "todo" | "doing" | "done"
+    newStatus: "todo" | "doing" | "done",
   ): void {
     // 更新任务状态
     const task = this.tasks.find((t) => t.id === taskId);

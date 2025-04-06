@@ -76,7 +76,7 @@ export class HttpError extends Error {
 
   constructor(
     message?: string,
-    options?: { status?: number; code?: string | number; data?: any }
+    options?: { status?: number; code?: string | number; data?: any },
   ) {
     super(message);
     this.name = "HttpError";
@@ -228,7 +228,7 @@ export class DefaultErrorHandler implements ErrorHandler {
       new HttpError(message, {
         status,
         data: error.response?.data,
-      })
+      }),
     );
   }
 
@@ -297,7 +297,7 @@ interface RequestInterceptor {
 class DuplicateRequestInterceptor implements RequestInterceptor {
   async intercept(
     config: AxiosRequestConfig,
-    httpClient: HttpClient
+    httpClient: HttpClient,
   ): Promise<any> {
     const shouldCancelDuplicated =
       httpClient.getConfig().enableCancelDuplicated &&
@@ -317,7 +317,7 @@ class DuplicateRequestInterceptor implements RequestInterceptor {
 class AuthTokenInterceptor implements RequestInterceptor {
   async intercept(
     config: AxiosRequestConfig,
-    httpClient: HttpClient
+    httpClient: HttpClient,
   ): Promise<any> {
     const { getToken, setAuthHeader } = httpClient.getConfig();
 
@@ -555,7 +555,7 @@ export class HttpClient {
 
         return currentConfig;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(error),
     );
 
     // 响应拦截器
@@ -581,7 +581,7 @@ export class HttpClient {
         }
 
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -652,7 +652,7 @@ export class HttpClient {
   get<T = any>(
     url: string,
     params?: any,
-    options?: Omit<RequestOptions, "url" | "method" | "params">
+    options?: Omit<RequestOptions, "url" | "method" | "params">,
   ): Promise<T> {
     return this.request<T>({
       method: "GET",
@@ -672,7 +672,7 @@ export class HttpClient {
   post<T = any>(
     url: string,
     data?: any,
-    options?: Omit<RequestOptions, "url" | "method" | "data">
+    options?: Omit<RequestOptions, "url" | "method" | "data">,
   ): Promise<T> {
     return this.request<T>({
       method: "POST",
@@ -692,7 +692,7 @@ export class HttpClient {
   put<T = any>(
     url: string,
     data?: any,
-    options?: Omit<RequestOptions, "url" | "method" | "data">
+    options?: Omit<RequestOptions, "url" | "method" | "data">,
   ): Promise<T> {
     return this.request<T>({
       method: "PUT",
@@ -712,7 +712,7 @@ export class HttpClient {
   delete<T = any>(
     url: string,
     params?: any,
-    options?: Omit<RequestOptions, "url" | "method" | "params">
+    options?: Omit<RequestOptions, "url" | "method" | "params">,
   ): Promise<T> {
     return this.request<T>({
       method: "DELETE",
@@ -732,7 +732,7 @@ export class HttpClient {
   patch<T = any>(
     url: string,
     data?: any,
-    options?: Omit<RequestOptions, "url" | "method" | "data">
+    options?: Omit<RequestOptions, "url" | "method" | "data">,
   ): Promise<T> {
     return this.request<T>({
       method: "PATCH",
@@ -748,7 +748,7 @@ export class HttpClient {
    * @returns [请求函数, 取消函数]
    */
   createCancelableRequest<T = any, P extends any[] = any[]>(
-    requestFn: (...args: P) => Promise<T>
+    requestFn: (...args: P) => Promise<T>,
   ): [(...args: P) => Promise<T>, () => void] {
     let controller: AbortController | null = null;
 

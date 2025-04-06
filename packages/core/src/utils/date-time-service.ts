@@ -107,38 +107,43 @@
  * @packageDocumentation
  */
 
-import dayjs, { type Dayjs, type ConfigType, type UnitType, type OpUnitType } from 'dayjs'
-import { Singleton } from './singleton'
+import dayjs, {
+  type Dayjs,
+  type ConfigType,
+  type UnitType,
+  type OpUnitType,
+} from "dayjs";
+import { Singleton } from "./singleton";
 
 // 导入插件
-import utc from 'dayjs/plugin/utc'
-import timezone from 'dayjs/plugin/timezone'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import duration from 'dayjs/plugin/duration'
-import customParseFormat from 'dayjs/plugin/customParseFormat'
-import weekOfYear from 'dayjs/plugin/weekOfYear'
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
-import isBetween from 'dayjs/plugin/isBetween'
-import quarterOfYear from 'dayjs/plugin/quarterOfYear'
-import dayOfYear from 'dayjs/plugin/dayOfYear'
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+import relativeTime from "dayjs/plugin/relativeTime";
+import duration from "dayjs/plugin/duration";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+import weekOfYear from "dayjs/plugin/weekOfYear";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isBetween from "dayjs/plugin/isBetween";
+import quarterOfYear from "dayjs/plugin/quarterOfYear";
+import dayOfYear from "dayjs/plugin/dayOfYear";
 
 // 导入语言包
-import 'dayjs/locale/zh-cn'
-import 'dayjs/locale/en'
+import "dayjs/locale/zh-cn";
+import "dayjs/locale/en";
 
 // 初始化插件
-dayjs.extend(utc)
-dayjs.extend(timezone)
-dayjs.extend(relativeTime)
-dayjs.extend(duration)
-dayjs.extend(customParseFormat)
-dayjs.extend(weekOfYear)
-dayjs.extend(isSameOrBefore)
-dayjs.extend(isSameOrAfter)
-dayjs.extend(isBetween)
-dayjs.extend(quarterOfYear)
-dayjs.extend(dayOfYear)
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(relativeTime);
+dayjs.extend(duration);
+dayjs.extend(customParseFormat);
+dayjs.extend(weekOfYear);
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isBetween);
+dayjs.extend(quarterOfYear);
+dayjs.extend(dayOfYear);
 
 /**
  * 星期格式类型
@@ -149,7 +154,7 @@ dayjs.extend(dayOfYear)
  * - en: 英文简写（Sun、Mon...）
  * - enLong: 英文全称（Sunday、Monday...）
  */
-type WeekFormat = 'number' | 'cn' | 'cnLong' | 'en' | 'enLong'
+type WeekFormat = "number" | "cn" | "cnLong" | "en" | "enLong";
 
 /**
  * 星期映射表类型
@@ -158,9 +163,9 @@ type WeekFormat = 'number' | 'cn' | 'cnLong' | 'en' | 'enLong'
  */
 interface WeekMap {
   /** 星期名称数组 */
-  names: readonly string[]
+  names: readonly string[];
   /** 将 dayjs 的星期索引转换为目标格式的索引 */
-  getIndex: (day: number) => number
+  getIndex: (day: number) => number;
 }
 
 /**
@@ -169,28 +174,44 @@ interface WeekMap {
 const weekMaps: Record<WeekFormat, WeekMap> = {
   // 中文从周一开始
   cn: {
-    names: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-    getIndex: (day: number): number => (day === 0 ? 6 : day - 1)
+    names: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
+    getIndex: (day: number): number => (day === 0 ? 6 : day - 1),
   },
   cnLong: {
-    names: ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'],
-    getIndex: (day: number): number => (day === 0 ? 6 : day - 1)
+    names: [
+      "星期一",
+      "星期二",
+      "星期三",
+      "星期四",
+      "星期五",
+      "星期六",
+      "星期日",
+    ],
+    getIndex: (day: number): number => (day === 0 ? 6 : day - 1),
   },
   // 英文从周日开始
   en: {
-    names: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    getIndex: (day: number): number => day
+    names: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    getIndex: (day: number): number => day,
   },
   enLong: {
-    names: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-    getIndex: (day: number): number => day
+    names: [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ],
+    getIndex: (day: number): number => day,
   },
   // 数字格式（1-7，周一到周日）
   number: {
-    names: ['1', '2', '3', '4', '5', '6', '7'],
-    getIndex: (day: number): number => (day === 0 ? 6 : day - 1)
-  }
-} as const
+    names: ["1", "2", "3", "4", "5", "6", "7"],
+    getIndex: (day: number): number => (day === 0 ? 6 : day - 1),
+  },
+} as const;
 
 /**
  * 日期格式化策略接口
@@ -204,15 +225,15 @@ interface IDateFormatStrategy {
    * @param format - 格式化模板，默认为 'YYYY-MM-DD HH:mm:ss'
    * @returns 格式化后的字符串
    */
-  format(targetDate: ConfigType, format?: string): string
+  format(targetDate: ConfigType, format?: string): string;
 }
 
 /**
  * 默认日期格式化策略
  */
 class DefaultDateFormatStrategy implements IDateFormatStrategy {
-  format(date: ConfigType, format: string = 'YYYY-MM-DD HH:mm:ss'): string {
-    return dayjs(date).format(format)
+  format(date: ConfigType, format: string = "YYYY-MM-DD HH:mm:ss"): string {
+    return dayjs(date).format(format);
   }
 }
 
@@ -229,7 +250,7 @@ interface IDateCalculationStrategy {
    * @param unit - 时间单位（年、月、日、时、分、秒等）
    * @returns 新的日期对象
    */
-  add(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs
+  add(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs;
 
   /**
    * 减少时间
@@ -238,7 +259,7 @@ interface IDateCalculationStrategy {
    * @param unit - 时间单位（年、月、日、时、分、秒等）
    * @returns 新的日期对象
    */
-  subtract(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs
+  subtract(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs;
 
   /**
    * 计算时间差
@@ -247,7 +268,7 @@ interface IDateCalculationStrategy {
    * @param unit - 时间单位（年、月、日、时、分、秒等）
    * @returns 时间差值
    */
-  diff(baseDate: ConfigType, compareDate: ConfigType, unit: UnitType): number
+  diff(baseDate: ConfigType, compareDate: ConfigType, unit: UnitType): number;
 }
 
 /**
@@ -255,15 +276,15 @@ interface IDateCalculationStrategy {
  */
 class DefaultDateCalculationStrategy implements IDateCalculationStrategy {
   add(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs {
-    return dayjs(targetDate).add(amount, unit)
+    return dayjs(targetDate).add(amount, unit);
   }
 
   subtract(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs {
-    return dayjs(targetDate).subtract(amount, unit)
+    return dayjs(targetDate).subtract(amount, unit);
   }
 
   diff(baseDate: ConfigType, compareDate: ConfigType, unit: UnitType): number {
-    return dayjs(baseDate).diff(dayjs(compareDate), unit)
+    return dayjs(baseDate).diff(dayjs(compareDate), unit);
   }
 }
 
@@ -279,14 +300,14 @@ interface IWorkdayStrategy {
    * @param targetDate - 要判断的日期
    * @returns 是否是工作日
    */
-  isWorkday(targetDate: ConfigType): boolean
+  isWorkday(targetDate: ConfigType): boolean;
 
   /**
    * 获取下一个工作日
    * @param targetDate - 基准日期
    * @returns 下一个工作日
    */
-  nextWorkday(targetDate: ConfigType): Dayjs
+  nextWorkday(targetDate: ConfigType): Dayjs;
 
   /**
    * 计算工作日天数
@@ -294,7 +315,7 @@ interface IWorkdayStrategy {
    * @param endDate - 结束日期
    * @returns 工作日天数
    */
-  countWorkdays(startDate: ConfigType, endDate: ConfigType): number
+  countWorkdays(startDate: ConfigType, endDate: ConfigType): number;
 }
 
 /**
@@ -302,31 +323,31 @@ interface IWorkdayStrategy {
  */
 class DefaultWorkdayStrategy implements IWorkdayStrategy {
   isWorkday(targetDate: ConfigType): boolean {
-    const day = dayjs(targetDate).day()
-    return day !== 0 && day !== 6
+    const day = dayjs(targetDate).day();
+    return day !== 0 && day !== 6;
   }
 
   nextWorkday(targetDate: ConfigType): Dayjs {
-    let nextDate = dayjs(targetDate).add(1, 'day')
+    let nextDate = dayjs(targetDate).add(1, "day");
     while (!this.isWorkday(nextDate)) {
-      nextDate = nextDate.add(1, 'day')
+      nextDate = nextDate.add(1, "day");
     }
-    return nextDate
+    return nextDate;
   }
 
   countWorkdays(startDate: ConfigType, endDate: ConfigType): number {
-    let count = 0
-    let currentDate = dayjs(startDate)
-    const lastDate = dayjs(endDate)
+    let count = 0;
+    let currentDate = dayjs(startDate);
+    const lastDate = dayjs(endDate);
 
     while (currentDate.isBefore(lastDate) || currentDate.isSame(lastDate)) {
       if (this.isWorkday(currentDate)) {
-        count++
+        count++;
       }
-      currentDate = currentDate.add(1, 'day')
+      currentDate = currentDate.add(1, "day");
     }
 
-    return count
+    return count;
   }
 }
 
@@ -334,7 +355,7 @@ class DefaultWorkdayStrategy implements IWorkdayStrategy {
  * 星期格式化策略接口
  */
 interface IWeekFormatStrategy {
-  format(day: number, format: WeekFormat): string | number
+  format(day: number, format: WeekFormat): string | number;
 }
 
 /**
@@ -342,13 +363,13 @@ interface IWeekFormatStrategy {
  */
 class DefaultWeekFormatStrategy implements IWeekFormatStrategy {
   format(day: number, format: WeekFormat): string | number {
-    if (format === 'number') {
-      return day === 0 ? 7 : day
+    if (format === "number") {
+      return day === 0 ? 7 : day;
     }
 
-    const map = weekMaps[format]
-    const index = map.getIndex(day)
-    return map.names[index]
+    const map = weekMaps[format];
+    const index = map.getIndex(day);
+    return map.names[index];
   }
 }
 
@@ -359,42 +380,42 @@ class DefaultWeekFormatStrategy implements IWeekFormatStrategy {
  */
 interface DateTimeConfig extends Record<string, unknown> {
   /** 默认时区，例如 'Asia/Shanghai'，'America/New_York' 等 */
-  timezone?: string
+  timezone?: string;
   /** 默认语言，支持 'zh-cn'（中文）和 'en'（英文）*/
-  locale?: string
+  locale?: string;
   /** 默认日期格式，使用 dayjs 的格式字符串，例如 'YYYY-MM-DD HH:mm:ss' */
-  format?: string
+  format?: string;
   /** 是否使用 UTC 时间，true 表示使用 UTC，false 表示使用本地时间 */
-  utc?: boolean
+  utc?: boolean;
   /** 日期格式化策略，用于自定义日期格式化逻辑 */
-  formatStrategy?: IDateFormatStrategy
+  formatStrategy?: IDateFormatStrategy;
   /** 日期计算策略，用于自定义日期计算逻辑 */
-  calculationStrategy?: IDateCalculationStrategy
+  calculationStrategy?: IDateCalculationStrategy;
   /** 工作日计算策略，用于自定义工作日判断和计算逻辑 */
-  workdayStrategy?: IWorkdayStrategy
+  workdayStrategy?: IWorkdayStrategy;
   /** 星期格式化策略，用于自定义星期格式化逻辑 */
-  weekFormatStrategy?: IWeekFormatStrategy
+  weekFormatStrategy?: IWeekFormatStrategy;
 }
 
 /**
  * 初始化插件
  */
 function initializePlugins(): void {
-  dayjs.extend(utc)
-  dayjs.extend(timezone)
-  dayjs.extend(relativeTime)
-  dayjs.extend(duration)
-  dayjs.extend(customParseFormat)
-  dayjs.extend(weekOfYear)
-  dayjs.extend(isSameOrBefore)
-  dayjs.extend(isSameOrAfter)
-  dayjs.extend(isBetween)
-  dayjs.extend(quarterOfYear)
-  dayjs.extend(dayOfYear)
+  dayjs.extend(utc);
+  dayjs.extend(timezone);
+  dayjs.extend(relativeTime);
+  dayjs.extend(duration);
+  dayjs.extend(customParseFormat);
+  dayjs.extend(weekOfYear);
+  dayjs.extend(isSameOrBefore);
+  dayjs.extend(isSameOrAfter);
+  dayjs.extend(isBetween);
+  dayjs.extend(quarterOfYear);
+  dayjs.extend(dayOfYear);
 }
 
 // 初始化插件
-initializePlugins()
+initializePlugins();
 
 /**
  * 日期相关操作接口
@@ -407,14 +428,14 @@ interface IDateOperations {
    * @param targetDate - 目标日期
    * @returns 当月第几天（1-31）
    */
-  getDayOfMonth: (targetDate: ConfigType) => number
+  getDayOfMonth: (targetDate: ConfigType) => number;
 
   /**
    * 获取日期是当年的第几天
    * @param targetDate - 目标日期
    * @returns 当年第几天（1-366）
    */
-  getDayOfYear: (targetDate: ConfigType) => number
+  getDayOfYear: (targetDate: ConfigType) => number;
 
   /**
    * 获取星期几
@@ -422,42 +443,45 @@ interface IDateOperations {
    * @param format - 返回格式，支持数字、中文、英文等多种格式
    * @returns 星期几的表示
    */
-  getDayOfWeek: (targetDate: ConfigType, format?: WeekFormat) => string | number
+  getDayOfWeek: (
+    targetDate: ConfigType,
+    format?: WeekFormat,
+  ) => string | number;
 
   /**
    * 获取日期是当月的第几周
    * @param targetDate - 目标日期
    * @returns 当月第几周（1-6）
    */
-  getWeekOfMonth: (targetDate: ConfigType) => number
+  getWeekOfMonth: (targetDate: ConfigType) => number;
 
   /**
    * 判断是否是周末
    * @param targetDate - 目标日期
    * @returns 是否是周末
    */
-  isWeekend: (targetDate: ConfigType) => boolean
+  isWeekend: (targetDate: ConfigType) => boolean;
 
   /**
    * 判断是否是今天
    * @param targetDate - 目标日期
    * @returns 是否是今天
    */
-  isToday: (targetDate: ConfigType) => boolean
+  isToday: (targetDate: ConfigType) => boolean;
 
   /**
    * 获取日期的开始时间（00:00:00）
    * @param targetDate - 目标日期
    * @returns 日期开始时间
    */
-  startOfDay: (targetDate: ConfigType) => Dayjs
+  startOfDay: (targetDate: ConfigType) => Dayjs;
 
   /**
    * 获取日期的结束时间（23:59:59）
    * @param targetDate - 目标日期
    * @returns 日期结束时间
    */
-  endOfDay: (targetDate: ConfigType) => Dayjs
+  endOfDay: (targetDate: ConfigType) => Dayjs;
 }
 
 /**
@@ -478,26 +502,26 @@ interface IDateTimeService {
    * @remarks
    * 加载配置和插件，设置默认选项。
    */
-  init(): Promise<void>
+  init(): Promise<void>;
 
   /**
    * 更新配置
    * @param config - 新的配置选项
    */
-  updateConfig(config: Partial<DateTimeConfig>): Promise<void>
+  updateConfig(config: Partial<DateTimeConfig>): Promise<void>;
 
   /**
    * 获取当前时间
    * @returns Dayjs 实例
    */
-  now(): Dayjs
+  now(): Dayjs;
 
   /**
    * 解析日期
    * @param date - 要解析的日期
    * @returns Dayjs 实例
    */
-  parse(date?: ConfigType): Dayjs
+  parse(date?: ConfigType): Dayjs;
 
   /**
    * 格式化日期
@@ -538,21 +562,21 @@ interface IDateTimeService {
    * service.format(new Date(), 'YYYY年第Q季度') // => "2024年第1季度"
    * ```
    */
-  format(date: ConfigType, format?: string): string
+  format(date: ConfigType, format?: string): string;
 
   /**
    * 获取相对时间
    * @param date - 要比较的日期
    * @returns 相对时间字符串，例如 "2小时前"
    */
-  fromNow(date: ConfigType): string
+  fromNow(date: ConfigType): string;
 
   /**
    * 验证日期是否有效
    * @param date - 要验证的日期
    * @returns 是否有效
    */
-  isValid(date: ConfigType): boolean
+  isValid(date: ConfigType): boolean;
 
   /**
    * 比较两个日期
@@ -560,7 +584,7 @@ interface IDateTimeService {
    * @param compareDate - 比较日期
    * @returns -1(早于), 0(相等), 1(晚于)
    */
-  compare(baseDate: ConfigType, compareDate: ConfigType): number
+  compare(baseDate: ConfigType, compareDate: ConfigType): number;
 
   /**
    * 添加时间
@@ -569,7 +593,7 @@ interface IDateTimeService {
    * @param unit - 时间单位
    * @returns Dayjs 实例
    */
-  add(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs
+  add(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs;
 
   /**
    * 减少时间
@@ -578,7 +602,7 @@ interface IDateTimeService {
    * @param unit - 时间单位
    * @returns Dayjs 实例
    */
-  subtract(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs
+  subtract(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs;
 
   /**
    * 计算时间差
@@ -587,7 +611,7 @@ interface IDateTimeService {
    * @param unit - 时间单位
    * @returns 时间差
    */
-  diff(baseDate: ConfigType, compareDate: ConfigType, unit: UnitType): number
+  diff(baseDate: ConfigType, compareDate: ConfigType, unit: UnitType): number;
 
   /**
    * 判断日期是否在范围内
@@ -601,8 +625,8 @@ interface IDateTimeService {
     targetDate: ConfigType,
     rangeStart: ConfigType,
     rangeEnd: ConfigType,
-    unit?: OpUnitType
-  ): boolean
+    unit?: OpUnitType,
+  ): boolean;
 
   /**
    * 工作日相关操作
@@ -613,14 +637,14 @@ interface IDateTimeService {
      * @param targetDate - 要检查的日期
      * @returns 是否是工作日
      */
-    isWorkday(targetDate: ConfigType): boolean
+    isWorkday(targetDate: ConfigType): boolean;
 
     /**
      * 获取下一个工作日
      * @param targetDate - 基准日期
      * @returns 下一个工作日
      */
-    nextWorkday(targetDate: ConfigType): Dayjs
+    nextWorkday(targetDate: ConfigType): Dayjs;
 
     /**
      * 计算工作日天数
@@ -628,8 +652,8 @@ interface IDateTimeService {
      * @param endDate - 结束日期
      * @returns 工作日天数
      */
-    countWorkdays(startDate: ConfigType, endDate: ConfigType): number
-  }
+    countWorkdays(startDate: ConfigType, endDate: ConfigType): number;
+  };
 
   /**
    * 季度相关操作
@@ -640,22 +664,22 @@ interface IDateTimeService {
      * @param targetDate - 日期
      * @returns 季度数（1-4）
      */
-    get(targetDate: ConfigType): number
+    get(targetDate: ConfigType): number;
 
     /**
      * 获取季度开始时间
      * @param targetDate - 日期
      * @returns 季度开始时间
      */
-    startOf(targetDate: ConfigType): Dayjs
+    startOf(targetDate: ConfigType): Dayjs;
 
     /**
      * 获取季度结束时间
      * @param targetDate - 日期
      * @returns 季度结束时间
      */
-    endOf(targetDate: ConfigType): Dayjs
-  }
+    endOf(targetDate: ConfigType): Dayjs;
+  };
 
   /**
    * 周相关操作
@@ -666,27 +690,27 @@ interface IDateTimeService {
      * @param targetDate - 日期
      * @returns 周数（1-53）
      */
-    get(targetDate: ConfigType): number
+    get(targetDate: ConfigType): number;
 
     /**
      * 获取周开始时间（根据语言环境自动调整）
      * @param targetDate - 日期
      * @returns 周开始时间
      */
-    startOf(targetDate: ConfigType): Dayjs
+    startOf(targetDate: ConfigType): Dayjs;
 
     /**
      * 获取周结束时间（根据语言环境自动调整）
      * @param targetDate - 日期
      * @returns 周结束时间
      */
-    endOf(targetDate: ConfigType): Dayjs
-  }
+    endOf(targetDate: ConfigType): Dayjs;
+  };
 
   /**
    * 日期相关操作
    */
-  date: IDateOperations
+  date: IDateOperations;
 }
 
 /**
@@ -730,8 +754,8 @@ interface IDateTimeService {
 @Singleton({
   global: true,
   onCreate(instance) {
-    instance.init()
-  }
+    instance.init();
+  },
 })
 class DateTimeService implements IDateTimeService {
   /**
@@ -740,7 +764,7 @@ class DateTimeService implements IDateTimeService {
    * 包含时区、语言、格式等配置项
    * @private
    */
-  private readonly config: DateTimeConfig
+  private readonly config: DateTimeConfig;
 
   /**
    * 日期格式化策略
@@ -748,7 +772,7 @@ class DateTimeService implements IDateTimeService {
    * 负责日期的格式化逻辑
    * @private
    */
-  private readonly formatStrategy: IDateFormatStrategy
+  private readonly formatStrategy: IDateFormatStrategy;
 
   /**
    * 日期计算策略
@@ -756,7 +780,7 @@ class DateTimeService implements IDateTimeService {
    * 负责日期的计算逻辑
    * @private
    */
-  private readonly calculationStrategy: IDateCalculationStrategy
+  private readonly calculationStrategy: IDateCalculationStrategy;
 
   /**
    * 工作日计算策略
@@ -764,7 +788,7 @@ class DateTimeService implements IDateTimeService {
    * 负责工作日的判断和计算逻辑
    * @private
    */
-  private readonly workdayStrategy: IWorkdayStrategy
+  private readonly workdayStrategy: IWorkdayStrategy;
 
   /**
    * 星期格式化策略
@@ -772,7 +796,7 @@ class DateTimeService implements IDateTimeService {
    * 负责星期的格式化逻辑
    * @private
    */
-  private readonly weekFormatStrategy: IWeekFormatStrategy
+  private readonly weekFormatStrategy: IWeekFormatStrategy;
 
   /**
    * 构造函数
@@ -781,15 +805,15 @@ class DateTimeService implements IDateTimeService {
    */
   constructor() {
     this.config = {
-      timezone: 'Asia/Shanghai',
-      locale: 'zh-cn',
-      format: 'YYYY-MM-DD HH:mm:ss',
-      utc: false
-    }
-    this.formatStrategy = new DefaultDateFormatStrategy()
-    this.calculationStrategy = new DefaultDateCalculationStrategy()
-    this.workdayStrategy = new DefaultWorkdayStrategy()
-    this.weekFormatStrategy = new DefaultWeekFormatStrategy()
+      timezone: "Asia/Shanghai",
+      locale: "zh-cn",
+      format: "YYYY-MM-DD HH:mm:ss",
+      utc: false,
+    };
+    this.formatStrategy = new DefaultDateFormatStrategy();
+    this.calculationStrategy = new DefaultDateCalculationStrategy();
+    this.workdayStrategy = new DefaultWorkdayStrategy();
+    this.weekFormatStrategy = new DefaultWeekFormatStrategy();
   }
 
   /**
@@ -802,13 +826,13 @@ class DateTimeService implements IDateTimeService {
   async init(): Promise<void> {
     try {
       if (this.config.locale) {
-        dayjs.locale(this.config.locale)
+        dayjs.locale(this.config.locale);
       }
       if (this.config.timezone) {
-        dayjs.tz.setDefault(this.config.timezone)
+        dayjs.tz.setDefault(this.config.timezone);
       }
     } catch (error) {
-      console.warn('Failed to initialize DateTimeService:', error)
+      console.warn("Failed to initialize DateTimeService:", error);
     }
   }
 
@@ -820,8 +844,8 @@ class DateTimeService implements IDateTimeService {
    * @returns Promise<void>
    */
   async updateConfig(config: Partial<DateTimeConfig>): Promise<void> {
-    Object.assign(this.config, config)
-    await this.init()
+    Object.assign(this.config, config);
+    await this.init();
   }
 
   /**
@@ -831,7 +855,7 @@ class DateTimeService implements IDateTimeService {
    * @returns Dayjs 实例
    */
   now(): Dayjs {
-    return this.config.utc ? dayjs.utc() : dayjs()
+    return this.config.utc ? dayjs.utc() : dayjs();
   }
 
   /**
@@ -842,7 +866,7 @@ class DateTimeService implements IDateTimeService {
    * @returns Dayjs 实例
    */
   parse(targetDate?: ConfigType): Dayjs {
-    return this.config.utc ? dayjs.utc(targetDate) : dayjs(targetDate)
+    return this.config.utc ? dayjs.utc(targetDate) : dayjs(targetDate);
   }
 
   /**
@@ -885,7 +909,7 @@ class DateTimeService implements IDateTimeService {
    * ```
    */
   format(date: ConfigType, format?: string): string {
-    return this.formatStrategy.format(date, format || this.config.format)
+    return this.formatStrategy.format(date, format || this.config.format);
   }
 
   /**
@@ -894,7 +918,7 @@ class DateTimeService implements IDateTimeService {
    * @returns 相对时间字符串，例如 "2小时前"
    */
   fromNow(date: ConfigType): string {
-    return this.parse(date).fromNow()
+    return this.parse(date).fromNow();
   }
 
   /**
@@ -903,7 +927,7 @@ class DateTimeService implements IDateTimeService {
    * @returns 是否有效
    */
   isValid(date: ConfigType): boolean {
-    return this.parse(date).isValid()
+    return this.parse(date).isValid();
   }
 
   /**
@@ -913,11 +937,11 @@ class DateTimeService implements IDateTimeService {
    * @returns -1(早于), 0(相等), 1(晚于)
    */
   compare(baseDate: ConfigType, compareDate: ConfigType): number {
-    const base = this.parse(baseDate)
-    const compare = this.parse(compareDate)
-    if (base.isBefore(compare)) return -1
-    if (base.isAfter(compare)) return 1
-    return 0
+    const base = this.parse(baseDate);
+    const compare = this.parse(compareDate);
+    if (base.isBefore(compare)) return -1;
+    if (base.isAfter(compare)) return 1;
+    return 0;
   }
 
   /**
@@ -928,7 +952,7 @@ class DateTimeService implements IDateTimeService {
    * @returns Dayjs 实例
    */
   add(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs {
-    return this.calculationStrategy.add(targetDate, amount, unit)
+    return this.calculationStrategy.add(targetDate, amount, unit);
   }
 
   /**
@@ -939,7 +963,7 @@ class DateTimeService implements IDateTimeService {
    * @returns Dayjs 实例
    */
   subtract(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs {
-    return this.calculationStrategy.subtract(targetDate, amount, unit)
+    return this.calculationStrategy.subtract(targetDate, amount, unit);
   }
 
   /**
@@ -950,7 +974,7 @@ class DateTimeService implements IDateTimeService {
    * @returns 时间差
    */
   diff(baseDate: ConfigType, compareDate: ConfigType, unit: UnitType): number {
-    return this.calculationStrategy.diff(baseDate, compareDate, unit)
+    return this.calculationStrategy.diff(baseDate, compareDate, unit);
   }
 
   /**
@@ -965,9 +989,13 @@ class DateTimeService implements IDateTimeService {
     targetDate: ConfigType,
     rangeStart: ConfigType,
     rangeEnd: ConfigType,
-    unit?: OpUnitType
+    unit?: OpUnitType,
   ): boolean {
-    return this.parse(targetDate).isBetween(this.parse(rangeStart), this.parse(rangeEnd), unit)
+    return this.parse(targetDate).isBetween(
+      this.parse(rangeStart),
+      this.parse(rangeEnd),
+      unit,
+    );
   }
 
   /**
@@ -1020,17 +1048,17 @@ class DateTimeService implements IDateTimeService {
    */
   workday = {
     isWorkday: (targetDate: ConfigType): boolean => {
-      return this.workdayStrategy.isWorkday(targetDate)
+      return this.workdayStrategy.isWorkday(targetDate);
     },
 
     nextWorkday: (targetDate: ConfigType): Dayjs => {
-      return this.workdayStrategy.nextWorkday(targetDate)
+      return this.workdayStrategy.nextWorkday(targetDate);
     },
 
     countWorkdays: (startDate: ConfigType, endDate: ConfigType): number => {
-      return this.workdayStrategy.countWorkdays(startDate, endDate)
-    }
-  }
+      return this.workdayStrategy.countWorkdays(startDate, endDate);
+    },
+  };
 
   /**
    * 日期相关操作
@@ -1090,28 +1118,36 @@ class DateTimeService implements IDateTimeService {
    * ```
    */
   date: IDateOperations = {
-    getDayOfMonth: (targetDate: ConfigType): number => this.parse(targetDate).date(),
-    getDayOfYear: (targetDate: ConfigType): number => this.parse(targetDate).dayOfYear(),
-    getDayOfWeek: (targetDate: ConfigType, format: WeekFormat = 'number'): string | number => {
-      const parsedDate = this.parse(targetDate)
-      return this.weekFormatStrategy.format(parsedDate.day(), format)
+    getDayOfMonth: (targetDate: ConfigType): number =>
+      this.parse(targetDate).date(),
+    getDayOfYear: (targetDate: ConfigType): number =>
+      this.parse(targetDate).dayOfYear(),
+    getDayOfWeek: (
+      targetDate: ConfigType,
+      format: WeekFormat = "number",
+    ): string | number => {
+      const parsedDate = this.parse(targetDate);
+      return this.weekFormatStrategy.format(parsedDate.day(), format);
     },
     getWeekOfMonth: (targetDate: ConfigType): number => {
-      const parsedDate = this.parse(targetDate)
-      const monthStart = parsedDate.startOf('month')
-      const firstWeekday = monthStart.day()
-      const dayOfMonth = parsedDate.date()
-      const offset = firstWeekday === 0 ? 6 : firstWeekday - 1
-      return Math.ceil((dayOfMonth + offset) / 7)
+      const parsedDate = this.parse(targetDate);
+      const monthStart = parsedDate.startOf("month");
+      const firstWeekday = monthStart.day();
+      const dayOfMonth = parsedDate.date();
+      const offset = firstWeekday === 0 ? 6 : firstWeekday - 1;
+      return Math.ceil((dayOfMonth + offset) / 7);
     },
     isWeekend: (targetDate: ConfigType): boolean => {
-      const weekendDays = new Set([0, 6])
-      return weekendDays.has(this.parse(targetDate).day())
+      const weekendDays = new Set([0, 6]);
+      return weekendDays.has(this.parse(targetDate).day());
     },
-    isToday: (targetDate: ConfigType): boolean => this.parse(targetDate).isSame(this.now(), 'day'),
-    startOfDay: (targetDate: ConfigType): Dayjs => this.parse(targetDate).startOf('day'),
-    endOfDay: (targetDate: ConfigType): Dayjs => this.parse(targetDate).endOf('day')
-  }
+    isToday: (targetDate: ConfigType): boolean =>
+      this.parse(targetDate).isSame(this.now(), "day"),
+    startOfDay: (targetDate: ConfigType): Dayjs =>
+      this.parse(targetDate).startOf("day"),
+    endOfDay: (targetDate: ConfigType): Dayjs =>
+      this.parse(targetDate).endOf("day"),
+  };
 
   /**
    * 季度相关操作
@@ -1159,17 +1195,17 @@ class DateTimeService implements IDateTimeService {
    */
   quarter = {
     get: (targetDate: ConfigType): number => {
-      return this.parse(targetDate).quarter()
+      return this.parse(targetDate).quarter();
     },
 
     startOf: (targetDate: ConfigType): Dayjs => {
-      return this.parse(targetDate).startOf('quarter')
+      return this.parse(targetDate).startOf("quarter");
     },
 
     endOf: (targetDate: ConfigType): Dayjs => {
-      return this.parse(targetDate).endOf('quarter')
-    }
-  }
+      return this.parse(targetDate).endOf("quarter");
+    },
+  };
 
   /**
    * 周相关操作
@@ -1222,25 +1258,27 @@ class DateTimeService implements IDateTimeService {
    */
   week = {
     get: (targetDate: ConfigType): number => {
-      return this.parse(targetDate).week()
+      return this.parse(targetDate).week();
     },
 
     startOf: (targetDate: ConfigType): Dayjs => {
-      const parsedDate = this.parse(targetDate)
-      const isChineseLocale = this.config.locale?.startsWith('zh')
-      return parsedDate.locale(isChineseLocale ? 'zh-cn' : 'en').startOf('week')
+      const parsedDate = this.parse(targetDate);
+      const isChineseLocale = this.config.locale?.startsWith("zh");
+      return parsedDate
+        .locale(isChineseLocale ? "zh-cn" : "en")
+        .startOf("week");
     },
 
     endOf: (targetDate: ConfigType): Dayjs => {
-      const parsedDate = this.parse(targetDate)
-      const isChineseLocale = this.config.locale?.startsWith('zh')
-      return parsedDate.locale(isChineseLocale ? 'zh-cn' : 'en').endOf('week')
-    }
-  }
+      const parsedDate = this.parse(targetDate);
+      const isChineseLocale = this.config.locale?.startsWith("zh");
+      return parsedDate.locale(isChineseLocale ? "zh-cn" : "en").endOf("week");
+    },
+  };
 }
 
 // 创建单例实例
-const dateTimeService = new DateTimeService()
+const dateTimeService = new DateTimeService();
 
 // 导出类型和接口
 export type {
@@ -1250,8 +1288,8 @@ export type {
   IDateOperations,
   DateTimeConfig,
   WeekFormat,
-  IDateTimeService
-}
+  IDateTimeService,
+};
 
 // 导出类和实例
 export {
@@ -1260,5 +1298,5 @@ export {
   DefaultWorkdayStrategy,
   DefaultDateFormatStrategy,
   DefaultDateCalculationStrategy,
-  DefaultWeekFormatStrategy
-}
+  DefaultWeekFormatStrategy,
+};

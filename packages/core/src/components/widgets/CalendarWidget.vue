@@ -1,86 +1,94 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed } from "vue";
 
-const currentDate = ref(new Date())
-const selectedDate = ref<Date | null>(null)
+const currentDate = ref(new Date());
+const selectedDate = ref<Date | null>(null);
 
-const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
 
 const currentMonthText = computed(() => {
-  return currentDate.value.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long'
-  })
-})
+  return currentDate.value.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "long",
+  });
+});
 
 const calendarDays = computed(() => {
-  const year = currentDate.value.getFullYear()
-  const month = currentDate.value.getMonth()
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
+  const year = currentDate.value.getFullYear();
+  const month = currentDate.value.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
 
-  const days = []
-  const today = new Date()
+  const days = [];
+  const today = new Date();
 
   // 添加上个月的日期
-  const prevMonthDays = firstDay.getDay()
-  const prevMonth = new Date(year, month, 0)
+  const prevMonthDays = firstDay.getDay();
+  const prevMonth = new Date(year, month, 0);
   for (let i = prevMonthDays - 1; i >= 0; i--) {
     days.push({
       date: new Date(year, month - 1, prevMonth.getDate() - i),
       dayNumber: prevMonth.getDate() - i,
       isOtherMonth: true,
-      isToday: false
-    })
+      isToday: false,
+    });
   }
 
   // 添加当前月的日期
   for (let i = 1; i <= lastDay.getDate(); i++) {
-    const date = new Date(year, month, i)
+    const date = new Date(year, month, i);
     days.push({
       date,
       dayNumber: i,
       isOtherMonth: false,
-      isToday: isSameDay(date, today)
-    })
+      isToday: isSameDay(date, today),
+    });
   }
 
   // 添加下个月的日期
-  const remainingDays = 42 - days.length // 6 行 x 7 天
+  const remainingDays = 42 - days.length; // 6 行 x 7 天
   for (let i = 1; i <= remainingDays; i++) {
     days.push({
       date: new Date(year, month + 1, i),
       dayNumber: i,
       isOtherMonth: true,
-      isToday: false
-    })
+      isToday: false,
+    });
   }
 
-  return days
-})
+  return days;
+});
 
 function isSameDay(date1: Date, date2: Date) {
   return (
     date1.getFullYear() === date2.getFullYear() &&
     date1.getMonth() === date2.getMonth() &&
     date1.getDate() === date2.getDate()
-  )
+  );
 }
 
 function isSelected(date: Date) {
-  return selectedDate.value && isSameDay(date, selectedDate.value)
+  return selectedDate.value && isSameDay(date, selectedDate.value);
 }
 
 function selectDate(date: Date) {
-  selectedDate.value = date
+  selectedDate.value = date;
 }
 
 function prevMonth() {
-  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
+  currentDate.value = new Date(
+    currentDate.value.getFullYear(),
+    currentDate.value.getMonth() - 1,
+    1,
+  );
 }
 
 function nextMonth() {
-  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
+  currentDate.value = new Date(
+    currentDate.value.getFullYear(),
+    currentDate.value.getMonth() + 1,
+    1,
+  );
 }
 </script>
 
@@ -100,7 +108,7 @@ function nextMonth() {
         :class="{
           'other-month': date.isOtherMonth,
           today: date.isToday,
-          selected: isSelected(date.date)
+          selected: isSelected(date.date),
         }"
         @click="selectDate(date.date)"
       >

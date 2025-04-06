@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { SlideAppService } from './slide-app.service';
-import { CreateSlideAppDto } from './dto/create-slide-app.dto';
-import { UpdateSlideAppDto } from './dto/update-slide-app.dto';
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
+import { SlideAppService } from './slide-app.service'
+import { CreateSlideAppDto } from './dto/create-slide-app.dto'
+import { UpdateSlideAppDto } from './dto/update-slide-app.dto'
 
 @Controller('slide-app')
 export class SlideAppController {
@@ -9,26 +9,26 @@ export class SlideAppController {
 
   @Post()
   create(@Body() createSlideAppDto: CreateSlideAppDto) {
-    return this.slideAppService.create(createSlideAppDto);
+    return this.slideAppService.create(createSlideAppDto)
   }
 
   @Get()
   findAll() {
-    return this.slideAppService.findAll();
+    return this.slideAppService.findAll()
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.slideAppService.findOne(+id);
+    return this.slideAppService.findOne(+id)
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateSlideAppDto: UpdateSlideAppDto) {
-    return this.slideAppService.update(+id, updateSlideAppDto);
+    return this.slideAppService.update(+id, updateSlideAppDto)
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.slideAppService.remove(+id);
+    return this.slideAppService.remove(+id)
   }
 }

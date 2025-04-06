@@ -1,18 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SlideAppService } from './slide-app.service';
+import { Test, TestingModule } from '@nestjs/testing'
+import { SlideAppService } from './slide-app.service'
 
 describe('SlideAppService', () => {
-  let service: SlideAppService;
+  let service: SlideAppService
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SlideAppService],
-    }).compile();
+      providers: [SlideAppService]
+    }).compile()
 
-    service = module.get<SlideAppService>(SlideAppService);
-  });
+    service = module.get<SlideAppService>(SlideAppService)
+  })
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-});
+    expect(service).toBeDefined()
+  })
+})

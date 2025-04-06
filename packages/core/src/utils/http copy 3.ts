@@ -59,8 +59,8 @@ import axios, {
   type AxiosInterceptorOptions,
   type ParamsSerializerOptions,
   type AxiosResponseTransformer,
-  type InternalAxiosRequestConfig
-} from 'axios'
+  type InternalAxiosRequestConfig,
+} from "axios";
 
 /**
  * Axios 增强型 HTTP 客户端模块
@@ -89,27 +89,30 @@ import axios, {
  */
 export class HttpError extends Error {
   /** HTTP 状态码 */
-  status?: number
+  status?: number;
   /** 业务错误码 */
-  code?: string | number
+  code?: string | number;
   /** 响应原始数据 */
-  data?: any
+  data?: any;
   /** 错误发生时间戳 */
-  timestamp: number
+  timestamp: number;
 
   /**
    * 构造函数
    * @param message - 错误消息
    * @param options - 错误选项，包含状态码、错误码和数据
    */
-  constructor(message?: string, options?: { status?: number; code?: string | number; data?: any }) {
-    super(message)
-    this.name = 'HttpError'
-    this.status = options?.status
-    this.code = options?.code
-    this.data = options?.data
-    this.timestamp = Date.now()
-    Object.setPrototypeOf(this, new.target.prototype)
+  constructor(
+    message?: string,
+    options?: { status?: number; code?: string | number; data?: any },
+  ) {
+    super(message);
+    this.name = "HttpError";
+    this.status = options?.status;
+    this.code = options?.code;
+    this.data = options?.data;
+    this.timestamp = Date.now();
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 
@@ -118,48 +121,48 @@ export class HttpError extends Error {
  * @remarks
  * 为 AxiosRequestConfig 添加自定义配置项
  */
-declare module 'axios' {
+declare module "axios" {
   export interface AxiosRequestConfig {
     /**
      * 是否取消重复请求
      * @default false
      */
-    cancelDuplicated?: boolean
+    cancelDuplicated?: boolean;
     /**
      * @description 重试配置
      * @example
      * { count: 3, delay: 1000 } // 失败后重试3次，每次间隔1秒
      */
     retry?: {
-      count: number
+      count: number;
       /**
        * @description 重试延迟(ms)
        */
-      delay: number
-    }
+      delay: number;
+    };
     /**
      * @description 是否显示错误提示
      * @default true
      */
-    showErrorMessage?: boolean
+    showErrorMessage?: boolean;
     /**
      * @description 是否返回原始响应（不经过拦截器处理）
      * @default false
      */
-    raw?: boolean
+    raw?: boolean;
     /**
      * @description 自定义请求标识符（用于取消重复请求）
      */
-    requestId?: string
+    requestId?: string;
     /**
      * @description 请求元数据
      */
     metadata?: {
       /** 请求开始时间 */
-      startTime?: number
+      startTime?: number;
       /** 其他元数据 */
-      [key: string]: any
-    }
+      [key: string]: any;
+    };
     /**
      * 缓存配置
      * @default false
@@ -168,27 +171,27 @@ declare module 'axios' {
       | boolean
       | {
           /** 缓存键 */
-          key?: string
+          key?: string;
           /** 缓存时间(ms) */
-          ttl?: number
-        }
+          ttl?: number;
+        };
     /**
      * 请求优先级
      * @default RequestPriority.NORMAL
      */
-    priority?: RequestPriority
+    priority?: RequestPriority;
     /**
      * 是否绕过队列直接发送请求
      * @default false
      */
-    bypassQueue?: boolean
+    bypassQueue?: boolean;
   }
 
   export interface AxiosResponse {
     /**
      * @description 标记响应是否来自缓存
      */
-    cached?: boolean
+    cached?: boolean;
   }
 }
 
@@ -205,11 +208,11 @@ declare module 'axios' {
  */
 export interface CacheItem<T = any> {
   /** 缓存数据 */
-  data: T
+  data: T;
   /** 缓存时间戳 */
-  timestamp: number
+  timestamp: number;
   /** 缓存过期时间 */
-  expires: number
+  expires: number;
 }
 
 /**
@@ -229,7 +232,7 @@ export interface CacheStrategy {
    * @param key - 缓存键
    * @returns 缓存数据或 null
    */
-  get<T = any>(key: string): Promise<T | null> | T | null
+  get<T = any>(key: string): Promise<T | null> | T | null;
 
   /**
    * @description 设置缓存数据
@@ -237,25 +240,25 @@ export interface CacheStrategy {
    * @param value - 缓存值
    * @param ttl - 缓存时间(ms)
    */
-  set<T = any>(key: string, value: T, ttl?: number): Promise<void> | void
+  set<T = any>(key: string, value: T, ttl?: number): Promise<void> | void;
 
   /**
    * @description 检查缓存是否存在
    * @param key - 缓存键
    * @returns 是否存在缓存
    */
-  has(key: string): Promise<boolean> | boolean
+  has(key: string): Promise<boolean> | boolean;
 
   /**
    * @description 删除缓存
    * @param key - 缓存键
    */
-  delete(key: string): Promise<void> | void
+  delete(key: string): Promise<void> | void;
 
   /**
    * @description 清空缓存
    */
-  clear(): Promise<void> | void
+  clear(): Promise<void> | void;
 }
 
 /**
@@ -276,23 +279,23 @@ export interface CacheStrategy {
  */
 export interface PerformanceMetrics {
   /** 请求 URL */
-  url: string
+  url: string;
   /** 请求方法 */
-  method: string
+  method: string;
   /** 请求 ID */
-  requestId?: string
+  requestId?: string;
   /** 请求开始时间戳 */
-  startTime: number
+  startTime: number;
   /** 请求结束时间戳 */
-  endTime: number
+  endTime: number;
   /** 请求总耗时（毫秒） */
-  duration: number
+  duration: number;
   /** HTTP 状态码 */
-  status: number
+  status: number;
   /** 是否标记为慢请求 */
-  slow: boolean
+  slow: boolean;
   /** 是否来自缓存 */
-  cached: boolean
+  cached: boolean;
 }
 
 /**
@@ -304,7 +307,7 @@ export interface PerformanceMonitor {
    * 记录性能指标
    * @param metrics - 性能指标
    */
-  recordMetrics(metrics: PerformanceMetrics): void
+  recordMetrics(metrics: PerformanceMetrics): void;
 
   /**
    * 获取平均响应时间
@@ -312,25 +315,25 @@ export interface PerformanceMonitor {
    * @param method - 可选的请求方法过滤器
    * @returns 平均响应时间(ms)
    */
-  getAverageResponseTime(url?: string, method?: string): number
+  getAverageResponseTime(url?: string, method?: string): number;
 
   /**
    * 获取慢请求列表
    * @param threshold - 可选的阈值（毫秒）
    * @returns 慢请求列表
    */
-  getSlowRequests(threshold?: number): PerformanceMetrics[]
+  getSlowRequests(threshold?: number): PerformanceMetrics[];
 
   /**
    * 获取所有性能指标
    * @returns 所有性能指标列表
    */
-  getMetrics(): PerformanceMetrics[]
+  getMetrics(): PerformanceMetrics[];
 
   /**
    * 清空性能指标
    */
-  clear(): void
+  clear(): void;
 }
 
 /**
@@ -341,7 +344,7 @@ export enum RequestPriority {
   LOW = 0,
   NORMAL = 1,
   HIGH = 2,
-  CRITICAL = 3
+  CRITICAL = 3,
 }
 
 /**
@@ -359,17 +362,17 @@ export enum RequestPriority {
  */
 export interface QueuedRequest {
   /** 请求 ID */
-  id: string
+  id: string;
   /** 请求配置 */
-  config: AxiosRequestConfig
+  config: AxiosRequestConfig;
   /** 请求优先级 */
-  priority: RequestPriority
+  priority: RequestPriority;
   /** 解决函数 */
-  resolve: (value: any) => void
+  resolve: (value: any) => void;
   /** 拒绝函数 */
-  reject: (reason: any) => void
+  reject: (reason: any) => void;
   /** 请求时间戳 */
-  timestamp: number
+  timestamp: number;
 }
 
 /**
@@ -385,13 +388,13 @@ export interface QueuedRequest {
  */
 export interface ConcurrencyConfig {
   /** 最大并发请求数 */
-  maxConcurrent: number
+  maxConcurrent: number;
   /** 队列大小限制（0 表示无限制） */
-  queueSize: number
+  queueSize: number;
   /** 队列满时的行为：丢弃新请求或丢弃最低优先级请求 */
-  queueFullStrategy: 'reject-new' | 'drop-lowest'
+  queueFullStrategy: "reject-new" | "drop-lowest";
   /** 请求超时时间（毫秒，0 表示无超时） */
-  queueTimeout: number
+  queueTimeout: number;
 }
 
 /**
@@ -423,40 +426,40 @@ export interface ConcurrencyConfig {
  */
 export interface HttpClientConfig extends CreateAxiosDefaults {
   /** 基础请求路径 */
-  baseURL?: string
+  baseURL?: string;
   /** 请求超时时间 */
-  timeout?: number
+  timeout?: number;
   /** 是否启用请求重复取消 */
-  enableCancelDuplicated?: boolean
+  enableCancelDuplicated?: boolean;
   /** 默认重试配置 */
   defaultRetry?: {
     /** 重试次数 */
-    count: number
+    count: number;
     /** 重试延迟(ms) */
-    delay: number
-  }
+    delay: number;
+  };
   /** 获取认证令牌的函数 */
-  getToken?: () => string | null | Promise<string | null>
+  getToken?: () => string | null | Promise<string | null>;
   /** 设置认证令牌的函数 */
-  setAuthHeader?: (headers: any, token: string) => void
+  setAuthHeader?: (headers: any, token: string) => void;
   /** 错误处理器 */
-  errorHandler?: ErrorHandler
+  errorHandler?: ErrorHandler;
   /** 响应处理器 */
-  responseHandler?: ResponseHandler
+  responseHandler?: ResponseHandler;
   /** 事件总线 */
-  eventBus?: EventBus
+  eventBus?: EventBus;
   /** 日志记录器 */
-  logger?: Logger
+  logger?: Logger;
   /** 慢请求阈值（毫秒） */
-  slowRequestThreshold?: number
+  slowRequestThreshold?: number;
   /** 缓存策略 */
-  cacheStrategy?: CacheStrategy
+  cacheStrategy?: CacheStrategy;
   /** 默认缓存时间（毫秒） */
-  defaultCacheTTL?: number
+  defaultCacheTTL?: number;
   /** 性能监控 */
-  performanceMonitor?: PerformanceMonitor
+  performanceMonitor?: PerformanceMonitor;
   /** 并发控制配置 */
-  concurrency?: Partial<ConcurrencyConfig>
+  concurrency?: Partial<ConcurrencyConfig>;
 }
 
 /**
@@ -483,30 +486,30 @@ export interface ErrorHandler {
    * @param error - Axios 错误对象
    * @returns 处理结果
    */
-  handleStatusError: (error: AxiosError) => Promise<any>
+  handleStatusError: (error: AxiosError) => Promise<any>;
   /**
    * 处理网络错误
    * @param error - Axios 错误对象
    * @returns 处理结果
    */
-  handleNetworkError: (error: AxiosError) => Promise<any>
+  handleNetworkError: (error: AxiosError) => Promise<any>;
   /**
    * 处理取消请求
    * @param error - 错误对象
    * @returns 处理结果
    */
-  handleCancelError: (error: any) => Promise<any>
+  handleCancelError: (error: any) => Promise<any>;
   /**
    * 处理通用错误
    * @param error - 错误对象
    * @returns 处理结果
    */
-  handleGeneralError: (error: any) => Promise<any>
+  handleGeneralError: (error: any) => Promise<any>;
   /**
    * 显示错误消息
    * @param message - 错误消息
    */
-  showErrorMessage: (message: string) => void
+  showErrorMessage: (message: string) => void;
 }
 
 /**
@@ -519,7 +522,7 @@ export interface ResponseHandler {
    * @param response - Axios 响应对象
    * @returns 处理结果
    */
-  handleResponse: (response: AxiosResponse) => any
+  handleResponse: (response: AxiosResponse) => any;
 }
 
 /**
@@ -533,21 +536,21 @@ export interface EventBus {
    * @param callback - 回调函数
    * @returns 取消监听函数
    */
-  on(event: string, callback: Function): () => void
+  on(event: string, callback: Function): () => void;
 
   /**
    * 取消监听事件
    * @param event - 事件名称
    * @param callback - 回调函数
    */
-  off(event: string, callback: Function): void
+  off(event: string, callback: Function): void;
 
   /**
    * 触发事件
    * @param event - 事件名称
    * @param args - 事件参数
    */
-  emit(event: string, ...args: any[]): void
+  emit(event: string, ...args: any[]): void;
 
   /**
    * 一次性监听事件
@@ -555,7 +558,7 @@ export interface EventBus {
    * @param callback - 回调函数
    * @returns 取消监听函数
    */
-  once(event: string, callback: Function): () => void
+  once(event: string, callback: Function): () => void;
 }
 
 /**
@@ -563,11 +566,11 @@ export interface EventBus {
  * @description 定义请求相关的事件类型，包括请求开始、请求成功、请求错误、请求完成和慢请求等事件
  */
 export enum EventType {
-  REQUEST_START = 'request:start',
-  REQUEST_SUCCESS = 'request:success',
-  REQUEST_ERROR = 'request:error',
-  REQUEST_COMPLETE = 'request:complete',
-  SLOW_REQUEST = 'request:slow'
+  REQUEST_START = "request:start",
+  REQUEST_SUCCESS = "request:success",
+  REQUEST_ERROR = "request:error",
+  REQUEST_COMPLETE = "request:complete",
+  SLOW_REQUEST = "request:slow",
 }
 
 /**
@@ -587,21 +590,21 @@ export enum EventType {
  */
 export interface RequestEvent {
   /** 请求 URL */
-  url: string
+  url: string;
   /** 请求方法 */
-  method: string
+  method: string;
   /** 请求时间戳 */
-  timestamp: number
+  timestamp: number;
   /** 请求持续时间(ms) */
-  duration?: number
+  duration?: number;
   /** 请求 ID */
-  requestId?: string
+  requestId?: string;
   /** 请求配置 */
-  config?: AxiosRequestConfig
+  config?: AxiosRequestConfig;
   /** 请求响应 */
-  response?: AxiosResponse
+  response?: AxiosResponse;
   /** 请求错误 */
-  error?: any
+  error?: any;
 }
 
 /**
@@ -609,10 +612,10 @@ export interface RequestEvent {
  * @description 定义日志的级别，包括调试、信息、警告和错误四个级别
  */
 export enum LogLevel {
-  DEBUG = 'debug',
-  INFO = 'info',
-  WARN = 'warn',
-  ERROR = 'error'
+  DEBUG = "debug",
+  INFO = "info",
+  WARN = "warn",
+  ERROR = "error",
 }
 
 /**
@@ -625,29 +628,29 @@ export interface Logger {
    * @param message - 日志消息
    * @param args - 日志参数
    */
-  debug(message: string, ...args: any[]): void
-  info(message: string, ...args: any[]): void
+  debug(message: string, ...args: any[]): void;
+  info(message: string, ...args: any[]): void;
 
   /**
    * 记录信息日志
    * @param message - 日志消息
    * @param args - 日志参数
    */
-  warn(message: string, ...args: any[]): void
+  warn(message: string, ...args: any[]): void;
 
   /**
    * 记录警告日志
    * @param message - 日志消息
    * @param args - 日志参数
    */
-  error(message: string, ...args: any[]): void
+  error(message: string, ...args: any[]): void;
 
   /**
    * 记录错误日志
    * @param message - 日志消息
    * @param args - 日志参数
    */
-  log(level: LogLevel, message: string, ...args: any[]): void
+  log(level: LogLevel, message: string, ...args: any[]): void;
 }
 
 // 工具函数
@@ -661,7 +664,7 @@ export interface Logger {
  * @example
  * await delay(1000); // 延迟1秒
  */
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * 生成请求的唯一键
@@ -672,9 +675,12 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
  * const key = generateRequestKey({ url: '/api/users', method: 'GET' });
  */
 const generateRequestKey = (config: AxiosRequestConfig): string => {
-  const { url, method, params, data, requestId } = config
-  return requestId || [url, method, JSON.stringify(params), JSON.stringify(data)].join('&')
-}
+  const { url, method, params, data, requestId } = config;
+  return (
+    requestId ||
+    [url, method, JSON.stringify(params), JSON.stringify(data)].join("&")
+  );
+};
 
 // 默认处理器实现
 // =========================================
@@ -684,15 +690,15 @@ const generateRequestKey = (config: AxiosRequestConfig): string => {
  * @description 定义常见 HTTP 状态码对应的错误消息
  */
 const defaultStatusErrorMap: Record<number, string> = {
-  400: '请求参数错误',
-  401: '未授权，请重新登录',
-  403: '拒绝访问',
-  404: '请求的资源不存在',
-  500: '服务器错误',
-  502: '网关错误',
-  503: '服务不可用',
-  504: '网关超时'
-}
+  400: "请求参数错误",
+  401: "未授权，请重新登录",
+  403: "拒绝访问",
+  404: "请求的资源不存在",
+  500: "服务器错误",
+  502: "网关错误",
+  503: "服务不可用",
+  504: "网关超时",
+};
 
 /**
  * 默认错误处理器
@@ -700,14 +706,14 @@ const defaultStatusErrorMap: Record<number, string> = {
  */
 export class DefaultErrorHandler implements ErrorHandler {
   /** 状态码错误处理映射 */
-  private statusErrorMap: Record<number, string>
+  private statusErrorMap: Record<number, string>;
 
   /**
    * 构造函数
    * @param statusErrorMap - 状态码错误处理映射
    */
   constructor(statusErrorMap?: Record<number, string>) {
-    this.statusErrorMap = statusErrorMap || defaultStatusErrorMap
+    this.statusErrorMap = statusErrorMap || defaultStatusErrorMap;
   }
 
   /**
@@ -716,9 +722,10 @@ export class DefaultErrorHandler implements ErrorHandler {
    * @returns 处理结果
    */
   async handleStatusError(error: AxiosError): Promise<any> {
-    const status = error.response?.status || 0
-    const message = this.statusErrorMap[status] || `请求失败，状态码: ${status}`
-    this.showErrorMessage(message)
+    const status = error.response?.status || 0;
+    const message =
+      this.statusErrorMap[status] || `请求失败，状态码: ${status}`;
+    this.showErrorMessage(message);
 
     // 特殊处理 401 错误，可以在这里触发登出逻辑
     if (status === 401) {
@@ -729,9 +736,9 @@ export class DefaultErrorHandler implements ErrorHandler {
     return Promise.reject(
       new HttpError(message, {
         status,
-        data: error.response?.data
-      })
-    )
+        data: error.response?.data,
+      }),
+    );
   }
 
   /**
@@ -740,8 +747,8 @@ export class DefaultErrorHandler implements ErrorHandler {
    * @returns 处理结果
    */
   async handleNetworkError(error: AxiosError): Promise<any> {
-    this.showErrorMessage('网络错误，请检查您的网络连接')
-    return Promise.reject(new HttpError('网络错误，请检查您的网络连接'))
+    this.showErrorMessage("网络错误，请检查您的网络连接");
+    return Promise.reject(new HttpError("网络错误，请检查您的网络连接"));
   }
 
   /**
@@ -751,8 +758,8 @@ export class DefaultErrorHandler implements ErrorHandler {
    */
   async handleCancelError(error: any): Promise<any> {
     // 通常不需要显示取消请求的错误消息
-    console.log('请求被取消:', error.message)
-    return Promise.reject(error)
+    console.log("请求被取消:", error.message);
+    return Promise.reject(error);
   }
 
   /**
@@ -761,8 +768,8 @@ export class DefaultErrorHandler implements ErrorHandler {
    * @returns 处理结果
    */
   async handleGeneralError(error: any): Promise<any> {
-    this.showErrorMessage(error.message || '请求发生未知错误')
-    return Promise.reject(error)
+    this.showErrorMessage(error.message || "请求发生未知错误");
+    return Promise.reject(error);
   }
 
   /**
@@ -770,7 +777,7 @@ export class DefaultErrorHandler implements ErrorHandler {
    * @param message - 错误消息
    */
   showErrorMessage(message: string): void {
-    console.error(message)
+    console.error(message);
   }
 }
 
@@ -780,26 +787,26 @@ export class DefaultErrorHandler implements ErrorHandler {
  */
 export class DefaultResponseHandler implements ResponseHandler {
   handleResponse(response: AxiosResponse): any {
-    const data = response.data
+    const data = response.data;
 
     // 根据业务逻辑处理响应
     // 假设后端返回格式为 { code: number, data: any, message: string }
-    const isStandardFormat = data && typeof data === 'object' && 'code' in data
+    const isStandardFormat = data && typeof data === "object" && "code" in data;
 
     if (!isStandardFormat) {
-      return data
+      return data;
     }
 
-    const isSuccess = data.code === 0 || data.code === 200
+    const isSuccess = data.code === 0 || data.code === 200;
 
     if (isSuccess) {
-      return data.data
+      return data.data;
     }
 
-    throw new HttpError(data.message || '请求失败', {
+    throw new HttpError(data.message || "请求失败", {
       code: data.code,
-      data: data.data
-    })
+      data: data.data,
+    });
   }
 }
 
@@ -817,7 +824,7 @@ interface RequestInterceptor {
    * @param httpClient - HTTP 客户端实例
    * @returns 处理结果
    */
-  intercept(config: AxiosRequestConfig, httpClient: HttpClient): Promise<any>
+  intercept(config: AxiosRequestConfig, httpClient: HttpClient): Promise<any>;
 }
 
 /**
@@ -831,15 +838,19 @@ class DuplicateRequestInterceptor implements RequestInterceptor {
    * @param httpClient - HTTP 客户端实例
    * @returns 处理结果
    */
-  async intercept(config: AxiosRequestConfig, httpClient: HttpClient): Promise<any> {
+  async intercept(
+    config: AxiosRequestConfig,
+    httpClient: HttpClient,
+  ): Promise<any> {
     const shouldCancelDuplicated =
-      httpClient.getConfig().enableCancelDuplicated && config.cancelDuplicated !== false
+      httpClient.getConfig().enableCancelDuplicated &&
+      config.cancelDuplicated !== false;
 
     if (shouldCancelDuplicated) {
-      httpClient.addPendingRequest(config)
+      httpClient.addPendingRequest(config);
     }
 
-    return config
+    return config;
   }
 }
 
@@ -854,35 +865,38 @@ class AuthTokenInterceptor implements RequestInterceptor {
    * @param httpClient - HTTP 客户端实例
    * @returns 处理结果
    */
-  async intercept(config: AxiosRequestConfig, httpClient: HttpClient): Promise<any> {
-    const { getToken, setAuthHeader } = httpClient.getConfig()
+  async intercept(
+    config: AxiosRequestConfig,
+    httpClient: HttpClient,
+  ): Promise<any> {
+    const { getToken, setAuthHeader } = httpClient.getConfig();
 
     if (!getToken) {
-      return config
+      return config;
     }
 
-    const token = await getToken()
+    const token = await getToken();
 
     if (!token) {
-      return config
+      return config;
     }
 
     // 创建新的配置对象
-    const newConfig = { ...config }
+    const newConfig = { ...config };
 
     // 确保 headers 存在
     if (!newConfig.headers) {
-      newConfig.headers = {}
+      newConfig.headers = {};
     }
 
     // 设置认证头
     if (setAuthHeader) {
-      setAuthHeader(newConfig.headers, token)
+      setAuthHeader(newConfig.headers, token);
     } else {
-      newConfig.headers.Authorization = `Bearer ${token}`
+      newConfig.headers.Authorization = `Bearer ${token}`;
     }
 
-    return newConfig
+    return newConfig;
   }
 }
 
@@ -900,7 +914,7 @@ interface ResponseInterceptor {
    * @param httpClient - HTTP 客户端实例
    * @returns 处理结果
    */
-  intercept(response: AxiosResponse, httpClient: HttpClient): any
+  intercept(response: AxiosResponse, httpClient: HttpClient): any;
 }
 
 /**
@@ -915,13 +929,13 @@ class ResponseHandlerInterceptor implements ResponseInterceptor {
    * @returns 处理结果
    */
   intercept(response: AxiosResponse, httpClient: HttpClient): any {
-    const shouldReturnRaw = response.config.raw === true
+    const shouldReturnRaw = response.config.raw === true;
 
     if (shouldReturnRaw) {
-      return response
+      return response;
     }
 
-    return httpClient.getResponseHandler().handleResponse(response)
+    return httpClient.getResponseHandler().handleResponse(response);
   }
 }
 
@@ -938,13 +952,14 @@ class RequestCleanupInterceptor implements ResponseInterceptor {
    */
   intercept(response: AxiosResponse, httpClient: HttpClient): any {
     const shouldCleanup =
-      httpClient.getConfig().enableCancelDuplicated && response.config.cancelDuplicated !== false
+      httpClient.getConfig().enableCancelDuplicated &&
+      response.config.cancelDuplicated !== false;
 
     if (shouldCleanup) {
-      httpClient.removePendingRequest(response.config)
+      httpClient.removePendingRequest(response.config);
     }
 
-    return response
+    return response;
   }
 }
 
@@ -962,7 +977,7 @@ interface ErrorInterceptor {
    * @param httpClient - HTTP 客户端实例
    * @returns 处理结果
    */
-  intercept(error: any, httpClient: HttpClient): Promise<any>
+  intercept(error: any, httpClient: HttpClient): Promise<any>;
 }
 
 /**
@@ -978,17 +993,18 @@ class RequestCleanupErrorInterceptor implements ErrorInterceptor {
    */
   async intercept(error: any, httpClient: HttpClient): Promise<any> {
     if (!error.config) {
-      return Promise.reject(error)
+      return Promise.reject(error);
     }
 
     const shouldCleanup =
-      httpClient.getConfig().enableCancelDuplicated && error.config.cancelDuplicated !== false
+      httpClient.getConfig().enableCancelDuplicated &&
+      error.config.cancelDuplicated !== false;
 
     if (shouldCleanup) {
-      httpClient.removePendingRequest(error.config)
+      httpClient.removePendingRequest(error.config);
     }
 
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
 }
 
@@ -1005,24 +1021,25 @@ class RetryErrorInterceptor implements ErrorInterceptor {
    */
   async intercept(error: any, httpClient: HttpClient): Promise<any> {
     if (!error.config) {
-      return Promise.reject(error)
+      return Promise.reject(error);
     }
 
-    const retryConfig = error.config?.retry || httpClient.getConfig().defaultRetry
+    const retryConfig =
+      error.config?.retry || httpClient.getConfig().defaultRetry;
 
     if (!retryConfig || retryConfig.count <= 0) {
-      return Promise.reject(error)
+      return Promise.reject(error);
     }
 
     // 设置重试计数器
-    const newRetryConfig = { ...retryConfig, count: retryConfig.count - 1 }
-    error.config.retry = newRetryConfig
+    const newRetryConfig = { ...retryConfig, count: retryConfig.count - 1 };
+    error.config.retry = newRetryConfig;
 
     // 延迟后重试
-    await delay(retryConfig.delay || 1000)
+    await delay(retryConfig.delay || 1000);
 
     // 重新发送请求
-    return httpClient.getAxiosInstance()(error.config)
+    return httpClient.getAxiosInstance()(error.config);
   }
 }
 
@@ -1040,23 +1057,23 @@ class ErrorHandlerInterceptor implements ErrorInterceptor {
   async intercept(error: any, httpClient: HttpClient): Promise<any> {
     // 如果不显示错误消息，则直接返回错误
     if (error.config?.showErrorMessage === false) {
-      return Promise.reject(error)
+      return Promise.reject(error);
     }
 
-    const errorHandler = httpClient.getErrorHandler()
+    const errorHandler = httpClient.getErrorHandler();
 
     // 使用策略模式处理不同类型的错误
     if (axios.isCancel(error)) {
-      return errorHandler.handleCancelError(error)
+      return errorHandler.handleCancelError(error);
     }
 
     if (isAxiosError(error)) {
       return error.response
         ? errorHandler.handleStatusError(error)
-        : errorHandler.handleNetworkError(error)
+        : errorHandler.handleNetworkError(error);
     }
 
-    return errorHandler.handleGeneralError(error)
+    return errorHandler.handleGeneralError(error);
   }
 }
 
@@ -1069,15 +1086,15 @@ class ErrorHandlerInterceptor implements ErrorInterceptor {
  */
 export class RequestQueueManager {
   /** 请求队列 */
-  private queue: QueuedRequest[] = []
+  private queue: QueuedRequest[] = [];
   /** 活跃请求数 */
-  private activeCount = 0
+  private activeCount = 0;
   /** 并发控制配置 */
-  private config: ConcurrencyConfig
+  private config: ConcurrencyConfig;
   /** HTTP 客户端实例 */
-  private httpClient: HttpClient
-  private logger: Logger
-  private eventBus: EventBus
+  private httpClient: HttpClient;
+  private logger: Logger;
+  private eventBus: EventBus;
 
   /**
    * 构造函数
@@ -1085,18 +1102,18 @@ export class RequestQueueManager {
    * @param config - 并发控制配置
    */
   constructor(httpClient: HttpClient, config: Partial<ConcurrencyConfig> = {}) {
-    this.httpClient = httpClient
-    this.logger = httpClient.getLogger()
-    this.eventBus = httpClient.getEventBus()
+    this.httpClient = httpClient;
+    this.logger = httpClient.getLogger();
+    this.eventBus = httpClient.getEventBus();
 
     // 默认配置
     this.config = {
       maxConcurrent: 6,
       queueSize: 100,
-      queueFullStrategy: 'reject-new',
+      queueFullStrategy: "reject-new",
       queueTimeout: 30000,
-      ...config
-    }
+      ...config,
+    };
   }
 
   /**
@@ -1107,27 +1124,27 @@ export class RequestQueueManager {
   enqueue(config: AxiosRequestConfig): Promise<any> {
     // 如果请求配置为绕过队列，则直接发送请求
     if (config.bypassQueue) {
-      return this.httpClient.getAxiosInstance().request(config)
+      return this.httpClient.getAxiosInstance().request(config);
     }
 
     // 如果当前活跃请求数小于最大并发数，则直接发送请求
     if (this.activeCount < this.config.maxConcurrent) {
-      this.activeCount++
+      this.activeCount++;
 
       return this.httpClient
         .getAxiosInstance()
         .request(config)
         .finally(() => {
-          this.activeCount--
-          this.processQueue()
-        })
+          this.activeCount--;
+          this.processQueue();
+        });
     }
 
     // 否则，将请求加入队列
     return new Promise((resolve, reject) => {
-      const priority = config.priority || RequestPriority.NORMAL
-      const timestamp = Date.now()
-      const id = `${timestamp}-${Math.random().toString(36).substr(2, 9)}`
+      const priority = config.priority || RequestPriority.NORMAL;
+      const timestamp = Date.now();
+      const id = `${timestamp}-${Math.random().toString(36).substr(2, 9)}`;
 
       const queuedRequest: QueuedRequest = {
         id,
@@ -1135,66 +1152,71 @@ export class RequestQueueManager {
         priority,
         resolve,
         reject,
-        timestamp
-      }
+        timestamp,
+      };
 
       // 检查队列是否已满
-      if (this.config.queueSize > 0 && this.queue.length >= this.config.queueSize) {
-        if (this.config.queueFullStrategy === 'reject-new') {
+      if (
+        this.config.queueSize > 0 &&
+        this.queue.length >= this.config.queueSize
+      ) {
+        if (this.config.queueFullStrategy === "reject-new") {
           // 拒绝新请求
-          const error = new Error('Request queue is full')
-          this.logger.warn('Request rejected: queue is full', { requestId: config.requestId })
-          return reject(error)
+          const error = new Error("Request queue is full");
+          this.logger.warn("Request rejected: queue is full", {
+            requestId: config.requestId,
+          });
+          return reject(error);
         } else {
           // 查找优先级最低的请求
-          const lowestPriorityIndex = this.findLowestPriorityIndex()
+          const lowestPriorityIndex = this.findLowestPriorityIndex();
         }
       } else {
         // 将请求添加到队列
-        this.queue.push(queuedRequest)
-        this.sortQueue()
+        this.queue.push(queuedRequest);
+        this.sortQueue();
 
-        this.logger.debug('Request queued', {
+        this.logger.debug("Request queued", {
           requestId: config.requestId,
           priority,
-          queueLength: this.queue.length
-        })
+          queueLength: this.queue.length,
+        });
 
         // 发出请求入队事件
-        this.eventBus.emit('requestQueued', {
+        this.eventBus.emit("requestQueued", {
           request: config,
           priority,
-          queueLength: this.queue.length
-        })
+          queueLength: this.queue.length,
+        });
       }
 
       // 如果配置了队列超时，则设置超时处理
       if (this.config.queueTimeout > 0) {
         setTimeout(() => {
           // 查找请求在队列中的位置
-          const index = this.queue.findIndex(req => req.id === id)
+          const index = this.queue.findIndex((req) => req.id === id);
 
           if (index !== -1) {
             // 如果请求仍在队列中，则将其移除并拒绝
-            const request = this.queue.splice(index, 1)[0]
-            const error = new Error('Request timeout in queue')
+            const request = this.queue.splice(index, 1)[0];
+            const error = new Error("Request timeout in queue");
 
-            this.logger.warn('Request timeout in queue', {
+            this.logger.warn("Request timeout in queue", {
               requestId: request.config.requestId,
-              queueTime: Date.now() - request.timestamp
-            })
+              queueTime: Date.now() - request.timestamp,
+            });
 
             // 发出请求超时事件
-            this.eventBus.emit('requestQueueTimeout', {
+            this.eventBus.emit("requestQueueTimeout", {
               request: request.config,
-              queueTime: Date.now() - request.timestamp
-            })
+              queueTime: Date.now() - request.timestamp,
+            });
 
-            request.reject(error)
+            request.reject(error);
           }
-        }, this.config.queueTimeout)
+        }, this.config.queueTimeout);
       }
-    })
+    });
   }
 
   /**
@@ -1203,34 +1225,37 @@ export class RequestQueueManager {
    */
   private processQueue(): void {
     // 如果队列为空或已达到最大并发数，则不处理
-    if (this.queue.length === 0 || this.activeCount >= this.config.maxConcurrent) {
-      return
+    if (
+      this.queue.length === 0 ||
+      this.activeCount >= this.config.maxConcurrent
+    ) {
+      return;
     }
 
     // 取出队列中的第一个请求
-    const request = this.queue.shift()
+    const request = this.queue.shift();
 
     if (!request) {
-      return
+      return;
     }
 
-    this.activeCount++
+    this.activeCount++;
 
     // 记录请求从入队到出队的时间
-    const queueTime = Date.now() - request.timestamp
+    const queueTime = Date.now() - request.timestamp;
 
-    this.logger.debug('Request dequeued', {
+    this.logger.debug("Request dequeued", {
       requestId: request.config.requestId,
       queueTime,
-      queueLength: this.queue.length
-    })
+      queueLength: this.queue.length,
+    });
 
     // 发出请求出队事件
-    this.eventBus.emit('requestDequeued', {
+    this.eventBus.emit("requestDequeued", {
       request: request.config,
       queueTime,
-      queueLength: this.queue.length
-    })
+      queueLength: this.queue.length,
+    });
 
     // 发送请求
     this.httpClient
@@ -1239,9 +1264,9 @@ export class RequestQueueManager {
       .then(request.resolve)
       .catch(request.reject)
       .finally(() => {
-        this.activeCount--
-        this.processQueue()
-      })
+        this.activeCount--;
+        this.processQueue();
+      });
   }
 
   /**
@@ -1252,12 +1277,12 @@ export class RequestQueueManager {
     this.queue.sort((a, b) => {
       // 首先按优先级排序（降序）
       if (b.priority !== a.priority) {
-        return b.priority - a.priority
+        return b.priority - a.priority;
       }
 
       // 其次按时间戳排序（升序，先进先出）
-      return a.timestamp - b.timestamp
-    })
+      return a.timestamp - b.timestamp;
+    });
   }
 
   /**
@@ -1267,20 +1292,20 @@ export class RequestQueueManager {
    */
   private findLowestPriorityIndex(): number {
     if (this.queue.length === 0) {
-      return -1
+      return -1;
     }
 
-    let lowestPriority = RequestPriority.CRITICAL
-    let lowestPriorityIndex = -1
+    let lowestPriority = RequestPriority.CRITICAL;
+    let lowestPriorityIndex = -1;
 
     for (let i = 0; i < this.queue.length; i++) {
       if (this.queue[i].priority < lowestPriority) {
-        lowestPriority = this.queue[i].priority
-        lowestPriorityIndex = i
+        lowestPriority = this.queue[i].priority;
+        lowestPriorityIndex = i;
       }
     }
 
-    return lowestPriorityIndex
+    return lowestPriorityIndex;
   }
 
   /**
@@ -1288,7 +1313,7 @@ export class RequestQueueManager {
    * @returns 队列长度
    */
   getQueueLength(): number {
-    return this.queue.length
+    return this.queue.length;
   }
 
   /**
@@ -1296,7 +1321,7 @@ export class RequestQueueManager {
    * @returns 活跃请求数
    */
   getActiveCount(): number {
-    return this.activeCount
+    return this.activeCount;
   }
 
   /**
@@ -1304,7 +1329,7 @@ export class RequestQueueManager {
    * @returns 队列中的请求数组
    */
   getQueue(): QueuedRequest[] {
-    return [...this.queue]
+    return [...this.queue];
   }
 
   /**
@@ -1313,12 +1338,12 @@ export class RequestQueueManager {
   clearQueue(): void {
     // 拒绝所有排队的请求
     for (const request of this.queue) {
-      const error = new Error('Request cancelled: queue cleared')
-      request.reject(error)
+      const error = new Error("Request cancelled: queue cleared");
+      request.reject(error);
     }
 
-    this.queue = []
-    this.logger.info('Request queue cleared', { queueLength: 0 })
+    this.queue = [];
+    this.logger.info("Request queue cleared", { queueLength: 0 });
   }
 }
 
@@ -1336,29 +1361,34 @@ class RequestEventEmitterInterceptor implements RequestInterceptor {
    * @param httpClient - HTTP 客户端实例
    * @returns 处理结果
    */
-  async intercept(config: AxiosRequestConfig, httpClient: HttpClient): Promise<any> {
+  async intercept(
+    config: AxiosRequestConfig,
+    httpClient: HttpClient,
+  ): Promise<any> {
     // 添加请求开始时间
     config.metadata = {
       ...(config.metadata || {}),
-      startTime: Date.now()
-    }
-    console.log('RequestEventEmitterInterceptor config', config)
+      startTime: Date.now(),
+    };
+    console.log("RequestEventEmitterInterceptor config", config);
 
     // 发射请求开始事件
     const eventData: RequestEvent = {
-      url: config.url || '',
-      method: config.method?.toUpperCase() || 'UNKNOWN',
+      url: config.url || "",
+      method: config.method?.toUpperCase() || "UNKNOWN",
       timestamp: Date.now(),
       requestId: config.requestId,
-      config
-    }
+      config,
+    };
 
-    httpClient.getEventBus().emit(EventType.REQUEST_START, eventData)
-    httpClient.getLogger().info(`Request started: ${eventData.method} ${eventData.url}`, {
-      requestId: eventData.requestId
-    })
+    httpClient.getEventBus().emit(EventType.REQUEST_START, eventData);
+    httpClient
+      .getLogger()
+      .info(`Request started: ${eventData.method} ${eventData.url}`, {
+        requestId: eventData.requestId,
+      });
 
-    return config
+    return config;
   }
 }
 
@@ -1375,42 +1405,42 @@ class ResponseEventEmitterInterceptor implements ResponseInterceptor {
    */
   intercept(response: AxiosResponse, httpClient: HttpClient): any {
     try {
-      const config = response.config || {}
-      const endTime = Date.now()
-      const startTime = config.metadata?.startTime || endTime
-      const duration = endTime - startTime
+      const config = response.config || {};
+      const endTime = Date.now();
+      const startTime = config.metadata?.startTime || endTime;
+      const duration = endTime - startTime;
 
-      console.log('ResponseEventEmitterInterceptor response', response)
-      console.log('ResponseEventEmitterInterceptor httpClient', httpClient)
-      console.log('ResponseEventEmitterInterceptor config', config)
+      console.log("ResponseEventEmitterInterceptor response", response);
+      console.log("ResponseEventEmitterInterceptor httpClient", httpClient);
+      console.log("ResponseEventEmitterInterceptor config", config);
 
       // 发出成功事件
       httpClient.getEventBus().emit(EventType.REQUEST_SUCCESS, {
-        url: config.url || '',
-        method: config.method?.toUpperCase() || 'UNKNOWN',
+        url: config.url || "",
+        method: config.method?.toUpperCase() || "UNKNOWN",
         timestamp: endTime,
         duration,
         requestId: config.requestId,
         config,
-        response
-      })
+        response,
+      });
 
       // 发出完成事件
       httpClient.getEventBus().emit(EventType.REQUEST_COMPLETE, {
-        url: config.url || '',
-        method: config.method?.toUpperCase() || 'UNKNOWN',
+        url: config.url || "",
+        method: config.method?.toUpperCase() || "UNKNOWN",
         timestamp: endTime,
         duration,
         requestId: config.requestId,
         config,
-        response
-      })
+        response,
+      });
     } catch (error) {
       // 捕获任何错误，确保不影响响应处理
-      console.error('响应事件发射器错误:', error)
+      console.error("响应事件发射器错误:", error);
     }
 
-    return response
+    return response;
   }
 }
 
@@ -1428,35 +1458,35 @@ class ErrorEventEmitterInterceptor implements ErrorInterceptor {
   async intercept(error: any, httpClient: HttpClient): Promise<any> {
     try {
       if (!error.config) {
-        return Promise.reject(error)
+        return Promise.reject(error);
       }
 
-      const config = error.config
-      const endTime = Date.now()
-      const startTime = config.metadata?.startTime
-      const duration = startTime ? endTime - startTime : undefined
+      const config = error.config;
+      const endTime = Date.now();
+      const startTime = config.metadata?.startTime;
+      const duration = startTime ? endTime - startTime : undefined;
 
       // 发射请求错误事件
       const eventData: RequestEvent = {
-        url: config.url || '',
-        method: config.method?.toUpperCase() || 'UNKNOWN',
+        url: config.url || "",
+        method: config.method?.toUpperCase() || "UNKNOWN",
         timestamp: endTime,
         duration,
         requestId: config.requestId,
         config,
-        error
-      }
+        error,
+      };
 
-      httpClient.getEventBus().emit(EventType.REQUEST_ERROR, eventData)
+      httpClient.getEventBus().emit(EventType.REQUEST_ERROR, eventData);
 
       // 发射请求完成事件
-      httpClient.getEventBus().emit(EventType.REQUEST_COMPLETE, eventData)
+      httpClient.getEventBus().emit(EventType.REQUEST_COMPLETE, eventData);
     } catch (e) {
       // 捕获任何错误，确保不影响错误处理
-      console.error('错误事件发射器错误:', e)
+      console.error("错误事件发射器错误:", e);
     }
 
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
 }
 
@@ -1471,25 +1501,30 @@ class CacheInterceptor implements RequestInterceptor {
    * @param httpClient - HTTP 客户端实例
    * @returns 处理结果
    */
-  async intercept(config: AxiosRequestConfig, httpClient: HttpClient): Promise<any> {
+  async intercept(
+    config: AxiosRequestConfig,
+    httpClient: HttpClient,
+  ): Promise<any> {
     // 只缓存 GET 请求，且缓存未被禁用
-    if (config.method?.toUpperCase() !== 'GET' || config.cache === false) {
-      return config
+    if (config.method?.toUpperCase() !== "GET" || config.cache === false) {
+      return config;
     }
 
-    const cacheStrategy = httpClient.getCacheStrategy()
-    const cacheKey = generateCacheKey(config)
+    const cacheStrategy = httpClient.getCacheStrategy();
+    const cacheKey = generateCacheKey(config);
 
     // 检查缓存中是否有响应
     if (await cacheStrategy.has(cacheKey)) {
-      const cachedResponse = await cacheStrategy.get(cacheKey)
+      const cachedResponse = await cacheStrategy.get(cacheKey);
 
       if (cachedResponse) {
         // 记录缓存命中日志
-        httpClient.getLogger().info(`Cache hit: ${config.method?.toUpperCase()} ${config.url}`, {
-          requestId: config.requestId,
-          cacheKey
-        })
+        httpClient
+          .getLogger()
+          .info(`Cache hit: ${config.method?.toUpperCase()} ${config.url}`, {
+            requestId: config.requestId,
+            cacheKey,
+          });
 
         // 创建一个已解决的 Promise，跳过实际的请求
         return Promise.resolve({
@@ -1497,13 +1532,13 @@ class CacheInterceptor implements RequestInterceptor {
           config,
           cached: true,
           status: 200,
-          statusText: 'OK'
-        })
+          statusText: "OK",
+        });
       }
     }
 
     // 如果没有缓存，继续请求
-    return config
+    return config;
   }
 }
 
@@ -1521,41 +1556,47 @@ class CacheResponseInterceptor implements ResponseInterceptor {
   intercept(response: AxiosResponse, httpClient: HttpClient): any {
     // 如果响应已经来自缓存，则跳过
     if (response.cached) {
-      return response
+      return response;
     }
 
     // 只缓存 GET 请求，且缓存未被禁用
-    if (response.config.method?.toUpperCase() !== 'GET' || response.config.cache === false) {
-      return response
+    if (
+      response.config.method?.toUpperCase() !== "GET" ||
+      response.config.cache === false
+    ) {
+      return response;
     }
 
     // 如果状态码不是 2xx，则不缓存
     if (response.status < 200 || response.status >= 300) {
-      return response
+      return response;
     }
 
-    const cacheStrategy = httpClient.getCacheStrategy()
-    const cacheKey = generateCacheKey(response.config)
+    const cacheStrategy = httpClient.getCacheStrategy();
+    const cacheKey = generateCacheKey(response.config);
 
     // 确定缓存时间
-    let ttl = httpClient.getDefaultCacheTTL()
+    let ttl = httpClient.getDefaultCacheTTL();
 
-    if (typeof response.config.cache === 'object' && response.config.cache.ttl) {
-      ttl = response.config.cache.ttl
+    if (
+      typeof response.config.cache === "object" &&
+      response.config.cache.ttl
+    ) {
+      ttl = response.config.cache.ttl;
     }
 
     // 缓存响应
-    cacheStrategy.set(cacheKey, response, ttl)
+    cacheStrategy.set(cacheKey, response, ttl);
 
     // 记录缓存存储日志
     httpClient
       .getLogger()
       .debug(
         `Cache stored: ${response.config.method?.toUpperCase()} ${response.config.url} (TTL: ${ttl}ms)`,
-        { requestId: response.config.requestId, cacheKey, ttl }
-      )
+        { requestId: response.config.requestId, cacheKey, ttl },
+      );
 
-    return response
+    return response;
   }
 }
 
@@ -1569,13 +1610,13 @@ class CacheResponseInterceptor implements ResponseInterceptor {
  */
 function generateCacheKey(config: AxiosRequestConfig): string {
   // 如果配置中提供了缓存键，则使用它
-  if (typeof config.cache === 'object' && config.cache.key) {
-    return config.cache.key
+  if (typeof config.cache === "object" && config.cache.key) {
+    return config.cache.key;
   }
 
   // 否则，使用 URL、方法和参数生成键
-  const { url, method, params, data } = config
-  return `${method?.toLowerCase() || 'get'}:${url}:${JSON.stringify(params)}:${JSON.stringify(data)}`
+  const { url, method, params, data } = config;
+  return `${method?.toLowerCase() || "get"}:${url}:${JSON.stringify(params)}:${JSON.stringify(data)}`;
 }
 
 // 默认实现
@@ -1587,7 +1628,7 @@ function generateCacheKey(config: AxiosRequestConfig): string {
  */
 export class DefaultEventBus implements EventBus {
   /** 事件监听器 Map */
-  private listeners: Record<string, Function[]> = {}
+  private listeners: Record<string, Function[]> = {};
 
   /**
    * 监听事件
@@ -1597,12 +1638,12 @@ export class DefaultEventBus implements EventBus {
    */
   on(event: string, callback: Function): () => void {
     if (!this.listeners[event]) {
-      this.listeners[event] = []
+      this.listeners[event] = [];
     }
 
-    this.listeners[event].push(callback)
+    this.listeners[event].push(callback);
 
-    return () => this.off(event, callback)
+    return () => this.off(event, callback);
   }
 
   /**
@@ -1611,12 +1652,14 @@ export class DefaultEventBus implements EventBus {
    * @param callback - 回调函数
    */
   off(event: string, callback: Function): void {
-    if (!this.listeners[event]) return
+    if (!this.listeners[event]) return;
 
-    this.listeners[event] = this.listeners[event].filter(cb => cb !== callback)
+    this.listeners[event] = this.listeners[event].filter(
+      (cb) => cb !== callback,
+    );
 
     if (this.listeners[event].length === 0) {
-      delete this.listeners[event]
+      delete this.listeners[event];
     }
   }
 
@@ -1626,15 +1669,15 @@ export class DefaultEventBus implements EventBus {
    * @param args - 事件参数
    */
   emit(event: string, ...args: any[]): void {
-    if (!this.listeners[event]) return
+    if (!this.listeners[event]) return;
 
-    this.listeners[event].forEach(callback => {
+    this.listeners[event].forEach((callback) => {
       try {
-        callback(...args)
+        callback(...args);
       } catch (error) {
-        console.error(`Error in event listener for ${event}:`, error)
+        console.error(`Error in event listener for ${event}:`, error);
       }
-    })
+    });
   }
 
   /**
@@ -1645,11 +1688,11 @@ export class DefaultEventBus implements EventBus {
    */
   once(event: string, callback: Function): () => void {
     const onceCallback = (...args: any[]) => {
-      this.off(event, onceCallback)
-      callback(...args)
-    }
+      this.off(event, onceCallback);
+      callback(...args);
+    };
 
-    return this.on(event, onceCallback)
+    return this.on(event, onceCallback);
   }
 }
 
@@ -1658,38 +1701,41 @@ export class DefaultEventBus implements EventBus {
  */
 export class DefaultLogger implements Logger {
   // 日志级别与对应控制台方法的映射
-  private readonly logMethodMap: Record<LogLevel, (message: string, ...args: any[]) => void> = {
+  private readonly logMethodMap: Record<
+    LogLevel,
+    (message: string, ...args: any[]) => void
+  > = {
     [LogLevel.DEBUG]: console.debug,
     [LogLevel.INFO]: console.info,
     [LogLevel.WARN]: console.warn,
-    [LogLevel.ERROR]: console.error
-  }
+    [LogLevel.ERROR]: console.error,
+  };
 
   debug(message: string, ...args: any[]): void {
-    this.log(LogLevel.DEBUG, message, ...args)
+    this.log(LogLevel.DEBUG, message, ...args);
   }
 
   info(message: string, ...args: any[]): void {
-    this.log(LogLevel.INFO, message, ...args)
+    this.log(LogLevel.INFO, message, ...args);
   }
 
   warn(message: string, ...args: any[]): void {
-    this.log(LogLevel.WARN, message, ...args)
+    this.log(LogLevel.WARN, message, ...args);
   }
 
   error(message: string, ...args: any[]): void {
-    this.log(LogLevel.ERROR, message, ...args)
+    this.log(LogLevel.ERROR, message, ...args);
   }
 
   log(level: LogLevel, message: string, ...args: any[]): void {
-    const timestamp = new Date().toISOString()
-    const prefix = `[${timestamp}] [${level.toUpperCase()}]`
+    const timestamp = new Date().toISOString();
+    const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
 
     // 使用映射获取对应的日志方法，如果不存在则使用 console.log
-    const logMethod = this.logMethodMap[level] || console.log
+    const logMethod = this.logMethodMap[level] || console.log;
 
     // 调用对应的日志方法
-    logMethod(`${prefix} ${message}`, ...args)
+    logMethod(`${prefix} ${message}`, ...args);
   }
 }
 
@@ -1703,57 +1749,57 @@ export class DefaultLogger implements Logger {
  * const data = cache.get('key');
  */
 export class MemoryCacheStrategy implements CacheStrategy {
-  private cache: Map<string, CacheItem> = new Map()
+  private cache: Map<string, CacheItem> = new Map();
 
   get<T = any>(key: string): T | null {
-    const item = this.cache.get(key)
+    const item = this.cache.get(key);
 
     if (!item) {
-      return null
+      return null;
     }
 
     // 检查是否过期
     if (Date.now() > item.expires) {
-      this.delete(key)
-      return null
+      this.delete(key);
+      return null;
     }
 
-    return item.data as T
+    return item.data as T;
   }
 
   set<T = any>(key: string, value: T, ttl = 60000): void {
-    const timestamp = Date.now()
-    const expires = timestamp + ttl
+    const timestamp = Date.now();
+    const expires = timestamp + ttl;
 
     this.cache.set(key, {
       data: value,
       timestamp,
-      expires
-    })
+      expires,
+    });
   }
 
   has(key: string): boolean {
-    const item = this.cache.get(key)
+    const item = this.cache.get(key);
 
     if (!item) {
-      return false
+      return false;
     }
 
     // 检查是否过期
     if (Date.now() > item.expires) {
-      this.delete(key)
-      return false
+      this.delete(key);
+      return false;
     }
 
-    return true
+    return true;
   }
 
   delete(key: string): void {
-    this.cache.delete(key)
+    this.cache.delete(key);
   }
 
   clear(): void {
-    this.cache.clear()
+    this.cache.clear();
   }
 }
 
@@ -1766,99 +1812,99 @@ export class MemoryCacheStrategy implements CacheStrategy {
  * cache.set('user', { name: 'John' }, 300000); // 缓存5分钟
  */
 export class LocalStorageCacheStrategy implements CacheStrategy {
-  private prefix: string
+  private prefix: string;
 
-  constructor(prefix = 'http_cache_') {
-    this.prefix = prefix
+  constructor(prefix = "http_cache_") {
+    this.prefix = prefix;
   }
 
   private getFullKey(key: string): string {
-    return `${this.prefix}${key}`
+    return `${this.prefix}${key}`;
   }
 
   get<T = any>(key: string): T | null {
-    const fullKey = this.getFullKey(key)
-    const json = localStorage.getItem(fullKey)
+    const fullKey = this.getFullKey(key);
+    const json = localStorage.getItem(fullKey);
 
     if (!json) {
-      return null
+      return null;
     }
 
     try {
-      const item: CacheItem<T> = JSON.parse(json)
+      const item: CacheItem<T> = JSON.parse(json);
 
       // 检查是否过期
       if (Date.now() > item.expires) {
-        this.delete(key)
-        return null
+        this.delete(key);
+        return null;
       }
 
-      return item.data
+      return item.data;
     } catch (error) {
-      this.delete(key)
-      return null
+      this.delete(key);
+      return null;
     }
   }
 
   set<T = any>(key: string, value: T, ttl = 60000): void {
-    const fullKey = this.getFullKey(key)
-    const timestamp = Date.now()
-    const expires = timestamp + ttl
+    const fullKey = this.getFullKey(key);
+    const timestamp = Date.now();
+    const expires = timestamp + ttl;
 
     const item: CacheItem<T> = {
       data: value,
       timestamp,
-      expires
-    }
+      expires,
+    };
 
     try {
-      localStorage.setItem(fullKey, JSON.stringify(item))
+      localStorage.setItem(fullKey, JSON.stringify(item));
     } catch (error) {
-      console.error('Error saving to localStorage:', error)
+      console.error("Error saving to localStorage:", error);
     }
   }
 
   has(key: string): boolean {
-    const fullKey = this.getFullKey(key)
-    const json = localStorage.getItem(fullKey)
+    const fullKey = this.getFullKey(key);
+    const json = localStorage.getItem(fullKey);
 
     if (!json) {
-      return false
+      return false;
     }
 
     try {
-      const item: CacheItem = JSON.parse(json)
+      const item: CacheItem = JSON.parse(json);
 
       // 检查是否过期
       if (Date.now() > item.expires) {
-        this.delete(key)
-        return false
+        this.delete(key);
+        return false;
       }
 
-      return true
+      return true;
     } catch (error) {
-      this.delete(key)
-      return false
+      this.delete(key);
+      return false;
     }
   }
 
   delete(key: string): void {
-    const fullKey = this.getFullKey(key)
-    localStorage.removeItem(fullKey)
+    const fullKey = this.getFullKey(key);
+    localStorage.removeItem(fullKey);
   }
 
   clear(): void {
-    const keysToRemove: string[] = []
+    const keysToRemove: string[] = [];
 
     for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
+      const key = localStorage.key(i);
 
       if (key && key.startsWith(this.prefix)) {
-        keysToRemove.push(key)
+        keysToRemove.push(key);
       }
     }
 
-    keysToRemove.forEach(key => localStorage.removeItem(key))
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
   }
 }
 
@@ -1868,50 +1914,52 @@ export class LocalStorageCacheStrategy implements CacheStrategy {
 class PerformanceMonitorInterceptor implements ResponseInterceptor {
   intercept(response: any, httpClient: HttpClient): any {
     try {
-      console.log('PerformanceMonitorInterceptor response', response)
+      console.log("PerformanceMonitorInterceptor response", response);
 
       // 获取最后一个响应
-      const lastResponse = httpClient.getLastResponse()
+      const lastResponse = httpClient.getLastResponse();
 
       // 如果没有最后一个响应，直接返回
       if (!lastResponse) {
-        return response
+        return response;
       }
 
       // 使用最后一个响应的config
-      const config = lastResponse.config || {}
-      const endTime = Date.now()
-      const startTime = config.metadata?.startTime || endTime
-      const duration = endTime - startTime
-      const slow = duration > httpClient.getSlowRequestThreshold()
+      const config = lastResponse.config || {};
+      const endTime = Date.now();
+      const startTime = config.metadata?.startTime || endTime;
+      const duration = endTime - startTime;
+      const slow = duration > httpClient.getSlowRequestThreshold();
 
       // 记录性能指标
       const metrics: PerformanceMetrics = {
-        url: config.url || '',
-        method: config.method?.toUpperCase() || 'GET',
+        url: config.url || "",
+        method: config.method?.toUpperCase() || "GET",
         requestId: config.requestId,
         startTime,
         endTime,
         duration,
         status: lastResponse.status,
         slow,
-        cached: !!lastResponse.cached
-      }
+        cached: !!lastResponse.cached,
+      };
 
       // 记录性能指标
-      httpClient.getPerformanceMonitor().recordMetrics(metrics)
+      httpClient.getPerformanceMonitor().recordMetrics(metrics);
 
       // 如果是慢请求，发出慢请求事件
       if (slow) {
-        httpClient.getEventBus().emit(EventType.SLOW_REQUEST, metrics)
-        httpClient.getLogger().warn(`慢请求: ${config.method} ${config.url} (${duration}ms)`)
+        httpClient.getEventBus().emit(EventType.SLOW_REQUEST, metrics);
+        httpClient
+          .getLogger()
+          .warn(`慢请求: ${config.method} ${config.url} (${duration}ms)`);
       }
     } catch (error) {
       // 捕获任何错误，确保不影响响应处理
-      console.error('性能监控拦截器错误:', error)
+      console.error("性能监控拦截器错误:", error);
     }
 
-    return response
+    return response;
   }
 }
 
@@ -1919,51 +1967,54 @@ class PerformanceMonitorInterceptor implements ResponseInterceptor {
  * 默认性能监控实现
  */
 export class DefaultPerformanceMonitor implements PerformanceMonitor {
-  private metrics: PerformanceMetrics[] = []
-  private maxEntries: number
+  private metrics: PerformanceMetrics[] = [];
+  private maxEntries: number;
 
   constructor(maxEntries = 100) {
-    this.maxEntries = maxEntries
+    this.maxEntries = maxEntries;
   }
 
   recordMetrics(metrics: PerformanceMetrics): void {
     // 限制存储的指标数量
     if (this.metrics.length >= this.maxEntries) {
-      this.metrics.shift() // 移除最旧的条目
+      this.metrics.shift(); // 移除最旧的条目
     }
 
-    this.metrics.push(metrics)
+    this.metrics.push(metrics);
   }
 
   getAverageResponseTime(url?: string, method?: string): number {
-    const filteredMetrics = this.metrics.filter(metric => {
-      if (url && metric.url !== url) return false
-      if (method && metric.method !== method) return false
-      return true
-    })
+    const filteredMetrics = this.metrics.filter((metric) => {
+      if (url && metric.url !== url) return false;
+      if (method && metric.method !== method) return false;
+      return true;
+    });
 
     if (filteredMetrics.length === 0) {
-      return 0
+      return 0;
     }
 
-    const totalDuration = filteredMetrics.reduce((sum, metric) => sum + metric.duration, 0)
-    return totalDuration / filteredMetrics.length
+    const totalDuration = filteredMetrics.reduce(
+      (sum, metric) => sum + metric.duration,
+      0,
+    );
+    return totalDuration / filteredMetrics.length;
   }
 
   getSlowRequests(threshold?: number): PerformanceMetrics[] {
     if (!threshold) {
-      return this.metrics.filter(metric => metric.slow)
+      return this.metrics.filter((metric) => metric.slow);
     }
 
-    return this.metrics.filter(metric => metric.duration > threshold)
+    return this.metrics.filter((metric) => metric.duration > threshold);
   }
 
   getMetrics(): PerformanceMetrics[] {
-    return [...this.metrics]
+    return [...this.metrics];
   }
 
   clear(): void {
-    this.metrics = []
+    this.metrics = [];
   }
 }
 
@@ -1989,34 +2040,34 @@ export class DefaultPerformanceMonitor implements PerformanceMonitor {
  */
 export class HttpClient {
   /** Axios 实例 */
-  private instance: AxiosInstance
+  private instance: AxiosInstance;
   /** 待处理请求的 Map */
-  private pendingRequests: Map<string, AbortController>
+  private pendingRequests: Map<string, AbortController>;
   /** HTTP 客户端配置 */
-  private config: HttpClientConfig
+  private config: HttpClientConfig;
   /** 错误处理器 */
-  private errorHandler: ErrorHandler
+  private errorHandler: ErrorHandler;
   /** 响应处理器 */
-  private responseHandler: ResponseHandler
+  private responseHandler: ResponseHandler;
   /** 请求拦截器数组 */
-  private requestInterceptors: RequestInterceptor[]
+  private requestInterceptors: RequestInterceptor[];
   /** 响应拦截器数组 */
-  private responseInterceptors: ResponseInterceptor[]
+  private responseInterceptors: ResponseInterceptor[];
   /** 错误拦截器数组 */
-  private errorInterceptors: ErrorInterceptor[]
+  private errorInterceptors: ErrorInterceptor[];
   /** 事件总线 */
-  private eventBus: EventBus
+  private eventBus: EventBus;
   /** 日志记录器 */
-  private logger: Logger
+  private logger: Logger;
   /** 缓存策略 */
-  private cacheStrategy: CacheStrategy
+  private cacheStrategy: CacheStrategy;
   /** 性能监控器 */
-  private performanceMonitor: PerformanceMonitor
+  private performanceMonitor: PerformanceMonitor;
   /** 请求队列管理器 */
-  private requestQueue: RequestQueueManager
+  private requestQueue: RequestQueueManager;
 
   /** 最后一个响应 */
-  private lastResponse: AxiosResponse | null = null
+  private lastResponse: AxiosResponse | null = null;
 
   /**
    * 构造函数
@@ -2024,57 +2075,59 @@ export class HttpClient {
    */
   constructor(config: HttpClientConfig = {}) {
     this.config = {
-      baseURL: 'http://localhost:3000',
+      baseURL: "http://localhost:3000",
       timeout: 5000,
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
       enableCancelDuplicated: true,
       defaultRetry: {
         count: 0,
-        delay: 1000
+        delay: 1000,
       },
       slowRequestThreshold: 1000, // 默认慢请求阈值为 1 秒
       defaultCacheTTL: 60000, // 默认缓存时间为 1 分钟
-      ...config
-    }
+      ...config,
+    };
 
-    this.instance = axios.create(this.config)
-    this.pendingRequests = new Map<string, AbortController>()
-    this.errorHandler = config.errorHandler || new DefaultErrorHandler()
-    this.responseHandler = config.responseHandler || new DefaultResponseHandler()
-    this.eventBus = config.eventBus ?? new DefaultEventBus()
-    this.logger = config.logger || new DefaultLogger()
-    this.cacheStrategy = config.cacheStrategy || new MemoryCacheStrategy()
-    this.performanceMonitor = config.performanceMonitor || new DefaultPerformanceMonitor()
+    this.instance = axios.create(this.config);
+    this.pendingRequests = new Map<string, AbortController>();
+    this.errorHandler = config.errorHandler || new DefaultErrorHandler();
+    this.responseHandler =
+      config.responseHandler || new DefaultResponseHandler();
+    this.eventBus = config.eventBus ?? new DefaultEventBus();
+    this.logger = config.logger || new DefaultLogger();
+    this.cacheStrategy = config.cacheStrategy || new MemoryCacheStrategy();
+    this.performanceMonitor =
+      config.performanceMonitor || new DefaultPerformanceMonitor();
 
     // 初始化拦截器
     this.requestInterceptors = [
       new RequestEventEmitterInterceptor(),
       new CacheInterceptor(),
       new DuplicateRequestInterceptor(),
-      new AuthTokenInterceptor()
-    ]
+      new AuthTokenInterceptor(),
+    ];
 
     this.responseInterceptors = [
       new RequestCleanupInterceptor(),
       new CacheResponseInterceptor(),
       new ResponseEventEmitterInterceptor(),
       new ResponseHandlerInterceptor(),
-      new PerformanceMonitorInterceptor() // 添加到响应拦截器数组中
-    ]
+      new PerformanceMonitorInterceptor(), // 添加到响应拦截器数组中
+    ];
 
     this.errorInterceptors = [
       new RequestCleanupErrorInterceptor(),
       new RetryErrorInterceptor(),
       new ErrorEventEmitterInterceptor(),
-      new ErrorHandlerInterceptor()
-    ]
+      new ErrorHandlerInterceptor(),
+    ];
 
     // 初始化请求队列管理器
-    this.requestQueue = new RequestQueueManager(this, config.concurrency)
+    this.requestQueue = new RequestQueueManager(this, config.concurrency);
 
-    this.setupInterceptors()
+    this.setupInterceptors();
   }
 
   /**
@@ -2084,48 +2137,50 @@ export class HttpClient {
   private setupInterceptors(): void {
     // 请求拦截器
     this.instance.interceptors.request.use(
-      async config => {
+      async (config) => {
         // 使用责任链模式依次应用所有请求拦截器
-        let currentConfig = { ...config }
+        let currentConfig = { ...config };
 
         for (const interceptor of this.requestInterceptors) {
-          currentConfig = await interceptor.intercept(currentConfig, this)
+          currentConfig = await interceptor.intercept(currentConfig, this);
         }
 
-        return currentConfig
+        return currentConfig;
       },
-      error => Promise.reject(error)
-    )
+      (error) => Promise.reject(error),
+    );
 
     // 响应拦截器
     this.instance.interceptors.response.use(
       (response: AxiosResponse) => {
         // 保存最后一个响应
-        this.lastResponse = response
+        this.lastResponse = response;
 
         // 按顺序执行响应拦截器
         return this.responseInterceptors
           .reduce(async (promise, interceptor) => {
-            return await promise.then(res => interceptor.intercept(res, this))
+            return await promise.then((res) =>
+              interceptor.intercept(res, this),
+            );
           }, Promise.resolve(response))
-          .catch(error => {
+          .catch((error) => {
             // 处理响应拦截器中的错误
-            return Promise.reject(error)
-          })
+            return Promise.reject(error);
+          });
       },
       async (error: any) => {
         // 使用责任链模式依次应用所有错误拦截器
         for (const interceptor of this.errorInterceptors) {
           try {
-            return await interceptor.intercept(error, this)
+            return await interceptor.intercept(error, this);
           } catch (err) {
-            error = err
+            error = err;
           }
         }
 
-        return Promise.reject(error)
-      }
-    )
+        return Promise.reject(error);
+      },
+    );
   }
 
   /**
@@ -2133,19 +2188,19 @@ export class HttpClient {
    * @param config - 请求配置
    */
   addPendingRequest(config: AxiosRequestConfig): void {
-    const requestKey = generateRequestKey(config)
+    const requestKey = generateRequestKey(config);
 
     // 如果有重复请求，取消前一个请求
     if (this.pendingRequests.has(requestKey)) {
-      const controller = this.pendingRequests.get(requestKey)
-      controller?.abort('请求已取消，原因：重复请求')
-      this.pendingRequests.delete(requestKey)
+      const controller = this.pendingRequests.get(requestKey);
+      controller?.abort("请求已取消，原因：重复请求");
+      this.pendingRequests.delete(requestKey);
     }
 
     // 创建新的 AbortController
-    const controller = new AbortController()
-    config.signal = controller.signal
-    this.pendingRequests.set(requestKey, controller)
+    const controller = new AbortController();
+    config.signal = controller.signal;
+    this.pendingRequests.set(requestKey, controller);
   }
 
   /**
@@ -2153,8 +2208,8 @@ export class HttpClient {
    * @param config - 请求配置
    */
   removePendingRequest(config: AxiosRequestConfig): void {
-    const requestKey = generateRequestKey(config)
-    this.pendingRequests.delete(requestKey)
+    const requestKey = generateRequestKey(config);
+    this.pendingRequests.delete(requestKey);
   }
 
   /**
@@ -2162,7 +2217,7 @@ export class HttpClient {
    * @returns HTTP 客户端配置
    */
   getConfig(): HttpClientConfig {
-    return this.config
+    return this.config;
   }
 
   /**
@@ -2170,7 +2225,7 @@ export class HttpClient {
    * @returns 错误处理器
    */
   getErrorHandler(): ErrorHandler {
-    return this.errorHandler
+    return this.errorHandler;
   }
 
   /**
@@ -2178,7 +2233,7 @@ export class HttpClient {
    * @returns 响应处理器
    */
   getResponseHandler(): ResponseHandler {
-    return this.responseHandler
+    return this.responseHandler;
   }
 
   /**
@@ -2188,7 +2243,7 @@ export class HttpClient {
    */
   request<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     // 使用请求队列管理器处理请求
-    return this.requestQueue.enqueue(config) as Promise<AxiosResponse<T>>
+    return this.requestQueue.enqueue(config) as Promise<AxiosResponse<T>>;
   }
 
   /**
@@ -2197,8 +2252,11 @@ export class HttpClient {
    * @param config - 请求配置
    * @returns 请求结果的 Promise
    */
-  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.request<T>({ ...config, method: 'GET', url })
+  get<T = any>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<T>> {
+    return this.request<T>({ ...config, method: "GET", url });
   }
 
   /**
@@ -2208,8 +2266,12 @@ export class HttpClient {
    * @param config - 请求配置
    * @returns 请求结果的 Promise
    */
-  post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.request<T>({ ...config, method: 'POST', url, data })
+  post<T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<T>> {
+    return this.request<T>({ ...config, method: "POST", url, data });
   }
 
   /**
@@ -2219,8 +2281,12 @@ export class HttpClient {
    * @param config - 请求配置
    * @returns 请求结果的 Promise
    */
-  put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.request<T>({ ...config, method: 'PUT', url, data })
+  put<T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<T>> {
+    return this.request<T>({ ...config, method: "PUT", url, data });
   }
 
   /**
@@ -2229,8 +2295,11 @@ export class HttpClient {
    * @param config - 请求配置
    * @returns 请求结果的 Promise
    */
-  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.request<T>({ ...config, method: 'DELETE', url })
+  delete<T = any>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<T>> {
+    return this.request<T>({ ...config, method: "DELETE", url });
   }
 
   /**
@@ -2240,8 +2309,12 @@ export class HttpClient {
    * @param config - 请求配置
    * @returns 请求结果的 Promise
    */
-  patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.request<T>({ ...config, method: 'PATCH', url, data })
+  patch<T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<T>> {
+    return this.request<T>({ ...config, method: "PATCH", url, data });
   }
 
   /**
@@ -2250,8 +2323,11 @@ export class HttpClient {
    * @param config - 请求配置
    * @returns 请求结果的 Promise
    */
-  head<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.request<T>({ ...config, method: 'HEAD', url })
+  head<T = any>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<T>> {
+    return this.request<T>({ ...config, method: "HEAD", url });
   }
 
   /**
@@ -2260,8 +2336,11 @@ export class HttpClient {
    * @param config - 请求配置
    * @returns 请求结果的 Promise
    */
-  options<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.request<T>({ ...config, method: 'OPTIONS', url })
+  options<T = any>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<T>> {
+    return this.request<T>({ ...config, method: "OPTIONS", url });
   }
 
   /**
@@ -2269,7 +2348,7 @@ export class HttpClient {
    * @returns 请求队列管理器
    */
   getRequestQueue(): RequestQueueManager {
-    return this.requestQueue
+    return this.requestQueue;
   }
 
   /**
@@ -2277,7 +2356,7 @@ export class HttpClient {
    * @returns 队列长度
    */
   getQueueLength(): number {
-    return this.requestQueue.getQueueLength()
+    return this.requestQueue.getQueueLength();
   }
 
   /**
@@ -2285,14 +2364,14 @@ export class HttpClient {
    * @returns 活跃请求数
    */
   getActiveRequestCount(): number {
-    return this.requestQueue.getActiveCount()
+    return this.requestQueue.getActiveCount();
   }
 
   /**
    * @description 清空请求队列
    */
   clearRequestQueue(): void {
-    this.requestQueue.clearQueue()
+    this.requestQueue.clearQueue();
   }
 
   /**
@@ -2311,51 +2390,51 @@ export class HttpClient {
    * cancel();
    */
   createCancelableRequest<T = any, P extends any[] = any[]>(
-    requestFn: (...args: P) => Promise<T>
+    requestFn: (...args: P) => Promise<T>,
   ): [(...args: P) => Promise<T>, () => void] {
-    let controller: AbortController | null = null
+    let controller: AbortController | null = null;
 
     const wrappedRequest = (...args: P): Promise<T> => {
       // 如果有之前的请求，先取消
       if (controller) {
-        controller.abort('请求已取消，原因：用户取消')
+        controller.abort("请求已取消，原因：用户取消");
       }
 
       // 创建新的 AbortController
-      controller = new AbortController()
+      controller = new AbortController();
 
       // 找到原始请求的最后一个参数（如果是对象，则可能是配置对象）
-      const lastArg = args[args.length - 1]
-      if (lastArg && typeof lastArg === 'object' && !Array.isArray(lastArg)) {
+      const lastArg = args[args.length - 1];
+      if (lastArg && typeof lastArg === "object" && !Array.isArray(lastArg)) {
         // 将 signal 添加到配置中
         args[args.length - 1] = {
           ...lastArg,
-          signal: controller.signal
-        }
+          signal: controller.signal,
+        };
       }
 
-      return requestFn(...args)
-    }
+      return requestFn(...args);
+    };
 
     const cancel = () => {
       if (controller) {
-        controller.abort('请求已取消，原因：用户取消')
-        controller = null
+        controller.abort("请求已取消，原因：用户取消");
+        controller = null;
       }
-    }
+    };
 
-    return [wrappedRequest, cancel]
+    return [wrappedRequest, cancel];
   }
 
   /**
    * 取消所有请求
    * @param reason - 取消原因
    */
-  cancelAllRequests(reason = '用户取消了所有请求'): void {
-    this.pendingRequests.forEach(controller => {
-      controller.abort(reason)
-    })
-    this.pendingRequests.clear()
+  cancelAllRequests(reason = "用户取消了所有请求"): void {
+    this.pendingRequests.forEach((controller) => {
+      controller.abort(reason);
+    });
+    this.pendingRequests.clear();
   }
 
   /**
@@ -2363,11 +2442,11 @@ export class HttpClient {
    * @param requestId - 请求ID
    * @param reason - 取消原因
    */
-  cancelRequest(requestId: string, reason = '用户取消了请求'): void {
-    const controller = this.pendingRequests.get(requestId)
+  cancelRequest(requestId: string, reason = "用户取消了请求"): void {
+    const controller = this.pendingRequests.get(requestId);
     if (controller) {
-      controller.abort(reason)
-      this.pendingRequests.delete(requestId)
+      controller.abort(reason);
+      this.pendingRequests.delete(requestId);
     }
   }
 
@@ -2376,24 +2455,24 @@ export class HttpClient {
    * @param config - 配置
    */
   setConfig(config: Partial<HttpClientConfig>): void {
-    this.config = { ...this.config, ...config }
+    this.config = { ...this.config, ...config };
 
     // 更新 axios 实例配置，只更新安全的属性
     if (config.baseURL) {
-      this.instance.defaults.baseURL = config.baseURL
+      this.instance.defaults.baseURL = config.baseURL;
     }
     if (config.timeout) {
-      this.instance.defaults.timeout = config.timeout
+      this.instance.defaults.timeout = config.timeout;
     }
 
     // 如果提供了新的错误处理器，则更新
     if (config.errorHandler) {
-      this.errorHandler = config.errorHandler
+      this.errorHandler = config.errorHandler;
     }
 
     // 如果提供了新的响应处理器，则更新
     if (config.responseHandler) {
-      this.responseHandler = config.responseHandler
+      this.responseHandler = config.responseHandler;
     }
   }
 
@@ -2403,7 +2482,7 @@ export class HttpClient {
    * @returns Axios 实例
    */
   getAxiosInstance(): AxiosInstance {
-    return this.instance
+    return this.instance;
   }
 
   /**
@@ -2411,8 +2490,8 @@ export class HttpClient {
    * @param interceptor - 请求拦截器
    */
   addRequestInterceptor(interceptor: RequestInterceptor): void {
-    this.requestInterceptors.push(interceptor)
-    this.setupInterceptors()
+    this.requestInterceptors.push(interceptor);
+    this.setupInterceptors();
   }
 
   /**
@@ -2420,8 +2499,8 @@ export class HttpClient {
    * @param interceptor - 响应拦截器
    */
   addResponseInterceptor(interceptor: ResponseInterceptor): void {
-    this.responseInterceptors.push(interceptor)
-    this.setupInterceptors()
+    this.responseInterceptors.push(interceptor);
+    this.setupInterceptors();
   }
 
   /**
@@ -2429,8 +2508,8 @@ export class HttpClient {
    * @param interceptor - 错误拦截器
    */
   addErrorInterceptor(interceptor: ErrorInterceptor): void {
-    this.errorInterceptors.push(interceptor)
-    this.setupInterceptors()
+    this.errorInterceptors.push(interceptor);
+    this.setupInterceptors();
   }
 
   /**
@@ -2438,7 +2517,7 @@ export class HttpClient {
    * @returns 事件总线
    */
   getEventBus(): EventBus {
-    return this.eventBus
+    return this.eventBus;
   }
 
   /**
@@ -2446,7 +2525,7 @@ export class HttpClient {
    * @returns 日志记录器
    */
   getLogger(): Logger {
-    return this.logger
+    return this.logger;
   }
 
   /**
@@ -2454,7 +2533,7 @@ export class HttpClient {
    * @returns 慢请求阈值
    */
   getSlowRequestThreshold(): number {
-    return this.config.slowRequestThreshold || 1000
+    return this.config.slowRequestThreshold || 1000;
   }
 
   /**
@@ -2462,7 +2541,7 @@ export class HttpClient {
    * @returns 缓存策略
    */
   getCacheStrategy(): CacheStrategy {
-    return this.cacheStrategy
+    return this.cacheStrategy;
   }
 
   /**
@@ -2470,14 +2549,14 @@ export class HttpClient {
    * @returns 默认缓存时间
    */
   getDefaultCacheTTL(): number {
-    return this.config.defaultCacheTTL || 60000
+    return this.config.defaultCacheTTL || 60000;
   }
 
   /**
    * @description 清除缓存
    */
   clearCache(): Promise<void> | void {
-    return this.cacheStrategy.clear()
+    return this.cacheStrategy.clear();
   }
 
   /**
@@ -2485,7 +2564,7 @@ export class HttpClient {
    * @returns 性能监控器
    */
   getPerformanceMonitor(): PerformanceMonitor {
-    return this.performanceMonitor
+    return this.performanceMonitor;
   }
 
   /**
@@ -2495,7 +2574,7 @@ export class HttpClient {
    * @returns 平均响应时间
    */
   getAverageResponseTime(url?: string, method?: string): number {
-    return this.performanceMonitor.getAverageResponseTime(url, method)
+    return this.performanceMonitor.getAverageResponseTime(url, method);
   }
 
   /**
@@ -2504,7 +2583,7 @@ export class HttpClient {
    * @returns 慢请求列表
    */
   getSlowRequests(threshold?: number): PerformanceMetrics[] {
-    return this.performanceMonitor.getSlowRequests(threshold)
+    return this.performanceMonitor.getSlowRequests(threshold);
   }
 
   /**
@@ -2512,14 +2591,14 @@ export class HttpClient {
    * @returns 所有性能指标列表
    */
   getPerformanceMetrics(): PerformanceMetrics[] {
-    return this.performanceMonitor.getMetrics()
+    return this.performanceMonitor.getMetrics();
   }
 
   /**
    * @description 清除性能指标
    */
   clearPerformanceMetrics(): void {
-    this.performanceMonitor.clear()
+    this.performanceMonitor.clear();
   }
 
   /**
@@ -2527,7 +2606,7 @@ export class HttpClient {
    * @returns 最后一个响应
    */
   getLastResponse(): AxiosResponse | null {
-    return this.lastResponse
+    return this.lastResponse;
   }
 }
 
@@ -2539,12 +2618,12 @@ export class HttpClient {
  */
 export const httpClient = new HttpClient({
   // baseURL: 'https://api.example.com',
-  baseURL: 'http://172.20.10.4:3000',
+  baseURL: "http://172.20.10.4:3000",
   timeout: 10000,
   enableCancelDuplicated: true,
   defaultRetry: {
     count: 3,
-    delay: 1000
+    delay: 1000,
   },
   slowRequestThreshold: 2000, // 慢请求阈值为 2 秒
   defaultCacheTTL: 120000, // 默认缓存时间为 2 分钟
@@ -2556,75 +2635,76 @@ export const httpClient = new HttpClient({
   cacheStrategy: new MemoryCacheStrategy(),
   performanceMonitor: new DefaultPerformanceMonitor(),
   metadata: {
-    startTime: Date.now()
+    startTime: Date.now(),
   },
   concurrency: {
     maxConcurrent: 10,
     queueSize: 100,
-    queueFullStrategy: 'reject-new',
-    queueTimeout: 60000
-  }
-})
+    queueFullStrategy: "reject-new",
+    queueTimeout: 60000,
+  },
+});
 
 /**
  * @description 通用请求方法
  */
-export const request = httpClient.request.bind(httpClient)
+export const request = httpClient.request.bind(httpClient);
 
 /**
  * @description GET 请求
  */
-export const get = httpClient.get.bind(httpClient)
+export const get = httpClient.get.bind(httpClient);
 
 /**
  * @description POST 请求
  */
-export const post = httpClient.post.bind(httpClient)
+export const post = httpClient.post.bind(httpClient);
 
 /**
  * @description PUT 请求
  */
-export const put = httpClient.put.bind(httpClient)
+export const put = httpClient.put.bind(httpClient);
 
 /**
  * @description DELETE 请求
  */
-export const del = httpClient.delete.bind(httpClient)
+export const del = httpClient.delete.bind(httpClient);
 
 /**
  * @description PATCH 请求
  */
-export const patch = httpClient.patch.bind(httpClient)
+export const patch = httpClient.patch.bind(httpClient);
 
 /**
  * @description 创建可取消的请求
  */
-export const createCancelableRequest = httpClient.createCancelableRequest.bind(httpClient)
+export const createCancelableRequest =
+  httpClient.createCancelableRequest.bind(httpClient);
 
 /**
  * @description 取消所有请求
  */
-export const cancelAllRequests = httpClient.cancelAllRequests.bind(httpClient)
+export const cancelAllRequests = httpClient.cancelAllRequests.bind(httpClient);
 
 /**
  * @description 取消指定请求
  */
-export const cancelRequest = httpClient.cancelRequest.bind(httpClient)
+export const cancelRequest = httpClient.cancelRequest.bind(httpClient);
 
 /**
  * @description 设置默认配置
  */
-export const setConfig = httpClient.setConfig.bind(httpClient)
+export const setConfig = httpClient.setConfig.bind(httpClient);
 
 /**
  * @description 创建新的 HTTP 客户端实例
  */
 export const createHttpClient = (config: HttpClientConfig = {}): HttpClient => {
-  return new HttpClient(config)
-}
+  return new HttpClient(config);
+};
 
 // 导出工具函数
-export { isCancel, isAxiosError }
+export { isCancel, isAxiosError };
 
 // 默认导出
 export default {
@@ -2645,8 +2725,8 @@ export default {
   DefaultResponseHandler,
   HttpError,
   isCancel,
-  isAxiosError
-}
+  isAxiosError,
+};
 
 /*
 async request<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {

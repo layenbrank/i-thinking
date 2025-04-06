@@ -96,9 +96,9 @@
  * 包含了类的原型和名称信息。
  */
 export interface Constructor<T = any> {
-  new (...args: any[]): T
-  prototype: T
-  name: string
+  new (...args: any[]): T;
+  prototype: T;
+  name: string;
 }
 
 /**
@@ -108,13 +108,13 @@ export interface Constructor<T = any> {
  */
 export interface ErrorContext {
   /** 发生错误的类名 */
-  name: string
+  name: string;
   /** 当前重试次数 */
-  retryCount: number
+  retryCount: number;
   /** 最大允许重试次数 */
-  maxRetries: number
+  maxRetries: number;
   /** 重试间隔时间(毫秒) */
-  retryInterval: number
+  retryInterval: number;
 }
 
 /**
@@ -129,7 +129,7 @@ export interface ErrorHandlingStrategy {
    * @param error - 发生的错误
    * @param context - 错误处理上下文
    */
-  handleError(error: Error, context: ErrorContext): void
+  handleError(error: Error, context: ErrorContext): void;
 }
 
 /**
@@ -141,9 +141,13 @@ export interface ErrorHandlingStrategy {
 export class DefaultErrorStrategy implements ErrorHandlingStrategy {
   handleError(error: Error, context: ErrorContext): void {
     if (context.retryCount < context.maxRetries) {
-      return
+      return;
     }
-    throw new SingletonError(`Failed after ${context.maxRetries} retries`, context.name, error)
+    throw new SingletonError(
+      `Failed after ${context.maxRetries} retries`,
+      context.name,
+      error,
+    );
   }
 }
 
@@ -161,7 +165,7 @@ export interface InstanceFactory<T> {
    * @param args - 构造函数参数
    * @returns 创建的实例
    */
-  createInstance(constructor: Constructor<T>, args: any[]): T
+  createInstance(constructor: Constructor<T>, args: any[]): T;
 }
 
 /**
@@ -173,21 +177,21 @@ export interface InstanceFactory<T> {
  */
 export class DefaultInstanceFactory<T> implements InstanceFactory<T> {
   createInstance(constructor: Constructor<T>, args: any[]): T {
-    const instance = new constructor(...args)
+    const instance = new constructor(...args);
 
     // 确保所有原型方法被正确绑定
-    const prototype = constructor.prototype
-    Object.getOwnPropertyNames(prototype).forEach(prop => {
-      const descriptor = Object.getOwnPropertyDescriptor(prototype, prop)
-      if (descriptor && typeof descriptor.value === 'function') {
+    const prototype = constructor.prototype;
+    Object.getOwnPropertyNames(prototype).forEach((prop) => {
+      const descriptor = Object.getOwnPropertyDescriptor(prototype, prop);
+      if (descriptor && typeof descriptor.value === "function") {
         Object.defineProperty(instance, prop, {
           ...descriptor,
-          value: descriptor.value.bind(instance)
-        })
+          value: descriptor.value.bind(instance),
+        });
       }
-    })
+    });
 
-    return instance
+    return instance;
   }
 }
 
@@ -196,7 +200,11 @@ export class DefaultInstanceFactory<T> implements InstanceFactory<T> {
  * @remarks
  * 定义了单例实例的生命周期事件。
  */
-export type LifecycleEvent = 'beforeCreate' | 'created' | 'beforeDestroy' | 'destroyed'
+export type LifecycleEvent =
+  | "beforeCreate"
+  | "created"
+  | "beforeDestroy"
+  | "destroyed";
 
 /**
  * 生命周期监听器接口
@@ -210,7 +218,7 @@ export interface LifecycleListener<T> {
    * @param event - 生命周期事件类型
    * @param instance - 实例对象
    */
-  onEvent(event: LifecycleEvent, instance: T): void
+  onEvent(event: LifecycleEvent, instance: T): void;
 }
 
 /**
@@ -225,7 +233,7 @@ export interface AsyncLifecycleListener<T> {
    * @param event - 生命周期事件类型
    * @param instance - 实例对象
    */
-  onAsyncEvent(event: LifecycleEvent, instance: T): Promise<void>
+  onAsyncEvent(event: LifecycleEvent, instance: T): Promise<void>;
 }
 
 /**
@@ -235,15 +243,15 @@ export interface AsyncLifecycleListener<T> {
  * 管理实例的生命周期事件和监听器。
  */
 export class LifecycleManager<T> {
-  private listeners: Set<LifecycleListener<T>> = new Set()
-  private asyncListeners: Set<AsyncLifecycleListener<T>> = new Set()
+  private listeners: Set<LifecycleListener<T>> = new Set();
+  private asyncListeners: Set<AsyncLifecycleListener<T>> = new Set();
 
   /**
    * 添加同步监听器
    * @param listener - 生命周期监听器
    */
   addListener(listener: LifecycleListener<T>): void {
-    this.listeners.add(listener)
+    this.listeners.add(listener);
   }
 
   /**
@@ -251,7 +259,7 @@ export class LifecycleManager<T> {
    * @param listener - 异步生命周期监听器
    */
   addAsyncListener(listener: AsyncLifecycleListener<T>): void {
-    this.asyncListeners.add(listener)
+    this.asyncListeners.add(listener);
   }
 
   /**
@@ -259,7 +267,7 @@ export class LifecycleManager<T> {
    * @param listener - 生命周期监听器
    */
   removeListener(listener: LifecycleListener<T>): void {
-    this.listeners.delete(listener)
+    this.listeners.delete(listener);
   }
 
   /**
@@ -267,7 +275,7 @@ export class LifecycleManager<T> {
    * @param listener - 异步生命周期监听器
    */
   removeAsyncListener(listener: AsyncLifecycleListener<T>): void {
-    this.asyncListeners.delete(listener)
+    this.asyncListeners.delete(listener);
   }
 
   /**
@@ -277,7 +285,7 @@ export class LifecycleManager<T> {
    */
   emitEvent(event: LifecycleEvent, instance: T): void {
     for (const listener of this.listeners) {
-      listener.onEvent(event, instance)
+      listener.onEvent(event, instance);
     }
   }
 
@@ -288,7 +296,7 @@ export class LifecycleManager<T> {
    */
   async emitAsyncEvent(event: LifecycleEvent, instance: T): Promise<void> {
     for (const listener of this.asyncListeners) {
-      await listener.onAsyncEvent(event, instance)
+      await listener.onAsyncEvent(event, instance);
     }
   }
 }
@@ -301,27 +309,27 @@ export class LifecycleManager<T> {
  */
 export interface SingletonOptions<T> {
   /** 是否为全局单例，如果为 true，实例将被挂载到全局对象上 */
-  global?: boolean
+  global?: boolean;
   /** 是否延迟初始化 */
-  lazy?: boolean
+  lazy?: boolean;
   /** 最大重试次数 */
-  retryCount?: number
+  retryCount?: number;
   /** 重试间隔(毫秒) */
-  retryInterval?: number
+  retryInterval?: number;
   /** 错误处理策略 */
-  errorStrategy?: ErrorHandlingStrategy
+  errorStrategy?: ErrorHandlingStrategy;
   /** 实例工厂 */
-  instanceFactory?: InstanceFactory<T>
+  instanceFactory?: InstanceFactory<T>;
   /** 生命周期监听器 */
-  lifecycleListener?: LifecycleListener<T>
+  lifecycleListener?: LifecycleListener<T>;
   /** 异步生命周期监听器 */
-  asyncLifecycleListener?: AsyncLifecycleListener<T>
+  asyncLifecycleListener?: AsyncLifecycleListener<T>;
   /** 实例创建后的同步回调函数 */
-  onCreate?(instance: T): void
+  onCreate?(instance: T): void;
   /** 实例的异步初始化函数 */
-  onAsyncInit?(instance: T): Promise<void>
+  onAsyncInit?(instance: T): Promise<void>;
   /** 实例销毁前的回调函数 */
-  onDestroy?(instance: T): void
+  onDestroy?(instance: T): void;
 }
 
 /**
@@ -333,11 +341,11 @@ export class SingletonError extends Error {
   constructor(
     message: string,
     public readonly className: string,
-    public readonly cause?: Error
+    public readonly cause?: Error,
   ) {
-    super(message)
-    this.name = 'SingletonError'
-    Object.setPrototypeOf(this, SingletonError.prototype)
+    super(message);
+    this.name = "SingletonError";
+    Object.setPrototypeOf(this, SingletonError.prototype);
   }
 }
 
@@ -348,29 +356,29 @@ export class SingletonError extends Error {
  */
 export enum SingletonState {
   /** 未初始化 */
-  PENDING = 'PENDING',
+  PENDING = "PENDING",
   /** 初始化中 */
-  INITIALIZING = 'INITIALIZING',
+  INITIALIZING = "INITIALIZING",
   /** 已初始化 */
-  INITIALIZED = 'INITIALIZED',
+  INITIALIZED = "INITIALIZED",
   /** 销毁中 */
-  DESTROYING = 'DESTROYING',
+  DESTROYING = "DESTROYING",
   /** 已销毁 */
-  DESTROYED = 'DESTROYED',
+  DESTROYED = "DESTROYED",
   /** 错误状态 */
-  ERROR = 'ERROR'
+  ERROR = "ERROR",
 }
 
 /**
  * 单例元数据
  */
 interface SingletonMetadata<T> {
-  instance: T | null
-  state: SingletonState
-  options: SingletonOptions<T>
-  error: Error | null
-  lifecycleManager: LifecycleManager<T>
-  retryCount: number
+  instance: T | null;
+  state: SingletonState;
+  options: SingletonOptions<T>;
+  error: Error | null;
+  lifecycleManager: LifecycleManager<T>;
+  retryCount: number;
 }
 
 /**
@@ -382,7 +390,10 @@ interface SingletonMetadata<T> {
  */
 export class SingletonProxy {
   /** 存储所有单例实例的元数据 */
-  private static readonly metadata = new WeakMap<Constructor<any>, SingletonMetadata<any>>()
+  private static readonly metadata = new WeakMap<
+    Constructor<any>,
+    SingletonMetadata<any>
+  >();
 
   /**
    * 创建单例代理
@@ -392,11 +403,11 @@ export class SingletonProxy {
    */
   static create<T extends object>(
     Target: Constructor<T>,
-    options: SingletonOptions<T> = {}
+    options: SingletonOptions<T> = {},
   ): Constructor<T> {
     return new Proxy(Target, {
       construct(target: Constructor<T>, args: any[]): T {
-        let metadata = SingletonProxy.getMetadata(target)
+        let metadata = SingletonProxy.getMetadata(target);
 
         if (!metadata) {
           metadata = {
@@ -405,94 +416,109 @@ export class SingletonProxy {
             options,
             error: null,
             lifecycleManager: new LifecycleManager<T>(),
-            retryCount: 0
-          }
+            retryCount: 0,
+          };
           if (options.lifecycleListener) {
-            metadata.lifecycleManager.addListener(options.lifecycleListener)
+            metadata.lifecycleManager.addListener(options.lifecycleListener);
           }
           if (options.asyncLifecycleListener) {
-            metadata.lifecycleManager.addAsyncListener(options.asyncLifecycleListener)
+            metadata.lifecycleManager.addAsyncListener(
+              options.asyncLifecycleListener,
+            );
           }
-          SingletonProxy.setMetadata(target, metadata)
+          SingletonProxy.setMetadata(target, metadata);
         }
 
-        if (metadata.instance && metadata.state === SingletonState.INITIALIZED) {
-          return metadata.instance
+        if (
+          metadata.instance &&
+          metadata.state === SingletonState.INITIALIZED
+        ) {
+          return metadata.instance;
         }
 
         try {
-          metadata.state = SingletonState.INITIALIZING
-          metadata.lifecycleManager.emitEvent('beforeCreate', null as any)
+          metadata.state = SingletonState.INITIALIZING;
+          metadata.lifecycleManager.emitEvent("beforeCreate", null as any);
 
           // 同步创建实例
-          const factory = options.instanceFactory || new DefaultInstanceFactory<T>()
-          const instance = factory.createInstance(target, args)
+          const factory =
+            options.instanceFactory || new DefaultInstanceFactory<T>();
+          const instance = factory.createInstance(target, args);
 
           // 更新元数据
-          metadata.instance = instance
-          metadata.state = SingletonState.INITIALIZED
-          metadata.error = null
-          metadata.retryCount = 0
+          metadata.instance = instance;
+          metadata.state = SingletonState.INITIALIZED;
+          metadata.error = null;
+          metadata.retryCount = 0;
 
           // 处理全局单例
-          if (options.global && typeof window !== 'undefined') {
-            const globalKey = `__SINGLETON_${target.name}__`
+          if (options.global && typeof window !== "undefined") {
+            const globalKey = `__SINGLETON_${target.name}__`;
             Object.defineProperty(window, globalKey, {
               value: instance,
               configurable: true,
-              writable: false
-            })
+              writable: false,
+            });
           }
 
           // 同步初始化
-          metadata.lifecycleManager.emitEvent('created', instance)
+          metadata.lifecycleManager.emitEvent("created", instance);
           if (options.onCreate) {
-            options.onCreate(instance)
+            options.onCreate(instance);
           }
 
           // 异步初始化
           Promise.resolve().then(async () => {
             try {
-              await metadata.lifecycleManager.emitAsyncEvent('created', instance)
+              await metadata.lifecycleManager.emitAsyncEvent(
+                "created",
+                instance,
+              );
               if (options.onAsyncInit) {
-                await options.onAsyncInit(instance)
+                await options.onAsyncInit(instance);
               }
             } catch (error) {
-              metadata.error = error instanceof Error ? error : new Error(String(error))
-              metadata.state = SingletonState.ERROR
-              console.error(`Error in async initialization:`, error)
+              metadata.error =
+                error instanceof Error ? error : new Error(String(error));
+              metadata.state = SingletonState.ERROR;
+              console.error(`Error in async initialization:`, error);
             }
-          })
+          });
 
-          return instance
+          return instance;
         } catch (error) {
-          metadata.state = SingletonState.ERROR
+          metadata.state = SingletonState.ERROR;
 
           // 使用错误处理策略
-          const strategy = options.errorStrategy || new DefaultErrorStrategy()
+          const strategy = options.errorStrategy || new DefaultErrorStrategy();
           try {
-            strategy.handleError(error instanceof Error ? error : new Error(String(error)), {
-              name: target.name,
-              retryCount: metadata.retryCount,
-              maxRetries: options.retryCount || 3,
-              retryInterval: options.retryInterval || 1000
-            })
+            strategy.handleError(
+              error instanceof Error ? error : new Error(String(error)),
+              {
+                name: target.name,
+                retryCount: metadata.retryCount,
+                maxRetries: options.retryCount || 3,
+                retryInterval: options.retryInterval || 1000,
+              },
+            );
 
             // 重试
-            metadata.retryCount++
-            return new Target(...args)
+            metadata.retryCount++;
+            return new Target(...args);
           } catch (retryError) {
             const finalError = new SingletonError(
               `Failed to create singleton instance`,
               target.name,
-              retryError instanceof Error ? retryError : new Error(String(retryError))
-            )
-            metadata.error = finalError
-            throw finalError
+              retryError instanceof Error
+                ? retryError
+                : new Error(String(retryError)),
+            );
+            metadata.error = finalError;
+            throw finalError;
           }
         }
-      }
-    })
+      },
+    });
   }
 
   /**
@@ -500,7 +526,7 @@ export class SingletonProxy {
    * @description 获取指定类的单例实例
    */
   static getInstance<T>(Target: Constructor<T>): T | null {
-    return this.getMetadata(Target)?.instance ?? null
+    return this.getMetadata(Target)?.instance ?? null;
   }
 
   /**
@@ -508,21 +534,26 @@ export class SingletonProxy {
    * @description 获取指定类的单例实例状态
    */
   static getState<T>(Target: Constructor<T>): SingletonState {
-    return this.getMetadata(Target)?.state ?? SingletonState.PENDING
+    return this.getMetadata(Target)?.state ?? SingletonState.PENDING;
   }
 
   /**
    * 获取元数据
    */
-  private static getMetadata<T>(Target: Constructor<T>): SingletonMetadata<T> | undefined {
-    return this.metadata.get(Target)
+  private static getMetadata<T>(
+    Target: Constructor<T>,
+  ): SingletonMetadata<T> | undefined {
+    return this.metadata.get(Target);
   }
 
   /**
    * 设置元数据
    */
-  private static setMetadata<T>(Target: Constructor<T>, metadata: SingletonMetadata<T>): void {
-    this.metadata.set(Target, metadata)
+  private static setMetadata<T>(
+    Target: Constructor<T>,
+    metadata: SingletonMetadata<T>,
+  ): void {
+    this.metadata.set(Target, metadata);
   }
 
   /**
@@ -530,36 +561,36 @@ export class SingletonProxy {
    * @description 销毁指定类的单例实例
    */
   static async destroy<T>(Target: Constructor<T>): Promise<void> {
-    const metadata = this.getMetadata(Target)
-    if (!metadata?.instance) return
+    const metadata = this.getMetadata(Target);
+    if (!metadata?.instance) return;
 
     try {
-      metadata.state = SingletonState.DESTROYING
-      metadata.lifecycleManager.emitEvent('beforeDestroy', metadata.instance)
+      metadata.state = SingletonState.DESTROYING;
+      metadata.lifecycleManager.emitEvent("beforeDestroy", metadata.instance);
 
       // 调用 onDestroy 钩子
       if (metadata.options.onDestroy) {
-        await metadata.options.onDestroy(metadata.instance)
+        await metadata.options.onDestroy(metadata.instance);
       }
 
       // 清理全局实例
-      if (metadata.options.global && typeof window !== 'undefined') {
-        const globalKey = `__SINGLETON_${Target.name}__`
-        delete (window as any)[globalKey]
+      if (metadata.options.global && typeof window !== "undefined") {
+        const globalKey = `__SINGLETON_${Target.name}__`;
+        delete (window as any)[globalKey];
       }
 
       // 更新元数据
-      metadata.instance = null
-      metadata.state = SingletonState.DESTROYED
-      metadata.lifecycleManager.emitEvent('destroyed', null as any)
+      metadata.instance = null;
+      metadata.state = SingletonState.DESTROYED;
+      metadata.lifecycleManager.emitEvent("destroyed", null as any);
     } catch (error) {
       const finalError = new SingletonError(
         `Failed to destroy singleton instance`,
         Target.name,
-        error instanceof Error ? error : new Error(String(error))
-      )
-      metadata.error = finalError
-      throw finalError
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      metadata.error = finalError;
+      throw finalError;
     }
   }
 
@@ -568,12 +599,12 @@ export class SingletonProxy {
    * @description 重置指定类的单例实例状态
    */
   static reset<T>(Target: Constructor<T>): void {
-    const metadata = this.getMetadata(Target)
+    const metadata = this.getMetadata(Target);
     if (metadata) {
-      metadata.instance = null
-      metadata.state = SingletonState.PENDING
-      metadata.error = null
-      metadata.retryCount = 0
+      metadata.instance = null;
+      metadata.state = SingletonState.PENDING;
+      metadata.error = null;
+      metadata.retryCount = 0;
     }
   }
 
@@ -582,8 +613,8 @@ export class SingletonProxy {
    * @description 获取指定类的单例实例创建过程中的错误
    */
   static getError<T>(Target: Constructor<T>): Error | null {
-    const metadata = this.getMetadata(Target)
-    return metadata?.error ?? null
+    const metadata = this.getMetadata(Target);
+    return metadata?.error ?? null;
   }
 }
 
@@ -596,6 +627,6 @@ export class SingletonProxy {
  */
 export function Singleton<T extends object>(options: SingletonOptions<T> = {}) {
   return function (Target: Constructor<T>): Constructor<T> {
-    return SingletonProxy.create(Target, options)
-  }
+    return SingletonProxy.create(Target, options);
+  };
 }

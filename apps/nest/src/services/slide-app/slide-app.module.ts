@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { SlideAppService } from './slide-app.service';
-import { SlideAppController } from './slide-app.controller';
+import { Module } from '@nestjs/common'
+import { SlideAppService } from './slide-app.service'
+import { SlideAppController } from './slide-app.controller'
 
 @Module({
   controllers: [SlideAppController],
-  providers: [SlideAppService],
+  providers: [SlideAppService]
 })
 export class SlideAppModule {}

@@ -12,8 +12,8 @@ interface AppIconProps {
 const appIconProps = {
   app: {
     type: Object as PropType<AppIconProps['app']>,
-    required: true,
-  },
+    required: true
+  }
 } as const
 
 export default defineComponent({
@@ -24,7 +24,7 @@ export default defineComponent({
       return (
         <div
           class={[
-            'w-full h-full bg-gray-300 bg-opacity-30 flex items-center justify-center rounded-lg cursor-pointer',
+            'w-full h-full bg-gray-300 bg-opacity-30 flex items-center justify-center rounded-lg cursor-pointer'
           ]}
         >
           <NIcon color="#18A058" size={40}>
@@ -37,5 +37,5 @@ export default defineComponent({
         // </div>
       )
     }
-  },
+  }
 })

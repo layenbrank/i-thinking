@@ -5,8 +5,8 @@
  * @packageDocumentation
  */
 
-import lunisolar from 'lunisolar'
-import festivals from 'lunisolar/markers/festivals.zh-cn'
+import lunisolar from "lunisolar";
+import festivals from "lunisolar/markers/festivals.zh-cn";
 import {
   EarthBranch,
   LunarDay,
@@ -18,14 +18,14 @@ import {
   LegalHoliday,
   SolarFestival,
   LunarFestival,
-  type Direction
-} from 'tyme4ts'
-import { Singleton } from './singleton'
-import { dateTimeService } from './date-time-service'
-import type { ConfigType } from 'dayjs'
+  type Direction,
+} from "tyme4ts";
+import { Singleton } from "./singleton";
+import { dateTimeService } from "./date-time-service";
+import type { ConfigType } from "dayjs";
 
 // 全局加载农历节日
-lunisolar.Markers.add(festivals)
+lunisolar.Markers.add(festivals);
 
 /**
  * 方位信息接口
@@ -34,15 +34,15 @@ lunisolar.Markers.add(festivals)
  */
 interface DirectionInfo {
   /** 喜神方位 */
-  joyDirection: Direction
+  joyDirection: Direction;
   /** 阳贵神方位 */
-  yangDirection: Direction
+  yangDirection: Direction;
   /** 阴贵神方位 */
-  yinDirection: Direction
+  yinDirection: Direction;
   /** 财神方位 */
-  wealthDirection: Direction
+  wealthDirection: Direction;
   /** 福神方位 */
-  mascotDirection: Direction
+  mascotDirection: Direction;
 }
 
 /**
@@ -52,21 +52,21 @@ interface DirectionInfo {
  */
 interface DateInfo {
   /** 生肖 */
-  zodiac: string
+  zodiac: string;
   /** 星座 */
-  constellation: string
+  constellation: string;
   /** 节日 */
-  festival: string | null
+  festival: string | null;
   /** 宜 */
-  beneficial: string
+  beneficial: string;
   /** 忌 */
-  unbeneficial: string
+  unbeneficial: string;
   /** 月相 */
-  phase: string
+  phase: string;
   /** 物候 */
-  phenologyDay: string
+  phenologyDay: string;
   /** 方位信息 */
-  directions: DirectionInfo
+  directions: DirectionInfo;
 }
 
 /**
@@ -76,11 +76,11 @@ interface DateInfo {
  */
 interface FestivalInfo {
   /** 农历节日 */
-  lunarFestival: string | null
+  lunarFestival: string | null;
   /** 公历节日 */
-  solarFestival: string | null
+  solarFestival: string | null;
   /** 节气 */
-  solarTerm: string | null
+  solarTerm: string | null;
 }
 
 /**
@@ -90,9 +90,9 @@ interface FestivalInfo {
  */
 interface NextFestivalInfo {
   /** 节日名称 */
-  name: string
+  name: string;
   /** 距离天数 */
-  distance: number
+  distance: number;
 }
 
 /**
@@ -100,7 +100,7 @@ interface NextFestivalInfo {
  * @type FestivalType
  * @description 节日的类型：法定节日、公历节日或农历节日
  */
-type FestivalType = 'legal' | 'solar' | 'lunar'
+type FestivalType = "legal" | "solar" | "lunar";
 
 /**
  * 节日详细信息接口
@@ -109,15 +109,15 @@ type FestivalType = 'legal' | 'solar' | 'lunar'
  */
 interface FestivalDetail {
   /** 节日名称 */
-  name: string
+  name: string;
   /** 节日类型 */
-  type: FestivalType
+  type: FestivalType;
   /** 节日日期 */
-  date: Date
+  date: Date;
   /** 节日开始时间（可选） */
-  startDate?: Date
+  startDate?: Date;
   /** 节日结束时间（可选） */
-  endDate?: Date
+  endDate?: Date;
 }
 
 /**
@@ -127,9 +127,9 @@ interface FestivalDetail {
  */
 interface FestivalOptions {
   /** 是否包含起止时间 */
-  includeRange?: boolean
+  includeRange?: boolean;
   /** 是否只返回节日的第一天（例如春节假期只返回第一天） */
-  onlyFirstDay?: boolean
+  onlyFirstDay?: boolean;
 }
 
 /**
@@ -173,24 +173,33 @@ class Calendar {
    * @param day - 日期（1-31）
    * @returns 包含农历节日、公历节日和节气的信息
    */
-  private getFestivalsByDate(year: number, month: number, day: number): FestivalInfo {
-    const solarDay = SolarDay.fromYmd(year, month, day)
-    const lunar = solarDay.getLunarDay()
-    const lunarDayFrom = LunarDay.fromYmd(lunar.getYear(), lunar.getMonth(), lunar.getDay())
+  private getFestivalsByDate(
+    year: number,
+    month: number,
+    day: number,
+  ): FestivalInfo {
+    const solarDay = SolarDay.fromYmd(year, month, day);
+    const lunar = solarDay.getLunarDay();
+    const lunarDayFrom = LunarDay.fromYmd(
+      lunar.getYear(),
+      lunar.getMonth(),
+      lunar.getDay(),
+    );
 
     return {
       lunarFestival: lunarDayFrom.getFestival()?.getName() ?? null,
       solarFestival: (() => {
-        const festival = solarDay.getFestival()?.getName()
-        const holiday = LegalHoliday.fromYmd(year, month, day)?.getName()
-        const markersList = lunisolar(`${year}-${month}-${day}`).markers.list
-        if (holiday) return holiday
-        if (festival) return festival
-        if (markersList.length) return markersList[0].name
-        return null
+        const festival = solarDay.getFestival()?.getName();
+        const holiday = LegalHoliday.fromYmd(year, month, day)?.getName();
+        const markersList = lunisolar(`${year}-${month}-${day}`).markers.list;
+        if (holiday) return holiday;
+        if (festival) return festival;
+        if (markersList.length) return markersList[0].name;
+        return null;
       })(),
-      solarTerm: lunisolar(`${year}-${month}-${day}`).solarTerm?.toString() ?? null
-    }
+      solarTerm:
+        lunisolar(`${year}-${month}-${day}`).solarTerm?.toString() ?? null,
+    };
   }
 
   /**
@@ -205,12 +214,20 @@ class Calendar {
    * ```
    */
   getFestival(date: ConfigType): string | null {
-    const dateObj = dateTimeService.parse(date)
-    const [year, month, day] = [dateObj.year(), dateObj.month() + 1, dateObj.date()]
-    const { lunarFestival, solarFestival, solarTerm } = this.getFestivalsByDate(year, month, day)
+    const dateObj = dateTimeService.parse(date);
+    const [year, month, day] = [
+      dateObj.year(),
+      dateObj.month() + 1,
+      dateObj.date(),
+    ];
+    const { lunarFestival, solarFestival, solarTerm } = this.getFestivalsByDate(
+      year,
+      month,
+      day,
+    );
 
     // 按优先级返回第一个节日
-    return lunarFestival ?? solarFestival ?? solarTerm ?? null
+    return lunarFestival ?? solarFestival ?? solarTerm ?? null;
   }
 
   /**
@@ -230,60 +247,60 @@ class Calendar {
    * ```
    */
   getNextFestival(date: ConfigType): NextFestivalInfo {
-    const startDate = dateTimeService.parse(date)
-    let currentDate = startDate.add(1, 'day') // 从明天开始查找
-    let searchCount = 0 // 搜索天数计数
+    const startDate = dateTimeService.parse(date);
+    let currentDate = startDate.add(1, "day"); // 从明天开始查找
+    let searchCount = 0; // 搜索天数计数
 
     // 设置最大搜索天数为两年（确保能覆盖农历年和公历年的所有节日）
-    const maxSearchDays = 730 // 365 * 2
+    const maxSearchDays = 730; // 365 * 2
 
     // 在最大搜索范围内查找
     while (searchCount < maxSearchDays) {
       // 1. 检查法定节日（包含了重要的农历节日，如春节）
-      const legalHoliday = this.getLegalHoliday(currentDate)
+      const legalHoliday = this.getLegalHoliday(currentDate);
       if (legalHoliday) {
         return {
           name: legalHoliday.name,
-          distance: currentDate.diff(startDate, 'day')
-        }
+          distance: currentDate.diff(startDate, "day"),
+        };
       }
 
       // 2. 检查农历节日
-      const lunarFestival = this.getLunarFestival(currentDate)
+      const lunarFestival = this.getLunarFestival(currentDate);
       if (lunarFestival) {
         return {
           name: lunarFestival.name,
-          distance: currentDate.diff(startDate, 'day')
-        }
+          distance: currentDate.diff(startDate, "day"),
+        };
       }
 
       // 3. 检查公历节日
-      const solarFestival = this.getSolarFestival(currentDate)
+      const solarFestival = this.getSolarFestival(currentDate);
       if (solarFestival) {
         return {
           name: solarFestival.name,
-          distance: currentDate.diff(startDate, 'day')
-        }
+          distance: currentDate.diff(startDate, "day"),
+        };
       }
 
       // 4. 检查节气
       const solarTerm = lunisolar(
-        dateTimeService.format(currentDate, 'YYYY-MM-DD')
-      ).solarTerm?.toString()
+        dateTimeService.format(currentDate, "YYYY-MM-DD"),
+      ).solarTerm?.toString();
       if (solarTerm) {
         return {
           name: solarTerm,
-          distance: currentDate.diff(startDate, 'day')
-        }
+          distance: currentDate.diff(startDate, "day"),
+        };
       }
 
       // 继续查找下一天
-      currentDate = currentDate.add(1, 'day')
-      searchCount++
+      currentDate = currentDate.add(1, "day");
+      searchCount++;
     }
 
     // 如果在最大搜索范围内都没找到节日（实际上不会发生，因为节气每月都有）
-    throw new Error('未能在搜索范围内找到下一个节日')
+    throw new Error("未能在搜索范围内找到下一个节日");
   }
 
   /**
@@ -298,13 +315,13 @@ class Calendar {
    * ```
    */
   getSixtyCycle(date: ConfigType): string {
-    const dateObj = dateTimeService.parse(date)
-    const year = dateObj.year()
-    const lunarYear = LunarYear.fromYear(year)
-    const heavenStem = lunarYear.getSixtyCycle().getHeavenStem().getName()
-    const earthBranch = lunarYear.getSixtyCycle().getEarthBranch().getName()
-    const zodiac = EarthBranch.fromName(earthBranch).getZodiac().getName()
-    return `${heavenStem}${earthBranch} ${zodiac}年`
+    const dateObj = dateTimeService.parse(date);
+    const year = dateObj.year();
+    const lunarYear = LunarYear.fromYear(year);
+    const heavenStem = lunarYear.getSixtyCycle().getHeavenStem().getName();
+    const earthBranch = lunarYear.getSixtyCycle().getEarthBranch().getName();
+    const zodiac = EarthBranch.fromName(earthBranch).getZodiac().getName();
+    return `${heavenStem}${earthBranch} ${zodiac}年`;
   }
 
   /**
@@ -319,11 +336,11 @@ class Calendar {
    * ```
    */
   getWeekAndDayIndex(date: ConfigType): string {
-    const dateObj = dateTimeService.parse(date)
-    const dayInYearIndex = dateTimeService.date.getDayOfYear(dateObj)
-    const weekInYear = dateTimeService.week.get(dateObj)
+    const dateObj = dateTimeService.parse(date);
+    const dayInYearIndex = dateTimeService.date.getDayOfYear(dateObj);
+    const weekInYear = dateTimeService.week.get(dateObj);
 
-    return `本年第 ${weekInYear} 周 第${dayInYearIndex}天`
+    return `本年第 ${weekInYear} 周 第${dayInYearIndex}天`;
   }
 
   /**
@@ -333,14 +350,14 @@ class Calendar {
    * @returns 包含各种神位方位的信息
    */
   private getDirections(lunarYear: LunarYear): DirectionInfo {
-    const heavenStem = lunarYear.getSixtyCycle().getHeavenStem()
+    const heavenStem = lunarYear.getSixtyCycle().getHeavenStem();
     return {
       joyDirection: heavenStem.getJoyDirection(),
       yangDirection: heavenStem.getYangDirection(),
       yinDirection: heavenStem.getYinDirection(),
       wealthDirection: heavenStem.getWealthDirection(),
-      mascotDirection: heavenStem.getMascotDirection()
-    }
+      mascotDirection: heavenStem.getMascotDirection(),
+    };
   }
 
   /**
@@ -361,24 +378,28 @@ class Calendar {
    * ```
    */
   getDateInfo(date: ConfigType): DateInfo {
-    const dateObj = dateTimeService.parse(date)
-    const [year, month, day] = [dateObj.year(), dateObj.month() + 1, dateObj.date()]
-    const solarDay = SolarDay.fromYmd(year, month, day)
-    const lunarYear = LunarYear.fromYear(year)
-    const lunarDay = solarDay.getLunarDay()
-    const earthBranch = lunarYear.getSixtyCycle().getEarthBranch().getName()
-    const zodiac = EarthBranch.fromName(earthBranch).getZodiac().getName()
+    const dateObj = dateTimeService.parse(date);
+    const [year, month, day] = [
+      dateObj.year(),
+      dateObj.month() + 1,
+      dateObj.date(),
+    ];
+    const solarDay = SolarDay.fromYmd(year, month, day);
+    const lunarYear = LunarYear.fromYear(year);
+    const lunarDay = solarDay.getLunarDay();
+    const earthBranch = lunarYear.getSixtyCycle().getEarthBranch().getName();
+    const zodiac = EarthBranch.fromName(earthBranch).getZodiac().getName();
 
     return {
       zodiac,
       constellation: `${solarDay.getConstellation()}座`,
       festival: this.getFestival(dateObj),
-      beneficial: lunarDay.getRecommends().join('、'),
+      beneficial: lunarDay.getRecommends().join("、"),
       unbeneficial: lunarDay.getAvoids().toString(),
       phase: lunarDay.getPhase().getName(),
       phenologyDay: solarDay.getPhenologyDay().getName(),
-      directions: this.getDirections(lunarYear)
-    }
+      directions: this.getDirections(lunarYear),
+    };
   }
 
   /**
@@ -398,8 +419,8 @@ class Calendar {
    * console.log('自定义格式:', customFormat)
    * ```
    */
-  getLunarDate(date: ConfigType, format: string = 'lY年 lMlD'): string {
-    return lunisolar(dateTimeService.format(date, 'YYYY-MM-DD')).format(format)
+  getLunarDate(date: ConfigType, format: string = "lY年 lMlD"): string {
+    return lunisolar(dateTimeService.format(date, "YYYY-MM-DD")).format(format);
   }
 
   /**
@@ -414,10 +435,10 @@ class Calendar {
    * ```
    */
   getSolarDayCount(date: ConfigType): number {
-    const dateObj = dateTimeService.parse(date)
-    const [year, month] = [dateObj.year(), dateObj.month() + 1]
-    const solarMonth = SolarMonth.fromYm(year, month)
-    return solarMonth.getDayCount()
+    const dateObj = dateTimeService.parse(date);
+    const [year, month] = [dateObj.year(), dateObj.month() + 1];
+    const solarMonth = SolarMonth.fromYm(year, month);
+    return solarMonth.getDayCount();
   }
 
   /**
@@ -432,11 +453,15 @@ class Calendar {
    * ```
    */
   getLunarDayCount(date: ConfigType): number {
-    const dateObj = dateTimeService.parse(date)
-    const [year, month, day] = [dateObj.year(), dateObj.month() + 1, dateObj.date()]
-    const solarDay = SolarDay.fromYmd(year, month, day)
-    const lunar = solarDay.getLunarDay()
-    return LunarMonth.fromYm(lunar.getYear(), lunar.getMonth()).getDayCount()
+    const dateObj = dateTimeService.parse(date);
+    const [year, month, day] = [
+      dateObj.year(),
+      dateObj.month() + 1,
+      dateObj.date(),
+    ];
+    const solarDay = SolarDay.fromYmd(year, month, day);
+    const lunar = solarDay.getLunarDay();
+    return LunarMonth.fromYm(lunar.getYear(), lunar.getMonth()).getDayCount();
   }
 
   /**
@@ -455,17 +480,21 @@ class Calendar {
    * ```
    */
   getLegalHoliday(date: ConfigType): FestivalDetail | null {
-    const dateObj = dateTimeService.parse(date)
-    const [year, month, day] = [dateObj.year(), dateObj.month() + 1, dateObj.date()]
-    const holiday = LegalHoliday.fromYmd(year, month, day)
+    const dateObj = dateTimeService.parse(date);
+    const [year, month, day] = [
+      dateObj.year(),
+      dateObj.month() + 1,
+      dateObj.date(),
+    ];
+    const holiday = LegalHoliday.fromYmd(year, month, day);
 
-    if (!holiday) return null
+    if (!holiday) return null;
 
     return {
       name: holiday.getName(),
-      type: 'legal',
-      date: dateObj.toDate()
-    }
+      type: "legal",
+      date: dateObj.toDate(),
+    };
   }
 
   /**
@@ -484,18 +513,22 @@ class Calendar {
    * ```
    */
   getSolarFestival(date: ConfigType): FestivalDetail | null {
-    const dateObj = dateTimeService.parse(date)
-    const [year, month, day] = [dateObj.year(), dateObj.month() + 1, dateObj.date()]
-    const solarDay = SolarDay.fromYmd(year, month, day)
-    const festival = solarDay.getFestival()
+    const dateObj = dateTimeService.parse(date);
+    const [year, month, day] = [
+      dateObj.year(),
+      dateObj.month() + 1,
+      dateObj.date(),
+    ];
+    const solarDay = SolarDay.fromYmd(year, month, day);
+    const festival = solarDay.getFestival();
 
-    if (!festival) return null
+    if (!festival) return null;
 
     return {
       name: festival.getName(),
-      type: 'solar',
-      date: dateObj.toDate()
-    }
+      type: "solar",
+      date: dateObj.toDate(),
+    };
   }
 
   /**
@@ -514,24 +547,28 @@ class Calendar {
    * ```
    */
   getLunarFestival(date: ConfigType): FestivalDetail | null {
-    const dateObj = dateTimeService.parse(date)
-    const [year, month, day] = [dateObj.year(), dateObj.month() + 1, dateObj.date()]
-    const solarDay = SolarDay.fromYmd(year, month, day)
-    const lunarDay = solarDay.getLunarDay()
+    const dateObj = dateTimeService.parse(date);
+    const [year, month, day] = [
+      dateObj.year(),
+      dateObj.month() + 1,
+      dateObj.date(),
+    ];
+    const solarDay = SolarDay.fromYmd(year, month, day);
+    const lunarDay = solarDay.getLunarDay();
     const lunarDayFrom = LunarDay.fromYmd(
       lunarDay.getYear(),
       lunarDay.getMonth(),
-      lunarDay.getDay()
-    )
-    const festival = lunarDayFrom.getFestival()
+      lunarDay.getDay(),
+    );
+    const festival = lunarDayFrom.getFestival();
 
-    if (!festival) return null
+    if (!festival) return null;
 
     return {
       name: festival.getName(),
-      type: 'lunar',
-      date: dateObj.toDate()
-    }
+      type: "lunar",
+      date: dateObj.toDate(),
+    };
   }
 
   /**
@@ -540,33 +577,47 @@ class Calendar {
    * @param options - 查询选项
    * @returns 所有类型节日的数组
    */
-  getAllFestivals(date: ConfigType, options: FestivalOptions = {}): FestivalDetail[] {
-    const festivals: FestivalDetail[] = []
-    const { includeRange = false, onlyFirstDay = false } = options
-    const dateObj = dateTimeService.parse(date)
-    const [year, month, day] = [dateObj.year(), dateObj.month() + 1, dateObj.date()]
+  getAllFestivals(
+    date: ConfigType,
+    options: FestivalOptions = {},
+  ): FestivalDetail[] {
+    const festivals: FestivalDetail[] = [];
+    const { includeRange = false, onlyFirstDay = false } = options;
+    const dateObj = dateTimeService.parse(date);
+    const [year, month, day] = [
+      dateObj.year(),
+      dateObj.month() + 1,
+      dateObj.date(),
+    ];
 
     // 一次性获取所有节日信息
-    const { lunarFestival, solarFestival, solarTerm } = this.getFestivalsByDate(year, month, day)
+    const { lunarFestival, solarFestival, solarTerm } = this.getFestivalsByDate(
+      year,
+      month,
+      day,
+    );
 
     // 1. 处理法定节日
-    const holiday = LegalHoliday.fromYmd(year, month, day)
+    const holiday = LegalHoliday.fromYmd(year, month, day);
     if (holiday) {
       // 如果设置了只返回第一天，则检查是否有前一天的相同节日
-      if (!onlyFirstDay || !this.hasSameFestival(dateObj.subtract(1, 'day'), holiday.getName())) {
+      if (
+        !onlyFirstDay ||
+        !this.hasSameFestival(dateObj.subtract(1, "day"), holiday.getName())
+      ) {
         const festivalDetail: FestivalDetail = {
           name: holiday.getName(),
-          type: 'legal',
-          date: dateObj.toDate()
-        }
+          type: "legal",
+          date: dateObj.toDate(),
+        };
         if (includeRange) {
           festivals.push({
             ...festivalDetail,
             startDate: dateObj.toDate(),
-            endDate: dateObj.toDate()
-          })
+            endDate: dateObj.toDate(),
+          });
         } else {
-          festivals.push(festivalDetail)
+          festivals.push(festivalDetail);
         }
       }
     }
@@ -576,17 +627,17 @@ class Calendar {
       // 农历节日通常是单日节日，不需要特殊处理
       const festivalDetail: FestivalDetail = {
         name: lunarFestival,
-        type: 'lunar',
-        date: dateObj.toDate()
-      }
+        type: "lunar",
+        date: dateObj.toDate(),
+      };
       if (includeRange) {
         festivals.push({
           ...festivalDetail,
           startDate: dateObj.toDate(),
-          endDate: dateObj.toDate()
-        })
+          endDate: dateObj.toDate(),
+        });
       } else {
-        festivals.push(festivalDetail)
+        festivals.push(festivalDetail);
       }
     }
 
@@ -595,17 +646,17 @@ class Calendar {
       // 公历节日通常是单日节日，不需要特殊处理
       const festivalDetail: FestivalDetail = {
         name: solarFestival,
-        type: 'solar',
-        date: dateObj.toDate()
-      }
+        type: "solar",
+        date: dateObj.toDate(),
+      };
       if (includeRange) {
         festivals.push({
           ...festivalDetail,
           startDate: dateObj.toDate(),
-          endDate: dateObj.toDate()
-        })
+          endDate: dateObj.toDate(),
+        });
       } else {
-        festivals.push(festivalDetail)
+        festivals.push(festivalDetail);
       }
     }
 
@@ -614,21 +665,21 @@ class Calendar {
       // 节气是单日节日，不需要特殊处理
       const festivalDetail: FestivalDetail = {
         name: solarTerm,
-        type: 'solar',
-        date: dateObj.toDate()
-      }
+        type: "solar",
+        date: dateObj.toDate(),
+      };
       if (includeRange) {
         festivals.push({
           ...festivalDetail,
           startDate: dateObj.toDate(),
-          endDate: dateObj.toDate()
-        })
+          endDate: dateObj.toDate(),
+        });
       } else {
-        festivals.push(festivalDetail)
+        festivals.push(festivalDetail);
       }
     }
 
-    return festivals
+    return festivals;
   }
 
   /**
@@ -639,15 +690,19 @@ class Calendar {
    * @returns 是否有相同的节日
    */
   private hasSameFestival(date: ConfigType, festivalName: string): boolean {
-    const dateObj = dateTimeService.parse(date)
-    const [year, month, day] = [dateObj.year(), dateObj.month() + 1, dateObj.date()]
-    const holiday = LegalHoliday.fromYmd(year, month, day)
-    return holiday?.getName() === festivalName
+    const dateObj = dateTimeService.parse(date);
+    const [year, month, day] = [
+      dateObj.year(),
+      dateObj.month() + 1,
+      dateObj.date(),
+    ];
+    const holiday = LegalHoliday.fromYmd(year, month, day);
+    return holiday?.getName() === festivalName;
   }
 }
 
 // 导出单例实例
-export const calendarService = new Calendar()
+export const calendarService = new Calendar();
 
 // 导出类型
 export type {
@@ -656,5 +711,5 @@ export type {
   FestivalInfo,
   NextFestivalInfo,
   FestivalType,
-  FestivalDetail
-}
+  FestivalDetail,
+};

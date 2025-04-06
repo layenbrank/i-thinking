@@ -14,8 +14,8 @@ const props = withDefaults(
     editor: Editor | undefined
   }>(),
   {
-    editor: undefined,
-  },
+    editor: undefined
+  }
 )
 
 const editorMenuItems: EditorMenuItem[] = [
@@ -25,7 +25,7 @@ const editorMenuItems: EditorMenuItem[] = [
     action(editor) {
       return editor.chain().focus().toggleBold().run()
     },
-    isActive: (editor) => editor.isActive('bold'),
+    isActive: editor => editor.isActive('bold')
   },
   {
     id: 'italic',
@@ -33,7 +33,7 @@ const editorMenuItems: EditorMenuItem[] = [
     action(editor) {
       return editor.chain().focus().toggleItalic().run()
     },
-    isActive: (editor) => editor.isActive('italic'),
+    isActive: editor => editor.isActive('italic')
   },
   {
     id: 'strike',
@@ -41,7 +41,7 @@ const editorMenuItems: EditorMenuItem[] = [
     action(editor) {
       return editor.chain().focus().toggleStrike().run()
     },
-    isActive: (editor) => editor.isActive('strike'),
+    isActive: editor => editor.isActive('strike')
   },
   {
     id: 'code',
@@ -49,21 +49,21 @@ const editorMenuItems: EditorMenuItem[] = [
     action(editor) {
       return editor.chain().focus().toggleCode().run()
     },
-    isActive: (editor) => editor.isActive('code'),
+    isActive: editor => editor.isActive('code')
   },
   {
     id: 'clearMarks',
     label: '清除标记',
     action(editor) {
       return editor.chain().focus().unsetAllMarks().run()
-    },
+    }
   },
   {
     id: 'clearNodes',
     label: '清除节点',
     action(editor) {
       return editor.chain().focus().clearNodes().run()
-    },
+    }
   },
   {
     id: 'paragraph',
@@ -71,7 +71,7 @@ const editorMenuItems: EditorMenuItem[] = [
     action(editor) {
       return editor.chain().focus().setParagraph().run()
     },
-    isActive: (editor) => editor.isActive('paragraph'),
+    isActive: editor => editor.isActive('paragraph')
   },
   ...Array.from({ length: 6 }, (_, i) => ({
     id: `h${i + 1}`,
@@ -83,7 +83,7 @@ const editorMenuItems: EditorMenuItem[] = [
         .toggleHeading({ level: (i + 1) as 1 | 2 | 3 | 4 | 5 | 6 })
         .run()
     },
-    isActive: (editor: Editor) => editor.isActive('heading', { level: i + 1 }),
+    isActive: (editor: Editor) => editor.isActive('heading', { level: i + 1 })
   })),
   {
     id: 'bulletList',
@@ -91,7 +91,7 @@ const editorMenuItems: EditorMenuItem[] = [
     action(editor) {
       return editor.chain().focus().toggleBulletList().run()
     },
-    isActive: (editor) => editor.isActive('bulletList'),
+    isActive: editor => editor.isActive('bulletList')
   },
   {
     id: 'orderedList',
@@ -99,7 +99,7 @@ const editorMenuItems: EditorMenuItem[] = [
     action(editor) {
       return editor.chain().focus().toggleOrderedList().run()
     },
-    isActive: (editor) => editor.isActive('orderedList'),
+    isActive: editor => editor.isActive('orderedList')
   },
   {
     id: 'codeBlock',
@@ -107,7 +107,7 @@ const editorMenuItems: EditorMenuItem[] = [
     action(editor) {
       return editor.chain().focus().toggleCodeBlock().run()
     },
-    isActive: (editor) => editor.isActive('codeBlock'),
+    isActive: editor => editor.isActive('codeBlock')
   },
   {
     id: 'blockquote',
@@ -115,21 +115,21 @@ const editorMenuItems: EditorMenuItem[] = [
     action(editor) {
       return editor.chain().focus().toggleBlockquote().run()
     },
-    isActive: (editor) => editor.isActive('blockquote'),
+    isActive: editor => editor.isActive('blockquote')
   },
   {
     id: 'horizontalRule',
     label: '分隔线',
     action(editor) {
       return editor.chain().focus().setHorizontalRule().run()
-    },
+    }
   },
   {
     id: 'hardBreak',
     label: '换行',
     action(editor) {
       return editor.chain().focus().setHardBreak().run()
-    },
+    }
   },
   {
     id: 'textAlign',
@@ -139,7 +139,7 @@ const editorMenuItems: EditorMenuItem[] = [
     },
     isActive(editor) {
       return editor.isActive({ textAlign: 'left' })
-    },
+    }
   },
   {
     id: 'textAlignCenter',
@@ -149,7 +149,7 @@ const editorMenuItems: EditorMenuItem[] = [
     },
     isActive(editor) {
       return editor.isActive({ textAlign: 'center' })
-    },
+    }
   },
   {
     id: 'textAlignRight',
@@ -159,7 +159,7 @@ const editorMenuItems: EditorMenuItem[] = [
     },
     isActive(editor) {
       return editor.isActive({ textAlign: 'right' })
-    },
+    }
   },
   {
     id: 'textAlignJustify',
@@ -169,22 +169,22 @@ const editorMenuItems: EditorMenuItem[] = [
     },
     isActive(editor) {
       return editor.isActive({ textAlign: 'justify' })
-    },
+    }
   },
   {
     id: 'undo',
     label: '撤销',
     action(editor) {
       return editor.chain().focus().undo().run()
-    },
+    }
   },
   {
     id: 'redo',
     label: '重做',
     action(editor) {
       return editor.chain().focus().redo().run()
-    },
-  },
+    }
+  }
 ]
 
 function handleClick(item: EditorMenuItem) {

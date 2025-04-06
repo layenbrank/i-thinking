@@ -9,7 +9,7 @@ import AppIcon from './bookmarks-icon.tsx'
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
 defineOptions({
-  name: 'Bookmarks',
+  name: 'Bookmarks'
 })
 
 const dialog = useDialog()
@@ -25,10 +25,10 @@ function handleAppWindow() {
     transformOrigin: 'center',
     contentClass: 'h-full',
     contentStyle: {
-      margin: 0,
+      margin: 0
     },
     class: 'p-0 app-dialog bookmark-dialog',
-    content: () => <AppWindow destroy={appWindowRef.value!.destroy} />,
+    content: () => <AppWindow destroy={appWindowRef.value!.destroy} />
   })
   console.log('appWindow', appWindowRef.value)
 }

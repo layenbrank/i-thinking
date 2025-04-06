@@ -1,27 +1,27 @@
-import { ref } from 'vue'
-import { defineStore } from 'pinia'
-import type { ThemeColor } from '../types/theme'
-import { themes } from '../types/theme'
+import { ref } from "vue";
+import { defineStore } from "pinia";
+import type { ThemeColor } from "../types/theme";
+import { themes } from "../types/theme";
 
 export const useThemeStore = defineStore(
-  'theme',
+  "theme",
   () => {
-    const currentTheme = ref<ThemeColor>('purple')
+    const currentTheme = ref<ThemeColor>("purple");
 
     function setTheme(theme: ThemeColor) {
-      currentTheme.value = theme
+      currentTheme.value = theme;
     }
 
     function getTheme() {
-      return themes[currentTheme.value]
+      return themes[currentTheme.value];
     }
 
     return {
       currentTheme,
       setTheme,
-      getTheme
-    }
-  }
+      getTheme,
+    };
+  },
   // ,
   // {
   //   persist: {
@@ -30,4 +30,4 @@ export const useThemeStore = defineStore(
   //     paths: ['currentTheme']
   //   }
   // }
-)
+);

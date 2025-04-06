@@ -7,8 +7,8 @@ interface AppWindowProps {
 const appWindowProps = {
   destroy: {
     type: Function,
-    required: true,
-  },
+    required: true
+  }
 } as const
 
 export default defineComponent({
@@ -17,7 +17,7 @@ export default defineComponent({
   setup(props) {
     onMounted(async () => {
       const res = await chrome.downloads.download({
-        url: 'https://www.baidu.com',
+        url: 'https://www.baidu.com'
       })
       console.log('res', res)
     })
@@ -26,5 +26,5 @@ export default defineComponent({
   },
   render() {
     return <div class={['download-window']}>AppWindow</div>
-  },
+  }
 })

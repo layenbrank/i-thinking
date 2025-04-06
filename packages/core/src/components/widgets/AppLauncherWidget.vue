@@ -1,43 +1,55 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed } from "vue";
 
-const searchQuery = ref('')
+const searchQuery = ref("");
 
 const apps = [
-  { id: 'settings', name: 'Settings', icon: '⚙️', command: 'settings' },
-  { id: 'photos', name: 'Photos', icon: '🖼️', command: 'photos' },
-  { id: 'calculator', name: 'Calculator', icon: '🧮', command: 'calc' },
-  { id: 'mail', name: 'Mail', icon: '✉️', command: 'mail' },
-  { id: 'terminal', name: 'Terminal', icon: '💻', command: 'terminal' },
-  { id: 'calendar', name: 'Calendar', icon: '📅', command: 'calendar' },
-  { id: 'github', name: 'Github', icon: '🐱', command: 'github' },
-  { id: 'chatgpt', name: 'ChatGPT', icon: '🤖', command: 'chatgpt' },
-  { id: 'whatsapp', name: 'Whatsapp', icon: '💬', command: 'whatsapp' },
-  { id: 'twitter', name: 'X / Twitter', icon: '🐦', command: 'twitter' }
-]
+  { id: "settings", name: "Settings", icon: "⚙️", command: "settings" },
+  { id: "photos", name: "Photos", icon: "🖼️", command: "photos" },
+  { id: "calculator", name: "Calculator", icon: "🧮", command: "calc" },
+  { id: "mail", name: "Mail", icon: "✉️", command: "mail" },
+  { id: "terminal", name: "Terminal", icon: "💻", command: "terminal" },
+  { id: "calendar", name: "Calendar", icon: "📅", command: "calendar" },
+  { id: "github", name: "Github", icon: "🐱", command: "github" },
+  { id: "chatgpt", name: "ChatGPT", icon: "🤖", command: "chatgpt" },
+  { id: "whatsapp", name: "Whatsapp", icon: "💬", command: "whatsapp" },
+  { id: "twitter", name: "X / Twitter", icon: "🐦", command: "twitter" },
+];
 
 const filteredApps = computed(() => {
-  if (!searchQuery.value) return apps
-  const query = searchQuery.value.toLowerCase()
+  if (!searchQuery.value) return apps;
+  const query = searchQuery.value.toLowerCase();
   return apps.filter(
-    app => app.name.toLowerCase().includes(query) || app.command.toLowerCase().includes(query)
-  )
-})
+    (app) =>
+      app.name.toLowerCase().includes(query) ||
+      app.command.toLowerCase().includes(query),
+  );
+});
 
 const launchApp = (app: (typeof apps)[0]) => {
   // 这里可以添加实际的应用启动逻辑
-  console.log(`Launching ${app.name}`)
-}
+  console.log(`Launching ${app.name}`);
+};
 </script>
 
 <template>
   <div class="app-launcher">
     <div class="search-bar">
-      <input type="text" v-model="searchQuery" placeholder="Search This PC" class="search-input" />
+      <input
+        type="text"
+        v-model="searchQuery"
+        placeholder="Search This PC"
+        class="search-input"
+      />
     </div>
 
     <div class="app-grid">
-      <div v-for="app in filteredApps" :key="app.id" class="app-item" @click="launchApp(app)">
+      <div
+        v-for="app in filteredApps"
+        :key="app.id"
+        class="app-item"
+        @click="launchApp(app)"
+      >
         <div class="app-icon">{{ app.icon }}</div>
         <div class="app-name">{{ app.name }}</div>
       </div>

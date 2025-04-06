@@ -1,23 +1,23 @@
 <script setup lang="ts">
 const shutdown = () => {
-  console.log('Shutting down...')
-}
+  console.log("Shutting down...");
+};
 
 const restart = () => {
-  console.log('Restarting...')
-}
+  console.log("Restarting...");
+};
 
 const lock = () => {
-  console.log('Locking...')
-}
+  console.log("Locking...");
+};
 
 const sleep = () => {
-  console.log('Going to sleep...')
-}
+  console.log("Going to sleep...");
+};
 
 const signOut = () => {
-  console.log('Signing out...')
-}
+  console.log("Signing out...");
+};
 </script>
 
 <template>
