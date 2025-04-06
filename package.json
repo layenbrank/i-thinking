@@ -19,6 +19,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,vue,md}\""
   },
   "dependencies": {
+    "@ngify/http": "^2.0.4",
     "@tiptap/core": "^2.11.5",
     "@tiptap/extension-highlight": "^2.11.5",
     "@tiptap/extension-text-align": "^2.11.5",
@@ -29,21 +30,25 @@
     "@vueuse/core": "^12.8.2",
     "@vueuse/integrations": "^12.8.2",
     "@vueuse/shared": "^12.8.2",
+    "ant-design-vue": "^4.2.6",
     "axios": "^1.8.2",
     "dayjs": "^1.11.13",
     "deep-pick-omit": "^1.2.1",
     "dexie": "^4.0.11",
+    "dexie-cloud-addon": "^4.0.11",
+    "fuse.js": "^7.1.0",
     "lodash-es": "^4.17.21",
     "lunisolar": "^2.5.2",
     "monaco-editor": "^0.52.2",
     "naive-ui": "^2.41.0",
     "pinia": "^3.0.1",
+    "rxjs": "^7.8.1",
     "sortablejs": "^1.15.6",
-    "tyme4ts": "^1.2.2",
     "swiper": "^11.2.5",
-    "vue": "^3.5.13",
-    "fuse.js": "^7.1.0",
+    "tyme4ts": "^1.2.2",
+    "uuid": "^11.1.0",
     "vfonts": "^0.0.3",
+    "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
@@ -94,5 +99,5 @@
     "vite-plugin-vue-devtools": "^7.7.2",
     "vue-tsc": "^2.2.8"
   },
-  "packageManager": "pnpm@8.15.6"
+  "packageManager": "pnpm@10.7.1"
 }

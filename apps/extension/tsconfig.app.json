@@ -5,7 +5,7 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
 
-    "types": ["vite/client", "@types/chrome", "naive-ui/volar", "swiper/element"],
+    "types": ["vite/client", "@types/chrome", "naive-ui/volar", "ant-design-vue/typings/global"],
 
     "paths": {
       "@/*": ["./src/*"]

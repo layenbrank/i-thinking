@@ -1,0 +1,42 @@
+{
+  "创建window模版": {
+    "prefix": "create-window",
+    "body": [
+      "<script setup lang=\"ts\">",
+      "defineOptions({",
+      "  name: 'app-test-window'",
+      "})",
+      "",
+      "const props = withDefaults(",
+      "  defineProps<{",
+      "    appWindowRef?: AppWindowType",
+      "    slideApp: SlideApp",
+      "  }>(),",
+      "  {}",
+      ")",
+      "",
+      "function handler() {",
+      "  const random = Math.floor(Math.random() * 100)",
+      "",
+      "  props.appWindowRef?.update({",
+      "    title: 'modal inner' + random",
+      "  })",
+      "}",
+      "</script>",
+      "",
+      "<template>",
+      "  <div class=\"app-test-window\">",
+      "    <a-button @click=\"handler\"> modal inner </a-button>",
+      "  </div>",
+      "</template>",
+      "",
+      "<style lang=\"scss\" scoped>",
+      ".app-test-window {",
+      "  @apply w-full h-[600px];",
+      "}",
+      "</style>",
+      ""
+    ],
+    "description": "创建window模版"
+  }
+}

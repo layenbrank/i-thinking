@@ -1,40 +1,26 @@
-import type {
-  LayoutProps,
-  LayoutSiderProps,
-  LayoutHeaderProps,
-  LayoutContentProps,
-  LayoutFooterProps
-} from 'naive-ui'
+import type { SiderProps, LayoutProps } from 'ant-design-vue'
 
 import BaseLayout from './base-layout/index.vue'
 import MacLayout from './mac-layout/index.vue'
 import type { ClassValue } from 'clsx'
 import type { CSSProperties } from 'vue'
 
-interface BaseLayoutProps extends LayoutProps {
+interface BaseProps {
   class?: ClassValue[]
   style?: CSSProperties
 }
-interface BaseMainProps extends LayoutProps {
-  class?: ClassValue[]
-  style?: CSSProperties
-}
-interface BaseSiderProps extends LayoutSiderProps {
-  class?: ClassValue[]
-  style?: CSSProperties
-}
-interface BaseHeaderProps extends LayoutHeaderProps {
-  class?: ClassValue[]
-  style?: CSSProperties
-}
-interface BaseContentProps extends LayoutContentProps {
-  class?: ClassValue[]
-  style?: CSSProperties
-}
-interface BaseFooterProps extends LayoutFooterProps {
-  class?: ClassValue[]
-  style?: CSSProperties
-}
+
+type BaseLayoutProps = LayoutProps & BaseProps
+
+type BaseMainProps = LayoutProps & BaseProps
+
+type BaseSiderProps = SiderProps & BaseProps
+
+type BaseHeaderProps = LayoutProps & BaseProps
+
+type BaseContentProps = LayoutProps & BaseProps
+
+type BaseFooterProps = LayoutProps & BaseProps
 
 export interface BaseLayoutOptions {
   baseLayout?: BaseLayoutProps
@@ -44,7 +30,6 @@ export interface BaseLayoutOptions {
   baseContent?: BaseContentProps
   baseFooter?: BaseFooterProps
 }
-
 export interface MacLayoutOptions {
   macLayout?: BaseLayoutProps
   macHeader?: BaseHeaderProps

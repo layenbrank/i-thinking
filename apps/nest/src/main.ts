@@ -1,11 +1,30 @@
-import { resolve } from 'node:path';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import {
+  HttpStatus,
+  UnprocessableEntityException,
+  ValidationPipe,
+  VersioningType,
+  Logger,
+} from '@nestjs/common';
 
+import { resolve } from 'node:path';
+import process from 'node:process';
+import os from 'os';
+
+import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 
+import { AppModule } from './app.module';
+import { HttpExceptionFilter } from '@/filters/http-exception.filter';
+import { ResponseInterceptor } from '@/interceptors/response-interceptor';
+
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+    cors: true,
+  });
+
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -16,44 +35,58 @@ async function bootstrap() {
     maxAge: 3 /* 预检请求的缓存时间（单位：秒）。 3600 */,
   });
 
-  const port = 3000;
-  // const hostname = '192.168.0.26';
-  const hostname = '172.20.10.4';
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      transformOptions: { enableImplicitConversion: true },
+      // forbidNonWhitelisted: true, // 禁止 无装饰器验证的数据通过
+      errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+      stopAtFirstError: true,
+      exceptionFactory(errors) {
+        return new UnprocessableEntityException(
+          errors.map((e) => {
+            const rule = Object.keys(e.constraints)[0];
+            const msg = e.constraints[rule];
+            return msg;
+          })[0],
+        );
+      },
+    }),
+  );
 
-  /**
-   * @description 静态资源托管
-   * 双重配置确保资源正常加载
-   */
-  const staticPathTab = resolve(process.cwd(), 'static/new-tab');
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new ResponseInterceptor());
 
-  app.useStaticAssets(staticPathTab, {
-    prefix: '/new-tab',
-    redirect: true,
-  });
+  const swaggerOptions = new DocumentBuilder()
+    .setTitle('NestJS API')
+    .setDescription('NestJS API 接口文档')
+    .setVersion('v1')
+    .addBearerAuth()
+    .build();
 
-  // 添加一个不带前缀的静态资源路径，用于加载 assets 等资源
-  app.useStaticAssets(staticPathTab);
+  // const port = 3000;
+  // // const hostname = '192.168.0.26';
+  // const hostname = '172.20.10.4';
 
-  const staticPath360 = resolve(process.cwd(), 'static/360-Safeguard');
+  // await app.listen(port, hostname, function () {
+  //   console.log(`Application is running on: http://${hostname}:${port}`);
+  // });
 
-  app.useStaticAssets(staticPath360, {
-    prefix: '/360-Safeguard',
-    redirect: true,
-  });
+  const document = SwaggerModule.createDocument(app, swaggerOptions);
+  SwaggerModule.setup('/api/docs', app, document);
 
-  app.useStaticAssets(staticPath360);
+  const configService = new ConfigService();
 
-  const staticPathTest = resolve(process.cwd(), 'static/test');
+  await app.listen(configService.get('PORT'));
 
-  app.useStaticAssets(staticPathTest, {
-    prefix: '/test',
-    redirect: true,
-  });
+  const API_URL = configService.get('API_URL');
+  const API_URL_PROD = configService.get('PORT');
 
-  app.useStaticAssets(staticPathTest);
+  const info = `Server is running on http://${API_URL}:${API_URL_PROD}`;
+  const docs = `Docs is running on http://${API_URL}:${API_URL_PROD}/api/docs`;
 
-  await app.listen(port, hostname, function () {
-    console.log(`Application is running on: http://${hostname}:${port}`);
-  });
+  console.log(info);
+  console.log(docs);
 }
 bootstrap();

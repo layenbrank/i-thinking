@@ -74,12 +74,77 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       // 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
       outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-widgets\//, '')}`),
       emptyOutDir: true,
-
       rollupOptions: {
+        input: {
+          index: 'index.html',
+          'service-worker': 'src/lib/service-worker.ts',
+          'content-scripts': 'src/lib/content-scripts.ts'
+        },
         output: {
-          entryFileNames: '[name].js',
-          manualChunks: {
-            vue: ['vue', 'vue-router', 'pinia']
+          entryFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]',
+          manualChunks(id, meta) {
+            // 分包配置映射表，便于维护和扩展
+            const chunkMap: Readonly<Record<string, RegExp[]>> = {
+              // 前端核心框架
+              'core-framework': [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/],
+
+              // 自研组件
+              'ui-internal': [
+                /@repo\/ui/,
+                /packages[\\/]ui/,
+                /[\\/]node_modules[\\/](@repo\/ui)[\\/]/
+              ],
+
+              // UI 组件库 - 主库
+              'ui-antdv': [/[\\/]node_modules[\\/]ant-design-vue[\\/]/],
+
+              // UI 组件库 - 第三方依赖
+              'ui-antdv-vendors': [
+                /[\\/]node_modules[\\/](@ant-design|@ctrl\/tinycolor|@emotion|@simonwep\/pickr|array-tree-filter|async-validator|dom-align|dom-scroll-into-view|resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal|stylis|throttle-debounce|vue-types|warning)[\\/]/
+              ],
+
+              // UI 图标
+              'ui-icons': [/[\\/]node_modules[\\/](@iconify\/json)[\\/]/],
+
+              // 工具库 - 国际化
+              'lib-i18n': [/[\\/]node_modules[\\/](vue-i18n|@intlify)[\\/]/],
+
+              // 工具库 - 日期时间
+              'lib-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
+
+              // 工具库 - 存储
+              'lib-storage': [/[\\/]node_modules[\\/]dexie[\\/]/],
+
+              // 工具库 - UI 增强
+              'lib-ui-enhance': [/[\\/]node_modules[\\/](swiper|@vueuse|sortablejs)[\\/]/],
+
+              // 工具库 - 网络请求
+              'lib-network': [
+                /[\\/]node_modules[\\/](axios|alova|@alova|rate-limiter-flexible)[\\/]/
+              ],
+
+              // 工具库 - 核心工具集
+              'lib-utils': [
+                /@repo\/core/,
+                /packages[\\/]core/,
+                /[\\/]node_modules[\\/](@repo\/core)[\\/]/,
+                /[\\/]node_modules[\\/](clsx|rxjs|lodash-es|deep-pick-omit|uuid|fuse\.js)[\\/]/
+              ]
+            }
+
+            // 遍历映射表，匹配当前模块路径
+            for (const [chunkName, patterns] of Object.entries(chunkMap)) {
+              if (patterns.some(pattern => pattern.test(id))) {
+                return chunkName
+              }
+            }
+
+            // 其他第三方依赖
+            if (/[\\/]node_modules[\\/]/.test(id)) {
+              return 'vendors'
+            }
           }
         }
       }
