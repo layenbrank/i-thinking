@@ -1,12 +1,10 @@
 <script setup lang="tsx">
-import { useMessage } from 'naive-ui'
 import { useRefHistory, useMagicKeys, whenever } from '@vueuse/core'
-import type { DropdownMixedOption } from 'naive-ui/es/dropdown/src/interface'
 
 import { ArrowBack, ArrowForward, Refresh, AddSharp, Close, Folder } from '@vicons/ionicons5'
+import {} from 'ant-design-vue'
 
 import Fuse, { type IFuseOptions } from 'fuse.js'
-import SvgIcon from '../SvgIcon.vue'
 import { initSortable } from './index.ts'
 
 import { useBookmarksStore } from '@/stores/bookmarks'
@@ -21,12 +19,10 @@ defineOptions({
 
 withDefaults(
   defineProps<{
-    destroy: () => void
+    appWindowRef?: AppWindowType
   }>(),
   {}
 )
-
-const message = useMessage()
 
 const bookmarkGridRef = useTemplateRef<HTMLElement>('bookmarkGridRef')
 
@@ -35,57 +31,60 @@ const bookmarksStore = useBookmarksStore()
 const source = ref<BookmarkTreeNode>()
 const target = ref<BookmarkTreeNode>()
 
+const data = reactive(['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'])
+const value = ref(data[0])
+
 const keyword = ref<string>('')
 
-const buildOptions: DropdownMixedOption[] = [
-  {
-    label: '文件夹',
-    key: 'folder'
-  },
-  {
-    label: '书签',
-    key: 'bookmark'
-  },
-  {
-    label: '快捷方式',
-    key: 'shortcut'
-  }
-]
+// const buildOptions: DropdownMixedOption[] = [
+//   {
+//     label: '文件夹',
+//     key: 'folder'
+//   },
+//   {
+//     label: '书签',
+//     key: 'bookmark'
+//   },
+//   {
+//     label: '快捷方式',
+//     key: 'shortcut'
+//   }
+// ]
 
-const moreOptions: DropdownMixedOption[] = [
-  {
-    label: '超大图标',
-    key: 'hugeIcon'
-  },
-  {
-    label: '大图标',
-    key: 'largeIcon'
-  },
-  {
-    label: '中图标',
-    key: 'mediumIcon'
-  },
-  {
-    label: '小图标',
-    key: 'smallIcon'
-  },
-  {
-    label: '列表',
-    key: 'list'
-  },
-  {
-    label: '详细信息',
-    key: 'detail'
-  },
-  {
-    label: '平铺',
-    key: 'tile'
-  },
-  {
-    label: '内容',
-    key: 'content'
-  }
-]
+// const moreOptions: DropdownMixedOption[] = [
+//   {
+//     label: '超大图标',
+//     key: 'hugeIcon'
+//   },
+//   {
+//     label: '大图标',
+//     key: 'largeIcon'
+//   },
+//   {
+//     label: '中图标',
+//     key: 'mediumIcon'
+//   },
+//   {
+//     label: '小图标',
+//     key: 'smallIcon'
+//   },
+//   {
+//     label: '列表',
+//     key: 'list'
+//   },
+//   {
+//     label: '详细信息',
+//     key: 'detail'
+//   },
+//   {
+//     label: '平铺',
+//     key: 'tile'
+//   },
+//   {
+//     label: '内容',
+//     key: 'content'
+//   }
+// ]
 
 const bookmarks = ref<BookmarkTreeNode[]>([])
 
@@ -242,15 +241,12 @@ async function updateSearchText(value: string) {
 }
 
 function handleSelect(key: string | number) {
-  message.info(String(key))
+  // message.info(String(key))
 }
 
 async function redirectBookmark(node: BookmarkTreeNode) {
-  if (node.children) {
-    navigateToFolder(node)
-  } else {
-    window.open(node.url, '_blank')
-  }
+  if (node.children) navigateToFolder(node)
+  else window.open(node.url, '_blank')
 }
 
 /*
@@ -412,291 +408,67 @@ onMounted(async function () {
 </script>
 
 <template>
-  <div :class="['w-full h-full bookmark-window']">
-    <n-button-group :class="['absolute top-[9px] right-2']">
-      <n-button ghost circle size="small">
-        <template #icon>
-          <n-icon size="16">
+  <div :class="['bookmark-window']">
+    <a-layout-header class="bg-blue-300 px-2 py-2 rounded-t-lg">
+      <a-space-compact block :class="['bookmark-space-compact']">
+        <a-button type="primary" size="small" class="bookmark-button-compact">
+          <template #icon>
             <Close />
-          </n-icon>
-        </template>
-      </n-button>
-      <n-button ghost circle size="small">
-        <template #icon>
-          <n-icon size="16">
+          </template>
+        </a-button>
+        <a-button type="primary" size="small" class="bookmark-button-compact">
+          <template #icon>
             <Close />
-          </n-icon>
-        </template>
-      </n-button>
-      <n-button ghost circle size="small" @click="destroy">
-        <template #icon>
-          <n-icon size="16">
+          </template>
+        </a-button>
+        <a-button
+          @click="appWindowRef?.destroy"
+          type="primary"
+          size="small"
+          class="bookmark-button-compact"
+        >
+          <template #icon>
             <Close />
-          </n-icon>
-        </template>
-      </n-button>
-    </n-button-group>
-    <n-tabs animated type="segment" placement="top" :addable="true" class="bookmarksTabs">
-      <n-tab-pane name="oasis" tab="Oasis">
-        <div class="navigationBar">
-          <n-button-group>
-            <n-button ghost :disabled="!canUndo || !history[1].snapshot.length" @click="undo">
-              <template #icon>
-                <n-icon>
-                  <ArrowBack />
-                </n-icon>
-              </template>
-            </n-button>
-            <n-button ghost :disabled="!canRedo" @click="redo">
-              <template #icon>
-                <n-icon>
-                  <ArrowForward />
-                </n-icon>
-              </template>
-            </n-button>
-            <n-button>
-              <template #icon>
-                <n-icon>
-                  <Refresh />
-                </n-icon>
-              </template>
-            </n-button>
-            <n-button>
-              <template #icon>
-                <n-icon>
-                  <AddSharp />
-                </n-icon>
-              </template>
-            </n-button>
-          </n-button-group>
-          <div :class="['w-full flex items-center justify-center gap-x-2']">
-            <n-input type="text" :class="['flex-nowrap flex-[3_1_0%]']"></n-input>
-            <div :class="['flex-[2_1_0%] relative']">
-              <n-input
-                type="text"
-                :model-value="keyword"
-                placeholder="搜索书签"
-                @update-value="updateSearchText"
-              ></n-input>
-            </div>
-          </div>
-        </div>
-        <div class="navigationBar">
-          <n-dropdown
-            placement="bottom-start"
-            trigger="click"
-            :options="buildOptions"
-            :show-arrow="true"
-            @select="handleSelect"
-          >
-            <n-button>新建</n-button>
-          </n-dropdown>
-          <n-divider vertical />
-          <n-button-group>
-            <n-button ghost>
-              <n-icon size="16">
-                <SvgIcon name="Cut24Filled" color="#000"></SvgIcon>
-              </n-icon>
-            </n-button>
-            <n-button ghost>
-              <n-icon size="16">
-                <SvgIcon name="ContentCopyRound" color="#000"></SvgIcon>
-              </n-icon>
-            </n-button>
-            <n-button>
-              <n-icon size="16">
-                <SvgIcon name="ClipboardPaste24Regular" color="#000"></SvgIcon>
-              </n-icon>
-            </n-button>
-            <n-button round>
-              <n-icon size="16">
-                <SvgIcon name="Rename16Regular" color="#000"></SvgIcon>
-              </n-icon>
-            </n-button>
-            <n-button ghost>
-              <n-icon size="16">
-                <SvgIcon name="Share16Regular" color="#000"></SvgIcon>
-              </n-icon>
-            </n-button>
-            <n-button>
-              <n-icon size="16">
-                <SvgIcon name="TrashOutline" color="#000"></SvgIcon>
-              </n-icon>
-            </n-button>
-          </n-button-group>
-          <n-divider vertical />
-          <n-button-group>
-            <n-button ghost>
-              <n-icon size="16">
-                <SvgIcon name="ArrowSort20Filled" color="#000"></SvgIcon>
-              </n-icon>
-            </n-button>
-            <n-dropdown
-              placement="bottom-start"
-              trigger="click"
-              :options="moreOptions"
-              :show-arrow="true"
-              @select="handleSelect"
-            >
-              <n-button ghost>
-                <n-icon size="16">
-                  <SvgIcon name="ReorderFourOutline" color="#000"></SvgIcon>
-                </n-icon>
-              </n-button>
-            </n-dropdown>
-          </n-button-group>
-        </div>
-        <n-layout has-sider class="bookmark-main">
-          <n-layout-sider bordered content-style="padding: 24px;" :class="['bookmark-sider']">
-            <n-scrollbar class="bookmark-sider-scroll">
-              <n-button
-                text
-                :key="node.id"
-                v-for="node in shortcutBookmark"
-                @click="() => redirectBookmark(node)"
-                :class="['sider-shortcut-item']"
-              >
-                <n-icon color="#ffd766" size="20">
-                  <Folder />
-                </n-icon>
-                <span>{{ node.title }}</span>
-              </n-button>
-            </n-scrollbar>
-          </n-layout-sider>
-
-          <n-scrollbar>
-            <div ref="bookmarkGridRef" class="bookmarkGrid">
-              <RenderBookmarkItem
-                v-for="bookmark in bookmarks"
-                :key="bookmark.id"
-                :bookmark="bookmark"
-              />
-            </div>
-          </n-scrollbar>
-        </n-layout>
-      </n-tab-pane>
-      <n-tab-pane name="the beatles" tab="the Beatles">
-        <n-scrollbar>
-          bookmarks
-          <pre> {{ JSON.stringify(bookmarks, null, 2) }}</pre>
-        </n-scrollbar>
-      </n-tab-pane>
-
-      <n-tab-pane name="the beatles1" tab="the Beatles">
-        <n-scrollbar>
-          history
-          <pre> {{ JSON.stringify(history, null, 2) }}</pre>
-        </n-scrollbar>
-      </n-tab-pane>
-      <n-tab-pane name="the beatles2" tab="the Beatles"> Hey Jude </n-tab-pane>
-      <n-tab-pane name="the beatles3" tab="the Beatles"> Hey Jude </n-tab-pane>
-      <n-tab-pane name="the beatles4" tab="the Beatles"> Hey Jude </n-tab-pane>
-      <n-tab-pane name="the beatles5" tab="the Beatles"> Hey Jude </n-tab-pane>
-      <n-tab-pane name="the beatles6" tab="the Beatles"> Hey Jude </n-tab-pane>
-    </n-tabs>
+          </template>
+        </a-button>
+      </a-space-compact>
+      <a-segmented v-model:value="value" :options="data" class="h-full" />
+    </a-layout-header>
+    <a-layout-content class="w-full h-[calc(100%-48px)]">
+      <a-card class="w-full h-full rounded-t-none"></a-card>
+    </a-layout-content>
   </div>
 </template>
 
 <style lang="scss" scoped>
+.bookmark-window {
+  @apply w-full h-full;
+
+  .bookmark-space-compact {
+    @apply w-fit h-[32px] absolute right-2;
+  }
+  .bookmark-button-compact {
+    @apply h-full flex items-center justify-center p-1;
+    margin-inline-end: 0px;
+  }
+}
+
 /* 幽灵元素 - 原位置的占位符 */
-:global(.bookmarkItem-ghost) {
+:global(.bookmark-ghost) {
 }
 
 /* 拖动中的元素 */
-:global(.bookmarkItem-drag) {
+:global(.bookmark-drag) {
   box-shadow: 0 0px 16px 3px rgba(0, 0, 0, 0.15) !important;
   transition: all 0.3s linear;
 }
 
 /* 回退元素 - 用于不支持 HTML5 拖放的浏览器 */
-:global(.bookmarkItem-fallback) {
+:global(.bookmark-fallback) {
 }
 
 /* 被选中的元素 */
-:global(.bookmarkItem-chosen) {
+:global(.bookmark-chosen) {
   box-shadow: 0 16px 12px rgba(0, 0, 0, 0.15);
-}
-
-.bookmarksTabs {
-  @apply w-full h-full;
-
-  :deep(.n-tabs-nav) {
-    @apply w-[calc(100%-98px)];
-
-    .n-tabs-rail {
-      @apply rounded-t-lg py-[6px] px-2;
-    }
-  }
-  :deep(.n-tabs-pane-wrapper) {
-    @apply h-full rounded-lg;
-
-    .n-tab-pane {
-      @apply h-full flex flex-col rounded-lg px-1;
-    }
-  }
-
-  .navigationBar {
-    @apply flex items-center gap-2 p-1;
-  }
-
-  .bookmarkGrid {
-    @apply grid p-4;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1rem;
-
-    :deep(.bookmarkItem) {
-      @apply p-4 rounded-lg bg-white cursor-pointer;
-      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
-
-      &.folder {
-        @apply bg-blue-50 hover:bg-blue-100;
-      }
-
-      .bookmarkContent {
-        @apply flex items-start gap-2;
-      }
-
-      .bookmarkIcon {
-        @apply text-xl;
-      }
-
-      .bookmarkInfo {
-        @apply flex-1 min-w-0;
-
-        .bookmarkTitle {
-          @apply text-base font-medium line-clamp-1;
-        }
-
-        .bookmarkTime {
-          @apply text-xs text-gray-500 mt-1;
-        }
-      }
-    }
-  }
-}
-
-.bookmark-main {
-  .bookmark-sider {
-  }
-
-  :deep(.bookmark-sider-scroll) {
-    .n-scrollbar-content {
-      @apply flex flex-col gap-y-1;
-
-      .sider-shortcut-item {
-        .n-button__content {
-          @apply w-full flex items-center justify-start gap-x-2;
-        }
-        span {
-          @apply truncate;
-        }
-      }
-    }
-  }
-  .sider-shortcut-item {
-    :deep(.n-button__content) {
-      @apply justify-center gap-x-2;
-    }
-  }
 }
 </style>

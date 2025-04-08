@@ -86,7 +86,8 @@ const contextMenuVisible = ref(false)
 
 const activeMenuKey = ref<ContextMenuKeys | null>(null)
 
-const appModules: Component[] = [Bookmarks, Notepad, AppStore]
+// const appModules: Component[] = [Bookmarks, Notepad, AppStore]
+const appModules: Component[] = [Bookmarks]
 
 const macLayout = reactive<MacLayoutOptions>({
   macLayout: {
@@ -193,47 +194,35 @@ onUnmounted(function () {
 <template>
   <MacLayout v-bind="macLayout">
     <template #header>
-      <a-button-group>
-        <a-button>
-          a
-          <!-- <template #icon>
-            <n-icon size="20">
-              <SvgIcon name="AppleFilled"></SvgIcon>
-            </n-icon>
-          </template> -->
+      <a-space-compact class="flex">
+        <a-button class="icon-apple">
+          <template #icon>
+            <IconLocalAppleFilled />
+          </template>
         </a-button>
         <a-button> 镜像 </a-button>
         <a-button> 编辑 </a-button>
         <a-button> 显示 </a-button>
         <a-button> 窗口 </a-button>
         <a-button> 帮助 </a-button>
-      </a-button-group>
-      <a-button-group>
-        <a-button>
-          a
-          <!-- <template #icon>
-            <n-icon size="20">
-              <SvgIcon name="Wifi"></SvgIcon>
-            </n-icon>
-          </template> -->
+      </a-space-compact>
+      <a-space-compact class="flex">
+        <a-button class="icon-wifi">
+          <template #icon>
+            <IconLocalWifi />
+          </template>
         </a-button>
-        <a-button>
-          a
-          <!-- <template #icon>
-            <n-icon size="20">
-              <SvgIcon name="BatteryFullOutline"></SvgIcon>
-            </n-icon>
-          </template> -->
+        <a-button class="icon-battery">
+          <template #icon>
+            <IconLocalBatteryFullOutline />
+          </template>
         </a-button>
         <a-popover placement="bottom" trigger="click" class="popover-input">
           <template #trigger>
-            <a-button>
-              a
-              <!-- <template #icon>
-                <n-icon size="20">
-                  <SvgIcon name="Search"></SvgIcon>
-                </n-icon>
-              </template> -->
+            <a-button class="icon-search">
+              <template #icon>
+                <IconLocalSearch />
+              </template>
             </a-button>
           </template>
           <template #default>
@@ -246,26 +235,23 @@ onUnmounted(function () {
             />
           </template>
         </a-popover>
-        <a-button>
-          a
-          <!-- <template #icon>
-            <n-icon size="20">
-              <SvgIcon name="mac-toggle"></SvgIcon>
-            </n-icon>
-          </template> -->
+        <a-button class="icon-mac-toggle">
+          <template #icon>
+            <IconLocalMacToggle />
+          </template>
         </a-button>
         <a-button class="date-time">
           <span>{{ date }}</span>
           <span>{{ week }}</span>
           <span>{{ time }}</span>
         </a-button>
-      </a-button-group>
+      </a-space-compact>
     </template>
     <template #content>
       <div ref="contextMenuRef" class="app-controller">
-        <!-- <template v-for="appModule in appModules" :key="appModule.name">
+        <template v-for="appModule in appModules" :key="appModule.name">
           <component :is="appModule" />
-        </template> -->
+        </template>
       </div>
       <Teleport to="body">
         <ul v-resize="handleResize" class="globalMenu context-menu" @contextmenu.prevent>
@@ -295,19 +281,35 @@ onUnmounted(function () {
 }
 
 :deep(.mac-header) {
-  @apply flex items-center justify-between px-2 rounded-lg bg-white bg-opacity-30 bg-transparent;
+  @apply flex items-center justify-between px-2 rounded-lg bg-white bg-opacity-30;
   backdrop-filter: blur(12px);
   filter: brightness(1.1);
 
-  .date-time {
-    .n-button__content {
-      @apply flex items-center justify-center gap-x-2;
-    }
+  .icon-apple {
   }
 
-  .n-button-group {
-    .n-button {
-      --n-wave-opacity: 0 !important;
+  .icon-wifi {
+  }
+
+  .icon-battery {
+  }
+
+  .icon-search {
+  }
+
+  .date-time {
+  }
+
+  .icon-wifi,
+  .icon-apple,
+  .icon-battery,
+  .icon-mac-toggle {
+    width: initial;
+    @apply px-2 py-1 block;
+    margin-inline-start: 0px;
+
+    svg {
+      @apply w-5 h-5;
     }
   }
 }
@@ -360,42 +362,4 @@ onUnmounted(function () {
   }
 }
 </style>
-<style lang="scss">
-div[class^='v-binder-follower-container'] {
-  .v-binder-follower-content {
-    .popover-input {
-      @apply rounded-2xl;
-      @apply bg-white bg-opacity-30;
-      --n-padding: 0px !important;
-
-      .n-popover-arrow-wrapper {
-      }
-      .n-popover-arrow {
-        @apply bg-white bg-opacity-30;
-      }
-      .n-popover__content {
-      }
-      .n-input:not(.n-input--disabled).n-input--focus {
-        @apply bg-transparent;
-      }
-      .n-input {
-        width: clamp(300px, 80%, 500px);
-        @apply bg-transparent;
-        --n-border: 0px solid transparent !important;
-        --n-border-focus: 0px solid transparent !important;
-        --n-border-hover: 0px solid transparent !important;
-        --n-box-shadow-focus: 0px 0px 0px transparent !important;
-      }
-
-      .n-input-wrapper {
-      }
-      .n-input__input {
-        @apply text-black;
-      }
-      .n-input__placeholder {
-        --n-placeholder-color: rgba(0, 0, 0, 0.6);
-      }
-    }
-  }
-}
-</style>
+<style lang="scss"></style>

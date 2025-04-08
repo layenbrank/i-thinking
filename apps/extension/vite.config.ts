@@ -38,7 +38,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         customCollections: {
           // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
           local: FileSystemIconLoader(
-            resolve(rootDir, 'packages/shared/src/assets/icons'),
+            resolve(rootDir, 'apps/extension/src/assets/icons'),
             function (svg) {
               return svg.replace(/^<svg /, '<svg fill="currentColor" ')
             }

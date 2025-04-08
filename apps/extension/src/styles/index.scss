@@ -5,10 +5,25 @@
 @tailwind components;
 @tailwind utilities;
 
-.app-dialog.n-dialog.n-modal {
-  width: 80%;
+// .app-dialog.n-dialog.n-modal {
+//   width: 80%;
+//   aspect-ratio: 16/9;
+//   @apply rounded-lg;
+// }
+.ant-modal.app-dialog {
   aspect-ratio: 16/9;
   @apply rounded-lg;
+
+  .ant-modal-content {
+    @apply p-0;
+  }
+
+  .ant-modal-body {
+    .ant-modal-confirm-content {
+      margin-block-start: initial;
+      max-width: initial;
+    }
+  }
 }
 
 *,

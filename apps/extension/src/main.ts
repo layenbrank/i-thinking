@@ -8,9 +8,6 @@ import 'vfonts/Lato.css'
 // 等宽字体
 import 'vfonts/FiraCode.css'
 
-// 注册svg图标
-import 'virtual:svg-icons-register'
-
 import { resize, debounce } from '@desktop-widgets/core'
 
 const directives: Record<string, Directive> = {
@@ -19,7 +16,7 @@ const directives: Record<string, Directive> = {
 }
 
 import App from './App.vue'
-import router from './router'
+import router from './router/index.ts'
 
 const app = createApp(App)
 
