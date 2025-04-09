@@ -35,6 +35,7 @@ declare module 'vue' {
     AStyleProvider: typeof import('ant-design-vue/es')['StyleProvider']
     Bookmarks: typeof import('./../components/bookmarks/index.vue')['default']
     BookmarksWindow: typeof import('./../components/bookmarks/bookmarks-window.vue')['default']
+    ComboboxTrigger: typeof import('./../components/combobox-trigger/combobox-trigger.vue')['default']
     IconLocalAppleFilled: typeof import('~icons/local/apple-filled')['default']
     IconLocalBatteryFullOutline: typeof import('~icons/local/battery-full-outline')['default']
     IconLocalClose: typeof import('~icons/local/close')['default']

@@ -426,7 +426,7 @@ onMounted(async function () {
       else if (!bookmark.title.trim()) continue
 
       // 将当前节点添加到结果中（不保留 children 属性，避免冗余） 解构移除 children 属性
-      const { children, dateGroupModified, dateAdded, ...remains } = bookmark
+      const { children, ...remains } = bookmark
       // 使用 unshift 来保持顺序
       nodes.unshift(remains)
     }
