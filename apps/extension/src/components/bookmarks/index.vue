@@ -1,10 +1,9 @@
 <script setup lang="tsx">
 import { Modal } from 'ant-design-vue'
+import AppBookMarkIcon from './app-bookmark-icon.vue'
 import { useRefHistory, useMagicKeys, whenever, type UseRefHistoryRecord } from '@vueuse/core'
 
-import { dateTimeService } from '@desktop-widgets/core'
 import AppWindow from './bookmarks-window.vue'
-import AppIcon from './bookmarks-icon.tsx'
 import clsx from 'clsx'
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
@@ -33,7 +32,7 @@ function handleAppWindow() {
 
 <template>
   <div class="app-bookmark">
-    <AppIcon @click="handleAppWindow" />
+    <AppBookMarkIcon app-size="middle" @click="handleAppWindow" />
     <span class="app-title">example</span>
     <IconLocalClose class="app-trash-icon hidden" />
   </div>

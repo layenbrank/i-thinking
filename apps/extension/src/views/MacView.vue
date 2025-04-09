@@ -4,10 +4,8 @@ import { ReDock } from '@/components/re-dock'
 import { useDateFormat, useEventListener, useTimestamp } from '@vueuse/core'
 
 const Bookmarks = defineAsyncComponent(() => import('@/components/bookmarks/index.vue'))
-const Notepad = defineAsyncComponent(() => import('@/components/notepad/index.vue'))
-const AppStore = defineAsyncComponent(() => import('@/components/app-store/index.vue'))
-
-import SvgIcon from '@/components/SvgIcon.vue'
+// const Notepad = defineAsyncComponent(() => import('@/components/notepad/index.vue'))
+// const AppStore = defineAsyncComponent(() => import('@/components/app-store/index.vue'))
 
 import backgroundImage from '@/assets/images/r2e391.png'
 

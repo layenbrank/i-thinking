@@ -24,7 +24,7 @@ withDefaults(
   {}
 )
 
-const bookmarkGridRef = useTemplateRef<HTMLElement>('bookmarkGridRef')
+const bookmarkGridRef = useTemplateRef('bookmarkGridRef')
 
 const bookmarksStore = useBookmarksStore()
 
@@ -404,12 +404,46 @@ onMounted(async function () {
   if (bookmarkGridRef.value) {
     initSortable(bookmarkGridRef.value)
   }
+
+  // const bookmarksTree = await chrome.bookmarks.getTree()
+  // console.log('bookmarksTree', bookmarksTree)
+
+  function flattenBookmarks(bookmarks: BookmarkTreeNode[]): BookmarkTreeNode[] {
+    const nodes: BookmarkTreeNode[] = []
+    const stack: BookmarkTreeNode[] = [...bookmarks] // 初始化栈
+
+    while (stack.length > 0) {
+      const bookmark = stack.pop() // 弹出栈顶元素
+      // 防止意外空值
+      if (!bookmark) continue
+
+      // 如果当前节点有子节点，则将其子节点压入栈中
+      if (bookmark.children && bookmark.children.length > 0) {
+        stack.push(...bookmark.children)
+      }
+      // 过滤条件：排除 id 为 '0' 的根节点 或 标题为空的项
+      if (bookmark.id === '0') continue
+      else if (!bookmark.title.trim()) continue
+
+      // 将当前节点添加到结果中（不保留 children 属性，避免冗余） 解构移除 children 属性
+      const { children, dateGroupModified, dateAdded, ...remains } = bookmark
+      // 使用 unshift 来保持顺序
+      nodes.unshift(remains)
+    }
+
+    return nodes
+  }
+
+  // 扁平化书签树
+  const flattened = flattenBookmarks(bookmarks.value)
+  console.log('flattened', flattened)
+  bookmarks.value = flattened
 })
 </script>
 
 <template>
   <div :class="['bookmark-window']">
-    <a-layout-header class="bg-blue-300 px-2 py-2 rounded-t-lg">
+    <a-layout-header class="boookmark-header">
       <a-space-compact block :class="['bookmark-space-compact']">
         <a-button type="primary" size="small" class="bookmark-button-compact">
           <template #icon>
@@ -434,8 +468,12 @@ onMounted(async function () {
       </a-space-compact>
       <a-segmented v-model:value="value" :options="data" class="h-full" />
     </a-layout-header>
-    <a-layout-content class="w-full h-[calc(100%-48px)]">
-      <a-card class="w-full h-full rounded-t-none"></a-card>
+    <a-layout-content class="boookmark-content">
+      <div ref="bookmarkGridRef" class="bookmarkGrid">
+        <template v-for="bookmark in bookmarks" :key="bookmark.id">
+          <RenderBookmarkItem :bookmark="bookmark" />
+        </template>
+      </div>
     </a-layout-content>
   </div>
 </template>
@@ -444,12 +482,55 @@ onMounted(async function () {
 .bookmark-window {
   @apply w-full h-full;
 
+  .boookmark-header {
+    @apply bg-blue-300 px-2 py-2 rounded-t-lg;
+  }
+
   .bookmark-space-compact {
     @apply w-fit h-[32px] absolute right-2;
   }
   .bookmark-button-compact {
     @apply h-full flex items-center justify-center p-1;
     margin-inline-end: 0px;
+  }
+
+  .boookmark-content {
+    @apply w-full h-[calc(100%-48px)] overflow-x-hidden overflow-y-scroll bg-white;
+
+    .bookmarkGrid {
+      @apply w-full grid p-4;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+
+      :deep(.bookmarkItem) {
+        @apply p-4 rounded-lg bg-white cursor-pointer;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+
+        &.folder {
+          @apply bg-blue-50 hover:bg-blue-100;
+        }
+
+        .bookmarkContent {
+          @apply flex items-start gap-2;
+        }
+
+        .bookmarkIcon {
+          @apply text-xl;
+        }
+
+        .bookmarkInfo {
+          @apply flex-1 min-w-0;
+
+          .bookmarkTitle {
+            @apply text-base font-medium line-clamp-1;
+          }
+
+          .bookmarkTime {
+            @apply text-xs text-gray-500 mt-1;
+          }
+        }
+      }
+    }
   }
 }
 

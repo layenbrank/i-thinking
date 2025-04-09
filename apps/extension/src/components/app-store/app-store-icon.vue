@@ -9,9 +9,7 @@ defineOptions({
   <div
     class="w-full h-full bg-white bg-opacity-30 flex items-center justify-center rounded-lg cursor-pointer"
   >
-    <n-icon size="40">
-      <Add />
-    </n-icon>
+    <Add />
   </div>
 </template>
 

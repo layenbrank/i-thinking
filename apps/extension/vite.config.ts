@@ -99,8 +99,8 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       rollupOptions: {
         input: {
           index: 'index.html',
-          'service-worker': 'src/lib/service-worker.ts',
-          'content-scripts': 'src/lib/content-scripts.ts'
+          'service-worker': 'src/libs/service-worker.ts',
+          'content-scripts': 'src/libs/content-scripts.ts'
         },
         output: {
           entryFileNames: 'assets/[name]-[hash].js',
@@ -113,11 +113,11 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
               'core-framework': [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/],
 
               // 自研组件
-              'ui-internal': [
-                /@repo\/ui/,
-                /packages[\\/]ui/,
-                /[\\/]node_modules[\\/](@repo\/ui)[\\/]/
-              ],
+              // 'ui-internal': [
+              //   /@repo\/ui/,
+              //   /packages[\\/]ui/,
+              //   /[\\/]node_modules[\\/](@repo\/ui)[\\/]/
+              // ],
 
               // UI 组件库 - 主库
               'ui-antdv': [/[\\/]node_modules[\\/]ant-design-vue[\\/]/],
@@ -144,14 +144,14 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 
               // 工具库 - 网络请求
               'lib-network': [
-                /[\\/]node_modules[\\/](axios|alova|@alova|rate-limiter-flexible)[\\/]/
+                /[\\/]node_modules[\\/](axios|alova|@alova|rate-limiter-flexible|@ngify)[\\/]/
               ],
 
               // 工具库 - 核心工具集
               'lib-utils': [
-                /@repo\/core/,
-                /packages[\\/]core/,
-                /[\\/]node_modules[\\/](@repo\/core)[\\/]/,
+                // /@repo\/core/,
+                // /packages[\\/]core/,
+                // /[\\/]node_modules[\\/](@repo\/core)[\\/]/,
                 /[\\/]node_modules[\\/](clsx|rxjs|lodash-es|deep-pick-omit|uuid|fuse\.js)[\\/]/
               ]
             }
