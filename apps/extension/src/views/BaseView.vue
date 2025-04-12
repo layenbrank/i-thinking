@@ -116,7 +116,7 @@ onUnmounted(function () {
       }
     }
     .add-aside-item {
-      .add-icon {
+      .update-app {
         width: 20px;
         height: 20px;
         filter: brightness(0) invert(0.8);

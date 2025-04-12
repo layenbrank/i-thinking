@@ -3,13 +3,22 @@ import { MacLayout, type MacLayoutOptions } from '@/layouts/index.ts'
 import { ReDock } from '@/components/re-dock'
 import { useDateFormat, useEventListener, useTimestamp } from '@vueuse/core'
 
-const Bookmarks = defineAsyncComponent(() => import('@/components/bookmarks/index.vue'))
+const AppBookmark = defineAsyncComponent(
+  () => import('@/components/applications/app-bookmark/app-bookmark.vue')
+)
+
+const AppCalendar = defineAsyncComponent(
+  () => import('@/components/applications/app-calendar/app-calendar.vue')
+)
+
+const AppController = defineAsyncComponent(function () {
+  return import('@/components/app-controller/app-controller.vue')
+})
+
 // const Notepad = defineAsyncComponent(() => import('@/components/notepad/index.vue'))
 // const AppStore = defineAsyncComponent(() => import('@/components/app-store/index.vue'))
 
-import backgroundImage from '@/assets/images/r2e391.png'
-
-import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
+import backgroundImage from '@/assets/wallpaper/r2e391.png'
 
 // enum ContextMenuKeys {
 //   添加图标 = 'add-icon',
@@ -27,32 +36,9 @@ import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
 //   释放 = 'release'
 // }
 
-type ContextMenuKeys =
-  | 'add-icon'
-  | 'change-wallpaper'
-  | 'pc-wallpaper'
-  | 'backup-cloud'
-  | 'sorting-mode'
-  | 'folder-mode'
-  | 'layouts'
-  | 'single-delete'
-  | 'batch-deletion'
-  | 'settings'
-  | 'single-edit'
-  | 'new-tab-open'
-  | 'release'
-
-interface MenuOptions {
-  label: string
-  key: ContextMenuKeys
-  icon: Component | string
-}
-
 defineOptions({
   name: 'MacView'
 })
-
-const contextMenuRef = useTemplateRef('contextMenuRef')
 
 const keyword = ref('')
 
@@ -70,22 +56,8 @@ const time = useDateFormat(timestamp, 'HH:mm:ss', {
   }
 })
 
-const contextMenuClient = reactive({
-  x: innerWidth - 200,
-  y: 200
-})
-
-const contextMenuSize = reactive({
-  width: 0,
-  height: 0
-})
-
-const contextMenuVisible = ref(false)
-
-const activeMenuKey = ref<ContextMenuKeys | null>(null)
-
 // const appModules: Component[] = [Bookmarks, Notepad, AppStore]
-const appModules: Component[] = [Bookmarks]
+const appModules: Component[] = [AppBookmark, AppCalendar]
 
 const macLayout = reactive<MacLayoutOptions>({
   macLayout: {
@@ -102,68 +74,6 @@ const macLayout = reactive<MacLayoutOptions>({
   macContent: {}
 })
 
-const menuOptions = reactive<Array<MenuOptions>>([
-  {
-    label: '添加图标',
-    key: 'add-icon',
-    icon: markRaw(Add)
-  },
-  {
-    label: '换壁纸',
-    key: 'change-wallpaper',
-    icon: markRaw(Download)
-  },
-  {
-    label: '设为电脑壁纸',
-    key: 'pc-wallpaper',
-    icon: markRaw(Download)
-  },
-  {
-    label: '备份至云端',
-    key: 'backup-cloud',
-    icon: markRaw(Cloud)
-  },
-  {
-    label: '设置',
-    key: 'settings',
-    icon: markRaw(Settings)
-  }
-])
-
-function openContextMenu(e: MouseEvent) {
-  e.preventDefault()
-  e.stopPropagation()
-
-  setTimeout(() => {
-    contextMenuClient.x = Math.min(e.clientX, innerWidth - contextMenuSize.width)
-    contextMenuClient.y = Math.min(e.clientY, innerHeight - contextMenuSize.height)
-    contextMenuVisible.value = true
-  }, 60)
-}
-
-function closeContextMenu(e: MouseEvent) {
-  contextMenuVisible.value = false
-}
-function updateActiveKey(value: MenuOptions) {
-  activeMenuKey.value = value.key
-
-  const contextMenuMap = new Map<ContextMenuKeys, () => void>([
-    ['add-icon', () => {}],
-    ['change-wallpaper', () => {}],
-    ['pc-wallpaper', () => {}],
-    ['backup-cloud', () => {}],
-    ['sorting-mode', () => {}],
-    ['settings', () => {}]
-  ])
-
-  contextMenuMap.get(value.key)?.()
-}
-
-function handleResize(DOMRect: DOMRect) {
-  contextMenuSize.width = DOMRect.width
-  contextMenuSize.height = DOMRect.height
-}
-
 function updateKeyword(value: string) {
   keyword.value = value
 }
@@ -171,22 +81,6 @@ function updateKeyword(value: string) {
 function updateSearch() {
   window.open(`https://cn.bing.com/search?q=${keyword.value}`, '_blank')
 }
-
-onMounted(() => {
-  const contextMenu = contextMenuRef.value as HTMLElement
-
-  contextMenu.addEventListener('contextmenu', openContextMenu)
-  window.addEventListener('click', closeContextMenu, true)
-  window.addEventListener('contextmenu', closeContextMenu, true)
-})
-
-onUnmounted(function () {
-  const contextMenu = contextMenuRef.value as HTMLElement
-
-  contextMenu?.removeEventListener('contextmenu', openContextMenu)
-  window.removeEventListener('click', closeContextMenu)
-  window.removeEventListener('contextmenu', closeContextMenu)
-})
 </script>
 
 <template>
@@ -246,26 +140,7 @@ onUnmounted(function () {
       </a-space-compact>
     </template>
     <template #content>
-      <div ref="contextMenuRef" class="app-controller">
-        <template v-for="appModule in appModules" :key="appModule.name">
-          <component :is="appModule" />
-        </template>
-      </div>
-      <Teleport to="body">
-        <ul v-resize="handleResize" class="globalMenu context-menu" @contextmenu.prevent>
-          <li
-            v-for="item in menuOptions"
-            :key="item.key"
-            class="context-menu-item shortcut-label"
-            @click="updateActiveKey(item)"
-          >
-            <span class="shortcut-label-text">
-              {{ item.label }}
-            </span>
-            <component :is="item.icon" class="shortcut-label-icon" />
-          </li>
-        </ul>
-      </Teleport>
+      <AppController />
     </template>
     <template #footer>
       <ReDock />
@@ -313,11 +188,11 @@ onUnmounted(function () {
 }
 
 :deep(.mac-content) {
-  @apply bg-transparent;
+  @apply bg-transparent overflow-x-hidden overflow-y-scroll;
 
-  .app-controller {
-    @apply w-full h-full grid grid-cols-[repeat(auto-fill,70px)] grid-rows-[repeat(auto-fill,70px)] grid-flow-dense justify-center gap-3 rounded-lg;
-  }
+  // .app-controller {
+  //   @apply w-full h-full grid grid-cols-[repeat(auto-fill,70px)] grid-rows-[repeat(auto-fill,70px)] grid-flow-dense justify-center gap-3 rounded-lg;
+  // }
 }
 
 :deep(.mac-footer) {
@@ -325,38 +200,6 @@ onUnmounted(function () {
 
   .dock {
     @apply h-fit;
-  }
-}
-
-.context-menu {
-  @apply w-[140px] min-w-32 flex flex-col items-center justify-center gap-y-[6px] z-[9999] fixed bg-[#0b0b0bcc] p-[6px] rounded-md border border-solid border-[#0a0a0a33];
-  backdrop-filter: blur(8px);
-  box-shadow:
-    0 0 #0000,
-    0 0 #0000,
-    0 4px 6px -1px rgb(0 0 0 / 0.1),
-    0 2px 4px -2px rgb(0 0 0 / 0.1);
-
-  left: v-bind('contextMenuClient.x+"px"');
-  top: v-bind('contextMenuClient.y+"px"');
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  opacity: v-bind('contextMenuVisible ? 1 : 0');
-  transform: scale(v-bind('contextMenuVisible ? 1 : 0'));
-  transform-origin: 0 0;
-
-  .context-menu-item {
-    @apply w-full flex items-center justify-between text-white text-xs leading-none px-2 py-2 rounded-md cursor-pointer relative;
-
-    &:hover {
-      @apply bg-[#ffffff1a];
-    }
-
-    .shortcut-label-text {
-    }
-
-    .shortcut-label-icon {
-      @apply w-4 h-4 text-white;
-    }
   }
 }
 </style>

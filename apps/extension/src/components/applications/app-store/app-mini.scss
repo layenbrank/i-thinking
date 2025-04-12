@@ -1,0 +1,35 @@
+.app-store-icon {
+  &.mini {
+    &.square {
+      &.horizontal {
+        @apply p-[6px];
+      }
+      &.vertical {
+      }
+    }
+
+    &.circle {
+      &.horizontal {
+        @apply p-2;
+        border-radius: calc(var(--app-global-width) / 2);
+      }
+
+      &.vertical {
+      }
+    }
+
+    &.rectangle {
+      &.horizontal {
+        svg {
+          @apply h-full;
+        }
+      }
+
+      &.vertical {
+        svg {
+          @apply w-full;
+        }
+      }
+    }
+  }
+}

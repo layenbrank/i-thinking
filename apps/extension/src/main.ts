@@ -3,7 +3,9 @@ import './styles/index.scss'
 import { createApp, type Directive } from 'vue'
 import { createPinia } from 'pinia'
 
-import { resize, debounce } from '@desktop-widgets/core'
+// import 'virtual:svg-icons-register'
+
+import { resize, debounce } from '@desktop-widgets/core/directives'
 
 const directives: Record<string, Directive> = {
   resize,

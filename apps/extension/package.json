@@ -14,12 +14,9 @@
     "lint": "run-s lint:*",
     "format": "prettier --write src/"
   },
-  "dependencies": {
-    "@repo/ui": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/chrome": "^0.0.308",
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*"
+    "@desktop-widgets/core": "workspace:*"
   }
 }

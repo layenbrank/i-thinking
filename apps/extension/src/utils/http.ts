@@ -142,6 +142,8 @@ function httpClient(baseUrl: string) {
 // export const authClient = createHttpClient('http://172.20.10.4:3000/auth')
 
 export const extHttp = httpClient(import.meta.env.VITE_APP_EXT_URL)
+export const bingHttp = httpClient('/bing')
+export const baiduHttp = httpClient('/baidu')
 
 // 使用示例
 // consoleClient.get('/users').subscribe((res) => {

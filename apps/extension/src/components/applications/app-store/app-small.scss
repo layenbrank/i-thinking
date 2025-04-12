@@ -1,0 +1,33 @@
+.app-store-icon {
+  &.small {
+    &.square {
+      &.horizontal {
+        svg {
+          @apply h-full;
+        }
+      }
+
+      &.vertical {
+        svg {
+          @apply w-full;
+        }
+      }
+    }
+
+    &.circle {
+      &.horizontal {
+      }
+
+      &.vertical {
+      }
+    }
+
+    &.rectangle {
+      &.horizontal {
+      }
+
+      &.vertical {
+      }
+    }
+  }
+}

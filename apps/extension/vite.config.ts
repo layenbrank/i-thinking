@@ -9,6 +9,7 @@ import Components from 'unplugin-vue-components/vite'
 import { dirname, resolve } from 'node:path'
 import { findUpSync } from 'find-up'
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
+import { VueMcp } from 'vite-plugin-vue-mcp'
 import Icons from 'unplugin-icons/vite'
 import IconsResolver from 'unplugin-icons/resolver'
 import { FileSystemIconLoader } from 'unplugin-icons/loaders'
@@ -26,6 +27,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
     base: `/${pkg.name.replace(/^@desktop-widgets\//, '')}/`,
     plugins: [
       vue(),
+      VueMcp(),
       vueJsx(),
       vueDevTools(),
       Icons({
@@ -35,10 +37,14 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         defaultStyle: '',
         defaultClass: '',
         jsx: 'react',
+        iconCustomizer(collection, icon, props) {
+          props['aria-hidden'] = 'true'
+        },
         customCollections: {
           // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
           local: FileSystemIconLoader(
             resolve(rootDir, 'apps/extension/src/assets/icons'),
+            // resolve(rootDir, 'src/assets/icons'),
             function (svg) {
               return svg.replace(/^<svg /, '<svg fill="currentColor" ')
             }
@@ -55,36 +61,39 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
           AntDesignVueResolver({
             importStyle: false
           }),
-
           IconsResolver({
             prefix: 'Icon',
             customCollections: ['local']
           })
         ],
         dts: 'src/types/components.d.ts'
-      }),
-      createSvgIconsPlugin({
-        // 指定需要缓存的图标文件夹
-        iconDirs: [resolve(process.cwd(), 'src/assets/icons')],
-        // 指定symbolId格式
-        symbolId: 'icon-[dir]-[name]',
-        svgoOptions: {
-          plugins: [
-            {
-              name: 'preset-default',
-              params: {
-                overrides: {
-                  removeViewBox: false,
-                  removeTitle: false,
-                  removeDesc: { removeAny: true },
-                  removeUselessDefs: false
-                }
-              }
-            },
-            'removeDimensions'
-          ]
-        }
       })
+      // createSvgIconsPlugin({
+      //   // 指定需要缓存的图标文件夹
+      //   iconDirs: [
+      //     // resolve(rootDir, 'src/assets/icons'),
+      //     resolve(rootDir, 'apps/extension/src/assets/icons')
+      //   ],
+      //   // 指定symbolId格式
+      //   symbolId: 'icon-[dir]-[name]',
+      //   inject: 'body-last',
+      //   svgoOptions: {
+      //     plugins: [
+      //       {
+      //         name: 'preset-default',
+      //         params: {
+      //           overrides: {
+      //             removeViewBox: false,
+      //             removeTitle: false,
+      //             removeDesc: { removeAny: true },
+      //             removeUselessDefs: false
+      //           }
+      //         }
+      //       },
+      //       'removeDimensions'
+      //     ]
+      //   }
+      // })
     ],
     resolve: {
       alias: {
@@ -194,6 +203,11 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       proxy: {
         '/bing': {
           target: 'https://cn.bing.com',
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/bing/, '')
+        },
+        '/baidu': {
+          target: 'https://www.baidu.com',
           changeOrigin: true,
           rewrite: path => path.replace(/^\/bing/, '')
         }

@@ -1,25 +1,25 @@
-import { computed, ref, type Ref } from "vue";
-import { useEventListener } from "@vueuse/core";
-import type { MaybeRefOrGetter } from "@vueuse/shared";
+import { computed, ref, type Ref } from 'vue'
+import { useEventListener } from '@vueuse/core'
+import type { MaybeRefOrGetter } from '@vueuse/shared'
 
 /**
  * 滚轮事件状态接口
  */
 export interface WheelState {
   /** X轴滚动增量 */
-  deltaX: number;
+  deltaX: number
   /** Y轴滚动增量 */
-  deltaY: number;
+  deltaY: number
   /** Z轴滚动增量 */
-  deltaZ: number;
+  deltaZ: number
   /** 滚动模式 */
-  deltaMode: number;
+  deltaMode: number
   /** X轴累计滚动距离 */
-  totalX: number;
+  totalX: number
   /** Y轴累计滚动距离 */
-  totalY: number;
+  totalY: number
   /** Z轴累计滚动距离 */
-  totalZ: number;
+  totalZ: number
 }
 
 /**
@@ -27,21 +27,21 @@ export interface WheelState {
  */
 export interface WheelReturn {
   /** X轴滚动增量 */
-  deltaX: Ref<number>;
+  deltaX: Ref<number>
   /** Y轴滚动增量 */
-  deltaY: Ref<number>;
+  deltaY: Ref<number>
   /** Z轴滚动增量 */
-  deltaZ: Ref<number>;
+  deltaZ: Ref<number>
   /** 滚动模式 */
-  deltaMode: Ref<number>;
+  deltaMode: Ref<number>
   /** X轴累计滚动距离 */
-  totalX: Ref<number>;
+  totalX: Ref<number>
   /** Y轴累计滚动距离 */
-  totalY: Ref<number>;
+  totalY: Ref<number>
   /** Z轴累计滚动距离 */
-  totalZ: Ref<number>;
+  totalZ: Ref<number>
   /** 重置累计滚动距离 */
-  reset: () => void;
+  reset: () => void
 }
 
 /**
@@ -52,39 +52,39 @@ export interface UseWheelOptions {
    * 目标元素
    * @default window
    */
-  target?: MaybeRefOrGetter<Window | EventTarget | null | undefined>;
+  target?: MaybeRefOrGetter<Window | EventTarget | null | undefined>
   /**
    * 是否阻止默认滚动行为
    * @default false
    */
-  preventDefault?: boolean;
+  preventDefault?: boolean
   /**
    * 滚动步长，每次滚动事件增加或减少的固定值
    * @default 100
    */
-  step?: number;
+  step?: number
   /**
    * 累计滚动的最大值
    * @default Infinity
    */
-  max?: number;
+  max?: number
   /**
    * 累计滚动的最小值
    * @default -Infinity
    */
-  min?: number;
+  min?: number
   /**
    * 是否开启调试模式，开启后会输出详细的日志信息
    * @default false
    */
-  debug?: boolean;
+  debug?: boolean
   /**
    * 滚轮事件回调函数
    * @param event - 原始滚轮事件对象
    * @param state - 当前滚轮状态，包含增量值和累计值
    * @returns 返回false时将阻止累计值的更新
    */
-  onWheel?: (event: WheelEvent, state: WheelState) => boolean | void;
+  onWheel?: (event: WheelEvent, state: WheelState) => boolean | void
 }
 
 /**
@@ -157,45 +157,45 @@ export function useWheel(options: UseWheelOptions = {}) {
     step = 100,
     max = Infinity,
     min = -Infinity,
-    debug = false,
-  } = options;
+    debug = false
+  } = options
 
-  const deltaX = ref(0);
-  const deltaY = ref(0);
-  const deltaZ = ref(0);
-  const deltaMode = ref(0);
-  const totalX = ref(0);
-  const totalY = ref(0);
-  const totalZ = ref(0);
+  const deltaX = ref(0)
+  const deltaY = ref(0)
+  const deltaZ = ref(0)
+  const deltaMode = ref(0)
+  const totalX = ref(0)
+  const totalY = ref(0)
+  const totalZ = ref(0)
 
   if (debug && max < min) {
-    log("warn", "max should be greater than min");
+    log('warn', 'max should be greater than min')
   }
 
   // 调试日志
   function log(type: keyof Console, ...data: any[]) {
-    if (debug) (console[type] as Function).call(console, ...data);
+    if (debug) (console[type] as (...data: any[]) => void).call(console, ...data)
   }
 
   // 确保值在范围内
-  const clamp = (value: number) => Math.min(Math.max(value, min), max);
+  const clamp = (value: number) => Math.min(Math.max(value, min), max)
 
   // 重置方法
   const reset = () => {
-    totalX.value = 0;
-    totalY.value = 0;
-    totalZ.value = 0;
-    log("log", "reset wheel state");
-  };
+    totalX.value = 0
+    totalY.value = 0
+    totalZ.value = 0
+    log('log', 'reset wheel state')
+  }
 
   const handler = (event: WheelEvent) => {
-    if (preventDefault) event.preventDefault();
+    if (preventDefault) event.preventDefault()
 
     // 标准化 delta 值
-    deltaX.value = Math.sign(event.deltaX) * step;
-    deltaY.value = Math.sign(event.deltaY) * step;
-    deltaZ.value = Math.sign(event.deltaZ) * step;
-    deltaMode.value = event.deltaMode;
+    deltaX.value = Math.sign(event.deltaX) * step
+    deltaY.value = Math.sign(event.deltaY) * step
+    deltaZ.value = Math.sign(event.deltaZ) * step
+    deltaMode.value = event.deltaMode
 
     const state: WheelState = {
       deltaX: deltaX.value,
@@ -204,26 +204,26 @@ export function useWheel(options: UseWheelOptions = {}) {
       deltaMode: deltaMode.value,
       totalX: totalX.value,
       totalY: totalY.value,
-      totalZ: totalZ.value,
-    };
-
-    const shouldUpdate = onWheel?.(event, state);
-    if (shouldUpdate !== false) {
-      // 更新累计值（确保在范围内）
-      totalX.value = clamp(totalX.value + deltaX.value);
-      totalY.value = clamp(totalY.value + deltaY.value);
-      totalZ.value = clamp(totalZ.value + deltaZ.value);
+      totalZ: totalZ.value
     }
 
-    log("table", {
-      delta: { x: deltaX.value, y: deltaY.value, z: deltaZ.value },
-      total: { x: totalX.value, y: totalY.value, z: totalZ.value },
-    });
-  };
+    const shouldUpdate = onWheel?.(event, state)
+    if (shouldUpdate !== false) {
+      // 更新累计值（确保在范围内）
+      totalX.value = clamp(totalX.value + deltaX.value)
+      totalY.value = clamp(totalY.value + deltaY.value)
+      totalZ.value = clamp(totalZ.value + deltaZ.value)
+    }
 
-  useEventListener(target, "wheel", handler, {
-    passive: !preventDefault,
-  });
+    log('table', {
+      delta: { x: deltaX.value, y: deltaY.value, z: deltaZ.value },
+      total: { x: totalX.value, y: totalY.value, z: totalZ.value }
+    })
+  }
+
+  useEventListener(target, 'wheel', handler, {
+    passive: !preventDefault
+  })
 
   return {
     // 当前滚动值
@@ -236,6 +236,6 @@ export function useWheel(options: UseWheelOptions = {}) {
     totalY: computed(() => totalY.value),
     totalZ: computed(() => totalZ.value),
     // 工具方法
-    reset,
-  };
+    reset
+  }
 }

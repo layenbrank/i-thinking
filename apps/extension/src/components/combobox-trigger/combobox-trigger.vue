@@ -32,7 +32,11 @@ function processSlot(data: any) {
 
 <template>
   <div :class="[clsx('combobox-trigger', comboboxClass)]">
-    <a-input v-bind="{ ...props.inputProps, ...attrs }" :class="[clsx(inputClass)]"> </a-input>
+    <a-input v-bind="{ ...props.inputProps, ...attrs }" :class="[clsx(inputClass)]">
+      <template v-for="name in filteredSlots" v-slot:[name]="data" :key="name">
+        <slot :name="name" v-bind="processSlot(data)"></slot>
+      </template>
+    </a-input>
     <slot name="content"></slot>
   </div>
 </template>

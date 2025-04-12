@@ -114,11 +114,7 @@
   "workbench.editor.wrapTabs": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
 
-  "vscodeCustomCodeColor.highlightValue": [
-    "v-resize",
-    "v-debounce",
-    "v-infiniteScroll"
-  ],
+  "vscodeCustomCodeColor.highlightValue": ["v-resize", "v-debounce", "v-infiniteScroll"],
   "typescript.tsdk": "node_modules\\typescript\\lib",
   "eslint.validate": ["javascript", "typescript", "vue"],
 
@@ -145,5 +141,9 @@
   "turboConsoleLog.includeFilename": true,
   "turboConsoleLog.insertEmptyLineAfterLogMessage": true,
   "turboConsoleLog.insertEmptyLineBeforeLogMessage": true,
-  "diffEditor.hideUnchangedRegions.enabled": true
+  "diffEditor.hideUnchangedRegions.enabled": true,
+  "marscode.codeCompletionPro": {
+    "enableCodeCompletionPro": false
+  },
+  "marscode.enableInlineCommand": false
 }

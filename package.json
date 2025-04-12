@@ -2,6 +2,10 @@
   "private": true,
   "name": "turborepo-desktop",
   "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "turbo run dev",
     "dev:docs": "turbo run dev --filter=@desktop-widgets/docs",
@@ -56,8 +60,10 @@
   "devDependencies": {
     "@desktop-widgets/core": "workspace:*",
     "@desktop-widgets/shared": "workspace:*",
-    "@desktop-widgets/tailwind": "workspace:*",
     "@desktop-widgets/tsconfig": "workspace:*",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.2",
     "@tsconfig/node22": "^22.0.0",
     "@types/chrome": "^0.0.308",
     "@types/figlet": "^1.7.0",
@@ -86,9 +92,11 @@
     "oxlint": "^0.15.13",
     "postcss": "^8.5.3",
     "prettier": "^3.5.3",
+    "rollup": "^4.39.0",
     "sass": "^1.85.1",
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
+    "tslib": "^2.8.1",
     "tsx": "^4.19.3",
     "turbo": "^2.4.4",
     "typescript": "~5.7.3",
@@ -96,9 +104,11 @@
     "unplugin-vue-components": "^28.4.1",
     "vite": "^6.2.1",
     "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-dts": "^4.5.3",
     "vite-plugin-monaco-editor": "^1.1.0",
     "vite-plugin-svg-icons": "^2.0.1",
     "vite-plugin-vue-devtools": "^7.7.2",
+    "vite-plugin-vue-mcp": "^0.3.2",
     "vue-tsc": "^2.2.8"
   },
   "packageManager": "pnpm@10.7.1"
