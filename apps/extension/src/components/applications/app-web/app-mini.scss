@@ -1,6 +1,7 @@
 .app-web-icon {
   &.mini {
     &.square {
+      @apply p-3;
       &.horizontal {
       }
 

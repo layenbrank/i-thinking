@@ -58,14 +58,14 @@ export function useAppSettings(options: AppSettings) {
         horizontal: {
           width: options.width.value,
           height: options.height.value,
-          gridRow: 'span 2',
-          gridColumn: 'span 2'
+          gridRow: 'span 1',
+          gridColumn: 'span 1'
         },
         vertical: {
           width: options.width.value,
           height: options.height.value,
-          gridRow: 'span 2',
-          gridColumn: 'span 2'
+          gridRow: 'span 1',
+          gridColumn: 'span 1'
         }
       },
       rectangle: {
@@ -73,12 +73,12 @@ export function useAppSettings(options: AppSettings) {
           width: `calc(${options.width.value} * 2 + var(--app-global-col-gap))`,
           height: options.height.value,
           gridRow: 'initial',
-          gridColumn: 'span 2'
+          gridColumn: 'span 1'
         },
         vertical: {
           width: options.width.value,
           height: `calc(${options.height.value} * 2 + var(--app-global-row-gap))`,
-          gridRow: 'span 2',
+          gridRow: 'span 1',
           gridColumn: 'initial'
         }
       },
@@ -86,14 +86,14 @@ export function useAppSettings(options: AppSettings) {
         horizontal: {
           width: options.width.value,
           height: options.height.value,
-          gridRow: 'span 2',
-          gridColumn: 'span 2'
+          gridRow: 'span 1',
+          gridColumn: 'span 1'
         },
         vertical: {
           width: options.width.value,
           height: options.height.value,
-          gridRow: 'span 2',
-          gridColumn: 'span 2'
+          gridRow: 'span 1',
+          gridColumn: 'span 1'
         }
       }
     },

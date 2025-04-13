@@ -1,6 +1,8 @@
 .app-bookmark-icon {
   &.mini {
     &.square {
+      @apply p-3;
+
       &.horizontal {
       }
 
@@ -9,6 +11,8 @@
     }
 
     &.circle {
+      @apply p-3;
+
       &.horizontal {
       }
 
