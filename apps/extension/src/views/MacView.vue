@@ -2,6 +2,7 @@
 import { MacLayout, type MacLayoutOptions } from '@/layouts/index.ts'
 import { ReDock } from '@/components/re-dock'
 import { useDateFormat, useEventListener, useTimestamp } from '@vueuse/core'
+import { database } from '@/database/slide-app.database'
 
 const AppBookmark = defineAsyncComponent(
   () => import('@/components/applications/app-bookmark/app-bookmark.vue')
@@ -81,6 +82,8 @@ function updateKeyword(value: string) {
 function updateSearch() {
   window.open(`https://cn.bing.com/search?q=${keyword.value}`, '_blank')
 }
+
+onMounted(function () {})
 </script>
 
 <template>

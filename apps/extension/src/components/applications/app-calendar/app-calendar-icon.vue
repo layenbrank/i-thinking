@@ -2,6 +2,7 @@
 import type { Dayjs } from 'dayjs'
 import type { CalendarMode } from 'ant-design-vue/es/calendar/generateCalendar'
 import { timeSphere } from '@desktop-widgets/core'
+import type { SlideAppDirection, SlideAppShape, SlideAppSize } from '@/types/slide-app'
 
 defineOptions({
   name: 'app-calendar-icon'
@@ -9,39 +10,38 @@ defineOptions({
 
 const props = withDefaults(
   defineProps<{
-    backgroundColor: string | null
-    backgroundImage: string | null
-    size: AppSize
+    size: SlideAppSize
     url?: string
     icon?: string
-    direction: AppDirection
-    shape: AppShape
+    direction: SlideAppDirection
+    shape: SlideAppShape
+    mini: boolean
+    small: boolean
+    medium: boolean
+    large: boolean
+    huge: boolean
+    massive: boolean
+    ultra: boolean
+    circle: boolean
+    rectangle: boolean
+    square: boolean
+    horizontal: boolean
+    vertical: boolean
   }>(),
   {}
 )
 
 const value = ref<Dayjs>(timeSphere.now())
 
-const mini = computed(() => props.size === 'mini')
-const small = computed(() => props.size === 'small')
-const medium = computed(() => props.size === 'medium')
-const large = computed(() => props.size === 'large')
-const huge = computed(() => props.size === 'huge')
-const massive = computed(() => props.size === 'massive')
-const ultra = computed(() => props.size === 'ultra')
-const circle = computed(() => props.shape === 'circle')
-const rectangle = computed(() => props.shape === 'rectangle')
-const square = computed(() => props.shape === 'square')
-const horizontal = computed(() => props.direction === 'horizontal')
-const vertical = computed(() => props.direction === 'vertical')
+const isDisable = computed(() => !(props.medium && props.rectangle))
 </script>
 
 <template>
   <div :class="['app-calendar-icon', size, shape, direction]">
     <a-calendar
-      :disabled-date="() => true"
+      :disabled-date="() => isDisable"
       :header-render="() => ''"
-      :value="value"
+      v-model:value="value"
       :fullscreen="false"
     >
     </a-calendar>
@@ -59,5 +59,9 @@ const vertical = computed(() => props.direction === 'vertical')
 
 .app-calendar-icon {
   border-radius: var(--app-round);
+
+  &.circle {
+    border-radius: calc(var(--app-size-width) / 2);
+  }
 }
 </style>

@@ -14,7 +14,9 @@
     "lint": "run-s lint:*",
     "format": "prettier --write src/"
   },
-  "dependencies": {},
+  "dependencies": {
+    "reflect-metadata": "^0.2.2"
+  },
   "devDependencies": {
     "@types/chrome": "^0.0.308",
     "@desktop-widgets/core": "workspace:*"

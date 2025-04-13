@@ -5,10 +5,12 @@ import { ArrowBack, ArrowForward, Refresh, AddSharp, Close, Folder } from '@vico
 
 import Fuse, { type IFuseOptions } from 'fuse.js'
 import { initSortable } from './app-bookmark.ts'
+import { useBookMark } from './use-bookmark.ts'
 
 import { useBookmarksStore } from '@/stores/bookmarks'
 
 import bookmarkJSON from './bookmark.json'
+import type { SlideAppDialog } from '@/types/slide-app.js'
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
@@ -18,14 +20,16 @@ defineOptions({
 
 withDefaults(
   defineProps<{
-    appDialogRef?: AppDialog
+    appDialogRef?: SlideAppDialog
   }>(),
   {}
 )
 
 const bookmarkGridRef = useTemplateRef('bookmarkGridRef')
+const bookmarkContentRef = useTemplateRef('bookmarkContentRef')
 
 const bookmarksStore = useBookmarksStore()
+const { flattenBookmarks } = useBookMark()
 
 const source = ref<BookmarkTreeNode>()
 const target = ref<BookmarkTreeNode>()
@@ -35,55 +39,73 @@ const value = ref(data[0])
 
 const keyword = ref<string>('')
 
-// const buildOptions: DropdownMixedOption[] = [
-//   {
-//     label: '文件夹',
-//     key: 'folder'
-//   },
-//   {
-//     label: '书签',
-//     key: 'bookmark'
-//   },
-//   {
-//     label: '快捷方式',
-//     key: 'shortcut'
-//   }
-// ]
+const buildOptions = [
+  {
+    label: '文件夹',
+    key: 'folder'
+  },
+  {
+    label: '书签',
+    key: 'bookmark'
+  },
+  {
+    label: '快捷方式',
+    key: 'shortcut'
+  }
+]
 
-// const moreOptions: DropdownMixedOption[] = [
-//   {
-//     label: '超大图标',
-//     key: 'hugeIcon'
-//   },
-//   {
-//     label: '大图标',
-//     key: 'largeIcon'
-//   },
-//   {
-//     label: '中图标',
-//     key: 'mediumIcon'
-//   },
-//   {
-//     label: '小图标',
-//     key: 'smallIcon'
-//   },
-//   {
-//     label: '列表',
-//     key: 'list'
-//   },
-//   {
-//     label: '详细信息',
-//     key: 'detail'
-//   },
-//   {
-//     label: '平铺',
-//     key: 'tile'
-//   },
-//   {
-//     label: '内容',
-//     key: 'content'
-//   }
-// ]
+const moreOptions = [
+  {
+    label: '超大图标',
+    key: 'hugeIcon'
+  },
+  {
+    label: '大图标',
+    key: 'largeIcon'
+  },
+  {
+    label: '中图标',
+    key: 'mediumIcon'
+  },
+  {
+    label: '小图标',
+    key: 'smallIcon'
+  },
+  {
+    label: '列表',
+    key: 'list'
+  },
+  {
+    label: '详细信息',
+    key: 'detail'
+  },
+  {
+    label: '平铺',
+    key: 'tile'
+  },
+  {
+    label: '内容',
+    key: 'content'
+  }
+]
+
+const operations = [
+  {
+    key: 'back',
+    label: '后退',
+    icon: ''
+  },
+  {
+    key: 'forward',
+    label: '前进',
+    icon: ''
+  },
+  {
+    key: 'refresh',
+    label: '刷新',
+    icon: ''
+  }
+]
 
 const bookmarks = ref<BookmarkTreeNode[]>([])
 
@@ -92,7 +114,7 @@ const originalBookmarks = ref<BookmarkTreeNode[]>([])
 
 // const folderBookmark = ref<BookmarkTreeNode[]>([])
 
-const shortcutBookmark = ref<BookmarkTreeNode[]>([])
+const shortcutBookmarks = ref<BookmarkTreeNode[]>([])
 // const cacheBookmark = ref<BookmarkTreeNode[]>([])
 
 // 定义 Fuse 搜索选项
@@ -181,7 +203,7 @@ function formatDate(timestamp: number) {
   }).format(date)
 }
 
-function RenderBookmarkItem(props: { bookmark: BookmarkTreeNode }) {
+function RenderBookmark(props: { bookmark: BookmarkTreeNode }) {
   const isFolder = !!props.bookmark.children
   const timeToShow = isFolder ? props.bookmark.dateGroupModified : props.bookmark.dateAdded
 
@@ -189,7 +211,7 @@ function RenderBookmarkItem(props: { bookmark: BookmarkTreeNode }) {
     <div
       onMouseenter={handleMouseEnter}
       onMouseleave={handleMouseLeave}
-      ref={el => {
+      ref={(el) => {
         if (el) {
           initSortable(el as HTMLElement)
         }
@@ -227,10 +249,10 @@ async function updateSearchText(value: string) {
     // 执行搜索
     const searchResults = fuse.search(keyword.value)
 
-    // 更新显示的书签列表
+    // 更新显示的书签列表 过滤掉相关度太低的结果
     bookmarks.value = searchResults
-      .filter(result => result.score && result.score < 0.6) // 过滤掉相关度太低的结果
-      .map(result => result.item)
+      .filter((result) => result.score && result.score < 0.6)
+      .map((result) => result.item)
   } else {
     // 如果搜索关键词为空，恢复显示所有书签
     bookmarks.value = originalBookmarks.value
@@ -343,7 +365,7 @@ function recursion(nodes: BookmarkTreeNode[]): BookmarkTreeNode[] {
   const result: BookmarkTreeNode[] = []
 
   function flatten(items: BookmarkTreeNode[]) {
-    items.forEach(item => {
+    items.forEach((item) => {
       // 深拷贝当前节点，避免修改原始数据
       const node = structuredClone(item)
 
@@ -398,40 +420,12 @@ onMounted(async function () {
 
   originalBookmarks.value = bookmarksRes
 
-  shortcutBookmark.value = bookmarksRes
+  shortcutBookmarks.value = bookmarksRes
 
-  if (bookmarkGridRef.value) {
-    initSortable(bookmarkGridRef.value)
-  }
+  if (bookmarkGridRef.value) initSortable(bookmarkGridRef.value)
 
   // const bookmarksTree = await chrome.bookmarks.getTree()
   // console.log('bookmarksTree', bookmarksTree)
-
-  function flattenBookmarks(bookmarks: BookmarkTreeNode[]): BookmarkTreeNode[] {
-    const nodes: BookmarkTreeNode[] = []
-    const stack: BookmarkTreeNode[] = [...bookmarks] // 初始化栈
-
-    while (stack.length > 0) {
-      const bookmark = stack.pop() // 弹出栈顶元素
-      // 防止意外空值
-      if (!bookmark) continue
-
-      // 如果当前节点有子节点，则将其子节点压入栈中
-      if (bookmark.children && bookmark.children.length > 0) {
-        stack.push(...bookmark.children)
-      }
-      // 过滤条件：排除 id 为 '0' 的根节点 或 标题为空的项
-      if (bookmark.id === '0') continue
-      else if (!bookmark.title.trim()) continue
-
-      // 将当前节点添加到结果中（不保留 children 属性，避免冗余） 解构移除 children 属性
-      const { children, ...remains } = bookmark
-      // 使用 unshift 来保持顺序
-      nodes.unshift(remains)
-    }
-
-    return nodes
-  }
 
   // 扁平化书签树
   const flattened = flattenBookmarks(bookmarks.value)
@@ -467,11 +461,99 @@ onMounted(async function () {
       </a-space-compact>
       <a-segmented v-model:value="value" :options="data" class="h-full" />
     </a-layout-header>
-    <a-layout-content class="boookmark-content">
-      <div ref="bookmarkGridRef" class="bookmarkGrid">
-        <template v-for="bookmark in bookmarks" :key="bookmark.id">
-          <RenderBookmarkItem :bookmark="bookmark" />
-        </template>
+    <a-layout-content ref="bookmarkContentRef" class="boookmark-manager-content">
+      <div class="w-full h-fit">
+        <div class="flex">
+          <a-space-compact block :class="['flex w-fit']">
+            <a-button
+              v-for="item in buildOptions"
+              :key="item.key"
+              type="primary"
+              size="small"
+              class=""
+            >
+              {{ item.label }}
+            </a-button>
+          </a-space-compact>
+          <a-space-compact block :class="['flex w-fit']">
+            <a-dropdown-button placement="bottom" class="more-dropdown">
+              <template #default>
+                <a-button>sss</a-button>
+              </template>
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item>
+                    <a href="javascript:;">1st menu item</a>
+                  </a-menu-item>
+                  <a-menu-item>
+                    <a href="javascript:;">2nd menu item</a>
+                  </a-menu-item>
+                  <a-menu-item>
+                    <a href="javascript:;">3rd menu item</a>
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown-button>
+          </a-space-compact>
+          <a-space-compact block :class="['flex w-fit']">
+            <a-input @update:value="updateSearchText"></a-input>
+          </a-space-compact>
+        </div>
+        <div class="flex">
+          <a-space-compact block :class="['flex w-fit']">
+            <a-button
+              v-for="item in buildOptions"
+              :key="item.key"
+              type="primary"
+              size="small"
+              class=""
+            >
+              {{ item.label }}
+            </a-button>
+          </a-space-compact>
+          <a-space-compact block :class="['flex w-fit']">
+            <a-dropdown-button placement="bottom" class="more-dropdown">
+              <template #default>
+                <a-button>sss</a-button>
+              </template>
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item>
+                    <a href="javascript:;">1st menu item</a>
+                  </a-menu-item>
+                  <a-menu-item>
+                    <a href="javascript:;">2nd menu item</a>
+                  </a-menu-item>
+                  <a-menu-item>
+                    <a href="javascript:;">3rd menu item</a>
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown-button>
+          </a-space-compact>
+          <a-space-compact block :class="['flex w-fit']">
+            <a-input @update:value="updateSearchText"></a-input>
+          </a-space-compact>
+        </div>
+      </div>
+      <div class="w-full h-[calc(100%-32px)] flex">
+        <div
+          style="scrollbar-width: none"
+          class="w-[200px] h-full shadow-lg p-5 overflow-x-hidden overflow-y-scroll"
+        >
+          <ul class="w-full flex flex-col gap-y-2">
+            <li v-for="shortcut in shortcutBookmarks" :key="shortcut.id" class="w-full truncate">
+              {{ shortcut.title }}
+            </li>
+          </ul>
+        </div>
+        <div class="w-full h-full overflow-y-scroll">
+          <div ref="bookmarkGridRef" class="bookmarkGrid">
+            <template v-for="bookmark in bookmarks" :key="bookmark.id">
+              <RenderBookmark :bookmark="bookmark" />
+            </template>
+          </div>
+        </div>
       </div>
     </a-layout-content>
   </div>
@@ -486,15 +568,20 @@ onMounted(async function () {
   }
 
   .bookmark-space-compact {
-    @apply w-fit h-[32px] absolute right-2;
+    @apply w-fit h-[26px] absolute right-2 flex gap-x-1;
   }
   .bookmark-button-compact {
-    @apply h-full flex items-center justify-center p-1;
+    @apply w-[26px] h-full flex items-center justify-center p-[5px] rounded-full;
+    border: none;
     margin-inline-end: 0px;
+
+    &::before {
+      content: none !important;
+    }
   }
 
-  .boookmark-content {
-    @apply w-full h-[calc(100%-48px)] overflow-x-hidden overflow-y-scroll bg-white;
+  .boookmark-manager-content {
+    @apply w-full h-[calc(100%-48px)] bg-white overflow-x-hidden;
 
     .bookmarkGrid {
       @apply w-full grid p-4;
@@ -529,6 +616,22 @@ onMounted(async function () {
           }
         }
       }
+    }
+  }
+}
+
+:deep(.more-dropdown) {
+  @apply flex;
+
+  & > .ant-btn-compact-item {
+    @apply flex items-center justify-center p-0;
+
+    & > .ant-btn-compact-item {
+      @apply w-full h-full flex items-center justify-center;
+    }
+
+    span {
+      @apply h-full leading-none flex items-center justify-center;
     }
   }
 }

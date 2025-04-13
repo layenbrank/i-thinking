@@ -47,6 +47,9 @@ importers:
       axios:
         specifier: ^1.8.2
         version: 1.8.4
+      crypto-js:
+        specifier: ^4.2.0
+        version: 4.2.0
       dayjs:
         specifier: ^1.11.13
         version: 1.11.13
@@ -132,6 +135,9 @@ importers:
       '@types/chrome':
         specifier: ^0.0.308
         version: 0.0.308
+      '@types/crypto-js':
+        specifier: ^4.2.2
+        version: 4.2.2
       '@types/figlet':
         specifier: ^1.7.0
         version: 1.7.0
@@ -277,6 +283,10 @@ importers:
         version: 1.6.3(@algolia/client-search@5.23.2)(@types/node@22.14.0)(async-validator@4.2.5)(axios@1.8.4)(fuse.js@7.1.0)(postcss@8.5.3)(sass@1.86.3)(search-insights@2.17.3)(sortablejs@1.15.6)(terser@5.39.0)(typescript@5.8.2)
 
   apps/extension:
+    dependencies:
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
     devDependencies:
       '@desktop-widgets/core':
         specifier: workspace:*

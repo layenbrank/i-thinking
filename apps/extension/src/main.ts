@@ -1,10 +1,11 @@
 import './styles/index.scss'
+import 'ant-design-vue/dist/reset.css'
 
 import { createApp, type Directive } from 'vue'
 import { createPinia } from 'pinia'
 
 // import 'virtual:svg-icons-register'
-
+import 'reflect-metadata'
 import { resize, debounce } from '@desktop-widgets/core/directives'
 
 const directives: Record<string, Directive> = {

@@ -1,47 +1,37 @@
 <script setup lang="ts">
 import fallback from '@/assets/feedback/fallback.png'
+import type { SlideAppDirection, SlideAppShape, SlideAppSize } from '@/types/slide-app'
 defineOptions({
   name: 'app-web-icon'
 })
 
 const props = withDefaults(
   defineProps<{
-    backgroundColor: string | null
-    backgroundImage: string | null
-    size: AppSize
+    size: SlideAppSize
     url?: string
     icon?: string
-    direction: AppDirection
-    shape: AppShape
+    direction: SlideAppDirection
+    shape: SlideAppShape
+    mini: boolean
+    small: boolean
+    medium: boolean
+    large: boolean
+    huge: boolean
+    massive: boolean
+    ultra: boolean
+    circle: boolean
+    rectangle: boolean
+    square: boolean
+    horizontal: boolean
+    vertical: boolean
   }>(),
   {}
 )
-
-const mini = computed(() => props.size === 'mini')
-const small = computed(() => props.size === 'small')
-const medium = computed(() => props.size === 'medium')
-const large = computed(() => props.size === 'large')
-const huge = computed(() => props.size === 'huge')
-const massive = computed(() => props.size === 'massive')
-const ultra = computed(() => props.size === 'ultra')
-const circle = computed(() => props.shape === 'circle')
-const rectangle = computed(() => props.shape === 'rectangle')
-const square = computed(() => props.shape === 'square')
-const horizontal = computed(() => props.direction === 'horizontal')
-const vertical = computed(() => props.direction === 'vertical')
 </script>
 
 <template>
   <div :class="['app-web-icon', size, shape, direction]">
-    <a-image
-      :preview="false"
-      :fallback="fallback"
-      :src="icon"
-      :wrapper-style="{
-        backgroundColor: backgroundColor ?? '#fff'
-      }"
-      wrapper-class-name="app-web-image"
-    >
+    <a-image :preview="false" :fallback="fallback" :src="icon" wrapper-class-name="app-web-image">
       <template #placeholder>
         <a-skeleton-image active class="app-web-placeholder" />
       </template>
@@ -60,9 +50,15 @@ const vertical = computed(() => props.direction === 'vertical')
 
 .app-web-icon {
   border-radius: var(--app-round);
+
+  &.circle {
+    border-radius: calc(var(--app-size-width) / 2);
+  }
+
   @apply bg-white bg-opacity-30 flex items-center justify-center cursor-pointer;
 
   :deep(.app-web-image) {
+    @apply w-full h-full;
     border-radius: var(--app-round);
   }
 

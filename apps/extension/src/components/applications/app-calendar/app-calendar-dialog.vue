@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import type { SlideAppDialog } from '@/types/slide-app'
+
 defineOptions({
   name: 'app-calendar-dialog'
 })
 
 const props = withDefaults(
   defineProps<{
-    appDialogRef?: AppDialog
+    appDialogRef?: SlideAppDialog
   }>(),
   {}
 )

@@ -2,6 +2,7 @@
 import type { Component } from 'vue'
 import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
 import { appModules, appReflect } from './app-controller.tsx'
+import type { SlideAppSize } from '@/types/slide-app.js'
 
 type ContextMenuKeys =
   | 'update-app'
@@ -79,7 +80,7 @@ const menuOptions = reactive<Array<MenuOptions>>([
   }
 ])
 
-const sizes: AppSize[] = ['small', 'medium', 'large', 'huge', 'massive', 'ultra']
+const sizes: SlideAppSize[] = ['small', 'medium', 'large', 'huge', 'massive', 'ultra']
 
 function updateActiveKey(value: MenuOptions) {
   activeMenuKey.value = value.key
@@ -87,7 +88,7 @@ function updateActiveKey(value: MenuOptions) {
   const contextMenuMap: ContextMenuMap = {
     'update-app'() {},
     'update-size'() {
-      appModules.value = appModules.value.map(item => {
+      appModules.value = appModules.value.map((item) => {
         if (item.id === activeApp.value) item.size = sizes[Math.floor(Math.random() * sizes.length)]
         return item
       })
@@ -111,12 +112,12 @@ function openContextMenu(e: MouseEvent) {
   e.preventDefault()
   e.stopPropagation()
   const target = e.target as HTMLElement
-  const AppItem = target.closest('.app-item') as HTMLElement
+  const appItem = target.closest('.app-item') as HTMLElement
   setTimeout(() => {
     contextMenuClient.x = Math.min(e.clientX, innerWidth - contextMenuSize.width)
     contextMenuClient.y = Math.min(e.clientY, innerHeight - contextMenuSize.height)
     contextMenuVisible.value = true
-    activeApp.value = AppItem?.dataset.id
+    activeApp.value = appItem?.dataset.id
   }, 60)
 }
 
@@ -163,6 +164,9 @@ onUnmounted(function () {
         </li>
       </ul>
     </Teleport>
+    <Teleport to="body">
+      <a-drawer :visible="false"></a-drawer>
+    </Teleport>
   </div>
 </template>
 
@@ -177,7 +181,7 @@ onUnmounted(function () {
 
   outline: none;
   scrollbar-width: none;
-  transition: all 0.5s linear;
+  transition: all 500ms linear;
   row-gap: var(--app-global-row-gap, 30px);
   column-gap: var(--app-global-col-gap, 30px);
   // max-width: var(--app-container-max-width, 1250px);
@@ -199,7 +203,7 @@ onUnmounted(function () {
     @apply relative cursor-pointer text-center;
 
     & > :where(div:is([class*=' app-'], [class^='app-']):is([class*='-icon '], [class$='-icon'])) {
-      @apply w-full h-full;
+      @apply w-full h-full transition-all;
     }
 
     & > span.app-name {

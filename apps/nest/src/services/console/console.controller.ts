@@ -16,7 +16,8 @@ export class ConsoleController {
 
   @Get()
   findAll() {
-    return this.consoleService.findAll()
+    return `${Reflect.defineMetadata}`
+    // return this.consoleService.findAll()
   }
 
   @Get(':id')

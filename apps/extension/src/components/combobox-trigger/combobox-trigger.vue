@@ -18,7 +18,9 @@ const attrs = useAttrs()
 // 计算属性过滤掉 content 插槽，使用类型安全的方式
 const filteredSlots = computed(() => {
   // 获取所有插槽名称并过滤
-  return Object.keys(slots).filter(name => name !== 'content' && name in slots)
+  return Object.keys(slots).filter(
+    (name): name is keyof ComboboxTriggerSlots => name !== 'content' && name in slots
+  )
 })
 
 // 处理插槽数据，确保value属性存在

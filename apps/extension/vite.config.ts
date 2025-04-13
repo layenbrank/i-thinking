@@ -167,7 +167,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 
             // 遍历映射表，匹配当前模块路径
             for (const [chunkName, patterns] of Object.entries(chunkMap)) {
-              if (patterns.some(pattern => pattern.test(id))) {
+              if (patterns.some((pattern) => pattern.test(id))) {
                 return chunkName
               }
             }
@@ -204,12 +204,12 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         '/bing': {
           target: 'https://cn.bing.com',
           changeOrigin: true,
-          rewrite: path => path.replace(/^\/bing/, '')
+          rewrite: (path) => path.replace(/^\/bing/, '')
         },
         '/baidu': {
           target: 'https://www.baidu.com',
           changeOrigin: true,
-          rewrite: path => path.replace(/^\/bing/, '')
+          rewrite: (path) => path.replace(/^\/bing/, '')
         }
       }
     }

@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import type { Reactive } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Autoplay, A11y, Pagination, Navigation, Mousewheel } from 'swiper/modules'
-import type { AutoplayOptions, PaginationOptions, SwiperModule } from 'swiper/types'
 
 import 'swiper/scss'
 import 'swiper/scss/navigation'
 import 'swiper/scss/pagination'
+
+import type { Reactive } from 'vue'
+import type { SlideAppDialog } from '@/types/slide-app'
+import type { AutoplayOptions, PaginationOptions, SwiperModule } from 'swiper/types'
 
 defineOptions({
   name: 'app-store-dialog'
@@ -14,7 +16,7 @@ defineOptions({
 
 const props = withDefaults(
   defineProps<{
-    appDialogRef?: AppDialog
+    appDialogRef?: SlideAppDialog
   }>(),
   {}
 )

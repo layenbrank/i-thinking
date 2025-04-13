@@ -4,7 +4,7 @@ import { Modal } from 'ant-design-vue'
 import { GET_SLIDE_APP } from '@/apis/slides-apps'
 import { BaseLayout, type BaseLayoutOptions } from '@/layouts/index.ts'
 
-import backgroundImage from '@/assets/images/r2e391.png'
+import backgroundImage from '@/assets/wallpaper/r2e391.png'
 
 const AppController = defineAsyncComponent(
   () => import('@/components/app-controller/app-controller.vue')

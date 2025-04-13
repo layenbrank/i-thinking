@@ -2,9 +2,11 @@
   &.small {
     &.square {
       &.horizontal {
+        @apply p-8;
       }
 
       &.vertical {
+        @apply p-8;
       }
     }
 

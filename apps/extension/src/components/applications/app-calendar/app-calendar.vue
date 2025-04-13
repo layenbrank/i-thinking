@@ -4,6 +4,7 @@ import { Modal } from 'ant-design-vue'
 import AppIcon from './app-calendar-icon.vue'
 import AppDialog from './app-calendar-dialog.vue'
 import { useAppSettings } from '@/hooks/app-settings'
+import type { SlideApp, SlideAppDialog } from '@/types/slide-app'
 
 defineOptions({
   name: 'app-calendar'
@@ -11,7 +12,7 @@ defineOptions({
 
 const props = withDefaults(
   defineProps<{
-    app?: AppOptions
+    app?: SlideApp
   }>(),
   {
     app: () => ({
@@ -20,6 +21,7 @@ const props = withDefaults(
       height: '60px',
       app: 'app-calendar',
       round: '12px',
+      slideID: '0',
       size: 'medium',
       name: '示例',
       direction: 'horizontal',
@@ -34,7 +36,7 @@ const props = withDefaults(
   }
 )
 
-const appDialogRef = ref<AppDialog>()
+const appDialogRef = ref<SlideAppDialog>()
 
 const mini = computed(() => props.app.size === 'mini')
 const small = computed(() => props.app.size === 'small')
@@ -49,6 +51,12 @@ const square = computed(() => props.app.shape === 'square')
 const horizontal = computed(() => props.app.direction === 'horizontal')
 const vertical = computed(() => props.app.direction === 'vertical')
 const round = computed(() => props.app.round ?? 'var(--app-global-round)')
+const background = computed(() => {
+  if (props.app.backgroundImage) {
+    return `url(${props.app.backgroundImage}) no-repeat center / cover`
+  } else if (props.app.backgroundColor) return props.app.backgroundColor
+  else return '#ffffff'
+})
 
 const { appStyle } = useAppSettings({
   width: computed(() => props.app.width ?? 'var(--app-global-width)'),
@@ -68,6 +76,7 @@ const { appStyle } = useAppSettings({
 })
 
 function handleAppDialog() {
+  if (medium.value && rectangle.value) return
   appDialogRef.value = Modal.info({
     icon: null,
     title: null,
@@ -90,18 +99,29 @@ function handleAppDialog() {
       '--app-size-width': appStyle.width,
       '--app-size-height': appStyle.height,
       '--app-grid-row': appStyle.gridRow,
-      '--app-grid-column': appStyle.gridColumn
+      '--app-grid-column': appStyle.gridColumn,
+      '--app-background': background
     }"
     :class="['app-calendar', app.size, app.shape, app.direction]"
   >
     <AppIcon
+      :mini="mini"
+      :small="small"
+      :medium="medium"
+      :large="large"
+      :huge="huge"
+      :massive="massive"
+      :ultra="ultra"
+      :circle="circle"
+      :rectangle="rectangle"
+      :square="square"
+      :horizontal="horizontal"
+      :vertical="vertical"
       :url="app.url"
       :icon="app.icon"
       :size="app.size"
       :shape="app.shape"
       :direction="app.direction"
-      :background-color="app.backgroundColor"
-      :background-image="app.backgroundImage"
       @click="handleAppDialog"
     />
     <span class="app-name">{{ app.name }}</span>
@@ -116,6 +136,7 @@ function handleAppDialog() {
   grid-row: var(--app-grid-row);
   grid-column: var(--app-grid-column);
   border-radius: var(--app-round);
+  background: var(--app-background);
 }
 </style>
 <style lang="scss">

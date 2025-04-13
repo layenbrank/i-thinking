@@ -1,3 +1,4 @@
+import type { SlideAppDirection, SlideAppShape, SlideAppSize } from '@/types/slide-app'
 import type { CSSProperties } from 'vue'
 
 interface AppSettings {
@@ -24,7 +25,7 @@ interface AppStyle {
   gridColumn: string
 }
 
-type AppStylesMap = Record<AppSize, Record<AppShape, Record<AppDirection, AppStyle>>>
+type AppStylesMap = Record<SlideAppSize, Record<SlideAppShape, Record<SlideAppDirection, AppStyle>>>
 
 export function useAppSettings(options: AppSettings) {
   const direction = computed(() => {
