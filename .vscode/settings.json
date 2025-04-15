@@ -114,11 +114,7 @@
   "workbench.editor.wrapTabs": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
 
-  "vscodeCustomCodeColor.highlightValue": [
-    "v-resize",
-    "v-debounce",
-    "v-infiniteScroll"
-  ],
+  "vscodeCustomCodeColor.highlightValue": ["v-resize", "v-debounce", "v-infiniteScroll"],
   "typescript.tsdk": "node_modules\\typescript\\lib",
   "eslint.validate": ["javascript", "typescript", "vue"],
 
@@ -127,7 +123,6 @@
       "mode": "auto"
     }
   ],
-
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
@@ -137,7 +132,18 @@
     "index.html": "*.html",
     "dist.pem": "dist.*",
     "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts",
-    "package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .eslint*, eslint*, .prettier*, prettier*, .editorconfig",
+    "eslint.config.ts": ".eslint*, eslint*, .prettier*, prettier*, .editorconfig, .lintstagedrc, .browserslistrc",
+    "package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .node-version, .npmrc",
     "tailwind.config.ts": "postcss.config.js, tailwind.config.ts, tailwind.config.cjs, tailwind.config.mjs, tailwind.config.jsx, tailwind.config.tsx, tailwind.config.jsx"
-  }
+  },
+  "marscode.chatLanguage": "cn",
+  "turboConsoleLog.includeLineNum": true,
+  "turboConsoleLog.includeFilename": true,
+  "turboConsoleLog.insertEmptyLineAfterLogMessage": true,
+  "turboConsoleLog.insertEmptyLineBeforeLogMessage": true,
+  "diffEditor.hideUnchangedRegions.enabled": true,
+  "marscode.codeCompletionPro": {
+    "enableCodeCompletionPro": false
+  },
+  "marscode.enableInlineCommand": false
 }

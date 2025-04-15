@@ -7,12 +7,12 @@ import { UpdateDemoDto } from './dto/update-demo.dto'
 
 // 小红书 https://www.xiaohongshu.com/explore
 @Controller('test')
-export class DemoController {
+export class TestController {
   constructor(private readonly testService: DemoService) {}
 
   @Post()
-  create(@Body() createDemoDto: CreateDemoDto) {
-    return this.testService.create(createDemoDto)
+  create(@Body() createTestDto: CreateDemoDto) {
+    return this.testService.create(createTestDto)
   }
 
   @Get('crawl')
@@ -58,8 +58,8 @@ export class DemoController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDemoDto: UpdateDemoDto) {
-    return this.testService.update(+id, updateDemoDto)
+  update(@Param('id') id: string, @Body() updateTestDto: UpdateDemoDto) {
+    return this.testService.update(+id, updateTestDto)
   }
 
   @Delete(':id')

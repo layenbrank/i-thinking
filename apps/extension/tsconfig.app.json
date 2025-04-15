@@ -1,11 +1,14 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["src/**/*", "src/**/*.vue", "src//types/**/*.d.ts"],
-  "exclude": ["src/**/__tests__/*"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"],
+  "exclude": ["nodu_modules", "dist"],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
 
-    "types": ["vite/client", "@types/chrome", "naive-ui/volar", "swiper/element"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "types": ["vite/client", "@types/chrome", "ant-design-vue/typings/global", "reflect-metadata"],
 
     "paths": {
       "@/*": ["./src/*"]

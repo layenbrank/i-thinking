@@ -4,23 +4,23 @@ import { UpdateDemoDto } from './dto/update-demo.dto'
 
 @Injectable()
 export class DemoService {
-  create(createDemoDto: CreateDemoDto) {
-    return 'This action adds a new demo'
+  create(createTestDto: CreateDemoDto) {
+    return 'This action adds a new test'
   }
 
   findAll() {
-    return `This action returns all demo`
+    return `This action returns all test`
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} demo`
+    return `This action returns a #${id} test`
   }
 
-  update(id: number, updateDemoDto: UpdateDemoDto) {
-    return `This action updates a #${id} demo`
+  update(id: number, updateTestDto: UpdateDemoDto) {
+    return `This action updates a #${id} test`
   }
 
   remove(id: number) {
-    return `This action removes a #${id} demo`
+    return `This action removes a #${id} test`
   }
 }

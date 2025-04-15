@@ -1,0 +1,31 @@
+.app-bookmark-icon {
+  &.mini {
+    &.square {
+      @apply p-3;
+
+      &.horizontal {
+      }
+
+      &.vertical {
+      }
+    }
+
+    &.circle {
+      @apply p-3;
+
+      &.horizontal {
+      }
+
+      &.vertical {
+      }
+    }
+
+    &.rectangle {
+      &.horizontal {
+      }
+
+      &.vertical {
+      }
+    }
+  }
+}

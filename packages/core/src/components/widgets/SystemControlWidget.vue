@@ -1,62 +1,78 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref } from "vue";
 
-const wifi = ref(true)
-const bluetooth = ref(false)
-const airplane = ref(false)
-const hotspot = ref(false)
+const wifi = ref(true);
+const bluetooth = ref(false);
+const airplane = ref(false);
+const hotspot = ref(false);
 
 function toggleWifi() {
-  wifi.value = !wifi.value
+  wifi.value = !wifi.value;
 }
 
 function toggleBluetooth() {
-  bluetooth.value = !bluetooth.value
+  bluetooth.value = !bluetooth.value;
 }
 
 function toggleAirplane() {
-  airplane.value = !airplane.value
+  airplane.value = !airplane.value;
   if (airplane.value) {
-    wifi.value = false
-    bluetooth.value = false
-    hotspot.value = false
+    wifi.value = false;
+    bluetooth.value = false;
+    hotspot.value = false;
   }
 }
 
 function toggleHotspot() {
-  hotspot.value = !hotspot.value
+  hotspot.value = !hotspot.value;
 }
 
 function openSettings() {
   // 实现打开设置的逻辑
-  console.log('Opening settings...')
+  console.log("Opening settings...");
 }
 
 function takeScreenshot() {
   // 实现截图的逻辑
-  console.log('Taking screenshot...')
+  console.log("Taking screenshot...");
 }
 </script>
 
 <template>
   <div class="system-control">
     <div class="control-grid">
-      <button class="control-button" :class="{ active: wifi }" @click="toggleWifi">
+      <button
+        class="control-button"
+        :class="{ active: wifi }"
+        @click="toggleWifi"
+      >
         <div class="icon">📶</div>
         <div class="label">Wi-Fi</div>
       </button>
 
-      <button class="control-button" :class="{ active: bluetooth }" @click="toggleBluetooth">
+      <button
+        class="control-button"
+        :class="{ active: bluetooth }"
+        @click="toggleBluetooth"
+      >
         <div class="icon">🔵</div>
         <div class="label">Bluetooth</div>
       </button>
 
-      <button class="control-button" :class="{ active: airplane }" @click="toggleAirplane">
+      <button
+        class="control-button"
+        :class="{ active: airplane }"
+        @click="toggleAirplane"
+      >
         <div class="icon">✈️</div>
         <div class="label">Airplane mode</div>
       </button>
 
-      <button class="control-button" :class="{ active: hotspot }" @click="toggleHotspot">
+      <button
+        class="control-button"
+        :class="{ active: hotspot }"
+        @click="toggleHotspot"
+      >
         <div class="icon">📱</div>
         <div class="label">Hotspot</div>
       </button>

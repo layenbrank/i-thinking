@@ -8,17 +8,11 @@
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./dist/types/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./core.css": "./dist/index.css"
-  },
+  "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build": "rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
+    "build:vite": "run-p type-check \"build-only {@}\" --",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "preview": "vite preview",
@@ -26,5 +20,32 @@
     "lint:eslint": "eslint . --fix",
     "lint": "run-s lint:*",
     "format": "prettier --write src/"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.13",
+    "rxjs": "^7.8.1",
+    "tyme4ts": "^1.2.2",
+    "dayjs": "^1.11.13",
+    "lunisolar": "^2.5.2",
+    "@types/node": "^22.13.10",
+    "rollup-plugin-dts": "^6.1.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./directives": {
+      "types": "./dist/directives.d.ts",
+      "import": "./dist/directives.js"
+    },
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js"
+    },
+    "./hooks": {
+      "types": "./dist/hooks.d.ts",
+      "import": "./dist/hooks.js"
+    }
   }
 }

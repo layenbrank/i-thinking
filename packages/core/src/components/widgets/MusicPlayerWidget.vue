@@ -1,55 +1,60 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref } from "vue";
 
-const isPlaying = ref(false)
-const currentTime = ref(0)
-const duration = ref(180) // 3 minutes in seconds
-const progress = ref(0)
+const isPlaying = ref(false);
+const currentTime = ref(0);
+const duration = ref(180); // 3 minutes in seconds
+const progress = ref(0);
 
 const currentTrack = ref({
-  name: 'NO LOVE',
-  artist: 'N/A',
-  coverUrl: ''
-})
+  name: "NO LOVE",
+  artist: "N/A",
+  coverUrl: "",
+});
 
 const togglePlay = () => {
-  isPlaying.value = !isPlaying.value
-}
+  isPlaying.value = !isPlaying.value;
+};
 
 const previous = () => {
-  console.log('Previous track')
-}
+  console.log("Previous track");
+};
 
 const next = () => {
-  console.log('Next track')
-}
+  console.log("Next track");
+};
 
 const formatTime = (seconds: number) => {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = Math.floor(seconds % 60)
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
-}
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+};
 
 // 模拟进度更新
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   setInterval(() => {
     if (isPlaying.value) {
-      currentTime.value = (currentTime.value + 1) % duration.value
-      progress.value = (currentTime.value / duration.value) * 100
+      currentTime.value = (currentTime.value + 1) % duration.value;
+      progress.value = (currentTime.value / duration.value) * 100;
     }
-  }, 1000)
+  }, 1000);
 }
 </script>
 
 <template>
   <div class="music-player">
     <div class="now-playing">
-      <div class="cover-art" :style="{ backgroundImage: `url(${currentTrack.coverUrl})` }">
+      <div
+        class="cover-art"
+        :style="{ backgroundImage: `url(${currentTrack.coverUrl})` }"
+      >
         <div class="default-cover">🎵</div>
       </div>
       <div class="track-info">
-        <div class="track-name">{{ currentTrack.name || 'N/A' }}</div>
-        <div class="artist">{{ currentTrack.artist || 'No track playing' }}</div>
+        <div class="track-name">{{ currentTrack.name || "N/A" }}</div>
+        <div class="artist">
+          {{ currentTrack.artist || "No track playing" }}
+        </div>
       </div>
     </div>
 
@@ -58,7 +63,7 @@ if (typeof window !== 'undefined') {
         <span class="icon">⏮</span>
       </button>
       <button class="control-button play-pause" @click="togglePlay">
-        <span class="icon">{{ isPlaying ? '⏸' : '▶️' }}</span>
+        <span class="icon">{{ isPlaying ? "⏸" : "▶️" }}</span>
       </button>
       <button class="control-button" @click="next">
         <span class="icon">⏭</span>

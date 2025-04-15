@@ -42,6 +42,7 @@ export default defineConfigWithVueTs(
       '@typescript-eslint/no-unsafe-assignment': 'warn',
       /* 限制嵌套代码块的最大深度，保持代码的清晰结构 */
       'max-depth': ['error', 4],
+      '@typescript-eslint/no-namespace': 'off',
       /* 对未使用的变量发出错误，保持代码的简洁性 */
       '@typescript-eslint/no-unused-vars': [
         'warn',

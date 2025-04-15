@@ -1,17 +1,12 @@
 import './styles/index.scss'
+import 'ant-design-vue/dist/reset.css'
 
 import { createApp, type Directive } from 'vue'
 import { createPinia } from 'pinia'
 
-// 通用字体
-import 'vfonts/Lato.css'
-// 等宽字体
-import 'vfonts/FiraCode.css'
-
-// 注册svg图标
-import 'virtual:svg-icons-register'
-
-import { resize, debounce } from '@desktop-widgets/core'
+// import 'virtual:svg-icons-register'
+import 'reflect-metadata'
+import { resize, debounce } from '@desktop-widgets/core/directives'
 
 const directives: Record<string, Directive> = {
   resize,
@@ -19,7 +14,7 @@ const directives: Record<string, Directive> = {
 }
 
 import App from './App.vue'
-import router from './router'
+import router from './router/index.ts'
 
 const app = createApp(App)
 

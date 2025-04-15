@@ -1,5 +1,5 @@
-GET /console HTTP/1.1
-Host: 192.168.0.26:3000
+GET /api/v1/console HTTP/1.1
+Host: 172.20.10.4:3000
 Content-Type: application/json
 
 {

@@ -1,5 +1,4 @@
 {
-  "extends": "@desktop-widgets/tsconfig/tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
 

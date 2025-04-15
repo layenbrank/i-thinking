@@ -14,11 +14,20 @@ export default defineConfig(function () {
       vue(),
       vueJsx(),
       dts({
-        outDir: './dist/types'
+        tsconfigPath: './tsconfig.json',
+        outDir: './dist/types',
+        entryRoot: resolve(__dirname, 'src')
       })
     ],
     build: {
       sourcemap: true,
+      terserOptions: {
+        compress: {
+          dead_code: true,
+          unused: true
+        }
+      },
+      minify: 'terser',
       lib: {
         entry: resolve(__dirname, 'src/index.ts'),
         name: '@desktop-widgets/core',
@@ -28,6 +37,7 @@ export default defineConfig(function () {
       rollupOptions: {
         external: ['vue', 'pinia'],
         output: {
+          compact: true,
           exports: 'named',
           globals: {
             vue: 'Vue',

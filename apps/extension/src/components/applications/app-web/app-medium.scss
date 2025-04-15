@@ -1,0 +1,31 @@
+.app-web-icon {
+  &.medium {
+    :deep(.app-web-image) {
+      @apply w-full h-full p-5;
+    }
+
+    &.square {
+      &.horizontal {
+      }
+
+      &.vertical {
+      }
+    }
+
+    &.circle {
+      &.horizontal {
+      }
+
+      &.vertical {
+      }
+    }
+
+    &.rectangle {
+      &.horizontal {
+      }
+
+      &.vertical {
+      }
+    }
+  }
+}

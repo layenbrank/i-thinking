@@ -11,6 +11,6 @@ cache
 server/dist
 public/dist
 
-
-apps/**/auto-imports.d.ts
-apps/**/components.d.ts
+pnpm-lock.yaml
+# apps/**/auto-imports.d.ts
+# apps/**/components.d.ts

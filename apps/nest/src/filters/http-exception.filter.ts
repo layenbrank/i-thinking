@@ -4,9 +4,9 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
-  Logger,
-} from '@nestjs/common';
-import { Request, Response } from 'express';
+  Logger
+} from '@nestjs/common'
+import { Request, Response } from 'express'
 
 /**
  * HTTP异常过滤器
@@ -21,7 +21,7 @@ import { Request, Response } from 'express';
  */
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name);
+  private readonly logger = new Logger(HttpExceptionFilter.name)
 
   /**
    * 捕获并处理HTTP异常
@@ -30,54 +30,48 @@ export class HttpExceptionFilter implements ExceptionFilter {
    * @param host - 提供请求/响应上下文的参数主机
    */
   catch(exception: HttpException, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const ctx = host.switchToHttp()
+    const response = ctx.getResponse<Response>()
+    const request = ctx.getRequest<Request>()
 
     // 获取客户端 IP 地址（从中间件中获取或回退到请求对象的 IP）
-    const clientIp = request['clientIp'] || request.ip || 'unknown';
-    const requestId =
-      request['requestId'] || request.headers['x-request-id'] || 'unknown';
-    const method = request.method;
-    const url = request.url;
-    const userAgent = request.headers['user-agent'] || '-';
+    const clientIp = request['clientIp'] || request.ip || 'unknown'
+    const requestId = request['requestId'] || request.headers['x-request-id'] || 'unknown'
+    const method = request.method
+    const url = request.url
+    const userAgent = request.headers['user-agent'] || '-'
 
     // 获取用户信息（如果存在）
-    let userId = '';
+    let userId = ''
     if (request.user) {
-      const user = request.user as any;
-      userId = user.id || user.username || '';
+      const user = request.user as any
+      userId = user.id || user.username || ''
     }
 
     // 获取异常状态和消息
     const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
 
     const errorResponse =
       exception instanceof HttpException
         ? exception.getResponse()
-        : { message: 'Internal server error' };
+        : { message: 'Internal server error' }
 
     // 提取错误消息和代码
-    let message: string;
-    let errorCode: string | number = status;
+    let message: string
+    let errorCode: string | number = status
 
     if (typeof errorResponse === 'string') {
-      message = errorResponse;
+      message = errorResponse
     } else if (typeof errorResponse === 'object') {
-      message = (errorResponse as any).message || 'An error occurred';
-      errorCode =
-        (errorResponse as any).code ||
-        (errorResponse as any).errorCode ||
-        status;
+      message = (errorResponse as any).message || 'An error occurred'
+      errorCode = (errorResponse as any).code || (errorResponse as any).errorCode || status
     } else {
-      message = 'An error occurred';
+      message = 'An error occurred'
     }
 
     // 记录错误日志
-    const logMethod = status >= 500 ? 'error' : 'warn';
+    const logMethod = status >= 500 ? 'error' : 'warn'
     this.logger[logMethod](
       `${method} ${url} - 错误 ${status} - IP: ${clientIp}${userId ? ` - User: ${userId}` : ''} - ReqID: ${requestId} - ${message}`,
       {
@@ -96,9 +90,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ...(process.env.NODE_ENV === 'development'
           ? { body: this.sanitizeObject(request.body) }
           : {}),
-        stack: exception.stack,
-      },
-    );
+        stack: exception.stack
+      }
+    )
 
     // 返回统一的错误响应格式
     response.status(status).json({
@@ -108,8 +102,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       data: null,
       timestamp: new Date().toISOString(),
       path: url,
-      requestId,
-    });
+      requestId
+    })
   }
 
   /**
@@ -121,9 +115,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
    * @private
    */
   private sanitizeObject(obj: any): any {
-    if (!obj || typeof obj !== 'object') return obj;
+    if (!obj || typeof obj !== 'object') return obj
 
-    const sanitized = { ...obj };
+    const sanitized = { ...obj }
     const sensitiveFields = [
       'password',
       'token',
@@ -131,20 +125,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
       'apiKey',
       'api_key',
       'key',
-      'authorization',
-    ];
+      'authorization'
+    ]
 
     for (const key in sanitized) {
       if (sensitiveFields.includes(key.toLowerCase())) {
-        sanitized[key] = '[REDACTED]';
-      } else if (
-        typeof sanitized[key] === 'object' &&
-        sanitized[key] !== null
-      ) {
-        sanitized[key] = this.sanitizeObject(sanitized[key]);
+        sanitized[key] = '[REDACTED]'
+      } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+        sanitized[key] = this.sanitizeObject(sanitized[key])
       }
     }
 
-    return sanitized;
+    return sanitized
   }
 }

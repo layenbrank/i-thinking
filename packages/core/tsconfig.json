@@ -1,34 +1,38 @@
 {
   "extends": "@desktop-widgets/tsconfig/tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
+    "composite": false,
+    "importHelpers": true,
 
-    "declaration": true,
-    "emitDeclarationOnly": true,
+    "noEmit": true,
+    "declaration": false,
+    "emitDeclarationOnly": false,
 
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-
+    "removeComments": false,
     "resolveJsonModule": true,
+
+    "allowImportingTsExtensions": false,
+
     "baseUrl": ".",
-
-    "rootDir": "src",
-
+    "rootDir": ".",
     "outDir": "dist",
 
     "paths": {
       "@/*": ["src/*"]
     },
 
-    "types": ["vite/client"],
+    "types": ["vite/client", "node"],
     "tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo.core"
   },
   "exclude": ["dist", "node_modules"],
   "include": [
     "src/**/*.ts",
-    "src/types/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "src/shims-vue.d.ts"
+    "src/types/**/*.d.ts",
+    "src/shims-vue.d.ts",
+    "rollup.config.ts"
   ]
 }

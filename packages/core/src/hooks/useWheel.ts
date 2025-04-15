@@ -174,7 +174,7 @@ export function useWheel(options: UseWheelOptions = {}) {
 
   // 调试日志
   function log(type: keyof Console, ...data: any[]) {
-    if (debug) (console[type] as Function).call(console, ...data)
+    if (debug) (console[type] as (...data: any[]) => void).call(console, ...data)
   }
 
   // 确保值在范围内

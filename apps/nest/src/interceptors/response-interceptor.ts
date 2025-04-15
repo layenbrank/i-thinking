@@ -18,10 +18,10 @@ import { map, tap } from 'rxjs/operators'
 interface Response<T> {
   data: T
   code: number
-  message: string
+  msg: string
   success: boolean
-  timestamp: string
-  requestId: string
+  timestamp: Date
+  // requestId: string
 }
 
 /**
@@ -104,10 +104,9 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
       map(data => ({
         data,
         code: 200,
-        message: 'success',
+        msg: '操作成功',
         success: true,
-        timestamp: new Date().toISOString(),
-        requestId
+        timestamp: new Date()
       }))
     )
   }

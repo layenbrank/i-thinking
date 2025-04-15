@@ -1,196 +1,43 @@
-<script setup lang="tsx">
-import { RouterLink } from 'vue-router'
-import { NIcon, useMessage, type MenuOption } from 'naive-ui'
+<script setup lang="ts">
+import { Modal } from 'ant-design-vue'
 
-import {
-  useTimestamp,
-  useDateFormat,
-  onClickOutside,
-  useFetch,
-  useDevicePixelRatio,
-  useMagicKeys,
-  whenever
-} from '@vueuse/core'
-
+import { GET_SLIDE_APP } from '@/apis/slides-apps'
 import { BaseLayout, type BaseLayoutOptions } from '@/layouts/index.ts'
-import { BookOutline as BookIcon, HomeOutline as HomeIcon } from '@vicons/ionicons5'
-import { calendarService as calendar, ReSegment } from '@desktop-widgets/core'
-import { ComboboxTrigger, type ComboboxTriggerProps } from '@/components/combobox-trigger/index.ts'
-import { ReDock } from '@/components/re-dock'
 
-const Bookmarks = defineAsyncComponent(() => import('@/components/bookmarks/index.vue'))
-const Notepad = defineAsyncComponent(() => import('@/components/notepad/index.vue'))
-const AppStore = defineAsyncComponent(() => import('@/components/app-store/index.vue'))
+import backgroundImage from '@/assets/wallpaper/r2e391.png'
 
-import slideViewBG from '@/assets/slide-view-bg.jpg'
-import type { Component } from 'vue'
-
-export interface SearchResult {
-  s: Empty[]
-  i: I
-}
-
-export interface I {
-  ig: string
-}
-
-export interface Empty {
-  id: string
-  q: string
-  u: string
-  t: string
-}
+const AppController = defineAsyncComponent(
+  () => import('@/components/app-controller/app-controller.vue')
+)
 
 defineOptions({
-  name: 'HomeView'
+  name: 'slide-view-1'
 })
 
-const comboboxRef = useTemplateRef('comboboxRef')
-const suggestionsRef = useTemplateRef('suggestionsRef')
-
-const time = useTimestamp({
-  interval: 'requestAnimationFrame'
-})
-
-const dateTime = useDateFormat(time, 'YYYY-MM-DD HH:mm:ss', {
-  customMeridiem(hours, minutes, isLowercase, hasPeriod) {
-    return hours < 12 ? '上午' : '下午'
-  }
-})
-
-const message = useMessage()
-
-const { pixelRatio } = useDevicePixelRatio()
-
-const { Ctrl, Enter, ArrowUp, ArrowDown, Space } = useMagicKeys({
-  target: comboboxRef.value?.$el,
-  passive: false,
-  onEventFired(e) {
-    const keyMap: string[] = ['Enter', 'ArrowUp', 'ArrowDown']
-
-    for (const key of keyMap) {
-      e.key === key && e.preventDefault()
-    }
-  }
-})
-
-const activeKey = ref<string | null>(null)
-
-const collapsed = ref(true)
-
-const keyword = ref('')
-
-const searchResult = ref<Empty[]>([])
-
-const activeIndex = ref(0)
-
-const visible = ref(false)
-
-const refetch = shallowRef(false)
-
-const appModules: Component[] = [Bookmarks, Notepad, AppStore]
-
-// const urlParams = new URLSearchParams({
-//   q: '',
-//   cp: '0',
-//   client: 'gws-wiz-serp',
-//   xssi: 't',
-//   gs_pcrt: '2',
-//   hl: 'zh-CN',
-//   authuser: '0',
-//   pq: searchKeyword.value,
-//   psi: 'LCbMZ5H5Jczk1e8PiebW4AI.1741432365805',
-//   dpr: pixelRatio.value.toString(),
-//   nolsbt: '1'
-// })
-
-// https://www.google.com/complete/search?q&cp=0&client=gws-wiz-serp&xssi=t&gs_pcrt=2&hl=zh-CN&authuser=0&pq=测试是什么岗位&psi=LCbMZ5H5Jczk1e8PiebW4AI.1741432365805&dpr=1.5&nolsbt=1
-
-// const url= `https://www.google.com/complete/search?${useParams.toString()}`
-
-const urlParams = new URLSearchParams({
-  pt: 'page.home',
-  mkt: 'zh-cn',
-  qry: keyword.value,
-  cp: keyword.value.length.toString(),
-  csr: '1',
-  msbqf: 'false',
-  pths: '1',
-  // cvid: '01CAFCD9BF3B4B8E96E8F3DA2C934C60'
-  // cvid: 'B45441F70E424662B08ACD301492ECBD'
-  cvid: '71FCB2EE7E4A44EE95583AFF28443800'
-})
-// function generateCvid(): string {
-//   // 生成标准GUID
-//   const guid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-//     const r = Math.random() * 16 | 0;
-//     const v = c === 'x' ? r : (r & 0x3 | 0x8);
-//     return v.toString(16);
-//   });
-
-//   // 转换为必应使用的格式（移除连字符并转为大写）
-//   return guid.replace(/-/g, '').toUpperCase();
-// }
-
-// https://cn.bing.com/AS/Suggestions?pt=page.serp&bq=测速网&mkt=zh-cn&ds=mobileweb&qry=测速网&csr=1&pths=1&zis=1&pf=1&cvid=81E78D84077D4205893A0616F9365962
-
-// const url = `/bing/AS/Suggestions?${urlParams.toString()}`
-
-const url = shallowRef(`/bing/AS/Suggestions?${urlParams.toString()}`)
-
-const { data, abort, execute, canAbort } = useFetch<string>(url, {
-  refetch,
-  immediate: false
-}).get()
-
-const baseLayout: Ref<BaseLayoutOptions> = computed(() => ({
+const baseLayout: BaseLayoutOptions = reactive({
   baseLayout: {
     hasSider: true,
     style: {
-      backgroundImage: `url(${slideViewBG})`,
+      backgroundImage: `url(${backgroundImage})`,
       backgroundRepeat: 'no-repeat',
       backgroundSize: 'cover',
       backgroundAttachment: 'fixed',
       backgroundOrigin: 'content-box',
       backgroundClip: 'content-box',
-      backgroundPosition: 'center'
+      backgroundPosition: 'center',
+      backgroundColor: '#ffffff',
+      transition: 'background-color 300ms'
     }
   },
   baseSider: {
-    position: 'absolute',
-    width: 240,
-    collapseMode: 'width',
-    collapsedWidth: 64,
-    collapsed: collapsed.value,
-    showTrigger: true,
-    onCollapse() {
-      collapsed.value = true
-    },
-    onExpand() {
-      collapsed.value = false
-    },
-    class: [
-      {
-        'base-sider-collapsed': collapsed.value
-      }
-    ]
+    width: 50
+    // collapseMode: 'width'
   },
   baseHeader: {},
-  baseMain: {
-    position: 'absolute',
-    style: {
-      marginLeft: collapsed.value ? '64px' : '240px'
-    },
-    class: [
-      {
-        'base-main-collapsed': collapsed.value
-      }
-    ]
-  },
-  baseContent: {
-    contentStyle: 'padding: 24px;'
-  },
+  baseMain: {},
+  baseContent: {},
   baseFooter: {}
+<<<<<<< HEAD
 }))
 
 const comboboxTrigger: Ref<ComboboxTriggerProps> = computed(() => {
@@ -345,201 +192,145 @@ function handleUpdateValue(key: string, item: MenuOption) {
   message.info(`[onUpdate:value]: ${JSON.stringify(key)}`)
   message.info(`[onUpdate:value]: ${JSON.stringify(item)}`)
 }
+=======
+})
+
+onMounted(async () => {
+  GET_SLIDE_APP().subscribe(function (response) {
+    console.log('response', response)
+  })
+})
+
+onUnmounted(function () {
+  Modal.destroyAll()
+})
+>>>>>>> 148e2962941f416862e229e820aa19599f127d5f
 </script>
 
 <template>
   <BaseLayout v-bind="baseLayout">
     <template #sider>
-      <n-menu
-        v-model:value="activeKey"
-        :collapsed="collapsed"
-        :collapsed-width="64"
-        :collapsed-icon-size="22"
-        :options="menuOptions"
-        @update:value="handleUpdateValue"
-        :class="['sider-menu w-full', { 'sider-menu-collapsed': collapsed }]"
-      />
+      <a-avatar class="avatar">avatar</a-avatar>
+      <ul class="sider-menu"></ul>
     </template>
     <template #header>
-      <div class="date-time-module">
-        <span class="header-time">{{ dateTime }}</span>
-        <span class="header-date">{{ calendar.getLunarDate(dateTime, 'lMlD') }}</span>
-      </div>
-      <ComboboxTrigger
-        ref="comboboxRef"
-        v-bind="comboboxTrigger"
-        :combobox-class="[
-          {
-            'combobox-trigger-visible': visible,
-            'combobox-trigger-collapsed': visible && !searchResult.length
-          }
-        ]"
-      >
-        <template #content>
-          <n-card
-            ref="suggestionsRef"
-            v-if="visible && searchResult.length"
-            :class="[
-              'combobox-card',
-              {
-                'combobox-card-visible': visible
-              }
-            ]"
-          >
-            <div
-              v-for="(item, index) in searchResult"
-              :key="item.id"
-              :data-id="index"
-              class="w-full cursor-pointer hover:bg-blue-300 block py-2 px-2 rounded-md transition-all"
-              :class="[
-                {
-                  'bg-blue-300': index === activeIndex
-                }
-              ]"
-            >
-              {{ item.q }}
-            </div>
-          </n-card>
-        </template>
-      </ComboboxTrigger>
+      <a-input size="large" :bordered="false" placeholder="Borderless" />
     </template>
     <template #content>
-      <AppController></AppController>
+      <!-- <TransitionGroup name="slide-controller-fade">
+        <template v-for="slide in slides" :key="slide.id">
+          <div v-if="activeSlide?.id === slide.id" class="slide-controller">
+            <AppController :component-map="componentMap" :slideApps="slide.children" />
+          </div>
+        </template>
+      </TransitionGroup> -->
     </template>
-    <template #footer>
-      <ReDock />
-    </template>
+    <template #footer></template>
   </BaseLayout>
 </template>
 
 <style lang="scss" scoped>
 :deep(.base-layout) {
 }
-:deep(.base-sider) {
-  @apply h-full top-1/2 -translate-y-1/2 rounded-none transition-all duration-300 bg-transparent text-white;
-  backdrop-filter: blur(12px);
-  filter: brightness(1.1);
 
-  .sider-menu.n-menu {
-    .n-menu-item-content {
-      &:hover {
-        .n-menu-item-content-header a,
-        .n-menu-item-content__icon {
-          @apply text-black;
-        }
+:deep(.base-sider) {
+  @apply bg-transparent;
+  backdrop-filter: blur(4px);
+  transition: transform 300ms;
+  filter: brightness(1.2) invert(0);
+
+  .avatar {
+  }
+
+  .sider-menu {
+    @apply w-full h-[calc(100%-250px)] text-center text-white flex flex-col items-center justify-start gap-y-2 overflow-x-hidden overflow-y-scroll;
+    scrollbar-width: none;
+
+    .sider-menu-item {
+      width: 100%;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 0px;
+      row-gap: 4px;
+
+      &:hover,
+      &.is-active {
+        background-color: #ffffff26;
       }
-      .n-menu-item-content-header a,
-      .n-menu-item-content__icon {
-        @apply text-white;
+
+      .item-icon {
+        width: 20px;
+        height: 20px;
+        filter: brightness(0) invert(0.8);
+      }
+      .item-text {
+        @apply w-[80%] block text-xs leading-[1] text-nowrap line-clamp-1;
+        color: rgba(255, 255, 255, 1);
       }
     }
-  }
-}
-
-:deep(.base-sider-collapsed) {
-  @apply h-1/2 top-1/2 -translate-y-1/2 rounded-[32px];
-
-  .n-layout-sider-scroll-container {
-    @apply py-4;
-  }
-
-  .n-menu .n-menu-item-content:not(.n-menu-item-content-disabled):hover::before {
-    background-color: var(--n-item-color-hover);
-  }
-
-  .n-menu .n-menu-item-content:not(.n-menu-item-content-disabled)::before {
-    border-radius: 6px;
+    .add-aside-item {
+      .update-app {
+        width: 20px;
+        height: 20px;
+        filter: brightness(0) invert(0.8);
+      }
+    }
   }
 }
 
 :deep(.base-main) {
-  @apply transition-all duration-300 bg-transparent;
-
-  .n-layout-scroll-container {
-    @apply p-0 bg-transparent;
-    // scrollbar-width: none;
-  }
-
-  .base-main-collapsed {
-    // @apply ml-[64px];
-  }
+  @apply h-full bg-transparent;
 }
 
-$header-h: 250px;
-
 :deep(.base-header) {
-  @apply flex flex-col items-center justify-evenly gap-y-2 z-10 bg-transparent;
-  border: 1px solid gray;
-  height: $header-h;
+  @apply h-[250px] bg-gray-300 bg-opacity-30;
 
-  .date-time-module {
-    @apply flex flex-col items-center justify-center gap-y-1;
+  .ant-input {
+    @apply w-[600px] block mt-36 mx-auto shadow-lg px-5 rounded-full bg-white bg-opacity-30 text-white text-opacity-90;
+    caret-color: #ffffff;
 
-    .header-time {
-      @apply text-2xl font-bold text-nowrap;
-      @apply text-white;
-    }
-
-    .header-date {
-      @apply text-lg font-semibold text-nowrap;
-      @apply text-white;
-    }
-  }
-
-  .combobox-trigger {
-    @apply z-[1];
-    width: clamp(300px, 80%, 500px);
-
-    .n-input-wrapper {
-      @apply px-4;
-    }
-
-    &-visible {
-      .n-input {
-        --n-box-shadow-focus: 0 0 0 0px transparent !important;
-        --n-border-focus: 0px solid transparent !important;
-        @apply rounded-t-xl rounded-b-none;
-      }
-    }
-    &-collapsed {
-      .n-input {
-        --n-box-shadow-focus: 0 0 0 2px rgba(24, 160, 88, 0.2) !important;
-        --n-border-focus: 1px solid #36ad6a !important;
-        @apply rounded-3xl;
-      }
+    &::placeholder {
+      @apply text-white text-opacity-60;
     }
   }
 }
 
 :deep(.base-content) {
-  @apply bg-transparent;
-  height: calc(100% - #{$header-h + 64px});
+  position: relative;
+  height: calc(100vh - 300px);
+  overflow: hidden scroll;
+  scrollbar-width: none;
+  background-color: transparent;
 
-  .n-layout-scroll-container .n-h.n-h2 {
-    @apply text-white rounded-lg;
-    --n-margin: 0px !important;
-    padding: 16px 12px;
+  .slide-controller {
+    @apply w-full h-full;
 
-    &:hover {
-      @apply bg-white bg-opacity-30;
+    &-fade-enter-active,
+    &-fade-leave-active {
+      transition: all 600ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    &-fade-enter-from,
+    &-fade-leave-to {
+      // width: 100%;
+      // overflow: hidden;
+      opacity: 0;
+      position: absolute;
+      top: 0;
+    }
+    &-fade-enter-from {
+      transform: translateY(calc(100% + 120px));
+    }
+    &-fade-leave-to {
+      transform: translateY(calc(100% + 120px));
     }
   }
 }
 
 :deep(.base-footer) {
-  @apply rounded-lg bg-transparent text-white text-center;
-  backdrop-filter: blur(12px);
-  filter: brightness(1.1);
-}
-
-.combobox-card {
-  @apply h-fit max-h-96 rounded-b-xl rounded-t-none;
-
-  :deep(.n-card__content) {
-    @apply overflow-x-hidden overflow-y-scroll;
-  }
-
-  &-visible {
-  }
+  @apply h-[50px] bg-red-300 bg-opacity-30;
 }
 </style>

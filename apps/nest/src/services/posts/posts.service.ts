@@ -23,7 +23,7 @@ export class PostsService {
   }
 
   async findAll(req: Request) {
-    const authorId = new Types.ObjectId(req.user['id'])
+    const authorId = new Types.UUID(req.user['id'])
     // const posts = await this.postsModel
     //   .find({
     //     author: authorId, // author posts.schema中定义的字段名

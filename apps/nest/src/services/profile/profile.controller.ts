@@ -15,7 +15,7 @@ export class ProfileController {
 
   @Get()
   findAll(@Req() req: Request) {
-    console.log('req', req.user)
+    // console.log('req', req.user)
 
     return this.profileService.findAll()
   }

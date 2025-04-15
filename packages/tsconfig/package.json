@@ -11,7 +11,7 @@
     "url": "https://github.com/desktop-widgets/desktop-widgets/issues"
   },
   "repository": {
-    "directory": "configs/tsconfig"
+    "directory": "packages/tsconfig"
   },
   "files": [
     "tsconfig.base.json",

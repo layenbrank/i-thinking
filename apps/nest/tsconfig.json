@@ -6,11 +6,16 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ESNext",
-    "sourceMap": true,
+    "esModuleInterop": true,
+
     "resolveJsonModule": true,
+
+    "target": "ES2021",
+    "sourceMap": true,
+
     "incremental": true,
     "skipLibCheck": true,
+
     "strictNullChecks": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
