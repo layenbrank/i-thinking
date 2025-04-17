@@ -164,13 +164,8 @@ export class DemoController {
   }
 
   @Post()
-<<<<<<< HEAD
-  create(@Body() createDemoDto: CreateDemoDto) {
-    return this.testService.create(createDemoDto)
-=======
   create(@Body() createTestDto: CreateDemoDto) {
     return this.testService.create(createTestDto)
->>>>>>> 148e2962941f416862e229e820aa19599f127d5f
   }
 
   @Get('crawl')
@@ -236,13 +231,8 @@ export class DemoController {
   }
 
   @Patch(':id')
-<<<<<<< HEAD
-  update(@Param('id') id: string, @Body() updateDemoDto: UpdateDemoDto) {
-    return this.testService.update(+id, updateDemoDto)
-=======
   update(@Param('id') id: string, @Body() updateTestDto: UpdateDemoDto) {
     return this.testService.update(+id, updateTestDto)
->>>>>>> 148e2962941f416862e229e820aa19599f127d5f
   }
 
   @Delete(':id')

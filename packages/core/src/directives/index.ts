@@ -1,2 +1,2 @@
-export * from './debounce'
-export * from './resize'
+export * from './modules/debounce'
+export * from './modules/resize'
