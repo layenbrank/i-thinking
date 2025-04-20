@@ -1,4 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
+import { dirname, resolve } from 'node:path'
+import { findUpSync } from 'find-up'
 
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -6,8 +8,6 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
-import { dirname, resolve } from 'node:path'
-import { findUpSync } from 'find-up'
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import { VueMcp } from 'vite-plugin-vue-mcp'
 import Icons from 'unplugin-icons/vite'
@@ -100,7 +100,9 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
     },
-
+    optimizeDeps: {
+      include: ['naive-ui', 'lodash', 'vue', 'vue-router', 'pinia']
+    },
     build: {
       // 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
       outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-widgets\//, '')}`),

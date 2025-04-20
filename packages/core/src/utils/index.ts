@@ -1,4 +1,3 @@
-export * from './calendar'
-export * from './generate'
-export * from './singleton'
-export * from './time-sphere'
+export * from './modules/calendar'
+export * from './modules/singleton'
+export * from './modules/time-sphere'

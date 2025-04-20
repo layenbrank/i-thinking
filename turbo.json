@@ -2,7 +2,6 @@
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": ["NODE_ENV"],
   "globalDependencies": [".env", "tsconfig.json"],
-
   "tasks": {
     "dev": {
       "cache": false,

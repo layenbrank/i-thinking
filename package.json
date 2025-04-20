@@ -18,9 +18,14 @@
     "build:service": "turbo run build --filter=@desktop-widgets/service",
     "build:devtools": "turbo run build --filter=@desktop-widgets/devtools",
     "build:extension": "turbo run build --filter=@desktop-widgets/extension",
-    "cmd": "tsx scripts/index.ts",
+    "preview": "turbo run preview",
+    "preview:extension": "turbo run preview --filter=@desktop-widgets/extension",
+    "cmd": "tsx scripts/commands/index.ts",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,vue,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,vue,md}\"",
+    "preinstall": "run-p prepare:*",
+    "prepare:pnpm": "npx only-allow pnpm",
+    "prepare:husky": "husky"
   },
   "dependencies": {
     "@ngify/http": "^2.0.4",
@@ -88,6 +93,7 @@
     "find-up": "^7.0.0",
     "gradient-string": "^3.0.0",
     "inquirer": "^12.4.3",
+    "husky": "^9.1.7",
     "jiti": "^2.4.2",
     "npm-run-all2": "^7.0.2",
     "ora": "^8.2.0",
@@ -104,7 +110,7 @@
     "typescript": "~5.7.3",
     "unplugin-auto-import": "^19.1.1",
     "unplugin-vue-components": "^28.4.1",
-    "vite": "^6.2.1",
+    "unplugin-icons": "^22.1.0",
     "vite-plugin-compression": "^0.5.1",
     "vite-plugin-dts": "^4.5.3",
     "vite-plugin-monaco-editor": "^1.1.0",

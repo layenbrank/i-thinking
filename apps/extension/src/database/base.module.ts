@@ -83,7 +83,7 @@ export abstract class BaseModule<
   }
 
   add(value: InsertType<TEntity, TKeyName>, key?: IDType<TEntity, TKeyName>) {
-    return this.table.add(value)
+    return this.table.add(value, key)
   }
 
   update(
@@ -98,7 +98,7 @@ export abstract class BaseModule<
     changes: (
       entity: TEntity,
       ctx: {
-        value: any
+        value: UpdateSpec<InsertType<TEntity, TKeyName>>
         primKey: IndexableType
       }
     ) => void | boolean

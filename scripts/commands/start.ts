@@ -52,6 +52,7 @@ async function detectProjects(): Promise<Project[]> {
       const appDirectories = appFolders
         .filter((dirent) => dirent.isDirectory())
         .map((dirent) => dirent.name)
+
       console.log('appDirectories', appDirectories)
       // 并行处理所有项目信息获取
       const projectInfos = await Promise.all(appDirectories.map(extractProjectInfo))
@@ -165,20 +166,21 @@ export async function startProject() {
 
     // 处理子进程退出
     childProcess.on('exit', (code) => {
-      if (code !== 0 && code !== null) {
-        console.error(chalk.redBright(`\n❌ 进程异常退出，退出码: ${code}`))
+      childProcess.on('exit', (code) => {
+        if (code !== 0 && code !== null) {
+          console.error(chalk.redBright(`\n❌ 进程异常退出，退出码: ${code}`))
+        }
+        process.exit(code || 0)
+      })
+
+      // 确保将信号传递给子进程
+      const handleTermination = (signal: NodeJS.Signals) => {
+        console.log(chalk.yellowBright(`\n⏹️ 接收到${signal}信号，正在优雅关闭...`))
+        childProcess.kill(signal)
       }
-      process.exit(code || 0)
+
+      process.on('SIGINT', () => handleTermination('SIGINT'))
     })
-
-    // 确保将信号传递给子进程
-    const handleTermination = (signal: NodeJS.Signals) => {
-      console.log(chalk.yellowBright(`\n⏹️ 接收到${signal}信号，正在优雅关闭...`))
-      childProcess.kill(signal)
-    }
-
-    process.on('SIGINT', () => handleTermination('SIGINT'))
-    process.on('SIGTERM', () => handleTermination('SIGTERM'))
   } catch (error) {
     // 检查是否是用户中断（Ctrl+C）
     if (error instanceof Error && error.message.includes('User force closed the prompt')) {

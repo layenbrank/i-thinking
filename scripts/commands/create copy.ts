@@ -45,6 +45,7 @@ function execCommand(
     })
 
     childProcess.on('close', (code) => {
+    childProcess.on('close', code => {
       if (code === 0) {
         resolve()
       } else {
@@ -53,6 +54,10 @@ function execCommand(
     })
 
     childProcess.on('error', (err) => {
+      reject(err)
+    })
+  })
+    childProcess.on('error', err => {
       reject(err)
     })
   })
@@ -230,6 +235,9 @@ async function copyDirectoryAsync(source: string, destination: string) {
     entries.map(async (entry) => {
       const srcPath = join(source, entry.name)
       const destPath = join(destination, entry.name)
+    entries.map(async entry => {
+      const srcPath = join(source, entry.name)
+      const destPath = join(destination, entry.name)
 
       if (entry.isDirectory()) {
         // 递归复制子目录
@@ -270,6 +278,8 @@ async function updatePackageJson(projectPath: string, projectName: string) {
       // 添加共享依赖
       packageJson.devDependencies['@repo/eslint-config'] = 'workspace:*'
       packageJson.devDependencies['@repo/typescript-config'] = 'workspace:*'
+      // packageJson.devDependencies["@repo/eslint-config"] = "workspace:*";
+      // packageJson.devDependencies["@repo/typescript-config"] = "workspace:*";
 
       // 写入更新后的 package.json
       await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
@@ -388,6 +398,10 @@ export async function createProject() {
         name: 'template',
         message: chalk.cyanBright('📋 请选择项目模板:'),
         choices: templates.map((template) => ({
+        type: 'list',
+        name: 'template',
+        message: chalk.cyanBright('📋 请选择项目模板:'),
+        choices: templates.map(template => ({
           name: `${chalk.greenBright(template.name)} - ${chalk.gray(template.description)}`,
           value: template
         })),
