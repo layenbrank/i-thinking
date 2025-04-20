@@ -1,140 +1,138 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, onUnmounted } from "vue";
-import type { CSSProperties } from "vue";
+import { ref, nextTick, onMounted, watch, onUnmounted } from 'vue'
+import type { CSSProperties } from 'vue'
 
 defineOptions({
-  name: "ReSegment",
-});
+  name: 'ReSegment'
+})
 
 interface SegmentOption {
-  value: string | number;
-  label: string;
-  disabled?: boolean;
-  icon?: string;
-  tooltip?: string;
+  value: string | number
+  label: string
+  disabled?: boolean
+  icon?: string
+  tooltip?: string
 }
 
-type Size = "small" | "default" | "large";
+type Size = 'small' | 'default' | 'large'
 
 const props = withDefaults(
   defineProps<{
-    options: SegmentOption[];
-    block?: boolean;
-    disabled?: boolean;
-    size?: Size;
-    bordered?: boolean;
-    defaultValue?: string | number;
-    loading?: boolean;
-    customClass?: string;
-    customStyle?: string | CSSProperties;
-    animation?: boolean;
-    theme?: "light" | "dark";
+    options: SegmentOption[]
+    block?: boolean
+    disabled?: boolean
+    size?: Size
+    bordered?: boolean
+    defaultValue?: string | number
+    loading?: boolean
+    customClass?: string
+    customStyle?: string | CSSProperties
+    animation?: boolean
+    theme?: 'light' | 'dark'
   }>(),
   {
     block: false,
     disabled: false,
-    size: "default",
+    size: 'default',
     bordered: true,
     loading: false,
     animation: true,
-    theme: "light",
-  },
-);
+    theme: 'light'
+  }
+)
 
 const emit = defineEmits<{
-  "update:modelValue": [value: string | number];
-  change: [value: SegmentOption];
-  focus: [value: SegmentOption];
-  blur: [value: SegmentOption];
-  mouseenter: [e: MouseEvent];
-  mouseleave: [e: MouseEvent];
-}>();
+  'update:modelValue': [value: string | number]
+  change: [value: SegmentOption]
+  focus: [value: SegmentOption]
+  blur: [value: SegmentOption]
+  mouseenter: [e: MouseEvent]
+  mouseleave: [e: MouseEvent]
+}>()
 
 const thumbStyle = ref({
-  left: "0px",
-  width: "0px",
-});
+  left: '0px',
+  width: '0px'
+})
 
-const modelValue = defineModel<string | number>();
-const segmentRef = ref<HTMLElement | null>(null);
+const modelValue = defineModel<string | number>()
+const segmentRef = ref<HTMLElement | null>(null)
 
 async function updatePosition() {
-  await nextTick();
-  const selectedElement = segmentRef.value?.querySelector(
-    ".segment-item.active",
-  ) as HTMLElement;
+  await nextTick()
+  const selectedElement = segmentRef.value?.querySelector('.segment-item.active') as HTMLElement
 
   if (selectedElement) {
     thumbStyle.value = {
-      left: selectedElement.offsetLeft + "px",
-      width: selectedElement.offsetWidth + "px",
-    };
+      left: selectedElement.offsetLeft + 'px',
+      width: selectedElement.offsetWidth + 'px'
+    }
   }
 }
 
 function handleSelect(option: SegmentOption, e: MouseEvent) {
-  if (props.disabled || option.disabled || props.loading) return;
-  modelValue.value = option.value;
-  emit("update:modelValue", option.value);
-  emit("change", option);
-  updatePosition();
+  if (props.disabled || option.disabled || props.loading) return
+  modelValue.value = option.value
+  emit('update:modelValue', option.value)
+  emit('change', option)
+  updatePosition()
 }
 
 function handleFocus(option: SegmentOption) {
   if (!props.disabled && !option.disabled) {
-    emit("focus", option);
+    emit('focus', option)
   }
 }
 
 function handleBlur(option: SegmentOption) {
   if (!props.disabled && !option.disabled) {
-    emit("blur", option);
+    emit('blur', option)
   }
 }
 
 function handleMouseEnter(e: MouseEvent) {
   if (!props.disabled) {
-    emit("mouseenter", e);
+    emit('mouseenter', e)
   }
 }
 
 function handleMouseLeave(e: MouseEvent) {
   if (!props.disabled) {
-    emit("mouseleave", e);
+    emit('mouseleave', e)
   }
 }
 
 // 监听主题变化
-watch(() => props.theme, updatePosition);
+watch(() => props.theme, updatePosition)
 
 // 监听窗口大小变化，更新滑块位置
-let resizeObserver: ResizeObserver | null = null;
+let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
   // 设置默认值
   if (!modelValue.value && props.defaultValue) {
-    modelValue.value = props.defaultValue;
+    modelValue.value = props.defaultValue
   } else if (!modelValue.value && props.options.length > 0) {
-    modelValue.value = props.options[0].value;
-    emit("change", props.options[0]);
+    modelValue.value = props.options[0].value
+    emit('change', props.options[0])
   }
 
-  updatePosition();
+  updatePosition()
 
   // 监听容器大小变化
   if (segmentRef.value) {
     resizeObserver = new ResizeObserver(() => {
-      updatePosition();
-    });
-    resizeObserver.observe(segmentRef.value);
+      updatePosition()
+    })
+    resizeObserver.observe(segmentRef.value)
   }
-});
+})
 
 onUnmounted(() => {
   if (resizeObserver) {
-    resizeObserver.disconnect();
+    resizeObserver.disconnect()
   }
-});
+})
 </script>
 
 <template>
@@ -149,9 +147,9 @@ onUnmounted(() => {
         'is-disabled': disabled,
         'is-bordered': bordered,
         'is-loading': loading,
-        'no-animation': !animation,
+        'no-animation': !animation
       },
-      customClass,
+      customClass
     ]"
     :style="customStyle"
     @mouseenter="handleMouseEnter"
@@ -165,7 +163,7 @@ onUnmounted(() => {
         class="segment-item"
         :class="{
           active: option.value === modelValue,
-          disabled: option.disabled,
+          disabled: option.disabled
         }"
         :title="option.tooltip"
         @click="(e) => handleSelect(option, e)"
@@ -287,7 +285,7 @@ onUnmounted(() => {
     position: relative;
 
     &::after {
-      content: "";
+      content: '';
       position: absolute;
       top: 0;
       right: 0;

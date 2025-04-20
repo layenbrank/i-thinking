@@ -28,7 +28,7 @@ export function generateSecureCvid(): string {
 
   // 转换为十六进制字符串
   return Array.from(array)
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
     .toUpperCase()
 }

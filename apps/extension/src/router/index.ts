@@ -9,7 +9,7 @@ const modules: Record<string, { default: RouteRecordRaw }> = import.meta.glob(
 
 const routes: RouteRecordRaw[] = []
 
-Object.keys(modules).forEach(key => {
+Object.keys(modules).forEach((key) => {
   routes.push(modules[key].default)
 })
 

@@ -1,93 +1,93 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { useThemeStore } from "../store/theme";
-import { useWidgetStore } from "../store/widgets";
-import { themes } from "../types/theme";
-import type { ThemeColor } from "../types/theme";
+import { computed } from 'vue'
+import { useThemeStore } from '../store/theme'
+import { useWidgetStore } from '../store/widgets'
+import { themes } from '../types/theme'
+import type { ThemeColor } from '../types/theme'
 
-const themeStore = useThemeStore();
-const widgetStore = useWidgetStore();
+const themeStore = useThemeStore()
+const widgetStore = useWidgetStore()
 
-const currentTheme = computed(() => themeStore.currentTheme);
+const currentTheme = computed(() => themeStore.currentTheme)
 
 const setTheme = (theme: ThemeColor) => {
-  themeStore.setTheme(theme);
-};
+  themeStore.setTheme(theme)
+}
 
 const availableWidgets = [
   {
-    type: "app-launcher",
-    name: "应用启动器",
-    icon: "🚀",
-    defaultConfig: {},
+    type: 'app-launcher',
+    name: '应用启动器',
+    icon: '🚀',
+    defaultConfig: {}
   },
   {
-    type: "system-control",
-    name: "系统控制",
-    icon: "⚡",
-    defaultConfig: {},
+    type: 'system-control',
+    name: '系统控制',
+    icon: '⚡',
+    defaultConfig: {}
   },
   {
-    type: "power",
-    name: "电源选项",
-    icon: "⭘",
-    defaultConfig: {},
+    type: 'power',
+    name: '电源选项',
+    icon: '⭘',
+    defaultConfig: {}
   },
   {
-    type: "clock",
-    name: "模拟时钟",
-    icon: "🕐",
+    type: 'clock',
+    name: '模拟时钟',
+    icon: '🕐',
     defaultConfig: {
-      layout: "standard",
-      use24Hour: true,
-    },
+      layout: 'standard',
+      use24Hour: true
+    }
   },
   {
-    type: "digital-clock",
-    name: "数字时钟",
-    icon: "🕙",
+    type: 'digital-clock',
+    name: '数字时钟',
+    icon: '🕙',
     defaultConfig: {
-      size: "large",
+      size: 'large',
       showDate: true,
-      use24Hour: true,
-    },
+      use24Hour: true
+    }
   },
   {
-    type: "calendar",
-    name: "日历",
-    icon: "📅",
-    defaultConfig: {},
+    type: 'calendar',
+    name: '日历',
+    icon: '📅',
+    defaultConfig: {}
   },
   {
-    type: "weather",
-    name: "天气",
-    icon: "🌤️",
-    defaultConfig: {},
+    type: 'weather',
+    name: '天气',
+    icon: '🌤️',
+    defaultConfig: {}
   },
   {
-    type: "music-player",
-    name: "音乐播放器",
-    icon: "🎵",
-    defaultConfig: {},
-  },
-];
+    type: 'music-player',
+    name: '音乐播放器',
+    icon: '🎵',
+    defaultConfig: {}
+  }
+]
 
 const addWidget = (widget: (typeof availableWidgets)[0]) => {
-  const id = `${widget.type}-${Date.now()}`;
+  const id = `${widget.type}-${Date.now()}`
   widgetStore.addWidget({
     id,
     type: widget.type,
     position: {
       x: Math.random() * (window.innerWidth - 300),
-      y: Math.random() * (window.innerHeight - 200),
+      y: Math.random() * (window.innerHeight - 200)
     },
     size: {
       width: 300,
-      height: 200,
+      height: 200
     },
-    config: widget.defaultConfig,
-  });
-};
+    config: widget.defaultConfig
+  })
+}
 </script>
 
 <template>

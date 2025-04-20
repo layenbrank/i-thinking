@@ -1,51 +1,51 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 
 const props = withDefaults(
   defineProps<{
-    size?: "small" | "medium" | "large";
-    showDate?: boolean;
-    use24Hour?: boolean;
+    size?: 'small' | 'medium' | 'large'
+    showDate?: boolean
+    use24Hour?: boolean
   }>(),
   {
-    size: "medium",
+    size: 'medium',
     showDate: true,
-    use24Hour: true,
-  },
-);
+    use24Hour: true
+  }
+)
 
-const now = ref(new Date());
+const now = ref(new Date())
 
 const updateTime = () => {
-  now.value = new Date();
-};
+  now.value = new Date()
+}
 
-let timer: number;
+let timer: number
 
 onMounted(() => {
-  updateTime();
-  timer = window.setInterval(updateTime, 1000);
-});
+  updateTime()
+  timer = window.setInterval(updateTime, 1000)
+})
 
 onUnmounted(() => {
-  clearInterval(timer);
-});
+  clearInterval(timer)
+})
 
 const timeFormat = computed(() => {
   const hours = props.use24Hour
-    ? now.value.getHours().toString().padStart(2, "0")
-    : (now.value.getHours() % 12 || 12).toString().padStart(2, "0");
-  const minutes = now.value.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
-});
+    ? now.value.getHours().toString().padStart(2, '0')
+    : (now.value.getHours() % 12 || 12).toString().padStart(2, '0')
+  const minutes = now.value.getMinutes().toString().padStart(2, '0')
+  return `${hours}:${minutes}`
+})
 
 const monthFormat = computed(() => {
-  return now.value.toLocaleDateString("zh-CN", { month: "long" });
-});
+  return now.value.toLocaleDateString('zh-CN', { month: 'long' })
+})
 
 const dayNumber = computed(() => {
-  return now.value.getDate().toString().padStart(2, "0");
-});
+  return now.value.getDate().toString().padStart(2, '0')
+})
 </script>
 
 <template>
@@ -65,7 +65,7 @@ const dayNumber = computed(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  font-family: "SF Pro Display", system-ui, sans-serif;
+  font-family: 'SF Pro Display', system-ui, sans-serif;
   letter-spacing: -0.02em;
 
   &.small {

@@ -52,24 +52,24 @@ export default defineConfigWithVueTs(
         }
       ],
       /* 限制每行代码的最大长度，增强代码的可读性 */
-      'vue/max-len': [
-        'error',
-        {
-          code: 300,
-          template: 300,
-          tabWidth: 2,
-          comments: 200,
-          ignorePattern: '(<svg.*>|<path.*>|<circle.*>|<g.*>|<rect.*>/.*>|xlink:href=".*"|d=.*)',
-          ignoreComments: false,
-          ignoreTrailingComments: false,
-          ignoreUrls: true,
-          ignoreStrings: false,
-          ignoreTemplateLiterals: false,
-          ignoreRegExpLiterals: false,
-          ignoreHTMLAttributeValues: false,
-          ignoreHTMLTextContents: true
-        }
-      ],
+      // 'vue/max-len': [
+      //   'error',
+      //   {
+      //     code: 300,
+      //     template: 300,
+      //     tabWidth: 2,
+      //     comments: 200,
+      //     ignorePattern: '(<svg.*>|<path.*>|<circle.*>|<g.*>|<rect.*>/.*>|xlink:href=".*"|d=.*)',
+      //     ignoreComments: false,
+      //     ignoreTrailingComments: false,
+      //     ignoreUrls: true,
+      //     ignoreStrings: false,
+      //     ignoreTemplateLiterals: false,
+      //     ignoreRegExpLiterals: false,
+      //     ignoreHTMLAttributeValues: false,
+      //     ignoreHTMLTextContents: true
+      //   }
+      // ],
       /* 要求组件名称使用驼峰命名法，增强代码的可读性 */
       'vue/multi-word-component-names': [
         'error',

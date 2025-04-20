@@ -1,11 +1,11 @@
-import "pinia";
+import 'pinia'
 
-declare module "pinia" {
+declare module 'pinia' {
   export interface DefineStoreOptionsBase<S, Store> {
     persist?: {
-      key?: string;
-      storage?: Storage;
-      paths?: string[];
-    };
+      key?: string
+      storage?: Storage
+      paths?: string[]
+    }
   }
 }

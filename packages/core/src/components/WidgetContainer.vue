@@ -1,82 +1,82 @@
 <script setup lang="ts">
-import { useThemeStore } from "../store/theme";
-import { computed } from "vue";
+import { useThemeStore } from '../store/theme'
+import { computed } from 'vue'
 
 interface Position {
-  x: number;
-  y: number;
+  x: number
+  y: number
 }
 
 interface Size {
-  width: number;
-  height: number;
+  width: number
+  height: number
 }
 
 const props = withDefaults(
   defineProps<{
-    position: Position;
-    size: Size;
-    resizable?: boolean;
+    position: Position
+    size: Size
+    resizable?: boolean
   }>(),
   {
-    resizable: true,
-  },
-);
+    resizable: true
+  }
+)
 
 const emit = defineEmits<{
-  (e: "update:position", position: Position): void;
-  (e: "update:size", size: Size): void;
-  (e: "close"): void;
-}>();
+  (e: 'update:position', position: Position): void
+  (e: 'update:size', size: Size): void
+  (e: 'close'): void
+}>()
 
-const themeStore = useThemeStore();
-const theme = computed(() => themeStore.getTheme());
+const themeStore = useThemeStore()
+const theme = computed(() => themeStore.getTheme())
 
 function startResize(event: MouseEvent) {
-  event.stopPropagation();
-  const startX = event.clientX;
-  const startY = event.clientY;
-  const startWidth = props.size.width;
-  const startHeight = props.size.height;
+  event.stopPropagation()
+  const startX = event.clientX
+  const startY = event.clientY
+  const startWidth = props.size.width
+  const startHeight = props.size.height
 
   function onMouseMove(e: MouseEvent) {
-    const deltaX = e.clientX - startX;
-    const deltaY = e.clientY - startY;
+    const deltaX = e.clientX - startX
+    const deltaY = e.clientY - startY
 
-    emit("update:size", {
+    emit('update:size', {
       width: Math.max(200, startWidth + deltaX),
-      height: Math.max(100, startHeight + deltaY),
-    });
+      height: Math.max(100, startHeight + deltaY)
+    })
   }
 
   function onMouseUp() {
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
   }
 
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("mouseup", onMouseUp);
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
 }
 
 function startDrag(event: MouseEvent) {
-  event.preventDefault();
-  const startX = event.clientX - props.position.x;
-  const startY = event.clientY - props.position.y;
+  event.preventDefault()
+  const startX = event.clientX - props.position.x
+  const startY = event.clientY - props.position.y
 
   function onMouseMove(e: MouseEvent) {
-    emit("update:position", {
+    emit('update:position', {
       x: e.clientX - startX,
-      y: e.clientY - startY,
-    });
+      y: e.clientY - startY
+    })
   }
 
   function onMouseUp() {
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
   }
 
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("mouseup", onMouseUp);
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
 }
 </script>
 
@@ -89,7 +89,7 @@ function startDrag(event: MouseEvent) {
       width: `${size.width}px`,
       height: `${size.height}px`,
       background: theme.glassBackground,
-      color: theme.textColor,
+      color: theme.textColor
     }"
   >
     <div class="widget-header">
@@ -196,7 +196,7 @@ function startDrag(event: MouseEvent) {
   cursor: se-resize;
 
   &::after {
-    content: "";
+    content: '';
     position: absolute;
     right: 2px;
     bottom: 2px;

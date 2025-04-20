@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
-import { appModules, appReflect } from './app-controller.tsx'
+import { modules, appReflect } from './app-controller.tsx'
 import type { SlideAppSize } from '@/types/slide-app.js'
 
 type ContextMenuKeys =
@@ -88,11 +88,23 @@ function updateActiveKey(value: MenuOptions) {
   const contextMenuMap: ContextMenuMap = {
     'update-app'() {},
     'update-size'() {
-      appModules.value = appModules.value.map((item) => {
-        if (item.id === activeApp.value) item.size = sizes[Math.floor(Math.random() * sizes.length)]
-        return item
-      })
-      console.log('activeApp', activeApp.value)
+      // modules.value = modules.value.map((item) => {
+      //   if (item.id === activeApp.value) item.size = sizes[Math.floor(Math.random() * sizes.length)]
+      //   return item
+      // })
+
+      // for (const module of modules.value) {
+      //   if (module.id !== activeApp.value) return
+      //   module.size = sizes[Math.floor(Math.random() * sizes.length)]
+      // }
+
+      for (const index in modules.value) {
+        if (!Object.prototype.hasOwnProperty.call(modules.value, index)) return
+        const module = modules.value[index]
+
+        if (module.id !== activeApp.value) continue
+        module.size = sizes[Math.round(Math.random() * sizes.length)]
+      }
     },
     'update-wallpaper'() {},
     'update-backup'() {},
@@ -111,8 +123,10 @@ function handleResize(DOMRect: DOMRect) {
 function openContextMenu(e: MouseEvent) {
   e.preventDefault()
   e.stopPropagation()
+
   const target = e.target as HTMLElement
   const appItem = target.closest('.app-item') as HTMLElement
+
   setTimeout(() => {
     contextMenuClient.x = Math.min(e.clientX, innerWidth - contextMenuSize.width)
     contextMenuClient.y = Math.min(e.clientY, innerHeight - contextMenuSize.height)
@@ -145,7 +159,7 @@ onUnmounted(function () {
 <template>
   <div ref="contextMenuRef" class="app-controller">
     <TransitionGroup name="app-controller-fade">
-      <template v-for="appModule in appModules" :key="appModule.id">
+      <template v-for="appModule in modules" :key="appModule.id">
         <component :app="appModule" :is="appReflect[appModule.app]()" :class="['app-item']" />
       </template>
     </TransitionGroup>
@@ -157,10 +171,10 @@ onUnmounted(function () {
           class="context-menu-item shortcut-label"
           @click="updateActiveKey(item)"
         >
-          <span class="shortcut-label-text">
+          <span class="label-text">
             {{ item.label }}
           </span>
-          <component :is="item.icon" class="shortcut-label-icon" />
+          <component :is="item.icon" class="label-icon" />
         </li>
       </ul>
     </Teleport>
@@ -223,7 +237,7 @@ onUnmounted(function () {
   }
 }
 .context-menu {
-  @apply w-[140px] min-w-32 flex flex-col items-center justify-center gap-y-[6px] z-[9999] fixed bg-[#0b0b0bcc] p-[6px] rounded-md border border-solid border-[#0a0a0a33];
+  @apply w-40 min-w-40 flex flex-col items-center justify-center gap-y-[6px] z-[9999] fixed bg-[#0b0b0bcc] p-[6px] rounded-md border border-solid border-[#0a0a0a33];
   backdrop-filter: blur(8px);
   box-shadow:
     0 0 #0000,
@@ -239,16 +253,16 @@ onUnmounted(function () {
   transform-origin: 0 0;
 
   .context-menu-item {
-    @apply w-full flex items-center justify-between text-white text-xs leading-none px-2 py-2 rounded-md cursor-pointer relative;
+    @apply w-full flex items-center justify-between text-white text-xs leading-none px-2 py-2 rounded-[4px] cursor-pointer relative;
 
     &:hover {
       @apply bg-[#ffffff1a];
     }
 
-    .shortcut-label-text {
+    .label-text {
     }
 
-    .shortcut-label-icon {
+    .label-icon {
       @apply w-4 h-4 text-white;
     }
   }

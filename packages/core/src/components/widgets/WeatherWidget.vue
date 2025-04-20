@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted } from 'vue'
 
 // 模拟天气数据
-const temperature = ref(23);
-const weatherIcon = ref("☀️");
-const weatherText = ref("晴朗");
-const location = ref("北京市");
+const temperature = ref(23)
+const weatherIcon = ref('☀️')
+const weatherText = ref('晴朗')
+const location = ref('北京市')
 
 const forecast = ref([
-  { name: "今天", icon: "☀️", temp: 23, date: "2024-03-20" },
-  { name: "周四", icon: "⛅️", temp: 22, date: "2024-03-21" },
-  { name: "周五", icon: "🌧️", temp: 20, date: "2024-03-22" },
-  { name: "周六", icon: "⛅️", temp: 21, date: "2024-03-23" },
-  { name: "周日", icon: "☀️", temp: 24, date: "2024-03-24" },
-]);
+  { name: '今天', icon: '☀️', temp: 23, date: '2024-03-20' },
+  { name: '周四', icon: '⛅️', temp: 22, date: '2024-03-21' },
+  { name: '周五', icon: '🌧️', temp: 20, date: '2024-03-22' },
+  { name: '周六', icon: '⛅️', temp: 21, date: '2024-03-23' },
+  { name: '周日', icon: '☀️', temp: 24, date: '2024-03-24' }
+])
 
 // 这里可以添加实际的天气 API 调用
 onMounted(() => {
   // fetchWeatherData();
-});
+})
 </script>
 
 <template>

@@ -112,7 +112,7 @@ export function cacheInterceptor(
 
   // 发送请求，成功后缓存
   return next(request).pipe(
-    tap(event => {
+    tap((event) => {
       cacheService.clear() // 顺便清理一下过期缓存
       event instanceof HttpResponse && cacheService.put(request, event)
     })

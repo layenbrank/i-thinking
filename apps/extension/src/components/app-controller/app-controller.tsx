@@ -26,7 +26,7 @@ function randomID() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }
 
-export const appModules = ref<SlideApp[]>([
+export const modules = ref<SlideApp[]>([
   {
     id: randomID(),
     slideID: randomID(),
