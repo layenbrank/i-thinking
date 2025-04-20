@@ -12,7 +12,7 @@ type ContextMenuKeys =
   | 'update-size'
   | 'single-delete'
   | 'batch-deletion'
-  | 'settings'
+  | 'update-settings'
   | 'single-edit'
   | 'new-tab'
   | 'release'
@@ -23,25 +23,28 @@ interface MenuOptions {
   icon: Component | string
 }
 
-type ContextMenuMap = Partial<Record<ContextMenuKeys, () => void>>
+type ContextMenuMap = Readonly<Partial<Record<ContextMenuKeys, () => void>>>
 
 defineOptions({
   name: 'app-controller'
 })
 
-const contextMenuRef = useTemplateRef('contextMenuRef')
+const appControllerRef = useTemplateRef('appControllerRef')
+const contextmenuRef = useTemplateRef('contextmenuRef')
 
-const contextMenuClient = reactive({
+const contextmenuRect = reactive({
   x: innerWidth - 200,
-  y: 200
-})
-
-const contextMenuSize = reactive({
+  y: 200,
   width: 0,
   height: 0
 })
 
-const contextMenuVisible = ref(false)
+// const contextmenuSize = reactive({
+//   width: 0,
+//   height: 0
+// })
+
+const contextmenuVisible = ref(false)
 
 const activeApp = ref<string>()
 
@@ -75,49 +78,38 @@ const menuOptions = reactive<Array<MenuOptions>>([
   },
   {
     label: '设置',
-    key: 'settings',
+    key: 'update-settings',
     icon: markRaw(Settings)
   }
 ])
 
 const sizes: SlideAppSize[] = ['small', 'medium', 'large', 'huge', 'massive', 'ultra']
 
+const contextmenuMap: ContextMenuMap = {
+  'update-app'() {},
+  'update-size'() {
+    for (const index in modules.value) {
+      if (!Object.prototype.hasOwnProperty.call(modules.value, index)) return
+      const module = modules.value[index]
+
+      if (module.id !== activeApp.value) continue
+      module.size = sizes[Math.round(Math.random() * sizes.length)]
+    }
+  },
+  'update-wallpaper'() {},
+  'update-backup'() {},
+  'update-settings'() {}
+}
+
 function updateActiveKey(value: MenuOptions) {
   activeMenuKey.value = value.key
 
-  const contextMenuMap: ContextMenuMap = {
-    'update-app'() {},
-    'update-size'() {
-      // modules.value = modules.value.map((item) => {
-      //   if (item.id === activeApp.value) item.size = sizes[Math.floor(Math.random() * sizes.length)]
-      //   return item
-      // })
-
-      // for (const module of modules.value) {
-      //   if (module.id !== activeApp.value) return
-      //   module.size = sizes[Math.floor(Math.random() * sizes.length)]
-      // }
-
-      for (const index in modules.value) {
-        if (!Object.prototype.hasOwnProperty.call(modules.value, index)) return
-        const module = modules.value[index]
-
-        if (module.id !== activeApp.value) continue
-        module.size = sizes[Math.round(Math.random() * sizes.length)]
-      }
-    },
-    'update-wallpaper'() {},
-    'update-backup'() {},
-    settings() {}
-  }
-
-  // contextMenuMap.get(value.key)?.()
-  return contextMenuMap[value.key]?.()
+  return contextmenuMap[value.key]?.()
 }
 
 function handleResize(DOMRect: DOMRect) {
-  contextMenuSize.width = DOMRect.width
-  contextMenuSize.height = DOMRect.height
+  contextmenuRect.width = DOMRect.width
+  contextmenuRect.height = DOMRect.height
 }
 
 function openContextMenu(e: MouseEvent) {
@@ -128,43 +120,53 @@ function openContextMenu(e: MouseEvent) {
   const appItem = target.closest('.app-item') as HTMLElement
 
   setTimeout(() => {
-    contextMenuClient.x = Math.min(e.clientX, innerWidth - contextMenuSize.width)
-    contextMenuClient.y = Math.min(e.clientY, innerHeight - contextMenuSize.height)
-    contextMenuVisible.value = true
+    contextmenuRect.width = contextmenuRef.value!.clientWidth
+    contextmenuRect.height = contextmenuRef.value!.clientHeight
+
+    contextmenuRect.x = Math.min(e.clientX, innerWidth - contextmenuRect.width)
+    contextmenuRect.y = Math.min(e.clientY, innerHeight - contextmenuRect.height)
+
+    contextmenuVisible.value = true
     activeApp.value = appItem?.dataset.id
   }, 60)
 }
 
 function closeContextMenu(e: MouseEvent) {
-  contextMenuVisible.value = false
+  contextmenuVisible.value = false
 }
 
 onMounted(function () {
-  const contextMenu = contextMenuRef.value as HTMLElement
+  const appController = appControllerRef.value as HTMLElement
 
-  contextMenu.addEventListener('contextmenu', openContextMenu)
+  appController.addEventListener('contextmenu', openContextMenu)
   window.addEventListener('click', closeContextMenu, true)
   window.addEventListener('contextmenu', closeContextMenu, true)
 })
 
 onUnmounted(function () {
-  const contextMenu = contextMenuRef.value as HTMLElement
+  const appController = appControllerRef.value as HTMLElement
 
-  contextMenu?.removeEventListener('contextmenu', openContextMenu)
+  appController?.removeEventListener('contextmenu', openContextMenu)
   window.removeEventListener('click', closeContextMenu)
   window.removeEventListener('contextmenu', closeContextMenu)
 })
 </script>
 
 <template>
-  <div ref="contextMenuRef" class="app-controller">
+  <div ref="appControllerRef" class="app-controller">
     <TransitionGroup name="app-controller-fade">
       <template v-for="appModule in modules" :key="appModule.id">
         <component :app="appModule" :is="appReflect[appModule.app]()" :class="['app-item']" />
       </template>
     </TransitionGroup>
+
     <Teleport to="body">
-      <ul v-resize="handleResize" class="globalMenu context-menu" @contextmenu.prevent>
+      <ul
+        v-resize="handleResize"
+        ref="contextmenuRef"
+        class="globalMenu context-menu"
+        @contextmenu.prevent
+      >
         <li
           v-for="item in menuOptions"
           :key="item.key"
@@ -189,8 +191,6 @@ onUnmounted(function () {
   // @apply w-full h-full grid grid-cols-[repeat(auto-fill,70px)] grid-rows-[repeat(auto-fill,70px)] grid-flow-dense justify-center gap-3 rounded-lg;
   @apply mx-auto grid justify-center p-5;
   // @apply overflow-x-hidden overflow-y-scroll;
-  // @apply grid-flow-dense;
-  // @apply grid-flow-col-dense;
   @apply grid-flow-row-dense;
 
   outline: none;
@@ -236,6 +236,7 @@ onUnmounted(function () {
     }
   }
 }
+
 .context-menu {
   @apply w-40 min-w-40 flex flex-col items-center justify-center gap-y-[6px] z-[9999] fixed bg-[#0b0b0bcc] p-[6px] rounded-md border border-solid border-[#0a0a0a33];
   backdrop-filter: blur(8px);
@@ -245,11 +246,11 @@ onUnmounted(function () {
     0 4px 6px -1px rgb(0 0 0 / 0.1),
     0 2px 4px -2px rgb(0 0 0 / 0.1);
 
-  left: v-bind('contextMenuClient.x+"px"');
-  top: v-bind('contextMenuClient.y+"px"');
+  left: v-bind('contextmenuRect.x+"px"');
+  top: v-bind('contextmenuRect.y+"px"');
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  opacity: v-bind('contextMenuVisible ? 1 : 0');
-  transform: scale(v-bind('contextMenuVisible ? 1 : 0'));
+  opacity: v-bind('contextmenuVisible ? 1 : 0');
+  transform: scale(v-bind('contextmenuVisible ? 1 : 0'));
   transform-origin: 0 0;
 
   .context-menu-item {
