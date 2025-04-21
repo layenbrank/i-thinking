@@ -6,6 +6,8 @@ export type SlideAppDirection = 'horizontal' | 'vertical'
 
 export type SlideAppShape = 'square' | 'circle' | 'rectangle'
 
+export type SlideAppName = 'app-bookmark' | 'app-calendar' | 'app-store' | 'app-web' | 'app-example'
+
 export interface SlideApp {
   width: string | null
   height: string | null
@@ -16,7 +18,7 @@ export interface SlideApp {
   backgroundImage: string | null
   id: string
   slideID: string
-  app: string
+  app: SlideAppName
   size: SlideAppSize
   name: string
   url?: string

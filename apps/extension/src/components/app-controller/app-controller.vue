@@ -1,139 +1,32 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
-import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
-import { modules, appReflect } from './app-controller.tsx'
-import type { SlideAppSize } from '@/types/slide-app.js'
-
-type ContextMenuKeys =
-  | 'update-app'
-  | 'update-wallpaper'
-  | 'update-backup'
-  | 'update-layouts'
-  | 'update-size'
-  | 'single-delete'
-  | 'batch-deletion'
-  | 'update-settings'
-  | 'single-edit'
-  | 'new-tab'
-  | 'release'
-
-interface MenuOptions {
-  label: string
-  key: ContextMenuKeys
-  icon: Component | string
-}
-
-type ContextMenuMap = Readonly<Partial<Record<ContextMenuKeys, () => void>>>
+import {
+  modules,
+  useAppController
+  // type MenuOptions,
+  // type ContextMenuMap,
+  // type ContextMenuKeys
+} from './app-controller.tsx'
 
 defineOptions({
   name: 'app-controller'
 })
 
-const appControllerRef = useTemplateRef('appControllerRef')
 const contextmenuRef = useTemplateRef('contextmenuRef')
+const appControllerRef = useTemplateRef('appControllerRef')
 
-const contextmenuRect = reactive({
-  x: innerWidth - 200,
-  y: 200,
-  width: 0,
-  height: 0
-})
-
-// const contextmenuSize = reactive({
-//   width: 0,
-//   height: 0
-// })
-
-const contextmenuVisible = ref(false)
-
-const activeApp = ref<string>()
-
-const activeMenuKey = ref<ContextMenuKeys | null>(null)
-
-const menuOptions = reactive<Array<MenuOptions>>([
-  {
-    label: '添加应用',
-    key: 'update-app',
-    icon: markRaw(Add)
-  },
-  {
-    label: '更新大小',
-    key: 'update-size',
-    icon: markRaw(Add)
-  },
-  {
-    label: '更新布局',
-    key: 'update-layouts',
-    icon: markRaw(Add)
-  },
-  {
-    label: '更换壁纸',
-    key: 'update-wallpaper',
-    icon: markRaw(Download)
-  },
-  {
-    label: '备份云端',
-    key: 'update-backup',
-    icon: markRaw(Cloud)
-  },
-  {
-    label: '设置',
-    key: 'update-settings',
-    icon: markRaw(Settings)
-  }
-])
-
-const sizes: SlideAppSize[] = ['small', 'medium', 'large', 'huge', 'massive', 'ultra']
-
-const contextmenuMap: ContextMenuMap = {
-  'update-app'() {},
-  'update-size'() {
-    for (const index in modules.value) {
-      if (!Object.prototype.hasOwnProperty.call(modules.value, index)) return
-      const module = modules.value[index]
-
-      if (module.id !== activeApp.value) continue
-      module.size = sizes[Math.round(Math.random() * sizes.length)]
-    }
-  },
-  'update-wallpaper'() {},
-  'update-backup'() {},
-  'update-settings'() {}
-}
-
-function updateActiveKey(value: MenuOptions) {
-  activeMenuKey.value = value.key
-
-  return contextmenuMap[value.key]?.()
-}
-
-function handleResize(DOMRect: DOMRect) {
-  contextmenuRect.width = DOMRect.width
-  contextmenuRect.height = DOMRect.height
-}
-
-function openContextMenu(e: MouseEvent) {
-  e.preventDefault()
-  e.stopPropagation()
-
-  const target = e.target as HTMLElement
-  const appItem = target.closest('.app-item') as HTMLElement
-
-  setTimeout(() => {
-    contextmenuRect.width = contextmenuRef.value!.clientWidth
-    contextmenuRect.height = contextmenuRef.value!.clientHeight
-
-    contextmenuRect.x = Math.min(e.clientX, innerWidth - contextmenuRect.width)
-    contextmenuRect.y = Math.min(e.clientY, innerHeight - contextmenuRect.height)
-
-    contextmenuVisible.value = true
-    activeApp.value = appItem?.dataset.id
-  }, 60)
-}
-
-function closeContextMenu(e: MouseEvent) {
-  contextmenuVisible.value = false
-}
+const {
+  activeApp,
+  appReflect,
+  menuOptions,
+  handleResize,
+  // activeMenuKey,
+  // contextmenuMap,
+  contextmenuRect,
+  updateActiveKey,
+  openContextMenu,
+  closeContextMenu,
+  contextmenuVisible
+} = useAppController(contextmenuRef)
 
 onMounted(function () {
   const appController = appControllerRef.value as HTMLElement
@@ -156,7 +49,12 @@ onUnmounted(function () {
   <div ref="appControllerRef" class="app-controller">
     <TransitionGroup name="app-controller-fade">
       <template v-for="appModule in modules" :key="appModule.id">
-        <component :app="appModule" :is="appReflect[appModule.app]()" :class="['app-item']" />
+        <component
+          :app="appModule"
+          :is="appReflect[appModule.app]()"
+          :data-id="appModule.id"
+          :class="['app-item']"
+        />
       </template>
     </TransitionGroup>
 
@@ -164,20 +62,28 @@ onUnmounted(function () {
       <ul
         v-resize="handleResize"
         ref="contextmenuRef"
-        class="globalMenu context-menu"
+        :class="[
+          'globalM-menu',
+          'context-menu',
+          {
+            'is-active': activeApp && contextmenuVisible
+          }
+        ]"
         @contextmenu.prevent
       >
-        <li
-          v-for="item in menuOptions"
-          :key="item.key"
-          class="context-menu-item shortcut-label"
-          @click="updateActiveKey(item)"
-        >
-          <span class="label-text">
-            {{ item.label }}
-          </span>
-          <component :is="item.icon" class="label-icon" />
-        </li>
+        <template v-if="menuOptions.length">
+          <li
+            v-for="item in menuOptions"
+            :key="item.key"
+            class="context-menu-item shortcut-label"
+            @click="updateActiveKey(item)"
+          >
+            <span class="label-text">
+              {{ item.label }}
+            </span>
+            <component :is="item.icon" class="label-icon" />
+          </li>
+        </template>
       </ul>
     </Teleport>
     <Teleport to="body">
@@ -238,7 +144,12 @@ onUnmounted(function () {
 }
 
 .context-menu {
-  @apply w-40 min-w-40 flex flex-col items-center justify-center gap-y-[6px] z-[9999] fixed bg-[#0b0b0bcc] p-[6px] rounded-md border border-solid border-[#0a0a0a33];
+  @apply w-40 min-w-40 flex flex-col items-center justify-center gap-y-[6px] z-[9999] fixed bg-[#0b0b0bcc]  rounded-md;
+
+  .is-active {
+    @apply p-[6px] border border-solid border-[#0a0a0a33];
+  }
+
   backdrop-filter: blur(8px);
   box-shadow:
     0 0 #0000,
