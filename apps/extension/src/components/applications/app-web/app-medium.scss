@@ -1,8 +1,10 @@
 .app-web-icon {
+  :deep(.ant-image-img) {
+    @apply w-full h-full object-contain;
+  }
+
   &.medium {
-    :deep(.app-web-image) {
-      @apply w-full h-full p-5;
-    }
+    @apply p-5;
 
     &.square {
       &.horizontal {

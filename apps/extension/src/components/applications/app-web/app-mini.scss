@@ -1,7 +1,12 @@
 .app-web-icon {
+  :deep(.ant-image-img) {
+    @apply w-full h-full object-contain;
+  }
+
   &.mini {
     &.square {
-      @apply p-3;
+      @apply p-[6px];
+
       &.horizontal {
       }
 
@@ -10,6 +15,8 @@
     }
 
     &.circle {
+      @apply p-3;
+
       &.horizontal {
       }
 
@@ -18,6 +25,8 @@
     }
 
     &.rectangle {
+      @apply p-[6px];
+
       &.horizontal {
       }
 

@@ -1,16 +1,12 @@
 .app-web-icon {
+  :deep(.ant-image-img) {
+    @apply w-full h-full object-contain;
+  }
+
   &.small {
     &.square {
-      &.horizontal {
-        @apply p-8;
-      }
+      @apply p-5;
 
-      &.vertical {
-        @apply p-8;
-      }
-    }
-
-    &.circle {
       &.horizontal {
       }
 
@@ -19,6 +15,18 @@
     }
 
     &.rectangle {
+      @apply p-5;
+
+      &.horizontal {
+      }
+
+      &.vertical {
+      }
+    }
+
+    &.circle {
+      @apply p-[26px];
+
       &.horizontal {
       }
 

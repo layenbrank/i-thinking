@@ -55,7 +55,7 @@ const props = withDefaults(
     border-radius: calc(var(--app-size-width) / 2);
   }
 
-  @apply bg-white bg-opacity-30 flex items-center justify-center cursor-pointer;
+  @apply flex items-center justify-center cursor-pointer;
 
   :deep(.app-web-image) {
     @apply w-full h-full;

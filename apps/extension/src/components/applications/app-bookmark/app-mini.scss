@@ -21,6 +21,8 @@
     }
 
     &.rectangle {
+      @apply p-[6px];
+
       &.horizontal {
       }
 

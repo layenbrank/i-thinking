@@ -1,45 +1,24 @@
 <script setup lang="tsx">
-import { MacLayout, type MacLayoutOptions } from '@/layouts/index.ts'
 import { ReDock } from '@/components/re-dock'
-import { useDateFormat, useEventListener, useTimestamp } from '@vueuse/core'
-import { database } from '@/database/slide-app.database'
+import { useDateFormat, useTimestamp } from '@vueuse/core'
+import { MacLayout, type MacLayoutOptions } from '@/layouts/index.ts'
+import { useSlidesStore } from '@/stores/slides.ts'
 
-const AppBookmark = defineAsyncComponent(
-  () => import('@/components/applications/app-bookmark/app-bookmark.vue')
-)
-
-const AppCalendar = defineAsyncComponent(
-  () => import('@/components/applications/app-calendar/app-calendar.vue')
-)
+// import AppSettings from '@/components/app-settings/app-settings.vue'
 
 const AppController = defineAsyncComponent(function () {
   return import('@/components/app-controller/app-controller.vue')
 })
 
-// const Notepad = defineAsyncComponent(() => import('@/components/notepad/index.vue'))
-// const AppStore = defineAsyncComponent(() => import('@/components/app-store/index.vue'))
-
 import backgroundImage from '@/assets/wallpaper/r2e391.png'
-
-// enum ContextMenuKeys {
-//   添加图标 = 'add-icon',
-//   换壁纸 = 'change-wallpaper',
-//   设为电脑壁纸 = 'pc-wallpaper',
-//   备份到云端 = 'backup-cloud',
-//   排序模式 = 'sorting-mode',
-//   文件夹模式 = 'folder-mode',
-//   布局 = 'layouts',
-//   删除 = 'single-delete',
-//   批量删除 = 'batch-deletion',
-//   设置 = 'settings',
-//   编辑 = 'single-edit',
-//   新标签页打开 = 'new-tab-open',
-//   释放 = 'release'
-// }
 
 defineOptions({
   name: 'MacView'
 })
+
+const slidesStore = useSlidesStore()
+
+// const { activeSlideApp, settingsVisible } = storeToRefs(slidesStore)
 
 const keyword = ref('')
 
@@ -56,9 +35,6 @@ const time = useDateFormat(timestamp, 'HH:mm:ss', {
     return hours < 12 ? '上午' : '下午'
   }
 })
-
-// const appModules: Component[] = [Bookmarks, Notepad, AppStore]
-const appModules: Component[] = [AppBookmark, AppCalendar]
 
 const macLayout = reactive<MacLayoutOptions>({
   macLayout: {

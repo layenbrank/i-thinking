@@ -55,7 +55,7 @@ export const useSlidesStore = defineStore('counter', function () {
       width: '60px',
       height: '60px',
       // round: null,
-      round: '30px',
+      round: '15px',
 
       size: 'mini',
       // size: 'small',
@@ -84,14 +84,14 @@ export const useSlidesStore = defineStore('counter', function () {
       app: 'app-web',
       url: 'https://www.baidu.com',
       size: 'mini',
-      round: '12px',
+      round: '8px',
       width: '60px',
       height: '60px',
       direction: 'horizontal',
       shape: 'square',
       name: '百度',
       icon: 'https://www.baidu.com/favicon.ico',
-      backgroundColor: '#ffffff4d',
+      backgroundColor: '#ffffff',
       backgroundImage: null,
       textSize: '13px',
       textColor: '#ffffff',
@@ -106,12 +106,12 @@ export const useSlidesStore = defineStore('counter', function () {
       height: '60px',
       url: 'https://weixin.qq.com',
       size: 'mini',
-      round: '12px',
+      round: '20px',
       direction: 'horizontal',
       shape: 'square',
       name: '微信',
       icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
-      backgroundColor: '#ffffff4d',
+      backgroundColor: '#ffffff',
       backgroundImage: null,
       textSize: '13px',
       textColor: '#ffffff',
@@ -152,11 +152,17 @@ export const useSlidesStore = defineStore('counter', function () {
     }
   ])
 
+  const activeSlideApp = ref<SlideApp | null>(null)
+
+  const settingsVisible = ref(false)
+
   function randomID() {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
   }
 
   return {
-    slides
+    slides,
+    activeSlideApp,
+    settingsVisible
   }
 })
