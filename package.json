@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:docs": "turbo run dev --filter=@desktop-widgets/docs",
+    "dev:client": "turbo run dev --filter=@desktop-widgets/client",
     "dev:service": "turbo run dev --filter=@desktop-widgets/service",
     "dev:devtools": "turbo run dev --filter=@desktop-widgets/devtools",
     "dev:extension": "turbo run dev --filter=@desktop-widgets/extension",

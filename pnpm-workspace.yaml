@@ -6,5 +6,6 @@ onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@scarf/scarf'
   - core-js
+  - electron
   - esbuild
   - msw
