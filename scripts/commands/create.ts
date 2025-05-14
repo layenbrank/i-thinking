@@ -119,9 +119,6 @@ async function copyDirectoryAsync(source: string, destination: string) {
     entries.map(async (entry) => {
       const srcPath = join(source, entry.name)
       const destPath = join(destination, entry.name)
-    entries.map(async entry => {
-      const srcPath = join(source, entry.name)
-      const destPath = join(destination, entry.name)
 
       if (entry.isDirectory()) {
         // 递归复制子目录
@@ -196,19 +193,19 @@ function execCommand(
     })
 
     childProcess.on('close', (code) => {
-    childProcess.on('close', code => {
-      if (code === 0) {
-        resolve()
-      } else {
-        reject(new Error(`命令执行失败，退出码: ${code}`))
-      }
-    })
+      childProcess.on('close', (code) => {
+        if (code === 0) {
+          resolve()
+        } else {
+          reject(new Error(`命令执行失败，退出码: ${code}`))
+        }
+      })
 
-    childProcess.on('error', (err) => {
-      reject(err)
+      childProcess.on('error', (err) => {
+        reject(err)
+      })
     })
-  })
-    childProcess.on('error', err => {
+    childProcess.on('error', (err) => {
       reject(err)
     })
   })
@@ -275,8 +272,6 @@ export async function createApp(options: OptionValues) {
         loop: true,
         default: 'Vue3',
         choices: templates.map((template) => ({
-        default: 'Vue3',
-        choices: templates.map(template => ({
           name: `${chalk.greenBright(template.name)} - ${chalk.gray(template.description)}`,
           value: template
         })),

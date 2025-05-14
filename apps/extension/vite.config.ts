@@ -101,7 +101,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       }
     },
     optimizeDeps: {
-      include: ['naive-ui', 'lodash', 'vue', 'vue-router', 'pinia']
+      include: ['vue', 'vue-router', 'pinia']
     },
     build: {
       // 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
