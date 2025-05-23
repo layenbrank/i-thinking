@@ -6,6 +6,7 @@ import { ArrowBack, ArrowForward, Refresh, AddSharp, Close, Folder } from '@vico
 import Fuse, { type IFuseOptions } from 'fuse.js'
 import { initSortable } from './app-bookmark.ts'
 import { useBookMark } from './use-bookmark.ts'
+import { useSlidesStore } from '@/stores/slides.ts'
 
 import { useBookmarksStore } from '@/stores/bookmarks'
 
@@ -28,7 +29,9 @@ withDefaults(
 const bookmarkGridRef = useTemplateRef('bookmarkGridRef')
 const bookmarkContentRef = useTemplateRef('bookmarkContentRef')
 
+const slidesStore = useSlidesStore()
 const bookmarksStore = useBookmarksStore()
+
 const { flattenBookmarks } = useBookMark()
 
 const source = ref<BookmarkTreeNode>()
@@ -219,8 +222,19 @@ function RenderBookmark(props: { bookmark: BookmarkTreeNode }) {
       data-bookmark-id={props.bookmark.id}
       class={['bookmarkItem', isFolder ? 'bookmarkItem-folder' : 'bookmarkItem-link']}
       onClick={() => {
-        if (isFolder) navigateToFolder(props.bookmark)
-        else window.open(props.bookmark.url, '_blank')
+        slidesStore.updateSlideApp(props.bookmark.id, {
+          name: props.bookmark.title,
+          url: props.bookmark.url,
+          shape: 'circle',
+          size: 'mini',
+          sort: slidesStore.slides?.length,
+          direction: 'horizontal',
+          app: 'app-web',
+          icon: props.bookmark.url
+        })
+
+        /* if (isFolder) navigateToFolder(props.bookmark) */
+        /* else window.open(props.bookmark.url, '_blank') */
       }}
     >
       <div class={['bookmarkContent', 'ignore-bookmark']}>

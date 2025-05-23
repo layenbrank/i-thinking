@@ -14,7 +14,6 @@ import Dexie, {
   type UpdateSpec,
   type WhereClause
 } from 'dexie'
-import { database } from './slide-app.database'
 
 export abstract class BaseModule<
   TEntity extends Record<string, any>,
@@ -26,12 +25,12 @@ export abstract class BaseModule<
     this.table = table
   }
 
-  get(key: IDType<TEntity, TKeyName>, thenShortcut: ThenShortcut<TEntity | undefined, unknown>) {
-    return this.table.get(key, thenShortcut)
+  get(key: IDType<TEntity, TKeyName>) {
+    return this.table.get(key)
   }
 
-  where(equalityCriterias: unknown): any {
-    return this.where(equalityCriterias)
+  where(equalityCriterias: string | string[]) {
+    return this.table.where(equalityCriterias)
   }
 
   filter(fn: (entity: TEntity) => boolean) {
@@ -62,7 +61,11 @@ export abstract class BaseModule<
     return this.table.each(callback)
   }
 
-  toArray(thenShortcut: ThenShortcut<TEntity[], unknown>) {
+  toArray() {
+    return this.table.toArray()
+  }
+
+  toArrayWithCallback(thenShortcut: ThenShortcut<TEntity[], unknown>) {
     return this.table.toArray(thenShortcut)
   }
 
@@ -124,8 +127,8 @@ export abstract class BaseModule<
 
   bulkAdd(
     values: readonly InsertType<TEntity, TKeyName>[],
-    keys: IndexableTypeArrayReadonly,
-    options: {
+    keys?: IndexableTypeArrayReadonly,
+    options?: {
       allKeys: boolean
     }
   ) {
@@ -134,8 +137,8 @@ export abstract class BaseModule<
 
   bulkPut(
     values: readonly InsertType<TEntity, TKeyName>[],
-    keys: IndexableTypeArrayReadonly,
-    options: {
+    keys?: IndexableTypeArrayReadonly,
+    options?: {
       allKeys: boolean
     }
   ) {
@@ -153,5 +156,24 @@ export abstract class BaseModule<
 
   bulkDelete(keys: IDType<TEntity, TKeyName>[]) {
     this.table.bulkDelete(keys)
+  }
+
+  clearExpired() {
+    const now = Date.now()
+    return this.table.where('expireTime').below(now).delete()
+  }
+
+  async paginate(page = 1, limit = 10) {
+    const offset = (page - 1) * limit
+    const total = await this.table.count()
+    const items = await this.table.offset(offset).limit(limit).toArray()
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit)
+    }
   }
 }

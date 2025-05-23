@@ -165,6 +165,9 @@ importers:
       '@vue/tsconfig':
         specifier: ^0.7.0
         version: 0.7.0(typescript@5.7.3)(vue@3.5.13(typescript@5.7.3))
+      '@vueuse/rxjs':
+        specifier: ^13.2.0
+        version: 13.2.0(rxjs@7.8.2)(vue@3.5.13(typescript@5.7.3))
       autoprefixer:
         specifier: ^10.4.21
         version: 10.4.21(postcss@8.5.3)
@@ -2974,8 +2977,19 @@ packages:
   '@vueuse/metadata@12.8.2':
     resolution: {integrity: sha512-rAyLGEuoBJ/Il5AmFHiziCPdQzRt88VxR+Y/A/QhJ1EWtWqPBBAxTAFaSkviwEuOEZNtW8pvkPgoCZQ+HxqW1A==}
 
+  '@vueuse/rxjs@13.2.0':
+    resolution: {integrity: sha512-Z4EuqEo8oDVe7iINZRwrqGl8+ZbiXqhpzinbszDvD0FIPiSmfhG2+JYEUU+8/1D7puDKx9BEaz026MVCcbspAQ==}
+    peerDependencies:
+      rxjs: '>=6.0.0'
+      vue: ^3.5.0
+
   '@vueuse/shared@12.8.2':
     resolution: {integrity: sha512-dznP38YzxZoNloI0qpEfpkms8knDtaoQ6Y/sfS0L7Yki4zh40LFHEhur0odJC6xTHG5dxWVPiUWBXn+wCG2s5w==}
+
+  '@vueuse/shared@13.2.0':
+    resolution: {integrity: sha512-vx9ZPDF5HcU9up3Jgt3G62dMUfZEdk6tLyBAHYAG4F4n73vpaA7J5hdncDI/lS9Vm7GA/FPlbOmh9TrDZROTpg==}
+    peerDependencies:
+      vue: ^3.5.0
 
   '@webassemblyjs/ast@1.14.1':
     resolution: {integrity: sha512-nuBEDgQfm1ccRp/8bCQrx1frohyufl4JlbMMZ4P1wpeOfDhF6FQkxZJ1b/e+PLwr6X1Nhw6OLme5usuBWYBvuQ==}
@@ -10943,6 +10957,12 @@ snapshots:
 
   '@vueuse/metadata@12.8.2': {}
 
+  '@vueuse/rxjs@13.2.0(rxjs@7.8.2)(vue@3.5.13(typescript@5.7.3))':
+    dependencies:
+      '@vueuse/shared': 13.2.0(vue@3.5.13(typescript@5.7.3))
+      rxjs: 7.8.2
+      vue: 3.5.13(typescript@5.7.3)
+
   '@vueuse/shared@12.8.2(typescript@5.7.3)':
     dependencies:
       vue: 3.5.13(typescript@5.7.3)
@@ -10954,6 +10974,10 @@ snapshots:
       vue: 3.5.13(typescript@5.8.2)
     transitivePeerDependencies:
       - typescript
+
+  '@vueuse/shared@13.2.0(vue@3.5.13(typescript@5.7.3))':
+    dependencies:
+      vue: 3.5.13(typescript@5.7.3)
 
   '@webassemblyjs/ast@1.14.1':
     dependencies:

@@ -32,7 +32,7 @@ const week = useDateFormat(timestamp, 'ddd', {})
 
 const time = useDateFormat(timestamp, 'HH:mm:ss', {
   customMeridiem(hours, minutes, isLowercase, hasPeriod) {
-    return hours < 12 ? '上午' : '下午'
+    return hours === 12 ? '正午' : hours < 12 ? '上午' : '下午'
   }
 })
 

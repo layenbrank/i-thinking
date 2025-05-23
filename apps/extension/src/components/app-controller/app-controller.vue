@@ -2,6 +2,7 @@
 import AppMenu from '../app-menu/app-menu.vue'
 // import AppDrawer from '../app-settings/app-settings.vue'
 import { useSlidesStore } from '@/stores/slides.ts'
+import Sortable from 'sortablejs'
 
 import {
   sizes,
@@ -46,7 +47,8 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
   'update-size'() {
     for (const index in slidesStore.slides) {
       if (!Object.prototype.hasOwnProperty.call(slidesStore.slides, index)) return
-      const slide = slidesStore.slides[index]
+
+      const slide = slidesStore.slides[Number(index)]
 
       if (slide.id !== activeSlideApp.value?.id) continue
       slide.size = sizes[Math.round(Math.random() * sizes.length)]
@@ -60,7 +62,7 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 }
 
 const menuOptions = computed(() => {
-  const active = slidesStore.slides.find((slide) => slide.id === activeSlideApp.value?.id)
+  const active = slidesStore.slides?.find((slide) => slide.id === activeSlideApp.value?.id)
 
   console.log('active', active)
 
@@ -82,7 +84,7 @@ function handleController(e: MouseEvent) {
   if (!settingsVisible.value) return
   if (!slideApp?.dataset?.id) return
   activeSlideApp.value =
-    slidesStore.slides.find((slide) => slide.id === slideApp.dataset.id) ?? null
+    slidesStore.slides?.find((slide) => slide.id === slideApp.dataset.id) ?? null
 }
 
 function openContextMenu(e: MouseEvent) {
@@ -108,7 +110,7 @@ function openContextMenu(e: MouseEvent) {
 
     if (!slideApp?.dataset?.id) return
     activeSlideApp.value =
-      slidesStore.slides.find((slide) => slide.id === slideApp.dataset.id) ?? null
+      slidesStore.slides?.find((slide) => slide.id === slideApp.dataset.id) ?? null
   }, 60)
 }
 
@@ -124,10 +126,11 @@ function handleConfirm(value: any) {
   for (const index in slides.value) {
     if (!Object.prototype.hasOwnProperty.call(slides.value, index)) return
 
-    if (slides.value[index].id !== activeSlideApp.value?.id) continue
-    slides.value[index].size = value.size
-    slides.value[index].shape = value.shape
-    slides.value[index].direction = value.direction
+    if (slides.value[Number(index)].id !== activeSlideApp.value?.id) continue
+
+    slides.value[Number(index)].size = value.size
+    slides.value[Number(index)].shape = value.shape
+    slides.value[Number(index)].direction = value.direction
   }
 }
 
@@ -140,7 +143,40 @@ function handleTelePort() {
   return document.body
 }
 
+function handleSortable() {
+  if (!appControllerRef.value) return
+
+  Sortable.create(appControllerRef.value, {
+    animation: 600,
+    dataIdAttr: 'data-id',
+    store: {
+      set(sortable) {
+        const toArray = sortable.toArray()
+        const slideApps: SlideApp[] = []
+
+        for (let i = 0; i < toArray.length; i++) {
+          const ID = toArray[i]
+
+          for (let j = 0; j < slides.value!.length; j++) {
+            const slideApp = toRaw(slides.value![j])
+            if (slideApp.id !== ID) continue
+            slideApps.push({ ...slideApp, sort: i })
+          }
+        }
+        console.log('slideApps', slideApps)
+        slidesStore.updateSlideApps(slideApps)
+      },
+      get(sortable) {
+        const toArray = slidesStore.slides?.map((slideApp) => slideApp.id)
+
+        return toArray ?? []
+      }
+    }
+  })
+}
+
 onMounted(function () {
+  handleSortable()
   window.addEventListener('click', closeContextMenu, true)
   window.addEventListener('contextmenu', closeContextMenu, true)
 })

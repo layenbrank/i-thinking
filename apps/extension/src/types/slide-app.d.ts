@@ -18,6 +18,7 @@ export interface SlideApp {
   backgroundImage: string | null
   id: string
   slideID: string
+  sort: number
   app: SlideAppName
   size: SlideAppSize
   name: string
