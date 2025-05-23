@@ -24,6 +24,7 @@ const props = withDefaults(
       round: '12px',
       size: 'medium',
       slideID: '0',
+      sort: 0,
       name: 'example',
       direction: 'horizontal',
       shape: 'square',

@@ -107,6 +107,37 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       // 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
       outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-widgets\//, '')}`),
       emptyOutDir: true,
+      assetsInlineLimit(filePath, content) {
+        // 使用正则数组表示需要内联的文件类型
+        const inlineRegexes = [
+          /\.gif$/i // GIF 动画
+        ]
+
+        // 使用正则数组表示不需要内联的文件类型
+        const noInlineRegexes = [
+          /\.svg$/i, // SVG 图标
+          /icon.*\.(png|jpe?g)$/i, // 图标文件
+          /\.json$/i, // JSON 文件
+          /\.(mp4|webm|ogg)$/i, // 视频文件
+          /\.(mp3|wav|ogg)$/i, // 音频文件
+          /\.(woff2?|ttf|eot|otf)$/i, // 字体文件
+          /background.*\.(png|jpe?g)$/i // 背景图片
+        ]
+
+        // 检查是否匹配内联规则
+        if (inlineRegexes.some((regex) => regex.test(filePath))) {
+          // return content.length < 10 * 1024 // 小于10kb则内联
+          return true
+        }
+
+        // 检查是否匹配不内联规则
+        if (noInlineRegexes.some((regex) => regex.test(filePath))) {
+          return false // 不内联
+        }
+
+        // 默认情况下，不内联
+        return false
+      },
       rollupOptions: {
         input: {
           index: 'index.html',
@@ -116,7 +147,22 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         output: {
           entryFileNames: 'assets/[name]-[hash].js',
           chunkFileNames: 'assets/[name]-[hash].js',
-          assetFileNames: 'assets/[name]-[hash].[ext]',
+          // assetFileNames: 'assets/[name]-[hash].[ext]',
+          assetFileNames(chunkInfo) {
+            const cssRegex = /\.css$/i
+            const imageRegex = /.(png|jpe?g|gif|svg|webp|ico)$/i
+            const fontRegex = /.(woff|woff2|ttf|eot)$/i
+
+            if (!chunkInfo.names) return 'assets/[name].[ext]'
+
+            for (const name of chunkInfo.names) {
+              if (cssRegex.test(name)) return `css/${name}`
+              if (imageRegex.test(name)) return `images/${name}`
+              if (fontRegex.test(name)) return `fonts/${name}`
+            }
+
+            return 'assets/[name].[ext]'
+          },
           manualChunks(id, meta) {
             // 分包配置映射表，便于维护和扩展
             const chunkMap: Readonly<Record<string, RegExp[]>> = {

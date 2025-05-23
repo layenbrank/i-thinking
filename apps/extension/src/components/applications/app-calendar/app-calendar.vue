@@ -23,6 +23,7 @@ const props = withDefaults(
       app: 'app-calendar',
       round: '12px',
       slideID: '0',
+      sort: 0,
       size: 'medium',
       name: '示例',
       direction: 'horizontal',
