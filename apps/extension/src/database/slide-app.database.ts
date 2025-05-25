@@ -10,10 +10,11 @@ export class AppDataBase extends Dexie {
   public users!: EntityTable<Users, 'id'>
 
   constructor() {
-    super('apps')
+    super('slideApp')
 
     this.version(1).stores({
-      slideApp: '&id,slideID,app,name,shape,size,downloadCount',
+      slideApp:
+        '&id,slideID,[id+slideID],sort,app,name,downloadCount,direction,shape,size,width,height,round,icon,url,description,backgroundColor,backgroundImage,textColor,textSize',
       users: '++id,name'
     })
 

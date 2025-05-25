@@ -115,15 +115,15 @@ export function useAppSettings(options: AppSettings) {
       rectangle: {
         horizontal: {
           width: `calc(${options.width.value} * 4 + var(--app-global-col-gap) * 3)`,
-          height: `calc(${options.height.value} * 2 + var(--app-global-row-gap))`,
+          height: `calc(${options.height.value} * 2 + var(--app-global-row-gap) * 1)`,
           gridRow: 'span 2',
           gridColumn: 'span 4'
         },
         vertical: {
-          width: `calc(${options.width.value} * 3 + var(--app-global-col-gap)) * 2`,
+          width: `calc(${options.width.value} * 2 + var(--app-global-col-gap) * 1)`,
           height: `calc(${options.height.value} * 4 + var(--app-global-row-gap) * 3)`,
           gridRow: 'span 4',
-          gridColumn: 'span 3'
+          gridColumn: 'span 2'
         }
       },
       square: {
@@ -362,6 +362,7 @@ export function useAppSettings(options: AppSettings) {
       }
     }
   }
+
   const appStyle = computed(() => {
     return appStylesMap[size.value][shape.value][direction.value]
   })
