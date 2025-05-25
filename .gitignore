@@ -24,3 +24,7 @@ pnpm-lock.yaml
 # will have schema files for capabilities auto-completion
 /gen/schemas
 .rollup.cache
+
+
+auto-imports.d.ts
+components.d.ts

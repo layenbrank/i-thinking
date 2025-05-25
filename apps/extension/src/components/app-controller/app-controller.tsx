@@ -100,11 +100,11 @@ export const appReflect: AppReflect = {
   'app-store'() {
     return <AppStore />
   },
-  'app-web'() {
-    return <AppWeb />
-  },
   'app-example'() {
     return <AppExample />
+  },
+  'app-web'() {
+    return <AppWeb />
   }
   // 'app-example': AppExample
 }

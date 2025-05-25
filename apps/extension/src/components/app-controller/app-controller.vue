@@ -81,6 +81,8 @@ function handleController(e: MouseEvent) {
   const target = e.target as HTMLElement
   const slideApp = target.closest('.slide-app') as HTMLElement
 
+  console.log('slideApp', slideApp)
+
   if (!settingsVisible.value) return
   if (!slideApp?.dataset?.id) return
   activeSlideApp.value =
@@ -189,7 +191,7 @@ onUnmounted(function () {
 
 <template>
   <div
-    @click="handleController"
+    @click.capture="handleController"
     @contextmenu="openContextMenu"
     ref="appControllerRef"
     class="app-controller"
