@@ -1,6 +1,18 @@
+import { liveQuery } from 'dexie'
+import { useObservable } from '@vueuse/rxjs'
+import { from, tap } from 'rxjs'
+
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
 export function useBookMark() {
+  const bookmarks = useObservable(
+    from(liveQuery(() => chrome.bookmarks.getTree())).pipe(
+      tap((bookmarks) => {
+        console.log('bookmarks', bookmarks)
+      })
+    )
+  )
+
   function flattenBookmarks(bookmarks: BookmarkTreeNode[]): BookmarkTreeNode[] {
     const nodes: BookmarkTreeNode[] = []
     const stack: BookmarkTreeNode[] = [...bookmarks] // 初始化栈
