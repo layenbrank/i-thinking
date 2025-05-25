@@ -72,14 +72,14 @@ export function useAppSettings(options: AppSettings) {
         horizontal: {
           width: `calc(${options.width.value} * 2 + var(--app-global-col-gap))`,
           height: options.height.value,
-          gridRow: 'initial',
-          gridColumn: 'span 1'
+          gridRow: 'span 1',
+          gridColumn: 'span 2'
         },
         vertical: {
           width: options.width.value,
           height: `calc(${options.height.value} * 2 + var(--app-global-row-gap))`,
-          gridRow: 'span 1',
-          gridColumn: 'initial'
+          gridRow: 'span 2',
+          gridColumn: 'span 1'
         }
       },
       square: {

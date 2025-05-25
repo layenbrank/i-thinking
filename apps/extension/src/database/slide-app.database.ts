@@ -13,6 +13,7 @@ export class AppDataBase extends Dexie {
     super('apps')
 
     this.version(1).stores({
+      slideApp: '&id,slideID,app,name,shape,size,downloadCount',
       users: '++id,name'
     })
 

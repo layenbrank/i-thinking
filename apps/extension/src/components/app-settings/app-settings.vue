@@ -164,7 +164,7 @@ function onFinishFailed(errorInfo: any) {
         </a-radio-group>
       </a-form-item>
       <a-form-item name="background" label="背景" class="app-background-form-item">
-        <a-color-picker v-model:value="formState.background" />
+        <!-- <a-color-picker v-model:value="formState.background" /> -->
       </a-form-item>
     </a-form>
     <a-button @click="emit('update:confirm', formState)">确定</a-button>
