@@ -1,12 +1,12 @@
 import { database } from '@/database/slide-app.database.ts'
 import { BaseModule } from '@/database/base.module.ts'
-import type { SlideApp } from '@/types/slide-app.js'
+import type { Bookmark } from './bookmark.entity'
 import { Singleton } from '@desktop-widgets/core'
 
 @Singleton()
-export class BookmarkModule extends BaseModule<SlideApp, 'id'> {
+export class BookmarkModule extends BaseModule<Bookmark, 'id'> {
   constructor() {
-    super(database.slideApp)
+    super(database.bookmark)
   }
 }
 

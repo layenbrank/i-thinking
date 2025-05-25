@@ -3,19 +3,29 @@ import { Dexie, type DBCore, type EntityTable, type Middleware } from 'dexie'
 import { Singleton } from '@desktop-widgets/core'
 import type { SlideApp } from '@/types/slide-app'
 import type { Users } from './users/users.entity'
+import type { Bookmark } from './bookmark/bookmark.entity'
+import type { BookmarkFolder } from './bookmark/folder.entity'
 
 @Singleton()
 export class AppDataBase extends Dexie {
   public slideApp!: EntityTable<SlideApp, 'id'>
+
   public users!: EntityTable<Users, 'id'>
+
+  public bookmark!: EntityTable<Bookmark, 'id'>
+  public bookmarkFolder!: EntityTable<BookmarkFolder, 'id'>
 
   constructor() {
     super('slideApp')
 
     this.version(1).stores({
       slideApp:
-        '&id,slideID,[id+slideID],sort,app,name,downloadCount,direction,shape,size,width,height,round,icon,url,description,backgroundColor,backgroundImage,textColor,textSize',
-      users: '++id,name'
+        '&id,slideID,[id+slideID],sort,app,name,downloadCount,direction,shape,size,width,height,round,icon,url,backgroundColor,backgroundImage,textColor,textSize',
+
+      users: '++id,name',
+
+      bookmark: '&id,url,sort,title,folderId,createdAt,updatedAt',
+      bookmarkFolder: '&id,folder,sort,count,createdAt,updatedAt'
     })
 
     this.on('ready', async (db) => {

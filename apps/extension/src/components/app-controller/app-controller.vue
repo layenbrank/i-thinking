@@ -179,6 +179,7 @@ function handleSortable() {
 
 onMounted(function () {
   handleSortable()
+
   window.addEventListener('click', closeContextMenu, true)
   window.addEventListener('contextmenu', closeContextMenu, true)
 })
