@@ -7,6 +7,7 @@ import { bookmarkModule } from '@/database/bookmark/bookmark.module.ts'
 import type { Bookmark } from '@/database/bookmark/bookmark.entity.ts'
 import type { BookmarkFolder } from '@/database/bookmark/folder.entity.ts'
 import { isEmpty } from 'lodash-es'
+import { message } from 'ant-design-vue'
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
@@ -18,21 +19,25 @@ export interface BookmarkParse {
 export function useBookMark() {
   const activeFolder = ref<BookmarkFolder | null>(null)
 
-  const sourceBookmarks = ref<Bookmark[]>([])
-  const targetBookmarks = ref<Bookmark[]>([])
-  const sourceFolders = ref<BookmarkFolder[]>([])
-  const targetFolders = ref<BookmarkFolder[]>([])
+  const targetBookmarks = ref<Bookmark[] | undefined>([])
 
   const folders = useObservable(
     from(
       liveQuery(function (): Promise<BookmarkFolder[]> {
         return folderModule.orderBy('sort').toArray()
       })
+    ).pipe(
+      tap(function (folders) {
+        if (isEmpty(folders)) {
+        } else {
+          activeFolder.value = folders[0] || null
+        }
+      })
     )
   )
 
   // 获取Chrome书签树的响应式数据
-  const bookmarks = useObservable(
+  const sourceBookmarks = useObservable(
     new Observable<BookmarkFolder | null>(function (subscribe) {
       watchEffect(function () {
         subscribe.next(activeFolder.value)
@@ -51,29 +56,31 @@ export function useBookMark() {
       }),
       tap(function (response) {
         if (isEmpty(response)) updateBookmarks()
+        else targetBookmarks.value = response
       })
     )
   )
 
   const recentBookmarks = computed(function () {
-    return bookmarks.value?.filter(function (bookmark) {
+    return sourceBookmarks.value?.filter(function (bookmark) {
       // 创建时间小于当前时间 7 天数
       return bookmark.createdAt < Date.now() - 1000 * 60 * 60 * 24 * 7
     })
   })
 
   async function updateBookmarks() {
-    const bookmarkRes = await chrome?.bookmarks?.getTree()
+    const bookmarkTreeRes = await chrome?.bookmarks?.getTree()
 
-    const parseBookmarks = parseBookmarkTree(bookmarkRes)
+    const { bookmarks: bookmarksRes, folders: foldersRes } = parseBookmarkTree(bookmarkTreeRes)
 
-    bookmarkModule.bulkPut(parseBookmarks.bookmarks)
-    folderModule.bulkPut(parseBookmarks.folders)
+    bookmarkModule.bulkPut(bookmarksRes)
+    folderModule.bulkPut(foldersRes)
 
-    const [folder] = parseBookmarks.folders || []
+    const [folder] = foldersRes || []
+
     activeFolder.value = folder || null
 
-    sourceBookmarks.value = parseBookmarks.bookmarks
+    message.success('书签更新成功')
   }
 
   /**
@@ -165,8 +172,8 @@ export function useBookMark() {
 
   return {
     folders,
-    bookmarks,
     sourceBookmarks,
+    targetBookmarks,
     recentBookmarks,
     activeFolder,
     isInvalidNode,

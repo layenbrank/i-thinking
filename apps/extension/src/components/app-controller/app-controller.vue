@@ -125,15 +125,20 @@ function closeContextMenu(_e: MouseEvent) {
 
 function handleConfirm(value: any) {
   console.log('handleConfirm', value)
-  for (const index in slides.value) {
-    if (!Object.prototype.hasOwnProperty.call(slides.value, index)) return
+  if (!activeSlideApp.value) return
+  slidesStore.updateSlideApp(activeSlideApp.value.id, {
+    ...toRaw(activeSlideApp.value),
+    ...toRaw(value)
+  })
+  // for (const index in slides.value) {
+  //   if (!Object.prototype.hasOwnProperty.call(slides.value, index)) return
 
-    if (slides.value[Number(index)].id !== activeSlideApp.value?.id) continue
+  //   if (slides.value[Number(index)].id !== activeSlideApp.value?.id) continue
 
-    slides.value[Number(index)].size = value.size
-    slides.value[Number(index)].shape = value.shape
-    slides.value[Number(index)].direction = value.direction
-  }
+  //   slides.value[Number(index)].size = value.size
+  //   slides.value[Number(index)].shape = value.shape
+  //   slides.value[Number(index)].direction = value.direction
+  // }
 }
 
 function handleResize(DOMRect: DOMRect) {

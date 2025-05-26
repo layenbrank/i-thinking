@@ -2,6 +2,7 @@
 import { debounce } from 'lodash-es'
 import bookmarkJSON from './bookmark.json'
 import fallback from '@/assets/feedback/fallback.png'
+import { useSlidesStore } from '@/stores/slides.ts'
 
 import Fuse, { type IFuseOptions } from 'fuse.js'
 import { timeSphere } from '@desktop-widgets/core'
@@ -23,12 +24,14 @@ const props = withDefaults(
   {}
 )
 
+const slidesStore = useSlidesStore()
+
 const keyword = ref('')
 const loading = ref(false)
-const bookmarks = ref<Bookmark[]>([])
-const folders = ref<BookmarkFolder[]>([])
+// const bookmarks = ref<Bookmark[]>([])
+// const folders = ref<BookmarkFolder[]>([])
 // const originalBookmarks = ref<Bookmark[]>([])
-const { activeFolder, sourceBookmarks, parseBookmarkTree } = useBookMark()
+const { folders, activeFolder, sourceBookmarks, targetBookmarks, recentBookmarks } = useBookMark()
 
 // 定义 Fuse 搜索选项
 const fuseOptions: IFuseOptions<BookmarkTreeNode> = {
@@ -47,27 +50,46 @@ async function updateKeyword(value: string) {
 
 const updateBookmarks = debounce(function (value: string) {
   // 如果搜索关键词为空，恢复显示所有书签
-  if (!value) bookmarks.value = sourceBookmarks.value
+  if (!value) targetBookmarks.value = sourceBookmarks.value
   else {
     // 创建 Fuse 实例
-    const fuse = new Fuse(sourceBookmarks.value, fuseOptions)
+    const fuse = new Fuse(sourceBookmarks.value ?? [], fuseOptions)
 
     // 执行搜索
     const response = fuse.search(value)
 
     // 更新显示的书签列表 过滤掉相关度太低的结果
-    bookmarks.value = response
+    targetBookmarks.value = response
       .filter((bookmark) => bookmark.score && bookmark.score < 0.6)
       .map((bookmark) => bookmark.item)
   }
 
-  console.log('bookmarks', value, bookmarks.value)
-}, 600)
+  console.log('bookmarks', value, targetBookmarks.value)
+}, 300)
+
+function updateSlideApp(bookmark: Bookmark) {
+  const bookmarkApp = toRaw(bookmark)
+  slidesStore.updateSlideApp(bookmark.id, {
+    name: bookmarkApp.title,
+    url: bookmarkApp.url,
+    shape: 'circle',
+    size: 'mini',
+    sort: slidesStore.slides?.length,
+    direction: 'horizontal',
+    app: 'app-web',
+    icon: bookmarkApp.url
+  })
+}
+
+function updateActiveFolder(folder: BookmarkFolder) {
+  if (folder.id === '9999') return (targetBookmarks.value = recentBookmarks.value)
+  activeFolder.value = folder
+}
 
 onMounted(function () {
   // const bookmarksRes = bookmarkJSON as unknown as BookmarkParse
-  // bookmarks.value = bookmarksRes.bookmarks.slice(0, 60)
-  // folders.value = bookmarksRes.folders.slice(0, 60)
+  // bookmarks.value = bookmarksRes.bookmarks
+  // folders.value = bookmarksRes.folders
   // sourceBookmarks.value = bookmarks.value
   // console.log('bookmarks', bookmarks.value)
   // console.log('folders', folders.value)
@@ -75,6 +97,8 @@ onMounted(function () {
   //   console.log('treeNodes', treeNodes)
   //   const bookmarkNodes = parseBookmarkTree(treeNodes)
   //   console.log('bookmarkNodes', bookmarkNodes)
+  //   sourceBookmarks.value = bookmarkNodes.bookmarks
+  //   folders.value = bookmarkNodes.folders
   // })
 })
 </script>
@@ -91,14 +115,13 @@ onMounted(function () {
       <a-layout-content class="sider-content">
         <div class="folder-list">
           <div
-            v-for="(folder, index) in folders"
+            @click="updateActiveFolder(folder)"
+            v-for="folder in folders"
             :key="folder.id"
             :class="[
               'folder',
               {
-                'is-active': index === 0,
-
-                'is-recent': index === 1
+                'is-active': activeFolder?.id === folder.id
               }
             ]"
           >
@@ -106,6 +129,25 @@ onMounted(function () {
             <span class="folder-title">{{ folder.folder }}</span>
             <span class="folder-count">
               {{ folder.count }}
+            </span>
+          </div>
+          <div
+            @click="
+              updateActiveFolder({
+                id: '9999',
+                sort: 9999,
+                count: 0,
+                folder: '最近添加',
+                createdAt: 0,
+                updatedAt: 0
+              })
+            "
+            :class="['folder', 'is-recent']"
+          >
+            <a-image :preview="false" wrapper-class-name="folder-image"></a-image>
+            <span class="folder-title">最近添加</span>
+            <span class="folder-count">
+              {{ recentBookmarks?.length }}
             </span>
           </div>
         </div>
@@ -121,6 +163,9 @@ onMounted(function () {
           class="bookmark-search"
         ></a-input>
         <a-button-group class="bookmark-operation">
+          <a-button class="bookmark-operation-button refresh-button">
+            <IconEpRefresh />
+          </a-button>
           <a-button class="bookmark-operation-button fullscreen-button">
             <IconLocalHandle />
           </a-button>
@@ -132,7 +177,12 @@ onMounted(function () {
       <a-layout-content class="main-content">
         <div class="grid-view">
           <div class="bookmark-grid">
-            <a-card v-for="bookmark in bookmarks" :key="bookmark.id" class="bookmark-card">
+            <a-card
+              @click="updateSlideApp(bookmark)"
+              v-for="bookmark in targetBookmarks"
+              :key="bookmark.id"
+              class="bookmark-card"
+            >
               <a-image
                 :preview="false"
                 src="https://www.api.example.com/api/v1/image/1234567890.png"
@@ -202,7 +252,7 @@ onMounted(function () {
     }
 
     .folder {
-      @apply flex items-center gap-x-2 px-3 py-[10px] rounded-md;
+      @apply flex items-center gap-x-2 px-3 py-[10px] rounded-md cursor-pointer;
 
       &.is-active {
         background-color: rgba($color, $alpha: 0.3);
@@ -258,6 +308,7 @@ onMounted(function () {
         }
       }
 
+      .refresh-button,
       .fullscreen-button {
         &:hover {
           @apply bg-[#00000099];
