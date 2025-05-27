@@ -15,6 +15,9 @@ const AppBookmark = defineAsyncComponent(function () {
 const AppCalendar = defineAsyncComponent(function () {
   return import('@/components/applications/app-calendar/app-calendar.vue')
 })
+const AppNotePad = defineAsyncComponent(function () {
+  return import('@/components/applications/app-notepad/app-notepad.vue')
+})
 
 const AppStore = defineAsyncComponent(function () {
   return import('@/components/applications/app-store/app-store.vue')
@@ -68,6 +71,9 @@ export const contextmenuReflect: Record<Partial<SlideAppName>, () => MenuOptions
   'app-calendar'() {
     return commonMenuOPtions
   },
+  'app-notepad'() {
+    return commonMenuOPtions
+  },
   'app-store'() {
     return commonMenuOPtions
   },
@@ -106,7 +112,6 @@ export const appReflect: AppReflect = {
   'app-web'() {
     return <AppWeb />
   }
-  // 'app-example': AppExample
 }
 // export function useAppController(el: Ref<InstanceType<typeof AppMenu> | null>) {
 

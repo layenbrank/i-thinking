@@ -31,7 +31,24 @@ const loading = ref(false)
 // const bookmarks = ref<Bookmark[]>([])
 // const folders = ref<BookmarkFolder[]>([])
 // const originalBookmarks = ref<Bookmark[]>([])
-const { folders, activeFolder, sourceBookmarks, targetBookmarks, recentBookmarks } = useBookMark()
+const recentFolder: Readonly<BookmarkFolder> = {
+  id: '9999',
+  sort: 9999,
+  count: 0,
+  folder: '最近添加',
+  createdAt: 0,
+  updatedAt: 0
+}
+
+const {
+  folders,
+  bookmarks,
+  activeFolder,
+  sourceBookmarks,
+  targetBookmarks,
+  recentBookmarks,
+  handleRefreshBookmarks
+} = useBookMark()
 
 // 定义 Fuse 搜索选项
 const fuseOptions: IFuseOptions<BookmarkTreeNode> = {
@@ -53,7 +70,7 @@ const updateBookmarks = debounce(function (value: string) {
   if (!value) targetBookmarks.value = sourceBookmarks.value
   else {
     // 创建 Fuse 实例
-    const fuse = new Fuse(sourceBookmarks.value ?? [], fuseOptions)
+    const fuse = new Fuse(bookmarks.value ?? [], fuseOptions)
 
     // 执行搜索
     const response = fuse.search(value)
@@ -84,6 +101,7 @@ function updateSlideApp(bookmark: Bookmark) {
 function updateActiveFolder(folder: BookmarkFolder) {
   if (folder.id === '9999') return (targetBookmarks.value = recentBookmarks.value)
   activeFolder.value = folder
+  targetBookmarks.value = sourceBookmarks.value
 }
 
 onMounted(function () {
@@ -131,19 +149,7 @@ onMounted(function () {
               {{ folder.count }}
             </span>
           </div>
-          <div
-            @click="
-              updateActiveFolder({
-                id: '9999',
-                sort: 9999,
-                count: 0,
-                folder: '最近添加',
-                createdAt: 0,
-                updatedAt: 0
-              })
-            "
-            :class="['folder', 'is-recent']"
-          >
+          <div @click="updateActiveFolder(recentFolder)" :class="['folder', 'is-recent']">
             <a-image :preview="false" wrapper-class-name="folder-image"></a-image>
             <span class="folder-title">最近添加</span>
             <span class="folder-count">
@@ -163,7 +169,10 @@ onMounted(function () {
           class="bookmark-search"
         ></a-input>
         <a-button-group class="bookmark-operation">
-          <a-button class="bookmark-operation-button refresh-button">
+          <a-button
+            @click="handleRefreshBookmarks"
+            class="bookmark-operation-button refresh-button"
+          >
             <IconEpRefresh />
           </a-button>
           <a-button class="bookmark-operation-button fullscreen-button">

@@ -202,11 +202,11 @@ onUnmounted(function () {
     ref="appControllerRef"
     class="app-controller"
   >
-    <TransitionGroup name="app-controller-fade">
+    <TransitionGroup name="slide-app-fade">
       <template v-for="slideApp in slidesStore.slides" :key="slideApp.id">
         <component
           :slide-app="slideApp"
-          :is="appReflect[slideApp.app]()"
+          :is="appReflect[slideApp.app]?.()"
           :settings-visible="settingsVisible"
           :data-id="slideApp.id"
           :class="['slide-app']"
@@ -258,19 +258,15 @@ onUnmounted(function () {
   grid-template-rows: repeat(auto-fill, var(--app-global-height, 60px));
   grid-template-columns: repeat(auto-fill, var(--app-global-width, 60px));
 
-  &-fade-move,
-  &-fade-enter-active,
-  &-fade-leave-active {
-    transition: all 500ms cubic-bezier(0.455, 0.03, 0.515, 0.955);
-  }
-  &-fade-enter-from,
-  &-fade-leave-to {
-    opacity: 0;
-    transform: scale(0, 0);
-  }
-
   :deep(:where(.slide-app)) {
     @apply relative cursor-pointer text-center;
+
+    transition:
+      box-shadow 300ms,
+      width 300ms linear,
+      height 300ms linear,
+      grid-row 300ms linear,
+      grid-column 300ms linear;
 
     & > :where(div:is([class*=' app-'], [class^='app-']):is([class*='-icon '], [class$='-icon'])) {
       @apply w-full h-full transition-all;
@@ -289,6 +285,30 @@ onUnmounted(function () {
       &:hover {
         @apply bg-[#d83030];
       }
+    }
+  }
+
+  .slide-app {
+    &-fade-move,
+    &-fade-enter-active,
+    &-fade-leave-active {
+      transition:
+        opacity 600ms linear,
+        grid-row 600ms linear,
+        grid-column 600ms linear,
+        transform 600ms linear,
+        width 600ms linear,
+        height 600ms linear;
+    }
+
+    &-fade-enter-from,
+    &-fade-leave-to {
+      opacity: 0;
+      transform: scale(0);
+    }
+    /* 处理列表重排动画 */
+    &-fade-move {
+      transition: transform 600ms linear;
     }
   }
 }

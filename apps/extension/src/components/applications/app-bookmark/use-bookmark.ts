@@ -37,44 +37,56 @@ export function useBookMark() {
   )
 
   // 获取Chrome书签树的响应式数据
-  const sourceBookmarks = useObservable(
-    new Observable<BookmarkFolder | null>(function (subscribe) {
-      watchEffect(function () {
-        subscribe.next(activeFolder.value)
+  const bookmarks = useObservable(
+    from(
+      liveQuery(function () {
+        return bookmarkModule.orderBy('sort').toArray()
       })
-    }).pipe(
-      switchMap(function (folder) {
-        return liveQuery(function () {
-          const folderId = folder?.id || folders.value?.[0]?.id || '1'
-
-          return bookmarkModule
-            .where('folderId')
-            .equals(folderId)
-            .and((bookmark) => bookmark.folderId !== '0')
-            .sortBy('sort')
-        })
-      }),
+    ).pipe(
       tap(function (response) {
-        if (isEmpty(response)) updateBookmarks()
-        else targetBookmarks.value = response
+        if (isEmpty(response)) handleRefreshBookmarks()
       })
     )
   )
 
+  const sourceBookmarks = computed(function () {
+    const bookmarksArray: Bookmark[] = []
+
+    if (!bookmarks.value?.length) return bookmarksArray
+
+    for (const bookmark of bookmarks.value) {
+      if (activeFolder.value?.id !== bookmark.folderId) continue
+      bookmarksArray.push(bookmark)
+    }
+    targetBookmarks.value = bookmarksArray
+    return bookmarksArray
+  })
+
   const recentBookmarks = computed(function () {
-    return sourceBookmarks.value?.filter(function (bookmark) {
+    return bookmarks.value?.filter(function (bookmark) {
       // 创建时间小于当前时间 7 天数
       return bookmark.createdAt < Date.now() - 1000 * 60 * 60 * 24 * 7
     })
   })
 
-  async function updateBookmarks() {
+  async function handleRefreshBookmarks() {
     const bookmarkTreeRes = await chrome?.bookmarks?.getTree()
 
     const { bookmarks: bookmarksRes, folders: foldersRes } = parseBookmarkTree(bookmarkTreeRes)
 
     bookmarkModule.bulkPut(bookmarksRes)
     folderModule.bulkPut(foldersRes)
+
+    for (const folder of foldersRes) {
+      await bookmarkModule
+        .where('folderId')
+        .equals(folder.id)
+        .count((count) => {
+          folderModule.update(folder.id, {
+            count
+          })
+        })
+    }
 
     const [folder] = foldersRes || []
 
@@ -172,14 +184,16 @@ export function useBookMark() {
 
   return {
     folders,
+    bookmarks,
+    activeFolder,
     sourceBookmarks,
     targetBookmarks,
     recentBookmarks,
-    activeFolder,
     isInvalidNode,
     isBookmarkNode,
     parseBookmarkTree,
     transformToFolder,
-    transformToBookmark
+    transformToBookmark,
+    handleRefreshBookmarks
   }
 }

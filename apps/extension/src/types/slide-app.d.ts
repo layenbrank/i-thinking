@@ -6,7 +6,13 @@ export type SlideAppDirection = 'horizontal' | 'vertical'
 
 export type SlideAppShape = 'square' | 'circle' | 'rectangle'
 
-export type SlideAppName = 'app-bookmark' | 'app-calendar' | 'app-store' | 'app-web' | 'app-example'
+export type SlideAppName =
+  | 'app-bookmark'
+  | 'app-calendar'
+  | 'app-notepad'
+  | 'app-store'
+  | 'app-web'
+  | 'app-example'
 
 export interface SlideApp {
   width: string | null
