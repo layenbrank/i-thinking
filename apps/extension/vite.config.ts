@@ -44,7 +44,6 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
           // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
           local: FileSystemIconLoader(
             resolve(rootDir, 'apps/extension/src/assets/icons'),
-            // resolve(rootDir, 'src/assets/icons'),
             function (svg) {
               return svg.replace(/^<svg /, '<svg fill="currentColor" ')
             }
@@ -62,7 +61,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
             importStyle: false
           }),
           IconsResolver({
-            prefix: 'Icon',
+            prefix: 'i',
             customCollections: ['local']
           })
         ],
@@ -130,9 +129,9 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
           return true
         }
 
-        // 检查是否匹配不内联规则
+        // 检查是否匹配不内联规则 不内联
         if (noInlineRegexes.some((regex) => regex.test(filePath))) {
-          return false // 不内联
+          return false
         }
 
         // 默认情况下，不内联
@@ -169,13 +168,6 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
               // 前端核心框架
               'core-framework': [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/],
 
-              // 自研组件
-              // 'ui-internal': [
-              //   /@repo\/ui/,
-              //   /packages[\\/]ui/,
-              //   /[\\/]node_modules[\\/](@repo\/ui)[\\/]/
-              // ],
-
               // UI 组件库 - 主库
               'ui-antdv': [/[\\/]node_modules[\\/]ant-design-vue[\\/]/],
 
@@ -206,9 +198,6 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 
               // 工具库 - 核心工具集
               'lib-utils': [
-                // /@repo\/core/,
-                // /packages[\\/]core/,
-                // /[\\/]node_modules[\\/](@repo\/core)[\\/]/,
                 /[\\/]node_modules[\\/](clsx|rxjs|lodash-es|deep-pick-omit|uuid|fuse\.js)[\\/]/
               ]
             }

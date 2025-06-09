@@ -128,7 +128,7 @@ function handleAppDialog() {
       @click="handleAppDialog"
     />
     <span class="app-name">{{ slideApp.name }}</span>
-    <IconLocalClose class="app-trash-icon" />
+    <i-local:close class="app-trash-icon" />
   </div>
 </template>
 

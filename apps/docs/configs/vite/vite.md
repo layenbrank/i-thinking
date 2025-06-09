@@ -109,15 +109,15 @@ export default defineConfig(function (): UserConfig {
           <span>Home</span>
         </div>
         <div class="icon-item">
-          <IconEpPlus />
+          <i-ep:Plus />
           <span>Plus</span>
         </div>
         <div class="icon-item">
-          <IconLocalTypescript />
+          <i-local:Typescript />
           <span>Typescript</span>
         </div>
         <div class="icon-item">
-          <IconLocalLogo />
+          <i-local:Logo />
           <span>Logo</span>
         </div>
         <div class="icon-item">

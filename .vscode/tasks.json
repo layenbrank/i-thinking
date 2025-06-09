@@ -4,9 +4,9 @@
     {
       "type": "shell",
       "command": "pnpm",
-      "args": ["run", "dev:desktop-d"],
-      "label": "pnpm dev:desktop-d",
-      "detail": "启动 Desktop-D 应用开发服务器",
+      "args": ["dev:extension"],
+      "label": "pnpm dev:extension",
+      "detail": "启动 extension 应用开发服务器",
       "isBackground": true,
       "problemMatcher": {
         "owner": "custom",
@@ -26,7 +26,7 @@
     {
       "type": "shell",
       "command": "pnpm",
-      "args": ["run", "dev:desktop-g"],
+      "args": ["dev:desktop-g"],
       "label": "pnpm dev:desktop-g",
       "detail": "启动 Desktop-G 应用开发服务器",
       "isBackground": true,
@@ -48,7 +48,7 @@
     {
       "type": "shell",
       "command": "pnpm",
-      "args": ["run", "dev:extension"],
+      "args": ["dev:extension"],
       "label": "pnpm dev:extension",
       "detail": "启动 Extension 应用开发服务器",
       "isBackground": true,
@@ -70,7 +70,7 @@
     {
       "type": "shell",
       "command": "pnpm",
-      "args": ["run", "dev:devtools"],
+      "args": ["dev:devtools"],
       "label": "pnpm dev:devtools",
       "detail": "启动 DevTools 应用开发服务器",
       "isBackground": true,
@@ -92,7 +92,7 @@
     {
       "type": "shell",
       "command": "pnpm",
-      "args": ["run", "dev:service"],
+      "args": ["dev:service"],
       "label": "pnpm dev:service",
       "detail": "启动 Service 应用开发服务器",
       "isBackground": true,
@@ -114,7 +114,7 @@
     {
       "type": "shell",
       "command": "pnpm",
-      "args": ["run", "build:desktop-d"],
+      "args": ["build:desktop-d"],
       "label": "pnpm build:desktop-d",
       "detail": "构建 Desktop-D 应用",
       "group": "build",
@@ -122,4 +122,3 @@
     }
   ]
 }
-

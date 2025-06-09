@@ -124,7 +124,7 @@ function handleJumpLink() {
     />
     <context-holder />
     <span class="app-name">{{ slideApp.name }}</span>
-    <IconLocalClose class="app-trash-icon" />
+    <i-local:close class="app-trash-icon" />
   </div>
 </template>
 

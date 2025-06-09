@@ -20,9 +20,14 @@ defineOptions({
 const props = withDefaults(
   defineProps<{
     appDialogRef?: SlideAppDialog
+    fullscreen?: boolean
   }>(),
   {}
 )
+
+const emits = defineEmits<{
+  (e: 'update:fullscreen', value: boolean): void
+}>()
 
 const slidesStore = useSlidesStore()
 
@@ -104,6 +109,15 @@ function updateActiveFolder(folder: BookmarkFolder) {
   targetBookmarks.value = sourceBookmarks.value
 }
 
+function updateSort() {}
+function updateFullScreen() {
+  emits('update:fullscreen', !props.fullscreen)
+}
+function updateClose() {
+  if (!props.appDialogRef) return
+  props.appDialogRef?.destroy()
+}
+
 onMounted(function () {
   // const bookmarksRes = bookmarkJSON as unknown as BookmarkParse
   // bookmarks.value = bookmarksRes.bookmarks
@@ -126,8 +140,13 @@ onMounted(function () {
     <a-layout-sider :width="286" class="bookmark-sider">
       <a-layout-header class="sider-header">
         <span class="bookmark-tip">书签管理器</span>
-        <a-button class="sort-button">
-          <IconEpPlus />
+        <a-button @click="updateSort" class="sort-button">
+          <i-ant-design:plus-outlined
+            stroke-width="90"
+            stroke="currentColor"
+            width="1.25rem"
+            height="1.25rem"
+          />
         </a-button>
       </a-layout-header>
       <a-layout-content class="sider-content">
@@ -173,13 +192,18 @@ onMounted(function () {
             @click="handleRefreshBookmarks"
             class="bookmark-operation-button refresh-button"
           >
-            <IconEpRefresh />
+            <i-ant-design:reload-outlined
+              stroke-width="90"
+              stroke="currentColor"
+              width="1.25rem"
+              height="1.25rem"
+            />
           </a-button>
-          <a-button class="bookmark-operation-button fullscreen-button">
-            <IconLocalHandle />
+          <a-button @click="updateFullScreen" class="bookmark-operation-button fullscreen-button">
+            <i-local:handle width="1.25rem" height="1.25rem" />
           </a-button>
-          <a-button class="bookmark-operation-button close-button">
-            <IconLocalClose />
+          <a-button @click="updateClose" class="bookmark-operation-button close-button">
+            <i-local:close width="1.25rem" height="1.25rem" />
           </a-button>
         </a-button-group>
       </a-layout-header>
@@ -244,10 +268,14 @@ onMounted(function () {
     .sort-button {
       @apply ml-auto;
       border: none;
-      @apply w-5 h-5 flex items-center justify-center p-[5px] rounded-[10px] bg-[#0003];
+      @apply w-5 h-5 flex items-center justify-center p-[5px] rounded-[10px] bg-[#0003] text-white;
+
+      &:hover {
+        @apply bg-[#00000099];
+      }
 
       svg {
-        @apply w-[8px] h-[8px];
+        @apply w-5 h-5;
       }
     }
 
@@ -324,6 +352,14 @@ onMounted(function () {
         }
       }
 
+      .refresh-button {
+        @apply text-white;
+
+        svg {
+          @apply w-5 h-5;
+        }
+      }
+
       .close-button {
         &:hover {
           @apply bg-[#d83030];
@@ -347,7 +383,7 @@ onMounted(function () {
     }
 
     .bookmark-card {
-      @apply w-full h-full;
+      @apply w-full h-full cursor-pointer;
 
       :deep(.ant-card-body) {
         @apply w-full h-full flex items-center justify-between px-2 py-3 gap-x-2;

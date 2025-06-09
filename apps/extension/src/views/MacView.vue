@@ -11,6 +11,7 @@ const AppController = defineAsyncComponent(function () {
 })
 
 import backgroundImage from '@/assets/wallpaper/r2e391.png'
+import { Modal } from 'ant-design-vue'
 
 defineOptions({
   name: 'MacView'
@@ -60,6 +61,10 @@ function updateSearch() {
 }
 
 onMounted(function () {})
+
+onUnmounted(function () {
+  Modal.destroyAll()
+})
 </script>
 
 <template>
@@ -68,7 +73,7 @@ onMounted(function () {})
       <a-space-compact class="flex">
         <a-button class="icon-apple">
           <template #icon>
-            <IconLocalAppleFilled />
+            <i-local:apple-filled />
           </template>
         </a-button>
         <a-button> 镜像 </a-button>
@@ -80,19 +85,19 @@ onMounted(function () {})
       <a-space-compact class="flex">
         <a-button class="icon-wifi">
           <template #icon>
-            <IconLocalWifi />
+            <i-local:wifi />
           </template>
         </a-button>
         <a-button class="icon-battery">
           <template #icon>
-            <IconLocalBatteryFullOutline />
+            <i-local:battery-full-outline />
           </template>
         </a-button>
         <a-popover placement="bottom" trigger="click" class="popover-input">
           <template #trigger>
             <a-button class="icon-search">
               <template #icon>
-                <IconLocalSearch />
+                <i-local:search />
               </template>
             </a-button>
           </template>
@@ -108,7 +113,7 @@ onMounted(function () {})
         </a-popover>
         <a-button class="icon-mac-toggle">
           <template #icon>
-            <IconLocalMacToggle />
+            <i-local:mac-toggle />
           </template>
         </a-button>
         <a-button class="date-time">

@@ -44,6 +44,8 @@ const props = withDefaults(
 
 const appDialogRef = ref<SlideAppDialog>()
 
+const fullscreen = ref(false)
+
 const mini = computed(() => props.slideApp.size === 'mini')
 const small = computed(() => props.slideApp.size === 'small')
 const medium = computed(() => props.slideApp.size === 'medium')
@@ -92,8 +94,24 @@ function handleAppDialog() {
     maskClosable: true,
     class: clsx('app-dialog', 'bookmark-dialog'),
     content() {
-      return <AppDialog appDialogRef={appDialogRef.value} />
+      return (
+        <AppDialog
+          fullscreen={fullscreen.value}
+          appDialogRef={appDialogRef.value}
+          onUpdate:fullscreen={updateFullScreen}
+        />
+      )
     }
+  })
+}
+
+function updateFullScreen(value: boolean) {
+  if (!appDialogRef.value) return
+  fullscreen.value = value
+
+  appDialogRef.value?.update({
+    width: fullscreen.value ? '100%' : '80%',
+    class: fullscreen.value ? 'fullscreen' : undefined
   })
 }
 </script>
@@ -131,7 +149,7 @@ function handleAppDialog() {
       @click="handleAppDialog"
     />
     <span class="app-name">{{ slideApp.name }}</span>
-    <IconLocalClose class="app-trash-icon" />
+    <i-local:close class="app-trash-icon" />
   </div>
 </template>
 
@@ -148,6 +166,16 @@ function handleAppDialog() {
 .app-dialog.bookmark-dialog {
   div[tabindex='0'][style='outline: none;'] {
     @apply w-full h-full;
+  }
+
+  &:not(.fullscreen) {
+  }
+
+  &.fullscreen {
+    height: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    border-radius: 0px;
   }
 
   .ant-modal-content,
