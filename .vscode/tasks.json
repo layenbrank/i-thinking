@@ -1,0 +1,125 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["run", "dev:desktop-d"],
+      "label": "pnpm dev:desktop-d",
+      "detail": "启动 Desktop-D 应用开发服务器",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "ready in"
+        }
+      }
+    },
+    {
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["run", "dev:desktop-g"],
+      "label": "pnpm dev:desktop-g",
+      "detail": "启动 Desktop-G 应用开发服务器",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "ready in"
+        }
+      }
+    },
+    {
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["run", "dev:extension"],
+      "label": "pnpm dev:extension",
+      "detail": "启动 Extension 应用开发服务器",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "ready in"
+        }
+      }
+    },
+    {
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["run", "dev:devtools"],
+      "label": "pnpm dev:devtools",
+      "detail": "启动 DevTools 应用开发服务器",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "ready in"
+        }
+      }
+    },
+    {
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["run", "dev:service"],
+      "label": "pnpm dev:service",
+      "detail": "启动 Service 应用开发服务器",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Application successfully started"
+        }
+      }
+    },
+    {
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["run", "build:desktop-d"],
+      "label": "pnpm build:desktop-d",
+      "detail": "构建 Desktop-D 应用",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
+

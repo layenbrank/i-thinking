@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "name": "Desktop-D Debug Development",
+      "request": "launch",
+      "url": "http://localhost:10010",
+      "env": { "NODE_ENV": "development" },
+      "sourceMaps": true,
+      "webRoot": "${workspaceFolder}/apps/desktop-d",
+      "preLaunchTask": "pnpm dev:desktop-d",
+      "sourceMapPathOverrides": {
+        ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+        ".tmp": "${webRoot}/node_modules/.tmp/*",
+        "@slide": "${webRoot}/node_modules/@slide/*",
+        "/@fs/*": "${webRoot}/*",
+        "/*": "${webRoot}/*",
+        "/src/*": "${webRoot}/src/*",
+        "/@/*": "${webRoot}/src/*",
+        "/@vite/*": "${workspaceFolder}/node_modules/*",
+        "/./*": "${webRoot}/*",
+        "/components/*": "${webRoot}/src/components/*",
+        "/node_modules/*": "${workspaceFolder}/node_modules/*",
+        "/@id/*": "${webRoot}/src/*",
+        "/@id/.*": "${webRoot}/src/*"
+      },
+      "smartStep": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/.vite/deps/**",
+        "!**/node_modules/*/**"
+      ],
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**/*.js",
+        "**/node_modules/.vite/deps/**",
+        "${workspaceFolder}/dist/desktop-d/**"
+      ]
+    },
+    {
+      "type": "chrome",
+      "name": "Desktop-D (快速启动)",
+      "request": "launch",
+      "url": "http://localhost:10010",
+      "env": { "NODE_ENV": "development" },
+      "sourceMaps": true,
+      "webRoot": "${workspaceFolder}/apps/desktop-d",
+      "sourceMapPathOverrides": {
+        ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+        "/@fs/*": "${webRoot}/*",
+        "/*": "${webRoot}/*",
+        "/src/*": "${webRoot}/src/*",
+        "/@/*": "${webRoot}/src/*",
+        "/@vite/*": "${workspaceFolder}/node_modules/*",
+        "/./*": "${webRoot}/*",
+        "/components/*": "${webRoot}/src/components/*",
+        "/node_modules/*": "${workspaceFolder}/node_modules/*",
+        "/@id/*": "${webRoot}/src/*",
+        "/@id/.*": "${webRoot}/src/*"
+      },
+      "smartStep": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/.vite/deps/**",
+        "!**/node_modules/*/**"
+      ],
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**/*.js",
+        "**/node_modules/.vite/deps/**",
+        "${workspaceFolder}/dist/desktop-d/**"
+      ]
+    },
+    {
+      "type": "chrome",
+      "name": "Desktop-G Debug Development",
+      "request": "launch",
+      "url": "http://localhost:10011",
+      "env": { "NODE_ENV": "development" },
+      "sourceMaps": true,
+      "webRoot": "${workspaceFolder}/apps/desktop-g",
+      "preLaunchTask": "pnpm dev:desktop-g",
+      "sourceMapPathOverrides": {
+        ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+        "/@fs/*": "${webRoot}/*",
+        "/*": "${webRoot}/*",
+        "/src/*": "${webRoot}/src/*",
+        "/@/*": "${webRoot}/src/*",
+        "/@vite/*": "${workspaceFolder}/node_modules/*",
+        "/./*": "${webRoot}/*",
+        "/components/*": "${webRoot}/src/components/*",
+        "/node_modules/*": "${workspaceFolder}/node_modules/*",
+        "/@id/*": "${webRoot}/src/*",
+        "/@id/.*": "${webRoot}/src/*"
+      },
+      "smartStep": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/.vite/deps/**",
+        "!**/node_modules/*/**"
+      ],
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**/*.js",
+        "**/node_modules/.vite/deps/**",
+        "${workspaceFolder}/dist/desktop-g/**"
+      ]
+    },
+    {
+      "type": "chrome",
+      "name": "Extension Debug Development",
+      "request": "launch",
+      "url": "http://localhost:10012",
+      "env": { "NODE_ENV": "development" },
+      "sourceMaps": true,
+      "webRoot": "${workspaceFolder}/apps/extension",
+      "preLaunchTask": "pnpm dev:extension",
+      "sourceMapPathOverrides": {
+        ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+        "/@fs/*": "${webRoot}/*",
+        "/*": "${webRoot}/*",
+        "/src/*": "${webRoot}/src/*",
+        "/@/*": "${webRoot}/src/*",
+        "/@vite/*": "${workspaceFolder}/node_modules/*",
+        "/./*": "${webRoot}/*",
+        "/components/*": "${webRoot}/src/components/*",
+        "/node_modules/*": "${workspaceFolder}/node_modules/*",
+        "/@id/*": "${webRoot}/src/*",
+        "/@id/.*": "${webRoot}/src/*"
+      },
+      "smartStep": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/.vite/deps/**",
+        "!**/node_modules/*/**"
+      ],
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**/*.js",
+        "**/node_modules/.vite/deps/**",
+        "${workspaceFolder}/dist/extension/**"
+      ]
+    },
+    {
+      "type": "chrome",
+      "name": "DevTools Debug Development",
+      "request": "launch",
+      "url": "http://localhost:10013",
+      "env": { "NODE_ENV": "development" },
+      "sourceMaps": true,
+      "webRoot": "${workspaceFolder}/apps/devtools",
+      "preLaunchTask": "pnpm dev:devtools",
+      "sourceMapPathOverrides": {
+        ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+        "/@fs/*": "${webRoot}/*",
+        "/*": "${webRoot}/*",
+        "/src/*": "${webRoot}/src/*",
+        "/@/*": "${webRoot}/src/*",
+        "/@vite/*": "${workspaceFolder}/node_modules/*",
+        "/./*": "${webRoot}/*",
+        "/components/*": "${webRoot}/src/components/*",
+        "/node_modules/*": "${workspaceFolder}/node_modules/*",
+        "/@id/*": "${webRoot}/src/*",
+        "/@id/.*": "${webRoot}/src/*"
+      },
+      "smartStep": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/.vite/deps/**",
+        "!**/node_modules/*/**"
+      ],
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**/*.js",
+        "**/node_modules/.vite/deps/**",
+        "${workspaceFolder}/dist/devtools/**"
+      ]
+    }
+  ]
+}
