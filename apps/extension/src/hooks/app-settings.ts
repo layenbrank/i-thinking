@@ -1,5 +1,5 @@
 import type { SlideAppDirection, SlideAppShape, SlideAppSize } from '@/types/slide-app'
-import type { CSSProperties } from 'vue'
+// import type { CSSProperties } from 'vue'
 
 interface AppSettings {
   mini: Ref<boolean>

@@ -156,5 +156,6 @@
   "diffEditor.hideUnchangedRegions.enabled": true,
   "scss.lint.duplicateProperties": "warning",
   "css.lint.duplicateProperties": "warning",
-  "marscode.chatLanguage": "cn"
+  "marscode.chatLanguage": "cn",
+  "oxc.enable": true
 }
