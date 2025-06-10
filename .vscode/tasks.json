@@ -26,6 +26,15 @@
     {
       "type": "shell",
       "command": "pnpm",
+      "args": ["build:extension"],
+      "label": "pnpm build:extension",
+      "detail": "构建 extension 应用",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "type": "shell",
+      "command": "pnpm",
       "args": ["dev:desktop-g"],
       "label": "pnpm dev:desktop-g",
       "detail": "启动 Desktop-G 应用开发服务器",
@@ -110,15 +119,6 @@
           "endsPattern": "Application successfully started"
         }
       }
-    },
-    {
-      "type": "shell",
-      "command": "pnpm",
-      "args": ["build:desktop-d"],
-      "label": "pnpm build:desktop-d",
-      "detail": "构建 Desktop-D 应用",
-      "group": "build",
-      "problemMatcher": []
     }
   ]
 }
