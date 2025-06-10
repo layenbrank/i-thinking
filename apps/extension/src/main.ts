@@ -20,9 +20,11 @@ const app = createApp(App)
 
 const pinia = createPinia()
 
-Object.keys(directives).forEach((key: string) => {
-  app.directive(key, (directives as { [key: string]: Directive })[key])
-})
+for (const key in Object.keys(directives)) {
+  if (!Object.prototype.hasOwnProperty.call(directives, key)) continue
+  const directive = directives[key]
+  app.directive(key, directive)
+}
 
 app
   .use(pinia)

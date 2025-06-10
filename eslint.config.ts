@@ -82,6 +82,6 @@ export default defineConfigWithVueTs(
 
   {
     name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', 'main.ts']
+    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**']
   }
 )
