@@ -15,6 +15,12 @@ export default {
       component: () => import('@/views/MacView.vue')
     },
     {
+      path: '/draggable-view',
+      name: 'draggable-view',
+      component: () => import('@/views/demo/draggable-view.vue')
+    },
+
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/views/NotFoundView.vue')
