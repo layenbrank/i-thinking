@@ -93,7 +93,7 @@
     "comments": true,
     "strings": true
   },
-  "editor.wordSeparators": "`~-!@%^&*()=+[{]}\\|;:'\",.<>/?（），。；：",
+  "editor.wordSeparators": "`~!@%^&*()=+[{]}\\|;:'\",.<>/?（），。；：",
   "editor.matchBrackets": "always",
   "editor.minimap.enabled": true,
   "editor.foldingStrategy": "indentation",

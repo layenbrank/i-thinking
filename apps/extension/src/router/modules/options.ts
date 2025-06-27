@@ -19,6 +19,11 @@ export default {
       name: 'draggable-view',
       component: () => import('@/views/demo/draggable-view.vue')
     },
+    {
+      path: '/math-view',
+      name: 'math-view',
+      component: () => import('@/views/demo/math-view.vue')
+    },
 
     {
       path: '/:pathMatch(.*)*',
