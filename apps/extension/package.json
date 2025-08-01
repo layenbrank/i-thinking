@@ -1,24 +1,24 @@
 {
-  "name": "@desktop-widgets/extension",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
-    "build-only": "vite build",
-    "type-check": "vue-tsc --build",
-    "preview": "vite preview",
-    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
-    "lint:eslint": "eslint . --fix",
-    "lint": "run-s lint:*",
-    "format": "prettier --write src/"
-  },
-  "dependencies": {
-    "reflect-metadata": "^0.2.2"
-  },
-  "devDependencies": {
-    "@types/chrome": "^0.0.308",
-    "@desktop-widgets/core": "workspace:*"
-  }
+	"name": "@desktop-widgets/extension",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "run-p type-check \"build-only {@}\" --",
+		"build-only": "vite build",
+		"type-check": "vue-tsc --build",
+		"preview": "vite preview",
+		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+		"lint:eslint": "eslint . --fix",
+		"lint": "run-s lint:*",
+		"format": "prettier --write src/"
+	},
+	"dependencies": {
+		"reflect-metadata": "^0.2.2"
+	},
+	"devDependencies": {
+		"@types/chrome": "^0.0.308",
+		"@desktop-widgets/core": "workspace:*"
+	}
 }

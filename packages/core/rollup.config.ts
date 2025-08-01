@@ -10,16 +10,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // 通用外部依赖
 const externals: (string | RegExp)[] = [
-  'vue',
-  '@vueuse/core',
-  'rxjs',
-  'rxjs/operators',
-  'dayjs',
-  /^dayjs\/.*/,
-  'lunisolar',
-  /^lunisolar\/.*/,
-  'tyme4ts',
-  'pinia'
+	'vue',
+	'@vueuse/core',
+	'rxjs',
+	'rxjs/operators',
+	'dayjs',
+	/^dayjs\/.*/,
+	'lunisolar',
+	/^lunisolar\/.*/,
+	'tyme4ts',
+	'pinia'
 ]
 
 // 模块名称
@@ -29,92 +29,92 @@ type ModuleName = (typeof moduleNames)[number]
 
 // 创建JS构建配置的工厂函数
 function JsConfig(moduleName: ModuleName) {
-  return {
-    input: path.resolve(__dirname, `src/${moduleName}/index.ts`),
-    output: {
-      file: `dist/${moduleName}.js`,
-      format: 'es',
-      sourcemap: false
-    },
-    plugins: [
-      terser(),
-      resolve({
-        browser: true,
-        preferBuiltins: false
-      }),
-      typescript({
-        tsconfig: './tsconfig.json',
-        declaration: false,
-        sourceMap: false
-      })
-    ],
-    external: externals
-  }
+	return {
+		input: path.resolve(__dirname, `src/${moduleName}/index.ts`),
+		output: {
+			file: `dist/${moduleName}.js`,
+			format: 'es',
+			sourcemap: false
+		},
+		plugins: [
+			terser(),
+			resolve({
+				browser: true,
+				preferBuiltins: false
+			}),
+			typescript({
+				tsconfig: './tsconfig.json',
+				declaration: false,
+				sourceMap: false
+			})
+		],
+		external: externals
+	}
 }
 
 // 创建类型声明构建配置的工厂函数
 function DtsConfig(moduleName: ModuleName) {
-  return {
-    input: path.resolve(__dirname, `src/${moduleName}/index.ts`),
-    output: {
-      file: `dist/${moduleName}.d.ts`,
-      format: 'es'
-    },
-    plugins: [dts()],
-    external: externals
-  }
+	return {
+		input: path.resolve(__dirname, `src/${moduleName}/index.ts`),
+		output: {
+			file: `dist/${moduleName}.d.ts`,
+			format: 'es'
+		},
+		plugins: [dts()],
+		external: externals
+	}
 }
 
 // 创建index重导出构建配置
 function IndexJsConfig() {
-  return {
-    input: path.resolve(__dirname, 'src/index.ts'),
-    output: {
-      file: 'dist/index.js',
-      format: 'es',
-      sourcemap: false
-    },
-    plugins: [
-      typescript({
-        tsconfig: './tsconfig.json',
-        declaration: false,
-        sourceMap: false
-      })
-    ],
-    // 关键：正确标记导入的子模块为外部依赖
-    external: [
-      ...externals,
-      './directives/index',
-      './hooks/index',
-      './utils/index',
-      // 兼容不同可能的引入路径
-      './directives',
-      './hooks',
-      './utils'
-    ]
-  }
+	return {
+		input: path.resolve(__dirname, 'src/index.ts'),
+		output: {
+			file: 'dist/index.js',
+			format: 'es',
+			sourcemap: false
+		},
+		plugins: [
+			typescript({
+				tsconfig: './tsconfig.json',
+				declaration: false,
+				sourceMap: false
+			})
+		],
+		// 关键：正确标记导入的子模块为外部依赖
+		external: [
+			...externals,
+			'./directives/index',
+			'./hooks/index',
+			'./utils/index',
+			// 兼容不同可能的引入路径
+			'./directives',
+			'./hooks',
+			'./utils'
+		]
+	}
 }
 
 // 创建index类型声明构建配置
 function IndexDtsConfig() {
-  return {
-    input: path.resolve(__dirname, 'src/index.ts'),
-    output: {
-      file: 'dist/index.d.ts',
-      format: 'es'
-    },
-    plugins: [dts()],
-    external: [
-      ...externals,
-      './directives/index',
-      './hooks/index',
-      './utils/index',
-      // 兼容不同可能的引入路径
-      './directives',
-      './hooks',
-      './utils'
-    ]
-  }
+	return {
+		input: path.resolve(__dirname, 'src/index.ts'),
+		output: {
+			file: 'dist/index.d.ts',
+			format: 'es'
+		},
+		plugins: [dts()],
+		external: [
+			...externals,
+			'./directives/index',
+			'./hooks/index',
+			'./utils/index',
+			// 兼容不同可能的引入路径
+			'./directives',
+			'./hooks',
+			'./utils'
+		]
+	}
 }
 
 // 使用映射生成所有模块的JS构建配置

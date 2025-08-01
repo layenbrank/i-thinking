@@ -12,188 +12,188 @@ import { message } from 'ant-design-vue'
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
 export interface BookmarkParse {
-  bookmarks: Bookmark[]
-  folders: BookmarkFolder[]
+	bookmarks: Bookmark[]
+	folders: BookmarkFolder[]
 }
 
 export function useBookMark() {
-  const activeFolder = ref<BookmarkFolder | null>(null)
+	const activeFolder = ref<BookmarkFolder | null>(null)
 
-  const targetBookmarks = ref<Bookmark[] | undefined>([])
+	const targetBookmarks = ref<Bookmark[] | undefined>([])
 
-  const folders = useObservable(
-    from(
-      liveQuery(function (): Promise<BookmarkFolder[]> {
-        return folderModule.orderBy('sort').toArray()
-      })
-    ).pipe(
-      tap(function (folders) {
-        if (isEmpty(folders)) {
-        } else {
-          activeFolder.value = folders[0] || null
-        }
-      })
-    )
-  )
+	const folders = useObservable(
+		from(
+			liveQuery(function (): Promise<BookmarkFolder[]> {
+				return folderModule.orderBy('sort').toArray()
+			})
+		).pipe(
+			tap(function (folders) {
+				if (isEmpty(folders)) {
+				} else {
+					activeFolder.value = folders[0] || null
+				}
+			})
+		)
+	)
 
-  // 获取Chrome书签树的响应式数据
-  const bookmarks = useObservable(
-    from(
-      liveQuery(function () {
-        return bookmarkModule.orderBy('sort').toArray()
-      })
-    ).pipe(
-      tap(function (response) {
-        if (isEmpty(response)) handleRefreshBookmarks()
-      })
-    )
-  )
+	// 获取Chrome书签树的响应式数据
+	const bookmarks = useObservable(
+		from(
+			liveQuery(function () {
+				return bookmarkModule.orderBy('sort').toArray()
+			})
+		).pipe(
+			tap(function (response) {
+				if (isEmpty(response)) handleRefreshBookmarks()
+			})
+		)
+	)
 
-  const sourceBookmarks = computed(function () {
-    const bookmarksArray: Bookmark[] = []
+	const sourceBookmarks = computed(function () {
+		const bookmarksArray: Bookmark[] = []
 
-    if (!bookmarks.value?.length) return bookmarksArray
+		if (!bookmarks.value?.length) return bookmarksArray
 
-    for (const bookmark of bookmarks.value) {
-      if (activeFolder.value?.id !== bookmark.folderId) continue
-      bookmarksArray.push(bookmark)
-    }
-    targetBookmarks.value = bookmarksArray
-    return bookmarksArray
-  })
+		for (const bookmark of bookmarks.value) {
+			if (activeFolder.value?.id !== bookmark.folderId) continue
+			bookmarksArray.push(bookmark)
+		}
+		targetBookmarks.value = bookmarksArray
+		return bookmarksArray
+	})
 
-  const recentBookmarks = computed(function () {
-    return bookmarks.value?.filter(function (bookmark) {
-      // 创建时间小于当前时间 7 天数
-      return bookmark.createdAt < Date.now() - 1000 * 60 * 60 * 24 * 7
-    })
-  })
+	const recentBookmarks = computed(function () {
+		return bookmarks.value?.filter(function (bookmark) {
+			// 创建时间小于当前时间 7 天数
+			return bookmark.createdAt < Date.now() - 1000 * 60 * 60 * 24 * 7
+		})
+	})
 
-  async function handleRefreshBookmarks() {
-    const bookmarkTreeRes = await chrome?.bookmarks?.getTree()
+	async function handleRefreshBookmarks() {
+		const bookmarkTreeRes = await chrome?.bookmarks?.getTree()
 
-    const { bookmarks: bookmarksRes, folders: foldersRes } = parseBookmarkTree(bookmarkTreeRes)
+		const { bookmarks: bookmarksRes, folders: foldersRes } = parseBookmarkTree(bookmarkTreeRes)
 
-    bookmarkModule.bulkPut(bookmarksRes)
-    folderModule.bulkPut(foldersRes)
+		bookmarkModule.bulkPut(bookmarksRes)
+		folderModule.bulkPut(foldersRes)
 
-    for (const folder of foldersRes) {
-      await bookmarkModule
-        .where('folderId')
-        .equals(folder.id)
-        .count((count) => {
-          folderModule.update(folder.id, {
-            count
-          })
-        })
-    }
+		for (const folder of foldersRes) {
+			await bookmarkModule
+				.where('folderId')
+				.equals(folder.id)
+				.count((count) => {
+					folderModule.update(folder.id, {
+						count
+					})
+				})
+		}
 
-    const [folder] = foldersRes || []
+		const [folder] = foldersRes || []
 
-    activeFolder.value = folder || null
+		activeFolder.value = folder || null
 
-    message.success('书签更新成功')
-  }
+		message.success('书签更新成功')
+	}
 
-  /**
-   * 将Chrome书签树扁平化并分类为书签和文件夹
-   * @param bookmarkNodes Chrome书签节点数组
-   * @returns 包含书签和文件夹的分类结果
-   */
-  function parseBookmarkTree(bookmarkNodes: BookmarkTreeNode[]): BookmarkParse {
-    const parsedBookmarks: Bookmark[] = []
-    const parsedFolders: BookmarkFolder[] = []
-    const nodeProcessingStack: BookmarkTreeNode[] = [...bookmarkNodes]
+	/**
+	 * 将Chrome书签树扁平化并分类为书签和文件夹
+	 * @param bookmarkNodes Chrome书签节点数组
+	 * @returns 包含书签和文件夹的分类结果
+	 */
+	function parseBookmarkTree(bookmarkNodes: BookmarkTreeNode[]): BookmarkParse {
+		const parsedBookmarks: Bookmark[] = []
+		const parsedFolders: BookmarkFolder[] = []
+		const nodeProcessingStack: BookmarkTreeNode[] = [...bookmarkNodes]
 
-    while (nodeProcessingStack.length > 0) {
-      const node = nodeProcessingStack.pop()
+		while (nodeProcessingStack.length > 0) {
+			const node = nodeProcessingStack.pop()
 
-      // 跳过空节点
-      if (!node) continue
+			// 跳过空节点
+			if (!node) continue
 
-      // 将子节点添加到处理栈中
-      if (node.children?.length) nodeProcessingStack.push(...node.children)
+			// 将子节点添加到处理栈中
+			if (node.children?.length) nodeProcessingStack.push(...node.children)
 
-      // 跳过根节点和空标题节点
-      if (isInvalidNode(node)) continue
+			// 跳过根节点和空标题节点
+			if (isInvalidNode(node)) continue
 
-      // 根据是否有URL属性来区分书签和文件夹
-      if (isBookmarkNode(node)) {
-        const transformedBookmark = transformToBookmark(node, parsedBookmarks.length)
-        parsedBookmarks.push(transformedBookmark)
-      } else {
-        const transformedFolder = transformToFolder(node, parsedFolders.length)
-        parsedFolders.push(transformedFolder)
-      }
-    }
+			// 根据是否有URL属性来区分书签和文件夹
+			if (isBookmarkNode(node)) {
+				const transformedBookmark = transformToBookmark(node, parsedBookmarks.length)
+				parsedBookmarks.push(transformedBookmark)
+			} else {
+				const transformedFolder = transformToFolder(node, parsedFolders.length)
+				parsedFolders.push(transformedFolder)
+			}
+		}
 
-    return {
-      bookmarks: parsedBookmarks,
-      folders: parsedFolders
-    }
-  }
+		return {
+			bookmarks: parsedBookmarks,
+			folders: parsedFolders
+		}
+	}
 
-  /**
-   * 判断节点是否为无效节点（根节点或空标题节点）
-   */
-  function isInvalidNode(node: BookmarkTreeNode): boolean {
-    return node.id === '0' || !node.title?.trim()
-  }
+	/**
+	 * 判断节点是否为无效节点（根节点或空标题节点）
+	 */
+	function isInvalidNode(node: BookmarkTreeNode): boolean {
+		return node.id === '0' || !node.title?.trim()
+	}
 
-  /**
-   * 判断节点是否为书签（有URL属性）
-   */
-  function isBookmarkNode(node: BookmarkTreeNode): boolean {
-    return Boolean(node.url)
-  }
+	/**
+	 * 判断节点是否为书签（有URL属性）
+	 */
+	function isBookmarkNode(node: BookmarkTreeNode): boolean {
+		return Boolean(node.url)
+	}
 
-  /**
-   * 将Chrome书签节点转换为Bookmark实体
-   * @param bookmarkNode Chrome书签节点
-   * @param sortIndex 排序索引（当前数组长度）
-   */
-  function transformToBookmark(bookmarkNode: BookmarkTreeNode, sortIndex: number): Bookmark {
-    return {
-      id: bookmarkNode.id,
-      url: bookmarkNode.url!,
-      title: bookmarkNode.title,
-      icon: '', // Chrome API不直接提供图标，需要额外获取
-      folderId: bookmarkNode.parentId || '',
-      sort: sortIndex,
-      description: '', // Chrome API不提供描述字段
-      createdAt: bookmarkNode.dateAdded || Date.now(),
-      updatedAt: bookmarkNode.dateGroupModified || Date.now()
-    }
-  }
+	/**
+	 * 将Chrome书签节点转换为Bookmark实体
+	 * @param bookmarkNode Chrome书签节点
+	 * @param sortIndex 排序索引（当前数组长度）
+	 */
+	function transformToBookmark(bookmarkNode: BookmarkTreeNode, sortIndex: number): Bookmark {
+		return {
+			id: bookmarkNode.id,
+			url: bookmarkNode.url!,
+			title: bookmarkNode.title,
+			icon: '', // Chrome API不直接提供图标，需要额外获取
+			folderId: bookmarkNode.parentId || '',
+			sort: sortIndex,
+			description: '', // Chrome API不提供描述字段
+			createdAt: bookmarkNode.dateAdded || Date.now(),
+			updatedAt: bookmarkNode.dateGroupModified || Date.now()
+		}
+	}
 
-  /**
-   * 将Chrome文件夹节点转换为BookmarkFolder实体
-   * @param bookmarkNode Chrome书签节点
-   * @param sortIndex 排序索引（当前数组长度）
-   */
-  function transformToFolder(bookmarkNode: BookmarkTreeNode, sortIndex: number): BookmarkFolder {
-    return {
-      count: 0,
-      id: bookmarkNode.id,
-      folder: bookmarkNode.title,
-      sort: sortIndex,
-      createdAt: bookmarkNode.dateAdded || Date.now(),
-      updatedAt: bookmarkNode.dateGroupModified || Date.now()
-    }
-  }
+	/**
+	 * 将Chrome文件夹节点转换为BookmarkFolder实体
+	 * @param bookmarkNode Chrome书签节点
+	 * @param sortIndex 排序索引（当前数组长度）
+	 */
+	function transformToFolder(bookmarkNode: BookmarkTreeNode, sortIndex: number): BookmarkFolder {
+		return {
+			count: 0,
+			id: bookmarkNode.id,
+			folder: bookmarkNode.title,
+			sort: sortIndex,
+			createdAt: bookmarkNode.dateAdded || Date.now(),
+			updatedAt: bookmarkNode.dateGroupModified || Date.now()
+		}
+	}
 
-  return {
-    folders,
-    bookmarks,
-    activeFolder,
-    sourceBookmarks,
-    targetBookmarks,
-    recentBookmarks,
-    isInvalidNode,
-    isBookmarkNode,
-    parseBookmarkTree,
-    transformToFolder,
-    transformToBookmark,
-    handleRefreshBookmarks
-  }
+	return {
+		folders,
+		bookmarks,
+		activeFolder,
+		sourceBookmarks,
+		targetBookmarks,
+		recentBookmarks,
+		isInvalidNode,
+		isBookmarkNode,
+		parseBookmarkTree,
+		transformToFolder,
+		transformToBookmark,
+		handleRefreshBookmarks
+	}
 }

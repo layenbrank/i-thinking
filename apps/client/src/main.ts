@@ -10,8 +10,8 @@ import router from './routers/index.ts'
 import { resize, debounce } from '@desktop-widgets/core/directives'
 
 const directives: Record<string, Directive> = {
-  resize,
-  debounce
+	resize,
+	debounce
 }
 
 const app = createApp(App)
@@ -19,11 +19,11 @@ const app = createApp(App)
 const pinia = createPinia()
 
 Object.keys(directives).forEach(function (key: string) {
-  app.directive(key, directives[key])
+	app.directive(key, directives[key])
 })
 
 app
-  .use(pinia)
-  .use(router)
+	.use(pinia)
+	.use(router)
 
-  .mount('#app')
+	.mount('#app')

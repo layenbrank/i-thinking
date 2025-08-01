@@ -50,8 +50,8 @@ const http = new HttpClient(withFetch())
 
 // 发起 GET 请求
 http.get('https://api.example.com/users').subscribe({
-  next: data => console.log('请求成功:', data),
-  error: error => console.error('请求失败:', error)
+	next: (data) => console.log('请求成功:', data),
+	error: (error) => console.error('请求失败:', error)
 })
 ```
 
@@ -92,7 +92,7 @@ http.request(new HttpRequest('GET', '/users'))
 ```typescript
 // 添加查询参数
 http.get('/users', {
-  params: { page: 1, size: 10 }
+	params: { page: 1, size: 10 }
 })
 
 // 或者使用 HttpParams
@@ -108,15 +108,15 @@ http.get('/users', { params })
 ```typescript
 // 添加请求头
 http.get('/users', {
-  headers: { 'Content-Type': 'application/json' }
+	headers: { 'Content-Type': 'application/json' }
 })
 
 // 或者使用 HttpHeaders
 import { HttpHeaders } from '@ngify/http'
 
 const headers = new HttpHeaders()
-  .set('Content-Type', 'application/json')
-  .set('Authorization', 'Bearer token')
+	.set('Content-Type', 'application/json')
+	.set('Authorization', 'Bearer token')
 
 http.get('/users', { headers })
 ```
@@ -138,15 +138,15 @@ http.get('/file', { responseType: 'arraybuffer' })
 http.get('/users', { observe: 'body' }) // 默认
 
 // 关注完整响应
-http.get('/users', { observe: 'response' }).subscribe(response => {
-  console.log('状态码:', response.status)
-  console.log('响应头:', response.headers)
-  console.log('响应体:', response.body)
+http.get('/users', { observe: 'response' }).subscribe((response) => {
+	console.log('状态码:', response.status)
+	console.log('响应头:', response.headers)
+	console.log('响应体:', response.body)
 })
 
 // 关注所有事件
-http.get('/users', { observe: 'events' }).subscribe(event => {
-  // 处理不同类型的事件
+http.get('/users', { observe: 'events' }).subscribe((event) => {
+	// 处理不同类型的事件
 })
 ```
 
@@ -159,19 +159,19 @@ import { catchError, retry, timeout } from 'rxjs/operators'
 import { throwError } from 'rxjs'
 
 http
-  .get('/users')
-  .pipe(
-    // 超时处理
-    timeout(5000),
-    // 重试
-    retry(3),
-    // 错误处理
-    catchError(error => {
-      console.error('请求失败:', error)
-      return throwError(() => new Error('请求失败，请稍后再试'))
-    })
-  )
-  .subscribe(data => console.log('数据:', data))
+	.get('/users')
+	.pipe(
+		// 超时处理
+		timeout(5000),
+		// 重试
+		retry(3),
+		// 错误处理
+		catchError((error) => {
+			console.error('请求失败:', error)
+			return throwError(() => new Error('请求失败，请稍后再试'))
+		})
+	)
+	.subscribe((data) => console.log('数据:', data))
 ```
 
 ## 拦截器
@@ -187,25 +187,25 @@ import { tap } from 'rxjs/operators'
 
 // 创建日志拦截器
 const logInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn) => {
-  console.log(`[请求] ${req.method} ${req.url}`)
+	console.log(`[请求] ${req.method} ${req.url}`)
 
-  return next(req).pipe(
-    tap(event => {
-      if (event instanceof HttpResponse) {
-        console.log(`[响应] ${req.method} ${req.url}`, event.status)
-      }
-    })
-  )
+	return next(req).pipe(
+		tap((event) => {
+			if (event instanceof HttpResponse) {
+				console.log(`[响应] ${req.method} ${req.url}`, event.status)
+			}
+		})
+	)
 }
 
 // 创建认证拦截器
 const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn) => {
-  // 添加认证头
-  const authReq = req.clone({
-    headers: req.headers.set('Authorization', 'Bearer token')
-  })
+	// 添加认证头
+	const authReq = req.clone({
+		headers: req.headers.set('Authorization', 'Bearer token')
+	})
 
-  return next(authReq)
+	return next(authReq)
 }
 
 // 使用拦截器
@@ -228,58 +228,58 @@ const HTTP_CACHE_TOKEN = new HttpContextToken(() => 0)
 
 // 缓存服务
 class CacheService {
-  private cache = new Map<string, { response: HttpResponse<unknown>; expire: number }>()
+	private cache = new Map<string, { response: HttpResponse<unknown>; expire: number }>()
 
-  get(request: HttpRequest<unknown>): HttpResponse<unknown> | null {
-    const entry = this.cache.get(request.urlWithParams)
-    if (!entry) return null
+	get(request: HttpRequest<unknown>): HttpResponse<unknown> | null {
+		const entry = this.cache.get(request.urlWithParams)
+		if (!entry) return null
 
-    return Date.now() > entry.expire ? null : entry.response
-  }
+		return Date.now() > entry.expire ? null : entry.response
+	}
 
-  put(request: HttpRequest<unknown>, response: HttpResponse<unknown>): void {
-    const expire = Date.now() + request.context.get(HTTP_CACHE_TOKEN)
-    this.cache.set(request.urlWithParams, { response, expire })
-  }
+	put(request: HttpRequest<unknown>, response: HttpResponse<unknown>): void {
+		const expire = Date.now() + request.context.get(HTTP_CACHE_TOKEN)
+		this.cache.set(request.urlWithParams, { response, expire })
+	}
 
-  clear() {
-    this.cache.forEach((entry, key) => {
-      if (Date.now() > entry.expire) {
-        this.cache.delete(key)
-      }
-    })
-  }
+	clear() {
+		this.cache.forEach((entry, key) => {
+			if (Date.now() > entry.expire) {
+				this.cache.delete(key)
+			}
+		})
+	}
 }
 
 const cacheService = new CacheService()
 
 // 缓存拦截器
 const cacheInterceptor = (request: HttpRequest<unknown>, next: HttpHandlerFn) => {
-  // 只缓存带有缓存令牌的请求
-  if (!request.context.has(HTTP_CACHE_TOKEN)) {
-    return next(request)
-  }
+	// 只缓存带有缓存令牌的请求
+	if (!request.context.has(HTTP_CACHE_TOKEN)) {
+		return next(request)
+	}
 
-  // 检查缓存
-  const cachedResponse = cacheService.get(request)
-  if (cachedResponse) {
-    return of(cachedResponse)
-  }
+	// 检查缓存
+	const cachedResponse = cacheService.get(request)
+	if (cachedResponse) {
+		return of(cachedResponse)
+	}
 
-  // 发送请求并缓存响应
-  return next(request).pipe(
-    tap(event => {
-      cacheService.put(request, event)
-    })
-  )
+	// 发送请求并缓存响应
+	return next(request).pipe(
+		tap((event) => {
+			cacheService.put(request, event)
+		})
+	)
 }
 
 // 使用缓存
 http
-  .get('/users', {
-    context: new HttpContext().set(HTTP_CACHE_TOKEN, 60000) // 缓存 1 分钟
-  })
-  .subscribe(data => console.log(data))
+	.get('/users', {
+		context: new HttpContext().set(HTTP_CACHE_TOKEN, 60000) // 缓存 1 分钟
+	})
+	.subscribe((data) => console.log(data))
 ```
 
 ## 多 baseURL 支持
@@ -291,19 +291,19 @@ http
 ```typescript
 // 创建带有 baseURL 的 HTTP 客户端工厂
 const createHttpClient = (baseUrl: string) => {
-  // 创建 baseURL 拦截器
-  const baseUrlInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn) => {
-    // 如果请求 URL 不是完整的 URL，则添加 baseURL
-    if (!req.url.startsWith('http')) {
-      const fullUrl = baseUrl + req.url
-      const newReq = req.clone({ url: fullUrl })
-      return next(newReq)
-    }
-    return next(req)
-  }
+	// 创建 baseURL 拦截器
+	const baseUrlInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn) => {
+		// 如果请求 URL 不是完整的 URL，则添加 baseURL
+		if (!req.url.startsWith('http')) {
+			const fullUrl = baseUrl + req.url
+			const newReq = req.clone({ url: fullUrl })
+			return next(newReq)
+		}
+		return next(req)
+	}
 
-  // 创建 HTTP 客户端实例
-  return new HttpClient(withFetch(), withInterceptors([baseUrlInterceptor]))
+	// 创建 HTTP 客户端实例
+	return new HttpClient(withFetch(), withInterceptors([baseUrlInterceptor]))
 }
 
 // 创建不同环境的 HTTP 客户端实例
@@ -312,11 +312,11 @@ const authClient = createHttpClient('https://auth.example.com')
 const mediaClient = createHttpClient('https://media.example.com')
 
 // 使用不同的客户端
-apiClient.get('/users').subscribe(users => console.log('用户列表:', users))
+apiClient.get('/users').subscribe((users) => console.log('用户列表:', users))
 authClient
-  .post('/login', { username: 'admin', password: '123456' })
-  .subscribe(token => console.log('认证令牌:', token))
-mediaClient.get('/images').subscribe(images => console.log('图片列表:', images))
+	.post('/login', { username: 'admin', password: '123456' })
+	.subscribe((token) => console.log('认证令牌:', token))
+mediaClient.get('/images').subscribe((images) => console.log('图片列表:', images))
 ```
 
 ## 高级用法
@@ -332,19 +332,19 @@ const cancelSignal = new Subject<void>()
 
 // 发起请求
 http
-  .get('/users')
-  .pipe(takeUntil(cancelSignal))
-  .subscribe({
-    next: data => console.log('数据:', data),
-    error: error => console.error('错误:', error),
-    complete: () => console.log('请求完成')
-  })
+	.get('/users')
+	.pipe(takeUntil(cancelSignal))
+	.subscribe({
+		next: (data) => console.log('数据:', data),
+		error: (error) => console.error('错误:', error),
+		complete: () => console.log('请求完成')
+	})
 
 // 取消请求
 setTimeout(() => {
-  console.log('取消请求')
-  cancelSignal.next()
-  cancelSignal.complete()
+	console.log('取消请求')
+	cancelSignal.next()
+	cancelSignal.complete()
 }, 1000)
 ```
 
@@ -360,9 +360,9 @@ const requests = [http.get('url1'), http.get('url2'), http.get('url3')]
 
 // 竞速请求，只取第一个响应成功的结果
 race(requests).subscribe({
-  next: data => console.log('第一个响应成功的数据:', data),
-  error: error => console.error('错误:', error),
-  complete: () => console.log('请求完成')
+	next: (data) => console.log('第一个响应成功的数据:', data),
+	error: (error) => console.error('错误:', error),
+	complete: () => console.log('请求完成')
 })
 ```
 
@@ -386,15 +386,15 @@ const timeout$ = timer(5000).pipe(mapTo(new Error('请求超时')))
 
 // 竞速请求与超时
 race(
-  request,
-  timeout$.pipe(
-    map(error => {
-      throw error
-    })
-  )
+	request,
+	timeout$.pipe(
+		map((error) => {
+			throw error
+		})
+	)
 ).subscribe({
-  next: data => console.log('请求成功:', data),
-  error: error => console.error('请求失败:', error)
+	next: (data) => console.log('请求成功:', data),
+	error: (error) => console.error('请求失败:', error)
 })
 ```
 
@@ -406,31 +406,31 @@ import { throwError, timer } from 'rxjs'
 
 // 简单重试
 http
-  .get('/users')
-  .pipe(retry(3))
-  .subscribe(data => console.log(data))
+	.get('/users')
+	.pipe(retry(3))
+	.subscribe((data) => console.log(data))
 
 // 高级重试策略（使用新的 retry 配置）
 http
-  .get('/users')
-  .pipe(
-    retry({
-      count: 3,
-      delay: (error, retryCount) => {
-        // 指数退避策略
-        const delay = Math.pow(2, retryCount) * 1000
-        console.log(`重试第 ${retryCount} 次，延迟 ${delay}ms`)
-        return timer(delay)
-      },
-      // 成功后是否重置计数器
-      resetOnSuccess: true
-    }),
-    catchError(error => {
-      console.error('重试后仍然失败:', error)
-      return throwError(() => new Error('请求失败，请稍后再试'))
-    })
-  )
-  .subscribe(data => console.log(data))
+	.get('/users')
+	.pipe(
+		retry({
+			count: 3,
+			delay: (error, retryCount) => {
+				// 指数退避策略
+				const delay = Math.pow(2, retryCount) * 1000
+				console.log(`重试第 ${retryCount} 次，延迟 ${delay}ms`)
+				return timer(delay)
+			},
+			// 成功后是否重置计数器
+			resetOnSuccess: true
+		}),
+		catchError((error) => {
+			console.error('重试后仍然失败:', error)
+			return throwError(() => new Error('请求失败，请稍后再试'))
+		})
+	)
+	.subscribe((data) => console.log(data))
 ```
 
 ### 并行请求
@@ -440,13 +440,13 @@ import { forkJoin } from 'rxjs'
 
 // 并行发起多个请求
 forkJoin({
-  users: http.get('/users'),
-  products: http.get('/products'),
-  orders: http.get('/orders')
-}).subscribe(results => {
-  console.log('用户:', results.users)
-  console.log('产品:', results.products)
-  console.log('订单:', results.orders)
+	users: http.get('/users'),
+	products: http.get('/products'),
+	orders: http.get('/orders')
+}).subscribe((results) => {
+	console.log('用户:', results.users)
+	console.log('产品:', results.products)
+	console.log('订单:', results.orders)
 })
 ```
 
@@ -459,22 +459,22 @@ import { from, mergeAll } from 'rxjs'
 
 // 请求列表
 const requests = [
-  http.get('url1'),
-  http.get('url2'),
-  http.get('url3'),
-  http.get('url4'),
-  http.get('url5')
+	http.get('url1'),
+	http.get('url2'),
+	http.get('url3'),
+	http.get('url4'),
+	http.get('url5')
 ]
 
 // 限制在某一时刻下最多只能有2个请求同时执行
 const concurrent = 2 // 并发数
 from(requests)
-  .pipe(mergeAll(concurrent))
-  .subscribe({
-    next: data => console.log('数据:', data),
-    error: error => console.error('错误:', error),
-    complete: () => console.log('所有请求完成')
-  })
+	.pipe(mergeAll(concurrent))
+	.subscribe({
+		next: (data) => console.log('数据:', data),
+		error: (error) => console.error('错误:', error),
+		complete: () => console.log('所有请求完成')
+	})
 ```
 
 也可以使用 `mergeMap` 操作符来实现类似功能：
@@ -487,16 +487,16 @@ const ids = [1, 2, 3, 4, 5]
 
 // 并发请求，最多同时2个
 from(ids)
-  .pipe(
-    mergeMap(
-      id => http.get(`/api/items/${id}`),
-      2 // 最大并发数
-    )
-  )
-  .subscribe({
-    next: item => console.log('获取到项目:', item),
-    complete: () => console.log('所有请求完成')
-  })
+	.pipe(
+		mergeMap(
+			(id) => http.get(`/api/items/${id}`),
+			2 // 最大并发数
+		)
+	)
+	.subscribe({
+		next: (item) => console.log('获取到项目:', item),
+		complete: () => console.log('所有请求完成')
+	})
 ```
 
 ### 串行请求
@@ -507,26 +507,26 @@ from(ids)
 import { switchMap } from 'rxjs/operators'
 
 http
-  .get('url1')
-  .pipe(
-    switchMap(response1 => {
-      // 使用第一个请求的响应结果
-      console.log('第一个请求的响应:', response1)
-      // 发起第二个请求
-      return http.get(`url2?param=${response1.id}`)
-    }),
-    switchMap(response2 => {
-      // 使用第二个请求的响应结果
-      console.log('第二个请求的响应:', response2)
-      // 发起第三个请求
-      return http.get(`url3?param=${response2.id}`)
-    })
-  )
-  .subscribe({
-    next: finalResponse => console.log('最终响应:', finalResponse),
-    error: error => console.error('请求链中的错误:', error),
-    complete: () => console.log('请求链完成')
-  })
+	.get('url1')
+	.pipe(
+		switchMap((response1) => {
+			// 使用第一个请求的响应结果
+			console.log('第一个请求的响应:', response1)
+			// 发起第二个请求
+			return http.get(`url2?param=${response1.id}`)
+		}),
+		switchMap((response2) => {
+			// 使用第二个请求的响应结果
+			console.log('第二个请求的响应:', response2)
+			// 发起第三个请求
+			return http.get(`url3?param=${response2.id}`)
+		})
+	)
+	.subscribe({
+		next: (finalResponse) => console.log('最终响应:', finalResponse),
+		error: (error) => console.error('请求链中的错误:', error),
+		complete: () => console.log('请求链完成')
+	})
 ```
 
 ### 串行请求（批量）
@@ -538,21 +538,21 @@ import { from, concatAll } from 'rxjs'
 
 // 请求列表
 const requests = [
-  http.get('url1'),
-  http.get('url2'),
-  http.get('url3'),
-  http.get('url4'),
-  http.get('url5')
+	http.get('url1'),
+	http.get('url2'),
+	http.get('url3'),
+	http.get('url4'),
+	http.get('url5')
 ]
 
 // 按顺序依次执行请求
 from(requests)
-  .pipe(concatAll())
-  .subscribe({
-    next: data => console.log('数据:', data),
-    error: error => console.error('错误:', error),
-    complete: () => console.log('所有请求完成')
-  })
+	.pipe(concatAll())
+	.subscribe({
+		next: (data) => console.log('数据:', data),
+		error: (error) => console.error('错误:', error),
+		complete: () => console.log('所有请求完成')
+	})
 ```
 
 也可以使用 `concatMap` 操作符：
@@ -565,11 +565,11 @@ const ids = [1, 2, 3, 4, 5]
 
 // 串行请求，一个完成后再执行下一个
 from(ids)
-  .pipe(concatMap(id => http.get(`/api/items/${id}`)))
-  .subscribe({
-    next: item => console.log('获取到项目:', item),
-    complete: () => console.log('所有请求完成')
-  })
+	.pipe(concatMap((id) => http.get(`/api/items/${id}`)))
+	.subscribe({
+		next: (item) => console.log('获取到项目:', item),
+		complete: () => console.log('所有请求完成')
+	})
 ```
 
 ### 错误处理
@@ -579,21 +579,21 @@ import { catchError } from 'rxjs/operators'
 import { throwError, of } from 'rxjs'
 
 http
-  .get('/users')
-  .pipe(
-    catchError(error => {
-      if (error.status === 404) {
-        console.log('资源不存在')
-        return of([]) // 返回空数组
-      }
-      if (error.status === 401) {
-        console.log('未授权，请登录')
-        // 重定向到登录页
-      }
-      return throwError(() => new Error('请求失败，请稍后再试'))
-    })
-  )
-  .subscribe(data => console.log(data))
+	.get('/users')
+	.pipe(
+		catchError((error) => {
+			if (error.status === 404) {
+				console.log('资源不存在')
+				return of([]) // 返回空数组
+			}
+			if (error.status === 401) {
+				console.log('未授权，请登录')
+				// 重定向到登录页
+			}
+			return throwError(() => new Error('请求失败，请稍后再试'))
+		})
+	)
+	.subscribe((data) => console.log(data))
 ```
 
 ## 常见场景示例
@@ -611,19 +611,19 @@ formData.append('name', 'example.jpg')
 
 // 上传文件并监听进度
 http
-  .post('/upload', formData, {
-    reportProgress: true, // 启用进度报告
-    observe: 'events' // 观察所有事件
-  })
-  .subscribe(event => {
-    if (event.type === HttpEventType.UploadProgress && event.total) {
-      // 计算上传进度
-      const progress = Math.round((100 * event.loaded) / event.total)
-      console.log(`上传进度: ${progress}%`)
-    } else if (event.type === HttpEventType.Response) {
-      console.log('上传完成:', event.body)
-    }
-  })
+	.post('/upload', formData, {
+		reportProgress: true, // 启用进度报告
+		observe: 'events' // 观察所有事件
+	})
+	.subscribe((event) => {
+		if (event.type === HttpEventType.UploadProgress && event.total) {
+			// 计算上传进度
+			const progress = Math.round((100 * event.loaded) / event.total)
+			console.log(`上传进度: ${progress}%`)
+		} else if (event.type === HttpEventType.Response) {
+			console.log('上传完成:', event.body)
+		}
+	})
 ```
 
 ### 下载文件并监听进度
@@ -632,32 +632,32 @@ http
 import { HttpEventType } from '@ngify/http'
 
 http
-  .get('/download/large-file', {
-    responseType: 'blob',
-    reportProgress: true,
-    observe: 'events'
-  })
-  .subscribe(event => {
-    if (event.type === HttpEventType.DownloadProgress) {
-      // 计算下载进度
-      if (event.total) {
-        const progress = Math.round((100 * event.loaded) / event.total)
-        console.log(`下载进度: ${progress}%`)
-      } else {
-        console.log(`已下载 ${event.loaded} 字节`)
-      }
-    } else if (event.type === HttpEventType.Response) {
-      // 创建下载链接
-      const url = window.URL.createObjectURL(event.body as Blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'file.pdf'
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      a.remove()
-    }
-  })
+	.get('/download/large-file', {
+		responseType: 'blob',
+		reportProgress: true,
+		observe: 'events'
+	})
+	.subscribe((event) => {
+		if (event.type === HttpEventType.DownloadProgress) {
+			// 计算下载进度
+			if (event.total) {
+				const progress = Math.round((100 * event.loaded) / event.total)
+				console.log(`下载进度: ${progress}%`)
+			} else {
+				console.log(`已下载 ${event.loaded} 字节`)
+			}
+		} else if (event.type === HttpEventType.Response) {
+			// 创建下载链接
+			const url = window.URL.createObjectURL(event.body as Blob)
+			const a = document.createElement('a')
+			a.href = url
+			a.download = 'file.pdf'
+			document.body.appendChild(a)
+			a.click()
+			window.URL.revokeObjectURL(url)
+			a.remove()
+		}
+	})
 ```
 
 ### 请求超时和自动重试
@@ -667,25 +667,25 @@ import { timeout, retry, catchError } from 'rxjs/operators'
 import { throwError } from 'rxjs'
 
 http
-  .get('/api/slow-endpoint')
-  .pipe(
-    // 5秒超时
-    timeout(5000),
-    // 超时后自动重试3次
-    retry(3),
-    catchError(error => {
-      if (error.name === 'TimeoutError') {
-        console.error('请求超时')
-      } else {
-        console.error('请求失败:', error)
-      }
-      return throwError(() => error)
-    })
-  )
-  .subscribe({
-    next: data => console.log('数据:', data),
-    error: error => console.error('最终错误:', error)
-  })
+	.get('/api/slow-endpoint')
+	.pipe(
+		// 5秒超时
+		timeout(5000),
+		// 超时后自动重试3次
+		retry(3),
+		catchError((error) => {
+			if (error.name === 'TimeoutError') {
+				console.error('请求超时')
+			} else {
+				console.error('请求失败:', error)
+			}
+			return throwError(() => error)
+		})
+	)
+	.subscribe({
+		next: (data) => console.log('数据:', data),
+		error: (error) => console.error('最终错误:', error)
+	})
 ```
 
 ### 请求防抖
@@ -699,21 +699,21 @@ const searchTerms = new Subject<string>()
 
 // 处理搜索请求
 searchTerms
-  .pipe(
-    // 等待300ms，避免频繁请求
-    debounceTime(300),
-    // 如果搜索词没变，不发送请求
-    distinctUntilChanged(),
-    // 切换到新的搜索请求，取消之前未完成的
-    switchMap(term => http.get(`/api/search?q=${term}`))
-  )
-  .subscribe(results => {
-    console.log('搜索结果:', results)
-  })
+	.pipe(
+		// 等待300ms，避免频繁请求
+		debounceTime(300),
+		// 如果搜索词没变，不发送请求
+		distinctUntilChanged(),
+		// 切换到新的搜索请求，取消之前未完成的
+		switchMap((term) => http.get(`/api/search?q=${term}`))
+	)
+	.subscribe((results) => {
+		console.log('搜索结果:', results)
+	})
 
 // 触发搜索
 function search(term: string) {
-  searchTerms.next(term)
+	searchTerms.next(term)
 }
 
 // 用户输入时调用
@@ -731,15 +731,15 @@ const stopPolling = new Subject<void>()
 
 // 每5秒轮询一次
 interval(5000)
-  .pipe(
-    // 切换到HTTP请求
-    switchMap(() => http.get('/api/status')),
-    // 直到停止信号发出
-    takeUntil(stopPolling)
-  )
-  .subscribe(status => {
-    console.log('当前状态:', status)
-  })
+	.pipe(
+		// 切换到HTTP请求
+		switchMap(() => http.get('/api/status')),
+		// 直到停止信号发出
+		takeUntil(stopPolling)
+	)
+	.subscribe((status) => {
+		console.log('当前状态:', status)
+	})
 
 // 停止轮询
 // stopPolling.next()
@@ -754,30 +754,30 @@ import { fromEvent } from 'rxjs'
 
 // 监听滚动事件
 fromEvent(window, 'scroll')
-  .pipe(
-    // 每200ms最多触发一次
-    throttleTime(200),
-    // 切换到HTTP请求
-    switchMap(() => {
-      const scrollPosition = window.scrollY
-      const windowHeight = window.innerHeight
-      const documentHeight = document.documentElement.scrollHeight
+	.pipe(
+		// 每200ms最多触发一次
+		throttleTime(200),
+		// 切换到HTTP请求
+		switchMap(() => {
+			const scrollPosition = window.scrollY
+			const windowHeight = window.innerHeight
+			const documentHeight = document.documentElement.scrollHeight
 
-      // 如果滚动到底部，加载更多数据
-      if (scrollPosition + windowHeight >= documentHeight - 200) {
-        return http.get('/api/items?page=next')
-      }
+			// 如果滚动到底部，加载更多数据
+			if (scrollPosition + windowHeight >= documentHeight - 200) {
+				return http.get('/api/items?page=next')
+			}
 
-      // 否则返回空数组
-      return of([])
-    })
-  )
-  .subscribe(newItems => {
-    if (newItems.length > 0) {
-      console.log('加载更多数据:', newItems)
-      // 将新数据添加到列表
-    }
-  })
+			// 否则返回空数组
+			return of([])
+		})
+	)
+	.subscribe((newItems) => {
+		if (newItems.length > 0) {
+			console.log('加载更多数据:', newItems)
+			// 将新数据添加到列表
+		}
+	})
 ```
 
 ### 请求合并
@@ -791,16 +791,16 @@ const ids = [1, 2, 3, 4, 5]
 
 // 并发请求，最多同时3个
 from(ids)
-  .pipe(
-    mergeMap(
-      id => http.get(`/api/items/${id}`),
-      3 // 最大并发数
-    )
-  )
-  .subscribe({
-    next: item => console.log('获取到项目:', item),
-    complete: () => console.log('所有请求完成')
-  })
+	.pipe(
+		mergeMap(
+			(id) => http.get(`/api/items/${id}`),
+			3 // 最大并发数
+		)
+	)
+	.subscribe({
+		next: (item) => console.log('获取到项目:', item),
+		complete: () => console.log('所有请求完成')
+	})
 ```
 
 ## 完整示例
@@ -809,21 +809,21 @@ from(ids)
 
 ```typescript
 import {
-  HttpClient,
-  HttpContext,
-  HttpContextToken,
-  withFetch,
-  withInterceptors,
-  HttpRequest,
-  HttpHeaders,
-  HttpParams,
-  HttpResponse,
-  type HttpMethod,
-  type HttpBackend,
-  type HttpHandler,
-  type HttpHandlerFn,
-  type HttpInterceptor,
-  type HttpEvent
+	HttpClient,
+	HttpContext,
+	HttpContextToken,
+	withFetch,
+	withInterceptors,
+	HttpRequest,
+	HttpHeaders,
+	HttpParams,
+	HttpResponse,
+	type HttpMethod,
+	type HttpBackend,
+	type HttpHandler,
+	type HttpHandlerFn,
+	type HttpInterceptor,
+	type HttpEvent
 } from '@ngify/http'
 import { Observable, of, tap, catchError, retry, timeout } from 'rxjs'
 
@@ -832,92 +832,92 @@ const HTTP_CACHE_TOKEN = new HttpContextToken(() => 0)
 
 // 缓存服务
 class CacheService {
-  private readonly cacheMap = new Map<string, { response: HttpResponse<unknown>; expire: number }>()
+	private readonly cacheMap = new Map<string, { response: HttpResponse<unknown>; expire: number }>()
 
-  get(request: HttpRequest<unknown>): HttpResponse<unknown> | null {
-    const entry = this.cacheMap.get(request.urlWithParams)
-    if (!entry) return null
-    return Date.now() > entry.expire ? null : entry.response
-  }
+	get(request: HttpRequest<unknown>): HttpResponse<unknown> | null {
+		const entry = this.cacheMap.get(request.urlWithParams)
+		if (!entry) return null
+		return Date.now() > entry.expire ? null : entry.response
+	}
 
-  put(request: HttpRequest<unknown>, response: HttpResponse<unknown>): void {
-    const entry = {
-      response: response,
-      expire: Date.now() + request.context.get(HTTP_CACHE_TOKEN)
-    }
-    this.cacheMap.set(request.urlWithParams, entry)
-  }
+	put(request: HttpRequest<unknown>, response: HttpResponse<unknown>): void {
+		const entry = {
+			response: response,
+			expire: Date.now() + request.context.get(HTTP_CACHE_TOKEN)
+		}
+		this.cacheMap.set(request.urlWithParams, entry)
+	}
 
-  clear() {
-    this.cacheMap.forEach((entry, key) => {
-      if (Date.now() > entry.expire) {
-        this.cacheMap.delete(key)
-      }
-    })
-  }
+	clear() {
+		this.cacheMap.forEach((entry, key) => {
+			if (Date.now() > entry.expire) {
+				this.cacheMap.delete(key)
+			}
+		})
+	}
 }
 
 const cacheService = new CacheService()
 
 // 缓存拦截器
 const cacheInterceptor = (request: HttpRequest<unknown>, next: HttpHandlerFn) => {
-  if (!request.context.has(HTTP_CACHE_TOKEN)) {
-    return next(request)
-  }
+	if (!request.context.has(HTTP_CACHE_TOKEN)) {
+		return next(request)
+	}
 
-  const response = cacheService.get(request)
-  if (response) {
-    return of(response)
-  }
+	const response = cacheService.get(request)
+	if (response) {
+		return of(response)
+	}
 
-  return next(request).pipe(
-    tap(event => {
-      cacheService.clear()
-      event instanceof HttpResponse && cacheService.put(request, event)
-    })
-  )
+	return next(request).pipe(
+		tap((event) => {
+			cacheService.clear()
+			event instanceof HttpResponse && cacheService.put(request, event)
+		})
+	)
 }
 
 // 日志拦截器
 const logInterceptor = (request: HttpRequest<unknown>, next: HttpHandlerFn) => {
-  console.log(`[请求] ${request.method} ${request.url}`)
-  const startTime = Date.now()
+	console.log(`[请求] ${request.method} ${request.url}`)
+	const startTime = Date.now()
 
-  return next(request).pipe(
-    tap(event => {
-      if (event instanceof HttpResponse) {
-        const duration = Date.now() - startTime
-        console.log(`[响应] ${request.method} ${request.url} - ${event.status} (${duration}ms)`)
-      }
-    })
-  )
+	return next(request).pipe(
+		tap((event) => {
+			if (event instanceof HttpResponse) {
+				const duration = Date.now() - startTime
+				console.log(`[响应] ${request.method} ${request.url} - ${event.status} (${duration}ms)`)
+			}
+		})
+	)
 }
 
 // 错误处理拦截器
 const errorInterceptor = (request: HttpRequest<unknown>, next: HttpHandlerFn) => {
-  return next(request).pipe(
-    catchError(error => {
-      console.error(`[错误] ${request.method} ${request.url}`, error)
-      return throwError(() => error)
-    })
-  )
+	return next(request).pipe(
+		catchError((error) => {
+			console.error(`[错误] ${request.method} ${request.url}`, error)
+			return throwError(() => error)
+		})
+	)
 }
 
 // 创建 HTTP 客户端工厂
 const createHttpClient = (baseUrl: string) => {
-  const baseUrlInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn) => {
-    if (!req.url.startsWith('http')) {
-      const fullUrl = baseUrl + req.url
-      const newReq = req.clone({ url: fullUrl })
-      return next(newReq)
-    }
-    return next(req)
-  }
+	const baseUrlInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn) => {
+		if (!req.url.startsWith('http')) {
+			const fullUrl = baseUrl + req.url
+			const newReq = req.clone({ url: fullUrl })
+			return next(newReq)
+		}
+		return next(req)
+	}
 
-  return new HttpClient(
-    withFetch(),
-    withInterceptors([logInterceptor, errorInterceptor, baseUrlInterceptor, cacheInterceptor])
-  )
+	return new HttpClient(
+		withFetch(),
+		withInterceptors([logInterceptor, errorInterceptor, baseUrlInterceptor, cacheInterceptor])
+	)
 }
 
 // 创建不同环境的 HTTP 客户端实例
@@ -926,20 +926,20 @@ const authClient = createHttpClient('https://auth.example.com')
 
 // 使用示例
 apiClient
-  .get('/users', {
-    params: { page: 1, size: 10 },
-    headers: { 'Content-Type': 'application/json' },
-    context: new HttpContext().set(HTTP_CACHE_TOKEN, 60000) // 缓存 1 分钟
-  })
-  .pipe(
-    timeout(10000), // 10 秒超时
-    retry(3) // 失败重试 3 次
-  )
-  .subscribe({
-    next: data => console.log('用户列表:', data),
-    error: error => console.error('获取用户失败:', error),
-    complete: () => console.log('请求完成')
-  })
+	.get('/users', {
+		params: { page: 1, size: 10 },
+		headers: { 'Content-Type': 'application/json' },
+		context: new HttpContext().set(HTTP_CACHE_TOKEN, 60000) // 缓存 1 分钟
+	})
+	.pipe(
+		timeout(10000), // 10 秒超时
+		retry(3) // 失败重试 3 次
+	)
+	.subscribe({
+		next: (data) => console.log('用户列表:', data),
+		error: (error) => console.error('获取用户失败:', error),
+		complete: () => console.log('请求完成')
+	})
 ```
 
 ## 参考资料

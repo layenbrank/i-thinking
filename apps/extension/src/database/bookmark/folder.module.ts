@@ -5,9 +5,9 @@ import type { BookmarkFolder } from './folder.entity'
 
 @Singleton()
 export class FolderModule extends BaseModule<BookmarkFolder, 'id'> {
-  constructor() {
-    super(database.bookmarkFolder)
-  }
+	constructor() {
+		super(database.bookmarkFolder)
+	}
 }
 
 export const folderModule = new FolderModule()

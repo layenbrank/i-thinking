@@ -5,8 +5,8 @@ import { MongooseModule } from '@nestjs/mongoose'
 import { Upload, UploadSchema } from './schemas/upload.schema'
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }])],
-  controllers: [UploadController],
-  providers: [UploadService]
+	imports: [MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }])],
+	controllers: [UploadController],
+	providers: [UploadService]
 })
 export class UploadModule {}

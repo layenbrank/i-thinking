@@ -5,8 +5,8 @@ import { PostsController } from './posts.controller'
 import { Post, PostSchema } from './schemas/posts.schema'
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Post.name, schema: PostSchema }])],
-  controllers: [PostsController],
-  providers: [PostsService]
+	imports: [MongooseModule.forFeature([{ name: Post.name, schema: PostSchema }])],
+	controllers: [PostsController],
+	providers: [PostsService]
 })
 export class PostsModule {}

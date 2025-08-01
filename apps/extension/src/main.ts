@@ -9,8 +9,8 @@ import 'reflect-metadata'
 import { resize, debounce } from '@desktop-widgets/core/directives'
 
 const directives: Record<string, Directive> = {
-  resize,
-  debounce
+	resize,
+	debounce
 }
 
 import App from './App.vue'
@@ -21,13 +21,13 @@ const app = createApp(App)
 const pinia = createPinia()
 
 for (const key in Object.keys(directives)) {
-  if (!Object.prototype.hasOwnProperty.call(directives, key)) continue
-  const directive = directives[key]
-  app.directive(key, directive)
+	if (!Object.prototype.hasOwnProperty.call(directives, key)) continue
+	const directive = directives[key]
+	app.directive(key, directive)
 }
 
 app
-  .use(pinia)
-  .use(router)
+	.use(pinia)
+	.use(router)
 
-  .mount('#app')
+	.mount('#app')

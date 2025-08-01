@@ -5,25 +5,25 @@ import { ExtractJwt, Strategy } from 'passport-jwt'
 import { jwtConstants } from '@/constants/jwt.constants'
 
 export interface JWTPayload {
-  username: string
-  id: string
+	username: string
+	id: string
 }
 
 export class JwtAuthStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor() {
-    super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      secretOrKey: jwtConstants.secret
-    })
-  }
+	constructor() {
+		super({
+			jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+			ignoreExpiration: false,
+			secretOrKey: jwtConstants.secret
+		})
+	}
 
-  public validate(payload: JWTPayload) {
-    // 获取jwt中的用户信息并返回
+	public validate(payload: JWTPayload) {
+		// 获取jwt中的用户信息并返回
 
-    return {
-      username: payload.username,
-      id: payload.id
-    }
-  }
+		return {
+			username: payload.username,
+			id: payload.id
+		}
+	}
 }

@@ -5,12 +5,12 @@ import DefaultTheme from 'vitepress/theme'
 import './index.scss'
 
 export default {
-  extends: DefaultTheme,
-  Layout: () => {
-    // https://vitepress.dev/guide/extending-default-theme#layout-slots
-    return h(DefaultTheme.Layout, null, {})
-  },
-  enhanceApp({ app, router, siteData }) {
-    // ...
-  }
+	extends: DefaultTheme,
+	Layout: () => {
+		// https://vitepress.dev/guide/extending-default-theme#layout-slots
+		return h(DefaultTheme.Layout, null, {})
+	},
+	enhanceApp({ app, router, siteData }) {
+		// ...
+	}
 } satisfies Theme

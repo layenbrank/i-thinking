@@ -5,9 +5,9 @@ import { Singleton } from '@desktop-widgets/core'
 
 @Singleton()
 export class UsersModule extends BaseModule<Users, 'id'> {
-  constructor() {
-    super(database.users)
-  }
+	constructor() {
+		super(database.users)
+	}
 }
 
 export const usersModule = new UsersModule()

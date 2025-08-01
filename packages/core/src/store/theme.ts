@@ -4,30 +4,30 @@ import type { ThemeColor } from '../types/theme'
 import { themes } from '../types/theme'
 
 export const useThemeStore = defineStore(
-  'theme',
-  () => {
-    const currentTheme = ref<ThemeColor>('purple')
+	'theme',
+	() => {
+		const currentTheme = ref<ThemeColor>('purple')
 
-    function setTheme(theme: ThemeColor) {
-      currentTheme.value = theme
-    }
+		function setTheme(theme: ThemeColor) {
+			currentTheme.value = theme
+		}
 
-    function getTheme() {
-      return themes[currentTheme.value]
-    }
+		function getTheme() {
+			return themes[currentTheme.value]
+		}
 
-    return {
-      currentTheme,
-      setTheme,
-      getTheme
-    }
-  }
-  // ,
-  // {
-  //   persist: {
-  //     key: 'desktop-widgets-theme',
-  //     storage: localStorage,
-  //     paths: ['currentTheme']
-  //   }
-  // }
+		return {
+			currentTheme,
+			setTheme,
+			getTheme
+		}
+	}
+	// ,
+	// {
+	//   persist: {
+	//     key: 'desktop-widgets-theme',
+	//     storage: localStorage,
+	//     paths: ['currentTheme']
+	//   }
+	// }
 )

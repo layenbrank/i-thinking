@@ -5,9 +5,9 @@ import { Singleton } from '@desktop-widgets/core'
 
 @Singleton()
 export class SlideModule extends BaseModule<SlideApp, 'id'> {
-  constructor() {
-    super(database.slideApp)
-  }
+	constructor() {
+		super(database.slideApp)
+	}
 }
 
 export const slideModule = new SlideModule()

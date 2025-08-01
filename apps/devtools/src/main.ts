@@ -16,7 +16,7 @@ const app = createApp(App)
 const pinia = createPinia()
 
 app
-  .use(pinia)
-  .use(router)
+	.use(pinia)
+	.use(router)
 
-  .mount('#app')
+	.mount('#app')

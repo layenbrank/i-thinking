@@ -20,158 +20,158 @@ const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 // https://vitejs.dev/config/
 export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
-  return {
-    plugins: [
-      vue(),
-      VueMcp(),
-      vueJsx(),
-      vueDevTools(),
-      Icons({
-        compiler: 'vue3',
-        autoInstall: true,
-        scale: 1,
-        defaultStyle: '',
-        defaultClass: '',
-        jsx: 'react',
-        iconCustomizer(collection, icon, props) {
-          props['aria-hidden'] = 'true'
-        },
-        customCollections: {
-          // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
-          local: FileSystemIconLoader(
-            resolve(rootDir, 'apps/client/src/assets/icons'),
-            // resolve(rootDir, 'src/assets/icons'),
-            function (svg) {
-              return svg.replace(/^<svg /, '<svg fill="currentColor" ')
-            }
-          )
-        }
-      }),
-      AutoImport({
-        dts: 'src/types/auto-imports.d.ts',
-        include: [/\.[tj]sx?$/, /\.vue$/, /\.vue\?vue/, /\.md$/],
-        imports: ['vue', 'vue-router', 'pinia']
-      }),
-      Components({
-        resolvers: [
-          AntDesignVueResolver({
-            importStyle: false
-          }),
-          IconsResolver({
-            prefix: 'Icon',
-            customCollections: ['local']
-          })
-        ],
-        dts: 'src/types/components.d.ts'
-      })
-    ],
-    resolve: {
-      alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url))
-      }
-    },
-    optimizeDeps: {
-      include: ['vue', 'vue-router', 'pinia']
-    },
-    build: {
-      rollupOptions: {
-        output: {
-          entryFileNames: 'assets/[name]-[hash].js',
-          chunkFileNames: 'assets/[name]-[hash].js',
-          assetFileNames: 'assets/[name]-[hash].[ext]',
-          manualChunks(id, meta) {
-            // 分包配置映射表，便于维护和扩展
-            const chunkMap: Readonly<Record<string, RegExp[]>> = {
-              // 前端核心框架
-              'core-framework': [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/],
+	return {
+		plugins: [
+			vue(),
+			VueMcp(),
+			vueJsx(),
+			vueDevTools(),
+			Icons({
+				compiler: 'vue3',
+				autoInstall: true,
+				scale: 1,
+				defaultStyle: '',
+				defaultClass: '',
+				jsx: 'react',
+				iconCustomizer(collection, icon, props) {
+					props['aria-hidden'] = 'true'
+				},
+				customCollections: {
+					// 'local' 是自定义集合名称，可以改为任何你喜欢的名称
+					local: FileSystemIconLoader(
+						resolve(rootDir, 'apps/client/src/assets/icons'),
+						// resolve(rootDir, 'src/assets/icons'),
+						function (svg) {
+							return svg.replace(/^<svg /, '<svg fill="currentColor" ')
+						}
+					)
+				}
+			}),
+			AutoImport({
+				dts: 'src/types/auto-imports.d.ts',
+				include: [/\.[tj]sx?$/, /\.vue$/, /\.vue\?vue/, /\.md$/],
+				imports: ['vue', 'vue-router', 'pinia']
+			}),
+			Components({
+				resolvers: [
+					AntDesignVueResolver({
+						importStyle: false
+					}),
+					IconsResolver({
+						prefix: 'Icon',
+						customCollections: ['local']
+					})
+				],
+				dts: 'src/types/components.d.ts'
+			})
+		],
+		resolve: {
+			alias: {
+				'@': fileURLToPath(new URL('./src', import.meta.url))
+			}
+		},
+		optimizeDeps: {
+			include: ['vue', 'vue-router', 'pinia']
+		},
+		build: {
+			rollupOptions: {
+				output: {
+					entryFileNames: 'assets/[name]-[hash].js',
+					chunkFileNames: 'assets/[name]-[hash].js',
+					assetFileNames: 'assets/[name]-[hash].[ext]',
+					manualChunks(id, meta) {
+						// 分包配置映射表，便于维护和扩展
+						const chunkMap: Readonly<Record<string, RegExp[]>> = {
+							// 前端核心框架
+							'core-framework': [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/],
 
-              // UI 组件库 - 主库
-              'ui-antdv': [/[\\/]node_modules[\\/]ant-design-vue[\\/]/],
+							// UI 组件库 - 主库
+							'ui-antdv': [/[\\/]node_modules[\\/]ant-design-vue[\\/]/],
 
-              // UI 组件库 - 第三方依赖
-              'ui-antdv-vendors': [
-                /[\\/]node_modules[\\/](@ant-design|@ctrl\/tinycolor|@emotion|@simonwep\/pickr|array-tree-filter|async-validator|dom-align|dom-scroll-into-view|resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal|stylis|throttle-debounce|vue-types|warning)[\\/]/
-              ],
+							// UI 组件库 - 第三方依赖
+							'ui-antdv-vendors': [
+								/[\\/]node_modules[\\/](@ant-design|@ctrl\/tinycolor|@emotion|@simonwep\/pickr|array-tree-filter|async-validator|dom-align|dom-scroll-into-view|resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal|stylis|throttle-debounce|vue-types|warning)[\\/]/
+							],
 
-              // UI 图标
-              'ui-icons': [/[\\/]node_modules[\\/](@iconify\/json)[\\/]/],
+							// UI 图标
+							'ui-icons': [/[\\/]node_modules[\\/](@iconify\/json)[\\/]/],
 
-              // 工具库 - 国际化
-              'lib-i18n': [/[\\/]node_modules[\\/](vue-i18n|@intlify)[\\/]/],
+							// 工具库 - 国际化
+							'lib-i18n': [/[\\/]node_modules[\\/](vue-i18n|@intlify)[\\/]/],
 
-              // 工具库 - 日期时间
-              'lib-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
+							// 工具库 - 日期时间
+							'lib-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
 
-              // 工具库 - 存储
-              'lib-storage': [/[\\/]node_modules[\\/]dexie[\\/]/],
+							// 工具库 - 存储
+							'lib-storage': [/[\\/]node_modules[\\/]dexie[\\/]/],
 
-              // 工具库 - UI 增强
-              'lib-ui-enhance': [/[\\/]node_modules[\\/](swiper|@vueuse|sortablejs)[\\/]/],
+							// 工具库 - UI 增强
+							'lib-ui-enhance': [/[\\/]node_modules[\\/](swiper|@vueuse|sortablejs)[\\/]/],
 
-              // 工具库 - 网络请求
-              'lib-network': [
-                /[\\/]node_modules[\\/](axios|alova|@alova|rate-limiter-flexible|@ngify)[\\/]/
-              ],
+							// 工具库 - 网络请求
+							'lib-network': [
+								/[\\/]node_modules[\\/](axios|alova|@alova|rate-limiter-flexible|@ngify)[\\/]/
+							],
 
-              // 工具库 - 核心工具集
-              'lib-utils': [
-                /[\\/]node_modules[\\/](clsx|rxjs|lodash-es|deep-pick-omit|uuid|fuse\.js)[\\/]/
-              ]
-            }
+							// 工具库 - 核心工具集
+							'lib-utils': [
+								/[\\/]node_modules[\\/](clsx|rxjs|lodash-es|deep-pick-omit|uuid|fuse\.js)[\\/]/
+							]
+						}
 
-            // 遍历映射表，匹配当前模块路径
-            for (const [chunkName, patterns] of Object.entries(chunkMap)) {
-              if (patterns.some((pattern) => pattern.test(id))) {
-                return chunkName
-              }
-            }
+						// 遍历映射表，匹配当前模块路径
+						for (const [chunkName, patterns] of Object.entries(chunkMap)) {
+							if (patterns.some((pattern) => pattern.test(id))) {
+								return chunkName
+							}
+						}
 
-            // 其他第三方依赖
-            if (/[\\/]node_modules[\\/]/.test(id)) {
-              return 'vendors'
-            }
-          }
-        }
-      }
-    },
-    css: {
-      modules: {
-        // 生成的类名格式
-        generateScopedName: '[name]-[local]-[hash:base64:6]',
-        // 是否驼峰化 CSS 类名
-        localsConvention: 'camelCase',
-        // 哪些文件需要使用 CSS Modules（默认：/\.module\./）
-        scopeBehaviour: 'local',
-        // 自定义哈希函数
-        hashPrefix: 'prefix'
-      },
-      preprocessorOptions: {
-        scss: {
-          api: 'modern-compiler'
-          // additionalData: '@import "@/styles/variables.scss";',
-        }
-      }
-    },
-    // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
-    //
-    // 1. prevent vite from obscuring rust errors
-    clearScreen: false,
-    // 2. tauri expects a fixed port, fail if that port is not available
-    server: {
-      port: 1420,
-      strictPort: true,
-      host: host || false,
-      hmr: host
-        ? {
-            protocol: 'ws',
-            host,
-            port: 1421
-          }
-        : undefined,
-      watch: {
-        // 3. tell vite to ignore watching `src-tauri`
-        ignored: ['**/src-tauri/**']
-      }
-    }
-  }
+						// 其他第三方依赖
+						if (/[\\/]node_modules[\\/]/.test(id)) {
+							return 'vendors'
+						}
+					}
+				}
+			}
+		},
+		css: {
+			modules: {
+				// 生成的类名格式
+				generateScopedName: '[name]-[local]-[hash:base64:6]',
+				// 是否驼峰化 CSS 类名
+				localsConvention: 'camelCase',
+				// 哪些文件需要使用 CSS Modules（默认：/\.module\./）
+				scopeBehaviour: 'local',
+				// 自定义哈希函数
+				hashPrefix: 'prefix'
+			},
+			preprocessorOptions: {
+				scss: {
+					api: 'modern-compiler'
+					// additionalData: '@import "@/styles/variables.scss";',
+				}
+			}
+		},
+		// Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
+		//
+		// 1. prevent vite from obscuring rust errors
+		clearScreen: false,
+		// 2. tauri expects a fixed port, fail if that port is not available
+		server: {
+			port: 1420,
+			strictPort: true,
+			host: host || false,
+			hmr: host
+				? {
+						protocol: 'ws',
+						host,
+						port: 1421
+					}
+				: undefined,
+			watch: {
+				// 3. tell vite to ignore watching `src-tauri`
+				ignored: ['**/src-tauri/**']
+			}
+		}
+	}
 })

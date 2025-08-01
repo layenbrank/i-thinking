@@ -25,57 +25,57 @@ import { DemoModule } from './services/demo/demo.module'
 import { SlideAppModule } from './services/slide-app/slide-app.module'
 
 @Module({
-  imports: [
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      async useFactory(configService: ConfigService<NodeJS.ProcessEnv>) {
-        const uri = configService.get<string>('DATABASE_URL', {
-          infer: true
-        })
-        console.log('uri', uri)
-        if (!uri) {
-          // throw new Error('DATABASE_URL not found in environment variables');
-          console.log('DATABASE_URL not found in environment variables')
-        }
+	imports: [
+		MongooseModule.forRootAsync({
+			imports: [ConfigModule],
+			async useFactory(configService: ConfigService<NodeJS.ProcessEnv>) {
+				const uri = configService.get<string>('DATABASE_URL', {
+					infer: true
+				})
+				console.log('uri', uri)
+				if (!uri) {
+					// throw new Error('DATABASE_URL not found in environment variables');
+					console.log('DATABASE_URL not found in environment variables')
+				}
 
-        return {
-          uri,
-          retryAttempts: 3,
-          retryDelay: 3000,
-          verboseRetryLog: true,
-          connectTimeoutMS: 3 * 1000
-        }
-      },
-      inject: [ConfigService]
-    }),
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: [
-        resolve(__dirname, process.cwd(), '.env'),
-        resolve(__dirname, process.cwd(), `.env.${process.env.NODE_ENV}`)
-      ]
-    }),
+				return {
+					uri,
+					retryAttempts: 3,
+					retryDelay: 3000,
+					verboseRetryLog: true,
+					connectTimeoutMS: 3 * 1000
+				}
+			},
+			inject: [ConfigService]
+		}),
+		ConfigModule.forRoot({
+			isGlobal: true,
+			envFilePath: [
+				resolve(__dirname, process.cwd(), '.env'),
+				resolve(__dirname, process.cwd(), `.env.${process.env.NODE_ENV}`)
+			]
+		}),
 
-    HttpModule,
-    AuthModule,
-    SlideAppModule,
-    PostsModule,
-    UploadModule,
-    ProfileModule,
-    ConsoleModule,
-    DemoModule
-  ],
-  controllers: [AppController],
-  providers: [
-    AppService
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: JWTAuthGuard,
-    // },
-  ]
+		HttpModule,
+		AuthModule,
+		SlideAppModule,
+		PostsModule,
+		UploadModule,
+		ProfileModule,
+		ConsoleModule,
+		DemoModule
+	],
+	controllers: [AppController],
+	providers: [
+		AppService
+		// {
+		//   provide: APP_GUARD,
+		//   useClass: JWTAuthGuard,
+		// },
+	]
 })
 export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LogMiddleware).forRoutes('(.*)') // 应用到所有路由，你也可以指定特定路由
-  }
+	configure(consumer: MiddlewareConsumer) {
+		consumer.apply(LogMiddleware).forRoutes('(.*)') // 应用到所有路由，你也可以指定特定路由
+	}
 }

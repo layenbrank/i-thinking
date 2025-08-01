@@ -6,12 +6,12 @@ import ReDock from './index.vue'
  * @returns 曲线高度值
  */
 export function baseCurve(x: number): number {
-  // 确保输入值在有效范围内
-  if (x < 0) return 0
-  if (x > 1) return 0
+	// 确保输入值在有效范围内
+	if (x < 0) return 0
+	if (x > 1) return 0
 
-  // 使用余弦函数创建更平滑的钟形曲线
-  return 0.5 * (1 + Math.cos(Math.PI * (1 - x)))
+	// 使用余弦函数创建更平滑的钟形曲线
+	return 0.5 * (1 + Math.cos(Math.PI * (1 - x)))
 }
 
 /**
@@ -23,32 +23,32 @@ export function baseCurve(x: number): number {
  * @returns 缩放函数
  */
 export function createCurve(
-  totalXDistance: number,
-  mouseX: number,
-  minY: number,
-  maxY: number
+	totalXDistance: number,
+	mouseX: number,
+	minY: number,
+	maxY: number
 ): (itemX: number) => number {
-  // 半径范围
-  const radius = totalXDistance / 2
+	// 半径范围
+	const radius = totalXDistance / 2
 
-  return function curve(itemX: number): number {
-    // 计算鼠标与图标之间的距离
-    const distance = Math.abs(mouseX - itemX)
+	return function curve(itemX: number): number {
+		// 计算鼠标与图标之间的距离
+		const distance = Math.abs(mouseX - itemX)
 
-    // 如果距离超过影响半径，返回最小缩放值
-    if (distance > radius) {
-      return minY
-    }
+		// 如果距离超过影响半径，返回最小缩放值
+		if (distance > radius) {
+			return minY
+		}
 
-    // 将距离映射到 0-1 范围内（距离越近，值越大）
-    const normalizedDistance = 1 - distance / radius
+		// 将距离映射到 0-1 范围内（距离越近，值越大）
+		const normalizedDistance = 1 - distance / radius
 
-    // 使用基础曲线函数计算平滑的缩放值
-    const curveValue = baseCurve(normalizedDistance)
+		// 使用基础曲线函数计算平滑的缩放值
+		const curveValue = baseCurve(normalizedDistance)
 
-    // 计算最终的缩放值
-    return minY + curveValue * (maxY - minY)
-  }
+		// 计算最终的缩放值
+		return minY + curveValue * (maxY - minY)
+	}
 }
 
 export { ReDock }

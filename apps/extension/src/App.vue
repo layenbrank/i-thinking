@@ -8,7 +8,7 @@ dayjs.locale('zh-cn')
 dayjs.locale('en-us')
 
 defineOptions({
-  name: 'App'
+	name: 'App'
 })
 
 const locale = zhCN
@@ -16,31 +16,31 @@ const locale = zhCN
 </script>
 
 <template>
-  <a-config-provider :locale="locale" class="top-floor-config-provider">
-    <a-style-provider hash-priority="low">
-      <a-app class="top-floor-app">
-        <a-spin :spinning="false" tip="Loading..." wrapperClassName="top-floor-spin-wrapper">
-          <router-view />
-        </a-spin>
-      </a-app>
-    </a-style-provider>
-  </a-config-provider>
+	<a-config-provider :locale="locale" class="top-floor-config-provider">
+		<a-style-provider hash-priority="low">
+			<a-app class="top-floor-app">
+				<a-spin :spinning="false" tip="Loading..." wrapperClassName="top-floor-spin-wrapper">
+					<router-view />
+				</a-spin>
+			</a-app>
+		</a-style-provider>
+	</a-config-provider>
 </template>
 
 <style lang="scss" scoped>
 %screen-full {
-  @apply w-full h-full;
+	@apply w-full h-full;
 }
 
 .top-floor-app {
-  @extend %screen-full;
+	@extend %screen-full;
 }
 
 .top-floor-spin-wrapper {
-  @extend %screen-full;
+	@extend %screen-full;
 
-  & > :deep(.ant-spin-container) {
-    @extend %screen-full;
-  }
+	& > :deep(.ant-spin-container) {
+		@extend %screen-full;
+	}
 }
 </style>

@@ -2,33 +2,33 @@
 import type { SlideAppDialog } from '@/types/slide-app'
 
 defineOptions({
-  name: 'app-example-dialog'
+	name: 'app-example-dialog'
 })
 
 const props = withDefaults(
-  defineProps<{
-    appDialogRef?: SlideAppDialog
-  }>(),
-  {}
+	defineProps<{
+		appDialogRef?: SlideAppDialog
+	}>(),
+	{}
 )
 
 function handler() {
-  const random = Math.floor(Math.random() * 100)
+	const random = Math.floor(Math.random() * 100)
 
-  props.appDialogRef?.update({
-    title: 'modal inner' + random
-  })
+	props.appDialogRef?.update({
+		title: 'modal inner' + random
+	})
 }
 </script>
 
 <template>
-  <div class="app-example-dialog">
-    <a-button @click="handler">modal inner</a-button>
-  </div>
+	<div class="app-example-dialog">
+		<a-button @click="handler">modal inner</a-button>
+	</div>
 </template>
 
 <style lang="scss" scoped>
 .app-example-dialog {
-  @apply w-full h-full flex items-center justify-center;
+	@apply w-full h-full flex items-center justify-center;
 }
 </style>

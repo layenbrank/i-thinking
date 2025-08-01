@@ -7,18 +7,18 @@ import type { Request } from 'express'
 
 @Injectable()
 export class JWTAuthGuard extends AuthGuard('jwt') {
-  constructor(private reflector: Reflector) {
-    super()
-  }
+	constructor(private reflector: Reflector) {
+		super()
+	}
 
-  canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
-    const isNoAuthToken = this.reflector.getAllAndOverride<boolean>(NO_AuthToken_Key, [
-      context.getHandler(),
-      context.getClass()
-    ])
-    if (isNoAuthToken) {
-      return true
-    }
-    return super.canActivate(context)
-  }
+	canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
+		const isNoAuthToken = this.reflector.getAllAndOverride<boolean>(NO_AuthToken_Key, [
+			context.getHandler(),
+			context.getClass()
+		])
+		if (isNoAuthToken) {
+			return true
+		}
+		return super.canActivate(context)
+	}
 }

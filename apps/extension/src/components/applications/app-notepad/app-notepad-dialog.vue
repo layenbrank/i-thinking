@@ -5,25 +5,25 @@ import { Editor } from '@tiptap/vue-3'
 import type { SlideAppDialog } from '@/types/slide-app'
 
 defineOptions({
-  name: 'app-notepad-dialog'
+	name: 'app-notepad-dialog'
 })
 
 const props = withDefaults(
-  defineProps<{
-    appDialogRef?: SlideAppDialog
-  }>(),
-  {}
+	defineProps<{
+		appDialogRef?: SlideAppDialog
+	}>(),
+	{}
 )
 </script>
 
 <template>
-  <div class="app-notepad-dialog">
-    <Editor />
-  </div>
+	<div class="app-notepad-dialog">
+		<Editor />
+	</div>
 </template>
 
 <style lang="scss" scoped>
 .app-notepad-dialog {
-  @apply w-full h-full flex items-center justify-center;
+	@apply w-full h-full flex items-center justify-center;
 }
 </style>

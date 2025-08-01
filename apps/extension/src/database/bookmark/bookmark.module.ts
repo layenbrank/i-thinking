@@ -5,9 +5,9 @@ import { Singleton } from '@desktop-widgets/core'
 
 @Singleton()
 export class BookmarkModule extends BaseModule<Bookmark, 'id'> {
-  constructor() {
-    super(database.bookmark)
-  }
+	constructor() {
+		super(database.bookmark)
+	}
 }
 
 export const bookmarkModule = new BookmarkModule()
