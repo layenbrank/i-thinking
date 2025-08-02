@@ -47,6 +47,8 @@
 	"[yaml]": {
 		"editor.defaultFormatter": "esbenp.prettier-vscode"
 	},
+	"breadcrumbs.filePath": "off",
+	"breadcrumbs.symbolSortOrder": "type",
 	"css.format.newlineBetweenSelectors": true,
 	"css.hover.documentation": true,
 	"css.hover.references": true,
@@ -135,6 +137,7 @@
 		"vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts"
 	},
 	"files.associations": {
+		"*.ts": "typescript",
 		"*.vue": "vue"
 	},
 	"files.autoGuessEncoding": true,
@@ -212,6 +215,7 @@
 	"search.followSymlinks": false,
 	"search.searchEditor.singleClickBehaviour": "peekDefinition",
 	"tailwindCSS.files.exclude": ["**/.git/**", "**/node_modules/**", "**/.hg/**", "**/.svn/**"],
+	"tailwindCSS.suggestions": true,
 	"terminal.explorerKind": "external",
 	"terminal.integrated.cursorBlinking": true,
 	"terminal.integrated.cursorStyle": "line",

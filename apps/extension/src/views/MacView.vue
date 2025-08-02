@@ -1,8 +1,8 @@
 <script setup lang="tsx">
 import { ReDock } from '@/components/re-dock'
-import { useDateFormat, useTimestamp } from '@vueuse/core'
 import { MacLayout, type MacLayoutOptions } from '@/layouts/index.ts'
-import { useSlidesStore } from '@/stores/slides.ts'
+import { useSlideStore } from '@/stores/slides.ts'
+import { useDateFormat, useTimestamp } from '@vueuse/core'
 
 // import AppSettings from '@/components/app-settings/app-settings.vue'
 
@@ -17,7 +17,7 @@ defineOptions({
 	name: 'MacView'
 })
 
-const slidesStore = useSlidesStore()
+const slideStore = useSlideStore()
 
 // const { activeSlideApp, settingsVisible } = storeToRefs(slidesStore)
 
@@ -117,9 +117,9 @@ onUnmounted(function () {
 					</template>
 				</a-button>
 				<a-button class="date-time">
-					<span>{{ date }}</span>
-					<span>{{ week }}</span>
-					<span>{{ time }}</span>
+					<span> {{ date }} </span>
+					<span> {{ week }} </span>
+					<span> {{ time }} </span>
 				</a-button>
 			</a-space-compact>
 		</template>

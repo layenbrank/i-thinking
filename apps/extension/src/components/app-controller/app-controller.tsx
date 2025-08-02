@@ -1,10 +1,8 @@
-import { useSlidesStore } from '@/stores/slides.ts'
 import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
 
-import type AppMenu from '../app-menu/app-menu.vue'
 import type { AppReflect } from '@/types/app-controller'
-import type { SlideApp, SlideAppName, SlideAppSize } from '@/types/slide-app.d.ts'
-import type { ContextMenuKeys, ContextMenuMap, MenuOptions } from '@/types/app-menu'
+import type { MenuOptions } from '@/types/app-menu'
+import type { SlideAppName, SlideAppSize } from '@/types/slide-app.d.ts'
 
 // import SlideView from '@/assets/wallpaper/slide-view-bg.jpg'
 

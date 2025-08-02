@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { debounce } from 'lodash-es'
-import bookmarkJSON from './bookmark.json'
 import fallback from '@/assets/feedback/fallback.png'
-import { useSlidesStore } from '@/stores/slides.ts'
+import { useSlideStore } from '@/stores/slides.ts'
+import { debounce } from 'lodash-es'
 
-import Fuse, { type IFuseOptions } from 'fuse.js'
-import { timeSphere } from '@desktop-widgets/core'
-import type { SlideAppDialog } from '@/types/slide-app'
-import { useBookMark, type BookmarkParse } from './use-bookmark.ts'
 import type { Bookmark } from '@/database/bookmark/bookmark.entity.ts'
 import type { BookmarkFolder } from '@/database/bookmark/folder.entity.ts'
+import type { SlideAppDialog } from '@/types/slide-app'
+import { timeSphere } from '@desktop-widgets/core'
+import Fuse, { type IFuseOptions } from 'fuse.js'
+import { useBookMark } from './use-bookmark.ts'
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
@@ -29,7 +28,7 @@ const emits = defineEmits<{
 	(e: 'update:fullscreen', value: boolean): void
 }>()
 
-const slidesStore = useSlidesStore()
+const slidesStore = useSlideStore()
 
 const keyword = ref('')
 const loading = ref(false)

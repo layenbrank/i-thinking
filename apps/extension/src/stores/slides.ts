@@ -1,11 +1,11 @@
-import { ref, computed } from 'vue'
-import { defineStore } from 'pinia'
-import { liveQuery } from 'dexie'
-import { useObservable } from '@vueuse/rxjs'
-import { from, tap, switchMap } from 'rxjs'
 import { slideModule } from '@/database/slide-app/slide-app.module.ts'
+import { useObservable } from '@vueuse/rxjs'
+import { liveQuery } from 'dexie'
+import { defineStore } from 'pinia'
+import { from, tap } from 'rxjs'
+import { ref } from 'vue'
 
-import type { SlideApp, SlideAppName } from '@/types/slide-app'
+import type { SlideApp } from '@/types/slide-app'
 import { isEmpty } from 'lodash-es'
 
 const DEFAULT: ReadonlyArray<SlideApp> = [
@@ -165,7 +165,7 @@ const DEFAULT: ReadonlyArray<SlideApp> = [
 function randomID() {
 	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }
-export const useSlidesStore = defineStore('counter', function () {
+export const useSlideStore = defineStore('app', function () {
 	const activeSlideApp = ref<SlideApp | null>(null)
 
 	const settingsVisible = ref(false)

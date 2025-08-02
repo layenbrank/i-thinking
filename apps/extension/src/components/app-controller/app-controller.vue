@@ -2,20 +2,19 @@
 import { resize } from '@desktop-widgets/core/directives'
 import AppMenu from '../app-menu/app-menu.vue'
 // import AppDrawer from '../app-settings/app-settings.vue'
-import { useSlidesStore } from '@/stores/slides.ts'
+import { useSlideStore } from '@/stores/slides.ts'
 import Sortable from 'sortablejs'
 
+import type { ContextMenuKeys, ContextMenuMap, MenuOptions } from '@/types/app-menu'
+import type { SlideApp } from '@/types/slide-app.d.ts'
 import {
-	sizes,
 	appReflect,
-	contextmenuReflect
+	contextmenuReflect,
 	// type MenuOptions,
 	// type ContextMenuMap,
 	// type ContextMenuKeys
+	sizes
 } from './app-controller.tsx'
-import type { AppReflect } from '@/types/app-controller'
-import type { SlideApp, SlideAppName, SlideAppSize } from '@/types/slide-app.d.ts'
-import type { ContextMenuKeys, ContextMenuMap, MenuOptions } from '@/types/app-menu'
 
 defineOptions({
 	name: 'app-controller',
@@ -24,7 +23,7 @@ defineOptions({
 	}
 })
 
-const slidesStore = useSlidesStore()
+const slidesStore = useSlideStore()
 
 const { slides, activeSlideApp, settingsVisible } = storeToRefs(slidesStore)
 
