@@ -1,4 +1,4 @@
-type ApplicationDialog = ReturnType<(typeof import('ant-design-vue'))['Modal']['info']>
+type ApplicationWindowType = ReturnType<(typeof import('ant-design-vue'))['Modal']['info']>
 
 type ApplicationSize = 'mini' | 'small' | 'medium' | 'large' | 'huge' | 'massive' | 'ultra'
 

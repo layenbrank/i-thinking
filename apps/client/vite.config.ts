@@ -1,24 +1,23 @@
-import { fileURLToPath, URL } from 'node:url'
-import { dirname, resolve } from 'node:path'
 import { findUpSync } from 'find-up'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import vueDevTools from 'vite-plugin-vue-devtools'
 import AutoImport from 'unplugin-auto-import/vite'
-import Components from 'unplugin-vue-components/vite'
-import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
-import { VueMcp } from 'vite-plugin-vue-mcp'
-import Icons from 'unplugin-icons/vite'
-import IconsResolver from 'unplugin-icons/resolver'
 import { FileSystemIconLoader } from 'unplugin-icons/loaders'
+import IconsResolver from 'unplugin-icons/resolver'
+import Icons from 'unplugin-icons/vite'
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
+import Components from 'unplugin-vue-components/vite'
+import { defineConfig, type ConfigEnv, type UserConfig } from 'vite'
+import vueDevTools from 'vite-plugin-vue-devtools'
+import { VueMcp } from 'vite-plugin-vue-mcp'
 
 const host = process.env.TAURI_DEV_HOST
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
-// https://vitejs.dev/config/
+
 export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
 	return {
 		plugins: [

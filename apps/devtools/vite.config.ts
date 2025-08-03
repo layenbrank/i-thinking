@@ -8,7 +8,6 @@ import AutoImport from 'unplugin-auto-import/vite'
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
-import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import pkg from './package.json'
 
@@ -39,28 +38,6 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			Components({
 				resolvers: [NaiveUiResolver()],
 				dts: 'src/types/components.d.ts'
-			}),
-			createSvgIconsPlugin({
-				// 指定需要缓存的图标文件夹
-				iconDirs: [resolve(process.cwd(), 'src/assets/icons')],
-				// 指定symbolId格式
-				symbolId: 'icon-[dir]-[name]',
-				svgoOptions: {
-					plugins: [
-						{
-							name: 'preset-default',
-							params: {
-								overrides: {
-									removeViewBox: false,
-									removeTitle: false,
-									removeDesc: { removeAny: true },
-									removeUselessDefs: false
-								}
-							}
-						},
-						'removeDimensions'
-					]
-				}
 			})
 		],
 		resolve: {

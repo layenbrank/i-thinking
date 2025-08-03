@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import enUS from 'ant-design-vue/es/locale/en_US'
+// import enUS from 'ant-design-vue/es/locale/en_US'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 dayjs.locale('zh-cn')
-dayjs.locale('en-us')
+// dayjs.locale('en-us')
 
 defineOptions({
 	name: 'App'

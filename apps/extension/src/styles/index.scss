@@ -5,277 +5,277 @@
 @tailwind components;
 @tailwind utilities;
 
-.ant-modal.app-dialog {
-  aspect-ratio: 16/9;
-  @apply rounded-lg;
+.ant-modal.application-window {
+	aspect-ratio: 16/9;
+	@apply rounded-lg;
 
-  .ant-modal-content {
-    @apply p-0;
-  }
+	.ant-modal-content {
+		@apply p-0;
+	}
 
-  .ant-modal-body {
-    .ant-modal-confirm-content {
-      margin-block-start: initial;
-      max-width: initial;
-    }
-  }
+	.ant-modal-body {
+		.ant-modal-confirm-content {
+			margin-block-start: initial;
+			max-width: initial;
+		}
+	}
 }
 
 *,
 *::before,
 *::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-weight: normal;
-  user-select: none;
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	font-weight: normal;
+	user-select: none;
 }
 *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+	width: 6px;
+	height: 6px;
 }
 
 *::-webkit-scrollbar-track {
-  border-radius: 6px;
+	border-radius: 6px;
 }
 
 *::-webkit-scrollbar-thumb {
-  border-radius: 6px;
-  background-color: rgba(0, 0, 0, 0.25);
-  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+	border-radius: 6px;
+	background-color: rgba(0, 0, 0, 0.25);
+	transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.4);
+	background-color: rgba(0, 0, 0, 0.4);
 }
 
 body {
-  min-height: 100vh;
-  color: var(--color-text);
-  background: var(--color-background);
-  transition:
-    color 0.5s,
-    background-color 0.5s;
-  line-height: 1;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    'Noto Sans',
-    sans-serif,
-    'Apple Color Emoji',
-    'Segoe UI Emoji',
-    'Segoe UI Symbol',
-    'Noto Color Emoji';
-  font-size: 16px;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+	min-height: 100vh;
+	color: var(--color-text);
+	background: var(--color-background);
+	transition:
+		color 0.5s,
+		background-color 0.5s;
+	line-height: 1;
+	font-family:
+		Inter,
+		ui-sans-serif,
+		system-ui,
+		-apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		Roboto,
+		'Helvetica Neue',
+		Arial,
+		'Noto Sans',
+		sans-serif,
+		'Apple Color Emoji',
+		'Segoe UI Emoji',
+		'Segoe UI Symbol',
+		'Noto Color Emoji';
+	font-size: 16px;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 }
 
 #app {
-  width: 100vw;
-  height: 100vh;
+	width: 100vw;
+	height: 100vh;
 }
 
 .mini {
-  &.square {
-  }
+	&.square {
+	}
 
-  &.circle {
-  }
+	&.circle {
+	}
 
-  &.rectangle {
-  }
+	&.rectangle {
+	}
 
-  &.square {
-    // width: var(--app-size, 60px);
-    // height: var(--app-size, 60px);
-    // width: var(--app-width, 60px);
-    // height: var(--app-height, 60px);
-  }
+	&.square {
+		// width: var(--app-size, 60px);
+		// height: var(--app-size, 60px);
+		// width: var(--app-width, 60px);
+		// height: var(--app-height, 60px);
+	}
 
-  &.rectangle.horizontal {
-    // grid-column: span 2;
-    // width: calc(var(--app-width) * 2 + var(--app-row-gap) * 1);
-    // height: var(--app-height);
-  }
+	&.rectangle.horizontal {
+		// grid-column: span 2;
+		// width: calc(var(--app-width) * 2 + var(--app-row-gap) * 1);
+		// height: var(--app-height);
+	}
 
-  &.rectangle.vertical {
-    // grid-row: span 2;
-    // width: var(--app-width);
-    // height: calc(var(--app-height) * 2 + var(--app-row-gap) * 1);
-  }
+	&.rectangle.vertical {
+		// grid-row: span 2;
+		// width: var(--app-width);
+		// height: calc(var(--app-height) * 2 + var(--app-row-gap) * 1);
+	}
 }
 
 .small {
-  &.horizontal {
-    // grid-column: span 2;
-    // width: calc(var(--app-width) * 2 + var(--app-row-gap) * 1);
-    // height: var(--app-height);
+	&.horizontal {
+		// grid-column: span 2;
+		// width: calc(var(--app-width) * 2 + var(--app-row-gap) * 1);
+		// height: var(--app-height);
 
-    &.square {
-    }
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 
-  &.vertical {
-    // grid-row: span 2;
-    // width: var(--app-width);
-    // height: calc(var(--app-height) * 2 + var(--app-row-gap) * 1);
+	&.vertical {
+		// grid-row: span 2;
+		// width: var(--app-width);
+		// height: calc(var(--app-height) * 2 + var(--app-row-gap) * 1);
 
-    &.square {
-    }
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 }
 
 .medium {
-  &.horizontal,
-  &.vertical {
-    // grid-column: span 2;
-    // grid-row: span 2;
-    // width: calc(var(--app-width) * 2 + var(--app-col-gap));
-    // height: calc(var(--app-height) * 2 + var(--app-row-gap));
+	&.horizontal,
+	&.vertical {
+		// grid-column: span 2;
+		// grid-row: span 2;
+		// width: calc(var(--app-width) * 2 + var(--app-col-gap));
+		// height: calc(var(--app-height) * 2 + var(--app-row-gap));
 
-    &.square {
-    }
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 }
 
 .large {
-  // grid-column: span 2;
-  // grid-row: span 2;
-  // width: calc(var(--app-width) * 2 + var(--app-col-gap));
-  // height: calc(var(--app-height) * 2 + var(--app-row-gap));
+	// grid-column: span 2;
+	// grid-row: span 2;
+	// width: calc(var(--app-width) * 2 + var(--app-col-gap));
+	// height: calc(var(--app-height) * 2 + var(--app-row-gap));
 
-  &.horizontal {
-    &.square {
-    }
+	&.horizontal {
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 
-  &.vertical {
-    &.square {
-    }
+	&.vertical {
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 }
 
 .huge {
-  // grid-column: span 4;
-  // grid-row: span 2;
-  // width: calc(var(--app-width) * 4 + var(--app-col-gap) * 3);
-  // height: calc(var(--app-height) * 2 + var(--app-row-gap));
+	// grid-column: span 4;
+	// grid-row: span 2;
+	// width: calc(var(--app-width) * 4 + var(--app-col-gap) * 3);
+	// height: calc(var(--app-height) * 2 + var(--app-row-gap));
 
-  &.horizontal {
-    &.square {
-    }
+	&.horizontal {
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 
-  &.vertical {
-    &.square {
-    }
+	&.vertical {
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 }
 
 .massive {
-  // grid-column: span 7;
-  // grid-row: span 4;
-  // width: calc(var(--app-width) * 7 + var(--app-col-gap) * 6);
-  // height: calc(var(--app-height) * 4 + var(--app-row-gap) * 3);
+	// grid-column: span 7;
+	// grid-row: span 4;
+	// width: calc(var(--app-width) * 7 + var(--app-col-gap) * 6);
+	// height: calc(var(--app-height) * 4 + var(--app-row-gap) * 3);
 
-  &.horizontal {
-    &.square {
-    }
+	&.horizontal {
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 
-  &.vertical {
-    &.square {
-    }
+	&.vertical {
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 }
 
 .ultra {
-  // grid-column: span 4;
-  // grid-row: span 7;
-  // width: calc(var(--app-width) * 4 + var(--app-col-gap) * 3);
-  // height: calc(var(--app-height) * 7 + var(--app-row-gap) * 6);
+	// grid-column: span 4;
+	// grid-row: span 7;
+	// width: calc(var(--app-width) * 4 + var(--app-col-gap) * 3);
+	// height: calc(var(--app-height) * 7 + var(--app-row-gap) * 6);
 
-  &.horizontal {
-    &.square {
-    }
+	&.horizontal {
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 
-  &.vertical {
-    &.square {
-    }
+	&.vertical {
+		&.square {
+		}
 
-    &.circle {
-    }
+		&.circle {
+		}
 
-    &.rectangle {
-    }
-  }
+		&.rectangle {
+		}
+	}
 }

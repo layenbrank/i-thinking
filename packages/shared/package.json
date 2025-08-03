@@ -33,6 +33,12 @@
 		},
 		"./contextmenu": {
 			"types": "./src/types/contextmenu.d.ts"
+		},
+		"./application-settings": {
+			"types": "./src/types/application-settings.d.ts"
+		},
+		"./application-backup": {
+			"types": "./src/types/application-backup.d.ts"
 		}
 	}
 }

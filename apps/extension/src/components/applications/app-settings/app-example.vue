@@ -2,8 +2,8 @@
 import { useAppSettings } from '@/hooks/app-settings'
 import { Modal } from 'ant-design-vue'
 import clsx from 'clsx'
-import AppDialog from './app-example-dialog.vue'
 import AppIcon from './app-example-icon.vue'
+import ApplicationWindow from './app-example-window.vue'
 
 defineOptions({
 	name: 'app-example'
@@ -15,29 +15,31 @@ const props = withDefaults(
 		settingsVisible?: boolean
 	}>(),
 	{
-		application: () => ({
-			id: '0',
-			width: '60px',
-			height: '60px',
-			app: 'app-example',
-			round: '12px',
-			size: 'medium',
-			slideID: '0',
-			sort: 0,
-			name: 'example',
-			direction: 'horizontal',
-			shape: 'square',
-			backgroundColor: '#ffffff4d',
-			backgroundImage: null,
-			textSize: '13px',
-			textColor: '#ffffff',
-			description: '书签',
-			downloadCount: 1000
-		})
+		application() {
+			return {
+				id: '0',
+				width: '60px',
+				height: '60px',
+				app: 'app-example',
+				round: '12px',
+				size: 'medium',
+				slideID: '0',
+				sort: 0,
+				name: 'example',
+				direction: 'horizontal',
+				shape: 'square',
+				backgroundColor: '#ffffff4d',
+				backgroundImage: null,
+				textSize: '13px',
+				textColor: '#ffffff',
+				description: '书签',
+				downloadCount: 1000
+			}
+		}
 	}
 )
 
-const appDialogRef = ref<ApplicationDialog>()
+const appDialogRef = ref<ApplicationWindowType>()
 
 const mini = computed(() => props.application.size === 'mini')
 const small = computed(() => props.application.size === 'small')
@@ -85,9 +87,9 @@ function handleAppDialog() {
 		width: '80%',
 		centered: true,
 		maskClosable: true,
-		class: clsx('app-dialog example-dialog'),
+		class: clsx('application-window example-dialog'),
 		content() {
-			return <AppDialog appDialogRef={appDialogRef.value} />
+			return <ApplicationWindow appDialogRef={appDialogRef.value} />
 		}
 	})
 }
@@ -106,7 +108,18 @@ function handleAppDialog() {
 		:data-id="application.id"
 		:class="['app-example', application.size, application.shape, application.direction]"
 	>
-		<AppIcon
+		<a-modal
+			:icon="null"
+			:title="null"
+			:footer="null"
+			width="80%"
+			:centered="true"
+			:mask-closable="true"
+			class="application-window example-dialog"
+		>
+			<application-window />
+		</a-modal>
+		<app-icon
 			:mini="mini"
 			:small="small"
 			:medium="medium"
@@ -141,7 +154,7 @@ function handleAppDialog() {
 }
 </style>
 <style lang="scss">
-.app-dialog.example-dialog {
+.application-window.example-dialog {
 	div[tabindex='0'][style='outline: none;'] {
 		@apply w-full h-full;
 	}

@@ -1,9 +1,8 @@
 <script setup lang="tsx">
 import { useAppSettings } from '@/hooks/app-settings'
-import { Modal, message } from 'ant-design-vue'
-import clsx from 'clsx'
-import AppDialog from './app-web-dialog.vue'
+import { message } from 'ant-design-vue'
 import AppIcon from './app-web-icon.vue'
+import ApplicationWindow from './app-web-window.vue'
 
 defineOptions({
 	name: 'app-web'
@@ -15,25 +14,27 @@ const props = withDefaults(
 		settingsVisible?: boolean
 	}>(),
 	{
-		application: () => ({
-			id: '0',
-			width: '60px',
-			height: '60px',
-			app: 'app-web',
-			round: '12px',
-			size: 'medium',
-			slideID: '0',
-			sort: 0,
-			name: 'example',
-			direction: 'horizontal',
-			shape: 'square',
-			backgroundColor: '#ffffff4d',
-			backgroundImage: null,
-			textSize: '13px',
-			textColor: '#ffffff',
-			description: '书签',
-			downloadCount: 1000
-		})
+		application() {
+			return {
+				id: '0',
+				width: '60px',
+				height: '60px',
+				app: 'app-web',
+				round: '12px',
+				size: 'medium',
+				slideID: '0',
+				sort: 0,
+				name: 'example',
+				direction: 'horizontal',
+				shape: 'square',
+				backgroundColor: '#ffffff4d',
+				backgroundImage: null,
+				textSize: '13px',
+				textColor: '#ffffff',
+				description: '书签',
+				downloadCount: 1000
+			}
+		}
 	}
 )
 
@@ -41,7 +42,7 @@ const [handleMessage, contextHolder] = message.useMessage({
 	maxCount: 1
 })
 
-const appDialogRef = ref<ApplicationDialog>()
+const appDialogRef = ref<ApplicationWindowType>()
 
 const mini = computed(() => props.application.size === 'mini')
 const small = computed(() => props.application.size === 'small')
@@ -101,7 +102,18 @@ function handleJumpLink() {
 		:data-id="application.id"
 		:class="['app-web', application.size, application.shape, application.direction]"
 	>
-		<AppIcon
+		<a-modal
+			:icon="null"
+			:title="null"
+			:footer="null"
+			width="80%"
+			:centered="true"
+			:mask-closable="true"
+			class="application-window example-dialog"
+		>
+			<application-window />
+		</a-modal>
+		<app-icon
 			:mini="mini"
 			:small="small"
 			:medium="medium"
@@ -138,7 +150,7 @@ function handleJumpLink() {
 }
 </style>
 <style lang="scss">
-.app-dialog.web-dialog {
+.application-window.web-dialog {
 	div[tabindex='0'][style='outline: none;'] {
 		@apply w-full h-full;
 	}

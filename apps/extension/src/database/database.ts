@@ -7,7 +7,13 @@ type BookmarkFolder = Application.BookmarkFolder
 
 interface DataBase extends Dexie {
 	user: EntityTable<UserProfile, 'id'>
+
 	application: EntityTable<Application, 'id'>
+
+	backup: EntityTable<ApplicationBackup, 'id'>
+
+	settings: EntityTable<ApplicationSettings, 'id'>
+
 	bookmark: EntityTable<Bookmark, 'id'>
 	bookmarkFolder: EntityTable<BookmarkFolder, 'id'>
 }

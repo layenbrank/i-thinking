@@ -21,7 +21,9 @@
 			"@desktop-app/shared/user-profile",
 			"@desktop-app/shared/app-bookmark",
 			"@desktop-app/shared/app-controller",
-			"@desktop-app/shared/application"
+			"@desktop-app/shared/application",
+			"@desktop-app/shared/application-settings",
+			"@desktop-app/shared/application-backup"
 		],
 
 		"paths": {

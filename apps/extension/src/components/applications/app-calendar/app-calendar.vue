@@ -2,8 +2,8 @@
 import { useAppSettings } from '@/hooks/app-settings'
 import { Modal } from 'ant-design-vue'
 import clsx from 'clsx'
-import AppDialog from './app-calendar-dialog.vue'
 import AppIcon from './app-calendar-icon.vue'
+import ApplicationWindow from './app-calendar-window.vue'
 
 defineOptions({
 	name: 'app-calendar'
@@ -15,29 +15,31 @@ const props = withDefaults(
 		settingsVisible?: boolean
 	}>(),
 	{
-		application: () => ({
-			id: '0',
-			width: '60px',
-			height: '60px',
-			app: 'app-calendar',
-			round: '12px',
-			slideID: '0',
-			sort: 0,
-			size: 'medium',
-			name: '示例',
-			direction: 'horizontal',
-			shape: 'square',
-			backgroundColor: '#ffffff4d',
-			backgroundImage: null,
-			textSize: '13px',
-			textColor: '#ffffff',
-			description: '书签',
-			downloadCount: 1000
-		})
+		application() {
+			return {
+				id: '0',
+				width: '60px',
+				height: '60px',
+				app: 'app-calendar',
+				round: '12px',
+				slideID: '0',
+				sort: 0,
+				size: 'medium',
+				name: '示例',
+				direction: 'horizontal',
+				shape: 'square',
+				backgroundColor: '#ffffff4d',
+				backgroundImage: null,
+				textSize: '13px',
+				textColor: '#ffffff',
+				description: '书签',
+				downloadCount: 1000
+			}
+		}
 	}
 )
 
-const appDialogRef = ref<ApplicationDialog>()
+const appDialogRef = ref<ApplicationWindowType>()
 
 const mini = computed(() => props.application.size === 'mini')
 const small = computed(() => props.application.size === 'small')
@@ -86,9 +88,9 @@ function handleAppDialog() {
 		width: '80%',
 		centered: true,
 		maskClosable: true,
-		class: clsx('app-dialog calendar-dialog'),
+		class: clsx('application-window calendar-dialog'),
 		content() {
-			return <AppDialog appDialogRef={appDialogRef.value} />
+			return <ApplicationWindow appDialogRef={appDialogRef.value} />
 		}
 	})
 }
@@ -106,7 +108,18 @@ function handleAppDialog() {
 		}"
 		:class="['app-calendar', application.size, application.shape, application.direction]"
 	>
-		<AppIcon
+		<a-modal
+			:icon="null"
+			:title="null"
+			:footer="null"
+			width="80%"
+			:centered="true"
+			:mask-closable="true"
+			class="application-window calendar-dialog"
+		>
+			<application-window />
+		</a-modal>
+		<app-icon
 			:mini="mini"
 			:small="small"
 			:medium="medium"
@@ -142,7 +155,7 @@ function handleAppDialog() {
 }
 </style>
 <style lang="scss">
-.app-dialog.calendar-dialog {
+.application-window.calendar-dialog {
 	div[tabindex='0'][style='outline: none;'] {
 		@apply w-full h-full;
 	}

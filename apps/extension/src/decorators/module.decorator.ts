@@ -1,5 +1,3 @@
-import type { ClassConstructor } from '@/types/global'
-
 export const MODULE_METADATA = {
 	IMPORTS: 'imports',
 	PROVIDERS: 'providers',
@@ -32,7 +30,7 @@ export function Module(metadata: any) {
 	const propsKeys = Object.keys(metadata)
 	validateModuleKeys(propsKeys)
 
-	return function (target: ClassConstructor) {
+	return function (target: Constructor) {
 		for (const property in metadata) {
 			if (Object.hasOwnProperty.call(metadata, property)) {
 				// console.log('property', property)

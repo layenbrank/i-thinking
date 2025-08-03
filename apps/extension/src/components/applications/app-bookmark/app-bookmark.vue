@@ -1,9 +1,8 @@
 <script setup lang="tsx">
 import { useAppSettings } from '@/hooks/app-settings'
-import { useMagicKeys, useRefHistory, whenever, type UseRefHistoryRecord } from '@vueuse/core'
 import { Modal } from 'ant-design-vue'
-import AppDialog from './app-bookmark-dialog.vue'
 import AppIcon from './app-bookmark-icon.vue'
+import ApplicationWindow from './app-bookmark-window.vue'
 
 import clsx from 'clsx'
 
@@ -41,7 +40,7 @@ const props = withDefaults(
 	}
 )
 
-const appDialogRef = ref<ApplicationDialog>()
+const appDialogRef = ref<ApplicationWindowType>()
 
 const fullscreen = ref(false)
 
@@ -91,10 +90,10 @@ function handleAppDialog() {
 		width: '80%',
 		centered: true,
 		maskClosable: true,
-		class: clsx('app-dialog', 'bookmark-dialog'),
+		class: clsx('application-window', 'bookmark-dialog'),
 		content() {
 			return (
-				<AppDialog
+				<ApplicationWindow
 					fullscreen={fullscreen.value}
 					appDialogRef={appDialogRef.value}
 					onUpdate:fullscreen={updateFullScreen}
@@ -127,7 +126,18 @@ function updateFullScreen(value: boolean) {
 		}"
 		:class="['app-bookmark', application.size, application.shape, application.direction]"
 	>
-		<AppIcon
+		<a-modal
+			width="80%"
+			:icon="null"
+			:title="null"
+			:footer="null"
+			:centered="true"
+			:mask-closable="true"
+			class="application-window bookmark-dialog"
+		>
+			<application-window />
+		</a-modal>
+		<app-icon
 			:mini="mini"
 			:small="small"
 			:medium="medium"
@@ -162,7 +172,7 @@ function updateFullScreen(value: boolean) {
 }
 </style>
 <style lang="scss">
-.app-dialog.bookmark-dialog {
+.application-window.bookmark-dialog {
 	div[tabindex='0'][style='outline: none;'] {
 		@apply w-full h-full;
 	}

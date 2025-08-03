@@ -2,7 +2,7 @@
 import { resize } from '@desktop-app/core/directives'
 import AppMenu from '../app-menu/app-menu.vue'
 // import AppDrawer from '../app-settings/app-settings.vue'
-import { useAppStore } from '@/stores/app-store.ts'
+import { useAppStore } from '@/stores/application-store.ts'
 import Sortable from 'sortablejs'
 
 import { appReflect, contextmenuReflect, sizes } from './app-controller.tsx'
@@ -207,26 +207,7 @@ onUnmounted(function () {
 		</TransitionGroup>
 
 		<AppSettings
-			:application="{
-				id: '1',
-				slideID: '1',
-				sort: 1,
-				app: 'app-bookmark',
-				width: '60px',
-				height: '60px',
-				size: 'mini',
-				direction: 'vertical',
-				shape: 'circle',
-				round: '12px',
-				icon: 'https://cdn.jsdelivr.net/gh/vuejs/vuejs.org@master/public/images/favicon.ico',
-				name: '书签',
-				backgroundColor: '#ffffff4d',
-				backgroundImage: null,
-				textSize: '13px',
-				textColor: '#ffffff',
-				description: '测试',
-				downloadCount: 1000
-			}"
+			:application="appStore.activeApp"
 			:title="null"
 			:mask="false"
 			placement="right"
