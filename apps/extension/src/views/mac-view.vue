@@ -1,7 +1,7 @@
 <script setup lang="tsx">
-import { ReDock } from '@/components/re-dock'
+import ActiveWindow from '@/components/active-window/active-window.vue'
 import { MacLayout, type MacLayoutOptions } from '@/layouts/index.ts'
-import { useAppStore } from '@/stores/application-store'
+import { useAppStore } from '@/stores/application-store.ts'
 import { useDateFormat, useTimestamp } from '@vueuse/core'
 
 // import AppSettings from '@/components/app-settings/app-settings.vue'
@@ -17,9 +17,9 @@ defineOptions({
 	name: 'MacView'
 })
 
-const appStore = useAppStore()
-
 // const { activeSlideApp, settingsVisible } = storeToRefs(slidesStore)
+
+const appStore = useAppStore()
 
 const keyword = ref('')
 
@@ -39,6 +39,7 @@ const time = useDateFormat(timestamp, 'HH:mm:ss', {
 
 const macLayoutOptions = reactive<MacLayoutOptions>({
 	macLayout: {
+		hasSider: false,
 		style: {
 			backgroundImage: `url(${backgroundImage})`,
 			backgroundRepeat: 'no-repeat',
@@ -127,7 +128,7 @@ onUnmounted(function () {
 			<app-controller />
 		</template>
 		<template #footer>
-			<re-dock />
+			<active-window v-for="window in appStore.windows" :key="window.id" />
 		</template>
 	</mac-layout>
 </template>

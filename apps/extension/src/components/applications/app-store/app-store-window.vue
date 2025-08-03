@@ -346,7 +346,7 @@ function randomID() {
 									:is="appReflect[application.app]?.()"
 									:settings-visible="false"
 									:data-id="application.id"
-									:class="['slide-app']"
+									:class="['application']"
 								/>
 							</template>
 						</TransitionGroup>
@@ -438,7 +438,7 @@ function randomID() {
 			@apply mx-auto grid justify-center p-5;
 			@apply grid-flow-row-dense;
 
-			:deep(:where(.slide-app)) {
+			:deep(:where(.application)) {
 				@apply relative cursor-pointer text-center;
 
 				&

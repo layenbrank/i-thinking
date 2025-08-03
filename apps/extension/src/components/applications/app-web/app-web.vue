@@ -109,6 +109,9 @@ function handleJumpLink() {
 			width="80%"
 			:centered="true"
 			:mask-closable="true"
+			:style="{
+				transformOrigin: 'center'
+			}"
 			class="application-window example-dialog"
 		>
 			<application-window />

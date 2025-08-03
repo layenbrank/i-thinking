@@ -5,22 +5,6 @@
 @tailwind components;
 @tailwind utilities;
 
-.ant-modal.application-window {
-	aspect-ratio: 16/9;
-	@apply rounded-lg;
-
-	.ant-modal-content {
-		@apply p-0;
-	}
-
-	.ant-modal-body {
-		.ant-modal-confirm-content {
-			margin-block-start: initial;
-			max-width: initial;
-		}
-	}
-}
-
 *,
 *::before,
 *::after {
@@ -83,199 +67,18 @@ body {
 	height: 100vh;
 }
 
-.mini {
-	&.square {
+.ant-modal.application-window {
+	aspect-ratio: 16/9;
+	@apply rounded-lg;
+
+	.ant-modal-content {
+		@apply p-0;
 	}
 
-	&.circle {
-	}
-
-	&.rectangle {
-	}
-
-	&.square {
-		// width: var(--app-size, 60px);
-		// height: var(--app-size, 60px);
-		// width: var(--app-width, 60px);
-		// height: var(--app-height, 60px);
-	}
-
-	&.rectangle.horizontal {
-		// grid-column: span 2;
-		// width: calc(var(--app-width) * 2 + var(--app-row-gap) * 1);
-		// height: var(--app-height);
-	}
-
-	&.rectangle.vertical {
-		// grid-row: span 2;
-		// width: var(--app-width);
-		// height: calc(var(--app-height) * 2 + var(--app-row-gap) * 1);
-	}
-}
-
-.small {
-	&.horizontal {
-		// grid-column: span 2;
-		// width: calc(var(--app-width) * 2 + var(--app-row-gap) * 1);
-		// height: var(--app-height);
-
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
-		}
-	}
-
-	&.vertical {
-		// grid-row: span 2;
-		// width: var(--app-width);
-		// height: calc(var(--app-height) * 2 + var(--app-row-gap) * 1);
-
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
-		}
-	}
-}
-
-.medium {
-	&.horizontal,
-	&.vertical {
-		// grid-column: span 2;
-		// grid-row: span 2;
-		// width: calc(var(--app-width) * 2 + var(--app-col-gap));
-		// height: calc(var(--app-height) * 2 + var(--app-row-gap));
-
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
-		}
-	}
-}
-
-.large {
-	// grid-column: span 2;
-	// grid-row: span 2;
-	// width: calc(var(--app-width) * 2 + var(--app-col-gap));
-	// height: calc(var(--app-height) * 2 + var(--app-row-gap));
-
-	&.horizontal {
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
-		}
-	}
-
-	&.vertical {
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
-		}
-	}
-}
-
-.huge {
-	// grid-column: span 4;
-	// grid-row: span 2;
-	// width: calc(var(--app-width) * 4 + var(--app-col-gap) * 3);
-	// height: calc(var(--app-height) * 2 + var(--app-row-gap));
-
-	&.horizontal {
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
-		}
-	}
-
-	&.vertical {
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
-		}
-	}
-}
-
-.massive {
-	// grid-column: span 7;
-	// grid-row: span 4;
-	// width: calc(var(--app-width) * 7 + var(--app-col-gap) * 6);
-	// height: calc(var(--app-height) * 4 + var(--app-row-gap) * 3);
-
-	&.horizontal {
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
-		}
-	}
-
-	&.vertical {
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
-		}
-	}
-}
-
-.ultra {
-	// grid-column: span 4;
-	// grid-row: span 7;
-	// width: calc(var(--app-width) * 4 + var(--app-col-gap) * 3);
-	// height: calc(var(--app-height) * 7 + var(--app-row-gap) * 6);
-
-	&.horizontal {
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
-		}
-	}
-
-	&.vertical {
-		&.square {
-		}
-
-		&.circle {
-		}
-
-		&.rectangle {
+	.ant-modal-body {
+		.ant-modal-confirm-content {
+			margin-block-start: initial;
+			max-width: initial;
 		}
 	}
 }

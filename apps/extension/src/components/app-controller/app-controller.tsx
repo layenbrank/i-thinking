@@ -22,6 +22,9 @@ const AppWeb = defineAsyncComponent(function () {
 	return import('@/components/applications/app-web/app-web.vue')
 })
 
+const AppSettings = defineAsyncComponent(function () {
+	return import('@/components/applications/app-settings/app-settings.vue')
+})
 const AppExample = defineAsyncComponent(function () {
 	return import('@/components/applications/app-example/app-example.vue')
 })
@@ -77,6 +80,9 @@ export const contextmenuReflect: Record<Partial<ApplicationName>, () => ContextM
 	},
 	'app-example'() {
 		return commonMenuOPtions
+	},
+	'app-settings'() {
+		return commonMenuOPtions
 	}
 }
 
@@ -106,6 +112,9 @@ export const appReflect: ApplicationReflect = {
 	},
 	'app-web'() {
 		return <AppWeb />
+	},
+	'app-settings'() {
+		return <AppSettings />
 	}
 }
 // export function useAppController(el: Ref<InstanceType<typeof AppMenu> | null>) {

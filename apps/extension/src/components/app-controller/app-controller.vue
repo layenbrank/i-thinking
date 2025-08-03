@@ -19,13 +19,9 @@ const appStore = useAppStore()
 const contextmenuRef = useTemplateRef('contextmenuRef')
 const appControllerRef = useTemplateRef('appControllerRef')
 
-// const activeApp = ref<SlideApp | null>(null)
-
 const contextmenuVisible = ref(false)
 
 const activeMenuKey = ref<ContextMenuKeys | null>(null)
-
-// const settingsVisible = ref(false)
 
 const contextmenuRect = reactive({
 	x: innerWidth - 200,
@@ -53,8 +49,10 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 	}
 }
 
-const menuOptions = computed(() => {
-	const active = appStore.applications?.find((app) => app.id === appStore.activeApp?.id)
+const menuOptions = computed(function () {
+	const active = appStore.applications?.find(function (app) {
+		return app.id === appStore.activeApp?.id
+	})
 
 	console.log('active', active)
 
@@ -71,28 +69,27 @@ function updateActiveKey(value: ContextMenuOptions) {
 
 function handleController(e: MouseEvent) {
 	const target = e.target as HTMLElement
-	const application = target.closest('.slide-app') as HTMLElement
+	const appElement = target.closest('.application') as HTMLElement
 
-	console.log('application', application)
+	console.log('appElement', appElement)
 
 	if (!appStore.settingsVisible) return
-	if (!application?.dataset?.id) return
+	if (!appElement?.dataset?.id) return
 	appStore.activeApp =
-		appStore.applications?.find((app) => app.id === application.dataset.id) ?? null
+		appStore.applications?.find(function (app) {
+			return app.id === appElement.dataset.id
+		}) ?? null
 }
 
 function openContextMenu(e: MouseEvent) {
-	e.preventDefault()
-	e.stopPropagation()
-
 	if (appStore.settingsVisible) return
 
 	const target = e.target as HTMLElement
-	const application = target.closest('.slide-app') as HTMLElement
+	const appElement = target.closest('.application') as HTMLElement
 
 	const contextmenu = contextmenuRef.value?.$el as HTMLElement
 
-	setTimeout(() => {
+	setTimeout(function () {
 		if (!contextmenu) return
 		contextmenuRect.width = contextmenu.clientWidth
 		contextmenuRect.height = contextmenu.clientHeight
@@ -102,9 +99,11 @@ function openContextMenu(e: MouseEvent) {
 
 		contextmenuVisible.value = true
 
-		if (!application?.dataset?.id) return
+		if (!appElement?.dataset?.id) return
 		appStore.activeApp =
-			appStore.applications?.find((app) => app.id === application.dataset.id) ?? null
+			appStore.applications?.find(function (app) {
+				return app.id === appElement.dataset.id
+			}) ?? null
 	}, 60)
 }
 
@@ -142,7 +141,7 @@ function handleTelePort() {
 	return document.body
 }
 
-function handleSortable() {
+function sortableHandler() {
 	if (!appControllerRef.value) return
 
 	Sortable.create(appControllerRef.value, {
@@ -175,7 +174,7 @@ function handleSortable() {
 }
 
 onMounted(function () {
-	handleSortable()
+	sortableHandler()
 
 	window.addEventListener('click', closeContextMenu, true)
 	window.addEventListener('contextmenu', closeContextMenu, true)
@@ -190,36 +189,35 @@ onUnmounted(function () {
 <template>
 	<div
 		@click.capture="handleController"
-		@contextmenu="openContextMenu"
+		@contextmenu.stop.prevent="openContextMenu"
 		ref="appControllerRef"
 		class="app-controller"
 	>
-		<TransitionGroup name="slide-app-fade">
+		<transition-group name="application-fade">
 			<template v-for="application in appStore.applications" :key="application.id">
 				<component
 					:application="application"
 					:is="appReflect[application.app]?.()"
 					:settings-visible="appStore.settingsVisible"
 					:data-id="application.id"
-					:class="['slide-app']"
+					:class="['application']"
 				/>
 			</template>
-		</TransitionGroup>
+		</transition-group>
 
-		<AppSettings
-			:application="appStore.activeApp"
+		<app-settings
 			:title="null"
 			:mask="false"
 			placement="right"
 			:closable="true"
 			@update:confirm="handleConfirm"
-			:slideApp="appStore.activeApp"
-			v-model:open="appStore.settingsVisible"
 			:get-container="handleTelePort"
+			:application="appStore.activeApp"
+			v-model:open="appStore.settingsVisible"
 		/>
 
-		<Teleport to="body">
-			<AppMenu
+		<teleport to="body">
+			<app-menu
 				v-resize="handleResize"
 				ref="contextmenuRef"
 				:x="contextmenuRect.x"
@@ -234,7 +232,7 @@ onUnmounted(function () {
 					}
 				]"
 			/>
-		</Teleport>
+		</teleport>
 	</div>
 </template>
 
@@ -251,7 +249,7 @@ onUnmounted(function () {
 	grid-template-rows: repeat(auto-fill, var(--app-global-height, 60px));
 	grid-template-columns: repeat(auto-fill, var(--app-global-width, 60px));
 
-	:deep(:where(.slide-app)) {
+	:deep(:where(.application)) {
 		@apply relative cursor-pointer text-center;
 
 		transition:
@@ -281,7 +279,7 @@ onUnmounted(function () {
 		}
 	}
 
-	.slide-app {
+	.application {
 		&-fade-move,
 		&-fade-enter-active,
 		&-fade-leave-active {

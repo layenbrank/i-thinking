@@ -88,6 +88,9 @@ function handleAppDialog() {
 		width: '80%',
 		maskClosable: true,
 		class: clsx('application-window store-dialog'),
+		style: {
+			transformOrigin: 'center'
+		},
 		content() {
 			return <ApplicationWindow appDialogRef={appDialogRef.value} />
 		}
@@ -114,6 +117,9 @@ function handleAppDialog() {
 			width="80%"
 			:centered="true"
 			:mask-closable="true"
+			:style="{
+				transformOrigin: 'center'
+			}"
 			class="application-window example-dialog"
 		>
 			<application-window />

@@ -1,10 +1,8 @@
 <script setup lang="tsx">
-import { useAppSettings } from '@/hooks/app-settings'
-import { Modal } from 'ant-design-vue'
-import AppIcon from './app-bookmark-icon.vue'
-import ApplicationWindow from './app-bookmark-window.vue'
+import { useAppSettings } from '@/hooks/app-settings.ts'
 
-import clsx from 'clsx'
+import AppIcon from './app-bookmark-icon.vue'
+import AppWindow from './app-bookmark-window.vue'
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
@@ -18,30 +16,31 @@ const props = withDefaults(
 		settingsVisible?: boolean
 	}>(),
 	{
-		application: () => ({
-			id: '0',
-			width: '60px',
-			height: '60px',
-			app: 'app-bookmark',
-			round: '12px',
-			size: 'medium',
-			slideID: '0',
-			sort: 0,
-			name: 'example',
-			direction: 'horizontal',
-			shape: 'square',
-			backgroundColor: '#ffffff4d',
-			backgroundImage: null,
-			textSize: '13px',
-			textColor: '#ffffff',
-			description: '书签',
-			downloadCount: 1000
-		})
+		application() {
+			return {
+				id: '0',
+				width: '60px',
+				height: '60px',
+				app: 'app-bookmark',
+				round: '12px',
+				size: 'medium',
+				slideID: '0',
+				sort: 0,
+				name: 'example',
+				direction: 'horizontal',
+				shape: 'square',
+				backgroundColor: '#ffffff4d',
+				backgroundImage: null,
+				textSize: '13px',
+				textColor: '#ffffff',
+				description: '书签',
+				downloadCount: 1000
+			}
+		}
 	}
 )
 
-const appDialogRef = ref<ApplicationWindowType>()
-
+const visible = ref(false)
 const fullscreen = ref(false)
 
 const mini = computed(() => props.application.size === 'mini')
@@ -64,6 +63,29 @@ const background = computed(() => {
 	else return '#ffffff'
 })
 
+function transform(value: Application) {
+	return {
+		mini: value.size === 'mini',
+		small: value.size === 'small',
+		medium: value.size === 'medium',
+		large: value.size === 'large',
+		huge: value.size === 'huge',
+		massive: value.size === 'massive',
+		ultra: value.size === 'ultra',
+		circle: value.shape === 'circle',
+		rectangle: value.shape === 'rectangle',
+		square: value.shape === 'square',
+		horizontal: value.direction === 'horizontal',
+		vertical: value.direction === 'vertical',
+		round: value.round ?? 'var(--app-global-round)',
+		background: value.backgroundImage
+			? `url(${value.backgroundImage}) no-repeat center / cover`
+			: value.backgroundColor
+				? value.backgroundColor
+				: '#ffffff'
+	}
+}
+
 const { appStyle } = useAppSettings({
 	width: computed(() => props.application.width ?? 'var(--app-global-width)'),
 	height: computed(() => props.application.height ?? 'var(--app-global-height)'),
@@ -81,36 +103,16 @@ const { appStyle } = useAppSettings({
 	vertical
 })
 
-function handleAppDialog() {
-	if (props.settingsVisible) return
-	appDialogRef.value = Modal.info({
-		icon: null,
-		title: null,
-		footer: null,
-		width: '80%',
-		centered: true,
-		maskClosable: true,
-		class: clsx('application-window', 'bookmark-dialog'),
-		content() {
-			return (
-				<ApplicationWindow
-					fullscreen={fullscreen.value}
-					appDialogRef={appDialogRef.value}
-					onUpdate:fullscreen={updateFullScreen}
-				/>
-			)
-		}
-	})
+function updateVisible(value: boolean) {
+	visible.value = value
 }
 
 function updateFullScreen(value: boolean) {
-	if (!appDialogRef.value) return
 	fullscreen.value = value
+}
 
-	appDialogRef.value?.update({
-		width: fullscreen.value ? '100%' : '80%',
-		class: fullscreen.value ? 'fullscreen' : undefined
-	})
+function handleAppWindow() {
+	visible.value = true
 }
 </script>
 
@@ -133,9 +135,15 @@ function updateFullScreen(value: boolean) {
 			:footer="null"
 			:centered="true"
 			:mask-closable="true"
+			:open="visible"
+			:destroy-on-close="true"
+			@update:open="updateVisible"
+			:style="{
+				transformOrigin: 'center'
+			}"
 			class="application-window bookmark-dialog"
 		>
-			<application-window />
+			<AppWindow />
 		</a-modal>
 		<app-icon
 			:mini="mini"
@@ -155,7 +163,7 @@ function updateFullScreen(value: boolean) {
 			:size="application.size"
 			:shape="application.shape"
 			:direction="application.direction"
-			@click="handleAppDialog"
+			@click="handleAppWindow"
 		/>
 		<span class="app-name">{{ application.name }}</span>
 		<i-local:close class="app-trash-icon" />

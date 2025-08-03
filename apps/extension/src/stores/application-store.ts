@@ -135,7 +135,6 @@ const DEFAULT: ReadonlyArray<Application> = [
 		height: '60px',
 		url: 'https://weixin.qq.com',
 		round: '12px',
-
 		size: 'mini',
 		// size: 'small',
 		// size: 'medium',
@@ -143,10 +142,8 @@ const DEFAULT: ReadonlyArray<Application> = [
 		// size: 'huge',
 		// size: 'massive',
 		// size: 'ultra',
-
 		// direction: 'horizontal',
 		direction: 'vertical',
-
 		// shape: 'square',
 		// shape: 'rectangle',
 		shape: 'circle',
@@ -157,6 +154,27 @@ const DEFAULT: ReadonlyArray<Application> = [
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '测试',
+		downloadCount: 1000
+	},
+	{
+		id: randomID(),
+		slideID: randomID(),
+		sort: 5,
+		app: 'app-settings',
+		width: '60px',
+		height: '60px',
+		url: 'https://weixin.qq.com',
+		size: 'mini',
+		round: '20px',
+		direction: 'horizontal',
+		shape: 'square',
+		name: '设置',
+		icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
+		backgroundColor: '#ffffff',
+		backgroundImage: null,
+		textSize: '13px',
+		textColor: '#ffffff',
+		description: '设置',
 		downloadCount: 1000
 	}
 ]
@@ -169,6 +187,8 @@ export const useAppStore = defineStore('app', function () {
 	const activeApp = ref<Application | null>(null)
 
 	const settingsVisible = ref(false)
+
+	const windows = ref<Application[]>([])
 
 	const applications = useObservable(
 		from(
@@ -206,6 +226,7 @@ export const useAppStore = defineStore('app', function () {
 	}
 
 	return {
+		windows,
 		applications,
 		updateApplication,
 		updateApplications,

@@ -12,6 +12,7 @@ type ApplicationName =
 	| 'app-notepad'
 	| 'app-store'
 	| 'app-web'
+	| 'app-settings'
 	| 'app-example'
 
 interface Application {

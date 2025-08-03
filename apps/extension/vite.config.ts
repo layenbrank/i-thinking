@@ -12,7 +12,6 @@ import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
-import { VueMcp } from 'vite-plugin-vue-mcp'
 import pkg from './package.json'
 
 // 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
@@ -26,7 +25,6 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 		base: `/${pkg.name.replace(/^@desktop-app\//, '')}/`,
 		plugins: [
 			vue(),
-			VueMcp(),
 			vueJsx(),
 			vueDevTools(),
 			Icons({
