@@ -10,10 +10,10 @@ type IPCStatus = 'success' | 'error' | 'pending'
  * IPC响应基础接口
  */
 export interface IPCResponse<T = any> {
-  status: IPCStatus
-  data?: T
-  error?: string
-  timestamp: number
+	status: IPCStatus
+	data?: T
+	error?: string
+	timestamp: number
 }
 
 /**
@@ -23,9 +23,9 @@ export interface IPCResponse<T = any> {
  * @field timestamp 时间戳
  */
 export interface FileChangeInfo {
-  path: string
-  event: 'add' | 'change' | 'unlink'
-  timestamp: number
+	path: string
+	event: 'add' | 'change' | 'unlink'
+	timestamp: number
 }
 
 /**

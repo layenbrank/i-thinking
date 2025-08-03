@@ -2,15 +2,13 @@
 import {} from '@tiptap/core'
 import { Editor } from '@tiptap/vue-3'
 
-import type { SlideAppDialog } from '@/types/slide-app'
-
 defineOptions({
 	name: 'app-notepad-dialog'
 })
 
 const props = withDefaults(
 	defineProps<{
-		appDialogRef?: SlideAppDialog
+		appDialogRef?: ApplicationDialog
 	}>(),
 	{}
 )

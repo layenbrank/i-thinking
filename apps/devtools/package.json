@@ -1,14 +1,14 @@
 {
-  "name": "@desktop-widgets/devtools",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite --clearScreen false",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "eslint \"src/**/*.ts\""
-  },
-  "dependencies": {},
-  "devDependencies": {}
+	"name": "@desktop-app/devtools",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite --clearScreen false",
+		"build": "tsc && vite build",
+		"preview": "vite preview",
+		"lint": "eslint \"src/**/*.ts\""
+	},
+	"dependencies": {},
+	"devDependencies": {}
 }

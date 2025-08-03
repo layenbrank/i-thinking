@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { throttle } from 'lodash-es'
-import { createCurve } from './index.ts'
-import { onMounted, ref, onBeforeUnmount, reactive, nextTick } from 'vue'
+import { resize } from '@desktop-app/core/directives'
 import { useTemplateRefsList } from '@vueuse/core'
-import { resize } from '@desktop-widgets/core/directives'
+import { throttle } from 'lodash-es'
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { createCurve } from './index.ts'
 
 defineOptions({
 	name: 'ReDock',

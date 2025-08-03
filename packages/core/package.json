@@ -1,51 +1,42 @@
 {
-  "name": "@desktop-widgets/core",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "files": [
-    "dist"
-  ],
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "scripts": {
-    "dev": "vite",
-    "build": "rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
-    "build:vite": "run-p type-check \"build-only {@}\" --",
-    "build-only": "vite build",
-    "type-check": "vue-tsc --build",
-    "preview": "vite preview",
-    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
-    "lint:eslint": "eslint . --fix",
-    "lint": "run-s lint:*",
-    "format": "prettier --write src/"
-  },
-  "peerDependencies": {
-    "vue": "^3.5.13",
-    "rxjs": "^7.8.1",
-    "tyme4ts": "^1.2.2",
-    "dayjs": "^1.11.13",
-    "lunisolar": "^2.5.2",
-    "@types/node": "^22.13.10",
-    "rollup-plugin-dts": "^6.1.0"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./directives": {
-      "types": "./dist/directives.d.ts",
-      "import": "./dist/directives.js"
-    },
-    "./utils": {
-      "types": "./dist/utils.d.ts",
-      "import": "./dist/utils.js"
-    },
-    "./hooks": {
-      "types": "./dist/hooks.d.ts",
-      "import": "./dist/hooks.js"
-    }
-  }
+	"name": "@desktop-app/core",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"files": [
+		"dist"
+	],
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"dev": "vite",
+		"build": "rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
+		"build:vite": "run-p type-check \"build-only {@}\" --",
+		"build-only": "vite build",
+		"type-check": "vue-tsc --build",
+		"preview": "vite preview",
+		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+		"lint:eslint": "eslint . --fix",
+		"lint": "run-s lint:*",
+		"format": "prettier --write src/"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./directives": {
+			"types": "./dist/directives.d.ts",
+			"import": "./dist/directives.js"
+		},
+		"./utils": {
+			"types": "./dist/utils.d.ts",
+			"import": "./dist/utils.js"
+		},
+		"./hooks": {
+			"types": "./dist/hooks.d.ts",
+			"import": "./dist/hooks.js"
+		}
+	}
 }

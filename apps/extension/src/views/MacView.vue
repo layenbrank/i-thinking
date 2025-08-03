@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import { ReDock } from '@/components/re-dock'
 import { MacLayout, type MacLayoutOptions } from '@/layouts/index.ts'
-import { useSlideStore } from '@/stores/slides.ts'
+import { useAppStore } from '@/stores/app-store.ts'
 import { useDateFormat, useTimestamp } from '@vueuse/core'
 
 // import AppSettings from '@/components/app-settings/app-settings.vue'
@@ -17,7 +17,7 @@ defineOptions({
 	name: 'MacView'
 })
 
-const slideStore = useSlideStore()
+const appStore = useAppStore()
 
 // const { activeSlideApp, settingsVisible } = storeToRefs(slidesStore)
 

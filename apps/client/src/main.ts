@@ -1,13 +1,13 @@
-import './styles/index.scss'
 import 'ant-design-vue/dist/reset.css'
+import './styles/index.scss'
 
-import { createApp, type Directive } from 'vue'
 import { createPinia } from 'pinia'
+import { createApp, type Directive } from 'vue'
 
 import App from './App.vue'
 import router from './routers/index.ts'
 
-import { resize, debounce } from '@desktop-widgets/core/directives'
+import { debounce, resize } from '@desktop-app/core/directives'
 
 const directives: Record<string, Directive> = {
 	resize,

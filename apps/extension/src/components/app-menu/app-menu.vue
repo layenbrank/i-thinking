@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import type { MenuOptions } from '@/types/app-menu'
-
 defineOptions({
 	name: 'app-menu'
 })
 
 const props = withDefaults(
 	defineProps<{
-		options: MenuOptions[]
+		options: ContextMenuOptions[]
 		// activeKey: ContextMenuKeys
 		x: number
 		y: number
@@ -16,7 +14,7 @@ const props = withDefaults(
 )
 
 const emits = defineEmits<{
-	(e: 'update:activeKey', value: MenuOptions): void
+	(e: 'update:activeKey', value: ContextMenuOptions): void
 }>()
 
 const visible = defineModel('visible', {

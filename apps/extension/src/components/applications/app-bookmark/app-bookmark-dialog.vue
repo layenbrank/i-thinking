@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import fallback from '@/assets/feedback/fallback.png'
-import { useSlideStore } from '@/stores/slides.ts'
+import { useAppStore } from '@/stores/app-store.ts'
 import { debounce } from 'lodash-es'
 
 import type { Bookmark } from '@/database/bookmark/bookmark.entity.ts'
 import type { BookmarkFolder } from '@/database/bookmark/folder.entity.ts'
-import type { SlideAppDialog } from '@/types/slide-app'
-import { timeSphere } from '@desktop-widgets/core'
+
+import { timeSphere } from '@desktop-app/core'
 import Fuse, { type IFuseOptions } from 'fuse.js'
 import { useBookMark } from './use-bookmark.ts'
 
@@ -18,7 +18,7 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		appDialogRef?: SlideAppDialog
+		appDialogRef?: ApplicationDialog
 		fullscreen?: boolean
 	}>(),
 	{}
@@ -28,7 +28,7 @@ const emits = defineEmits<{
 	(e: 'update:fullscreen', value: boolean): void
 }>()
 
-const slidesStore = useSlideStore()
+const appStore = useAppStore()
 
 const keyword = ref('')
 const loading = ref(false)
@@ -90,12 +90,12 @@ const updateBookmarks = debounce(function (value: string) {
 
 function updateSlideApp(bookmark: Bookmark) {
 	const bookmarkApp = toRaw(bookmark)
-	slidesStore.updateSlideApp(bookmark.id, {
+	appStore.updateApplication(bookmark.id, {
 		name: bookmarkApp.title,
 		url: bookmarkApp.url,
 		shape: 'circle',
 		size: 'mini',
-		sort: slidesStore.slides?.length,
+		sort: appStore.applications?.length,
 		direction: 'horizontal',
 		app: 'app-web',
 		icon: bookmarkApp.url

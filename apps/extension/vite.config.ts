@@ -1,19 +1,19 @@
-import { fileURLToPath, URL } from 'node:url'
-import { dirname, resolve } from 'node:path'
 import { findUpSync } from 'find-up'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import vueDevTools from 'vite-plugin-vue-devtools'
 import AutoImport from 'unplugin-auto-import/vite'
-import Components from 'unplugin-vue-components/vite'
-import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
-import { VueMcp } from 'vite-plugin-vue-mcp'
-import Icons from 'unplugin-icons/vite'
-import IconsResolver from 'unplugin-icons/resolver'
 import { FileSystemIconLoader } from 'unplugin-icons/loaders'
+import IconsResolver from 'unplugin-icons/resolver'
+import Icons from 'unplugin-icons/vite'
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
+import Components from 'unplugin-vue-components/vite'
+import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
+import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
+import vueDevTools from 'vite-plugin-vue-devtools'
+import { VueMcp } from 'vite-plugin-vue-mcp'
 import pkg from './package.json'
 
 // 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
@@ -24,7 +24,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 	const env = loadEnv(mode || 'development', '')
 
 	return {
-		base: `/${pkg.name.replace(/^@desktop-widgets\//, '')}/`,
+		base: `/${pkg.name.replace(/^@desktop-app\//, '')}/`,
 		plugins: [
 			vue(),
 			VueMcp(),
@@ -104,7 +104,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 		},
 		build: {
 			// 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
-			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-widgets\//, '')}`),
+			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-app\//, '')}`),
 			emptyOutDir: true,
 			assetsInlineLimit(filePath, content) {
 				// 使用正则数组表示需要内联的文件类型

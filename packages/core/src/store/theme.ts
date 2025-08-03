@@ -1,5 +1,5 @@
-import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 import type { ThemeColor } from '../types/theme'
 import { themes } from '../types/theme'
 
@@ -25,7 +25,7 @@ export const useThemeStore = defineStore(
 	// ,
 	// {
 	//   persist: {
-	//     key: 'desktop-widgets-theme',
+	//     key: 'desktop-app-theme',
 	//     storage: localStorage,
 	//     paths: ['currentTheme']
 	//   }

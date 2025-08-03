@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import fallback from '@/assets/feedback/fallback.png'
-import type { SlideAppDirection, SlideAppShape, SlideAppSize } from '@/types/slide-app'
+
 defineOptions({
 	name: 'app-web-icon'
 })
 
 const props = withDefaults(
 	defineProps<{
-		size: SlideAppSize
+		size: ApplicationSize
 		url?: string
 		icon?: string
-		direction: SlideAppDirection
-		shape: SlideAppShape
+		direction: ApplicationDirection
+		shape: ApplicationShape
 		mini: boolean
 		small: boolean
 		medium: boolean

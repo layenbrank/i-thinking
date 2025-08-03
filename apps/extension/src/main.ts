@@ -1,12 +1,12 @@
-import './styles/index.scss'
+import '@/styles/index.scss'
 import 'ant-design-vue/dist/reset.css'
 
-import { createApp, type Directive } from 'vue'
 import { createPinia } from 'pinia'
+import { createApp, type Directive } from 'vue'
 
-// import 'virtual:svg-icons-register'
+import preload from '@/plugins/preload.ts'
+import { debounce, resize } from '@desktop-app/core/directives'
 import 'reflect-metadata'
-import { resize, debounce } from '@desktop-widgets/core/directives'
 
 const directives: Record<string, Directive> = {
 	resize,
@@ -29,5 +29,6 @@ for (const key in Object.keys(directives)) {
 app
 	.use(pinia)
 	.use(router)
+	.use(preload)
 
 	.mount('#app')

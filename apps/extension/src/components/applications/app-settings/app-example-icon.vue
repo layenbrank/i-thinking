@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import type { SlideAppDirection, SlideAppShape, SlideAppSize } from '@/types/slide-app'
-
 defineOptions({
 	name: 'app-example-icon'
 })
 
 const props = withDefaults(
 	defineProps<{
-		size: SlideAppSize
+		size: ApplicationSize
 		url?: string
 		icon?: string
-		direction: SlideAppDirection
-		shape: SlideAppShape
+		direction: ApplicationDirection
+		shape: ApplicationShape
 		mini: boolean
 		small: boolean
 		medium: boolean

@@ -1,5 +1,5 @@
-import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 import type { Widget } from '../types/widget'
 
 export const useWidgetStore = defineStore(
@@ -32,7 +32,7 @@ export const useWidgetStore = defineStore(
 	// ,
 	// {
 	//   persist: {
-	//     key: 'desktop-widgets-widgets',
+	//     key: 'desktop-app-widgets',
 	//     storage: localStorage,
 	//     paths: ['widgets']
 	//   }

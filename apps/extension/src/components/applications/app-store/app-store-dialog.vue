@@ -1,15 +1,15 @@
 <script setup lang="tsx">
+import { A11y, Autoplay, Mousewheel, Navigation, Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Autoplay, A11y, Pagination, Navigation, Mousewheel } from 'swiper/modules'
 
 import 'swiper/scss'
 import 'swiper/scss/navigation'
 import 'swiper/scss/pagination'
 
 import type { Reactive } from 'vue'
-import type { SlideApp, SlideAppDialog } from '@/types/slide-app'
+
+import type { ApplicationReflect } from '@desktop-app/shared/app-controller'
 import type { AutoplayOptions, PaginationOptions, SwiperModule } from 'swiper/types'
-import type { AppReflect } from '@/types/app-controller'
 
 const AppBookmark = defineAsyncComponent(function () {
 	return import('@/components/applications/app-bookmark/app-bookmark.vue')
@@ -33,7 +33,7 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		appDialogRef?: SlideAppDialog
+		appDialogRef?: ApplicationDialog
 	}>(),
 	{}
 )
@@ -69,7 +69,7 @@ const options: AppStoreOptions[] = [
 	}
 ]
 
-const appReflect: AppReflect = {
+const appReflect: ApplicationReflect = {
 	'app-bookmark'() {
 		return <AppBookmark />
 	},
@@ -84,7 +84,7 @@ const appReflect: AppReflect = {
 	}
 }
 
-const applications: ReadonlyArray<SlideApp> = [
+const applications: ReadonlyArray<Application> = [
 	{
 		id: randomID(),
 		slideID: randomID(),
@@ -340,12 +340,12 @@ function randomID() {
               </li>
             </ul> -->
 						<TransitionGroup tag="div" name="app-controller-fade" class="app-controller">
-							<template v-for="slideApp in applications" :key="slideApp.id">
+							<template v-for="application in applications" :key="application.id">
 								<component
-									:slide-app="slideApp"
-									:is="appReflect[slideApp.app]?.()"
+									:application="application"
+									:is="appReflect[application.app]?.()"
 									:settings-visible="false"
-									:data-id="slideApp.id"
+									:data-id="application.id"
 									:class="['slide-app']"
 								/>
 							</template>

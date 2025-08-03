@@ -1,13 +1,13 @@
 {
-  "$schema": "https://json.schemastore.org/prettierrc",
-  "arrowParens": "always",
-  "bracketSpacing": true,
-  "endOfLine": "crlf",
-  "printWidth": 100,
-  "semi": false,
-  "singleQuote": true,
-  "tabWidth": 2,
-  "trailingComma": "none",
-  "useTabs": true,
-  "vueIndentScriptAndStyle": false
+	"$schema": "https://json.schemastore.org/prettierrc",
+	"arrowParens": "always",
+	"bracketSpacing": true,
+	"endOfLine": "crlf",
+	"printWidth": 100,
+	"semi": false,
+	"singleQuote": true,
+	"tabWidth": 2,
+	"trailingComma": "none",
+	"useTabs": true,
+	"vueIndentScriptAndStyle": false
 }

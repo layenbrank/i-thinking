@@ -1,16 +1,18 @@
-import { liveQuery } from 'dexie'
-import bookmarkJSON from './bookmark.json'
 import { useObservable } from '@vueuse/rxjs'
+import { liveQuery } from 'dexie'
 import { from, Observable, switchMap, tap } from 'rxjs'
-import { folderModule } from '@/database/bookmark/folder.module.ts'
-import { bookmarkModule } from '@/database/bookmark/bookmark.module.ts'
-import type { Bookmark } from '@/database/bookmark/bookmark.entity.ts'
-import type { BookmarkFolder } from '@/database/bookmark/folder.entity.ts'
-import { isEmpty } from 'lodash-es'
+import bookmarkJSON from './bookmark.json'
+// import { folderModule } from '@/database/bookmark/folder.module.ts'
+// import { bookmarkModule } from '@/database/bookmark/bookmark.module.ts'
+// import type { Bookmark } from '@/database/bookmark/bookmark.entity.ts'
+// import type { BookmarkFolder } from '@/database/bookmark/folder.entity.ts'
+import { database } from '@/database/database.ts'
 import { message } from 'ant-design-vue'
+import { isEmpty } from 'lodash-es'
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
-
+type Bookmark = Application.Bookmark
+type BookmarkFolder = Application.BookmarkFolder
 export interface BookmarkParse {
 	bookmarks: Bookmark[]
 	folders: BookmarkFolder[]
@@ -24,7 +26,8 @@ export function useBookMark() {
 	const folders = useObservable(
 		from(
 			liveQuery(function (): Promise<BookmarkFolder[]> {
-				return folderModule.orderBy('sort').toArray()
+				// return folderModule.orderBy('sort').toArray()
+				return database.bookmarkFolder.orderBy('sort').toArray()
 			})
 		).pipe(
 			tap(function (folders) {
@@ -40,7 +43,8 @@ export function useBookMark() {
 	const bookmarks = useObservable(
 		from(
 			liveQuery(function () {
-				return bookmarkModule.orderBy('sort').toArray()
+				// return bookmarkModule.orderBy('sort').toArray()
+				return database.bookmark.orderBy('sort').toArray()
 			})
 		).pipe(
 			tap(function (response) {
@@ -74,15 +78,17 @@ export function useBookMark() {
 
 		const { bookmarks: bookmarksRes, folders: foldersRes } = parseBookmarkTree(bookmarkTreeRes)
 
-		bookmarkModule.bulkPut(bookmarksRes)
-		folderModule.bulkPut(foldersRes)
+		// bookmarkModule.bulkPut(bookmarksRes)
+		// folderModule.bulkPut(foldersRes)
+		database.bookmark.bulkPut(bookmarksRes)
+		database.bookmarkFolder.bulkPut(foldersRes)
 
 		for (const folder of foldersRes) {
-			await bookmarkModule
+			await database.bookmark
 				.where('folderId')
 				.equals(folder.id)
 				.count((count) => {
-					folderModule.update(folder.id, {
+					database.bookmarkFolder.update(folder.id, {
 						count
 					})
 				})

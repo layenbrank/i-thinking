@@ -7,7 +7,6 @@
 export {}
 declare global {
   const EffectScope: typeof import('vue')['EffectScope']
-  const NIcon: (typeof import('naive-ui'))['NIcon']
   const acceptHMRUpdate: typeof import('pinia')['acceptHMRUpdate']
   const computed: typeof import('vue')['computed']
   const createApp: typeof import('vue')['createApp']
@@ -69,13 +68,9 @@ declare global {
   const useAttrs: typeof import('vue')['useAttrs']
   const useCssModule: typeof import('vue')['useCssModule']
   const useCssVars: typeof import('vue')['useCssVars']
-  const useDialog: (typeof import('naive-ui'))['useDialog']
   const useId: typeof import('vue')['useId']
   const useLink: typeof import('vue-router')['useLink']
-  const useLoadingBar: (typeof import('naive-ui'))['useLoadingBar']
-  const useMessage: (typeof import('naive-ui'))['useMessage']
   const useModel: typeof import('vue')['useModel']
-  const useNotification: (typeof import('naive-ui'))['useNotification']
   const useRoute: typeof import('vue-router')['useRoute']
   const useRouter: typeof import('vue-router')['useRouter']
   const useSlots: typeof import('vue')['useSlots']

@@ -1,5 +1,5 @@
 {
-	"name": "@desktop-widgets/extension",
+	"name": "@desktop-app/extension",
 	"private": true,
 	"version": "0.0.0",
 	"type": "module",
@@ -19,6 +19,6 @@
 	},
 	"devDependencies": {
 		"@types/chrome": "^0.0.308",
-		"@desktop-widgets/core": "workspace:*"
+		"@desktop-app/core": "workspace:*"
 	}
 }

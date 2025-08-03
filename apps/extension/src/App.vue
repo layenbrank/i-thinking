@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import enUS from 'ant-design-vue/es/locale/en_US'
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import dayjs from 'dayjs'
-import {} from '@desktop-widgets/core'
 import 'dayjs/locale/zh-cn'
 dayjs.locale('zh-cn')
 dayjs.locale('en-us')

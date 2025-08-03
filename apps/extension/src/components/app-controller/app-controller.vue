@@ -1,20 +1,11 @@
 <script setup lang="ts">
-import { resize } from '@desktop-widgets/core/directives'
+import { resize } from '@desktop-app/core/directives'
 import AppMenu from '../app-menu/app-menu.vue'
 // import AppDrawer from '../app-settings/app-settings.vue'
-import { useSlideStore } from '@/stores/slides.ts'
+import { useAppStore } from '@/stores/app-store.ts'
 import Sortable from 'sortablejs'
 
-import type { ContextMenuKeys, ContextMenuMap, MenuOptions } from '@/types/app-menu'
-import type { SlideApp } from '@/types/slide-app.d.ts'
-import {
-	appReflect,
-	contextmenuReflect,
-	// type MenuOptions,
-	// type ContextMenuMap,
-	// type ContextMenuKeys
-	sizes
-} from './app-controller.tsx'
+import { appReflect, contextmenuReflect, sizes } from './app-controller.tsx'
 
 defineOptions({
 	name: 'app-controller',
@@ -23,9 +14,7 @@ defineOptions({
 	}
 })
 
-const slidesStore = useSlideStore()
-
-const { slides, activeSlideApp, settingsVisible } = storeToRefs(slidesStore)
+const appStore = useAppStore()
 
 const contextmenuRef = useTemplateRef('contextmenuRef')
 const appControllerRef = useTemplateRef('appControllerRef')
@@ -48,24 +37,24 @@ const contextmenuRect = reactive({
 const contextmenuMap: Readonly<ContextMenuMap> = {
 	'update-app'() {},
 	'update-size'() {
-		for (const index in slidesStore.slides) {
-			if (!Object.prototype.hasOwnProperty.call(slidesStore.slides, index)) return
+		for (const index in appStore.applications) {
+			if (!Object.prototype.hasOwnProperty.call(appStore.applications, index)) return
 
-			const slide = slidesStore.slides[Number(index)]
+			const app = appStore.applications[Number(index)]
 
-			if (slide.id !== activeSlideApp.value?.id) continue
-			slide.size = sizes[Math.round(Math.random() * sizes.length)]
+			if (app.id !== appStore.activeApp?.id) continue
+			app.size = sizes[Math.round(Math.random() * sizes.length)]
 		}
 	},
 	'update-wallpaper'() {},
 	'update-backup'() {},
 	'update-settings'() {
-		settingsVisible.value = true
+		appStore.settingsVisible = true
 	}
 }
 
 const menuOptions = computed(() => {
-	const active = slidesStore.slides?.find((slide) => slide.id === activeSlideApp.value?.id)
+	const active = appStore.applications?.find((app) => app.id === appStore.activeApp?.id)
 
 	console.log('active', active)
 
@@ -74,7 +63,7 @@ const menuOptions = computed(() => {
 	return contextmenuReflect[active.app]()
 })
 
-function updateActiveKey(value: MenuOptions) {
+function updateActiveKey(value: ContextMenuOptions) {
 	activeMenuKey.value = value.key
 
 	contextmenuMap[value.key]?.()
@@ -82,24 +71,24 @@ function updateActiveKey(value: MenuOptions) {
 
 function handleController(e: MouseEvent) {
 	const target = e.target as HTMLElement
-	const slideApp = target.closest('.slide-app') as HTMLElement
+	const application = target.closest('.slide-app') as HTMLElement
 
-	console.log('slideApp', slideApp)
+	console.log('application', application)
 
-	if (!settingsVisible.value) return
-	if (!slideApp?.dataset?.id) return
-	activeSlideApp.value =
-		slidesStore.slides?.find((slide) => slide.id === slideApp.dataset.id) ?? null
+	if (!appStore.settingsVisible) return
+	if (!application?.dataset?.id) return
+	appStore.activeApp =
+		appStore.applications?.find((app) => app.id === application.dataset.id) ?? null
 }
 
 function openContextMenu(e: MouseEvent) {
 	e.preventDefault()
 	e.stopPropagation()
 
-	if (settingsVisible.value) return
+	if (appStore.settingsVisible) return
 
 	const target = e.target as HTMLElement
-	const slideApp = target.closest('.slide-app') as HTMLElement
+	const application = target.closest('.slide-app') as HTMLElement
 
 	const contextmenu = contextmenuRef.value?.$el as HTMLElement
 
@@ -113,24 +102,24 @@ function openContextMenu(e: MouseEvent) {
 
 		contextmenuVisible.value = true
 
-		if (!slideApp?.dataset?.id) return
-		activeSlideApp.value =
-			slidesStore.slides?.find((slide) => slide.id === slideApp.dataset.id) ?? null
+		if (!application?.dataset?.id) return
+		appStore.activeApp =
+			appStore.applications?.find((app) => app.id === application.dataset.id) ?? null
 	}, 60)
 }
 
 function closeContextMenu(_e: MouseEvent) {
 	contextmenuVisible.value = false
 
-	if (settingsVisible.value) return
-	activeSlideApp.value = null
+	if (appStore.settingsVisible) return
+	appStore.activeApp = null
 }
 
 function handleConfirm(value: any) {
 	console.log('handleConfirm', value)
-	if (!activeSlideApp.value) return
-	slidesStore.updateSlideApp(activeSlideApp.value.id, {
-		...toRaw(activeSlideApp.value),
+	if (!appStore.activeApp) return
+	appStore.updateApplication(appStore.activeApp.id, {
+		...toRaw(appStore.activeApp),
 		...toRaw(value)
 	})
 	// for (const index in slides.value) {
@@ -162,22 +151,22 @@ function handleSortable() {
 		store: {
 			set(sortable) {
 				const toArray = sortable.toArray()
-				const slideApps: SlideApp[] = []
+				const applications: Application[] = []
 
 				for (let i = 0; i < toArray.length; i++) {
 					const ID = toArray[i]
 
-					for (let j = 0; j < slides.value!.length; j++) {
-						const slideApp = toRaw(slides.value![j])
-						if (slideApp.id !== ID) continue
-						slideApps.push({ ...slideApp, sort: i })
+					for (let j = 0; j < appStore.applications!.length; j++) {
+						const application = toRaw(appStore.applications![j])
+						if (application.id !== ID) continue
+						applications.push({ ...application, sort: i })
 					}
 				}
-				console.log('slideApps', slideApps)
-				slidesStore.updateSlideApps(slideApps)
+				console.log('applications', applications)
+				appStore.updateApplications(applications)
 			},
 			get(sortable) {
-				const toArray = slidesStore.slides?.map((slideApp) => slideApp.id)
+				const toArray = appStore.applications?.map((application) => application.id)
 
 				return toArray ?? []
 			}
@@ -206,25 +195,45 @@ onUnmounted(function () {
 		class="app-controller"
 	>
 		<TransitionGroup name="slide-app-fade">
-			<template v-for="slideApp in slidesStore.slides" :key="slideApp.id">
+			<template v-for="application in appStore.applications" :key="application.id">
 				<component
-					:slide-app="slideApp"
-					:is="appReflect[slideApp.app]?.()"
-					:settings-visible="settingsVisible"
-					:data-id="slideApp.id"
+					:application="application"
+					:is="appReflect[application.app]?.()"
+					:settings-visible="appStore.settingsVisible"
+					:data-id="application.id"
 					:class="['slide-app']"
 				/>
 			</template>
 		</TransitionGroup>
 
 		<AppSettings
+			:application="{
+				id: '1',
+				slideID: '1',
+				sort: 1,
+				app: 'app-bookmark',
+				width: '60px',
+				height: '60px',
+				size: 'mini',
+				direction: 'vertical',
+				shape: 'circle',
+				round: '12px',
+				icon: 'https://cdn.jsdelivr.net/gh/vuejs/vuejs.org@master/public/images/favicon.ico',
+				name: '书签',
+				backgroundColor: '#ffffff4d',
+				backgroundImage: null,
+				textSize: '13px',
+				textColor: '#ffffff',
+				description: '测试',
+				downloadCount: 1000
+			}"
 			:title="null"
 			:mask="false"
 			placement="right"
 			:closable="true"
 			@update:confirm="handleConfirm"
-			:slideApp="activeSlideApp"
-			v-model:open="settingsVisible"
+			:slideApp="appStore.activeApp"
+			v-model:open="appStore.settingsVisible"
 			:get-container="handleTelePort"
 		/>
 
@@ -240,7 +249,7 @@ onUnmounted(function () {
 				@contextmenu.prevent="openContextMenu"
 				:class="[
 					{
-						'is-active': activeSlideApp && contextmenuVisible
+						'is-active': appStore.activeApp && contextmenuVisible
 					}
 				]"
 			/>

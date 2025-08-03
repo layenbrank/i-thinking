@@ -9,7 +9,6 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AApp: typeof import('ant-design-vue/es')['App']
-    AAvatar: typeof import('ant-design-vue/es')['Avatar']
     AButton: typeof import('ant-design-vue/es')['Button']
     AButtonGroup: typeof import('ant-design-vue/es')['ButtonGroup']
     ACalendar: typeof import('ant-design-vue/es')['Calendar']
@@ -50,7 +49,6 @@ declare module 'vue' {
     AppWebIcon: typeof import('./../components/applications/app-web/app-web-icon.vue')['default']
     ARadioButton: typeof import('ant-design-vue/es')['RadioButton']
     ARadioGroup: typeof import('ant-design-vue/es')['RadioGroup']
-    AResult: typeof import('ant-design-vue/es')['Result']
     ASkeletonImage: typeof import('ant-design-vue/es')['SkeletonImage']
     ASpaceCompact: typeof import('ant-design-vue/es')['Compact']
     ASpin: typeof import('ant-design-vue/es')['Spin']

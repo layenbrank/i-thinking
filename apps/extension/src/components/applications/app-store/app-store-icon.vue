@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { SlideAppDirection, SlideAppShape, SlideAppSize } from '@/types/slide-app'
 import { Add } from '@vicons/ionicons5'
 defineOptions({
 	name: 'app-store-icon'
@@ -7,11 +6,11 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		size: SlideAppSize
+		size: ApplicationSize
 		url?: string
 		icon?: string
-		direction: SlideAppDirection
-		shape: SlideAppShape
+		direction: ApplicationDirection
+		shape: ApplicationShape
 		mini: boolean
 		small: boolean
 		medium: boolean

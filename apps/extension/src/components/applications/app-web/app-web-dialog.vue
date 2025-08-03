@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import type { SlideAppDialog } from '@/types/slide-app'
-
 defineOptions({
 	name: 'app-web-dialog'
 })
 
 const props = withDefaults(
 	defineProps<{
-		appDialogRef?: SlideAppDialog
+		appDialogRef?: ApplicationDialog
 	}>(),
 	{}
 )

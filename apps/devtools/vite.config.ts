@@ -1,16 +1,16 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import vueDevTools from 'vite-plugin-vue-devtools'
-import AutoImport from 'unplugin-auto-import/vite'
-import Components from 'unplugin-vue-components/vite'
-import { dirname, resolve } from 'node:path'
 import { findUpSync } from 'find-up'
-import pkg from './package.json'
-import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
+import { dirname, resolve } from 'node:path'
+import AutoImport from 'unplugin-auto-import/vite'
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
+import Components from 'unplugin-vue-components/vite'
+import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
+import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
+import vueDevTools from 'vite-plugin-vue-devtools'
+import pkg from './package.json'
 
 // 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
@@ -20,7 +20,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 	const env = loadEnv(mode || 'development', '')
 
 	return {
-		base: `/${pkg.name.replace(/^@desktop-widgets\//, '')}/`,
+		base: `/${pkg.name.replace(/^@desktop-app\//, '')}/`,
 		plugins: [
 			vue(),
 			vueJsx(),

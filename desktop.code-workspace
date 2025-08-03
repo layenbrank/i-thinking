@@ -1,0 +1,24 @@
+{
+	"folders": [
+		{
+			"name": "extension",
+			"path": "apps/extension"
+		},
+		{
+			"name": "client",
+			"path": "apps/client"
+		},
+		{
+			"name": "service",
+			"path": "apps/service"
+		},
+		{
+			"name": "devtools",
+			"path": "apps/devtools"
+		},
+		{
+			"name": "docs",
+			"path": "apps/docs"
+		}
+	]
+}

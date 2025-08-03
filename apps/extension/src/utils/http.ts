@@ -1,19 +1,12 @@
 import {
 	HttpClient,
-	HttpContext,
 	HttpContextToken,
+	HttpRequest,
+	HttpResponse,
 	withFetch,
 	withInterceptors,
-	HttpRequest,
-	HttpHeaders,
-	HttpParams,
-	HttpResponse,
-	type HttpMethod,
-	type HttpBackend,
-	type HttpHandler,
-	type HttpHandlerFn,
-	type HttpInterceptor,
-	type HttpEvent
+	type HttpEvent,
+	type HttpHandlerFn
 } from '@ngify/http'
 import { Observable, of, tap } from 'rxjs'
 
@@ -141,7 +134,7 @@ function httpClient(baseUrl: string) {
 // export const consoleClient = createHttpClient('http://172.20.10.4:3000')
 // export const authClient = createHttpClient('http://172.20.10.4:3000/auth')
 
-export const extHttp = httpClient(import.meta.env.VITE_APP_EXT_URL)
+export const http = httpClient(import.meta.env.VITE_APP_EXT_URL)
 export const bingHttp = httpClient('/bing')
 export const baiduHttp = httpClient('/baidu')
 

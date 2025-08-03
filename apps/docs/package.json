@@ -1,14 +1,14 @@
 {
-  "name": "@desktop-widgets/docs",
-  "version": "0.0.1",
-  "type": "module",
-  "scripts": {
-    "dev": "vitepress dev",
-    "build": "vitepress build",
-    "preview": "vitepress preview"
-  },
-  "devDependencies": {
-    "vitepress": "^1.6.3",
-    "eslint": "^8.57.0"
-  }
+	"name": "@desktop-app/docs",
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "vitepress dev",
+		"build": "vitepress build",
+		"preview": "vitepress preview"
+	},
+	"devDependencies": {
+		"vitepress": "^1.6.3",
+		"eslint": "^8.57.0"
+	}
 }

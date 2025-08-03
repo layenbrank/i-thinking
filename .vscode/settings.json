@@ -47,7 +47,7 @@
 	"[yaml]": {
 		"editor.defaultFormatter": "esbenp.prettier-vscode"
 	},
-	"breadcrumbs.filePath": "off",
+	"breadcrumbs.filePath": "on",
 	"breadcrumbs.symbolSortOrder": "type",
 	"css.format.newlineBetweenSelectors": true,
 	"css.hover.documentation": true,
@@ -76,7 +76,7 @@
 		"source.organizeImports": "explicit",
 		"source.organizeLinkDefinitions": "explicit",
 		"source.removeUnusedImports": "explicit",
-		"source.sort.json": "explicit",
+		"source.sort.json": "never",
 		"source.sortImports": "always"
 	},
 	"editor.cursorBlinking": "smooth",

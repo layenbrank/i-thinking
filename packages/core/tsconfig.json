@@ -1,38 +1,38 @@
 {
-  "extends": "@desktop-widgets/tsconfig/tsconfig.base.json",
-  "compilerOptions": {
-    "composite": false,
-    "importHelpers": true,
+	"extends": "@desktop-app/tsconfig/tsconfig.base.json",
+	"compilerOptions": {
+		"composite": false,
+		"importHelpers": true,
 
-    "noEmit": true,
-    "declaration": false,
-    "emitDeclarationOnly": false,
+		"noEmit": true,
+		"declaration": false,
+		"emitDeclarationOnly": false,
 
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "removeComments": false,
-    "resolveJsonModule": true,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"removeComments": false,
+		"resolveJsonModule": true,
 
-    "allowImportingTsExtensions": false,
+		"allowImportingTsExtensions": false,
 
-    "baseUrl": ".",
-    "rootDir": ".",
-    "outDir": "dist",
+		"baseUrl": ".",
+		"rootDir": ".",
+		"outDir": "dist",
 
-    "paths": {
-      "@/*": ["src/*"]
-    },
+		"paths": {
+			"@/*": ["src/*"]
+		},
 
-    "types": ["vite/client", "node"],
-    "tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo.core"
-  },
-  "exclude": ["dist", "node_modules"],
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "src/types/**/*.d.ts",
-    "src/shims-vue.d.ts",
-    "rollup.config.ts"
-  ]
+		"types": ["vite/client", "node"],
+		"tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo.core"
+	},
+	"exclude": ["dist", "node_modules"],
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.tsx",
+		"src/**/*.vue",
+		"src/types/**/*.d.ts",
+		"src/shims-vue.d.ts",
+		"rollup.config.ts"
+	]
 }

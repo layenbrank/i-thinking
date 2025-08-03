@@ -1,10 +1,9 @@
 <script setup lang="tsx">
-import clsx from 'clsx'
-import { Modal, message } from 'ant-design-vue'
-import AppIcon from './app-web-icon.vue'
-import AppDialog from './app-web-dialog.vue'
 import { useAppSettings } from '@/hooks/app-settings'
-import type { SlideApp, SlideAppDialog } from '@/types/slide-app'
+import { Modal, message } from 'ant-design-vue'
+import clsx from 'clsx'
+import AppDialog from './app-web-dialog.vue'
+import AppIcon from './app-web-icon.vue'
 
 defineOptions({
 	name: 'app-web'
@@ -12,11 +11,11 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		slideApp?: SlideApp
+		application?: Application
 		settingsVisible?: boolean
 	}>(),
 	{
-		slideApp: () => ({
+		application: () => ({
 			id: '0',
 			width: '60px',
 			height: '60px',
@@ -42,31 +41,31 @@ const [handleMessage, contextHolder] = message.useMessage({
 	maxCount: 1
 })
 
-const appDialogRef = ref<SlideAppDialog>()
+const appDialogRef = ref<ApplicationDialog>()
 
-const mini = computed(() => props.slideApp.size === 'mini')
-const small = computed(() => props.slideApp.size === 'small')
-const medium = computed(() => props.slideApp.size === 'medium')
-const large = computed(() => props.slideApp.size === 'large')
-const huge = computed(() => props.slideApp.size === 'huge')
-const massive = computed(() => props.slideApp.size === 'massive')
-const ultra = computed(() => props.slideApp.size === 'ultra')
-const circle = computed(() => props.slideApp.shape === 'circle')
-const rectangle = computed(() => props.slideApp.shape === 'rectangle')
-const square = computed(() => props.slideApp.shape === 'square')
-const horizontal = computed(() => props.slideApp.direction === 'horizontal')
-const vertical = computed(() => props.slideApp.direction === 'vertical')
-const round = computed(() => props.slideApp.round ?? 'var(--app-global-round)')
+const mini = computed(() => props.application.size === 'mini')
+const small = computed(() => props.application.size === 'small')
+const medium = computed(() => props.application.size === 'medium')
+const large = computed(() => props.application.size === 'large')
+const huge = computed(() => props.application.size === 'huge')
+const massive = computed(() => props.application.size === 'massive')
+const ultra = computed(() => props.application.size === 'ultra')
+const circle = computed(() => props.application.shape === 'circle')
+const rectangle = computed(() => props.application.shape === 'rectangle')
+const square = computed(() => props.application.shape === 'square')
+const horizontal = computed(() => props.application.direction === 'horizontal')
+const vertical = computed(() => props.application.direction === 'vertical')
+const round = computed(() => props.application.round ?? 'var(--app-global-round)')
 const background = computed(() => {
-	if (props.slideApp.backgroundImage) {
-		return `url(${props.slideApp.backgroundImage}) no-repeat center / cover`
-	} else if (props.slideApp.backgroundColor) return props.slideApp.backgroundColor
+	if (props.application.backgroundImage) {
+		return `url(${props.application.backgroundImage}) no-repeat center / cover`
+	} else if (props.application.backgroundColor) return props.application.backgroundColor
 	else return '#ffffff'
 })
 
 const { appStyle } = useAppSettings({
-	width: computed(() => props.slideApp.width ?? 'var(--app-global-width)'),
-	height: computed(() => props.slideApp.height ?? 'var(--app-global-height)'),
+	width: computed(() => props.application.width ?? 'var(--app-global-width)'),
+	height: computed(() => props.application.height ?? 'var(--app-global-height)'),
 	mini,
 	small,
 	medium,
@@ -83,9 +82,9 @@ const { appStyle } = useAppSettings({
 
 function handleJumpLink() {
 	if (props.settingsVisible) return
-	if (!props.slideApp.url) return handleMessage.error('请先设置链接地址!')
+	if (!props.application.url) return handleMessage.error('请先设置链接地址!')
 
-	window.open(props.slideApp.url, '_blank')
+	window.open(props.application.url, '_blank')
 }
 </script>
 
@@ -99,8 +98,8 @@ function handleJumpLink() {
 			'--app-grid-column': appStyle.gridColumn,
 			'--app-background': background
 		}"
-		:data-id="slideApp.id"
-		:class="['app-web', slideApp.size, slideApp.shape, slideApp.direction]"
+		:data-id="application.id"
+		:class="['app-web', application.size, application.shape, application.direction]"
 	>
 		<AppIcon
 			:mini="mini"
@@ -115,15 +114,15 @@ function handleJumpLink() {
 			:square="square"
 			:horizontal="horizontal"
 			:vertical="vertical"
-			:url="slideApp.url"
-			:icon="slideApp.icon"
-			:size="slideApp.size"
-			:shape="slideApp.shape"
-			:direction="slideApp.direction"
+			:url="application.url"
+			:icon="application.icon"
+			:size="application.size"
+			:shape="application.shape"
+			:direction="application.direction"
 			@click="handleJumpLink"
 		/>
 		<context-holder />
-		<span class="app-name">{{ slideApp.name }}</span>
+		<span class="app-name">{{ application.name }}</span>
 		<i-local:close class="app-trash-icon" />
 	</div>
 </template>

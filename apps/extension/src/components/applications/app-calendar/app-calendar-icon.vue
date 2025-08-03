@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import type { Dayjs } from 'dayjs'
+import { timeSphere } from '@desktop-app/core'
 import type { CalendarMode } from 'ant-design-vue/es/calendar/generateCalendar'
-import { timeSphere } from '@desktop-widgets/core'
-import type { SlideAppDirection, SlideAppShape, SlideAppSize } from '@/types/slide-app'
+import type { Dayjs } from 'dayjs'
 
 defineOptions({
 	name: 'app-calendar-icon'
@@ -10,11 +9,11 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		size: SlideAppSize
+		size: ApplicationSize
 		url?: string
 		icon?: string
-		direction: SlideAppDirection
-		shape: SlideAppShape
+		direction: ApplicationDirection
+		shape: ApplicationShape
 		mini: boolean
 		small: boolean
 		medium: boolean

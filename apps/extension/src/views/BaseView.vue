@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Modal } from 'ant-design-vue'
 
-import { GET_SLIDE_APP } from '@/apis/slides-apps'
+import { GET_SLIDE_APP } from '@/apis/application'
 import { BaseLayout, type BaseLayoutOptions } from '@/layouts/index.ts'
 
 import backgroundImage from '@/assets/wallpaper/r2e391.png'

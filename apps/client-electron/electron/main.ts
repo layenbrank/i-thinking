@@ -28,140 +28,140 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? join(process.env.APP_ROOT, 'publ
 let win: BrowserWindow | null
 
 function createWindow() {
-  win = new BrowserWindow({
-    // width: 800,
-    width: 1200,
-    // minWidth: 800,
-    // height: 600,
-    height: 800,
-    // minHeight: 600,
-    center: true,
-    movable: true,
-    roundedCorners: true,
-    // backgroundMaterial: 'acrylic',
-    // transparent: true,
-    maximizable: true,
-    icon: join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: true,
-      preload: join(__dirname, 'preload.mjs')
-    }
-  })
+	win = new BrowserWindow({
+		// width: 800,
+		width: 1200,
+		// minWidth: 800,
+		// height: 600,
+		height: 800,
+		// minHeight: 600,
+		center: true,
+		movable: true,
+		roundedCorners: true,
+		// backgroundMaterial: 'acrylic',
+		// transparent: true,
+		maximizable: true,
+		icon: join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+		webPreferences: {
+			nodeIntegration: true,
+			contextIsolation: true,
+			preload: join(__dirname, 'preload.mjs')
+		}
+	})
 
-  // Test active push message to Renderer-process.
-  win.webContents.on('did-finish-load', function () {
-    win?.webContents.send('main-process-message', new Date().toLocaleString())
-  })
+	// Test active push message to Renderer-process.
+	win.webContents.on('did-finish-load', function () {
+		win?.webContents.send('main-process-message', new Date().toLocaleString())
+	})
 
-  win.webContents.openDevTools({
-    mode: 'right'
-  })
+	win.webContents.openDevTools({
+		mode: 'right'
+	})
 
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL)
-  } else {
-    // win.loadFile('dist/index.html')
-    win.loadFile(join(RENDERER_DIST, 'index.html'))
-  }
+	if (VITE_DEV_SERVER_URL) {
+		win.loadURL(VITE_DEV_SERVER_URL)
+	} else {
+		// win.loadFile('dist/index.html')
+		win.loadFile(join(RENDERER_DIST, 'index.html'))
+	}
 }
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') {
-    app.quit()
-    win = null
-  }
+	if (process.platform !== 'darwin') {
+		app.quit()
+		win = null
+	}
 })
 
 app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (!BrowserWindow.getAllWindows().length) {
-    createWindow()
-  }
+	// On OS X it's common to re-create a window in the app when the
+	// dock icon is clicked and there are no other windows open.
+	if (!BrowserWindow.getAllWindows().length) {
+		createWindow()
+	}
 })
 
 app
-  .whenReady()
-  .then(createWindow)
-  .then(function () {
-    Menu.setApplicationMenu(null)
+	.whenReady()
+	.then(createWindow)
+	.then(function () {
+		Menu.setApplicationMenu(null)
 
-    ipcMain.on('monitor-changes', async function (event) {
-      const { canceled, filePaths } = await dialog.showOpenDialog({
-        properties: ['openDirectory']
-      })
+		ipcMain.on('monitor-changes', async function (event) {
+			const { canceled, filePaths } = await dialog.showOpenDialog({
+				properties: ['openDirectory']
+			})
 
-      if (canceled) return
+			if (canceled) return
 
-      const [folderPath] = filePaths
-      const allFilePaths = useFilePaths(folderPath)
+			const [folderPath] = filePaths
+			const allFilePaths = useFilePaths(folderPath)
 
-      // 监听文件变化
-      watch(folderPath, (eventType, filename) => {
-        console.log('File changed:', filename)
-        console.log('Event type:', eventType)
+			// 监听文件变化
+			watch(folderPath, (eventType, filename) => {
+				console.log('File changed:', filename)
+				console.log('Event type:', eventType)
 
-        // 当文件变化时重新获取所有文件列表
-        const updatedPaths = useFilePaths(folderPath)
-        event.sender.send('monitor-changes', updatedPaths)
-      })
+				// 当文件变化时重新获取所有文件列表
+				const updatedPaths = useFilePaths(folderPath)
+				event.sender.send('monitor-changes', updatedPaths)
+			})
 
-      event.sender.send('monitor-changes', folderPath, allFilePaths)
-    })
-    // ipcMain.on('', function () {})
-  })
+			event.sender.send('monitor-changes', folderPath, allFilePaths)
+		})
+		// ipcMain.on('', function () {})
+	})
 
 function useFilePaths(basePath: string): string[] {
-  const results: string[] = []
-  const baseFolder = basename(basePath) // 获取基础文件夹名称 (dist)
+	const results: string[] = []
+	const baseFolder = basename(basePath) // 获取基础文件夹名称 (dist)
 
-  function traverse(dirPath: string) {
-    const dirs = readdirSync(dirPath)
+	function traverse(dirPath: string) {
+		const dirs = readdirSync(dirPath)
 
-    for (const file of dirs) {
-      const fullPath = join(dirPath, file)
-      const stat = statSync(fullPath)
+		for (const file of dirs) {
+			const fullPath = join(dirPath, file)
+			const stat = statSync(fullPath)
 
-      const isDirectory = stat.isDirectory()
+			const isDirectory = stat.isDirectory()
 
-      if (isDirectory) traverse(fullPath)
-      else {
-        const relativePath = relative(basePath, fullPath)
-        results.push(`${baseFolder}/${relativePath.split(sep).join('/')}`)
-      }
-    }
-  }
+			if (isDirectory) traverse(fullPath)
+			else {
+				const relativePath = relative(basePath, fullPath)
+				results.push(`${baseFolder}/${relativePath.split(sep).join('/')}`)
+			}
+		}
+	}
 
-  traverse(basePath)
+	traverse(basePath)
 
-  return results
+	return results
 }
 
 function useFileMonitor(folderPath: string) {
-  ipcMain.on('monitor-changes', async function (event) {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-      properties: ['openDirectory']
-    })
+	ipcMain.on('monitor-changes', async function (event) {
+		const { canceled, filePaths } = await dialog.showOpenDialog({
+			properties: ['openDirectory']
+		})
 
-    if (canceled) return
+		if (canceled) return
 
-    const [folderPath] = filePaths
-    const allFilePaths = useFilePaths(folderPath)
+		const [folderPath] = filePaths
+		const allFilePaths = useFilePaths(folderPath)
 
-    // 监听文件变化
-    watch(folderPath, function (eventType, filename) {
-      console.log('File changed:', filename)
-      console.log('Event type:', eventType)
+		// 监听文件变化
+		watch(folderPath, function (eventType, filename) {
+			console.log('File changed:', filename)
+			console.log('Event type:', eventType)
 
-      // 当文件变化时重新获取所有文件列表
-      const updatedPaths = useFilePaths(folderPath)
-      event.sender.send('monitor-changes', updatedPaths)
-    })
+			// 当文件变化时重新获取所有文件列表
+			const updatedPaths = useFilePaths(folderPath)
+			event.sender.send('monitor-changes', updatedPaths)
+		})
 
-    event.sender.send('monitor-changes', folderPath, allFilePaths)
-  })
+		event.sender.send('monitor-changes', folderPath, allFilePaths)
+	})
 }

@@ -1,0 +1,38 @@
+{
+	"name": "@desktop-app/shared",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		"./constructor": {
+			"types": "./src/types/constructor.d.ts"
+		},
+		"./decorator": {
+			"types": "./src/types/decorator.d.ts"
+		},
+		"./process-env": {
+			"types": "./src/types/process-env.d.ts"
+		},
+		"./response": {
+			"types": "./src/types/response.d.ts"
+		},
+		"./user-profile": {
+			"types": "./src/types/user-profile.d.ts"
+		},
+		"./app-controller": {
+			"types": "./src/types/app-controller.d.ts"
+		},
+		"./app-bookmark": {
+			"types": "./src/types/app-bookmark.d.ts"
+		},
+		"./application": {
+			"types": "./src/types/application.d.ts"
+		},
+		"./desktop-window": {
+			"types": "./src/types/desktop-window.d.ts"
+		},
+		"./contextmenu": {
+			"types": "./src/types/contextmenu.d.ts"
+		}
+	}
+}

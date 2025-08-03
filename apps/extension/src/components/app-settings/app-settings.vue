@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import type { SlideApp, SlideAppDirection, SlideAppShape, SlideAppSize } from '@/types/slide-app'
 import type { DrawerProps } from 'ant-design-vue'
 
 interface AppDrawerProps extends Omit<DrawerProps, 'visible'> {
-	slideApp: SlideApp | null
+	application: Application | null
 }
 
 defineOptions({
@@ -18,23 +17,23 @@ const emit = defineEmits<{
 
 interface DirectionOptions {
 	label: string
-	value: SlideAppDirection
+	value: ApplicationDirection
 }
 
 interface ShapeOptions {
 	label: string
-	value: SlideAppShape
+	value: ApplicationShape
 }
 
-interface SlideAppSizeOptions {
+interface SizeOptions {
 	label: string
-	value: SlideAppSize
+	value: ApplicationSize
 }
 
 interface Options {
 	directions: DirectionOptions[]
 	shapes: ShapeOptions[]
-	sizes: SlideAppSizeOptions[]
+	sizes: SizeOptions[]
 }
 
 const options: Options = {
@@ -95,15 +94,15 @@ const options: Options = {
 }
 
 const formState = reactive<Record<string, any>>({
-	size: props.slideApp?.size || 'medium',
+	size: props.application?.size || 'medium',
 	shape: 'circle',
 	direction: 'horizontal'
 })
 
 watchEffect(function () {
-	formState.size = props.slideApp?.size || 'medium'
-	formState.shape = props.slideApp?.shape || 'circle'
-	formState.direction = props.slideApp?.direction || 'horizontal'
+	formState.size = props.application?.size || 'medium'
+	formState.shape = props.application?.shape || 'circle'
+	formState.direction = props.application?.direction || 'horizontal'
 })
 
 function onFinish(values: any) {
@@ -117,7 +116,7 @@ function onFinishFailed(errorInfo: any) {
 
 <template>
 	<a-drawer v-bind="{ ...props }" root-class-name="app-settings">
-		{{ slideApp?.size }}
+		{{ application?.size }}
 		<a-form
 			:model="formState"
 			name="validate_other"

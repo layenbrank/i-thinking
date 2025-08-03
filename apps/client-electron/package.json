@@ -1,5 +1,5 @@
 {
-  "name": "@desktop-widgets/client-electron",
+  "name": "@desktop-app/client-electron",
   "private": true,
   "version": "0.0.0",
   "type": "module",

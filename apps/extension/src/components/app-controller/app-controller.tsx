@@ -1,8 +1,5 @@
+import type { ApplicationReflect } from '@desktop-app/shared/app-controller'
 import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
-
-import type { AppReflect } from '@/types/app-controller'
-import type { MenuOptions } from '@/types/app-menu'
-import type { SlideAppName, SlideAppSize } from '@/types/slide-app.d.ts'
 
 // import SlideView from '@/assets/wallpaper/slide-view-bg.jpg'
 
@@ -29,7 +26,7 @@ const AppExample = defineAsyncComponent(function () {
 	return import('@/components/applications/app-example/app-example.vue')
 })
 
-const commonMenuOPtions: MenuOptions[] = [
+const commonMenuOPtions: ContextMenuOptions[] = [
 	{
 		label: '添加应用',
 		key: 'update-app',
@@ -62,7 +59,7 @@ const commonMenuOPtions: MenuOptions[] = [
 	}
 ]
 
-export const contextmenuReflect: Record<Partial<SlideAppName>, () => MenuOptions[]> = {
+export const contextmenuReflect: Record<Partial<ApplicationName>, () => ContextMenuOptions[]> = {
 	'app-bookmark'() {
 		return commonMenuOPtions
 	},
@@ -85,7 +82,7 @@ export const contextmenuReflect: Record<Partial<SlideAppName>, () => MenuOptions
 
 // const slidesStore = useSlidesStore()
 
-export const sizes: ReadonlyArray<SlideAppSize> = [
+export const sizes: ReadonlyArray<ApplicationSize> = [
 	'small',
 	'medium',
 	'large',
@@ -94,7 +91,7 @@ export const sizes: ReadonlyArray<SlideAppSize> = [
 	'ultra'
 ]
 
-export const appReflect: AppReflect = {
+export const appReflect: ApplicationReflect = {
 	'app-bookmark'() {
 		return <AppBookmark />
 	},
