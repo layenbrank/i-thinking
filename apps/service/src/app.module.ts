@@ -1,28 +1,28 @@
+import os from 'node:os'
 import { resolve } from 'node:path'
 import process from 'node:process'
-import os from 'node:os'
 
-import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common'
 import { HttpModule } from '@nestjs/axios'
+import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common'
 
-import { APP_GUARD } from '@nestjs/core'
 import { JWTAuthGuard } from '@/guards/jwt-auth.guard'
+import { APP_GUARD } from '@nestjs/core'
 
+import { ConfigModule, ConfigService } from '@nestjs/config'
 import { MongooseModule } from '@nestjs/mongoose'
-import { ConfigService, ConfigModule } from '@nestjs/config'
 
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 
 import { AuthModule } from '@/services/auth/auth.module'
 import { PostsModule } from '@/services/posts/posts.module'
-import { UploadModule } from '@/services/upload/upload.module'
 import { ProfileModule } from '@/services/profile/profile.module'
+import { UploadModule } from '@/services/upload/upload.module'
 
-import { ConsoleModule } from './services/console/console.module'
 import { LogMiddleware } from './middleware/log/log.middleware'
+import { ApplicationModule } from './services/application/application.module'
+import { ConsoleModule } from './services/console/console.module'
 import { DemoModule } from './services/demo/demo.module'
-import { SlideAppModule } from './services/slide-app/slide-app.module'
 
 @Module({
 	imports: [
@@ -58,12 +58,12 @@ import { SlideAppModule } from './services/slide-app/slide-app.module'
 
 		HttpModule,
 		AuthModule,
-		SlideAppModule,
+		DemoModule,
 		PostsModule,
 		UploadModule,
 		ProfileModule,
 		ConsoleModule,
-		DemoModule
+		ApplicationModule
 	],
 	controllers: [AppController],
 	providers: [
@@ -76,6 +76,6 @@ import { SlideAppModule } from './services/slide-app/slide-app.module'
 })
 export class AppModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(LogMiddleware).forRoutes('(.*)') // 应用到所有路由，你也可以指定特定路由
+		// consumer.apply(LogMiddleware).forRoutes('(.*)') // 应用到所有路由，你也可以指定特定路由
 	}
 }
