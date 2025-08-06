@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Modal } from 'ant-design-vue'
 
-import { GET_SLIDE_APP } from '@/apis/application'
+import { GET_APPLICATION } from '@/apis/application'
 import { BaseLayout, type BaseLayoutOptions } from '@/layouts/index.ts'
 
 import backgroundImage from '@/assets/wallpaper/r2e391.png'
@@ -40,7 +40,7 @@ const baseLayout: BaseLayoutOptions = reactive({
 })
 
 onMounted(async () => {
-	GET_SLIDE_APP().subscribe(function (response) {
+	GET_APPLICATION().subscribe(function (response) {
 		console.log('response', response)
 	})
 })

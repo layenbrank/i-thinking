@@ -1,27 +1,27 @@
 import {
 	HttpStatus,
+	Logger,
 	UnprocessableEntityException,
 	ValidationPipe,
-	VersioningType,
-	Logger
+	VersioningType
 } from '@nestjs/common'
 
 import { resolve } from 'node:path'
 import process from 'node:process'
 import os from 'os'
 
-import { NestFactory } from '@nestjs/core'
 import { ConfigService } from '@nestjs/config'
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { NestFactory } from '@nestjs/core'
 import type { NestExpressApplication } from '@nestjs/platform-express'
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 
-import { AppModule } from './app.module'
 import { HttpExceptionFilter } from '@/filters/http-exception.filter'
 import { ResponseInterceptor } from '@/interceptors/response-interceptor'
+import { AppModule } from './app.module'
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-		bufferLogs: true,
+		bufferLogs: false,
 		cors: true
 	})
 
