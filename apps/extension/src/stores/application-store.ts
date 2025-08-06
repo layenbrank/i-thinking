@@ -193,14 +193,14 @@ export const useAppStore = defineStore('app', function () {
 	const applications = useObservable(
 		from(
 			liveQuery(function () {
-				console.log('database', database.application)
-
-				return database.application.offset(1).limit(30).sortBy('sort')
+				return database.application.toArray()
+				// console.log('database', database.application)
+				// return database.application.offset(1).limit(30).sortBy('sort')
 			})
 		).pipe(
 			tap(function (resp) {
 				if (isEmpty(resp)) database.application.bulkAdd(DEFAULT)
-				console.log('apps', resp)
+				console.log('applications', resp)
 			})
 		)
 	)

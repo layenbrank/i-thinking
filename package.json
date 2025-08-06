@@ -1,6 +1,6 @@
 {
 	"private": true,
-	"name": "slide-desktop",
+	"name": "desktop-app",
 	"type": "module",
 	"workspaces": [
 		"packages/*",

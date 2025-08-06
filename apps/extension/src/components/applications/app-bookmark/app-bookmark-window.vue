@@ -4,6 +4,7 @@ import { useAppStore } from '@/stores/application-store.ts'
 import { debounce } from 'lodash-es'
 
 import { timeSphere } from '@desktop-app/core'
+import { message } from 'ant-design-vue'
 import Fuse, { type IFuseOptions } from 'fuse.js'
 import { useBookMark } from './use-bookmark.ts'
 
@@ -17,13 +18,13 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		appDialogRef?: ApplicationWindowType
-		fullscreen?: boolean
+		fullscreen: boolean
 	}>(),
 	{}
 )
 
 const emits = defineEmits<{
+	(e: 'update:visible', value: boolean): void
 	(e: 'update:fullscreen', value: boolean): void
 }>()
 
@@ -89,16 +90,23 @@ const updateBookmarks = debounce(function (value: string) {
 
 function updateApplication(bookmark: Bookmark) {
 	const bookmarkApp = toRaw(bookmark)
-	appStore.updateApplication(bookmark.id, {
-		name: bookmarkApp.title,
-		url: bookmarkApp.url,
-		shape: 'circle',
-		size: 'mini',
-		sort: appStore.applications?.length,
-		direction: 'horizontal',
-		app: 'app-web',
-		icon: bookmarkApp.url
-	})
+
+	try {
+		appStore.updateApplication(bookmark.id, {
+			name: bookmarkApp.title,
+			url: bookmarkApp.url,
+			shape: 'circle',
+			size: 'mini',
+			sort: appStore.applications?.length,
+			direction: 'horizontal',
+			app: 'app-web',
+			icon: bookmarkApp.url
+		})
+		message.success(`已添加 ${bookmarkApp.title} 到应用列表`)
+	} catch {
+		console.error('Error updating application:', bookmarkApp)
+		message.error(`添加 ${bookmarkApp.title} 到应用列表失败`)
+	}
 }
 
 function updateActiveFolder(folder: BookmarkFolder) {
@@ -111,9 +119,8 @@ function updateSort() {}
 function updateFullScreen() {
 	emits('update:fullscreen', !props.fullscreen)
 }
-function updateClose() {
-	if (!props.appDialogRef) return
-	props.appDialogRef?.destroy()
+function updateVisible() {
+	emits('update:visible', false)
 }
 
 onMounted(function () {
@@ -149,6 +156,13 @@ onMounted(function () {
 			</a-layout-header>
 			<a-layout-content class="sider-content">
 				<div class="folder-list">
+					<div @click="updateActiveFolder(recentFolder)" :class="['folder', 'is-recent']">
+						<a-image :preview="false" wrapper-class-name="folder-image"></a-image>
+						<span class="folder-title">最近添加</span>
+						<span class="folder-count">
+							{{ recentBookmarks?.length }}
+						</span>
+					</div>
 					<div
 						@click="updateActiveFolder(folder)"
 						v-for="folder in folders"
@@ -164,13 +178,6 @@ onMounted(function () {
 						<span class="folder-title">{{ folder.folder }}</span>
 						<span class="folder-count">
 							{{ folder.count }}
-						</span>
-					</div>
-					<div @click="updateActiveFolder(recentFolder)" :class="['folder', 'is-recent']">
-						<a-image :preview="false" wrapper-class-name="folder-image"></a-image>
-						<span class="folder-title">最近添加</span>
-						<span class="folder-count">
-							{{ recentBookmarks?.length }}
 						</span>
 					</div>
 				</div>
@@ -200,7 +207,7 @@ onMounted(function () {
 					<a-button @click="updateFullScreen" class="bookmark-operation-button fullscreen-button">
 						<i-local:handle width="1.25rem" height="1.25rem" />
 					</a-button>
-					<a-button @click="updateClose" class="bookmark-operation-button close-button">
+					<a-button @click="updateVisible" class="bookmark-operation-button close-button">
 						<i-local:close width="1.25rem" height="1.25rem" />
 					</a-button>
 				</a-button-group>

@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AApp: typeof import('ant-design-vue/es')['App']
+    AAvatar: typeof import('ant-design-vue/es')['Avatar']
     AButton: typeof import('ant-design-vue/es')['Button']
     AButtonGroup: typeof import('ant-design-vue/es')['ButtonGroup']
     ACalendar: typeof import('ant-design-vue/es')['Calendar']
@@ -53,6 +54,7 @@ declare module 'vue' {
     AppWebWindow: typeof import('./../components/applications/app-web/app-web-window.vue')['default']
     ARadioButton: typeof import('ant-design-vue/es')['RadioButton']
     ARadioGroup: typeof import('ant-design-vue/es')['RadioGroup']
+    AResult: typeof import('ant-design-vue/es')['Result']
     ASkeletonImage: typeof import('ant-design-vue/es')['SkeletonImage']
     ASpaceCompact: typeof import('ant-design-vue/es')['Compact']
     ASpin: typeof import('ant-design-vue/es')['Spin']
@@ -60,7 +62,6 @@ declare module 'vue' {
     ATabPane: typeof import('ant-design-vue/es')['TabPane']
     ATabs: typeof import('ant-design-vue/es')['Tabs']
     ComboboxTrigger: typeof import('./../components/combobox-trigger/combobox-trigger.vue')['default']
-    copy: typeof import('./../components/applications/app-bookmark/app-bookmark-dialog copy.vue')['default']
     DropZone: typeof import('./../components/DropZone.vue')['default']
     'IAntDesign:plusOutlined': typeof import('~icons/ant-design/plus-outlined')['default']
     'IAntDesign:reloadOutlined': typeof import('~icons/ant-design/reload-outlined')['default']

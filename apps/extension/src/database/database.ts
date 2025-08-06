@@ -12,7 +12,7 @@ interface DataBase extends Dexie {
 
 	backup: EntityTable<ApplicationBackup, 'id'>
 
-	settings: EntityTable<ApplicationSettings, 'id'>
+	setting: EntityTable<ApplicationSettings, 'id'>
 
 	bookmark: EntityTable<Bookmark, 'id'>
 	bookmarkFolder: EntityTable<BookmarkFolder, 'id'>
@@ -26,7 +26,7 @@ database.version(1).stores({
 
 	user: '++id,name',
 
-	bookmark: '&id,url,sort,title,folderId,createdAt,updatedAt',
+	bookmark: '&id,url,sort,title,folderID,createdAt,updatedAt',
 	bookmarkFolder: '&id,folder,sort,count,createdAt,updatedAt'
 })
 

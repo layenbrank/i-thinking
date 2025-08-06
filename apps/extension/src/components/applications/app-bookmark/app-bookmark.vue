@@ -133,17 +133,28 @@ function handleAppWindow() {
 			:icon="null"
 			:title="null"
 			:footer="null"
-			:centered="true"
-			:mask-closable="true"
 			:open="visible"
+			:centered="true"
+			:closable="false"
+			:mask-closable="true"
 			:destroy-on-close="true"
 			@update:open="updateVisible"
 			:style="{
 				transformOrigin: 'center'
 			}"
-			class="application-window bookmark-dialog"
+			:class="[
+				'application-window',
+				'bookmark-dialog',
+				{
+					fullscreen: fullscreen
+				}
+			]"
 		>
-			<AppWindow />
+			<app-window
+				:fullscreen="fullscreen"
+				@update:visible="updateVisible"
+				@update:fullscreen="updateFullScreen"
+			/>
 		</a-modal>
 		<app-icon
 			:mini="mini"

@@ -5,7 +5,7 @@ declare namespace Application {
 		sort: number
 		icon: string
 		title: string
-		folderId: string
+		folderID: string
 		createdAt: number
 		updatedAt: number
 		description: string

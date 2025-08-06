@@ -6,7 +6,7 @@ export const debounce: Directive = {
 			if (!el.disabled) {
 				el.disabled = true
 				setTimeout(
-					() => {
+					function () {
 						el.disabled = false
 					},
 					binding.value || 2 * 1000

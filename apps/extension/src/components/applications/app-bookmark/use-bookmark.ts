@@ -1,7 +1,6 @@
 import { useObservable } from '@vueuse/rxjs'
 import { liveQuery } from 'dexie'
 import { from, Observable, switchMap, tap } from 'rxjs'
-import bookmarkJSON from './bookmark.json'
 // import { folderModule } from '@/database/bookmark/folder.module.ts'
 // import { bookmarkModule } from '@/database/bookmark/bookmark.module.ts'
 // import type { Bookmark } from '@/database/bookmark/bookmark.entity.ts'
@@ -31,9 +30,12 @@ export function useBookMark() {
 			})
 		).pipe(
 			tap(function (folders) {
-				if (isEmpty(folders)) {
-				} else {
-					activeFolder.value = folders[0] || null
+				if (isEmpty(folders)) return
+				else {
+					const [folder] = folders
+					console.log('activeFolder', folder)
+
+					activeFolder.value = folder
 				}
 			})
 		)
@@ -53,18 +55,38 @@ export function useBookMark() {
 		)
 	)
 
-	const sourceBookmarks = computed(function () {
-		const bookmarksArray: Bookmark[] = []
+	// const sourceBookmarks = computed(function () {
+	// 	const bookmarkArray: Bookmark[] = []
 
-		if (!bookmarks.value?.length) return bookmarksArray
+	// 	if (!bookmarks.value) return bookmarkArray
 
-		for (const bookmark of bookmarks.value) {
-			if (activeFolder.value?.id !== bookmark.folderId) continue
-			bookmarksArray.push(bookmark)
-		}
-		targetBookmarks.value = bookmarksArray
-		return bookmarksArray
-	})
+	// 	for (const bookmark of bookmarks.value) {
+	// 		if (activeFolder.value?.id !== bookmark.folderId) continue
+	// 		bookmarkArray.push(bookmark)
+	// 	}
+	// 	targetBookmarks.value = bookmarkArray
+	// 	console.log('targetBookmarks', targetBookmarks.value, 'bookmarkArray', bookmarkArray)
+
+	// 	return bookmarkArray
+	// })
+
+	const sourceBookmarks = useObservable(
+		new Observable<string>(function (subscribe) {
+			watchEffect(function () {
+				const ID = activeFolder.value?.id
+				if (!ID) return
+				subscribe.next(ID)
+			})
+		}).pipe(
+			switchMap(function (ID) {
+				return database.bookmark.where('folderID').equals(ID).toArray()
+			}),
+			tap(function (resp) {
+				targetBookmarks.value = resp
+				console.log('targetBookmarks', targetBookmarks.value, 'resp', resp)
+			})
+		)
+	)
 
 	const recentBookmarks = computed(function () {
 		return bookmarks.value?.filter(function (bookmark) {
@@ -85,9 +107,9 @@ export function useBookMark() {
 
 		for (const folder of foldersRes) {
 			await database.bookmark
-				.where('folderId')
+				.where('folderID')
 				.equals(folder.id)
-				.count((count) => {
+				.count(function (count) {
 					database.bookmarkFolder.update(folder.id, {
 						count
 					})
@@ -109,16 +131,16 @@ export function useBookMark() {
 	function parseBookmarkTree(bookmarkNodes: BookmarkTreeNode[]): BookmarkParse {
 		const parsedBookmarks: Bookmark[] = []
 		const parsedFolders: BookmarkFolder[] = []
-		const nodeProcessingStack: BookmarkTreeNode[] = [...bookmarkNodes]
+		const toUpdateNodeStack: BookmarkTreeNode[] = [...bookmarkNodes]
 
-		while (nodeProcessingStack.length > 0) {
-			const node = nodeProcessingStack.pop()
+		while (toUpdateNodeStack.length > 0) {
+			const node = toUpdateNodeStack.pop()
 
 			// 跳过空节点
 			if (!node) continue
 
 			// 将子节点添加到处理栈中
-			if (node.children?.length) nodeProcessingStack.push(...node.children)
+			if (node.children?.length) toUpdateNodeStack.push(...node.children)
 
 			// 跳过根节点和空标题节点
 			if (isInvalidNode(node)) continue
@@ -164,7 +186,7 @@ export function useBookMark() {
 			url: bookmarkNode.url!,
 			title: bookmarkNode.title,
 			icon: '', // Chrome API不直接提供图标，需要额外获取
-			folderId: bookmarkNode.parentId || '',
+			folderID: bookmarkNode.parentId || '',
 			sort: sortIndex,
 			description: '', // Chrome API不提供描述字段
 			createdAt: bookmarkNode.dateAdded || Date.now(),
