@@ -55,21 +55,6 @@ export function useBookMark() {
 		)
 	)
 
-	// const sourceBookmarks = computed(function () {
-	// 	const bookmarkArray: Bookmark[] = []
-
-	// 	if (!bookmarks.value) return bookmarkArray
-
-	// 	for (const bookmark of bookmarks.value) {
-	// 		if (activeFolder.value?.id !== bookmark.folderId) continue
-	// 		bookmarkArray.push(bookmark)
-	// 	}
-	// 	targetBookmarks.value = bookmarkArray
-	// 	console.log('targetBookmarks', targetBookmarks.value, 'bookmarkArray', bookmarkArray)
-
-	// 	return bookmarkArray
-	// })
-
 	const sourceBookmarks = useObservable(
 		new Observable<string>(function (subscribe) {
 			watchEffect(function () {
@@ -98,14 +83,12 @@ export function useBookMark() {
 	async function handleRefreshBookmarks() {
 		const bookmarkTreeRes = await chrome?.bookmarks?.getTree()
 
-		const { bookmarks: bookmarksRes, folders: foldersRes } = parseBookmarkTree(bookmarkTreeRes)
+		const parsed = parseBookmarkTree(bookmarkTreeRes)
 
-		// bookmarkModule.bulkPut(bookmarksRes)
-		// folderModule.bulkPut(foldersRes)
-		database.bookmark.bulkPut(bookmarksRes)
-		database.bookmarkFolder.bulkPut(foldersRes)
+		database.bookmark.bulkPut(parsed.bookmarks)
+		database.bookmarkFolder.bulkPut(parsed.folders)
 
-		for (const folder of foldersRes) {
+		for (const folder of parsed.folders) {
 			await database.bookmark
 				.where('folderID')
 				.equals(folder.id)
@@ -116,7 +99,7 @@ export function useBookMark() {
 				})
 		}
 
-		const [folder] = foldersRes || []
+		const [folder] = parsed.folders || []
 
 		activeFolder.value = folder || null
 

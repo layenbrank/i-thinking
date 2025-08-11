@@ -111,8 +111,8 @@
 	"editor.wordWrap": "on",
 	"emmet.excludeLanguages": ["javascript", "typescript"],
 	"emmet.includeLanguages": {
-		"javascript": "javascriptreact",
-		"typescript": "javascriptreact",
+		"javascript": "javascript",
+		"typescript": "typescript",
 		"vue": "html",
 		"vue-html": "html"
 	},
@@ -212,6 +212,8 @@
 		"**/tmp": true,
 		"**/yarn.lock": true
 	},
+	"prettier.endOfLine": "crlf",
+	"prettier.requireConfig": true,
 	"search.followSymlinks": false,
 	"search.searchEditor.singleClickBehaviour": "peekDefinition",
 	"tailwindCSS.files.exclude": ["**/.git/**", "**/node_modules/**", "**/.hg/**", "**/.svn/**"],

@@ -136,7 +136,7 @@ export class ApplicationService {
 	 * 尝试默认的 favicon 路径
 	 */
 	private async tryDefaultFavicon(url: string): Promise<string> {
-		const baseUrl = this.getBaseUrl(url)
+		const baseUrl = this.retrieveBaseUrl(url)
 		const defaultPaths = [
 			'/favicon.ico',
 			'/favicon.png',
@@ -154,8 +154,7 @@ export class ApplicationService {
 					console.log(`在默认路径找到 favicon: ${faviconUrl}`)
 					return faviconUrl
 				}
-			} catch (error) {
-				// 继续尝试下一个路径
+			} catch {
 				continue
 			}
 		}
@@ -176,11 +175,11 @@ export class ApplicationService {
 	/**
 	 * 获取基础 URL
 	 */
-	private getBaseUrl(url: string): string {
+	private retrieveBaseUrl(url: string): string {
 		try {
 			const urlObj = new URL(this.normalizeUrl(url))
 			return `${urlObj.protocol}//${urlObj.host}`
-		} catch (error) {
+		} catch {
 			return url
 		}
 	}
@@ -203,14 +202,14 @@ export class ApplicationService {
 
 			// 如果是绝对路径（/icon.png）
 			if (iconUrl.startsWith('/')) {
-				const base = this.getBaseUrl(baseUrl)
+				const base = this.retrieveBaseUrl(baseUrl)
 				return `${base}${iconUrl}`
 			}
 
 			// 如果是相对路径（icon.png）
-			const base = this.getBaseUrl(baseUrl)
+			const base = this.retrieveBaseUrl(baseUrl)
 			return `${base}/${iconUrl}`
-		} catch (error) {
+		} catch {
 			console.error(`解析图标 URL 失败: ${iconUrl}`)
 			return iconUrl
 		}

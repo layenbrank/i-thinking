@@ -123,21 +123,7 @@ function updateVisible() {
 	emits('update:visible', false)
 }
 
-onMounted(function () {
-	// const bookmarksRes = bookmarkJSON as unknown as BookmarkParse
-	// bookmarks.value = bookmarksRes.bookmarks
-	// folders.value = bookmarksRes.folders
-	// sourceBookmarks.value = bookmarks.value
-	// console.log('bookmarks', bookmarks.value)
-	// console.log('folders', folders.value)
-	// chrome?.bookmarks?.getTree((treeNodes) => {
-	//   console.log('treeNodes', treeNodes)
-	//   const bookmarkNodes = parseBookmarkTree(treeNodes)
-	//   console.log('bookmarkNodes', bookmarkNodes)
-	//   sourceBookmarks.value = bookmarkNodes.bookmarks
-	//   folders.value = bookmarkNodes.folders
-	// })
-})
+onMounted(function () {})
 </script>
 
 <template>
