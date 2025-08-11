@@ -18,7 +18,6 @@
 		"reflect-metadata": "^0.2.2"
 	},
 	"devDependencies": {
-		"@types/chrome": "^0.0.308",
 		"@desktop-app/core": "workspace:*"
 	}
 }

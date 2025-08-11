@@ -55,7 +55,8 @@ const {
 } = useBookMark()
 
 // 定义 Fuse 搜索选项
-const fuseOptions: IFuseOptions<BookmarkTreeNode> = {
+// const fuseOptions: IFuseOptions<BookmarkTreeNode> = {
+const fuseOptions: IFuseOptions<Bookmark> = {
 	keys: ['title', 'url'], // 搜索的字段
 	threshold: 0.3, // 匹配阈值，0.0 表示完全匹配，1.0 表示完全不匹配
 	includeScore: true, // 包含分数
