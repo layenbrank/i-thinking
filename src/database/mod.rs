@@ -1,0 +1,29 @@
+use crate::services::user;
+use anyhow::Result;
+use mongodb::{Client, Collection, Database};
+
+#[derive(Clone)]
+pub struct DataBase {
+    pub client: Client,
+    pub database: Database,
+}
+
+impl DataBase {
+    pub async fn new(uri: &str) -> Result<Self> {
+        let client = Client::with_uri_str(uri).await?;
+        let database = client.database("layen");
+
+        client
+            .database("admin")
+            .run_command(mongodb::bson::doc! {
+                "ping": 1
+            })
+            .await?;
+
+        Ok(DataBase { client, database })
+    }
+
+    pub fn users(&self) -> Collection<user::schema::User> {
+        self.database.collection("users")
+    }
+}
