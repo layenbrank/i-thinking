@@ -20,16 +20,16 @@ impl UploadService {
     const MAX_CHUNK_SIZE: u32 = 10 * 1024 * 1024; // 10MB
     const EXPIRE_HOURS: i64 = 24;
 
-    pub async fn upload(
+    pub async fn prepare(
         db: &DataBase,
         req: UploadRequest,
         uploader_id: Option<String>,
     ) -> Result<UploadResponse> {
         // 验证请求参数
-        Self::validate_request(&req)?;
+        Self::validate(&req)?;
 
         // 检查文件是否已存在（秒传功能）
-        if let Some(existing) = Self::check_file_exists(db, &req.file_hash).await? {
+        if let Some(existing) = Self::find_completed(db, &req.file_hash).await? {
             return Ok(UploadResponse {
                 upload_id: existing.id.unwrap().to_hex(),
                 file_exists: true,
@@ -40,7 +40,7 @@ impl UploadService {
 
         // 检查是否有未完成的上传任务
         if let Some(existing) =
-            Self::find_pending_upload(db, &req.file_hash, uploader_id.as_deref()).await?
+            Self::find_pending(db, &req.file_hash, uploader_id.as_deref()).await?
         {
             return Ok(UploadResponse {
                 upload_id: existing.id.unwrap().to_hex(),
@@ -51,12 +51,12 @@ impl UploadService {
         }
 
         // 创建新的上传任务
-        let upload = Self::create_upload_record(req, uploader_id)?;
+        let upload = Self::build_record(req, uploader_id)?;
         let resp = db.uploads().insert_one(&upload).await?;
         let upload_id = resp.inserted_id.as_object_id().unwrap().to_hex();
 
         // 创建分片存储目录
-        Self::ensure_chunk_directory(&upload_id).await?;
+        Self::prepare_chunk_dir(&upload_id).await?;
 
         Ok(UploadResponse {
             upload_id,
@@ -66,14 +66,14 @@ impl UploadService {
         })
     }
 
-    pub async fn upload_chunk(
+    pub async fn chunk(
         db: &DataBase,
         upload_id: &str,
         chunk_index: u32,
         chunk_data: Vec<u8>,
         chunk_hash: &str,
     ) -> Result<ChunkUploadResponse> {
-        let upload = Self::get_upload_by_id(db, upload_id).await?;
+        let upload = Self::find_by_id(db, upload_id).await?;
 
         // 验证上传状态
         Self::validate_status(&upload)?;
@@ -91,10 +91,10 @@ impl UploadService {
         }
 
         // 保存分片
-        Self::save_chunk(upload_id, chunk_index, &chunk_data).await?;
+        Self::store_chunk(upload_id, chunk_index, &chunk_data).await?;
 
         // 更新上传进度 - 直接在数据库中添加分片索引
-        Self::add_uploaded_chunk(db, upload_id, chunk_index).await?;
+        Self::append_chunk(db, upload_id, chunk_index).await?;
 
         Ok(ChunkUploadResponse {
             success: true,
@@ -103,26 +103,26 @@ impl UploadService {
         })
     }
 
-    pub async fn complete_upload(db: &DataBase, upload_id: &str) -> Result<FinalizeUploadResponse> {
+    pub async fn finalize(db: &DataBase, upload_id: &str) -> Result<FinalizeUploadResponse> {
         println!("开始完成上传: upload_id = {}", upload_id);
 
         // 先同步文件系统和数据库的分片记录
-        Self::sync_uploaded_chunks(db, upload_id).await?;
+        Self::sync_chunks(db, upload_id).await?;
 
-        let upload = Self::get_upload_by_id(db, upload_id).await?;
+        let upload = Self::find_by_id(db, upload_id).await?;
         println!("获取到上传记录: {:?}", upload);
 
         // 验证所有分片已上传
-        Self::validate_upload_completion(&upload)?;
+        Self::validate_completion(&upload)?;
 
         // 合并分片
         let final_path = Self::merge_chunks(&upload).await?;
 
         // 验证文件完整性
-        Self::verify_file_integrity(&final_path, &upload.file_hash).await?;
+        Self::verify_integrity(&final_path, &upload.file_hash).await?;
 
         // 更新数据库记录
-        Self::mark_upload_completed(db, upload_id, &final_path).await?;
+        Self::mark_completed(db, upload_id, &final_path).await?;
 
         // 清理临时文件
         Self::cleanup_chunks(upload_id).await?;
@@ -136,8 +136,8 @@ impl UploadService {
         })
     }
 
-    pub async fn get_progress(db: &DataBase, upload_id: &str) -> Result<UploadProgressResponse> {
-        let upload = Self::get_upload_by_id(db, upload_id).await?;
+    pub async fn progress(db: &DataBase, upload_id: &str) -> Result<UploadProgressResponse> {
+        let upload = Self::find_by_id(db, upload_id).await?;
         let progress = upload.uploaded_chunks.len() as f64 / upload.total_chunks as f64 * 100.0;
 
         Ok(UploadProgressResponse {
@@ -149,7 +149,7 @@ impl UploadService {
         })
     }
 
-    fn create_upload_record(req: UploadRequest, uploader_id: Option<String>) -> Result<Upload> {
+    fn build_record(req: UploadRequest, uploader_id: Option<String>) -> Result<Upload> {
         let total_chunks = (req.file_size + req.chunk_size as u64 - 1) / req.chunk_size as u64;
         let now = DateTime::now();
         let expires_at =
@@ -178,13 +178,13 @@ impl UploadService {
     }
 
     pub async fn cancel(db: &DataBase, upload_id: &str) -> Result<()> {
-        Self::mark_upload_failed(db, upload_id).await?;
+        Self::mark_failed(db, upload_id).await?;
         Self::cleanup_chunks(upload_id).await?;
 
         Ok(())
     }
 
-    fn validate_request(req: &UploadRequest) -> Result<()> {
+    fn validate(req: &UploadRequest) -> Result<()> {
         if req.file_size > Self::MAX_FILE_SIZE {
             return Err(anyhow!(
                 "File size exceeds limit of {}GB",
@@ -261,7 +261,7 @@ impl UploadService {
         Ok(())
     }
 
-    fn validate_upload_completion(upload: &Upload) -> Result<()> {
+    fn validate_completion(upload: &Upload) -> Result<()> {
         if upload.uploaded_chunks.len() != upload.total_chunks as usize {
             return Err(anyhow!(
                 "Upload is not complete, missing chunks: {} of {}",
@@ -287,7 +287,7 @@ impl UploadService {
         Ok(())
     }
 
-    async fn check_file_exists(db: &DataBase, file_hash: &str) -> Result<Option<Upload>> {
+    async fn find_completed(db: &DataBase, file_hash: &str) -> Result<Option<Upload>> {
         let upload = db
             .uploads()
             .find_one(doc! {
@@ -298,19 +298,7 @@ impl UploadService {
         Ok(upload)
     }
 
-    async fn find_completed_file(db: &DataBase, file_hash: &str) -> Result<Option<Upload>> {
-        let upload = db
-            .uploads()
-            .find_one(doc! {
-              "fileHash": file_hash,
-              "status": UploadStatus::Completed.as_str()
-            })
-            .await?;
-
-        Ok(upload)
-    }
-
-    async fn find_pending_upload(
+    async fn find_pending(
         db: &DataBase,
         file_hash: &str,
         uploader_id: Option<&str>,
@@ -335,7 +323,7 @@ impl UploadService {
         Ok(upload)
     }
 
-    async fn get_upload_by_id(db: &DataBase, upload_id: &str) -> Result<Upload> {
+    async fn find_by_id(db: &DataBase, upload_id: &str) -> Result<Upload> {
         println!("查询上传记录: upload_id = {}", upload_id);
         let object_id = ObjectId::parse_str(upload_id)?;
         println!("解析的 ObjectId: {:?}", object_id);
@@ -349,13 +337,13 @@ impl UploadService {
         Ok(upload)
     }
 
-    async fn ensure_chunk_directory(upload_id: &str) -> Result<()> {
+    async fn prepare_chunk_dir(upload_id: &str) -> Result<()> {
         let chunk_dir = PathBuf::from(Self::CHUNK_DIR).join(upload_id);
         fs::create_dir_all(&chunk_dir).await?;
         Ok(())
     }
 
-    async fn save_chunk(upload_id: &str, chunk_index: u32, data: &[u8]) -> Result<()> {
+    async fn store_chunk(upload_id: &str, chunk_index: u32, data: &[u8]) -> Result<()> {
         let chunk_path = PathBuf::from(Self::CHUNK_DIR)
             .join(upload_id)
             .join(format!("chunk-{}.part", chunk_index));
@@ -392,8 +380,8 @@ impl UploadService {
         Ok(final_path)
     }
 
-    async fn verify_file_integrity(file_path: &Path, expected_hash: &str) -> Result<()> {
-        let calculated_hash = Self::calculate_file_hash(file_path).await?;
+    async fn verify_integrity(file_path: &Path, expected_hash: &str) -> Result<()> {
+        let calculated_hash = Self::calculate_hash_of_file(file_path).await?;
         if calculated_hash != expected_hash {
             fs::remove_file(file_path).await?;
             return Err(anyhow!(
@@ -413,25 +401,7 @@ impl UploadService {
         Ok(())
     }
 
-    async fn update_upload_progress(db: &DataBase, upload_id: &str, upload: &Upload) -> Result<()> {
-        let object_id = ObjectId::parse_str(upload_id)?;
-
-        db.uploads()
-            .update_one(
-                doc! { "_id": object_id },
-                doc! {
-                    "$set": {
-                        "uploadedChunks": to_bson(&upload.uploaded_chunks)?,
-                        "status": upload.status.as_str(),
-                        "updatedAt": upload.updated_at.timestamp_millis(),
-                    }
-                },
-            )
-            .await?;
-        Ok(())
-    }
-
-    async fn add_uploaded_chunk(db: &DataBase, upload_id: &str, chunk_index: u32) -> Result<()> {
+    async fn append_chunk(db: &DataBase, upload_id: &str, chunk_index: u32) -> Result<()> {
         let object_id = ObjectId::parse_str(upload_id)?;
 
         // 使用 $addToSet 确保不重复添加，同时更新状态和时间
@@ -453,7 +423,7 @@ impl UploadService {
     }
 
     /// 根据文件系统中实际存在的分片同步数据库中的 uploadedChunks
-    pub async fn sync_uploaded_chunks(db: &DataBase, upload_id: &str) -> Result<()> {
+    pub async fn sync_chunks(db: &DataBase, upload_id: &str) -> Result<()> {
         let chunk_dir = PathBuf::from(Self::CHUNK_DIR).join(upload_id);
 
         if !chunk_dir.exists() {
@@ -510,7 +480,7 @@ impl UploadService {
         Ok(())
     }
 
-    async fn mark_upload_completed(db: &DataBase, upload_id: &str, file_path: &Path) -> Result<()> {
+    async fn mark_completed(db: &DataBase, upload_id: &str, file_path: &Path) -> Result<()> {
         let object_id = ObjectId::parse_str(upload_id)?;
 
         db.uploads()
@@ -531,7 +501,7 @@ impl UploadService {
         Ok(())
     }
 
-    async fn mark_upload_failed(db: &DataBase, upload_id: &str) -> Result<()> {
+    async fn mark_failed(db: &DataBase, upload_id: &str) -> Result<()> {
         let object_id = ObjectId::parse_str(upload_id)?;
 
         db.uploads()
@@ -557,7 +527,7 @@ impl UploadService {
         format!("{:x}", hasher.finalize())
     }
 
-    async fn calculate_file_hash(file_path: &Path) -> Result<String> {
+    async fn calculate_hash_of_file(file_path: &Path) -> Result<String> {
         let mut file = File::open(file_path).await?;
         let mut hasher = Sha256::new();
         let mut buffer = vec![0; 65536]; // 64KB buffer

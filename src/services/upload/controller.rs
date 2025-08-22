@@ -9,13 +9,13 @@ use std::sync::Arc;
 pub struct UploadController;
 
 impl UploadController {
-    pub async fn upload_controller(
+    pub async fn prepare(
         db: web::Data<Arc<DataBase>>,
         req: web::Json<UploadRequest>,
     ) -> Result<HttpResponse> {
         println!("收到初始化上传请求: {:?}", req);
 
-        match UploadService::upload(&db, req.into_inner(), None).await {
+        match UploadService::prepare(&db, req.into_inner(), None).await {
             Ok(response) => {
                 println!("初始化上传成功: {:?}", response);
                 Ok(HttpResponse::Ok().json(response))
@@ -29,7 +29,7 @@ impl UploadController {
         }
     }
 
-    pub async fn upload_chunk(
+    pub async fn chunk(
         db: web::Data<Arc<DataBase>>,
         mut payload: Multipart,
     ) -> Result<HttpResponse> {
@@ -139,9 +139,7 @@ impl UploadController {
         }
 
         // 调用服务层方法
-        match UploadService::upload_chunk(&db, &upload_id, chunk_index, chunk_data, &chunk_hash)
-            .await
-        {
+        match UploadService::chunk(&db, &upload_id, chunk_index, chunk_data, &chunk_hash).await {
             Ok(response) => Ok(HttpResponse::Ok().json(response)),
             Err(err) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
                 "error": err.to_string()
@@ -150,12 +148,12 @@ impl UploadController {
     }
 
     /// 完成上传
-    pub async fn complete_upload(
+    pub async fn finalize(
         db: web::Data<Arc<DataBase>>,
         req: web::Json<FinalizeUploadRequest>,
     ) -> Result<HttpResponse> {
         println!("收到完成上传请求: {:?}", req);
-        match UploadService::complete_upload(&db, &req.upload_id).await {
+        match UploadService::finalize(&db, &req.upload_id).await {
             Ok(response) => {
                 println!("完成上传成功: {:?}", response);
                 Ok(HttpResponse::Ok().json(response))
@@ -170,24 +168,18 @@ impl UploadController {
     }
 
     /// 获取上传进度
-    pub async fn get_progress(
+    pub async fn progress(
         db: web::Data<Arc<DataBase>>,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
         let upload_id = path.into_inner();
 
-        match UploadService::get_progress(&db, &upload_id).await {
+        match UploadService::progress(&db, &upload_id).await {
             Ok(response) => Ok(HttpResponse::Ok().json(response)),
             Err(err) => Ok(HttpResponse::NotFound().json(serde_json::json!({
                 "error": err.to_string()
             }))),
         }
-    }
-
-    pub async fn test_controller() -> Result<HttpResponse> {
-        Ok(HttpResponse::Ok().json(serde_json::json!({
-            "message": "Controller is working!"
-        })))
     }
 
     /// 取消上传
