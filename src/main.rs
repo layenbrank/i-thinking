@@ -38,7 +38,10 @@ async fn main() -> std::io::Result<()> {
 
     let db = Arc::new(database);
 
-    println!("📝 API Documentation: http://{}:{}", cfg.host, cfg.port);
+    println!(
+        "📝 API Documentation: http://{}:{}/api/v1",
+        cfg.host, cfg.port
+    );
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
@@ -51,6 +54,7 @@ async fn main() -> std::io::Result<()> {
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
             .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
             .allowed_header(header::CONTENT_TYPE)
+            .allow_any_origin()
             .max_age(3600);
 
         App::new()
@@ -59,6 +63,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .wrap(Logger::new("%a %t %r %s %b %{Referer}i %{User-Agent}i %T"))
             .service(index)
+            .service(index_html)
             .configure(AppModule::configure)
     })
     .bind((cfg.host.clone(), cfg.port))?
@@ -66,9 +71,22 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
-#[get("/index.html")]
-async fn index(req: HttpRequest) -> impl Responder {
+#[get("/")]
+async fn index() -> impl Responder {
+    let html_content = std::fs::read_to_string("index.html")
+        .unwrap_or_else(|_| "<h1>Welcome to the Rust Web Service!</h1>".to_string());
+    
     HttpResponse::Ok()
-        .content_type("text/html")
-        .body("<h1>Welcome to the Rust Web Service!</h1>")
+        .content_type("text/html; charset=utf-8")
+        .body(html_content)
+}
+
+#[get("/index.html")]
+async fn index_html() -> impl Responder {
+    let html_content = std::fs::read_to_string("index.html")
+        .unwrap_or_else(|_| "<h1>Welcome to the Rust Web Service!</h1>".to_string());
+    
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(html_content)
 }

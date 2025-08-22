@@ -1,0 +1,251 @@
+use crate::database::DataBase;
+use crate::services::upload::schema::{FinalizeUploadRequest, UploadRequest};
+use crate::services::upload::service::UploadService;
+use actix_multipart::Multipart;
+use actix_web::{HttpResponse, Result, web};
+use futures::StreamExt;
+use std::sync::Arc;
+
+pub struct UploadController;
+
+impl UploadController {
+    pub async fn upload_controller(
+        db: web::Data<Arc<DataBase>>,
+        req: web::Json<UploadRequest>,
+    ) -> Result<HttpResponse> {
+        println!("收到初始化上传请求: {:?}", req);
+
+        match UploadService::upload(&db, req.into_inner(), None).await {
+            Ok(response) => {
+                println!("初始化上传成功: {:?}", response);
+                Ok(HttpResponse::Ok().json(response))
+            }
+            Err(err) => {
+                println!("初始化上传失败: {}", err);
+                Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                    "error": err.to_string()
+                })))
+            }
+        }
+    }
+
+    pub async fn upload_chunk(
+        db: web::Data<Arc<DataBase>>,
+        mut payload: Multipart,
+    ) -> Result<HttpResponse> {
+        let mut upload_id = String::new();
+        let mut chunk_index: Option<u32> = None; // 修复：使用 Option<u32>
+        let mut chunk_hash = String::new();
+        let mut chunk_data = Vec::new();
+
+        while let Some(field_result) = payload.next().await {
+            let mut field = match field_result {
+                Ok(field) => field,
+                Err(multipart_err) => {
+                    return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                        "error": format!("Failed to read multipart field: {}", multipart_err)
+                    })));
+                }
+            };
+
+            let field_name = match field.name() {
+                Some(name) => name.to_string(),
+                None => {
+                    return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                        "error": "Missing field name"
+                    })));
+                }
+            };
+
+            match field_name.as_str() {
+                "upload_id" | "uploadId" => match Self::extract_field(&mut field).await {
+                    Ok(value) => upload_id = value,
+                    Err(err_msg) => {
+                        return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                            "error": format!("Failed to extract upload_id: {}", err_msg)
+                        })));
+                    }
+                },
+                "chunk_index" | "chunkIndex" => match Self::extract_field(&mut field).await {
+                    Ok(index_str) => match index_str.parse::<u32>() {
+                        Ok(idx) => chunk_index = Some(idx),
+                        Err(_) => {
+                            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                                "error": "Invalid chunk index format"
+                            })));
+                        }
+                    },
+                    Err(err_msg) => {
+                        return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                            "error": format!("Failed to extract chunk_index: {}", err_msg)
+                        })));
+                    }
+                },
+                "chunk_data" | "chunk" | "chunkData" => {
+                    match Self::extract_binary_field(&mut field).await {
+                        Ok(data) => chunk_data = data,
+                        Err(err_msg) => {
+                            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                                "error": format!("Failed to extract chunk_data: {}", err_msg)
+                            })));
+                        }
+                    }
+                }
+                "chunk_hash" | "chunkHash" => match Self::extract_field(&mut field).await {
+                    Ok(hash) => chunk_hash = hash,
+                    Err(err_msg) => {
+                        return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                            "error": format!("Failed to extract chunk_hash: {}", err_msg)
+                        })));
+                    }
+                },
+                _ => {
+                    // 跳过未知字段
+                    if let Err(err_msg) = Self::skip_field(&mut field).await {
+                        return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                            "error": format!("Failed to skip field: {}", err_msg)
+                        })));
+                    }
+                }
+            }
+        }
+
+        // 验证必需字段
+        if upload_id.is_empty() {
+            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "error": "Missing upload_id"
+            })));
+        }
+
+        let chunk_index = match chunk_index {
+            Some(idx) => idx,
+            None => {
+                return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                    "error": "Missing chunk_index"
+                })));
+            }
+        };
+
+        if chunk_hash.is_empty() {
+            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "error": "Missing chunk_hash"
+            })));
+        }
+
+        if chunk_data.is_empty() {
+            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "error": "Missing chunk_data"
+            })));
+        }
+
+        // 调用服务层方法
+        match UploadService::upload_chunk(&db, &upload_id, chunk_index, chunk_data, &chunk_hash)
+            .await
+        {
+            Ok(response) => Ok(HttpResponse::Ok().json(response)),
+            Err(err) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "error": err.to_string()
+            }))),
+        }
+    }
+
+    /// 完成上传
+    pub async fn complete_upload(
+        db: web::Data<Arc<DataBase>>,
+        req: web::Json<FinalizeUploadRequest>,
+    ) -> Result<HttpResponse> {
+        println!("收到完成上传请求: {:?}", req);
+        match UploadService::complete_upload(&db, &req.upload_id).await {
+            Ok(response) => {
+                println!("完成上传成功: {:?}", response);
+                Ok(HttpResponse::Ok().json(response))
+            }
+            Err(err) => {
+                println!("完成上传失败: {}", err);
+                Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                    "error": err.to_string()
+                })))
+            }
+        }
+    }
+
+    /// 获取上传进度
+    pub async fn get_progress(
+        db: web::Data<Arc<DataBase>>,
+        path: web::Path<String>,
+    ) -> Result<HttpResponse> {
+        let upload_id = path.into_inner();
+
+        match UploadService::get_progress(&db, &upload_id).await {
+            Ok(response) => Ok(HttpResponse::Ok().json(response)),
+            Err(err) => Ok(HttpResponse::NotFound().json(serde_json::json!({
+                "error": err.to_string()
+            }))),
+        }
+    }
+
+    pub async fn test_controller() -> Result<HttpResponse> {
+        Ok(HttpResponse::Ok().json(serde_json::json!({
+            "message": "Controller is working!"
+        })))
+    }
+
+    /// 取消上传
+    pub async fn cancel(
+        db: web::Data<Arc<DataBase>>,
+        path: web::Path<String>,
+    ) -> Result<HttpResponse> {
+        let upload_id = path.into_inner();
+
+        match UploadService::cancel(&db, &upload_id).await {
+            Ok(_) => Ok(HttpResponse::Ok().json(serde_json::json!({
+                "success": true,
+                "message": "Upload cancelled successfully"
+            }))),
+            Err(err) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "error": err.to_string()
+            }))),
+        }
+    }
+
+    /// 提取文本字段
+    async fn extract_field(field: &mut actix_multipart::Field) -> Result<String, String> {
+        let mut data = Vec::new();
+        while let Some(bytes_result) = field.next().await {
+            let bytes = match bytes_result {
+                Ok(bytes) => bytes,
+                Err(err) => {
+                    return Err(format!("Failed to read text field: {}", err));
+                }
+            };
+            data.extend_from_slice(&bytes);
+        }
+
+        String::from_utf8(data).map_err(|_| "Invalid UTF-8 in text field".to_string())
+    }
+
+    /// 提取二进制字段
+    async fn extract_binary_field(field: &mut actix_multipart::Field) -> Result<Vec<u8>, String> {
+        let mut data = Vec::new();
+        while let Some(bytes_result) = field.next().await {
+            let bytes = match bytes_result {
+                Ok(bytes) => bytes,
+                Err(err) => {
+                    return Err(format!("Failed to read binary field: {}", err));
+                }
+            };
+            data.extend_from_slice(&bytes);
+        }
+        Ok(data)
+    }
+
+    /// 跳过字段
+    async fn skip_field(field: &mut actix_multipart::Field) -> Result<(), String> {
+        while let Some(bytes_result) = field.next().await {
+            if let Err(err) = bytes_result {
+                return Err(format!("Failed to skip field: {}", err));
+            }
+        }
+        Ok(())
+    }
+}

@@ -1,23 +1,28 @@
-use crate::utils::datetime_serde::{deserialize_datetime, serialize_datetime};
+use crate::utils::datetime_serde::{
+    deserialize_datetime, deserialize_optional_datetime, deserialize_string_or_number,
+    serialize_datetime, serialize_optional_datetime,
+};
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Upload {
-    pub id: ObjectId,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
     pub file_name: String,
+    #[serde(deserialize_with = "deserialize_string_or_number")]
     pub file_size: u64,
-
-    // 文件的MD5哈希
     pub file_hash: String,
     pub mime_type: String,
+    #[serde(deserialize_with = "deserialize_string_or_number")]
     pub chunk_size: u32,
+    #[serde(deserialize_with = "deserialize_string_or_number")]
     pub total_chunks: u32,
 
     // 已上传的分片编号
     pub uploaded_chunks: Vec<u32>,
-    pub upload_status: UploadStatus,
+    pub status: UploadStatus,
 
     // 最终文件存储路径
     pub storage_path: Option<String>,
@@ -35,10 +40,15 @@ pub struct Upload {
         deserialize_with = "deserialize_datetime"
     )]
     pub updated_at: mongodb::bson::DateTime,
+    #[serde(
+        serialize_with = "serialize_optional_datetime",
+        deserialize_with = "deserialize_optional_datetime",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub expires_at: Option<mongodb::bson::DateTime>, // 过期时间
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum UploadStatus {
     Pending,   // 等待上传
@@ -48,6 +58,19 @@ pub enum UploadStatus {
     Expired,   // 已过期
 }
 
+impl UploadStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Pending => "PENDING",
+            Self::Uploading => "UPLOADING",
+            Self::Completed => "COMPLETED",
+            Self::Failed => "FAILED",
+            Self::Expired => "EXPIRED",
+        }
+    }
+}
+
+// 初始化上传请求
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadRequest {
@@ -58,6 +81,7 @@ pub struct UploadRequest {
     pub chunk_size: u32,
 }
 
+// 初始化上传响应
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadResponse {
@@ -75,6 +99,7 @@ pub struct ChunkUploadRequest {
     pub chunk_hash: String, // 分片的MD5哈希
 }
 
+// 上传分片响应
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChunkUploadResponse {
@@ -83,12 +108,14 @@ pub struct ChunkUploadResponse {
     pub message: String,
 }
 
+// 完成上传请求
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FinalizeUploadRequest {
     pub upload_id: String,
 }
 
+// 完成上传响应
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FinalizeUploadResponse {
@@ -97,11 +124,12 @@ pub struct FinalizeUploadResponse {
     pub file_id: String,
 }
 
+// 上传进度响应
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadProgressResponse {
     pub upload_id: String,
-    pub progress: f32, // 0.0 - 1.0
+    pub progress: f64, // 0.0 - 100.0
     pub uploaded_chunks: Vec<u32>,
     pub total_chunks: u32,
     pub status: UploadStatus,

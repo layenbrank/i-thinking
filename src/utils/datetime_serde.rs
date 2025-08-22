@@ -1,4 +1,26 @@
 use serde::{Deserialize, Deserializer, Serializer};
+use std::fmt::Display;
+use std::str::FromStr;
+
+/// 将字符串或数字反序列化为指定的数字类型
+pub fn deserialize_string_or_number<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+where
+    T: FromStr + Deserialize<'de>,
+    T::Err: Display,
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrNumber<T> {
+        String(String),
+        Number(T),
+    }
+
+    match StringOrNumber::<T>::deserialize(deserializer)? {
+        StringOrNumber::String(s) => s.parse().map_err(serde::de::Error::custom),
+        StringOrNumber::Number(n) => Ok(n),
+    }
+}
 
 /// 将 MongoDB DateTime 序列化为毫秒时间戳
 ///

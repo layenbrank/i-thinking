@@ -15,6 +15,12 @@ pub enum AppError {
 
     #[error("Internal server error")]
     InternalServerError,
+
+    #[error("Not found: {0}")]
+    NotFound(String),
+
+    #[error("Internal error: {0}")]
+    Internal(String),
 }
 
 impl ResponseError for AppError {
@@ -29,6 +35,10 @@ impl ResponseError for AppError {
             }
             AppError::InternalServerError => {
                 HttpResponse::InternalServerError().json("Internal server error")
+            }
+            AppError::NotFound(msg) => HttpResponse::NotFound().json(format!("Not found: {}", msg)),
+            AppError::Internal(msg) => {
+                HttpResponse::InternalServerError().json(format!("Internal error: {}", msg))
             }
         }
     }
