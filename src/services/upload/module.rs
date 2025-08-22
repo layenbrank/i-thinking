@@ -17,6 +17,10 @@ impl UploadModule {
                 .route(
                     "/cancel/{upload_id}",
                     web::delete().to(UploadController::cancel),
+                )
+                .route(
+                    "/files/{file_hash}",
+                    web::get().to(UploadController::serve_file),
                 ),
         );
     }

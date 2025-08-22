@@ -9,6 +9,10 @@ impl AppModule {
             web::scope("/api/v1")
                 .configure(UserModule::configure)
                 .configure(UploadModule::configure),
+        )
+        .service(
+            web::scope("/api/files")
+                .route("/{file_hash}", web::get().to(crate::services::upload::controller::UploadController::serve_file))
         );
     }
 }

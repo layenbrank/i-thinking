@@ -298,6 +298,17 @@ impl UploadService {
         Ok(upload)
     }
 
+    pub async fn find_file_by_hash(db: &DataBase, file_hash: &str) -> Result<Option<Upload>> {
+        let upload = db
+            .uploads()
+            .find_one(doc! {
+                "fileHash": file_hash,
+                "status": UploadStatus::Completed.as_str()
+            })
+            .await?;
+        Ok(upload)
+    }
+
     async fn find_pending(
         db: &DataBase,
         file_hash: &str,

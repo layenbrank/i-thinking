@@ -1,9 +1,11 @@
 use crate::database::DataBase;
 use crate::services::upload::schema::{FinalizeUploadRequest, UploadRequest};
 use crate::services::upload::service::UploadService;
+use actix_files::NamedFile;
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, Result, web};
 use futures::StreamExt;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 pub struct UploadController;
@@ -196,6 +198,68 @@ impl UploadController {
             }))),
             Err(err) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
                 "error": err.to_string()
+            }))),
+        }
+    }
+
+    /// 文件访问 - 通过文件哈希访问
+    pub async fn serve_file(
+        db: web::Data<Arc<DataBase>>,
+        path: web::Path<String>,
+    ) -> Result<HttpResponse> {
+        let file_hash = path.into_inner();
+
+        match UploadService::find_file_by_hash(&db, &file_hash).await {
+            Ok(Some(upload)) => {
+                if let Some(storage_path) = upload.storage_path {
+                    let file_path = PathBuf::from(&storage_path);
+
+                    if file_path.exists() {
+                        match NamedFile::open(&file_path) {
+                            Ok(named_file) => {
+                                // 使用 TestRequest 创建虚拟 HttpRequest
+                                use actix_web::test::TestRequest;
+                                let req = TestRequest::default().to_http_request();
+                                let mut response = named_file.into_response(&req);
+
+                                // 添加文件名到响应头
+                                if let Some(header_value) =
+                                    actix_web::http::header::HeaderValue::from_str(&format!(
+                                        "attachment; filename=\"{}\"",
+                                        upload.file_name
+                                    ))
+                                    .ok()
+                                {
+                                    response.headers_mut().insert(
+                                        actix_web::http::header::CONTENT_DISPOSITION,
+                                        header_value,
+                                    );
+                                }
+
+                                Ok(response)
+                            }
+                            Err(_) => {
+                                Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                                    "error": "Failed to read file"
+                                })))
+                            }
+                        }
+                    } else {
+                        Ok(HttpResponse::NotFound().json(serde_json::json!({
+                            "error": "File not found on disk"
+                        })))
+                    }
+                } else {
+                    Ok(HttpResponse::NotFound().json(serde_json::json!({
+                        "error": "File storage path not found"
+                    })))
+                }
+            }
+            Ok(None) => Ok(HttpResponse::NotFound().json(serde_json::json!({
+                "error": "File not found in database"
+            }))),
+            Err(err) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("Database error: {}", err)
             }))),
         }
     }
