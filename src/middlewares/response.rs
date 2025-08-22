@@ -46,17 +46,17 @@ where
 
     fn call(&self, mut req: ServiceRequest) -> Self::Future {
         // 生成请求 ID
-        let request_id = Uuid::new_v4().to_string();
+        let id = Uuid::new_v4().to_string();
 
         // 记录请求信息到日志 - 将需要的数据克隆以避免生命周期问题
         let method = req.method().as_str().to_string();
         let path = req.path().to_string();
         let start_time = std::time::Instant::now();
 
-        println!("REQUEST [{}] {} {} - Started", request_id, method, path);
+        println!("请求 [{}] {} {} - 开始", id, method, path);
 
         // 将请求 ID 存储在请求扩展中
-        req.extensions_mut().insert(request_id.clone());
+        req.extensions_mut().insert(id.clone());
 
         let fut = self.service.call(req);
 
@@ -68,8 +68,8 @@ where
                 Ok(resp) => {
                     let status = resp.status().as_u16();
                     println!(
-                        "RESPONSE [{}] {} {} - {} - {}ms",
-                        request_id,
+                        "响应 [{}] {} {} - {} - {}ms",
+                        id,
                         method,
                         path,
                         status,
@@ -78,8 +78,8 @@ where
                 }
                 Err(err) => {
                     println!(
-                        "ERROR [{}] {} {} - {} - {}ms",
-                        request_id,
+                        "错误 [{}] {} {} - {} - {}ms",
+                        id,
                         method,
                         path,
                         err,
