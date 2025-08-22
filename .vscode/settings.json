@@ -213,7 +213,7 @@
 		"**/yarn.lock": true
 	},
 	"prettier.endOfLine": "crlf",
-	"prettier.requireConfig": true,
+	"prettier.requireConfig": false,
 	"search.followSymlinks": false,
 	"search.searchEditor.singleClickBehaviour": "peekDefinition",
 	"tailwindCSS.files.exclude": ["**/.git/**", "**/node_modules/**", "**/.hg/**", "**/.svn/**"],

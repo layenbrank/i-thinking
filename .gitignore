@@ -12,7 +12,7 @@ server/dist
 public/dist
 release
 
-pnpm-lock.yaml
+# pnpm-lock.yaml
 # apps/**/auto-imports.d.ts
 # apps/**/components.d.ts
 
