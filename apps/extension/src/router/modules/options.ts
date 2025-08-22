@@ -15,6 +15,11 @@ export default {
 			component: () => import('@/views/mac-view.vue')
 		},
 		{
+			path: '/upload-view',
+			name: 'upload-view',
+			component: () => import('@/views/upload-view.vue')
+		},
+		{
 			path: '/:pathMatch(.*)*',
 			name: 'not-found',
 			component: () => import('@/views/not-found-view.vue')
