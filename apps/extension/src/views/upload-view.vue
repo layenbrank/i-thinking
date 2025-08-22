@@ -12,6 +12,15 @@ export interface PrepareResponse {
 	uploadedChunks: any[]
 	uploadUrl: string
 }
+
+export interface Response<T> {
+	code: number
+	success: boolean
+	msg: string
+	data: T
+	timestamp: number
+}
+
 export interface FinalizeResponse {
 	success: boolean
 	fileUrl: string
@@ -250,7 +259,7 @@ async function beginUpload() {
 async function prepareUpload(): Promise<PrepareResponse> {
 	return new Promise(function (resolve, reject) {
 		http
-			.post<PrepareResponse>('/upload/prepare', {
+			.post<Response<PrepareResponse>>('/upload/prepare', {
 				fileName: file.value?.name,
 				fileSize: file.value?.size,
 				fileHash: fileHash.value,
@@ -259,7 +268,7 @@ async function prepareUpload(): Promise<PrepareResponse> {
 			})
 			.subscribe({
 				next(response) {
-					resolve(response)
+					resolve(response.data)
 				},
 				error(error) {
 					reject(new Error(error.error || '初始化上传失败'))
@@ -321,7 +330,7 @@ async function uploadChunk(chunk: Chunk) {
 		formData.append('chunkData', chunkBlob)
 
 		await new Promise<void>(function (resolve, reject) {
-			http.post<ChunkResponse>('/upload/chunk', formData).subscribe({
+			http.post<Response<ChunkResponse>>('/upload/chunk', formData).subscribe({
 				next() {
 					chunk.status = 'completed'
 					uploadedChunks.value.add(chunk.index)
@@ -361,13 +370,13 @@ async function finalizeUpload() {
 
 		await new Promise<void>(function (resolve, reject) {
 			http
-				.post<FinalizeResponse>('/upload/finalize', {
+				.post<Response<FinalizeResponse>>('/upload/finalize', {
 					uploadId: uploadId.value
 				})
 				.subscribe({
-					next(response: FinalizeResponse) {
+					next(response) {
 						logger('文件上传完成！', 'success')
-						logger(`文件ID: ${response.fileId}`, 'info')
+						logger(`文件ID: ${response.data.fileId}`, 'info')
 						completeUpload()
 						resolve()
 					},
