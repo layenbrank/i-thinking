@@ -3,7 +3,9 @@ use crate::services::upload::schema::{
     ChunkUploadResponse, FinalizeUploadResponse, Upload, UploadProgressResponse, UploadRequest,
     UploadResponse, UploadStatus,
 };
-use anyhow::{Result, anyhow};
+use actix_web::{
+    Result, error::ErrorBadRequest, error::ErrorInternalServerError, error::ErrorNotFound,
+};
 use mongodb::bson::{DateTime, doc, oid::ObjectId, to_bson};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
@@ -31,7 +33,7 @@ impl UploadService {
         // 检查文件是否已存在（秒传功能）
         if let Some(existing) = Self::find_completed(db, &req.file_hash).await? {
             return Ok(UploadResponse {
-                upload_id: existing.id.unwrap().to_hex(),
+                upload_id: existing.id.map_or("".to_string(), |id| id.to_hex()),
                 file_exists: true,
                 uploaded_chunks: vec![],
                 upload_url: "/api/v1/upload/chunk".to_string(),
@@ -43,7 +45,7 @@ impl UploadService {
             Self::find_pending(db, &req.file_hash, uploader_id.as_deref()).await?
         {
             return Ok(UploadResponse {
-                upload_id: existing.id.unwrap().to_hex(),
+                upload_id: existing.id.map_or("".to_string(), |id| id.to_hex()),
                 file_exists: false,
                 uploaded_chunks: existing.uploaded_chunks,
                 upload_url: "/api/v1/upload/chunk".to_string(),
@@ -52,8 +54,15 @@ impl UploadService {
 
         // 创建新的上传任务
         let upload = Self::build_record(req, uploader_id)?;
-        let resp = db.uploads().insert_one(&upload).await?;
-        let upload_id = resp.inserted_id.as_object_id().unwrap().to_hex();
+        let resp = db
+            .uploads()
+            .insert_one(&upload)
+            .await
+            .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
+        let upload_id = resp
+            .inserted_id
+            .as_object_id()
+            .map_or("".to_string(), |id| id.to_hex());
 
         // 创建分片存储目录
         Self::prepare_chunk_dir(&upload_id).await?;
@@ -186,26 +195,26 @@ impl UploadService {
 
     fn validate(req: &UploadRequest) -> Result<()> {
         if req.file_size > Self::MAX_FILE_SIZE {
-            return Err(anyhow!(
+            return Err(ErrorBadRequest(format!(
                 "File size exceeds limit of {}GB",
                 Self::MAX_FILE_SIZE / (1024 * 1024 * 1024)
-            ));
+            )));
         }
 
         if req.chunk_size < Self::MIN_CHUNK_SIZE || req.chunk_size > Self::MAX_CHUNK_SIZE {
-            return Err(anyhow!(
+            return Err(ErrorBadRequest(format!(
                 "Chunk size must be between {}MB and {}MB",
                 Self::MIN_CHUNK_SIZE / (1024 * 1024),
                 Self::MAX_CHUNK_SIZE / (1024 * 1024)
-            ));
+            )));
         }
 
         if req.file_name.trim().is_empty() {
-            return Err(anyhow!("File name cannot be empty"));
+            return Err(ErrorBadRequest("File name cannot be empty"));
         }
 
         if req.file_hash.len() != 64 {
-            return Err(anyhow!("Invalid file hash format"));
+            return Err(ErrorBadRequest("Invalid file hash format"));
         }
 
         Ok(())
@@ -214,9 +223,9 @@ impl UploadService {
     fn validate_status(upload: &Upload) -> Result<()> {
         match upload.status {
             UploadStatus::Pending | UploadStatus::Uploading => Ok(()),
-            UploadStatus::Completed => Err(anyhow!("Upload already completed")),
-            UploadStatus::Failed => Err(anyhow!("Upload failed, cannot continue")),
-            UploadStatus::Expired => Err(anyhow!("Upload expired")),
+            UploadStatus::Completed => Err(ErrorBadRequest("Upload already completed")),
+            UploadStatus::Failed => Err(ErrorBadRequest("Upload failed, cannot continue")),
+            UploadStatus::Expired => Err(ErrorBadRequest("Upload expired")),
         }
     }
 
@@ -227,17 +236,19 @@ impl UploadService {
         chunk_hash: &str,
     ) -> Result<()> {
         if chunk_index >= upload.total_chunks {
-            return Err(anyhow!("Invalid chunk index: {}", chunk_index));
+            return Err(ErrorBadRequest(format!(
+                "Invalid chunk index: {}",
+                chunk_index
+            )));
         }
 
         let calculated_hash = Self::calculate_hash(chunk_data);
 
         if calculated_hash != chunk_hash {
-            return Err(anyhow!(
+            return Err(ErrorBadRequest(format!(
                 "Chunk hash mismatch: expected {}, got {}",
-                chunk_hash,
-                calculated_hash
-            ));
+                chunk_hash, calculated_hash
+            )));
         }
 
         let expected_size = if chunk_index == upload.total_chunks - 1 {
@@ -252,22 +263,22 @@ impl UploadService {
         };
 
         if chunk_data.len() != expected_size {
-            return Err(anyhow!(
+            return Err(ErrorBadRequest(format!(
                 "Chunk size mismatch: expected {}, got {}",
                 expected_size,
                 chunk_data.len()
-            ));
+            )));
         }
         Ok(())
     }
 
     fn validate_completion(upload: &Upload) -> Result<()> {
         if upload.uploaded_chunks.len() != upload.total_chunks as usize {
-            return Err(anyhow!(
+            return Err(ErrorBadRequest(format!(
                 "Upload is not complete, missing chunks: {} of {}",
                 upload.uploaded_chunks.len(),
                 upload.total_chunks
-            ));
+            )));
         }
 
         let mut sorted_chunks = upload.uploaded_chunks.clone();
@@ -275,12 +286,10 @@ impl UploadService {
 
         for (i, &chunk_index) in sorted_chunks.iter().enumerate() {
             if chunk_index != i as u32 {
-                return Err(anyhow!(
+                return Err(ErrorBadRequest(format!(
                     "Missing chunk at index {}: expected {}, found {}",
-                    i,
-                    i,
-                    chunk_index
-                ));
+                    i, i, chunk_index
+                )));
             }
         }
 
@@ -294,7 +303,8 @@ impl UploadService {
                 "fileHash": file_hash,
                 "status": UploadStatus::Completed.as_str()
             })
-            .await?;
+            .await
+            .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
         Ok(upload)
     }
 
@@ -305,7 +315,8 @@ impl UploadService {
                 "fileHash": file_hash,
                 "status": UploadStatus::Completed.as_str()
             })
-            .await?;
+            .await
+            .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
         Ok(upload)
     }
 
@@ -330,19 +341,25 @@ impl UploadService {
             }
         }
 
-        let upload = db.uploads().find_one(filter).await?;
+        let upload = db
+            .uploads()
+            .find_one(filter)
+            .await
+            .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
         Ok(upload)
     }
 
     async fn find_by_id(db: &DataBase, upload_id: &str) -> Result<Upload> {
         println!("查询上传记录: upload_id = {}", upload_id);
-        let object_id = ObjectId::parse_str(upload_id)?;
+        let object_id = ObjectId::parse_str(upload_id)
+            .map_err(|_| ErrorBadRequest("Invalid upload ID format"))?;
         println!("解析的 ObjectId: {:?}", object_id);
         let upload = db
             .uploads()
             .find_one(doc! { "_id": object_id })
-            .await?
-            .ok_or_else(|| anyhow!("Upload not found"))?;
+            .await
+            .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?
+            .ok_or_else(|| ErrorNotFound("Upload not found"))?;
 
         println!("从数据库获取的上传记录: {:?}", upload);
         Ok(upload)
@@ -365,7 +382,7 @@ impl UploadService {
     }
 
     async fn merge_chunks(upload: &Upload) -> Result<PathBuf> {
-        let upload_id = upload.id.unwrap().to_hex();
+        let upload_id = upload.id.map_or("".to_string(), |id| id.to_hex());
         let final_path =
             PathBuf::from(Self::UPLOAD_DIR).join(format!("{}-{}", upload_id, upload.file_name));
 
@@ -392,14 +409,15 @@ impl UploadService {
     }
 
     async fn verify_integrity(file_path: &Path, expected_hash: &str) -> Result<()> {
-        let calculated_hash = Self::calculate_hash_of_file(file_path).await?;
+        let calculated_hash = Self::calculate_hash_of_file(file_path).await.map_err(|e| {
+            ErrorInternalServerError(format!("Failed to calculate file hash: {}", e))
+        })?;
         if calculated_hash != expected_hash {
-            fs::remove_file(file_path).await?;
-            return Err(anyhow!(
+            let _ = fs::remove_file(file_path).await;
+            return Err(ErrorInternalServerError(format!(
                 "File integrity check failed: expected {}, got {}",
-                expected_hash,
-                calculated_hash
-            ));
+                expected_hash, calculated_hash
+            )));
         }
         Ok(())
     }
@@ -413,7 +431,8 @@ impl UploadService {
     }
 
     async fn append_chunk(db: &DataBase, upload_id: &str, chunk_index: u32) -> Result<()> {
-        let object_id = ObjectId::parse_str(upload_id)?;
+        let object_id = ObjectId::parse_str(upload_id)
+            .map_err(|_| ErrorBadRequest("Invalid upload ID format"))?;
 
         // 使用 $addToSet 确保不重复添加，同时更新状态和时间
         db.uploads()
@@ -429,7 +448,8 @@ impl UploadService {
                     }
                 },
             )
-            .await?;
+            .await
+            .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
         Ok(())
     }
 
@@ -465,13 +485,15 @@ impl UploadService {
         actual_chunks.sort();
 
         // 更新数据库中的 uploadedChunks
-        let object_id = ObjectId::parse_str(upload_id)?;
+        let object_id = ObjectId::parse_str(upload_id)
+            .map_err(|_| ErrorBadRequest("Invalid upload ID format"))?;
         db.uploads()
             .update_one(
                 doc! { "_id": object_id },
                 doc! {
                     "$set": {
-                        "uploadedChunks": to_bson(&actual_chunks)?,
+                        "uploadedChunks": to_bson(&actual_chunks)
+                            .map_err(|e| ErrorInternalServerError(format!("Serialization error: {}", e)))?,
                         "status": if actual_chunks.is_empty() {
                             UploadStatus::Pending.as_str()
                         } else {
@@ -481,7 +503,8 @@ impl UploadService {
                     }
                 },
             )
-            .await?;
+            .await
+            .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
 
         println!(
             "已同步上传记录 {}: 找到 {} 个分片",
@@ -492,7 +515,8 @@ impl UploadService {
     }
 
     async fn mark_completed(db: &DataBase, upload_id: &str, file_path: &Path) -> Result<()> {
-        let object_id = ObjectId::parse_str(upload_id)?;
+        let object_id = ObjectId::parse_str(upload_id)
+            .map_err(|_| ErrorBadRequest("Invalid upload ID format"))?;
 
         db.uploads()
             .update_one(
@@ -507,13 +531,15 @@ impl UploadService {
                   }
                 },
             )
-            .await?;
+            .await
+            .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
 
         Ok(())
     }
 
     async fn mark_failed(db: &DataBase, upload_id: &str) -> Result<()> {
-        let object_id = ObjectId::parse_str(upload_id)?;
+        let object_id = ObjectId::parse_str(upload_id)
+            .map_err(|_| ErrorBadRequest("Invalid upload ID format"))?;
 
         db.uploads()
             .update_one(
@@ -527,7 +553,8 @@ impl UploadService {
                   }
                 },
             )
-            .await?;
+            .await
+            .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
 
         Ok(())
     }

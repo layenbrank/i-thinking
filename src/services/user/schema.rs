@@ -66,7 +66,7 @@ pub struct UserResponse {
 impl From<User> for UserResponse {
     fn from(value: User) -> Self {
         UserResponse {
-            id: value.id.unwrap().to_hex(),
+            id: value.id.map_or("".to_string(), |id| id.to_hex()),
             username: value.username,
             email: value.email,
             age: value.age,

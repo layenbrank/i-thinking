@@ -161,7 +161,7 @@ impl UploadService {
         // 检查文件是否已存在（秒传功能）
         if let Some(existing) = Self::check_file_exists(db, &req.file_hash).await? {
             return Ok(InitUploadResponse {
-                upload_id: existing.id.unwrap().to_hex(),
+                upload_id: existing.id.map_or("".to_string(), |id| id.to_hex()),
                 file_exists: true,
                 uploaded_chunks: vec![],
                 upload_url: format!("/api/upload/chunk"),
@@ -171,7 +171,7 @@ impl UploadService {
         // 检查是否有未完成的上传任务
         if let Some(existing) = Self::find_pending_upload(db, &req.file_hash, uploader_id.as_deref()).await? {
             return Ok(InitUploadResponse {
-                upload_id: existing.id.unwrap().to_hex(),
+                upload_id: existing.id.map_or("".to_string(), |id| id.to_hex()),
                 file_exists: false,
                 uploaded_chunks: existing.uploaded_chunks,
                 upload_url: format!("/api/upload/chunk"),
@@ -201,7 +201,7 @@ impl UploadService {
         };
 
         let result = db.uploads().insert_one(&upload).await?;
-        let upload_id = result.inserted_id.as_object_id().unwrap().to_hex();
+        let upload_id = result.inserted_id.as_object_id().map_or("".to_string(), |id| id.to_hex());
 
         // 创建分片存储目录
         Self::ensure_chunk_directory(&upload_id).await?;
@@ -428,7 +428,7 @@ impl UploadService {
     }
 
     async fn merge_chunks(upload: &FileUpload) -> AppResult<PathBuf> {
-        let upload_id = upload.id.unwrap().to_hex();
+        let upload_id = upload.id.map_or("".to_string(), |id| id.to_hex());
         let final_path = PathBuf::from(Self::UPLOAD_DIR)
             .join(format!("{}_{}", upload.file_hash, upload.file_name));
 

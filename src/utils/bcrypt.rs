@@ -2,10 +2,10 @@ use bcrypt::{DEFAULT_COST, hash, verify};
 
 const SECRET: &str = "layen-secret";
 
-fn encrypt(password: &str) -> String {
-    hash(password, DEFAULT_COST).unwrap()
+pub fn encrypt(password: &str) -> Result<String, bcrypt::BcryptError> {
+    hash(password, DEFAULT_COST)
 }
 
-fn decrypt(password: &str, hashed: &str) -> bool {
-    verify(password, hashed).unwrap()
+pub fn decrypt(password: &str, hashed: &str) -> Result<bool, bcrypt::BcryptError> {
+    verify(password, hashed)
 }

@@ -1,6 +1,7 @@
 use crate::database::DataBase;
 use crate::services::upload::schema::{FinalizeUploadRequest, UploadRequest};
 use crate::services::upload::service::UploadService;
+use crate::utils::response::ApiResponse;
 use actix_files::NamedFile;
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, Result, web};
@@ -20,13 +21,11 @@ impl UploadController {
         match UploadService::prepare(&db, req.into_inner(), None).await {
             Ok(response) => {
                 println!("初始化上传成功: {:?}", response);
-                Ok(HttpResponse::Ok().json(response))
+                ApiResponse::success(response).transform()
             }
             Err(err) => {
                 println!("初始化上传失败: {}", err);
-                Ok(HttpResponse::BadRequest().json(serde_json::json!({
-                    "error": err.to_string()
-                })))
+                crate::utils::response::ApiErrorResponse::bad_request(err.to_string()).transform()
             }
         }
     }
@@ -142,7 +141,7 @@ impl UploadController {
 
         // 调用服务层方法
         match UploadService::chunk(&db, &upload_id, chunk_index, chunk_data, &chunk_hash).await {
-            Ok(response) => Ok(HttpResponse::Ok().json(response)),
+            Ok(response) => ApiResponse::success(response).transform(),
             Err(err) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
                 "error": err.to_string()
             }))),
@@ -158,7 +157,7 @@ impl UploadController {
         match UploadService::finalize(&db, &req.upload_id).await {
             Ok(response) => {
                 println!("完成上传成功: {:?}", response);
-                Ok(HttpResponse::Ok().json(response))
+                ApiResponse::success(response).transform()
             }
             Err(err) => {
                 println!("完成上传失败: {}", err);

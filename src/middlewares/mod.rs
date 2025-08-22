@@ -1,3 +1,2 @@
-mod cors;
-
-pub use cors::cors;
+pub mod cors;
+pub mod response;

@@ -5,23 +5,17 @@ use actix_web::{
 };
 use env_logger::Env;
 use std::sync::Arc;
-// use futures::{StreamExt, stream::TryStreamExt};
-// use mongodb::{
-//     Client, Collection,
-//     bson::{Document, doc},
-//     options::FindOptions,
-// };
 
 mod app;
 mod configs;
 mod database;
-mod errors;
 mod middlewares;
 mod models;
 mod services;
 mod utils;
 
 use database::DataBase;
+use middlewares::response::ResponseWrapper;
 
 use crate::configs::Config;
 use app::AppModule;
@@ -60,10 +54,12 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(db.clone()))
             .wrap(cors)
+            .wrap(ResponseWrapper) // 添加响应包装中间件
             .wrap(Logger::default())
             .wrap(Logger::new("%a %t %r %s %b %{Referer}i %{User-Agent}i %T"))
             .service(index)
             .service(index_html)
+            .service(health_check)
             .configure(AppModule::configure)
     })
     .bind((cfg.host.clone(), cfg.port))?
@@ -75,7 +71,7 @@ async fn main() -> std::io::Result<()> {
 async fn index() -> impl Responder {
     let html_content = std::fs::read_to_string("index.html")
         .unwrap_or_else(|_| "<h1>Welcome to the Rust Web Service!</h1>".to_string());
-    
+
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html_content)
@@ -85,8 +81,28 @@ async fn index() -> impl Responder {
 async fn index_html() -> impl Responder {
     let html_content = std::fs::read_to_string("index.html")
         .unwrap_or_else(|_| "<h1>Welcome to the Rust Web Service!</h1>".to_string());
-    
+
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html_content)
+}
+
+/// API 健康检查端点，展示统一响应格式
+#[get("/api/health")]
+async fn health_check(req: HttpRequest) -> impl Responder {
+    use serde_json::json;
+    use utils::response::ApiResponse;
+
+    let health_info = json!({
+        "status": "healthy",
+        "version": "1.0.0",
+        "timestamp": chrono::Utc::now().timestamp_millis(),
+        "uptime": "N/A"
+    });
+
+    let response = ApiResponse::success_with_message(health_info, "Service is running normally");
+
+    response
+        .transform()
+        .unwrap_or_else(|_| HttpResponse::InternalServerError().json("Failed to generate response"))
 }
