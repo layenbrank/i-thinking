@@ -7,12 +7,8 @@ defineOptions({
 	name: 'app-settings-window'
 })
 
-const props = withDefaults(
-	defineProps<{
-		appDialogRef?: ApplicationWindowType
-	}>(),
-	{}
-)
+// const props = withDefaults(defineProps<{}>(), {})
+// const emits = defineEmits<{}>()
 
 const activeKey = ref('size')
 

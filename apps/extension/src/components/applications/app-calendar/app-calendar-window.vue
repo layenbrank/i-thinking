@@ -1,32 +1,19 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'app-calendar-dialog'
+	name: 'app-calendar-window'
 })
 
-const props = withDefaults(
-	defineProps<{
-		appDialogRef?: ApplicationWindowType
-	}>(),
-	{}
-)
-
-function handler() {
-	const random = Math.floor(Math.random() * 100)
-
-	props.appDialogRef?.update({
-		title: 'modal inner' + random
-	})
-}
+// const props = withDefaults(defineProps<{}>(), {})
+// const emits = defineEmits<{}>()
 </script>
 
 <template>
-	<div class="app-calendar-dialog">
-		<a-button @click="handler">modal inner</a-button>
-	</div>
+	<div class="app-calendar-window"></div>
 </template>
 
 <style lang="scss" scoped>
-.app-calendar-dialog {
-	@apply w-full h-full;
+.app-calendar-window {
+	width: 100%;
+	height: 100%;
 }
 </style>

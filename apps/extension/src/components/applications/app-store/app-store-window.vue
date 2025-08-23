@@ -28,15 +28,10 @@ const AppExample = defineAsyncComponent(function () {
 })
 
 defineOptions({
-	name: 'app-store-dialog'
+	name: 'app-store-window'
 })
 
-const props = withDefaults(
-	defineProps<{
-		appDialogRef?: ApplicationWindowType
-	}>(),
-	{}
-)
+// const props = withDefaults(defineProps<{}>(), {})
 
 interface AppStoreOptions {
 	label: string
@@ -284,7 +279,7 @@ function randomID() {
 </script>
 
 <template>
-	<div class="app-store-dialog">
+	<div class="app-store-window">
 		<ul class="app-store-categories">
 			<li
 				@click="updateActiveKey(item)"
@@ -358,7 +353,7 @@ function randomID() {
 </template>
 
 <style lang="scss" scoped>
-.app-store-dialog {
+.app-store-window {
 	@apply h-full flex justify-between gap-x-2;
 
 	.app-store-categories {
@@ -435,11 +430,34 @@ function randomID() {
 		}
 
 		.app-controller {
-			@apply mx-auto grid justify-center p-5;
-			@apply grid-flow-row-dense;
+			display: grid;
+			padding: 20px;
+			margin: 0px auto;
+			justify-content: center;
+			grid-auto-flow: row dense;
+
+			outline: none;
+			scrollbar-width: none;
+			row-gap: var(--app-global-row-gap, 30px);
+			column-gap: var(--app-global-col-gap, 30px);
+			grid-template-rows: repeat(auto-fill, var(--app-global-height, 60px));
+			grid-template-columns: repeat(auto-fill, var(--app-global-width, 60px));
+
+			transition:
+				width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+				height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+				row-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+				column-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 
 			:deep(:where(.application)) {
 				@apply relative cursor-pointer text-center;
+
+				transition:
+					box-shadow 300ms,
+					width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+					height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+					grid-row 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+					grid-column 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 
 				&
 					> :where(
@@ -448,13 +466,13 @@ function randomID() {
 					@apply w-full h-full transition-all;
 				}
 
-				& > span.app-name {
+				& > :where(span.app-name) {
 					@apply block truncate w-full mt-1;
-					font-size: var(--app-global-text-size);
 					color: var(--app-global-text-color);
+					font-size: var(--app-global-text-size);
 				}
 
-				& > .app-trash-icon {
+				& > :where(.app-trash-icon) {
 					@apply w-5 h-5 absolute -top-[8px] -right-[8px] items-center justify-center bg-[#00000033] rounded-full p-[5px] transition-[background];
 					@apply hidden;
 

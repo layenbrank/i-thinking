@@ -69,10 +69,10 @@ body {
 
 .ant-modal.application-window {
 	aspect-ratio: 16/9;
-	@apply rounded-lg;
+	border-radius: 8px;
 
 	.ant-modal-content {
-		@apply p-0;
+		padding: 0px;
 	}
 
 	.ant-modal-body {

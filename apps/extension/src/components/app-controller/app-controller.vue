@@ -238,38 +238,46 @@ onUnmounted(function () {
 
 <style lang="scss" scoped>
 .app-controller {
-	@apply mx-auto grid justify-center p-5;
-	@apply grid-flow-row-dense;
+	display: grid;
+	padding: 20px;
+	margin: 0px auto;
+	justify-content: center;
+	grid-auto-flow: row dense;
 
 	outline: none;
 	scrollbar-width: none;
-	transition: all 500ms linear;
 	row-gap: var(--app-global-row-gap, 30px);
 	column-gap: var(--app-global-col-gap, 30px);
 	grid-template-rows: repeat(auto-fill, var(--app-global-height, 60px));
 	grid-template-columns: repeat(auto-fill, var(--app-global-width, 60px));
+
+	transition:
+		width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		row-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		column-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 
 	:deep(:where(.application)) {
 		@apply relative cursor-pointer text-center;
 
 		transition:
 			box-shadow 300ms,
-			width 300ms linear,
-			height 300ms linear,
-			grid-row 300ms linear,
-			grid-column 300ms linear;
+			width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+			height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+			grid-row 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+			grid-column 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 
 		& > :where(div:is([class*=' app-'], [class^='app-']):is([class*='-icon '], [class$='-icon'])) {
 			@apply w-full h-full transition-all;
 		}
 
-		& > span.app-name {
+		& > :where(span.app-name) {
 			@apply block truncate w-full mt-1;
-			font-size: var(--app-global-text-size);
 			color: var(--app-global-text-color);
+			font-size: var(--app-global-text-size);
 		}
 
-		& > .app-trash-icon {
+		& > :where(.app-trash-icon) {
 			@apply w-5 h-5 absolute -top-[8px] -right-[8px] items-center justify-center bg-[#00000033] rounded-full p-[5px] transition-[background];
 			@apply hidden;
 
@@ -284,12 +292,12 @@ onUnmounted(function () {
 		&-fade-enter-active,
 		&-fade-leave-active {
 			transition:
-				opacity 600ms linear,
-				grid-row 600ms linear,
-				grid-column 600ms linear,
-				transform 600ms linear,
-				width 600ms linear,
-				height 600ms linear;
+				opacity 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+				grid-row 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+				grid-column 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+				transform 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+				width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+				height 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 		}
 
 		&-fade-enter-from,
@@ -299,7 +307,7 @@ onUnmounted(function () {
 		}
 		/* 处理列表重排动画 */
 		&-fade-move {
-			transition: transform 600ms linear;
+			transition: transform 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 		}
 	}
 }

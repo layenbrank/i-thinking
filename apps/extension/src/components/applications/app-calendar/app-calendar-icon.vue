@@ -1,47 +1,24 @@
 <script setup lang="ts">
 import { timeSphere } from '@desktop-app/core'
-import type { CalendarMode } from 'ant-design-vue/es/calendar/generateCalendar'
 import type { Dayjs } from 'dayjs'
 
 defineOptions({
 	name: 'app-calendar-icon'
 })
 
-const props = withDefaults(
-	defineProps<{
-		size: ApplicationSize
-		url?: string
-		icon?: string
-		direction: ApplicationDirection
-		shape: ApplicationShape
-		mini: boolean
-		small: boolean
-		medium: boolean
-		large: boolean
-		huge: boolean
-		massive: boolean
-		ultra: boolean
-		circle: boolean
-		rectangle: boolean
-		square: boolean
-		horizontal: boolean
-		vertical: boolean
-	}>(),
-	{}
-)
+// const props = withDefaults(defineProps<{}>(), {})
+// const emits = defineEmits<{}>()
 
 const value = ref<Dayjs>(timeSphere.now())
-
-const isDisable = computed(() => !(props.medium && props.rectangle))
 </script>
 
 <template>
-	<div :class="['app-calendar-icon', size, shape, direction]">
+	<div class="app-calendar-icon">
 		<a-calendar
-			:disabled-date="() => isDisable"
-			:header-render="() => ''"
-			v-model:value="value"
 			:fullscreen="false"
+			v-model:value="value"
+			:header-render="() => ''"
+			:disabled-date="undefined"
 		>
 		</a-calendar>
 	</div>
@@ -58,6 +35,7 @@ const isDisable = computed(() => !(props.medium && props.rectangle))
 
 .app-calendar-icon {
 	border-radius: var(--app-round);
+	background: var(--app-background);
 
 	&.circle {
 		border-radius: calc(var(--app-size-width) / 2);

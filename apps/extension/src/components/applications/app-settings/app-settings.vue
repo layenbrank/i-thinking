@@ -1,7 +1,7 @@
 <script setup lang="tsx">
-import { useAppSettings } from '@/hooks/app-settings'
-import { useDraggable, useMagicKeys, whenever } from '@vueuse/core'
-import AppIcon from './app-settings-icon.vue'
+import { useSettings } from '@/hooks/application-settings.ts'
+import { useMagicKeys, whenever } from '@vueuse/core'
+import ApplicationIcon from './app-settings-icon.vue'
 import ApplicationWindow from './app-settings-window.vue'
 
 defineOptions({
@@ -41,63 +41,38 @@ const props = withDefaults(
 const visible = ref(false)
 const fullscreen = ref(false)
 
+const round = computed(function () {
+	return props.application.round ?? 'var(--app-global-round)'
+})
+
+const background = computed(function () {
+	const backgroundImage = `url(${props.application.backgroundImage}) no-repeat center / cover`
+	if (props.application.backgroundImage) return backgroundImage
+	if (props.application.backgroundColor) return props.application.backgroundColor
+	return '#ffffff'
+})
+
+const componentStyle = computed(function () {
+	return useSettings(props.application)
+})
+
 const { Escape } = useMagicKeys({
 	onEventFired(e) {
 		if (e.key === 'Escape') visible.value = false
 	}
 })
 
-const mini = computed(() => props.application.size === 'mini')
-const small = computed(() => props.application.size === 'small')
-const medium = computed(() => props.application.size === 'medium')
-const large = computed(() => props.application.size === 'large')
-const huge = computed(() => props.application.size === 'huge')
-const massive = computed(() => props.application.size === 'massive')
-const ultra = computed(() => props.application.size === 'ultra')
-const circle = computed(() => props.application.shape === 'circle')
-const rectangle = computed(() => props.application.shape === 'rectangle')
-const square = computed(() => props.application.shape === 'square')
-const horizontal = computed(() => props.application.direction === 'horizontal')
-const vertical = computed(() => props.application.direction === 'vertical')
-const round = computed(() => props.application.round ?? 'var(--app-global-round)')
-const background = computed(() => {
-	if (props.application.backgroundImage) {
-		return `url(${props.application.backgroundImage}) no-repeat center / cover`
-	} else if (props.application.backgroundColor) return props.application.backgroundColor
-	else return '#ffffff'
-})
-
-const { appStyle } = useAppSettings({
-	width: computed(() => props.application.width ?? 'var(--app-global-width)'),
-	height: computed(() => props.application.height ?? 'var(--app-global-height)'),
-	mini,
-	small,
-	medium,
-	large,
-	huge,
-	massive,
-	ultra,
-	circle,
-	rectangle,
-	square,
-	horizontal,
-	vertical
-})
-
 whenever(Escape, function () {
 	visible.value = false
 })
 
-function updateVisible(value: boolean) {
+function handleAppWindow(value: boolean) {
+	if (props.settingsVisible) return
 	visible.value = value
 }
 
 function updateFullScreen(value: boolean) {
 	fullscreen.value = value
-}
-
-function handleAppWindow() {
-	visible.value = true
 }
 </script>
 
@@ -105,52 +80,39 @@ function handleAppWindow() {
 	<div
 		:style="{
 			'--app-round': round,
-			'--app-size-width': appStyle.width,
-			'--app-size-height': appStyle.height,
-			'--app-grid-row': appStyle.gridRow,
-			'--app-grid-column': appStyle.gridColumn,
-			'--app-background': background
+			'--app-background': background,
+			'--app-size-width': componentStyle.width,
+			'--app-grid-row': componentStyle.gridRow,
+			'--app-size-height': componentStyle.height,
+			'--app-grid-column': componentStyle.gridColumn
 		}"
-		:data-id="application.id"
 		:class="['app-settings', application.size, application.shape, application.direction]"
 	>
 		<a-modal
 			width="80%"
 			:icon="null"
 			:title="null"
-			:mask="false"
 			:footer="null"
-			:centered="true"
-			:mask-closable="false"
 			:open="visible"
+			:centered="true"
+			:closable="false"
+			:mask-closable="true"
 			:destroy-on-close="true"
-			@update:open="updateVisible"
+			@update:open="handleAppWindow"
 			:style="{
 				transformOrigin: 'center'
 			}"
 			class="application-window settings-window"
 		>
-			<application-window />
+			<application-window
+				:fullscreen="fullscreen"
+				@update:visible="handleAppWindow"
+				@update:fullscreen="updateFullScreen"
+			/>
 		</a-modal>
-		<app-icon
-			:mini="mini"
-			:small="small"
-			:medium="medium"
-			:large="large"
-			:huge="huge"
-			:massive="massive"
-			:ultra="ultra"
-			:circle="circle"
-			:rectangle="rectangle"
-			:square="square"
-			:horizontal="horizontal"
-			:vertical="vertical"
-			:url="application.url"
-			:icon="application.icon"
-			:size="application.size"
-			:shape="application.shape"
-			:direction="application.direction"
-			@click="handleAppWindow"
+		<application-icon
+			@dblclick="handleAppWindow(true)"
+			:class="[application.size, application.shape, application.direction]"
 		/>
 		<span class="app-name">{{ application.name }}</span>
 		<i-local:close class="app-trash-icon" />
@@ -160,16 +122,21 @@ function handleAppWindow() {
 <style lang="scss" scoped>
 .app-settings {
 	width: var(--app-size-width);
-	height: var(--app-size-height);
 	grid-row: var(--app-grid-row);
-	grid-column: var(--app-grid-column);
+	height: var(--app-size-height);
 	border-radius: var(--app-round);
+	grid-column: var(--app-grid-column);
 }
 </style>
 <style lang="scss">
 .application-window.settings-window {
+	%size-full {
+		width: 100%;
+		height: 100%;
+	}
+
 	div[tabindex='0'][style='outline: none;'] {
-		@apply w-full h-full;
+		@extend %size-full;
 	}
 
 	.ant-modal-content,
@@ -177,15 +144,16 @@ function handleAppWindow() {
 	.ant-modal-confirm-body-wrapper,
 	.ant-modal-confirm-body,
 	.ant-modal-confirm-content {
-		@apply w-full h-full;
+		@extend %size-full;
 	}
 
 	.ant-modal-content {
-		@apply bg-transparent;
+		background-color: transparent;
 	}
 
 	.ant-modal-body {
-		@apply bg-white rounded-lg;
+		border-radius: 8px;
+		background-color: rgba($color: #ffffff, $alpha: 1);
 	}
 }
 </style>

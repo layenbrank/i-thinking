@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import fallback from '@/assets/feedback/fallback.png'
 import { useAppStore } from '@/stores/application-store.ts'
-import { debounce } from 'lodash-es'
-
 import { timeSphere } from '@desktop-app/core'
 import { message } from 'ant-design-vue'
 import Fuse, { type IFuseOptions } from 'fuse.js'
+import { debounce } from 'lodash-es'
 import { useBookMark } from './use-bookmark.ts'
 
 type Bookmark = Application.Bookmark
@@ -13,7 +12,7 @@ type BookmarkFolder = Application.BookmarkFolder
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
 defineOptions({
-	name: 'app-bookmark-dialog'
+	name: 'app-bookmark-window'
 })
 
 const props = withDefaults(
@@ -123,12 +122,10 @@ function updateFullScreen() {
 function updateVisible() {
 	emits('update:visible', false)
 }
-
-onMounted(function () {})
 </script>
 
 <template>
-	<a-spin :spinning="loading" wrapper-class-name="app-bookmark-dialog">
+	<a-spin :spinning="loading" wrapper-class-name="app-bookmark-window">
 		<a-layout-sider :width="286" class="bookmark-sider">
 			<a-layout-header class="sider-header">
 				<span class="bookmark-tip">书签管理器</span>
@@ -231,7 +228,7 @@ onMounted(function () {})
 </template>
 
 <style lang="scss" scoped>
-.app-bookmark-dialog {
+.app-bookmark-window {
 	@apply w-full h-full;
 	$height: 64px;
 	$color: #2482ff;
@@ -241,7 +238,8 @@ onMounted(function () {})
 	}
 
 	.bookmark-sider {
-		@apply h-full bg-white;
+		height: 100%;
+		// background-color: rgba($color: #ffffff, $alpha: 1);
 
 		:deep(.ant-layout-sider-children) {
 			@apply w-full h-full;
@@ -310,7 +308,8 @@ onMounted(function () {})
 	}
 
 	.bookmark-main {
-		@apply h-full;
+		height: 100%;
+		background-color: transparent;
 
 		.main-header {
 			height: $height;
@@ -361,7 +360,7 @@ onMounted(function () {})
 
 		.main-content {
 			height: calc(100% - $height);
-			background-color: rgba(#fcfeff, $alpha: 1);
+			// background-color: rgba(#fcfeff, $alpha: 1);
 			@apply py-6;
 		}
 

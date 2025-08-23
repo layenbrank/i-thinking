@@ -51,7 +51,6 @@ declare module 'vue' {
     AppStoreWindow: typeof import('./../components/applications/app-store/app-store-window.vue')['default']
     AppWeb: typeof import('./../components/applications/app-web/app-web.vue')['default']
     AppWebIcon: typeof import('./../components/applications/app-web/app-web-icon.vue')['default']
-    AppWebWindow: typeof import('./../components/applications/app-web/app-web-window.vue')['default']
     ARadioButton: typeof import('ant-design-vue/es')['RadioButton']
     ARadioGroup: typeof import('ant-design-vue/es')['RadioGroup']
     AResult: typeof import('ant-design-vue/es')['Result']

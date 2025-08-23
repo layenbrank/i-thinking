@@ -6,19 +6,21 @@ type Bookmark = Application.Bookmark
 type BookmarkFolder = Application.BookmarkFolder
 
 interface DataBase extends Dexie {
-	user: EntityTable<UserProfile, 'id'>
-
 	application: EntityTable<Application, 'id'>
 
 	backup: EntityTable<ApplicationBackup, 'id'>
 
 	setting: EntityTable<ApplicationSettings, 'id'>
 
+	user: EntityTable<UserProfile, 'id'>
+
 	bookmark: EntityTable<Bookmark, 'id'>
 	bookmarkFolder: EntityTable<BookmarkFolder, 'id'>
 }
 
-export const database = new Dexie('desktop-app') as DataBase
+const DBNAME: Readonly<string> = 'desktop-app'
+
+export const database = new Dexie(DBNAME) as DataBase
 
 database.version(1).stores({
 	application:

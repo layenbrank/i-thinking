@@ -5,32 +5,16 @@ defineOptions({
 	name: 'app-web-icon'
 })
 
-const props = withDefaults(
+withDefaults(
 	defineProps<{
-		size: ApplicationSize
-		url?: string
 		icon?: string
-		direction: ApplicationDirection
-		shape: ApplicationShape
-		mini: boolean
-		small: boolean
-		medium: boolean
-		large: boolean
-		huge: boolean
-		massive: boolean
-		ultra: boolean
-		circle: boolean
-		rectangle: boolean
-		square: boolean
-		horizontal: boolean
-		vertical: boolean
 	}>(),
 	{}
 )
 </script>
 
 <template>
-	<div :class="['app-web-icon', size, shape, direction]">
+	<div class="app-web-icon">
 		<a-image :preview="false" :fallback="fallback" :src="icon" wrapper-class-name="app-web-image">
 			<template #placeholder>
 				<a-skeleton-image active class="app-web-placeholder" />
@@ -49,27 +33,33 @@ const props = withDefaults(
 @use './app-ultra.scss' as *;
 
 .app-web-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
 	border-radius: var(--app-round);
+	background: var(--app-background);
+
+	%size-full {
+		width: 100%;
+		height: 100%;
+	}
 
 	&.circle {
 		border-radius: calc(var(--app-size-width) / 2);
 	}
 
-	@apply flex items-center justify-center cursor-pointer;
-
 	:deep(.app-web-image) {
-		@apply w-full h-full;
+		@extend %size-full;
 		border-radius: var(--app-round);
 	}
 
 	:deep(.app-web-placeholder) {
-		width: 100%;
-		height: 100%;
+		@extend %size-full;
 		display: block;
 
 		.ant-skeleton-image {
-			width: 100%;
-			height: 100%;
+			@extend %size-full;
 		}
 	}
 }

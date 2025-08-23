@@ -1,8 +1,7 @@
 <script setup lang="tsx">
-import { useAppSettings } from '@/hooks/app-settings'
+import { useSettings } from '@/hooks/application-settings.ts'
 import { message } from 'ant-design-vue'
-import AppIcon from './app-web-icon.vue'
-import ApplicationWindow from './app-web-window.vue'
+import ApplicationIcon from './app-web-icon.vue'
 
 defineOptions({
 	name: 'app-web'
@@ -38,52 +37,24 @@ const props = withDefaults(
 	}
 )
 
-const [handleMessage, contextHolder] = message.useMessage({
-	maxCount: 1
+const round = computed(function () {
+	return props.application.round ?? 'var(--app-global-round)'
 })
 
-const appDialogRef = ref<ApplicationWindowType>()
-
-const mini = computed(() => props.application.size === 'mini')
-const small = computed(() => props.application.size === 'small')
-const medium = computed(() => props.application.size === 'medium')
-const large = computed(() => props.application.size === 'large')
-const huge = computed(() => props.application.size === 'huge')
-const massive = computed(() => props.application.size === 'massive')
-const ultra = computed(() => props.application.size === 'ultra')
-const circle = computed(() => props.application.shape === 'circle')
-const rectangle = computed(() => props.application.shape === 'rectangle')
-const square = computed(() => props.application.shape === 'square')
-const horizontal = computed(() => props.application.direction === 'horizontal')
-const vertical = computed(() => props.application.direction === 'vertical')
-const round = computed(() => props.application.round ?? 'var(--app-global-round)')
-const background = computed(() => {
-	if (props.application.backgroundImage) {
-		return `url(${props.application.backgroundImage}) no-repeat center / cover`
-	} else if (props.application.backgroundColor) return props.application.backgroundColor
-	else return '#ffffff'
+const background = computed(function () {
+	const backgroundImage = `url(${props.application.backgroundImage}) no-repeat center / cover`
+	if (props.application.backgroundImage) return backgroundImage
+	if (props.application.backgroundColor) return props.application.backgroundColor
+	return '#ffffff'
 })
 
-const { appStyle } = useAppSettings({
-	width: computed(() => props.application.width ?? 'var(--app-global-width)'),
-	height: computed(() => props.application.height ?? 'var(--app-global-height)'),
-	mini,
-	small,
-	medium,
-	large,
-	huge,
-	massive,
-	ultra,
-	circle,
-	rectangle,
-	square,
-	horizontal,
-	vertical
+const componentStyle = computed(function () {
+	return useSettings(props.application)
 })
 
 function handleJumpLink() {
 	if (props.settingsVisible) return
-	if (!props.application.url) return handleMessage.error('请先设置链接地址!')
+	if (!props.application.url) return message.error('请先设置链接地址!')
 
 	window.open(props.application.url, '_blank')
 }
@@ -93,50 +64,19 @@ function handleJumpLink() {
 	<div
 		:style="{
 			'--app-round': round,
-			'--app-size-width': appStyle.width,
-			'--app-size-height': appStyle.height,
-			'--app-grid-row': appStyle.gridRow,
-			'--app-grid-column': appStyle.gridColumn,
-			'--app-background': background
+			'--app-background': background,
+			'--app-size-width': componentStyle.width,
+			'--app-grid-row': componentStyle.gridRow,
+			'--app-size-height': componentStyle.height,
+			'--app-grid-column': componentStyle.gridColumn
 		}"
-		:data-id="application.id"
 		:class="['app-web', application.size, application.shape, application.direction]"
 	>
-		<a-modal
-			:icon="null"
-			:title="null"
-			:footer="null"
-			width="80%"
-			:centered="true"
-			:mask-closable="true"
-			:style="{
-				transformOrigin: 'center'
-			}"
-			class="application-window example-dialog"
-		>
-			<application-window />
-		</a-modal>
-		<app-icon
-			:mini="mini"
-			:small="small"
-			:medium="medium"
-			:large="large"
-			:huge="huge"
-			:massive="massive"
-			:ultra="ultra"
-			:circle="circle"
-			:rectangle="rectangle"
-			:square="square"
-			:horizontal="horizontal"
-			:vertical="vertical"
-			:url="application.url"
+		<application-icon
 			:icon="application.icon"
-			:size="application.size"
-			:shape="application.shape"
-			:direction="application.direction"
-			@click="handleJumpLink"
+			@dblclick="handleJumpLink"
+			:class="[application.size, application.shape, application.direction]"
 		/>
-		<context-holder />
 		<span class="app-name">{{ application.name }}</span>
 		<i-local:close class="app-trash-icon" />
 	</div>
@@ -145,33 +85,9 @@ function handleJumpLink() {
 <style lang="scss" scoped>
 .app-web {
 	width: var(--app-size-width);
-	height: var(--app-size-height);
 	grid-row: var(--app-grid-row);
-	grid-column: var(--app-grid-column);
+	height: var(--app-size-height);
 	border-radius: var(--app-round);
-	background: var(--app-background);
-}
-</style>
-<style lang="scss">
-.application-window.web-dialog {
-	div[tabindex='0'][style='outline: none;'] {
-		@apply w-full h-full;
-	}
-
-	.ant-modal-content,
-	.ant-modal-body,
-	.ant-modal-confirm-body-wrapper,
-	.ant-modal-confirm-body,
-	.ant-modal-confirm-content {
-		@apply w-full h-full;
-	}
-
-	.ant-modal-content {
-		@apply bg-transparent;
-	}
-
-	.ant-modal-body {
-		@apply bg-white rounded-lg;
-	}
+	grid-column: var(--app-grid-column);
 }
 </style>

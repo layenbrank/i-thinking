@@ -1,10 +1,9 @@
 <script setup lang="tsx">
-import { useAppSettings } from '@/hooks/app-settings.ts'
+import { useSettings } from '@/hooks/application-settings.ts'
+import ApplicationIcon from './app-bookmark-icon.vue'
+import ApplicationWindow from './app-bookmark-window.vue'
 
-import AppIcon from './app-bookmark-icon.vue'
-import AppWindow from './app-bookmark-window.vue'
-
-type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
+// type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
 defineOptions({
 	name: 'app-bookmark'
@@ -43,76 +42,27 @@ const props = withDefaults(
 const visible = ref(false)
 const fullscreen = ref(false)
 
-const mini = computed(() => props.application.size === 'mini')
-const small = computed(() => props.application.size === 'small')
-const medium = computed(() => props.application.size === 'medium')
-const large = computed(() => props.application.size === 'large')
-const huge = computed(() => props.application.size === 'huge')
-const massive = computed(() => props.application.size === 'massive')
-const ultra = computed(() => props.application.size === 'ultra')
-const circle = computed(() => props.application.shape === 'circle')
-const rectangle = computed(() => props.application.shape === 'rectangle')
-const square = computed(() => props.application.shape === 'square')
-const horizontal = computed(() => props.application.direction === 'horizontal')
-const vertical = computed(() => props.application.direction === 'vertical')
-const round = computed(() => props.application.round ?? 'var(--app-global-round)')
-const background = computed(() => {
-	if (props.application.backgroundImage) {
-		return `url(${props.application.backgroundImage}) no-repeat center / cover`
-	} else if (props.application.backgroundColor) return props.application.backgroundColor
-	else return '#ffffff'
+const round = computed(function () {
+	return props.application.round ?? 'var(--app-global-round)'
 })
 
-function transform(value: Application) {
-	return {
-		mini: value.size === 'mini',
-		small: value.size === 'small',
-		medium: value.size === 'medium',
-		large: value.size === 'large',
-		huge: value.size === 'huge',
-		massive: value.size === 'massive',
-		ultra: value.size === 'ultra',
-		circle: value.shape === 'circle',
-		rectangle: value.shape === 'rectangle',
-		square: value.shape === 'square',
-		horizontal: value.direction === 'horizontal',
-		vertical: value.direction === 'vertical',
-		round: value.round ?? 'var(--app-global-round)',
-		background: value.backgroundImage
-			? `url(${value.backgroundImage}) no-repeat center / cover`
-			: value.backgroundColor
-				? value.backgroundColor
-				: '#ffffff'
-	}
-}
-
-const { appStyle } = useAppSettings({
-	width: computed(() => props.application.width ?? 'var(--app-global-width)'),
-	height: computed(() => props.application.height ?? 'var(--app-global-height)'),
-	mini,
-	small,
-	medium,
-	large,
-	huge,
-	massive,
-	ultra,
-	circle,
-	rectangle,
-	square,
-	horizontal,
-	vertical
+const background = computed(function () {
+	const backgroundImage = `url(${props.application.backgroundImage}) no-repeat center / cover`
+	if (props.application.backgroundImage) return backgroundImage
+	if (props.application.backgroundColor) return props.application.backgroundColor
+	return '#ffffff'
 })
 
-function updateVisible(value: boolean) {
+const componentStyle = computed(function () {
+	return useSettings(props.application)
+})
+
+function handleAppWindow(value: boolean) {
 	visible.value = value
 }
 
 function updateFullScreen(value: boolean) {
 	fullscreen.value = value
-}
-
-function handleAppWindow() {
-	visible.value = true
 }
 </script>
 
@@ -120,11 +70,11 @@ function handleAppWindow() {
 	<div
 		:style="{
 			'--app-round': round,
-			'--app-size-width': appStyle.width,
-			'--app-size-height': appStyle.height,
-			'--app-grid-row': appStyle.gridRow,
-			'--app-grid-column': appStyle.gridColumn,
-			'--app-background': background
+			'--app-background': background,
+			'--app-size-width': componentStyle.width,
+			'--app-grid-row': componentStyle.gridRow,
+			'--app-size-height': componentStyle.height,
+			'--app-grid-column': componentStyle.gridColumn
 		}"
 		:class="['app-bookmark', application.size, application.shape, application.direction]"
 	>
@@ -138,43 +88,30 @@ function handleAppWindow() {
 			:closable="false"
 			:mask-closable="true"
 			:destroy-on-close="true"
-			@update:open="updateVisible"
+			@update:open="handleAppWindow"
 			:style="{
 				transformOrigin: 'center'
 			}"
 			:class="[
 				'application-window',
-				'bookmark-dialog',
+				'bookmark-window',
 				{
 					fullscreen: fullscreen
 				}
 			]"
 		>
-			<app-window
+			<application-window
 				:fullscreen="fullscreen"
-				@update:visible="updateVisible"
+				@update:visible="handleAppWindow"
 				@update:fullscreen="updateFullScreen"
 			/>
 		</a-modal>
-		<app-icon
-			:mini="mini"
-			:small="small"
-			:medium="medium"
-			:large="large"
-			:huge="huge"
-			:massive="massive"
-			:ultra="ultra"
-			:circle="circle"
-			:rectangle="rectangle"
-			:square="square"
-			:horizontal="horizontal"
-			:vertical="vertical"
-			:url="application.url"
-			:icon="application.icon"
+		<application-icon
 			:size="application.size"
 			:shape="application.shape"
+			@dblclick="handleAppWindow(true)"
 			:direction="application.direction"
-			@click="handleAppWindow"
+			:class="[application.size, application.shape, application.direction]"
 		/>
 		<span class="app-name">{{ application.name }}</span>
 		<i-local:close class="app-trash-icon" />
@@ -184,16 +121,21 @@ function handleAppWindow() {
 <style lang="scss" scoped>
 .app-bookmark {
 	width: var(--app-size-width);
-	height: var(--app-size-height);
 	grid-row: var(--app-grid-row);
-	grid-column: var(--app-grid-column);
+	height: var(--app-size-height);
 	border-radius: var(--app-round);
+	grid-column: var(--app-grid-column);
 }
 </style>
 <style lang="scss">
-.application-window.bookmark-dialog {
+.application-window.bookmark-window {
+	%size-full {
+		width: 100%;
+		height: 100%;
+	}
+
 	div[tabindex='0'][style='outline: none;'] {
-		@apply w-full h-full;
+		@extend %size-full;
 	}
 
 	&:not(.fullscreen) {
@@ -211,15 +153,17 @@ function handleAppWindow() {
 	.ant-modal-confirm-body-wrapper,
 	.ant-modal-confirm-body,
 	.ant-modal-confirm-content {
-		@apply w-full h-full;
+		@extend %size-full;
 	}
 
 	.ant-modal-content {
-		@apply bg-transparent;
+		background-color: transparent;
 	}
 
 	.ant-modal-body {
-		@apply bg-black bg-opacity-30 backdrop-blur-md rounded-lg;
+		border-radius: 8px;
+		backdrop-filter: blur(12px);
+		background-color: rgba($color: #000000, $alpha: 0.3);
 	}
 }
 </style>

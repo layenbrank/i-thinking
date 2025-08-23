@@ -1,4 +1,3 @@
-import { database } from '@/database/database.ts'
 import type { EntityTable, PromiseExtended } from 'dexie'
 
 interface UsePaginate<T extends Record<string, any>, P extends keyof T = 'id'> {
@@ -23,13 +22,13 @@ export function usePaginate<T extends Record<string, any>>(
 		.toArray()
 }
 
-const resp = await usePaginate({
-	page: 1,
-	size: 10,
-	limit: 10,
-	store: database.application
-})
+// const resp = await usePaginate({
+// 	page: 1,
+// 	size: 10,
+// 	limit: 10,
+// 	store: database.application
+// })
 
-resp.forEach(function (item) {
-	item.width
-})
+// resp.forEach(function (item) {
+// 	item.width
+// })

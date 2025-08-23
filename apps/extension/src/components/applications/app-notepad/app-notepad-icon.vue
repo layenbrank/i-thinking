@@ -3,32 +3,12 @@ defineOptions({
 	name: 'app-notepad-icon'
 })
 
-const props = withDefaults(
-	defineProps<{
-		size: ApplicationSize
-		url?: string
-		icon?: string
-		direction: ApplicationDirection
-		shape: ApplicationShape
-		mini: boolean
-		small: boolean
-		medium: boolean
-		large: boolean
-		huge: boolean
-		massive: boolean
-		ultra: boolean
-		circle: boolean
-		rectangle: boolean
-		square: boolean
-		horizontal: boolean
-		vertical: boolean
-	}>(),
-	{}
-)
+// const props = withDefaults(defineProps<{}>(), {})
+// const emits = defineEmits<{}>()
 </script>
 
 <template>
-	<div :class="['app-notepad-icon', size, shape, direction]">test</div>
+	<div class="app-notepad-icon">test</div>
 </template>
 
 <style lang="scss" scoped>
@@ -41,11 +21,15 @@ const props = withDefaults(
 @use './app-ultra.scss' as *;
 
 .app-notepad-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
 	border-radius: var(--app-round);
+	background: var(--app-background);
 
 	&.circle {
 		border-radius: calc(var(--app-size-width) / 2);
 	}
-	@apply bg-white bg-opacity-30 flex items-center justify-center cursor-pointer;
 }
 </style>

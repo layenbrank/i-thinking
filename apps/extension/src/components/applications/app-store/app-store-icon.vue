@@ -4,32 +4,12 @@ defineOptions({
 	name: 'app-store-icon'
 })
 
-const props = withDefaults(
-	defineProps<{
-		size: ApplicationSize
-		url?: string
-		icon?: string
-		direction: ApplicationDirection
-		shape: ApplicationShape
-		mini: boolean
-		small: boolean
-		medium: boolean
-		large: boolean
-		huge: boolean
-		massive: boolean
-		ultra: boolean
-		circle: boolean
-		rectangle: boolean
-		square: boolean
-		horizontal: boolean
-		vertical: boolean
-	}>(),
-	{}
-)
+// const props = withDefaults(defineProps<{}>(), {})
+// const emits = defineEmits<{}>()
 </script>
 
 <template>
-	<div :class="['app-store-icon', size, shape, direction]">
+	<div class="app-store-icon">
 		<Add />
 	</div>
 </template>
@@ -44,12 +24,15 @@ const props = withDefaults(
 @use './app-ultra.scss' as *;
 
 .app-store-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
 	border-radius: var(--app-round);
+	background: var(--app-background);
 
 	&.circle {
 		border-radius: calc(var(--app-size-width) / 2);
 	}
-
-	@apply bg-white bg-opacity-30 flex items-center justify-center cursor-pointer;
 }
 </style>

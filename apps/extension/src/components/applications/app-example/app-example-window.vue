@@ -1,32 +1,19 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'app-example-dialog'
+	name: 'app-example-window'
 })
 
-const props = withDefaults(
-	defineProps<{
-		appDialogRef?: ApplicationWindowType
-	}>(),
-	{}
-)
-
-function handler() {
-	const random = Math.floor(Math.random() * 100)
-
-	props.appDialogRef?.update({
-		title: 'modal inner' + random
-	})
-}
+// const props = withDefaults(defineProps<{}>(), {})
+// const emits = defineEmits<{}>()
 </script>
 
 <template>
-	<div class="app-example-dialog">
-		<a-button @click="handler">modal inner</a-button>
-	</div>
+	<div class="app-example-window"></div>
 </template>
 
 <style lang="scss" scoped>
-.app-example-dialog {
-	@apply w-full h-full flex items-center justify-center;
+.app-example-window {
+	width: 100%;
+	height: 100%;
 }
 </style>
