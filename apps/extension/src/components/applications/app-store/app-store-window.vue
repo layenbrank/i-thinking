@@ -1,28 +1,25 @@
 <script setup lang="tsx">
+import type { ApplicationReflect } from '@desktop-app/shared/app-controller'
 import { A11y, Autoplay, Mousewheel, Navigation, Pagination } from 'swiper/modules'
-import { Swiper, SwiperSlide } from 'swiper/vue'
-
 import 'swiper/scss'
 import 'swiper/scss/navigation'
 import 'swiper/scss/pagination'
-
-import type { Reactive } from 'vue'
-
-import type { ApplicationReflect } from '@desktop-app/shared/app-controller'
 import type { AutoplayOptions, PaginationOptions, SwiperModule } from 'swiper/types'
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import type { Reactive } from 'vue'
 
 const AppBookmark = defineAsyncComponent(function () {
 	return import('@/components/applications/app-bookmark/app-bookmark.vue')
 })
-
 const AppCalendar = defineAsyncComponent(function () {
 	return import('@/components/applications/app-calendar/app-calendar.vue')
 })
-
+const AppNotepad = defineAsyncComponent(function () {
+	return import('@/components/applications/app-notepad/app-notepad.vue')
+})
 const AppWeb = defineAsyncComponent(function () {
 	return import('@/components/applications/app-web/app-web.vue')
 })
-
 const AppExample = defineAsyncComponent(function () {
 	return import('@/components/applications/app-example/app-example.vue')
 })
@@ -64,7 +61,7 @@ const options: AppStoreOptions[] = [
 	}
 ]
 
-const appReflect: ApplicationReflect = {
+const applicationReflect: ApplicationReflect = {
 	'app-bookmark'() {
 		return <AppBookmark />
 	},
@@ -76,6 +73,9 @@ const appReflect: ApplicationReflect = {
 	},
 	'app-web'() {
 		return <AppWeb />
+	},
+	'app-notepad'() {
+		return <AppNotepad />
 	}
 }
 
@@ -298,8 +298,7 @@ function randomID() {
 		<ul class="app-store-content">
 			<template v-for="item in options">
 				<li v-if="activeKey.key === item.key" :key="item.key" class="content-item">
-					<!-- :autoplay="autoplay" -->
-					<Swiper
+					<swiper
 						:slides-per-view="1.15"
 						:space-between="20"
 						:modules="modules"
@@ -322,29 +321,20 @@ function randomID() {
 								<img :src="item.image" alt="" class="carousel-img" />
 							</div>
 						</swiper-slide>
-					</Swiper>
+					</swiper>
 					<div>
 						<h3>热门应用</h3>
-						<!-- <ul class="grid grid-flow-dense grid-cols-3 grid-rows-2 gap-3">
-              <li
-                v-for="(item, index) in [...swiperOptions, ...swiperOptions, ...swiperOptions]"
-                :key="index"
-                class="h-[120px] px-5 py-3 rounded-lg hover:shadow-lg transition-all duration-300 cursor-pointer flex items-center justify-center bg-blue-300"
-              >
-                {{ item.label }}
-              </li>
-            </ul> -->
-						<TransitionGroup tag="div" name="app-controller-fade" class="app-controller">
+						<transition-group tag="div" name="app-controller-fade" class="app-controller">
 							<template v-for="application in applications" :key="application.id">
 								<component
 									:application="application"
-									:is="appReflect[application.app]?.()"
+									:is="applicationReflect[application.app]?.()"
 									:settings-visible="false"
 									:data-id="application.id"
 									:class="['application']"
 								/>
 							</template>
-						</TransitionGroup>
+						</transition-group>
 					</div>
 				</li>
 			</template>
