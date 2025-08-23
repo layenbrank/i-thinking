@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { Dexie, type EntityTable } from 'dexie'
 
 type Bookmark = Application.Bookmark
@@ -22,14 +20,51 @@ const DBNAME: Readonly<string> = 'desktop-app'
 
 export const database = new Dexie(DBNAME) as DataBase
 
+const APPLICATION = [
+	'&id',
+	'slideID',
+	'[id+slideID]',
+	'sort',
+	'app',
+	'name',
+	'downloadCount',
+	'direction',
+	'shape',
+	'size',
+	'width',
+	'height',
+	'round',
+	'icon',
+	'url',
+	'backgroundColor',
+	'backgroundImage',
+	'textColor',
+	'textSize'
+]
+const USERS: ReadonlyArray<string> = ['++id', 'name']
+const BOOKMARK: ReadonlyArray<string> = [
+	'&id',
+	'url',
+	'sort',
+	'title',
+	'folderID',
+	'createdAt',
+	'updatedAt'
+]
+const BOOKMARK_FOLDER: ReadonlyArray<string> = [
+	'&id',
+	'folder',
+	'sort',
+	'count',
+	'createdAt',
+	'updatedAt'
+]
+
 database.version(1).stores({
-	application:
-		'&id,slideID,[id+slideID],sort,app,name,downloadCount,direction,shape,size,width,height,round,icon,url,backgroundColor,backgroundImage,textColor,textSize',
-
-	user: '++id,name',
-
-	bookmark: '&id,url,sort,title,folderID,createdAt,updatedAt',
-	bookmarkFolder: '&id,folder,sort,count,createdAt,updatedAt'
+	application: APPLICATION.join(','),
+	user: USERS.join(','),
+	bookmark: BOOKMARK.join(','),
+	bookmarkFolder: BOOKMARK_FOLDER.join(',')
 })
 
 database.on(
@@ -46,11 +81,11 @@ database.on(
 	true
 )
 
-database.on('populate', function (tx) {})
+// database.on('populate', function (tx) {})
 
-database.on('versionchange', function (e) {})
+// database.on('versionchange', function (e) {})
 
-database.on('blocked', function (e) {
+database.on('blocked', function (_e) {
 	if (!import.meta.env.DEV) return
 	console.error('数据库被阻塞，请关闭其他使用此数据库的标签页')
 })
