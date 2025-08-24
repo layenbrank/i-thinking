@@ -75,6 +75,7 @@ declare module 'vue' {
     ReDock: typeof import('./../components/re-dock/index.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SettingBackground: typeof import('./../components/applications/app-settings/setting-background.vue')['default']
     SettingDirection: typeof import('./../components/applications/app-settings/setting-direction.vue')['default']
     SettingShape: typeof import('./../components/applications/app-settings/setting-shape.vue')['default']
     SettingSize: typeof import('./../components/applications/app-settings/setting-size.vue')['default']

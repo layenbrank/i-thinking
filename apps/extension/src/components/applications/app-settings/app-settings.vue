@@ -41,7 +41,9 @@ const props = withDefaults(
 const visible = ref(false)
 const fullscreen = ref(false)
 const windowStyle = ref<CSSProperties>({
-	transformOrigin: 'center'
+	width: '80%',
+	transformOrigin: 'center',
+	transform: 'translate(0px,0px)'
 })
 
 const round = computed(function () {
@@ -71,6 +73,10 @@ function updateFullScreen(value: boolean) {
 function updateTransform(value: string) {
 	windowStyle.value.transform = value
 }
+
+function updateResize(value: { width: number; height: number }) {
+	windowStyle.value.width = `${(value.width / innerWidth) * 100}%`
+}
 </script>
 
 <template>
@@ -86,7 +92,6 @@ function updateTransform(value: string) {
 		:class="['app-settings', application.size, application.shape, application.direction]"
 	>
 		<a-modal
-			width="80%"
 			:icon="null"
 			:title="null"
 			:footer="null"
@@ -94,7 +99,8 @@ function updateTransform(value: string) {
 			:centered="true"
 			:closable="false"
 			:style="windowStyle"
-			:mask-closable="true"
+			:mask-closable="false"
+			:mask="false"
 			:destroy-on-close="true"
 			@update:open="handleAppWindow"
 			class="application-window settings-window"
@@ -102,6 +108,7 @@ function updateTransform(value: string) {
 			<application-window
 				:fullscreen="fullscreen"
 				@update:transform="updateTransform"
+				@update:resize="updateResize"
 				@update:visible="handleAppWindow"
 				@update:fullscreen="updateFullScreen"
 			/>
@@ -125,6 +132,13 @@ function updateTransform(value: string) {
 }
 </style>
 <style lang="scss">
+.ant-modal-root {
+	.ant-modal-wrap {
+		&:has(.settings-window) {
+			pointer-events: none;
+		}
+	}
+}
 .application-window.settings-window {
 	%size-full {
 		width: 100%;

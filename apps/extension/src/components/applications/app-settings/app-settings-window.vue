@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { resize } from '@desktop-app/core'
 import { useDraggable } from '@vueuse/core'
+import SettingBackground from './setting-background.vue'
 import SettingDirection from './setting-direction.vue'
 import SettingShape from './setting-shape.vue'
 import SettingSize from './setting-size.vue'
@@ -15,6 +16,7 @@ defineOptions({
 // const props = withDefaults(defineProps<{}>(), {})
 const emits = defineEmits<{
 	(e: 'update:transform', value: string): void
+	(e: 'update:resize', value: { width: number; height: number }): void
 }>()
 
 const draggableRef = useTemplateRef('draggableRef')
@@ -35,6 +37,11 @@ const options = [
 		label: '形状',
 		value: 'shape',
 		component: SettingShape
+	},
+	{
+		label: '背景',
+		value: 'background',
+		component: SettingBackground
 	}
 ]
 
@@ -57,7 +64,7 @@ const dragableRect = ref({
 	right: 0,
 	bottom: 0
 })
-const settingRect = ref<Omit<DOMRectReadOnly, 'toJSON'>>({
+const settingRect = ref<Omit<DOMRect, 'toJSON'>>({
 	width: 0,
 	height: 0,
 	x: 0,
@@ -68,13 +75,74 @@ const settingRect = ref<Omit<DOMRectReadOnly, 'toJSON'>>({
 	bottom: 0
 })
 
+let windowWidth = Number((innerWidth * 0.8).toFixed(2))
+let windowHeight = Number(((windowWidth * 9) / 16).toFixed(2))
+console.log(`窗口大小: ${windowWidth}x${windowHeight}`)
+
+const resizeHandleRef = useTemplateRef('resizeHandleRef')
+let resizing = false
+let resizeBeginX = 0
+let resizeBeginY = 0
+let beginWidth = 0
+let beginHeight = 0
+
+function handleResizeBegin(e: MouseEvent) {
+	e.preventDefault()
+	resizing = true
+	resizeBeginX = e.clientX
+	resizeBeginY = e.clientY
+	beginWidth = windowWidth
+	beginHeight = windowHeight
+	document.addEventListener('mousemove', handleResizeMove)
+	document.addEventListener('mouseup', handleResizeFinal)
+}
+
+function handleResizeMove(e: MouseEvent) {
+	if (!resizing) return
+	const dx = e.clientX - resizeBeginX
+	const dy = e.clientY - resizeBeginY
+	const prevWidth = windowWidth
+	const prevHeight = windowHeight
+	windowWidth = Math.max(300, beginWidth + dx)
+	windowHeight = Math.max(200, beginHeight + dy)
+	// 修正 transform，使窗口中心点不变
+	const centerX = transformX.value + prevWidth / 2
+	const centerY = transformY.value + prevHeight / 2
+	transformX.value = centerX - windowWidth / 2
+	transformY.value = centerY - windowHeight / 2
+	emits('update:transform', `translate(${transformX.value}px, ${transformY.value}px)`)
+	emits('update:resize', { width: windowWidth, height: windowHeight })
+}
+
+function handleResizeFinal() {
+	resizing = false
+	document.removeEventListener('mousemove', handleResizeMove)
+	document.removeEventListener('mouseup', handleResizeFinal)
+}
+
+onMounted(function () {
+	if (!resizeHandleRef.value) return
+	resizeHandleRef.value.addEventListener('mousedown', handleResizeBegin)
+})
+
+onBeforeUnmount(function () {
+	if (resizeHandleRef.value) {
+		resizeHandleRef.value.removeEventListener('mousedown', handleResizeBegin)
+	}
+	document.removeEventListener('mousemove', handleResizeMove)
+	document.removeEventListener('mouseup', handleResizeFinal)
+})
+
 watch([x, y], function () {
 	if (!draggable.value) {
 		beginX.value = x.value
 		beginY.value = y.value
 		const bodyRect = document.body.getBoundingClientRect()
-		dragableRect.value.right = bodyRect.width - settingRect.value.width
-		dragableRect.value.bottom = bodyRect.height - settingRect.value.height
+		// dragableRect.value.right = bodyRect.width - settingRect.value.width
+		// dragableRect.value.bottom = bodyRect.height - settingRect.value.height
+		// // 用最新宽高计算边界
+		dragableRect.value.right = bodyRect.width - windowWidth
+		dragableRect.value.bottom = bodyRect.height - windowHeight
 		preTransformX.value = transformX.value
 		preTransformY.value = transformY.value
 	}
@@ -91,7 +159,6 @@ watchEffect(function () {
 		preTransformY.value +
 		Math.min(Math.max(dragableRect.value.top, y.value), dragableRect.value.bottom) -
 		beginY.value
-
 	emits('update:transform', `translate(${transformX.value}px, ${transformY.value}px)`)
 })
 
@@ -115,6 +182,7 @@ function updateResize(DOMRect: DOMRectReadOnly) {
 				<component :is="option.component" />
 			</a-tab-pane>
 		</a-tabs>
+		<i class="resize-handle" ref="resizeHandleRef"></i>
 	</div>
 </template>
 
@@ -128,8 +196,7 @@ function updateResize(DOMRect: DOMRectReadOnly) {
 
 	$height: 64px;
 
-	&::before {
-		content: '';
+	.resize-handle {
 		position: absolute;
 		right: 0;
 		bottom: 0;
