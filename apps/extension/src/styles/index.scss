@@ -69,7 +69,7 @@ body {
 
 .ant-modal.application-window {
 	aspect-ratio: 16/9;
-	border-radius: 8px;
+	border-radius: var(--app-global-window-round, 8px);
 
 	.ant-modal-content {
 		padding: 0px;

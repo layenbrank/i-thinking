@@ -221,6 +221,7 @@ onUnmounted(function () {
 		background-color: transparent;
 		transition: width 300ms cubic-bezier(0.39, 0.575, 0.565, 1);
 
+		/* TODO: 暂时没用到,后续可能移除 visible 相关 */
 		&.visible {
 			width: calc(100% - var(--collapsed-width, 350px));
 		}

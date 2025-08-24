@@ -1,6 +1,6 @@
 <script setup lang="tsx">
 import { useSettings } from '@/hooks/application-settings.ts'
-import { useMagicKeys, whenever } from '@vueuse/core'
+import type { CSSProperties } from 'vue'
 import ApplicationIcon from './app-settings-icon.vue'
 import ApplicationWindow from './app-settings-window.vue'
 
@@ -40,6 +40,9 @@ const props = withDefaults(
 
 const visible = ref(false)
 const fullscreen = ref(false)
+const windowStyle = ref<CSSProperties>({
+	transformOrigin: 'center'
+})
 
 const round = computed(function () {
 	return props.application.round ?? 'var(--app-global-round)'
@@ -56,16 +59,6 @@ const componentStyle = computed(function () {
 	return useSettings(props.application)
 })
 
-const { Escape } = useMagicKeys({
-	onEventFired(e) {
-		if (e.key === 'Escape') visible.value = false
-	}
-})
-
-whenever(Escape, function () {
-	visible.value = false
-})
-
 function handleAppWindow(value: boolean) {
 	if (props.settingsVisible) return
 	visible.value = value
@@ -73,6 +66,10 @@ function handleAppWindow(value: boolean) {
 
 function updateFullScreen(value: boolean) {
 	fullscreen.value = value
+}
+
+function updateTransform(value: string) {
+	windowStyle.value.transform = value
 }
 </script>
 
@@ -96,16 +93,15 @@ function updateFullScreen(value: boolean) {
 			:open="visible"
 			:centered="true"
 			:closable="false"
+			:style="windowStyle"
 			:mask-closable="true"
 			:destroy-on-close="true"
 			@update:open="handleAppWindow"
-			:style="{
-				transformOrigin: 'center'
-			}"
 			class="application-window settings-window"
 		>
 			<application-window
 				:fullscreen="fullscreen"
+				@update:transform="updateTransform"
 				@update:visible="handleAppWindow"
 				@update:fullscreen="updateFullScreen"
 			/>

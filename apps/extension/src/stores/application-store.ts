@@ -28,7 +28,7 @@ const DEFAULT: ReadonlyArray<Application> = [
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
-		description: '测试',
+		description: '书签测试',
 		downloadCount: 1000
 	},
 	{
@@ -50,7 +50,7 @@ const DEFAULT: ReadonlyArray<Application> = [
 		// backgroundImage: SlideView,
 		textSize: '13px',
 		textColor: '#ffffff',
-		description: '测试',
+		description: '日历测试',
 		downloadCount: 1000
 	},
 	{
@@ -81,7 +81,7 @@ const DEFAULT: ReadonlyArray<Application> = [
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
-		description: '测试',
+		description: '应用商店测试',
 		downloadCount: 1000
 	},
 	{
@@ -96,7 +96,7 @@ const DEFAULT: ReadonlyArray<Application> = [
 		height: '60px',
 		direction: 'horizontal',
 		shape: 'square',
-		name: '百度',
+		name: 'app-web-百度',
 		icon: 'https://www.baidu.com/favicon.ico',
 		backgroundColor: '#ffffff',
 		backgroundImage: null,
@@ -123,7 +123,7 @@ const DEFAULT: ReadonlyArray<Application> = [
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
-		description: '测试',
+		description: 'app-web-测试',
 		downloadCount: 1000
 	},
 	{
@@ -147,7 +147,7 @@ const DEFAULT: ReadonlyArray<Application> = [
 		// shape: 'square',
 		// shape: 'rectangle',
 		shape: 'circle',
-		name: '微信1',
+		name: 'app-example-微信',
 		icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
 		backgroundColor: '#ffffff4d',
 		backgroundImage: null,

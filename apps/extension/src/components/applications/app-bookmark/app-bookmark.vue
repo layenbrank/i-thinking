@@ -163,7 +163,7 @@ function updateFullScreen(value: boolean) {
 	.ant-modal-body {
 		border-radius: 8px;
 		backdrop-filter: blur(12px);
-		background-color: rgba($color: #000000, $alpha: 0.3);
+		// background-color: rgba($color: #000000, $alpha: 0.3);
 	}
 }
 </style>

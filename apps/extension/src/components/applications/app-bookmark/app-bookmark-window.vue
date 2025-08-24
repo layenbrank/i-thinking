@@ -239,7 +239,11 @@ function updateVisible() {
 
 	.bookmark-sider {
 		height: 100%;
-		// background-color: rgba($color: #ffffff, $alpha: 1);
+		border-top-right-radius: 0px;
+		border-bottom-right-radius: 0px;
+		border-top-left-radius: var(--app-global-window-round, 8px);
+		border-bottom-left-radius: var(--app-global-window-round, 8px);
+		background-color: rgba($color: #ffffff, $alpha: 1);
 
 		:deep(.ant-layout-sider-children) {
 			@apply w-full h-full;
@@ -309,7 +313,10 @@ function updateVisible() {
 
 	.bookmark-main {
 		height: 100%;
-		background-color: transparent;
+		border-top-left-radius: 0px;
+		border-bottom-left-radius: 0px;
+		border-top-right-radius: var(--app-global-window-round, 8px);
+		border-bottom-right-radius: var(--app-global-window-round, 8px);
 
 		.main-header {
 			height: $height;
@@ -361,6 +368,7 @@ function updateVisible() {
 		.main-content {
 			height: calc(100% - $height);
 			// background-color: rgba(#fcfeff, $alpha: 1);
+
 			@apply py-6;
 		}
 
