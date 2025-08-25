@@ -2,7 +2,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export default {
 	path: '/',
-	redirect: '/mac-view',
+	redirect: '/wasm-view',
 	children: [
 		{
 			path: '/base-view',
@@ -18,6 +18,11 @@ export default {
 			path: '/upload-view',
 			name: 'upload-view',
 			component: () => import('@/views/upload-view.vue')
+		},
+		{
+			path: '/wasm-view',
+			name: 'wasm-view',
+			component: () => import('@/views/wasm-view.vue')
 		},
 		{
 			path: '/:pathMatch(.*)*',

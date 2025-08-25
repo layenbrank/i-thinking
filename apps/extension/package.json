@@ -18,6 +18,7 @@
 		"reflect-metadata": "^0.2.2"
 	},
 	"devDependencies": {
-		"@desktop-app/core": "workspace:*"
+		"@desktop-app/core": "workspace:*",
+		"@desktop-app/wasm": "workspace:*"
 	}
 }

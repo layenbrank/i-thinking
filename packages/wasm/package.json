@@ -1,0 +1,18 @@
+{
+	"name": "@desktop-app/wasm",
+	"type": "module",
+	"collaborators": [
+		"李贺 <15638470820@163.com>"
+	],
+	"version": "0.1.0",
+	"files": [
+		"index_bg.wasm",
+		"index.js",
+		"index.d.ts"
+	],
+	"main": "index.js",
+	"types": "index.d.ts",
+	"sideEffects": [
+		"./snippets/*"
+	]
+}

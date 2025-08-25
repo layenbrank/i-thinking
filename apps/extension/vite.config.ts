@@ -64,32 +64,6 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 				],
 				dts: 'src/types/components.d.ts'
 			})
-			// createSvgIconsPlugin({
-			//   // 指定需要缓存的图标文件夹
-			//   iconDirs: [
-			//     // resolve(rootDir, 'src/assets/icons'),
-			//     resolve(rootDir, 'apps/extension/src/assets/icons')
-			//   ],
-			//   // 指定symbolId格式
-			//   symbolId: 'icon-[dir]-[name]',
-			//   inject: 'body-last',
-			//   svgoOptions: {
-			//     plugins: [
-			//       {
-			//         name: 'preset-default',
-			//         params: {
-			//           overrides: {
-			//             removeViewBox: false,
-			//             removeTitle: false,
-			//             removeDesc: { removeAny: true },
-			//             removeUselessDefs: false
-			//           }
-			//         }
-			//       },
-			//       'removeDimensions'
-			//     ]
-			//   }
-			// })
 		],
 		resolve: {
 			alias: {
@@ -97,12 +71,18 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			}
 		},
 		optimizeDeps: {
-			include: ['vue', 'vue-router', 'pinia']
+			include: ['vue', 'vue-router', 'pinia'],
+			exclude: ['@desktop-app/wasm']
 		},
 		build: {
+			target: 'es2023',
+			cssTarget: 'chrome128',
+			emptyOutDir: true,
+			minify: 'esbuild',
+			cssMinify: 'esbuild',
+			sourcemap: mode === 'development' ? true : false,
 			// 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
 			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-app\//, '')}`),
-			emptyOutDir: true,
 			assetsInlineLimit(filePath, content) {
 				// 使用正则数组表示需要内联的文件类型
 				const inlineRegexes = [
@@ -228,6 +208,9 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			preprocessorOptions: {
 				scss: {
 					api: 'modern-compiler'
+					// importer: '',
+					// importers:"",
+					// functions: false,
 					// additionalData: '@import "@/styles/variables.scss";',
 				}
 			}
