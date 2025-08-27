@@ -1,37 +1,37 @@
 .app-web-icon {
-  :deep(.ant-image-img) {
-    @apply w-full h-full object-contain;
-  }
+	:deep(.ant-image-img) {
+		@apply w-full h-full object-contain;
+	}
 
-  &.small {
-    &.square {
-      @apply p-5;
+	&.small {
+		&.square {
+			@apply p-5;
 
-      &.horizontal {
-      }
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.rectangle {
-      @apply p-5;
+		&.rectangle {
+			@apply p-5;
 
-      &.horizontal {
-      }
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.circle {
-      @apply p-[26px];
+		&.circle {
+			@apply p-[26px];
 
-      &.horizontal {
-      }
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
-  }
+			&.vertical {
+			}
+		}
+	}
 }

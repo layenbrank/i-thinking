@@ -1,73 +1,73 @@
 .bookmarks-manager {
-  @apply w-full h-full;
-  @apply bg-red-300;
+	@apply w-full h-full;
+	@apply bg-red-300;
 }
 
 .bookmarks-tabs {
-  @apply w-full h-full;
-  :global {
-    .n-tabs-nav {
-      @apply w-[calc(100%-98px)];
-      .n-tabs-rail {
-        @apply rounded-t-lg py-[6px] px-2;
-      }
-    }
-    .n-tabs-pane-wrapper {
-      @apply h-full rounded-lg;
+	@apply w-full h-full;
+	:global {
+		.n-tabs-nav {
+			@apply w-[calc(100%-98px)];
+			.n-tabs-rail {
+				@apply rounded-t-lg py-[6px] px-2;
+			}
+		}
+		.n-tabs-pane-wrapper {
+			@apply h-full rounded-lg;
 
-      .n-tab-pane {
-        @apply h-full flex flex-col rounded-lg px-1;
-      }
-    }
-  }
+			.n-tab-pane {
+				@apply h-full flex flex-col rounded-lg px-1;
+			}
+		}
+	}
 
-  .navigation-bar {
-    @apply flex items-center gap-2 p-1;
-  }
+	.navigation-bar {
+		@apply flex items-center gap-2 p-1;
+	}
 
-  .bookmark-grid {
-    @apply grid p-4;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1rem;
+	.bookmark-grid {
+		@apply grid p-4;
+		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+		gap: 1rem;
 
-    .bookmark-item {
-      @apply p-4 rounded-lg border border-solid border-gray-200 hover:bg-gray-50 cursor-pointer;
+		.bookmark-item {
+			@apply p-4 rounded-lg border border-solid border-gray-200 hover:bg-gray-50 cursor-pointer;
 
-      &.folder {
-        @apply bg-blue-50 hover:bg-blue-100;
-      }
+			&.folder {
+				@apply bg-blue-50 hover:bg-blue-100;
+			}
 
-      .bookmark-content {
-        @apply flex items-start gap-2;
-      }
+			.bookmark-content {
+				@apply flex items-start gap-2;
+			}
 
-      .bookmark-icon {
-        @apply text-xl;
-      }
+			.bookmark-icon {
+				@apply text-xl;
+			}
 
-      .bookmark-info {
-        @apply flex-1 min-w-0;
+			.bookmark-info {
+				@apply flex-1 min-w-0;
 
-        .bookmark-title {
-          @apply text-base font-medium line-clamp-1;
-        }
+				.bookmark-title {
+					@apply text-base font-medium line-clamp-1;
+				}
 
-        .bookmark-time {
-          @apply text-xs text-gray-500 mt-1;
-        }
-      }
-    }
-  }
+				.bookmark-time {
+					@apply text-xs text-gray-500 mt-1;
+				}
+			}
+		}
+	}
 }
 
 :global {
-  .n-modal-body-wrapper .n-modal-scroll-content {
-    @apply h-full;
-  }
-  .n-dialog.n-modal {
-    width: 80%;
-    // height: 70%;
-    aspect-ratio: 16/9;
-    @apply rounded-lg;
-  }
+	.n-modal-body-wrapper .n-modal-scroll-content {
+		@apply h-full;
+	}
+	.n-dialog.n-modal {
+		width: 80%;
+		// height: 70%;
+		aspect-ratio: 16/9;
+		@apply rounded-lg;
+	}
 }

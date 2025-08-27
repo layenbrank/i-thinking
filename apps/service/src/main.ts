@@ -36,8 +36,7 @@ async function bootstrap() {
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
 		preflightContinue: false /* 让 NestJS 自动处理预检请求。 */,
 		optionsSuccessStatus: 204 /* 设置预检请求成功时的状态码。 */,
-		credentials:
-			true /* 如果你的前端应用使用了凭据（cookies/session） true 允许请求携带凭据（如 cookies）。 */,
+		credentials: true /* 如果你的前端应用使用了凭据（cookies/session） true 允许请求携带凭据（如 cookies）。 */,
 		maxAge: 3 /* 预检请求的缓存时间（单位：秒）。 3600 */
 	})
 

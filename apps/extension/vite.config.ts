@@ -207,7 +207,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			},
 			preprocessorOptions: {
 				scss: {
-					api: 'modern-compiler'
+					// api: 'modern-compiler',
 					// importer: '',
 					// importers:"",
 					// functions: false,

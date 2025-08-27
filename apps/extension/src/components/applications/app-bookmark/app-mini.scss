@@ -1,33 +1,33 @@
 .app-bookmark-icon {
-  &.mini {
-    &.square {
-      @apply p-3;
+	&.mini {
+		&.square {
+			@apply p-3;
 
-      &.horizontal {
-      }
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.circle {
-      @apply p-3;
+		&.circle {
+			@apply p-3;
 
-      &.horizontal {
-      }
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.rectangle {
-      @apply p-[6px];
+		&.rectangle {
+			@apply p-[6px];
 
-      &.horizontal {
-      }
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
-  }
+			&.vertical {
+			}
+		}
+	}
 }

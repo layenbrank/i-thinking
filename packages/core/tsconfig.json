@@ -33,6 +33,7 @@
 		"src/**/*.vue",
 		"src/types/**/*.d.ts",
 		"src/shims-vue.d.ts",
-		"rollup.config.ts"
+		"rollup.config.ts",
+		"vite.config.ts"
 	]
 }

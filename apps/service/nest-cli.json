@@ -1,28 +1,28 @@
 {
-  "$schema": "https://json.schemastore.org/nest-cli",
-  "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
-  "compilerOptions": {
-    "deleteOutDir": true,
-    "tsConfigPath": "tsconfig.build.json",
+	"$schema": "https://json.schemastore.org/nest-cli",
+	"collection": "@nestjs/schematics",
+	"sourceRoot": "src",
+	"compilerOptions": {
+		"deleteOutDir": true,
+		"tsConfigPath": "tsconfig.build.json",
 
-    "assets": [
-      {
-        "include": "**/*.{json,yaml,yml}",
-        "outDir": "dist"
-      },
-      {
-        "include": ".env*",
-        "outDir": "dist"
-      },
-      {
-        "include": "static/**/*",
-        "outDir": "dist"
-      }
-    ],
-    "watchAssets": true
-  },
-  "generateOptions": {
-    "spec": true
-  }
+		"assets": [
+			{
+				"include": "**/*.{json,yaml,yml}",
+				"outDir": "dist"
+			},
+			{
+				"include": ".env*",
+				"outDir": "dist"
+			},
+			{
+				"include": "static/**/*",
+				"outDir": "dist"
+			}
+		],
+		"watchAssets": true
+	},
+	"generateOptions": {
+		"spec": true
+	}
 }

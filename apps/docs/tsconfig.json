@@ -1,34 +1,34 @@
 {
-  "compilerOptions": {
-    "composite": true,
+	"compilerOptions": {
+		"composite": true,
 
-    "declaration": true,
-    "declarationDir": "./typings",
-    "emitDeclarationOnly": true,
+		"declaration": true,
+		"declarationDir": "./typings",
+		"emitDeclarationOnly": true,
 
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
 
-    "resolveJsonModule": true,
-    "baseUrl": ".",
+		"resolveJsonModule": true,
+		"baseUrl": ".",
 
-    "rootDir": "src",
+		"rootDir": "src",
 
-    "outDir": "dist",
+		"outDir": "dist",
 
-    "paths": {
-      "@/*": ["src/*"]
-    },
+		"paths": {
+			"@/*": ["src/*"]
+		},
 
-    "types": ["vite/client"],
-    "tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo.core"
-  },
-  "exclude": ["dist", "node_modules"],
-  "include": [
-    "src/**/*.ts",
-    "src/types/**/*.d.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "src/shims-vue.d.ts"
-  ]
+		"types": ["vite/client"],
+		"tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo.core"
+	},
+	"exclude": ["dist", "node_modules"],
+	"include": [
+		"src/**/*.ts",
+		"src/types/**/*.d.ts",
+		"src/**/*.tsx",
+		"src/**/*.vue",
+		"src/shims-vue.d.ts"
+	]
 }

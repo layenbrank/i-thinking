@@ -1,26 +1,26 @@
 {
-  "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["NODE_ENV"],
-  "globalDependencies": [".env", "tsconfig.json"],
-  "tasks": {
-    "dev": {
-      "cache": false,
-      "persistent": true,
-      "outputLogs": "full",
-      "dependsOn": ["^build"]
-    },
-    "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**"],
-      "outputLogs": "full",
-      "cache": true
-    },
-    "preview": {
-      "dependsOn": ["build"],
-      "cache": false,
-      "outputLogs": "full"
-    },
-    "lint": {}
-  }
+	"$schema": "https://turbo.build/schema.json",
+	"globalEnv": ["NODE_ENV"],
+	"globalDependencies": [".env", "tsconfig.json"],
+	"tasks": {
+		"dev": {
+			"cache": false,
+			"persistent": true,
+			"outputLogs": "full",
+			"dependsOn": ["^build"]
+		},
+		"build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**"],
+			"outputLogs": "full",
+			"cache": true
+		},
+		"preview": {
+			"dependsOn": ["build"],
+			"cache": false,
+			"outputLogs": "full"
+		},
+		"lint": {}
+	}
 }

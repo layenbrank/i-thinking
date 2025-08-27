@@ -1,39 +1,39 @@
 .app-store-icon {
-  &.mini {
-    &.square {
-      @apply p-3;
+	&.mini {
+		&.square {
+			@apply p-3;
 
-      &.horizontal {
-        @apply p-[6px];
-      }
-      &.vertical {
-      }
-    }
+			&.horizontal {
+				@apply p-[6px];
+			}
+			&.vertical {
+			}
+		}
 
-    &.circle {
-      @apply p-3;
+		&.circle {
+			@apply p-3;
 
-      &.horizontal {
-        @apply p-2;
-        border-radius: calc(var(--app-global-width) / 2);
-      }
+			&.horizontal {
+				@apply p-2;
+				border-radius: calc(var(--app-global-width) / 2);
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.rectangle {
-      &.horizontal {
-        svg {
-          @apply h-full;
-        }
-      }
+		&.rectangle {
+			&.horizontal {
+				svg {
+					@apply h-full;
+				}
+			}
 
-      &.vertical {
-        svg {
-          @apply w-full;
-        }
-      }
-    }
-  }
+			&.vertical {
+				svg {
+					@apply w-full;
+				}
+			}
+		}
+	}
 }

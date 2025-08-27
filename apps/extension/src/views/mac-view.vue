@@ -46,7 +46,9 @@ function toggle() {
 	// visible.value = !visible.value
 }
 
-onMounted(function () {})
+onMounted(function () {
+	//
+})
 
 onUnmounted(function () {
 	Modal.destroyAll()

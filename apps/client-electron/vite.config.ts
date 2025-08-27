@@ -11,10 +11,8 @@ import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
-import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
+import { defineConfig } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
-import { VueMcp } from 'vite-plugin-vue-mcp'
-import pkg from './package.json'
 
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
@@ -24,7 +22,6 @@ export default defineConfig({
 	plugins: [
 		vue(),
 		vueJsx(),
-		VueMcp(),
 		vueDevTools(),
 		Icons({
 			compiler: 'vue3',
@@ -168,7 +165,7 @@ export default defineConfig({
 		},
 		preprocessorOptions: {
 			scss: {
-				api: 'modern-compiler'
+				// api: 'modern-compiler'
 				// additionalData: '@import "@/styles/variables.scss";',
 			}
 		}

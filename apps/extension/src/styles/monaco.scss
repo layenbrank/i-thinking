@@ -1,61 +1,61 @@
 /* Monaco编辑器全局样式 */
 .monaco-editor .monaco-editor-background,
 .monaco-editor .margin-view-overlays {
-  background-color: #1e1e1e;
+	background-color: #1e1e1e;
 }
 
 .monaco-editor .minimap-slider {
-  background: rgba(100, 100, 100, 0.2);
+	background: rgba(100, 100, 100, 0.2);
 }
 
 .monaco-editor .minimap-slider:hover {
-  background: rgba(100, 100, 100, 0.35);
+	background: rgba(100, 100, 100, 0.35);
 }
 
 .monaco-editor .minimap-slider.active {
-  background: rgba(0, 0, 0, 0.3);
+	background: rgba(0, 0, 0, 0.3);
 }
 
 /* 确保编辑器占满容器 */
 .monaco-editor {
-  width: 100%;
-  height: 100%;
+	width: 100%;
+	height: 100%;
 }
 
 /* 确保编辑器内容区域正确显示 */
 .monaco-editor .overflow-guard {
-  width: 100% !important;
-  height: 100% !important;
+	width: 100% !important;
+	height: 100% !important;
 }
 
 /* 确保语法高亮正确显示 */
 .monaco-editor .mtk1 {
-  color: #d4d4d4;
+	color: #d4d4d4;
 }
 .monaco-editor .mtk2 {
-  color: #1e1e1e;
+	color: #1e1e1e;
 }
 .monaco-editor .mtk3 {
-  color: #6a9955;
+	color: #6a9955;
 } /* 注释 */
 .monaco-editor .mtk4 {
-  color: #569cd6;
+	color: #569cd6;
 } /* 关键字 */
 .monaco-editor .mtk5 {
-  color: #d16969;
+	color: #d16969;
 } /* 正则表达式 */
 .monaco-editor .mtk6 {
-  color: #ce9178;
+	color: #ce9178;
 } /* 字符串 */
 .monaco-editor .mtk7 {
-  color: #b5cea8;
+	color: #b5cea8;
 } /* 数字 */
 .monaco-editor .mtk8 {
-  color: #4ec9b0;
+	color: #4ec9b0;
 } /* 类型 */
 .monaco-editor .mtk9 {
-  color: #dcdcaa;
+	color: #dcdcaa;
 } /* 函数 */
 .monaco-editor .mtk10 {
-  color: #9cdcfe;
+	color: #9cdcfe;
 } /* 变量 */
