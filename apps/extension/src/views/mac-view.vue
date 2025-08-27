@@ -138,7 +138,9 @@ onUnmounted(function () {
 					<app-controller />
 				</a-layout-content>
 				<a-layout-footer @contextmenu.prevent class="mac-footer">
-					<div class="dock-bar"></div>
+					<template #default>
+						<div class="dock-bar"></div>
+					</template>
 				</a-layout-footer>
 			</a-layout>
 
