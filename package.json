@@ -13,6 +13,8 @@
 		"dev:service": "turbo run dev --filter=@desktop-app/service",
 		"dev:devtools": "turbo run dev --filter=@desktop-app/devtools",
 		"dev:extension": "turbo run dev --filter=@desktop-app/extension",
+		"dev:client-react": "turbo run dev --filter=@desktop-app/client-react",
+		"dev-client:client-react": "turbo run dev-client --filter=@desktop-app/client-react",
 		"build": "turbo run build",
 		"build:docs": "turbo run build --filter=@desktop-app/docs",
 		"build:core": "turbo run build --filter=@desktop-app/core",
