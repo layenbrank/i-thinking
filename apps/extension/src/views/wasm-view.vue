@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import prepare, { chunk } from '@desktop-app/wasm'
+
 defineOptions({
 	name: 'wasm-view'
 })
@@ -15,7 +16,7 @@ async function handleFile(e: Event) {
 		const file = target.files[0]
 		if (file) {
 			const chunkSize = 1024 * 1024 // 1MB
-			chunk(file, chunkSize, 3)
+			await chunk(file, chunkSize, 3)
 			// console.log('File chunks:', chunks, 'arrayBuffer', chunks.arrayBuffer())
 		}
 	}
@@ -28,4 +29,18 @@ async function handleFile(e: Event) {
 	</div>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.wasm-view {
+	width: 80%;
+	margin: 0 auto;
+	height: 80%;
+	box-shadow: 0 0 1px 0 #000000;
+	border-radius: 6px;
+	padding: 10px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	row-gap: 10px;
+}
+</style>
