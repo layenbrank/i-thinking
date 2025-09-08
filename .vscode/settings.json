@@ -134,7 +134,9 @@
 		"package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .node-version, .npmrc",
 		"tailwind.config.ts": "postcss.config.js, tailwind.config.ts, tailwind.config.cjs, tailwind.config.mjs, tailwind.config.jsx, tailwind.config.tsx, tailwind.config.jsx",
 		"tsconfig.json": "tsconfig.*.json, env.d.ts",
-		"vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts"
+		"vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts",
+		"Dockerfile": "docker-compose.*, .dockerignore",
+		".editorconfig": ".browserslistrc,.lintstagedrc,.prettierrc*,.prettierignore"
 	},
 	"files.associations": {
 		"*.ts": "typescript",

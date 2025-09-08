@@ -1,10 +1,10 @@
-import { Schema, Prop, raw, SchemaFactory } from '@nestjs/mongoose'
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { Document } from 'mongoose'
 
 @Schema({
 	timestamps: true,
 	toJSON: {
-		transform: (_, ret) => {
+		transform: (_, ret: UploadDocument & { __v }) => {
 			delete ret.__v
 			delete ret.path
 		}

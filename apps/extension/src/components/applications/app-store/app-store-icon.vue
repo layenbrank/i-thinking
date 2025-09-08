@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Add } from '@vicons/ionicons5'
 defineOptions({
 	name: 'app-store-icon'
 })

@@ -1,14 +1,15 @@
+import type { HttpRequest } from '@ngify/http'
 import {
 	HttpClient,
 	HttpContextToken,
-	HttpRequest,
 	HttpResponse,
 	withFetch,
 	withInterceptors,
 	type HttpEvent,
 	type HttpHandlerFn
 } from '@ngify/http'
-import { Observable, of, tap } from 'rxjs'
+import type { Observable } from 'rxjs'
+import { of, tap } from 'rxjs'
 
 /** 缓存条目 */
 export interface CacheEntry {

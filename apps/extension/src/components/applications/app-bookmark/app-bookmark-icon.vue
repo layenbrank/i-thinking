@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Folder } from '@vicons/ionicons5'
-
 defineOptions({
 	name: 'app-bookmark-icon'
 })
@@ -11,7 +9,7 @@ defineOptions({
 
 <template>
 	<div class="app-bookmark-icon">
-		<Folder class="folder" />
+		<div class="folder" />
 	</div>
 </template>
 

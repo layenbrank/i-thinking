@@ -4,6 +4,7 @@
 	"exclude": ["nodu_modules", "dist"],
 	"compilerOptions": {
 		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
@@ -12,6 +13,7 @@
 			"vite/client",
 			"@types/chrome",
 			"reflect-metadata",
+			"unplugin-icons/types/vue3",
 			"ant-design-vue/typings/global",
 			"@desktop-app/core/directives",
 			"@desktop-app/shared/response",
@@ -25,7 +27,8 @@
 			"@desktop-app/shared/application-settings",
 			"@desktop-app/shared/application-backup"
 		],
-
+		"rootDir": ".",
+		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./src/*"]
 		}

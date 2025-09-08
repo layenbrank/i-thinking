@@ -22,13 +22,18 @@ export function generateSecureCvid(): string {
 	const array = new Uint8Array(16)
 	window.crypto.getRandomValues(array)
 
-	// 设置版本位（GUID v4标准）
-	array[6] = (array[6] & 0x0f) | 0x40
-	array[8] = (array[8] & 0x3f) | 0x80
+	// 设置版本位（GUID v4标准） — 拆分读取并判断 undefined 后再写回
+	const byte6 = array[6] ?? 0
+	array[6] = (byte6 & 0x0f) | 0x40
+
+	const byte8 = array[8] ?? 0
+	array[8] = (byte8 & 0x3f) | 0x80
 
 	// 转换为十六进制字符串
 	return Array.from(array)
-		.map((b) => b.toString(16).padStart(2, '0'))
+		.map(function (b) {
+			return b.toString(16).padStart(2, '0')
+		})
 		.join('')
 		.toUpperCase()
 }

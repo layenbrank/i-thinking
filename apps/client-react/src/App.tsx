@@ -1,50 +1,63 @@
-import '@/App.css'
-import reactLogo from '@/assets/react.svg'
-import { invoke } from '@tauri-apps/api/core'
-import { useState } from 'react'
+import RouterView from '@/routers/routes.tsx'
+import { http } from '@/utils/http.ts'
+import { ConfigProvider, theme, type ThemeConfig } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
+import { StrictMode } from 'react'
+import { BrowserRouter } from 'react-router-dom'
+import { defer, retry } from 'rxjs'
+
+dayjs.locale('zh-cn')
+
+const themeConfigure: ThemeConfig = {
+	algorithm: theme.defaultAlgorithm,
+	token: {
+		colorPrimary: '#4080ff'
+	},
+	components: {
+		Button: {
+			algorithm: true
+		},
+		Input: {
+			algorithm: true
+		},
+		Layout: {
+			algorithm: true,
+			headerBg: '#000000',
+			bodyBg: '#f5f5f5',
+			footerBg: '#ffffff'
+		},
+		Menu: {
+			algorithm: true,
+			itemBg: '#000000',
+			colorText: '#ffffff'
+		}
+	}
+}
 
 function App() {
-	const [greetMsg, setGreetMsg] = useState('')
-	const [name, setName] = useState('')
-
-	async function greet() {
-		// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-		setGreetMsg(await invoke('greet', { name }))
-	}
+	defer(function () {
+		return http.get('')
+	})
+		.pipe(retry(3))
+		.subscribe({
+			next(value) {
+				console.log('value')
+			},
+			error(err) {
+				console.log('error', err)
+			}
+		})
 
 	return (
-		<main className="container">
-			<h1>Welcome to Tauri + React</h1>
-
-			<div className="row">
-				<a href="https://vite.dev" target="_blank">
-					<img src="/vite.svg" className="logo vite" alt="Vite logo" />
-				</a>
-				<a href="https://tauri.app" target="_blank">
-					<img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-				</a>
-				<a href="https://react.dev" target="_blank">
-					<img src={reactLogo} className="logo react" alt="React logo" />
-				</a>
-			</div>
-			<p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-			<form
-				className="row"
-				onSubmit={(e) => {
-					e.preventDefault()
-					greet()
-				}}
-			>
-				<input
-					id="greet-input"
-					onChange={(e) => setName(e.currentTarget.value)}
-					placeholder="Enter a name..."
-				/>
-				<button type="submit">Greet</button>
-			</form>
-			<p>{greetMsg}</p>
-		</main>
+		<StrictMode>
+			<ConfigProvider theme={themeConfigure} locale={zhCN}>
+				<BrowserRouter>
+					<RouterView />
+				</BrowserRouter>
+			</ConfigProvider>
+		</StrictMode>
 	)
 }
 

@@ -34,6 +34,7 @@ export function useBookMark() {
 				else {
 					const [folder] = folders
 					console.log('activeFolder', folder)
+					if (!folder) return
 
 					activeFolder.value = folder
 				}
@@ -50,7 +51,7 @@ export function useBookMark() {
 			})
 		).pipe(
 			tap(function (response) {
-				if (isEmpty(response)) handleRefreshBookmarks()
+				if (isEmpty(response)) void handleRefreshBookmarks()
 			})
 		)
 	)
@@ -85,15 +86,15 @@ export function useBookMark() {
 
 		const parsed = parseBookmarkTree(bookmarkTreeRes)
 
-		database.bookmark.bulkPut(parsed.bookmarks)
-		database.bookmarkFolder.bulkPut(parsed.folders)
+		void database.bookmark.bulkPut(parsed.bookmarks)
+		void database.bookmarkFolder.bulkPut(parsed.folders)
 
 		for (const folder of parsed.folders) {
 			await database.bookmark
 				.where('folderID')
 				.equals(folder.id)
 				.count(function (count) {
-					database.bookmarkFolder.update(folder.id, {
+					void database.bookmarkFolder.update(folder.id, {
 						count
 					})
 				})

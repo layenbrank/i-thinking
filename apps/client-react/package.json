@@ -4,11 +4,11 @@
 	"version": "0.1.0",
 	"type": "module",
 	"scripts": {
-		"dev": "vite",
+		"dev-web": "vite",
 		"build": "tsc && vite build",
 		"preview": "vite preview",
 		"tauri": "tauri",
-		"dev-client": "tauri dev"
+		"dev": "tauri dev"
 	},
 	"dependencies": {},
 	"devDependencies": {}

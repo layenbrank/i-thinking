@@ -199,7 +199,7 @@ export const useAppStore = defineStore('app', function () {
 			})
 		).pipe(
 			tap(function (resp) {
-				if (isEmpty(resp)) database.application.bulkAdd(DEFAULT)
+				if (isEmpty(resp)) void database.application.bulkAdd(DEFAULT)
 				console.log('applications', resp)
 			})
 		)

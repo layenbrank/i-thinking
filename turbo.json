@@ -9,12 +9,6 @@
 			"outputLogs": "full",
 			"dependsOn": ["^build"]
 		},
-		"dev-client": {
-			"cache": false,
-			"persistent": true,
-			"outputLogs": "full",
-			"dependsOn": ["^build"]
-		},
 		"build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],

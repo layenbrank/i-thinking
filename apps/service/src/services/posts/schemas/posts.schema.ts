@@ -1,7 +1,7 @@
-import { Schema, SchemaFactory, Prop } from '@nestjs/mongoose'
-import { Document, Types } from 'mongoose'
 import { User } from '@/services/auth/schemas/auth.schema'
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { Type } from 'class-transformer'
+import { Document, Types } from 'mongoose'
 
 export type PostDocument = Post & Document
 
@@ -9,7 +9,7 @@ export type PostDocument = Post & Document
 	timestamps: true,
 	toJSON: {
 		virtuals: true,
-		transform: function (doc, ret) {
+		transform: function (doc, ret: PostDocument & { __v }) {
 			delete ret.__v
 			delete ret._id
 			delete ret.author.id

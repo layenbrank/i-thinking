@@ -92,7 +92,7 @@ function updateApplication(bookmark: Bookmark) {
 	const bookmarkApp = toRaw(bookmark)
 
 	try {
-		appStore.updateApplication(bookmark.id, {
+		void appStore.updateApplication(bookmark.id, {
 			name: bookmarkApp.title,
 			url: bookmarkApp.url,
 			shape: 'circle',

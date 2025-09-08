@@ -1,5 +1,9 @@
 import type { ApplicationReflect } from '@desktop-app/shared/app-controller'
-import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
+// import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
+import Download from '~icons/ant-design/cloud-download-outlined'
+import Cloud from '~icons/ant-design/cloud-upload-outlined'
+import Add from '~icons/ant-design/plus-circle-outlined'
+import Settings from '~icons/ant-design/setting-outlined'
 
 // import SlideView from '@/assets/wallpaper/slide-view-bg.jpg'
 
