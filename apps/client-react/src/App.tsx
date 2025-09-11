@@ -1,12 +1,10 @@
 import RouterView from '@/routers/routes.tsx'
-import { http } from '@/utils/http.ts'
 import { ConfigProvider, theme, type ThemeConfig } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { StrictMode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
-import { defer, retry } from 'rxjs'
 
 dayjs.locale('zh-cn')
 
@@ -37,18 +35,18 @@ const themeConfigure: ThemeConfig = {
 }
 
 function App() {
-	defer(function () {
-		return http.get('')
-	})
-		.pipe(retry(3))
-		.subscribe({
-			next(value) {
-				console.log('value')
-			},
-			error(err) {
-				console.log('error', err)
-			}
-		})
+	// defer(function () {
+	// 	return http.get('')
+	// })
+	// 	.pipe(retry(3))
+	// 	.subscribe({
+	// 		next(value) {
+	// 			console.log('value')
+	// 		},
+	// 		error(err) {
+	// 			console.log('error', err)
+	// 		}
+	// 	})
 
 	return (
 		<StrictMode>

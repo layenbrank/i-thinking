@@ -12,6 +12,7 @@ type ApplicationName =
 	| 'app-notepad'
 	| 'app-store'
 	| 'app-web'
+	| 'app-clipchamp'
 	| 'app-settings'
 	| 'app-example'
 

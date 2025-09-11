@@ -1,6 +1,6 @@
 {
 	"extends": "@vue/tsconfig/tsconfig.dom.json",
-	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"],
+	"include": ["src/**/*.js", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"],
 	"exclude": ["nodu_modules", "dist"],
 	"compilerOptions": {
 		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
@@ -12,6 +12,7 @@
 		"types": [
 			"vite/client",
 			"@types/chrome",
+			"@ffmpeg/types",
 			"reflect-metadata",
 			"unplugin-icons/types/vue3",
 			"ant-design-vue/typings/global",

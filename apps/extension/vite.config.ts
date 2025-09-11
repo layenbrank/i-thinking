@@ -1,6 +1,7 @@
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { findUpSync } from 'find-up'
+import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -11,6 +12,7 @@ import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
+// import wasm from 'vite-plugin-wasm'
 import pkg from './package.json'
 
 // 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
@@ -59,6 +61,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 		base: `/${pkg.name.replace(/^@desktop-app\//, '')}/`,
 		plugins: [
 			vue(),
+			// wasm(),
 			vueJsx(),
 			vueDevTools(),
 			Icons({
@@ -106,7 +109,14 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 		},
 		optimizeDeps: {
 			include: ['vue', 'vue-router', 'pinia'],
-			exclude: ['@desktop-app/wasm']
+			exclude: [
+				'@desktop-app/wasm',
+				'@ffmpeg/ffmpeg',
+				'@ffmpeg/util',
+				'ffmpeg-core.js',
+				'ffmpeg-core.wasm',
+				'ffmpeg-core.worker.js'
+			]
 		},
 		build: {
 			target: 'es2023',
@@ -212,6 +222,14 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 		},
 		server: {
 			port: 1024,
+			headers: {
+				'Cross-Origin-Opener-Policy': 'same-origin',
+				'Cross-Origin-Embedder-Policy': 'require-corp'
+			},
+			https: {
+				key: readFileSync('key.pem'),
+				cert: readFileSync('cert.pem')
+			},
 			proxy: {
 				'/bing': {
 					target: 'https://cn.bing.com',

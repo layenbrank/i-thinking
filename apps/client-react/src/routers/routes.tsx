@@ -1,4 +1,4 @@
-import HomeView from '@/views/Home/HomeView.tsx'
+import DesktopView from '@/views/desktop/DesktopView'
 import { Navigate, useRoutes } from 'react-router-dom'
 
 export default function RouterView() {
@@ -9,7 +9,7 @@ export default function RouterView() {
 		},
 		{
 			path: '/home-view',
-			element: <HomeView />
+			element: <DesktopView />
 		}
 	])
 }

@@ -2,7 +2,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export default {
 	path: '/',
-	redirect: '/wasm-view',
+	redirect: '/clipchamp-view',
 	children: [
 		{
 			path: '/base-view',
@@ -23,6 +23,11 @@ export default {
 			path: '/wasm-view',
 			name: 'wasm-view',
 			component: () => import('@/views/wasm-view.vue')
+		},
+		{
+			path: '/clipchamp-view',
+			name: 'clipchamp-view',
+			component: () => import('@/views/clipchamp-view.vue')
 		},
 		{
 			path: '/:pathMatch(.*)*',

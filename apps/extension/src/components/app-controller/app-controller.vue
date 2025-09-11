@@ -37,9 +37,11 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 			if (!Object.prototype.hasOwnProperty.call(appStore.applications, index)) return
 
 			const app = appStore.applications[Number(index)]
-
+			if (!app) continue
 			if (app.id !== appStore.activeApp?.id) continue
-			app.size = sizes[Math.round(Math.random() * sizes.length)]
+			const size = sizes[Math.round(Math.random() * sizes.length)]
+			if (!size) continue
+			app.size = size
 		}
 	},
 	'update-wallpaper'() {},
@@ -117,7 +119,7 @@ function closeContextMenu(_e: MouseEvent) {
 function handleConfirm(value: any) {
 	console.log('handleConfirm', value)
 	if (!appStore.activeApp) return
-	appStore.updateApplication(appStore.activeApp.id, {
+	void appStore.updateApplication(appStore.activeApp.id, {
 		...toRaw(appStore.activeApp),
 		...toRaw(value)
 	})
@@ -156,13 +158,15 @@ function sortableHandler() {
 					const ID = toArray[i]
 
 					for (let j = 0; j < appStore.applications!.length; j++) {
-						const application = toRaw(appStore.applications![j])
+						if (!appStore.applications) continue
+						const application = toRaw(appStore.applications[j])
+						if (!application) continue
 						if (application.id !== ID) continue
 						applications.push({ ...application, sort: i })
 					}
 				}
 				console.log('applications', applications)
-				appStore.updateApplications(applications)
+				void appStore.updateApplications(applications)
 			},
 			get(sortable) {
 				const toArray = appStore.applications?.map((application) => application.id)

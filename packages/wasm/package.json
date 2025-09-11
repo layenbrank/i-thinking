@@ -14,5 +14,16 @@
 	"types": "index.d.ts",
 	"sideEffects": [
 		"./snippets/*"
-	]
+	],
+	"exports": {
+		"./ffmpeg-core.js": {
+			"import": "./ffmpeg-core.js"
+		},
+		"./ffmpeg-core.wasm": {
+			"import": "./ffmpeg-core.wasm"
+		},
+		"./ffmpeg-core.worker.js": {
+			"import": "./ffmpeg-core.worker.js"
+		}
+	}
 }
