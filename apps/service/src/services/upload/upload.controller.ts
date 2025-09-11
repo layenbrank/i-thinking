@@ -1,28 +1,26 @@
 import {
-	Controller,
-	Get,
-	Post,
+	BadRequestException,
 	Body,
-	Patch,
-	Param,
+	Controller,
 	Delete,
-	UseInterceptors,
+	Get,
+	Param,
+	Patch,
+	Post,
+	Req,
 	UploadedFile,
 	UploadedFiles,
-	Req,
-	BadRequestException
+	UseInterceptors
 } from '@nestjs/common'
-import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express'
-import { resolve, extname, basename } from 'node:path'
-import { diskStorage } from 'multer'
-import type { Request } from 'express'
-import { statSync, mkdirSync } from 'node:fs'
-import process from 'node:process'
-
-import { UploadService } from './upload.service'
-import { CreateUploadDto } from './dto/create-upload.dto'
-import { UpdateUploadDto } from './dto/update-upload.dto'
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
+import type { Request } from 'express'
+import { diskStorage } from 'multer'
+import { mkdirSync, statSync } from 'node:fs'
+import { extname, resolve } from 'node:path'
+import process from 'node:process'
+import { UpdateUploadDto } from './dto/update-upload.dto'
+import { UploadService } from './upload.service'
 
 @ApiTags('Upload API 模块')
 @Controller('upload')

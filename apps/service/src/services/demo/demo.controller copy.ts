@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
-import * as cheerio from 'cheerio'
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
 import axios from 'axios'
+import * as cheerio from 'cheerio'
 import { DemoService } from './demo.service'
 import { CreateDemoDto } from './dto/create-demo.dto'
 import { UpdateDemoDto } from './dto/update-demo.dto'
@@ -43,7 +43,7 @@ export class TestController {
 				data: pageData,
 				message: '爬取完成'
 			}
-		} catch (error) {
+		} catch (error: any) {
 			return {
 				success: false,
 				error: error.message,

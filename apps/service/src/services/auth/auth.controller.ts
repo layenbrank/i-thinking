@@ -1,18 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
-import {
-	ApiOperation,
-	ApiBearerAuth,
-	ApiParam,
-	ApiQuery,
-	ApiBody,
-	ApiResponse,
-	ApiTags,
-	ApiProperty
-} from '@nestjs/swagger'
+import { NoAuthToken } from '@/decorator/noAuthToken.decorator'
+import { Body, Controller, Post } from '@nestjs/common'
+import { ApiBody, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
 import { CreateAuthDto } from './dto/create-auth.dto'
-import { UpdateAuthDto } from './dto/update-auth.dto'
-import { NoAuthToken } from '@/decorator/noAuthToken.decorator'
 
 @ApiTags('Auth API 模块')
 @Controller('auth')

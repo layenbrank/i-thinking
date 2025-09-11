@@ -1,12 +1,10 @@
-import { Injectable, UseInterceptors } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
-import { zip } from 'compressing'
 import { basename } from 'node:path'
-import { Upload, UploadDocument } from './schemas/upload.schema'
-import { CreateUploadDto } from './dto/create-upload.dto'
 import { UpdateUploadDto } from './dto/update-upload.dto'
+import { Upload, type UploadDocument } from './schemas/upload.schema'
 
 @Injectable()
 export class UploadService {

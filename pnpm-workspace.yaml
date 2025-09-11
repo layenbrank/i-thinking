@@ -1,11 +1,14 @@
 packages:
   - apps/*
   - packages/*
+
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@parcel/watcher'
   - '@scarf/scarf'
+  - '@swc/core'
   - core-js
   - electron
   - esbuild
   - msw
+  - unrs-resolver

@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common'
-import { Model, Types } from 'mongoose'
-import { Post, PostDocument } from './schemas/posts.schema'
-import { CreatePostDto } from './dto/create-post.dto'
-import { UpdatePostDto } from './dto/update-post.dto'
 import { InjectModel } from '@nestjs/mongoose'
 import type { Request } from 'express'
-import { User, UserDocument } from '@/services/auth/schemas/auth.schema'
+import { Model } from 'mongoose'
+import { CreatePostDto } from './dto/create-post.dto'
+import { UpdatePostDto } from './dto/update-post.dto'
+import { Post, type PostDocument } from './schemas/posts.schema'
 
 @Injectable()
 export class PostsService {
@@ -13,17 +12,18 @@ export class PostsService {
 	create(req: Request, createPostDto: CreatePostDto) {
 		const { title, content } = createPostDto
 		// 确保 author 字段是 ObjectId 类型
-		const authorId = new Types.UUID(req.user['id'])
+		// const authorId = new Types.UUID(req.user['id'])
+
 		const post = new this.postsModel({
 			title,
-			content,
-			author: authorId
+			content
+			// author: authorId
 		})
 		return post.save()
 	}
 
 	async findAll(req: Request) {
-		const authorId = new Types.UUID(req.user['id'])
+		// const authorId = new Types.UUID(req.user['id'])
 		// const posts = await this.postsModel
 		//   .find({
 		//     author: authorId, // author posts.schema中定义的字段名
@@ -64,7 +64,7 @@ export class PostsService {
 				},
 				{
 					$match: {
-						author: req.user['username']
+						// author: req.user['username']
 					}
 				}
 			])

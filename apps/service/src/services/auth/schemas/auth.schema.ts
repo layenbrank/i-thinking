@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { Document } from 'mongoose'
+import { Document, type Default__v } from 'mongoose'
 
 // 用于表示MongoDB中用户文档的类型
 export type UserDocument = User & Document
@@ -11,16 +11,16 @@ export type UserDocument = User & Document
 	// 返回信息时，自动toJSON要把密码字段隐藏掉
 	toJSON: {
 		virtuals: true,
-		transform(doc, ret: UserDocument & { __v }) {
-			delete ret.__v
+		transform(doc, ret: Default__v<Partial<UserDocument>>, options) {
+			// delete ret.__v
 			delete ret._id
 			delete ret.password
 		}
 	},
 	toObject: {
 		virtuals: true,
-		transform(doc, ret: UserDocument & { __v }) {
-			delete ret.__v
+		transform(doc, ret: Default__v<Partial<UserDocument>>, options) {
+			// delete ret.__v
 			delete ret._id
 			delete ret.password
 		}

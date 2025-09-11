@@ -1,19 +1,18 @@
 import {
-	Controller,
-	Get,
-	Post,
 	Body,
-	Patch,
-	Param,
-	Query,
+	Controller,
 	Delete,
-	HttpException
+	Get,
+	HttpException,
+	Param,
+	Patch,
+	Post,
+	Query
 } from '@nestjs/common'
+import axios, { type AxiosInstance } from 'axios'
 import * as cheerio from 'cheerio'
-import axios, { AxiosInstance } from 'axios'
+import { createWriteStream } from 'node:fs'
 import { resolve } from 'node:path'
-import * as prettier from 'prettier'
-import { readFileSync, writeFileSync, createWriteStream, createReadStream } from 'node:fs'
 
 import { DemoService } from './demo.service'
 import { CreateDemoDto } from './dto/create-demo.dto'
@@ -66,6 +65,7 @@ export class DemoController {
 	private rotateProxy() {
 		this.currentProxyIndex = (this.currentProxyIndex + 1) % this.proxyList.length
 		const proxy = this.proxyList[this.currentProxyIndex]
+		if (!proxy) return Promise.resolve()
 		this.axiosInstance.defaults.proxy = {
 			host: new URL(proxy).hostname,
 			port: Number(new URL(proxy).port),
@@ -87,12 +87,12 @@ export class DemoController {
 				data: response.data,
 				message: '获取笔记成功'
 			}
-		} catch (error) {
+		} catch (error: any) {
 			throw new HttpException(
 				{
 					success: false,
 					message: '获取笔记失败',
-					error: error.message
+					error: error?.message
 				},
 				error.response?.status || 500
 			)
@@ -118,12 +118,12 @@ export class DemoController {
 				data: response.data,
 				message: '获取推荐内容成功'
 			}
-		} catch (error) {
+		} catch (error: any) {
 			throw new HttpException(
 				{
 					success: false,
 					message: '获取推荐内容失败',
-					error: error.message
+					error: error?.message
 				},
 				error.response?.status || 500
 			)
@@ -151,7 +151,7 @@ export class DemoController {
 				data: response.data,
 				message: '搜索成功'
 			}
-		} catch (error) {
+		} catch (error: any) {
 			throw new HttpException(
 				{
 					success: false,
@@ -195,7 +195,7 @@ export class DemoController {
 				encoding: 'utf-8'
 			})
 
-			//       // 添加基本的 HTML 格式化
+			// 添加基本的 HTML 格式化
 			const formattedHtml = response.data
 				.replace(/>\s+</g, '>\n<') // 在标签之间添加换行
 				.replace(/</g, '\n<') // 在开始标签前添加换行
@@ -216,7 +216,7 @@ export class DemoController {
 				data: pageData,
 				message: '爬取完成'
 			}
-		} catch (error) {
+		} catch (error: any) {
 			return {
 				success: false,
 				error: error.message,

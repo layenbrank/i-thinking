@@ -1,5 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
-
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
 import { ConsoleService } from './console.service'
 import { CreateConsoleDto } from './dto/create-console.dto'
 import { UpdateConsoleDto } from './dto/update-console.dto'

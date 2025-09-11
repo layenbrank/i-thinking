@@ -1,29 +1,37 @@
 {
 	"compilerOptions": {
-		"module": "commonjs",
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"resolvePackageJsonExports": true,
+		"esModuleInterop": true,
+		"isolatedModules": true,
 		"declaration": true,
 		"removeComments": true,
 		"emitDecoratorMetadata": true,
 		"experimentalDecorators": true,
 		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true,
-
-		"resolveJsonModule": true,
-
-		"target": "ES2021",
+		"target": "esnext",
 		"sourceMap": true,
-
+		"outDir": "dist",
+		"baseUrl": ".",
 		"incremental": true,
 		"skipLibCheck": true,
+		"strictNullChecks": true,
+		"forceConsistentCasingInFileNames": true,
+		"noImplicitAny": true,
+		"strictBindCallApply": true,
+		"allowImportingTsExtensions": false,
+		"noFallthroughCasesInSwitch": true,
 
-		"strictNullChecks": false,
-		"noImplicitAny": false,
-		"strictBindCallApply": false,
-		"forceConsistentCasingInFileNames": false,
-		"noFallthroughCasesInSwitch": false,
+		// 新增的严格选项
+		"noImplicitThis": true,
+		"noImplicitReturns": true,
+		"strictFunctionTypes": true,
+		"noUncheckedIndexedAccess": true,
+		"strictPropertyInitialization": false,
 
-		"outDir": "./dist",
-		"baseUrl": "./",
+		"types": ["node", "@desktop-app/shared/process-env"],
+
 		"paths": {
 			"@/*": ["src/*"]
 		}

@@ -1,5 +1,5 @@
-import { Injectable, NestMiddleware } from '@nestjs/common'
-import { Request, Response, NextFunction } from 'express'
+import { Injectable, type NestMiddleware } from '@nestjs/common'
+import { type NextFunction, type Request, type Response } from 'express'
 
 /**
  * 日志中间件

@@ -1,12 +1,12 @@
 import {
-	ExceptionFilter,
 	Catch,
-	ArgumentsHost,
 	HttpException,
 	HttpStatus,
-	Logger
+	Logger,
+	type ArgumentsHost,
+	type ExceptionFilter
 } from '@nestjs/common'
-import { Request, Response } from 'express'
+import type { Request, Response } from 'express'
 
 /**
  * HTTP异常过滤器
@@ -35,8 +35,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
 		const request = ctx.getRequest<Request>()
 
 		// 获取客户端 IP 地址（从中间件中获取或回退到请求对象的 IP）
-		const clientIp = request['clientIp'] || request.ip || 'unknown'
-		const requestId = request['requestId'] || request.headers['x-request-id'] || 'unknown'
+		// const clientIp = request['clientIp'] || request.ip || 'unknown'
+		// const requestId = request['requestId'] || request.headers['x-request-id'] || 'unknown'
 		const method = request.method
 		const url = request.url
 		const userAgent = request.headers['user-agent'] || '-'
@@ -72,27 +72,27 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
 		// 记录错误日志
 		const logMethod = status >= 500 ? 'error' : 'warn'
-		this.logger[logMethod](
-			`${method} ${url} - 错误 ${status} - IP: ${clientIp}${userId ? ` - User: ${userId}` : ''} - ReqID: ${requestId} - ${message}`,
-			{
-				context: 'HTTP',
-				requestId,
-				method,
-				url,
-				statusCode: status,
-				errorCode,
-				message,
-				ip: clientIp,
-				userId: userId || undefined,
-				type: 'request-error',
-				errorType: status >= 500 ? 'server-error' : 'client-error',
-				query: this.sanitizeObject(request.query),
-				...(process.env.NODE_ENV === 'development'
-					? { body: this.sanitizeObject(request.body) }
-					: {}),
-				stack: exception.stack
-			}
-		)
+		// this.logger[logMethod](
+		// 	// `${method} ${url} - 错误 ${status} - IP: ${clientIp}${userId ? ` - User: ${userId}` : ''} - ReqID: ${requestId} - ${message}`,
+		// 	{
+		// 		context: 'HTTP',
+		// 		// requestId,
+		// 		method,
+		// 		url,
+		// 		statusCode: status,
+		// 		errorCode,
+		// 		message,
+		// 		// ip: clientIp,
+		// 		userId: userId || undefined,
+		// 		type: 'request-error',
+		// 		errorType: status >= 500 ? 'server-error' : 'client-error',
+		// 		query: this.sanitizeObject(request.query),
+		// 		...(process.env.NODE_ENV === 'development'
+		// 			? { body: this.sanitizeObject(request.body) }
+		// 			: {}),
+		// 		stack: exception.stack
+		// 	}
+		// )
 
 		// 返回统一的错误响应格式
 		response.status(status).json({
@@ -101,8 +101,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
 			success: false,
 			data: null,
 			timestamp: new Date().toISOString(),
-			path: url,
-			requestId
+			path: url
+			// requestId
 		})
 	}
 

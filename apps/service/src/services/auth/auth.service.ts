@@ -1,11 +1,10 @@
+import { decrypt, encrypt } from '@/utils/crypto.util'
 import { HttpException, Injectable } from '@nestjs/common'
-import { InjectModel } from '@nestjs/mongoose'
 import { JwtService } from '@nestjs/jwt'
-import { CreateAuthDto } from './dto/create-auth.dto'
-import { UpdateAuthDto } from './dto/update-auth.dto'
-import { User, UserDocument } from './schemas/auth.schema'
-import { encrypt, decrypt } from '@/utils/crypto.util'
+import { InjectModel } from '@nestjs/mongoose'
 import type { Model } from 'mongoose'
+import { CreateAuthDto } from './dto/create-auth.dto'
+import { User, type UserDocument } from './schemas/auth.schema'
 
 @Injectable()
 export class AuthService {
@@ -30,8 +29,8 @@ export class AuthService {
 			id: user._id
 		})
 
-		delete user.password
-		delete user.__v
+		// delete user.password
+		// delete user.__v
 
 		return {
 			token,

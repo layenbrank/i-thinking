@@ -1,22 +1,15 @@
+import { HttpExceptionFilter } from '@/filters/http-exception.filter'
+import { ResponseInterceptor } from '@/interceptors/response-interceptor'
 import {
 	HttpStatus,
-	Logger,
 	UnprocessableEntityException,
 	ValidationPipe,
 	VersioningType
 } from '@nestjs/common'
-
-import { resolve } from 'node:path'
-import process from 'node:process'
-import os from 'os'
-
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
-
-import { HttpExceptionFilter } from '@/filters/http-exception.filter'
-import { ResponseInterceptor } from '@/interceptors/response-interceptor'
 import { AppModule } from './app.module'
 
 async function bootstrap() {
@@ -49,13 +42,14 @@ async function bootstrap() {
 			errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
 			stopAtFirstError: true,
 			exceptionFactory(errors) {
-				return new UnprocessableEntityException(
-					errors.map((e) => {
-						const rule = Object.keys(e.constraints)[0]
-						const msg = e.constraints[rule]
-						return msg
-					})[0]
-				)
+				const [error] = errors.map(function (e) {
+					if (!e.constraints) return 'exceptionFactory 参数错误'
+					const [rule] = Object.keys(e.constraints)
+					if (!rule) return 'exceptionFactory 参数错误'
+					const msg = e.constraints[rule]
+					return msg
+				})
+				return new UnprocessableEntityException(error)
 			}
 		})
 	)
@@ -70,28 +64,21 @@ async function bootstrap() {
 		.addBearerAuth()
 		.build()
 
-	// const port = 3000;
-	// // const hostname = '192.168.0.26';
-	// const hostname = '172.20.10.4';
-
-	// await app.listen(port, hostname, function () {
-	//   console.log(`Application is running on: http://${hostname}:${port}`);
-	// });
-
 	const document = SwaggerModule.createDocument(app, swaggerOptions)
 	SwaggerModule.setup('/api/docs', app, document)
 
 	const configService = new ConfigService()
 
-	await app.listen(configService.get('PORT'))
+	const PORT = configService.get<string>('PORT')
 
-	const API_URL = configService.get('API_URL')
-	const API_URL_PROD = configService.get('PORT')
+	await app.listen(PORT || '3000')
 
-	const info = `Server is running on http://${API_URL}:${API_URL_PROD}`
-	const docs = `Docs is running on http://${API_URL}:${API_URL_PROD}/api/docs`
+	const API_URL = configService.get<string>('API_URL')
 
-	console.log(info)
-	console.log(docs)
+	const info = `Server is running on http://${API_URL}:${PORT}`
+	const docs = `Docs is running on http://${API_URL}:${PORT}/api/docs`
+
+	console.log('info', info)
+	console.log('docs', docs)
 }
-bootstrap()
+void bootstrap()

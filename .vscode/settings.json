@@ -126,17 +126,17 @@
 	"explorer.fileNesting.enabled": true,
 	"explorer.fileNesting.expand": false,
 	"explorer.fileNesting.patterns": {
+		".editorconfig": ".browserslistrc,.lintstagedrc,.prettierrc*,.prettierignore",
 		".gitignore": ".gitattributes, .gitconfig, .gitpod.yml, .git*, git*",
 		"*.env": "$(capture).env.*",
 		"dist.pem": "dist.*",
+		"Dockerfile": "docker-compose.*, .dockerignore",
 		"eslint.config.ts": ".eslint*, eslint*, .prettier*, prettier*, .editorconfig, .lintstagedrc, .browserslistrc",
 		"index.html": "*.html",
 		"package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .node-version, .npmrc",
 		"tailwind.config.ts": "postcss.config.js, tailwind.config.ts, tailwind.config.cjs, tailwind.config.mjs, tailwind.config.jsx, tailwind.config.tsx, tailwind.config.jsx",
 		"tsconfig.json": "tsconfig.*.json, env.d.ts",
-		"vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts",
-		"Dockerfile": "docker-compose.*, .dockerignore",
-		".editorconfig": ".browserslistrc,.lintstagedrc,.prettierrc*,.prettierignore"
+		"vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts"
 	},
 	"files.associations": {
 		"*.ts": "typescript",
@@ -244,7 +244,7 @@
 	"scss.hover.documentation": true,
 	"scss.hover.references": true,
 	"scss.lint.compatibleVendorPrefixes": "warning",
-	"scss.lint.duplicateProperties": "warning",
+	"scss.lint.duplicateProperties": "error",
 	"scss.lint.important": "warning",
 	"search.exclude": {
 		"**/.DS_Store": true,

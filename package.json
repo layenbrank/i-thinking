@@ -107,6 +107,7 @@
 		"@vueuse/rxjs": "^13.2.0",
 		"autoprefixer": "^10.4.21",
 		"chalk": "^5.4.1",
+		"globals": "^16.4.0",
 		"clsx": "^2.1.1",
 		"commander": "^13.1.0",
 		"eslint": "^9.34.0",

@@ -1,4 +1,3 @@
-import {} from '@nestjs/axios'
 import { Injectable } from '@nestjs/common'
 import axios, { type AxiosInstance } from 'axios'
 import * as cheerio from 'cheerio'
@@ -65,14 +64,14 @@ export class ApplicationService {
 
 			console.log(`找到 favicon: ${favicon || '未找到'}`)
 			return favicon || ''
-		} catch (error) {
-			console.error(`获取 favicon 失败: ${error.message}`, error.stack)
+		} catch (error: any) {
+			console.error(`获取 favicon 失败: ${error?.message}`, error?.stack)
 
 			// 尝试默认路径作为后备
 			try {
 				return await this.tryDefaultFavicon(url)
-			} catch (fallbackError) {
-				console.error(`后备方案也失败: ${fallbackError.message}`)
+			} catch (fallbackError: any) {
+				console.error(`后备方案也失败: ${fallbackError?.message}`)
 				return ''
 			}
 		}
@@ -111,7 +110,7 @@ export class ApplicationService {
 
 					if (sizes && sizes !== 'any') {
 						const sizeMatch = sizes.match(/(\d+)x(\d+)/)
-						if (sizeMatch) {
+						if (sizeMatch && sizeMatch[1]) {
 							size = parseInt(sizeMatch[1])
 						}
 					}

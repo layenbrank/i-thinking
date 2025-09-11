@@ -1,25 +1,15 @@
-import os from 'node:os'
-import { resolve } from 'node:path'
-import process from 'node:process'
-
-import { HttpModule } from '@nestjs/axios'
-import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common'
-
-import { JWTAuthGuard } from '@/guards/jwt-auth.guard'
-import { APP_GUARD } from '@nestjs/core'
-
-import { ConfigModule, ConfigService } from '@nestjs/config'
-import { MongooseModule } from '@nestjs/mongoose'
-
-import { AppController } from './app.controller'
-import { AppService } from './app.service'
-
 import { AuthModule } from '@/services/auth/auth.module'
 import { PostsModule } from '@/services/posts/posts.module'
 import { ProfileModule } from '@/services/profile/profile.module'
 import { UploadModule } from '@/services/upload/upload.module'
-
-import { LogMiddleware } from './middleware/log/log.middleware'
+import { HttpModule } from '@nestjs/axios'
+import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common'
+import { ConfigModule, ConfigService } from '@nestjs/config'
+import { MongooseModule } from '@nestjs/mongoose'
+import { resolve } from 'node:path'
+import process from 'node:process'
+import { AppController } from './app.controller'
+import { AppService } from './app.service'
 import { ApplicationModule } from './services/application/application.module'
 import { ConsoleModule } from './services/console/console.module'
 import { DemoModule } from './services/demo/demo.module'

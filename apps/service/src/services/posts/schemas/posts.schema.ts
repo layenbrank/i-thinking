@@ -1,7 +1,7 @@
 import { User } from '@/services/auth/schemas/auth.schema'
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { Type } from 'class-transformer'
-import { Document, Types } from 'mongoose'
+import { Document, Types, type Default__v } from 'mongoose'
 
 export type PostDocument = Post & Document
 
@@ -9,14 +9,16 @@ export type PostDocument = Post & Document
 	timestamps: true,
 	toJSON: {
 		virtuals: true,
-		transform: function (doc, ret: PostDocument & { __v }) {
-			delete ret.__v
+		transform(doc, ret: Default__v<Partial<PostDocument>>, options) {
+			// delete ret.__v
 			delete ret._id
-			delete ret.author.id
+			delete ret.author?.id
+
+			return ret
 		}
 	}
 })
-export class Post extends Document<Types.ObjectId> {
+export class Post extends Document {
 	@Prop({ required: true })
 	title: string
 

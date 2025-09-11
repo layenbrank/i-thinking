@@ -1,8 +1,7 @@
 // 验证策略，也就是验证前端请求头中携带的token
-import { Injectable } from '@nestjs/common'
+import { jwtConstants } from '@/constants/jwt.constants'
 import { PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
-import { jwtConstants } from '@/constants/jwt.constants'
 
 export interface JWTPayload {
 	username: string
@@ -14,7 +13,7 @@ export class JwtAuthStrategy extends PassportStrategy(Strategy, 'jwt') {
 		super({
 			jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
 			ignoreExpiration: false,
-			secretOrKey: jwtConstants.secret
+			secretOrKey: jwtConstants.secret ?? ''
 		})
 	}
 

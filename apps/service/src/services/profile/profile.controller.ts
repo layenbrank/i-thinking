@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common'
-import { ProfileService } from './profile.service'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common'
+import type { Request } from 'express'
 import { CreateProfileDto } from './dto/create-profile.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
-import type { Request } from 'express'
+import { ProfileService } from './profile.service'
 
 @Controller('profile')
 export class ProfileController {

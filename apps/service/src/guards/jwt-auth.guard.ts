@@ -1,9 +1,8 @@
-import { ExecutionContext, Injectable } from '@nestjs/common'
-import { AuthGuard } from '@nestjs/passport'
-import { Reflector } from '@nestjs/core'
-import { Observable } from 'rxjs'
 import { NO_AuthToken_Key } from '@/decorator/noAuthToken.decorator'
-import type { Request } from 'express'
+import { type ExecutionContext, Injectable } from '@nestjs/common'
+import { Reflector } from '@nestjs/core'
+import { AuthGuard } from '@nestjs/passport'
+import { Observable } from 'rxjs'
 
 @Injectable()
 export class JWTAuthGuard extends AuthGuard('jwt') {

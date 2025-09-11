@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
-import { ConsoleService } from './console.service'
 import { ConsoleController } from './console.controller'
+import { ConsoleService } from './console.service'
 
 @Module({
 	controllers: [ConsoleController],
