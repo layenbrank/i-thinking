@@ -2,7 +2,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export default {
 	path: '/',
-	redirect: '/clipchamp-view',
+	redirect: '/mac-view',
 	children: [
 		{
 			path: '/base-view',

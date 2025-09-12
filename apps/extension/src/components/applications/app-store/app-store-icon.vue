@@ -9,7 +9,8 @@ defineOptions({
 
 <template>
 	<div class="app-store-icon">
-		<Add />
+		<i-ant-design:appstore-twotone />
+		<!-- import AntDesignAppstoreTwotone from '~icons/ant-design/appstore-twotone'; -->
 	</div>
 </template>
 

@@ -1,3 +1,4 @@
+// import type { DocumentType } from '@tiptap/vue-3'
 import { Dexie, type EntityTable } from 'dexie'
 
 type Bookmark = Application.Bookmark
@@ -14,6 +15,8 @@ interface DataBase extends Dexie {
 
 	bookmark: EntityTable<Bookmark, 'id'>
 	bookmarkFolder: EntityTable<BookmarkFolder, 'id'>
+
+	markdown: EntityTable<Markdown, 'id'>
 }
 
 const DBNAME: Readonly<string> = 'desktop-app'
@@ -60,11 +63,14 @@ const BOOKMARK_FOLDER: readonly string[] = [
 	'updatedAt'
 ]
 
+const MARKDOWN: readonly string[] = ['&id', 'createdAt', 'updatedAt']
+
 database.version(1).stores({
 	application: APPLICATION.join(','),
 	user: USERS.join(','),
 	bookmark: BOOKMARK.join(','),
-	bookmarkFolder: BOOKMARK_FOLDER.join(',')
+	bookmarkFolder: BOOKMARK_FOLDER.join(','),
+	markdown: MARKDOWN.join(',')
 })
 
 database.on(

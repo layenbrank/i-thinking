@@ -33,7 +33,7 @@ const AppExample = defineAsyncComponent(function () {
 	return import('@/components/applications/app-example/app-example.vue')
 })
 
-const commonMenuOPtions: ContextMenuOptions[] = [
+const commonMenuOptions: ContextMenuOptions[] = [
 	{
 		label: '添加应用',
 		key: 'update-app',
@@ -68,28 +68,28 @@ const commonMenuOPtions: ContextMenuOptions[] = [
 
 export const contextmenuReflect: Record<Partial<ApplicationName>, () => ContextMenuOptions[]> = {
 	'app-bookmark'() {
-		return commonMenuOPtions
+		return commonMenuOptions
 	},
 	'app-calendar'() {
-		return commonMenuOPtions
+		return commonMenuOptions
 	},
 	'app-notepad'() {
-		return commonMenuOPtions
+		return commonMenuOptions
 	},
 	'app-store'() {
-		return commonMenuOPtions
+		return commonMenuOptions
 	},
 	'app-web'() {
-		return commonMenuOPtions
+		return commonMenuOptions
 	},
 	'app-example'() {
-		return commonMenuOPtions
+		return commonMenuOptions
 	},
 	'app-settings'() {
-		return commonMenuOPtions
+		return commonMenuOptions
 	},
 	'app-clipchamp'() {
-		return commonMenuOPtions
+		return commonMenuOptions
 	}
 }
 
@@ -111,17 +111,20 @@ export const appReflect: ApplicationReflect = {
 	'app-calendar'() {
 		return <AppCalendar />
 	},
-	'app-store'() {
-		return <AppStore />
+	'app-notepad'() {
+		return <AppNotePad />
 	},
 	'app-example'() {
 		return <AppExample />
 	},
-	'app-web'() {
-		return <AppWeb />
-	},
 	'app-settings'() {
 		return <AppSettings />
+	},
+	'app-store'() {
+		return <AppStore />
+	},
+	'app-web'() {
+		return <AppWeb />
 	}
 }
 // export function useAppController(el: Ref<InstanceType<typeof AppMenu> | null>) {
