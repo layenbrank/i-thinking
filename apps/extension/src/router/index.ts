@@ -13,18 +13,18 @@ const modules: Record<string, { default: RouteRecordRaw }> = import.meta.glob(
 
 const routes: RouteRecordRaw[] = []
 
-Object.keys(modules).forEach(function (key) {
-	const module = modules[key]
-	if (!module) return
+for (const [_key, module] of Object.entries(modules)) {
+	if (!module) continue
 	routes.push(module.default)
-})
+}
 
 const router = defineRouter({
 	history: defineHistory(import.meta.env.BASE_URL),
 	scrollBehavior() {
 		return {
 			left: 0,
-			top: 0
+			top: 0,
+			behavior: 'smooth'
 		}
 	},
 	routes

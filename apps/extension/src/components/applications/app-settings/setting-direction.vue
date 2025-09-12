@@ -24,7 +24,7 @@ const options: DirectionOptions[] = [
 ]
 
 const formState = reactive<Record<string, any>>({
-	size: appStore.activeApp?.size || 'medium',
+	size: appStore.activeApp?.size ?? 'medium',
 	shape: 'circle',
 	direction: 'horizontal'
 })

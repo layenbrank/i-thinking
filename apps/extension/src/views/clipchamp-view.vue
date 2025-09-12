@@ -124,8 +124,8 @@ async function handler() {
 
 		// 获取实际的视频轨道设置
 		const videoSettings = videoTrack.getSettings()
-		const actualWidth = videoSettings.width || 1280
-		const actualHeight = videoSettings.height || 720
+		const actualWidth = videoSettings.width ?? 1280
+		const actualHeight = videoSettings.height ?? 720
 
 		// 配置视频编码器 - 使用多个备用方案（按兼容性排序）
 		const codecConfigs = [
@@ -397,7 +397,7 @@ async function toggleRecording() {
 }
 
 // 测试浏览器支持
-const testBrowserSupport = async () => {
+async function testBrowserSupport() {
 	try {
 		checkBrowserSupport()
 
@@ -494,12 +494,12 @@ ${unsupportedCodecs.map((name) => `• ${name}`).join('\n')}`
 }
 
 // 组件卸载时清理资源
-onUnmounted(() => {
+onUnmounted(function () {
 	cleanupResources()
 })
 
 // 初始化视频预览
-const initVideoPreview = async () => {
+function initVideoPreview() {
 	if (!videoRef.value) return
 
 	try {
@@ -508,9 +508,8 @@ const initVideoPreview = async () => {
 		console.warn('视频预览初始化失败:', err)
 	}
 }
-
-onMounted(async function () {
-	await initVideoPreview()
+onMounted(function () {
+	initVideoPreview()
 })
 </script>
 

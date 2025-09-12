@@ -7,7 +7,7 @@ import { ref } from 'vue'
 
 import { isEmpty } from 'lodash-es'
 
-const DEFAULT: ReadonlyArray<Application> = [
+const DEFAULT: readonly Application[] = [
 	{
 		id: randomID(),
 		slideID: randomID(),

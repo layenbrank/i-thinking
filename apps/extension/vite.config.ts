@@ -19,6 +19,26 @@ import pkg from './package.json'
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 
+const cssRegex: Readonly<RegExp> = /\.css$/i
+const imageRegex: Readonly<RegExp> = /.(png|jpe?g|gif|svg|webp|ico)$/i
+const fontRegex: Readonly<RegExp> = /.(woff|woff2|ttf|eot)$/i
+
+// 使用正则数组表示需要内联的文件类型
+const inlineRegexes: readonly RegExp[] = [
+	/\.gif$/i // GIF 动画
+]
+
+// 使用正则数组表示不需要内联的文件类型
+const noInlineRegexes: readonly RegExp[] = [
+	/\.svg$/i, // SVG 图标
+	/icon.*\.(png|jpe?g)$/i, // 图标文件
+	/\.json$/i, // JSON 文件
+	/\.(mp4|webm|ogg)$/i, // 视频文件
+	/\.(mp3|wav|ogg)$/i, // 音频文件
+	/\.(woff2?|ttf|eot|otf)$/i, // 字体文件
+	/background.*\.(png|jpe?g)$/i // 背景图片
+]
+
 // 分包配置映射表，便于维护和扩展
 const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	// 前端核心框架
@@ -54,8 +74,8 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	'lib-utils': [/[\\/]node_modules[\\/](clsx|rxjs|lodash-es|deep-pick-omit|uuid|fuse\.js)[\\/]/]
 }
 
-export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
-	const env = loadEnv(mode || 'development', '')
+export default defineConfig(function ({ mode, command: _command }: ConfigEnv): UserConfig {
+	const _env = loadEnv(mode || 'development', '')
 
 	return {
 		base: `/${pkg.name.replace(/^@desktop-app\//, '')}/`,
@@ -127,33 +147,17 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			sourcemap: mode === 'development' ? true : false,
 			// 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
 			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-app\//, '')}`),
-			assetsInlineLimit(filePath, content) {
-				// 使用正则数组表示需要内联的文件类型
-				const inlineRegexes = [
-					/\.gif$/i // GIF 动画
-				]
-
-				// 使用正则数组表示不需要内联的文件类型
-				const noInlineRegexes = [
-					/\.svg$/i, // SVG 图标
-					/icon.*\.(png|jpe?g)$/i, // 图标文件
-					/\.json$/i, // JSON 文件
-					/\.(mp4|webm|ogg)$/i, // 视频文件
-					/\.(mp3|wav|ogg)$/i, // 音频文件
-					/\.(woff2?|ttf|eot|otf)$/i, // 字体文件
-					/background.*\.(png|jpe?g)$/i // 背景图片
-				]
+			assetsInlineLimit(filePath, _content) {
+				const inlineRegexe = inlineRegexes.some((regex) => regex.test(filePath))
 
 				// 检查是否匹配内联规则
-				if (inlineRegexes.some((regex) => regex.test(filePath))) {
-					// return content.length < 10 * 1024 // 小于10kb则内联
-					return true
-				}
+				// return content.length < 10 * 1024 // 小于10kb则内联
+				if (inlineRegexe) return true
+
+				const noInlineRegexe = noInlineRegexes.some((regex) => regex.test(filePath))
 
 				// 检查是否匹配不内联规则 不内联
-				if (noInlineRegexes.some((regex) => regex.test(filePath))) {
-					return false
-				}
+				if (noInlineRegexe) return false
 
 				// 默认情况下，不内联
 				return false
@@ -169,10 +173,6 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 					chunkFileNames: 'assets/[name]-[hash].js',
 					// assetFileNames: 'assets/[name]-[hash].[ext]',
 					assetFileNames(chunkInfo) {
-						const cssRegex = /\.css$/i
-						const imageRegex = /.(png|jpe?g|gif|svg|webp|ico)$/i
-						const fontRegex = /.(woff|woff2|ttf|eot)$/i
-
 						if (!chunkInfo.names) return 'assets/[name].[ext]'
 
 						for (const name of chunkInfo.names) {
@@ -183,18 +183,17 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 
 						return 'assets/[name].[ext]'
 					},
-					manualChunks(id, meta) {
+					manualChunks(id, _meta) {
+						const entries = Object.entries(chunkMap)
+
 						// 遍历映射表，匹配当前模块路径
-						for (const [chunkName, patterns] of Object.entries(chunkMap)) {
-							if (patterns.some((pattern) => pattern.test(id))) {
-								return chunkName
-							}
+						for (const [chunkName, patterns] of entries) {
+							const pattern = patterns.some((pattern) => pattern.test(id))
+							if (pattern) return chunkName
 						}
 
 						// 其他第三方依赖
-						if (/[\\/]node_modules[\\/]/.test(id)) {
-							return 'vendors'
-						}
+						if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
 					}
 				}
 			}

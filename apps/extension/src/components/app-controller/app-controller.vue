@@ -31,21 +31,24 @@ const contextmenuRect = reactive({
 })
 
 const contextmenuMap: Readonly<ContextMenuMap> = {
-	'update-app'() {},
+	'update-app'() {
+		// void
+	},
 	'update-size'() {
-		for (const index in appStore.applications) {
-			if (!Object.prototype.hasOwnProperty.call(appStore.applications, index)) return
-
-			const app = appStore.applications[Number(index)]
-			if (!app) continue
-			if (app.id !== appStore.activeApp?.id) continue
+		if (!appStore.applications) return
+		for (const application of appStore.applications) {
+			if (application.id !== appStore.activeApp?.id) continue
 			const size = sizes[Math.round(Math.random() * sizes.length)]
 			if (!size) continue
-			app.size = size
+			application.size = size
 		}
 	},
-	'update-wallpaper'() {},
-	'update-backup'() {},
+	'update-wallpaper'() {
+		// void
+	},
+	'update-backup'() {
+		// void
+	},
 	'update-settings'() {
 		appStore.settingsVisible = true
 	}
@@ -71,7 +74,7 @@ function updateActiveKey(value: ContextMenuOptions) {
 
 function handleController(e: MouseEvent) {
 	const target = e.target as HTMLElement
-	const appElement = target.closest('.application') as HTMLElement
+	const appElement = target.closest<HTMLElement>('.application')
 
 	console.log('appElement', appElement)
 
@@ -87,7 +90,7 @@ function openContextMenu(e: MouseEvent) {
 	if (appStore.settingsVisible) return
 
 	const target = e.target as HTMLElement
-	const appElement = target.closest('.application') as HTMLElement
+	const appElement = target.closest<HTMLElement>('.application')
 
 	const contextmenu = contextmenuRef.value?.$el as HTMLElement
 
@@ -157,9 +160,10 @@ function sortableHandler() {
 				for (let i = 0; i < toArray.length; i++) {
 					const ID = toArray[i]
 
-					for (let j = 0; j < appStore.applications!.length; j++) {
-						if (!appStore.applications) continue
-						const application = toRaw(appStore.applications[j])
+					if (!appStore.applications) return
+
+					for (let application of appStore.applications) {
+						application = toRaw(application)
 						if (!application) continue
 						if (application.id !== ID) continue
 						applications.push({ ...application, sort: i })

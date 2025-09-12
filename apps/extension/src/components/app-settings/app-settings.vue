@@ -11,9 +11,7 @@ defineOptions({
 
 const props = withDefaults(defineProps<AppDrawerProps>(), {})
 
-const emit = defineEmits<{
-	(e: 'update:confirm', value: any): void
-}>()
+const emit = defineEmits<(e: 'update:confirm', value: any) => void>()
 
 interface DirectionOptions {
 	label: string
@@ -94,15 +92,15 @@ const options: Options = {
 }
 
 const formState = reactive<Record<string, any>>({
-	size: props.application?.size || 'medium',
+	size: props.application?.size ?? 'medium',
 	shape: 'circle',
 	direction: 'horizontal'
 })
 
 watchEffect(function () {
-	formState.size = props.application?.size || 'medium'
-	formState.shape = props.application?.shape || 'circle'
-	formState.direction = props.application?.direction || 'horizontal'
+	formState.size = props.application?.size ?? 'medium'
+	formState.shape = props.application?.shape ?? 'circle'
+	formState.direction = props.application?.direction ?? 'horizontal'
 })
 
 function onFinish(values: any) {

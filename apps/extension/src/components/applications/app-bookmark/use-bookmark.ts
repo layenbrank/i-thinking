@@ -102,7 +102,7 @@ export function useBookMark() {
 
 		const [folder] = parsed.folders || []
 
-		activeFolder.value = folder || null
+		activeFolder.value = folder ?? null
 
 		message.success('书签更新成功')
 	}
@@ -167,14 +167,14 @@ export function useBookMark() {
 	function transformToBookmark(bookmarkNode: BookmarkTreeNode, sortIndex: number): Bookmark {
 		return {
 			id: bookmarkNode.id,
-			url: bookmarkNode.url!,
+			url: bookmarkNode.url ?? '',
 			title: bookmarkNode.title,
 			icon: '', // Chrome API不直接提供图标，需要额外获取
-			folderID: bookmarkNode.parentId || '',
+			folderID: bookmarkNode.parentId ?? '',
 			sort: sortIndex,
 			description: '', // Chrome API不提供描述字段
-			createdAt: bookmarkNode.dateAdded || Date.now(),
-			updatedAt: bookmarkNode.dateGroupModified || Date.now()
+			createdAt: bookmarkNode.dateAdded ?? Date.now(),
+			updatedAt: bookmarkNode.dateGroupModified ?? Date.now()
 		}
 	}
 
@@ -189,8 +189,8 @@ export function useBookMark() {
 			id: bookmarkNode.id,
 			folder: bookmarkNode.title,
 			sort: sortIndex,
-			createdAt: bookmarkNode.dateAdded || Date.now(),
-			updatedAt: bookmarkNode.dateGroupModified || Date.now()
+			createdAt: bookmarkNode.dateAdded ?? Date.now(),
+			updatedAt: bookmarkNode.dateGroupModified ?? Date.now()
 		}
 	}
 

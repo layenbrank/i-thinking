@@ -50,25 +50,25 @@ export function initSortable(el: HTMLElement) {
 		invertSwap: true,
 		swapThreshold: 0.05,
 		fallbackOnBody: false,
-		setData(dataTransfer, dragEl) {},
-		onChoose(evt) {},
+		// setData(dataTransfer, dragEl) {},
+		// onChoose(evt) {},
 		onUnchoose(evt) {
 			// evt.item.style.boxShadow = ''
 			// evt.item.style.transition = ''
 		},
-		store: {
-			get(sortable: Sortable) {
-				return []
-			},
-			set(sortable: Sortable) {}
-		},
+		// store: {
+		// 	get(sortable: Sortable) {
+		// 		return []
+		// 	},
+		// 	set(sortable: Sortable) {}
+		// },
 		onStart(event) {
-			const source = event.item as HTMLElement
+			const source = event.item
 			source.closest('.bookmarkItem')?.classList.remove('bookmarkItem-drag')
 			// console.log('source', source.closest('.bookmarkItem'))
 		},
 		onEnd(event) {
-			const target = event.item as HTMLElement
+			const target = event.item
 			// console.log('target', target.closest('.bookmarkItem'))
 			target.closest('.bookmarkItem')?.classList.remove('bookmarkItem-drag')
 		},
@@ -79,7 +79,7 @@ export function initSortable(el: HTMLElement) {
 		onChange(evt) {
 			// const bookmarkItem = evt.item.closest('.bookmarkItem') as HTMLElement
 			// const id = bookmarkItem.dataset.bookmarkId
-		},
-		onUpdate(event) {}
+		}
+		// onUpdate(event) {}
 	})
 }

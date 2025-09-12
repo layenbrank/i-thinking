@@ -87,12 +87,15 @@ export const contextmenuReflect: Record<Partial<ApplicationName>, () => ContextM
 	},
 	'app-settings'() {
 		return commonMenuOPtions
+	},
+	'app-clipchamp'() {
+		return commonMenuOPtions
 	}
 }
 
 // const slidesStore = useSlidesStore()
 
-export const sizes: ReadonlyArray<ApplicationSize> = [
+export const sizes: readonly ApplicationSize[] = [
 	'small',
 	'medium',
 	'large',

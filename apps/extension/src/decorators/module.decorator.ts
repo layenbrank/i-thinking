@@ -37,7 +37,7 @@ export function Module(metadata: any) {
 				// console.log((metadata as any)[property])
 				console.log('target', target)
 
-				Reflect.defineMetadata(property, (metadata as any)[property], target)
+				Reflect.defineMetadata(property, metadata[property], target)
 			}
 		}
 	}

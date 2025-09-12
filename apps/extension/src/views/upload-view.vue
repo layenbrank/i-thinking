@@ -128,17 +128,18 @@ function handleDrop(e: DragEvent) {
 	if (!dataTransfer?.files.length) return
 
 	const [file] = dataTransfer.files
-	handleFileSelect(file)
+	void handleFileSelect(file)
 }
 
 function handleFileChange(e: Event) {
 	const target = e.target as HTMLInputElement
 	if (!target.files?.length) return
 	const [file] = target.files
-	handleFileSelect(file)
+	void handleFileSelect(file)
 }
 
-async function handleFileSelect(value: File) {
+async function handleFileSelect(value?: File) {
+	if (!value) return
 	file.value = value
 	logger(`选择文件: ${value.name}`, 'info')
 
@@ -183,7 +184,7 @@ function findStatusText(status: string): string {
 		completed: '完成',
 		error: '失败'
 	}
-	return statusMap[status] || '未知'
+	return statusMap[status] ?? '未知'
 }
 
 async function calculateFileHash(file: File): Promise<string> {
@@ -237,8 +238,9 @@ async function beginUpload() {
 		// 处理断点续传
 		if (prepareResponse.uploadedChunks && prepareResponse.uploadedChunks.length > 0) {
 			logger(`检测到已上传的分片: ${prepareResponse.uploadedChunks.length} 个`, 'info')
-			prepareResponse.uploadedChunks.forEach((index: number) => {
+			prepareResponse.uploadedChunks.forEach(function (index: number) {
 				uploadedChunks.value.add(index)
+				if (!chunks.value[index]) return
 				chunks.value[index].status = 'completed'
 				uploadedBytes.value += chunks.value[index].size
 			})
@@ -271,7 +273,7 @@ async function prepareUpload(): Promise<PrepareResponse> {
 					resolve(response.data)
 				},
 				error(error) {
-					reject(new Error(error.error || '初始化上传失败'))
+					reject(new Error(error.error ?? '初始化上传失败'))
 				}
 			})
 	})
@@ -292,6 +294,7 @@ async function uploadChunks() {
 		}
 
 		const chunk = pendingChunks[index++]
+		if (!chunk) return
 		await uploadChunk(chunk)
 
 		if (!isPaused.value && index < pendingChunks.length) {
@@ -343,7 +346,7 @@ async function uploadChunk(chunk: Chunk) {
 					resolve()
 				},
 				error(error) {
-					reject(new Error(error.error || '分片上传失败'))
+					reject(new Error(error.error ?? '分片上传失败'))
 				}
 			})
 		})
@@ -381,7 +384,7 @@ async function finalizeUpload() {
 						resolve()
 					},
 					error(error) {
-						reject(new Error(error.error || '完成上传失败'))
+						reject(new Error(error.error ?? '完成上传失败'))
 					}
 				})
 		})
@@ -404,7 +407,7 @@ function pauseUpload() {
 	logger('上传已暂停', 'info')
 }
 
-async function cancelUpload() {
+function cancelUpload() {
 	isPaused.value = true
 	isUploading.value = false
 

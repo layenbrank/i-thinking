@@ -41,8 +41,8 @@ const APPLICATION = [
 	'textColor',
 	'textSize'
 ]
-const USERS: ReadonlyArray<string> = ['++id', 'name']
-const BOOKMARK: ReadonlyArray<string> = [
+const USERS: readonly string[] = ['++id', 'name']
+const BOOKMARK: readonly string[] = [
 	'&id',
 	'url',
 	'sort',
@@ -51,7 +51,7 @@ const BOOKMARK: ReadonlyArray<string> = [
 	'createdAt',
 	'updatedAt'
 ]
-const BOOKMARK_FOLDER: ReadonlyArray<string> = [
+const BOOKMARK_FOLDER: readonly string[] = [
 	'&id',
 	'folder',
 	'sort',

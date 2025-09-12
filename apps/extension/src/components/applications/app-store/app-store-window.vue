@@ -79,7 +79,7 @@ const applicationReflect: ApplicationReflect = {
 	}
 }
 
-const applications: ReadonlyArray<Application> = [
+const applications: readonly Application[] = [
 	{
 		id: randomID(),
 		slideID: randomID(),

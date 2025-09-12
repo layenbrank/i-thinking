@@ -44,15 +44,15 @@ const options: SizeOptions[] = [
 ]
 
 const formState = reactive<Record<string, any>>({
-	size: appStore.activeApp?.size || 'medium',
+	size: appStore.activeApp?.size ?? 'medium',
 	shape: 'circle',
 	direction: 'horizontal'
 })
 
 watchEffect(function () {
-	formState.size = appStore.activeApp?.size || 'medium'
-	formState.shape = appStore.activeApp?.shape || 'circle'
-	formState.direction = appStore.activeApp?.direction || 'horizontal'
+	formState.size = appStore.activeApp?.size ?? 'medium'
+	formState.shape = appStore.activeApp?.shape ?? 'circle'
+	formState.direction = appStore.activeApp?.direction ?? 'horizontal'
 })
 
 function onFinish(values: any) {

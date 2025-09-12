@@ -1,11 +1,13 @@
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+import {
+	configureVueProject,
+	defineConfigWithVueTs,
+	vueTsConfigs
+} from '@vue/eslint-config-typescript'
 import oxlint from 'eslint-plugin-oxlint'
 import pluginVue from 'eslint-plugin-vue'
+import { globalIgnores } from 'eslint/config'
 import globals from 'globals'
-
-// To allow more languages other than `ts` in `.vue` files, uncomment the following lines:
-import { configureVueProject } from '@vue/eslint-config-typescript'
 
 /**
  * 配置 Vue 项目的 ESLint 环境
@@ -25,26 +27,26 @@ configureVueProject({
 export default defineConfigWithVueTs(
 	pluginVue.configs['flat/essential'],
 	vueTsConfigs.recommended,
+	vueTsConfigs.recommendedTypeChecked,
+	vueTsConfigs.stylisticTypeChecked,
 	oxlint.configs['flat/recommended'],
 	skipFormatting,
+	globalIgnores(['dist', 'node_modules']),
 	{
-		name: 'app/all-files',
-		files: ['**/*.{ts,mts,tsx,vue}'],
+		name: 'app/files-to-lint',
 		// plugins: {
 		// 	'@typescript-eslint': tseslint.plugin
 		// },
+		files: ['**/*.{ts,mts,tsx,vue}'],
+		// extends: [eslint.configs.recommended, tseslint.configs.recommended],
 		languageOptions: {
 			// parser: tseslint.parser,
+			sourceType: 'module',
 			parserOptions: {
-				// projectService: true,
 				tsconfigRootDir: import.meta.dirname,
 				globals: globals.browser
 			}
-		}
-	},
-	{
-		name: 'app/files-to-lint',
-		files: ['**/*.{ts,mts,tsx,vue}'],
+		},
 		rules: {
 			/* 禁止使用 `var` 声明变量，推荐使用 `let` 或 `const` */
 			'no-var': 'error',
@@ -55,12 +57,20 @@ export default defineConfigWithVueTs(
 			/* 避免在条件表达式中使用赋值语句，这可能导致逻辑错误 */
 			'@typescript-eslint/no-unused-expressions': 'off',
 			/* 对不安全的赋值操作发出警告，确保赋值操作的类型安全 */
-			'@typescript-eslint/no-unsafe-assignment': 'warn',
+			'@typescript-eslint/no-unsafe-assignment': 'error',
 			/* 限制嵌套代码块的最大深度，保持代码的清晰结构 */
 			'max-depth': ['error', 4],
 			'@typescript-eslint/no-namespace': 'off',
 			'@typescript-eslint/no-floating-promises': 'error',
 			'@typescript-eslint/consistent-type-imports': 'error',
+			'@typescript-eslint/no-unsafe-argument': 'error',
+			'@typescript-eslint/no-misused-promises': 'error',
+			'@typescript-eslint/no-non-null-assertion': 'error',
+			'@typescript-eslint/no-unsafe-call': 'error',
+			'@typescript-eslint/no-unsafe-member-access': 'error',
+			'no-trailing-spaces': 'off',
+			// '@typescript-eslint/no-non-null-assertion': 'warn',
+
 			/* 对未使用的变量发出错误，保持代码的简洁性 */
 			'@typescript-eslint/no-unused-vars': [
 				'warn',
@@ -95,9 +105,22 @@ export default defineConfigWithVueTs(
 					ignores: []
 				}
 			]
+			// 'prettier/prettier': [
+			// 	'error',
+			// 	{
+			// 		arrowParens: 'always',
+			// 		bracketSpacing: true,
+			// 		endOfLine: 'lf',
+			// 		printWidth: 100,
+			// 		semi: false,
+			// 		singleQuote: true,
+			// 		tabWidth: 2,
+			// 		trailingComma: 'none',
+			// 		useTabs: true
+			// 	}
+			// ]
 		}
 	},
-
 	{
 		name: 'app/files-to-ignore',
 		ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**']

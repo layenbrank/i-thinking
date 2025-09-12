@@ -63,7 +63,7 @@ const fuseOptions: IFuseOptions<Bookmark> = {
 	minMatchCharLength: 1 // 最小匹配字符长度
 }
 
-async function updateKeyword(value: string) {
+function updateKeyword(value: string) {
 	keyword.value = value.trim().trimStart().trimEnd()
 
 	updateBookmarks(keyword.value)
@@ -115,7 +115,9 @@ function updateActiveFolder(folder: BookmarkFolder) {
 	targetBookmarks.value = sourceBookmarks.value
 }
 
-function updateSort() {}
+function updateSort() {
+	// void
+}
 function updateFullScreen() {
 	emits('update:fullscreen', !props.fullscreen)
 }

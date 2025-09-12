@@ -20,9 +20,7 @@ const app = createApp(App)
 
 const pinia = createPinia()
 
-for (const key in Object.keys(directives)) {
-	if (!Object.prototype.hasOwnProperty.call(directives, key)) continue
-	const directive = directives[key]
+for (const [key, directive] of Object.entries(directives)) {
 	if (!directive) continue
 	app.directive(key, directive)
 }

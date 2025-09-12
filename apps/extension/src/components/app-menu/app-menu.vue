@@ -13,9 +13,7 @@ const props = withDefaults(
 	{}
 )
 
-const emits = defineEmits<{
-	(e: 'update:activeKey', value: ContextMenuOptions): void
-}>()
+const emits = defineEmits<(e: 'update:activeKey', value: ContextMenuOptions) => void>()
 
 const visible = defineModel('visible', {
 	default: false,

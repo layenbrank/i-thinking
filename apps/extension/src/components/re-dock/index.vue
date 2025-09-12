@@ -120,41 +120,55 @@ function applyScaling(mouseX: number): void {
 	// 应用到每个图标
 	for (let index = 0; index < menuItemsRef.value.length; index++) {
 		// 使用缓存的位置，避免重复计算
-		const itemCenterX = itemPositions[index] || 0
+		const itemCenterX = itemPositions[index] ?? 0
 
 		// 计算缩放值，保留两位小数减少微小变化
 		const scale = parseFloat(scaleCurve(itemCenterX).toString())
 
+		const newIconScale = newIconScales[index]
+
+		if (!newIconScale) continue
+
 		// 更新缩放值，只有当值变化超过阈值时才更新
-		if (Math.abs(newIconScales[index].scale - scale) > 0.01) {
-			newIconScales[index].scale = scale
+		if (Math.abs(newIconScale.scale - scale) > 0.01) {
+			newIconScale.scale = scale
 		}
 
 		// 同时调整相邻的间隙
 		if (index < newGapScales.length) {
 			let nextScale = scale
 			if (index + 1 < menuItemsRef.value.length) {
-				const nextCenterX = itemPositions[index + 1] || 0
+				const nextCenterX = itemPositions[index + 1] ?? 0
 				nextScale = parseFloat(scaleCurve(nextCenterX).toString())
 			}
 
 			const gapScale = parseFloat(((scale + nextScale) / 2).toString())
+			const newGapScale = newGapScales[index]
+			if (!newGapScale) continue
 
 			// 只有当值变化超过阈值时才更新
-			if (Math.abs(newGapScales[index].scale - gapScale) > 0.01) {
-				newGapScales[index].scale = gapScale
+			if (Math.abs(newGapScale.scale - gapScale) > 0.01) {
+				newGapScale.scale = gapScale
 			}
 		}
 	}
 
 	// 批量更新响应式数据
 	for (let index = 0; index < newIconScales.length; index++) {
-		iconScales[index].scale = newIconScales[index].scale
+		const iconScale = iconScales[index]
+		if (!iconScale) continue
+		const newIconScale = newIconScales[index]
+		if (!newIconScale) continue
+		iconScale.scale = newIconScale.scale
 	}
 
 	// 批量更新响应式数据
 	for (let index = 0; index < newGapScales.length; index++) {
-		gapScales[index].scale = newGapScales[index].scale
+		const gapScale = gapScales[index]
+		if (!gapScale) continue
+		const newGapScale = newGapScales[index]
+		if (!newGapScale) continue
+		gapScale.scale = newGapScale.scale
 	}
 }
 
@@ -217,7 +231,7 @@ onBeforeUnmount(() => {
 					class="menu-item"
 					:title="item.name"
 					:style="{
-						'--scale': iconScales[index].scale
+						'--scale': iconScales[index]?.scale
 					}"
 				>
 					<span class="icon">{{ item.icon }}</span>
@@ -227,7 +241,7 @@ onBeforeUnmount(() => {
 					v-if="index < icons.length - 1"
 					class="item-gap"
 					:style="{
-						'--scale': gapScales[index].scale
+						'--scale': gapScales[index]?.scale
 					}"
 				></div>
 			</template>
