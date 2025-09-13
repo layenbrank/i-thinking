@@ -49,6 +49,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	'core-hooks': [/[\\/]src[\\/]hooks[\\/]/],
 	'core-stores': [/[\\/]src[\\/]stores[\\/]/],
 	'core-assets': [/[\\/]src[\\/]assets[\\/]/],
+	'core-locales': [/[\\/]src[\\/]locales[\\/]/],
 	'core-plugins': [/[\\/]src[\\/]plugins[\\/]/],
 	'core-database': [/[\\/]src[\\/]database[\\/]/],
 
@@ -184,7 +185,7 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 				dts: 'src/types/components.d.ts'
 			}),
 			VueI18nPlugin({
-				include: resolve(dirname(fileURLToPath(import.meta.url)), './src/locales')
+				include: resolve(fileURLToPath(import.meta.url), './src/locales')
 			})
 		],
 		resolve: {
