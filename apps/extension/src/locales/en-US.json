@@ -1,0 +1,29 @@
+{
+	"edit": "Edit",
+	"help": "Help",
+	"language": "Language",
+	"mirror": "Mirror",
+	"please-enter-keywords": "Please enter keywords!",
+	"show": "Show",
+	"window": "Window",
+	"week": {
+		"long": {
+			"Monday": "Monday",
+			"Tuesday": "Tuesday",
+			"Wednesday": "Wednesday",
+			"Thursday": "Thursday",
+			"Friday": "Friday",
+			"Saturday": "Saturday",
+			"Sunday": "Sunday"
+		},
+		"short": {
+			"Mon": "Mon",
+			"Tue": "Tue",
+			"Wed": "Wed",
+			"Thu": "Thu",
+			"Fri": "Fri",
+			"Sat": "Sat",
+			"Sun": "Sun"
+		}
+	}
+}
