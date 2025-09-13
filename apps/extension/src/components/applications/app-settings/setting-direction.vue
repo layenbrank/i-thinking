@@ -3,7 +3,7 @@ import { useAppStore } from '@/stores/application-store.ts'
 
 interface DirectionOptions {
 	label: string
-	value: ApplicationDirection
+	value: Application.Direction
 }
 
 defineOptions({

@@ -48,6 +48,7 @@ function toggle() {
 
 onMounted(function () {
 	//
+	console.log('mac-view mounted', visible.value)
 })
 
 onUnmounted(function () {

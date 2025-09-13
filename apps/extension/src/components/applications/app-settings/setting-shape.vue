@@ -3,7 +3,7 @@ import { useAppStore } from '@/stores/application-store.ts'
 
 interface ShapeOptions {
 	label: string
-	value: ApplicationShape
+	value: Application.Shape
 }
 
 defineOptions({

@@ -7,7 +7,7 @@ defineOptions({
 
 interface SizeOptions {
 	label: string
-	value: ApplicationSize
+	value: Application.Size
 }
 
 const appStore = useAppStore()

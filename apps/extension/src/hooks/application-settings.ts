@@ -6,8 +6,8 @@ interface ApplicationStyle {
 }
 
 type ApplicationStyleMap = Record<
-	ApplicationSize,
-	Record<ApplicationShape, Record<ApplicationDirection, ApplicationStyle>>
+	Application.Size,
+	Record<Application.Shape, Record<Application.Direction, ApplicationStyle>>
 >
 
 export function useSettings(options: Application) {

@@ -1,3 +1,8 @@
-import type { JSX } from 'vue/jsx-runtime'
+// import type { JSX } from 'vue/jsx-runtime'
+/// <reference types="vue/jsx-runtime" />
 
-export type ApplicationReflect = Readonly<Partial<Record<ApplicationName, () => JSX.Element>>>
+declare namespace Application {
+	type Reflect = Readonly<
+		Partial<Record<Application.Component, () => import('vue/jsx-runtime').JSX.Element>>
+	>
+}

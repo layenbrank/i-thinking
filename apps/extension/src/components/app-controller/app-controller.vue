@@ -63,7 +63,7 @@ const menuOptions = computed(function () {
 
 	if (!active) return []
 
-	return contextmenuReflect[active.app]()
+	return contextmenuReflect[active.component]()
 })
 
 function updateActiveKey(value: ContextMenuOptions) {
@@ -205,7 +205,7 @@ onUnmounted(function () {
 			<template v-for="application in appStore.applications" :key="application.id">
 				<component
 					:application="application"
-					:is="appReflect[application.app]?.()"
+					:is="appReflect[application.component]?.()"
 					:settings-visible="appStore.settingsVisible"
 					:data-id="application.id"
 					:class="['application']"

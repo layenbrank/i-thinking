@@ -20,7 +20,7 @@ const props = withDefaults(
 				id: '0',
 				width: '60px',
 				height: '60px',
-				app: 'app-bookmark',
+				component: 'app-bookmark',
 				round: '12px',
 				size: 'medium',
 				slideID: '0',

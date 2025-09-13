@@ -18,7 +18,7 @@ const props = withDefaults(
 				id: '0',
 				width: '60px',
 				height: '60px',
-				app: 'app-example',
+				component: 'app-example',
 				round: '12px',
 				size: 'medium',
 				slideID: '0',

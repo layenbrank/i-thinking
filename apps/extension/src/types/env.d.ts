@@ -17,9 +17,3 @@ var MediaStreamTrackProcessor: {
 	prototype: MediaStreamTrackProcessor
 	new (options: MediaStreamTrack): TransformStream
 }
-
-interface StoreSchema {
-	id: string
-	createdAt: number
-	updatedAt: number
-}

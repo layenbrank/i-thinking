@@ -1,21 +1,8 @@
 type ApplicationWindowType = ReturnType<(typeof import('ant-design-vue'))['Modal']['info']>
 
-type ApplicationSize = 'mini' | 'small' | 'medium' | 'large' | 'huge' | 'massive' | 'ultra'
-
-type ApplicationDirection = 'horizontal' | 'vertical'
-
-type ApplicationShape = 'square' | 'circle' | 'rectangle'
-
-type ApplicationName =
-	| 'app-bookmark'
-	| 'app-calendar'
-	| 'app-notepad'
-	| 'app-store'
-	| 'app-web'
-	| 'app-clipchamp'
-	| 'app-settings'
-	| 'app-example'
-
+/**
+ * @description 应用组件
+ */
 interface Application {
 	width: string | null
 	height: string | null
@@ -27,13 +14,43 @@ interface Application {
 	id: string
 	slideID: string
 	sort: number
-	app: ApplicationName
-	size: ApplicationSize
+	component: Application.Component
+	size: Application.Size
 	name: string
 	url?: string
 	icon?: string
-	direction: ApplicationDirection
-	shape: ApplicationShape
+	direction: Application.Direction
+	shape: Application.Shape
 	description: string
 	downloadCount: number
+}
+
+declare namespace Application {
+	/**
+	 * @description 组件名称
+	 */
+	type Component =
+		| 'app-bookmark'
+		| 'app-calendar'
+		| 'app-markdown'
+		| 'app-settings'
+		| 'app-clipchamp'
+		| 'app-store'
+		| 'app-web'
+		| 'app-example'
+
+	/**
+	 * @description 组件布局方向
+	 */
+	type Direction = 'horizontal' | 'vertical'
+
+	/**
+	 * @description 组件形状
+	 */
+	type Shape = 'square' | 'circle' | 'rectangle'
+
+	/**
+	 * @description 组件尺寸
+	 */
+	type Size = 'mini' | 'small' | 'medium' | 'large' | 'huge' | 'massive' | 'ultra'
 }

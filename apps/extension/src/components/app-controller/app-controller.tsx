@@ -1,4 +1,3 @@
-import type { ApplicationReflect } from '@desktop-app/shared/app-controller'
 // import { Add, Cloud, Download, Settings } from '@vicons/ionicons5'
 import Download from '~icons/ant-design/cloud-download-outlined'
 import Cloud from '~icons/ant-design/cloud-upload-outlined'
@@ -14,8 +13,8 @@ const AppBookmark = defineAsyncComponent(function () {
 const AppCalendar = defineAsyncComponent(function () {
 	return import('@/components/applications/app-calendar/app-calendar.vue')
 })
-const AppNotePad = defineAsyncComponent(function () {
-	return import('@/components/applications/app-notepad/app-notepad.vue')
+const AppMarkdown = defineAsyncComponent(function () {
+	return import('@/components/applications/app-markdown/app-markdown.vue')
 })
 
 const AppStore = defineAsyncComponent(function () {
@@ -66,14 +65,17 @@ const commonMenuOptions: ContextMenuOptions[] = [
 	}
 ]
 
-export const contextmenuReflect: Record<Partial<ApplicationName>, () => ContextMenuOptions[]> = {
+export const contextmenuReflect: Record<
+	Partial<Application.Component>,
+	() => ContextMenuOptions[]
+> = {
 	'app-bookmark'() {
 		return commonMenuOptions
 	},
 	'app-calendar'() {
 		return commonMenuOptions
 	},
-	'app-notepad'() {
+	'app-markdown'() {
 		return commonMenuOptions
 	},
 	'app-store'() {
@@ -95,7 +97,7 @@ export const contextmenuReflect: Record<Partial<ApplicationName>, () => ContextM
 
 // const slidesStore = useSlidesStore()
 
-export const sizes: readonly ApplicationSize[] = [
+export const sizes: readonly Application.Size[] = [
 	'small',
 	'medium',
 	'large',
@@ -104,15 +106,17 @@ export const sizes: readonly ApplicationSize[] = [
 	'ultra'
 ]
 
-export const appReflect: ApplicationReflect = {
+// const demo: Application.BookmarkFolder = ''
+
+export const appReflect: Application.Reflect = {
 	'app-bookmark'() {
 		return <AppBookmark />
 	},
 	'app-calendar'() {
 		return <AppCalendar />
 	},
-	'app-notepad'() {
-		return <AppNotePad />
+	'app-markdown'() {
+		return <AppMarkdown />
 	},
 	'app-example'() {
 		return <AppExample />

@@ -13,17 +13,14 @@
 		"./process-env": {
 			"types": "./src/types/process-env.d.ts"
 		},
+		"./schema": {
+			"types": "./src/types/schema.d.ts"
+		},
 		"./response": {
 			"types": "./src/types/response.d.ts"
 		},
 		"./user-profile": {
 			"types": "./src/types/user-profile.d.ts"
-		},
-		"./app-controller": {
-			"types": "./src/types/app-controller.d.ts"
-		},
-		"./app-bookmark": {
-			"types": "./src/types/app-bookmark.d.ts"
 		},
 		"./application": {
 			"types": "./src/types/application.d.ts"
@@ -39,6 +36,15 @@
 		},
 		"./application-backup": {
 			"types": "./src/types/application-backup.d.ts"
+		},
+		"./app-controller": {
+			"types": "./src/types/app-controller.d.ts"
+		},
+		"./app-bookmark": {
+			"types": "./src/types/app-bookmark.d.ts"
+		},
+		"./app-markdown": {
+			"types": "./src/types/app-markdown.ts"
 		}
 	}
 }

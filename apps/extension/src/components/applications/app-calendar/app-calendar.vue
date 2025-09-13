@@ -27,7 +27,7 @@ const props = withDefaults(
 				shape: 'square',
 				textSize: '13px',
 				description: '书签',
-				app: 'app-calendar',
+				component: 'app-calendar',
 				downloadCount: 1000,
 				textColor: '#ffffff',
 				backgroundImage: null,

@@ -15,7 +15,7 @@ const AppCalendar = defineAsyncComponent(function () {
 	return import('@/components/applications/app-calendar/app-calendar.vue')
 })
 const AppNotepad = defineAsyncComponent(function () {
-	return import('@/components/applications/app-notepad/app-notepad.vue')
+	return import('@/components/applications/app-markdown/app-markdown.vue')
 })
 const AppWeb = defineAsyncComponent(function () {
 	return import('@/components/applications/app-web/app-web.vue')
@@ -84,7 +84,7 @@ const applications: readonly Application[] = [
 		id: randomID(),
 		slideID: randomID(),
 		sort: 1,
-		app: 'app-bookmark',
+		component: 'app-bookmark',
 		width: '60px',
 		height: '60px',
 		size: 'mini',
@@ -107,7 +107,7 @@ const applications: readonly Application[] = [
 		id: randomID(),
 		slideID: randomID(),
 		sort: 2,
-		app: 'app-calendar',
+		component: 'app-calendar',
 		width: '60px',
 		height: '60px',
 		size: 'medium',
@@ -129,7 +129,7 @@ const applications: readonly Application[] = [
 		id: randomID(),
 		slideID: randomID(),
 		sort: 3,
-		app: 'app-store',
+		component: 'app-store',
 		width: '60px',
 		height: '60px',
 		// round: null,
@@ -160,7 +160,7 @@ const applications: readonly Application[] = [
 		id: randomID(),
 		slideID: randomID(),
 		sort: 3,
-		app: 'app-web',
+		component: 'app-web',
 		url: 'https://www.baidu.com',
 		size: 'mini',
 		round: '8px',
@@ -181,7 +181,7 @@ const applications: readonly Application[] = [
 		id: randomID(),
 		slideID: randomID(),
 		sort: 5,
-		app: 'app-web',
+		component: 'app-web',
 		width: '60px',
 		height: '60px',
 		url: 'https://weixin.qq.com',
@@ -202,7 +202,7 @@ const applications: readonly Application[] = [
 		id: randomID(),
 		slideID: randomID(),
 		sort: 6,
-		app: 'app-example',
+		component: 'app-example',
 		width: '60px',
 		height: '60px',
 		url: 'https://weixin.qq.com',
@@ -328,7 +328,7 @@ function randomID() {
 							<template v-for="application in applications" :key="application.id">
 								<component
 									:application="application"
-									:is="applicationReflect[application.app]?.()"
+									:is="applicationReflect[application.component]?.()"
 									:settings-visible="false"
 									:data-id="application.id"
 									:class="['application']"

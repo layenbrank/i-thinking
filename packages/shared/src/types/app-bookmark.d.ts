@@ -1,4 +1,7 @@
 declare namespace Application {
+	/**
+	 * @description 书签
+	 */
 	interface Bookmark {
 		id: string
 		url: string
@@ -11,6 +14,9 @@ declare namespace Application {
 		description: string
 	}
 
+	/**
+	 * @description 书签文件夹
+	 */
 	interface BookmarkFolder {
 		id: string
 		sort: number

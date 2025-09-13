@@ -99,7 +99,7 @@ function updateApplication(bookmark: Bookmark) {
 			size: 'mini',
 			sort: appStore.applications?.length,
 			direction: 'horizontal',
-			app: 'app-web',
+			component: 'app-web',
 			icon: bookmarkApp.url
 		})
 		message.success(`已添加 ${bookmarkApp.title} 到应用列表`)
