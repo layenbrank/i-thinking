@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAppStore } from '@/stores/application-store.ts'
+import { useAppStore } from '@/stores/application'
 
 interface DirectionOptions {
 	label: string

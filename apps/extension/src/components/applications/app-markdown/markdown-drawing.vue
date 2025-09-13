@@ -62,24 +62,22 @@ function onEndDrawing() {
 
 function tick() {
 	requestAnimationFrame(function () {
-		path.value?.attr('d', function (points) {
-			const path = d3.line().curve(d3.curveBasis)([points])
-			const lines = props.node.attrs.lines.filter((item) => item.id !== id.value)
-
-			props.updateAttributes({
-				lines: [
-					...lines,
-					{
-						id: id.value,
-						color: color.value,
-						size: size.value,
-						path: path
-					}
-				]
-			})
-
-			return path
-		})
+		// path.value?.attr('d', function (points) {
+		// const path = d3.line().curve(d3.curveBasis)([points])
+		// const lines = props.node.attrs.lines.filter((item) => item.id !== id.value)
+		// props.updateAttributes({
+		// 	lines: [
+		// 		...lines,
+		// 		{
+		// 			id: id.value,
+		// 			color: color.value,
+		// 			size: size.value,
+		// 			path: path
+		// 		}
+		// 	]
+		// })
+		// 	return path
+		// })
 	})
 }
 

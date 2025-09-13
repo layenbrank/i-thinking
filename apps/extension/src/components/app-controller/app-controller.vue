@@ -2,7 +2,7 @@
 import { resize } from '@desktop-app/core/directives'
 import AppMenu from '../app-menu/app-menu.vue'
 // import AppDrawer from '../app-settings/app-settings.vue'
-import { useAppStore } from '@/stores/application-store.ts'
+import { useAppStore } from '@/stores/application.ts'
 import Sortable from 'sortablejs'
 
 import { appReflect, contextmenuReflect, sizes } from './app-controller.tsx'

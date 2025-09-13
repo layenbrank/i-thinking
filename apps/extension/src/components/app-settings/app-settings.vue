@@ -15,17 +15,17 @@ const emit = defineEmits<(e: 'update:confirm', value: any) => void>()
 
 interface DirectionOptions {
 	label: string
-	value: ApplicationDirection
+	value: Application.Direction
 }
 
 interface ShapeOptions {
 	label: string
-	value: ApplicationShape
+	value: Application.Shape
 }
 
 interface SizeOptions {
 	label: string
-	value: ApplicationSize
+	value: Application.Size
 }
 
 interface Options {

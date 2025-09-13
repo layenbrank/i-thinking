@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAppStore } from '@/stores/application-store.ts'
+import { useAppStore } from '@/stores/application'
 
 defineOptions({
 	name: 'setting-size'

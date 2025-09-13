@@ -1,20 +1,18 @@
-import '@/styles/index.scss'
-import 'ant-design-vue/dist/reset.css'
-
-import { createPinia } from 'pinia'
-import { createApp, type Directive } from 'vue'
-
+import locale from '@/plugins/locale.ts'
 import preload from '@/plugins/preload.ts'
+import '@/styles/index.scss'
 import { debounce, resize } from '@desktop-app/core/directives'
+import 'ant-design-vue/dist/reset.css'
+import { createPinia } from 'pinia'
 import 'reflect-metadata'
+import { createApp, type Directive } from 'vue'
+import App from './App.vue'
+import router from './router/index.ts'
 
 const directives: Record<string, Directive> = {
 	resize,
 	debounce
 }
-
-import App from './App.vue'
-import router from './router/index.ts'
 
 const app = createApp(App)
 
@@ -29,5 +27,6 @@ app
 	.use(pinia)
 	.use(router)
 	.use(preload)
+	.use(locale)
 
 	.mount('#app')

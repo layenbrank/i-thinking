@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import ActiveWindow from '@/components/active-window/active-window.vue'
 import { MacLayout, type MacLayoutOptions } from '@/layouts/index.ts'
-import { useAppStore } from '@/stores/application-store.ts'
+import { useAppStore } from '@/stores/application'
 import { useDateFormat, useTimestamp } from '@vueuse/core'
 
 // import AppSettings from '@/components/app-settings/app-settings.vue'

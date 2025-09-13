@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import fallback from '@/assets/feedback/fallback.png'
-import { useAppStore } from '@/stores/application-store.ts'
+import { useAppStore } from '@/stores/application.ts'
 import { timeSphere } from '@desktop-app/core'
 import { message } from 'ant-design-vue'
 import Fuse, { type IFuseOptions } from 'fuse.js'

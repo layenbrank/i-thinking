@@ -1,4 +1,3 @@
-// import type { DocumentType } from '@tiptap/vue-3'
 import { Dexie, type EntityTable } from 'dexie'
 
 type Bookmark = Application.Bookmark

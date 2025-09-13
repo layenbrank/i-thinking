@@ -1,3 +1,4 @@
+import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { findUpSync } from 'find-up'
@@ -12,67 +13,128 @@ import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
-// import wasm from 'vite-plugin-wasm'
 import pkg from './package.json'
+// import wasm from 'vite-plugin-wasm'
 
 // 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 
 const cssRegex: Readonly<RegExp> = /\.css$/i
-const imageRegex: Readonly<RegExp> = /.(png|jpe?g|gif|svg|webp|ico)$/i
-const fontRegex: Readonly<RegExp> = /.(woff|woff2|ttf|eot)$/i
+const imageRegex: Readonly<RegExp> = /\.(png|jpe?g|gif|svg|webp|ico)$/i
+const fontRegex: Readonly<RegExp> = /\.(woff2?|ttf|eot|otf)$/i
+const videoRegex: Readonly<RegExp> = /\.(mp4|webm|ogg)$/i
+const audioRegex: Readonly<RegExp> = /\.(mp3|wav|ogg)$/i
+const wasmRegex: Readonly<RegExp> = /\.wasm$/i
+const jsonRegex: Readonly<RegExp> = /\.json$/i
+const svgRegex: Readonly<RegExp> = /\.svg$/i
+const gifRegex: Readonly<RegExp> = /\.gif$/i
 
 // 使用正则数组表示需要内联的文件类型
-const inlineRegexes: readonly RegExp[] = [
-	/\.gif$/i // GIF 动画
-]
+const inlineRegexes: readonly RegExp[] = [gifRegex]
 
 // 使用正则数组表示不需要内联的文件类型
 const noInlineRegexes: readonly RegExp[] = [
-	/\.svg$/i, // SVG 图标
 	/icon.*\.(png|jpe?g)$/i, // 图标文件
-	/\.json$/i, // JSON 文件
-	/\.(mp4|webm|ogg)$/i, // 视频文件
-	/\.(mp3|wav|ogg)$/i, // 音频文件
-	/\.(woff2?|ttf|eot|otf)$/i, // 字体文件
 	/background.*\.(png|jpe?g)$/i // 背景图片
-]
+].concat(svgRegex, jsonRegex, videoRegex, audioRegex, fontRegex)
 
-// 分包配置映射表，便于维护和扩展
+// Vue3 + TypeScript 项目分包配置
 const chunkMap: Readonly<Record<string, RegExp[]>> = {
-	// 前端核心框架
+	// ========== 本地依赖 ==========
+	'workspace-deps': [/[\\/]packages[\\/](core|wasm)[\\/]/],
+
+	'core-apis': [/[\\/]src[\\/]apis[\\/]/],
+	'core-utils': [/[\\/]src[\\/]utils[\\/]/],
+	'core-hooks': [/[\\/]src[\\/]hooks[\\/]/],
+	'core-stores': [/[\\/]src[\\/]stores[\\/]/],
+	'core-assets': [/[\\/]src[\\/]assets[\\/]/],
+	'core-plugins': [/[\\/]src[\\/]plugins[\\/]/],
+	'core-database': [/[\\/]src[\\/]database[\\/]/],
+
+	// ========== Vue 核心生态 ==========
 	'core-framework': [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/],
 
-	// UI 组件库 - 主库
-	'ui-antdv': [/[\\/]node_modules[\\/]ant-design-vue[\\/]/],
+	'utils-framework': [/[\\/]node_modules[\\/](@vueuse)[\\/]/],
 
-	// UI 组件库 - 第三方依赖
-	'ui-antdv-vendors': [
-		/[\\/]node_modules[\\/](@ant-design|@ctrl\/tinycolor|@emotion|@simonwep\/pickr|array-tree-filter|async-validator|dom-align|dom-scroll-into-view|resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal|stylis|throttle-debounce|vue-types|warning)[\\/]/
+	// ========== UI 组件库 ==========
+	'ui-antd': [/[\\/]node_modules[\\/](ant-design-vue)[\\/]/],
+
+	'ui-antd-deps': [
+		/[\\/]node_modules[\\/](@ant-design|@ctrl\/tinycolor|@emotion|stylis)[\\/]/,
+		/[\\/]node_modules[\\/](@simonwep\/pickr|throttle-debounce|vue-types|warning)[\\/]/,
+		/[\\/]node_modules[\\/](array-tree-filter|async-validator|dom-align|dom-scroll-into-view)[\\/]/,
+		/[\\/]node_modules[\\/](resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal)[\\/]/
 	],
 
-	// UI 图标
-	'ui-icons': [/[\\/]node_modules[\\/](@iconify\/json)[\\/]/],
+	'ui-icons': [/[\\/]node_modules[\\/](@iconify\/json)[\\/]/, /~icons/],
 
-	// 工具库 - 国际化
-	'lib-i18n': [/[\\/]node_modules[\\/](vue-i18n|@intlify)[\\/]/],
+	// ========== 编辑器 ==========
+	'utils-markdown': [
+		/[\\/]node_modules[\\/]@tiptap[\\/]/,
+		/[\\/]node_modules[\\/]prosemirror-/,
+		/[\\/]node_modules[\\/]@floating-ui[\\/]/
+	],
 
-	// 工具库 - 日期时间
-	'lib-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
+	'utils-code': [/[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/],
 
-	// 工具库 - 存储
-	'lib-storage': [/[\\/]node_modules[\\/]dexie[\\/]/],
+	'utils-languages': [/[\\/]node_modules[\\/](vue-i18n|@intlify)[\\/]/],
 
-	// 工具库 - UI 增强
-	'lib-ui-enhance': [/[\\/]node_modules[\\/](swiper|@vueuse|sortablejs)[\\/]/],
+	// ========== 媒体处理 ==========
+	'utils-media': [
+		/[\\/]node_modules[\\/](mp4box)[\\/]/,
+		/[\\/]node_modules[\\/](@ffmpeg)[\\/]/,
+		/[\\/]node_modules[\\/](ffmpeg-core\.(js|wasm|worker\.js))$/
+	],
 
-	// 工具库 - 网络请求
-	'lib-network': [/[\\/]node_modules[\\/](axios|alova|@alova|rate-limiter-flexible|@ngify)[\\/]/],
+	// ========== 工具库 ==========
+	'utils-core': [
+		/[\\/]node_modules[\\/](lodash-es|rxjs|uuid|deep-pick-omit|clsx)[\\/]/,
+		/[\\/]node_modules[\\/](reflect-metadata)[\\/]/
+	],
 
-	// 工具库 - 核心工具集
-	'lib-utils': [/[\\/]node_modules[\\/](clsx|rxjs|lodash-es|deep-pick-omit|uuid|fuse\.js)[\\/]/]
+	'utils-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
+
+	'utils-crypto': [/[\\/]node_modules[\\/](crypto-js)[\\/]/],
+
+	'utils-matches': [/[\\/]node_modules[\\/](fuse\.js)[\\/]/],
+
+	'utils-math': [
+		/[\\/]node_modules[\\/](mathjs)[\\/]/,
+		/[\\/]node_modules[\\/](mathjs|complex\.js|decimal\.js|escape-latex|fraction\.js)[\\/]/,
+		/[\\/]node_modules[\\/](javascript-natural-sort|seedrandom|tiny-emitter|typed-function)[\\/]/
+	],
+
+	'utils-enhance': [/[\\/]node_modules[\\/](qrcode|d3)[\\/]/, /[\\/]node_modules[\\/]d3-/],
+
+	// ========== 网络与存储 ==========
+	'utils-network': [
+		/[\\/]node_modules[\\/](@ngify)[\\/]/,
+		/[\\/]node_modules[\\/](axios|follow-redirects|form-data|proxy-from-env)[\\/]/
+	],
+
+	'utils-storage': [/[\\/]node_modules[\\/](dexie)[\\/]/],
+
+	validation: [/[\\/]node_modules[\\/](zod)[\\/]/],
+
+	// ========== UI 增强 ==========
+	'ui-animation': [/[\\/]node_modules[\\/](gsap|swiper)[\\/]/],
+
+	'ui-interaction': [/[\\/]node_modules[\\/](sortablejs)[\\/]/],
+
+	// ========== polyfill ==========
+	'utils-polyfill': [/[\\/]node_modules[\\/](@babel)[\\/]/],
+
+	// ========== 其他第三方依赖 ==========
+	'unknown-deps': [
+		/[\\/]node_modules[\\/](rope-sequence|w3c-keyname)[\\/]/,
+		/[\\/]node_modules[\\/](linkifyjs|devlop|orderedmap)[\\/]/,
+		/[\\/]node_modules[\\/](compute-scroll-into-view|tslib)[\\/]/,
+		/[\\/]node_modules[\\/](perfect-debounce|hookable|birpc)[\\/]/
+	]
 }
+
+const chunkEntries = Object.entries(chunkMap)
 
 export default defineConfig(function ({ mode, command: _command }: ConfigEnv): UserConfig {
 	const _env = loadEnv(mode || 'development', '')
@@ -120,6 +182,9 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 					})
 				],
 				dts: 'src/types/components.d.ts'
+			}),
+			VueI18nPlugin({
+				include: resolve(dirname(fileURLToPath(import.meta.url)), './src/locales')
 			})
 		],
 		resolve: {
@@ -169,8 +234,8 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 					'content-scripts': 'src/libs/content-scripts.ts'
 				},
 				output: {
-					entryFileNames: 'assets/[name]-[hash].js',
-					chunkFileNames: 'assets/[name]-[hash].js',
+					entryFileNames: 'js/[name]-[hash].js',
+					chunkFileNames: 'js/[name]-[hash].js',
 					// assetFileNames: 'assets/[name]-[hash].[ext]',
 					assetFileNames(chunkInfo) {
 						if (!chunkInfo.names) return 'assets/[name].[ext]'
@@ -179,15 +244,16 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 							if (cssRegex.test(name)) return `css/${name}`
 							if (imageRegex.test(name)) return `images/${name}`
 							if (fontRegex.test(name)) return `fonts/${name}`
+							if (videoRegex.test(name)) return `videos/${name}`
+							if (audioRegex.test(name)) return `audios/${name}`
+							if (wasmRegex.test(name)) return `wasm/${name}`
 						}
 
 						return 'assets/[name].[ext]'
 					},
 					manualChunks(id, _meta) {
-						const entries = Object.entries(chunkMap)
-
 						// 遍历映射表，匹配当前模块路径
-						for (const [chunkName, patterns] of entries) {
+						for (const [chunkName, patterns] of chunkEntries) {
 							const pattern = patterns.some((pattern) => pattern.test(id))
 							if (pattern) return chunkName
 						}

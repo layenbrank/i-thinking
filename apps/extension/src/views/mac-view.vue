@@ -2,6 +2,7 @@
 import backgroundImage from '@/assets/wallpaper/r2e391.png'
 import { useDateFormat, useTimestamp } from '@vueuse/core'
 import { Modal } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 
 const AppController = defineAsyncComponent(function () {
 	return import('@/components/app-controller/app-controller.vue')
@@ -10,6 +11,8 @@ const AppController = defineAsyncComponent(function () {
 defineOptions({
 	name: 'mac-view'
 })
+
+const { t, locale } = useI18n()
 
 const keyword = ref('')
 
@@ -46,9 +49,32 @@ function toggle() {
 	// visible.value = !visible.value
 }
 
+function toggleLanguage() {
+	console.log([
+		t('general.week.min.Mon'),
+		t('general.week.min.Tue'),
+		t('general.week.min.Wed'),
+		t('general.week.min.Thu'),
+		t('general.week.min.Fri'),
+		t('general.week.min.Sat'),
+		t('general.week.min.Sun')
+	])
+
+	console.log([
+		t('general.week.max.Monday'),
+		t('general.week.max.Tuesday'),
+		t('general.week.max.Wednesday'),
+		t('general.week.max.Thursday'),
+		t('general.week.max.Friday'),
+		t('general.week.max.Saturday'),
+		t('general.week.max.Sunday')
+	])
+
+	locale.value = locale.value === 'en' ? 'zh-CN' : 'en'
+}
+
 onMounted(function () {
-	//
-	console.log('mac-view mounted', visible.value)
+	// console.log('mac-view mounted', visible.value)
 })
 
 onUnmounted(function () {
@@ -76,11 +102,12 @@ onUnmounted(function () {
 						<i-local:apple-filled />
 					</template>
 				</a-button>
-				<a-button> 镜像 </a-button>
-				<a-button> 编辑 </a-button>
-				<a-button> 显示 </a-button>
-				<a-button> 窗口 </a-button>
-				<a-button> 帮助 </a-button>
+				<a-button> {{ $t('general.mirror') }} </a-button>
+				<a-button> {{ $t('general.show') }} </a-button>
+				<a-button> {{ $t('general.window') }} </a-button>
+				<a-button> {{ $t('general.edit') }} </a-button>
+				<a-button> {{ $t('general.help') }} </a-button>
+				<a-button @click="toggleLanguage">{{ $t('general.language') }}</a-button>
 			</a-space-compact>
 			<a-space-compact class="flex">
 				<a-button class="icon-wifi">
@@ -107,7 +134,7 @@ onUnmounted(function () {
 							:model-value="keyword"
 							@update-value="updateKeyword"
 							round
-							placeholder="请输入关键词!"
+							:placeholder="$t('general.please-enter-keywords')"
 						/>
 					</template>
 				</a-popover>
@@ -257,6 +284,7 @@ onUnmounted(function () {
 			height: 80%;
 			border-radius: math.div($bottom-height, 10);
 			background-color: rgba($color: #ffffff, $alpha: 0.3);
+			color: rgba(64, 128, 255, 0.8);
 		}
 	}
 

@@ -1,5 +1,4 @@
 <script setup lang="tsx">
-import type { ApplicationReflect } from '@desktop-app/shared/app-controller'
 import { A11y, Autoplay, Mousewheel, Navigation, Pagination } from 'swiper/modules'
 import 'swiper/scss'
 import 'swiper/scss/navigation'
@@ -14,7 +13,7 @@ const AppBookmark = defineAsyncComponent(function () {
 const AppCalendar = defineAsyncComponent(function () {
 	return import('@/components/applications/app-calendar/app-calendar.vue')
 })
-const AppNotepad = defineAsyncComponent(function () {
+const AppMarkdown = defineAsyncComponent(function () {
 	return import('@/components/applications/app-markdown/app-markdown.vue')
 })
 const AppWeb = defineAsyncComponent(function () {
@@ -61,7 +60,7 @@ const options: AppStoreOptions[] = [
 	}
 ]
 
-const applicationReflect: ApplicationReflect = {
+const applicationReflect: Application.Reflect = {
 	'app-bookmark'() {
 		return <AppBookmark />
 	},
@@ -74,8 +73,8 @@ const applicationReflect: ApplicationReflect = {
 	'app-web'() {
 		return <AppWeb />
 	},
-	'app-notepad'() {
-		return <AppNotepad />
+	'app-markdown'() {
+		return <AppMarkdown />
 	}
 }
 
