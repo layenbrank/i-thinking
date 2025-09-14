@@ -17,6 +17,40 @@ const host = process.env.TAURI_DEV_HOST
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 
+const chunkMap: Readonly<Record<string, RegExp[]>> = {
+	// 前端核心框架
+	'core-framework': [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/],
+
+	// UI 组件库 - 主库
+	'ui-antdv': [/[\\/]node_modules[\\/]ant-design-vue[\\/]/],
+
+	// UI 组件库 - 第三方依赖
+	'ui-antdv-vendors': [
+		/[\\/]node_modules[\\/](@ant-design|@ctrl\/tinycolor|@emotion|@simonwep\/pickr|array-tree-filter|async-validator|dom-align|dom-scroll-into-view|resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal|stylis|throttle-debounce|vue-types|warning)[\\/]/
+	],
+
+	// UI 图标
+	'ui-icons': [/[\\/]node_modules[\\/](@iconify\/json)[\\/]/],
+
+	// 工具库 - 国际化
+	'lib-i18n': [/[\\/]node_modules[\\/](vue-i18n|@intlify)[\\/]/],
+
+	// 工具库 - 日期时间
+	'lib-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
+
+	// 工具库 - 存储
+	'lib-storage': [/[\\/]node_modules[\\/]dexie[\\/]/],
+
+	// 工具库 - UI 增强
+	'lib-ui-enhance': [/[\\/]node_modules[\\/](swiper|@vueuse|sortablejs)[\\/]/],
+
+	// 工具库 - 网络请求
+	'lib-network': [/[\\/]node_modules[\\/](axios|alova|@alova|rate-limiter-flexible|@ngify)[\\/]/],
+
+	// 工具库 - 核心工具集
+	'lib-utils': [/[\\/]node_modules[\\/](clsx|rxjs|lodash-es|deep-pick-omit|uuid|fuse\.js)[\\/]/]
+}
+
 export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
 	return {
 		plugins: [
@@ -34,7 +68,6 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 					props['aria-hidden'] = 'true'
 				},
 				customCollections: {
-					// 'local' 是自定义集合名称，可以改为任何你喜欢的名称
 					local: FileSystemIconLoader(
 						resolve(rootDir, 'apps/client/src/assets/icons'),
 						// resolve(rootDir, 'src/assets/icons'),
@@ -55,7 +88,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 						importStyle: false
 					}),
 					IconsResolver({
-						prefix: 'Icon',
+						prefix: 'i',
 						customCollections: ['local']
 					})
 				],
@@ -77,45 +110,6 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 					chunkFileNames: 'assets/[name]-[hash].js',
 					assetFileNames: 'assets/[name]-[hash].[ext]',
 					manualChunks(id, meta) {
-						// 分包配置映射表，便于维护和扩展
-						const chunkMap: Readonly<Record<string, RegExp[]>> = {
-							// 前端核心框架
-							'core-framework': [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/],
-
-							// UI 组件库 - 主库
-							'ui-antdv': [/[\\/]node_modules[\\/]ant-design-vue[\\/]/],
-
-							// UI 组件库 - 第三方依赖
-							'ui-antdv-vendors': [
-								/[\\/]node_modules[\\/](@ant-design|@ctrl\/tinycolor|@emotion|@simonwep\/pickr|array-tree-filter|async-validator|dom-align|dom-scroll-into-view|resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal|stylis|throttle-debounce|vue-types|warning)[\\/]/
-							],
-
-							// UI 图标
-							'ui-icons': [/[\\/]node_modules[\\/](@iconify\/json)[\\/]/],
-
-							// 工具库 - 国际化
-							'lib-i18n': [/[\\/]node_modules[\\/](vue-i18n|@intlify)[\\/]/],
-
-							// 工具库 - 日期时间
-							'lib-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
-
-							// 工具库 - 存储
-							'lib-storage': [/[\\/]node_modules[\\/]dexie[\\/]/],
-
-							// 工具库 - UI 增强
-							'lib-ui-enhance': [/[\\/]node_modules[\\/](swiper|@vueuse|sortablejs)[\\/]/],
-
-							// 工具库 - 网络请求
-							'lib-network': [
-								/[\\/]node_modules[\\/](axios|alova|@alova|rate-limiter-flexible|@ngify)[\\/]/
-							],
-
-							// 工具库 - 核心工具集
-							'lib-utils': [
-								/[\\/]node_modules[\\/](clsx|rxjs|lodash-es|deep-pick-omit|uuid|fuse\.js)[\\/]/
-							]
-						}
-
 						// 遍历映射表，匹配当前模块路径
 						for (const [chunkName, patterns] of Object.entries(chunkMap)) {
 							if (patterns.some((pattern) => pattern.test(id))) {

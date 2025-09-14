@@ -2,7 +2,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export default {
 	path: '/',
-	redirect: '/work-view',
+	redirect: '/:pathMatch(.*)*',
 	children: [
 		{
 			path: '/work-view',

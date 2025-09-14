@@ -77,7 +77,7 @@
 		"source.organizeLinkDefinitions": "always",
 		"source.removeUnused.ts": "never",
 		"source.removeUnusedImports": "always",
-		"source.sort.json": "explicit",
+		"source.sort.json": "never",
 		"source.sortImports": "always"
 	},
 	"editor.cursorBlinking": "smooth",
