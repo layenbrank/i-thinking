@@ -18,9 +18,10 @@ const app = createApp(App)
 
 const pinia = createPinia()
 
-Object.keys(directives).forEach(function (key: string) {
-	app.directive(key, directives[key])
-})
+for (const [key, directive] of Object.entries(directives)) {
+	if (!directive) continue
+	app.directive(key, directive)
+}
 
 app
 	.use(pinia)
