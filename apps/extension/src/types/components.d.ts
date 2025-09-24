@@ -69,6 +69,7 @@ declare module 'vue' {
     ATabs: typeof import('ant-design-vue/es')['Tabs']
     ATag: typeof import('ant-design-vue/es')['Tag']
     ComboboxTrigger: typeof import('./../components/combobox-trigger/combobox-trigger.vue')['default']
+    copy: typeof import('./../components/applications/app-bookmark/app-bookmark-dialog copy.vue')['default']
     DropZone: typeof import('./../components/DropZone.vue')['default']
     'IAntDesign:appstoreTwotone': typeof import('~icons/ant-design/appstore-twotone')['default']
     'IAntDesign:plusOutlined': typeof import('~icons/ant-design/plus-outlined')['default']

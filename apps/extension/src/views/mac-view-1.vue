@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import ActiveWindow from '@/components/active-window/active-window.vue'
 import { MacLayout, type MacLayoutOptions } from '@/layouts/index.ts'
-import { useAppStore } from '@/stores/application'
+import { useApplicationsStore } from '@/stores/application'
 import { useDateFormat, useTimestamp } from '@vueuse/core'
 
 // import AppSettings from '@/components/app-settings/app-settings.vue'
@@ -19,7 +19,7 @@ defineOptions({
 
 // const { activeSlideApp, settingsVisible } = storeToRefs(slidesStore)
 
-const appStore = useAppStore()
+const store = useApplicationsStore()
 
 const keyword = ref('')
 
@@ -61,7 +61,7 @@ function updateSearch() {
 	window.open(`https://cn.bing.com/search?q=${keyword.value}`, '_blank')
 }
 
-onMounted(function () {})
+// onMounted(function () {})
 
 onUnmounted(function () {
 	Modal.destroyAll()
@@ -128,7 +128,7 @@ onUnmounted(function () {
 			<app-controller />
 		</template>
 		<template #footer>
-			<active-window v-for="window in appStore.windows" :key="window.id" />
+			<active-window v-for="window in store.windows" :key="window.id" />
 		</template>
 	</mac-layout>
 </template>

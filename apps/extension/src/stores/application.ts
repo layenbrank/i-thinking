@@ -204,7 +204,7 @@ function randomID() {
 	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }
 
-export const useAppStore = defineStore('app', function () {
+export const useApplicationsStore = defineStore('app', function () {
 	const activeApp = ref<Application | null>(null)
 
 	const settingsVisible = ref(false)
@@ -214,14 +214,14 @@ export const useAppStore = defineStore('app', function () {
 	const applications = useObservable(
 		from(
 			liveQuery(function () {
-				return database.application.toArray()
+				return database.application.orderBy('sort').toArray()
 				// console.log('database', database.application)
 				// return database.application.offset(1).limit(30).sortBy('sort')
 			})
 		).pipe(
-			tap(function (resp) {
-				if (isEmpty(resp)) void database.application.bulkAdd(DEFAULT)
-				console.log('applications', resp)
+			tap(function (response) {
+				if (isEmpty(response)) void database.application.bulkAdd(DEFAULT)
+				console.log('applications', response)
 			})
 		)
 	)
@@ -234,7 +234,7 @@ export const useAppStore = defineStore('app', function () {
 	// 	if (isEmpty(resp)) database.app.bulkAdd(DEFAULT)
 	// })
 
-	async function updateApplication(appID: string, updates: Partial<Application>) {
+	async function toUpdate(appID: string, updates: Partial<Application>) {
 		const app = await database.application.get(appID)
 		if (app) return database.application.update(appID, { ...app, ...updates })
 		else return database.application.add({ ...updates, id: appID } as Application)
@@ -249,7 +249,7 @@ export const useAppStore = defineStore('app', function () {
 	return {
 		windows,
 		applications,
-		updateApplication,
+		toUpdate,
 		updateApplications,
 
 		activeApp,

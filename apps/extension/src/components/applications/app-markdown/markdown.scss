@@ -1,8 +1,12 @@
 .markdown-tiptap {
 	width: 100%;
-	height: 100%;
+	// height: 100%;
 	padding: 10px;
 	overflow: hidden scroll;
+	flex-grow: 9;
+	flex-shrink: 1;
+	flex-basis: 0%;
+	// flex: 2;
 
 	:deep(.tiptap.ProseMirror) {
 		width: 100%;

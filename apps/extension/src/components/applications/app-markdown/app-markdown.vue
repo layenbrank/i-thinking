@@ -143,6 +143,7 @@ function updateFullScreen(value: boolean) {
 
 	.ant-modal-body {
 		border-radius: 8px;
+		overflow: hidden;
 		background-color: rgba($color: #ffffff, $alpha: 1);
 	}
 }

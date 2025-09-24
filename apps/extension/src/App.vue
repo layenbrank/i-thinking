@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { LanguageType } from '@/plugins/locale-copy'
+import { theme } from 'ant-design-vue'
+import type { ThemeConfig } from 'ant-design-vue/es/config-provider/context'
 import type { Locale } from 'ant-design-vue/es/locale'
 import enUS from 'ant-design-vue/es/locale/en_US'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
@@ -18,13 +20,42 @@ dayjs.locale('zh-cn')
 
 // dayjs.locale('en-us')
 
-console.log('locale', locale.value, '\nt', t('message.update'), '\nnavigator', navigator.language)
+console.log('locale', locale.value, '\nt', t('Message.Update'), '\nnavigator', navigator.language)
 
 const languageMap: Record<string, Locale> = {
 	zh: zhCN,
 	'zh-CN': zhCN,
 	en: enUS,
 	'en-US': enUS
+}
+
+const themeConfigure: ThemeConfig = {
+	algorithm: theme.defaultAlgorithm,
+	token: {
+		colorPrimary: '#4080ff'
+	},
+	components: {
+		Button: {
+			// algorithm: true
+		},
+		Input: {
+			// algorithm: true
+		},
+		Layout: {
+			// algorithm: true,
+			colorBgHeader: '#000000',
+			colorBorderBg: '#f5f5f5'
+			// headerBg: '#000000',
+			// bodyBg: '#f5f5f5',
+			// footerBg: '#ffffff'
+		},
+		Menu: {
+			// algorithm: true,
+			// itemBg: '#000000',
+			colorItemBg: '#000000',
+			colorText: '#ffffff'
+		}
+	}
 }
 
 // GET_APPLICATION().subscribe(function (resp) {
@@ -47,7 +78,11 @@ onBeforeMount(function () {
 </script>
 
 <template>
-	<a-config-provider :locale="languageMap[locale]" class="top-floor-config-provider">
+	<a-config-provider
+		:theme="themeConfigure"
+		:locale="languageMap[locale]"
+		class="top-floor-config-provider"
+	>
 		<a-style-provider hash-priority="low">
 			<a-app class="top-floor-app">
 				<a-spin :spinning="false" tip="Loading..." wrapperClassName="top-floor-spin-wrapper">

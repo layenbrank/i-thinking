@@ -51,23 +51,23 @@ function toggle() {
 
 function toggleLanguage() {
 	console.log([
-		t('general.week.min.Mon'),
-		t('general.week.min.Tue'),
-		t('general.week.min.Wed'),
-		t('general.week.min.Thu'),
-		t('general.week.min.Fri'),
-		t('general.week.min.Sat'),
-		t('general.week.min.Sun')
+		t('General.Week.Min.Mon'),
+		t('General.Week.Min.Tue'),
+		t('General.Week.Min.Wed'),
+		t('General.Week.Min.Thu'),
+		t('General.Week.Min.Fri'),
+		t('General.Week.Min.Sat'),
+		t('General.Week.Min.Sun')
 	])
 
 	console.log([
-		t('general.week.max.Monday'),
-		t('general.week.max.Tuesday'),
-		t('general.week.max.Wednesday'),
-		t('general.week.max.Thursday'),
-		t('general.week.max.Friday'),
-		t('general.week.max.Saturday'),
-		t('general.week.max.Sunday')
+		t('General.Week.Max.Monday'),
+		t('General.Week.Max.Tuesday'),
+		t('General.Week.Max.Wednesday'),
+		t('General.Week.Max.Thursday'),
+		t('General.Week.Max.Friday'),
+		t('General.Week.Max.Saturday'),
+		t('General.Week.Max.Sunday')
 	])
 
 	locale.value = locale.value === 'en' ? 'zh-CN' : 'en'
@@ -102,12 +102,12 @@ onUnmounted(function () {
 						<i-local:apple-filled />
 					</template>
 				</a-button>
-				<a-button> {{ $t('general.mirror') }} </a-button>
-				<a-button> {{ $t('general.show') }} </a-button>
-				<a-button> {{ $t('general.window') }} </a-button>
-				<a-button> {{ $t('general.edit') }} </a-button>
-				<a-button> {{ $t('general.help') }} </a-button>
-				<a-button @click="toggleLanguage">{{ $t('general.language') }}</a-button>
+				<a-button> {{ $t('General.Mirror') }} </a-button>
+				<a-button> {{ $t('General.Show') }} </a-button>
+				<a-button> {{ $t('General.Window') }} </a-button>
+				<a-button> {{ $t('General.Edit') }} </a-button>
+				<a-button> {{ $t('General.Help') }} </a-button>
+				<a-button @click="toggleLanguage">{{ $t('General.Language') }}</a-button>
 			</a-space-compact>
 			<a-space-compact class="flex">
 				<a-button class="icon-wifi">
@@ -134,7 +134,7 @@ onUnmounted(function () {
 							:model-value="keyword"
 							@update-value="updateKeyword"
 							round
-							:placeholder="$t('general.please-enter-keywords')"
+							:placeholder="$t('General.Please-Enter-Keywords')"
 						/>
 					</template>
 				</a-popover>

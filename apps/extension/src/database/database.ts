@@ -62,7 +62,7 @@ const BOOKMARK_FOLDER: readonly string[] = [
 	'updatedAt'
 ]
 
-const MARKDOWN: readonly string[] = ['&id', 'createdAt', 'updatedAt']
+const MARKDOWN: readonly string[] = ['&id', 'sort', 'createdAt', 'updatedAt']
 
 database.version(1).stores({
 	application: APPLICATION.join(','),

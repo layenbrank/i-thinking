@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAppStore } from '@/stores/application'
+import { useApplicationsStore } from '@/stores/application'
 
 interface DirectionOptions {
 	label: string
@@ -10,7 +10,7 @@ defineOptions({
 	name: 'setting-direction'
 })
 
-const appStore = useAppStore()
+const store = useApplicationsStore()
 
 const options: DirectionOptions[] = [
 	{
@@ -24,7 +24,7 @@ const options: DirectionOptions[] = [
 ]
 
 const formState = reactive<Record<string, any>>({
-	size: appStore.activeApp?.size ?? 'medium',
+	size: store.activeApp?.size ?? 'medium',
 	shape: 'circle',
 	direction: 'horizontal'
 })

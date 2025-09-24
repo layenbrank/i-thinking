@@ -1,17 +1,19 @@
-import exception from './exception.ts'
-import feedback from './feedback.ts'
-import general from './general.ts'
-import message from './message.ts'
-import operation from './operation.ts'
-import profile from './profile.ts'
-import validation from './validation.ts'
+import Exception from './exception.ts'
+import Feedback from './feedback.ts'
+import General from './general.ts'
+import Message from './message.ts'
+import Operation from './operation.ts'
+import Profile from './profile.ts'
+import Validation from './validation.ts'
 
-export default {
-	general,
-	profile,
-	message,
-	feedback,
-	exception,
-	operation,
-	validation
+const zhCN: International.MessageSchema = {
+	General,
+	Profile,
+	Message,
+	Feedback,
+	Exception,
+	Operation,
+	Validation
 } as const
+
+export default zhCN

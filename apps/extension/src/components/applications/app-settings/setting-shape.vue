@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAppStore } from '@/stores/application'
+import { useApplicationsStore } from '@/stores/application'
 
 interface ShapeOptions {
 	label: string
@@ -10,7 +10,7 @@ defineOptions({
 	name: 'setting-shape'
 })
 
-const appStore = useAppStore()
+const store = useApplicationsStore()
 
 const options: ShapeOptions[] = [
 	{
@@ -28,7 +28,7 @@ const options: ShapeOptions[] = [
 ]
 
 const formState = reactive<Record<string, any>>({
-	size: appStore.activeApp?.size ?? 'medium',
+	size: store.activeApp?.size ?? 'medium',
 	shape: 'circle',
 	direction: 'horizontal'
 })

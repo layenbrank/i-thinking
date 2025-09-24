@@ -1,19 +1,19 @@
 const general: International.General = {
-	landing: '首页',
-	overview: '概览',
-	portal: '门户',
-	dashboard: '仪表盘',
-	settings: '设置',
-	help: '帮助',
+	Landing: '首页',
+	Overview: '概览',
+	Portal: '门户',
+	Dashboard: '仪表盘',
+	Settings: '设置',
+	Help: '帮助',
 
-	edit: '编辑',
-	language: '语言',
-	mirror: '镜像',
-	window: '窗口',
-	'please-enter-keywords': '请输入关键词!',
-	show: '显示',
-	week: {
-		min: {
+	Edit: '编辑',
+	Language: '语言',
+	Mirror: '镜像',
+	Window: '窗口',
+	'Please-Enter-Keywords': '请输入关键词!',
+	Show: '显示',
+	Week: {
+		Min: {
 			Mon: '周一',
 			Tue: '周二',
 			Wed: '周三',
@@ -22,7 +22,7 @@ const general: International.General = {
 			Sat: '周六',
 			Sun: '周日'
 		},
-		max: {
+		Max: {
 			Monday: '星期一',
 			Tuesday: '星期二',
 			Wednesday: '星期三',
@@ -31,7 +31,26 @@ const general: International.General = {
 			Saturday: '星期六',
 			Sunday: '星期日'
 		}
-	}
+	},
+
+	Bold: '加粗',
+	Code: '代码',
+	Undo: '撤销',
+	Redo: '重做',
+	Italic: '斜体',
+	Purple: '紫色',
+	Export: '导出',
+	Heading: '标题 {level}',
+	Strike: '删除线',
+	Paragraph: '段落',
+	Blockquote: '引用',
+	Ordered: '有序列表',
+	Bulleted: '无序列表',
+	'Hard-Break': '换行',
+	'Code-Block': '代码块',
+	'Clear-Nodes': '清除节点',
+	'Clear-Marks': '清除标记',
+	'Horizontal-Rule': '水平线'
 }
 
 export default general

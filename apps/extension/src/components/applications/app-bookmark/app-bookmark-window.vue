@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import fallback from '@/assets/feedback/fallback.png'
-import { useAppStore } from '@/stores/application.ts'
+import { useApplicationsStore } from '@/stores/application.ts'
 import { timeSphere } from '@desktop-app/core'
 import { message } from 'ant-design-vue'
 import Fuse, { type IFuseOptions } from 'fuse.js'
@@ -27,7 +27,7 @@ const emits = defineEmits<{
 	(e: 'update:fullscreen', value: boolean): void
 }>()
 
-const appStore = useAppStore()
+const store = useApplicationsStore()
 
 const keyword = ref('')
 const loading = ref(false)
@@ -92,12 +92,12 @@ function updateApplication(bookmark: Bookmark) {
 	const bookmarkApp = toRaw(bookmark)
 
 	try {
-		void appStore.updateApplication(bookmark.id, {
+		void store.toUpdate(bookmark.id, {
 			name: bookmarkApp.title,
 			url: bookmarkApp.url,
 			shape: 'circle',
 			size: 'mini',
-			sort: appStore.applications?.length,
+			sort: store.applications?.length,
 			direction: 'horizontal',
 			component: 'app-web',
 			icon: bookmarkApp.url

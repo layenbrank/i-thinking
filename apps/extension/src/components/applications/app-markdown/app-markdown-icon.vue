@@ -1,14 +1,24 @@
 <script setup lang="ts">
+import { useMarkdownStore } from '@/stores/markdown.ts'
 defineOptions({
 	name: 'app-markdown-icon'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
 // const emits = defineEmits<{}>()
+const store = useMarkdownStore()
+
+const markdown = computed(function () {
+	return store.markdowns?.find(function (value) {
+		return value.id === store.activeKey
+	})
+})
 </script>
 
 <template>
-	<div class="app-markdown-icon">test</div>
+	<div class="app-markdown-icon">
+		{{ store.findHead(markdown) }}
+	</div>
 </template>
 
 <style lang="scss" scoped>
@@ -27,6 +37,10 @@ defineOptions({
 	cursor: pointer;
 	border-radius: var(--app-round);
 	background: var(--app-background);
+
+	text-wrap: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
 
 	&.circle {
 		border-radius: calc(var(--app-size-width) / 2);

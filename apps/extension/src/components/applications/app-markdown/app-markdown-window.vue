@@ -10,18 +10,15 @@ import TextAlign from '@tiptap/extension-text-align'
 import { Color, TextStyle } from '@tiptap/extension-text-style'
 import Typography from '@tiptap/extension-typography'
 import StarterKit from '@tiptap/starter-kit'
-import {
-	Editor,
-	EditorContent as MarkdownTiptap,
-	VueNodeViewRenderer,
-	type DocumentType
-} from '@tiptap/vue-3'
+import { Editor, EditorContent as MarkdownTiptap, VueNodeViewRenderer } from '@tiptap/vue-3'
+import type { Key } from 'ant-design-vue/es/_util/type'
 import CSS from 'highlight.js/lib/languages/css'
 import JavaScript from 'highlight.js/lib/languages/javascript'
 import TypeScript from 'highlight.js/lib/languages/typescript'
 import HTML from 'highlight.js/lib/languages/xml'
 import { throttle } from 'lodash-es'
 import { all, createLowlight as definelowlight } from 'lowlight'
+import { from, take } from 'rxjs'
 import { ColorHighlighter, MetadataExtension, SmilieReplacer } from './extension.ts'
 import MarkdownCodeBlock from './markdown-code-block.vue'
 import MarkdownControl from './markdown-control.vue'
@@ -41,7 +38,12 @@ defineOptions({
 
 const store = useMarkdownStore()
 const editor = shallowRef<Editor>()
-const activeKey = ref()
+
+const markdown = computed(function () {
+	return store.markdowns?.find(function (value) {
+		return value.id === store.activeKey
+	})
+})
 
 const CustomTableCell = TableCell.extend({
 	addAttributes() {
@@ -70,10 +72,8 @@ const CustomTaskItem = TaskItem.extend({
 	content: 'inline*'
 })
 
-// create a lowlight instance
 const lowlight = definelowlight(all)
 
-// you can also register languages
 lowlight.register('html', HTML)
 lowlight.register('css', CSS)
 lowlight.register('js', JavaScript)
@@ -87,49 +87,122 @@ function logger(label: string, msg: any) {
 	)
 }
 
-const unwatch = watch(
-	() => store.markdowns,
-	function (values) {
-		if (values) unwatch.stop()
-		if (!values) return
-		const [value] = values
-		if (!editor.value) return
-		if (!value) buildMarkdown()
-		else {
-			editor.value.commands.setMetadata({
-				id: value.id,
-				createdAt: value.createdAt,
-				updatedAt: value.updatedAt
-			})
-			editor.value.commands.setContent(value)
-			activeKey.value = value.id
-		}
-	}
-)
+// const unwatch = watch(
+// 	() => store.markdowns,
+// 	function (values) {
+// 		if (values) unwatch.stop()
+// 		if (!values) return
+// 		const [value] = values
+// 		if (!editor.value) return
+// 		if (!value) buildMarkdown()
+// 		else {
+// 			editor.value.commands.setMetadata({
+// 				id: value.id,
+// 				createdAt: value.createdAt,
+// 				updatedAt: value.updatedAt
+// 			})
+// 			editor.value.commands.setContent(value)
+// 			// activeKey.value = value.id
+// 			store.activeKey = value.id
+// 		}
+// 	}
+// )
+
+// const throttle = (func: Function, limit: number) => {
+// 	let inThrottle: boolean
+// 	return function (this: any) {
+// 		const args = arguments
+// 		// eslint-disable-next-line @typescript-eslint/no-this-alias
+// 		const context = this
+// 		if (!inThrottle) {
+// 			func.apply(context, args)
+// 			inThrottle = true
+// 			setTimeout(() => (inThrottle = false), limit)
+// 		}
+// 	}
+// }
 
 function buildMarkdown() {
 	if (!editor.value) return
-	const value: Markdown = {
-		content: [],
-		type: 'doc',
-		createdAt: Date.now(),
-		updatedAt: Date.now(),
-		id: crypto.randomUUID()
-	}
+	const value = store.toGenerate()
+	const content = editor.value.getJSON()
+
 	editor.value.commands.setMetadata({
 		id: value.id,
 		createdAt: value.createdAt,
-		updatedAt: value.updatedAt
+		updatedAt: value.updatedAt,
+		sort: value.sort ?? 1
 	})
 
+	value.content = content.content ?? []
 	void store.toInsert(value)
 
-	activeKey.value = value.id
+	store.activeKey = value.id
 }
 
-onMounted(function () {
+const toUpdate = throttle(function () {
+	if (!editor.value) return
+
+	// 获取文档内容
+	const content = editor.value.getJSON()
+
+	// 获取存储的元数据
+	const metadata = editor.value.storage.metadata
+
+	const value = {
+		...content,
+		id: metadata.id,
+		updatedAt: Date.now(),
+		sort: metadata.sort ?? 1,
+		createdAt: metadata.createdAt
+	} as Markdown
+
+	if (value.id) return store.toUpdate(value)
+	else return buildMarkdown()
+	// else {
+	// 	// 创建新文档时设置元数据
+	// 	editor.value.commands.setMetadata({
+	// 		id: crypto.randomUUID(),
+	// 		createdAt: Date.now(),
+	// 		updatedAt: Date.now()
+	// 	})
+
+	// 	// 重新获取更新后的数据
+	// 	const content = editor.value.getJSON()
+	// 	const metadata = editor.value.storage.metadata
+	// 	const value: Markdown = {
+	// 		...content,
+	// 		id: metadata.id,
+	// 		createdAt: metadata.createdAt,
+	// 		updatedAt: metadata.updatedAt
+	// 	}
+
+	// 	void store.toInsert(value)
+	// }
+}, 3000)
+
+function updateActiveKey(value: Key) {
+	if (typeof value !== 'string') return
+	store.activeKey = value
+	console.log('ActiveKey', value)
+	from(store.toRead(value))
+		.pipe(take(1))
+		.subscribe(function (markdown) {
+			if (!editor.value) return
+			if (!markdown) return editor.value.commands.setContent('')
+			editor.value.commands.setMetadata({
+				id: markdown.id,
+				sort: markdown.sort ?? 1,
+				createdAt: markdown.createdAt,
+				updatedAt: markdown.updatedAt
+			})
+			editor.value.commands.setContent(markdown)
+		})
+}
+
+function initialize() {
 	editor.value = new Editor({
-		content: store.markdowns?.[0] ?? '',
+		content: markdown.value ?? '',
 		editorProps: {
 			attributes: {
 				spellcheck: 'false'
@@ -251,118 +324,67 @@ onMounted(function () {
 			CustomTableCell,
 			ColorHighlighter,
 			SmilieReplacer
-		],
-		onCreate() {
-			// if (!props.editor.storage.metadata.id) {
-			// 	props.editor.commands.setMetadata({
-			// 		id: crypto.randomUUID(),
-			// 		createdAt: Date.now(),
-			// 		updatedAt: Date.now()
-			// 	})
-			// }
-		},
-		onUpdate() {
-			void throttleUpdate()
-		}
+		]
 	})
-})
-
-const throttleUpdate = throttle(function () {
-	if (!editor.value) return
-
-	// 获取文档内容
-	const content = editor.value.getJSON()
-
-	// 获取存储的元数据
-	const metadata = editor.value.storage.metadata
-
-	const value = {
-		...content,
-		id: metadata.id,
-		createdAt: metadata.createdAt,
-		updatedAt: metadata.updatedAt
-	} as Markdown
-
-	if (value.id) return store.toUpdate(value)
-	else {
-		// 创建新文档时设置元数据
-		editor.value.commands.setMetadata({
-			id: crypto.randomUUID(),
-			createdAt: Date.now(),
-			updatedAt: Date.now()
-		})
-
-		// 重新获取更新后的数据
-		const content = editor.value.getJSON()
-		const metadata = editor.value.storage.metadata
-		const value: Markdown = {
-			...content,
-			id: metadata.id,
-			createdAt: metadata.createdAt,
-			updatedAt: metadata.updatedAt
-		}
-
-		void store.toInsert(value)
-	}
-}, 3000)
-
-// const throttle = (func: Function, limit: number) => {
-// 	let inThrottle: boolean
-// 	return function (this: any) {
-// 		const args = arguments
-// 		// eslint-disable-next-line @typescript-eslint/no-this-alias
-// 		const context = this
-// 		if (!inThrottle) {
-// 			func.apply(context, args)
-// 			inThrottle = true
-// 			setTimeout(() => (inThrottle = false), limit)
-// 		}
-// 	}
-// }
-
-function findTitle(value: DocumentType): string {
-	if (!value) return '新建文档'
-
-	for (const item of value.content) {
-		if (item.type !== 'heading') continue
-		if (!item.content) continue
-		const [title] = item.content
-		if (title) return title.text
-		else return findTitle(item as DocumentType)
-	}
-
-	return '新建文档'
 }
+
+onMounted(function () {
+	initialize()
+
+	if (!editor.value) return
+	if (markdown.value) {
+		editor.value.commands.setMetadata({
+			id: markdown.value.id,
+			sort: markdown.value.sort ?? 1,
+			createdAt: markdown.value.createdAt,
+			updatedAt: markdown.value.updatedAt
+		})
+		editor.value.commands.setContent(markdown.value ?? '')
+	}
+	// if (store.markdown === undefined) buildMarkdown()
+	editor.value.on('update', toUpdate)
+})
 
 onBeforeUnmount(function () {
 	if (!editor.value) return
+	void toUpdate()
+	editor.value.off('update', toUpdate)
 	editor.value.destroy()
-	void throttleUpdate()
 })
 </script>
 
 <template>
 	<div class="app-markdown-window">
-		<a-tabs tab-position="left" v-model:activeKey="activeKey" class="markdown-tabs">
-			<a-tab-pane
-				v-for="value in store.markdowns"
-				:key="value.id"
-				:tab="findTitle(value as unknown as DocumentType)"
-			>
-				<template #default>
-					<template v-if="activeKey === value.id">
-						<markdown-control :editor="editor" v-if="editor" />
-						<markdown-tiptap :editor="editor" v-if="editor" class="markdown-tiptap" />
-					</template>
-				</template>
-			</a-tab-pane>
-			<template #renderTabBar="{ DefaultTabBar, ...props }">
-				<component :is="DefaultTabBar" v-bind="props" :style="{ opacity: 0.5 }" />
-			</template>
-		</a-tabs>
-		<a-button type="dashed" @click="buildMarkdown" class="insert-button">
-			<i-ant-design:plus-outlined />
-		</a-button>
+		<div class="markdown-tabs">
+			<aside class="markdown-aside">
+				<div class="markdown-nav">
+					<div class="markdown-aside-list">
+						<template v-for="value in store.markdowns" :key="value.id">
+							<div
+								:class="[
+									'markdown-aside-item',
+									{
+										'is-active': store.activeKey === value.id
+									}
+								]"
+								@click="updateActiveKey(value.id)"
+							>
+								<span>{{ store.findHead(value) }}</span>
+							</div>
+						</template>
+						<a-button type="dashed" @click="buildMarkdown" class="insert-button">
+							<i-ant-design:plus-outlined />
+						</a-button>
+					</div>
+				</div>
+			</aside>
+			<main class="markdown-main">
+				<div class="markdown-main-item">
+					<markdown-control :editor="editor" v-if="editor" />
+					<markdown-tiptap :editor="editor" v-if="editor" class="markdown-tiptap" />
+				</div>
+			</main>
+		</div>
 	</div>
 </template>
 
@@ -379,6 +401,13 @@ onBeforeUnmount(function () {
 	// flex-direction: column;
 
 	$markdown-w: 200px;
+	$markdown-p: 8px;
+
+	.markdown-tiptap {
+		* {
+			outline: 0;
+		}
+	}
 
 	.insert-button {
 		position: absolute;
@@ -387,38 +416,75 @@ onBeforeUnmount(function () {
 		left: $markdown-w - 16px;
 	}
 
-	.markdown-tiptap {
-		* {
-			outline: 0;
-		}
-	}
-
-	.markdown-tabs {
-		width: 100%;
-		height: 100%;
-		// flex: 1;
-	}
-
-	:deep(.ant-tabs-nav) {
-		flex: none;
-		width: 200px;
-	}
-
-	:deep(.ant-tabs-content-holder) {
-		width: calc(100% - $markdown-w - 1px);
-		flex: none;
-
-		.ant-tabs-content {
+	.markdown {
+		&-tabs {
+			width: 100%;
 			height: 100%;
-		}
-
-		.ant-tabs-tabpane {
-			height: 100%;
-			padding: 0;
+			column-gap: 2px;
 			display: flex;
-			align-items: center;
-			justify-content: center;
-			flex-direction: column;
+		}
+
+		&-aside {
+			width: $markdown-w;
+			height: 100%;
+			padding-inline: 4px;
+			padding-block: $markdown-p;
+			position: relative;
+			box-shadow: 2px 0 0 0 #0000001a;
+
+			&-list {
+				width: 100%;
+				display: grid;
+				grid-template-columns: repeat(1, 1fr);
+				row-gap: 8px;
+			}
+
+			&-item {
+				height: 40px;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				padding-inline-start: 12px;
+				border-radius: 6px;
+
+				transition:
+					color 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+					background-color 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+
+				&:hover,
+				&.is-active {
+					background-color: rgba($color: #000000, $alpha: 0.15);
+					color: rgba($color: #4080ff, $alpha: 1);
+				}
+			}
+		}
+
+		&-nav {
+			width: 100%;
+			height: 100%;
+			scrollbar-width: none;
+			overflow: hidden scroll;
+			scroll-behavior: smooth;
+			border-radius: var(--app-global-window-round);
+		}
+
+		.insert-button {
+			position: absolute;
+			bottom: 16px;
+			transform: translateX(-100%);
+			left: $markdown-w - 16px;
+		}
+
+		&-main {
+			width: calc(100% - #{$markdown-w - 2px});
+			padding: $markdown-p;
+
+			&-item {
+				width: 100%;
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+			}
 		}
 	}
 }

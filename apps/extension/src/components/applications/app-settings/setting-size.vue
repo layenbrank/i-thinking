@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAppStore } from '@/stores/application'
+import { useApplicationsStore } from '@/stores/application'
 
 defineOptions({
 	name: 'setting-size'
@@ -10,7 +10,7 @@ interface SizeOptions {
 	value: Application.Size
 }
 
-const appStore = useAppStore()
+const store = useApplicationsStore()
 
 const options: SizeOptions[] = [
 	{
@@ -44,15 +44,15 @@ const options: SizeOptions[] = [
 ]
 
 const formState = reactive<Record<string, any>>({
-	size: appStore.activeApp?.size ?? 'medium',
+	size: store.activeApp?.size ?? 'medium',
 	shape: 'circle',
 	direction: 'horizontal'
 })
 
 watchEffect(function () {
-	formState.size = appStore.activeApp?.size ?? 'medium'
-	formState.shape = appStore.activeApp?.shape ?? 'circle'
-	formState.direction = appStore.activeApp?.direction ?? 'horizontal'
+	formState.size = store.activeApp?.size ?? 'medium'
+	formState.shape = store.activeApp?.shape ?? 'circle'
+	formState.direction = store.activeApp?.direction ?? 'horizontal'
 })
 
 function onFinish(values: any) {

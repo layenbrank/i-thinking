@@ -22,13 +22,13 @@ declare namespace International {
 
 	interface MessageSchema {
 		// [key: string]: any
-		general: General
-		profile: Profile
-		message: Message
-		feedback: Feedback
-		exception: Exception
-		operation: Operation
-		validation: Validation
+		General: General
+		Profile: Profile
+		Message: Message
+		Feedback: Feedback
+		Exception: Exception
+		Operation: Operation
+		Validation: Validation
 	}
 
 	interface Exception {
@@ -42,22 +42,21 @@ declare namespace International {
 	}
 
 	interface General {
-		landing: string
-		overview: string
-		portal: string
-		dashboard: string
-		settings: string
-		help: string
+		Landing: string
+		Overview: string
+		Portal: string
+		Dashboard: string
+		Settings: string
+		Help: string
 
-		edit: string
-		help: string
-		language: string
-		mirror: string
-		window: string
-		'please-enter-keywords': string
-		show: string
-		week: {
-			min: {
+		Edit: string
+		Language: string
+		Mirror: string
+		Window: string
+		'Please-Enter-Keywords': string
+		Show: string
+		Week: {
+			Min: {
 				Mon: string
 				Tue: string
 				Wed: string
@@ -66,7 +65,7 @@ declare namespace International {
 				Sat: string
 				Sun: string
 			}
-			max: {
+			Max: {
 				Monday: string
 				Tuesday: string
 				Wednesday: string
@@ -76,57 +75,76 @@ declare namespace International {
 				Sunday: string
 			}
 		}
+
+		Bold: string
+		Italic: string
+		Strike: string
+		Code: string
+		Paragraph: string
+		Heading: string
+		Undo: string
+		Redo: string
+		Blockquote: string
+		Purple: string
+		Export: string
+		Ordered: string
+		Bulleted: string
+		'Hard-Break': string
+		'Clear-Marks': string
+		'Clear-Nodes': string
+		'Code-Block': string
+		'Horizontal-Rule': string
 	}
 
 	interface Operation {
-		save: string
-		cancel: string
-		confirm: string
-		delete: string
-		edit: string
-		view: string
-		search: string
-		export: string
-		import: string
-		refresh: string
+		Save: string
+		Cancel: string
+		Confirm: string
+		Delete: string
+		Edit: string
+		View: string
+		Search: string
+		Export: string
+		Import: string
+		Refresh: string
 	}
 
 	interface Validation {
-		required: string
-		email: string
-		phone: string
-		minLength: string
-		maxLength: string
-		pattern: string
-		numeric: string
-		interval: string
+		Required: string
+		Email: string
+		Phone: string
+		MinLength: string
+		MaxLength: string
+		Pattern: string
+		Numeric: string
+		Interval: string
 	}
 
 	interface Feedback {
-		loading: string
-		success: string
-		error: string
-		warning: string
-		pending: string
-	}
-
-	interface Profile {
-		username: string
-		password: string
-		fullName: string
-		email: string
-		role: string
-		permissions: string
-		lastLogin: string
-		logout: string
-		updateProfile: string
+		Loading: string
+		Success: string
+		Error: string
+		Warning: string
+		Pending: string
 	}
 
 	interface Message {
-		login: string
-		logout: string
-		save: string
-		delete: string
-		update: string
+		Login: string
+		Logout: string
+		Save: string
+		Delete: string
+		Update: string
+	}
+
+	interface Profile {
+		Username: string
+		Password: string
+		FullName: string
+		Email: string
+		Role: string
+		Permissions: string
+		LastLogin: string
+		Logout: string
+		UpdateProfile: string
 	}
 }

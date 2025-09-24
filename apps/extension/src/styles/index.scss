@@ -33,12 +33,6 @@
 }
 
 body {
-	min-height: 100vh;
-	color: var(--color-text);
-	background: var(--color-background);
-	transition:
-		color 0.5s,
-		background-color 0.5s;
 	line-height: 1;
 	font-family:
 		Inter,
@@ -67,18 +61,26 @@ body {
 	height: 100vh;
 }
 
-.ant-modal.application-window {
-	aspect-ratio: 16/9;
-	border-radius: var(--app-global-window-round, 8px);
+.ant-modal-wrap {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 
-	.ant-modal-content {
-		padding: 0px;
-	}
+	.ant-modal.application-window {
+		min-width: 600px;
+		aspect-ratio: 16/9;
+		display: block;
+		border-radius: var(--app-global-window-round, 8px);
 
-	.ant-modal-body {
-		.ant-modal-confirm-content {
-			margin-block-start: initial;
-			max-width: initial;
+		.ant-modal-content {
+			padding: 0;
+		}
+
+		.ant-modal-body {
+			.ant-modal-confirm-content {
+				margin-block-start: initial;
+				max-width: initial;
+			}
 		}
 	}
 }

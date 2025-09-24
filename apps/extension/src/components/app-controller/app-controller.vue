@@ -2,7 +2,7 @@
 import { resize } from '@desktop-app/core/directives'
 import AppMenu from '../app-menu/app-menu.vue'
 // import AppDrawer from '../app-settings/app-settings.vue'
-import { useAppStore } from '@/stores/application.ts'
+import { useApplicationsStore } from '@/stores/application.ts'
 import Sortable from 'sortablejs'
 
 import { appReflect, contextmenuReflect, sizes } from './app-controller.tsx'
@@ -14,7 +14,7 @@ defineOptions({
 	}
 })
 
-const appStore = useAppStore()
+const store = useApplicationsStore()
 
 const contextmenuRef = useTemplateRef('contextmenuRef')
 const appControllerRef = useTemplateRef('appControllerRef')
@@ -35,9 +35,9 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 		// void
 	},
 	'update-size'() {
-		if (!appStore.applications) return
-		for (const application of appStore.applications) {
-			if (application.id !== appStore.activeApp?.id) continue
+		if (!store.applications) return
+		for (const application of store.applications) {
+			if (application.id !== store.activeApp?.id) continue
 			const size = sizes[Math.round(Math.random() * sizes.length)]
 			if (!size) continue
 			application.size = size
@@ -50,13 +50,13 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 		// void
 	},
 	'update-settings'() {
-		appStore.settingsVisible = true
+		store.settingsVisible = true
 	}
 }
 
 const menuOptions = computed(function () {
-	const active = appStore.applications?.find(function (app) {
-		return app.id === appStore.activeApp?.id
+	const active = store.applications?.find(function (app) {
+		return app.id === store.activeApp?.id
 	})
 
 	console.log('active', active)
@@ -78,16 +78,16 @@ function handleController(e: MouseEvent) {
 
 	console.log('appElement', appElement)
 
-	if (!appStore.settingsVisible) return
+	if (!store.settingsVisible) return
 	if (!appElement?.dataset?.id) return
-	appStore.activeApp =
-		appStore.applications?.find(function (app) {
+	store.activeApp =
+		store.applications?.find(function (app) {
 			return app.id === appElement.dataset.id
 		}) ?? null
 }
 
 function openContextMenu(e: MouseEvent) {
-	if (appStore.settingsVisible) return
+	if (store.settingsVisible) return
 
 	const target = e.target as HTMLElement
 	const appElement = target.closest<HTMLElement>('.application')
@@ -105,8 +105,8 @@ function openContextMenu(e: MouseEvent) {
 		contextmenuVisible.value = true
 
 		if (!appElement?.dataset?.id) return
-		appStore.activeApp =
-			appStore.applications?.find(function (app) {
+		store.activeApp =
+			store.applications?.find(function (app) {
 				return app.id === appElement.dataset.id
 			}) ?? null
 	}, 60)
@@ -115,15 +115,15 @@ function openContextMenu(e: MouseEvent) {
 function closeContextMenu(_e: MouseEvent) {
 	contextmenuVisible.value = false
 
-	if (appStore.settingsVisible) return
-	appStore.activeApp = null
+	if (store.settingsVisible) return
+	store.activeApp = null
 }
 
 function handleConfirm(value: any) {
 	console.log('handleConfirm', value)
-	if (!appStore.activeApp) return
-	void appStore.updateApplication(appStore.activeApp.id, {
-		...toRaw(appStore.activeApp),
+	if (!store.activeApp) return
+	void store.toUpdate(store.activeApp.id, {
+		...toRaw(store.activeApp),
 		...toRaw(value)
 	})
 	// for (const index in slides.value) {
@@ -160,9 +160,9 @@ function sortableHandler() {
 				for (let i = 0; i < toArray.length; i++) {
 					const ID = toArray[i]
 
-					if (!appStore.applications) return
+					if (!store.applications) return
 
-					for (let application of appStore.applications) {
+					for (let application of store.applications) {
 						application = toRaw(application)
 						if (!application) continue
 						if (application.id !== ID) continue
@@ -170,10 +170,10 @@ function sortableHandler() {
 					}
 				}
 				console.log('applications', applications)
-				void appStore.updateApplications(applications)
+				void store.updateApplications(applications)
 			},
 			get(sortable) {
-				const toArray = appStore.applications?.map((application) => application.id)
+				const toArray = store.applications?.map((application) => application.id)
 
 				return toArray ?? []
 			}
@@ -202,11 +202,11 @@ onUnmounted(function () {
 		class="app-controller"
 	>
 		<transition-group name="application-fade">
-			<template v-for="application in appStore.applications" :key="application.id">
+			<template v-for="application in store.applications" :key="application.id">
 				<component
 					:application="application"
 					:is="appReflect[application.component]?.()"
-					:settings-visible="appStore.settingsVisible"
+					:settings-visible="store.settingsVisible"
 					:data-id="application.id"
 					:class="['application']"
 				/>
@@ -220,8 +220,8 @@ onUnmounted(function () {
 			:closable="true"
 			@update:confirm="handleConfirm"
 			:get-container="handleTelePort"
-			:application="appStore.activeApp"
-			v-model:open="appStore.settingsVisible"
+			:application="store.activeApp"
+			v-model:open="store.settingsVisible"
 		/>
 
 		<teleport to="body">
@@ -236,7 +236,7 @@ onUnmounted(function () {
 				@contextmenu.prevent="openContextMenu"
 				:class="[
 					{
-						'is-active': appStore.activeApp && contextmenuVisible
+						'is-active': store.activeApp && contextmenuVisible
 					}
 				]"
 			/>

@@ -1,19 +1,19 @@
 const general: International.General = {
-	landing: '首页',
-	overview: '概览',
-	portal: '门户',
-	dashboard: '仪表盘',
-	settings: '设置',
-	help: '帮助',
+	Landing: 'Landing',
+	Overview: 'Overview',
+	Portal: 'Portal',
+	Dashboard: 'Dashboard',
+	Settings: 'Settings',
+	Help: 'Help',
 
-	edit: 'Edit',
-	language: 'Language',
-	mirror: 'Mirror',
-	'please-enter-keywords': 'Please enter keywords!',
-	show: 'Show',
-	window: 'Window',
-	week: {
-		min: {
+	Edit: 'Edit',
+	Language: 'Language',
+	Mirror: 'Mirror',
+	'Please-Enter-Keywords': 'Please enter keywords!',
+	Show: 'Show',
+	Window: 'Window',
+	Week: {
+		Min: {
 			Mon: 'Mon',
 			Tue: 'Tue',
 			Wed: 'Wed',
@@ -22,7 +22,7 @@ const general: International.General = {
 			Sat: 'Sat',
 			Sun: 'Sun'
 		},
-		max: {
+		Max: {
 			Monday: 'Monday',
 			Tuesday: 'Tuesday',
 			Wednesday: 'Wednesday',
@@ -31,7 +31,26 @@ const general: International.General = {
 			Saturday: 'Saturday',
 			Sunday: 'Sunday'
 		}
-	}
+	},
+
+	Bold: 'Bold',
+	Code: 'Code',
+	Undo: 'Undo',
+	Redo: 'Redo',
+	Italic: 'Italic',
+	Strike: 'Strike',
+	Purple: 'Purple',
+	Export: 'Export',
+	Heading: 'Heading {level}',
+	Paragraph: 'Paragraph',
+	Ordered: 'Ordered',
+	Bulleted: 'Bulleted',
+	Blockquote: 'Blockquote',
+	'Code-Block': 'Code Block',
+	'Hard-Break': 'Hard Break',
+	'Clear-Nodes': 'Clear Nodes',
+	'Clear-Marks': 'Clear Marks',
+	'Horizontal-Rule': 'Horizontal Rule'
 }
 
 export default general
