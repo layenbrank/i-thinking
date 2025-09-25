@@ -5,11 +5,6 @@ export default {
 	redirect: '/mac-view',
 	children: [
 		{
-			path: '/base-view',
-			name: 'base-view',
-			component: () => import('@/views/base-view.vue')
-		},
-		{
 			path: '/mac-view',
 			name: 'mac-view',
 			component: () => import('@/views/mac-view.vue')

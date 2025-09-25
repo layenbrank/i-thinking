@@ -10,7 +10,6 @@ declare module 'vue' {
   export interface GlobalComponents {
     AAlert: typeof import('ant-design-vue/es')['Alert']
     AApp: typeof import('ant-design-vue/es')['App']
-    AAvatar: typeof import('ant-design-vue/es')['Avatar']
     AButton: typeof import('ant-design-vue/es')['Button']
     AButtonGroup: typeof import('ant-design-vue/es')['ButtonGroup']
     ACalendar: typeof import('ant-design-vue/es')['Calendar']
@@ -58,7 +57,6 @@ declare module 'vue' {
     AppStoreIcon: typeof import('./../components/applications/app-store/app-store-icon.vue')['default']
     AppStoreWindow: typeof import('./../components/applications/app-store/app-store-window.vue')['default']
     'AppStoreWindow copy': typeof import('./../components/applications/app-store/app-store-window copy.vue')['default']
-    AppWebIcon: typeof import('../components/applications/app-navigation/app-navigation-icon.vue')['default']
     ARadioButton: typeof import('ant-design-vue/es')['RadioButton']
     ARadioGroup: typeof import('ant-design-vue/es')['RadioGroup']
     AResult: typeof import('ant-design-vue/es')['Result']
@@ -71,7 +69,6 @@ declare module 'vue' {
     ATabs: typeof import('ant-design-vue/es')['Tabs']
     ATag: typeof import('ant-design-vue/es')['Tag']
     ComboboxTrigger: typeof import('./../components/combobox-trigger/combobox-trigger.vue')['default']
-    copy: typeof import('./../components/applications/app-bookmark/app-bookmark-dialog copy.vue')['default']
     DropZone: typeof import('./../components/DropZone.vue')['default']
     'IAntDesign:appstoreTwotone': typeof import('~icons/ant-design/appstore-twotone')['default']
     'IAntDesign:plusOutlined': typeof import('~icons/ant-design/plus-outlined')['default']
