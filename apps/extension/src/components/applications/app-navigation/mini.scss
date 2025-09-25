@@ -1,21 +1,11 @@
-.app-web-icon {
+.app-navigation-icon {
 	:deep(.ant-image-img) {
 		@apply w-full h-full object-contain;
 	}
 
-	&.small {
+	&.mini {
 		&.square {
-			@apply p-5;
-
-			&.horizontal {
-			}
-
-			&.vertical {
-			}
-		}
-
-		&.rectangle {
-			@apply p-5;
+			@apply p-[6px];
 
 			&.horizontal {
 			}
@@ -25,7 +15,17 @@
 		}
 
 		&.circle {
-			@apply p-[26px];
+			@apply p-3;
+
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+
+		&.rectangle {
+			@apply p-[6px];
 
 			&.horizontal {
 			}

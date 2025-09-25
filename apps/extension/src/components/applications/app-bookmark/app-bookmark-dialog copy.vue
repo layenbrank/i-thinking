@@ -229,7 +229,7 @@ function RenderBookmark(props: { bookmark: BookmarkTreeNode }) {
           size: 'mini',
           sort: slidesStore.slides?.length,
           direction: 'horizontal',
-          app: 'app-web',
+          app: 'app-navigation',
           icon: props.bookmark.url
         })
 

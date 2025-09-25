@@ -1,5 +1,11 @@
-.app-web-icon {
-	&.ultra {
+.app-navigation-icon {
+	:deep(.ant-image-img) {
+		@apply w-full h-full object-contain;
+	}
+
+	&.medium {
+		@apply p-5;
+
 		&.square {
 			&.horizontal {
 			}

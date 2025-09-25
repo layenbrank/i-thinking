@@ -59,7 +59,7 @@ const menuOptions = computed(function () {
 		return app.id === store.activeApp?.id
 	})
 
-	console.log('active', active)
+	// console.log('active', active)
 
 	if (!active) return []
 
@@ -76,7 +76,7 @@ function handleController(e: MouseEvent) {
 	const target = e.target as HTMLElement
 	const appElement = target.closest<HTMLElement>('.application')
 
-	console.log('appElement', appElement)
+	// console.log('appElement', appElement)
 
 	if (!store.settingsVisible) return
 	if (!appElement?.dataset?.id) return
