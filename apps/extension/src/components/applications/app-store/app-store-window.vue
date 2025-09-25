@@ -1,27 +1,22 @@
 <script setup lang="tsx">
-import { A11y, Autoplay, Mousewheel, Navigation, Pagination } from 'swiper/modules'
+import { randomID } from '@/utils/generate.ts'
 import 'swiper/scss'
 import 'swiper/scss/navigation'
 import 'swiper/scss/pagination'
-import type { AutoplayOptions, PaginationOptions, SwiperModule } from 'swiper/types'
-import { Swiper, SwiperSlide } from 'swiper/vue'
+import type { AutoplayOptions } from 'swiper/types'
 import type { Reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
+import StoreAihub from './store-aihub.vue'
+import StoreApplication from './store-application.vue'
+import StoreCustomization from './store-customization.vue'
+import StoreGame from './store-game.vue'
 
-const AppBookmark = defineAsyncComponent(function () {
-	return import('@/components/applications/app-bookmark/app-bookmark.vue')
-})
-const AppCalendar = defineAsyncComponent(function () {
-	return import('@/components/applications/app-calendar/app-calendar.vue')
-})
-const AppMarkdown = defineAsyncComponent(function () {
-	return import('@/components/applications/app-markdown/app-markdown.vue')
-})
-const AppWeb = defineAsyncComponent(function () {
-	return import('@/components/applications/app-web/app-web.vue')
-})
-const AppExample = defineAsyncComponent(function () {
-	return import('@/components/applications/app-example/app-example.vue')
-})
+type ReflectComponent = 'application' | 'game' | 'ai' | 'customization'
+
+interface GeneralOptions {
+	label: string
+	key: ReflectComponent
+}
 
 defineOptions({
 	name: 'app-store-window'
@@ -29,56 +24,9 @@ defineOptions({
 
 // const props = withDefaults(defineProps<{}>(), {})
 
-interface AppStoreOptions {
-	label: string
-	key: string
-}
+const { t } = useI18n()
 
-const modules: SwiperModule[] = [A11y, Autoplay, Mousewheel, Navigation, Pagination]
-
-const activeKey = ref<AppStoreOptions>({
-	label: '主页',
-	key: 'home'
-})
-
-const options: AppStoreOptions[] = [
-	{
-		label: '主页',
-		key: 'home'
-	},
-	{
-		label: '应用',
-		key: 'application'
-	},
-	{
-		label: '游戏',
-		key: 'game'
-	},
-	{
-		label: 'AI Hub',
-		key: 'ai'
-	}
-]
-
-const applicationReflect: Application.Reflect = {
-	'app-bookmark'() {
-		return <AppBookmark />
-	},
-	'app-calendar'() {
-		return <AppCalendar />
-	},
-	'app-example'() {
-		return <AppExample />
-	},
-	'app-web'() {
-		return <AppWeb />
-	},
-	'app-markdown'() {
-		return <AppMarkdown />
-	}
-}
-
-const applications: readonly Application[] = [
+const applications: Application[] = [
 	{
 		id: randomID(),
 		slideID: randomID(),
@@ -159,7 +107,7 @@ const applications: readonly Application[] = [
 		id: randomID(),
 		slideID: randomID(),
 		sort: 3,
-		component: 'app-web',
+		component: 'app-navigation',
 		url: 'https://www.baidu.com',
 		size: 'mini',
 		round: '8px',
@@ -180,7 +128,7 @@ const applications: readonly Application[] = [
 		id: randomID(),
 		slideID: randomID(),
 		sort: 5,
-		component: 'app-web',
+		component: 'app-navigation',
 		width: '60px',
 		height: '60px',
 		url: 'https://weixin.qq.com',
@@ -232,30 +180,36 @@ const applications: readonly Application[] = [
 	}
 ]
 
-const swiperOptions = ref([
-	{
-		label: '主页',
-		key: 'home',
-		image: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg'
-	},
-	{
-		label: '应用',
-		key: 'application',
-		image: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg'
-	},
-	{
-		label: '游戏',
-		key: 'game',
-		image: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel3.jpeg'
-	},
-	{
-		label: 'AI Hub',
-		key: 'ai',
-		image: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel4.jpeg'
-	}
-])
+const activeKey = ref<GeneralOptions>({
+	label: t('General.Application'),
+	key: 'application'
+})
 
-const hasMultipleSlides = computed(() => swiperOptions.value.length > 1)
+const reflect: Record<ReflectComponent, Component> = {
+	ai: StoreAihub,
+	game: StoreGame,
+	application: StoreApplication,
+	customization: StoreCustomization
+}
+
+const options: GeneralOptions[] = [
+	{
+		label: t('General.Application'),
+		key: 'application'
+	},
+	{
+		label: t('General.Game'),
+		key: 'game'
+	},
+	{
+		label: t('General.AI-Hub'),
+		key: 'ai'
+	},
+	{
+		label: t('General.Customization'),
+		key: 'customization'
+	}
+]
 
 const autoplay: Reactive<AutoplayOptions> = reactive({
 	delay: 3000,
@@ -263,81 +217,39 @@ const autoplay: Reactive<AutoplayOptions> = reactive({
 	disableOnInteraction: false
 })
 
-const pagination: Reactive<PaginationOptions> = reactive({
-	enabled: true,
-	clickable: true
-})
-
-function updateActiveKey(item: AppStoreOptions) {
+function updateActiveKey(item: GeneralOptions) {
 	activeKey.value = item
-}
-
-function randomID() {
-	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }
 </script>
 
 <template>
 	<div class="app-store-window">
-		<ul class="app-store-categories">
-			<li
-				@click="updateActiveKey(item)"
-				v-for="item in options"
-				:key="item.key"
+		<div class="store-categories">
+			<div
+				:key="option.key"
+				v-for="option in options"
+				@click="updateActiveKey(option)"
 				:class="[
-					'app-store-category',
+					'store-category',
 					{
-						'is-active': activeKey.key === item.key
+						'is-active': activeKey.key === option.key
 					}
 				]"
 			>
-				{{ item.label }}
-			</li>
-		</ul>
-		<ul class="app-store-content">
-			<template v-for="item in options">
-				<li v-if="activeKey.key === item.key" :key="item.key" class="content-item">
-					<swiper
-						:slides-per-view="1.15"
-						:space-between="20"
-						:modules="modules"
-						:mousewheel="true"
-						:allow-touch-move="false"
-						direction="horizontal"
-						:navigation="false"
-						:loop="hasMultipleSlides"
-						:pagination="pagination"
-						class="app-store-swiper w-full h-60"
-					>
-						<swiper-slide
-							:style="{
-								backgroundImage: `url(${item.image})`
-							}"
-							v-for="item in swiperOptions"
-							:key="item.key"
-						>
-							<div class="image-container">
-								<img :src="item.image" alt="" class="carousel-img" />
-							</div>
-						</swiper-slide>
-					</swiper>
-					<div>
-						<h3>热门应用</h3>
-						<transition-group tag="div" name="app-controller-fade" class="app-controller">
-							<template v-for="application in applications" :key="application.id">
-								<component
-									:application="application"
-									:is="applicationReflect[application.component]?.()"
-									:settings-visible="false"
-									:data-id="application.id"
-									:class="['application']"
-								/>
-							</template>
-						</transition-group>
-					</div>
-				</li>
+				{{ option.label }}
+			</div>
+		</div>
+		<div class="store-content">
+			<template v-for="option in options">
+				<component
+					:key="option.key"
+					class="content-item"
+					:is="reflect[activeKey.key]"
+					v-if="activeKey.key === option.key"
+					:applications="applications"
+				></component>
 			</template>
-		</ul>
+		</div>
 	</div>
 </template>
 
@@ -345,11 +257,11 @@ function randomID() {
 .app-store-window {
 	@apply h-full flex justify-between gap-x-2;
 
-	.app-store-categories {
+	.store-categories {
 		@apply w-20 h-full flex flex-col items-center gap-y-1 rounded-l-lg overflow-x-hidden overflow-y-scroll  bg-[#fbeff5] p-2;
 		scrollbar-width: none;
 
-		.app-store-category {
+		.store-category {
 			@apply w-full px-2 py-2 text-center rounded-md cursor-pointer transition-all duration-300;
 
 			&:hover,
@@ -359,117 +271,13 @@ function randomID() {
 		}
 	}
 
-	.app-store-content {
+	.store-content {
 		@apply flex-1 rounded-r-lg overflow-x-hidden overflow-y-scroll pt-2 pr-2 pb-2;
 		scrollbar-width: none;
 		// --swiper-navigation-size: 30px;
 
 		.content-item {
 			@apply w-full h-full overflow-x-hidden overflow-y-scroll;
-		}
-
-		.app-store-swiper {
-			@apply w-full h-[60%];
-			@apply overflow-hidden rounded-lg;
-			--swiper-navigation-size: 30px;
-
-			:deep(.swiper-wrapper) {
-				@apply w-full h-full;
-			}
-
-			:deep(.swiper-slide) {
-				@apply w-full h-full rounded-lg overflow-hidden;
-				background-repeat: no-repeat;
-				background-position: center;
-				background-size: cover;
-				background-attachment: fixed;
-
-				&.swiper-slide-active {
-				}
-				&.swiper-slide-next {
-				}
-			}
-
-			.image-container {
-				@apply w-full h-full flex items-center justify-center rounded-lg overflow-hidden;
-				backdrop-filter: blur(60px);
-				background-color: rgba(0, 0, 0, 0.52);
-			}
-			.carousel-img {
-				@apply h-full object-contain rounded-lg;
-			}
-			:deep(.swiper-pagination) {
-				$bullet-height: 6px;
-
-				.swiper-pagination-bullet {
-					@apply bg-[#ccc] rounded-full opacity-50 transition-all duration-300;
-					height: $bullet-height;
-
-					&.swiper-pagination-bullet-active {
-						@apply w-[34px] opacity-100;
-						background: var(--color-ref-primary60, #4c8df6ff);
-						border-radius: ($bullet-height * 1.67);
-					}
-
-					&:not(.swiper-pagination-bullet-active) {
-						width: $bullet-height;
-					}
-				}
-			}
-		}
-
-		.app-controller {
-			display: grid;
-			padding: 20px;
-			margin: 0px auto;
-			justify-content: center;
-			grid-auto-flow: row dense;
-
-			outline: none;
-			scrollbar-width: none;
-			row-gap: var(--app-global-row-gap, 30px);
-			column-gap: var(--app-global-col-gap, 30px);
-			grid-template-rows: repeat(auto-fill, var(--app-global-height, 60px));
-			grid-template-columns: repeat(auto-fill, var(--app-global-width, 60px));
-
-			transition:
-				width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-				height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-				row-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-				column-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
-
-			:deep(:where(.application)) {
-				@apply relative cursor-pointer text-center;
-
-				transition:
-					box-shadow 300ms,
-					width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-					height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-					grid-row 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-					grid-column 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
-
-				&
-					> :where(
-						div:is([class*=' app-'], [class^='app-']):is([class*='-icon '], [class$='-icon'])
-					) {
-					@apply w-full h-full transition-all;
-				}
-
-				& > :where(span.app-name) {
-					@apply block truncate w-full mt-1;
-					color: var(--app-global-text-color);
-					font-size: var(--app-global-text-size);
-				}
-
-				& > :where(.app-trash-icon) {
-					@apply w-5 h-5 absolute -top-[8px] -right-[8px] items-center justify-center bg-[#00000033] rounded-full p-[5px] transition-[background];
-					@apply hidden;
-
-					&:hover {
-						@apply bg-[#d83030];
-					}
-				}
-			}
 		}
 	}
 }

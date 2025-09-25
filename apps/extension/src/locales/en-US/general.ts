@@ -6,6 +6,11 @@ const General: International.General = {
 	Settings: 'Settings',
 	Help: 'Help',
 
+	Game: 'Game',
+	'AI-Hub': 'AI Hub',
+	Application: 'Application',
+	Customization: 'Customization',
+
 	Edit: 'Edit',
 	Language: 'Language',
 	Mirror: 'Mirror',

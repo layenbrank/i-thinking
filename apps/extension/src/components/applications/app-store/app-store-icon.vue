@@ -15,13 +15,13 @@ defineOptions({
 </template>
 
 <style lang="scss" scoped>
-@use './app-mini.scss' as *;
-@use './app-small.scss' as *;
-@use './app-medium.scss' as *;
-@use './app-large.scss' as *;
-@use './app-huge.scss' as *;
-@use './app-massive.scss' as *;
-@use './app-ultra.scss' as *;
+@use 'mini.scss' as *;
+@use 'small.scss' as *;
+@use 'medium.scss' as *;
+@use 'large.scss' as *;
+@use 'huge.scss' as *;
+@use 'massive.scss' as *;
+@use 'ultra.scss' as *;
 
 .app-store-icon {
 	display: flex;

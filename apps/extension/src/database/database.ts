@@ -27,7 +27,7 @@ const APPLICATION = [
 	'slideID',
 	'[id+slideID]',
 	'sort',
-	'app',
+	'component',
 	'name',
 	'downloadCount',
 	'direction',

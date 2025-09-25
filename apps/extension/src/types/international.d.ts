@@ -49,6 +49,11 @@ declare namespace International {
 		Settings: string
 		Help: string
 
+		Game: string
+		'AI-Hub': string
+		Application: string
+		Customization: string
+
 		Edit: string
 		Language: string
 		Mirror: string

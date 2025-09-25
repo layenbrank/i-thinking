@@ -36,7 +36,7 @@ declare namespace Application {
 		| 'app-settings'
 		| 'app-clipchamp'
 		| 'app-store'
-		| 'app-web'
+		| 'app-navigation'
 		| 'app-example'
 
 	/**

@@ -21,8 +21,8 @@ const AppStore = defineAsyncComponent(function () {
 	return import('@/components/applications/app-store/app-store.vue')
 })
 
-const AppWeb = defineAsyncComponent(function () {
-	return import('@/components/applications/app-web/app-web.vue')
+const AppNavigation = defineAsyncComponent(function () {
+	return import('@/components/applications/app-navigation/app-navigation.vue')
 })
 
 const AppSettings = defineAsyncComponent(function () {
@@ -81,7 +81,7 @@ export const contextmenuReflect: Record<
 	'app-store'() {
 		return commonMenuOptions
 	},
-	'app-web'() {
+	'app-navigation'() {
 		return commonMenuOptions
 	},
 	'app-example'() {
@@ -118,17 +118,17 @@ export const appReflect: Application.Reflect = {
 	'app-markdown'() {
 		return <AppMarkdown />
 	},
-	'app-example'() {
-		return <AppExample />
-	},
 	'app-settings'() {
 		return <AppSettings />
 	},
 	'app-store'() {
 		return <AppStore />
 	},
-	'app-web'() {
-		return <AppWeb />
+	'app-navigation'() {
+		return <AppNavigation />
+	},
+	'app-example'() {
+		return <AppExample />
 	}
 }
 // export function useAppController(el: Ref<InstanceType<typeof AppMenu> | null>) {

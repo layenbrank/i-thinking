@@ -1,11 +1,11 @@
 import { database } from '@/database/database.ts'
+import { randomID } from '@/utils/generate.ts'
 import { useObservable } from '@vueuse/rxjs'
 import { liveQuery } from 'dexie'
+import { isEmpty } from 'lodash-es'
 import { defineStore } from 'pinia'
 import { from, tap } from 'rxjs'
 import { ref } from 'vue'
-
-import { isEmpty } from 'lodash-es'
 
 const DEFAULT: readonly Application[] = [
 	{
@@ -88,7 +88,7 @@ const DEFAULT: readonly Application[] = [
 		id: randomID(),
 		slideID: randomID(),
 		sort: 3,
-		component: 'app-web',
+		component: 'app-navigation',
 		url: 'https://www.baidu.com',
 		size: 'mini',
 		round: '8px',
@@ -96,7 +96,7 @@ const DEFAULT: readonly Application[] = [
 		height: '60px',
 		direction: 'horizontal',
 		shape: 'square',
-		name: 'app-web-百度',
+		name: 'app-navigation-百度',
 		icon: 'https://www.baidu.com/favicon.ico',
 		backgroundColor: '#ffffff',
 		backgroundImage: null,
@@ -109,7 +109,7 @@ const DEFAULT: readonly Application[] = [
 		id: randomID(),
 		slideID: randomID(),
 		sort: 5,
-		component: 'app-web',
+		component: 'app-navigation',
 		width: '60px',
 		height: '60px',
 		url: 'https://weixin.qq.com',
@@ -123,7 +123,7 @@ const DEFAULT: readonly Application[] = [
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
-		description: 'app-web-测试',
+		description: 'app-navigation-测试',
 		downloadCount: 1000
 	},
 	{
@@ -199,10 +199,6 @@ const DEFAULT: readonly Application[] = [
 		downloadCount: 1000
 	}
 ]
-
-function randomID() {
-	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-}
 
 export const useApplicationsStore = defineStore('app', function () {
 	const activeApp = ref<Application | null>(null)

@@ -6,6 +6,11 @@ const General: International.General = {
 	Settings: '设置',
 	Help: '帮助',
 
+	Game: '游戏',
+	'AI-Hub': 'AI-Hub',
+	Application: '应用',
+	Customization: '自定义',
+
 	Edit: '编辑',
 	Language: '语言',
 	Mirror: '镜像',
