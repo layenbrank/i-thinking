@@ -1,14 +1,14 @@
-const operation: International.Operation = {
-	save: '保存',
-	cancel: '取消',
-	confirm: '确认',
-	delete: '删除',
-	edit: '编辑',
-	view: '查看',
-	search: '搜索',
-	export: '导出',
-	import: '导入',
-	refresh: '刷新'
+const Operation: International.Operation = {
+	Save: '保存',
+	Cancel: '取消',
+	Confirm: '确认',
+	Delete: '删除',
+	Edit: '编辑',
+	View: '查看',
+	Search: '搜索',
+	Export: '导出',
+	Import: '导入',
+	Refresh: '刷新'
 }
 
-export default operation
+export default Operation

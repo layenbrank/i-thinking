@@ -1,12 +1,12 @@
-const profile: International.Profile = {
-	username: '用户名',
-	password: '密码',
-	fullName: '姓名',
-	email: '邮箱',
-	role: '角色',
-	permissions: '权限',
-	lastLogin: '最后登录',
-	logout: '登出',
-	updateProfile: '编辑资料'
+const Profile: International.Profile = {
+	Username: '用户名',
+	Password: '密码',
+	FullName: '姓名',
+	Email: '邮箱',
+	Role: '角色',
+	Permissions: '权限',
+	LastLogin: '最后登录',
+	Logout: '登出',
+	UpdateProfile: '编辑资料'
 }
-export default profile
+export default Profile

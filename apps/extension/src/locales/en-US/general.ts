@@ -1,4 +1,4 @@
-const general: International.General = {
+const General: International.General = {
 	Landing: 'Landing',
 	Overview: 'Overview',
 	Portal: 'Portal',
@@ -53,4 +53,4 @@ const general: International.General = {
 	'Horizontal-Rule': 'Horizontal Rule'
 }
 
-export default general
+export default General

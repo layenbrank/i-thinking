@@ -1,4 +1,4 @@
-const message: International.Message = {
+const Message: International.Message = {
 	Login: '登录成功',
 	Logout: '登出成功',
 	Save: '保存成功',
@@ -6,4 +6,4 @@ const message: International.Message = {
 	Update: '更新成功'
 }
 
-export default message
+export default Message

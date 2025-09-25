@@ -248,7 +248,7 @@ onUnmounted(function () {
 .app-controller {
 	display: grid;
 	padding: 20px;
-	margin: 0px auto;
+	margin: 0 auto;
 	justify-content: center;
 	grid-auto-flow: row dense;
 

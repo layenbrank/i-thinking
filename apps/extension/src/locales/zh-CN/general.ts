@@ -1,4 +1,4 @@
-const general: International.General = {
+const General: International.General = {
 	Landing: '首页',
 	Overview: '概览',
 	Portal: '门户',
@@ -53,4 +53,4 @@ const general: International.General = {
 	'Horizontal-Rule': '水平线'
 }
 
-export default general
+export default General

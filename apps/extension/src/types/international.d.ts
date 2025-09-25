@@ -21,7 +21,7 @@ declare namespace International {
 	// type DateFormat = 'short' | 'medium' | 'long' | 'full'
 
 	interface MessageSchema {
-		// [key: string]: any
+		[key: string]: any
 		General: General
 		Profile: Profile
 		Message: Message
@@ -32,13 +32,13 @@ declare namespace International {
 	}
 
 	interface Exception {
-		network: string
-		timeout: string
-		unauthorized: string
-		forbidden: string
-		notFound: string
-		server: string
-		unknown: string
+		Network: string
+		Timeout: string
+		Unauthorized: string
+		Forbidden: string
+		NotFound: string
+		Server: string
+		Unknown: string
 	}
 
 	interface General {

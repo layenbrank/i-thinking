@@ -1,4 +1,4 @@
-const feedback: International.Feedback = {
+const Feedback: International.Feedback = {
 	Loading: '加载中...',
 	Success: '成功',
 	Error: '错误',
@@ -6,4 +6,4 @@ const feedback: International.Feedback = {
 	Pending: '待处理'
 }
 
-export default feedback
+export default Feedback
