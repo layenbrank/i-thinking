@@ -27,7 +27,9 @@ export class ApplicationService {
 	}
 
 	async findAll() {
-		const application = await import('../../constants/widget.constant.json')
+		const application = await import('../../constants/application.constant.json', {
+			with: { type: 'json' }
+		})
 
 		return application.default
 	}

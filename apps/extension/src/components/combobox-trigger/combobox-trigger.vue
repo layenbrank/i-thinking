@@ -16,11 +16,12 @@ const slots = defineSlots<ComboboxTriggerSlots>()
 const attrs = useAttrs()
 
 // 计算属性过滤掉 content 插槽，使用类型安全的方式
-const filteredSlots = computed(() => {
+const filteredSlots = computed(function () {
+	const keys = Object.keys(slots) as (keyof ComboboxTriggerSlots)[]
 	// 获取所有插槽名称并过滤
-	return Object.keys(slots).filter(
-		(name): name is keyof ComboboxTriggerSlots => name !== 'content' && name in slots
-	)
+	return keys.filter(function (name) {
+		return name !== 'content' && name in slots
+	})
 })
 
 // 处理插槽数据，确保value属性存在
@@ -34,7 +35,10 @@ function processSlot(data: any) {
 
 <template>
 	<div :class="[clsx('combobox-trigger', comboboxClass)]">
-		<a-input v-bind="{ ...props.inputProps, ...attrs }" :class="[clsx(inputClass)]">
+		<a-input
+			v-bind="{ ...props.inputProps, ...attrs }"
+			:class="[clsx('trigger-input', inputClass)]"
+		>
 			<template v-for="name in filteredSlots" v-slot:[name]="data" :key="name">
 				<slot :name="name" v-bind="processSlot(data)"></slot>
 			</template>
@@ -43,4 +47,15 @@ function processSlot(data: any) {
 	</div>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+:where(.combobox-trigger) {
+	height: 32px;
+
+	:deep(.trigger-input) {
+		width: 100%;
+		height: 100%;
+		display: block;
+		line-height: 1;
+	}
+}
+</style>

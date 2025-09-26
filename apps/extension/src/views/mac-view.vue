@@ -1,12 +1,46 @@
 <script setup lang="ts">
 import backgroundImage from '@/assets/wallpaper/r2e391.png'
-import { useDateFormat, useTimestamp } from '@vueuse/core'
+import { generateSecureCvid } from '@/utils/generate.ts'
+import { http } from '@/utils/http/http.ts'
+import { ENGINE_TOKEN } from '@/utils/http/token.ts'
+import {
+	onClickOutside,
+	onKeyStroke,
+	useCycleList,
+	useDateFormat,
+	useTimestamp,
+	useWindowFocus
+} from '@vueuse/core'
 import { Modal } from 'ant-design-vue'
+import { debounce } from 'lodash-es'
 import { useI18n } from 'vue-i18n'
+import * as z from 'zod'
 
 const AppController = defineAsyncComponent(function () {
 	return import('@/components/app-controller/app-controller.vue')
 })
+
+const TSchema = z.enum(['LT', 'MT', 'SC'])
+type T = z.infer<typeof TSchema>
+
+const ISchema = z.object({
+	ig: z.string()
+})
+type I = z.infer<typeof ISchema>
+
+const EmptySchema = z.object({
+	id: z.string(),
+	q: z.string(),
+	u: z.string(),
+	t: TSchema
+})
+type Empty = z.infer<typeof EmptySchema>
+
+const ResponseZodSchema = z.object({
+	s: z.array(EmptySchema),
+	i: ISchema
+})
+type ResponseZod = z.infer<typeof ResponseZodSchema>
 
 defineOptions({
 	name: 'mac-view'
@@ -14,11 +48,27 @@ defineOptions({
 
 const { t, locale } = useI18n()
 
-const keyword = ref('')
+const comboboxRef = useTemplateRef('comboboxRef')
 
 const timestamp = useTimestamp({
 	interval: 'requestAnimationFrame'
 })
+
+const focused = ref(false)
+
+const windowFocused = useWindowFocus()
+
+const keyword = ref('')
+
+const queries = ref<ResponseZod>()
+
+const {
+	go: toNavigate,
+	state: suggestion,
+	prev: navigatePrev,
+	next: navigateNext,
+	index: navigation
+} = useCycleList(computed(() => queries.value?.s ?? []))
 
 const date = useDateFormat(timestamp, 'MM-DD', {})
 
@@ -30,23 +80,77 @@ const time = useDateFormat(timestamp, 'HH:mm:ss', {
 	}
 })
 
-const collapse = reactive({
-	width: 350
-})
-
 function updateKeyword(value: string) {
 	keyword.value = value
+	toQuery(value)
+}
+const cvid = generateSecureCvid()
+const toQuery = debounce(function (value: string) {
+	// https://cn.bing.com/AS/Suggestions?pt=page.home&qry=j&cp=1&csr=1&pths=1&cvid=313EA35317DD492295D155D6F708F74B
+
+	// bing   313EA35317DD492295D155D6F708F74B
+	// custom 0F96C1D8AE2D4E1280D591B9B1D5A020
+	http
+		.get<ResponseZod>('/AS/Suggestions', {
+			params: {
+				pt: 'page.home',
+				qry: value,
+				cp: value.length,
+				csr: '1',
+				pths: '1',
+				cvid: cvid
+			},
+			context: ENGINE_TOKEN
+		})
+		.subscribe(function (response) {
+			console.log('bing response', response, 'cvid', cvid)
+			if (!response) return
+			queries.value = response
+			// suggestions.value = response.s
+			// console.log('suggestions', suggestions.value)
+
+			toNavigate(0)
+		})
+}, 300)
+
+const visible = computed(function () {
+	if (!focused.value) return false
+	if (!keyword.value) return false
+	if (!queries.value?.s.length) return false
+
+	return true
+})
+
+onClickOutside(comboboxRef, function () {
+	focused.value = false
+})
+
+onKeyStroke(['ArrowUp', 'ArrowDown'], function (e) {
+	if (!visible.value) return
+	if (!focused.value) return
+	if (!keyword.value) return
+	if (!queries.value?.s.length) return
+
+	e.preventDefault()
+
+	if (e.key === 'ArrowUp') navigatePrev()
+	else if (e.key === 'ArrowDown') navigateNext()
+})
+
+watchEffect(function () {
+	if (windowFocused.value) return
+	focused.value = false
+})
+
+function updateQuery() {
+	if (suggestion.value) {
+		return window.open(`https://cn.bing.com/${suggestion.value.u}`, '_blank')
+	}
+	return window.open(`https://cn.bing.com/search?q=${keyword.value}`, '_blank')
 }
 
-function updateSearch() {
-	window.open(`https://cn.bing.com/search?q=${keyword.value}`, '_blank')
-}
-
-const visible = ref(false)
-
-function toggle() {
-	visible.value = false
-	// visible.value = !visible.value
+function updateFocus(value: boolean) {
+	focused.value = value
 }
 
 function toggleLanguage() {
@@ -74,7 +178,10 @@ function toggleLanguage() {
 }
 
 onMounted(function () {
-	// console.log('mac-view mounted', visible.value)
+	//
+	// GET_APPLICATION().subscribe(function (response) {
+	// 	console.log('application', response)
+	// })
 })
 
 onUnmounted(function () {
@@ -120,27 +227,43 @@ onUnmounted(function () {
 						<i-local:battery-full-outline />
 					</template>
 				</a-button>
-				<a-popover placement="bottom" trigger="click" class="popover-input">
-					<template #trigger>
-						<a-button class="icon-search">
-							<template #icon>
-								<i-local:search />
-							</template>
-						</a-button>
+				<combobox-trigger
+					ref="comboboxRef"
+					:inputProps="{
+						value: keyword,
+						onPressEnter: updateQuery,
+						'onUpdate:value': updateKeyword,
+						onFocus: () => updateFocus(true),
+						placeholder: t('General.Please-Enter-Keywords')
+					}"
+				>
+					<template #content>
+						<transition name="combobox-fade">
+							<a-card v-if="visible" class="combobox-card">
+								<a-button
+									block
+									type="link"
+									:key="value.id"
+									target="_blank"
+									v-for="(value, index) in queries?.s"
+									:href="`https://cn.bing.com/${value.u}`"
+									:class="[
+										'navigation-link',
+										{
+											'is-active': navigation === index
+										}
+									]"
+								>
+									{{ value.q.replace(/[\uE000-\uF8FF]/g, '') }}
+								</a-button>
+							</a-card>
+						</transition>
 					</template>
-					<template #default>
-						<a-input
-							@keydown.enter="updateSearch"
-							:model-value="keyword"
-							@update-value="updateKeyword"
-							round
-							:placeholder="$t('General.Please-Enter-Keywords')"
-						/>
-					</template>
-				</a-popover>
+				</combobox-trigger>
+
 				<a-button class="icon-mac-toggle">
 					<template #icon>
-						<i-local:mac-toggle @click="toggle" />
+						<i-local:mac-toggle />
 					</template>
 				</a-button>
 				<a-button class="date-time">
@@ -150,39 +273,15 @@ onUnmounted(function () {
 				</a-button>
 			</a-space-compact>
 		</a-layout-header>
-		<a-layout class="mac-container">
-			<a-layout
-				:style="{
-					'--collapsed-width': `${collapse.width}px`
-				}"
-				:class="[
-					'mac-main',
-					{
-						visible: visible
-					}
-				]"
-			>
-				<a-layout-content @contextmenu.prevent class="mac-content">
-					<app-controller />
-				</a-layout-content>
-				<a-layout-footer @contextmenu.prevent class="mac-footer">
-					<template #default>
-						<div class="dock-bar"></div>
-					</template>
-				</a-layout-footer>
-			</a-layout>
-
-			<a-layout-sider
-				:collapsed="!visible"
-				:width="collapse.width"
-				:collapsed-width="collapse.width"
-				:class="[
-					'mac-final',
-					{
-						visible: !visible
-					}
-				]"
-			></a-layout-sider>
+		<a-layout class="mac-main">
+			<a-layout-content @contextmenu.prevent class="mac-content">
+				<app-controller />
+			</a-layout-content>
+			<a-layout-footer @contextmenu.prevent class="mac-footer">
+				<template #default>
+					<div class="dock-bar"></div>
+				</template>
+			</a-layout-footer>
 		</a-layout>
 	</a-layout>
 </template>
@@ -193,19 +292,21 @@ onUnmounted(function () {
 .mac-view {
 	width: 100%;
 	height: 100%;
-	$top-height: 36px;
-	$bottom-height: 80px;
 	background-color: transparent;
 	overflow: hidden;
 
+	$top-height: 36px;
+	$bottom-height: 80px;
+
 	.mac-header {
+		z-index: 3;
 		width: 100%;
 		height: $top-height;
 		flex: none;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0px 8px;
+		padding: 0 8px;
 		border-radius: 8px;
 		background-color: rgba($color: #ffffff, $alpha: 0.3);
 		backdrop-filter: blur(12px);
@@ -232,31 +333,71 @@ onUnmounted(function () {
 		.icon-mac-toggle {
 			width: initial;
 			@apply px-2 py-1 block;
-			margin-inline-start: 0px;
+			margin-inline-start: 0;
 
 			svg {
 				@apply w-5 h-5;
 			}
 		}
-	}
 
-	.mac-container {
-		width: 100%;
-		height: calc(100% - $top-height);
-		flex: none;
-		background-color: transparent;
+		.combobox-trigger {
+			width: 200px;
+
+			:deep(.combobox-card) {
+				max-height: 400px;
+				height: 300px;
+				border-top-left-radius: 0;
+				border-top-right-radius: 0;
+				padding: 4px;
+
+				.ant-card-body {
+					height: 100%;
+					overflow: hidden scroll;
+					padding: 0 4px 0 0;
+				}
+			}
+
+			:deep(.navigation-link) {
+				display: block;
+				text-align: left;
+				color: #000000;
+				border-radius: 6px;
+
+				span {
+					width: 100%;
+					display: block;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+
+				&:hover,
+				&.is-active {
+					background-color: rgba($color: #4080ff, $alpha: 0.3);
+				}
+			}
+
+			.combobox-fade {
+				&-enter-active,
+				&-leave-active {
+					transform: translateY(0);
+					transition:
+						opacity 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+						transform 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+				}
+				&-enter-from,
+				&-leave-to {
+					opacity: 0;
+					transform: translateY(-10px);
+				}
+			}
+		}
 	}
 
 	.mac-main {
 		width: 100%;
+		height: calc(100% - $top-height);
 		flex: none;
 		background-color: transparent;
-		transition: width 300ms cubic-bezier(0.39, 0.575, 0.565, 1);
-
-		/* TODO: 暂时没用到,后续可能移除 visible 相关 */
-		&.visible {
-			width: calc(100% - var(--collapsed-width, 350px));
-		}
 	}
 
 	.mac-content {
@@ -269,7 +410,7 @@ onUnmounted(function () {
 	.mac-footer {
 		width: 100%;
 		height: $bottom-height;
-		padding: 0px;
+		padding: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -286,14 +427,6 @@ onUnmounted(function () {
 			background-color: rgba($color: #ffffff, $alpha: 0.3);
 			color: rgba(64, 128, 255, 0.8);
 		}
-	}
-
-	.mac-begin {
-		height: 100%;
-	}
-
-	.mac-final {
-		height: 100%;
 	}
 }
 </style>

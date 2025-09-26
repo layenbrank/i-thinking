@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { http } from '@/utils/http.ts'
+import { http } from '@/utils/http/http.ts'
+import { ENV_TOKEN } from '@/utils/http/token.ts'
+import { HttpContext } from '@ngify/http'
+
 import { computed, ref, useTemplateRef } from 'vue'
 
 // 定义类型
@@ -333,22 +336,26 @@ async function uploadChunk(chunk: Chunk) {
 		formData.append('chunkData', chunkBlob)
 
 		await new Promise<void>(function (resolve, reject) {
-			http.post<Response<ChunkResponse>>('/upload/chunk', formData).subscribe({
-				next() {
-					chunk.status = 'completed'
-					uploadedChunks.value.add(chunk.index)
-					uploadedBytes.value += chunk.size
+			http
+				.post<Response<ChunkResponse>>('/upload/chunk', formData, {
+					context: new HttpContext().set(ENV_TOKEN, 'extension')
+				})
+				.subscribe({
+					next() {
+						chunk.status = 'completed'
+						uploadedChunks.value.add(chunk.index)
+						uploadedBytes.value += chunk.size
 
-					updateChunkStatus(chunk)
-					updateProgress()
+						updateChunkStatus(chunk)
+						updateProgress()
 
-					logger(`分片 ${chunk.index + 1} 上传完成`, 'success')
-					resolve()
-				},
-				error(error) {
-					reject(new Error(error.error ?? '分片上传失败'))
-				}
-			})
+						logger(`分片 ${chunk.index + 1} 上传完成`, 'success')
+						resolve()
+					},
+					error(error) {
+						reject(new Error(error.error ?? '分片上传失败'))
+					}
+				})
 		})
 	} catch (error: any) {
 		chunk.retries++
@@ -413,14 +420,18 @@ function cancelUpload() {
 
 	if (uploadId.value) {
 		try {
-			http.delete(`/upload/cancel/${uploadId.value}`).subscribe({
-				next() {
-					logger('上传已取消', 'info')
-				},
-				error(error: any) {
-					logger(`取消上传失败: ${error.message}`, 'error')
-				}
-			})
+			http
+				.delete(`/upload/cancel/${uploadId.value}`, {
+					context: new HttpContext().set(ENV_TOKEN, 'extension')
+				})
+				.subscribe({
+					next() {
+						logger('上传已取消', 'info')
+					},
+					error(error: any) {
+						logger(`取消上传失败: ${error.message}`, 'error')
+					}
+				})
 		} catch (error: any) {
 			logger(`取消上传失败: ${error.message}`, 'error')
 		}
