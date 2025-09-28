@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs'
+import { copyFile, readFile, writeFile } from 'node:fs'
 import { resolve } from 'node:path'
 
 readFile(
@@ -14,8 +14,7 @@ readFile(
 
 		const packageJson = {
 			scripts: {
-				dev: parsed.scripts.dev,
-				preview: parsed.scripts.preview
+				preview: parsed.scripts.preview.replace('dist/', '')
 			},
 			dependencies: parsed.dependencies
 		}
@@ -26,6 +25,15 @@ readFile(
 			function (error) {
 				if (error) console.error(`Write failed: ${error}`)
 				else console.log('Write succeeded!')
+			}
+		)
+
+		copyFile(
+			resolve(__dirname, '..', '.env.production'),
+			resolve(__dirname, '..', 'dist/.env.production'),
+			(error) => {
+				if (error) console.error(`Copy failed: ${error}`)
+				else console.log('Copy succeeded!')
 			}
 		)
 	}

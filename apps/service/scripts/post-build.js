@@ -11,8 +11,7 @@ var node_path_1 = require("node:path");
     console.log('Read succeeded! Package: ', parsed.name);
     var packageJson = {
         scripts: {
-            dev: parsed.scripts.dev,
-            preview: parsed.scripts.preview
+            preview: parsed.scripts.preview.replace('dist/', '')
         },
         dependencies: parsed.dependencies
     };
@@ -21,5 +20,11 @@ var node_path_1 = require("node:path");
             console.error("Write failed: ".concat(error));
         else
             console.log('Write succeeded!');
+    });
+    (0, node_fs_1.copyFile)((0, node_path_1.resolve)(__dirname, '..', '.env.production'), (0, node_path_1.resolve)(__dirname, '..', 'dist/.env.production'), function (error) {
+        if (error)
+            console.error("Copy failed: ".concat(error));
+        else
+            console.log('Copy succeeded!');
     });
 });
