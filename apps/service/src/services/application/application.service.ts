@@ -1,12 +1,13 @@
+import DEFAULT from '@/constants/application.constant'
 import { Injectable } from '@nestjs/common'
-import axios, { type AxiosInstance } from 'axios'
+import axios, { type AxiosInstance as HttpClient } from 'axios'
 import * as cheerio from 'cheerio'
-import { CreateApplicationDto } from './dto/create-application.dto'
-import { UpdateApplicationDto } from './dto/update-application.dto'
+import { InsertDTO } from './dto/create-application.dto'
+import { UpdateDTO } from './dto/update-application.dto'
 
 @Injectable()
 export class ApplicationService {
-	private http: AxiosInstance
+	private http: HttpClient
 
 	constructor() {
 		this.http = axios.create({
@@ -22,27 +23,23 @@ export class ApplicationService {
 		})
 	}
 
-	insert(createApplicationDto: CreateApplicationDto) {
+	toInsert(insertDTO: InsertDTO) {
 		return 'This action adds a new Application'
 	}
 
-	async findAll() {
-		const application = await import('../../constants/application.constant.json', {
-			with: { type: 'json' }
-		})
-
-		return application.default
+	async toReads() {
+		return DEFAULT
 	}
 
-	findOne(id: number) {
+	toRead(id: number) {
 		return `This action returns a #${id} application`
 	}
 
-	update(id: number, updateApplicationDto: UpdateApplicationDto) {
+	toUpdate(id: number, updateDTO: UpdateDTO) {
 		return `This action updates a #${id} application`
 	}
 
-	remove(id: number) {
+	toRemove(id: number) {
 		return `This action removes a #${id} application`
 	}
 
@@ -61,7 +58,7 @@ export class ApplicationService {
 
 			// 如果没找到，尝试默认路径
 			if (!favicon) {
-				favicon = await this.tryDefaultFavicon(targetUrl)
+				favicon = await this.tryFavicon(targetUrl)
 			}
 
 			console.log(`找到 favicon: ${favicon || '未找到'}`)
@@ -71,7 +68,7 @@ export class ApplicationService {
 
 			// 尝试默认路径作为后备
 			try {
-				return await this.tryDefaultFavicon(url)
+				return await this.tryFavicon(url)
 			} catch (fallbackError: any) {
 				console.error(`后备方案也失败: ${fallbackError?.message}`)
 				return ''
@@ -136,7 +133,7 @@ export class ApplicationService {
 	/**
 	 * 尝试默认的 favicon 路径
 	 */
-	private async tryDefaultFavicon(url: string): Promise<string> {
+	private async tryFavicon(url: string): Promise<string> {
 		const baseUrl = this.retrieveBaseUrl(url)
 		const defaultPaths = [
 			'/favicon.ico',

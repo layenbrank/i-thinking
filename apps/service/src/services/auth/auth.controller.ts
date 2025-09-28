@@ -1,30 +1,30 @@
-import { NoAuthToken } from '@/decorator/noAuthToken.decorator'
+import { AuthToken } from '@/decorator/auth-token.decorator'
 import { Body, Controller, Post } from '@nestjs/common'
 import { ApiBody, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
-import { CreateAuthDto } from './dto/create-auth.dto'
+import { InsertDTO } from './dto/insert-auth.dto'
 
 @ApiTags('Auth API 模块')
 @Controller('auth')
 export class AuthController {
-	constructor(private readonly authService: AuthService) {}
+	constructor(private readonly service: AuthService) {}
 
-	@NoAuthToken()
+	@AuthToken()
 	@Post('signin')
-	@ApiBody({ type: CreateAuthDto, required: true })
+	@ApiBody({ type: InsertDTO, required: true })
 	@ApiProperty({ example: { username: 'admin', password: '123456' } })
 	@ApiResponse({ status: 201, description: '登录成功' })
 	@ApiOperation({ summary: '登录' })
-	create(@Body() createAuthDto: CreateAuthDto) {
-		return this.authService.signin(createAuthDto)
+	create(@Body() authDTO: InsertDTO) {
+		return this.service.signin(authDTO)
 	}
 
-	@NoAuthToken()
+	@AuthToken()
 	@Post('signup')
-	@ApiBody({ type: CreateAuthDto })
+	@ApiBody({ type: InsertDTO })
 	@ApiResponse({ status: 201, description: '注册成功' })
 	@ApiOperation({ summary: '注册', description: 'username为唯一标识' })
-	signup(@Body() createAuthDto: CreateAuthDto) {
-		return this.authService.signup(createAuthDto)
+	signup(@Body() authDTO: InsertDTO) {
+		return this.service.signup(authDTO)
 	}
 }

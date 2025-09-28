@@ -2,7 +2,7 @@ import { ApiProperty, ApiTags } from '@nestjs/swagger'
 import { IsNotEmpty, IsString, Length } from 'class-validator'
 
 @ApiTags('auth dto create')
-export class CreateAuthDto {
+export class InsertDTO {
 	@ApiProperty({
 		name: 'username',
 		example: 'layen',

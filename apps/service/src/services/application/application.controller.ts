@@ -1,35 +1,35 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common'
 import { ApplicationService } from './application.service'
-import { CreateApplicationDto } from './dto/create-application.dto'
-import { UpdateApplicationDto } from './dto/update-application.dto'
+import { InsertDTO } from './dto/create-application.dto'
+import { UpdateDTO } from './dto/update-application.dto'
 
 @Controller('application')
 export class ApplicationController {
-	constructor(private readonly applicationService: ApplicationService) {}
+	constructor(private readonly service: ApplicationService) {}
 
 	@Post()
-	create(@Body() createApplicationDto: CreateApplicationDto) {
-		return this.applicationService.insert(createApplicationDto)
+	toInsert(@Body() insertDTO: InsertDTO) {
+		return this.service.toInsert(insertDTO)
 	}
 
 	@Get()
-	findAll() {
-		return this.applicationService.findAll()
+	toReads() {
+		return this.service.toReads()
 	}
 
 	@Get('singleton/*id')
-	findOne(@Param('id') id: string) {
-		return this.applicationService.findOne(+id)
+	toRead(@Param('id') id: string) {
+		return this.service.toRead(+id)
 	}
 
 	@Patch(':id')
-	update(@Param('id') id: string, @Body() updateApplicationDto: UpdateApplicationDto) {
-		return this.applicationService.update(+id, updateApplicationDto)
+	toUpdate(@Param('id') id: string, @Body() updateDTO: UpdateDTO) {
+		return this.service.toUpdate(+id, updateDTO)
 	}
 
 	@Delete(':id')
-	remove(@Param('id') id: string) {
-		return this.applicationService.remove(+id)
+	toRemove(@Param('id') id: string) {
+		return this.service.toRemove(+id)
 	}
 
 	/*
@@ -46,7 +46,7 @@ export class ApplicationController {
 		const decodedUrl = decodeURIComponent(url)
 		console.log(`Decoded URL: ${decodedUrl}`)
 
-		const resp = await this.applicationService.findFavicon(url)
+		const resp = await this.service.findFavicon(url)
 		return resp
 	}
 }

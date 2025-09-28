@@ -1,5 +1,7 @@
 {
+	"exclude": ["node_modules", "dist"],
 	"compilerOptions": {
+		"target": "esnext",
 		"module": "nodenext",
 		"moduleResolution": "nodenext",
 		"resolvePackageJsonExports": true,
@@ -10,7 +12,6 @@
 		"emitDecoratorMetadata": true,
 		"experimentalDecorators": true,
 		"allowSyntheticDefaultImports": true,
-		"target": "esnext",
 		"sourceMap": true,
 		"outDir": "dist",
 		"baseUrl": ".",
@@ -22,6 +23,8 @@
 		"strictBindCallApply": true,
 		"allowImportingTsExtensions": false,
 		"noFallthroughCasesInSwitch": true,
+
+		"resolveJsonModule": true,
 
 		// 新增的严格选项
 		"noImplicitThis": true,

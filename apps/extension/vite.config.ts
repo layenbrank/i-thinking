@@ -12,6 +12,7 @@ import Icons from 'unplugin-icons/vite'
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
+import ViteCompression from 'vite-plugin-compression'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import pkg from './package.json'
 // import wasm from 'vite-plugin-wasm'
@@ -186,6 +187,15 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 			}),
 			VueI18nPlugin({
 				include: resolve(fileURLToPath(import.meta.url), './src/locales')
+			}),
+			ViteCompression({
+				verbose: true,
+				disable: false,
+				filter: /\.(js|mjs|json|css|less|scss|html)$/i,
+				threshold: 10240,
+				deleteOriginFile: false, // 压缩完之后删除原文件
+				algorithm: 'gzip',
+				ext: '.gz'
 			})
 		],
 		resolve: {

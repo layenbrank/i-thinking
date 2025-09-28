@@ -1,4 +1,9 @@
+import { AppController } from '@/app.controller'
+import { AppService } from '@/app.service'
+import { ApplicationModule } from '@/services/application/application.module'
 import { AuthModule } from '@/services/auth/auth.module'
+import { ConsoleModule } from '@/services/console/console.module'
+import { DemoModule } from '@/services/demo/demo.module'
 import { PostsModule } from '@/services/posts/posts.module'
 import { ProfileModule } from '@/services/profile/profile.module'
 import { UploadModule } from '@/services/upload/upload.module'
@@ -8,11 +13,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { MongooseModule } from '@nestjs/mongoose'
 import { resolve } from 'node:path'
 import process from 'node:process'
-import { AppController } from './app.controller'
-import { AppService } from './app.service'
-import { ApplicationModule } from './services/application/application.module'
-import { ConsoleModule } from './services/console/console.module'
-import { DemoModule } from './services/demo/demo.module'
 
 @Module({
 	imports: [
@@ -34,6 +34,12 @@ import { DemoModule } from './services/demo/demo.module'
 					retryDelay: 3000,
 					verboseRetryLog: true,
 					connectTimeoutMS: 3 * 1000
+					// dbName: configService.get<string>('MONGODB_NAME', 'extension', {
+					// 	infer: true
+					// }),
+					// localPort: configService.get<number>('MONGODB_PORT', 27017, {
+					// 	infer: true
+					// }),
 				}
 			},
 			inject: [ConfigService]

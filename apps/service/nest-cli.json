@@ -1,8 +1,24 @@
 {
 	"$schema": "https://json.schemastore.org/nest-cli",
 	"collection": "@nestjs/schematics",
+	"root": ".",
+	"language": "ts",
 	"sourceRoot": "src",
+	"entryFile": "main",
+	"generateOptions": {
+		"baseDir": ".",
+		"flat": true,
+		"spec": false
+	},
 	"compilerOptions": {
-		"deleteOutDir": true
+		"watchAssets": true,
+		"deleteOutDir": true,
+		"tsConfigPath": "tsconfig.build.json",
+		"assets": [
+			{
+				"outDir": "dist",
+				"include": "**/*.(conf,yaml)"
+			}
+		]
 	}
 }

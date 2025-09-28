@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 
 export default defineConfig([
 	{
-		ignores: ['eslint.config.ts']
+		ignores: ['eslint.config.ts', 'scripts']
 	},
 	eslint.configs.recommended,
 	...tseslint.configs.recommendedTypeChecked,
@@ -26,8 +26,7 @@ export default defineConfig([
 			parserOptions: {
 				ecmaVersion: 2023,
 				projectService: true,
-				tsconfigRootDir: process.cwd(),
-				globals: globals.browser
+				tsconfigRootDir: process.cwd()
 			}
 		}
 	},

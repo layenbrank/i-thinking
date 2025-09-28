@@ -108,6 +108,7 @@ const toQuery = debounce(function (value: string) {
 			queries.value = response
 			// suggestions.value = response.s
 			// console.log('suggestions', suggestions.value)
+			//
 
 			toNavigate(0)
 		})
