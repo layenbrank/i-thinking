@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useApplicationsStore } from '@/stores/application'
+import { useApplicationStore } from '@/stores/application'
 
 interface DirectionOptions {
 	label: string
@@ -10,7 +10,7 @@ defineOptions({
 	name: 'setting-direction'
 })
 
-const store = useApplicationsStore()
+const store = useApplicationStore()
 
 const options: DirectionOptions[] = [
 	{

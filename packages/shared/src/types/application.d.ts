@@ -35,8 +35,9 @@ declare namespace Application {
 		| 'app-markdown'
 		| 'app-settings'
 		| 'app-clipchamp'
-		| 'app-store'
+		| 'app-intelligence'
 		| 'app-navigation'
+		| 'app-store'
 		| 'app-example'
 
 	/**

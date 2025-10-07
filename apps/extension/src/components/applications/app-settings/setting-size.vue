@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useApplicationsStore } from '@/stores/application'
+import { useApplicationStore } from '@/stores/application'
 
 defineOptions({
 	name: 'setting-size'
@@ -10,7 +10,7 @@ interface SizeOptions {
 	value: Application.Size
 }
 
-const store = useApplicationsStore()
+const store = useApplicationStore()
 
 const options: SizeOptions[] = [
 	{

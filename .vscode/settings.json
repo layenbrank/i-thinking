@@ -73,9 +73,9 @@
 		"source.fixAll.eslint": "always",
 		"source.fixAll.oxc": "always",
 		"source.fixAll.ts": "always",
-		"source.organizeImports": "never",
+		"source.organizeImports": "explicit",
 		"source.removeUnused.ts": "never",
-		"source.removeUnusedImports": "never",
+		"source.removeUnusedImports": "explicit",
 		"source.sort.json": "explicit",
 		"source.sortImports": "always"
 	},

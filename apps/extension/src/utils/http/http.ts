@@ -1,35 +1,7 @@
 import { cacheInterceptor } from '@/utils/http/cache.ts'
 import { ENV_TOKEN } from '@/utils/http/token.ts'
-import {
-	HttpClient,
-	HttpContext,
-	withFetch,
-	withInterceptors,
-	type HttpEvent,
-	type HttpHandlerFn,
-	type HttpRequest
-} from '@ngify/http'
-import type { Observable } from 'rxjs'
-
-const ENVURL: Readonly<Record<EnvURL, string>> = {
-	engine: import.meta.env.VITE_APP_ENGINE,
-	extension: import.meta.env.VITE_APP_EXTENSION
-}
-
-const REGEXP: Readonly<RegExp> = /^https?:\/\//
-
-function urlInterceptor(
-	req: HttpRequest<unknown>,
-	next: HttpHandlerFn
-): Observable<HttpEvent<unknown>> {
-	if (REGEXP.test(req.url)) return next(req)
-
-	const ENV = req.context.get(ENV_TOKEN)
-	const url = ENV && ENVURL[ENV] ? `${ENVURL[ENV]}${req.url}` : req.url
-	req = req.clone({ url })
-
-	return next(req)
-}
+import { urlInterceptor } from '@/utils/http/url.ts'
+import { HttpClient, HttpContext, withFetch, withInterceptors } from '@ngify/http'
 
 export const http = new HttpClient(
 	withFetch(),

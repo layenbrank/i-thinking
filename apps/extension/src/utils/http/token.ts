@@ -8,3 +8,5 @@ export const ENV_TOKEN = new HttpContextToken<EnvURL | undefined>(() => undefine
 export const EXTENSION_TOKEN = new HttpContext().set(ENV_TOKEN, 'extension')
 
 export const ENGINE_TOKEN = new HttpContext().set(ENV_TOKEN, 'engine')
+
+export const INTELLIGENCE_TOKEN = new HttpContext().set(ENV_TOKEN, 'intelligence')

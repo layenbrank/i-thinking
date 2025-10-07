@@ -25,6 +25,11 @@ export default {
 			component: () => import('@/views/clipchamp-view.vue')
 		},
 		{
+			path: '/intelligence-view',
+			name: 'intelligence-view',
+			component: () => import('@/views/intelligence-view.vue')
+		},
+		{
 			path: '/:pathMatch(.*)*',
 			name: 'not-found',
 			component: () => import('@/views/not-found-view.vue')

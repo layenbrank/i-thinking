@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import fallback from '@/assets/feedback/fallback.png'
-import { useApplicationsStore } from '@/stores/application.ts'
+import { useApplicationStore } from '@/stores/application.ts'
 import { timeSphere } from '@desktop-app/core'
 import { message } from 'ant-design-vue'
 import Fuse, { type IFuseOptions } from 'fuse.js'
@@ -27,7 +27,7 @@ const emits = defineEmits<{
 	(e: 'update:fullscreen', value: boolean): void
 }>()
 
-const store = useApplicationsStore()
+const store = useApplicationStore()
 
 const keyword = ref('')
 const loading = ref(false)

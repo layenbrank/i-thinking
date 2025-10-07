@@ -16,9 +16,8 @@ const AppCalendar = defineAsyncComponent(function () {
 const AppMarkdown = defineAsyncComponent(function () {
 	return import('@/components/applications/app-markdown/app-markdown.vue')
 })
-
-const AppStore = defineAsyncComponent(function () {
-	return import('@/components/applications/app-store/app-store.vue')
+const AppIntelligence = defineAsyncComponent(function () {
+	return import('@/components/applications/app-intelligence/app-intelligence.vue')
 })
 
 const AppNavigation = defineAsyncComponent(function () {
@@ -27,6 +26,9 @@ const AppNavigation = defineAsyncComponent(function () {
 
 const AppSettings = defineAsyncComponent(function () {
 	return import('@/components/applications/app-settings/app-settings.vue')
+})
+const AppStore = defineAsyncComponent(function () {
+	return import('@/components/applications/app-store/app-store.vue')
 })
 const AppExample = defineAsyncComponent(function () {
 	return import('@/components/applications/app-example/app-example.vue')
@@ -78,19 +80,22 @@ export const contextmenuReflect: Record<
 	'app-markdown'() {
 		return commonMenuOptions
 	},
-	'app-store'() {
-		return commonMenuOptions
-	},
 	'app-navigation'() {
-		return commonMenuOptions
-	},
-	'app-example'() {
 		return commonMenuOptions
 	},
 	'app-settings'() {
 		return commonMenuOptions
 	},
 	'app-clipchamp'() {
+		return commonMenuOptions
+	},
+	'app-intelligence'() {
+		return commonMenuOptions
+	},
+	'app-store'() {
+		return commonMenuOptions
+	},
+	'app-example'() {
 		return commonMenuOptions
 	}
 }
@@ -121,11 +126,14 @@ export const appReflect: Application.Reflect = {
 	'app-settings'() {
 		return <AppSettings />
 	},
-	'app-store'() {
-		return <AppStore />
-	},
 	'app-navigation'() {
 		return <AppNavigation />
+	},
+	'app-intelligence'() {
+		return <AppIntelligence />
+	},
+	'app-store'() {
+		return <AppStore />
 	},
 	'app-example'() {
 		return <AppExample />

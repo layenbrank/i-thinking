@@ -2,7 +2,7 @@
 import { resize } from '@desktop-app/core/directives'
 import AppMenu from '../app-menu/app-menu.vue'
 // import AppDrawer from '../app-settings/app-settings.vue'
-import { useApplicationsStore } from '@/stores/application.ts'
+import { useApplicationStore } from '@/stores/application.ts'
 import Sortable from 'sortablejs'
 
 import { appReflect, contextmenuReflect, sizes } from './app-controller.tsx'
@@ -14,7 +14,7 @@ defineOptions({
 	}
 })
 
-const store = useApplicationsStore()
+const store = useApplicationStore()
 
 const contextmenuRef = useTemplateRef('contextmenuRef')
 const appControllerRef = useTemplateRef('appControllerRef')

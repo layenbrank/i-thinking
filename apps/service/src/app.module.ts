@@ -19,13 +19,13 @@ import process from 'node:process'
 		MongooseModule.forRootAsync({
 			imports: [ConfigModule],
 			async useFactory(configService: ConfigService<NodeJS.ProcessEnv>) {
-				const uri = configService.get<string>('DATABASE_URL', {
+				const uri = configService.get<string>('MONGODB_URI', {
 					infer: true
 				})
 				console.log('uri', uri)
 				if (!uri) {
-					// throw new Error('DATABASE_URL not found in environment variables');
-					console.log('DATABASE_URL not found in environment variables')
+					// throw new Error('MONGODB_URI not found in environment variables');
+					console.log('MONGODB_URI not found in environment variables')
 				}
 
 				return {

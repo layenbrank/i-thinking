@@ -159,7 +159,7 @@ const DEFAULT: readonly Application[] = [
 	{
 		id: randomID(),
 		slideID: randomID(),
-		sort: 5,
+		sort: 7,
 		component: 'app-markdown',
 		width: '60px',
 		height: '60px',
@@ -180,7 +180,7 @@ const DEFAULT: readonly Application[] = [
 	{
 		id: randomID(),
 		slideID: randomID(),
-		sort: 5,
+		sort: 8,
 		component: 'app-settings',
 		width: '60px',
 		height: '60px',
@@ -197,10 +197,31 @@ const DEFAULT: readonly Application[] = [
 		textColor: '#ffffff',
 		description: '设置',
 		downloadCount: 1000
+	},
+	{
+		id: randomID(),
+		slideID: randomID(),
+		sort: 9,
+		component: 'app-intelligence',
+		width: '60px',
+		height: '60px',
+		url: 'https://weixin.qq.com',
+		size: 'mini',
+		round: '20px',
+		direction: 'horizontal',
+		shape: 'square',
+		name: 'AI Hub',
+		icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
+		backgroundColor: '#ffffff',
+		backgroundImage: null,
+		textSize: '13px',
+		textColor: '#ffffff',
+		description: 'AI Hub',
+		downloadCount: 100000
 	}
 ]
 
-export const useApplicationsStore = defineStore('app', function () {
+export const useApplicationStore = defineStore('application', function () {
 	const activeApp = ref<Application | null>(null)
 
 	const settingsVisible = ref(false)

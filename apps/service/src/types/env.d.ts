@@ -8,7 +8,7 @@ declare global {
 			HOSTNAME: string
 			PORT: string
 
-			DATABASE_URL: string
+			MONGODB_URI: string
 
 			JWT_SECRET: string
 			JWT_EXPIRES_IN: string
