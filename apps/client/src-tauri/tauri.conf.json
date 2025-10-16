@@ -1,0 +1,101 @@
+{
+	"$schema": "https://schema.tauri.app/config/2",
+	"version": "0.1.0",
+	"productName": "client",
+	"identifier": "com.desktop-app.client",
+	"app": {
+		"macOSPrivateApi": true,
+		"security": {
+			"assetProtocol": {
+				"enable": false,
+				"scope": []
+			},
+			"csp": null
+		},
+		"windows": [
+			{
+				"backgroundColor": "#00000000",
+				"center": true,
+				"decorations": true,
+				"devtools": true,
+				"dragDropEnabled": true,
+				"focus": true,
+				"height": 600,
+				"hiddenTitle": true,
+				"theme": "Light",
+				"title": "client",
+				"titleBarStyle": "Transparent",
+				"transparent": true,
+				"width": 800,
+				"windowClassname": "my-tauri-app",
+				"windowEffects": {
+					"effects": ["micaLight", "mica", "micaDark", "acrylic"]
+				}
+			}
+		]
+	},
+	"build": {
+		"beforeBuildCommand": "pnpm build:web",
+		"beforeDevCommand": "pnpm dev:web",
+		"devUrl": "http://localhost:1420",
+		"frontendDist": "../dist"
+	},
+	"bundle": {
+		"active": true,
+		"targets": "all",
+		"icon": [
+			"icons/32x32.png",
+			"icons/128x128.png",
+			"icons/128x128@2x.png",
+			"icons/icon.icns",
+			"icons/icon.ico"
+		],
+		"macOS": {
+			"dmg": {
+				"applicationFolderPosition": {
+					"x": 480,
+					"y": 170
+				},
+				"appPosition": {
+					"x": 180,
+					"y": 170
+				},
+				"windowSize": {
+					"height": 400,
+					"width": 660
+				}
+			},
+			"files": {},
+			"hardenedRuntime": true,
+			"minimumSystemVersion": "10.13"
+		},
+		"windows": {
+			"allowDowngrades": true,
+			"certificateThumbprint": null,
+			"digestAlgorithm": null,
+			"nsis": null,
+			"signCommand": null,
+			"timestampUrl": null,
+			"tsp": false,
+			"webviewInstallMode": {
+				"silent": true,
+				"type": "downloadBootstrapper"
+			},
+			"wix": null
+		},
+		"linux": {
+			"appimage": {
+				"bundleMediaFramework": false,
+				"files": {}
+			},
+			"deb": {
+				"files": {}
+			},
+			"rpm": {
+				"epoch": 0,
+				"files": {},
+				"release": "1"
+			}
+		}
+	}
+}

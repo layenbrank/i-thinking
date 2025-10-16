@@ -26,7 +26,7 @@ export function useBookMark() {
 		from(
 			liveQuery(function (): Promise<BookmarkFolder[]> {
 				// return folderModule.orderBy('sort').toArray()
-				return database.bookmarkFolder.orderBy('sort').toArray()
+				return database.bookmarkDir.orderBy('sort').toArray()
 			})
 		).pipe(
 			tap(function (folders) {
@@ -87,14 +87,14 @@ export function useBookMark() {
 		const parsed = parseBookmarkTree(bookmarkTreeRes)
 
 		void database.bookmark.bulkPut(parsed.bookmarks)
-		void database.bookmarkFolder.bulkPut(parsed.folders)
+		void database.bookmarkDir.bulkPut(parsed.folders)
 
 		for (const folder of parsed.folders) {
 			await database.bookmark
 				.where('folderID')
 				.equals(folder.id)
 				.count(function (count) {
-					void database.bookmarkFolder.update(folder.id, {
+					void database.bookmarkDir.update(folder.id, {
 						count
 					})
 				})

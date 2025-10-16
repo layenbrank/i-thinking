@@ -1,0 +1,46 @@
+{
+	"compilerOptions": {
+		"allowImportingTsExtensions": true,
+		"isolatedModules": true,
+		"jsx": "react-jsx",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"noEmit": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"paths": {
+			"@/*": ["./src/*"]
+		},
+		"resolveJsonModule": true,
+		"rootDir": ".",
+		"skipLibCheck": true,
+		"strict": true,
+		"target": "esnext",
+		"types": [
+			"vite/client",
+			"@types/chrome",
+			"reflect-metadata",
+			"ant-design-vue/typings/global",
+			"@desktop-app/core/directives",
+			"@desktop-app/shared/response",
+			"@desktop-app/shared/decorator",
+			"@desktop-app/shared/constructor",
+			"@desktop-app/shared/contextmenu",
+			"@desktop-app/shared/user-profile",
+			"@desktop-app/shared/app-bookmark",
+			"@desktop-app/shared/app-controller",
+			"@desktop-app/shared/application",
+			"@desktop-app/shared/application-settings",
+			"@desktop-app/shared/application-backup"
+		],
+		"useDefineForClassFields": true
+	},
+	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+	"references": [
+		{
+			"path": "./tsconfig.node.json"
+		}
+	]
+}

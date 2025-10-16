@@ -1,0 +1,16 @@
+{
+	"name": "@desktop-app/client",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"scripts": {
+		"dev": "tauri dev",
+		"dev:web": "vite",
+		"build": "tauri build",
+		"build:web": "tsc && vite build",
+		"preview": "vite preview",
+		"tauri": "tauri"
+	},
+	"dependencies": {},
+	"devDependencies": {}
+}

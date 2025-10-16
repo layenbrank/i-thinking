@@ -170,7 +170,7 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 			}),
 			AutoImport({
 				dts: 'src/types/auto-imports.d.ts',
-				include: [/\.[tj]sx?$/, /\.vue$/, /\.vue\?vue/, /\.md$/],
+				include: [/\.[tj]sx?$/, /\.vue$/, /\.[tj]s$/],
 				imports: ['vue', 'vue-router', 'pinia']
 			}),
 			Components({

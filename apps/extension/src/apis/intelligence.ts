@@ -4,18 +4,15 @@ import { INTELLIGENCE_TOKEN } from '@/utils/http/token.ts'
 import * as z from 'zod'
 
 const RoleSchema = z.enum(['system', 'assistant', 'user', 'tool'])
-export type Role = z.infer<typeof RoleSchema>
 
 const ModelSchema = z.enum(['qwen3:8b', 'deepseek-r1:8b'])
-export type Model = z.infer<typeof ModelSchema>
 
 export const MessageSchema = z.object({
 	role: RoleSchema,
 	content: z.string()
 })
-export type Message = z.infer<typeof MessageSchema>
 
-const ReSchema = z.object({
+const CommunicateSchema = z.object({
 	model: ModelSchema,
 	created_at: z.coerce.string(),
 	message: MessageSchema,
@@ -36,7 +33,14 @@ export declare namespace Communicate {
 		stream?: boolean
 		messages: Message[]
 	}
-	export type Response = z.infer<typeof ReSchema>
+
+	export type Response = z.infer<typeof CommunicateSchema>
+
+	export type Role = z.infer<typeof RoleSchema>
+
+	export type Model = z.infer<typeof ModelSchema>
+
+	export type Message = z.infer<typeof MessageSchema>
 }
 
 // SSE server sent events

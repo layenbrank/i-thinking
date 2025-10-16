@@ -30,4 +30,8 @@ const router = defineRouter({
 	routes
 })
 
+// router.beforeEach(guard)
+
+// router.afterEach(guard)
+
 export default router
