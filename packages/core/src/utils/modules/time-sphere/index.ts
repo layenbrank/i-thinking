@@ -107,61 +107,44 @@
  * @packageDocumentation
  */
 
-import dayjs, { type Dayjs, type ConfigType, type UnitType, type OpUnitType } from 'dayjs'
-import { Singleton } from '../singleton'
-
-// 导入插件
-import utc from 'dayjs/plugin/utc'
-import timezone from 'dayjs/plugin/timezone'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import duration from 'dayjs/plugin/duration'
-import toArray from 'dayjs/plugin/toArray'
+import dayjs, { type ConfigType, type Dayjs, type OpUnitType, type UnitType } from 'dayjs'
+import 'dayjs/locale/en'
+import 'dayjs/locale/zh-cn'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
-
+import dayOfYear from 'dayjs/plugin/dayOfYear'
+import duration from 'dayjs/plugin/duration'
+import isBetween from 'dayjs/plugin/isBetween'
+import isLeapYear from 'dayjs/plugin/isLeapYear'
+import isoWeek from 'dayjs/plugin/isoWeek'
+import isoWeeksInYear from 'dayjs/plugin/isoWeeksInYear'
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
 import isToday from 'dayjs/plugin/isToday'
 import isTomorrow from 'dayjs/plugin/isTomorrow'
 import isYesterday from 'dayjs/plugin/isYesterday'
-
-import weekOfYear from 'dayjs/plugin/weekOfYear'
-// 周年
-import weekYear from 'dayjs/plugin/weekYear'
-// ISO星期 || 周年(ISO)
-import isoWeek from 'dayjs/plugin/isoWeek'
-// 本地化星期
-import weekday from 'dayjs/plugin/weekday'
-// 年周数(ISO)
-import isoWeeksInYear from 'dayjs/plugin/isoWeeksInYear'
-
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
-import isBetween from 'dayjs/plugin/isBetween'
 import quarterOfYear from 'dayjs/plugin/quarterOfYear'
-
-import dayOfYear from 'dayjs/plugin/dayOfYear'
-import isLeapYear from 'dayjs/plugin/isLeapYear'
-
+import relativeTime from 'dayjs/plugin/relativeTime'
+import timezone from 'dayjs/plugin/timezone'
+import toArray from 'dayjs/plugin/toArray'
 import updateLocale from 'dayjs/plugin/updateLocale'
-
-// 导入语言包
-import 'dayjs/locale/zh-cn'
-import 'dayjs/locale/en'
-
+import utc from 'dayjs/plugin/utc'
+import weekday from 'dayjs/plugin/weekday'
+import weekOfYear from 'dayjs/plugin/weekOfYear'
+import weekYear from 'dayjs/plugin/weekYear'
+import { Singleton } from '../singleton'
 import type {
-	// WeekMap,
-	// WeekFormat,
-
-	TimeSphereImpl,
-	TimeSphereConfig,
-	FormatStrategyImpl,
-	WorkdayStrategyImpl,
-	WeekStrategyImpl,
 	CalculationStrategyImpl,
+	FormatStrategyImpl,
+	LocaleType,
+	TimeSphereConfig,
+	TimeSphereImpl,
 	WeekDayType,
 	WeekFormat,
-	LocaleType,
-	WeekShort,
 	WeekLong,
-	WeeksMaps
+	WeekShort,
+	WeeksMaps,
+	WeekStrategyImpl,
+	WorkdayStrategyImpl
 } from './types'
 
 /**

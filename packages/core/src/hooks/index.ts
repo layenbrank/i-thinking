@@ -1,2 +1,2 @@
-export * from './modules/useWheel'
 export * from './modules/deferred-render'
+export * from './modules/useWheel'

@@ -1,0 +1,22 @@
+{
+	"chrome_url_overrides": {
+		"newtab": "index.html"
+	},
+	"description": "desktop-apps",
+	"externally_connectable": {
+		"matches": ["<all_urls>"]
+	},
+	"host_permissions": ["<all_urls>", "http://*/*", "https://*/*"],
+	"incognito": "split",
+	"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwaYJ6v3G23Kv45HaFfP/bTkMeIGFaIJMl3yPbV4fdAvCkuS0G25X9lKHI4XioW0LcRe7biEHj/vSwuAhKnO72BqFKoYH8CfS+fxGOV+4eqIF8/RSbM2ErHIQDu2sOUcyxXUD1l6CMZGZa/pgZM2V28RrpwQPtVt4e7lt0dMSpwp2aAma1G9ZGgzhSIStNYwybDwPMtPrrL9KqVUFKIoDkITXzebQqnpubXoj6qU4hLR8Vxs06epN+xMZ5OoM8iKxq8zmZhiuZAxTPYjkInESbBsPska3ITIfsnNLsUBvUtAdDqq4jF5A8DapkZ+UHSIyyoo/pKdMqC2oU5X+E2YypQIDAQAB",
+	"manifest_version": 3,
+	"name": "桌面应用",
+	"permissions": ["storage", "history", "sidePanel", "contextMenus", "tabs", "activeTab"],
+	"version": "1.3.0",
+	"web_accessible_resources": [
+		{
+			"matches": ["<all_urls>"],
+			"resources": ["*"]
+		}
+	]
+}

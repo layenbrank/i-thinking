@@ -7,7 +7,8 @@
 		"nightwatch.conf.*",
 		"playwright.config.*",
 		"tailwind.config.*",
-		"eslint.config.*"
+		"eslint.config.*",
+		"vite.config copy.ts"
 	],
 	"compilerOptions": {
 		"noEmit": true,

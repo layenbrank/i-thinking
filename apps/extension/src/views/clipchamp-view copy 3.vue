@@ -124,8 +124,8 @@ async function handler() {
 
 		// 获取实际的视频轨道设置
 		const videoSettings = videoTrack.getSettings()
-		const actualWidth = videoSettings.width || 1280
-		const actualHeight = videoSettings.height || 720
+		const actualWidth = videoSettings.width ?? 1280
+		const actualHeight = videoSettings.height ?? 720
 
 		// 配置视频编码器 - 使用多个备用方案（按兼容性排序）
 		const codecConfigs = [
@@ -499,7 +499,7 @@ onUnmounted(() => {
 })
 
 // 初始化视频预览
-const initVideoPreview = async () => {
+const initVideoPreview = () => {
 	if (!videoRef.value) return
 
 	try {
@@ -509,8 +509,8 @@ const initVideoPreview = async () => {
 	}
 }
 
-onMounted(async function () {
-	await initVideoPreview()
+onMounted(function () {
+	initVideoPreview()
 })
 </script>
 
@@ -560,12 +560,12 @@ onMounted(async function () {
 		<!-- 状态信息 -->
 		<div class="status-panel" v-if="mediaStream || currentCodecConfig">
 			<a-descriptions title="系统信息" :column="2" size="small">
-				<a-descriptions-item label="视频轨道" v-if="mediaStream">
+				<!-- <a-descriptions-item label="视频轨道" v-if="mediaStream">
 					{{ mediaStream.getVideoTracks().length > 0 ? '已连接' : '未连接' }}
 				</a-descriptions-item>
 				<a-descriptions-item label="音频轨道" v-if="mediaStream">
 					{{ mediaStream.getAudioTracks().length > 0 ? '已连接' : '未连接' }}
-				</a-descriptions-item>
+				</a-descriptions-item> -->
 				<a-descriptions-item label="编码器" v-if="currentCodecConfig">
 					{{ currentCodecConfig.codec }}
 				</a-descriptions-item>

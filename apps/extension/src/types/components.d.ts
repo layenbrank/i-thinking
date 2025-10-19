@@ -73,6 +73,7 @@ declare module 'vue' {
     ATag: typeof import('ant-design-vue/es')['Tag']
     ATextarea: typeof import('ant-design-vue/es')['Textarea']
     ComboboxTrigger: typeof import('./../components/combobox-trigger/combobox-trigger.vue')['default']
+    copy: typeof import('./../components/applications/app-store/app-store-window copy.vue')['default']
     DropZone: typeof import('./../components/DropZone.vue')['default']
     'IAntDesign:appstoreTwotone': typeof import('~icons/ant-design/appstore-twotone')['default']
     'IAntDesign:plusOutlined': typeof import('~icons/ant-design/plus-outlined')['default']

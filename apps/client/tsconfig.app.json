@@ -4,22 +4,22 @@
 		"isolatedModules": true,
 		"jsx": "react-jsx",
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"target": "ESNext",
 		"module": "ESNext",
-		"moduleResolution": "bundler",
+		"moduleResolution": "Bundler",
 		"noEmit": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
-		"paths": {
-			"@/*": ["./src/*"]
-		},
 		"resolveJsonModule": true,
-		"rootDir": ".",
 		"skipLibCheck": true,
 		"strict": true,
-		"target": "esnext",
+		"useDefineForClassFields": true,
 		"types": [
 			"vite/client",
+			"@types/react",
+			"@types/react/jsx-runtime",
+			"@types/react-dom",
 			"@types/chrome",
 			"reflect-metadata",
 			"ant-design-vue/typings/global",
@@ -35,7 +35,12 @@
 			"@desktop-app/shared/application-settings",
 			"@desktop-app/shared/application-backup"
 		],
-		"useDefineForClassFields": true
+
+		"rootDir": ".",
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./src/*"]
+		}
 	},
 	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
 	"references": [

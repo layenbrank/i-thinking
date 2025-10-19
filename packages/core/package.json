@@ -3,40 +3,36 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"files": [
-		"dist"
-	],
+	"types": "./dist/index.d.ts",
 	"main": "./dist/index.js",
 	"module": "./dist/index.js",
-	"types": "./dist/index.d.ts",
 	"scripts": {
+		"build": "rollup --config rollup.config.ts",
 		"dev": "vite",
-		"build": "rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
-		"build:vite": "run-p type-check \"build-only {@}\" --",
-		"build-only": "vite build",
-		"type-check": "vue-tsc --build",
-		"preview": "vite preview",
-		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
-		"lint:eslint": "eslint . --fix",
+		"format": "prettier --write src/",
 		"lint": "run-s lint:*",
-		"format": "prettier --write src/"
+		"lint:eslint": "eslint . --fix",
+		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore"
 	},
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js"
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
 		},
 		"./directives": {
-			"types": "./dist/directives.d.ts",
-			"import": "./dist/directives.js"
-		},
-		"./utils": {
-			"types": "./dist/utils.d.ts",
-			"import": "./dist/utils.js"
+			"import": "./dist/directives.js",
+			"types": "./dist/directives.d.ts"
 		},
 		"./hooks": {
-			"types": "./dist/hooks.d.ts",
-			"import": "./dist/hooks.js"
+			"import": "./dist/hooks.js",
+			"types": "./dist/hooks.d.ts"
+		},
+		"./utils": {
+			"import": "./dist/utils.js",
+			"types": "./dist/utils.d.ts"
 		}
-	}
+	},
+	"files": [
+		"dist"
+	]
 }

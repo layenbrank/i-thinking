@@ -35,9 +35,7 @@ const themeConfigure: ThemeConfig = {
 }
 
 function App() {
-	const language = navigator.language || 'zh-CN'
-
-	useEffect(() => {})
+	const LANGUAGE = navigator.language || 'zh-CN'
 	// defer(function () {
 	// 	return http.get('')
 	// })

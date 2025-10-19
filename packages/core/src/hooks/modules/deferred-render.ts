@@ -1,7 +1,7 @@
-import { ref, watch, onMounted, onUnmounted, isRef } from 'vue'
+import { Subject, animationFrameScheduler, from, timer } from 'rxjs'
+import { concatMap, scan, take, takeUntil, takeWhile, tap } from 'rxjs/operators'
 import type { Ref } from 'vue'
-import { Observable, Subject, from, timer, animationFrameScheduler } from 'rxjs'
-import { takeUntil, takeWhile, tap, scan, map, concatMap, take } from 'rxjs/operators'
+import { isRef, onMounted, onUnmounted, ref, watch } from 'vue'
 
 /**
  * 延迟渲染配置选项

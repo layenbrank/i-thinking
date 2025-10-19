@@ -11,7 +11,7 @@
 ## 目录结构要点
 
 - apps/service：NestJS 服务（端口 9000，产物在 `dist/`）
-- apps/client-vue、apps/client-react、apps/extension、apps/devtools：Vite/Tauri 前端（Web 构建产物在 `dist/`）
+- apps/client-vue、apps/client、apps/extension、apps/devtools：Vite/Tauri 前端（Web 构建产物在 `dist/`）
 - packages/\*：共享包（产物在 `dist/`）
 
 ## 工作流

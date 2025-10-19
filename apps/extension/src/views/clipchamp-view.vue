@@ -21,7 +21,7 @@ let videoProcessor: any = null
 let frameCounter = 0
 
 // 清理资源
-const cleanupResources = () => {
+function cleanupResources() {
 	if (mediaStream) {
 		mediaStream.getTracks().forEach((track) => track.stop())
 		mediaStream = null
@@ -45,7 +45,7 @@ const cleanupResources = () => {
 }
 
 // 检查浏览器支持
-const checkBrowserSupport = () => {
+function checkBrowserSupport() {
 	const errors = []
 
 	if (!('VideoEncoder' in window)) {
@@ -267,9 +267,7 @@ async function handler() {
 // 处理视频轨道
 async function processVideoTrack(videoTrack: MediaStreamTrack) {
 	try {
-		if (!videoEncoder) {
-			throw new Error('视频编码器未初始化')
-		}
+		if (!videoEncoder) throw new Error('视频编码器未初始化')
 
 		videoProcessor = new MediaStreamTrackProcessor(videoTrack)
 		const reader = videoProcessor.readable.getReader()
@@ -280,9 +278,7 @@ async function processVideoTrack(videoTrack: MediaStreamTrack) {
 		while (isProcessing.value) {
 			const result = await reader.read()
 
-			if (result.done) {
-				break
-			}
+			if (result.done) break
 
 			const frame = result.value as VideoFrame
 
@@ -303,9 +299,7 @@ async function processVideoTrack(videoTrack: MediaStreamTrack) {
 				// 更新 Canvas 显示
 				updateCanvasDisplay(frame)
 
-				if (frameCounter % 100 === 0) {
-					console.log(`已处理 ${frameCounter} 帧`)
-				}
+				if (frameCounter % 100 === 0) console.log(`已处理 ${frameCounter} 帧`)
 			} finally {
 				// 确保释放帧资源
 				frame.close()
@@ -355,9 +349,7 @@ function collectEncodedData(chunk: EncodedVideoChunk, buffer: ArrayBuffer) {
 	encodedChunks.push({ chunk, buffer })
 
 	// 限制内存使用，只保留最近的100个块
-	if (encodedChunks.length > 100) {
-		encodedChunks.shift()
-	}
+	if (encodedChunks.length > 100) encodedChunks.shift()
 
 	console.log(
 		`已收集 ${encodedChunks.length} 个编码块，可用于生成 ${currentCodecConfig.value?.codec.startsWith('avc') ? 'MP4' : 'WebM'} 文件`
@@ -365,7 +357,7 @@ function collectEncodedData(chunk: EncodedVideoChunk, buffer: ArrayBuffer) {
 }
 
 // 更新 Canvas 显示
-const updateCanvasDisplay = (frame: VideoFrame) => {
+function updateCanvasDisplay(frame: VideoFrame) {
 	if (!canvasRef.value) return
 
 	const ctx = canvasRef.value.getContext('2d')
@@ -451,11 +443,8 @@ async function testBrowserSupport() {
 		for (const config of testConfigs) {
 			try {
 				const support = await VideoEncoder.isConfigSupported(config)
-				if (support.supported) {
-					supportedCodecs.push(config.name)
-				} else {
-					unsupportedCodecs.push(config.name)
-				}
+				if (support.supported) supportedCodecs.push(config.name)
+				else unsupportedCodecs.push(config.name)
 			} catch (err) {
 				console.warn(`测试 ${config.name} 失败:`, err)
 				unsupportedCodecs.push(config.name)
@@ -493,11 +482,6 @@ ${unsupportedCodecs.map((name) => `• ${name}`).join('\n')}`
 	}
 }
 
-// 组件卸载时清理资源
-onUnmounted(function () {
-	cleanupResources()
-})
-
 // 初始化视频预览
 function initVideoPreview() {
 	if (!videoRef.value) return
@@ -510,6 +494,10 @@ function initVideoPreview() {
 }
 onMounted(function () {
 	initVideoPreview()
+})
+
+onUnmounted(function () {
+	cleanupResources()
 })
 </script>
 
@@ -559,12 +547,12 @@ onMounted(function () {
 		<!-- 状态信息 -->
 		<div class="status-panel" v-if="mediaStream || currentCodecConfig">
 			<a-descriptions title="系统信息" :column="2" size="small">
-				<a-descriptions-item label="视频轨道" v-if="mediaStream">
+				<!-- <a-descriptions-item label="视频轨道" v-if="mediaStream">
 					{{ mediaStream.getVideoTracks().length > 0 ? '已连接' : '未连接' }}
 				</a-descriptions-item>
 				<a-descriptions-item label="音频轨道" v-if="mediaStream">
 					{{ mediaStream.getAudioTracks().length > 0 ? '已连接' : '未连接' }}
-				</a-descriptions-item>
+				</a-descriptions-item> -->
 				<a-descriptions-item label="编码器" v-if="currentCodecConfig">
 					{{ currentCodecConfig.codec }}
 				</a-descriptions-item>
@@ -592,9 +580,9 @@ onMounted(function () {
 						• <strong>H.264</strong> 编码 → 可封装为 <strong>MP4</strong> 文件格式<br />
 						• <strong>VP8/VP9</strong> 编码 → 可封装为 <strong>WebM</strong> 文件格式<br />
 						• 当前输出:
-						<strong>{{
-							currentCodecConfig?.codec.startsWith('avc') ? 'MP4兼容' : 'WebM兼容'
-						}}</strong>
+						<strong>
+							{{ currentCodecConfig?.codec.startsWith('avc') ? 'MP4兼容' : 'WebM兼容' }}
+						</strong>
 						编码数据
 					</div>
 				</template>

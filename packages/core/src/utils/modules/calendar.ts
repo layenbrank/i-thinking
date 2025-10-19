@@ -5,24 +5,21 @@
  * @packageDocumentation
  */
 
+import type { ConfigType } from 'dayjs'
 import lunisolar from 'lunisolar'
 import festivals from 'lunisolar/markers/festivals.zh-cn'
 import {
 	EarthBranch,
+	LegalHoliday,
 	LunarDay,
 	LunarMonth,
 	LunarYear,
 	SolarDay,
 	SolarMonth,
-	SolarWeek,
-	LegalHoliday,
-	SolarFestival,
-	LunarFestival,
 	type Direction
 } from 'tyme4ts'
 import { Singleton } from './singleton'
 import { timeSphere } from './time-sphere'
-import type { ConfigType } from 'dayjs'
 
 /**
  * 方位信息接口
@@ -685,10 +682,10 @@ export const calendar = new Calendar()
 
 // 导出类型
 export type {
-	DirectionInfo,
 	DateInfo,
+	DirectionInfo,
+	FestivalDetail,
 	FestivalInfo,
-	NextFestivalInfo,
 	FestivalType,
-	FestivalDetail
+	NextFestivalInfo
 }

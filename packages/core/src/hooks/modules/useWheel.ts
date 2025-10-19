@@ -1,6 +1,6 @@
-import { computed, ref, type Ref } from 'vue'
 import { useEventListener } from '@vueuse/core'
 import type { MaybeRefOrGetter } from '@vueuse/shared'
+import { computed, ref, type ComputedRef, type Ref } from 'vue'
 
 /**
  * 滚轮事件状态接口
@@ -27,19 +27,19 @@ export interface WheelState {
  */
 export interface WheelReturn {
 	/** X轴滚动增量 */
-	deltaX: Ref<number>
+	deltaX: ComputedRef<number>
 	/** Y轴滚动增量 */
-	deltaY: Ref<number>
+	deltaY: ComputedRef<number>
 	/** Z轴滚动增量 */
-	deltaZ: Ref<number>
+	deltaZ: ComputedRef<number>
 	/** 滚动模式 */
-	deltaMode: Ref<number>
+	deltaMode: ComputedRef<number>
 	/** X轴累计滚动距离 */
-	totalX: Ref<number>
+	totalX: ComputedRef<number>
 	/** Y轴累计滚动距离 */
-	totalY: Ref<number>
+	totalY: ComputedRef<number>
 	/** Z轴累计滚动距离 */
-	totalZ: Ref<number>
+	totalZ: ComputedRef<number>
 	/** 重置累计滚动距离 */
 	reset: () => void
 }
@@ -149,7 +149,7 @@ export interface UseWheelOptions {
  * </script>
  * ```
  */
-export function useWheel(options: UseWheelOptions = {}) {
+export function useWheel(options: UseWheelOptions) {
 	const {
 		target = window,
 		preventDefault = false,
@@ -168,9 +168,7 @@ export function useWheel(options: UseWheelOptions = {}) {
 	const totalY = ref(0)
 	const totalZ = ref(0)
 
-	if (debug && max < min) {
-		log('warn', 'max should be greater than min')
-	}
+	if (debug && max < min) log('warn', 'max should be greater than min')
 
 	// 调试日志
 	function log(type: keyof Console, ...data: any[]) {
@@ -181,14 +179,14 @@ export function useWheel(options: UseWheelOptions = {}) {
 	const clamp = (value: number) => Math.min(Math.max(value, min), max)
 
 	// 重置方法
-	const reset = () => {
+	function reset() {
 		totalX.value = 0
 		totalY.value = 0
 		totalZ.value = 0
 		log('log', 'reset wheel state')
 	}
 
-	const handler = (event: WheelEvent) => {
+	function handler(event: WheelEvent) {
 		if (preventDefault) event.preventDefault()
 
 		// 标准化 delta 值

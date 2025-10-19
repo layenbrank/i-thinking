@@ -1,39 +1,44 @@
 {
-	"extends": "@desktop-app/tsconfig/tsconfig.base.json",
 	"compilerOptions": {
-		"composite": false,
+		"tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo.core",
+
+		"target": "ESNext",
+		"module": "ESNext",
+		"jsx": "preserve",
+		"jsxImportSource": "vue",
+		"moduleDetection": "force",
+		"moduleResolution": "Bundler",
+		"noImplicitThis": true,
+		"strict": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"skipLibCheck": true,
+
+		"composite": true,
 		"importHelpers": true,
 
-		"noEmit": true,
-		"declaration": false,
+		"noEmit": false,
+		"declaration": true,
 		"emitDeclarationOnly": false,
 
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
-		"removeComments": false,
+		"removeComments": true,
 		"resolveJsonModule": true,
 
 		"allowImportingTsExtensions": false,
+		"verbatimModuleSyntax": true,
 
 		"baseUrl": ".",
-		"rootDir": ".",
+		"rootDir": "./src",
 		"outDir": "dist",
 
 		"paths": {
 			"@/*": ["src/*"]
 		},
 
-		"types": ["vite/client", "node"],
-		"tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo.core"
+		"types": ["node"]
 	},
 	"exclude": ["dist", "node_modules"],
-	"include": [
-		"src/**/*.ts",
-		"src/**/*.tsx",
-		"src/**/*.vue",
-		"src/types/**/*.d.ts",
-		"src/shims-vue.d.ts",
-		"rollup.config.ts",
-		"vite.config.ts"
-	]
+	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"]
 }

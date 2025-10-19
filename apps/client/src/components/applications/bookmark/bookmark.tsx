@@ -1,7 +1,7 @@
+import styles from '@/components/applications/bookmark/bookmark.module.scss'
 import { generateColor } from '@/utils/generate.ts'
-import styles from './app-bookmark.module.scss'
 
-export default function AppBookmark(props: AppComponentProps) {
+export default function Bookmark(props: AppComponentProps) {
 	return (
 		<div
 			style={{
@@ -9,7 +9,7 @@ export default function AppBookmark(props: AppComponentProps) {
 			}}
 			data-id={props.id}
 			draggable={props.draggable}
-			className={styles['app-bookmark']}
+			className={styles.bookmark}
 		>
 			{props.name}
 		</div>

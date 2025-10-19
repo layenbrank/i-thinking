@@ -1,10 +1,20 @@
+import { Reflect } from '@/components/app-controller/reflect.tsx'
 import { useEffect, useRef, useState } from 'react'
 import Sortable from 'sortablejs'
 import styles from './app-controller.module.scss'
-import { Reflect } from './reflect.tsx'
 
 export default function AppController() {
 	const controller = useRef<HTMLDivElement>(null)
+	const components: Application.Component[] = [
+		'app-bookmark',
+		'app-calendar',
+		'app-clipchamp',
+		'app-intelligence',
+		'app-markdown',
+		'app-navigation',
+		'app-settings',
+		'app-store'
+	]
 
 	const [applications, updateApplications] = useState<Application[]>(
 		Array.from({ length: 10 }).map(function (_, i) {
@@ -12,7 +22,7 @@ export default function AppController() {
 				id: i.toString(),
 				width: '60px',
 				height: '60px',
-				component: 'app-bookmark',
+				component: components[i % components.length],
 				round: '12px',
 				size: 'medium',
 				slideID: '0',
