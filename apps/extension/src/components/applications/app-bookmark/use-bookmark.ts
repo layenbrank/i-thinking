@@ -11,7 +11,7 @@ import { isEmpty } from 'lodash-es'
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 type Bookmark = Application.Bookmark
-type BookmarkFolder = Application.BookmarkFolder
+type BookmarkFolder = Application.BookmarkDir
 export interface BookmarkParse {
 	bookmarks: Bookmark[]
 	folders: BookmarkFolder[]

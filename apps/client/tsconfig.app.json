@@ -1,51 +1,60 @@
 {
 	"compilerOptions": {
-		"allowImportingTsExtensions": true,
-		"isolatedModules": true,
-		"jsx": "react-jsx",
-		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
 		"target": "ESNext",
 		"module": "ESNext",
-		"moduleResolution": "Bundler",
-		"noEmit": true,
-		"noFallthroughCasesInSwitch": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"resolveJsonModule": true,
-		"skipLibCheck": true,
-		"strict": true,
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"useDefineForClassFields": true,
+		"skipLibCheck": true,
+
+		/* Bundler mode */
+		"moduleResolution": "Bundler",
+		"allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
+		"moduleDetection": "force",
+		"jsx": "react-jsx",
+		"noEmit": true,
 		"types": [
 			"vite/client",
 			"@types/react",
-			"@types/react/jsx-runtime",
 			"@types/react-dom",
 			"@types/chrome",
 			"reflect-metadata",
 			"ant-design-vue/typings/global",
+			"@desktop-app/wasm",
 			"@desktop-app/core/directives",
 			"@desktop-app/shared/response",
 			"@desktop-app/shared/decorator",
 			"@desktop-app/shared/constructor",
 			"@desktop-app/shared/contextmenu",
 			"@desktop-app/shared/user-profile",
-			"@desktop-app/shared/app-bookmark",
-			"@desktop-app/shared/app-controller",
+			"@desktop-app/shared/schema",
 			"@desktop-app/shared/application",
 			"@desktop-app/shared/application-settings",
-			"@desktop-app/shared/application-backup"
+			"@desktop-app/shared/application-backup",
+			"@desktop-app/shared/app-bookmark",
+			"@desktop-app/shared/app-controller",
+			"@desktop-app/shared/app-markdown"
 		],
 
+		/* Linting */
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"erasableSyntaxOnly": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUncheckedSideEffectImports": true,
+
+		/* Optimizations */
+		"isolatedModules": true,
+		"resolveJsonModule": true,
+
+		/* Path */
 		"rootDir": ".",
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
-	"references": [
-		{
-			"path": "./tsconfig.node.json"
-		}
-	]
+	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
 }

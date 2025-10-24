@@ -1,7 +1,8 @@
+import type { AiMessage, AiSession } from '@/databases/schemas/intelligence.ts'
 import { Dexie, type EntityTable } from 'dexie'
 
 type Bookmark = Application.Bookmark
-type BookmarkFolder = Application.BookmarkFolder
+type BookmarkDir = Application.BookmarkDir
 
 interface DataBase extends Dexie {
 	application: EntityTable<Application, 'id'>
@@ -13,7 +14,12 @@ interface DataBase extends Dexie {
 	user: EntityTable<UserProfile, 'id'>
 
 	bookmark: EntityTable<Bookmark, 'id'>
-	bookmarkFolder: EntityTable<BookmarkFolder, 'id'>
+	bookmarkDir: EntityTable<BookmarkDir, 'id'>
+
+	markdown: EntityTable<Markdown, 'id'>
+
+	AiSession: EntityTable<AiSession, 'id'>
+	AiMessage: EntityTable<AiMessage, 'id'>
 }
 
 const DBNAME: Readonly<string> = 'desktop-app'
@@ -25,7 +31,7 @@ const APPLICATION = [
 	'slideID',
 	'[id+slideID]',
 	'sort',
-	'app',
+	'component',
 	'name',
 	'downloadCount',
 	'direction',
@@ -41,7 +47,8 @@ const APPLICATION = [
 	'textColor',
 	'textSize'
 ]
-const USERS: ReadonlyArray<string> = ['++id', 'name']
+
+const USER: ReadonlyArray<string> = ['++id', 'name']
 const BOOKMARK: ReadonlyArray<string> = [
 	'&id',
 	'url',
@@ -51,7 +58,7 @@ const BOOKMARK: ReadonlyArray<string> = [
 	'createdAt',
 	'updatedAt'
 ]
-const BOOKMARK_FOLDER: ReadonlyArray<string> = [
+const BOOKMARK_DIR: ReadonlyArray<string> = [
 	'&id',
 	'folder',
 	'sort',
@@ -60,11 +67,35 @@ const BOOKMARK_FOLDER: ReadonlyArray<string> = [
 	'updatedAt'
 ]
 
+const MARKDOWN: readonly string[] = ['&id', 'sort', 'createdAt', 'updatedAt']
+
+const AISESSION: readonly string[] = [
+	'&id',
+	'sort',
+	'title',
+	'messages',
+	'userID',
+	'createdAt',
+	'updatedAt'
+]
+
+const AIMESSAGE: readonly string[] = [
+	'&id',
+	'sessionID',
+	'role',
+	'content',
+	'createdAt',
+	'updatedAt'
+]
+
 database.version(1).stores({
 	application: APPLICATION.join(','),
-	user: USERS.join(','),
+	user: USER.join(','),
 	bookmark: BOOKMARK.join(','),
-	bookmarkFolder: BOOKMARK_FOLDER.join(',')
+	bookmarkDir: BOOKMARK_DIR.join(','),
+	markdown: MARKDOWN.join(','),
+	AiSession: AISESSION.join(','),
+	AiMessage: AIMESSAGE.join(',')
 })
 
 database.on(
@@ -90,14 +121,6 @@ database.on('blocked', function (_e) {
 	console.error('数据库被阻塞，请关闭其他使用此数据库的标签页')
 })
 
-function log(label: string, msg: string) {
-	if (!import.meta.env.DEV) return
-	console.log(
-		`%c ${label} ${msg}`,
-		'background:#3B82FE; padding: 3px; padding-right: 8px; border-radius: 3px; color: #fff;'
-	)
-}
-
 window.addEventListener('unhandledrejection', function (e) {
 	const reason = e.reason
 	const msg = 'DataBaseClosedError'
@@ -105,3 +128,11 @@ window.addEventListener('unhandledrejection', function (e) {
 	if (!(reason.name === msg)) return
 	alert('数据库异常关闭，请刷新页面')
 })
+
+function log(label: string, msg: string) {
+	if (!import.meta.env.DEV) return
+	console.log(
+		`%c ${label} ${msg}`,
+		'background:#3B82FE; padding: 3px; padding-right: 8px; border-radius: 3px; color: #fff;'
+	)
+}

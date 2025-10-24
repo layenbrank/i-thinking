@@ -2,7 +2,7 @@ import type { AiMessage, AiSession } from '@/database/schemas/intelligence.ts'
 import { Dexie, type EntityTable } from 'dexie'
 
 type Bookmark = Application.Bookmark
-type BookmarkDir = Application.BookmarkFolder
+type BookmarkDir = Application.BookmarkDir
 
 interface DataBase extends Dexie {
 	application: EntityTable<Application, 'id'>
@@ -18,8 +18,8 @@ interface DataBase extends Dexie {
 
 	markdown: EntityTable<Markdown, 'id'>
 
-	aiSession: EntityTable<AiSession, 'id'>
-	aiMessage: EntityTable<AiMessage, 'id'>
+	AiSession: EntityTable<AiSession, 'id'>
+	AiMessage: EntityTable<AiMessage, 'id'>
 }
 
 const DBNAME: Readonly<string> = 'desktop-app'
@@ -57,14 +57,7 @@ const BOOKMARK: readonly string[] = [
 	'createdAt',
 	'updatedAt'
 ]
-const BOOKMARK_FOLDER: readonly string[] = [
-	'&id',
-	'folder',
-	'sort',
-	'count',
-	'createdAt',
-	'updatedAt'
-]
+const BOOKMARK_DIR: readonly string[] = ['&id', 'folder', 'sort', 'count', 'createdAt', 'updatedAt']
 
 const MARKDOWN: readonly string[] = ['&id', 'sort', 'createdAt', 'updatedAt']
 
@@ -91,10 +84,10 @@ database.version(1).stores({
 	application: APPLICATION.join(','),
 	user: USERS.join(','),
 	bookmark: BOOKMARK.join(','),
-	bookmarkDir: BOOKMARK_FOLDER.join(','),
+	bookmarkDir: BOOKMARK_DIR.join(','),
 	markdown: MARKDOWN.join(','),
-	aiSession: AISESSION.join(','),
-	aiMessage: AIMESSAGE.join(',')
+	AiSession: AISESSION.join(','),
+	AiMessage: AIMESSAGE.join(',')
 })
 
 database.on(

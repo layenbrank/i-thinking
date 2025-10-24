@@ -17,7 +17,7 @@ declare namespace Application {
 	/**
 	 * @description 书签文件夹
 	 */
-	interface BookmarkFolder {
+	interface BookmarkDir {
 		id: string
 		sort: number
 		count: number

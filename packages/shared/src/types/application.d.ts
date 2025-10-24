@@ -30,15 +30,15 @@ declare namespace Application {
 	 * @description 组件名称
 	 */
 	type Component =
-		| 'app-bookmark'
-		| 'app-calendar'
-		| 'app-markdown'
-		| 'app-settings'
-		| 'app-clipchamp'
-		| 'app-intelligence'
-		| 'app-navigation'
-		| 'app-store'
-		| 'app-example'
+		| 'bookmark'
+		| 'calendar'
+		| 'markdown'
+		| 'settings'
+		| 'clipchamp'
+		| 'intelligence'
+		| 'navigation'
+		| 'store'
+		| 'example'
 
 	/**
 	 * @description 组件布局方向

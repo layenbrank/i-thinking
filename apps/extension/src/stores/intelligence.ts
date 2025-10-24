@@ -12,7 +12,7 @@ export const useAiStore = defineStore('intelligence', function () {
 	const sessions = useObservable(
 		from(
 			liveQuery(function () {
-				return database.aiSession.orderBy('createdAt').reverse().toArray()
+				return database.AiSession.orderBy('createdAt').reverse().toArray()
 			})
 		).pipe(
 			tap(function (values) {
@@ -34,14 +34,14 @@ export const useAiStore = defineStore('intelligence', function () {
 		}).pipe(
 			switchMap(function (session) {
 				return liveQuery(function () {
-					return database.aiMessage.where('sessionID').equals(session.id).sortBy('createdAt')
+					return database.AiMessage.where('sessionID').equals(session.id).sortBy('createdAt')
 				})
 			})
 		)
 	)
 
 	function toInsertSession() {
-		return database.aiSession.add({
+		return database.AiSession.add({
 			id: crypto.randomUUID(),
 			sort: 1,
 			title: '新对话',
@@ -53,14 +53,14 @@ export const useAiStore = defineStore('intelligence', function () {
 
 	function toUpdateSession() {
 		if (!session.value?.id) throw new ExceptionBoundary('ID', 'required', 'for update')
-		return database.aiSession.update(session.value.id, {
+		return database.AiSession.update(session.value.id, {
 			updatedAt: Date.now()
 		})
 	}
 
 	function toInsertMessage(value: Communicate.Message) {
 		if (!session.value?.id) throw new ExceptionBoundary('sessionID', 'required', 'for insert')
-		return database.aiMessage.add({
+		return database.AiMessage.add({
 			id: crypto.randomUUID(),
 			sessionID: session.value.id,
 			role: value.role,

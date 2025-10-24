@@ -28,6 +28,7 @@
 		"preview:extension": "turbo run preview --filter=@desktop-app/extension"
 	},
 	"dependencies": {
+		"@ant-design/v5-patch-for-react-19": "^1.0.3",
 		"@ffmpeg/core": "^0.12.10",
 		"@ffmpeg/core-mt": "^0.12.10",
 		"@ffmpeg/ffmpeg": "^0.12.15",
@@ -60,6 +61,7 @@
 		"dayjs": "^1.11.18",
 		"dexie": "^4.2.0",
 		"dexie-cloud-addon": "^4.2.0",
+		"dexie-react-hooks": "^4.2.0",
 		"fuse.js": "^7.1.0",
 		"gsap": "^3.13.0",
 		"highlight.js": "^11.11.1",
@@ -118,6 +120,7 @@
 		"@vue/tsconfig": "^0.8.1",
 		"@vueuse/rxjs": "^13.2.0",
 		"autoprefixer": "^10.4.21",
+		"babel-plugin-react-compiler": "^1.0.0",
 		"chalk": "^5.4.1",
 		"clsx": "^2.1.1",
 		"commander": "^13.1.0",

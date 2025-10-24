@@ -4,6 +4,7 @@
     "": {
       "name": "desktop-app",
       "dependencies": {
+        "@ant-design/v5-patch-for-react-19": "^1.0.3",
         "@ffmpeg/core": "^0.12.10",
         "@ffmpeg/core-mt": "^0.12.10",
         "@ffmpeg/ffmpeg": "^0.12.15",
@@ -36,6 +37,7 @@
         "dayjs": "^1.11.18",
         "dexie": "^4.2.0",
         "dexie-cloud-addon": "^4.2.0",
+        "dexie-react-hooks": "^4.2.0",
         "fuse.js": "^7.1.0",
         "gsap": "^3.13.0",
         "highlight.js": "^11.11.1",
@@ -94,6 +96,7 @@
         "@vue/tsconfig": "^0.8.1",
         "@vueuse/rxjs": "^13.2.0",
         "autoprefixer": "^10.4.21",
+        "babel-plugin-react-compiler": "^1.0.0",
         "chalk": "^5.4.1",
         "clsx": "^2.1.1",
         "commander": "^13.1.0",
@@ -297,6 +300,8 @@
     "@ant-design/icons-vue": ["@ant-design/icons-vue@7.0.1", "https://registry.npmmirror.com/@ant-design/icons-vue/-/icons-vue-7.0.1.tgz", { "dependencies": { "@ant-design/colors": "^6.0.0", "@ant-design/icons-svg": "^4.2.1" }, "peerDependencies": { "vue": ">=3.0.3" } }, "sha512-eCqY2unfZK6Fe02AwFlDHLfoyEFreP6rBwAZMIJ1LugmfMiVgwWDYlp1YsRugaPtICYOabV1iWxXdP12u9U43Q=="],
 
     "@ant-design/react-slick": ["@ant-design/react-slick@1.1.2", "https://registry.npmmirror.com/@ant-design/react-slick/-/react-slick-1.1.2.tgz", { "dependencies": { "@babel/runtime": "^7.10.4", "classnames": "^2.2.5", "json2mq": "^0.2.0", "resize-observer-polyfill": "^1.5.1", "throttle-debounce": "^5.0.0" }, "peerDependencies": { "react": ">=16.9.0" } }, "sha512-EzlvzE6xQUBrZuuhSAFTdsr4P2bBBHGZwKFemEfq8gIGyIQCxalYfZW/T2ORbtQx5rU69o+WycP3exY/7T1hGA=="],
+
+    "@ant-design/v5-patch-for-react-19": ["@ant-design/v5-patch-for-react-19@1.0.3", "https://registry.npmmirror.com/@ant-design/v5-patch-for-react-19/-/v5-patch-for-react-19-1.0.3.tgz", { "peerDependencies": { "antd": ">=5.22.6", "react": ">=19.0.0", "react-dom": ">=19.0.0" } }, "sha512-iWfZuSUl5kuhqLUw7jJXUQFMMkM7XpW7apmKzQBQHU0cpifYW4A79xIBt9YVO5IBajKpPG5UKP87Ft7Yrw1p/w=="],
 
     "@antfu/install-pkg": ["@antfu/install-pkg@1.1.0", "https://registry.npmmirror.com/@antfu/install-pkg/-/install-pkg-1.1.0.tgz", { "dependencies": { "package-manager-detector": "^1.3.0", "tinyexec": "^1.0.1" } }, "sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ=="],
 
@@ -1496,6 +1501,8 @@
 
     "babel-plugin-macros": ["babel-plugin-macros@3.1.0", "https://registry.npmmirror.com/babel-plugin-macros/-/babel-plugin-macros-3.1.0.tgz", { "dependencies": { "@babel/runtime": "^7.12.5", "cosmiconfig": "^7.0.0", "resolve": "^1.19.0" } }, "sha512-Cg7TFGpIr01vOQNODXOOaGz2NpCU5gl8x1qJFbb6hbZxR7XrcE2vtbAsTAbJ7/xwJtUuJEw8K8Zr/AE0LHlesg=="],
 
+    "babel-plugin-react-compiler": ["babel-plugin-react-compiler@1.0.0", "https://registry.npmmirror.com/babel-plugin-react-compiler/-/babel-plugin-react-compiler-1.0.0.tgz", { "dependencies": { "@babel/types": "^7.26.0" } }, "sha512-Ixm8tFfoKKIPYdCCKYTsqv+Fd4IJ0DQqMyEimo+pxUOMUR9cVPlwTrFt9Avu+3cb6Zp3mAzl+t1MrG2fxxKsxw=="],
+
     "babel-preset-current-node-syntax": ["babel-preset-current-node-syntax@1.2.0", "https://registry.npmmirror.com/babel-preset-current-node-syntax/-/babel-preset-current-node-syntax-1.2.0.tgz", { "dependencies": { "@babel/plugin-syntax-async-generators": "^7.8.4", "@babel/plugin-syntax-bigint": "^7.8.3", "@babel/plugin-syntax-class-properties": "^7.12.13", "@babel/plugin-syntax-class-static-block": "^7.14.5", "@babel/plugin-syntax-import-attributes": "^7.24.7", "@babel/plugin-syntax-import-meta": "^7.10.4", "@babel/plugin-syntax-json-strings": "^7.8.3", "@babel/plugin-syntax-logical-assignment-operators": "^7.10.4", "@babel/plugin-syntax-nullish-coalescing-operator": "^7.8.3", "@babel/plugin-syntax-numeric-separator": "^7.10.4", "@babel/plugin-syntax-object-rest-spread": "^7.8.3", "@babel/plugin-syntax-optional-catch-binding": "^7.8.3", "@babel/plugin-syntax-optional-chaining": "^7.8.3", "@babel/plugin-syntax-private-property-in-object": "^7.14.5", "@babel/plugin-syntax-top-level-await": "^7.14.5" }, "peerDependencies": { "@babel/core": "^7.0.0 || ^8.0.0-0" } }, "sha512-E/VlAEzRrsLEb2+dv8yp3bo4scof3l9nR4lrld+Iy5NyVqgVYUJnDAmunkhPMisRI32Qc4iRiz425d8vM++2fg=="],
 
     "babel-preset-jest": ["babel-preset-jest@30.2.0", "https://registry.npmmirror.com/babel-preset-jest/-/babel-preset-jest-30.2.0.tgz", { "dependencies": { "babel-plugin-jest-hoist": "30.2.0", "babel-preset-current-node-syntax": "^1.2.0" }, "peerDependencies": { "@babel/core": "^7.11.0 || ^8.0.0-beta.1" } }, "sha512-US4Z3NOieAQumwFnYdUWKvUKh8+YSnS/gB3t6YBiz0bskpu7Pine8pPCheNxlPEW4wnUkma2a94YuW2q3guvCQ=="],
@@ -1791,6 +1798,8 @@
     "dexie-cloud-addon": ["dexie-cloud-addon@4.2.2", "https://registry.npmmirror.com/dexie-cloud-addon/-/dexie-cloud-addon-4.2.2.tgz", { "dependencies": { "dexie-cloud-common": "^1.0.53", "rxjs": "^7.x", "y-dexie": "^4.2.1", "y-protocols": "^1.0.6", "yjs": "^13.6.27" }, "peerDependencies": { "dexie": "^4.2.1" } }, "sha512-Sh4QqvXwAq4PBa1xH3nWGhzgsgOhCv4d8ueKPHfyfHAP4RvMkCkaec8ih5bhHds/lXllAAibuW1LgXm/DaO/6g=="],
 
     "dexie-cloud-common": ["dexie-cloud-common@1.0.53", "https://registry.npmmirror.com/dexie-cloud-common/-/dexie-cloud-common-1.0.53.tgz", { "dependencies": { "lib0": "^0.2.97" } }, "sha512-tg93y/dfNxxBHLUYVW+yHfqEoKo8Uweh1tjkhuYf/Eg+yYO3MlEW9EV0tBKWDvicJ5JIqCXWmIVp1Jhs7mzu3g=="],
+
+    "dexie-react-hooks": ["dexie-react-hooks@4.2.0", "https://registry.npmmirror.com/dexie-react-hooks/-/dexie-react-hooks-4.2.0.tgz", { "peerDependencies": { "@types/react": ">=16", "dexie": ">=4.2.0-alpha.1 <5.0.0", "react": ">=16" } }, "sha512-u7KqTX9JpBQK8+tEyA9X0yMGXlSCsbm5AU64N6gjvGk/IutYDpLBInMYEAEC83s3qhIvryFS+W+sqLZUBEvePQ=="],
 
     "dezalgo": ["dezalgo@1.0.4", "https://registry.npmmirror.com/dezalgo/-/dezalgo-1.0.4.tgz", { "dependencies": { "asap": "^2.0.0", "wrappy": "1" } }, "sha512-rXSP0bf+5n0Qonsb+SVVfNfIsimO4HEtmnIpPHY8Q1UCzKlQrDMfdobr8nJOOsRgWCyMRqeSBQzmWUMq7zvVig=="],
 

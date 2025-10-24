@@ -40,7 +40,11 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
 
 	return {
 		plugins: [
-			React(),
+			React({
+				babel: {
+					plugins: [['babel-plugin-react-compiler']]
+				}
+			}),
 			Icons({
 				compiler: 'jsx',
 				autoInstall: true,
@@ -359,7 +363,9 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
 		},
 		css: {
 			modules: {
-				generateScopedName: '[name]-[local]-[hash:base64:6]',
+				// generateScopedName: '[name]-[local]-[hash:base64:6]',
+				generateScopedName: '[local]-[hash:base64:6]',
+				// generateScopedName: '[name]-[hash:base64:6]',
 				localsConvention: 'camelCase',
 				scopeBehaviour: 'local',
 				hashPrefix: 'prefix'

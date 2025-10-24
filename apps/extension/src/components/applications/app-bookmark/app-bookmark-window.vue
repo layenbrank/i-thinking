@@ -8,7 +8,7 @@ import { debounce } from 'lodash-es'
 import { useBookMark } from './use-bookmark.ts'
 
 type Bookmark = Application.Bookmark
-type BookmarkFolder = Application.BookmarkFolder
+type BookmarkFolder = Application.BookmarkDir
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
 defineOptions({
