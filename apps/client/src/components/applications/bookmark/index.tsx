@@ -4,6 +4,7 @@ import Marker from '@/components/applications/bookmark/marker.tsx'
 import Overlay from '@/components/applications/bookmark/overlay.tsx'
 import { generateColor } from '@/utils/generate.ts'
 import clsx from 'clsx'
+import type { MouseEvent } from 'react'
 // import { Application } from '@/components/controller/controller.tsx'
 
 export default function Bookmark(props: Application) {
@@ -16,8 +17,12 @@ export default function Bookmark(props: Application) {
 	// 	console.log('backgroundColor', backgroundColor)
 	// })
 
+	function onTrash(e: MouseEvent<HTMLElement>) {
+		console.log('Trash clicked for', e)
+	}
+
 	return (
-		<Application {...props} className={clsx(styles.bookmark)}>
+		<Application onTrash={onTrash} {...props} className={clsx(styles.bookmark)}>
 			<Marker
 				size={props.size}
 				direction={props.direction}

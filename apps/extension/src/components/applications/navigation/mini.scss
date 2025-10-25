@@ -1,0 +1,37 @@
+.navigation-marker {
+	:deep(.ant-image-img) {
+		@apply w-full h-full object-contain;
+	}
+
+	&.mini {
+		&.square {
+			@apply p-[6px];
+
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+
+		&.circle {
+			@apply p-3;
+
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+
+		&.rectangle {
+			@apply p-[6px];
+
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+	}
+}

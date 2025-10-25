@@ -3,12 +3,17 @@ import styles from '@/components/applications/example/index.module.scss'
 import Marker from '@/components/applications/example/marker.tsx'
 import Overlay from '@/components/applications/example/overlay.tsx'
 import clsx from 'clsx'
+import type { MouseEvent } from 'react'
 
 export default function Example(props: Application) {
 	const [visible, onUpdateVisible] = useState(false)
 
+	function onTrash(e: MouseEvent<HTMLElement>) {
+		console.log('Trash clicked for', e)
+	}
+
 	return (
-		<Application {...props} className={clsx(styles.example)}>
+		<Application onTrash={onTrash} {...props} className={clsx(styles.example)}>
 			<Marker
 				size={props.size}
 				direction={props.direction}

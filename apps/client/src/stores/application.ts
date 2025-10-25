@@ -1,5 +1,4 @@
 import { database } from '@/databases/database.ts'
-import { liveQuery } from 'dexie'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {} from 'rxjs'
 import { create } from 'zustand'

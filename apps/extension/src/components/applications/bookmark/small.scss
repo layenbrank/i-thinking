@@ -1,0 +1,29 @@
+.bookmark-marker {
+	&.small {
+		&.square {
+			&.horizontal {
+				@apply p-8;
+			}
+
+			&.vertical {
+				@apply p-8;
+			}
+		}
+
+		&.circle {
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+
+		&.rectangle {
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+	}
+}

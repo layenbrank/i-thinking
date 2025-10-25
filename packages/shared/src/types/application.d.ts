@@ -12,7 +12,7 @@ interface Application {
 	backgroundColor: string | null
 	backgroundImage: string | null
 	id: string
-	slideID: string
+	screenID: string
 	sort: number
 	component: Application.Component
 	size: Application.Size
@@ -37,8 +37,9 @@ declare namespace Application {
 		| 'clipchamp'
 		| 'intelligence'
 		| 'navigation'
-		| 'store'
 		| 'example'
+		| 'marketplace'
+	// | 'gallery' 图库
 
 	/**
 	 * @description 组件布局方向

@@ -1,0 +1,33 @@
+.navigation-marker {
+	:deep(.ant-image-img) {
+		@apply w-full h-full object-contain;
+	}
+
+	&.medium {
+		@apply p-5;
+
+		&.square {
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+
+		&.circle {
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+
+		&.rectangle {
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+	}
+}

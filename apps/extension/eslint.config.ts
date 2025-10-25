@@ -102,7 +102,18 @@ export default defineConfigWithVueTs(
 			'vue/multi-word-component-names': [
 				'error',
 				{
-					ignores: []
+					ignores: [
+						'bookmark',
+						'calendar',
+						'marketplace',
+						'settings',
+						'navigation',
+						'markdown',
+						'intelligence',
+						'clipchamp',
+						'example',
+						'gallery'
+					]
 				}
 			]
 			// 'prettier/prettier': [

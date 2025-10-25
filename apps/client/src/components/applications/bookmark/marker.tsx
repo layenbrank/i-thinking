@@ -1,9 +1,9 @@
-import type { MarkerProps } from '@/components/application/application.tsx'
+import type { MarkerProviderProps } from '@/components/application/application.tsx'
 import Application from '@/components/application/application.tsx'
 import styles from '@/components/applications/bookmark/marker.module.scss'
 import { clsx } from 'clsx'
 
-interface Props extends Omit<MarkerProps, 'children'> {
+interface Props extends Omit<MarkerProviderProps, 'children'> {
 	// onUpdateVisible: (value: boolean) => void
 }
 

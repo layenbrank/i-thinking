@@ -1,6 +1,6 @@
 import Controller from '@/components/controller/controller.tsx'
 import styles from '@/views/overview/overview.module.scss'
-import { Layout as Payload } from 'antd'
+import { Input, Layout as Payload } from 'antd'
 import { clsx } from 'clsx'
 
 const { Content: Core, Header: Prefix, Footer: Suffix } = Payload
@@ -8,7 +8,9 @@ const { Content: Core, Header: Prefix, Footer: Suffix } = Payload
 export default function Overview() {
 	return (
 		<Payload className={clsx(styles.overview, styles.payload)}>
-			<Prefix className={clsx(styles.overview, styles.prefix)}>header</Prefix>
+			<Prefix className={clsx(styles.overview, styles.prefix)}>
+				<Input></Input>
+			</Prefix>
 			<Core className={clsx(styles.overview, styles.core)}>
 				<Controller.Screen>
 					<Controller.Application />

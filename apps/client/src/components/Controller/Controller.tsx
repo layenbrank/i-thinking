@@ -1,5 +1,6 @@
 import styles from '@/components/controller/controller.module.scss'
 import { Reflection } from '@/components/controller/reflection.tsx'
+import { generateColor } from '@/utils/generate.ts'
 import clsx from 'clsx'
 import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
@@ -16,15 +17,26 @@ const Controller = {
 			'bookmark',
 			'calendar',
 			'intelligence',
-			'navigation'
+			'navigation',
+			'settings'
 			// 'clipchamp',
 			// 'markdown',
-			// 'settings',
 			// 'store'
 		]
 
+		function matchName(component: Application.Component) {
+			if (component === 'bookmark') return '书签'
+			if (component === 'calendar') return '日历'
+			if (component === 'intelligence') return 'AI'
+			if (component === 'navigation') return '导航'
+			if (component === 'settings') return '设置'
+			return 'unknown'
+		}
+
 		const [applications, updateApplications] = useState<Application[]>(
 			Array.from({ length: components.length }).map(function (_, i) {
+				const name = matchName(components[i])
+
 				return {
 					id: i.toString(),
 					width: '60px',
@@ -32,17 +44,29 @@ const Controller = {
 					component: components[i],
 					// component: components[i % components.length],
 					round: '12px',
-					size: 'medium',
-					slideID: '0',
+
+					// size: 'mini',
+					// size: 'small',
+					// size: 'medium',
+					size: 'large',
+
+					screenID: '0',
 					sort: 0,
-					name: `example-${i}`,
-					direction: 'horizontal',
-					shape: 'square',
-					backgroundColor: '#ffffff4d',
+					name: name,
+
+					direction: 'vertical',
+					// direction: 'horizontal',
+
+					// shape: 'square',
+					// shape: 'rectangle',
+					shape: 'circle',
+
+					// backgroundColor: '#ffffff4d',
+					backgroundColor: generateColor(),
 					backgroundImage: null,
 					textSize: '13px',
 					textColor: '#ffffff',
-					description: '书签',
+					description: name,
 					downloadCount: 1000
 				}
 			})
@@ -51,6 +75,7 @@ const Controller = {
 		useEffect(function () {
 			if (!controller.current) return
 			console.log('controller', controller.current)
+
 			console.log('applications', applications)
 
 			const sortable = new Sortable(controller.current, {

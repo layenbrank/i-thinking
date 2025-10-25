@@ -3,12 +3,17 @@ import styles from '@/components/applications/navigation/index.module.scss'
 import Marker from '@/components/applications/navigation/marker.tsx'
 import Overlay from '@/components/applications/navigation/overlay.tsx'
 import clsx from 'clsx'
+import type { MouseEvent } from 'react'
 
 export default function Navigation(props: Application) {
 	const [visible, onUpdateVisible] = useState(false)
 
+	function onTrash(e: MouseEvent<HTMLElement>) {
+		console.log('Trash clicked for', e)
+	}
+
 	return (
-		<Application {...props} className={clsx(styles.navigation)}>
+		<Application onTrash={onTrash} {...props} className={clsx(styles.navigation)}>
 			<Marker
 				size={props.size}
 				direction={props.direction}

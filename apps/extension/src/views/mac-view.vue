@@ -15,18 +15,20 @@ import { Modal } from 'ant-design-vue'
 import { debounce } from 'lodash-es'
 import { useI18n } from 'vue-i18n'
 import * as z from 'zod'
+import AppleFilled from '~icons/local/apple-filled'
+import BatteryFullOutline from '~icons/local/battery-full-outline'
+import MacToggle from '~icons/local/mac-toggle'
+import WifiMarker from '~icons/local/wifi'
 
-const AppController = defineAsyncComponent(function () {
-	return import('@/components/app-controller/app-controller.vue')
+const Controller = defineAsyncComponent(function () {
+	return import('@/components/controller/controller.vue')
 })
 
 const TSchema = z.enum(['LT', 'MT', 'SC'])
-type T = z.infer<typeof TSchema>
 
 const ISchema = z.object({
 	ig: z.string()
 })
-type I = z.infer<typeof ISchema>
 
 const EmptySchema = z.object({
 	id: z.string(),
@@ -34,7 +36,6 @@ const EmptySchema = z.object({
 	u: z.string(),
 	t: TSchema
 })
-type Empty = z.infer<typeof EmptySchema>
 
 const ResponseZodSchema = z.object({
 	s: z.array(EmptySchema),
@@ -75,7 +76,7 @@ const date = useDateFormat(timestamp, 'MM-DD', {})
 const week = useDateFormat(timestamp, 'ddd', {})
 
 const time = useDateFormat(timestamp, 'HH:mm:ss', {
-	customMeridiem(hours, minutes, isLowercase, hasPeriod) {
+	customMeridiem(hours) {
 		return hours === 12 ? '正午' : hours < 12 ? '上午' : '下午'
 	}
 })
@@ -207,7 +208,7 @@ onUnmounted(function () {
 			<a-space-compact class="flex">
 				<a-button class="icon-apple">
 					<template #icon>
-						<i-local:apple-filled />
+						<apple-filled />
 					</template>
 				</a-button>
 				<a-button> {{ $t('General.Mirror') }} </a-button>
@@ -220,12 +221,12 @@ onUnmounted(function () {
 			<a-space-compact class="flex">
 				<a-button class="icon-wifi">
 					<template #icon>
-						<i-local:wifi />
+						<wifi-marker />
 					</template>
 				</a-button>
 				<a-button class="icon-battery">
 					<template #icon>
-						<i-local:battery-full-outline />
+						<battery-full-outline />
 					</template>
 				</a-button>
 				<combobox-trigger
@@ -264,7 +265,7 @@ onUnmounted(function () {
 
 				<a-button class="icon-mac-toggle">
 					<template #icon>
-						<i-local:mac-toggle />
+						<mac-toggle />
 					</template>
 				</a-button>
 				<a-button class="date-time">
@@ -276,7 +277,7 @@ onUnmounted(function () {
 		</a-layout-header>
 		<a-layout class="mac-main">
 			<a-layout-content @contextmenu.prevent class="mac-content">
-				<app-controller />
+				<Controller />
 			</a-layout-content>
 			<a-layout-footer @contextmenu.prevent class="mac-footer">
 				<template #default>

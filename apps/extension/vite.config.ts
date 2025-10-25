@@ -48,7 +48,7 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
 			VueJSX(),
 			DevTools(),
 			Icons({
-				compiler: 'jsx',
+				compiler: 'vue3',
 				autoInstall: true,
 				scale: 1,
 				defaultStyle: '',
@@ -77,7 +77,7 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
 			}),
 			AutoImport({
 				imports: ['vue', 'vue-router', 'pinia'],
-				include: [/\.(?:ts|tsx|js|jsx)$/i],
+				include: [/\.(?:ts|tsx|js|jsx|vue)$/i],
 				dts: 'src/types/auto-imports.d.ts'
 			}),
 			Components({

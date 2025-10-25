@@ -1,0 +1,26 @@
+.calendar-marker {
+	&.mini {
+		&.square {
+			&.horizontal {
+			}
+			&.vertical {
+			}
+		}
+
+		&.circle {
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+
+		&.rectangle {
+			&.horizontal {
+			}
+
+			&.vertical {
+			}
+		}
+	}
+}

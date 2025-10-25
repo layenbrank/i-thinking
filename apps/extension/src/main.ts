@@ -1,13 +1,15 @@
+import App from '@/App.vue'
 import locale from '@/plugins/locale.ts'
 import preload from '@/plugins/preload.ts'
-import '@/styles/index.scss'
+import router from '@/router/index.ts'
 import { debounce, resize } from '@desktop-app/core/directives'
-import 'ant-design-vue/dist/reset.css'
 import { createPinia } from 'pinia'
-import 'reflect-metadata'
 import { createApp, type Directive } from 'vue'
-import App from './App.vue'
-import router from './router/index.ts'
+
+import 'reflect-metadata'
+
+import '@/styles/index.scss'
+import 'ant-design-vue/dist/reset.css'
 
 const directives: Record<string, Directive> = {
 	resize,

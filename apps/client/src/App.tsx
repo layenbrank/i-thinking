@@ -2,9 +2,10 @@ import RouterView from '@/routers/routes.tsx'
 import { ConfigProvider, theme, type ThemeConfig } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
-import 'dayjs/locale/zh-cn'
 import { StrictMode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
+
+import 'dayjs/locale/zh-cn'
 
 dayjs.locale('zh-cn')
 

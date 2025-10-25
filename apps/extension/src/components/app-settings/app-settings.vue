@@ -6,7 +6,7 @@ interface AppDrawerProps extends Omit<DrawerProps, 'visible'> {
 }
 
 defineOptions({
-	name: 'app-settings'
+	name: 'settings'
 })
 
 const props = withDefaults(defineProps<AppDrawerProps>(), {})
@@ -169,7 +169,7 @@ function onFinishFailed(errorInfo: any) {
 </template>
 
 <style lang="scss" scoped>
-.ant-drawer.app-settings {
+.ant-drawer.settings {
 	.app-drawer-form {
 	}
 
