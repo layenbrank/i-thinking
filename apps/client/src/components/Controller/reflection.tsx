@@ -1,5 +1,6 @@
 import Bookmark from '@/components/applications/bookmark/index.tsx'
 import Calendar from '@/components/applications/calendar/index.tsx'
+import Developer from '@/components/applications/developer/index.tsx'
 import Example from '@/components/applications/example/index.tsx'
 import Intelligence from '@/components/applications/intelligence/index.tsx'
 import Navigation from '@/components/applications/navigation/index.tsx'
@@ -14,5 +15,6 @@ export const Reflection: Readonly<Application.Reflection> = {
 	clipchamp: Bookmark,
 	markdown: Bookmark,
 	marketplace: Bookmark,
+	developer: Developer,
 	example: Example
 }

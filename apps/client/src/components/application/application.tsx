@@ -92,22 +92,9 @@ function OverlayProvider(props: OverlayProviderProps) {
 			footer={null}
 			title={null}
 			centered={true}
-			// style={
-			// 	{
-			// wrapper: {
-			// width: '80% !important',
-			// transformOrigin: 'center center !important',
-			// backgroundColor: 'red'
-			// },
-			// content: {
-			// 	width: '80%',
-			// 	transformOrigin: 'center center',
-			// 	backgroundColor: 'red'
-			// }
-			// 	}
-			// }
-			className={clsx(styles.overlay, props.className)}
+			width="80%"
 			{...props}
+			className={clsx(['application-overlay', props.className])}
 		>
 			{props.children}
 		</Modal>

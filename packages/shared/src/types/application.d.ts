@@ -37,9 +37,10 @@ declare namespace Application {
 		| 'clipchamp'
 		| 'intelligence'
 		| 'navigation'
-		| 'example'
 		| 'marketplace'
-	// | 'gallery' 图库
+		| 'developer'
+		// | 'gallery' 图库
+		| 'example'
 
 	/**
 	 * @description 组件布局方向

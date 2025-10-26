@@ -73,11 +73,12 @@ body,
 		scrollbar-width: none;
 		min-width: 600px;
 
-		// overlay-XzCrrC
-		div:is([class*=' overlay-'], [class=' overlay-']).ant-modal {
+		// div:is([class*=' overlay-'], [class=' overlay-']).ant-modal {
+		.application-overlay.ant-modal {
 			min-width: 600px;
+			max-width: initial;
 			display: block;
-			background-color: rgb(0, 128, 0, 0.3);
+			// background-color: rgb(0, 128, 0, 0.3);
 			aspect-ratio: 16 / 9;
 			transform-origin: center center !important;
 
@@ -86,11 +87,17 @@ body,
 				height: 100%;
 			}
 
-			.ant-modal-content,
-			.ant-modal-body {
+			.ant-modal-content {
 				width: 100%;
 				height: 100%;
 				padding: 0;
+				background-color: transparent;
+				border-radius: 0px;
+			}
+
+			.ant-modal-body {
+				width: 100%;
+				height: 100%;
 			}
 		}
 	}
