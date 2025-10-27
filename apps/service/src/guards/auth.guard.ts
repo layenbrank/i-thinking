@@ -1,4 +1,4 @@
-import { AuthToken_Key } from '@/decorator/auth-token.decorator'
+import { AuthTokenKey } from '@/decorators/auth-token.decorator'
 import { type ExecutionContext, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { AuthGuard } from '@nestjs/passport'
@@ -10,7 +10,7 @@ export class JWTAuthGuard extends AuthGuard('jwt') {
 	}
 
 	canActivate(ctx: ExecutionContext) {
-		const isAuthToken = this.reflector.getAllAndOverride<boolean>(AuthToken_Key, [
+		const isAuthToken = this.reflector.getAllAndOverride<boolean>(AuthTokenKey, [
 			ctx.getHandler(),
 			ctx.getClass()
 		])

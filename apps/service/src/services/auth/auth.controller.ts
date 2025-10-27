@@ -1,4 +1,4 @@
-import { AuthToken } from '@/decorator/auth-token.decorator'
+import { AuthToken } from '@/decorators/auth-token.decorator'
 import { Body, Controller, Post } from '@nestjs/common'
 import { ApiBody, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
