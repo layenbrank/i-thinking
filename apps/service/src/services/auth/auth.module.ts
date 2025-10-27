@@ -9,11 +9,20 @@ import { User, UserSchema } from './schemas/auth.schema'
 
 @Module({
 	imports: [
-		MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+		MongooseModule.forFeature([
+			{
+				name: User.name,
+				schema: UserSchema
+			}
+		]),
 		JwtModule.register({
 			secret: jwtConstants.secret,
-			signOptions: { expiresIn: jwtConstants.expiresIn },
-			verifyOptions: { algorithms: ['HS256'] }
+			signOptions: {
+				expiresIn: jwtConstants.expiresIn
+			},
+			verifyOptions: {
+				algorithms: ['HS256']
+			}
 		})
 	],
 	controllers: [AuthController],
