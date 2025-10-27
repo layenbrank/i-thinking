@@ -1,4 +1,4 @@
 * -crlf -diff -merge
 **/* -crlf -diff -merge
 **/.gitattributes -crlf -diff -merge
-* text=auto eol=crlf ignorecase=false
+* text=auto eol=crlf
