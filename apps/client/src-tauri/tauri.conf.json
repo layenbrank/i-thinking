@@ -39,7 +39,6 @@
 	},
 	"bundle": {
 		"active": true,
-		"targets": "all",
 		"icon": [
 			"icons/32x32.png",
 			"icons/128x128.png",
@@ -80,6 +79,9 @@
 			"hardenedRuntime": true,
 			"minimumSystemVersion": "10.13"
 		},
+		"publisher": "Example Inc.",
+		"resources": {},
+		"targets": "all",
 		"windows": {
 			"allowDowngrades": true,
 			"certificateThumbprint": null,
@@ -90,12 +92,10 @@
 			"tsp": false,
 			"webviewInstallMode": {
 				"silent": true,
-				"type": "offlineInstaller"
+				"type": "embedBootstrapper"
 			},
 			"wix": null
-		},
-		"resources": {},
-		"publisher": "Example Inc."
+		}
 	},
 	"identifier": "com.fluxor-corex.client",
 	"productName": "client",
