@@ -7,13 +7,22 @@ interface Props {
 }
 
 export default function Overlay(props: Props) {
+	useEffect(function () {}, [])
 	return (
 		<Application.Overlay
 			open={props.visible}
 			onCancel={() => props.onUpdateVisible(false)}
 			onOk={() => props.onUpdateVisible(false)}
 		>
-			<div className={styles.overlay}>Overlay</div>
+			<iframe
+				src="https://www.baidu.com"
+				allow="autoplay; encrypted-media"
+				allowFullScreen
+				width="100%"
+				height="100%"
+				seamless={true}
+			></iframe>
+			{/* <div className={styles.overlay}>Overlay</div> */}
 		</Application.Overlay>
 	)
 }

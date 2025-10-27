@@ -3,17 +3,22 @@
 	"app": {
 		"macOSPrivateApi": true,
 		"security": {
-			"assetProtocol": {
-				"enable": false,
-				"scope": []
+			"headers": {
+				"Service-Worker-Allowed": "/"
 			},
-			"csp": null
+			"assetProtocol": {
+				"enable": true,
+				"scope": ["*", "https://www.baidu.com", "http://localhost:1420"]
+			},
+			"devCsp": "default-src *; img-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; frame-src *; connect-src *;",
+			"csp": "default-src *; img-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; frame-src *; connect-src *;"
 		},
 		"windows": [
 			{
 				"backgroundColor": "#00000000",
 				"center": true,
 				"decorations": true,
+				"skipTaskbar": false,
 				"devtools": true,
 				"dragDropEnabled": false,
 				"focus": true,
@@ -24,7 +29,8 @@
 				"titleBarStyle": "Transparent",
 				"transparent": true,
 				"width": 800,
-				"windowClassname": "my-tauri-app",
+				"windowClassname": "client-tauri-window",
+				"browserExtensionsEnabled": true,
 				"windowEffects": {
 					"effects": ["micaLight", "mica", "micaDark", "acrylic"]
 				}
@@ -39,6 +45,10 @@
 	},
 	"bundle": {
 		"active": true,
+		"publisher": "Example Inc.",
+		"resources": {},
+		"targets": "all",
+		"externalBin": [],
 		"icon": [
 			"icons/32x32.png",
 			"icons/128x128.png",
@@ -79,9 +89,6 @@
 			"hardenedRuntime": true,
 			"minimumSystemVersion": "10.13"
 		},
-		"publisher": "Example Inc.",
-		"resources": {},
-		"targets": "all",
 		"windows": {
 			"allowDowngrades": true,
 			"certificateThumbprint": null,
@@ -92,7 +99,7 @@
 			"tsp": false,
 			"webviewInstallMode": {
 				"silent": true,
-				"type": "embedBootstrapper"
+				"type": "downloadBootstrapper"
 			},
 			"wix": null
 		}
