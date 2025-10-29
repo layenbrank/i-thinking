@@ -3,6 +3,7 @@ import Calendar from '@/components/applications/calendar/index.tsx'
 import Developer from '@/components/applications/developer/index.tsx'
 import Example from '@/components/applications/example/index.tsx'
 import Intelligence from '@/components/applications/intelligence/index.tsx'
+import Markdown from '@/components/applications/markdown/index.tsx'
 import Navigation from '@/components/applications/navigation/index.tsx'
 import Settings from '@/components/applications/settings/index.tsx'
 
@@ -13,7 +14,7 @@ export const Reflection: Readonly<Application.Reflection> = {
 	settings: Settings,
 	navigation: Navigation,
 	clipchamp: Bookmark,
-	markdown: Bookmark,
+	markdown: Markdown,
 	marketplace: Bookmark,
 	developer: Developer,
 	example: Example

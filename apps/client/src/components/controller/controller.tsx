@@ -19,9 +19,9 @@ const Controller = {
 			'intelligence',
 			'navigation',
 			'settings',
-			'developer'
+			'developer',
+			'markdown'
 			// 'clipchamp',
-			// 'markdown',
 			// 'store'
 		]
 
@@ -32,6 +32,7 @@ const Controller = {
 			if (component === 'navigation') return '导航'
 			if (component === 'settings') return '设置'
 			if (component === 'developer') return '开发者'
+			if (component === 'markdown') return 'Markdown'
 			return 'unknown'
 		}
 
