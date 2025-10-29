@@ -64,10 +64,9 @@ const commonMenuOptions: ContextMenuOptions[] = [
 	}
 ]
 
-export const contextmenuReflect: Record<
-	Partial<Application.Component>,
-	() => ContextMenuOptions[]
-> = {
+type ContextMenuReflect = Partial<Record<Application.Component, () => ContextMenuOptions[]>>
+
+export const contextmenuReflect: ContextMenuReflect = {
 	bookmark() {
 		return commonMenuOptions
 	},

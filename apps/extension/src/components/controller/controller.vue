@@ -63,7 +63,7 @@ const menuOptions = computed(function () {
 
 	if (!active) return []
 
-	return contextmenuReflect[active.component]()
+	return contextmenuReflect[active.component]?.()
 })
 
 function updateActiveKey(value: ContextMenuOptions) {
@@ -230,7 +230,7 @@ onUnmounted(function () {
 				ref="contextmenuRef"
 				:x="contextmenuRect.x"
 				:y="contextmenuRect.y"
-				:options="menuOptions"
+				:options="menuOptions ?? []"
 				v-model:visible="contextmenuVisible"
 				@update:active-key="updateActiveKey"
 				@contextmenu.prevent="openContextMenu"
