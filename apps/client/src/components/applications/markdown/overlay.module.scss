@@ -1,0 +1,14 @@
+.overlay {
+	width: 100%;
+	height: 100%;
+	background-color: #fff;
+
+	* {
+		user-select: text;
+	}
+
+	.textarea {
+		width: 100%;
+		height: 300px;
+	}
+}
