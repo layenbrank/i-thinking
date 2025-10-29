@@ -19,6 +19,7 @@
 	},
 	"devDependencies": {
 		"@desktop-app/core": "workspace:*",
-		"@desktop-app/wasm": "workspace:*"
+		"@desktop-app/wasm": "workspace:*",
+		"@desktop-app/shared": "workspace:*"
 	}
 }

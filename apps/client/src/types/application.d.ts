@@ -1,4 +1,3 @@
-import type { ClassValue } from 'clsx'
 import type { JSX } from 'react'
 
 declare global {

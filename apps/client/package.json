@@ -12,5 +12,8 @@
 		"tauri": "tauri"
 	},
 	"dependencies": {},
-	"devDependencies": {}
+	"devDependencies": {
+		"@desktop-app/shared": "workspace:*",
+		"@desktop-app/wasm": "workspace:*"
+	}
 }
