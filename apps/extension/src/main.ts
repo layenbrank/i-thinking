@@ -11,6 +11,8 @@ import 'reflect-metadata'
 import '@/styles/index.scss'
 import 'ant-design-vue/dist/reset.css'
 
+import '@iconify/iconify'
+
 const directives: Record<string, Directive> = {
 	resize,
 	debounce
