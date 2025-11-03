@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { resize } from '@desktop-app/core'
+import { Icon } from '@iconify/vue'
 import { useDraggable } from '@vueuse/core'
 import SettingBackground from './setting-background.vue'
 import SettingDirection from './setting-direction.vue'
@@ -174,8 +175,11 @@ function updateResize(DOMRect: DOMRectReadOnly) {
 
 <template>
 	<div v-resize="updateResize" class="settings-overlay">
-		<div ref="draggableRef" class="settings-header">
+		<div ref="draggableRef" class="settings-head bg-gray-300">
 			<h2>应用设置</h2>
+			<i data-icon="academicons:acclaim-square" size="24" class="iconify size-5"></i>
+			<span class="iconify size-5" data-icon="academicons:academia-square"></span>
+			<Icon icon="ant-design:align-left-outlined"></Icon>
 		</div>
 		<a-tabs tab-position="left" v-model:activeKey="activeKey" class="app-settings-tabs">
 			<a-tab-pane v-for="option in options" :key="option.value" :tab="option.label">
@@ -205,7 +209,7 @@ function updateResize(DOMRect: DOMRectReadOnly) {
 		cursor: se-resize;
 	}
 
-	.settings-header {
+	.settings-head {
 		height: $height;
 		display: flex;
 		align-items: center;
