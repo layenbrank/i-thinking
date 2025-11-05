@@ -3,6 +3,23 @@ name = "service"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+opt-level = 2       # 降低优化级别 (从 3 改为 2)
+lto = true          # 链接时优化（平衡大小与速度）
+codegen-units = 1   # 单线程代码生成（提升优化）
+incremental = false # 禁用增量编译（避免优化冲突）
+panic = "abort"     # 替换展开为直接终止（减小体积）
+strip = "symbols"   # 移除调试符号（Rust 1.59+）
+
+[lib]
+name = "lib"
+path = "src/lib.rs"
+crate-type = ["rlib", "cdylib", "staticlib"]
+
+[[bin]]
+name = "service"
+path = "src/main.rs"
+
 [dependencies]
 actix-cors = "0.7.1"
 actix-files = "0.6.8"

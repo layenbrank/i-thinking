@@ -4,7 +4,7 @@ use actix_web::{
     web::Data,
 };
 use env_logger::Env;
-use service::{
+use lib::{
     configures::configure::Configure, databases::database::Storage,
     middlewares::response::ResponseWrapper, services::application::module::ApplicationModule,
     utils,
