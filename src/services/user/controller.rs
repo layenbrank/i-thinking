@@ -15,27 +15,29 @@ impl UserController {
         let users = UserService::find_all(&database)
             .await
             .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
+
         let resp: Vec<UserResponse> = users.into_iter().map(|u| u.into()).collect();
 
-        let response = ApiResponse::success(resp);
-
-        response.transform()
+        ApiResponse::success(resp, "Users retrieved successfully").transform()
     }
+
+    // Single
+    // Multiple
 
     pub async fn find_one(
         db: web::Data<Arc<DataBase>>,
         path: web::Path<String>,
         req: HttpRequest,
     ) -> Result<HttpResponse> {
-        let user_id = path.into_inner();
-        let user = UserService::find_one(&db, &user_id)
+        let id = path.into_inner();
+
+        let user = UserService::find_one(&db, &id)
             .await
             .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
+
         let resp: UserResponse = user.into();
 
-        let response = ApiResponse::success(resp);
-
-        response.transform()
+        ApiResponse::success(resp, "User retrieved successfully").transform()
     }
 
     pub async fn insert(
@@ -48,9 +50,7 @@ impl UserController {
             .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
         let resp: UserResponse = user.into();
 
-        let response = ApiResponse::created(resp);
-
-        response.transform()
+        ApiResponse::insert(resp).transform()
     }
 
     pub async fn update(
@@ -60,14 +60,14 @@ impl UserController {
         req: HttpRequest,
     ) -> Result<HttpResponse> {
         let id = path.into_inner();
+
         let user = UserService::update(&db, &id, req_body.into_inner())
             .await
             .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
+
         let resp: UserResponse = user.into();
 
-        let response = ApiResponse::success_with_message(resp, "User updated successfully");
-
-        response.transform()
+        ApiResponse::success(resp, "User updated successfully").transform()
     }
 
     pub async fn remove(
@@ -76,12 +76,11 @@ impl UserController {
         req: HttpRequest,
     ) -> Result<HttpResponse> {
         let id = path.into_inner();
+
         UserService::remove(&db, &id)
             .await
             .map_err(|e| ErrorInternalServerError(format!("Database error: {}", e)))?;
 
-        let response = ApiResponse::message_only("User deleted successfully");
-
-        response.transform()
+        ApiResponse::message_only("User deleted successfully").transform()
     }
 }

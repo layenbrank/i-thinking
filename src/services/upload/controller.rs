@@ -21,7 +21,7 @@ impl UploadController {
         match UploadService::prepare(&db, req.into_inner(), None).await {
             Ok(response) => {
                 println!("初始化上传成功: {:?}", response);
-                ApiResponse::success(response).transform()
+                ApiResponse::success(response, "初始化上传成功").transform()
             }
             Err(err) => {
                 println!("初始化上传失败: {}", err);
@@ -39,22 +39,32 @@ impl UploadController {
         let mut chunk_hash = String::new();
         let mut chunk_data = Vec::new();
 
-        while let Some(field_result) = payload.next().await {
-            let mut field = match field_result {
+        while let Some(fields) = payload.next().await {
+            let mut field = match fields {
                 Ok(field) => field,
-                Err(multipart_err) => {
-                    return Ok(HttpResponse::BadRequest().json(serde_json::json!({
-                        "error": format!("Failed to read multipart field: {}", multipart_err)
-                    })));
+                Err(err) => {
+                    let mut response = HttpResponse::BadRequest();
+
+                    let msg = format!("Failed to read multipart field: {}", err);
+
+                    let json = response.json(serde_json::json!({"error": msg}));
+
+                    return Ok(json);
                 }
             };
 
             let field_name = match field.name() {
                 Some(name) => name.to_string(),
                 None => {
-                    return Ok(HttpResponse::BadRequest().json(serde_json::json!({
-                        "error": "Missing field name"
-                    })));
+                    let mut response = HttpResponse::BadRequest();
+
+                    let msg = "Missing field name";
+
+                    let json = response.json(serde_json::json!({
+                      "error": msg
+                    }));
+
+                    return Ok(json);
                 }
             };
 
@@ -141,7 +151,9 @@ impl UploadController {
 
         // 调用服务层方法
         match UploadService::chunk(&db, &upload_id, chunk_index, chunk_data, &chunk_hash).await {
-            Ok(response) => ApiResponse::success(response).transform(),
+            Ok(response) => {
+                ApiResponse::success(response, "chunk uploaded successfully").transform()
+            }
             Err(err) => Ok(HttpResponse::BadRequest().json(serde_json::json!({
                 "error": err.to_string()
             }))),
@@ -154,10 +166,11 @@ impl UploadController {
         req: web::Json<FinalizeUploadRequest>,
     ) -> Result<HttpResponse> {
         println!("收到完成上传请求: {:?}", req);
+
         match UploadService::finalize(&db, &req.upload_id).await {
             Ok(response) => {
                 println!("完成上传成功: {:?}", response);
-                ApiResponse::success(response).transform()
+                ApiResponse::success(response, "完成上传成功").transform()
             }
             Err(err) => {
                 println!("完成上传失败: {}", err);

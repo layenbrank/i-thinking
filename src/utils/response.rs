@@ -24,18 +24,18 @@ where
     T: Serialize,
 {
     /// 创建成功响应
-    pub fn success(data: T) -> Self {
-        Self {
-            code: business::SUCCESS,
-            success: true,
-            msg: "Success".to_string(),
-            data: Some(data),
-            timestamp: chrono::Utc::now().timestamp_millis(),
-        }
-    }
+    // pub fn success(data: T) -> Self {
+    //     Self {
+    //         code: business::SUCCESS,
+    //         success: true,
+    //         msg: "Success".to_string(),
+    //         data: Some(data),
+    //         timestamp: chrono::Utc::now().timestamp_millis(),
+    //     }
+    // }
 
     /// 创建成功响应（带自定义消息）
-    pub fn success_with_message(data: T, message: impl Into<String>) -> Self {
+    pub fn success(data: T, message: impl Into<String>) -> Self {
         Self {
             code: business::SUCCESS,
             success: true,
@@ -46,12 +46,23 @@ where
     }
 
     /// 创建创建成功响应 (201)
-    pub fn created(data: T) -> Self {
+    pub fn insert(data: T) -> Self {
         Self {
             code: business::SUCCESS,
             success: true,
-            msg: "Created successfully".to_string(),
+            msg: "insert successfully".to_string(),
             data: Some(data),
+            timestamp: chrono::Utc::now().timestamp_millis(),
+        }
+    }
+
+    // 错误响应专用结构
+    pub fn error(code: i32, msg: impl Into<String>) -> Self {
+        Self {
+            code,
+            success: false,
+            msg: msg.into(),
+            data: None,
             timestamp: chrono::Utc::now().timestamp_millis(),
         }
     }

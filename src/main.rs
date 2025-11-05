@@ -100,7 +100,7 @@ async fn health_check(req: HttpRequest) -> impl Responder {
         "uptime": "N/A"
     });
 
-    let response = ApiResponse::success_with_message(health_info, "Service is running normally");
+    let response = ApiResponse::success(health_info, "Service is running normally");
 
     response
         .transform()
