@@ -1,5 +1,7 @@
-use crate::database::DataBase;
-use crate::services::user::schema::{CreateUser, UpdateUser, User};
+use crate::{
+    databases::database::Storage,
+    services::user::schema::{CreateUser, UpdateUser, User},
+};
 use actix_web::{Result, error};
 use futures::TryStreamExt;
 use mongodb::bson::{DateTime, doc, oid::ObjectId};
@@ -7,12 +9,12 @@ use mongodb::bson::{DateTime, doc, oid::ObjectId};
 pub struct UserService;
 
 impl UserService {
-    pub async fn insert(db: &DataBase, req: CreateUser) -> Result<User> {
+    pub async fn insert(db: &Storage, req: CreateUser) -> Result<User> {
         let existing = db
             .users()
             .find_one(doc! {"username": &req.username})
             .await
-            .map_err(|e| error::ErrorInternalServerError(format!("DataBase error: {}", e)))?;
+            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?;
 
         // 如果用户已经存在，直接返回现有用户
         if let Some(existing_user) = existing {
@@ -43,7 +45,7 @@ impl UserService {
         Ok(inserted)
     }
 
-    pub async fn find_one(database: &DataBase, id: &str) -> Result<User> {
+    pub async fn find_one(database: &Storage, id: &str) -> Result<User> {
         let object_id =
             ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("Invalid user ID"))?;
 
@@ -51,25 +53,25 @@ impl UserService {
             .users()
             .find_one(doc! {"_id":object_id})
             .await
-            .map_err(|e| error::ErrorInternalServerError(format!("DataBase error: {}", e)))?
+            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?
             .ok_or_else(|| error::ErrorNotFound("User not found"))?;
 
         Ok(user)
     }
 
-    pub async fn find_all(database: &DataBase) -> Result<Vec<User>> {
+    pub async fn find_all(database: &Storage) -> Result<Vec<User>> {
         let mut cursor = database
             .users()
             .find(doc! {})
             .await
-            .map_err(|e| error::ErrorInternalServerError(format!("DataBase error: {}", e)))?;
+            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?;
 
         let mut users = Vec::new();
 
         while let Some(user) = cursor
             .try_next()
             .await
-            .map_err(|e| error::ErrorInternalServerError(format!("DataBase error: {}", e)))?
+            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?
         {
             users.push(user);
         }
@@ -77,7 +79,7 @@ impl UserService {
         Ok(users)
     }
 
-    pub async fn update(database: &DataBase, id: &str, req: UpdateUser) -> Result<User> {
+    pub async fn update(database: &Storage, id: &str, req: UpdateUser) -> Result<User> {
         let object_id =
             ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("Invalid user ID"))?;
 
@@ -101,12 +103,12 @@ impl UserService {
             .users()
             .update_one(doc! {"_id": object_id}, doc! {"$set": update_doc})
             .await
-            .map_err(|e| error::ErrorInternalServerError(format!("DataBase error: {}", e)))?;
+            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?;
 
         UserService::find_one(database, id).await
     }
 
-    pub async fn remove(database: &DataBase, id: &str) -> Result<()> {
+    pub async fn remove(database: &Storage, id: &str) -> Result<()> {
         let object_id =
             ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("Invalid ObjectId"))?;
 
@@ -114,7 +116,7 @@ impl UserService {
             .users()
             .delete_one(doc! {"_id": object_id})
             .await
-            .map_err(|e| error::ErrorInternalServerError(format!("DataBase error: {}", e)))?;
+            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?;
 
         if result.deleted_count == 0 {
             return Err(error::ErrorNotFound("User not found"));

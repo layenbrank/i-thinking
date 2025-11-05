@@ -1,7 +1,11 @@
-use crate::database::DataBase;
-use crate::services::upload::schema::{FinalizeUploadRequest, UploadRequest};
-use crate::services::upload::service::UploadService;
-use crate::utils::response::ApiResponse;
+use crate::{
+    databases::database::Storage,
+    services::upload::{
+        schema::{FinalizeUploadRequest, UploadRequest},
+        service::UploadService,
+    },
+    utils::response::ApiResponse,
+};
 use actix_files::NamedFile;
 use actix_multipart::Multipart;
 use actix_web::{HttpResponse, Result, web};
@@ -13,7 +17,7 @@ pub struct UploadController;
 
 impl UploadController {
     pub async fn prepare(
-        db: web::Data<Arc<DataBase>>,
+        db: web::Data<Arc<Storage>>,
         req: web::Json<UploadRequest>,
     ) -> Result<HttpResponse> {
         println!("收到初始化上传请求: {:?}", req);
@@ -31,7 +35,7 @@ impl UploadController {
     }
 
     pub async fn chunk(
-        db: web::Data<Arc<DataBase>>,
+        db: web::Data<Arc<Storage>>,
         mut payload: Multipart,
     ) -> Result<HttpResponse> {
         let mut upload_id = String::new();
@@ -162,7 +166,7 @@ impl UploadController {
 
     /// 完成上传
     pub async fn finalize(
-        db: web::Data<Arc<DataBase>>,
+        db: web::Data<Arc<Storage>>,
         req: web::Json<FinalizeUploadRequest>,
     ) -> Result<HttpResponse> {
         println!("收到完成上传请求: {:?}", req);
@@ -183,7 +187,7 @@ impl UploadController {
 
     /// 获取上传进度
     pub async fn progress(
-        db: web::Data<Arc<DataBase>>,
+        db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
         let upload_id = path.into_inner();
@@ -198,7 +202,7 @@ impl UploadController {
 
     /// 取消上传
     pub async fn cancel(
-        db: web::Data<Arc<DataBase>>,
+        db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
         let upload_id = path.into_inner();
@@ -216,7 +220,7 @@ impl UploadController {
 
     /// 文件访问 - 通过文件哈希访问
     pub async fn serve_file(
-        db: web::Data<Arc<DataBase>>,
+        db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
         let file_hash = path.into_inner();
@@ -268,10 +272,10 @@ impl UploadController {
                 }
             }
             Ok(None) => Ok(HttpResponse::NotFound().json(serde_json::json!({
-                "error": "File not found in database"
+                "error": "File not found in Storage"
             }))),
             Err(err) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("Database error: {}", err)
+                "error": format!("Storage error: {}", err)
             }))),
         }
     }

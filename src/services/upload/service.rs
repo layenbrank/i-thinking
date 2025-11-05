@@ -1,4 +1,4 @@
-use crate::database::DataBase;
+use crate::databases::database::Storage;
 use crate::services::upload::schema::{
     ChunkUploadResponse, FinalizeUploadResponse, Upload, UploadProgressResponse, UploadRequest,
     UploadResponse, UploadStatus,
@@ -23,7 +23,7 @@ impl UploadService {
     const EXPIRE_HOURS: i64 = 24;
 
     pub async fn prepare(
-        db: &DataBase,
+        db: &Storage,
         req: UploadRequest,
         uploader_id: Option<String>,
     ) -> Result<UploadResponse> {
@@ -76,7 +76,7 @@ impl UploadService {
     }
 
     pub async fn chunk(
-        db: &DataBase,
+        db: &Storage,
         upload_id: &str,
         chunk_index: u32,
         chunk_data: Vec<u8>,
@@ -112,7 +112,7 @@ impl UploadService {
         })
     }
 
-    pub async fn finalize(db: &DataBase, upload_id: &str) -> Result<FinalizeUploadResponse> {
+    pub async fn finalize(db: &Storage, upload_id: &str) -> Result<FinalizeUploadResponse> {
         println!("开始完成上传: upload_id = {}", upload_id);
 
         // 先同步文件系统和数据库的分片记录
@@ -145,7 +145,7 @@ impl UploadService {
         })
     }
 
-    pub async fn progress(db: &DataBase, upload_id: &str) -> Result<UploadProgressResponse> {
+    pub async fn progress(db: &Storage, upload_id: &str) -> Result<UploadProgressResponse> {
         let upload = Self::find_by_id(db, upload_id).await?;
         let progress = upload.uploaded_chunks.len() as f64 / upload.total_chunks as f64 * 100.0;
 
@@ -186,7 +186,7 @@ impl UploadService {
         Ok(upload)
     }
 
-    pub async fn cancel(db: &DataBase, upload_id: &str) -> Result<()> {
+    pub async fn cancel(db: &Storage, upload_id: &str) -> Result<()> {
         Self::mark_failed(db, upload_id).await?;
         Self::cleanup_chunks(upload_id).await?;
 
@@ -296,7 +296,7 @@ impl UploadService {
         Ok(())
     }
 
-    async fn find_completed(db: &DataBase, file_hash: &str) -> Result<Option<Upload>> {
+    async fn find_completed(db: &Storage, file_hash: &str) -> Result<Option<Upload>> {
         let upload = db
             .uploads()
             .find_one(doc! {
@@ -308,7 +308,7 @@ impl UploadService {
         Ok(upload)
     }
 
-    pub async fn find_file_by_hash(db: &DataBase, file_hash: &str) -> Result<Option<Upload>> {
+    pub async fn find_file_by_hash(db: &Storage, file_hash: &str) -> Result<Option<Upload>> {
         let upload = db
             .uploads()
             .find_one(doc! {
@@ -321,7 +321,7 @@ impl UploadService {
     }
 
     async fn find_pending(
-        db: &DataBase,
+        db: &Storage,
         file_hash: &str,
         uploader_id: Option<&str>,
     ) -> Result<Option<Upload>> {
@@ -349,7 +349,7 @@ impl UploadService {
         Ok(upload)
     }
 
-    async fn find_by_id(db: &DataBase, upload_id: &str) -> Result<Upload> {
+    async fn find_by_id(db: &Storage, upload_id: &str) -> Result<Upload> {
         println!("查询上传记录: upload_id = {}", upload_id);
         let object_id = ObjectId::parse_str(upload_id)
             .map_err(|_| ErrorBadRequest("Invalid upload ID format"))?;
@@ -430,7 +430,7 @@ impl UploadService {
         Ok(())
     }
 
-    async fn append_chunk(db: &DataBase, upload_id: &str, chunk_index: u32) -> Result<()> {
+    async fn append_chunk(db: &Storage, upload_id: &str, chunk_index: u32) -> Result<()> {
         let object_id = ObjectId::parse_str(upload_id)
             .map_err(|_| ErrorBadRequest("Invalid upload ID format"))?;
 
@@ -454,7 +454,7 @@ impl UploadService {
     }
 
     /// 根据文件系统中实际存在的分片同步数据库中的 uploadedChunks
-    pub async fn sync_chunks(db: &DataBase, upload_id: &str) -> Result<()> {
+    pub async fn sync_chunks(db: &Storage, upload_id: &str) -> Result<()> {
         let chunk_dir = PathBuf::from(Self::CHUNK_DIR).join(upload_id);
 
         if !chunk_dir.exists() {
@@ -514,7 +514,7 @@ impl UploadService {
         Ok(())
     }
 
-    async fn mark_completed(db: &DataBase, upload_id: &str, file_path: &Path) -> Result<()> {
+    async fn mark_completed(db: &Storage, upload_id: &str, file_path: &Path) -> Result<()> {
         let object_id = ObjectId::parse_str(upload_id)
             .map_err(|_| ErrorBadRequest("Invalid upload ID format"))?;
 
@@ -537,7 +537,7 @@ impl UploadService {
         Ok(())
     }
 
-    async fn mark_failed(db: &DataBase, upload_id: &str) -> Result<()> {
+    async fn mark_failed(db: &Storage, upload_id: &str) -> Result<()> {
         let object_id = ObjectId::parse_str(upload_id)
             .map_err(|_| ErrorBadRequest("Invalid upload ID format"))?;
 

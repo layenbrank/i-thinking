@@ -1,40 +1,31 @@
 use actix_cors::Cors;
-use actix_web::http::header;
 use actix_web::{
-    App, HttpRequest, HttpResponse, HttpServer, Responder, get, middleware::Logger, web,
+    App, HttpRequest, HttpResponse, HttpServer, Responder, get, http::header, middleware::Logger,
+    web::Data,
 };
 use env_logger::Env;
+use service::{
+    configures::configure::Configure, databases::database::Storage,
+    middlewares::response::ResponseWrapper, services::application::module::ApplicationModule,
+    utils,
+};
 use std::sync::Arc;
-
-mod app;
-mod configs;
-mod database;
-mod middlewares;
-mod models;
-mod services;
-mod utils;
-
-use database::DataBase;
-use middlewares::response::ResponseWrapper;
-
-use crate::configs::Config;
-use app::AppModule;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
 
-    let cfg = Config::from_env().expect("Failed to load configuration");
+    let configure = Configure::from_env().expect("Failed to load configuration");
 
-    let database = DataBase::new(&cfg.mongodb_uri)
+    let storage = Storage::new(&configure.mongodb_uri)
         .await
         .expect("Failed to connect to database");
 
-    let db = Arc::new(database);
+    let store = Arc::new(storage);
 
     println!(
         "📝 API Documentation: http://{}:{}/api/v1",
-        cfg.host, cfg.port
+        configure.host, configure.port
     );
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
@@ -52,7 +43,7 @@ async fn main() -> std::io::Result<()> {
             .max_age(3600);
 
         App::new()
-            .app_data(web::Data::new(db.clone()))
+            .app_data(Data::new(store.clone()))
             .wrap(cors)
             .wrap(ResponseWrapper) // 添加响应包装中间件
             .wrap(Logger::default())
@@ -60,9 +51,9 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(index_html)
             .service(health_check)
-            .configure(AppModule::configure)
+            .configure(ApplicationModule::configure)
     })
-    .bind((cfg.host.clone(), cfg.port))?
+    .bind((configure.host.clone(), configure.port))?
     .run()
     .await
 }

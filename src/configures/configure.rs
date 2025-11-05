@@ -1,16 +1,16 @@
 use std::env;
 
 #[derive(Debug, Clone)]
-pub struct Config {
+pub struct Configure {
     pub host: String,
     pub port: u16,
     pub mongodb_uri: String,
     pub secret: String,
 }
 
-impl Config {
+impl Configure {
     pub fn from_env() -> Result<Self, env::VarError> {
-        Ok(Config {
+        Ok(Configure {
             host: env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
 
             port: env::var("PORT")

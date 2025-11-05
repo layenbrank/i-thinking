@@ -1,12 +1,15 @@
-use crate::services::{upload::module::UploadModule, user::module::UserModule};
+use crate::services::{
+    auth::module::AuthModule, upload::module::UploadModule, user::module::UserModule,
+};
 use actix_web::web;
 
-pub struct AppModule;
+pub struct ApplicationModule;
 
-impl AppModule {
+impl ApplicationModule {
     pub fn configure(cfg: &mut web::ServiceConfig) {
         cfg.service(
             web::scope("/api/v1")
+                .configure(AuthModule::configure)
                 .configure(UserModule::configure)
                 .configure(UploadModule::configure),
         );

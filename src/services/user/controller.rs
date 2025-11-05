@@ -1,7 +1,11 @@
-use crate::database::DataBase;
-use crate::services::user::schema::{CreateUser, UpdateUser, UserResponse};
-use crate::services::user::service::UserService;
 use crate::utils::response::ApiResponse;
+use crate::{
+    databases::database::Storage,
+    services::user::{
+        schema::{CreateUser, UpdateUser, UserResponse},
+        service::UserService,
+    },
+};
 use actix_web::{HttpRequest, HttpResponse, Result, error::ErrorInternalServerError, web};
 use std::sync::Arc;
 
@@ -9,7 +13,7 @@ pub struct UserController;
 
 impl UserController {
     pub async fn find_all(
-        database: web::Data<Arc<DataBase>>,
+        database: web::Data<Arc<Storage>>,
         req: HttpRequest,
     ) -> Result<HttpResponse> {
         let users = UserService::find_all(&database)
@@ -25,7 +29,7 @@ impl UserController {
     // Multiple
 
     pub async fn find_one(
-        db: web::Data<Arc<DataBase>>,
+        db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
         req: HttpRequest,
     ) -> Result<HttpResponse> {
@@ -41,7 +45,7 @@ impl UserController {
     }
 
     pub async fn insert(
-        db: web::Data<Arc<DataBase>>,
+        db: web::Data<Arc<Storage>>,
         req_body: web::Json<CreateUser>,
         req: HttpRequest,
     ) -> Result<HttpResponse> {
@@ -54,7 +58,7 @@ impl UserController {
     }
 
     pub async fn update(
-        db: web::Data<Arc<DataBase>>,
+        db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
         req_body: web::Json<UpdateUser>,
         req: HttpRequest,
@@ -71,7 +75,7 @@ impl UserController {
     }
 
     pub async fn remove(
-        db: web::Data<Arc<DataBase>>,
+        db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
         req: HttpRequest,
     ) -> Result<HttpResponse> {

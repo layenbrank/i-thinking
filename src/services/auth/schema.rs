@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct AuthUser {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
+
     pub username: String,
     pub password: String,
 
@@ -19,4 +20,16 @@ pub struct AuthUser {
         deserialize_with = "deserialize_datetime"
     )]
     pub updated_at: DateTime,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SigninRequest {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SignupRequest {
+    pub username: String,
+    pub password: String,
 }

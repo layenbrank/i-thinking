@@ -3,12 +3,12 @@ use anyhow::Result;
 use mongodb::{Client, Collection, Database};
 
 #[derive(Clone)]
-pub struct DataBase {
+pub struct Storage {
     pub client: Client,
     pub database: Database,
 }
 
-impl DataBase {
+impl Storage {
     pub async fn new(uri: &str) -> Result<Self> {
         let client = Client::with_uri_str(uri).await?;
         let database = client.database("layen");
@@ -20,7 +20,7 @@ impl DataBase {
             })
             .await?;
 
-        Ok(DataBase { client, database })
+        Ok(Storage { client, database })
     }
 
     pub fn users(&self) -> Collection<user::schema::User> {
