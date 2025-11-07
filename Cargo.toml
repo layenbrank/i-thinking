@@ -12,7 +12,7 @@ panic = "abort"     # 替换展开为直接终止（减小体积）
 strip = "symbols"   # 移除调试符号（Rust 1.59+）
 
 [lib]
-name = "lib"
+name = "core"
 path = "src/lib.rs"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
