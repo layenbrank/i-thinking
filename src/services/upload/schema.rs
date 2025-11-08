@@ -1,7 +1,4 @@
-use crate::utils::datetime_serde::{
-    deserialize_datetime, deserialize_optional_datetime, deserialize_string_or_number,
-    serialize_datetime, serialize_optional_datetime,
-};
+use crate::utils::timestamp::{from_ts, from_ts_opt, from_str_or_num, to_ts, to_ts_opt};
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
@@ -11,13 +8,13 @@ pub struct Upload {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub file_name: String,
-    #[serde(deserialize_with = "deserialize_string_or_number")]
+    #[serde(deserialize_with = "from_str_or_num")]
     pub file_size: u64,
     pub file_hash: String,
     pub mime_type: String,
-    #[serde(deserialize_with = "deserialize_string_or_number")]
+    #[serde(deserialize_with = "from_str_or_num")]
     pub chunk_size: u32,
-    #[serde(deserialize_with = "deserialize_string_or_number")]
+    #[serde(deserialize_with = "from_str_or_num")]
     pub total_chunks: u32,
 
     // 已上传的分片编号
@@ -30,19 +27,13 @@ pub struct Upload {
     // 上传者ID
     pub uploader_id: Option<ObjectId>,
 
-    #[serde(
-        serialize_with = "serialize_datetime",
-        deserialize_with = "deserialize_datetime"
-    )]
+    #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
     pub created_at: mongodb::bson::DateTime,
-    #[serde(
-        serialize_with = "serialize_datetime",
-        deserialize_with = "deserialize_datetime"
-    )]
+    #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
     pub updated_at: mongodb::bson::DateTime,
     #[serde(
-        serialize_with = "serialize_optional_datetime",
-        deserialize_with = "deserialize_optional_datetime",
+        serialize_with = "to_ts_opt",
+        deserialize_with = "from_ts_opt",
         skip_serializing_if = "Option::is_none"
     )]
     pub expires_at: Option<mongodb::bson::DateTime>, // 过期时间

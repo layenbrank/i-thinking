@@ -1,6 +1,6 @@
 use actix_cors::Cors;
 use actix_web::{
-    App, HttpRequest, HttpResponse, HttpServer, Responder, get, http::header, middleware::Logger,
+    App, HttpRequest, HttpResponse, HttpServer, Responder, get, http::header,
     web::Data,
 };
 use env_logger::Env;
@@ -22,10 +22,13 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to connect to database");
 
     let store = Arc::new(storage);
+    let config = Arc::new(configure.clone());
+    let host = config.host.clone();
+    let port = config.port;
 
     println!(
         "📝 API Documentation: http://{}:{}/api/v1",
-        configure.host, configure.port
+        host, port
     );
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
@@ -44,16 +47,16 @@ async fn main() -> std::io::Result<()> {
 
         App::new()
             .app_data(Data::new(store.clone()))
+            .app_data(Data::new(config.clone()))
             .wrap(cors)
-            .wrap(ResponseWrapper) // 添加响应包装中间件
-            .wrap(Logger::default())
-            .wrap(Logger::new("%a %t %r %s %b %{Referer}i %{User-Agent}i %T"))
+            .wrap(ResponseWrapper) // 响应包装中间件（已包含详细的请求/响应日志）
+            // 移除重复的 Logger，ResponseWrapper 已提供详细的表格日志
             .service(index)
             .service(index_html)
             .service(health_check)
             .configure(ApplicationModule::configure)
     })
-    .bind((configure.host.clone(), configure.port))?
+    .bind((host, port))?
     .run()
     .await
 }

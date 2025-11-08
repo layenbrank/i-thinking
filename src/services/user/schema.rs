@@ -1,4 +1,4 @@
-use crate::utils::datetime_serde::{deserialize_datetime, serialize_datetime};
+use crate::utils::timestamp::{from_ts, to_ts};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -11,13 +11,13 @@ pub struct User {
     pub email: Option<String>,
     pub age: Option<u32>,
     #[serde(
-        serialize_with = "serialize_datetime",
-        deserialize_with = "deserialize_datetime"
+        serialize_with = "to_ts",
+        deserialize_with = "from_ts"
     )]
     pub created_at: mongodb::bson::DateTime,
     #[serde(
-        serialize_with = "serialize_datetime",
-        deserialize_with = "deserialize_datetime"
+        serialize_with = "to_ts",
+        deserialize_with = "from_ts"
     )]
     pub updated_at: mongodb::bson::DateTime,
     // pub role: Option<String>,
@@ -38,8 +38,8 @@ pub struct UpdateUser {
     pub email: Option<String>,
     pub age: Option<u32>,
     #[serde(
-        serialize_with = "serialize_datetime",
-        deserialize_with = "deserialize_datetime"
+        serialize_with = "to_ts",
+        deserialize_with = "from_ts"
     )]
     pub updated_at: mongodb::bson::DateTime,
 }
@@ -52,13 +52,13 @@ pub struct UserResponse {
     pub email: Option<String>,
     pub age: Option<u32>,
     #[serde(
-        serialize_with = "serialize_datetime",
-        deserialize_with = "deserialize_datetime"
+        serialize_with = "to_ts",
+        deserialize_with = "from_ts"
     )]
     pub created_at: mongodb::bson::DateTime,
     #[serde(
-        serialize_with = "serialize_datetime",
-        deserialize_with = "deserialize_datetime"
+        serialize_with = "to_ts",
+        deserialize_with = "from_ts"
     )]
     pub updated_at: mongodb::bson::DateTime,
 }

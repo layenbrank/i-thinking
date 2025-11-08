@@ -1,4 +1,4 @@
-use crate::services::{upload, user};
+use crate::services::{auth, upload, user};
 use anyhow::Result;
 use mongodb::{Client, Collection, Database};
 
@@ -29,5 +29,9 @@ impl Storage {
 
     pub fn uploads(&self) -> Collection<upload::schema::Upload> {
         self.database.collection("uploads")
+    }
+
+    pub fn auth(&self) -> Collection<auth::schema::AuthUser> {
+        self.database.collection("auth")
     }
 }

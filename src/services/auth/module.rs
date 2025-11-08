@@ -8,7 +8,7 @@ impl AuthModule {
         cfg.service(
             web::scope("/auth")
                 .route("/signin", web::post().to(AuthController::signin))
-                .route("/singup", web::post().to(AuthController::singup)),
+                .route("/signup", web::post().to(AuthController::signup)),
         );
     }
 }

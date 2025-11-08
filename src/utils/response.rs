@@ -262,6 +262,7 @@ pub struct ApiErrorResponse {
     pub success: bool,
     pub msg: String,
     pub timestamp: i64,
+    pub data: Option<Value>,
     /// 详细错误信息 (开发环境使用)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub details: Option<Value>,
@@ -274,6 +275,7 @@ impl ApiErrorResponse {
             code: request::MISSING_PARAMETER,
             success: false,
             msg: msg.into(),
+            data: None,
             timestamp: chrono::Utc::now().timestamp_millis(),
             details: None,
         }
@@ -285,6 +287,7 @@ impl ApiErrorResponse {
             code: auth::NOT_LOGGED_IN,
             success: false,
             msg: msg.into(),
+            data: None,
             timestamp: chrono::Utc::now().timestamp_millis(),
             details: None,
         }
@@ -296,6 +299,7 @@ impl ApiErrorResponse {
             code: auth::INSUFFICIENT_PERMISSIONS,
             success: false,
             msg: msg.into(),
+            data: None,
             timestamp: chrono::Utc::now().timestamp_millis(),
             details: None,
         }
@@ -307,6 +311,7 @@ impl ApiErrorResponse {
             code: resource::NOT_FOUND,
             success: false,
             msg: msg.into(),
+            data: None,
             timestamp: chrono::Utc::now().timestamp_millis(),
             details: None,
         }
@@ -318,6 +323,7 @@ impl ApiErrorResponse {
             code: system::INTERNAL_ERROR,
             success: false,
             msg: msg.into(),
+            data: None,
             timestamp: chrono::Utc::now().timestamp_millis(),
             details: None,
         }
@@ -329,6 +335,7 @@ impl ApiErrorResponse {
             code,
             success: false,
             msg: message.into(),
+            data: None,
             timestamp: chrono::Utc::now().timestamp_millis(),
             details: None,
         }
@@ -340,22 +347,9 @@ impl ApiErrorResponse {
         self
     }
 
-    /// 转换为 HttpResponse，根据业务错误码返回合适的 HTTP 状态码
+    /// 转换为 HttpResponse，始终返回 HTTP 200，业务错误通过响应体中的 code 字段表示
     pub fn transform(self) -> Result<HttpResponse> {
-        let http_status = match self.code {
-            SUCCESS => actix_web::http::StatusCode::OK,
-            100001..=199999 => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR, // 系统错误
-            200001..=299999 => actix_web::http::StatusCode::BAD_REQUEST,           // 请求错误
-            300001..=300005 => actix_web::http::StatusCode::UNAUTHORIZED,          // 认证错误
-            300006..=399999 => actix_web::http::StatusCode::FORBIDDEN,             // 授权错误
-            400001..=499999 => actix_web::http::StatusCode::NOT_FOUND,             // 资源错误
-            500001..=599999 => actix_web::http::StatusCode::BAD_REQUEST,           // 业务逻辑错误
-            600001..=699999 => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR, // 外部服务错误
-            700001..=799999 => actix_web::http::StatusCode::BAD_REQUEST,           // 数据错误
-            _ => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,               // 未知错误
-        };
-
-        Ok(HttpResponse::build(http_status).json(self))
+        Ok(HttpResponse::Ok().json(self))
     }
 }
 
