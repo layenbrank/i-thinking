@@ -1,5 +1,6 @@
 use crate::services::{
     auth::module::AuthModule, upload::module::UploadModule, user::module::UserModule,
+    engine::module::EngineModule,
 };
 use actix_web::web;
 
@@ -11,7 +12,8 @@ impl ApplicationModule {
             web::scope("/api/v1")
                 .configure(AuthModule::configure)
                 .configure(UserModule::configure)
-                .configure(UploadModule::configure),
+                .configure(UploadModule::configure)
+                .configure(EngineModule::configure),
         );
     }
 }
