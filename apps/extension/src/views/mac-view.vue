@@ -280,9 +280,17 @@ onUnmounted(function () {
 				<Controller />
 			</a-layout-content>
 			<a-layout-footer @contextmenu.prevent class="mac-footer">
-				<template #default>
+				<!-- <template #default>
 					<div class="dock-bar"></div>
-				</template>
+				</template> -->
+				<a
+					href="https://beian.mps.gov.cn/#/query/webSearch"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="text-white"
+				>
+					备案号：豫ICP备2023024760号
+				</a>
 			</a-layout-footer>
 		</a-layout>
 	</a-layout>

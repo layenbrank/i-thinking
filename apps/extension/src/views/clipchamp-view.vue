@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import demo from '@/assets/demo.mp4'
 import { message } from 'ant-design-vue'
 import { onMounted, ref } from 'vue'
 defineOptions({
@@ -534,7 +533,7 @@ onUnmounted(function () {
 		<div class="clipchamp-wrap">
 			<div class="video-container">
 				<h3>原始视频</h3>
-				<video ref="videoRef" :src="demo" controls loop></video>
+				<video ref="videoRef" src="" controls loop></video>
 			</div>
 
 			<div class="canvas-container">
