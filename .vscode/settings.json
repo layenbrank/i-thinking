@@ -139,6 +139,8 @@
 		"tsconfig.json": "tsconfig.*.json, env.d.ts",
 		"vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts"
 	},
+	"iconify.languageIds": ["typescript", "typescriptreact", "vue"],
+	"iconify.customCollectionJsonPaths": ["apps/extension/src/assets/icons"],
 	"files.associations": {
 		"*.ts": "typescript",
 		"*.vue": "vue"

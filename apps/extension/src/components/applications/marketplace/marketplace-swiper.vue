@@ -4,7 +4,7 @@ import type { PaginationOptions, SwiperModule } from 'swiper/types'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 
 defineOptions({
-	name: 'store-swiper'
+	name: 'marketplace-swiper'
 })
 
 withDefaults(
@@ -30,7 +30,7 @@ withDefaults(
 </script>
 
 <template>
-	<div class="store-swiper">
+	<div class="marketplace-swiper">
 		<swiper
 			:modules="modules"
 			:mousewheel="true"
@@ -41,7 +41,7 @@ withDefaults(
 			:pagination="pagination"
 			:allow-touch-move="false"
 			:loop="loop"
-			class="swiper-store w-full h-60"
+			class="swiper-marketplace w-full h-60"
 		>
 			<swiper-slide
 				:key="option.key"
@@ -56,7 +56,7 @@ withDefaults(
 				<slot name="slide" :option="option"></slot>
 			</swiper-slide>
 		</swiper>
-		<div class="store-main">
+		<div class="marketplace-main">
 			<slot name="main"></slot>
 			<!-- <h3>热门应用</h3> -->
 			<!-- <transition-group tag="div" name="app-controller-fade" class="app-controller">
@@ -76,12 +76,13 @@ withDefaults(
 
 <style lang="scss" scoped>
 @use 'general.scss' as *;
-.store-swiper {
+
+.marketplace-swiper {
 	width: 100%;
 	height: 100%;
 
-	.swiper-store {
-		@extend %swiper-store;
+	.swiper-marketplace {
+		@extend %swiper-marketplace;
 	}
 }
 </style>

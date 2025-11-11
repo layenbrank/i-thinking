@@ -7,28 +7,28 @@ import SettingsMarker from '~icons/ant-design/setting-outlined'
 // import SlideView from '@/assets/wallpaper/slide-view-bg.jpg'
 
 const AppBookmark = defineAsyncComponent(function () {
-	return import('@/components/applications/bookmark/index.vue')
+	return import('@/components/applications/bookmark/bookmark.vue')
 })
 const AppCalendar = defineAsyncComponent(function () {
-	return import('@/components/applications/calendar/index.vue')
+	return import('@/components/applications/calendar/calendar.vue')
 })
 const AppMarkdown = defineAsyncComponent(function () {
-	return import('@/components/applications/markdown/index.vue')
+	return import('@/components/applications/markdown/markdown.vue')
 })
 const AppIntelligence = defineAsyncComponent(function () {
-	return import('@/components/applications/intelligence/index.vue')
+	return import('@/components/applications/intelligence/intelligence.vue')
 })
 const AppNavigation = defineAsyncComponent(function () {
-	return import('@/components/applications/navigation/index.vue')
+	return import('@/components/applications/navigation/navigation.vue')
 })
 const AppSettings = defineAsyncComponent(function () {
-	return import('@/components/applications/settings/index.vue')
+	return import('@/components/applications/settings/settings.vue')
 })
 const AppMarketplace = defineAsyncComponent(function () {
-	return import('@/components/applications/marketplace/index.vue')
+	return import('@/components/applications/marketplace/marketplace.vue')
 })
 const AppExample = defineAsyncComponent(function () {
-	return import('@/components/applications/example/index.vue')
+	return import('@/components/applications/example/example.vue')
 })
 
 const commonMenuOptions: ContextMenuOptions[] = [
@@ -135,21 +135,3 @@ export const appReflect: Application.Reflect = {
 		return <AppExample />
 	}
 }
-// export function useAppController(el: Ref<InstanceType<typeof AppMenu> | null>) {
-
-//   return {
-//     activeApp,
-//     appReflect,
-//     handleResize,
-//     drawerVisible,
-
-//     menuOptions,
-//     activeMenuKey,
-//     contextmenuMap,
-//     updateActiveKey,
-//     openContextMenu,
-//     contextmenuRect,
-//     closeContextMenu,
-//     contextmenuVisible
-//   }
-// }

@@ -180,6 +180,7 @@ function updateResize(DOMRect: DOMRectReadOnly) {
 			<i data-icon="academicons:acclaim-square" size="24" class="iconify size-5"></i>
 			<span class="iconify size-5" data-icon="academicons:academia-square"></span>
 			<Icon icon="ant-design:align-left-outlined"></Icon>
+			<Icon icon="local:close-outlined"></Icon>
 		</div>
 		<a-tabs tab-position="left" v-model:activeKey="activeKey" class="app-settings-tabs">
 			<a-tab-pane v-for="option in options" :key="option.value" :tab="option.label">

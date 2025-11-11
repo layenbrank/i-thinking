@@ -1,24 +1,24 @@
 <script setup lang="tsx">
-import StoreSwiper from './store-swiper.vue'
+import MarketplaceSwiper from './marketplace-swiper.vue'
 
 const AppBookmark = defineAsyncComponent(function () {
-	return import('@/components/applications/bookmark/index.vue')
+	return import('@/components/applications/bookmark/bookmark.vue')
 })
 const AppCalendar = defineAsyncComponent(function () {
-	return import('@/components/applications/calendar/index.vue')
+	return import('@/components/applications/calendar/calendar.vue')
 })
 const AppMarkdown = defineAsyncComponent(function () {
-	return import('@/components/applications/markdown/index.vue')
+	return import('@/components/applications/markdown/markdown.vue')
 })
 const AppNavigation = defineAsyncComponent(function () {
-	return import('@/components/applications/navigation/index.vue')
+	return import('@/components/applications/navigation/navigation.vue')
 })
 const AppExample = defineAsyncComponent(function () {
-	return import('@/components/applications/example/index.vue')
+	return import('@/components/applications/example/example.vue')
 })
 
 defineOptions({
-	name: 'store-application'
+	name: 'marketplace-application'
 })
 
 const props = withDefaults(
@@ -78,8 +78,8 @@ const hasMultiple = computed(() => props.applications.length > 1)
 </script>
 
 <template>
-	<div class="store-application">
-		<StoreSwiper :options="options" :loop="hasMultiple">
+	<div class="marketplace-application">
+		<MarketplaceSwiper :options="options" :loop="hasMultiple">
 			<template #slide="{ option }">
 				<div class="image-container">
 					<img :src="option.image" alt="" class="carousel-img" />
@@ -87,7 +87,7 @@ const hasMultiple = computed(() => props.applications.length > 1)
 			</template>
 			<template #main>
 				<h3>热门应用</h3>
-				<transition-group tag="div" name="app-controller-fade" class="app-controller">
+				<TransitionGroup tag="div" name="application-fade" class="controller">
 					<template v-for="application in applications" :key="application.id">
 						<component
 							:class="['application']"
@@ -97,18 +97,19 @@ const hasMultiple = computed(() => props.applications.length > 1)
 							:is="reflect[application.component]?.()"
 						/>
 					</template>
-				</transition-group>
+				</TransitionGroup>
 			</template>
-		</StoreSwiper>
+		</MarketplaceSwiper>
 	</div>
 </template>
 
 <style lang="scss" scoped>
-@use 'general.scss' as *;
+// @use 'general.scss' as *;
+@use '@/styles/application.scss' as *;
 
-.store-application {
-	.app-controller {
-		@extend %app-controller;
+.marketplace-application {
+	.controller {
+		@extend %controller;
 	}
 
 	.image-container {
