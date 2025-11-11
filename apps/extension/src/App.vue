@@ -7,6 +7,7 @@ import enUS from 'ant-design-vue/es/locale/en_US'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
+import { onBeforeMount } from 'vue'
 import { useI18n } from 'vue-i18n'
 // import { GET_APPLICATION, GET_FAVICON, GET_SINGLETON } from '@/apis/application.ts'
 

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'store-aihub'
+	name: 'marketplace-aihub'
 })
 </script>
 
 <template>
-	<div class="store-aihub">store-aihub</div>
+	<div class="marketplace-aihub">marketplace-aihub</div>
 </template>
 
 <style lang="scss" scoped>
-.store-aihub {
+.marketplace-aihub {
 }
 </style>

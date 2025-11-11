@@ -10,28 +10,28 @@ import type { Reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const AppBookmark = defineAsyncComponent(function () {
-	return import('@/components/applications/bookmark/index.vue')
+	return import('@/components/applications/bookmark/bookmark.vue')
 })
 const AppCalendar = defineAsyncComponent(function () {
-	return import('@/components/applications/calendar/index.vue')
+	return import('@/components/applications/calendar/calendar.vue')
 })
 const AppMarkdown = defineAsyncComponent(function () {
-	return import('@/components/applications/markdown/index.vue')
+	return import('@/components/applications/markdown/markdown.vue')
 })
 const AppNavigation = defineAsyncComponent(function () {
-	return import('@/components/applications/navigation/index.vue')
+	return import('@/components/applications/navigation/navigation.vue')
 })
 const AppExample = defineAsyncComponent(function () {
-	return import('@/components/applications/example/index.vue')
+	return import('@/components/applications/example/example.vue')
 })
 
-interface AppStoreOptions {
+interface AppMarketplaceOptions {
 	label: string
 	key: string
 }
 
 defineOptions({
-	name: 'app-store-window'
+	name: 'marketplace-overlay'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -40,12 +40,12 @@ const { t } = useI18n()
 
 const modules: SwiperModule[] = [A11y, Autoplay, Mousewheel, Navigation, Pagination]
 
-const activeKey = ref<AppStoreOptions>({
+const activeKey = ref<AppMarketplaceOptions>({
 	label: t('General.Application'),
 	key: 'application'
 })
 
-const options: AppStoreOptions[] = [
+const options: AppMarketplaceOptions[] = [
 	{
 		label: t('General.Application'),
 		key: 'application'
@@ -271,20 +271,20 @@ const pagination: Reactive<PaginationOptions> = reactive({
 	clickable: true
 })
 
-function updateActiveKey(item: AppStoreOptions) {
+function updateActiveKey(item: AppMarketplaceOptions) {
 	activeKey.value = item
 }
 </script>
 
 <template>
-	<div class="app-store-window">
-		<div class="store-categories">
+	<div class="marketplace-overlay">
+		<div class="marketplace-categories">
 			<div
 				:key="item.key"
 				v-for="item in options"
 				@click="updateActiveKey(item)"
 				:class="[
-					'store-category',
+					'marketplace-category',
 					{
 						'is-active': activeKey.key === item.key
 					}
@@ -293,7 +293,7 @@ function updateActiveKey(item: AppStoreOptions) {
 				{{ item.label }}
 			</div>
 		</div>
-		<div class="store-content">
+		<div class="marketplace-content">
 			<template v-for="item in options">
 				<div v-if="activeKey.key === item.key" :key="item.key" class="content-item">
 					<swiper
@@ -306,7 +306,7 @@ function updateActiveKey(item: AppStoreOptions) {
 						:pagination="pagination"
 						:allow-touch-move="false"
 						:loop="hasMultiple"
-						class="store-swiper w-full h-60"
+						class="marketplace-swiper w-full h-60"
 					>
 						<swiper-slide
 							:key="option.key"
@@ -320,7 +320,7 @@ function updateActiveKey(item: AppStoreOptions) {
 							</div>
 						</swiper-slide>
 					</swiper>
-					<div class="store-main">
+					<div class="marketplace-main">
 						<h3>热门应用</h3>
 						<transition-group tag="div" name="app-controller-fade" class="app-controller">
 							<template v-for="application in applications" :key="application.id">
@@ -341,14 +341,14 @@ function updateActiveKey(item: AppStoreOptions) {
 </template>
 
 <style lang="scss" scoped>
-.app-store-window {
+.marketplace-overlay {
 	@apply h-full flex justify-between gap-x-2;
 
-	.store-categories {
+	.marketplace-categories {
 		@apply w-20 h-full flex flex-col items-center gap-y-1 rounded-l-lg overflow-x-hidden overflow-y-scroll  bg-[#fbeff5] p-2;
 		scrollbar-width: none;
 
-		.store-category {
+		.marketplace-category {
 			@apply w-full px-2 py-2 text-center rounded-md cursor-pointer transition-all duration-300;
 
 			&:hover,
@@ -358,7 +358,7 @@ function updateActiveKey(item: AppStoreOptions) {
 		}
 	}
 
-	.store-content {
+	.marketplace-content {
 		@apply flex-1 rounded-r-lg overflow-x-hidden overflow-y-scroll pt-2 pr-2 pb-2;
 		scrollbar-width: none;
 		// --swiper-navigation-size: 30px;
@@ -367,7 +367,7 @@ function updateActiveKey(item: AppStoreOptions) {
 			@apply w-full h-full overflow-x-hidden overflow-y-scroll;
 		}
 
-		.store-swiper {
+		.marketplace-swiper {
 			@apply w-full h-[60%];
 			@apply overflow-hidden rounded-lg;
 			--swiper-navigation-size: 30px;

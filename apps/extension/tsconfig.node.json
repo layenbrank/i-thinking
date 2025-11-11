@@ -8,7 +8,8 @@
 		"playwright.config.*",
 		"tailwind.config.*",
 		"eslint.config.*",
-		"vite.config-u.ts"
+		"vite.config.ts",
+		"vite.config-d.ts"
 	],
 	"compilerOptions": {
 		"noEmit": true,

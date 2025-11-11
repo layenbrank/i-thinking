@@ -1,21 +1,24 @@
+import LanguagePlugin from '@intlify/unplugin-vue-i18n/vite'
 import Vue from '@vitejs/plugin-vue'
-import VueJSX from '@vitejs/plugin-vue-jsx'
+import VueJsx from '@vitejs/plugin-vue-jsx'
 import { findUpSync } from 'find-up'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
-import { type ConfigEnv, defineConfig, loadEnv, type UserConfig } from 'rolldown-vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import { FileSystemIconLoader } from 'unplugin-icons/loaders'
 import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
+import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
-import DevTools from 'vite-plugin-vue-devtools'
+// import vueDevTools from 'vite-plugin-vue-devtools'
 import pkg from './package.json'
+// import wasm from 'vite-plugin-wasm'
 
-const rootMarkerPath = findUpSync(['turbo.json'])
+// 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
+const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 
 const cssRegex: Readonly<RegExp> = /\.css$/i
@@ -37,16 +40,114 @@ const noInlineRegexes: readonly RegExp[] = [
 	/background.*\.(png|jpe?g)$/i // 背景图片
 ].concat(svgRegex, jsonRegex, videoRegex, audioRegex, fontRegex)
 
-export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
-	const env = loadEnv(mode || 'development', '')
+// Vue3 + TypeScript 项目分包配置
+const chunkMap: Readonly<Record<string, RegExp[]>> = {
+	// ========== 本地依赖 ==========
+	'workspace-deps': [/[\\/]packages[\\/](core|wasm)[\\/]/],
 
-	console.log('env ===>', env)
+	'core-apis': [/[\\/]src[\\/]apis[\\/]/],
+	'core-utils': [/[\\/]src[\\/]utils[\\/]/],
+	'core-hooks': [/[\\/]src[\\/]hooks[\\/]/],
+	'core-stores': [/[\\/]src[\\/]stores[\\/]/],
+	'core-assets': [/[\\/]src[\\/]assets[\\/]/],
+	'core-locales': [/[\\/]src[\\/]locales[\\/]/],
+	'core-plugins': [/[\\/]src[\\/]plugins[\\/]/],
+	'core-database': [/[\\/]src[\\/]database[\\/]/],
+
+	// ========== Vue 核心生态 ==========
+	'core-framework': [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/],
+
+	'utils-framework': [/[\\/]node_modules[\\/](@vueuse)[\\/]/],
+
+	// ========== UI 组件库 ==========
+	'ui-antd': [/[\\/]node_modules[\\/](ant-design-vue)[\\/]/],
+
+	'ui-antd-deps': [
+		/[\\/]node_modules[\\/](@ant-design|@ctrl\/tinycolor|@emotion|stylis)[\\/]/,
+		/[\\/]node_modules[\\/](@simonwep\/pickr|throttle-debounce|vue-types|warning)[\\/]/,
+		/[\\/]node_modules[\\/](array-tree-filter|async-validator|dom-align|dom-scroll-into-view)[\\/]/,
+		/[\\/]node_modules[\\/](resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal)[\\/]/
+	],
+
+	// Iconify 相关：@iconify/iconify @iconify/vue @iconify/json 以及虚拟 ~icons
+	'ui-icons': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|vue|iconify)[\\/]/, /~icons/],
+
+	// ========== 编辑器 ==========
+	'utils-markdown': [
+		/[\\/]node_modules[\\/]@tiptap[\\/]/,
+		/[\\/]node_modules[\\/]prosemirror-/,
+		/[\\/]node_modules[\\/]@floating-ui[\\/]/
+	],
+
+	'utils-code': [/[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/],
+
+	'utils-languages': [/[\\/]node_modules[\\/](vue-i18n|@intlify)[\\/]/],
+
+	// ========== 媒体处理 ==========
+	'utils-media': [
+		/[\\/]node_modules[\\/](mp4box)[\\/]/,
+		/[\\/]node_modules[\\/](@ffmpeg)[\\/]/,
+		/[\\/]node_modules[\\/](ffmpeg-core\.(js|wasm|worker\.js))$/
+	],
+
+	// ========== 工具库 ==========
+	'utils-core': [
+		/[\\/]node_modules[\\/](lodash-es|rxjs|uuid|clsx)[\\/]/,
+		/[\\/]node_modules[\\/](reflect-metadata)[\\/]/
+	],
+
+	'utils-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
+
+	'utils-crypto': [/[\\/]node_modules[\\/](crypto-js)[\\/]/],
+
+	'utils-matches': [/[\\/]node_modules[\\/](fuse\.js)[\\/]/],
+
+	'utils-math': [
+		/[\\/]node_modules[\\/](mathjs)[\\/]/,
+		/[\\/]node_modules[\\/](mathjs|complex\.js|decimal\.js|escape-latex|fraction\.js)[\\/]/,
+		/[\\/]node_modules[\\/](javascript-natural-sort|seedrandom|tiny-emitter|typed-function)[\\/]/
+	],
+
+	'utils-enhance': [/[\\/]node_modules[\\/](qrcode|d3)[\\/]/, /[\\/]node_modules[\\/]d3-/],
+
+	// ========== 网络与存储 ==========
+	'utils-network': [
+		/[\\/]node_modules[\\/](@ngify)[\\/]/,
+		/[\\/]node_modules[\\/](axios|follow-redirects|form-data|proxy-from-env)[\\/]/
+	],
+
+	'utils-storage': [/[\\/]node_modules[\\/](dexie)[\\/]/],
+
+	'utils-validation': [/[\\/]node_modules[\\/](zod)[\\/]/],
+
+	// ========== UI 增强 ==========
+	'ui-animation': [/[\\/]node_modules[\\/](gsap|swiper)[\\/]/],
+
+	'ui-interaction': [/[\\/]node_modules[\\/](sortablejs)[\\/]/],
+
+	// ========== polyfill ==========
+	'utils-polyfill': [/[\\/]node_modules[\\/](@babel)[\\/]/],
+
+	// ========== 其他第三方依赖 ==========
+	'unknown-deps': [
+		/[\\/]node_modules[\\/](rope-sequence|w3c-keyname)[\\/]/,
+		/[\\/]node_modules[\\/](linkifyjs|devlop|orderedmap)[\\/]/,
+		/[\\/]node_modules[\\/](compute-scroll-into-view|tslib)[\\/]/,
+		/[\\/]node_modules[\\/](perfect-debounce|hookable|birpc)[\\/]/
+	]
+}
+
+const chunkEntries = Object.entries(chunkMap)
+
+export default defineConfig(function ({ mode, command: _command }: ConfigEnv): UserConfig {
+	const env = loadEnv(mode || 'development', '')
 
 	return {
 		plugins: [
 			Vue(),
-			VueJSX(),
-			DevTools(),
+			// wasm(),
+			VueJsx(),
+			// vueDevTools(),
 			Icons({
 				compiler: 'vue3',
 				autoInstall: true,
@@ -58,8 +159,9 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
 					props['aria-hidden'] = 'true'
 				},
 				customCollections: {
+					// 'local' 是自定义集合名称，可以改为任何你喜欢的名称
 					local: FileSystemIconLoader(
-						resolve(rootDir, 'apps/extension/src/assets/icons'),
+						resolve(rootDir, 'packages/shared/src/assets/icons'),
 						function (svg) {
 							return svg.replace(/^<svg /, '<svg fill="currentColor" ')
 						}
@@ -76,9 +178,9 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
 				ext: '.gz'
 			}),
 			AutoImport({
-				imports: ['vue', 'vue-router', 'pinia'],
-				include: [/\.(?:ts|tsx|js|jsx|vue)$/i],
-				dts: 'src/types/auto-imports.d.ts'
+				dts: 'src/types/auto-imports.d.ts',
+				include: [/\.(?:ts|tsx|js|jsx)$/i],
+				imports: ['vue', 'vue-router', 'pinia']
 			}),
 			Components({
 				dts: 'src/types/components.d.ts',
@@ -91,6 +193,9 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
 						customCollections: ['local']
 					})
 				]
+			}),
+			LanguagePlugin({
+				include: resolve(fileURLToPath(import.meta.url), './src/locales')
 			})
 		],
 		resolve: {
@@ -112,24 +217,29 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
 		build: {
 			target: 'esnext',
 			cssTarget: 'chrome128',
-			minify: 'oxc',
-			cssCodeSplit: true,
+			minify: 'terser',
 			cssMinify: 'esbuild',
+			cssCodeSplit: true,
 			emptyOutDir: true,
 			sourcemap: mode === 'development' ? true : false,
+			// 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
 			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-app\//, '')}`),
-			assetsInlineLimit(filePath, content) {
-				const isInline = inlineRegexes.some((regex) => regex.test(filePath))
-				// return content.length < 10 * 1024 // 小于10kb则内联
-				if (isInline) return true
+			assetsInlineLimit(filePath, _content) {
+				const inlineRegexe = inlineRegexes.some((regex) => regex.test(filePath))
 
-				const isNoInline = noInlineRegexes.some((regex) => regex.test(filePath))
-				if (isNoInline) return false
+				// 检查是否匹配内联规则
+				// return content.length < 10 * 1024 // 小于10kb则内联
+				if (inlineRegexe) return true
+
+				const noInlineRegexe = noInlineRegexes.some((regex) => regex.test(filePath))
+
+				// 检查是否匹配不内联规则 不内联
+				if (noInlineRegexe) return false
 
 				// 默认情况下，不内联
 				return false
 			},
-			rolldownOptions: {
+			rollupOptions: {
 				input: {
 					index: 'index.html',
 					'service-worker': 'src/libs/service-worker.ts',
@@ -138,6 +248,7 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
 				output: {
 					entryFileNames: 'js/[name]-[hash].js',
 					chunkFileNames: 'js/[name]-[hash].js',
+					// assetFileNames: 'assets/[name]-[hash].[ext]',
 					assetFileNames(chunkInfo) {
 						if (!chunkInfo.names) return 'assets/[name].[ext]'
 
@@ -152,272 +263,36 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
 
 						return 'assets/[name].[ext]'
 					},
-					advancedChunks: {
-						groups: [
-							{
-								name: 'workspace-deps',
-								test(id) {
-									const patterns = [/[\\/]packages[\\/](core|wasm)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'core-apis',
-								test(id) {
-									const patterns = [/[\\/]src[\\/]apis[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'core-utils',
-								test(id) {
-									const patterns = [/[\\/]src[\\/]utils[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'core-hooks',
-								test(id) {
-									const patterns = [/[\\/]src[\\/]hooks[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'core-stores',
-								test(id) {
-									const patterns = [/[\\/]src[\\/]stores[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'core-assets',
-								test(id) {
-									const patterns = [/[\\/]src[\\/]assets[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'core-locales',
-								test(id) {
-									const patterns = [/[\\/]src[\\/]locales[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'core-plugins',
-								test(id) {
-									const patterns = [/[\\/]src[\\/]plugins[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'core-database',
-								test(id) {
-									const patterns = [/[\\/]src[\\/]database[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'core-framework',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-framework',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](@vueuse)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'ui-antd',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](ant-design-vue)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'ui-antd-deps',
-								test(id) {
-									const patterns = [
-										/[\\/]node_modules[\\/](@ant-design|@ctrl\/tinycolor|@emotion|stylis)[\\/]/,
-										/[\\/]node_modules[\\/](@simonwep\/pickr|throttle-debounce|vue-types|warning)[\\/]/,
-										/[\\/]node_modules[\\/](array-tree-filter|async-validator|dom-align|dom-scroll-into-view)[\\/]/,
-										/[\\/]node_modules[\\/](resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal)[\\/]/
-									]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'ui-icons',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](@iconify\/json)[\\/]/, /~icons/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-markdown',
-								test(id) {
-									const patterns = [
-										/[\\/]node_modules[\\/]@tiptap[\\/]/,
-										/[\\/]node_modules[\\/]prosemirror-/,
-										/[\\/]node_modules[\\/]@floating-ui[\\/]/
-									]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-code',
-								test(id) {
-									const patterns = [
-										/[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/
-									]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-languages',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](vue-i18n|@intlify)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-media',
-								test(id) {
-									const patterns = [
-										/[\\/]node_modules[\\/](mp4box)[\\/]/,
-										/[\\/]node_modules[\\/](@ffmpeg)[\\/]/,
-										/[\\/]node_modules[\\/](ffmpeg-core\.(js|wasm|worker\.js))$/
-									]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-core',
-								test(id) {
-									const patterns = [
-										/[\\/]node_modules[\\/](lodash-es|rxjs|uuid|clsx)[\\/]/,
-										/[\\/]node_modules[\\/](reflect-metadata)[\\/]/
-									]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-datetime',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-crypto',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](crypto-js)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-matches',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](fuse\.js)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-math',
-								test(id) {
-									const patterns = [
-										/[\\/]node_modules[\\/](mathjs)[\\/]/,
-										/[\\/]node_modules[\\/](mathjs|complex\.js|decimal\.js|escape-latex|fraction\.js)[\\/]/,
-										/[\\/]node_modules[\\/](javascript-natural-sort|seedrandom|tiny-emitter|typed-function)[\\/]/
-									]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-enhance',
-								test(id) {
-									const patterns = [
-										/[\\/]node_modules[\\/](qrcode|d3)[\\/]/,
-										/[\\/]node_modules[\\/]d3-/
-									]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-network',
-								test(id) {
-									const patterns = [
-										/[\\/]node_modules[\\/](@ngify)[\\/]/,
-										/[\\/]node_modules[\\/](axios|follow-redirects|form-data|proxy-from-env)[\\/]/
-									]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-storage',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](dexie)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-validation',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](zod)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'ui-animation',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](gsap|swiper)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'ui-interaction',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](sortablejs)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'utils-polyfill',
-								test(id) {
-									const patterns = [/[\\/]node_modules[\\/](@babel)[\\/]/]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							},
-							{
-								name: 'unknown-deps',
-								test(id) {
-									const patterns = [
-										/[\\/]node_modules[\\/](rope-sequence|w3c-keyname)[\\/]/,
-										/[\\/]node_modules[\\/](linkifyjs|devlop|orderedmap)[\\/]/,
-										/[\\/]node_modules[\\/](compute-scroll-into-view|tslib)[\\/]/,
-										/[\\/]node_modules[\\/](perfect-debounce|hookable|birpc)[\\/]/
-									]
-									return patterns.some((pattern) => pattern.test(id))
-								}
-							}
-						]
+					manualChunks(id, _meta) {
+						// 遍历映射表，匹配当前模块路径
+						for (const [chunkName, patterns] of chunkEntries) {
+							const pattern = patterns.some((pattern) => pattern.test(id))
+							if (pattern) return chunkName
+						}
+
+						// 其他第三方依赖
+						if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
 					}
 				}
 			}
 		},
 		css: {
 			modules: {
+				// 生成的类名格式
 				generateScopedName: '[name]-[local]-[hash:base64:6]',
+				// 是否驼峰化 CSS 类名
 				localsConvention: 'camelCase',
+				// 哪些文件需要使用 CSS Modules（默认：/\.module\./）
 				scopeBehaviour: 'local',
+				// 自定义哈希函数
 				hashPrefix: 'prefix'
 			},
 			preprocessorOptions: {
 				scss: {
+					// api: 'modern-compiler',
+					// importer: '',
+					// importers:"",
+					// functions: false,
 					// additionalData: '@import "@/styles/variables.scss";',
 				}
 			}

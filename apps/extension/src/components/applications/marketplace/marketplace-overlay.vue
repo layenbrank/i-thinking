@@ -6,10 +6,10 @@ import 'swiper/scss/pagination'
 import type { AutoplayOptions } from 'swiper/types'
 import type { Reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
-import StoreAihub from './store-aihub.vue'
-import StoreApplication from './store-application.vue'
-import StoreCustomization from './store-customization.vue'
-import StoreGame from './store-game.vue'
+import MarketplaceAihub from './marketplace-aihub.vue'
+import MarketplaceApplication from './marketplace-application.vue'
+import MarketplaceCustomization from './marketplace-customization.vue'
+import MarketplaceGame from './marketplace-game.vue'
 
 type ReflectComponent = 'application' | 'game' | 'ai' | 'customization'
 
@@ -186,10 +186,10 @@ const activeKey = ref<GeneralOptions>({
 })
 
 const reflect: Record<ReflectComponent, Component> = {
-	ai: StoreAihub,
-	game: StoreGame,
-	application: StoreApplication,
-	customization: StoreCustomization
+	ai: MarketplaceAihub,
+	game: MarketplaceGame,
+	application: MarketplaceApplication,
+	customization: MarketplaceCustomization
 }
 
 const options: GeneralOptions[] = [
@@ -224,13 +224,13 @@ function updateActiveKey(item: GeneralOptions) {
 
 <template>
 	<div class="marketplace-overlay">
-		<div class="store-categories">
+		<div class="marketplace-categories">
 			<div
 				:key="option.key"
 				v-for="option in options"
 				@click="updateActiveKey(option)"
 				:class="[
-					'store-category',
+					'marketplace-category',
 					{
 						'is-active': activeKey.key === option.key
 					}
@@ -239,7 +239,7 @@ function updateActiveKey(item: GeneralOptions) {
 				{{ option.label }}
 			</div>
 		</div>
-		<div class="store-content">
+		<div class="marketplace-content">
 			<template v-for="option in options">
 				<component
 					:key="option.key"
@@ -257,11 +257,11 @@ function updateActiveKey(item: GeneralOptions) {
 .marketplace-overlay {
 	@apply h-full flex justify-between gap-x-2;
 
-	.store-categories {
+	.marketplace-categories {
 		@apply w-20 h-full flex flex-col items-center gap-y-1 rounded-l-lg overflow-x-hidden overflow-y-scroll  bg-[#fbeff5] p-2;
 		scrollbar-width: none;
 
-		.store-category {
+		.marketplace-category {
 			@apply w-full px-2 py-2 text-center rounded-md cursor-pointer transition-all duration-300;
 
 			&:hover,
@@ -271,7 +271,7 @@ function updateActiveKey(item: GeneralOptions) {
 		}
 	}
 
-	.store-content {
+	.marketplace-content {
 		@apply flex-1 rounded-r-lg overflow-x-hidden overflow-y-scroll pt-2 pr-2 pb-2;
 		scrollbar-width: none;
 		// --swiper-navigation-size: 30px;
