@@ -14,7 +14,7 @@ pub struct UserController;
 impl UserController {
     pub async fn find_all(
         database: web::Data<Arc<Storage>>,
-        req: HttpRequest,
+        _req: HttpRequest,
     ) -> Result<HttpResponse> {
         let users = UserService::find_all(&database)
             .await
@@ -31,7 +31,7 @@ impl UserController {
     pub async fn find_one(
         db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
-        req: HttpRequest,
+        _req: HttpRequest,
     ) -> Result<HttpResponse> {
         let id = path.into_inner();
 
@@ -47,7 +47,7 @@ impl UserController {
     pub async fn insert(
         db: web::Data<Arc<Storage>>,
         req_body: web::Json<CreateUser>,
-        req: HttpRequest,
+        _req: HttpRequest,
     ) -> Result<HttpResponse> {
         let user = UserService::insert(&db, req_body.into_inner())
             .await
@@ -61,7 +61,7 @@ impl UserController {
         db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
         req_body: web::Json<UpdateUser>,
-        req: HttpRequest,
+        _req: HttpRequest,
     ) -> Result<HttpResponse> {
         let id = path.into_inner();
 
@@ -77,7 +77,7 @@ impl UserController {
     pub async fn remove(
         db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
-        req: HttpRequest,
+        _req: HttpRequest,
     ) -> Result<HttpResponse> {
         let id = path.into_inner();
 

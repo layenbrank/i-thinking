@@ -18,11 +18,11 @@ crate-type = ["rlib", "cdylib", "staticlib"]
 
 [[bin]]
 name = "service"
-path = "src/main.rs"
+path = "src/bin/service.rs"
 
 [[bin]]
-name = "generate_keys"
-path = "scripts/generate_keys.rs"
+name = "generate"
+path = "src/bin/generate.rs"
 
 [dependencies]
 actix-cors = "0.7.1"
@@ -49,3 +49,4 @@ base64 = "0.22.1"
 rand = "0.9.2"
 colored = "3.0.0"
 comfy-table = { version = "7.2.1", features = ["custom_styling"] }
+dialoguer = "0.12.0"

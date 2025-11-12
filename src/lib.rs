@@ -12,10 +12,11 @@ pub mod middlewares {
 }
 
 pub mod utils {
-    pub mod timestamp;
     pub mod encryption;
+    pub mod generate;
     pub mod jwt;
     pub mod response;
+    pub mod timestamp;
 }
 
 pub mod services {

@@ -1,22 +1,35 @@
 use crate::{
-    services::engine::service::{EngineService, Suggestion, URLParams},
-    utils::response::{ApiErrorResponse, ApiResponse, data},
+    services::engine::{schema::URLParams, service::EngineService},
+    utils::response::{ApiErrorResponse, ApiResponse, request},
 };
-use actix_web::{HttpResponse, Result, web};
+use actix_web::{HttpRequest, Responder, web};
 
 pub struct EngineController;
 
 impl EngineController {
-    pub async fn find(path: web::Query<URLParams>) -> Result<HttpResponse> {
-        let params = path.clone();
-        println!("URLParams: {:?}", params);
-        let suggestion = EngineService::suggestion(params.clone()).await;
+    pub async fn find(req: HttpRequest) -> impl Responder {
+        // 手动提取查询参数，以便更好地处理错误
+        let params = match web::Query::<URLParams>::from_query(req.query_string()) {
+            Ok(query) => {
+                println!("URLParams: {}", query);
+                query.into_inner()
+            }
+            Err(err) => {
+                // Query 参数解析失败，返回格式化的错误响应
+                return ApiErrorResponse::custom(
+                    request::INVALID_PARAMETER_FORMAT,
+                    format!("请求参数格式错误: {}", err),
+                )
+                .transform();
+            }
+        };
 
-        match suggestion {
+        // 直接传递 HttpRequest 给 service，统一在 controller 处理错误
+        match EngineService::suggestion(params, &req).await {
             Ok(suggestion) => ApiResponse::success(suggestion, "Suggestion found").transform(),
-            Err(error) => {
-                ApiErrorResponse::custom(data::DATA_INCONSISTENCY, "Failed to find suggestion")
-                    .transform()
+            Err(err) => {
+                // 使用 From trait 自动转换错误
+                ApiErrorResponse::from(err).transform()
             }
         }
     }

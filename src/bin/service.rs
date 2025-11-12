@@ -8,8 +8,7 @@ use core::{
     utils,
 };
 use env_logger::Env;
-use std::env;
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -102,7 +101,7 @@ async fn index_html() -> impl Responder {
 
 /// API 健康检查端点，展示统一响应格式
 #[get("/api/health")]
-async fn health_check(req: HttpRequest) -> impl Responder {
+async fn health_check(_req: HttpRequest) -> impl Responder {
     use serde_json::json;
     use utils::response::ApiResponse;
 

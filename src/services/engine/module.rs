@@ -12,9 +12,8 @@ pub struct EngineModule;
 
 impl EngineModule {
     pub fn configure(cfg: &mut web::ServiceConfig) {
-        cfg.service(web::scope("/engine").route(
-            "/suggestion/{pt}/{qry}/{cp}/{csr}/{pths}/{cvid}",
-            web::get().to(EngineController::find),
-        ));
+        cfg.service(
+            web::scope("/engine").route("/suggestion", web::get().to(EngineController::find)),
+        );
     }
 }

@@ -1,11 +1,11 @@
 use crate::configures::configure::Encryption;
 use aes_gcm::{
-    aead::{Aead, AeadCore, KeyInit},
     Aes256Gcm, Key, Nonce,
+    aead::{Aead, AeadCore, KeyInit},
 };
+use argon2::password_hash::{SaltString, rand_core::OsRng};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use argon2::password_hash::{rand_core::OsRng, SaltString};
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD};
 
 #[derive(Debug, thiserror::Error)]
 pub enum EncryptionError {
@@ -45,9 +45,11 @@ pub fn verify_password(
     aes_key: Option<&str>,
 ) -> Result<bool, EncryptionError> {
     match method {
-        Encryption::Aes => {
-            verify_with_aes(password, encrypted, aes_key.ok_or(EncryptionError::InvalidKeyLength)?)
-        }
+        Encryption::Aes => verify_with_aes(
+            password,
+            encrypted,
+            aes_key.ok_or(EncryptionError::InvalidKeyLength)?,
+        ),
         Encryption::Argon2 => verify_with_argon2(password, encrypted),
     }
 }
@@ -63,7 +65,11 @@ fn encrypt_with_aes(password: &str, key_str: &str) -> Result<String, EncryptionE
         return Err(EncryptionError::InvalidKeyLength);
     }
 
-    let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
+    // 使用 Into trait 替代已弃用的 from_slice
+    let key_array: [u8; 32] = key_bytes
+        .try_into()
+        .map_err(|_| EncryptionError::InvalidKeyLength)?;
+    let key: &Key<Aes256Gcm> = (&key_array).into();
     let cipher = Aes256Gcm::new(key);
 
     // 生成随机 nonce
@@ -82,7 +88,11 @@ fn encrypt_with_aes(password: &str, key_str: &str) -> Result<String, EncryptionE
 }
 
 /// 使用 AES-256-GCM 验证密码
-fn verify_with_aes(password: &str, encrypted: &str, key_str: &str) -> Result<bool, EncryptionError> {
+fn verify_with_aes(
+    password: &str,
+    encrypted: &str,
+    key_str: &str,
+) -> Result<bool, EncryptionError> {
     // 解码 base64 密钥
     let key_bytes = STANDARD
         .decode(key_str)
@@ -92,7 +102,11 @@ fn verify_with_aes(password: &str, encrypted: &str, key_str: &str) -> Result<boo
         return Err(EncryptionError::InvalidKeyLength);
     }
 
-    let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
+    // 使用 Into trait 替代已弃用的 from_slice
+    let key_array: [u8; 32] = key_bytes
+        .try_into()
+        .map_err(|_| EncryptionError::InvalidKeyLength)?;
+    let key: &Key<Aes256Gcm> = (&key_array).into();
     let cipher = Aes256Gcm::new(key);
 
     // 解码加密数据
@@ -105,12 +119,15 @@ fn verify_with_aes(password: &str, encrypted: &str, key_str: &str) -> Result<boo
     }
 
     // 提取 nonce (前 12 字节) 和 ciphertext
-    let nonce = Nonce::from_slice(&combined[..12]);
+    let nonce_bytes: [u8; 12] = combined[..12]
+        .try_into()
+        .map_err(|_| EncryptionError::AesError("Invalid nonce length".to_string()))?;
+    let nonce = Nonce::from(nonce_bytes);
     let ciphertext = &combined[12..];
 
-    // 解密
+    // 解密（需要传递 nonce 的引用）
     let decrypted = cipher
-        .decrypt(nonce, ciphertext)
+        .decrypt(&nonce, ciphertext)
         .map_err(|_| EncryptionError::AesError("Decryption failed".to_string()))?;
 
     // 比较密码
@@ -137,8 +154,8 @@ fn encrypt_with_argon2(password: &str) -> Result<String, EncryptionError> {
 
 /// 使用 Argon2id 验证密码
 fn verify_with_argon2(password: &str, hashed: &str) -> Result<bool, EncryptionError> {
-    let parsed_hash = PasswordHash::new(hashed)
-        .map_err(|e| EncryptionError::Argon2Error(e.to_string()))?;
+    let parsed_hash =
+        PasswordHash::new(hashed).map_err(|e| EncryptionError::Argon2Error(e.to_string()))?;
 
     let argon2 = Argon2::default();
 
@@ -151,7 +168,7 @@ fn verify_with_argon2(password: &str, hashed: &str) -> Result<bool, EncryptionEr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use base64::{engine::general_purpose::STANDARD, Engine};
+    use base64::{Engine, engine::general_purpose::STANDARD};
 
     #[test]
     fn test_argon2_encryption() {

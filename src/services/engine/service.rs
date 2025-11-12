@@ -1,80 +1,130 @@
-use actix_web::web;
-use reqwest::{Client, Error};
-use serde::{Deserialize, Serialize};
-use std::fmt;
+use crate::services::engine::schema::{Suggestion, URLParams};
+use crate::utils::response::ApiErrorResponse;
+use actix_web::HttpRequest;
+use reqwest::{Client, Error as ReqwestError, header};
+use serde_json::Error as JsonError;
 
-pub struct EngineService;
+// 请求头常量
+const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+const ACCEPT_HEADER: &str = "application/json, text/plain, */*";
+const API_BASE_URL: &str = "https://cn.bing.com/AS/Suggestions";
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum TSchema {
-    LT,
-    MT,
-    SC,
+#[derive(Debug, thiserror::Error)]
+pub enum EngineError {
+    #[error("HTTP request error: {0}")]
+    HttpError(#[from] ReqwestError),
+    #[error("JSON parse error: {0}")]
+    JsonParseError(#[from] JsonError),
+    #[error("HTTP error {status}: {message}")]
+    HttpStatusError { status: u16, message: String },
+    #[error("Invalid response format: {0}")]
+    InvalidResponseFormat(String),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct EmptySchema {
-    id: String,
-    q: String,
-    u: String,
-    t: u64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ISchema {
-    ig: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Suggestion {
-    s: Vec<EmptySchema>,
-    i: ISchema,
-}
-// pt: 'page.home',
-// qry: value,
-// cp: value.length,
-// csr: '1',
-// pths: '1',
-// cvid: cvid
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct URLParams {
-    pt: String,
-    qry: String,
-    cp: u64,
-    csr: String,
-    pths: String,
-    cvid: String,
-}
-
-impl URLParams {
-    pub fn new(pt: String, qry: String, cp: u64, csr: String, pths: String, cvid: String) -> Self {
-        URLParams {
-            pt,
-            qry,
-            cp,
-            csr,
-            pths,
-            cvid,
+impl From<EngineError> for ApiErrorResponse {
+    fn from(err: EngineError) -> Self {
+        use crate::utils::response::data;
+        match err {
+            EngineError::HttpError(e) => {
+                ApiErrorResponse::custom(data::DATA_INCONSISTENCY, format!("网络请求失败: {}", e))
+            }
+            EngineError::JsonParseError(e) => {
+                ApiErrorResponse::custom(data::DATA_INCONSISTENCY, format!("响应解析失败: {}", e))
+            }
+            EngineError::HttpStatusError { status, message } => ApiErrorResponse::custom(
+                data::DATA_INCONSISTENCY,
+                format!("HTTP错误 {}: {}", status, message),
+            ),
+            EngineError::InvalidResponseFormat(msg) => {
+                ApiErrorResponse::custom(data::DATA_INCONSISTENCY, format!("响应格式错误: {}", msg))
+            }
         }
     }
 }
 
+pub struct EngineService;
+
 impl EngineService {
-    pub async fn suggestion(path: web::Query<URLParams>) -> Result<Suggestion, Error> {
+    /// 获取搜索建议
+    ///
+    /// # 参数
+    /// - `params`: URL 查询参数
+    /// - `req`: HTTP 请求对象，用于提取 User-Agent 等请求头信息
+    pub async fn suggestion(
+        params: URLParams,
+        req: &HttpRequest,
+    ) -> Result<Suggestion, EngineError> {
         let client = Client::new();
-        let fetch = client.get("https://api.example.com/suggestion");
-        let response = fetch.send().await?;
-        let suggestion = response.json::<Suggestion>().await?;
-        // let suggestion: Suggestion = response.json().await;
-        println!("Suggestion: {}", suggestion);
+
+        // 构建请求头
+        let mut headers = header::HeaderMap::new();
+
+        // 从请求中提取 User-Agent，如果无效或不存在则使用默认值
+        let user_agent = req
+            .headers()
+            .get("user-agent")
+            .and_then(|h| h.to_str().ok())
+            .filter(|ua| !ua.is_empty())
+            .unwrap_or(DEFAULT_USER_AGENT);
+
+        // 创建 User-Agent 请求头，如果失败则使用默认值
+        let user_agent_header = header::HeaderValue::from_str(user_agent).unwrap_or_else(|_| {
+            // 如果 User-Agent 无效，使用默认值
+            header::HeaderValue::from_static(DEFAULT_USER_AGENT)
+        });
+
+        headers.insert(header::USER_AGENT, user_agent_header);
+
+        headers.insert(
+            header::ACCEPT,
+            header::HeaderValue::from_static(ACCEPT_HEADER),
+        );
+
+        let response = client
+            .get(API_BASE_URL)
+            .headers(headers)
+            .query(&params)
+            .send()
+            .await?;
+
+        // 检查响应状态码
+        let status = response.status();
+        println!("Response status: {}", status);
+
+        if !status.is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(EngineError::HttpStatusError {
+                status: status.as_u16(),
+                message: error_text,
+            });
+        }
+
+        // 先获取响应文本用于调试
+        let text = response.text().await?;
+
+        // 打印响应内容用于调试
+        println!(
+            "Response body (first 500 chars): {}",
+            if text.len() > 500 {
+                &text[..500]
+            } else {
+                &text
+            }
+        );
+
+        // 尝试解析 JSON
+        let suggestion: Suggestion = serde_json::from_str(&text).map_err(|e| {
+            EngineError::InvalidResponseFormat(format!(
+                "JSON解析失败: {}\n响应内容: {}",
+                e,
+                if text.len() > 1000 {
+                    format!("{}...", &text[..1000])
+                } else {
+                    text
+                }
+            ))
+        })?;
 
         Ok(suggestion)
-    }
-}
-
-impl fmt::Display for Suggestion {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "suggestion s: {:?}, i: {:?}", self.s, self.i,)
     }
 }

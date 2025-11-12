@@ -3,7 +3,10 @@ use actix_web::{
     dev::{ServiceRequest, ServiceResponse, Transform},
 };
 use colored::*;
-use comfy_table::{Table, Cell, modifiers::{UTF8_ROUND_CORNERS, UTF8_SOLID_INNER_BORDERS}};
+use comfy_table::{
+    Cell, Table,
+    modifiers::{UTF8_ROUND_CORNERS, UTF8_SOLID_INNER_BORDERS},
+};
 use futures::future::{LocalBoxFuture, Ready, ok};
 use std::task::{Context, Poll};
 use uuid::Uuid;
@@ -46,7 +49,7 @@ where
         self.service.poll_ready(cx)
     }
 
-    fn call(&self, mut req: ServiceRequest) -> Self::Future {
+    fn call(&self, req: ServiceRequest) -> Self::Future {
         // 生成请求 ID
         let id = Uuid::new_v4().to_string();
 
@@ -61,12 +64,15 @@ where
             .to_string();
 
         // 提取客户端 IP
-        let client_ip = req.connection_info().peer_addr()
+        let client_ip = req
+            .connection_info()
+            .peer_addr()
             .map(|s| s.to_string())
             .unwrap_or_else(|| "Unknown".to_string());
 
         // 提取 User-Agent
-        let user_agent = req.headers()
+        let user_agent = req
+            .headers()
             .get("user-agent")
             .and_then(|h| h.to_str().ok())
             .unwrap_or("Unknown")
