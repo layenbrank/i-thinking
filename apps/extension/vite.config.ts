@@ -13,7 +13,7 @@ import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
-// import vueDevTools from 'vite-plugin-vue-devtools'
+import DevTools from 'vite-plugin-vue-devtools'
 import pkg from './package.json'
 // import wasm from 'vite-plugin-wasm'
 
@@ -147,7 +147,7 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 			Vue(),
 			// wasm(),
 			VueJsx(),
-			// vueDevTools(),
+			DevTools(),
 			Icons({
 				compiler: 'vue3',
 				autoInstall: true,
@@ -179,7 +179,7 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 			}),
 			AutoImport({
 				dts: 'src/types/auto-imports.d.ts',
-				include: [/\.(?:ts|tsx|js|jsx)$/i],
+				include: [/\.[tj]sx?$/, /\.vue$/],
 				imports: ['vue', 'vue-router', 'pinia']
 			}),
 			Components({
