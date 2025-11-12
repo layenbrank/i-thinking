@@ -2,7 +2,7 @@
 import backgroundImage from '@/assets/wallpaper/r2e391.png'
 import { generateSecureCvid } from '@/utils/generate.ts'
 import { http } from '@/utils/http/http.ts'
-import { ENGINE_TOKEN } from '@/utils/http/token.ts'
+import { COREX_TOKEN, ENGINE_TOKEN } from '@/utils/http/token.ts'
 import {
 	onClickOutside,
 	onKeyStroke,
@@ -180,10 +180,26 @@ function toggleLanguage() {
 }
 
 onMounted(function () {
-	//
+	const keyword = '十日终焉'
+	http
+		.get('/engine/suggestion', {
+			// params: {
+			// 	pt: 'page.home',
+			// 	qry: keyword,
+			// 	cp: keyword.length,
+			// 	csr: '1',
+			// 	pths: '1',
+			// 	cvid: cvid
+			// },
+			context: COREX_TOKEN
+		})
+		.subscribe(function (response) {
+			console.log('response', response)
+		})
 	// GET_APPLICATION().subscribe(function (response) {
 	// 	console.log('application', response)
 	// })
+	// http.get(url)
 })
 
 onUnmounted(function () {

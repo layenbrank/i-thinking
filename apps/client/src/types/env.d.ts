@@ -12,7 +12,7 @@ interface ImportMeta {
 	readonly env: ImportMetaEnv
 }
 
-type EnvURL = 'extension' | 'engine' | 'intelligence'
+type EnvURL = 'corex' | 'engine' | 'intelligence'
 
 interface Window {
 	MediaStreamTrackProcessor: typeof MediaStreamTrackProcessor

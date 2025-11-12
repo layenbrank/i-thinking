@@ -5,8 +5,8 @@ export const CACHE_TOKEN = new HttpContextToken(() => 0)
 
 export const ENV_TOKEN = new HttpContextToken<EnvURL | undefined>(() => undefined)
 
-export const EXTENSION_TOKEN = new HttpContext().set(ENV_TOKEN, 'extension')
-
 export const ENGINE_TOKEN = new HttpContext().set(ENV_TOKEN, 'engine')
 
 export const INTELLIGENCE_TOKEN = new HttpContext().set(ENV_TOKEN, 'intelligence')
+
+export const COREX_TOKEN = new HttpContext().set(ENV_TOKEN, 'corex')

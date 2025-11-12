@@ -5,8 +5,8 @@ import type { Observable } from 'rxjs'
 const REGEXP: Readonly<RegExp> = /^https?:\/\//
 
 const ENVURL: Readonly<Record<EnvURL, string>> = {
+	corex: import.meta.env.VITE_COREX,
 	engine: import.meta.env.VITE_ENGINE,
-	extension: import.meta.env.VITE_EXTENSION,
 	intelligence: import.meta.env.VITE_INTELLIGENCE
 }
 
