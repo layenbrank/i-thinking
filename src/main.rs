@@ -1,19 +1,29 @@
 use actix_cors::Cors;
 use actix_web::{
-    App, HttpRequest, HttpResponse, HttpServer, Responder, get, http::header,
-    web::Data,
+    App, HttpRequest, HttpResponse, HttpServer, Responder, get, http::header, web::Data,
 };
-use env_logger::Env;
 use core::{
     configures::configure::Configure, databases::database::Storage,
     middlewares::response::ResponseWrapper, services::application::module::ApplicationModule,
     utils,
 };
+use env_logger::Env;
+use std::env;
 use std::sync::Arc;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenv::dotenv().ok();
+    // dotenv::dotenv().ok();
+    // dotenv::from_path(
+    //   env::home_dir()
+    // )
+
+    let env_path = env::home_dir()
+        .and_then(|a| Some(a.join("/.corex/.env")))
+        .unwrap();
+    dotenv::from_path(env_path.as_path()).ok();
+
+    // dotenv::dotenv()
 
     let configure = Configure::from_env().expect("Failed to load configuration");
 
@@ -26,10 +36,9 @@ async fn main() -> std::io::Result<()> {
     let host = config.host.clone();
     let port = config.port;
 
-    println!(
-        "📝 API Documentation: http://{}:{}/api/v1",
-        host, port
-    );
+    println!("📝 API Documentation: http://{}:{}/api/v1", host, port);
+
+    println!("Configuration loaded: {:?}", configure);
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
