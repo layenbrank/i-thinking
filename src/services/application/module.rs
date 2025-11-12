@@ -1,6 +1,6 @@
 use crate::services::{
-    auth::module::AuthModule, upload::module::UploadModule, user::module::UserModule,
-    engine::module::EngineModule,
+    auth::module::AuthModule, engine::module::EngineModule, upload::module::UploadModule,
+    user::module::UserModule,
 };
 use actix_web::web;
 

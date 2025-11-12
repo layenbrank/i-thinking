@@ -3,7 +3,6 @@ use actix_web::web;
 
 pub struct EngineModule;
 
-
 // pt: 'page.home',
 // qry: value,
 // cp: value.length,
@@ -11,12 +10,11 @@ pub struct EngineModule;
 // pths: '1',
 // cvid: cvid
 
-
 impl EngineModule {
     pub fn configure(cfg: &mut web::ServiceConfig) {
-        cfg.service(
-          web::scope("/engine")
-            .route("/suggestion/{pt}/{qry}/{cp}/{csr}/{pths}/{cvid}", web::get().to(EngineController::find))
-        );
+        cfg.service(web::scope("/engine").route(
+            "/suggestion/{pt}/{qry}/{cp}/{csr}/{pths}/{cvid}",
+            web::get().to(EngineController::find),
+        ));
     }
 }
