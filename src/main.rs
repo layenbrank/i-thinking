@@ -13,17 +13,27 @@ use std::sync::Arc;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // dotenv::dotenv().ok();
-    // dotenv::from_path(
-    //   env::home_dir()
-    // )
+    // 按优先级尝试加载 .env 文件
+    let env_loaded =
+        // 1. 尝试从可执行文件所在目录加载
+        std::env::current_exe()
+            .ok()
+            .and_then(|exe_path| exe_path.parent().map(|p| p.join(".env")))
+            .filter(|p| p.exists())
+            .and_then(|p| dotenv::from_path(p.as_path()).ok())
+            .is_some()
+        // 2. 尝试从当前工作目录加载
+        || dotenv::dotenv().is_ok()
+        // 3. 尝试从用户主目录加载
+        || env::home_dir()
+            .map(|home| home.join(".corex").join(".env"))
+            .filter(|p| p.exists())
+            .and_then(|p| dotenv::from_path(p.as_path()).ok())
+            .is_some();
 
-    let env_path = env::home_dir()
-        .and_then(|a| Some(a.join("/.corex/.env")))
-        .unwrap();
-    dotenv::from_path(env_path.as_path()).ok();
-
-    // dotenv::dotenv()
+    if !env_loaded {
+        eprintln!("警告: 未找到 .env 文件，将使用默认值");
+    }
 
     let configure = Configure::from_env().expect("Failed to load configuration");
 
