@@ -1,4 +1,4 @@
 pub struct MarkdownSchema {
-    pub id: i32,
+    pub id: String,
     pub content: String,
 }
