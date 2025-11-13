@@ -2,7 +2,7 @@
 import backgroundImage from '@/assets/wallpaper/r2e391.png'
 import { generateSecureCvid } from '@/utils/generate.ts'
 import { http } from '@/utils/http/http.ts'
-import { COREX_TOKEN, ENGINE_TOKEN } from '@/utils/http/token.ts'
+import { COREX_TOKEN } from '@/utils/http/token.ts'
 import {
 	onClickOutside,
 	onKeyStroke,
@@ -91,8 +91,10 @@ const toQuery = debounce(function (value: string) {
 
 	// bing   313EA35317DD492295D155D6F708F74B
 	// custom 0F96C1D8AE2D4E1280D591B9B1D5A020
+	// http
+	// 	.get<ResponseZod>('/AS/Suggestions', {
 	http
-		.get<ResponseZod>('/AS/Suggestions', {
+		.get<RSF<ResponseZod>>('/engine/suggestion', {
 			params: {
 				pt: 'page.home',
 				qry: value,
@@ -101,12 +103,13 @@ const toQuery = debounce(function (value: string) {
 				pths: '1',
 				cvid: cvid
 			},
-			context: ENGINE_TOKEN
+			context: COREX_TOKEN
+			// context: ENGINE_TOKEN
 		})
 		.subscribe(function (response) {
 			console.log('bing response', response, 'cvid', cvid)
 			if (!response) return
-			queries.value = response
+			queries.value = response.data
 			// suggestions.value = response.s
 			// console.log('suggestions', suggestions.value)
 			//
@@ -180,22 +183,22 @@ function toggleLanguage() {
 }
 
 onMounted(function () {
-	const keyword = '十日终焉'
-	http
-		.get('/engine/suggestion', {
-			// params: {
-			// 	pt: 'page.home',
-			// 	qry: keyword,
-			// 	cp: keyword.length,
-			// 	csr: '1',
-			// 	pths: '1',
-			// 	cvid: cvid
-			// },
-			context: COREX_TOKEN
-		})
-		.subscribe(function (response) {
-			console.log('response', response)
-		})
+	// const keyword = '十日终焉'
+	// http
+	// 	.get('/engine/suggestion', {
+	// params: {
+	// 	pt: 'page.home',
+	// 	qry: keyword,
+	// 	cp: keyword.length,
+	// 	csr: '1',
+	// 	pths: '1',
+	// 	cvid: cvid
+	// },
+	// 	context: COREX_TOKEN
+	// })
+	// .subscribe(function (response) {
+	// 	console.log('response', response)
+	// })
 	// GET_APPLICATION().subscribe(function (response) {
 	// 	console.log('application', response)
 	// })
