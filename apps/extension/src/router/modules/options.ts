@@ -30,6 +30,11 @@ export default {
 			component: () => import('@/views/intelligence-view.vue')
 		},
 		{
+			path: '/iframe-view',
+			name: 'iframe-view',
+			component: () => import('@/views/iframe-view.vue')
+		},
+		{
 			path: '/:pathMatch(.*)*',
 			name: 'not-found',
 			component: () => import('@/views/not-found-view.vue')
