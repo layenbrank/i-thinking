@@ -27,6 +27,13 @@ pub mod services {
         pub mod service;
     }
 
+    pub mod markdown {
+        pub mod controller;
+        pub mod module;
+        pub mod schema;
+        pub mod service;
+    }
+
     pub mod engine {
         pub mod controller;
         pub mod module;
