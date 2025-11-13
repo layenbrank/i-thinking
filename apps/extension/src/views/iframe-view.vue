@@ -123,6 +123,7 @@ async function renderMarkdown(markdown: string) {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Markdown Preview</title>
+	<base target="_blank">
 	<style>
 		* {
 			margin: 0;
@@ -361,11 +362,9 @@ onUnmounted(() => {
 	<div class="iframe-view">
 		<div v-if="isLoading" class="loading">渲染中...</div>
 		<div v-if="error" class="error">{{ error }}</div>
-		<iframe ref="iframeRef" frameborder="0" sandbox="allow-scripts"></iframe>
+		<iframe ref="iframeRef" frameborder="0" sandbox="allow-scripts allow-popups"></iframe>
 
-		<!-- allow-scripts + allow-same-origin 的组合会让 iframe 内的脚本能够访问父页面的 DOM 和数据，从而绕过沙箱隔离 -->
-		<!-- 如果需要通信，可以通过已实现的 useCrossContextBridge 进行安全的跨上下文消息传递 -->
-		<!-- <iframe ref="iframeRef" frameborder="0" sandbox="allow-scripts allow-same-origin"></iframe> -->
+		<!-- 说明：仅开放 allow-popups 以允许新窗口打开；不启用 allow-same-origin，避免沙箱逃逸 -->
 	</div>
 </template>
 
