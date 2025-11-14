@@ -5,6 +5,7 @@ import { useCrossContextBridge } from '@/composables/useCrossContextBridge'
 import { useMarkdownPlugin } from '@/composables/useMarkdownPlugin'
 import { useMarkdownRenderer } from '@/composables/useMarkdownRenderer'
 import { usePerformanceMonitor } from '@/composables/usePerformanceMonitor'
+import { createHighlightPlugin } from '@/plugins/highlight.plugin'
 
 defineOptions({
 	name: 'iframe-view'
@@ -28,6 +29,8 @@ const renderedHtml = ref('')
  */
 const pluginManager = useMarkdownPlugin()
 
+void pluginManager.register(createHighlightPlugin())
+
 /**
  * Markdown 渲染器
  */
@@ -36,6 +39,7 @@ const renderer = useMarkdownRenderer({
 	breaks: true,
 	sanitize: true,
 	pluginManager,
+	features: ['highlight'],
 	cache: {
 		enabled: true,
 		maxSize: 100,

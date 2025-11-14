@@ -1,3 +1,4 @@
+import 'highlight.js/styles/github-dark.css'
 /**
  * 语法高亮插件 - 使用 highlight.js
  */
@@ -40,37 +41,43 @@ export function createHighlightPlugin() {
 
 					// 注册语言
 					const languages = config.languages ?? []
-					for (const lang of languages) {
-						try {
-							const langModule = await import(`highlight.js/lib/languages/${lang}`)
-							hljs.registerLanguage(lang, langModule.default)
-						} catch (error) {
-							context.logger.warn(`Failed to load language: ${lang}`, error)
-						}
-					}
+					const langModule = await import(`highlight.js/lib/languages/javascript`)
+					hljs.registerLanguage('javascript', langModule.default)
+					console.log('langModule', langModule)
+					// for (const lang of languages) {
+					// 	try {
+					// 		const langModule = await import(`highlight.js/lib/languages/${lang}`)
+					// 		console.log('langModule', langModule)
+
+					// 		hljs.registerLanguage(lang, langModule.default)
+					// 	} catch (error) {
+					// 		context.logger.warn(`Failed to load language: ${lang}`, error)
+					// 	}
+					// }
 
 					// 加载主题样式
 					if (config.theme) {
 						const themeStyle = document.createElement('link')
 						themeStyle.rel = 'stylesheet'
-						themeStyle.href = `https://cdn.jsdelivr.net/npm/highlight.js@11/styles/${config.theme}.min.css`
+						themeStyle.href = `https://unpkg.com/@highlightjs/cdn-assets@11.11.1/styles/${config.theme}.min.css`
 						document.head.appendChild(themeStyle)
 						context.state.set('themeStyle', themeStyle)
 					}
 
 					context.logger.info('Highlight.js initialized')
+					hljs.highlightAll()
 				} catch (error) {
 					context.logger.error('Failed to initialize highlight.js:', error)
 					throw error
 				}
 			},
 
-			afterRender(html: string, context: any) {
-				if (!hljs) return html
+			afterRender(DOMStringify: string, context: any) {
+				if (!hljs) return DOMStringify
 
 				// 使用 DOM 解析
 				const parser = new DOMParser()
-				const doc = parser.parseFromString(html, 'text/html')
+				const doc = parser.parseFromString(DOMStringify, 'text/html')
 				const codeBlocks = doc.querySelectorAll('pre code')
 
 				for (const block of codeBlocks) {

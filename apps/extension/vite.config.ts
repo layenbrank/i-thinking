@@ -317,6 +317,12 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 					target: 'https://www.baidu.com',
 					changeOrigin: true,
 					rewrite: (path) => path.replace(/^\/bing/, '')
+				},
+				'/go': {
+					target: 'http://172.16.1.135:9001',
+					// target: 'http://172.16.0.8:9001',
+					changeOrigin: true,
+					rewrite: (path) => path.replace(/^\/go/, '/go')
 				}
 			}
 		}
