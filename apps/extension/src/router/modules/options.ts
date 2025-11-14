@@ -32,8 +32,13 @@ export default {
 		{
 			path: '/iframe-view',
 			name: 'iframe-view',
-			component: () => import('@/views/iframe-view.vue')
+			component: () => import('@/views/demo/iframe-view.vue')
 		},
+		// {
+		// 	path: '/iframe-view',
+		// 	name: 'iframe-view',
+		// 	component: () => import('@/views/iframe-view.vue')
+		// },
 		{
 			path: '/:pathMatch(.*)*',
 			name: 'not-found',

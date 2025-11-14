@@ -1,0 +1,195 @@
+const RootDOMstringify = `
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Markdown Preview</title>
+		<base target="_blank" />
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				width: 100%;
+				height: 100%;
+			}
+			body {
+				font-family:
+					-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+				line-height: 1.6;
+				color: #333;
+				padding: 20px;
+				background: #fff;
+			}
+			h1,
+			h2,
+			h3,
+			h4,
+			h5,
+			h6 {
+				margin-top: 24px;
+				margin-bottom: 16px;
+				font-weight: 600;
+				line-height: 1.25;
+			}
+			h1 {
+				font-size: 2em;
+				border-bottom: 1px solid #eaecef;
+				padding-bottom: 0.3em;
+			}
+			h2 {
+				font-size: 1.5em;
+				border-bottom: 1px solid #eaecef;
+				padding-bottom: 0.3em;
+			}
+			h3 {
+				font-size: 1.25em;
+			}
+			p {
+				margin-bottom: 16px;
+			}
+			code {
+				background: #f6f8fa;
+				padding: 0.2em 0.4em;
+				border-radius: 3px;
+				font-family: 'Consolas', 'Monaco', monospace;
+				font-size: 85%;
+			}
+			pre {
+				background: #f6f8fa;
+				padding: 16px;
+				border-radius: 6px;
+				overflow-x: auto;
+				margin-bottom: 16px;
+			}
+			pre code {
+				background: none;
+				padding: 0;
+			}
+			a {
+				color: #0366d6;
+				text-decoration: none;
+			}
+			a:hover {
+				text-decoration: underline;
+			}
+			blockquote {
+				border-left: 4px solid #dfe2e5;
+				padding-left: 16px;
+				color: #6a737d;
+				margin-bottom: 16px;
+			}
+			ul,
+			ol {
+				margin-bottom: 16px;
+				padding-left: 2em;
+			}
+			table {
+				border-collapse: collapse;
+				width: 100%;
+				margin-bottom: 16px;
+			}
+			table th,
+			table td {
+				border: 1px solid #dfe2e5;
+				padding: 6px 13px;
+			}
+			table th {
+				background: #f6f8fa;
+				font-weight: 600;
+			}
+			img {
+				max-width: 100%;
+				height: auto;
+			}
+			::-webkit-scrollbar {
+				width: 8px;
+				height: 8px;
+			}
+			::-webkit-scrollbar-track {
+				background: #f1f1f1;
+			}
+			::-webkit-scrollbar-thumb {
+				background: #888;
+				border-radius: 4px;
+			}
+			::-webkit-scrollbar-thumb:hover {
+				background: #555;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- Markdown content will be injected here -->
+	</body>
+</html>
+<script>
+	window.addEventListener('message', function (event) {
+		const { data, origin } = event
+
+		if (data.type !== 'render-markdown') return
+		console.log(\`[IFRAME] Received [\${data.type}] message:\`, data)
+
+		document.body.innerHTML = data.payload
+
+		event.source.postMessage('I received your message!', {
+			targetOrigin: event.origin
+		})
+	})
+	window.addEventListener('scroll', function () {
+		const scrollTop = document.documentElement.scrollTop || document.body.scrollTop
+		const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight
+		const clientHeight = document.documentElement.clientHeight || document.body.clientHeight
+		const scrollPercent = (scrollTop / (scrollHeight - clientHeight)) * 100
+		window.parent.postMessage({ type: 'iframe-scroll', payload: scrollPercent }, '*')
+	})
+</script>
+
+`
+
+const DOMstringify = `
+# Markdown 渲染测试
+
+## 代码高亮
+
+\`\`\`javascript
+function hello(name) {
+	console.log(\`Hello, \${name}!\`)
+}
+
+hello('World')
+\`\`\`
+
+## 列表
+
+- Item 1
+- Item 2
+  - Nested item
+  - Another nested item
+- Item 3
+
+## 链接和图片
+
+[GitHub](https://github.com)
+
+## 表格
+
+| Header 1 | Header 2 | Header 3 |
+|----------|----------|----------|
+| Cell 1   | Cell 2   | Cell 3   |
+| Cell 4   | Cell 5   | Cell 6   |
+
+## 引用
+
+> This is a blockquote.
+> It can span multiple lines.
+
+## 行内代码
+
+使用 \`console.log()\` 输出日志。
+`
+
+export { DOMstringify, RootDOMstringify }
