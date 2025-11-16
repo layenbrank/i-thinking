@@ -2,13 +2,13 @@ import type { App } from 'vue'
 
 import ComboboxTrigger from './components/combobox-trigger/combobox-trigger.vue'
 import ReSegment from './components/re-segment/re-segment.vue'
-import ScrollbarX from './components/scrollbar-x/scrollbar-x.vue'
+import ScrollLandscape from './components/scroll-landscape/scroll-landscape.vue'
 
-export { ComboboxTrigger, ReSegment, ScrollbarX }
+// export { ComboboxTrigger, ReSegment, ScrollLandscape }
 
-const components = {
+export const components = {
 	ReSegment,
-	ScrollbarX,
+	ScrollLandscape,
 	ComboboxTrigger
 }
 

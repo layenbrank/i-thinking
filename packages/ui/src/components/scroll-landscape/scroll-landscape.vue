@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { resize } from '@desktop-app/core'
+import { reactive } from 'vue'
 defineOptions({
-	name: 'ScrollBarX',
+	name: 'scroll-landscape',
 	directives: {
 		resize
 	}
