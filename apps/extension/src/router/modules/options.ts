@@ -2,7 +2,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export default {
 	path: '/',
-	redirect: '/mac-view',
+	redirect: '/intelligence-view',
 	children: [
 		{
 			path: '/mac-view',
@@ -27,8 +27,13 @@ export default {
 		{
 			path: '/intelligence-view',
 			name: 'intelligence-view',
-			component: () => import('@/views/intelligence-view.vue')
+			component: () => import('@/views/demo/intelligence-view.vue')
 		},
+		// {
+		// 	path: '/intelligence-view',
+		// 	name: 'intelligence-view',
+		// 	component: () => import('@/views/intelligence-view.vue')
+		// },
 		{
 			path: '/iframe-view',
 			name: 'iframe-view',
