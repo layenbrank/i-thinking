@@ -2,7 +2,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export default {
 	path: '/',
-	redirect: '/intelligence-view',
+	redirect: '/marked-view',
 	children: [
 		{
 			path: '/mac-view',
@@ -23,6 +23,11 @@ export default {
 			path: '/clipchamp-view',
 			name: 'clipchamp-view',
 			component: () => import('@/views/clipchamp-view.vue')
+		},
+		{
+			path: '/marked-view',
+			name: 'marked-view',
+			component: () => import('@/views/demo/marked-view.vue')
 		},
 		{
 			path: '/intelligence-view',
