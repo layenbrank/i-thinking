@@ -1,12 +1,12 @@
-<script setup lang="tsx">
-import Marker from '@/components/applications/example/example-marker.vue'
-import Overlay from '@/components/applications/example/example-overlay.vue'
+<script setup lang="ts">
+import Marker from '@/components/applications/collection/collection-marker.vue'
+import Overlay from '@/components/applications/collection/collection-overlay.vue'
 import { useSettings } from '@/hooks/application.ts'
 import { Modal } from 'ant-design-vue'
 import CloseOutlined from '~icons/local/close'
 
 defineOptions({
-	name: 'example'
+	name: 'collection'
 })
 
 const props = withDefaults(
@@ -23,16 +23,16 @@ const props = withDefaults(
 				round: '12px',
 				screenID: '0',
 				height: '60px',
-				name: '示例应用',
+				name: '集合应用',
 				shape: 'square',
 				textSize: '13px',
 				downloadCount: 1000,
 				textColor: '#ffffff',
-				component: 'example',
 				backgroundImage: null,
 				updatedAt: Date.now(),
 				createdAt: Date.now(),
-				description: '示例应用',
+				description: '集合应用',
+				component: 'collection',
 				direction: 'horizontal',
 				backgroundColor: '#ffffff4d'
 			}
@@ -77,7 +77,8 @@ function updateFullScreen(value: boolean) {
 			'--app-size-height': style.height,
 			'--app-grid-column': style.gridColumn
 		}"
-		:class="['example', application.size, application.shape, application.direction]"
+		class="collection"
+		:class="[application.size, application.shape, application.direction]"
 	>
 		<Modal
 			width="80%"
@@ -93,7 +94,7 @@ function updateFullScreen(value: boolean) {
 			:style="{
 				transformOrigin: 'center'
 			}"
-			class="application-overlay example-overlay"
+			class="application-overlay collection-overlay"
 		>
 			<Overlay
 				:fullscreen="fullscreen"
@@ -111,7 +112,7 @@ function updateFullScreen(value: boolean) {
 </template>
 
 <style lang="scss" scoped>
-.example {
+.collection {
 	width: var(--app-size-width);
 	grid-row: var(--app-grid-row);
 	height: var(--app-size-height);
@@ -120,7 +121,7 @@ function updateFullScreen(value: boolean) {
 }
 </style>
 <style lang="scss">
-.application-overlay.example-overlay {
+.application-overlay.collection-overlay {
 	%size-full {
 		width: 100%;
 		height: 100%;

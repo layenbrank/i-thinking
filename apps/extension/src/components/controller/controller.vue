@@ -120,29 +120,26 @@ function handleResize(DOMRect: DOMRect) {
 	contextDOMRect.height = DOMRect.height
 }
 
-function handleDropZone(e: DragEvent) {
-	// e.preventDefault()
-	const dataTransfer = e.dataTransfer?.getData('text/plain')
-	console.log('[DropZone]', dataTransfer)
+function handleDropZone(event: DragEvent) {
+	const target = event.target as HTMLElement
+	if (!target) return
 
-	// if (!data) return
+	const closest = target.closest<HTMLElement>('.application')
+	if (!closest) return
 
-	// const application = store.applications?.find(function (app) {
-	// 	return app.id === data
-	// })
-	// if (!application) return
+	const dataTransferID = event.dataTransfer?.getData('text/plain')
+	if (!dataTransferID) return
 
-	// application.position = {
-	// 	x: e.clientX - (application.size === 'small' ? 40 : application.size === 'large' ? 80 : 60) / 2,
-	// 	y: e.clientY - (application.size === 'small' ? 40 : application.size === 'large' ? 80 : 60) / 2
-	// }
+	const application = store.applications?.find(function (application) {
+		return application.id === dataTransferID
+	})
+
+	console.log('[DropZone dataTransferID]', dataTransferID, '\n[DropZone application]', application)
 }
 
 function initialize() {
 	if (!controllerRef.value) return
 	const controller = controllerRef.value
-
-	console.log('controller', controller)
 
 	sortable.value = new Sortable(controller, {
 		// sort: true,
@@ -180,7 +177,7 @@ function initialize() {
 						applications.push({ ...application, sort: i })
 					}
 				}
-				console.log('applications', applications)
+				console.log('[Sortable applications]', applications)
 				void store.toUpdates(applications)
 			},
 			get(sortable) {
@@ -208,9 +205,6 @@ function initialize() {
 		},
 		setData(dataTransfer, draggedElement) {
 			dataTransfer.setData('text/plain', draggedElement.dataset.id ?? '')
-		},
-		onEnd(event) {
-			console.log('[onEnd event]', event)
 		}
 	})
 }

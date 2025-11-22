@@ -33,8 +33,6 @@ function useSettings() {
 		if (!application) return
 		if (active.value) return
 		active.value = application
-
-		console.log('[watchEffect settings]', applicationStore.applications)
 	})
 
 	return {

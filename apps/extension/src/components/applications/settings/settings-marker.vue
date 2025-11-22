@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
+
 defineOptions({
 	name: 'settings-marker'
 })
@@ -8,7 +10,9 @@ defineOptions({
 </script>
 
 <template>
-	<div class="settings-marker">test</div>
+	<div class="settings-marker">
+		<Icon icon="mdi:cog-outline" class="marker-settings" />
+	</div>
 </template>
 
 <style lang="scss" scoped>
@@ -30,6 +34,11 @@ defineOptions({
 
 	&.circle {
 		border-radius: calc(var(--app-size-width) / 2);
+	}
+
+	.marker-settings {
+		width: 100%;
+		height: 100%;
 	}
 }
 </style>

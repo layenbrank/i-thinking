@@ -54,17 +54,21 @@ withDefaults(
 		border-radius: calc(var(--app-size-width) / 2);
 	}
 
-	:deep(.navigation-image) {
+	:deep(.navigation-image),
+	:deep(.ant-image-placeholder),
+	:deep(.navigation-placeholder),
+	:deep(.ant-skeleton-image) {
 		@extend %size-full;
+	}
+
+	:deep(.navigation-image) {
 		border-radius: var(--app-round);
 	}
 
 	:deep(.navigation-placeholder) {
-		@extend %size-full;
 		display: block;
 
 		.ant-skeleton-image {
-			@extend %size-full;
 		}
 	}
 }
