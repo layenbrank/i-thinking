@@ -1,8 +1,8 @@
 <script setup lang="tsx">
+import backgroundImage from '@/assets/wallpaper/r2e391.png'
 import Marker from '@/components/applications/settings/settings-marker.vue'
 import Overlay from '@/components/applications/settings/settings-overlay.vue'
-import { useSettings } from '@/hooks/application-settings.ts'
-import type { CSSProperties } from 'vue'
+import { useSettings } from '@/hooks/application'
 import CloseOutlined from '~icons/local/close'
 
 defineOptions({
@@ -41,11 +41,11 @@ const props = withDefaults(
 
 const visible = ref(false)
 const fullscreen = ref(false)
-const windowStyle = ref<CSSProperties>({
-	width: '80%',
-	transformOrigin: 'center',
-	transform: 'translate(0px,0px)'
-})
+// const overlayStyle = ref<CSSProperties>({
+// 	width: '80%',
+// 	transformOrigin: 'center',
+// 	transform: 'translate(0px,0px)'
+// })
 
 const round = computed(function () {
 	return props.application.round ?? 'var(--app-global-round)'
@@ -70,14 +70,6 @@ function updateOverlay(value: boolean) {
 function updateFullScreen(value: boolean) {
 	fullscreen.value = value
 }
-
-function updateTransform(value: string) {
-	windowStyle.value.transform = value
-}
-
-function updateResize(value: { width: number; height: number }) {
-	windowStyle.value.width = `${(value.width / innerWidth) * 100}%`
-}
 </script>
 
 <template>
@@ -93,23 +85,30 @@ function updateResize(value: { width: number; height: number }) {
 		:class="['settings', application.size, application.shape, application.direction]"
 	>
 		<a-modal
+			width="80%"
 			:icon="null"
 			:title="null"
 			:footer="null"
 			:open="visible"
 			:centered="true"
 			:closable="false"
-			:style="windowStyle"
-			:mask-closable="false"
-			:mask="false"
+			:mask-closable="true"
 			:destroy-on-close="true"
 			@update:open="updateOverlay"
-			class="application-window settings-window"
+			:style="{
+				transformOrigin: 'center',
+				backgroundImage: `url(${backgroundImage})`,
+				backgroundRepeat: 'no-repeat',
+				backgroundSize: 'cover',
+				backgroundAttachment: 'fixed',
+				backgroundOrigin: 'content-box',
+				backgroundClip: 'content-box',
+				backgroundPosition: 'center'
+			}"
+			class="application-overlay settings-overlay"
 		>
 			<Overlay
 				:fullscreen="fullscreen"
-				@update:transform="updateTransform"
-				@update:resize="updateResize"
 				@update:visible="updateOverlay"
 				@update:fullscreen="updateFullScreen"
 			/>
@@ -133,14 +132,7 @@ function updateResize(value: { width: number; height: number }) {
 }
 </style>
 <style lang="scss">
-.ant-modal-root {
-	.ant-modal-wrap {
-		&:has(.settings-window) {
-			pointer-events: none;
-		}
-	}
-}
-.application-window.settings-window {
+.application-overlay.settings-overlay {
 	%size-full {
 		width: 100%;
 		height: 100%;
@@ -159,12 +151,16 @@ function updateResize(value: { width: number; height: number }) {
 	}
 
 	.ant-modal-content {
-		background-color: transparent;
+		// background-color: transparent;
+		backdrop-filter: blur(21px);
+		background-color: hsla(0, 0%, 100%, 0.5);
+		// background-color: rgba($color: #000000, $alpha: 0.05);
 	}
 
 	.ant-modal-body {
-		border-radius: 8px;
-		background-color: rgba($color: #ffffff, $alpha: 1);
+		border-radius: var(--app-global-overlay-round);
+		background-color: transparent;
+		// background-color: rgba($color: #ffffff, $alpha: 1);
 	}
 }
 </style>

@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/calendar/calendar-marker.vue'
 import Overlay from '@/components/applications/calendar/calendar-overlay.vue'
-import { useSettings } from '@/hooks/application-settings.ts'
+import { useSettings } from '@/hooks/application.ts'
 import { message } from 'ant-design-vue'
 import CloseOutlined from '~icons/local/close'
 
@@ -94,7 +94,7 @@ function updateFullScreen(value: boolean) {
 			:style="{
 				transformOrigin: 'center'
 			}"
-			class="application-window calendar-window"
+			class="application-overlay calendar-overlay"
 		>
 			<Overlay
 				:fullscreen="fullscreen"
@@ -125,7 +125,7 @@ function updateFullScreen(value: boolean) {
 }
 </style>
 <style lang="scss">
-.application-window.calendar-window {
+.application-overlay.calendar-overlay {
 	%size-full {
 		width: 100%;
 		height: 100%;

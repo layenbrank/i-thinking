@@ -2,7 +2,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export default {
 	path: '/',
-	redirect: '/marked-view',
+	redirect: '/mac-view',
 	children: [
 		{
 			path: '/mac-view',

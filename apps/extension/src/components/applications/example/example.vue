@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/example/example-marker.vue'
 import Overlay from '@/components/applications/example/example-overlay.vue'
-import { useSettings } from '@/hooks/application-settings.ts'
+import { useSettings } from '@/hooks/application.ts'
 import CloseOutlined from '~icons/local/close'
 
 defineOptions({
@@ -92,7 +92,7 @@ function updateFullScreen(value: boolean) {
 			:style="{
 				transformOrigin: 'center'
 			}"
-			class="application-window example-window"
+			class="application-overlay example-overlay"
 		>
 			<Overlay
 				:fullscreen="fullscreen"
@@ -119,7 +119,7 @@ function updateFullScreen(value: boolean) {
 }
 </style>
 <style lang="scss">
-.application-window.example-window {
+.application-overlay.example-overlay {
 	%size-full {
 		width: 100%;
 		height: 100%;

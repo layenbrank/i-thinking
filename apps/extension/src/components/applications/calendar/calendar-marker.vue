@@ -6,7 +6,12 @@ defineOptions({
 	name: 'calendar-marker'
 })
 
-// const props = withDefaults(defineProps<{}>(), {})
+const props = withDefaults(
+	defineProps<{
+		size: Application.Size
+	}>(),
+	{}
+)
 // const emits = defineEmits<{}>()
 
 const value = ref<Dayjs>(timeSphere.now())
@@ -15,6 +20,7 @@ const value = ref<Dayjs>(timeSphere.now())
 <template>
 	<div class="calendar-marker">
 		<a-calendar
+			v-if="size !== 'mini'"
 			:fullscreen="false"
 			v-model:value="value"
 			:header-render="() => ''"

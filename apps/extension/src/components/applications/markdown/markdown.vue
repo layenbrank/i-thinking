@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/markdown/markdown-marker.vue'
 import Overlay from '@/components/applications/markdown/markdown-overlay.vue'
-import { useSettings } from '@/hooks/application-settings.ts'
+import { useSettings } from '@/hooks/application.ts'
 import CloseOutlined from '~icons/local/close'
 
 defineOptions({
@@ -93,7 +93,7 @@ function updateFullScreen(value: boolean) {
 			:style="{
 				transformOrigin: 'center'
 			}"
-			class="application-window markdown-window"
+			class="application-overlay markdown-overlay"
 		>
 			<Overlay
 				:fullscreen="fullscreen"
@@ -120,7 +120,7 @@ function updateFullScreen(value: boolean) {
 }
 </style>
 <style lang="scss">
-.application-window.markdown-window {
+.application-overlay.markdown-overlay {
 	%size-full {
 		width: 100%;
 		height: 100%;
