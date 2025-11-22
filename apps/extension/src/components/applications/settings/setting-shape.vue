@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useStore } from '@/components/applications/settings/settings.ts'
 import { useApplication } from '@/hooks/application.ts'
 import { useApplicationStore } from '@/stores/application'
 
@@ -13,6 +14,7 @@ defineOptions({
 
 const store = useApplicationStore()
 const { APPLICATION } = useApplication()
+const { active, updateActive, updateSetting } = useStore()
 
 const options: ShapeOptions[] = [
 	{
@@ -29,30 +31,6 @@ const options: ShapeOptions[] = [
 	}
 ]
 
-const active = ref<Application | null>(null)
-
-function updateActive(event: MouseEvent) {
-	const target = event.target as HTMLElement
-
-	const closest = target.closest<HTMLElement>('.application')
-	if (!closest) return
-
-	const id = closest.dataset.id
-	if (!id) return
-
-	const application = store.applications?.find(function (value) {
-		return value.id === id
-	})
-	if (!application) return
-	active.value = structuredClone(toRaw(application))
-}
-
-function updateShape(value: Application.Shape) {
-	if (!active.value) return
-	active.value.shape = value
-	void store.toUpdate(active.value.id, { shape: value })
-}
-
 function unifySetting(application: Application) {
 	const unify: Application = {
 		...application,
@@ -62,14 +40,6 @@ function unifySetting(application: Application) {
 	}
 	return unify
 }
-
-onMounted(function () {
-	if (!store.applications) return
-	const [application] = store.applications
-	if (!application) return
-	if (active.value) return
-	active.value = application
-})
 </script>
 
 <template>
@@ -91,7 +61,7 @@ onMounted(function () {
 		<div class="application-preview">
 			<a-radio-group
 				class="shape-radio-group"
-				@update:value="updateShape"
+				@update:value="updateSetting?.('shape', $event)"
 				:value="active?.shape ?? 'square'"
 			>
 				<a-radio-button
