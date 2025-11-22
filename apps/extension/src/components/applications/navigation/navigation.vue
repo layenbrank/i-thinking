@@ -1,6 +1,6 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/navigation/navigation-marker.vue'
-import { useSettings } from '@/hooks/application-settings.ts'
+import { useSettings } from '@/hooks/application.ts'
 import { message } from 'ant-design-vue'
 import CloseOutlined from '~icons/local/close'
 

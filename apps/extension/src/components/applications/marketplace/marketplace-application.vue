@@ -1,21 +1,6 @@
 <script setup lang="tsx">
+import { useApplication } from '@/hooks/application.ts'
 import MarketplaceSwiper from './marketplace-swiper.vue'
-
-const AppBookmark = defineAsyncComponent(function () {
-	return import('@/components/applications/bookmark/bookmark.vue')
-})
-const AppCalendar = defineAsyncComponent(function () {
-	return import('@/components/applications/calendar/calendar.vue')
-})
-const AppMarkdown = defineAsyncComponent(function () {
-	return import('@/components/applications/markdown/markdown.vue')
-})
-const AppNavigation = defineAsyncComponent(function () {
-	return import('@/components/applications/navigation/navigation.vue')
-})
-const AppExample = defineAsyncComponent(function () {
-	return import('@/components/applications/example/example.vue')
-})
 
 defineOptions({
 	name: 'marketplace-application'
@@ -28,23 +13,7 @@ const props = withDefaults(
 	{}
 )
 
-const reflect: Application.Reflect = {
-	bookmark() {
-		return <AppBookmark />
-	},
-	calendar() {
-		return <AppCalendar />
-	},
-	example() {
-		return <AppExample />
-	},
-	navigation() {
-		return <AppNavigation />
-	},
-	markdown() {
-		return <AppMarkdown />
-	}
-}
+const { APPLICATION } = useApplication()
 
 const options = ref([
 	{
@@ -94,7 +63,7 @@ const hasMultiple = computed(() => props.applications.length > 1)
 							:settings-visible="false"
 							:data-id="application.id"
 							:application="application"
-							:is="reflect[application.component]?.()"
+							:is="APPLICATION[application.component]"
 						/>
 					</template>
 				</TransitionGroup>

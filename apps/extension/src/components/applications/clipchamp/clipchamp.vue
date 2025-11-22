@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/clipchamp/clipchamp-marker.vue'
 import Overlay from '@/components/applications/clipchamp/clipchamp-overlay.vue'
-import { useSettings } from '@/hooks/application-settings.ts'
+import { useSettings } from '@/hooks/application.ts'
 
 defineOptions({
 	name: 'clipchamp'
@@ -92,7 +92,7 @@ function updateFullScreen(value: boolean) {
 			:style="{
 				transformOrigin: 'center'
 			}"
-			class="application-window clipchamp-window"
+			class="application-overlay clipchamp-overlay"
 		>
 			<Overlay
 				:fullscreen="fullscreen"
@@ -119,7 +119,7 @@ function updateFullScreen(value: boolean) {
 }
 </style>
 <style lang="scss">
-.app-dialog.clipchamp-window {
+.application-overlay.clipchamp-overlay {
 	div[tabindex='0'][style='outline: none;'] {
 		@apply w-full h-full;
 	}

@@ -56,4 +56,11 @@ declare namespace Application {
 	 * @description 组件尺寸
 	 */
 	type Size = 'mini' | 'small' | 'medium' | 'large' | 'huge' | 'massive' | 'ultra'
+
+	interface CSSProperties {
+		width: string
+		height: string
+		gridRow: string
+		gridColumn: string
+	}
 }

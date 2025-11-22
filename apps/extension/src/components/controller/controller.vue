@@ -5,7 +5,7 @@ import AppMenu from '../app-menu/app-menu.vue'
 import { useApplicationStore } from '@/stores/application.ts'
 import Sortable from 'sortablejs'
 
-import { appReflect, contextmenuReflect, sizes } from './controller.tsx'
+import { useApplication } from '@/hooks/application.ts'
 
 defineOptions({
 	name: 'app-controller',
@@ -15,6 +15,7 @@ defineOptions({
 })
 
 const store = useApplicationStore()
+const { APPLICATION, CONTEXTMENU, SIZES } = useApplication()
 
 const contextmenuRef = useTemplateRef('contextmenuRef')
 const controllerRef = useTemplateRef('controllerRef')
@@ -38,7 +39,7 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 		if (!store.applications) return
 		for (const application of store.applications) {
 			if (application.id !== store.activeApp?.id) continue
-			const size = sizes[Math.round(Math.random() * sizes.length)]
+			const size = SIZES[Math.round(Math.random() * SIZES.length)]
 			if (!size) continue
 			application.size = size
 		}
@@ -63,7 +64,7 @@ const menuOptions = computed(function () {
 
 	if (!active) return []
 
-	return contextmenuReflect[active.component]?.()
+	return CONTEXTMENU[active.component]?.()
 })
 
 function updateActiveKey(value: ContextMenuOptions) {
@@ -205,7 +206,7 @@ onUnmounted(function () {
 			<template v-for="application in store.applications" :key="application.id">
 				<component
 					:application="application"
-					:is="appReflect[application.component]?.()"
+					:is="APPLICATION[application.component]"
 					:settings-visible="store.settingsVisible"
 					:data-id="application.id"
 					:class="['application']"

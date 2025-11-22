@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/bookmark/bookmark-marker.vue'
 import Overlay from '@/components/applications/bookmark/bookmark-overlay.vue'
-import { useSettings } from '@/hooks/application-settings.ts'
+import { useSettings } from '@/hooks/application.ts'
 import CloseOutlined from '~icons/local/close'
 // type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
@@ -12,7 +12,7 @@ defineOptions({
 const props = withDefaults(
 	defineProps<{
 		application?: Application
-		settingsVisible?: boolean
+		settings?: boolean
 	}>(),
 	{
 		application() {
@@ -58,6 +58,7 @@ const style = computed(function () {
 })
 
 function updateOverlay(value: boolean) {
+	// if (props.settings) return
 	visible.value = value
 }
 
@@ -93,8 +94,7 @@ function updateFullScreen(value: boolean) {
 				transformOrigin: 'center'
 			}"
 			:class="[
-				'application-window',
-				'bookmark-window',
+				'application-overlay bookmark-overlay',
 				{
 					fullscreen: fullscreen
 				}
@@ -128,7 +128,7 @@ function updateFullScreen(value: boolean) {
 }
 </style>
 <style lang="scss">
-.application-window.bookmark-window {
+.application-overlay.bookmark-overlay {
 	%size-full {
 		width: 100%;
 		height: 100%;
