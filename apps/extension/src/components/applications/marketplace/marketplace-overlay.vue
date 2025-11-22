@@ -41,14 +41,16 @@ const applications: Application[] = [
 		// shape: 'square',
 		shape: 'circle',
 		round: '12px',
-		icon: 'https://cdn.jsdelivr.net/gh/vuejs/vuejs.org@master/public/images/favicon.ico',
+		marker: 'https://cdn.jsdelivr.net/gh/vuejs/vuejs.org@master/public/images/favicon.ico',
 		name: '书签',
 		backgroundColor: '#ffffff4d',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
 		id: randomID(),
@@ -63,14 +65,16 @@ const applications: Application[] = [
 		shape: 'rectangle',
 		round: '12px',
 		name: '日历',
-		icon: '',
+		marker: '',
 		backgroundColor: '#fff',
 		backgroundImage: null,
 		// backgroundImage: SlideView,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
 		id: randomID(),
@@ -95,13 +99,15 @@ const applications: Application[] = [
 		// shape: 'rectangle',
 
 		name: '应用商店',
-		icon: '',
+		marker: '',
 		backgroundColor: '#ffffff4d',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
 		id: randomID(),
@@ -116,13 +122,15 @@ const applications: Application[] = [
 		direction: 'horizontal',
 		shape: 'square',
 		name: '百度',
-		icon: 'https://www.baidu.com/favicon.ico',
+		marker: 'https://www.baidu.com/favicon.ico',
 		backgroundColor: '#ffffff',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
 		id: randomID(),
@@ -137,13 +145,15 @@ const applications: Application[] = [
 		direction: 'horizontal',
 		shape: 'square',
 		name: '微信',
-		icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
+		marker: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
 		backgroundColor: '#ffffff',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
 		id: randomID(),
@@ -170,13 +180,15 @@ const applications: Application[] = [
 		// shape: 'rectangle',
 		shape: 'circle',
 		name: '微信1',
-		icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
+		marker: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
 		backgroundColor: '#ffffff4d',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	}
 ]
 

@@ -104,7 +104,7 @@ function updateApplication(bookmark: Bookmark) {
 			sort: store.applications?.length,
 			direction: 'horizontal',
 			component: 'navigation',
-			icon: bookmarkApp.url
+			marker: bookmarkApp.url
 		})
 		message.success(`已添加 ${bookmarkApp.title} 到应用列表`)
 	} catch {
