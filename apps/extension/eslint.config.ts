@@ -112,7 +112,9 @@ export default defineConfigWithVueTs(
 						'intelligence',
 						'clipchamp',
 						'example',
-						'gallery'
+						'gallery',
+						'contextmenu',
+						'controller'
 					]
 				}
 			]

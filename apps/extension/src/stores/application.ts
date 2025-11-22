@@ -1,5 +1,4 @@
 import { database } from '@/database/database.ts'
-import { randomID } from '@/utils/generate.ts'
 import { useObservable } from '@vueuse/rxjs'
 import { liveQuery } from 'dexie'
 import { isEmpty } from 'lodash-es'
@@ -9,8 +8,8 @@ import { ref } from 'vue'
 
 const DEFAULT: readonly Application[] = [
 	{
-		id: randomID(),
-		screenID: randomID(),
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
 		sort: 1,
 		component: 'bookmark',
 		width: '60px',
@@ -22,18 +21,19 @@ const DEFAULT: readonly Application[] = [
 		// shape: 'square',
 		shape: 'circle',
 		round: '12px',
-		icon: 'https://cdn.jsdelivr.net/gh/vuejs/vuejs.org@master/public/images/favicon.ico',
 		name: '书签',
 		backgroundColor: '#ffffff4d',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '书签测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
-		id: randomID(),
-		screenID: randomID(),
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
 		sort: 2,
 		component: 'calendar',
 		width: '60px',
@@ -44,18 +44,20 @@ const DEFAULT: readonly Application[] = [
 		shape: 'rectangle',
 		round: '12px',
 		name: '日历',
-		icon: '',
+		marker: '',
 		backgroundColor: '#fff',
 		backgroundImage: null,
 		// backgroundImage: SlideView,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '日历测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
-		id: randomID(),
-		screenID: randomID(),
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
 		sort: 3,
 		component: 'marketplace',
 		width: '60px',
@@ -76,17 +78,19 @@ const DEFAULT: readonly Application[] = [
 		// shape: 'rectangle',
 
 		name: '应用商店',
-		icon: '',
+		marker: '',
 		backgroundColor: '#ffffff4d',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '应用商店测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
-		id: randomID(),
-		screenID: randomID(),
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
 		sort: 3,
 		component: 'navigation',
 		url: 'https://www.baidu.com',
@@ -97,17 +101,19 @@ const DEFAULT: readonly Application[] = [
 		direction: 'horizontal',
 		shape: 'square',
 		name: 'navigation-百度',
-		icon: 'https://www.baidu.com/favicon.ico',
+		marker: 'https://www.baidu.com/favicon.ico',
 		backgroundColor: '#ffffff',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
-		id: randomID(),
-		screenID: randomID(),
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
 		sort: 5,
 		component: 'navigation',
 		width: '60px',
@@ -118,17 +124,18 @@ const DEFAULT: readonly Application[] = [
 		direction: 'horizontal',
 		shape: 'square',
 		name: '微信',
-		icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
 		backgroundColor: '#ffffff',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: 'navigation-测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
-		id: randomID(),
-		screenID: randomID(),
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
 		sort: 6,
 		component: 'example',
 		width: '60px',
@@ -148,17 +155,18 @@ const DEFAULT: readonly Application[] = [
 		// shape: 'rectangle',
 		shape: 'circle',
 		name: 'example-微信',
-		icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
 		backgroundColor: '#ffffff4d',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '测试',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
-		id: randomID(),
-		screenID: randomID(),
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
 		sort: 7,
 		component: 'markdown',
 		width: '60px',
@@ -169,17 +177,18 @@ const DEFAULT: readonly Application[] = [
 		direction: 'horizontal',
 		shape: 'square',
 		name: '备忘录',
-		icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
 		backgroundColor: '#ffffff',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '设置',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
-		id: randomID(),
-		screenID: randomID(),
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
 		sort: 8,
 		component: 'settings',
 		width: '60px',
@@ -190,17 +199,18 @@ const DEFAULT: readonly Application[] = [
 		direction: 'horizontal',
 		shape: 'square',
 		name: '设置',
-		icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
 		backgroundColor: '#ffffff',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: '设置',
-		downloadCount: 1000
+		downloadCount: 1000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	},
 	{
-		id: randomID(),
-		screenID: randomID(),
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
 		sort: 9,
 		component: 'intelligence',
 		width: '60px',
@@ -211,28 +221,25 @@ const DEFAULT: readonly Application[] = [
 		direction: 'horizontal',
 		shape: 'square',
 		name: 'AI Hub',
-		icon: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
 		backgroundColor: '#ffffff',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
 		description: 'AI Hub',
-		downloadCount: 100000
+		downloadCount: 100000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	}
 ]
 
 export const useApplicationStore = defineStore('application', function () {
-	const activeApp = ref<Application | null>(null)
-
-	const settingsVisible = ref(false)
-
-	const windows = ref<Application[]>([])
+	const application = ref<Application | null>(null)
 
 	const applications = useObservable(
 		from(
 			liveQuery(function () {
+				// void database.application.where("id+screenID")
 				return database.application.orderBy('sort').toArray()
-				// console.log('database', database.application)
 				// return database.application.offset(1).limit(30).sortBy('sort')
 			})
 		).pipe(
@@ -251,25 +258,30 @@ export const useApplicationStore = defineStore('application', function () {
 	// 	if (isEmpty(resp)) database.app.bulkAdd(DEFAULT)
 	// })
 
-	async function toUpdate(appID: string, updates: Partial<Application>) {
-		const app = await database.application.get(appID)
-		if (app) return database.application.update(appID, { ...app, ...updates })
-		else return database.application.add({ ...updates, id: appID } as Application)
+	async function toUpdate(ID: string, updates: Partial<Application>) {
+		const application = await database.application.get(ID)
+		if (!application) return
+		const updateSpec = {
+			...application,
+			...updates,
+			updatedAt: Date.now()
+		}
+		return database.application.update(ID, updateSpec)
 	}
 
-	function updateApplications(applications: Application[]) {
-		// database.application.bulkGet
+	function toInsert(application: Application) {
+		return database.application.add(application)
+	}
 
+	function toUpdates(applications: Application[]) {
 		return database.application.bulkPut(applications)
 	}
 
 	return {
-		windows,
+		application,
 		applications,
 		toUpdate,
-		updateApplications,
-
-		activeApp,
-		settingsVisible
+		toUpdates,
+		toInsert
 	}
 })

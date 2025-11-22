@@ -10,28 +10,29 @@ defineOptions({
 const props = withDefaults(
 	defineProps<{
 		application?: Application
-		settingsVisible?: boolean
 	}>(),
 	{
 		application() {
 			return {
 				id: '0',
-				width: '60px',
-				height: '60px',
-				component: 'clipchamp',
-				round: '12px',
-				size: 'medium',
-				screenID: '0',
 				sort: 0,
-				name: '记事本',
-				direction: 'horizontal',
+				size: 'mini',
+				width: '60px',
+				round: '12px',
+				screenID: '0',
+				height: '60px',
 				shape: 'square',
-				backgroundColor: '#ffffff4d',
-				backgroundImage: null,
 				textSize: '13px',
+				name: 'Clipchamp',
+				downloadCount: 1000,
 				textColor: '#ffffff',
-				description: '记事本',
-				downloadCount: 1000
+				backgroundImage: null,
+				updatedAt: Date.now(),
+				createdAt: Date.now(),
+				component: 'clipchamp',
+				direction: 'horizontal',
+				description: 'Clipchamp',
+				backgroundColor: '#ffffff4d'
 			}
 		}
 	}
@@ -56,7 +57,6 @@ const style = computed(function () {
 })
 
 function updateOverlay(value: boolean) {
-	if (props.settingsVisible) return
 	visible.value = value
 }
 

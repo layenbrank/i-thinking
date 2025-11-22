@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { resize } from '@desktop-app/core/directives'
-import AppMenu from '../app-menu/app-menu.vue'
-// import AppDrawer from '../app-settings/app-settings.vue'
+import Contextmenu from '@/components/contextmenu/contextmenu.vue'
+import { useApplication } from '@/hooks/application.ts'
 import { useApplicationStore } from '@/stores/application.ts'
+import { resize } from '@desktop-app/core/directives'
 import Sortable from 'sortablejs'
 
-import { useApplication } from '@/hooks/application.ts'
-
 defineOptions({
-	name: 'app-controller',
+	name: 'controller',
 	directives: {
 		resize
 	}
@@ -17,14 +15,14 @@ defineOptions({
 const store = useApplicationStore()
 const { APPLICATION, CONTEXTMENU, SIZES } = useApplication()
 
-const contextmenuRef = useTemplateRef('contextmenuRef')
 const controllerRef = useTemplateRef('controllerRef')
+const contextmenuRef = useTemplateRef('contextmenuRef')
 
-const contextmenuVisible = ref(false)
+const visible = ref(false)
+const sortable = ref<Sortable | null>(null)
+const activeKey = ref<ContextMenuKeys | null>(null)
 
-const activeMenuKey = ref<ContextMenuKeys | null>(null)
-
-const contextmenuRect = reactive({
+const contextDOMRect = reactive({
 	x: innerWidth - 200,
 	y: 200,
 	width: 0,
@@ -38,7 +36,7 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 	'update-size'() {
 		if (!store.applications) return
 		for (const application of store.applications) {
-			if (application.id !== store.activeApp?.id) continue
+			if (application.id !== store.application?.id) continue
 			const size = SIZES[Math.round(Math.random() * SIZES.length)]
 			if (!size) continue
 			application.size = size
@@ -51,108 +49,120 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 		// void
 	},
 	'update-settings'() {
-		store.settingsVisible = true
+		// store.settingsVisible = true
 	}
 }
 
-const menuOptions = computed(function () {
-	const active = store.applications?.find(function (app) {
-		return app.id === store.activeApp?.id
+const options = computed(function () {
+	const application = store.applications?.find(function (application) {
+		return application.id === store.application?.id
 	})
-
-	// console.log('active', active)
-
-	if (!active) return []
-
-	return CONTEXTMENU[active.component]?.()
+	if (!application) return []
+	return CONTEXTMENU[application.component]?.()
 })
 
 function updateActiveKey(value: ContextMenuOptions) {
-	activeMenuKey.value = value.key
+	activeKey.value = value.key
 
 	contextmenuMap[value.key]?.()
 }
 
 function handleController(e: MouseEvent) {
 	const target = e.target as HTMLElement
-	const appElement = target.closest<HTMLElement>('.application')
+	const closest = target.closest<HTMLElement>('.application')
 
-	// console.log('appElement', appElement)
+	// if (!store.settingsVisible) return
+	if (!closest?.dataset?.id) return
 
-	if (!store.settingsVisible) return
-	if (!appElement?.dataset?.id) return
-	store.activeApp =
-		store.applications?.find(function (app) {
-			return app.id === appElement.dataset.id
-		}) ?? null
+	const application = store.applications?.find(function (app) {
+		return app.id === closest.dataset.id
+	})
+
+	store.application = application ?? null
 }
 
-function openContextMenu(e: MouseEvent) {
-	if (store.settingsVisible) return
+function mountContext(e: MouseEvent) {
+	// if (store.settingsVisible) return
 
 	const target = e.target as HTMLElement
-	const appElement = target.closest<HTMLElement>('.application')
+	const closest = target.closest<HTMLElement>('.application')
 
 	const contextmenu = contextmenuRef.value?.$el as HTMLElement
 
 	setTimeout(function () {
 		if (!contextmenu) return
-		contextmenuRect.width = contextmenu.clientWidth
-		contextmenuRect.height = contextmenu.clientHeight
 
-		contextmenuRect.x = Math.min(e.clientX, innerWidth - contextmenuRect.width)
-		contextmenuRect.y = Math.min(e.clientY, innerHeight - contextmenuRect.height)
+		contextDOMRect.width = contextmenu.clientWidth
+		contextDOMRect.height = contextmenu.clientHeight
 
-		contextmenuVisible.value = true
+		contextDOMRect.x = Math.min(e.clientX, innerWidth - contextDOMRect.width)
+		contextDOMRect.y = Math.min(e.clientY, innerHeight - contextDOMRect.height)
 
-		if (!appElement?.dataset?.id) return
-		store.activeApp =
-			store.applications?.find(function (app) {
-				return app.id === appElement.dataset.id
-			}) ?? null
+		visible.value = true
+
+		if (!closest?.dataset?.id) return
+
+		const application = store.applications?.find(function (app) {
+			return app.id === closest.dataset.id
+		})
+
+		store.application = application ?? null
 	}, 60)
 }
 
-function closeContextMenu(_e: MouseEvent) {
-	contextmenuVisible.value = false
-
-	if (store.settingsVisible) return
-	store.activeApp = null
-}
-
-function handleConfirm(value: any) {
-	console.log('handleConfirm', value)
-	if (!store.activeApp) return
-	void store.toUpdate(store.activeApp.id, {
-		...toRaw(store.activeApp),
-		...toRaw(value)
-	})
-	// for (const index in slides.value) {
-	//   if (!Object.prototype.hasOwnProperty.call(slides.value, index)) return
-
-	//   if (slides.value[Number(index)].id !== activeSlideApp.value?.id) continue
-
-	//   slides.value[Number(index)].size = value.size
-	//   slides.value[Number(index)].shape = value.shape
-	//   slides.value[Number(index)].direction = value.direction
-	// }
+function destroyContext() {
+	visible.value = false
+	store.application = null
 }
 
 function handleResize(DOMRect: DOMRect) {
-	contextmenuRect.width = DOMRect.width
-	contextmenuRect.height = DOMRect.height
+	contextDOMRect.width = DOMRect.width
+	contextDOMRect.height = DOMRect.height
 }
 
-function handleTelePort() {
-	return document.body
+function handleDropZone(e: DragEvent) {
+	// e.preventDefault()
+	const dataTransfer = e.dataTransfer?.getData('text/plain')
+	console.log('[DropZone]', dataTransfer)
+
+	// if (!data) return
+
+	// const application = store.applications?.find(function (app) {
+	// 	return app.id === data
+	// })
+	// if (!application) return
+
+	// application.position = {
+	// 	x: e.clientX - (application.size === 'small' ? 40 : application.size === 'large' ? 80 : 60) / 2,
+	// 	y: e.clientY - (application.size === 'small' ? 40 : application.size === 'large' ? 80 : 60) / 2
+	// }
 }
 
-function sortableHandler() {
+function initialize() {
 	if (!controllerRef.value) return
+	const controller = controllerRef.value
 
-	Sortable.create(controllerRef.value, {
+	console.log('controller', controller)
+
+	sortable.value = new Sortable(controller, {
+		// sort: true,
 		animation: 600,
+		easing: 'cubic-bezier(0.165, 0.84, 0.44, 1)',
 		dataIdAttr: 'data-id',
+		draggable: '.sortable-draggable', // 允许拖拽的项目类名
+		filter: '.sortable-ignore', // 过滤器，不需要进行拖动的元素
+		// handle: '.sortable-handle',
+		dragClass: 'sortable-dragger', // 正在被拖拽中的css类名
+		ghostClass: 'sortable-ghost', // drop placeholder的css类名
+		chosenClass: 'sortable-chosen', // 被选中项的css 类名
+		swapClass: 'sortable-swap', // 交换时的css类名
+		forceFallback: false, // 忽略 HTML5拖拽行为，强制回调进行
+		// swap: true,
+		// swapThreshold: 0.65,
+		swapThreshold: 0.05,
+		invertSwap: true,
+
+		// invertedSwapThreshold: 1,
 		store: {
 			set(sortable) {
 				const toArray = sortable.toArray()
@@ -171,77 +181,89 @@ function sortableHandler() {
 					}
 				}
 				console.log('applications', applications)
-				void store.updateApplications(applications)
+				void store.toUpdates(applications)
 			},
 			get(sortable) {
-				const toArray = store.applications?.map((application) => application.id)
+				const toArray = store.applications?.map(function (application) {
+					return application.id
+				})
 
 				return toArray ?? []
 			}
+		},
+		group: {
+			name: 'application-collection',
+			pull(to, from, dragEl, event) {
+				return true
+			},
+			put(to, from, dragEl, event) {
+				return true
+			},
+			checkPull(sortable, activeSortable, dragEl, event) {
+				return true
+			},
+			checkPut(sortable, activeSortable, dragEl, event) {
+				return true
+			}
+		},
+		setData(dataTransfer, draggedElement) {
+			dataTransfer.setData('text/plain', draggedElement.dataset.id ?? '')
+		},
+		onEnd(event) {
+			console.log('[onEnd event]', event)
 		}
 	})
 }
 
 onMounted(function () {
-	sortableHandler()
-
-	window.addEventListener('click', closeContextMenu, true)
-	window.addEventListener('contextmenu', closeContextMenu, true)
+	initialize()
+	window.addEventListener('click', destroyContext, true)
+	window.addEventListener('contextmenu', destroyContext, true)
 })
 
 onUnmounted(function () {
-	window.removeEventListener('click', closeContextMenu)
-	window.removeEventListener('contextmenu', closeContextMenu)
+	sortable.value?.destroy()
+	window.removeEventListener('click', destroyContext)
+	window.removeEventListener('contextmenu', destroyContext)
 })
 </script>
 
 <template>
 	<div
+		@dragover.prevent
+		@drop="handleDropZone"
 		@click.capture="handleController"
-		@contextmenu.stop.prevent="openContextMenu"
+		@contextmenu.stop.prevent="mountContext"
 		ref="controllerRef"
 		class="controller"
 	>
-		<transition-group name="application-fade">
+		<TransitionGroup name="application-fade">
 			<template v-for="application in store.applications" :key="application.id">
 				<component
 					:application="application"
 					:is="APPLICATION[application.component]"
-					:settings-visible="store.settingsVisible"
 					:data-id="application.id"
-					:class="['application']"
+					class="application sortable-draggable sortable-ghost sortable-chosen sortable-swap application-collection"
 				/>
 			</template>
-		</transition-group>
-
-		<app-settings
-			:title="null"
-			:mask="false"
-			placement="right"
-			:closable="true"
-			@update:confirm="handleConfirm"
-			:get-container="handleTelePort"
-			:application="store.activeApp"
-			v-model:open="store.settingsVisible"
-		/>
-
-		<teleport to="body">
-			<app-menu
-				v-resize="handleResize"
+		</TransitionGroup>
+		<Teleport to="body">
+			<Contextmenu
 				ref="contextmenuRef"
-				:x="contextmenuRect.x"
-				:y="contextmenuRect.y"
-				:options="menuOptions ?? []"
-				v-model:visible="contextmenuVisible"
+				:x="contextDOMRect.x"
+				:y="contextDOMRect.y"
+				v-resize="handleResize"
+				v-model:visible="visible"
+				:options="options ?? []"
 				@update:active-key="updateActiveKey"
-				@contextmenu.prevent="openContextMenu"
+				@contextmenu.prevent="mountContext"
 				:class="[
 					{
-						'is-active': store.activeApp && contextmenuVisible
+						'is-active': store.application && visible
 					}
 				]"
 			/>
-		</teleport>
+		</Teleport>
 	</div>
 </template>
 
@@ -250,5 +272,6 @@ onUnmounted(function () {
 
 .controller {
 	@extend %controller;
+	// backdrop-filter: blur(8px) saturate(180%);
 }
 </style>

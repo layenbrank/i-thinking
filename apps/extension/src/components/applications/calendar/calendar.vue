@@ -12,26 +12,27 @@ defineOptions({
 const props = withDefaults(
 	defineProps<{
 		application?: Application
-		settingsVisible?: boolean
 	}>(),
 	{
 		application() {
 			return {
 				id: '0',
 				sort: 0,
-				name: '示例',
-				screenID: '0',
-				round: '12px',
+				name: '日历',
+				size: 'mini',
 				width: '60px',
+				round: '12px',
+				screenID: '0',
 				height: '60px',
-				size: 'medium',
 				shape: 'square',
 				textSize: '13px',
-				description: '书签',
-				component: 'calendar',
+				description: '日历',
 				downloadCount: 1000,
 				textColor: '#ffffff',
 				backgroundImage: null,
+				updatedAt: Date.now(),
+				createdAt: Date.now(),
+				component: 'calendar',
 				direction: 'horizontal',
 				backgroundColor: '#ffffff4d'
 			}
@@ -58,7 +59,6 @@ const style = computed(function () {
 })
 
 function updateOverlay(value: boolean) {
-	if (props.settingsVisible) return
 	visible.value = value
 	message.success('打开日历应用')
 }
