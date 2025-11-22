@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useStore } from '@/components/applications/settings/settings.ts'
 import { useApplication } from '@/hooks/application.ts'
 import { useApplicationStore } from '@/stores/application.ts'
 
@@ -13,6 +14,7 @@ defineOptions({
 
 const store = useApplicationStore()
 const { APPLICATION } = useApplication()
+const { active, updateActive, updateSetting } = useStore()
 
 const options: DirectionOptions[] = [
 	{
@@ -25,30 +27,6 @@ const options: DirectionOptions[] = [
 	}
 ]
 
-const active = ref<Application | null>(null)
-
-function updateActive(event: MouseEvent) {
-	const target = event.target as HTMLElement
-
-	const closest = target.closest<HTMLElement>('.application')
-	if (!closest) return
-
-	const id = closest.dataset.id
-	if (!id) return
-
-	const application = store.applications?.find(function (value) {
-		return value.id === id
-	})
-	if (!application) return
-	active.value = application
-}
-
-function updateDirection(value: Application.Direction) {
-	if (!active.value) return
-	active.value.direction = value
-	void store.toUpdate(active.value.id, { direction: value })
-}
-
 function unifySetting(application: Application) {
 	const unify: Application = {
 		...application,
@@ -58,14 +36,6 @@ function unifySetting(application: Application) {
 	}
 	return unify
 }
-
-onMounted(function () {
-	if (!store.applications) return
-	const [application] = store.applications
-	if (!application) return
-	if (active.value) return
-	active.value = application
-})
 </script>
 
 <template>
@@ -87,7 +57,7 @@ onMounted(function () {
 		<div class="application-preview">
 			<a-radio-group
 				class="direction-radio-group"
-				@update:value="updateDirection"
+				@update:value="updateSetting?.('direction', $event)"
 				:value="active?.direction ?? 'horizontal'"
 			>
 				<a-radio-button

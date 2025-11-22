@@ -2,6 +2,7 @@
 import backgroundImage from '@/assets/wallpaper/r2e391.png'
 import Marker from '@/components/applications/settings/settings-marker.vue'
 import Overlay from '@/components/applications/settings/settings-overlay.vue'
+import { useStore } from '@/components/applications/settings/settings.ts'
 import { useSettings } from '@/hooks/application'
 import CloseOutlined from '~icons/local/close'
 
@@ -41,11 +42,7 @@ const props = withDefaults(
 
 const visible = ref(false)
 const fullscreen = ref(false)
-// const overlayStyle = ref<CSSProperties>({
-// 	width: '80%',
-// 	transformOrigin: 'center',
-// 	transform: 'translate(0px,0px)'
-// })
+const { dispose } = useStore()
 
 const round = computed(function () {
 	return props.application.round ?? 'var(--app-global-round)'
@@ -70,6 +67,10 @@ function updateOverlay(value: boolean) {
 function updateFullScreen(value: boolean) {
 	fullscreen.value = value
 }
+
+onUnmounted(function () {
+	dispose()
+})
 </script>
 
 <template>
