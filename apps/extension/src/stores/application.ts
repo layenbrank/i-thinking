@@ -100,13 +100,12 @@ const DEFAULT: readonly Application[] = [
 		height: '60px',
 		direction: 'horizontal',
 		shape: 'square',
-		name: 'navigation-百度',
-		marker: 'https://www.baidu.com/favicon.ico',
+		name: '百度',
 		backgroundColor: '#ffffff',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
-		description: '测试',
+		description: '百度',
 		downloadCount: 1000,
 		updatedAt: Date.now(),
 		createdAt: Date.now()
@@ -128,7 +127,7 @@ const DEFAULT: readonly Application[] = [
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
-		description: 'navigation-测试',
+		description: '微信',
 		downloadCount: 1000,
 		updatedAt: Date.now(),
 		createdAt: Date.now()
@@ -154,12 +153,12 @@ const DEFAULT: readonly Application[] = [
 		// shape: 'square',
 		// shape: 'rectangle',
 		shape: 'circle',
-		name: 'example-微信',
+		name: 'example',
 		backgroundColor: '#ffffff4d',
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
-		description: '测试',
+		description: 'example',
 		downloadCount: 1000,
 		updatedAt: Date.now(),
 		createdAt: Date.now()
@@ -181,7 +180,7 @@ const DEFAULT: readonly Application[] = [
 		backgroundImage: null,
 		textSize: '13px',
 		textColor: '#ffffff',
-		description: '设置',
+		description: '备忘录',
 		downloadCount: 1000,
 		updatedAt: Date.now(),
 		createdAt: Date.now()
@@ -229,6 +228,48 @@ const DEFAULT: readonly Application[] = [
 		downloadCount: 100000,
 		updatedAt: Date.now(),
 		createdAt: Date.now()
+	},
+	{
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
+		sort: 9,
+		component: 'clipchamp',
+		width: '60px',
+		height: '60px',
+		size: 'mini',
+		round: '20px',
+		direction: 'horizontal',
+		shape: 'square',
+		name: 'Clipchamp',
+		backgroundColor: '#ffffff',
+		backgroundImage: null,
+		textSize: '13px',
+		textColor: '#ffffff',
+		description: 'Clipchamp',
+		downloadCount: 100000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
+	},
+	{
+		id: window.crypto.randomUUID(),
+		screenID: window.crypto.randomUUID(),
+		sort: 9,
+		component: 'collection',
+		width: '60px',
+		height: '60px',
+		size: 'mini',
+		round: '20px',
+		direction: 'horizontal',
+		shape: 'square',
+		name: '应用集合',
+		backgroundColor: '#ffffff',
+		backgroundImage: null,
+		textSize: '13px',
+		textColor: '#ffffff',
+		description: '应用集合',
+		downloadCount: 100000,
+		updatedAt: Date.now(),
+		createdAt: Date.now()
 	}
 ]
 
@@ -245,7 +286,7 @@ export const useApplicationStore = defineStore('application', function () {
 		).pipe(
 			tap(function (response) {
 				if (isEmpty(response)) void database.application.bulkAdd(DEFAULT)
-				console.log('applications', response)
+				console.log('[useObservable applications]', response)
 			})
 		)
 	)

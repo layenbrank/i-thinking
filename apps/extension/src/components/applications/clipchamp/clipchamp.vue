@@ -2,6 +2,8 @@
 import Marker from '@/components/applications/clipchamp/clipchamp-marker.vue'
 import Overlay from '@/components/applications/clipchamp/clipchamp-overlay.vue'
 import { useSettings } from '@/hooks/application.ts'
+import { Modal } from 'ant-design-vue'
+import CloseOutlined from '~icons/local/close'
 
 defineOptions({
 	name: 'clipchamp'
@@ -78,7 +80,7 @@ function updateFullScreen(value: boolean) {
 		:data-id="application.id"
 		:class="['clipchamp', application.size, application.shape, application.direction]"
 	>
-		<a-modal
+		<Modal
 			width="80%"
 			:icon="null"
 			:title="null"
@@ -99,13 +101,13 @@ function updateFullScreen(value: boolean) {
 				@update:visible="updateOverlay"
 				@update:fullscreen="updateFullScreen"
 			/>
-		</a-modal>
+		</Modal>
 		<Marker
 			@dblclick="updateOverlay(true)"
 			:class="[application.size, application.shape, application.direction]"
 		/>
 		<span class="app-name">{{ application.name }}</span>
-		<IconLocalClose class="app-trash-icon" />
+		<CloseOutlined class="app-trash-icon" />
 	</div>
 </template>
 

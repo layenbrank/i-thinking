@@ -24,6 +24,12 @@ const AppSettings = defineAsyncComponent(function () {
 const AppMarketplace = defineAsyncComponent(function () {
 	return import('@/components/applications/marketplace/marketplace.vue')
 })
+const AppClipchamp = defineAsyncComponent(function () {
+	return import('@/components/applications/clipchamp/clipchamp.vue')
+})
+const AppCollection = defineAsyncComponent(function () {
+	return import('@/components/applications/collection/collection.vue')
+})
 const AppExample = defineAsyncComponent(function () {
 	return import('@/components/applications/example/example.vue')
 })
@@ -108,6 +114,8 @@ const APPLICATION: Application.Reflect = {
 	navigation: AppNavigation,
 	intelligence: AppIntelligence,
 	marketplace: AppMarketplace,
+	clipchamp: AppClipchamp,
+	collection: AppCollection,
 	example: AppExample
 }
 

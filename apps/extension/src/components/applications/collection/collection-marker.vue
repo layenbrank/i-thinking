@@ -2,16 +2,13 @@
 import { Icon } from '@iconify/vue'
 
 defineOptions({
-	name: 'bookmark-marker'
+	name: 'collection-marker'
 })
-
-// const props = withDefaults(defineProps<{}>(), {})
-// const emits = defineEmits<{}>()
 </script>
 
 <template>
-	<div class="bookmark-marker">
-		<Icon icon="ant-design:folder-add-filled" class="marker-bookmark" />
+	<div class="collection-marker">
+		<Icon icon="mdi:folder-multiple" class="marker-collection" />
 	</div>
 </template>
 
@@ -24,7 +21,7 @@ defineOptions({
 @use 'massive.scss' as *;
 @use 'ultra.scss' as *;
 
-.bookmark-marker {
+.collection-marker {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -36,13 +33,9 @@ defineOptions({
 		border-radius: calc(var(--app-size-width) / 2);
 	}
 
-	// .folder {
-	// 	@apply w-full h-full text-[30px] text-[#ffd766];
-	// }
-	.marker-bookmark {
+	.marker-collection {
 		width: 100%;
 		height: 100%;
-		color: #ffd766;
 	}
 }
 </style>

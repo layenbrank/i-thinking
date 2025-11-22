@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppstoreTwotone from '~icons/ant-design/appstore-twotone'
+import { Icon } from '@iconify/vue'
 
 defineOptions({
 	name: 'marketplace-marker'
@@ -11,7 +11,7 @@ defineOptions({
 
 <template>
 	<div class="marketplace-marker">
-		<appstore-twotone />
+		<Icon icon="ant-design:appstore-twotone" class="marker-marketplace" />
 	</div>
 </template>
 
@@ -34,6 +34,11 @@ defineOptions({
 
 	&.circle {
 		border-radius: calc(var(--app-size-width) / 2);
+	}
+
+	.marker-marketplace {
+		width: 100%;
+		height: 100%;
 	}
 }
 </style>

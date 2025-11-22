@@ -43,6 +43,7 @@ declare namespace Application {
 		| 'navigation'
 		| 'marketplace'
 		| 'developer'
+		| 'collection'
 		// | 'gallery' 图库
 		| 'example'
 

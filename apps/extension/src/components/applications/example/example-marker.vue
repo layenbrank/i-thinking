@@ -8,7 +8,7 @@ defineOptions({
 </script>
 
 <template>
-	<div class="example-marker">test</div>
+	<div class="example-marker">example</div>
 </template>
 
 <style lang="scss" scoped>

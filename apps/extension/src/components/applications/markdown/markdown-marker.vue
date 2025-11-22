@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useMarkdownStore } from '@/stores/markdown.ts'
+import { Icon } from '@iconify/vue'
+
 defineOptions({
 	name: 'markdown-marker'
 })
@@ -17,7 +19,8 @@ const markdown = computed(function () {
 
 <template>
 	<div class="markdown-marker">
-		{{ store.findHead(markdown) }}
+		<Icon icon="mdi:note-edit" class="marker-markdown"></Icon>
+		<!-- {{ store.findHead(markdown) }} -->
 	</div>
 </template>
 
@@ -44,6 +47,11 @@ const markdown = computed(function () {
 
 	&.circle {
 		border-radius: calc(var(--app-size-width) / 2);
+	}
+
+	.marker-markdown {
+		width: 100%;
+		height: 100%;
 	}
 }
 </style>
