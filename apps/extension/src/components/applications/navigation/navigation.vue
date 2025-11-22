@@ -11,28 +11,29 @@ defineOptions({
 const props = withDefaults(
 	defineProps<{
 		application?: Application
-		settingsVisible?: boolean
 	}>(),
 	{
 		application() {
 			return {
 				id: '0',
-				width: '60px',
-				height: '60px',
-				component: 'navigation',
-				round: '12px',
-				size: 'medium',
-				screenID: '0',
 				sort: 0,
-				name: 'example',
-				direction: 'horizontal',
+				name: '导航',
+				size: 'mini',
+				width: '60px',
+				round: '12px',
+				screenID: '0',
+				height: '60px',
 				shape: 'square',
-				backgroundColor: '#ffffff4d',
-				backgroundImage: null,
 				textSize: '13px',
+				description: '导航',
+				downloadCount: 1000,
 				textColor: '#ffffff',
-				description: '书签',
-				downloadCount: 1000
+				backgroundImage: null,
+				updatedAt: Date.now(),
+				createdAt: Date.now(),
+				component: 'navigation',
+				direction: 'horizontal',
+				backgroundColor: '#ffffff4d'
 			}
 		}
 	}
@@ -54,7 +55,6 @@ const style = computed(function () {
 })
 
 function handleJumpLink() {
-	if (props.settingsVisible) return
 	if (!props.application.url) return message.error('请先设置链接地址!')
 
 	window.open(props.application.url, '_blank')
@@ -74,7 +74,7 @@ function handleJumpLink() {
 		:class="['navigation', application.size, application.shape, application.direction]"
 	>
 		<Marker
-			:icon="application.icon"
+			:icon="application.marker"
 			@dblclick="handleJumpLink"
 			:class="[application.size, application.shape, application.direction]"
 		/>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'app-menu'
+	name: 'contextmenu'
 })
 
-const props = withDefaults(
+withDefaults(
 	defineProps<{
 		options: ContextMenuOptions[]
 		// activeKey: ContextMenuKeys

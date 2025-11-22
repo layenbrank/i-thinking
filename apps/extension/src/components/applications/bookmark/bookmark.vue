@@ -12,28 +12,29 @@ defineOptions({
 const props = withDefaults(
 	defineProps<{
 		application?: Application
-		settings?: boolean
 	}>(),
 	{
 		application() {
 			return {
 				id: '0',
-				width: '60px',
-				height: '60px',
-				component: 'bookmark',
-				round: '12px',
-				size: 'medium',
-				screenID: '0',
 				sort: 0,
-				name: 'example',
-				direction: 'horizontal',
+				name: '书签',
+				size: 'mini',
+				width: '60px',
+				round: '12px',
+				screenID: '0',
+				height: '60px',
 				shape: 'square',
-				backgroundColor: '#ffffff4d',
-				backgroundImage: null,
 				textSize: '13px',
-				textColor: '#ffffff',
 				description: '书签',
-				downloadCount: 1000
+				downloadCount: 1000,
+				textColor: '#ffffff',
+				backgroundImage: null,
+				updatedAt: Date.now(),
+				createdAt: Date.now(),
+				component: 'bookmark',
+				direction: 'horizontal',
+				backgroundColor: '#ffffff4d'
 			}
 		}
 	}
@@ -58,7 +59,6 @@ const style = computed(function () {
 })
 
 function updateOverlay(value: boolean) {
-	// if (props.settings) return
 	visible.value = value
 }
 

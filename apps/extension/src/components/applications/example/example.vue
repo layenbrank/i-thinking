@@ -11,28 +11,29 @@ defineOptions({
 const props = withDefaults(
 	defineProps<{
 		application?: Application
-		settingsVisible?: boolean
 	}>(),
 	{
 		application() {
 			return {
 				id: '0',
-				width: '60px',
-				height: '60px',
-				component: 'example',
-				round: '12px',
-				size: 'medium',
-				screenID: '0',
 				sort: 0,
-				name: 'example',
-				direction: 'horizontal',
+				size: 'mini',
+				width: '60px',
+				round: '12px',
+				screenID: '0',
+				height: '60px',
+				name: '示例应用',
 				shape: 'square',
-				backgroundColor: '#ffffff4d',
-				backgroundImage: null,
 				textSize: '13px',
+				downloadCount: 1000,
 				textColor: '#ffffff',
-				description: '书签',
-				downloadCount: 1000
+				component: 'example',
+				backgroundImage: null,
+				updatedAt: Date.now(),
+				createdAt: Date.now(),
+				description: '示例应用',
+				direction: 'horizontal',
+				backgroundColor: '#ffffff4d'
 			}
 		}
 	}
@@ -57,7 +58,6 @@ const style = computed(function () {
 })
 
 function updateOverlay(value: boolean) {
-	if (props.settingsVisible) return
 	visible.value = value
 }
 

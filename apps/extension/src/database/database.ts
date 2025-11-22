@@ -28,24 +28,26 @@ export const database = new Dexie(DBNAME) as DataBase
 
 const APPLICATION = [
 	'&id',
-	'slideID',
-	'[id+slideID]',
+	'screenID',
+	'[id+screenID]',
 	'sort',
 	'component',
 	'name',
-	'downloadCount',
-	'direction',
-	'shape',
 	'size',
+	'shape',
 	'width',
 	'height',
-	'round',
-	'icon',
+	'direction',
 	'url',
+	'marker',
+	'round',
+	'textSize',
+	'textColor',
+	'downloadCount',
 	'backgroundColor',
 	'backgroundImage',
-	'textColor',
-	'textSize'
+	'updatedAt',
+	'createdAt'
 ]
 const USERS: readonly string[] = ['++id', 'name']
 const BOOKMARK: readonly string[] = [
