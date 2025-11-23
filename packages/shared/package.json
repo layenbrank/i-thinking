@@ -1,9 +1,15 @@
 {
 	"name": "@desktop-app/shared",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"type": "module",
 	"private": true,
 	"exports": {
+		"./contextmenu": {
+			"types": "./src/types/contextmenu.d.ts"
+		},
+		"./controller": {
+			"types": "./src/types/controller.d.ts"
+		},
 		"./constructor": {
 			"types": "./src/types/constructor.d.ts"
 		},
@@ -22,29 +28,23 @@
 		"./user-profile": {
 			"types": "./src/types/user-profile.d.ts"
 		},
+		"./mirror": {
+			"types": "./src/types/mirror.d.ts"
+		},
 		"./application": {
 			"types": "./src/types/application.d.ts"
 		},
-		"./desktop-window": {
-			"types": "./src/types/desktop-window.d.ts"
+		"./settings": {
+			"types": "./src/types/settings.d.ts"
 		},
-		"./contextmenu": {
-			"types": "./src/types/contextmenu.d.ts"
+		"./backup": {
+			"types": "./src/types/backup.d.ts"
 		},
-		"./application-settings": {
-			"types": "./src/types/application-settings.d.ts"
+		"./application-bookmark": {
+			"types": "./src/types/application-bookmark.d.ts"
 		},
-		"./application-backup": {
-			"types": "./src/types/application-backup.d.ts"
-		},
-		"./app-controller": {
-			"types": "./src/types/app-controller.d.ts"
-		},
-		"./app-bookmark": {
-			"types": "./src/types/app-bookmark.d.ts"
-		},
-		"./app-markdown": {
-			"types": "./src/types/app-markdown.ts"
+		"./application-markdown": {
+			"types": "./src/types/application-markdown.ts"
 		}
 	}
 }

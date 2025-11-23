@@ -2,12 +2,12 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export default {
 	path: '/',
-	redirect: '/mac-view',
+	redirect: '/overview',
 	children: [
 		{
-			path: '/mac-view',
-			name: 'mac-view',
-			component: () => import('@/views/mac-view.vue')
+			path: '/overview',
+			name: 'overview',
+			component: () => import('@/views/overview.vue')
 		},
 		{
 			path: '/upload-view',

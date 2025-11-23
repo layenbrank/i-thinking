@@ -21,7 +21,7 @@ const props = withDefaults(
 				size: 'mini',
 				width: '60px',
 				round: '12px',
-				screenID: '0',
+				mirrorID: '0',
 				height: '60px',
 				name: '集合应用',
 				shape: 'square',
@@ -44,7 +44,7 @@ const visible = ref(false)
 const fullscreen = ref(false)
 
 const round = computed(function () {
-	return props.application.round ?? 'var(--app-global-round)'
+	return props.application.round ?? 'var(--application-global-round)'
 })
 
 const background = computed(function () {
@@ -70,12 +70,12 @@ function updateFullScreen(value: boolean) {
 <template>
 	<div
 		:style="{
-			'--app-round': round,
-			'--app-background': background,
-			'--app-size-width': style.width,
-			'--app-grid-row': style.gridRow,
-			'--app-size-height': style.height,
-			'--app-grid-column': style.gridColumn
+			'--application-round': round,
+			'--application-background': background,
+			'--application-size-width': style.width,
+			'--application-grid-row': style.gridRow,
+			'--application-size-height': style.height,
+			'--application-grid-column': style.gridColumn
 		}"
 		class="collection"
 		:class="[application.size, application.shape, application.direction]"
@@ -113,11 +113,11 @@ function updateFullScreen(value: boolean) {
 
 <style lang="scss" scoped>
 .collection {
-	width: var(--app-size-width);
-	grid-row: var(--app-grid-row);
-	height: var(--app-size-height);
-	border-radius: var(--app-round);
-	grid-column: var(--app-grid-column);
+	width: var(--application-size-width);
+	grid-row: var(--application-grid-row);
+	height: var(--application-size-height);
+	border-radius: var(--application-round);
+	grid-column: var(--application-grid-column);
 }
 </style>
 <style lang="scss">

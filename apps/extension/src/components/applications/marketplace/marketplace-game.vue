@@ -63,7 +63,7 @@ const hasMultiple = computed(() => props.applications.length > 1)
 </script>
 
 <template>
-	<div class="marketplace-game">
+	<div @dblclick.capture.stop.prevent class="marketplace-game">
 		<MarketplaceSwiper :options="options" :loop="hasMultiple">
 			<template #slide="{ option }">
 				<div class="image-container">

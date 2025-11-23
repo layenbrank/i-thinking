@@ -21,6 +21,7 @@ declare module 'vue' {
     AConfigProvider: typeof import('ant-design-vue/es')['ConfigProvider']
     ADescriptions: typeof import('ant-design-vue/es')['Descriptions']
     ADescriptionsItem: typeof import('ant-design-vue/es')['DescriptionsItem']
+    ADrawer: typeof import('ant-design-vue/es')['Drawer']
     AForm: typeof import('ant-design-vue/es')['Form']
     AFormItem: typeof import('ant-design-vue/es')['FormItem']
     AImage: typeof import('ant-design-vue/es')['Image']
@@ -98,6 +99,9 @@ declare module 'vue' {
     SettingSize: typeof import('./../components/applications/settings/setting-size.vue')['default']
     SettingsMarker: typeof import('./../components/applications/settings/settings-marker.vue')['default']
     SettingsOverlay: typeof import('./../components/applications/settings/settings-overlay.vue')['default']
+    Signboard: typeof import('./../components/applications/signboard/signboard.vue')['default']
+    SignboardMarker: typeof import('./../components/applications/signboard/signboard-marker.vue')['default']
+    SignboardOverlay: typeof import('./../components/applications/signboard/signboard-overlay.vue')['default']
   }
 }
 
@@ -112,6 +116,7 @@ declare global {
   const AConfigProvider: typeof import('ant-design-vue/es')['ConfigProvider']
   const ADescriptions: typeof import('ant-design-vue/es')['Descriptions']
   const ADescriptionsItem: typeof import('ant-design-vue/es')['DescriptionsItem']
+  const ADrawer: typeof import('ant-design-vue/es')['Drawer']
   const AForm: typeof import('ant-design-vue/es')['Form']
   const AFormItem: typeof import('ant-design-vue/es')['FormItem']
   const AImage: typeof import('ant-design-vue/es')['Image']
@@ -189,4 +194,7 @@ declare global {
   const SettingSize: typeof import('./../components/applications/settings/setting-size.vue')['default']
   const SettingsMarker: typeof import('./../components/applications/settings/settings-marker.vue')['default']
   const SettingsOverlay: typeof import('./../components/applications/settings/settings-overlay.vue')['default']
+  const Signboard: typeof import('./../components/applications/signboard/signboard.vue')['default']
+  const SignboardMarker: typeof import('./../components/applications/signboard/signboard-marker.vue')['default']
+  const SignboardOverlay: typeof import('./../components/applications/signboard/signboard-overlay.vue')['default']
 }

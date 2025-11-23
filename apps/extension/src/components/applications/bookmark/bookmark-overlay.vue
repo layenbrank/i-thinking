@@ -242,8 +242,8 @@ function updateVisible() {
 		height: 100%;
 		border-top-right-radius: 0px;
 		border-bottom-right-radius: 0px;
-		border-top-left-radius: var(--app-global-overlay-round, 8px);
-		border-bottom-left-radius: var(--app-global-overlay-round, 8px);
+		border-top-left-radius: var(--application-global-overlay-round, 8px);
+		border-bottom-left-radius: var(--application-global-overlay-round, 8px);
 		background-color: rgba($color: #ffffff, $alpha: 1);
 
 		:deep(.ant-layout-sider-children) {
@@ -316,8 +316,8 @@ function updateVisible() {
 		height: 100%;
 		border-top-left-radius: 0px;
 		border-bottom-left-radius: 0px;
-		border-top-right-radius: var(--app-global-overlay-round, 8px);
-		border-bottom-right-radius: var(--app-global-overlay-round, 8px);
+		border-top-right-radius: var(--application-global-overlay-round, 8px);
+		border-bottom-right-radius: var(--application-global-overlay-round, 8px);
 
 		.main-header {
 			height: $height;

@@ -1,24 +1,56 @@
 <script setup lang="ts">
 import fallback from '@/assets/feedback/fallback.png'
+import { useApplicationStore } from '@/stores/application.ts'
+import { useDropZone } from '@vueuse/core'
 
 defineOptions({
 	name: 'navigation-marker'
 })
 
-withDefaults(
+const props = withDefaults(
 	defineProps<{
-		icon?: string
+		id: string
+		marker?: string
 	}>(),
 	{}
 )
+
+const applicationStore = useApplicationStore()
+
+const dropZoneRef = useTemplateRef<HTMLElement>('dropZoneRef')
+
+const { isOverDropZone } = useDropZone(dropZoneRef, {
+	dataTypes: ['text/plain'],
+	onDrop(files, event) {
+		const ID = event.dataTransfer?.getData('text/plain')
+		if (!ID) return
+		if (ID === props.id) return
+		// applicationStore.toInsert( {
+		// 'component': 'collection',
+
+		// })
+		// console.log('Dropped files:', files)
+		// console.log('Drop event:', event, 'dataTransfer:', event.dataTransfer?.getData('text/plain'))
+	}
+})
+
+onMounted(function () {
+	//
+})
 </script>
 
 <template>
-	<div class="navigation-marker">
+	<div
+		ref="dropZoneRef"
+		class="navigation-marker"
+		:class="{
+			isOverDropZone: isOverDropZone
+		}"
+	>
 		<a-image
 			:preview="false"
 			:fallback="fallback"
-			:src="icon"
+			:src="marker"
 			wrapper-class-name="navigation-image"
 		>
 			<template #placeholder>
@@ -42,16 +74,21 @@ withDefaults(
 	align-items: center;
 	justify-content: center;
 	cursor: pointer;
-	border-radius: var(--app-round);
-	background: var(--app-background);
+	border-radius: var(--application-round);
+	background: var(--application-background);
+	transition: box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 
 	%size-full {
 		width: 100%;
 		height: 100%;
 	}
 
+	&.isOverDropZone {
+		box-shadow: 0px 0px 1px 3px #4080ff;
+	}
+
 	&.circle {
-		border-radius: calc(var(--app-size-width) / 2);
+		border-radius: calc(var(--application-size-width) / 2);
 	}
 
 	:deep(.navigation-image),
@@ -62,7 +99,7 @@ withDefaults(
 	}
 
 	:deep(.navigation-image) {
-		border-radius: var(--app-round);
+		border-radius: var(--application-round);
 	}
 
 	:deep(.navigation-placeholder) {

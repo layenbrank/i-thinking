@@ -25,11 +25,11 @@ defineOptions({
 	align-items: center;
 	justify-content: center;
 	cursor: pointer;
-	border-radius: var(--app-round);
-	background: var(--app-background);
+	border-radius: var(--application-round);
+	background: var(--application-background);
 
 	&.circle {
-		border-radius: calc(var(--app-size-width) / 2);
+		border-radius: calc(var(--application-size-width) / 2);
 	}
 }
 </style>

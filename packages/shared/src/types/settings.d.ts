@@ -1,4 +1,4 @@
-interface ApplicationSettings {
+interface Settings {
 	id: string
 	theme: 'light' | 'dark'
 	language: string
