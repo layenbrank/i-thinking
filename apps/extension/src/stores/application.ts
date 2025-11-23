@@ -9,7 +9,7 @@ import { ref } from 'vue'
 const DEFAULT: readonly Application[] = [
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 1,
 		component: 'bookmark',
 		width: '60px',
@@ -33,7 +33,7 @@ const DEFAULT: readonly Application[] = [
 	},
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 2,
 		component: 'calendar',
 		width: '60px',
@@ -57,7 +57,7 @@ const DEFAULT: readonly Application[] = [
 	},
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 3,
 		component: 'marketplace',
 		width: '60px',
@@ -90,7 +90,7 @@ const DEFAULT: readonly Application[] = [
 	},
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 3,
 		component: 'navigation',
 		url: 'https://www.baidu.com',
@@ -112,7 +112,7 @@ const DEFAULT: readonly Application[] = [
 	},
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 5,
 		component: 'navigation',
 		width: '60px',
@@ -134,7 +134,7 @@ const DEFAULT: readonly Application[] = [
 	},
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 6,
 		component: 'example',
 		width: '60px',
@@ -165,7 +165,7 @@ const DEFAULT: readonly Application[] = [
 	},
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 7,
 		component: 'markdown',
 		width: '60px',
@@ -187,7 +187,7 @@ const DEFAULT: readonly Application[] = [
 	},
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 8,
 		component: 'settings',
 		width: '60px',
@@ -209,7 +209,7 @@ const DEFAULT: readonly Application[] = [
 	},
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 9,
 		component: 'intelligence',
 		width: '60px',
@@ -231,7 +231,7 @@ const DEFAULT: readonly Application[] = [
 	},
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 9,
 		component: 'clipchamp',
 		width: '60px',
@@ -252,7 +252,7 @@ const DEFAULT: readonly Application[] = [
 	},
 	{
 		id: window.crypto.randomUUID(),
-		screenID: window.crypto.randomUUID(),
+		mirrorID: window.crypto.randomUUID(),
 		sort: 9,
 		component: 'collection',
 		width: '60px',
@@ -279,7 +279,7 @@ export const useApplicationStore = defineStore('application', function () {
 	const applications = useObservable(
 		from(
 			liveQuery(function () {
-				// void database.application.where("id+screenID")
+				// void database.application.where("id+mirrorID")
 				return database.application.orderBy('sort').toArray()
 				// return database.application.offset(1).limit(30).sortBy('sort')
 			})

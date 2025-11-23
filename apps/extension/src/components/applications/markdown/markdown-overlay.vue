@@ -466,7 +466,7 @@ onBeforeUnmount(function () {
 			scrollbar-width: none;
 			overflow: hidden scroll;
 			scroll-behavior: smooth;
-			border-radius: var(--app-global-overlay-round);
+			border-radius: var(--application-global-overlay-round);
 		}
 
 		.insert-button {

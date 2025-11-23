@@ -85,7 +85,7 @@ const applicationReflect: Application.Reflect = {
 const applications: readonly Application[] = [
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 1,
 		component: 'bookmark',
 		width: '60px',
@@ -110,7 +110,7 @@ const applications: readonly Application[] = [
 	},
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 2,
 		component: 'calendar',
 		width: '60px',
@@ -134,7 +134,7 @@ const applications: readonly Application[] = [
 	},
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 3,
 		component: 'marketplace',
 		width: '60px',
@@ -167,7 +167,7 @@ const applications: readonly Application[] = [
 	},
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 3,
 		component: 'navigation',
 		url: 'https://www.baidu.com',
@@ -190,7 +190,7 @@ const applications: readonly Application[] = [
 	},
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 5,
 		component: 'navigation',
 		width: '60px',
@@ -213,7 +213,7 @@ const applications: readonly Application[] = [
 	},
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 6,
 		component: 'example',
 		width: '60px',
@@ -440,10 +440,10 @@ function updateActiveKey(item: AppMarketplaceOptions) {
 
 			outline: none;
 			scrollbar-width: none;
-			row-gap: var(--app-global-row-gap, 30px);
-			column-gap: var(--app-global-col-gap, 30px);
-			grid-template-rows: repeat(auto-fill, var(--app-global-height, 60px));
-			grid-template-columns: repeat(auto-fill, var(--app-global-width, 60px));
+			row-gap: var(--application-global-row-gap, 30px);
+			column-gap: var(--application-global-col-gap, 30px);
+			grid-template-rows: repeat(auto-fill, var(--application-global-height, 60px));
+			grid-template-columns: repeat(auto-fill, var(--application-global-width, 60px));
 
 			transition:
 				width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
@@ -470,8 +470,8 @@ function updateActiveKey(item: AppMarketplaceOptions) {
 
 				& > :where(span.app-name) {
 					@apply block truncate w-full mt-1;
-					color: var(--app-global-text-color);
-					font-size: var(--app-global-text-size);
+					color: var(--application-global-text-color);
+					font-size: var(--application-global-text-size);
 				}
 
 				& > :where(.app-trash-icon) {

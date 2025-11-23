@@ -21,7 +21,7 @@ const props = withDefaults(
 				size: 'mini',
 				width: '60px',
 				round: '12px',
-				screenID: '0',
+				mirrorID: '0',
 				height: '60px',
 				shape: 'square',
 				textSize: '13px',
@@ -44,7 +44,7 @@ const visible = ref(false)
 const fullscreen = ref(false)
 
 const round = computed(function () {
-	return props.application.round ?? 'var(--app-global-round)'
+	return props.application.round ?? 'var(--application-global-round)'
 })
 
 const background = computed(function () {
@@ -70,12 +70,12 @@ function updateFullScreen(value: boolean) {
 <template>
 	<div
 		:style="{
-			'--app-round': round,
-			'--app-background': background,
-			'--app-size-width': style.width,
-			'--app-grid-row': style.gridRow,
-			'--app-size-height': style.height,
-			'--app-grid-column': style.gridColumn
+			'--application-round': round,
+			'--application-background': background,
+			'--application-size-width': style.width,
+			'--application-grid-row': style.gridRow,
+			'--application-size-height': style.height,
+			'--application-grid-column': style.gridColumn
 		}"
 		:data-id="application.id"
 		:class="['clipchamp', application.size, application.shape, application.direction]"
@@ -113,11 +113,11 @@ function updateFullScreen(value: boolean) {
 
 <style lang="scss" scoped>
 .clipchamp {
-	width: var(--app-size-width);
-	height: var(--app-size-height);
-	grid-row: var(--app-grid-row);
-	grid-column: var(--app-grid-column);
-	border-radius: var(--app-round);
+	width: var(--application-size-width);
+	height: var(--application-size-height);
+	grid-row: var(--application-grid-row);
+	grid-column: var(--application-grid-column);
+	border-radius: var(--application-round);
 }
 </style>
 <style lang="scss">

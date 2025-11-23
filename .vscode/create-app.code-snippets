@@ -1,6 +1,6 @@
 {
-	"创建app模版": {
-		"prefix": "create-app",
+	"创建application模版": {
+		"prefix": "create-application",
 		"body": [
 			"<script setup lang=\"tsx\">",
 			"import { useSettings } from '@/hooks/application-settings.ts'",
@@ -152,9 +152,9 @@
 			"</style>",
 			""
 		],
-		"description": "创建app模版"
+		"description": "创建application模版"
 	},
-	"创建icon模版": {
+	"创建marker模版": {
 		"prefix": "create-icon",
 		"body": [
 			"<script setup lang=\"ts\">",
@@ -196,7 +196,7 @@
 		],
 		"description": "创建icon模版"
 	},
-	"创建window模版": {
+	"创建overlay模版": {
 		"prefix": "create-window",
 		"body": [
 			"<script setup lang=\"ts\">",

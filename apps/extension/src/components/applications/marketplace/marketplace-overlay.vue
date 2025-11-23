@@ -29,7 +29,7 @@ const { t } = useI18n()
 const applications: Application[] = [
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 1,
 		component: 'bookmark',
 		width: '60px',
@@ -54,7 +54,7 @@ const applications: Application[] = [
 	},
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 2,
 		component: 'calendar',
 		width: '60px',
@@ -78,7 +78,7 @@ const applications: Application[] = [
 	},
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 3,
 		component: 'marketplace',
 		width: '60px',
@@ -111,7 +111,7 @@ const applications: Application[] = [
 	},
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 3,
 		component: 'navigation',
 		url: 'https://www.baidu.com',
@@ -134,7 +134,7 @@ const applications: Application[] = [
 	},
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 5,
 		component: 'navigation',
 		width: '60px',
@@ -157,7 +157,7 @@ const applications: Application[] = [
 	},
 	{
 		id: randomID(),
-		screenID: randomID(),
+		mirrorID: randomID(),
 		sort: 6,
 		component: 'example',
 		width: '60px',

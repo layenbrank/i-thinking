@@ -1,4 +1,4 @@
-interface RSF<T> {
+interface RSF<F> {
 	/**
 	 * @description 响应状态码
 	 */
@@ -14,14 +14,14 @@ interface RSF<T> {
 	/**
 	 * @description 响应数据
 	 */
-	data: T
+	data: F
 	/**
 	 * @description 响应时间戳
 	 */
 	timestamp: number
 }
 
-interface RSP<T> extends RSF<T> {
+interface RSP<P> extends RSF<P> {
 	/**
 	 * @description 总条数
 	 */

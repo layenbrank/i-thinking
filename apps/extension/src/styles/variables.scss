@@ -1,13 +1,13 @@
 /* color palette from <https://github.com/vuejs/theme> */
 :root {
-	--app-global-width: 60px;
-	--app-global-height: 60px;
-	--app-global-row-gap: 30px;
-	--app-global-col-gap: 30px;
-	--app-global-round: 12px;
-	--app-global-text-size: 13px;
-	--app-global-text-color: #fff;
-	--app-global-overlay-round: 8px;
+	--application-global-width: 60px;
+	--application-global-height: 60px;
+	--application-global-row-gap: 30px;
+	--application-global-col-gap: 30px;
+	--application-global-round: 12px;
+	--application-global-text-size: 13px;
+	--application-global-text-color: #fff;
+	--application-global-overlay-round: 8px;
 
 	--vt-c-white: #ffffff;
 	--vt-c-white-soft: #f8f8f8;
@@ -92,30 +92,30 @@
 	}
 
 	&.square {
-		// width: var(--app-size, 60px);
-		// height: var(--app-size, 60px);
-		// width: var(--app-width, 60px);
-		// height: var(--app-height, 60px);
+		// width: var(--application-size, 60px);
+		// height: var(--application-size, 60px);
+		// width: var(--application-width, 60px);
+		// height: var(--application-height, 60px);
 	}
 
 	&.rectangle.horizontal {
 		// grid-column: span 2;
-		// width: calc(var(--app-width) * 2 + var(--app-row-gap) * 1);
-		// height: var(--app-height);
+		// width: calc(var(--application-width) * 2 + var(--application-row-gap) * 1);
+		// height: var(--application-height);
 	}
 
 	&.rectangle.vertical {
 		// grid-row: span 2;
-		// width: var(--app-width);
-		// height: calc(var(--app-height) * 2 + var(--app-row-gap) * 1);
+		// width: var(--application-width);
+		// height: calc(var(--application-height) * 2 + var(--application-row-gap) * 1);
 	}
 }
 
 .small {
 	&.horizontal {
 		// grid-column: span 2;
-		// width: calc(var(--app-width) * 2 + var(--app-row-gap) * 1);
-		// height: var(--app-height);
+		// width: calc(var(--application-width) * 2 + var(--application-row-gap) * 1);
+		// height: var(--application-height);
 
 		&.square {
 		}
@@ -129,8 +129,8 @@
 
 	&.vertical {
 		// grid-row: span 2;
-		// width: var(--app-width);
-		// height: calc(var(--app-height) * 2 + var(--app-row-gap) * 1);
+		// width: var(--application-width);
+		// height: calc(var(--application-height) * 2 + var(--application-row-gap) * 1);
 
 		&.square {
 		}
@@ -148,8 +148,8 @@
 	&.vertical {
 		// grid-column: span 2;
 		// grid-row: span 2;
-		// width: calc(var(--app-width) * 2 + var(--app-col-gap));
-		// height: calc(var(--app-height) * 2 + var(--app-row-gap));
+		// width: calc(var(--application-width) * 2 + var(--application-col-gap));
+		// height: calc(var(--application-height) * 2 + var(--application-row-gap));
 
 		&.square {
 		}
@@ -165,8 +165,8 @@
 .large {
 	// grid-column: span 2;
 	// grid-row: span 2;
-	// width: calc(var(--app-width) * 2 + var(--app-col-gap));
-	// height: calc(var(--app-height) * 2 + var(--app-row-gap));
+	// width: calc(var(--application-width) * 2 + var(--application-col-gap));
+	// height: calc(var(--application-height) * 2 + var(--application-row-gap));
 
 	&.horizontal {
 		&.square {
@@ -194,8 +194,8 @@
 .huge {
 	// grid-column: span 4;
 	// grid-row: span 2;
-	// width: calc(var(--app-width) * 4 + var(--app-col-gap) * 3);
-	// height: calc(var(--app-height) * 2 + var(--app-row-gap));
+	// width: calc(var(--application-width) * 4 + var(--application-col-gap) * 3);
+	// height: calc(var(--application-height) * 2 + var(--application-row-gap));
 
 	&.horizontal {
 		&.square {
@@ -223,8 +223,8 @@
 .massive {
 	// grid-column: span 7;
 	// grid-row: span 4;
-	// width: calc(var(--app-width) * 7 + var(--app-col-gap) * 6);
-	// height: calc(var(--app-height) * 4 + var(--app-row-gap) * 3);
+	// width: calc(var(--application-width) * 7 + var(--application-col-gap) * 6);
+	// height: calc(var(--application-height) * 4 + var(--application-row-gap) * 3);
 
 	&.horizontal {
 		&.square {
@@ -252,8 +252,8 @@
 .ultra {
 	// grid-column: span 4;
 	// grid-row: span 7;
-	// width: calc(var(--app-width) * 4 + var(--app-col-gap) * 3);
-	// height: calc(var(--app-height) * 7 + var(--app-row-gap) * 6);
+	// width: calc(var(--application-width) * 4 + var(--application-col-gap) * 3);
+	// height: calc(var(--application-height) * 7 + var(--application-row-gap) * 6);
 
 	&.horizontal {
 		&.square {

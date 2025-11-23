@@ -4,30 +4,33 @@ type ApplicationWindowType = ReturnType<(typeof import('ant-design-vue'))['Modal
  * @description 应用组件
  */
 interface Application {
+	id: string
+	sort: number
+	name: string
+	url?: string
+	size: Application.Size
 	width: string | null
-	height: string | null
 	round: string | null
+	shape: Application.Shape
+	height: string | null
+	marker?: string
+	mirrorID: string
 	textSize: string | null
+	updatedAt: number
+	createdAt: number
 	textColor: string | null
+	component: Application.Component
+	direction: Application.Direction
+	description: string
+	collectionID?: string
+	downloadCount: number
 	backgroundColor: string | null
 	backgroundImage: string | null
 	// backdropBlur: string | null
 	// backdropSaturate: string | null
-	id: string
-	screenID: string
-	sort: number
-	component: Application.Component
-	size: Application.Size
-	name: string
-	url?: string
-	marker?: string
-	direction: Application.Direction
-	shape: Application.Shape
-	description: string
-	downloadCount: number
-	updatedAt: number
-	createdAt: number
 }
+
+type Collection = Omit<Application, 'mirrorID'>
 
 declare namespace Application {
 	/**

@@ -40,11 +40,11 @@ const value = ref<Dayjs>(timeSphere.now())
 @use 'ultra.scss' as *;
 
 .calendar-marker {
-	border-radius: var(--app-round);
-	background: var(--app-background);
+	border-radius: var(--application-round);
+	background: var(--application-background);
 
 	&.circle {
-		border-radius: calc(var(--app-size-width) / 2);
+		border-radius: calc(var(--application-size-width) / 2);
 	}
 }
 </style>
