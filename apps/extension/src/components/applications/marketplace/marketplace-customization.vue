@@ -23,32 +23,34 @@ const formState = reactive({
 function onFinish(values: any) {
 	try {
 		void store
-			.toInsert({
-				name: values.name,
-				url: values.URL,
-				// TODO: 待定 ID 来源
-				id: crypto.randomUUID(),
-				shape: 'circle',
-				size: 'mini',
-				sort: store.applications?.length ?? 0,
-				direction: 'horizontal',
-				component: 'navigation',
-				// TODO: 待定 marker 来源
-				marker: '',
-				createdAt: Date.now(),
-				updatedAt: Date.now(),
-				width: null,
-				height: null,
-				round: '8px',
-				mirrorID: '0',
-				collectionID: '0',
-				textColor: '#fff',
-				textSize: '16px',
-				description: '',
-				downloadCount: 0,
-				backgroundColor: '#ffffff',
-				backgroundImage: null
-			})
+			.toInsert([
+				{
+					name: values.name,
+					url: values.URL,
+					// TODO: 待定 ID 来源
+					id: crypto.randomUUID(),
+					shape: 'circle',
+					size: 'mini',
+					sort: store.applications?.length ?? 0,
+					direction: 'horizontal',
+					component: 'navigation',
+					// TODO: 待定 marker 来源
+					marker: '',
+					createdAt: Date.now(),
+					updatedAt: Date.now(),
+					width: null,
+					height: null,
+					round: '8px',
+					mirrorID: '0',
+					collectionID: '0',
+					textColor: '#fff',
+					textSize: '16px',
+					description: '',
+					downloadCount: 0,
+					backgroundColor: '#ffffff',
+					backgroundImage: null
+				}
+			])
 			.then(function () {
 				message.success('添加成功！')
 			})

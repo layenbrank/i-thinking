@@ -24,7 +24,14 @@ function useSettings() {
 	function updateSetting<T extends keyof Application>(key: T, value: Application[T]) {
 		if (!active.value) return
 		active.value[key] = value
-		void applicationStore.toUpdate(active.value.id, { [key]: value })
+		void applicationStore.toUpdate([
+			{
+				key: active.value.id,
+				changes: {
+					[key]: value
+				}
+			}
+		])
 	}
 
 	watchEffect(function () {

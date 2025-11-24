@@ -1,10 +1,17 @@
 import { database } from '@/database/database.ts'
 import { useObservable } from '@vueuse/rxjs'
-import { liveQuery } from 'dexie'
+import { liveQuery, type InsertType, type UpdateSpec } from 'dexie'
 import { isEmpty } from 'lodash-es'
 import { defineStore } from 'pinia'
 import { from, tap } from 'rxjs'
 import { ref } from 'vue'
+
+export interface UpdateParams {
+	key: string
+	changes: UpdateSpec<Application>
+}
+
+export type InsertParams = InsertType<Application, 'id'>
 
 const DEFAULT: readonly Application[] = [
 	{
@@ -299,34 +306,38 @@ export const useApplicationStore = defineStore('application', function () {
 	// 	if (isEmpty(resp)) database.app.bulkAdd(DEFAULT)
 	// })
 
-	async function toUpdate(ID: string, updates: Partial<Application>) {
-		const application = await database.application.get(ID)
-		if (!application) return
-		const updateSpec = {
-			...application,
-			...updates,
-			updatedAt: Date.now()
-		}
-		return database.application.update(ID, updateSpec)
+	// async function toUpdate(ID: string, updates: Partial<Application>) {
+	// 	const application = await database.application.get(ID)
+	// 	if (!application) return
+	// 	const updateSpec = {
+	// 		...application,
+	// 		...updates,
+	// 		updatedAt: Date.now()
+	// 	}
+	// 	return database.application.update(ID, updateSpec)
+	// }
+	async function toRead(keys: string[]) {
+		const response = await database.application.bulkGet(keys)
+		return response.filter(Boolean)
 	}
 
-	function toInsert(application: Application) {
-		return database.application.add(application)
+	function toUpdate(values: UpdateParams[]) {
+		return database.application.bulkUpdate(values)
+	}
+
+	function toInsert(values: InsertParams[]) {
+		return database.application.bulkAdd(values)
 	}
 
 	function toRemove(keys: string[]) {
 		return database.application.bulkDelete(keys)
 	}
 
-	function toUpdates(applications: Application[]) {
-		return database.application.bulkPut(applications)
-	}
-
 	return {
 		application,
 		applications,
+		toRead,
 		toUpdate,
-		toUpdates,
 		toInsert,
 		toRemove
 	}

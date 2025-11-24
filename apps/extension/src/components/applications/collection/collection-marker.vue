@@ -1,8 +1,25 @@
 <script setup lang="ts">
+import { database } from '@/database/database.ts'
+import { useCollectionStore } from '@/stores/collection.ts'
 import { Icon } from '@iconify/vue'
 
 defineOptions({
 	name: 'collection-marker'
+})
+
+const props = withDefaults(
+	defineProps<{
+		id: string
+	}>(),
+	{}
+)
+
+const store = useCollectionStore()
+
+// const
+
+onMounted(async function () {
+	const collection = await store.toRead([props.id])
 })
 </script>
 

@@ -23,15 +23,34 @@ const dropZoneRef = useTemplateRef<HTMLElement>('dropZoneRef')
 const { isOverDropZone } = useDropZone(dropZoneRef, {
 	dataTypes: ['text/plain'],
 	onDrop(files, event) {
-		const ID = event.dataTransfer?.getData('text/plain')
-		if (!ID) return
-		if (ID === props.id) return
-		// applicationStore.toInsert( {
-		// 'component': 'collection',
+		const targetID = props.id
+		const sourceID = event.dataTransfer?.getData('text/plain')
 
-		// })
-		// console.log('Dropped files:', files)
-		// console.log('Drop event:', event, 'dataTransfer:', event.dataTransfer?.getData('text/plain'))
+		if (!sourceID) return
+		if (sourceID === targetID) return
+
+		void applicationStore.toRead([sourceID]).then(async function (values) {
+			const applications = values.filter(Boolean)
+			const [application] = applications
+
+			if (!application) return
+			const genericID = crypto.randomUUID()
+
+			await applicationStore.toUpdate([
+				{
+					key: sourceID,
+					changes: {
+						collectionID: genericID
+					}
+				},
+				{
+					key: targetID,
+					changes: {
+						collectionID: genericID
+					}
+				}
+			])
+		})
 	}
 })
 

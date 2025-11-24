@@ -103,6 +103,7 @@ function updateFullScreen(value: boolean) {
 			/>
 		</Modal>
 		<Marker
+			:id="application.id"
 			@dblclick="updateOverlay(true)"
 			:class="[application.size, application.shape, application.direction]"
 		/>
