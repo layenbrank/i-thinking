@@ -76,7 +76,9 @@ function updateFullScreen(value: boolean) {
 			'--application-size-width': style.width,
 			'--application-grid-row': style.gridRow,
 			'--application-size-height': style.height,
-			'--application-grid-column': style.gridColumn
+			'--application-grid-column': style.gridColumn,
+			'--application-text-color': application.textColor ?? 'var(--application-global-text-color)',
+			'--application-text-size': application.textSize ?? 'var(--application-global-text-size)'
 		}"
 		:class="['calendar', application.size, application.shape, application.direction]"
 	>
