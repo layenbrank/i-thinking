@@ -8,6 +8,7 @@ interface ContextMenuOptions {
 
 type ContextMenuKeys =
 	| 'update-app'
+	| 'remove-app'
 	| 'update-wallpaper'
 	| 'update-backup'
 	| 'update-layouts'
