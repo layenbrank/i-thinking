@@ -75,6 +75,7 @@ function handleJumpLink() {
 	>
 		<Marker
 			:marker="application.marker"
+			:name="application.name"
 			:id="application.id"
 			@dblclick="handleJumpLink"
 			:class="[application.size, application.shape, application.direction]"

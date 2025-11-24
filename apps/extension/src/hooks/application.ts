@@ -1,5 +1,6 @@
 import DownloadMarker from '~icons/ant-design/cloud-download-outlined'
 import CloudMarker from '~icons/ant-design/cloud-upload-outlined'
+import RemoveMarker from '~icons/ant-design/delete-outlined'
 import InsertMarker from '~icons/ant-design/plus-circle-outlined'
 import SettingsMarker from '~icons/ant-design/setting-outlined'
 
@@ -46,14 +47,9 @@ const commonMenuOptions: ContextMenuOptions[] = [
 		icon: markRaw(InsertMarker)
 	},
 	{
-		label: '更新大小',
-		key: 'update-size',
-		icon: markRaw(InsertMarker)
-	},
-	{
-		label: '更新布局',
-		key: 'update-layouts',
-		icon: markRaw(InsertMarker)
+		label: '删除应用',
+		key: 'remove-app',
+		icon: markRaw(RemoveMarker)
 	},
 	{
 		label: '更换壁纸',

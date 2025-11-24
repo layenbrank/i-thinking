@@ -314,6 +314,10 @@ export const useApplicationStore = defineStore('application', function () {
 		return database.application.add(application)
 	}
 
+	function toRemove(keys: string[]) {
+		return database.application.bulkDelete(keys)
+	}
+
 	function toUpdates(applications: Application[]) {
 		return database.application.bulkPut(applications)
 	}
@@ -323,6 +327,7 @@ export const useApplicationStore = defineStore('application', function () {
 		applications,
 		toUpdate,
 		toUpdates,
-		toInsert
+		toInsert,
+		toRemove
 	}
 })

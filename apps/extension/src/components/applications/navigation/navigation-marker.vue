@@ -10,6 +10,7 @@ defineOptions({
 const props = withDefaults(
 	defineProps<{
 		id: string
+		name: string
 		marker?: string
 	}>(),
 	{}
@@ -34,6 +35,11 @@ const { isOverDropZone } = useDropZone(dropZoneRef, {
 	}
 })
 
+// 没有图标截取应用名称的第一个字作为标记
+const char = computed(() => {
+	return props.name ? props.name.charAt(0) : ''
+})
+
 onMounted(function () {
 	//
 })
@@ -47,7 +53,11 @@ onMounted(function () {
 			isOverDropZone: isOverDropZone
 		}"
 	>
+		<template v-if="!marker && char">
+			{{ char }}
+		</template>
 		<a-image
+			v-else-if="marker || !char"
 			:preview="false"
 			:fallback="fallback"
 			:src="marker"

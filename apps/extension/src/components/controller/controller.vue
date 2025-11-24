@@ -33,14 +33,9 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 	'update-app'() {
 		// void
 	},
-	'update-size'() {
-		if (!store.applications) return
-		for (const application of store.applications) {
-			if (application.id !== store.application?.id) continue
-			const size = SIZES[Math.round(Math.random() * SIZES.length)]
-			if (!size) continue
-			application.size = size
-		}
+	'remove-app'() {
+		// void
+		void store.toRemove([store.application?.id ?? ''])
 	},
 	'update-wallpaper'() {
 		// void

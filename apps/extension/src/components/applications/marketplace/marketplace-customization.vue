@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { useApplicationStore } from '@/stores/application.ts'
 import { InboxOutlined, UploadOutlined } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 
 defineOptions({
 	name: 'marketplace-customization'
 })
+
+const store = useApplicationStore()
 
 const formItemLayout = {
 	labelCol: { span: 6 },
@@ -11,14 +15,46 @@ const formItemLayout = {
 }
 
 const formState = reactive({
-	rate: 3.5,
 	URL: '',
-	title: '',
+	name: '',
 	upload: [],
 	dragger: []
 })
 function onFinish(values: any) {
-	console.log('Success:', values)
+	try {
+		void store
+			.toInsert({
+				name: values.name,
+				url: values.URL,
+				// TODO: 待定 ID 来源
+				id: crypto.randomUUID(),
+				shape: 'circle',
+				size: 'mini',
+				sort: store.applications?.length ?? 0,
+				direction: 'horizontal',
+				component: 'navigation',
+				// TODO: 待定 marker 来源
+				marker: '',
+				createdAt: Date.now(),
+				updatedAt: Date.now(),
+				width: null,
+				height: null,
+				round: '8px',
+				mirrorID: '0',
+				collectionID: '0',
+				textColor: '#fff',
+				textSize: '16px',
+				description: '',
+				downloadCount: 0,
+				backgroundColor: '#ffffff',
+				backgroundImage: null
+			})
+			.then(function () {
+				message.success('添加成功！')
+			})
+	} catch {
+		message.error('添加失败，请重试！')
+	}
 }
 
 function onFinishFailed(errorInfo: any) {
@@ -36,35 +72,35 @@ function onFinishFailed(errorInfo: any) {
 			@finish="onFinish"
 		>
 			<a-form-item
-				name="title"
-				label="Title"
+				name="name"
+				label="名称"
 				has-feedback
 				validate-status="error"
 				:rules="[
 					{
 						required: true,
-						message: 'Please select your country!'
+						message: '请先设置名称!'
 					}
 				]"
 			>
-				<a-input v-model:value="formState.title" id="error" placeholder="unavailable choice" />
+				<a-input v-model:value="formState.name" id="error" placeholder="不可用的选择" />
 			</a-form-item>
 			<a-form-item
 				name="URL"
-				label="URL"
+				label="链接地址"
 				has-feedback
 				validate-status="error"
 				:rules="[
 					{
 						required: true,
-						message: 'Please select your country!'
+						message: '请先设置链接地址!'
 					}
 				]"
 			>
 				<a-input v-model:value="formState.URL" id="error" placeholder="unavailable choice" />
 			</a-form-item>
 
-			<a-form-item name="upload" label="Upload" extra="longgggggggggggggggggggggggggggggggggg">
+			<a-form-item name="upload" label="上传" extra="longgggggggggggggggggggggggggggggggggg">
 				<a-upload
 					v-model:fileList="formState.upload"
 					name="logo"
@@ -78,12 +114,12 @@ function onFinishFailed(errorInfo: any) {
 						<template #icon>
 							<UploadOutlined />
 						</template>
-						Click to upload
+						点击上传
 					</a-button>
 				</a-upload>
 			</a-form-item>
 
-			<a-form-item label="Dragger">
+			<a-form-item label="拖拽上传">
 				<a-form-item name="dragger" no-style>
 					<a-upload-dragger
 						name="files"
@@ -97,8 +133,8 @@ function onFinishFailed(errorInfo: any) {
 						<p class="ant-upload-drag-icon">
 							<InboxOutlined />
 						</p>
-						<p class="ant-upload-text">Click or drag file to this area to upload</p>
-						<p class="ant-upload-hint">Support for a single or bulk upload.</p>
+						<p class="ant-upload-text">点击或拖拽文件到此区域上传</p>
+						<p class="ant-upload-hint">仅支持单个文件上传。</p>
 					</a-upload-dragger>
 				</a-form-item>
 			</a-form-item>
