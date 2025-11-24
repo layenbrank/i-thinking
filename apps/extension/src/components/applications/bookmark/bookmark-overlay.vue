@@ -93,23 +93,38 @@ const updateBookmarks = debounce(function (value: string) {
 }, 300)
 
 function updateApplication(bookmark: Bookmark) {
-	const bookmarkApp = toRaw(bookmark)
+	const raw = toRaw(bookmark)
 
 	try {
-		void store.toUpdate(bookmark.id, {
-			name: bookmarkApp.title,
-			url: bookmarkApp.url,
+		void store.toInsert({
+			id: raw.id,
+			name: raw.title,
+			url: raw.url,
 			shape: 'circle',
 			size: 'mini',
-			sort: store.applications?.length,
+			sort: store.applications?.length ?? 0,
 			direction: 'horizontal',
 			component: 'navigation',
-			marker: bookmarkApp.url
+			marker: raw.url,
+			createdAt: raw.createdAt,
+			updatedAt: raw.updatedAt,
+			width: null,
+			height: null,
+			round: '8px',
+			mirrorID: '0',
+			collectionID: '0',
+			textColor: '#fff',
+			textSize: '16px',
+			description: '',
+			downloadCount: 0,
+			backgroundColor: '#ffffff',
+			backgroundImage: null
 		})
-		message.success(`已添加 ${bookmarkApp.title} 到应用列表`)
+		console.log('bookmark raw', raw)
+		message.success(`已添加 ${raw.title} 到应用列表`)
 	} catch {
-		console.error('Error updating application:', bookmarkApp)
-		message.error(`添加 ${bookmarkApp.title} 到应用列表失败`)
+		console.error('Error updating application:', raw)
+		message.error(`添加 ${raw.title} 到应用列表失败`)
 	}
 }
 

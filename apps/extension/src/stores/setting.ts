@@ -7,7 +7,7 @@ export const useSettingStore = defineStore('setting', function () {
 	const settings = useObservable(
 		from(
 			liveQuery(function () {
-				return database.setting.toArray()
+				return database.settings.toArray()
 			})
 		)
 	)
