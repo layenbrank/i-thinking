@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Contextmenu from '@/components/contextmenu/contextmenu.vue'
 import { useApplication } from '@/hooks/application.ts'
-import { useApplicationStore } from '@/stores/application.ts'
+import { useApplicationStore, type UpdateParams } from '@/stores/application.ts'
 import { resize } from '@desktop-app/core/directives'
 import Sortable from 'sortablejs'
 
@@ -158,7 +158,7 @@ function initialize() {
 		store: {
 			set(sortable) {
 				const toArray = sortable.toArray()
-				const applications: Application[] = []
+				const updates: UpdateParams[] = []
 
 				for (let i = 0; i < toArray.length; i++) {
 					const ID = toArray[i]
@@ -169,11 +169,11 @@ function initialize() {
 						application = toRaw(application)
 						if (!application) continue
 						if (application.id !== ID) continue
-						applications.push({ ...application, sort: i })
+						updates.push({ key: application.id, changes: { sort: i } })
 					}
 				}
-				console.log('[Sortable applications]', applications)
-				void store.toUpdates(applications)
+				console.log('[Sortable applications]', updates)
+				void store.toUpdate(updates)
 			},
 			get(sortable) {
 				const toArray = store.applications?.map(function (application) {

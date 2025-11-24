@@ -10,15 +10,7 @@ export interface UpdateParams {
 
 type InsertParams = InsertType<Collection, 'id'>
 
-function useCollecion(ID: string) {
-	const collection = useObservable(
-		from(
-			liveQuery(function () {
-				return database.collection.where('id').equals(ID).first()
-			})
-		)
-	)
-
+export const useCollectionStore = defineStore('collection', function () {
 	async function toRead(keys: string[]) {
 		const response = await database.collection.bulkGet(keys)
 		return response.filter(Boolean)
@@ -40,9 +32,6 @@ function useCollecion(ID: string) {
 		toRead,
 		toInsert,
 		toUpdate,
-		toRemove,
-		collection
+		toRemove
 	}
-}
-
-export { useCollecion }
+})
