@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import backgroundImage from '@/assets/wallpaper/r2e391.png'
+import { useMirrorStore } from '@/stores/mirror.ts'
 import { generateSecureCvid } from '@/utils/generate.ts'
 import { http } from '@/utils/http/http.ts'
 import { COREX_TOKEN } from '@/utils/http/token.ts'
@@ -50,6 +51,12 @@ defineOptions({
 const { t, locale } = useI18n()
 
 const comboboxRef = useTemplateRef('comboboxRef')
+const mirrorStore = useMirrorStore()
+
+watchEffect(function () {
+	console.log('mirrorStore mirrors', mirrorStore.mirrors)
+	console.log('mirrorStore applications', mirrorStore.applications)
+})
 
 const timestamp = useTimestamp({
 	interval: 'requestAnimationFrame'
