@@ -468,13 +468,13 @@ function updateActiveKey(item: AppMarketplaceOptions) {
 					@apply w-full h-full transition-all;
 				}
 
-				& > :where(span.app-name) {
+				& > :where(span.application-name) {
 					@apply block truncate w-full mt-1;
 					color: var(--application-global-text-color);
 					font-size: var(--application-global-text-size);
 				}
 
-				& > :where(.app-trash-icon) {
+				& > :where(.application-trash-marker) {
 					@apply w-5 h-5 absolute -top-[8px] -right-[8px] items-center justify-center bg-[#00000033] rounded-full p-[5px] transition-[background];
 					@apply hidden;
 

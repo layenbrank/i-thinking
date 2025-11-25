@@ -155,11 +155,11 @@
 		"description": "创建application模版"
 	},
 	"创建marker模版": {
-		"prefix": "create-icon",
+		"prefix": "create-marker",
 		"body": [
 			"<script setup lang=\"ts\">",
 			"defineOptions({",
-			"\tname: 'app-example-icon'",
+			"\tname: 'example-marker'",
 			"})",
 			"",
 			"// const props = withDefaults(defineProps<{}>(), {})",
@@ -167,7 +167,7 @@
 			"</script>",
 			"",
 			"<template>",
-			"\t<div class=\"app-example-icon\">test</div>",
+			"\t<div class=\"example-marker\">example</div>",
 			"</template>",
 			"",
 			"<style lang=\"scss\" scoped>",
@@ -179,29 +179,29 @@
 			"@use 'massive.scss' as *;",
 			"@use 'ultra.scss' as *;",
 			"",
-			".app-example-icon {",
+			".example-marker {",
 			"\tdisplay: flex;",
 			"\talign-items: center;",
 			"\tjustify-content: center;",
 			"\tcursor: pointer;",
-			"\tborder-radius: var(--app-round);",
-			"\tbackground: var(--app-background);",
+			"\tborder-radius: var(--application-round);",
+			"\tbackground: var(--application-background);",
 			"",
 			"\t&.circle {",
-			"\t\tborder-radius: calc(var(--app-size-width) / 2);",
+			"\t\tborder-radius: calc(var(--application-size-width) / 2);",
 			"\t}",
 			"}",
 			"</style>",
 			""
 		],
-		"description": "创建icon模版"
+		"description": "创建marker模版"
 	},
 	"创建overlay模版": {
-		"prefix": "create-window",
+		"prefix": "create-overlay",
 		"body": [
 			"<script setup lang=\"ts\">",
 			"defineOptions({",
-			"\tname: 'app-example-window'",
+			"\tname: 'example-overlay'",
 			"})",
 			"",
 			"// const props = withDefaults(defineProps<{}>(), {})",
@@ -209,17 +209,17 @@
 			"</script>",
 			"",
 			"<template>",
-			"\t<div class=\"app-example-window\"></div>",
+			"\t<div class=\"example-overlay\"></div>",
 			"</template>",
 			"",
 			"<style lang=\"scss\" scoped>",
-			".app-example-window {",
+			".example-overlay {",
 			"\twidth: 100%;",
 			"\theight: 100%;",
 			"}",
 			"</style>",
 			""
 		],
-		"description": "创建window模版"
+		"description": "创建overlay模版"
 	}
 }
