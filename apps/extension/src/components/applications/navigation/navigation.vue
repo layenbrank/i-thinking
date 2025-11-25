@@ -80,8 +80,8 @@ function handleJumpLink() {
 			@dblclick="handleJumpLink"
 			:class="[application.size, application.shape, application.direction]"
 		/>
-		<span class="app-name">{{ application.name }}</span>
-		<CloseOutlined class="app-trash-icon" />
+		<span class="application-name">{{ application.name }}</span>
+		<CloseOutlined class="application-trash-marker" />
 	</div>
 </template>
 

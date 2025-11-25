@@ -118,8 +118,8 @@ onUnmounted(function () {
 			@dblclick="updateOverlay(true)"
 			:class="[application.size, application.shape, application.direction]"
 		/>
-		<span class="app-name">{{ application.name }}</span>
-		<close-outlined class="app-trash-icon" />
+		<span class="application-name">{{ application.name }}</span>
+		<close-outlined class="application-trash-marker" />
 	</div>
 </template>
 
