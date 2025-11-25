@@ -47,6 +47,7 @@ declare namespace Application {
 		| 'marketplace'
 		| 'developer'
 		| 'collection'
+		| 'signboard'
 		// | 'gallery' 图库
 		| 'example'
 

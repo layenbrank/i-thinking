@@ -13,6 +13,8 @@ export interface UpdateParams {
 
 export type InsertParams = InsertType<Application, 'id'>
 
+const MIRROR_ID = window.crypto.randomUUID()
+
 const DEFAULT: readonly Application[] = [
 	{
 		id: window.crypto.randomUUID(),

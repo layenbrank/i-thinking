@@ -1,10 +1,12 @@
 <script setup lang="tsx">
-import { useSettings } from '@/hooks/application-settings.ts'
-import ApplicationIcon from './app-example-icon.vue'
-import ApplicationWindow from './app-example-window.vue'
+import Marker from '@/components/applications/signboard/signboard-marker.vue'
+import Overlay from '@/components/applications/signboard/signboard-overlay.vue'
+import { useSettings } from '@/hooks/application.ts'
+import { Modal } from 'ant-design-vue'
+import CloseOutlined from '~icons/local/close'
 
 defineOptions({
-	name: 'app-example'
+	name: 'signboard'
 })
 
 const props = withDefaults(
@@ -16,22 +18,24 @@ const props = withDefaults(
 		application() {
 			return {
 				id: '0',
-				width: '60px',
-				height: '60px',
-				app: 'app-example',
-				round: '12px',
-				size: 'medium',
-				slideID: '0',
 				sort: 0,
-				name: 'example',
-				direction: 'horizontal',
+				size: 'mini',
+				width: '60px',
+				round: '12px',
+				mirrorID: '0',
+				height: '60px',
+				name: '示例看板',
 				shape: 'square',
-				backgroundColor: '#ffffff4d',
-				backgroundImage: null,
 				textSize: '13px',
+				downloadCount: 1000,
 				textColor: '#ffffff',
-				description: '书签',
-				downloadCount: 1000
+				component: 'signboard',
+				backgroundImage: null,
+				updatedAt: Date.now(),
+				createdAt: Date.now(),
+				description: '示例看板',
+				direction: 'horizontal',
+				backgroundColor: '#ffffff4d'
 			}
 		}
 	}
@@ -41,7 +45,7 @@ const visible = ref(false)
 const fullscreen = ref(false)
 
 const round = computed(function () {
-	return props.application.round ?? 'var(--app-global-round)'
+	return props.application.round ?? 'var(--application-global-round)'
 })
 
 const background = computed(function () {
@@ -51,12 +55,11 @@ const background = computed(function () {
 	return '#ffffff'
 })
 
-const componentStyle = computed(function () {
+const style = computed(function () {
 	return useSettings(props.application)
 })
 
-function handleAppWindow(value: boolean) {
-	if (props.settingsVisible) return
+function updateOverlay(value: boolean) {
 	visible.value = value
 }
 
@@ -68,16 +71,16 @@ function updateFullScreen(value: boolean) {
 <template>
 	<div
 		:style="{
-			'--app-round': round,
-			'--app-background': background,
-			'--app-size-width': componentStyle.width,
-			'--app-grid-row': componentStyle.gridRow,
-			'--app-size-height': componentStyle.height,
-			'--app-grid-column': componentStyle.gridColumn
+			'--application-round': round,
+			'--application-background': background,
+			'--application-size-width': style.width,
+			'--application-grid-row': style.gridRow,
+			'--application-size-height': style.height,
+			'--application-grid-column': style.gridColumn
 		}"
-		:class="['app-example', application.size, application.shape, application.direction]"
+		:class="['example', application.size, application.shape, application.direction]"
 	>
-		<a-modal
+		<Modal
 			width="80%"
 			:icon="null"
 			:title="null"
@@ -87,24 +90,24 @@ function updateFullScreen(value: boolean) {
 			:closable="false"
 			:mask-closable="true"
 			:destroy-on-close="true"
-			@update:open="handleAppWindow"
+			@update:open="updateOverlay"
 			:style="{
 				transformOrigin: 'center'
 			}"
-			class="application-window example-window"
+			class="application-overlay example-overlay"
 		>
-			<application-window
+			<Overlay
 				:fullscreen="fullscreen"
-				@update:visible="handleAppWindow"
+				@update:visible="updateOverlay"
 				@update:fullscreen="updateFullScreen"
 			/>
-		</a-modal>
-		<application-icon
-			@dblclick="handleAppWindow(true)"
+		</Modal>
+		<Marker
+			@dblclick="updateOverlay(true)"
 			:class="[application.size, application.shape, application.direction]"
 		/>
-		<span class="app-name">{{ application.name }}</span>
-		<i-local:close class="app-trash-icon" />
+		<span class="application-name">{{ application.name }}</span>
+		<CloseOutlined class="application-trash-marker" />
 	</div>
 </template>
 

@@ -14,6 +14,17 @@ export const useMirrorStore = defineStore('mirror', function () {
 		)
 	)
 
+	const applications = useObservable(
+		from(
+			liveQuery(function () {
+				return database.application.each(function (application, cursor) {
+					console.log('application', application, 'cursor', cursor)
+					return application.mirrorID === mirrorID.value
+				})
+			})
+		)
+	)
+
 	/**
 	 * 插入一条 Mirror 记录
 	 * @param mirror 允许缺省 id，由函数生成；其它字段未提供时给出最小默认值
@@ -51,6 +62,7 @@ export const useMirrorStore = defineStore('mirror', function () {
 	return {
 		mirrorID,
 		mirrors,
+		applications,
 		toInsert,
 		toUpdate,
 		toRemove,
