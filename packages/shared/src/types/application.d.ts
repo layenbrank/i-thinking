@@ -48,6 +48,7 @@ declare namespace Application {
 		| 'developer'
 		| 'collection'
 		| 'signboard'
+		| 'clock'
 		// | 'gallery' 图库
 		| 'example'
 

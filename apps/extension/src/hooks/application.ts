@@ -31,6 +31,12 @@ const AppClipchamp = defineAsyncComponent(function () {
 const AppCollection = defineAsyncComponent(function () {
 	return import('@/components/applications/collection/collection.vue')
 })
+const AppSignboard = defineAsyncComponent(function () {
+	return import('@/components/applications/signboard/signboard.vue')
+})
+const AppClock = defineAsyncComponent(function () {
+	return import('@/components/applications/clock/clock.vue')
+})
 const AppExample = defineAsyncComponent(function () {
 	return import('@/components/applications/example/example.vue')
 })
@@ -112,6 +118,8 @@ const APPLICATION: Application.Reflect = {
 	marketplace: AppMarketplace,
 	clipchamp: AppClipchamp,
 	collection: AppCollection,
+	clock: AppClock,
+	signboard: AppSignboard,
 	example: AppExample
 }
 
