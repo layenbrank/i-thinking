@@ -18,7 +18,7 @@ const { APPLICATION } = useApplication()
 const options = ref([
 	{
 		label: '主页',
-		key: 'home',
+		key: 'portal',
 		image: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg'
 	},
 	{
@@ -73,7 +73,6 @@ const hasMultiple = computed(() => props.applications.length > 1)
 </template>
 
 <style lang="scss" scoped>
-// @use 'general.scss' as *;
 @use '@/styles/application.scss' as *;
 
 .marketplace-application {

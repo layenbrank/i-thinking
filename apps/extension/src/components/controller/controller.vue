@@ -34,7 +34,7 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 		// void
 	},
 	'remove-app'() {
-		// void
+		console.log('[Remove application]', store.application)
 		void store.toRemove([store.application?.id ?? ''])
 	},
 	'update-wallpaper'() {
@@ -56,10 +56,11 @@ const options = computed(function () {
 	return CONTEXTMENU[application.component]?.()
 })
 
-function updateActiveKey(value: ContextMenuOptions) {
+async function updateActiveKey(value: ContextMenuOptions) {
 	activeKey.value = value.key
 
-	contextmenuMap[value.key]?.()
+	await contextmenuMap[value.key]?.()
+	store.application = null
 }
 
 function handleController(e: MouseEvent) {
@@ -107,7 +108,6 @@ function mountContext(e: MouseEvent) {
 
 function destroyContext() {
 	visible.value = false
-	store.application = null
 }
 
 function handleResize(DOMRect: DOMRect) {

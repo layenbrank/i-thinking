@@ -53,10 +53,10 @@ const { t, locale } = useI18n()
 const comboboxRef = useTemplateRef('comboboxRef')
 const mirrorStore = useMirrorStore()
 
-watchEffect(function () {
-	console.log('mirrorStore mirrors', mirrorStore.mirrors)
-	console.log('mirrorStore applications', mirrorStore.applications)
-})
+// watchEffect(function () {
+// 	console.log('mirrorStore mirrors', mirrorStore.mirrors)
+// 	console.log('mirrorStore applications', mirrorStore.applications)
+// })
 
 const timestamp = useTimestamp({
 	interval: 'requestAnimationFrame'
