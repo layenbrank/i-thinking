@@ -34,29 +34,63 @@ function handleImport() {
 	const input = document.createElement('input')
 	input.type = 'file'
 	input.accept = 'application/json'
+	input.style.display = 'none'
 
-	input.addEventListener('change', function () {
+	document.body.appendChild(input)
+
+	input.click()
+
+	input.addEventListener('change', async function () {
 		const files = input.files
-		if (!files) return message.error('未选择文件')
-
-		for (const file of files) {
-			const reader = new FileReader()
-
-			reader.addEventListener('load', async function (e) {
-				try {
-					const result = e.target?.result as string
-					const imported = JSON.parse(result)
-					const isArray = Array.isArray(imported)
-					if (!isArray) return message.error('无效的数据格式')
-					await database.application.bulkPut(imported)
-					message.success('导入成功')
-				} catch (error) {
-					console.error('Error reading file:', error)
-				}
-			})
-			if (!file) return message.error('未选择文件')
-			reader.readAsText(file)
+		if (!files || files.length === 0) {
+			document.body.removeChild(input)
+			return message.error('未选择文件')
 		}
+
+		const [file] = files
+		if (!file) {
+			document.body.removeChild(input)
+			return message.error('未选择文件')
+		}
+
+		const reader = new FileReader()
+
+		reader.addEventListener('load', async function (e) {
+			try {
+				const result = e.target?.result as string
+				if (!result) {
+					document.body.removeChild(input)
+					return message.error('文件读取失败')
+				}
+
+				const imported = JSON.parse(result)
+				const isArray = Array.isArray(imported)
+				if (!isArray) {
+					document.body.removeChild(input)
+					return message.error('无效的数据格式')
+				}
+
+				await database.application.bulkPut(imported)
+				message.success('导入成功')
+			} catch (error) {
+				console.error('Error reading file:', error)
+				message.error('导入失败：' + (error instanceof Error ? error.message : '未知错误'))
+			} finally {
+				document.body.removeChild(input)
+			}
+		})
+
+		reader.addEventListener('error', function () {
+			document.body.removeChild(input)
+			message.error('文件读取失败')
+		})
+
+		reader.readAsText(file)
+	})
+
+	// 处理用户取消选择文件的情况
+	input.addEventListener('cancel', function () {
+		document.body.removeChild(input)
 	})
 }
 </script>

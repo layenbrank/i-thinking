@@ -18,7 +18,7 @@ export const useMirrorStore = defineStore('mirror', function () {
 		from(
 			liveQuery(function () {
 				return database.application.each(function (application, cursor) {
-					console.log('application', application, 'cursor', cursor)
+					// console.log('application', application, 'cursor', cursor)
 					return application.mirrorID === mirrorID.value
 				})
 			})
