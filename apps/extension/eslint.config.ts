@@ -61,15 +61,16 @@ export default defineConfigWithVueTs(
 			/* 限制嵌套代码块的最大深度，保持代码的清晰结构 */
 			'max-depth': ['error', 4],
 			'@typescript-eslint/no-namespace': 'off',
-			'@typescript-eslint/no-floating-promises': 'error',
 			'@typescript-eslint/consistent-type-imports': 'error',
 			'@typescript-eslint/no-unsafe-argument': 'error',
+			/* 禁止未处理的 Promise语句 */
+			'@typescript-eslint/no-floating-promises': 'error',
+			/* 禁止将 Promise 传递到错误逻辑位置的代码 */
 			'@typescript-eslint/no-misused-promises': 'off',
 			'@typescript-eslint/no-non-null-assertion': 'error',
 			'@typescript-eslint/no-unsafe-call': 'error',
 			'@typescript-eslint/no-unsafe-member-access': 'error',
 			'no-trailing-spaces': 'off',
-			// '@typescript-eslint/no-non-null-assertion': 'warn',
 
 			/* 对未使用的变量发出错误，保持代码的简洁性 */
 			'@typescript-eslint/no-unused-vars': [

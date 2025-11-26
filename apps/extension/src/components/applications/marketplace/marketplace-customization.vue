@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useApplicationStore } from '@/stores/application.ts'
+import { useMirrorStore } from '@/stores/mirror.ts'
 import { InboxOutlined, UploadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 
@@ -7,7 +7,7 @@ defineOptions({
 	name: 'marketplace-customization'
 })
 
-const store = useApplicationStore()
+const store = useMirrorStore()
 
 const formItemLayout = {
 	labelCol: { span: 6 },
@@ -23,7 +23,7 @@ const formState = reactive({
 function onFinish(values: any) {
 	try {
 		void store
-			.toInsert([
+			.toInsertApplication([
 				{
 					name: values.name,
 					url: values.URL,
@@ -31,7 +31,7 @@ function onFinish(values: any) {
 					id: crypto.randomUUID(),
 					shape: 'circle',
 					size: 'mini',
-					sort: store.applications?.length ?? 0,
+					index: store.applications?.length ?? 0,
 					direction: 'horizontal',
 					component: 'navigation',
 					// TODO: 待定 marker 来源

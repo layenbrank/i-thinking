@@ -1,6 +1,6 @@
-import { useApplicationStore } from '@/stores/application.ts'
+import { useMirrorStore } from '@/stores/mirror.ts'
 
-const applicationStore = useApplicationStore()
+const mirrorStore = useMirrorStore()
 
 function useSettings() {
 	const active = ref<Application | null>(null)
@@ -14,7 +14,7 @@ function useSettings() {
 		const id = closest.dataset.id
 		if (!id) return
 
-		const application = applicationStore.applications?.find(function (value) {
+		const application = mirrorStore.applications?.find(function (value) {
 			return value.id === id
 		})
 		if (!application) return
@@ -24,7 +24,7 @@ function useSettings() {
 	function updateSetting<T extends keyof Application>(key: T, value: Application[T]) {
 		if (!active.value) return
 		active.value[key] = value
-		void applicationStore.toUpdate([
+		void mirrorStore.toUpdateApplication([
 			{
 				key: active.value.id,
 				changes: {
@@ -35,8 +35,8 @@ function useSettings() {
 	}
 
 	watchEffect(function () {
-		if (!applicationStore.applications) return
-		const [application] = applicationStore.applications
+		if (!mirrorStore.applications) return
+		const [application] = mirrorStore.applications
 		if (!application) return
 		if (active.value) return
 		active.value = application

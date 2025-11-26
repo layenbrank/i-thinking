@@ -30,7 +30,7 @@ const applications: Application[] = [
 	{
 		id: randomID(),
 		mirrorID: randomID(),
-		sort: 1,
+		index: 1,
 		component: 'bookmark',
 		width: '60px',
 		height: '60px',
@@ -55,7 +55,7 @@ const applications: Application[] = [
 	{
 		id: randomID(),
 		mirrorID: randomID(),
-		sort: 2,
+		index: 2,
 		component: 'calendar',
 		width: '60px',
 		height: '60px',
@@ -79,7 +79,7 @@ const applications: Application[] = [
 	{
 		id: randomID(),
 		mirrorID: randomID(),
-		sort: 3,
+		index: 3,
 		component: 'marketplace',
 		width: '60px',
 		height: '60px',
@@ -112,7 +112,7 @@ const applications: Application[] = [
 	{
 		id: randomID(),
 		mirrorID: randomID(),
-		sort: 3,
+		index: 3,
 		component: 'navigation',
 		url: 'https://www.baidu.com',
 		size: 'mini',
@@ -135,7 +135,7 @@ const applications: Application[] = [
 	{
 		id: randomID(),
 		mirrorID: randomID(),
-		sort: 5,
+		index: 5,
 		component: 'navigation',
 		width: '60px',
 		height: '60px',
@@ -158,7 +158,7 @@ const applications: Application[] = [
 	{
 		id: randomID(),
 		mirrorID: randomID(),
-		sort: 6,
+		index: 6,
 		component: 'example',
 		width: '60px',
 		height: '60px',

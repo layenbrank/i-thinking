@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import fallback from '@/assets/feedback/fallback.png'
-import { useApplicationStore } from '@/stores/application.ts'
+import { useMirrorStore } from '@/stores/mirror.ts'
 import { timeSphere } from '@desktop-app/core'
 import { message } from 'ant-design-vue'
 import Fuse, { type IFuseOptions } from 'fuse.js'
@@ -31,7 +31,7 @@ const emits = defineEmits<{
 	(e: 'update:fullscreen', value: boolean): void
 }>()
 
-const store = useApplicationStore()
+const store = useMirrorStore()
 
 const keyword = ref('')
 const loading = ref(false)
@@ -96,14 +96,14 @@ function updateApplication(bookmark: Bookmark) {
 	const raw = toRaw(bookmark)
 
 	try {
-		void store.toInsert([
+		void store.toInsertApplication([
 			{
 				id: raw.id,
 				name: raw.title,
 				url: raw.url,
 				shape: 'circle',
 				size: 'mini',
-				sort: store.applications?.length ?? 0,
+				index: store.applications?.length ?? 0,
 				direction: 'horizontal',
 				component: 'navigation',
 				marker: raw.url,
