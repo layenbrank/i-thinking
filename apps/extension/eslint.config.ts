@@ -115,6 +115,7 @@ export default defineConfigWithVueTs(
 						'gallery',
 						'collection',
 						'signboard',
+						'clock',
 						'contextmenu',
 						'controller'
 					]
