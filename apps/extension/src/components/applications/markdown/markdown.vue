@@ -16,7 +16,7 @@ const props = withDefaults(
 		application() {
 			return {
 				id: '0',
-				sort: 0,
+				index: 0,
 				size: 'mini',
 				name: '备忘录',
 				width: '60px',

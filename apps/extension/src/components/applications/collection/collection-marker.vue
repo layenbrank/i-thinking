@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { database } from '@/database/database.ts'
-import { useCollectionStore } from '@/stores/collection.ts'
+import { injectStore } from '@/components/applications/collection/collection.ts'
+import { useMirrorStore } from '@/stores/mirror.ts'
 import { Icon } from '@iconify/vue'
+import { useDropZone } from '@vueuse/core'
 
 defineOptions({
 	name: 'collection-marker'
@@ -10,21 +11,61 @@ defineOptions({
 const props = withDefaults(
 	defineProps<{
 		id: string
+		size: Application.Size
+		shape: Application.Shape
+		direction: Application.Direction
 	}>(),
 	{}
 )
 
-const store = useCollectionStore()
+const { navigations } = injectStore()
 
-// const
+const mirrorStore = useMirrorStore()
 
-onMounted(async function () {
-	const collection = await store.toRead([props.id])
+const dropZoneRef = useTemplateRef<HTMLElement>('dropZoneRef')
+
+const { isOverDropZone } = useDropZone(dropZoneRef, {
+	dataTypes: ['text/plain'],
+	onDrop(files, event) {
+		const targetID = props.id
+		const sourceID = event.dataTransfer?.getData('text/plain')
+
+		if (!sourceID) return
+		if (sourceID === targetID) return
+
+		void mirrorStore.toReadApplication([sourceID]).then(function (values) {
+			const applications = values.filter(Boolean)
+			if (!applications.length) return
+
+			const [application] = applications
+			if (!application) return
+
+			const isNavigation = application.component === 'navigation'
+			if (isNavigation) void handleNavigation(sourceID, targetID)
+		})
+	}
 })
+
+async function handleNavigation(sourceID: string, targetID: string) {
+	await mirrorStore.toUpdateApplication([
+		{
+			key: sourceID,
+			changes: {
+				collectionID: targetID
+			}
+		}
+	])
+}
 </script>
 
 <template>
-	<div class="collection-marker">
+	<div
+		ref="dropZoneRef"
+		class="collection-marker"
+		:class="{
+			isOverDropZone: isOverDropZone
+		}"
+	>
 		<Icon icon="mdi:folder-multiple" class="marker-collection" />
 	</div>
 </template>
@@ -45,6 +86,10 @@ onMounted(async function () {
 	cursor: pointer;
 	border-radius: var(--application-round);
 	background: var(--application-background);
+
+	&.isOverDropZone {
+		box-shadow: 0px 0px 1px 3px #4080ff;
+	}
 
 	&.circle {
 		border-radius: calc(var(--application-size-width) / 2);

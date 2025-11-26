@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useStore } from '@/components/applications/settings/settings.ts'
 import { useApplication } from '@/hooks/application.ts'
-import { useApplicationStore } from '@/stores/application.ts'
+import { useMirrorStore } from '@/stores/mirror.ts'
 
 interface DirectionOptions {
 	label: string
@@ -12,7 +12,7 @@ defineOptions({
 	name: 'setting-direction'
 })
 
-const store = useApplicationStore()
+const store = useMirrorStore()
 const { APPLICATION } = useApplication()
 const { active, updateActive, updateSetting } = useStore()
 

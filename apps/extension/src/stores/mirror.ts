@@ -1,71 +1,134 @@
+import { ReBuild } from '@/constants/mirror.ts'
 import { database } from '@/database/database.ts'
 import { useObservable } from '@vueuse/rxjs'
 import { liveQuery, type InsertType, type UpdateSpec } from 'dexie'
-import { from } from 'rxjs'
+import { isEmpty } from 'lodash-es'
+import { from, Observable, switchMap, tap } from 'rxjs'
+
+export interface ToUpdateMirror {
+	key: string
+	changes: UpdateSpec<Mirror>
+}
+
+export type ToInsertMirror = InsertType<Mirror, 'id'>
+
+export interface ToUpdateApplication {
+	key: string
+	changes: UpdateSpec<Application>
+}
+
+export type ToInsertApplication = InsertType<Application, 'id'>
+
+export interface ToUpdateCollection {
+	key: string
+	changes: UpdateSpec<Collection>
+}
+export type ToInsertCollection = InsertType<Collection, 'id'>
 
 export const useMirrorStore = defineStore('mirror', function () {
-	const mirrorID = ref('')
+	const mirrorID = ref<string | null>(null)
+
+	const application = ref<Application | null>(null)
+
+	const { APPLICATIONS, MIRRORS } = ReBuild()
 
 	const mirrors = useObservable(
 		from(
 			liveQuery(function () {
-				return database.mirror.where('id').equals(mirrorID.value).toArray()
+				return database.mirror.orderBy('index').toArray()
+			})
+		).pipe(
+			tap(function (values) {
+				if (isEmpty(values)) void database.mirror.bulkAdd(MIRRORS)
+				const [value] = values
+				console.log('[useObservable mirrors]', values)
+				console.log('[APPLICATIONS]', APPLICATIONS)
+
+				if (value?.id) mirrorID.value = value?.id
 			})
 		)
 	)
 
 	const applications = useObservable(
-		from(
-			liveQuery(function () {
-				return database.application.each(function (application, cursor) {
-					// console.log('application', application, 'cursor', cursor)
-					return application.mirrorID === mirrorID.value
-				})
+		new Observable<string>(function (subscribe) {
+			watchEffect(function () {
+				if (!mirrorID.value) return
+				subscribe.next(mirrorID.value)
 			})
+		}).pipe(
+			switchMap(function (mirrorID) {
+				return from(
+					liveQuery(function () {
+						return (
+							database.application
+								.where('mirrorID')
+								.equals(mirrorID)
+								.filter(function (application) {
+									// 不具有集合ID的
+									return !application.collectionID
+								})
+								// .offset(1)
+								// .limit(30)
+								.sortBy('index')
+						)
+					})
+				)
+			}),
+			tap(function (values) {
+				if (isEmpty(values)) void database.application.bulkAdd(APPLICATIONS)
+
+				console.log('[useObservable applications]', values)
+			})
+			// map( function ( values ) {
+			// })
 		)
 	)
 
-	/**
-	 * 插入一条 Mirror 记录
-	 * @param mirror 允许缺省 id，由函数生成；其它字段未提供时给出最小默认值
-	 * @returns 生成或使用的主键 id
-	 */
-	function toInsert(mirror: InsertType<Mirror, 'id'>) {
-		const id = mirror.id ?? crypto.randomUUID()
-		const now = Date.now()
-		const record: Mirror = {
-			id,
-			name: mirror.name ?? '',
-			sort: mirror.sort ?? 0,
-			marker: mirror.marker ?? '',
-			description: mirror.description ?? '',
-			updatedAt: mirror.updatedAt ?? now,
-			createdAt: mirror.createdAt ?? now
-		}
-		return database.mirror.add(record)
+	function toInsertMirror(values: ToInsertMirror[]) {
+		return database.mirror.bulkAdd(values)
 	}
 
-	/** 更新指定 ID 记录，返回修改的字段数 */
-	function toUpdate(ID: string, updates: UpdateSpec<Mirror>) {
-		return database.mirror.update(ID, updates)
+	function toUpdateMirror(values: ToUpdateMirror[]) {
+		return database.mirror.bulkUpdate(values)
 	}
 
-	/** 删除指定 ID */
-	function toRemove(ID: string) {
-		return database.mirror.delete(ID)
+	function toRemoveMirror(keys: string[]) {
+		return database.mirror.bulkDelete(keys)
 	}
-	/** 读取单条记录 */
-	function toRead(ID: string) {
-		return database.mirror.get(ID)
+	async function toReadMirror(keys: string[]) {
+		const response = await database.mirror.bulkGet(keys)
+		return response.filter(Boolean)
+	}
+
+	async function toReadApplication(keys: string[]) {
+		const response = await database.application.bulkGet(keys)
+		return response.filter(Boolean)
+	}
+
+	function toUpdateApplication(values: ToUpdateApplication[]) {
+		return database.application.bulkUpdate(values)
+	}
+
+	function toInsertApplication(values: ToInsertApplication[]) {
+		return database.application.bulkAdd(values)
+	}
+
+	function toRemoveApplication(keys: string[]) {
+		return database.application.bulkDelete(keys)
 	}
 
 	return {
 		mirrorID,
 		mirrors,
+		application,
 		applications,
-		toInsert,
-		toUpdate,
-		toRemove,
-		toRead
+		toReadMirror,
+		toInsertMirror,
+		toUpdateMirror,
+		toRemoveMirror,
+		toReadApplication,
+		toUpdateApplication,
+		toInsertApplication,
+		toRemoveApplication
 	}
 })

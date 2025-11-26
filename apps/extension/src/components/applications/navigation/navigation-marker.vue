@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import fallback from '@/assets/feedback/fallback.png'
-import { useApplicationStore } from '@/stores/application.ts'
+import { useMirrorStore } from '@/stores/mirror.ts'
 import { useDropZone } from '@vueuse/core'
 
 defineOptions({
@@ -16,7 +16,7 @@ const props = withDefaults(
 	{}
 )
 
-const applicationStore = useApplicationStore()
+const mirrorStore = useMirrorStore()
 
 const dropZoneRef = useTemplateRef<HTMLElement>('dropZoneRef')
 
@@ -29,30 +29,63 @@ const { isOverDropZone } = useDropZone(dropZoneRef, {
 		if (!sourceID) return
 		if (sourceID === targetID) return
 
-		void applicationStore.toRead([sourceID]).then(async function (values) {
+		void mirrorStore.toReadApplication([sourceID]).then(function (values) {
 			const applications = values.filter(Boolean)
+			if (!applications.length) return
+
 			const [application] = applications
-
 			if (!application) return
-			const genericID = crypto.randomUUID()
 
-			await applicationStore.toUpdate([
-				{
-					key: sourceID,
-					changes: {
-						collectionID: genericID
-					}
-				},
-				{
-					key: targetID,
-					changes: {
-						collectionID: genericID
-					}
-				}
-			])
+			const isNavigation = application.component === 'navigation'
+			if (isNavigation) void handleNavigation(sourceID, targetID)
 		})
 	}
 })
+
+async function handleNavigation(sourceID: string, targetID: string) {
+	if (!mirrorStore.mirrorID) return
+	const genericID = crypto.randomUUID()
+
+	await mirrorStore.toInsertApplication([
+		{
+			id: genericID,
+			name: '未命名集合',
+			size: 'mini',
+			shape: 'rectangle',
+			index: mirrorStore.applications?.length ?? 0,
+			round: '8px',
+			width: null,
+			marker: '',
+			height: null,
+			mirrorID: mirrorStore.mirrorID,
+			textSize: '16px',
+			textColor: '#ffffff',
+			direction: 'horizontal',
+			component: 'collection',
+			createdAt: Date.now(),
+			updatedAt: Date.now(),
+			description: '',
+			downloadCount: 0,
+			backgroundColor: '#ffffff',
+			backgroundImage: null
+		}
+	])
+
+	await mirrorStore.toUpdateApplication([
+		{
+			key: sourceID,
+			changes: {
+				collectionID: genericID
+			}
+		},
+		{
+			key: targetID,
+			changes: {
+				collectionID: genericID
+			}
+		}
+	])
+}
 
 // 没有图标截取应用名称的第一个字作为标记
 const char = computed(() => {

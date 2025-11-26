@@ -17,7 +17,7 @@ const props = withDefaults(
 		application() {
 			return {
 				id: '0',
-				sort: 0,
+				index: 0,
 				name: '书签',
 				size: 'mini',
 				width: '60px',

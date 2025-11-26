@@ -7,7 +7,6 @@ type BookmarkDir = Application.BookmarkDir
 interface DataBase extends Dexie {
 	mirror: EntityTable<Mirror, 'id'>
 	application: EntityTable<Application, 'id'>
-	collection: EntityTable<Collection, 'id'>
 
 	backup: EntityTable<Backup, 'id'>
 
@@ -24,19 +23,27 @@ interface DataBase extends Dexie {
 	AiMessage: EntityTable<AiMessage, 'id'>
 }
 
-const DBNAME: Readonly<string> = 'desktop-app'
+const DBNAME: Readonly<string> = 'iQ'
 
 export const database = new Dexie(DBNAME) as DataBase
 
-const MIRROR = ['&id', 'sort', 'name', 'marker', 'description', 'updatedAt', 'createdAt']
-const APPLICATION = [
+const MIRROR: readonly string[] = [
 	'&id',
-	'mirrorID',
-	'collectionID',
+	'index',
+	'name',
+	'marker',
+	'description',
+	'updatedAt',
+	'createdAt'
+]
+const APPLICATION: readonly string[] = [
+	'&id',
 	'[id+mirrorID]',
 	'[id+collectionID]',
 	'[mirrorID+collectionID]',
-	'sort',
+	'mirrorID',
+	'collectionID',
+	'index',
 	'component',
 	'name',
 	'size',
@@ -55,6 +62,7 @@ const APPLICATION = [
 	'updatedAt',
 	'createdAt'
 ]
+
 const COLLECTION: readonly string[] = APPLICATION.filter((field) => field !== 'mirrorID')
 
 const USERS: readonly string[] = ['++id', 'name']
@@ -77,7 +85,7 @@ const MARKDOWN: readonly string[] = ['&id', 'sort', 'createdAt', 'updatedAt']
 
 const AISESSION: readonly string[] = [
 	'&id',
-	'sort',
+	'index',
 	'title',
 	'userID',
 	'messages',
@@ -97,7 +105,6 @@ const AIMESSAGE: readonly string[] = [
 database.version(1).stores({
 	mirror: MIRROR.join(','),
 	application: APPLICATION.join(','),
-	collection: COLLECTION.join(','),
 
 	backup: BACKUP.join(','),
 	setting: SETTING.join(','),

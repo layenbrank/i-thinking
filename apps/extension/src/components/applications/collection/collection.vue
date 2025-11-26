@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import backgroundImage from '@/assets/wallpaper/r2e391.png'
 import Marker from '@/components/applications/collection/collection-marker.vue'
 import Overlay from '@/components/applications/collection/collection-overlay.vue'
+import { provideStore } from '@/components/applications/collection/collection.ts'
 import { useSettings } from '@/hooks/application.ts'
 import { Modal } from 'ant-design-vue'
 import CloseOutlined from '~icons/local/close'
@@ -17,7 +19,7 @@ const props = withDefaults(
 		application() {
 			return {
 				id: '0',
-				sort: 0,
+				index: 0,
 				size: 'mini',
 				width: '60px',
 				round: '12px',
@@ -39,6 +41,8 @@ const props = withDefaults(
 		}
 	}
 )
+
+provideStore(props.application.id)
 
 const visible = ref(false)
 const fullscreen = ref(false)
@@ -92,7 +96,14 @@ function updateFullScreen(value: boolean) {
 			:destroy-on-close="true"
 			@update:open="updateOverlay"
 			:style="{
-				transformOrigin: 'center'
+				transformOrigin: 'center',
+				backgroundImage: `url(${backgroundImage})`,
+				backgroundRepeat: 'no-repeat',
+				backgroundSize: 'cover',
+				backgroundAttachment: 'fixed',
+				backgroundOrigin: 'content-box',
+				backgroundClip: 'content-box',
+				backgroundPosition: 'center'
 			}"
 			class="application-overlay collection-overlay"
 		>
@@ -103,6 +114,9 @@ function updateFullScreen(value: boolean) {
 			/>
 		</Modal>
 		<Marker
+			:size="application.size"
+			:shape="application.shape"
+			:direction="application.direction"
 			:id="application.id"
 			@dblclick="updateOverlay(true)"
 			:class="[application.size, application.shape, application.direction]"
@@ -141,12 +155,15 @@ function updateFullScreen(value: boolean) {
 	}
 
 	.ant-modal-content {
-		background-color: transparent;
+		// background-color: transparent;
+		backdrop-filter: blur(21px);
+		background-color: hsla(0, 0%, 100%, 0.5);
 	}
 
 	.ant-modal-body {
-		border-radius: 8px;
-		background-color: rgba($color: #ffffff, $alpha: 1);
+		// background-color: rgba($color: #ffffff, $alpha: 1);
+		background-color: transparent;
+		border-radius: var(--application-global-overlay-round);
 	}
 }
 </style>

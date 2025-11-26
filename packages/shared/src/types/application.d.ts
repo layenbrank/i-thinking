@@ -5,7 +5,7 @@ type ApplicationWindowType = ReturnType<(typeof import('ant-design-vue'))['Modal
  */
 interface Application {
 	id: string
-	sort: number
+	index: number
 	name: string
 	url?: string
 	size: Application.Size
@@ -49,7 +49,7 @@ declare namespace Application {
 		| 'collection'
 		| 'signboard'
 		| 'clock'
-		// | 'gallery' 图库
+		| 'gallery' // 图库
 		| 'example'
 
 	/**

@@ -18,7 +18,7 @@ const props = withDefaults(
 		application() {
 			return {
 				id: '0',
-				sort: 0,
+				index: 0,
 				size: 'mini',
 				width: '60px',
 				round: '12px',

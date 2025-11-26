@@ -18,7 +18,7 @@ const props = withDefaults(
 		application() {
 			return {
 				id: '0',
-				sort: 0,
+				index: 0,
 				name: '设置',
 				size: 'mini',
 				width: '60px',
@@ -159,8 +159,8 @@ onUnmounted(function () {
 	}
 
 	.ant-modal-body {
-		border-radius: var(--application-global-overlay-round);
 		background-color: transparent;
+		border-radius: var(--application-global-overlay-round);
 		// background-color: rgba($color: #ffffff, $alpha: 1);
 	}
 }

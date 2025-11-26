@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Contextmenu from '@/components/contextmenu/contextmenu.vue'
 import { useApplication } from '@/hooks/application.ts'
-import { useApplicationStore, type UpdateParams } from '@/stores/application.ts'
+import { useMirrorStore, type ToUpdateApplication } from '@/stores/mirror.ts'
 import { resize } from '@desktop-app/core/directives'
 import Sortable from 'sortablejs'
 
@@ -12,7 +12,7 @@ defineOptions({
 	}
 })
 
-const store = useApplicationStore()
+const store = useMirrorStore()
 const { APPLICATION, CONTEXTMENU, SIZES } = useApplication()
 
 const controllerRef = useTemplateRef('controllerRef')
@@ -30,20 +30,21 @@ const contextDOMRect = reactive({
 })
 
 const contextmenuMap: Readonly<ContextMenuMap> = {
-	'update-app'() {
+	async 'update-app'() {
 		// void
 	},
-	'remove-app'() {
+	async 'remove-app'() {
 		console.log('[Remove application]', store.application)
-		void store.toRemove([store.application?.id ?? ''])
+		await store.toRemoveApplication([store.application?.id ?? ''])
+		store.application = null
 	},
-	'update-wallpaper'() {
+	async 'update-wallpaper'() {
 		// void
 	},
-	'update-backup'() {
+	async 'update-backup'() {
 		// void
 	},
-	'update-settings'() {
+	async 'update-settings'() {
 		// store.settingsVisible = true
 	}
 }
@@ -56,11 +57,10 @@ const options = computed(function () {
 	return CONTEXTMENU[application.component]?.()
 })
 
-async function updateActiveKey(value: ContextMenuOptions) {
+function updateActiveKey(value: ContextMenuOptions) {
 	activeKey.value = value.key
 
-	await contextmenuMap[value.key]?.()
-	store.application = null
+	contextmenuMap[value.key]?.()
 }
 
 function handleController(e: MouseEvent) {
@@ -158,7 +158,7 @@ function initialize() {
 		store: {
 			set(sortable) {
 				const toArray = sortable.toArray()
-				const updates: UpdateParams[] = []
+				const updates: ToUpdateApplication[] = []
 
 				for (let i = 0; i < toArray.length; i++) {
 					const ID = toArray[i]
@@ -169,11 +169,11 @@ function initialize() {
 						application = toRaw(application)
 						if (!application) continue
 						if (application.id !== ID) continue
-						updates.push({ key: application.id, changes: { sort: i } })
+						updates.push({ key: application.id, changes: { index: i } })
 					}
 				}
 				console.log('[Sortable applications]', updates)
-				void store.toUpdate(updates)
+				void store.toUpdateApplication(updates)
 			},
 			get(sortable) {
 				const toArray = store.applications?.map(function (application) {
