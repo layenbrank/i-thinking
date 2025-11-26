@@ -11,6 +11,9 @@ pub enum TSchema {
     UT,
     PN,
     MB,
+    RI,
+    NWB,
+    OS,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
