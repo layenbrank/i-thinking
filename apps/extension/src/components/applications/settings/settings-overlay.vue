@@ -1,7 +1,8 @@
 <script setup lang="ts">
+// import { Icon } from '@iconify/vue'
 import { resize } from '@desktop-app/core'
-import { Icon } from '@iconify/vue'
 import SettingBackground from './setting-background.vue'
+import SettingBackup from './setting-backup.vue'
 import SettingDirection from './setting-direction.vue'
 import SettingShape from './setting-shape.vue'
 import SettingSize from './setting-size.vue'
@@ -42,6 +43,11 @@ const options = [
 		label: '背景',
 		value: 'background',
 		component: SettingBackground
+	},
+	{
+		label: '备份',
+		value: 'export',
+		component: SettingBackup
 	}
 ]
 
