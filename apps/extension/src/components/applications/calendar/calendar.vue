@@ -60,7 +60,6 @@ const style = computed(function () {
 
 function updateOverlay(value: boolean) {
 	visible.value = value
-	message.success('打开日历应用')
 }
 
 function updateFullScreen(value: boolean) {

@@ -23,6 +23,8 @@
 		}
 
 		&.rectangle {
+			@apply p-1;
+
 			&.horizontal {
 				svg {
 					@apply h-full;
