@@ -94,6 +94,7 @@ const updateBookmarks = debounce(function (value: string) {
 
 function updateApplication(bookmark: Bookmark) {
 	const raw = toRaw(bookmark)
+	if (!store.mirrorID) return message.error('未选择镜像，无法添加应用')
 
 	try {
 		void store.toInsertApplication([
@@ -112,7 +113,7 @@ function updateApplication(bookmark: Bookmark) {
 				width: null,
 				height: null,
 				round: '8px',
-				mirrorID: '0',
+				mirrorID: store.mirrorID,
 				collectionID: '0',
 				textColor: '#fff',
 				textSize: '16px',

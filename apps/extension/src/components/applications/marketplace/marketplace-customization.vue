@@ -2,6 +2,7 @@
 import { useMirrorStore } from '@/stores/mirror.ts'
 import { InboxOutlined, UploadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { type UpdateSpec } from 'dexie'
 
 defineOptions({
 	name: 'marketplace-customization'
@@ -21,6 +22,8 @@ const formState = reactive({
 	dragger: []
 })
 function onFinish(values: any) {
+	if (!store.mirrorID) return message.error('未选择镜像，无法添加应用')
+
 	try {
 		void store
 			.toInsertApplication([
@@ -41,7 +44,7 @@ function onFinish(values: any) {
 					width: null,
 					height: null,
 					round: '8px',
-					mirrorID: '0',
+					mirrorID: store.mirrorID,
 					collectionID: '0',
 					textColor: '#fff',
 					textSize: '16px',
