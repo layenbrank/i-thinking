@@ -120,7 +120,7 @@ function updateFullScreen(value: boolean) {
 }
 </style>
 <style lang="scss">
-.application-window.gallery-window {
+.application-overlay.gallery-overlay {
 	%size-full {
 		width: 100%;
 		height: 100%;

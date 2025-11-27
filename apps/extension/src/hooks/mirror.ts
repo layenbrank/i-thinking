@@ -37,6 +37,9 @@ const AppSignboard = defineAsyncComponent(function () {
 const AppClock = defineAsyncComponent(function () {
 	return import('@/components/applications/clock/clock.vue')
 })
+const AppGallery = defineAsyncComponent(function () {
+	return import('@/components/applications/gallery/gallery.vue')
+})
 const AppExample = defineAsyncComponent(function () {
 	return import('@/components/applications/example/example.vue')
 })
@@ -92,6 +95,7 @@ const APPLICATION: Application.Reflect = {
 	collection: AppCollection,
 	clock: AppClock,
 	signboard: AppSignboard,
+	gallery: AppGallery,
 	example: AppExample
 }
 
