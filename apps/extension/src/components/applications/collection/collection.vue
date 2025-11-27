@@ -108,6 +108,8 @@ function updateFullScreen(value: boolean) {
 			class="application-overlay collection-overlay"
 		>
 			<Overlay
+				:id="application.id"
+				:name="application.name"
 				:fullscreen="fullscreen"
 				@update:visible="updateOverlay"
 				@update:fullscreen="updateFullScreen"
