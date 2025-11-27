@@ -3,7 +3,7 @@ import backgroundImage from '@/assets/wallpaper/r2e391.png'
 import Marker from '@/components/applications/collection/collection-marker.vue'
 import Overlay from '@/components/applications/collection/collection-overlay.vue'
 import { provideStore } from '@/components/applications/collection/collection.ts'
-import { useSettings } from '@/hooks/application.ts'
+import { useSettings } from '@/hooks/mirror'
 import { Modal } from 'ant-design-vue'
 import CloseOutlined from '~icons/local/close'
 

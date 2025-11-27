@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Contextmenu from '@/components/contextmenu/contextmenu.vue'
-import { useApplication } from '@/hooks/application.ts'
+import { useMirror } from '@/hooks/mirror'
 import { useMirrorStore, type ToUpdateApplication } from '@/stores/mirror.ts'
 import { resize } from '@desktop-app/core/directives'
 import Sortable from 'sortablejs'
@@ -13,7 +13,7 @@ defineOptions({
 })
 
 const store = useMirrorStore()
-const { APPLICATION, CONTEXTMENU, SIZES } = useApplication()
+const { APPLICATION, CONTEXTMENU, MENUOPTIONS } = useMirror()
 
 const controllerRef = useTemplateRef('controllerRef')
 const contextmenuRef = useTemplateRef('contextmenuRef')
@@ -30,21 +30,20 @@ const contextDOMRect = reactive({
 })
 
 const contextmenuMap: Readonly<ContextMenuMap> = {
-	async 'update-app'() {
+	'update-app'() {
 		// void
 	},
-	async 'remove-app'() {
+	'remove-app'() {
 		console.log('[Remove application]', store.application)
-		await store.toRemoveApplication([store.application?.id ?? ''])
-		store.application = null
+		void store.toRemoveApplication([store.application?.id ?? ''])
 	},
-	async 'update-wallpaper'() {
+	'update-wallpaper'() {
 		// void
 	},
-	async 'update-backup'() {
+	'update-backup'() {
 		// void
 	},
-	async 'update-settings'() {
+	'update-settings'() {
 		// store.settingsVisible = true
 	}
 }
@@ -54,7 +53,9 @@ const options = computed(function () {
 		return application.id === store.application?.id
 	})
 	if (!application) return []
-	return CONTEXTMENU[application.component]?.()
+	const { component } = application
+	const handler = CONTEXTMENU[component]
+	return handler?.() ?? MENUOPTIONS
 })
 
 function updateActiveKey(value: ContextMenuOptions) {
@@ -108,6 +109,7 @@ function mountContext(e: MouseEvent) {
 
 function destroyContext() {
 	visible.value = false
+	setTimeout(() => (store.application = null), 60)
 }
 
 function handleResize(DOMRect: DOMRect) {
@@ -248,7 +250,7 @@ onUnmounted(function () {
 				@contextmenu.prevent="mountContext"
 				:class="[
 					{
-						'is-active': store.application && visible
+						'is-active': store.application && visible && options?.length
 					}
 				]"
 			/>
@@ -261,6 +263,5 @@ onUnmounted(function () {
 
 .controller {
 	@extend %controller;
-	// backdrop-filter: blur(8px) saturate(180%);
 }
 </style>

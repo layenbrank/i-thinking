@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/clock/clock-marker.vue'
 import Overlay from '@/components/applications/clock/clock-overlay.vue'
-import { useSettings } from '@/hooks/application.ts'
+import { useSettings } from '@/hooks/mirror'
 import { Modal } from 'ant-design-vue'
 import CloseOutlined from '~icons/local/close'
 

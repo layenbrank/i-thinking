@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/signboard/signboard-marker.vue'
 import Overlay from '@/components/applications/signboard/signboard-overlay.vue'
-import { useSettings } from '@/hooks/application.ts'
+import { useSettings } from '@/hooks/mirror'
 import { Modal } from 'ant-design-vue'
 import CloseOutlined from '~icons/local/close'
 
@@ -78,7 +78,7 @@ function updateFullScreen(value: boolean) {
 			'--application-size-height': style.height,
 			'--application-grid-column': style.gridColumn
 		}"
-		:class="['example', application.size, application.shape, application.direction]"
+		:class="['signboard', application.size, application.shape, application.direction]"
 	>
 		<Modal
 			width="80%"
@@ -94,7 +94,7 @@ function updateFullScreen(value: boolean) {
 			:style="{
 				transformOrigin: 'center'
 			}"
-			class="application-overlay example-overlay"
+			class="application-overlay signboard-overlay"
 		>
 			<Overlay
 				:fullscreen="fullscreen"
@@ -112,7 +112,7 @@ function updateFullScreen(value: boolean) {
 </template>
 
 <style lang="scss" scoped>
-.app-example {
+.signboard {
 	width: var(--app-size-width);
 	grid-row: var(--app-grid-row);
 	height: var(--app-size-height);
@@ -121,7 +121,7 @@ function updateFullScreen(value: boolean) {
 }
 </style>
 <style lang="scss">
-.application-window.example-window {
+.application-window.signboard-window {
 	%size-full {
 		width: 100%;
 		height: 100%;

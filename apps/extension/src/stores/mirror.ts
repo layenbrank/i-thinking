@@ -1,4 +1,5 @@
-import { ReBuild } from '@/constants/mirror.ts'
+import { useMirror } from '@/hooks/mirror.ts'
+// import { ReBuild } from '@/constants/mirror.ts'
 import { database } from '@/database/database.ts'
 import { useObservable } from '@vueuse/rxjs'
 import { liveQuery, type InsertType, type UpdateSpec } from 'dexie'
@@ -30,7 +31,7 @@ export const useMirrorStore = defineStore('mirror', function () {
 
 	const application = ref<Application | null>(null)
 
-	const { APPLICATIONS, MIRRORS } = ReBuild()
+	const { APPLICATIONS, MIRRORS } = useMirror()
 
 	const mirrors = useObservable(
 		from(

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { injectStore } from '@/components/applications/collection/collection.ts'
-import { useApplication } from '@/hooks/application.ts'
+import { useMirror } from '@/hooks/mirror'
 import { useMirrorStore } from '@/stores/mirror.ts'
 import { message } from 'ant-design-vue'
 
@@ -18,7 +18,7 @@ const props = withDefaults(
 
 const mirrorStore = useMirrorStore()
 const { navigations } = injectStore()
-const { APPLICATION } = useApplication()
+const { APPLICATION } = useMirror()
 const updateRef = useTemplateRef('updateRef')
 
 const value = ref<string>(props.name)

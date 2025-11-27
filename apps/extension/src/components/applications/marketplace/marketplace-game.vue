@@ -1,22 +1,6 @@
 <script setup lang="tsx">
-import { useApplication } from '@/hooks/application.ts'
+import { useMirror } from '@/hooks/mirror'
 import MarketplaceSwiper from './marketplace-swiper.vue'
-
-const AppBookmark = defineAsyncComponent(function () {
-	return import('@/components/applications/bookmark/bookmark.vue')
-})
-const AppCalendar = defineAsyncComponent(function () {
-	return import('@/components/applications/calendar/calendar.vue')
-})
-const AppMarkdown = defineAsyncComponent(function () {
-	return import('@/components/applications/markdown/markdown.vue')
-})
-const AppNavigation = defineAsyncComponent(function () {
-	return import('@/components/applications/navigation/navigation.vue')
-})
-const AppExample = defineAsyncComponent(function () {
-	return import('@/components/applications/example/example.vue')
-})
 
 defineOptions({
 	name: 'marketplace-game'
@@ -29,7 +13,7 @@ const props = withDefaults(
 	{}
 )
 
-const { APPLICATION } = useApplication()
+const { APPLICATION } = useMirror()
 
 const options = ref([
 	{

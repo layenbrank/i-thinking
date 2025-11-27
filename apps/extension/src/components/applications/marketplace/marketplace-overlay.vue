@@ -1,10 +1,10 @@
 <script setup lang="tsx">
-import { randomID } from '@/utils/generate.ts'
+import { useMirror } from '@/hooks/mirror.ts'
+import { useMirrorStore } from '@/stores/mirror.ts'
 import 'swiper/scss'
 import 'swiper/scss/navigation'
 import 'swiper/scss/pagination'
-import type { AutoplayOptions } from 'swiper/types'
-import type { Reactive } from 'vue'
+
 import { useI18n } from 'vue-i18n'
 import MarketplaceAihub from './marketplace-aihub.vue'
 import MarketplaceApplication from './marketplace-application.vue'
@@ -24,173 +24,10 @@ defineOptions({
 
 // const props = withDefaults(defineProps<{}>(), {})
 
+const store = useMirrorStore()
 const { t } = useI18n()
 
-const applications: Application[] = [
-	{
-		id: randomID(),
-		mirrorID: randomID(),
-		index: 1,
-		component: 'bookmark',
-		width: '60px',
-		height: '60px',
-		size: 'mini',
-		// direction: 'horizontal',
-		direction: 'vertical',
-		// shape: 'rectangle',
-		// shape: 'square',
-		shape: 'circle',
-		round: '12px',
-		marker: 'https://cdn.jsdelivr.net/gh/vuejs/vuejs.org@master/public/images/favicon.ico',
-		name: '书签',
-		backgroundColor: '#ffffff4d',
-		backgroundImage: null,
-		textSize: '13px',
-		textColor: '#ffffff',
-		description: '测试',
-		downloadCount: 1000,
-		updatedAt: Date.now(),
-		createdAt: Date.now()
-	},
-	{
-		id: randomID(),
-		mirrorID: randomID(),
-		index: 2,
-		component: 'calendar',
-		width: '60px',
-		height: '60px',
-		size: 'medium',
-		direction: 'horizontal',
-		// shape: 'square',
-		shape: 'rectangle',
-		round: '12px',
-		name: '日历',
-		marker: '',
-		backgroundColor: '#fff',
-		backgroundImage: null,
-		// backgroundImage: SlideView,
-		textSize: '13px',
-		textColor: '#ffffff',
-		description: '测试',
-		downloadCount: 1000,
-		updatedAt: Date.now(),
-		createdAt: Date.now()
-	},
-	{
-		id: randomID(),
-		mirrorID: randomID(),
-		index: 3,
-		component: 'marketplace',
-		width: '60px',
-		height: '60px',
-		// round: null,
-		round: '15px',
-
-		size: 'mini',
-		// size: 'small',
-		// size: 'medium',
-		// size: 'large',
-
-		// direction: 'horizontal',
-		direction: 'vertical',
-
-		// shape: 'circle',
-		shape: 'square',
-		// shape: 'rectangle',
-
-		name: '应用商店',
-		marker: '',
-		backgroundColor: '#ffffff4d',
-		backgroundImage: null,
-		textSize: '13px',
-		textColor: '#ffffff',
-		description: '测试',
-		downloadCount: 1000,
-		updatedAt: Date.now(),
-		createdAt: Date.now()
-	},
-	{
-		id: randomID(),
-		mirrorID: randomID(),
-		index: 3,
-		component: 'navigation',
-		url: 'https://www.baidu.com',
-		size: 'mini',
-		round: '8px',
-		width: '60px',
-		height: '60px',
-		direction: 'horizontal',
-		shape: 'square',
-		name: '百度',
-		marker: 'https://www.baidu.com/favicon.ico',
-		backgroundColor: '#ffffff',
-		backgroundImage: null,
-		textSize: '13px',
-		textColor: '#ffffff',
-		description: '测试',
-		downloadCount: 1000,
-		updatedAt: Date.now(),
-		createdAt: Date.now()
-	},
-	{
-		id: randomID(),
-		mirrorID: randomID(),
-		index: 5,
-		component: 'navigation',
-		width: '60px',
-		height: '60px',
-		url: 'https://weixin.qq.com',
-		size: 'mini',
-		round: '20px',
-		direction: 'horizontal',
-		shape: 'square',
-		name: '微信',
-		marker: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
-		backgroundColor: '#ffffff',
-		backgroundImage: null,
-		textSize: '13px',
-		textColor: '#ffffff',
-		description: '测试',
-		downloadCount: 1000,
-		updatedAt: Date.now(),
-		createdAt: Date.now()
-	},
-	{
-		id: randomID(),
-		mirrorID: randomID(),
-		index: 6,
-		component: 'example',
-		width: '60px',
-		height: '60px',
-		url: 'https://weixin.qq.com',
-		round: '12px',
-
-		size: 'mini',
-		// size: 'small',
-		// size: 'medium',
-		// size: 'large',
-		// size: 'huge',
-		// size: 'massive',
-		// size: 'ultra',
-
-		// direction: 'horizontal',
-		direction: 'vertical',
-
-		// shape: 'square',
-		// shape: 'rectangle',
-		shape: 'circle',
-		name: '微信1',
-		marker: 'https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico',
-		backgroundColor: '#ffffff4d',
-		backgroundImage: null,
-		textSize: '13px',
-		textColor: '#ffffff',
-		description: '测试',
-		downloadCount: 1000,
-		updatedAt: Date.now(),
-		createdAt: Date.now()
-	}
-]
+const { APPLICATIONS } = useMirror()
 
 const activeKey = ref<GeneralOptions>({
 	label: t('General.Application'),
@@ -223,12 +60,6 @@ const options: GeneralOptions[] = [
 	}
 ]
 
-const autoplay: Reactive<AutoplayOptions> = reactive({
-	delay: 3000,
-	pauseOnMouseEnter: true,
-	disableOnInteraction: false
-})
-
 function updateActiveKey(item: GeneralOptions) {
 	activeKey.value = item
 }
@@ -258,7 +89,7 @@ function updateActiveKey(item: GeneralOptions) {
 					class="content-item"
 					:is="reflect[activeKey.key]"
 					v-if="activeKey.key === option.key"
-					:applications="applications"
+					:applications="APPLICATIONS"
 				></component>
 			</template>
 		</div>

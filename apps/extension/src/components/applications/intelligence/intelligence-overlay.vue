@@ -2,7 +2,10 @@
 import type { Communicate } from '@/apis/intelligence.ts'
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'
 import { useAiStore } from '@/stores/intelligence.ts'
+import DOMPurify from 'dompurify'
+import hljs from 'highlight.js'
 import { throttle } from 'lodash-es'
+import { Marked } from 'marked'
 
 defineOptions({
 	name: 'intelligence-overlay'
@@ -14,9 +17,33 @@ defineOptions({
 const store = useAiStore()
 const visualRef = useTemplateRef('visualRef')
 
+const marked = new Marked()
+marked.setOptions({
+	gfm: true,
+	breaks: true
+})
+marked.use({
+	renderer: {
+		code({ text, lang }) {
+			const safelang = lang && hljs.getLanguage(lang) ? lang : null
+			const highlighted = safelang
+				? hljs.highlight(text, { language: safelang }).value
+				: hljs.highlightAuto(text).value
+			const classNames = safelang ? `hljs language-${safelang}` : 'hljs'
+			return `<pre><code class="${classNames}">${highlighted}</code></pre>`
+		}
+	}
+})
 const session = ref('')
 const keyword = ref('')
+
+const DOMSanitized = computed(function () {
+	const DOMString = marked.parse(session.value, { async: false })
+	return DOMPurify.sanitize(DOMString)
+})
+
 const generating = ref(false)
+
 const params = ref<Communicate.Params>({
 	model: 'qwen3:8b',
 	stream: true,
@@ -177,12 +204,12 @@ function onUpdateValue(value: string) {
 			</div>
 			<div class="interactive-area">
 				<a-textarea
-					@pressEnter.self="onEnter"
 					:value="keyword"
 					:bordered="false"
-					placeholder="请输入内容，Shift + Enter 换行，Enter 发送"
-					@update:value="onUpdateValue"
 					class="interactive"
+					@pressEnter.self="onEnter"
+					@update:value="onUpdateValue"
+					placeholder="请输入内容，Shift + Enter 换行，Enter 发送"
 				></a-textarea>
 			</div>
 		</div>
