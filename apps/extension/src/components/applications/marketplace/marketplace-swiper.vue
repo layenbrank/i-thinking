@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { A11y, Autoplay, Mousewheel, Navigation, Pagination } from 'swiper/modules'
-import type { PaginationOptions, SwiperModule } from 'swiper/types'
+import type { AutoplayOptions, PaginationOptions, SwiperModule } from 'swiper/types'
 import { Swiper, SwiperSlide } from 'swiper/vue'
+import type { Reactive } from 'vue'
 
 defineOptions({
 	name: 'marketplace-swiper'
@@ -27,6 +28,12 @@ withDefaults(
 		loop: false
 	}
 )
+
+const autoplay: Reactive<AutoplayOptions> = reactive({
+	delay: 3000,
+	pauseOnMouseEnter: true,
+	disableOnInteraction: false
+})
 </script>
 
 <template>
@@ -38,6 +45,7 @@ withDefaults(
 			:navigation="false"
 			direction="horizontal"
 			:slides-per-view="1.15"
+			:autoplay="autoplay"
 			:pagination="pagination"
 			:allow-touch-move="false"
 			:loop="loop"

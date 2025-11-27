@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/bookmark/bookmark-marker.vue'
 import Overlay from '@/components/applications/bookmark/bookmark-overlay.vue'
-import { useSettings } from '@/hooks/application.ts'
+import { useSettings } from '@/hooks/mirror'
 import CloseOutlined from '~icons/local/close'
 // type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 

@@ -46,7 +46,9 @@ type ApplicationStyle = Record<
 	Record<Application.Shape, Record<Application.Direction, Application.CSSProperties>>
 >
 
-const commonMenuOptions: ContextMenuOptions[] = [
+type ContextMenuReflect = Partial<Record<Application.Component, () => ContextMenuOptions[]>>
+
+const MENUOPTIONS: ContextMenuOptions[] = [
 	{
 		label: '添加应用',
 		key: 'update-app',
@@ -74,37 +76,7 @@ const commonMenuOptions: ContextMenuOptions[] = [
 	}
 ]
 
-type ContextMenuReflect = Partial<Record<Application.Component, () => ContextMenuOptions[]>>
-
-const CONTEXTMENU: ContextMenuReflect = {
-	bookmark() {
-		return commonMenuOptions
-	},
-	calendar() {
-		return commonMenuOptions
-	},
-	markdown() {
-		return commonMenuOptions
-	},
-	navigation() {
-		return commonMenuOptions
-	},
-	settings() {
-		return commonMenuOptions
-	},
-	clipchamp() {
-		return commonMenuOptions
-	},
-	intelligence() {
-		return commonMenuOptions
-	},
-	marketplace() {
-		return commonMenuOptions
-	},
-	example() {
-		return commonMenuOptions
-	}
-}
+const CONTEXTMENU: ContextMenuReflect = {}
 
 const SIZES: readonly Application.Size[] = ['small', 'medium', 'large', 'huge', 'massive', 'ultra']
 
@@ -123,9 +95,70 @@ const APPLICATION: Application.Reflect = {
 	example: AppExample
 }
 
+interface ApplicationOptions {
+	label: string
+	value: Application.Component
+}
+
+const OPTIONS: ApplicationOptions[] = [
+	{
+		label: '书签',
+		value: 'bookmark'
+	},
+	{
+		label: '日历',
+		value: 'calendar'
+	},
+	{
+		label: '应用商店',
+		value: 'marketplace'
+	},
+	{
+		label: 'example',
+		value: 'example'
+	},
+	{
+		label: '备忘录',
+		value: 'markdown'
+	},
+	{
+		label: '设置',
+		value: 'settings'
+	},
+	{
+		label: 'AI Hub',
+		value: 'intelligence'
+	},
+	{
+		label: 'Clipchamp',
+		value: 'clipchamp'
+	},
+	{
+		label: '应用集合',
+		value: 'collection'
+	},
+	{
+		label: '开发者',
+		value: 'developer'
+	},
+	{
+		label: '导航',
+		value: 'navigation'
+	},
+	{
+		label: '图库',
+		value: 'gallery'
+	},
+	{
+		label: '时钟',
+		value: 'clock'
+	}
+]
+
 function useSettings(options: Application) {
 	const width = options.width ?? 'var(--application-global-width)'
 	const height = options.height ?? 'var(--application-global-height)'
+	const { size, shape, direction } = options
 
 	const componentStyle: ApplicationStyle = {
 		mini: {
@@ -438,11 +471,64 @@ function useSettings(options: Application) {
 		}
 	}
 
-	return componentStyle[options.size][options.shape][options.direction]
+	return componentStyle[size][shape][direction]
 }
 
-function useApplication() {
-	return { APPLICATION, CONTEXTMENU, SIZES }
+interface MirrorOptions {
+	mirrorID: string | null
 }
 
-export { useApplication, useSettings }
+function useMirror(options?: MirrorOptions) {
+	const MIRROR_ID = options?.mirrorID ?? window.crypto.randomUUID()
+
+	const MIRRORS: readonly Mirror[] = Array.from({ length: 1 }).map(function () {
+		const mirror: Mirror = {
+			id: MIRROR_ID,
+			name: '镜像-01',
+			index: 0,
+			marker: '',
+			description: '默认镜像',
+			updatedAt: Date.now(),
+			createdAt: Date.now()
+		}
+
+		return mirror
+	})
+
+	const APPLICATIONS: readonly Application[] = OPTIONS.map(function (value) {
+		const application: Application = {
+			id: window.crypto.randomUUID(),
+			size: 'mini',
+			name: value.label,
+			index: 1,
+			width: '60px',
+			shape: 'rectangle',
+			round: '12px',
+			height: '60px',
+			mirrorID: MIRROR_ID,
+			textSize: '13px',
+			component: value.value,
+			direction: 'horizontal',
+			textColor: '#ffffff',
+			updatedAt: Date.now(),
+			createdAt: Date.now(),
+			description: value.label,
+			downloadCount: 1000,
+			backgroundColor: '#ffffff',
+			backgroundImage: null
+		}
+		return application
+	})
+
+	return {
+		SIZES,
+		MIRRORS,
+		MIRROR_ID,
+		APPLICATION,
+		APPLICATIONS,
+		CONTEXTMENU,
+		MENUOPTIONS
+	}
+}
+
+export { useMirror, useSettings }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useStore } from '@/components/applications/settings/settings.ts'
-import { useApplication } from '@/hooks/application.ts'
+import { useMirror } from '@/hooks/mirror'
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 interface ShapeOptions {
@@ -13,7 +13,7 @@ defineOptions({
 })
 
 const store = useMirrorStore()
-const { APPLICATION } = useApplication()
+const { APPLICATION } = useMirror()
 const { active, updateActive, updateSetting } = useStore()
 
 const options: ShapeOptions[] = [

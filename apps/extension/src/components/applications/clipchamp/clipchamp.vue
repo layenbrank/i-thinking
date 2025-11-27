@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/clipchamp/clipchamp-marker.vue'
 import Overlay from '@/components/applications/clipchamp/clipchamp-overlay.vue'
-import { useSettings } from '@/hooks/application.ts'
+import { useSettings } from '@/hooks/mirror'
 import { Modal } from 'ant-design-vue'
 import CloseOutlined from '~icons/local/close'
 

@@ -1,11 +1,12 @@
 <script setup lang="tsx">
-import Marker from '@/components/applications/markdown/markdown-marker.vue'
-import Overlay from '@/components/applications/markdown/markdown-overlay.vue'
+import Marker from '@/components/applications/gallery/gallery-marker.vue'
+import Overlay from '@/components/applications/gallery/gallery-overlay.vue'
 import { useSettings } from '@/hooks/mirror'
+import { Modal } from 'ant-design-vue'
 import CloseOutlined from '~icons/local/close'
 
 defineOptions({
-	name: 'markdown'
+	name: 'gallery'
 })
 
 const props = withDefaults(
@@ -18,20 +19,20 @@ const props = withDefaults(
 				id: '0',
 				index: 0,
 				size: 'mini',
-				name: '备忘录',
 				width: '60px',
 				round: '12px',
 				mirrorID: '0',
 				height: '60px',
+				name: '示例看板',
 				shape: 'square',
 				textSize: '13px',
 				downloadCount: 1000,
-				description: '备忘录',
 				textColor: '#ffffff',
+				component: 'gallery',
 				backgroundImage: null,
 				updatedAt: Date.now(),
 				createdAt: Date.now(),
-				component: 'markdown',
+				description: '示例看板',
 				direction: 'horizontal',
 				backgroundColor: '#ffffff4d'
 			}
@@ -76,10 +77,9 @@ function updateFullScreen(value: boolean) {
 			'--application-size-height': style.height,
 			'--application-grid-column': style.gridColumn
 		}"
-		:data-id="application.id"
-		:class="['markdown', application.size, application.shape, application.direction]"
+		:class="['gallery', application.size, application.shape, application.direction]"
 	>
-		<a-modal
+		<Modal
 			width="80%"
 			:icon="null"
 			:title="null"
@@ -93,34 +93,34 @@ function updateFullScreen(value: boolean) {
 			:style="{
 				transformOrigin: 'center'
 			}"
-			class="application-overlay markdown-overlay"
+			class="application-overlay gallery-overlay"
 		>
 			<Overlay
 				:fullscreen="fullscreen"
 				@update:visible="updateOverlay"
 				@update:fullscreen="updateFullScreen"
 			/>
-		</a-modal>
+		</Modal>
 		<Marker
 			@dblclick="updateOverlay(true)"
 			:class="[application.size, application.shape, application.direction]"
 		/>
 		<span class="application-name">{{ application.name }}</span>
-		<close-outlined class="application-trash-marker" />
+		<CloseOutlined class="application-trash-marker" />
 	</div>
 </template>
 
 <style lang="scss" scoped>
-.markdown {
-	width: var(--application-size-width);
-	height: var(--application-size-height);
-	grid-row: var(--application-grid-row);
-	grid-column: var(--application-grid-column);
-	border-radius: var(--application-round);
+.gallery {
+	width: var(--app-size-width);
+	grid-row: var(--app-grid-row);
+	height: var(--app-size-height);
+	border-radius: var(--app-round);
+	grid-column: var(--app-grid-column);
 }
 </style>
 <style lang="scss">
-.application-overlay.markdown-overlay {
+.application-window.gallery-window {
 	%size-full {
 		width: 100%;
 		height: 100%;
@@ -144,7 +144,6 @@ function updateFullScreen(value: boolean) {
 
 	.ant-modal-body {
 		border-radius: 8px;
-		overflow: hidden;
 		background-color: rgba($color: #ffffff, $alpha: 1);
 	}
 }

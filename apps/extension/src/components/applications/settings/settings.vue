@@ -3,7 +3,7 @@ import backgroundImage from '@/assets/wallpaper/r2e391.png'
 import Marker from '@/components/applications/settings/settings-marker.vue'
 import Overlay from '@/components/applications/settings/settings-overlay.vue'
 import { useStore } from '@/components/applications/settings/settings.ts'
-import { useSettings } from '@/hooks/application'
+import { useSettings } from '@/hooks/mirror'
 import CloseOutlined from '~icons/local/close'
 
 defineOptions({

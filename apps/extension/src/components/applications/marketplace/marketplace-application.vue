@@ -1,5 +1,7 @@
 <script setup lang="tsx">
-import { useApplication } from '@/hooks/application.ts'
+import { useMirror } from '@/hooks/mirror'
+import { useMirrorStore } from '@/stores/mirror.ts'
+import { message } from 'ant-design-vue'
 import MarketplaceSwiper from './marketplace-swiper.vue'
 
 defineOptions({
@@ -13,7 +15,8 @@ const props = withDefaults(
 	{}
 )
 
-const { APPLICATION } = useApplication()
+const store = useMirrorStore()
+const { APPLICATION } = useMirror()
 
 const options = ref([
 	{
@@ -44,10 +47,37 @@ const options = ref([
 ])
 
 const hasMultiple = computed(() => props.applications.length > 1)
+
+async function toInsertApplication(event: MouseEvent) {
+	const target = event.target as HTMLElement
+	const closest = target.closest('.application')
+	if (!closest) return
+	const ID = closest.getAttribute('data-id')
+	if (!ID) return
+	const application = props.applications.find((application) => application.id === ID)
+	if (!application) return
+	if (!store.mirrorID) return
+	try {
+		await store?.toInsertApplication([
+			Object.assign(application, {
+				id: crypto.randomUUID(),
+				mirrorID: store.mirrorID ?? '',
+				name: application.name,
+				index: store.applications?.length ?? 0,
+				createdAt: Date.now(),
+				updatedAt: Date.now()
+			})
+		])
+
+		message.success('应用已添加到桌面')
+	} catch {
+		message.error('应用添加失败，请重试')
+	}
+}
 </script>
 
 <template>
-	<div @dblclick.capture.stop.prevent class="marketplace-application">
+	<div @click="toInsertApplication" @dblclick.capture.stop.prevent class="marketplace-application">
 		<MarketplaceSwiper :options="options" :loop="hasMultiple">
 			<template #slide="{ option }">
 				<div class="image-container">

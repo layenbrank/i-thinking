@@ -1,8 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/calendar/calendar-marker.vue'
 import Overlay from '@/components/applications/calendar/calendar-overlay.vue'
-import { useSettings } from '@/hooks/application.ts'
-import { message } from 'ant-design-vue'
+import { useSettings } from '@/hooks/mirror'
 import CloseOutlined from '~icons/local/close'
 
 defineOptions({
