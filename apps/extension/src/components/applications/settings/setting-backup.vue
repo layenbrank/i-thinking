@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { database } from '@/database/database.ts'
+import { useMirrorStore } from '@/stores/mirror.ts'
 import { timeSphere } from '@desktop-app/core'
 import { message } from 'ant-design-vue'
+import { type UpdateSpec } from 'dexie'
 
 defineOptions({
 	name: 'setting-backup'
 })
+
+const mirrorStore = useMirrorStore()
 
 // 创建一次 input 元素，避免重复创建
 const fileRef = ref<HTMLInputElement | null>(null)
@@ -83,6 +87,8 @@ async function handleChange(event: Event) {
 
 	if (!files?.length) return message.error('未选择文件')
 
+	if (!mirrorStore.mirrorID) return message.error('未选择镜像，无法添加应用')
+
 	console.log('files', files)
 
 	// 处理所有文件
@@ -101,7 +107,12 @@ async function handleChange(event: Event) {
 				message.error('无效的数据格式')
 				continue
 			}
-
+			const fields: UpdateSpec<Application> = {
+				mirrorID: mirrorStore.mirrorID
+			}
+			imported.map(function (value) {
+				return Object.assign(value, fields)
+			})
 			await database.application.bulkPut(imported)
 			message.success('导入成功')
 		} catch (error) {
