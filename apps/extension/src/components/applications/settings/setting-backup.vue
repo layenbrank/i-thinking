@@ -21,7 +21,7 @@ function handleBackup() {
 async function handleExport() {
 	// Logic for export
 	console.log('Export initiated')
-	const applications = await database.application.toArray()
+	const applications = await database.application.orderBy('index').toArray()
 
 	const stringified = JSON.stringify(applications, null, 2)
 
