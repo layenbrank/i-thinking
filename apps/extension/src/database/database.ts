@@ -23,7 +23,7 @@ interface DataBase extends Dexie {
 	AiMessage: EntityTable<AiMessage, 'id'>
 }
 
-const DBNAME: Readonly<string> = 'iQ'
+const DBNAME: Readonly<string> = 'i thinking'
 
 export const database = new Dexie(DBNAME) as DataBase
 
