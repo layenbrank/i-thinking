@@ -5,17 +5,17 @@ import { generateSecureCvid } from '@/utils/generate.ts'
 import { http } from '@/utils/http/http.ts'
 import { COREX_TOKEN } from '@/utils/http/token.ts'
 import {
-	onClickOutside,
 	onKeyStroke,
 	useCycleList,
-	useDateFormat,
 	useTimestamp,
+	useDateFormat,
+	onClickOutside,
 	useWindowFocus
 } from '@vueuse/core'
 import { Modal } from 'ant-design-vue'
 import { debounce } from 'lodash-es'
 import { useI18n } from 'vue-i18n'
-import * as z from 'zod'
+import * as zod from 'zod'
 import AppleFilled from '~icons/local/apple-filled'
 import BatteryFullOutline from '~icons/local/battery-full-outline'
 import MacToggle from '~icons/local/mac-toggle'
@@ -25,24 +25,24 @@ const Controller = defineAsyncComponent(function () {
 	return import('@/components/controller/controller.vue')
 })
 
-const TSchema = z.enum(['LT', 'MT', 'SC'])
+const TSchema = zod.enum(['LT', 'MT', 'SC'])
 
-const ISchema = z.object({
-	ig: z.string()
+const ISchema = zod.object({
+	ig: zod.string()
 })
 
-const EmptySchema = z.object({
-	id: z.string(),
-	q: z.string(),
-	u: z.string(),
+const EmptySchema = zod.object({
+	id: zod.string(),
+	q: zod.string(),
+	u: zod.string(),
 	t: TSchema
 })
 
-const ResponseZodSchema = z.object({
-	s: z.array(EmptySchema),
+const ResponseZodSchema = zod.object({
+	s: zod.array(EmptySchema),
 	i: ISchema
 })
-type ResponseZod = z.infer<typeof ResponseZodSchema>
+type ResponseZod = zod.infer<typeof ResponseZodSchema>
 
 defineOptions({
 	name: 'mac-view'
@@ -231,11 +231,11 @@ onUnmounted(function () {
 			backgroundClip: 'content-box',
 			backgroundPosition: 'center'
 		}"
-		class="mac-view"
+		class="overview"
 	>
-		<a-layout-header @contextmenu.prevent class="mac-header">
+		<a-layout-header @contextmenu.prevent class="overview-prefix">
 			<a-space-compact class="flex">
-				<a-button class="icon-apple">
+				<a-button class="mark-apple">
 					<template #icon>
 						<apple-filled />
 					</template>
@@ -248,12 +248,12 @@ onUnmounted(function () {
 				<a-button @click="toggleLanguage">{{ $t('General.Language') }}</a-button>
 			</a-space-compact>
 			<a-space-compact class="flex">
-				<a-button class="icon-wifi">
+				<a-button class="mark-wifi">
 					<template #icon>
 						<wifi-marker />
 					</template>
 				</a-button>
-				<a-button class="icon-battery">
+				<a-button class="mark-battery">
 					<template #icon>
 						<battery-full-outline />
 					</template>
@@ -292,7 +292,7 @@ onUnmounted(function () {
 					</template>
 				</combobox-trigger>
 
-				<a-button class="icon-mac-toggle">
+				<a-button class="mark-toggle">
 					<template #icon>
 						<mac-toggle />
 					</template>
@@ -304,19 +304,19 @@ onUnmounted(function () {
 				</a-button>
 			</a-space-compact>
 		</a-layout-header>
-		<a-layout class="mac-main">
+		<a-layout class="overview-core">
 			<a-layout-content @contextmenu.prevent class="mac-content">
 				<Controller />
 			</a-layout-content>
-			<a-layout-footer @contextmenu.prevent class="mac-footer">
+			<a-layout-footer @contextmenu.prevent class="overview-suffix">
 				<!-- <template #default>
 					<div class="dock-bar"></div>
 				</template> -->
 				<a
-					href="https://beian.mps.gov.cn/#/query/webSearch"
 					target="_blank"
-					rel="noopener noreferrer"
 					class="text-white"
+					rel="noopener noreferrer"
+					href="https://beian.mps.gov.cn/#/query/webSearch"
 				>
 					备案号：豫ICP备2023024760号
 				</a>
@@ -328,7 +328,7 @@ onUnmounted(function () {
 <style lang="scss" scoped>
 @use 'sass:math';
 
-.mac-view {
+.overview {
 	width: 100%;
 	height: 100%;
 	background-color: transparent;
@@ -337,7 +337,7 @@ onUnmounted(function () {
 	$top-height: 36px;
 	$bottom-height: 80px;
 
-	.mac-header {
+	.overview-prefix {
 		z-index: 3;
 		width: 100%;
 		height: $top-height;
@@ -351,13 +351,13 @@ onUnmounted(function () {
 		backdrop-filter: blur(12px);
 		filter: brightness(1.1);
 
-		.icon-apple {
+		.mark-apple {
 		}
 
-		.icon-wifi {
+		.mark-wifi {
 		}
 
-		.icon-battery {
+		.mark-battery {
 		}
 
 		.icon-search {
@@ -366,10 +366,10 @@ onUnmounted(function () {
 		.date-time {
 		}
 
-		.icon-wifi,
-		.icon-apple,
-		.icon-battery,
-		.icon-mac-toggle {
+		.mark-wifi,
+		.mark-apple,
+		.mark-battery,
+		.mark-toggle {
 			width: initial;
 			@apply px-2 py-1 block;
 			margin-inline-start: 0;
@@ -432,7 +432,7 @@ onUnmounted(function () {
 		}
 	}
 
-	.mac-main {
+	.overview-core {
 		width: 100%;
 		height: calc(100% - $top-height);
 		flex: none;
@@ -446,7 +446,7 @@ onUnmounted(function () {
 		background-color: transparent;
 	}
 
-	.mac-footer {
+	.overview-suffix {
 		width: 100%;
 		height: $bottom-height;
 		padding: 0;
