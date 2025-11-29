@@ -344,5 +344,16 @@
 	"workbench.list.fastScrollSensitivity": 10,
 	"workbench.list.smoothScrolling": true,
 	"workbench.startupEditor": "none",
-	"workbench.tree.enableStickyScroll": true
+	"workbench.tree.enableStickyScroll": true,
+	"chat.mcp.serverSampling": {
+		"desktop-apps/.vscode/mcp.json: github-mcp": {
+			"allowedModels": [
+				"copilot/claude-sonnet-4.5",
+				"copilot/auto",
+				"copilot/claude-haiku-4.5",
+				"copilot/claude-sonnet-4",
+				"copilot/gpt-5"
+			]
+		}
+	}
 }

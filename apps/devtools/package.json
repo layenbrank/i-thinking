@@ -1,14 +1,17 @@
 {
+	"dependencies": {},
+	"devDependencies": {},
 	"name": "@desktop-app/devtools",
 	"private": true,
-	"version": "0.0.0",
-	"type": "module",
 	"scripts": {
-		"dev": "vite --clearScreen false",
 		"build": "tsc && vite build",
+		"dev": "vite --clearScreen false",
+		"lint": "eslint \"src/**/*.ts\"",
 		"preview": "vite preview",
-		"lint": "eslint \"src/**/*.ts\""
+		"test:unit": "vitest",
+		"test:e2e": "playwright test",
+		"test:coverage": "vitest --coverage"
 	},
-	"dependencies": {},
-	"devDependencies": {}
+	"type": "module",
+	"version": "0.0.0"
 }

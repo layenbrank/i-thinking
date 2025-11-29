@@ -97,7 +97,7 @@
 		"@tauri-apps/plugin-fs": "~2.4.2",
 		"@tauri-apps/plugin-notification": "~2.3.1",
 		"@tauri-apps/plugin-opener": "^2.5.0",
-		"@tsconfig/node22": "^22.0.2",
+		"@tsconfig/node24": "^22.0.2",
 		"@types/chrome": "^0.1.6",
 		"@types/crypto-js": "^4.2.2",
 		"@types/d3": "^7.4.3",
@@ -162,8 +162,5 @@
 	"volta": {
 		"node": "22.20.0"
 	},
-	"workspaces": [
-		"packages/**",
-		"apps/**"
-	]
+	"workspaces": ["packages/**", "apps/**"]
 }

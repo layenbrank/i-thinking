@@ -1,40 +1,43 @@
 {
-	"name": "@desktop-app/ui",
-	"version": "0.0.0",
-	"type": "module",
-	"private": true,
-	"main": "./dist/index.js",
-	"module": "./dist/index.js",
-	"types": "./dist/types/index.d.ts",
+	"devDependencies": {
+		"@desktop-app/core": "workspace:*",
+		"@desktop-app/shared": "workspace:*"
+	},
 	"exports": {
 		".": {
+			"css": "./dist/index.css",
 			"import": "./dist/index.js",
-			"types": "./dist/types/index.d.ts",
-			"css": "./dist/index.css"
+			"types": "./dist/types/index.d.ts"
 		},
-		"./styles.css": "./dist/index.css",
 		"./ReSegment.vue": "./src/components/re-segment/re-segment.vue",
-		"./ScrollbarX.vue": "./src/components/scrollbar-x/scrollbar-x.vue"
+		"./ScrollbarX.vue": "./src/components/scrollbar-x/scrollbar-x.vue",
+		"./styles.css": "./dist/index.css"
 	},
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"name": "@desktop-app/ui",
+	"peerDependencies": {
+		"@iconify/json": "^2.2.318",
+		"ant-design-vue": "^4.2.6",
+		"tailwindcss": "^3.4.17",
+		"vue": "^3.5.13"
+	},
+	"private": true,
 	"scripts": {
-		"dev": "vite",
 		"build": "run-p type-check \"build-only {@}\" --",
 		"build-only": "vite build",
-		"type-check": "vue-tsc --build",
-		"preview": "vite preview",
-		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
-		"lint:eslint": "eslint . --fix",
+		"dev": "vite",
+		"format": "prettier --write src/",
 		"lint": "run-s lint:*",
-		"format": "prettier --write src/"
+		"lint:eslint": "eslint . --fix",
+		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+		"preview": "vite preview",
+		"test:unit": "vitest",
+		"test:e2e": "playwright test",
+		"test:coverage": "vitest --coverage",
+		"type-check": "vue-tsc --build"
 	},
-	"peerDependencies": {
-		"vue": "^3.5.13",
-		"tailwindcss": "^3.4.17",
-		"ant-design-vue": "^4.2.6",
-		"@iconify/json": "^2.2.318"
-	},
-	"devDependencies": {
-		"@desktop-app/shared": "workspace:*",
-		"@desktop-app/core": "workspace:*"
-	}
+	"type": "module",
+	"types": "./dist/types/index.d.ts",
+	"version": "0.0.0"
 }

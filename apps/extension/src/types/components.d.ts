@@ -109,6 +109,7 @@ declare module 'vue' {
     Signboard: typeof import('./../components/applications/signboard/signboard.vue')['default']
     SignboardMarker: typeof import('./../components/applications/signboard/signboard-marker.vue')['default']
     SignboardOverlay: typeof import('./../components/applications/signboard/signboard-overlay.vue')['default']
+    Test: typeof import('./../components/Test.vue')['default']
   }
 }
 
@@ -211,4 +212,5 @@ declare global {
   const Signboard: typeof import('./../components/applications/signboard/signboard.vue')['default']
   const SignboardMarker: typeof import('./../components/applications/signboard/signboard-marker.vue')['default']
   const SignboardOverlay: typeof import('./../components/applications/signboard/signboard-overlay.vue')['default']
+  const Test: typeof import('./../components/Test.vue')['default']
 }

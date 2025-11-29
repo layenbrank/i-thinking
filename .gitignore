@@ -17,6 +17,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Test
+e2e
+playwright-report
+coverage
+.vitest
+test-results
+
 # Editor directories and files
 # .vscode/*
 # !.vscode/extensions.json

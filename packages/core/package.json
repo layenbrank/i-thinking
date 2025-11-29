@@ -12,7 +12,10 @@
 		"format": "prettier --write src/",
 		"lint": "run-s lint:*",
 		"lint:eslint": "eslint . --fix",
-		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore"
+		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+		"test:unit": "vitest",
+		"test:e2e": "playwright test",
+		"test:coverage": "vitest --coverage"
 	},
 	"exports": {
 		".": {

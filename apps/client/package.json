@@ -9,7 +9,10 @@
 		"build": "tauri build",
 		"build:web": "tsc && vite build",
 		"preview": "vite preview",
-		"tauri": "tauri"
+		"tauri": "tauri",
+		"test:unit": "vitest",
+		"test:e2e": "playwright test",
+		"test:coverage": "vitest --coverage"
 	},
 	"dependencies": {},
 	"devDependencies": {
