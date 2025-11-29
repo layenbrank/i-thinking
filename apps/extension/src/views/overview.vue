@@ -88,11 +88,8 @@ const time = useDateFormat(timestamp, 'HH:mm:ss', {
 	}
 })
 
-function updateKeyword(value: string) {
-	keyword.value = value
-	toQuery(value)
-}
 const cvid = generateSecureCvid()
+
 const toQuery = debounce(function (value: string) {
 	// https://cn.bing.com/AS/Suggestions?pt=page.home&qry=j&cp=1&csr=1&pths=1&cvid=313EA35317DD492295D155D6F708F74B
 
@@ -154,11 +151,17 @@ watchEffect(function () {
 	focused.value = false
 })
 
+function updateKeyword(value: string) {
+	keyword.value = value
+	toQuery(value)
+}
+
 function updateQuery() {
-	if (suggestion.value) {
-		return window.open(`https://cn.bing.com/${suggestion.value.u}`, '_blank')
-	}
-	return window.open(`https://cn.bing.com/search?q=${keyword.value}`, '_blank')
+	const suggestionURL = `https://cn.bing.com/${suggestion.value.u}`
+	const matchURL = `https://cn.bing.com/search?q=${keyword.value}`
+
+	if (suggestion.value) return window.open(suggestionURL, '_blank')
+	else return window.open(matchURL, '_blank')
 }
 
 function updateFocus(value: boolean) {
