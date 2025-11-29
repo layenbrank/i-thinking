@@ -1,26 +1,59 @@
 {
 	"$schema": "https://turbo.build/schema.json",
-	"globalEnv": ["NODE_ENV"],
 	"globalDependencies": [".env", "tsconfig.json"],
+	"globalEnv": ["NODE_ENV"],
 	"tasks": {
-		"dev": {
-			"cache": false,
-			"persistent": true,
-			"outputLogs": "full",
-			"dependsOn": ["^build"]
-		},
 		"build": {
+			"cache": true,
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**"],
 			"outputLogs": "full",
-			"cache": true
+			"outputs": ["dist/**"]
 		},
-		"preview": {
-			"dependsOn": ["build"],
+		"dev": {
 			"cache": false,
+			"dependsOn": ["^build"],
+			"outputLogs": "full",
+			"persistent": true
+		},
+		"lint": {
+			"cache": true,
+			"inputs": [
+				"src/**/*.{ts,tsx,vue}",
+				".eslintrc.{js,cjs,json}",
+				".oxlintrc",
+				".prettierignore",
+				".prettierrc.{js,cjs,json}",
+				"tsconfig.json"
+			],
 			"outputLogs": "full"
 		},
-		"lint": {}
+		"preview": {
+			"cache": false,
+			"dependsOn": ["build"],
+			"outputLogs": "full"
+		},
+		"coverage": {
+			"cache": true,
+			"inputs": ["src/**/*.{ts,tsx,vue}", "**/*.{test,spec}.{ts,tsx}"],
+			"outputLogs": "full",
+			"outputs": ["coverage/**"]
+		},
+		"e2e": {
+			"cache": false,
+			"outputLogs": "full",
+			"outputs": ["playwright-report/**", "test-results/**"]
+		},
+		"unit": {
+			"cache": true,
+			"inputs": ["src/**/*.{ts,tsx,vue}", "**/*.{test,spec}.{ts,tsx}"],
+			"outputLogs": "full",
+			"outputs": ["coverage/**"]
+		},
+		"report": {
+			"cache": false,
+			"persistent": true,
+			"outputLogs": "full"
+		}
 	}
 }

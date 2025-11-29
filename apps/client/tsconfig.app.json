@@ -30,11 +30,11 @@
 			"@desktop-app/shared/user-profile",
 			"@desktop-app/shared/schema",
 			"@desktop-app/shared/application",
-			"@desktop-app/shared/application-settings",
-			"@desktop-app/shared/application-backup",
-			"@desktop-app/shared/app-bookmark",
-			"@desktop-app/shared/app-controller",
-			"@desktop-app/shared/app-markdown"
+			"@desktop-app/shared/settings",
+			"@desktop-app/shared/backup",
+			"@desktop-app/shared/application-bookmark",
+			"@desktop-app/shared/controller",
+			"@desktop-app/shared/application-markdown"
 		],
 
 		/* Linting */
