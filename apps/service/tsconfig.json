@@ -33,7 +33,7 @@
 		"noUncheckedIndexedAccess": true,
 		"strictPropertyInitialization": false,
 
-		"types": ["node", "@desktop-app/shared/process-env"],
+		"types": ["node", "@i-thinking/shared/process-env"],
 
 		"paths": {
 			"@/*": ["src/*"]

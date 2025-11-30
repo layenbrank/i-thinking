@@ -1,5 +1,5 @@
 {
-	"name": "@desktop-app/client",
+	"name": "@i-thinking/client",
 	"private": true,
 	"version": "0.1.0",
 	"type": "module",
@@ -16,7 +16,7 @@
 	},
 	"dependencies": {},
 	"devDependencies": {
-		"@desktop-app/shared": "workspace:*",
-		"@desktop-app/wasm": "workspace:*"
+		"@i-thinking/shared": "workspace:*",
+		"@i-thinking/wasm": "workspace:*"
 	}
 }

@@ -1,5 +1,5 @@
 {
-	"name": "@desktop-app/extension",
+	"name": "@i-thinking/extension",
 	"private": true,
 	"version": "0.0.0",
 	"type": "module",
@@ -21,8 +21,8 @@
 		"reflect-metadata": "^0.2.2"
 	},
 	"devDependencies": {
-		"@desktop-app/core": "workspace:*",
-		"@desktop-app/wasm": "workspace:*",
-		"@desktop-app/shared": "workspace:*"
+		"@i-thinking/core": "workspace:*",
+		"@i-thinking/wasm": "workspace:*",
+		"@i-thinking/shared": "workspace:*"
 	}
 }

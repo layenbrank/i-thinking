@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import prepare, { chunk } from '@desktop-app/wasm'
+import prepare, { chunk } from '@i-thinking/wasm'
 
 defineOptions({
 	name: 'wasm-view'

@@ -5,9 +5,9 @@ import { fetchFile, toBlobURL } from '@ffmpeg/util'
 // import coreJS from './ffmpeg-core.js?url'
 // import coreWASM from './ffmpeg-core.wasm?url'
 // import coreWorkerJS from './ffmpeg-core.worker.js?url'
-// import coreJS from '@desktop-app/wasm/ffmpeg-core.js?url'
-// import coreWASM from '@desktop-app/wasm/ffmpeg-core.wasm?url'
-// import coreWorkerJS from '@desktop-app/wasm/ffmpeg-core.worker.js?worker'
+// import coreJS from '@i-thinking/wasm/ffmpeg-core.js?url'
+// import coreWASM from '@i-thinking/wasm/ffmpeg-core.wasm?url'
+// import coreWorkerJS from '@i-thinking/wasm/ffmpeg-core.worker.js?worker'
 
 defineOptions({
 	name: 'clipchamp-view'

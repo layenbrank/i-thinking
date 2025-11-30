@@ -173,7 +173,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			minify: 'esbuild',
 			cssMinify: 'esbuild',
 			sourcemap: mode === 'development' ? true : false,
-			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-app\//, '')}`),
+			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@i-thinking\//, '')}`),
 			assetsInlineLimit(filePath) {
 				const isInline = inlineRegexes.some((regex) => regex.test(filePath))
 				// return content.length < 10 * 1024 // 小于10kb则内联

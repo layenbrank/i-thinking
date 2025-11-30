@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { database } from '@/database/database.ts'
 import { useMirrorStore } from '@/stores/mirror.ts'
-import { timeSphere } from '@desktop-app/core'
+import { timeSphere } from '@i-thinking/core'
 import { message } from 'ant-design-vue'
 import { type UpdateSpec } from 'dexie'
 

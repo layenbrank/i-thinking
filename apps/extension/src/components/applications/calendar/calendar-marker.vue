@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { timeSphere } from '@desktop-app/core'
+import { timeSphere } from '@i-thinking/core'
 import type { Dayjs } from 'dayjs'
 
 defineOptions({
