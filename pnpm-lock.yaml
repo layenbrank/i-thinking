@@ -225,10 +225,10 @@ importers:
         specifier: ^5.0.8
         version: 5.0.8(@types/react@19.2.2)(react@19.2.0)(use-sync-external-store@1.6.0(react@19.2.0))
     devDependencies:
-      '@desktop-app/core':
+      '@i-thinking/core':
         specifier: workspace:*
         version: link:packages/core
-      '@desktop-app/tsconfig':
+      '@i-thinking/tsconfig':
         specifier: workspace:*
         version: link:packages/tsconfig
       '@iconify/json':
@@ -483,10 +483,10 @@ importers:
 
   apps/client:
     devDependencies:
-      '@desktop-app/shared':
+      '@i-thinking/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@desktop-app/wasm':
+      '@i-thinking/wasm':
         specifier: workspace:*
         version: link:../../packages/wasm
 
@@ -504,13 +504,13 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
     devDependencies:
-      '@desktop-app/core':
+      '@i-thinking/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@desktop-app/shared':
+      '@i-thinking/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@desktop-app/wasm':
+      '@i-thinking/wasm':
         specifier: workspace:*
         version: link:../../packages/wasm
 
@@ -683,10 +683,10 @@ importers:
         specifier: ^3.5.13
         version: 3.5.23(typescript@5.9.3)
     devDependencies:
-      '@desktop-app/core':
+      '@i-thinking/core':
         specifier: workspace:*
         version: link:../core
-      '@desktop-app/shared':
+      '@i-thinking/shared':
         specifier: workspace:*
         version: link:../shared
 
