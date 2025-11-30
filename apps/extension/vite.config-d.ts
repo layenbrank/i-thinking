@@ -105,7 +105,7 @@
 // 		optimizeDeps: {
 // 			include: ['vue', 'vue-router', 'pinia'],
 // 			exclude: [
-// 				'@desktop-app/wasm',
+// 				'@i-thinking/wasm',
 // 				'@ffmpeg/ffmpeg',
 // 				'@ffmpeg/util',
 // 				'ffmpeg-core.js',
@@ -121,7 +121,7 @@
 // 			cssCodeSplit: true,
 // 			emptyOutDir: true,
 // 			sourcemap: mode === 'development' ? true : false,
-// 			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-app\//, '')}`),
+// 			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@i-thinking\//, '')}`),
 // 			assetsInlineLimit(filePath, content) {
 // 				const isInline = inlineRegexes.some((regex) => regex.test(filePath))
 // 				// return content.length < 10 * 1024 // 小于10kb则内联

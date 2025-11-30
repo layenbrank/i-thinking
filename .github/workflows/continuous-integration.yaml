@@ -52,12 +52,12 @@ jobs:
 
       - name: Type check
         run: |
-          pnpm turbo run type-check --continue --filter=@desktop-app/extension || true
-          pnpm turbo run type-check --continue --filter=@desktop-app/client-vue || true
+          pnpm turbo run type-check --continue --filter=@i-thinking/extension || true
+          pnpm turbo run type-check --continue --filter=@i-thinking/client-vue || true
 
       - name: Unit tests
         run: |
-          pnpm --filter=@desktop-app/service test || true
+          pnpm --filter=@i-thinking/service test || true
 
       - name: Build all
         env:

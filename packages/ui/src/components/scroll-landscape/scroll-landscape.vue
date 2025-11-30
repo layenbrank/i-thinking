@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { resize } from '@desktop-app/core'
+import { resize } from '@i-thinking/core'
 import { reactive } from 'vue'
 defineOptions({
 	name: 'scroll-landscape',

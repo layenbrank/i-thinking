@@ -1,7 +1,7 @@
 {
 	"dependencies": {},
 	"devDependencies": {},
-	"name": "@desktop-app/devtools",
+	"name": "@i-thinking/devtools",
 	"private": true,
 	"scripts": {
 		"build": "tsc && vite build",

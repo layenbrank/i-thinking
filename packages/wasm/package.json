@@ -1,5 +1,5 @@
 {
-	"name": "@desktop-app/wasm",
+	"name": "@i-thinking/wasm",
 	"type": "module",
 	"collaborators": [
 		"李贺 <15638470820@163.com>"

@@ -75,10 +75,10 @@ dist/
 
 ```typescript
 // ✅ 可以正常导入主入口
-import { useDeferredRender } from '@desktop-app/core'
+import { useDeferredRender } from '@i-thinking/core'
 
 // ✅ 可以正常导入子模块
-import { useWheel } from '@desktop-app/core/hooks'
+import { useWheel } from '@i-thinking/core/hooks'
 
 // ✅ 类型定义正确解析
 // TypeScript 会自动找到 ./directives.d.ts, ./hooks.d.ts, ./utils.d.ts

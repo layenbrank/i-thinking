@@ -19,7 +19,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 	const env = loadEnv(mode || 'development', '')
 
 	return {
-		base: `/${pkg.name.replace(/^@desktop-app\//, '')}/`,
+		base: `/${pkg.name.replace(/^@i-thinking\//, '')}/`,
 		plugins: [
 			vue(),
 			vueJsx(),

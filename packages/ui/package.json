@@ -1,7 +1,7 @@
 {
 	"devDependencies": {
-		"@desktop-app/core": "workspace:*",
-		"@desktop-app/shared": "workspace:*"
+		"@i-thinking/core": "workspace:*",
+		"@i-thinking/shared": "workspace:*"
 	},
 	"exports": {
 		".": {
@@ -15,7 +15,7 @@
 	},
 	"main": "./dist/index.js",
 	"module": "./dist/index.js",
-	"name": "@desktop-app/ui",
+	"name": "@i-thinking/ui",
 	"peerDependencies": {
 		"@iconify/json": "^2.2.318",
 		"ant-design-vue": "^4.2.6",

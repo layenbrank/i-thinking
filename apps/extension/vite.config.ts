@@ -206,7 +206,7 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 		optimizeDeps: {
 			include: ['vue', 'vue-router', 'pinia'],
 			exclude: [
-				'@desktop-app/wasm',
+				'@i-thinking/wasm',
 				'@ffmpeg/ffmpeg',
 				'@ffmpeg/util',
 				'ffmpeg-core.js',
@@ -223,7 +223,7 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 			emptyOutDir: true,
 			sourcemap: mode === 'development' ? true : false,
 			// 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
-			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@desktop-app\//, '')}`),
+			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@i-thinking\//, '')}`),
 			assetsInlineLimit(filePath, _content) {
 				const inlineRegexe = inlineRegexes.some((regex) => regex.test(filePath))
 

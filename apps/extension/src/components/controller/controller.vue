@@ -2,7 +2,7 @@
 import Contextmenu from '@/components/contextmenu/contextmenu.vue'
 import { useMirror } from '@/hooks/mirror'
 import { useMirrorStore, type ToUpdateApplication } from '@/stores/mirror.ts'
-import { resize } from '@desktop-app/core/directives'
+import { resize } from '@i-thinking/core/directives'
 import Sortable from 'sortablejs'
 
 defineOptions({

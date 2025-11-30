@@ -17,6 +17,6 @@
 
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
-		"types": ["node", "@desktop-app/shared/process-env"]
+		"types": ["node", "@i-thinking/shared/process-env"]
 	}
 }
