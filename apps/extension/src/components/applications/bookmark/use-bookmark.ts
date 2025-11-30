@@ -106,7 +106,7 @@ export function useBookMark() {
 
 		activeFolder.value = folder ?? null
 
-		message.success('书签更新成功')
+		if (parsed.folders?.length) message.success('书签更新成功')
 	}
 
 	/**
@@ -115,6 +115,7 @@ export function useBookMark() {
 	 * @returns 包含书签和文件夹的分类结果
 	 */
 	function parseBookmarkTree(bookmarkNodes: BookmarkTreeNode[]): BookmarkParse {
+		if (!bookmarkNodes?.length) return { bookmarks: [], folders: [] }
 		const parsedBookmarks: Bookmark[] = []
 		const parsedFolders: BookmarkFolder[] = []
 		const toUpdateNodeStack: BookmarkTreeNode[] = [...bookmarkNodes]
