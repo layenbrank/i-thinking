@@ -70,12 +70,14 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	],
 
 	// Iconify 相关：@iconify/iconify @iconify/vue @iconify/json 以及虚拟 ~icons
-	'ui-icons': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|vue|iconify)[\\/]/, /~icons/],
+	'ui-markers': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|vue|iconify)[\\/]/, /~icons/],
 
 	// ========== 编辑器 ==========
 	'utils-markdown': [
 		/[\\/]node_modules[\\/]@tiptap[\\/]/,
+		/[\\/]node_modules[\\/]marked[\\/]/,
 		/[\\/]node_modules[\\/]prosemirror-/,
+		/[\\/]node_modules[\\/]dompurify[\\/]/,
 		/[\\/]node_modules[\\/]@floating-ui[\\/]/
 	],
 
@@ -246,8 +248,8 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 					'content-scripts': 'src/libs/content-scripts.ts'
 				},
 				output: {
-					entryFileNames: 'js/[name]-[hash].js',
-					chunkFileNames: 'js/[name]-[hash].js',
+					entryFileNames: 'javascript/[name]-[hash].js',
+					chunkFileNames: 'javascript/[name]-[hash].js',
 					// assetFileNames: 'assets/[name]-[hash].[ext]',
 					assetFileNames(chunkInfo) {
 						if (!chunkInfo.names) return 'assets/[name].[ext]'
@@ -258,7 +260,7 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 							if (fontRegex.test(name)) return `fonts/${name}`
 							if (videoRegex.test(name)) return `videos/${name}`
 							if (audioRegex.test(name)) return `audios/${name}`
-							if (wasmRegex.test(name)) return `wasm/${name}`
+							if (wasmRegex.test(name)) return `webAssembly/${name}`
 						}
 
 						return 'assets/[name].[ext]'
