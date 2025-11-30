@@ -149,7 +149,7 @@
 		"*.vue": "vue"
 	},
 	"files.autoGuessEncoding": true,
-	"files.autoSave": "onFocusChange",
+	"files.autoSave": "onWindowChange",
 	"files.encoding": "utf8",
 	"files.exclude": {
 		"**/.DS_Store": true,
