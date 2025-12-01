@@ -114,7 +114,6 @@ function updateApplication(bookmark: Bookmark) {
 				height: null,
 				round: '8px',
 				mirrorID: store.mirrorID,
-				collectionID: '0',
 				textColor: '#fff',
 				textSize: '16px',
 				description: '',
