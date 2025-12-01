@@ -19,6 +19,33 @@
 		{
 			"name": "docs",
 			"path": "apps/docs"
+		},
+		{
+			"name": "core",
+			"path": "packages/core"
+		},
+		{
+			"name": "shared",
+			"path": "packages/shared"
+		},
+		{
+			"name": "ui",
+			"path": "packages/ui"
 		}
-	]
+	],
+	"settings": {
+		"typescript.tsserver.enableTracing": true,
+		"vue.editor.focusMode": true,
+		"vue.suggest.propNameCasing": "alwaysKebabCase",
+		"vue.suggest.componentNameCasing": "alwaysKebabCase",
+		"vue.inlayHints.missingProps": true,
+		"vue.server.includeLanguages": [
+			"vue",
+			"typescript",
+			"javascript",
+			"javascriptreact",
+			"typescriptreact"
+		],
+		"vue.format.wrapAttributes": "force-expand-multiline"
+	}
 }
