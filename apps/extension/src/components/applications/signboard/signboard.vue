@@ -113,11 +113,13 @@ function updateFullScreen(value: boolean) {
 
 <style lang="scss" scoped>
 .signboard {
-	width: var(--app-size-width);
-	grid-row: var(--app-grid-row);
-	height: var(--app-size-height);
-	border-radius: var(--app-round);
-	grid-column: var(--app-grid-column);
+	@extend %application;
+
+	// width: var(--app-size-width);
+	// grid-row: var(--app-grid-row);
+	// height: var(--app-size-height);
+	// border-radius: var(--app-round);
+	// grid-column: var(--app-grid-column);
 }
 </style>
 <style lang="scss">

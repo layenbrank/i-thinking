@@ -87,10 +87,12 @@ function handleJumpLink() {
 
 <style lang="scss" scoped>
 .navigation {
-	width: var(--application-size-width);
-	grid-row: var(--application-grid-row);
-	height: var(--application-size-height);
-	border-radius: var(--application-round);
-	grid-column: var(--application-grid-column);
+	@extend %application;
+
+	// width: var(--application-size-width);
+	// grid-row: var(--application-grid-row);
+	// height: var(--application-size-height);
+	// border-radius: var(--application-round);
+	// grid-column: var(--application-grid-column);
 }
 </style>

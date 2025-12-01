@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/bookmark/bookmark-marker.vue'
 import Overlay from '@/components/applications/bookmark/bookmark-overlay.vue'
-import { useSettings } from '@/hooks/mirror'
+import { useSettings } from '@/hooks/mirror.ts'
 import CloseOutlined from '~icons/local/close'
 // type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
@@ -120,11 +120,22 @@ function updateFullScreen(value: boolean) {
 
 <style lang="scss" scoped>
 .bookmark {
-	width: var(--application-size-width);
-	grid-row: var(--application-grid-row);
-	height: var(--application-size-height);
-	border-radius: var(--application-round);
-	grid-column: var(--application-grid-column);
+	@extend %application;
+	// $size-x: 150px;
+	// $size-y: 150px;
+
+	// // width: $size-x;
+	// // aspect-ratio: 9/16;
+
+	// height: $size-y;
+	// aspect-ratio: 16/9;
+
+	// border-radius: var(--application-round);
+
+	// width: var(--application-size-width);
+	// grid-row: var(--application-grid-row);
+	// height: var(--application-size-height);
+	// grid-column: var(--application-grid-column);
 }
 </style>
 <style lang="scss">
