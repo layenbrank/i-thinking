@@ -113,11 +113,13 @@ function updateFullScreen(value: boolean) {
 
 <style lang="scss" scoped>
 .clipchamp {
-	width: var(--application-size-width);
-	height: var(--application-size-height);
-	grid-row: var(--application-grid-row);
-	grid-column: var(--application-grid-column);
-	border-radius: var(--application-round);
+	@extend %application;
+
+	// width: var(--application-size-width);
+	// height: var(--application-size-height);
+	// grid-row: var(--application-grid-row);
+	// grid-column: var(--application-grid-column);
+	// border-radius: var(--application-round);
 }
 </style>
 <style lang="scss">

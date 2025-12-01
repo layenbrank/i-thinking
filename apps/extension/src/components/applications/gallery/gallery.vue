@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/gallery/gallery-marker.vue'
 import Overlay from '@/components/applications/gallery/gallery-overlay.vue'
-import { useSettings } from '@/hooks/mirror'
+import { useSettings } from '@/hooks/mirror.ts'
 import { Modal } from 'ant-design-vue'
 import CloseOutlined from '~icons/local/close'
 
@@ -112,11 +112,13 @@ function updateFullScreen(value: boolean) {
 
 <style lang="scss" scoped>
 .gallery {
-	width: var(--app-size-width);
-	grid-row: var(--app-grid-row);
-	height: var(--app-size-height);
-	border-radius: var(--app-round);
-	grid-column: var(--app-grid-column);
+	@extend %application;
+
+	// width: var(--application-size-width);
+	// grid-row: var(--application-grid-row);
+	// height: var(--application-size-height);
+	// border-radius: var(--application-round);
+	// grid-column: var(--application-grid-column);
 }
 </style>
 <style lang="scss">

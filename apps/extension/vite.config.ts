@@ -296,6 +296,10 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 					// importers:"",
 					// functions: false,
 					// additionalData: '@import "@/styles/variables.scss";',
+					additionalData: `
+														@use "@/styles/variables.scss";
+														@use "@/styles/application.scss";
+													`
 				}
 			}
 		},
