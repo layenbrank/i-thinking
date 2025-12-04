@@ -34,10 +34,34 @@
 		}
 	],
 	"settings": {
+		"path-intellisense.absolutePathToWorkspace": true,
+		"path-intellisense.extensionOnImport": true,
+		"path-intellisense.mappings": {
+			"@": "${workspaceFolder}/src",
+			"@client": "${workspaceFolder:client}/src",
+			"@core": "${workspaceFolder:core}/src",
+			"@devtools": "${workspaceFolder:devtools}/src",
+			"@extension": "${workspaceFolder:extension}/src",
+			"@service": "${workspaceFolder:service}/src",
+			"@shared": "${workspaceFolder:shared}/src",
+			"@ui": "${workspaceFolder:ui}/src"
+		},
+		"prettier.arrowParens": "always",
+		"prettier.bracketSpacing": true,
+		"prettier.endOfLine": "crlf",
+		"prettier.printWidth": 100,
+		"prettier.requireConfig": false,
+		"prettier.resolveGlobalModules": true,
+		"prettier.semi": false,
+		"prettier.singleAttributePerLine": true,
+		"prettier.singleQuote": true,
+		"prettier.tabWidth": 2,
+		"prettier.trailingComma": "none",
+		"prettier.useEditorConfig": true,
+		"prettier.useTabs": true,
 		"typescript.tsserver.enableTracing": true,
 		"vue.editor.focusMode": true,
-		"vue.suggest.propNameCasing": "alwaysKebabCase",
-		"vue.suggest.componentNameCasing": "alwaysKebabCase",
+		"vue.format.wrapAttributes": "force-expand-multiline",
 		"vue.inlayHints.missingProps": true,
 		"vue.server.includeLanguages": [
 			"vue",
@@ -46,6 +70,7 @@
 			"javascriptreact",
 			"typescriptreact"
 		],
-		"vue.format.wrapAttributes": "force-expand-multiline"
+		"vue.suggest.componentNameCasing": "alwaysKebabCase",
+		"vue.suggest.propNameCasing": "alwaysKebabCase"
 	}
 }
