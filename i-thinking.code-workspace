@@ -1,4 +1,17 @@
 {
+	"extensions": {
+		"recommendations": [
+			"dbaeumer.vscode-eslint",
+			"esbenp.prettier-vscode",
+			"eamodio.gitlens",
+			"usernamehw.errorlens",
+			"editorconfig.editorconfig",
+			"mikestead.dotenv",
+			"vue.volar",
+			"christian-kohler.path-intellisense",
+			"oxc.oxc-vscode"
+		]
+	},
 	"folders": [
 		{
 			"name": "extension",
@@ -33,7 +46,488 @@
 			"path": "packages/ui"
 		}
 	],
+	"launch": {
+		"$schema": "https://json.schemastore.org/launchsettings.json",
+		"compounds": [],
+		"configurations": [
+			{
+				"env": {
+					"NODE_ENV": "development"
+				},
+				"name": "Desktop-D Debug Development",
+				"preLaunchTask": "pnpm dev:desktop-d",
+				"request": "launch",
+				"resolveSourceMapLocations": [
+					"${workspaceFolder}/**",
+					"!**/node_modules/.vite/deps/**",
+					"!**/node_modules/*/**"
+				],
+				"skipFiles": [
+					"<node_internals>/**",
+					"${workspaceFolder}/node_modules/**/*.js",
+					"**/node_modules/.vite/deps/**",
+					"${workspaceFolder}/dist/desktop-d/**"
+				],
+				"smartStep": true,
+				"sourceMapPathOverrides": {
+					".tmp": "${webRoot}/node_modules/.tmp/*",
+					".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+					"@slide": "${webRoot}/node_modules/@slide/*",
+					"/./*": "${webRoot}/*",
+					"/@/*": "${webRoot}/src/*",
+					"/@fs/*": "${webRoot}/*",
+					"/@id/.*": "${webRoot}/src/*",
+					"/@id/*": "${webRoot}/src/*",
+					"/@vite/*": "${workspaceFolder}/node_modules/*",
+					"/*": "${webRoot}/*",
+					"/components/*": "${webRoot}/src/components/*",
+					"/node_modules/*": "${workspaceFolder}/node_modules/*",
+					"/src/*": "${webRoot}/src/*"
+				},
+				"sourceMaps": true,
+				"type": "chrome",
+				"url": "http://localhost:10010",
+				"webRoot": "${workspaceFolder}/apps/desktop-d"
+			},
+			{
+				"env": {
+					"NODE_ENV": "development"
+				},
+				"name": "Desktop-D (快速启动)",
+				"request": "launch",
+				"resolveSourceMapLocations": [
+					"${workspaceFolder}/**",
+					"!**/node_modules/.vite/deps/**",
+					"!**/node_modules/*/**"
+				],
+				"skipFiles": [
+					"<node_internals>/**",
+					"${workspaceFolder}/node_modules/**/*.js",
+					"**/node_modules/.vite/deps/**",
+					"${workspaceFolder}/dist/desktop-d/**"
+				],
+				"smartStep": true,
+				"sourceMapPathOverrides": {
+					".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+					"/./*": "${webRoot}/*",
+					"/@/*": "${webRoot}/src/*",
+					"/@fs/*": "${webRoot}/*",
+					"/@id/.*": "${webRoot}/src/*",
+					"/@id/*": "${webRoot}/src/*",
+					"/@vite/*": "${workspaceFolder}/node_modules/*",
+					"/*": "${webRoot}/*",
+					"/components/*": "${webRoot}/src/components/*",
+					"/node_modules/*": "${workspaceFolder}/node_modules/*",
+					"/src/*": "${webRoot}/src/*"
+				},
+				"sourceMaps": true,
+				"type": "chrome",
+				"url": "http://localhost:10010",
+				"webRoot": "${workspaceFolder}/apps/desktop-d"
+			},
+			{
+				"env": {
+					"NODE_ENV": "development"
+				},
+				"name": "Desktop-G Debug Development",
+				"preLaunchTask": "pnpm dev:desktop-g",
+				"request": "launch",
+				"resolveSourceMapLocations": [
+					"${workspaceFolder}/**",
+					"!**/node_modules/.vite/deps/**",
+					"!**/node_modules/*/**"
+				],
+				"skipFiles": [
+					"<node_internals>/**",
+					"${workspaceFolder}/node_modules/**/*.js",
+					"**/node_modules/.vite/deps/**",
+					"${workspaceFolder}/dist/desktop-g/**"
+				],
+				"smartStep": true,
+				"sourceMapPathOverrides": {
+					".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+					"/./*": "${webRoot}/*",
+					"/@/*": "${webRoot}/src/*",
+					"/@fs/*": "${webRoot}/*",
+					"/@id/.*": "${webRoot}/src/*",
+					"/@id/*": "${webRoot}/src/*",
+					"/@vite/*": "${workspaceFolder}/node_modules/*",
+					"/*": "${webRoot}/*",
+					"/components/*": "${webRoot}/src/components/*",
+					"/node_modules/*": "${workspaceFolder}/node_modules/*",
+					"/src/*": "${webRoot}/src/*"
+				},
+				"sourceMaps": true,
+				"type": "chrome",
+				"url": "http://localhost:10011",
+				"webRoot": "${workspaceFolder}/apps/desktop-g"
+			},
+			{
+				"env": {
+					"NODE_ENV": "development"
+				},
+				"name": "Extension Debug Development",
+				"preLaunchTask": "pnpm dev:extension",
+				"request": "launch",
+				"resolveSourceMapLocations": [
+					"${workspaceFolder}/**",
+					"!**/node_modules/.vite/deps/**",
+					"!**/node_modules/*/**"
+				],
+				"skipFiles": [
+					"<node_internals>/**",
+					"${workspaceFolder}/node_modules/**/*.js",
+					"**/node_modules/.vite/deps/**",
+					"${workspaceFolder}/dist/extension/**"
+				],
+				"smartStep": true,
+				"sourceMapPathOverrides": {
+					".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+					"/./*": "${webRoot}/*",
+					"/@/*": "${webRoot}/src/*",
+					"/@fs/*": "${webRoot}/*",
+					"/@id/.*": "${webRoot}/src/*",
+					"/@id/*": "${webRoot}/src/*",
+					"/@vite/*": "${workspaceFolder}/node_modules/*",
+					"/*": "${webRoot}/*",
+					"/components/*": "${webRoot}/src/components/*",
+					"/node_modules/*": "${workspaceFolder}/node_modules/*",
+					"/src/*": "${webRoot}/src/*"
+				},
+				"sourceMaps": true,
+				"type": "chrome",
+				"url": "http://localhost:10012",
+				"webRoot": "${workspaceFolder}/apps/extension"
+			},
+			{
+				"env": {
+					"NODE_ENV": "development"
+				},
+				"name": "DevTools Debug Development",
+				"preLaunchTask": "pnpm dev:devtools",
+				"request": "launch",
+				"resolveSourceMapLocations": [
+					"${workspaceFolder}/**",
+					"!**/node_modules/.vite/deps/**",
+					"!**/node_modules/*/**"
+				],
+				"skipFiles": [
+					"<node_internals>/**",
+					"${workspaceFolder}/node_modules/**/*.js",
+					"**/node_modules/.vite/deps/**",
+					"${workspaceFolder}/dist/devtools/**"
+				],
+				"smartStep": true,
+				"sourceMapPathOverrides": {
+					".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+					"/./*": "${webRoot}/*",
+					"/@/*": "${webRoot}/src/*",
+					"/@fs/*": "${webRoot}/*",
+					"/@id/.*": "${webRoot}/src/*",
+					"/@id/*": "${webRoot}/src/*",
+					"/@vite/*": "${workspaceFolder}/node_modules/*",
+					"/*": "${webRoot}/*",
+					"/components/*": "${webRoot}/src/components/*",
+					"/node_modules/*": "${workspaceFolder}/node_modules/*",
+					"/src/*": "${webRoot}/src/*"
+				},
+				"sourceMaps": true,
+				"type": "chrome",
+				"url": "http://localhost:10013",
+				"webRoot": "${workspaceFolder}/apps/devtools"
+			}
+		],
+		"version": "0.2.0"
+	},
+	"mcp": {
+		"inputs": [],
+		"servers": {
+			"github-mcp": {
+				"type": "http",
+				"url": "https://api.githubcopilot.com/mcp"
+			}
+		}
+	},
 	"settings": {
+		"[css]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[html]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[javascript]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[json]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[jsonc]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[less]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[markdown]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[sass]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[scss]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[stylus]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[svg]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[toml]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[typescript]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[vue]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[xml]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[yaml]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"breadcrumbs.filePath": "on",
+		"breadcrumbs.symbolSortOrder": "type",
+		"chat.mcp.serverSampling": {
+			"desktop-apps/.vscode/mcp.json: github-mcp": {
+				"allowedModels": [
+					"copilot/claude-sonnet-4.5",
+					"copilot/auto",
+					"copilot/claude-haiku-4.5",
+					"copilot/claude-sonnet-4",
+					"copilot/gpt-5"
+				]
+			}
+		},
+		"css.format.newlineBetweenSelectors": true,
+		"css.hover.documentation": true,
+		"css.hover.references": true,
+		"css.lint.compatibleVendorPrefixes": "warning",
+		"css.lint.duplicateProperties": "warning",
+		"css.lint.important": "warning",
+		"css.lint.vendorPrefix": "warning",
+		"debug.console.fontSize": 16,
+		"debug.javascript.unmapMissingSources": true,
+		"debug.showBreakpointsInOverviewRuler": true,
+		"diffEditor.hideUnchangedRegions.enabled": false,
+		"editor.acceptSuggestionOnEnter": "on",
+		"editor.autoClosingBrackets": "beforeWhitespace",
+		"editor.autoClosingDelete": "always",
+		"editor.autoClosingOvertype": "always",
+		"editor.autoClosingQuotes": "beforeWhitespace",
+		"editor.bracketPairColorization.enabled": true,
+		"editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+		"editor.codeActionsOnSave": {
+			"source.addMissingImports.ts": "always",
+			"source.fixAll": "explicit",
+			"source.fixAll.eslint": "explicit",
+			"source.fixAll.oxc": "explicit",
+			"source.fixAll.ts": "explicit",
+			"source.organizeImports": "explicit",
+			"source.removeUnused.ts": "never",
+			"source.removeUnusedImports": "never",
+			"source.sort.json": "explicit",
+			"source.sortImports": "explicit"
+		},
+		"editor.cursorBlinking": "smooth",
+		"editor.cursorSmoothCaretAnimation": "on",
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.detectIndentation": false,
+		"editor.fastScrollSensitivity": 10,
+		"editor.folding": true,
+		"editor.foldingImportsByDefault": true,
+		"editor.foldingStrategy": "indentation",
+		"editor.fontFamily": "MesloLGM Nerd Font",
+		"editor.fontSize": 16,
+		"editor.formatOnPaste": true,
+		"editor.formatOnSave": true,
+		"editor.formatOnType": true,
+		"editor.guides.bracketPairs": true,
+		"editor.lineHeight": 1.5,
+		"editor.linkedEditing": true,
+		"editor.matchBrackets": "always",
+		"editor.minimap.enabled": true,
+		"editor.mouseWheelZoom": true,
+		"editor.quickSuggestions": {
+			"comments": true,
+			"other": true,
+			"strings": true
+		},
+		"editor.smoothScrolling": true,
+		"editor.stickyScroll.enabled": true,
+		"editor.suggest.insertMode": "replace",
+		"editor.suggest.snippetsPreventQuickSuggestions": false,
+		"editor.suggestSelection": "recentlyUsedByPrefix",
+		"editor.tabSize": 2,
+		"editor.wordSeparators": "`~!@%^&*()=+[{]}\\|;:'\",.<>/?（），。；：",
+		"editor.wordWrap": "on",
+		"emmet.includeLanguages": {
+			"javascript": "javascriptreact",
+			"typescript": "typescriptreact",
+			"vue": "html",
+			"vue-html": "html"
+		},
+		"eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "vue"],
+		"eslint.workingDirectories": [
+			{
+				"mode": "auto"
+			}
+		],
+		"explorer.compactFolders": false,
+		"explorer.fileNesting.enabled": true,
+		"explorer.fileNesting.expand": false,
+		"explorer.fileNesting.patterns": {
+			".editorconfig": ".browserslistrc,.lintstagedrc,.prettierrc*,.prettierignore",
+			".gitignore": ".gitattributes, .gitconfig, .gitpod.yml, .git*, git*",
+			"*.env": "$(capture).env.*",
+			"dist.pem": "dist.*",
+			"Dockerfile": "docker-compose.*, .dockerignore",
+			"eslint.config.ts": ".eslint*, eslint*, .prettier*, prettier*, oxlint*, oxlint*, .editorconfig, .lintstagedrc, .browserslistrc",
+			"index.html": "*.html",
+			"package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .node-version, .npmrc",
+			"tailwind.config.ts": "postcss.config.js, tailwind.config.ts, tailwind.config.cjs, tailwind.config.mjs, tailwind.config.jsx, tailwind.config.tsx, tailwind.config.jsx",
+			"tsconfig.json": "tsconfig.*.json, env.d.ts",
+			"vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts"
+		},
+		"files.associations": {
+			"*.ts": "typescript",
+			"*.vue": "vue"
+		},
+		"files.autoGuessEncoding": true,
+		"files.autoSave": "onWindowChange",
+		"files.encoding": "utf8",
+		"files.exclude": {
+			"**/.DS_Store": true,
+			"**/.git": true,
+			"**/.gitignore": false,
+			"**/.idea": true,
+			"**/.svn": true,
+			"**/.vscode": false,
+			"**/build": false,
+			"**/dist": false,
+			"**/node_modules": false,
+			"**/package-lock.json": false,
+			"**/pnpm-lock.yaml": false,
+			"**/Thumbs.db": true,
+			"**/tmp": true,
+			"**/yarn.lock": false
+		},
+		"files.trimFinalNewlines": true,
+		"files.trimTrailingWhitespace": true,
+		"files.watcherExclude": {
+			"**/.DS_Store": true,
+			"**/.git": true,
+			"**/.gitignore": true,
+			"**/.idea": true,
+			"**/.svn": true,
+			"**/.vscode": true,
+			"**/build": true,
+			"**/dist": true,
+			"**/node_modules": true,
+			"**/package-lock.json": true,
+			"**/pnpm-lock.yaml": true,
+			"**/tmp": true,
+			"**/yarn.lock": true
+		},
+		"html.format.indentHandlebars": true,
+		"html.format.wrapAttributes": "preserve",
+		"html.format.wrapLineLength": 70,
+		"i18n-ally.annotationInPlace": true,
+		"i18n-ally.dirStructure": "dir",
+		"i18n-ally.displayLanguage": "zh-CN",
+		"i18n-ally.enabledFrameworks": ["vue", "vue-sfc"],
+		"i18n-ally.enabledParsers": ["ts", "json"],
+		"i18n-ally.encoding": "utf-8",
+		"i18n-ally.extract.autoDetect": true,
+		"i18n-ally.extract.keygenStrategy": "source",
+		"i18n-ally.extract.keygenStyle": "kebab-case",
+		"i18n-ally.extract.keyPrefix": "prefix-",
+		"i18n-ally.extract.parsers.html": {
+			"attributes": ["title", "alt", "aria-label", "placeholder", "label", "text", "sub-title"],
+			"ignoredTags": ["script", "style"],
+			"inlineText": true,
+			"vBind": true
+		},
+		"i18n-ally.extract.targetPickingStrategy": "most-similar",
+		"i18n-ally.fullReloadOnChanged": true,
+		"i18n-ally.ignoreFiles": [
+			"node_modules/**",
+			"dist/**",
+			"build/**",
+			"coverage/**",
+			".git/**",
+			".vscode/**",
+			".turbo/**",
+			".husky/**",
+			".idea/**",
+			"service/**",
+			"**/service/**",
+			"**/node_modules/**",
+			"**/dist/**",
+			"**/build/**",
+			"apps/**/node_modules/**",
+			"apps/**/dist/**",
+			"apps/**/build/**",
+			"apps/service/**",
+			"**/*.test.*",
+			"**/*.spec.*",
+			"**/tests/**",
+			"**/test/**"
+		],
+		"i18n-ally.indent": 2,
+		"i18n-ally.keystyle": "nested",
+		"i18n-ally.localesPaths": ["apps/extension/src/locales"],
+		"i18n-ally.pathMatcher": "{locale}/index.ts",
+		"i18n-ally.preferredDelimiter": "-",
+		"i18n-ally.review.enabled": true,
+		"i18n-ally.review.gutters": true,
+		"i18n-ally.showFlags": true,
+		"i18n-ally.sortKeys": true,
+		"i18n-ally.theme.annotation": "rgba(255, 255, 255, 0.8)",
+		"i18n-ally.theme.annotationBorder": "#4080ff",
+		"i18n-ally.theme.annotationMissing": "rgba(153, 153, 153, .3)",
+		"i18n-ally.theme.annotationMissingBorder": "rgba(153, 153, 153, .2)",
+		"i18n-ally.translate.engines": [
+			"baidu",
+			"google",
+			"google-cn",
+			"deepl",
+			"libretranslate",
+			"openai"
+		],
+		"i18n-ally.translate.overrideExisting": false,
+		"iconify.customCollectionIdsMap": {
+			"local": "local"
+		},
+		"iconify.customCollectionJsonPaths": ["packages/shared/src/assets/icons"],
+		"iconify.languageIds": ["typescript", "typescriptreact", "vue"],
+		"javascript.format.semicolons": "remove",
+		"javascript.inlayHints.functionLikeReturnTypes.enabled": false,
+		"javascript.inlayHints.parameterNames.enabled": "none",
+		"javascript.preferences.importModuleSpecifier": "shortest",
+		"javascript.preferences.jsxAttributeCompletionStyle": "braces",
+		"javascript.preferences.quoteStyle": "single",
+		"javascript.suggest.autoImports": true,
+		"javascript.updateImportsOnFileMove.enabled": "always",
+		"js/ts.implicitProjectConfig.checkJs": true,
+		"js/ts.implicitProjectConfig.target": "ESNext",
+		"merge-conflict.decorators.enabled": true,
+		"notebook.compactView": true,
+		"npm.packageManager": "pnpm",
+		"npm.scriptRunner": "pnpm",
+		"oxc.enable": true,
+		"oxc.trace.server": "messages",
 		"path-intellisense.absolutePathToWorkspace": true,
 		"path-intellisense.extensionOnImport": true,
 		"path-intellisense.mappings": {
@@ -46,6 +540,7 @@
 			"@shared": "${workspaceFolder:shared}/src",
 			"@ui": "${workspaceFolder:ui}/src"
 		},
+		"playwright.showTrace": true,
 		"prettier.arrowParens": "always",
 		"prettier.bracketSpacing": true,
 		"prettier.endOfLine": "crlf",
@@ -59,10 +554,69 @@
 		"prettier.trailingComma": "none",
 		"prettier.useEditorConfig": true,
 		"prettier.useTabs": true,
+		"scm.inputFontSize": 16,
+		"scss.format.newlineBetweenSelectors": true,
+		"scss.hover.documentation": true,
+		"scss.hover.references": true,
+		"scss.lint.compatibleVendorPrefixes": "warning",
+		"scss.lint.duplicateProperties": "error",
+		"scss.lint.important": "warning",
+		"search.exclude": {
+			"**/.DS_Store": true,
+			"**/.git": true,
+			"**/.gitignore": true,
+			"**/.idea": true,
+			"**/.svn": true,
+			"**/.vscode": true,
+			"**/build": true,
+			"**/dist": true,
+			"**/node_modules": true,
+			"**/package-lock.json": true,
+			"**/pnpm-lock.yaml": true,
+			"**/tmp": true,
+			"**/yarn.lock": true
+		},
+		"search.followSymlinks": false,
+		"search.searchEditor.singleClickBehaviour": "peekDefinition",
+		"tailwindcss-intellisense.trace.server": "messages",
+		"tailwindCSS.files.exclude": ["**/.git/**", "**/node_modules/**", "**/.hg/**", "**/.svn/**"],
+		"tailwindCSS.suggestions": true,
+		"terminal.explorerKind": "external",
+		"terminal.integrated.cursorBlinking": true,
+		"terminal.integrated.cursorStyle": "line",
+		"terminal.integrated.cursorStyleInactive": "line",
+		"terminal.integrated.defaultProfile.windows": "PowerShell",
+		"terminal.integrated.fontSize": 16,
+		"terminal.integrated.gpuAcceleration": "on",
+		"terminal.integrated.smoothScrolling": true,
+		"terminal.integrated.stickyScroll.enabled": true,
+		"turboConsoleLog.includeFilename": true,
+		"turboConsoleLog.includeLineNum": true,
+		"turboConsoleLog.insertEmptyLineAfterLogMessage": true,
+		"turboConsoleLog.insertEmptyLineBeforeLogMessage": true,
+		"typescript.autoClosingTags": true,
+		"typescript.enablePromptUseWorkspaceTsdk": true,
+		"typescript.format.semicolons": "remove",
+		"typescript.inlayHints.enumMemberValues.enabled": true,
+		"typescript.locale": "zh-CN",
+		"typescript.preferences.importModuleSpecifier": "shortest",
+		"typescript.preferences.includePackageJsonAutoImports": "on",
+		"typescript.preferences.preferTypeOnlyAutoImports": true,
+		"typescript.preferences.quoteStyle": "single",
+		"typescript.suggest.autoImports": true,
+		"typescript.tsdk": "node_modules\\typescript\\lib",
 		"typescript.tsserver.enableTracing": true,
-		"vue.editor.focusMode": true,
+		"typescript.updateImportsOnFileMove.enabled": "always",
+		"vue.autoInsert.bracketSpacing": true,
+		"vue.autoInsert.dotValue": true,
+		"vue.codeActions.askNewComponentName": true,
+		"vue.editor.focusMode": false,
 		"vue.format.wrapAttributes": "force-expand-multiline",
+		"vue.inlayHints.destructuredProps": true,
+		"vue.inlayHints.inlineHandlerLeading": true,
 		"vue.inlayHints.missingProps": true,
+		"vue.inlayHints.optionsWrapper": true,
+		"vue.inlayHints.vBindShorthand": true,
 		"vue.server.includeLanguages": [
 			"vue",
 			"typescript",
@@ -71,6 +625,114 @@
 			"typescriptreact"
 		],
 		"vue.suggest.componentNameCasing": "alwaysKebabCase",
-		"vue.suggest.propNameCasing": "alwaysKebabCase"
+		"vue.suggest.defineAssignment": true,
+		"vue.suggest.propNameCasing": "alwaysKebabCase",
+		"window.density.editorTabHeight": "compact",
+		"workbench.editor.customLabels.patterns": {
+			"**/index.js": "${dirname}.js",
+			"**/index.jsx": "${dirname}.jsx",
+			"**/index.ts": "${dirname}.ts",
+			"**/index.tsx": "${dirname}.tsx",
+			"**/index.vue": "${dirname}.vue"
+		},
+		"workbench.editor.decorations.colors": true,
+		"workbench.editor.wrapTabs": true,
+		"workbench.list.fastScrollSensitivity": 10,
+		"workbench.list.smoothScrolling": true,
+		"workbench.startupEditor": "none",
+		"workbench.tree.enableStickyScroll": true
+	},
+	"tasks": {
+		"tasks": [
+			{
+				"args": ["dev:extension"],
+				"command": "bun",
+				"detail": "启动 extension 应用开发服务器",
+				"isBackground": true,
+				"label": "dev:extension",
+				"problemMatcher": {
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "ready in"
+					},
+					"owner": "custom",
+					"pattern": {
+						"file": 1,
+						"location": 2,
+						"message": 3,
+						"regexp": "."
+					}
+				},
+				"type": "shell"
+			},
+			{
+				"args": ["dev:client"],
+				"command": "bun",
+				"detail": "启动 Client 应用开发服务器",
+				"isBackground": true,
+				"label": "dev:client",
+				"problemMatcher": {
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "ready in"
+					},
+					"owner": "custom",
+					"pattern": {
+						"file": 1,
+						"location": 2,
+						"message": 3,
+						"regexp": "."
+					}
+				},
+				"type": "shell"
+			},
+			{
+				"args": ["dev:devtools"],
+				"command": "bun",
+				"detail": "启动 DevTools 应用开发服务器",
+				"isBackground": true,
+				"label": "dev:devtools",
+				"problemMatcher": {
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "ready in"
+					},
+					"owner": "custom",
+					"pattern": {
+						"file": 1,
+						"location": 2,
+						"message": 3,
+						"regexp": "."
+					}
+				},
+				"type": "shell"
+			},
+			{
+				"args": ["dev:service"],
+				"command": "bun",
+				"detail": "启动 Service 应用开发服务器",
+				"isBackground": true,
+				"label": "dev:service",
+				"problemMatcher": {
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "Application successfully started"
+					},
+					"owner": "custom",
+					"pattern": {
+						"file": 1,
+						"location": 2,
+						"message": 3,
+						"regexp": "."
+					}
+				},
+				"type": "shell"
+			}
+		],
+		"version": "2.0.0"
 	}
 }

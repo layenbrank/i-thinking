@@ -19,64 +19,6 @@ let audioProcessor: any = null
 let videoProcessor: any = null
 let frameCounter = 0
 
-// 清理资源
-function cleanupResources() {
-	if (mediaStream) {
-		mediaStream.getTracks().forEach((track) => track.stop())
-		mediaStream = null
-	}
-
-	if (videoEncoder) {
-		videoEncoder.close()
-		videoEncoder = null
-	}
-
-	if (audioProcessor) {
-		audioProcessor = null
-	}
-
-	if (videoProcessor) {
-		videoProcessor = null
-	}
-
-	frameCounter = 0
-	currentCodecConfig.value = null
-}
-
-// 检查浏览器支持
-function checkBrowserSupport() {
-	const errors = []
-
-	if (!('VideoEncoder' in window)) {
-		errors.push('VideoEncoder API 不受支持')
-	}
-
-	if (!('MediaStreamTrackProcessor' in window)) {
-		errors.push('MediaStreamTrackProcessor API 不受支持')
-	}
-
-	if (!navigator.mediaDevices?.getUserMedia) {
-		errors.push('getUserMedia API 不受支持')
-	}
-
-	if (errors.length > 0) {
-		const errorMsg = `
-		当前浏览器不支持以下 API：
-		${errors.join('\n')}
-
-		请使用支持 WebCodecs API 的现代浏览器：
-		• Chrome 94+ / Edge 94+
-		• Firefox (实验性支持)
-		• Safari (部分支持)
-
-		建议使用最新版本的 Chrome 或 Edge 浏览器。
-`.trim()
-		throw new Error(errorMsg)
-	}
-
-	console.log('浏览器支持检查通过')
-}
-
 async function handler() {
 	try {
 		// 检查浏览器支持
@@ -367,16 +309,6 @@ function updateCanvasDisplay(frame: VideoFrame) {
 	ctx.drawImage(frame, 0, 0)
 }
 
-// 停止处理
-function stopProcessing() {
-	isProcessing.value = false
-	isRecording.value = false
-
-	message.info('正在停止处理...')
-	cleanupResources()
-	message.success('处理已停止')
-}
-
 // 开始/停止录制
 async function toggleRecording() {
 	if (isRecording.value) {
@@ -385,6 +317,16 @@ async function toggleRecording() {
 		isRecording.value = true
 		await handler()
 	}
+}
+
+// 停止处理
+function stopProcessing() {
+	isProcessing.value = false
+	isRecording.value = false
+
+	message.info('正在停止处理...')
+	cleanupResources()
+	message.success('处理已停止')
 }
 
 // 测试浏览器支持
@@ -452,19 +394,17 @@ async function testBrowserSupport() {
 
 		if (supportedCodecs.length > 0) {
 			const supportInfo = `
-✅ 支持的编码器 (${supportedCodecs.length}个):
-${supportedCodecs.map((name) => `• ${name}`).join('\n')}
-
-${
-	unsupportedCodecs.length > 0
-		? `❌ 不支持的编码器:
-${unsupportedCodecs.map((name) => `• ${name}`).join('\n')}`
-		: ''
-}
-
-💡 编码格式说明:
-• H.264 → 可打包为 MP4 文件
-• VP8/VP9 → 可打包为 WebM 文件
+				✅ 支持的编码器 (${supportedCodecs.length}个):
+				${supportedCodecs.map((name) => `• ${name}`).join('\n')}
+				${
+					unsupportedCodecs.length > 0
+						? `❌ 不支持的编码器:
+				${unsupportedCodecs.map((name) => `• ${name}`).join('\n')}`
+						: ''
+				}
+				💡 编码格式说明:
+				• H.264 → 可打包为 MP4 文件
+				• VP8/VP9 → 可打包为 WebM 文件
 			`.trim()
 
 			message.success({
@@ -490,6 +430,64 @@ function initVideoPreview() {
 	} catch (err) {
 		console.warn('视频预览初始化失败:', err)
 	}
+}
+
+// 清理资源
+function cleanupResources() {
+	if (mediaStream) {
+		mediaStream.getTracks().forEach((track) => track.stop())
+		mediaStream = null
+	}
+
+	if (videoEncoder) {
+		videoEncoder.close()
+		videoEncoder = null
+	}
+
+	if (audioProcessor) {
+		audioProcessor = null
+	}
+
+	if (videoProcessor) {
+		videoProcessor = null
+	}
+
+	frameCounter = 0
+	currentCodecConfig.value = null
+}
+
+// 检查浏览器支持
+function checkBrowserSupport() {
+	const errors = []
+
+	if (!('VideoEncoder' in window)) {
+		errors.push('VideoEncoder API 不受支持')
+	}
+
+	if (!('MediaStreamTrackProcessor' in window)) {
+		errors.push('MediaStreamTrackProcessor API 不受支持')
+	}
+
+	if (!navigator.mediaDevices?.getUserMedia) {
+		errors.push('getUserMedia API 不受支持')
+	}
+
+	if (errors.length > 0) {
+		const errorMsg = `
+		当前浏览器不支持以下 API：
+		${errors.join('\n')}
+
+		请使用支持 WebCodecs API 的现代浏览器：
+		• Chrome 94+ / Edge 94+
+		• Firefox (实验性支持)
+		• Safari (部分支持)
+
+		建议使用最新版本的 Chrome 或 Edge 浏览器。
+`.trim()
+		throw new Error(errorMsg)
+	}
+
+	console.log('浏览器支持检查通过')
 }
 onMounted(function () {
 	initVideoPreview()

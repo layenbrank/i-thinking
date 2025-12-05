@@ -1,0 +1,30 @@
+{
+	"servers": {
+		"io.github.github/github-mcp-server": {
+			"type": "http",
+			"url": "https://api.githubcopilot.com/mcp/",
+			"headers": {
+				"Authorization": "${input:Authorization}"
+			},
+			"gallery": "https://api.mcp.github.com",
+			"version": "0.24.0"
+		},
+		"io.github.ChromeDevTools/chrome-devtools-mcp": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"chrome-devtools-mcp@0.11.0"
+			],
+			"gallery": "https://api.mcp.github.com",
+			"version": "0.11.0"
+		}
+	},
+	"inputs": [
+		{
+			"id": "Authorization",
+			"type": "promptString",
+			"description": "Authentication token (PAT or App token)",
+			"password": true
+		}
+	]
+}
