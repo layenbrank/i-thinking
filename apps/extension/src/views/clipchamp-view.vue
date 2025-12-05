@@ -61,16 +61,16 @@ function checkBrowserSupport() {
 
 	if (errors.length > 0) {
 		const errorMsg = `
-当前浏览器不支持以下 API：
-${errors.join('\n')}
+		当前浏览器不支持以下 API：
+		${errors.join('\n')}
 
-请使用支持 WebCodecs API 的现代浏览器：
-• Chrome 94+ / Edge 94+
-• Firefox (实验性支持)
-• Safari (部分支持)
+		请使用支持 WebCodecs API 的现代浏览器：
+		• Chrome 94+ / Edge 94+
+		• Firefox (实验性支持)
+		• Safari (部分支持)
 
-建议使用最新版本的 Chrome 或 Edge 浏览器。
-		`.trim()
+		建议使用最新版本的 Chrome 或 Edge 浏览器。
+`.trim()
 		throw new Error(errorMsg)
 	}
 
