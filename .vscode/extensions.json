@@ -1,0 +1,13 @@
+{
+	"recommendations": [
+		"dbaeumer.vscode-eslint",
+		"esbenp.prettier-vscode",
+		"eamodio.gitlens",
+		"usernamehw.errorlens",
+		"editorconfig.editorconfig",
+		"mikestead.dotenv",
+		"vue.volar",
+		"christian-kohler.path-intellisense",
+		"oxc.oxc-vscode"
+	]
+}
