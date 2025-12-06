@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { FFmpeg } from '@ffmpeg/ffmpeg'
+import { fetchFile, toBlobURL } from '@ffmpeg/util'
+import { createFile, MP4BoxBuffer, MultiBufferStream, type Movie } from 'mp4box'
 import { message } from 'ant-design-vue'
 
 defineOptions({
@@ -8,10 +10,17 @@ defineOptions({
 
 // const props = withDefaults(defineProps<{}>(), {})
 // const emits = defineEmits<{}>()
+const file = createFile()
 
 const canvasRef = useTemplateRef('canvasRef')
 const videoRef = useTemplateRef('videoRef')
-const ffmpeg = new FFmpeg()
+
+const core = new FFmpeg()
+
+// https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@0.12.10/dist/esm/ffmpeg-core.worker.js
+const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm'
+// const baseURL: string = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@0.12.10/dist/esm'
+
 let stream: MediaStream | null = null
 let videoEncoder: VideoEncoder | null = null
 const configure = ref<VideoEncoderConfig | null>(null)
@@ -23,6 +32,13 @@ let frameCounter = 0
 
 // 收集编码数据（用于演示如何组装成完整视频文件）
 const encodedChunks: { chunk: EncodedVideoChunk; buffer: ArrayBuffer }[] = []
+
+file.onReady = function (info: Movie) {
+	console.log('MP4Box.js 文件准备就绪:', info)
+}
+file.onError = function (module: string, message: string) {
+	console.error(`MP4Box.js 错误 [${module}]: ${message}`)
+}
 
 async function bootstrap() {
 	message.info('开始获取媒体流...')
@@ -144,6 +160,7 @@ async function bootstrap() {
 				// 保存当前使用的编码器配置
 				codecConfig = value
 				console.log('选择的编码器配置:', value)
+				console.log('选择的编码器配置 codecConfig:', codecConfig)
 				message.success(`编码器选择成功: ${value.codec}`)
 				break
 			} else {
@@ -161,6 +178,8 @@ async function bootstrap() {
 	}
 
 	configure.value = codecConfig
+
+	console.log('开始配置视频编码器...', configure.value)
 
 	message.info('开始配置视频编码器...')
 
@@ -200,8 +219,13 @@ function terminate() {
 	isRecording.value = false
 
 	message.info('正在停止处理...')
-	cleanup()
 	message.success('处理已停止')
+
+	console.log('encodedChunks', encodedChunks)
+
+	// 当收集到足够的编码数据后，尝试打包为文件并下载
+	packageEncoded()
+	cleanup()
 }
 
 // 处理视频轨道
@@ -292,16 +316,6 @@ function collectEncoded(chunk: EncodedVideoChunk, buffer: ArrayBuffer) {
 	)
 }
 
-watch(
-	function () {
-		return encodedChunks
-	},
-	function () {
-		// 当收集到足够的编码数据后，尝试打包为文件并下载
-		packageEncodedData()
-	}
-)
-
 // 更新 Canvas 显示
 function updateCanvasDisplay(frame: VideoFrame) {
 	if (!canvasRef.value) return
@@ -329,12 +343,15 @@ function cleanup() {
 }
 
 // 将收集的编码数据打包为可下载文件
-function packageEncodedData() {
+function packageEncoded() {
+	console.log('configure', configure.value)
 	if (!configure.value) return
 	if (encodedChunks.length === 0) return
 
 	const isAvc = configure.value.codec.startsWith('avc')
 	const isVp = configure.value.codec.startsWith('vp')
+
+	console.log('isAvc', isAvc, 'isVp', isVp)
 
 	try {
 		if (isVp) {
@@ -379,8 +396,20 @@ function triggerDownload(blob: Blob, filename: string) {
 	URL.revokeObjectURL(url)
 }
 
-onMounted(function () {
-	// void ffmpeg.load()
+onMounted(async function () {
+	core.on('progress', function ({ progress, time }) {
+		console.log('[progress]', `${progress * 100} % (transcoded time: ${time / 1000000} s)`)
+	})
+
+	core.on('log', function ({ message }) {
+		console.log('[msg]', message)
+	})
+
+	await core.load({
+		coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+		wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm')
+		// workerURL: await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, 'text/javascript')
+	})
 })
 </script>
 
