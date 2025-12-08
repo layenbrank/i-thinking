@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import fallback from '@/assets/feedback/fallback.png'
+import FallbackMark from '@/assets/feedback/fallback.png'
 import { useMirrorStore } from '@/stores/mirror.ts'
 import { timeSphere } from '@i-thinking/core'
 import { message } from 'ant-design-vue'
@@ -226,7 +226,7 @@ function updateVisible() {
 							<a-image
 								:preview="false"
 								src="https://www.api.example.com/api/v1/image/1234567890.png"
-								:fallback="fallback"
+								:fallback="FallbackMark"
 								wrapper-class-name="bookmark-image"
 							></a-image>
 							<div class="bookmark-text">
