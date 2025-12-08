@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import fallback from '@/assets/feedback/fallback.png'
+import FallbackMark from '@/assets/feedback/fallback.png'
 import { useMirrorStore } from '@/stores/mirror.ts'
 import { useDropZone } from '@vueuse/core'
 
@@ -111,7 +111,7 @@ onMounted(function () {
 		<a-image
 			v-else-if="marker || !char"
 			:preview="false"
-			:fallback="fallback"
+			:fallback="FallbackMark"
 			:src="marker"
 			wrapper-class-name="navigation-image"
 		>
