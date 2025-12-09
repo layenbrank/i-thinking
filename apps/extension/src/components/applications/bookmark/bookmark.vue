@@ -2,7 +2,7 @@
 import Marker from '@/components/applications/bookmark/bookmark-marker.vue'
 import Overlay from '@/components/applications/bookmark/bookmark-overlay.vue'
 import { useSettings } from '@/hooks/mirror.ts'
-import CloseOutlined from '~icons/local/close'
+import DestroyMark from '~icons/local/close'
 // type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
 defineOptions({
@@ -15,15 +15,13 @@ const props = withDefaults(
 	}>(),
 	{
 		application() {
-			return {
+			const DEFAULT: Application = {
 				id: '0',
 				index: 0,
-				name: '书签',
+				title: '书签',
 				size: 'mini',
-				width: '60px',
 				round: '12px',
 				mirrorID: '0',
-				height: '60px',
 				shape: 'square',
 				textSize: '13px',
 				description: '书签',
@@ -36,6 +34,8 @@ const props = withDefaults(
 				direction: 'horizontal',
 				backgroundColor: '#ffffff4d'
 			}
+
+			return DEFAULT
 		}
 	}
 )
@@ -113,8 +113,8 @@ function updateFullScreen(value: boolean) {
 			:direction="application.direction"
 			:class="[application.size, application.shape, application.direction]"
 		/>
-		<span class="application-name">{{ application.name }}</span>
-		<close-outlined class="application-trash-marker" />
+		<span class="application-title">{{ application.title }}</span>
+		<destroy-mark class="application-trash-marker" />
 	</div>
 </template>
 
