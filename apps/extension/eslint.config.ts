@@ -121,7 +121,8 @@ export default defineConfigWithVueTs(
 						'signboard',
 						'clock',
 						'contextmenu',
-						'controller'
+						'controller',
+						'mirror'
 					]
 				}
 			]
