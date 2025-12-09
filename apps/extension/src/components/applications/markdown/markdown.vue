@@ -1,8 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/markdown/markdown-marker.vue'
 import Overlay from '@/components/applications/markdown/markdown-overlay.vue'
-import { useSettings } from '@/hooks/mirror'
-import CloseOutlined from '~icons/local/close'
+import DestroyMark from '~icons/local/close'
 
 defineOptions({
 	name: 'markdown'
@@ -14,15 +13,13 @@ const props = withDefaults(
 	}>(),
 	{
 		application() {
-			return {
+			const DEFAULT: Application = {
 				id: '0',
 				index: 0,
 				size: 'mini',
-				name: '备忘录',
-				width: '60px',
+				title: '备忘录',
 				round: '12px',
 				mirrorID: '0',
-				height: '60px',
 				shape: 'square',
 				textSize: '13px',
 				downloadCount: 1000,
@@ -35,6 +32,7 @@ const props = withDefaults(
 				direction: 'horizontal',
 				backgroundColor: '#ffffff4d'
 			}
+			return DEFAULT
 		}
 	}
 )
@@ -53,10 +51,6 @@ const background = computed(function () {
 	return '#ffffff'
 })
 
-const style = computed(function () {
-	return useSettings(props.application)
-})
-
 function updateOverlay(value: boolean) {
 	visible.value = value
 }
@@ -70,11 +64,7 @@ function updateFullScreen(value: boolean) {
 	<div
 		:style="{
 			'--application-round': round,
-			'--application-background': background,
-			'--application-size-width': style.width,
-			'--application-grid-row': style.gridRow,
-			'--application-size-height': style.height,
-			'--application-grid-column': style.gridColumn
+			'--application-background': background
 		}"
 		:data-id="application.id"
 		:class="['markdown', application.size, application.shape, application.direction]"
@@ -105,20 +95,14 @@ function updateFullScreen(value: boolean) {
 			@dblclick="updateOverlay(true)"
 			:class="[application.size, application.shape, application.direction]"
 		/>
-		<span class="application-name">{{ application.name }}</span>
-		<close-outlined class="application-trash-marker" />
+		<span class="application-title">{{ application.title }}</span>
+		<destroy-mark class="application-trash-mark" />
 	</div>
 </template>
 
 <style lang="scss" scoped>
 .markdown {
 	@extend %application;
-
-	// width: var(--application-size-width);
-	// height: var(--application-size-height);
-	// grid-row: var(--application-grid-row);
-	// grid-column: var(--application-grid-column);
-	// border-radius: var(--application-round);
 }
 </style>
 <style lang="scss">

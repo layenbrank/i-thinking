@@ -1,6 +1,6 @@
 interface Mirror {
 	id: string
-	name: string
+	title: string
 	index: number
 	marker: string
 	updatedAt: number

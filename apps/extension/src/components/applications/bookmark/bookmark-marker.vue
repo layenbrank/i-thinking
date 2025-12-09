@@ -32,10 +32,6 @@ defineOptions({
 	border-radius: var(--application-round);
 	background: var(--application-background);
 
-	&.circle {
-		border-radius: calc(var(--application-size-width) / 2);
-	}
-
 	// .folder {
 	// 	@apply w-full h-full text-[30px] text-[#ffd766];
 	// }

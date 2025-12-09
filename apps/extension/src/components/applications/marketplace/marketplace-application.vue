@@ -62,7 +62,7 @@ async function toInsertApplication(event: MouseEvent) {
 			Object.assign(application, {
 				id: crypto.randomUUID(),
 				mirrorID: store.mirrorID ?? '',
-				name: application.name,
+				title: application.title,
 				index: store.applications?.length ?? 0,
 				createdAt: Date.now(),
 				updatedAt: Date.now()

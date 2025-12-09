@@ -1,9 +1,8 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/example/example-marker.vue'
 import Overlay from '@/components/applications/example/example-overlay.vue'
-import { useSettings } from '@/hooks/mirror'
 import { Modal } from 'ant-design-vue'
-import CloseOutlined from '~icons/local/close'
+import DestroyMark from '~icons/local/close'
 
 defineOptions({
 	name: 'example'
@@ -15,27 +14,26 @@ const props = withDefaults(
 	}>(),
 	{
 		application() {
-			return {
+			const DEFAULT: Application = {
 				id: '0',
-				index: 0,
 				size: 'mini',
-				width: '60px',
+				index: 0,
 				round: '12px',
-				mirrorID: '0',
-				height: '60px',
-				name: '示例应用',
+				title: '示例应用',
 				shape: 'square',
+				mirrorID: '0',
 				textSize: '13px',
-				downloadCount: 1000,
 				textColor: '#ffffff',
 				component: 'example',
-				backgroundImage: null,
 				updatedAt: Date.now(),
 				createdAt: Date.now(),
-				description: '示例应用',
 				direction: 'horizontal',
+				description: '示例应用',
+				downloadCount: 1000,
+				backgroundImage: null,
 				backgroundColor: '#ffffff4d'
 			}
+			return DEFAULT
 		}
 	}
 )
@@ -54,10 +52,6 @@ const background = computed(function () {
 	return '#ffffff'
 })
 
-const style = computed(function () {
-	return useSettings(props.application)
-})
-
 function updateOverlay(value: boolean) {
 	visible.value = value
 }
@@ -71,11 +65,7 @@ function updateFullScreen(value: boolean) {
 	<div
 		:style="{
 			'--application-round': round,
-			'--application-background': background,
-			'--application-size-width': style.width,
-			'--application-grid-row': style.gridRow,
-			'--application-size-height': style.height,
-			'--application-grid-column': style.gridColumn
+			'--application-background': background
 		}"
 		:class="['example', application.size, application.shape, application.direction]"
 	>
@@ -105,20 +95,14 @@ function updateFullScreen(value: boolean) {
 			@dblclick="updateOverlay(true)"
 			:class="[application.size, application.shape, application.direction]"
 		/>
-		<span class="application-name">{{ application.name }}</span>
-		<CloseOutlined class="application-trash-marker" />
+		<span class="application-title">{{ application.title }}</span>
+		<destroy-mark class="application-trash-mark" />
 	</div>
 </template>
 
 <style lang="scss" scoped>
 .example {
 	@extend %application;
-
-	// width: var(--application-size-width);
-	// grid-row: var(--application-grid-row);
-	// height: var(--application-size-height);
-	// border-radius: var(--application-round);
-	// grid-column: var(--application-grid-column);
 }
 </style>
 <style lang="scss">

@@ -15,7 +15,6 @@
 
 			&.horizontal {
 				@apply p-2;
-				border-radius: calc(var(--application-global-width) / 2);
 			}
 
 			&.vertical {

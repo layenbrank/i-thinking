@@ -28,7 +28,7 @@ function onFinish(values: any) {
 		void store
 			.toInsertApplication([
 				{
-					name: values.name,
+					title: values.name,
 					url: values.URL,
 					// TODO: 待定 ID 来源
 					id: crypto.randomUUID(),
@@ -41,8 +41,6 @@ function onFinish(values: any) {
 					marker: '',
 					createdAt: Date.now(),
 					updatedAt: Date.now(),
-					width: null,
-					height: null,
 					round: '8px',
 					mirrorID: store.mirrorID,
 					collectionID: '0',

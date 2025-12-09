@@ -91,10 +91,6 @@ async function handleNavigation(sourceID: string, targetID: string) {
 		box-shadow: 0px 0px 1px 3px #4080ff;
 	}
 
-	&.circle {
-		border-radius: calc(var(--application-size-width) / 2);
-	}
-
 	.marker-collection {
 		width: 100%;
 		height: 100%;

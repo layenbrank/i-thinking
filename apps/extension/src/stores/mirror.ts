@@ -22,9 +22,9 @@ export type ToInsertApplication = InsertType<Application, 'id'>
 
 export interface ToUpdateCollection {
 	key: string
-	changes: UpdateSpec<Collection>
+	changes: UpdateSpec<Application.Collection>
 }
-export type ToInsertCollection = InsertType<Collection, 'id'>
+export type ToInsertCollection = InsertType<Application.Collection, 'id'>
 
 export const useMirrorStore = defineStore('mirror', function () {
 	const mirrorID = ref<string | null>(null)

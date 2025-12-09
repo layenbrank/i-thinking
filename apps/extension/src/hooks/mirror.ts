@@ -44,11 +44,6 @@ const AppExample = defineAsyncComponent(function () {
 	return import('@/components/applications/example/example.vue')
 })
 
-type ApplicationStyle = Record<
-	Application.Size,
-	Record<Application.Shape, Record<Application.Direction, Application.CSSProperties>>
->
-
 type ContextMenuReflect = Partial<Record<Application.Component, () => ContextMenuOptions[]>>
 
 const MENUOPTIONS: ContextMenuOptions[] = [
@@ -159,325 +154,6 @@ const OPTIONS: ApplicationOptions[] = [
 	}
 ]
 
-function useSettings(options: Application) {
-	const width = options.width ?? 'var(--application-global-width)'
-	const height = options.height ?? 'var(--application-global-height)'
-	const { size, shape, direction } = options
-
-	const componentStyle: ApplicationStyle = {
-		mini: {
-			circle: {
-				horizontal: {
-					width,
-					height,
-					gridRow: 'span 1',
-					gridColumn: 'span 1'
-				},
-				vertical: {
-					width,
-					height,
-					gridRow: 'span 1',
-					gridColumn: 'span 1'
-				}
-			},
-			rectangle: {
-				horizontal: {
-					width: `calc(${width} * 2 + var(--application-global-col-gap))`,
-					height,
-					gridRow: 'span 1',
-					gridColumn: 'span 2'
-				},
-				vertical: {
-					width,
-					height: `calc(${height} * 2 + var(--application-global-row-gap))`,
-					gridRow: 'span 2',
-					gridColumn: 'span 1'
-				}
-			},
-			square: {
-				horizontal: {
-					width,
-					height,
-					gridRow: 'span 1',
-					gridColumn: 'span 1'
-				},
-				vertical: {
-					width,
-					height,
-					gridRow: 'span 1',
-					gridColumn: 'span 1'
-				}
-			}
-		},
-		small: {
-			circle: {
-				horizontal: {
-					width: `calc(${width} * 2 + var(--application-global-col-gap))`,
-					height: `calc(${height} * 2 + var(--application-global-row-gap))`,
-					gridRow: 'span 2',
-					gridColumn: 'span 2'
-				},
-				vertical: {
-					width: `calc(${width} * 2 + var(--application-global-col-gap))`,
-					height: `calc(${height} * 2 + var(--application-global-row-gap))`,
-					gridRow: 'span 2',
-					gridColumn: 'span 2'
-				}
-			},
-			rectangle: {
-				horizontal: {
-					width: `calc(${width} * 4 + var(--application-global-col-gap) * 3)`,
-					height: `calc(${height} * 2 + var(--application-global-row-gap) * 1)`,
-					gridRow: 'span 2',
-					gridColumn: 'span 4'
-				},
-				vertical: {
-					width: `calc(${width} * 2 + var(--application-global-col-gap) * 1)`,
-					height: `calc(${height} * 4 + var(--application-global-row-gap) * 3)`,
-					gridRow: 'span 4',
-					gridColumn: 'span 2'
-				}
-			},
-			square: {
-				horizontal: {
-					width: `calc(${width} * 2 + var(--application-global-col-gap))`,
-					height: `calc(${height} * 2 + var(--application-global-row-gap))`,
-					gridRow: 'span 2',
-					gridColumn: 'span 2'
-				},
-				vertical: {
-					width: `calc(${width} * 2 + var(--application-global-col-gap))`,
-					height: `calc(${height} * 2 + var(--application-global-row-gap))`,
-					gridRow: 'span 2',
-					gridColumn: 'span 2'
-				}
-			}
-		},
-		medium: {
-			circle: {
-				horizontal: {
-					width: `calc(${width} * 3 + var(--application-global-col-gap) * 2)`,
-					height: `calc(${height} * 3 + var(--application-global-row-gap) * 2)`,
-					gridRow: 'span 3',
-					gridColumn: 'span 3'
-				},
-				vertical: {
-					width: `calc(${width} * 3 + var(--application-global-col-gap) * 2)`,
-					height: `calc(${height} * 3 + var(--application-global-row-gap) * 2)`,
-					gridRow: 'span 3',
-					gridColumn: 'span 3'
-				}
-			},
-			rectangle: {
-				horizontal: {
-					width: `calc(${width} * 5 + var(--application-global-col-gap) * 4)`,
-					height: `calc(${height} * 3 + var(--application-global-row-gap) * 2)`,
-					gridRow: 'span 3',
-					gridColumn: 'span 5'
-				},
-				vertical: {
-					width: `calc(${width} * 3 + var(--application-global-col-gap) * 2)`,
-					height: `calc(${height} * 5 + var(--application-global-row-gap) * 4)`,
-					gridRow: 'span 5',
-					gridColumn: 'span 3'
-				}
-			},
-			square: {
-				horizontal: {
-					width: `calc(${width} * 3 + var(--application-global-col-gap) * 2)`,
-					height: `calc(${height} * 3 + var(--application-global-row-gap) * 2)`,
-					gridRow: 'span 3',
-					gridColumn: 'span 3'
-				},
-				vertical: {
-					width: `calc(${width} * 3 + var(--application-global-col-gap) * 2)`,
-					height: `calc(${height} * 3 + var(--application-global-row-gap) * 2)`,
-					gridRow: 'span 3',
-					gridColumn: 'span 3'
-				}
-			}
-		},
-		large: {
-			circle: {
-				horizontal: {
-					width: `calc(${width} * 4 + var(--application-global-col-gap) * 3)`,
-					height: `calc(${height} * 4 + var(--application-global-row-gap) * 3)`,
-					gridRow: 'span 4',
-					gridColumn: 'span 4'
-				},
-				vertical: {
-					width: `calc(${width} * 4 + var(--application-global-col-gap) * 3)`,
-					height: `calc(${height} * 4 + var(--application-global-row-gap) * 3)`,
-					gridRow: 'span 4',
-					gridColumn: 'span 4'
-				}
-			},
-			rectangle: {
-				horizontal: {
-					width: `calc(${width} * 6 + var(--application-global-col-gap) * 5)`,
-					height: `calc(${height} * 4 + var(--application-global-row-gap) * 3)`,
-					gridRow: 'span 4',
-					gridColumn: 'span 6'
-				},
-				vertical: {
-					width: `calc(${width} * 4 + var(--application-global-col-gap) * 3)`,
-					height: `calc(${height} * 6 + var(--application-global-row-gap) * 5)`,
-					gridRow: 'span 6',
-					gridColumn: 'span 4'
-				}
-			},
-			square: {
-				horizontal: {
-					width: `calc(${width} * 4 + var(--application-global-col-gap) * 3)`,
-					height: `calc(${height} * 4 + var(--application-global-row-gap) * 3)`,
-					gridRow: 'span 4',
-					gridColumn: 'span 4'
-				},
-				vertical: {
-					width: `calc(${width} * 4 + var(--application-global-col-gap) * 3)`,
-					height: `calc(${height} * 4 + var(--application-global-row-gap) * 3)`,
-					gridRow: 'span 4',
-					gridColumn: 'span 4'
-				}
-			}
-		},
-		huge: {
-			circle: {
-				horizontal: {
-					width: `calc(${width} * 5 + var(--application-global-col-gap) * 4)`,
-					height: `calc(${height} * 5 + var(--application-global-row-gap) * 4)`,
-					gridRow: 'span 5',
-					gridColumn: 'span 5'
-				},
-				vertical: {
-					width: `calc(${width} * 5 + var(--application-global-col-gap) * 4)`,
-					height: `calc(${height} * 5 + var(--application-global-row-gap) * 4)`,
-					gridRow: 'span 5',
-					gridColumn: 'span 5'
-				}
-			},
-			rectangle: {
-				horizontal: {
-					width: `calc(${width} * 7 + var(--application-global-col-gap) * 6)`,
-					height: `calc(${height} * 5 + var(--application-global-row-gap) * 4)`,
-					gridRow: 'span 5',
-					gridColumn: 'span 7'
-				},
-				vertical: {
-					width: `calc(${width} * 5 + var(--application-global-col-gap) * 4)`,
-					height: `calc(${height} * 7 + var(--application-global-row-gap) * 6)`,
-					gridRow: 'span 7',
-					gridColumn: 'span 5'
-				}
-			},
-			square: {
-				horizontal: {
-					width: `calc(${width} * 5 + var(--application-global-col-gap) * 4)`,
-					height: `calc(${height} * 5 + var(--application-global-row-gap) * 4)`,
-					gridRow: 'span 5',
-					gridColumn: 'span 5'
-				},
-				vertical: {
-					width: `calc(${width} * 5 + var(--application-global-col-gap) * 4)`,
-					height: `calc(${height} * 5 + var(--application-global-row-gap) * 4)`,
-					gridRow: 'span 5',
-					gridColumn: 'span 5'
-				}
-			}
-		},
-		massive: {
-			circle: {
-				horizontal: {
-					width: `calc(${width} * 6 + var(--application-global-col-gap) * 5)`,
-					height: `calc(${height} * 6 + var(--application-global-row-gap) * 5)`,
-					gridRow: 'span 6',
-					gridColumn: 'span 6'
-				},
-				vertical: {
-					width: `calc(${width} * 6 + var(--application-global-col-gap) * 5)`,
-					height: `calc(${height} * 6 + var(--application-global-row-gap) * 5)`,
-					gridRow: 'span 6',
-					gridColumn: 'span 6'
-				}
-			},
-			rectangle: {
-				horizontal: {
-					width: `calc(${width} * 8 + var(--application-global-col-gap) * 7)`,
-					height: `calc(${height} * 6 + var(--application-global-row-gap) * 5)`,
-					gridRow: 'span 6',
-					gridColumn: 'span 8'
-				},
-				vertical: {
-					width: `calc(${width} * 6 + var(--application-global-col-gap) * 5)`,
-					height: `calc(${height} * 8 + var(--application-global-row-gap) * 7)`,
-					gridRow: 'span 8',
-					gridColumn: 'span 6'
-				}
-			},
-			square: {
-				horizontal: {
-					width: `calc(${width} * 6 + var(--application-global-col-gap) * 5)`,
-					height: `calc(${height} * 6 + var(--application-global-row-gap) * 5)`,
-					gridRow: 'span 6',
-					gridColumn: 'span 6'
-				},
-				vertical: {
-					width: `calc(${width} * 6 + var(--application-global-col-gap) * 5)`,
-					height: `calc(${height} * 6 + var(--application-global-row-gap) * 5)`,
-					gridRow: 'span 6',
-					gridColumn: 'span 6'
-				}
-			}
-		},
-		ultra: {
-			circle: {
-				horizontal: {
-					width: `calc(${width} * 7 + var(--application-global-col-gap) * 6)`,
-					height: `calc(${height} * 7 + var(--application-global-row-gap) * 6)`,
-					gridRow: 'span 7',
-					gridColumn: 'span 7'
-				},
-				vertical: {
-					width: `calc(${width} * 7 + var(--application-global-col-gap) * 6)`,
-					height: `calc(${height} * 7 + var(--application-global-row-gap) * 6)`,
-					gridRow: 'span 7',
-					gridColumn: 'span 7'
-				}
-			},
-			rectangle: {
-				horizontal: {
-					width: `calc(${width} * 9 + var(--application-global-col-gap) * 8)`,
-					height: `calc(${height} * 7 + var(--application-global-row-gap) * 6)`,
-					gridRow: 'span 7',
-					gridColumn: 'span 9'
-				},
-				vertical: {
-					width: `calc(${width} * 7 + var(--application-global-col-gap) * 6)`,
-					height: `calc(${height} * 9 + var(--application-global-row-gap) * 8)`,
-					gridRow: 'span 9',
-					gridColumn: 'span 7'
-				}
-			},
-			square: {
-				horizontal: {
-					width: `calc(${width} * 7 + var(--application-global-col-gap) * 6)`,
-					height: `calc(${height} * 7 + var(--application-global-row-gap) * 6)`,
-					gridRow: 'span 7',
-					gridColumn: 'span 7'
-				},
-				vertical: {
-					width: `calc(${width} * 7 + var(--application-global-col-gap) * 6)`,
-					height: `calc(${height} * 7 + var(--application-global-row-gap) * 6)`,
-					gridRow: 'span 7',
-					gridColumn: 'span 7'
-				}
-			}
-		}
-	}
-
-	return componentStyle[size][shape][direction]
-}
-
 interface MirrorOptions {
 	mirrorID: string | null
 }
@@ -488,7 +164,7 @@ function useMirror(options?: MirrorOptions) {
 	const MIRRORS: readonly Mirror[] = Array.from({ length: 1 }).map(function () {
 		const mirror: Mirror = {
 			id: MIRROR_ID,
-			name: '镜像-01',
+			title: '镜像-01',
 			index: 0,
 			marker: '',
 			description: '默认镜像',
@@ -509,14 +185,12 @@ function useMirror(options?: MirrorOptions) {
 			// size: 'huge',
 			// size: 'massive',
 			// size: 'ultra',
-			name: value.label,
+			title: value.label,
 			index: 1,
-			width: '60px',
 			// shape: 'circle',
 			shape: 'square',
 			// shape: 'rectangle',
 			round: '12px',
-			height: '60px',
 			mirrorID: MIRROR_ID,
 			textSize: '13px',
 			component: value.value,
@@ -544,4 +218,4 @@ function useMirror(options?: MirrorOptions) {
 	}
 }
 
-export { useMirror, useSettings }
+export { useMirror }

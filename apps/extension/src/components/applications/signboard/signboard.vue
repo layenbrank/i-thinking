@@ -1,9 +1,8 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/signboard/signboard-marker.vue'
 import Overlay from '@/components/applications/signboard/signboard-overlay.vue'
-import { useSettings } from '@/hooks/mirror'
 import { Modal } from 'ant-design-vue'
-import CloseOutlined from '~icons/local/close'
+import DestroyMark from '~icons/local/close'
 
 defineOptions({
 	name: 'signboard'
@@ -16,15 +15,13 @@ const props = withDefaults(
 	}>(),
 	{
 		application() {
-			return {
+			const DEFAULT: Application = {
 				id: '0',
 				index: 0,
 				size: 'mini',
-				width: '60px',
 				round: '12px',
 				mirrorID: '0',
-				height: '60px',
-				name: '示例看板',
+				title: '示例看板',
 				shape: 'square',
 				textSize: '13px',
 				downloadCount: 1000,
@@ -37,6 +34,7 @@ const props = withDefaults(
 				direction: 'horizontal',
 				backgroundColor: '#ffffff4d'
 			}
+			return DEFAULT
 		}
 	}
 )
@@ -55,10 +53,6 @@ const background = computed(function () {
 	return '#ffffff'
 })
 
-const style = computed(function () {
-	return useSettings(props.application)
-})
-
 function updateOverlay(value: boolean) {
 	visible.value = value
 }
@@ -72,11 +66,7 @@ function updateFullScreen(value: boolean) {
 	<div
 		:style="{
 			'--application-round': round,
-			'--application-background': background,
-			'--application-size-width': style.width,
-			'--application-grid-row': style.gridRow,
-			'--application-size-height': style.height,
-			'--application-grid-column': style.gridColumn
+			'--application-background': background
 		}"
 		:class="['signboard', application.size, application.shape, application.direction]"
 	>
@@ -106,20 +96,14 @@ function updateFullScreen(value: boolean) {
 			@dblclick="updateOverlay(true)"
 			:class="[application.size, application.shape, application.direction]"
 		/>
-		<span class="application-name">{{ application.name }}</span>
-		<CloseOutlined class="application-trash-marker" />
+		<span class="application-title">{{ application.title }}</span>
+		<destroy-mark class="application-trash-mark" />
 	</div>
 </template>
 
 <style lang="scss" scoped>
 .signboard {
 	@extend %application;
-
-	// width: var(--app-size-width);
-	// grid-row: var(--app-grid-row);
-	// height: var(--app-size-height);
-	// border-radius: var(--app-round);
-	// grid-column: var(--app-grid-column);
 }
 </style>
 <style lang="scss">

@@ -45,10 +45,6 @@ const markdown = computed(function () {
 	text-overflow: ellipsis;
 	overflow: hidden;
 
-	&.circle {
-		border-radius: calc(var(--application-size-width) / 2);
-	}
-
 	.marker-markdown {
 		width: 100%;
 		height: 100%;

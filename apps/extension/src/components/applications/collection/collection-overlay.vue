@@ -31,7 +31,7 @@ function handleEnter() {
 			{
 				key: props.id,
 				changes: {
-					name: trimmed
+					title: trimmed
 				}
 			}
 		])

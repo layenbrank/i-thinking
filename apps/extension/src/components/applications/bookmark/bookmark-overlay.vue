@@ -100,7 +100,7 @@ function updateApplication(bookmark: Bookmark) {
 		void store.toInsertApplication([
 			{
 				id: raw.id,
-				name: raw.title,
+				title: raw.title,
 				url: raw.url,
 				shape: 'circle',
 				size: 'mini',
@@ -110,8 +110,6 @@ function updateApplication(bookmark: Bookmark) {
 				marker: raw.url,
 				createdAt: raw.createdAt,
 				updatedAt: raw.updatedAt,
-				width: null,
-				height: null,
 				round: '8px',
 				mirrorID: store.mirrorID,
 				textColor: '#fff',
