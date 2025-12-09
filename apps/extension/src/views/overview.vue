@@ -306,7 +306,11 @@ onUnmounted(function () {
 		</a-layout-header>
 		<a-layout class="overview-core">
 			<a-layout-content @contextmenu.prevent class="mac-content">
-				<Controller />
+				<template v-for="value in mirrorStore.mirrors" :key="value.id">
+					<div v-if="value.id === mirrorStore.mirrorID" class="mirror">
+						<Controller :size="value.size" :shape="value.shape" :direction="value.direction" />
+					</div>
+				</template>
 			</a-layout-content>
 			<a-layout-footer @contextmenu.prevent class="overview-suffix">
 				<!-- <template #default>

@@ -12,6 +12,19 @@ defineOptions({
 	}
 })
 
+const props = withDefaults(
+	defineProps<{
+		size: Mirror.Size
+		shape: Mirror.Shape
+		direction: Mirror.Direction
+	}>(),
+	{
+		size: 'mini',
+		shape: 'square',
+		direction: 'horizontal'
+	}
+)
+
 const store = useMirrorStore()
 const { APPLICATION, CONTEXTMENU, MENUOPTIONS } = useMirror()
 
@@ -226,14 +239,15 @@ onUnmounted(function () {
 		@click.capture="handleController"
 		@contextmenu.stop.prevent="mountContext"
 		ref="controllerRef"
-		class="controller mini square horizontal"
+		class="controller"
+		:class="[size, shape, direction]"
 	>
 		<TransitionGroup name="application-fade">
 			<template v-for="application in store.applications" :key="application.id">
 				<component
-					size="mini"
-					shape="square"
-					direction="horizontal"
+					:size="size"
+					:shape="shape"
+					:direction="direction"
 					:application="application"
 					:is="APPLICATION[application.component]"
 					:data-id="application.id"

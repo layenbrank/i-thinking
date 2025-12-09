@@ -21,26 +21,6 @@
 
 	&.mini {
 		--application-size: 60px;
-		&.circle {
-			:deep(:where(.application)) {
-				height: var(--application-size);
-				width: var(--application-size);
-				border-radius: calc(var(--application-size) / 2);
-			}
-		}
-
-		&.square {
-			:deep(:where(.application)) {
-				width: var(--application-size);
-				height: var(--application-size);
-			}
-		}
-
-		&.rectangle {
-			:deep(:where(.application)) {
-				@extend %direction;
-			}
-		}
 	}
 
 	&.small {
@@ -68,9 +48,59 @@
 		--application-size: 240px;
 	}
 
+	&.mini,
+	&.small,
+	&.medium,
+	&.large,
+	&.huge,
+	&.massive,
+	&.ultra {
+		&.circle {
+			:deep(:where(.application)) {
+				height: var(--application-size);
+				width: var(--application-size);
+				border-radius: calc(var(--application-size) / 2);
+			}
+		}
+
+		&.square {
+			:deep(:where(.application)) {
+				width: var(--application-size);
+				height: var(--application-size);
+			}
+		}
+		@mixin ratio-width($base-var, $w, $h) {
+			width: calc(#{$base-var} * (#{$w} / #{$h}));
+		}
+
+		@mixin ratio-height($base-var, $w, $h) {
+			height: calc(#{$base-var} * (#{$h} / #{$w}));
+		}
+
+		&.rectangle {
+			&.horizontal {
+				:deep(:where(.application)) {
+					// width: calc(var(--application-size) * calc(16 / 9));
+					// aspect-ratio: 16 / 9;
+					@include ratio-width(var(--application-size), 16, 9);
+					height: var(--application-size);
+				}
+			}
+
+			&.vertical {
+				:deep(:where(.application)) {
+					width: var(--application-size);
+					// height: calc(var(--application-size) * calc(9 / 16));
+					// aspect-ratio: 9 / 16;
+					@include ratio-height(var(--application-size), 9, 16);
+				}
+			}
+		}
+	}
+
 	&:has(.application.rectangle.horizontal) {
 		// rectangle horizontal时 使用scss 数学函数计算获取 16/9 比例的最终宽度
-		grid-template-columns: repeat(auto-fill, calc(var(--application-size) * (16 / 9)));
+		grid-template-columns: repeat(auto-fill, calc(var(--application-size) * 16 / 9));
 	}
 
 	&:has(:not(.application.rectangle)) {
