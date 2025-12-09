@@ -1,18 +1,17 @@
-type ApplicationWindowType = ReturnType<(typeof import('ant-design-vue'))['Modal']['info']>
-
 /**
  * @description 应用组件
  */
 interface Application {
 	id: string
 	index: number
-	name: string
+	title: string
+	// name: string
 	url?: string
 	size: Application.Size
-	width: string | null
+	// width: string | null
 	round: string | null
 	shape: Application.Shape
-	height: string | null
+	// height: string | null
 	marker?: string
 	mirrorID: string
 	textSize: string | null
@@ -30,9 +29,9 @@ interface Application {
 	// backdropSaturate: string | null
 }
 
-type Collection = Omit<Application, 'mirrorID'>
-
 declare namespace Application {
+	type Collection = Omit<Application, 'mirrorID'>
+
 	/**
 	 * @description 组件名称
 	 */
@@ -67,10 +66,6 @@ declare namespace Application {
 	 */
 	type Size = 'mini' | 'small' | 'medium' | 'large' | 'huge' | 'massive' | 'ultra'
 
-	interface CSSProperties {
-		width: string
-		height: string
-		gridRow: string
-		gridColumn: string
-	}
+	type Overlay = ReturnType<(typeof import('ant-design-vue'))['Modal']['info']>
+	// type Overlay = ReturnType<Modal['info']>
 }

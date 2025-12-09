@@ -7,3 +7,5 @@ interface Mirror {
 	createdAt: number
 	description: string
 }
+
+declare namespace Mirror {}
