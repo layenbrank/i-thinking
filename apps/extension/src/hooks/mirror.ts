@@ -76,7 +76,7 @@ const MENUOPTIONS: ContextMenuOptions[] = [
 
 const CONTEXTMENU: ContextMenuReflect = {}
 
-const SIZES: readonly Application.Size[] = ['small', 'medium', 'large', 'huge', 'massive', 'ultra']
+const SIZES: readonly Mirror.Size[] = ['small', 'medium', 'large', 'huge', 'massive', 'ultra']
 
 const APPLICATION: Application.Reflect = {
 	bookmark: AppBookmark,
@@ -166,10 +166,16 @@ function useMirror(options?: MirrorOptions) {
 			id: MIRROR_ID,
 			title: '镜像-01',
 			index: 0,
-			marker: '',
+			mark: '',
 			description: '默认镜像',
 			updatedAt: Date.now(),
-			createdAt: Date.now()
+			createdAt: Date.now(),
+			size: 'mini',
+			backdrop: null,
+			background: null,
+			shape: 'square',
+			direction: 'vertical',
+			overlay: '#000000AA'
 		}
 
 		return mirror
@@ -177,32 +183,25 @@ function useMirror(options?: MirrorOptions) {
 
 	const APPLICATIONS: readonly Application[] = OPTIONS.map(function (value) {
 		const application: Application = {
-			id: window.crypto.randomUUID(),
-			size: 'mini',
-			// size: 'small',
-			// size: 'medium',
-			// size: 'large',
-			// size: 'huge',
-			// size: 'massive',
-			// size: 'ultra',
+			id: window.crypto.randomUUID() as string,
+			url: null,
+			mark: null,
 			title: value.label,
 			index: 1,
-			// shape: 'circle',
-			shape: 'square',
-			// shape: 'rectangle',
 			round: '12px',
 			mirrorID: MIRROR_ID,
 			textSize: '13px',
+			backdrop: null,
 			component: value.value,
-			// direction: 'horizontal',
-			direction: 'vertical',
 			textColor: '#ffffff',
 			updatedAt: Date.now(),
 			createdAt: Date.now(),
 			description: value.label,
+			collectionID: null,
 			downloadCount: 1000,
-			backgroundColor: '#ffffff',
-			backgroundImage: null
+			background: {
+				color: '#ffffff'
+			}
 		}
 		return application
 	})

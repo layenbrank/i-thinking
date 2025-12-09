@@ -8,9 +8,8 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		size: Application.Size
-		shape: Application.Shape
-		direction: Application.Direction
+		size: Mirror.Size
+		shape: Mirror.Shape
 	}>(),
 	{}
 )
@@ -63,6 +62,5 @@ const times = computed(function () {
 
 .calendar-marker {
 	border-radius: var(--application-round);
-	background: var(--application-background);
 }
 </style>

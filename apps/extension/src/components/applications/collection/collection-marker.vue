@@ -11,9 +11,9 @@ defineOptions({
 const props = withDefaults(
 	defineProps<{
 		id: string
-		size: Application.Size
-		shape: Application.Shape
-		direction: Application.Direction
+		size: Mirror.Size
+		shape: Mirror.Shape
+		direction: Mirror.Direction
 	}>(),
 	{}
 )

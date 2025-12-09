@@ -4,6 +4,7 @@ import Marker from '@/components/applications/settings/settings-marker.vue'
 import Overlay from '@/components/applications/settings/settings-overlay.vue'
 import { useStore } from '@/components/applications/settings/settings.ts'
 import DestroyMark from '~icons/local/close'
+import { useApplication } from '@/hooks/application.ts'
 
 defineOptions({
 	name: 'settings'
@@ -11,28 +12,31 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		application?: Application
+		size: Mirror.Size
+		shape: Mirror.Shape
+		application: Application
+		direction: Mirror.Direction
 	}>(),
 	{
 		application() {
 			const DEFAULT: Application = {
 				id: '0',
+				url: null,
+				mark: null,
+				collectionID: null,
 				index: 0,
 				title: '设置',
-				size: 'mini',
 				round: '12px',
 				mirrorID: '0',
-				shape: 'square',
 				textSize: '13px',
 				description: '设置',
 				downloadCount: 1000,
 				textColor: '#ffffff',
 				component: 'settings',
-				backgroundImage: null,
+				background: null,
 				updatedAt: Date.now(),
 				createdAt: Date.now(),
-				direction: 'horizontal',
-				backgroundColor: '#ffffff4d'
+				backdrop: null
 			}
 			return DEFAULT
 		}
@@ -43,16 +47,7 @@ const visible = ref(false)
 const fullscreen = ref(false)
 const { dispose } = useStore()
 
-const round = computed(function () {
-	return props.application.round ?? 'var(--application-global-round)'
-})
-
-const background = computed(function () {
-	const backgroundImage = `url(${props.application.backgroundImage}) no-repeat center / cover`
-	if (props.application.backgroundImage) return backgroundImage
-	if (props.application.backgroundColor) return props.application.backgroundColor
-	return '#ffffff'
-})
+const { style } = useApplication(props.application)
 
 function updateOverlay(value: boolean) {
 	visible.value = value
@@ -68,13 +63,7 @@ onUnmounted(function () {
 </script>
 
 <template>
-	<div
-		:style="{
-			'--application-round': round,
-			'--application-background': background
-		}"
-		:class="['settings', application.size, application.shape, application.direction]"
-	>
+	<div :style="style" class="settings">
 		<a-modal
 			width="80%"
 			:icon="null"
@@ -104,10 +93,7 @@ onUnmounted(function () {
 				@update:fullscreen="updateFullScreen"
 			/>
 		</a-modal>
-		<Marker
-			@dblclick="updateOverlay(true)"
-			:class="[application.size, application.shape, application.direction]"
-		/>
+		<Marker @dblclick="updateOverlay(true)" :class="[size, shape, direction]" />
 		<span class="application-title">{{ application.title }}</span>
 		<destroy-mark class="application-trash-mark" />
 	</div>

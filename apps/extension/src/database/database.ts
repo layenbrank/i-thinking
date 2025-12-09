@@ -31,7 +31,13 @@ const MIRROR: readonly string[] = [
 	'&id',
 	'index',
 	'title',
-	'marker',
+	'mark',
+	'size',
+	'shape',
+	'direction',
+	'background',
+	'backdrop',
+	'overlay',
 	'description',
 	'updatedAt',
 	'createdAt'
@@ -46,19 +52,16 @@ const APPLICATION: readonly string[] = [
 	'index',
 	'component',
 	'title',
-	'size',
-	'shape',
-	'direction',
 	'url',
-	'marker',
+	'mark',
 	'round',
 	'textSize',
 	'textColor',
 	'downloadCount',
-	'backgroundColor',
-	'backgroundImage',
+	'background',
 	'updatedAt',
-	'createdAt'
+	'createdAt',
+	'backdrop'
 ]
 
 const COLLECTION: readonly string[] = APPLICATION.filter((field) => field !== 'mirrorID')

@@ -11,7 +11,7 @@ const props = withDefaults(
 	defineProps<{
 		id: string
 		title: string
-		marker?: string
+		mark: string | null
 	}>(),
 	{}
 )
@@ -49,23 +49,22 @@ async function handleNavigation(sourceID: string, targetID: string) {
 	await mirrorStore.toInsertApplication([
 		{
 			id: genericID,
+			url: null,
+			collectionID: null,
 			title: '未命名集合',
-			size: 'mini',
-			shape: 'rectangle',
 			index: mirrorStore.applications?.length ?? 0,
 			round: '8px',
-			marker: '',
+			mark: '',
 			mirrorID: mirrorStore.mirrorID,
 			textSize: '16px',
 			textColor: '#ffffff',
-			direction: 'horizontal',
 			component: 'collection',
 			createdAt: Date.now(),
 			updatedAt: Date.now(),
 			description: '',
 			downloadCount: 0,
-			backgroundColor: '#ffffff',
-			backgroundImage: null
+			backdrop: null,
+			background: null
 		}
 	])
 
@@ -103,14 +102,14 @@ onMounted(function () {
 			isOverDropZone: isOverDropZone
 		}"
 	>
-		<template v-if="!marker && char">
+		<template v-if="char">
 			{{ char }}
 		</template>
 		<a-image
-			v-else-if="marker || !char"
+			v-if="mark"
 			:preview="false"
 			:fallback="FallbackMark"
-			:src="marker"
+			:src="mark"
 			wrapper-class-name="navigation-image"
 		>
 			<template #placeholder>

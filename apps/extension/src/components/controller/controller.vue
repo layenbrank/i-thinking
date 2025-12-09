@@ -226,11 +226,14 @@ onUnmounted(function () {
 		@click.capture="handleController"
 		@contextmenu.stop.prevent="mountContext"
 		ref="controllerRef"
-		class="controller mini"
+		class="controller mini square horizontal"
 	>
 		<TransitionGroup name="application-fade">
 			<template v-for="application in store.applications" :key="application.id">
 				<component
+					size="mini"
+					shape="square"
+					direction="horizontal"
 					:application="application"
 					:is="APPLICATION[application.component]"
 					:data-id="application.id"
