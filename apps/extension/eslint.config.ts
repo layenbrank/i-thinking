@@ -52,6 +52,7 @@ export default defineConfigWithVueTs(
 		rules: {
 			/* 禁止使用 `var` 声明变量，推荐使用 `let` 或 `const` */
 			'no-var': 'error',
+			'no-trailing-spaces': 'error',
 			/* 要求使用严格相等（`===`）和严格不相等（`!==`），避免宽松相等带来的潜在问题 */
 			eqeqeq: 'error',
 			/* 对显式使用 `any` 类型发出警告，尽量避免使用 `any` 以保证类型安全 */
@@ -72,7 +73,7 @@ export default defineConfigWithVueTs(
 			'@typescript-eslint/no-non-null-assertion': 'error',
 			'@typescript-eslint/no-unsafe-call': 'error',
 			'@typescript-eslint/no-unsafe-member-access': 'error',
-			'no-trailing-spaces': 'off',
+			'@typescript-eslint/no-redundant-type-constituents': 'off',
 
 			/* 对未使用的变量发出错误，保持代码的简洁性 */
 			'@typescript-eslint/no-unused-vars': [

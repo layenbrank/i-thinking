@@ -1,26 +1,10 @@
-$size-x: 60px; // mini square x:60 y:60
-$size-y: 60px; // mini square x:60 y:60
-
-// $size-x: 90px; // small square x:90 y:90
-// $size-y: 90px; // small square x:90 y:90
-
-// $size-x: 120px; // medium square x:120 y:120
-// $size-y: 120px; // medium square x:120 y:120
-
-// $size-x: 150px; // large square x:150 y:150
-// $size-y: 150px; // large square x:150 y:150
-
-// $size-x: 180px; // huge square x:180 y:180
-// $size-y: 180px; // huge square x:180 y:180
-
-// $size-x: 210px; // massive square x:210 y:210
-// $size-y: 210px; // massive square x:210 y:210
-
-// $size-x: 240px; // ultra square x:240 y:240
-// $size-y: 240px; // ultra square x:240 y:240
-
-// $size-x: 240px;
-// $size-y: 240px;
+$size: 60px; // mini square
+// $size: 90px; // small square
+// $size: 120px; // medium square
+// $size: 150px; // large square
+// $size: 180px; // huge square
+// $size: 210px; // massive square
+// $size: 240px; // ultra square
 
 %controller {
 	display: grid;
@@ -28,33 +12,48 @@ $size-y: 60px; // mini square x:60 y:60
 	margin: 0 auto;
 	justify-content: center;
 	grid-auto-flow: row dense;
-
 	outline: none;
 	scrollbar-width: none;
 	gap: 30px;
 
-	--application-size-width: 60px;
-	--application-size-height: 60px;
+	border-radius: var(--application-round);
 
-	// width: var(--application-size-width);
-	// grid-row: var(--application-grid-row);
-	// height: var(--application-size-height);
-	// grid-column: var(--application-grid-column);
+	&.mini {
+		--application-size: 60px;
+	}
 
-	// grid-template-columns: repeat(auto-fill, $size-x);
-	// grid-template-rows: repeat(auto-fill, $size-y);
-	// row-gap: var(--application-global-row-gap, 30px);
-	// column-gap: var(--application-global-col-gap, 30px);
-	// grid-template-rows: repeat(auto-fill, var(--application-global-height, 60px));
-	// grid-template-columns: repeat(auto-fill, var(--application-global-width, 60px));
+	&.small {
+		--application-size: 90px;
+	}
+
+	&.medium {
+		--application-size: 120px;
+	}
+
+	&.large {
+		--application-size: 150px;
+	}
+
+	&.huge {
+		--application-size: 180px;
+	}
+
+	&.massive {
+		--application-size: 210px;
+	}
+
+	// &. minimize ultimate {
+	&.ultra {
+		--application-size: 240px;
+	}
 
 	&:has(.application.rectangle.horizontal) {
 		// rectangle horizontal时 使用scss 数学函数计算获取 16/9 比例的最终宽度
-		grid-template-columns: repeat(auto-fill, calc(var(--application-size-width) * (16 / 9)));
+		grid-template-columns: repeat(auto-fill, calc(var(--application-size) * (16 / 9)));
 	}
 
 	&:has(:not(.application.rectangle)) {
-		grid-template-columns: repeat(auto-fill, var(--application-size-width));
+		grid-template-columns: repeat(auto-fill, var(--application-size));
 	}
 
 	transition:
@@ -74,22 +73,27 @@ $size-y: 60px; // mini square x:60 y:60
 			grid-column 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 
 		& > :where(div:is([class*='-marker '], [class$='-marker'])) {
-			@apply w-full h-full transition-all;
-			// @apply w-full h-full transition-all;
+			@apply w-full h-full;
+			transition: all 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 		}
-		// & > :where(div:is([class*=' app-'], [class^='app-']):is([class*='-icon '], [class$='-icon'])) {
-		// 	@apply w-full h-full transition-all;
+
+		// & > :where(.application-badge) {
+		// 	@apply absolute top-0 right-0 flex items-center justify-center bg-red-500 text-white text-xs rounded-full;
+		// 	width: var(--application-badge-size, 16px);
+		// 	height: var(--application-badge-size, 16px);
+		// 	font-size: var(--application-badge-font-size, 10px);
+		// 	transform: translate(50%, -50%);
+		// 	padding: 0 4px;
+		// 	line-height: 1;
 		// }
 
-		& > :where(span.application-name) {
-			position: absolute;
-
+		& > :where(span.application-title) {
 			@apply block truncate w-full mt-1;
 			color: var(--application-global-text-color);
 			font-size: var(--application-global-text-size);
 		}
 
-		& > :where(.application-trash-marker) {
+		& > :where(.application-trash-mark) {
 			@apply w-5 h-5 absolute -top-[8px] -right-[8px] items-center justify-center bg-[#00000033] rounded-full p-[5px] transition-[background];
 			@apply hidden;
 
@@ -126,28 +130,28 @@ $size-y: 60px; // mini square x:60 y:60
 
 %direction {
 	&.horizontal {
-		height: var(--application-size-height);
-
-		aspect-ratio: 16/9;
+		width: calc(var(--application-size) * (16 / 9));
+		height: var(--application-size);
+		// aspect-ratio: 16/9;
 	}
 
 	&.vertical {
-		width: var(--application-size-width);
-
-		aspect-ratio: 9/16;
+		width: var(--application-size);
+		height: calc(var(--application-size) * (9 / 16));
+		// aspect-ratio: 9/16;
 	}
 }
 
 %shape {
 	&.circle {
-		width: var(--application-size-width);
-		aspect-ratio: 1/1;
-		border-radius: calc(var(--application-size-width) / 2);
+		width: var(--application-size);
+		height: var(--application-size);
+		border-radius: calc(var(--application-size) / 2);
 	}
 
 	&.square {
-		width: var(--application-size-width);
-		aspect-ratio: 1/1;
+		width: var(--application-size);
+		height: var(--application-size);
 	}
 
 	&.rectangle {
@@ -156,50 +160,6 @@ $size-y: 60px; // mini square x:60 y:60
 }
 
 %application {
-	// width: $size-x;
-	// aspect-ratio: 9/16;
-
-	// height: $size-y;
-	// aspect-ratio: 16/9;
-
-	border-radius: var(--application-round);
-
-	&.mini {
-		$size-x: 60px;
-		$size-y: 60px;
-		background-color: #4080ff;
-		@extend %shape;
-	}
-
-	&.small {
-		$size-x: 90px;
-		$size-y: 90px;
-		@extend %shape;
-	}
-
-	&.medium {
-		$size-x: 120px;
-		$size-y: 120px;
-	}
-
-	&.large {
-		$size-x: 150px;
-		$size-y: 150px;
-	}
-
-	&.huge {
-		$size-x: 180px;
-		$size-y: 180px;
-	}
-
-	&.massive {
-		$size-x: 210px;
-		$size-y: 210px;
-	}
-
-	// &. minimize ultimate ultra {
-	&.ultra {
-		$size-x: 240px;
-		$size-y: 240px;
-	}
+	@extend %shape;
+	// background-color: #4080ff;
 }

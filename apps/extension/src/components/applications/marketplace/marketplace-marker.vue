@@ -32,10 +32,6 @@ defineOptions({
 	border-radius: var(--application-round);
 	background: var(--application-background);
 
-	&.circle {
-		border-radius: calc(var(--application-size-width) / 2);
-	}
-
 	.marker-marketplace {
 		width: 100%;
 		height: 100%;

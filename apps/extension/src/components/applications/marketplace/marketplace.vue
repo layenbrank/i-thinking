@@ -1,8 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/marketplace/marketplace-marker.vue'
 import Overlay from '@/components/applications/marketplace/marketplace-overlay.vue'
-import { useSettings } from '@/hooks/mirror'
-import CloseOutlined from '~icons/local/close'
+import DestroyMark from '~icons/local/close'
 
 defineOptions({
 	name: 'marketplace'
@@ -14,15 +13,13 @@ const props = withDefaults(
 	}>(),
 	{
 		application() {
-			return {
+			const DEFAULT: Application = {
 				id: '0',
 				index: 0,
-				name: '商店',
+				title: '商店',
 				size: 'mini',
-				width: '60px',
 				round: '12px',
 				mirrorID: '0',
-				height: '60px',
 				shape: 'square',
 				textSize: '13px',
 				description: '商店',
@@ -35,6 +32,7 @@ const props = withDefaults(
 				component: 'marketplace',
 				backgroundColor: '#ffffff4d'
 			}
+			return DEFAULT
 		}
 	}
 )
@@ -53,10 +51,6 @@ const background = computed(function () {
 	return '#ffffff'
 })
 
-const style = computed(function () {
-	return useSettings(props.application)
-})
-
 function updateOverlay(value: boolean) {
 	visible.value = value
 }
@@ -70,11 +64,7 @@ function updateFullScreen(value: boolean) {
 	<div
 		:style="{
 			'--application-round': round,
-			'--application-background': background,
-			'--application-size-width': style.width,
-			'--application-grid-row': style.gridRow,
-			'--application-size-height': style.height,
-			'--application-grid-column': style.gridColumn
+			'--application-background': background
 		}"
 		:class="['marketplace', application.size, application.shape, application.direction]"
 	>
@@ -104,20 +94,14 @@ function updateFullScreen(value: boolean) {
 			@dblclick="updateOverlay(true)"
 			:class="[application.size, application.shape, application.direction]"
 		/>
-		<span class="application-name">{{ application.name }}</span>
-		<close-outlined class="application-trash-marker" />
+		<span class="application-title">{{ application.title }}</span>
+		<destroy-mark class="application-trash-mark" />
 	</div>
 </template>
 
 <style lang="scss" scoped>
 .marketplace {
 	@extend %application;
-
-	// width: var(--application-size-width);
-	// grid-row: var(--application-grid-row);
-	// height: var(--application-size-height);
-	// border-radius: var(--application-round);
-	// grid-column: var(--application-grid-column);
 }
 </style>
 <style lang="scss">

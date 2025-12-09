@@ -10,7 +10,7 @@ defineOptions({
 const props = withDefaults(
 	defineProps<{
 		id: string
-		name: string
+		title: string
 		marker?: string
 	}>(),
 	{}
@@ -49,14 +49,12 @@ async function handleNavigation(sourceID: string, targetID: string) {
 	await mirrorStore.toInsertApplication([
 		{
 			id: genericID,
-			name: '未命名集合',
+			title: '未命名集合',
 			size: 'mini',
 			shape: 'rectangle',
 			index: mirrorStore.applications?.length ?? 0,
 			round: '8px',
-			width: null,
 			marker: '',
-			height: null,
 			mirrorID: mirrorStore.mirrorID,
 			textSize: '16px',
 			textColor: '#ffffff',
@@ -89,7 +87,7 @@ async function handleNavigation(sourceID: string, targetID: string) {
 
 // 没有图标截取应用名称的第一个字作为标记
 const char = computed(() => {
-	return props.name ? props.name.charAt(0) : ''
+	return props.title ? props.title.charAt(0) : ''
 })
 
 onMounted(function () {
@@ -147,10 +145,6 @@ onMounted(function () {
 
 	&.isOverDropZone {
 		box-shadow: 0px 0px 1px 3px #4080ff;
-	}
-
-	&.circle {
-		border-radius: calc(var(--application-size-width) / 2);
 	}
 
 	:deep(.navigation-image),

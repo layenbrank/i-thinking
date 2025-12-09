@@ -1,8 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/applications/calendar/calendar-marker.vue'
 import Overlay from '@/components/applications/calendar/calendar-overlay.vue'
-import { useSettings } from '@/hooks/mirror'
-import CloseOutlined from '~icons/local/close'
+import DestroyMark from '~icons/local/close'
 
 defineOptions({
 	name: 'calendar'
@@ -14,27 +13,26 @@ const props = withDefaults(
 	}>(),
 	{
 		application() {
-			return {
+			const DEFAULT: Application = {
 				id: '0',
-				index: 0,
-				name: '日历',
 				size: 'mini',
-				width: '60px',
+				index: 0,
+				title: '日历',
 				round: '12px',
-				mirrorID: '0',
-				height: '60px',
 				shape: 'square',
+				mirrorID: '0',
 				textSize: '13px',
-				description: '日历',
-				downloadCount: 1000,
 				textColor: '#ffffff',
-				backgroundImage: null,
 				updatedAt: Date.now(),
 				createdAt: Date.now(),
 				component: 'calendar',
 				direction: 'horizontal',
+				description: '日历',
+				downloadCount: 1000,
+				backgroundImage: null,
 				backgroundColor: '#ffffff4d'
 			}
+			return DEFAULT
 		}
 	}
 )
@@ -53,10 +51,6 @@ const background = computed(function () {
 	return '#ffffff'
 })
 
-const style = computed(function () {
-	return useSettings(props.application)
-})
-
 function updateOverlay(value: boolean) {
 	visible.value = value
 }
@@ -71,10 +65,6 @@ function updateFullScreen(value: boolean) {
 		:style="{
 			'--application-round': round,
 			'--application-background': background,
-			'--application-size-width': style.width,
-			'--application-grid-row': style.gridRow,
-			'--application-size-height': style.height,
-			'--application-grid-column': style.gridColumn,
 			'--application-text-color': application.textColor ?? 'var(--application-global-text-color)',
 			'--application-text-size': application.textSize ?? 'var(--application-global-text-size)'
 		}"
@@ -110,20 +100,14 @@ function updateFullScreen(value: boolean) {
 			:direction="application.direction"
 			:class="[application.size, application.shape, application.direction]"
 		/>
-		<span class="application-name">{{ application.name }}</span>
-		<close-outlined class="application-trash-marker" />
+		<span class="application-title">{{ application.title }}</span>
+		<destroy-mark class="application-trash-mark" />
 	</div>
 </template>
 
 <style lang="scss" scoped>
 .calendar {
 	@extend %application;
-
-	// width: var(--application-size-width);
-	// grid-row: var(--application-grid-row);
-	// height: var(--application-size-height);
-	// border-radius: var(--application-round);
-	// grid-column: var(--application-grid-column);
 }
 </style>
 <style lang="scss">
