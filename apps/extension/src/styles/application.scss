@@ -1,4 +1,4 @@
-$size: 60px; // mini square
+// $size: 60px; // mini square
 // $size: 90px; // small square
 // $size: 120px; // medium square
 // $size: 150px; // large square
@@ -14,12 +14,33 @@ $size: 60px; // mini square
 	grid-auto-flow: row dense;
 	outline: none;
 	scrollbar-width: none;
-	gap: 30px;
+	column-gap: 10px;
+	row-gap: 30px;
 
 	border-radius: var(--application-round);
 
 	&.mini {
 		--application-size: 60px;
+		&.circle {
+			:deep(:where(.application)) {
+				height: var(--application-size);
+				width: var(--application-size);
+				border-radius: calc(var(--application-size) / 2);
+			}
+		}
+
+		&.square {
+			:deep(:where(.application)) {
+				width: var(--application-size);
+				height: var(--application-size);
+			}
+		}
+
+		&.rectangle {
+			:deep(:where(.application)) {
+				@extend %direction;
+			}
+		}
 	}
 
 	&.small {
@@ -160,6 +181,8 @@ $size: 60px; // mini square
 }
 
 %application {
-	@extend %shape;
+	border-radius: var(--application-round);
+
+	// @extend %shape;
 	// background-color: #4080ff;
 }

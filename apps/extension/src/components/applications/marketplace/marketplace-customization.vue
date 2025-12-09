@@ -32,13 +32,10 @@ function onFinish(values: any) {
 					url: values.URL,
 					// TODO: 待定 ID 来源
 					id: crypto.randomUUID(),
-					shape: 'circle',
-					size: 'mini',
 					index: store.applications?.length ?? 0,
-					direction: 'horizontal',
 					component: 'navigation',
 					// TODO: 待定 marker 来源
-					marker: '',
+					mark: '',
 					createdAt: Date.now(),
 					updatedAt: Date.now(),
 					round: '8px',
@@ -48,8 +45,8 @@ function onFinish(values: any) {
 					textSize: '16px',
 					description: '',
 					downloadCount: 0,
-					backgroundColor: '#ffffff',
-					backgroundImage: null
+					background: null,
+					backdrop: null
 				}
 			])
 			.then(function () {

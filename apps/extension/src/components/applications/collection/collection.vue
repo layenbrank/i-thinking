@@ -5,6 +5,7 @@ import Overlay from '@/components/applications/collection/collection-overlay.vue
 import { provideStore } from '@/components/applications/collection/collection.ts'
 import { Modal } from 'ant-design-vue'
 import DestroyMark from '~icons/local/close'
+import { useApplication } from '@/hooks/application.ts'
 
 defineOptions({
 	name: 'collection'
@@ -12,28 +13,31 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		application?: Application
+		size: Mirror.Size
+		shape: Mirror.Shape
+		application: Application
+		direction: Mirror.Direction
 	}>(),
 	{
 		application() {
 			const DEFAULT: Application = {
 				id: '0',
-				size: 'mini',
+				url: null,
+				mark: null,
+				collectionID: null,
 				index: 0,
 				round: '12px',
 				title: '集合应用',
-				shape: 'square',
 				mirrorID: '0',
 				textSize: '13px',
 				textColor: '#ffffff',
 				updatedAt: Date.now(),
 				createdAt: Date.now(),
 				component: 'collection',
-				direction: 'horizontal',
 				description: '集合应用',
 				downloadCount: 1000,
-				backgroundImage: null,
-				backgroundColor: '#ffffff4d'
+				background: null,
+				backdrop: null
 			}
 			return DEFAULT
 		}
@@ -45,16 +49,7 @@ provideStore(props.application.id)
 const visible = ref(false)
 const fullscreen = ref(false)
 
-const round = computed(function () {
-	return props.application.round ?? 'var(--application-global-round)'
-})
-
-const background = computed(function () {
-	const backgroundImage = `url(${props.application.backgroundImage}) no-repeat center / cover`
-	if (props.application.backgroundImage) return backgroundImage
-	if (props.application.backgroundColor) return props.application.backgroundColor
-	return '#ffffff'
-})
+const { style } = useApplication(props.application)
 
 function updateOverlay(value: boolean) {
 	visible.value = value
@@ -66,14 +61,7 @@ function updateFullScreen(value: boolean) {
 </script>
 
 <template>
-	<div
-		:style="{
-			'--application-round': round,
-			'--application-background': background
-		}"
-		class="collection"
-		:class="[application.size, application.shape, application.direction]"
-	>
+	<div :style="style" class="collection">
 		<Modal
 			width="80%"
 			:icon="null"
@@ -106,12 +94,12 @@ function updateFullScreen(value: boolean) {
 			/>
 		</Modal>
 		<Marker
-			:size="application.size"
-			:shape="application.shape"
-			:direction="application.direction"
+			:size="size"
+			:shape="shape"
+			:direction="direction"
 			:id="application.id"
 			@dblclick="updateOverlay(true)"
-			:class="[application.size, application.shape, application.direction]"
+			:class="[size, shape, direction]"
 		/>
 		<span class="application-title">{{ application.title }}</span>
 		<destroy-mark class="application-trash-mark" />

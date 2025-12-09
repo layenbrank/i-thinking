@@ -99,15 +99,13 @@ function updateApplication(bookmark: Bookmark) {
 	try {
 		void store.toInsertApplication([
 			{
+				collectionID: null,
 				id: raw.id,
 				title: raw.title,
 				url: raw.url,
-				shape: 'circle',
-				size: 'mini',
 				index: store.applications?.length ?? 0,
-				direction: 'horizontal',
 				component: 'navigation',
-				marker: raw.url,
+				mark: raw.url,
 				createdAt: raw.createdAt,
 				updatedAt: raw.updatedAt,
 				round: '8px',
@@ -116,8 +114,8 @@ function updateApplication(bookmark: Bookmark) {
 				textSize: '16px',
 				description: '',
 				downloadCount: 0,
-				backgroundColor: '#ffffff',
-				backgroundImage: null
+				background: null,
+				backdrop: null
 			}
 		])
 		console.log('bookmark raw', raw)

@@ -2,6 +2,7 @@
 import Marker from '@/components/applications/bookmark/bookmark-marker.vue'
 import Overlay from '@/components/applications/bookmark/bookmark-overlay.vue'
 import DestroyMark from '~icons/local/close'
+import { useApplication } from '@/hooks/application.ts'
 // type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
 defineOptions({
@@ -10,28 +11,31 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		application?: Application
+		size: Mirror.Size
+		shape: Mirror.Shape
+		application: Application
+		direction: Mirror.Direction
 	}>(),
 	{
 		application() {
 			const DEFAULT: Application = {
 				id: '0',
+				url: null,
+				mark: null,
+				collectionID: null,
 				index: 0,
 				title: '书签',
-				size: 'mini',
 				round: '12px',
 				mirrorID: '0',
-				shape: 'square',
 				textSize: '13px',
 				description: '书签',
 				downloadCount: 1000,
 				textColor: '#ffffff',
-				backgroundImage: null,
+				backdrop: null,
+				background: null,
 				updatedAt: Date.now(),
 				createdAt: Date.now(),
-				component: 'bookmark',
-				direction: 'horizontal',
-				backgroundColor: '#ffffff4d'
+				component: 'bookmark'
 			}
 			return DEFAULT
 		}
@@ -41,16 +45,7 @@ const props = withDefaults(
 const visible = ref(false)
 const fullscreen = ref(false)
 
-const round = computed(function () {
-	return props.application.round ?? 'var(--application-global-round)'
-})
-
-const background = computed(function () {
-	const backgroundImage = `url(${props.application.backgroundImage}) no-repeat center / cover`
-	if (props.application.backgroundImage) return backgroundImage
-	if (props.application.backgroundColor) return props.application.backgroundColor
-	return '#ffffff'
-})
+const { style } = useApplication(props.application)
 
 function updateOverlay(value: boolean) {
 	visible.value = value
@@ -62,13 +57,7 @@ function updateFullScreen(value: boolean) {
 </script>
 
 <template>
-	<div
-		:style="{
-			'--application-round': round,
-			'--application-background': background
-		}"
-		:class="['bookmark', application.size, application.shape, application.direction]"
-	>
+	<div :style="style" class="bookmark">
 		<a-modal
 			width="80%"
 			:icon="null"
@@ -96,13 +85,7 @@ function updateFullScreen(value: boolean) {
 				@update:fullscreen="updateFullScreen"
 			/>
 		</a-modal>
-		<Marker
-			:size="application.size"
-			:shape="application.shape"
-			@dblclick="updateOverlay(true)"
-			:direction="application.direction"
-			:class="[application.size, application.shape, application.direction]"
-		/>
+		<Marker @dblclick="updateOverlay(true)" :class="[size, shape, direction]" />
 		<span class="application-title">{{ application.title }}</span>
 		<destroy-mark class="application-trash-mark" />
 	</div>
@@ -111,7 +94,6 @@ function updateFullScreen(value: boolean) {
 <style lang="scss" scoped>
 .bookmark {
 	@extend %application;
-	border-radius: var(--application-round);
 }
 </style>
 <style lang="scss">

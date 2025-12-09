@@ -2,6 +2,7 @@
 import Marker from '@/components/applications/intelligence/intelligence-marker.vue'
 import Overlay from '@/components/applications/intelligence/intelligence-overlay.vue'
 import DestroyMark from '~icons/local/close'
+import { useApplication } from '@/hooks/application.ts'
 
 defineOptions({
 	name: 'intelligence'
@@ -9,28 +10,31 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		application?: Application
+		size: Mirror.Size
+		shape: Mirror.Shape
+		application: Application
+		direction: Mirror.Direction
 	}>(),
 	{
 		application() {
 			const DEFAULT: Application = {
 				id: '0',
+				url: null,
+				mark: null,
+				collectionID: null,
 				index: 0,
-				size: 'mini',
 				round: '12px',
 				mirrorID: '0',
 				title: '智能助手',
-				shape: 'square',
 				textSize: '13px',
 				downloadCount: 1000,
 				textColor: '#ffffff',
-				backgroundImage: null,
+				background: null,
 				updatedAt: Date.now(),
 				createdAt: Date.now(),
 				description: '智能助手',
-				direction: 'horizontal',
 				component: 'intelligence',
-				backgroundColor: '#ffffff4d'
+				backdrop: null
 			}
 			return DEFAULT
 		}
@@ -40,16 +44,7 @@ const props = withDefaults(
 const visible = ref(false)
 const fullscreen = ref(false)
 
-const round = computed(function () {
-	return props.application.round ?? 'var(--application-global-round)'
-})
-
-const background = computed(function () {
-	const backgroundImage = `url(${props.application.backgroundImage}) no-repeat center / cover`
-	if (props.application.backgroundImage) return backgroundImage
-	if (props.application.backgroundColor) return props.application.backgroundColor
-	return '#ffffff'
-})
+const { style } = useApplication(props.application)
 
 function updateOverlay(value: boolean) {
 	visible.value = value
@@ -61,13 +56,7 @@ function updateFullScreen(value: boolean) {
 </script>
 
 <template>
-	<div
-		:style="{
-			'--application-round': round,
-			'--application-background': background
-		}"
-		:class="['intelligence', application.size, application.shape, application.direction]"
-	>
+	<div :style="style" class="intelligence">
 		<a-modal
 			width="80%"
 			:icon="null"
@@ -90,10 +79,7 @@ function updateFullScreen(value: boolean) {
 				@update:fullscreen="updateFullScreen"
 			/>
 		</a-modal>
-		<Marker
-			@dblclick="updateOverlay(true)"
-			:class="[application.size, application.shape, application.direction]"
-		/>
+		<Marker @dblclick="updateOverlay(true)" :class="[size, shape, direction]" />
 		<span class="application-title">{{ application.title }}</span>
 		<destroy-mark class="application-trash-mark" />
 	</div>

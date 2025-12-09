@@ -5,28 +5,20 @@ interface Application {
 	id: string
 	index: number
 	title: string
-	// name: string
-	url?: string
-	size: Application.Size
-	// width: string | null
+	url: string | null
 	round: string | null
-	shape: Application.Shape
-	// height: string | null
-	marker?: string
+	mark: string | null
 	mirrorID: string
 	textSize: string | null
 	updatedAt: number
 	createdAt: number
 	textColor: string | null
 	component: Application.Component
-	direction: Application.Direction
 	description: string
-	collectionID?: string
+	collectionID: string | null
 	downloadCount: number
-	backgroundColor: string | null
-	backgroundImage: string | null
-	// backdropBlur: string | null
-	// backdropSaturate: string | null
+	background: Application.Background | null
+	backdrop: Application.Backdrop | null
 }
 
 declare namespace Application {
@@ -51,20 +43,30 @@ declare namespace Application {
 		| 'gallery' // 图库
 		| 'example'
 
-	/**
-	 * @description 组件布局方向
-	 */
-	type Direction = 'horizontal' | 'vertical'
+	interface Backdrop {
+		blur?: string
+		brightness?: string
+		contrast?: string
+		dropShadow?: string
+		grayscale?: string
+		hueRotate?: string
+		opacity?: string
+		saturate?: string
+		sepia?: string
+		url?: string
+	}
 
-	/**
-	 * @description 组件形状
-	 */
-	type Shape = 'square' | 'circle' | 'rectangle'
-
-	/**
-	 * @description 组件尺寸
-	 */
-	type Size = 'mini' | 'small' | 'medium' | 'large' | 'huge' | 'massive' | 'ultra'
+	interface Background {
+		color?: string
+		image?: string
+		repeat?: string
+		size?: string
+		position?: string
+		attachment?: string
+		clip?: string
+		blendMode?: string
+		origin?: string
+	}
 
 	type Overlay = ReturnType<(typeof import('ant-design-vue'))['Modal']['info']>
 	// type Overlay = ReturnType<Modal['info']>

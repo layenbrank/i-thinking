@@ -2,6 +2,7 @@
 import Marker from '@/components/applications/calendar/calendar-marker.vue'
 import Overlay from '@/components/applications/calendar/calendar-overlay.vue'
 import DestroyMark from '~icons/local/close'
+import { useApplication } from '@/hooks/application.ts'
 
 defineOptions({
 	name: 'calendar'
@@ -9,28 +10,31 @@ defineOptions({
 
 const props = withDefaults(
 	defineProps<{
-		application?: Application
+		size: Mirror.Size
+		shape: Mirror.Shape
+		application: Application
+		direction: Mirror.Direction
 	}>(),
 	{
 		application() {
 			const DEFAULT: Application = {
 				id: '0',
-				size: 'mini',
+				url: null,
+				mark: null,
 				index: 0,
 				title: '日历',
 				round: '12px',
-				shape: 'square',
 				mirrorID: '0',
 				textSize: '13px',
+				backdrop: null,
 				textColor: '#ffffff',
 				updatedAt: Date.now(),
 				createdAt: Date.now(),
 				component: 'calendar',
-				direction: 'horizontal',
+				background: null,
 				description: '日历',
-				downloadCount: 1000,
-				backgroundImage: null,
-				backgroundColor: '#ffffff4d'
+				collectionID: null,
+				downloadCount: 1000
 			}
 			return DEFAULT
 		}
@@ -40,16 +44,7 @@ const props = withDefaults(
 const visible = ref(false)
 const fullscreen = ref(false)
 
-const round = computed(function () {
-	return props.application.round ?? 'var(--application-global-round)'
-})
-
-const background = computed(function () {
-	const backgroundImage = `url(${props.application.backgroundImage}) no-repeat center / cover`
-	if (props.application.backgroundImage) return backgroundImage
-	if (props.application.backgroundColor) return props.application.backgroundColor
-	return '#ffffff'
-})
+const { style } = useApplication(props.application)
 
 function updateOverlay(value: boolean) {
 	visible.value = value
@@ -58,18 +53,14 @@ function updateOverlay(value: boolean) {
 function updateFullScreen(value: boolean) {
 	fullscreen.value = value
 }
+
+onMounted(function () {
+	console.log(props.size, props.shape, props.direction)
+})
 </script>
 
 <template>
-	<div
-		:style="{
-			'--application-round': round,
-			'--application-background': background,
-			'--application-text-color': application.textColor ?? 'var(--application-global-text-color)',
-			'--application-text-size': application.textSize ?? 'var(--application-global-text-size)'
-		}"
-		:class="['calendar', application.size, application.shape, application.direction]"
-	>
+	<div :style="style" class="calendar">
 		<a-modal
 			width="80%"
 			:icon="null"
@@ -94,11 +85,10 @@ function updateFullScreen(value: boolean) {
 		</a-modal>
 
 		<Marker
-			:size="application.size"
-			:shape="application.shape"
+			:size="props.size"
+			:shape="props.shape"
 			@dblclick="updateOverlay(true)"
-			:direction="application.direction"
-			:class="[application.size, application.shape, application.direction]"
+			:class="[size, shape, direction]"
 		/>
 		<span class="application-title">{{ application.title }}</span>
 		<destroy-mark class="application-trash-mark" />
