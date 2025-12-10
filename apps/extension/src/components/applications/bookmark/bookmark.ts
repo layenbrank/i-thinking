@@ -1,7 +1,7 @@
 import Sortable from 'sortablejs'
 
 export function initSortable(el: HTMLElement) {
-	const sort = Sortable.create(el, {
+	const sortable = Sortable.create(el, {
 		sort: true,
 		animation: 300,
 		group: {

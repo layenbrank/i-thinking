@@ -1,51 +1,11 @@
 import { http } from '@/utils/http/http.ts'
 import { INTELLIGENCE_TOKEN } from '@/utils/http/token.ts'
 
-import * as z from 'zod'
-
-const RoleSchema = z.enum(['system', 'assistant', 'user', 'tool'])
-
-const ModelSchema = z.enum(['qwen3:8b', 'deepseek-r1:8b'])
-
-export const MessageSchema = z.object({
-	role: RoleSchema,
-	content: z.string(),
-	thinking: z.string().optional()
-})
-
-const CommunicateSchema = z.object({
-	model: ModelSchema,
-	created_at: z.coerce.string(),
-	message: MessageSchema,
-	done: z.boolean(),
-	done_reason: z.string().optional(),
-	total_duration: z.number().optional(),
-	load_duration: z.number().optional(),
-	prompt_eval_count: z.number().optional(),
-	prompt_eval_duration: z.number().optional(),
-	eval_count: z.number().optional(),
-	eval_duration: z.number().optional()
-})
-
-export declare namespace Communicate {
-	export interface Params {
-		model: Model
-		raw?: boolean
-		stream?: boolean
-		messages: Message[]
-	}
-
-	export type Response = z.infer<typeof CommunicateSchema>
-
-	export type Role = z.infer<typeof RoleSchema>
-
-	export type Model = z.infer<typeof ModelSchema>
-
-	export type Message = z.infer<typeof MessageSchema>
-}
+type CommunicateParams = Application.Intelligence.Communicate.Params
+type CommunicateResponse = Application.Intelligence.Communicate.Response
 
 // SSE server sent events
-export function POST_COMMUNICATE(data: Communicate.Params) {
+export function POST_COMMUNICATE(data: CommunicateParams) {
 	return fetch(`${import.meta.env.VITE_INTELLIGENCE}/chat`, {
 		method: 'POST',
 		headers: {
@@ -60,7 +20,7 @@ export function POST_COMMUNICATE(data: Communicate.Params) {
 
 export async function* GeneratorJSON<
 	F extends (...args: any[]) => Promise<Response>,
-	T = Communicate.Response
+	T = CommunicateResponse
 >(fetcher: F, parse?: (text: string) => T): AsyncGenerator<T, void, unknown> {
 	const response = await fetcher()
 	if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)

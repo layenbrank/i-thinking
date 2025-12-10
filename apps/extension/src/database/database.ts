@@ -1,8 +1,10 @@
-import type { AiMessage, AiSession } from '@/database/schemas/intelligence.ts'
 import { Dexie, type EntityTable } from 'dexie'
 
-type Bookmark = Application.Bookmark
-type BookmarkDir = Application.BookmarkDir
+type BookmarkEntry = Application.Bookmark.Entry
+type BookmarkDir = Application.Bookmark.Directory
+type AiMessage = Application.Intelligence.AiMessage
+type AiSession = Application.Intelligence.AiSession
+type AiCollection = Application.Intelligence.AiCollection
 
 interface DataBase extends Dexie {
 	mirror: EntityTable<Mirror, 'id'>
@@ -14,13 +16,14 @@ interface DataBase extends Dexie {
 
 	user: EntityTable<UserProfile, 'id'>
 
-	bookmark: EntityTable<Bookmark, 'id'>
+	bookmark: EntityTable<BookmarkEntry, 'id'>
 	bookmarkDir: EntityTable<BookmarkDir, 'id'>
 
 	markdown: EntityTable<Markdown, 'id'>
 
 	AiSession: EntityTable<AiSession, 'id'>
 	AiMessage: EntityTable<AiMessage, 'id'>
+	AiCollection: EntityTable<AiCollection, 'id'>
 }
 
 const DBNAME: Readonly<string> = 'i thinking'
@@ -30,15 +33,10 @@ export const database = new Dexie(DBNAME) as DataBase
 const MIRROR: readonly string[] = [
 	'&id',
 	'index',
-	'title',
 	'mark',
 	'size',
 	'shape',
 	'direction',
-	'background',
-	'backdrop',
-	'overlay',
-	'description',
 	'updatedAt',
 	'createdAt'
 ]
@@ -51,57 +49,24 @@ const APPLICATION: readonly string[] = [
 	'collectionID',
 	'index',
 	'component',
-	'title',
-	'url',
-	'mark',
-	'round',
-	'textSize',
-	'textColor',
 	'downloadCount',
-	'background',
 	'updatedAt',
-	'createdAt',
-	'backdrop'
+	'createdAt'
 ]
-
-const COLLECTION: readonly string[] = APPLICATION.filter((field) => field !== 'mirrorID')
 
 const USERS: readonly string[] = ['++id', 'name']
 
 const BACKUP: readonly string[] = ['&id', 'createdAt', 'updatedAt']
 const SETTING: readonly string[] = ['&id', 'theme', 'language']
 
-const BOOKMARK: readonly string[] = [
-	'&id',
-	'url',
-	'sort',
-	'title',
-	'folderID',
-	'createdAt',
-	'updatedAt'
-]
-const BOOKMARK_DIR: readonly string[] = ['&id', 'folder', 'sort', 'count', 'createdAt', 'updatedAt']
+const BOOKMARK: readonly string[] = ['&id', 'index', 'dirID', 'createdAt', 'updatedAt']
+const BOOKMARK_DIR: readonly string[] = ['&id', 'index', 'count', 'createdAt', 'updatedAt']
 
-const MARKDOWN: readonly string[] = ['&id', 'sort', 'createdAt', 'updatedAt']
+const MARKDOWN: readonly string[] = ['&id', 'index', 'createdAt', 'updatedAt']
 
-const AISESSION: readonly string[] = [
-	'&id',
-	'index',
-	'title',
-	'userID',
-	'messages',
-	'createdAt',
-	'updatedAt'
-]
-
-const AIMESSAGE: readonly string[] = [
-	'&id',
-	'sessionID',
-	'role',
-	'content',
-	'createdAt',
-	'updatedAt'
-]
+const AISESSION: readonly string[] = ['&id', 'collectionID', 'createdAt', 'updatedAt']
+const AIMESSAGE: readonly string[] = ['&id', 'sessionID', 'identity', 'createdAt', 'updatedAt']
+const AICOLLECTION: readonly string[] = ['&id', 'createdAt', 'updatedAt']
 
 database.version(1).stores({
 	mirror: MIRROR.join(','),
@@ -118,7 +83,8 @@ database.version(1).stores({
 	markdown: MARKDOWN.join(','),
 
 	AiSession: AISESSION.join(','),
-	AiMessage: AIMESSAGE.join(',')
+	AiMessage: AIMESSAGE.join(','),
+	AiCollection: AICOLLECTION.join(',')
 })
 
 database.on(

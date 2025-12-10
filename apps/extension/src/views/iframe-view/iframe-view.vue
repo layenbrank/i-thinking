@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import type { Communicate } from '@/apis/intelligence'
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence'
 import { useCrossContextBridge } from '@/composables/useCrossContextBridge'
 import { useMarkdownPlugin } from '@/composables/useMarkdownPlugin'
 import { useMarkdownRenderer } from '@/composables/useMarkdownRenderer'
 import { usePerformanceMonitor } from '@/composables/usePerformanceMonitor'
 import { createHighlightPlugin } from '@/plugins/highlight.plugin'
+
+type CommunicateParams = Application.Intelligence.Communicate.Params
 
 defineOptions({
 	name: 'iframe-view'
@@ -243,7 +244,7 @@ async function renderMarkdown(markdown: string) {
 /**
  * 流式渲染 AI 响应
  */
-async function streamAIResponse(params: Communicate.Params) {
+async function streamAIResponse(params: CommunicateParams) {
 	try {
 		isLoading.value = true
 		error.value = null

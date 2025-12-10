@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import type { Communicate } from '@/apis/intelligence.ts'
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'
+
+type CommunicateParams = Application.Intelligence.Communicate.Params
+type CommunicateResponse = Application.Intelligence.Communicate.Response
 
 defineOptions({
 	name: 'IntelligenceView'
 })
 
 const message = ref('assistant:')
-const params = ref<Communicate.Params>({
+const params = ref<CommunicateParams>({
 	model: 'deepseek-r1:8b',
 	stream: true,
 	raw: true,
@@ -21,7 +23,7 @@ const params = ref<Communicate.Params>({
 })
 
 onMounted(async function () {
-	const values: Communicate.Response[] = []
+	const values: CommunicateResponse[] = []
 
 	const asyncIterator = GeneratorJSON(POST_COMMUNICATE.bind(null, params.value))
 

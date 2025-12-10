@@ -75,8 +75,8 @@
 		"source.fixAll.oxc": "explicit",
 		"source.fixAll.ts": "explicit",
 		"source.organizeImports": "explicit",
-		"source.removeUnused.ts": "never",
-		"source.removeUnusedImports": "never",
+		"source.removeUnused.ts": "explicit",
+		"source.removeUnusedImports": "explicit",
 		"source.sort.json": "explicit",
 		"source.sortImports": "explicit"
 	},

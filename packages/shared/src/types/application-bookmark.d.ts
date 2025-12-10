@@ -1,14 +1,14 @@
-declare namespace Application {
+declare namespace Application.Bookmark {
 	/**
 	 * @description 书签
 	 */
-	interface Bookmark {
+	interface Entry {
 		id: string
 		url: string
-		sort: number
+		index: number
 		icon: string
 		title: string
-		folderID: string
+		dirID: string
 		createdAt: number
 		updatedAt: number
 		description: string
@@ -17,11 +17,11 @@ declare namespace Application {
 	/**
 	 * @description 书签文件夹
 	 */
-	interface BookmarkDir {
+	interface Directory {
 		id: string
-		sort: number
+		index: number
 		count: number
-		folder: string
+		title: string
 		createdAt: number
 		updatedAt: number
 	}

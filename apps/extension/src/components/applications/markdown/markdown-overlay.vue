@@ -132,7 +132,7 @@ function buildMarkdown() {
 		id: value.id,
 		createdAt: value.createdAt,
 		updatedAt: value.updatedAt,
-		sort: value.sort ?? 1
+		index: value.index ?? 1
 	})
 
 	value.content = content.content ?? []
@@ -154,7 +154,7 @@ const toUpdate = throttle(function () {
 		...content,
 		id: metadata.id,
 		updatedAt: Date.now(),
-		sort: metadata.sort ?? 1,
+		index: metadata.index ?? 1,
 		createdAt: metadata.createdAt
 	} as Markdown
 
@@ -193,7 +193,7 @@ function updateActiveKey(value: Key) {
 			if (!markdown) return editor.value.commands.setContent('')
 			editor.value.commands.setMetadata({
 				id: markdown.id,
-				sort: markdown.sort ?? 1,
+				index: markdown.index ?? 1,
 				createdAt: markdown.createdAt,
 				updatedAt: markdown.updatedAt
 			})
@@ -336,7 +336,7 @@ onMounted(function () {
 	if (markdown.value) {
 		editor.value.commands.setMetadata({
 			id: markdown.value.id,
-			sort: markdown.value.sort ?? 1,
+			index: markdown.value.index ?? 1,
 			createdAt: markdown.value.createdAt,
 			updatedAt: markdown.value.updatedAt
 		})
