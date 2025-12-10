@@ -23,9 +23,7 @@ const params = ref<Communicate.Params>({
 onMounted(async function () {
 	const values: Communicate.Response[] = []
 
-	const asyncIterator = GeneratorJSON<Communicate.Response>(
-		POST_COMMUNICATE.bind(null, params.value)
-	)
+	const asyncIterator = GeneratorJSON(POST_COMMUNICATE.bind(null, params.value))
 
 	for await (const generator of asyncIterator) {
 		// console.log(
