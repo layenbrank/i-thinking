@@ -80,19 +80,17 @@
 		&.rectangle {
 			&.horizontal {
 				:deep(:where(.application)) {
-					// width: calc(var(--application-size) * calc(16 / 9));
-					// aspect-ratio: 16 / 9;
-					// @include ratio-width(var(--application-size), 16, 9);
 					width: calc(var(--application-size) * 16 / 9);
 					height: var(--application-size);
+					// aspect-ratio: 16 / 9;
+					// @include ratio-width(var(--application-size), 16, 9);
 				}
 			}
 
 			&.vertical {
 				:deep(:where(.application)) {
 					width: var(--application-size);
-					height: calc(var(--application-size) * 9 / 16);
-					// height: calc(var(--application-size) * calc(9 / 16));
+					height: calc(var(--application-size) * 16 / 9);
 					// aspect-ratio: 9 / 16;
 					// @include ratio-height(var(--application-size), 9, 16);
 				}
@@ -102,11 +100,11 @@
 
 	&.rectangle.horizontal {
 		// rectangle horizontal时 使用scss 数学函数计算获取 16/9 比例的最终宽度
-		// grid-template-columns: repeat(auto-fill, calc(var(--application-size) * (#{'16 / 9'})));
 		grid-template-columns: repeat(auto-fill, calc(var(--application-size) * 16 / 9));
 	}
 
-	&:not(.rectangle) {
+	&:not(.rectangle),
+	&.rectangle.vertical {
 		grid-template-columns: repeat(auto-fill, var(--application-size));
 	}
 

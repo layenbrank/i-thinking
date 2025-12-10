@@ -110,15 +110,16 @@ export async function* GeneratorJSON<R>(
 
 // TODO: 暂未完善 GeneratorSSE 函数
 export async function* GeneratorSSE<R>(
-	callback: () => Promise<Response>
+	fetcher: () => Promise<Response>
 ): AsyncGenerator<R, void, unknown> {
-	const response = await callback()
+	const response = await fetcher()
 	if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
 	if (!response.body) throw new Error('ReadableStream not supported in this browser.')
 
 	const reader = response.body?.getReader()
 	const decoder = new TextDecoder('utf-8')
 	let buffer = ''
+
 	try {
 		while (true) {
 			if (!reader) break
