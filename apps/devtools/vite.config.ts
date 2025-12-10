@@ -9,7 +9,6 @@ import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
-import pkg from './package.json'
 
 // 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
@@ -19,7 +18,6 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 	const env = loadEnv(mode || 'development', '')
 
 	return {
-		base: `/${pkg.name.replace(/^@i-thinking\//, '')}/`,
 		plugins: [
 			vue(),
 			vueJsx(),
@@ -46,8 +44,8 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			}
 		},
 		build: {
-			// 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
-			outDir: resolve(rootDir, `dist/${pkg.name}`),
+			// 输出到包内 dist，便于 Turbo outputs 匹配
+			outDir: resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist'),
 			emptyOutDir: true,
 			rollupOptions: {
 				output: {

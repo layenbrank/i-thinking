@@ -14,7 +14,6 @@ import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
 import DevTools from 'vite-plugin-vue-devtools'
-import pkg from './package.json'
 // import wasm from 'vite-plugin-wasm'
 
 // 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
@@ -224,8 +223,8 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 			cssCodeSplit: true,
 			emptyOutDir: true,
 			sourcemap: mode === 'development' ? true : false,
-			// 方案1: 输出到根目录的 dist 文件夹下（需要修改 turbo.json）
-			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@i-thinking\//, '')}`),
+			// 将产物输出到当前包目录的 dist，下游 Turbo outputs 可匹配到
+			outDir: resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist'),
 			assetsInlineLimit(filePath, _content) {
 				const inlineRegexe = inlineRegexes.some((regex) => regex.test(filePath))
 
@@ -325,7 +324,7 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 					rewrite: (path) => path.replace(/^\/bing/, '')
 				},
 				'/go': {
-					target: 'http://172.16.1.135:9001',
+					target: 'http://172.16.1.231:9001',
 					// target: 'http://172.16.0.8:9001',
 					changeOrigin: true,
 					rewrite: (path) => path.replace(/^\/go/, '/go')

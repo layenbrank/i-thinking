@@ -17,6 +17,7 @@
 		"build:docs": "turbo run build --filter=@i-thinking/docs",
 		"build:extension": "turbo run build --filter=@i-thinking/extension",
 		"build:service": "turbo run build --filter=@i-thinking/service",
+		"bundle": "pnpm build && node scripts/commands/bundle.mjs",
 		"corex": "bun run scripts/commands/index.ts",
 		"e2e": "turbo run e2e",
 		"unit": "turbo run unit",
