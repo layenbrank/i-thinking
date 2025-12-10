@@ -15,6 +15,7 @@ defineOptions({
 
 const store = useAiStore()
 
+const conversationRef = useTemplateRef<HTMLElement>('conversationRef')
 const generating = ref(false)
 
 const params = ref<Communicate.Params>({
@@ -43,15 +44,16 @@ const session = ref('')
 
 async function toTokens() {
 	generating.value = true
-	const generators = GeneratorJSON<Communicate.Response>(POST_COMMUNICATE.bind(null, params.value))
+	const generators = GeneratorJSON(POST_COMMUNICATE.bind(null, params.value))
 	for await (const generator of generators) {
 		const { message: msg } = generator
-		const { content } = msg
+		const { content, thinking } = msg
 
 		if (content.startsWith('<think>')) continue
 		if (content.endsWith('</think>')) continue
 
-		session.value += content
+		if (thinking) session.value += thinking
+		else session.value += content
 		delay()
 	}
 
@@ -77,11 +79,11 @@ const delay = throttle(function () {
 	// 		behavior: 'smooth'
 	// 	})
 	// }
-	// if (!visualRef.value) return
-	// visualRef.value.scrollTo({
-	// 	top: visualRef.value.scrollHeight,
-	// 	behavior: 'smooth'
-	// })
+	if (!conversationRef.value) return
+	conversationRef.value.scrollTo({
+		top: conversationRef.value.scrollHeight,
+		behavior: 'smooth'
+	})
 }, 600)
 
 function onTriggerEnter(event: KeyboardEvent) {
@@ -129,7 +131,7 @@ function updateKeyword(value: string) {
 		<div class="interactive-section">
 			<div class="conversation-section">
 				<div class="conversation-heading">{{ session.slice(0, 12) || '未命名标题' }}</div>
-				<div class="conversation-scroll">
+				<div ref="conversationRef" class="conversation-scroll">
 					<ConversationMarkdown :session="session" :generating="generating"></ConversationMarkdown>
 				</div>
 			</div>

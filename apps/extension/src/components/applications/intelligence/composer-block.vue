@@ -160,7 +160,7 @@ function onCompositionFinal(event: CompositionEvent) {
 
 <style lang="scss" scoped>
 .composer-block {
-	$composer-max-height: 200px;
+	$composer-max-height: 300px;
 
 	width: 100%;
 	max-height: $composer-max-height;
@@ -176,10 +176,17 @@ function onCompositionFinal(event: CompositionEvent) {
 	box-shadow:
 		0 4px 10px rgba(0, 0, 0, 0.02),
 		0 2px 4px rgba(0, 0, 0, 0.04);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-between;
 
 	.composer-revise {
 		width: 100%;
-		height: 100%;
+		flex-grow: 1;
+		flex-shrink: 1;
+		flex-basis: 0%;
+		min-height: 0px;
 		position: relative;
 		border-radius: 10px;
 		border: 1px solid rgba(0, 0, 0, 0.1);
@@ -214,6 +221,11 @@ function onCompositionFinal(event: CompositionEvent) {
 			// pointer-events: none;
 			// visibility: hidden;
 		}
+	}
+
+	.composer-operations {
+		align-self: flex-end;
+		margin-block-start: 16px;
 	}
 }
 </style>
