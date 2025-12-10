@@ -6,9 +6,22 @@
 		"build": {
 			"cache": true,
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*", "vite.config.*", "rollup.config.*", "tsconfig*.json"],
 			"outputLogs": "full",
-			"outputs": ["dist/**"]
+			"outputs": ["dist/**", ".vitepress/dist/**", "src-tauri/target/release/bundle/**"]
+		},
+		"coverage": {
+			"cache": true,
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"src/**/*.{ts,tsx,vue}",
+				"**/*.{test,spec}.{ts,tsx,vue}",
+				"vitest.config.*",
+				"tsconfig*.json",
+				".env*"
+			],
+			"outputLogs": "full",
+			"outputs": ["coverage/**"]
 		},
 		"dev": {
 			"cache": false,
@@ -16,15 +29,24 @@
 			"outputLogs": "full",
 			"persistent": true
 		},
+		"e2e": {
+			"cache": false,
+			"dependsOn": ["build"],
+			"inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.ts", "playwright.config.*", ".env*"],
+			"outputLogs": "full",
+			"outputs": ["playwright-report/**", "test-results/**"]
+		},
 		"lint": {
 			"cache": true,
 			"inputs": [
+				"$TURBO_DEFAULT$",
 				"src/**/*.{ts,tsx,vue}",
 				".eslintrc.{js,cjs,json}",
 				".oxlintrc",
 				".prettierignore",
 				".prettierrc.{js,cjs,json}",
-				"tsconfig.json"
+				"tsconfig.json",
+				"vite.config.*"
 			],
 			"outputLogs": "full"
 		},
@@ -33,27 +55,23 @@
 			"dependsOn": ["build"],
 			"outputLogs": "full"
 		},
-		"coverage": {
-			"cache": true,
-			"inputs": ["src/**/*.{ts,tsx,vue}", "**/*.{test,spec}.{ts,tsx}"],
-			"outputLogs": "full",
-			"outputs": ["coverage/**"]
-		},
-		"e2e": {
+		"report": {
 			"cache": false,
 			"outputLogs": "full",
-			"outputs": ["playwright-report/**", "test-results/**"]
+			"persistent": true
 		},
 		"unit": {
 			"cache": true,
-			"inputs": ["src/**/*.{ts,tsx,vue}", "**/*.{test,spec}.{ts,tsx}"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"src/**/*.{ts,tsx,vue}",
+				"**/*.{test,spec}.{ts,tsx,vue}",
+				"vitest.config.*",
+				"tsconfig*.json",
+				".env*"
+			],
 			"outputLogs": "full",
 			"outputs": ["coverage/**"]
-		},
-		"report": {
-			"cache": false,
-			"persistent": true,
-			"outputLogs": "full"
 		}
 	}
 }

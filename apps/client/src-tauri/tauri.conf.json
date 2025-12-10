@@ -41,7 +41,7 @@
 		"beforeBuildCommand": "bun run build:web",
 		"beforeDevCommand": "bun run dev:web",
 		"devUrl": "http://localhost:1420",
-		"frontendDist": "../../../dist/client"
+		"frontendDist": "../dist"
 	},
 	"bundle": {
 		"active": true,

@@ -250,7 +250,7 @@ async function streamAIResponse(params: Communicate.Params) {
 		markdownContent.value = ''
 
 		// 创建流式请求
-		const generator = GeneratorJSON<Communicate.Response>(() => POST_COMMUNICATE(params))
+		const generator = GeneratorJSON(POST_COMMUNICATE.bind(null, params))
 
 		// 处理流式响应
 		for await (const chunk of generator) {

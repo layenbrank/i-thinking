@@ -4,11 +4,9 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
 import { FileSystemIconLoader } from 'unplugin-icons/loaders'
-import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
-import pkg from './package.json'
 
 const host = process.env.TAURI_DEV_HOST
 
@@ -173,7 +171,8 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			minify: 'esbuild',
 			cssMinify: 'esbuild',
 			sourcemap: mode === 'development' ? true : false,
-			outDir: resolve(rootDir, `dist/${pkg.name.replace(/^@i-thinking\//, '')}`),
+			// 输出到包内 dist，便于 Turbo outputs 匹配
+			outDir: resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist'),
 			assetsInlineLimit(filePath) {
 				const isInline = inlineRegexes.some((regex) => regex.test(filePath))
 				// return content.length < 10 * 1024 // 小于10kb则内联

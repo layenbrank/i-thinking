@@ -113,8 +113,10 @@ onMounted(() => {
 	if (!modelValue.value && props.defaultValue) {
 		modelValue.value = props.defaultValue
 	} else if (!modelValue.value && props.options.length > 0) {
-		modelValue.value = props.options[0].value
-		emit('change', props.options[0])
+		const [option] = props.options
+		if (!option) return
+		modelValue.value = option.value
+		emit('change', option)
 	}
 
 	updatePosition()

@@ -77,7 +77,7 @@ export default defineConfig(function (): UserConfig {
 			},
 			lib: {
 				entry: resolve(__dirname, 'src/index.ts'),
-				name: '@slide/ui',
+				name: '@i-thinking/ui',
 				fileName: (format) => `index.${format}.js`,
 				formats: ['es']
 			},
@@ -89,8 +89,8 @@ export default defineConfig(function (): UserConfig {
 					'clsx',
 					'dayjs',
 					'lodash-es',
-					'@slide/core',
-					'@slide/shared',
+					'@i-thinking/core',
+					'@i-thinking/shared',
 					'swiper',
 					/^swiper\/.+/,
 					/^swiper\/vue\/.+/,
@@ -115,8 +115,8 @@ export default defineConfig(function (): UserConfig {
 						dayjs: 'dayjs',
 						swiper: 'swiper',
 						'lodash-es': 'lodash-es',
-						'@slide/core': '@slide/core',
-						'@slide/shared': '@slide/shared',
+						'@i-thinking/core': '@i-thinking/core',
+						'@i-thinking/shared': '@i-thinking/shared',
 						'ant-design-vue': 'ant-design-vue'
 					}
 				}

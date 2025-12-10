@@ -45,7 +45,7 @@ async function toTokens() {
 		role: 'user',
 		content: question.value
 	})
-	const generators = GeneratorJSON<Communicate.Response>(POST_COMMUNICATE.bind(null, params.value))
+	const generators = GeneratorJSON(POST_COMMUNICATE.bind(null, params.value))
 
 	for await (const generator of generators) {
 		if (generator.message.content.startsWith('<think>')) continue
