@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { Communicate } from '@/apis/intelligence.ts'
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'
 import { onKeyDown } from '@vueuse/core'
 import { throttle } from 'lodash-es'
+
+type CommunicateParams = Application.Intelligence.Communicate.Params
 
 defineOptions({
 	name: 'intelligence-overlay'
@@ -16,7 +17,7 @@ const contenteditableRef = useTemplateRef('contenteditableRef')
 
 const session = ref('assistant:')
 const question = ref('')
-const params = ref<Communicate.Params>({
+const params = ref<CommunicateParams>({
 	model: 'deepseek-r1:8b',
 	stream: true,
 	raw: true,

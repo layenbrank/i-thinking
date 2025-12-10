@@ -11,8 +11,8 @@ import CloseOutlined from '~icons/local/close'
 import HandleOutlined from '~icons/local/handle'
 import { useBookMark } from './use-bookmark.ts'
 
-type Bookmark = Application.Bookmark
-type BookmarkFolder = Application.BookmarkDir
+type Entry = Application.Bookmark.Entry
+type Directory = Application.Bookmark.Directory
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
 
 defineOptions({
@@ -38,11 +38,11 @@ const loading = ref(false)
 // const bookmarks = ref<Bookmark[]>([])
 // const folders = ref<BookmarkFolder[]>([])
 // const originalBookmarks = ref<Bookmark[]>([])
-const recentFolder: Readonly<BookmarkFolder> = {
+const recentFolder: Readonly<Directory> = {
 	id: '9999',
-	sort: 9999,
+	index: 9999,
 	count: 0,
-	folder: '最近添加',
+	title: '最近添加',
 	createdAt: 0,
 	updatedAt: 0
 }
@@ -59,7 +59,7 @@ const {
 
 // 定义 Fuse 搜索选项
 // const fuseOptions: IFuseOptions<BookmarkTreeNode> = {
-const fuseOptions: IFuseOptions<Bookmark> = {
+const fuseOptions: IFuseOptions<Entry> = {
 	keys: ['title', 'url'], // 搜索的字段
 	threshold: 0.3, // 匹配阈值，0.0 表示完全匹配，1.0 表示完全不匹配
 	includeScore: true, // 包含分数
@@ -92,7 +92,7 @@ const updateBookmarks = debounce(function (value: string) {
 	console.log('bookmarks', value, targetBookmarks.value)
 }, 300)
 
-function updateApplication(bookmark: Bookmark) {
+function updateApplication(bookmark: Entry) {
 	const raw = toRaw(bookmark)
 	if (!store.mirrorID) return message.error('未选择镜像，无法添加应用')
 
@@ -126,7 +126,7 @@ function updateApplication(bookmark: Bookmark) {
 	}
 }
 
-function updateActiveFolder(folder: BookmarkFolder) {
+function updateActiveFolder(folder: Directory) {
 	if (folder.id === '9999') return (targetBookmarks.value = recentBookmarks.value)
 	activeFolder.value = folder
 	targetBookmarks.value = sourceBookmarks.value
@@ -173,7 +173,7 @@ function updateVisible() {
 						]"
 					>
 						<a-image :preview="false" wrapper-class-name="folder-image"></a-image>
-						<span class="folder-title">{{ folder.folder }}</span>
+						<span class="folder-title">{{ folder.title }}</span>
 						<span class="folder-count">
 							{{ folder.count }}
 						</span>

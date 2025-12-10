@@ -1,10 +1,13 @@
-import type { Communicate } from '@/apis/intelligence.ts'
 import { database } from '@/database/database.ts'
-import type { AiSession } from '@/database/schemas/intelligence.ts'
 import { useObservable } from '@vueuse/rxjs'
 import { liveQuery } from 'dexie'
 import { defineStore } from 'pinia'
 import { Observable, from, switchMap, tap } from 'rxjs'
+
+type AiSession = Application.Intelligence.AiSession
+type AiMessage = Application.Intelligence.AiMessage
+type CommunicateParams = Application.Intelligence.Communicate.Params
+type CommunicateMessage = Application.Intelligence.Communicate.Message
 
 export const useAiStore = defineStore('intelligence', function () {
 	const session = ref<AiSession | null>(null)
@@ -36,6 +39,9 @@ export const useAiStore = defineStore('intelligence', function () {
 				return liveQuery(function () {
 					return database.AiMessage.where('sessionID').equals(session.id).sortBy('createdAt')
 				})
+			}),
+			tap(function (messages) {
+				console.log('messages changed:', messages)
 			})
 		)
 	)
@@ -43,9 +49,9 @@ export const useAiStore = defineStore('intelligence', function () {
 	function toInsertSession() {
 		return database.AiSession.add({
 			id: crypto.randomUUID(),
-			sort: 1,
 			title: '新对话',
-			userID: '1234567890',
+			pinned: false,
+			collectionID: null,
 			createdAt: Date.now(),
 			updatedAt: Date.now()
 		})
@@ -58,13 +64,14 @@ export const useAiStore = defineStore('intelligence', function () {
 		})
 	}
 
-	function toInsertMessage(value: Communicate.Message) {
+	function toInsertMessage(value: CommunicateMessage) {
 		if (!session.value?.id) throw new ExceptionBoundary('sessionID', 'required', 'for insert')
 		return database.AiMessage.add({
 			id: crypto.randomUUID(),
 			sessionID: session.value.id,
-			role: value.role,
-			content: value.content,
+			identity: value.role,
+			fragment: value.content,
+			thinking: null,
 			createdAt: Date.now(),
 			updatedAt: Date.now()
 		})

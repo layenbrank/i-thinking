@@ -11,7 +11,7 @@ export const useMarkdownStore = defineStore('markdown', function () {
 	const markdowns = useObservable(
 		from(
 			liveQuery(function () {
-				return database.markdown.orderBy('sort').toArray()
+				return database.markdown.orderBy('index').toArray()
 			})
 		).pipe(
 			tap(function (values) {
@@ -64,16 +64,16 @@ export const useMarkdownStore = defineStore('markdown', function () {
 
 	function toGenerate() {
 		const values = markdowns.value?.toSorted(function (a, b) {
-			return b.sort - a.sort
+			return b.index - a.index
 		})
 		const [markdown] = values ?? []
-		const sort = markdown?.sort ?? 0
+		const index = markdown?.index ?? 0
 
 		const value: Markdown = {
 			content: [],
 			type: 'doc',
 			attrs: {},
-			sort: sort + 1,
+			index: index + 1,
 			createdAt: Date.now(),
 			updatedAt: Date.now(),
 			id: crypto.randomUUID()

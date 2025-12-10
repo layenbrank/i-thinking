@@ -44,7 +44,10 @@
 			"types": "./src/types/application-bookmark.d.ts"
 		},
 		"./application-markdown": {
-			"types": "./src/types/application-markdown.ts"
+			"types": "./src/types/application-markdown.d.ts"
+		},
+		"./application-intelligence": {
+			"types": "./src/types/application-intelligence.ts"
 		}
 	}
 }

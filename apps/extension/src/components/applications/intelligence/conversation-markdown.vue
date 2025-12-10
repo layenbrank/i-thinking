@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useAiStore } from '@/stores/intelligence.ts'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import CSS from 'highlight.js/lib/languages/css'
@@ -8,8 +7,8 @@ import XML from 'highlight.js/lib/languages/xml'
 // import { markedHighlight } from 'marked-highlight'
 import { Marked } from 'marked'
 
-// import 'highlight.js/styles/cybertopia-cherry.css'
 import 'highlight.js/styles/atom-one-light.css' // *
+// import 'highlight.js/styles/cybertopia-cherry.css'
 // import 'highlight.js/styles/atom-one-dark-reasonable.css'
 // import 'highlight.js/styles/github.css'
 // import 'highlight.js/styles/github-dark.css'
@@ -17,23 +16,27 @@ import 'highlight.js/styles/atom-one-light.css' // *
 // import 'highlight.js/styles/vs2015.css'
 // import 'highlight.js/styles/vs.css'
 
-hljs.registerLanguage('css', CSS)
-hljs.registerLanguage('html', XML)
-hljs.registerLanguage('javascript', JavaScript)
+type AiMessage = Application.Intelligence.AiMessage
+type CommunicateMessage = Application.Intelligence.Communicate.Message
 
 defineOptions({
 	name: 'conversation-markdown'
 })
 
-const props = withDefaults(
+withDefaults(
 	defineProps<{
-		session: string
 		generating: boolean
+		messages: AiMessage[]
 	}>(),
-	{}
+	{
+		generating: false,
+		messages: () => []
+	}
 )
 
-const store = useAiStore()
+hljs.registerLanguage('css', CSS)
+hljs.registerLanguage('html', XML)
+hljs.registerLanguage('javascript', JavaScript)
 
 const marked = new Marked()
 
@@ -64,16 +67,16 @@ function DOMSanitized(stringified: string) {
 
 <template>
 	<div class="conversation-markdown">
-		<template v-for="message in store.messages" :key="message.id">
+		<template v-for="message in messages" :key="message.id">
 			<div
-				v-html="DOMSanitized(message.content)"
-				v-if="message.role === 'assistant'"
-				:class="['session-section', message.role]"
+				v-html="DOMSanitized(message.fragment)"
+				v-if="message.identity === 'assistant'"
+				:class="['session-section', message.identity]"
 			></div>
 			<div
-				v-text="message.content"
-				v-if="message.role === 'user'"
-				:class="['session-section', message.role]"
+				v-text="message.fragment"
+				v-if="message.identity === 'user'"
+				:class="['session-section', message.identity]"
 			></div>
 		</template>
 	</div>
@@ -84,6 +87,7 @@ function DOMSanitized(stringified: string) {
 	width: 100%;
 	display: flex;
 	flex-direction: column;
+	row-gap: 16px;
 
 	*,
 	*::before,

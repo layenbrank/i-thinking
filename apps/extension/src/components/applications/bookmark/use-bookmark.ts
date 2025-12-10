@@ -10,23 +10,23 @@ import { message } from 'ant-design-vue'
 import { isEmpty } from 'lodash-es'
 
 type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode
-type Bookmark = Application.Bookmark
-type BookmarkFolder = Application.BookmarkDir
+type Entry = Application.Bookmark.Entry
+type Directory = Application.Bookmark.Directory
 export interface BookmarkParse {
-	bookmarks: Bookmark[]
-	folders: BookmarkFolder[]
+	entries: Entry[]
+	directories: Directory[]
 }
 
 export function useBookMark() {
-	const activeFolder = ref<BookmarkFolder | null>(null)
+	const activeFolder = ref<Directory | null>(null)
 
-	const targetBookmarks = ref<Bookmark[] | undefined>([])
+	const targetBookmarks = ref<Entry[] | undefined>([])
 
 	const folders = useObservable(
 		from(
-			liveQuery(function (): Promise<BookmarkFolder[]> {
-				// return folderModule.orderBy('sort').toArray()
-				return database.bookmarkDir.orderBy('sort').toArray()
+			liveQuery(function (): Promise<Directory[]> {
+				// return folderModule.orderBy('index').toArray()
+				return database.bookmarkDir.orderBy('index').toArray()
 			})
 		).pipe(
 			tap(function (folders) {
@@ -46,8 +46,8 @@ export function useBookMark() {
 	const bookmarks = useObservable(
 		from(
 			liveQuery(function () {
-				// return bookmarkModule.orderBy('sort').toArray()
-				return database.bookmark.orderBy('sort').toArray()
+				// return bookmarkModule.orderBy('index').toArray()
+				return database.bookmark.orderBy('index').toArray()
 			})
 		).pipe(
 			tap(function (response) {
@@ -88,10 +88,10 @@ export function useBookMark() {
 
 		const parsed = parseBookmarkTree(bookmarkTreeRes)
 
-		void database.bookmark.bulkPut(parsed.bookmarks)
-		void database.bookmarkDir.bulkPut(parsed.folders)
+		void database.bookmark.bulkPut(parsed.entries)
+		void database.bookmarkDir.bulkPut(parsed.directories)
 
-		for (const folder of parsed.folders) {
+		for (const folder of parsed.directories) {
 			await database.bookmark
 				.where('folderID')
 				.equals(folder.id)
@@ -102,11 +102,11 @@ export function useBookMark() {
 				})
 		}
 
-		const [folder] = parsed.folders || []
+		const [folder] = parsed.directories || []
 
 		activeFolder.value = folder ?? null
 
-		if (parsed.folders?.length) message.success('书签更新成功')
+		if (parsed.directories?.length) message.success('书签更新成功')
 	}
 
 	/**
@@ -115,9 +115,9 @@ export function useBookMark() {
 	 * @returns 包含书签和文件夹的分类结果
 	 */
 	function parseBookmarkTree(bookmarkNodes: BookmarkTreeNode[]): BookmarkParse {
-		if (!bookmarkNodes?.length) return { bookmarks: [], folders: [] }
-		const parsedBookmarks: Bookmark[] = []
-		const parsedFolders: BookmarkFolder[] = []
+		if (!bookmarkNodes?.length) return { entries: [], directories: [] }
+		const parsedBookmarks: Entry[] = []
+		const parsedFolders: Directory[] = []
 		const toUpdateNodeStack: BookmarkTreeNode[] = [...bookmarkNodes]
 
 		while (toUpdateNodeStack.length > 0) {
@@ -143,8 +143,8 @@ export function useBookMark() {
 		}
 
 		return {
-			bookmarks: parsedBookmarks,
-			folders: parsedFolders
+			entries: parsedBookmarks,
+			directories: parsedFolders
 		}
 	}
 
@@ -165,16 +165,16 @@ export function useBookMark() {
 	/**
 	 * 将Chrome书签节点转换为Bookmark实体
 	 * @param bookmarkNode Chrome书签节点
-	 * @param sortIndex 排序索引（当前数组长度）
+	 * @param index 排序索引（当前数组长度）
 	 */
-	function transformToBookmark(bookmarkNode: BookmarkTreeNode, sortIndex: number): Bookmark {
+	function transformToBookmark(bookmarkNode: BookmarkTreeNode, index: number): Entry {
 		return {
 			id: bookmarkNode.id,
 			url: bookmarkNode.url ?? '',
 			title: bookmarkNode.title,
 			icon: '', // Chrome API不直接提供图标，需要额外获取
-			folderID: bookmarkNode.parentId ?? '',
-			sort: sortIndex,
+			dirID: bookmarkNode.parentId ?? '',
+			index: index,
 			description: '', // Chrome API不提供描述字段
 			createdAt: bookmarkNode.dateAdded ?? Date.now(),
 			updatedAt: bookmarkNode.dateGroupModified ?? Date.now()
@@ -184,14 +184,14 @@ export function useBookMark() {
 	/**
 	 * 将Chrome文件夹节点转换为BookmarkFolder实体
 	 * @param bookmarkNode Chrome书签节点
-	 * @param sortIndex 排序索引（当前数组长度）
+	 * @param index 排序索引（当前数组长度）
 	 */
-	function transformToFolder(bookmarkNode: BookmarkTreeNode, sortIndex: number): BookmarkFolder {
+	function transformToFolder(bookmarkNode: BookmarkTreeNode, index: number): Directory {
 		return {
 			count: 0,
 			id: bookmarkNode.id,
-			folder: bookmarkNode.title,
-			sort: sortIndex,
+			title: bookmarkNode.title,
+			index: index,
 			createdAt: bookmarkNode.dateAdded ?? Date.now(),
 			updatedAt: bookmarkNode.dateGroupModified ?? Date.now()
 		}

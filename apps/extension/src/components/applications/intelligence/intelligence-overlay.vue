@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { GeneratorJSON, POST_COMMUNICATE, type Communicate } from '@/apis/intelligence.ts'
+import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'
 import CollectionEntry from '@/components/applications/intelligence/collection-entry.vue'
 import ComposerBlock from '@/components/applications/intelligence/composer-block.vue'
 import ConversationMarkdown from '@/components/applications/intelligence/conversation-markdown.vue'
 import { useAiStore } from '@/stores/intelligence.ts'
 import { throttle } from 'lodash-es'
+
+type AiMessage = Application.Intelligence.AiMessage
+type CommunicateParams = Application.Intelligence.Communicate.Params
+type CommunicateMessage = Application.Intelligence.Communicate.Message
 
 defineOptions({
 	name: 'intelligence-overlay'
@@ -17,16 +21,50 @@ const store = useAiStore()
 
 const conversationRef = useTemplateRef<HTMLElement>('conversationRef')
 const generating = ref(false)
-
-const params = ref<Communicate.Params>({
-	model: 'qwen3:8b',
-	stream: true,
-	raw: true,
-	messages: []
-})
-
 const keyword = ref('')
-const session = ref('')
+// const session = ref('')
+const messages = ref<AiMessage[]>([])
+
+// const params = ref<CommunicateParams>({
+// 	model: 'qwen3:8b',
+// 	stream: true,
+// 	raw: true,
+// 	messages: []
+// })
+const params = computed({
+	get() {
+		const message: CommunicateParams = {
+			model: 'qwen3:8b',
+			stream: true,
+			raw: true,
+			messages: messages.value.map(function (value) {
+				const message: CommunicateMessage = {
+					role: value.identity,
+					content: value.fragment,
+					thinking: value.thinking ?? undefined
+				}
+				if (!message.thinking) delete message.thinking
+				return message
+			})
+		}
+		return message
+	},
+	set(value: CommunicateParams) {
+		params.value = value
+		// messages.value = value.messages.map(function (msg) {
+		// 	const aiMessage: AiMessage = {
+		// 		id: crypto.randomUUID(),
+		// 		sessionID: '', // TODO: assign session ID
+		// 		identity: msg.role,
+		// 		fragment: msg.content,
+		// 		thinking: msg.thinking ?? null,
+		// 		createdAt: Date.now(),
+		// 		updatedAt: Date.now()
+		// 	}
+		// 	return aiMessage
+		// })
+	}
+})
 
 // let childNode: HTMLElement | null = null
 
@@ -45,6 +83,26 @@ const session = ref('')
 async function toTokens() {
 	generating.value = true
 	const generators = GeneratorJSON(POST_COMMUNICATE.bind(null, params.value))
+
+	let index = messages.value.length - 1
+	let message = messages.value[index]
+
+	const DEFAULT: AiMessage = {
+		fragment: '',
+		thinking: null,
+		identity: 'assistant',
+		id: crypto.randomUUID(),
+		sessionID: '',
+		createdAt: Date.now(),
+		updatedAt: Date.now()
+	}
+
+	if (!message) {
+		messages.value = [DEFAULT]
+		index = messages.value.length - 1
+		message = messages.value[index]
+	}
+
 	for await (const generator of generators) {
 		const { message: msg } = generator
 		const { content, thinking } = msg
@@ -52,18 +110,21 @@ async function toTokens() {
 		if (content.startsWith('<think>')) continue
 		if (content.endsWith('</think>')) continue
 
-		if (thinking) session.value += thinking
-		else session.value += content
+		if (content) message.fragment += content
+		if (thinking) message.thinking += thinking
 		delay()
 	}
+
+	index = messages.value.length - 1
+	message = messages.value[index]
 
 	void store
 		.toInsertMessage({
 			role: 'assistant',
-			content: session.value
+			content: message?.fragment ?? ''
 		})
 		.then(function (response) {
-			console.log('[toInsertMessage]', response)
+			console.log('[toInsertMessage]', response, messages.value)
 		})
 		.finally(function () {
 			generating.value = false
@@ -92,20 +153,23 @@ function onTriggerEnter(event: KeyboardEvent) {
 	console.log('[onEnter]', keyword.value)
 
 	if (!keyword.value.trim()) return
-	session.value = ''
+	// session.value = ''
 
-	const message: Communicate.Message = {
+	const message: CommunicateMessage = {
 		role: 'user',
 		content: keyword.value
 	}
 
 	if (store.messages) {
 		params.value.messages = store.messages
-			.map(function (msg) {
-				return {
-					role: msg.role,
-					content: msg.content
+			.map(function (value) {
+				const message: CommunicateMessage = {
+					role: value.identity,
+					content: value.fragment,
+					thinking: value.thinking ?? undefined
 				}
+				if (!message.thinking) delete message.thinking
+				return message
 			})
 			.concat([message])
 	}
@@ -117,6 +181,10 @@ function onTriggerEnter(event: KeyboardEvent) {
 
 	void toTokens()
 }
+watchEffect(function () {
+	if (!store.messages) return
+	messages.value = store.messages
+})
 
 function updateKeyword(value: string) {
 	console.log('[updateKeyword]', value)
@@ -130,9 +198,12 @@ function updateKeyword(value: string) {
 		<CollectionEntry></CollectionEntry>
 		<div class="interactive-section">
 			<div class="conversation-section">
-				<div class="conversation-heading">{{ session.slice(0, 12) || '未命名标题' }}</div>
+				<div class="conversation-heading">{{ '未命名标题' }}</div>
 				<div ref="conversationRef" class="conversation-scroll">
-					<ConversationMarkdown :session="session" :generating="generating"></ConversationMarkdown>
+					<ConversationMarkdown
+						:messages="messages"
+						:generating="generating"
+					></ConversationMarkdown>
 				</div>
 			</div>
 			<ComposerBlock

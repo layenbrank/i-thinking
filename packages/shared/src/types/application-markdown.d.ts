@@ -4,7 +4,7 @@ export {}
 
 declare global {
 	// type Markdown = Omit<DocumentType, 'attrs'> & Schema
-	type Markdown = Schema & DocumentType & { sort: number }
+	type Markdown = Schema & DocumentType & { index: number }
 }
 
 declare module '@tiptap/core' {
@@ -13,14 +13,14 @@ declare module '@tiptap/core' {
 			/**
 			 * 设置文档元数据
 			 */
-			setMetadata: (metadata: Partial<Schema & { sort: number }>) => ReturnType
+			setMetadata: (metadata: Partial<Schema & { index: number }>) => ReturnType
 		}
 	}
 
 	interface Storage {
 		metadata: {
 			id: string
-			sort: number
+			index: number
 			createdAt: number
 			updatedAt: number
 		}
