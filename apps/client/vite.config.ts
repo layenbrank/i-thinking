@@ -235,17 +235,17 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 						}
 
 						return 'assets/[name].[ext]'
-					}
-					// manualChunks(id) {
-					// 	// 遍历映射表，匹配当前模块路径
-					// 	for (const [chunkName, patterns] of chunkEntries) {
-					// 		const pattern = patterns.some((pattern) => pattern.test(id))
-					// 		if (pattern) return chunkName
-					// 	}
+					},
+					manualChunks(id) {
+						// 遍历映射表，匹配当前模块路径
+						for (const [chunkName, patterns] of chunkEntries) {
+							const pattern = patterns.some((pattern) => pattern.test(id))
+							if (pattern) return chunkName
+						}
 
-					// 	// 其他第三方依赖
-					// 	if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
-					// }
+						// 其他第三方依赖
+						if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
+					}
 				}
 			}
 		},
