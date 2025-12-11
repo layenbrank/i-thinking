@@ -2,13 +2,14 @@
 	"$schema": "https://schema.tauri.app/config/2",
 	"app": {
 		"macOSPrivateApi": true,
+		"withGlobalTauri": true,
 		"security": {
 			"headers": {
 				"Service-Worker-Allowed": "/"
 			},
 			"assetProtocol": {
 				"enable": true,
-				"scope": ["*", "https://www.baidu.com", "http://localhost:1420"]
+				"scope": ["*", "https://www.baidu.com", "http://localhost:5173"]
 			},
 			"devCsp": "default-src *; img-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; frame-src *; connect-src *;",
 			"csp": "default-src *; img-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; frame-src *; connect-src *;"
@@ -40,7 +41,7 @@
 	"build": {
 		"beforeBuildCommand": "pnpm build:core",
 		"beforeDevCommand": "pnpm dev:core",
-		"devUrl": "http://localhost:1420",
+		"devUrl": "http://localhost:5173",
 		"frontendDist": "../dist"
 	},
 	"bundle": {
