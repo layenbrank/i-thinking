@@ -46,7 +46,13 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 
 	'core-framework': [/[\\/]node_modules[\\/](react|react-dom|use-sync-external-store)[\\/]/],
 
-	'ui-antd': [/[\\/]node_modules[\\/]antd[\\/]/],
+	// 'ui-antd': [
+	// 	/[\\/]node_modules[\\/]antd[\\/]/,
+	// 	/[\\/]node_modules[\\/]antd-style[\\/]/,
+	// 	/[\\/]node_modules[\\/]@ant-design[\\/]/,
+	// 	/[\\/]node_modules[\\/]@rc-component\/[\\/]/,
+	// 	/[\\/]node_modules[\\/]@ant-design\/v5-patch-for-react-19[\\/]/
+	// ],
 
 	'ui-icons': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/, /~icons/],
 
@@ -62,6 +68,23 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/](lodash-es|rxjs|uuid|clsx)[\\/]/,
 		/[\\/]node_modules[\\/](reflect-metadata)[\\/]/
 	],
+
+	// 'rehype-highlight': '^7.0.2',
+	// 'rehype-raw': '^7.0.0',
+	// 'remark-gfm': '^4.0.1',
+	// ========== 编辑器 ==========
+	'utils-markdown': [
+		/[\\/]node_modules[\\/]@tiptap[\\/]/,
+		/[\\/]node_modules[\\/]marked[\\/]/,
+		/[\\/]node_modules[\\/]prosemirror-/,
+		/[\\/]node_modules[\\/]dompurify[\\/]/,
+		/[\\/]node_modules[\\/]@floating-ui[\\/]/,
+		/[\\/]node_modules[\\/]rehype-/,
+		/[\\/]node_modules[\\/]remark-/,
+		/[\\/]node_modules[\\/]react-markdown[\\/]/
+	],
+
+	'utils-code': [/[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/],
 
 	'utils-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
 
@@ -82,7 +105,12 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/](axios|follow-redirects|form-data|proxy-from-env)[\\/]/
 	],
 
-	'utils-storage': [/[\\/]node_modules[\\/](dexie)[\\/]/],
+	'utils-storage': [/[\\/]node_modules[\\/](dexie|zustand)[\\/]/],
+
+	// 'utils-storage': [
+	// 	/[\\/]node_modules[\\/](redux|react-redux|@reduxjs\/toolkit|redux-thunk)[\\/]/,
+	// 	/[\\/]node_modules[\\/](immer|@standard-schema\/spec|@standard-schema\/utils|reselect)[\\/]/
+	// ],
 	// 'utils-storage': [
 	// 	/[\\/]node_modules[\\/](redux|react-redux|@reduxjs\/toolkit|redux-thunk)[\\/]/,
 	// 	/[\\/]node_modules[\\/](immer|@standard-schema\/spec|@standard-schema\/utils|reselect)[\\/]/
@@ -92,7 +120,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 
 	'utils-polyfill': [/[\\/]node_modules[\\/](@babel)[\\/]/],
 
-	scheduler: [/[\\/]node_modules[\\/]scheduler[\\/]/],
+	// scheduler: [/[\\/]node_modules[\\/](scheduler)[\\/]/, /[\\/]node_modules[\\/]@tauri-apps\//],
 
 	router: [
 		/[\\/]node_modules[\\/]@remix-run[\\/]router[\\/]/,
@@ -101,9 +129,12 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	],
 
 	'unknown-deps': [
+		/[\\/]node_modules[\\/](throttle-debounce)[\\/]/,
 		/[\\/]node_modules[\\/](rope-sequence|w3c-keyname)[\\/]/,
+		/[\\/]node_modules[\\/](scroll-into-view-if-needed)[\\/]/,
 		/[\\/]node_modules[\\/](linkifyjs|devlop|orderedmap)[\\/]/,
 		/[\\/]node_modules[\\/](compute-scroll-into-view|tslib)[\\/]/,
+		/[\\/]node_modules[\\/](mermaid|)[\\/]/,
 		/[\\/]node_modules[\\/](perfect-debounce|hookable|birpc)[\\/]/
 	]
 }
@@ -200,16 +231,16 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 
 						return 'assets/[name].[ext]'
 					},
-					manualChunks(id) {
-						// 遍历映射表，匹配当前模块路径
-						for (const [chunkName, patterns] of chunkEntries) {
-							const pattern = patterns.some((pattern) => pattern.test(id))
-							if (pattern) return chunkName
-						}
+					// manualChunks(id) {
+					// 	// 遍历映射表，匹配当前模块路径
+					// 	for (const [chunkName, patterns] of chunkEntries) {
+					// 		const pattern = patterns.some((pattern) => pattern.test(id))
+					// 		if (pattern) return chunkName
+					// 	}
 
-						// 其他第三方依赖
-						if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
-					}
+					// 	// 其他第三方依赖
+					// 	if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
+					// }
 				}
 			}
 		},
