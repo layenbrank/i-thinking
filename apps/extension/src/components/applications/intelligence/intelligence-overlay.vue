@@ -110,8 +110,8 @@ async function toTokens() {
 		if (content.startsWith('<think>')) continue
 		if (content.endsWith('</think>')) continue
 
-		if (content) message.fragment += content
-		if (thinking) message.thinking += thinking
+		// if (content) message.fragment += content
+		// if (thinking) message.thinking += thinking
 		delay()
 	}
 

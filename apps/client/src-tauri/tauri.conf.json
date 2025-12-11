@@ -38,8 +38,8 @@
 		]
 	},
 	"build": {
-		"beforeBuildCommand": "bun run build:web",
-		"beforeDevCommand": "bun run dev:web",
+		"beforeBuildCommand": "pnpm build:core",
+		"beforeDevCommand": "pnpm dev:core",
 		"devUrl": "http://localhost:1420",
 		"frontendDist": "../dist"
 	},
