@@ -10,6 +10,8 @@ import Compression from 'vite-plugin-compression'
 
 const host = process.env.TAURI_DEV_HOST
 
+console.log('host ===>', host)
+
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 
@@ -196,12 +198,15 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			include: ['react', 'react-dom', 'react-router-dom']
 		},
 		build: {
-			target: 'esnext',
+			// target: 'esnext',
+			target: process.env.TAURI_ENV_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
 			cssTarget: 'chrome128',
 			emptyOutDir: true,
-			minify: 'esbuild',
+			// minify: 'esbuild',
+			minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
 			cssMinify: 'esbuild',
-			sourcemap: mode === 'development' ? true : false,
+			// sourcemap: mode === 'development' ? true : false,
+			sourcemap: !!process.env.TAURI_ENV_DEBUG,
 			// 输出到包内 dist，便于 Turbo outputs 匹配
 			outDir: resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist'),
 			assetsInlineLimit(filePath) {
@@ -230,7 +235,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 						}
 
 						return 'assets/[name].[ext]'
-					},
+					}
 					// manualChunks(id) {
 					// 	// 遍历映射表，匹配当前模块路径
 					// 	for (const [chunkName, patterns] of chunkEntries) {
@@ -244,6 +249,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 				}
 			}
 		},
+		envPrefix: ['VITE_', 'TAURI_'],
 		css: {
 			modules: {
 				generateScopedName: '[name]-[local]-[hash:base64:6]',
@@ -264,7 +270,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 		clearScreen: false,
 		// 2. tauri expects a fixed port, fail if that port is not available
 		server: {
-			port: 1420,
+			port: 5173,
 			strictPort: true,
 			host: host || false,
 			hmr: host

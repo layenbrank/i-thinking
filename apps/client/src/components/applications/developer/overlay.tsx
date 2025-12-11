@@ -7,7 +7,7 @@ import {
 	MessageOutlined,
 	StarOutlined
 } from '@ant-design/icons'
-import { invoke } from '@tauri-apps/api/core'
+import { core } from '@tauri-apps/api'
 import {
 	Avatar,
 	Button,
@@ -311,7 +311,9 @@ const Overlay: FC<Props> = function (props) {
 	]
 
 	useEffect(function () {
-		invoke<OSGenre>('os').then(updateOS)
+		console.log('core', core.invoke)
+
+		core.invoke<OSGenre>('os').then(updateOS)
 	}, [])
 
 	return (
