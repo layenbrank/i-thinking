@@ -1,5 +1,6 @@
 import React from '@vitejs/plugin-react'
 import { findUpSync } from 'find-up'
+import { createWriteStream } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -7,6 +8,13 @@ import { FileSystemIconLoader } from 'unplugin-icons/loaders'
 import Icons from 'unplugin-icons/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const ws = createWriteStream(resolve(__dirname, 'vite-manual-chunks.log'), {
+	flush: true,
+	autoClose: true,
+	encoding: 'utf-8'
+})
 
 const host = process.env.TAURI_DEV_HOST
 
@@ -46,17 +54,19 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	'core-plugins': [/[\\/]src[\\/]plugins[\\/]/],
 	'core-database': [/[\\/]src[\\/]database[\\/]/],
 
-	'core-framework': [/[\\/]node_modules[\\/](react|react-dom|use-sync-external-store)[\\/]/],
+	'core-framework': [
+		/[\\/]node_modules[\\/](react|react-dom|use-sync-external-store|react-is)[\\/]/
+	],
 
-	// 'ui-antd': [
-	// 	/[\\/]node_modules[\\/]antd[\\/]/,
-	// 	/[\\/]node_modules[\\/]antd-style[\\/]/,
-	// 	/[\\/]node_modules[\\/]@ant-design[\\/]/,
-	// 	/[\\/]node_modules[\\/]@rc-component\/[\\/]/,
-	// 	/[\\/]node_modules[\\/]@ant-design\/v5-patch-for-react-19[\\/]/
-	// ],
+	'ui-antd': [
+		/[\\/]node_modules[\\/]antd[\\/]/,
+		/[\\/]node_modules[\\/]antd-style[\\/]/,
+		/[\\/]node_modules[\\/]@ant-design[\\/]/,
+		/[\\/]node_modules[\\/]@rc-component[\\/]/,
+		/[\\/]node_modules[\\/]@ant-design\/v5-patch-for-react-19[\\/]/
+	],
 
-	'ui-icons': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/, /~icons/],
+	'ui-marks': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/, /~icons/],
 
 	'ui-animation': [/[\\/]node_modules[\\/](gsap|swiper)[\\/]/],
 
@@ -68,22 +78,33 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 
 	'utils-core': [
 		/[\\/]node_modules[\\/](lodash-es|rxjs|uuid|clsx)[\\/]/,
-		/[\\/]node_modules[\\/](reflect-metadata)[\\/]/
+		/[\\/]node_modules[\\/](reflect-metadata)[\\/]/,
+		/[\\/]node_modules[\\/](style-to-js|style-to-object)[\\/]/
 	],
 
-	// 'rehype-highlight': '^7.0.2',
-	// 'rehype-raw': '^7.0.0',
-	// 'remark-gfm': '^4.0.1',
 	// ========== 编辑器 ==========
 	'utils-markdown': [
-		/[\\/]node_modules[\\/]@tiptap[\\/]/,
+		/[\\/]node_modules[\\/]rehype-/,
+		/[\\/]node_modules[\\/]remark-/,
 		/[\\/]node_modules[\\/]marked[\\/]/,
+		/[\\/]node_modules[\\/]@tiptap[\\/]/,
 		/[\\/]node_modules[\\/]prosemirror-/,
 		/[\\/]node_modules[\\/]dompurify[\\/]/,
 		/[\\/]node_modules[\\/]@floating-ui[\\/]/,
-		/[\\/]node_modules[\\/]rehype-/,
-		/[\\/]node_modules[\\/]remark-/,
-		/[\\/]node_modules[\\/]react-markdown[\\/]/
+		/[\\/]node_modules[\\/]react-markdown[\\/]/,
+		/[\\/]node_modules[\\/](markdown-table)[\\/]/,
+		/[\\/]node_modules[\\/]micromark/,
+		/[\\/]node_modules[\\/]mdast-util-/,
+		/[\\/]node_modules[\\/]hast-/,
+		/[\\/]node_modules[\\/]hastscript[\\/]/,
+		/[\\/]node_modules[\\/]unist-util-/,
+		/[\\/]node_modules[\\/]parse5[\\/]/,
+		/[\\/]node_modules[\\/]entities[\\/]/,
+		/[\\/]node_modules[\\/]vfile-/,
+		/[\\/]node_modules[\\/]escape-string-regexp[\\/]/,
+		/[\\/]node_modules[\\/]longest-streak[\\/]/,
+		/[\\/]node_modules[\\/]decode-named-character-reference[\\/]/,
+		/[\\/]node_modules[\\/]@ungap[\\/]/
 	],
 
 	'utils-code': [/[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/],
@@ -95,7 +116,6 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	'utils-matches': [/[\\/]node_modules[\\/](fuse\.js)[\\/]/],
 
 	'utils-math': [
-		/[\\/]node_modules[\\/](mathjs)[\\/]/,
 		/[\\/]node_modules[\\/](mathjs|complex\.js|decimal\.js|escape-latex|fraction\.js)[\\/]/,
 		/[\\/]node_modules[\\/](javascript-natural-sort|seedrandom|tiny-emitter|typed-function)[\\/]/
 	],
@@ -104,7 +124,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 
 	'utils-network': [
 		/[\\/]node_modules[\\/](@ngify)[\\/]/,
-		/[\\/]node_modules[\\/](axios|follow-redirects|form-data|proxy-from-env)[\\/]/
+		/[\\/]node_modules[\\/](axios|follow-redirects|form-data|proxy-from-env|cookie|set-cookie-parser)[\\/]/
 	],
 
 	'utils-storage': [/[\\/]node_modules[\\/](dexie|zustand)[\\/]/],
@@ -113,16 +133,14 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	// 	/[\\/]node_modules[\\/](redux|react-redux|@reduxjs\/toolkit|redux-thunk)[\\/]/,
 	// 	/[\\/]node_modules[\\/](immer|@standard-schema\/spec|@standard-schema\/utils|reselect)[\\/]/
 	// ],
-	// 'utils-storage': [
-	// 	/[\\/]node_modules[\\/](redux|react-redux|@reduxjs\/toolkit|redux-thunk)[\\/]/,
-	// 	/[\\/]node_modules[\\/](immer|@standard-schema\/spec|@standard-schema\/utils|reselect)[\\/]/
-	// ],
 
 	'utils-validation': [/[\\/]node_modules[\\/](zod)[\\/]/],
 
-	'utils-polyfill': [/[\\/]node_modules[\\/](@babel)[\\/]/],
+	'utils-polyfill': [/[\\/]node_modules[\\/]@babel[\\/]/],
 
-	// scheduler: [/[\\/]node_modules[\\/](scheduler)[\\/]/, /[\\/]node_modules[\\/]@tauri-apps\//],
+	'utils-interaction': [/[\\/]node_modules[\\/](sortablejs)[\\/]/],
+
+	scheduler: [/[\\/]node_modules[\\/](scheduler)[\\/]/, /[\\/]node_modules[\\/]@tauri-apps[\\/]/],
 
 	router: [
 		/[\\/]node_modules[\\/]@remix-run[\\/]router[\\/]/,
@@ -136,8 +154,38 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/](scroll-into-view-if-needed)[\\/]/,
 		/[\\/]node_modules[\\/](linkifyjs|devlop|orderedmap)[\\/]/,
 		/[\\/]node_modules[\\/](compute-scroll-into-view|tslib)[\\/]/,
-		/[\\/]node_modules[\\/](mermaid|)[\\/]/,
-		/[\\/]node_modules[\\/](perfect-debounce|hookable|birpc)[\\/]/
+		/[\\/]node_modules[\\/](mermaid)[\\/]/,
+		/[\\/]node_modules[\\/](perfect-debounce|hookable|birpc)[\\/]/,
+		/[\\/]node_modules[\\/](is-mobile)[\\/]/,
+		/[\\/]node_modules[\\/](property-information)[\\/]/,
+		/[\\/]node_modules[\\/](@emotion|unified)[\\/]/,
+		/[\\/]node_modules[\\/](stylis|vfile|trough|ccount|trim-lines)[\\/]/,
+		/[\\/]node_modules[\\/](inline-style-parser|fast-equals)[\\/]/,
+		/[\\/]node_modules[\\/](estree-util-is-identifier-name)[\\/]/,
+		/[\\/]node_modules[\\/](space-separated-tokens)[\\/]/,
+		/[\\/]node_modules[\\/](html-void-elements)[\\/]/,
+		/[\\/]node_modules[\\/](web-namespaces|comma-separated-tokens)[\\/]/,
+		/[\\/]node_modules[\\/](html-url-attributes)[\\/]/,
+		/[\\/]node_modules[\\/](bail|extend|is-plain-obj|zwitch)[\\/]/,
+		/[\\/]node_modules[\\/](string-convert|json2mq)[\\/]/
+		// inline-style-parser
+		// stylis
+		// memfs
+		// vfile
+		// unified
+		// trough
+		// ccount
+		// trim-lines
+		// fast-equals
+		// estree-util-is-identifier-name
+		// space-separated-tokens
+		// html-void-elements
+		// markdown-table
+		// web-namespaces
+		// bson
+		// comma-separated-tokens
+		// html-url-attributes
+		// alien-signals
 	]
 }
 
@@ -238,10 +286,14 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 					},
 					manualChunks(id) {
 						// 遍历映射表，匹配当前模块路径
+
 						for (const [chunkName, patterns] of chunkEntries) {
 							const pattern = patterns.some((pattern) => pattern.test(id))
 							if (pattern) return chunkName
 						}
+
+						console.log('[manualChunks] ===>', id)
+						ws.write(`[manualChunks] ===> ${id}\n`)
 
 						// 其他第三方依赖
 						if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
