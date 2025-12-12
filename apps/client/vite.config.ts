@@ -54,16 +54,24 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	'core-plugins': [/[\\/]src[\\/]plugins[\\/]/],
 	'core-database': [/[\\/]src[\\/]database[\\/]/],
 
-	'core-framework': [
-		/[\\/]node_modules[\\/](react|react-dom|use-sync-external-store|react-is)[\\/]/
-	],
+	'core-framework': [/[\\/]node_modules[\\/](react|react-dom)[\\/]/],
 
 	'ui-antd': [
 		/[\\/]node_modules[\\/]antd[\\/]/,
-		/[\\/]node_modules[\\/]antd-style[\\/]/,
-		/[\\/]node_modules[\\/]@ant-design[\\/]/,
 		/[\\/]node_modules[\\/]@rc-component[\\/]/,
-		/[\\/]node_modules[\\/]@ant-design\/v5-patch-for-react-19[\\/]/
+		/[\\/]node_modules[\\/]@ant-design[\\/]/,
+		/[\\/]node_modules[\\/]antd-style[\\/]/,
+		/[\\/]node_modules[\\/]throttle-debounce[\\/]/,
+
+		/[\\/]node_modules[\\/]@emotion[\\/]/,
+		/[\\/]node_modules[\\/]react-is[\\/]/,
+		/[\\/]node_modules[\\/]json2mq[\\/]/,
+		/[\\/]node_modules[\\/]string-convert[\\/]/,
+		/[\\/]node_modules[\\/]stylis[\\/]/,
+		/[\\/]node_modules[\\/]is-mobile[\\/]/,
+
+		/[\\/]node_modules[\\/]scroll-into-view-if-needed[\\/]/,
+		/[\\/]node_modules[\\/]compute-scroll-into-view[\\/]/
 	],
 
 	'ui-marks': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/, /~icons/],
@@ -78,33 +86,77 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 
 	'utils-core': [
 		/[\\/]node_modules[\\/](lodash-es|rxjs|uuid|clsx)[\\/]/,
-		/[\\/]node_modules[\\/](reflect-metadata)[\\/]/,
-		/[\\/]node_modules[\\/](style-to-js|style-to-object)[\\/]/
+		/[\\/]node_modules[\\/](reflect-metadata)[\\/]/
 	],
 
 	// ========== 编辑器 ==========
 	'utils-markdown': [
 		/[\\/]node_modules[\\/]rehype-/,
+		/[\\/]node_modules[\\/]hast-util-raw[\\/]/,
+		/[\\/]node_modules[\\/]@ungap\/structured-clone[\\/]/,
+		/[\\/]node_modules[\\/]hast-util-from-parse5[\\/]/,
+		/[\\/]node_modules[\\/]hast-util-to-parse5[\\/]/,
+		/[\\/]node_modules[\\/]html-void-elements[\\/]/,
+		/[\\/]node_modules[\\/]parse5[\\/]/,
+		/[\\/]node_modules[\\/]unist-util-position[\\/]/,
+		/[\\/]node_modules[\\/]unist-util-visit[\\/]/,
+		/[\\/]node_modules[\\/]unist-util-is[\\/]/,
+		/[\\/]node_modules[\\/]unist-util-visit-parents[\\/]/,
+		/[\\/]node_modules[\\/]web-namespaces[\\/]/,
+		/[\\/]node_modules[\\/]zwitch[\\/]/,
+		/[\\/]node_modules[\\/]vfile[\\/]/,
+		/[\\/]node_modules[\\/]hast-util-to-text[\\/]/,
+		/[\\/]node_modules[\\/]hast-util-is-element[\\/]/,
+		/[\\/]node_modules[\\/]unist-util-find-after[\\/]/,
+
 		/[\\/]node_modules[\\/]remark-/,
+		/[\\/]node_modules[\\/]unified[\\/]/,
+		/[\\/]node_modules[\\/]bail[\\/]/,
+		/[\\/]node_modules[\\/]trough[\\/]/,
+		/[\\/]node_modules[\\/]is-plain-obj[\\/]/,
+		/[\\/]node_modules[\\/]extend[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-gfm[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-gfm-autolink-literal[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-gfm-footnote[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-gfm-strikethrough[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-gfm-table[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-gfm-task-list-item[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-from-markdown[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-to-markdown[\\/]/,
+		// /[\\/]node_modules[\\/]micromark-extension-gfm[\\/]/, // wait
+
 		/[\\/]node_modules[\\/]marked[\\/]/,
-		/[\\/]node_modules[\\/]@tiptap[\\/]/,
+
 		/[\\/]node_modules[\\/]prosemirror-/,
+		/[\\/]node_modules[\\/]rope-sequence[\\/]/,
+		/[\\/]node_modules[\\/]orderedmap[\\/]/,
+		/[\\/]node_modules[\\/]w3c-keyname[\\/]/,
+
 		/[\\/]node_modules[\\/]dompurify[\\/]/,
 		/[\\/]node_modules[\\/]@floating-ui[\\/]/,
+
 		/[\\/]node_modules[\\/]react-markdown[\\/]/,
-		/[\\/]node_modules[\\/](markdown-table)[\\/]/,
-		/[\\/]node_modules[\\/]micromark/,
-		/[\\/]node_modules[\\/]mdast-util-/,
-		/[\\/]node_modules[\\/]hast-/,
-		/[\\/]node_modules[\\/]hastscript[\\/]/,
-		/[\\/]node_modules[\\/]unist-util-/,
-		/[\\/]node_modules[\\/]parse5[\\/]/,
-		/[\\/]node_modules[\\/]entities[\\/]/,
-		/[\\/]node_modules[\\/]vfile-/,
-		/[\\/]node_modules[\\/]escape-string-regexp[\\/]/,
-		/[\\/]node_modules[\\/]longest-streak[\\/]/,
-		/[\\/]node_modules[\\/]decode-named-character-reference[\\/]/,
-		/[\\/]node_modules[\\/]@ungap[\\/]/
+		/[\\/]node_modules[\\/]devlop[\\/]/,
+		/[\\/]node_modules[\\/]html-url-attributes[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-to-hast[\\/]/,
+		/[\\/]node_modules[\\/]hast-util-to-jsx-runtime[\\/]/,
+		/[\\/]node_modules[\\/]style-to-js[\\/]/,
+		/[\\/]node_modules[\\/]style-to-object[\\/]/,
+		/[\\/]node_modules[\\/]inline-style-parser[\\/]/,
+		/[\\/]node_modules[\\/]vfile-message[\\/]/,
+		/[\\/]node_modules[\\/]space-separated-tokens[\\/]/,
+		/[\\/]node_modules[\\/]property-information[\\/]/,
+		/[\\/]node_modules[\\/]comma-separated-tokens[\\/]/,
+		/[\\/]node_modules[\\/]estree-util-is-identifier-name[\\/]/,
+		/[\\/]node_modules[\\/]hast-util-whitespace[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-mdx-expression[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-mdx-jsx[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-mdxjs-esm[\\/]/,
+
+		/[\\/]node_modules[\\/]@tiptap[\\/]/,
+		/[\\/]node_modules[\\/]fast-equals[\\/]/,
+		/[\\/]node_modules[\\/]linkifyjs[\\/]/,
+		/[\\/]node_modules[\\/]use-sync-external-store[\\/]/
 	],
 
 	'utils-code': [/[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/],
@@ -127,7 +179,8 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/](axios|follow-redirects|form-data|proxy-from-env|cookie|set-cookie-parser)[\\/]/
 	],
 
-	'utils-storage': [/[\\/]node_modules[\\/](dexie|zustand)[\\/]/],
+	'utils-store': [/[\\/]node_modules[\\/]zustand[\\/]/],
+	'utils-storage': [/[\\/]node_modules[\\/]dexie[\\/]/],
 
 	// 'utils-storage': [
 	// 	/[\\/]node_modules[\\/](redux|react-redux|@reduxjs\/toolkit|redux-thunk)[\\/]/,
@@ -148,45 +201,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/]react-router-dom[\\/]/
 	],
 
-	'unknown-deps': [
-		/[\\/]node_modules[\\/](throttle-debounce)[\\/]/,
-		/[\\/]node_modules[\\/](rope-sequence|w3c-keyname)[\\/]/,
-		/[\\/]node_modules[\\/](scroll-into-view-if-needed)[\\/]/,
-		/[\\/]node_modules[\\/](linkifyjs|devlop|orderedmap)[\\/]/,
-		/[\\/]node_modules[\\/](compute-scroll-into-view|tslib)[\\/]/,
-		/[\\/]node_modules[\\/](mermaid)[\\/]/,
-		/[\\/]node_modules[\\/](perfect-debounce|hookable|birpc)[\\/]/,
-		/[\\/]node_modules[\\/](is-mobile)[\\/]/,
-		/[\\/]node_modules[\\/](property-information)[\\/]/,
-		/[\\/]node_modules[\\/](@emotion|unified)[\\/]/,
-		/[\\/]node_modules[\\/](stylis|vfile|trough|ccount|trim-lines)[\\/]/,
-		/[\\/]node_modules[\\/](inline-style-parser|fast-equals)[\\/]/,
-		/[\\/]node_modules[\\/](estree-util-is-identifier-name)[\\/]/,
-		/[\\/]node_modules[\\/](space-separated-tokens)[\\/]/,
-		/[\\/]node_modules[\\/](html-void-elements)[\\/]/,
-		/[\\/]node_modules[\\/](web-namespaces|comma-separated-tokens)[\\/]/,
-		/[\\/]node_modules[\\/](html-url-attributes)[\\/]/,
-		/[\\/]node_modules[\\/](bail|extend|is-plain-obj|zwitch)[\\/]/,
-		/[\\/]node_modules[\\/](string-convert|json2mq)[\\/]/
-		// inline-style-parser
-		// stylis
-		// memfs
-		// vfile
-		// unified
-		// trough
-		// ccount
-		// trim-lines
-		// fast-equals
-		// estree-util-is-identifier-name
-		// space-separated-tokens
-		// html-void-elements
-		// markdown-table
-		// web-namespaces
-		// bson
-		// comma-separated-tokens
-		// html-url-attributes
-		// alien-signals
-	]
+	'unknown-deps': []
 }
 
 const chunkEntries = Object.entries(chunkMap)
@@ -292,8 +307,10 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 							if (pattern) return chunkName
 						}
 
-						console.log('[manualChunks] ===>', id)
-						ws.write(`[manualChunks] ===> ${id}\n`)
+						const pattern = /apps\/client\/src\//.test(id)
+
+						if (!pattern) console.log('[manualChunks] ===>', id)
+						if (!pattern) ws.write(`[manualChunks] ===> ${id}\n`)
 
 						// 其他第三方依赖
 						if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
