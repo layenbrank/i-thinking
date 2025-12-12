@@ -3,6 +3,9 @@ import { A11y, Autoplay, Mousewheel, Navigation, Pagination } from 'swiper/modul
 import type { AutoplayOptions, PaginationOptions, SwiperModule } from 'swiper/types'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import type { Reactive } from 'vue'
+import 'swiper/css'
+import 'swiper/css/navigation'
+import 'swiper/css/pagination'
 
 defineOptions({
 	name: 'marketplace-swiper'

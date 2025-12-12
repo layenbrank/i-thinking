@@ -20,7 +20,7 @@ const props = withDefaults(
 	}>(),
 	{
 		size: 'mini',
-		shape: 'square',
+		shape: 'rectangle',
 		direction: 'horizontal'
 	}
 )

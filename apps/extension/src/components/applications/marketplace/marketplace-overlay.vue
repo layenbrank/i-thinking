@@ -1,9 +1,6 @@
 <script setup lang="tsx">
 import { useMirror } from '@/hooks/mirror.ts'
 import { useMirrorStore } from '@/stores/mirror.ts'
-import 'swiper/scss'
-import 'swiper/scss/navigation'
-import 'swiper/scss/pagination'
 
 import { useI18n } from 'vue-i18n'
 import MarketplaceAihub from './marketplace-aihub.vue'
