@@ -2,7 +2,6 @@
 import { useMirrorStore } from '@/stores/mirror.ts'
 import { InboxOutlined, UploadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
-import { type UpdateSpec } from 'dexie'
 
 defineOptions({
 	name: 'marketplace-customization'

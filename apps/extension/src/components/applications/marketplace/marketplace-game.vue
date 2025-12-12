@@ -56,9 +56,16 @@ const hasMultiple = computed(() => props.applications.length > 1)
 			</template>
 			<template #main>
 				<h3>热门应用</h3>
-				<TransitionGroup tag="div" name="application-fade" class="controller">
+				<TransitionGroup
+					tag="div"
+					name="application-fade"
+					class="controller mini rectangle horizontal"
+				>
 					<template v-for="application in applications" :key="application.id">
 						<component
+							size="mini"
+							direction="horizontal"
+							shape="rectangle"
 							:class="['application']"
 							:settings-visible="false"
 							:data-id="application.id"
