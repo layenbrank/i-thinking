@@ -93,11 +93,14 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	'utils-markdown': [
 		/[\\/]node_modules[\\/]rehype-/,
 		/[\\/]node_modules[\\/]hast-util-raw[\\/]/,
+		/[\\/]node_modules[\\/]hastscript[\\/]/,
 		/[\\/]node_modules[\\/]@ungap\/structured-clone[\\/]/,
 		/[\\/]node_modules[\\/]hast-util-from-parse5[\\/]/,
+		/[\\/]node_modules[\\/]vfile-location[\\/]/,
 		/[\\/]node_modules[\\/]hast-util-to-parse5[\\/]/,
 		/[\\/]node_modules[\\/]html-void-elements[\\/]/,
 		/[\\/]node_modules[\\/]parse5[\\/]/,
+		/[\\/]node_modules[\\/]entities[\\/]/,
 		/[\\/]node_modules[\\/]unist-util-position[\\/]/,
 		/[\\/]node_modules[\\/]unist-util-visit[\\/]/,
 		/[\\/]node_modules[\\/]unist-util-is[\\/]/,
@@ -107,6 +110,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/]vfile[\\/]/,
 		/[\\/]node_modules[\\/]hast-util-to-text[\\/]/,
 		/[\\/]node_modules[\\/]hast-util-is-element[\\/]/,
+		/[\\/]node_modules[\\/]hast-util-parse-selector[\\/]/,
 		/[\\/]node_modules[\\/]unist-util-find-after[\\/]/,
 
 		/[\\/]node_modules[\\/]remark-/,
@@ -115,15 +119,51 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/]trough[\\/]/,
 		/[\\/]node_modules[\\/]is-plain-obj[\\/]/,
 		/[\\/]node_modules[\\/]extend[\\/]/,
+		/[\\/]node_modules[\\/]ccount[\\/]/,
 		/[\\/]node_modules[\\/]mdast-util-gfm[\\/]/,
 		/[\\/]node_modules[\\/]mdast-util-gfm-autolink-literal[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-find-and-replace[\\/]/,
+		/[\\/]node_modules[\\/]mdast-util-phrasing[\\/]/,
+		/[\\/]node_modules[\\/]escape-string-regexp[\\/]/,
 		/[\\/]node_modules[\\/]mdast-util-gfm-footnote[\\/]/,
+		/[\\/]node_modules[\\/]micromark-core-commonmark[\\/]/,
+		/[\\/]node_modules[\\/]micromark-factory-space[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-character[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-normalize-identifier[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-sanitize-uri[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-symbol[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-types[\\/]/,
 		/[\\/]node_modules[\\/]mdast-util-gfm-strikethrough[\\/]/,
 		/[\\/]node_modules[\\/]mdast-util-gfm-table[\\/]/,
+		/[\\/]node_modules[\\/]markdown-table[\\/]/,
 		/[\\/]node_modules[\\/]mdast-util-gfm-task-list-item[\\/]/,
 		/[\\/]node_modules[\\/]mdast-util-from-markdown[\\/]/,
 		/[\\/]node_modules[\\/]mdast-util-to-markdown[\\/]/,
-		// /[\\/]node_modules[\\/]micromark-extension-gfm[\\/]/, // wait
+		/[\\/]node_modules[\\/]mdast-util-to-string[\\/]/,
+		/[\\/]node_modules[\\/]longest-streak[\\/]/,
+		/[\\/]node_modules[\\/]decode-named-character-reference[\\/]/,
+		/[\\/]node_modules[\\/]micromark[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-decode-numeric-character-reference[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-decode-string[\\/]/,
+		/[\\/]node_modules[\\/]unist-util-stringify-position[\\/]/,
+		/[\\/]node_modules[\\/]micromark-extension-gfm[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-combine-extensions[\\/]/,
+		/[\\/]node_modules[\\/]micromark-extension-gfm-autolink-literal[\\/]/,
+		/[\\/]node_modules[\\/]micromark-extension-gfm-footnote[\\/]/,
+		/[\\/]node_modules[\\/]micromark-extension-gfm-strikethrough[\\/]/,
+		/[\\/]node_modules[\\/]micromark-extension-gfm-table[\\/]/,
+		/[\\/]node_modules[\\/]micromark-extension-gfm-tagfilter[\\/]/,
+		/[\\/]node_modules[\\/]micromark-extension-gfm-task-list-item[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-chunked[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-classify-character[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-resolve-all[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-encode[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-subtokenize[\\/]/,
+		/[\\/]node_modules[\\/]micromark-factory-destination[\\/]/,
+		/[\\/]node_modules[\\/]micromark-factory-label[\\/]/,
+		/[\\/]node_modules[\\/]micromark-factory-title[\\/]/,
+		/[\\/]node_modules[\\/]micromark-factory-whitespace[\\/]/,
+		/[\\/]node_modules[\\/]micromark-util-html-tag-name[\\/]/,
 
 		/[\\/]node_modules[\\/]marked[\\/]/,
 
@@ -139,6 +179,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/]devlop[\\/]/,
 		/[\\/]node_modules[\\/]html-url-attributes[\\/]/,
 		/[\\/]node_modules[\\/]mdast-util-to-hast[\\/]/,
+		/[\\/]node_modules[\\/]trim-lines[\\/]/,
 		/[\\/]node_modules[\\/]hast-util-to-jsx-runtime[\\/]/,
 		/[\\/]node_modules[\\/]style-to-js[\\/]/,
 		/[\\/]node_modules[\\/]style-to-object[\\/]/,
@@ -180,6 +221,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	],
 
 	'utils-store': [/[\\/]node_modules[\\/]zustand[\\/]/],
+
 	'utils-storage': [/[\\/]node_modules[\\/]dexie[\\/]/],
 
 	// 'utils-storage': [
@@ -205,6 +247,8 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 }
 
 const chunkEntries = Object.entries(chunkMap)
+
+const filePath = 'C:/Users/MACHENIKE/Documents/Vue3/'
 
 export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
 	const env = loadEnv(mode || 'development', '')
@@ -309,8 +353,10 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 
 						const pattern = /apps\/client\/src\//.test(id)
 
-						if (!pattern) console.log('[manualChunks] ===>', id)
-						if (!pattern) ws.write(`[manualChunks] ===> ${id}\n`)
+						const replaced = id.replace(filePath, '')
+
+						if (!pattern) console.log('[manualChunks] ===>', replaced)
+						if (!pattern) ws.write(`[manualChunks] ===> ${replaced}\n`)
 
 						// 其他第三方依赖
 						if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
