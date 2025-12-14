@@ -15,7 +15,8 @@
 		z-index: 1;
 		background: initial;
 		text-align: center;
-		background-color: #ffffff;
+		background-color: transparent;
+		// background-color: #ffffff;
 	}
 
 	&.core {
@@ -27,6 +28,7 @@
 		flex: none;
 		z-index: 1;
 		text-align: center;
-		background-color: #ffffff;
+		background-color: transparent;
+		// background-color: #ffffff;
 	}
 }

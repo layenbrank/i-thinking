@@ -2,74 +2,75 @@
 	"$schema": "https://schema.tauri.app/config/2",
 	"app": {
 		"macOSPrivateApi": true,
-		"withGlobalTauri": true,
 		"security": {
-			"headers": {
-				"Service-Worker-Allowed": "/",
-				"Cross-Origin-Opener-Policy": "same-origin",
-				"Cross-Origin-Embedder-Policy": "require-corp",
-				"Timing-Allow-Origin": ["https://developer.mozilla.org", "https://example.com"],
-				"X-Content-Type-Options": null, // gets ignored
-				"Access-Control-Expose-Headers": "Tauri-Custom-Header",
-				"Tauri-Custom-Header": {
-					"key1": "'value1' 'value2'",
-					"key2": "'value3'"
-				}
-			},
 			"assetProtocol": {
 				"enable": true,
 				"scope": ["*", "https://www.baidu.com", "http://localhost:5173"]
 			},
-			"devCsp": {
-				"default-src": "*",
-				"img-src": "*",
-				"script-src": "*",
-				"style-src": "*",
-				"frame-src": "*",
-				"connect-src": "*",
-				"font-src": "*"
-			},
 			"csp": {
+				"connect-src": "*",
 				"default-src": "*",
+				"font-src": "*",
+				"frame-src": "*",
 				"img-src": "*",
 				"script-src": "*",
-				"style-src": "*",
-				"frame-src": "*",
+				"style-src": "*"
+			},
+			"devCsp": {
 				"connect-src": "*",
-				"font-src": "*"
+				"default-src": "*",
+				"font-src": "*",
+				"frame-src": "*",
+				"img-src": "*",
+				"script-src": "*",
+				"style-src": "*"
+			},
+			"headers": {
+				"Access-Control-Expose-Headers": "Tauri-Custom-Header",
+				"Service-Worker-Allowed": "/",
+				"Tauri-Custom-Header": {
+					"key1": "'value1' 'value2'",
+					"key2": "'value3'"
+				},
+				"Timing-Allow-Origin": ["https://developer.mozilla.org", "https://example.com"],
+				"X-Content-Type-Options": null
 			}
 		},
 		"windows": [
 			{
 				"backgroundColor": "#00000000",
+				"browserExtensionsEnabled": false,
 				"center": true,
+				"closable": true,
+				"contentProtected": false,
+				"create": true,
+				"dataDirectory": "i thinking",
 				"decorations": true,
-				"skipTaskbar": false,
 				"devtools": true,
 				"dragDropEnabled": false,
 				"focus": true,
-				"height": 600,
-				"closable": true,
-				"maximizable": true,
-				"contentProtected": false,
-				"create": true,
-				"resizable": true,
+				"focusable": true,
 				"fullscreen": false,
-				"hiddenTitle": true,
+				"height": 600,
+				"hiddenTitle": false,
+				"label": "main",
+				"maximizable": true,
+				"resizable": true,
 				"shadow": true,
-				"dataDirectory": "i thinking",
+				"skipTaskbar": false,
 				"theme": "Light",
 				"title": "i thinking",
 				"titleBarStyle": "Transparent",
 				"transparent": true,
+				"visible": true,
 				"width": 800,
-				"windowClassname": "i-thinking",
-				"browserExtensionsEnabled": true,
+				"windowClassname": "i thinking",
 				"windowEffects": {
 					"effects": ["micaLight", "mica", "micaDark", "acrylic"]
 				}
 			}
-		]
+		],
+		"withGlobalTauri": true
 	},
 	"build": {
 		"beforeBuildCommand": "pnpm build:core",
@@ -79,9 +80,6 @@
 	},
 	"bundle": {
 		"active": true,
-		"publisher": "Example Inc.",
-		"resources": {},
-		"targets": "all",
 		"externalBin": [],
 		"icon": [
 			"icons/32x32.png",
@@ -90,7 +88,6 @@
 			"icons/icon.icns",
 			"icons/icon.ico"
 		],
-
 		"linux": {
 			"appimage": {
 				"bundleMediaFramework": false,
@@ -124,12 +121,16 @@
 			"hardenedRuntime": true,
 			"minimumSystemVersion": "10.13"
 		},
+		"publisher": "Example Inc.",
+		"resources": {},
+		"targets": "all",
 		"windows": {
 			"allowDowngrades": true,
 			"certificateThumbprint": null,
 			"digestAlgorithm": null,
 			"nsis": {
-				"displayLanguageSelector": true
+				"displayLanguageSelector": true,
+				"languages": ["zh-CN", "en-US"]
 			},
 			"signCommand": null,
 			"timestampUrl": null,
@@ -139,12 +140,13 @@
 				"type": "downloadBootstrapper"
 			},
 			"wix": {
-				"language": ["zh-CN", "en-US"]
+				"language": ["zh-CN", "en-US"],
+				"version": "0.1.0"
 			}
 		}
 	},
 	"identifier": "com.i-thinking.corex",
+	"plugins": {},
 	"productName": "i thinking",
-	"version": "0.1.0",
-	"plugins": {}
+	"version": "0.1.0"
 }

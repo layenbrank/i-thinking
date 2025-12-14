@@ -19,7 +19,7 @@ export default function Overview() {
 	return (
 		<Payload className={clsx(styles.overview, styles.payload)}>
 			<Prefix className={clsx(styles.overview, styles.prefix)}>
-				<Input></Input>
+				<Input className={clsx(['bg-transparent border-transparent'])}></Input>
 			</Prefix>
 			<Core className={clsx(styles.overview, styles.core)}>
 				<Controller.Mirror>
