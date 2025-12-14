@@ -7,6 +7,10 @@ declare global {
 		// className: ClassValue
 		// }
 
-		type Reflection = Record<Component, (props: ComponentProps) => JSX.Element>
+		// type Reflection = Record<Component, (props: ComponentProps) => JSX.Element>
+		type Reflection = Record<
+			Component,
+			React.LazyExoticComponent<(props: ProviderProps) => JSX.Element>
+		>
 	}
 }

@@ -1,7 +1,7 @@
 import React from '@vitejs/plugin-react'
 import { findUpSync } from 'find-up'
 import { createWriteStream } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { dirname, resolve, basename } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
 import { FileSystemIconLoader } from 'unplugin-icons/loaders'
@@ -305,15 +305,15 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			include: ['react', 'react-dom', 'react-router-dom']
 		},
 		build: {
-			// target: 'esnext',
-			target: process.env.TAURI_ENV_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
-			cssTarget: 'chrome128',
+			target: 'esnext',
+			// target: process.env.TAURI_ENV_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
+			cssTarget: 'chrome142',
 			emptyOutDir: true,
-			// minify: 'esbuild',
-			minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
+			minify: 'terser',
+			// minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
 			cssMinify: 'esbuild',
-			// sourcemap: mode === 'development' ? true : false,
-			sourcemap: !!process.env.TAURI_ENV_DEBUG,
+			sourcemap: mode === 'development' ? true : false,
+			// sourcemap: !!process.env.TAURI_ENV_DEBUG,
 			// 输出到包内 dist，便于 Turbo outputs 匹配
 			outDir: resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist'),
 			assetsInlineLimit(filePath) {
@@ -329,8 +329,8 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			},
 			rollupOptions: {
 				output: {
-					entryFileNames: 'assets/[name]-[hash].js',
-					chunkFileNames: 'assets/[name]-[hash].js',
+					entryFileNames: 'javascript/[name]-[hash].js',
+					chunkFileNames: 'javascript/[name]-[hash].js',
 					assetFileNames(chunkInfo) {
 						for (const name of chunkInfo.names) {
 							if (cssRegex.test(name)) return `css/${name}`
@@ -351,12 +351,12 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 							if (pattern) return chunkName
 						}
 
-						const pattern = /apps\/client\/src\//.test(id)
+						// const pattern = /apps\/client\/src\//.test(id)
 
-						const replaced = id.replace(filePath, '')
+						// const replaced = id.replace(filePath, '')
 
-						if (!pattern) console.log('[manualChunks] ===>', replaced)
-						if (!pattern) ws.write(`[manualChunks] ===> ${replaced}\n`)
+						// if (!pattern) console.log('[manualChunks] ===>', replaced)
+						// if (!pattern) ws.write(`[manualChunks] ===> ${replaced}\n`)
 
 						// 其他第三方依赖
 						if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
@@ -368,6 +368,14 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 		css: {
 			modules: {
 				generateScopedName: '[name]-[local]-[hash:base64:6]',
+				// generateScopedName: '[name]-[hash:base64:6]',
+				// generateScopedName(name, _filename, css) {
+				// 	// const fileBaseName = basename(filename, '.module.scss')
+				// 	const hash = Buffer.from(css).toString('base64').slice(0, 6)
+				// 	// const scoped = `${fileBaseName}-${name}-${hash}`
+				// 	const scoped = `${name}-${hash}`
+				// 	return scoped
+				// },
 				localsConvention: 'camelCase',
 				scopeBehaviour: 'local',
 				hashPrefix: 'prefix'

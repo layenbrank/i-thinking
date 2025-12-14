@@ -96,7 +96,7 @@ const useStyle = createStyles(function ({ token, css, cx }) {
 	}
 })
 
-export default function CalendarComponent(props: AppComponentProps) {
+export default function CalendarComponent(props: any) {
 	const { styles } = useStyle({ test: true })
 
 	const [activeTime, updateActiveTime] = useState<Dayjs>(() => dayjs())

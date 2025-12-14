@@ -311,8 +311,6 @@ const Overlay: FC<Props> = function (props) {
 	]
 
 	useEffect(function () {
-		console.log('core', core.invoke)
-
 		core.invoke<OSGenre>('os').then(updateOS)
 	}, [])
 
@@ -337,7 +335,7 @@ const Overlay: FC<Props> = function (props) {
 					closable={false}
 					footer={null}
 					title={null}
-					width="30%"
+					size={400}
 					placement="right"
 					destroyOnHidden={true}
 					getContainer={false}

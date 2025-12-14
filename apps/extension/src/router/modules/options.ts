@@ -7,7 +7,7 @@ export default {
 		{
 			path: '/overview',
 			name: 'overview',
-			component: () => import('@/views/overview.vue')
+			component: () => import('@/views/overview/overview.vue')
 		},
 		{
 			path: '/upload-view',

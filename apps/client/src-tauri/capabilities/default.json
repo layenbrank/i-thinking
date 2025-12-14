@@ -1,36 +1,111 @@
 {
-	"$schema": "../gen/schemas/desktop-schema.json",
-	"identifier": "default",
-	"description": "Capability for the main window",
-	"windows": ["main"],
-	"permissions": [
-		"core:default",
-		"opener:default",
-		"opener:allow-open-url",
-		{
-			"identifier": "opener:allow-open-url",
-			"allow": [
-				{
-					"url": "https://cn.bing.com",
-					"app": "chrome"
-				},
-				{
-					"url": "https://*",
-					"app": true
-				},
-				{
-					"url": "http://*",
-					"app": true
-				},
-				{
-					"url": "*",
-					"app": true
-				}
-			]
-		},
-		"opener:allow-default-urls",
-		"core:webview:allow-create-webview",
-		"core:webview:allow-create-webview-window",
-		"core:webview:allow-internal-toggle-devtools"
-	]
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": [
+    "main"
+  ],
+  "platforms": [
+    "iOS",
+    "macOS",
+    "linux",
+    "windows",
+    "android"
+  ],
+  "remote": {
+    "urls": [
+      "https://www.baidu.com",
+      "https://*.baidu.com",
+      "https://cn.bing.com",
+      "https://*.bing.com"
+    ]
+  },
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "opener:allow-open-url",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://cn.bing.com",
+          "app": "msedge"
+        },
+        {
+          "url": "https://www.baidu.com",
+          "app": "chrome"
+        },
+        {
+          "url": "https://*",
+          "app": true
+        },
+        {
+          "url": "http://*",
+          "app": true
+        },
+        {
+          "url": "*",
+          "app": true
+        }
+      ]
+    },
+    {
+      "identifier": "opener:allow-default-urls",
+      "allow": [
+        {
+          "url": "https://www.baidu.com",
+          "app": true
+        },
+        {
+          "url": "https://cn.bing.com",
+          "app": "msedge"
+        },
+        {
+          "url": "https://*",
+          "app": true
+        },
+        {
+          "url": "http://*",
+          "app": true
+        },
+        {
+          "url": "*",
+          "app": true
+        }
+      ]
+    },
+    {
+      "identifier": "fs:default",
+      "allow": [
+        {
+          "path": "$APPDATA/*"
+        },
+        {
+          "path": "$HOME/*"
+        },
+        {
+          "path": "$DOCUMENTS/*"
+        },
+        {
+          "path": "$DOWNLOADS/*"
+        },
+        {
+          "path": "$DESKTOP/*"
+        },
+        {
+          "path": "$PICTURES/*"
+        },
+        {
+          "path": "$VIDEOS/*"
+        },
+        {
+          "path": "$MUSICS/*"
+        }
+      ]
+    },
+    "core:webview:allow-create-webview",
+    "core:webview:allow-create-webview-window",
+    "core:webview:allow-internal-toggle-devtools",
+    "websocket:default"
+  ]
 }

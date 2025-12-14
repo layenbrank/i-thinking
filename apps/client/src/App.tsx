@@ -1,5 +1,6 @@
 import RouterView from '@/routers/routes.tsx'
-import { ConfigProvider, theme, type ThemeConfig } from 'antd'
+import { theme, type ThemeConfig } from 'antd'
+import { XProvider } from '@ant-design/x'
 import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
 import { StrictMode } from 'react'
@@ -52,11 +53,11 @@ function App() {
 
 	return (
 		<StrictMode>
-			<ConfigProvider theme={themeConfigure} locale={zhCN}>
+			<XProvider theme={themeConfigure} locale={zhCN}>
 				<BrowserRouter>
 					<RouterView />
 				</BrowserRouter>
-			</ConfigProvider>
+			</XProvider>
 		</StrictMode>
 	)
 }

@@ -33,6 +33,7 @@
 		"playwright.config.*",
 		"tailwind.config.*",
 		"eslint.config.*",
+		"scripts/**/*.ts",
 		"vite.config-d.ts"
 	]
 }

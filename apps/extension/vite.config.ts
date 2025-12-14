@@ -20,6 +20,11 @@ import DevTools from 'vite-plugin-vue-devtools'
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 
+const entries: readonly RegExp[] = [
+	/src[\\/]libs[\\/]service-worker/,
+	/src[\\/]libs[\\/]content-scripts/
+]
+
 const cssRegex: Readonly<RegExp> = /\.css$/i
 const imageRegex: Readonly<RegExp> = /\.(png|jpe?g|gif|svg|webp|ico)$/i
 const fontRegex: Readonly<RegExp> = /\.(woff2?|ttf|eot|otf)$/i
@@ -247,13 +252,19 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 					'content-scripts': 'src/libs/content-scripts.ts'
 				},
 				output: {
-					entryFileNames: 'javascript/[name]-[hash].js',
+					// entryFileNames: 'javascript/[name]-[hash].js',
+					entryFileNames(chunk) {
+						const pattern = entries.some((entry) => entry.test(chunk.facadeModuleId ?? ''))
+						if (pattern) console.log('chunk.name ===>', chunk.name)
+						if (pattern) return `${chunk.name}-[hash].js`
+						return 'javascript/[name]-[hash].js'
+					},
 					chunkFileNames: 'javascript/[name]-[hash].js',
 					// assetFileNames: 'assets/[name]-[hash].[ext]',
-					assetFileNames(chunkInfo) {
-						if (!chunkInfo.names) return 'assets/[name].[ext]'
+					assetFileNames(chunk) {
+						if (!chunk.names) return 'assets/[name].[ext]'
 
-						for (const name of chunkInfo.names) {
+						for (const name of chunk.names) {
 							if (cssRegex.test(name)) return `css/${name}`
 							if (imageRegex.test(name)) return `images/${name}`
 							if (fontRegex.test(name)) return `fonts/${name}`

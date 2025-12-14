@@ -1,6 +1,8 @@
-import DesktopView from '@/views/desktop/DesktopView'
-import Overview from '@/views/overview/overview.tsx'
 import { Navigate, useRoutes } from 'react-router-dom'
+import React from 'react'
+
+const Overview = React.lazy(() => import('@/views/overview/overview.tsx'))
+const DesktopView = React.lazy(() => import('@/views/desktop/desktop-view.tsx'))
 
 export default function RouterView() {
 	return useRoutes([

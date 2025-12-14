@@ -1,4 +1,45 @@
-// service-worker 拦截请求，返回对应的镜像资源
+/**
+ * bookmark
+ */
+
+chrome.runtime.onMessageExternal.addListener(function (
+	message: any,
+	sender: chrome.runtime.MessageSender,
+	sendResponse: (response?: any) => void
+) {
+	if (message.action === 'getBookmarks') {
+		chrome.bookmarks.getTree((bookmarks) => {
+			// 过滤和处理书签数据
+			const processedBookmarks = processBookmarks(bookmarks)
+			sendResponse({ success: true, bookmarks: processedBookmarks })
+		})
+		return true // 保持消息通道打开，等待异步响应
+	}
+})
+
+function processBookmarks(nodes: chrome.bookmarks.BookmarkTreeNode[]): any[] {
+	// 递归处理书签树
+	return nodes.map((node) => {
+		if (node.children) {
+			return {
+				id: node.id,
+				title: node.title,
+				children: processBookmarks(node.children)
+			}
+		} else {
+			return {
+				id: node.id,
+				title: node.title,
+				url: node.url
+			}
+		}
+	})
+}
+
+/**
+ * proxy http
+ * 拦截请求，返回对应的镜像资源
+ */
 
 // 域名映射配置：原始域名 -> 镜像域名
 const DOMAIN_MIRROR_MAP: Record<string, string> = {

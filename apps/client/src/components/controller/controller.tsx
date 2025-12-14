@@ -7,11 +7,15 @@ import { useEffect, useRef, useState } from 'react'
 import Sortable from 'sortablejs'
 
 const Controller = {
-	Screen: function ({ children }: { children: ReactNode }) {
-		return <div className={clsx(styles.controller, styles.screen)}>{children}</div>
+	Mirror: function ({ children }: { children: ReactNode }) {
+		return <div className={clsx(styles.controller, styles.mirror)}>{children}</div>
 	},
 	Application: function () {
 		const controller = useRef<HTMLDivElement>(null)
+
+		const size = 'mini'
+		const shape = 'rectangle'
+		const direction = 'horizontal'
 
 		const components: Application.Component[] = [
 			'bookmark',
@@ -20,9 +24,13 @@ const Controller = {
 			'navigation',
 			'settings',
 			'developer',
-			'markdown'
-			// 'clipchamp',
-			// 'store'
+			'markdown',
+			'clipchamp',
+			'marketplace',
+			'clock',
+			'collection',
+			'gallery',
+			'signboard'
 		]
 
 		function matchName(component: Application.Component) {
@@ -33,43 +41,40 @@ const Controller = {
 			if (component === 'settings') return '设置'
 			if (component === 'developer') return '开发者'
 			if (component === 'markdown') return 'Markdown'
+			if (component === 'clipchamp') return 'Clipchamp'
+			if (component === 'marketplace') return '市场'
+			if (component === 'clock') return '时钟'
+			if (component === 'collection') return '收藏夹'
+			if (component === 'gallery') return '画廊'
+			if (component === 'signboard') return '看板'
 			return 'unknown'
 		}
 
 		const [applications, updateApplications] = useState<Application[]>(
 			Array.from({ length: components.length }).map(function (_, i) {
-				const name = matchName(components[i])
+				const title = matchName(components[i])
 
 				return {
+					url: null,
+					mark: null,
+					collectionID: null,
+					mirrorID: 'null',
+					createdAt: Date.now(),
+					updatedAt: Date.now(),
 					id: i.toString(),
-					width: '60px',
-					height: '60px',
 					component: components[i],
 					// component: components[i % components.length],
 					round: '12px',
-
-					// size: 'mini',
-					// size: 'small',
-					// size: 'medium',
-					size: 'large',
-
 					screenID: '0',
-					sort: 0,
-					name: name,
-
-					direction: 'vertical',
-					// direction: 'horizontal',
-
-					// shape: 'square',
-					// shape: 'rectangle',
-					shape: 'circle',
-
-					// backgroundColor: '#ffffff4d',
-					backgroundColor: generateColor(),
-					backgroundImage: null,
+					index: 0,
+					title: title,
+					backdrop: null,
+					background: {
+						color: generateColor()
+					},
 					textSize: '13px',
 					textColor: '#ffffff',
-					description: name,
+					description: title,
 					downloadCount: 1000
 				}
 			})
@@ -79,19 +84,33 @@ const Controller = {
 			if (!controller.current) return
 			console.log('controller', controller.current)
 
-			console.log('applications', applications)
-
-			const sortable = new Sortable(controller.current, {
-				animation: 600,
-				dataIdAttr: 'data-id'
+			new Sortable(controller.current, {
+				animation: 300,
+				sort: true,
+				setData(dataTransfer, draggedElement) {
+					dataTransfer.setData('text/plain', draggedElement.dataset.id ?? '')
+				}
 			})
+
+			console.log('applications', applications)
 		}, [])
 
 		return (
-			<div ref={controller} className={clsx(styles.controller, styles.application)}>
+			<div
+				ref={controller}
+				className={clsx([
+					styles[size],
+					styles[shape],
+					styles[direction],
+					styles.controller,
+					styles.application
+				])}
+			>
 				{applications.map(function (value) {
 					const Component = Reflection[value.component]
-					return <Component {...value} key={value.id} />
+					return (
+						<Component {...value} size={size} shape={shape} direction={direction} key={value.id} />
+					)
 				})}
 			</div>
 		)
