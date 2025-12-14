@@ -276,8 +276,6 @@ onUnmounted(function () {
 </template>
 
 <style lang="scss" scoped>
-@use '@/styles/application.scss' as *;
-
 .controller {
 	@extend %controller;
 }

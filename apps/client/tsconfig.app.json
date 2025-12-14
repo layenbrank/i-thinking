@@ -32,8 +32,9 @@
 			"@i-thinking/shared/application",
 			"@i-thinking/shared/settings",
 			"@i-thinking/shared/backup",
-			"@i-thinking/shared/application-bookmark",
+			"@i-thinking/shared/mirror",
 			"@i-thinking/shared/controller",
+			"@i-thinking/shared/application-bookmark",
 			"@i-thinking/shared/application-markdown"
 		],
 

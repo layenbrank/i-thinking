@@ -11,18 +11,20 @@ export default function Overview() {
 		// webview.getCurrentWebview()
 		console.log('尝试打开控制台')
 	}
+
 	useEffect(function () {
 		openDevTools()
 	}, [])
+
 	return (
 		<Payload className={clsx(styles.overview, styles.payload)}>
 			<Prefix className={clsx(styles.overview, styles.prefix)}>
 				<Input></Input>
 			</Prefix>
 			<Core className={clsx(styles.overview, styles.core)}>
-				<Controller.Screen>
+				<Controller.Mirror>
 					<Controller.Application />
-				</Controller.Screen>
+				</Controller.Mirror>
 			</Core>
 			<Suffix className={clsx(styles.overview, styles.suffix)}>footer</Suffix>
 		</Payload>

@@ -9,6 +9,7 @@
 		"tailwind.config.*",
 		"eslint.config.*",
 		"vite.config.ts",
+		"scripts/**/*.ts",
 		"vite.config-d.ts"
 	],
 	"compilerOptions": {

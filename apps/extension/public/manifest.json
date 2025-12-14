@@ -19,6 +19,15 @@
 		"contextMenus",
 		"declarativeNetRequest"
 	],
+	"background": {
+		"service_worker": "service-worker.js",
+		"content_scripts": [
+			{
+				"matches": ["<all_urls>"],
+				"js": ["content-scripts.js"]
+			}
+		]
+	},
 	"chrome_url_overrides": {
 		"newtab": "index.html"
 	},

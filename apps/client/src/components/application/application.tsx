@@ -1,70 +1,90 @@
 import styles from '@/components/application/application.module.scss'
-import { useSettingsMatch } from '@/components/application/application.ts'
 import { Button, ConfigProvider, Flex, Modal, Segmented, Tooltip, type ModalProps } from 'antd'
 import clsx, { type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 
-interface BasicProviderProps extends Application {
+interface ProviderProps extends Application, Pick<Mirror, 'size' | 'direction' | 'shape'> {
 	children: ReactNode
 	style?: CSSProperties
 	className?: ClassValue
 	onTrash?: MouseEventHandler<HTMLElement>
 }
 
-interface MarkerProviderProps extends Pick<Application, 'size' | 'direction' | 'shape'> {
+interface MarkerProviderProps extends Pick<Mirror, 'size' | 'direction' | 'shape'> {
 	onDoubleClick: MouseEventHandler<HTMLElement>
 	children: ReactNode
 	style?: CSSProperties
 	className?: ClassValue
 }
 
+// interface ProviderProps {
+// 	size: Mirror.Size
+// 	shape: Mirror.Shape
+// 	direction: Mirror.Direction
+// }
+
 interface OverlayProviderProps extends ModalProps {
 	// children: ReactNode
 	style?: CSSProperties
+	fullscreen?: boolean
 	// className?: ClassValue
 }
 
-function BasicProvider(props: BasicProviderProps) {
-	const settings = useMemo(() => useSettingsMatch(props), [props])
-
-	const background = useMemo(
+function Provider(props: ProviderProps) {
+	const properties = useMemo(
 		function () {
-			const backgroundImage = `url(${props.backgroundImage}) no-repeat center / cover`
-			if (props.backgroundImage) return backgroundImage
-			if (props.backgroundColor) return props.backgroundColor
-			return '#ffffff'
-		},
-		[props.backgroundImage, props.backgroundColor]
-	)
+			const round = props.round
+			const size = props.background?.size
+			const clip = props.background?.clip
+			const color = props.background?.color
+			const image = props.background?.image
+			const origin = props.background?.origin
+			const repeat = props.background?.repeat
+			const position = props.background?.position
+			const blendMode = props.background?.blendMode
+			const attachment = props.background?.attachment
 
-	const round = useMemo(
-		function () {
-			return props.round ?? 'var(--app-global-round)'
+			const backgroundImage = image ? `url(${image})` : undefined
+			const backgroundColor = image ? undefined : (color ?? '#ffffff')
+
+			const design: CSSProperties = {
+				...props.style,
+				backgroundSize: size ?? 'cover',
+				backgroundColor: backgroundColor,
+				backgroundImage: backgroundImage,
+				'--application-round': round ?? '12px',
+				backgroundRepeat: repeat ?? 'no-repeat',
+				backgroundPosition: position ?? 'center',
+				backgroundAttachment: attachment ?? 'fixed'
+			}
+
+			if (clip) design.backgroundClip = clip
+			if (origin) design.backgroundOrigin = origin
+			if (blendMode) design.backgroundBlendMode = blendMode
+
+			return design
 		},
-		[props.round]
+		[props.background, props.backdrop]
 	)
 
 	return (
 		<div
 			draggable={true}
 			data-id={props.id}
-			className={clsx(styles.application, props.className)}
-			style={{
-				...props.style,
-				// ...settings,
-				'--app-size-width': settings.width,
-				'--app-size-height': settings.height,
-				'--app-grid-row': settings.gridRow,
-				'--app-grid-column': settings.gridColumn,
-				'--app-round': round,
-				'--app-background': background
-			}}
+			className={clsx([
+				styles.application,
+				props.className,
+				styles[props.size],
+				styles[props.shape],
+				styles[props.direction]
+			])}
+			style={properties}
 		>
 			{props.children}
-			<Tooltip placement="bottom" title={props.name} autoAdjustOverflow={false}>
-				<span className={clsx(styles.name)}>{props.name}</span>
+			<Tooltip placement="bottom" title={props.title} autoAdjustOverflow={false}>
+				<span className={styles.title}>{props.title}</span>
 			</Tooltip>
-			<div onClick={props.onTrash} className={clsx(styles.trash, styles.marker)}>
+			<div onClick={props.onTrash} className={clsx(styles.destroy, styles.marker)}>
 				X
 			</div>
 		</div>
@@ -92,7 +112,11 @@ function OverlayProvider(props: OverlayProviderProps) {
 			footer={null}
 			title={null}
 			centered={true}
-			width="80%"
+			width={props.fullscreen ? '100%' : '80%'}
+			height={props.fullscreen ? '100%' : 'unset'}
+			style={{
+				aspectRatio: props.fullscreen ? 'unset' : '16 / 9'
+			}}
 			{...props}
 			className={clsx(['application-overlay', props.className])}
 		>
@@ -102,13 +126,11 @@ function OverlayProvider(props: OverlayProviderProps) {
 }
 
 // 复合组件模式：将子组件附加到主组件上
-const Application = Object.assign(BasicProvider, {
+const Application = Object.assign(Provider, {
 	Marker: MarkerProvider,
 	Overlay: OverlayProvider
 })
 
-export type { BasicProviderProps, MarkerProviderProps, OverlayProviderProps }
-
-export { useSettingsMatch }
+export type { ProviderProps, MarkerProviderProps, OverlayProviderProps }
 
 export default Application

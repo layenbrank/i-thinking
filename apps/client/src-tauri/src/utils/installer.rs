@@ -1,4 +1,4 @@
-use std::os;
+// use std::os;
 
 pub struct Installer;
 

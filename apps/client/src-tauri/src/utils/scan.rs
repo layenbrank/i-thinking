@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sysinfo::{Components, Disks, Networks, System};
+use sysinfo::System;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Memory {

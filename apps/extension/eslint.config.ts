@@ -107,6 +107,10 @@ export default defineConfigWithVueTs(
 				'error',
 				{
 					ignores: [
+						'contextmenu',
+						'controller',
+						'overview',
+
 						'bookmark',
 						'calendar',
 						'marketplace',
@@ -119,10 +123,7 @@ export default defineConfigWithVueTs(
 						'gallery',
 						'collection',
 						'signboard',
-						'clock',
-						'contextmenu',
-						'controller',
-						'mirror'
+						'clock'
 					]
 				}
 			]
