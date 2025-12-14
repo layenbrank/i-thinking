@@ -30,13 +30,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.5.3", features = [] }
 
 [dependencies]
-tauri = { version = "2.9.5", features = ["protocol-asset", "macos-private-api", "devtools"] }
+tauri = { version = "2.9.5", features = ["protocol-asset", "macos-private-api", "devtools", "tray-icon"] }
 tauri-plugin-opener = "2.5.2"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 sysinfo = "0.37.2"
 tauri-plugin-fs = "2.4.4"
-tauri-plugin-websocket = "2"
-
-[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
-tauri-plugin-barcode-scanner = "2"
+tauri-plugin-websocket = "2.4.1"
