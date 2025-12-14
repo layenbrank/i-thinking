@@ -128,10 +128,7 @@
 			"allowDowngrades": true,
 			"certificateThumbprint": null,
 			"digestAlgorithm": null,
-			"nsis": {
-				"displayLanguageSelector": true,
-				"languages": ["zh-CN", "en-US"]
-			},
+			"nsis": null,
 			"signCommand": null,
 			"timestampUrl": null,
 			"tsp": false,
