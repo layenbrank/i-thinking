@@ -15,8 +15,8 @@ export default function Overlay(props: Props) {
 			onOk={() => props.onUpdateVisible(false)}
 		>
 			<iframe
-				src="https://cn.bing.com"
-				// src="https://www.baidu.com"
+				// src="https://cn.bing.com"
+				src="https://www.baidu.com"
 				allow="autoplay; encrypted-media"
 				allowFullScreen
 				width="100%"

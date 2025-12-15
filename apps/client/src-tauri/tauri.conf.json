@@ -5,7 +5,7 @@
 		"security": {
 			"assetProtocol": {
 				"enable": true,
-				"scope": ["*", "https://www.baidu.com", "http://localhost:5173"]
+				"scope": ["*", "https://*", "http://*", "https://www.baidu.com", "http://localhost:5173"]
 			},
 			"csp": {
 				"connect-src": "*",
@@ -13,8 +13,8 @@
 				"font-src": "*",
 				"frame-src": "*",
 				"img-src": "*",
-				"script-src": "*",
-				"style-src": "*"
+				"script-src": "* 'unsafe-inline' 'unsafe-eval'",
+				"style-src": "'self' 'unsafe-inline'"
 			},
 			"devCsp": {
 				"connect-src": "*",
@@ -22,17 +22,25 @@
 				"font-src": "*",
 				"frame-src": "*",
 				"img-src": "*",
-				"script-src": "*",
-				"style-src": "*"
+				"script-src": "* 'unsafe-inline' 'unsafe-eval'",
+				"style-src": "'self' 'unsafe-inline'"
 			},
 			"headers": {
 				"Access-Control-Expose-Headers": "Tauri-Custom-Header",
+				"Cross-Origin-Opener-Policy": "same-origin",
+				"Cross-Origin-Embedder-Policy": "require-corp",
 				"Service-Worker-Allowed": "/",
 				"Tauri-Custom-Header": {
 					"key1": "'value1' 'value2'",
 					"key2": "'value3'"
 				},
-				"Timing-Allow-Origin": ["https://developer.mozilla.org", "https://example.com"],
+				"Timing-Allow-Origin": [
+					"*",
+					"https://*",
+					"http://*",
+					"https://developer.mozilla.org",
+					"https://example.com"
+				],
 				"X-Content-Type-Options": null
 			}
 		},
