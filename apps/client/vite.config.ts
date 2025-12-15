@@ -269,7 +269,8 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 
 	'utils-polyfill': [/[\\/]node_modules[\\/]@babel[\\/]/],
 
-	'utils-interaction': [/[\\/]node_modules[\\/](sortablejs)[\\/]/],
+	'utils-interaction': [/[\\/]node_modules[\\/]sortablejs[\\/]/],
+	'utils-dnd': [/[\\/]node_modules[\\/]@dnd-kit[\\/]/],
 
 	scheduler: [/[\\/]node_modules[\\/](scheduler)[\\/]/, /[\\/]node_modules[\\/]@tauri-apps[\\/]/],
 
