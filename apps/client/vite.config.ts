@@ -70,6 +70,42 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/]stylis[\\/]/,
 		/[\\/]node_modules[\\/]is-mobile[\\/]/,
 
+		/[\\/]node_modules[\\/]rc-util[\\/]/,
+		/[\\/]node_modules[\\/]rc-motion[\\/]/,
+		/[\\/]node_modules[\\/]mermaid[\\/]/,
+		/[\\/]node_modules[\\/]ts-dedent[\\/]/,
+		/[\\/]node_modules[\\/]roughjs[\\/]/,
+		/[\\/]node_modules[\\/]@iconify[\\/]/,
+		/[\\/]node_modules[\\/]khroma[\\/]/,
+		/[\\/]node_modules[\\/]katex[\\/]/,
+		/[\\/]node_modules[\\/]cytoscape[\\/]/,
+		/[\\/]node_modules[\\/]cytoscape-/,
+		/[\\/]node_modules[\\/]cose-base[\\/]/,
+		/[\\/]node_modules[\\/]layout-base[\\/]/,
+		/[\\/]node_modules[\\/]langium[\\/]/,
+		/[\\/]node_modules[\\/]vscode-/,
+		/[\\/]node_modules[\\/]@mermaid-js[\\/]/,
+		/[\\/]node_modules[\\/]chevrotain[\\/]/,
+		/[\\/]node_modules[\\/]chevrotain-/,
+		/[\\/]node_modules[\\/]@chevrotain[\\/]/,
+		/[\\/]node_modules[\\/]character-/,
+		/[\\/]node_modules[\\/]fault[\\/]/,
+		/[\\/]node_modules[\\/]format[\\/]/,
+		/[\\/]node_modules[\\/]delaunator[\\/]/,
+		/[\\/]node_modules[\\/]is-hexadecimal[\\/]/,
+		/[\\/]node_modules[\\/]is-alphanumerical[\\/]/,
+		/[\\/]node_modules[\\/]is-decimal[\\/]/,
+		/[\\/]node_modules[\\/]parse-entities[\\/]/,
+		/[\\/]node_modules[\\/]dagre-d3-es[\\/]/,
+		/[\\/]node_modules[\\/]internmap[\\/]/,
+		/[\\/]node_modules[\\/]robust-predicates[\\/]/,
+		/[\\/]node_modules[\\/]is-alphabetical[\\/]/,
+		/[\\/]node_modules[\\/]@braintree[\\/]/,
+		/[\\/]node_modules[\\/]classnames[\\/]/,
+		/[\\/]node_modules[\\/]lodash.throttle[\\/]/,
+		/[\\/]node_modules[\\/]react-syntax-highlighter[\\/]/,
+		/[\\/]node_modules[\\/]refractor[\\/]/,
+
 		/[\\/]node_modules[\\/]scroll-into-view-if-needed[\\/]/,
 		/[\\/]node_modules[\\/]compute-scroll-into-view[\\/]/
 	],
@@ -351,12 +387,12 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 							if (pattern) return chunkName
 						}
 
-						// const pattern = /apps\/client\/src\//.test(id)
+						const pattern = /apps\/client\/src\//.test(id)
 
-						// const replaced = id.replace(filePath, '')
+						const replaced = id.replace(filePath, '')
 
 						// if (!pattern) console.log('[manualChunks] ===>', replaced)
-						// if (!pattern) ws.write(`[manualChunks] ===> ${replaced}\n`)
+						if (!pattern) ws.write(`[manualChunks] ===> ${replaced}\n`)
 
 						// 其他第三方依赖
 						if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
