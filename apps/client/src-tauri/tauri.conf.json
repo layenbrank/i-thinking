@@ -31,7 +31,7 @@
 				"Cross-Origin-Embedder-Policy": "require-corp",
 				"Service-Worker-Allowed": "/",
 				"Tauri-Custom-Header": {
-					"key1": "'value1' 'value2'",
+					"thinking": "'value1' 'value2'",
 					"key2": "'value3'"
 				},
 				"Timing-Allow-Origin": [
