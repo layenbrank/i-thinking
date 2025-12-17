@@ -26,9 +26,31 @@ const Controller = {
 	},
 	Application() {
 		const controller = useRef<HTMLDivElement>(null)
+
 		// 设置传感器，用于检测不同类型的拖拽事件
 		const sensors = useSensors(
-			useSensor(PointerSensor),
+			useSensor(PointerSensor, {
+				activationConstraint: {
+					distance: 8 // 需要移动 8px 才激活拖拽，避免误触
+				},
+				// 阻止在 overlay 内的拖拽激活
+				bypassActivationConstraint: ({ event }) => {
+					const target = event.target as HTMLElement
+					if (!target) return false
+
+					// 检查点击目标是否在 overlay 内
+					const isOverlay =
+						target.closest('.application-overlay') ||
+						target.closest('.ant-modal-wrap') ||
+						target.closest('.ant-modal') ||
+						target.closest('.ant-modal-content') ||
+						target.closest('.ant-modal-body')
+
+					// 如果在 overlay 内，返回 false 应用约束（阻止拖拽）
+					// 否则返回 true 绕过约束（允许拖拽）
+					return !isOverlay
+				}
+			}),
 			useSensor(KeyboardSensor, {
 				coordinateGetter: sortableKeyboardCoordinates
 			})
