@@ -1,17 +1,50 @@
+import {
+	closestCenter,
+	DndContext,
+	KeyboardSensor,
+	PointerSensor,
+	useSensor,
+	useSensors,
+	type DragEndEvent
+} from '@dnd-kit/core'
+import {
+	arrayMove,
+	rectSortingStrategy,
+	SortableContext,
+	sortableKeyboardCoordinates
+} from '@dnd-kit/sortable'
+import clsx from 'clsx'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+
 import styles from '@/components/controller/controller.module.scss'
 import { Reflection } from '@/components/controller/reflection.tsx'
 import { generateColor } from '@/utils/generate.ts'
-import clsx from 'clsx'
-import type { ReactNode } from 'react'
-import { useEffect, useRef, useState } from 'react'
-import Sortable from 'sortablejs'
 
 const Controller = {
-	Mirror: function ({ children }: { children: ReactNode }) {
+	Mirror({ children }: { children: ReactNode }) {
 		return <div className={clsx(styles.controller, styles.mirror)}>{children}</div>
 	},
-	Application: function () {
+	Application() {
 		const controller = useRef<HTMLDivElement>(null)
+		// 设置传感器，用于检测不同类型的拖拽事件
+		const sensors = useSensors(
+			useSensor(PointerSensor),
+			useSensor(KeyboardSensor, {
+				coordinateGetter: sortableKeyboardCoordinates
+			})
+		)
+
+		// 处理拖拽结束事件
+		function handleDragEnd(event: DragEndEvent) {
+			const { active, over } = event
+			if (over && active.id !== over.id) {
+				updateApplications((items) => {
+					const oldIndex = items.findIndex((item) => item.id === active.id)
+					const newIndex = items.findIndex((item) => item.id === over.id)
+					return arrayMove(items, oldIndex, newIndex)
+				})
+			}
+		}
 
 		const size = 'mini'
 		const shape = 'rectangle'
@@ -84,35 +117,36 @@ const Controller = {
 			if (!controller.current) return
 			console.log('controller', controller.current)
 
-			new Sortable(controller.current, {
-				animation: 300,
-				sort: true,
-				setData(dataTransfer, draggedElement) {
-					dataTransfer.setData('text/plain', draggedElement.dataset.id ?? '')
-				}
-			})
-
 			console.log('applications', applications)
 		}, [])
 
 		return (
-			<div
-				ref={controller}
-				className={clsx([
-					styles[size],
-					styles[shape],
-					styles[direction],
-					styles.controller,
-					styles.application
-				])}
-			>
-				{applications.map(function (value) {
-					const Component = Reflection[value.component]
-					return (
-						<Component {...value} size={size} shape={shape} direction={direction} key={value.id} />
-					)
-				})}
-			</div>
+			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+				<SortableContext items={applications.map((item) => item.id)} strategy={rectSortingStrategy}>
+					<div
+						ref={controller}
+						className={clsx([
+							styles[size],
+							styles[shape],
+							styles[direction],
+							styles.controller,
+							styles.application
+						])}
+					>
+						{applications.map(function (value) {
+							const Component = Reflection[value.component]
+
+							const props = {
+								...value,
+								size,
+								shape,
+								direction
+							}
+							return <Component {...props} key={value.id} />
+						})}
+					</div>
+				</SortableContext>
+			</DndContext>
 		)
 	}
 }

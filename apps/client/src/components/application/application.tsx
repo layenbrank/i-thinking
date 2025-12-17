@@ -1,7 +1,10 @@
-import styles from '@/components/application/application.module.scss'
-import { Button, ConfigProvider, Flex, Modal, Segmented, Tooltip, type ModalProps } from 'antd'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { Modal, Tooltip, type ModalProps } from 'antd'
 import clsx, { type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
+
+import styles from '@/components/application/application.module.scss'
 
 interface ProviderProps extends Application, Pick<Mirror, 'size' | 'direction' | 'shape'> {
 	children: ReactNode
@@ -30,7 +33,11 @@ interface OverlayProviderProps extends ModalProps {
 	// className?: ClassValue
 }
 
-function Provider(props: ProviderProps) {
+function Provider(props: ProviderProps & {}) {
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+		id: props.id
+	})
+
 	const properties = useMemo(
 		function () {
 			const round = props.round
@@ -55,7 +62,10 @@ function Provider(props: ProviderProps) {
 				'--application-round': round ?? '12px',
 				backgroundRepeat: repeat ?? 'no-repeat',
 				backgroundPosition: position ?? 'center',
-				backgroundAttachment: attachment ?? 'fixed'
+				backgroundAttachment: attachment ?? 'fixed',
+				transform: CSS.Transform.toString(transform),
+				transition,
+				cursor: 'move'
 			}
 
 			if (clip) design.backgroundClip = clip
@@ -64,19 +74,24 @@ function Provider(props: ProviderProps) {
 
 			return design
 		},
-		[props.background, props.backdrop]
+		[props.background, props.backdrop, transform, isDragging]
 	)
 
 	return (
 		<div
-			draggable={true}
+			ref={setNodeRef}
+			{...attributes}
+			{...listeners}
 			data-id={props.id}
 			className={clsx([
 				styles.application,
 				props.className,
 				styles[props.size],
 				styles[props.shape],
-				styles[props.direction]
+				styles[props.direction],
+				{
+					[styles.dragging]: isDragging
+				}
 			])}
 			style={properties}
 		>
@@ -131,6 +146,6 @@ const Application = Object.assign(Provider, {
 	Overlay: OverlayProvider
 })
 
-export type { ProviderProps, MarkerProviderProps, OverlayProviderProps }
+export type { MarkerProviderProps, OverlayProviderProps, ProviderProps }
 
 export default Application
