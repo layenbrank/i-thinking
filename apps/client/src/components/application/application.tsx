@@ -3,8 +3,20 @@ import { CSS } from '@dnd-kit/utilities'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import clsx, { type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 import styles from '@/components/application/application.module.scss'
+
+// Context 用于共享 overlay 的 visible 状态
+const OverlayContext = createContext<{
+	visible: boolean
+	updateVisible: (visible: boolean) => void
+}>({
+	visible: false,
+	updateVisible: () => {}
+})
+
+export const useOverlayContext = () => useContext(OverlayContext)
 
 interface ProviderProps extends Application, Pick<Mirror, 'size' | 'direction' | 'shape'> {
 	children: ReactNode
@@ -33,10 +45,16 @@ interface OverlayProviderProps extends ModalProps {
 	// className?: ClassValue
 }
 
-function Provider(props: ProviderProps & {}) {
+function Provider(props: ProviderProps) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
 		id: props.id
 	})
+
+	// 管理 overlay 状态
+	const [overlayVisible, setOverlayVisible] = useState(false)
+
+	// 如果有 overlay 打开，禁用拖拽监听器
+	const finalListeners = overlayVisible ? {} : listeners
 
 	const properties = useMemo(
 		function () {
@@ -78,31 +96,33 @@ function Provider(props: ProviderProps & {}) {
 	)
 
 	return (
-		<div
-			ref={setNodeRef}
-			{...attributes}
-			{...listeners}
-			data-id={props.id}
-			className={clsx([
-				styles.application,
-				props.className,
-				styles[props.size],
-				styles[props.shape],
-				styles[props.direction],
-				{
-					[styles.dragging]: isDragging
-				}
-			])}
-			style={properties}
-		>
-			{props.children}
-			<Tooltip placement="bottom" title={props.title} autoAdjustOverflow={false}>
-				<span className={styles.title}>{props.title}</span>
-			</Tooltip>
-			<div onClick={props.onTrash} className={clsx(styles.destroy, styles.marker)}>
-				X
+		<OverlayContext.Provider value={{ visible: overlayVisible, updateVisible: setOverlayVisible }}>
+			<div
+				ref={setNodeRef}
+				{...attributes}
+				{...finalListeners}
+				data-id={props.id}
+				className={clsx([
+					styles.application,
+					props.className,
+					styles[props.size],
+					styles[props.shape],
+					styles[props.direction],
+					{
+						[styles.dragging]: isDragging
+					}
+				])}
+				style={properties}
+			>
+				{props.children}
+				<Tooltip placement="bottom" title={props.title} autoAdjustOverflow={false}>
+					<span className={styles.title}>{props.title}</span>
+				</Tooltip>
+				<div onClick={props.onTrash} className={clsx(styles.destroy, styles.marker)}>
+					X
+				</div>
 			</div>
-		</div>
+		</OverlayContext.Provider>
 	)
 }
 
@@ -119,6 +139,14 @@ function MarkerProvider(props: MarkerProviderProps) {
 }
 
 function OverlayProvider(props: OverlayProviderProps) {
+	const { updateVisible } = useOverlayContext()
+	const isOpen = props.open ?? false
+
+	// 当 open 变化时，更新 Context
+	useEffect(() => {
+		updateVisible(isOpen)
+	}, [isOpen, updateVisible])
+
 	return (
 		<Modal
 			destroyOnHidden={true}
@@ -133,6 +161,8 @@ function OverlayProvider(props: OverlayProviderProps) {
 				aspectRatio: props.fullscreen ? 'unset' : '16 / 9'
 			}}
 			{...props}
+			open={isOpen}
+			onCancel={(e) => (updateVisible(false), props.onCancel?.(e) ?? void 0)}
 			className={clsx(['application-overlay', props.className])}
 		>
 			{props.children}
