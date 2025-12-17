@@ -341,6 +341,7 @@
 	"vue.inlayHints.optionsWrapper": true,
 	"vue.inlayHints.vBindShorthand": true,
 	"vue.suggest.componentNameCasing": "alwaysPascalCase",
+	"vue.server.includeLanguages": ["vue"],
 	"vue.suggest.defineAssignment": true,
 	"vue.suggest.propNameCasing": "alwaysCamelCase",
 	"window.density.editorTabHeight": "compact",

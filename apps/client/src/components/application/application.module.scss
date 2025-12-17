@@ -14,6 +14,29 @@
 	box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
 	background: var(--application-background);
 	border-radius: var(--application-round);
+	will-change: transform, box-shadow, width, height;
+
+	transition:
+		transform 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		height 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+
+	&.dragging {
+		box-shadow: 0px 4px 20px 0px rgba(0, 0, 0, 0.2);
+		cursor: grabbing;
+		z-index: 1000;
+		// box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+	}
+
+	/* 可选：添加一个拖拽手柄 */
+	// .drag-handle {
+	//   cursor: grab;
+	//   padding: 4px 8px;
+	//   margin-right: 8px;
+	//   background: rgba(255,255,255,0.2);
+	//   border-radius: 4px;
+	// }
 
 	&.circle {
 		height: var(--application-size);
@@ -41,17 +64,6 @@
 			// @include ratio-height(var(--application-size), 9, 16);
 		}
 	}
-
-	// display: flex;
-	// flex-direction: column;
-	// row-gap: 12px;
-
-	transition:
-		box-shadow 300ms,
-		width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-		height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-		grid-row 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-		grid-column 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 
 	& > .title {
 		width: 100%;
