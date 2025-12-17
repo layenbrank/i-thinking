@@ -1,19 +1,24 @@
 import Controller from '@/components/controller/controller.tsx'
 import styles from '@/views/overview/overview.module.scss'
-// import { webview} from '@tauri-apps/api'
 import { Input, Layout as Payload } from 'antd'
 import { clsx } from 'clsx'
+import { useMirrorStore } from '@/stores/mirror.ts'
+// import { webview} from '@tauri-apps/api'
 
 const { Content: Core, Header: Prefix, Footer: Suffix } = Payload
 
 export default function Overview() {
+	const applications = useMirrorStore(function (value) {
+		return value.applications
+	})
+
 	function openDevTools() {
 		// webview.getCurrentWebview()
 		console.log('尝试打开控制台')
 	}
 
 	useEffect(function () {
-		openDevTools()
+		console.log('applications', applications)
 	}, [])
 
 	return (

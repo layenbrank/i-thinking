@@ -164,6 +164,9 @@ importers:
       highlight.js:
         specifier: ^11.11.1
         version: 11.11.1
+      immer:
+        specifier: ^11.0.1
+        version: 11.0.1
       katex:
         specifier: ^0.16.25
         version: 0.16.27
@@ -250,7 +253,7 @@ importers:
         version: 4.1.13
       zustand:
         specifier: ^5.0.8
-        version: 5.0.9(@types/react@19.2.7)(react@19.2.1)(use-sync-external-store@1.6.0(react@19.2.1))
+        version: 5.0.9(@types/react@19.2.7)(immer@11.0.1)(react@19.2.1)(use-sync-external-store@1.6.0(react@19.2.1))
     devDependencies:
       '@i-thinking/core':
         specifier: workspace:*
@@ -6172,6 +6175,9 @@ packages:
   ignore@7.0.5:
     resolution: {integrity: sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg==}
     engines: {node: '>= 4'}
+
+  immer@11.0.1:
+    resolution: {integrity: sha512-naDCyggtcBWANtIrjQEajhhBEuL9b0Zg4zmlWK2CzS6xCWSE39/vvf4LqnMjUAWHBhot4m9MHCM/Z+mfWhUkiA==}
 
   immutable@5.1.4:
     resolution: {integrity: sha512-p6u1bG3YSnINT5RQmx/yRZBpenIl30kVxkTLDyHLIMk0gict704Q9n+thfDI7lTRm9vXdDYutVzXhzcThxTnXA==}
@@ -15252,6 +15258,8 @@ snapshots:
 
   ignore@7.0.5: {}
 
+  immer@11.0.1: {}
+
   immutable@5.1.4: {}
 
   import-fresh@3.3.1:
@@ -18905,9 +18913,10 @@ snapshots:
 
   zod@4.1.13: {}
 
-  zustand@5.0.9(@types/react@19.2.7)(react@19.2.1)(use-sync-external-store@1.6.0(react@19.2.1)):
+  zustand@5.0.9(@types/react@19.2.7)(immer@11.0.1)(react@19.2.1)(use-sync-external-store@1.6.0(react@19.2.1)):
     optionalDependencies:
       '@types/react': 19.2.7
+      immer: 11.0.1
       react: 19.2.1
       use-sync-external-store: 1.6.0(react@19.2.1)
 

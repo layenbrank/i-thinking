@@ -25,6 +25,9 @@
 					"url": "http://*"
 				},
 				{
+					"url": "custom:*"
+				},
+				{
 					"app": true,
 					"url": "*"
 				}

@@ -22,20 +22,20 @@
 			"reflect-metadata",
 			"ant-design-vue/typings/global",
 			"@i-thinking/wasm",
-			"@i-thinking/core/directives",
 			"@i-thinking/shared/response",
 			"@i-thinking/shared/decorator",
 			"@i-thinking/shared/constructor",
 			"@i-thinking/shared/contextmenu",
 			"@i-thinking/shared/user-profile",
 			"@i-thinking/shared/schema",
-			"@i-thinking/shared/application",
-			"@i-thinking/shared/settings",
 			"@i-thinking/shared/backup",
 			"@i-thinking/shared/mirror",
+			"@i-thinking/shared/settings",
 			"@i-thinking/shared/controller",
+			"@i-thinking/shared/application",
 			"@i-thinking/shared/application-bookmark",
-			"@i-thinking/shared/application-markdown"
+			"@i-thinking/shared/application-markdown",
+			"@i-thinking/shared/application-intelligence"
 		],
 
 		/* Linting */
