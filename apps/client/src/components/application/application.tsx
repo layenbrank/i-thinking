@@ -13,7 +13,7 @@ const OverlayContext = createContext<{
 	updateVisible: (visible: boolean) => void
 }>({
 	visible: false,
-	updateVisible: () => {}
+	updateVisible: () => void 0
 })
 
 export const useOverlayContext = () => useContext(OverlayContext)

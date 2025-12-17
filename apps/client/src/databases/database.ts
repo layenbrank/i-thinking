@@ -1,101 +1,99 @@
-import type { AiMessage, AiSession } from '@/databases/schemas/intelligence.ts'
 import { Dexie, type EntityTable } from 'dexie'
+import { dexieCloud, type DexieCloudOptions } from 'dexie-cloud-addon'
+import {} from '@tauri-apps/api'
 
-type Bookmark = Application.Bookmark
-type BookmarkDir = Application.BookmarkDir
+type BookmarkEntry = Application.Bookmark.Entry
+type BookmarkDir = Application.Bookmark.Directory
+type AiMessage = Application.Intelligence.AiMessage
+type AiSession = Application.Intelligence.AiSession
+type AiCollection = Application.Intelligence.AiCollection
 
 interface DataBase extends Dexie {
+	mirror: EntityTable<Mirror, 'id'>
 	application: EntityTable<Application, 'id'>
 
-	backup: EntityTable<ApplicationBackup, 'id'>
+	backup: EntityTable<Backup, 'id'>
 
-	setting: EntityTable<ApplicationSettings, 'id'>
+	settings: EntityTable<Settings, 'id'>
 
 	user: EntityTable<UserProfile, 'id'>
 
-	bookmark: EntityTable<Bookmark, 'id'>
+	bookmark: EntityTable<BookmarkEntry, 'id'>
 	bookmarkDir: EntityTable<BookmarkDir, 'id'>
 
 	markdown: EntityTable<Markdown, 'id'>
 
 	AiSession: EntityTable<AiSession, 'id'>
 	AiMessage: EntityTable<AiMessage, 'id'>
+	AiCollection: EntityTable<AiCollection, 'id'>
 }
 
-const DBNAME: Readonly<string> = 'desktop-app'
+const DBNAME: Readonly<string> = 'i thinking'
 
-export const database = new Dexie(DBNAME) as DataBase
+export const database = new Dexie(DBNAME, {
+	addons: [dexieCloud]
+}) as DataBase
 
-const APPLICATION = [
+const MIRROR: readonly string[] = [
 	'&id',
-	'slideID',
-	'[id+slideID]',
-	'sort',
-	'component',
-	'name',
-	'downloadCount',
-	'direction',
-	'shape',
+	'index',
+	'mark',
 	'size',
-	'width',
-	'height',
-	'round',
-	'icon',
-	'url',
-	'backgroundColor',
-	'backgroundImage',
-	'textColor',
-	'textSize'
+	'shape',
+	'direction',
+	'updatedAt',
+	'createdAt'
+]
+const APPLICATION: readonly string[] = [
+	'&id',
+	'[id+mirrorID]',
+	'[id+collectionID]',
+	'[mirrorID+collectionID]',
+	'mirrorID',
+	'collectionID',
+	'index',
+	'component',
+	'downloadCount',
+	'updatedAt',
+	'createdAt'
 ]
 
-const USER: ReadonlyArray<string> = ['++id', 'name']
-const BOOKMARK: ReadonlyArray<string> = [
-	'&id',
-	'url',
-	'sort',
-	'title',
-	'folderID',
-	'createdAt',
-	'updatedAt'
-]
-const BOOKMARK_DIR: ReadonlyArray<string> = [
-	'&id',
-	'folder',
-	'sort',
-	'count',
-	'createdAt',
-	'updatedAt'
-]
+const USERS: readonly string[] = ['++id', 'name']
 
-const MARKDOWN: readonly string[] = ['&id', 'sort', 'createdAt', 'updatedAt']
+const BACKUP: readonly string[] = ['&id', 'createdAt', 'updatedAt']
+const SETTING: readonly string[] = ['&id', 'theme', 'language']
 
-const AISESSION: readonly string[] = [
-	'&id',
-	'sort',
-	'title',
-	'messages',
-	'userID',
-	'createdAt',
-	'updatedAt'
-]
+const BOOKMARK: readonly string[] = ['&id', 'index', 'dirID', 'createdAt', 'updatedAt']
+const BOOKMARK_DIR: readonly string[] = ['&id', 'index', 'count', 'createdAt', 'updatedAt']
 
-const AIMESSAGE: readonly string[] = [
-	'&id',
-	'sessionID',
-	'role',
-	'content',
-	'createdAt',
-	'updatedAt'
-]
+const MARKDOWN: readonly string[] = ['&id', 'index', 'createdAt', 'updatedAt']
+
+const AISESSION: readonly string[] = ['&id', 'collectionID', 'createdAt', 'updatedAt']
+const AIMESSAGE: readonly string[] = ['&id', 'sessionID', 'identity', 'createdAt', 'updatedAt']
+const AICOLLECTION: readonly string[] = ['&id', 'createdAt', 'updatedAt']
 
 database.version(1).stores({
+	mirror: MIRROR.join(','),
 	application: APPLICATION.join(','),
-	user: USER.join(','),
+
+	backup: BACKUP.join(','),
+	setting: SETTING.join(','),
+
+	user: USERS.join(','),
+
 	bookmark: BOOKMARK.join(','),
 	bookmarkDir: BOOKMARK_DIR.join(','),
+
 	markdown: MARKDOWN.join(','),
+
 	AiSession: AISESSION.join(','),
-	AiMessage: AIMESSAGE.join(',')
+	AiMessage: AIMESSAGE.join(','),
+	AiCollection: AICOLLECTION.join(',')
+})
+
+database.cloud.configure({
+	databaseUrl: 'https://cloud.dexie.org/db/i-thinking',
+	requireAuth: true
 })
 
 database.on(
@@ -121,14 +119,6 @@ database.on('blocked', function (_e) {
 	console.error('数据库被阻塞，请关闭其他使用此数据库的标签页')
 })
 
-window.addEventListener('unhandledrejection', function (e) {
-	const reason = e.reason
-	const msg = 'DataBaseClosedError'
-	if (!reason) return
-	if (!(reason.name === msg)) return
-	alert('数据库异常关闭，请刷新页面')
-})
-
 function log(label: string, msg: string) {
 	if (!import.meta.env.DEV) return
 	console.log(
@@ -136,3 +126,11 @@ function log(label: string, msg: string) {
 		'background:#3B82FE; padding: 3px; padding-right: 8px; border-radius: 3px; color: #fff;'
 	)
 }
+
+window.addEventListener('unhandledrejection', function (e) {
+	const reason = e.reason
+	const msg = 'DataBaseClosedError'
+	if (!reason) return
+	if (!(reason.name === msg)) return
+	alert('数据库异常关闭，请刷新页面')
+})
