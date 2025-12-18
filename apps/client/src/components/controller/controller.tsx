@@ -60,7 +60,7 @@ const Controller = {
 		function handleDragEnd(event: DragEndEvent) {
 			const { active, over } = event
 			if (over && active.id !== over.id) {
-				updateApplications((items) => {
+				updateApplications(function (items) {
 					const oldIndex = items.findIndex((item) => item.id === active.id)
 					const newIndex = items.findIndex((item) => item.id === over.id)
 					return arrayMove(items, oldIndex, newIndex)
