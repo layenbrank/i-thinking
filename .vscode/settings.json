@@ -56,7 +56,7 @@
 	"css.lint.duplicateProperties": "warning",
 	"css.lint.important": "warning",
 	"css.lint.vendorPrefix": "warning",
-	"chat.extensionUnification.enabled": true,
+	"chat.extensionUnification.enabled": false,
 	"debug.console.fontSize": 16,
 	"debug.javascript.unmapMissingSources": true,
 	"debug.showBreakpointsInOverviewRuler": true,
