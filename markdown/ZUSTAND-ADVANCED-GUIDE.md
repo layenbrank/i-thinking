@@ -846,6 +846,62 @@ appEventBus.on('mirror:created').subscribe(({ id, mirror }) => {
 
 ---
 
+## 本次会话补充说明
+
+### 1. React 端如何“类 Pinia”使用 Dexie
+
+- **Pinia 版（Vue，`apps/extension/src/stores/mirror.ts`）**：
+  - 使用 `defineStore` 暴露 `mirrorID / mirrors / applications` 等状态。
+  - 列表数据通过 `useObservable(from(liveQuery(...)))` 与 Dexie 自动同步。
+  - CRUD 方法（`toInsertMirror` 等）直接调用 Dexie 的 `bulkAdd / bulkUpdate / bulkDelete / bulkGet`。
+- **Zustand 版（React，`apps/client/src/stores/mirror.ts` + Hooks）** 经过本次调整后：
+  - `MirrorStore` 主要负责：
+    - 轻量状态：`mirrorID / mirror / application`。
+    - Dexie CRUD 方法：`toInsertMirror / toUpdateMirror / toRemoveMirror / toReadMirror` 以及应用相关的批量操作。
+  - 列表数据通过 **独立 Hook** 获取：
+    - `useMirrors()`：使用 `dexie-react-hooks` 的 `useLiveQuery` 查询 `database.mirror`，在空表时用 `BuildMirror()` 生成的默认 `MIRRORS` 初始化，并自动将第一个镜像的 `id` 回写到 `mirrorID`，行为与 Pinia 版保持一致。
+    - `useApplications()`：依赖 `mirrorID` 的 `useLiveQuery`，查询当前镜像下的 `applications`，在为空时用 `BuildMirror().APPLICATIONS` 做初始化，逻辑与 extension 端 `applications` 的 `useObservable + liveQuery` 等价。
+
+推荐在 React 组件中的使用模式：
+
+```tsx
+const mirrors = useMirrors()
+const applications = useApplications()
+const { mirrorID, toInsertMirror, toUpdateMirror, toInsertApplication, toUpdateApplication } =
+	useMirrorStore()
+```
+
+这样 React 端在概念上就与 Pinia 端统一：**Dexie 作为唯一数据源，Store 负责“当前选择 + 操作”，Hooks 负责把 Dexie 的记录转换为组件可用的响应式列表。**
+
+### 2. `dexie-react-hooks` 与 `@vueuse/rxjs` 的区别与使用场景
+
+- **`dexie-react-hooks`（React 专用）**
+  - `useLiveQuery(fn, deps?, defaultResult?)`：
+    - 接收查询函数 `fn`，内部基于 Dexie 的 `liveQuery` 自动订阅变化，适合“按表 / 条件查询列表”的场景。
+    - 本项目中 `useMirrors` 与 `useApplications` 均采用此模式，是 React 端访问 Dexie 的推荐方式。
+  - `useObservable(observable$, initial)`：
+    - 接收任意 RxJS `Observable`，返回当前值，适合已经有复杂 RxJS 流（`merge / switchMap / window` 等）时，将其结果接入 React 组件。
+  - `useDocument` / `usePermissions`：
+    - 针对 **Dexie Cloud** 场景，用于订阅云端文档及其权限；当前项目仅使用本地 IndexedDB，尚不需要这两个 Hook。
+- **`@vueuse/rxjs/useObservable`（Vue 3 + RxJS）**
+  - 返回的是 `ref`，模板中自动解包；在 `apps/extension` 中用于把 `from(liveQuery(...))` 转成 Vue 响应式数据。
+
+本项目的推荐选型：
+
+- 表查询 / 列表同步（绝大多数场景）：React 端用 `useLiveQuery`，Vue 端用 `useObservable + liveQuery`。
+- 需要组合多个流或复杂 RxJS 操作时：React 端用 RxJS 构造流，再用 `dexie-react-hooks/useObservable` 订阅；Vue 端继续使用 `@vueuse/rxjs/useObservable`。
+- 与 Dexie Cloud 相关的文档 / 权限订阅：接入 Cloud 后，再考虑使用 `useDocument` 与 `usePermissions`。
+
+### 3. 当前实现中的一些细节建议
+
+- 在 React Hooks 中：
+  - `useMirrors` / `useApplications` 中的 `useLiveQuery` 建议显式指定结果泛型（例如 `useLiveQuery<Mirror[]>(...)`），并为 `defaultResult` 提供明确类型（如 `[] as Mirror[]`），以获得更好的类型推导。
+  - 需要从 `react` 正确引入 `useEffect`，并在依赖数组中包含 `mirrorID` 等相关依赖，避免闭包导致的状态不同步。
+- 在 Store 设计上：
+  - 可以不再依赖 `MirrorStore` 内部维护的 `mirrors / applications` 数组，而是将“唯一来源”交给 Dexie + Hooks，Store 只保留选中项和 CRUD 方法，从而减少冗余状态和潜在的数据不一致。
+
+---
+
 ## 版本历史
 
 | 版本  | 日期       | 变更     |

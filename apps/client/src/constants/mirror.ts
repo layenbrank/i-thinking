@@ -1,0 +1,120 @@
+interface ApplicationOptions {
+	label: string
+	value: Application.Component
+}
+
+const OPTIONS: ApplicationOptions[] = [
+	{
+		label: '书签',
+		value: 'bookmark'
+	},
+	{
+		label: '日历',
+		value: 'calendar'
+	},
+	{
+		label: '应用商店',
+		value: 'marketplace'
+	},
+	{
+		label: 'example',
+		value: 'example'
+	},
+	{
+		label: '备忘录',
+		value: 'markdown'
+	},
+	{
+		label: '设置',
+		value: 'settings'
+	},
+	{
+		label: 'AI Hub',
+		value: 'intelligence'
+	},
+	{
+		label: 'Clipchamp',
+		value: 'clipchamp'
+	},
+	{
+		label: '应用集合',
+		value: 'collection'
+	},
+	{
+		label: '开发者',
+		value: 'developer'
+	},
+	{
+		label: '导航',
+		value: 'navigation'
+	},
+	{
+		label: '图库',
+		value: 'gallery'
+	},
+	{
+		label: '时钟',
+		value: 'clock'
+	}
+]
+
+interface MirrorOptions {
+	mirrorID: string | null
+}
+
+function BuildMirror(options?: MirrorOptions) {
+	const MIRROR_ID = options?.mirrorID ?? window.crypto.randomUUID()
+
+	const MIRRORS: readonly Mirror[] = Array.from({ length: 1 }).map(function () {
+		const mirror: Mirror = {
+			id: MIRROR_ID,
+			title: '镜像-01',
+			index: 0,
+			mark: '',
+			description: '默认镜像',
+			updatedAt: Date.now(),
+			createdAt: Date.now(),
+			size: 'mini',
+			backdrop: null,
+			background: null,
+			shape: 'square',
+			direction: 'vertical',
+			overlay: '#000000AA'
+		}
+
+		return mirror
+	})
+
+	const APPLICATIONS: readonly Application[] = OPTIONS.map(function (value) {
+		const application: Application = {
+			id: window.crypto.randomUUID() as string,
+			url: null,
+			mark: null,
+			title: value.label,
+			index: 1,
+			round: '12px',
+			mirrorID: MIRROR_ID,
+			textSize: '13px',
+			backdrop: null,
+			component: value.value,
+			textColor: '#ffffff',
+			updatedAt: Date.now(),
+			createdAt: Date.now(),
+			description: value.label,
+			collectionID: null,
+			downloadCount: 1000,
+			background: {
+				color: '#ffffff'
+			}
+		}
+		return application
+	})
+
+	return {
+		MIRRORS,
+		MIRROR_ID,
+		APPLICATIONS
+	}
+}
+
+export { BuildMirror }

@@ -1,63 +1,53 @@
 import { database } from '@/databases/database.ts'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { liveQuery, type InsertType, type PromiseExtended, type UpdateSpec } from 'dexie'
-import { BehaviorSubject, Subject, from, type Observable, type Subscription } from 'rxjs'
-import { catchError, debounceTime, filter, map, switchMap, take, tap } from 'rxjs/operators'
+import { type InsertType, type UpdateSpec } from 'dexie'
 import { create } from 'zustand'
-import { devtools, type DevtoolsOptions } from 'zustand/middleware'
-import { Immer } from 'immer'
-import { shallow } from 'zustand/shallow'
-import { isEmpty } from 'lodash-es'
 
-export interface ToUpdateMirror {
+interface ToUpdateMirror {
 	key: string
 	changes: UpdateSpec<Mirror>
 }
-export type ToInsertMirror = InsertType<Mirror, 'id'>
+type ToInsertMirror = InsertType<Mirror, 'id'>
 
-export interface ToRemoveMirror {
+interface ToRemoveMirror {
 	keys: string[]
 }
-export interface ToReadMirror {
+interface ToReadMirror {
 	keys: string[]
 }
 
-export interface ToUpdateApplication {
+interface ToUpdateApplication {
 	key: string
 	changes: UpdateSpec<Application>
 }
-export type ToInsertApplication = InsertType<Application, 'id'>
-export interface ToRemoveApplication {
+type ToInsertApplication = InsertType<Application, 'id'>
+interface ToRemoveApplication {
 	keys: string[]
 }
-export interface ToReadApplication {
+interface ToReadApplication {
 	keys: string[]
 }
 
-export interface MirrorStore {
+interface MirrorStore {
 	mirrorID: string | null
 	mirror: Mirror | null
-	mirrors: Array<Mirror>
 	application: Application | null
-	readonly applications: ReadonlyArray<Application>
 
+	toReadMirror: (keys: string[]) => Promise<(Mirror | undefined)[]>
 	toUpdateMirror: (values: ToUpdateMirror[]) => Promise<void>
 	toInsertMirror: (values: ToInsertMirror[]) => Promise<void>
 	toRemoveMirror: (keys: string[]) => Promise<void>
-	toReadMirror: (keys: string[]) => Promise<(Mirror | undefined)[]>
+
+	toReadApplication: (keys: string[]) => Promise<(Application | undefined)[]>
 	toUpdateApplication: (values: ToUpdateApplication[]) => Promise<void>
 	toInsertApplication: (values: ToInsertApplication[]) => Promise<void>
 	toRemoveApplication: (keys: string[]) => Promise<void>
-	toReadApplication: (keys: string[]) => Promise<(Application | undefined)[]>
 }
 
-const useMirrorStore = create<MirrorStore>(function (set, get) {
+const useMirrorStore = create<MirrorStore>(function () {
 	const store: MirrorStore = {
 		mirrorID: null,
 		mirror: null,
-		mirrors: [],
 		application: null,
-		applications: [],
 		async toUpdateMirror(values) {
 			await database.mirror.bulkUpdate(values)
 		},
@@ -81,15 +71,23 @@ const useMirrorStore = create<MirrorStore>(function (set, get) {
 			await database.application.bulkDelete(keys)
 		},
 		async toReadApplication(keys) {
-			liveQuery(async function () {
-				const response = await database.application.bulkGet(keys)
-				return response.filter(Boolean)
-			})
 			const response = await database.application.bulkGet(keys)
 			return response.filter(Boolean)
 		}
 	}
 	return store
 })
+
+export type {
+	MirrorStore,
+	ToInsertApplication,
+	ToInsertMirror,
+	ToReadApplication,
+	ToReadMirror,
+	ToRemoveApplication,
+	ToRemoveMirror,
+	ToUpdateApplication,
+	ToUpdateMirror
+}
 
 export { useMirrorStore }
