@@ -310,7 +310,7 @@
 				]
 			}
 		},
-		"chat.extensionUnification.enabled": true,
+		"chat.extensionUnification.enabled": false,
 		"css.format.newlineBetweenSelectors": true,
 		"css.hover.documentation": true,
 		"css.hover.references": true,

@@ -5,7 +5,7 @@ import { BehaviorSubject, Subject, from, type Observable, type Subscription } fr
 import { catchError, debounceTime, filter, map, switchMap, take, tap } from 'rxjs/operators'
 import { create } from 'zustand'
 import { devtools, type DevtoolsOptions } from 'zustand/middleware'
-import { immer } from 'zustand/middleware/immer'
+import { Immer } from 'immer'
 import { shallow } from 'zustand/shallow'
 import { isEmpty } from 'lodash-es'
 

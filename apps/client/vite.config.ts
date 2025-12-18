@@ -10,7 +10,7 @@ import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const ws = createWriteStream(resolve(__dirname, 'vite-manual-chunks.log'), {
+const ws = createWriteStream(resolve(__dirname, 'chunks.log'), {
 	flush: true,
 	autoClose: true,
 	encoding: 'utf-8'
@@ -256,9 +256,20 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/](axios|follow-redirects|form-data|proxy-from-env|cookie|set-cookie-parser)[\\/]/
 	],
 
-	'utils-store': [/[\\/]node_modules[\\/]zustand[\\/]/],
+	'utils-store': [
+		/[\\/]node_modules[\\/]zustand[\\/]/,
+		/[\\/]node_modules[\\/]immer[\\/]/,
+		/[\\/]node_modules[\\/]tslib[\\/]/
+	],
 
-	'utils-storage': [/[\\/]node_modules[\\/]dexie[\\/]/],
+	'utils-storage': [
+		/[\\/]node_modules[\\/]dexie[\\/]/,
+		/[\\/]node_modules[\\/]dexie-/,
+		/[\\/]node_modules[\\/]lib0[\\/]/,
+		/[\\/]node_modules[\\/]y-dexie[\\/]/,
+		/[\\/]node_modules[\\/]y-protocols[\\/]/,
+		/[\\/]node_modules[\\/]yjs[\\/]/
+	],
 
 	// 'utils-storage': [
 	// 	/[\\/]node_modules[\\/](redux|react-redux|@reduxjs\/toolkit|redux-thunk)[\\/]/,
