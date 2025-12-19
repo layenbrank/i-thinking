@@ -92,7 +92,7 @@ const mirrorEvents$ = new Subject<MirrorEvent>()
 const mirror$ = new BehaviorSubject<Mirror | null>(null)
 
 /** 当前选中的 Application - 响应式状态 */
-export const application$ = new BehaviorSubject<Application | null>(null)
+const application$ = new BehaviorSubject<Application | null>(null)
 
 const mirrorSlice: SliceCreator<MirrorSlice & MirrorActions> = function (set, get) {
 	return {
@@ -480,7 +480,7 @@ const applicationSlice: SliceCreator<ApplicationSlice & ApplicationActions> = fu
 	}
 }
 
-export const useMirrorStore = create<MirrorStore>()(
+const useMirrorStore = create<MirrorStore>()(
 	devtools(
 		subscribeWithSelector(
 			immer(function (...args) {
@@ -497,4 +497,59 @@ export const useMirrorStore = create<MirrorStore>()(
 	)
 )
 
-export { mirrorEvents$, mirror$ }
+interface SubscriptionOptions {
+	mirrors: Subscription | null
+	applications: Subscription | null
+}
+
+const subscription: SubscriptionOptions = {
+	mirrors: null,
+	applications: null
+}
+
+function MirrorsEffect(): void {
+	subscription.mirrors = from(liveQuery(() => database.mirror.orderBy('index').toArray()))
+		.pipe(
+			tap(function (mirrors) {
+				useMirrorStore.getState()._setMirrors(mirrors)
+				mirrorEvents$.next({
+					type: 'MIRRORS:SYNCED',
+					payload: { count: mirrors.length },
+					timestamp: Date.now()
+				})
+			}),
+			catchError(function (error) {
+				console.error('Failed to sync mirrors:', error)
+				useMirrorStore.getState()._setError(error.message)
+				return from(Promise.resolve([]))
+			})
+		)
+		.subscribe()
+
+	subscription.applications = from(
+		liveQuery(function () {
+			return database.application.orderBy('index').toArray()
+		})
+	)
+		.pipe(
+			tap(function (applications) {
+				useMirrorStore.getState()._setApplications(applications)
+			}),
+			catchError(function (error) {
+				console.error('Failed to sync applications:', error)
+				useMirrorStore.getState()._setError(error.message)
+				return from(Promise.resolve([]))
+			})
+		)
+		.subscribe()
+}
+
+/** 销毁 Dexie 同步 */
+function DestroyMirrorsEffect(): void {
+	subscription.mirrors?.unsubscribe()
+	subscription.applications?.unsubscribe()
+	subscription.mirrors = null
+	subscription.applications = null
+}
+
+export { mirrorEvents$, mirror$, application$, useMirrorStore }
