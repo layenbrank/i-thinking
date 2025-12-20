@@ -1,12 +1,14 @@
-import RouterView from '@/routers/routes.tsx'
-import { theme, type ThemeConfig } from 'antd'
 import { XProvider } from '@ant-design/x'
+import { theme, type ThemeConfig } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
 import { StrictMode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 
-import 'dayjs/locale/zh-cn'
+import { MirrorPlugin } from '@/plugins/mirror.ts'
+import RouterView from '@/routers/routes.tsx'
+import { PluginProvider, type Plugin } from './components/provider/plugin.tsx'
 
 dayjs.locale('zh-cn')
 
@@ -36,6 +38,8 @@ const themeConfigure: ThemeConfig = {
 	}
 }
 
+const plugins: Plugin[] = [MirrorPlugin]
+
 function App() {
 	const LANGUAGE = navigator.language || 'zh-CN'
 	// defer(function () {
@@ -55,7 +59,9 @@ function App() {
 		<StrictMode>
 			<XProvider theme={themeConfigure} locale={zhCN}>
 				<BrowserRouter>
-					<RouterView />
+					<PluginProvider plugins={plugins}>
+						<RouterView />
+					</PluginProvider>
 				</BrowserRouter>
 			</XProvider>
 		</StrictMode>

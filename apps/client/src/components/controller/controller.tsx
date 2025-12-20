@@ -2,22 +2,24 @@ import {
 	closestCenter,
 	DndContext,
 	KeyboardSensor,
-	PointerSensor,
+	MouseSensor,
 	useSensor,
 	useSensors,
 	type DragEndEvent
 } from '@dnd-kit/core'
 import {
-	arrayMove,
 	rectSortingStrategy,
 	SortableContext,
-	sortableKeyboardCoordinates
+	sortableKeyboardCoordinates,
+	arrayMove
 } from '@dnd-kit/sortable'
 import clsx from 'clsx'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { message } from 'antd'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 import styles from '@/components/controller/controller.module.scss'
 import { Reflection } from '@/components/controller/reflection.tsx'
+import { onMirrorEvent, useMirrorStore } from '@/stores/demo.ts'
 import { generateColor } from '@/utils/generate.ts'
 
 const Controller = {
@@ -25,16 +27,20 @@ const Controller = {
 		return <div className={clsx(styles.controller, styles.mirror)}>{children}</div>
 	},
 	Application() {
+		const store = useMirrorStore()
 		const controller = useRef<HTMLDivElement>(null)
+		const listen = useRef(false)
 
 		// 设置传感器，用于检测不同类型的拖拽事件
 		const sensors = useSensors(
-			useSensor(PointerSensor, {
+			useSensor(MouseSensor, {
 				activationConstraint: {
-					distance: 8 // 需要移动 8px 才激活拖拽，避免误触
+					tolerance: 100,
+					delay: 3000,
+					distance: 800 // 需要移动 8px 才激活拖拽，避免误触
 				},
 				// 阻止在 overlay 内的拖拽激活
-				bypassActivationConstraint: ({ event }) => {
+				bypassActivationConstraint({ event }) {
 					const target = event.target as HTMLElement
 					if (!target) return false
 
@@ -52,99 +58,94 @@ const Controller = {
 				}
 			}),
 			useSensor(KeyboardSensor, {
-				coordinateGetter: sortableKeyboardCoordinates
+				coordinateGetter: sortableKeyboardCoordinates,
+				keyboardCodes: {
+					start: ['Space', 'Enter'],
+					cancel: ['Escape'],
+					end: ['Space', 'Enter']
+				}
 			})
 		)
 
 		// 处理拖拽结束事件
 		function handleDragEnd(event: DragEndEvent) {
 			const { active, over } = event
-			if (over && active.id !== over.id) {
-				updateApplications(function (items) {
-					const oldIndex = items.findIndex((item) => item.id === active.id)
-					const newIndex = items.findIndex((item) => item.id === over.id)
-					return arrayMove(items, oldIndex, newIndex)
-				})
-			}
+			if (!over) return
+			if (active.id === over.id) return
+
+			const oldIndex = store.applications?.findIndex(function (v) {
+				return v.id === active.id
+			})
+			const newIndex = store.applications?.findIndex(function (v) {
+				return v.id === over.id
+			})
+
+			const applications = arrayMove(store.applications ?? [], oldIndex ?? 0, newIndex ?? 0)
+
+			const updates = applications.map(function (value, index) {
+				return {
+					...value,
+					index: index
+				}
+			})
+			console.log('[toUpdateApplication] updates', updates)
+			// store.toUpdateApplication(updates)
+			store.toUpdateApplications(updates)
 		}
 
 		const size = 'mini'
 		const shape = 'rectangle'
 		const direction = 'horizontal'
 
-		const components: Application.Component[] = [
-			'bookmark',
-			'calendar',
-			'intelligence',
-			'navigation',
-			'settings',
-			'developer',
-			'markdown',
-			'clipchamp',
-			'marketplace',
-			'clock',
-			'collection',
-			'gallery',
-			'signboard'
-		]
+		// const mirrorEvent = useCallback(function () {
+		// 	if (listen.current) return
+		// 	const subscription = onMirrorEvent<{ applications: Application[]; count: number }>(
+		// 		'APPLICATION:SYNCED'
+		// 	).subscribe(async function (event) {
+		// 		console.log('APPLICATION:SYNCED', event.payload.applications)
 
-		function matchName(component: Application.Component) {
-			if (component === 'bookmark') return '书签'
-			if (component === 'calendar') return '日历'
-			if (component === 'intelligence') return 'AI'
-			if (component === 'navigation') return '导航'
-			if (component === 'settings') return '设置'
-			if (component === 'developer') return '开发者'
-			if (component === 'markdown') return 'Markdown'
-			if (component === 'clipchamp') return 'Clipchamp'
-			if (component === 'marketplace') return '市场'
-			if (component === 'clock') return '时钟'
-			if (component === 'collection') return '收藏夹'
-			if (component === 'gallery') return '画廊'
-			if (component === 'signboard') return '看板'
-			return 'unknown'
-		}
+		// 		await store.toUpdateApplication(
+		// 			event.payload.applications.map(function (value) {
+		// 				return {
+		// 					id: value.id,
+		// 					background: {
+		// 						color: generateColor()
+		// 					}
+		// 				}
+		// 			})
+		// 		)
+		// 		subscription.unsubscribe()
+		// 	})
 
-		const [applications, updateApplications] = useState<Application[]>(
-			Array.from({ length: components.length }).map(function (_, i) {
-				const title = matchName(components[i])
+		// 	listen.current = true
+		// }, [])
 
-				return {
-					url: null,
-					mark: null,
-					collectionID: null,
-					mirrorID: 'null',
-					createdAt: Date.now(),
-					updatedAt: Date.now(),
-					id: i.toString(),
-					component: components[i],
-					// component: components[i % components.length],
-					round: '12px',
-					screenID: '0',
-					index: 0,
-					title: title,
-					backdrop: null,
-					background: {
-						color: generateColor()
-					},
-					textSize: '13px',
-					textColor: '#ffffff',
-					description: title,
-					downloadCount: 1000
-				}
-			})
-		)
+		// useEffect(function () {
+		// 	mirrorEvent()
 
-		useEffect(function () {
-			if (!controller.current) return
-			console.log('controller', controller.current)
+		// 	// 10 minutes update application
+		// 	const interval = window.setInterval(function () {
+		// 		requestAnimationFrame(function () {
+		// 			message.success('update application')
+		// 			store.toUpdateApplication(useMirrorStore.getState().applications)
+		// 		})
+		// 	}, 1000 * 3)
 
-			console.log('applications', applications)
-		}, [])
+		// 	return function () {
+		// 		clearInterval(interval)
+		// 	}
+		// }, [])
 
 		return (
 			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-				<SortableContext items={applications.map((item) => item.id)} strategy={rectSortingStrategy}>
+				<SortableContext
+					items={
+						store.applications?.map(function (v) {
+							return v.id
+						}) ?? []
+					}
+					strategy={rectSortingStrategy}
+				>
 					<div
 						ref={controller}
 						className={clsx([
@@ -155,7 +156,7 @@ const Controller = {
 							styles.application
 						])}
 					>
-						{applications.map(function (value) {
+						{store.applications?.map(function (value) {
 							const Component = Reflection[value.component]
 
 							const props = {

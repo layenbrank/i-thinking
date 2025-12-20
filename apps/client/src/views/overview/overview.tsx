@@ -2,15 +2,17 @@ import Controller from '@/components/controller/controller.tsx'
 import styles from '@/views/overview/overview.module.scss'
 import { Input, Layout as Payload } from 'antd'
 import { clsx } from 'clsx'
-import { useMirrorStore } from '@/stores/mirror.ts'
+// import { useMirrorStore } from '@/stores/mirror.ts'
+import { useApplications } from '@/stores/demo.ts'
 // import { webview} from '@tauri-apps/api'
 
 const { Content: Core, Header: Prefix, Footer: Suffix } = Payload
 
 export default function Overview() {
-	const applications = useMirrorStore(function (value) {
-		return value.applications
-	})
+	// const applications = useMirrorStore(function (value) {
+	// 	return value.application
+	// })
+	const applications = useApplications()
 
 	function openDevTools() {
 		// webview.getCurrentWebview()

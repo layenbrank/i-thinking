@@ -4,13 +4,13 @@
 	"configurations": [
 		{
 			"type": "chrome",
-			"name": "Desktop-D Debug Development",
+			"name": "extension Debug Development",
 			"request": "launch",
-			"url": "http://localhost:10010",
+			"url": "http://localhost:1024",
 			"env": { "NODE_ENV": "development" },
 			"sourceMaps": true,
-			"webRoot": "${workspaceFolder}/apps/desktop-d",
-			"preLaunchTask": "pnpm dev:desktop-d",
+			"webRoot": "${workspaceFolder}/apps/extension",
+			"preLaunchTask": "pnpm dev:extension",
 			"sourceMapPathOverrides": {
 				".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
 				".tmp": "${webRoot}/node_modules/.tmp/*",
@@ -36,17 +36,17 @@
 				"<node_internals>/**",
 				"${workspaceFolder}/node_modules/**/*.js",
 				"**/node_modules/.vite/deps/**",
-				"${workspaceFolder}/dist/desktop-d/**"
+				"${workspaceFolder}/dist/extension/**"
 			]
 		},
 		{
 			"type": "chrome",
-			"name": "Desktop-D (快速启动)",
+			"name": "extension (快速启动)",
 			"request": "launch",
-			"url": "http://localhost:10010",
+			"url": "http://localhost:1024",
 			"env": { "NODE_ENV": "development" },
 			"sourceMaps": true,
-			"webRoot": "${workspaceFolder}/apps/desktop-d",
+			"webRoot": "${workspaceFolder}/apps/extension",
 			"sourceMapPathOverrides": {
 				".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
 				"/@fs/*": "${webRoot}/*",
@@ -70,7 +70,7 @@
 				"<node_internals>/**",
 				"${workspaceFolder}/node_modules/**/*.js",
 				"**/node_modules/.vite/deps/**",
-				"${workspaceFolder}/dist/desktop-d/**"
+				"${workspaceFolder}/dist/extension/**"
 			]
 		},
 		{

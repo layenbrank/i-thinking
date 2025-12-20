@@ -30,9 +30,8 @@ interface DataBase extends Dexie {
 
 const DBNAME: Readonly<string> = 'i thinking'
 
-export const database = new Dexie(DBNAME, {
-	addons: [dexieCloud]
-}) as DataBase
+export const database = new Dexie(DBNAME) as DataBase
+// { addons: [ dexieCloud ] }
 
 const MIRROR: readonly string[] = [
 	'&id',
@@ -91,10 +90,10 @@ database.version(1).stores({
 	AiCollection: AICOLLECTION.join(',')
 })
 
-database.cloud.configure({
-	databaseUrl: 'https://cloud.dexie.org/db/i-thinking',
-	requireAuth: true
-})
+// database.cloud.configure({
+// 	databaseUrl: 'https://cloud.dexie.org/db/i-thinking',
+// 	requireAuth: true
+// })
 
 database.on(
 	'ready',
