@@ -3,7 +3,7 @@ import styles from '@/views/overview/overview.module.scss'
 import { Input, Layout as Payload } from 'antd'
 import { clsx } from 'clsx'
 // import { useMirrorStore } from '@/stores/mirror.ts'
-import { useApplications } from '@/stores/demo.ts'
+import { useApplications } from '@/stores/mirror'
 // import { webview} from '@tauri-apps/api'
 
 const { Content: Core, Header: Prefix, Footer: Suffix } = Payload

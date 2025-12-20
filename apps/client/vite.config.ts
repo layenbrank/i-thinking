@@ -107,7 +107,14 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 		/[\\/]node_modules[\\/]refractor[\\/]/,
 
 		/[\\/]node_modules[\\/]scroll-into-view-if-needed[\\/]/,
-		/[\\/]node_modules[\\/]compute-scroll-into-view[\\/]/
+		/[\\/]node_modules[\\/]compute-scroll-into-view[\\/]/,
+
+		/[\\/]node_modules[\\/]html-react-parser[\\/]/,
+		/[\\/]node_modules[\\/]html-dom-parser[\\/]/,
+		/[\\/]node_modules[\\/]domhandler[\\/]/,
+		/[\\/]node_modules[\\/]react-property[\\/]/,
+		/[\\/]node_modules[\\/]toggle-selection[\\/]/,
+		/[\\/]node_modules[\\/]domelementtype[\\/]/
 	],
 
 	'ui-marks': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/, /~icons/],
@@ -121,8 +128,22 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 	],
 
 	'utils-core': [
-		/[\\/]node_modules[\\/](lodash-es|rxjs|uuid|clsx)[\\/]/,
-		/[\\/]node_modules[\\/](reflect-metadata)[\\/]/
+		/[\\/]node_modules[\\/]lodash-es[\\/]/,
+		/[\\/]node_modules[\\/]rxjs[\\/]/,
+		/[\\/]node_modules[\\/]uuid[\\/]/,
+		/[\\/]node_modules[\\/]clsx[\\/]/,
+		/[\\/]node_modules[\\/]reflect-metadata[\\/]/,
+		/[\\/]node_modules[\\/]react-use[\\/]/,
+		/[\\/]node_modules[\\/]js-cookie[\\/]/,
+		/[\\/]node_modules[\\/]nano-css[\\/]/,
+		/[\\/]node_modules[\\/]react-universal-interface[\\/]/,
+		/[\\/]node_modules[\\/]screenfull[\\/]/,
+		/[\\/]node_modules[\\/]set-harmonic-interval[\\/]/,
+		/[\\/]node_modules[\\/]ts-easing[\\/]/,
+		/[\\/]node_modules[\\/]fast-shallow-equal[\\/]/,
+		/[\\/]node_modules[\\/]fast-deep-equal[\\/]/,
+		/[\\/]node_modules[\\/]copy-to-clipboard[\\/]/,
+		/[\\/]node_modules[\\/]@xobotyi[\\/]/
 	],
 
 	// ========== 编辑器 ==========
@@ -413,10 +434,11 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			}
 		},
 		envPrefix: ['VITE_', 'TAURI_'],
+		envDir: resolve(fileURLToPath(new URL('.', import.meta.url))),
 		css: {
 			modules: {
-				generateScopedName: '[name]-[local]-[hash:base64:6]',
-				// generateScopedName: '[name]-[hash:base64:6]',
+				// generateScopedName: '[name]-[local]-[hash:base64:6]',
+				generateScopedName: '[name]-[hash:base64:6]',
 				// generateScopedName(name, _filename, css) {
 				// 	// const fileBaseName = basename(filename, '.module.scss')
 				// 	const hash = Buffer.from(css).toString('base64').slice(0, 6)
