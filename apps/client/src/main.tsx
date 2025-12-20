@@ -14,8 +14,8 @@ const root = createRoot(rootElement, {
 	},
 	onRecoverableError(error) {
 		console.error('Root caught a recoverable error:', error)
-	},
-	identifierPrefix: 'i-thinking-'
+	}
+	// identifierPrefix: 'i-thinking-'
 })
 
 root.render(<App />)

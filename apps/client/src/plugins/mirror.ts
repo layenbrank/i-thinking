@@ -5,7 +5,7 @@ import { catchError, from, Observable, Subscription, switchMap, tap } from 'rxjs
 import type { Plugin } from '@/components/provider/plugin.tsx'
 import { BuildMirror } from '@/constants/mirror.ts'
 import { database } from '@/databases/database.ts'
-import { mirror$, useMirrorStore, application$ } from '@/stores/demo.ts'
+import { application$, mirror$, useMirrorStore } from '@/stores/mirror'
 
 interface DefineSubscription {
 	mirrors: Subscription | null

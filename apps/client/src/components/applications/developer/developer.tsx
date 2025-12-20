@@ -20,7 +20,7 @@ export default function Developer(props: ProviderProps) {
 				shape={props.shape}
 				onDoubleClick={() => onUpdateVisible(true)}
 			/>
-			<Overlay visible={visible} onUpdateVisible={onUpdateVisible} />
+			{visible && <Overlay visible={visible} onUpdateVisible={onUpdateVisible} />}
 		</Application>
 	)
 }

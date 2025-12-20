@@ -3,7 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import clsx, { type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import styles from '@/components/application/application.module.scss'
 
@@ -18,31 +18,30 @@ const OverlayContext = createContext<{
 
 export const useOverlayContext = () => useContext(OverlayContext)
 
-interface ProviderProps extends Application, Pick<Mirror, 'size' | 'direction' | 'shape'> {
+interface ProviderProps extends Application {
 	children: ReactNode
 	style?: CSSProperties
 	className?: ClassValue
+	size: Mirror.Size
+	shape: Mirror.Shape
+	direction: Mirror.Direction
 	onTrash?: MouseEventHandler<HTMLElement>
+	droppableRef?: (node: HTMLElement | null) => void
 }
 
-interface MarkerProviderProps extends Pick<Mirror, 'size' | 'direction' | 'shape'> {
+interface MarkerProviderProps {
 	onDoubleClick: MouseEventHandler<HTMLElement>
 	children: ReactNode
 	style?: CSSProperties
 	className?: ClassValue
+	size: Mirror.Size
+	shape: Mirror.Shape
+	direction: Mirror.Direction
 }
 
-// interface ProviderProps {
-// 	size: Mirror.Size
-// 	shape: Mirror.Shape
-// 	direction: Mirror.Direction
-// }
-
 interface OverlayProviderProps extends ModalProps {
-	// children: ReactNode
 	style?: CSSProperties
 	fullscreen?: boolean
-	// className?: ClassValue
 }
 
 function Provider(props: ProviderProps) {
@@ -51,10 +50,19 @@ function Provider(props: ProviderProps) {
 	})
 
 	// 管理 overlay 状态
-	const [overlayVisible, setOverlayVisible] = useState(false)
+	const [visible, updateVisible] = useState<boolean>(false)
 
 	// 如果有 overlay 打开，禁用拖拽监听器
-	const finalListeners = overlayVisible ? {} : listeners
+	const finalListeners = visible ? {} : listeners
+
+	// 合并 sortable 的 ref 和 droppable 的 ref
+	const mergedRef = useRef<HTMLDivElement | null>(null)
+
+	function setRef(node: HTMLDivElement | null) {
+		mergedRef.current = node
+		setNodeRef(node)
+		if (props.droppableRef) props.droppableRef(node)
+	}
 
 	const properties = useMemo(
 		function () {
@@ -96,9 +104,14 @@ function Provider(props: ProviderProps) {
 	)
 
 	return (
-		<OverlayContext.Provider value={{ visible: overlayVisible, updateVisible: setOverlayVisible }}>
+		<OverlayContext.Provider
+			value={{
+				visible,
+				updateVisible
+			}}
+		>
 			<div
-				ref={setNodeRef}
+				ref={setRef}
 				{...attributes}
 				{...finalListeners}
 				data-id={props.id}

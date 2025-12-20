@@ -8,19 +8,18 @@ import {
 	type DragEndEvent
 } from '@dnd-kit/core'
 import {
+	arrayMove,
 	rectSortingStrategy,
 	SortableContext,
-	sortableKeyboardCoordinates,
-	arrayMove
+	sortableKeyboardCoordinates
 } from '@dnd-kit/sortable'
 import clsx from 'clsx'
-import { message } from 'antd'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useMemo, useRef, type ReactNode } from 'react'
+import { useKeyPress } from 'react-use'
 
 import styles from '@/components/controller/controller.module.scss'
 import { Reflection } from '@/components/controller/reflection.tsx'
-import { onMirrorEvent, useMirrorStore } from '@/stores/demo.ts'
-import { generateColor } from '@/utils/generate.ts'
+import { useMirrorStore } from '@/stores/mirror.ts'
 
 const Controller = {
 	Mirror({ children }: { children: ReactNode }) {
@@ -29,7 +28,19 @@ const Controller = {
 	Application() {
 		const store = useMirrorStore()
 		const controller = useRef<HTMLDivElement>(null)
-		const listen = useRef(false)
+
+		// 使用 react-use 监听 Control 键状态
+		const [Control] = useKeyPress('Control')
+
+		const uniqueKeys = useMemo(
+			function () {
+				const keys = store.applications?.map(function (v) {
+					return v.id
+				})
+				return keys ?? []
+			},
+			[store.applications]
+		)
 
 		// 设置传感器，用于检测不同类型的拖拽事件
 		const sensors = useSensors(
@@ -73,24 +84,54 @@ const Controller = {
 			if (!over) return
 			if (active.id === over.id) return
 
-			const oldIndex = store.applications?.findIndex(function (v) {
-				return v.id === active.id
-			})
-			const newIndex = store.applications?.findIndex(function (v) {
-				return v.id === over.id
-			})
+			// 检查目标是否是放置区域
+			const isDropZone = over.id === 'navigation-drop-zone' || over.id === 'collection-drop-zone'
 
-			const applications = arrayMove(store.applications ?? [], oldIndex ?? 0, newIndex ?? 0)
+			// 如果目标是放置区域，执行放置逻辑（无论是否按下 Control 键）
+			if (isDropZone) {
+				const draggedApplication = store.applications?.find(function (v) {
+					return v.id === active.id
+				})
 
-			const updates = applications.map(function (value, index) {
-				return {
-					...value,
-					index: index
+				if (draggedApplication) {
+					console.log('[Drop Application]', {
+						application: draggedApplication,
+						target: over.id,
+						action: 'drop'
+					})
+
+					// 这里可以添加具体的放置逻辑
+					// 例如：将应用添加到 navigation 或 collection 的特定位置
+					// 暂时只打印日志，后续可以根据需求实现具体逻辑
 				}
-			})
-			console.log('[toUpdateApplication] updates', updates)
-			// store.toUpdateApplication(updates)
-			store.toUpdateApplications(updates)
+				return
+			}
+
+			// 检查目标是否是排序容器内的其他应用项
+			const isSortableItem = uniqueKeys.includes(over.id as string)
+
+			// 只有在未按下 Control 键时，才允许排序
+			if (!Control && isSortableItem) {
+				// 未按下 Control 键且目标是排序容器内的其他项，执行排序逻辑
+				const oldIndex = store.applications?.findIndex(function (v) {
+					return v.id === active.id
+				})
+				const newIndex = store.applications?.findIndex(function (v) {
+					return v.id === over.id
+				})
+
+				// const applications = arrayMove(store.applications ?? [], oldIndex ?? 0, newIndex ?? 0)
+
+				// const updates = applications.map(function (value, index) {
+				// 	return {
+				// 		...value,
+				// 		index: index
+				// 	}
+				// })
+				// console.log('[toUpdateApplication] updates', updates)
+				// store.toUpdateApplications(updates)
+			}
+			// 如果按下 Control 键且目标是排序容器内的其他项，不执行任何操作（禁用排序）
 		}
 
 		const size = 'mini'
@@ -138,14 +179,7 @@ const Controller = {
 
 		return (
 			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-				<SortableContext
-					items={
-						store.applications?.map(function (v) {
-							return v.id
-						}) ?? []
-					}
-					strategy={rectSortingStrategy}
-				>
+				<SortableContext items={uniqueKeys} strategy={rectSortingStrategy}>
 					<div
 						ref={controller}
 						className={clsx([
@@ -160,9 +194,9 @@ const Controller = {
 							const Component = Reflection[value.component]
 
 							const props = {
-								...value,
 								size,
 								shape,
+								...value,
 								direction
 							}
 							return <Component {...props} key={value.id} />
