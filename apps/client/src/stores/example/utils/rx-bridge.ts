@@ -68,7 +68,7 @@ interface Command<T extends string = string, P = unknown> {
 
 export class EventBus<EventMap extends Record<string, unknown>> {
 	private subject = new Subject<BaseEvent<keyof EventMap & string, EventMap[keyof EventMap]>>()
-	private history = new ReplaySubject<BaseEvent<keyof EventMap & string, EventMap[keyof EventMap]>>(
+	private entry = new ReplaySubject<BaseEvent<keyof EventMap & string, EventMap[keyof EventMap]>>(
 		100
 	)
 	private config: Required<EventBusConfig>
@@ -85,7 +85,7 @@ export class EventBus<EventMap extends Record<string, unknown>> {
 		// 将事件流入历史记录
 		const self = this
 		this.subject.subscribe(function (event) {
-			self.history.next(event)
+			self.entry.next(event)
 		})
 	}
 
@@ -171,7 +171,7 @@ export class EventBus<EventMap extends Record<string, unknown>> {
 
 		return new Observable(
 			function (subscriber) {
-				this.history.pipe(take(limit)).subscribe({
+				this.entry.pipe(take(limit)).subscribe({
 					next(event) {
 						events.push(event)
 					},
@@ -191,7 +191,7 @@ export class EventBus<EventMap extends Record<string, unknown>> {
 		})
 		this.subscriptions.clear()
 		this.subject.complete()
-		this.history.complete()
+		this.entry.complete()
 	}
 }
 

@@ -117,7 +117,7 @@ export {
 	storeToObservable,
 	type AppCommandMap,
 	type AppEventMap
-} from '../utils/rx-bridge'
+} from './utils/rx-bridge.ts'
 
 // ============================================================================
 // 全局初始化

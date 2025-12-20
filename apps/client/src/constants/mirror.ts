@@ -85,13 +85,17 @@ function BuildMirror(options?: MirrorOptions) {
 		return mirror
 	})
 
-	const APPLICATIONS: readonly Application[] = OPTIONS.map(function (value) {
+	const MIRROR: Mirror | undefined = MIRRORS.find(function (mirror) {
+		return mirror.id === MIRROR_ID
+	})
+
+	const APPLICATIONS: readonly Application[] = OPTIONS.map(function (value, index) {
 		const application: Application = {
 			id: window.crypto.randomUUID() as string,
 			url: null,
 			mark: null,
 			title: value.label,
-			index: 1,
+			index: index,
 			round: '12px',
 			mirrorID: MIRROR_ID,
 			textSize: '13px',
@@ -112,6 +116,7 @@ function BuildMirror(options?: MirrorOptions) {
 
 	return {
 		MIRRORS,
+		MIRROR,
 		MIRROR_ID,
 		APPLICATIONS
 	}
