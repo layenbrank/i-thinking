@@ -1,3 +1,5 @@
+import { generateColor } from '@/utils/generate.ts'
+
 interface ApplicationOptions {
 	label: string
 	value: Application.Component
@@ -108,7 +110,7 @@ function BuildMirror(options?: MirrorOptions) {
 			collectionID: null,
 			downloadCount: 1000,
 			background: {
-				color: '#ffffff'
+				color: generateColor()
 			}
 		}
 		return application

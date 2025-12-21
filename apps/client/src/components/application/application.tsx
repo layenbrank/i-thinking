@@ -26,7 +26,6 @@ interface ProviderProps extends Application {
 	shape: Mirror.Shape
 	direction: Mirror.Direction
 	onTrash?: MouseEventHandler<HTMLElement>
-	droppableRef?: (node: HTMLElement | null) => void
 }
 
 interface MarkerProviderProps {
@@ -53,16 +52,7 @@ function Provider(props: ProviderProps) {
 	const [visible, updateVisible] = useState<boolean>(false)
 
 	// 如果有 overlay 打开，禁用拖拽监听器
-	const finalListeners = visible ? {} : listeners
-
-	// 合并 sortable 的 ref 和 droppable 的 ref
-	const mergedRef = useRef<HTMLDivElement | null>(null)
-
-	function setRef(node: HTMLDivElement | null) {
-		mergedRef.current = node
-		setNodeRef(node)
-		if (props.droppableRef) props.droppableRef(node)
-	}
+	const listens = visible ? {} : listeners
 
 	const properties = useMemo(
 		function () {
@@ -82,6 +72,7 @@ function Provider(props: ProviderProps) {
 
 			const design: CSSProperties = {
 				...props.style,
+				transition,
 				backgroundSize: size ?? 'cover',
 				backgroundColor: backgroundColor,
 				backgroundImage: backgroundImage,
@@ -89,9 +80,7 @@ function Provider(props: ProviderProps) {
 				backgroundRepeat: repeat ?? 'no-repeat',
 				backgroundPosition: position ?? 'center',
 				backgroundAttachment: attachment ?? 'fixed',
-				transform: CSS.Transform.toString(transform),
-				transition,
-				cursor: 'move'
+				transform: CSS.Transform.toString(transform)
 			}
 
 			if (clip) design.backgroundClip = clip
@@ -108,14 +97,14 @@ function Provider(props: ProviderProps) {
 			value={{
 				visible,
 				updateVisible
-			}}
-		>
+			}}>
 			<div
-				ref={setRef}
+				ref={setNodeRef}
 				{...attributes}
-				{...finalListeners}
+				{...listens}
 				data-id={props.id}
 				className={clsx([
+					'application',
 					styles.application,
 					props.className,
 					styles[props.size],
@@ -125,13 +114,17 @@ function Provider(props: ProviderProps) {
 						[styles.dragging]: isDragging
 					}
 				])}
-				style={properties}
-			>
+				style={properties}>
 				{props.children}
-				<Tooltip placement="bottom" title={props.title} autoAdjustOverflow={false}>
+				<Tooltip
+					placement="bottom"
+					title={props.title}
+					autoAdjustOverflow={false}>
 					<span className={styles.title}>{props.title}</span>
 				</Tooltip>
-				<div onClick={props.onTrash} className={clsx(styles.destroy, styles.marker)}>
+				<div
+					onClick={props.onTrash}
+					className={clsx(styles.destroy, styles.marker)}>
 					X
 				</div>
 			</div>
@@ -144,21 +137,23 @@ function MarkerProvider(props: MarkerProviderProps) {
 		<div
 			onDoubleClick={props.onDoubleClick}
 			className={clsx(styles.marker, props.className)}
-			style={props.style}
-		>
+			style={props.style}>
 			{props.children}
 		</div>
 	)
 }
 
 function OverlayProvider(props: OverlayProviderProps) {
+	const { style, className, open, onCancel, ...remains } = props
 	const { updateVisible } = useOverlayContext()
-	const isOpen = props.open ?? false
 
 	// 当 open 变化时，更新 Context
-	useEffect(() => {
-		updateVisible(isOpen)
-	}, [isOpen, updateVisible])
+	useEffect(
+		function () {
+			updateVisible(open ?? false)
+		},
+		[open, updateVisible]
+	)
 
 	return (
 		<Modal
@@ -171,13 +166,13 @@ function OverlayProvider(props: OverlayProviderProps) {
 			width={props.fullscreen ? '100%' : '80%'}
 			height={props.fullscreen ? '100%' : 'unset'}
 			style={{
+				...style,
 				aspectRatio: props.fullscreen ? 'unset' : '16 / 9'
 			}}
-			{...props}
-			open={isOpen}
-			onCancel={(e) => (updateVisible(false), props.onCancel?.(e) ?? void 0)}
-			className={clsx(['application-overlay', props.className])}
-		>
+			open={open}
+			onCancel={(e) => (updateVisible(false), onCancel?.(e) ?? void 0)}
+			className={clsx(['application-overlay', className])}
+			{...remains}>
 			{props.children}
 		</Modal>
 	)

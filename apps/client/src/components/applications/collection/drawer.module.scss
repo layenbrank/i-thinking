@@ -1,0 +1,29 @@
+.drawer {
+	.root {
+	}
+
+	&.body {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 10px;
+	}
+
+	&.match {
+	}
+
+	&.section {
+		width: 100%;
+		flex-grow: 1;
+		flex-shrink: 1;
+		flex-basis: 0%;
+		min-height: 0px;
+		overflow: hidden scroll;
+		scrollbar-width: none;
+	}
+
+	&.layout {
+		padding: 10px;
+	}
+}

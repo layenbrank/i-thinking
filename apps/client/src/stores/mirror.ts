@@ -1,4 +1,3 @@
-import { database } from '@/databases/database'
 import { type InsertType, type UpdateSpec } from 'dexie'
 import { BehaviorSubject, Subject, filter, type Observable } from 'rxjs'
 import { map, take, tap } from 'rxjs/operators'
@@ -6,6 +5,8 @@ import type { StateCreator } from 'zustand'
 import { create } from 'zustand'
 import { devtools, subscribeWithSelector } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
+
+import { database } from '@/databases/database.ts'
 
 type ToInsertMirror = InsertType<Mirror, 'id'>
 

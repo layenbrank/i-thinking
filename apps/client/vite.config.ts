@@ -325,6 +325,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 	return {
 		plugins: [
 			React({
+				jsxRuntime: 'automatic',
 				babel: {
 					plugins: [['babel-plugin-react-compiler']]
 				}
@@ -339,15 +340,20 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 				iconCustomizer(collection, icon, props) {
 					props['aria-hidden'] = 'true'
 				},
+				collectionsNodeResolvePath: [
+					'@iconify/icons-*',
+					'@iconify-json/*',
+					'packages/shared/src/assets/iconify.json'
+				],
 				customCollections: {
 					// 'local' 是自定义集合名称，可以改为任何你喜欢的名称
-
-					local: FileSystemIconLoader(
-						resolve(rootDir, 'packages/shared/src/assets/icons'),
-						function (svg) {
-							return svg.replace(/^<svg /, '<svg fill="currentColor" ')
-						}
-					)
+					// custom: FileSystemIconLoader(resolve(rootDir, 'packages/shared/src/assets/iconify.json'))
+					// local: FileSystemIconLoader(
+					// 	resolve(rootDir, 'packages/shared/src/assets/icons'),
+					// 	function (svg) {
+					// 		return svg.replace(/^<svg /, '<svg fill="currentColor" ')
+					// 	}
+					// )
 				}
 			}),
 			AutoImport({
@@ -376,7 +382,8 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 		build: {
 			target: 'esnext',
 			// target: process.env.TAURI_ENV_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
-			cssTarget: 'chrome142',
+			// cssTarget: 'chrome142',
+			cssTarget: 'chrome128',
 			emptyOutDir: true,
 			minify: 'terser',
 			// minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
@@ -452,7 +459,10 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 			},
 			preprocessorOptions: {
 				scss: {
-					// additionalData: '@import "@/styles/variables.scss";',
+					additionalData: `
+														@use "@/styles/variables.scss";
+														@use "@/styles/placeholder.scss";
+													`
 				}
 			}
 		},

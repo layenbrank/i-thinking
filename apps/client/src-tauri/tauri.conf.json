@@ -63,7 +63,8 @@
 				"focus": true,
 				"focusable": true,
 				"fullscreen": false,
-				"height": 600,
+				"height": 800,
+				"minHeight": 600,
 				"hiddenTitle": false,
 				"label": "main",
 				"maximizable": true,
@@ -75,7 +76,8 @@
 				"titleBarStyle": "Transparent",
 				"transparent": true,
 				"visible": true,
-				"width": 800,
+				"width": 1200,
+				"minWidth": 800,
 				"windowClassname": "i thinking",
 				"windowEffects": {
 					"effects": ["micaLight", "mica", "micaDark", "acrylic"]

@@ -14,6 +14,7 @@ import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
 import DevTools from 'vite-plugin-vue-devtools'
+import { Icon } from '@iconify/react'
 // import wasm from 'vite-plugin-wasm'
 
 // 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件

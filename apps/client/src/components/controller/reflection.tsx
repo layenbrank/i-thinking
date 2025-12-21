@@ -70,6 +70,24 @@ const Reflection: Readonly<Application.Reflection> = {
 	signboard: Signboard
 }
 
+export {
+	Bookmark,
+	Calendar,
+	Intelligence,
+	Settings,
+	Navigation,
+	Clipchamp,
+	Markdown,
+	Marketplace,
+	Developer,
+	Example,
+	Clock,
+	Collection,
+	Gallery,
+	Signboard,
+	Reflection
+}
+
 // const Applications = import.meta.glob<(props: ProviderProps) => JSX.Element>(
 // 	'@/components/applications/*/index.tsx',
 // 	{
@@ -87,5 +105,3 @@ const Reflection: Readonly<Application.Reflection> = {
 // 	{} as Application.Reflection
 // )
 // console.log('Reflection', Reflection)
-
-export { Reflection }
