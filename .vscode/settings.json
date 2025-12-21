@@ -141,9 +141,13 @@
 		"vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts"
 	},
 	"iconify.languageIds": ["typescript", "typescriptreact", "vue"],
-	"iconify.customCollectionJsonPaths": ["packages/shared/src/assets/icons"],
+	"iconify.customCollectionJsonPaths": ["packages/shared/src/assets/iconify.json"],
+	"iconify.customAliasesOnly": false,
+	"iconify.annotations": true,
+	"iconify.preview.include": ["**/*.vue", "**/*.jsx", "**/*.tsx"],
+	"iconify.preview.exclude": ["package.json"],
 	"iconify.customCollectionIdsMap": {
-		"local": "local"
+		"custom": "custom"
 	},
 	"files.associations": {
 		"*.ts": "typescript",

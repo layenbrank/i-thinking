@@ -7,6 +7,7 @@ import {
 	useSensors,
 	type DragEndEvent
 } from '@dnd-kit/core'
+import { snapCenterToCursor } from '@dnd-kit/modifiers'
 import {
 	arrayMove,
 	rectSortingStrategy,
@@ -42,41 +43,40 @@ const Controller = {
 			[store.applications]
 		)
 
+		const mouseSensor = useSensor(MouseSensor, {
+			activationConstraint: {
+				tolerance: 0,
+				delay: 1000,
+				distance: 10 // 需要移动 10px 才激活拖拽，避免误触
+			},
+			// 阻止在 overlay 内的拖拽激活
+			bypassActivationConstraint({ event, activeNode, options }) {
+				const target = event.target as HTMLElement
+				if (!target) return false
+				// 检查点击目标是否在 overlay 内
+				const isOverlay =
+					target.closest('.application-overlay') ||
+					target.closest('.ant-modal-wrap') ||
+					target.closest('.ant-modal') ||
+					target.closest('.ant-modal-content') ||
+					target.closest('.ant-modal-body')
+				// 如果在 overlay 内，返回 false 应用约束（阻止拖拽）
+				// 否则返回 true 绕过约束（允许拖拽）
+				return !isOverlay
+			}
+		})
+
+		const keyboardSensor = useSensor(KeyboardSensor, {
+			coordinateGetter: sortableKeyboardCoordinates,
+			keyboardCodes: {
+				start: ['Space', 'Enter'],
+				cancel: ['Escape'],
+				end: ['Space', 'Enter']
+			}
+		})
+
 		// 设置传感器，用于检测不同类型的拖拽事件
-		const sensors = useSensors(
-			useSensor(MouseSensor, {
-				activationConstraint: {
-					tolerance: 100,
-					delay: 3000,
-					distance: 800 // 需要移动 8px 才激活拖拽，避免误触
-				},
-				// 阻止在 overlay 内的拖拽激活
-				bypassActivationConstraint({ event }) {
-					const target = event.target as HTMLElement
-					if (!target) return false
-
-					// 检查点击目标是否在 overlay 内
-					const isOverlay =
-						target.closest('.application-overlay') ||
-						target.closest('.ant-modal-wrap') ||
-						target.closest('.ant-modal') ||
-						target.closest('.ant-modal-content') ||
-						target.closest('.ant-modal-body')
-
-					// 如果在 overlay 内，返回 false 应用约束（阻止拖拽）
-					// 否则返回 true 绕过约束（允许拖拽）
-					return !isOverlay
-				}
-			}),
-			useSensor(KeyboardSensor, {
-				coordinateGetter: sortableKeyboardCoordinates,
-				keyboardCodes: {
-					start: ['Space', 'Enter'],
-					cancel: ['Escape'],
-					end: ['Space', 'Enter']
-				}
-			})
-		)
+		const sensors = useSensors(mouseSensor, keyboardSensor)
 
 		// 处理拖拽结束事件
 		function handleDragEnd(event: DragEndEvent) {
@@ -108,7 +108,7 @@ const Controller = {
 			}
 
 			// 检查目标是否是排序容器内的其他应用项
-			const isSortableItem = uniqueKeys.includes(over.id as string)
+			const isSortableItem = uniqueKeys.includes(over.id.toString())
 
 			// 只有在未按下 Control 键时，才允许排序
 			if (!Control && isSortableItem) {
@@ -120,16 +120,16 @@ const Controller = {
 					return v.id === over.id
 				})
 
-				// const applications = arrayMove(store.applications ?? [], oldIndex ?? 0, newIndex ?? 0)
+				const applications = arrayMove(store.applications ?? [], oldIndex ?? 0, newIndex ?? 0)
 
-				// const updates = applications.map(function (value, index) {
-				// 	return {
-				// 		...value,
-				// 		index: index
-				// 	}
-				// })
-				// console.log('[toUpdateApplication] updates', updates)
-				// store.toUpdateApplications(updates)
+				const updates = applications.map(function (value, index) {
+					return {
+						...value,
+						index: index
+					}
+				})
+				console.log('[toUpdateApplication] updates', updates)
+				store.toUpdateApplications(updates)
 			}
 			// 如果按下 Control 键且目标是排序容器内的其他项，不执行任何操作（禁用排序）
 		}
@@ -178,8 +178,14 @@ const Controller = {
 		// }, [])
 
 		return (
-			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-				<SortableContext items={uniqueKeys} strategy={rectSortingStrategy}>
+			<DndContext
+				sensors={sensors}
+				collisionDetection={closestCenter}
+				onDragEnd={handleDragEnd}
+				modifiers={[snapCenterToCursor]}>
+				<SortableContext
+					items={uniqueKeys}
+					strategy={rectSortingStrategy}>
 					<div
 						ref={controller}
 						className={clsx([
@@ -188,8 +194,7 @@ const Controller = {
 							styles[direction],
 							styles.controller,
 							styles.application
-						])}
-					>
+						])}>
 						{store.applications?.map(function (value) {
 							const Component = Reflection[value.component]
 
@@ -199,7 +204,12 @@ const Controller = {
 								...value,
 								direction
 							}
-							return <Component {...props} key={value.id} />
+							return (
+								<Component
+									{...props}
+									key={value.id}
+								/>
+							)
 						})}
 					</div>
 				</SortableContext>

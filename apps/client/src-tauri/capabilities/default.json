@@ -113,5 +113,5 @@
 			"https://*.bing.com"
 		]
 	},
-	"windows": ["main", "baidu", "bing"]
+	"windows": ["main", "navigation"]
 }

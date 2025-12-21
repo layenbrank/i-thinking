@@ -17,7 +17,6 @@
 			"@i-thinking/wasm",
 			"unplugin-icons/types/vue3",
 			"ant-design-vue/typings/global",
-			"@i-thinking/wasm",
 			"@i-thinking/core/directives",
 			"@i-thinking/shared/response",
 			"@i-thinking/shared/decorator",

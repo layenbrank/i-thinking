@@ -60,7 +60,13 @@ const MirrorPlugin: Plugin = {
 				switchMap(function (mirrorID) {
 					return from(
 						liveQuery(function () {
-							return database.application.where('mirrorID').equals(mirrorID).sortBy('index')
+							return database.application
+								.where('mirrorID')
+								.equals(mirrorID)
+								.filter(function (v) {
+									return !v.collectionID
+								})
+								.sortBy('index')
 						})
 					)
 				}),

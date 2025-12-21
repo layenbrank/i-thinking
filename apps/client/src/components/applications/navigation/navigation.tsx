@@ -1,44 +1,60 @@
-import { useDroppable } from '@dnd-kit/core'
 import { message } from 'antd'
-import clsx from 'clsx'
-import type { MouseEvent } from 'react'
+import clsx, { type ClassValue } from 'clsx'
+import type { CSSProperties, MouseEvent } from 'react'
 import { useState } from 'react'
 
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 
-import Application, { type ProviderProps } from '@/components/application/application.tsx'
+import type { ProviderProps } from '@/components/application/application.tsx'
+import Application from '@/components/application/application.tsx'
 import Marker from '@/components/applications/navigation/marker.tsx'
 import styles from '@/components/applications/navigation/navigation.module.scss'
 import Overlay from '@/components/applications/navigation/overlay.tsx'
 
-export default function Navigation(props: ProviderProps) {
-	const [visible, onUpdateVisible] = useState(false)
+interface NavigationProps extends Omit<ProviderProps, 'children'> {
+	style?: CSSProperties
+	className?: ClassValue
+	size: Mirror.Size
+	shape: Mirror.Shape
+	direction: Mirror.Direction
+	onPrevent?: React.MouseEventHandler<HTMLDivElement>
+}
 
-	// 创建放置区域
-	const { setNodeRef, isOver } = useDroppable({
-		id: 'navigation-drop-zone'
-	})
+export default function Navigation(props: NavigationProps) {
+	console.log()
+	const [visible, onUpdateVisible] = useState(false)
 
 	function onTrash(e: MouseEvent<HTMLElement>) {
 		console.log('Trash clicked for', e)
 	}
 
 	async function onRedirect(e: MouseEvent<HTMLElement>) {
-		console.log('Marker double-clicked for', e)
+		console.log(
+			'Marker double-clicked for',
+			e,
+			'\nnavigating to URL:',
+			props.url,
+			'navigation props:',
+			props
+		)
 
 		try {
 			// 检查窗口是否已存在
-			const existing = await WebviewWindow.getByLabel('baidu')
+			const existing = await WebviewWindow.getByLabel('navigation')
 			if (existing) {
 				// 如果窗口已存在，显示并聚焦
 				await existing.show()
 				await existing.setFocus()
 				return
 			}
+			if (!props.url) return message.error('URL 未定义，无法打开新窗口')
 
 			// 创建新窗口 - 明确设置所有必要的属性
-			const webview = new WebviewWindow('baidu', {
-				url: 'https://www.baidu.com',
+			const webview = new WebviewWindow('navigation', {
+				// url: 'https://www.baidu.com',
+				// url: 'https://x.ant.design',
+				// url: 'https://cn.bing.com',
+				url: props.url,
 				width: 1200,
 				height: 800,
 				title: '百度',
@@ -83,21 +99,22 @@ export default function Navigation(props: ProviderProps) {
 
 	return (
 		<Application
-			onTrash={onTrash}
 			{...props}
-			droppableRef={setNodeRef}
-			className={clsx(styles.navigation, {
-				[styles['drop-over']]: isOver
-			})}
-		>
+			onTrash={onTrash}
+			className={clsx(styles.navigation)}>
 			<Marker
 				size={props.size}
 				direction={props.direction}
 				shape={props.shape}
-				onDoubleClick={onRedirect}
+				onDoubleClick={props.onPrevent ?? onRedirect}
 				// onDoubleClick={() => onUpdateVisible(true)}
 			/>
-			{visible && <Overlay visible={visible} onUpdateVisible={onUpdateVisible} />}
+			{visible && (
+				<Overlay
+					visible={visible}
+					onUpdateVisible={onUpdateVisible}
+				/>
+			)}
 		</Application>
 	)
 }
