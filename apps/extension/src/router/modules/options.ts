@@ -1,6 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router'
 
-export default {
+const routes: RouteRecordRaw = {
 	path: '/',
 	redirect: '/overview',
 	children: [
@@ -55,4 +55,6 @@ export default {
 			component: () => import('@/views/not-found-view.vue')
 		}
 	]
-} as RouteRecordRaw
+}
+
+export default routes
