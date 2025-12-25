@@ -2,15 +2,15 @@
  * @description: 获取时间数组
  */
 export function formatTimeToDigits(date: Date = new Date()): number[] {
-	const hours = date.getHours()
-	const minutes = date.getMinutes()
-	const seconds = date.getSeconds()
+  const hours = date.getHours()
+  const minutes = date.getMinutes()
+  const seconds = date.getSeconds()
 
-	return [
-		...convertToDigitArray(hours),
-		...convertToDigitArray(minutes),
-		...convertToDigitArray(seconds)
-	]
+  return [
+    ...convertToDigitArray(hours),
+    ...convertToDigitArray(minutes),
+    ...convertToDigitArray(seconds)
+  ]
 }
 
 /**
@@ -19,7 +19,7 @@ export function formatTimeToDigits(date: Date = new Date()): number[] {
  * @returns 数字数组 [0,9] 或 [1,2]等
  */
 export function convertToDigitArray(num: number): number[] {
-	return num >= 10 ? String(num).split('').map(Number) : [0, num]
+  return num >= 10 ? String(num).split('').map(Number) : [0, num]
 }
 
 /**
@@ -27,6 +27,6 @@ export function convertToDigitArray(num: number): number[] {
  * @returns 距离下一秒的毫秒数
  */
 export function getNextTickDelay(): number {
-	const now = performance.now()
-	return 1000 - (now % 1000)
+  const now = performance.now()
+  return 1000 - (now % 1000)
 }

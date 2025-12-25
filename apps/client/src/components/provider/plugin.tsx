@@ -1,29 +1,29 @@
 interface Plugin {
-	unique: string
-	version: string
-	mount: () => void
-	unmount: () => void
+  unique: string
+  version: string
+  mount: () => void
+  unmount: () => void
 }
 
 interface PluginProviderProps {
-	children: React.ReactNode
-	plugins?: Plugin[]
+  children: React.ReactNode
+  plugins?: Plugin[]
 }
 
 function PluginProvider(props: PluginProviderProps) {
-	useEffect(function () {
-		props.plugins?.forEach(function (plugin) {
-			plugin.mount()
-		})
+  useEffect(function () {
+    props.plugins?.forEach(function (plugin) {
+      plugin.mount()
+    })
 
-		return function () {
-			props.plugins?.forEach(function (plugin) {
-				plugin.unmount()
-			})
-		}
-	}, [])
+    return function () {
+      props.plugins?.forEach(function (plugin) {
+        plugin.unmount()
+      })
+    }
+  }, [])
 
-	return <>{props.children}</>
+  return <>{props.children}</>
 }
 
 export { PluginProvider, type Plugin, type PluginProviderProps }

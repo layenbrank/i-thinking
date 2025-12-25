@@ -16,8 +16,8 @@ import pkg from './package.json'
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 
 const rootMarkerPath: Readonly<string | undefined> = findUpSync([
-	'turbo.json',
-	'pnpm-workspace.yaml'
+  'turbo.json',
+  'pnpm-workspace.yaml'
 ])
 const rootDir: Readonly<string> = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 // const [lang, platform, project] = pkg.name.split('-')
@@ -25,97 +25,97 @@ const rootDir: Readonly<string> = rootMarkerPath ? dirname(rootMarkerPath) : pro
 const outputDir: Readonly<string> = pkg.name.replace(/^@turborepo-\//, '')
 
 export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
-	const env = loadEnv(mode || 'development', '')
+  const env = loadEnv(mode || 'development', '')
 
-	return {
-		base: `/${pkg.name.replace(/^@turborepo-\//, '')}/`,
-		plugins: [
-			vue(),
-			vueJsx(),
-			vueDevTools(),
-			Icons({
-				compiler: 'vue3',
-				autoInstall: true,
-				scale: 1,
-				defaultStyle: '',
-				defaultClass: '',
+  return {
+    base: `/${pkg.name.replace(/^@turborepo-\//, '')}/`,
+    plugins: [
+      vue(),
+      vueJsx(),
+      vueDevTools(),
+      Icons({
+        compiler: 'vue3',
+        autoInstall: true,
+        scale: 1,
+        defaultStyle: '',
+        defaultClass: '',
 
-				jsx: 'react',
-				customCollections: {
-					// 'local' 是自定义集合名称，可以改为任何你喜欢的名称
-					// 本地 SVG 图标文件夹路径
-					local: FileSystemIconLoader('./src/assets/icons', function (svg) {
-						return svg.replace(/^<svg /, '<svg fill="currentColor" ')
-					})
-				}
-			}),
-			AutoImport({
-				resolvers: [NaiveUiResolver()],
-				dts: 'src/types/auto-imports.d.ts',
-				include: [/\.[tj]sx?$/, /\.vue$/, /\.vue\?vue/, /\.md$/],
-				imports: [
-					'vue',
-					'vue-router',
-					{
-						'naive-ui': ['useDialog', 'useMessage', 'useNotification', 'useLoadingBar']
-					}
-				]
-			}),
-			Components({
-				resolvers: [
-					NaiveUiResolver(),
-					IconsResolver({
-						prefix: 'Icon',
-						customCollections: ['local']
-					})
-				],
-				dts: 'src/types/components.d.ts'
-			})
-		],
-		resolve: {
-			alias: {
-				'@': fileURLToPath(new URL('./src', import.meta.url))
-			}
-		},
-		build: {
-			outDir: resolve(rootDir, outputDir),
-			emptyOutDir: true,
-			rollupOptions: {
-				output: {
-					entryFileNames: '[name].js',
-					manualChunks: {
-						vue: ['vue', 'vue-router', 'pinia']
-					}
-				}
-			}
-		},
-		css: {
-			modules: {
-				// 生成的类名格式
-				generateScopedName: '[name]__[local]__[hash:base64:5]',
-				// 是否驼峰化 CSS 类名
-				localsConvention: 'camelCase',
-				// 哪些文件需要使用 CSS Modules（默认：/\.module\./）
-				scopeBehaviour: 'local',
-				// 自定义哈希函数
-				hashPrefix: 'prefix'
-			},
-			preprocessorOptions: {
-				scss: {
-					// api: 'modern-compiler'
-					// additionalData: '@import "@/styles/variables.scss";',
-				}
-			}
-		},
-		server: {
-			port: 1024,
-			proxy: {
-				'/bing': {
-					target: 'https://cn.bing.com',
-					changeOrigin: true,
-					rewrite: (path) => path.replace(/^\/bing/, '')
-				}
-			}
-		}
-	}
+        jsx: 'react',
+        customCollections: {
+          // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
+          // 本地 SVG 图标文件夹路径
+          local: FileSystemIconLoader('./src/assets/icons', function (svg) {
+            return svg.replace(/^<svg /, '<svg fill="currentColor" ')
+          })
+        }
+      }),
+      AutoImport({
+        resolvers: [NaiveUiResolver()],
+        dts: 'src/types/auto-imports.d.ts',
+        include: [/\.[tj]sx?$/, /\.vue$/, /\.vue\?vue/, /\.md$/],
+        imports: [
+          'vue',
+          'vue-router',
+          {
+            'naive-ui': ['useDialog', 'useMessage', 'useNotification', 'useLoadingBar']
+          }
+        ]
+      }),
+      Components({
+        resolvers: [
+          NaiveUiResolver(),
+          IconsResolver({
+            prefix: 'Icon',
+            customCollections: ['local']
+          })
+        ],
+        dts: 'src/types/components.d.ts'
+      })
+    ],
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url))
+      }
+    },
+    build: {
+      outDir: resolve(rootDir, outputDir),
+      emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          entryFileNames: '[name].js',
+          manualChunks: {
+            vue: ['vue', 'vue-router', 'pinia']
+          }
+        }
+      }
+    },
+    css: {
+      modules: {
+        // 生成的类名格式
+        generateScopedName: '[name]__[local]__[hash:base64:5]',
+        // 是否驼峰化 CSS 类名
+        localsConvention: 'camelCase',
+        // 哪些文件需要使用 CSS Modules（默认：/\.module\./）
+        scopeBehaviour: 'local',
+        // 自定义哈希函数
+        hashPrefix: 'prefix'
+      },
+      preprocessorOptions: {
+        scss: {
+          // api: 'modern-compiler'
+          // additionalData: '@import "@/styles/variables.scss";',
+        }
+      }
+    },
+    server: {
+      port: 1024,
+      proxy: {
+        '/bing': {
+          target: 'https://cn.bing.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/bing/, '')
+        }
+      }
+    }
+  }
 })

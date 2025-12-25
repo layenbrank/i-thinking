@@ -3,86 +3,83 @@ import type { Editor } from '@tiptap/vue-3'
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 
 defineOptions({
-	name: 'markdown-bubble'
+  name: 'markdown-bubble'
 })
 
 withDefaults(
-	defineProps<{
-		editor: Editor
-	}>(),
-	{}
+  defineProps<{
+    editor: Editor
+  }>(),
+  {}
 )
 </script>
 
 <template>
-	<bubble-menu :editor="editor" v-if="editor">
-		<div class="markdown-bubble">
-			<button
-				@click="editor?.chain().focus().toggleBold().run()"
-				:class="[
-					'bubble-button',
-					{
-						'is-active': editor?.isActive('bold')
-					}
-				]"
-			>
-				Bold
-			</button>
-			<button
-				@click="editor?.chain().focus().toggleItalic().run()"
-				:class="[
-					'bubble-button',
-					{
-						'is-active': editor?.isActive('italic')
-					}
-				]"
-			>
-				Italic
-			</button>
-			<button
-				@click="editor?.chain().focus().toggleStrike().run()"
-				:class="[
-					'bubble-button',
-					{
-						'is-active': editor?.isActive('strike')
-					}
-				]"
-			>
-				Strike
-			</button>
-			<button
-				@click="
-					editor
-						?.chain()
-						.focus()
-						.insertTable({
-							rows: 3,
-							cols: 3,
-							withHeaderRow: true
-						})
-						.run()
-				"
-				:class="['bubble-button']"
-			>
-				Insert table
-			</button>
-			<button
-				@click="
-					editor
-						?.chain()
-						.focus()
-						.insertContent('tableHTML', {
-							parseOptions: {
-								preserveWhitespace: false
-							}
-						})
-						.run()
-				"
-				:class="['bubble-button']"
-			>
-				Insert HTML table
-			</button>
-			<!-- <button
+  <bubble-menu
+    :editor="editor"
+    v-if="editor">
+    <div class="markdown-bubble">
+      <button
+        @click="editor?.chain().focus().toggleBold().run()"
+        :class="[
+          'bubble-button',
+          {
+            'is-active': editor?.isActive('bold')
+          }
+        ]">
+        Bold
+      </button>
+      <button
+        @click="editor?.chain().focus().toggleItalic().run()"
+        :class="[
+          'bubble-button',
+          {
+            'is-active': editor?.isActive('italic')
+          }
+        ]">
+        Italic
+      </button>
+      <button
+        @click="editor?.chain().focus().toggleStrike().run()"
+        :class="[
+          'bubble-button',
+          {
+            'is-active': editor?.isActive('strike')
+          }
+        ]">
+        Strike
+      </button>
+      <button
+        @click="
+          editor
+            ?.chain()
+            .focus()
+            .insertTable({
+              rows: 3,
+              cols: 3,
+              withHeaderRow: true
+            })
+            .run()
+        "
+        :class="['bubble-button']">
+        Insert table
+      </button>
+      <button
+        @click="
+          editor
+            ?.chain()
+            .focus()
+            .insertContent('tableHTML', {
+              parseOptions: {
+                preserveWhitespace: false
+              }
+            })
+            .run()
+        "
+        :class="['bubble-button']">
+        Insert HTML table
+      </button>
+      <!-- <button
 				@click="editor?.chain().focus().addColumnBefore().run()"
 				:disabled="!editor?.can().addColumnBefore()"
 				:class="['bubble-button']"
@@ -201,39 +198,39 @@ withDefaults(
 			>
 				Go to previous cell
 			</button> -->
-		</div>
-	</bubble-menu>
+    </div>
+  </bubble-menu>
 </template>
 
 <style lang="scss" scoped>
 /* Bubble menu */
 .markdown-bubble {
-	background-color: var(--white);
-	border: 1px solid var(--gray-1);
-	border-radius: 0.7rem;
-	box-shadow: var(--shadow);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	column-gap: 10px;
-	padding: 0.2rem;
+  background-color: var(--white);
+  border: 1px solid var(--gray-1);
+  border-radius: 0.7rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  column-gap: 10px;
+  padding: 0.2rem;
 
-	.bubble-button {
-		cursor: pointer;
-		border-radius: 3px;
-		background-color: unset;
+  .bubble-button {
+    cursor: pointer;
+    border-radius: 3px;
+    background-color: unset;
 
-		&:hover {
-			background-color: var(--gray-3);
-		}
+    &:hover {
+      background-color: var(--gray-3);
+    }
 
-		&.is-active {
-			background-color: var(--purple);
+    &.is-active {
+      background-color: var(--purple);
 
-			&:hover {
-				background-color: var(--purple-contrast);
-			}
-		}
-	}
+      &:hover {
+        background-color: var(--purple-contrast);
+      }
+    }
+  }
 }
 </style>

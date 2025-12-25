@@ -1,12 +1,12 @@
 {
-	"compilerOptions": {
-		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-		"types": ["vite/client"],
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "types": ["vite/client"],
 
-		"paths": {
-			"@/*": ["./src/*"]
-		}
-	},
-	"exclude": ["node_modules"],
-	"extends": "@vue/tsconfig/tsconfig.dom.json"
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "exclude": ["node_modules"],
+  "extends": "@vue/tsconfig/tsconfig.dom.json"
 }

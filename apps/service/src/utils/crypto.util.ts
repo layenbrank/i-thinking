@@ -8,8 +8,8 @@ const secret: Readonly<string> = 'layen-secret'
  * @returns 加密后的结果
  */
 export function encrypt(ciphertext: string) {
-	const enc = CryptoJS.AES.encrypt(ciphertext, secret).toString()
-	return enc
+  const enc = CryptoJS.AES.encrypt(ciphertext, secret).toString()
+  return enc
 }
 
 /**
@@ -18,7 +18,7 @@ export function encrypt(ciphertext: string) {
  * @returns 解密后的结果
  */
 export function decrypt(ciphertext: string | CryptoJS.lib.CipherParams) {
-	const bytes = CryptoJS.AES.decrypt(ciphertext, secret)
-	const originalText = bytes.toString(CryptoJS.enc.Utf8)
-	return originalText
+  const bytes = CryptoJS.AES.decrypt(ciphertext, secret)
+  const originalText = bytes.toString(CryptoJS.enc.Utf8)
+  return originalText
 }

@@ -63,11 +63,11 @@
 
 ```json
 {
-	"type": "chrome", // 调试器类型，使用Chrome DevTools
-	"name": "Desktop-D Debug Development", // 配置显示名称
-	"request": "launch", // 启动模式（launch/attach）
-	"url": "http://localhost:10010", // 调试目标URL
-	"env": { "NODE_ENV": "development" } // 环境变量设置
+  "type": "chrome", // 调试器类型，使用Chrome DevTools
+  "name": "Desktop-D Debug Development", // 配置显示名称
+  "request": "launch", // 启动模式（launch/attach）
+  "url": "http://localhost:10010", // 调试目标URL
+  "env": { "NODE_ENV": "development" } // 环境变量设置
 }
 ```
 
@@ -133,12 +133,12 @@
 
 ```json
 {
-	"type": "shell", // 任务类型：shell命令
-	"command": "pnpm", // 执行命令
-	"args": ["run", "dev:desktop-d"], // 命令参数
-	"label": "pnpm dev:desktop-d", // 任务标签（供launch.json引用）
-	"detail": "启动 Desktop-D 应用开发服务器", // 任务描述
-	"isBackground": true // 后台运行任务
+  "type": "shell", // 任务类型：shell命令
+  "command": "pnpm", // 执行命令
+  "args": ["run", "dev:desktop-d"], // 命令参数
+  "label": "pnpm dev:desktop-d", // 任务标签（供launch.json引用）
+  "detail": "启动 Desktop-D 应用开发服务器", // 任务描述
+  "isBackground": true // 后台运行任务
 }
 ```
 
@@ -177,8 +177,8 @@
 
 ```json
 {
-	"group": "build", // 任务组（构建类）
-	"problemMatcher": [] // 空问题匹配器（同步任务）
+  "group": "build", // 任务组（构建类）
+  "problemMatcher": [] // 空问题匹配器（同步任务）
 }
 ```
 

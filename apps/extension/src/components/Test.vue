@@ -1,18 +1,18 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'TestComponent'
+  name: 'TestComponent'
 })
 
 withDefaults(
-	defineProps<{
-		msg: string
-	}>(),
-	{}
+  defineProps<{
+    msg: string
+  }>(),
+  {}
 )
 </script>
 
 <template>
-	<div class="test-component">{{ msg }}</div>
+  <div class="test-component">{{ msg }}</div>
 </template>
 
 <style lang="scss" scoped></style>

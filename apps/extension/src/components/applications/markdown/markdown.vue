@@ -5,40 +5,40 @@ import DestroyMark from '~icons/local/close'
 import { useApplication } from '@/hooks/application.ts'
 
 defineOptions({
-	name: 'markdown'
+  name: 'markdown'
 })
 
 const props = withDefaults(
-	defineProps<{
-		size: Mirror.Size
-		shape: Mirror.Shape
-		application: Application
-		direction: Mirror.Direction
-	}>(),
-	{
-		application() {
-			const DEFAULT: Application = {
-				id: '0',
-				url: null,
-				mark: null,
-				collectionID: null,
-				index: 0,
-				title: '备忘录',
-				round: '12px',
-				mirrorID: '0',
-				textSize: '13px',
-				downloadCount: 1000,
-				description: '备忘录',
-				textColor: '#ffffff',
-				background: null,
-				updatedAt: Date.now(),
-				createdAt: Date.now(),
-				component: 'markdown',
-				backdrop: null
-			}
-			return DEFAULT
-		}
-	}
+  defineProps<{
+    size: Mirror.Size
+    shape: Mirror.Shape
+    application: Application
+    direction: Mirror.Direction
+  }>(),
+  {
+    application() {
+      const DEFAULT: Application = {
+        id: '0',
+        url: null,
+        mark: null,
+        collectionID: null,
+        index: 0,
+        title: '备忘录',
+        round: '12px',
+        mirrorID: '0',
+        textSize: '13px',
+        downloadCount: 1000,
+        description: '备忘录',
+        textColor: '#ffffff',
+        background: null,
+        updatedAt: Date.now(),
+        createdAt: Date.now(),
+        component: 'markdown',
+        backdrop: null
+      }
+      return DEFAULT
+    }
+  }
 )
 
 const visible = ref(false)
@@ -47,76 +47,79 @@ const fullscreen = ref(false)
 const { style } = useApplication(props.application)
 
 function updateOverlay(value: boolean) {
-	visible.value = value
+  visible.value = value
 }
 
 function updateFullScreen(value: boolean) {
-	fullscreen.value = value
+  fullscreen.value = value
 }
 </script>
 
 <template>
-	<div :style="style" :data-id="application.id" class="markdown">
-		<a-modal
-			width="80%"
-			:icon="null"
-			:title="null"
-			:footer="null"
-			:open="visible"
-			:centered="true"
-			:closable="false"
-			:mask-closable="true"
-			:destroy-on-close="true"
-			@update:open="updateOverlay"
-			:style="{
-				transformOrigin: 'center'
-			}"
-			class="application-overlay markdown-overlay"
-		>
-			<Overlay
-				:fullscreen="fullscreen"
-				@update:visible="updateOverlay"
-				@update:fullscreen="updateFullScreen"
-			/>
-		</a-modal>
-		<Marker @dblclick="updateOverlay(true)" :class="[size, shape, direction]" />
-		<span class="application-title">{{ application.title }}</span>
-		<destroy-mark class="application-trash-mark" />
-	</div>
+  <div
+    :style="style"
+    :data-id="application.id"
+    class="markdown">
+    <a-modal
+      width="80%"
+      :icon="null"
+      :title="null"
+      :footer="null"
+      :open="visible"
+      :centered="true"
+      :closable="false"
+      :mask-closable="true"
+      :destroy-on-close="true"
+      @update:open="updateOverlay"
+      :style="{
+        transformOrigin: 'center'
+      }"
+      class="application-overlay markdown-overlay">
+      <Overlay
+        :fullscreen="fullscreen"
+        @update:visible="updateOverlay"
+        @update:fullscreen="updateFullScreen" />
+    </a-modal>
+    <Marker
+      @dblclick="updateOverlay(true)"
+      :class="[size, shape, direction]" />
+    <span class="application-title">{{ application.title }}</span>
+    <destroy-mark class="application-trash-mark" />
+  </div>
 </template>
 
 <style lang="scss" scoped>
 .markdown {
-	@extend %application;
+  @extend %application;
 }
 </style>
 <style lang="scss">
 .application-overlay.markdown-overlay {
-	%size-full {
-		width: 100%;
-		height: 100%;
-	}
+  %size-full {
+    width: 100%;
+    height: 100%;
+  }
 
-	div[tabindex='0'][style='outline: none;'] {
-		@extend %size-full;
-	}
+  div[tabindex='0'][style='outline: none;'] {
+    @extend %size-full;
+  }
 
-	.ant-modal-content,
-	.ant-modal-body,
-	.ant-modal-confirm-body-wrapper,
-	.ant-modal-confirm-body,
-	.ant-modal-confirm-content {
-		@extend %size-full;
-	}
+  .ant-modal-content,
+  .ant-modal-body,
+  .ant-modal-confirm-body-wrapper,
+  .ant-modal-confirm-body,
+  .ant-modal-confirm-content {
+    @extend %size-full;
+  }
 
-	.ant-modal-content {
-		background-color: transparent;
-	}
+  .ant-modal-content {
+    background-color: transparent;
+  }
 
-	.ant-modal-body {
-		border-radius: 8px;
-		overflow: hidden;
-		background-color: rgba($color: #ffffff, $alpha: 1);
-	}
+  .ant-modal-body {
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: rgba($color: #ffffff, $alpha: 1);
+  }
 }
 </style>

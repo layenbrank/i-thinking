@@ -86,9 +86,9 @@ export default defineConfig(...)
 
 ```typescript
 const ENTRIES = [
-	{ name: 'index', source: 'src/index.ts', minify: false },
-	{ name: 'directives', source: 'src/directives/index.ts', minify: true }
-	// ... 添加新模块只需在此添加一行
+  { name: 'index', source: 'src/index.ts', minify: false },
+  { name: 'directives', source: 'src/directives/index.ts', minify: true }
+  // ... 添加新模块只需在此添加一行
 ] as const
 ```
 
@@ -104,9 +104,9 @@ const ENTRIES = [
 
 ```typescript
 const PATH_REWRITES = {
-	'./directives/index': './directives',
-	'./hooks/index': './hooks',
-	'./utils/index': './utils'
+  './directives/index': './directives',
+  './hooks/index': './hooks',
+  './utils/index': './utils'
 } as const
 ```
 
@@ -122,10 +122,10 @@ const pattern = new RegExp(`(from\\s+['"\`])${from.replace(/\//g, '\\/')}(['"\`]
 
 ```typescript
 function createTypeScriptPlugin(): Plugin {
-	return typescript({
-		tsconfig: 'tsconfig.json'
-		// ... 预配置选项
-	})
+  return typescript({
+    tsconfig: 'tsconfig.json'
+    // ... 预配置选项
+  })
 }
 ```
 
@@ -153,8 +153,8 @@ function createJSConfig(input: string, output: string, options: BuildOptions = {
 
 ```typescript
 const EXTERNAL_DEPS = [
-	/^vue($|\/)/, // 匹配 'vue' 和 'vue/*'
-	/^@vueuse\// // 匹配 '@vueuse/*'
+  /^vue($|\/)/, // 匹配 'vue' 和 'vue/*'
+  /^@vueuse\// // 匹配 '@vueuse/*'
 ] as const
 ```
 
@@ -189,8 +189,8 @@ treeshake: {
 
 ```typescript
 const ENTRIES = [
-	// ... 现有入口
-	{ name: 'components', source: 'src/components/index.ts', minify: true }
+  // ... 现有入口
+  { name: 'components', source: 'src/components/index.ts', minify: true }
 ] as const
 ```
 
@@ -200,8 +200,8 @@ const ENTRIES = [
 
 ```typescript
 const EXTERNAL_DEPS = [
-	// ... 现有依赖
-	/^@tanstack\//
+  // ... 现有依赖
+  /^@tanstack\//
 ] as const
 ```
 
@@ -211,8 +211,8 @@ const EXTERNAL_DEPS = [
 
 ```typescript
 const PATH_REWRITES = {
-	// ... 现有规则
-	'./components/index': './components'
+  // ... 现有规则
+  './components/index': './components'
 } as const
 ```
 
@@ -222,15 +222,15 @@ const PATH_REWRITES = {
 
 ```typescript
 function createMyCustomPlugin(): Plugin {
-	return {
-		name: 'my-custom-plugin'
-		// ... plugin hooks
-	}
+  return {
+    name: 'my-custom-plugin'
+    // ... plugin hooks
+  }
 }
 
 // 在配置中使用
 createJSConfig(source, output, {
-	plugins: [createMyCustomPlugin()]
+  plugins: [createMyCustomPlugin()]
 })
 ```
 
@@ -242,8 +242,8 @@ createJSConfig(source, output, {
 
 ```typescript
 const ENTRIES = [
-	{ name: 'index', minify: false }, // 不压缩(只有导出)
-	{ name: 'utils', minify: true } // 压缩(实际代码)
+  { name: 'index', minify: false }, // 不压缩(只有导出)
+  { name: 'utils', minify: true } // 压缩(实际代码)
 ]
 ```
 

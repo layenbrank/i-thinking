@@ -1,62 +1,63 @@
 {
-	"compilerOptions": {
-		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-		"target": "ESNext",
-		"module": "ESNext",
-		"lib": ["ESNext", "DOM", "DOM.Iterable"],
-		"useDefineForClassFields": true,
-		"skipLibCheck": true,
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+  "exclude": ["**/node_modules/**", "**/dist/**", "**/src-tauri/**"],
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "useDefineForClassFields": true,
+    "skipLibCheck": true,
 
-		/* Bundler mode */
-		"moduleResolution": "Bundler",
-		"allowImportingTsExtensions": true,
-		"verbatimModuleSyntax": true,
-		"moduleDetection": "force",
-		"jsx": "react-jsx",
-		"noEmit": true,
-		"types": [
-			"vite/client",
-			"@types/react",
-			"@types/react-dom",
-			"@types/chrome",
-			"reflect-metadata",
-			"ant-design-vue/typings/global",
-			"unplugin-icons/types/react",
-			"@i-thinking/wasm",
-			"@i-thinking/shared/response",
-			"@i-thinking/shared/decorator",
-			"@i-thinking/shared/constructor",
-			"@i-thinking/shared/contextmenu",
-			"@i-thinking/shared/user-profile",
-			"@i-thinking/shared/schema",
-			"@i-thinking/shared/backup",
-			"@i-thinking/shared/mirror",
-			"@i-thinking/shared/settings",
-			"@i-thinking/shared/controller",
-			"@i-thinking/shared/application",
-			"@i-thinking/shared/application-bookmark",
-			"@i-thinking/shared/application-markdown",
-			"@i-thinking/shared/application-intelligence"
-		],
+    /* Bundler mode */
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "types": [
+      "vite/client",
+      "@types/react",
+      "@types/react-dom",
+      "@types/chrome",
+      "reflect-metadata",
+      "ant-design-vue/typings/global",
+      "unplugin-icons/types/react",
+      "@i-thinking/wasm",
+      "@i-thinking/shared/response",
+      "@i-thinking/shared/decorator",
+      "@i-thinking/shared/constructor",
+      "@i-thinking/shared/contextmenu",
+      "@i-thinking/shared/user-profile",
+      "@i-thinking/shared/schema",
+      "@i-thinking/shared/backup",
+      "@i-thinking/shared/mirror",
+      "@i-thinking/shared/settings",
+      "@i-thinking/shared/controller",
+      "@i-thinking/shared/application",
+      "@i-thinking/shared/application-bookmark",
+      "@i-thinking/shared/application-markdown",
+      "@i-thinking/shared/application-intelligence"
+    ],
 
-		/* Linting */
-		"strict": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"erasableSyntaxOnly": true,
-		"noFallthroughCasesInSwitch": true,
-		"noUncheckedSideEffectImports": true,
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
 
-		/* Optimizations */
-		"isolatedModules": true,
-		"resolveJsonModule": true,
+    /* Optimizations */
+    "isolatedModules": true,
+    "resolveJsonModule": true,
 
-		/* Path */
-		"rootDir": ".",
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["./src/*"]
-		}
-	},
-	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
+    /* Path */
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }

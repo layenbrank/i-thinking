@@ -15,67 +15,67 @@ const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 
 export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
-	const env = loadEnv(mode || 'development', '')
+  const env = loadEnv(mode || 'development', '')
 
-	return {
-		plugins: [
-			vue(),
-			vueJsx(),
-			vueDevTools(),
-			AutoImport({
-				resolvers: [NaiveUiResolver()],
-				dts: 'src/types/auto-imports.d.ts',
-				imports: [
-					'vue',
-					'vue-router',
-					{
-						'naive-ui': ['useDialog', 'useMessage', 'useNotification', 'useLoadingBar']
-					}
-				]
-			}),
-			Components({
-				resolvers: [NaiveUiResolver()],
-				dts: 'src/types/components.d.ts'
-			})
-		],
-		resolve: {
-			alias: {
-				'@': fileURLToPath(new URL('./src', import.meta.url))
-			}
-		},
-		build: {
-			// 输出到包内 dist，便于 Turbo outputs 匹配
-			outDir: resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist'),
-			emptyOutDir: true,
-			rollupOptions: {
-				output: {
-					entryFileNames: '[name].js',
-					manualChunks: {
-						vue: ['vue', 'vue-router', 'pinia']
-					}
-				}
-			}
-		},
-		css: {
-			modules: {
-				// 生成的类名格式
-				generateScopedName: '[name]__[local]__[hash:base64:5]',
-				// 是否驼峰化 CSS 类名
-				localsConvention: 'camelCase',
-				// 哪些文件需要使用 CSS Modules（默认：/\.module\./）
-				scopeBehaviour: 'local',
-				// 自定义哈希函数
-				hashPrefix: 'prefix'
-			},
-			preprocessorOptions: {
-				scss: {
-					// api: 'modern-compiler'
-					// additionalData: '@import "@/styles/variables.scss";',
-				}
-			}
-		},
-		server: {
-			port: 1024
-		}
-	}
+  return {
+    plugins: [
+      vue(),
+      vueJsx(),
+      vueDevTools(),
+      AutoImport({
+        resolvers: [NaiveUiResolver()],
+        dts: 'src/types/auto-imports.d.ts',
+        imports: [
+          'vue',
+          'vue-router',
+          {
+            'naive-ui': ['useDialog', 'useMessage', 'useNotification', 'useLoadingBar']
+          }
+        ]
+      }),
+      Components({
+        resolvers: [NaiveUiResolver()],
+        dts: 'src/types/components.d.ts'
+      })
+    ],
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url))
+      }
+    },
+    build: {
+      // 输出到包内 dist，便于 Turbo outputs 匹配
+      outDir: resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist'),
+      emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          entryFileNames: '[name].js',
+          manualChunks: {
+            vue: ['vue', 'vue-router', 'pinia']
+          }
+        }
+      }
+    },
+    css: {
+      modules: {
+        // 生成的类名格式
+        generateScopedName: '[name]__[local]__[hash:base64:5]',
+        // 是否驼峰化 CSS 类名
+        localsConvention: 'camelCase',
+        // 哪些文件需要使用 CSS Modules（默认：/\.module\./）
+        scopeBehaviour: 'local',
+        // 自定义哈希函数
+        hashPrefix: 'prefix'
+      },
+      preprocessorOptions: {
+        scss: {
+          // api: 'modern-compiler'
+          // additionalData: '@import "@/styles/variables.scss";',
+        }
+      }
+    },
+    server: {
+      port: 1024
+    }
+  }
 })

@@ -4,17 +4,17 @@ import { liveQuery } from 'dexie'
 import { from } from 'rxjs'
 
 export const useSettingStore = defineStore('setting', function () {
-	const settings = useObservable(
-		from(
-			liveQuery(function () {
-				return database.settings.toArray()
-			})
-		)
-	)
+  const settings = useObservable(
+    from(
+      liveQuery(function () {
+        return database.settings.toArray()
+      })
+    )
+  )
 
-	// function toUpdate () { }
+  // function toUpdate () { }
 
-	return {
-		settings
-	}
+  return {
+    settings
+  }
 })

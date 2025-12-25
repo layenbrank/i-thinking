@@ -1,11 +1,11 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'HomeView'
+  name: 'HomeView'
 })
 </script>
 
 <template>
-	<div>test</div>
+  <div>test</div>
 </template>
 
 <style lang="scss" scoped></style>

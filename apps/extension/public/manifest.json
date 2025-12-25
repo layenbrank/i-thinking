@@ -1,43 +1,43 @@
 {
-	"name": "i thinking",
-	"version": "1.0.0",
-	"incognito": "split",
-	"manifest_version": 3,
-	"host_permissions": ["<all_urls>", "https://*/*", "http://*/*"],
-	"description": "i thinking is a privacy-first extension that enhances your browsing experience with intelligent features while prioritizing your data security.",
-	"permissions": [
-		"tts",
-		"tabs",
-		"proxy",
-		"storage",
-		"history",
-		"sidePanel",
-		"activeTab",
-		"bookmarks",
-		"ttsEngine",
-		"geolocation",
-		"contextMenus",
-		"declarativeNetRequest"
-	],
-	"background": {
-		"service_worker": "service-worker.js",
-		"content_scripts": [
-			{
-				"matches": ["<all_urls>"],
-				"js": ["content-scripts.js"]
-			}
-		]
-	},
-	"chrome_url_overrides": {
-		"newtab": "index.html"
-	},
-	"externally_connectable": {
-		"matches": ["<all_urls>"]
-	},
-	"web_accessible_resources": [
-		{
-			"matches": ["<all_urls>"],
-			"resources": ["*"]
-		}
-	]
+  "name": "i thinking",
+  "version": "1.0.0",
+  "incognito": "split",
+  "manifest_version": 3,
+  "host_permissions": ["<all_urls>", "https://*/*", "http://*/*"],
+  "description": "i thinking is a privacy-first extension that enhances your browsing experience with intelligent features while prioritizing your data security.",
+  "permissions": [
+    "tts",
+    "tabs",
+    "proxy",
+    "storage",
+    "history",
+    "sidePanel",
+    "activeTab",
+    "bookmarks",
+    "ttsEngine",
+    "geolocation",
+    "contextMenus",
+    "declarativeNetRequest"
+  ],
+  "background": {
+    "service_worker": "service-worker.js",
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content-scripts.js"]
+      }
+    ]
+  },
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "externally_connectable": {
+    "matches": ["<all_urls>"]
+  },
+  "web_accessible_resources": [
+    {
+      "matches": ["<all_urls>"],
+      "resources": ["*"]
+    }
+  ]
 }

@@ -6,30 +6,30 @@ import { PostsService } from './posts.service'
 
 @Controller('posts')
 export class PostsController {
-	constructor(private readonly postsService: PostsService) {}
+  constructor(private readonly postsService: PostsService) {}
 
-	@Post()
-	create(@Req() req: Request, @Body() createPostDto: CreatePostDto) {
-		return this.postsService.create(req, createPostDto)
-	}
+  @Post()
+  create(@Req() req: Request, @Body() createPostDto: CreatePostDto) {
+    return this.postsService.create(req, createPostDto)
+  }
 
-	@Get()
-	findAll(@Req() req: Request) {
-		return this.postsService.findAll(req)
-	}
+  @Get()
+  findAll(@Req() req: Request) {
+    return this.postsService.findAll(req)
+  }
 
-	@Get(':id')
-	findOne(@Param('id') id: string) {
-		return this.postsService.findOne(+id)
-	}
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.postsService.findOne(+id)
+  }
 
-	@Patch(':id')
-	update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
-		return this.postsService.update(+id, updatePostDto)
-	}
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
+    return this.postsService.update(+id, updatePostDto)
+  }
 
-	@Delete(':id')
-	remove(@Param('id') id: string) {
-		return this.postsService.remove(+id)
-	}
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.postsService.remove(+id)
+  }
 }

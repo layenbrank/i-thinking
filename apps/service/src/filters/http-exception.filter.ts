@@ -1,9 +1,9 @@
 import {
-	Catch,
-	HttpException,
-	Logger,
-	type ArgumentsHost,
-	type ExceptionFilter
+  Catch,
+  HttpException,
+  Logger,
+  type ArgumentsHost,
+  type ExceptionFilter
 } from '@nestjs/common'
 import type { Request, Response } from 'express'
 
@@ -20,39 +20,39 @@ import type { Request, Response } from 'express'
  */
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
-	private readonly logger = new Logger(HttpExceptionFilter.name)
+  private readonly logger = new Logger(HttpExceptionFilter.name)
 
-	catch(exception: HttpException, host: ArgumentsHost) {
-		const ctx = host.switchToHttp()
-		const Res = ctx.getResponse<Response>()
-		const Req = ctx.getRequest<Request>()
+  catch(exception: HttpException, host: ArgumentsHost) {
+    const ctx = host.switchToHttp()
+    const Res = ctx.getResponse<Response>()
+    const Req = ctx.getRequest<Request>()
 
-		const method = Req.method
-		const url = Req.url
-		const userAgent = Req.headers['user-agent'] || '-'
+    const method = Req.method
+    const url = Req.url
+    const userAgent = Req.headers['user-agent'] || '-'
 
-		console.log(
-			'ip',
-			Req.ip,
-			'\nmethod',
-			method,
-			'\nuserAgent',
-			userAgent,
-			'\nstringify',
-			JSON.stringify(exception, null, 2)
-		)
+    console.log(
+      'ip',
+      Req.ip,
+      '\nmethod',
+      method,
+      '\nuserAgent',
+      userAgent,
+      '\nstringify',
+      JSON.stringify(exception, null, 2)
+    )
 
-		const status = exception.getStatus()
+    const status = exception.getStatus()
 
-		Res.status(status).json({
-			code: status,
-			msg: exception.message,
-			success: false,
-			data: null,
-			timestamp: Date.now(),
-			path: url
-		})
-	}
+    Res.status(status).json({
+      code: status,
+      msg: exception.message,
+      success: false,
+      data: null,
+      timestamp: Date.now(),
+      path: url
+    })
+  }
 }
 
 /*

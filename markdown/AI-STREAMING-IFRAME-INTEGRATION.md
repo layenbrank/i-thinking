@@ -82,8 +82,8 @@
 // 在父页面中
 await (window as any).__iframeViewAPI.render('# Hello')
 await (window as any).__iframeViewAPI.streamAI({
-	model: 'your-model-id',
-	messages: [{ role: 'user', content: 'Explain Rust ownership with examples.' }]
+  model: 'your-model-id',
+  messages: [{ role: 'user', content: 'Explain Rust ownership with examples.' }]
 })
 const perf = (window as any).__iframeViewAPI.getPerformance()
 console.log('FPS:', perf.current.fps)

@@ -1,29 +1,29 @@
 {
-	"$schema": "https://json.schemastore.org/tsconfig",
-	"exclude": ["**/node_modules/**", "**/dist/**"],
-	"compilerOptions": {
-		"target": "ESNext",
-		"module": "ESNext",
-		"emitDecoratorMetadata": true,
-		"experimentalDecorators": true,
-		"useDefineForClassFields": true,
-		"verbatimModuleSyntax": true,
-		"jsx": "preserve",
-		"jsxImportSource": "vue",
-		"moduleDetection": "force",
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "exclude": ["**/node_modules/**", "**/dist/**"],
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": true,
+    "verbatimModuleSyntax": true,
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "moduleDetection": "force",
 
-		"noEmit": false,
-		"allowImportingTsExtensions": true,
-		"emitDeclarationOnly": true,
-		"skipLibCheck": true,
+    "noEmit": false,
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true,
+    "skipLibCheck": true,
 
-		"moduleResolution": "Bundler",
-		"resolveJsonModule": true,
-		"noImplicitThis": true,
-		"strict": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "noImplicitThis": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
 
-		"baseUrl": "."
-	}
+    "baseUrl": "."
+  }
 }

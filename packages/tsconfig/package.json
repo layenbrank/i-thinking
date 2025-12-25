@@ -1,22 +1,22 @@
 {
-	"name": "@i-thinking/tsconfig",
-	"keywords": [],
-	"author": "",
-	"version": "1.0.0",
-	"description": "",
-	"private": true,
-	"type": "module",
-	"homepage": "https://github.com/desktop-app/desktop-app",
-	"bugs": {
-		"url": "https://github.com/desktop-app/desktop-app/issues"
-	},
-	"repository": {
-		"directory": "packages/tsconfig"
-	},
-	"files": [
-		"tsconfig.base.json",
-		"tsconfig.node.json",
-		"tsconfig.extension.json",
-		"tsconfig.electron.json"
-	]
+  "name": "@i-thinking/tsconfig",
+  "keywords": [],
+  "author": "",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "type": "module",
+  "homepage": "https://github.com/desktop-app/desktop-app",
+  "bugs": {
+    "url": "https://github.com/desktop-app/desktop-app/issues"
+  },
+  "repository": {
+    "directory": "packages/tsconfig"
+  },
+  "files": [
+    "tsconfig.base.json",
+    "tsconfig.node.json",
+    "tsconfig.extension.json",
+    "tsconfig.electron.json"
+  ]
 }

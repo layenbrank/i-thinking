@@ -2,39 +2,39 @@ import { copyFile, readFile, writeFile } from 'node:fs'
 import { resolve } from 'node:path'
 
 readFile(
-	resolve(__dirname, '..', 'package.json'),
-	{
-		encoding: 'utf-8'
-	},
-	function (error, data) {
-		if (error) return console.error(`Read failed: ${error}`)
-		const parsed = JSON.parse(data)
+  resolve(__dirname, '..', 'package.json'),
+  {
+    encoding: 'utf-8'
+  },
+  function (error, data) {
+    if (error) return console.error(`Read failed: ${error}`)
+    const parsed = JSON.parse(data)
 
-		console.log('Read succeeded! Package: ', parsed.name)
+    console.log('Read succeeded! Package: ', parsed.name)
 
-		const packageJson = {
-			scripts: {
-				preview: parsed.scripts.preview.replace('dist/', '')
-			},
-			dependencies: parsed.dependencies
-		}
+    const packageJson = {
+      scripts: {
+        preview: parsed.scripts.preview.replace('dist/', '')
+      },
+      dependencies: parsed.dependencies
+    }
 
-		writeFile(
-			resolve(__dirname, '..', 'dist/package.json'),
-			JSON.stringify(packageJson, null, 2),
-			function (error) {
-				if (error) console.error(`Write failed: ${error}`)
-				else console.log('Write succeeded!')
-			}
-		)
+    writeFile(
+      resolve(__dirname, '..', 'dist/package.json'),
+      JSON.stringify(packageJson, null, 2),
+      function (error) {
+        if (error) console.error(`Write failed: ${error}`)
+        else console.log('Write succeeded!')
+      }
+    )
 
-		copyFile(
-			resolve(__dirname, '..', '.env.production'),
-			resolve(__dirname, '..', 'dist/.env.production'),
-			(error) => {
-				if (error) console.error(`Copy failed: ${error}`)
-				else console.log('Copy succeeded!')
-			}
-		)
-	}
+    copyFile(
+      resolve(__dirname, '..', '.env.production'),
+      resolve(__dirname, '..', 'dist/.env.production'),
+      (error) => {
+        if (error) console.error(`Copy failed: ${error}`)
+        else console.log('Copy succeeded!')
+      }
+    )
+  }
 )

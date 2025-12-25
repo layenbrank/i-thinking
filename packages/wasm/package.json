@@ -1,38 +1,38 @@
 {
-	"name": "@i-thinking/wasm",
-	"type": "module",
-	"collaborators": [
-		"李贺 <15638470820@163.com>"
-	],
-	"version": "0.1.0",
-	"files": [
-		"index_bg.wasm",
-		"index.js",
-		"index.d.ts"
-	],
-	"main": "index.js",
-	"types": "index.d.ts",
-	"module": "index.js",
-	"exports": {
-		".": {
-			"import": "./index.js",
-			"types": "./index.d.ts"
-		},
-		"./index_bg.js": {
-			"import": "./index_bg.js",
-			"types": "./index_bg.wasm.d.ts"
-		},
-		"./index_bg.wasm": {
-			"import": "./index_bg.wasm"
-		},
-		"./ffmpeg-core.js": {
-			"import": "./ffmpeg-core.js"
-		},
-		"./ffmpeg-core.wasm": {
-			"import": "./ffmpeg-core.wasm"
-		},
-		"./ffmpeg-core.worker.js": {
-			"import": "./ffmpeg-core.worker.js"
-		}
-	}
+  "name": "@i-thinking/wasm",
+  "type": "module",
+  "collaborators": [
+    "李贺 <15638470820@163.com>"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "index_bg.wasm",
+    "index.js",
+    "index.d.ts"
+  ],
+  "main": "index.js",
+  "types": "index.d.ts",
+  "module": "index.js",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "types": "./index.d.ts"
+    },
+    "./index_bg.js": {
+      "import": "./index_bg.js",
+      "types": "./index_bg.wasm.d.ts"
+    },
+    "./index_bg.wasm": {
+      "import": "./index_bg.wasm"
+    },
+    "./ffmpeg-core.js": {
+      "import": "./ffmpeg-core.js"
+    },
+    "./ffmpeg-core.wasm": {
+      "import": "./ffmpeg-core.wasm"
+    },
+    "./ffmpeg-core.worker.js": {
+      "import": "./ffmpeg-core.worker.js"
+    }
+  }
 }

@@ -11,7 +11,7 @@ import { DOMstringify } from './DOMstringify'
 import MarkdownRender from './components/markdown-render.vue'
 
 defineOptions({
-	name: 'marked-view'
+  name: 'marked-view'
 })
 
 hljs.registerLanguage('javascript', JavaScript)
@@ -22,36 +22,36 @@ hljs.registerLanguage('html', XML)
 // marked 扩展示例：添加自定义标记 代码块
 
 marked.use({
-	renderer: {
-		code({ text, type, lang, escaped }) {
-			const safelang = lang && hljs.getLanguage(lang) ? lang : null
-			const highlighted = safelang
-				? hljs.highlight(text, { language: safelang }).value
-				: hljs.highlightAuto(text).value
-			const classNames = safelang ? `hljs language-${safelang}` : 'hljs'
-			return `<pre><code class="${classNames}">${highlighted}</code></pre>`
-		}
-	}
+  renderer: {
+    code({ text, type, lang, escaped }) {
+      const safelang = lang && hljs.getLanguage(lang) ? lang : null
+      const highlighted = safelang
+        ? hljs.highlight(text, { language: safelang }).value
+        : hljs.highlightAuto(text).value
+      const classNames = safelang ? `hljs language-${safelang}` : 'hljs'
+      return `<pre><code class="${classNames}">${highlighted}</code></pre>`
+    }
+  }
 })
 const tokens = marked.lexer(DOMstringify)
 onMounted(function () {
-	// console.log('parse', marked.parse(DOMstringify, { async: false }))
-	// console.log('parser', marked.parser(tokens))
-	// DOMPurify.sanitize(marked.parse(DOMstringify, { async: false }))
-	// console.log('lexer', tokens)
+  // console.log('parse', marked.parse(DOMstringify, { async: false }))
+  // console.log('parser', marked.parser(tokens))
+  // DOMPurify.sanitize(marked.parse(DOMstringify, { async: false }))
+  // console.log('lexer', tokens)
 })
 </script>
 
 <template>
-	<div class="marked-view">
-		<MarkdownRender :tokens="tokens" />
-	</div>
+  <div class="marked-view">
+    <MarkdownRender :tokens="tokens" />
+  </div>
 </template>
 
 <style lang="scss" scoped>
 .marked-view {
-	width: 100%;
-	height: 100%;
+  width: 100%;
+  height: 100%;
 }
 </style>
 
@@ -59,6 +59,6 @@ onMounted(function () {
 @use '@/views/demo/normalize.scss' as *;
 
 .marked-view {
-	@extend %normalize;
+  @extend %normalize;
 }
 </style>

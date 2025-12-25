@@ -1,3 +1,3 @@
 export default class Installer {
-	constructor() {}
+  constructor() {}
 }

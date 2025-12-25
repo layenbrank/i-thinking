@@ -12,8 +12,8 @@ import '@/styles/index.scss'
 import 'ant-design-vue/dist/reset.css'
 
 const directives: Record<string, Directive> = {
-	resize,
-	debounce
+  resize,
+  debounce
 }
 
 const app = createApp(App)
@@ -21,14 +21,14 @@ const app = createApp(App)
 const pinia = createPinia()
 
 for (const [key, directive] of Object.entries(directives)) {
-	if (!directive) continue
-	app.directive(key, directive)
+  if (!directive) continue
+  app.directive(key, directive)
 }
 
 app
-	.use(pinia)
-	.use(router)
-	.use(preload)
-	.use(locale)
+  .use(pinia)
+  .use(router)
+  .use(preload)
+  .use(locale)
 
-	.mount('#app')
+  .mount('#app')

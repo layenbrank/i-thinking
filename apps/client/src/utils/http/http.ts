@@ -4,10 +4,10 @@ import { urlInterceptor } from '@/utils/http/url.ts'
 import { HttpClient, HttpContext, withFetch, withInterceptors } from '@ngify/http'
 
 export const http = new HttpClient(
-	withFetch(),
-	withInterceptors([urlInterceptor, cacheInterceptor])
+  withFetch(),
+  withInterceptors([urlInterceptor, cacheInterceptor])
 )
 
 http.get('', {
-	context: new HttpContext().set(ENV_TOKEN, 'extension')
+  context: new HttpContext().set(ENV_TOKEN, 'extension')
 })

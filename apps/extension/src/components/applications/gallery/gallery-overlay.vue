@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'gallery-overlay'
+  name: 'gallery-overlay'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -8,12 +8,12 @@ defineOptions({
 </script>
 
 <template>
-	<div class="gallery-overlay"></div>
+  <div class="gallery-overlay"></div>
 </template>
 
 <style lang="scss" scoped>
 .gallery-overlay {
-	width: 100%;
-	height: 100%;
+  width: 100%;
+  height: 100%;
 }
 </style>

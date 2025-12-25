@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'signboard-marker'
+  name: 'signboard-marker'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -8,7 +8,7 @@ defineOptions({
 </script>
 
 <template>
-	<div class="signboard-marker">signboard-marker</div>
+  <div class="signboard-marker">signboard-marker</div>
 </template>
 
 <style lang="scss" scoped>
@@ -21,11 +21,11 @@ defineOptions({
 @use 'ultra.scss' as *;
 
 .signboard-marker {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	border-radius: var(--application-round);
-	background: var(--application-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--application-round);
+  background: var(--application-background);
 }
 </style>

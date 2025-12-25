@@ -1,28 +1,28 @@
 {
-	"$schema": "https://json.schemastore.org/tsconfig",
-	"include": ["./**/*.ts"],
-	"exclude": ["node_modules", "dist"],
-	"compilerOptions": {
-		"target": "ESNext",
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "target": "ESNext",
 
-		"sourceMap": true,
+    "sourceMap": true,
 
-		"outDir": "dist",
-		"strict": true,
+    "outDir": "dist",
+    "strict": true,
 
-		"noEmit": true,
-		"isolatedModules": true,
-		"noImplicitAny": true,
-		"esModuleInterop": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
 
-		"module": "NodeNext",
-		"moduleResolution": "NodeNext",
-		"types": ["node"],
-		"resolveJsonModule": true,
-		"removeComments": true,
-		"skipLibCheck": false,
-		"forceConsistentCasingInFileNames": true,
-		"allowSyntheticDefaultImports": true,
-		"allowImportingTsExtensions": true
-	}
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "removeComments": true,
+    "skipLibCheck": false,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true
+  }
 }

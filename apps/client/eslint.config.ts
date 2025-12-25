@@ -6,47 +6,47 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig([
-	{
-		ignores: ['**/dist/**', '**/node_modules/**']
-	},
-	globalIgnores(['dist', 'node_modules']),
-	eslint.configs.recommended,
-	{
-		plugins: {
-			'@typescript-eslint': tseslint.plugin
-		},
-		languageOptions: {
-			parser: tseslint.parser,
-			parserOptions: {
-				ecmaVersion: 2023,
-				projectService: true,
-				tsconfigRootDir: import.meta.dirname,
-				globals: globals.browser
-			}
-		}
-	},
-	{
-		name: 'app/files-to-lint',
-		files: ['**/*.{ts,tsx}'],
-		extends: [
-			eslint.configs.recommended,
-			tseslint.configs.recommended,
-			reactHooks.configs['recommended-latest'],
-			reactRefresh.configs.recommended,
-			reactRefresh.configs.vite
-		],
-		rules: {
-			eqeqeq: 'error',
-			'@typescript-eslint/no-explicit-any': 'off',
-			'@typescript-eslint/no-floating-promises': 'error',
-			'@typescript-eslint/consistent-type-imports': 'error',
-			'@typescript-eslint/no-unused-vars': [
-				'warn',
-				{
-					argsIgnorePattern: '^_',
-					varsIgnorePattern: '^_'
-				}
-			]
-		}
-	}
+  {
+    ignores: ['**/dist/**', '**/node_modules/**']
+  },
+  globalIgnores(['dist', 'node_modules']),
+  eslint.configs.recommended,
+  {
+    plugins: {
+      '@typescript-eslint': tseslint.plugin
+    },
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaVersion: 2023,
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+        globals: globals.browser
+      }
+    }
+  },
+  {
+    name: 'app/files-to-lint',
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      eslint.configs.recommended,
+      tseslint.configs.recommended,
+      reactHooks.configs['recommended-latest'],
+      reactRefresh.configs.recommended,
+      reactRefresh.configs.vite
+    ],
+    rules: {
+      eqeqeq: 'error',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_'
+        }
+      ]
+    }
+  }
 ])

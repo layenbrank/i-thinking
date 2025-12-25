@@ -12,7 +12,7 @@ import { useI18n } from 'vue-i18n'
 // import { GET_APPLICATION, GET_FAVICON, GET_SINGLETON } from '@/apis/application.ts'
 
 defineOptions({
-	name: 'App'
+  name: 'App'
 })
 
 const { locale, t } = useI18n()
@@ -24,39 +24,39 @@ dayjs.locale('zh-cn')
 console.log('locale', locale.value, '\nt', t('Message.Update'), '\nnavigator', navigator.language)
 
 const languageMap: Record<string, Locale> = {
-	zh: zhCN,
-	'zh-CN': zhCN,
-	en: enUS,
-	'en-US': enUS
+  zh: zhCN,
+  'zh-CN': zhCN,
+  en: enUS,
+  'en-US': enUS
 }
 
 const themeConfigure: ThemeConfig = {
-	algorithm: theme.defaultAlgorithm,
-	token: {
-		colorPrimary: '#4080ff'
-	},
-	components: {
-		Button: {
-			// algorithm: true
-		},
-		Input: {
-			// algorithm: true
-		},
-		Layout: {
-			// algorithm: true,
-			colorBgHeader: '#000000',
-			colorBorderBg: '#f5f5f5'
-			// headerBg: '#000000',
-			// bodyBg: '#f5f5f5',
-			// footerBg: '#ffffff'
-		},
-		Menu: {
-			// algorithm: true,
-			// itemBg: '#000000',
-			colorItemBg: '#000000',
-			colorText: '#ffffff'
-		}
-	}
+  algorithm: theme.defaultAlgorithm,
+  token: {
+    colorPrimary: '#4080ff'
+  },
+  components: {
+    Button: {
+      // algorithm: true
+    },
+    Input: {
+      // algorithm: true
+    },
+    Layout: {
+      // algorithm: true,
+      colorBgHeader: '#000000',
+      colorBorderBg: '#f5f5f5'
+      // headerBg: '#000000',
+      // bodyBg: '#f5f5f5',
+      // footerBg: '#ffffff'
+    },
+    Menu: {
+      // algorithm: true,
+      // itemBg: '#000000',
+      colorItemBg: '#000000',
+      colorText: '#ffffff'
+    }
+  }
 }
 
 // GET_APPLICATION().subscribe(function (resp) {
@@ -73,41 +73,43 @@ const themeConfigure: ThemeConfig = {
 // })
 
 onBeforeMount(function () {
-	const LANGUAGE = navigator.language as LanguageType
-	locale.value = LANGUAGE
+  const LANGUAGE = navigator.language as LanguageType
+  locale.value = LANGUAGE
 })
 </script>
 
 <template>
-	<a-config-provider
-		:theme="themeConfigure"
-		:locale="languageMap[locale]"
-		class="top-floor-config-provider"
-	>
-		<a-style-provider hash-priority="low">
-			<a-app class="top-floor-app">
-				<a-spin :spinning="false" tip="Loading..." wrapperClassName="top-floor-spin-wrapper">
-					<router-view />
-				</a-spin>
-			</a-app>
-		</a-style-provider>
-	</a-config-provider>
+  <a-config-provider
+    :theme="themeConfigure"
+    :locale="languageMap[locale]"
+    class="top-floor-config-provider">
+    <a-style-provider hash-priority="low">
+      <a-app class="top-floor-app">
+        <a-spin
+          :spinning="false"
+          tip="Loading..."
+          wrapperClassName="top-floor-spin-wrapper">
+          <router-view />
+        </a-spin>
+      </a-app>
+    </a-style-provider>
+  </a-config-provider>
 </template>
 
 <style lang="scss" scoped>
 %screen-full {
-	@apply w-full h-full;
+  @apply w-full h-full;
 }
 
 .top-floor-app {
-	@extend %screen-full;
+  @extend %screen-full;
 }
 
 .top-floor-spin-wrapper {
-	@extend %screen-full;
+  @extend %screen-full;
 
-	& > :deep(.ant-spin-container) {
-		@extend %screen-full;
-	}
+  & > :deep(.ant-spin-container) {
+    @extend %screen-full;
+  }
 }
 </style>

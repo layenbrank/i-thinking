@@ -1,44 +1,44 @@
 {
-	"compilerOptions": {
-		"tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo.core",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo.core",
 
-		"target": "ESNext",
-		"module": "ESNext",
-		"jsx": "preserve",
-		"jsxImportSource": "vue",
-		"moduleDetection": "force",
-		"moduleResolution": "Bundler",
-		"noImplicitThis": true,
-		"strict": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"skipLibCheck": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "moduleDetection": "force",
+    "moduleResolution": "Bundler",
+    "noImplicitThis": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
 
-		"composite": true,
-		"importHelpers": true,
+    "composite": true,
+    "importHelpers": true,
 
-		"noEmit": false,
-		"declaration": true,
-		"emitDeclarationOnly": false,
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": false,
 
-		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true,
-		"removeComments": true,
-		"resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "removeComments": true,
+    "resolveJsonModule": true,
 
-		"allowImportingTsExtensions": false,
-		"verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": true,
 
-		"baseUrl": ".",
-		"rootDir": "./src",
-		"outDir": "dist",
+    "baseUrl": ".",
+    "rootDir": "./src",
+    "outDir": "dist",
 
-		"paths": {
-			"@/*": ["src/*"]
-		},
+    "paths": {
+      "@/*": ["src/*"]
+    },
 
-		"types": ["node"]
-	},
-	"exclude": ["dist", "node_modules"],
-	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"]
+    "types": ["node"]
+  },
+  "exclude": ["dist", "node_modules"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"]
 }

@@ -8,24 +8,24 @@ import { JwtAuthStrategy } from './jwt-auth.strategy'
 import { User, UserSchema } from './schemas/auth.schema'
 
 @Module({
-	imports: [
-		MongooseModule.forFeature([
-			{
-				name: User.name,
-				schema: UserSchema
-			}
-		]),
-		JwtModule.register({
-			secret: jwtConstants.secret,
-			signOptions: {
-				expiresIn: jwtConstants.expiresIn
-			},
-			verifyOptions: {
-				algorithms: ['HS256']
-			}
-		})
-	],
-	controllers: [AuthController],
-	providers: [AuthService, JwtAuthStrategy]
+  imports: [
+    MongooseModule.forFeature([
+      {
+        name: User.name,
+        schema: UserSchema
+      }
+    ]),
+    JwtModule.register({
+      secret: jwtConstants.secret,
+      signOptions: {
+        expiresIn: jwtConstants.expiresIn
+      },
+      verifyOptions: {
+        algorithms: ['HS256']
+      }
+    })
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtAuthStrategy]
 })
 export class AuthModule {}

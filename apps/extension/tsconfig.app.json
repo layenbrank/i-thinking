@@ -1,42 +1,42 @@
 {
-	"extends": "@vue/tsconfig/tsconfig.dom.json",
-	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"],
-	"exclude": ["node_modules", "dist"],
-	"compilerOptions": {
-		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
 
-		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
 
-		"types": [
-			"vite/client",
-			"@types/chrome",
-			"@ffmpeg/types",
-			"reflect-metadata",
-			"@i-thinking/wasm",
-			"unplugin-icons/types/vue3",
-			"ant-design-vue/typings/global",
-			"@i-thinking/core/directives",
-			"@i-thinking/shared/response",
-			"@i-thinking/shared/decorator",
-			"@i-thinking/shared/constructor",
-			"@i-thinking/shared/contextmenu",
-			"@i-thinking/shared/user-profile",
-			"@i-thinking/shared/schema",
-			"@i-thinking/shared/mirror",
-			"@i-thinking/shared/backup",
-			"@i-thinking/shared/settings",
-			"@i-thinking/shared/controller",
-			"@i-thinking/shared/application",
-			"@i-thinking/shared/application-bookmark",
-			"@i-thinking/shared/application-markdown",
-			"@i-thinking/shared/application-intelligence"
-		],
-		"rootDir": ".",
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["./src/*"]
-		}
-	}
+    "types": [
+      "vite/client",
+      "@types/chrome",
+      "@ffmpeg/types",
+      "reflect-metadata",
+      "@i-thinking/wasm",
+      "unplugin-icons/types/vue3",
+      "ant-design-vue/typings/global",
+      "@i-thinking/core/directives",
+      "@i-thinking/shared/response",
+      "@i-thinking/shared/decorator",
+      "@i-thinking/shared/constructor",
+      "@i-thinking/shared/contextmenu",
+      "@i-thinking/shared/user-profile",
+      "@i-thinking/shared/schema",
+      "@i-thinking/shared/mirror",
+      "@i-thinking/shared/backup",
+      "@i-thinking/shared/settings",
+      "@i-thinking/shared/controller",
+      "@i-thinking/shared/application",
+      "@i-thinking/shared/application-bookmark",
+      "@i-thinking/shared/application-markdown",
+      "@i-thinking/shared/application-intelligence"
+    ],
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }

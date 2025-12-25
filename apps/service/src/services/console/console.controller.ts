@@ -5,33 +5,33 @@ import { UpdateConsoleDto } from './dto/update-console.dto'
 
 @Controller('console')
 export class ConsoleController {
-	constructor(private readonly consoleService: ConsoleService) {}
+  constructor(private readonly consoleService: ConsoleService) {}
 
-	@Post()
-	create(@Body() createConsoleDto: CreateConsoleDto) {
-		console.log('console', createConsoleDto.msg)
-		return this.consoleService.create(createConsoleDto)
-	}
+  @Post()
+  create(@Body() createConsoleDto: CreateConsoleDto) {
+    console.log('console', createConsoleDto.msg)
+    return this.consoleService.create(createConsoleDto)
+  }
 
-	@Get()
-	findAll() {
-		return `${Reflect.defineMetadata}`
-		// return this.consoleService.findAll()
-	}
+  @Get()
+  findAll() {
+    return `${Reflect.defineMetadata}`
+    // return this.consoleService.findAll()
+  }
 
-	@Get(':id')
-	findOne(@Param('id') id: string) {
-		console.log('console', id)
-		return this.consoleService.findOne(+id)
-	}
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    console.log('console', id)
+    return this.consoleService.findOne(+id)
+  }
 
-	@Patch(':id')
-	update(@Param('id') id: string, @Body() updateConsoleDto: UpdateConsoleDto) {
-		return this.consoleService.update(+id, updateConsoleDto)
-	}
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateConsoleDto: UpdateConsoleDto) {
+    return this.consoleService.update(+id, updateConsoleDto)
+  }
 
-	@Delete(':id')
-	remove(@Param('id') id: string) {
-		return this.consoleService.remove(+id)
-	}
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.consoleService.remove(+id)
+  }
 }

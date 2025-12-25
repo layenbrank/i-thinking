@@ -19,7 +19,7 @@ export default defineConfig({
      * Maximum time expect() should wait for the condition to be met.
      * For example in `await expect(locator).toHaveText();`
      */
-    timeout: 5000,
+    timeout: 5000
   },
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
@@ -43,7 +43,7 @@ export default defineConfig({
     headless: !!process.env.CI,
 
     /* Ignore HTTPS errors for self-signed certificates */
-    ignoreHTTPSErrors: true,
+    ignoreHTTPSErrors: true
   },
 
   /* Configure projects for major browsers */
@@ -51,21 +51,21 @@ export default defineConfig({
     {
       name: 'chromium',
       use: {
-        ...devices['Desktop Chrome'],
-      },
+        ...devices['Desktop Chrome']
+      }
     },
     {
       name: 'firefox',
       use: {
-        ...devices['Desktop Firefox'],
-      },
+        ...devices['Desktop Firefox']
+      }
     },
     {
       name: 'webkit',
       use: {
-        ...devices['Desktop Safari'],
-      },
-    },
+        ...devices['Desktop Safari']
+      }
+    }
 
     /* Test against mobile viewports. */
     // {
@@ -109,6 +109,6 @@ export default defineConfig({
     command: process.env.CI ? 'pnpm run preview' : 'pnpm run dev',
     port: process.env.CI ? 4173 : 1024,
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+    timeout: 120 * 1000
+  }
 })

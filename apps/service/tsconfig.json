@@ -1,42 +1,42 @@
 {
-	"exclude": ["**/node_modules/**", "**/dist/**"],
-	"compilerOptions": {
-		"target": "esnext",
-		"module": "nodenext",
-		"moduleResolution": "nodenext",
-		"resolvePackageJsonExports": true,
-		"esModuleInterop": true,
-		"isolatedModules": true,
-		"declaration": true,
-		"removeComments": true,
-		"emitDecoratorMetadata": true,
-		"experimentalDecorators": true,
-		"allowSyntheticDefaultImports": true,
-		"sourceMap": true,
-		"outDir": "dist",
-		"baseUrl": ".",
-		"incremental": true,
-		"skipLibCheck": true,
-		"strictNullChecks": true,
-		"forceConsistentCasingInFileNames": true,
-		"noImplicitAny": true,
-		"strictBindCallApply": true,
-		"allowImportingTsExtensions": false,
-		"noFallthroughCasesInSwitch": true,
+  "exclude": ["**/node_modules/**", "**/dist/**"],
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "allowImportingTsExtensions": false,
+    "noFallthroughCasesInSwitch": true,
 
-		"resolveJsonModule": true,
+    "resolveJsonModule": true,
 
-		// 新增的严格选项
-		"noImplicitThis": true,
-		"noImplicitReturns": true,
-		"strictFunctionTypes": true,
-		"noUncheckedIndexedAccess": true,
-		"strictPropertyInitialization": false,
+    // 新增的严格选项
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "strictFunctionTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "strictPropertyInitialization": false,
 
-		"types": ["node", "@i-thinking/shared/process-env"],
+    "types": ["node", "@i-thinking/shared/process-env"],
 
-		"paths": {
-			"@/*": ["src/*"]
-		}
-	}
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
 }

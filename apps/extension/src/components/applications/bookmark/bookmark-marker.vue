@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 
 defineOptions({
-	name: 'bookmark-marker'
+  name: 'bookmark-marker'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -10,9 +10,11 @@ defineOptions({
 </script>
 
 <template>
-	<div class="bookmark-marker">
-		<Icon icon="ant-design:folder-add-filled" class="marker-bookmark" />
-	</div>
+  <div class="bookmark-marker">
+    <Icon
+      icon="ant-design:folder-add-filled"
+      class="marker-bookmark" />
+  </div>
 </template>
 
 <style lang="scss" scoped>
@@ -25,20 +27,20 @@ defineOptions({
 @use 'ultra.scss' as *;
 
 .bookmark-marker {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	border-radius: var(--application-round);
-	background: var(--application-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--application-round);
+  background: var(--application-background);
 
-	// .folder {
-	// 	@apply w-full h-full text-[30px] text-[#ffd766];
-	// }
-	.marker-bookmark {
-		width: 100%;
-		height: 100%;
-		color: #ffd766;
-	}
+  // .folder {
+  // 	@apply w-full h-full text-[30px] text-[#ffd766];
+  // }
+  .marker-bookmark {
+    width: 100%;
+    height: 100%;
+    color: #ffd766;
+  }
 }
 </style>
