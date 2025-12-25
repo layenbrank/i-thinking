@@ -5,17 +5,17 @@ import { AuthGuard } from '@nestjs/passport'
 
 @Injectable()
 export class JWTAuthGuard extends AuthGuard('jwt') {
-	constructor(private reflector: Reflector) {
-		super()
-	}
+  constructor(private reflector: Reflector) {
+    super()
+  }
 
-	canActivate(ctx: ExecutionContext) {
-		const isAuthToken = this.reflector.getAllAndOverride<boolean>(AuthTokenKey, [
-			ctx.getHandler(),
-			ctx.getClass()
-		])
+  canActivate(ctx: ExecutionContext) {
+    const isAuthToken = this.reflector.getAllAndOverride<boolean>(AuthTokenKey, [
+      ctx.getHandler(),
+      ctx.getClass()
+    ])
 
-		if (isAuthToken) return true
-		return super.canActivate(ctx)
-	}
+    if (isAuthToken) return true
+    return super.canActivate(ctx)
+  }
 }

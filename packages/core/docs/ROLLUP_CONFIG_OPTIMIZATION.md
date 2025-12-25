@@ -40,11 +40,11 @@ export * from './utils'
 
 ```typescript
 const npmDependencies: RegExp[] = [
-	/^vue$/,
-	/^vue\//,
-	/^pinia$/,
-	/^rxjs$/
-	// ...
+  /^vue$/,
+  /^vue\//,
+  /^pinia$/,
+  /^rxjs$/
+  // ...
 ]
 ```
 

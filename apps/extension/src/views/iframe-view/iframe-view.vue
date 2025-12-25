@@ -9,7 +9,7 @@ import { createHighlightPlugin } from '@/plugins/highlight.plugin'
 type CommunicateParams = Application.Intelligence.Communicate.Params
 
 defineOptions({
-	name: 'iframe-view'
+  name: 'iframe-view'
 })
 
 /**
@@ -36,26 +36,26 @@ void pluginManager.register(createHighlightPlugin())
  * Markdown 渲染器
  */
 const renderer = useMarkdownRenderer({
-	gfm: true,
-	breaks: true,
-	sanitize: true,
-	pluginManager,
-	features: ['highlight'],
-	cache: {
-		enabled: true,
-		maxSize: 100,
-		ttl: 60000
-	}
+  gfm: true,
+  breaks: true,
+  sanitize: true,
+  pluginManager,
+  features: ['highlight'],
+  cache: {
+    enabled: true,
+    maxSize: 100,
+    ttl: 60000
+  }
 })
 
 /**
  * 性能监控器
  */
 const perfMonitor = usePerformanceMonitor({
-	sampleInterval: 1000,
-	maxSamples: 60,
-	enableMemory: true,
-	enableFPS: true
+  sampleInterval: 1000,
+  maxSamples: 60,
+  enableMemory: true,
+  enableFPS: true
 })
 
 /**
@@ -67,61 +67,61 @@ let bridge: ReturnType<typeof useCrossContextBridge> | null = null
  * 初始化 iframe 通信
  */
 function initIframeBridge() {
-	const iframe = iframeRef.value
-	if (!iframe?.contentWindow) return
+  const iframe = iframeRef.value
+  if (!iframe?.contentWindow) return
 
-	bridge = useCrossContextBridge({
-		target: iframe.contentWindow,
-		origin: window.location.origin,
-		heartbeatInterval: 5000,
-		timeout: 30000
-	})
+  bridge = useCrossContextBridge({
+    target: iframe.contentWindow,
+    origin: window.location.origin,
+    heartbeatInterval: 5000,
+    timeout: 30000
+  })
 
-	// 监听 iframe 消息
-	bridge.onMessage((message) => {
-		console.log('Received message from iframe:', message)
-	})
+  // 监听 iframe 消息
+  bridge.onMessage((message) => {
+    console.log('Received message from iframe:', message)
+  })
 
-	// 监听连接状态
-	watch(
-		() => bridge?.isConnected.value,
-		(isConnected) => {
-			console.log('Iframe connection status:', isConnected)
-		}
-	)
+  // 监听连接状态
+  watch(
+    () => bridge?.isConnected.value,
+    (isConnected) => {
+      console.log('Iframe connection status:', isConnected)
+    }
+  )
 }
 
 /**
  * 渲染 Markdown 到 iframe
  */
 async function renderMarkdown(markdown: string) {
-	try {
-		isLoading.value = true
-		error.value = null
+  try {
+    isLoading.value = true
+    error.value = null
 
-		// 性能标记
-		perfMonitor.mark('render-start')
+    // 性能标记
+    perfMonitor.mark('render-start')
 
-		// 渲染 Markdown
-		const result = await renderer.render(markdown)
-		renderedHtml.value = result.html
+    // 渲染 Markdown
+    const result = await renderer.render(markdown)
+    renderedHtml.value = result.html
 
-		// 性能测量
-		perfMonitor.mark('render-end')
-		perfMonitor.measure('markdown-render', 'render-start', 'render-end')
+    // 性能测量
+    perfMonitor.mark('render-end')
+    perfMonitor.measure('markdown-render', 'render-start', 'render-end')
 
-		// 更新缓存命中率
-		const cacheStats = renderer.getCacheStats()
-		perfMonitor.updateCacheHitRate(cacheStats.hits, cacheStats.hits + cacheStats.misses)
+    // 更新缓存命中率
+    const cacheStats = renderer.getCacheStats()
+    perfMonitor.updateCacheHitRate(cacheStats.hits, cacheStats.hits + cacheStats.misses)
 
-		// 清除标记
-		perfMonitor.clearMarks('render-start')
-		perfMonitor.clearMarks('render-end')
+    // 清除标记
+    perfMonitor.clearMarks('render-start')
+    perfMonitor.clearMarks('render-end')
 
-		// 发送到 iframe
-		const iframe = iframeRef.value
-		if (iframe) {
-			const htmlDoc = `
+    // 发送到 iframe
+    const iframe = iframeRef.value
+    if (iframe) {
+      const htmlDoc = `
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -225,60 +225,60 @@ async function renderMarkdown(markdown: string) {
 </body>
 </html>
 			`.trim()
-			iframe.srcdoc = htmlDoc
-		}
+      iframe.srcdoc = htmlDoc
+    }
 
-		console.log('Render complete:', {
-			duration: result.duration,
-			cached: result.cached,
-			metadata: result.metadata
-		})
-	} catch (err) {
-		error.value = err instanceof Error ? err.message : 'Unknown error'
-		console.error('Markdown render error:', err)
-	} finally {
-		isLoading.value = false
-	}
+    console.log('Render complete:', {
+      duration: result.duration,
+      cached: result.cached,
+      metadata: result.metadata
+    })
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+    console.error('Markdown render error:', err)
+  } finally {
+    isLoading.value = false
+  }
 }
 
 /**
  * 流式渲染 AI 响应
  */
 async function streamAIResponse(params: CommunicateParams) {
-	try {
-		isLoading.value = true
-		error.value = null
-		markdownContent.value = ''
+  try {
+    isLoading.value = true
+    error.value = null
+    markdownContent.value = ''
 
-		// 创建流式请求
-		const generator = GeneratorJSON(POST_COMMUNICATE.bind(null, params))
+    // 创建流式请求
+    const generator = GeneratorJSON(POST_COMMUNICATE.bind(null, params))
 
-		// 处理流式响应
-		for await (const chunk of generator) {
-			if (chunk.message?.content) {
-				// 过滤 <think> 标签
-				const content = chunk.message.content.replace(/<think>[\s\S]*?<\/think>/g, '')
-				markdownContent.value += content
+    // 处理流式响应
+    for await (const chunk of generator) {
+      if (chunk.message?.content) {
+        // 过滤 <think> 标签
+        const content = chunk.message.content.replace(/<think>[\s\S]*?<\/think>/g, '')
+        markdownContent.value += content
 
-				// 实时渲染
-				await renderMarkdown(markdownContent.value)
-			}
-		}
+        // 实时渲染
+        await renderMarkdown(markdownContent.value)
+      }
+    }
 
-		console.log('AI streaming complete')
-	} catch (err) {
-		error.value = err instanceof Error ? err.message : 'Unknown error'
-		console.error('AI streaming error:', err)
-	} finally {
-		isLoading.value = false
-	}
+    console.log('AI streaming complete')
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+    console.error('AI streaming error:', err)
+  } finally {
+    isLoading.value = false
+  }
 }
 
 /**
  * 测试渲染
  */
 function testRender() {
-	const testMarkdown = `
+  const testMarkdown = `
 # Markdown 渲染测试
 
 ## 代码高亮
@@ -319,93 +319,104 @@ hello('World')
 
 使用 \`console.log()\` 输出日志。
 	`
-	void renderMarkdown(testMarkdown)
+  void renderMarkdown(testMarkdown)
 }
 
 /**
  * 组件挂载
  */
 onMounted(() => {
-	// 启动性能监控
-	perfMonitor.start()
+  // 启动性能监控
+  perfMonitor.start()
 
-	// 初始化 iframe 通信
-	void nextTick(() => {
-		initIframeBridge()
-	})
+  // 初始化 iframe 通信
+  void nextTick(() => {
+    initIframeBridge()
+  })
 
-	// 测试渲染
-	testRender()
+  // 测试渲染
+  testRender()
 
-	// 暴露 API 供外部调用
-	;(window as any).__iframeViewAPI = {
-		render: renderMarkdown,
-		streamAI: streamAIResponse,
-		clearCache: () => renderer.clearCache(),
-		getStats: () => renderer.getCacheStats(),
-		getPerformance: () => perfMonitor.getStats()
-	}
+  // 暴露 API 供外部调用
+  ;(window as any).__iframeViewAPI = {
+    render: renderMarkdown,
+    streamAI: streamAIResponse,
+    clearCache: () => renderer.clearCache(),
+    getStats: () => renderer.getCacheStats(),
+    getPerformance: () => perfMonitor.getStats()
+  }
 })
 
 /**
  * 组件卸载
  */
 onUnmounted(() => {
-	perfMonitor.stop()
+  perfMonitor.stop()
 })
 
 /**
  * 组件卸载
  */
 onUnmounted(() => {
-	bridge?.dispose()
-	delete (window as any).__iframeViewAPI
+  bridge?.dispose()
+  delete (window as any).__iframeViewAPI
 })
 </script>
 
 <template>
-	<div class="iframe-view">
-		<div v-if="isLoading" class="loading">渲染中...</div>
-		<div v-if="error" class="error">{{ error }}</div>
-		<iframe ref="iframeRef" frameborder="0" sandbox="allow-scripts allow-popups"></iframe>
+  <div class="iframe-view">
+    <div
+      v-if="isLoading"
+      class="loading">
+      渲染中...
+    </div>
+    <div
+      v-if="error"
+      class="error">
+      {{ error }}
+    </div>
+    <iframe
+      ref="iframeRef"
+      frameborder="0"
+      sandbox="allow-scripts allow-popups"></iframe>
 
-		<!-- 说明：仅开放 allow-popups 以允许新窗口打开；不启用 allow-same-origin，避免沙箱逃逸 -->
-	</div>
+    <!-- 说明：仅开放 allow-popups 以允许新窗口打开；不启用 allow-same-origin，避免沙箱逃逸 -->
+  </div>
 </template>
 
 <style lang="scss" scoped>
 .iframe-view {
-	position: relative;
-	width: 100%;
-	height: 100%;
+  position: relative;
+  width: 100%;
+  height: 100%;
 
-	.loading,
-	.error {
-		position: absolute;
-		top: 10px;
-		right: 10px;
-		padding: 8px 12px;
-		border-radius: 4px;
-		font-size: 12px;
-		z-index: 10;
-	}
+  .loading,
+  .error {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 10;
+  }
 
-	.loading {
-		background: #e6f7ff;
-		color: #1890ff;
-		border: 1px solid #91d5ff;
-	}
+  .loading {
+    background: #e6f7ff;
+    color: #1890ff;
+    border: 1px solid #91d5ff;
+  }
 
-	.error {
-		background: #fff2f0;
-		color: #ff4d4f;
-		border: 1px solid #ffccc7;
-	}
+  .error {
+    background: #fff2f0;
+    color: #ff4d4f;
+    border: 1px solid #ffccc7;
+  }
 
-	iframe {
-		width: 100%;
-		height: 100%;
-		border: none;
-	}
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
 }
 </style>

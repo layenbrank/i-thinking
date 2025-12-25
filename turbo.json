@@ -1,77 +1,77 @@
 {
-	"$schema": "https://turbo.build/schema.json",
-	"globalDependencies": [".env", "tsconfig.json"],
-	"globalEnv": ["NODE_ENV"],
-	"tasks": {
-		"build": {
-			"cache": true,
-			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*", "vite.config.*", "rollup.config.*", "tsconfig*.json"],
-			"outputLogs": "full",
-			"outputs": ["dist/**", ".vitepress/dist/**", "src-tauri/target/release/bundle/**"]
-		},
-		"coverage": {
-			"cache": true,
-			"inputs": [
-				"$TURBO_DEFAULT$",
-				"src/**/*.{ts,tsx,vue}",
-				"**/*.{test,spec}.{ts,tsx,vue}",
-				"vitest.config.*",
-				"tsconfig*.json",
-				".env*"
-			],
-			"outputLogs": "full",
-			"outputs": ["coverage/**"]
-		},
-		"dev": {
-			"cache": false,
-			"dependsOn": ["^build"],
-			"outputLogs": "full",
-			"persistent": true
-		},
-		"e2e": {
-			"cache": false,
-			"dependsOn": ["build"],
-			"inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.ts", "playwright.config.*", ".env*"],
-			"outputLogs": "full",
-			"outputs": ["playwright-report/**", "test-results/**"]
-		},
-		"lint": {
-			"cache": true,
-			"inputs": [
-				"$TURBO_DEFAULT$",
-				"src/**/*.{ts,tsx,vue}",
-				".eslintrc.{js,cjs,json}",
-				".oxlintrc",
-				".prettierignore",
-				".prettierrc.{js,cjs,json}",
-				"tsconfig.json",
-				"vite.config.*"
-			],
-			"outputLogs": "full"
-		},
-		"preview": {
-			"cache": false,
-			"dependsOn": ["build"],
-			"outputLogs": "full"
-		},
-		"report": {
-			"cache": false,
-			"outputLogs": "full",
-			"persistent": true
-		},
-		"unit": {
-			"cache": true,
-			"inputs": [
-				"$TURBO_DEFAULT$",
-				"src/**/*.{ts,tsx,vue}",
-				"**/*.{test,spec}.{ts,tsx,vue}",
-				"vitest.config.*",
-				"tsconfig*.json",
-				".env*"
-			],
-			"outputLogs": "full",
-			"outputs": ["coverage/**"]
-		}
-	}
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env", "tsconfig.json"],
+  "globalEnv": ["NODE_ENV"],
+  "tasks": {
+    "build": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "vite.config.*", "rollup.config.*", "tsconfig*.json"],
+      "outputLogs": "full",
+      "outputs": ["dist/**", ".vitepress/dist/**", "src-tauri/target/release/bundle/**"]
+    },
+    "coverage": {
+      "cache": true,
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "src/**/*.{ts,tsx,vue}",
+        "**/*.{test,spec}.{ts,tsx,vue}",
+        "vitest.config.*",
+        "tsconfig*.json",
+        ".env*"
+      ],
+      "outputLogs": "full",
+      "outputs": ["coverage/**"]
+    },
+    "dev": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "outputLogs": "full",
+      "persistent": true
+    },
+    "e2e": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.ts", "playwright.config.*", ".env*"],
+      "outputLogs": "full",
+      "outputs": ["playwright-report/**", "test-results/**"]
+    },
+    "lint": {
+      "cache": true,
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "src/**/*.{ts,tsx,vue}",
+        ".eslintrc.{js,cjs,json}",
+        ".oxlintrc",
+        ".prettierignore",
+        ".prettierrc.{js,cjs,json}",
+        "tsconfig.json",
+        "vite.config.*"
+      ],
+      "outputLogs": "full"
+    },
+    "preview": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "outputLogs": "full"
+    },
+    "report": {
+      "cache": false,
+      "outputLogs": "full",
+      "persistent": true
+    },
+    "unit": {
+      "cache": true,
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "src/**/*.{ts,tsx,vue}",
+        "**/*.{test,spec}.{ts,tsx,vue}",
+        "vitest.config.*",
+        "tsconfig*.json",
+        ".env*"
+      ],
+      "outputLogs": "full",
+      "outputs": ["coverage/**"]
+    }
+  }
 }

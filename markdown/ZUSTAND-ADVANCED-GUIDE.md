@@ -75,17 +75,17 @@ import { devtools, subscribeWithSelector } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
 const useStore = create<StoreType>()(
-	devtools(
-		// 1. DevTools 支持
-		subscribeWithSelector(
-			// 2. 精细化订阅
-			immer((set, get) => ({
-				// 3. 不可变更新
-				// state & actions
-			}))
-		),
-		{ name: 'StoreName' }
-	)
+  devtools(
+    // 1. DevTools 支持
+    subscribeWithSelector(
+      // 2. 精细化订阅
+      immer((set, get) => ({
+        // 3. 不可变更新
+        // state & actions
+      }))
+    ),
+    { name: 'StoreName' }
+  )
 )
 ```
 
@@ -102,43 +102,43 @@ const useStore = create<StoreType>()(
 ```typescript
 // 定义切片类型
 type SliceCreator<T> = StateCreator<
-	FullStore,
-	[['zustand/devtools', never], ['zustand/subscribeWithSelector', never], ['zustand/immer', never]],
-	[],
-	T
+  FullStore,
+  [['zustand/devtools', never], ['zustand/subscribeWithSelector', never], ['zustand/immer', never]],
+  [],
+  T
 >
 
 // Mirror 切片
 const createMirrorSlice: SliceCreator<MirrorSlice> = (set, get) => ({
-	mirror: null,
-	mirrors: [],
-	selectMirror: (id) => {
-		/* ... */
-	},
-	toInsertMirror: async (data) => {
-		/* ... */
-	}
+  mirror: null,
+  mirrors: [],
+  selectMirror: (id) => {
+    /* ... */
+  },
+  toInsertMirror: async (data) => {
+    /* ... */
+  }
 })
 
 // Application 切片
 const createApplicationSlice: SliceCreator<ApplicationSlice> = (set, get) => ({
-	application: null,
-	applications: [],
-	selectApplication: (id) => {
-		/* ... */
-	}
+  application: null,
+  applications: [],
+  selectApplication: (id) => {
+    /* ... */
+  }
 })
 
 // 合并切片
 const useStore = create<FullStore>()(
-	devtools(
-		subscribeWithSelector(
-			immer((...args) => ({
-				...createMirrorSlice(...args),
-				...createApplicationSlice(...args)
-			}))
-		)
-	)
+  devtools(
+    subscribeWithSelector(
+      immer((...args) => ({
+        ...createMirrorSlice(...args),
+        ...createApplicationSlice(...args)
+      }))
+    )
+  )
 )
 ```
 
@@ -200,17 +200,17 @@ apps/client/src/stores/
 
 ```typescript
 interface MirrorSliceState {
-	mirror: Mirror | null // 当前选中的 Mirror
-	mirrors: Mirror[] // 所有 Mirrors
-	loading: boolean // 加载状态
-	error: string | null // 错误信息
+  mirror: Mirror | null // 当前选中的 Mirror
+  mirrors: Mirror[] // 所有 Mirrors
+  loading: boolean // 加载状态
+  error: string | null // 错误信息
 }
 
 interface ApplicationSliceState {
-	application: Application | null
-	applications: Application[]
-	loading: boolean
-	error: string | null
+  application: Application | null
+  applications: Application[]
+  loading: boolean
+  error: string | null
 }
 ```
 
@@ -238,21 +238,21 @@ export const mirrorSearchTerm$ = new BehaviorSubject<string>('')
 
 // 过滤后的 Mirrors (自动响应搜索词变化)
 export const filteredMirrors$: Observable<Mirror[]> = mirrorSearchTerm$.pipe(
-	debounceTime(300),
-	distinctUntilChanged(),
-	switchMap((term) =>
-		from(
-			liveQuery(() => {
-				if (!term.trim()) {
-					return database.mirror.orderBy('index').toArray()
-				}
-				return database.mirror
-					.filter((m) => m.title.toLowerCase().includes(term.toLowerCase()))
-					.toArray()
-			})
-		)
-	),
-	catchError(() => of([]))
+  debounceTime(300),
+  distinctUntilChanged(),
+  switchMap((term) =>
+    from(
+      liveQuery(() => {
+        if (!term.trim()) {
+          return database.mirror.orderBy('index').toArray()
+        }
+        return database.mirror
+          .filter((m) => m.title.toLowerCase().includes(term.toLowerCase()))
+          .toArray()
+      })
+    )
+  ),
+  catchError(() => of([]))
 )
 ```
 
@@ -266,15 +266,15 @@ export const useLoading = () => useMirrorStore((state) => state.loading)
 
 // 派生选择器
 export const useApplicationsByMirrorId = (mirrorId: string) =>
-	useMirrorStore((state) => state.applications.filter((a) => a.mirrorID === mirrorId))
+  useMirrorStore((state) => state.applications.filter((a) => a.mirrorID === mirrorId))
 
 // 统计选择器
 export const useMirrorStats = () =>
-	useMirrorStore((state) => ({
-		totalMirrors: state.mirrors.length,
-		totalApplications: state.applications.length,
-		selectedMirror: state.mirror?.title ?? null
-	}))
+  useMirrorStore((state) => ({
+    totalMirrors: state.mirrors.length,
+    totalApplications: state.applications.length,
+    selectedMirror: state.mirror?.title ?? null
+  }))
 ```
 
 ### 订阅工具
@@ -282,12 +282,12 @@ export const useMirrorStats = () =>
 ```typescript
 // 订阅 mirrors 变化 (带自定义相等性比较)
 const unsubscribe = subscribeMirrorsChange((mirrors, prevMirrors) => {
-	console.log('Mirrors changed:', mirrors)
+  console.log('Mirrors changed:', mirrors)
 })
 
 // 订阅选中的 mirror 变化
 const unsubscribe = subscribeSelectedMirrorChange((mirror, prevMirror) => {
-	console.log('Selected mirror changed:', mirror)
+  console.log('Selected mirror changed:', mirror)
 })
 ```
 
@@ -303,38 +303,38 @@ const unsubscribe = subscribeSelectedMirrorChange((mirror, prevMirror) => {
 // 过滤条件
 export const filterMirrorId$ = new BehaviorSubject<string | null>(null)
 export const sortOptions$ = new BehaviorSubject<SortOptions>({
-	field: 'index',
-	order: 'asc'
+  field: 'index',
+  order: 'asc'
 })
 
 // 组合查询 - 自动响应过滤/排序/搜索变化
 export const filteredApplications$: Observable<Application[]> = combineLatest([
-	filterMirrorId$,
-	sortOptions$,
-	applicationSearchTerm$.pipe(debounceTime(300))
+  filterMirrorId$,
+  sortOptions$,
+  applicationSearchTerm$.pipe(debounceTime(300))
 ]).pipe(
-	switchMap(([mirrorId, sort, searchTerm]) =>
-		from(
-			liveQuery(async () => {
-				let query = database.application.orderBy(sort.field)
-				if (sort.order === 'desc') query = query.reverse()
+  switchMap(([mirrorId, sort, searchTerm]) =>
+    from(
+      liveQuery(async () => {
+        let query = database.application.orderBy(sort.field)
+        if (sort.order === 'desc') query = query.reverse()
 
-				let results = await query.toArray()
+        let results = await query.toArray()
 
-				if (mirrorId) {
-					results = results.filter((app) => app.mirrorID === mirrorId)
-				}
+        if (mirrorId) {
+          results = results.filter((app) => app.mirrorID === mirrorId)
+        }
 
-				if (searchTerm.trim()) {
-					results = results.filter((app) =>
-						app.title.toLowerCase().includes(searchTerm.toLowerCase())
-					)
-				}
+        if (searchTerm.trim()) {
+          results = results.filter((app) =>
+            app.title.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        }
 
-				return results
-			})
-		)
-	)
+        return results
+      })
+    )
+  )
 )
 ```
 
@@ -370,10 +370,10 @@ await store.toReorderByIds(['id1', 'id2', 'id3'])
 import { DexieSync } from '@/stores/utils/dexie-sync'
 
 const mirrorSync = new DexieSync(database.mirror, {
-	debug: true,
-	retryCount: 3,
-	onChange: (data) => console.log('Data changed:', data),
-	onError: (error) => console.error('Sync error:', error)
+  debug: true,
+  retryCount: 3,
+  onChange: (data) => console.log('Data changed:', data),
+  onError: (error) => console.error('Sync error:', error)
 })
 
 // 启动同步
@@ -381,7 +381,7 @@ mirrorSync.start()
 
 // 获取数据流
 mirrorSync.data$.subscribe((mirrors) => {
-	console.log('Mirrors:', mirrors)
+  console.log('Mirrors:', mirrors)
 })
 
 // 获取当前快照
@@ -398,16 +398,16 @@ mirrorSync.destroy()
 
 ```typescript
 import {
-	createReactiveQuery,
-	createPaginatedQuery,
-	createFilteredQuery
+  createReactiveQuery,
+  createPaginatedQuery,
+  createFilteredQuery
 } from '@/stores/utils/dexie-sync'
 
 // 响应式查询
 const deps$ = new BehaviorSubject({ status: 'active' })
 const results$ = createReactiveQuery(
-	(deps) => database.mirror.where('status').equals(deps.status).toArray(),
-	deps$
+  (deps) => database.mirror.where('status').equals(deps.status).toArray(),
+  deps$
 )
 
 // 分页查询
@@ -415,9 +415,9 @@ const pageOptions$ = new BehaviorSubject({ page: 1, pageSize: 10 })
 const paginatedResults$ = createPaginatedQuery(database.mirror, pageOptions$)
 
 paginatedResults$.subscribe((result) => {
-	console.log('Data:', result.data)
-	console.log('Total:', result.total)
-	console.log('Has more:', result.hasMore)
+  console.log('Data:', result.data)
+  console.log('Total:', result.total)
+  console.log('Has more:', result.hasMore)
 })
 
 // 条件查询
@@ -485,8 +485,8 @@ import { EventBus } from '@/stores/utils/rx-bridge'
 
 // 定义事件类型
 interface MyEventMap {
-	'user:login': { userId: string }
-	'user:logout': { reason: string }
+  'user:login': { userId: string }
+  'user:logout': { reason: string }
 }
 
 const eventBus = new EventBus<MyEventMap>({ debug: true })
@@ -496,12 +496,12 @@ eventBus.emit('user:login', { userId: '123' })
 
 // 订阅事件
 eventBus.on('user:login').subscribe((payload) => {
-	console.log('User logged in:', payload.userId)
+  console.log('User logged in:', payload.userId)
 })
 
 // 订阅多个事件
 eventBus.onMany(['user:login', 'user:logout']).subscribe((payload) => {
-	console.log('Event:', payload)
+  console.log('Event:', payload)
 })
 
 // 等待单次事件
@@ -550,22 +550,22 @@ import { storeToObservable, observableToStore, createTwoWayBinding } from '@/sto
 
 // Store -> Observable
 const mirrors$ = storeToObservable(useMirrorStore, {
-	selector: (state) => state.mirrors,
-	debounce: 100,
-	skipInitial: false
+  selector: (state) => state.mirrors,
+  debounce: 100,
+  skipInitial: false
 })
 
 // Observable -> Store
 const subscription = observableToStore(someObservable$, useMirrorStore, (state, value) => ({
-	mirrors: value
+  mirrors: value
 }))
 
 // 双向绑定
 const { value$, destroy } = createTwoWayBinding(
-	useMirrorStore,
-	(state) => state.searchTerm,
-	(state, value) => ({ searchTerm: value }),
-	{ debounce: 300 }
+  useMirrorStore,
+  (state) => state.searchTerm,
+  (state, value) => ({ searchTerm: value }),
+  { debounce: 300 }
 )
 ```
 
@@ -575,18 +575,18 @@ const { value$, destroy } = createTwoWayBinding(
 import { createStateTracker } from '@/stores/utils/rx-bridge'
 
 const { changes$, history$, undo, redo, canUndo$, canRedo$, destroy } = createStateTracker(
-	useMirrorStore,
-	{
-		maxHistory: 50,
-		trackFields: ['mirrors', 'applications']
-	}
+  useMirrorStore,
+  {
+    maxHistory: 50,
+    trackFields: ['mirrors', 'applications']
+  }
 )
 
 // 监听变化
 changes$.subscribe((change) => {
-	console.log('Changed from:', change.previous)
-	console.log('Changed to:', change.current)
-	console.log('Diff:', change.diff)
+  console.log('Changed from:', change.previous)
+  console.log('Changed to:', change.current)
+  console.log('Diff:', change.diff)
 })
 
 // 撤销/重做
@@ -595,7 +595,7 @@ redo()
 
 // 响应式状态
 canUndo$.subscribe((canUndo) => {
-	console.log('Can undo:', canUndo)
+  console.log('Can undo:', canUndo)
 })
 ```
 
@@ -603,10 +603,10 @@ canUndo$.subscribe((canUndo) => {
 
 ```typescript
 import {
-	batchProcess,
-	retryWithBackoff,
-	concurrentLimit,
-	debounceDistinct
+  batchProcess,
+  retryWithBackoff,
+  concurrentLimit,
+  debounceDistinct
 } from '@/stores/utils/rx-bridge'
 
 // 批量处理
@@ -614,12 +614,12 @@ source$.pipe(batchProcess(1000, (items) => console.log('Batch:', items)))
 
 // 指数退避重试
 source$.pipe(
-	retryWithBackoff(3, 1000) // 最多重试3次，初始延迟1秒
+  retryWithBackoff(3, 1000) // 最多重试3次，初始延迟1秒
 )
 
 // 并发控制
 source$.pipe(
-	concurrentLimit((item) => fetchData(item), 3) // 最多3个并发
+  concurrentLimit((item) => fetchData(item), 3) // 最多3个并发
 )
 
 // 防抖 + 去重
@@ -636,39 +636,38 @@ source$.pipe(debounceDistinct(300))
 import { useMirrors, useSelectedMirror, useMirrorStore } from '@/stores'
 
 function MirrorList() {
-	const mirrors = useMirrors()
-	const selectedMirror = useSelectedMirror()
-	const { selectMirror, toInsertMirror, toRemoveMirror } = useMirrorStore()
+  const mirrors = useMirrors()
+  const selectedMirror = useSelectedMirror()
+  const { selectMirror, toInsertMirror, toRemoveMirror } = useMirrorStore()
 
-	const handleAdd = async () => {
-		const id = await toInsertMirror({
-			title: 'New Mirror',
-			description: '',
-			index: mirrors.length
-			// ... other fields
-		})
-		selectMirror(id)
-	}
+  const handleAdd = async () => {
+    const id = await toInsertMirror({
+      title: 'New Mirror',
+      description: '',
+      index: mirrors.length
+      // ... other fields
+    })
+    selectMirror(id)
+  }
 
-	const handleDelete = async (id: string) => {
-		await toRemoveMirror(id)
-	}
+  const handleDelete = async (id: string) => {
+    await toRemoveMirror(id)
+  }
 
-	return (
-		<div>
-			{mirrors.map((mirror) => (
-				<div
-					key={mirror.id}
-					className={mirror.id === selectedMirror?.id ? 'selected' : ''}
-					onClick={() => selectMirror(mirror.id)}
-				>
-					{mirror.title}
-					<button onClick={() => handleDelete(mirror.id)}>Delete</button>
-				</div>
-			))}
-			<button onClick={handleAdd}>Add Mirror</button>
-		</div>
-	)
+  return (
+    <div>
+      {mirrors.map((mirror) => (
+        <div
+          key={mirror.id}
+          className={mirror.id === selectedMirror?.id ? 'selected' : ''}
+          onClick={() => selectMirror(mirror.id)}>
+          {mirror.title}
+          <button onClick={() => handleDelete(mirror.id)}>Delete</button>
+        </div>
+      ))}
+      <button onClick={handleAdd}>Add Mirror</button>
+    </div>
+  )
 }
 ```
 
@@ -679,32 +678,35 @@ import { useEffect } from 'react'
 import { mirrorEvents$, filteredMirrors$, mirrorSearchTerm$ } from '@/stores'
 
 function MirrorSearch() {
-	const [results, setResults] = useState<Mirror[]>([])
+  const [results, setResults] = useState<Mirror[]>([])
 
-	useEffect(() => {
-		// 订阅过滤结果
-		const subscription = filteredMirrors$.subscribe(setResults)
-		return () => subscription.unsubscribe()
-	}, [])
+  useEffect(() => {
+    // 订阅过滤结果
+    const subscription = filteredMirrors$.subscribe(setResults)
+    return () => subscription.unsubscribe()
+  }, [])
 
-	useEffect(() => {
-		// 监听事件
-		const subscription = mirrorEvents$
-			.pipe(filter((e) => e.type === 'MIRROR_INSERTED'))
-			.subscribe((event) => {
-				console.log('New mirror created:', event.payload)
-			})
-		return () => subscription.unsubscribe()
-	}, [])
+  useEffect(() => {
+    // 监听事件
+    const subscription = mirrorEvents$
+      .pipe(filter((e) => e.type === 'MIRROR_INSERTED'))
+      .subscribe((event) => {
+        console.log('New mirror created:', event.payload)
+      })
+    return () => subscription.unsubscribe()
+  }, [])
 
-	return (
-		<div>
-			<input placeholder="Search..." onChange={(e) => mirrorSearchTerm$.next(e.target.value)} />
-			{results.map((mirror) => (
-				<div key={mirror.id}>{mirror.title}</div>
-			))}
-		</div>
-	)
+  return (
+    <div>
+      <input
+        placeholder="Search..."
+        onChange={(e) => mirrorSearchTerm$.next(e.target.value)}
+      />
+      {results.map((mirror) => (
+        <div key={mirror.id}>{mirror.title}</div>
+      ))}
+    </div>
+  )
 }
 ```
 
@@ -718,13 +720,13 @@ appEventBus.emit('mirror:created', { id: '123', mirror })
 
 // 订阅事件
 appEventBus.on('system:notification').subscribe(({ type, message }) => {
-	showNotification(type, message)
+  showNotification(type, message)
 })
 
 // 执行可撤销命令
 await appCommandBus.execute('mirror:create', mirrorData, {
-	execute: () => database.mirror.add(mirrorData),
-	undo: () => database.mirror.delete(mirrorData.id)
+  execute: () => database.mirror.add(mirrorData),
+  undo: () => database.mirror.delete(mirrorData.id)
 })
 ```
 
@@ -737,16 +739,16 @@ await appCommandBus.execute('mirror:create', mirrorData, {
 ```typescript
 // ❌ 避免：每次渲染都创建新对象
 const data = useMirrorStore((state) => ({
-	mirrors: state.mirrors,
-	count: state.mirrors.length
+  mirrors: state.mirrors,
+  count: state.mirrors.length
 }))
 
 // ✅ 推荐：使用 shallow 比较或拆分选择器
 import { shallow } from 'zustand/shallow'
 
 const { mirrors, count } = useMirrorStore(
-	(state) => ({ mirrors: state.mirrors, count: state.mirrors.length }),
-	shallow
+  (state) => ({ mirrors: state.mirrors, count: state.mirrors.length }),
+  shallow
 )
 
 // 或者拆分
@@ -759,15 +761,15 @@ const count = useMirrorStore((state) => state.mirrors.length)
 ```typescript
 // ❌ 避免：订阅整个状态
 useMirrorStore.subscribe((state) => {
-	console.log('Any change:', state)
+  console.log('Any change:', state)
 })
 
 // ✅ 推荐：使用 subscribeWithSelector
 useMirrorStore.subscribe(
-	(state) => state.mirrors,
-	(mirrors, prevMirrors) => {
-		console.log('Mirrors changed:', mirrors)
-	}
+  (state) => state.mirrors,
+  (mirrors, prevMirrors) => {
+    console.log('Mirrors changed:', mirrors)
+  }
 )
 ```
 
@@ -785,8 +787,8 @@ useMirrorStore.getState().toInsertMirror(data)
 
 ```tsx
 useEffect(() => {
-	const subscription = someObservable$.subscribe(handler)
-	return () => subscription.unsubscribe()
+  const subscription = someObservable$.subscribe(handler)
+  return () => subscription.unsubscribe()
 }, [])
 ```
 
@@ -795,13 +797,13 @@ useEffect(() => {
 ```typescript
 // 定义严格的事件类型
 interface AppEventMap {
-	'mirror:created': { id: string; mirror: Mirror }
-	'mirror:updated': { id: string; changes: Partial<Mirror> }
+  'mirror:created': { id: string; mirror: Mirror }
+  'mirror:updated': { id: string; changes: Partial<Mirror> }
 }
 
 // 类型会自动推断
 appEventBus.on('mirror:created').subscribe(({ id, mirror }) => {
-	// id: string, mirror: Mirror - 类型安全
+  // id: string, mirror: Mirror - 类型安全
 })
 ```
 
@@ -868,7 +870,7 @@ appEventBus.on('mirror:created').subscribe(({ id, mirror }) => {
 const mirrors = useMirrors()
 const applications = useApplications()
 const { mirrorID, toInsertMirror, toUpdateMirror, toInsertApplication, toUpdateApplication } =
-	useMirrorStore()
+  useMirrorStore()
 ```
 
 这样 React 端在概念上就与 Pinia 端统一：**Dexie 作为唯一数据源，Store 负责“当前选择 + 操作”，Hooks 负责把 Dexie 的记录转换为组件可用的响应式列表。**

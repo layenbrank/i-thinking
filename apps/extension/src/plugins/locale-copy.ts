@@ -7,18 +7,18 @@ export type LanguageType = keyof typeof messages
 export type MessagesType = Record<string, MessageSchema>
 
 const messages = {
-	zh: zhCN,
-	'zh-CN': zhCN,
-	en: enUS,
-	'en-US': enUS
+  zh: zhCN,
+  'zh-CN': zhCN,
+  en: enUS,
+  'en-US': enUS
 } as const satisfies MessagesType
 
 const locale = createI18n<[MessageSchema], LanguageType>({
-	legacy: false,
-	locale: navigator.language as LanguageType,
-	fallbackLocale: 'en-US',
-	globalInjection: true,
-	messages
+  legacy: false,
+  locale: navigator.language as LanguageType,
+  fallbackLocale: 'en-US',
+  globalInjection: true,
+  messages
 })
 
 export default locale

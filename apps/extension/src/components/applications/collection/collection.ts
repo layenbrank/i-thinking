@@ -8,44 +8,44 @@ type CollectionStore = ReturnType<typeof useCollection>
 const COLLECTION_KEY: InjectionKey<CollectionStore> = Symbol('collection')
 
 function useCollection(collectionID: string) {
-	const navigations = useObservable(
-		new Observable<string>(function (subscribe) {
-			watchEffect(function () {
-				if (!collectionID) return
-				subscribe.next(collectionID)
-			})
-		}).pipe(
-			switchMap(function (collectionID) {
-				return from(
-					liveQuery(function () {
-						return database.application.where('collectionID').equals(collectionID).toArray()
-					})
-				)
-			})
-		)
-	)
+  const navigations = useObservable(
+    new Observable<string>(function (subscribe) {
+      watchEffect(function () {
+        if (!collectionID) return
+        subscribe.next(collectionID)
+      })
+    }).pipe(
+      switchMap(function (collectionID) {
+        return from(
+          liveQuery(function () {
+            return database.application.where('collectionID').equals(collectionID).toArray()
+          })
+        )
+      })
+    )
+  )
 
-	return {
-		navigations
-	}
+  return {
+    navigations
+  }
 }
 
 export function provideStore(collectionID: string) {
-	const scope = effectScope()
+  const scope = effectScope()
 
-	const store = scope.run(function () {
-		return useCollection(collectionID)
-	})
-	if (!store) throw new Error('Collection Store is not initialized')
+  const store = scope.run(function () {
+    return useCollection(collectionID)
+  })
+  if (!store) throw new Error('Collection Store is not initialized')
 
-	provide(COLLECTION_KEY, store)
-	return { ...store, dispose: () => scope.stop() }
+  provide(COLLECTION_KEY, store)
+  return { ...store, dispose: () => scope.stop() }
 }
 
 export function injectStore(): CollectionStore {
-	const store = inject<CollectionStore>(COLLECTION_KEY)
+  const store = inject<CollectionStore>(COLLECTION_KEY)
 
-	if (!store) throw new Error('useCollection must be used within app-collection component')
+  if (!store) throw new Error('useCollection must be used within app-collection component')
 
-	return store
+  return store
 }

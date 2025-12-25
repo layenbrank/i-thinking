@@ -1,31 +1,31 @@
 {
-	"name": "@i-thinking/extension",
-	"private": true,
-	"version": "0.0.0",
-	"type": "module",
-	"scripts": {
-		"dev": "vite dev",
-		"build": "run-s build:pre build:core build:post",
-		"build:pre": "bun run scripts/build-prefix.ts",
-		"build:core": "run-p type-check \"build-only {@}\" --",
-		"build:post": "bun run scripts/build-suffix.ts",
-		"build-only": "vite build",
-		"type-check": "vue-tsc --build",
-		"preview": "vite preview",
-		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
-		"lint:eslint": "eslint . --fix --cache",
-		"lint": "run-s lint:*",
-		"format": "prettier --write src/",
-		"unit": "vitest",
-		"e2e": "playwright test",
-		"coverage": "vitest --coverage"
-	},
-	"dependencies": {
-		"reflect-metadata": "^0.2.2"
-	},
-	"devDependencies": {
-		"@i-thinking/core": "workspace:*",
-		"@i-thinking/wasm": "workspace:*",
-		"@i-thinking/shared": "workspace:*"
-	}
+  "name": "@i-thinking/extension",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "run-s build:pre build:core build:post",
+    "build:pre": "bun run scripts/build-prefix.ts",
+    "build:core": "run-p type-check \"build-only {@}\" --",
+    "build:post": "bun run scripts/build-suffix.ts",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build",
+    "preview": "vite preview",
+    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+    "lint:eslint": "eslint . --fix --cache",
+    "lint": "run-s lint:*",
+    "format": "prettier --write src/",
+    "unit": "vitest",
+    "e2e": "playwright test",
+    "coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@i-thinking/core": "workspace:*",
+    "@i-thinking/wasm": "workspace:*",
+    "@i-thinking/shared": "workspace:*"
+  }
 }

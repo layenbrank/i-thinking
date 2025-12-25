@@ -1,117 +1,117 @@
 {
-	"$schema": "../gen/schemas/desktop-schema.json",
-	"description": "Capability for the main window",
-	"identifier": "default",
-	"permissions": [
-		"core:default",
-		"opener:default",
-		"core:webview:default",
-		{
-			"allow": [
-				{
-					"app": "msedge",
-					"url": "https://cn.bing.com"
-				},
-				{
-					"app": "chrome",
-					"url": "https://www.baidu.com"
-				},
-				{
-					"app": true,
-					"url": "https://*"
-				},
-				{
-					"app": true,
-					"url": "http://*"
-				},
-				{
-					"url": "custom:*"
-				},
-				{
-					"app": true,
-					"url": "*"
-				}
-			],
-			"identifier": "opener:allow-open-url"
-		},
-		{
-			"allow": [
-				{
-					"app": true,
-					"url": "https://www.baidu.com"
-				},
-				{
-					"app": "msedge",
-					"url": "https://cn.bing.com"
-				},
-				{
-					"app": true,
-					"url": "https://*"
-				},
-				{
-					"app": true,
-					"url": "http://*"
-				},
-				{
-					"app": true,
-					"url": "*"
-				}
-			],
-			"identifier": "opener:allow-default-urls"
-		},
-		{
-			"allow": [
-				{
-					"path": "$APPDATA/*"
-				},
-				{
-					"path": "$HOME/*"
-				},
-				{
-					"path": "$DOCUMENTS/*"
-				},
-				{
-					"path": "$DOWNLOADS/*"
-				},
-				{
-					"path": "$DESKTOP/*"
-				},
-				{
-					"path": "$PICTURES/*"
-				},
-				{
-					"path": "$VIDEOS/*"
-				},
-				{
-					"path": "$MUSICS/*"
-				}
-			],
-			"identifier": "fs:default"
-		},
-		"core:webview:allow-create-webview",
-		"core:webview:allow-create-webview-window",
-		"core:webview:allow-internal-toggle-devtools",
-		"core:webview:allow-webview-close",
-		"core:webview:allow-webview-show",
-		"core:window:allow-close",
-		"core:window:allow-hide",
-		"core:window:allow-show",
-		"core:window:allow-set-focus",
-		"core:window:allow-minimize",
-		"core:window:allow-maximize",
-		"core:window:allow-unmaximize",
-		"core:window:allow-unminimize",
-		"core:window:allow-destroy",
-		"websocket:default"
-	],
-	"platforms": ["iOS", "macOS", "linux", "windows", "android"],
-	"remote": {
-		"urls": [
-			"https://www.baidu.com",
-			"https://*.baidu.com",
-			"https://cn.bing.com",
-			"https://*.bing.com"
-		]
-	},
-	"windows": ["main", "navigation"]
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "description": "Capability for the main window",
+  "identifier": "default",
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "core:webview:default",
+    {
+      "allow": [
+        {
+          "app": "msedge",
+          "url": "https://cn.bing.com"
+        },
+        {
+          "app": "chrome",
+          "url": "https://www.baidu.com"
+        },
+        {
+          "app": true,
+          "url": "https://*"
+        },
+        {
+          "app": true,
+          "url": "http://*"
+        },
+        {
+          "url": "custom:*"
+        },
+        {
+          "app": true,
+          "url": "*"
+        }
+      ],
+      "identifier": "opener:allow-open-url"
+    },
+    {
+      "allow": [
+        {
+          "app": true,
+          "url": "https://www.baidu.com"
+        },
+        {
+          "app": "msedge",
+          "url": "https://cn.bing.com"
+        },
+        {
+          "app": true,
+          "url": "https://*"
+        },
+        {
+          "app": true,
+          "url": "http://*"
+        },
+        {
+          "app": true,
+          "url": "*"
+        }
+      ],
+      "identifier": "opener:allow-default-urls"
+    },
+    {
+      "allow": [
+        {
+          "path": "$APPDATA/*"
+        },
+        {
+          "path": "$HOME/*"
+        },
+        {
+          "path": "$DOCUMENTS/*"
+        },
+        {
+          "path": "$DOWNLOADS/*"
+        },
+        {
+          "path": "$DESKTOP/*"
+        },
+        {
+          "path": "$PICTURES/*"
+        },
+        {
+          "path": "$VIDEOS/*"
+        },
+        {
+          "path": "$MUSICS/*"
+        }
+      ],
+      "identifier": "fs:default"
+    },
+    "core:webview:allow-create-webview",
+    "core:webview:allow-create-webview-window",
+    "core:webview:allow-internal-toggle-devtools",
+    "core:webview:allow-webview-close",
+    "core:webview:allow-webview-show",
+    "core:window:allow-close",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-unminimize",
+    "core:window:allow-destroy",
+    "websocket:default"
+  ],
+  "platforms": ["iOS", "macOS", "linux", "windows", "android"],
+  "remote": {
+    "urls": [
+      "https://www.baidu.com",
+      "https://*.baidu.com",
+      "https://cn.bing.com",
+      "https://*.bing.com"
+    ]
+  },
+  "windows": ["main", "navigation"]
 }

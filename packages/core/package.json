@@ -1,41 +1,41 @@
 {
-	"name": "@i-thinking/core",
-	"version": "1.0.0",
-	"private": true,
-	"type": "module",
-	"types": "./dist/index.d.ts",
-	"main": "./dist/index.js",
-	"module": "./dist/index.js",
-	"scripts": {
-		"build": "rollup --config rollup.config.ts",
-		"dev": "vite",
-		"format": "prettier --write src/",
-		"lint": "run-s lint:*",
-		"lint:eslint": "eslint . --fix",
-		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
-		"test:unit": "vitest",
-		"test:e2e": "playwright test",
-		"test:coverage": "vitest --coverage"
-	},
-	"exports": {
-		".": {
-			"import": "./dist/index.js",
-			"types": "./dist/index.d.ts"
-		},
-		"./directives": {
-			"import": "./dist/directives.js",
-			"types": "./dist/directives.d.ts"
-		},
-		"./hooks": {
-			"import": "./dist/hooks.js",
-			"types": "./dist/hooks.d.ts"
-		},
-		"./utils": {
-			"import": "./dist/utils.js",
-			"types": "./dist/utils.d.ts"
-		}
-	},
-	"files": [
-		"dist"
-	]
+  "name": "@i-thinking/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "scripts": {
+    "build": "rollup --config rollup.config.ts",
+    "dev": "vite",
+    "format": "prettier --write src/",
+    "lint": "run-s lint:*",
+    "lint:eslint": "eslint . --fix",
+    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+    "test:unit": "vitest",
+    "test:e2e": "playwright test",
+    "test:coverage": "vitest --coverage"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./directives": {
+      "import": "./dist/directives.js",
+      "types": "./dist/directives.d.ts"
+    },
+    "./hooks": {
+      "import": "./dist/hooks.js",
+      "types": "./dist/hooks.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils.js",
+      "types": "./dist/utils.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ]
 }

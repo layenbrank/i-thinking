@@ -7,15 +7,15 @@ import ScrollLandscape from './components/scroll-landscape/scroll-landscape.vue'
 // export { ComboboxTrigger, ReSegment, ScrollLandscape }
 
 export const components = {
-	ReSegment,
-	ScrollLandscape,
-	ComboboxTrigger
+  ReSegment,
+  ScrollLandscape,
+  ComboboxTrigger
 }
 
 export default {
-	install(app: App) {
-		Object.entries(components).forEach(([key, value]) => {
-			app.component(key, value)
-		})
-	}
+  install(app: App) {
+    Object.entries(components).forEach(([key, value]) => {
+      app.component(key, value)
+    })
+  }
 }

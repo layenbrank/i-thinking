@@ -27,7 +27,9 @@ import { Icon } from '@iconify/vue'
 </script>
 
 <template>
-	<Icon icon="mdi:home" class="size-5" />
+  <Icon
+    icon="mdi:home"
+    class="size-5" />
 </template>
 ```
 
@@ -48,7 +50,9 @@ import '@iconify/iconify'
 ```
 
 ```html
-<span class="iconify size-5" data-icon="academicons:academia-square"></span>
+<span
+  class="iconify size-5"
+  data-icon="academicons:academia-square"></span>
 ```
 
 提示：如果不引入运行时，上述 `<span class="iconify">` 不会被替换为 SVG。
@@ -61,7 +65,9 @@ import 'iconify-icon'
 ```
 
 ```html
-<iconify-icon icon="mdi:home" class="size-5"></iconify-icon>
+<iconify-icon
+  icon="mdi:home"
+  class="size-5"></iconify-icon>
 ```
 
 4. 构建期方案：unplugin-icons（零运行时，更佳性能）
@@ -73,16 +79,16 @@ import IconsResolver from 'unplugin-icons/resolver'
 import Components from 'unplugin-vue-components/vite'
 
 export default {
-	plugins: [
-		Icons({ autoInstall: true }),
-		Components({ resolvers: [IconsResolver({ componentPrefix: 'Icon' })] })
-	]
+  plugins: [
+    Icons({ autoInstall: true }),
+    Components({ resolvers: [IconsResolver({ componentPrefix: 'Icon' })] })
+  ]
 }
 ```
 
 ```vue
 <template>
-	<IconMdiHome />
+  <IconMdiHome />
 </template>
 ```
 

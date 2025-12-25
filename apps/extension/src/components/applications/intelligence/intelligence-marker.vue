@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'intelligence-marker'
+  name: 'intelligence-marker'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -8,7 +8,7 @@ defineOptions({
 </script>
 
 <template>
-	<div class="intelligence-marker">test</div>
+  <div class="intelligence-marker">test</div>
 </template>
 
 <style lang="scss" scoped>
@@ -21,11 +21,11 @@ defineOptions({
 @use 'ultra.scss' as *;
 
 .intelligence-marker {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	border-radius: var(--application-round);
-	background: var(--application-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--application-round);
+  background: var(--application-background);
 }
 </style>

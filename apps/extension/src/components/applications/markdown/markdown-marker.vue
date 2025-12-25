@@ -3,7 +3,7 @@ import { useMarkdownStore } from '@/stores/markdown.ts'
 import { Icon } from '@iconify/vue'
 
 defineOptions({
-	name: 'markdown-marker'
+  name: 'markdown-marker'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -11,17 +11,19 @@ defineOptions({
 const store = useMarkdownStore()
 
 const markdown = computed(function () {
-	return store.markdowns?.find(function (value) {
-		return value.id === store.activeKey
-	})
+  return store.markdowns?.find(function (value) {
+    return value.id === store.activeKey
+  })
 })
 </script>
 
 <template>
-	<div class="markdown-marker">
-		<Icon icon="mdi:note-edit" class="marker-markdown"></Icon>
-		<!-- {{ store.findHead(markdown) }} -->
-	</div>
+  <div class="markdown-marker">
+    <Icon
+      icon="mdi:note-edit"
+      class="marker-markdown"></Icon>
+    <!-- {{ store.findHead(markdown) }} -->
+  </div>
 </template>
 
 <style lang="scss" scoped>
@@ -34,20 +36,20 @@ const markdown = computed(function () {
 @use 'ultra.scss' as *;
 
 .markdown-marker {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	border-radius: var(--application-round);
-	background: var(--application-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--application-round);
+  background: var(--application-background);
 
-	text-wrap: nowrap;
-	text-overflow: ellipsis;
-	overflow: hidden;
+  text-wrap: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 
-	.marker-markdown {
-		width: 100%;
-		height: 100%;
-	}
+  .marker-markdown {
+    width: 100%;
+    height: 100%;
+  }
 }
 </style>

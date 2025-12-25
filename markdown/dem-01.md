@@ -1,16 +1,16 @@
 ````typescript
 function renderedMarked(text) {
-	// Simple markdown rendering logic (for demonstration purposes)
-	if (!text) return ''
+  // Simple markdown rendering logic (for demonstration purposes)
+  if (!text) return ''
 
-	return text
+  return text
 
-		.replace(/__(.*?)__/g, '<strong>$1</strong>') // bold
-		.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // bold
-		.replace(/_(.*?)_/g, '<em>$1</em>') // italic
-		.replace(/\*(.*?)\*/g, '<em>$1</em>') // italic
-		.replace(/`(.*?)`/g, '<code>$1</code>') // inline code
-		.replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>') // code block
+    .replace(/__(.*?)__/g, '<strong>$1</strong>') // bold
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // bold
+    .replace(/_(.*?)_/g, '<em>$1</em>') // italic
+    .replace(/\*(.*?)\*/g, '<em>$1</em>') // italic
+    .replace(/`(.*?)`/g, '<code>$1</code>') // inline code
+    .replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>') // code block
 }
 ````
 

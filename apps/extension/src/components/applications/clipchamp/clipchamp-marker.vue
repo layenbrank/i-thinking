@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 
 defineOptions({
-	name: 'clipchamp-marker'
+  name: 'clipchamp-marker'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -10,9 +10,11 @@ defineOptions({
 </script>
 
 <template>
-	<div class="clipchamp-marker">
-		<Icon icon="mdi:video-box" class="marker-clipchamp" />
-	</div>
+  <div class="clipchamp-marker">
+    <Icon
+      icon="mdi:video-box"
+      class="marker-clipchamp" />
+  </div>
 </template>
 
 <style lang="scss" scoped>
@@ -25,16 +27,16 @@ defineOptions({
 @use 'ultra.scss' as *;
 
 .clipchamp-marker {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	border-radius: var(--application-round);
-	background: var(--application-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--application-round);
+  background: var(--application-background);
 
-	.marker-clipchamp {
-		width: 100%;
-		height: 100%;
-	}
+  .marker-clipchamp {
+    width: 100%;
+    height: 100%;
+  }
 }
 </style>

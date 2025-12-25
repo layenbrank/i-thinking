@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 
 defineOptions({
-	name: 'marketplace-marker'
+  name: 'marketplace-marker'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -10,9 +10,11 @@ defineOptions({
 </script>
 
 <template>
-	<div class="marketplace-marker">
-		<Icon icon="ant-design:appstore-twotone" class="marker-marketplace" />
-	</div>
+  <div class="marketplace-marker">
+    <Icon
+      icon="ant-design:appstore-twotone"
+      class="marker-marketplace" />
+  </div>
 </template>
 
 <style lang="scss" scoped>
@@ -25,16 +27,16 @@ defineOptions({
 @use 'ultra.scss' as *;
 
 .marketplace-marker {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	border-radius: var(--application-round);
-	background: var(--application-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--application-round);
+  background: var(--application-background);
 
-	.marker-marketplace {
-		width: 100%;
-		height: 100%;
-	}
+  .marker-marketplace {
+    width: 100%;
+    height: 100%;
+  }
 }
 </style>

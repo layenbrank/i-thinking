@@ -9,15 +9,15 @@
 
 ```ts
 interface IframeViewAPI {
-	render(markdown: string): Promise<void>
-	streamAI(params: Communicate.Params): Promise<void>
-	clearCache(): void
-	getStats(): RendererCacheStats
-	getPerformance(): {
-		current: PerformanceMetrics
-		history: PerformanceMetrics[]
-		summary: any
-	}
+  render(markdown: string): Promise<void>
+  streamAI(params: Communicate.Params): Promise<void>
+  clearCache(): void
+  getStats(): RendererCacheStats
+  getPerformance(): {
+    current: PerformanceMetrics
+    history: PerformanceMetrics[]
+    summary: any
+  }
 }
 ```
 
@@ -36,11 +36,11 @@ await (window as any).__iframeViewAPI.render(`
 
 ```ts
 await (window as any).__iframeViewAPI.streamAI({
-	model: 'your-model',
-	messages: [
-		{ role: 'system', content: 'You are a helpful assistant.' },
-		{ role: 'user', content: '生成一个包含代码与数学公式的教程大纲' }
-	]
+  model: 'your-model',
+  messages: [
+    { role: 'system', content: 'You are a helpful assistant.' },
+    { role: 'user', content: '生成一个包含代码与数学公式的教程大纲' }
+  ]
 })
 ```
 

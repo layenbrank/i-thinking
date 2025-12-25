@@ -1,3 +1,3 @@
 export class CreateConsoleDto {
-	msg: string | object | Array<any>
+  msg: string | object | Array<any>
 }

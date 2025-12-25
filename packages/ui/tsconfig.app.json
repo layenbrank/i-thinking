@@ -1,15 +1,15 @@
 {
-	"extends": "@vue/tsconfig/tsconfig.dom.json",
-	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"],
-	"exclude": ["node_modules", "dist"],
-	"compilerOptions": {
-		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-		"allowImportingTsExtensions": true,
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "allowImportingTsExtensions": true,
 
-		"types": ["vite/client", "ant-design-vue/typings/global", "@types/chrome"],
+    "types": ["vite/client", "ant-design-vue/typings/global", "@types/chrome"],
 
-		"paths": {
-			"@/*": ["./src/*"]
-		}
-	}
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }

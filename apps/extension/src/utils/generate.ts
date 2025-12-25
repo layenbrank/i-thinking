@@ -3,15 +3,15 @@
  * @returns {string}
  */
 export function generateCvid(): string {
-	// 生成标准GUID
-	const guid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-		const r = (Math.random() * 16) | 0
-		const v = c === 'x' ? r : (r & 0x3) | 0x8
-		return v.toString(16)
-	})
+  // 生成标准GUID
+  const guid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
 
-	// 转换为必应使用的格式（移除连字符并转为大写）
-	return guid.replace(/-/g, '').toUpperCase()
+  // 转换为必应使用的格式（移除连字符并转为大写）
+  return guid.replace(/-/g, '').toUpperCase()
 }
 
 /**
@@ -19,25 +19,25 @@ export function generateCvid(): string {
  * @returns {string}
  */
 export function generateSecureCvid(): string {
-	const array = new Uint8Array(16)
-	window.crypto.getRandomValues(array)
+  const array = new Uint8Array(16)
+  window.crypto.getRandomValues(array)
 
-	// 设置版本位（GUID v4标准） — 拆分读取并判断 undefined 后再写回
-	const byte6 = array[6] ?? 0
-	array[6] = (byte6 & 0x0f) | 0x40
+  // 设置版本位（GUID v4标准） — 拆分读取并判断 undefined 后再写回
+  const byte6 = array[6] ?? 0
+  array[6] = (byte6 & 0x0f) | 0x40
 
-	const byte8 = array[8] ?? 0
-	array[8] = (byte8 & 0x3f) | 0x80
+  const byte8 = array[8] ?? 0
+  array[8] = (byte8 & 0x3f) | 0x80
 
-	// 转换为十六进制字符串
-	return Array.from(array)
-		.map(function (b) {
-			return b.toString(16).padStart(2, '0')
-		})
-		.join('')
-		.toUpperCase()
+  // 转换为十六进制字符串
+  return Array.from(array)
+    .map(function (b) {
+      return b.toString(16).padStart(2, '0')
+    })
+    .join('')
+    .toUpperCase()
 }
 
 export function randomID() {
-	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }

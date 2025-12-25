@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'gallery-marker'
+  name: 'gallery-marker'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -8,7 +8,7 @@ defineOptions({
 </script>
 
 <template>
-	<div class="gallery-marker">gallery-marker</div>
+  <div class="gallery-marker">gallery-marker</div>
 </template>
 
 <style lang="scss" scoped>
@@ -21,11 +21,11 @@ defineOptions({
 @use 'ultra.scss' as *;
 
 .gallery-marker {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	border-radius: var(--application-round);
-	background: var(--application-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--application-round);
+  background: var(--application-background);
 }
 </style>

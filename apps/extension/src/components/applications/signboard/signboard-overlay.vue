@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'signboard-overlay'
+  name: 'signboard-overlay'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -8,12 +8,12 @@ defineOptions({
 </script>
 
 <template>
-	<div class="signboard-overlay"></div>
+  <div class="signboard-overlay"></div>
 </template>
 
 <style lang="scss" scoped>
 .signboard-overlay {
-	width: 100%;
-	height: 100%;
+  width: 100%;
+  height: 100%;
 }
 </style>

@@ -1,39 +1,39 @@
 {
-	"compilerOptions": {
-		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-		"target": "ESNext",
-		"lib": ["ESNext"],
-		"types": ["@types/node"],
-		"module": "ESNext",
-		"skipLibCheck": true,
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "types": ["@types/node"],
+    "module": "ESNext",
+    "skipLibCheck": true,
 
-		/* Bundler mode */
-		"moduleResolution": "Bundler",
-		"allowImportingTsExtensions": true,
-		"verbatimModuleSyntax": true,
-		"moduleDetection": "force",
-		"noEmit": true,
+    /* Bundler mode */
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
 
-		/* Linting */
-		"strict": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"erasableSyntaxOnly": true,
-		"noFallthroughCasesInSwitch": true,
-		"noUncheckedSideEffectImports": true,
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
 
-		"composite": true,
-		"allowSyntheticDefaultImports": true
-	},
-	"include": [
-		"vite.config.*",
-		"vitest.config.*",
-		"cypress.config.*",
-		"nightwatch.conf.*",
-		"playwright.config.*",
-		"tailwind.config.*",
-		"eslint.config.*",
-		"scripts/**/*.ts",
-		"vite.config-d.ts"
-	]
+    "composite": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": [
+    "vite.config.*",
+    "vitest.config.*",
+    "cypress.config.*",
+    "nightwatch.conf.*",
+    "playwright.config.*",
+    "tailwind.config.*",
+    "eslint.config.*",
+    "scripts/**/*.ts",
+    "vite.config-d.ts"
+  ]
 }

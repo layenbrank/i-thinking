@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 
 defineOptions({
-	name: 'settings-marker'
+  name: 'settings-marker'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -10,9 +10,11 @@ defineOptions({
 </script>
 
 <template>
-	<div class="settings-marker">
-		<Icon icon="mdi:cog-outline" class="marker-settings" />
-	</div>
+  <div class="settings-marker">
+    <Icon
+      icon="mdi:cog-outline"
+      class="marker-settings" />
+  </div>
 </template>
 
 <style lang="scss" scoped>
@@ -25,16 +27,16 @@ defineOptions({
 @use 'ultra.scss' as *;
 
 .settings-marker {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	border-radius: var(--application-round);
-	background: var(--application-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--application-round);
+  background: var(--application-background);
 
-	.marker-settings {
-		width: 100%;
-		height: 100%;
-	}
+  .marker-settings {
+    width: 100%;
+    height: 100%;
+  }
 }
 </style>

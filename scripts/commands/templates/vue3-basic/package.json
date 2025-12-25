@@ -1,22 +1,22 @@
 {
-	"name": "example",
-	"private": true,
-	"version": "0.0.0",
-	"type": "module",
-	"scripts": {
-		"dev": "vite",
-		"build": "run-s build:pre build:core build:post",
-		"build:pre": "node ./scripts/pre-build.js",
-		"build:post": "node ./scripts/post-build.js",
-		"build:core": "run-p type-check \"build-only {@}\" --",
-		"build-only": "vite build",
-		"type-check": "vue-tsc --build",
-		"preview": "vite preview",
-		"lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
-		"lint:eslint": "eslint . --fix",
-		"lint": "run-s lint:*",
-		"format": "prettier --write src/"
-	},
-	"dependencies": {},
-	"devDependencies": {}
+  "name": "example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "run-s build:pre build:core build:post",
+    "build:pre": "node ./scripts/pre-build.js",
+    "build:post": "node ./scripts/post-build.js",
+    "build:core": "run-p type-check \"build-only {@}\" --",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build",
+    "preview": "vite preview",
+    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+    "lint:eslint": "eslint . --fix",
+    "lint": "run-s lint:*",
+    "format": "prettier --write src/"
+  },
+  "dependencies": {},
+  "devDependencies": {}
 }

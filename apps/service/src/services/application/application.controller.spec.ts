@@ -3,18 +3,18 @@ import { ApplicationController } from './application.controller'
 import { ApplicationService } from './application.service'
 
 describe('ApplicationController', () => {
-	let controller: ApplicationController
+  let controller: ApplicationController
 
-	beforeEach(async () => {
-		const module: TestingModule = await Test.createTestingModule({
-			controllers: [ApplicationController],
-			providers: [ApplicationService]
-		}).compile()
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [ApplicationController],
+      providers: [ApplicationService]
+    }).compile()
 
-		controller = module.get<ApplicationController>(ApplicationController)
-	})
+    controller = module.get<ApplicationController>(ApplicationController)
+  })
 
-	it('should be defined', () => {
-		expect(controller).toBeDefined()
-	})
+  it('should be defined', () => {
+    expect(controller).toBeDefined()
+  })
 })

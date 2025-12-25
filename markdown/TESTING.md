@@ -72,20 +72,20 @@ import '@testing-library/jest-dom'
 import { Button } from './Button'
 
 describe('Button Component', () => {
-	it('renders button with text', () => {
-		render(<Button>Click me</Button>)
-		expect(screen.getByText('Click me')).toBeInTheDocument()
-	})
+  it('renders button with text', () => {
+    render(<Button>Click me</Button>)
+    expect(screen.getByText('Click me')).toBeInTheDocument()
+  })
 
-	it('handles click events', async () => {
-		const handleClick = vi.fn()
-		render(<Button onClick={handleClick}>Click me</Button>)
+  it('handles click events', async () => {
+    const handleClick = vi.fn()
+    render(<Button onClick={handleClick}>Click me</Button>)
 
-		const button = screen.getByText('Click me')
-		await userEvent.click(button)
+    const button = screen.getByText('Click me')
+    await userEvent.click(button)
 
-		expect(handleClick).toHaveBeenCalledTimes(1)
-	})
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
 })
 ```
 
@@ -97,18 +97,18 @@ import { mount } from '@vue/test-utils'
 import MyComponent from './MyComponent.vue'
 
 describe('MyComponent', () => {
-	it('renders properly', () => {
-		const wrapper = mount(MyComponent, {
-			props: { msg: 'Hello Vitest' }
-		})
-		expect(wrapper.text()).toContain('Hello Vitest')
-	})
+  it('renders properly', () => {
+    const wrapper = mount(MyComponent, {
+      props: { msg: 'Hello Vitest' }
+    })
+    expect(wrapper.text()).toContain('Hello Vitest')
+  })
 
-	it('emits event on button click', async () => {
-		const wrapper = mount(MyComponent)
-		await wrapper.find('button').trigger('click')
-		expect(wrapper.emitted()).toHaveProperty('click')
-	})
+  it('emits event on button click', async () => {
+    const wrapper = mount(MyComponent)
+    await wrapper.find('button').trigger('click')
+    expect(wrapper.emitted()).toHaveProperty('click')
+  })
 })
 ```
 
@@ -119,22 +119,22 @@ import { describe, it, expect } from 'vitest'
 import { formatDate, validateEmail } from './utils'
 
 describe('Utils', () => {
-	describe('formatDate', () => {
-		it('formats date correctly', () => {
-			const date = new Date('2024-01-01')
-			expect(formatDate(date)).toBe('2024-01-01')
-		})
-	})
+  describe('formatDate', () => {
+    it('formats date correctly', () => {
+      const date = new Date('2024-01-01')
+      expect(formatDate(date)).toBe('2024-01-01')
+    })
+  })
 
-	describe('validateEmail', () => {
-		it('validates correct email', () => {
-			expect(validateEmail('test@example.com')).toBe(true)
-		})
+  describe('validateEmail', () => {
+    it('validates correct email', () => {
+      expect(validateEmail('test@example.com')).toBe(true)
+    })
 
-		it('rejects invalid email', () => {
-			expect(validateEmail('invalid-email')).toBe(false)
-		})
-	})
+    it('rejects invalid email', () => {
+      expect(validateEmail('invalid-email')).toBe(false)
+    })
+  })
 })
 ```
 
@@ -145,13 +145,13 @@ import { describe, it, expect } from 'vitest'
 import { useCounter } from './useCounter'
 
 describe('useCounter', () => {
-	it('increments counter', () => {
-		const { count, increment } = useCounter()
-		expect(count.value).toBe(0)
+  it('increments counter', () => {
+    const { count, increment } = useCounter()
+    expect(count.value).toBe(0)
 
-		increment()
-		expect(count.value).toBe(1)
-	})
+    increment()
+    expect(count.value).toBe(1)
+  })
 })
 ```
 
@@ -163,17 +163,17 @@ import { fetchData } from './api'
 
 // Mock 模块
 vi.mock('./api', () => ({
-	fetchData: vi.fn()
+  fetchData: vi.fn()
 }))
 
 describe('API calls', () => {
-	it('fetches data successfully', async () => {
-		const mockData = { id: 1, name: 'Test' }
-		vi.mocked(fetchData).mockResolvedValue(mockData)
+  it('fetches data successfully', async () => {
+    const mockData = { id: 1, name: 'Test' }
+    vi.mocked(fetchData).mockResolvedValue(mockData)
 
-		const result = await fetchData()
-		expect(result).toEqual(mockData)
-	})
+    const result = await fetchData()
+    expect(result).toEqual(mockData)
+  })
 })
 ```
 
@@ -215,17 +215,17 @@ src/
 
 ```typescript
 export default defineConfig({
-	plugins: [vue()], // 或 react()
-	test: {
-		globals: true, // 启用全局 API
-		environment: 'jsdom', // DOM 环境（组件测试）
-		coverage: {
-			provider: 'v8', // 覆盖率提供者
-			reporter: ['text', 'json', 'html']
-		},
-		include: ['src/**/*.{test,spec}.{ts,tsx}'],
-		exclude: ['node_modules', 'dist', '.turbo']
-	}
+  plugins: [vue()], // 或 react()
+  test: {
+    globals: true, // 启用全局 API
+    environment: 'jsdom', // DOM 环境（组件测试）
+    coverage: {
+      provider: 'v8', // 覆盖率提供者
+      reporter: ['text', 'json', 'html']
+    },
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    exclude: ['node_modules', 'dist', '.turbo']
+  }
 })
 ```
 

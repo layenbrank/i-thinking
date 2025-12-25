@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({
-	name: 'example-marker'
+  name: 'example-marker'
 })
 
 // const props = withDefaults(defineProps<{}>(), {})
@@ -8,7 +8,7 @@ defineOptions({
 </script>
 
 <template>
-	<div class="example-marker">example</div>
+  <div class="example-marker">example</div>
 </template>
 
 <style lang="scss" scoped>
@@ -21,11 +21,11 @@ defineOptions({
 @use 'ultra.scss' as *;
 
 .example-marker {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	border-radius: var(--application-round);
-	background: var(--application-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--application-round);
+  background: var(--application-background);
 }
 </style>
