@@ -109,12 +109,10 @@ export default function Navigation(props: NavigationProps) {
         onDoubleClick={props.onPrevent ?? onRedirect}
         // onDoubleClick={() => onUpdateVisible(true)}
       />
-      {visible && (
-        <Overlay
-          visible={visible}
-          onUpdateVisible={onUpdateVisible}
-        />
-      )}
+      <Overlay
+        visible={visible}
+        onUpdateVisible={onUpdateVisible}
+      />
     </Application>
   )
 }

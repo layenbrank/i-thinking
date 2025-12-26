@@ -14,10 +14,7 @@
     "test:e2e": "playwright test",
     "test:coverage": "vitest --coverage"
   },
-  "dependencies": {
-    "@tauri-apps/plugin-barcode-scanner": "~2.4.2",
-    "@tauri-apps/plugin-websocket": "~2.4.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@i-thinking/shared": "workspace:*",
     "@i-thinking/wasm": "workspace:*"

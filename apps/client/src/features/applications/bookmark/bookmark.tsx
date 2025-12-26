@@ -24,12 +24,10 @@ export default function Bookmark(props: ProviderProps) {
         shape={props.shape}
         onDoubleClick={() => onUpdateVisible(true)}
       />
-      {visible && (
-        <Overlay
-          visible={visible}
-          onUpdateVisible={onUpdateVisible}
-        />
-      )}
+      <Overlay
+        visible={visible}
+        onUpdateVisible={onUpdateVisible}
+      />
     </Application>
   )
 }
