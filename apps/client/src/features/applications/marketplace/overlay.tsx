@@ -1,25 +1,28 @@
 import { cyan, generate, green, presetPalettes, red } from '@ant-design/colors'
 import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
 import {
-  Button,
-  Card,
-  Col,
-  ColorPicker,
-  type ColorPickerProps,
-  Divider,
-  Flex,
-  Form,
-  Input,
-  Radio,
-  Row,
-  Segmented,
-  theme
+	Button,
+	Card,
+	Col,
+	ColorPicker,
+	type ColorPickerProps,
+	Divider,
+	Flex,
+	Form,
+	Input,
+	Radio,
+	Row,
+	Segmented,
+	theme,
+	Upload
 } from 'antd'
 import type { SegmentedLabeledOption, SegmentedValue } from 'antd/es/segmented'
+import type { RcFile, UploadFile } from 'antd/es/upload'
 import { clsx } from 'clsx'
 
 import Application from '@/features/application/application.tsx'
 import styles from '@/features/applications/marketplace/overlay.module.scss'
+import { database } from '@/databases/database.ts'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
@@ -66,13 +69,16 @@ export default function Overlay(props: Props) {
   const { token } = theme.useToken()
   const [form] = Form.useForm()
   const [activeSegmented, updateActiveSegment] = useState<SegmentedValue>()
+  const [files, updateFiles] = useState<UploadFile<any>[]>()
   const [segmentedOptions] = useState<SegmentedOption[]>([
     {
       value: '应用',
+      label: '应用',
       icon: <AppstoreOutlined />
     },
     {
-      value: '自定义',
+      value: '定制',
+      label: '定制',
       icon: <BarsOutlined />
     }
   ])
@@ -89,6 +95,43 @@ export default function Overlay(props: Props) {
   function handleFinish(value: any) {
     console.log('value', value)
   }
+
+  const handleImport = useCallback(function () {}, [])
+  const handleExport = useCallback(function () {}, [])
+  const handleFile = useCallback(function (file: RcFile, entries: RcFile[]) {
+    updateFiles(entries)
+
+    const reader = new FileReader()
+
+    reader.addEventListener(
+      'load',
+      () => {
+				const text = reader.result
+				let parsed: Application[] = []
+        try {
+					parsed = JSON.parse( text as string )
+					database.application.bulkAdd(parsed)
+				} catch (error) {
+					console.error('Invalid JSON file', error)
+					return
+				}
+        console.log('parsed', parsed)
+      },
+      {
+        once: true
+      }
+    )
+
+    reader.readAsText(file, 'utf-8')
+
+
+
+    console.log('entries', entries)
+    // for (const entry of entries) {
+    //   database.application.bulkPut(items, keys, options)
+    // }
+    return false
+  }, [])
 
   return (
     <Application.Overlay
@@ -179,6 +222,15 @@ export default function Overlay(props: Props) {
             </Form.Item>
           </Form>
         </Card>
+        <Upload
+          showUploadList={true}
+          fileList={files}
+          name="applications"
+          accept="application/json"
+          beforeUpload={handleFile}>
+          <Button onClick={handleImport}> {files?.length ? '已' : '待'}导入</Button>
+        </Upload>
+        <Button onClick={handleExport}>导出</Button>
       </Flex>
     </Application.Overlay>
   )
