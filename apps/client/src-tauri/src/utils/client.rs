@@ -1,5 +1,9 @@
 use crate::utils::invoke;
-use tauri::tray::TrayIconBuilder;
+use tauri::{
+    Manager,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+};
+
 use tauri_plugin_opener;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -22,6 +26,29 @@ impl Client {
             .setup(|app| {
                 TrayIconBuilder::new()
                     .icon(app.default_window_icon().unwrap().clone())
+                    .on_tray_icon_event(|tray, event| {
+                        match event {
+                            TrayIconEvent::Click {
+                                id,
+                                position,
+                                rect,
+                                button: MouseButton::Left,
+                                button_state: MouseButtonState::Up,
+                            } => {
+                                println!("left click pressed and released");
+                                // in this example, let's show and focus the main window when the tray is clicked
+                                let app = tray.app_handle();
+                                if let Some(window) = app.get_webview_window("main") {
+                                    let _ = window.unminimize();
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                            _ => {
+                                println!("unhandled event {event:?}");
+                            }
+                        }
+                    })
                     .build(app)?;
 
                 Ok(())

@@ -57,7 +57,7 @@ export default function Navigation(props: NavigationProps) {
         url: props.url,
         width: 1200,
         height: 800,
-        title: '百度',
+        title: props.title,
         center: true,
         closable: true,
         resizable: true,

@@ -1,20 +1,20 @@
 import { cyan, generate, green, presetPalettes, red } from '@ant-design/colors'
 import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
 import {
-	Button,
-	Card,
-	Col,
-	ColorPicker,
-	type ColorPickerProps,
-	Divider,
-	Flex,
-	Form,
-	Input,
-	Radio,
-	Row,
-	Segmented,
-	theme,
-	Upload
+  Button,
+  Card,
+  Col,
+  ColorPicker,
+  type ColorPickerProps,
+  Divider,
+  Flex,
+  Form,
+  Input,
+  Radio,
+  Row,
+  Segmented,
+  theme,
+  Upload
 } from 'antd'
 import type { SegmentedLabeledOption, SegmentedValue } from 'antd/es/segmented'
 import type { RcFile, UploadFile } from 'antd/es/upload'
@@ -23,6 +23,7 @@ import { clsx } from 'clsx'
 import Application from '@/features/application/application.tsx'
 import styles from '@/features/applications/marketplace/overlay.module.scss'
 import { database } from '@/databases/database.ts'
+import { useMirrorStore, mirror$ } from '@/stores/mirror.ts'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
@@ -67,6 +68,7 @@ const customPanelRender: ColorPickerProps['panelRender'] = (
 
 export default function Overlay(props: Props) {
   const { token } = theme.useToken()
+  const store = useMirrorStore()
   const [form] = Form.useForm()
   const [activeSegmented, updateActiveSegment] = useState<SegmentedValue>()
   const [files, updateFiles] = useState<UploadFile<any>[]>()
@@ -106,15 +108,19 @@ export default function Overlay(props: Props) {
     reader.addEventListener(
       'load',
       () => {
-				const text = reader.result
-				let parsed: Application[] = []
+        const text = reader.result
+        let parsed: Application[] = []
         try {
-					parsed = JSON.parse( text as string )
-					database.application.bulkAdd(parsed)
-				} catch (error) {
-					console.error('Invalid JSON file', error)
-					return
-				}
+          parsed = JSON.parse(text as string)
+          parsed.forEach(function (i) {
+            i.mirrorID = mirror$.value?.id ?? ''
+            i.collectionID = ''
+          })
+          database.application.bulkAdd(parsed)
+        } catch (error) {
+          console.error('Invalid JSON file', error)
+          return
+        }
         console.log('parsed', parsed)
       },
       {
@@ -123,8 +129,6 @@ export default function Overlay(props: Props) {
     )
 
     reader.readAsText(file, 'utf-8')
-
-
 
     console.log('entries', entries)
     // for (const entry of entries) {
