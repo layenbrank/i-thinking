@@ -1,5 +1,7 @@
 import { cyan, generate, green, presetPalettes, red } from '@ant-design/colors'
 import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
+import { downloadDir } from '@tauri-apps/api/path'
+import { writeFile, BaseDirectory, exists, create } from '@tauri-apps/plugin-fs'
 import {
   Button,
   Card,
@@ -20,10 +22,11 @@ import type { SegmentedLabeledOption, SegmentedValue } from 'antd/es/segmented'
 import type { RcFile, UploadFile } from 'antd/es/upload'
 import { clsx } from 'clsx'
 
+import { database } from '@/databases/database.ts'
 import Application from '@/features/application/application.tsx'
 import styles from '@/features/applications/marketplace/overlay.module.scss'
-import { database } from '@/databases/database.ts'
-import { useMirrorStore, mirror$ } from '@/stores/mirror.ts'
+import { mirror$ } from '@/stores/mirror.ts'
+import { timeSphere } from '@i-thinking/core'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
@@ -68,7 +71,6 @@ const customPanelRender: ColorPickerProps['panelRender'] = (
 
 export default function Overlay(props: Props) {
   const { token } = theme.useToken()
-  const store = useMirrorStore()
   const [form] = Form.useForm()
   const [activeSegmented, updateActiveSegment] = useState<SegmentedValue>()
   const [files, updateFiles] = useState<UploadFile<any>[]>()
@@ -98,9 +100,30 @@ export default function Overlay(props: Props) {
     console.log('value', value)
   }
 
-  const handleImport = useCallback(function () {}, [])
-  const handleExport = useCallback(function () {}, [])
-  const handleFile = useCallback(function (file: RcFile, entries: RcFile[]) {
+  const handleExport = useCallback(function () {
+    database.application
+      .orderBy('index')
+      .toArray()
+      .then(async function (applications) {
+        const stringify = JSON.stringify(applications, null, 2) // Convert applications to JSON string
+        const now = timeSphere.now()
+        const formatted = now.format('YYYY-MM-DD-HH-mm-ss')
+        const filename = `applications-${formatted}.json`
+        const download = await downloadDir()
+        console.log('download', download)
+        console.log('BaseDirectory', BaseDirectory, '\nDownload', BaseDirectory.Download)
+        // stringify 转为 Uint8Array 并写入文件
+        const encoder = new TextEncoder()
+        const uint8 = encoder.encode(stringify)
+        console.log('filename', filename, '\nfilepath', `${download}/${filename}`)
+        const file = await create(filename, {
+          baseDir: BaseDirectory.Download
+        })
+        await file.write(uint8)
+        await file.close()
+      })
+  }, [])
+  const handleImport = useCallback(function (file: RcFile, entries: RcFile[]) {
     updateFiles(entries)
 
     const reader = new FileReader()
@@ -231,8 +254,8 @@ export default function Overlay(props: Props) {
           fileList={files}
           name="applications"
           accept="application/json"
-          beforeUpload={handleFile}>
-          <Button onClick={handleImport}> {files?.length ? '已' : '待'}导入</Button>
+          beforeUpload={handleImport}>
+          <Button> {files?.length ? '已' : '待'}导入</Button>
         </Upload>
         <Button onClick={handleExport}>导出</Button>
       </Flex>

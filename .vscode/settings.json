@@ -160,7 +160,7 @@
     "**/.DS_Store": true,
     "**/.git": true,
     "**/.gitignore": false,
-    "**/.idea": true,
+    "**/.idea": false,
     "**/.svn": true,
     "**/.vscode": false,
     "**/build": false,

@@ -1,0 +1,22 @@
+{
+  "identifier": "desktop-capability",
+  "platforms": [
+    "macOS",
+    "windows",
+    "linux"
+  ],
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "positioner:default",
+    "notification:default",
+    "clipboard-manager:default",
+    "log:default",
+    "cli:default",
+    "autostart:default",
+    "global-shortcut:default",
+    "sql:default",
+    "http:default"
+  ]
+}

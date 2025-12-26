@@ -7,7 +7,7 @@ import {
   useSensors,
   type DragEndEvent
 } from '@dnd-kit/core'
-import { snapCenterToCursor } from '@dnd-kit/modifiers'
+import { snapCenterToCursor, restrictToParentElement } from '@dnd-kit/modifiers'
 import {
   arrayMove,
   rectSortingStrategy,
@@ -45,7 +45,7 @@ const Controller = {
 
     const mouseSensor = useSensor(MouseSensor, {
       activationConstraint: {
-        tolerance: 0,
+        tolerance: 10,
         delay: 1000,
         distance: 10 // 需要移动 10px 才激活拖拽，避免误触
       },
@@ -182,7 +182,7 @@ const Controller = {
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
-        modifiers={[snapCenterToCursor]}>
+        modifiers={[restrictToParentElement]}>
         <SortableContext
           items={uniqueKeys}
           strategy={rectSortingStrategy}>

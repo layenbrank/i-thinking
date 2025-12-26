@@ -16,6 +16,7 @@ import {
   LunarYear,
   SolarDay,
   SolarMonth,
+  SolarYear,
   type Direction
 } from 'tyme4ts'
 import { Singleton } from './singleton'
@@ -162,6 +163,7 @@ class Calendar {
   constructor() {
     // 全局加载农历节日
     lunisolar.Markers.add(festivals)
+    console.log('Lunisolar festivals loaded.', festivals)
   }
   /**
    * 获取指定日期的所有节日信息
@@ -391,8 +393,8 @@ class Calendar {
    * ```
    */
   lunarDayInfo(date: ConfigType): DateInfo {
-    const dateObj = timeSphere.parse(date)
-    const [year, month, day] = [dateObj.year(), dateObj.month() + 1, dateObj.date()]
+    const parsed = timeSphere.parse(date)
+    const [year, month, day] = [parsed.year(), parsed.month() + 1, parsed.date()]
     const solarDay = SolarDay.fromYmd(year, month, day)
     const lunarYear = LunarYear.fromYear(year)
     const lunarDay = solarDay.getLunarDay()
@@ -402,7 +404,7 @@ class Calendar {
     return {
       zodiac,
       constellation: `${solarDay.getConstellation()}座`,
-      festival: this.getFestival(dateObj),
+      festival: this.getFestival(parsed),
       beneficial: lunarDay.getRecommends().join('、'),
       unbeneficial: lunarDay.getAvoids().toString(),
       phase: lunarDay.getPhase().getName(),
@@ -564,6 +566,154 @@ class Calendar {
       date: parsed.format('YYYY-MM-DD')
     }
   }
+
+  /**
+   *
+   * @param date 日期
+   * @param unit 单位
+   * @param type 阴阳历
+   */
+  festival(date: ConfigType, unit: 'day' | 'month' | 'year', type: 'solar' | 'lunar') {
+    const parsed = timeSphere.parse(date)
+    const formatted = parsed.format('YYYY-MM-DD')
+    const [y, m, d] = formatted.split('-').map(Number)
+    console.log('festival', '\nyear', y, '\nmonth', m, '\nday', d)
+    const solar = SolarDay.fromYmd(y, m, d)
+
+    const maps = {
+      solar: {
+        day() {
+          // SolarDay.fromYmd(y, m, d)
+          let festival: string | undefined
+          festival = solar.getFestival()?.getName()
+          if (!festival) {
+            const [value] = lunisolar(formatted).markers.list
+            festival = value?.name
+          }
+          if (!festival) return null
+
+          const entry: { festival: string; solar: string } = {
+            festival,
+            solar: formatted
+          }
+
+          return entry
+        },
+        month() {
+          const days = SolarMonth.fromYm(y, m).getDays()
+
+          const festivals: { festival: string; solar: string }[] = []
+
+          for (const day of days) {
+            const festival = day.getFestival()?.getName()
+            if (!festival) continue
+            const formatted = timeSphere.format(`${y}-${m}-${day.getDay()}`, 'YYYY-MM-DD')
+            const entry = {
+              festival,
+              solar: formatted
+            }
+            festivals.push(entry)
+          }
+
+          return festivals
+        },
+        year() {
+          const months = SolarYear.fromYear(y).getMonths()
+
+          const festivals: { festival: string; solar: string }[] = []
+          for (const month of months) {
+            const days = month.getDays()
+            for (const day of days) {
+              const festival = day.getFestival()?.getName()
+              if (!festival) continue
+              const formatted = timeSphere.format(
+                `${y}-${month.getMonth()}-${day.getDay()}`,
+                'YYYY-MM-DD'
+              )
+              const entry = {
+                festival,
+                solar: formatted
+              }
+              festivals.push(entry)
+            }
+          }
+          return festivals
+        }
+      },
+      lunar: {
+        day() {
+          const day = solar.getLunarDay()
+          const [yy, mm, dd] = [day.getYear(), day.getMonth(), day.getDay()]
+
+          const lunar = LunarDay.fromYmd(yy, mm, dd)
+
+          const festival = lunar.getFestival()?.getName()
+
+          const entry = {
+            festival,
+            lunar: `${yy.toString()}-${mm.toString()}-${dd.toString()}`
+          }
+
+          return festival ? entry : null
+        },
+        month() {
+          const day = solar.getLunarDay()
+          const [yy, mm] = [day.getYear(), day.getMonth(), day.getDay()]
+          const lunar = LunarMonth.fromYm(yy, mm)
+          const days = lunar.getDays()
+
+          const festivals: { festival: string; lunar: string }[] = []
+
+          for (const day of days) {
+            const festival = day.getFestival()?.getName()
+            if (!festival) continue
+            const entry = {
+              festival,
+              lunar: `${yy}-${mm}-${day.getDay()}`
+            }
+            festivals.push(entry)
+          }
+
+          return festivals
+        },
+        year() {
+          const day = solar.getLunarDay()
+          const [yy] = [day.getYear(), day.getMonth(), day.getDay()]
+          const lunar = LunarYear.fromYear(yy)
+          const months = lunar.getMonths().filter((i) => !i.isLeap())
+          const festivals: { festival: string; lunar: string }[] = []
+          for (const month of months) {
+            const days = month.getDays()
+
+            for (const day of days) {
+              const festival = day.getFestival()?.getName()
+              if (!festival) continue
+              const entry = {
+                festival,
+                lunar: `${yy}-${month.getMonth()}-${day.getDay()}`
+              }
+              festivals.push(entry)
+            }
+          }
+
+          return festivals
+        }
+      }
+    }
+
+    const handler = maps[type][unit]
+    const matched = handler()
+    return matched
+  }
+
+  term(date: ConfigType) {
+    const formatted = timeSphere.format(date, 'YYYY-MM-DD')
+
+    const stirng = lunisolar(formatted).solarTerm?.toString()
+    return stirng ?? null
+  }
+
+  count(date: ConfigType, unit: 'day' | 'month' | 'year', type: 'solar' | 'lunar') {}
 
   /**
    * 获取所有节日信息

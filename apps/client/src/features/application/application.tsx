@@ -6,17 +6,6 @@ import clsx, { type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
-// Context 用于共享 overlay 的 visible 状态
-const OverlayContext = createContext<{
-  visible: boolean
-  updateVisible: (visible: boolean) => void
-}>({
-  visible: false,
-  updateVisible: () => void 0
-})
-
-export const useOverlayContext = () => useContext(OverlayContext)
-
 interface ProviderProps extends Application {
   children: ReactNode
   style?: CSSProperties
@@ -41,6 +30,17 @@ interface OverlayProviderProps extends ModalProps {
   style?: CSSProperties
   fullscreen?: boolean
 }
+
+// Context 用于共享 overlay 的 visible 状态
+const OverlayContext = createContext<{
+  visible: boolean
+  updateVisible: (visible: boolean) => void
+}>({
+  visible: false,
+  updateVisible: () => void 0
+})
+
+export const useOverlayContext = () => useContext(OverlayContext)
 
 function Provider(props: ProviderProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({

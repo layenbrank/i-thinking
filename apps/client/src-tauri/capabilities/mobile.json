@@ -1,6 +1,24 @@
 {
   "identifier": "mobile-capability",
-  "platforms": ["android", "iOS"],
-  "windows": ["main"],
-  "permissions": ["barcode-scanner:default"]
+  "platforms": [
+    "android",
+    "iOS"
+  ],
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "barcode-scanner:default",
+    "fs:default",
+    "dialog:default",
+    "shell:default",
+    "store:default",
+    "websocket:default",
+    "process:default",
+    "notification:default",
+    "clipboard-manager:default",
+    "log:default",
+    "sql:default",
+    "http:default"
+  ]
 }
