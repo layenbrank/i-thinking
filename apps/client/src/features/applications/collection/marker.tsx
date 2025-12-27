@@ -1,4 +1,5 @@
-import { Application, type MarkerProviderProps } from '@/features/application/application.tsx'
+import type { MarkerProviderProps } from '@/features/application/application.tsx'
+import Application from '@/features/application/application.tsx'
 import styles from '@/features/applications/collection/marker.module.scss'
 import clsx from 'clsx'
 

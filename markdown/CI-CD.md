@@ -77,7 +77,7 @@ docker run -p 9000:9000 my-service
 示例：
 
 ```bash
-docker build -t web-ext -f docker/Dockerfile --build-arg APP_DIR=apps/extension .
+docker build -t web-ext -f docker/Dockerfile.web --build-arg APP_DIR=apps/extension .
 docker run -p 8080:80 web-ext
 ```
 

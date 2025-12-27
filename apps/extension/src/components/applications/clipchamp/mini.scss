@@ -1,28 +1,28 @@
 .clipchamp-marker {
-  &.mini {
-    padding: 8px;
+	&.mini {
+		padding: 8px;
 
-    &.square {
-      &.horizontal {
-      }
-      &.vertical {
-      }
-    }
+		&.square {
+			&.horizontal {
+			}
+			&.vertical {
+			}
+		}
 
-    &.circle {
-      &.horizontal {
-      }
+		&.circle {
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.rectangle {
-      &.horizontal {
-      }
+		&.rectangle {
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
-  }
+			&.vertical {
+			}
+		}
+	}
 }

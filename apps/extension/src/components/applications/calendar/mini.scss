@@ -1,58 +1,58 @@
 .calendar-marker {
-  &.mini {
-    display: flex;
+	&.mini {
+		display: flex;
 
-    color: #000000;
-    font-size: 30px;
-    font-weight: 600;
-    line-height: 1;
+		color: #000000;
+		font-size: 30px;
+		font-weight: 600;
+		line-height: 1;
 
-    .ant-picker-calendar {
-      width: 100%;
-      height: 100%;
-    }
-    // color: var(--application-text-color);
-    // font-size: var(--application-text-size);
+		.ant-picker-calendar {
+			width: 100%;
+			height: 100%;
+		}
+		// color: var(--application-text-color);
+		// font-size: var(--application-text-size);
 
-    &.square {
-      align-items: center;
-      justify-content: center;
+		&.square {
+			align-items: center;
+			justify-content: center;
 
-      &.horizontal {
-      }
-      &.vertical {
-      }
-    }
+			&.horizontal {
+			}
+			&.vertical {
+			}
+		}
 
-    &.circle {
-      align-items: center;
-      justify-content: center;
+		&.circle {
+			align-items: center;
+			justify-content: center;
 
-      &.horizontal {
-      }
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.rectangle {
-      align-items: center;
-      justify-content: space-evenly;
+		&.rectangle {
+			align-items: center;
+			justify-content: space-evenly;
 
-      .time-text {
-        color: inherit;
-        font-size: inherit;
-        font-weight: inherit;
-        line-height: inherit;
-      }
+			.time-text {
+				color: inherit;
+				font-size: inherit;
+				font-weight: inherit;
+				line-height: inherit;
+			}
 
-      &.horizontal {
-        flex-direction: row;
-      }
+			&.horizontal {
+				flex-direction: row;
+			}
 
-      &.vertical {
-        flex-direction: column;
-      }
-    }
-  }
+			&.vertical {
+				flex-direction: column;
+			}
+		}
+	}
 }

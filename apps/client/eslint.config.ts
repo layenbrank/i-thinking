@@ -31,7 +31,7 @@ export default defineConfig([
     extends: [
       eslint.configs.recommended,
       tseslint.configs.recommended,
-      reactHooks.configs.flat['recommended-latest'],
+      reactHooks.configs['recommended-latest'],
       reactRefresh.configs.recommended,
       reactRefresh.configs.vite
     ],

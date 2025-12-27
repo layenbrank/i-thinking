@@ -88,8 +88,6 @@
       ],
       "identifier": "fs:default"
     },
-    "core:webview:allow-clear-all-browsing-data",
-    "core:webview:allow-webview-size",
     "shell:allow-execute",
     "fs:allow-write",
     "fs:allow-write-file",
@@ -108,8 +106,6 @@
     "core:webview:allow-print",
     "core:webview:allow-set-webview-auto-resize",
     "core:webview:allow-set-webview-background-color",
-    "core:window:default",
-    "core:window:allow-start-dragging",
     "core:window:allow-close",
     "core:window:allow-hide",
     "core:window:allow-show",
@@ -126,16 +122,7 @@
     "dialog:default",
     "shell:default",
     "shell:allow-kill",
-    {
-      "allow": [
-        {
-          "args": [],
-          "name": "",
-          "cmd": ""
-        }
-      ],
-      "identifier": "shell:allow-open"
-    },
+    "shell:allow-open",
     "shell:allow-spawn",
     "shell:allow-stdin-write",
     "store:default",
@@ -153,42 +140,19 @@
     "sql:allow-close",
     "sql:allow-select",
     "http:default",
-    "http:allow-fetch",
-    "http:allow-fetch-send",
-    "http:allow-fetch-read-body",
-    "http:allow-fetch-cancel",
-    "autostart:allow-enable",
-    "autostart:allow-disable",
-    "autostart:allow-is-enabled",
-    "core:app:allow-app-hide",
-    "core:app:allow-app-show",
-    "core:app:allow-set-app-theme",
     {
-      "allow": [
-        {
-          "url": "https://*.tauri.app"
-        }
-      ],
-      "deny": [
-        {
-          "url": "https://private.tauri.app"
-        }
-      ],
-      "identifier": "http:default"
+      "identifier": "http:default",
+      "allow": [{ "url": "https://*.tauri.app" }],
+      "deny": [{ "url": "https://private.tauri.app" }]
     }
   ],
   "platforms": ["iOS", "macOS", "linux", "windows", "android"],
   "remote": {
     "urls": [
-      "http://localhost:*",
       "https://www.baidu.com",
       "https://*.baidu.com",
       "https://cn.bing.com",
-      "https://*.bing.com",
-      "https://www.youku.com",
-      "https://*.youku.com",
-      "https://game.weixin.qq.com",
-      "https://*.weixin.qq.com"
+      "https://*.bing.com"
     ]
   },
   "windows": ["main", "navigation"]

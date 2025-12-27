@@ -1,34 +1,34 @@
 .overview {
-  $prefix-height: 64px;
-  $suffix-height: 64px;
+	$prefix-height: 64px;
+	$suffix-height: 64px;
 
-  &.payload {
-    width: 100%;
-    height: 100%;
-    background: initial;
-    scrollbar-width: none;
-  }
+	&.payload {
+		width: 100%;
+		height: 100%;
+		background: initial;
+		scrollbar-width: none;
+	}
 
-  &.prefix {
-    flex: none;
-    height: $prefix-height;
-    z-index: 1;
-    background: initial;
-    text-align: center;
-    background-color: transparent;
-    // background-color: #ffffff;
-  }
+	&.prefix {
+		flex: none;
+		height: $prefix-height;
+		z-index: 1;
+		background: initial;
+		text-align: center;
+		background-color: transparent;
+		// background-color: #ffffff;
+	}
 
-  &.core {
-    flex: 1;
-  }
+	&.core {
+		flex: 1;
+	}
 
-  &.suffix {
-    height: $suffix-height;
-    flex: none;
-    z-index: 1;
-    text-align: center;
-    background-color: transparent;
-    // background-color: #ffffff;
-  }
+	&.suffix {
+		height: $suffix-height;
+		flex: none;
+		z-index: 1;
+		text-align: center;
+		background-color: transparent;
+		// background-color: #ffffff;
+	}
 }

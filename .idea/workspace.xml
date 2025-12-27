@@ -4,107 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5095ede6-2806-4147-bd54-25591e2afe3b" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/.github/workflows/qodana_code_quality.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/apps/client/src/styles/markdown-variables.scss" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/apps/client/src/styles/normalize.scss" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/qodana.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.dockerignore" beforeDir="false" afterPath="$PROJECT_DIR$/.dockerignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.editorconfig" beforeDir="false" afterPath="$PROJECT_DIR$/.editorconfig" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/workflows/continuous-integration.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/continuous-integration.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/workflows/pages.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/pages.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/i-thinking.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/i-thinking.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/eslint.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/eslint.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src-tauri/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src-tauri/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src-tauri/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src-tauri/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src-tauri/capabilities/default.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src-tauri/capabilities/default.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src-tauri/src/utils/client.rs" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src-tauri/src/utils/client.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src-tauri/tauri.conf.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src-tauri/tauri.conf.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/components/provider/plugin.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/components/provider/plugin.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/components/scroll/Scroll.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/application/application.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/application/application.module.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/application/application.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/composer-context.module.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/application/application.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/application/application.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/bookmark/bookmark.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/bookmark/bookmark.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/bookmark/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/bookmark/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/bookmark/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/bookmark/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/calendar/calendar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/calendar/calendar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/calendar/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/calendar/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/calendar/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/calendar/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/clipchamp/clipchamp.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/clipchamp/clipchamp.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/clipchamp/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/clipchamp/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/clipchamp/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/clipchamp/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/clock/clock.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/clock/clock.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/clock/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/clock/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/clock/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/clock/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/collection/collection.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/collection/collection.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/collection/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/collection/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/collection/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/collection/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/developer/developer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/developer/developer.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/developer/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/developer/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/developer/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/developer/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/example/example.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/example/example.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/example/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/example/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/example/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/example/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/gallery/gallery.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/gallery/gallery.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/gallery/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/gallery/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/gallery/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/gallery/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/intelligence/intelligence.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/intelligence/intelligence.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/intelligence/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/intelligence/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/intelligence/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/intelligence/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/composer-context.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/composer-context.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/markdown.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/markdown.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/overlay.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/overlay.module.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/marketplace/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/marketplace/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/marketplace/marketplace.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/marketplace/marketplace.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/marketplace/overlay.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/marketplace/overlay.module.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/marketplace/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/marketplace/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/navigation/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/navigation/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/navigation/navigation.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/navigation/navigation.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/navigation/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/navigation/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/settings/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/settings/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/settings/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/settings/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/settings/settings.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/settings/settings.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/signboard/marker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/signboard/marker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/signboard/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/signboard/overlay.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/signboard/signboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/signboard/signboard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/main.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/main.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/styles/index.scss" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/styles/index.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/styles/markdown-composer.scss" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/styles/markdown-composer.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/styles/placeholder.scss" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/styles/placeholder.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/styles/variables.scss" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/styles/variables.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/views/desktop/desktop-view.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/views/desktop/desktop.module.scss" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/views/overview/overview.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/views/overview/overview.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/views/work-view/generate-path.vue" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/views/work-view/monitor-changes.vue" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/views/work-view/work-view.vue" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.enterprise.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker/Dockerfile.web" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker/nginx.conf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/markdown/CI-CD.md" beforeDir="false" afterPath="$PROJECT_DIR$/markdown/CI-CD.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pnpm-lock.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/pnpm-lock.yaml" afterDir="false" />
-    </list>
+    <list default="true" id="5095ede6-2806-4147-bd54-25591e2afe3b" name="更改" comment="chore: 完善自定义应用表单" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="EditorConfigPreviewManager">
-    <editorConfig file="$PROJECT_DIR$/.editorconfig" previewFile="$PROJECT_DIR$/apps/client/src/views/overview/overview.tsx" />
-  </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Vue Options API Component" />
-        <option value="SCSS File" />
       </list>
     </option>
   </component>
@@ -120,64 +29,48 @@
   <component name="ProjectId" id="30MwDGxvsrnh0TZxae6xnYEOsqp" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
-    <option name="showExcludedFiles" value="false" />
     <option name="showLibraryContents" value="true" />
-    <option name="showScratchesAndConsoles" value="false" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "JavaScript 调试.extension.executor": "Debug",
-    "JavaScript 调试.localhost:5173.executor": "Debug",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "master",
-    "javascript.nodejs.core.library.configured.version": "22.20.0",
-    "javascript.nodejs.core.library.typings.version": "22.19.3",
-    "javascript.preferred.runtime.type.id": "node",
-    "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "C:/Users/MACHENIKE/Documents/Vue3/i-thinking/apps/extension",
-    "list.type.of.created.stylesheet": "SCSS",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.stylelint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.stylelint": "",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_interpreter_path": "node",
-    "nodejs_package_manager_path": "pnpm",
-    "npm.client > dev:core.executor": "Run",
-    "prettierjs.PrettierConfiguration.Package": "C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\prettier",
-    "settings.editor.selected.configurable": "preferences.keymap",
-    "to.speed.mode.migration.done": "true",
-    "ts.external.directory.path": "C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\typescript\\lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;JavaScript 调试.extension.executor&quot;: &quot;Debug&quot;,
+    &quot;JavaScript 调试.localhost:5173.executor&quot;: &quot;Debug&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;javascript.nodejs.core.library.configured.version&quot;: &quot;22.20.0&quot;,
+    &quot;javascript.nodejs.core.library.typings.version&quot;: &quot;22.19.3&quot;,
+    &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/MACHENIKE/Documents/Vue3/i-thinking&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.stylelint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.stylelint&quot;: &quot;&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_interpreter_path&quot;: &quot;node&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
+    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\prettier&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;application.passwordSafe&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "DatabaseDriversLRU": [
-      "mongo"
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;mongo&quot;
     ],
-    "vue.recent.templates": [
-      "Vue Options API Component"
+    &quot;vue.recent.templates&quot;: [
+      &quot;Vue Options API Component&quot;
     ]
   }
-}]]></component>
-  <component name="QodanaCIConfigService">
-    <option name="path" value="$PROJECT_DIR$/.github/workflows/qodana_code_quality.yml" />
-  </component>
-  <component name="RecentsManager">
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\MACHENIKE\Documents\Vue3\i-thinking\apps\client\src\components" />
-      <recent name="C:\Users\MACHENIKE\Documents\Vue3\i-thinking\apps\client\src\styles" />
-      <recent name="C:\Users\MACHENIKE\Documents\Vue3\i-thinking\apps\client\src\hooks" />
-      <recent name="C:\Users\MACHENIKE\Documents\Vue3\i-thinking\apps\client\src" />
-      <recent name="C:\Users\MACHENIKE\Documents\Vue3\i-thinking" />
-    </key>
-  </component>
+}</component>
   <component name="RunManager" selected="JavaScript 调试.localhost:5173">
     <configuration name="extension" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:1024/extension/">
       <method v="2" />
@@ -185,20 +78,10 @@
     <configuration name="localhost:5173" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:5173/">
       <method v="2" />
     </configuration>
-    <configuration name="client &gt; dev:core" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/apps/client/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="dev:core" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="npm.client &gt; dev:core" />
         <item itemvalue="JavaScript 调试.localhost:5173" />
+        <item itemvalue="JavaScript 调试.extension" />
       </list>
     </recent_temporary>
   </component>
@@ -254,9 +137,6 @@
       <workItem from="1766503800132" duration="3383000" />
       <workItem from="1766552947792" duration="2391000" />
       <workItem from="1766585512528" duration="14000" />
-      <workItem from="1766847085999" duration="2433000" />
-      <workItem from="1766905913274" duration="4605000" />
-      <workItem from="1766910552064" duration="17986000" />
     </task>
     <task id="LOCAL-00001" summary="添加自定义应用表单">
       <option name="closed" value="true" />
@@ -310,21 +190,5 @@
   <component name="VueSettings">
     <option name="tsPluginPreviewEnabled" value="true" />
     <option name="useTypesFromServer" value="true" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/apps/client/src/features/applications/clipchamp/marker.tsx</url>
-          <properties lambdaOrdinal="-1" />
-          <option name="timeStamp" value="9" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
-    <watches-manager>
-      <configuration name="JavascriptDebugType">
-        <watch expression="&lt;div id=&quot;_r_65_&quot; data-floating-ui-portal&gt;" />
-      </configuration>
-    </watches-manager>
   </component>
 </project>

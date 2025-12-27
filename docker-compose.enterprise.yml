@@ -1,0 +1,256 @@
+# ================================
+# 企业级前端开发环境 Docker Compose 配置
+# 支持用户身份管理和 SSH 密钥挂载
+# ================================
+
+services:
+  # 前端开发环境
+  frontend-dev:
+    image: ${DEV_IMAGE:-frontend-env:latest}
+    container_name: dev-${USER}-${PROJECT_NAME:-docker-node}
+    hostname: dev-${USER}-${PROJECT_NAME:-docker-node}
+
+    # 用户身份映射
+    user: '${UID:-1000}:${GID:-1000}'
+
+    # 端口映射 - 每个用户使用不同的端口范围
+    ports:
+      - '${DEV_PORT_3000:-3000}:3000' # React/Next.js
+      - '${DEV_PORT_8080:-8080}:8080' # Vue CLI
+      - '${DEV_PORT_5173:-5173}:5173' # Vite
+      - '${DEV_PORT_9000:-9000}:9000' # NestJS
+      - '${DEV_PORT_8000:-8000}:8000' # 备用端口
+
+    # 卷挂载
+    volumes:
+      # 项目代码
+      - .:/root/app
+
+      # Git 和 SSH 配置 (只读挂载，Windows 路径自动处理)
+      - ${HOME}/.ssh:/root/.ssh:ro
+      - ${HOME}/.gitconfig:/root/.gitconfig:ro
+
+      # SSH Agent (Linux/macOS，Windows 会忽略)
+      - ${SSH_AUTH_SOCK:-/dev/null}:/ssh-agent
+
+      # 开发工具配置
+      - ${HOME}/.vscode:/root/.vscode
+      - ${HOME}/.config:/root/.config
+
+      # 缓存目录 (用户隔离)
+      - dev-cache:/root/.cache
+      - dev-pnpm:/root/.pnpm-store
+      - dev-npm:/root/.npm
+      - dev-yarn:/root/.yarn
+
+      # 项目依赖缓存
+      - node-modules:/root/app/node_modules
+
+    # 环境变量
+    environment:
+      # 用户身份
+      - USER=${USER}
+      - HOME=/root
+
+      # Git 身份
+      - GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME}
+      - GIT_AUTHOR_EMAIL=${GIT_AUTHOR_EMAIL}
+      - GIT_COMMITTER_NAME=${GIT_COMMITTER_NAME:-${GIT_AUTHOR_NAME}}
+      - GIT_COMMITTER_EMAIL=${GIT_COMMITTER_EMAIL:-${GIT_AUTHOR_EMAIL}}
+
+      # SSH Agent
+      - SSH_AUTH_SOCK=${SSH_AUTH_SOCK:+/ssh-agent}
+
+      # 开发环境优化
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+
+      # 包管理器配置
+      - PNPM_HOME=/root/.local/share/pnpm
+      - PATH=/root/.local/share/pnpm:$PATH
+
+    # 工作目录
+    working_dir: /root/app
+
+    # 保持运行
+    tty: true
+    stdin_open: true
+
+    # 网络配置
+    networks:
+      - frontend-network
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          memory: 2G
+
+    # 健康检查
+    healthcheck:
+      test: ['CMD', 'node', '--version']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis 服务（可选，用于缓存和会话存储）
+  redis:
+    image: redis:7-alpine
+    container_name: dev-redis-${USER}
+    hostname: dev-redis-${USER}
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - frontend-network
+    profiles:
+      - with-redis
+    command: redis-server --appendonly yes
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # PostgreSQL 数据库（可选，用于全栈开发）
+  postgres:
+    image: postgres:15-alpine
+    container_name: dev-postgres-${USER}
+    hostname: dev-postgres-${USER}
+    environment:
+      POSTGRES_DB: ${DB_NAME:-frontend_dev}
+      POSTGRES_USER: ${DB_USER:-developer}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - postgres-logs:/var/log/postgresql
+    networks:
+      - frontend-network
+    profiles:
+      - with-database
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # MongoDB 数据库（可选）
+  mongodb:
+    image: mongo:6-jammy
+    container_name: dev-mongodb-${USER}
+    hostname: dev-mongodb-${USER}
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-admin123}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-frontend_dev}
+    ports:
+      - '${MONGO_PORT:-27017}:27017'
+    volumes:
+      - mongodb-data:/data/db
+      - mongodb-config:/data/configdb
+    networks:
+      - frontend-network
+    profiles:
+      - with-mongodb
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+# 命名卷定义（用户隔离）
+volumes:
+  # 开发缓存
+  dev-cache:
+    name: dev-cache-${USER}
+    driver: local
+
+  # 包管理器缓存
+  dev-pnpm:
+    name: dev-pnpm-${USER}
+    driver: local
+
+  dev-npm:
+    name: dev-npm-${USER}
+    driver: local
+
+  dev-yarn:
+    name: dev-yarn-${USER}
+    driver: local
+
+  # 项目依赖
+  node-modules:
+    name: node-modules-${USER}-${PROJECT_NAME:-docker-node}
+    driver: local
+
+  # 数据库数据
+  redis-data:
+    name: redis-data-${USER}
+    driver: local
+
+  postgres-data:
+    name: postgres-data-${USER}
+    driver: local
+
+  postgres-logs:
+    name: postgres-logs-${USER}
+    driver: local
+
+  mongodb-data:
+    name: mongodb-data-${USER}
+    driver: local
+
+  mongodb-config:
+    name: mongodb-config-${USER}
+    driver: local
+
+# 网络定义
+networks:
+  frontend-network:
+    name: frontend-network-${USER}
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+# ================================
+# 使用说明:
+#
+# 基础环境变量设置:
+# export USER=$(whoami)
+# export UID=$(id -u)
+# export GID=$(id -g)
+# export PROJECT_NAME=$(basename $PWD)
+# export GIT_AUTHOR_NAME="$(git config user.name)"
+# export GIT_AUTHOR_EMAIL="$(git config user.email)"
+#
+# 启动命令:
+# 1. 基础开发环境:
+#    docker-compose -f docker-compose.enterprise.yml up -d frontend-dev
+#
+# 2. 包含 Redis:
+#    docker-compose -f docker-compose.enterprise.yml --profile with-redis up -d
+#
+# 3. 包含 PostgreSQL:
+#    docker-compose -f docker-compose.enterprise.yml --profile with-database up -d
+#
+# 4. 包含 MongoDB:
+#    docker-compose -f docker-compose.enterprise.yml --profile with-mongodb up -d
+#
+# 5. 完整环境:
+#    docker-compose -f docker-compose.enterprise.yml --profile with-redis --profile with-database up -d
+#
+# 进入容器:
+# docker-compose -f docker-compose.enterprise.yml exec frontend-dev bash
+#
+# 停止服务:
+# docker-compose -f docker-compose.enterprise.yml down
+#
+# 清理数据:
+# docker-compose -f docker-compose.enterprise.yml down -v
+# ================================

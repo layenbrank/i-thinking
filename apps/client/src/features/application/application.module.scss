@@ -1,136 +1,135 @@
 @use 'sass:math';
 
 @mixin ratio-width($base-var, $w, $h) {
-  width: calc(#{$base-var} * (#{$w} / #{$h}));
+	width: calc(#{$base-var} * (#{$w} / #{$h}));
 }
 
 @mixin ratio-height($base-var, $w, $h) {
-  height: calc(#{$base-var} * (#{$h} / #{$w}));
+	height: calc(#{$base-var} * (#{$h} / #{$w}));
 }
 
 .application {
-  cursor: pointer;
-  position: relative;
-  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
-  background: var(--application-background);
-  border-radius: var(--application-round);
-  will-change: transform, box-shadow, width, height;
-  outline: none;
+	cursor: pointer;
+	position: relative;
+	box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+	background: var(--application-background);
+	border-radius: var(--application-round);
+	will-change: transform, box-shadow, width, height;
 
-  transition:
-    transform 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    height 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+	transition:
+		transform 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		height 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 
-  &.dragging {
-    box-shadow: 0px 4px 20px 0px rgba(0, 0, 0, 0.2);
-    cursor: grabbing;
-    z-index: 1000;
-    // box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  }
+	&.dragging {
+		box-shadow: 0px 4px 20px 0px rgba(0, 0, 0, 0.2);
+		cursor: grabbing;
+		z-index: 1000;
+		// box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+	}
 
-  /* 可选：添加一个拖拽手柄 */
-  // .drag-handle {
-  //   cursor: grab;
-  //   padding: 4px 8px;
-  //   margin-right: 8px;
-  //   background: rgba(255,255,255,0.2);
-  //   border-radius: 4px;
-  // }
+	/* 可选：添加一个拖拽手柄 */
+	// .drag-handle {
+	//   cursor: grab;
+	//   padding: 4px 8px;
+	//   margin-right: 8px;
+	//   background: rgba(255,255,255,0.2);
+	//   border-radius: 4px;
+	// }
 
-  &.circle {
-    height: var(--application-size);
-    width: var(--application-size);
-    border-radius: calc(var(--application-size) / 2);
-  }
+	&.circle {
+		height: var(--application-size);
+		width: var(--application-size);
+		border-radius: calc(var(--application-size) / 2);
+	}
 
-  &.square {
-    width: var(--application-size);
-    height: var(--application-size);
-  }
+	&.square {
+		width: var(--application-size);
+		height: var(--application-size);
+	}
 
-  &.rectangle {
-    &.horizontal {
-      width: calc(var(--application-size) * 16 / 9);
-      height: var(--application-size);
-      // aspect-ratio: 16 / 9;
-      // @include ratio-width(var(--application-size), 16, 9);
-    }
+	&.rectangle {
+		&.horizontal {
+			width: calc(var(--application-size) * 16 / 9);
+			height: var(--application-size);
+			// aspect-ratio: 16 / 9;
+			// @include ratio-width(var(--application-size), 16, 9);
+		}
 
-    &.vertical {
-      width: var(--application-size);
-      height: calc(var(--application-size) * 16 / 9);
-      // aspect-ratio: 9 / 16;
-      // @include ratio-height(var(--application-size), 9, 16);
-    }
-  }
+		&.vertical {
+			width: var(--application-size);
+			height: calc(var(--application-size) * 16 / 9);
+			// aspect-ratio: 9 / 16;
+			// @include ratio-height(var(--application-size), 9, 16);
+		}
+	}
 
-  & > .title {
-    width: 100%;
-    display: block;
-    color: #000000;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    text-wrap: nowrap;
-    word-break: normal;
-    word-wrap: break-word;
-    line-height: 1;
-    text-align: center;
-    margin-block-start: 6px;
-  }
+	& > .title {
+		width: 100%;
+		display: block;
+		color: #000000;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		overflow: hidden;
+		text-wrap: nowrap;
+		word-break: normal;
+		word-wrap: break-word;
+		line-height: 1;
+		text-align: center;
+		margin-block-start: 6px;
+	}
 
-  & > .marker {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
+	& > .marker {
+		width: 100%;
+		height: 100%;
+		overflow: hidden;
 
-    // flex-grow: 1;
-    // flex-shrink: 1;
-    // flex-basis: 0%;
+		// flex-grow: 1;
+		// flex-shrink: 1;
+		// flex-basis: 0%;
 
-    // 暂时样式
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+		// 暂时样式
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
 
-  & > .destroy {
-    $size: 16px;
+	& > .destroy {
+		$size: 16px;
 
-    &.marker {
-      position: absolute;
-      top: 0 - math.div($size, 3);
-      right: 0 - math.div($size, 3);
-      width: $size;
-      height: $size;
-      background-color: rgba(255, 0, 0, 0.5);
-      border-radius: math.div($size, 2);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: $size;
-      line-height: 1;
-      cursor: pointer;
-      z-index: 10;
-    }
+		&.marker {
+			position: absolute;
+			top: 0 - math.div($size, 3);
+			right: 0 - math.div($size, 3);
+			width: $size;
+			height: $size;
+			background-color: rgba(255, 0, 0, 0.5);
+			border-radius: math.div($size, 2);
+			color: #fff;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: $size;
+			line-height: 1;
+			cursor: pointer;
+			z-index: 10;
+		}
 
-    &.visible {
-      display: flex;
-    }
+		&.visible {
+			display: flex;
+		}
 
-    &:not(.visible) {
-      visibility: hidden;
-      pointer-events: none;
-    }
-  }
+		&:not(.visible) {
+			visibility: hidden;
+			pointer-events: none;
+		}
+	}
 
-  // & > .overlay {
-  // 	width: 80% !important;
-  // 	background-color: red;
-  // width: 70%;
-  // aspect-ratio: 16 / 9;
-  // }
+	// & > .overlay {
+	// 	width: 80% !important;
+	// 	background-color: red;
+	// width: 70%;
+	// aspect-ratio: 16 / 9;
+	// }
 }

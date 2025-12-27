@@ -12,12 +12,6 @@
       <excludeFolder url="file://$MODULE_DIR$/.vscode" />
       <excludeFolder url="file://$MODULE_DIR$/apps/extension/.turbo" />
       <excludeFolder url="file://$MODULE_DIR$/dist" />
-      <excludeFolder url="file://$MODULE_DIR$/apps/client/.turbo" />
-      <excludeFolder url="file://$MODULE_DIR$/apps/client/src-tauri/gen" />
-      <excludeFolder url="file://$MODULE_DIR$/apps/client/src-tauri/target" />
-      <excludeFolder url="file://$MODULE_DIR$/apps/docs/.vitepress/cache" />
-      <excludeFolder url="file://$MODULE_DIR$/apps/docs/.vitepress/dist" />
-      <excludeFolder url="file://$MODULE_DIR$/packages/core/.turbo" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

@@ -1,41 +1,41 @@
 %swiper-marketplace {
-  @apply w-full h-[60%];
-  @apply overflow-hidden rounded-lg;
-  --swiper-navigation-size: 30px;
+	@apply w-full h-[60%];
+	@apply overflow-hidden rounded-lg;
+	--swiper-navigation-size: 30px;
 
-  :deep(.swiper-wrapper) {
-    @apply w-full h-full;
-  }
+	:deep(.swiper-wrapper) {
+		@apply w-full h-full;
+	}
 
-  :deep(.swiper-slide) {
-    @apply w-full h-full rounded-lg overflow-hidden;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: cover;
-    background-attachment: fixed;
+	:deep(.swiper-slide) {
+		@apply w-full h-full rounded-lg overflow-hidden;
+		background-repeat: no-repeat;
+		background-position: center;
+		background-size: cover;
+		background-attachment: fixed;
 
-    &.swiper-slide-active {
-    }
-    &.swiper-slide-next {
-    }
-  }
+		&.swiper-slide-active {
+		}
+		&.swiper-slide-next {
+		}
+	}
 
-  :deep(.swiper-pagination) {
-    $bullet-height: 6px;
+	:deep(.swiper-pagination) {
+		$bullet-height: 6px;
 
-    .swiper-pagination-bullet {
-      @apply bg-[#ccc] rounded-full opacity-50 transition-all duration-300;
-      height: $bullet-height;
+		.swiper-pagination-bullet {
+			@apply bg-[#ccc] rounded-full opacity-50 transition-all duration-300;
+			height: $bullet-height;
 
-      &.swiper-pagination-bullet-active {
-        @apply w-[34px] opacity-100;
-        background: var(--color-ref-primary60, #4c8df6ff);
-        border-radius: ($bullet-height * 1.67);
-      }
+			&.swiper-pagination-bullet-active {
+				@apply w-[34px] opacity-100;
+				background: var(--color-ref-primary60, #4c8df6ff);
+				border-radius: ($bullet-height * 1.67);
+			}
 
-      &:not(.swiper-pagination-bullet-active) {
-        width: $bullet-height;
-      }
-    }
-  }
+			&:not(.swiper-pagination-bullet-active) {
+				width: $bullet-height;
+			}
+		}
+	}
 }

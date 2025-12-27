@@ -1,11 +1,10 @@
+import styles from '@/features/application/application.module.scss'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Modal, Tooltip, type ModalProps } from 'antd'
-import { clsx, type ClassValue } from 'clsx'
+import clsx, { type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-
-import styles from '@/features/application/application.module.scss'
 
 interface ProviderProps extends Application {
   children: ReactNode
@@ -32,20 +31,16 @@ interface OverlayProviderProps extends ModalProps {
   fullscreen?: boolean
 }
 
-interface OverlayContextProps {
-  visible: boolean
-  mounted: boolean
-  updateMounted: (value: boolean) => void
-  updateVisible: (value: boolean) => void
-}
-
 // Context 用于共享 overlay 的 visible 状态
-const OverlayContext = createContext<OverlayContextProps>({
+const OverlayContext = createContext<{
+  visible: boolean
+  updateVisible: (visible: boolean) => void
+}>({
   visible: false,
-  mounted: false,
-  updateMounted: (value) => void value,
-  updateVisible: (value) => void value
+  updateVisible: () => void 0
 })
+
+export const useOverlayContext = () => useContext(OverlayContext)
 
 function Provider(props: ProviderProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -54,18 +49,6 @@ function Provider(props: ProviderProps) {
 
   // 管理 overlay 状态
   const [visible, updateVisible] = useState<boolean>(false)
-
-  const [mounted, updateMounted] = useState<boolean>(false)
-
-  const contextValue = useMemo(
-    () => ({
-      visible,
-      mounted,
-      updateMounted,
-      updateVisible
-    }),
-    [visible, mounted]
-  )
 
   // 如果有 overlay 打开，禁用拖拽监听器
   const listens = visible ? {} : listeners
@@ -109,11 +92,15 @@ function Provider(props: ProviderProps) {
   )
 
   return (
-    <OverlayContext value={contextValue}>
+    <OverlayContext.Provider
+      value={{
+        visible,
+        updateVisible
+      }}>
       <div
-        {...listens}
-        {...attributes}
         ref={setNodeRef}
+        {...attributes}
+        {...listens}
         data-id={props.id}
         className={clsx([
           'application',
@@ -140,20 +127,14 @@ function Provider(props: ProviderProps) {
           X
         </div>
       </div>
-    </OverlayContext>
+    </OverlayContext.Provider>
   )
 }
 
 function MarkerProvider(props: MarkerProviderProps) {
-  const { visible, updateVisible, updateMounted } = useContext(OverlayContext)
-
   return (
     <div
-      onDoubleClick={() => {
-        console.log('onDoubleClick', visible)
-        updateVisible(!visible)
-        updateMounted(!visible)
-      }}
+      onDoubleClick={props.onDoubleClick}
       className={clsx(styles.marker, props.className)}
       style={props.style}>
       {props.children}
@@ -162,17 +143,16 @@ function MarkerProvider(props: MarkerProviderProps) {
 }
 
 function OverlayProvider(props: OverlayProviderProps) {
-  const { style, className, onCancel, children, ...remains } = props
-  const { updateVisible, updateMounted, visible } = useContext(OverlayContext)
+  const { style, className, open, onCancel, ...remains } = props
+  const { updateVisible } = useOverlayContext()
 
-  function handleClose() {
-    if (visible) return
-    setTimeout(function () {
-      updateMounted(false)
-    }, 300)
-  }
-
-  // console.log('effect ===>', visible)
+  // 当 open 变化时，更新 Context
+  useEffect(
+    function () {
+      updateVisible(open ?? false)
+    },
+    [open, updateVisible]
+  )
 
   return (
     <Modal
@@ -182,18 +162,17 @@ function OverlayProvider(props: OverlayProviderProps) {
       footer={null}
       title={null}
       centered={true}
-      afterClose={handleClose}
       width={props.fullscreen ? '100%' : '80%'}
       height={props.fullscreen ? '100%' : 'unset'}
       style={{
         ...style,
         aspectRatio: props.fullscreen ? 'unset' : '16 / 9'
       }}
-      open={visible}
+      open={open}
       onCancel={(e) => (updateVisible(false), onCancel?.(e) ?? void 0)}
       className={clsx(['application-overlay', className])}
       {...remains}>
-      {children}
+      {props.children}
     </Modal>
   )
 }
@@ -204,6 +183,6 @@ const Application = Object.assign(Provider, {
   Overlay: OverlayProvider
 })
 
-export { Application, OverlayContext }
-
 export type { MarkerProviderProps, OverlayProviderProps, ProviderProps }
+
+export default Application

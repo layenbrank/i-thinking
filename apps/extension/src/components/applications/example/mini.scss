@@ -1,26 +1,26 @@
 .example-marker {
-  &.mini {
-    &.square {
-      &.horizontal {
-      }
-      &.vertical {
-      }
-    }
+	&.mini {
+		&.square {
+			&.horizontal {
+			}
+			&.vertical {
+			}
+		}
 
-    &.circle {
-      &.horizontal {
-      }
+		&.circle {
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.rectangle {
-      &.horizontal {
-      }
+		&.rectangle {
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
-  }
+			&.vertical {
+			}
+		}
+	}
 }

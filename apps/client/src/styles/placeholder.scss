@@ -1,50 +1,50 @@
 %application {
-  &.mini {
-    --application-size: 60px;
-  }
+	&.mini {
+		--application-size: 60px;
+	}
 
-  &.small {
-    --application-size: 90px;
-  }
+	&.small {
+		--application-size: 90px;
+	}
 
-  &.medium {
-    --application-size: 120px;
-  }
+	&.medium {
+		--application-size: 120px;
+	}
 
-  &.large {
-    --application-size: 150px;
-  }
+	&.large {
+		--application-size: 150px;
+	}
 
-  &.huge {
-    --application-size: 180px;
-  }
+	&.huge {
+		--application-size: 180px;
+	}
 
-  &.massive {
-    --application-size: 210px;
-  }
+	&.massive {
+		--application-size: 210px;
+	}
 
-  // &. minimize ultimate {
-  &.ultra {
-    --application-size: 240px;
-  }
+	// &. minimize ultimate {
+	&.ultra {
+		--application-size: 240px;
+	}
 
-  &.rectangle {
-    &.horizontal {
-      // rectangle horizontal时 使用scss 数学函数计算获取 16/9 比例的最终宽度
-      grid-template-columns: repeat(auto-fill, calc(var(--application-size, 60px) * 16 / 9));
-    }
-  }
+	&.rectangle {
+		&.horizontal {
+			// rectangle horizontal时 使用scss 数学函数计算获取 16/9 比例的最终宽度
+			grid-template-columns: repeat(auto-fill, calc(var(--application-size) * 16 / 9));
+		}
+	}
 
-  &:not(.rectangle),
-  &.rectangle {
-    &.vertical {
-      grid-template-columns: repeat(auto-fill, var(--application-size));
-    }
-  }
+	&:not(.rectangle),
+	&.rectangle {
+		&.vertical {
+			grid-template-columns: repeat(auto-fill, var(--application-size));
+		}
+	}
 
-  transition:
-    width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    row-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    column-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+	transition:
+		width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		row-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+		column-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 }

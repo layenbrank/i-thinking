@@ -13,6 +13,12 @@ export default function Overview() {
   // 	return value.application
   // })
   const applications = useApplications()
+
+  function openDevTools() {
+    // webview.getCurrentWebview()
+    console.log('尝试打开控制台')
+  }
+
   useEffect(function () {
     console.log('applications', applications)
   }, [])

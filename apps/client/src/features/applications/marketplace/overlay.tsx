@@ -1,7 +1,7 @@
 import { cyan, generate, green, presetPalettes, red } from '@ant-design/colors'
 import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
 import { downloadDir } from '@tauri-apps/api/path'
-import { BaseDirectory, create } from '@tauri-apps/plugin-fs'
+import { writeFile, BaseDirectory, exists, create } from '@tauri-apps/plugin-fs'
 import {
   Button,
   Card,
@@ -18,22 +18,24 @@ import {
   theme,
   Upload
 } from 'antd'
-import type { Color } from 'antd/es/color-picker'
 import type { SegmentedLabeledOption, SegmentedValue } from 'antd/es/segmented'
 import type { RcFile, UploadFile } from 'antd/es/upload'
 import { clsx } from 'clsx'
 
 import { database } from '@/databases/database.ts'
-import { Scroll } from '@/components/scroll/scroll.tsx'
+import Application from '@/features/application/application.tsx'
 import styles from '@/features/applications/marketplace/overlay.module.scss'
 import { mirror$ } from '@/stores/mirror.ts'
 import { timeSphere } from '@i-thinking/core'
-import { Application, OverlayContext } from '@/features/application/application.tsx'
-import { useContext } from 'react'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
 type SegmentedOption = SegmentedLabeledOption<SegmentedValue>
+
+interface Props {
+  visible: boolean
+  onUpdateVisible: (value: boolean) => void
+}
 
 const validateMessages = {
   required: '${label}是必填的!',
@@ -67,37 +69,11 @@ const customPanelRender: ColorPickerProps['panelRender'] = (
   </Row>
 )
 
-export default function Overlay() {
+export default function Overlay(props: Props) {
   const { token } = theme.useToken()
-  const { visible, updateVisible, mounted } = useContext(OverlayContext)
-  const DEFAULT_COLORS = genPresets({
-    primary: generate(token.colorPrimary),
-    red,
-    green,
-    cyan
-  })
-
-  const initialize = {
-    title: '',
-    url: '',
-    color: 1,
-    image: 1,
-    layout: 'horizontal'
-  }
   const [form] = Form.useForm()
   const [activeSegmented, updateActiveSegment] = useState<SegmentedValue>()
   const [files, updateFiles] = useState<UploadFile<any>[]>()
-
-  const [colors, updateColors] = useState<string[]>(function () {
-    // const res= Object.entries( {
-    // 	primary: generate( token.colorPrimary ),
-    // 	red,
-    // 	green,
-    // 	cyan
-    // } ).map< Presets >( ( [ label, colors ] ) => ( { label, colors, key: label } ) )
-    return []
-  })
-
   const [segmentedOptions] = useState<SegmentedOption[]>([
     {
       value: '应用',
@@ -111,13 +87,12 @@ export default function Overlay() {
     }
   ])
 
-  function onChangeComplete(value: Color) {
-    const color = value.toHexString()
-    updateColors(function (prev) {
-      if (prev.includes(color)) return prev
-      return [...prev, color]
-    })
-  }
+  const presets = genPresets({
+    primary: generate(token.colorPrimary),
+    red,
+    green,
+    cyan
+  })
 
   function handleEnsure() {}
 
@@ -126,7 +101,7 @@ export default function Overlay() {
   }
 
   const handleExport = useCallback(function () {
-    void database.application
+    database.application
       .orderBy('index')
       .toArray()
       .then(async function (applications) {
@@ -164,7 +139,7 @@ export default function Overlay() {
             i.mirrorID = mirror$.value?.id ?? ''
             i.collectionID = ''
           })
-          void database.application.bulkAdd(parsed)
+          database.application.bulkAdd(parsed)
         } catch (error) {
           console.error('Invalid JSON file', error)
           return
@@ -185,26 +160,12 @@ export default function Overlay() {
     return false
   }, [])
 
-  useEffect(function () {
-    const collect = Object.values(DEFAULT_COLORS).reduce<string[]>(function (acc, cur) {
-      const toStrings = cur.colors.map((color) => color.toString())
-      console.log('toString', toStrings)
-      return acc.concat(toStrings)
-    }, [])
-
-    updateColors(collect)
-
-    console.log('Object values', Object.values(DEFAULT_COLORS))
-    console.log('default colors', DEFAULT_COLORS)
-    console.log('collect', collect)
-  }, [])
-
   return (
     <Application.Overlay
-      open={visible}
+      open={props.visible}
       className={clsx([styles.overlay, styles.root])}
-      onOk={() => updateVisible(false)}
-      onCancel={() => updateVisible(false)}>
+      onOk={() => props.onUpdateVisible(false)}
+      onCancel={() => props.onUpdateVisible(false)}>
       <Flex
         justify="center"
         className={clsx(['h-full'])}>
@@ -219,9 +180,12 @@ export default function Overlay() {
           <Form
             form={form}
             labelAlign="right"
+            layout="horizontal"
             labelCol={{ span: 4 }}
             wrapperCol={{ span: 20 }}
-            initialValues={initialize}
+            initialValues={{
+              layout: 'horizontal'
+            }}
             style={{
               maxWidth: 600
             }}
@@ -245,34 +209,19 @@ export default function Overlay() {
               label="背景颜色"
               className={clsx([styles.single, styles.color])}
               rules={[{ required: true }]}>
-              <Scroll.X
-                style={{
-                  width: '100%',
-                  height: '60px'
-                }}>
-                <Form.Item
-                  name="color"
-                  noStyle>
-                  <Radio.Group>
-                    {colors.map(function (color) {
-                      return (
-                        <Radio
-                          key={color}
-                          style={{
-                            '--ant-color-bg-container': color
-                          }}
-                          value={color}></Radio>
-                      )
-                    })}
-                  </Radio.Group>
-                </Form.Item>
-              </Scroll.X>
+              <Form.Item name="color">
+                <Radio.Group
+                  options={[
+                    { value: 1, label: 'A' },
+                    { value: 2, label: 'B' },
+                    { value: 3, label: 'C' }
+                  ]}></Radio.Group>
+              </Form.Item>
               <ColorPicker
-                onChangeComplete={onChangeComplete}
                 className={clsx([styles.color, styles.picker])}
                 defaultValue={token.colorPrimary}
                 styles={{ popupOverlayInner: { width: 480 } }}
-                presets={DEFAULT_COLORS}
+                presets={presets}
                 panelRender={customPanelRender}
               />
             </Form.Item>
@@ -280,29 +229,14 @@ export default function Overlay() {
               label="背景图片"
               className={clsx([styles.single, styles.image])}
               rules={[{ required: true }]}>
-              <Scroll.X
-                style={{
-                  width: '100%',
-                  height: '60px'
-                }}>
-                <Form.Item
-                  name="image"
-                  noStyle>
-                  <Radio.Group
-                    options={[
-                      { value: 1, label: 'A' },
-                      { value: 2, label: 'B' },
-                      { value: 3, label: 'D' },
-                      { value: 4, label: 'E' },
-                      { value: 5, label: 'F' },
-                      { value: 6, label: 'G' },
-                      { value: 7, label: 'H' },
-                      { value: 8, label: 'I' },
-                      { value: 9, label: 'J' }
-                    ]}></Radio.Group>
-                </Form.Item>
-              </Scroll.X>
-
+              <Form.Item name="image">
+                <Radio.Group
+                  options={[
+                    { value: 1, label: 'A' },
+                    { value: 2, label: 'B' },
+                    { value: 3, label: 'C' }
+                  ]}></Radio.Group>
+              </Form.Item>
               <Flex>图片</Flex>
             </Form.Item>
             <Form.Item label={null}>

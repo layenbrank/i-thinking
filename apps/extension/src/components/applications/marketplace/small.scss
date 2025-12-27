@@ -1,37 +1,37 @@
 .marketplace-marker {
-  &.small {
-    &.square {
-      &.horizontal {
-        @apply p-8;
+	&.small {
+		&.square {
+			&.horizontal {
+				@apply p-8;
 
-        svg {
-          @apply h-full;
-        }
-      }
+				svg {
+					@apply h-full;
+				}
+			}
 
-      &.vertical {
-        @apply p-8;
+			&.vertical {
+				@apply p-8;
 
-        svg {
-          @apply w-full;
-        }
-      }
-    }
+				svg {
+					@apply w-full;
+				}
+			}
+		}
 
-    &.circle {
-      &.horizontal {
-      }
+		&.circle {
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.rectangle {
-      &.horizontal {
-      }
+		&.rectangle {
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
-  }
+			&.vertical {
+			}
+		}
+	}
 }

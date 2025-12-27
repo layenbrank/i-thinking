@@ -1,4 +1,4 @@
-import { Application } from '@/features/application/application.tsx'
+import Application from '@/features/application/application.tsx'
 import styles from '@/features/applications/navigation/overlay.module.scss'
 
 interface Props {

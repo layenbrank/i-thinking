@@ -1,28 +1,28 @@
 .collection-marker {
-  &.mini {
-    padding: 12px;
+	&.mini {
+		padding: 12px;
 
-    &.square {
-      &.horizontal {
-      }
-      &.vertical {
-      }
-    }
+		&.square {
+			&.horizontal {
+			}
+			&.vertical {
+			}
+		}
 
-    &.circle {
-      &.horizontal {
-      }
+		&.circle {
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.rectangle {
-      &.horizontal {
-      }
+		&.rectangle {
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
-  }
+			&.vertical {
+			}
+		}
+	}
 }

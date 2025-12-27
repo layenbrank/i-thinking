@@ -1,5 +1,5 @@
 import type { MarkerProviderProps } from '@/features/application/application.tsx'
-import { Application } from '@/features/application/application.tsx'
+import Application from '@/features/application/application.tsx'
 import styles from '@/features/applications/calendar/marker.module.scss'
 import clsx from 'clsx'
 

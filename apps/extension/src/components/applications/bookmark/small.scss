@@ -1,29 +1,29 @@
 .bookmark-marker {
-  &.small {
-    &.square {
-      &.horizontal {
-        @apply p-8;
-      }
+	&.small {
+		&.square {
+			&.horizontal {
+				@apply p-8;
+			}
 
-      &.vertical {
-        @apply p-8;
-      }
-    }
+			&.vertical {
+				@apply p-8;
+			}
+		}
 
-    &.circle {
-      &.horizontal {
-      }
+		&.circle {
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
+			&.vertical {
+			}
+		}
 
-    &.rectangle {
-      &.horizontal {
-      }
+		&.rectangle {
+			&.horizontal {
+			}
 
-      &.vertical {
-      }
-    }
-  }
+			&.vertical {
+			}
+		}
+	}
 }

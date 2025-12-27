@@ -18,8 +18,10 @@ import {
 } from '@dnd-kit/sortable'
 import { useLiveQuery } from 'dexie-react-hooks'
 
-import { Application } from '@/features/application/application.tsx'
+import { Navigation } from '@/features/controller/reflection.tsx'
+import Application from '@/features/application/application.tsx'
 import styles from '@/features/applications/collection/overlay.module.scss'
+import { useMirrorStore } from '@/stores/mirror.ts'
 import { database } from '@/databases/database.ts'
 import { OverlayDrawer } from './drawer.tsx'
 import { generateColor } from '@/utils/generate.ts'
@@ -102,6 +104,13 @@ export default function Overlay(props: Props) {
     APPLICATIONS
   )
 
+  useEffect(
+    function () {
+      console.log('Overlay applications:', applications)
+    },
+    [applications]
+  )
+
   const [visible, onUpdateVisible] = useState(false)
 
   // const applications = useLiveQuery<Application[], Application[]>(
@@ -121,6 +130,10 @@ export default function Overlay(props: Props) {
     },
     [applications]
   )
+
+  const size: Mirror.Size = 'mini'
+  const shape: Mirror.Shape = 'rectangle'
+  const direction: Mirror.Direction = 'horizontal'
 
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
