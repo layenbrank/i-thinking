@@ -1,4 +1,4 @@
-import Application from '@/features/application/application.tsx'
+import { Application } from '@/features/application/application.tsx'
 import styles from '@/features/applications/developer/overlay.module.scss'
 import {
   AppstoreOutlined,

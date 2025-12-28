@@ -1,277 +1,277 @@
 /* color palette from <https://github.com/vuejs/theme> */
 :root {
-	--application-global-row-gap: 30px;
-	--application-global-col-gap: 30px;
-	--application-global-round: 12px;
-	--application-global-text-size: 13px;
-	--application-global-text-color: #000000;
-	--application-global-overlay-round: 8px;
+  --application-global-row-gap: 30px;
+  --application-global-col-gap: 30px;
+  --application-global-round: 12px;
+  --application-global-text-size: 13px;
+  --application-global-text-color: #000000;
+  --application-global-overlay-round: 8px;
 
-	--vt-c-white: #ffffff;
-	--vt-c-white-soft: #f8f8f8;
-	--vt-c-white-mute: #f2f2f2;
+  --vt-c-white: #ffffff;
+  --vt-c-white-soft: #f8f8f8;
+  --vt-c-white-mute: #f2f2f2;
 
-	--vt-c-black: #181818;
-	--vt-c-black-soft: #222222;
-	--vt-c-black-mute: #282828;
+  --vt-c-black: #181818;
+  --vt-c-black-soft: #222222;
+  --vt-c-black-mute: #282828;
 
-	--vt-c-indigo: #2c3e50;
+  --vt-c-indigo: #2c3e50;
 
-	--vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
-	--vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
-	--vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
-	--vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
+  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
+  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
+  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
+  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
 
-	--vt-c-text-light-1: var(--vt-c-indigo);
-	--vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-	--vt-c-text-dark-1: var(--vt-c-white);
-	--vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+  --vt-c-text-light-1: var(--vt-c-indigo);
+  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
+  --vt-c-text-dark-1: var(--vt-c-white);
+  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
 }
 
 /* semantic color variables for this project */
 :root {
-	--color-background: var(--vt-c-white);
-	--color-background-soft: var(--vt-c-white-soft);
-	--color-background-mute: var(--vt-c-white-mute);
+  --color-background: var(--vt-c-white);
+  --color-background-soft: var(--vt-c-white-soft);
+  --color-background-mute: var(--vt-c-white-mute);
 
-	--color-border: var(--vt-c-divider-light-2);
-	--color-border-hover: var(--vt-c-divider-light-1);
+  --color-border: var(--vt-c-divider-light-2);
+  --color-border-hover: var(--vt-c-divider-light-1);
 
-	--color-heading: var(--vt-c-text-light-1);
-	--color-text: var(--vt-c-text-light-1);
+  --color-heading: var(--vt-c-text-light-1);
+  --color-text: var(--vt-c-text-light-1);
 
-	--section-gap: 160px;
+  --section-gap: 160px;
 }
 
 /* Base HTML and global element styles*/
 :root {
-	--white: #fff;
-	--black: #2e2b29;
-	--black-contrast: #110f0e;
-	--gray-1: rgba(61, 37, 20, 0.05);
-	--gray-2: rgba(61, 37, 20, 0.08);
-	--gray-3: rgba(61, 37, 20, 0.12);
-	--gray-4: rgba(53, 38, 28, 0.3);
-	--gray-5: rgba(28, 25, 23, 0.6);
-	--green: #22c55e;
-	--purple: #6a00f5;
-	--purple-contrast: #5800cc;
-	--purple-light: rgba(88, 5, 255, 0.05);
-	--yellow-contrast: #facc15;
-	--yellow: rgba(250, 204, 21, 0.4);
-	--yellow-light: #fffae5;
-	--red: #ff5c33;
-	--red-light: #ffebe5;
-	--shadow: 0px 12px 33px 0px rgba(0, 0, 0, 0.06), 0px 3.618px 9.949px 0px rgba(0, 0, 0, 0.04);
+  --white: #fff;
+  --black: #2e2b29;
+  --black-contrast: #110f0e;
+  --gray-1: rgba(61, 37, 20, 0.05);
+  --gray-2: rgba(61, 37, 20, 0.08);
+  --gray-3: rgba(61, 37, 20, 0.12);
+  --gray-4: rgba(53, 38, 28, 0.3);
+  --gray-5: rgba(28, 25, 23, 0.6);
+  --green: #22c55e;
+  --purple: #6a00f5;
+  --purple-contrast: #5800cc;
+  --purple-light: rgba(88, 5, 255, 0.05);
+  --yellow-contrast: #facc15;
+  --yellow: rgba(250, 204, 21, 0.4);
+  --yellow-light: #fffae5;
+  --red: #ff5c33;
+  --red-light: #ffebe5;
+  --shadow: 0px 12px 33px 0px rgba(0, 0, 0, 0.06), 0px 3.618px 9.949px 0px rgba(0, 0, 0, 0.04);
 }
 
 @media (prefers-color-scheme: dark) {
-	:root {
-		--color-background: var(--vt-c-black);
-		--color-background-soft: var(--vt-c-black-soft);
-		--color-background-mute: var(--vt-c-black-mute);
+  :root {
+    --color-background: var(--vt-c-black);
+    --color-background-soft: var(--vt-c-black-soft);
+    --color-background-mute: var(--vt-c-black-mute);
 
-		--color-border: var(--vt-c-divider-dark-2);
-		--color-border-hover: var(--vt-c-divider-dark-1);
+    --color-border: var(--vt-c-divider-dark-2);
+    --color-border-hover: var(--vt-c-divider-dark-1);
 
-		--color-heading: var(--vt-c-text-dark-1);
-		--color-text: var(--vt-c-text-dark-2);
-	}
+    --color-heading: var(--vt-c-text-dark-1);
+    --color-text: var(--vt-c-text-dark-2);
+  }
 }
 
 .mini {
-	&.square {
-	}
+  &.square {
+  }
 
-	&.circle {
-	}
+  &.circle {
+  }
 
-	&.rectangle {
-	}
+  &.rectangle {
+  }
 
-	&.square {
-		// width: var(--application-size, 60px);
-		// height: var(--application-size, 60px);
-		// width: var(--application-width, 60px);
-		// height: var(--application-height, 60px);
-	}
+  &.square {
+    // width: var(--application-size, 60px);
+    // height: var(--application-size, 60px);
+    // width: var(--application-width, 60px);
+    // height: var(--application-height, 60px);
+  }
 
-	&.rectangle.horizontal {
-		// grid-column: span 2;
-		// width: calc(var(--application-width) * 2 + var(--application-row-gap) * 1);
-		// height: var(--application-height);
-	}
+  &.rectangle.horizontal {
+    // grid-column: span 2;
+    // width: calc(var(--application-width) * 2 + var(--application-row-gap) * 1);
+    // height: var(--application-height);
+  }
 
-	&.rectangle.vertical {
-		// grid-row: span 2;
-		// width: var(--application-width);
-		// height: calc(var(--application-height) * 2 + var(--application-row-gap) * 1);
-	}
+  &.rectangle.vertical {
+    // grid-row: span 2;
+    // width: var(--application-width);
+    // height: calc(var(--application-height) * 2 + var(--application-row-gap) * 1);
+  }
 }
 
 .small {
-	&.horizontal {
-		// grid-column: span 2;
-		// width: calc(var(--application-width) * 2 + var(--application-row-gap) * 1);
-		// height: var(--application-height);
+  &.horizontal {
+    // grid-column: span 2;
+    // width: calc(var(--application-width) * 2 + var(--application-row-gap) * 1);
+    // height: var(--application-height);
 
-		&.square {
-		}
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 
-	&.vertical {
-		// grid-row: span 2;
-		// width: var(--application-width);
-		// height: calc(var(--application-height) * 2 + var(--application-row-gap) * 1);
+  &.vertical {
+    // grid-row: span 2;
+    // width: var(--application-width);
+    // height: calc(var(--application-height) * 2 + var(--application-row-gap) * 1);
 
-		&.square {
-		}
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 }
 
 .medium {
-	&.horizontal,
-	&.vertical {
-		// grid-column: span 2;
-		// grid-row: span 2;
-		// width: calc(var(--application-width) * 2 + var(--application-col-gap));
-		// height: calc(var(--application-height) * 2 + var(--application-row-gap));
+  &.horizontal,
+  &.vertical {
+    // grid-column: span 2;
+    // grid-row: span 2;
+    // width: calc(var(--application-width) * 2 + var(--application-col-gap));
+    // height: calc(var(--application-height) * 2 + var(--application-row-gap));
 
-		&.square {
-		}
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 }
 
 .large {
-	// grid-column: span 2;
-	// grid-row: span 2;
-	// width: calc(var(--application-width) * 2 + var(--application-col-gap));
-	// height: calc(var(--application-height) * 2 + var(--application-row-gap));
+  // grid-column: span 2;
+  // grid-row: span 2;
+  // width: calc(var(--application-width) * 2 + var(--application-col-gap));
+  // height: calc(var(--application-height) * 2 + var(--application-row-gap));
 
-	&.horizontal {
-		&.square {
-		}
+  &.horizontal {
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 
-	&.vertical {
-		&.square {
-		}
+  &.vertical {
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 }
 
 .huge {
-	// grid-column: span 4;
-	// grid-row: span 2;
-	// width: calc(var(--application-width) * 4 + var(--application-col-gap) * 3);
-	// height: calc(var(--application-height) * 2 + var(--application-row-gap));
+  // grid-column: span 4;
+  // grid-row: span 2;
+  // width: calc(var(--application-width) * 4 + var(--application-col-gap) * 3);
+  // height: calc(var(--application-height) * 2 + var(--application-row-gap));
 
-	&.horizontal {
-		&.square {
-		}
+  &.horizontal {
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 
-	&.vertical {
-		&.square {
-		}
+  &.vertical {
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 }
 
 .massive {
-	// grid-column: span 7;
-	// grid-row: span 4;
-	// width: calc(var(--application-width) * 7 + var(--application-col-gap) * 6);
-	// height: calc(var(--application-height) * 4 + var(--application-row-gap) * 3);
+  // grid-column: span 7;
+  // grid-row: span 4;
+  // width: calc(var(--application-width) * 7 + var(--application-col-gap) * 6);
+  // height: calc(var(--application-height) * 4 + var(--application-row-gap) * 3);
 
-	&.horizontal {
-		&.square {
-		}
+  &.horizontal {
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 
-	&.vertical {
-		&.square {
-		}
+  &.vertical {
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 }
 
 .ultra {
-	// grid-column: span 4;
-	// grid-row: span 7;
-	// width: calc(var(--application-width) * 4 + var(--application-col-gap) * 3);
-	// height: calc(var(--application-height) * 7 + var(--application-row-gap) * 6);
+  // grid-column: span 4;
+  // grid-row: span 7;
+  // width: calc(var(--application-width) * 4 + var(--application-col-gap) * 3);
+  // height: calc(var(--application-height) * 7 + var(--application-row-gap) * 6);
 
-	&.horizontal {
-		&.square {
-		}
+  &.horizontal {
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 
-	&.vertical {
-		&.square {
-		}
+  &.vertical {
+    &.square {
+    }
 
-		&.circle {
-		}
+    &.circle {
+    }
 
-		&.rectangle {
-		}
-	}
+    &.rectangle {
+    }
+  }
 }

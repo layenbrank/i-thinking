@@ -21,7 +21,7 @@
     "dev:extension": "turbo run dev --filter=@i-thinking/extension",
     "dev:service": "turbo run dev --filter=@i-thinking/service",
     "e2e": "turbo run e2e",
-    "format": "prettier --write \"**/*.{ts,tsx,vue,json,md}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,vue,json,scss,md}\"",
     "lint": "turbo run lint",
     "preinstall": "run-p prepare:husky prepare:manager prepare:core",
     "prepare:core": "pnpm build:core",

@@ -1,33 +1,33 @@
 .navigation-marker {
-	:deep(.ant-image-img) {
-		@apply w-full h-full object-contain;
-	}
+  :deep(.ant-image-img) {
+    @apply w-full h-full object-contain;
+  }
 
-	&.medium {
-		@apply p-5;
+  &.medium {
+    @apply p-5;
 
-		&.square {
-			&.horizontal {
-			}
+    &.square {
+      &.horizontal {
+      }
 
-			&.vertical {
-			}
-		}
+      &.vertical {
+      }
+    }
 
-		&.circle {
-			&.horizontal {
-			}
+    &.circle {
+      &.horizontal {
+      }
 
-			&.vertical {
-			}
-		}
+      &.vertical {
+      }
+    }
 
-		&.rectangle {
-			&.horizontal {
-			}
+    &.rectangle {
+      &.horizontal {
+      }
 
-			&.vertical {
-			}
-		}
-	}
+      &.vertical {
+      }
+    }
+  }
 }

@@ -1,14 +1,42 @@
+@use '@/styles/normalize.scss' as *;
+
 .overlay {
-	width: 100%;
-	height: 100%;
-	background-color: #fff;
+  &.root {
+  }
 
-	* {
-		user-select: text;
-	}
+  &.section {
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
 
-	.textarea {
-		width: 100%;
-		height: 300px;
-	}
+    * {
+      user-select: text;
+    }
+  }
+
+  .composer {
+    &.markdown {
+      :global {
+        .tiptap.ProseMirror {
+          * {
+            @extend %normalize;
+            font-family:
+              'MesloLGM Nerd Font Mono Display', Consolas, 'Liberation Mono', Menlo, Courier,
+              monospace;
+          }
+
+          &.ProseMirror-focused {
+            outline: none;
+          }
+        }
+      }
+    }
+  }
+
+  .textarea {
+    width: 100%;
+    height: 300px;
+  }
 }

@@ -1,4 +1,4 @@
-import Application from '@/features/application/application.tsx'
+import { Application } from '@/features/application/application.tsx'
 import styles from '@/features/applications/bookmark/overlay.module.scss'
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
 export default function Overlay(props: Props) {
   return (
     <Application.Overlay
+      mounted={props.visible}
       open={props.visible}
       onCancel={() => props.onUpdateVisible(false)}
       onOk={() => props.onUpdateVisible(false)}>

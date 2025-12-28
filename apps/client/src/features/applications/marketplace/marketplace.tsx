@@ -1,32 +1,34 @@
-import Application, { type ProviderProps } from '@/features/application/application.tsx'
+import {
+  Application,
+  type ProviderProps,
+  OverlayContext
+} from '@/features/application/application.tsx'
 import styles from '@/features/applications/marketplace/marketplace.module.scss'
 import Marker from '@/features/applications/marketplace/marker.tsx'
 import Overlay from '@/features/applications/marketplace/overlay.tsx'
 import clsx from 'clsx'
-import type { MouseEvent } from 'react'
+import { type MouseEvent, useContext, useEffect } from 'react'
 
-export default function marketplace(props: ProviderProps) {
-  const [visible, onUpdateVisible] = useState(false)
+export default function Marketplace(props: ProviderProps) {
+  const { visible, mounted } = useContext(OverlayContext)
 
   function onTrash(e: MouseEvent<HTMLElement>) {
     console.log('Trash clicked for', e)
   }
 
+  console.log('context ===>', 'visible', visible, 'mounted', mounted)
+
   return (
     <Application
-      onTrash={onTrash}
       {...props}
+      onTrash={onTrash}
       className={clsx(styles.marketplace)}>
       <Marker
         size={props.size}
         direction={props.direction}
         shape={props.shape}
-        onDoubleClick={() => onUpdateVisible(true)}
       />
-      <Overlay
-        visible={visible}
-        onUpdateVisible={onUpdateVisible}
-      />
+      {mounted && <Overlay />}
     </Application>
   )
 }

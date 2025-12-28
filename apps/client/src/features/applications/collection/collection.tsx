@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import type { MouseEvent } from 'react'
 import { useState } from 'react'
 
-import Application, { type ProviderProps } from '@/features/application/application.tsx'
+import { Application, type ProviderProps } from '@/features/application/application.tsx'
 import styles from '@/features/applications/collection/collection.module.scss'
 import Marker from '@/features/applications/collection/marker.tsx'
 import Overlay from '@/features/applications/collection/overlay.tsx'

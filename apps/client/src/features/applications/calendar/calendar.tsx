@@ -1,9 +1,10 @@
-import Application, { type ProviderProps } from '@/features/application/application.tsx'
+import clsx from 'clsx'
+import type { MouseEvent } from 'react'
+
+import { Application, type ProviderProps } from '@/features/application/application.tsx'
 import styles from '@/features/applications/calendar/calendar.module.scss'
 import Marker from '@/features/applications/calendar/marker.tsx'
 import Overlay from '@/features/applications/calendar/overlay.tsx'
-import clsx from 'clsx'
-import type { MouseEvent } from 'react'
 
 export default function Calendar(props: ProviderProps) {
   const [visible, onUpdateVisible] = useState(false)
@@ -14,8 +15,8 @@ export default function Calendar(props: ProviderProps) {
 
   return (
     <Application
-      onTrash={onTrash}
       {...props}
+      onTrash={onTrash}
       className={clsx(styles.calendar)}>
       <Marker
         size={props.size}

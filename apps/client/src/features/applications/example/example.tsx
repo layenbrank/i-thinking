@@ -1,4 +1,4 @@
-import Application, { type ProviderProps } from '@/features/application/application.tsx'
+import { Application, type ProviderProps } from '@/features/application/application.tsx'
 import styles from '@/features/applications/example/example.module.scss'
 import Marker from '@/features/applications/example/marker.tsx'
 import Overlay from '@/features/applications/example/overlay.tsx'

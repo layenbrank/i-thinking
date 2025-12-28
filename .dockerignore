@@ -20,7 +20,7 @@ path.xml
 **/charts
 **/docker-compose*
 **/compose.y*ml
-**/Dockerfile*
+docker/Dockerfile
 **/node_modules
 **/npm-debug.log
 **/obj

@@ -6,6 +6,9 @@ import {
   useEditorState as useComposerValue
 } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { clsx, type ClassValue } from 'clsx'
+
+import styles from '@/features/applications/markdown/composer-context.module.scss'
 
 export default function ComposerContext({ composer }: { composer: Composer }) {
   const composerValue = useComposerValue({
@@ -39,12 +42,12 @@ export default function ComposerContext({ composer }: { composer: Composer }) {
   })
 
   return (
-    <div className="control-group">
+    <div className={clsx([styles.composer, styles.context, 'control-group'])}>
       <div className="button-group">
         <button
           onClick={() => composer.chain().focus().toggleBold().run()}
           disabled={!composerValue.canBold}
-          className={composerValue.isBold ? 'is-active' : ''}>
+          className={clsx([composerValue.isBold ? 'is-active' : ''])}>
           Bold
         </button>
         <button

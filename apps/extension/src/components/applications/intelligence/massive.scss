@@ -1,26 +1,26 @@
 .intelligence-marker {
-	&.massive {
-		&.square {
-			&.horizontal {
-			}
-			&.vertical {
-			}
-		}
+  &.massive {
+    &.square {
+      &.horizontal {
+      }
+      &.vertical {
+      }
+    }
 
-		&.circle {
-			&.horizontal {
-			}
+    &.circle {
+      &.horizontal {
+      }
 
-			&.vertical {
-			}
-		}
+      &.vertical {
+      }
+    }
 
-		&.rectangle {
-			&.horizontal {
-			}
+    &.rectangle {
+      &.horizontal {
+      }
 
-			&.vertical {
-			}
-		}
-	}
+      &.vertical {
+      }
+    }
+  }
 }
