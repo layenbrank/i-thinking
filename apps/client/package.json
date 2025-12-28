@@ -14,9 +14,17 @@
     "test:e2e": "playwright test",
     "test:coverage": "vitest --coverage"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@floating-ui/react": "^0.27.16",
+    "@tiptap/extension-horizontal-rule": "^3.14.0",
+    "@tiptap/pm": "^3.13.0",
+    "@tiptap/react": "^3.13.0",
+    "@tiptap/starter-kit": "^3.13.0",
+    "react-hotkeys-hook": "^5.2.1"
+  },
   "devDependencies": {
     "@i-thinking/shared": "workspace:*",
-    "@i-thinking/wasm": "workspace:*"
+    "@i-thinking/wasm": "workspace:*",
+    "sass-embedded": "^1.97.1"
   }
 }

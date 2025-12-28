@@ -1,4 +1,4 @@
-import Application, { type ProviderProps } from '@/features/application/application.tsx'
+import { Application, type ProviderProps } from '@/features/application/application.tsx'
 import styles from '@/features/applications/clipchamp/clipchamp.module.scss'
 import Marker from '@/features/applications/clipchamp/marker.tsx'
 import Overlay from '@/features/applications/clipchamp/overlay.tsx'

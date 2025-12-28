@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 
 import type { ProviderProps } from '@/features/application/application.tsx'
-import Application from '@/features/application/application.tsx'
+import { Application } from '@/features/application/application.tsx'
 import Marker from '@/features/applications/navigation/marker.tsx'
 import styles from '@/features/applications/navigation/navigation.module.scss'
 import Overlay from '@/features/applications/navigation/overlay.tsx'

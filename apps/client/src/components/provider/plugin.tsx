@@ -11,17 +11,30 @@ interface PluginProviderProps {
 }
 
 function PluginProvider(props: PluginProviderProps) {
-  useEffect(function () {
-    props.plugins?.forEach(function (plugin) {
-      plugin.mount()
-    })
-
-    return function () {
-      props.plugins?.forEach(function (plugin) {
-        plugin.unmount()
+  useEffect(
+    function () {
+      if (!Array.isArray(props.plugins)) return
+      props.plugins.forEach(function (plugin) {
+        try {
+          plugin?.mount?.()
+        } catch (error) {
+          console.error('Error mounting plugin:', error)
+        }
       })
-    }
-  }, [])
+
+      return function () {
+        if (!Array.isArray(props.plugins)) return
+        props.plugins.forEach(function (plugin) {
+          try {
+            plugin?.unmount?.()
+          } catch (error) {
+            console.error('Error unmounting plugin:', error)
+          }
+        })
+      }
+    },
+    [props.plugins]
+  )
 
   return <>{props.children}</>
 }

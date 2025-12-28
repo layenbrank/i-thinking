@@ -1,4 +1,4 @@
-import Application, { type ProviderProps } from '@/features/application/application.tsx'
+import { Application, type ProviderProps } from '@/features/application/application.tsx'
 import styles from '@/features/applications/signboard/signboard.module.scss'
 import Marker from '@/features/applications/signboard/marker.tsx'
 import Overlay from '@/features/applications/signboard/overlay.tsx'

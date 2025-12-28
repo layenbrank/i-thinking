@@ -7,213 +7,213 @@
 // $size: 240px; // ultra square
 
 %controller {
-	display: grid;
-	padding: 20px;
-	margin: 0 auto;
-	justify-content: center;
-	grid-auto-flow: row dense;
-	outline: none;
-	scrollbar-width: none;
-	column-gap: 10px;
-	row-gap: 30px;
+  display: grid;
+  padding: 20px;
+  margin: 0 auto;
+  justify-content: center;
+  grid-auto-flow: row dense;
+  outline: none;
+  scrollbar-width: none;
+  column-gap: 10px;
+  row-gap: 30px;
 
-	border-radius: var(--application-round);
+  border-radius: var(--application-round);
 
-	&.mini {
-		--application-size: 60px;
-	}
+  &.mini {
+    --application-size: 60px;
+  }
 
-	&.small {
-		--application-size: 90px;
-	}
+  &.small {
+    --application-size: 90px;
+  }
 
-	&.medium {
-		--application-size: 120px;
-	}
+  &.medium {
+    --application-size: 120px;
+  }
 
-	&.large {
-		--application-size: 150px;
-	}
+  &.large {
+    --application-size: 150px;
+  }
 
-	&.huge {
-		--application-size: 180px;
-	}
+  &.huge {
+    --application-size: 180px;
+  }
 
-	&.massive {
-		--application-size: 210px;
-	}
+  &.massive {
+    --application-size: 210px;
+  }
 
-	// &. minimize ultimate {
-	&.ultra {
-		--application-size: 240px;
-	}
+  // &. minimize ultimate {
+  &.ultra {
+    --application-size: 240px;
+  }
 
-	&.mini,
-	&.small,
-	&.medium,
-	&.large,
-	&.huge,
-	&.massive,
-	&.ultra {
-		&.circle {
-			:deep(:where(.application)) {
-				height: var(--application-size);
-				width: var(--application-size);
-				border-radius: calc(var(--application-size) / 2);
-			}
-		}
+  &.mini,
+  &.small,
+  &.medium,
+  &.large,
+  &.huge,
+  &.massive,
+  &.ultra {
+    &.circle {
+      :deep(:where(.application)) {
+        height: var(--application-size);
+        width: var(--application-size);
+        border-radius: calc(var(--application-size) / 2);
+      }
+    }
 
-		&.square {
-			:deep(:where(.application)) {
-				width: var(--application-size);
-				height: var(--application-size);
-			}
-		}
-		@mixin ratio-width($base-var, $w, $h) {
-			width: calc(#{$base-var} * (#{$w} / #{$h}));
-		}
+    &.square {
+      :deep(:where(.application)) {
+        width: var(--application-size);
+        height: var(--application-size);
+      }
+    }
+    @mixin ratio-width($base-var, $w, $h) {
+      width: calc(#{$base-var} * (#{$w} / #{$h}));
+    }
 
-		@mixin ratio-height($base-var, $w, $h) {
-			height: calc(#{$base-var} * (#{$h} / #{$w}));
-		}
+    @mixin ratio-height($base-var, $w, $h) {
+      height: calc(#{$base-var} * (#{$h} / #{$w}));
+    }
 
-		&.rectangle {
-			&.horizontal {
-				:deep(:where(.application)) {
-					width: calc(var(--application-size) * 16 / 9);
-					height: var(--application-size);
-					// aspect-ratio: 16 / 9;
-					// @include ratio-width(var(--application-size), 16, 9);
-				}
-			}
+    &.rectangle {
+      &.horizontal {
+        :deep(:where(.application)) {
+          width: calc(var(--application-size) * 16 / 9);
+          height: var(--application-size);
+          // aspect-ratio: 16 / 9;
+          // @include ratio-width(var(--application-size), 16, 9);
+        }
+      }
 
-			&.vertical {
-				:deep(:where(.application)) {
-					width: var(--application-size);
-					height: calc(var(--application-size) * 16 / 9);
-					// aspect-ratio: 9 / 16;
-					// @include ratio-height(var(--application-size), 9, 16);
-				}
-			}
-		}
-	}
+      &.vertical {
+        :deep(:where(.application)) {
+          width: var(--application-size);
+          height: calc(var(--application-size) * 16 / 9);
+          // aspect-ratio: 9 / 16;
+          // @include ratio-height(var(--application-size), 9, 16);
+        }
+      }
+    }
+  }
 
-	&.rectangle.horizontal {
-		// rectangle horizontal时 使用scss 数学函数计算获取 16/9 比例的最终宽度
-		grid-template-columns: repeat(auto-fill, calc(var(--application-size) * 16 / 9));
-	}
+  &.rectangle.horizontal {
+    // rectangle horizontal时 使用scss 数学函数计算获取 16/9 比例的最终宽度
+    grid-template-columns: repeat(auto-fill, calc(var(--application-size) * 16 / 9));
+  }
 
-	&:not(.rectangle),
-	&.rectangle.vertical {
-		grid-template-columns: repeat(auto-fill, var(--application-size));
-	}
+  &:not(.rectangle),
+  &.rectangle.vertical {
+    grid-template-columns: repeat(auto-fill, var(--application-size));
+  }
 
-	transition:
-		width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-		height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-		row-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-		column-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+  transition:
+    width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    row-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    column-gap 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 
-	:deep(:where(.application)) {
-		@apply relative cursor-pointer text-center;
+  :deep(:where(.application)) {
+    @apply relative cursor-pointer text-center;
 
-		transition:
-			box-shadow 300ms,
-			width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-			height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-			grid-row 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-			grid-column 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+    transition:
+      box-shadow 300ms,
+      width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+      height 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+      grid-row 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+      grid-column 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 
-		& > :where(div:is([class*='-marker '], [class$='-marker'])) {
-			@apply w-full h-full;
-			transition: all 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
-		}
+    & > :where(div:is([class*='-marker '], [class$='-marker'])) {
+      @apply w-full h-full;
+      transition: all 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
 
-		// & > :where(.application-badge) {
-		// 	@apply absolute top-0 right-0 flex items-center justify-center bg-red-500 text-white text-xs rounded-full;
-		// 	width: var(--application-badge-size, 16px);
-		// 	height: var(--application-badge-size, 16px);
-		// 	font-size: var(--application-badge-font-size, 10px);
-		// 	transform: translate(50%, -50%);
-		// 	padding: 0 4px;
-		// 	line-height: 1;
-		// }
+    // & > :where(.application-badge) {
+    // 	@apply absolute top-0 right-0 flex items-center justify-center bg-red-500 text-white text-xs rounded-full;
+    // 	width: var(--application-badge-size, 16px);
+    // 	height: var(--application-badge-size, 16px);
+    // 	font-size: var(--application-badge-font-size, 10px);
+    // 	transform: translate(50%, -50%);
+    // 	padding: 0 4px;
+    // 	line-height: 1;
+    // }
 
-		& > :where(span.application-title) {
-			@apply block truncate w-full mt-1;
-			color: var(--application-global-text-color);
-			font-size: var(--application-global-text-size);
-		}
+    & > :where(span.application-title) {
+      @apply block truncate w-full mt-1;
+      color: var(--application-global-text-color);
+      font-size: var(--application-global-text-size);
+    }
 
-		& > :where(.application-trash-mark) {
-			@apply w-5 h-5 absolute -top-[8px] -right-[8px] items-center justify-center bg-[#00000033] rounded-full p-[5px] transition-[background];
-			@apply hidden;
+    & > :where(.application-trash-mark) {
+      @apply w-5 h-5 absolute -top-[8px] -right-[8px] items-center justify-center bg-[#00000033] rounded-full p-[5px] transition-[background];
+      @apply hidden;
 
-			&:hover {
-				@apply bg-[#d83030];
-			}
-		}
-	}
+      &:hover {
+        @apply bg-[#d83030];
+      }
+    }
+  }
 
-	.application {
-		&-fade-move,
-		&-fade-enter-active,
-		&-fade-leave-active {
-			transition:
-				opacity 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-				grid-row 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-				grid-column 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-				transform 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-				width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-				height 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
-		}
+  .application {
+    &-fade-move,
+    &-fade-enter-active,
+    &-fade-leave-active {
+      transition:
+        opacity 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+        grid-row 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+        grid-column 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+        transform 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+        width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+        height 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
 
-		&-fade-enter-from,
-		&-fade-leave-to {
-			opacity: 0;
-			transform: scale(0);
-		}
-		/* 处理列表重排动画 */
-		&-fade-move {
-			transition: transform 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
-		}
-	}
+    &-fade-enter-from,
+    &-fade-leave-to {
+      opacity: 0;
+      transform: scale(0);
+    }
+    /* 处理列表重排动画 */
+    &-fade-move {
+      transition: transform 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+  }
 }
 
 %direction {
-	&.horizontal {
-		width: calc(var(--application-size) * (16 / 9));
-		height: var(--application-size);
-		// aspect-ratio: 16/9;
-	}
+  &.horizontal {
+    width: calc(var(--application-size) * (16 / 9));
+    height: var(--application-size);
+    // aspect-ratio: 16/9;
+  }
 
-	&.vertical {
-		width: var(--application-size);
-		height: calc(var(--application-size) * (9 / 16));
-		// aspect-ratio: 9/16;
-	}
+  &.vertical {
+    width: var(--application-size);
+    height: calc(var(--application-size) * (9 / 16));
+    // aspect-ratio: 9/16;
+  }
 }
 
 %shape {
-	&.circle {
-		width: var(--application-size);
-		height: var(--application-size);
-		border-radius: calc(var(--application-size) / 2);
-	}
+  &.circle {
+    width: var(--application-size);
+    height: var(--application-size);
+    border-radius: calc(var(--application-size) / 2);
+  }
 
-	&.square {
-		width: var(--application-size);
-		height: var(--application-size);
-	}
+  &.square {
+    width: var(--application-size);
+    height: var(--application-size);
+  }
 
-	&.rectangle {
-		@extend %direction;
-	}
+  &.rectangle {
+    @extend %direction;
+  }
 }
 
 %application {
-	border-radius: var(--application-round);
+  border-radius: var(--application-round);
 
-	// @extend %shape;
-	// background-color: #4080ff;
+  // @extend %shape;
+  // background-color: #4080ff;
 }

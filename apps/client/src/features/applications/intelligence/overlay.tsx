@@ -39,8 +39,9 @@ import type { SuggestionItem } from '@ant-design/x/es/suggestion'
 import { Card, Divider, Flex, FloatButton, type GetProp, theme } from 'antd'
 import clsx from 'clsx'
 
+import { Scroll } from '@/components/scroll/scroll.tsx'
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'
-import Application from '@/features/application/application.tsx'
+import { Application } from '@/features/application/application.tsx'
 import styles from '@/features/applications/intelligence/overlay.module.scss'
 import { SESSIONS } from './constant.ts'
 
@@ -396,6 +397,9 @@ export default function Overlay(props: Props) {
 
   return (
     <Application.Overlay
+      style={{
+        minWidth: '800px'
+      }}
       open={props.visible}
       fullscreen={fullscreen}
       wrapClassName={styles.rootTop}

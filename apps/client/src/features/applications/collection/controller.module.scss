@@ -1,12 +1,12 @@
 .application {
-	display: grid;
-	padding: 0px;
-	margin: 0 auto;
-	outline: none;
-	justify-content: center;
-	grid-auto-flow: row dense;
-	row-gap: var(--application-gap-y, 30px);
-	column-gap: var(--application-gap-x, 30px);
+  display: grid;
+  padding: 0px;
+  margin: 0 auto;
+  outline: none;
+  justify-content: center;
+  grid-auto-flow: row dense;
+  row-gap: var(--application-gap-y, 30px);
+  column-gap: var(--application-gap-x, 30px);
 
-	@extend %application;
+  @extend %application;
 }

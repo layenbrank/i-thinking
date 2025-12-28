@@ -1,26 +1,26 @@
 .markdown-marker {
-	&.small {
-		&.square {
-			&.horizontal {
-			}
-			&.vertical {
-			}
-		}
+  &.small {
+    &.square {
+      &.horizontal {
+      }
+      &.vertical {
+      }
+    }
 
-		&.circle {
-			&.horizontal {
-			}
+    &.circle {
+      &.horizontal {
+      }
 
-			&.vertical {
-			}
-		}
+      &.vertical {
+      }
+    }
 
-		&.rectangle {
-			&.horizontal {
-			}
+    &.rectangle {
+      &.horizontal {
+      }
 
-			&.vertical {
-			}
-		}
-	}
+      &.vertical {
+      }
+    }
+  }
 }
