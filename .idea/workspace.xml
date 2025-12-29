@@ -4,11 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5095ede6-2806-4147-bd54-25591e2afe3b" name="更改" comment="chore: 测试 ci">
-      <change afterPath="$PROJECT_DIR$/.github/workflows/qodana_code_quality.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/workflows/pages.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/pages.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/workflows/qodana_code_quality.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="5095ede6-2806-4147-bd54-25591e2afe3b" name="更改" comment="chore: 测试 ci并修改配置文件">
+      <change beforePath="$PROJECT_DIR$/.github/workflows/qodana_code_quality.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/qodana_code_quality.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -231,7 +228,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767021776064</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="chore: 测试 ci并修改配置文件">
+      <option name="closed" value="true" />
+      <created>1767022806040</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1767022806040</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -264,7 +269,8 @@
     <MESSAGE value="chore: 完善自定义应用表单" />
     <MESSAGE value="refactor: 重构并修正统一样式规则" />
     <MESSAGE value="chore: 测试 ci" />
-    <option name="LAST_COMMIT_MESSAGE" value="chore: 测试 ci" />
+    <MESSAGE value="chore: 测试 ci并修改配置文件" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: 测试 ci并修改配置文件" />
   </component>
   <component name="VueSettings">
     <option name="tsPluginPreviewEnabled" value="true" />

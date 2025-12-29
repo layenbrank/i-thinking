@@ -34,5 +34,5 @@ jobs:
           upload-result: false
           push-fixes: none
         env:
-          QODANA_TOKEN: ${{ secrets.QODANA_CONFIGURATIONS_TOKEN }}
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
           QODANA_ENDPOINT: 'https://qodana.cloud'
