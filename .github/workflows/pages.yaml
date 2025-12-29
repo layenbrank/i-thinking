@@ -5,7 +5,7 @@ on:
     branches: [master]
     paths:
       - 'apps/docs/**'
-      - '.github/workflows/pages.yml'
+      - 'pages.yaml'
 
 permissions:
   contents: read
