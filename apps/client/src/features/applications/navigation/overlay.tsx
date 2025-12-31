@@ -9,11 +9,11 @@ import styles from '@/features/applications/navigation/overlay.module.scss'
 // interface Props {}
 
 export default function Overlay() {
-  const { visible, onUpdateVisible } = useContext(OverlayContext)
+  const { onUpdateVisible } = useContext(OverlayContext)
 
   return (
     <Application.Overlay
-      open={visible}
+      open={false}
       className={clsx([styles.overlay, styles.root])}
       onOk={() => onUpdateVisible(false)}
       onCancel={() => onUpdateVisible(false)}>
