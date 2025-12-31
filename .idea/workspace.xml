@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5095ede6-2806-4147-bd54-25591e2afe3b" name="更改" comment="refactor: 重构模态框状态管理">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/navigation/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/navigation/overlay.tsx" afterDir="false" />
-    </list>
+    <list default="true" id="5095ede6-2806-4147-bd54-25591e2afe3b" name="更改" comment="chore: 导航应用不允许打开模态框" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -51,49 +48,49 @@
     <option name="showLibraryContents" value="true" />
     <option name="showScratchesAndConsoles" value="false" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "JavaScript 调试.extension.executor": "Debug",
-    "JavaScript 调试.localhost:5173.executor": "Debug",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "master",
-    "javascript.nodejs.core.library.configured.version": "22.20.0",
-    "javascript.nodejs.core.library.typings.version": "22.19.3",
-    "javascript.preferred.runtime.type.id": "node",
-    "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "C:/Users/MACHENIKE/Documents/Vue3/i-thinking/apps/extension",
-    "list.type.of.created.stylesheet": "SCSS",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.stylelint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.stylelint": "",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_interpreter_path": "node",
-    "nodejs_package_manager_path": "pnpm",
-    "npm.build:client.executor": "Run",
-    "npm.client > dev:core.executor": "Debug",
-    "prettierjs.PrettierConfiguration.Package": "C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\prettier",
-    "settings.editor.selected.configurable": "Errors",
-    "to.speed.mode.migration.done": "true",
-    "ts.external.directory.path": "C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\typescript\\lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;JavaScript 调试.extension.executor&quot;: &quot;Debug&quot;,
+    &quot;JavaScript 调试.localhost:5173.executor&quot;: &quot;Debug&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;javascript.nodejs.core.library.configured.version&quot;: &quot;22.20.0&quot;,
+    &quot;javascript.nodejs.core.library.typings.version&quot;: &quot;22.19.3&quot;,
+    &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/MACHENIKE/Documents/Vue3/i-thinking/apps/extension&quot;,
+    &quot;list.type.of.created.stylesheet&quot;: &quot;SCSS&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.stylelint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.stylelint&quot;: &quot;&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_interpreter_path&quot;: &quot;node&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
+    &quot;npm.build:client.executor&quot;: &quot;Run&quot;,
+    &quot;npm.client &gt; dev:core.executor&quot;: &quot;Debug&quot;,
+    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\prettier&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;Errors&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "DatabaseDriversLRU": [
-      "mongo"
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;mongo&quot;
     ],
-    "vue.recent.templates": [
-      "Vue Options API Component"
+    &quot;vue.recent.templates&quot;: [
+      &quot;Vue Options API Component&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="QodanaCIConfigService">
     <option name="path" value="$PROJECT_DIR$/.github/workflows/qodana_code_quality.yaml" />
   </component>
@@ -106,7 +103,7 @@
       <recent name="C:\Users\MACHENIKE\Documents\Vue3\i-thinking" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.build:client">
+  <component name="RunManager" selected="npm.dev:client">
     <configuration name="extension" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:1024/extension/">
       <method v="2" />
     </configuration>
@@ -136,8 +133,19 @@
       </EXTENSION>
       <method v="2" />
     </configuration>
+    <configuration name="dev:client" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="dev:client" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="npm.dev:client" />
         <item itemvalue="npm.build:client" />
         <item itemvalue="npm.client &gt; dev:core" />
         <item itemvalue="JavaScript 调试.localhost:5173" />
@@ -200,7 +208,7 @@
       <workItem from="1766905913274" duration="4605000" />
       <workItem from="1766910552064" duration="17986000" />
       <workItem from="1767071099630" duration="13240000" />
-      <workItem from="1767158181840" duration="1507000" />
+      <workItem from="1767158181840" duration="1810000" />
     </task>
     <task id="LOCAL-00001" summary="添加自定义应用表单">
       <option name="closed" value="true" />
@@ -266,7 +274,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767140510174</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="chore: 导航应用不允许打开模态框">
+      <option name="closed" value="true" />
+      <created>1767159993810</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1767159993810</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -333,7 +349,8 @@
     <MESSAGE value="chore: 测试 ci并修改配置文件" />
     <MESSAGE value="chore: 测试 ci,并修改配置文件" />
     <MESSAGE value="refactor: 重构模态框状态管理" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor: 重构模态框状态管理" />
+    <MESSAGE value="chore: 导航应用不允许打开模态框" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: 导航应用不允许打开模态框" />
   </component>
   <component name="VueSettings">
     <option name="tsPluginPreviewEnabled" value="true" />
