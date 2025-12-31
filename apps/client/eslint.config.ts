@@ -18,7 +18,7 @@ export default defineConfig([
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        ecmaVersion: 2023,
+        ecmaVersion: 2025,
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
         globals: globals.browser

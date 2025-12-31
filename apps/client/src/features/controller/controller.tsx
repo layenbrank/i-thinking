@@ -7,7 +7,7 @@ import {
   useSensors,
   type DragEndEvent
 } from '@dnd-kit/core'
-import { snapCenterToCursor, restrictToParentElement } from '@dnd-kit/modifiers'
+import { restrictToParentElement } from '@dnd-kit/modifiers'
 import {
   arrayMove,
   rectSortingStrategy,
@@ -18,13 +18,16 @@ import clsx from 'clsx'
 import { useMemo, useRef, type ReactNode } from 'react'
 import { useKeyPress } from 'react-use'
 
+import { OverlayProvider } from '@/features/application/application.tsx'
 import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 const Controller = {
   Mirror({ children }: { children: ReactNode }) {
-    return <div className={clsx(styles.controller, styles.mirror)}>{children}</div>
+    return (
+      <div className={clsx(styles.controller, styles.mirror)}>{children}</div>
+    )
   },
   Application() {
     const store = useMirrorStore()
@@ -48,21 +51,6 @@ const Controller = {
         tolerance: 10,
         delay: 1000,
         distance: 10 // 需要移动 10px 才激活拖拽，避免误触
-      },
-      // 阻止在 overlay 内的拖拽激活
-      bypassActivationConstraint({ event, activeNode, options }) {
-        const target = event.target as HTMLElement
-        if (!target) return false
-        // 检查点击目标是否在 overlay 内
-        const isOverlay =
-          target.closest('.application-overlay') ||
-          target.closest('.ant-modal-wrap') ||
-          target.closest('.ant-modal') ||
-          target.closest('.ant-modal-content') ||
-          target.closest('.ant-modal-body')
-        // 如果在 overlay 内，返回 false 应用约束（阻止拖拽）
-        // 否则返回 true 绕过约束（允许拖拽）
-        return !isOverlay
       }
     })
 
@@ -85,7 +73,8 @@ const Controller = {
       if (active.id === over.id) return
 
       // 检查目标是否是放置区域
-      const isDropZone = over.id === 'navigation-drop-zone' || over.id === 'collection-drop-zone'
+      const isDropZone =
+        over.id === 'navigation-drop-zone' || over.id === 'collection-drop-zone'
 
       // 如果目标是放置区域，执行放置逻辑（无论是否按下 Control 键）
       if (isDropZone) {
@@ -120,7 +109,11 @@ const Controller = {
           return v.id === over.id
         })
 
-        const applications = arrayMove(store.applications ?? [], oldIndex ?? 0, newIndex ?? 0)
+        const applications = arrayMove(
+          store.applications ?? [],
+          oldIndex ?? 0,
+          newIndex ?? 0
+        )
 
         const updates = applications.map(function (value, index) {
           return {
@@ -204,11 +197,11 @@ const Controller = {
                 ...value,
                 direction
               }
+
               return (
-                <Component
-                  {...props}
-                  key={value.id}
-                />
+                <OverlayProvider key={value.id}>
+                  <Component {...props} />
+                </OverlayProvider>
               )
             })}
           </div>

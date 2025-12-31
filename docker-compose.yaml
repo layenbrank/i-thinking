@@ -1,0 +1,117 @@
+# ================================
+# 前端开发环境 Docker Compose 配置
+# 提供完整的开发环境支持
+# ================================
+
+services:
+  # 前端开发环境
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: frontend-env:1.0.2
+    container_name: frontend-dev-env
+
+    # 端口映射 - 映射常用的前端开发端口
+    ports:
+      - '3000:3000' # React/Next.js 默认端口
+      - '8080:8080' # Vue CLI 开发服务器
+      - '5173:5173' # Vite 默认端口
+      - '9000:9000' # NestJS 默认端口
+      - '8000:8000' # 备用端口
+
+    # 卷挂载 - 将本地项目目录挂载到容器
+    volumes:
+      - .:/root/app # 挂载当前目录到 /root/app
+      - node_modules:/root/app/node_modules # 使用命名卷存储 node_modules
+      - pnpm_store:/root/.pnpm-store # 持久化 pnpm store
+      - pnpm_cache:/root/.pnpm-cache # 持久化 pnpm cache
+
+    # 环境变量
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true # 解决文件监听问题（Windows/WSL）
+      - WATCHPACK_POLLING=true # Webpack 文件监听优化
+
+    # 工作目录
+    working_dir: /root/app
+
+    # 保持容器运行
+    tty: true
+    stdin_open: true
+
+    # 网络配置
+    networks:
+      - frontend-network
+
+  # Redis 服务（可选，用于缓存和会话存储）
+  redis:
+    image: redis:7-alpine
+    container_name: frontend-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - frontend-network
+    profiles:
+      - with-redis
+
+  # PostgreSQL 数据库（可选，用于全栈开发）
+  postgres:
+    image: postgres:15-alpine
+    container_name: frontend-postgres
+    environment:
+      POSTGRES_DB: frontend_dev
+      POSTGRES_USER: developer
+      POSTGRES_PASSWORD: dev_password
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - frontend-network
+    profiles:
+      - with-database
+
+# 命名卷定义
+volumes:
+  node_modules:
+    driver: local
+  pnpm_store:
+    driver: local
+  pnpm_cache:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+# 网络定义
+networks:
+  frontend-network:
+    driver: bridge
+# ================================
+# 使用说明:
+#
+# 1. 启动基础开发环境:
+#    docker-compose up -d frontend-dev
+#
+# 2. 启动包含 Redis 的环境:
+#    docker-compose --profile with-redis up -d
+#
+# 3. 启动完整环境（包含数据库）:
+#    docker-compose --profile with-database --profile with-redis up -d
+#
+# 4. 进入开发容器:
+#    docker-compose exec frontend-dev bash
+#
+# 5. 查看日志:
+#    docker-compose logs -f frontend-dev
+#
+# 6. 停止服务:
+#    docker-compose down
+#
+# 7. 清理所有数据:
+#    docker-compose down -v
+# ================================

@@ -8,3 +8,11 @@ profile:
   name: qodana.recommended
 include:
   - name: CheckDependencyLicenses
+exclude:
+  - name: Eslint
+  - name: All
+    paths:
+      - apps\extension\src\assets\ffmpeg
+      - packages\wasm
+      - packages\core\src\components
+      - packages\core\src\store

@@ -57,6 +57,10 @@ const OPTIONS: ApplicationOptions[] = [
   {
     label: '时钟',
     value: 'clock'
+  },
+  {
+    label: '看板',
+    value: 'signboard'
   }
 ]
 
@@ -91,30 +95,32 @@ function BuildMirror(options?: MirrorOptions) {
     return mirror.id === MIRROR_ID
   })
 
-  const APPLICATIONS: readonly Application[] = OPTIONS.map(function (value, index) {
-    const application: Application = {
-      id: window.crypto.randomUUID() as string,
-      url: null,
-      mark: null,
-      title: value.label,
-      index: index,
-      round: '12px',
-      mirrorID: MIRROR_ID,
-      textSize: '13px',
-      backdrop: null,
-      component: value.value,
-      textColor: '#ffffff',
-      updatedAt: Date.now(),
-      createdAt: Date.now(),
-      description: value.label,
-      collectionID: null,
-      downloadCount: 1000,
-      background: {
-        color: generateColor()
+  const APPLICATIONS: readonly Application[] = OPTIONS.map(
+    function (value, index) {
+      const application: Application = {
+        id: window.crypto.randomUUID() as string,
+        url: null,
+        mark: null,
+        title: value.label,
+        index: index,
+        round: '12px',
+        mirrorID: MIRROR_ID,
+        textSize: '13px',
+        backdrop: null,
+        component: value.value,
+        textColor: '#ffffff',
+        updatedAt: Date.now(),
+        createdAt: Date.now(),
+        description: value.label,
+        collectionID: null,
+        downloadCount: 1000,
+        background: {
+          color: generateColor()
+        }
       }
+      return application
     }
-    return application
-  })
+  )
 
   return {
     MIRRORS,

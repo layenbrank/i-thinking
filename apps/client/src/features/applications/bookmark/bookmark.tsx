@@ -1,20 +1,20 @@
-import { Application, type ProviderProps } from '@/features/application/application.tsx'
+import {
+  Application,
+  type SectionProps
+} from '@/features/application/application.tsx'
 import styles from '@/features/applications/bookmark/bookmark.module.scss'
 import Marker from '@/features/applications/bookmark/marker.tsx'
 import Overlay from '@/features/applications/bookmark/overlay.tsx'
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'
-import { useState } from 'react'
 
-export default function Bookmark(props: ProviderProps) {
-  const [visible, onUpdateVisible] = useState(false)
-
+export default function Bookmark(props: SectionProps) {
   function onTrash(e: MouseEvent<HTMLElement>) {
     console.log('Trash clicked for', e)
   }
 
   return (
-    <Application
+    <Application.Section
       {...props}
       onTrash={onTrash}
       className={clsx(styles.bookmark)}>
@@ -22,12 +22,8 @@ export default function Bookmark(props: ProviderProps) {
         size={props.size}
         direction={props.direction}
         shape={props.shape}
-        onDoubleClick={() => onUpdateVisible(true)}
       />
-      <Overlay
-        visible={visible}
-        onUpdateVisible={onUpdateVisible}
-      />
-    </Application>
+      <Overlay />
+    </Application.Section>
   )
 }

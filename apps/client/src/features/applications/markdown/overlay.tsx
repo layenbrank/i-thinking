@@ -23,7 +23,10 @@ import { HeadingButton } from '@/components/tiptap-ui/heading-button/index.tsx'
 import { Tooltip } from '@/components/tiptap-ui-primitive/tooltip/index.tsx'
 import { Button } from '@/components/tiptap-ui-primitive/button/index.tsx'
 import { Badge } from '@/components/tiptap-ui-primitive/badge/index.tsx'
-import { Application } from '@/features/application/application.tsx'
+import {
+  Application,
+  OverlayContext
+} from '@/features/application/application.tsx'
 import ComposerContext from '@/features/applications/markdown/composer-context.tsx'
 import styles from '@/features/applications/markdown/overlay.module.scss'
 import '@/styles/markdown-animations.scss'
@@ -31,14 +34,13 @@ import '@/styles/markdown-composer.scss'
 import '@/styles/markdown-variables.scss'
 // import '@/styles/'
 
-interface Props {
-  visible: boolean
-  onUpdateVisible: (value: boolean) => void
-}
+// interface Props {}
 
 const extensions = [TextStyleKit, StarterKit]
 
-export default function Overlay(props: Props) {
+export default function Overlay() {
+  const { visible, onUpdateVisible } = useContext(OverlayContext)
+
   const [markdown, onUpdate] = useState(
     '# Hello, markdown!\n\n```ts\nconsole.log("Hello, world!")\n```'
   )
@@ -79,10 +81,10 @@ export default function Overlay(props: Props) {
 
   return (
     <Application.Overlay
-      open={props.visible}
+      open={visible}
       className={clsx([styles.overlay, styles.root])}
-      onCancel={() => props.onUpdateVisible(false)}
-      onOk={() => props.onUpdateVisible(false)}>
+      onOk={() => onUpdateVisible(false)}
+      onCancel={() => onUpdateVisible(false)}>
       <div className={clsx([styles.overlay, styles.section])}>
         <div className={clsx(['flex'])}>
           <HeadingButton
@@ -134,7 +136,10 @@ export default function Overlay(props: Props) {
             <HeadingSixIcon></HeadingSixIcon>
           </HeadingButton>
         </div>
-        <div className={clsx(['flex-1 min-h-0 overflow-x-hidden overflow-y-scroll scroll-smooth'])}>
+        <div
+          className={clsx([
+            'flex-1 min-h-0 overflow-x-hidden overflow-y-scroll scroll-smooth'
+          ])}>
           <ComposerContext composer={composer} />
           <Button>参数</Button>
           <Badge>测试</Badge>
@@ -180,11 +185,19 @@ export default function Overlay(props: Props) {
                 )
               },
               blockquote({ children }) {
-                return <blockquote className="typora-blockquote">{children}</blockquote>
+                return (
+                  <blockquote className="typora-blockquote">
+                    {children}
+                  </blockquote>
+                )
               },
               code({ children, className }) {
-                const language = className ? className.split('language-')[1] : ''
-                return <code className={`typora-code ${language}`}>{children}</code>
+                const language = className
+                  ? className.split('language-')[1]
+                  : ''
+                return (
+                  <code className={`typora-code ${language}`}>{children}</code>
+                )
               },
               pre({ children }) {
                 return <pre className="typora-pre">{children}</pre>

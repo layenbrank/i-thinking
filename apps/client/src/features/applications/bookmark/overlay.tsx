@@ -1,18 +1,19 @@
-import { Application } from '@/features/application/application.tsx'
+import {
+  Application,
+  OverlayContext
+} from '@/features/application/application.tsx'
 import styles from '@/features/applications/bookmark/overlay.module.scss'
 
-interface Props {
-  visible: boolean
-  onUpdateVisible: (value: boolean) => void
-}
+// interface Props {}
 
-export default function Overlay(props: Props) {
+export default function Overlay() {
+  const { visible, onUpdateVisible } = useContext(OverlayContext)
+
   return (
     <Application.Overlay
-      mounted={props.visible}
-      open={props.visible}
-      onCancel={() => props.onUpdateVisible(false)}
-      onOk={() => props.onUpdateVisible(false)}>
+      open={visible}
+      onOk={() => onUpdateVisible(false)}
+      onCancel={() => onUpdateVisible(false)}>
       <div className={styles.overlay}>Overlay</div>
     </Application.Overlay>
   )

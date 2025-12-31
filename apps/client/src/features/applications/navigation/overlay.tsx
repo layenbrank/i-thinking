@@ -1,18 +1,22 @@
-import { Application } from '@/features/application/application.tsx'
+import { clsx } from 'clsx'
+
+import {
+  Application,
+  OverlayContext
+} from '@/features/application/application.tsx'
 import styles from '@/features/applications/navigation/overlay.module.scss'
 
-interface Props {
-  visible: boolean
-  onUpdateVisible: (value: boolean) => void
-}
+// interface Props {}
 
-export default function Overlay(props: Props) {
-  useEffect(function () {}, [])
+export default function Overlay() {
+  const { visible, onUpdateVisible } = useContext(OverlayContext)
+
   return (
     <Application.Overlay
-      open={props.visible}
-      onCancel={() => props.onUpdateVisible(false)}
-      onOk={() => props.onUpdateVisible(false)}>
+      open={visible}
+      className={clsx([styles.overlay, styles.root])}
+      onOk={() => onUpdateVisible(false)}
+      onCancel={() => onUpdateVisible(false)}>
       <iframe
         // src="https://cn.bing.com"
         src="https://www.baidu.com"

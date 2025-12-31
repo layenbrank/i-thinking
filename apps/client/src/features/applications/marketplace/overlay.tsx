@@ -28,12 +28,16 @@ import { Scroll } from '@/components/scroll/scroll.tsx'
 import styles from '@/features/applications/marketplace/overlay.module.scss'
 import { mirror$ } from '@/stores/mirror.ts'
 import { timeSphere } from '@i-thinking/core'
-import { Application, OverlayContext } from '@/features/application/application.tsx'
-import { useContext } from 'react'
+import {
+  Application,
+  OverlayContext
+} from '@/features/application/application.tsx'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
 type SegmentedOption = SegmentedLabeledOption<SegmentedValue>
+
+// interface OverlayProps {}
 
 const validateMessages = {
   required: '${label}是必填的!',
@@ -44,7 +48,11 @@ const validateMessages = {
 }
 
 function genPresets(presets = presetPalettes) {
-  return Object.entries(presets).map<Presets>(([label, colors]) => ({ label, colors, key: label }))
+  return Object.entries(presets).map<Presets>(([label, colors]) => ({
+    label,
+    colors,
+    key: label
+  }))
 }
 
 const customPanelRender: ColorPickerProps['panelRender'] = (
@@ -69,7 +77,8 @@ const customPanelRender: ColorPickerProps['panelRender'] = (
 
 export default function Overlay() {
   const { token } = theme.useToken()
-  const { visible, updateVisible, mounted } = useContext(OverlayContext)
+  const { visible, onUpdateVisible } = useContext(OverlayContext)
+  // const { visible, updateVisible, mounted } = useContext(OverlayContext)
   const DEFAULT_COLORS = genPresets({
     primary: generate(token.colorPrimary),
     red,
@@ -88,15 +97,7 @@ export default function Overlay() {
   const [activeSegmented, updateActiveSegment] = useState<SegmentedValue>()
   const [files, updateFiles] = useState<UploadFile<any>[]>()
 
-  const [colors, updateColors] = useState<string[]>(function () {
-    // const res= Object.entries( {
-    // 	primary: generate( token.colorPrimary ),
-    // 	red,
-    // 	green,
-    // 	cyan
-    // } ).map< Presets >( ( [ label, colors ] ) => ( { label, colors, key: label } ) )
-    return []
-  })
+  const [colors, updateColors] = useState<string[]>([])
 
   const [segmentedOptions] = useState<SegmentedOption[]>([
     {
@@ -136,11 +137,21 @@ export default function Overlay() {
         const filename = `applications-${formatted}.json`
         const download = await downloadDir()
         console.log('download', download)
-        console.log('BaseDirectory', BaseDirectory, '\nDownload', BaseDirectory.Download)
+        console.log(
+          'BaseDirectory',
+          BaseDirectory,
+          '\nDownload',
+          BaseDirectory.Download
+        )
         // stringify 转为 Uint8Array 并写入文件
         const encoder = new TextEncoder()
         const uint8 = encoder.encode(stringify)
-        console.log('filename', filename, '\nfilepath', `${download}/${filename}`)
+        console.log(
+          'filename',
+          filename,
+          '\nfilepath',
+          `${download}/${filename}`
+        )
         const file = await create(filename, {
           baseDir: BaseDirectory.Download
         })
@@ -186,7 +197,10 @@ export default function Overlay() {
   }, [])
 
   useEffect(function () {
-    const collect = Object.values(DEFAULT_COLORS).reduce<string[]>(function (acc, cur) {
+    const collect = Object.values(DEFAULT_COLORS).reduce<string[]>(function (
+      acc,
+      cur
+    ) {
       const toStrings = cur.colors.map((color) => color.toString())
       console.log('toString', toStrings)
       return acc.concat(toStrings)
@@ -203,8 +217,8 @@ export default function Overlay() {
     <Application.Overlay
       open={visible}
       className={clsx([styles.overlay, styles.root])}
-      onOk={() => updateVisible(false)}
-      onCancel={() => updateVisible(false)}>
+      onOk={() => onUpdateVisible(false)}
+      onCancel={() => onUpdateVisible(false)}>
       <Flex
         justify="center"
         className={clsx(['h-full'])}>

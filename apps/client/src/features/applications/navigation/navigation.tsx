@@ -1,17 +1,16 @@
 import { message } from 'antd'
 import clsx, { type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEvent } from 'react'
-import { useState } from 'react'
 
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 
-import type { ProviderProps } from '@/features/application/application.tsx'
+import type { SectionProps } from '@/features/application/application.tsx'
 import { Application } from '@/features/application/application.tsx'
 import Marker from '@/features/applications/navigation/marker.tsx'
 import styles from '@/features/applications/navigation/navigation.module.scss'
 import Overlay from '@/features/applications/navigation/overlay.tsx'
 
-interface NavigationProps extends Omit<ProviderProps, 'children'> {
+interface NavigationProps extends Omit<SectionProps, 'children'> {
   style?: CSSProperties
   className?: ClassValue
   size: Mirror.Size
@@ -21,9 +20,6 @@ interface NavigationProps extends Omit<ProviderProps, 'children'> {
 }
 
 export default function Navigation(props: NavigationProps) {
-  console.log()
-  const [visible, onUpdateVisible] = useState(false)
-
   function onTrash(e: MouseEvent<HTMLElement>) {
     console.log('Trash clicked for', e)
   }
@@ -72,7 +68,7 @@ export default function Navigation(props: NavigationProps) {
       })
 
       // 监听窗口创建成功事件
-      webview.once('tauri://created', async function () {
+      void webview.once('tauri://created', async function () {
         console.log('Webview created successfully')
         message.success('Webview created successfully')
 
@@ -87,7 +83,7 @@ export default function Navigation(props: NavigationProps) {
       })
 
       // 监听窗口创建错误事件
-      webview.once('tauri://error', function (e) {
+      void webview.once('tauri://error', function (e) {
         message.error(`Failed to create webview: ${JSON.stringify(e)}`)
         console.error('Failed to create webview:', e)
       })
@@ -98,7 +94,7 @@ export default function Navigation(props: NavigationProps) {
   }
 
   return (
-    <Application
+    <Application.Section
       {...props}
       onTrash={onTrash}
       className={clsx(styles.navigation)}>
@@ -107,12 +103,8 @@ export default function Navigation(props: NavigationProps) {
         direction={props.direction}
         shape={props.shape}
         onDoubleClick={props.onPrevent ?? onRedirect}
-        // onDoubleClick={() => onUpdateVisible(true)}
       />
-      <Overlay
-        visible={visible}
-        onUpdateVisible={onUpdateVisible}
-      />
-    </Application>
+      <Overlay />
+    </Application.Section>
   )
 }

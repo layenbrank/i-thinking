@@ -33,27 +33,30 @@ import {
   type ThoughtChainItemType
 } from '@ant-design/x'
 import XMarkdown, { type ComponentProps } from '@ant-design/x-markdown'
-import { materialDark, oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import type { SkillType, SlotConfigType } from '@ant-design/x/es/sender/interface'
+// import { materialDark, oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import type {
+  SkillType,
+  SlotConfigType
+} from '@ant-design/x/es/sender/interface'
 import type { SuggestionItem } from '@ant-design/x/es/suggestion'
 import { Card, Divider, Flex, FloatButton, type GetProp, theme } from 'antd'
 import clsx from 'clsx'
 
-import { Scroll } from '@/components/scroll/scroll.tsx'
+// import { Scroll } from '@/components/scroll/scroll.tsx'
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'
-import { Application } from '@/features/application/application.tsx'
+import {
+  Application,
+  OverlayContext
+} from '@/features/application/application.tsx'
 import styles from '@/features/applications/intelligence/overlay.module.scss'
 import { SESSIONS } from './constant.ts'
 
 type AiMessage = Application.Intelligence.AiMessage
 type CommunicateMessage = Application.Intelligence.Communicate.Message
-type CommunicateIdentity = Application.Intelligence.Communicate.Identity
-type BubbleContentType = BubbleProps['contentRender']
+// type CommunicateIdentity = Application.Intelligence.Communicate.Identity
+// type BubbleContentType = BubbleProps['contentRender']
 
-interface Props {
-  visible: boolean
-  onUpdateVisible: (value: boolean) => void
-}
+// interface Props {}
 
 const Code: React.FC<ComponentProps> = function (props) {
   const { className, children } = props
@@ -64,14 +67,17 @@ const Code: React.FC<ComponentProps> = function (props) {
 }
 
 const groupName = ['Today', 'Yesterday', 'Historical chats']
-const items: GetProp<ConversationsProps, 'items'> = Array.from({ length: 9 }).map((_, index) => ({
+const items: GetProp<ConversationsProps, 'items'> = Array.from({
+  length: 9
+}).map((_, index) => ({
   key: `item${index + 1}`,
   label: `Conversation Item ${index + 1}`,
   group: groupName[index % 3]
 }))
 
-export default function Overlay(props: Props) {
+export default function Overlay() {
   const { token } = theme.useToken()
+  const { visible, onUpdateVisible } = useContext(OverlayContext)
   const overlayRef = useRef<HTMLDivElement>(null)
   const [fullscreen, updateFullscreen] = useState(false)
   const [sender, updateSender] = useState('')
@@ -140,7 +146,8 @@ export default function Overlay(props: Props) {
       key: '4',
       icon: <SmileOutlined style={{ color: '#52C41A' }} />,
       label: 'Tell me a Joke',
-      description: 'Why do not ants get sick? Because they have tiny ant-bodies!'
+      description:
+        'Why do not ants get sick? Because they have tiny ant-bodies!'
     },
     {
       key: '5',
@@ -156,14 +163,16 @@ export default function Overlay(props: Props) {
     }
   ]
 
-  const conversations: ConversationItemType[] = Array.from({ length: 9 }).map(function (_, index) {
-    return {
-      key: `item${index + 1}`,
-      label: `Conversation Item ${index + 1}`,
-      group: groupName[index % 3],
-      icon: index % 2 === 0 ? <GithubOutlined /> : <AlipayCircleOutlined />
+  const conversations: ConversationItemType[] = Array.from({ length: 9 }).map(
+    function (_, index) {
+      return {
+        key: `item${index + 1}`,
+        label: `Conversation Item ${index + 1}`,
+        group: groupName[index % 3],
+        icon: index % 2 === 0 ? <GithubOutlined /> : <AlipayCircleOutlined />
+      }
     }
-  })
+  )
 
   const thoughtChains: ThoughtChainItemType[] = [
     {
@@ -171,7 +180,8 @@ export default function Overlay(props: Props) {
       status: 'success',
       description: 'status: success',
       icon: <CheckCircleOutlined />,
-      content: 'Ant Design X help you build AI chat/platform app as ready-to-use 📦.'
+      content:
+        'Ant Design X help you build AI chat/platform app as ready-to-use 📦.'
     },
     {
       title: 'Hello World!',
@@ -223,7 +233,11 @@ export default function Overlay(props: Props) {
     console.log('event', event.key, 'onKeyDown', onKeyDown)
   }
 
-  async function handleSubmit(message: string, slot?: SlotConfigType[], skill?: SkillType) {
+  async function handleSubmit(
+    message: string,
+    slot?: SlotConfigType[],
+    skill?: SkillType
+  ) {
     // 创建用户消息
     const personal: AiMessage = {
       id: crypto.randomUUID(),
@@ -247,13 +261,15 @@ export default function Overlay(props: Props) {
     }
 
     // 构建消息列表（包含用户消息），在更新状态之前构建
-    const messages: CommunicateMessage[] = sessions.concat([personal]).map(function (value) {
-      return {
-        role: value.identity,
-        content: value.fragment,
-        thinking: value.thinking ?? undefined
-      }
-    })
+    const messages: CommunicateMessage[] = sessions
+      .concat([personal])
+      .map(function (value) {
+        return {
+          role: value.identity,
+          content: value.fragment,
+          thinking: value.thinking ?? undefined
+        }
+      })
 
     // 使用函数式更新添加用户消息和空的助手消息
     let index = 0
@@ -381,7 +397,10 @@ export default function Overlay(props: Props) {
     // 添加事件监听器，设置 passive: false 以允许 preventDefault
     // 使用捕获阶段确保事件能够被捕获
     console.log('[handleWheel]', container)
-    container.addEventListener('wheel', handleWheel, { passive: false, capture: true })
+    container.addEventListener('wheel', handleWheel, {
+      passive: false,
+      capture: true
+    })
 
     return function () {
       // 清理：移除事件监听器
@@ -400,12 +419,12 @@ export default function Overlay(props: Props) {
       style={{
         minWidth: '800px'
       }}
-      open={props.visible}
       fullscreen={fullscreen}
       wrapClassName={styles.rootTop}
-      className={clsx([styles.overlay])}
-      onCancel={() => props.onUpdateVisible(false)}
-      onOk={() => props.onUpdateVisible(false)}>
+      open={visible}
+      className={clsx([styles.overlay, styles.root])}
+      onOk={() => onUpdateVisible(false)}
+      onCancel={() => onUpdateVisible(false)}>
       <Flex
         gap={12}
         vertical
@@ -482,7 +501,13 @@ export default function Overlay(props: Props) {
               icon={<CustomerServiceOutlined />}>
               <FloatButton
                 onClick={() => updateFullscreen(!fullscreen)}
-                icon={fullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+                icon={
+                  fullscreen ? (
+                    <FullscreenExitOutlined />
+                  ) : (
+                    <FullscreenOutlined />
+                  )
+                }
               />
               <FloatButton icon={<CommentOutlined />} />
             </FloatButton.Group>

@@ -1,14 +1,23 @@
-import { Application, type MarkerProviderProps } from '@/features/application/application.tsx'
-import styles from '@/features/applications/gallery/marker.module.scss'
 import clsx from 'clsx'
 
-interface Props extends Omit<MarkerProviderProps, 'children'> {}
+import {
+  Application,
+  type MarkerProps
+} from '@/features/application/application.tsx'
+import styles from '@/features/applications/gallery/marker.module.scss'
+
+type Props = Omit<MarkerProps, 'children'>
 
 export default function Marker(props: Props) {
   return (
     <Application.Marker
       {...props}
-      className={clsx([styles.marker, props.size, props.direction, props.shape])}>
+      className={clsx([
+        styles.marker,
+        props.size,
+        props.direction,
+        props.shape
+      ])}>
       gallery
     </Application.Marker>
   )

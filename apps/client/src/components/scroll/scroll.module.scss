@@ -1,0 +1,22 @@
+.scroll {
+  &.section {
+  }
+
+  &.wrapper {
+    width: var(--scroll-x-height, 0px);
+    height: var(--scroll-x-width, 0px);
+    overflow: hidden scroll;
+    position: relative;
+    transform-origin: left top;
+    transform: translateX(0px) translateY(var(--scroll-x-height, 0px)) rotate(-90deg);
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+  }
+
+  &.inner {
+    width: var(--scroll-x-width, 0px);
+    height: var(--scroll-x-height, 0px);
+    transform-origin: left top;
+    transform: translateX(var(--scroll-x-height, 0px)) rotate(90deg);
+  }
+}

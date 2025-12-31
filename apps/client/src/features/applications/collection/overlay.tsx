@@ -76,9 +76,7 @@ const APPLICATIONS: Application[] = URLS.map(function (value, index) {
 })
 
 interface Props {
-  visible: boolean
   id: string
-  onUpdateVisible: (value: boolean) => void
 }
 
 export default function Overlay(props: Props) {
@@ -168,9 +166,10 @@ export default function Overlay(props: Props) {
       style={{
         overflow: 'hidden'
       }}
-      open={props.visible}
-      onCancel={() => props.onUpdateVisible(false)}
-      onOk={() => props.onUpdateVisible(false)}>
+      open={visible}
+      className={clsx([styles.overlay, styles.root])}
+      onOk={() => onUpdateVisible(false)}
+      onCancel={() => onUpdateVisible(false)}>
       {/* <div className={styles.overlay}>Overlay</div> */}
       <div className={clsx([styles.overlay, styles.operations, 'gap-x-2'])}>
         <Icon
@@ -182,7 +181,7 @@ export default function Overlay(props: Props) {
         <Icon
           width="20"
           height="20"
-          onClick={() => props.onUpdateVisible(false)}
+          onClick={() => onUpdateVisible(false)}
           icon="ant-design:close-circle-filled"
           className="cursor-pointer hover:text-[#ff4040] transition-colors duration-300"></Icon>
       </div>

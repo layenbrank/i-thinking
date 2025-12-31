@@ -1,16 +1,16 @@
 import { Calendar } from 'antd'
 import clsx from 'clsx'
 
-import { Application } from '@/features/application/application.tsx'
+import {
+  Application,
+  OverlayContext
+} from '@/features/application/application.tsx'
 import styles from '@/features/applications/calendar/overlay.module.scss'
 import { calendar, timeSphere } from '@i-thinking/core'
 import type { CalendarProps } from 'antd/es/calendar'
 import type { Dayjs } from 'dayjs'
 
-interface Props {
-  visible: boolean
-  onUpdateVisible: (value: boolean) => void
-}
+// interface Props {}
 // const now = timeSphere.parse('2025-10-29')
 // const now = timeSphere.now()
 
@@ -19,7 +19,9 @@ interface Props {
 
 // console.log(calendar.lunarDayInfo(now))
 
-export default function Overlay(props: Props) {
+export default function Overlay() {
+  const { visible, onUpdateVisible } = useContext(OverlayContext)
+
   function findFestival(date: Dayjs) {
     let festival
     festival = calendar.festival(date, 'day', 'lunar')
@@ -52,9 +54,10 @@ export default function Overlay(props: Props) {
 
   return (
     <Application.Overlay
-      open={props.visible}
-      onOk={() => props.onUpdateVisible(false)}
-      onCancel={() => props.onUpdateVisible(false)}>
+      open={visible}
+      className={clsx([styles.overlay, styles.root])}
+      onOk={() => onUpdateVisible(false)}
+      onCancel={() => onUpdateVisible(false)}>
       <Calendar
         cellRender={cellRender}
         styles={{

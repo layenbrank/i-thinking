@@ -3,11 +3,10 @@ import { CSS } from '@dnd-kit/utilities'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 import styles from '@/features/application/application.module.scss'
 
-interface ProviderProps extends Application {
+interface SectionProps extends Application {
   children: ReactNode
   style?: CSSProperties
   className?: ClassValue
@@ -17,9 +16,9 @@ interface ProviderProps extends Application {
   onTrash?: MouseEventHandler<HTMLElement>
 }
 
-interface MarkerProviderProps {
-  onDoubleClick: MouseEventHandler<HTMLElement>
+interface MarkerProps {
   children: ReactNode
+  onDoubleClick?: MouseEventHandler<HTMLElement>
   style?: CSSProperties
   className?: ClassValue
   size: Mirror.Size
@@ -27,7 +26,7 @@ interface MarkerProviderProps {
   direction: Mirror.Direction
 }
 
-interface OverlayProviderProps extends ModalProps {
+interface OverlayProps extends ModalProps {
   style?: CSSProperties
   fullscreen?: boolean
 }
@@ -35,83 +34,177 @@ interface OverlayProviderProps extends ModalProps {
 interface OverlayContextProps {
   visible: boolean
   mounted: boolean
-  updateMounted: (value: boolean) => void
-  updateVisible: (value: boolean) => void
+  onUpdateVisible: (value: boolean) => void
+  onUpdateMounted: (value: boolean) => void
 }
 
-// Context 用于共享 overlay 的 visible 状态
 const OverlayContext = createContext<OverlayContextProps>({
   visible: false,
   mounted: false,
-  updateMounted: (value) => void value,
-  updateVisible: (value) => void value
+  onUpdateVisible: (value) => void value,
+  onUpdateMounted: (value) => void value
 })
 
-function Provider(props: ProviderProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: props.id
-  })
+interface OverlayProviderProps {
+  children: ReactNode
+}
 
-  // 管理 overlay 状态
-  const [visible, updateVisible] = useState<boolean>(false)
+function OverlayProvider(props: OverlayProviderProps) {
+  const [visible, onUpdateVisible] = useState<boolean>(false)
+  const [mounted, onUpdateMounted] = useState<boolean>(true)
 
-  const [mounted, updateMounted] = useState<boolean>(false)
-
-  const contextValue = useMemo(
-    () => ({
-      visible,
-      mounted,
-      updateMounted,
-      updateVisible
-    }),
+  const context = useMemo(
+    function () {
+      return {
+        visible,
+        mounted,
+        onUpdateVisible,
+        onUpdateMounted
+      }
+    },
     [visible, mounted]
   )
 
-  // 如果有 overlay 打开，禁用拖拽监听器
-  const listens = visible ? {} : listeners
+  return <OverlayContext value={context}>{props.children}</OverlayContext>
+}
 
-  const properties = useMemo(
-    function () {
-      const round = props.round
-      const size = props.background?.size
-      const clip = props.background?.clip
-      const color = props.background?.color
-      const image = props.background?.image
-      const origin = props.background?.origin
-      const repeat = props.background?.repeat
-      const position = props.background?.position
-      const blendMode = props.background?.blendMode
-      const attachment = props.background?.attachment
+// interface SectionContextProps {}
+//
+// const SectionContext = createContext<SectionContextProps>()
 
-      const backgroundImage = image ? `url(${image})` : undefined
-      const backgroundColor = image ? undefined : (color ?? '#ffffff')
+// const MarkerContext = createContext()
 
-      const design: CSSProperties = {
-        ...props.style,
+// 复合组件模式：将子组件附加到主组件上
+const Application = {
+  Marker(props: MarkerProps) {
+    return (
+      <div
+        onDoubleClick={props.onDoubleClick}
+        className={clsx(styles.marker, props.className)}
+        style={props.style}>
+        {props.children}
+      </div>
+    )
+  },
+  Overlay(props: OverlayProps) {
+    const { style, className, onCancel, children, ...remains } = props
+    const { visible, onUpdateVisible, onUpdateMounted } =
+      useContext(OverlayContext)
+
+    function handleClose() {
+      if (visible) return
+      setTimeout(function () {
+        onUpdateMounted(false)
+      }, 300)
+    }
+
+    function handleCancel(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
+      onUpdateVisible(false)
+      onCancel?.(e)
+    }
+
+    return (
+      <Modal
+        destroyOnHidden={true}
+        maskClosable={true}
+        closable={false}
+        footer={null}
+        title={null}
+        centered={true}
+        afterClose={handleClose}
+        width={props.fullscreen ? '100%' : '80%'}
+        height={props.fullscreen ? '100%' : 'unset'}
+        style={{
+          ...style,
+          aspectRatio: props.fullscreen ? 'unset' : '16 / 9'
+        }}
+        open={visible}
+        onCancel={handleCancel}
+        className={clsx(['application-overlay', className])}
+        {...remains}>
+        {children}
+      </Modal>
+    )
+  },
+  Section(props: SectionProps) {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging
+    } = useSortable({
+      id: props.id
+    })
+
+    const { visible, onUpdateVisible } = useContext(OverlayContext)
+
+    const listens = useMemo(
+      function () {
+        return visible ? {} : listeners
+      },
+      [visible, listeners]
+    )
+
+    // console.log('Section', '\nvisible', visible, '\nlisteners', listeners)
+
+    const properties = useMemo(
+      function () {
+        const round = props.round
+        const size = props.background?.size
+        const clip = props.background?.clip
+        const color = props.background?.color
+        const image = props.background?.image
+        const origin = props.background?.origin
+        const repeat = props.background?.repeat
+        const position = props.background?.position
+        const blendMode = props.background?.blendMode
+        const attachment = props.background?.attachment
+
+        const backgroundImage = image ? `url(${image})` : undefined
+        const backgroundColor = image ? undefined : (color ?? '#ffffff')
+
+        const design: CSSProperties = {
+          ...props.style,
+          transition,
+          backgroundSize: size ?? 'cover',
+          backgroundColor: backgroundColor,
+          backgroundImage: backgroundImage,
+          '--application-round': round ?? '12px',
+          backgroundRepeat: repeat ?? 'no-repeat',
+          backgroundPosition: position ?? 'center',
+          backgroundAttachment: attachment ?? 'fixed',
+          transform: CSS.Transform.toString(transform)
+        }
+
+        if (clip) design.backgroundClip = clip
+        if (origin) design.backgroundOrigin = origin
+        if (blendMode) design.backgroundBlendMode = blendMode
+
+        return design
+      },
+      [
+        props.round,
+        props.background?.size,
+        props.background?.clip,
+        props.background?.color,
+        props.background?.image,
+        props.background?.origin,
+        props.background?.repeat,
+        props.background?.position,
+        props.background?.blendMode,
+        props.background?.attachment,
+        props.style,
         transition,
-        backgroundSize: size ?? 'cover',
-        backgroundColor: backgroundColor,
-        backgroundImage: backgroundImage,
-        '--application-round': round ?? '12px',
-        backgroundRepeat: repeat ?? 'no-repeat',
-        backgroundPosition: position ?? 'center',
-        backgroundAttachment: attachment ?? 'fixed',
-        transform: CSS.Transform.toString(transform)
-      }
+        transform
+      ]
+    )
 
-      if (clip) design.backgroundClip = clip
-      if (origin) design.backgroundOrigin = origin
-      if (blendMode) design.backgroundBlendMode = blendMode
-
-      return design
-    },
-    [props.background, props.backdrop, transform, isDragging]
-  )
-
-  return (
-    <OverlayContext value={contextValue}>
+    return (
       <div
         {...listens}
+        onDoubleClick={() => onUpdateVisible(true)}
         {...attributes}
         ref={setNodeRef}
         data-id={props.id}
@@ -140,70 +233,10 @@ function Provider(props: ProviderProps) {
           X
         </div>
       </div>
-    </OverlayContext>
-  )
-}
-
-function MarkerProvider(props: MarkerProviderProps) {
-  const { visible, updateVisible, updateMounted } = useContext(OverlayContext)
-
-  return (
-    <div
-      onDoubleClick={() => {
-        console.log('onDoubleClick', visible)
-        updateVisible(!visible)
-        updateMounted(!visible)
-      }}
-      className={clsx(styles.marker, props.className)}
-      style={props.style}>
-      {props.children}
-    </div>
-  )
-}
-
-function OverlayProvider(props: OverlayProviderProps) {
-  const { style, className, onCancel, children, ...remains } = props
-  const { updateVisible, updateMounted, visible } = useContext(OverlayContext)
-
-  function handleClose() {
-    if (visible) return
-    setTimeout(function () {
-      updateMounted(false)
-    }, 300)
+    )
   }
-
-  // console.log('effect ===>', visible)
-
-  return (
-    <Modal
-      destroyOnHidden={true}
-      maskClosable={true}
-      closable={false}
-      footer={null}
-      title={null}
-      centered={true}
-      afterClose={handleClose}
-      width={props.fullscreen ? '100%' : '80%'}
-      height={props.fullscreen ? '100%' : 'unset'}
-      style={{
-        ...style,
-        aspectRatio: props.fullscreen ? 'unset' : '16 / 9'
-      }}
-      open={visible}
-      onCancel={(e) => (updateVisible(false), onCancel?.(e) ?? void 0)}
-      className={clsx(['application-overlay', className])}
-      {...remains}>
-      {children}
-    </Modal>
-  )
 }
 
-// 复合组件模式：将子组件附加到主组件上
-const Application = Object.assign(Provider, {
-  Marker: MarkerProvider,
-  Overlay: OverlayProvider
-})
+export { Application, OverlayContext, OverlayProvider }
 
-export { Application, OverlayContext }
-
-export type { MarkerProviderProps, OverlayProviderProps, ProviderProps }
+export type { MarkerProps, OverlayProps, SectionProps }
