@@ -36,7 +36,7 @@ impl Client {
             },
         ];
 
-        builder
+        builder = builder
             .setup(move |app| {
                 #[cfg(desktop)]
                 {
@@ -163,8 +163,15 @@ impl Client {
             .plugin(tauri_plugin_autostart::init(
                 MacosLauncher::LaunchAgent,
                 Some(vec!["--flag1", "--flag2"]),
-            ))
-            .plugin(tauri_plugin_log::Builder::default().build())
+            ));
+
+        // 只在非 debug 模式下初始化 log 插件，因为 devtools 在 debug 模式下已经初始化了日志系统
+        #[cfg(not(debug_assertions))]
+        {
+            builder = builder.plugin(tauri_plugin_log::Builder::default().build());
+        }
+
+        builder
             .plugin(tauri_plugin_localhost::Builder::new(port).build())
             .plugin(tauri_plugin_fs::init())
             .plugin(tauri_plugin_shell::init())

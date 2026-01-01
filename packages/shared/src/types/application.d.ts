@@ -40,6 +40,7 @@ declare namespace Application {
     | 'collection'
     | 'signboard'
     | 'clock'
+    | 'code' // 代码
     | 'gallery' // 图库
     | 'example'
 

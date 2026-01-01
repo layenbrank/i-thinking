@@ -4,7 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5095ede6-2806-4147-bd54-25591e2afe3b" name="更改" comment="chore: 导航应用不允许打开模态框" />
+    <list default="true" id="5095ede6-2806-4147-bd54-25591e2afe3b" name="更改" comment="chore: .idea change">
+      <change beforePath="$PROJECT_DIR$/.husky/_/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.husky/_/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.husky/_/pre-push" beforeDir="false" afterPath="$PROJECT_DIR$/.husky/_/pre-push" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/client/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/client/src-tauri/Cargo.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/client/src-tauri/src/utils/client.rs" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src-tauri/src/utils/client.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/client/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/overlay.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/src/features/applications/markdown/overlay.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/client/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/apps/client/vite.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pnpm-lock.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/pnpm-lock.yaml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -76,6 +88,7 @@
     &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
     &quot;npm.build:client.executor&quot;: &quot;Run&quot;,
     &quot;npm.client &gt; dev:core.executor&quot;: &quot;Debug&quot;,
+    &quot;npm.dev:client.executor&quot;: &quot;Run&quot;,
     &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\prettier&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;Errors&quot;,
     &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
@@ -209,6 +222,7 @@
       <workItem from="1766910552064" duration="17986000" />
       <workItem from="1767071099630" duration="13240000" />
       <workItem from="1767158181840" duration="1810000" />
+      <workItem from="1767186777141" duration="5034000" />
     </task>
     <task id="LOCAL-00001" summary="添加自定义应用表单">
       <option name="closed" value="true" />
@@ -327,7 +341,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="origin/master" />
+                        <option value="master" />
                       </list>
                     </value>
                   </entry>
@@ -350,7 +364,8 @@
     <MESSAGE value="chore: 测试 ci,并修改配置文件" />
     <MESSAGE value="refactor: 重构模态框状态管理" />
     <MESSAGE value="chore: 导航应用不允许打开模态框" />
-    <option name="LAST_COMMIT_MESSAGE" value="chore: 导航应用不允许打开模态框" />
+    <MESSAGE value="chore: .idea change" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: .idea change" />
   </component>
   <component name="VueSettings">
     <option name="tsPluginPreviewEnabled" value="true" />

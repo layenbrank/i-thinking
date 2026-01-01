@@ -59,6 +59,10 @@ const OPTIONS: ApplicationOptions[] = [
     value: 'clock'
   },
   {
+    label: '代码',
+    value: 'code'
+  },
+  {
     label: '看板',
     value: 'signboard'
   }

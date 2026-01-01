@@ -68,40 +68,56 @@ export default function ComposerContext({ composer }: { composer: Composer }) {
           className={composerValue.isCode ? 'is-active' : ''}>
           Code
         </button>
-        <button onClick={() => composer.chain().focus().unsetAllMarks().run()}>Clear marks</button>
-        <button onClick={() => composer.chain().focus().clearNodes().run()}>Clear nodes</button>
+        <button onClick={() => composer.chain().focus().unsetAllMarks().run()}>
+          Clear marks
+        </button>
+        <button onClick={() => composer.chain().focus().clearNodes().run()}>
+          Clear nodes
+        </button>
         <button
           onClick={() => composer.chain().focus().setParagraph().run()}
           className={composerValue.isParagraph ? 'is-active' : ''}>
           Paragraph
         </button>
         <button
-          onClick={() => composer.chain().focus().toggleHeading({ level: 1 }).run()}
+          onClick={() =>
+            composer.chain().focus().toggleHeading({ level: 1 }).run()
+          }
           className={composerValue.isHeading1 ? 'is-active' : ''}>
           H1
         </button>
         <button
-          onClick={() => composer.chain().focus().toggleHeading({ level: 2 }).run()}
+          onClick={() =>
+            composer.chain().focus().toggleHeading({ level: 2 }).run()
+          }
           className={composerValue.isHeading2 ? 'is-active' : ''}>
           H2
         </button>
         <button
-          onClick={() => composer.chain().focus().toggleHeading({ level: 3 }).run()}
+          onClick={() =>
+            composer.chain().focus().toggleHeading({ level: 3 }).run()
+          }
           className={composerValue.isHeading3 ? 'is-active' : ''}>
           H3
         </button>
         <button
-          onClick={() => composer.chain().focus().toggleHeading({ level: 4 }).run()}
+          onClick={() =>
+            composer.chain().focus().toggleHeading({ level: 4 }).run()
+          }
           className={composerValue.isHeading4 ? 'is-active' : ''}>
           H4
         </button>
         <button
-          onClick={() => composer.chain().focus().toggleHeading({ level: 5 }).run()}
+          onClick={() =>
+            composer.chain().focus().toggleHeading({ level: 5 }).run()
+          }
           className={composerValue.isHeading5 ? 'is-active' : ''}>
           H5
         </button>
         <button
-          onClick={() => composer.chain().focus().toggleHeading({ level: 6 }).run()}
+          onClick={() =>
+            composer.chain().focus().toggleHeading({ level: 6 }).run()
+          }
           className={composerValue.isHeading6 ? 'is-active' : ''}>
           H6
         </button>
@@ -125,10 +141,13 @@ export default function ComposerContext({ composer }: { composer: Composer }) {
           className={composerValue.isBlockquote ? 'is-active' : ''}>
           Blockquote
         </button>
-        <button onClick={() => composer.chain().focus().setHorizontalRule().run()}>
+        <button
+          onClick={() => composer.chain().focus().setHorizontalRule().run()}>
           Horizontal rule
         </button>
-        <button onClick={() => composer.chain().focus().setHardBreak().run()}>Hard break</button>
+        <button onClick={() => composer.chain().focus().setHardBreak().run()}>
+          Hard break
+        </button>
         <button
           onClick={() => composer.chain().focus().undo().run()}
           disabled={!composerValue.canUndo}>

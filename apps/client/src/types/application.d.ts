@@ -9,7 +9,7 @@ declare global {
 
     // type Reflection = Record<Component, (props: ComponentProps) => JSX.Element>
     type Reflection = Record<
-      Component,
+      Application.Component,
       React.LazyExoticComponent<(props: ProviderProps) => JSX.Element>
     >
   }

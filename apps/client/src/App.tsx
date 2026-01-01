@@ -8,7 +8,7 @@ import { BrowserRouter } from 'react-router-dom'
 
 import { MirrorPlugin } from '@/plugins/mirror.ts'
 import RouterView from '@/routers/routes.tsx'
-import { PluginProvider, type Plugin } from './components/provider/plugin.tsx'
+import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
 
 dayjs.locale('zh-cn')
 
@@ -41,7 +41,7 @@ const themeConfigure: ThemeConfig = {
 const plugins: Plugin[] = [MirrorPlugin]
 
 function App() {
-  const LANGUAGE = navigator.language || 'zh-CN'
+  // const LANGUAGE = navigator.language || 'zh-CN'
   // defer(function () {
   // 	return http.get('')
   // })

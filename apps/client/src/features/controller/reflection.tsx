@@ -6,6 +6,15 @@ const Bookmark = React.lazy(function () {
 const Calendar = React.lazy(function () {
   return import('@/features/applications/calendar/calendar.tsx')
 })
+const Clock = React.lazy(function () {
+  return import('@/features/applications/clock/clock.tsx')
+})
+const Collection = React.lazy(function () {
+  return import('@/features/applications/collection/collection.tsx')
+})
+const Code = React.lazy(function () {
+  return import('@/features/applications/code/code.tsx')
+})
 const Developer = React.lazy(function () {
   return import('@/features/applications/developer/developer.tsx')
 })
@@ -30,12 +39,7 @@ const Clipchamp = React.lazy(function () {
 const Marketplace = React.lazy(function () {
   return import('@/features/applications/marketplace/marketplace.tsx')
 })
-const Clock = React.lazy(function () {
-  return import('@/features/applications/clock/clock.tsx')
-})
-const Collection = React.lazy(function () {
-  return import('@/features/applications/collection/collection.tsx')
-})
+
 const Gallery = React.lazy(function () {
   return import('@/features/applications/gallery/gallery.tsx')
 })
@@ -46,6 +50,7 @@ const Signboard = React.lazy(function () {
 const Reflection: Readonly<Application.Reflection> = {
   bookmark: Bookmark,
   calendar: Calendar,
+  code: Code,
   intelligence: Intelligence,
   settings: Settings,
   navigation: Navigation,
@@ -65,6 +70,7 @@ export {
   Calendar,
   Clipchamp,
   Clock,
+  Code,
   Collection,
   Developer,
   Example,

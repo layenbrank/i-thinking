@@ -117,7 +117,10 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
     /[\\/]node_modules[\\/]domelementtype[\\/]/
   ],
 
-  'ui-marks': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/, /~icons/],
+  'ui-marks': [
+    /[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/,
+    /~icons/
+  ],
 
   'ui-animation': [/[\\/]node_modules[\\/](gsap|swiper)[\\/]/],
 
@@ -257,7 +260,9 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
     /[\\/]node_modules[\\/]use-sync-external-store[\\/]/
   ],
 
-  'utils-code': [/[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/],
+  'utils-code': [
+    /[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/
+  ],
 
   'utils-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
 
@@ -270,7 +275,10 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
     /[\\/]node_modules[\\/](javascript-natural-sort|seedrandom|tiny-emitter|typed-function)[\\/]/
   ],
 
-  'utils-enhance': [/[\\/]node_modules[\\/](qrcode|d3)[\\/]/, /[\\/]node_modules[\\/]d3-/],
+  'utils-enhance': [
+    /[\\/]node_modules[\\/](qrcode|d3)[\\/]/,
+    /[\\/]node_modules[\\/]d3-/
+  ],
 
   'utils-network': [
     /[\\/]node_modules[\\/](@ngify)[\\/]/,
@@ -304,7 +312,10 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
   'utils-interaction': [/[\\/]node_modules[\\/]sortablejs[\\/]/],
   'utils-dnd': [/[\\/]node_modules[\\/]@dnd-kit[\\/]/],
 
-  scheduler: [/[\\/]node_modules[\\/](scheduler)[\\/]/, /[\\/]node_modules[\\/]@tauri-apps[\\/]/],
+  scheduler: [
+    /[\\/]node_modules[\\/](scheduler)[\\/]/,
+    /[\\/]node_modules[\\/]@tauri-apps[\\/]/
+  ],
 
   router: [
     /[\\/]node_modules[\\/]@remix-run[\\/]router[\\/]/,
@@ -319,7 +330,10 @@ const chunkEntries = Object.entries(chunkMap)
 
 const filePath = 'C:/Users/MACHENIKE/Documents/Vue3/'
 
-export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
+export default defineConfig(function ({
+  mode,
+  command
+}: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
 
   return {
