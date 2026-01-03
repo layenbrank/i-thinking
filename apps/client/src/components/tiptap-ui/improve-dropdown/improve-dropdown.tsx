@@ -1,36 +1,39 @@
-import { useMemo } from "react"
-import { type Editor } from "@tiptap/react"
-import type { TextOptions, Tone } from "@tiptap-pro/extension-ai"
+import { useMemo } from 'react'
+import { type Editor } from '@tiptap/react'
+import type { TextOptions, Tone } from '@tiptap-pro/extension-ai'
 
 // --- Hooks ---
 import {
   useImproveDropdown,
-  type AICommand,
-} from "@/components/tiptap-ui/improve-dropdown"
+  type AICommand
+} from '@/components/tiptap-ui/improve-dropdown/use-improve-dropdown.ts'
 
 // --- Icons ---
-import { MicAiIcon } from "@/components/tiptap-icons/mic-ai-icon"
-import { AiSparklesIcon } from "@/components/tiptap-icons/ai-sparkles-icon"
-import { CheckAiIcon } from "@/components/tiptap-icons/check-ai-icon"
-import { TextExtendIcon } from "@/components/tiptap-icons/text-extend-icon"
-import { TextReduceIcon } from "@/components/tiptap-icons/text-reduce-icon"
-import { Simplify2Icon } from "@/components/tiptap-icons/simplify-2-icon"
-import { SmileAiIcon } from "@/components/tiptap-icons/smile-ai-icon"
-import { CompleteSentenceIcon } from "@/components/tiptap-icons/complete-sentence-icon"
-import { SummarizeTextIcon } from "@/components/tiptap-icons/summarize-text-icon"
-import { LanguagesIcon } from "@/components/tiptap-icons/languages-icon"
-import { ChevronRightIcon } from "@/components/tiptap-icons/chevron-right-icon"
+import { MicAiIcon } from '@/components/tiptap-icons/mic-ai-icon.tsx'
+import { AiSparklesIcon } from '@/components/tiptap-icons/ai-sparkles-icon.tsx'
+import { CheckAiIcon } from '@/components/tiptap-icons/check-ai-icon.tsx'
+import { TextExtendIcon } from '@/components/tiptap-icons/text-extend-icon.tsx'
+import { TextReduceIcon } from '@/components/tiptap-icons/text-reduce-icon.tsx'
+import { Simplify2Icon } from '@/components/tiptap-icons/simplify-2-icon.tsx'
+import { SmileAiIcon } from '@/components/tiptap-icons/smile-ai-icon.tsx'
+import { CompleteSentenceIcon } from '@/components/tiptap-icons/complete-sentence-icon.tsx'
+import { SummarizeTextIcon } from '@/components/tiptap-icons/summarize-text-icon.tsx'
+import { LanguagesIcon } from '@/components/tiptap-icons/languages-icon.tsx'
+import { ChevronRightIcon } from '@/components/tiptap-icons/chevron-right-icon.tsx'
 
 // --- Tiptap UI ---
 import {
   SUPPORTED_LANGUAGES,
-  SUPPORTED_TONES,
-} from "@/components/tiptap-ui/ai-menu"
-import { AiAskButton } from "@/components/tiptap-ui/ai-ask-button"
+  SUPPORTED_TONES
+} from '@/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items-constants.ts'
+import { AiAskButton } from '@/components/tiptap-ui/ai-ask-button/ai-ask-button.tsx'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button, ButtonGroup } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import {
+  Button,
+  ButtonGroup
+} from '@/components/tiptap-ui-primitive/button/button.tsx'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -38,10 +41,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-} from "@/components/tiptap-ui-primitive/dropdown-menu"
-import { Card, CardBody } from "@/components/tiptap-ui-primitive/card"
-import { Separator } from "@/components/tiptap-ui-primitive/separator"
+  DropdownMenuSubContent
+} from '@/components/tiptap-ui-primitive/dropdown-menu/dropdown-menu.tsx'
+import { Card, CardBody } from '@/components/tiptap-ui-primitive/card/card.tsx'
+import { Separator } from '@/components/tiptap-ui-primitive/separator/separator.tsx'
 
 export interface ToneOption {
   label: string
@@ -49,7 +52,7 @@ export interface ToneOption {
   icon?: React.ComponentType<{ className?: string }>
 }
 
-export interface ImproveDropdownProps extends Omit<ButtonProps, "type"> {
+export interface ImproveDropdownProps extends Omit<ButtonProps, 'type'> {
   /**
    * Optional editor instance. If not provided, will use editor from context
    */
@@ -97,7 +100,9 @@ function SubMenuButton({ action }: { action: SubMenuAction }) {
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger asChild>
-        <Button data-style="ghost" type="button">
+        <Button
+          data-style="ghost"
+          type="button">
           <action.icon className="tiptap-button-icon" />
           <span className="tiptap-button-text">{action.label}</span>
           <ChevronRightIcon className="tiptap-button-icon-sub" />
@@ -108,12 +113,13 @@ function SubMenuButton({ action }: { action: SubMenuAction }) {
           <CardBody>
             <ButtonGroup>
               {action.items.map((item) => (
-                <DropdownMenuItem key={item.value} asChild>
+                <DropdownMenuItem
+                  key={item.value}
+                  asChild>
                   <Button
                     type="button"
                     data-style="ghost"
-                    onClick={item.onClick}
-                  >
+                    onClick={item.onClick}>
                     {item.icon && <item.icon className="tiptap-button-icon" />}
                     <span className="tiptap-button-text">{item.label}</span>
                   </Button>
@@ -141,45 +147,45 @@ export function ImproveDropdown({
     handleOpenChange,
     executeAICommand,
     adjustTone,
-    translate,
+    translate
   } = useImproveDropdown({
     editor: providedEditor,
     hideWhenUnavailable,
-    textOptions,
+    textOptions
   })
 
   const menuActions: MenuAction[] = useMemo(
     () => [
       {
         icon: CheckAiIcon,
-        label: "Fix spelling & grammar",
-        command: "fixSpellingAndGrammar",
-        onClick: () => executeAICommand("fixSpellingAndGrammar"),
+        label: 'Fix spelling & grammar',
+        command: 'fixSpellingAndGrammar',
+        onClick: () => executeAICommand('fixSpellingAndGrammar')
       },
       {
         icon: TextExtendIcon,
-        label: "Extend text",
-        command: "extend",
-        onClick: () => executeAICommand("extend"),
+        label: 'Extend text',
+        command: 'extend',
+        onClick: () => executeAICommand('extend')
       },
       {
         icon: TextReduceIcon,
-        label: "Reduce text",
-        command: "shorten",
-        onClick: () => executeAICommand("shorten"),
+        label: 'Reduce text',
+        command: 'shorten',
+        onClick: () => executeAICommand('shorten')
       },
       {
         icon: Simplify2Icon,
-        label: "Simplify text",
-        command: "simplify",
-        onClick: () => executeAICommand("simplify"),
+        label: 'Simplify text',
+        command: 'simplify',
+        onClick: () => executeAICommand('simplify')
       },
       {
         icon: SmileAiIcon,
-        label: "Emojify",
-        command: "emojify",
-        onClick: () => executeAICommand("emojify"),
-      },
+        label: 'Emojify',
+        command: 'emojify',
+        onClick: () => executeAICommand('emojify')
+      }
     ],
     [executeAICommand]
   )
@@ -188,16 +194,16 @@ export function ImproveDropdown({
     () => [
       {
         icon: CompleteSentenceIcon,
-        label: "Complete sentence",
-        command: "complete",
-        onClick: () => executeAICommand("complete"),
+        label: 'Complete sentence',
+        command: 'complete',
+        onClick: () => executeAICommand('complete')
       },
       {
         icon: SummarizeTextIcon,
-        label: "Summarize",
-        command: "summarize",
-        onClick: () => executeAICommand("summarize"),
-      },
+        label: 'Summarize',
+        command: 'summarize',
+        onClick: () => executeAICommand('summarize')
+      }
     ],
     [executeAICommand]
   )
@@ -206,13 +212,13 @@ export function ImproveDropdown({
     () => [
       {
         icon: MicAiIcon,
-        label: "Adjust tone",
+        label: 'Adjust tone',
         items: SUPPORTED_TONES.map((option) => ({
           label: option.label,
           value: option.value,
-          onClick: () => adjustTone(option.value),
-        })),
-      },
+          onClick: () => adjustTone(option.value)
+        }))
+      }
     ],
     [adjustTone]
   )
@@ -220,13 +226,13 @@ export function ImproveDropdown({
   const translateSubMenu: SubMenuAction = useMemo(
     () => ({
       icon: LanguagesIcon,
-      label: "Translate",
+      label: 'Translate',
       items: SUPPORTED_LANGUAGES.map((option) => ({
         label: option.label,
         value: option.value,
         icon: LanguagesIcon,
-        onClick: () => translate(option.value),
-      })),
+        onClick: () => translate(option.value)
+      }))
     }),
     [translate]
   )
@@ -236,7 +242,10 @@ export function ImproveDropdown({
   }
 
   return (
-    <DropdownMenu modal open={isOpen} onOpenChange={handleOpenChange}>
+    <DropdownMenu
+      modal
+      open={isOpen}
+      onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
@@ -247,28 +256,33 @@ export function ImproveDropdown({
           tabIndex={-1}
           aria-label="Improve"
           tooltip="Improve"
-          {...props}
-        >
+          {...props}>
           <AiSparklesIcon className="tiptap-button-icon" />
           <span className="tiptap-button-text">Improve</span>
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" portal={portal}>
+      <DropdownMenuContent
+        align="start"
+        portal={portal}>
         <Card>
           <CardBody>
             <ButtonGroup>
               {subMenuActions.map((action, index) => (
-                <SubMenuButton key={index} action={action} />
+                <SubMenuButton
+                  key={index}
+                  action={action}
+                />
               ))}
 
               {menuActions.map((action, index) => (
-                <DropdownMenuItem key={index} asChild>
+                <DropdownMenuItem
+                  key={index}
+                  asChild>
                   <Button
                     type="button"
                     data-style="ghost"
-                    onClick={action.onClick}
-                  >
+                    onClick={action.onClick}>
                     <action.icon className="tiptap-button-icon" />
                     <span className="tiptap-button-text">{action.label}</span>
                   </Button>
@@ -280,16 +294,20 @@ export function ImproveDropdown({
 
             <ButtonGroup>
               <DropdownMenuItem asChild>
-                <AiAskButton text="Ask AI" showTooltip={false} />
+                <AiAskButton
+                  text="Ask AI"
+                  showTooltip={false}
+                />
               </DropdownMenuItem>
 
               {secondaryActions.map((action, index) => (
-                <DropdownMenuItem key={index} asChild>
+                <DropdownMenuItem
+                  key={index}
+                  asChild>
                   <Button
                     type="button"
                     data-style="ghost"
-                    onClick={action.onClick}
-                  >
+                    onClick={action.onClick}>
                     <action.icon className="tiptap-button-icon" />
                     <span className="tiptap-button-text">{action.label}</span>
                   </Button>

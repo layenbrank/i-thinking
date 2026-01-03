@@ -172,7 +172,7 @@ impl Client {
         }
 
         builder
-            .plugin(tauri_plugin_localhost::Builder::new(port).build())
+            // .plugin(tauri_plugin_localhost::Builder::new(port).build())
             .plugin(tauri_plugin_fs::init())
             .plugin(tauri_plugin_shell::init())
             .plugin(tauri_plugin_store::Builder::default().build())

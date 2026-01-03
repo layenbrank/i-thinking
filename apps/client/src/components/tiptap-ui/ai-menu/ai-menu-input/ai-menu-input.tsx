@@ -1,59 +1,66 @@
-"use client"
+'use client'
 
-import { useCallback, useState } from "react"
+import { useCallback, useState } from 'react'
 
 // Tiptap Core Extensions
-import type { Tone } from "@tiptap-pro/extension-ai"
+import type { Tone } from '@tiptap-pro/extension-ai'
 
 // Icons
-import { MicAiIcon } from "@/components/tiptap-icons/mic-ai-icon"
-import { ArrowUpIcon } from "@/components/tiptap-icons/arrow-up-icon"
-import { AiSparklesIcon } from "@/components/tiptap-icons/ai-sparkles-icon"
+import { MicAiIcon } from '@/components/tiptap-icons/mic-ai-icon.tsx'
+import { ArrowUpIcon } from '@/components/tiptap-icons/arrow-up-icon.tsx'
+import { AiSparklesIcon } from '@/components/tiptap-icons/ai-sparkles-icon.tsx'
 
 // UI Components
-import { SUPPORTED_TONES } from "@/components/tiptap-ui/ai-menu"
+import { SUPPORTED_TONES } from '@/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items-constants.ts'
 
 // UI Primitives
-import { Button, ButtonGroup } from "@/components/tiptap-ui-primitive/button"
-import { Spacer } from "@/components/tiptap-ui-primitive/spacer"
-import { Toolbar, ToolbarGroup } from "@/components/tiptap-ui-primitive/toolbar"
-import { useComboboxValueState } from "@/components/tiptap-ui-primitive/menu"
-import { Combobox } from "@/components/tiptap-ui-primitive/combobox"
+import {
+  Button,
+  ButtonGroup
+} from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Spacer } from '@/components/tiptap-ui-primitive/spacer/spacer.tsx'
+import {
+  Toolbar,
+  ToolbarGroup
+} from '@/components/tiptap-ui-primitive/toolbar/toolbar.tsx'
+import { useComboboxValueState } from '@/components/tiptap-ui-primitive/menu/menu-hooks.ts'
+import { Combobox } from '@/components/tiptap-ui-primitive/combobox/combobox.tsx'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/tiptap-ui-primitive/dropdown-menu"
-import { TextareaAutosize } from "@/components/tiptap-ui-primitive/textarea-autosize"
-import { Card, CardBody } from "@/components/tiptap-ui-primitive/card"
+  DropdownMenuTrigger
+} from '@/components/tiptap-ui-primitive/dropdown-menu/dropdown-menu.tsx'
+import { TextareaAutosize } from '@/components/tiptap-ui-primitive/textarea-autosize/textarea-autosize.tsx'
+import { Card, CardBody } from '@/components/tiptap-ui-primitive/card/card.tsx'
 
 import {
   useBlurHandler,
-  useKeyboardHandlers,
-} from "@/components/tiptap-ui/ai-menu/ai-menu-input/ai-menu-input-hooks"
-import type { AiMenuInputTextareaProps } from "@/components/tiptap-ui/ai-menu/ai-menu-input/ai-menu-input-types"
+  useKeyboardHandlers
+} from '@/components/tiptap-ui/ai-menu/ai-menu-input/ai-menu-input-hooks.ts'
+import type { AiMenuInputTextareaProps } from '@/components/tiptap-ui/ai-menu/ai-menu-input/ai-menu-input-types.ts'
 
 // Styles
-import "@/components/tiptap-ui/ai-menu/ai-menu-input/ai-menu-input.scss"
+import '@/components/tiptap-ui/ai-menu/ai-menu-input/ai-menu-input.scss'
 
 export function AiMenuInputPlaceholder({
-  onPlaceholderClick,
+  onPlaceholderClick
 }: {
   onPlaceholderClick: () => void
 }) {
   return (
     <div
       className="tiptap-ai-prompt-input-placeholder"
-      onClick={onPlaceholderClick}
-    >
+      onClick={onPlaceholderClick}>
       <div className="tiptap-ai-prompt-input-placeholder-content">
         <AiSparklesIcon className="tiptap-ai-prompt-input-placeholder-icon" />
         <span className="tiptap-ai-prompt-input-placeholder-text">
           Tell AI what else needs to be changed...
         </span>
       </div>
-      <Button data-style="primary" disabled>
+      <Button
+        data-style="primary"
+        disabled>
         <ArrowUpIcon className="tiptap-button-icon" />
       </Button>
     </div>
@@ -62,7 +69,7 @@ export function AiMenuInputPlaceholder({
 
 export function ToneSelector({
   tone,
-  onToneChange,
+  onToneChange
 }: {
   tone: Tone | null
   onToneChange: (tone: string) => void
@@ -73,11 +80,10 @@ export function ToneSelector({
         <Button
           type="button"
           data-style="ghost"
-          data-active-state={tone ? "on" : "off"}
+          data-active-state={tone ? 'on' : 'off'}
           role="button"
           tabIndex={-1}
-          aria-label="Tone adjustment options"
-        >
+          aria-label="Tone adjustment options">
           <MicAiIcon className="tiptap-button-icon" />
           <span className="tiptap-button-text">Tone</span>
         </Button>
@@ -88,14 +94,15 @@ export function ToneSelector({
           <CardBody>
             <ButtonGroup>
               {SUPPORTED_TONES.map((supportedTone) => (
-                <DropdownMenuItem key={supportedTone.value} asChild>
+                <DropdownMenuItem
+                  key={supportedTone.value}
+                  asChild>
                   <Button
                     data-style="ghost"
                     data-active-state={
-                      tone === supportedTone.value ? "on" : "off"
+                      tone === supportedTone.value ? 'on' : 'off'
                     }
-                    onClick={() => onToneChange(supportedTone.value)}
-                  >
+                    onClick={() => onToneChange(supportedTone.value)}>
                     <span className="tiptap-button-text">
                       {supportedTone.label}
                     </span>
@@ -114,7 +121,7 @@ export function AiPromptInputToolbar({
   showPlaceholder,
   onInputSubmit,
   onToneChange,
-  isEmpty = false,
+  isEmpty = false
 }: {
   showPlaceholder?: boolean
   onInputSubmit: (prompt: string) => void
@@ -141,10 +148,12 @@ export function AiPromptInputToolbar({
       variant="floating"
       data-plain="true"
       className="tiptap-ai-prompt-input-toolbar"
-      style={{ display: showPlaceholder ? "none" : "flex" }}
-    >
+      style={{ display: showPlaceholder ? 'none' : 'flex' }}>
       <ToolbarGroup>
-        <ToneSelector tone={tone} onToneChange={handleToneChange} />
+        <ToneSelector
+          tone={tone}
+          onToneChange={handleToneChange}
+        />
       </ToolbarGroup>
 
       <Spacer />
@@ -154,8 +163,7 @@ export function AiPromptInputToolbar({
           onClick={handleSubmit}
           disabled={isEmpty}
           data-style="primary"
-          aria-label="Submit prompt"
-        >
+          aria-label="Submit prompt">
           <ArrowUpIcon className="tiptap-button-icon" />
         </Button>
       </ToolbarGroup>
@@ -172,7 +180,7 @@ export function AiMenuInputTextarea({
   onEmptyBlur,
   onPlaceholderClick,
   showPlaceholder = false,
-  placeholder = "Ask AI what you want...",
+  placeholder = 'Ask AI what you want...',
   ...props
 }: AiMenuInputTextareaProps) {
   const [promptValue, setPromptValue] = useComboboxValueState()
@@ -182,14 +190,14 @@ export function AiMenuInputTextarea({
     const cleanedPrompt = promptValue?.trim()
     if (cleanedPrompt) {
       onInputSubmit(cleanedPrompt)
-      setPromptValue("")
+      setPromptValue('')
     }
   }, [onInputSubmit, promptValue, setPromptValue])
 
   const handleKeyDown = useKeyboardHandlers(promptValue, onClose, handleSubmit)
 
   const handleBlur = useBlurHandler(
-    promptValue.trim() === "",
+    promptValue.trim() === '',
     onInputBlur,
     onEmptyBlur
   )
@@ -219,9 +227,8 @@ export function AiMenuInputTextarea({
     <div
       className="tiptap-ai-prompt-input"
       data-focused={isFocused}
-      data-active-state={showPlaceholder ? "off" : "on"}
-      {...props}
-    >
+      data-active-state={showPlaceholder ? 'off' : 'on'}
+      {...props}>
       {showPlaceholder ? (
         <AiMenuInputPlaceholder onPlaceholderClick={handleOnPlaceholderClick} />
       ) : (
@@ -240,7 +247,7 @@ export function AiMenuInputTextarea({
                 placeholder={placeholder}
                 autoFocus
                 style={{
-                  display: showPlaceholder ? "none" : "flex",
+                  display: showPlaceholder ? 'none' : 'flex'
                 }}
               />
             }

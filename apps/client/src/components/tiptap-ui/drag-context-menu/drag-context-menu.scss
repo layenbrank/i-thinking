@@ -1,10 +1,10 @@
 .drag-handle {
   transition-property: top;
-  transition-duration: 200ms;
-  transition-timing-function: ease-out;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     left: 100%;
     top: 0;

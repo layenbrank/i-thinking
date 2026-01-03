@@ -327,7 +327,7 @@ function Overlay() {
       className={clsx([styles.overlay, styles.root])}
       onOk={() => onUpdateVisible(false)}
       onCancel={() => onUpdateVisible(false)}>
-      <div className={clsx(styles.segmented)}>
+      <div className={clsx([styles.segmented])}>
         <Segmented
           vertical
           value={segmented}
@@ -336,7 +336,7 @@ function Overlay() {
         />
       </div>
 
-      <div className={clsx(styles.pane)}>
+      <div className={clsx([styles.pane])}>
         <Drawer
           closable={false}
           footer={null}
@@ -347,12 +347,12 @@ function Overlay() {
           getContainer={false}
           open={drawerVisible}
           onClose={() => updateDrawerVisible(false)}
-          className={clsx(styles.drawer)}>
+          className={clsx([styles.drawer])}>
           <pre>{JSON.stringify(OS, null, 2)}</pre>
         </Drawer>
         <Card
           variant="borderless"
-          className={clsx(styles.panel)}>
+          className={clsx([styles.panel])}>
           <Button onClick={() => updateDrawerVisible(true)}>打开控制台</Button>
           <Entries
             loading={false}

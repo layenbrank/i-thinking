@@ -1,9 +1,10 @@
 import {
-  AlipayCircleOutlined,
+  AppstoreAddOutlined,
   BulbOutlined,
   CheckCircleOutlined,
   CommentOutlined,
   CustomerServiceOutlined,
+  FieldTimeOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
   GithubOutlined,
@@ -13,34 +14,43 @@ import {
   RocketOutlined,
   SmileOutlined,
   UserOutlined,
-  WarningOutlined,
-  FieldTimeOutlined
+  WarningOutlined
 } from '@ant-design/icons'
 import {
   Bubble,
+  CodeHighlighter,
   Conversations,
   Prompts,
   Sender,
   Suggestion,
+  Think,
   ThoughtChain,
   XProvider,
-  CodeHighlighter,
   type BubbleItemType,
-  type ConversationsProps,
-  type BubbleProps,
   type ConversationItemType,
+  type ConversationsProps,
   type PromptsItemType,
   type ThoughtChainItemType
 } from '@ant-design/x'
 import XMarkdown, { type ComponentProps } from '@ant-design/x-markdown'
-// import { materialDark, oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import type {
   SkillType,
   SlotConfigType
 } from '@ant-design/x/es/sender/interface'
 import type { SuggestionItem } from '@ant-design/x/es/suggestion'
-import { Card, Divider, Flex, FloatButton, type GetProp, theme } from 'antd'
+import {
+  Divider,
+  Flex,
+  FloatButton,
+  message,
+  theme,
+  type GetProp,
+  Typography
+} from 'antd'
 import clsx from 'clsx'
+import { vs as VSCODE } from 'react-syntax-highlighter/dist/esm/styles/prism'
+
+import { timeSphere } from '@i-thinking/core'
 
 // import { Scroll } from '@/components/scroll/scroll.tsx'
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'
@@ -49,8 +59,12 @@ import {
   OverlayContext
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/intelligence/overlay.module.scss'
-import { SESSIONS } from './constant.ts'
+import {
+  session$,
+  useIntelligenceStore as store
+} from '@/stores/intelligence.ts'
 
+type AiSession = Application.Intelligence.AiSession
 type AiMessage = Application.Intelligence.AiMessage
 type CommunicateMessage = Application.Intelligence.Communicate.Message
 // type CommunicateIdentity = Application.Intelligence.Communicate.Identity
@@ -58,15 +72,27 @@ type CommunicateMessage = Application.Intelligence.Communicate.Message
 
 // interface Props {}
 
-const Code: React.FC<ComponentProps> = function (props) {
+const CodeBlock: React.FC<ComponentProps> = function (props) {
   const { className, children } = props
   const lang = className?.match(/language-(\w+)/)?.[1] || ''
 
   if (typeof children !== 'string') return null
-  return <CodeHighlighter lang={lang}>{children}</CodeHighlighter>
+  return (
+    <CodeHighlighter
+      highlightProps={{
+        // style: vscDarkPlus
+        style: VSCODE,
+        customStyle: {
+          border: 'none'
+        }
+      }}
+      lang={lang}>
+      {children}
+    </CodeHighlighter>
+  )
 }
 
-const groupName = ['Today', 'Yesterday', 'Historical chats']
+const groupName = ['今天', '昨天', '历史']
 const items: GetProp<ConversationsProps, 'items'> = Array.from({
   length: 9
 }).map((_, index) => ({
@@ -81,9 +107,35 @@ export default function Overlay() {
   const overlayRef = useRef<HTMLDivElement>(null)
   const [fullscreen, updateFullscreen] = useState(false)
   const [sender, updateSender] = useState('')
-  const [sessions, updateSessions] = useState<AiMessage[]>(SESSIONS)
+  const messages = store((state) => state.messages)
+  const sessions = store((state) => state.sessions)
+  const done = useRef(false)
+  const [thinking, updateThinking] = useState(false)
+  const [expandedThinking, updateExpandedThinking] = useState(false)
+
+  /**
+   * 流式消息更新批处理缓冲区
+   * 使用 ref 存储累积的内容，避免频繁触发 React 渲染
+   * 解决高频更新导致的 "Maximum update depth exceeded" 错误
+   */
+  const msgBufferRef = useRef<{
+    fragment: string
+    thinking: string
+    messageId: string | null
+  }>({
+    fragment: '',
+    thinking: '',
+    messageId: null
+  })
+
+  /**
+   * 批量更新定时器引用
+   * 确保同一事件循环中只注册一个定时器，避免重复提交
+   */
+  const updateTimerRef = useRef<number | null>(null)
+
   const [prompt, updatePrompt] = useState<PromptsItemType>()
-  const [expandedKeys, setExpandedKeys] = useState(['Yesterday'])
+  const [expandedKeys, setExpandedKeys] = useState<string[]>(['今天'])
 
   // 用于平滑滚动的 ref
   const scrollRef = useRef<{
@@ -96,31 +148,50 @@ export default function Overlay() {
     rafID: null
   })
 
-  const bubbles = useMemo(
+  const bubbles: BubbleItemType[] = useMemo(
     function () {
-      return sessions.map(function (value) {
-        const item: BubbleItemType = {
+      return messages.map(function (value) {
+        const entry: BubbleItemType = {
           key: value.id,
           role: value.identity,
+          streaming: true,
           placement: value.identity === 'user' ? 'end' : 'start',
-          content: (
-            <XMarkdown
-              content={value.fragment}
-              components={{ code: Code }}
-            />
-          ),
+          content: value.fragment,
+          contentRender(content, info) {
+            // <XMarkdown
+            //   content={content}
+            //   components={{ code: CodeBlock }}
+            // />
+            return (
+              <Typography>
+                {value.thinking && value.identity === 'assistant' && (
+                  <Think
+                    blink
+                    loading={thinking}
+                    expanded={expandedThinking}
+                    onExpand={updateExpandedThinking}>
+                    {value.thinking}
+                  </Think>
+                )}
+                <XMarkdown
+                  content={content}
+                  components={{ code: CodeBlock }}
+                />
+              </Typography>
+            )
+          },
           avatar:
             value.identity === 'user' ? (
               <UserOutlined />
             ) : (
               <RobotOutlined style={{ color: '#1677ff' }} />
             ),
-          loading: value.identity === 'assistant' && value.fragment === ''
+          loading: done.current && !thinking
         }
-        return item
+        return entry
       })
     },
-    [sessions]
+    [messages, thinking, expandedThinking]
   )
 
   const prompts: PromptsItemType[] = [
@@ -163,55 +234,84 @@ export default function Overlay() {
     }
   ]
 
-  const conversations: ConversationItemType[] = Array.from({ length: 9 }).map(
-    function (_, index) {
-      return {
-        key: `item${index + 1}`,
-        label: `Conversation Item ${index + 1}`,
-        group: groupName[index % 3],
-        icon: index % 2 === 0 ? <GithubOutlined /> : <AlipayCircleOutlined />
-      }
-    }
+  // const conversations: ConversationItemType[] = Array.from({ length: 9 }).map(
+  //   function (_, index) {
+  //     return {
+  //       key: `item${index + 1}`,
+  //       label: `Conversation Item ${index + 1}`,
+  //       group: groupName[index % 3],
+  //       icon: index % 2 === 0 ? <GithubOutlined /> : <AlipayCircleOutlined />
+  //     }
+  //   }
+  // )
+
+  const conversations: ConversationItemType[] = useMemo(
+    function () {
+      return sessions.map(function (session, index) {
+        return {
+          key: session.id,
+          label: session.title,
+          group: timeSphere.isToday(session.updatedAt)
+            ? '今天'
+            : timeSphere.isYesterday(session.updatedAt)
+              ? '昨天'
+              : '历史',
+          icon: <GithubOutlined />,
+          updatedAt: session.updatedAt
+        }
+      })
+      // .toSorted(function (a, b) {
+      //   return b.updatedAt - a.updatedAt
+      // })
+    },
+    [sessions]
   )
 
-  const thoughtChains: ThoughtChainItemType[] = [
-    {
-      title: 'Hello Ant Design X!',
-      status: 'success',
-      description: 'status: success',
-      icon: <CheckCircleOutlined />,
-      content:
-        'Ant Design X help you build AI chat/platform app as ready-to-use 📦.'
-    },
-    {
-      title: 'Hello World!',
-      status: 'success',
-      description: 'status: success',
-      icon: <CheckCircleOutlined />
-    },
-    {
-      title: 'Pending...',
-      status: 'loading',
-      description: 'status: pending',
-      icon: <LoadingOutlined />
-    }
-  ]
+  const thoughtChains: ThoughtChainItemType[] = useMemo(function () {
+    return [
+      {
+        title: 'Hello Ant Design X!',
+        status: 'success',
+        description: 'status: success',
+        icon: <CheckCircleOutlined />,
+        content:
+          'Ant Design X help you build AI chat/platform app as ready-to-use 📦.'
+      },
+      {
+        title: 'Hello World!',
+        status: 'success',
+        description: 'status: success',
+        icon: <CheckCircleOutlined />
+      },
+      {
+        title: 'Pending...',
+        status: 'loading',
+        description: 'status: pending',
+        icon: <LoadingOutlined />
+      }
+    ]
+  }, [])
 
-  const groupable: GetProp<typeof Conversations, 'groupable'> = {
-    label: (group) => {
-      return (
-        <Flex gap="small">
-          <FieldTimeOutlined />
-          {group}
-        </Flex>
-      )
+  const groupable: ConversationsProps['groupable'] = useMemo(
+    function () {
+      return {
+        label: (group) => {
+          return (
+            <Flex gap="small">
+              <FieldTimeOutlined />
+              {group}
+            </Flex>
+          )
+        },
+        collapsible(group) {
+          return groupName.includes(group)
+        },
+        expandedKeys: expandedKeys,
+        onExpand: setExpandedKeys
+      }
     },
-    collapsible: (group) => {
-      return group !== 'Today'
-    },
-    expandedKeys: expandedKeys,
-    onExpand: setExpandedKeys
-  }
+    [expandedKeys]
+  )
 
   function handlePrompt({ data }: { data: PromptsItemType }) {
     updatePrompt(data)
@@ -234,96 +334,161 @@ export default function Overlay() {
   }
 
   async function handleSubmit(
-    message: string,
+    fragment: string,
     slot?: SlotConfigType[],
     skill?: SkillType
   ) {
-    // 创建用户消息
-    const personal: AiMessage = {
-      id: crypto.randomUUID(),
-      sessionID: crypto.randomUUID(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      identity: 'user',
-      fragment: message,
-      thinking: ''
-    }
+    try {
+      // 立即重置输入框，提供即时反馈
+      updateSender('')
 
-    // 创建助手消息（初始为空）
-    const assistant: AiMessage = {
-      id: crypto.randomUUID(),
-      sessionID: crypto.randomUUID(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      identity: 'assistant',
-      fragment: '',
-      thinking: ''
-    }
+      if (!session$.value?.id) return message.error('请先选择一个会话')
 
-    // 构建消息列表（包含用户消息），在更新状态之前构建
-    const messages: CommunicateMessage[] = sessions
-      .concat([personal])
-      .map(function (value) {
-        return {
-          role: value.identity,
-          content: value.fragment,
-          thinking: value.thinking ?? undefined
+      // 创建用户消息
+      const personal: AiMessage = {
+        id: crypto.randomUUID(),
+        sessionID: session$.value?.id,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        identity: 'user',
+        fragment: fragment,
+        thinking: null
+      }
+
+      // 创建助手消息（初始为空）
+      const assistant: AiMessage = {
+        id: crypto.randomUUID(),
+        sessionID: session$.value?.id,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        identity: 'assistant',
+        fragment: '',
+        thinking: ''
+      }
+      // 构建消息列表（包含用户消息），在更新状态之前构建
+      const transferMSG: CommunicateMessage[] = messages
+        .concat([personal])
+        .map(function (value) {
+          return {
+            role: value.identity,
+            content: value.fragment,
+            thinking: value.thinking ?? undefined
+          }
+        })
+
+      // 使用函数式更新添加用户消息和空的助手消息
+      await store.getState().toInsertMessage([personal, assistant])
+      done.current = false
+      const generators = GeneratorJSON(
+        POST_COMMUNICATE.bind(null, {
+          model: 'qwen3:8b',
+          raw: true,
+          stream: true,
+          messages: transferMSG
+        })
+      )
+
+      /**
+       * 批量提交累积的消息内容到 store
+       * 使用 setTimeout(..., 0) 将多次更新合并为一次，避免高频更新导致 React 报错
+       */
+      function flushBatchUpdate() {
+        // 清理已注册的定时器
+        if (updateTimerRef.current !== null) {
+          clearTimeout(updateTimerRef.current)
+          updateTimerRef.current = null
         }
-      })
 
-    // 使用函数式更新添加用户消息和空的助手消息
-    let index = 0
-    updateSessions(function (prev) {
-      const updated = prev.concat([personal, assistant])
-      index = updated.length - 1
-      return updated
-    })
-
-    const generators = GeneratorJSON(
-      POST_COMMUNICATE.bind(null, {
-        model: 'qwen3:8b',
-        raw: true,
-        stream: true,
-        messages: messages
-      })
-    )
-
-    // 流式更新助手消息
-    for await (const generator of generators) {
-      const { message: msg } = generator
-      const { content, thinking } = msg
-
-      // if (thinking) assistant.thinking += thinking
-      if (thinking) assistant.fragment += thinking
-      if (content) assistant.fragment += content
-
-      console.log('[thinking]', thinking, '\n[content]', content)
-
-      // 实时更新 sessions，使用函数式更新确保获取最新状态
-      updateSessions(function (prev) {
-        const updated = [...prev]
-        if (updated[index]) {
-          updated[index] = assistant
+        const buffer = msgBufferRef.current
+        if (buffer.messageId) {
+          // 一次性提交所有累积的内容（跳过数据库更新，仅更新 UI）
+          void store.getState().toUpdateMessage(
+            [
+              {
+                id: buffer.messageId,
+                fragment: buffer.fragment,
+                thinking: buffer.thinking || null
+              }
+            ],
+            {
+              skip: true
+            }
+          )
         }
-        return updated
-      })
+      }
+
+      // 初始化消息缓冲区
+      msgBufferRef.current = {
+        fragment: '',
+        thinking: '',
+        messageId: assistant.id
+      }
+
+      updateThinking(true)
+      // 流式接收并批处理更新消息
+      for await (const generator of generators) {
+        const { message: msg } = generator
+        const { content, thinking } = msg
+
+        // 累积内容到缓冲区（不触发渲染）
+        if (thinking) msgBufferRef.current.thinking += thinking
+        if (content) msgBufferRef.current.fragment += content
+
+        // 如果还没有注册定时器，则在下一个事件循环中批量提交
+        // 这样可以将同一事件循环中的所有更新合并为一次
+        if (updateTimerRef.current === null) {
+          updateTimerRef.current = window.setTimeout(flushBatchUpdate, 0)
+        }
+      }
+
+      // 流式更新结束，清理定时器
+      if (updateTimerRef.current !== null) {
+        clearTimeout(updateTimerRef.current)
+        updateTimerRef.current = null
+      }
+
+      // 最终更新：包含数据库写入（持久化）
+      const finalBuffer = msgBufferRef.current
+      await store.getState().toUpdateMessage([
+        {
+          id: assistant.id,
+          fragment: finalBuffer.fragment,
+          thinking: finalBuffer.thinking || null,
+          updatedAt: Date.now()
+        }
+      ])
+
+      // 重置缓冲区
+      msgBufferRef.current = {
+        fragment: '',
+        thinking: '',
+        messageId: null
+      }
+    } catch (error) {
+      console.error('[handleSubmit]', error)
+    } finally {
+      done.current = true
+      updateThinking(false)
     }
+  }
 
-    // 最终更新助手消息的元数据
-    assistant.id = crypto.randomUUID()
-    assistant.sessionID = crypto.randomUUID()
-    assistant.createdAt = Date.now()
-    assistant.updatedAt = Date.now()
+  function handleActiveKey(key: string) {
+    void store.getState().toReadSession(key)
+  }
 
-    // 最终更新 sessions
-    updateSessions(function (prev) {
-      const updated = [...prev]
-      if (updated[index]) updated[index] = assistant
-      console.log('[updated]', updated)
-      return updated
-    })
-
-    updateSender('')
+  async function handleInsertSession() {
+    const sessionID = crypto.randomUUID()
+    const session: AiSession = {
+      id: sessionID,
+      title: '新对话' + (sessions.length + 1),
+      pinned: false,
+      collectionID: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+      // updatedAt: timeSphere.decrement(Date.now(), 2, 'day').valueOf()
+    }
+    await store.getState().toInsertSession([session])
+    void store.getState().toReadSession(sessionID)
   }
 
   // 使用 useEffect 添加非被动的事件监听器
@@ -414,6 +579,13 @@ export default function Overlay() {
     }
   }, [])
 
+  useEffect(
+    function () {
+      console.log('[sessions]', sessions)
+    },
+    [sessions]
+  )
+
   return (
     <Application.Overlay
       style={{
@@ -425,95 +597,90 @@ export default function Overlay() {
       className={clsx([styles.overlay, styles.root])}
       onOk={() => onUpdateVisible(false)}
       onCancel={() => onUpdateVisible(false)}>
-      <Flex
-        gap={12}
-        vertical
-        ref={overlayRef}
-        className={clsx(styles.provider, styles.flex)}>
-        <Card className={clsx(styles.provider, styles.card)}>
-          <XProvider direction="ltr">
+      <XProvider direction="ltr">
+        <Flex
+          gap={12}
+          className={clsx(styles.section, styles.flex)}>
+          {/* 历史记录列表 */}
+          <Conversations
+            creation={{
+              label: '开启新对话',
+              align: 'start',
+              onClick: handleInsertSession,
+              icon: <AppstoreAddOutlined />
+            }}
+            activeKey={session$.value?.id}
+            items={conversations}
+            defaultActiveKey={session$.value?.id}
+            onActiveChange={handleActiveKey}
+            style={{
+              '--background-color': token.colorBgContainer,
+              '--radius': `${token.borderRadius}px`
+            }}
+            groupable={groupable}
+            className={clsx(styles.section, styles.conversations)}
+          />
+          <Divider
+            orientation="vertical"
+            className={styles.divider}
+          />
+
+          <Flex
+            vertical
+            justify="space-between"
+            gap={16}
+            className={clsx([styles.section, styles.communicate])}>
+            <Bubble.List
+              items={bubbles}
+              rootClassName={clsx(styles.bubble, styles.root)}
+            />
+
             <Flex
-              gap={12}
-              className={clsx(styles.provider, styles.flex)}>
-              {/* <Conversations style={{ width: 200 }} defaultActiveKey="1" items={conversations} /> */}
-              <Conversations
-                items={conversations}
-                defaultActiveKey="item1"
-                style={{
-                  width: 256,
-                  background: token.colorBgContainer,
-                  borderRadius: token.borderRadius
-                }}
-                groupable={groupable}
+              vertical
+              gap={12}>
+              <Prompts
+                title="✨ Inspirational Sparks and Marvelous Tips"
+                items={prompts}
+                onItemClick={handlePrompt}
               />
-              <Divider
-                orientation="vertical"
-                className={styles.divider}
-              />
-
-              <Flex
-                vertical
-                justify="space-between"
-                gap={16}
-                style={{ flex: 1 }}>
-                <Bubble.List
-                  items={bubbles}
-                  rootClassName={clsx(styles.bubble, styles.root)}
-                />
-
-                <Flex
-                  vertical
-                  gap={12}>
-                  <Prompts
-                    title="✨ Inspirational Sparks and Marvelous Tips"
-                    items={prompts}
-                    onItemClick={handlePrompt}
-                  />
-                  <Suggestion items={suggestions}>
-                    {function ({ onTrigger, onKeyDown }) {
-                      return (
-                        <Sender
-                          value={sender}
-                          onKeyDown={(event) => handleKeyDown(event, onKeyDown)}
-                          onSubmit={handleSubmit}
-                          className={styles.sender}
-                          placeholder='Type "/" to trigger suggestion'
-                          onChange={(value) => handleSender(value, onTrigger)}
-                        />
-                      )
-                    }}
-                  </Suggestion>
-                </Flex>
-              </Flex>
-              <Divider
-                orientation="vertical"
-                className={styles.divider}
-              />
-              <ThoughtChain
-                style={{ width: 200 }}
-                items={thoughtChains}
-              />
-            </Flex>
-            <FloatButton.Group
-              trigger="hover"
-              style={{ insetInlineEnd: 24 }}
-              className={clsx(styles.float, styles.button)}
-              icon={<CustomerServiceOutlined />}>
-              <FloatButton
-                onClick={() => updateFullscreen(!fullscreen)}
-                icon={
-                  fullscreen ? (
-                    <FullscreenExitOutlined />
-                  ) : (
-                    <FullscreenOutlined />
+              <Suggestion items={suggestions}>
+                {function ({ onTrigger, onKeyDown }) {
+                  return (
+                    <Sender
+                      value={sender}
+                      onKeyDown={(event) => handleKeyDown(event, onKeyDown)}
+                      onSubmit={handleSubmit}
+                      className={styles.sender}
+                      placeholder='Type "/" to trigger suggestion'
+                      onChange={(value) => handleSender(value, onTrigger)}
+                    />
                   )
-                }
-              />
-              <FloatButton icon={<CommentOutlined />} />
-            </FloatButton.Group>
-          </XProvider>
-        </Card>
-      </Flex>
+                }}
+              </Suggestion>
+            </Flex>
+          </Flex>
+          <Divider
+            orientation="vertical"
+            className={styles.divider}
+          />
+          <ThoughtChain
+            items={thoughtChains}
+            className={clsx([styles.thought, styles.chain])}
+          />
+        </Flex>
+        <FloatButton.Group
+          trigger="click"
+          className={clsx(styles.float, styles.group)}
+          icon={<CustomerServiceOutlined />}>
+          <FloatButton
+            onClick={() => updateFullscreen(!fullscreen)}
+            icon={
+              fullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />
+            }
+          />
+          <FloatButton icon={<CommentOutlined />} />
+        </FloatButton.Group>
+      </XProvider>
     </Application.Overlay>
   )
 }

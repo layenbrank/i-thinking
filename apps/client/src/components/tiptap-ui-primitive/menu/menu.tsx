@@ -1,39 +1,39 @@
-import { forwardRef, useCallback, useMemo, useRef, useState } from "react"
-import * as Ariakit from "@ariakit/react"
+import { forwardRef, useCallback, useMemo, useRef, useState } from 'react'
+import * as Ariakit from '@ariakit/react'
 
 // -- Hooks --
-import { useOnClickOutside } from "@/hooks/use-on-click-outside"
-import { useComposedRef } from "@/hooks/use-composed-ref"
+import { useOnClickOutside } from '@/hooks/use-on-click-outside.ts'
+import { useComposedRef } from '@/hooks/use-composed-ref.ts'
 
 // -- Utils --
-import { cn } from "@/lib/tiptap-utils"
+import { cn } from '@/lib/tiptap-utils.ts'
 
 // -- UI Primitives --
 import {
   ComboboxItem,
-  ComboboxProvider,
-} from "@/components/tiptap-ui-primitive/combobox"
-import { Label } from "@/components/tiptap-ui-primitive/label"
+  ComboboxProvider
+} from '@/components/tiptap-ui-primitive/combobox/combobox.tsx'
+import { Label } from '@/components/tiptap-ui-primitive/label/label.tsx'
 
 // -- Local imports --
 import type {
   MenuProps,
   MenuContentProps,
-  MenuItemProps,
-} from "@/components/tiptap-ui-primitive/menu"
+  MenuItemProps
+} from '@/components/tiptap-ui-primitive/menu/menu-types.ts'
 import {
   SearchableContext,
   MenuContext,
   useSearchableContext,
-  useMenuContext,
-} from "@/components/tiptap-ui-primitive/menu"
+  useMenuContext
+} from '@/components/tiptap-ui-primitive/menu/menu-context.ts'
 import {
   useMenuPlacement,
-  useMenuItemClick,
-} from "@/components/tiptap-ui-primitive/menu"
+  useMenuItemClick
+} from '@/components/tiptap-ui-primitive/menu/menu-hooks.ts'
 
 // -- Styles --
-import "@/components/tiptap-ui-primitive/menu/menu.scss"
+import '@/components/tiptap-ui-primitive/menu/menu.scss'
 
 export function Menu({
   children,
@@ -61,7 +61,7 @@ export function Menu({
   const menuContextValue = useMemo(
     () => ({
       isRootMenu,
-      open: props.open ?? open,
+      open: props.open ?? open
     }),
     [isRootMenu, props.open, open]
   )
@@ -72,8 +72,7 @@ export function Menu({
       setOpen={handleOpenChange}
       setValues={onValuesChange}
       showTimeout={100}
-      {...props}
-    >
+      {...props}>
       {trigger}
       <MenuContext.Provider value={menuContextValue}>
         <SearchableContext.Provider value={searchable}>
@@ -85,7 +84,9 @@ export function Menu({
 
   if (searchable) {
     return (
-      <ComboboxProvider value={value} setValue={onValueChange}>
+      <ComboboxProvider
+        value={value}
+        setValue={onValueChange}>
         {menuProvider}
       </ComboboxProvider>
     )
@@ -110,14 +111,13 @@ export function MenuContent({
   return (
     <Ariakit.Menu
       ref={useComposedRef(menuRef, ref)}
-      className={cn("tiptap-menu-content", className)}
+      className={cn('tiptap-menu-content', className)}
       data-side={side}
-      data-state={open ? "open" : "closed"}
+      data-state={open ? 'open' : 'closed'}
       gutter={4}
       flip
       unmountOnHide
-      {...props}
-    >
+      {...props}>
       {children}
     </Ariakit.Menu>
   )
@@ -130,11 +130,11 @@ export const MenuButton = forwardRef<
   <Ariakit.MenuButton
     ref={ref}
     {...props}
-    className={cn("tiptap-menu-button", className)}
+    className={cn('tiptap-menu-button', className)}
   />
 ))
 
-MenuButton.displayName = "MenuButton"
+MenuButton.displayName = 'MenuButton'
 
 export const MenuButtonArrow = forwardRef<
   React.ComponentRef<typeof Ariakit.MenuButtonArrow>,
@@ -143,11 +143,11 @@ export const MenuButtonArrow = forwardRef<
   <Ariakit.MenuButtonArrow
     ref={ref}
     {...props}
-    className={cn("tiptap-menu-button-arrow", className)}
+    className={cn('tiptap-menu-button-arrow', className)}
   />
 ))
 
-MenuButtonArrow.displayName = "MenuButtonArrow"
+MenuButtonArrow.displayName = 'MenuButtonArrow'
 
 export const MenuGroup = forwardRef<
   React.ComponentRef<typeof Ariakit.MenuGroup>,
@@ -156,18 +156,23 @@ export const MenuGroup = forwardRef<
   <Ariakit.MenuGroup
     ref={ref}
     {...props}
-    className={cn("tiptap-menu-group", className)}
+    className={cn('tiptap-menu-group', className)}
   />
 ))
 
-MenuGroup.displayName = "MenuGroup"
+MenuGroup.displayName = 'MenuGroup'
 
 export const MenuGroupLabel = forwardRef<
   React.ComponentRef<typeof Ariakit.MenuGroupLabel>,
   React.ComponentPropsWithoutRef<typeof Ariakit.MenuGroupLabel>
->((props, ref) => <Label ref={ref} {...props} />)
+>((props, ref) => (
+  <Label
+    ref={ref}
+    {...props}
+  />
+))
 
-MenuGroupLabel.displayName = "MenuGroupLabel"
+MenuGroupLabel.displayName = 'MenuGroupLabel'
 
 export const MenuItemCheck = forwardRef<
   React.ComponentRef<typeof Ariakit.MenuItemCheck>,
@@ -176,11 +181,11 @@ export const MenuItemCheck = forwardRef<
   <Ariakit.MenuItemCheck
     ref={ref}
     {...props}
-    className={cn("tiptap-menu-item-check", className)}
+    className={cn('tiptap-menu-item-check', className)}
   />
 ))
 
-MenuItemCheck.displayName = "MenuItemCheck"
+MenuItemCheck.displayName = 'MenuItemCheck'
 
 export const MenuItemRadio = forwardRef<
   React.ComponentRef<typeof Ariakit.MenuItemRadio>,
@@ -189,11 +194,11 @@ export const MenuItemRadio = forwardRef<
   <Ariakit.MenuItemRadio
     ref={ref}
     {...props}
-    className={cn("tiptap-menu-item-radio", className)}
+    className={cn('tiptap-menu-item-radio', className)}
   />
 ))
 
-MenuItemRadio.displayName = "MenuItemRadio"
+MenuItemRadio.displayName = 'MenuItemRadio'
 
 export const MenuItem = function MenuItem({
   name,
@@ -210,8 +215,8 @@ export const MenuItem = function MenuItem({
   const itemProps: MenuItemProps = {
     blurOnHoverEnd: false,
     focusOnHover: true,
-    className: cn("tiptap-menu-item", className),
-    ...props,
+    className: cn('tiptap-menu-item', className),
+    ...props
   }
 
   if (!searchable) {
@@ -229,5 +234,10 @@ export const MenuItem = function MenuItem({
     return <Ariakit.MenuItem {...itemProps} />
   }
 
-  return <ComboboxItem {...itemProps} hideOnClick={hideOnClick} />
+  return (
+    <ComboboxItem
+      {...itemProps}
+      hideOnClick={hideOnClick}
+    />
+  )
 }

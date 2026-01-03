@@ -1,14 +1,14 @@
-"use client"
+'use client'
 
 // --- Lib ---
-import type { Orientation } from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+import type { Orientation } from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 
 // --- UI ---
-import { useTableAlignCell } from "@/components/tiptap-node/table-node/ui/table-align-cell-button"
+import { useTableAlignCell } from '@/components/tiptap-node/table-node/ui/table-align-cell-button/use-table-align-cell.ts'
 
 // --- Icons ---
-import { AlignmentIcon } from "@/components/tiptap-icons/alignment-icon"
-import { ChevronRightIcon } from "@/components/tiptap-icons/chevron-right-icon"
+import { AlignmentIcon } from '@/components/tiptap-icons/alignment-icon.tsx'
+import { ChevronRightIcon } from '@/components/tiptap-icons/chevron-right-icon.tsx'
 
 // --- UI Primitives ---
 import {
@@ -17,11 +17,11 @@ import {
   MenuButtonArrow,
   MenuContent,
   MenuGroup,
-  MenuItem,
-} from "@/components/tiptap-ui-primitive/menu"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { ComboboxList } from "@/components/tiptap-ui-primitive/combobox"
-import { Separator } from "@/components/tiptap-ui-primitive/separator"
+  MenuItem
+} from '@/components/tiptap-ui-primitive/menu/menu.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { ComboboxList } from '@/components/tiptap-ui-primitive/combobox/combobox.tsx'
+import { Separator } from '@/components/tiptap-ui-primitive/separator/separator.tsx'
 
 export interface ActionItemProps {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
@@ -34,51 +34,51 @@ export interface ActionItemProps {
 
 export const TableAlignMenu = ({
   index,
-  orientation,
+  orientation
 }: {
   index?: number
   orientation?: Orientation
 }) => {
   const textAlign = {
     left: useTableAlignCell({
-      alignmentType: "text",
-      alignment: "left",
+      alignmentType: 'text',
+      alignment: 'left',
       index,
-      orientation,
+      orientation
     }),
     center: useTableAlignCell({
-      alignmentType: "text",
-      alignment: "center",
+      alignmentType: 'text',
+      alignment: 'center',
       index,
-      orientation,
+      orientation
     }),
     right: useTableAlignCell({
-      alignmentType: "text",
-      alignment: "right",
+      alignmentType: 'text',
+      alignment: 'right',
       index,
-      orientation,
-    }),
+      orientation
+    })
   }
 
   const verticalAlign = {
     top: useTableAlignCell({
-      alignmentType: "vertical",
-      alignment: "top",
+      alignmentType: 'vertical',
+      alignment: 'top',
       index,
-      orientation,
+      orientation
     }),
     middle: useTableAlignCell({
-      alignmentType: "vertical",
-      alignment: "middle",
+      alignmentType: 'vertical',
+      alignment: 'middle',
       index,
-      orientation,
+      orientation
     }),
     bottom: useTableAlignCell({
-      alignmentType: "vertical",
-      alignment: "bottom",
+      alignmentType: 'vertical',
+      alignment: 'bottom',
       index,
-      orientation,
-    }),
+      orientation
+    })
   }
 
   if (!textAlign.left.canAlignCell()) {
@@ -102,10 +102,15 @@ export const TableAlignMenu = ({
             />
           }
         />
-      }
-    >
-      <MenuContent>
-        <ComboboxList>
+      }>
+      <MenuContent
+        style={{
+          zIndex: 1000
+        }}>
+        <ComboboxList
+          style={{
+            zIndex: 1000
+          }}>
           <MenuGroup>
             {Object.values(textAlign).map((align, i) => (
               <ActionItem
@@ -141,19 +146,21 @@ const ActionItem = ({
   onClick,
   disabled = false,
   isActive = false,
-  shortcutBadge,
+  shortcutBadge
 }: ActionItemProps) => (
   <MenuItem
     render={
-      <Button data-style="ghost" data-active-state={isActive ? "on" : "off"} />
+      <Button
+        data-style="ghost"
+        data-active-state={isActive ? 'on' : 'off'}
+      />
     }
     onClick={onClick}
-    disabled={disabled}
-  >
+    disabled={disabled}>
     <Icon className="tiptap-button-icon" />
     <span className="tiptap-button-text">{label}</span>
     {shortcutBadge}
   </MenuItem>
 )
 
-ActionItem.displayName = "ActionItem"
+ActionItem.displayName = 'ActionItem'

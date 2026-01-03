@@ -1,31 +1,30 @@
-"use client"
+'use client'
 
-import { forwardRef, useCallback, useMemo } from "react"
+import { forwardRef, useCallback, useMemo } from 'react'
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from '@/lib/tiptap-utils.ts'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Tiptap UI ---
-import type { UseColorTextConfig } from "@/components/tiptap-ui/color-text-button"
+import type { UseColorTextConfig } from '@/components/tiptap-ui/color-text-button/use-color-text.ts'
 import {
   COLOR_TEXT_SHORTCUT_KEY,
-  useColorText,
-} from "@/components/tiptap-ui/color-text-button"
+  useColorText
+} from '@/components/tiptap-ui/color-text-button/use-color-text.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Badge } from '@/components/tiptap-ui-primitive/badge/badge.tsx'
 
 // --- Styles ---
-import "@/components/tiptap-ui/color-text-button/color-text-button.scss"
+import '@/components/tiptap-ui/color-text-button/color-text-button.scss'
 
 export interface ColorTextButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseColorTextConfig {
+  extends Omit<ButtonProps, 'type'>, UseColorTextConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -38,7 +37,7 @@ export interface ColorTextButtonProps
 }
 
 export function ColorTextShortcutBadge({
-  shortcutKeys = COLOR_TEXT_SHORTCUT_KEY,
+  shortcutKeys = COLOR_TEXT_SHORTCUT_KEY
 }: {
   shortcutKeys?: string
 }) {
@@ -77,13 +76,13 @@ export const ColorTextButton = forwardRef<
       handleColorText,
       label,
       shortcutKeys,
-      Icon,
+      Icon
     } = useColorText({
       editor,
       textColor,
       label: text || `Color text to ${textColor}`,
       hideWhenUnavailable,
-      onApplied,
+      onApplied
     })
 
     const handleClick = useCallback(
@@ -99,7 +98,7 @@ export const ColorTextButton = forwardRef<
       () =>
         ({
           ...style,
-          "--color-text-button-color": textColor,
+          '--color-text-button-color': textColor
         }) as React.CSSProperties,
       [textColor, style]
     )
@@ -112,7 +111,7 @@ export const ColorTextButton = forwardRef<
       <Button
         type="button"
         data-style="ghost"
-        data-active-state={isActive ? "on" : "off"}
+        data-active-state={isActive ? 'on' : 'off'}
         role="button"
         tabIndex={-1}
         disabled={!canColorText}
@@ -123,14 +122,12 @@ export const ColorTextButton = forwardRef<
         onClick={handleClick}
         style={buttonStyle}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <span
               className="tiptap-button-color-text"
-              style={{ color: textColor }}
-            >
+              style={{ color: textColor }}>
               <Icon
                 className="tiptap-button-icon"
                 style={{ color: textColor, flexGrow: 1 }}
@@ -147,4 +144,4 @@ export const ColorTextButton = forwardRef<
   }
 )
 
-ColorTextButton.displayName = "ColorTextButton"
+ColorTextButton.displayName = 'ColorTextButton'

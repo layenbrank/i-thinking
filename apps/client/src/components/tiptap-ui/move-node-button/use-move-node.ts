@@ -1,23 +1,23 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useState } from "react"
-import { useHotkeys } from "react-hotkeys-hook"
-import { type Editor } from "@tiptap/react"
-import { TextSelection } from "@tiptap/pm/state"
+import { useCallback, useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { type Editor } from '@tiptap/react'
+import { TextSelection } from '@tiptap/pm/state'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint.ts'
 
 // --- Utils ---
-import { getAnchorNodeAndPos } from "@/lib/tiptap-advanced-utils"
+import { getAnchorNodeAndPos } from '@/lib/tiptap-advanced-utils.ts'
 
 // --- Icons ---
-import { AlignTopIcon } from "@/components/tiptap-icons/align-top-icon"
-import { AlignBottomIcon } from "@/components/tiptap-icons/align-bottom-icon"
+import { AlignTopIcon } from '@/components/tiptap-icons/align-top-icon.tsx'
+import { AlignBottomIcon } from '@/components/tiptap-icons/align-bottom-icon.tsx'
 
-export const MOVE_UP_SHORTCUT_KEY = "mod+shift+ArrowUp"
-export const MOVE_DOWN_SHORTCUT_KEY = "mod+shift+ArrowDown"
+export const MOVE_UP_SHORTCUT_KEY = 'mod+shift+ArrowUp'
+export const MOVE_DOWN_SHORTCUT_KEY = 'mod+shift+ArrowDown'
 
 /**
  * Configuration for the move node functionality
@@ -35,11 +35,11 @@ export interface UseMoveNodeConfig {
   /**
    * The direction to move the node.
    */
-  direction: "up" | "down"
+  direction: 'up' | 'down'
   /**
    * Callback function called after a successful move.
    */
-  onMoved?: (direction: "up" | "down") => void
+  onMoved?: (direction: 'up' | 'down') => void
 }
 
 /**
@@ -47,7 +47,7 @@ export interface UseMoveNodeConfig {
  */
 export function canMoveNode(
   editor: Editor | null,
-  direction: "up" | "down"
+  direction: 'up' | 'down'
 ): boolean {
   if (!editor || !editor.isEditable) return false
   const nodeInfo = getAnchorNodeAndPos(editor)
@@ -59,7 +59,7 @@ export function canMoveNode(
     const parent = $pos.parent
     const index = $pos.index()
 
-    return direction === "up" ? index > 0 : index < parent.childCount - 1
+    return direction === 'up' ? index > 0 : index < parent.childCount - 1
   } catch {
     return false
   }
@@ -70,7 +70,7 @@ export function canMoveNode(
  */
 export function moveNode(
   editor: Editor | null,
-  direction: "up" | "down"
+  direction: 'up' | 'down'
 ): boolean {
   if (!editor || !editor.isEditable) return false
   const nodeInfo = getAnchorNodeAndPos(editor)
@@ -87,7 +87,7 @@ export function moveNode(
       return false
     }
 
-    if (direction === "up" && index > 0) {
+    if (direction === 'up' && index > 0) {
       const prevNode = parent.child(index - 1)
       const prevSize = prevNode.nodeSize
 
@@ -96,7 +96,7 @@ export function moveNode(
       const insertPos = pos - prevSize
       tr.insert(insertPos, movedNode)
       tr.setSelection(TextSelection.near(tr.doc.resolve(insertPos)))
-    } else if (direction === "down" && index < parent.childCount - 1) {
+    } else if (direction === 'down' && index < parent.childCount - 1) {
       const nextNode = parent.child(index + 1)
       const nextSize = nextNode.nodeSize
 
@@ -112,7 +112,7 @@ export function moveNode(
     editor.view.dispatch(tr)
     return true
   } catch (err) {
-    console.error("Error moving node:", err)
+    console.error('Error moving node:', err)
     return false
   }
 }
@@ -122,7 +122,7 @@ export function moveNode(
  */
 export function shouldShowButton(props: {
   editor: Editor | null
-  direction: "up" | "down"
+  direction: 'up' | 'down'
   hideWhenUnavailable: boolean
 }): boolean {
   const { editor, direction, hideWhenUnavailable } = props
@@ -143,7 +143,7 @@ export function useMoveNode(config: UseMoveNodeConfig) {
     editor: providedEditor,
     hideWhenUnavailable = false,
     direction,
-    onMoved,
+    onMoved
   } = config
   const { editor } = useTiptapEditor(providedEditor)
   const isMobile = useIsBreakpoint()
@@ -170,14 +170,14 @@ export function useMoveNode(config: UseMoveNodeConfig) {
 
     update()
 
-    editor.on("selectionUpdate", update)
+    editor.on('selectionUpdate', update)
     return () => {
-      editor.off("selectionUpdate", update)
+      editor.off('selectionUpdate', update)
     }
   }, [editor, direction, hideWhenUnavailable])
 
   const shortcutKeys =
-    direction === "up" ? MOVE_UP_SHORTCUT_KEY : MOVE_DOWN_SHORTCUT_KEY
+    direction === 'up' ? MOVE_UP_SHORTCUT_KEY : MOVE_DOWN_SHORTCUT_KEY
 
   useHotkeys(
     shortcutKeys,
@@ -188,13 +188,13 @@ export function useMoveNode(config: UseMoveNodeConfig) {
     {
       enabled: isVisible && canMoveNodeState,
       enableOnContentEditable: !isMobile,
-      enableOnFormTags: true,
+      enableOnFormTags: true
     },
     [handleMoveNode, isVisible, canMoveNodeState, isMobile]
   )
 
-  const label = direction === "up" ? "Move Up" : "Move Down"
-  const Icon = direction === "up" ? AlignTopIcon : AlignBottomIcon
+  const label = direction === 'up' ? 'Move Up' : 'Move Down'
+  const Icon = direction === 'up' ? AlignTopIcon : AlignBottomIcon
 
   return {
     isVisible,
@@ -202,6 +202,6 @@ export function useMoveNode(config: UseMoveNodeConfig) {
     canMoveNode: canMoveNodeState,
     label,
     shortcutKeys,
-    Icon,
+    Icon
   }
 }

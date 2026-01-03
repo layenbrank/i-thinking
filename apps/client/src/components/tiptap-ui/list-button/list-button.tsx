@@ -1,25 +1,30 @@
-"use client"
+'use client'
 
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from '@/lib/tiptap-utils.ts'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Badge } from '@/components/tiptap-ui-primitive/badge/badge.tsx'
 
 // --- Tiptap UI ---
-import type { ListType, UseListConfig } from "@/components/tiptap-ui/list-button"
-import { LIST_SHORTCUT_KEYS, useList } from "@/components/tiptap-ui/list-button"
+import type {
+  ListType,
+  UseListConfig
+} from '@/components/tiptap-ui/list-button/use-list.ts'
+import {
+  LIST_SHORTCUT_KEYS,
+  useList
+} from '@/components/tiptap-ui/list-button/use-list.ts'
 
 export interface ListButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseListConfig {
+  extends Omit<ButtonProps, 'type'>, UseListConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -33,7 +38,7 @@ export interface ListButtonProps
 
 export function ListShortcutBadge({
   type,
-  shortcutKeys = LIST_SHORTCUT_KEYS[type],
+  shortcutKeys = LIST_SHORTCUT_KEYS[type]
 }: {
   type: ListType
   shortcutKeys?: string
@@ -69,12 +74,12 @@ export const ListButton = forwardRef<HTMLButtonElement, ListButtonProps>(
       handleToggle,
       label,
       shortcutKeys,
-      Icon,
+      Icon
     } = useList({
       editor,
       type,
       hideWhenUnavailable,
-      onToggled,
+      onToggled
     })
 
     const handleClick = useCallback(
@@ -94,7 +99,7 @@ export const ListButton = forwardRef<HTMLButtonElement, ListButtonProps>(
       <Button
         type="button"
         data-style="ghost"
-        data-active-state={isActive ? "on" : "off"}
+        data-active-state={isActive ? 'on' : 'off'}
         role="button"
         tabIndex={-1}
         disabled={!canToggle}
@@ -104,14 +109,16 @@ export const ListButton = forwardRef<HTMLButtonElement, ListButtonProps>(
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
             {text && <span className="tiptap-button-text">{text}</span>}
             {showShortcut && (
-              <ListShortcutBadge type={type} shortcutKeys={shortcutKeys} />
+              <ListShortcutBadge
+                type={type}
+                shortcutKeys={shortcutKeys}
+              />
             )}
           </>
         )}
@@ -120,4 +127,4 @@ export const ListButton = forwardRef<HTMLButtonElement, ListButtonProps>(
   }
 )
 
-ListButton.displayName = "ListButton"
+ListButton.displayName = 'ListButton'

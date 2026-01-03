@@ -1,27 +1,27 @@
-import { useCallback, useMemo } from "react"
-import type { Editor } from "@tiptap/react"
+import { useCallback, useMemo } from 'react'
+import type { Editor } from '@tiptap/react'
 import {
   cellAround,
   CellSelection,
-  deleteCellSelection,
-} from "@tiptap/pm/tables"
+  deleteCellSelection
+} from '@tiptap/pm/tables'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Lib ---
-import { isExtensionAvailable } from "@/lib/tiptap-utils"
-import type { Orientation } from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+import { isExtensionAvailable } from '@/lib/tiptap-utils.ts'
+import type { Orientation } from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 import {
   getTable,
   getTableSelectionType,
   getRowOrColumnCells,
   setCellAttr,
-  isCellEmpty,
-} from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+  isCellEmpty
+} from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 
 // --- Icons ---
-import { SquareXIcon } from "@/components/tiptap-icons/square-x-icon"
+import { SquareXIcon } from '@/components/tiptap-icons/square-x-icon.tsx'
 
 export interface UseTableClearRowColumnContentConfig {
   /**
@@ -59,11 +59,11 @@ export interface UseTableClearRowColumnContentConfig {
   onCleared?: () => void
 }
 
-const REQUIRED_EXTENSIONS = ["table"]
+const REQUIRED_EXTENSIONS = ['table']
 
 export const tableClearRowColumnContentLabels: Record<Orientation, string> = {
-  row: "Clear row contents",
-  column: "Clear column contents",
+  row: 'Clear row contents',
+  column: 'Clear column contents'
 }
 
 /**
@@ -72,7 +72,7 @@ export const tableClearRowColumnContentLabels: Record<Orientation, string> = {
 const DEFAULT_CELL_ATTRS = {
   backgroundColor: null,
   nodeVerticalAlign: null,
-  nodeTextAlign: null,
+  nodeTextAlign: null
 }
 
 /**
@@ -82,7 +82,7 @@ function resetCellAttributes(editor: Editor): boolean {
   try {
     return setCellAttr(DEFAULT_CELL_ATTRS)(editor.state, editor.view.dispatch)
   } catch (error) {
-    console.error("Error resetting cell attributes:", error)
+    console.error('Error resetting cell attributes:', error)
     return false
   }
 }
@@ -95,7 +95,7 @@ function canClearRowColumnContent({
   editor,
   index,
   orientation,
-  tablePos,
+  tablePos
 }: {
   editor: Editor | null
   index?: number
@@ -199,7 +199,7 @@ function clearSelectedCells(
 
     return true
   } catch (error) {
-    console.error("Error clearing selected cells:", error)
+    console.error('Error clearing selected cells:', error)
     return false
   }
 }
@@ -212,7 +212,7 @@ function clearRowColumnCells({
   index,
   orientation,
   tablePos,
-  resetAttrs = false,
+  resetAttrs = false
 }: {
   editor: Editor
   index: number
@@ -243,7 +243,7 @@ function clearRowColumnCells({
         if (resetAttrs) {
           tr.setNodeMarkup(cellInfo.pos, null, {
             ...cellInfo.node.attrs,
-            ...DEFAULT_CELL_ATTRS,
+            ...DEFAULT_CELL_ATTRS
           })
         }
       }
@@ -269,7 +269,7 @@ function tableClearRowColumnContent({
   index,
   orientation,
   tablePos,
-  resetAttrs = false,
+  resetAttrs = false
 }: {
   editor: Editor | null
   index?: number
@@ -298,13 +298,13 @@ function tableClearRowColumnContent({
         index: selectionType.index,
         orientation: selectionType.orientation,
         resetAttrs,
-        tablePos,
+        tablePos
       })
     } else {
       return clearSelectedCells(editor, resetAttrs)
     }
   } catch (error) {
-    console.error("Error clearing table content:", error)
+    console.error('Error clearing table content:', error)
     return false
   }
 }
@@ -318,7 +318,7 @@ function shouldShowButton({
   index,
   orientation,
   tablePos,
-  hideWhenUnavailable,
+  hideWhenUnavailable
 }: {
   editor: Editor | null
   index?: number
@@ -410,7 +410,7 @@ export function useTableClearRowColumnContent(
     tablePos,
     hideWhenUnavailable = false,
     resetAttrs = false,
-    onCleared,
+    onCleared
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -427,14 +427,14 @@ export function useTableClearRowColumnContent(
     index,
     orientation,
     tablePos,
-    hideWhenUnavailable,
+    hideWhenUnavailable
   })
 
   const canPerformClear = canClearRowColumnContent({
     editor,
     index,
     orientation,
-    tablePos,
+    tablePos
   })
 
   const handleClear = useCallback(() => {
@@ -443,7 +443,7 @@ export function useTableClearRowColumnContent(
       index,
       orientation,
       tablePos,
-      resetAttrs,
+      resetAttrs
     })
     if (success) onCleared?.()
     return success
@@ -453,7 +453,7 @@ export function useTableClearRowColumnContent(
     if (selectionType) {
       return tableClearRowColumnContentLabels[selectionType.orientation]
     }
-    return "Clear contents"
+    return 'Clear contents'
   }, [selectionType])
 
   const Icon = SquareXIcon
@@ -463,6 +463,6 @@ export function useTableClearRowColumnContent(
     canClearRowColumnContent: canPerformClear,
     handleClear,
     label,
-    Icon,
+    Icon
   }
 }

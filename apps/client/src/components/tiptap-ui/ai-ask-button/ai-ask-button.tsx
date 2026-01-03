@@ -3,22 +3,22 @@
 import { forwardRef, useCallback } from "react"
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from "@/lib/tiptap-utils.ts"
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from "@/hooks/use-tiptap-editor.ts"
 
 // --- TIptap UI ---
-import type { UseAiAskConfig } from "@/components/tiptap-ui/ai-ask-button"
+import type { UseAiAskConfig } from "@/components/tiptap-ui/ai-ask-button/use-ai-ask.ts"
 import {
   AI_ASK_SHORTCUT_KEY,
   useAiAsk,
-} from "@/components/tiptap-ui/ai-ask-button"
+} from "@/components/tiptap-ui/ai-ask-button/use-ai-ask.ts"
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Button } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Badge } from "@/components/tiptap-ui-primitive/badge/badge.tsx"
 
 export interface AiAskButtonProps
   extends Omit<ButtonProps, "type">,

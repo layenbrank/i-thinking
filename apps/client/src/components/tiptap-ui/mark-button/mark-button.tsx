@@ -1,23 +1,28 @@
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from '@/lib/tiptap-utils.ts'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Tiptap UI ---
-import type { Mark, UseMarkConfig } from "@/components/tiptap-ui/mark-button"
-import { MARK_SHORTCUT_KEYS, useMark } from "@/components/tiptap-ui/mark-button"
+import type {
+  Mark,
+  UseMarkConfig
+} from '@/components/tiptap-ui/mark-button/use-mark.ts'
+import {
+  MARK_SHORTCUT_KEYS,
+  useMark
+} from '@/components/tiptap-ui/mark-button/use-mark.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Badge } from '@/components/tiptap-ui-primitive/badge/badge.tsx'
 
 export interface MarkButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseMarkConfig {
+  extends Omit<ButtonProps, 'type'>, UseMarkConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -31,7 +36,7 @@ export interface MarkButtonProps
 
 export function MarkShortcutBadge({
   type,
-  shortcutKeys = MARK_SHORTCUT_KEYS[type],
+  shortcutKeys = MARK_SHORTCUT_KEYS[type]
 }: {
   type: Mark
   shortcutKeys?: string
@@ -67,12 +72,12 @@ export const MarkButton = forwardRef<HTMLButtonElement, MarkButtonProps>(
       canToggle,
       isActive,
       Icon,
-      shortcutKeys,
+      shortcutKeys
     } = useMark({
       editor,
       type,
       hideWhenUnavailable,
-      onToggled,
+      onToggled
     })
 
     const handleClick = useCallback(
@@ -93,7 +98,7 @@ export const MarkButton = forwardRef<HTMLButtonElement, MarkButtonProps>(
         type="button"
         disabled={!canToggle}
         data-style="ghost"
-        data-active-state={isActive ? "on" : "off"}
+        data-active-state={isActive ? 'on' : 'off'}
         data-disabled={!canToggle}
         role="button"
         tabIndex={-1}
@@ -102,14 +107,16 @@ export const MarkButton = forwardRef<HTMLButtonElement, MarkButtonProps>(
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
             {text && <span className="tiptap-button-text">{text}</span>}
             {showShortcut && (
-              <MarkShortcutBadge type={type} shortcutKeys={shortcutKeys} />
+              <MarkShortcutBadge
+                type={type}
+                shortcutKeys={shortcutKeys}
+              />
             )}
           </>
         )}
@@ -118,4 +125,4 @@ export const MarkButton = forwardRef<HTMLButtonElement, MarkButtonProps>(
   }
 )
 
-MarkButton.displayName = "MarkButton"
+MarkButton.displayName = 'MarkButton'

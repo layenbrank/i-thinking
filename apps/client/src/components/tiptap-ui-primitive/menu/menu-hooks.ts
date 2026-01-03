@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useMemo } from "react"
-import * as Ariakit from "@ariakit/react"
+import { useCallback, useEffect, useMemo } from 'react'
+import * as Ariakit from '@ariakit/react'
 import type {
   ContextMenuAnchor,
   UseContextMenuReturn,
-  UseMenuStoreReturn,
-} from "@/components/tiptap-ui-primitive/menu/menu-types"
+  UseMenuStoreReturn
+} from '@/components/tiptap-ui-primitive/menu/menu-types.ts'
 
 export function useComboboxValueState(): readonly [
   string,
-  (value: string) => void,
+  (value: string) => void
 ] {
   const store = Ariakit.useComboboxContext()
-  const searchValue = Ariakit.useStoreState(store, "value") ?? ""
+  const searchValue = Ariakit.useStoreState(store, 'value') ?? ''
 
   if (!store) {
     throw new Error(
-      "useComboboxValueState must be used within ComboboxProvider"
+      'useComboboxValueState must be used within ComboboxProvider'
     )
   }
 
@@ -26,7 +26,7 @@ export function useMenuPlacement(): string {
   const store = Ariakit.useMenuStore()
   const currentPlacement = Ariakit.useStoreState(
     store,
-    (state) => state.currentPlacement?.split("-")[0] || "bottom"
+    (state) => state.currentPlacement?.split('-')[0] || 'bottom'
   )
   return currentPlacement
 }
@@ -53,7 +53,7 @@ export function useContextMenu(
     () => ({
       store: menu,
       getAnchorRect,
-      show,
+      show
     }),
     [menu, getAnchorRect, show]
   )
@@ -74,7 +74,7 @@ export function useFloatingMenuStore(): UseMenuStoreReturn {
   return useMemo(
     () => ({
       store: menu,
-      show,
+      show
     }),
     [menu, show]
   )
@@ -86,7 +86,7 @@ export function useMenuItemClick(
 ) {
   return useCallback(
     (event: React.MouseEvent<HTMLElement, MouseEvent>) => {
-      const expandable = event.currentTarget.hasAttribute("aria-expanded")
+      const expandable = event.currentTarget.hasAttribute('aria-expanded')
 
       if (expandable || preventClose) {
         return false

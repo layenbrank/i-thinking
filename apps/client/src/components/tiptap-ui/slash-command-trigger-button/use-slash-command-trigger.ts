@@ -6,18 +6,18 @@ import { type Editor } from "@tiptap/react"
 import type { Node } from "@tiptap/pm/model"
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from "@/hooks/use-tiptap-editor.ts"
+import { useIsBreakpoint } from "@/hooks/use-is-breakpoint.ts"
 
 // --- Icons ---
-import { PlusIcon } from "@/components/tiptap-icons/plus-icon"
+import { PlusIcon } from "@/components/tiptap-icons/plus-icon.tsx"
 
 // --- Lib ---
 import {
   findNodePosition,
   isNodeTypeSelected,
   isValidPosition,
-} from "@/lib/tiptap-utils"
+} from "@/lib/tiptap-utils.ts"
 
 export const SLASH_COMMAND_TRIGGER_SHORTCUT_KEY = "mod+/"
 

@@ -5,7 +5,13 @@
     "security": {
       "assetProtocol": {
         "enable": true,
-        "scope": ["*", "https://*", "http://*", "https://www.baidu.com", "http://localhost:5173"]
+        "scope": [
+          "*",
+          "https://*",
+          "http://*",
+          "https://www.baidu.com",
+          "http://localhost:5173"
+        ]
       },
       "csp": {
         "connect-src": "*",
@@ -33,7 +39,6 @@
         "Access-Control-Allow-Credentials": "true",
         "Cross-Origin-Resource-Policy": "cross-origin",
         "Access-Control-Allow-Headers": "*",
-        "Service-Worker-Allowed": "/",
         "Tauri-Custom-Header": {
           "thinking": "'value1' 'value2'",
           "key2": "'value3'"
@@ -56,12 +61,10 @@
         "closable": true,
         "contentProtected": false,
         "create": true,
-        "dataDirectory": "i thinking",
         "decorations": true,
         "devtools": true,
         "dragDropEnabled": false,
         "focus": true,
-        "focusable": true,
         "fullscreen": false,
         "height": 800,
         "minHeight": 600,

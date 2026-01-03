@@ -1,20 +1,20 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useState } from "react"
-import type { Editor } from "@tiptap/react"
-import { useHotkeys } from "react-hotkeys-hook"
-import type { Transaction } from "@tiptap/pm/state"
-import { TextSelection } from "@tiptap/pm/state"
-import { Fragment, Slice } from "@tiptap/pm/model"
+import { useCallback, useEffect, useState } from 'react'
+import type { Editor } from '@tiptap/react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import type { Transaction } from '@tiptap/pm/state'
+import { TextSelection } from '@tiptap/pm/state'
+import { Fragment, Slice } from '@tiptap/pm/model'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint.ts'
 
 // --- Icons ---
-import { ClipboardIcon } from "@/components/tiptap-icons/clipboard-icon"
+import { ClipboardIcon } from '@/components/tiptap-icons/clipboard-icon.tsx'
 
-export const COPY_TO_CLIPBOARD_SHORTCUT_KEY = "mod+c"
+export const COPY_TO_CLIPBOARD_SHORTCUT_KEY = 'mod+c'
 
 /**
  * Configuration for the copy to clipboard functionality
@@ -51,9 +51,9 @@ export async function writeToClipboard(
   htmlContent?: string
 ): Promise<void> {
   try {
-    if (htmlContent && navigator.clipboard && "write" in navigator.clipboard) {
-      const blob = new Blob([htmlContent], { type: "text/html" })
-      const clipboardItem = new ClipboardItem({ "text/html": blob })
+    if (htmlContent && navigator.clipboard && 'write' in navigator.clipboard) {
+      const blob = new Blob([htmlContent], { type: 'text/html' })
+      const clipboardItem = new ClipboardItem({ 'text/html': blob })
       await navigator.clipboard.write([clipboardItem])
     }
   } catch {
@@ -103,7 +103,7 @@ export function extractContent(
     content = new Slice(Fragment.from(node), 0, 0)
   }
 
-  const textContent = content.content.textBetween(0, content.content.size, "\n")
+  const textContent = content.content.textBetween(0, content.content.size, '\n')
   const htmlContent = copyWithFormatting
     ? editor.view.serializeForClipboard(content).dom.innerHTML
     : undefined
@@ -144,7 +144,7 @@ export function shouldShowButton(props: {
 
   if (!editor || !editor.isEditable) return false
 
-  if (hideWhenUnavailable && !editor.isActive("code")) {
+  if (hideWhenUnavailable && !editor.isActive('code')) {
     return canCopyToClipboard(editor)
   }
 
@@ -192,7 +192,7 @@ export function useCopyToClipboard(config?: UseCopyToClipboardConfig) {
     editor: providedEditor,
     copyWithFormatting = true,
     hideWhenUnavailable = false,
-    onCopied,
+    onCopied
   } = config || {}
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -209,10 +209,10 @@ export function useCopyToClipboard(config?: UseCopyToClipboardConfig) {
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, hideWhenUnavailable])
 
@@ -232,12 +232,12 @@ export function useCopyToClipboard(config?: UseCopyToClipboardConfig) {
     COPY_TO_CLIPBOARD_SHORTCUT_KEY,
     (event) => {
       event.preventDefault() // prevent native copy behavior
-      handleCopyToClipboard()
+      void handleCopyToClipboard()
     },
     {
       enabled: isVisible && canCopyToClipboardState,
       enableOnContentEditable: !isMobile,
-      enableOnFormTags: true,
+      enableOnFormTags: true
     }
   )
 
@@ -245,8 +245,8 @@ export function useCopyToClipboard(config?: UseCopyToClipboardConfig) {
     isVisible,
     handleCopyToClipboard,
     canCopyToClipboard: canCopyToClipboardState,
-    label: "Copy to clipboard",
+    label: 'Copy to clipboard',
     shortcutKeys: COPY_TO_CLIPBOARD_SHORTCUT_KEY,
-    Icon: ClipboardIcon,
+    Icon: ClipboardIcon
   }
 }

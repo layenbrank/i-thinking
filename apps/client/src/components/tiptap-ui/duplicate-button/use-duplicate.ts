@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useState } from "react"
-import { useHotkeys } from "react-hotkeys-hook"
-import { type Editor } from "@tiptap/react"
-import { NodeSelection } from "@tiptap/pm/state"
+import { useCallback, useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { type Editor } from '@tiptap/react'
+import { NodeSelection } from '@tiptap/pm/state'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint.ts'
 
 // --- Icons ---
-import { CopyIcon } from "@/components/tiptap-icons/copy-icon"
+import { CopyIcon } from '@/components/tiptap-icons/copy-icon.tsx'
 
-export const DUPLICATE_SHORTCUT_KEY = "mod+d"
+export const DUPLICATE_SHORTCUT_KEY = 'mod+d'
 
 /**
  * Configuration for the duplicate functionality
@@ -82,7 +82,7 @@ export function duplicateNode(editor: Editor | null): boolean {
       const node = $anchor.node(depth)
 
       // Skip document and other non-duplicatable nodes
-      if (node.type.name === "doc" || !node.type.spec.group) {
+      if (node.type.name === 'doc' || !node.type.spec.group) {
         continue
       }
 
@@ -113,7 +113,7 @@ export function shouldShowButton(props: {
 
   if (!editor || !editor.isEditable) return false
 
-  if (hideWhenUnavailable && !editor.isActive("code")) {
+  if (hideWhenUnavailable && !editor.isActive('code')) {
     return canDuplicateNode(editor)
   }
 
@@ -159,7 +159,7 @@ export function useDuplicate(config?: UseDuplicateConfig) {
   const {
     editor: providedEditor,
     hideWhenUnavailable = false,
-    onDuplicated,
+    onDuplicated
   } = config || {}
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -176,10 +176,10 @@ export function useDuplicate(config?: UseDuplicateConfig) {
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, hideWhenUnavailable])
 
@@ -202,7 +202,7 @@ export function useDuplicate(config?: UseDuplicateConfig) {
     {
       enabled: isVisible && canDuplicate,
       enableOnContentEditable: !isMobile,
-      enableOnFormTags: true,
+      enableOnFormTags: true
     }
   )
 
@@ -210,8 +210,8 @@ export function useDuplicate(config?: UseDuplicateConfig) {
     isVisible,
     handleDuplicate,
     canDuplicate,
-    label: "Duplicate node",
+    label: 'Duplicate node',
     shortcutKeys: DUPLICATE_SHORTCUT_KEY,
-    Icon: CopyIcon,
+    Icon: CopyIcon
   }
 }

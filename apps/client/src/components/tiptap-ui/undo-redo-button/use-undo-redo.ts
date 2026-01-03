@@ -1,19 +1,19 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useState } from "react"
-import { type Editor } from "@tiptap/react"
+import { useCallback, useEffect, useState } from 'react'
+import { type Editor } from '@tiptap/react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Lib ---
-import { isNodeTypeSelected } from "@/lib/tiptap-utils"
+import { isNodeTypeSelected } from '@/lib/tiptap-utils.ts'
 
 // --- Icons ---
-import { Redo2Icon } from "@/components/tiptap-icons/redo2-icon"
-import { Undo2Icon } from "@/components/tiptap-icons/undo2-icon"
+import { Redo2Icon } from '@/components/tiptap-icons/redo2-icon.tsx'
+import { Undo2Icon } from '@/components/tiptap-icons/undo2-icon.tsx'
 
-export type UndoRedoAction = "undo" | "redo"
+export type UndoRedoAction = 'undo' | 'redo'
 
 /**
  * Configuration for the history functionality
@@ -39,18 +39,18 @@ export interface UseUndoRedoConfig {
 }
 
 export const UNDO_REDO_SHORTCUT_KEYS: Record<UndoRedoAction, string> = {
-  undo: "mod+z",
-  redo: "mod+shift+z",
+  undo: 'mod+z',
+  redo: 'mod+shift+z'
 }
 
 export const historyActionLabels: Record<UndoRedoAction, string> = {
-  undo: "Undo",
-  redo: "Redo",
+  undo: 'Undo',
+  redo: 'Redo'
 }
 
 export const historyIcons = {
   undo: Undo2Icon,
-  redo: Redo2Icon,
+  redo: Redo2Icon
 }
 
 /**
@@ -61,9 +61,9 @@ export function canExecuteUndoRedoAction(
   action: UndoRedoAction
 ): boolean {
   if (!editor || !editor.isEditable) return false
-  if (isNodeTypeSelected(editor, ["image"])) return false
+  if (isNodeTypeSelected(editor, ['image'])) return false
 
-  return action === "undo" ? editor.can().undo() : editor.can().redo()
+  return action === 'undo' ? editor.can().undo() : editor.can().redo()
 }
 
 /**
@@ -77,7 +77,7 @@ export function executeUndoRedoAction(
   if (!canExecuteUndoRedoAction(editor, action)) return false
 
   const chain = editor.chain().focus()
-  return action === "undo" ? chain.undo().run() : chain.redo().run()
+  return action === 'undo' ? chain.undo().run() : chain.redo().run()
 }
 
 /**
@@ -92,7 +92,7 @@ export function shouldShowButton(props: {
 
   if (!editor || !editor.isEditable) return false
 
-  if (hideWhenUnavailable && !editor.isActive("code")) {
+  if (hideWhenUnavailable && !editor.isActive('code')) {
     return canExecuteUndoRedoAction(editor, action)
   }
 
@@ -140,7 +140,7 @@ export function useUndoRedo(config: UseUndoRedoConfig) {
     editor: providedEditor,
     action,
     hideWhenUnavailable = false,
-    onExecuted,
+    onExecuted
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -156,10 +156,10 @@ export function useUndoRedo(config: UseUndoRedoConfig) {
 
     handleUpdate()
 
-    editor.on("transaction", handleUpdate)
+    editor.on('transaction', handleUpdate)
 
     return () => {
-      editor.off("transaction", handleUpdate)
+      editor.off('transaction', handleUpdate)
     }
   }, [editor, hideWhenUnavailable, action])
 
@@ -179,6 +179,6 @@ export function useUndoRedo(config: UseUndoRedoConfig) {
     canExecute,
     label: historyActionLabels[action],
     shortcutKeys: UNDO_REDO_SHORTCUT_KEYS[action],
-    Icon: historyIcons[action],
+    Icon: historyIcons[action]
   }
 }

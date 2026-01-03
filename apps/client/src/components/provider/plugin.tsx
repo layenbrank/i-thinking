@@ -1,6 +1,7 @@
+import { uniqWith } from 'lodash-es'
+
 interface Plugin {
   unique: string
-  version: string
   mount: () => void
   unmount: () => void
 }
@@ -14,7 +15,11 @@ function PluginProvider(props: PluginProviderProps) {
   useEffect(
     function () {
       if (!Array.isArray(props.plugins)) return
-      props.plugins.forEach(function (plugin) {
+      const uniquePlugins = uniqWith(
+        props.plugins,
+        (a, b) => a.unique === b.unique
+      )
+      uniquePlugins.forEach(function (plugin) {
         try {
           plugin?.mount?.()
         } catch (error) {
@@ -23,8 +28,7 @@ function PluginProvider(props: PluginProviderProps) {
       })
 
       return function () {
-        if (!Array.isArray(props.plugins)) return
-        props.plugins.forEach(function (plugin) {
+        uniquePlugins.forEach(function (plugin) {
           try {
             plugin?.unmount?.()
           } catch (error) {
@@ -36,7 +40,7 @@ function PluginProvider(props: PluginProviderProps) {
     [props.plugins]
   )
 
-  return <>{props.children}</>
+  return props.children
 }
 
 export { PluginProvider, type Plugin, type PluginProviderProps }

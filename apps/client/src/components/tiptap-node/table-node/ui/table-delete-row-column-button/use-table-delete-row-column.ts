@@ -1,22 +1,22 @@
-import { useCallback, useMemo } from "react"
-import type { Editor } from "@tiptap/react"
-import { deleteRow, deleteColumn, CellSelection } from "@tiptap/pm/tables"
-import type { Transaction } from "@tiptap/pm/state"
+import { useCallback, useMemo } from 'react'
+import type { Editor } from '@tiptap/react'
+import { deleteRow, deleteColumn, CellSelection } from '@tiptap/pm/tables'
+import type { Transaction } from '@tiptap/pm/state'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Lib ---
-import { isExtensionAvailable } from "@/lib/tiptap-utils"
-import type { Orientation } from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+import { isExtensionAvailable } from '@/lib/tiptap-utils.ts'
+import type { Orientation } from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 import {
   getTable,
   getTableSelectionType,
-  selectCellsByCoords,
-} from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+  selectCellsByCoords
+} from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 
 // --- Icons ---
-import { TrashIcon } from "@/components/tiptap-icons/trash-icon"
+import { TrashIcon } from '@/components/tiptap-icons/trash-icon.tsx'
 
 export interface UseTableDeleteRowColumnConfig {
   /**
@@ -47,11 +47,11 @@ export interface UseTableDeleteRowColumnConfig {
   onDeleted?: () => void
 }
 
-const REQUIRED_EXTENSIONS = ["table"]
+const REQUIRED_EXTENSIONS = ['table']
 
 export const tableDeleteRowColumnLabels: Record<Orientation, string> = {
-  row: "Delete row",
-  column: "Delete column",
+  row: 'Delete row',
+  column: 'Delete column'
 }
 
 /**
@@ -62,7 +62,7 @@ function canDeleteRowColumn({
   editor,
   index,
   orientation,
-  tablePos,
+  tablePos
 }: {
   editor: Editor | null
   index?: number
@@ -97,7 +97,7 @@ function tableDeleteRowColumn({
   editor,
   index,
   orientation,
-  tablePos,
+  tablePos
 }: {
   editor: Editor | null
   index?: number
@@ -117,7 +117,7 @@ function tableDeleteRowColumn({
 
     const { orientation: finalOrientation, index: finalIndex } = selectionType
 
-    const isRow = finalOrientation === "row"
+    const isRow = finalOrientation === 'row'
     const dispatch = (tr: Transaction) => editor.view.dispatch(tr)
     const deleteOperation = isRow ? deleteRow : deleteColumn
 
@@ -133,7 +133,7 @@ function tableDeleteRowColumn({
       : { row: 0, col: finalIndex }
 
     const cellState = selectCellsByCoords(editor, table.pos, [cellCoords], {
-      mode: "state",
+      mode: 'state'
     })
 
     if (!cellState) return false
@@ -154,7 +154,7 @@ function shouldShowButton({
   index,
   orientation,
   hideWhenUnavailable,
-  tablePos,
+  tablePos
 }: {
   editor: Editor | null
   index?: number
@@ -218,7 +218,7 @@ export function useTableDeleteRowColumn(config: UseTableDeleteRowColumnConfig) {
     orientation,
     tablePos,
     hideWhenUnavailable = false,
-    onDeleted,
+    onDeleted
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -229,14 +229,14 @@ export function useTableDeleteRowColumn(config: UseTableDeleteRowColumnConfig) {
     editor,
     index,
     orientation,
-    hideWhenUnavailable,
+    hideWhenUnavailable
   })
 
   const canPerformDelete = canDeleteRowColumn({
     editor,
     index,
     orientation,
-    tablePos,
+    tablePos
   })
 
   const handleDelete = useCallback(() => {
@@ -244,14 +244,14 @@ export function useTableDeleteRowColumn(config: UseTableDeleteRowColumnConfig) {
       editor,
       index,
       orientation,
-      tablePos,
+      tablePos
     })
     if (success) onDeleted?.()
     return success
   }, [editor, index, orientation, tablePos, onDeleted])
 
   const label = useMemo(() => {
-    return tableDeleteRowColumnLabels[selectionType?.orientation || "row"]
+    return tableDeleteRowColumnLabels[selectionType?.orientation || 'row']
   }, [selectionType])
 
   return {
@@ -259,6 +259,6 @@ export function useTableDeleteRowColumn(config: UseTableDeleteRowColumnConfig) {
     canDeleteRowColumn: canPerformDelete,
     handleDelete,
     label,
-    Icon: TrashIcon,
+    Icon: TrashIcon
   }
 }

@@ -1,17 +1,16 @@
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Hooks ---
-import { useTableFitToWidth } from "@/components/tiptap-node/table-node/ui/table-fit-to-width-button/use-table-fit-to-width"
-import type { UseTableFitToWidthConfig } from "@/components/tiptap-node/table-node/ui/table-fit-to-width-button/use-table-fit-to-width"
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTableFitToWidth } from '@/components/tiptap-node/table-node/ui/table-fit-to-width-button/use-table-fit-to-width.ts'
+import type { UseTableFitToWidthConfig } from '@/components/tiptap-node/table-node/ui/table-fit-to-width-button/use-table-fit-to-width.ts'
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 
 export interface TableFitToWidthButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseTableFitToWidthConfig {
+  extends Omit<ButtonProps, 'type'>, UseTableFitToWidthConfig {
   text?: string
 }
 
@@ -51,7 +50,7 @@ export const TableFitToWidthButton = forwardRef<
       useTableFitToWidth({
         editor,
         hideWhenUnavailable,
-        onWidthAdjusted,
+        onWidthAdjusted
       })
 
     const handleClick = useCallback(
@@ -80,8 +79,7 @@ export const TableFitToWidthButton = forwardRef<
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -93,4 +91,4 @@ export const TableFitToWidthButton = forwardRef<
   }
 )
 
-TableFitToWidthButton.displayName = "TableFitToWidthButton"
+TableFitToWidthButton.displayName = 'TableFitToWidthButton'

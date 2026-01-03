@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useState } from "react"
-import { useHotkeys } from "react-hotkeys-hook"
-import { type Editor } from "@tiptap/react"
-import { NodeSelection } from "@tiptap/pm/state"
+import { useCallback, useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { type Editor } from '@tiptap/react'
+import { NodeSelection } from '@tiptap/pm/state'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint.ts'
 
 // --- Icons ---
-import { TrashIcon } from "@/components/tiptap-icons/trash-icon"
+import { TrashIcon } from '@/components/tiptap-icons/trash-icon.tsx'
 
-export const DELETE_NODE_SHORTCUT_KEY = "backspace"
+export const DELETE_NODE_SHORTCUT_KEY = 'backspace'
 
 /**
  * Configuration for the delete node functionality
@@ -105,9 +105,9 @@ export function deleteNode(editor: Editor | null): boolean {
       if (
         node &&
         node.isBlock &&
-        node.type.name !== "tableRow" &&
-        node.type.name !== "tableHeader" &&
-        node.type.name !== "tableCell"
+        node.type.name !== 'tableRow' &&
+        node.type.name !== 'tableHeader' &&
+        node.type.name !== 'tableCell'
       ) {
         return deleteNodeAtPosition(editor, pos, node.nodeSize)
       }
@@ -130,7 +130,7 @@ export function shouldShowButton(props: {
 
   if (!editor || !editor.isEditable) return false
 
-  if (hideWhenUnavailable && !editor.isActive("code")) {
+  if (hideWhenUnavailable && !editor.isActive('code')) {
     return canDeleteNode(editor)
   }
 
@@ -176,7 +176,7 @@ export function useDeleteNode(config?: UseDeleteNodeConfig) {
   const {
     editor: providedEditor,
     hideWhenUnavailable = false,
-    onDeleted,
+    onDeleted
   } = config || {}
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -193,10 +193,10 @@ export function useDeleteNode(config?: UseDeleteNodeConfig) {
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, hideWhenUnavailable])
 
@@ -219,7 +219,7 @@ export function useDeleteNode(config?: UseDeleteNodeConfig) {
     {
       enabled: isVisible && canDeleteNodeState,
       enableOnContentEditable: !isMobile,
-      enableOnFormTags: true,
+      enableOnFormTags: true
     }
   )
 
@@ -227,8 +227,8 @@ export function useDeleteNode(config?: UseDeleteNodeConfig) {
     isVisible,
     handleDeleteNode,
     canDeleteNode: canDeleteNodeState,
-    label: "Delete",
+    label: 'Delete',
     shortcutKeys: DELETE_NODE_SHORTCUT_KEY,
-    Icon: TrashIcon,
+    Icon: TrashIcon
   }
 }

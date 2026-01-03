@@ -1,26 +1,25 @@
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from '@/lib/tiptap-utils.ts'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Tiptap UI ---
-import type { UseCopyAnchorLinkConfig } from "@/components/tiptap-ui/copy-anchor-link-button"
+import type { UseCopyAnchorLinkConfig } from '@/components/tiptap-ui/copy-anchor-link-button/use-copy-anchor-link.ts'
 import {
   COPY_ANCHOR_LINK_SHORTCUT_KEY,
-  useCopyAnchorLink,
-} from "@/components/tiptap-ui/copy-anchor-link-button"
+  useCopyAnchorLink
+} from '@/components/tiptap-ui/copy-anchor-link-button/use-copy-anchor-link.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Badge } from '@/components/tiptap-ui-primitive/badge/badge.tsx'
 
 export interface CopyAnchorLinkButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseCopyAnchorLinkConfig {
+  extends Omit<ButtonProps, 'type'>, UseCopyAnchorLinkConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -33,7 +32,7 @@ export interface CopyAnchorLinkButtonProps
 }
 
 export function CopyAnchorLinkShortcutBadge({
-  shortcutKeys = COPY_ANCHOR_LINK_SHORTCUT_KEY,
+  shortcutKeys = COPY_ANCHOR_LINK_SHORTCUT_KEY
 }: {
   shortcutKeys?: string
 }) {
@@ -71,14 +70,14 @@ export const CopyAnchorLinkButton = forwardRef<
         hideWhenUnavailable,
         onNodeIdNotFound,
         onExtractedNodeId,
-        onCopied,
+        onCopied
       })
 
     const handleClick = useCallback(
       (event: React.MouseEvent<HTMLButtonElement>) => {
         onClick?.(event)
         if (event.defaultPrevented) return
-        handleCopyAnchorLink()
+        void handleCopyAnchorLink()
       },
       [handleCopyAnchorLink, onClick]
     )
@@ -97,8 +96,7 @@ export const CopyAnchorLinkButton = forwardRef<
         tooltip="Copy anchor link"
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -113,4 +111,4 @@ export const CopyAnchorLinkButton = forwardRef<
   }
 )
 
-CopyAnchorLinkButton.displayName = "CopyAnchorLinkButton"
+CopyAnchorLinkButton.displayName = 'CopyAnchorLinkButton'

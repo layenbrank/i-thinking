@@ -1,34 +1,37 @@
-import { forwardRef, useCallback, useEffect, useState } from "react"
-import type { Editor } from "@tiptap/react"
+import { forwardRef, useCallback, useEffect, useState } from 'react'
+import type { Editor } from '@tiptap/react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
 // --- Lib ---
-import { cn, SR_ONLY } from "@/lib/tiptap-utils"
+import { cn, SR_ONLY } from '@/lib/tiptap-utils'
 
 // --- UI ---
-import { ColorMenu } from "@/components/tiptap-ui/color-menu"
-import { TableAlignMenu } from "@/components/tiptap-node/table-node/ui/table-alignment-menu"
-import { useTableClearRowColumnContent } from "@/components/tiptap-node/table-node/ui/table-clear-row-column-content-button"
-import { useTableMergeSplitCell } from "@/components/tiptap-node/table-node/ui/table-merge-split-cell-button"
+import { ColorMenu } from '@/components/tiptap-ui/color-menu/color-menu.tsx'
+import { TableAlignMenu } from '@/components/tiptap-node/table-node/ui/table-alignment-menu/table-alignment-menu.tsx'
+import { useTableClearRowColumnContent } from '@/components/tiptap-node/table-node/ui/table-clear-row-column-content-button/use-table-clear-row-column-content.ts'
+import { useTableMergeSplitCell } from '@/components/tiptap-node/table-node/ui/table-merge-split-cell-button/use-table-merge-split-cell.ts'
 
 // --- UI Primitives ---
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Combobox, ComboboxList } from "@/components/tiptap-ui-primitive/combobox"
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import {
+  Combobox,
+  ComboboxList
+} from '@/components/tiptap-ui-primitive/combobox/combobox.tsx'
 import {
   Menu,
   MenuButton,
   MenuContent,
   MenuGroup,
-  MenuItem,
-} from "@/components/tiptap-ui-primitive/menu"
-import { Separator } from "@/components/tiptap-ui-primitive/separator"
+  MenuItem
+} from '@/components/tiptap-ui-primitive/menu/menu.tsx'
+import { Separator } from '@/components/tiptap-ui-primitive/separator/separator.tsx'
 
 // --- Icons ---
-import { Grip4Icon } from "@/components/tiptap-icons/grip-4-icon"
+import { Grip4Icon } from '@/components/tiptap-icons/grip-4-icon.tsx'
 
-import "./table-cell-handle-menu.scss"
+import './table-cell-handle-menu.scss'
 
 interface TableAction {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
@@ -43,35 +46,35 @@ interface TableAction {
  * Hook to manage all table actions and their availability
  */
 function useTableActions() {
-  const mergeCellAction = useTableMergeSplitCell({ action: "merge" })
-  const splitCellAction = useTableMergeSplitCell({ action: "split" })
+  const mergeCellAction = useTableMergeSplitCell({ action: 'merge' })
+  const splitCellAction = useTableMergeSplitCell({ action: 'split' })
   const clearContentAction = useTableClearRowColumnContent({ resetAttrs: true })
 
   const mergeAction: TableAction = {
     icon: mergeCellAction.Icon,
     label: mergeCellAction.label,
     onClick: mergeCellAction.handleExecute,
-    isAvailable: mergeCellAction.canExecute,
+    isAvailable: mergeCellAction.canExecute
   }
 
   const splitAction: TableAction = {
     icon: splitCellAction.Icon,
     label: splitCellAction.label,
     onClick: splitCellAction.handleExecute,
-    isAvailable: splitCellAction.canExecute,
+    isAvailable: splitCellAction.canExecute
   }
 
   const clearAction: TableAction = {
     icon: clearContentAction.Icon,
     label: clearContentAction.label,
     onClick: clearContentAction.handleClear,
-    isAvailable: clearContentAction.canClearRowColumnContent,
+    isAvailable: clearContentAction.canClearRowColumnContent
   }
 
   return {
     mergeAction,
     splitAction,
-    clearAction,
+    clearAction
   }
 }
 
@@ -104,7 +107,7 @@ function useTableCellHandleMenu({ editor }: { editor: Editor | null }) {
   return {
     isMenuOpen,
     handleMenuToggle,
-    closeMenu,
+    closeMenu
   }
 }
 
@@ -116,11 +119,10 @@ const TableActionItem = ({ action }: { action: TableAction }) => {
       render={
         <Button
           data-style="ghost"
-          data-active-state={isActive ? "on" : "off"}
+          data-active-state={isActive ? 'on' : 'off'}
         />
       }
-      onClick={onClick}
-    >
+      onClick={onClick}>
       <Icon className="tiptap-button-icon" />
       <span className="tiptap-button-text">{label}</span>
       {shortcutBadge}
@@ -134,11 +136,20 @@ const TableActionMenu = ({ onClose }: { onClose: () => void }) => {
   const hasMergeOrSplit = mergeAction.isAvailable || splitAction.isAvailable
 
   return (
-    <MenuContent autoFocusOnShow modal onClose={onClose}>
-      <Combobox style={SR_ONLY} />
-      <ComboboxList style={{ minWidth: "15rem" }}>
+    <MenuContent
+      autoFocusOnShow
+      modal
+      style={{
+        zIndex: 1000
+      }}
+      onClose={onClose}>
+      <Combobox style={{ ...SR_ONLY, zIndex: 1000 }} />
+      <ComboboxList style={{ minWidth: '15rem', zIndex: 1000 }}>
         {hasMergeOrSplit && (
-          <MenuGroup>
+          <MenuGroup
+            style={{
+              zIndex: 1000
+            }}>
             {mergeAction.isAvailable && (
               <TableActionItem action={mergeAction} />
             )}
@@ -149,7 +160,10 @@ const TableActionMenu = ({ onClose }: { onClose: () => void }) => {
           </MenuGroup>
         )}
 
-        <MenuGroup>
+        <MenuGroup
+          style={{
+            zIndex: 1000
+          }}>
           <ColorMenu />
           <TableAlignMenu />
           {clearAction.isAvailable && <TableActionItem action={clearAction} />}
@@ -159,8 +173,7 @@ const TableActionMenu = ({ onClose }: { onClose: () => void }) => {
   )
 }
 
-interface TableCellHandleMenuProps
-  extends React.ComponentPropsWithoutRef<"button"> {
+interface TableCellHandleMenuProps extends React.ComponentPropsWithoutRef<'button'> {
   editor?: Editor | null
   onOpenChange?: (isOpen: boolean) => void
 }
@@ -171,7 +184,7 @@ export const TableCellHandleMenu = forwardRef<
 >(({ editor: providedEditor, onOpenChange, className, ...props }, ref) => {
   const { editor } = useTiptapEditor(providedEditor)
   const { isMenuOpen, handleMenuToggle, closeMenu } = useTableCellHandleMenu({
-    editor,
+    editor
   })
 
   useEffect(() => {
@@ -187,24 +200,22 @@ export const TableCellHandleMenu = forwardRef<
         <MenuButton
           ref={ref}
           className={cn(
-            "expandable-menu-button",
-            isMenuOpen && "menu-opened",
+            'expandable-menu-button',
+            isMenuOpen && 'menu-opened',
             className
           )}
           aria-label="Table cells option"
           aria-haspopup="menu"
           aria-expanded={isMenuOpen}
-          {...props}
-        >
+          {...props}>
           <Grip4Icon className="tiptap-button-icon" />
         </MenuButton>
-      }
-    >
+      }>
       <TableActionMenu onClose={closeMenu} />
     </Menu>
   )
 })
 
-TableCellHandleMenu.displayName = "TableCellHandleMenu"
+TableCellHandleMenu.displayName = 'TableCellHandleMenu'
 
 export { TableActionMenu }

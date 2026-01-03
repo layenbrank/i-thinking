@@ -1,11 +1,11 @@
 import { liveQuery } from 'dexie'
 import { isEmpty } from 'lodash-es'
-import { catchError, from, Observable, Subscription, switchMap, tap } from 'rxjs'
+import { catchError, from, type Subscription, switchMap, tap } from 'rxjs'
 
 import type { Plugin } from '@/components/provider/plugin.tsx'
 import { BuildMirror } from '@/constants/mirror.ts'
 import { database } from '@/databases/database.ts'
-import { application$, mirror$, useMirrorStore } from '@/stores/mirror'
+import { application$, mirror$, useMirrorStore as store } from '@/stores/mirror'
 
 interface DefineSubscription {
   mirrors: Subscription | null
@@ -19,9 +19,8 @@ const subscription: DefineSubscription = {
 
 const MirrorPlugin: Plugin = {
   unique: 'mirror-plugin',
-  version: '0.0.1',
   mount() {
-    const store = useMirrorStore.getState()
+    // const store = useMirrorStore.getState()
     const { MIRRORS, APPLICATIONS } = BuildMirror()
 
     subscription.mirrors = from(
@@ -31,33 +30,28 @@ const MirrorPlugin: Plugin = {
     )
       .pipe(
         tap(function (mirrors) {
-          if (isEmpty(mirrors)) database.mirror.bulkAdd(MIRRORS)
+          if (isEmpty(mirrors)) return database.mirror.bulkAdd(MIRRORS)
 
-          store.toUpdateMirrors(mirrors)
+          store.getState().toUpdateMirrors(mirrors)
           const [mirror] = mirrors
-          if (!mirror$.value) store.toReadMirror(mirror?.id ?? null)
+          if (!mirror$.value) {
+            void store.getState().toReadMirror(mirror?.id ?? null)
+          }
         }),
         catchError(function (error) {
-          console.error('Failed to sync mirrors:', error)
+          console.error('[MirrorPlugin] Failed to sync mirrors:', error)
+          // 返回空数组以避免应用崩溃，但错误已记录
           return from(Promise.resolve([]))
         })
       )
       .subscribe()
 
-    subscription.applications = new Observable<string>(function (subscribe) {
-      // 订阅 mirror$ 的变化
-      const subscription = mirror$.subscribe(function (mirror) {
-        // 当 mirror 变化时，如果有 id 就发送到 Observable
-        if (mirror?.id) subscribe.next(mirror.id)
-      })
-
-      // 返回清理函数，当 Observable 被取消订阅时，也取消 mirror$ 的订阅
-      return function () {
-        subscription.unsubscribe()
-      }
-    })
+    subscription.applications = mirror$
       .pipe(
-        switchMap(function (mirrorID) {
+        switchMap(function (mirror) {
+          const mirrorID = mirror?.id ?? ''
+          if (!mirrorID) return from(Promise.resolve([]))
+
           return from(
             liveQuery(function () {
               return database.application
@@ -71,13 +65,18 @@ const MirrorPlugin: Plugin = {
           )
         }),
         tap(function (applications) {
-          if (isEmpty(applications)) database.application.bulkAdd(APPLICATIONS)
-          store.toUpdateApplications(applications)
+          if (isEmpty(applications)) {
+            void database.application.bulkAdd(APPLICATIONS)
+          }
+          store.getState().toUpdateApplications(applications)
           const [application] = applications
-          if (!application$.value) store.toReadApplication(application?.id ?? '')
+          if (!application$.value) {
+            void store.getState().toReadApplication(application?.id ?? '')
+          }
         }),
         catchError(function (error) {
-          console.error('Failed to sync applications:', error)
+          console.error('[MirrorPlugin] Failed to sync applications:', error)
+          // 返回空数组以避免应用崩溃，但错误已记录
           return from(Promise.resolve([]))
         })
       )

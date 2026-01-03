@@ -1,30 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from "react"
-import { flip, offset, shift, size } from "@floating-ui/react"
-import { PluginKey } from "@tiptap/pm/state"
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { flip, offset, shift, size } from '@floating-ui/react'
+import { PluginKey } from '@tiptap/pm/state'
 
 // --- Hooks ---
-import { useFloatingElement } from "@/hooks/use-floating-element"
-import { useMenuNavigation } from "@/hooks/use-menu-navigation"
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useFloatingElement } from '@/hooks/use-floating-element.ts'
+import { useMenuNavigation } from '@/hooks/use-menu-navigation.ts'
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Tiptap Editor ---
-import type { Range } from "@tiptap/react"
+import type { Range } from '@tiptap/react'
 
 // --- Tiptap UI ---
-import { Suggestion } from "@tiptap/suggestion"
+import { Suggestion } from '@tiptap/suggestion'
 
 // --- UI Primitives ---
 import {
   SuggestionPluginKey,
   type SuggestionKeyDownProps,
-  type SuggestionProps,
-} from "@tiptap/suggestion"
+  type SuggestionProps
+} from '@tiptap/suggestion'
 
-import { calculateStartPosition } from "@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu-utils"
+import { calculateStartPosition } from '@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu-utils.ts'
 import type {
   SuggestionItem,
-  SuggestionMenuProps,
-} from "@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu-types"
+  SuggestionMenuProps
+} from '@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu-types.ts'
 
 /**
  * A component that renders a suggestion menu for Tiptap editors.
@@ -33,7 +33,7 @@ import type {
 export const SuggestionMenu = ({
   editor: providedEditor,
   floatingOptions,
-  selector = "tiptap-suggestion-menu",
+  selector = 'tiptap-suggestion-menu',
   children,
   maxHeight = 384,
   pluginKey = SuggestionPluginKey,
@@ -54,7 +54,7 @@ export const SuggestionMenu = ({
     ((item: SuggestionItem) => void) | null
   >(null)
   const [internalItems, setInternalItems] = useState<SuggestionItem[]>([])
-  const [internalQuery, setInternalQuery] = useState<string>("")
+  const [internalQuery, setInternalQuery] = useState<string>('')
   const [, setInternalRange] = useState<Range | null>(null)
 
   const { ref, style, getFloatingProps, isMounted } = useFloatingElement(
@@ -62,12 +62,12 @@ export const SuggestionMenu = ({
     internalDecorationNode,
     1000,
     {
-      placement: "bottom-start",
+      placement: 'bottom-start',
       middleware: [
         offset(10),
         flip({
           mainAxis: true,
-          crossAxis: false,
+          crossAxis: false
         }),
         shift(),
         size({
@@ -78,19 +78,19 @@ export const SuggestionMenu = ({
                 : availableHeight
 
               elements.floating.style.setProperty(
-                "--suggestion-menu-max-height",
+                '--suggestion-menu-max-height',
                 `${maxHeightValue}px`
               )
             }
-          },
-        }),
+          }
+        })
       ],
       onOpenChange(open) {
         if (!open) {
           setShow(false)
         }
       },
-      ...floatingOptions,
+      ...floatingOptions
     }
   )
 
@@ -126,7 +126,7 @@ export const SuggestionMenu = ({
 
         // Check if we're inside an image node
         for (let depth = $from.depth; depth > 0; depth--) {
-          if ($from.node(depth).type.name === "image") {
+          if ($from.node(depth).type.name === 'image') {
             return false // Don't allow slash command inside image (since we support captions)
           }
         }
@@ -146,7 +146,7 @@ export const SuggestionMenu = ({
           (extension) => {
             const name = extension.name
             return (
-              name === "mention" &&
+              name === 'mention' &&
               extension.options?.suggestion?.char ===
                 internalSuggestionPropsRef.current.char
             )
@@ -173,7 +173,7 @@ export const SuggestionMenu = ({
         }
 
         const nodeAfter = view.state.selection.$to.nodeAfter
-        const overrideSpace = nodeAfter?.text?.startsWith(" ")
+        const overrideSpace = nodeAfter?.text?.startsWith(' ')
 
         const rangeToUse = { ...range }
 
@@ -210,7 +210,7 @@ export const SuggestionMenu = ({
           },
 
           onKeyDown: (props: SuggestionKeyDownProps) => {
-            if (props.event.key === "Escape") {
+            if (props.event.key === 'Escape') {
               closePopup()
               return true
             }
@@ -221,14 +221,14 @@ export const SuggestionMenu = ({
             setInternalDecorationNode(null)
             setInternalCommand(null)
             setInternalItems([])
-            setInternalQuery("")
+            setInternalQuery('')
             setInternalRange(null)
             // setInternalClientRect(null)
             setShow(false)
-          },
+          }
         }
       },
-      ...internalSuggestionPropsRef.current,
+      ...internalSuggestionPropsRef.current
     })
 
     editor.registerPlugin(suggestion)
@@ -255,7 +255,7 @@ export const SuggestionMenu = ({
     editor: editor,
     query: internalQuery,
     items: internalItems,
-    onSelect,
+    onSelect
   })
 
   if (!isMounted || !show || !editor) {
@@ -271,12 +271,11 @@ export const SuggestionMenu = ({
       className="tiptap-suggestion-menu"
       role="listbox"
       aria-label="Suggestions"
-      onPointerDown={(e) => e.preventDefault()}
-    >
+      onPointerDown={(e) => e.preventDefault()}>
       {children({
         items: internalItems,
         selectedIndex,
-        onSelect,
+        onSelect
       })}
     </div>
   )

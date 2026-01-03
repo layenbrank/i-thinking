@@ -3,19 +3,18 @@ import { isEmpty } from 'lodash-es'
 
 import { BuildMirror } from '@/constants/mirror.ts'
 import { database } from '@/databases/database.ts'
-import { useMirrorStore } from '@/stores/mirror.ts'
+import { mirror$ } from '@/stores/mirror.ts'
 
 function useApplications(): Application[] {
   const { APPLICATIONS } = BuildMirror()
-  const mirrorID = useMirrorStore((state) => state.mirrorID)
 
   const applications = useLiveQuery<Application[], Application[]>(
     async function () {
-      if (!mirrorID) return []
+      if (!mirror$.value?.id) return []
 
       const values = await database.application
         .where('mirrorID')
-        .equals(mirrorID)
+        .equals(mirror$.value.id)
         .filter((app) => !app.collectionID)
         .sortBy('index')
 
@@ -24,11 +23,11 @@ function useApplications(): Application[] {
       await database.application.bulkAdd(APPLICATIONS)
       return database.application
         .where('mirrorID')
-        .equals(mirrorID)
+        .equals(mirror$.value.id)
         .filter((app) => !app.collectionID)
         .sortBy('index')
     },
-    [mirrorID],
+    [mirror$.value?.id],
     []
   )
 

@@ -1,52 +1,55 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useRef } from "react"
-import { type Editor } from "@tiptap/react"
+import { useCallback, useEffect, useRef } from 'react'
+import { type Editor } from '@tiptap/react'
 
-import { AiMenuItems } from "@/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items"
+import { AiMenuItems } from '@/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx'
 
 // -- Hooks --
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useUiEditorState } from "@/hooks/use-ui-editor-state"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useUiEditorState } from '@/hooks/use-ui-editor-state.ts'
 
 // -- Utils --
 import {
   getSelectedDOMElement,
-  selectionHasText,
-} from "@/lib/tiptap-advanced-utils"
+  selectionHasText
+} from '@/lib/tiptap-advanced-utils.ts'
 
 // -- Tiptap UI --
-import { AiMenuInputTextarea } from "@/components/tiptap-ui/ai-menu/ai-menu-input/ai-menu-input"
-import { AiMenuActions } from "@/components/tiptap-ui/ai-menu/ai-menu-actions/ai-menu-actions"
+import { AiMenuInputTextarea } from '@/components/tiptap-ui/ai-menu/ai-menu-input/ai-menu-input.tsx'
+import { AiMenuActions } from '@/components/tiptap-ui/ai-menu/ai-menu-actions/ai-menu-actions.tsx'
 
 // -- UI Primitives --
 import {
   Menu,
-  MenuContent,
-  useFloatingMenuStore,
-} from "@/components/tiptap-ui-primitive/menu"
-import { Button, ButtonGroup } from "@/components/tiptap-ui-primitive/button"
+  MenuContent
+} from '@/components/tiptap-ui-primitive/menu/menu.tsx'
+import { useFloatingMenuStore } from '@/components/tiptap-ui-primitive/menu/menu-hooks.ts'
+import {
+  Button,
+  ButtonGroup
+} from '@/components/tiptap-ui-primitive/button/button.tsx'
 import {
   ComboboxList,
-  ComboboxPopover,
-} from "@/components/tiptap-ui-primitive/combobox"
-import { Card } from "@/components/tiptap-ui-primitive/card/card"
+  ComboboxPopover
+} from '@/components/tiptap-ui-primitive/combobox/combobox.tsx'
+import { Card } from '@/components/tiptap-ui-primitive/card/card.tsx'
 
-import { getContextAndInsertAt } from "@/components/tiptap-ui/ai-menu/ai-menu-utils"
+import { getContextAndInsertAt } from '@/components/tiptap-ui/ai-menu/ai-menu-utils.ts'
 import {
   useAiContentTracker,
   useAiMenuState,
   useAiMenuStateProvider,
-  useTextSelectionTracker,
-} from "@/components/tiptap-ui/ai-menu/ai-menu-hooks"
+  useTextSelectionTracker
+} from '@/components/tiptap-ui/ai-menu/ai-menu-hooks.ts'
 
 // -- Icons --
-import { StopCircle2Icon } from "@/components/tiptap-icons/stop-circle-2-icon"
+import { StopCircle2Icon } from '@/components/tiptap-icons/stop-circle-2-icon.tsx'
 
-import "@/components/tiptap-ui/ai-menu/ai-menu.scss"
+import '@/components/tiptap-ui/ai-menu/ai-menu.scss'
 
 export function AiMenuStateProvider({
-  children,
+  children
 }: {
   children: React.ReactNode
 }) {
@@ -60,7 +63,7 @@ export function AiMenuStateProvider({
 }
 
 export function AiMenuContent({
-  editor: providedEditor,
+  editor: providedEditor
 }: {
   editor?: Editor | null
 }) {
@@ -104,7 +107,7 @@ export function AiMenuContent({
           insert: true,
           stream: true,
           tone: state.tone,
-          format: "rich-text",
+          format: 'rich-text'
         })
         .run()
     },
@@ -140,7 +143,7 @@ export function AiMenuContent({
   const handleInputOnClose = useCallback(() => {
     if (!editor) return
     if (aiGenerationIsLoading) {
-      editor.commands.aiReject({ type: "reset" })
+      editor.commands.aiReject({ type: 'reset' })
     } else {
       editor.commands.aiAccept()
     }
@@ -160,7 +163,7 @@ export function AiMenuContent({
     editor,
     aiGenerationActive,
     setAnchorElement,
-    fallbackAnchor: state.fallbackAnchor,
+    fallbackAnchor: state.fallbackAnchor
   })
 
   useTextSelectionTracker({
@@ -169,7 +172,7 @@ export function AiMenuContent({
     showMenuAtElement: show,
     setMenuVisible: (visible) => updateState({ isOpen: visible }),
     onSelectionChange: handleSelectionChange,
-    prevent: aiGenerationIsLoading,
+    prevent: aiGenerationIsLoading
   })
 
   useEffect(() => {
@@ -187,9 +190,9 @@ export function AiMenuContent({
   const smoothFocusAndScroll = (element: HTMLElement | null) => {
     element?.focus()
     element?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-      inline: "nearest",
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'nearest'
     })
 
     // Ensure the menu back to focus after focusing on the popover
@@ -206,12 +209,14 @@ export function AiMenuContent({
   }
 
   return (
-    <Menu open={state.isOpen} placement="bottom-start" store={store}>
+    <Menu
+      open={state.isOpen}
+      placement="bottom-start"
+      store={store}>
       <MenuContent
         onClickOutside={handleClickOutside}
         className="tiptap-ai-menu"
-        flip={false}
-      >
+        flip={false}>
         <Card>
           {aiGenerationIsLoading && <AiMenuProgress editor={editor} />}
 
@@ -235,7 +240,7 @@ export function AiMenuContent({
           {aiGenerationHasMessage && !aiGenerationIsLoading && (
             <AiMenuActions
               editor={editor}
-              options={{ tone: state.tone, format: "rich-text" }}
+              options={{ tone: state.tone, format: 'rich-text' }}
               onAccept={handleOnAccept}
               onReject={handleOnReject}
             />
@@ -254,11 +259,9 @@ export function AiMenuContent({
               return (
                 tiptapAiPromptInputRef.current?.getBoundingClientRect() || null
               )
-            }}
-          >
+            }}>
             <ComboboxList
-              style={{ display: shouldShowList ? "block" : "none" }}
-            >
+              style={{ display: shouldShowList ? 'block' : 'none' }}>
               <AiMenuItems />
             </ComboboxList>
           </ComboboxPopover>
@@ -274,7 +277,7 @@ export function AiMenuProgress({ editor }: { editor: Editor }) {
   const handleStop = useCallback(() => {
     if (!editor) return
 
-    editor.chain().aiReject({ type: "reset" }).run()
+    editor.chain().aiReject({ type: 'reset' }).run()
     reset()
     editor.commands.resetUiState()
   }, [editor, reset])
@@ -291,7 +294,10 @@ export function AiMenuProgress({ editor }: { editor: Editor }) {
       </div>
 
       <ButtonGroup>
-        <Button data-style="ghost" title="Stop" onClick={handleStop}>
+        <Button
+          data-style="ghost"
+          title="Stop"
+          onClick={handleStop}>
           <StopCircle2Icon className="tiptap-button-icon" />
         </Button>
       </ButtonGroup>

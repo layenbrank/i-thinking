@@ -1,22 +1,42 @@
-.overlay {
-  .provider {
-    &.card {
-      width: 100%;
-      height: 100%;
+@use '@/styles/normalize' as *;
 
-      :global {
-        .ant-card-body {
-          width: 100%;
-          height: 100%;
-          padding: 0px;
-        }
+.overlay {
+  &.root {
+    --ant-modal-content-padding: 12px;
+
+    :global {
+      .ant-modal-body {
+        border-radius: 8px;
+        border: 1px solid #f0f0f0;
+        position: relative;
       }
     }
+  }
 
+  .section {
     &.flex {
       width: 100%;
       height: 100%;
-      position: relative;
+      align-items: center;
+    }
+
+    &.conversations {
+      width: 200px;
+      height: 100%;
+      background-color: var(--background-color, #ffffff);
+      border-radius: var(--radius, 8px);
+    }
+
+    &.communicate {
+      height: 100%;
+      flex-grow: 1;
+      flex-shrink: 1;
+      flex-basis: 0%;
+      min-width: 300px;
+
+      * {
+        user-select: text;
+      }
     }
   }
 
@@ -47,42 +67,20 @@
       :global {
         .x-markdown {
           > * {
-            font-family:
-              Inter,
-              ui-sans-serif,
-              system-ui,
-              -apple-system,
-              BlinkMacSystemFont,
-              'Segoe UI',
-              Roboto,
-              'Helvetica Neue',
-              Arial,
-              'Noto Sans',
-              sans-serif,
-              'Apple Color Emoji',
-              'Segoe UI Emoji',
-              'Segoe UI Symbol',
-              'Noto Color Emoji';
-            line-height: revert;
-            font-size: revert;
-            display: revert;
-            font-weight: revert;
-            color: revert;
-            list-style: revert;
-            list-style-type: revert;
-            padding: revert;
-            margin: revert;
-            background-color: revert;
-            border: revert;
-            text-decoration: revert;
-            border-collapse: revert;
-            text-indent: revert;
+            @extend %normalize;
+          }
+        }
+        .ant-bubble-content {
+          background-color: rgba(243, 243, 245, 1);
+        }
+
+        .ant-codeHighlighter-code {
+          > pre {
           }
         }
       }
     }
 
-    // &.list {
     :global {
       .ant-bubble-list-scroll-box {
         overflow-y: scroll;
@@ -93,9 +91,21 @@
     }
   }
 
+  .thought {
+    &.chain {
+      width: 200px;
+      height: 100%;
+    }
+  }
+
   .float {
-    &.button {
+    &.group {
       position: absolute;
+      inset-inline-end: 24px;
+      inset-block-end: 24px;
+    }
+
+    &.button {
     }
   }
 }

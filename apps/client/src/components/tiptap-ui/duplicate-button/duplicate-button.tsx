@@ -1,22 +1,22 @@
 import { forwardRef, useCallback } from "react"
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from "@/lib/tiptap-utils.ts"
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from "@/hooks/use-tiptap-editor.ts"
 
 // --- Tiptap UI ---
-import type { UseDuplicateConfig } from "@/components/tiptap-ui/duplicate-button"
+import type { UseDuplicateConfig } from "@/components/tiptap-ui/duplicate-button/use-duplicate.ts"
 import {
   DUPLICATE_SHORTCUT_KEY,
   useDuplicate,
-} from "@/components/tiptap-ui/duplicate-button"
+} from "@/components/tiptap-ui/duplicate-button/use-duplicate.ts"
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Button } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Badge } from "@/components/tiptap-ui-primitive/badge/badge.tsx"
 
 export interface DuplicateButtonProps
   extends Omit<ButtonProps, "type">,

@@ -1,8 +1,8 @@
-import { type Editor } from "@tiptap/react"
-import { getSelectedDOMElement } from "@/lib/tiptap-advanced-utils"
+import { type Editor } from '@tiptap/react'
+import { getSelectedDOMElement } from '@/lib/tiptap-advanced-utils.ts'
 
 export function getContextAndInsertAt(editor: Editor) {
-  let context: string | undefined = ""
+  let context: string | undefined = ''
   let insertAt = { from: 0, to: 0 }
   let isSelection = true
   const generatedWith = editor.storage.ai.generatedWith
@@ -25,7 +25,7 @@ export function getContextAndInsertAt(editor: Editor) {
     const textContent = selectionContent.content.textBetween(
       0,
       selectionContent.content.size,
-      "\n"
+      '\n'
     )
 
     context = htmlContent || textContent
@@ -36,19 +36,19 @@ export function getContextAndInsertAt(editor: Editor) {
 }
 
 export function createPositionAnchor(rect: DOMRect): HTMLElement {
-  const anchor = document.createElement("div")
+  const anchor = document.createElement('div')
   Object.assign(anchor.style, {
-    position: "absolute",
+    position: 'absolute',
     left: `${rect.left}px`,
     top: `${rect.top}px`,
     width: `${rect.width}px`,
     height: `${rect.height}px`,
-    pointerEvents: "none",
-    opacity: "0",
-    zIndex: "-1",
+    pointerEvents: 'none',
+    opacity: '0',
+    zIndex: '-1'
   })
 
-  anchor.setAttribute("data-fallback-anchor", "true")
+  anchor.setAttribute('data-fallback-anchor', 'true')
   document.body.appendChild(anchor)
   return anchor
 }
@@ -64,13 +64,13 @@ export function getTopMostParentInsideEditor(
   editorRoot: HTMLElement
 ): HTMLElement {
   if (!element || !editorRoot) {
-    throw new Error("Both element and editorRoot must be provided")
+    throw new Error('Both element and editorRoot must be provided')
   }
 
   if (element === editorRoot) return element
 
   if (!editorRoot.contains(element)) {
-    throw new Error("Element is not inside the editor root")
+    throw new Error('Element is not inside the editor root')
   }
 
   let parent = element
@@ -84,7 +84,7 @@ export function getTopMostParentInsideEditor(
 export function findAiMarkedDOMElement(editor: Editor): HTMLElement | null {
   const view = editor.view
   const aiMarkedElements = view.dom.querySelectorAll(
-    ".tiptap-ai-insertion"
+    '.tiptap-ai-insertion'
   ) as NodeListOf<HTMLElement>
 
   if (aiMarkedElements.length === 0) return null

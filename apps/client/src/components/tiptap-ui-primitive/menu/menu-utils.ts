@@ -1,4 +1,4 @@
-import type { Action } from "@/components/tiptap-ui-primitive/menu/menu-types"
+import type { Action } from '@/components/tiptap-ui-primitive/menu/menu-types.ts'
 
 /**
  * Filters menu items based on search value
@@ -16,7 +16,7 @@ export function filterMenuItems(
 
   const groupKeywords = [group.label, ...(group.keywords || [])]
     .filter(Boolean)
-    .join(" ")
+    .join(' ')
     .toLowerCase()
 
   if (groupKeywords.includes(normalizedSearchValue)) {
@@ -28,7 +28,7 @@ export function filterMenuItems(
 
     const itemKeywords = [item.label, item.value, ...(item.keywords || [])]
       .filter(Boolean)
-      .join(" ")
+      .join(' ')
       .toLowerCase()
 
     return itemKeywords.includes(normalizedSearchValue)
@@ -53,7 +53,7 @@ export function filterMenuGroups(
     if (filteredItems.length > 0) {
       acc.push({
         ...group,
-        items: filteredItems,
+        items: filteredItems
       })
     }
 

@@ -1,23 +1,23 @@
-import { useCallback, useEffect, useState } from "react"
-import { useHotkeys } from "react-hotkeys-hook"
-import { type Editor } from "@tiptap/react"
-import { NodeSelection } from "@tiptap/pm/state"
+import { useCallback, useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { type Editor } from '@tiptap/react'
+import { NodeSelection } from '@tiptap/pm/state'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint.ts'
 
 // --- Lib ---
 import {
   isExtensionAvailable,
   isNodeTypeSelected,
-  sanitizeUrl,
-} from "@/lib/tiptap-utils"
+  sanitizeUrl
+} from '@/lib/tiptap-utils.ts'
 
 // --- Icons ---
-import { ArrowDownToLineIcon } from "@/components/tiptap-icons/arrow-down-to-line-icon"
+import { ArrowDownToLineIcon } from '@/components/tiptap-icons/arrow-down-to-line-icon.tsx'
 
-export const IMAGE_DOWNLOAD_SHORTCUT_KEY = "mod+shift+d"
+export const IMAGE_DOWNLOAD_SHORTCUT_KEY = 'mod+shift+d'
 
 /**
  * Extracts file extension from URL or content type
@@ -30,18 +30,18 @@ function getFileExtension(url: string, contentType?: string): string {
 
   if (contentType) {
     const mimeMap: Record<string, string> = {
-      "image/jpeg": ".jpg",
-      "image/jpg": ".jpg",
-      "image/png": ".png",
-      "image/gif": ".gif",
-      "image/webp": ".webp",
-      "image/svg+xml": ".svg",
-      "image/bmp": ".bmp",
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+      'image/svg+xml': '.svg',
+      'image/bmp': '.bmp'
     }
-    return mimeMap[contentType.toLowerCase()] || ".jpg"
+    return mimeMap[contentType.toLowerCase()] || '.jpg'
   }
 
-  return ".jpg"
+  return '.jpg'
 }
 
 /**
@@ -70,7 +70,7 @@ export interface UseImageDownloadConfig {
    * Download behavior: 'download' forces download, 'open' opens in new tab, 'auto' tries download with fallback
    * @default 'auto'
    */
-  downloadMethod?: "download" | "open" | "auto"
+  downloadMethod?: 'download' | 'open' | 'auto'
 }
 
 /**
@@ -78,9 +78,9 @@ export interface UseImageDownloadConfig {
  */
 export function canDownloadImage(editor: Editor | null): boolean {
   if (!editor || !editor.isEditable) return false
-  if (!isExtensionAvailable(editor, ["image"])) return false
+  if (!isExtensionAvailable(editor, ['image'])) return false
 
-  return isNodeTypeSelected(editor, ["image"])
+  return isNodeTypeSelected(editor, ['image'])
 }
 
 /**
@@ -98,11 +98,11 @@ export function getSelectedImageData(editor: Editor | null): {
   if (selection instanceof NodeSelection) {
     const node = selection.node
 
-    if (node.type.name === "image") {
+    if (node.type.name === 'image') {
       return {
         src: node.attrs.src,
         alt: node.attrs.alt,
-        title: node.attrs.title,
+        title: node.attrs.title
       }
     }
   }
@@ -128,12 +128,12 @@ async function tryFetchDownload(
     const finalFilename = hasExtension
       ? filename
       : filename +
-        getFileExtension(url, response.headers.get("content-type") || undefined)
+        getFileExtension(url, response.headers.get('content-type') || undefined)
 
-    const link = document.createElement("a")
+    const link = document.createElement('a')
     link.href = blobUrl
     link.download = finalFilename
-    link.style.display = "none"
+    link.style.display = 'none'
 
     document.body.appendChild(link)
     link.click()
@@ -141,7 +141,7 @@ async function tryFetchDownload(
     URL.revokeObjectURL(blobUrl)
     return true
   } catch (error) {
-    console.warn("Fetch download failed:", error)
+    console.warn('Fetch download failed:', error)
     return false
   }
 }
@@ -156,10 +156,10 @@ function tryDirectDownload(url: string, filename: string): boolean {
       ? filename
       : filename + getFileExtension(url)
 
-    const link = document.createElement("a")
+    const link = document.createElement('a')
     link.href = url
     link.download = finalFilename
-    link.style.display = "none"
+    link.style.display = 'none'
 
     document.body.appendChild(link)
     link.click()
@@ -167,7 +167,7 @@ function tryDirectDownload(url: string, filename: string): boolean {
 
     return true
   } catch (error) {
-    console.warn("Direct download failed:", error)
+    console.warn('Direct download failed:', error)
     return false
   }
 }
@@ -177,10 +177,10 @@ function tryDirectDownload(url: string, filename: string): boolean {
  */
 function openInNewTab(url: string): boolean {
   try {
-    window.open(url, "_blank")
+    window.open(url, '_blank')
     return true
   } catch (error) {
-    console.error("Failed to open image:", error)
+    console.error('Failed to open image:', error)
     return false
   }
 }
@@ -192,7 +192,7 @@ export async function downloadSelectedImage(
   editor: Editor | null,
   filename?: string,
   resolveFileUrl?: (url: string) => Promise<string>,
-  downloadMethod: "download" | "open" | "auto" = "auto"
+  downloadMethod: 'download' | 'open' | 'auto' = 'auto'
 ): Promise<boolean> {
   if (!editor || !canDownloadImage(editor)) return false
 
@@ -208,8 +208,8 @@ export async function downloadSelectedImage(
     const baseUrl = window.location.href
     const sanitizedUrl = sanitizeUrl(resolvedUrl, baseUrl)
 
-    if (sanitizedUrl === "#") {
-      console.error("Invalid or unsafe URL after sanitization")
+    if (sanitizedUrl === '#') {
+      console.error('Invalid or unsafe URL after sanitization')
       return false
     }
 
@@ -217,13 +217,13 @@ export async function downloadSelectedImage(
       filename || imageData.alt || imageData.title || `image-${Date.now()}`
 
     switch (downloadMethod) {
-      case "open":
+      case 'open':
         return openInNewTab(sanitizedUrl)
 
-      case "download":
+      case 'download':
         if (
           sanitizedUrl.startsWith(window.location.origin) ||
-          sanitizedUrl.startsWith("data:")
+          sanitizedUrl.startsWith('data:')
         ) {
           return tryDirectDownload(sanitizedUrl, generatedFilename)
         } else {
@@ -234,10 +234,10 @@ export async function downloadSelectedImage(
           return success || openInNewTab(sanitizedUrl)
         }
 
-      case "auto":
+      case 'auto':
       default:
         if (
-          sanitizedUrl.startsWith("data:") ||
+          sanitizedUrl.startsWith('data:') ||
           sanitizedUrl.startsWith(window.location.origin)
         ) {
           return tryDirectDownload(sanitizedUrl, generatedFilename)
@@ -252,12 +252,12 @@ export async function downloadSelectedImage(
         }
     }
   } catch (error) {
-    console.error("Failed to download image:", error)
+    console.error('Failed to download image:', error)
 
     try {
       const baseUrl = window.location.href
       const sanitizedUrl = sanitizeUrl(imageData.src, baseUrl)
-      if (sanitizedUrl !== "#") {
+      if (sanitizedUrl !== '#') {
         return openInNewTab(sanitizedUrl)
       }
     } catch {
@@ -278,7 +278,7 @@ export function shouldShowDownloadButton(props: {
   const { editor, hideWhenUnavailable } = props
 
   if (!editor || !editor.isEditable) return false
-  if (!isExtensionAvailable(editor, ["image", "imageUpload"])) return false
+  if (!isExtensionAvailable(editor, ['image', 'imageUpload'])) return false
 
   if (hideWhenUnavailable) {
     return canDownloadImage(editor)
@@ -296,7 +296,7 @@ export function useImageDownload(config?: UseImageDownloadConfig) {
     hideWhenUnavailable = false,
     onDownloaded,
     resolveFileUrl,
-    downloadMethod = "auto",
+    downloadMethod = 'auto'
   } = config || {}
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -313,10 +313,10 @@ export function useImageDownload(config?: UseImageDownloadConfig) {
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, hideWhenUnavailable])
 
@@ -342,12 +342,12 @@ export function useImageDownload(config?: UseImageDownloadConfig) {
     IMAGE_DOWNLOAD_SHORTCUT_KEY,
     (event) => {
       event.preventDefault()
-      handleDownload()
+      void handleDownload()
     },
     {
       enabled: isVisible && canDownload,
       enableOnContentEditable: !isMobile,
-      enableOnFormTags: true,
+      enableOnFormTags: true
     }
   )
 
@@ -355,8 +355,8 @@ export function useImageDownload(config?: UseImageDownloadConfig) {
     isVisible,
     canDownload,
     handleDownload,
-    label: "Download image",
+    label: 'Download image',
     shortcutKeys: IMAGE_DOWNLOAD_SHORTCUT_KEY,
-    Icon: ArrowDownToLineIcon,
+    Icon: ArrowDownToLineIcon
   }
 }

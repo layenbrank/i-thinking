@@ -1,21 +1,20 @@
-"use client"
+'use client'
 
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
 // --- Tiptap UI ---
-import type { UseTableAlignCellConfig } from "@/components/tiptap-node/table-node/ui/table-align-cell-button"
-import { useTableAlignCell } from "@/components/tiptap-node/table-node/ui/table-align-cell-button"
+import type { UseTableAlignCellConfig } from '@/components/tiptap-node/table-node/ui/table-align-cell-button/use-table-align-cell.ts'
+import { useTableAlignCell } from '@/components/tiptap-node/table-node/ui/table-align-cell-button/use-table-align-cell.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 
 export interface TableAlignCellButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseTableAlignCellConfig {
+  extends Omit<ButtonProps, 'type'>, UseTableAlignCellConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -83,7 +82,7 @@ export const TableAlignCellButton = forwardRef<
         index,
         orientation,
         hideWhenUnavailable,
-        onAligned,
+        onAligned
       })
 
     const handleClick = useCallback(
@@ -104,7 +103,7 @@ export const TableAlignCellButton = forwardRef<
         type="button"
         disabled={!canAlignCell}
         data-style="ghost"
-        data-active-state={isActive ? "on" : "off"}
+        data-active-state={isActive ? 'on' : 'off'}
         data-disabled={!canAlignCell}
         role="button"
         tabIndex={-1}
@@ -113,8 +112,7 @@ export const TableAlignCellButton = forwardRef<
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -126,4 +124,4 @@ export const TableAlignCellButton = forwardRef<
   }
 )
 
-TableAlignCellButton.displayName = "TableAlignCellButton"
+TableAlignCellButton.displayName = 'TableAlignCellButton'

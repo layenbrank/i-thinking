@@ -15,20 +15,30 @@
 
 .composer {
   &.markdown {
-    font-size: 16px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0%;
+    min-height: 0px;
+    overflow: hidden scroll;
+    padding-left: 43px;
+    // font-size: 16px;
 
-    .tiptap {
-      &.ProseMirror {
-        * {
-          user-select: text;
-          font-family:
-            'MesloLGM Nerd Font Mono Display', Consolas, 'Liberation Mono',
-            Menlo, Courier, monospace;
-          @extend %normalize;
+    :global {
+      .tiptap {
+        &.ProseMirror {
+          width: 100%;
+          height: 100%;
+          //     * {
+          //       user-select: text;
+          //       font-family:
+          //         'MesloLGM Nerd Font Mono Display', Consolas, 'Liberation Mono',
+          //         Menlo, Courier, monospace;
+          //       @extend %normalize;
+          //     }
+          //     // &.ProseMirror-focused {
+          //     //   outline: none;
+          //     // }
         }
-        // &.ProseMirror-focused {
-        //   outline: none;
-        // }
       }
     }
   }

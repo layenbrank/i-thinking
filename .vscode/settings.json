@@ -118,7 +118,13 @@
     "vue": "html",
     "vue-html": "html"
   },
-  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "vue"],
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "vue"
+  ],
   "eslint.workingDirectories": [
     {
       "mode": "auto"
@@ -141,7 +147,9 @@
     "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts"
   },
   "iconify.languageIds": ["typescript", "typescriptreact", "vue"],
-  "iconify.customCollectionJsonPaths": ["packages/shared/src/assets/iconify.json"],
+  "iconify.customCollectionJsonPaths": [
+    "packages/shared/src/assets/iconify.json"
+  ],
   "iconify.customAliasesOnly": false,
   "iconify.annotations": true,
   "iconify.preview.include": ["**/*.vue", "**/*.jsx", "**/*.tsx"],
@@ -203,7 +211,15 @@
   "i18n-ally.extract.keygenStyle": "kebab-case",
   "i18n-ally.extract.keyPrefix": "prefix-",
   "i18n-ally.extract.parsers.html": {
-    "attributes": ["title", "alt", "aria-label", "placeholder", "label", "text", "sub-title"],
+    "attributes": [
+      "title",
+      "alt",
+      "aria-label",
+      "placeholder",
+      "label",
+      "text",
+      "sub-title"
+    ],
     "ignoredTags": ["script", "style"],
     "inlineText": true,
     "vBind": true
@@ -309,7 +325,12 @@
   },
   "search.followSymlinks": false,
   "search.searchEditor.singleClickBehaviour": "peekDefinition",
-  "tailwindCSS.files.exclude": ["**/.git/**", "**/node_modules/**", "**/.hg/**", "**/.svn/**"],
+  "tailwindCSS.files.exclude": [
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/.hg/**",
+    "**/.svn/**"
+  ],
   "tailwindCSS.suggestions": true,
   "terminal.explorerKind": "external",
   "terminal.integrated.cursorBlinking": true,

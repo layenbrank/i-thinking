@@ -116,6 +116,7 @@ const Application = {
         height={props.fullscreen ? '100%' : 'unset'}
         style={{
           ...style,
+          borderRadius: props.fullscreen ? '0px' : '8px',
           aspectRatio: props.fullscreen ? 'unset' : '16 / 9'
         }}
         open={visible}

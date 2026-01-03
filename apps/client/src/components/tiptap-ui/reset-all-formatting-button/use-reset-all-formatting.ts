@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useState } from "react"
-import { useHotkeys } from "react-hotkeys-hook"
-import { type Editor } from "@tiptap/react"
-import type { Transaction } from "@tiptap/pm/state"
+import { useCallback, useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { type Editor } from '@tiptap/react'
+import type { Transaction } from '@tiptap/pm/state'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint.ts'
 
 // --- Icons ---
-import { RotateCcwIcon } from "@/components/tiptap-icons/rotate-ccw-icon"
+import { RotateCcwIcon } from '@/components/tiptap-icons/rotate-ccw-icon.tsx'
 
-export const RESET_ALL_FORMATTING_SHORTCUT_KEY = "mod+r"
+export const RESET_ALL_FORMATTING_SHORTCUT_KEY = 'mod+r'
 
 /**
  * Configuration for the reset formatting functionality
@@ -155,7 +155,7 @@ export function shouldShowButton(props: {
 
   if (!editor || !editor.isEditable) return false
 
-  if (hideWhenUnavailable && !editor.isActive("code")) {
+  if (hideWhenUnavailable && !editor.isActive('code')) {
     return canResetFormatting(editor, preserveMarks)
   }
 
@@ -202,7 +202,7 @@ export function useResetAllFormatting(config?: UseResetAllFormattingConfig) {
     editor: providedEditor,
     preserveMarks,
     hideWhenUnavailable = false,
-    onResetAllFormatting,
+    onResetAllFormatting
   } = config || {}
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -221,10 +221,10 @@ export function useResetAllFormatting(config?: UseResetAllFormattingConfig) {
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, hideWhenUnavailable, preserveMarks])
 
@@ -247,7 +247,7 @@ export function useResetAllFormatting(config?: UseResetAllFormattingConfig) {
     {
       enabled: isVisible && canReset,
       enableOnContentEditable: !isMobile,
-      enableOnFormTags: true,
+      enableOnFormTags: true
     }
   )
 
@@ -255,8 +255,8 @@ export function useResetAllFormatting(config?: UseResetAllFormattingConfig) {
     isVisible,
     handleResetFormatting,
     canReset,
-    label: "Reset formatting",
+    label: 'Reset formatting',
     shortcutKeys: RESET_ALL_FORMATTING_SHORTCUT_KEY,
-    Icon: RotateCcwIcon,
+    Icon: RotateCcwIcon
   }
 }

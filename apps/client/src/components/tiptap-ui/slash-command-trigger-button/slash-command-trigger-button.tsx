@@ -1,22 +1,22 @@
 import { forwardRef, useCallback } from "react"
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from "@/lib/tiptap-utils.ts"
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from "@/hooks/use-tiptap-editor.ts"
 
 // --- Tiptap UI ---
-import type { UseSlashCommandTriggerConfig } from "@/components/tiptap-ui/slash-command-trigger-button"
+import type { UseSlashCommandTriggerConfig } from "@/components/tiptap-ui/slash-command-trigger-button/use-slash-command-trigger.ts"
 import {
   SLASH_COMMAND_TRIGGER_SHORTCUT_KEY,
   useSlashCommandTrigger,
-} from "@/components/tiptap-ui/slash-command-trigger-button"
+} from "@/components/tiptap-ui/slash-command-trigger-button/use-slash-command-trigger.ts"
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Button } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Badge } from "@/components/tiptap-ui-primitive/badge/badge.tsx"
 
 export interface SlashCommandTriggerButtonProps
   extends Omit<ButtonProps, "type">,

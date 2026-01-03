@@ -9,6 +9,9 @@ import { BrowserRouter } from 'react-router-dom'
 import { MirrorPlugin } from '@/plugins/mirror.ts'
 import RouterView from '@/routers/routes.tsx'
 import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
+import { IntelligencePlugin } from '@/plugins/intelligence.ts'
+
+// import { POST_SIGNIN } from '@/apis/auth.ts'
 
 dayjs.locale('zh-cn')
 
@@ -38,9 +41,18 @@ const themeConfigure: ThemeConfig = {
   }
 }
 
-const plugins: Plugin[] = [MirrorPlugin]
+const plugins: Plugin[] = [MirrorPlugin, IntelligencePlugin]
 
 function App() {
+  // useEffect(function () {
+  //   POST_SIGNIN({
+  //     username: 'admin',
+  //     password: '123456'
+  //   }).subscribe(function (response) {
+  //     console.log('[POST_SIGNIN] response', response)
+  //   })
+  // }, [])
+
   // const LANGUAGE = navigator.language || 'zh-CN'
   // defer(function () {
   // 	return http.get('')

@@ -43,7 +43,10 @@ export class CacheService {
    * @param request
    * @param response
    */
-  toWrite(request: HttpRequest<unknown>, response: HttpResponse<unknown>): void {
+  toWrite(
+    request: HttpRequest<unknown>,
+    response: HttpResponse<unknown>
+  ): void {
     const entry: CacheEntry = {
       response: response,
       expire: Date.now() + request.context.get(CACHE_TOKEN)

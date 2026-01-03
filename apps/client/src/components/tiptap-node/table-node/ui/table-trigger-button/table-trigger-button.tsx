@@ -1,32 +1,31 @@
-"use client"
+'use client'
 
-import { forwardRef } from "react"
+import { forwardRef } from 'react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
 // --- Tiptap UI ---
-import type { UseTableTriggerButtonConfig } from "@/components/tiptap-node/table-node/ui/table-trigger-button"
-import { useTableTriggerButton } from "@/components/tiptap-node/table-node/ui/table-trigger-button"
+import type { UseTableTriggerButtonConfig } from '@/components/tiptap-node/table-node/ui/table-trigger-button/use-table-trigger.ts'
+import { useTableTriggerButton } from '@/components/tiptap-node/table-node/ui/table-trigger-button/use-table-trigger.ts'
 
 // --- Components ---
-import { TableGridSelector } from "@/components/tiptap-node/table-node/ui/table-trigger-button/table-grid-selector"
+import { TableGridSelector } from '@/components/tiptap-node/table-node/ui/table-trigger-button/table-grid-selector.tsx'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger,
-} from "@/components/tiptap-ui-primitive/popover"
+  PopoverTrigger
+} from '@/components/tiptap-ui-primitive/popover/popover.tsx'
 
 // --- Styles ---
-import { Card, CardBody } from "@/components/tiptap-ui-primitive/card"
+import { Card, CardBody } from '@/components/tiptap-ui-primitive/card/card.tsx'
 
 export interface TableTriggerButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseTableTriggerButtonConfig {
+  extends Omit<ButtonProps, 'type'>, UseTableTriggerButtonConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -75,13 +74,13 @@ export const TableTriggerButton = forwardRef<
       handleCellClick,
       resetHoveredCell,
       label,
-      Icon,
+      Icon
     } = useTableTriggerButton({
       editor,
       hideWhenUnavailable,
       maxRows,
       maxCols,
-      onInserted,
+      onInserted
     })
 
     if (!isVisible) {
@@ -89,7 +88,9 @@ export const TableTriggerButton = forwardRef<
     }
 
     return (
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <Popover
+        open={isOpen}
+        onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
             ref={ref}
@@ -99,8 +100,7 @@ export const TableTriggerButton = forwardRef<
             data-disabled={!canInsert}
             aria-label={label}
             tooltip={label}
-            {...buttonProps}
-          >
+            {...buttonProps}>
             {children ?? (
               <>
                 <Icon className="tiptap-button-icon" />
@@ -109,7 +109,12 @@ export const TableTriggerButton = forwardRef<
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" side="bottom">
+        <PopoverContent
+          style={{
+            zIndex: 1000
+          }}
+          align="start"
+          side="bottom">
           <Card>
             <CardBody>
               <TableGridSelector
@@ -129,4 +134,4 @@ export const TableTriggerButton = forwardRef<
   }
 )
 
-TableTriggerButton.displayName = "TableTriggerButton"
+TableTriggerButton.displayName = 'TableTriggerButton'

@@ -1,23 +1,22 @@
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from '@/lib/tiptap-utils.ts'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Tiptap UI ---
-import type { UseMoveNodeConfig } from "@/components/tiptap-ui/move-node-button"
-import { useMoveNode } from "@/components/tiptap-ui/move-node-button"
+import type { UseMoveNodeConfig } from '@/components/tiptap-ui/move-node-button/use-move-node.ts'
+import { useMoveNode } from '@/components/tiptap-ui/move-node-button/use-move-node.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Badge } from '@/components/tiptap-ui-primitive/badge/badge.tsx'
 
 export interface MoveNodeButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseMoveNodeConfig {
+  extends Omit<ButtonProps, 'type'>, UseMoveNodeConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -30,7 +29,7 @@ export interface MoveNodeButtonProps
 }
 
 export function MoveNodeShortcutBadge({
-  shortcutKeys,
+  shortcutKeys
 }: {
   shortcutKeys: string
 }) {
@@ -65,12 +64,12 @@ export const MoveNodeButton = forwardRef<
       canMoveNode,
       label,
       shortcutKeys,
-      Icon,
+      Icon
     } = useMoveNode({
       editor,
       direction,
       hideWhenUnavailable,
-      onMoved,
+      onMoved
     })
 
     const handleClick = useCallback(
@@ -86,7 +85,7 @@ export const MoveNodeButton = forwardRef<
       return null
     }
 
-    const tooltip = direction === "up" ? "Move Up" : "Move Down"
+    const tooltip = direction === 'up' ? 'Move Up' : 'Move Down'
 
     return (
       <Button
@@ -99,8 +98,7 @@ export const MoveNodeButton = forwardRef<
         disabled={!canMoveNode}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -115,4 +113,4 @@ export const MoveNodeButton = forwardRef<
   }
 )
 
-MoveNodeButton.displayName = "MoveNodeButton"
+MoveNodeButton.displayName = 'MoveNodeButton'

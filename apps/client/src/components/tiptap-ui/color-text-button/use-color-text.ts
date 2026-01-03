@@ -1,73 +1,73 @@
-import { useCallback, useEffect, useState } from "react"
-import { type Editor } from "@tiptap/react"
-import { useHotkeys } from "react-hotkeys-hook"
+import { useCallback, useEffect, useState } from 'react'
+import { type Editor } from '@tiptap/react'
+import { useHotkeys } from 'react-hotkeys-hook'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint.ts'
 
 // --- Lib ---
 import {
   isMarkInSchema,
   isNodeTypeSelected,
-  selectCurrentBlockContent,
-} from "@/lib/tiptap-utils"
+  selectCurrentBlockContent
+} from '@/lib/tiptap-utils.ts'
 
 // --- Icons ---
-import { TextColorSmallIcon } from "@/components/tiptap-icons/text-color-small-icon"
+import { TextColorSmallIcon } from '@/components/tiptap-icons/text-color-small-icon.tsx'
 
-export const COLOR_TEXT_SHORTCUT_KEY = "mod+shift+t"
+export const COLOR_TEXT_SHORTCUT_KEY = 'mod+shift+t'
 export const TEXT_COLORS = [
   {
-    label: "Default text",
-    value: "var(--tt-color-text)",
-    border: "var(--tt-color-text-contrast)",
+    label: 'Default text',
+    value: 'var(--tt-color-text)',
+    border: 'var(--tt-color-text-contrast)'
   },
   {
-    label: "Gray text",
-    value: "var(--tt-color-text-gray)",
-    border: "var(--tt-color-text-gray-contrast)",
+    label: 'Gray text',
+    value: 'var(--tt-color-text-gray)',
+    border: 'var(--tt-color-text-gray-contrast)'
   },
   {
-    label: "Brown text",
-    value: "var(--tt-color-text-brown)",
-    border: "var(--tt-color-text-brown-contrast)",
+    label: 'Brown text',
+    value: 'var(--tt-color-text-brown)',
+    border: 'var(--tt-color-text-brown-contrast)'
   },
   {
-    label: "Orange text",
-    value: "var(--tt-color-text-orange)",
-    border: "var(--tt-color-text-orange-contrast)",
+    label: 'Orange text',
+    value: 'var(--tt-color-text-orange)',
+    border: 'var(--tt-color-text-orange-contrast)'
   },
   {
-    label: "Yellow text",
-    value: "var(--tt-color-text-yellow)",
-    border: "var(--tt-color-text-yellow-contrast)",
+    label: 'Yellow text',
+    value: 'var(--tt-color-text-yellow)',
+    border: 'var(--tt-color-text-yellow-contrast)'
   },
   {
-    label: "Green text",
-    value: "var(--tt-color-text-green)",
-    border: "var(--tt-color-text-green-contrast)",
+    label: 'Green text',
+    value: 'var(--tt-color-text-green)',
+    border: 'var(--tt-color-text-green-contrast)'
   },
   {
-    label: "Blue text",
-    value: "var(--tt-color-text-blue)",
-    border: "var(--tt-color-text-blue-contrast)",
+    label: 'Blue text',
+    value: 'var(--tt-color-text-blue)',
+    border: 'var(--tt-color-text-blue-contrast)'
   },
   {
-    label: "Purple text",
-    value: "var(--tt-color-text-purple)",
-    border: "var(--tt-color-text-purple-contrast)",
+    label: 'Purple text',
+    value: 'var(--tt-color-text-purple)',
+    border: 'var(--tt-color-text-purple-contrast)'
   },
   {
-    label: "Pink text",
-    value: "var(--tt-color-text-pink)",
-    border: "var(--tt-color-text-pink-contrast)",
+    label: 'Pink text',
+    value: 'var(--tt-color-text-pink)',
+    border: 'var(--tt-color-text-pink-contrast)'
   },
   {
-    label: "Red text",
-    value: "var(--tt-color-text-red)",
-    border: "var(--tt-color-text-red-contrast)",
-  },
+    label: 'Red text',
+    value: 'var(--tt-color-text-red)',
+    border: 'var(--tt-color-text-red-contrast)'
+  }
 ]
 
 /**
@@ -104,13 +104,13 @@ export interface UseColorTextConfig {
 export function canColorText(editor: Editor | null): boolean {
   if (!editor || !editor.isEditable) return false
   if (
-    !isMarkInSchema("textStyle", editor) ||
-    isNodeTypeSelected(editor, ["image"])
+    !isMarkInSchema('textStyle', editor) ||
+    isNodeTypeSelected(editor, ['image'])
   )
     return false
 
   try {
-    return editor.can().setMark("textStyle", { color: "currentColor" })
+    return editor.can().setMark('textStyle', { color: 'currentColor' })
   } catch {
     return false
   }
@@ -124,7 +124,7 @@ export function isColorTextActive(
   textColor: string
 ): boolean {
   if (!editor || !editor.isEditable) return false
-  return editor.isActive("textStyle", { color: textColor })
+  return editor.isActive('textStyle', { color: textColor })
 }
 
 /**
@@ -137,9 +137,9 @@ export function shouldShowButton(props: {
   const { editor, hideWhenUnavailable } = props
 
   if (!editor || !editor.isEditable) return false
-  if (!isMarkInSchema("textStyle", editor)) return false
+  if (!isMarkInSchema('textStyle', editor)) return false
 
-  if (hideWhenUnavailable && !editor.isActive("code")) {
+  if (hideWhenUnavailable && !editor.isActive('code')) {
     return canColorText(editor)
   }
 
@@ -200,7 +200,7 @@ export function useColorText(config: UseColorTextConfig) {
     label,
     textColor,
     hideWhenUnavailable = false,
-    onApplied,
+    onApplied
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -218,10 +218,10 @@ export function useColorText(config: UseColorTextConfig) {
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, hideWhenUnavailable])
 
@@ -243,7 +243,7 @@ export function useColorText(config: UseColorTextConfig) {
       const success = editor
         .chain()
         .focus()
-        .toggleMark("textStyle", { color: textColor })
+        .toggleMark('textStyle', { color: textColor })
         .run()
       if (success) {
         onApplied?.({ color: textColor, label })
@@ -261,7 +261,7 @@ export function useColorText(config: UseColorTextConfig) {
     {
       enabled: isVisible && canColorTextState,
       enableOnContentEditable: !isMobile,
-      enableOnFormTags: true,
+      enableOnFormTags: true
     }
   )
 
@@ -272,6 +272,6 @@ export function useColorText(config: UseColorTextConfig) {
     canColorText: canColorTextState,
     label: label || `Color text to ${textColor}`,
     shortcutKeys: COLOR_TEXT_SHORTCUT_KEY,
-    Icon: TextColorSmallIcon,
+    Icon: TextColorSmallIcon
   }
 }

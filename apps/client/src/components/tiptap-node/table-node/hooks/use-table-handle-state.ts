@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback, useRef } from "react"
-import type { Editor } from "@tiptap/react"
-import type { TableHandlesState } from "@/components/tiptap-node/table-node/extensions/table-handle"
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useEffect, useState, useCallback, useRef } from 'react'
+import type { Editor } from '@tiptap/react'
+import type { TableHandlesState } from '@/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts'
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
 export interface UseTableHandleStateConfig {
   /**
@@ -28,7 +28,7 @@ export function useTableHandleState(config: UseTableHandleStateConfig = {}) {
     editor: providedEditor,
     initialState = null,
     watchFields,
-    onStateChange,
+    onStateChange
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -53,16 +53,18 @@ export function useTableHandleState(config: UseTableHandleStateConfig = {}) {
 
   useEffect(() => {
     if (!editor) {
-      setState(null)
+      requestAnimationFrame(function () {
+        setState(null)
+      })
       prevStateRef.current = null
       onStateChange?.(null)
       return
     }
 
-    editor.on("tableHandleState", updateState)
+    editor.on('tableHandleState', updateState)
 
     return () => {
-      editor.off("tableHandleState", updateState)
+      editor.off('tableHandleState', updateState)
     }
   }, [editor, onStateChange, updateState])
 

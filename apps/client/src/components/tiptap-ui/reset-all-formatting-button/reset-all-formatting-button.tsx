@@ -7,16 +7,16 @@ import { parseShortcutKeys } from "@/lib/tiptap-utils"
 import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
 
 // --- Tiptap UI ---
-import type { UseResetAllFormattingConfig } from "@/components/tiptap-ui/reset-all-formatting-button"
+import type { UseResetAllFormattingConfig } from "@/components/tiptap-ui/reset-all-formatting-button/use-reset-all-formatting.ts"
 import {
   RESET_ALL_FORMATTING_SHORTCUT_KEY,
   useResetAllFormatting,
-} from "@/components/tiptap-ui/reset-all-formatting-button"
+} from "@/components/tiptap-ui/reset-all-formatting-button/use-reset-all-formatting.ts"
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Button } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Badge } from "@/components/tiptap-ui-primitive/badge/badge.tsx"
 
 export interface ResetAllFormattingButtonProps
   extends Omit<ButtonProps, "type">,

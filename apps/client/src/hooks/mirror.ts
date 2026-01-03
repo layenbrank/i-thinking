@@ -1,15 +1,14 @@
-import { useLiveQuery, useObservable, useDocument, usePermissions } from 'dexie-react-hooks'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { isEmpty } from 'lodash-es'
 
 // 1. 引入默认数据（和 extension 里的 useMirror 一样）
 import { BuildMirror } from '@/constants/mirror.ts' // 如果 client 端也有这个 Hook
-import { useMirrorStore } from '@/stores/mirror.ts'
+import { mirror$ } from '@/stores/mirror.ts'
 import { database } from '@/databases/database.ts'
 
 // 2. 导出 React Hook：useMirrors
 export function useMirrors(): Mirror[] {
   const { MIRRORS } = BuildMirror()
-  const mirrorID = useMirrorStore((state) => state.mirrorID)
 
   const mirrors = useLiveQuery<Mirror[], Mirror[]>(
     async function () {
@@ -30,8 +29,8 @@ export function useMirrors(): Mirror[] {
     function () {
       if (!mirrors.length) return
       const [mirror] = mirrors
-      if (mirror.id && mirrorID === null) {
-        useMirrorStore.setState({ mirrorID: mirror.id })
+      if (mirror.id && mirror$.value?.id === null) {
+        mirror$.next(mirror)
       }
     },
     [mirrors]

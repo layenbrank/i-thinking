@@ -60,52 +60,78 @@
     <option name="showLibraryContents" value="true" />
     <option name="showScratchesAndConsoles" value="false" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;JavaScript 调试.extension.executor&quot;: &quot;Debug&quot;,
-    &quot;JavaScript 调试.localhost:5173.executor&quot;: &quot;Debug&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;javascript.nodejs.core.library.configured.version&quot;: &quot;22.20.0&quot;,
-    &quot;javascript.nodejs.core.library.typings.version&quot;: &quot;22.19.3&quot;,
-    &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/MACHENIKE/Documents/Vue3/i-thinking/apps/extension&quot;,
-    &quot;list.type.of.created.stylesheet&quot;: &quot;SCSS&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.stylelint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.stylelint&quot;: &quot;&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_interpreter_path&quot;: &quot;node&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
-    &quot;npm.build:client.executor&quot;: &quot;Run&quot;,
-    &quot;npm.client &gt; dev:core.executor&quot;: &quot;Debug&quot;,
-    &quot;npm.dev:client.executor&quot;: &quot;Run&quot;,
-    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\prettier&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;Errors&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\typescript\\lib&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "JavaScript 调试.extension.executor": "Debug",
+    "JavaScript 调试.localhost:5173.executor": "Debug",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "master",
+    "javascript.nodejs.core.library.configured.version": "22.20.0",
+    "javascript.nodejs.core.library.typings.version": "22.19.3",
+    "javascript.preferred.runtime.type.id": "node",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "C:/Users/MACHENIKE/Documents/Vue3/i-thinking/apps/client/src/components",
+    "list.type.of.created.stylesheet": "SCSS",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.stylelint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.stylelint": "",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_interpreter_path": "node",
+    "nodejs_package_manager_path": "pnpm",
+    "npm.build:client.executor": "Run",
+    "npm.client > dev:core.executor": "Debug",
+    "npm.dev:client.executor": "Run",
+    "prettierjs.PrettierConfiguration.Package": "C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\prettier",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "settings.qodana",
+    "to.speed.mode.migration.done": "true",
+    "ts.external.directory.path": "C:\\Users\\MACHENIKE\\Documents\\Vue3\\i-thinking\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;DatabaseDriversLRU&quot;: [
-      &quot;mongo&quot;
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "mongo"
     ],
-    &quot;vue.recent.templates&quot;: [
-      &quot;Vue Options API Component&quot;
+    "vue.recent.templates": [
+      "Vue Options API Component"
     ]
   }
-}</component>
+}]]></component>
   <component name="QodanaCIConfigService">
     <option name="path" value="$PROJECT_DIR$/.github/workflows/qodana_code_quality.yaml" />
+  </component>
+  <component name="QodanaCloudProjectLink">
+    <option name="lastReportId" value="YOoedJ" />
+    <option name="linkedProjectId" value="v5krw" />
+    <option name="linkedProjectName" value="i thinking" />
+    <option name="organizationId" value="wwaV7" />
+    <option name="userId" value="DgEGw" />
+  </component>
+  <component name="QodanaHighlightedReportService">
+    <option name="localRunNotPublishedPersistedInfo">
+      <LocalReportPersistedInfo>
+        <option name="path" value="C:\Users\MACHENIKE\AppData\Local\Temp\qodana_output1\qodana.sarif.json" />
+        <option name="reportGuid" value="31cf1748-aed0-4ea8-86f7-60f61ecf98a3" />
+        <option name="reportName" value="i-thinking/qodana/2026-01-01" />
+      </LocalReportPersistedInfo>
+    </option>
+  </component>
+  <component name="QodanaIsSelectedPersistenceService">
+    <option name="selectedOrLoading" value="true" />
+  </component>
+  <component name="QodanaReportsService">
+    <option name="descriptions">
+      <ReportDescription localRun="true" path="C:\Users\MACHENIKE\AppData\Local\Temp\qodana_output\qodana.sarif.json" publishedReportLink="https://qodana.cloud/projects/v5krw/reports/YOoedJ" reportGuid="8fd553d7-8011-4947-b63e-dab0b56c57e6" reportId="i-thinking/qodana/2026-01-01" />
+      <ReportDescription localRun="true" path="C:\Users\MACHENIKE\AppData\Local\Temp\qodana_output1\qodana.sarif.json" reportGuid="31cf1748-aed0-4ea8-86f7-60f61ecf98a3" reportId="i-thinking/qodana/2026-01-01" />
+    </option>
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
@@ -223,6 +249,7 @@
       <workItem from="1767071099630" duration="13240000" />
       <workItem from="1767158181840" duration="1810000" />
       <workItem from="1767186777141" duration="5034000" />
+      <workItem from="1767267044142" duration="815000" />
     </task>
     <task id="LOCAL-00001" summary="添加自定义应用表单">
       <option name="closed" value="true" />

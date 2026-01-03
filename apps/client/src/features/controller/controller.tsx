@@ -30,7 +30,7 @@ const Controller = {
     )
   },
   Application() {
-    const store = useMirrorStore()
+    const applications = useMirrorStore((state) => state.applications)
     const controller = useRef<HTMLDivElement>(null)
 
     // 使用 react-use 监听 Control 键状态
@@ -38,12 +38,12 @@ const Controller = {
 
     const uniqueKeys = useMemo(
       function () {
-        const keys = store.applications?.map(function (v) {
+        const keys = applications?.map(function (v) {
           return v.id
         })
         return keys ?? []
       },
-      [store.applications]
+      [applications]
     )
 
     const mouseSensor = useSensor(MouseSensor, {
@@ -78,7 +78,7 @@ const Controller = {
 
       // 如果目标是放置区域，执行放置逻辑（无论是否按下 Control 键）
       if (isDropZone) {
-        const draggedApplication = store.applications?.find(function (v) {
+        const draggedApplication = applications?.find(function (v) {
           return v.id === active.id
         })
 
@@ -102,27 +102,27 @@ const Controller = {
       // 只有在未按下 Control 键时，才允许排序
       if (!Control && isSortableItem) {
         // 未按下 Control 键且目标是排序容器内的其他项，执行排序逻辑
-        const oldIndex = store.applications?.findIndex(function (v) {
+        const oldIndex = applications?.findIndex(function (v) {
           return v.id === active.id
         })
-        const newIndex = store.applications?.findIndex(function (v) {
+        const newIndex = applications?.findIndex(function (v) {
           return v.id === over.id
         })
 
-        const applications = arrayMove(
-          store.applications ?? [],
+        const moved = arrayMove(
+          applications ?? [],
           oldIndex ?? 0,
           newIndex ?? 0
         )
 
-        const updates = applications.map(function (value, index) {
+        const updates = moved.map(function (value, index) {
           return {
             ...value,
             index: index
           }
         })
         console.log('[toUpdateApplication] updates', updates)
-        store.toUpdateApplications(updates)
+        useMirrorStore.getState().toUpdateApplications(updates)
       }
       // 如果按下 Control 键且目标是排序容器内的其他项，不执行任何操作（禁用排序）
     }
@@ -188,7 +188,7 @@ const Controller = {
               styles.controller,
               styles.application
             ])}>
-            {store.applications?.map(function (value) {
+            {applications?.map(function (value) {
               const Component = Reflection[value.component]
 
               const props = {

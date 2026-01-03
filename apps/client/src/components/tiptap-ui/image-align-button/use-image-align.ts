@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useState } from "react"
-import { useHotkeys } from "react-hotkeys-hook"
-import { type Editor } from "@tiptap/react"
-import { NodeSelection } from "@tiptap/pm/state"
+import { useCallback, useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { type Editor } from '@tiptap/react'
+import { NodeSelection } from '@tiptap/pm/state'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint.ts'
 
 // --- Lib ---
-import { isExtensionAvailable } from "@/lib/tiptap-utils"
+import { isExtensionAvailable } from '@/lib/tiptap-utils.ts'
 
 // --- Icons ---
-import { AlignCenterVerticalIcon } from "@/components/tiptap-icons/align-center-vertical-icon"
-import { AlignEndVerticalIcon } from "@/components/tiptap-icons/align-end-vertical-icon"
-import { AlignStartVerticalIcon } from "@/components/tiptap-icons/align-start-vertical-icon"
+import { AlignCenterVerticalIcon } from '@/components/tiptap-icons/align-center-vertical-icon.tsx'
+import { AlignEndVerticalIcon } from '@/components/tiptap-icons/align-end-vertical-icon.tsx'
+import { AlignStartVerticalIcon } from '@/components/tiptap-icons/align-start-vertical-icon.tsx'
 
-export type ImageAlign = "left" | "center" | "right"
+export type ImageAlign = 'left' | 'center' | 'right'
 
 /**
  * Configuration for the image align functionality
@@ -51,21 +51,21 @@ export interface UseImageAlignConfig {
 }
 
 export const IMAGE_ALIGN_SHORTCUT_KEYS: Record<ImageAlign, string> = {
-  left: "alt+shift+l",
-  center: "alt+shift+e",
-  right: "alt+shift+r",
+  left: 'alt+shift+l',
+  center: 'alt+shift+e',
+  right: 'alt+shift+r'
 }
 
 export const imageAlignIcons = {
   left: AlignStartVerticalIcon,
   center: AlignCenterVerticalIcon,
-  right: AlignEndVerticalIcon,
+  right: AlignEndVerticalIcon
 }
 
 export const imageAlignLabels: Record<ImageAlign, string> = {
-  left: "Image align left",
-  center: "Image align center",
-  right: "Image align right",
+  left: 'Image align left',
+  center: 'Image align center',
+  right: 'Image align right'
 }
 
 /**
@@ -74,8 +74,8 @@ export const imageAlignLabels: Record<ImageAlign, string> = {
 export function canSetImageAlign(
   editor: Editor | null,
   align: ImageAlign,
-  extensionName: string = "image",
-  attributeName: string = "data-align"
+  extensionName: string = 'image',
+  attributeName: string = 'data-align'
 ): boolean {
   if (!editor || !editor.isEditable) return false
   if (!isExtensionAvailable(editor, [extensionName])) return false
@@ -91,14 +91,14 @@ export function canSetImageAlign(
 export function isImageAlignActive(
   editor: Editor | null,
   align: ImageAlign,
-  extensionName: string = "image",
-  attributeName: string = "data-align"
+  extensionName: string = 'image',
+  attributeName: string = 'data-align'
 ): boolean {
   if (!editor || !editor.isEditable) return false
   if (!isExtensionAvailable(editor, [extensionName])) return false
 
   const attributes = editor.getAttributes(extensionName)
-  const currentAlign = attributes[attributeName] || "left"
+  const currentAlign = attributes[attributeName] || 'left'
   return currentAlign === align
 }
 
@@ -108,8 +108,8 @@ export function isImageAlignActive(
 export function setImageAlign(
   editor: Editor | null,
   align: ImageAlign,
-  extensionName: string = "image",
-  attributeName: string = "data-align"
+  extensionName: string = 'image',
+  attributeName: string = 'data-align'
 ): boolean {
   if (!editor?.isEditable) {
     return false
@@ -162,8 +162,8 @@ export function shouldShowButton(props: {
     editor,
     hideWhenUnavailable,
     align,
-    extensionName = "image",
-    attributeName = "data-align",
+    extensionName = 'image',
+    attributeName = 'data-align'
   } = props
 
   if (!editor || !editor.isEditable) return false
@@ -218,10 +218,10 @@ export function useImageAlign(config: UseImageAlignConfig) {
   const {
     editor: providedEditor,
     align,
-    extensionName = "image",
-    attributeName = "data-align",
+    extensionName = 'image',
+    attributeName = 'data-align',
     hideWhenUnavailable = false,
-    onAligned,
+    onAligned
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -245,16 +245,16 @@ export function useImageAlign(config: UseImageAlignConfig) {
           align,
           hideWhenUnavailable,
           extensionName,
-          attributeName,
+          attributeName
         })
       )
     }
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, hideWhenUnavailable, align, extensionName, attributeName])
 
@@ -277,7 +277,7 @@ export function useImageAlign(config: UseImageAlignConfig) {
     {
       enabled: isVisible && canAlign,
       enableOnContentEditable: !isMobile,
-      enableOnFormTags: true,
+      enableOnFormTags: true
     }
   )
 
@@ -288,6 +288,6 @@ export function useImageAlign(config: UseImageAlignConfig) {
     canAlign,
     label: imageAlignLabels[align],
     shortcutKeys: IMAGE_ALIGN_SHORTCUT_KEYS[align],
-    Icon: imageAlignIcons[align],
+    Icon: imageAlignIcons[align]
   }
 }

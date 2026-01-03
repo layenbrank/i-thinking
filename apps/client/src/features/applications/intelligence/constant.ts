@@ -1,6 +1,6 @@
 type AiMessage = Application.Intelligence.AiMessage
 
-const SESSIONS: AiMessage[] = [
+const MESSAGES: AiMessage[] = [
   {
     id: 'c910b79a-6599-4f00-aa82-f62f1408dee4',
     sessionID: 'f410a895-afaf-4ef0-809e-793824eac75d',
@@ -78,4 +78,4 @@ const SESSIONS: AiMessage[] = [
     thinking: ''
   }
 ]
-export { SESSIONS }
+export { MESSAGES }

@@ -1,29 +1,29 @@
-"use client"
+'use client'
 
-import { cn } from "@/lib/tiptap-utils"
-import { createElement, forwardRef } from "react"
-import "@/components/tiptap-ui-primitive/label/label.scss"
+import { cn } from '@/lib/tiptap-utils.ts'
+import { createElement, forwardRef } from 'react'
+import '@/components/tiptap-ui-primitive/label/label.scss'
 
 export interface BaseProps extends React.HTMLAttributes<HTMLElement> {
-  as?: "label" | "div"
+  as?: 'label' | 'div'
   onMouseDown?: React.MouseEventHandler<HTMLElement>
 }
 
-export type LabelProps<T extends "label" | "div"> = T extends "label"
+export type LabelProps<T extends 'label' | 'div'> = T extends 'label'
   ? BaseProps & { htmlFor?: string }
   : BaseProps
 
 export const Label = forwardRef<
   HTMLElement,
-  LabelProps<"label"> | LabelProps<"div">
->(({ as = "div", ...props }, ref) => {
+  LabelProps<'label'> | LabelProps<'div'>
+>(({ as = 'div', ...props }, ref) => {
   const renderProps = { ...props }
 
-  if (as === "label") {
+  if (as === 'label') {
     renderProps.onMouseDown = (event: React.MouseEvent<HTMLElement>) => {
       // only prevent text selection if clicking inside the label itself
       const target = event.target as HTMLElement
-      if (target.closest("button, input, select, textarea")) return
+      if (target.closest('button, input, select, textarea')) return
       props.onMouseDown?.(event)
       // prevent text selection when double clicking label
       if (!event.defaultPrevented && event.detail > 1) event.preventDefault()
@@ -33,10 +33,10 @@ export const Label = forwardRef<
   return createElement(as, {
     ...renderProps,
     ref,
-    className: cn("tiptap-label", props.className),
+    className: cn('tiptap-label', props.className)
   })
 })
 
-Label.displayName = "Label"
+Label.displayName = 'Label'
 
 export default Label

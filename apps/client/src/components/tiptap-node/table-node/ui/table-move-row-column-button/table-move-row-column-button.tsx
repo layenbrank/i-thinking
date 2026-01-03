@@ -1,19 +1,18 @@
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
 // --- Tiptap UI ---
-import type { UseTableMoveRowColumnConfig } from "@/components/tiptap-node/table-node/ui/table-move-row-column-button"
-import { useTableMoveRowColumn } from "@/components/tiptap-node/table-node/ui/table-move-row-column-button"
+import type { UseTableMoveRowColumnConfig } from '@/components/tiptap-node/table-node/ui/table-move-row-column-button/use-table-move-row-column.ts'
+import { useTableMoveRowColumn } from '@/components/tiptap-node/table-node/ui/table-move-row-column-button/use-table-move-row-column.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 
 export interface TableMoveRowColumnButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseTableMoveRowColumnConfig {
+  extends Omit<ButtonProps, 'type'>, UseTableMoveRowColumnConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -75,7 +74,7 @@ export const TableMoveRowColumnButton = forwardRef<
         orientation,
         direction,
         hideWhenUnavailable,
-        onMoved,
+        onMoved
       })
 
     const handleClick = useCallback(
@@ -105,8 +104,7 @@ export const TableMoveRowColumnButton = forwardRef<
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -118,4 +116,4 @@ export const TableMoveRowColumnButton = forwardRef<
   }
 )
 
-TableMoveRowColumnButton.displayName = "TableMoveRowColumnButton"
+TableMoveRowColumnButton.displayName = 'TableMoveRowColumnButton'

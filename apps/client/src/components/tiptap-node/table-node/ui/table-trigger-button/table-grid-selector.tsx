@@ -1,16 +1,16 @@
-import { forwardRef, useMemo, useCallback } from "react"
+import { forwardRef, useMemo, useCallback } from 'react'
 
 // --- UI Primitives ---
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 
 // --- Lib ---
-import { cn } from "@/lib/tiptap-utils"
+import { cn } from '@/lib/tiptap-utils'
 
 // --- Icons ---
-import { TableColumnIcon } from "@/components/tiptap-icons/table-column-icon"
-import { TableRowIcon } from "@/components/tiptap-icons/table-row-icon"
+import { TableColumnIcon } from '@/components/tiptap-icons/table-column-icon.tsx'
+import { TableRowIcon } from '@/components/tiptap-icons/table-row-icon.tsx'
 
-import "./table-grid-selector.scss"
+import './table-grid-selector.scss'
 
 // --- Types ---
 export interface CellCoordinates {
@@ -82,7 +82,7 @@ const generateGridCells = (rows: number, cols: number): CellCoordinates[] => {
   const totalCells = rows * cols
   return Array.from({ length: totalCells }, (_, index) => ({
     row: Math.floor(index / cols),
-    col: index % cols,
+    col: index % cols
   }))
 }
 
@@ -92,12 +92,12 @@ const GridCell = ({
   isSelected,
   disabled,
   onMouseEnter,
-  onClick,
+  onClick
 }: GridCellProps) => (
   <Button
     data-size="small"
     type="button"
-    className={cn("tiptap-table-grid-cell", isSelected && "selected")}
+    className={cn('tiptap-table-grid-cell', isSelected && 'selected')}
     disabled={disabled}
     onMouseEnter={onMouseEnter}
     onClick={onClick}
@@ -106,7 +106,7 @@ const GridCell = ({
 )
 
 const SizeIndicator = ({
-  hoveredCell,
+  hoveredCell
 }: {
   hoveredCell: CellCoordinates | null
 }) => {
@@ -159,7 +159,7 @@ export const TableGridSelector = forwardRef<
       onMouseLeave,
       disabled = false,
       className,
-      showSizeIndicator = true,
+      showSizeIndicator = true
     },
     ref
   ) => {
@@ -171,8 +171,8 @@ export const TableGridSelector = forwardRef<
     const gridStyle = useMemo(
       () =>
         ({
-          "--tt-table-columns": maxCols,
-          "--tt-table-rows": maxRows,
+          '--tt-table-columns': maxCols,
+          '--tt-table-rows': maxRows
         }) as React.CSSProperties,
       [maxCols, maxRows]
     )
@@ -191,10 +191,9 @@ export const TableGridSelector = forwardRef<
       <>
         <div
           ref={ref}
-          className={cn("tiptap-table-grid", className)}
+          className={cn('tiptap-table-grid', className)}
           onMouseLeave={onMouseLeave}
-          style={gridStyle}
-        >
+          style={gridStyle}>
           {gridCells.map((cell, index) => (
             <GridCell
               key={index}
@@ -214,4 +213,4 @@ export const TableGridSelector = forwardRef<
   }
 )
 
-TableGridSelector.displayName = "TableGridSelector"
+TableGridSelector.displayName = 'TableGridSelector'

@@ -1,21 +1,20 @@
-"use client"
+'use client'
 
-import * as React from "react"
+import * as React from 'react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Tiptap UI ---
-import type { UseImageCaptionConfig } from "@/components/tiptap-ui/image-caption-button"
-import { useImageCaption } from "@/components/tiptap-ui/image-caption-button"
+import type { UseImageCaptionConfig } from '@/components/tiptap-ui/image-caption-button/use-image-caption.ts'
+import { useImageCaption } from '@/components/tiptap-ui/image-caption-button/use-image-caption.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 
 export interface ImageCaptionButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseImageCaptionConfig {
+  extends Omit<ButtonProps, 'type'>, UseImageCaptionConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -49,7 +48,7 @@ export const ImageCaptionButton = React.forwardRef<
       useImageCaption({
         editor,
         hideWhenUnavailable,
-        onSet,
+        onSet
       })
 
     const handleClick = React.useCallback(
@@ -69,7 +68,7 @@ export const ImageCaptionButton = React.forwardRef<
       <Button
         type="button"
         data-style="ghost"
-        data-active-state={isActive ? "on" : "off"}
+        data-active-state={isActive ? 'on' : 'off'}
         role="button"
         tabIndex={-1}
         disabled={!canToggle}
@@ -78,8 +77,7 @@ export const ImageCaptionButton = React.forwardRef<
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -91,4 +89,4 @@ export const ImageCaptionButton = React.forwardRef<
   }
 )
 
-ImageCaptionButton.displayName = "ImageCaptionButton"
+ImageCaptionButton.displayName = 'ImageCaptionButton'

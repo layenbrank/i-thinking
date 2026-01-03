@@ -1,12 +1,12 @@
-import type { Orientation } from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+import type { Orientation } from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 import {
   offset,
   size,
   useFloating,
   useTransitionStyles,
-  type Placement,
-} from "@floating-ui/react"
-import { useEffect, useMemo, useCallback } from "react"
+  type Placement
+} from '@floating-ui/react'
+import { useEffect, useMemo, useCallback } from 'react'
 
 interface TableExtendRowColumnButtonPositionResult {
   isMounted: boolean
@@ -21,13 +21,13 @@ interface TableExtendRowColumnButtonsPositioningResult {
 
 const ORIENTATION_CONFIG = {
   row: {
-    placement: "bottom" as Placement,
-    sizeProperty: "width",
+    placement: 'bottom' as Placement,
+    sizeProperty: 'width'
   },
   column: {
-    placement: "right" as Placement,
-    sizeProperty: "height",
-  },
+    placement: 'right' as Placement,
+    sizeProperty: 'height'
+  }
 } as const
 
 /**
@@ -53,16 +53,16 @@ function useTableExtendRowColumnButtonPosition(
           // Apply size based on orientation
           const sizeValue = `${rects.reference[config.sizeProperty]}px`
           floating.style[config.sizeProperty] = sizeValue
-        },
-      }),
-    ],
+        }
+      })
+    ]
   })
 
   const { isMounted, styles } = useTransitionStyles(context)
 
   const createVirtualReference = useCallback(
     (rect: DOMRect) => ({
-      getBoundingClientRect: () => rect,
+      getBoundingClientRect: () => rect
     }),
     []
   )
@@ -79,10 +79,10 @@ function useTableExtendRowColumnButtonPosition(
       isMounted,
       ref: refs.setFloating,
       style: {
-        display: "flex",
+        display: 'flex',
         ...styles,
-        ...floatingStyles,
-      } as React.CSSProperties,
+        ...floatingStyles
+      } as React.CSSProperties
     }),
     [floatingStyles, isMounted, refs.setFloating, styles]
   )
@@ -97,13 +97,13 @@ export function useTableExtendRowColumnButtonsPositioning(
   referencePosTable: DOMRect | null
 ): TableExtendRowColumnButtonsPositioningResult {
   const rowButton = useTableExtendRowColumnButtonPosition(
-    "row",
+    'row',
     showAddOrRemoveRowsButton,
     referencePosTable
   )
 
   const columnButton = useTableExtendRowColumnButtonPosition(
-    "column",
+    'column',
     showAddOrRemoveColumnsButton,
     referencePosTable
   )
@@ -111,7 +111,7 @@ export function useTableExtendRowColumnButtonsPositioning(
   return useMemo(
     () => ({
       rowButton,
-      columnButton,
+      columnButton
     }),
     [rowButton, columnButton]
   )

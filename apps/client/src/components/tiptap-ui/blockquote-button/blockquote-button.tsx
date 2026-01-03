@@ -1,28 +1,27 @@
-"use client"
+'use client'
 
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Tiptap UI ---
-import type { UseBlockquoteConfig } from "@/components/tiptap-ui/blockquote-button"
+import type { UseBlockquoteConfig } from '@/components/tiptap-ui/blockquote-button/use-blockquote.ts'
 import {
   BLOCKQUOTE_SHORTCUT_KEY,
-  useBlockquote,
-} from "@/components/tiptap-ui/blockquote-button"
+  useBlockquote
+} from '@/components/tiptap-ui/blockquote-button/use-blockquote.ts'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from '@/lib/tiptap-utils.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Badge } from '@/components/tiptap-ui-primitive/badge/badge.tsx'
 
 export interface BlockquoteButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseBlockquoteConfig {
+  extends Omit<ButtonProps, 'type'>, UseBlockquoteConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -35,7 +34,7 @@ export interface BlockquoteButtonProps
 }
 
 export function BlockquoteShortcutBadge({
-  shortcutKeys = BLOCKQUOTE_SHORTCUT_KEY,
+  shortcutKeys = BLOCKQUOTE_SHORTCUT_KEY
 }: {
   shortcutKeys?: string
 }) {
@@ -72,11 +71,11 @@ export const BlockquoteButton = forwardRef<
       handleToggle,
       label,
       shortcutKeys,
-      Icon,
+      Icon
     } = useBlockquote({
       editor,
       hideWhenUnavailable,
-      onToggled,
+      onToggled
     })
 
     const handleClick = useCallback(
@@ -96,7 +95,7 @@ export const BlockquoteButton = forwardRef<
       <Button
         type="button"
         data-style="ghost"
-        data-active-state={isActive ? "on" : "off"}
+        data-active-state={isActive ? 'on' : 'off'}
         role="button"
         tabIndex={-1}
         disabled={!canToggle}
@@ -106,8 +105,7 @@ export const BlockquoteButton = forwardRef<
         tooltip="Blockquote"
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -122,4 +120,4 @@ export const BlockquoteButton = forwardRef<
   }
 )
 
-BlockquoteButton.displayName = "BlockquoteButton"
+BlockquoteButton.displayName = 'BlockquoteButton'

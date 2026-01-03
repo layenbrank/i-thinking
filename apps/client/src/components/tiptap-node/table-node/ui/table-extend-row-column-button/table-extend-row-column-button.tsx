@@ -1,17 +1,17 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { type Editor } from "@tiptap/react"
-import type { Node } from "@tiptap/pm/model"
-import { TableMap } from "@tiptap/pm/tables"
-import { FloatingPortal } from "@floating-ui/react"
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { type Editor } from '@tiptap/react'
+import type { Node } from '@tiptap/pm/model'
+import { TableMap } from '@tiptap/pm/tables'
+import { FloatingPortal } from '@floating-ui/react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useTableHandleState } from "@/components/tiptap-node/table-node/hooks/use-table-handle-state"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useTableHandleState } from '@/components/tiptap-node/table-node/hooks/use-table-handle-state.ts'
 
 // --- Lib ---
-import type { Orientation } from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+import type { Orientation } from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 import {
   EMPTY_CELL_HEIGHT,
   EMPTY_CELL_WIDTH,
@@ -19,16 +19,16 @@ import {
   countEmptyColumnsFromEnd,
   marginRound,
   selectLastCell,
-  runPreservingCursor,
-} from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
-import { cn } from "@/lib/tiptap-utils"
+  runPreservingCursor
+} from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
+import { cn } from '@/lib/tiptap-utils.ts'
 
 // --- Icons ---
-import { PlusSmallIcon } from "@/components/tiptap-icons/plus-small-icon"
+import { PlusSmallIcon } from '@/components/tiptap-icons/plus-small-icon.tsx'
 
 // --- Internal ---
-import { useTableExtendRowColumnButtonsPositioning } from "@/components/tiptap-node/table-node/ui/table-extend-row-column-button/use-table-extend-row-column"
-import "./table-extend-row-column-button.scss"
+import { useTableExtendRowColumnButtonsPositioning } from '@/components/tiptap-node/table-node/ui/table-extend-row-column-button/use-table-extend-row-column.ts'
+import './table-extend-row-column-button.scss'
 
 interface TableExtendRowColumnButtonProps {
   editor?: Editor | null
@@ -49,11 +49,11 @@ export const TableExtendRowColumnButton: React.FC<
   onMouseDown,
   onMouseUp,
   orientation,
-  children,
+  children
 }) => {
   const { editor } = useTiptapEditor(providedEditor)
   const state = useTableHandleState({ editor })
-  const isRowOrientation = orientation === "row"
+  const isRowOrientation = orientation === 'row'
 
   const movedRef = useRef(false)
   const [dragState, setDragState] = useState<{
@@ -72,7 +72,7 @@ export const TableExtendRowColumnButton: React.FC<
       setDragState({
         startPos: isRowOrientation ? ev.clientY : ev.clientX,
         originalHeight: dims.height,
-        originalWidth: dims.width,
+        originalWidth: dims.width
       })
 
       onMouseDown()
@@ -165,12 +165,12 @@ export const TableExtendRowColumnButton: React.FC<
       onMouseUp()
     }
 
-    window.addEventListener("mousemove", handleMove)
-    window.addEventListener("mouseup", handleUp)
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
 
     return () => {
-      window.removeEventListener("mousemove", handleMove)
-      window.removeEventListener("mouseup", handleUp)
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
     }
   }, [dragState, editor, isRowOrientation, orientation, onMouseUp, state])
 
@@ -179,19 +179,18 @@ export const TableExtendRowColumnButton: React.FC<
   return (
     <button
       className={cn(
-        "tiptap-table-extend-row-column-button",
+        'tiptap-table-extend-row-column-button',
         isRowOrientation
-          ? "tiptap-table-row-end-add-remove"
-          : "tiptap-table-column-end-add-remove",
-        dragState && "editing"
+          ? 'tiptap-table-row-end-add-remove'
+          : 'tiptap-table-column-end-add-remove',
+        dragState && 'editing'
       )}
       onClick={handleClick}
       onMouseDown={startDrag}
       type="button"
       aria-label={
-        isRowOrientation ? "Add or remove rows" : "Add or remove columns"
-      }
-    >
+        isRowOrientation ? 'Add or remove rows' : 'Add or remove columns'
+      }>
       {children ?? <PlusSmallIcon className="tiptap-button-icon" />}
     </button>
   )
@@ -230,7 +229,9 @@ export const TableExtendRowColumnButtons: React.FC<
 
   return (
     <FloatingPortal root={state.widgetContainer}>
-      <div ref={rowButton.ref} style={rowButton.style}>
+      <div
+        ref={rowButton.ref}
+        style={rowButton.style}>
         <TableExtendRowColumnButton
           editor={editor}
           orientation="row"
@@ -240,7 +241,9 @@ export const TableExtendRowColumnButtons: React.FC<
         />
       </div>
 
-      <div ref={columnButton.ref} style={columnButton.style}>
+      <div
+        ref={columnButton.ref}
+        style={columnButton.style}>
         <TableExtendRowColumnButton
           editor={editor}
           orientation="column"

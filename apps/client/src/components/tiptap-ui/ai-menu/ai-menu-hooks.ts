@@ -5,20 +5,20 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
-} from "react"
-import { type Editor } from "@tiptap/react"
-import type { Transaction } from "@tiptap/pm/state"
-import { getSelectedDOMElement } from "@/lib/tiptap-advanced-utils"
+  useState
+} from 'react'
+import { type Editor } from '@tiptap/react'
+import type { Transaction } from '@tiptap/pm/state'
+import { getSelectedDOMElement } from '@/lib/tiptap-advanced-utils.ts'
 import {
   findPrioritizedAIElement,
-  cleanupFallbackAnchors,
-} from "@/components/tiptap-ui/ai-menu/ai-menu-utils"
+  cleanupFallbackAnchors
+} from '@/components/tiptap-ui/ai-menu/ai-menu-utils.ts'
 import type {
   AiMenuState,
   AiMenuStateContextValue,
-  AiMenuPosition,
-} from "@/components/tiptap-ui/ai-menu/ai-menu-types"
+  AiMenuPosition
+} from '@/components/tiptap-ui/ai-menu/ai-menu-types.ts'
 
 export const AiMenuStateContext = createContext<AiMenuStateContextValue | null>(
   null
@@ -27,17 +27,17 @@ export const AiMenuStateContext = createContext<AiMenuStateContextValue | null>(
 export const initialState: AiMenuState = {
   isOpen: false,
   tone: undefined,
-  language: "en",
+  language: 'en',
   shouldShowInput: true,
   inputIsFocused: false,
-  fallbackAnchor: { element: null, rect: null },
+  fallbackAnchor: { element: null, rect: null }
 }
 
 export function useAiMenuState() {
   const context = useContext(AiMenuStateContext)
 
   if (!context) {
-    throw new Error("useAiMenuState must be used within an AiMenuStateProvider")
+    throw new Error('useAiMenuState must be used within an AiMenuStateProvider')
   }
 
   return context
@@ -54,7 +54,7 @@ export function useAiMenuStateProvider() {
     (element: HTMLElement | null, rect?: DOMRect | null) => {
       const anchorRect = rect || element?.getBoundingClientRect() || null
       updateState({
-        fallbackAnchor: { element, rect: anchorRect },
+        fallbackAnchor: { element, rect: anchorRect }
       })
     },
     [updateState]
@@ -70,7 +70,7 @@ export function useAiMenuStateProvider() {
       state,
       updateState,
       setFallbackAnchor,
-      reset,
+      reset
     }),
     [state, updateState, setFallbackAnchor, reset]
   )
@@ -82,7 +82,7 @@ export function useAiContentTracker({
   editor,
   aiGenerationActive,
   setAnchorElement,
-  fallbackAnchor,
+  fallbackAnchor
 }: {
   editor: Editor | null
   aiGenerationActive: boolean
@@ -97,7 +97,7 @@ export function useAiContentTracker({
     const handleTransaction = ({ editor }: { editor: Editor }) => {
       const aiStorage = editor.storage.ai || editor.storage.aiAdvanced
 
-      if (aiStorage?.state === "loading") {
+      if (aiStorage?.state === 'loading') {
         const aiMarkedElement = findPrioritizedAIElement(editor)
 
         if (aiMarkedElement && aiMarkedElement !== editor.view.dom) {
@@ -110,10 +110,10 @@ export function useAiContentTracker({
       }
     }
 
-    editor.on("transaction", handleTransaction)
+    editor.on('transaction', handleTransaction)
 
     return () => {
-      editor.off("transaction", handleTransaction)
+      editor.off('transaction', handleTransaction)
       if (fallbackAnchorRef.current) {
         fallbackAnchorRef.current.remove()
         fallbackAnchorRef.current = null
@@ -128,7 +128,7 @@ export function useTextSelectionTracker({
   showMenuAtElement,
   setMenuVisible,
   onSelectionChange,
-  prevent = false,
+  prevent = false
 }: {
   editor: Editor | null
   aiGenerationActive: boolean
@@ -145,7 +145,7 @@ export function useTextSelectionTracker({
 
     const handleTransaction = ({
       editor,
-      transaction,
+      transaction
     }: {
       editor: Editor
       transaction: Transaction
@@ -164,9 +164,9 @@ export function useTextSelectionTracker({
       }
     }
 
-    editor.on("transaction", handleTransaction)
+    editor.on('transaction', handleTransaction)
     return () => {
-      editor.off("transaction", handleTransaction)
+      editor.off('transaction', handleTransaction)
     }
   }, [
     editor,
@@ -174,6 +174,6 @@ export function useTextSelectionTracker({
     showMenuAtElement,
     setMenuVisible,
     onSelectionChange,
-    prevent,
+    prevent
   ])
 }

@@ -1,23 +1,23 @@
-import { useCallback, useEffect, useState } from "react"
-import { useHotkeys } from "react-hotkeys-hook"
-import { type Editor } from "@tiptap/react"
-import type { Node } from "@tiptap/pm/model"
+import { useCallback, useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { type Editor } from '@tiptap/react'
+import type { Node } from '@tiptap/pm/model'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint.ts'
 
 // --- Lib ---
 import {
   findNodePosition,
   isNodeTypeSelected,
-  isValidPosition,
-} from "@/lib/tiptap-utils"
+  isValidPosition
+} from '@/lib/tiptap-utils.ts'
 
 // --- Icons ---
-import { AtSignIcon } from "@/components/tiptap-icons/at-sign-icon"
+import { AtSignIcon } from '@/components/tiptap-icons/at-sign-icon.tsx'
 
-export const MENTION_TRIGGER_SHORTCUT_KEY = "mod+shift+2"
+export const MENTION_TRIGGER_SHORTCUT_KEY = 'mod+shift+2'
 
 /**
  * Configuration for the mention functionality
@@ -60,7 +60,7 @@ export function canInsertMention(
   nodePos?: number | null
 ): boolean {
   if (!editor || !editor.isEditable) return false
-  if (isNodeTypeSelected(editor, ["image"])) return false
+  if (isNodeTypeSelected(editor, ['image'])) return false
 
   if (node || isValidPosition(nodePos)) {
     if (isValidPosition(nodePos) && nodePos! >= 0) return true
@@ -87,7 +87,7 @@ function insertTriggerInBlockNode(
     const foundPos = findNodePosition({
       editor,
       node: node || undefined,
-      nodePos: nodePos || undefined,
+      nodePos: nodePos || undefined
     })
 
     if (!foundPos) {
@@ -95,7 +95,7 @@ function insertTriggerInBlockNode(
     }
 
     const isEmpty =
-      foundPos.node.type.name === "paragraph" &&
+      foundPos.node.type.name === 'paragraph' &&
       foundPos.node.content.size === 0
     const insertPos = isEmpty
       ? foundPos.pos
@@ -109,8 +109,8 @@ function insertTriggerInBlockNode(
     return editor
       .chain()
       .insertContentAt(isEmpty ? foundPos.pos : insertPos, {
-        type: "paragraph",
-        content: [{ type: "text", text: trigger }],
+        type: 'paragraph',
+        content: [{ type: 'text', text: trigger }]
       })
       .focus(focusPos)
       .run()
@@ -121,8 +121,8 @@ function insertTriggerInBlockNode(
   return editor
     .chain()
     .insertContentAt($from.after(), {
-      type: "paragraph",
-      content: [{ type: "text", text: trigger }],
+      type: 'paragraph',
+      content: [{ type: 'text', text: trigger }]
     })
     .focus()
     .run()
@@ -141,7 +141,7 @@ function insertTriggerInTextNode(
     const foundPos = findNodePosition({
       editor,
       node: node || undefined,
-      nodePos: nodePos || undefined,
+      nodePos: nodePos || undefined
     })
 
     if (!foundPos) {
@@ -149,7 +149,7 @@ function insertTriggerInTextNode(
     }
 
     const isEmpty =
-      foundPos.node.type.name === "paragraph" &&
+      foundPos.node.type.name === 'paragraph' &&
       foundPos.node.content.size === 0
     const insertPos = isEmpty
       ? foundPos.pos
@@ -174,13 +174,13 @@ function insertTriggerInTextNode(
   const currentNode = $from.node()
   const hasContentBefore =
     $from.parentOffset > 0 &&
-    currentNode.textContent[$from.parentOffset - 1] !== " "
+    currentNode.textContent[$from.parentOffset - 1] !== ' '
 
   return editor
     .chain()
     .insertContent({
-      type: "text",
-      text: hasContentBefore ? ` ${trigger}` : trigger,
+      type: 'text',
+      text: hasContentBefore ? ` ${trigger}` : trigger
     })
     .focus()
     .run()
@@ -191,7 +191,7 @@ function insertTriggerInTextNode(
  */
 export function addMentionTrigger(
   editor: Editor | null,
-  trigger: string = "@",
+  trigger: string = '@',
   node?: Node | null,
   nodePos?: number | null
 ): boolean {
@@ -226,7 +226,7 @@ export function shouldShowButton(props: {
 
   if (!editor || !editor.isEditable) return false
 
-  if (hideWhenUnavailable && !editor.isActive("code")) {
+  if (hideWhenUnavailable && !editor.isActive('code')) {
     return canInsertMention(editor, node, nodePos)
   }
 
@@ -274,9 +274,9 @@ export function useMentionTrigger(config?: UseMentionTriggerConfig) {
     editor: providedEditor,
     node,
     nodePos,
-    trigger = "@",
+    trigger = '@',
     hideWhenUnavailable = false,
-    onTriggered,
+    onTriggered
   } = config || {}
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -295,10 +295,10 @@ export function useMentionTrigger(config?: UseMentionTriggerConfig) {
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, hideWhenUnavailable, node, nodePos])
 
@@ -321,7 +321,7 @@ export function useMentionTrigger(config?: UseMentionTriggerConfig) {
     {
       enabled: isVisible && canInsert,
       enableOnContentEditable: !isMobile,
-      enableOnFormTags: true,
+      enableOnFormTags: true
     }
   )
 
@@ -329,9 +329,9 @@ export function useMentionTrigger(config?: UseMentionTriggerConfig) {
     isVisible,
     handleMention,
     canInsert,
-    label: "Add mention",
+    label: 'Add mention',
     shortcutKeys: MENTION_TRIGGER_SHORTCUT_KEY,
     trigger,
-    Icon: AtSignIcon,
+    Icon: AtSignIcon
   }
 }

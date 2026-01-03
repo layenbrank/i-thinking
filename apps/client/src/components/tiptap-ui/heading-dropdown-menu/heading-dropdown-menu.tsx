@@ -1,32 +1,34 @@
-"use client"
+'use client'
 
-import { forwardRef, useCallback, useState } from "react"
+import { forwardRef, useCallback, useState } from 'react'
 
 // --- Icons ---
-import { ChevronDownIcon } from "@/components/tiptap-icons/chevron-down-icon"
+import { ChevronDownIcon } from '@/components/tiptap-icons/chevron-down-icon.tsx'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Tiptap UI ---
-import { HeadingButton } from "@/components/tiptap-ui/heading-button"
-import type { UseHeadingDropdownMenuConfig } from "@/components/tiptap-ui/heading-dropdown-menu"
-import { useHeadingDropdownMenu } from "@/components/tiptap-ui/heading-dropdown-menu"
+import { HeadingButton } from '@/components/tiptap-ui/heading-button/heading-button.tsx'
+import type { UseHeadingDropdownMenuConfig } from '@/components/tiptap-ui/heading-dropdown-menu/use-heading-dropdown-menu.ts'
+import { useHeadingDropdownMenu } from '@/components/tiptap-ui/heading-dropdown-menu/use-heading-dropdown-menu.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button, ButtonGroup } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import {
+  Button,
+  ButtonGroup
+} from '@/components/tiptap-ui-primitive/button/button.tsx'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/tiptap-ui-primitive/dropdown-menu"
-import { Card, CardBody } from "@/components/tiptap-ui-primitive/card"
+  DropdownMenuItem
+} from '@/components/tiptap-ui-primitive/dropdown-menu/dropdown-menu.tsx'
+import { Card, CardBody } from '@/components/tiptap-ui-primitive/card/card.tsx'
 
 export interface HeadingDropdownMenuProps
-  extends Omit<ButtonProps, "type">,
-    UseHeadingDropdownMenuConfig {
+  extends Omit<ButtonProps, 'type'>, UseHeadingDropdownMenuConfig {
   /**
    * Whether to render the dropdown menu in a portal
    * @default false
@@ -63,7 +65,7 @@ export const HeadingDropdownMenu = forwardRef<
     const { isVisible, isActive, canToggle, Icon } = useHeadingDropdownMenu({
       editor,
       levels,
-      hideWhenUnavailable,
+      hideWhenUnavailable
     })
 
     const handleOpenChange = useCallback(
@@ -80,12 +82,15 @@ export const HeadingDropdownMenu = forwardRef<
     }
 
     return (
-      <DropdownMenu modal open={isOpen} onOpenChange={handleOpenChange}>
+      <DropdownMenu
+        modal
+        open={isOpen}
+        onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger asChild>
           <Button
             type="button"
             data-style="ghost"
-            data-active-state={isActive ? "on" : "off"}
+            data-active-state={isActive ? 'on' : 'off'}
             role="button"
             tabIndex={-1}
             disabled={!canToggle}
@@ -94,19 +99,22 @@ export const HeadingDropdownMenu = forwardRef<
             aria-pressed={isActive}
             tooltip="Heading"
             {...buttonProps}
-            ref={ref}
-          >
+            ref={ref}>
             <Icon className="tiptap-button-icon" />
             <ChevronDownIcon className="tiptap-button-dropdown-small" />
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="start" portal={portal}>
+        <DropdownMenuContent
+          align="start"
+          portal={portal}>
           <Card>
             <CardBody>
               <ButtonGroup>
                 {levels.map((level) => (
-                  <DropdownMenuItem key={`heading-${level}`} asChild>
+                  <DropdownMenuItem
+                    key={`heading-${level}`}
+                    asChild>
                     <HeadingButton
                       editor={editor}
                       level={level}
@@ -124,6 +132,6 @@ export const HeadingDropdownMenu = forwardRef<
   }
 )
 
-HeadingDropdownMenu.displayName = "HeadingDropdownMenu"
+HeadingDropdownMenu.displayName = 'HeadingDropdownMenu'
 
 export default HeadingDropdownMenu

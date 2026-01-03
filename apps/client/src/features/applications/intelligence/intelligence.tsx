@@ -13,7 +13,6 @@ export default function Intelligence(props: SectionProps) {
   function onTrash(e: MouseEvent<HTMLElement>) {
     console.log('Trash clicked for', e)
   }
-
   return (
     <Application.Section
       onTrash={onTrash}

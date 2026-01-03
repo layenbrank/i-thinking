@@ -1,24 +1,24 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useState } from "react"
-import { useHotkeys } from "react-hotkeys-hook"
-import { type Editor } from "@tiptap/react"
-import type { Node } from "@tiptap/pm/model"
+import { useCallback, useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { type Editor } from '@tiptap/react'
+import type { Node } from '@tiptap/pm/model'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useIsBreakpoint } from "@/hooks/use-is-breakpoint"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint.ts'
 
 // --- Utils ---
 import {
   getAnchorNodeAndPos,
-  getEditorExtension,
-} from "@/lib/tiptap-advanced-utils"
+  getEditorExtension
+} from '@/lib/tiptap-advanced-utils.ts'
 
 // --- Icons ---
-import { LinkIcon } from "@/components/tiptap-icons/link-icon"
+import { LinkIcon } from '@/components/tiptap-icons/link-icon.tsx'
 
-export const COPY_ANCHOR_LINK_SHORTCUT_KEY = "mod+ctrl+l"
+export const COPY_ANCHOR_LINK_SHORTCUT_KEY = 'mod+ctrl+l'
 
 /**
  * Configuration for the copy anchor link functionality
@@ -60,8 +60,8 @@ function isEditorReady(editor: Editor | null): boolean {
  * Gets the attribute name for unique IDs from the editor extension
  */
 function getAttributeName(editor: Editor): string {
-  const ext = getEditorExtension(editor, "uniqueID")
-  return ext?.options?.attributeName || "data-id"
+  const ext = getEditorExtension(editor, 'uniqueID')
+  return ext?.options?.attributeName || 'data-id'
 }
 
 /**
@@ -83,7 +83,7 @@ function getNodeWithId(editor: Editor | null): {
   return {
     node: nodeInfo.node,
     nodeId,
-    hasNodeId: nodeId !== null,
+    hasNodeId: nodeId !== null
   }
 }
 
@@ -133,13 +133,13 @@ export async function copyNodeId(
   try {
     const currentUrl = new URL(window.location.href)
 
-    currentUrl.searchParams.set("source", "copy_link")
+    currentUrl.searchParams.set('source', 'copy_link')
     currentUrl.hash = nodeId
 
     await navigator.clipboard.writeText(currentUrl.toString())
     return true
   } catch (err) {
-    console.error("Failed to copy node ID to clipboard:", err)
+    console.error('Failed to copy node ID to clipboard:', err)
     return false
   }
 }
@@ -203,7 +203,7 @@ export function useCopyAnchorLink(config?: UseCopyAnchorLinkConfig) {
     hideWhenUnavailable = false,
     onNodeIdNotFound,
     onExtractedNodeId,
-    onCopied,
+    onCopied
   } = config || {}
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -220,10 +220,10 @@ export function useCopyAnchorLink(config?: UseCopyAnchorLinkConfig) {
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, hideWhenUnavailable])
 
@@ -245,12 +245,12 @@ export function useCopyAnchorLink(config?: UseCopyAnchorLinkConfig) {
     COPY_ANCHOR_LINK_SHORTCUT_KEY,
     (event) => {
       event.preventDefault()
-      handleCopyAnchorLink()
+      void handleCopyAnchorLink()
     },
     {
       enabled: isVisible && canCopyAnchor,
       enableOnContentEditable: !isMobile,
-      enableOnFormTags: true,
+      enableOnFormTags: true
     }
   )
 
@@ -258,8 +258,8 @@ export function useCopyAnchorLink(config?: UseCopyAnchorLinkConfig) {
     isVisible,
     handleCopyAnchorLink,
     canCopyAnchorLink: canCopyAnchor,
-    label: "Copy anchor link",
+    label: 'Copy anchor link',
     shortcutKeys: COPY_ANCHOR_LINK_SHORTCUT_KEY,
-    Icon: LinkIcon,
+    Icon: LinkIcon
   }
 }

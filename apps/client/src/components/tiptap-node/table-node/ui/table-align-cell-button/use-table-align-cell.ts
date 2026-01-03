@@ -1,29 +1,29 @@
-import { useCallback, useMemo } from "react"
-import type { Editor } from "@tiptap/react"
+import { useCallback, useMemo } from 'react'
+import type { Editor } from '@tiptap/react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
 // --- Lib ---
-import { isExtensionAvailable } from "@/lib/tiptap-utils"
-import type { Orientation } from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+import { isExtensionAvailable } from '@/lib/tiptap-utils'
+import type { Orientation } from '@/components/tiptap-node/table-node/lib/tiptap-table-utils'
 import {
   getTable,
-  getRowOrColumnCells,
-} from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+  getRowOrColumnCells
+} from '@/components/tiptap-node/table-node/lib/tiptap-table-utils'
 
 // --- Icons ---
-import { AlignLeftIcon } from "@/components/tiptap-icons/align-left-icon"
-import { AlignCenterIcon } from "@/components/tiptap-icons/align-center-icon"
-import { AlignRightIcon } from "@/components/tiptap-icons/align-right-icon"
-import { AlignJustifyIcon } from "@/components/tiptap-icons/align-justify-icon"
-import { AlignBottomIcon } from "@/components/tiptap-icons/align-bottom-icon"
-import { AlignTopIcon } from "@/components/tiptap-icons/align-top-icon"
-import { AlignMiddleIcon } from "@/components/tiptap-icons/align-middle-icon"
+import { AlignLeftIcon } from '@/components/tiptap-icons/align-left-icon.tsx'
+import { AlignCenterIcon } from '@/components/tiptap-icons/align-center-icon.tsx'
+import { AlignRightIcon } from '@/components/tiptap-icons/align-right-icon.tsx'
+import { AlignJustifyIcon } from '@/components/tiptap-icons/align-justify-icon.tsx'
+import { AlignBottomIcon } from '@/components/tiptap-icons/align-bottom-icon.tsx'
+import { AlignTopIcon } from '@/components/tiptap-icons/align-top-icon.tsx'
+import { AlignMiddleIcon } from '@/components/tiptap-icons/align-middle-icon.tsx'
 
-export type TextAlignment = "left" | "center" | "right" | "justify"
-export type VerticalAlignment = "top" | "middle" | "bottom"
-export type AlignmentType = "text" | "vertical"
+export type TextAlignment = 'left' | 'center' | 'right' | 'justify'
+export type VerticalAlignment = 'top' | 'middle' | 'bottom'
+export type AlignmentType = 'text' | 'vertical'
 
 export interface UseTableAlignCellConfig {
   /**
@@ -61,20 +61,20 @@ export interface UseTableAlignCellConfig {
   onAligned?: (alignment: TextAlignment | VerticalAlignment) => void
 }
 
-const REQUIRED_EXTENSIONS = ["table"]
+const REQUIRED_EXTENSIONS = ['table']
 
 export const tableAlignCellLabels = {
   text: {
-    left: "Align left",
-    center: "Align center",
-    right: "Align right",
-    justify: "Justify",
+    left: 'Align left',
+    center: 'Align center',
+    right: 'Align right',
+    justify: 'Justify'
   } as Record<TextAlignment, string>,
   vertical: {
-    top: "Align top",
-    middle: "Align middle",
-    bottom: "Align bottom",
-  } as Record<VerticalAlignment, string>,
+    top: 'Align top',
+    middle: 'Align middle',
+    bottom: 'Align bottom'
+  } as Record<VerticalAlignment, string>
 }
 
 export const tableAlignCellIcons = {
@@ -82,13 +82,13 @@ export const tableAlignCellIcons = {
     left: AlignLeftIcon,
     center: AlignCenterIcon,
     right: AlignRightIcon,
-    justify: AlignJustifyIcon,
+    justify: AlignJustifyIcon
   } as Record<TextAlignment, React.ComponentType<{ className?: string }>>,
   vertical: {
     top: AlignTopIcon,
     middle: AlignMiddleIcon,
-    bottom: AlignBottomIcon,
-  } as Record<VerticalAlignment, React.ComponentType<{ className?: string }>>,
+    bottom: AlignBottomIcon
+  } as Record<VerticalAlignment, React.ComponentType<{ className?: string }>>
 }
 
 /**
@@ -105,7 +105,7 @@ function canAlignCell(editor: Editor | null): boolean {
   }
 
   try {
-    return editor.isActive("tableCell") || editor.isActive("tableHeader")
+    return editor.isActive('tableCell') || editor.isActive('tableHeader')
   } catch {
     return false
   }
@@ -118,7 +118,7 @@ function canAlignCell(editor: Editor | null): boolean {
 function canAlignRowColumn({
   editor,
   index,
-  orientation,
+  orientation
 }: {
   editor: Editor | null
   index?: number
@@ -162,7 +162,7 @@ function getCurrentAlignment(
     let cellNode = null
     for (let depth = $anchor.depth; depth >= 0; depth--) {
       const node = $anchor.node(depth)
-      if (node.type.name === "tableCell" || node.type.name === "tableHeader") {
+      if (node.type.name === 'tableCell' || node.type.name === 'tableHeader') {
         cellNode = node
         break
       }
@@ -172,10 +172,10 @@ function getCurrentAlignment(
 
     const attrs = cellNode.attrs || {}
 
-    if (alignmentType === "text") {
-      return (attrs.nodeTextAlign as TextAlignment) || "left"
+    if (alignmentType === 'text') {
+      return (attrs.nodeTextAlign as TextAlignment) || 'left'
     } else {
-      return (attrs.nodeVerticalAlign as VerticalAlignment) || "top"
+      return (attrs.nodeVerticalAlign as VerticalAlignment) || 'top'
     }
   } catch {
     return null
@@ -203,10 +203,10 @@ function getCurrentRowColumnAlignment(
 
     const attrs = firstCell.node.attrs || {}
 
-    if (alignmentType === "text") {
-      return (attrs.nodeTextAlign as TextAlignment) || "left"
+    if (alignmentType === 'text') {
+      return (attrs.nodeTextAlign as TextAlignment) || 'left'
     } else {
-      return (attrs.nodeVerticalAlign as VerticalAlignment) || "top"
+      return (attrs.nodeVerticalAlign as VerticalAlignment) || 'top'
     }
   } catch {
     return null
@@ -224,13 +224,13 @@ function setTableCellAlignment(
   if (!canAlignCell(editor) || !editor) return false
 
   try {
-    if (alignmentType === "text") {
-      return editor.commands.setCellAttribute("nodeTextAlign", alignment)
+    if (alignmentType === 'text') {
+      return editor.commands.setCellAttribute('nodeTextAlign', alignment)
     } else {
-      return editor.commands.setCellAttribute("nodeVerticalAlign", alignment)
+      return editor.commands.setCellAttribute('nodeVerticalAlign', alignment)
     }
   } catch (error) {
-    console.error("Error setting table cell alignment:", error)
+    console.error('Error setting table cell alignment:', error)
     return false
   }
 }
@@ -243,7 +243,7 @@ function setRowColumnAlignment({
   alignmentType,
   alignment,
   index,
-  orientation,
+  orientation
 }: {
   editor: Editor | null
   alignmentType: AlignmentType
@@ -285,7 +285,7 @@ function setRowColumnAlignment({
     )
 
     const attributeName =
-      alignmentType === "text" ? "nodeTextAlign" : "nodeVerticalAlign"
+      alignmentType === 'text' ? 'nodeTextAlign' : 'nodeVerticalAlign'
 
     cellsToProcess.forEach((cellInfo) => {
       if (cellInfo.node && cellInfo.pos !== undefined) {
@@ -294,7 +294,7 @@ function setRowColumnAlignment({
         const newCellNode = cellType.create(
           {
             ...cellInfo.node.attrs,
-            [attributeName]: alignment,
+            [attributeName]: alignment
           },
           cellInfo.node.content,
           cellInfo.node.marks
@@ -325,7 +325,7 @@ function tableAlignCell({
   alignmentType,
   alignment,
   index,
-  orientation,
+  orientation
 }: {
   editor: Editor | null
   alignmentType: AlignmentType
@@ -336,19 +336,19 @@ function tableAlignCell({
   if (!editor) return false
 
   try {
-    if (typeof index === "number" && orientation) {
+    if (typeof index === 'number' && orientation) {
       return setRowColumnAlignment({
         editor,
         alignmentType,
         alignment,
         index,
-        orientation,
+        orientation
       })
     } else {
       return setTableCellAlignment(editor, alignmentType, alignment)
     }
   } catch (error) {
-    console.error("Error aligning table cell:", error)
+    console.error('Error aligning table cell:', error)
     return false
   }
 }
@@ -361,7 +361,7 @@ function shouldShowButton({
   editor,
   hideWhenUnavailable,
   index,
-  orientation,
+  orientation
 }: {
   editor: Editor | null
   hideWhenUnavailable: boolean
@@ -372,7 +372,7 @@ function shouldShowButton({
   if (!isExtensionAvailable(editor, REQUIRED_EXTENSIONS)) return false
 
   if (hideWhenUnavailable) {
-    if (typeof index === "number" && orientation) {
+    if (typeof index === 'number' && orientation) {
       return canAlignRowColumn({ editor, index, orientation })
     }
 
@@ -470,7 +470,7 @@ export function useTableAlignCell(config: UseTableAlignCellConfig) {
     index,
     orientation,
     hideWhenUnavailable = false,
-    onAligned,
+    onAligned
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -479,18 +479,18 @@ export function useTableAlignCell(config: UseTableAlignCellConfig) {
     editor,
     hideWhenUnavailable,
     index,
-    orientation,
+    orientation
   })
 
   const canPerformAlign = () => {
-    if (typeof index === "number" && orientation) {
+    if (typeof index === 'number' && orientation) {
       return canAlignRowColumn({ editor, index, orientation })
     }
     return canAlignCell(editor)
   }
 
   const currentAlignment = () => {
-    if (typeof index === "number" && orientation) {
+    if (typeof index === 'number' && orientation) {
       return getCurrentRowColumnAlignment(
         editor,
         alignmentType,
@@ -509,7 +509,7 @@ export function useTableAlignCell(config: UseTableAlignCellConfig) {
       alignmentType,
       alignment,
       index,
-      orientation,
+      orientation
     })
 
     if (success) {
@@ -519,7 +519,7 @@ export function useTableAlignCell(config: UseTableAlignCellConfig) {
   }, [editor, alignmentType, alignment, index, orientation, onAligned])
 
   const label = useMemo(() => {
-    if (alignmentType === "text") {
+    if (alignmentType === 'text') {
       return tableAlignCellLabels.text[alignment as TextAlignment]
     } else {
       return tableAlignCellLabels.vertical[alignment as VerticalAlignment]
@@ -527,7 +527,7 @@ export function useTableAlignCell(config: UseTableAlignCellConfig) {
   }, [alignmentType, alignment])
 
   const Icon = useMemo(() => {
-    if (alignmentType === "text") {
+    if (alignmentType === 'text') {
       return tableAlignCellIcons.text[alignment as TextAlignment]
     } else {
       return tableAlignCellIcons.vertical[alignment as VerticalAlignment]
@@ -541,6 +541,6 @@ export function useTableAlignCell(config: UseTableAlignCellConfig) {
     label,
     Icon,
     isActive,
-    currentAlignment,
+    currentAlignment
   }
 }

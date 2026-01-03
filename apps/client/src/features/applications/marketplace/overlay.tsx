@@ -196,22 +196,24 @@ export default function Overlay() {
     return false
   }, [])
 
-  useEffect(function () {
-    const collect = Object.values(DEFAULT_COLORS).reduce<string[]>(function (
-      acc,
-      cur
-    ) {
-      const toStrings = cur.colors.map((color) => color.toString())
-      console.log('toString', toStrings)
-      return acc.concat(toStrings)
-    }, [])
+  useEffect(
+    function () {
+      const collect = Object.values(DEFAULT_COLORS).reduce<string[]>(function (
+        acc,
+        cur
+      ) {
+        const toStrings = cur.colors.map((color) => color.toString())
+        return acc.concat(toStrings)
+      }, [])
 
-    updateColors(collect)
+      requestAnimationFrame(function () {
+        updateColors(collect)
+      })
 
-    console.log('Object values', Object.values(DEFAULT_COLORS))
-    console.log('default colors', DEFAULT_COLORS)
-    console.log('collect', collect)
-  }, [])
+      console.log('collect', collect)
+    },
+    [DEFAULT_COLORS]
+  )
 
   return (
     <Application.Overlay

@@ -124,11 +124,13 @@
 
   /* Shadows Light */
   --tt-shadow-elevated-md:
-    0px 16px 48px 0px rgba(17, 24, 39, 0.04), 0px 12px 24px 0px rgba(17, 24, 39, 0.04),
-    0px 6px 8px 0px rgba(17, 24, 39, 0.02), 0px 2px 3px 0px rgba(17, 24, 39, 0.02);
+    0px 16px 48px 0px rgba(17, 24, 39, 0.04),
+    0px 12px 24px 0px rgba(17, 24, 39, 0.04),
+    0px 6px 8px 0px rgba(17, 24, 39, 0.02),
+    0px 2px 3px 0px rgba(17, 24, 39, 0.02);
 
   /**************************************************
-       Radius variables
+      Radius variables
     **************************************************/
 
   --tt-radius-xxs: 0.125rem; /* 2px */
@@ -139,12 +141,12 @@
   --tt-radius-xl: 1rem; /* 16px */
 
   /**************************************************
-       Transition variables
+      Transition variables
     **************************************************/
 
-  --tt-transition-duration-short: 0.1s;
-  --tt-transition-duration-default: 0.2s;
-  --tt-transition-duration-long: 0.64s;
+  --tt-transition-duration-short: 150ms;
+  --tt-transition-duration-default: 300ms;
+  --tt-transition-duration-long: 600ms;
   --tt-transition-easing-default: cubic-bezier(0.46, 0.03, 0.52, 0.96);
   --tt-transition-easing-cubic: cubic-bezier(0.65, 0.05, 0.36, 1);
   --tt-transition-easing-quart: cubic-bezier(0.77, 0, 0.18, 1);
@@ -159,13 +161,14 @@
   --tt-destructive-contrast: 8%;
   --tt-foreground-contrast: 8%;
 
-  &,
-  *,
-  ::before,
-  ::after {
-    box-sizing: border-box;
-    transition: none var(--tt-transition-duration-default) var(--tt-transition-easing-default);
-  }
+  // &,
+  // *,
+  // ::before,
+  // ::after {
+  //   box-sizing: border-box;
+  //   transition: none var(--tt-transition-duration-default)
+  //     var(--tt-transition-easing-default);
+  // }
 }
 
 :root {

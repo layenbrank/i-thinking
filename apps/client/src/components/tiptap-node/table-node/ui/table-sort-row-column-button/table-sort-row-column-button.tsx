@@ -1,19 +1,18 @@
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
 // --- Tiptap UI ---
-import type { UseTableSortRowColumnConfig } from "@/components/tiptap-node/table-node/ui/table-sort-row-column-button"
-import { useTableSortRowColumn } from "@/components/tiptap-node/table-node/ui/table-sort-row-column-button"
+import type { UseTableSortRowColumnConfig } from '@/components/tiptap-node/table-node/ui/table-sort-row-column-button/use-table-sort-row-column.ts'
+import { useTableSortRowColumn } from '@/components/tiptap-node/table-node/ui/table-sort-row-column-button/use-table-sort-row-column.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 
 export interface TableSortRowColumnButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseTableSortRowColumnConfig {
+  extends Omit<ButtonProps, 'type'>, UseTableSortRowColumnConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -52,7 +51,7 @@ export const TableSortRowColumnButton = forwardRef<
         orientation,
         direction,
         hideWhenUnavailable,
-        onSorted,
+        onSorted
       })
 
     const handleClick = useCallback(
@@ -82,8 +81,7 @@ export const TableSortRowColumnButton = forwardRef<
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -95,4 +93,4 @@ export const TableSortRowColumnButton = forwardRef<
   }
 )
 
-TableSortRowColumnButton.displayName = "TableSortRowColumnButton"
+TableSortRowColumnButton.displayName = 'TableSortRowColumnButton'

@@ -1,21 +1,20 @@
-"use client"
+'use client'
 
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Tiptap UI ---
-import type { UseTableDuplicateRowColumnConfig } from "@/components/tiptap-node/table-node/ui/table-duplicate-row-column-button"
-import { useTableDuplicateRowColumn } from "@/components/tiptap-node/table-node/ui/table-duplicate-row-column-button"
+import type { UseTableDuplicateRowColumnConfig } from '@/components/tiptap-node/table-node/ui/table-duplicate-row-column-button/use-table-duplicate-row-column.ts'
+import { useTableDuplicateRowColumn } from '@/components/tiptap-node/table-node/ui/table-duplicate-row-column-button/use-table-duplicate-row-column.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 
 export interface TableDuplicateRowColumnButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseTableDuplicateRowColumnConfig {
+  extends Omit<ButtonProps, 'type'>, UseTableDuplicateRowColumnConfig {
   text?: string
 }
 
@@ -46,7 +45,7 @@ export const TableDuplicateRowColumnButton = forwardRef<
         orientation,
         tablePos,
         hideWhenUnavailable,
-        onDuplicated,
+        onDuplicated
       })
 
     const handleClick = useCallback(
@@ -76,8 +75,7 @@ export const TableDuplicateRowColumnButton = forwardRef<
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -89,4 +87,4 @@ export const TableDuplicateRowColumnButton = forwardRef<
   }
 )
 
-TableDuplicateRowColumnButton.displayName = "TableDuplicateRowColumnButton"
+TableDuplicateRowColumnButton.displayName = 'TableDuplicateRowColumnButton'

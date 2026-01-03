@@ -1,13 +1,16 @@
-import { useCallback } from "react"
-import type { Editor } from "@tiptap/react"
-import { Button, ButtonGroup } from "@/components/tiptap-ui-primitive/button"
-import { RefreshAiIcon } from "@/components/tiptap-icons/refresh-ai-icon"
-import { XIcon } from "@/components/tiptap-icons/x-icon"
-import { CheckIcon } from "@/components/tiptap-icons/check-icon"
-import type { TextOptions } from "@tiptap-pro/extension-ai"
-import { useUiEditorState } from "@/hooks/use-ui-editor-state"
+import { useCallback } from 'react'
+import type { Editor } from '@tiptap/react'
+import {
+  Button,
+  ButtonGroup
+} from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { RefreshAiIcon } from '@/components/tiptap-icons/refresh-ai-icon'
+import { XIcon } from '@/components/tiptap-icons/x-icon'
+import { CheckIcon } from '@/components/tiptap-icons/check-icon'
+import type { TextOptions } from '@tiptap-pro/extension-ai'
+import { useUiEditorState } from '@/hooks/use-ui-editor-state'
 
-import "@/components/tiptap-ui/ai-menu/ai-menu-actions/ai-menu-actions.scss"
+import '@/components/tiptap-ui/ai-menu/ai-menu-actions/ai-menu-actions.scss'
 
 export interface AiMenuActionsProps {
   editor: Editor | null
@@ -22,7 +25,7 @@ export function AiMenuActions({
   options,
   onRegenerate,
   onAccept,
-  onReject,
+  onReject
 }: AiMenuActionsProps) {
   const { aiGenerationIsLoading } = useUiEditorState(editor)
 
@@ -52,8 +55,7 @@ export function AiMenuActions({
             data-style="ghost"
             className="tiptap-button"
             onClick={handleRegenerate}
-            disabled={aiGenerationIsLoading}
-          >
+            disabled={aiGenerationIsLoading}>
             <RefreshAiIcon className="tiptap-button-icon" />
             Try again
           </Button>
@@ -65,16 +67,14 @@ export function AiMenuActions({
           <Button
             data-style="ghost"
             className="tiptap-button"
-            onClick={handleDiscard}
-          >
+            onClick={handleDiscard}>
             <XIcon className="tiptap-button-icon" />
             Discard
           </Button>
           <Button
             data-style="primary"
             className="tiptap-button"
-            onClick={handleApply}
-          >
+            onClick={handleApply}>
             <CheckIcon className="tiptap-button-icon" />
             Apply
           </Button>

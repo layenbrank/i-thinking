@@ -1,19 +1,18 @@
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
 // --- Tiptap UI ---
-import type { UseTableMergeSplitCellConfig } from "@/components/tiptap-node/table-node/ui/table-merge-split-cell-button"
-import { useTableMergeSplitCell } from "@/components/tiptap-node/table-node/ui/table-merge-split-cell-button"
+import type { UseTableMergeSplitCellConfig } from '@/components/tiptap-node/table-node/ui/table-merge-split-cell-button/use-table-merge-split-cell.ts'
+import { useTableMergeSplitCell } from '@/components/tiptap-node/table-node/ui/table-merge-split-cell-button/use-table-merge-split-cell.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 
 export interface TableMergeSplitCellButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseTableMergeSplitCellConfig {
+  extends Omit<ButtonProps, 'type'>, UseTableMergeSplitCellConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -77,7 +76,7 @@ export const TableMergeSplitCellButton = forwardRef<
         editor,
         action,
         hideWhenUnavailable,
-        onExecuted,
+        onExecuted
       })
 
     const handleClick = useCallback(
@@ -107,8 +106,7 @@ export const TableMergeSplitCellButton = forwardRef<
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -120,4 +118,4 @@ export const TableMergeSplitCellButton = forwardRef<
   }
 )
 
-TableMergeSplitCellButton.displayName = "TableMergeSplitCellButton"
+TableMergeSplitCellButton.displayName = 'TableMergeSplitCellButton'

@@ -1,25 +1,28 @@
-import { useEffect, useMemo, useRef } from "react"
-import type { Editor, Range } from "@tiptap/react"
+import { useEffect, useMemo, useRef } from 'react'
+import type { Editor, Range } from '@tiptap/react'
 
 // --- Lib ---
-import { getElementOverflowPosition } from "@/lib/tiptap-collab-utils"
+import { getElementOverflowPosition } from '@/lib/tiptap-collab-utils.ts'
 
 // --- Tiptap UI ---
 import type {
   SuggestionItem,
   SuggestionMenuProps,
-  SuggestionMenuRenderProps,
-} from "@/components/tiptap-ui-utils/suggestion-menu"
-import { SuggestionMenu } from "@/components/tiptap-ui-utils/suggestion-menu"
+  SuggestionMenuRenderProps
+} from '@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu-types.ts'
+import { SuggestionMenu } from '@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu.tsx'
 
 // --- UI Primitives ---
 import {
   Avatar,
   AvatarImage,
-  AvatarFallback,
-} from "@/components/tiptap-ui-primitive/avatar"
-import { Button, ButtonGroup } from "@/components/tiptap-ui-primitive/button"
-import { Card, CardBody } from "@/components/tiptap-ui-primitive/card"
+  AvatarFallback
+} from '@/components/tiptap-ui-primitive/avatar/avatar.tsx'
+import {
+  Button,
+  ButtonGroup
+} from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Card, CardBody } from '@/components/tiptap-ui-primitive/card/card.tsx'
 
 interface User {
   id: number
@@ -28,7 +31,7 @@ interface User {
   avatarUrl: string
 }
 
-type MentionDropdownMenuProps = Omit<SuggestionMenuProps, "items" | "children">
+type MentionDropdownMenuProps = Omit<SuggestionMenuProps, 'items' | 'children'>
 
 interface MentionItemProps {
   item: SuggestionItem<User>
@@ -38,26 +41,26 @@ interface MentionItemProps {
 
 const fetchUsers = async (query: string): Promise<User[]> => {
   const employeeData = [
-    ["Emily Johnson", "Marketing Manager"],
-    ["Michael Thompson", "Sales Manager"],
-    ["Sophia Lee", "Product Designer"],
-    ["William Davis", "IT Project Manager"],
-    ["Olivia Wilson", "HR Specialist"],
-    ["Daniel Taylor", "Financial Controller"],
-    ["Isabella Anderson", "Graphic Designer"],
-    ["Jacob Martinez", "Sales Representative"],
-    ["Ava Hernandez", "Marketing Assistant"],
-    ["Alexander Diaz", "IT Support"],
-    ["Emma Ramirez", "HR Specialist"],
-    ["Ethan Flores", "Product Manager"],
-    ["Mia Morales", "Graphic Designer"],
-    ["Noah Reyes", "Sales Manager"],
-    ["Isabella Castillo", "Marketing Manager"],
-    ["Liam Gutierrez", "IT Project Manager"],
-    ["Avery Jimenez", "HR Specialist"],
-    ["Lucas Vargas", "Product Designer"],
-    ["Chloe Rojas", "Graphic Designer"],
-    ["Kai Zhang", "Sales Representative"],
+    ['Emily Johnson', 'Marketing Manager'],
+    ['Michael Thompson', 'Sales Manager'],
+    ['Sophia Lee', 'Product Designer'],
+    ['William Davis', 'IT Project Manager'],
+    ['Olivia Wilson', 'HR Specialist'],
+    ['Daniel Taylor', 'Financial Controller'],
+    ['Isabella Anderson', 'Graphic Designer'],
+    ['Jacob Martinez', 'Sales Representative'],
+    ['Ava Hernandez', 'Marketing Assistant'],
+    ['Alexander Diaz', 'IT Support'],
+    ['Emma Ramirez', 'HR Specialist'],
+    ['Ethan Flores', 'Product Manager'],
+    ['Mia Morales', 'Graphic Designer'],
+    ['Noah Reyes', 'Sales Manager'],
+    ['Isabella Castillo', 'Marketing Manager'],
+    ['Liam Gutierrez', 'IT Project Manager'],
+    ['Avery Jimenez', 'HR Specialist'],
+    ['Lucas Vargas', 'Product Designer'],
+    ['Chloe Rojas', 'Graphic Designer'],
+    ['Kai Zhang', 'Sales Representative']
   ] as const
 
   const userData = {
@@ -69,9 +72,9 @@ const fetchUsers = async (query: string): Promise<User[]> => {
         id,
         name,
         position,
-        avatarUrl: `/avatars/memoji_${avatarNumber}.png`,
+        avatarUrl: `/avatars/memoji_${avatarNumber}.png`
       }
-    }),
+    })
   }
 
   if (!query) return userData.users
@@ -96,16 +99,16 @@ export const MentionDropdownMenu = (props: MentionDropdownMenuProps) => {
       .focus()
       .insertContentAt(props.range, [
         {
-          type: "mention",
+          type: 'mention',
           attrs: {
             id: props.context.id.toString(),
-            label: props.context.name,
-          },
+            label: props.context.name
+          }
         },
         {
-          type: "text",
-          text: " ",
-        },
+          type: 'text',
+          text: ' '
+        }
       ])
       .run()
   }
@@ -117,7 +120,7 @@ export const MentionDropdownMenu = (props: MentionDropdownMenuProps) => {
       title: user.name,
       subtext: user.name,
       context: user,
-      onSelect: handleItemSelect,
+      onSelect: handleItemSelect
     }))
   }
 
@@ -128,8 +131,7 @@ export const MentionDropdownMenu = (props: MentionDropdownMenuProps) => {
       decorationClass="tiptap-mention-decoration"
       selector="tiptap-mention-dropdown-menu"
       items={getSuggestionItems}
-      {...props}
-    >
+      {...props}>
       {(props) => <MentionList {...props} />}
     </SuggestionMenu>
   )
@@ -145,9 +147,9 @@ const MentionItem = ({ item, isSelected, onSelect }: MentionItemProps) => {
     if (!itemRef.current || !isSelected || !menuElement) return
 
     const overflow = getElementOverflowPosition(itemRef.current, menuElement)
-    if (overflow === "top") {
+    if (overflow === 'top') {
       itemRef.current.scrollIntoView(true)
-    } else if (overflow === "bottom") {
+    } else if (overflow === 'bottom') {
       itemRef.current.scrollIntoView(false)
     }
   }, [isSelected])
@@ -156,12 +158,14 @@ const MentionItem = ({ item, isSelected, onSelect }: MentionItemProps) => {
     <Button
       ref={itemRef}
       data-style="ghost"
-      data-active-state={isSelected ? "on" : "off"}
+      data-active-state={isSelected ? 'on' : 'off'}
       onClick={onSelect}
-      data-user-id={item.context?.id}
-    >
+      data-user-id={item.context?.id}>
       <Avatar>
-        <AvatarImage src={item.context?.avatarUrl} alt={item.title} />
+        <AvatarImage
+          src={item.context?.avatarUrl}
+          alt={item.title}
+        />
         <AvatarFallback>{item.title[0]?.toUpperCase()}</AvatarFallback>
       </Avatar>
 
@@ -173,7 +177,7 @@ const MentionItem = ({ item, isSelected, onSelect }: MentionItemProps) => {
 const MentionList = ({
   items,
   selectedIndex,
-  onSelect,
+  onSelect
 }: SuggestionMenuRenderProps<User>) => {
   const renderedItems = useMemo(() => {
     const rendered: React.ReactElement[] = []
@@ -199,9 +203,8 @@ const MentionList = ({
   return (
     <Card
       style={{
-        maxHeight: "var(--suggestion-menu-max-height)",
-      }}
-    >
+        maxHeight: 'var(--suggestion-menu-max-height)'
+      }}>
       <CardBody>
         <ButtonGroup>{renderedItems}</ButtonGroup>
       </CardBody>

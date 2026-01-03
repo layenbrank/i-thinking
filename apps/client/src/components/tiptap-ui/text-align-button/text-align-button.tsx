@@ -1,25 +1,25 @@
 import { forwardRef, useCallback } from "react"
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from "@/lib/tiptap-utils.ts"
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from "@/hooks/use-tiptap-editor.ts"
 
 // --- Tiptap UI ---
 import type {
   TextAlign,
   UseTextAlignConfig,
-} from "@/components/tiptap-ui/text-align-button"
+} from "@/components/tiptap-ui/text-align-button/use-text-align.ts"
 import {
   TEXT_ALIGN_SHORTCUT_KEYS,
   useTextAlign,
-} from "@/components/tiptap-ui/text-align-button"
+} from "@/components/tiptap-ui/text-align-button/use-text-align.ts"
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Button } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Badge } from "@/components/tiptap-ui-primitive/badge/badge.tsx"
 
 type IconProps = React.SVGProps<SVGSVGElement>
 type IconComponent = ({ className, ...props }: IconProps) => React.ReactElement

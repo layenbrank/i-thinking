@@ -1,58 +1,58 @@
-import { Fragment, useCallback, useMemo } from "react"
-import { type Editor } from "@tiptap/react"
-import type { TextOptions } from "@tiptap-pro/extension-ai"
-import { type Language } from "@tiptap-pro/extension-ai"
+import { Fragment, useCallback, useMemo } from 'react'
+import { type Editor } from '@tiptap/react'
+import type { TextOptions } from '@tiptap-pro/extension-ai'
+import { type Language } from '@tiptap-pro/extension-ai'
 
 // -- Hooks --
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // -- Tiptap UI --
-import {
-  getContextAndInsertAt,
-  useAiMenuState,
-} from "@/components/tiptap-ui/ai-menu"
+import { getContextAndInsertAt } from '@/components/tiptap-ui/ai-menu/ai-menu-utils.ts'
+import { useAiMenuState } from '@/components/tiptap-ui/ai-menu/ai-menu-hooks.ts'
 
 // -- UI Primitives --
 import {
-  type Action,
-  filterMenuGroups,
-  filterMenuItems,
   Menu,
   MenuButton,
   MenuButtonArrow,
   MenuContent,
   MenuGroup,
   MenuGroupLabel,
-  MenuItem,
-  useComboboxValueState,
-} from "@/components/tiptap-ui-primitive/menu"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { ComboboxList } from "@/components/tiptap-ui-primitive/combobox"
-import { Separator } from "@/components/tiptap-ui-primitive/separator"
+  MenuItem
+} from '@/components/tiptap-ui-primitive/menu/menu.tsx'
+import { type Action } from '@/components/tiptap-ui-primitive/menu/menu-types.ts'
+import {
+  filterMenuGroups,
+  filterMenuItems
+} from '@/components/tiptap-ui-primitive/menu/menu-utils.ts'
+import { useComboboxValueState } from '@/components/tiptap-ui-primitive/menu/menu-hooks.ts'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { ComboboxList } from '@/components/tiptap-ui-primitive/combobox/combobox.tsx'
+import { Separator } from '@/components/tiptap-ui-primitive/separator/separator.tsx'
 
 import {
   SUPPORTED_LANGUAGES,
-  SUPPORTED_TONES,
-} from "@/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items-constants"
+  SUPPORTED_TONES
+} from '@/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items-constants.ts'
 import type {
   EditorMenuAction,
   ExecutableMenuAction,
   MenuActionIdentifier,
   MenuActionRendererProps,
-  NestedMenuAction,
-} from "@/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items-types"
+  NestedMenuAction
+} from '@/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items-types.ts'
 
 // -- Icons --
-import { ChevronRightIcon } from "@/components/tiptap-icons/chevron-right-icon"
-import { SummarizeTextIcon } from "@/components/tiptap-icons/summarize-text-icon"
-import { Simplify2Icon } from "@/components/tiptap-icons/simplify-2-icon"
-import { LanguagesIcon } from "@/components/tiptap-icons/languages-icon"
-import { MicAiIcon } from "@/components/tiptap-icons/mic-ai-icon"
-import { TextExtendIcon } from "@/components/tiptap-icons/text-extend-icon"
-import { TextReduceIcon } from "@/components/tiptap-icons/text-reduce-icon"
-import { CompleteSentenceIcon } from "@/components/tiptap-icons/complete-sentence-icon"
-import { SmileAiIcon } from "@/components/tiptap-icons/smile-ai-icon"
-import { CheckAiIcon } from "@/components/tiptap-icons/check-ai-icon"
+import { ChevronRightIcon } from '@/components/tiptap-icons/chevron-right-icon.tsx'
+import { SummarizeTextIcon } from '@/components/tiptap-icons/summarize-text-icon.tsx'
+import { Simplify2Icon } from '@/components/tiptap-icons/simplify-2-icon.tsx'
+import { LanguagesIcon } from '@/components/tiptap-icons/languages-icon.tsx'
+import { MicAiIcon } from '@/components/tiptap-icons/mic-ai-icon.tsx'
+import { TextExtendIcon } from '@/components/tiptap-icons/text-extend-icon.tsx'
+import { TextReduceIcon } from '@/components/tiptap-icons/text-reduce-icon.tsx'
+import { CompleteSentenceIcon } from '@/components/tiptap-icons/complete-sentence-icon.tsx'
+import { SmileAiIcon } from '@/components/tiptap-icons/smile-ai-icon.tsx'
+import { CheckAiIcon } from '@/components/tiptap-icons/check-ai-icon.tsx'
 
 function initializeEditorMenuActions(): Record<
   MenuActionIdentifier,
@@ -60,19 +60,19 @@ function initializeEditorMenuActions(): Record<
 > {
   return {
     adjustTone: {
-      type: "nested",
+      type: 'nested',
       component: ToneSelectionSubmenu,
       filterItems: true,
       icon: <MicAiIcon className="tiptap-button-icon" />,
       items: SUPPORTED_TONES,
-      label: "Adjust tone",
-      value: "adjustTone",
+      label: 'Adjust tone',
+      value: 'adjustTone'
     },
     aiFixSpellingAndGrammar: {
-      type: "executable",
+      type: 'executable',
       icon: <CheckAiIcon className="tiptap-button-icon" />,
-      label: "Fix spelling & grammar",
-      value: "aiFixSpellingAndGrammar",
+      label: 'Fix spelling & grammar',
+      value: 'aiFixSpellingAndGrammar',
       onSelect: ({ editor, options }) => {
         if (!editor) return
 
@@ -80,7 +80,7 @@ function initializeEditorMenuActions(): Record<
         const newOptions: TextOptions = {
           ...options,
           insertAt,
-          regenerate: !isSelection,
+          regenerate: !isSelection
         }
 
         if (isSelection) {
@@ -88,13 +88,13 @@ function initializeEditorMenuActions(): Record<
         }
 
         editor.chain().aiFixSpellingAndGrammar(newOptions).run()
-      },
+      }
     },
     aiExtend: {
-      type: "executable",
+      type: 'executable',
       icon: <TextExtendIcon className="tiptap-button-icon" />,
-      label: "Make longer",
-      value: "aiExtend",
+      label: 'Make longer',
+      value: 'aiExtend',
       onSelect: ({ editor, options }) => {
         if (!editor) return
 
@@ -102,7 +102,7 @@ function initializeEditorMenuActions(): Record<
         const newOptions: TextOptions = {
           ...options,
           insertAt,
-          regenerate: !isSelection,
+          regenerate: !isSelection
         }
 
         if (isSelection) {
@@ -110,13 +110,13 @@ function initializeEditorMenuActions(): Record<
         }
 
         editor.chain().aiExtend(newOptions).run()
-      },
+      }
     },
     aiShorten: {
-      type: "executable",
+      type: 'executable',
       icon: <TextReduceIcon className="tiptap-button-icon" />,
-      label: "Make shorter",
-      value: "aiShorten",
+      label: 'Make shorter',
+      value: 'aiShorten',
       onSelect: ({ editor, options }) => {
         if (!editor) return
 
@@ -124,7 +124,7 @@ function initializeEditorMenuActions(): Record<
         const newOptions: TextOptions = {
           ...options,
           insertAt,
-          regenerate: !isSelection,
+          regenerate: !isSelection
         }
 
         if (isSelection) {
@@ -132,13 +132,13 @@ function initializeEditorMenuActions(): Record<
         }
 
         editor.chain().aiShorten(newOptions).run()
-      },
+      }
     },
     simplifyLanguage: {
-      type: "executable",
+      type: 'executable',
       icon: <Simplify2Icon className="tiptap-button-icon" />,
-      label: "Simplify language",
-      value: "simplifyLanguage",
+      label: 'Simplify language',
+      value: 'simplifyLanguage',
       onSelect: ({ editor, options }) => {
         if (!editor) return
 
@@ -146,7 +146,7 @@ function initializeEditorMenuActions(): Record<
         const newOptions: TextOptions = {
           ...options,
           insertAt,
-          regenerate: !isSelection,
+          regenerate: !isSelection
         }
 
         if (isSelection) {
@@ -154,13 +154,13 @@ function initializeEditorMenuActions(): Record<
         }
 
         editor.chain().aiSimplify(newOptions).run()
-      },
+      }
     },
     improveWriting: {
-      type: "executable",
+      type: 'executable',
       icon: <SmileAiIcon className="tiptap-button-icon" />,
-      label: "Improve writing",
-      value: "improveWriting",
+      label: 'Improve writing',
+      value: 'improveWriting',
       onSelect: ({ editor, options }) => {
         if (!editor) return
 
@@ -168,7 +168,7 @@ function initializeEditorMenuActions(): Record<
         const newOptions: TextOptions = {
           ...options,
           insertAt,
-          regenerate: !isSelection,
+          regenerate: !isSelection
         }
 
         if (isSelection) {
@@ -176,13 +176,13 @@ function initializeEditorMenuActions(): Record<
         }
 
         editor.chain().aiRephrase(newOptions).run()
-      },
+      }
     },
     emojify: {
-      type: "executable",
+      type: 'executable',
       icon: <SmileAiIcon className="tiptap-button-icon" />,
-      label: "Emojify",
-      value: "emojify",
+      label: 'Emojify',
+      value: 'emojify',
       onSelect: ({ editor, options }) => {
         if (!editor) return
 
@@ -190,7 +190,7 @@ function initializeEditorMenuActions(): Record<
         const newOptions: TextOptions = {
           ...options,
           insertAt,
-          regenerate: !isSelection,
+          regenerate: !isSelection
         }
 
         if (isSelection) {
@@ -198,13 +198,13 @@ function initializeEditorMenuActions(): Record<
         }
 
         editor.chain().aiEmojify(newOptions).run()
-      },
+      }
     },
     continueWriting: {
-      type: "executable",
+      type: 'executable',
       icon: <CompleteSentenceIcon className="tiptap-button-icon" />,
-      label: "Continue writing",
-      value: "continueWriting",
+      label: 'Continue writing',
+      value: 'continueWriting',
       onSelect: ({ editor, options }) => {
         if (!editor) return
 
@@ -212,7 +212,7 @@ function initializeEditorMenuActions(): Record<
         const newOptions: TextOptions = {
           ...options,
           insertAt,
-          regenerate: !isSelection,
+          regenerate: !isSelection
         }
 
         if (isSelection) {
@@ -220,13 +220,13 @@ function initializeEditorMenuActions(): Record<
         }
 
         editor.chain().aiComplete(newOptions).run()
-      },
+      }
     },
     summarize: {
-      type: "executable",
+      type: 'executable',
       icon: <SummarizeTextIcon className="tiptap-button-icon" />,
-      label: "Add a summary",
-      value: "summarize",
+      label: 'Add a summary',
+      value: 'summarize',
       onSelect: ({ editor, options }) => {
         if (!editor) return
 
@@ -234,7 +234,7 @@ function initializeEditorMenuActions(): Record<
         const newOptions: TextOptions = {
           ...options,
           insertAt,
-          regenerate: !isSelection,
+          regenerate: !isSelection
         }
 
         if (isSelection) {
@@ -242,17 +242,17 @@ function initializeEditorMenuActions(): Record<
         }
 
         editor.chain().aiSummarize(newOptions).run()
-      },
+      }
     },
     translateTo: {
-      type: "nested",
+      type: 'nested',
       component: LanguageSelectionSubmenu,
       filterItems: true,
       icon: <LanguagesIcon className="tiptap-button-icon" />,
       items: SUPPORTED_LANGUAGES,
-      label: "Languages",
-      value: "translateTo",
-    },
+      label: 'Languages',
+      value: 'translateTo'
+    }
   }
 }
 
@@ -263,12 +263,12 @@ function mapInteractionContextToActions(
     label: item.label,
     value: item.value,
     icon: item.icon,
-    filterItems: item.type === "nested" ? item.filterItems : undefined,
+    filterItems: item.type === 'nested' ? item.filterItems : undefined
   })
 
   const grouped: Action[] = [
     {
-      label: "Edit",
+      label: 'Edit',
       items: Object.values([
         menuActions.adjustTone,
         menuActions.aiFixSpellingAndGrammar,
@@ -276,17 +276,17 @@ function mapInteractionContextToActions(
         menuActions.aiShorten,
         menuActions.simplifyLanguage,
         menuActions.improveWriting,
-        menuActions.emojify,
-      ]).map(convertToMenuAction),
+        menuActions.emojify
+      ]).map(convertToMenuAction)
     },
     {
-      label: "Write",
+      label: 'Write',
       items: Object.values([
         menuActions.continueWriting,
         menuActions.summarize,
-        menuActions.translateTo,
-      ]).map(convertToMenuAction),
-    },
+        menuActions.translateTo
+      ]).map(convertToMenuAction)
+    }
   ]
 
   return grouped
@@ -295,15 +295,15 @@ function mapInteractionContextToActions(
 function isExecutableMenuItem(
   item: EditorMenuAction
 ): item is ExecutableMenuAction {
-  return item.type === "executable"
+  return item.type === 'executable'
 }
 
 function isNestedMenuItem(item: EditorMenuAction): item is NestedMenuAction {
-  return item.type === "nested"
+  return item.type === 'nested'
 }
 
 export function LanguageSelectionSubmenu({
-  editor,
+  editor
 }: {
   editor: Editor | null
 }) {
@@ -327,9 +327,9 @@ export function LanguageSelectionSubmenu({
 
       const langOptions: TextOptions = {
         stream: true,
-        format: "rich-text",
+        format: 'rich-text',
         insertAt,
-        regenerate: !isSelection,
+        regenerate: !isSelection
       }
 
       if (state.tone) {
@@ -389,8 +389,7 @@ export function LanguageSelectionSubmenu({
             />
           }
         />
-      }
-    >
+      }>
       <MenuContent>
         <ComboboxList>
           <MenuGroup>{languageMenuItems}</MenuGroup>
@@ -423,9 +422,9 @@ export function ToneSelectionSubmenu({ editor }: { editor: Editor | null }) {
 
       const toneOptions: TextOptions = {
         stream: true,
-        format: "rich-text",
+        format: 'rich-text',
         insertAt,
-        regenerate: !isSelection,
+        regenerate: !isSelection
       }
 
       if (state.language) {
@@ -444,7 +443,7 @@ export function ToneSelectionSubmenu({ editor }: { editor: Editor | null }) {
   const toneMenuItems = availableTones.map((tone) => (
     <MenuItem
       key={tone.value}
-      onClick={() => handleToneSelection(tone.value || "")}
+      onClick={() => handleToneSelection(tone.value || '')}
       render={
         <Button data-style="ghost">
           <span className="tiptap-button-text">{tone.label}</span>
@@ -474,8 +473,7 @@ export function ToneSelectionSubmenu({ editor }: { editor: Editor | null }) {
             />
           }
         />
-      }
-    >
+      }>
       <MenuContent>
         <ComboboxList>
           <MenuGroup>{toneMenuItems}</MenuGroup>
@@ -488,7 +486,7 @@ export function ToneSelectionSubmenu({ editor }: { editor: Editor | null }) {
 export function MenuActionRenderer({
   menuItem,
   availableActions,
-  editor,
+  editor
 }: MenuActionRendererProps) {
   const { state } = useAiMenuState()
 
@@ -503,14 +501,19 @@ export function MenuActionRenderer({
 
   if (isNestedMenuItem(editorAction)) {
     const SubmenuComponent = editorAction.component
-    return <SubmenuComponent key={menuItem.value} editor={editor} />
+    return (
+      <SubmenuComponent
+        key={menuItem.value}
+        editor={editor}
+      />
+    )
   }
 
   if (isExecutableMenuItem(editorAction)) {
     const options: TextOptions = {
       stream: true,
-      format: "rich-text",
-      language: state.language,
+      format: 'rich-text',
+      language: state.language
     }
 
     if (state.tone) {
@@ -523,7 +526,7 @@ export function MenuActionRenderer({
         onClick={() =>
           editorAction.onSelect({
             editor,
-            options,
+            options
           })
         }
         render={
@@ -540,7 +543,7 @@ export function MenuActionRenderer({
 }
 
 export function AiMenuItems({
-  editor: providedEditor,
+  editor: providedEditor
 }: {
   editor?: Editor | null
 }) {
@@ -593,7 +596,7 @@ export function AiMenuItems({
   const renderableGroups = filteredActionGroups
     .map((actionGroup) => ({
       ...actionGroup,
-      items: actionGroup.items?.filter(wouldActionRenderContent) ?? [],
+      items: actionGroup.items?.filter(wouldActionRenderContent) ?? []
     }))
     .filter((actionGroup) => actionGroup.items.length > 0)
 

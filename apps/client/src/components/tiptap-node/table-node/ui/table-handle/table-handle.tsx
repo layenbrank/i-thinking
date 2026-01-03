@@ -1,22 +1,22 @@
-import { useCallback, useMemo, useState } from "react"
-import type { Editor } from "@tiptap/react"
-import type { ComponentType } from "react"
-import { FloatingPortal } from "@floating-ui/react"
-import type { Node } from "@tiptap/pm/model"
+import { useCallback, useMemo, useState } from 'react'
+import type { Editor } from '@tiptap/react'
+import type { ComponentType } from 'react'
+import { FloatingPortal } from '@floating-ui/react'
+import type { Node } from '@tiptap/pm/model'
 
 import {
   colDragStart,
-  rowDragStart,
-} from "@/components/tiptap-node/table-node/extensions/table-handle"
+  rowDragStart
+} from '@/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useTableHandlePositioning } from "@/components/tiptap-node/table-node/ui/table-handle/use-table-handle-positioning"
-import { useTableHandleState } from "@/components/tiptap-node/table-node/hooks/use-table-handle-state"
-import { type Orientation } from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useTableHandlePositioning } from '@/components/tiptap-node/table-node/ui/table-handle/use-table-handle-positioning.ts'
+import { useTableHandleState } from '@/components/tiptap-node/table-node/hooks/use-table-handle-state.ts'
+import { type Orientation } from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 
 // --- Components ---
-import { TableHandleMenu } from "@/components/tiptap-node/table-node/ui/table-handle-menu"
+import { TableHandleMenu } from '@/components/tiptap-node/table-node/ui/table-handle-menu/table-handle-menu.tsx'
 
 export interface TableHandleButtonProps {
   editor: Editor
@@ -31,8 +31,8 @@ export interface TableHandleButtonProps {
 export interface TableHandleRenderProps {
   editor: Editor
   state: ReturnType<typeof useTableHandleState>
-  rowHandle: ReturnType<typeof useTableHandlePositioning>["rowHandle"]
-  colHandle: ReturnType<typeof useTableHandlePositioning>["colHandle"]
+  rowHandle: ReturnType<typeof useTableHandlePositioning>['rowHandle']
+  colHandle: ReturnType<typeof useTableHandlePositioning>['colHandle']
   toggleRowVisibility: (visible: boolean) => void
   toggleColumnVisibility: (visible: boolean) => void
 }
@@ -66,14 +66,14 @@ export interface TableHandleProps {
 export function TableHandle({
   editor: providedEditor,
   rowButton: CustomRowButton,
-  columnButton: CustomColumnButton,
+  columnButton: CustomColumnButton
 }: TableHandleProps) {
   const { editor } = useTiptapEditor(providedEditor)
   const state = useTableHandleState({ editor })
 
   const [isRowVisible, setIsRowVisible] = useState(true)
   const [isColumnVisible, setIsColumnVisible] = useState(true)
-  const [menuOpen, setMenuOpen] = useState<null | "row" | "column">(null)
+  const [menuOpen, setMenuOpen] = useState<null | 'row' | 'column'>(null)
 
   const draggingState = useMemo(() => {
     if (!state?.draggingState) return undefined
@@ -81,7 +81,7 @@ export function TableHandle({
     return {
       draggedCellOrientation: state.draggingState.draggedCellOrientation,
       mousePos: state.draggingState.mousePos,
-      initialOffset: state.draggingState.initialOffset,
+      initialOffset: state.draggingState.initialOffset
     }
   }, [state?.draggingState])
 
@@ -101,7 +101,7 @@ export function TableHandle({
   }, [])
 
   const handleMenuOpenChange = useCallback(
-    (type: "row" | "column", open: boolean) => {
+    (type: 'row' | 'column', open: boolean) => {
       setMenuOpen(open ? type : null)
     },
     []
@@ -109,16 +109,16 @@ export function TableHandle({
 
   if (!editor || !state) return null
 
-  const hasValidRowIndex = typeof state.rowIndex === "number"
-  const hasValidColIndex = typeof state.colIndex === "number"
+  const hasValidRowIndex = typeof state.rowIndex === 'number'
+  const hasValidColIndex = typeof state.colIndex === 'number'
 
   const shouldShowRow =
     (isRowVisible && rowHandle.isMounted && hasValidRowIndex) ||
-    menuOpen === "row"
+    menuOpen === 'row'
 
   const shouldShowColumn =
     (isColumnVisible && colHandle.isMounted && hasValidColIndex) ||
-    menuOpen === "column"
+    menuOpen === 'column'
 
   const RowButton = CustomRowButton || TableHandleMenu
   const ColumnButton = CustomColumnButton || TableHandleMenu
@@ -126,7 +126,9 @@ export function TableHandle({
   return (
     <FloatingPortal root={state.widgetContainer}>
       {shouldShowRow && (
-        <div ref={rowHandle.ref} style={rowHandle.style}>
+        <div
+          ref={rowHandle.ref}
+          style={rowHandle.style}>
           <RowButton
             editor={editor}
             orientation="row"
@@ -135,13 +137,15 @@ export function TableHandle({
             tableNode={state.block}
             onToggleOtherHandle={toggleColumnVisibility}
             dragStart={rowDragStart}
-            onOpenChange={(open) => handleMenuOpenChange("row", open)}
+            onOpenChange={(open) => handleMenuOpenChange('row', open)}
           />
         </div>
       )}
 
       {shouldShowColumn && (
-        <div ref={colHandle.ref} style={colHandle.style}>
+        <div
+          ref={colHandle.ref}
+          style={colHandle.style}>
           <ColumnButton
             editor={editor}
             orientation="column"
@@ -150,7 +154,7 @@ export function TableHandle({
             tableNode={state.block}
             onToggleOtherHandle={toggleRowVisibility}
             dragStart={colDragStart}
-            onOpenChange={(open) => handleMenuOpenChange("column", open)}
+            onOpenChange={(open) => handleMenuOpenChange('column', open)}
           />
         </div>
       )}
@@ -158,4 +162,4 @@ export function TableHandle({
   )
 }
 
-TableHandle.displayName = "TableHandle"
+TableHandle.displayName = 'TableHandle'

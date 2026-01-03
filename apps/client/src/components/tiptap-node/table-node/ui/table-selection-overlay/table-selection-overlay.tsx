@@ -1,21 +1,21 @@
-import { useEffect, useState, useCallback, useRef } from "react"
-import type { Editor } from "@tiptap/react"
-import { CellSelection, cellAround } from "@tiptap/pm/tables"
-import type { EditorState, Selection } from "@tiptap/pm/state"
-import type { Node } from "@tiptap/pm/model"
-import type { EditorView } from "@tiptap/pm/view"
-import { FloatingPortal, useFloating } from "@floating-ui/react"
+import { useEffect, useState, useCallback, useRef } from 'react'
+import type { Editor } from '@tiptap/react'
+import { CellSelection, cellAround } from '@tiptap/pm/tables'
+import type { EditorState, Selection } from '@tiptap/pm/state'
+import type { Node } from '@tiptap/pm/model'
+import type { EditorView } from '@tiptap/pm/view'
+import { FloatingPortal, useFloating } from '@floating-ui/react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useResizeOverlay } from "@/components/tiptap-node/table-node/ui/table-selection-overlay/use-resize-overlay"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useResizeOverlay } from '@/components/tiptap-node/table-node/ui/table-selection-overlay/use-resize-overlay.ts'
 
 // --- Lib ---
 import {
   domCellAround,
   getTable,
-  rectEq,
-} from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+  rectEq
+} from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 
 export interface TableSelectionOverlayProps {
   editor?: Editor | null
@@ -32,7 +32,7 @@ export interface TableSelectionOverlayProps {
 // tr = top-right
 // bl = bottom-left
 // br = bottom-right
-type ResizeHandle = "tl" | "tr" | "bl" | "br" | null
+type ResizeHandle = 'tl' | 'tr' | 'bl' | 'br' | null
 
 // if an element’s edge is within 5px of the selection edge,
 // it is treated as aligned.
@@ -69,7 +69,7 @@ const getSelectionBoundingRect = (
     left: Infinity,
     top: Infinity,
     right: -Infinity,
-    bottom: -Infinity,
+    bottom: -Infinity
   }
 
   cells.forEach((cell) => {
@@ -100,7 +100,7 @@ const getSingleCellBoundingRect = (
 }
 
 const createVirtualReference = (rect: DOMRect) => ({
-  getBoundingClientRect: () => rect,
+  getBoundingClientRect: () => rect
 })
 
 interface CornerPositions {
@@ -119,7 +119,7 @@ const findCornerCells = (
     topLeft: null,
     topRight: null,
     bottomLeft: null,
-    bottomRight: null,
+    bottomRight: null
   }
 
   // It takes two numbers: value1 and value2.
@@ -184,10 +184,10 @@ const getAnchorCellForHandle = (
   const corners = findCornerCells(view, selection, selectionRect)
 
   const anchorMap: Record<NonNullable<ResizeHandle>, keyof CornerPositions> = {
-    tl: "bottomRight",
-    tr: "bottomLeft",
-    bl: "topRight",
-    br: "topLeft",
+    tl: 'bottomRight',
+    tr: 'bottomLeft',
+    bl: 'topRight',
+    br: 'topLeft'
   }
 
   const anchorPos = corners[anchorMap[handle]]
@@ -195,20 +195,20 @@ const getAnchorCellForHandle = (
 }
 
 const createHandleStyles = (): React.CSSProperties => ({
-  position: "absolute",
+  position: 'absolute',
   width: 15,
   height: 15,
-  borderRadius: "50%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "transparent",
-  pointerEvents: "auto",
-  zIndex: 10,
+  borderRadius: '50%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: 'transparent',
+  pointerEvents: 'auto',
+  zIndex: 10
 })
 
 const createCornerHandleStyles = (
-  position: "tl" | "tr" | "bl" | "br",
+  position: 'tl' | 'tr' | 'bl' | 'br',
   isActiveHandle: boolean,
   isDisabled: boolean = false
 ): React.CSSProperties => {
@@ -218,30 +218,30 @@ const createCornerHandleStyles = (
     tl: {
       top: -7.5,
       left: -7.5,
-      cursor: isDisabled ? "default" : "nwse-resize",
+      cursor: isDisabled ? 'default' : 'nwse-resize'
     },
     tr: {
       top: -7.5,
       right: -7.5,
-      cursor: isDisabled ? "default" : "nesw-resize",
+      cursor: isDisabled ? 'default' : 'nesw-resize'
     },
     bl: {
       bottom: -7.5,
       left: -7.5,
-      cursor: isDisabled ? "default" : "nesw-resize",
+      cursor: isDisabled ? 'default' : 'nesw-resize'
     },
     br: {
       bottom: -7.5,
       right: -7.5,
-      cursor: isDisabled ? "default" : "nwse-resize",
-    },
+      cursor: isDisabled ? 'default' : 'nwse-resize'
+    }
   }
 
   return {
     ...baseStyles,
     ...positionStyles[position],
     opacity: isDisabled ? 0.3 : isActiveHandle ? 1 : 0.5,
-    pointerEvents: isDisabled ? "none" : "auto",
+    pointerEvents: isDisabled ? 'none' : 'auto'
   }
 }
 
@@ -249,7 +249,7 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
   editor: providedEditor,
   cellMenu: CellMenu,
   showResizeHandles = true,
-  onMenuOpenChange,
+  onMenuOpenChange
 }) => {
   const { editor } = useTiptapEditor(providedEditor)
   const [isVisible, setIsVisible] = useState(true)
@@ -263,7 +263,7 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
   const containerRef = useRef<HTMLElement | null>(null)
 
   const { refs, floatingStyles, update } = useFloating({
-    placement: "top-start",
+    placement: 'top-start'
   })
 
   useEffect(() => {
@@ -350,7 +350,7 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
             )
           } catch (error) {
             console.warn(
-              "Could not create single cell selection for resize:",
+              'Could not create single cell selection for resize:',
               error
             )
             return
@@ -373,10 +373,10 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
       anchorCellRef.current = anchorCell.pos
 
       const handleMouseMove = (mouseEvent: MouseEvent) => {
-        if (!editor || anchorCellRef.current == null) return
+        if (!editor || anchorCellRef.current === null) return
 
         const target = domCellAround(mouseEvent.target as Element)
-        if (!target || target.type !== "cell") return
+        if (!target || target.type !== 'cell') return
 
         const targetCell = getCellAtCoordinates(
           editor.state,
@@ -396,7 +396,7 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
           const transaction = editor.state.tr.setSelection(newSelection)
           editor.view.dispatch(transaction)
         } catch (error) {
-          console.debug("Invalid cell selection during resize:", error)
+          console.debug('Invalid cell selection during resize:', error)
         }
       }
 
@@ -405,12 +405,12 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
         activeHandleRef.current = null
         anchorCellRef.current = null
 
-        window.removeEventListener("mousemove", handleMouseMove)
-        window.removeEventListener("mouseup", handleMouseUp)
+        window.removeEventListener('mousemove', handleMouseMove)
+        window.removeEventListener('mouseup', handleMouseUp)
       }
 
-      window.addEventListener("mousemove", handleMouseMove)
-      window.addEventListener("mouseup", handleMouseUp)
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
     },
     [editor, selectionRect, isMenuOpen, showResizeHandles]
   )
@@ -450,18 +450,18 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
       updateTableDom()
     }
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
     updateSelectionRect()
     updateTableDom()
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, updateSelectionRect, updateTableDom])
 
   useEffect(() => {
     const c = tableDom?.querySelector(
-      ".table-selection-overlay-container"
+      '.table-selection-overlay-container'
     ) as HTMLElement | null
     containerRef.current = c ?? null
   }, [tableDom])
@@ -478,8 +478,7 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
     return (
       <span
         onMouseDown={(e) => e.stopPropagation()}
-        style={{ pointerEvents: "auto" }}
-      >
+        style={{ pointerEvents: 'auto' }}>
         <CellMenu
           onOpenChange={handleMenuOpenChange}
           editor={editor}
@@ -495,35 +494,33 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
         ref={refs.setFloating}
         style={{
           ...floatingStyles,
-          pointerEvents: "none",
-          zIndex: 10,
-        }}
-      >
+          pointerEvents: 'none',
+          zIndex: 10
+        }}>
         <div className="tiptap-table-selection-overlay">
           <div
             style={{
-              position: "absolute",
+              position: 'absolute',
               width: selectionRect.width,
               height: selectionRect.height,
               zIndex: 2,
               borderRadius: 2,
               top: 0,
-              left: 0,
+              left: 0
             }}
           />
 
           <div
             style={{
-              position: "absolute",
+              position: 'absolute',
               width: selectionRect.width,
               height: selectionRect.height,
               border: `2px solid var(--tt-brand-color-400)`,
               borderRadius: 2,
               zIndex: 3,
               top: 0,
-              left: 0,
-            }}
-          >
+              left: 0
+            }}>
             {/* Menu Component */}
             {renderCellMenu()}
 
@@ -532,35 +529,35 @@ export const TableSelectionOverlay: React.FC<TableSelectionOverlayProps> = ({
               <>
                 <div
                   style={createCornerHandleStyles(
-                    "tl",
-                    !activeHandle || activeHandle === "tl",
+                    'tl',
+                    !activeHandle || activeHandle === 'tl',
                     isMenuOpen
                   )}
-                  onMouseDown={createResizeHandler("tl")}
+                  onMouseDown={createResizeHandler('tl')}
                 />
                 <div
                   style={createCornerHandleStyles(
-                    "tr",
-                    !activeHandle || activeHandle === "tr",
+                    'tr',
+                    !activeHandle || activeHandle === 'tr',
                     isMenuOpen
                   )}
-                  onMouseDown={createResizeHandler("tr")}
+                  onMouseDown={createResizeHandler('tr')}
                 />
                 <div
                   style={createCornerHandleStyles(
-                    "bl",
-                    !activeHandle || activeHandle === "bl",
+                    'bl',
+                    !activeHandle || activeHandle === 'bl',
                     isMenuOpen
                   )}
-                  onMouseDown={createResizeHandler("bl")}
+                  onMouseDown={createResizeHandler('bl')}
                 />
                 <div
                   style={createCornerHandleStyles(
-                    "br",
-                    !activeHandle || activeHandle === "br",
+                    'br',
+                    !activeHandle || activeHandle === 'br',
                     isMenuOpen
                   )}
-                  onMouseDown={createResizeHandler("br")}
+                  onMouseDown={createResizeHandler('br')}
                 />
               </>
             )}

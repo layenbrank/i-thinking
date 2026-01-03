@@ -1,19 +1,22 @@
+import { fetch } from '@tauri-apps/plugin-http'
+
 import { http } from '@/utils/http/http.ts'
 import { INTELLIGENCE_TOKEN } from '@/utils/http/token.ts'
+import { ENVURL } from '@/utils/http/url.ts'
 
 type CommunicateParams = Application.Intelligence.Communicate.Params
 type CommunicateResponse = Application.Intelligence.Communicate.Response
 
 // SSE server sent events
 export function POST_COMMUNICATE(data: CommunicateParams) {
-  return fetch(`${import.meta.env.VITE_INTELLIGENCE}/chat`, {
+  return fetch(`${ENVURL.intelligence}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/x-ndjson'
       // Accept: 'text/event-stream'
     },
-    signal: AbortSignal.timeout(1000 * 60 * 3), // 3分钟超时
+    signal: AbortSignal.timeout(1000 * 60 * 10), // 10分钟超时
     body: JSON.stringify(data)
   })
 }
@@ -24,7 +27,8 @@ export async function* GeneratorJSON<
 >(fetcher: F): AsyncGenerator<T, void, unknown> {
   const response = await fetcher()
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-  if (!response.body) throw new Error('ReadableStream not supported in this browser.')
+  if (!response.body)
+    throw new Error('ReadableStream not supported in this browser.')
 
   const reader = response.body?.getReader()
   const decoder = new TextDecoder('utf-8')
@@ -79,7 +83,8 @@ export async function* GeneratorSSE<R>(
 ): AsyncGenerator<R, void, unknown> {
   const response = await callback()
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-  if (!response.body) throw new Error('ReadableStream not supported in this browser.')
+  if (!response.body)
+    throw new Error('ReadableStream not supported in this browser.')
 
   const reader = response.body?.getReader()
   const decoder = new TextDecoder('utf-8')

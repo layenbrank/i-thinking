@@ -1,21 +1,20 @@
-"use client"
+'use client'
 
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
 // --- Tiptap UI ---
-import type { UseTableDeleteRowColumnConfig } from "@/components/tiptap-node/table-node/ui/table-delete-row-column-button"
-import { useTableDeleteRowColumn } from "@/components/tiptap-node/table-node/ui/table-delete-row-column-button"
+import type { UseTableDeleteRowColumnConfig } from '@/components/tiptap-node/table-node/ui/table-delete-row-column-button/use-table-delete-row-column.ts'
+import { useTableDeleteRowColumn } from '@/components/tiptap-node/table-node/ui/table-delete-row-column-button/use-table-delete-row-column.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 
 export interface TableDeleteRowColumnButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseTableDeleteRowColumnConfig {
+  extends Omit<ButtonProps, 'type'>, UseTableDeleteRowColumnConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -54,7 +53,7 @@ export const TableDeleteRowColumnButton = forwardRef<
         orientation,
         tablePos,
         hideWhenUnavailable,
-        onDeleted,
+        onDeleted
       })
 
     const handleClick = useCallback(
@@ -84,8 +83,7 @@ export const TableDeleteRowColumnButton = forwardRef<
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -97,4 +95,4 @@ export const TableDeleteRowColumnButton = forwardRef<
   }
 )
 
-TableDeleteRowColumnButton.displayName = "TableDeleteRowColumnButton"
+TableDeleteRowColumnButton.displayName = 'TableDeleteRowColumnButton'

@@ -1,26 +1,26 @@
-"use client"
+'use client'
 
-import { useEffect, useMemo, useState } from "react"
-import type { Editor } from "@tiptap/react"
+import { useEffect, useMemo, useState } from 'react'
+import type { Editor } from '@tiptap/react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Icons ---
-import { ListIcon } from "@/components/tiptap-icons/list-icon"
-import { ListOrderedIcon } from "@/components/tiptap-icons/list-ordered-icon"
-import { ListTodoIcon } from "@/components/tiptap-icons/list-todo-icon"
+import { ListIcon } from '@/components/tiptap-icons/list-icon.tsx'
+import { ListOrderedIcon } from '@/components/tiptap-icons/list-ordered-icon.tsx'
+import { ListTodoIcon } from '@/components/tiptap-icons/list-todo-icon.tsx'
 
 // --- Lib ---
-import { isNodeInSchema } from "@/lib/tiptap-utils"
+import { isNodeInSchema } from '@/lib/tiptap-utils.ts'
 
 // --- Tiptap UI ---
 import {
   canToggleList,
   isListActive,
   listIcons,
-  type ListType,
-} from "@/components/tiptap-ui/list-button"
+  type ListType
+} from '@/components/tiptap-ui/list-button/use-list.ts'
 
 /**
  * Configuration for the list dropdown menu functionality
@@ -50,20 +50,20 @@ export interface ListOption {
 
 export const listOptions: ListOption[] = [
   {
-    label: "Bullet List",
-    type: "bulletList",
-    icon: ListIcon,
+    label: '无序列表',
+    type: 'bulletList',
+    icon: ListIcon
   },
   {
-    label: "Ordered List",
-    type: "orderedList",
-    icon: ListOrderedIcon,
+    label: '有序列表',
+    type: 'orderedList',
+    icon: ListOrderedIcon
   },
   {
-    label: "Task List",
-    type: "taskList",
-    icon: ListTodoIcon,
-  },
+    label: '任务列表',
+    type: 'taskList',
+    icon: ListTodoIcon
+  }
 ]
 
 export function canToggleAnyList(
@@ -103,7 +103,7 @@ export function shouldShowListDropdown(params: {
     return false
   }
 
-  if (hideWhenUnavailable && !editor.isActive("code")) {
+  if (hideWhenUnavailable && !editor.isActive('code')) {
     return canToggleAny
   }
 
@@ -163,8 +163,8 @@ export function getActiveListType(
 export function useListDropdownMenu(config?: UseListDropdownMenuConfig) {
   const {
     editor: providedEditor,
-    types = ["bulletList", "orderedList", "taskList"],
-    hideWhenUnavailable = false,
+    types = ['bulletList', 'orderedList', 'taskList'],
+    hideWhenUnavailable = false
   } = config || {}
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -189,17 +189,17 @@ export function useListDropdownMenu(config?: UseListDropdownMenuConfig) {
           listTypes: types,
           hideWhenUnavailable,
           listInSchema,
-          canToggleAny,
+          canToggleAny
         })
       )
     }
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [canToggleAny, editor, hideWhenUnavailable, listInSchema, types])
 
@@ -210,7 +210,7 @@ export function useListDropdownMenu(config?: UseListDropdownMenuConfig) {
     canToggle: canToggleAny,
     types,
     filteredLists,
-    label: "List",
-    Icon: activeList ? listIcons[activeList.type] : ListIcon,
+    label: 'List',
+    Icon: activeList ? listIcons[activeList.type] : ListIcon
   }
 }

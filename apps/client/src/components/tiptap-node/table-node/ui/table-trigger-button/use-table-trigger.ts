@@ -1,16 +1,16 @@
-import { useCallback, useState } from "react"
-import type { Editor } from "@tiptap/react"
+import { useCallback, useState } from 'react'
+import type { Editor } from '@tiptap/react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Lib ---
-import { isExtensionAvailable } from "@/lib/tiptap-utils"
+import { isExtensionAvailable } from '@/lib/tiptap-utils.ts'
 
 // --- Icons ---
-import { TableIcon } from "@/components/tiptap-icons/table-icon"
+import { TableIcon } from '@/components/tiptap-icons/table-icon.tsx'
 
-const REQUIRED_EXTENSIONS = ["table"]
+const REQUIRED_EXTENSIONS = ['table']
 
 /**
  * Configuration for the table trigger functionality
@@ -66,11 +66,11 @@ export function insertTable(
       .insertTable({
         rows,
         cols,
-        withHeaderRow: false,
+        withHeaderRow: false
       })
       .run()
   } catch (error) {
-    console.error("Error inserting table:", error)
+    console.error('Error inserting table:', error)
     return false
   }
 }
@@ -130,7 +130,7 @@ export function useTableTriggerButton(config?: UseTableTriggerButtonConfig) {
   const {
     editor: providedEditor,
     hideWhenUnavailable = false,
-    onInserted,
+    onInserted
   } = config || {}
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -171,7 +171,7 @@ export function useTableTriggerButton(config?: UseTableTriggerButtonConfig) {
     handleCellHover,
     handleCellClick,
     resetHoveredCell,
-    label: "Insert table",
-    Icon: TableIcon,
+    label: 'Insert table',
+    Icon: TableIcon
   }
 }

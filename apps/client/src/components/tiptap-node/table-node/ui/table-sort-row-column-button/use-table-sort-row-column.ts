@@ -1,28 +1,28 @@
-"use client"
+'use client'
 
-import { useCallback, useMemo } from "react"
-import type { Editor } from "@tiptap/react"
-import type { Node } from "@tiptap/pm/model"
+import { useCallback, useMemo } from 'react'
+import type { Editor } from '@tiptap/react'
+import type { Node } from '@tiptap/pm/model'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Lib ---
-import { isExtensionAvailable } from "@/lib/tiptap-utils"
-import type { Orientation } from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+import { isExtensionAvailable } from '@/lib/tiptap-utils.ts'
+import type { Orientation } from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 import {
   type CellInfo,
   getTable,
   getTableSelectionType,
   getRowOrColumnCells,
-  isCellEmpty,
-} from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+  isCellEmpty
+} from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 
 // --- Icons ---
-import { ArrowDownAZIcon } from "@/components/tiptap-icons/arrow-down-a-z-icon"
-import { ArrowDownZAIcon } from "@/components/tiptap-icons/arrow-down-z-a-icon"
+import { ArrowDownAZIcon } from '@/components/tiptap-icons/arrow-down-a-z-icon.tsx'
+import { ArrowDownZAIcon } from '@/components/tiptap-icons/arrow-down-z-a-icon.tsx'
 
-export type SortDirection = "asc" | "desc"
+export type SortDirection = 'asc' | 'desc'
 
 export interface UseTableSortRowColumnConfig {
   /**
@@ -59,25 +59,25 @@ export interface UseTableSortRowColumnConfig {
   onSorted?: () => void
 }
 
-const REQUIRED_EXTENSIONS = ["tableHandleExtension"]
+const REQUIRED_EXTENSIONS = ['tableHandleExtension']
 
 export const tableSortRowColumnLabels: Record<
   Orientation,
   Record<SortDirection, string>
 > = {
   row: {
-    asc: "Sort row A-Z",
-    desc: "Sort row Z-A",
+    asc: 'Sort row A-Z',
+    desc: 'Sort row Z-A'
   },
   column: {
-    asc: "Sort column A-Z",
-    desc: "Sort column Z-A",
-  },
+    asc: 'Sort column A-Z',
+    desc: 'Sort column Z-A'
+  }
 }
 
 export const tableSortRowColumnIcons = {
   asc: ArrowDownAZIcon,
-  desc: ArrowDownZAIcon,
+  desc: ArrowDownZAIcon
 }
 
 /**
@@ -87,8 +87,8 @@ function isCellHeader(cellNode: Node | null): boolean {
   if (!cellNode) return false
 
   return (
-    cellNode.type.name === "tableHeader" ||
-    cellNode.type.name === "table_header" ||
+    cellNode.type.name === 'tableHeader' ||
+    cellNode.type.name === 'table_header' ||
     cellNode.attrs?.header === true
   )
 }
@@ -97,12 +97,12 @@ function isCellHeader(cellNode: Node | null): boolean {
  * Extract text content from a cell node for sorting comparison
  */
 function getCellSortText(cellNode: Node | null): string {
-  if (!cellNode) return ""
+  if (!cellNode) return ''
 
-  let text = ""
+  let text = ''
   cellNode.descendants((node) => {
     if (node.isText) {
-      text += node.text || ""
+      text += node.text || ''
     }
     return true
   })
@@ -130,7 +130,7 @@ function canSortRowColumn({
   editor,
   index,
   orientation,
-  tablePos,
+  tablePos
 }: {
   editor: Editor | null
   index?: number
@@ -152,7 +152,7 @@ function canSortRowColumn({
     const cellData = getRowOrColumnCells(editor, index, orientation, tablePos)
 
     // Need at least 2 items to sort
-    if (cellData.orientation === "row") {
+    if (cellData.orientation === 'row') {
       if (table.map.width < 2) return false
     } else {
       if (table.map.height < 2) return false
@@ -190,7 +190,7 @@ function tableSortRowColumn({
   index,
   orientation,
   direction,
-  tablePos,
+  tablePos
 }: {
   editor: Editor | null
   index?: number
@@ -227,7 +227,7 @@ function tableSortRowColumn({
           cellInfo,
           originalIndex,
           isHeader,
-          isEmpty,
+          isEmpty
         }
       }
     )
@@ -235,7 +235,7 @@ function tableSortRowColumn({
     const dataItems = allItems.filter((item) => !item.isHeader)
 
     if (dataItems.length < 2) {
-      console.log("No sortable data cells found (excluding headers)")
+      console.log('No sortable data cells found (excluding headers)')
       return false
     }
 
@@ -248,9 +248,9 @@ function tableSortRowColumn({
 
       // For non-empty cells, sort normally
       const comparison = a.sortText.localeCompare(b.sortText, undefined, {
-        sensitivity: "base",
+        sensitivity: 'base'
       })
-      return direction === "asc" ? comparison : -comparison
+      return direction === 'asc' ? comparison : -comparison
     })
 
     const newCellNodes: Node[] = []
@@ -322,7 +322,7 @@ function shouldShowButton({
   index,
   orientation,
   hideWhenUnavailable,
-  tablePos,
+  tablePos
 }: {
   editor: Editor | null
   index?: number
@@ -412,7 +412,7 @@ function shouldShowButton({
  * ```
  */
 export function useTableSortRowColumn(
-  config: UseTableSortRowColumnConfig = { direction: "asc" }
+  config: UseTableSortRowColumnConfig = { direction: 'asc' }
 ) {
   const {
     editor: providedEditor,
@@ -421,7 +421,7 @@ export function useTableSortRowColumn(
     tablePos,
     direction,
     hideWhenUnavailable = false,
-    onSorted,
+    onSorted
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -433,14 +433,14 @@ export function useTableSortRowColumn(
     index,
     orientation,
     hideWhenUnavailable,
-    tablePos,
+    tablePos
   })
 
   const canPerformSort = canSortRowColumn({
     editor,
     index,
     orientation,
-    tablePos,
+    tablePos
   })
 
   const handleSort = useCallback(() => {
@@ -449,7 +449,7 @@ export function useTableSortRowColumn(
       index,
       orientation,
       direction,
-      tablePos,
+      tablePos
     })
     if (success) onSorted?.()
     return success
@@ -457,7 +457,7 @@ export function useTableSortRowColumn(
 
   const label = useMemo(() => {
     const orientationLabels =
-      tableSortRowColumnLabels[selectionType?.orientation || "row"]
+      tableSortRowColumnLabels[selectionType?.orientation || 'row']
     return (
       orientationLabels[direction] ||
       `Sort ${selectionType?.orientation} ${direction}`
@@ -473,6 +473,6 @@ export function useTableSortRowColumn(
     canSortRowColumn: canPerformSort,
     handleSort,
     label,
-    Icon,
+    Icon
   }
 }

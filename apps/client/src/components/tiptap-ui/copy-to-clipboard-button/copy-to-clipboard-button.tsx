@@ -1,22 +1,22 @@
 import { forwardRef, useCallback } from "react"
 
 // --- Lib ---
-import { parseShortcutKeys } from "@/lib/tiptap-utils"
+import { parseShortcutKeys } from "@/lib/tiptap-utils.ts"
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from "@/hooks/use-tiptap-editor.ts"
 
 // --- Tiptap UI ---
-import type { UseCopyToClipboardConfig } from "@/components/tiptap-ui/copy-to-clipboard-button"
+import type { UseCopyToClipboardConfig } from "@/components/tiptap-ui/copy-to-clipboard-button/use-copy-to-clipboard.ts"
 import {
   COPY_TO_CLIPBOARD_SHORTCUT_KEY,
   useCopyToClipboard,
-} from "@/components/tiptap-ui/copy-to-clipboard-button"
+} from "@/components/tiptap-ui/copy-to-clipboard-button/use-copy-to-clipboard.ts"
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
-import { Badge } from "@/components/tiptap-ui-primitive/badge"
+import type { ButtonProps } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Button } from "@/components/tiptap-ui-primitive/button/button.tsx"
+import { Badge } from "@/components/tiptap-ui-primitive/badge/badge.tsx"
 
 export interface CopyToClipboardButtonProps
   extends Omit<ButtonProps, "type">,

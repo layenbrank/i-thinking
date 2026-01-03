@@ -152,8 +152,6 @@
     "sql:allow-load",
     "sql:allow-close",
     "sql:allow-select",
-    "http:default",
-    "http:allow-fetch",
     "http:allow-fetch-send",
     "http:allow-fetch-read-body",
     "http:allow-fetch-cancel",
@@ -164,14 +162,35 @@
     "core:app:allow-app-show",
     "core:app:allow-set-app-theme",
     {
+      "identifier": "http:allow-fetch",
       "allow": [
         {
-          "url": "https://*.tauri.app"
-        }
-      ],
-      "deny": [
+          "url": "http://**"
+        },
         {
-          "url": "https://private.tauri.app"
+          "url": "https://**"
+        },
+        {
+          "url": "http://*:*"
+        },
+        {
+          "url": "https://*:*"
+        }
+      ]
+    },
+    {
+      "allow": [
+        {
+          "url": "http://**"
+        },
+        {
+          "url": "https://**"
+        },
+        {
+          "url": "http://*:*"
+        },
+        {
+          "url": "https://*:*"
         }
       ],
       "identifier": "http:default"
@@ -180,6 +199,8 @@
   "platforms": ["iOS", "macOS", "linux", "windows", "android"],
   "remote": {
     "urls": [
+      "http://*",
+      "https://*",
       "http://localhost:*",
       "https://www.baidu.com",
       "https://*.baidu.com",

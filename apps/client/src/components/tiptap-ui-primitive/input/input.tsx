@@ -1,11 +1,15 @@
-"use client"
+'use client'
 
-import { cn } from "@/lib/tiptap-utils"
-import "@/components/tiptap-ui-primitive/input/input.scss"
+import { cn } from '@/lib/tiptap-utils.ts'
+import '@/components/tiptap-ui-primitive/input/input.scss'
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
   return (
-    <input type={type} className={cn("tiptap-input", className)} {...props} />
+    <input
+      type={type}
+      className={cn('tiptap-input', className)}
+      {...props}
+    />
   )
 }
 
@@ -13,9 +17,11 @@ function InputGroup({
   className,
   children,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<'div'>) {
   return (
-    <div className={cn("tiptap-input-group", className)} {...props}>
+    <div
+      className={cn('tiptap-input-group', className)}
+      {...props}>
       {children}
     </div>
   )

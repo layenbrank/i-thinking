@@ -1,6 +1,6 @@
-import type { Action } from "@/components/tiptap-ui-primitive/menu"
-import { type TextOptions } from "@tiptap-pro/extension-ai"
-import type { Editor } from "@tiptap/react"
+import type { Action } from '@/components/tiptap-ui-primitive/menu/menu-types.ts'
+import { type TextOptions } from '@tiptap-pro/extension-ai'
+import type { Editor } from '@tiptap/react'
 
 export interface MenuActionBase {
   icon: React.ReactNode
@@ -9,7 +9,7 @@ export interface MenuActionBase {
 }
 
 export interface ExecutableMenuAction extends MenuActionBase {
-  type: "executable"
+  type: 'executable'
   onSelect: (params: {
     editor: Editor | null
     onDone?: () => void
@@ -18,7 +18,7 @@ export interface ExecutableMenuAction extends MenuActionBase {
 }
 
 export interface NestedMenuAction extends MenuActionBase {
-  type: "nested"
+  type: 'nested'
   component: React.ComponentType<{
     editor: Editor | null
   }>
@@ -29,16 +29,16 @@ export interface NestedMenuAction extends MenuActionBase {
 export type EditorMenuAction = ExecutableMenuAction | NestedMenuAction
 
 export type MenuActionIdentifier =
-  | "adjustTone"
-  | "aiFixSpellingAndGrammar"
-  | "aiExtend"
-  | "aiShorten"
-  | "simplifyLanguage"
-  | "improveWriting"
-  | "emojify"
-  | "continueWriting"
-  | "summarize"
-  | "translateTo"
+  | 'adjustTone'
+  | 'aiFixSpellingAndGrammar'
+  | 'aiExtend'
+  | 'aiShorten'
+  | 'simplifyLanguage'
+  | 'improveWriting'
+  | 'emojify'
+  | 'continueWriting'
+  | 'summarize'
+  | 'translateTo'
 
 export interface MenuActionRendererProps {
   menuItem: Action

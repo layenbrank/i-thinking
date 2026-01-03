@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react"
-import type { Editor, NodeViewProps } from "@tiptap/react"
-import { NodeViewWrapper, NodeViewContent } from "@tiptap/react"
-import { NodeSelection } from "@tiptap/pm/state"
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Editor, NodeViewProps } from '@tiptap/react'
+import { NodeViewWrapper, NodeViewContent } from '@tiptap/react'
+import { NodeSelection } from '@tiptap/pm/state'
 
-import { isValidPosition } from "@/lib/tiptap-utils"
+import { isValidPosition } from '@/lib/tiptap-utils.ts'
 
-import "./image-node-view.scss"
+import './image-node-view.scss'
 
 export interface ResizeParams {
-  handleUsed: "left" | "right"
+  handleUsed: 'left' | 'right'
   initialWidth: number
   initialClientX: number
 }
@@ -19,7 +19,7 @@ export interface ResizableImageProps extends React.HTMLAttributes<HTMLDivElement
   editor?: Editor
   minWidth?: number
   maxWidth?: number
-  align?: "left" | "center" | "right"
+  align?: 'left' | 'center' | 'right'
   initialWidth?: number
   showCaption?: boolean
   hasContent?: boolean
@@ -37,9 +37,9 @@ export function ImageNodeView(props: NodeViewProps) {
   return (
     <ResizableImage
       src={node.attrs.src}
-      alt={node.attrs.alt || ""}
+      alt={node.attrs.alt || ''}
       editor={editor}
-      align={node.attrs["data-align"]}
+      align={node.attrs['data-align']}
       initialWidth={node.attrs.width}
       showCaption={node.attrs.showCaption}
       hasContent={hasContent}
@@ -53,18 +53,18 @@ export function ImageNodeView(props: NodeViewProps) {
 
 export const ResizableImage: React.FC<ResizableImageProps> = ({
   src,
-  alt = "",
+  alt = '',
   editor,
   minWidth = 96,
   maxWidth = 800,
-  align = "left",
+  align = 'left',
   initialWidth,
   showCaption = false,
   hasContent = false,
   nodeSize,
   onImageResize,
   onUpdateAttributes,
-  getPos,
+  getPos
 }) => {
   const [resizeParams, setResizeParams] = useState<ResizeParams | undefined>()
   const [width, setWidth] = useState<number | undefined>(initialWidth)
@@ -96,9 +96,9 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
       }
     }
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, showCaption, hasContent, getPos, nodeSize, onUpdateAttributes])
 
@@ -124,9 +124,9 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
       if (!resizeParams || !editor || !isMountedRef.current) return
 
       const clientX =
-        "touches" in event ? (event.touches[0]?.clientX ?? 0) : event.clientX
-      const isLeftHandle = resizeParams.handleUsed === "left"
-      const multiplier = align === "center" ? 2 : 1
+        'touches' in event ? (event.touches[0]?.clientX ?? 0) : event.clientX
+      const isLeftHandle = resizeParams.handleUsed === 'left'
+      const multiplier = align === 'center' ? 2 : 1
 
       const delta = isLeftHandle
         ? (resizeParams.initialClientX - clientX) * multiplier
@@ -153,7 +153,7 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
       if (!editor || !isMountedRef.current) return
 
       const target =
-        "touches" in event
+        'touches' in event
           ? document.elementFromPoint(
               event.changedTouches[0]?.clientX ?? 0,
               event.changedTouches[0]?.clientY ?? 0
@@ -175,7 +175,7 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
 
       const wasNodeSelection =
         editor.state.selection instanceof NodeSelection &&
-        editor.state.selection.node.type.name === "image"
+        editor.state.selection.node.type.name === 'image'
 
       if (isMountedRef.current) {
         setResizeParams(undefined)
@@ -199,11 +199,11 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
   )
 
   const startResize = useCallback(
-    (handleUsed: "left" | "right", clientX: number) => {
+    (handleUsed: 'left' | 'right', clientX: number) => {
       setResizeParams({
         handleUsed,
         initialWidth: wrapperRef.current?.clientWidth ?? minWidth,
-        initialClientX: clientX,
+        initialClientX: clientX
       })
       isResizingRef.current = true
     },
@@ -215,7 +215,7 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
   ) => {
     event.preventDefault()
     event.stopPropagation()
-    startResize("left", event.clientX)
+    startResize('left', event.clientX)
   }
 
   const leftResizeHandleTouchStartHandler = (
@@ -223,7 +223,7 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
   ) => {
     event.preventDefault()
     const touch = event.touches[0]
-    if (touch) startResize("left", touch.clientX)
+    if (touch) startResize('left', touch.clientX)
   }
 
   const rightResizeHandleMouseDownHandler = (
@@ -231,7 +231,7 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
   ) => {
     event.preventDefault()
     event.stopPropagation()
-    startResize("right", event.clientX)
+    startResize('right', event.clientX)
   }
 
   const rightResizeHandleTouchStartHandler = (
@@ -239,7 +239,7 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
   ) => {
     event.preventDefault()
     const touch = event.touches[0]
-    if (touch) startResize("right", touch.clientX)
+    if (touch) startResize('right', touch.clientX)
   }
 
   const wrapperMouseEnterHandler = () => {
@@ -266,18 +266,18 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
   }
 
   useEffect(() => {
-    window.addEventListener("mousemove", windowMouseMoveHandler)
-    window.addEventListener("mouseup", windowMouseUpHandler)
-    window.addEventListener("touchmove", windowMouseMoveHandler, {
-      passive: false,
+    window.addEventListener('mousemove', windowMouseMoveHandler)
+    window.addEventListener('mouseup', windowMouseUpHandler)
+    window.addEventListener('touchmove', windowMouseMoveHandler, {
+      passive: false
     })
-    window.addEventListener("touchend", windowMouseUpHandler)
+    window.addEventListener('touchend', windowMouseUpHandler)
 
     return () => {
-      window.removeEventListener("mousemove", windowMouseMoveHandler)
-      window.removeEventListener("mouseup", windowMouseUpHandler)
-      window.removeEventListener("touchmove", windowMouseMoveHandler)
-      window.removeEventListener("touchend", windowMouseUpHandler)
+      window.removeEventListener('mousemove', windowMouseMoveHandler)
+      window.removeEventListener('mouseup', windowMouseUpHandler)
+      window.removeEventListener('touchmove', windowMouseMoveHandler)
+      window.removeEventListener('touchend', windowMouseUpHandler)
     }
   }, [windowMouseMoveHandler, windowMouseUpHandler])
 
@@ -296,13 +296,11 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
       onTouchStart={wrapperTouchStartHandler}
       data-align={align}
       data-width={width}
-      className="tiptap-image"
-    >
+      className="tiptap-image">
       <div
         ref={wrapperRef}
         className="tiptap-image-container"
-        style={{ width: width ? `${width}px` : "fit-content" }}
-      >
+        style={{ width: width ? `${width}px` : 'fit-content' }}>
         <div className="tiptap-image-content">
           <img
             ref={imageRef}
@@ -312,7 +310,7 @@ export const ResizableImage: React.FC<ResizableImageProps> = ({
             contentEditable={false}
             draggable={false}
             onClick={handleImageClick}
-            style={{ cursor: editor?.isEditable ? "pointer" : "default" }}
+            style={{ cursor: editor?.isEditable ? 'pointer' : 'default' }}
           />
 
           {showHandles && editor?.isEditable && (

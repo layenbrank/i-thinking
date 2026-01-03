@@ -117,6 +117,19 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
     /[\\/]node_modules[\\/]domelementtype[\\/]/
   ],
 
+  'ui-radix': [
+    /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+    /[\\/]node_modules[\\/]react-remove-scroll[\\/]/,
+    /[\\/]node_modules[\\/]use-sidecar[\\/]/,
+    /[\\/]node_modules[\\/]aria-hidden[\\/]/,
+    /[\\/]node_modules[\\/]react-remove-scroll-bar[\\/]/,
+    /[\\/]node_modules[\\/]react-remove-scroll-bar[\\/]/,
+    /[\\/]node_modules[\\/]use-callback-ref[\\/]/,
+    /[\\/]node_modules[\\/]react-style-singleton[\\/]/,
+    /[\\/]node_modules[\\/]detect-node-es[\\/]/,
+    /[\\/]node_modules[\\/]get-nonce[\\/]/
+  ],
+
   'ui-marks': [
     /[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/,
     /~icons/
@@ -234,6 +247,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 
     /[\\/]node_modules[\\/]dompurify[\\/]/,
     /[\\/]node_modules[\\/]@floating-ui[\\/]/,
+    /[\\/]node_modules[\\/]tabbable[\\/]/,
 
     /[\\/]node_modules[\\/]react-markdown[\\/]/,
     /[\\/]node_modules[\\/]devlop[\\/]/,
@@ -257,7 +271,9 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
     /[\\/]node_modules[\\/]@tiptap[\\/]/,
     /[\\/]node_modules[\\/]fast-equals[\\/]/,
     /[\\/]node_modules[\\/]linkifyjs[\\/]/,
-    /[\\/]node_modules[\\/]use-sync-external-store[\\/]/
+    /[\\/]node_modules[\\/]use-sync-external-store[\\/]/,
+
+    /[\\/]node_modules[\\/]@ariakit[\\/]/
   ],
 
   'utils-code': [
@@ -276,7 +292,9 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
   ],
 
   'utils-enhance': [
-    /[\\/]node_modules[\\/](qrcode|d3)[\\/]/,
+    /[\\/]node_modules[\\/]qrcode[\\/]/,
+    /[\\/]node_modules[\\/]d3[\\/]/,
+    /[\\/]node_modules[\\/]react-hotkeys-hook[\\/]/,
     /[\\/]node_modules[\\/]d3-/
   ],
 

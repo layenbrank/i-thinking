@@ -1,6 +1,5 @@
 import { Dexie, type EntityTable } from 'dexie'
-import { dexieCloud, type DexieCloudOptions } from 'dexie-cloud-addon'
-import {} from '@tauri-apps/api'
+// import { dexieCloud, type DexieCloudOptions } from 'dexie-cloud-addon'
 
 type BookmarkEntry = Application.Bookmark.Entry
 type BookmarkDir = Application.Bookmark.Directory
@@ -62,13 +61,36 @@ const USERS: readonly string[] = ['++id', 'name']
 const BACKUP: readonly string[] = ['&id', 'createdAt', 'updatedAt']
 const SETTING: readonly string[] = ['&id', 'theme', 'language']
 
-const BOOKMARK: readonly string[] = ['&id', 'index', 'dirID', 'createdAt', 'updatedAt']
-const BOOKMARK_DIR: readonly string[] = ['&id', 'index', 'count', 'createdAt', 'updatedAt']
+const BOOKMARK: readonly string[] = [
+  '&id',
+  'index',
+  'dirID',
+  'createdAt',
+  'updatedAt'
+]
+const BOOKMARK_DIR: readonly string[] = [
+  '&id',
+  'index',
+  'count',
+  'createdAt',
+  'updatedAt'
+]
 
 const MARKDOWN: readonly string[] = ['&id', 'index', 'createdAt', 'updatedAt']
 
-const AISESSION: readonly string[] = ['&id', 'collectionID', 'createdAt', 'updatedAt']
-const AIMESSAGE: readonly string[] = ['&id', 'sessionID', 'identity', 'createdAt', 'updatedAt']
+const AISESSION: readonly string[] = [
+  '&id',
+  'collectionID',
+  'createdAt',
+  'updatedAt'
+]
+const AIMESSAGE: readonly string[] = [
+  '&id',
+  'sessionID',
+  'identity',
+  'createdAt',
+  'updatedAt'
+]
 const AICOLLECTION: readonly string[] = ['&id', 'createdAt', 'updatedAt']
 
 database.version(1).stores({

@@ -44,7 +44,7 @@ interface MirrorSlice {
   mirrors: Mirror[]
 
   // 选择器
-  toReadMirror: (ID: string) => Promise<Mirror | null>
+  toReadMirror: (ID: string) => Mirror | null
   // CRUD 操作
   toInsertMirror: (values: Mirror[]) => Promise<void>
   toUpdateMirror: (values: UpdateSpec<Mirror>[]) => Promise<void>
@@ -57,7 +57,7 @@ interface MirrorSlice {
 interface ApplicationSlice {
   applications: Application[]
 
-  toReadApplication: (ID: string) => Promise<Application | null>
+  toReadApplication: (ID: string) => Application | null
   toInsertApplication: (values: Application[]) => Promise<void>
   toUpdateApplication: (values: UpdateSpec<Application>[]) => Promise<void>
   toRemoveApplication: (keys: string[]) => Promise<void>
@@ -71,7 +71,11 @@ type MirrorStore = MirrorSlice & ApplicationSlice
 /** 切片创建器类型 */
 type SliceCreator<T> = StateCreator<
   MirrorStore,
-  [['zustand/devtools', never], ['zustand/subscribeWithSelector', never], ['zustand/immer', never]],
+  [
+    ['zustand/devtools', never],
+    ['zustand/subscribeWithSelector', never],
+    ['zustand/immer', never]
+  ],
   [],
   T
 >
@@ -89,7 +93,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
   return {
     mirrors: [],
 
-    async toReadMirror(ID: string) {
+    toReadMirror(ID: string) {
       const now = Date.now()
       const mirrors = getters().mirrors
       const mirror = mirrors.find(function (m) {
@@ -139,8 +143,6 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
     },
 
     async toUpdateMirror(values: UpdateSpec<Mirror>[]) {
-      // const former = structuredClone(getters().mirrors)
-
       const dearthID = values.every(function (v) {
         if (!v.id) return false
         return true
@@ -148,19 +150,22 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
       if (!dearthID) throw new Error('ID is required')
       const mirrors = structuredClone(getters().mirrors)
 
+      // 使用 Map 优化查找性能 O(n) 而不是 O(n²)
+      const updatesMap = new Map<string, UpdateSpec<Mirror>>()
+      values.forEach(function (v) {
+        if (v.id && typeof v.id === 'string') updatesMap.set(v.id, v)
+      })
+
       const former = mirrors.filter(function (m) {
-        return values.some(function (v) {
-          return v.id === m.id
-        })
+        return updatesMap.has(m.id)
       })
       const updates: ToUpdateMirror[] = former.map(function (m) {
+        const update = updatesMap.get(m.id)!
         return {
           key: m.id as string,
           changes: {
             ...m,
-            ...values.find(function (v) {
-              return v.id === m.id
-            })
+            ...update
           }
         }
       })
@@ -168,9 +173,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
       setters(
         function (state) {
           state.mirrors = mirrors.map(function (u) {
-            const update = values.find(function (v) {
-              return v.id === u.id
-            })
+            const update = updatesMap.get(u.id)
             if (!update) return u
             return Object.assign({}, u, update)
           })
@@ -201,14 +204,38 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
     },
 
     async toRemoveMirror(keys: string[]) {
-      const now = Date.now()
-      await database.mirror.bulkDelete(keys)
-
-      event$.next({
-        type: 'MIRROR:REMOVED',
-        payload: keys,
-        timestamp: now
+      const former = structuredClone(getters().mirrors)
+      const mirrors = former.filter(function (mirror) {
+        return !keys.includes(mirror.id)
       })
+
+      setters(
+        {
+          mirrors: mirrors
+        },
+        false,
+        'toRemoveMirror/optimistic'
+      )
+
+      try {
+        const now = Date.now()
+        await database.mirror.bulkDelete(keys)
+
+        event$.next({
+          type: 'MIRROR:REMOVED',
+          payload: keys,
+          timestamp: now
+        })
+      } catch (error) {
+        setters(
+          {
+            mirrors: former
+          },
+          false,
+          'toRemoveMirror/rollback'
+        )
+        throw error
+      }
     },
 
     toUpdateMirrors(mirrors) {
@@ -232,11 +259,14 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
   }
 }
 
-const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, getters) {
+const applicationSlice: SliceCreator<ApplicationSlice> = function (
+  setters,
+  getters
+) {
   return {
     applications: [],
 
-    async toReadApplication(ID: string) {
+    toReadApplication(ID: string) {
       const now = Date.now()
 
       const applications = getters().applications
@@ -245,9 +275,6 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
       })
 
       application$.next(application ?? null)
-
-      // const response = await database.application.bulkGet(keys)
-      // const applications = response.filter(Boolean) as Application[]
 
       event$.next({
         type: 'APPLICATION:TOREAD',
@@ -288,7 +315,6 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
     },
 
     async toUpdateApplication(values: UpdateSpec<Application>[]) {
-      // 数组方法查找所有项 是否有 ID 没有则抛出错
       const dearthID = values.every(function (v) {
         if (!v.id) return false
         return true
@@ -297,28 +323,30 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
       if (!dearthID) throw new Error('ID is required')
 
       const applications = structuredClone(getters().applications)
+
+      // 使用 Map 优化查找性能 O(n) 而不是 O(n²)
+      const updatesMap = new Map<string, UpdateSpec<Application>>()
+      values.forEach(function (v) {
+        if (v.id && typeof v.id === 'string') updatesMap.set(v.id, v)
+      })
+
       const former = applications.filter(function (a) {
-        return values.some(function (v) {
-          return v.id === a.id
-        })
+        return updatesMap.has(a.id)
       })
       const updates: ToUpdateApplication[] = former.map(function (a) {
+        const update = updatesMap.get(a.id)!
         return {
           key: a.id as string,
           changes: {
             ...a,
-            ...values.find(function (v) {
-              return v.id === a.id
-            })
+            ...update
           }
         }
       })
       setters(
         function (state) {
           state.applications = applications.map(function (u) {
-            const update = values.find(function (v) {
-              return v.id === u.id
-            })
+            const update = updatesMap.get(u.id)
             if (!update) return u
             return Object.assign({}, u, update)
           })
@@ -337,7 +365,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
       } catch (error) {
         setters(
           {
-            applications: former
+            applications: applications
           },
           false,
           'toUpdateApplication/rollback'
@@ -482,13 +510,15 @@ function subscribeMirrorsChange(
 function subscribeMirrorChange(
   callback: (mirror: Mirror | null, prevMirror: Mirror | null) => void
 ): () => void {
-  return useMirrorStore.subscribe(function (state) {
+  return useMirrorStore.subscribe(function (_state) {
     return mirror$?.value
   }, callback)
 }
 
 /** 监听特定类型的事件 */
-function onMirrorEvent<T = unknown>(eventType: MirrorEventType): Observable<MirrorEvent<T>> {
+function onMirrorEvent<T = unknown>(
+  eventType: MirrorEventType
+): Observable<MirrorEvent<T>> {
   return event$.pipe(
     filter(function (event) {
       return event.type === eventType

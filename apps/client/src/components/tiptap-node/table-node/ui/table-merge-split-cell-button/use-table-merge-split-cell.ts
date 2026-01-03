@@ -1,20 +1,20 @@
-"use client"
+'use client'
 
-import { useCallback } from "react"
-import type { Editor } from "@tiptap/react"
-import { mergeCells, splitCell } from "@tiptap/pm/tables"
+import { useCallback } from 'react'
+import type { Editor } from '@tiptap/react'
+import { mergeCells, splitCell } from '@tiptap/pm/tables'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Lib ---
-import { isExtensionAvailable } from "@/lib/tiptap-utils"
+import { isExtensionAvailable } from '@/lib/tiptap-utils.ts'
 
 // --- Icons ---
-import { TableCellMergeIcon } from "@/components/tiptap-icons/table-cell-merge-icon"
-import { TableCellSplitIcon } from "@/components/tiptap-icons/table-cell-split-icon"
+import { TableCellMergeIcon } from '@/components/tiptap-icons/table-cell-merge-icon.tsx'
+import { TableCellSplitIcon } from '@/components/tiptap-icons/table-cell-split-icon.tsx'
 
-export type MergeSplitAction = "merge" | "split"
+export type MergeSplitAction = 'merge' | 'split'
 
 export interface UseTableMergeSplitCellConfig {
   /**
@@ -37,16 +37,16 @@ export interface UseTableMergeSplitCellConfig {
   onExecuted?: (action: MergeSplitAction) => void
 }
 
-const REQUIRED_EXTENSIONS = ["table"]
+const REQUIRED_EXTENSIONS = ['table']
 
 export const tableMergeSplitCellLabels: Record<MergeSplitAction, string> = {
-  merge: "Merge cells",
-  split: "Split cell",
+  merge: 'Merge cells',
+  split: 'Split cell'
 }
 
 export const tableMergeSplitCellIcons = {
   merge: TableCellMergeIcon,
-  split: TableCellSplitIcon,
+  split: TableCellSplitIcon
 }
 
 /**
@@ -99,7 +99,7 @@ function tableMergeCells(editor: Editor | null): boolean {
     const { state, view } = editor
     return mergeCells(state, view.dispatch.bind(view))
   } catch (error) {
-    console.error("Error merging table cells:", error)
+    console.error('Error merging table cells:', error)
     return false
   }
 }
@@ -114,7 +114,7 @@ function tableSplitCell(editor: Editor | null): boolean {
     const { state, view } = editor
     return splitCell(state, view.dispatch.bind(view))
   } catch (error) {
-    console.error("Error splitting table cell:", error)
+    console.error('Error splitting table cell:', error)
     return false
   }
 }
@@ -124,7 +124,7 @@ function tableSplitCell(editor: Editor | null): boolean {
  */
 function tableMergeSplitCell({
   editor,
-  action,
+  action
 }: {
   editor: Editor | null
   action: MergeSplitAction
@@ -132,7 +132,7 @@ function tableMergeSplitCell({
   if (!editor) return false
 
   try {
-    return action === "merge" ? tableMergeCells(editor) : tableSplitCell(editor)
+    return action === 'merge' ? tableMergeCells(editor) : tableSplitCell(editor)
   } catch (error) {
     console.error(`Error ${action}ing table cell:`, error)
     return false
@@ -146,7 +146,7 @@ function tableMergeSplitCell({
 function shouldShowButton({
   editor,
   action,
-  hideWhenUnavailable,
+  hideWhenUnavailable
 }: {
   editor: Editor | null
   action: MergeSplitAction
@@ -156,7 +156,7 @@ function shouldShowButton({
   if (!isExtensionAvailable(editor, REQUIRED_EXTENSIONS)) return false
 
   if (hideWhenUnavailable) {
-    return action === "merge" ? canMergeCells(editor) : canSplitCell(editor)
+    return action === 'merge' ? canMergeCells(editor) : canSplitCell(editor)
   }
 
   return true
@@ -252,7 +252,7 @@ export function useTableMergeSplitCell(config: UseTableMergeSplitCellConfig) {
     editor: providedEditor,
     action,
     hideWhenUnavailable = false,
-    onExecuted,
+    onExecuted
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -260,16 +260,16 @@ export function useTableMergeSplitCell(config: UseTableMergeSplitCellConfig) {
   const isVisible = shouldShowButton({
     editor,
     action,
-    hideWhenUnavailable,
+    hideWhenUnavailable
   })
 
   const canPerformAction =
-    action === "merge" ? canMergeCells(editor) : canSplitCell(editor)
+    action === 'merge' ? canMergeCells(editor) : canSplitCell(editor)
 
   const handleExecute = useCallback(() => {
     const success = tableMergeSplitCell({
       editor,
-      action,
+      action
     })
 
     if (success) {
@@ -283,6 +283,6 @@ export function useTableMergeSplitCell(config: UseTableMergeSplitCellConfig) {
     canExecute: canPerformAction,
     handleExecute,
     label: tableMergeSplitCellLabels[action],
-    Icon: tableMergeSplitCellIcons[action],
+    Icon: tableMergeSplitCellIcons[action]
   }
 }

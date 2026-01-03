@@ -1,24 +1,24 @@
-import { useCallback, useMemo } from "react"
-import type { Editor } from "@tiptap/react"
-import { addColumnAfter, addRowAfter, CellSelection } from "@tiptap/pm/tables"
+import { useCallback, useMemo } from 'react'
+import type { Editor } from '@tiptap/react'
+import { addColumnAfter, addRowAfter, CellSelection } from '@tiptap/pm/tables'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Lib ---
-import { isExtensionAvailable } from "@/lib/tiptap-utils"
-import type { Orientation } from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+import { isExtensionAvailable } from '@/lib/tiptap-utils.ts'
+import type { Orientation } from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 import {
   getTable,
   getTableSelectionType,
   getRowOrColumnCells,
   updateSelectionAfterAction,
   selectCellsByCoords,
-  getIndexCoordinates,
-} from "@/components/tiptap-node/table-node/lib/tiptap-table-utils"
+  getIndexCoordinates
+} from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 
 // --- Icons ---
-import { CopyIcon } from "@/components/tiptap-icons/copy-icon"
+import { CopyIcon } from '@/components/tiptap-icons/copy-icon.tsx'
 
 export interface UseTableDuplicateRowColumnConfig {
   /**
@@ -49,11 +49,11 @@ export interface UseTableDuplicateRowColumnConfig {
   onDuplicated?: () => void
 }
 
-const REQUIRED_EXTENSIONS = ["tableHandleExtension"]
+const REQUIRED_EXTENSIONS = ['tableHandleExtension']
 
 export const tableDuplicateRowColumnLabels: Record<Orientation, string> = {
-  row: "Duplicate row",
-  column: "Duplicate column",
+  row: 'Duplicate row',
+  column: 'Duplicate column'
 }
 
 /**
@@ -64,7 +64,7 @@ function canDuplicateRowColumn({
   editor,
   index,
   orientation,
-  tablePos,
+  tablePos
 }: {
   editor: Editor | null
   index?: number
@@ -101,14 +101,14 @@ function canDuplicateRowColumn({
 function duplicateRow({
   editor,
   index,
-  tablePos,
+  tablePos
 }: {
   editor: Editor
   index: number
   tablePos?: number
 }): boolean {
   try {
-    const originalRowCells = getRowOrColumnCells(editor, index, "row", tablePos)
+    const originalRowCells = getRowOrColumnCells(editor, index, 'row', tablePos)
 
     if (originalRowCells.cells.length === 0) {
       return false
@@ -122,20 +122,20 @@ function duplicateRow({
       const sourceCoords = getIndexCoordinates({
         editor,
         index,
-        orientation: "row",
-        tablePos,
+        orientation: 'row',
+        tablePos
       })
       if (!sourceCoords) return false
 
       const state = selectCellsByCoords(editor, tablePos, sourceCoords, {
-        mode: "state",
+        mode: 'state'
       })
       addSuccess = addRowAfter(state, editor.view.dispatch)
     }
 
     if (!addSuccess) return false
 
-    const newRowCells = getRowOrColumnCells(editor, index + 1, "row", tablePos)
+    const newRowCells = getRowOrColumnCells(editor, index + 1, 'row', tablePos)
 
     if (newRowCells.cells.length === 0) {
       return false
@@ -166,14 +166,14 @@ function duplicateRow({
     if (tr.docChanged) {
       view.dispatch(tr)
 
-      updateSelectionAfterAction(editor, "row", index + 1, tablePos)
+      updateSelectionAfterAction(editor, 'row', index + 1, tablePos)
 
       return true
     }
 
     return false
   } catch (error) {
-    console.error("Error duplicating row:", error)
+    console.error('Error duplicating row:', error)
     return false
   }
 }
@@ -184,7 +184,7 @@ function duplicateRow({
 function duplicateColumn({
   editor,
   index,
-  tablePos,
+  tablePos
 }: {
   editor: Editor
   index: number
@@ -194,7 +194,7 @@ function duplicateColumn({
     const originalColumnCells = getRowOrColumnCells(
       editor,
       index,
-      "column",
+      'column',
       tablePos
     )
     if (originalColumnCells.cells.length === 0) return false
@@ -207,13 +207,13 @@ function duplicateColumn({
       const sourceCoords = getIndexCoordinates({
         editor,
         index,
-        orientation: "column",
-        tablePos,
+        orientation: 'column',
+        tablePos
       })
       if (!sourceCoords) return false
 
       const state = selectCellsByCoords(editor, tablePos, sourceCoords, {
-        mode: "state",
+        mode: 'state'
       })
       addSuccess = addColumnAfter(state, editor.view.dispatch)
     }
@@ -223,7 +223,7 @@ function duplicateColumn({
     const newColumnCells = getRowOrColumnCells(
       editor,
       index + 1,
-      "column",
+      'column',
       tablePos
     )
 
@@ -256,14 +256,14 @@ function duplicateColumn({
     if (tr.docChanged) {
       view.dispatch(tr)
 
-      updateSelectionAfterAction(editor, "column", index + 1, tablePos)
+      updateSelectionAfterAction(editor, 'column', index + 1, tablePos)
 
       return true
     }
 
     return false
   } catch (error) {
-    console.error("Error duplicating column:", error)
+    console.error('Error duplicating column:', error)
     return false
   }
 }
@@ -275,7 +275,7 @@ function tableDuplicateRowColumn({
   editor,
   index,
   orientation,
-  tablePos,
+  tablePos
 }: {
   editor: Editor | null
   index?: number
@@ -301,23 +301,23 @@ function tableDuplicateRowColumn({
   if (!selectionType) return false
 
   try {
-    if (selectionType.orientation === "row") {
+    if (selectionType.orientation === 'row') {
       return duplicateRow({
         editor,
         index: selectionType.index,
-        tablePos,
+        tablePos
       })
-    } else if (selectionType.orientation === "column") {
+    } else if (selectionType.orientation === 'column') {
       return duplicateColumn({
         editor,
         index: selectionType.index,
-        tablePos,
+        tablePos
       })
     }
 
     return false
   } catch (error) {
-    console.error("Error duplicating row/column:", error)
+    console.error('Error duplicating row/column:', error)
     return false
   }
 }
@@ -330,7 +330,7 @@ function shouldShowButton({
   editor,
   index,
   orientation,
-  hideWhenUnavailable,
+  hideWhenUnavailable
 }: {
   editor: Editor | null
   index?: number
@@ -357,7 +357,7 @@ export function useTableDuplicateRowColumn(
     orientation,
     tablePos,
     hideWhenUnavailable = false,
-    onDuplicated,
+    onDuplicated
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -368,14 +368,14 @@ export function useTableDuplicateRowColumn(
     editor,
     index,
     orientation,
-    hideWhenUnavailable,
+    hideWhenUnavailable
   })
 
   const canPerformDuplicate = canDuplicateRowColumn({
     editor,
     index,
     tablePos,
-    orientation,
+    orientation
   })
 
   const handleDuplicate = useCallback(() => {
@@ -383,14 +383,14 @@ export function useTableDuplicateRowColumn(
       editor,
       index,
       orientation,
-      tablePos,
+      tablePos
     })
     if (success) onDuplicated?.()
     return success
   }, [editor, index, orientation, tablePos, onDuplicated])
 
   const label = useMemo(() => {
-    return tableDuplicateRowColumnLabels[selectionType?.orientation || "row"]
+    return tableDuplicateRowColumnLabels[selectionType?.orientation || 'row']
   }, [selectionType])
 
   const Icon = CopyIcon
@@ -400,6 +400,6 @@ export function useTableDuplicateRowColumn(
     canDuplicateRowColumn: canPerformDuplicate,
     handleDuplicate,
     label,
-    Icon,
+    Icon
   }
 }

@@ -1,34 +1,34 @@
-import type { HTMLAttributes } from "react"
+import type { HTMLAttributes } from 'react'
 import {
   forwardRef,
   useCallback,
   useEffect,
   useMemo,
   useRef,
-  useState,
-} from "react"
-import { type Editor } from "@tiptap/react"
+  useState
+} from 'react'
+import { type Editor } from '@tiptap/react'
 import {
   flip,
   offset,
   shift,
   useMergeRefs,
-  type UseFloatingOptions,
-} from "@floating-ui/react"
-import { Selection } from "@tiptap/pm/state"
+  type UseFloatingOptions
+} from '@floating-ui/react'
+import { Selection } from '@tiptap/pm/state'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
-import { useFloatingElement } from "@/hooks/use-floating-element"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
+import { useFloatingElement } from '@/hooks/use-floating-element.ts'
 
 // --- Lib ---
 import {
   getSelectionBoundingRect,
-  isSelectionValid,
-} from "@/lib/tiptap-collab-utils"
+  isSelectionValid
+} from '@/lib/tiptap-collab-utils'
 
-import { isElementWithinEditor } from "@/components/tiptap-ui-utils/floating-element"
-import { isValidPosition } from "@/lib/tiptap-utils"
+import { isElementWithinEditor } from '@/components/tiptap-ui-utils/floating-element/floating-element-utils.ts'
+import { isValidPosition } from '@/lib/tiptap-utils.ts'
 
 export interface FloatingElementProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -149,7 +149,7 @@ export const FloatingElement = forwardRef<HTMLDivElement, FloatingElementProps>(
       reference,
       zIndex,
       {
-        placement: "top",
+        placement: 'top',
         middleware: [shift(), flip(), offset(4)],
         onOpenChange: handleFloatingOpenChange,
         dismissOptions: {
@@ -160,9 +160,9 @@ export const FloatingElement = forwardRef<HTMLDivElement, FloatingElementProps>(
             if (!relatedTarget) return false
 
             return !isElementWithinEditor(editor, relatedTarget)
-          },
+          }
         },
-        ...floatingOptions,
+        ...floatingOptions
       }
     )
 
@@ -196,16 +196,16 @@ export const FloatingElement = forwardRef<HTMLDivElement, FloatingElementProps>(
       if (!editor || !closeOnEscape) return
 
       const handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === "Escape" && open) {
+        if (event.key === 'Escape' && open) {
           handleOpenChange(false)
           return true
         }
         return false
       }
 
-      editor.view.dom.addEventListener("keydown", handleKeyDown)
+      editor.view.dom.addEventListener('keydown', handleKeyDown)
       return () => {
-        editor.view.dom.removeEventListener("keydown", handleKeyDown)
+        editor.view.dom.removeEventListener('keydown', handleKeyDown)
       }
     }, [editor, open, closeOnEscape, handleOpenChange])
 
@@ -234,9 +234,9 @@ export const FloatingElement = forwardRef<HTMLDivElement, FloatingElementProps>(
         }
       }
 
-      editor.view.dom.addEventListener("blur", handleBlur)
+      editor.view.dom.addEventListener('blur', handleBlur)
       return () => {
-        editor.view.dom.removeEventListener("blur", handleBlur)
+        editor.view.dom.removeEventListener('blur', handleBlur)
       }
     }, [editor, handleOpenChange, open])
 
@@ -249,12 +249,12 @@ export const FloatingElement = forwardRef<HTMLDivElement, FloatingElementProps>(
         }
       }
 
-      editor.view.dom.addEventListener("dragstart", handleDrag)
-      editor.view.dom.addEventListener("dragover", handleDrag)
+      editor.view.dom.addEventListener('dragstart', handleDrag)
+      editor.view.dom.addEventListener('dragover', handleDrag)
 
       return () => {
-        editor.view.dom.removeEventListener("dragstart", handleDrag)
-        editor.view.dom.removeEventListener("dragover", handleDrag)
+        editor.view.dom.removeEventListener('dragstart', handleDrag)
+        editor.view.dom.removeEventListener('dragover', handleDrag)
       }
     }, [editor, open, handleOpenChange])
 
@@ -269,7 +269,7 @@ export const FloatingElement = forwardRef<HTMLDivElement, FloatingElementProps>(
         const { state, view } = editor
         const posCoords = view.posAtCoords({
           left: event.clientX,
-          top: event.clientY,
+          top: event.clientY
         })
 
         if (!posCoords || !isValidPosition(posCoords.pos)) return
@@ -292,22 +292,22 @@ export const FloatingElement = forwardRef<HTMLDivElement, FloatingElementProps>(
         }
       }
 
-      editor.view.dom.addEventListener("mousedown", handleMouseDown)
-      editor.view.root.addEventListener("mouseup", handleMouseUp)
+      editor.view.dom.addEventListener('mousedown', handleMouseDown)
+      editor.view.root.addEventListener('mouseup', handleMouseUp)
 
       return () => {
-        editor.view.dom.removeEventListener("mousedown", handleMouseDown)
-        editor.view.root.removeEventListener("mouseup", handleMouseUp)
+        editor.view.dom.removeEventListener('mousedown', handleMouseDown)
+        editor.view.root.removeEventListener('mouseup', handleMouseUp)
       }
     }, [editor, updateSelectionState])
 
     useEffect(() => {
       if (!editor) return
 
-      editor.on("selectionUpdate", updateSelectionState)
+      editor.on('selectionUpdate', updateSelectionState)
 
       return () => {
-        editor.off("selectionUpdate", updateSelectionState)
+        editor.off('selectionUpdate', updateSelectionState)
       }
     }, [editor, updateSelectionState])
 
@@ -330,12 +330,11 @@ export const FloatingElement = forwardRef<HTMLDivElement, FloatingElementProps>(
         ref={mergedRef}
         style={finalStyle}
         {...props}
-        {...getFloatingProps()}
-      >
+        {...getFloatingProps()}>
         {children}
       </div>
     )
   }
 )
 
-FloatingElement.displayName = "FloatingElement"
+FloatingElement.displayName = 'FloatingElement'

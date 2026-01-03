@@ -1,19 +1,18 @@
-import { forwardRef, useCallback } from "react"
+import { forwardRef, useCallback } from 'react'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Tiptap UI ---
-import type { UseTableHeaderRowColumnConfig } from "@/components/tiptap-node/table-node/ui/table-header-row-column-button"
-import { useTableHeaderRowColumn } from "@/components/tiptap-node/table-node/ui/table-header-row-column-button"
+import type { UseTableHeaderRowColumnConfig } from '@/components/tiptap-node/table-node/ui/table-header-row-column-button/use-table-header-row-column.ts'
+import { useTableHeaderRowColumn } from '@/components/tiptap-node/table-node/ui/table-header-row-column-button/use-table-header-row-column.ts'
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button"
-import { Button } from "@/components/tiptap-ui-primitive/button"
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Button } from '@/components/tiptap-ui-primitive/button/button.tsx'
 
 export interface TableHeaderRowColumnButtonProps
-  extends Omit<ButtonProps, "type">,
-    UseTableHeaderRowColumnConfig {
+  extends Omit<ButtonProps, 'type'>, UseTableHeaderRowColumnConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -51,7 +50,7 @@ export const TableHeaderRowColumnButton = forwardRef<
         index,
         orientation,
         hideWhenUnavailable,
-        onToggled,
+        onToggled
       })
 
     const handleClick = useCallback(
@@ -72,7 +71,7 @@ export const TableHeaderRowColumnButton = forwardRef<
         type="button"
         disabled={!canToggleHeader}
         data-style="ghost"
-        data-active-state={isActive ? "on" : "off"}
+        data-active-state={isActive ? 'on' : 'off'}
         data-disabled={!canToggleHeader}
         role="button"
         tabIndex={-1}
@@ -81,8 +80,7 @@ export const TableHeaderRowColumnButton = forwardRef<
         tooltip={label}
         onClick={handleClick}
         {...buttonProps}
-        ref={ref}
-      >
+        ref={ref}>
         {children ?? (
           <>
             <Icon className="tiptap-button-icon" />
@@ -94,4 +92,4 @@ export const TableHeaderRowColumnButton = forwardRef<
   }
 )
 
-TableHeaderRowColumnButton.displayName = "TableHeaderRowColumnButton"
+TableHeaderRowColumnButton.displayName = 'TableHeaderRowColumnButton'

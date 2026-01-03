@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from "react"
-import { type Editor } from "@tiptap/react"
-import { NodeSelection, TextSelection } from "@tiptap/pm/state"
+import { useCallback, useEffect, useState } from 'react'
+import { type Editor } from '@tiptap/react'
+import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'
 
 // --- Lib ---
 import {
@@ -11,16 +11,16 @@ import {
   isNodeInSchema,
   isNodeTypeSelected,
   isValidPosition,
-  selectionWithinConvertibleTypes,
-} from "@/lib/tiptap-utils"
+  selectionWithinConvertibleTypes
+} from '@/lib/tiptap-utils.ts'
 
 // --- Icons ---
-import { HeadingOneIcon } from "@/components/tiptap-icons/heading-one-icon"
-import { HeadingTwoIcon } from "@/components/tiptap-icons/heading-two-icon"
-import { HeadingThreeIcon } from "@/components/tiptap-icons/heading-three-icon"
-import { HeadingFourIcon } from "@/components/tiptap-icons/heading-four-icon"
-import { HeadingFiveIcon } from "@/components/tiptap-icons/heading-five-icon"
-import { HeadingSixIcon } from "@/components/tiptap-icons/heading-six-icon"
+import { HeadingOneIcon } from '@/components/tiptap-icons/heading-one-icon.tsx'
+import { HeadingTwoIcon } from '@/components/tiptap-icons/heading-two-icon.tsx'
+import { HeadingThreeIcon } from '@/components/tiptap-icons/heading-three-icon.tsx'
+import { HeadingFourIcon } from '@/components/tiptap-icons/heading-four-icon.tsx'
+import { HeadingFiveIcon } from '@/components/tiptap-icons/heading-five-icon.tsx'
+import { HeadingSixIcon } from '@/components/tiptap-icons/heading-six-icon.tsx'
 
 export type Level = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -53,16 +53,16 @@ export const headingIcons = {
   3: HeadingThreeIcon,
   4: HeadingFourIcon,
   5: HeadingFiveIcon,
-  6: HeadingSixIcon,
+  6: HeadingSixIcon
 }
 
 export const HEADING_SHORTCUT_KEYS: Record<Level, string> = {
-  1: "ctrl+alt+1",
-  2: "ctrl+alt+2",
-  3: "ctrl+alt+3",
-  4: "ctrl+alt+4",
-  5: "ctrl+alt+5",
-  6: "ctrl+alt+6",
+  1: 'ctrl+alt+1',
+  2: 'ctrl+alt+2',
+  3: 'ctrl+alt+3',
+  4: 'ctrl+alt+4',
+  5: 'ctrl+alt+5',
+  6: 'ctrl+alt+6'
 }
 
 /**
@@ -75,27 +75,27 @@ export function canToggle(
 ): boolean {
   if (!editor || !editor.isEditable) return false
   if (
-    !isNodeInSchema("heading", editor) ||
-    isNodeTypeSelected(editor, ["image"])
+    !isNodeInSchema('heading', editor) ||
+    isNodeTypeSelected(editor, ['image'])
   )
     return false
 
   if (!turnInto) {
     return level
-      ? editor.can().setNode("heading", { level })
-      : editor.can().setNode("heading")
+      ? editor.can().setNode('heading', { level })
+      : editor.can().setNode('heading')
   }
 
   // Ensure selection is in nodes we're allowed to convert
   if (
     !selectionWithinConvertibleTypes(editor, [
-      "paragraph",
-      "heading",
-      "bulletList",
-      "orderedList",
-      "taskList",
-      "blockquote",
-      "codeBlock",
+      'paragraph',
+      'heading',
+      'bulletList',
+      'orderedList',
+      'taskList',
+      'blockquote',
+      'codeBlock'
     ])
   )
     return false
@@ -103,8 +103,8 @@ export function canToggle(
   // Either we can set heading directly on the selection,
   // or we can clear formatting/nodes to arrive at a heading.
   return level
-    ? editor.can().setNode("heading", { level }) || editor.can().clearNodes()
-    : editor.can().setNode("heading") || editor.can().clearNodes()
+    ? editor.can().setNode('heading', { level }) || editor.can().clearNodes()
+    : editor.can().setNode('heading') || editor.can().clearNodes()
 }
 
 /**
@@ -117,12 +117,12 @@ export function isHeadingActive(
   if (!editor || !editor.isEditable) return false
 
   if (Array.isArray(level)) {
-    return level.some((l) => editor.isActive("heading", { level: l }))
+    return level.some((l) => editor.isActive('heading', { level: l }))
   }
 
   return level
-    ? editor.isActive("heading", { level })
-    : editor.isActive("heading")
+    ? editor.isActive('heading', { level })
+    : editor.isActive('heading')
 }
 
 /**
@@ -148,7 +148,7 @@ export function toggleHeading(
     if (state.selection.empty || state.selection instanceof TextSelection) {
       const pos = findNodePosition({
         editor,
-        node: state.selection.$anchor.node(1),
+        node: state.selection.$anchor.node(1)
       })?.pos
       if (!isValidPosition(pos)) return false
 
@@ -182,12 +182,12 @@ export function toggleHeading(
     }
 
     const isActive = levels.some((l) =>
-      editor.isActive("heading", { level: l })
+      editor.isActive('heading', { level: l })
     )
 
     const toggle = isActive
-      ? chain.setNode("paragraph")
-      : chain.setNode("heading", { level: toggleLevel })
+      ? chain.setNode('paragraph')
+      : chain.setNode('heading', { level: toggleLevel })
 
     toggle.run()
 
@@ -210,9 +210,9 @@ export function shouldShowButton(props: {
   const { editor, level, hideWhenUnavailable } = props
 
   if (!editor || !editor.isEditable) return false
-  if (!isNodeInSchema("heading", editor)) return false
+  if (!isNodeInSchema('heading', editor)) return false
 
-  if (hideWhenUnavailable && !editor.isActive("code")) {
+  if (hideWhenUnavailable && !editor.isActive('code')) {
     if (Array.isArray(level)) {
       return level.some((l) => canToggle(editor, l))
     }
@@ -273,7 +273,7 @@ export function useHeading(config: UseHeadingConfig) {
     editor: providedEditor,
     level,
     hideWhenUnavailable = false,
-    onToggled,
+    onToggled
   } = config
 
   const { editor } = useTiptapEditor(providedEditor)
@@ -290,10 +290,10 @@ export function useHeading(config: UseHeadingConfig) {
 
     handleSelectionUpdate()
 
-    editor.on("selectionUpdate", handleSelectionUpdate)
+    editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
-      editor.off("selectionUpdate", handleSelectionUpdate)
+      editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor, level, hideWhenUnavailable])
 
@@ -314,6 +314,6 @@ export function useHeading(config: UseHeadingConfig) {
     canToggle: canToggleState,
     label: `Heading ${level}`,
     shortcutKeys: HEADING_SHORTCUT_KEYS[level],
-    Icon: headingIcons[level],
+    Icon: headingIcons[level]
   }
 }

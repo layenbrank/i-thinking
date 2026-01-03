@@ -1,36 +1,39 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef } from 'react'
 
 // --- Lib ---
-import { getElementOverflowPosition } from "@/lib/tiptap-collab-utils"
+import { getElementOverflowPosition } from '@/lib/tiptap-collab-utils'
 
 // --- Tiptap UI ---
 import type {
   SuggestionMenuProps,
   SuggestionItem,
-  SuggestionMenuRenderProps,
-} from "@/components/tiptap-ui-utils/suggestion-menu"
-import { filterSuggestionItems } from "@/components/tiptap-ui-utils/suggestion-menu"
-import { SuggestionMenu } from "@/components/tiptap-ui-utils/suggestion-menu"
+  SuggestionMenuRenderProps
+} from '@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu-types.ts'
+import { filterSuggestionItems } from '@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu-utils.ts'
+import { SuggestionMenu } from '@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu.tsx'
 
 // --- Hooks ---
-import type { SlashMenuConfig } from "@/components/tiptap-ui/slash-dropdown-menu/use-slash-dropdown-menu"
-import { useSlashDropdownMenu } from "@/components/tiptap-ui/slash-dropdown-menu/use-slash-dropdown-menu"
+import type { SlashMenuConfig } from '@/components/tiptap-ui/slash-dropdown-menu/use-slash-dropdown-menu.ts'
+import { useSlashDropdownMenu } from '@/components/tiptap-ui/slash-dropdown-menu/use-slash-dropdown-menu.ts'
 
 // --- UI Primitives ---
-import { Button, ButtonGroup } from "@/components/tiptap-ui-primitive/button"
-import { Separator } from "@/components/tiptap-ui-primitive/separator"
+import {
+  Button,
+  ButtonGroup
+} from '@/components/tiptap-ui-primitive/button/button.tsx'
+import { Separator } from '@/components/tiptap-ui-primitive/separator/separator.tsx'
 import {
   Card,
   CardBody,
   CardGroupLabel,
-  CardItemGroup,
-} from "@/components/tiptap-ui-primitive/card"
+  CardItemGroup
+} from '@/components/tiptap-ui-primitive/card/card.tsx'
 
-import "@/components/tiptap-ui/slash-dropdown-menu/slash-dropdown-menu.scss"
+import '@/components/tiptap-ui/slash-dropdown-menu/slash-dropdown-menu.scss'
 
 type SlashDropdownMenuProps = Omit<
   SuggestionMenuProps,
-  "items" | "children"
+  'items' | 'children'
 > & {
   config?: SlashMenuConfig
 }
@@ -49,9 +52,13 @@ export const SlashDropdownMenu = (props: SlashDropdownMenuProps) => {
       items={({ query, editor }) =>
         filterSuggestionItems(getSlashMenuItems(editor), query)
       }
-      {...restProps}
-    >
-      {(props) => <List {...props} config={config} />}
+      {...restProps}>
+      {(props) => (
+        <List
+          {...props}
+          config={config}
+        />
+      )}
     </SuggestionMenu>
   )
 }
@@ -72,9 +79,9 @@ const Item = (props: {
 
     const overflow = getElementOverflowPosition(itemRef.current, selector)
 
-    if (overflow === "top") {
+    if (overflow === 'top') {
       itemRef.current.scrollIntoView(true)
-    } else if (overflow === "bottom") {
+    } else if (overflow === 'bottom') {
       itemRef.current.scrollIntoView(false)
     }
   }, [isSelected])
@@ -85,9 +92,8 @@ const Item = (props: {
     <Button
       ref={itemRef}
       data-style="ghost"
-      data-active-state={isSelected ? "on" : "off"}
-      onClick={onSelect}
-    >
+      data-active-state={isSelected ? 'on' : 'off'}
+      onClick={onSelect}>
       {BadgeIcon && <BadgeIcon className="tiptap-button-icon" />}
       <div className="tiptap-button-text">{item.title}</div>
     </Button>
@@ -98,7 +104,7 @@ const List = ({
   items,
   selectedIndex,
   onSelect,
-  config,
+  config
 }: SuggestionMenuRenderProps & { config?: SlashMenuConfig }) => {
   const renderedItems = useMemo(() => {
     const rendered: React.ReactElement[] = []
@@ -123,7 +129,7 @@ const List = ({
     } = {}
 
     items.forEach((item, index) => {
-      const groupLabel = item.group || ""
+      const groupLabel = item.group || ''
       if (!groups[groupLabel]) {
         groups[groupLabel] = { items: [], indices: [] }
       }
@@ -134,7 +140,10 @@ const List = ({
     Object.entries(groups).forEach(([groupLabel, groupData], groupIndex) => {
       if (groupIndex > 0) {
         rendered.push(
-          <Separator key={`separator-${groupIndex}`} orientation="horizontal" />
+          <Separator
+            key={`separator-${groupIndex}`}
+            orientation="horizontal"
+          />
         )
       }
 
@@ -173,9 +182,8 @@ const List = ({
     <Card
       className="tiptap-slash-card"
       style={{
-        maxHeight: "var(--suggestion-menu-max-height)",
-      }}
-    >
+        maxHeight: 'var(--suggestion-menu-max-height)'
+      }}>
       <CardBody className="tiptap-slash-card-body">{renderedItems}</CardBody>
     </Card>
   )
