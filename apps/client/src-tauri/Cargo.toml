@@ -1,9 +1,9 @@
 [package]
-name = "i-thinking"
-version = "0.1.0"
+name        = "i-thinking"
+version     = "0.1.0"
 description = "i thinking is a privacy-first extension that enhances your browsing experience with intelligent features while prioritizing your data security."
-authors = ["layen"]
-edition = "2024"
+authors     = ["layen"]
+edition     = "2024"
 
 # [profile.release]
 # opt-level = 2       # 降低优化级别 (从 3 改为 2)
@@ -30,7 +30,14 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.5.3", features = [] }
 
 [dependencies]
-tauri = { version = "2.9.5", features = ["protocol-asset", "macos-private-api", "devtools", "tray-icon"] }
+tauri = { version = "2.9.5", features = [
+  "protocol-asset",
+  "macos-private-api",
+  "devtools",
+  "tray-icon",
+  "image-png",
+  "devtools"
+] }
 tauri-plugin-opener = "2.5.2"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
@@ -47,11 +54,14 @@ tauri-plugin-clipboard-manager = "2"
 tauri-plugin-log = "2"
 tauri-plugin-sql = { version = "2", features = ["postgres"] }
 tauri-plugin-http = { version = "2", features = ["unsafe-headers"] }
-tauri-plugin-devtools = "2.0.0"
-libc = "0.2.178"
+libc = "0.2.179"
+tauri-plugin-os = "2.3.2"
+machine-uid = "0.5.4"
+uuid = "1.19.0"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-autostart = "2"
-tauri-plugin-cli = "2"
+tauri-plugin-autostart       = "2"
+tauri-plugin-cli             = "2"
 tauri-plugin-global-shortcut = "2"
-tauri-plugin-positioner = { version = "2.0.0", features = ["tray-icon"] }
+tauri-plugin-positioner      = { version = "2.0.0", features = ["tray-icon"] }
+tauri-plugin-single-instance = "2"

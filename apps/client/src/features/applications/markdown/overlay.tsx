@@ -38,7 +38,8 @@ import {
   EditorContent as ComposerMarkdown,
   useEditor as useComposer,
   EditorContext as ComposerContext,
-  type AnyExtension
+  type AnyExtension,
+  type DocumentType
   // useEditorState as useComposerValue
 } from '@tiptap/react'
 
@@ -169,7 +170,17 @@ export default function Overlay() {
     {
       immediatelyRender: false,
       extensions,
-      content: ''
+      content: '',
+      onUpdate(props) {
+        const json = props.editor.getJSON()
+        const html = props.editor.getHTML()
+        // const text = props.editor.getText()
+        console.log('props', props)
+        console.log('getJSON', json)
+        console.log('getHTML', html)
+
+        // console.log('getText', text)
+      }
       // content: marked.parse(
       //   MARKDOWN.concat(
       //     '<img src="https://picsum.photos/200/300" alt="Image" data-align="center" />'

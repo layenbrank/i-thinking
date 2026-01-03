@@ -11,7 +11,16 @@ import {
 import { fetch } from '@tauri-apps/plugin-http'
 
 const http = new HttpClient(
-  withFetch(fetch),
+  withFetch(
+    fetch.bind(null, '', {
+      proxy: {
+        http: {
+          url: import.meta.env.VITE_INTELLIGENCE,
+          noProxy: 'tauri.localhost'
+        }
+      }
+    })
+  ),
   withInterceptors([urlInterceptor, cacheInterceptor])
 )
 

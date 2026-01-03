@@ -267,7 +267,8 @@ const messageSlice: SliceCreator<MessageSlice> = function (setters, getters) {
         function (prev) {
           // 插入消息（追加到末尾，不排序）
           // 注意：排序由 toUpdateMessages 从数据库同步时处理，避免重复排序导致无限循环
-          prev.messages = [...prev.messages, ...values]
+          // prev.messages = [...prev.messages, ...values]
+          prev.messages = prev.messages.concat(values)
           // .toSorted(function (a, b) {
           //   return a.updatedAt - b.updatedAt // 正序：最早的在前
           // })

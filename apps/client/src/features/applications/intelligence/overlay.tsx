@@ -185,8 +185,7 @@ export default function Overlay() {
               <UserOutlined />
             ) : (
               <RobotOutlined style={{ color: '#1677ff' }} />
-            ),
-          loading: done.current && !thinking
+            )
         }
         return entry
       })
@@ -377,7 +376,8 @@ export default function Overlay() {
         })
 
       // 使用函数式更新添加用户消息和空的助手消息
-      await store.getState().toInsertMessage([personal, assistant])
+      await store.getState().toInsertMessage([personal])
+      await store.getState().toInsertMessage([assistant])
       done.current = false
       const generators = GeneratorJSON(
         POST_COMMUNICATE.bind(null, {

@@ -1,10 +1,10 @@
 use crate::utils::invoke;
-use tauri::{generate_context, generate_handler};
 pub struct Bootstrap;
+use tauri::{AppHandle, Manager};
 
 impl Bootstrap {
     pub fn run() {
-        let mut builder = tauri::Builder::default();
+        let builder = tauri::Builder::default();
 
         builder
             // 核心插件
@@ -16,6 +16,13 @@ impl Bootstrap {
             .plugin(tauri_plugin_shell::init())
             .plugin(tauri_plugin_http::init())
             .plugin(tauri_plugin_websocket::init())
+            .plugin(tauri_plugin_os::init())
+            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+                let _ = app
+                    .get_webview_window("main")
+                    .expect("no main window")
+                    .set_focus();
+            }))
             // UI 插件
             .plugin(tauri_plugin_notification::init())
             .plugin(tauri_plugin_positioner::init())
@@ -24,12 +31,12 @@ impl Bootstrap {
             .plugin(tauri_plugin_clipboard_manager::init())
             .plugin(tauri_plugin_global_shortcut::Builder::default().build())
             // invoke
-            .invoke_handler(generate_handler![invoke::greet, invoke::os])
+            .invoke_handler(tauri::generate_handler![invoke::greet, invoke::os])
             .setup(move |app| {
-                let handle = app.handle();
+                let _handle = app.handle();
                 Ok(())
             })
-            .run(generate_context!())
+            .run(tauri::generate_context!())
             .expect("error while running application");
     }
 }

@@ -1,12 +1,11 @@
 use crate::utils::scan::{self, OSContext};
-use tauri::command;
 
-#[command]
+#[tauri::command]
 pub fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-#[command]
+#[tauri::command]
 pub fn os() -> OSContext {
     scan::Scan::os()
 }

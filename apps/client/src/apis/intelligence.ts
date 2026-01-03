@@ -1,4 +1,4 @@
-import { fetch } from '@tauri-apps/plugin-http'
+// import { fetch } from '@tauri-apps/plugin-http'
 
 import { http } from '@/utils/http/http.ts'
 import { INTELLIGENCE_TOKEN } from '@/utils/http/token.ts'
