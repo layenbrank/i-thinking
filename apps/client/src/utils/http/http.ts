@@ -1,6 +1,5 @@
-import { cacheInterceptor } from '@/utils/http/cache.ts'
-import { ENV_TOKEN } from '@/utils/http/token.ts'
-import { urlInterceptor } from '@/utils/http/url.ts'
+import { fetch } from '@tauri-apps/plugin-http'
+
 import {
   HttpClient,
   HttpContext,
@@ -8,18 +7,21 @@ import {
   withInterceptors
 } from '@ngify/http'
 
-import { fetch } from '@tauri-apps/plugin-http'
+import { cacheInterceptor } from '@/utils/http/cache.ts'
+import { ENV_TOKEN } from '@/utils/http/token.ts'
+import { urlInterceptor } from '@/utils/http/url.ts'
 
 const http = new HttpClient(
   withFetch(
-    fetch.bind(null, '', {
-      proxy: {
-        http: {
-          url: import.meta.env.VITE_INTELLIGENCE,
-          noProxy: 'tauri.localhost'
-        }
-      }
-    })
+    fetch
+    // fetch.bind(null, '', {
+    //   proxy: {
+    //     http: {
+    //       url: import.meta.env.VITE_INTELLIGENCE
+    //       // noProxy: 'tauri.localhost'
+    //     }
+    //   }
+    // })
   ),
   withInterceptors([urlInterceptor, cacheInterceptor])
 )

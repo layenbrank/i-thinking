@@ -181,6 +181,12 @@
     {
       "allow": [
         {
+          "url": "https://*.tauri.app"
+        },
+        {
+          "url": "https://private.tauri.app"
+        },
+        {
           "url": "http://**"
         },
         {

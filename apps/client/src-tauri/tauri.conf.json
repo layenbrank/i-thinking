@@ -14,43 +14,41 @@
         ]
       },
       "csp": {
-        "connect-src": "*",
-        "default-src": "*",
         "font-src": "*",
         "frame-src": "*",
-        "img-src": "*",
-        "script-src": "* 'unsafe-inline' 'unsafe-eval'",
-        "style-src": "'self' 'unsafe-inline'"
+        "default-src": "* 'self' blob: data: filesystem: ws: wss: tauri: 'unsafe-eval' 'unsafe-inline' http://localhost:11434",
+        "connect-src": "* ipc: http://ipc.localhost https://api.yourdomain.com http://localhost:11434 data: *",
+        "img-src": "* 'self' blob: data: asset: https://*",
+        "style-src": "'unsafe-inline' 'self' https://fonts.googleapis.com",
+        "script-src": "* 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net"
       },
       "devCsp": {
-        "connect-src": "*",
         "default-src": "*",
+        "connect-src": "*",
+        "img-src": "*",
+        "style-src": "*",
+        "script-src": "*",
         "font-src": "*",
         "frame-src": "*",
-        "img-src": "*",
-        "script-src": "* 'unsafe-inline' 'unsafe-eval'",
-        "style-src": "'self' 'unsafe-inline'"
+        "media-src": "*",
+        "object-src": "*",
+        "base-uri": "*",
+        "form-action": "*"
       },
       "headers": {
-        "Access-Control-Expose-Headers": "Tauri-Custom-Header",
         "Cross-Origin-Opener-Policy": "same-origin",
         "Cross-Origin-Embedder-Policy": "require-corp",
         "Access-Control-Allow-Methods": "*",
         "Access-Control-Allow-Credentials": "true",
         "Cross-Origin-Resource-Policy": "cross-origin",
         "Access-Control-Allow-Headers": "*",
-        "Tauri-Custom-Header": {
-          "thinking": "'value1' 'value2'",
-          "key2": "'value3'"
-        },
         "Timing-Allow-Origin": [
           "*",
           "https://*",
           "http://*",
           "https://developer.mozilla.org",
           "https://example.com"
-        ],
-        "X-Content-Type-Options": null
+        ]
       }
     },
     "windows": [
@@ -85,6 +83,16 @@
         "windowEffects": {
           "effects": ["micaLight", "mica", "micaDark", "acrylic"]
         }
+      },
+      {
+        "label": "secondary",
+        "theme": "Light",
+        "shadow": true,
+        "create": false,
+        "resizable": true,
+        "maximizable": true,
+        "minimizable": true,
+        "maximized": false
       }
     ],
     "withGlobalTauri": true

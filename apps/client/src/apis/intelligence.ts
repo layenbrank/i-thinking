@@ -1,4 +1,4 @@
-// import { fetch } from '@tauri-apps/plugin-http'
+import { fetch } from '@tauri-apps/plugin-http'
 
 import { http } from '@/utils/http/http.ts'
 import { INTELLIGENCE_TOKEN } from '@/utils/http/token.ts'
@@ -9,11 +9,13 @@ type CommunicateResponse = Application.Intelligence.Communicate.Response
 
 // SSE server sent events
 export function POST_COMMUNICATE(data: CommunicateParams) {
+  const token = 'b38cf8b7ca1e4bb18b00893d66093c00.WgxFSgb9H0u4CdE0twgqsqNB'
   return fetch(`${ENVURL.intelligence}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Accept: 'application/x-ndjson'
+      Accept: 'application/x-ndjson',
+      Authorization: `Bearer ${token}`
       // Accept: 'text/event-stream'
     },
     signal: AbortSignal.timeout(1000 * 60 * 10), // 10分钟超时
