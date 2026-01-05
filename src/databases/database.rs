@@ -11,7 +11,7 @@ pub struct Storage {
 impl Storage {
     pub async fn new(uri: &str) -> Result<Self> {
         let client = Client::with_uri_str(uri).await?;
-        let database = client.database("layen");
+        let database = client.database("i-thinking");
 
         client
             .database("admin")
@@ -38,4 +38,8 @@ impl Storage {
     pub fn markdown(&self) -> Collection<markdown::schema::MarkdownSchema> {
         self.database.collection("markdown")
     }
+
+    // pub fn application(&self)->Collection<> {
+
+    // }
 }

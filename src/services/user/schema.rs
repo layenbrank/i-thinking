@@ -10,15 +10,9 @@ pub struct User {
     pub password: String,
     pub email: Option<String>,
     pub age: Option<u32>,
-    #[serde(
-        serialize_with = "to_ts",
-        deserialize_with = "from_ts"
-    )]
+    #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
     pub created_at: mongodb::bson::DateTime,
-    #[serde(
-        serialize_with = "to_ts",
-        deserialize_with = "from_ts"
-    )]
+    #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
     pub updated_at: mongodb::bson::DateTime,
     // pub role: Option<String>,
 }
@@ -37,10 +31,7 @@ pub struct UpdateUser {
     pub password: Option<String>,
     pub email: Option<String>,
     pub age: Option<u32>,
-    #[serde(
-        serialize_with = "to_ts",
-        deserialize_with = "from_ts"
-    )]
+    #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
     pub updated_at: mongodb::bson::DateTime,
 }
 
@@ -51,15 +42,9 @@ pub struct UserResponse {
     pub username: String,
     pub email: Option<String>,
     pub age: Option<u32>,
-    #[serde(
-        serialize_with = "to_ts",
-        deserialize_with = "from_ts"
-    )]
+    #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
     pub created_at: mongodb::bson::DateTime,
-    #[serde(
-        serialize_with = "to_ts",
-        deserialize_with = "from_ts"
-    )]
+    #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
     pub updated_at: mongodb::bson::DateTime,
 }
 

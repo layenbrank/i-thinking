@@ -3,9 +3,9 @@ use crate::databases::database::Storage;
 use crate::services::auth::schema::{SigninRequest, SignupRequest};
 use crate::services::auth::service::AuthService;
 use crate::utils::response::{ApiErrorResponse, ApiResponse};
-use actix_web::web;
 use actix_web::HttpResponse;
 use actix_web::Result;
+use actix_web::web;
 use std::sync::Arc;
 
 pub struct AuthController;

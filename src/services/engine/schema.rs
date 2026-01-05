@@ -7,7 +7,7 @@ pub enum TSchema {
     LT,
     MT,
     SC,
-    CT, // 添加 CT 变体以支持 API 返回的所有类型
+    CT,
     UT,
     PN,
     MB,

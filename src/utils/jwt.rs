@@ -1,13 +1,13 @@
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,        // 用户 ID (subject)
-    pub username: String,   // 用户名
-    pub exp: i64,           // 过期时间 (expiration time)
-    pub iat: i64,           // 签发时间 (issued at)
+    pub sub: String,      // 用户 ID (subject)
+    pub username: String, // 用户名
+    pub exp: i64,         // 过期时间 (expiration time)
+    pub iat: i64,         // 签发时间 (issued at)
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -49,8 +49,7 @@ pub fn generate_token(
     let header = Header::default();
     let encoding_key = EncodingKey::from_secret(secret.as_ref());
 
-    encode(&header, &claims, &encoding_key)
-        .map_err(|e| JwtError::EncodingError(e.to_string()))
+    encode(&header, &claims, &encoding_key).map_err(|e| JwtError::EncodingError(e.to_string()))
 }
 
 /// 验证 JWT token

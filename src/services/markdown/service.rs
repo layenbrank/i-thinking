@@ -4,26 +4,26 @@ use actix_web::Result;
 pub struct MarkdownService;
 
 impl MarkdownService {
-    pub fn toRead(storage: &Storage) -> Result<MarkdownSchema> {
+    pub fn read(storage: &Storage) -> Result<MarkdownSchema> {
         // storage.markdown()
         Ok(MarkdownSchema {
             id: String::from(""),
             content: String::from(""),
         })
     }
-    pub fn toInsert() -> Result<MarkdownSchema> {
+    pub fn insert() -> Result<MarkdownSchema> {
         Ok(MarkdownSchema {
             id: String::from(""),
             content: String::from(""),
         })
     }
-    pub fn toUpdate() -> Result<MarkdownSchema> {
+    pub fn update() -> Result<MarkdownSchema> {
         Ok(MarkdownSchema {
             id: String::from(""),
             content: String::from(""),
         })
     }
-    pub fn toRemove() -> Result<MarkdownSchema> {
+    pub fn remove() -> Result<MarkdownSchema> {
         Ok(MarkdownSchema {
             id: String::from(""),
             content: String::from(""),

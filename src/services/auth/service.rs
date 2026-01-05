@@ -3,10 +3,10 @@ use crate::databases::database;
 use crate::services::auth::schema::{
     AuthUser, SigninRequest, SigninResponse, SignupRequest, SignupResponse,
 };
-use crate::utils::encryption::{encrypt_password, verify_password, EncryptionError};
-use crate::utils::jwt::{generate_token, JwtError};
+use crate::utils::encryption::{EncryptionError, encrypt_password, verify_password};
+use crate::utils::jwt::{JwtError, generate_token};
 use crate::utils::response::{ApiErrorResponse, business};
-use mongodb::bson::{doc, DateTime};
+use mongodb::bson::{DateTime, doc};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
@@ -36,15 +36,18 @@ impl From<AuthError> for ApiErrorResponse {
             AuthError::InvalidPassword => {
                 ApiErrorResponse::custom(business::login::INVALID_CREDENTIALS, "用户名或密码错误")
             }
-            AuthError::EncryptionError(e) => {
-                ApiErrorResponse::custom(business::login::INVALID_CREDENTIALS, format!("加密错误: {}", e))
-            }
-            AuthError::JwtError(e) => {
-                ApiErrorResponse::custom(business::login::INVALID_CREDENTIALS, format!("JWT错误: {}", e))
-            }
-            AuthError::DatabaseError(e) => {
-                ApiErrorResponse::custom(business::login::INVALID_CREDENTIALS, format!("数据库错误: {}", e))
-            }
+            AuthError::EncryptionError(e) => ApiErrorResponse::custom(
+                business::login::INVALID_CREDENTIALS,
+                format!("加密错误: {}", e),
+            ),
+            AuthError::JwtError(e) => ApiErrorResponse::custom(
+                business::login::INVALID_CREDENTIALS,
+                format!("JWT错误: {}", e),
+            ),
+            AuthError::DatabaseError(e) => ApiErrorResponse::custom(
+                business::login::INVALID_CREDENTIALS,
+                format!("数据库错误: {}", e),
+            ),
         }
     }
 }
@@ -52,7 +55,6 @@ impl From<AuthError> for ApiErrorResponse {
 pub struct AuthService;
 
 impl AuthService {
-
     /// 用户登录
     pub async fn signin(
         db: &database::Storage,
@@ -92,7 +94,6 @@ impl AuthService {
         })
     }
 
-
     /// 用户注册
     pub async fn signup(
         db: &database::Storage,
@@ -111,11 +112,8 @@ impl AuthService {
         }
 
         // 加密密码
-        let encrypted_password = encrypt_password(
-            &req.password,
-            &config.encryption,
-            config.aes_key.as_deref(),
-        )?;
+        let encrypted_password =
+            encrypt_password(&req.password, &config.encryption, config.aes_key.as_deref())?;
 
         // 创建用户
         let now = DateTime::now().timestamp_millis();
@@ -135,10 +133,9 @@ impl AuthService {
             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
 
         // 获取插入的用户 ID
-        let inserted_id = result
-            .inserted_id
-            .as_object_id()
-            .ok_or_else(|| AuthError::DatabaseError("Failed to get inserted ID".to_string()))?;
+        let inserted_id = result.inserted_id.as_object_id().ok_or_else(|| {
+            AuthError::DatabaseError("Failed to POST-SIGNIN.HTTP inserted ID".to_string())
+        })?;
 
         let user_id = inserted_id.to_hex();
 
@@ -154,6 +151,4 @@ impl AuthService {
             user: user_with_id.into(),
         })
     }
-
-
 }

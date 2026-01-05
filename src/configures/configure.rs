@@ -29,8 +29,7 @@ pub struct Configure {
 
 impl Configure {
     pub fn from_env() -> Result<Self, env::VarError> {
-        let encryption = env::var("ENCRYPTION")
-            .unwrap_or_else(|_| "argon2".to_string());
+        let encryption = env::var("ENCRYPTION").unwrap_or_else(|_| "argon2".to_string());
 
         let aes_key = if encryption.to_lowercase() == "aes" {
             Some(env::var("AES_KEY")?)
@@ -53,8 +52,9 @@ impl Configure {
 
             encryption: Encryption::from_str(&encryption),
 
-            jwt_secret: env::var("JWT_SECRET")
-                .unwrap_or_else(|_| "your-secret-key-should-be-at-least-32-characters-long".to_string()),
+            jwt_secret: env::var("JWT_SECRET").unwrap_or_else(|_| {
+                "your-secret-key-should-be-at-least-32-characters-long".to_string()
+            }),
 
             aes_key,
         })

@@ -39,7 +39,11 @@ impl UserService {
         let mut inserted = user;
         inserted.id = Some(match resp.inserted_id.as_object_id() {
             Some(id) => id,
-            None => return Err(error::ErrorInternalServerError("Failed to get inserted ID")),
+            None => {
+                return Err(error::ErrorInternalServerError(
+                    "Failed to POST-SIGNIN.HTTP inserted ID",
+                ));
+            }
         });
 
         Ok(inserted)
