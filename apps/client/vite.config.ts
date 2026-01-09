@@ -357,7 +357,9 @@ export default defineConfig(function ({
 }: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
   const interfaces = networkInterfaces()
+  const LOOPBACK = '0.0.0.0'
   let IP = 'localhost'
+  const PORT = 5173
 
   for (const inter of Object.keys(interfaces)) {
     const collection = interfaces[inter]
@@ -369,7 +371,7 @@ export default defineConfig(function ({
       IP = single.address
     }
   }
-  console.log('IP ===>', IP)
+  console.log('IP ===>', `http://${IP}:${PORT}`)
   return {
     plugins: [
       React({
@@ -521,10 +523,10 @@ export default defineConfig(function ({
     clearScreen: false,
     // 2. tauri expects a fixed port, fail if that port is not available
     server: {
-      port: 5173,
+      port: PORT,
       strictPort: true,
-      host: IP || false,
-      hmr: IP
+      host: LOOPBACK || false,
+      hmr: LOOPBACK
         ? {
             protocol: 'ws',
             host: IP,

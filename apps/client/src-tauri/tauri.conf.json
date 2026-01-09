@@ -101,7 +101,7 @@
   "build": {
     "beforeBuildCommand": "pnpm build:core",
     "beforeDevCommand": "pnpm dev:core",
-    "devUrl": "http://192.168.0.4:5173",
+    "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
   },
   "bundle": {
