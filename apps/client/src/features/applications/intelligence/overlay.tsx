@@ -16,6 +16,7 @@ import {
   UserOutlined,
   WarningOutlined
 } from '@ant-design/icons'
+import { v4 as UUIDV4 } from 'uuid'
 import {
   Bubble,
   CodeHighlighter,
@@ -345,7 +346,8 @@ export default function Overlay() {
 
       // 创建用户消息
       const personal: AiMessage = {
-        id: crypto.randomUUID(),
+        // id: crypto.randomUUID(),
+        id: UUIDV4(),
         sessionID: session$.value?.id,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -356,7 +358,7 @@ export default function Overlay() {
 
       // 创建助手消息（初始为空）
       const assistant: AiMessage = {
-        id: crypto.randomUUID(),
+        id: UUIDV4(),
         sessionID: session$.value?.id,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -477,7 +479,7 @@ export default function Overlay() {
   }
 
   async function handleInsertSession() {
-    const sessionID = crypto.randomUUID()
+    const sessionID = UUIDV4()
     const session: AiSession = {
       id: sessionID,
       title: '新对话' + (sessions.length + 1),

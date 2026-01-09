@@ -10,13 +10,19 @@ type CommunicateResponse = Application.Intelligence.Communicate.Response
 // SSE server sent events
 export function POST_COMMUNICATE(data: CommunicateParams) {
   const token = 'b38cf8b7ca1e4bb18b00893d66093c00.WgxFSgb9H0u4CdE0twgqsqNB'
-  return fetch(`${ENVURL.intelligence}/chat`, {
+  // return fetch(`${ENVURL.intelligence}/chat`, {
+  return fetch(`/api/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/x-ndjson',
       Authorization: `Bearer ${token}`
       // Accept: 'text/event-stream'
+    },
+    proxy: {
+      all: {
+        url: 'http://localhost:11434'
+      }
     },
     signal: AbortSignal.timeout(1000 * 60 * 10), // 10分钟超时
     body: JSON.stringify(data)

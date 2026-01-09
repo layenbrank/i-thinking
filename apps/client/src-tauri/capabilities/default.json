@@ -152,15 +152,63 @@
     "sql:allow-load",
     "sql:allow-close",
     "sql:allow-select",
-    "http:allow-fetch-send",
-    "http:allow-fetch-read-body",
-    "http:allow-fetch-cancel",
     "autostart:allow-enable",
     "autostart:allow-disable",
     "autostart:allow-is-enabled",
     "core:app:allow-app-hide",
     "core:app:allow-app-show",
     "core:app:allow-set-app-theme",
+    {
+      "identifier":"http:allow-fetch-send",
+      "allow": [
+          {
+          "url": "http://**"
+        },
+        {
+          "url": "https://**"
+        },
+        {
+          "url": "http://*:*"
+        },
+        {
+          "url": "https://*:*"
+        }
+      ]
+    },
+    {
+      "identifier":"http:allow-fetch-read-body",
+      "allow": [
+          {
+          "url": "http://**"
+        },
+        {
+          "url": "https://**"
+        },
+        {
+          "url": "http://*:*"
+        },
+        {
+          "url": "https://*:*"
+        }
+      ]
+    },
+    {
+      "identifier":"http:allow-fetch-cancel",
+      "allow": [
+          {
+          "url": "http://**"
+        },
+        {
+          "url": "https://**"
+        },
+        {
+          "url": "http://*:*"
+        },
+        {
+          "url": "https://*:*"
+        }
+      ]
+    },
     {
       "identifier": "http:allow-fetch",
       "allow": [

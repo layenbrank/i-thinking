@@ -1,5 +1,6 @@
 import { Icon } from '@iconify/react'
 import { clsx } from 'clsx'
+import { v4 as UUIDV4 } from 'uuid'
 import {
   closestCenter,
   DndContext,
@@ -52,7 +53,8 @@ const URLS: { value: string; label: string }[] = [
 
 const APPLICATIONS: Application[] = URLS.map(function (value, index) {
   const application: Application = {
-    id: window.crypto.randomUUID() as string,
+    // id: window.crypto.randomUUID() as string,
+    id: UUIDV4(),
     url: value.value,
     mark: null,
     title: value.label,

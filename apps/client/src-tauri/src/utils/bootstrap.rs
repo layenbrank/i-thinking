@@ -17,12 +17,12 @@ impl Bootstrap {
             .plugin(tauri_plugin_http::init())
             .plugin(tauri_plugin_websocket::init())
             .plugin(tauri_plugin_os::init())
-            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-                let _ = app
-                    .get_webview_window("main")
-                    .expect("no main window")
-                    .set_focus();
-            }))
+            // .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            //     let _ = app
+            //         .get_webview_window("main")
+            //         .expect("no main window")
+            //         .set_focus();
+            // }))
             // UI 插件
             .plugin(tauri_plugin_notification::init())
             .plugin(tauri_plugin_positioner::init())

@@ -10,7 +10,8 @@
           "https://*",
           "http://*",
           "https://www.baidu.com",
-          "http://localhost:5173"
+          "http://localhost:5173",
+          "http://192.168.0.4:5173"
         ]
       },
       "csp": {
@@ -100,7 +101,7 @@
   "build": {
     "beforeBuildCommand": "pnpm build:core",
     "beforeDevCommand": "pnpm dev:core",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://192.168.0.4:5173",
     "frontendDist": "../dist"
   },
   "bundle": {

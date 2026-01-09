@@ -1,3 +1,4 @@
+import { v4 as UUIDV4 } from 'uuid'
 import { generateColor } from '@/utils/generate.ts'
 
 interface ApplicationOptions {
@@ -73,7 +74,7 @@ interface MirrorOptions {
 }
 
 function BuildMirror(options?: MirrorOptions) {
-  const MIRROR_ID = options?.mirrorID ?? window.crypto.randomUUID()
+  const MIRROR_ID = options?.mirrorID ?? crypto?.randomUUID?.() ?? UUIDV4()
 
   const MIRRORS: readonly Mirror[] = Array.from({ length: 1 }).map(function () {
     const mirror: Mirror = {
@@ -102,7 +103,7 @@ function BuildMirror(options?: MirrorOptions) {
   const APPLICATIONS: readonly Application[] = OPTIONS.map(
     function (value, index) {
       const application: Application = {
-        id: window.crypto.randomUUID() as string,
+        id: (crypto?.randomUUID?.() as string) || UUIDV4(),
         url: null,
         mark: null,
         title: value.label,

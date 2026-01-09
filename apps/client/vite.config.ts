@@ -1,10 +1,11 @@
 import React from '@vitejs/plugin-react'
 import { findUpSync } from 'find-up'
 import { createWriteStream } from 'node:fs'
-import { dirname, resolve, basename } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
+// 获取 本地网络IP地址
+import { networkInterfaces } from 'node:os'
 import AutoImport from 'unplugin-auto-import/vite'
-import { FileSystemIconLoader } from 'unplugin-icons/loaders'
 import Icons from 'unplugin-icons/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
@@ -16,9 +17,11 @@ const ws = createWriteStream(resolve(__dirname, 'chunks.log'), {
   encoding: 'utf-8'
 })
 
-const host = process.env.TAURI_DEV_HOST
+// const host = process.env.TAURI_DEV_HOST
+// const host = 'localhost'
+// const host = '192.168.0.4'
 
-console.log('host ===>', host)
+// console.log('host ===>', host)
 
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
 const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
@@ -353,7 +356,20 @@ export default defineConfig(function ({
   command
 }: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
+  const interfaces = networkInterfaces()
+  let IP = 'localhost'
 
+  for (const inter of Object.keys(interfaces)) {
+    const collection = interfaces[inter]
+    if (!collection) continue
+    for (const single of collection) {
+      if (inter !== 'WLAN') continue
+      if (single.family !== 'IPv4') continue
+      if (single.internal) continue
+      IP = single.address
+    }
+  }
+  console.log('IP ===>', IP)
   return {
     plugins: [
       React({
@@ -507,11 +523,11 @@ export default defineConfig(function ({
     server: {
       port: 5173,
       strictPort: true,
-      host: host || false,
-      hmr: host
+      host: IP || false,
+      hmr: IP
         ? {
             protocol: 'ws',
-            host,
+            host: IP,
             port: 1421
           }
         : undefined,

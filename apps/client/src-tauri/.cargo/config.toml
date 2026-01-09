@@ -1,6 +1,6 @@
 [build]
 target-dir    = "target"  # 构建输出目录
-rustc-wrapper = "sccache" # 替换为 sccache 实际路径
+rustc-wrapper = "" # 替换为 sccache 实际路径
 incremental   = true
 
 # [source]
