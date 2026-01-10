@@ -16,13 +16,13 @@ export default function Code(props: SectionProps) {
 
   return (
     <Application.Section
-      onTrash={onTrash}
       {...props}
+      onTrash={onTrash}
       className={clsx(styles.code)}>
       <Marker
         size={props.size}
-        direction={props.direction}
         shape={props.shape}
+        direction={props.direction}
       />
       <Overlay />
     </Application.Section>

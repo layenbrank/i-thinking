@@ -101,22 +101,22 @@ function BuildMirror(options?: MirrorOptions) {
   })
 
   const APPLICATIONS: readonly Application[] = OPTIONS.map(
-    function (value, index) {
+    function (single, index) {
       const application: Application = {
-        id: (crypto?.randomUUID?.() as string) || UUIDV4(),
-        url: null,
+        id: crypto?.randomUUID?.(),
+        url: single.value === 'navigation' ? 'https://cn.bing.com' : null,
         mark: null,
-        title: value.label,
+        title: single.label,
         index: index,
         round: '12px',
         mirrorID: MIRROR_ID,
         textSize: '13px',
         backdrop: null,
-        component: value.value,
+        component: single.value,
         textColor: '#ffffff',
         updatedAt: Date.now(),
         createdAt: Date.now(),
-        description: value.label,
+        description: single.label,
         collectionID: null,
         downloadCount: 1000,
         background: {

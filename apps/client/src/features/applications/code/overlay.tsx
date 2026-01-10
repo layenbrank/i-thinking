@@ -112,10 +112,12 @@ export default function Overlay() {
       if (!section) return (raf = requestAnimationFrame(tryReady))
 
       // 关键：Modal 动画阶段可能尺寸为 0
-      if (section.clientWidth === 0) {
+      const clientWidth = section.clientWidth
+      const clientHeight = section.clientHeight
+      if (clientWidth === 0) {
         return (raf = requestAnimationFrame(tryReady))
       }
-      if (section.clientHeight === 0) {
+      if (clientHeight === 0) {
         return (raf = requestAnimationFrame(tryReady))
       }
 

@@ -50,6 +50,7 @@ const MirrorPlugin: Plugin = {
       .pipe(
         switchMap(function (mirror) {
           const mirrorID = mirror?.id ?? ''
+          console.log('同步镜像应用，当前镜像ID：', mirrorID)
           if (!mirrorID) return from(Promise.resolve([]))
 
           return from(
@@ -65,9 +66,13 @@ const MirrorPlugin: Plugin = {
           )
         }),
         tap(function (applications) {
+          if (!mirror$.value) return
+          console.log('mirror$', mirror$.value)
+          console.log('applications', applications)
           if (isEmpty(applications)) {
-            void database.application.bulkAdd(APPLICATIONS)
+            return database.application.bulkAdd(APPLICATIONS)
           }
+
           store.getState().toUpdateApplications(applications)
           const [application] = applications
           if (!application$.value) {

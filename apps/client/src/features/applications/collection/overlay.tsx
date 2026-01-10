@@ -19,7 +19,10 @@ import {
 } from '@dnd-kit/sortable'
 import { useLiveQuery } from 'dexie-react-hooks'
 
-import { Application } from '@/features/application/application.tsx'
+import {
+  Application,
+  OverlayContext
+} from '@/features/application/application.tsx'
 import styles from '@/features/applications/collection/overlay.module.scss'
 import { database } from '@/databases/database.ts'
 import { OverlayDrawer } from './drawer.tsx'
@@ -102,7 +105,8 @@ export default function Overlay(props: Props) {
     APPLICATIONS
   )
 
-  const [visible, onUpdateVisible] = useState(false)
+  const { visible, onUpdateVisible } = useContext(OverlayContext)
+  const [drawerVisible, onUpdateDrawerVisible] = useState(false)
 
   // const applications = useLiveQuery<Application[], Application[]>(
   // 	function () {
@@ -201,8 +205,8 @@ export default function Overlay(props: Props) {
 
       <OverlayDrawer
         id={props.id}
-        visible={visible}
-        onUpdateVisible={onUpdateVisible}></OverlayDrawer>
+        visible={drawerVisible}
+        onUpdateVisible={onUpdateDrawerVisible}></OverlayDrawer>
     </Application.Overlay>
   )
 }

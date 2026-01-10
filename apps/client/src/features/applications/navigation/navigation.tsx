@@ -64,13 +64,14 @@ export default function Navigation(props: NavigationProps) {
         visible: true,
         decorations: true,
         devtools: true,
-        skipTaskbar: false
+        skipTaskbar: false,
+        contentProtected: false,
+        allowLinkPreview: true
       })
 
       // 监听窗口创建成功事件
       void webview.once('tauri://created', async function () {
         console.log('Webview created successfully')
-        message.success('Webview created successfully')
 
         try {
           // 确保窗口显示并聚焦

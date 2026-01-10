@@ -37,8 +37,8 @@
         "form-action": "*"
       },
       "headers": {
-        "Cross-Origin-Opener-Policy": "same-origin",
-        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Opener-Policy": null,
+        "Cross-Origin-Embedder-Policy": null,
         "Access-Control-Allow-Methods": "*",
         "Access-Control-Allow-Credentials": "true",
         "Cross-Origin-Resource-Policy": "cross-origin",
