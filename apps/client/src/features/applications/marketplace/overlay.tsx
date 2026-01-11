@@ -3,6 +3,11 @@ import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
 import { downloadDir } from '@tauri-apps/api/path'
 import { BaseDirectory, create } from '@tauri-apps/plugin-fs'
 import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification
+} from '@tauri-apps/plugin-notification'
+import {
   Button,
   Card,
   Col,
@@ -77,6 +82,7 @@ const customPanelRender: ColorPickerProps['panelRender'] = (
 
 export default function Overlay() {
   const { token } = theme.useToken()
+
   const { visible, onUpdateVisible } = useContext(OverlayContext)
   // const { visible, updateVisible, mounted } = useContext(OverlayContext)
   const DEFAULT_COLORS = genPresets({
@@ -131,32 +137,54 @@ export default function Overlay() {
       .orderBy('index')
       .toArray()
       .then(async function (applications) {
-        const stringify = JSON.stringify(applications, null, 2) // Convert applications to JSON string
-        const now = timeSphere.now()
-        const formatted = now.format('YYYY-MM-DD-HH-mm-ss')
-        const filename = `applications-${formatted}.json`
-        const download = await downloadDir()
-        console.log('download', download)
-        console.log(
-          'BaseDirectory',
-          BaseDirectory,
-          '\nDownload',
-          BaseDirectory.Download
-        )
-        // stringify 转为 Uint8Array 并写入文件
-        const encoder = new TextEncoder()
-        const uint8 = encoder.encode(stringify)
-        console.log(
-          'filename',
-          filename,
-          '\nfilepath',
-          `${download}/${filename}`
-        )
-        const file = await create(filename, {
-          baseDir: BaseDirectory.Download
-        })
-        await file.write(uint8)
-        await file.close()
+        let permissionGranted = await isPermissionGranted()
+        if (!permissionGranted) {
+          const permission = await requestPermission()
+          permissionGranted = permission === 'granted'
+        }
+        try {
+          const stringify = JSON.stringify(applications, null, 2)
+          const now = timeSphere.now()
+          const formatted = now.format('YYYY-MM-DD-HH-mm-ss')
+          const filename = `applications-${formatted}.json`
+          const download = await downloadDir()
+          console.log('download', download)
+          console.log(
+            'BaseDirectory',
+            BaseDirectory,
+            '\nDownload',
+            BaseDirectory.Download
+          )
+          // stringify 转为 Uint8Array 并写入文件
+          const encoder = new TextEncoder()
+          const uint8 = encoder.encode(stringify)
+          console.log(
+            'filename',
+            filename,
+            '\nfilepath',
+            `${download}/${filename}`
+          )
+          const file = await create(filename, {
+            baseDir: BaseDirectory.Download
+          })
+          await file.write(uint8)
+          await file.close()
+          if (permissionGranted) {
+            sendNotification({
+              title: import.meta.env.VITE_APP_TITLE,
+              body: '导出成功'
+            })
+          }
+        } catch (error) {
+          if (permissionGranted) {
+            sendNotification({
+              icon: 'icons/icon.ico',
+              summary: (error as Error).message,
+              title: import.meta.env.VITE_APP_TITLE,
+              body: '导出失败'
+            })
+          }
+        }
       })
   }, [])
   const handleImport = useCallback(function (file: RcFile, entries: RcFile[]) {

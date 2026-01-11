@@ -35,6 +35,7 @@ const wasmRegex: Readonly<RegExp> = /\.wasm$/i
 const jsonRegex: Readonly<RegExp> = /\.json$/i
 const svgRegex: Readonly<RegExp> = /\.svg$/i
 const gifRegex: Readonly<RegExp> = /\.gif$/i
+const workerRegex: Readonly<RegExp> = /\.worker\.js$/i
 
 // 使用正则数组表示需要内联的文件类型
 const inlineRegexes: readonly RegExp[] = [gifRegex]
@@ -465,6 +466,7 @@ export default defineConfig(function ({
               if (videoRegex.test(name)) return `videos/${name}`
               if (audioRegex.test(name)) return `audios/${name}`
               if (wasmRegex.test(name)) return `wasm/${name}`
+              if (workerRegex.test(name)) return `workers/${name}`
             }
 
             return 'assets/[name].[ext]'
@@ -490,7 +492,15 @@ export default defineConfig(function ({
         }
       }
     },
-    envPrefix: ['VITE_', 'TAURI_'],
+    envPrefix: [
+      'VITE_',
+      'TAURI_PLATFORM',
+      'TAURI_ARCH',
+      'TAURI_FAMILY',
+      'TAURI_PLATFORM_VERSION',
+      'TAURI_PLATFORM_TYPE',
+      'TAURI_DEBUG'
+    ],
     envDir: resolve(fileURLToPath(new URL('.', import.meta.url))),
     css: {
       modules: {

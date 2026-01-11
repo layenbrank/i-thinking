@@ -79,9 +79,9 @@ const Application = {
   Marker(props: MarkerProps) {
     return (
       <div
+        style={props.style}
         onDoubleClick={props.onDoubleClick}
-        className={clsx(styles.marker, props.className)}
-        style={props.style}>
+        className={clsx(styles.marker, props.className)}>
         {props.children}
       </div>
     )

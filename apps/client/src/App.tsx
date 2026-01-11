@@ -6,10 +6,11 @@ import 'dayjs/locale/zh-cn'
 import { StrictMode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 
-import { MirrorPlugin } from '@/plugins/mirror.ts'
-import RouterView from '@/routers/routes.tsx'
 import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
 import { IntelligencePlugin } from '@/plugins/intelligence.ts'
+import { MirrorPlugin } from '@/plugins/mirror.ts'
+import { KeyCodePlugin } from '@/plugins/keycode.ts'
+import RouterView from '@/routers/routes.tsx'
 
 // import { POST_SIGNIN } from '@/apis/auth.ts'
 
@@ -41,7 +42,7 @@ const themeConfigure: ThemeConfig = {
   }
 }
 
-const plugins: Plugin[] = [MirrorPlugin, IntelligencePlugin]
+const plugins: Plugin[] = [MirrorPlugin, IntelligencePlugin, KeyCodePlugin]
 
 function App() {
   // useEffect(function () {
@@ -68,17 +69,17 @@ function App() {
   // 	})
 
   return (
-    <StrictMode>
+    // <StrictMode>
+    <PluginProvider plugins={plugins}>
       <XProvider
-        theme={themeConfigure}
-        locale={zhCN}>
+        locale={zhCN}
+        theme={themeConfigure}>
         <BrowserRouter>
-          <PluginProvider plugins={plugins}>
-            <RouterView />
-          </PluginProvider>
+          <RouterView />
         </BrowserRouter>
       </XProvider>
-    </StrictMode>
+    </PluginProvider>
+    // </StrictMode>
   )
 }
 

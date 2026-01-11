@@ -46,6 +46,9 @@ const Gallery = React.lazy(function () {
 const Signboard = React.lazy(function () {
   return import('@/features/applications/signboard/signboard.tsx')
 })
+const Screenshot = React.lazy(function () {
+  return import('@/features/applications/screenshot/screenshot.tsx')
+})
 
 const Reflection: Readonly<Application.Reflection> = {
   bookmark: Bookmark,
@@ -62,7 +65,8 @@ const Reflection: Readonly<Application.Reflection> = {
   clock: Clock,
   collection: Collection,
   gallery: Gallery,
-  signboard: Signboard
+  signboard: Signboard,
+  screenshot: Screenshot
 }
 
 export {
@@ -81,7 +85,8 @@ export {
   Navigation,
   Reflection,
   Settings,
-  Signboard
+  Signboard,
+  Screenshot
 }
 
 // const Applications = import.meta.glob<(props: ProviderProps) => JSX.Element>(

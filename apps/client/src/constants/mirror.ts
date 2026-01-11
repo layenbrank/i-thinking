@@ -66,6 +66,10 @@ const OPTIONS: ApplicationOptions[] = [
   {
     label: '看板',
     value: 'signboard'
+  },
+  {
+    label: '截屏',
+    value: 'screenshot'
   }
 ]
 

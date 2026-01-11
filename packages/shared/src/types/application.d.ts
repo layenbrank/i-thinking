@@ -42,6 +42,7 @@ declare namespace Application {
     | 'clock'
     | 'code' // 代码
     | 'gallery' // 图库
+    | 'screenshot' // 图库
     | 'example'
 
   interface Backdrop {

@@ -25,6 +25,7 @@ import { useMirrorStore } from '@/stores/mirror.ts'
 
 const Controller = {
   Mirror({ children }: { children: ReactNode }) {
+    // console.log('[Controller.Mirror] render')
     return (
       <div className={clsx(styles.controller, styles.mirror)}>{children}</div>
     )
@@ -32,7 +33,9 @@ const Controller = {
   Application() {
     const applications = useMirrorStore((state) => state.applications)
     const controller = useRef<HTMLDivElement>(null)
-
+    const size = 'mini'
+    const shape = 'rectangle'
+    const direction = 'horizontal'
     // 使用 react-use 监听 Control 键状态
     const [Control] = useKeyPress('Control')
 
@@ -48,9 +51,9 @@ const Controller = {
 
     const mouseSensor = useSensor(MouseSensor, {
       activationConstraint: {
-        tolerance: 10,
-        delay: 1000,
-        distance: 10 // 需要移动 10px 才激活拖拽，避免误触
+        delay: 50,
+        distance: 10, // 需要移动 10px 才激活拖拽，避免误触
+        tolerance: 10
       }
     })
 
@@ -126,10 +129,6 @@ const Controller = {
       }
       // 如果按下 Control 键且目标是排序容器内的其他项，不执行任何操作（禁用排序）
     }
-
-    const size = 'mini'
-    const shape = 'rectangle'
-    const direction = 'horizontal'
 
     // const mirrorEvent = useCallback(function () {
     // 	if (listen.current) return

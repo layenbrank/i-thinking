@@ -62,7 +62,7 @@
         "create": true,
         "decorations": true,
         "devtools": true,
-        "dragDropEnabled": false,
+        "dragDropEnabled": true,
         "focus": true,
         "fullscreen": false,
         "height": 800,
@@ -147,14 +147,21 @@
       "hardenedRuntime": true,
       "minimumSystemVersion": "10.13"
     },
-    "publisher": "Example Inc.",
-    "resources": {},
+    "publisher": "i thinking",
+    "resources": ["icons/"],
     "targets": "all",
     "windows": {
       "allowDowngrades": true,
       "certificateThumbprint": null,
       "digestAlgorithm": null,
-      "nsis": null,
+      "nsis": {
+        "compression": "lzma",
+        "displayLanguageSelector": true,
+        "installMode": "both",
+        "installerIcon": "icons/icon.ico",
+        "languages": ["SimpChinese", "English"],
+        "startMenuFolder": "i thinking"
+      },
       "signCommand": null,
       "timestampUrl": null,
       "tsp": false,

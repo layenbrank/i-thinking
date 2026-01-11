@@ -16,6 +16,7 @@ type EnvURL = 'thinking' | 'engine' | 'intelligence'
 
 interface Window {
   MediaStreamTrackProcessor: typeof MediaStreamTrackProcessor
+  __TAURI__: unknown
 }
 
 var MediaStreamTrackProcessor: {
