@@ -458,7 +458,7 @@ export default defineConfig(function ({
         return false
       },
       rollupOptions: {
-        maxParallelFileOps: 20,
+        maxParallelFileOps: 60,
         output: {
           entryFileNames: 'javascript/[name]-[hash].js',
           chunkFileNames: 'javascript/[name]-[hash].js',

@@ -3,7 +3,8 @@ import clsx from 'clsx'
 
 import {
   Application,
-  OverlayContext
+  OverlayContext,
+  type OverlayControlProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/calendar/overlay.module.scss'
 import { calendar, timeSphere } from '@i-thinking/core'
@@ -19,7 +20,7 @@ import type { Dayjs } from 'dayjs'
 
 // console.log(calendar.lunarDayInfo(now))
 
-export default function Overlay() {
+export default function Overlay(props: OverlayControlProps) {
   const { visible, onUpdateVisible } = useContext(OverlayContext)
 
   function findFestival(date: Dayjs) {
@@ -54,6 +55,9 @@ export default function Overlay() {
 
   return (
     <Application.Overlay
+      cache={props.cache}
+      onAbort={props.onAbort}
+      abortTimeoutMs={props.abortTimeoutMs}
       open={visible}
       className={clsx([styles.overlay, styles.root])}
       onOk={() => onUpdateVisible(false)}

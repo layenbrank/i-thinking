@@ -1,15 +1,26 @@
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'
+import { Suspense, lazy } from 'react'
 
 import {
   Application,
+  OverlayContext,
   type SectionProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/clipchamp/clipchamp.module.scss'
-import Marker from '@/features/applications/clipchamp/marker.tsx'
-import Overlay from '@/features/applications/clipchamp/overlay.tsx'
 
-export default function clipchamp(props: SectionProps) {
+const Marker = lazy(function () {
+  return import('@/features/applications/clipchamp/marker.tsx')
+})
+const Overlay = lazy(function () {
+  return import('@/features/applications/clipchamp/overlay.tsx')
+})
+
+export default function Clipchamp(props: SectionProps) {
+  const { renderable } = useContext(OverlayContext)
+  const cache = props.cache ?? 'destroy'
+  const isRenderOverlay = renderable
+
   function onTrash(e: MouseEvent<HTMLElement>) {
     console.log('Trash clicked for', e)
   }
@@ -24,7 +35,15 @@ export default function clipchamp(props: SectionProps) {
         direction={props.direction}
         shape={props.shape}
       />
-      <Overlay />
+      {isRenderOverlay ? (
+        <Suspense fallback={null}>
+          <Overlay
+            cache={cache}
+            onAbort={props.onAbort}
+            abortTimeoutMs={props.abortTimeoutMs}
+          />
+        </Suspense>
+      ) : null}
     </Application.Section>
   )
 }

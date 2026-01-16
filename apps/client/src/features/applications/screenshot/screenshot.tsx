@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'
+import { lazy } from 'react'
 
 import { listen } from '@tauri-apps/api/event'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
@@ -16,7 +17,9 @@ import {
   Application,
   type SectionProps
 } from '@/features/application/application.tsx'
-import Marker from '@/features/applications/screenshot/marker.tsx'
+const Marker = lazy(function () {
+  return import('@/features/applications/screenshot/marker.tsx')
+})
 // import Overlay from '@/features/applications/screenshot/overlay.tsx'
 import styles from '@/features/applications/screenshot/screenshot.module.scss'
 import { useKeyCode } from '@/keycodes/react'

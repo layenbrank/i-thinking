@@ -176,7 +176,11 @@
     }
   },
   "identifier": "com.i-thinking.corex",
-  "plugins": {},
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:i-thinking.db"]
+    }
+  },
   "productName": "i thinking",
   "version": "0.1.0"
 }

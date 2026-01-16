@@ -16,6 +16,7 @@
     background-color: #fff;
     display: flex;
     flex-direction: column;
+    // row-gap: 20px;
   }
 }
 
@@ -27,7 +28,7 @@
     min-height: 0px;
     overflow: hidden scroll;
     padding-inline-start: 50px;
-    // font-size: 16px;
+    margin-top: 10px;
 
     :global {
       .tiptap {

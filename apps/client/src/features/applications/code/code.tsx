@@ -1,15 +1,26 @@
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'
+import { Suspense, lazy } from 'react'
 
 import {
   Application,
+  OverlayContext,
   type SectionProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/code/code.module.scss'
-import Marker from '@/features/applications/code/marker.tsx'
-import Overlay from '@/features/applications/code/overlay.tsx'
+
+const Marker = lazy(function () {
+  return import('@/features/applications/code/marker.tsx')
+})
+const Overlay = lazy(function () {
+  return import('@/features/applications/code/overlay.tsx')
+})
 
 export default function Code(props: SectionProps) {
+  const { renderable } = useContext(OverlayContext)
+  const cache = props.cache ?? 'destroy'
+  const isRenderOverlay = renderable
+
   function onTrash(e: MouseEvent<HTMLElement>) {
     console.log('Trash clicked for', e)
   }
@@ -24,7 +35,15 @@ export default function Code(props: SectionProps) {
         shape={props.shape}
         direction={props.direction}
       />
-      <Overlay />
+      {isRenderOverlay ? (
+        <Suspense fallback={null}>
+          <Overlay
+            cache={cache}
+            onAbort={props.onAbort}
+            abortTimeoutMs={props.abortTimeoutMs}
+          />
+        </Suspense>
+      ) : null}
     </Application.Section>
   )
 }

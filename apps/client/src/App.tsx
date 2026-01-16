@@ -3,13 +3,15 @@ import { theme, type ThemeConfig } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
-import { StrictMode } from 'react'
+// import { StrictMode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 
 import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
 import { IntelligencePlugin } from '@/plugins/intelligence.ts'
-import { MirrorPlugin } from '@/plugins/mirror.ts'
 import { KeyCodePlugin } from '@/plugins/keycode.ts'
+import { MirrorPlugin } from '@/plugins/mirror.ts'
+import { StoragePlugin } from '@/plugins/storage.ts'
+
 import RouterView from '@/routers/routes.tsx'
 
 // import { POST_SIGNIN } from '@/apis/auth.ts'
@@ -42,7 +44,12 @@ const themeConfigure: ThemeConfig = {
   }
 }
 
-const plugins: Plugin[] = [MirrorPlugin, IntelligencePlugin, KeyCodePlugin]
+const plugins: Plugin[] = [
+  MirrorPlugin,
+  KeyCodePlugin,
+  StoragePlugin,
+  IntelligencePlugin
+]
 
 function App() {
   // useEffect(function () {

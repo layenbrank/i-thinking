@@ -25,7 +25,8 @@ import 'monaco-editor/esm/vs/language/typescript/monaco.contribution'
 
 import {
   Application,
-  OverlayContext
+  OverlayContext,
+  type OverlayControlProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/code/overlay.module.scss'
 
@@ -90,7 +91,7 @@ const options: monaco.editor.IStandaloneEditorConstructionOptions = {
   contextmenu: true
 }
 
-export default function Overlay() {
+export default function Overlay(props: OverlayControlProps) {
   const { visible, onUpdateVisible } = useContext(OverlayContext)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -136,6 +137,9 @@ export default function Overlay() {
 
   return (
     <Application.Overlay
+      cache={props.cache}
+      onAbort={props.onAbort}
+      abortTimeoutMs={props.abortTimeoutMs}
       open={visible}
       className={clsx([styles.overlay, styles.root])}
       onOk={() => onUpdateVisible(false)}

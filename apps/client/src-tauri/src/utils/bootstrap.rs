@@ -1,12 +1,17 @@
 use crate::utils::invoke;
+use tauri::{Manager, generate_context, generate_handler};
 pub struct Bootstrap;
-use tauri::{AppHandle, Manager};
 
 impl Bootstrap {
+    #[cfg_attr(mobile, tauri::mobile_entry_point)]
     pub fn run() {
         let builder = tauri::Builder::default();
 
         builder
+            .setup(move |app| {
+                let _handle = app.handle();
+                Ok(())
+            })
             // 核心插件
             .plugin(tauri_plugin_fs::init())
             .plugin(tauri_plugin_store::Builder::default().build())
@@ -17,12 +22,12 @@ impl Bootstrap {
             .plugin(tauri_plugin_http::init())
             .plugin(tauri_plugin_websocket::init())
             .plugin(tauri_plugin_os::init())
-            // .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            //     let _ = app
-            //         .get_webview_window("main")
-            //         .expect("no main window")
-            //         .set_focus();
-            // }))
+            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+                let _ = app
+                    .get_webview_window("main")
+                    .expect("no main window")
+                    .set_focus();
+            }))
             // UI 插件
             .plugin(tauri_plugin_notification::init())
             .plugin(tauri_plugin_positioner::init())
@@ -31,12 +36,8 @@ impl Bootstrap {
             .plugin(tauri_plugin_clipboard_manager::init())
             .plugin(tauri_plugin_global_shortcut::Builder::default().build())
             // invoke
-            .invoke_handler(tauri::generate_handler![invoke::greet, invoke::os])
-            .setup(move |app| {
-                let _handle = app.handle();
-                Ok(())
-            })
-            .run(tauri::generate_context!())
+            .invoke_handler(generate_handler![invoke::greet, invoke::os])
+            .run(generate_context!())
             .expect("error while running application");
     }
 }

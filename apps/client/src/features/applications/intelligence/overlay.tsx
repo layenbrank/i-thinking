@@ -16,7 +16,6 @@ import {
   UserOutlined,
   WarningOutlined
 } from '@ant-design/icons'
-import { v4 as UUIDV4 } from 'uuid'
 import {
   Bubble,
   CodeHighlighter,
@@ -45,11 +44,12 @@ import {
   FloatButton,
   message,
   theme,
-  type GetProp,
-  Typography
+  Typography,
+  type GetProp
 } from 'antd'
 import clsx from 'clsx'
 import { vs as VSCODE } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { v4 as UUIDV4 } from 'uuid'
 
 import { timeSphere } from '@i-thinking/core'
 
@@ -57,7 +57,8 @@ import { timeSphere } from '@i-thinking/core'
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'
 import {
   Application,
-  OverlayContext
+  OverlayContext,
+  type OverlayControlProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/intelligence/overlay.module.scss'
 import {
@@ -102,9 +103,10 @@ const items: GetProp<ConversationsProps, 'items'> = Array.from({
   group: groupName[index % 3]
 }))
 
-export default function Overlay() {
+export default function Overlay(props: OverlayControlProps) {
   const { token } = theme.useToken()
   const { visible, onUpdateVisible } = useContext(OverlayContext)
+  const { onAbort } = props
   const overlayRef = useRef<HTMLDivElement>(null)
   const [fullscreen, updateFullscreen] = useState(false)
   const [sender, updateSender] = useState('')
@@ -113,6 +115,7 @@ export default function Overlay() {
   const done = useRef(false)
   const [thinking, updateThinking] = useState(false)
   const [expandedThinking, updateExpandedThinking] = useState(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   /**
    * 流式消息更新批处理缓冲区
@@ -381,13 +384,22 @@ export default function Overlay() {
       await store.getState().toInsertMessage([personal])
       await store.getState().toInsertMessage([assistant])
       done.current = false
+      abortControllerRef.current?.abort()
+      const controller = new AbortController()
+      abortControllerRef.current = controller
       const generators = GeneratorJSON(
-        POST_COMMUNICATE.bind(null, {
-          model: 'qwen3:8b',
-          raw: true,
-          stream: true,
-          messages: transferMSG
-        })
+        POST_COMMUNICATE.bind(
+          null,
+          {
+            model: 'qwen3:8b',
+            raw: true,
+            stream: true,
+            messages: transferMSG
+          },
+          {
+            signal: controller.signal
+          }
+        )
       )
 
       /**
@@ -429,6 +441,7 @@ export default function Overlay() {
       updateThinking(true)
       // 流式接收并批处理更新消息
       for await (const generator of generators) {
+        if (controller.signal.aborted) break
         const { message: msg } = generator
         const { content, thinking } = msg
 
@@ -448,6 +461,8 @@ export default function Overlay() {
         clearTimeout(updateTimerRef.current)
         updateTimerRef.current = null
       }
+
+      if (controller.signal.aborted) return
 
       // 最终更新：包含数据库写入（持久化）
       const finalBuffer = msgBufferRef.current
@@ -471,8 +486,39 @@ export default function Overlay() {
     } finally {
       done.current = true
       updateThinking(false)
+      if (abortControllerRef.current) {
+        abortControllerRef.current = null
+      }
     }
   }
+
+  const handleAbort = useCallback(
+    async function () {
+      if (updateTimerRef.current !== null) {
+        clearTimeout(updateTimerRef.current)
+        updateTimerRef.current = null
+      }
+
+      msgBufferRef.current = {
+        fragment: '',
+        thinking: '',
+        messageId: null
+      }
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+
+      done.current = true
+      updateThinking(false)
+
+      if (onAbort) {
+        await onAbort()
+      }
+    },
+    [onAbort]
+  )
 
   function handleActiveKey(key: string) {
     void store.getState().toReadSession(key)
@@ -593,6 +639,9 @@ export default function Overlay() {
       style={{
         minWidth: '800px'
       }}
+      cache={props.cache}
+      onAbort={handleAbort}
+      abortTimeoutMs={props.abortTimeoutMs}
       fullscreen={fullscreen}
       wrapClassName={styles.rootTop}
       open={visible}

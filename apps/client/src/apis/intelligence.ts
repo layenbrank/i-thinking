@@ -2,14 +2,22 @@ import { fetch } from '@tauri-apps/plugin-http'
 
 import { http } from '@/utils/http/http.ts'
 import { INTELLIGENCE_TOKEN } from '@/utils/http/token.ts'
-import { ENVURL } from '@/utils/http/url.ts'
 
 type CommunicateParams = Application.Intelligence.Communicate.Params
 type CommunicateResponse = Application.Intelligence.Communicate.Response
 
 // SSE server sent events
-export function POST_COMMUNICATE(data: CommunicateParams) {
+export function POST_COMMUNICATE(
+  data: CommunicateParams,
+  options?: { signal?: AbortSignal }
+) {
   const token = 'b38cf8b7ca1e4bb18b00893d66093c00.WgxFSgb9H0u4CdE0twgqsqNB'
+  const timeoutSignal = AbortSignal.timeout(1000 * 60 * 10)
+  const signal = options?.signal
+    ? typeof AbortSignal.any === 'function'
+      ? AbortSignal.any([options.signal, timeoutSignal])
+      : options.signal
+    : timeoutSignal
   // return fetch(`${ENVURL.intelligence}/chat`, {
   return fetch(`/api/chat`, {
     method: 'POST',
@@ -24,7 +32,7 @@ export function POST_COMMUNICATE(data: CommunicateParams) {
         url: 'http://localhost:11434'
       }
     },
-    signal: AbortSignal.timeout(1000 * 60 * 10), // 10分钟超时
+    signal: signal, // 10分钟超时或外部中止
     body: JSON.stringify(data)
   })
 }

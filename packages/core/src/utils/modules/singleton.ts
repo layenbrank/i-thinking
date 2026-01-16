@@ -10,12 +10,26 @@ export function Singleton() {
     // 实例存储
     let instance: InstanceType<T> | null = null
 
+    let proxiedConstructor: T
+
     // 创建代理类
-    const proxiedConstructor = new Proxy(constructor, {
-      construct(target: T, args: any[]): InstanceType<T> {
+    proxiedConstructor = new Proxy(constructor, {
+      construct(target: T, args: any[], newTarget: any): InstanceType<T> {
+        // When called via `super()` from a derived class constructor,
+        // `newTarget` is the derived constructor. In that case we must NOT
+        // return the base singleton instance, otherwise the derived instance
+        // will become the base instance.
+        if (newTarget !== proxiedConstructor) {
+          return Reflect.construct(target, args, newTarget) as InstanceType<T>
+        }
+
         if (!instance) {
           try {
-            instance = Reflect.construct(target, args) as InstanceType<T>
+            instance = Reflect.construct(
+              target,
+              args,
+              newTarget
+            ) as InstanceType<T>
           } catch (error) {
             console.error(`创建 ${constructor.name} 单例时出错:`, error)
             throw error

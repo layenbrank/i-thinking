@@ -1,14 +1,23 @@
 import { message } from 'antd'
 import clsx, { type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEvent } from 'react'
+import { Suspense, lazy, useContext } from 'react'
 
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 
 import type { SectionProps } from '@/features/application/application.tsx'
-import { Application } from '@/features/application/application.tsx'
-import Marker from '@/features/applications/navigation/marker.tsx'
+import {
+  Application,
+  OverlayContext
+} from '@/features/application/application.tsx'
 import styles from '@/features/applications/navigation/navigation.module.scss'
-import Overlay from '@/features/applications/navigation/overlay.tsx'
+
+const Marker = lazy(function () {
+  return import('@/features/applications/navigation/marker.tsx')
+})
+const Overlay = lazy(function () {
+  return import('@/features/applications/navigation/overlay.tsx')
+})
 
 interface NavigationProps extends Omit<SectionProps, 'children'> {
   style?: CSSProperties
@@ -20,6 +29,10 @@ interface NavigationProps extends Omit<SectionProps, 'children'> {
 }
 
 export default function Navigation(props: NavigationProps) {
+  const { renderable } = useContext(OverlayContext)
+  const cache = props.cache ?? 'destroy'
+  const isRenderOverlay = renderable
+
   function onTrash(e: MouseEvent<HTMLElement>) {
     console.log('Trash clicked for', e)
   }
@@ -105,7 +118,15 @@ export default function Navigation(props: NavigationProps) {
         shape={props.shape}
         onDoubleClick={props.onPrevent ?? onRedirect}
       />
-      <Overlay />
+      {isRenderOverlay ? (
+        <Suspense fallback={null}>
+          <Overlay
+            cache={cache}
+            onAbort={props.onAbort}
+            abortTimeoutMs={props.abortTimeoutMs}
+          />
+        </Suspense>
+      ) : null}
     </Application.Section>
   )
 }

@@ -7,16 +7,16 @@ import html from 'highlight.js/lib/languages/xml'
 import { all, createLowlight } from 'lowlight'
 
 // --- Tiptap Core Extensions ---
-import StarterKit from '@tiptap/starter-kit'
-import { Highlight } from '@tiptap/extension-highlight'
-import { TextStyleKit } from '@tiptap/extension-text-style'
-import { TaskList } from '@tiptap/extension-task-list'
-import { TaskItem } from '@tiptap/extension-task-item'
-import { Superscript } from '@tiptap/extension-superscript'
-import { Subscript } from '@tiptap/extension-subscript'
-import { TextAlign } from '@tiptap/extension-text-align'
 import { Image } from '@/components/tiptap-node/image-node/image-node-extension'
 import { TableKit } from '@/components/tiptap-node/table-node/extensions/table-node-extension'
+import { Highlight } from '@tiptap/extension-highlight'
+import { Subscript } from '@tiptap/extension-subscript'
+import { Superscript } from '@tiptap/extension-superscript'
+import { TaskItem } from '@tiptap/extension-task-item'
+import { TaskList } from '@tiptap/extension-task-list'
+import { TextAlign } from '@tiptap/extension-text-align'
+import { TextStyleKit } from '@tiptap/extension-text-style'
+import StarterKit from '@tiptap/starter-kit'
 // import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 // import { Image } from '@tiptap/extension-image'
 
@@ -28,19 +28,17 @@ import { TableKit } from '@/components/tiptap-node/table-node/extensions/table-n
 // import { BulletList, OrderedList } from '@tiptap/extension-list'
 
 // Custom extensions
-import { UiState } from '@/components/tiptap-extension/ui-state-extension'
-import { NodeBackground } from '@/components/tiptap-extension/node-background-extension.ts'
 import { NodeAlignment } from '@/components/tiptap-extension/node-alignment-extension.ts'
+import { NodeBackground } from '@/components/tiptap-extension/node-background-extension.ts'
+import { UiState } from '@/components/tiptap-extension/ui-state-extension'
 import HorizontalRule from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension.ts'
 import { TableHandleExtension } from '@/components/tiptap-node/table-node/extensions/table-handle/table-handle.ts'
 
 import {
+  EditorContext as ComposerContext,
   EditorContent as ComposerMarkdown,
   useEditor as useComposer,
-  EditorContext as ComposerContext,
-  type AnyExtension,
-  type DocumentType
-  // useEditorState as useComposerValue
+  type AnyExtension
 } from '@tiptap/react'
 
 // import { BubbleMenu, FloatingMenu } from '@tiptap/react/menus'
@@ -56,15 +54,15 @@ import { ImageAlignButton } from '@/components/tiptap-ui/image-align-button/imag
 import { ListButton } from '@/components/tiptap-ui/list-button/list-button.tsx'
 import { ListDropdownMenu } from '@/components/tiptap-ui/list-dropdown-menu/list-dropdown-menu.tsx'
 import { MarkButton } from '@/components/tiptap-ui/mark-button/mark-button.tsx'
-import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button/undo-redo-button.tsx'
-import { TextButton } from '@/components/tiptap-ui/text-button/text-button.tsx'
 import { TextAlignButton } from '@/components/tiptap-ui/text-align-button/text-align-button.tsx'
+import { TextButton } from '@/components/tiptap-ui/text-button/text-button.tsx'
+import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button/undo-redo-button.tsx'
 
-import { TableTriggerButton } from '@/components/tiptap-node/table-node/ui/table-trigger-button/table-trigger-button.tsx'
-import { TableHandle } from '@/components/tiptap-node/table-node/ui/table-handle/table-handle.tsx'
-import { TableSelectionOverlay } from '@/components/tiptap-node/table-node/ui/table-selection-overlay/table-selection-overlay.tsx'
 import { TableCellHandleMenu } from '@/components/tiptap-node/table-node/ui/table-cell-handle-menu/table-cell-handle-menu.tsx'
 import { TableExtendRowColumnButtons } from '@/components/tiptap-node/table-node/ui/table-extend-row-column-button/table-extend-row-column-button.tsx'
+import { TableHandle } from '@/components/tiptap-node/table-node/ui/table-handle/table-handle.tsx'
+import { TableSelectionOverlay } from '@/components/tiptap-node/table-node/ui/table-selection-overlay/table-selection-overlay.tsx'
+import { TableTriggerButton } from '@/components/tiptap-node/table-node/ui/table-trigger-button/table-trigger-button.tsx'
 
 // TODO FIX: 面板颜色无法选取应用
 // import { ColorTextPopover } from '@/components/tiptap-ui/color-text-popover/color-text-popover.tsx'
@@ -78,29 +76,28 @@ import { TableExtendRowColumnButtons } from '@/components/tiptap-node/table-node
 import '@/styles/markdown-composer.scss'
 
 // Import required styles
-import '@/styles/markdown-animations.scss'
-import '@/styles/markdown-variables.scss'
-import '@/components/tiptap-node/table-node/styles/prosemirror-table.scss'
-import '@/components/tiptap-node/table-node/styles/table-node.scss'
 import '@/components/tiptap-node/blockquote-node/blockquote-node.scss'
 import '@/components/tiptap-node/code-block-node/code-block-node.scss'
 import '@/components/tiptap-node/heading-node/heading-node.scss'
 import '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node.scss'
-import '@/components/tiptap-node/list-node/list-node.scss'
-import '@/components/tiptap-node/paragraph-node/paragraph-node.scss'
 import '@/components/tiptap-node/image-node/image-node.scss'
 import '@/components/tiptap-node/image-upload-node/image-upload-node.scss'
+import '@/components/tiptap-node/list-node/list-node.scss'
+import '@/components/tiptap-node/paragraph-node/paragraph-node.scss'
+import '@/components/tiptap-node/table-node/styles/prosemirror-table.scss'
+import '@/components/tiptap-node/table-node/styles/table-node.scss'
+import '@/styles/markdown-animations.scss'
+import '@/styles/markdown-variables.scss'
 
 // import { Image } from '@/components/tiptap-node/image-node/image-node-extension'
 import { Marked } from 'marked'
 
-import { MARKDOWN } from './constant.ts'
-
+import { Scroll } from '@/components/scroll/scroll.tsx'
 import {
   Application,
-  OverlayContext
+  OverlayContext,
+  type OverlayControlProps
 } from '@/features/application/application.tsx'
-import { Scroll } from '@/components/scroll/scroll.tsx'
 // import ComposerContext from '@/features/applications/markdown/composer-context.tsx'
 
 import styles from '@/features/applications/markdown/overlay.module.scss'
@@ -159,7 +156,7 @@ const extensions: AnyExtension[] = [
   // NodeBackground,
 ]
 
-export default function Overlay() {
+export default function Overlay(props: OverlayControlProps) {
   const { visible, onUpdateVisible } = useContext(OverlayContext)
 
   // const [markdown, onUpdate] = useState(
@@ -195,6 +192,9 @@ export default function Overlay() {
 
   return (
     <Application.Overlay
+      cache={props.cache}
+      onAbort={props.onAbort}
+      abortTimeoutMs={props.abortTimeoutMs}
       open={visible}
       className={clsx([styles.overlay, styles.root])}
       onOk={() => onUpdateVisible(false)}

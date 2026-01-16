@@ -1,6 +1,3 @@
-import { Icon } from '@iconify/react'
-import { clsx } from 'clsx'
-import { v4 as UUIDV4 } from 'uuid'
 import {
   closestCenter,
   DndContext,
@@ -12,22 +9,25 @@ import {
 } from '@dnd-kit/core'
 import { snapCenterToCursor } from '@dnd-kit/modifiers'
 import {
-  arrayMove,
   rectSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates
 } from '@dnd-kit/sortable'
+import { Icon } from '@iconify/react'
+import { clsx } from 'clsx'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { v4 as UUIDV4 } from 'uuid'
 
+import { database } from '@/databases/database.ts'
 import {
   Application,
-  OverlayContext
+  OverlayContext,
+  type OverlayControlProps
 } from '@/features/application/application.tsx'
-import styles from '@/features/applications/collection/overlay.module.scss'
-import { database } from '@/databases/database.ts'
-import { OverlayDrawer } from './drawer.tsx'
-import { generateColor } from '@/utils/generate.ts'
 import { Controller } from '@/features/applications/collection/controller.tsx'
+import styles from '@/features/applications/collection/overlay.module.scss'
+import { generateColor } from '@/utils/generate.ts'
+import { OverlayDrawer } from './drawer.tsx'
 
 const URLS: { value: string; label: string }[] = [
   { value: 'https://www.baidu.com', label: '百度' },
@@ -84,7 +84,7 @@ interface Props {
   id: string
 }
 
-export default function Overlay(props: Props) {
+export default function Overlay(props: OverlayControlProps & Props) {
   // const store = useMirrorStore()
   const applications = useLiveQuery<Application[], Application[]>(
     async function () {
@@ -172,6 +172,9 @@ export default function Overlay(props: Props) {
       style={{
         overflow: 'hidden'
       }}
+      cache={props.cache}
+      onAbort={props.onAbort}
+      abortTimeoutMs={props.abortTimeoutMs}
       open={visible}
       className={clsx([styles.overlay, styles.root])}
       onOk={() => onUpdateVisible(false)}

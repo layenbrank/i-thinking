@@ -1,14 +1,25 @@
+import clsx from 'clsx'
+import { Suspense, lazy, type MouseEvent } from 'react'
+
 import {
   Application,
+  OverlayContext,
   type SectionProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/marketplace/marketplace.module.scss'
-import Marker from '@/features/applications/marketplace/marker.tsx'
-import Overlay from '@/features/applications/marketplace/overlay.tsx'
-import clsx from 'clsx'
-import { type MouseEvent } from 'react'
+
+const Marker = lazy(function () {
+  return import('@/features/applications/marketplace/marker.tsx')
+})
+const Overlay = lazy(function () {
+  return import('@/features/applications/marketplace/overlay.tsx')
+})
 
 export default function Marketplace(props: SectionProps) {
+  const { renderable } = useContext(OverlayContext)
+  const cache = props.cache ?? 'destroy'
+  const isRenderOverlay = renderable
+
   function onTrash(e: MouseEvent<HTMLElement>) {
     console.log('Trash clicked for', e)
   }
@@ -23,7 +34,15 @@ export default function Marketplace(props: SectionProps) {
         direction={props.direction}
         shape={props.shape}
       />
-      <Overlay />
+      {isRenderOverlay ? (
+        <Suspense fallback={null}>
+          <Overlay
+            cache={cache}
+            onAbort={props.onAbort}
+            abortTimeoutMs={props.abortTimeoutMs}
+          />
+        </Suspense>
+      ) : null}
     </Application.Section>
   )
 }

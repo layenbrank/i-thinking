@@ -1,3 +1,4 @@
+'use client'
 import {
   closestCenter,
   DndContext,
@@ -18,7 +19,10 @@ import clsx from 'clsx'
 import { useMemo, useRef, type ReactNode } from 'react'
 import { useKeyPress } from 'react-use'
 
-import { OverlayProvider } from '@/features/application/application.tsx'
+import {
+  Application,
+  OverlayProvider
+} from '@/features/application/application.tsx'
 import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
 import { useMirrorStore } from '@/stores/mirror.ts'
@@ -198,9 +202,15 @@ const Controller = {
               }
 
               return (
-                <OverlayProvider key={value.id}>
-                  <Component {...props} />
-                </OverlayProvider>
+                <Application.Suspense
+                  key={value.id}
+                  size={size}
+                  shape={shape}
+                  direction={direction}>
+                  <OverlayProvider>
+                    <Component {...props} />
+                  </OverlayProvider>
+                </Application.Suspense>
               )
             })}
           </div>

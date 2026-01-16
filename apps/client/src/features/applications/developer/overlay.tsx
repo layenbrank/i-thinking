@@ -17,11 +17,12 @@ import {
 } from 'antd'
 import type { SegmentedOptions } from 'antd/es/segmented'
 import clsx from 'clsx'
-import { createElement } from 'react'
+import { createElement, useContext, useEffect, useState } from 'react'
 
 import {
   Application,
-  OverlayContext
+  OverlayContext,
+  type OverlayControlProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/developer/overlay.module.scss'
 
@@ -54,7 +55,7 @@ interface OSGenre {
   }
 }
 
-function Overlay() {
+function Overlay(props: OverlayControlProps) {
   const { visible, onUpdateVisible } = useContext(OverlayContext)
 
   const [OS, updateOS] = useState<OSGenre>({
@@ -323,6 +324,9 @@ function Overlay() {
 
   return (
     <Application.Overlay
+      cache={props.cache}
+      onAbort={props.onAbort}
+      abortTimeoutMs={props.abortTimeoutMs}
       open={visible}
       className={clsx([styles.overlay, styles.root])}
       onOk={() => onUpdateVisible(false)}

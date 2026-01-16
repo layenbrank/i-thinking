@@ -28,15 +28,16 @@ import type { SegmentedLabeledOption, SegmentedValue } from 'antd/es/segmented'
 import type { RcFile, UploadFile } from 'antd/es/upload'
 import { clsx } from 'clsx'
 
-import { database } from '@/databases/database.ts'
 import { Scroll } from '@/components/scroll/scroll.tsx'
+import { database } from '@/databases/database.ts'
+import {
+  Application,
+  OverlayContext,
+  type OverlayControlProps
+} from '@/features/application/application.tsx'
 import styles from '@/features/applications/marketplace/overlay.module.scss'
 import { mirror$ } from '@/stores/mirror.ts'
 import { timeSphere } from '@i-thinking/core'
-import {
-  Application,
-  OverlayContext
-} from '@/features/application/application.tsx'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
@@ -80,17 +81,22 @@ const customPanelRender: ColorPickerProps['panelRender'] = (
   </Row>
 )
 
-export default function Overlay() {
+export default function Overlay(props: OverlayControlProps) {
   const { token } = theme.useToken()
 
   const { visible, onUpdateVisible } = useContext(OverlayContext)
   // const { visible, updateVisible, mounted } = useContext(OverlayContext)
-  const DEFAULT_COLORS = genPresets({
-    primary: generate(token.colorPrimary),
-    red,
-    green,
-    cyan
-  })
+  const DEFAULT_COLORS = useMemo(
+    function () {
+      return genPresets({
+        primary: generate(token.colorPrimary),
+        red,
+        green,
+        cyan
+      })
+    },
+    [token.colorPrimary]
+  )
 
   const initialize = {
     title: '',
@@ -245,6 +251,9 @@ export default function Overlay() {
 
   return (
     <Application.Overlay
+      cache={props.cache}
+      onAbort={props.onAbort}
+      abortTimeoutMs={props.abortTimeoutMs}
       open={visible}
       className={clsx([styles.overlay, styles.root])}
       onOk={() => onUpdateVisible(false)}

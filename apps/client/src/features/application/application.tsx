@@ -3,8 +3,12 @@ import { CSS } from '@dnd-kit/utilities'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
+import { Suspense } from 'react'
 
+import { DEFAULT_ABORT_TIMEOUT_MS } from '@/constants/application.ts'
 import styles from '@/features/application/application.module.scss'
+
+type Cache = 'destroy' | 'keepAlive'
 
 interface SectionProps extends Application {
   children: ReactNode
@@ -14,6 +18,9 @@ interface SectionProps extends Application {
   shape: Mirror.Shape
   direction: Mirror.Direction
   onTrash?: MouseEventHandler<HTMLElement>
+  cache?: Cache
+  onAbort?: () => Promise<void>
+  abortTimeoutMs?: number
 }
 
 interface MarkerProps {
@@ -29,20 +36,28 @@ interface MarkerProps {
 interface OverlayProps extends ModalProps {
   style?: CSSProperties
   fullscreen?: boolean
+  cache?: Cache
+  onAbort?: () => Promise<void>
+  abortTimeoutMs?: number
 }
+
+type OverlayControlProps = Pick<
+  OverlayProps,
+  'cache' | 'onAbort' | 'abortTimeoutMs'
+>
 
 interface OverlayContextProps {
   visible: boolean
-  mounted: boolean
+  renderable: boolean
   onUpdateVisible: (value: boolean) => void
-  onUpdateMounted: (value: boolean) => void
+  onUpdateRenderable: (value: boolean) => void
 }
 
 const OverlayContext = createContext<OverlayContextProps>({
   visible: false,
-  mounted: false,
+  renderable: false,
   onUpdateVisible: (value) => void value,
-  onUpdateMounted: (value) => void value
+  onUpdateRenderable: (value) => void value
 })
 
 interface OverlayProviderProps {
@@ -51,21 +66,42 @@ interface OverlayProviderProps {
 
 function OverlayProvider(props: OverlayProviderProps) {
   const [visible, onUpdateVisible] = useState<boolean>(false)
-  const [mounted, onUpdateMounted] = useState<boolean>(true)
+  const [renderable, onUpdateRenderable] = useState<boolean>(false)
+
+  const handleUpdateVisible = useCallback(function (value: boolean) {
+    onUpdateVisible(value)
+    if (value) onUpdateRenderable(true)
+  }, [])
 
   const context = useMemo(
     function () {
       return {
         visible,
-        mounted,
-        onUpdateVisible,
-        onUpdateMounted
+        renderable,
+        onUpdateVisible: handleUpdateVisible,
+        onUpdateRenderable
       }
     },
-    [visible, mounted]
+    [visible, renderable, handleUpdateVisible]
   )
 
   return <OverlayContext value={context}>{props.children}</OverlayContext>
+}
+
+interface SkeletonProps {
+  className?: ClassValue
+  style?: CSSProperties
+  size?: Mirror.Size
+  shape?: Mirror.Shape
+  direction?: Mirror.Direction
+}
+
+interface ApplicationSuspenseProps extends SkeletonProps {
+  children: ReactNode
+  minDelayMs?: number
+  fadeMs?: number
+  skeletonClassName?: ClassValue
+  skeletonStyle?: CSSProperties
 }
 
 // interface SectionContextProps {}
@@ -86,16 +122,73 @@ const Application = {
       </div>
     )
   },
+  Skeleton(props: SkeletonProps) {
+    return (
+      <div
+        style={props.style}
+        className={clsx(
+          styles.application,
+          styles.skeleton,
+          props.className,
+          props.size ? styles[props.size] : null,
+          props.shape ? styles[props.shape] : null,
+          props.direction ? styles[props.direction] : null
+        )}
+      />
+    )
+  },
+  Suspense(props: ApplicationSuspenseProps) {
+    return (
+      <Suspense
+        fallback={
+          <Application.Skeleton
+            size={props.size}
+            shape={props.shape}
+            direction={props.direction}
+            style={props.skeletonStyle}
+            className={clsx(props.className, props.skeletonClassName)}
+          />
+        }>
+        {props.children}
+      </Suspense>
+    )
+  },
   Overlay(props: OverlayProps) {
-    const { style, className, onCancel, children, ...remains } = props
-    const { visible, onUpdateVisible, onUpdateMounted } =
+    const {
+      style,
+      className,
+      onCancel,
+      children,
+      cache,
+      onAbort,
+      abortTimeoutMs,
+      destroyOnHidden,
+      ...remains
+    } = props
+    const { visible, onUpdateVisible, onUpdateRenderable } =
       useContext(OverlayContext)
 
-    function handleClose() {
-      if (visible) return
-      setTimeout(function () {
-        onUpdateMounted(false)
-      }, 300)
+    const resolvedCache = cache ?? 'destroy'
+    const resolvedAbortTimeoutMs = abortTimeoutMs ?? DEFAULT_ABORT_TIMEOUT_MS
+    const resolvedDestroy =
+      resolvedCache === 'destroy' ? true : (destroyOnHidden ?? false)
+
+    async function handleAfterClose() {
+      if (resolvedCache !== 'destroy') return
+
+      onUpdateRenderable(false)
+      if (!onAbort) return
+
+      try {
+        await Promise.race([
+          onAbort(),
+          new Promise<void>(function (resolve) {
+            window.setTimeout(resolve, resolvedAbortTimeoutMs)
+          })
+        ])
+      } catch {
+        // ignore cleanup errors to ensure forced unload
+      }
     }
 
     function handleCancel(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
@@ -105,13 +198,18 @@ const Application = {
 
     return (
       <Modal
-        destroyOnHidden={true}
-        maskClosable={true}
-        closable={false}
-        footer={null}
         title={null}
+        footer={null}
+        open={visible}
         centered={true}
-        afterClose={handleClose}
+        closable={false}
+        maskClosable={true}
+        destroyOnHidden={resolvedDestroy}
+        onCancel={handleCancel}
+        afterClose={handleAfterClose}
+        afterOpenChange={(open) => {
+          console.log('afterOpenChange', open)
+        }}
         width={props.fullscreen ? '100%' : '80%'}
         height={props.fullscreen ? '100%' : 'unset'}
         style={{
@@ -119,8 +217,6 @@ const Application = {
           borderRadius: props.fullscreen ? '0px' : '8px',
           aspectRatio: props.fullscreen ? 'unset' : '16 / 9'
         }}
-        open={visible}
-        onCancel={handleCancel}
         className={clsx(['application-overlay', className])}
         {...remains}>
         {children}
@@ -240,4 +336,10 @@ const Application = {
 
 export { Application, OverlayContext, OverlayProvider }
 
-export type { MarkerProps, OverlayProps, SectionProps }
+export type {
+  Cache,
+  MarkerProps,
+  OverlayControlProps,
+  OverlayProps,
+  SectionProps
+}

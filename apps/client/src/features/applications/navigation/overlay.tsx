@@ -2,20 +2,22 @@ import { clsx } from 'clsx'
 
 import {
   Application,
-  OverlayContext
+  OverlayContext,
+  type OverlayControlProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/navigation/overlay.module.scss'
 
 // interface Props {}
 
-export default function Overlay() {
-  const [visible, onUpdateVisible] = useState(false)
-  // const { visible, onUpdateVisible } = useContext(OverlayContext)
+export default function Overlay(props: OverlayControlProps) {
+  const { visible, onUpdateVisible } = useContext(OverlayContext)
 
   return (
     <Application.Overlay
-      open={false}
-      // open={visible}
+      cache={props.cache}
+      onAbort={props.onAbort}
+      abortTimeoutMs={props.abortTimeoutMs}
+      open={visible}
       className={clsx([styles.overlay, styles.root])}
       onOk={() => onUpdateVisible(false)}
       onCancel={() => onUpdateVisible(false)}>
