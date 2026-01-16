@@ -1,4 +1,4 @@
-import React from '@vitejs/plugin-react'
+import React from '@vitejs/plugin-react-swc'
 import { findUpSync } from 'find-up'
 import { createWriteStream } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -376,10 +376,12 @@ export default defineConfig(function ({
   return {
     plugins: [
       React({
-        jsxRuntime: 'automatic',
-        babel: {
-          plugins: [['babel-plugin-react-compiler']]
-        }
+        // jsxRuntime: 'automatic',
+        // include: [/\.[jt]sx$/]
+        devTarget: 'esnext',
+        jsxImportSource: 'react',
+        tsDecorators: true,
+        plugins: []
       }),
       Icons({
         compiler: 'jsx',
@@ -428,7 +430,8 @@ export default defineConfig(function ({
       }
     },
     optimizeDeps: {
-      include: ['react', 'react-dom', 'react-router-dom']
+      include: ['react', 'react-dom', 'react-router-dom'],
+      exclude: ['node_modules']
     },
     build: {
       target: 'esnext',
@@ -455,6 +458,7 @@ export default defineConfig(function ({
         return false
       },
       rollupOptions: {
+        maxParallelFileOps: 20,
         output: {
           entryFileNames: 'javascript/[name]-[hash].js',
           chunkFileNames: 'javascript/[name]-[hash].js',

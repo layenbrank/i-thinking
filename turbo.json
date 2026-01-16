@@ -6,9 +6,15 @@
     "build": {
       "cache": true,
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*", "vite.config.*", "rollup.config.*", "tsconfig*.json"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "vite.config.*",
+        "rollup.config.*",
+        "tsconfig*.json"
+      ],
       "outputLogs": "full",
-      "outputs": ["dist/**", ".vitepress/dist/**", "src-tauri/target/release/bundle/**"]
+      "outputs": ["dist/**", ".vitepress/dist/**"]
     },
     "coverage": {
       "cache": true,
@@ -32,7 +38,12 @@
     "e2e": {
       "cache": false,
       "dependsOn": ["build"],
-      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.ts", "playwright.config.*", ".env*"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "**/*.{test,spec}.ts",
+        "playwright.config.*",
+        ".env*"
+      ],
       "outputLogs": "full",
       "outputs": ["playwright-report/**", "test-results/**"]
     },

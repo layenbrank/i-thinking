@@ -9,6 +9,9 @@
     "useDefineForClassFields": true,
     "skipLibCheck": true,
 
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+
     /* Bundler mode */
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
