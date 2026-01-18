@@ -24,7 +24,9 @@
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@i-thinking/core": "workspace:*",
+    "@i-thinking/utils": "workspace:*",
+    "@i-thinking/directives": "workspace:*",
+    "@i-thinking/composables": "workspace:*",
     "@i-thinking/wasm": "workspace:*",
     "@i-thinking/shared": "workspace:*"
   }

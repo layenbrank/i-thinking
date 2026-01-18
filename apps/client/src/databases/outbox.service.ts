@@ -1,5 +1,5 @@
 import { Client } from '@/databases/client'
-import { Singleton } from '@i-thinking/core'
+import { Singleton } from '@i-thinking/utils'
 import {
   concatMap,
   defer,

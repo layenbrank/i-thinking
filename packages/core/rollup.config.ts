@@ -1,6 +1,6 @@
-import { nodeResolve } from '@rollup/plugin-node-resolve'
-import terser from '@rollup/plugin-terser'
-import typescript from '@rollup/plugin-typescript'
+import defineResolve from '@rollup/plugin-node-resolve'
+import defineMinify from '@rollup/plugin-terser'
+import defineTs from '@rollup/plugin-typescript'
 import type { Plugin, RollupOptions } from 'rollup'
 import { defineConfig } from 'rollup'
 import { dts } from 'rollup-plugin-dts'
@@ -70,7 +70,10 @@ function definePathRewrite(): Plugin {
     renderChunk(code) {
       let result = code
       for (const [from, to] of Object.entries(PATH_REWRITES)) {
-        const pattern = new RegExp(`(from\\s+['"\`])${from.replace(/\//g, '\\/')}(['"\`])`, 'g')
+        const pattern = new RegExp(
+          `(from\\s+['"\`])${from.replace(/\//g, '\\/')}(['"\`])`,
+          'g'
+        )
         result = result.replace(pattern, `$1${to}$2`)
       }
       return result
@@ -82,7 +85,7 @@ function definePathRewrite(): Plugin {
  * Pre-configured TypeScript plugin instance
  */
 function defineTypescript(): Plugin {
-  return typescript({
+  return defineTs({
     tsconfig: 'tsconfig.json',
     declaration: false,
     declarationMap: false,
@@ -98,7 +101,7 @@ function defineTypescript(): Plugin {
  * Pre-configured Terser plugin instance for production builds
  */
 function defineTerser(): Plugin {
-  return terser({
+  return defineMinify({
     compress: {
       passes: 2,
       pure_getters: true,
@@ -129,7 +132,11 @@ interface BuildOptions {
  * @param output - Destination file path
  * @param options - Additional build options
  */
-function defineJSConfig(input: string, output: string, options: BuildOptions): RollupOptions {
+function defineJSConfig(
+  input: string,
+  output: string,
+  options: BuildOptions
+): RollupOptions {
   const { minify = false, external = [], plugins = [] } = options
 
   return {
@@ -152,7 +159,7 @@ function defineJSConfig(input: string, output: string, options: BuildOptions): R
       return external.some((mod) => id === mod || id.startsWith(`${mod}/`))
     },
     plugins: [
-      nodeResolve({ extensions: ['.ts', '.tsx'] }),
+      defineResolve({ extensions: ['.ts', '.tsx'] }),
       defineTypescript(),
       minify ? defineTerser() : null,
       ...plugins
@@ -172,7 +179,11 @@ function defineJSConfig(input: string, output: string, options: BuildOptions): R
  * @param output - Destination declaration file path
  * @param options - Additional build options
  */
-function defineDTSConfig(input: string, output: string, options: BuildOptions = {}): RollupOptions {
+function defineDTSConfig(
+  input: string,
+  output: string,
+  options: BuildOptions = {}
+): RollupOptions {
   const { external = [], plugins = [] } = options
 
   return {

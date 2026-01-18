@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { database } from '@/database/database.ts'
 import { useMirrorStore } from '@/stores/mirror.ts'
-import { timeSphere } from '@i-thinking/core'
+import { timeSphere } from '@i-thinking/utils'
 import { message } from 'ant-design-vue'
 import { type UpdateSpec } from 'dexie'
 
@@ -117,7 +117,9 @@ async function handleChange(event: Event) {
       message.success('导入成功')
     } catch (error) {
       console.error('Error reading file:', error)
-      message.error('导入失败：' + (error instanceof Error ? error.message : '未知错误'))
+      message.error(
+        '导入失败：' + (error instanceof Error ? error.message : '未知错误')
+      )
     }
   }
 }

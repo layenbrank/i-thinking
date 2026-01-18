@@ -1,4 +1,4 @@
-// import { Singleton } from '@i-thinking/core'
+// import { Singleton } from '@i-thinking/utils'
 import Database, { type QueryResult } from '@tauri-apps/plugin-sql'
 import { defer, from, map, type Observable, shareReplay, switchMap } from 'rxjs'
 

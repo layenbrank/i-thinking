@@ -1,6 +1,11 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/types/**/*.d.ts"
+  ],
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
@@ -17,7 +22,9 @@
       "@i-thinking/wasm",
       "unplugin-icons/types/vue3",
       "ant-design-vue/typings/global",
-      "@i-thinking/core/directives",
+      "@i-thinking/utils",
+      "@i-thinking/directives",
+      "@i-thinking/composables",
       "@i-thinking/shared/response",
       "@i-thinking/shared/decorator",
       "@i-thinking/shared/constructor",

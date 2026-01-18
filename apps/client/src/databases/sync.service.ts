@@ -1,6 +1,6 @@
 import { POST_SYNC_PUSH } from '@/apis/sync.ts'
 import { outbox } from '@/databases/outbox.service'
-import { Singleton } from '@i-thinking/core'
+import { Singleton } from '@i-thinking/utils'
 import { firstValueFrom, map, of, switchMap, type Observable } from 'rxjs'
 
 function findClientID(): string {

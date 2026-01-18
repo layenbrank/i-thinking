@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { timeSphere } from '@i-thinking/core'
+import { timeSphere } from '@i-thinking/utils'
 import type { Dayjs } from 'dayjs'
 
 defineOptions({
@@ -106,9 +106,11 @@ const times = computed(function () {
       @apply w-full h-full grid grid-cols-7 gap-x-2;
     }
 
-    .ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-range-start):not(
-        .ant-picker-cell-range-end
-      ):not(.ant-picker-cell-range-hover-start):not(.ant-picker-cell-range-hover-end)
+    .ant-picker-cell:hover:not(.ant-picker-cell-selected):not(
+        .ant-picker-cell-range-start
+      ):not(.ant-picker-cell-range-end):not(
+        .ant-picker-cell-range-hover-start
+      ):not(.ant-picker-cell-range-hover-end)
       .ant-picker-cell-inner {
       @apply bg-black;
 

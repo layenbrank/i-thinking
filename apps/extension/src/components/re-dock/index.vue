@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { resize } from '@i-thinking/core/directives'
+import { resize } from '@i-thinking/directives'
 import { useTemplateRefsList } from '@vueuse/core'
 import { throttle } from 'lodash-es'
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'

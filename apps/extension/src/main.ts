@@ -2,7 +2,7 @@ import App from '@/App.vue'
 import locale from '@/plugins/locale.ts'
 import preload from '@/plugins/preload.ts'
 import router from '@/router/index.ts'
-import { debounce, resize } from '@i-thinking/core/directives'
+import { debounce, resize } from '@i-thinking/directives'
 import { createPinia } from 'pinia'
 import { createApp, type Directive } from 'vue'
 

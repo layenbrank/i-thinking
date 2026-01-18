@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import FallbackMark from '@/assets/feedback/fallback.png'
 import { useMirrorStore } from '@/stores/mirror.ts'
-import { timeSphere } from '@i-thinking/core'
+import { timeSphere } from '@i-thinking/utils'
 import { message } from 'ant-design-vue'
 import Fuse, { type IFuseOptions } from 'fuse.js'
 import { debounce } from 'lodash-es'
@@ -127,7 +127,8 @@ function updateApplication(bookmark: Entry) {
 }
 
 function updateActiveFolder(folder: Directory) {
-  if (folder.id === '9999') return (targetBookmarks.value = recentBookmarks.value)
+  if (folder.id === '9999')
+    return (targetBookmarks.value = recentBookmarks.value)
   activeFolder.value = folder
   targetBookmarks.value = sourceBookmarks.value
 }

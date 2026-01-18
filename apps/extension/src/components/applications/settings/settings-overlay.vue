@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // import { Icon } from '@iconify/vue'
-import { resize } from '@i-thinking/core'
+import { resize } from '@i-thinking/utils'
 import SettingBackground from './setting-background.vue'
 import SettingBackup from './setting-backup.vue'
 import SettingDirection from './setting-direction.vue'

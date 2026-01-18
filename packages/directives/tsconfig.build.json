@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Build-specific: we need to emit JS, so disable noEmit
+    "noEmit": false,
+    // The warning TS5096 occurs when allowImportingTsExtensions is enabled while emitting.
+    // Keep IDE behavior in base tsconfig, but turn it off for the build to avoid warnings.
+    "allowImportingTsExtensions": false,
+    "removeComments": true,
+    // Keep modern output
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts"]
+}

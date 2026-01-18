@@ -1,6 +1,5 @@
 {
   "devDependencies": {
-    "@i-thinking/core": "workspace:*",
     "@i-thinking/shared": "workspace:*"
   },
   "exports": {

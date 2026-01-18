@@ -51,7 +51,7 @@ import clsx from 'clsx'
 import { vs as VSCODE } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { v4 as UUIDV4 } from 'uuid'
 
-import { timeSphere } from '@i-thinking/core'
+import { timeSphere } from '@i-thinking/utils'
 
 // import { Scroll } from '@/components/scroll/scroll.tsx'
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'

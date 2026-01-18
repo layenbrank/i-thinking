@@ -2,7 +2,7 @@
 import Contextmenu from '@/components/contextmenu/contextmenu.vue'
 import { useMirror } from '@/hooks/mirror'
 import { useMirrorStore, type ToUpdateApplication } from '@/stores/mirror.ts'
-import { resize } from '@i-thinking/core/directives'
+import { resize } from '@i-thinking/directives'
 import Sortable from 'sortablejs'
 
 defineOptions({
@@ -144,7 +144,12 @@ function handleDropZone(event: DragEvent) {
     return application.id === dataTransferID
   })
 
-  console.log('[DropZone dataTransferID]', dataTransferID, '\n[DropZone application]', application)
+  console.log(
+    '[DropZone dataTransferID]',
+    dataTransferID,
+    '\n[DropZone application]',
+    application
+  )
 }
 
 function initialize() {

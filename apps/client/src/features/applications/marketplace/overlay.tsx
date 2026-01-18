@@ -37,7 +37,7 @@ import {
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/marketplace/overlay.module.scss'
 import { mirror$ } from '@/stores/mirror.ts'
-import { timeSphere } from '@i-thinking/core'
+import { timeSphere } from '@i-thinking/utils'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 

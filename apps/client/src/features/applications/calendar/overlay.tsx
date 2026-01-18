@@ -7,7 +7,7 @@ import {
   type OverlayControlProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/calendar/overlay.module.scss'
-import { calendar, timeSphere } from '@i-thinking/core'
+import { calendar, timeSphere } from '@i-thinking/utils'
 import type { CalendarProps } from 'antd/es/calendar'
 import type { Dayjs } from 'dayjs'
 
