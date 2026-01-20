@@ -329,3 +329,46 @@ const configures: RollupOptions[] = [
 ]
 
 export default defineConfig(configures)
+
+// export default defineConfig([
+//   {
+//     input: ['src/index.ts', 'src/time-sphere/index.ts', 'src/singleton.ts'],
+//     external: chunkmap,
+//     plugins: [defineResolve(), defineTs({ tsconfig: 'tsconfig.build.json' })],
+//     output: {
+//       dir: 'dist',
+//       format: 'esm',
+//       preserveModules: true,
+//       preserveModulesRoot: 'src',
+//       entryFileNames: '[name].js'
+//     }
+//   },
+//   {
+//     input: ['src/index.ts', 'src/time-sphere/index.ts', 'src/singleton.ts'],
+//     external: chunkmap,
+//     plugins: [
+//       defineResolve(),
+//       defineTs({ tsconfig: 'tsconfig.build.json' }),
+//       defineMinify()
+//     ],
+//     output: {
+//       dir: 'dist',
+//       format: 'esm',
+//       // preserveModules: true,
+//       // preserveModulesRoot: 'src',
+//       entryFileNames: '[name].min.js'
+//     }
+//   },
+//   {
+//     input: ['src/index.ts', 'src/time-sphere/index.ts', 'src/singleton.ts'],
+//     external: chunkmap,
+//     plugins: [defineType({ tsconfig: 'tsconfig.build.json' })],
+//     output: {
+//       dir: 'dist',
+//       format: 'esm',
+//       // preserveModules: true,
+//       // preserveModulesRoot: 'src',
+//       entryFileNames: '[name].d.ts'
+//     }
+//   }
+// ])

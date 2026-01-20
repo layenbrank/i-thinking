@@ -28,7 +28,12 @@
  * - 自动处理时区和国际化
  */
 
-import dayjs, { type ConfigType, type Dayjs, type OpUnitType, type UnitType } from 'dayjs'
+import dayjs, {
+  type ConfigType,
+  type Dayjs,
+  type OpUnitType,
+  type UnitType
+} from 'dayjs'
 import 'dayjs/locale/en'
 import 'dayjs/locale/zh-cn'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
@@ -52,7 +57,7 @@ import utc from 'dayjs/plugin/utc'
 import weekday from 'dayjs/plugin/weekday'
 import weekOfYear from 'dayjs/plugin/weekOfYear'
 import weekYear from 'dayjs/plugin/weekYear'
-import { Singleton } from '../singleton'
+import { Singleton } from '@/singleton'
 import type {
   DayReturnType,
   DayType,
@@ -281,7 +286,11 @@ class TimeSphere implements TimeSphereImpl {
     rangeEnd: ConfigType,
     unit?: OpUnitType
   ): boolean {
-    return this.parse(target).isBetween(this.parse(rangeStart), this.parse(rangeEnd), unit)
+    return this.parse(target).isBetween(
+      this.parse(rangeStart),
+      this.parse(rangeEnd),
+      unit
+    )
   }
 
   /**
@@ -310,7 +319,11 @@ class TimeSphere implements TimeSphereImpl {
    * @remarks
    * type: ofYear(当年第几周), ofMonth(当月第几周), range/ranges/next(周范围)
    */
-  day<T extends DayType>(target: ConfigType, type: T, rangeEnd?: ConfigType): DayReturnType<T> {
+  day<T extends DayType>(
+    target: ConfigType,
+    type: T,
+    rangeEnd?: ConfigType
+  ): DayReturnType<T> {
     const parsed = this.parse(target)
 
     const reflection = {
@@ -343,7 +356,9 @@ class TimeSphere implements TimeSphereImpl {
       },
       ranges: () => {
         // 如果没有提供rangeEnd，默认使用当月最后一天
-        const endDate = rangeEnd ? this.parse(rangeEnd) : parsed.clone().endOf('month')
+        const endDate = rangeEnd
+          ? this.parse(rangeEnd)
+          : parsed.clone().endOf('month')
         let current = parsed.clone().startOf('day')
         const final = endDate.clone().endOf('day')
         const days = []
@@ -367,7 +382,9 @@ class TimeSphere implements TimeSphereImpl {
       }
     }
 
-    return (reflection[type] ? reflection[type]() : reflection.begin()) as DayReturnType<T>
+    return (
+      reflection[type] ? reflection[type]() : reflection.begin()
+    ) as DayReturnType<T>
   }
 
   /**
@@ -375,7 +392,10 @@ class TimeSphere implements TimeSphereImpl {
    * @remarks
    * type: number(第几季度), begin(季度开始), final(季度结束), range(季度范围), ranges(季度内所有月份), next(下一季度)
    */
-  quarter<T extends QuarterType>(target: ConfigType, type: T): QuarterReturnType<T> {
+  quarter<T extends QuarterType>(
+    target: ConfigType,
+    type: T
+  ): QuarterReturnType<T> {
     const parsed = this.parse(target)
 
     const reflection = {
@@ -438,7 +458,9 @@ class TimeSphere implements TimeSphereImpl {
       }
     }
 
-    return (reflection[type] ? reflection[type]() : reflection.number()) as QuarterReturnType<T>
+    return (
+      reflection[type] ? reflection[type]() : reflection.number()
+    ) as QuarterReturnType<T>
   }
 
   /**
@@ -507,7 +529,9 @@ class TimeSphere implements TimeSphereImpl {
       }
     }
 
-    return (reflection[type] ? reflection[type]() : reflection.number()) as MonthReturnType<T>
+    return (
+      reflection[type] ? reflection[type]() : reflection.number()
+    ) as MonthReturnType<T>
   }
 
   /**
@@ -561,7 +585,9 @@ class TimeSphere implements TimeSphereImpl {
       }
     }
 
-    return (reflection[type] ? reflection[type]() : reflection.number()) as YearReturnType<T>
+    return (
+      reflection[type] ? reflection[type]() : reflection.number()
+    ) as YearReturnType<T>
   }
 }
 

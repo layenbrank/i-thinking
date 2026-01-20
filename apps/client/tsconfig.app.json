@@ -27,7 +27,7 @@
       "reflect-metadata",
       "ant-design-vue/typings/global",
       "unplugin-icons/types/react",
-      "@i-thinking/wasm",
+      "@i-thinking/utils",
       "@i-thinking/shared/response",
       "@i-thinking/shared/decorator",
       "@i-thinking/shared/constructor",
