@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["index.ts", "rollup.config.ts"],
+  "compilerOptions": {
+    "declaration": false,
+    "emitDeclarationOnly": false,
+    "allowImportingTsExtensions": false
+  }
+}

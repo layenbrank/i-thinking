@@ -681,9 +681,6 @@ importers:
 
   apps/client:
     devDependencies:
-      '@i-thinking/composables':
-        specifier: workspace:*
-        version: link:../../packages/composables
       '@i-thinking/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -874,6 +871,8 @@ importers:
 
   packages/composables: {}
 
+  packages/construct: {}
+
   packages/core: {}
 
   packages/directives: {}
@@ -903,7 +902,11 @@ importers:
         specifier: workspace:*
         version: link:../shared
 
-  packages/utils: {}
+  packages/utils:
+    dependencies:
+      '@i-thinking/construct':
+        specifier: workspace:*
+        version: link:../construct
 
   packages/wasm: {}
 

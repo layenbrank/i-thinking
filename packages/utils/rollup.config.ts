@@ -1,7 +1,7 @@
 import defineResolve from '@rollup/plugin-node-resolve'
 import defineMinify from '@rollup/plugin-terser'
 import defineTs from '@rollup/plugin-typescript'
-import type { RollupOptions } from 'rollup'
+import type { Plugin, RollupOptions } from 'rollup'
 import { defineConfig } from 'rollup'
 import { dts as defineType } from 'rollup-plugin-dts'
 
@@ -16,9 +16,38 @@ const chunkmap = [
   /\/time-sphere$/
 ]
 
+const PATH_REWRITES = {
+  './src/time-sphere': './time-sphere',
+  './src/calendar': './calendar',
+  './src/singleton': './singleton',
+  './src/generate': './generate',
+  './src/support': './support',
+  '@/time-sphere': './time-sphere',
+  '@/calendar': './calendar',
+  '@/singleton': './singleton',
+  '@/generate': './generate',
+  '@/support': './support'
+} as const
+
+function definePathRewrite(rewrites: Record<string, string>): Plugin {
+  return {
+    name: 'path-rewrite',
+    renderChunk(code) {
+      let result = code
+      for (const [from, to] of Object.entries(rewrites)) {
+        const pattern = new RegExp(
+          `(from\\s+['"\`])${from.replace(/\//g, '\\/')}(['"\`])`,
+          'g'
+        )
+        result = result.replace(pattern, `$1${to}$2`)
+      }
+      return result
+    }
+  }
+}
 const configures: RollupOptions[] = [
   {
-    input: 'src/index.ts',
+    input: 'index.ts',
     external: chunkmap,
     // external(source) {
     //   console.log('external source:', source)
@@ -26,6 +55,7 @@ const configures: RollupOptions[] = [
     // },
     plugins: [
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -39,11 +69,12 @@ const configures: RollupOptions[] = [
     ]
   },
   {
-    input: 'src/index.ts',
+    input: 'index.ts',
     external: chunkmap,
     plugins: [
       defineMinify(),
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -57,7 +88,7 @@ const configures: RollupOptions[] = [
     ]
   },
   {
-    input: 'src/index.ts',
+    input: 'index.ts',
     external: chunkmap,
     output: [
       {
@@ -66,6 +97,7 @@ const configures: RollupOptions[] = [
       }
     ],
     plugins: [
+      definePathRewrite(PATH_REWRITES),
       defineType({
         tsconfig: 'tsconfig.build.json'
       })
@@ -77,6 +109,7 @@ const configures: RollupOptions[] = [
     external: chunkmap,
     plugins: [
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -95,6 +128,7 @@ const configures: RollupOptions[] = [
     plugins: [
       defineMinify(),
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -117,6 +151,7 @@ const configures: RollupOptions[] = [
       }
     ],
     plugins: [
+      definePathRewrite(PATH_REWRITES),
       defineType({
         tsconfig: 'tsconfig.build.json'
       })
@@ -128,6 +163,7 @@ const configures: RollupOptions[] = [
     external: chunkmap,
     plugins: [
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -146,6 +182,7 @@ const configures: RollupOptions[] = [
     plugins: [
       defineMinify(),
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -168,6 +205,7 @@ const configures: RollupOptions[] = [
       }
     ],
     plugins: [
+      definePathRewrite(PATH_REWRITES),
       defineType({
         tsconfig: 'tsconfig.build.json'
       })
@@ -179,6 +217,7 @@ const configures: RollupOptions[] = [
     external: chunkmap,
     plugins: [
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -197,6 +236,7 @@ const configures: RollupOptions[] = [
     plugins: [
       defineMinify(),
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -219,6 +259,7 @@ const configures: RollupOptions[] = [
       }
     ],
     plugins: [
+      definePathRewrite(PATH_REWRITES),
       defineType({
         tsconfig: 'tsconfig.build.json'
       })
@@ -230,6 +271,7 @@ const configures: RollupOptions[] = [
     external: chunkmap,
     plugins: [
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -248,6 +290,7 @@ const configures: RollupOptions[] = [
     plugins: [
       defineMinify(),
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -270,6 +313,7 @@ const configures: RollupOptions[] = [
       }
     ],
     plugins: [
+      definePathRewrite(PATH_REWRITES),
       defineType({
         tsconfig: 'tsconfig.build.json'
       })
@@ -281,6 +325,7 @@ const configures: RollupOptions[] = [
     external: chunkmap,
     plugins: [
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -299,6 +344,7 @@ const configures: RollupOptions[] = [
     plugins: [
       defineMinify(),
       defineResolve(),
+      definePathRewrite(PATH_REWRITES),
       defineTs({
         tsconfig: 'tsconfig.build.json'
       })
@@ -321,6 +367,7 @@ const configures: RollupOptions[] = [
       }
     ],
     plugins: [
+      definePathRewrite(PATH_REWRITES),
       defineType({
         tsconfig: 'tsconfig.build.json'
       })

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "exclude": ["**/node_modules/**", "**/dist/**"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "index.ts", "rollup.config.ts"],
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": true,
+    "verbatimModuleSyntax": true,
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "moduleDetection": "force",
+
+    "noEmit": false,
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true,
+    "skipLibCheck": true,
+
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "noImplicitThis": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "declaration": true,
+    "declarationMap": false,
+    "sourceMap": false,
+
+    "outDir": "dist",
+    "baseUrl": ".",
+    "rootDir": ".",
+
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}

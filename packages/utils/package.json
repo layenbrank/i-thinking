@@ -20,6 +20,9 @@
     "test:e2e": "playwright test",
     "test:coverage": "vitest --coverage"
   },
+  "dependencies": {
+    "@i-thinking/construct": "workspace:*"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",

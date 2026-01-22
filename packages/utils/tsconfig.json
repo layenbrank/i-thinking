@@ -3,7 +3,8 @@
     "src/**/*.ts",
     "src/**/*.d.ts",
     "rollup.config.ts",
-    "eslint.config.ts"
+    "eslint.config.ts",
+    "index.ts"
   ],
   "exclude": ["**/node_modules/**", "**/dist/**"],
   "compilerOptions": {

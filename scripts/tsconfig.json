@@ -4,10 +4,11 @@
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
 
     "sourceMap": true,
 
-    "outDir": "dist",
     "strict": true,
 
     "noEmit": true,
@@ -15,14 +16,20 @@
     "noImplicitAny": true,
     "esModuleInterop": true,
 
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "types": ["node"],
+    "types": ["node", "@types/node"],
     "resolveJsonModule": true,
     "removeComments": true,
     "skipLibCheck": false,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+
+    "outDir": "dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   }
 }
