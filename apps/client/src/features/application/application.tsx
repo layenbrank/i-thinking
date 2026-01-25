@@ -4,6 +4,7 @@ import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { Suspense } from 'react'
+import { Window } from '@tauri-apps/api/window'
 
 import { DEFAULT_ABORT_TIMEOUT_MS } from '@/constants/application.ts'
 import styles from '@/features/application/application.module.scss'
@@ -301,7 +302,10 @@ const Application = {
     return (
       <div
         {...listens}
-        onDoubleClick={() => onUpdateVisible(true)}
+        onDoubleClick={() => {
+          onUpdateVisible(true)
+          new Window(props.component)
+        }}
         {...attributes}
         ref={setNodeRef}
         data-id={props.id}

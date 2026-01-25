@@ -80,7 +80,6 @@
         "visible": true,
         "width": 1200,
         "minWidth": 800,
-        "windowClassname": "i thinking",
         "windowEffects": {
           "effects": ["micaLight", "mica", "micaDark", "acrylic"]
         }
@@ -92,8 +91,69 @@
         "create": false,
         "resizable": true,
         "maximizable": true,
+        "minimizable": false,
+        "maximized": true,
+        "fullscreen": true
+      },
+      {
+        "label": "navigation",
+        "url": "/markdown",
+        "theme": "Light",
+        "shadow": true,
+        "create": false,
+        "visible": true,
+        "decorations": false,
+        "resizable": true,
+        "maximizable": true,
         "minimizable": true,
-        "maximized": false
+        "maximized": true,
+        "fullscreen": false,
+        "height": 800,
+        "minHeight": 600,
+        "width": 1200,
+        "minWidth": 800,
+        "backgroundColor": "#00000000",
+        "transparent": true,
+        "center": true,
+        "dragDropEnabled": true,
+        "focus": true,
+        "focusable": true,
+        "title": "Markdown",
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "windowEffects": {
+          "effects": ["micaLight", "mica", "micaDark", "acrylic"]
+        }
+      },
+      {
+        "label": "navigation",
+        "url": "/code",
+        "theme": "Light",
+        "shadow": true,
+        "create": false,
+        "visible": true,
+        "decorations": false,
+        "resizable": true,
+        "maximizable": true,
+        "minimizable": true,
+        "maximized": true,
+        "fullscreen": false,
+        "height": 800,
+        "minHeight": 600,
+        "width": 1200,
+        "minWidth": 800,
+        "backgroundColor": "#00000000",
+        "transparent": true,
+        "center": true,
+        "dragDropEnabled": true,
+        "focus": true,
+        "focusable": true,
+        "title": "Code",
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "windowEffects": {
+          "effects": ["micaLight", "mica", "micaDark", "acrylic"]
+        }
       }
     ],
     "withGlobalTauri": true

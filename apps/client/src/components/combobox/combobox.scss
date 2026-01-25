@@ -1,0 +1,62 @@
+$round: 4px;
+$background: #ffffff;
+
+:where(.combobox) {
+  border-radius: $round;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: $background;
+  font-size: 14px;
+  line-height: 20px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.04);
+
+  &.is-active {
+    border-radius: $round $round 0px 0px;
+  }
+
+  .combobox-composer {
+    width: 100%;
+    outline: none;
+    padding-inline: 8px;
+    background-color: transparent;
+  }
+}
+
+:where(.combobox-trigger) {
+}
+
+:where(.combobox-section) {
+  width: 100%;
+  // padding: 8px;
+  padding-block: 8px;
+  padding-inline-start: 8px;
+  padding-inline-end: 2px;
+  position: absolute;
+  border-radius: 0px 0px $round $round;
+  top: var(--combobox-section-offset);
+  background-color: $background;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+:where(.combobox-collection) {
+  max-height: 360px;
+  overflow-y: scroll;
+  scroll-behavior: smooth;
+  padding-inline-end: 2px;
+}
+
+:where(.single-combobox) {
+  padding-block: 3px;
+  padding-inline: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba($color: #000000, $alpha: 0.04);
+  }
+}

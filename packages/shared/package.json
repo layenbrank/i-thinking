@@ -4,6 +4,12 @@
   "type": "module",
   "private": true,
   "exports": {
+    ".": {
+      "default": "./src/assets/iconify.json"
+    },
+    "./iconify.json": {
+      "default": "./src/assets/iconify.json"
+    },
     "./contextmenu": {
       "types": "./src/types/contextmenu.d.ts"
     },

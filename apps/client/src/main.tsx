@@ -1,8 +1,13 @@
+import { addCollection } from '@iconify/react'
 import { createRoot } from 'react-dom/client'
 import 'reflect-metadata'
 
 import App from '@/App.tsx'
 import '@/styles/index.scss'
+
+import CustomIconify from '@i-thinking/shared'
+
+addCollection(CustomIconify)
 
 const rootElement = document.getElementById('root') as HTMLElement
 

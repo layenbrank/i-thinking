@@ -61,40 +61,21 @@
       ],
       "identifier": "opener:allow-default-urls"
     },
-    {
-      "allow": [
-        {
-          "path": "$APPDATA/*"
-        },
-        {
-          "path": "$HOME/*"
-        },
-        {
-          "path": "$DOCUMENTS/*"
-        },
-        {
-          "path": "$DOWNLOADS/*"
-        },
-        {
-          "path": "$DESKTOP/*"
-        },
-        {
-          "path": "$PICTURES/*"
-        },
-        {
-          "path": "$VIDEOS/*"
-        },
-        {
-          "path": "$MUSICS/*"
-        }
-      ],
-      "identifier": "fs:default"
-    },
+    "fs:default",
     "core:webview:allow-clear-all-browsing-data",
     "core:webview:allow-webview-size",
+    "core:path:default",
+    "core:menu:default",
     "fs:allow-write",
     "fs:allow-watch",
     "fs:allow-write-file",
+    "fs:allow-read",
+    "fs:allow-read-dir",
+    "fs:allow-document-read",
+    "fs:allow-document-read-recursive",
+    "fs:allow-document-write",
+    "fs:allow-document-write-recursive",
+    "fs:allow-read-file",
     "fs:allow-write-text-file",
     "fs:allow-download-write",
     "fs:allow-download-write-recursive",
@@ -102,6 +83,10 @@
     "fs:allow-runtime-write-recursive",
     "fs:allow-home-write",
     "fs:allow-home-write-recursive",
+    "fs:allow-read-text-file",
+    "fs:allow-read-text-file-lines",
+    "fs:allow-runtime-read",
+    "fs:allow-runtime-read-recursive",
     "core:webview:allow-create-webview",
     "core:webview:allow-create-webview-window",
     "core:webview:allow-internal-toggle-devtools",
