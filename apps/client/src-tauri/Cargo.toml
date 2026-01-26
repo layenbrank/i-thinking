@@ -13,11 +13,11 @@ edition     = "2024"
 # panic = "abort"     # 替换展开为直接终止（减小体积）
 # strip = "symbols"   # 移除调试符号（Rust 1.59+）
 
-[profile.dev]
-opt-level = 0          # 保持编译快速
-debug = 1              # 降低调试信息体积，加速链接
-incremental = true     # 开启增量编译
-codegen-units = 16     # 提高并行编译（可按 CPU 核心数调整）
+# [profile.dev]
+# opt-level = 0          # 保持编译快速
+# debug = 1              # 降低调试信息体积，加速链接
+# incremental = true     # 开启增量编译
+# codegen-units = 16     # 提高并行编译（可按 CPU 核心数调整）
 
 # bin
 [[bin]]

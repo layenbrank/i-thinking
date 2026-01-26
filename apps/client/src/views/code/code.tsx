@@ -95,6 +95,7 @@ export default function Code() {
 
   useEffect(function () {
     const section = GraphRef.current
+    console.log('section', section)
     if (!section) return
 
     composeRef.current = monaco.editor.create(section, options)

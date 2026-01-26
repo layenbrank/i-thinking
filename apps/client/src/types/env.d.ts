@@ -25,3 +25,8 @@ var MediaStreamTrackProcessor: {
 }
 
 declare type Recordable<T = any> = Record<string, T>
+
+declare module '*.contribution' {
+  const src: string
+  export default src
+}
