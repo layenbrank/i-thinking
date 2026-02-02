@@ -6,8 +6,11 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
+    "prebuild": "pnpm update electron",
+    "build": "pnpm run prebuild && tsc && vite build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "postinstall": "prisma generate",
+    "rebuild": "electron-rebuild",
     "preview": "vite preview",
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
@@ -15,11 +18,17 @@
   },
   "dependencies": {
     "@i-thinking/utils": "workspace:*",
-    "@i-thinking/wasm": "workspace:*"
+    "@i-thinking/wasm": "workspace:*",
+    "@prisma/adapter-better-sqlite3": "^6.2.0",
+    "@prisma/client": "^6.2.0",
+    "better-sqlite3": "^11.6.0",
+    "electron-store": "^10.1.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.6.0",
+    "@i-thinking/shared": "workspace:*",
     "electron": "catalog:",
     "electron-builder": "catalog:",
-    "@i-thinking/shared": "workspace:*"
+    "prisma": "^6.2.0"
   }
 }

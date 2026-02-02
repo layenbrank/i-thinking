@@ -1,10 +1,18 @@
-import { Navigate, useRoutes } from 'react-router-dom'
 import React from 'react'
+import { Navigate, useRoutes } from 'react-router-dom'
 
-const Overview = React.lazy(() => import('@/views/overview/overview.tsx'))
-const Screenshot = React.lazy(() => import('@/views/screenshot/screenshot.tsx'))
-const Markdown = React.lazy(() => import('@/views/markdown/markdown.tsx'))
-const Code = React.lazy(() => import('@/views/code/code.tsx'))
+const Overview = React.lazy(function () {
+  return import('@/views/overview/overview.tsx')
+})
+const Screenshot = React.lazy(function () {
+  return import('@/views/screenshot/screenshot.tsx')
+})
+const Markdown = React.lazy(function () {
+  return import('@/views/markdown/markdown.tsx')
+})
+const Code = React.lazy(function () {
+  return import('@/views/code/code.tsx')
+})
 
 export default function RouterView() {
   return useRoutes([

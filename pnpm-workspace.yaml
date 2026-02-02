@@ -9,11 +9,15 @@ catalog:
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@parcel/watcher'
+  - '@prisma/client'
+  - '@prisma/engines'
   - '@scarf/scarf'
   - '@swc/core'
+  - better-sqlite3
   - core-js
   - electron
   - electron-winstaller
   - esbuild
   - msw
+  - prisma
   - unrs-resolver

@@ -1,0 +1,12 @@
+// Prisma schema for studio (SQLite via better-sqlite3 adapter in main process)
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Add models as needed; IPC db:query/db:execute use $queryRaw/$executeRaw

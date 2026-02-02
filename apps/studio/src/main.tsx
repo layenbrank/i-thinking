@@ -1,5 +1,5 @@
-import { createRoot } from 'react-dom/client'
 import { addCollection } from '@iconify/react'
+import { createRoot } from 'react-dom/client'
 
 import App from '@/App.tsx'
 import '@/styles/index.scss'
@@ -39,6 +39,8 @@ const root = createRoot(rootElement, {
 
 root.render(<App />)
 
-window.ipcRenderer.on('main-process-message', function (event, message) {
-  console.log(event, message)
-})
+if (window.ipcRenderer?.app?.onMessage) {
+  window.ipcRenderer.app.onMessage(function (message) {
+    console.log('main-process-message', message)
+  })
+}

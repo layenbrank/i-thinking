@@ -3,8 +3,8 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 import globals from 'globals'
-import tseslint from 'typescript-eslint'
 import { fileURLToPath } from 'node:url'
+import tseslint from 'typescript-eslint'
 
 export default defineConfig([
   globalIgnores(['dist', 'dist-ssr', 'coverage', 'node_modules']),
@@ -34,6 +34,14 @@ export default defineConfig([
     extends: [],
     rules: {
       eqeqeq: 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ArrowFunctionExpression',
+          message:
+            'Arrow functions are not allowed. Use function declarations or function expressions.'
+        }
+      ],
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/consistent-type-imports': [

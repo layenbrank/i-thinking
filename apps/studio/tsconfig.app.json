@@ -65,9 +65,7 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/**/*.d.ts",
-    "electron/**/*.ts",
-    "electron/**/*.d.ts"
+    "src/**/*.d.ts"
   ],
   "exclude": ["**/node_modules/**", "**/dist/**"]
 }

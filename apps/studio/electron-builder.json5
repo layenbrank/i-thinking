@@ -4,10 +4,12 @@
   appId: 'com.i-thinking.corex',
   asar: true,
   productName: 'i-thinking',
+  // Rebuild native Node modules for Electron when using e.g. better-sqlite3
+  npmRebuild: true,
   directories: {
     output: 'release/${version}'
   },
-  files: ['dist', 'dist-electron'],
+  files: ['dist', 'dist-electron', 'generated'],
   mac: {
     target: ['dmg'],
     icon: 'public/icon.ico',

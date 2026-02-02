@@ -1,12 +1,12 @@
-import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
-import Icons from 'unplugin-icons/vite'
-import { fileURLToPath, URL } from 'node:url'
+import React from '@vitejs/plugin-react-swc'
 import { findUpSync } from 'find-up'
 import { createWriteStream } from 'node:fs'
-import { dirname, resolve } from 'node:path'
 import { networkInterfaces } from 'node:os'
-import React from '@vitejs/plugin-react-swc'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
+import Icons from 'unplugin-icons/vite'
+import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Electron from 'vite-plugin-electron/simple'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -370,13 +370,20 @@ export default defineConfig(function ({
       }),
       Electron({
         main: {
-          // Shortcut of `build.lib.entry`.
-          entry: 'electron/main.ts'
+          entry: 'src/bin/main.ts',
+          vite: {
+            build: {
+              rollupOptions: {
+                // 不打包原生模块与 Prisma 适配器，由 Node 在运行时 require
+                external: ['better-sqlite3', '@prisma/adapter-better-sqlite3']
+              }
+            }
+          }
         },
         preload: {
           // Shortcut of `build.rollupOptions.input`.
           // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
-          input: resolve(__dirname, 'electron/preload.ts')
+          input: resolve(__dirname, 'src/bin/preload.ts')
         },
         // Ployfill the Electron and Node.js API for Renderer process.
         // If you want use Node.js in Renderer process, the `nodeIntegration` needs to be enabled in the Main process.

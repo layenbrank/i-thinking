@@ -182,6 +182,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "electron": "catalog:",
     "@eslint/js": "^9.33.0",
     "@iconify/json": "^2.2.402",
     "@playwright/test": "^1.57.0",
