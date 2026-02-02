@@ -28,8 +28,7 @@ import { UiState } from '@/components/tiptap-extension/ui-state-extension'
 import HorizontalRule from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension.ts'
 import { TableHandleExtension } from '@/components/tiptap-node/table-node/extensions/table-handle/table-handle.ts'
 
-import Navigation from '@/views/markdown/navigation.tsx'
-import { Overlay } from '@/views/markdown/overlay'
+import { Overlay } from '@/views/markdown/overlay/index'
 // import ComposerContext from '@/features/applications/markdown/composer-context.tsx'
 
 import styles from '@/views/markdown/markdown.module.scss'
@@ -131,7 +130,7 @@ export default function Markdown() {
           resizable
           size={sizes[0]}
           className={clsx([styles.markdown, styles.navigation])}>
-          <Navigation onUpdateFragment={onUpdateFragment} />
+          <Overlay.Navigation onUpdateFragment={onUpdateFragment} />
         </Splitter.Panel>
         <Splitter.Panel
           className={clsx([styles.markdown, styles.section])}

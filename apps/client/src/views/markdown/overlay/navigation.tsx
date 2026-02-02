@@ -7,7 +7,7 @@ import { DownOutlined } from '@ant-design/icons'
 import type { GetProps, TreeDataNode } from 'antd'
 import { Tree } from 'antd'
 
-import styles from '@/views/markdown/navigation.module.scss'
+import styles from '@/views/markdown/overlay/navigation.module.scss'
 
 type TreeProps = GetProps<typeof Tree.DirectoryTree>
 

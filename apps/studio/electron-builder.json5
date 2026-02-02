@@ -1,0 +1,38 @@
+// @see - https://www.electron.build/configuration/configuration
+{
+  $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
+  appId: 'com.i-thinking.corex',
+  asar: true,
+  productName: 'i-thinking',
+  directories: {
+    output: 'release/${version}'
+  },
+  files: ['dist', 'dist-electron'],
+  mac: {
+    target: ['dmg'],
+    icon: 'public/icon.ico',
+    artifactName: '${productName}-Mac-${version}-Installer.${ext}'
+  },
+  win: {
+    target: [
+      {
+        target: 'nsis',
+        arch: ['x64']
+      }
+    ],
+    icon: 'public/icon.ico',
+    artifactName: '${productName}-Windows-${version}-Setup.${ext}'
+  },
+  nsis: {
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+    deleteAppDataOnUninstall: false
+  },
+  linux: {
+    target: ['AppImage'],
+    category: 'Utility',
+    icon: 'public/icon.png',
+    artifactName: '${productName}-Linux-${version}.${ext}'
+  }
+}

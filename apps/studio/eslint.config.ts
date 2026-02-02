@@ -7,10 +7,7 @@ import tseslint from 'typescript-eslint'
 import { fileURLToPath } from 'node:url'
 
 export default defineConfig([
-  {
-    ignores: ['**/dist/**', '**/node_modules/**']
-  },
-  globalIgnores(['dist', 'node_modules']),
+  globalIgnores(['dist', 'dist-ssr', 'coverage', 'node_modules']),
   eslint.configs.recommended,
   tseslint.configs.recommended,
   reactHooks.configs.flat['recommended-latest'],
@@ -39,7 +36,12 @@ export default defineConfig([
       eqeqeq: 'error',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'error',
-      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          ignores: ['env.d.ts']
+        }
+      ],
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
@@ -49,5 +51,9 @@ export default defineConfig([
         }
       ]
     }
+  },
+  {
+    name: 'app/files-to-ignore',
+    ignores: []
   }
 ])

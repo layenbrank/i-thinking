@@ -13,3 +13,7 @@ onlyBuiltDependencies:
   - esbuild
   - msw
   - unrs-resolver
+
+catalog:
+  'electron': ^40.1.0
+  'electron-builder': '^26.4.0'

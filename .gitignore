@@ -45,6 +45,7 @@ gen/
 # Build outputs
 dist
 dist-ssr
+dist-electron
 *.local
 server/dist
 public/dist

@@ -4,10 +4,10 @@ pub mod ui {
 }
 
 pub mod utils {
-    // pub mod bookmark;
     pub mod bootstrap;
-    // pub mod client;
-    // pub mod installer;
     pub mod invoke;
     pub mod scan;
+    // pub mod bookmark;
+    // pub mod client;
+    // pub mod installer;
 }

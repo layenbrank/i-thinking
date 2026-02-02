@@ -2,13 +2,15 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "ESNext",
-    "lib": ["ESNext"],
-    "types": ["@types/node"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 
+    "composite": true,
+
     /* Bundler mode */
     "moduleResolution": "Bundler",
+    "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
@@ -16,14 +18,13 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 
-    "composite": true,
-    "allowSyntheticDefaultImports": true,
+    "types": [],
 
     "rootDir": ".",
     "baseUrl": "."
@@ -37,7 +38,6 @@
     "playwright.config.*",
     "tailwind.config.*",
     "eslint.config.*",
-    "scripts/**/*.ts",
-    "vite.config-d.ts"
+    "scripts/**/*.ts"
   ]
 }

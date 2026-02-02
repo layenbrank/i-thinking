@@ -10,6 +10,7 @@ import pluginPlaywright from 'eslint-plugin-playwright'
 import pluginVue from 'eslint-plugin-vue'
 import { globalIgnores } from 'eslint/config'
 import globals from 'globals'
+import { fileURLToPath } from 'node:url'
 
 /**
  * 配置 Vue 项目的 ESLint 环境
@@ -21,7 +22,7 @@ configureVueProject({
   // 允许在 `.vue` 文件中使用 TypeScript 和 TSX
   scriptLangs: ['ts', 'tsx'],
   // 设置项目的根目录为当前模块的目录
-  rootDir: import.meta.dirname
+  rootDir: fileURLToPath(import.meta.url)
 })
 
 // More info at https://github.com/vuejs/eslint-config-typescript/#advanced-setup
@@ -45,7 +46,7 @@ export default defineConfigWithVueTs(
       // parser: tseslint.parser,
       sourceType: 'module',
       parserOptions: {
-        tsconfigRootDir: import.meta.dirname,
+        tsconfigRootDir: fileURLToPath(import.meta.url),
         globals: globals.browser
       }
     },

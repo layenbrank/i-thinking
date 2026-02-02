@@ -1,15 +1,3 @@
 [build]
-target-dir    = "target" # 构建输出目录
-# rustc-wrapper = "sccache"       # 已注释：可替换为 sccache 实际路径；启用后可显著加速增量编译，但需本地安装与配置
-incremental   = true
-
-# -------------------------- Windows 平台配置 --------------------------
-[target.x86_64-pc-windows-msvc]
-# 使用MSVC链接器（需安装Visual Studio构建工具）
-linker = "link.exe"
-rustflags = [
-  "-C",
-  "target-cpu=native", # 开发机本地指令集优化（提升增量编译体验）
-  "-C",
-  "codegen-units=16",   # 已注释：代码生成单元设置；在 debug 中放到 rustflags 容易造成编译波动，建议放在 profile.dev 中统一控制
-]
+target-dir    = "target"  # 构建输出目录
+rustc-wrapper = "sccache"
