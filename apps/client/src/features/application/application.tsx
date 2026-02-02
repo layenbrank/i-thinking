@@ -5,6 +5,7 @@ import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { Suspense } from 'react'
 import { Window } from '@tauri-apps/api/window'
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 
 import { DEFAULT_ABORT_TIMEOUT_MS } from '@/constants/application.ts'
 import styles from '@/features/application/application.module.scss'
@@ -304,7 +305,7 @@ const Application = {
         {...listens}
         onDoubleClick={() => {
           onUpdateVisible(true)
-          new Window(props.component)
+          new WebviewWindow(props.component, {})
         }}
         {...attributes}
         ref={setNodeRef}

@@ -1,8 +1,11 @@
 packages:
-  - 'apps/*'
-  - 'packages/*'
+  - apps/*
+  - packages/*
 
-# 仅构建这些依赖
+catalog:
+  electron: ^40.1.0
+  electron-builder: ^26.4.0
+
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@parcel/watcher'
@@ -10,10 +13,7 @@ onlyBuiltDependencies:
   - '@swc/core'
   - core-js
   - electron
+  - electron-winstaller
   - esbuild
   - msw
   - unrs-resolver
-
-catalog:
-  'electron': ^40.1.0
-  'electron-builder': '^26.4.0'

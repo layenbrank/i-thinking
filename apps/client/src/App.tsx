@@ -46,7 +46,7 @@ const themeConfigure: ThemeConfig = {
 
 const plugins: Plugin[] = [
   MirrorPlugin,
-  KeyCodePlugin,
+  // KeyCodePlugin,
   StoragePlugin,
   IntelligencePlugin
 ]

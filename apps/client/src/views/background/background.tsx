@@ -1,5 +1,5 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import BackgroundURL from '@/assets/videos/demo.mp4'
+// import BackgroundURL from '@/assets/videos/demo.mp4'
 
 export default function Background() {
   useEffect(function () {
@@ -12,7 +12,7 @@ export default function Background() {
   return (
     <div className="background-view size-full">
       <video
-        src={BackgroundURL}
+        src=""
         autoPlay
         loop
         muted

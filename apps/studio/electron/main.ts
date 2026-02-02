@@ -1,9 +1,10 @@
 import { app, BrowserWindow } from 'electron'
-import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const require = createRequire(import.meta.url)
+// import { createRequire } from 'node:module'
+// const require = createRequire(import.meta.url)
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // The built directory structure
@@ -34,15 +35,25 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    title: 'i thinking',
     fullscreen: false,
     minimizable: true,
     maximizable: true,
     resizable: true,
     transparent: false,
     center: true,
+    backgroundColor: '#00000000',
+    title: 'i thinking',
+    frame: true,
+    titleBarStyle: 'customButtonsOnHover',
+    titleBarOverlay: true,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
+      minimumFontSize: 12,
+      defaultFontSize: 16,
+      plugins: true,
+      spellcheck: true,
+      defaultEncoding: 'utf-8',
+      webgl: true,
       devTools: true,
       contextIsolation: true,
       nodeIntegration: true,
@@ -68,19 +79,17 @@ function createWindow() {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
+app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') {
     app.quit()
     win = null
   }
 })
 
-app.on('activate', () => {
+app.on('activate', function () {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
-  }
+  if (!BrowserWindow.getAllWindows()?.length) createWindow()
 })
 
 app.whenReady().then(createWindow)
