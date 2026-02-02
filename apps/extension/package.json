@@ -21,12 +21,13 @@
     "coverage": "vitest --coverage"
   },
   "dependencies": {
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
     "@i-thinking/utils": "workspace:*",
     "@i-thinking/directives": "workspace:*",
     "@i-thinking/composables": "workspace:*",
-    "@i-thinking/wasm": "workspace:*"
-  },
-  "devDependencies": {
+    "@i-thinking/wasm": "workspace:*",
     "@i-thinking/shared": "workspace:*"
   }
 }
