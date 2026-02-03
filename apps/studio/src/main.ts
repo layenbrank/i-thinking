@@ -2,13 +2,13 @@ import { app, BrowserWindow } from 'electron'
 import started from 'electron-squirrel-startup'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-// import { registerAllIpc } from './bin/ipc/index.js'
+import { registerAllIpc } from './bin/ipc/index.js'
 
 if (started) app.quit()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-process.env.APP_ROOT = path.join(__dirname, '..')
+// 主进程打包到 .vite/build/main.js，项目根目录需再上一级（generated、public 等所在目录）
+process.env.APP_ROOT = path.join(__dirname, '..', '..')
 
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
@@ -52,6 +52,8 @@ function createWindow() {
     }
   })
 
+  win?.setMenu(null)
+
   win.webContents.on('did-finish-load', function () {
     win?.webContents.send('main-process-message', new Date().toLocaleString())
   })
@@ -84,10 +86,10 @@ app.on('activate', function () {
 })
 
 app.whenReady().then(function () {
-  // registerAllIpc({
-  //   getWindow: function () {
-  //     return win
-  //   }
-  // })
+  registerAllIpc({
+    getWindow: function () {
+      return win
+    }
+  })
   createWindow()
 })

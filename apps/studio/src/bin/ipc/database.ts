@@ -2,7 +2,7 @@
  * 主进程仅负责：加载 SQLite（Prisma + better-sqlite3）、提供 query/execute/close。
  * 建表、插数据、查询等均由前端通过 ipcRenderer.database.query/execute 传入 SQL 完成。
  */
-import { PrismaBetterSQLite3 } from '@prisma/adapter-better-sqlite3'
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { app, type IpcMain, type IpcMainInvokeEvent } from 'electron'
 import { existsSync, mkdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -12,31 +12,53 @@ import type { PrismaClient } from '../../../generated/prisma'
 
 const require = createRequire(import.meta.url)
 const thisDir = path.dirname(fileURLToPath(import.meta.url))
-// 打包后主进程为单文件，thisDir 为 dist-electron；开发时可能为 dist-electron/ipc
-const generatedPath = path.join(thisDir, '..', 'generated', 'prisma')
-const generatedDir = path.dirname(generatedPath)
 
-// ESM/打包环境下 require 进来的 CJS 依赖 __filename/__dirname，在 require 前注入
-const g = globalThis as typeof globalThis & {
-  __filename?: string
-  __dirname?: string
-}
-g.__filename = path.join(generatedDir, 'index.js')
-g.__dirname = generatedDir
-const { PrismaClient: PrismaClientCtor } = require(generatedPath) as {
-  PrismaClient: typeof PrismaClient
+let PrismaClientCtor: typeof PrismaClient | null = null
+
+function getPrismaClientCtor(): typeof PrismaClient {
+  if (PrismaClientCtor) return PrismaClientCtor
+  const root = process.env.APP_ROOT || path.join(thisDir, '..', '..')
+  const generatedPath = path.join(root, 'generated', 'prisma')
+  const generatedDir = path.dirname(generatedPath)
+  const g = globalThis as typeof globalThis & {
+    __filename?: string
+    __dirname?: string
+  }
+  g.__filename = path.join(generatedDir, 'index.js')
+  g.__dirname = generatedDir
+  const mod = require(generatedPath) as { PrismaClient: typeof PrismaClient }
+  PrismaClientCtor = mod.PrismaClient
+  return PrismaClientCtor
 }
 
 const DB_NAME = 'i-thinking.db'
 let client: PrismaClient | null = null
+let schemaInitialized = false
+
+const INIT_USER_TABLE = `
+CREATE TABLE IF NOT EXISTS "User" (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "name" TEXT,
+  "email" TEXT
+);
+`
+
+async function ensureSchema(c: PrismaClient): Promise<void> {
+  if (schemaInitialized) return
+  await c.$executeRawUnsafe(INIT_USER_TABLE)
+  schemaInitialized = true
+}
 
 function loadSqlite(): PrismaClient {
   if (client) return client
+  const PrismaClientCtor = getPrismaClientCtor()
   const userData = app.getPath('userData')
   const dbDir = path.join(userData, 'databases')
   const dbPath = path.join(dbDir, DB_NAME)
   if (!existsSync(dbDir)) mkdirSync(dbDir, { recursive: true })
-  const adapter = new PrismaBetterSQLite3({ url: `file:${dbPath}` })
+  const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` })
   client = new PrismaClientCtor({ adapter })
   return client
 }
@@ -49,9 +71,12 @@ export function registerDatabaseIpc(ipcMain: IpcMain): void {
       sql: string,
       params: Parameters<PrismaClient['$queryRawUnsafe']>[1][] = []
     ) {
-      const rows = await loadSqlite().$queryRawUnsafe<
-        Record<string, unknown>[]
-      >(sql, ...params)
+      const c = loadSqlite()
+      await ensureSchema(c)
+      const rows = await c.$queryRawUnsafe<Record<string, unknown>[]>(
+        sql,
+        ...params
+      )
       return Array.isArray(rows) ? rows : []
     }
   )
@@ -62,7 +87,9 @@ export function registerDatabaseIpc(ipcMain: IpcMain): void {
       sql: string,
       params: Parameters<PrismaClient['$executeRawUnsafe']>[1][] = []
     ) {
-      await loadSqlite().$executeRawUnsafe(sql, ...params)
+      const c = loadSqlite()
+      await ensureSchema(c)
+      await c.$executeRawUnsafe(sql, ...params)
     }
   )
   ipcMain.handle('db:close', async function () {

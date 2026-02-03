@@ -1,3 +1,5 @@
+import { clsx } from 'clsx'
+
 export default function Overview() {
-  return <div>overview</div>
+  return <div className={clsx(['size-full'])}>wao</div>
 }
