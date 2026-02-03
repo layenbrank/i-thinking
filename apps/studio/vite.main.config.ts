@@ -10,8 +10,8 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      // 不打包原生模块和 Prisma 适配器，由运行时 require 加载
-      external: ['better-sqlite3', '@prisma/adapter-better-sqlite3']
+      // 仅不打包 better-sqlite3（含原生 .node）；适配器打进主进程，避免打包后 node_modules 解析失败
+      external: ['better-sqlite3']
     }
   }
 })

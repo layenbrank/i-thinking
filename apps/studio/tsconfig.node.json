@@ -27,7 +27,10 @@
     "types": [],
 
     "rootDir": ".",
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "exclude": ["postcss.config.js"],
   "include": [

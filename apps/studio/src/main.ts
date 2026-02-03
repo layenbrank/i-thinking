@@ -6,6 +6,9 @@ import { registerAllIpc } from './bin/ipc/index.js'
 
 if (started) app.quit()
 
+// Windows 任务栏/通知等需要固定 App User Model ID
+if (process.platform === 'win32') app.setAppUserModelId('com.i-thinking.studio')
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // 主进程打包到 .vite/build/main.js，项目根目录需再上一级（generated、public 等所在目录）
 process.env.APP_ROOT = path.join(__dirname, '..', '..')
@@ -66,6 +69,8 @@ function createWindow() {
     )
   }
 
+  win.webContents.openDevTools({ mode: 'detach' })
+
   // if (VITE_DEV_SERVER_URL) {
   //   win.loadURL(VITE_DEV_SERVER_URL)
   //   win.webContents.openDevTools({ mode: 'detach' })
@@ -92,4 +97,12 @@ app.whenReady().then(function () {
     }
   })
   createWindow()
+})
+
+// 主进程未捕获错误，避免静默崩溃
+process.on('uncaughtException', function (err) {
+  console.error('[main] uncaughtException', err)
+})
+process.on('unhandledRejection', function (reason, promise) {
+  console.error('[main] unhandledRejection', reason, promise)
 })

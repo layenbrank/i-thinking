@@ -7,7 +7,6 @@ import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
 import Icons from 'unplugin-icons/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
-import Electron from 'vite-plugin-electron/simple'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ws = createWriteStream(resolve(__dirname, 'chunks.log'), {
@@ -367,25 +366,6 @@ export default defineConfig(function ({
         jsxImportSource: 'react',
         tsDecorators: true,
         plugins: []
-      }),
-      Electron({
-        main: {
-          // Shortcut of `build.lib.entry`.
-          entry: 'src/bin/main.ts'
-        },
-        preload: {
-          // Shortcut of `build.rollupOptions.input`.
-          // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
-          input: resolve(__dirname, 'src/bin/preload.ts')
-        },
-        // Ployfill the Electron and Node.js API for Renderer process.
-        // If you want use Node.js in Renderer process, the `nodeIntegration` needs to be enabled in the Main process.
-        // See 👉 https://github.com/electron-vite/vite-plugin-electron-renderer
-        renderer:
-          process.env.NODE_ENV === 'test'
-            ? // https://github.com/electron-vite/vite-plugin-electron-renderer/issues/78#issuecomment-2053600808
-              undefined
-            : {}
       }),
       Icons({
         compiler: 'jsx',

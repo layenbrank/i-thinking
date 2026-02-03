@@ -1,11 +1,14 @@
 {
   "name": "@i-thinking/studio",
+  "productName": "i thinking",
+  "description": "i thinking Studio - Electron desktop app",
   "private": true,
   "version": "0.1.0",
   "type": "commonjs",
   "main": ".vite/build/main.js",
   "scripts": {
     "dev": "electron-forge start",
+    "dev:core": "vite",
     "package": "electron-forge package",
     "build": "electron-forge make",
     "publish": "electron-forge publish",

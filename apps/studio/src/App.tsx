@@ -11,11 +11,11 @@ import RouterView from '@/routers/routes.tsx'
 // import { POST_SIGNIN } from '@/apis/auth.ts'
 
 dayjs.locale('zh-cn')
-console.log(
-  window.ipcRenderer.database.query('SELECT * FROM user').then((res) => {
-    console.log('[window.ipcRenderer.database.query] res', res)
-  })
-)
+// console.log(
+//   window.ipcRenderer.database.query('SELECT * FROM user').then((res) => {
+//     console.log('[window.ipcRenderer.database.query] res', res)
+//   })
+// )
 
 const themeConfigure: ThemeConfig = {
   algorithm: theme.defaultAlgorithm,
