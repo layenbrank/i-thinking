@@ -370,15 +370,8 @@ export default defineConfig(function ({
       }),
       Electron({
         main: {
-          entry: 'src/bin/main.ts',
-          vite: {
-            build: {
-              rollupOptions: {
-                // 不打包原生模块与 Prisma 适配器，由 Node 在运行时 require
-                external: ['better-sqlite3', '@prisma/adapter-better-sqlite3']
-              }
-            }
-          }
+          // Shortcut of `build.lib.entry`.
+          entry: 'src/bin/main.ts'
         },
         preload: {
           // Shortcut of `build.rollupOptions.input`.

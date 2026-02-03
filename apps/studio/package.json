@@ -19,17 +19,13 @@
   "dependencies": {
     "@i-thinking/utils": "workspace:*",
     "@i-thinking/wasm": "workspace:*",
-    "@prisma/adapter-better-sqlite3": "^6.2.0",
-    "@prisma/client": "^6.2.0",
-    "better-sqlite3": "^11.6.0",
-    "electron-store": "^10.1.0",
-    "electron-squirrel-startup": "^1.0.1"
+    "@prisma/adapter-better-sqlite3": "^7.3.0",
+    "@prisma/client": "^7.3.0",
+    "better-sqlite3": "^12.6.2",
+    "electron-squirrel-startup": "^1.0.1",
+    "electron-store": "^11.0.2"
   },
   "devDependencies": {
-    "@electron/rebuild": "^3.6.0",
-    "@i-thinking/shared": "workspace:*",
-    "electron": "catalog:",
-    "prisma": "^6.2.0",
     "@electron-forge/cli": "^7.11.1",
     "@electron-forge/maker-deb": "^7.11.1",
     "@electron-forge/maker-rpm": "^7.11.1",
@@ -39,7 +35,11 @@
     "@electron-forge/plugin-fuses": "^7.11.1",
     "@electron-forge/plugin-vite": "^7.11.1",
     "@electron/fuses": "^1.8.0",
-    "@types/electron-squirrel-startup": "^1.0.2"
+    "@electron/rebuild": "^3.6.0",
+    "@i-thinking/shared": "workspace:*",
+    "@types/electron-squirrel-startup": "^1.0.2",
+    "electron": "catalog:",
+    "prisma": "^7.3.0"
   },
   "keywords": [],
   "author": {
