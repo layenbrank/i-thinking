@@ -2,15 +2,15 @@
   "name": "@i-thinking/studio",
   "private": true,
   "version": "0.1.0",
-  "type": "module",
-  "main": "dist-electron/main.js",
+  "type": "commonjs",
+  "main": ".vite/build/main.js",
   "scripts": {
-    "dev": "vite",
-    "prebuild": "pnpm update electron",
-    "build": "pnpm run prebuild && tsc && vite build && electron-builder",
+    "dev": "electron-forge start",
+    "package": "electron-forge package",
+    "build": "electron-forge make",
+    "publish": "electron-forge publish",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "postinstall": "prisma generate",
-    "rebuild": "electron-rebuild",
     "preview": "vite preview",
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
@@ -22,13 +22,29 @@
     "@prisma/adapter-better-sqlite3": "^6.2.0",
     "@prisma/client": "^6.2.0",
     "better-sqlite3": "^11.6.0",
-    "electron-store": "^10.1.0"
+    "electron-store": "^10.1.0",
+    "electron-squirrel-startup": "^1.0.1"
   },
   "devDependencies": {
     "@electron/rebuild": "^3.6.0",
     "@i-thinking/shared": "workspace:*",
     "electron": "catalog:",
-    "electron-builder": "catalog:",
-    "prisma": "^6.2.0"
-  }
+    "prisma": "^6.2.0",
+    "@electron-forge/cli": "^7.11.1",
+    "@electron-forge/maker-deb": "^7.11.1",
+    "@electron-forge/maker-rpm": "^7.11.1",
+    "@electron-forge/maker-squirrel": "^7.11.1",
+    "@electron-forge/maker-zip": "^7.11.1",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
+    "@electron-forge/plugin-fuses": "^7.11.1",
+    "@electron-forge/plugin-vite": "^7.11.1",
+    "@electron/fuses": "^1.8.0",
+    "@types/electron-squirrel-startup": "^1.0.2"
+  },
+  "keywords": [],
+  "author": {
+    "name": "lh",
+    "email": "15638470820@163.com"
+  },
+  "license": "MIT"
 }

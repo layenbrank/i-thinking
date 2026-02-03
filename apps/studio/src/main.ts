@@ -1,7 +1,10 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { registerAllIpc } from './ipc/index.js'
+import started from 'electron-squirrel-startup'
+// import { registerAllIpc } from './bin/ipc/index.js'
+
+if (started) app.quit()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -45,7 +48,7 @@ function createWindow() {
       devTools: true,
       contextIsolation: true,
       nodeIntegration: false,
-      preload: path.join(__dirname, 'preload.mjs')
+      preload: path.join(__dirname, 'preload.js')
     }
   })
 
@@ -53,12 +56,20 @@ function createWindow() {
     win?.webContents.send('main-process-message', new Date().toLocaleString())
   })
 
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL)
-    win.webContents.openDevTools({ mode: 'detach' })
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
   } else {
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'))
+    win.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
+    )
   }
+
+  // if (VITE_DEV_SERVER_URL) {
+  //   win.loadURL(VITE_DEV_SERVER_URL)
+  //   win.webContents.openDevTools({ mode: 'detach' })
+  // } else {
+  //   win.loadFile(path.join(RENDERER_DIST, 'index.html'))
+  // }
 }
 
 app.on('window-all-closed', function () {
@@ -73,10 +84,10 @@ app.on('activate', function () {
 })
 
 app.whenReady().then(function () {
-  registerAllIpc({
-    getWindow: function () {
-      return win
-    }
-  })
+  // registerAllIpc({
+  //   getWindow: function () {
+  //     return win
+  //   }
+  // })
   createWindow()
 })

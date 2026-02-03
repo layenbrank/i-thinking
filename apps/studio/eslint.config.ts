@@ -5,6 +5,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import globals from 'globals'
 import { fileURLToPath } from 'node:url'
 import tseslint from 'typescript-eslint'
+import importeslint from 'eslint-plugin-import'
 
 export default defineConfig([
   globalIgnores(['dist', 'dist-ssr', 'coverage', 'node_modules']),
@@ -13,10 +14,20 @@ export default defineConfig([
   reactHooks.configs.flat['recommended-latest'],
   reactRefresh.configs.recommended,
   reactRefresh.configs.vite,
+  importeslint.flatConfigs.recommended,
+
   {
     plugins: {
       '@typescript-eslint': tseslint.plugin
     },
+    extends: [
+      'eslint:recommended',
+      'plugin:@typescript-eslint/eslint-recommended',
+      'plugin:@typescript-eslint/recommended',
+      'plugin:import/recommended',
+      'plugin:import/electron',
+      'plugin:import/typescript'
+    ],
     languageOptions: {
       parser: tseslint.parser,
       project: ['tsconfig.app.json'],

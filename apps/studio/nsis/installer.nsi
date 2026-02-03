@@ -1,11 +1,11 @@
 # define const value
-!define PRODUCT_NAME "Digital Human"
-!define PRODUCT_SHORT_NAME "DigitalHuman"
+!define PRODUCT_NAME "i thinking"
+!define PRODUCT_SHORT_NAME "i thinking"
 !define PRODUCT_VERSION "1.0"
 !define PRODUCT_BUILD_VERSION "1.0.0.0"
 !define PRODUCT_PUBLISHER "My company, Inc."
 !define PRODUCT_COPYRIGHT "Copyright (c) 2024 Li He."
-!define PRODUCT_WEB_SITE "http://www.mycompany.com"
+!define PRODUCT_WEB_SITE "http://www.example.com"
 
 
 # PACKAGE DETAILS

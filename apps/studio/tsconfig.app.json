@@ -36,7 +36,6 @@
       "@types/react-dom",
       "@types/chrome",
       "reflect-metadata",
-      "ant-design-vue/typings/global",
       "unplugin-icons/types/react",
       "@i-thinking/utils",
       "@i-thinking/shared/response",
@@ -52,6 +51,7 @@
       "@i-thinking/shared/application",
       "@i-thinking/shared/application-bookmark",
       "@i-thinking/shared/application-markdown",
+      "@electron-forge/plugin-vite/forge-vite-env",
       "@i-thinking/shared/application-intelligence"
     ],
 
@@ -62,10 +62,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.d.ts"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
   "exclude": ["**/node_modules/**", "**/dist/**"]
 }
