@@ -3,8 +3,31 @@ packages:
   - packages/*
 
 catalog:
-  electron: ^40.1.0
-  electron-builder: ^26.4.0
+  'electron': ^40.1.0
+  'antd': ^6.1.0
+  'antd-style': ^3.7.1
+  '@ant-design/colors': ^7.2.1
+  '@ant-design/icons': ^6.1.0
+  '@ant-design/pro-components': ^2.8.10
+  '@ant-design/x': ^2.1.1
+  '@ant-design/x-markdown': ^2.1.1
+  '@electron-forge/cli': ^7.11.1
+  '@electron-forge/maker-deb': ^7.11.1
+  '@electron-forge/maker-rpm': ^7.11.1
+  '@electron-forge/maker-squirrel': ^7.11.1
+  '@electron-forge/maker-zip': ^7.11.1
+  '@electron-forge/plugin-auto-unpack-natives': ^7.11.1
+  '@electron-forge/plugin-fuses': ^7.11.1
+  '@electron-forge/plugin-vite': ^7.11.1
+  '@electron/fuses': ^1.8.0
+  '@electron/rebuild': ^3.6.0
+  '@types/electron-squirrel-startup': ^1.0.2
+  'prisma': ^7.3.0
+  '@prisma/adapter-better-sqlite3': ^7.3.0
+  '@prisma/client': ^7.3.0
+  'better-sqlite3': ^12.6.2
+  'electron-squirrel-startup': ^1.0.1
+  'electron-store': ^11.0.2
 
 onlyBuiltDependencies:
   - '@nestjs/core'

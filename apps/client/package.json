@@ -14,10 +14,18 @@
     "test:e2e": "playwright test",
     "test:unit": "vitest"
   },
-  "dependencies": {},
-  "devDependencies": {
+  "dependencies": {
+    "antd": "catalog:",
+    "antd-style": "catalog:",
+    "@ant-design/colors": "catalog:",
+    "@ant-design/icons": "catalog:",
+    "@ant-design/pro-components": "catalog:",
+    "@ant-design/x": "catalog:",
+    "@ant-design/x-markdown": "catalog:",
     "@i-thinking/utils": "workspace:*",
-    "@i-thinking/shared": "workspace:*",
     "@i-thinking/wasm": "workspace:*"
+  },
+  "devDependencies": {
+    "@i-thinking/shared": "workspace:*"
   }
 }

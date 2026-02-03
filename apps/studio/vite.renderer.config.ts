@@ -405,15 +405,7 @@ export default defineConfig(function ({
       }
     },
     optimizeDeps: {
-      include: [
-        'react',
-        'react-dom',
-        'react-router-dom',
-        'lowlight',
-        'react-syntax-highlighter',
-        '@ant-design/x',
-        '@ant-design/x-markdown'
-      ],
+      include: ['react', 'react-dom', 'react-router-dom'],
       exclude: ['node_modules']
     },
     build: {
