@@ -1,3 +1,15 @@
+@mixin draggable {
+  app-region: drag;
+  /* Pre-fix app-region during standardization process */
+  -webkit-app-region: drag;
+}
+
+@mixin nonDraggable {
+  app-region: no-drag;
+  /* Pre-fix app-region during standardization process */
+  -webkit-app-region: no-drag;
+}
+
 @mixin scrollbar {
   *::-webkit-scrollbar {
     width: 6px;

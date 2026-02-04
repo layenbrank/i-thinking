@@ -38,8 +38,12 @@ function createWindow() {
     backgroundColor: '#00000000',
     title: 'i thinking',
     frame: true,
-    titleBarStyle: 'customButtonsOnHover',
-    titleBarOverlay: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#00000000',
+      height: 35,
+      symbolColor: '#000000'
+    },
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
       minimumFontSize: 12,

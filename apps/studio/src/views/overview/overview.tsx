@@ -4,12 +4,12 @@ import '@/views/overview/overview.scss'
 
 export default function Overview() {
   return (
-    <div className={clsx(['size-full'])}>
+    <div className={clsx(['w-[100vw] h-[100vh]'])}>
       <div
-        id="titlebar"
-        className={clsx(['w-full h-[35px] bg-red-300'])}>
+        id="titleBarContainer"
+        className={clsx(['w-full flex items-center'])}>
         <div className="titlebar-drag-region"></div>
-        <div>
+        <div id="titleBar">
           <span
             className={clsx(['window-appicon'])}
             style={{ appRegion: 'drag' } as React.CSSProperties}>
