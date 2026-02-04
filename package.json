@@ -16,6 +16,7 @@
     "build:extension": "turbo run build --filter=@i-thinking/extension",
     "build:service": "turbo run build --filter=@i-thinking/service",
     "build:utils": "turbo run build --filter=@i-thinking/utils",
+    "build:hooks": "turbo run build --filter=@i-thinking/hooks",
     "bundle": "pnpm build && node scripts/commands/bundle.mjs",
     "corex": "bun run scripts/commands/index.ts",
     "coverage": "turbo run coverage",

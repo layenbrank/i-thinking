@@ -1,0 +1,35 @@
+{
+  "name": "@i-thinking/hooks",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "scripts": {
+    "build": "run-s build:pre build:core build:post",
+    "build:pre": "bun run scripts/build-prefix.ts",
+    "build:core": "rollup --config rollup.config.ts",
+    "build:post": "bun run scripts/build-suffix.ts",
+    "dev": "vite",
+    "format": "prettier --write src/",
+    "lint": "run-s lint:*",
+    "lint:eslint": "eslint . --fix",
+    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+    "test:unit": "vitest",
+    "test:e2e": "playwright test",
+    "test:coverage": "vitest --coverage"
+  },
+  "devDependencies": {
+    "@i-thinking/construct": "workspace:*"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ]
+}

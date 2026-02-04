@@ -1,3 +1,29 @@
+interface ImportMetaEnv {
+  readonly VITE_APP_TITLE: string
+
+  readonly VITE_ENGINE: string
+  readonly VITE_THINKING: string
+  readonly VITE_INTELLIGENCE: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}
+
+type EnvURL = 'thinking' | 'engine' | 'intelligence'
+
+var MediaStreamTrackProcessor: {
+  prototype: MediaStreamTrackProcessor
+  new (options: MediaStreamTrack): TransformStream
+}
+
+declare type Recordable<T = any> = Record<string, T>
+
+declare module '*.contribution' {
+  const src: string
+  export default src
+}
+
 declare namespace NodeJS {
   interface ProcessEnv {
     /**
@@ -60,9 +86,4 @@ interface Window {
       close: () => Promise<void>
     }
   }
-}
-
-interface ImportMeta {
-  /** shims Vite */
-  env: Record<string, any>
 }

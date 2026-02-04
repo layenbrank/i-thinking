@@ -1,0 +1,111 @@
+@use '@/styles/mixin' as *;
+
+.overlay {
+  &.root {
+    --ant-modal-content-padding: 12px;
+
+    :global {
+      .ant-modal-body {
+        border-radius: 8px;
+        border: 1px solid #f0f0f0;
+        position: relative;
+      }
+    }
+  }
+
+  .section {
+    &.flex {
+      width: 100%;
+      height: 100%;
+      align-items: center;
+    }
+
+    &.conversations {
+      width: 200px;
+      height: 100%;
+      background-color: var(--background-color, #ffffff);
+      border-radius: var(--radius, 8px);
+    }
+
+    &.communicate {
+      height: 100%;
+      flex-grow: 1;
+      flex-shrink: 1;
+      flex-basis: 0%;
+      min-width: 300px;
+
+      * {
+        user-select: text;
+      }
+    }
+  }
+
+  .divider {
+    height: 100%;
+  }
+
+  .sender {
+    :global {
+      .ant-sender-input {
+        scroll-behavior: smooth;
+      }
+    }
+  }
+
+  .bubble {
+    &.root {
+      flex-grow: 1;
+      flex-shrink: 1;
+      flex-basis: 0%;
+      min-height: 0px;
+
+      *::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      :global {
+        .x-markdown {
+          > * {
+            @include normalize;
+          }
+        }
+        .ant-bubble-content {
+          background-color: rgba(243, 243, 245, 1);
+        }
+
+        .ant-codeHighlighter-code {
+          > pre {
+          }
+        }
+      }
+    }
+
+    :global {
+      .ant-bubble-list-scroll-box {
+        overflow-y: scroll;
+        scroll-behavior: smooth;
+        scrollbar-width: unset;
+        scrollbar-color: revert;
+      }
+    }
+  }
+
+  .thought {
+    &.chain {
+      width: 200px;
+      height: 100%;
+    }
+  }
+
+  .float {
+    &.group {
+      position: absolute;
+      inset-inline-end: 24px;
+      inset-block-end: 24px;
+    }
+
+    &.button {
+    }
+  }
+}

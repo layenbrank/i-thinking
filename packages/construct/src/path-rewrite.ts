@@ -6,8 +6,9 @@ function definePathRewrite(rewrites: Record<string, string>): Plugin {
     renderChunk(code) {
       let result = code
       for (const [from, to] of Object.entries(rewrites)) {
+        const escapedFrom = from.replace(/\//g, '\\/')
         const pattern = new RegExp(
-          `(from\\s+['"\`])${from.replace(/\//g, '\\/')}(['"\`])`,
+          `(from\\s+['"\`])${escapedFrom}(?:\\.m?js|\\.ts)?(['"\`])`,
           'g'
         )
         result = result.replace(pattern, `$1${to}$2`)

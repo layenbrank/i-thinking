@@ -6,6 +6,10 @@ import 'dayjs/locale/zh-cn'
 // import { StrictMode } from 'react'
 import { HashRouter } from 'react-router-dom'
 
+import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
+import { IntelligencePlugin } from '@/plugins/intelligence.ts'
+import { MirrorPlugin } from '@/plugins/mirror.ts'
+
 import RouterView from '@/routers/routes.tsx'
 
 // import { POST_SIGNIN } from '@/apis/auth.ts'
@@ -43,16 +47,21 @@ const themeConfigure: ThemeConfig = {
   }
 }
 
+const plugins: Plugin[] = [MirrorPlugin, IntelligencePlugin]
+
 function App() {
   return (
     // <StrictMode>
-    <XProvider
-      locale={zhCN}
-      theme={themeConfigure}>
-      <HashRouter>
-        <RouterView />
-      </HashRouter>
-    </XProvider>
+    <PluginProvider plugins={plugins}>
+      <XProvider
+        locale={zhCN}
+        theme={themeConfigure}>
+        <HashRouter>
+          <RouterView />
+        </HashRouter>
+      </XProvider>
+    </PluginProvider>
+
     // </StrictMode>
   )
 }

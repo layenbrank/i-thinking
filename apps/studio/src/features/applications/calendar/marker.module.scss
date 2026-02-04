@@ -1,0 +1,69 @@
+@use 'mini.scss' as *;
+@use 'small.scss' as *;
+@use 'medium.scss' as *;
+@use 'large.scss' as *;
+@use 'huge.scss' as *;
+@use 'massive.scss' as *;
+@use 'ultra.scss' as *;
+
+.marker {
+  // :global {
+  // 	.ant-picker-calendar {
+  // 		width: 100%;
+  // 		height: 100%;
+
+  // 		.ant-picker-panel {
+  // 			width: 100%;
+  // 			height: 100%;
+  // 		}
+
+  // 		.ant-picker-date-panel {
+  // 			width: 100%;
+  // 			height: 100%;
+  // 		}
+
+  // 		.ant-picker-body {
+  // 			width: 100%;
+  // 			height: 100%;
+  // 		}
+
+  // 		.ant-picker-content {
+  // 			height: 100%;
+
+  // 			.thead {
+  // 			}
+
+  // 			tbody {
+  // 				width: 100%;
+  // 				height: 100%;
+  // 				// display: block;
+  // 			}
+  // 			tr {
+  // 				width: 100%;
+  // 				display: grid;
+  // 				grid-template-columns: repeat(7, 1fr);
+  // 			}
+  // 			th {
+  // 				width: 100%;
+  // 				text-align: center;
+  // 			}
+  // 			.ant-picker-cell {
+  // 				width: 100%;
+  // 				height: 100%;
+  // 				display: block;
+  // 			}
+  // 			.ant-picker-cell-inner {
+  // 				display: flex;
+  // 				align-items: center;
+  // 				justify-content: center;
+  // 			}
+
+  // 			.ant-picker-calendar-date-value {
+  // 			}
+
+  // 			.ant-picker-calendar-date-content {
+  // 			}
+  // 		}
+  // 	}
+  // }
+}

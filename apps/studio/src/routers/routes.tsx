@@ -1,17 +1,20 @@
 import React from 'react'
 import { Navigate, useRoutes } from 'react-router-dom'
 
+const Code = React.lazy(function () {
+  return import('@/views/code/code.tsx')
+})
 const Overview = React.lazy(function () {
   return import('@/views/overview/overview.tsx')
-})
-const Screenshot = React.lazy(function () {
-  return import('@/views/screenshot/screenshot.tsx')
 })
 const Markdown = React.lazy(function () {
   return import('@/views/markdown/markdown.tsx')
 })
-const Code = React.lazy(function () {
-  return import('@/views/code/code.tsx')
+const Screenshot = React.lazy(function () {
+  return import('@/views/screenshot/screenshot.tsx')
+})
+const Intelligence = React.lazy(function () {
+  return import('@/views/intelligence/intelligence.tsx')
 })
 
 export default function RouterView() {
@@ -20,7 +23,7 @@ export default function RouterView() {
       path: '/',
       element: (
         <Navigate
-          to={'/overview'}
+          to="/overview"
           replace
         />
       )
@@ -34,6 +37,10 @@ export default function RouterView() {
       element: <Markdown />
     },
     {
+      path: '/intelligence',
+      element: <Intelligence />
+    },
+    {
       path: '/code',
       element: <Code />
     },
@@ -41,9 +48,5 @@ export default function RouterView() {
       path: '/screenshot',
       element: <Screenshot />
     }
-    // {
-    //   path: '/background',
-    //   element: <Background />
-    // }
   ])
 }

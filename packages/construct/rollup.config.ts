@@ -1,9 +1,8 @@
+import defineResolve from '@rollup/plugin-node-resolve'
+import defineTs from '@rollup/plugin-typescript'
 import type { RollupOptions } from 'rollup'
 import { defineConfig } from 'rollup'
-import defineTs from '@rollup/plugin-typescript'
-import defineResolve from '@rollup/plugin-node-resolve'
 import { dts as defineType } from 'rollup-plugin-dts'
-import defineMinify from '@rollup/plugin-terser'
 
 // Rollup 配置是 ESM，Node 无法解析无扩展名的 TS 导入。把导入改成显式 .ts 了。见
 import { definePathRewrite } from './src/path-rewrite.ts'
@@ -15,10 +14,9 @@ const configures: RollupOptions[] = [
     input: 'index.ts',
     external: chunkmap,
     plugins: [
-      defineMinify(),
       defineResolve(),
       definePathRewrite({
-        './src/path-rewrite': './path-rewrite'
+        './src/path-rewrite': './path-rewrite.js'
       }),
       defineTs({
         tsconfig: 'tsconfig.build.json'
@@ -37,6 +35,7 @@ const configures: RollupOptions[] = [
       definePathRewrite({
         './src/path-rewrite': './path-rewrite'
       }),
+      defineResolve(),
       defineType({
         tsconfig: 'tsconfig.build.json'
       })
@@ -51,7 +50,6 @@ const configures: RollupOptions[] = [
     input: 'src/path-rewrite.ts',
     external: chunkmap,
     plugins: [
-      defineMinify(),
       defineResolve(),
       defineTs({
         tsconfig: 'tsconfig.build.json'

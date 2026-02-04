@@ -320,10 +320,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
   'utils-interaction': [/[\\/]node_modules[\\/]sortablejs[\\/]/],
   'utils-dnd': [/[\\/]node_modules[\\/]@dnd-kit[\\/]/],
 
-  scheduler: [
-    /[\\/]node_modules[\\/](scheduler)[\\/]/,
-    /[\\/]node_modules[\\/]@tauri-apps[\\/]/
-  ],
+  scheduler: [/[\\/]node_modules[\\/](scheduler)[\\/]/],
 
   router: [
     /[\\/]node_modules[\\/]@remix-run[\\/]router[\\/]/,

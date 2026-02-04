@@ -38,6 +38,7 @@
       "reflect-metadata",
       "unplugin-icons/types/react",
       "@i-thinking/utils",
+      "@i-thinking/hooks",
       "@i-thinking/shared/response",
       "@i-thinking/shared/decorator",
       "@i-thinking/shared/constructor",

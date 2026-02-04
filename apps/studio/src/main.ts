@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import started from 'electron-squirrel-startup'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -38,6 +38,8 @@ function createWindow() {
     backgroundColor: '#00000000',
     title: 'i thinking',
     frame: true,
+    backgroundMaterial: 'mica',
+    // backgroundMaterial: 'acrylic',
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: '#00000000',
@@ -59,8 +61,6 @@ function createWindow() {
     }
   })
 
-  win?.setMenu(null)
-
   win.webContents.on('did-finish-load', function () {
     win?.webContents.send('main-process-message', new Date().toLocaleString())
   })
@@ -73,14 +73,14 @@ function createWindow() {
     )
   }
 
-  win.webContents.openDevTools({ mode: 'detach' })
-
   // if (VITE_DEV_SERVER_URL) {
   //   win.loadURL(VITE_DEV_SERVER_URL)
   //   win.webContents.openDevTools({ mode: 'detach' })
   // } else {
   //   win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   // }
+
+  win.webContents.openDevTools({ mode: 'detach' })
 }
 
 app.on('window-all-closed', function () {
@@ -101,6 +101,16 @@ app.whenReady().then(function () {
     }
   })
   createWindow()
+
+  ipcMain.handle('devtools', function (event, args) {
+    console.log('event', event, '\nargs', args, '\nwin', win)
+    if (!win) return
+    if (args.visible) {
+      win.webContents.openDevTools({ mode: 'detach' })
+    } else {
+      win.webContents.closeDevTools()
+    }
+  })
 })
 
 // 主进程未捕获错误，避免静默崩溃
