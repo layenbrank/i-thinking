@@ -20,6 +20,9 @@
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma-insider"
+  },
   "[sass]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
@@ -49,6 +52,18 @@
   },
   "breadcrumbs.filePath": "on",
   "breadcrumbs.symbolSortOrder": "type",
+  "chat.extensionUnification.enabled": false,
+  "chat.mcp.serverSampling": {
+    "i-thinking/.vscode/mcp.json: github-mcp": {
+      "allowedModels": [
+        "copilot/claude-sonnet-4.5",
+        "copilot/auto",
+        "copilot/claude-haiku-4.5",
+        "copilot/claude-sonnet-4",
+        "copilot/gpt-5"
+      ]
+    }
+  },
   "css.format.newlineBetweenSelectors": true,
   "css.hover.documentation": true,
   "css.hover.references": true,
@@ -56,7 +71,6 @@
   "css.lint.duplicateProperties": "warning",
   "css.lint.important": "warning",
   "css.lint.vendorPrefix": "warning",
-  "chat.extensionUnification.enabled": false,
   "debug.console.fontSize": 16,
   "debug.javascript.unmapMissingSources": true,
   "debug.showBreakpointsInOverviewRuler": true,
@@ -145,17 +159,6 @@
     "tailwind.config.ts": "postcss.config.js, tailwind.config.ts, tailwind.config.cjs, tailwind.config.mjs, tailwind.config.jsx, tailwind.config.tsx, tailwind.config.jsx",
     "tsconfig.json": "tsconfig.*.json, env.d.ts",
     "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts"
-  },
-  "iconify.languageIds": ["typescript", "typescriptreact", "vue"],
-  "iconify.customCollectionJsonPaths": [
-    "packages/shared/src/assets/iconify.json"
-  ],
-  "iconify.customAliasesOnly": false,
-  "iconify.annotations": true,
-  "iconify.preview.include": ["**/*.vue", "**/*.jsx", "**/*.tsx"],
-  "iconify.preview.exclude": ["package.json"],
-  "iconify.customCollectionIdsMap": {
-    "custom": "custom"
   },
   "files.associations": {
     "*.ts": "typescript",
@@ -272,6 +275,17 @@
     "openai"
   ],
   "i18n-ally.translate.overrideExisting": false,
+  "iconify.annotations": true,
+  "iconify.customAliasesOnly": false,
+  "iconify.customCollectionIdsMap": {
+    "custom": "custom"
+  },
+  "iconify.customCollectionJsonPaths": [
+    "packages/shared/src/assets/iconify.json"
+  ],
+  "iconify.languageIds": ["typescript", "typescriptreact", "vue"],
+  "iconify.preview.exclude": ["package.json"],
+  "iconify.preview.include": ["**/*.vue", "**/*.jsx", "**/*.tsx"],
   "javascript.format.semicolons": "remove",
   "javascript.inlayHints.functionLikeReturnTypes.enabled": false,
   "javascript.inlayHints.parameterNames.enabled": "none",
@@ -288,19 +302,20 @@
   "path-intellisense.mappings": {
     "@": "${workspaceFolder}/src"
   },
-  "prettier.endOfLine": "crlf",
-  "prettier.requireConfig": false,
   "prettier.arrowParens": "always",
+  "prettier.bracketSameLine": false,
+  "prettier.bracketSpacing": true,
   "prettier.enable": true,
-  "prettier.useTabs": true,
-  "prettier.tabWidth": 2,
+  "prettier.endOfLine": "crlf",
   "prettier.printWidth": 100,
+  "prettier.requireConfig": false,
   "prettier.semi": false,
   "prettier.singleQuote": true,
+  "prettier.tabWidth": 2,
   "prettier.trailingComma": "none",
-  "prettier.bracketSpacing": true,
-  "prettier.bracketSameLine": false,
+  "prettier.useTabs": true,
   "prettier.vueIndentScriptAndStyle": false,
+  "prisma.pinToPrisma6": false,
   "scm.inputFontSize": 16,
   "scss.format.newlineBetweenSelectors": true,
   "scss.hover.documentation": true,
@@ -366,8 +381,8 @@
   "vue.inlayHints.missingProps": true,
   "vue.inlayHints.optionsWrapper": true,
   "vue.inlayHints.vBindShorthand": true,
-  "vue.suggest.componentNameCasing": "alwaysPascalCase",
   "vue.server.includeLanguages": ["vue"],
+  "vue.suggest.componentNameCasing": "alwaysPascalCase",
   "vue.suggest.defineAssignment": true,
   "vue.suggest.propNameCasing": "alwaysCamelCase",
   "window.density.editorTabHeight": "compact",
@@ -383,17 +398,5 @@
   "workbench.list.fastScrollSensitivity": 10,
   "workbench.list.smoothScrolling": true,
   "workbench.startupEditor": "none",
-  "workbench.tree.enableStickyScroll": true,
-  "chat.mcp.serverSampling": {
-    "desktop-apps/.vscode/mcp.json: github-mcp": {
-      "allowedModels": [
-        "copilot/claude-sonnet-4.5",
-        "copilot/auto",
-        "copilot/claude-haiku-4.5",
-        "copilot/claude-sonnet-4",
-        "copilot/gpt-5"
-      ]
-    }
-  },
-  "prisma.pinToPrisma6": true
+  "workbench.tree.enableStickyScroll": true
 }

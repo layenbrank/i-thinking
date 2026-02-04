@@ -4,7 +4,7 @@ import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 // import { StrictMode } from 'react'
-import { BrowserRouter } from 'react-router-dom'
+import { HashRouter } from 'react-router-dom'
 
 import RouterView from '@/routers/routes.tsx'
 
@@ -49,9 +49,9 @@ function App() {
     <XProvider
       locale={zhCN}
       theme={themeConfigure}>
-      <BrowserRouter>
+      <HashRouter>
         <RouterView />
-      </BrowserRouter>
+      </HashRouter>
     </XProvider>
     // </StrictMode>
   )

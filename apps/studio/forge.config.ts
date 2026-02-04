@@ -2,6 +2,7 @@ import { MakerDeb } from '@electron-forge/maker-deb'
 import { MakerRpm } from '@electron-forge/maker-rpm'
 import { MakerSquirrel } from '@electron-forge/maker-squirrel'
 import { MakerZIP } from '@electron-forge/maker-zip'
+import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { VitePlugin } from '@electron-forge/plugin-vite'
 import type { ForgeConfig } from '@electron-forge/shared-types'
@@ -24,24 +25,35 @@ const config: ForgeConfig = {
     asar: true,
     appVersion,
     name: appName,
-    executableName: 'i-thinking'
-    // 原生 .node 不能从 asar 内加载，必须解包
-    // 打包后主进程 external 的 better-sqlite3 需在 app 目录存在（node-linker=hoisted 时 node_modules 为实体，此处作兜底复制）
-    // afterCopy: [
-    //   async (buildPath, _electronVersion, _platform, _arch, done) => {
-    //     try {
-    //       const src = path.join(__dirname, 'node_modules', 'better-sqlite3')
-    //       if (existsSync(src)) {
-    //         const realSrc = realpathSync(src)
-    //         const dest = path.join(buildPath, 'node_modules', 'better-sqlite3')
-    //         mkdirSync(path.dirname(dest), { recursive: true })
-    //         cpSync(realSrc, dest, { recursive: true })
-    //       }
-    //     } finally {
-    //       done()
-    //     }
-    //   }
-    // ]
+    executableName: 'i-thinking',
+    // 打包后主进程 external 的 better-sqlite3 需在 app 目录存在（pnpm 下 node_modules 可能为链接，此处复制实体）
+    afterCopy: [
+      (
+        buildPath: string,
+        _electronVersion: string,
+        _platform: string,
+        _arch: string,
+        done: () => void
+      ) => {
+        const candidates = [
+          path.join(__dirname, 'node_modules', 'better-sqlite3'),
+          path.join(__dirname, '..', '..', 'node_modules', 'better-sqlite3')
+        ]
+        let src: string | null = null
+        for (const p of candidates) {
+          if (existsSync(p)) {
+            src = realpathSync(p)
+            break
+          }
+        }
+        if (src) {
+          const dest = path.join(buildPath, 'node_modules', 'better-sqlite3')
+          mkdirSync(path.dirname(dest), { recursive: true })
+          cpSync(src, dest, { recursive: true })
+        }
+        done()
+      }
+    ]
   },
   rebuildConfig: {},
   makers: [
@@ -57,6 +69,7 @@ const config: ForgeConfig = {
     new MakerDeb({})
   ],
   plugins: [
+    new AutoUnpackNativesPlugin({}),
     new VitePlugin({
       // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
       // If you are familiar with Vite configuration, it will look really familiar.
