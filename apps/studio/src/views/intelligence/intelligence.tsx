@@ -8,7 +8,9 @@ export default function intelligence() {
   return (
     <div className={clsx([styles.intelligence])}>
       <Overlay.Utility />
+      <Overlay.Navigation />
       <Overlay.Section />
+      <Overlay.Thought />
     </div>
   )
 }

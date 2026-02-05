@@ -2,12 +2,14 @@ import Navigation from '@/views/intelligence/overlay/navigation'
 import Section from '@/views/intelligence/overlay/section'
 import Summary from '@/views/intelligence/overlay/summary'
 import Utility from '@/views/intelligence/overlay/utility'
+import Thought from '@/views/intelligence/overlay/thought'
 
 const Overlay = {
   Utility,
   Section,
   Summary,
-  Navigation
+  Navigation,
+  Thought
 }
 
 export { Overlay }
