@@ -21,7 +21,7 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[prisma]": {
-    "editor.defaultFormatter": "Prisma.prisma-insider"
+    "editor.defaultFormatter": "Prisma.prisma"
   },
   "[sass]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
