@@ -1,4 +1,11 @@
-import { copyFile, readFile, writeFile } from 'node:fs'
+import {
+  access,
+  constants,
+  copyFile,
+  mkdir,
+  readFile,
+  writeFile
+} from 'node:fs'
 import { resolve } from 'node:path'
 
 readFile(
@@ -19,8 +26,16 @@ readFile(
       dependencies: parsed.dependencies
     }
 
+    const distDir = resolve(__dirname, '..', 'dist')
+
+    mkdir(distDir, { recursive: true }, function (mkdirError) {
+      if (mkdirError) console.error(`Mkdir failed: ${mkdirError}`)
+    })
+
+    // 创建文件
+
     writeFile(
-      resolve(__dirname, '..', 'dist/package.json'),
+      resolve(distDir, 'package.json'),
       JSON.stringify(packageJson, null, 2),
       function (error) {
         if (error) console.error(`Write failed: ${error}`)
@@ -28,13 +43,16 @@ readFile(
       }
     )
 
-    copyFile(
-      resolve(__dirname, '..', '.env.production'),
-      resolve(__dirname, '..', 'dist/.env.production'),
-      (error) => {
+    const envSource = resolve(__dirname, '..', '.env.production')
+    const envTarget = resolve(distDir, '.env.production')
+
+    access(envSource, constants.F_OK, function (accessError) {
+      if (accessError)
+        return console.warn('Skip copy: .env.production not found')
+      copyFile(envSource, envTarget, function (error) {
         if (error) console.error(`Copy failed: ${error}`)
         else console.log('Copy succeeded!')
-      }
-    )
+      })
+    })
   }
 )

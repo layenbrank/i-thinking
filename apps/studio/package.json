@@ -10,7 +10,7 @@
     "dev": "electron-forge start",
     "dev:core": "vite",
     "package": "electron-forge package",
-    "build": "electron-forge make",
+    "build": "pnpm --filter @i-thinking/service build && electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "postinstall": "prisma generate && electron-rebuild",

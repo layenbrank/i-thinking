@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import started from 'electron-squirrel-startup'
+import { spawn, type ChildProcess } from 'node:child_process'
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { registerAllIpc } from './bin/ipc/index.js'
@@ -22,6 +24,98 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   : RENDERER_DIST
 
 let win: BrowserWindow | null = null
+let serviceProcess: ChildProcess | null = null
+
+const SERVICE_PORT = process.env['SERVICE_PORT'] ?? '3000'
+const SERVICE_HOST = process.env['SERVICE_HOST'] ?? '127.0.0.1'
+const SERVICE_PROTOCOL = process.env['SERVICE_PROTOCOL'] ?? 'http'
+
+function getServiceRoot() {
+  if (app.isPackaged) return process.resourcesPath
+  return path.join(process.env.APP_ROOT ?? process.cwd(), '..', 'service')
+}
+
+function startNestService() {
+  if (serviceProcess) return
+
+  const serviceRoot = getServiceRoot()
+  const env = {
+    ...process.env,
+    PORT: SERVICE_PORT,
+    HOSTNAME: SERVICE_HOST,
+    PROTOCOL: SERVICE_PROTOCOL
+  }
+
+  const logDir = app.getPath('logs')
+  try {
+    fs.mkdirSync(logDir, { recursive: true })
+  } catch (error) {
+    console.error('[service] mkdir logs error', error)
+  }
+  const logFile = path.join(logDir, 'service.log')
+  const log = function (message: string) {
+    try {
+      fs.appendFileSync(logFile, `${new Date().toISOString()} ${message}\n`)
+    } catch (error) {
+      console.error('[service] log error', error)
+    }
+  }
+
+  log(`serviceRoot=${serviceRoot}`)
+  log(`env PORT=${SERVICE_PORT} HOST=${SERVICE_HOST} PROTOCOL=${SERVICE_PROTOCOL}`)
+
+  if (VITE_DEV_SERVER_URL) {
+    const bunCmd = process.platform === 'win32' ? 'bun' : 'bun'
+    serviceProcess = spawn(bunCmd, ['run', 'dev'], {
+      cwd: serviceRoot,
+      env,
+      stdio: 'pipe'
+    })
+  } else {
+    const entry = path.join(serviceRoot, 'dist', 'main.js')
+    log(`entry=${entry}`)
+    if (!fs.existsSync(entry)) {
+      console.error('[service] entry not found:', entry)
+      log(`entry not found`)
+      return
+    }
+    serviceProcess = spawn(process.execPath, ['--runAsNode', entry], {
+      cwd: serviceRoot,
+      env,
+      stdio: 'pipe'
+    })
+  }
+
+  serviceProcess.stdout?.on('data', function (data) {
+    console.log('[service]', data.toString().trim())
+  })
+  serviceProcess.stderr?.on('data', function (data) {
+    console.error('[service]', data.toString().trim())
+    log(`stderr ${data.toString().trim()}`)
+  })
+  serviceProcess.on('error', function (error) {
+    console.error('[service] error', error)
+    log(`error ${String(error)}`)
+  })
+  serviceProcess.on('exit', function (code, signal) {
+    console.log('[service] exited', { code, signal })
+    log(`exit code=${String(code)} signal=${String(signal)}`)
+    serviceProcess = null
+  })
+}
+
+function stopNestService() {
+  const proc = serviceProcess
+  if (!proc || proc.killed) return
+  try {
+    proc.kill('SIGTERM')
+    setTimeout(function () {
+      if (!proc.killed) proc.kill('SIGKILL')
+    }, 2000)
+  } catch (error) {
+    console.error('[service] stop error', error)
+  }
+}
 
 function createWindow() {
   win = new BrowserWindow({
@@ -100,6 +194,7 @@ app.whenReady().then(function () {
       return win
     }
   })
+  startNestService()
   createWindow()
 
   ipcMain.handle('devtools', function (event, args) {
@@ -111,6 +206,10 @@ app.whenReady().then(function () {
       win.webContents.closeDevTools()
     }
   })
+})
+
+app.on('before-quit', function () {
+  stopNestService()
 })
 
 // 主进程未捕获错误，避免静默崩溃

@@ -49,6 +49,11 @@ const themeConfigure: ThemeConfig = {
 
 const plugins: Plugin[] = [MirrorPlugin, IntelligencePlugin]
 
+setInterval(() => {
+  fetch('http://127.0.0.1:3000/api/v1').then(function (response) {
+    console.log('response', response)
+  })
+}, 6000)
 function App() {
   return (
     // <StrictMode>

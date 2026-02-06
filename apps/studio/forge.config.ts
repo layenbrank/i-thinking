@@ -26,6 +26,10 @@ const config: ForgeConfig = {
     appVersion,
     name: appName,
     executableName: 'i-thinking',
+    extraResource: [
+      path.join(__dirname, '..', 'service', 'dist'),
+      path.join(__dirname, '..', 'service', 'node_modules')
+    ],
     // 打包后主进程 external 的 better-sqlite3 需在 app 目录存在（pnpm 下 node_modules 可能为链接，此处复制实体）
     afterCopy: [
       (
@@ -97,10 +101,10 @@ const config: ForgeConfig = {
     // at package time, before code signing the application
     new FusesPlugin({
       version: FuseVersion.V1,
-      [FuseV1Options.RunAsNode]: false,
+      [FuseV1Options.RunAsNode]: true,
       [FuseV1Options.EnableCookieEncryption]: true,
-      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
-      [FuseV1Options.EnableNodeCliInspectArguments]: false,
+      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: true,
+      [FuseV1Options.EnableNodeCliInspectArguments]: true,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
       [FuseV1Options.OnlyLoadAppFromAsar]: true
     })
