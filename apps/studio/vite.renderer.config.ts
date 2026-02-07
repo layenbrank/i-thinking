@@ -2,7 +2,7 @@ import React from '@vitejs/plugin-react-swc'
 import { findUpSync } from 'find-up'
 import { createWriteStream } from 'node:fs'
 import { networkInterfaces } from 'node:os'
-import { dirname, resolve } from 'node:path'
+import { dirname, resolve, sep as pathSep } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
 import Icons from 'unplugin-icons/vite'
@@ -16,6 +16,7 @@ const ws = createWriteStream(resolve(__dirname, 'chunks.log'), {
 })
 
 const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
+const projectRoot = rootMarkerPath ? dirname(rootMarkerPath) : resolve(__dirname, '..', '..')
 
 const cssRegex: Readonly<RegExp> = /\.css$/i
 const imageRegex: Readonly<RegExp> = /\.(png|jpe?g|gif|svg|webp|ico)$/i
@@ -34,8 +35,6 @@ const noInlineRegexes: readonly RegExp[] = [
   /icon.*\.(png|jpe?g)$/i, // 图标文件
   /background.*\.(png|jpe?g)$/i // 背景图片
 ].concat(svgRegex, jsonRegex, videoRegex, audioRegex, fontRegex)
-
-const filePath = 'C:/Users/MACHENIKE/Documents/Vue3/'
 
 const chunkMap: Readonly<Record<string, RegExp[]>> = {
   'workspace-deps': [/[\\/]packages[\\/](core|wasm)[\\/]/],
@@ -444,7 +443,9 @@ export default defineConfig(function ({
 
             const pattern = /apps\/client\/src\//.test(id)
 
-            const replaced = id.replace(filePath, '')
+            const replaced = id.startsWith(projectRoot + pathSep) || id.startsWith(projectRoot + '/')
+              ? id.slice(projectRoot.length + 1).replace(/\\/g, '/')
+              : id.replace(/\\/g, '/')
 
             // if (!pattern) console.log('[manualChunks] ===>', replaced)
             if (!pattern) ws.write(`[manualChunks] ===> ${replaced}\n`)

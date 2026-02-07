@@ -34,7 +34,8 @@
   },
   "exclude": ["postcss.config.js"],
   "include": [
-    "vite.config.*",
+    "forge.config.ts",
+    "vite.*",
     "vitest.config.*",
     "cypress.config.*",
     "nightwatch.conf.*",

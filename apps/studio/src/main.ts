@@ -4,7 +4,10 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { registerAllIpc } from './bin/ipc/index.js'
+import { registerAllIpc } from './ipc/index.js'
+import { getBinPath } from './lib.js'
+
+export { getBinPath }
 
 if (started) app.quit()
 
@@ -62,7 +65,9 @@ function startNestService() {
   }
 
   log(`serviceRoot=${serviceRoot}`)
-  log(`env PORT=${SERVICE_PORT} HOST=${SERVICE_HOST} PROTOCOL=${SERVICE_PROTOCOL}`)
+  log(
+    `env PORT=${SERVICE_PORT} HOST=${SERVICE_HOST} PROTOCOL=${SERVICE_PROTOCOL}`
+  )
 
   if (VITE_DEV_SERVER_URL) {
     const bunCmd = process.platform === 'win32' ? 'bun' : 'bun'

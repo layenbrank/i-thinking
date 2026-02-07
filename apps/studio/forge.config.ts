@@ -12,7 +12,11 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import pkg from './package.json' with { type: 'json' }
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// 兼容 ESM/CJS：package 为 commonjs 时 Forge 可能以 CJS 加载配置
+const __dirname =
+  typeof import.meta !== 'undefined' && import.meta.url
+    ? path.dirname(fileURLToPath(import.meta.url))
+    : path.resolve(process.cwd())
 
 const appVersion = pkg.version
 
@@ -24,11 +28,45 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     appVersion,
+    // 只保留构建产物与运行时所需文件，排除源码、配置与开发期文件（兼容 Windows 路径）
+    // ignore: (pathToCheck: string) => {
+    //   const n = pathToCheck.replace(/\\/g, '/')
+    //   const rootIgnore = [
+    //     '/.vscode',
+    //     '/.git',
+    //     '/.turbo',
+    //     '/src',
+    //     '/dist',
+    //     '/docs',
+    //     '/nsis',
+    //     '/prisma',
+    //     '/public',
+    //     '/.env',
+    //     'chunks.log',
+    //     'eslint.config.ts',
+    //     'forge.config.ts',
+    //     'index.html',
+    //     'postcss.config.js',
+    //     'prisma.config.ts',
+    //     'README.md',
+    //     'tailwind.config.mts',
+    //     'tsconfig.app.json',
+    //     'tsconfig.node.json',
+    //     'tsconfig.json',
+    //     'vite.main.config.ts',
+    //     'vite.preload.config.ts',
+    //     'vite.renderer.config.ts'
+    //   ]
+    //   return rootIgnore.some(
+    //     (p) => n === p || n === p + '/' || n.startsWith(p + '/')
+    //   )
+    // },
     name: appName,
     executableName: 'i-thinking',
     extraResource: [
       path.join(__dirname, '..', 'service', 'dist'),
-      path.join(__dirname, '..', 'service', 'node_modules')
+      path.join(__dirname, '..', 'service', 'node_modules'),
+      path.join(__dirname, 'src', 'bin')
     ],
     // 打包后主进程 external 的 better-sqlite3 需在 app 目录存在（pnpm 下 node_modules 可能为链接，此处复制实体）
     afterCopy: [
