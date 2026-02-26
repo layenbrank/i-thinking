@@ -48,21 +48,18 @@ tauri = { version = "2.9.5", features = [
   "image-png",
 ] }
 tauri-plugin-opener = "2.5.2"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
-sysinfo = "0.37.2"
 tauri-plugin-fs = "2.4.5"
 tauri-plugin-websocket = "2.4.2"
 tauri-plugin-dialog = "2.5.0"
 tauri-plugin-localhost = "2.3.2"
-tauri-plugin-shell = "2.3.4"
+tauri-plugin-shell = "2.3.5"
 tauri-plugin-store = "2.4.2"
 tauri-plugin-process = "2.3.1"
 tauri-plugin-notification = "2.3.3"
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-log = "2.8.0"
-tauri-plugin-sql = { version = "2.3.1", features = ["sqlite"] }
-tauri-plugin-http = { version = "2.5.5", features = [
+tauri-plugin-sql = { version = "2.3.2", features = ["sqlite"] }
+tauri-plugin-http = { version = "2.5.7", features = [
   "charset",
   "cookies",
   "gzip",
@@ -73,10 +70,13 @@ tauri-plugin-http = { version = "2.5.5", features = [
   "stream",
   "unsafe-headers",
 ] }
-libc = "0.2.179"
 tauri-plugin-os = "2.3.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+sysinfo = "0.38.1"
+libc = "0.2.179"
 machine-uid = "0.5.4"
-uuid = "1.19.0"
+uuid = "1.20.0"
 xcap = "0.8.1"
 base64 = "0.22.1"
 image = "0.25.9"
@@ -86,4 +86,4 @@ tauri-plugin-autostart       = "2.5.1"
 tauri-plugin-cli             = "2.4.1"
 tauri-plugin-global-shortcut = "2.3.1"
 tauri-plugin-positioner      = { version = "2.3.1", features = ["tray-icon"] }
-tauri-plugin-single-instance = "2.3.7"
+tauri-plugin-single-instance = "2.4.0"

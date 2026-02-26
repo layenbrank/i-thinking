@@ -1,0 +1,34 @@
+.navigation {
+  &.root {
+    width: 20%;
+    height: 100%;
+    overflow: hidden scroll;
+    border-radius: 0px;
+  }
+
+  :global {
+    .ant-tree {
+    }
+
+    .ant-tree-list {
+    }
+
+    .ant-tree-switcher {
+      margin-inline-end: 0px;
+    }
+
+    .ant-tree-node-content-wrapper {
+      padding-inline-start: 0px;
+    }
+
+    .ant-tree-title {
+      text-wrap: nowrap;
+      white-space: nowrap;
+    }
+
+    .ant-tree-node-content-wrapper {
+      display: flex;
+      align-items: center;
+    }
+  }
+}

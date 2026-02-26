@@ -1,11 +1,27 @@
 import { Navigate, useRoutes } from 'react-router-dom'
-import React from 'react'
+import { lazy } from 'react'
 
-const Overview = React.lazy(() => import('@/views/overview/overview.tsx'))
-const Screenshot = React.lazy(() => import('@/views/screenshot/screenshot.tsx'))
-const Markdown = React.lazy(() => import('@/views/markdown/markdown.tsx'))
-const Code = React.lazy(() => import('@/views/code/code.tsx'))
-// const Background = React.lazy(() => import('@/views/background/background.tsx'))
+const Code = lazy(function () {
+  return import('@/views/code/code')
+})
+const Example = lazy(function () {
+  return import('@/views/example/example.tsx')
+})
+const Overview = lazy(function () {
+  return import('@/views/overview/overview.tsx')
+})
+const Markdown = lazy(function () {
+  return import('@/views/markdown/markdown.tsx')
+})
+const Screenshot = lazy(function () {
+  return import('@/views/screenshot/screenshot.tsx')
+})
+const Intelligence = lazy(function () {
+  return import('@/views/intelligence/intelligence.tsx')
+})
+// const Background = lazy(function () {
+//   return import('@/views/background/background.tsx')
+// })
 
 export default function RouterView() {
   return useRoutes([
@@ -27,13 +43,22 @@ export default function RouterView() {
       element: <Markdown />
     },
     {
+      path: '/intelligence',
+      element: <Intelligence />
+    },
+    {
       path: '/code',
       element: <Code />
+    },
+    {
+      path: '/example',
+      element: <Example />
     },
     {
       path: '/screenshot',
       element: <Screenshot />
     }
+
     // {
     //   path: '/background',
     //   element: <Background />

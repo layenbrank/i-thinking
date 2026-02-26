@@ -379,5 +379,13 @@
       "https://*.weixin.qq.com"
     ]
   },
-  "windows": ["main", "secondary", "screenshot", "navigation"]
+  "windows": [
+    "main",
+    "intelligence",
+    "code",
+    "example",
+    "secondary",
+    "screenshot",
+    "navigation"
+  ]
 }

@@ -83,6 +83,7 @@ function Provider(props: ComboboxProps) {
         }
       ])}>
       <div
+        draggable-region="false"
         className={clsx([
           'combobox-trigger',
           styles.combobox,

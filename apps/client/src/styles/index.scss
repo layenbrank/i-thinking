@@ -92,6 +92,13 @@ body,
   }
 }
 
+*[draggable-region] {
+  -webkit-app-region: drag;
+}
+*[draggable-region='false'] {
+  -webkit-app-region: no-drag;
+}
+
 .ant-modal-root {
   .ant-modal-wrap {
     width: 100%;

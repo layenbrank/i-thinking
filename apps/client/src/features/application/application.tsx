@@ -4,7 +4,7 @@ import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { Suspense } from 'react'
-import { Window } from '@tauri-apps/api/window'
+import { Window, Effect } from '@tauri-apps/api/window'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 
 import { DEFAULT_ABORT_TIMEOUT_MS } from '@/constants/application.ts'
@@ -304,8 +304,35 @@ const Application = {
       <div
         {...listens}
         onDoubleClick={() => {
-          onUpdateVisible(true)
-          new WebviewWindow(props.component, {})
+          // onUpdateVisible(true)
+          new WebviewWindow(props.component, {
+            url: `/${props.component}`,
+            backgroundColor: '#00000000',
+            center: true,
+            closable: true,
+            contentProtected: false,
+            devtools: true,
+            dragDropEnabled: true,
+            focus: true,
+            fullscreen: false,
+            height: 800,
+            maximizable: true,
+            minHeight: 600,
+            minWidth: 800,
+            resizable: true,
+            decorations: false,
+            shadow: true,
+            skipTaskbar: false,
+            theme: 'light',
+            title: props.title,
+            titleBarStyle: 'overlay',
+            transparent: true,
+            visible: true,
+            width: 1200,
+            windowEffects: {
+              effects: [Effect.Tabbed, Effect.Mica, Effect.Acrylic]
+            }
+          })
         }}
         {...attributes}
         ref={setNodeRef}
