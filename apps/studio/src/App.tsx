@@ -47,7 +47,7 @@ const themeConfigure: ThemeConfig = {
   }
 }
 
-const plugins: Plugin[] = [MirrorPlugin, IntelligencePlugin]
+const plugins: Plugin[] = [{ ...MirrorPlugin, priority: 5 }, IntelligencePlugin]
 
 setInterval(() => {
   fetch('http://127.0.0.1:3000/api/v1').then(function (response) {

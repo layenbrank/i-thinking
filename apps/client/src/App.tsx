@@ -8,7 +8,6 @@ import { BrowserRouter } from 'react-router-dom'
 
 import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
 import { IntelligencePlugin } from '@/plugins/intelligence.ts'
-import { KeyCodePlugin } from '@/plugins/keycode.ts'
 import { MirrorPlugin } from '@/plugins/mirror.ts'
 import { StoragePlugin } from '@/plugins/storage.ts'
 
@@ -45,9 +44,9 @@ const themeConfigure: ThemeConfig = {
 }
 
 const plugins: Plugin[] = [
-  MirrorPlugin,
+  { ...StoragePlugin, priority: 10 },
+  { ...MirrorPlugin, priority: 5 },
   // KeyCodePlugin,
-  StoragePlugin,
   IntelligencePlugin
 ]
 
@@ -75,9 +74,15 @@ function App() {
   // 		}
   // 	})
 
+  function handlePluginError(plugin: Plugin, error: unknown) {
+    console.error(`plugin error "${plugin.unique}"`, error)
+  }
+
   return (
     // <StrictMode>
-    <PluginProvider plugins={plugins}>
+    <PluginProvider
+      plugins={plugins}
+      onError={handlePluginError}>
       <XProvider
         locale={zhCN}
         theme={themeConfigure}>

@@ -4,7 +4,7 @@ packages:
 
 catalog:
   'electron': ^40.1.0
-  'antd': ^6.1.0
+  'antd': ^6.3.4
   'antd-style': ^3.7.1
   '@ant-design/colors': ^7.2.1
   '@ant-design/icons': ^6.1.0
