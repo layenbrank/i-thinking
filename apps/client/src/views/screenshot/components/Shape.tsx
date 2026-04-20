@@ -124,7 +124,11 @@ const shapes: Record<ShapeType, React.FC<ShapeProps>> = {
       />
     )
   },
-  mosaic(props: ShapeProps) {},
+  mosaic(props: ShapeProps) {
+    const { points, color, fontSize, width } = props
+
+    if (points.length < 2) return null
+  },
   rect(props: ShapeProps) {
     const { points, color, thickness } = props
     if (points.length < 2) return null
@@ -143,6 +147,9 @@ const shapes: Record<ShapeType, React.FC<ShapeProps>> = {
   },
   text(props: ShapeProps) {
     const { points, color, fontSize, text, width } = props
+
+    if (points.length < 1) return null
+
     return (
       <Text
         x={points[0].x}
