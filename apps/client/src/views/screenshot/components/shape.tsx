@@ -1,5 +1,5 @@
 import Konva from 'konva'
-import type { ReactElement } from 'react'
+import useImage from 'use-image'
 import { Arrow, Circle, Ellipse, Group, Image, Line, Rect, Text } from 'react-konva'
 
 export type ShapeType =
@@ -150,10 +150,12 @@ const shapes: Record<ShapeType, React.FC<ShapeProps>> = {
 
     if (points.length < 1) return null
 
+    const [point] = points
+
     return (
       <Text
-        x={points[0].x}
-        y={points[0].y}
+        x={point.x}
+        y={point.y}
         text={text || ' '}
         fontSize={fontSize ?? 16}
         fontFamily="sans-serif"
@@ -164,4 +166,23 @@ const shapes: Record<ShapeType, React.FC<ShapeProps>> = {
   }
 }
 
-export function Shape() {}
+function URLImage(props: Partial<HTMLImageElement>) {
+  const { src, ...remains } = props
+  if (!src) return null
+  const [image] = useImage(src, 'anonymous')
+  return (
+    <Image
+      image={image}
+      {...remains}
+    />
+  )
+}
+
+export default function ReShape() {
+  return (
+    <div>
+      <URLImage src="path/to/image.jpg" />
+      ReShape
+    </div>
+  )
+}

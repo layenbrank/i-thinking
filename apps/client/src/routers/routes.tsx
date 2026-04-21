@@ -29,7 +29,7 @@ export default function RouterView() {
       path: '/',
       element: (
         <Navigate
-          to={'/overview'}
+          to={'/screenshot'}
           replace
         />
       )
