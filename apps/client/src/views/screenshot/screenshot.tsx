@@ -18,6 +18,7 @@ export default function Screenshot() {
     x: 0,
     y: 0
   })
+
   function handlePress(event: PressEvent) {
     console.log('Press event:', event)
   }

@@ -1,4 +1,4 @@
-import ReShape from '@/views/screenshot/components/shape'
+import ReShape, { type ShapeProps } from '@/views/screenshot/components/shape'
 import { clsx } from 'clsx'
 import { Image as ReImage, Layer, Stage, Transformer, type KonvaNodeEvents } from 'react-konva'
 
@@ -11,10 +11,10 @@ interface AnnotationProps {
 }
 
 const image = new Image()
-image.src = 'https://picsum.photos/200/300'
+image.src = 'https://picsum.photos/1920/1080'
 export function Annotation(props: AnnotationProps) {
   const { onPress, onMove, onRelease } = props
-  const [annotations, onUpdateAnnotations] = useState([])
+  const [annotations, onUpdateAnnotations] = useState<ShapeProps[]>([])
 
   return (
     <div className={clsx(styles.annotation)}>
@@ -34,7 +34,15 @@ export function Annotation(props: AnnotationProps) {
         </Layer>
         {/* 标注层：已提交的标注始终可拖拽 */}
         <Layer listening={true}>
-          {/* <ReShape /> */}
+          {annotations.map(function (annotation, index) {
+            return (
+              <ReShape
+                key={annotation.id}
+                {...annotation}
+              />
+            )
+          })}
+
           <Transformer
             rotateEnabled={false}
             borderStroke="#4080FF"
