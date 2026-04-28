@@ -5,9 +5,9 @@ import 'reflect-metadata'
 import App from '@/App.tsx'
 import '@/styles/index.scss'
 
-import CustomIconify from '@i-thinking/shared'
+import MDIconify from '@i-thinking/shared/mdi.json'
 
-addCollection(CustomIconify)
+addCollection(MDIconify)
 
 const rootElement = document.getElementById('root') as HTMLElement
 

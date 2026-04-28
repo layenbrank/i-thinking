@@ -10,6 +10,9 @@
     "./iconify.json": {
       "default": "./src/assets/iconify.json"
     },
+    "./mdi.json": {
+      "default": "./src/assets/icons/mdi.json"
+    },
     "./contextmenu": {
       "types": "./src/types/contextmenu.d.ts"
     },

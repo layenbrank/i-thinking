@@ -162,7 +162,7 @@ export default function Utility(props: UtilityProps) {
               whileTap={{ scale: 0.9 }}
               onClick={onUndo}>
               <Icon
-                icon="mdi:undo"
+                icon="mdi:undo-variant"
                 width={18}
                 height={18}
               />
@@ -175,7 +175,7 @@ export default function Utility(props: UtilityProps) {
               whileTap={{ scale: 0.9 }}
               onClick={onRedo}>
               <Icon
-                icon="mdi:redo"
+                icon="mdi:redo-variant"
                 width={18}
                 height={18}
               />
