@@ -1,7 +1,7 @@
 import React from '@vitejs/plugin-react-swc'
 import { findUpSync } from 'find-up'
 import { createWriteStream } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { dirname, resolve, basename } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 // 获取 本地网络IP地址
 import { networkInterfaces } from 'node:os'
@@ -134,10 +134,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
     /[\\/]node_modules[\\/]get-nonce[\\/]/
   ],
 
-  'ui-marks': [
-    /[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/,
-    /~icons/
-  ],
+  'ui-marks': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/, /~icons/],
 
   'ui-animation': [/[\\/]node_modules[\\/](gsap|swiper)[\\/]/],
 
@@ -280,9 +277,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
     /[\\/]node_modules[\\/]@ariakit[\\/]/
   ],
 
-  'utils-code': [
-    /[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/
-  ],
+  'utils-code': [/[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/],
 
   'utils-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
 
@@ -334,10 +329,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
   'utils-interaction': [/[\\/]node_modules[\\/]sortablejs[\\/]/],
   'utils-dnd': [/[\\/]node_modules[\\/]@dnd-kit[\\/]/],
 
-  scheduler: [
-    /[\\/]node_modules[\\/](scheduler)[\\/]/,
-    /[\\/]node_modules[\\/]@tauri-apps[\\/]/
-  ],
+  scheduler: [/[\\/]node_modules[\\/](scheduler)[\\/]/, /[\\/]node_modules[\\/]@tauri-apps[\\/]/],
 
   router: [
     /[\\/]node_modules[\\/]@remix-run[\\/]router[\\/]/,
@@ -352,10 +344,7 @@ const chunkEntries = Object.entries(chunkMap)
 
 const filePath = 'C:/Users/MACHENIKE/Documents/Vue3/'
 
-export default defineConfig(function ({
-  mode,
-  command
-}: ConfigEnv): UserConfig {
+export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
   const interfaces = networkInterfaces()
   const LOOPBACK = '0.0.0.0'
@@ -509,7 +498,7 @@ export default defineConfig(function ({
     css: {
       modules: {
         // generateScopedName: '[name]-[local]-[hash:base64:6]',
-        generateScopedName: '[name]-[hash:base64:6]',
+        // generateScopedName: '[name]-[hash:base64:6]',
         // generateScopedName(name, _filename, css) {
         // 	// const fileBaseName = basename(filename, '.module.scss')
         // 	const hash = Buffer.from(css).toString('base64').slice(0, 6)
@@ -517,6 +506,13 @@ export default defineConfig(function ({
         // 	const scoped = `${name}-${hash}`
         // 	return scoped
         // },
+        generateScopedName(name, filename, css) {
+          const fileBaseName = basename(filename, '.module.scss')
+          const hash = Buffer.from(css).toString('base64').slice(0, 6)
+          const scoped = `${fileBaseName}-${name}-${hash}`
+          // const scoped = `${name}-${hash}`
+          return scoped
+        },
         localsConvention: 'camelCase',
         scopeBehaviour: 'local',
         hashPrefix: 'prefix'

@@ -1,0 +1,131 @@
+.utility {
+  position: absolute;
+  z-index: 200;
+  display: flex;
+  gap: 4px;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px) saturate(1.8);
+  border-radius: 10px;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ensemble {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.separator {
+  width: 1px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.09);
+  margin: 0 4px;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #555;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.06);
+    color: #222;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  &.active {
+    background: rgba(64, 128, 255, 0.1);
+    color: #4080ff;
+
+    &:hover {
+      background: rgba(64, 128, 255, 0.16);
+      color: #4080ff;
+    }
+  }
+
+  &.primary {
+    background: #4080ff;
+    color: #fff;
+    box-shadow: 0 1px 4px rgba(64, 128, 255, 0.35);
+
+    &:hover:not(:disabled) {
+      background: #3570e8;
+    }
+  }
+}
+
+// ─── 颜色按钮 ──────────────────────────────────────────
+.color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  box-shadow: 0 0 0 0 transparent;
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.25);
+  }
+
+  &.active {
+    border-color: #4080ff;
+    box-shadow: 0 0 0 1.5px rgba(64, 128, 255, 0.3);
+  }
+}
+
+// ─── 粗细按钮 ──────────────────────────────────────────
+.thickness {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  &.active {
+    background: rgba(64, 128, 255, 0.1);
+  }
+
+  .dot {
+    display: block;
+    border-radius: 50%;
+    background: #666;
+  }
+}

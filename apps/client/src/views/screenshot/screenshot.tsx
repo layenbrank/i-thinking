@@ -2,6 +2,7 @@ import { clsx } from 'clsx'
 import Konva from 'konva'
 
 import { Annotation } from '@/views/screenshot/components/annotation'
+import Utility from '@/views/screenshot/components/utility'
 
 import styles from '@/views/screenshot/screenshot.module.scss'
 
@@ -35,6 +36,29 @@ export default function Screenshot() {
         onMove={handleMove}
         onPress={handlePress}
         onRelease={handleRelease}
+      />
+      <Utility
+        rect={{
+          w: 100,
+          h: 100,
+          x: 100,
+          y: 100
+        }}
+        canRedo={false}
+        canUndo={false}
+        active={'ellipse'}
+        color={'#4080ff'}
+        thickness={4}
+        onClose={() => {}}
+        onColorChange={() => {}}
+        onCopy={() => {}}
+        onPin={() => {}}
+        onRedo={() => {}}
+        onRefresh={() => {}}
+        onSave={() => {}}
+        onThicknessChange={() => {}}
+        onUndo={() => {}}
+        onUtilityChange={() => {}}
       />
     </div>
   )
