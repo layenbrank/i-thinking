@@ -1,9 +1,15 @@
 import { Icon } from '@iconify/react'
-import { AnimatePresence, motion } from 'motion/react'
+import { ColorPicker, Slider, Tooltip, Row, Col, Divider, theme } from 'antd'
 import { clsx } from 'clsx'
-import { Tooltip } from 'antd'
+import { AnimatePresence, motion } from 'motion/react'
+import { useState } from 'react'
+import { generate, presetPalettes } from '@ant-design/colors'
+
+import type { ColorPickerProps } from 'antd'
 
 import styles from '@/views/screenshot/components/utility.module.scss'
+
+type Presets = Required<ColorPickerProps>['presets'][number]
 
 export type UtilityEnum =
   | 'select'
@@ -32,12 +38,12 @@ interface UtilityProps {
   thickness: number
   canUndo: boolean
   canRedo: boolean
-  onUtilityChange: (utility: UtilityEnum) => void
-  onColorChange: (color: string) => void
-  onThicknessChange: (thickness: number) => void
+  onUpdateUtility: (utility: UtilityEnum) => void
+  onUpdateColor: (color: string) => void
+  onUpdateThickness: (thickness: number) => void
   onUndo: () => void
   onRedo: () => void
-  onSave: () => void
+  onPreserve: () => void
   onCopy: () => void
   onPin: () => void
   onClose: () => void
@@ -69,29 +75,43 @@ const COLORS = [
   '#000000'
 ]
 
-const THICKNESS = [1, 2, 3, 4, 5]
+function genPresets(presets = presetPalettes) {
+  const entries = Object.entries(presets)
+  return entries.map<Presets>(([label, colors]) => ({ label, colors, key: label }))
+}
 
 export default function Utility(props: UtilityProps) {
   const {
     active,
     canRedo,
     canUndo,
+    color,
+    thickness,
     onClose,
-    onColorChange,
+    onUpdateColor,
     onCopy,
     onPin,
     onRedo,
     onRefresh,
-    onSave,
-    onThicknessChange,
+    onPreserve,
+    onUpdateThickness,
     onUndo,
-    onUtilityChange
+    onUpdateUtility
   } = props
+
+  const { token } = theme.useToken()
 
   // const [visible, onUpdateVisible] = useState(false)
   const visible = active !== 'select'
-  const [color, onUpdateColor] = useState(COLORS[0])
-  const [thickness, onUpdateThickness] = useState(THICKNESS[0])
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const isCustomColor = !COLORS.some((c) => c.toUpperCase() === color.toUpperCase())
+
+  const presets = genPresets({
+    primary: generate(token.colorPrimary),
+    red: generate('#ff0000'),
+    green: generate('#008000'),
+    cyan: generate('#00ffff')
+  })
 
   return (
     <motion.div
@@ -137,7 +157,7 @@ export default function Utility(props: UtilityProps) {
                   })}
                   whileTap={{ scale: 0.9 }}
                   onClick={function () {
-                    onUtilityChange(utility.type)
+                    onUpdateUtility(utility.type)
                   }}>
                   <Icon
                     icon={utility.icon}
@@ -226,7 +246,7 @@ export default function Utility(props: UtilityProps) {
             <motion.button
               className={clsx(styles.button, styles.primary)}
               whileTap={{ scale: 0.9 }}
-              onClick={onSave}>
+              onClick={onPreserve}>
               <Icon
                 icon="mdi:content-save-outline"
                 width={18}
@@ -263,7 +283,7 @@ export default function Utility(props: UtilityProps) {
                   <button
                     key={value}
                     className={clsx(styles.color, {
-                      [styles.active]: color === value
+                      [styles.active]: color.toUpperCase() === value.toUpperCase()
                     })}
                     onClick={() => onUpdateColor(value)}
                     style={{
@@ -272,27 +292,79 @@ export default function Utility(props: UtilityProps) {
                   />
                 )
               })}
+              <ColorPicker
+                onOpenChange={setPickerOpen}
+                value={color}
+                disabledAlpha
+                trigger="click"
+                presets={presets}
+                panelRender={function (panel, extra) {
+                  const { Picker, Presets } = extra.components
+                  return (
+                    <Row
+                      justify="space-between"
+                      wrap={false}>
+                      <Col span={12}>
+                        <Presets />
+                      </Col>
+                      <Divider
+                        vertical
+                        style={{ height: 'auto' }}
+                      />
+                      <Col flex="auto">
+                        <Picker />
+                      </Col>
+                    </Row>
+                  )
+                }}
+                onChange={(c) => onUpdateColor(c.toHexString().toUpperCase())}>
+                <Tooltip title="自定义颜色">
+                  <motion.button
+                    className={clsx(styles.color, { [styles.active]: isCustomColor })}
+                    whileTap={{ scale: 0.85 }}
+                    animate={{
+                      scale: pickerOpen ? 1.1 : 1,
+                      outline: pickerOpen ? '2px solid #1677ff' : '2px solid transparent'
+                    }}
+                    transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                    style={{
+                      background: isCustomColor ? color : 'transparent',
+                      color: isCustomColor ? undefined : 'currentColor'
+                    }}>
+                    {!isCustomColor && (
+                      <Icon
+                        icon="mdi:palette-outline"
+                        width={14}
+                        height={14}
+                      />
+                    )}
+                  </motion.button>
+                </Tooltip>
+              </ColorPicker>
             </div>
             <div className={styles.separator} />
-            <div className={styles.ensemble}>
-              {THICKNESS.map(function (value) {
-                return (
-                  <button
-                    key={value}
-                    className={clsx(styles.thickness, {
-                      [styles.active]: thickness === value
-                    })}
-                    onClick={() => onUpdateThickness(value)}>
-                    <span
-                      className={styles.dot}
-                      style={{
-                        width: value + 4,
-                        height: value + 4
-                      }}
-                    />
-                  </button>
-                )
-              })}
+            <div className={clsx(styles.ensemble, 'flex-1')}>
+              <Slider
+                className={clsx(styles.thickness)}
+                defaultValue={thickness}
+                onChange={(v) => onUpdateThickness(Math.round(v))}
+                step={0.01}
+                min={1}
+                max={16}
+                tooltip={{
+                  formatter: (v) => Math.round(v ?? 1)
+                }}
+                styles={{
+                  track: {
+                    backgroundImage: 'linear-gradient(180deg, #91caff, #1677ff)'
+                  },
+                  handle: {
+                    borderColor: '#1677ff',
+                    boxShadow: '0 2px 8px #1677ff',
+                    willChange: 'transform'
+                  }
+                }}
+              />
             </div>
           </motion.div>
         )}

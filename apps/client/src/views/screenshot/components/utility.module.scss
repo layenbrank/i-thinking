@@ -15,6 +15,7 @@
 }
 
 .row {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -104,28 +105,30 @@
 
 // ─── 粗细按钮 ──────────────────────────────────────────
 .thickness {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.15s;
+  width: 160px;
 
-  &:hover {
-    background: rgba(0, 0, 0, 0.06);
-  }
+  // display: flex;
+  // align-items: center;
+  // justify-content: center;
+  // width: 28px;
+  // height: 28px;
+  // border: none;
+  // border-radius: 6px;
+  // background: transparent;
+  // cursor: pointer;
+  // transition: background 0.15s;
 
-  &.active {
-    background: rgba(64, 128, 255, 0.1);
-  }
+  // &:hover {
+  //   background: rgba(0, 0, 0, 0.06);
+  // }
 
-  .dot {
-    display: block;
-    border-radius: 50%;
-    background: #666;
-  }
+  // &.active {
+  //   background: rgba(64, 128, 255, 0.1);
+  // }
+
+  // .dot {
+  //   display: block;
+  //   border-radius: 50%;
+  //   background: #666;
+  // }
 }

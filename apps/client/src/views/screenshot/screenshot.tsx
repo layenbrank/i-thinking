@@ -19,6 +19,8 @@ export default function Screenshot() {
     x: 0,
     y: 0
   })
+  const [color, onUpdateColor] = useState('#4080ff')
+  const [thickness, onUpdateThickness] = useState(2)
 
   function handlePress(event: PressEvent) {
     console.log('Press event:', event)
@@ -47,18 +49,18 @@ export default function Screenshot() {
         canRedo={false}
         canUndo={false}
         active={'ellipse'}
-        color={'#4080ff'}
-        thickness={4}
+        color={color}
+        thickness={thickness}
         onClose={() => {}}
-        onColorChange={() => {}}
+        onUpdateColor={onUpdateColor}
         onCopy={() => {}}
         onPin={() => {}}
         onRedo={() => {}}
         onRefresh={() => {}}
-        onSave={() => {}}
-        onThicknessChange={() => {}}
+        onPreserve={() => {}}
+        onUpdateThickness={onUpdateThickness}
         onUndo={() => {}}
-        onUtilityChange={() => {}}
+        onUpdateUtility={() => {}}
       />
     </div>
   )
