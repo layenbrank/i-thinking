@@ -49,7 +49,7 @@
     "@electron/fuses": "catalog:",
     "@electron/rebuild": "catalog:",
     "@types/electron-squirrel-startup": "catalog:",
-    "prisma": "^7.3.0",
+    "prisma": "catalog:",
     "@i-thinking/shared": "workspace:*",
     "electron": "catalog:"
   },

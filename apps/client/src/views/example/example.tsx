@@ -1,34 +1,50 @@
 import { Splitter } from 'antd'
 import { clsx } from 'clsx'
 
-import { Overlay } from '@/views/example/overlay/index.ts'
-
 import styles from '@/views/example/example.module.scss'
+import './example.scss'
 
 export default function Example() {
   const [sizes, updateSizes] = useState<(number | string)[]>(['15%', '85%'])
 
   return (
     <div className={clsx([styles.example, styles.root])}>
-      <Overlay.Utility></Overlay.Utility>
-
-      <Splitter onResize={updateSizes}>
-        <Splitter.Panel
-          min="15%"
-          max="30%"
-          resizable
-          size={sizes[0]}
-          className={clsx([styles.example, styles.navigation])}>
-          <Overlay.Navigation />
-        </Splitter.Panel>
-        <Splitter.Panel
-          className={clsx([styles.markdown, styles.section])}
-          size={sizes[1]}>
-          <Overlay.Section />
-        </Splitter.Panel>
-      </Splitter>
-
-      <Overlay.Summary></Overlay.Summary>
+      <table>
+        <caption>表格标题</caption>
+        <colgroup>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <col
+              className={clsx({
+                'col-header': index === 0,
+                'col-data': index !== 0
+              })}
+              key={index}
+              span={2}
+            />
+          ))}
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">列标题</th>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <th key={index}>内容-{index + 1}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">行标题</th>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <td key={index}>单元格数据-{index + 1}</td>
+            ))}
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={6}>汇总信息</td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   )
 }

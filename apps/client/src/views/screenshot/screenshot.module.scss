@@ -1,24 +1,23 @@
 .screenshot {
   width: 100%;
   height: 100%;
+}
 
-  &.root {
-    width: 100%;
-    height: 100%;
-    background-color: rgba($color: #000000, $alpha: 0.5);
-  }
+.fullscreen {
+  width: 100%;
+  height: 100%;
 
-  &.overlay {
-    position: fixed;
-    z-index: 1000;
+  &.mask {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
     pointer-events: none;
-    border: 1px dashed #4080ff;
-    will-change: width, height, top, left;
-    // transition:
-    //   top 30ms linear,
-    //   left 30ms linear,
-    //   width 30ms linear,
-    //   height 30ms linear;
-    background-color: rgba($color: #3398db, $alpha: 0.2);
   }
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  isolation: isolate;
 }

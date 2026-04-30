@@ -4,17 +4,20 @@ import { Image as ReImage, Layer, Stage, Transformer, type KonvaNodeEvents } fro
 
 import styles from '@/views/screenshot/components/annotation.module.scss'
 
+import URLBackground from '@/assets/screenshot-background.jpg'
+
 interface AnnotationProps {
+  annotations: ShapeProps[]
   onRelease: KonvaNodeEvents['onMouseUp']
   onPress: KonvaNodeEvents['onMouseDown']
   onMove: KonvaNodeEvents['onMouseMove']
 }
 
 const image = new Image()
-image.src = 'https://picsum.photos/1920/1080'
+image.src = URLBackground
+
 export function Annotation(props: AnnotationProps) {
-  const { onPress, onMove, onRelease } = props
-  const [annotations, onUpdateAnnotations] = useState<ShapeProps[]>([])
+  const { onPress, onMove, onRelease, annotations } = props
 
   return (
     <div className={clsx(styles.annotation)}>

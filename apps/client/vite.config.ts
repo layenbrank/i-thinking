@@ -426,7 +426,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       target: 'esnext',
       // target: process.env.TAURI_ENV_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
       // cssTarget: 'chrome142',
-      cssTarget: 'chrome128',
+      // cssTarget: 'chrome128',
       emptyOutDir: true,
       minify: 'terser',
       // minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,

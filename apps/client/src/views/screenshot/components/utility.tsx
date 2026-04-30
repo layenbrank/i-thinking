@@ -7,38 +7,26 @@ import { generate, presetPalettes } from '@ant-design/colors'
 
 import type { ColorPickerProps } from 'antd'
 
+import { type ShapeEnum, type ShapeProps } from '@/views/screenshot/components/shape'
+
 import styles from '@/views/screenshot/components/utility.module.scss'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
-export type UtilityEnum =
-  | 'select'
-  | 'rect'
-  | 'ellipse'
-  | 'arrow'
-  | 'line'
-  | 'text'
-  | 'freehand'
-  | 'mosaic'
-  | 'number'
-  | 'highlight'
-  | 'spotlight'
-  | 'blur'
-
 interface UtilityOption {
-  type: UtilityEnum
+  type: ShapeEnum
   label: string
   icon: string
 }
 
 interface UtilityProps {
-  rect: { x: number; y: number; w: number; h: number }
-  active: UtilityEnum
+  selection: { x: number; y: number; w: number; h: number } | null
+  active: ShapeEnum | null
   color: string
   thickness: number
   canUndo: boolean
   canRedo: boolean
-  onUpdateUtility: (utility: UtilityEnum) => void
+  onUpdateUtility: (shape: ShapeEnum) => void
   onUpdateColor: (color: string) => void
   onUpdateThickness: (thickness: number) => void
   onUndo: () => void
@@ -58,8 +46,8 @@ const UTILITIES: UtilityOption[] = [
   { type: 'text', label: '文字', icon: 'mdi:format-text' },
   { type: 'freehand', label: '画笔', icon: 'mdi:draw' },
   { type: 'mosaic', label: '马赛克', icon: 'mdi:meteor' },
-  { type: 'number', label: '序号', icon: 'mdi:numeric' },
-  { type: 'highlight', label: '荧光笔', icon: 'mdi:marker' },
+  { type: 'index', label: '序号', icon: 'mdi:numeric' },
+  // { type: 'highlight', label: '荧光笔', icon: 'mdi:marker' },
   { type: 'blur', label: '模糊', icon: 'mdi:blur' },
   { type: 'spotlight', label: '聚光灯', icon: 'mdi:spotlight' }
 ]
@@ -102,7 +90,7 @@ export default function Utility(props: UtilityProps) {
   const { token } = theme.useToken()
 
   // const [visible, onUpdateVisible] = useState(false)
-  const visible = active !== 'select'
+  const visible = active !== null
   const [pickerOpen, setPickerOpen] = useState(false)
   const isCustomColor = !COLORS.some((c) => c.toUpperCase() === color.toUpperCase())
 

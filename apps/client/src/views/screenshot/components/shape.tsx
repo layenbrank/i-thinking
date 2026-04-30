@@ -3,7 +3,7 @@ import type { Filter } from 'konva/lib/Node'
 import { useEffect, useRef } from 'react'
 import { Arrow, Circle, Ellipse, Group, Line, Rect, Image as ReImage, Text } from 'react-konva'
 
-export type ShapeType =
+export type ShapeEnum =
   | 'rect'
   | 'ellipse'
   | 'arrow'
@@ -22,7 +22,7 @@ export interface Point {
 
 export interface ShapeProps {
   id: string
-  type: ShapeType
+  type: ShapeEnum | null
   points: Point[]
   color: string
   thickness: number
@@ -113,7 +113,7 @@ function FilteredImage(props: {
   )
 }
 
-const shapes: Record<ShapeType, React.FC<ShapeProps>> = {
+const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
   arrow(props) {
     const { points, color, thickness } = props
     if (points.length < 2) return null
@@ -325,6 +325,7 @@ const shapes: Record<ShapeType, React.FC<ShapeProps>> = {
  * 上层可通过 `id` 关联 Transformer / 状态管理。
  */
 export default function Shape(props: ShapeProps) {
+  if (!props.type) return null
   const Renderer = shapes[props.type]
   if (!Renderer) return null
   return <Renderer {...props} />
