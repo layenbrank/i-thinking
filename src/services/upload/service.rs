@@ -562,7 +562,7 @@ impl UploadService {
     fn calculate_hash(data: &[u8]) -> String {
         let mut hasher = Sha256::new();
         hasher.update(data);
-        format!("{:x}", hasher.finalize())
+        hasher.finalize().iter().map(|b| format!("{:02x}", b)).collect()
     }
 
     async fn calculate_hash_of_file(file_path: &Path) -> Result<String> {
@@ -577,6 +577,6 @@ impl UploadService {
             }
             hasher.update(&buffer[..bytes_read]);
         }
-        Ok(format!("{:x}", hasher.finalize()))
+        Ok(hasher.finalize().iter().map(|b| format!("{:02x}", b)).collect())
     }
 }

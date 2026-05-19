@@ -1,5 +1,5 @@
 use base64::{Engine, engine::general_purpose::STANDARD};
-use rand::{Rng, RngCore};
+use rand::RngExt;
 
 /// 生成 JWT_SECRET (64 字符的随机字符串)
 pub fn generate_jwt_secret() -> String {
@@ -16,8 +16,8 @@ pub fn generate_jwt_secret() -> String {
 
 /// 生成 AES_KEY (32 字节的随机密钥，base64 编码)
 pub fn generate_aes_key() -> String {
-    let mut key = [0u8; 32];
-    rand::rng().fill_bytes(&mut key);
+    let mut rng = rand::rng();
+    let key: [u8; 32] = std::array::from_fn(|_| rng.random::<u8>());
     STANDARD.encode(&key)
 }
 
@@ -29,8 +29,8 @@ pub fn generate_aes_key() -> String {
 /// - 设置变体位（第 8 字节）：(byte8 & 0x3f) | 0x80
 /// - 转换为十六进制字符串并大写
 pub fn generate_secure_cvid() -> String {
-    let mut array = [0u8; 16];
-    rand::rng().fill_bytes(&mut array);
+    let mut rng = rand::rng();
+    let mut array: [u8; 16] = std::array::from_fn(|_| rng.random::<u8>());
 
     // 设置版本位（GUID v4 标准）
     // 第 6 字节：保留低 4 位，设置高 4 位为 0x40 (版本 4)
