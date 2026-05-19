@@ -1,6 +1,6 @@
 pub mod ui {
     pub mod contextmenu;
-    // pub mod tray;
+    pub mod tray;
 }
 
 pub mod utils {

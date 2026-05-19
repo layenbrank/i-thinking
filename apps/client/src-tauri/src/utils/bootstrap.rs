@@ -7,9 +7,16 @@ impl Bootstrap {
     pub fn run() {
         let builder = tauri::Builder::default();
 
+        // 开机自启（仅桂面平台）
+        #[cfg(desktop)]
+        let builder = builder.plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec![]),
+        ));
+
         builder
             .setup(move |app| {
-                let _handle = app.handle();
+                crate::ui::tray::setup(app)?;
                 Ok(())
             })
             // 核心插件
@@ -35,8 +42,38 @@ impl Bootstrap {
             .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_clipboard_manager::init())
             .plugin(tauri_plugin_global_shortcut::Builder::default().build())
+            // 拦截主窗口关闭事件：隐藏到系统托盘而非退出
+            .on_window_event(|window, event| {
+                if window.label() == "main" {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = window.hide();
+
+                        let app = window.app_handle();
+                        if let Some(state) = app.try_state::<crate::ui::tray::TrayState>() {
+                            // 首次隐藏时发送系统通知
+                            if !state.notified.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                                #[cfg(desktop)]
+                                {
+                                    use tauri_plugin_notification::NotificationExt;
+                                    let _ = app
+                                        .notification()
+                                        .builder()
+                                        .title("i-Thinking")
+                                        .body("应用已最小化到系统托盘，点击托盘图标可重新显示")
+                                        .show();
+                                }
+                            }
+                        }
+                    }
+                }
+            })
             // invoke
-            .invoke_handler(generate_handler![invoke::greet, invoke::os])
+            .invoke_handler(generate_handler![
+                invoke::greet,
+                invoke::os,
+                invoke::set_tray_badge
+            ])
             .run(generate_context!())
             .expect("error while running application");
     }

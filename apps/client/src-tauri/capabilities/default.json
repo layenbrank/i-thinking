@@ -363,7 +363,7 @@
       "identifier": "http:default"
     }
   ],
-  "platforms": ["iOS", "macOS", "linux", "windows", "android"],
+  "platforms": ["macOS", "linux", "windows"],
   "remote": {
     "urls": [
       "http://*",
@@ -379,13 +379,5 @@
       "https://*.weixin.qq.com"
     ]
   },
-  "windows": [
-    "main",
-    "intelligence",
-    "code",
-    "example",
-    "secondary",
-    "screenshot",
-    "navigation"
-  ]
+  "windows": ["main", "markdown", "screenshot"]
 }

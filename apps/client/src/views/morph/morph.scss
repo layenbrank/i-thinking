@@ -1,0 +1,51 @@
+table,
+th,
+td {
+  border: 1px solid;
+}
+
+table {
+  width: 100%;
+  height: 240px;
+  margin: 0 auto;
+  display: block;
+  overflow-x: auto;
+  border-spacing: 0;
+}
+
+tbody {
+  white-space: nowrap;
+}
+
+th,
+td {
+  padding: 5px 10px;
+  border-top-width: 0;
+  border-left-width: 0;
+  white-space: nowrap;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  vertical-align: bottom;
+}
+
+th:last-child,
+td:last-child {
+  border-right-width: 0;
+}
+
+tr:last-child td {
+  border-bottom-width: 0;
+}
+
+/* 示例：为第 1 列设置固定宽度，为第 2-6 列设置背景色 */
+table col:nth-child(1) {
+  width: 120px;
+}
+table col:nth-child(n + 2) {
+  background-color: #4080ff;
+  text-align: center;
+}

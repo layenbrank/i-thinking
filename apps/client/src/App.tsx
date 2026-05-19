@@ -4,14 +4,14 @@ import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 // import { StrictMode } from 'react'
-import { BrowserRouter } from 'react-router-dom'
+import { RouterProvider } from 'react-router-dom'
 
+import { Fallback } from '@/components/fallback/index.ts'
 import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
 import { IntelligencePlugin } from '@/plugins/intelligence.ts'
 import { MirrorPlugin } from '@/plugins/mirror.ts'
 import { StoragePlugin } from '@/plugins/storage.ts'
-
-import RouterView from '@/routers/routes.tsx'
+import { router } from '@/routers/index'
 
 // import { POST_SIGNIN } from '@/apis/auth.ts'
 
@@ -74,7 +74,7 @@ function App() {
   // 		}
   // 	})
 
-  function handlePluginError(plugin: Plugin, error: unknown) {
+  function onPluginError(plugin: Plugin, error: unknown) {
     console.error(`plugin error "${plugin.unique}"`, error)
   }
 
@@ -82,13 +82,13 @@ function App() {
     // <StrictMode>
     <PluginProvider
       plugins={plugins}
-      onError={handlePluginError}>
+      onError={onPluginError}>
       <XProvider
         locale={zhCN}
         theme={themeConfigure}>
-        <BrowserRouter>
-          <RouterView />
-        </BrowserRouter>
+        <Suspense fallback={<Fallback.Route />}>
+          <RouterProvider router={router} />
+        </Suspense>
       </XProvider>
     </PluginProvider>
     // </StrictMode>

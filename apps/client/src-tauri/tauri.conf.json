@@ -62,7 +62,7 @@
         "create": true,
         "devtools": true,
         "dragDropEnabled": true,
-        "focus": true,
+        "focus": false,
         "fullscreen": false,
         "height": 800,
         "label": "main",

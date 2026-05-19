@@ -6,8 +6,10 @@ import App from '@/App.tsx'
 import '@/styles/index.scss'
 
 import MDIconify from '@i-thinking/shared/mdi.json'
+import CustomIconify from '@i-thinking/shared/iconify.json'
 
 addCollection(MDIconify)
+addCollection(CustomIconify)
 
 const rootElement = document.getElementById('root') as HTMLElement
 

@@ -46,6 +46,10 @@ export default defineConfigWithVueTs(
       // parser: tseslint.parser,
       sourceType: 'module',
       parserOptions: {
+        // Parsing error: Enabling "project" does nothing when "projectService" is enabled. You can remove the "project" setting.
+        // projectService: true，只需删除 project 行即可：
+        // 是较新的 @typescript-eslint 推荐方式，它会自动发现并使用正确的 tsconfig（配合 tsconfigRootDir 限定查找范围），project 数组是旧方式，两者不能共存，移除 project 即可。
+        projectService: true,
         tsconfigRootDir: fileURLToPath(import.meta.url),
         globals: globals.browser
       }

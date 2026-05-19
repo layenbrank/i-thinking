@@ -3,12 +3,11 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Button, Space, Tooltip } from 'antd'
 import type { TooltipPlacement } from 'antd/es/tooltip'
 import { clsx } from 'clsx'
-import type { ReactNode } from 'react'
 import { debounce } from 'lodash-es'
-import { useEffect, useState, useCallback } from 'react'
+import type { ReactNode } from 'react'
 
 import { Combobox } from '@/components/combobox/index.ts'
-import styles from '@/views/markdown/overlay/utility.module.scss'
+import styles from '@/views/morph/overlay/utility.module.scss'
 
 interface Option {
   mark: ReactNode
@@ -18,38 +17,37 @@ interface Option {
   event: () => void
 }
 
-// 最小、最大化、关闭窗口
-export default function Utility() {
-  const SuffixOptions: Option[] = [
-    {
-      mark: <Icon icon="custom:minimize-12-filled" />,
-      key: '最小化',
-      tooltip: '最小化窗口',
-      placement: 'bottom',
-      event() {
-        void getCurrentWindow().minimize()
-      }
-    },
-    {
-      mark: <Icon icon="custom:maximize-24-filled" />,
-      key: '最大化',
-      tooltip: '最大化窗口',
-      placement: 'bottom',
-      event() {
-        void getCurrentWindow().toggleMaximize()
-      }
-    },
-    {
-      mark: <Icon icon="custom:close-fill" />,
-      key: '关闭',
-      tooltip: '关闭窗口',
-      placement: 'bottomRight',
-      event() {
-        void getCurrentWindow().close()
-      }
+const SuffixOptions: Option[] = [
+  {
+    mark: <Icon icon="custom:minimize-12-filled" />,
+    key: 'minimize',
+    tooltip: '最小化窗口',
+    placement: 'bottom',
+    event() {
+      void getCurrentWindow().minimize()
     }
-  ]
+  },
+  {
+    mark: <Icon icon="custom:maximize-24-filled" />,
+    key: 'maximize',
+    tooltip: '最大化窗口',
+    placement: 'bottom',
+    event() {
+      void getCurrentWindow().toggleMaximize()
+    }
+  },
+  {
+    mark: <Icon icon="custom:close-fill" />,
+    key: 'close',
+    tooltip: '关闭窗口',
+    placement: 'bottomRight',
+    event() {
+      void getCurrentWindow().close()
+    }
+  }
+]
 
+export default function Utility() {
   const [visible, onUpdateVisible] = useState(false)
 
   const debounceUpdate = debounce(function () {
@@ -106,15 +104,20 @@ export default function Utility() {
 
   return (
     <div
+      draggable-region="true"
       onDoubleClick={onMaximizable}
       className={clsx([styles.utility, styles.root])}>
       <Space.Compact orientation="horizontal">
-        <Button className={clsx([styles.utility, styles.button])}>☰</Button>
+        <Button
+          draggable-region="false"
+          className={clsx([styles.utility, styles.button])}>
+          ☰
+        </Button>
       </Space.Compact>
       <Combobox
         visible={visible}
         onUpdate={onUpdateKeyword}
-        placeholder="搜索文档、笔记、标签..."
+        placeholder="搜索代码文件、符号、设置..."
         className={clsx([styles.utility, styles['combobox-trigger']])}
         section={
           <Combobox.Collection
@@ -139,8 +142,9 @@ export default function Utility() {
               getPopupContainer={onTeleport}
               getTooltipContainer={onTeleport}>
               <Button
+                draggable-region="false"
                 onClick={option.event}
-                className={clsx([styles.utility, styles.button])}>
+                className={clsx([styles.utility, styles.button, styles[option.key]])}>
                 {option.mark}
               </Button>
             </Tooltip>

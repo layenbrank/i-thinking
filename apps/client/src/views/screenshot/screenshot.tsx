@@ -17,21 +17,25 @@ type ReleaseEvent = Konva.KonvaEventObject<MouseEvent>
 
 export type Phase = 'selecting' | 'updating'
 
+interface Point {
+  x: number
+  y: number
+}
+interface Pixel {
+  w: number
+  h: number
+}
+
 export default function Screenshot() {
   const [phase, onUpdatePhase] = useState<Phase>('selecting')
   const [shape, onUpdateShape] = useState<ShapeEnum | null>(null)
   const [annotations, onUpdateAnnotations] = useState<ShapeProps[]>([])
-  const [selection, onUpdateSelection] = useState<{
-    x: number
-    y: number
-    w: number
-    h: number
-  } | null>(null)
-  const [begin, onUpdateBegin] = useState({
+  const [selection, onUpdateSelection] = useState<(Point & Pixel) | null>(null)
+  const [begin, onUpdateBegin] = useState<Point>({
     x: 0,
     y: 0
   })
-  const [final, onUpdateFinal] = useState({
+  const [final, onUpdateFinal] = useState<Point>({
     x: 0,
     y: 0
   })
@@ -68,7 +72,12 @@ export default function Screenshot() {
             {
               color: color,
               fontSize: thickness,
-              points: [{ x: clientX, y: clientY }],
+              points: [
+                {
+                  x: clientX,
+                  y: clientY
+                }
+              ],
               type: shape,
               id: newID,
               thickness: thickness
@@ -88,14 +97,31 @@ export default function Screenshot() {
       updating() {
         onUpdateAnnotations(function (prev) {
           if (!ID) return prev
-          console.log('handleRelease updating', prev)
-
-          for (const value of prev) {
-            if (value.id !== ID) continue
-            value.width = clientX - begin.x
-            // value.height = clientY - begin.y
-          }
-          return prev
+          return prev.map(function (value) {
+            if (value.id !== ID) return value
+            if (value.type === 'freehand') {
+              return {
+                ...value,
+                points: [
+                  ...value.points,
+                  {
+                    x: clientX,
+                    y: clientY
+                  }
+                ]
+              }
+            }
+            return {
+              ...value,
+              points: [
+                value.points[0],
+                {
+                  x: clientX,
+                  y: clientY
+                }
+              ]
+            }
+          })
         })
       }
     }
@@ -122,18 +148,38 @@ export default function Screenshot() {
         })
       },
       updating() {
+        // 直接修改 prev 元素属性后 return prev（同一引用，React 不重渲染），用 prev.map() 返回新数组
         onUpdateAnnotations(function (prev) {
           if (!ID) return prev
-          console.log('handleRelease updating', prev)
-
-          for (const value of prev) {
-            if (value.id !== ID) continue
-            value.points.push({ x: clientX, y: clientY })
-          }
-          return prev
+          return prev.map(function (value) {
+            if (value.id !== ID) return value
+            if (value.type === 'freehand') {
+              return {
+                ...value,
+                points: [
+                  ...value.points,
+                  {
+                    x: clientX,
+                    y: clientY
+                  }
+                ]
+              }
+            }
+            return {
+              ...value,
+              points: [
+                value.points[0],
+                {
+                  x: clientX,
+                  y: clientY
+                }
+              ]
+            }
+          })
         })
       }
     }
+
     phasemap[phase]?.()
     onUpdateID(null)
   }
@@ -162,9 +208,9 @@ export default function Screenshot() {
   return (
     <div className={clsx(styles.screenshot)}>
       <Annotation
-        annotations={annotations}
         onMove={handleMove}
         onPress={handlePress}
+        annotations={annotations}
         onRelease={handleRelease}
       />
       {/* 全屏遮罩（无选区时） */}
