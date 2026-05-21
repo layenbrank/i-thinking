@@ -1,4 +1,4 @@
-use crate::utils::invoke;
+use crate::utils::{invoke, pdf};
 use tauri::{Manager, generate_context, generate_handler};
 pub struct Bootstrap;
 
@@ -72,7 +72,17 @@ impl Bootstrap {
             .invoke_handler(generate_handler![
                 invoke::greet,
                 invoke::os,
-                invoke::set_tray_badge
+                invoke::set_tray_badge,
+                pdf::pdf_open_file,
+                pdf::pdf_render_page,
+                pdf::pdf_render_thumbnails,
+                pdf::pdf_search_text,
+                pdf::pdf_export,
+                pdf::pdf_merge,
+                pdf::pdf_split,
+                pdf::pdf_split_by_count,
+                pdf::pdf_to_images,
+                pdf::pdf_to_office
             ])
             .run(generate_context!())
             .expect("error while running application");

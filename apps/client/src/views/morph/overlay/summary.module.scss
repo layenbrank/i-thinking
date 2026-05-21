@@ -1,0 +1,148 @@
+.summary {
+  &.root {
+    width: 280px;
+    min-width: 280px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(252, 252, 252, 0.9);
+    overflow: hidden;
+  }
+}
+
+// ── header ───────────────────────────────────────────────────────────────────
+
+.header {
+  height: 36px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.closeBtn {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  padding: 0 !important;
+}
+
+// ── tabs ─────────────────────────────────────────────────────────────────────
+
+.tabs {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  :global {
+    .ant-tabs {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .ant-tabs-nav {
+      margin-bottom: 0;
+      padding: 0 8px;
+    }
+    .ant-tabs-content-holder {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .ant-tabs-content {
+      height: 100%;
+    }
+    .ant-tabs-tabpane {
+      height: 100%;
+      padding: 12px !important;
+    }
+  }
+}
+
+// ── properties ────────────────────────────────────────────────────────────────
+
+.emptyProps {
+  padding-top: 32px;
+}
+
+.propsForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rectForm {
+  :global(.ant-form-item) {
+    margin-bottom: 4px;
+  }
+  :global(.ant-input-number) {
+    width: 64px !important;
+  }
+}
+
+.divider {
+  margin: 8px 0 !important;
+}
+
+// ── export ────────────────────────────────────────────────────────────────────
+
+.exportForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  :global(.ant-form-item) {
+    margin-bottom: 8px;
+  }
+}
+
+// ── history ───────────────────────────────────────────────────────────────────
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+}
+
+.historyLabel {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.historyTime {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.undoBtn {
+  margin-top: 8px;
+}

@@ -379,5 +379,5 @@
       "https://*.weixin.qq.com"
     ]
   },
-  "windows": ["main", "markdown", "screenshot"]
+  "windows": ["main", "markdown", "screenshot", "morph"]
 }

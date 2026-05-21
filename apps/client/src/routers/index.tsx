@@ -31,7 +31,7 @@ const routes: RouteObject[] = [
     element: (
       <Navigate
         replace
-        to={'/morph'}
+        to={'/overview'}
       />
     )
   },

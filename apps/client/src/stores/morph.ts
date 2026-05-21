@@ -1,0 +1,798 @@
+import { invoke } from '@tauri-apps/api/core'
+import { open as dialogOpen } from '@tauri-apps/plugin-dialog'
+import { message as antdMessage } from 'antd'
+import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
+import { immer } from 'zustand/middleware/immer'
+
+import {
+  countAnnotationsByPage,
+  insertAnnotation,
+  queryAnnotations,
+  removeAnnotation,
+  updateAnnotation,
+  upsertFile
+} from '@/databases/morph.ts'
+
+type Tool = Morph.Tool
+type ViewMode = Morph.ViewMode
+type Annotation = Morph.Annotation
+type PdfMeta = Morph.PdfMeta
+type PageImage = Morph.PageImage
+type SearchMatch = Morph.SearchMatch
+type HistoryEntry = Morph.HistoryEntry
+
+// ─── State shape ─────────────────────────────────────────────────────────────
+
+interface MorphState {
+  // File
+  file: PdfMeta | null
+  fileList: PdfMeta[]
+
+  // View
+  currentPage: number // 0-based
+  zoom: number // 1.0 = 100 %
+  activeTool: Tool
+  viewMode: ViewMode
+  summaryVisible: boolean
+  isLoading: boolean
+
+  // Rendered pages (cache: pageIndex → base64 data-URL)
+  pageCache: Record<number, PageImage>
+  thumbnails: PageImage[]
+
+  // Annotations
+  annotations: Annotation[]
+  annotationCounts: Record<number, number> // pageIndex → count
+  selectedAnnotationId: string | null
+
+  // Search
+  search: Morph.SearchState
+
+  // Export
+  exportState: Morph.ExportState
+
+  // History
+  undoStack: HistoryEntry[]
+  redoStack: HistoryEntry[]
+
+  // Doc operation modals
+  mergeModal: {
+    open: boolean
+    inputs: string[]
+    output: string
+    loading: boolean
+    error: string | null
+  }
+  splitModal: {
+    open: boolean
+    mode: 'ranges' | 'count'
+    ranges: string
+    count: number
+    destDir: string
+    loading: boolean
+    error: string | null
+  }
+  convertModal: {
+    open: boolean
+    format: 'png' | 'jpg' | 'docx' | 'xlsx'
+    scale: number
+    destDir: string
+    loading: boolean
+    error: string | null
+  }
+
+  // ── Actions ────────────────────────────────────────────────────────────
+
+  openFilePicker: () => Promise<void>
+  openFile: (path: string) => Promise<void>
+  switchFile: (path: string) => Promise<void>
+  closeFile: (path: string) => void
+  setPage: (page: number) => void
+  setZoom: (zoom: number) => void
+  zoomIn: () => void
+  zoomOut: () => void
+  fitWidth: () => void
+  setTool: (tool: Tool) => void
+  setViewMode: (mode: ViewMode) => void
+  toggleSummary: () => void
+
+  renderCurrentPage: () => Promise<void>
+  loadThumbnails: () => Promise<void>
+
+  searchText: (query: string) => Promise<void>
+  clearSearch: () => void
+  setSearchActiveIndex: (idx: number) => void
+
+  addAnnotation: (
+    partial: Omit<Annotation, 'id' | 'filePath' | 'createdAt' | 'updatedAt'>
+  ) => Promise<void>
+  updateAnnotationData: (
+    id: string,
+    changes: Partial<Pick<Annotation, 'rect' | 'data'>>
+  ) => Promise<void>
+  removeAnnotationById: (id: string) => Promise<void>
+  selectAnnotation: (id: string | null) => void
+
+  setExportState: (patch: Partial<Morph.ExportState>) => void
+  exportPdf: (destPath: string) => Promise<void>
+
+  // Doc operation modals
+  openMergeModal: () => void
+  closeMergeModal: () => void
+  setMergeModal: (patch: Partial<MorphState['mergeModal']>) => void
+  executeMerge: () => Promise<void>
+  openSplitModal: () => void
+  closeSplitModal: () => void
+  setSplitModal: (patch: Partial<MorphState['splitModal']>) => void
+  executeSplit: () => Promise<void>
+  openConvertModal: () => void
+  closeConvertModal: () => void
+  setConvertModal: (patch: Partial<MorphState['convertModal']>) => void
+  executeConvert: () => Promise<void>
+
+  undo: () => void
+  redo: () => void
+}
+
+// ─── Store ───────────────────────────────────────────────────────────────────
+
+export const useMorphStore = create<MorphState>()(
+  devtools(
+    immer(function (set, get) {
+      // ── helpers ─────────────────────────────────────────────────────
+
+      // Suppressed during undo/redo to prevent re-recording the inverse action.
+      let _suppressHistory = false
+
+      function pushHistory(entry: HistoryEntry) {
+        if (_suppressHistory) return
+        set((s) => {
+          s.undoStack.push(entry)
+          s.redoStack = []
+        })
+      }
+
+      // ── initial state ────────────────────────────────────────────────
+
+      const state: MorphState = {
+        file: null,
+        fileList: [],
+        currentPage: 0,
+        zoom: 1.0,
+        activeTool: 'select',
+        viewMode: 'view',
+        summaryVisible: true,
+        isLoading: false,
+
+        pageCache: {},
+        thumbnails: [],
+
+        annotations: [],
+        annotationCounts: {},
+        selectedAnnotationId: null,
+
+        search: { query: '', results: [], activeIndex: -1 },
+        exportState: { format: 'pdf', range: 'all', customRange: '' },
+
+        undoStack: [],
+        redoStack: [],
+
+        mergeModal: { open: false, inputs: [], output: '', loading: false, error: null },
+        splitModal: {
+          open: false,
+          mode: 'ranges',
+          ranges: '',
+          count: 2,
+          destDir: '',
+          loading: false,
+          error: null
+        },
+        convertModal: {
+          open: false,
+          format: 'png',
+          scale: 2.0,
+          destDir: '',
+          loading: false,
+          error: null
+        },
+
+        // ── file ─────────────────────────────────────────────────────
+
+        async openFilePicker() {
+          const selected = await dialogOpen({
+            title: '打开 PDF 文件',
+            filters: [{ name: 'PDF', extensions: ['pdf'] }],
+            multiple: true
+          })
+          if (!selected) return
+          const paths = Array.isArray(selected) ? selected : [selected]
+          if (paths.length === 0) return
+          // Activate the first file
+          await get().openFile(paths[0])
+          // Add remaining files to list without switching
+          for (let i = 1; i < paths.length; i++) {
+            const path = paths[i]
+            if (get().fileList.some((f) => f.path === path)) continue
+            try {
+              const meta: PdfMeta = await invoke('pdf_open_file', { path })
+              await upsertFile(meta)
+              set((s) => {
+                if (!s.fileList.some((f) => f.path === path)) s.fileList.push(meta)
+              })
+            } catch {
+              // skip unreadable file
+            }
+          }
+        },
+
+        async openFile(path: string) {
+          set((s) => {
+            s.isLoading = true
+          })
+          try {
+            const meta: PdfMeta = await invoke('pdf_open_file', { path })
+            await upsertFile(meta)
+
+            const annotations = await queryAnnotations(path)
+            const counts = await countAnnotationsByPage(path)
+
+            set((s) => {
+              // Maintain fileList
+              const idx = s.fileList.findIndex((f) => f.path === path)
+              if (idx >= 0) s.fileList[idx] = meta
+              else s.fileList.push(meta)
+
+              s.file = meta
+              s.currentPage = 0
+              s.annotations = annotations
+              s.annotationCounts = counts
+              s.pageCache = {}
+              s.thumbnails = []
+              s.undoStack = []
+              s.redoStack = []
+              s.selectedAnnotationId = null
+              s.search = { query: '', results: [], activeIndex: -1 }
+            })
+
+            await get().renderCurrentPage()
+            // Load thumbnails in background
+            get().loadThumbnails()
+          } finally {
+            set((s) => {
+              s.isLoading = false
+            })
+          }
+        },
+
+        async switchFile(path: string) {
+          const { file, fileList } = get()
+          if (file?.path === path) return
+          const target = fileList.find((f) => f.path === path)
+          if (!target) return
+          set((s) => {
+            s.isLoading = true
+          })
+          try {
+            const annotations = await queryAnnotations(path)
+            const counts = await countAnnotationsByPage(path)
+            set((s) => {
+              s.file = target
+              s.currentPage = 0
+              s.annotations = annotations
+              s.annotationCounts = counts
+              s.pageCache = {}
+              s.thumbnails = []
+              s.undoStack = []
+              s.redoStack = []
+              s.selectedAnnotationId = null
+              s.search = { query: '', results: [], activeIndex: -1 }
+            })
+            await get().renderCurrentPage()
+            get().loadThumbnails()
+          } finally {
+            set((s) => {
+              s.isLoading = false
+            })
+          }
+        },
+
+        closeFile(path: string) {
+          const { file, fileList } = get()
+          const remaining = fileList.filter((f) => f.path !== path)
+          set((s) => {
+            s.fileList = remaining
+          })
+          if (file?.path !== path) return
+          if (remaining.length > 0) {
+            void get().switchFile(remaining[remaining.length - 1].path)
+          } else {
+            set((s) => {
+              s.file = null
+              s.currentPage = 0
+              s.annotations = []
+              s.annotationCounts = {}
+              s.pageCache = {}
+              s.thumbnails = []
+              s.undoStack = []
+              s.redoStack = []
+              s.selectedAnnotationId = null
+              s.search = { query: '', results: [], activeIndex: -1 }
+            })
+          }
+        },
+
+        // ── view ─────────────────────────────────────────────────────
+
+        setPage(page: number) {
+          const { file, currentPage } = get()
+          if (!file) return
+          const clamped = Math.max(0, Math.min(page, file.page_count - 1))
+          if (clamped === currentPage) return
+          set((s) => {
+            s.currentPage = clamped
+          })
+          get().renderCurrentPage()
+        },
+
+        setZoom(zoom: number) {
+          const clamped = Math.max(0.25, Math.min(zoom, 5.0))
+          set((s) => {
+            s.zoom = clamped
+            s.pageCache = {} // clear cache at new zoom in one set() to avoid double re-render
+          })
+          get().renderCurrentPage()
+        },
+
+        zoomIn() {
+          get().setZoom(Math.round((get().zoom + 0.25) * 4) / 4)
+        },
+        zoomOut() {
+          get().setZoom(Math.round((get().zoom - 0.25) * 4) / 4)
+        },
+        fitWidth() {
+          get().setZoom(1.0)
+        },
+
+        setTool(tool: Tool) {
+          set((s) => {
+            s.activeTool = tool
+            // Switch to edit mode when a drawing tool is selected
+            if (tool !== 'select') s.viewMode = 'edit'
+          })
+        },
+
+        setViewMode(mode: ViewMode) {
+          set((s) => {
+            s.viewMode = mode
+          })
+        },
+        toggleSummary() {
+          set((s) => {
+            s.summaryVisible = !s.summaryVisible
+          })
+        },
+
+        // ── rendering ────────────────────────────────────────────────
+
+        async renderCurrentPage() {
+          const { file, currentPage, zoom } = get()
+          if (!file) return
+
+          // Return cached version first
+          if (get().pageCache[currentPage]) return
+
+          set((s) => {
+            s.isLoading = true
+          })
+          try {
+            // Render at 2× the zoom factor for crisp display (device pixels)
+            const scale = zoom * 2
+            const image: PageImage = await invoke('pdf_render_page', {
+              path: file.path,
+              pageIndex: currentPage,
+              scale
+            })
+            set((s) => {
+              s.pageCache[currentPage] = image
+            })
+          } finally {
+            set((s) => {
+              s.isLoading = false
+            })
+          }
+        },
+
+        async loadThumbnails() {
+          const { file } = get()
+          if (!file) return
+          try {
+            const thumbs: PageImage[] = await invoke('pdf_render_thumbnails', {
+              path: file.path,
+              scale: 0.6 // ~357px wide for A4; 2× DPR covers 180px CSS display crisp
+            })
+            set((s) => {
+              s.thumbnails = thumbs
+            })
+          } catch (e) {
+            console.error('[morph] loadThumbnails failed:', e)
+          }
+        },
+
+        // ── search ────────────────────────────────────────────────────
+
+        async searchText(query: string) {
+          const { file } = get()
+          if (!file || !query.trim()) return
+          const results: SearchMatch[] = await invoke('pdf_search_text', {
+            path: file.path,
+            query
+          })
+          set((s) => {
+            s.search.query = query
+            s.search.results = results
+            s.search.activeIndex = results.length > 0 ? 0 : -1
+          })
+          // Jump to first match page
+          if (results.length > 0) {
+            get().setPage(results[0].page_index)
+          }
+        },
+
+        clearSearch() {
+          set((s) => {
+            s.search = { query: '', results: [], activeIndex: -1 }
+          })
+        },
+
+        setSearchActiveIndex(idx: number) {
+          const results = get().search.results
+          if (idx < 0 || idx >= results.length) return
+          set((s) => {
+            s.search.activeIndex = idx
+          })
+          get().setPage(results[idx].page_index)
+        },
+
+        // ── annotations ───────────────────────────────────────────────
+
+        async addAnnotation(partial) {
+          const { file } = get()
+          if (!file) return
+
+          const now = Date.now()
+          const annotation: Annotation = {
+            ...partial,
+            id: crypto.randomUUID(),
+            filePath: file.path,
+            createdAt: now,
+            updatedAt: now
+          }
+
+          await insertAnnotation(annotation)
+
+          set((s) => {
+            s.annotations.push(annotation)
+            s.annotationCounts[annotation.pageIndex] =
+              (s.annotationCounts[annotation.pageIndex] ?? 0) + 1
+          })
+
+          pushHistory({
+            kind: 'ADD_ANNOTATION',
+            label: `添加${annotation.type}批注`,
+            timestamp: now,
+            before: null,
+            after: annotation
+          })
+        },
+
+        async updateAnnotationData(id, changes) {
+          const before = get().annotations.find((a) => a.id === id) ?? null
+          if (!before) return
+
+          await updateAnnotation(id, changes)
+
+          const now = Date.now()
+          set((s) => {
+            const idx = s.annotations.findIndex((a) => a.id === id)
+            if (idx >= 0) {
+              if (changes.rect) s.annotations[idx].rect = changes.rect
+              if (changes.data) s.annotations[idx].data = changes.data as Annotation['data']
+              s.annotations[idx].updatedAt = now
+            }
+          })
+
+          pushHistory({
+            kind: 'UPDATE_ANNOTATION',
+            label: '编辑批注',
+            timestamp: now,
+            before,
+            after: { ...before, ...changes, updatedAt: now }
+          })
+        },
+
+        async removeAnnotationById(id) {
+          const before = get().annotations.find((a) => a.id === id) ?? null
+          if (!before) return
+
+          await removeAnnotation(id)
+
+          set((s) => {
+            s.annotations = s.annotations.filter((a) => a.id !== id)
+            if (s.annotationCounts[before.pageIndex] > 0) {
+              s.annotationCounts[before.pageIndex]--
+            }
+            if (s.selectedAnnotationId === id) s.selectedAnnotationId = null
+          })
+
+          pushHistory({
+            kind: 'REMOVE_ANNOTATION',
+            label: '删除批注',
+            timestamp: Date.now(),
+            before,
+            after: null
+          })
+        },
+
+        selectAnnotation(id) {
+          set((s) => {
+            s.selectedAnnotationId = id
+          })
+        },
+
+        // ── export ────────────────────────────────────────────────────
+
+        setExportState(patch) {
+          set((s) => {
+            Object.assign(s.exportState, patch)
+          })
+        },
+
+        async exportPdf(destPath: string) {
+          const { file } = get()
+          if (!file) return
+          await invoke('pdf_export', { src: file.path, dest: destPath })
+        },
+
+        // ── doc operation modals ─────────────────────────────────────
+
+        openMergeModal() {
+          const { fileList } = get()
+          set((s) => {
+            s.mergeModal.open = true
+            s.mergeModal.inputs = fileList.map((f) => f.path)
+            s.mergeModal.output = ''
+            s.mergeModal.error = null
+          })
+        },
+        closeMergeModal() {
+          set((s) => {
+            s.mergeModal.open = false
+          })
+        },
+        setMergeModal(patch) {
+          set((s) => {
+            Object.assign(s.mergeModal, patch)
+          })
+        },
+        async executeMerge() {
+          const { mergeModal } = get()
+          set((s) => {
+            s.mergeModal.loading = true
+            s.mergeModal.error = null
+          })
+          try {
+            await invoke('pdf_merge', { paths: mergeModal.inputs, dest: mergeModal.output })
+            antdMessage.success(`合并完成 → ${mergeModal.output}`)
+            set((s) => {
+              s.mergeModal.open = false
+            })
+          } catch (e) {
+            const msg = String(e)
+            set((s) => {
+              s.mergeModal.error = msg
+            })
+            antdMessage.error(`合并失败：${msg}`)
+          } finally {
+            set((s) => {
+              s.mergeModal.loading = false
+            })
+          }
+        },
+
+        openSplitModal() {
+          set((s) => {
+            s.splitModal.open = true
+            s.splitModal.ranges = ''
+            s.splitModal.count = 2
+            s.splitModal.error = null
+          })
+        },
+        closeSplitModal() {
+          set((s) => {
+            s.splitModal.open = false
+          })
+        },
+        setSplitModal(patch) {
+          set((s) => {
+            Object.assign(s.splitModal, patch)
+          })
+        },
+        async executeSplit() {
+          const { splitModal, file } = get()
+          if (!file) return
+          set((s) => {
+            s.splitModal.loading = true
+            s.splitModal.error = null
+          })
+          try {
+            if (splitModal.mode === 'ranges') {
+              const ranges = splitModal.ranges
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .map((s) => {
+                  const [a, b] = s.split('-').map(Number)
+                  return [a, b ?? a] as [number, number]
+                })
+                .filter(([a, b]) => !isNaN(a) && !isNaN(b) && a > 0 && b > 0)
+              const paths: string[] = await invoke('pdf_split', {
+                path: file.path,
+                ranges: ranges.map(([a, b]) => [a, b]),
+                destDir: splitModal.destDir
+              })
+              antdMessage.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
+            } else {
+              const paths: string[] = await invoke('pdf_split_by_count', {
+                path: file.path,
+                pagesPerFile: splitModal.count,
+                destDir: splitModal.destDir
+              })
+              antdMessage.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
+            }
+            set((s) => {
+              s.splitModal.open = false
+            })
+          } catch (e) {
+            const msg = String(e)
+            set((s) => {
+              s.splitModal.error = msg
+            })
+            antdMessage.error(`拆分失败：${msg}`)
+          } finally {
+            set((s) => {
+              s.splitModal.loading = false
+            })
+          }
+        },
+
+        openConvertModal() {
+          set((s) => {
+            s.convertModal.open = true
+            s.convertModal.error = null
+          })
+        },
+        closeConvertModal() {
+          set((s) => {
+            s.convertModal.open = false
+          })
+        },
+        setConvertModal(patch) {
+          set((s) => {
+            Object.assign(s.convertModal, patch)
+          })
+        },
+        async executeConvert() {
+          const { convertModal, file } = get()
+          if (!file) return
+          set((s) => {
+            s.convertModal.loading = true
+            s.convertModal.error = null
+          })
+          try {
+            if (convertModal.format === 'png' || convertModal.format === 'jpg') {
+              const paths: string[] = await invoke('pdf_to_images', {
+                path: file.path,
+                scale: convertModal.scale,
+                format: convertModal.format,
+                destDir: convertModal.destDir
+              })
+              antdMessage.success(
+                `转换完成，已生成 ${paths.length} 张图片 → ${convertModal.destDir}`
+              )
+            } else {
+              const outPath: string = await invoke('pdf_to_office', {
+                path: file.path,
+                format: convertModal.format,
+                destDir: convertModal.destDir
+              })
+              antdMessage.success(`转换完成 → ${outPath}`)
+            }
+            set((s) => {
+              s.convertModal.open = false
+            })
+          } catch (e) {
+            const msg = String(e)
+            set((s) => {
+              s.convertModal.error = msg
+            })
+            antdMessage.error(`转换失败：${msg}`)
+          } finally {
+            set((s) => {
+              s.convertModal.loading = false
+            })
+          }
+        },
+
+        // ── history ───────────────────────────────────────────────────
+
+        async undo() {
+          const { undoStack } = get()
+          if (!undoStack.length) return
+          const entry = undoStack[undoStack.length - 1]
+
+          set((s) => {
+            s.undoStack.pop()
+            s.redoStack.push(entry)
+          })
+
+          _suppressHistory = true
+          try {
+            const store = get()
+            if (entry.kind === 'ADD_ANNOTATION' && entry.after) {
+              await store.removeAnnotationById(entry.after.id)
+            } else if (entry.kind === 'REMOVE_ANNOTATION' && entry.before) {
+              await store.addAnnotation(entry.before)
+            } else if (entry.kind === 'UPDATE_ANNOTATION' && entry.before) {
+              await store.updateAnnotationData(entry.before.id, {
+                rect: entry.before.rect,
+                data: entry.before.data
+              })
+            }
+          } finally {
+            _suppressHistory = false
+          }
+        },
+
+        async redo() {
+          const { redoStack } = get()
+          if (!redoStack.length) return
+          const entry = redoStack[redoStack.length - 1]
+
+          set((s) => {
+            s.redoStack.pop()
+            s.undoStack.push(entry)
+          })
+
+          _suppressHistory = true
+          try {
+            const store = get()
+            if (entry.kind === 'ADD_ANNOTATION' && entry.after) {
+              await store.addAnnotation(entry.after)
+            } else if (entry.kind === 'REMOVE_ANNOTATION' && entry.after) {
+              await store.removeAnnotationById(entry.after.id)
+            } else if (entry.kind === 'UPDATE_ANNOTATION' && entry.after) {
+              await store.updateAnnotationData(entry.after.id, {
+                rect: entry.after.rect,
+                data: entry.after.data
+              })
+            }
+          } finally {
+            _suppressHistory = false
+          }
+        }
+      }
+
+      return state
+    }),
+    { name: 'morph' }
+  )
+)
+
+// ── Derived selectors (for convenience) ──────────────────────────────────────
+
+export const selectCurrentPageAnnotations = (state: MorphState) =>
+  state.annotations.filter((a) => a.pageIndex === state.currentPage)
+
+export const selectSelectedAnnotation = (state: MorphState) =>
+  state.annotations.find((a) => a.id === state.selectedAnnotationId) ?? null

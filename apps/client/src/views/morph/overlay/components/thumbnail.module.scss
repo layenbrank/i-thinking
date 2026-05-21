@@ -1,0 +1,64 @@
+.thumbnail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 6px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  &.active {
+    border-color: #1677ff;
+    background: rgba(22, 119, 255, 0.06);
+  }
+}
+
+.imageWrap {
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  border-radius: 2px;
+  overflow: hidden;
+  line-height: 0; // prevents inline gap below img
+}
+
+.img {
+  width: 100%;
+  height: auto; // natural page aspect ratio, no clipping
+  display: block;
+  user-select: none;
+}
+
+.meta {
+  margin-top: 5px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pageNum {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.pageLabel {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.35);
+}

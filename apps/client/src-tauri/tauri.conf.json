@@ -216,7 +216,7 @@
       {
         "backgroundColor": "#00000000",
         "center": true,
-        "create": false,
+        "create": true,
         "decorations": false,
         "dragDropEnabled": true,
         "focus": true,
@@ -224,7 +224,7 @@
         "fullscreen": false,
         "height": 800,
         "hiddenTitle": true,
-        "label": "round",
+        "label": "morph",
         "maximizable": true,
         "maximized": true,
         "minHeight": 600,
@@ -233,10 +233,10 @@
         "resizable": true,
         "shadow": true,
         "theme": "Light",
-        "title": "Round",
+        "title": "Morph",
         "titleBarStyle": "Overlay",
         "transparent": true,
-        "url": "/round",
+        "url": "/morph",
         "visible": true,
         "width": 1200,
         "windowEffects": {
@@ -296,7 +296,7 @@
       "minimumSystemVersion": "10.13"
     },
     "publisher": "i thinking",
-    "resources": ["icons/"],
+    "resources": ["icons/", "pdfium.dll"],
     "targets": "all",
     "windows": {
       "allowDowngrades": true,

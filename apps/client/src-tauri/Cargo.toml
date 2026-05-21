@@ -71,15 +71,12 @@ tauri-plugin-http = { version = "2.5.7", features = [
   "unsafe-headers",
 ] }
 tauri-plugin-os = "2.3.2"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
 sysinfo = "0.38.1"
 libc = "0.2.179"
-machine-uid = "0.5.4"
-uuid = "1.20.0"
-xcap = "0.8.1"
-base64 = "0.22.1"
-image = "0.25.9"
+lopdf = "0.40.0"
+pdfium-render = { version = "0.8", features = ["image", "thread_safe"] }
+docx-rs = "0.4"
+rust_xlsxwriter = "0.95"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-autostart       = "2.5.1"
@@ -87,3 +84,46 @@ tauri-plugin-cli             = "2.4.1"
 tauri-plugin-global-shortcut = "2.3.1"
 tauri-plugin-positioner      = { version = "2.3.1", features = ["tray-icon"] }
 tauri-plugin-single-instance = "2.4.0"
+
+# SeaORM
+sea-orm = { version = "1.1.19", features = [
+  "sqlx-sqlite",
+  "runtime-tokio-rustls",
+  "macros",
+  "with-chrono",
+  "with-uuid",
+] }
+sea-query = "0.32.7"
+sea-orm-migration = "1.1.19"
+
+# Async & Utilities
+tokio       = { version = "1.50.0", features = ["full"] }
+async-trait = "0.1"
+chrono      = { version = "0.4.44", features = ["serde"] }
+uuid        = { version = "1.22.0", features = ["v4"] }
+
+# Serialization
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1.0.149"
+
+# System
+machine-uid = "0.5.4"
+hostname    = "0.4"
+
+# Security
+sha2   = "0.11.0"
+base64 = "0.22.1"
+
+# Media
+xcap  = "0.9.3"
+image = "0.25.10"
+
+# URL encoding
+urlencoding = "2.1.3"
+
+# Logging (建议添加)
+tracing            = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+
+# Path Management (建议添加)
+dirs = "6.0.0"

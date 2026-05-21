@@ -7,6 +7,7 @@ import { debounce } from 'lodash-es'
 import type { ReactNode } from 'react'
 
 import { Combobox } from '@/components/combobox/index.ts'
+import { useMorphStore } from '@/stores/morph.ts'
 import styles from '@/views/morph/overlay/utility.module.scss'
 
 interface Option {
@@ -49,12 +50,11 @@ const SuffixOptions: Option[] = [
 
 export default function Utility() {
   const [visible, onUpdateVisible] = useState(false)
+  const searchText = useMorphStore((s) => s.searchText)
+  const fileName = useMorphStore((s) => s.file?.path.split(/[\\/]/).pop() ?? '')
 
   const debounceUpdate = debounce(function () {
-    onUpdateVisible(function (prev) {
-      return !prev
-    })
-    console.log('搜索框可见性切换为:', !visible)
+    onUpdateVisible((prev) => !prev)
   }, 1000)
 
   const visibleRef = useRef(visible)
@@ -65,30 +65,22 @@ export default function Utility() {
     [visible]
   )
 
-  const handleCombobox = useCallback(
-    function (event: MouseEvent) {
-      if (!visibleRef.current) return
-      const target = event.target as HTMLElement
-      const closest = target.closest('.combobox')
-      if (closest) return
-      onUpdateVisible(function (prev) {
-        return !prev
-      })
-      console.log('点击了搜索框:', event)
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  )
+  const handleCombobox = useCallback(function (event: MouseEvent) {
+    if (!visibleRef.current) return
+    const target = event.target as HTMLElement
+    const closest = target.closest('.combobox')
+    if (closest) return
+    onUpdateVisible((prev) => !prev)
+  }, [])
 
-  function onUpdateKeyword(value: string) {
-    console.log('搜索关键词更新为:', value)
+  async function onUpdateKeyword(value: string) {
+    if (value.trim()) await searchText(value)
     debounceUpdate()
   }
 
-  function onMaximizable(event: React.MouseEvent<HTMLDivElement>) {
+  function onMaximizable() {
     void getCurrentWindow().toggleMaximize()
   }
-
   function onTeleport() {
     return document.body
   }
@@ -98,7 +90,6 @@ export default function Utility() {
     return function () {
       window.removeEventListener('click', handleCombobox)
     }
-    // 只在组件挂载/卸载时绑定一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -107,17 +98,23 @@ export default function Utility() {
       draggable-region="true"
       onDoubleClick={onMaximizable}
       className={clsx([styles.utility, styles.root])}>
-      <Space.Compact orientation="horizontal">
+      {/* ── Left: app logo + name + filename ───────────────────── */}
+      <div className={styles.leftGroup}>
         <Button
           draggable-region="false"
           className={clsx([styles.utility, styles.button])}>
           ☰
         </Button>
-      </Space.Compact>
+        <span className={styles.appLogo}>P</span>
+        <span className={styles.appName}>PDF morph</span>
+        {fileName && <span className={styles.fileName}>{fileName}</span>}
+      </div>
+
+      {/* ── Center: search ──────────────────────────────────────── */}
       <Combobox
         visible={visible}
         onUpdate={onUpdateKeyword}
-        placeholder="搜索代码文件、符号、设置..."
+        placeholder="搜索文字内容 / 页码 / 批注..."
         className={clsx([styles.utility, styles['combobox-trigger']])}
         section={
           <Combobox.Collection
@@ -129,7 +126,10 @@ export default function Utility() {
               }
             })}
           />
-        }></Combobox>
+        }
+      />
+
+      {/* ── Right: window controls ──────────────────────────────── */}
       <Space.Compact orientation="horizontal">
         {SuffixOptions.map(function (option) {
           return (
