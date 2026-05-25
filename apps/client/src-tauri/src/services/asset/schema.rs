@@ -25,7 +25,6 @@ pub struct Model {
     pub file_path: String,
     pub metadata: Option<String>,
     pub status: String,
-    pub version: i64,
     #[serde(rename = "deviceID")]
     #[sea_orm(column_name = "deviceID")]
     pub device_id: String,
@@ -50,7 +49,7 @@ pub type AssetSheet = Model;
 /// 与 `asset.d.ts` `Read.Payload` 一致。
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ReadPayload {
+pub struct ReadP {
     #[serde(rename = "tenantID")]
     pub tenant_id: Option<String>,
     pub kind: Option<String>,
@@ -63,35 +62,29 @@ pub struct ReadPayload {
     pub extension: Option<String>,
     #[serde(rename = "fileName")]
     pub file_name: Option<String>,
-    pub min_version: Option<i64>,
 }
 
-/// `ReadsPayload`：在 `ReadPayload` 上增加分页。
+/// `ReadsP`：在 `ReadP` 上增加分页。
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ReadsPayload {
+pub struct ReadsP {
     #[serde(flatten)]
-    pub filter: ReadPayload,
+    pub filter: ReadP,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
-}
-
-fn default_insert_index() -> i64 {
-    1
 }
 
 /// 与 `asset.d.ts` `Insert.Payload` 一致；`index` 由服务默认。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct InsertPayload {
+pub struct InsertP {
     #[serde(rename = "tenantID")]
     pub tenant_id: Option<String>,
     pub kind: Option<String>,
     pub hash: String,
     pub sha: Option<String>,
     pub size: i64,
-    #[serde(default = "default_insert_index")]
-    pub index: i64,
+    pub index: Option<i64>,
     pub mime: String,
     #[serde(default)]
     pub extension: String,
@@ -108,19 +101,18 @@ pub struct InsertPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InsertResponse {
+pub struct InsertR {
     pub id: String,
-    pub version: i64,
 }
 
-pub type UpdatePayload = InsertPayload;
+pub type UpdateP = InsertP;
 
 /// 与 `asset.d.ts` `Update.Payload`：`{ id, updates }`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateBody {
     pub id: String,
-    pub updates: UpdatePayload,
+    pub updates: UpdateP,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,7 +125,7 @@ pub struct ArchivedAtFilter {
 /// 与 `asset.d.ts` `Remove.Payload` 一致。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RemovePayload {
+pub struct RemoveP {
     pub id: Option<String>,
     #[serde(rename = "tenantID")]
     pub tenant_id: Option<String>,

@@ -8,8 +8,7 @@ use sea_orm::{
 use uuid::Uuid;
 
 use crate::services::asset::schema::{
-    self, ActiveModel, AssetSheet, InsertPayload, InsertResponse, ReadPayload, ReadsPayload,
-    RemovePayload, UpdateBody,
+    self, ActiveModel, AssetSheet, InsertP, InsertR, ReadP, ReadsP, RemoveP, UpdateBody,
 };
 use crate::utils::exception::Exception;
 
@@ -19,7 +18,7 @@ impl AssetService {
     // ==================== 核心方法 ====================
     pub async fn read<C: ConnectionTrait + TransactionTrait>(
         db: &C,
-        payload: ReadPayload,
+        payload: ReadP,
     ) -> Result<AssetSheet, Exception> {
         schema::Entity::find()
             .filter(Self::read_filter(&payload))
@@ -32,7 +31,7 @@ impl AssetService {
 
     pub async fn reads<C: ConnectionTrait + TransactionTrait>(
         db: &C,
-        payload: ReadsPayload,
+        payload: ReadsP,
     ) -> Result<Vec<AssetSheet>, Exception> {
         let mut query = schema::Entity::find()
             .filter(Self::read_filter(&payload.filter))
@@ -49,20 +48,18 @@ impl AssetService {
 
     pub async fn insert<C: ConnectionTrait + TransactionTrait>(
         db: &C,
-        payload: InsertPayload,
-        version: i64,
-    ) -> Result<InsertResponse, Exception> {
+        payload: InsertP,
+    ) -> Result<InsertR, Exception> {
         let now = Utc::now().timestamp_millis();
-        let (model, response) = Self::build_insert_active(payload, now, version);
+        let (model, response) = Self::build_insert_active(payload, now);
         schema::Entity::insert(model).exec(db).await?;
         Ok(response)
     }
 
     pub async fn inserts<C: ConnectionTrait + TransactionTrait>(
         db: &C,
-        payload: Vec<InsertPayload>,
-        versions: &[i64],
-    ) -> Result<Vec<InsertResponse>, Exception> {
+        payload: Vec<InsertP>,
+    ) -> Result<Vec<InsertR>, Exception> {
         if payload.is_empty() {
             return Ok(vec![]);
         }
@@ -71,9 +68,8 @@ impl AssetService {
         let mut responses = Vec::with_capacity(payload.len());
         let models: Vec<ActiveModel> = payload
             .into_iter()
-            .zip(versions.iter())
-            .map(|(p, v)| {
-                let (model, resp) = Self::build_insert_active(p, now, *v);
+            .map(|p| {
+                let (model, resp) = Self::build_insert_active(p, now);
                 responses.push(resp);
                 model
             })
@@ -86,8 +82,7 @@ impl AssetService {
     pub async fn update<C: ConnectionTrait + TransactionTrait>(
         db: &C,
         body: UpdateBody,
-        version: i64,
-    ) -> Result<InsertResponse, Exception> {
+    ) -> Result<InsertR, Exception> {
         let model = schema::Entity::find()
             .filter(schema::Column::Id.eq(body.id.clone()))
             .one(db)
@@ -95,27 +90,23 @@ impl AssetService {
             .ok_or_else(|| Exception::NotFound(format!("asset not found: {}", body.id)))?;
 
         let now = Utc::now().timestamp_millis();
-        let active = Self::build_update_active(model, body.updates, now, version);
+        let active = Self::build_update_active(model, body.updates, now);
         let updated = active.update(db).await?;
-        Ok(InsertResponse {
-            id: updated.id,
-            version: updated.version,
-        })
+        Ok(InsertR { id: updated.id })
     }
 
     pub async fn updates<C: ConnectionTrait + TransactionTrait>(
         db: &C,
         payload: Vec<UpdateBody>,
-        versions: &[i64],
-    ) -> Result<Vec<InsertResponse>, Exception> {
+    ) -> Result<Vec<InsertR>, Exception> {
         if payload.is_empty() {
             return Ok(vec![]);
         }
 
         let txn = db.begin().await?;
         let mut results = Vec::with_capacity(payload.len());
-        for (body, v) in payload.into_iter().zip(versions.iter()) {
-            results.push(Self::update(&txn, body, *v).await?);
+        for body in payload.into_iter() {
+            results.push(Self::update(&txn, body).await?);
         }
         txn.commit().await?;
         Ok(results)
@@ -124,7 +115,7 @@ impl AssetService {
     /// 删除匹配条件的单条资产（真正的 DELETE）。
     pub async fn remove<C: ConnectionTrait + TransactionTrait>(
         db: &C,
-        payload: RemovePayload,
+        payload: RemoveP,
     ) -> Result<Vec<String>, Exception> {
         let cond = Self::remove_filter(&payload)?;
         let model = schema::Entity::find()
@@ -146,7 +137,7 @@ impl AssetService {
     /// 删除匹配条件的所有资产（真正的 DELETE）。
     pub async fn removes<C: ConnectionTrait + TransactionTrait>(
         db: &C,
-        payload: RemovePayload,
+        payload: RemoveP,
     ) -> Result<Vec<String>, Exception> {
         let cond = Self::remove_filter(&payload)?;
         let models: Vec<AssetSheet> = schema::Entity::find()
@@ -185,7 +176,7 @@ impl AssetService {
         Ok(ids)
     }
 
-    fn read_filter(payload: &ReadPayload) -> Condition {
+    fn read_filter(payload: &ReadP) -> Condition {
         let mut cond = Condition::all();
         if let Some(ref tenant_id) = payload.tenant_id {
             cond = cond.add(schema::Column::TenantId.eq(tenant_id.clone()));
@@ -214,13 +205,11 @@ impl AssetService {
         if let Some(ref name) = payload.file_name {
             cond = cond.add(schema::Column::FileName.eq(name.clone()));
         }
-        if let Some(min_ver) = payload.min_version {
-            cond = cond.add(schema::Column::Version.gt(min_ver));
-        }
+
         cond
     }
 
-    fn remove_filter(payload: &RemovePayload) -> Result<Condition, Exception> {
+    fn remove_filter(payload: &RemoveP) -> Result<Condition, Exception> {
         let has = payload.id.is_some()
             || payload.tenant_id.is_some()
             || payload.kind.is_some()
@@ -268,11 +257,7 @@ impl AssetService {
     }
 
     // ==================== 私有 Helper ====================
-    fn build_insert_active(
-        payload: InsertPayload,
-        now: i64,
-        version: i64,
-    ) -> (ActiveModel, InsertResponse) {
+    fn build_insert_active(payload: InsertP, now: i64) -> (ActiveModel, InsertR) {
         let id = Uuid::new_v4().to_string();
         let ext = if payload.extension.is_empty() {
             None
@@ -286,28 +271,22 @@ impl AssetService {
             hash: Set(payload.hash),
             sha: Set(payload.sha.unwrap_or_else(|| "sha256".to_string())),
             size: Set(payload.size),
-            index: Set(payload.index),
+            index: Set(payload.index.unwrap_or(1)),
             mime: Set(payload.mime),
             extension: Set(ext),
             file_name: Set(payload.file_name),
             file_path: Set(payload.file_path),
             metadata: Set(payload.metadata),
             status: Set(payload.status.unwrap_or_else(|| "001".to_string())),
-            version: Set(version),
             device_id: Set(payload.device_id),
             archived_at: Set(payload.archived_at),
             created_at: Set(now),
             updated_at: Set(now),
         };
-        (model, InsertResponse { id, version })
+        (model, InsertR { id })
     }
 
-    fn build_update_active(
-        model: AssetSheet,
-        updates: InsertPayload,
-        now: i64,
-        version: i64,
-    ) -> ActiveModel {
+    fn build_update_active(model: AssetSheet, updates: InsertP, now: i64) -> ActiveModel {
         let ext = if updates.extension.is_empty() {
             None
         } else {
@@ -320,7 +299,7 @@ impl AssetService {
         active.hash = Set(updates.hash);
         active.sha = Set(updates.sha.unwrap_or_else(|| "sha256".to_string()));
         active.size = Set(updates.size);
-        active.index = Set(updates.index);
+        active.index = Set(updates.index.unwrap_or(1));
         active.mime = Set(updates.mime);
         active.extension = Set(ext);
         active.file_name = Set(updates.file_name);
@@ -329,7 +308,6 @@ impl AssetService {
         active.status = Set(updates.status.unwrap_or_else(|| "001".to_string()));
         active.device_id = Set(updates.device_id);
         active.archived_at = Set(updates.archived_at);
-        active.version = Set(version);
         active.updated_at = Set(now);
         active
     }

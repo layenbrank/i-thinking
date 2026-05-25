@@ -2,7 +2,7 @@ use tauri::State;
 
 use crate::databases::storage::Storage;
 use crate::services::asset::schema::{
-    AssetSheet, InsertPayload, InsertResponse, ReadPayload, ReadsPayload, RemovePayload, UpdateBody,
+    AssetSheet, InsertP, InsertR, ReadP, ReadsP, RemoveP, UpdateBody,
 };
 use crate::services::asset::service::AssetService;
 use crate::utils::exception::CommandResult;
@@ -10,7 +10,7 @@ use crate::utils::exception::CommandResult;
 #[tauri::command]
 pub async fn assets_read(
     db_state: State<'_, Storage>,
-    payload: ReadPayload,
+    payload: ReadP,
 ) -> CommandResult<AssetSheet> {
     let conn = db_state.getter();
     AssetService::read(&conn, payload).await
@@ -19,72 +19,67 @@ pub async fn assets_read(
 #[tauri::command]
 pub async fn assets_reads(
     db_state: State<'_, Storage>,
-    payload: ReadsPayload,
+    payload: ReadsP,
 ) -> CommandResult<Vec<AssetSheet>> {
     let conn = db_state.getter();
     AssetService::reads(&conn, payload).await
 }
 
 #[tauri::command]
-pub async fn assets_insert(
-    db_state: State<'_, Storage>,
-    payload: InsertPayload,
-) -> CommandResult<InsertResponse> {
-    let conn = db_state.getter();
-    let res = AssetService::insert(&conn, payload, version).await?;
+pub async fn assets_insert(state: State<'_, Storage>, payload: InsertP) -> CommandResult<InsertR> {
+    let connection = state.getter();
+    let res = AssetService::insert(&connection, payload).await?;
     Ok(res)
 }
 
 #[tauri::command]
 pub async fn assets_inserts(
-    db_state: State<'_, Storage>,
-    payload: Vec<InsertPayload>,
-) -> CommandResult<Vec<InsertResponse>> {
-    let conn = db_state.getter();
-    let res = AssetService::inserts(&conn, payload, &versions).await?;
-    let changes: Vec<(String, i64)> = res.iter().map(|r| (r.id.clone(), r.version)).collect();
+    state: State<'_, Storage>,
+    payload: Vec<InsertP>,
+) -> CommandResult<Vec<InsertR>> {
+    let connection = state.getter();
+    let res = AssetService::inserts(&connection, payload).await?;
     Ok(res)
 }
 
 #[tauri::command]
 pub async fn assets_update(
-    db_state: State<'_, Storage>,
+    state: State<'_, Storage>,
     payload: UpdateBody,
-) -> CommandResult<InsertResponse> {
-    let conn = db_state.getter();
-    let res = AssetService::update(&conn, payload, version).await?;
+) -> CommandResult<InsertR> {
+    let connection = state.getter();
+    let res = AssetService::update(&connection, payload).await?;
     Ok(res)
 }
 
 #[tauri::command]
 pub async fn assets_updates(
-    db_state: State<'_, Storage>,
+    state: State<'_, Storage>,
     payload: Vec<UpdateBody>,
-) -> CommandResult<Vec<InsertResponse>> {
-    let conn = db_state.getter();
-    let res = AssetService::updates(&conn, payload, &versions).await?;
-    let changes: Vec<(String, i64)> = res.iter().map(|r| (r.id.clone(), r.version)).collect();
+) -> CommandResult<Vec<InsertR>> {
+    let connection = state.getter();
+    let res = AssetService::updates(&connection, payload).await?;
     Ok(res)
 }
 
 #[tauri::command]
 pub async fn assets_remove(
-    db_state: State<'_, Storage>,
-    payload: RemovePayload,
+    state: State<'_, Storage>,
+    payload: RemoveP,
 ) -> CommandResult<Vec<String>> {
-    let conn = db_state.getter();
-    let deleted = AssetService::remove(&conn, payload).await?;
+    let connection = state.getter();
+    let deleted = AssetService::remove(&connection, payload).await?;
 
     Ok(deleted)
 }
 
 #[tauri::command]
 pub async fn assets_removes(
-    db_state: State<'_, Storage>,
-    payload: RemovePayload,
+    state: State<'_, Storage>,
+    payload: RemoveP,
 ) -> CommandResult<Vec<String>> {
-    let conn = db_state.getter();
-    let deleted = AssetService::removes(&conn, payload).await?;
+    let connection = state.getter();
+    let deleted = AssetService::removes(&connection, payload).await?;
 
     Ok(deleted)
 }

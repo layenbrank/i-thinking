@@ -106,13 +106,17 @@ uuid        = { version = "1.22.0", features = ["v4"] }
 serde      = { version = "1", features = ["derive"] }
 serde_json = "1.0.149"
 
-# System
-machine-uid = "0.5.4"
-hostname    = "0.4"
+# Error Handling
+anyhow    = "1.0.102"
+thiserror = "2.0.18"
 
 # Security
 sha2   = "0.11.0"
 base64 = "0.22.1"
+
+# System
+machine-uid = "0.5.4"
+hostname    = "0.4"
 
 # Media
 xcap  = "0.9.3"

@@ -1,4 +1,4 @@
-use crate::databases::connection::DbConn;
+use crate::databases::storage::Connection;
 use crate::migrations::migrations_v0001;
 use sea_orm::DbErr;
 use sea_orm_migration::MigratorTrait;

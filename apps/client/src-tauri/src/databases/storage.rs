@@ -1,3 +1,4 @@
+use anyhow;
 use sea_orm::{
     ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DatabaseTransaction, DbErr,
     Statement, TransactionTrait,
@@ -44,7 +45,7 @@ impl Storage {
 }
 
 /// 初始化数据库连接（使用 ConnectOptions + 完整性能配置）
-pub async fn initialize(uri: &str) -> Result<DbConn, DbErr> {
+pub async fn initialize(uri: &str) -> Result<Connection, DbErr> {
     info!("正在连接数据库: {}", uri);
 
     let mut options = ConnectOptions::new(uri.to_owned());
