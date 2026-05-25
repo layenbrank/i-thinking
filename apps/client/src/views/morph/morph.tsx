@@ -1,8 +1,6 @@
 import { Splitter } from 'antd'
 import { clsx } from 'clsx'
-import { useEffect } from 'react'
 
-import { initMorphDB } from '@/databases/morph.ts'
 import { useMorphStore } from '@/stores/morph.ts'
 import ConvertModal from '@/views/morph/overlay/components/ConvertModal.tsx'
 import MergeModal from '@/views/morph/overlay/components/MergeModal.tsx'
@@ -14,10 +12,6 @@ import './morph.scss'
 
 export default function Morph() {
   const summaryVisible = useMorphStore((s) => s.summaryVisible)
-
-  useEffect(function () {
-    void initMorphDB()
-  }, [])
 
   return (
     <div className={clsx([styles.morph, styles.root])}>

@@ -6,8 +6,6 @@ import { create } from 'zustand'
 import { devtools, subscribeWithSelector } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import { database } from '@/databases/database.ts'
-
 type ToInsertMirror = InsertType<Mirror, 'id'>
 
 interface ToUpdateMirror {
@@ -71,11 +69,7 @@ type MirrorStore = MirrorSlice & ApplicationSlice
 /** 切片创建器类型 */
 type SliceCreator<T> = StateCreator<
   MirrorStore,
-  [
-    ['zustand/devtools', never],
-    ['zustand/subscribeWithSelector', never],
-    ['zustand/immer', never]
-  ],
+  [['zustand/devtools', never], ['zustand/subscribeWithSelector', never], ['zustand/immer', never]],
   [],
   T
 >
@@ -124,7 +118,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
 
       try {
         const now = Date.now()
-        await database.mirror.bulkAdd(values)
+        // await database.mirror.bulkAdd(values)
         event$.next({
           type: 'MIRROR:INSERTED',
           payload: values,
@@ -184,7 +178,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
 
       try {
         const now = Date.now()
-        await database.mirror.bulkUpdate(updates)
+        // await database.mirror.bulkUpdate(updates)
 
         event$.next({
           type: 'MIRROR:UPDATED',
@@ -219,7 +213,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
 
       try {
         const now = Date.now()
-        await database.mirror.bulkDelete(keys)
+        // await database.mirror.bulkDelete(keys)
 
         event$.next({
           type: 'MIRROR:REMOVED',
@@ -259,10 +253,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
   }
 }
 
-const applicationSlice: SliceCreator<ApplicationSlice> = function (
-  setters,
-  getters
-) {
+const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, getters) {
   return {
     applications: [],
 
@@ -296,7 +287,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (
       )
       try {
         const now = Date.now()
-        await database.application.bulkAdd(values)
+        // await database.application.bulkAdd(values)
         event$.next({
           type: 'APPLICATION:INSERTED',
           payload: values,
@@ -356,7 +347,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (
       )
       try {
         const now = Date.now()
-        await database.application.bulkUpdate(updates)
+        // await database.application.bulkUpdate(updates)
         event$.next({
           type: 'APPLICATION:UPDATED',
           payload: values,
@@ -394,7 +385,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (
       )
       try {
         const now = Date.now()
-        await database.application.bulkDelete(keys)
+        // await database.application.bulkDelete(keys)
         event$.next({
           type: 'APPLICATION:REMOVED',
           payload: keys,
@@ -516,9 +507,7 @@ function subscribeMirrorChange(
 }
 
 /** 监听特定类型的事件 */
-function onMirrorEvent<T = unknown>(
-  eventType: MirrorEventType
-): Observable<MirrorEvent<T>> {
+function onMirrorEvent<T = unknown>(eventType: MirrorEventType): Observable<MirrorEvent<T>> {
   return event$.pipe(
     filter(function (event) {
       return event.type === eventType

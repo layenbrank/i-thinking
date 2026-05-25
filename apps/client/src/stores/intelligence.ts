@@ -4,8 +4,6 @@ import { create, type StateCreator } from 'zustand'
 import { devtools, subscribeWithSelector } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import { database } from '@/databases/database.ts'
-
 type AiSession = Application.Intelligence.AiSession
 type AiMessage = Application.Intelligence.AiMessage
 
@@ -54,10 +52,7 @@ interface MessageSlice {
 
   toReadMessage: (ID: string) => AiMessage | null
   toInsertMessage: (values: AiMessage[]) => Promise<void>
-  toUpdateMessage: (
-    values: UpdateSpec<AiMessage>[],
-    options?: { skip?: boolean }
-  ) => Promise<void>
+  toUpdateMessage: (values: UpdateSpec<AiMessage>[], options?: { skip?: boolean }) => Promise<void>
   toRemoveMessage: (keys: string[]) => Promise<void>
 
   toUpdateMessages: (messages: AiMessage[]) => void
@@ -67,11 +62,7 @@ type IntelligenceStore = SessionSlice & MessageSlice
 
 type SliceCreator<T> = StateCreator<
   IntelligenceStore,
-  [
-    ['zustand/devtools', never],
-    ['zustand/subscribeWithSelector', never],
-    ['zustand/immer', never]
-  ],
+  [['zustand/devtools', never], ['zustand/subscribeWithSelector', never], ['zustand/immer', never]],
   [],
   T
 >
@@ -115,7 +106,7 @@ const sessionSlice: SliceCreator<SessionSlice> = function (setters, getters) {
 
       try {
         const now = Date.now()
-        await database.AiSession.bulkAdd(values)
+        // await database.AiSession.bulkAdd(values)
         event$.next({
           type: 'SESSION:INSERTED',
           payload: values,
@@ -175,7 +166,7 @@ const sessionSlice: SliceCreator<SessionSlice> = function (setters, getters) {
 
       try {
         const now = Date.now()
-        await database.AiSession.bulkUpdate(updates)
+        // await database.AiSession.bulkUpdate(updates)
 
         event$.next({
           type: 'SESSION:UPDATED',
@@ -208,7 +199,7 @@ const sessionSlice: SliceCreator<SessionSlice> = function (setters, getters) {
           false,
           'toRemoveSession/optimistic'
         )
-        await database.AiSession.bulkDelete(keys)
+        // await database.AiSession.bulkDelete(keys)
 
         event$.next({
           type: 'SESSION:REMOVED',
@@ -279,7 +270,7 @@ const messageSlice: SliceCreator<MessageSlice> = function (setters, getters) {
 
       try {
         const now = Date.now()
-        await database.AiMessage.bulkAdd(values)
+        // await database.AiMessage.bulkAdd(values)
         event$.next({
           type: 'MESSAGE:INSERTED',
           payload: values,
@@ -297,10 +288,7 @@ const messageSlice: SliceCreator<MessageSlice> = function (setters, getters) {
       }
     },
 
-    async toUpdateMessage(
-      values: UpdateSpec<AiMessage>[],
-      options?: { skip?: boolean }
-    ) {
+    async toUpdateMessage(values: UpdateSpec<AiMessage>[], options?: { skip?: boolean }) {
       const dearthID = values.every(function (v) {
         if (!v.id) return false
         return true
@@ -350,7 +338,7 @@ const messageSlice: SliceCreator<MessageSlice> = function (setters, getters) {
 
       try {
         const now = Date.now()
-        await database.AiMessage.bulkUpdate(updates)
+        // await database.AiMessage.bulkUpdate(updates)
 
         event$.next({
           type: 'MESSAGE:UPDATED',
@@ -383,7 +371,7 @@ const messageSlice: SliceCreator<MessageSlice> = function (setters, getters) {
           false,
           'toRemoveMessage/optimistic'
         )
-        await database.AiMessage.bulkDelete(keys)
+        // await database.AiMessage.bulkDelete(keys)
 
         event$.next({
           type: 'MESSAGE:REMOVED',

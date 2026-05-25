@@ -5,14 +5,14 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import {
-  countAnnotationsByPage,
-  insertAnnotation,
-  queryAnnotations,
-  removeAnnotation,
-  updateAnnotation,
-  upsertFile
-} from '@/databases/morph.ts'
+// import {
+//   countAnnotationsByPage,
+//   insertAnnotation,
+//   queryAnnotations,
+//   removeAnnotation,
+//   updateAnnotation,
+//   upsertFile
+// } from '@/databases/morph.ts'
 
 type Tool = Morph.Tool
 type ViewMode = Morph.ViewMode
@@ -216,7 +216,7 @@ export const useMorphStore = create<MorphState>()(
             if (get().fileList.some((f) => f.path === path)) continue
             try {
               const meta: PdfMeta = await invoke('pdf_open_file', { path })
-              await upsertFile(meta)
+              // await upsertFile(meta)
               set((s) => {
                 if (!s.fileList.some((f) => f.path === path)) s.fileList.push(meta)
               })
@@ -232,10 +232,10 @@ export const useMorphStore = create<MorphState>()(
           })
           try {
             const meta: PdfMeta = await invoke('pdf_open_file', { path })
-            await upsertFile(meta)
+            // await upsertFile(meta)
 
-            const annotations = await queryAnnotations(path)
-            const counts = await countAnnotationsByPage(path)
+            // const annotations = await queryAnnotations(path)
+            // const counts = await countAnnotationsByPage(path)
 
             set((s) => {
               // Maintain fileList
@@ -245,8 +245,8 @@ export const useMorphStore = create<MorphState>()(
 
               s.file = meta
               s.currentPage = 0
-              s.annotations = annotations
-              s.annotationCounts = counts
+              // s.annotations = annotations
+              // s.annotationCounts = counts
               s.pageCache = {}
               s.thumbnails = []
               s.undoStack = []
@@ -274,13 +274,13 @@ export const useMorphStore = create<MorphState>()(
             s.isLoading = true
           })
           try {
-            const annotations = await queryAnnotations(path)
-            const counts = await countAnnotationsByPage(path)
+            // const annotations = await queryAnnotations(path)
+            // const counts = await countAnnotationsByPage(path)
             set((s) => {
               s.file = target
               s.currentPage = 0
-              s.annotations = annotations
-              s.annotationCounts = counts
+              // s.annotations = annotations
+              // s.annotationCounts = counts
               s.pageCache = {}
               s.thumbnails = []
               s.undoStack = []
@@ -469,7 +469,7 @@ export const useMorphStore = create<MorphState>()(
             updatedAt: now
           }
 
-          await insertAnnotation(annotation)
+          // await insertAnnotation(annotation)
 
           set((s) => {
             s.annotations.push(annotation)
@@ -490,7 +490,7 @@ export const useMorphStore = create<MorphState>()(
           const before = get().annotations.find((a) => a.id === id) ?? null
           if (!before) return
 
-          await updateAnnotation(id, changes)
+          // await updateAnnotation(id, changes)
 
           const now = Date.now()
           set((s) => {
@@ -515,7 +515,7 @@ export const useMorphStore = create<MorphState>()(
           const before = get().annotations.find((a) => a.id === id) ?? null
           if (!before) return
 
-          await removeAnnotation(id)
+          // await removeAnnotation(id)
 
           set((s) => {
             s.annotations = s.annotations.filter((a) => a.id !== id)

@@ -1,14 +1,26 @@
-pub mod databases {
-    pub mod migration;
-    pub mod storage;
-}
+// pub mod databases {
+//     pub mod migration;
+//     pub mod storage;
+// }
 
-pub mod migrations {
-    pub mod migrations_v0001;
-}
+// pub mod migrations {
+//     pub mod migrations_v0001;
+// }
 
 pub mod services {
-    pub mod asset {
+    // pub mod asset {
+    //     pub mod command;
+    //     pub mod schema;
+    //     pub mod service;
+    // }
+
+    pub mod mirror {
+        pub mod command;
+        pub mod schema;
+        pub mod service;
+    }
+
+    pub mod application {
         pub mod command;
         pub mod schema;
         pub mod service;
@@ -22,7 +34,7 @@ pub mod ui {
 
 pub mod utils {
     pub mod bootstrap;
-    pub mod exception;
+    // pub mod exception;
     pub mod invoke;
     pub mod pdf;
     pub mod scan;

@@ -1,28 +1,31 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import { isEmpty } from 'lodash-es'
+import { invoke } from '@tauri-apps/api/core'
 
 // 1. 引入默认数据（和 extension 里的 useMirror 一样）
 import { BuildMirror } from '@/constants/mirror.ts' // 如果 client 端也有这个 Hook
 import { mirror$ } from '@/stores/mirror.ts'
-import { database } from '@/databases/database.ts'
 
 // 2. 导出 React Hook：useMirrors
 export function useMirrors(): Mirror[] {
   const { MIRRORS } = BuildMirror()
+  const [mirrors, onUpdate] = useState<Mirror[]>([])
 
-  const mirrors = useLiveQuery<Mirror[], Mirror[]>(
-    async function () {
-      const values = await database.mirror.orderBy('index').toArray()
+  useEffect(function () {
+    async function bootstrap() {
+      let values = await invoke<Mirror[]>('mirror_reads')
+
       // 空表时填充默认数据
       if (isEmpty(values)) {
-        await database.mirror.bulkAdd(MIRRORS)
-        return database.mirror.orderBy('index').toArray()
+        await invoke('mirror_inserts', { mirrors: MIRRORS })
+
+        values = await invoke<Mirror[]>('mirror_reads')
       }
-      return values
-    },
-    [],
-    []
-  )
+      values = values.toSorted((a, b) => a.index - b.index)
+
+      onUpdate(values)
+    }
+    bootstrap()
+  }, [])
 
   // 自动更新 mirrorID（等价于 pinia 里的 tap + mirrorID.value = value.id）
   useEffect(

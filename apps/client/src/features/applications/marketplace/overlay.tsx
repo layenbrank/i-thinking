@@ -27,9 +27,9 @@ import type { Color } from 'antd/es/color-picker'
 import type { SegmentedLabeledOption, SegmentedValue } from 'antd/es/segmented'
 import type { RcFile, UploadFile } from 'antd/es/upload'
 import { clsx } from 'clsx'
+import { invoke } from '@tauri-apps/api/core'
 
 import { Scroll } from '@/components/scroll/scroll.tsx'
-import { database } from '@/databases/database.ts'
 import {
   Application,
   OverlayContext,
@@ -139,59 +139,46 @@ export default function Overlay(props: OverlayControlProps) {
   }
 
   const handleExport = useCallback(function () {
-    void database.application
-      .orderBy('index')
-      .toArray()
-      .then(async function (applications) {
-        let permissionGranted = await isPermissionGranted()
-        if (!permissionGranted) {
-          const permission = await requestPermission()
-          permissionGranted = permission === 'granted'
-        }
-        try {
-          const stringify = JSON.stringify(applications, null, 2)
-          const now = timeSphere.now()
-          const formatted = now.format('YYYY-MM-DD-HH-mm-ss')
-          const filename = `applications-${formatted}.json`
-          const download = await downloadDir()
-          console.log('download', download)
-          console.log(
-            'BaseDirectory',
-            BaseDirectory,
-            '\nDownload',
-            BaseDirectory.Download
-          )
-          // stringify 转为 Uint8Array 并写入文件
-          const encoder = new TextEncoder()
-          const uint8 = encoder.encode(stringify)
-          console.log(
-            'filename',
-            filename,
-            '\nfilepath',
-            `${download}/${filename}`
-          )
-          const file = await create(filename, {
-            baseDir: BaseDirectory.Download
+    invoke<Application[]>('application_reads').then(async function (applications) {
+      let permissionGranted = await isPermissionGranted()
+      if (!permissionGranted) {
+        const permission = await requestPermission()
+        permissionGranted = permission === 'granted'
+      }
+      try {
+        const stringify = JSON.stringify(applications, null, 2)
+        const now = timeSphere.now()
+        const formatted = now.format('YYYY-MM-DD-HH-mm-ss')
+        const filename = `applications-${formatted}.json`
+        const download = await downloadDir()
+        console.log('download', download)
+        console.log('BaseDirectory', BaseDirectory, '\nDownload', BaseDirectory.Download)
+        // stringify 转为 Uint8Array 并写入文件
+        const encoder = new TextEncoder()
+        const uint8 = encoder.encode(stringify)
+        console.log('filename', filename, '\nfilepath', `${download}/${filename}`)
+        const file = await create(filename, {
+          baseDir: BaseDirectory.Download
+        })
+        await file.write(uint8)
+        await file.close()
+        if (permissionGranted) {
+          sendNotification({
+            title: import.meta.env.VITE_APP_TITLE,
+            body: '导出成功'
           })
-          await file.write(uint8)
-          await file.close()
-          if (permissionGranted) {
-            sendNotification({
-              title: import.meta.env.VITE_APP_TITLE,
-              body: '导出成功'
-            })
-          }
-        } catch (error) {
-          if (permissionGranted) {
-            sendNotification({
-              icon: 'icons/icon.ico',
-              summary: (error as Error).message,
-              title: import.meta.env.VITE_APP_TITLE,
-              body: '导出失败'
-            })
-          }
         }
-      })
+      } catch (error) {
+        if (permissionGranted) {
+          sendNotification({
+            icon: 'icons/icon.ico',
+            summary: (error as Error).message,
+            title: import.meta.env.VITE_APP_TITLE,
+            body: '导出失败'
+          })
+        }
+      }
+    })
   }, [])
   const handleImport = useCallback(function (file: RcFile, entries: RcFile[]) {
     updateFiles(entries)
@@ -209,7 +196,7 @@ export default function Overlay(props: OverlayControlProps) {
             i.mirrorID = mirror$.value?.id ?? ''
             i.collectionID = ''
           })
-          void database.application.bulkAdd(parsed)
+          invoke('application_inserts', { applications: parsed })
         } catch (error) {
           console.error('Invalid JSON file', error)
           return
@@ -232,10 +219,7 @@ export default function Overlay(props: OverlayControlProps) {
 
   useEffect(
     function () {
-      const collect = Object.values(DEFAULT_COLORS).reduce<string[]>(function (
-        acc,
-        cur
-      ) {
+      const collect = Object.values(DEFAULT_COLORS).reduce<string[]>(function (acc, cur) {
         const toStrings = cur.colors.map((color) => color.toString())
         return acc.concat(toStrings)
       }, [])

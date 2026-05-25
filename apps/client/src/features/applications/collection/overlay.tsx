@@ -17,8 +17,8 @@ import { Icon } from '@iconify/react'
 import { clsx } from 'clsx'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { v4 as UUIDV4 } from 'uuid'
+import { invoke } from '@tauri-apps/api/core'
 
-import { database } from '@/databases/database.ts'
 import {
   Application,
   OverlayContext,
@@ -88,10 +88,10 @@ export default function Overlay(props: OverlayControlProps & Props) {
   // const store = useMirrorStore()
   const applications = useLiveQuery<Application[], Application[]>(
     async function () {
-      const response = await database.application
-        .where('collectionID')
-        .equals(props.id)
-        .sortBy('index')
+      const response = await invoke<Application[]>('application_read', {
+        collectionID: props.id
+      })
+
       console.log(
         'Overlay fetched applications for collectionID:',
         props.id,

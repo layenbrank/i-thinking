@@ -1,4 +1,3 @@
-import { database } from '@/databases/database'
 import { liveQuery } from 'dexie'
 import { BehaviorSubject, Subject, from, type Observable, type Subscription } from 'rxjs'
 import {
@@ -124,16 +123,18 @@ export const filteredMirrors$: Observable<Mirror[]> = mirrorSearchTerm$.pipe(
     return from(
       liveQuery(function () {
         if (!term.trim()) {
-          return database.mirror.orderBy('index').toArray()
+          return [] as Mirror[]
+          // return database.mirror.orderBy('index').toArray()
         }
-        return database.mirror
-          .filter(function (mirror) {
-            return (
-              mirror.title.toLowerCase().includes(term.toLowerCase()) ||
-              mirror.description.toLowerCase().includes(term.toLowerCase())
-            )
-          })
-          .toArray()
+        return [] as Mirror[]
+        // return database.mirror
+        //   .filter(function (mirror) {
+        //     return (
+        //       mirror.title.toLowerCase().includes(term.toLowerCase()) ||
+        //       mirror.description.toLowerCase().includes(term.toLowerCase())
+        //     )
+        //   })
+        //   .toArray()
       })
     )
   }),
@@ -193,7 +194,7 @@ const createMirrorSlice: SliceCreator<MirrorSliceState & MirrorSliceActions> = f
       )
 
       try {
-        await database.mirror.add(newMirror)
+        // await database.mirror.add(newMirror)
         mirrorEvents$.next({
           type: 'MIRROR_INSERTED',
           payload: newMirror,
@@ -247,7 +248,7 @@ const createMirrorSlice: SliceCreator<MirrorSliceState & MirrorSliceActions> = f
       )
 
       try {
-        await database.mirror.update(id, updatedData)
+        // await database.mirror.update(id, updatedData)
         mirrorEvents$.next({
           type: 'MIRROR_UPDATED',
           payload: { id, changes: updatedData },
@@ -299,14 +300,14 @@ const createMirrorSlice: SliceCreator<MirrorSliceState & MirrorSliceActions> = f
 
       try {
         // 使用事务同时删除相关的 Applications
-        await database.transaction(
-          'rw',
-          [database.mirror, database.application],
-          async function () {
-            await database.mirror.delete(id)
-            await database.application.where('mirrorID').equals(id).delete()
-          }
-        )
+        // await database.transaction(
+        //   'rw',
+        //   [database.mirror, database.application],
+        //   async function () {
+        //     await database.mirror.delete(id)
+        //     await database.application.where('mirrorID').equals(id).delete()
+        //   }
+        // )
 
         mirrorEvents$.next({
           type: 'MIRROR_REMOVED',
@@ -335,11 +336,11 @@ const createMirrorSlice: SliceCreator<MirrorSliceState & MirrorSliceActions> = f
       const now = Date.now()
 
       try {
-        await database.transaction('rw', database.mirror, async function () {
-          for (const { id, changes } of updates) {
-            await database.mirror.update(id, { ...changes, updatedAt: now })
-          }
-        })
+        // await database.transaction('rw', database.mirror, async function () {
+        //   for (const { id, changes } of updates) {
+        //     await database.mirror.update(id, { ...changes, updatedAt: now })
+        //   }
+        // })
         // liveQuery 会自动同步
       } catch (err) {
         set({ error: err instanceof Error ? err.message : 'Bulk update failed' })
@@ -413,7 +414,7 @@ const createApplicationSlice: SliceCreator<ApplicationSliceState & ApplicationSl
         )
 
         try {
-          await database.application.add(newApplication)
+          // await database.application.add(newApplication)
           mirrorEvents$.next({
             type: 'APPLICATION_INSERTED',
             payload: newApplication,
@@ -466,7 +467,7 @@ const createApplicationSlice: SliceCreator<ApplicationSliceState & ApplicationSl
         )
 
         try {
-          await database.application.update(id, updatedData)
+          // await database.application.update(id, updatedData)
           mirrorEvents$.next({
             type: 'APPLICATION_UPDATED',
             payload: { id, changes: updatedData },
@@ -516,7 +517,7 @@ const createApplicationSlice: SliceCreator<ApplicationSliceState & ApplicationSl
         )
 
         try {
-          await database.application.delete(id)
+          // await database.application.delete(id)
           mirrorEvents$.next({
             type: 'APPLICATION_REMOVED',
             payload: { id },
@@ -585,44 +586,43 @@ let applicationsSubscription: Subscription | null = null
 /** 初始化 Dexie 同步 */
 export function initDexieSync(): void {
   // 订阅 Mirrors 变化
-  mirrorsSubscription = from(
-    liveQuery(function () {
-      return database.mirror.orderBy('index').toArray()
-    })
-  )
-    .pipe(
-      tap(function (mirrors) {
-        useMirrorStore.getState()._setMirrors(mirrors)
-        mirrorEvents$.next({
-          type: 'MIRRORS_SYNCED',
-          payload: { count: mirrors.length },
-          timestamp: Date.now()
-        })
-      }),
-      catchError(function (err) {
-        console.error('Mirror sync error:', err)
-        useMirrorStore.getState()._setError(err.message)
-        return from(Promise.resolve([]))
-      })
-    )
-    .subscribe()
-
-  // 订阅 Applications 变化
-  applicationsSubscription = from(
-    liveQuery(function () {
-      return database.application.orderBy('index').toArray()
-    })
-  )
-    .pipe(
-      tap(function (applications) {
-        useMirrorStore.getState()._setApplications(applications)
-      }),
-      catchError(function (err) {
-        console.error('Application sync error:', err)
-        return from(Promise.resolve([]))
-      })
-    )
-    .subscribe()
+  // mirrorsSubscription = from(
+  //   liveQuery(function () {
+  // return database.mirror.orderBy('index').toArray()
+  //   })
+  // )
+  //   .pipe(
+  //     tap(function (mirrors) {
+  //       useMirrorStore.getState()._setMirrors(mirrors)
+  //       mirrorEvents$.next({
+  //         type: 'MIRRORS_SYNCED',
+  //         payload: { count: mirrors.length },
+  //         timestamp: Date.now()
+  //       })
+  //     }),
+  //     catchError(function (err) {
+  //       console.error('Mirror sync error:', err)
+  //       useMirrorStore.getState()._setError(err.message)
+  //       return from(Promise.resolve([]))
+  //     })
+  //   )
+  //   .subscribe()
+  // // 订阅 Applications 变化
+  // applicationsSubscription = from(
+  //   liveQuery(function () {
+  //     return database.application.orderBy('index').toArray()
+  //   })
+  // )
+  //   .pipe(
+  //     tap(function (applications) {
+  //       useMirrorStore.getState()._setApplications(applications)
+  //     }),
+  //     catchError(function (err) {
+  //       console.error('Application sync error:', err)
+  //       return from(Promise.resolve([]))
+  //     })
+  //   )
+  //   .subscribe()
 }
 
 /** 销毁 Dexie 同步 */

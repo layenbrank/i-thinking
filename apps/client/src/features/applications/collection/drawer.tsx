@@ -1,11 +1,10 @@
+import { invoke } from '@tauri-apps/api/core'
 import { Drawer, Input, message } from 'antd'
 import { clsx } from 'clsx'
-import { useLiveQuery } from 'dexie-react-hooks'
 import Fuse from 'fuse.js'
 
-import { database } from '@/databases/database.ts'
-import { Controller } from './controller.tsx'
 import styles from '@/features/applications/collection/drawer.module.scss'
+import { Controller } from './controller.tsx'
 
 interface OverlayDrawerProps {
   id: string
@@ -15,53 +14,73 @@ interface OverlayDrawerProps {
 
 function OverlayDrawer(props: OverlayDrawerProps) {
   const [keyword, onUpdateKeyword] = useState('')
+  const [applications, onUpdateApplications] = useState<Application[]>([])
 
-  const applications = useLiveQuery<Application[], Application[]>(
+  useEffect(function () {
+    let cancelled = false
+
+    async function toLoad() {
+      try {
+        const result = await invoke<Application[]>('collection_reads')
+        if (cancelled) return
+
+        onUpdateApplications(result ?? [])
+      } catch {
+        if (cancelled) return
+
+        onUpdateApplications([])
+        message.error('应用数据加载失败')
+      }
+    }
+
+    void toLoad()
+
+    return function () {
+      cancelled = true
+    }
+  }, [])
+
+  const queryApplications = useMemo(
     function () {
-      return database.application
-        .where('component')
-        .equals('navigation')
-        .filter(function (application) {
-          return !application.collectionID
-        })
-        .sortBy('index')
+      if (!keyword.trim().length) return applications ?? []
+
+      const fuse = new Fuse(applications ?? [], {
+        keys: ['title', 'url'],
+        threshold: 0.4
+      })
+
+      const result = fuse.search(keyword)
+
+      return result.map((v) => v.item)
     },
-    [],
-    []
+    [applications, keyword]
   )
 
-  function toQuery() {
-    if (!keyword.trim().length) return applications ?? []
+  const handleIncrement = useCallback(
+    function (e: React.MouseEvent<HTMLElement>) {
+      const event = e.nativeEvent
+      const target = event.target as HTMLElement
 
-    const fuse = new Fuse(applications ?? [], {
-      keys: ['title', 'url'],
-      threshold: 0.4
-    })
+      const closest = target.closest<HTMLElement>('.application')
+      if (!closest) return
 
-    const result = fuse.search(keyword)
+      const ID = closest.getAttribute('data-id')
+      if (!ID) return message.error('应用 ID 未定义，无法新增应用')
 
-    return result.map((v) => v.item)
-  }
+      // database.application.update(ID, {
+      //   collectionID: props.id
+      // } )
 
-  const handleEnter = useCallback(function (e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key !== 'Enter') return
-    toQuery()
-  }, [])
+      invoke('application_update', { id: ID, collectionID: props.id })
 
-  const handleIncrement = useCallback(function (e: React.MouseEvent<HTMLElement>) {
-    const event = e.nativeEvent
-    const target = event.target as HTMLElement
-
-    const closest = target.closest<HTMLElement>('.application')
-    if (!closest) return
-
-    const ID = closest.getAttribute('data-id')
-    if (!ID) return message.error('应用 ID 未定义，无法新增应用')
-
-    database.application.update(ID, {
-      collectionID: props.id
-    })
-  }, [])
+      onUpdateApplications(function (prev) {
+        return prev.filter(function (application) {
+          return application.id !== ID
+        })
+      })
+    },
+    [props.id]
+  )
 
   const handlePrevent = useCallback(function (e: React.MouseEvent<HTMLElement>) {
     const event = e.nativeEvent
@@ -92,7 +111,6 @@ function OverlayDrawer(props: OverlayDrawerProps) {
         body: clsx([styles.drawer, styles.body])
       }}>
       <Input
-        onKeyDown={handleEnter}
         className={clsx([styles.drawer, styles.match])}
         value={keyword}
         onInput={(e) => onUpdateKeyword(e.currentTarget.value)}
@@ -102,7 +120,7 @@ function OverlayDrawer(props: OverlayDrawerProps) {
           <Controller
             onClick={handleIncrement}
             onPrevent={handlePrevent}
-            applications={applications}
+            applications={queryApplications}
           />
         </div>
       </div>
