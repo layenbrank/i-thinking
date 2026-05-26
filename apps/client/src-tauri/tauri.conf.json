@@ -216,7 +216,7 @@
       {
         "backgroundColor": "#00000000",
         "center": true,
-        "create": true,
+        "create": false,
         "decorations": false,
         "dragDropEnabled": true,
         "focus": true,
