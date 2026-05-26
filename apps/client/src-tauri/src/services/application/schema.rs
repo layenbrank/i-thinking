@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
-    pub index: u32,
+    pub index: i32,
     pub title: String,
     pub url: Option<String>,
     pub round: Option<String>,
@@ -61,3 +61,106 @@ impl Related<crate::services::mirror::schema::Entity> for Entity {
 
 #[derive(Iden)]
 pub enum Application {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Read {
+    pub id: Option<String>,
+    pub title: Option<String>,
+    pub url: Option<String>,
+    pub description: Option<String>,
+
+    #[serde(rename = "mirrorID")]
+    pub mirror_id: Option<String>,
+
+    #[serde(rename = "downloadCount")]
+    pub download_count: Option<i32>,
+
+    #[serde(rename = "updatedAt")]
+    pub updated_at: Option<i64>,
+
+    #[serde(rename = "collectionID")]
+    pub collection_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ReadP {
+    One(Read),
+    Many(Vec<Read>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Write {
+    pub index: i32,
+    pub title: String,
+    pub url: Option<String>,
+    pub round: Option<String>,
+    pub mark: Option<String>,
+    pub component: String,
+    pub description: Option<String>,
+    pub background: Option<String>,
+    pub backdrop: Option<String>,
+
+    #[serde(rename = "mirrorID")]
+    pub mirror_id: String,
+
+    #[serde(rename = "textSize")]
+    pub text_size: Option<String>,
+
+    #[serde(rename = "textColor")]
+    pub text_color: Option<String>,
+
+    #[serde(rename = "collectionID")]
+    pub collection_id: Option<String>,
+
+    #[serde(rename = "downloadCount")]
+    pub download_count: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum WriteP {
+    One(Write),
+    Many(Vec<Write>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Change {
+    pub index: Option<i32>,
+    pub title: Option<String>,
+    pub url: Option<String>,
+    pub round: Option<String>,
+    pub mark: Option<String>,
+    pub description: Option<String>,
+    pub background: Option<String>,
+    pub backdrop: Option<String>,
+    pub mirror_id: Option<String>,
+    pub text_size: Option<String>,
+    pub text_color: Option<String>,
+    pub collection_id: Option<String>,
+    pub download_count: Option<i32>,
+    pub updated_at: Option<i64>,
+    pub created_at: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Update {
+    pub key: String,
+    pub change: Change,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum UpdateP {
+    One(Update),
+    Many(Vec<Update>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RemoveP {
+    One(String),
+    Many(Vec<String>),
+}

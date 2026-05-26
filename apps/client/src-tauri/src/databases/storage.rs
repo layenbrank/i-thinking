@@ -3,7 +3,6 @@ use sea_orm::{
     ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DatabaseTransaction, DbErr,
     Statement, TransactionTrait,
 };
-use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::Manager;
 use tracing::{error, info};
@@ -12,12 +11,15 @@ pub type Connection = Arc<DatabaseConnection>;
 
 pub struct Storage {
     connection: Connection,
-    path: PathBuf,
 }
 
 impl Storage {
-    pub fn new(connection: Connection, path: PathBuf) -> Self {
-        Self { connection, path }
+    pub fn new(connection: Connection) -> Self {
+        Self { connection }
+    }
+
+    pub fn connection(&self) -> &DatabaseConnection {
+        &self.connection
     }
 
     pub fn getter(&self) -> DatabaseConnection {
@@ -25,7 +27,7 @@ impl Storage {
     }
 
     /// 便捷方法：直接传入闭包，避免 command.rs 中反复写 &*conn
-    pub async fn with_connection<F, T>(&self, f: F) -> T
+    pub fn with_connection<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&DatabaseConnection) -> T,
     {

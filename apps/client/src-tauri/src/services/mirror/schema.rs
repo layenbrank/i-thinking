@@ -8,7 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
     pub title: String,
-    pub index: u32,
+    pub index: i32,
     pub mark: String,
     pub description: String,
     pub size: Size,
@@ -19,10 +19,10 @@ pub struct Model {
     pub backdrop: Option<String>,
 
     #[sea_orm(column_name = "updatedAt")]
-    pub updated_at: String,
+    pub updated_at: i64,
 
     #[sea_orm(column_name = "createdAt")]
-    pub created_at: String,
+    pub created_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -105,4 +105,83 @@ impl Related<crate::services::application::schema::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Application.def()
     }
+}
+
+// ==================== DTO ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Write {
+    pub index: i32,
+    pub title: String,
+    pub mark: String,
+    pub description: String,
+    pub size: Size,
+    pub shape: Shape,
+    pub direction: Direction,
+    pub overlay: String,
+    pub background: Option<String>,
+    pub backdrop: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum WriteP {
+    One(Write),
+    Many(Vec<Write>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Read {
+    pub id: Option<String>,
+    pub title: Option<String>,
+    pub mark: Option<String>,
+    pub size: Option<Size>,
+    pub shape: Option<Shape>,
+    pub direction: Option<Direction>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ReadP {
+    One(Read),
+    Many(Vec<Read>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Change {
+    pub index: Option<i32>,
+    pub title: Option<String>,
+    pub mark: Option<String>,
+    pub description: Option<String>,
+    pub size: Option<Size>,
+    pub shape: Option<Shape>,
+    pub direction: Option<Direction>,
+    pub overlay: Option<String>,
+    pub background: Option<String>,
+    pub backdrop: Option<String>,
+    pub updated_at: Option<i64>,
+    pub created_at: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Update {
+    pub key: String,
+    pub change: Change,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum UpdateP {
+    One(Update),
+    Many(Vec<Update>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RemoveP {
+    One(String),
+    Many(Vec<String>),
 }

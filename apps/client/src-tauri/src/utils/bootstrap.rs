@@ -5,6 +5,7 @@ use crate::{
         migration,
         storage::{self, Storage, get_app_data_dir, get_database_path},
     },
+    services::{application::command as application, mirror::command as mirror},
     ui::tray,
     utils::{invoke, pdf},
 };
@@ -34,10 +35,7 @@ impl Bootstrap {
                     let connection = storage::initialize(&db_url).await?;
                     migration::run(&connection).await?;
 
-                    Ok::<_, anyhow::Error>(Storage::new(
-                        connection,
-                        db_path,
-                    ))
+                    Ok::<_, anyhow::Error>(Storage::new(connection))
                 })
                 .expect("failed to initialize database");
                 app.manage(db_state);
@@ -101,6 +99,17 @@ impl Bootstrap {
                 invoke::greet,
                 invoke::os,
                 invoke::set_tray_badge,
+                // application
+                application::application_write,
+                application::application_read,
+                application::application_update,
+                application::application_remove,
+                // mirror
+                mirror::mirror_write,
+                mirror::mirror_read,
+                mirror::mirror_update,
+                mirror::mirror_remove,
+                // pdf
                 pdf::pdf_open_file,
                 pdf::pdf_render_page,
                 pdf::pdf_render_thumbnails,
