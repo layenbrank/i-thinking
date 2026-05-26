@@ -8,18 +8,18 @@ use sea_orm::{
 use uuid::Uuid;
 
 use crate::services::asset::schema::{
-    self, ActiveModel, AssetSheet, InsertP, InsertR, ReadP, ReadsP, RemoveP, UpdateBody,
+    self, ActiveModel, InsertP, InsertR, Model, ReadP, ReadsP, RemoveP, UpdateBody,
 };
 use crate::utils::exception::Exception;
 
-pub struct AssetService;
+pub struct Service;
 
-impl AssetService {
+impl Service {
     // ==================== 核心方法 ====================
     pub async fn read<C: ConnectionTrait + TransactionTrait>(
         db: &C,
         payload: ReadP,
-    ) -> Result<AssetSheet, Exception> {
+    ) -> Result<Model, Exception> {
         schema::Entity::find()
             .filter(Self::read_filter(&payload))
             .order_by_asc(schema::Column::Index)
@@ -32,7 +32,7 @@ impl AssetService {
     pub async fn reads<C: ConnectionTrait + TransactionTrait>(
         db: &C,
         payload: ReadsP,
-    ) -> Result<Vec<AssetSheet>, Exception> {
+    ) -> Result<Vec<Model>, Exception> {
         let mut query = schema::Entity::find()
             .filter(Self::read_filter(&payload.filter))
             .order_by_asc(schema::Column::Index)
@@ -140,7 +140,7 @@ impl AssetService {
         payload: RemoveP,
     ) -> Result<Vec<String>, Exception> {
         let cond = Self::remove_filter(&payload)?;
-        let models: Vec<AssetSheet> = schema::Entity::find()
+        let models: Vec<Model> = schema::Entity::find()
             .filter(cond)
             .order_by_asc(schema::Column::Id)
             .all(db)
@@ -161,7 +161,7 @@ impl AssetService {
         db: &C,
         tenant_id: &str,
     ) -> Result<Vec<String>, Exception> {
-        let models: Vec<AssetSheet> = schema::Entity::find()
+        let models: Vec<Model> = schema::Entity::find()
             .filter(schema::Column::TenantId.eq(tenant_id))
             .all(db)
             .await?;
@@ -286,7 +286,7 @@ impl AssetService {
         (model, InsertR { id })
     }
 
-    fn build_update_active(model: AssetSheet, updates: InsertP, now: i64) -> ActiveModel {
+    fn build_update_active(model: Model, updates: InsertP, now: i64) -> ActiveModel {
         let ext = if updates.extension.is_empty() {
             None
         } else {

@@ -1,5 +1,14 @@
-use crate::utils::{invoke, pdf};
 use tauri::{Manager, generate_context, generate_handler};
+
+use crate::{
+    databases::{
+        migration,
+        storage::{self, Storage, get_app_data_dir, get_database_path},
+    },
+    ui::tray,
+    utils::{invoke, pdf},
+};
+
 pub struct Bootstrap;
 
 impl Bootstrap {
@@ -16,7 +25,23 @@ impl Bootstrap {
 
         builder
             .setup(move |app| {
-                crate::ui::tray::setup(app)?;
+                let handle = app.handle().clone();
+                let handle_for_db = handle.clone();
+                let db_state = tauri::async_runtime::block_on(async move {
+                    let app_dir = get_app_data_dir(&handle_for_db)?;
+                    let db_path = get_database_path(&app_dir);
+                    let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
+                    let connection = storage::initialize(&db_url).await?;
+                    migration::run(&connection).await?;
+
+                    Ok::<_, anyhow::Error>(Storage::new(
+                        connection,
+                        db_path,
+                    ))
+                })
+                .expect("failed to initialize database");
+                app.manage(db_state);
+                tray::setup(app)?;
                 Ok(())
             })
             // 核心插件
@@ -52,7 +77,10 @@ impl Bootstrap {
                         let app = window.app_handle();
                         if let Some(state) = app.try_state::<crate::ui::tray::TrayState>() {
                             // 首次隐藏时发送系统通知
-                            if !state.notified.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                            if !state
+                                .notified
+                                .swap(true, std::sync::atomic::Ordering::Relaxed)
+                            {
                                 #[cfg(desktop)]
                                 {
                                     use tauri_plugin_notification::NotificationExt;

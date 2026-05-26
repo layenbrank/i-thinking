@@ -7,9 +7,11 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+
     #[serde(rename = "tenantID")]
     #[sea_orm(column_name = "tenantID")]
     pub tenant_id: Option<String>,
+
     pub kind: Option<String>,
     pub hash: String,
     pub sha: String,
@@ -17,24 +19,26 @@ pub struct Model {
     pub index: i64,
     pub mime: String,
     pub extension: Option<String>,
-    #[serde(rename = "fileName")]
+
     #[sea_orm(column_name = "fileName")]
     pub file_name: String,
-    #[serde(rename = "filePath")]
+
     #[sea_orm(column_name = "filePath")]
     pub file_path: String,
+
     pub metadata: Option<String>,
     pub status: String,
+
     #[serde(rename = "deviceID")]
     #[sea_orm(column_name = "deviceID")]
     pub device_id: String,
-    #[serde(rename = "archivedAt")]
+
     #[sea_orm(column_name = "archivedAt")]
     pub archived_at: Option<i64>,
-    #[serde(rename = "createdAt")]
+
     #[sea_orm(column_name = "createdAt")]
     pub created_at: i64,
-    #[serde(rename = "updatedAt")]
+
     #[sea_orm(column_name = "updatedAt")]
     pub updated_at: i64,
 }
@@ -43,8 +47,6 @@ pub struct Model {
 pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
-
-pub type AssetSheet = Model;
 
 /// 与 `asset.d.ts` `Read.Payload` 一致。
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

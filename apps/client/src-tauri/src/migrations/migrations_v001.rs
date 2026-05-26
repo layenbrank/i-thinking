@@ -6,42 +6,53 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        let db = manager.get_connection();
+        db.execute_unprepared("PRAGMA journal_mode=WAL").await?;
+        db.execute_unprepared("PRAGMA foreign_keys=ON").await?;
+
         manager
             .create_table(
                 Table::create()
-                    .table(Classify::Table)
+                    .table(Mirror::Table)
                     .if_not_exists()
+                    .col(ColumnDef::new(Mirror::Id).string().not_null().primary_key())
+                    .col(ColumnDef::new(Mirror::Title).string().not_null())
+                    .col(ColumnDef::new(Mirror::Index).big_integer().not_null())
+                    .col(ColumnDef::new(Mirror::Mark).string().not_null().default(""))
                     .col(
-                        ColumnDef::new(Classify::Id)
+                        ColumnDef::new(Mirror::Description)
                             .string()
                             .not_null()
-                            .primary_key(),
+                            .default("暂无描述"),
                     )
-                    .col(ColumnDef::new(Classify::Index).big_integer().not_null())
-                    .col(ColumnDef::new(Classify::Title).string().not_null())
                     .col(
-                        ColumnDef::new(Classify::Description)
+                        ColumnDef::new(Mirror::Size)
+                            .string()
+                            .not_null()
+                            .default("medium"),
+                    )
+                    .col(
+                        ColumnDef::new(Mirror::Shape)
+                            .string()
+                            .not_null()
+                            .default("rectangle"),
+                    )
+                    .col(
+                        ColumnDef::new(Mirror::Direction)
+                            .string()
+                            .not_null()
+                            .default("horizontal"),
+                    )
+                    .col(
+                        ColumnDef::new(Mirror::Overlay)
                             .string()
                             .not_null()
                             .default(""),
                     )
-                    .col(
-                        ColumnDef::new(Classify::Remark)
-                            .string()
-                            .not_null()
-                            .default(""),
-                    )
-                    .col(ColumnDef::new(Classify::Status).string().not_null())
-                    .col(
-                        ColumnDef::new(Classify::Version)
-                            .big_integer()
-                            .not_null()
-                            .default(1),
-                    )
-                    .col(ColumnDef::new(Classify::DeviceId).string().not_null())
-                    .col(ColumnDef::new(Classify::ArchivedAt).big_integer().null())
-                    .col(ColumnDef::new(Classify::CreatedAt).big_integer().not_null())
-                    .col(ColumnDef::new(Classify::UpdatedAt).big_integer().not_null())
+                    .col(ColumnDef::new(Mirror::Background).string().null())
+                    .col(ColumnDef::new(Mirror::Backdrop).string().null())
+                    .col(ColumnDef::new(Mirror::CreatedAt).big_integer().not_null())
+                    .col(ColumnDef::new(Mirror::UpdatedAt).big_integer().not_null())
                     .to_owned(),
             )
             .await?;
@@ -49,64 +60,40 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Assignment::Table)
+                    .table(Application::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Assignment::Id)
+                        ColumnDef::new(Application::Id)
                             .string()
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Assignment::TenantId).string().null())
-                    .col(ColumnDef::new(Assignment::Index).big_integer().not_null())
-                    .col(ColumnDef::new(Assignment::Title).string().not_null())
+                    .col(ColumnDef::new(Application::Index).big_integer().not_null())
+                    .col(ColumnDef::new(Application::Title).string().not_null())
+                    .col(ColumnDef::new(Application::Url).string().null())
+                    .col(ColumnDef::new(Application::Round).string().null())
+                    .col(ColumnDef::new(Application::Mark).string().null())
+                    .col(ColumnDef::new(Application::Component).string().not_null())
+                    .col(ColumnDef::new(Application::Description).string().null())
+                    .col(ColumnDef::new(Application::Background).string().null())
+                    .col(ColumnDef::new(Application::Backdrop).string().null())
+                    .col(ColumnDef::new(Application::MirrorID).string().not_null())
+                    .col(ColumnDef::new(Application::TextSize).string().null())
+                    .col(ColumnDef::new(Application::TextColor).string().null())
+                    .col(ColumnDef::new(Application::CollectionID).string().null())
                     .col(
-                        ColumnDef::new(Assignment::Description)
-                            .string()
+                        ColumnDef::new(Application::DownloadCount)
+                            .integer()
                             .not_null()
-                            .default(""),
+                            .default(0),
                     )
                     .col(
-                        ColumnDef::new(Assignment::Remark)
-                            .string()
-                            .not_null()
-                            .default(""),
-                    )
-                    .col(ColumnDef::new(Assignment::Status).string().not_null())
-                    .col(ColumnDef::new(Assignment::Priority).string().not_null())
-                    .col(
-                        ColumnDef::new(Assignment::Proposer)
-                            .string()
-                            .not_null()
-                            .default(""),
-                    )
-                    .col(
-                        ColumnDef::new(Assignment::Assignee)
-                            .string()
-                            .not_null()
-                            .default(""),
-                    )
-                    .col(
-                        ColumnDef::new(Assignment::Reviewer)
-                            .string()
-                            .not_null()
-                            .default(""),
-                    )
-                    .col(
-                        ColumnDef::new(Assignment::Version)
-                            .big_integer()
-                            .not_null()
-                            .default(1),
-                    )
-                    .col(ColumnDef::new(Assignment::DeviceId).string().not_null())
-                    .col(ColumnDef::new(Assignment::ArchivedAt).big_integer().null())
-                    .col(
-                        ColumnDef::new(Assignment::CreatedAt)
+                        ColumnDef::new(Application::CreatedAt)
                             .big_integer()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(Assignment::UpdatedAt)
+                        ColumnDef::new(Application::UpdatedAt)
                             .big_integer()
                             .not_null(),
                     )
@@ -170,12 +157,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(User::Username).string().not_null())
                     .col(ColumnDef::new(User::Password).string().not_null())
                     .col(ColumnDef::new(User::Avatar).string().not_null().default(""))
-                    .col(
-                        ColumnDef::new(User::Version)
-                            .big_integer()
-                            .not_null()
-                            .default(1),
-                    )
                     .col(ColumnDef::new(User::DeviceId).string().not_null())
                     .col(ColumnDef::new(User::ArchivedAt).big_integer().null())
                     .col(ColumnDef::new(User::CreatedAt).big_integer().not_null())
@@ -259,60 +240,30 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // ── 同步基础设施表 ──
-        let db = manager.get_connection();
-
-        // 全局序列表 ── 单行存储当前最大版本号（Lamport Clock）
         db.execute_unprepared(
-            "CREATE TABLE IF NOT EXISTS unify_sequence (
-                key TEXT NOT NULL PRIMARY KEY,
-                value INTEGER NOT NULL DEFAULT 0
-            )",
+            "CREATE INDEX IF NOT EXISTS idx_app_mirror ON application (mirrorID)",
         )
         .await?;
-
-        // 墓碑表 ── 记录已删除记录的 ID、表名、版本号
+        db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_asset_hash ON asset (hash)")
+            .await?;
+        db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_asset_path ON asset (filePath)")
+            .await?;
         db.execute_unprepared(
-            "CREATE TABLE IF NOT EXISTS unify_tombstone (
-                id TEXT NOT NULL,
-                sheet TEXT NOT NULL,
-                version INTEGER NOT NULL,
-                deleted_at INTEGER NOT NULL,
-                PRIMARY KEY (id, sheet)
-            )",
+            "CREATE INDEX IF NOT EXISTS idx_notif_tenant ON notification (tenantID)",
         )
         .await?;
-
-        // 索引：按 (sheet, version) 加速同步拉取
-        db.execute_unprepared(
-            "CREATE INDEX IF NOT EXISTS idx_tombstone_sheet_version
-             ON unify_tombstone (sheet, version)",
-        )
-        .await?;
-
-        // 初始化序列值为现有所有表的最大 version（向后兼容）
-        db.execute_unprepared(
-            "INSERT OR IGNORE INTO unify_sequence (key, value) VALUES ('seq',
-                COALESCE((SELECT MAX(mv) FROM (
-                    SELECT COALESCE(MAX(version), 0) AS mv FROM asset
-                    UNION ALL SELECT COALESCE(MAX(version), 0) AS mv FROM assignment
-                    UNION ALL SELECT COALESCE(MAX(version), 0) AS mv FROM classify
-                    UNION ALL SELECT COALESCE(MAX(version), 0) AS mv FROM comment
-                    UNION ALL SELECT COALESCE(MAX(version), 0) AS mv FROM notification
-                    UNION ALL SELECT COALESCE(MAX(version), 0) AS mv FROM user
-                )), 0)
-            )",
-        )
-        .await?;
+        db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_cmt_tenant ON comment (tenantID)")
+            .await?;
 
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let db = manager.get_connection();
-        db.execute_unprepared("DROP TABLE IF EXISTS unify_tombstone")
+        manager
+            .drop_table(Table::drop().table(Application::Table).to_owned())
             .await?;
-        db.execute_unprepared("DROP TABLE IF EXISTS unify_sequence")
+        manager
+            .drop_table(Table::drop().table(Mirror::Table).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(Comment::Table).to_owned())
@@ -326,36 +277,26 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(Table::drop().table(Asset::Table).to_owned())
             .await?;
-        manager
-            .drop_table(Table::drop().table(Assignment::Table).to_owned())
-            .await?;
-        manager
-            .drop_table(Table::drop().table(Classify::Table).to_owned())
-            .await?;
+
         Ok(())
     }
 }
 
 #[derive(Iden)]
-enum Assignment {
+enum Mirror {
     Table,
     Id,
-    #[iden = "tenantID"]
-    TenantId,
-    Index,
     Title,
+    Index,
+    Mark,
     Description,
-    Remark,
-    Status,
-    Priority,
-    Proposer,
-    Assignee,
-    Reviewer,
-    Version,
-    #[iden = "deviceID"]
-    DeviceId,
-    #[iden = "archivedAt"]
-    ArchivedAt,
+    Size,
+    Shape,
+    Direction,
+    Overlay,
+    Background,
+    Backdrop,
+
     #[iden = "createdAt"]
     CreatedAt,
     #[iden = "updatedAt"]
@@ -363,19 +304,28 @@ enum Assignment {
 }
 
 #[derive(Iden)]
-enum Classify {
+enum Application {
     Table,
     Id,
     Index,
     Title,
+    Round,
+    Url,
+    Mark,
+    Component,
     Description,
-    Remark,
-    Status,
-    Version,
-    #[iden = "deviceID"]
-    DeviceId,
-    #[iden = "archivedAt"]
-    ArchivedAt,
+    Background,
+    Backdrop,
+    DownloadCount,
+
+    #[iden = "textSize"]
+    TextSize,
+    #[iden = "textColor"]
+    TextColor,
+    #[iden = "mirrorID"]
+    MirrorID,
+    #[iden = "collectionID"]
+    CollectionID,
     #[iden = "createdAt"]
     CreatedAt,
     #[iden = "updatedAt"]
@@ -419,7 +369,6 @@ enum User {
     Username,
     Password,
     Avatar,
-    Version,
     #[iden = "deviceID"]
     DeviceId,
     #[iden = "archivedAt"]

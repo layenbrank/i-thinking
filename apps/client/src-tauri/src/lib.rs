@@ -4,7 +4,7 @@ pub mod databases {
 }
 
 pub mod migrations {
-    pub mod migrations_v0001;
+    pub mod migrations_v001;
 }
 
 pub mod services {
