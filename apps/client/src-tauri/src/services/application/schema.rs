@@ -1,6 +1,20 @@
 use sea_orm::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[allow(non_snake_case)]
+fn toSerialize<S>(value: &Option<String>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match value {
+        Some(s) => {
+            let v: serde_json::Value = serde_json::from_str(s).unwrap_or(serde_json::Value::Null);
+            v.serialize(serializer)
+        }
+        None => serializer.serialize_none(),
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "application")]
 #[serde(rename_all = "camelCase")]
@@ -14,7 +28,9 @@ pub struct Model {
     pub mark: Option<String>,
     pub component: String,
     pub description: Option<String>,
+    #[serde(serialize_with = "toSerialize")]
     pub background: Option<String>,
+    #[serde(serialize_with = "toSerialize")]
     pub backdrop: Option<String>,
 
     #[serde(rename = "mirrorID")]

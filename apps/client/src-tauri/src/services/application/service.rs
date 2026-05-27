@@ -7,7 +7,8 @@ use uuid::Uuid;
 
 use crate::{services::application::schema, utils::exception::Exception};
 
-fn json_to_string<T: serde::Serialize>(v: T) -> Option<String> {
+#[allow(non_snake_case)]
+fn toDeserialize<T: serde::Serialize>(v: T) -> Option<String> {
     serde_json::to_string(&v).ok()
 }
 
@@ -32,8 +33,8 @@ impl Service {
                     mark: Set(p.mark),
                     component: Set(p.component),
                     description: Set(p.description),
-                    background: Set(p.background.and_then(json_to_string)),
-                    backdrop: Set(p.backdrop.and_then(json_to_string)),
+                    background: Set(p.background.and_then(toDeserialize)),
+                    backdrop: Set(p.backdrop.and_then(toDeserialize)),
 
                     mirror_id: Set(p.mirror_id),
                     text_size: Set(p.text_size),
@@ -68,8 +69,8 @@ impl Service {
                             mark: Set(p.mark),
                             component: Set(p.component),
                             description: Set(p.description),
-                            background: Set(p.background.and_then(json_to_string)),
-                            backdrop: Set(p.backdrop.and_then(json_to_string)),
+                            background: Set(p.background.and_then(toDeserialize)),
+                            backdrop: Set(p.backdrop.and_then(toDeserialize)),
                             mirror_id: Set(p.mirror_id),
                             text_size: Set(p.text_size),
                             text_color: Set(p.text_color),
@@ -94,14 +95,14 @@ impl Service {
     ) -> Result<Vec<schema::Model>, Exception> {
         match params {
             schema::ReadP::One(p) => {
-                let model = schema::Entity::find()
+                let rows = schema::Entity::find()
                     .filter(Self::build_read_filter(&p))
                     .order_by_asc(schema::Column::Index)
                     .order_by_desc(schema::Column::CreatedAt)
-                    .one(db)
+                    .all(db)
                     .await?;
 
-                Ok(model.into_iter().collect())
+                Ok(rows)
             }
             schema::ReadP::Many(ps) => {
                 if ps.is_empty() {
@@ -225,10 +226,10 @@ impl Service {
             active.description = Set(Some(v));
         }
         if let Some(v) = payload.change.background {
-            active.background = Set(json_to_string(v));
+            active.background = Set(toDeserialize(v));
         }
         if let Some(v) = payload.change.backdrop {
-            active.backdrop = Set(json_to_string(v));
+            active.backdrop = Set(toDeserialize(v));
         }
         if let Some(v) = payload.change.mirror_id {
             active.mirror_id = Set(v);

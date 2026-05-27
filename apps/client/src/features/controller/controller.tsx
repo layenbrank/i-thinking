@@ -19,10 +19,7 @@ import clsx from 'clsx'
 import { useMemo, useRef, type ReactNode } from 'react'
 import { useKeyPress } from 'react-use'
 
-import {
-  Application,
-  OverlayProvider
-} from '@/features/application/application.tsx'
+import { Application, OverlayProvider } from '@/features/application/application.tsx'
 import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
 import { useMirrorStore } from '@/stores/mirror.ts'
@@ -30,9 +27,7 @@ import { useMirrorStore } from '@/stores/mirror.ts'
 const Controller = {
   Mirror({ children }: { children: ReactNode }) {
     // console.log('[Controller.Mirror] render')
-    return (
-      <div className={clsx(styles.controller, styles.mirror)}>{children}</div>
-    )
+    return <div className={clsx(styles.controller, styles.mirror)}>{children}</div>
   },
   Application() {
     const applications = useMirrorStore((state) => state.applications)
@@ -48,6 +43,7 @@ const Controller = {
         const keys = applications?.map(function (v) {
           return v.id
         })
+        console.log('applications', applications)
         return keys ?? []
       },
       [applications]
@@ -80,8 +76,7 @@ const Controller = {
       if (active.id === over.id) return
 
       // 检查目标是否是放置区域
-      const isDropZone =
-        over.id === 'navigation-drop-zone' || over.id === 'collection-drop-zone'
+      const isDropZone = over.id === 'navigation-drop-zone' || over.id === 'collection-drop-zone'
 
       // 如果目标是放置区域，执行放置逻辑（无论是否按下 Control 键）
       if (isDropZone) {
@@ -116,11 +111,7 @@ const Controller = {
           return v.id === over.id
         })
 
-        const moved = arrayMove(
-          applications ?? [],
-          oldIndex ?? 0,
-          newIndex ?? 0
-        )
+        const moved = arrayMove(applications ?? [], oldIndex ?? 0, newIndex ?? 0)
 
         const updates = moved.map(function (value, index) {
           return {

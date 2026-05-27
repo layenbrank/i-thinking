@@ -1,0 +1,30 @@
+.calendar {
+  width: 100%;
+  height: 100%;
+
+  :global {
+    .ant-picker-calendar {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ant-picker-panel {
+      flex: 1;
+      min-height: 0px;
+    }
+
+    .ant-picker-date-panel {
+      height: 100%;
+    }
+
+    .ant-picker-body {
+      height: 100%;
+    }
+
+    .ant-picker-content {
+      height: 100%;
+    }
+  }
+}

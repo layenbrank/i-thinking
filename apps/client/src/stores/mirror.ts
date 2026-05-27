@@ -71,6 +71,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
         const applications = await invoke<Application[]>('application_read', {
           params: { mirrorID: mirror.id }
         })
+        console.log('mirror application', applications)
         getters().toUpdateApplications(
           applications.filter((a) => !a.collectionID).toSorted((a, b) => a.index - b.index)
         )

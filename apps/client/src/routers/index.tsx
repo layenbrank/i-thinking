@@ -21,6 +21,9 @@ const Morph = lazy(function () {
 const Intelligence = lazy(function () {
   return import('@/views/intelligence/intelligence.tsx')
 })
+const Calendar = lazy(function () {
+  return import('@/views/calendar/calendar.tsx')
+})
 // const Background = lazy(function () {
 //   return import('@/views/background/background.tsx')
 // })
@@ -62,6 +65,10 @@ const routes: RouteObject[] = [
   {
     path: '/screenshot',
     element: <Screenshot />
+  },
+  {
+    path: '/calendar',
+    element: <Calendar />
   }
 ]
 
