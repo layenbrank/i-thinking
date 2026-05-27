@@ -72,4 +72,24 @@ declare namespace Application {
 
   type Overlay = ReturnType<(typeof import('ant-design-vue'))['Modal']['info']>
   // type Overlay = ReturnType<Modal['info']>
+
+  /**
+   * 写入参数：不含自动生成的 id / createdAt / updatedAt
+   * Rust Write 结构体中无 downloadCount，此处同步排除
+   */
+  type Write = Omit<Application, 'id' | 'createdAt' | 'updatedAt' | 'downloadCount'>
+
+  /** 查询过滤参数：仅限 Rust Read 结构体暴露的字段 */
+  type Read = Partial<
+    Pick<Application, 'id' | 'title' | 'url' | 'description' | 'mirrorID' | 'downloadCount' | 'updatedAt' | 'collectionID'>
+  >
+
+  /** 更新变更字段：除 id 外所有字段均可选 */
+  type Change = Partial<Omit<Application, 'id'>>
+
+  /** 更新请求体 */
+  interface Update {
+    key: string
+    change: Application.Change
+  }
 }

@@ -41,6 +41,35 @@ pub struct Model {
     pub created_at: i64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Background {
+    pub color: Option<String>,
+    pub image: Option<String>,
+    pub repeat: Option<String>,
+    pub size: Option<String>,
+    pub position: Option<String>,
+    pub attachment: Option<String>,
+    pub clip: Option<String>,
+    pub blend_mode: Option<String>,
+    pub origin: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Backdrop {
+    pub blur: Option<String>,
+    pub brightness: Option<String>,
+    pub contrast: Option<String>,
+    pub drop_shadow: Option<String>,
+    pub grayscale: Option<String>,
+    pub hue_rotate: Option<String>,
+    pub opacity: Option<String>,
+    pub saturate: Option<String>,
+    pub sepia: Option<String>,
+    pub url: Option<String>,
+}
+
 impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -99,23 +128,18 @@ pub struct Write {
     pub mark: Option<String>,
     pub component: String,
     pub description: Option<String>,
-    pub background: Option<String>,
-    pub backdrop: Option<String>,
+    pub background: Option<Background>,
+    pub backdrop: Option<Backdrop>,
 
     #[serde(rename = "mirrorID")]
     pub mirror_id: String,
 
-    #[serde(rename = "textSize")]
     pub text_size: Option<String>,
 
-    #[serde(rename = "textColor")]
     pub text_color: Option<String>,
 
     #[serde(rename = "collectionID")]
     pub collection_id: Option<String>,
-
-    #[serde(rename = "downloadCount")]
-    pub download_count: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -134,11 +158,13 @@ pub struct Change {
     pub round: Option<String>,
     pub mark: Option<String>,
     pub description: Option<String>,
-    pub background: Option<String>,
-    pub backdrop: Option<String>,
+    pub background: Option<Background>,
+    pub backdrop: Option<Backdrop>,
+    #[serde(rename = "mirrorID")]
     pub mirror_id: Option<String>,
     pub text_size: Option<String>,
     pub text_color: Option<String>,
+    #[serde(rename = "collectionID")]
     pub collection_id: Option<String>,
     pub download_count: Option<i32>,
     pub updated_at: Option<i64>,

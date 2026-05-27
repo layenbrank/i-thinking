@@ -316,8 +316,9 @@ enum Application {
     Description,
     Background,
     Backdrop,
-    DownloadCount,
 
+    #[iden = "downloadCount"]
+    DownloadCount,
     #[iden = "textSize"]
     TextSize,
     #[iden = "textColor"]

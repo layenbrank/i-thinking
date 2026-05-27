@@ -56,6 +56,7 @@ pub struct Backdrop {
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+#[serde(rename_all = "lowercase")]
 pub enum Shape {
     #[sea_orm(string_value = "square")]
     Square,
@@ -67,6 +68,7 @@ pub enum Shape {
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+#[serde(rename_all = "lowercase")]
 pub enum Size {
     #[sea_orm(string_value = "mini")]
     Mini,
@@ -86,6 +88,7 @@ pub enum Size {
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+#[serde(rename_all = "lowercase")]
 pub enum Direction {
     #[sea_orm(string_value = "vertical")]
     Vertical,
@@ -120,8 +123,8 @@ pub struct Write {
     pub shape: Shape,
     pub direction: Direction,
     pub overlay: String,
-    pub background: Option<String>,
-    pub backdrop: Option<String>,
+    pub background: Option<Background>,
+    pub backdrop: Option<Backdrop>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,8 +163,8 @@ pub struct Change {
     pub shape: Option<Shape>,
     pub direction: Option<Direction>,
     pub overlay: Option<String>,
-    pub background: Option<String>,
-    pub backdrop: Option<String>,
+    pub background: Option<Background>,
+    pub backdrop: Option<Backdrop>,
     pub updated_at: Option<i64>,
     pub created_at: Option<i64>,
 }

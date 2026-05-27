@@ -54,4 +54,19 @@ declare namespace Mirror {
     blendMode?: string
     origin?: string
   }
+
+  /** 写入参数：全量字段，不含自动生成的 id / createdAt / updatedAt */
+  type Write = Omit<Mirror, 'id' | 'createdAt' | 'updatedAt'>
+
+  /** 查询过滤参数：仅限 Rust Read 结构体暴露的字段 */
+  type Read = Partial<Pick<Mirror, 'id' | 'title' | 'mark' | 'size' | 'shape' | 'direction'>>
+
+  /** 更新变更字段：除 id 外所有字段均可选 */
+  type Change = Partial<Omit<Mirror, 'id'>>
+
+  /** 更新请求体 */
+  interface Update {
+    key: string
+    change: Mirror.Change
+  }
 }

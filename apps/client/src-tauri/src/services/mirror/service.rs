@@ -7,6 +7,10 @@ use uuid::Uuid;
 
 use crate::{services::mirror::schema, utils::exception::Exception};
 
+fn json_to_string<T: serde::Serialize>(v: T) -> Option<String> {
+    serde_json::to_string(&v).ok()
+}
+
 pub struct Service;
 
 impl Service {
@@ -29,8 +33,8 @@ impl Service {
                     shape: Set(p.shape),
                     direction: Set(p.direction),
                     overlay: Set(p.overlay),
-                    background: Set(p.background),
-                    backdrop: Set(p.backdrop),
+                    background: Set(p.background.and_then(json_to_string)),
+                    backdrop: Set(p.backdrop.and_then(json_to_string)),
                     updated_at: Set(now),
                     created_at: Set(now),
                 };
@@ -60,8 +64,8 @@ impl Service {
                             shape: Set(p.shape),
                             direction: Set(p.direction),
                             overlay: Set(p.overlay),
-                            background: Set(p.background),
-                            backdrop: Set(p.backdrop),
+                            background: Set(p.background.and_then(json_to_string)),
+                            backdrop: Set(p.backdrop.and_then(json_to_string)),
                             updated_at: Set(now),
                             created_at: Set(now),
                         }
@@ -81,7 +85,6 @@ impl Service {
     ) -> Result<Vec<schema::Model>, Exception> {
         match params {
             schema::ReadP::One(p) => {
-                Self::ensure_read_payload(&p)?;
                 let model = schema::Entity::find()
                     .filter(Self::build_read_filter(&p))
                     .order_by_asc(schema::Column::Index)
@@ -96,10 +99,9 @@ impl Service {
                     return Ok(vec![]);
                 }
 
-                let combined = ps.iter().try_fold(Condition::any(), |any, p| {
-                    Self::ensure_read_payload(p)?;
-                    Ok::<_, Exception>(any.add(Self::build_read_filter(p)))
-                })?;
+                let combined = ps.iter().fold(Condition::any(), |any, p| {
+                    any.add(Self::build_read_filter(p))
+                });
 
                 let rows = schema::Entity::find()
                     .filter(combined)
@@ -218,10 +220,10 @@ impl Service {
             active.overlay = Set(v);
         }
         if let Some(v) = payload.change.background {
-            active.background = Set(Some(v));
+            active.background = Set(json_to_string(v));
         }
         if let Some(v) = payload.change.backdrop {
-            active.backdrop = Set(Some(v));
+            active.backdrop = Set(json_to_string(v));
         }
         if let Some(v) = payload.change.created_at {
             active.created_at = Set(v);
@@ -230,22 +232,6 @@ impl Service {
 
         let updated = active.update(db).await?;
         Ok(updated.id)
-    }
-
-    fn ensure_read_payload(payload: &schema::Read) -> Result<(), Exception> {
-        let has_any = payload.id.is_some()
-            || payload.title.is_some()
-            || payload.mark.is_some()
-            || payload.size.is_some()
-            || payload.shape.is_some()
-            || payload.direction.is_some();
-
-        if !has_any {
-            return Err(Exception::Validation(
-                "read payload must specify at least one criterion".to_string(),
-            ));
-        }
-        Ok(())
     }
 
     fn build_read_filter(payload: &schema::Read) -> Condition {

@@ -4,14 +4,15 @@ import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 // import { StrictMode } from 'react'
+import { useEffect } from 'react'
 import { RouterProvider } from 'react-router-dom'
 
 import { Fallback } from '@/components/fallback/index.ts'
 import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
 import { IntelligencePlugin } from '@/plugins/intelligence.ts'
-import { MirrorPlugin } from '@/plugins/mirror.ts'
 import { StoragePlugin } from '@/plugins/storage.ts'
 import { router } from '@/routers/index'
+import { useMirrorStore } from '@/stores/mirror.ts'
 
 // import { POST_SIGNIN } from '@/apis/auth.ts'
 
@@ -45,12 +46,15 @@ const themeConfigure: ThemeConfig = {
 
 const plugins: Plugin[] = [
   { ...StoragePlugin, priority: 10 },
-  { ...MirrorPlugin, priority: 5 },
   // KeyCodePlugin,
   IntelligencePlugin
 ]
 
 function App() {
+  useEffect(function () {
+    void useMirrorStore.getState().toInitialize()
+  }, [])
+
   // useEffect(function () {
   //   POST_SIGNIN({
   //     username: 'admin',
