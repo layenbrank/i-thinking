@@ -58,5 +58,17 @@ export default {
 				}
 			]
 		}
+	],
+	'/guides/': [
+		{
+			text: 'React',
+			collapsed: false,
+			items: [
+				{
+					text: 'Zustand 使用指南',
+					link: '/guides/zustand'
+				}
+			]
+		}
 	]
 } as DefaultTheme.SidebarMulti

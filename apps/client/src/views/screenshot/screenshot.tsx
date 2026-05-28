@@ -71,6 +71,7 @@ export default function Screenshot() {
           return prev.concat([
             {
               color: color,
+              draggable: true,
               fontSize: thickness,
               points: [
                 {

@@ -1,18 +1,16 @@
-import React from 'react'
-import { Calendar, Col, Radio, Row, Select } from 'antd'
 import type { CalendarProps } from 'antd'
+import type { CalendarMode } from 'antd/es/calendar'
+import { Calendar, Col, Radio, Row, Select } from 'antd'
 import { createStyles } from 'antd-style'
 import { clsx } from 'clsx'
-import dayjs from 'dayjs'
 import type { Dayjs } from 'dayjs'
-import localeData from 'dayjs/plugin/localeData'
+import dayjs from 'dayjs'
 import { HolidayUtil, Lunar } from 'lunar-typescript'
+import React from 'react'
 
 // import { timeSphere } from '@i-thinking/utils'
 
 import stylem from '@/views/calendar/calendar.module.scss'
-
-dayjs.extend(localeData)
 
 const useStyle = createStyles(({ token, css, cx }) => {
   const lunar = css`
@@ -119,7 +117,7 @@ const Component: React.FC = function () {
   const [selectDate, setSelectDate] = React.useState<Dayjs>(() => dayjs())
   const [panelDate, setPanelDate] = React.useState<Dayjs>(() => dayjs())
 
-  const onPanelChange = (value: Dayjs, mode: CalendarProps<Dayjs>['mode']) => {
+  const onPanelChange = (value: Dayjs, mode: CalendarMode) => {
     console.log(value.format('YYYY-MM-DD'), mode)
     setPanelDate(value)
   }
@@ -137,44 +135,47 @@ const Component: React.FC = function () {
     const isWeekend = date.day() === 6 || date.day() === 0
     const h = HolidayUtil.getHoliday(date.get('year'), date.get('month') + 1, date.get('date'))
     const displayHoliday = h?.getTarget() === h?.getDay() ? h?.getName() : undefined
-    if (info.type === 'date') {
-      return React.cloneElement(info.originNode, {
-        ...(info.originNode as React.ReactElement<any>).props,
-        className: clsx(styles.dateCell, {
-          [styles.current]: selectDate.isSame(date, 'date'),
-          [styles.today]: date.isSame(dayjs(), 'date')
-        }),
-        children: (
-          <div className={styles.text}>
-            <span
-              className={clsx({
-                [styles.weekend]: isWeekend,
-                gray: !panelDate.isSame(date, 'month')
-              })}>
-              {date.get('date')}
-            </span>
-            {info.type === 'date' && (
-              <div className={styles.lunar}>{displayHoliday || solarTerm || lunar}</div>
-            )}
+
+    const map: Partial<Record<typeof info.type, () => React.ReactNode>> = {
+      date() {
+        return React.cloneElement(info.originNode, {
+          ...(info.originNode as React.ReactElement<any>).props,
+          className: clsx(styles.dateCell, {
+            [styles.current]: selectDate.isSame(date, 'date'),
+            [styles.today]: date.isSame(dayjs(), 'date')
+          }),
+          children: (
+            <div className={styles.text}>
+              <span
+                className={clsx({
+                  [styles.weekend]: isWeekend,
+                  gray: !panelDate.isSame(date, 'month')
+                })}>
+                {date.get('date')}
+              </span>
+              {info.type === 'date' && (
+                <div className={styles.lunar}>{displayHoliday || solarTerm || lunar}</div>
+              )}
+            </div>
+          )
+        })
+      },
+      month() {
+        // Due to the fact that a solar month is part of the lunar month X and part of the lunar month X+1,
+        // when rendering a month, always take X as the lunar month of the month
+        const d2 = Lunar.fromDate(new Date(date.get('year'), date.get('month')))
+        const month = d2.getMonthInChinese()
+        return (
+          <div
+            className={clsx(styles.monthCell, {
+              [styles.monthCellCurrent]: selectDate.isSame(date, 'month')
+            })}>
+            {date.get('month') + 1}月（{month}月）
           </div>
         )
-      })
+      }
     }
-
-    if (info.type === 'month') {
-      // Due to the fact that a solar month is part of the lunar month X and part of the lunar month X+1,
-      // when rendering a month, always take X as the lunar month of the month
-      const d2 = Lunar.fromDate(new Date(date.get('year'), date.get('month')))
-      const month = d2.getMonthInChinese()
-      return (
-        <div
-          className={clsx(styles.monthCell, {
-            [styles.monthCellCurrent]: selectDate.isSame(date, 'month')
-          })}>
-          {date.get('month') + 1}月（{month}月）
-        </div>
-      )
-    }
+    return map?.[info.type]?.()
   }
 
   const getYearLabel = (year: number) => {

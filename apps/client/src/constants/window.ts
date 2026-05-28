@@ -38,6 +38,10 @@ const WINDOW: WindowConfigure = {
   bookmark: DEfAULT,
   calendar: {
     ...DEfAULT,
+    width: 600,
+    minWidth: 600,
+    height: 400,
+    minHeight: 400,
     windowEffects: undefined
   },
   clipchamp: DEfAULT,

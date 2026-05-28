@@ -36,7 +36,7 @@ import {
   type OverlayControlProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/marketplace/overlay.module.scss'
-import { mirror$ } from '@/stores/mirror.ts'
+import { useMirrorStore } from '@/stores/mirror.ts'
 import { timeSphere } from '@i-thinking/utils'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
@@ -86,6 +86,8 @@ export default function Overlay(props: OverlayControlProps) {
 
   const { visible, onUpdateVisible } = useContext(OverlayContext)
   // const { visible, updateVisible, mounted } = useContext(OverlayContext)
+
+  const mirror = useMirrorStore((state) => state.active.mirror)
   const DEFAULT_COLORS = useMemo(
     function () {
       return genPresets({
@@ -193,7 +195,7 @@ export default function Overlay(props: OverlayControlProps) {
         try {
           parsed = JSON.parse(text as string)
           parsed.forEach(function (i) {
-            i.mirrorID = mirror$.value?.id ?? ''
+            i.mirrorID = mirror?.id ?? ''
             i.collectionID = ''
           })
           invoke('application_inserts', { applications: parsed })

@@ -1,8 +1,12 @@
 import { XProvider } from '@ant-design/x'
 import { theme, type ThemeConfig } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
+// import enUS from 'antd/locale/en_US'
+
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
+import localeData from 'dayjs/plugin/localeData'
+
 // import { StrictMode } from 'react'
 import { useEffect } from 'react'
 import { RouterProvider } from 'react-router-dom'
@@ -15,7 +19,7 @@ import { router } from '@/routers/index'
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 // import { POST_SIGNIN } from '@/apis/auth.ts'
-
+dayjs.extend(localeData)
 dayjs.locale('zh-cn')
 
 const themeConfigure: ThemeConfig = {

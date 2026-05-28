@@ -80,15 +80,15 @@ interface MirrorOptions {
 function BuildMirror(options?: MirrorOptions) {
   const MIRROR_ID = options?.mirrorID ?? crypto?.randomUUID?.() ?? UUIDV4()
 
-  const MIRRORS: readonly Mirror[] = Array.from({ length: 1 }).map(function () {
-    const mirror: Mirror = {
-      id: MIRROR_ID,
+  const MIRRORS: readonly Mirror.Write[] = Array.from({ length: 1 }).map(function () {
+    const mirror: Mirror.Write = {
+      // id: MIRROR_ID,
       title: '镜像-01',
       index: 0,
       mark: '',
       description: '默认镜像',
-      updatedAt: Date.now(),
-      createdAt: Date.now(),
+      // updatedAt: Date.now(),
+      // createdAt: Date.now(),
       size: 'mini',
       backdrop: null,
       background: null,
@@ -100,40 +100,38 @@ function BuildMirror(options?: MirrorOptions) {
     return mirror
   })
 
-  const MIRROR: Mirror | undefined = MIRRORS.find(function (mirror) {
-    return mirror.id === MIRROR_ID
-  })
+  // const MIRROR: Mirror | undefined = MIRRORS.find(function (mirror) {
+  //   return mirror.id === MIRROR_ID
+  // })
 
-  const APPLICATIONS: readonly Application[] = OPTIONS.map(
-    function (single, index) {
-      const application: Application = {
-        id: crypto?.randomUUID?.(),
-        url: single.value === 'navigation' ? 'https://cn.bing.com' : null,
-        mark: null,
-        title: single.label,
-        index: index,
-        round: '12px',
-        mirrorID: MIRROR_ID,
-        textSize: '13px',
-        backdrop: null,
-        component: single.value,
-        textColor: '#ffffff',
-        updatedAt: Date.now(),
-        createdAt: Date.now(),
-        description: single.label,
-        collectionID: null,
-        downloadCount: 1000,
-        background: {
-          color: generateColor()
-        }
+  const APPLICATIONS: readonly Application.Write[] = OPTIONS.map(function (single, index) {
+    const application: Application.Write = {
+      // id: crypto?.randomUUID?.(),
+      url: single.value === 'navigation' ? 'https://cn.bing.com' : null,
+      mark: null,
+      title: single.label,
+      index: index,
+      round: '12px',
+      mirrorID: MIRROR_ID,
+      textSize: '13px',
+      backdrop: null,
+      component: single.value,
+      textColor: '#ffffff',
+      // updatedAt: Date.now(),
+      // createdAt: Date.now(),
+      description: single.label,
+      collectionID: null,
+      // downloadCount: 1000,
+      background: {
+        color: generateColor()
       }
-      return application
     }
-  )
+    return application
+  })
 
   return {
     MIRRORS,
-    MIRROR,
+    // MIRROR,
     MIRROR_ID,
     APPLICATIONS
   }

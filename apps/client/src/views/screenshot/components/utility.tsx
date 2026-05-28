@@ -132,7 +132,9 @@ export default function Utility(props: UtilityProps) {
         e.stopPropagation()
       }}>
       {/* 工具按钮 */}
-      <div className={styles.row}>
+      <div
+        draggable-region="true"
+        className={styles.row}>
         <div className={styles.ensemble}>
           {UTILITIES.map(function (utility) {
             return (

@@ -36,6 +36,7 @@ export interface ShapeProps {
   filled?: boolean
   /** 透明度（0~1） */
   opacity?: number
+  draggable?: boolean
   /** 马赛克 / 模糊所需的底图：用于在指定区域采样并应用滤镜 */
   sourceImage?: HTMLImageElement
 }
@@ -84,8 +85,9 @@ function FilteredImage(props: {
   filters: Filter[]
   pixelSize?: number
   blurRadius?: number
+  draggable?: boolean
 }) {
-  const { image, box, filters, pixelSize, blurRadius } = props
+  const { image, box, filters, pixelSize, blurRadius, draggable } = props
   const ref = useRef<Konva.Image>(null)
 
   useEffect(() => {
@@ -109,13 +111,14 @@ function FilteredImage(props: {
       filters={filters}
       pixelSize={pixelSize}
       blurRadius={blurRadius}
+      draggable={draggable}
     />
   )
 }
 
 const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
   arrow(props) {
-    const { points, color, thickness } = props
+    const { points, color, thickness, draggable } = props
     if (points.length < 2) return null
     const [from, to] = points
     return (
@@ -128,19 +131,21 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
         pointerWidth={ARROW_POINTER_BASE_WIDTH + thickness * 1.5}
         lineCap="round"
         lineJoin="round"
+        draggable={draggable}
         hitStrokeWidth={Math.max(thickness, MIN_HIT_STROKE_WIDTH)}
       />
     )
   },
 
   blur(props) {
-    const { points, sourceImage } = props
+    const { points, sourceImage, draggable } = props
     if (points.length < 2 || !sourceImage) return null
     const box = findBoundingBox(points[0], points[1])
     return (
       <FilteredImage
         image={sourceImage}
         box={box}
+        draggable={draggable}
         filters={[Konva.Filters.Blur]}
         blurRadius={BLUR_RADIUS}
       />
@@ -148,7 +153,7 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
   },
 
   ellipse(props) {
-    const { points, color, thickness, filled, opacity } = props
+    const { points, color, thickness, filled, opacity, draggable } = props
     if (points.length < 2) return null
     const [a, b] = points
     return (
@@ -161,13 +166,14 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
         strokeWidth={thickness}
         fill={filled ? color : undefined}
         opacity={opacity}
+        draggable={draggable}
         hitStrokeWidth={Math.max(thickness, MIN_HIT_STROKE_WIDTH)}
       />
     )
   },
 
   freehand(props) {
-    const { points, color, thickness } = props
+    const { points, color, thickness, draggable } = props
     if (points.length < 2) return null
     return (
       <Line
@@ -177,18 +183,21 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
         tension={0.4}
         lineCap="round"
         lineJoin="round"
+        draggable={draggable}
         hitStrokeWidth={Math.max(thickness, MIN_HIT_STROKE_WIDTH)}
       />
     )
   },
 
   spotlight(props) {
-    const { points, thickness } = props
+    const { points, thickness, draggable } = props
     if (points.length < 2) return null
     const box = findBoundingBox(points[0], points[1])
     // 通过 even-odd 填充规则挖空高亮区域：外层大矩形 + 内层目标区域
     return (
-      <Group listening={true}>
+      <Group
+        listening={true}
+        draggable={draggable}>
         <Line
           points={[
             -SPOTLIGHT_MASK_SIZE,
@@ -228,13 +237,14 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
   },
 
   index(props) {
-    const { index, points, color } = props
+    const { index, points, color, draggable } = props
     if (points.length < 1) return null
     const [point] = points
     return (
       <Group
         x={point.x}
-        y={point.y}>
+        y={point.y}
+        draggable={draggable}>
         <Circle
           radius={NUMBER_RADIUS}
           fill={color}
@@ -257,7 +267,7 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
   },
 
   line(props) {
-    const { points, color, thickness } = props
+    const { points, color, thickness, draggable } = props
     if (points.length < 2) return null
     const [a, b] = points
     return (
@@ -266,17 +276,19 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
         stroke={color}
         strokeWidth={thickness}
         lineCap="round"
+        draggable={draggable}
         hitStrokeWidth={Math.max(thickness, MIN_HIT_STROKE_WIDTH)}
       />
     )
   },
 
   mosaic(props) {
-    const { points, sourceImage } = props
+    const { points, sourceImage, draggable } = props
     if (points.length < 2 || !sourceImage) return null
     const box = findBoundingBox(points[0], points[1])
     return (
       <FilteredImage
+        draggable={draggable}
         image={sourceImage}
         box={box}
         filters={[Konva.Filters.Pixelate]}
@@ -286,7 +298,7 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
   },
 
   rect(props) {
-    const { points, color, thickness, filled, opacity } = props
+    const { points, color, thickness, filled, opacity, draggable } = props
     if (points.length < 2) return null
     const box = findBoundingBox(points[0], points[1])
     return (
@@ -296,13 +308,14 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
         strokeWidth={thickness}
         fill={filled ? color : undefined}
         opacity={opacity}
+        draggable={draggable}
         hitStrokeWidth={Math.max(thickness, MIN_HIT_STROKE_WIDTH)}
       />
     )
   },
 
   text(props) {
-    const { points, color, fontSize, text, width, opacity } = props
+    const { points, color, fontSize, text, width, opacity, draggable } = props
     if (points.length < 1) return null
     const [point] = points
     return (
@@ -315,6 +328,7 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
         fill={color}
         width={width}
         opacity={opacity}
+        draggable={draggable}
       />
     )
   }

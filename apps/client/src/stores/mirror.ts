@@ -4,6 +4,7 @@ import type { StateCreator } from 'zustand'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
+import { cloneDeep } from 'lodash-es'
 
 import { BuildMirror } from '@/constants/mirror.ts'
 
@@ -109,9 +110,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
 
       let mirrors = await invoke<Mirror[]>('mirror_read', { params: {} })
       if (isEmpty(mirrors)) {
-        const writes: MirrorWrite[] = MIRRORS.map(
-          ({ id: _id, createdAt: _c, updatedAt: _u, ...rest }) => rest
-        )
+        const writes: MirrorWrite[] = MIRRORS.map((value) => value)
         await invoke('mirror_write', { params: writes })
         mirrors = await invoke<Mirror[]>('mirror_read', { params: {} })
       }
@@ -127,9 +126,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
       if (isEmpty(getters().applications)) {
         // 用实际入库的 first.id 重新构建，确保 mirrorID 匹配
         const { APPLICATIONS } = BuildMirror({ mirrorID: first.id })
-        const writes: ApplicationWrite[] = APPLICATIONS.map(
-          ({ id: _id, createdAt: _c, updatedAt: _u, downloadCount: _d, ...rest }) => rest
-        )
+        const writes: ApplicationWrite[] = APPLICATIONS.map((value) => value)
         await invoke('application_write', { params: writes })
         await getters().toReadMirror(first.id)
       }

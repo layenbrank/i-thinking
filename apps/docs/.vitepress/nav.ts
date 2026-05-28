@@ -13,5 +13,10 @@ export default [
 		text: 'Configs',
 		link: '/configs/vite/vite.md',
 		activeMatch: '/configs/'
+	},
+	{
+		text: 'Guides',
+		link: '/guides/zustand',
+		activeMatch: '/guides/'
 	}
 ] as DefaultTheme.NavItem[]
