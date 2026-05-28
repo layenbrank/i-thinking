@@ -59,6 +59,38 @@ function App() {
     void useMirrorStore.getState().toInitialize()
   }, [])
 
+  // 注册全局截图快捷键（Tauri 环境，主窗口只注册一次）
+  useEffect(function () {
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return
+    let unregister: (() => void) | null = null
+    let cancelled = false
+    ;(async function () {
+      try {
+        const [{ register, unregister: removeShortcut, isRegistered }, { invoke }] =
+          await Promise.all([
+            import('@tauri-apps/plugin-global-shortcut'),
+            import('@tauri-apps/api/core')
+          ])
+        const SHORTCUT = 'CommandOrControl+Alt+A'
+        if (await isRegistered(SHORTCUT)) await removeShortcut(SHORTCUT)
+        await register(SHORTCUT, function (event) {
+          if (event.state === 'Pressed') void invoke('screenshot_open')
+        })
+        if (cancelled) await removeShortcut(SHORTCUT)
+        else
+          unregister = function () {
+            void removeShortcut(SHORTCUT)
+          }
+      } catch (err) {
+        console.warn('[App] 注册截图快捷键失败', err)
+      }
+    })()
+    return function () {
+      cancelled = true
+      unregister?.()
+    }
+  }, [])
+
   // useEffect(function () {
   //   POST_SIGNIN({
   //     username: 'admin',

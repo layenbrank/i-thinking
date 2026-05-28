@@ -214,6 +214,27 @@
         "width": 1200
       },
       {
+        "alwaysOnTop": true,
+        "backgroundColor": "#00000000",
+        "create": false,
+        "decorations": false,
+        "devtools": true,
+        "dragDropEnabled": false,
+        "focus": true,
+        "focusable": true,
+        "fullscreen": true,
+        "label": "screenshot",
+        "maximizable": false,
+        "minimizable": false,
+        "resizable": false,
+        "shadow": false,
+        "skipTaskbar": true,
+        "transparent": true,
+        "title": "Screenshot",
+        "url": "/screenshot",
+        "visible": false
+      },
+      {
         "backgroundColor": "#00000000",
         "center": true,
         "create": false,

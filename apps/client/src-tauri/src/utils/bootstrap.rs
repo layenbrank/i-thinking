@@ -7,7 +7,7 @@ use crate::{
     },
     services::{application::command as application, mirror::command as mirror},
     ui::tray,
-    utils::{invoke, pdf},
+    utils::{invoke, pdf, screenshot},
 };
 
 pub struct Bootstrap;
@@ -119,7 +119,11 @@ impl Bootstrap {
                 pdf::pdf_split,
                 pdf::pdf_split_by_count,
                 pdf::pdf_to_images,
-                pdf::pdf_to_office
+                pdf::pdf_to_office,
+                // screenshot
+                screenshot::screenshot_capture,
+                screenshot::screenshot_open,
+                screenshot::screenshot_close
             ])
             .run(generate_context!())
             .expect("error while running application");

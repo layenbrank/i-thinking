@@ -38,6 +38,7 @@ pub mod utils {
     pub mod invoke;
     pub mod pdf;
     pub mod scan;
+    pub mod screenshot;
     // pub mod bookmark;
     // pub mod client;
     // pub mod installer;
