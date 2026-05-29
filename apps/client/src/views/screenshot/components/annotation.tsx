@@ -4,16 +4,16 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { Layer, Image as ReImage, Stage, Transformer, type KonvaNodeEvents } from 'react-konva'
 import useImage from 'use-image'
 
-import ReShape, { SpotlightMask, type ShapeProps } from '@/views/screenshot/components/shape'
+import Graphics, { SpotlightMask, type GraphicsProps } from '@/views/screenshot/components/graphics'
 
 import styles from '@/views/screenshot/components/annotation.module.scss'
 
 import URLBackground from '@/assets/screenshot-background.jpg'
 
 interface AnnotationProps {
-  annotations: ShapeProps[]
+  annotations: GraphicsProps[]
   /** 当前选中的标注 id（null 表示未选中） */
-  selectedId: string | null
+  selectedID: string | null
   /** 是否启用对已有标注的交互（editing 阶段 = true） */
   interactive: boolean
   /** 滤镜底图（mosaic / blur 共用），也会作为 Stage 背景 */
@@ -21,7 +21,7 @@ interface AnnotationProps {
   /** 裁剪选区：不为空时，标注层会裁剪到该区域内 */
   clipRect: { x: number; y: number; w: number; h: number } | null
   onSelect: (id: string | null) => void
-  onChange: (next: ShapeProps) => void
+  onChange: (next: GraphicsProps) => void
   onRelease: KonvaNodeEvents['onMouseUp']
   onPress: KonvaNodeEvents['onMouseDown']
   onMove: KonvaNodeEvents['onMouseMove']
@@ -41,7 +41,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       annotations,
       clipRect,
       interactive,
-      selectedId,
+      selectedID,
       sourceImage,
       onChange,
       onSelect,
@@ -113,12 +113,12 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
         const tr = transformerRef.current
         const stage = stageRef.current
         if (!tr || !stage) return
-        if (!selectedId) {
+        if (!selectedID) {
           tr.nodes([])
           tr.getLayer()?.batchDraw()
           return
         }
-        const node = stage.findOne<Konva.Node>('#' + selectedId)
+        const node = stage.findOne<Konva.Node>('#' + selectedID)
         if (!node) {
           tr.nodes([])
         } else {
@@ -126,7 +126,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
         }
         tr.getLayer()?.batchDraw()
       },
-      [selectedId, annotations]
+      [selectedID, annotations]
     )
 
     /** 透传 mouseDown，并在编辑阶段点击空白处取消选中 */
@@ -139,7 +139,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
     }
 
     /** 把滤镜底图自动注入到 mosaic / blur 类型的标注上 */
-    function withSource(annotation: ShapeProps): ShapeProps {
+    function withSource(annotation: GraphicsProps): GraphicsProps {
       if (!sourceImage) return annotation
       if (annotation.type !== 'mosaic' && annotation.type !== 'blur') return annotation
       return { ...annotation, sourceImage }
@@ -185,11 +185,11 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
             }>
             {annotations.map(function (annotation) {
               return (
-                <ReShape
+                <Graphics
                   key={annotation.id}
                   {...withSource(annotation)}
                   interactive={interactive}
-                  isSelected={annotation.id === selectedId}
+                  isSelected={annotation.id === selectedID}
                   onSelect={onSelect}
                   onChange={onChange}
                 />

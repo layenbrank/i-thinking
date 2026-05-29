@@ -3,8 +3,26 @@ pub mod databases {
     pub mod storage;
 }
 
+pub mod engine {
+    pub mod command;
+    pub mod schema;
+    pub mod service;
+}
+
 pub mod migrations {
     pub mod migrations_v001;
+}
+
+pub mod morph {
+    pub mod command;
+    pub mod schema;
+    pub mod service;
+}
+
+pub mod screenshot {
+    pub mod command;
+    pub mod schema;
+    pub mod service;
 }
 
 pub mod services {
@@ -35,6 +53,7 @@ pub mod ui {
 pub mod utils {
     pub mod bootstrap;
     pub mod exception;
+    pub mod image;
     pub mod invoke;
     pub mod pdf;
     pub mod scan;

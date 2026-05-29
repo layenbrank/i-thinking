@@ -5,9 +5,10 @@ use crate::{
         migration,
         storage::{self, Storage, get_app_data_dir, get_database_path},
     },
+    screenshot::command as screenshot,
     services::{application::command as application, mirror::command as mirror},
     ui::tray,
-    utils::{invoke, pdf, screenshot},
+    utils::{invoke, pdf},
 };
 
 pub struct Bootstrap;
@@ -122,8 +123,8 @@ impl Bootstrap {
                 pdf::pdf_to_office,
                 // screenshot
                 screenshot::screenshot_capture,
-                screenshot::screenshot_open,
-                screenshot::screenshot_close
+                // screenshot::,
+                // screenshot::screenshot_close
             ])
             .run(generate_context!())
             .expect("error while running application");

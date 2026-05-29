@@ -5,8 +5,8 @@ import { useHotkeys } from 'react-hotkeys-hook'
 import { v4 as UUID } from 'uuid'
 
 import { Annotation, type AnnotationHandle } from '@/views/screenshot/components/annotation'
+import { type GraphicsEnum, type GraphicsProps } from '@/views/screenshot/components/graphics'
 import Magnifier from '@/views/screenshot/components/magnifier'
-import { type ShapeEnum, type ShapeProps } from '@/views/screenshot/components/shape'
 import Utility from '@/views/screenshot/components/utility'
 import {
   captureScreen,
@@ -43,36 +43,36 @@ interface Size {
 const MIN_DRAG_PX = 3
 
 /** 单点创建型标注（点击即可），不受拖拽阈值限制 */
-const POINT_SHAPES = new Set<ShapeEnum>(['text', 'index'])
+const POINT_SHAPES = new Set<GraphicsEnum>(['text', 'index'])
 
 /** 多点追加型标注（拖拽路径上不断 append 点）：画笔、荧光笔 */
-const MULTI_POINT_SHAPES = new Set<ShapeEnum>(['freehand', 'highlight'])
+const MULTI_POINT_GRAPHICS = new Set<GraphicsEnum>(['freehand', 'highlight'])
 
 export default function Screenshot() {
   const [phase, onUpdatePhase] = useState<Phase>('selecting')
-  const [shape, onUpdateShape] = useState<ShapeEnum | null>(null)
-  const [annotations, onUpdateAnnotations] = useState<ShapeProps[]>([])
+  const [graphics, onUpdateGraphics] = useState<GraphicsEnum | null>(null)
+  const [annotations, onUpdateAnnotations] = useState<GraphicsProps[]>([])
   const [selection, onUpdateSelection] = useState<(Point & Size) | null>(null)
   const [color, onUpdateColor] = useState('#4080ff')
   const [thickness, onUpdateThickness] = useState(2)
   const [filled, onUpdateFilled] = useState(false)
   const [opacity, onUpdateOpacity] = useState(1)
   const [fontSize, onUpdateFontSize] = useState(18)
-  const [selectedId, onUpdateSelectedId] = useState<string | null>(null)
+  const [selectedID, onUpdateSelectedID] = useState<string | null>(null)
   const [sourceImage, onUpdateSourceImage] = useState<HTMLImageElement | null>(null)
   /** 可撤销/重做状态（从 historyRef 同步，但需要反应式驱动 UI） */
   const [canUndo, onUpdateCanUndo] = useState(false)
   const [canRedo, onUpdateCanRedo] = useState(false)
 
   /** 当前正在拖拽创建的草稿 id（避免通过 closure 读外层 state） */
-  const draftIdRef = useRef<string | null>(null)
+  const draftIDRef = useRef<string | null>(null)
   /** 鼠标按下时的起点（仅用于阈值判定 / 选区起点） */
   const beginRef = useRef<Point>({ x: 0, y: 0 })
   /** 暴露 Annotation 的导出能力 */
   const annotationRef = useRef<AnnotationHandle>(null)
 
   /** 历史栈：每一帧都是 annotations 的完整快照（A 方案：commit / drag-end / transform-end / delete 入栈）*/
-  const historyRef = useRef<ShapeProps[][]>([[]])
+  const historyRef = useRef<GraphicsProps[][]>([[]])
   const historyStepRef = useRef(0)
 
   /** 同步 canUndo / canRedo 到 React state */
@@ -82,7 +82,7 @@ export default function Screenshot() {
   }
 
   /** 把一帧 annotations 写入历史栈 */
-  function commitHistory(next: ShapeProps[]) {
+  function commitHistory(next: GraphicsProps[]) {
     const truncated = historyRef.current.slice(0, historyStepRef.current + 1)
     truncated.push(next)
     historyRef.current = truncated
@@ -94,7 +94,7 @@ export default function Screenshot() {
     if (historyStepRef.current === 0) return
     historyStepRef.current -= 1
     onUpdateAnnotations(historyRef.current[historyStepRef.current])
-    onUpdateSelectedId(null)
+    onUpdateSelectedID(null)
     syncHistoryFlags()
   }
 
@@ -102,31 +102,31 @@ export default function Screenshot() {
     if (historyStepRef.current >= historyRef.current.length - 1) return
     historyStepRef.current += 1
     onUpdateAnnotations(historyRef.current[historyStepRef.current])
-    onUpdateSelectedId(null)
+    onUpdateSelectedID(null)
     syncHistoryFlags()
   }
 
   /** 删除当前选中的标注 */
   function handleDelete() {
-    if (!selectedId) return
+    if (!selectedID) return
     onUpdateAnnotations(function (prev) {
       const next = prev.filter(function (a) {
-        return a.id !== selectedId
+        return a.id !== selectedID
       })
       commitHistory(next)
       return next
     })
-    onUpdateSelectedId(null)
+    onUpdateSelectedID(null)
   }
 
   /** Esc 逐级退出：annotating → editing → 取消选中 → 重选 */
   function handleEscape() {
     if (phase === 'annotating') {
-      onUpdateShape(null)
+      onUpdateGraphics(null)
       return
     }
-    if (selectedId) {
-      onUpdateSelectedId(null)
+    if (selectedID) {
+      onUpdateSelectedID(null)
       return
     }
     if (selection) {
@@ -182,14 +182,14 @@ export default function Screenshot() {
   /** 选择某个工具后，自动进入 annotating 阶段；shape 为 null 时回到 editing */
   useEffect(
     function () {
-      if (shape) {
+      if (graphics) {
         onUpdatePhase('annotating')
-        onUpdateSelectedId(null)
+        onUpdateSelectedID(null)
       } else if (selection) {
         onUpdatePhase('editing')
       }
     },
-    [shape]
+    [graphics]
   )
 
   /** 从事件中取得 Stage 内的指针坐标（处理 DPR / 偏移 / 未来缩放） */
@@ -221,12 +221,12 @@ export default function Screenshot() {
 
     // annotating：创建一个草稿标注
     if (phase === 'annotating') {
-      if (!shape) return
+      if (!graphics) return
       const newID = UUID()
-      draftIdRef.current = newID
+      draftIDRef.current = newID
       // index 形状需要递增编号：基于已有 index 标注的最大值 + 1
       let nextIndex: number | undefined
-      if (shape === 'index') {
+      if (graphics === 'index') {
         nextIndex =
           annotations
             .filter(function (a) {
@@ -240,7 +240,7 @@ export default function Screenshot() {
         return prev.concat([
           {
             id: newID,
-            type: shape,
+            type: graphics,
             color: color,
             thickness: thickness,
             fontSize: fontSize,
@@ -269,14 +269,14 @@ export default function Screenshot() {
       return
     }
 
-    if (phase === 'annotating' && draftIdRef.current) {
+    if (phase === 'annotating' && draftIDRef.current) {
       // 单点型标注不需要在拖拽过程中更新多个顶点
-      if (shape && POINT_SHAPES.has(shape)) return
-      const draftId = draftIdRef.current
+      if (graphics && POINT_SHAPES.has(graphics)) return
+      const draftID = draftIDRef.current
       onUpdateAnnotations(function (prev) {
         return prev.map(function (value) {
-          if (value.id !== draftId) return value
-          if (MULTI_POINT_SHAPES.has(value.type)) {
+          if (value.id !== draftID) return value
+          if (MULTI_POINT_GRAPHICS.has(value.type)) {
             return {
               ...value,
               points: value.points.concat([{ x: pt.x, y: pt.y }])
@@ -316,17 +316,17 @@ export default function Screenshot() {
       return
     }
 
-    if (phase === 'annotating' && draftIdRef.current) {
-      const draftId = draftIdRef.current
-      draftIdRef.current = null
+    if (phase === 'annotating' && draftIDRef.current) {
+      const draftID = draftIDRef.current
+      draftIDRef.current = null
 
       // 单点型标注（text/index）跳过阈值检查；其他形状判定尺寸
-      const isSinglePoint = shape ? POINT_SHAPES.has(shape) : false
+      const isSinglePoint = graphics ? POINT_SHAPES.has(graphics) : false
       if (!isSinglePoint && tooSmall) {
         // 丢弃过小的草稿
         onUpdateAnnotations(function (prev) {
           return prev.filter(function (v) {
-            return v.id !== draftId
+            return v.id !== draftID
           })
         })
         return
@@ -335,9 +335,9 @@ export default function Screenshot() {
       // 提交草稿到历史栈
       onUpdateAnnotations(function (prev) {
         const next = prev.map(function (value) {
-          if (value.id !== draftId) return value
+          if (value.id !== draftID) return value
           if (isSinglePoint) return value
-          if (MULTI_POINT_SHAPES.has(value.type)) {
+          if (MULTI_POINT_GRAPHICS.has(value.type)) {
             return {
               ...value,
               points: value.points.concat([{ x: pt.x, y: pt.y }])
@@ -357,9 +357,9 @@ export default function Screenshot() {
   /** 选中已有标注时，将该标注的属性值同步到工具栏，便于继续修改 */
   useEffect(
     function () {
-      if (!selectedId) return
+      if (!selectedID) return
       const current = annotations.find(function (a) {
-        return a.id === selectedId
+        return a.id === selectedID
       })
       if (!current) return
       onUpdateColor(current.color)
@@ -368,11 +368,11 @@ export default function Screenshot() {
       if (current.filled != null) onUpdateFilled(current.filled)
       if (current.fontSize != null) onUpdateFontSize(current.fontSize)
     },
-    [selectedId]
+    [selectedID]
   )
 
   /** 单个标注被拖拽 / Transform 后回写并记入历史 */
-  function handleAnnotationChange(next: ShapeProps) {
+  function handleAnnotationChange(next: GraphicsProps) {
     onUpdateAnnotations(function (prev) {
       const updated = prev.map(function (v) {
         return v.id === next.id ? next : v
@@ -386,11 +386,11 @@ export default function Screenshot() {
    * 工具栏属性变更：若已选中某个标注 → 同时回写到该标注并记入历史；
    * 否则只更新「未来新建」的默认值。
    */
-  function applyPropertyToSelected(patch: Partial<ShapeProps>) {
-    if (!selectedId) return
+  function applyPropertyToSelected(patch: Partial<GraphicsProps>) {
+    if (!selectedID) return
     onUpdateAnnotations(function (prev) {
       const updated = prev.map(function (v) {
-        return v.id === selectedId ? { ...v, ...patch } : v
+        return v.id === selectedID ? { ...v, ...patch } : v
       })
       commitHistory(updated)
       return updated
@@ -418,12 +418,16 @@ export default function Screenshot() {
     applyPropertyToSelected({ fontSize: next })
   }
 
-  /** 「重选」：仅重置选区与相位机，保留所有 annotations（B 方案） */
+  /** 「重选」：重置选区、标注、历史栈，回到框选阶段 */
   function handleRefresh() {
     onUpdateSelection(null)
-    onUpdateShape(null)
-    onUpdateSelectedId(null)
+    onUpdateGraphics(null)
+    onUpdateSelectedID(null)
+    onUpdateAnnotations([])
     onUpdatePhase('selecting')
+    historyRef.current = [[]]
+    historyStepRef.current = 0
+    syncHistoryFlags()
   }
 
   /** 取出当前 Stage 选区内的 PNG，触发某个 IO 后关闭截图窗口 */
@@ -485,9 +489,9 @@ export default function Screenshot() {
         annotations={annotations}
         clipRect={selection}
         interactive={phase === 'editing'}
-        selectedId={selectedId}
+        selectedID={selectedID}
         sourceImage={sourceImage}
-        onSelect={onUpdateSelectedId}
+        onSelect={onUpdateSelectedID}
         onChange={handleAnnotationChange}
         onMove={handleMove}
         onPress={handlePress}
@@ -557,7 +561,7 @@ export default function Screenshot() {
         selection={phase === 'selecting' ? null : selection}
         canRedo={canRedo}
         canUndo={canUndo}
-        active={shape}
+        active={graphics}
         color={color}
         thickness={thickness}
         filled={filled}
@@ -575,7 +579,7 @@ export default function Screenshot() {
         onPreserve={handlePreserve}
         onUpdateThickness={handleUpdateThickness}
         onUndo={handleUndo}
-        onUpdateUtility={onUpdateShape}
+        onUpdateUtility={onUpdateGraphics}
       />
     </div>
   )

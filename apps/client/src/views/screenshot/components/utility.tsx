@@ -7,21 +7,21 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import type { ColorPickerProps } from 'antd'
 
-import { type ShapeEnum } from '@/views/screenshot/components/shape'
+import { type GraphicsEnum } from '@/views/screenshot/components/graphics'
 
 import styles from '@/views/screenshot/components/utility.module.scss'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
 interface UtilityOption {
-  type: ShapeEnum
+  type: GraphicsEnum
   label: string
   icon: string
 }
 
 interface UtilityProps {
   selection: { x: number; y: number; w: number; h: number } | null
-  active: ShapeEnum | null
+  active: GraphicsEnum | null
   color: string
   thickness: number
   filled: boolean
@@ -29,7 +29,7 @@ interface UtilityProps {
   fontSize: number
   canUndo: boolean
   canRedo: boolean
-  onUpdateUtility: (shape: ShapeEnum) => void
+  onUpdateUtility: (shape: GraphicsEnum | null) => void
   onUpdateColor: (color: string) => void
   onUpdateThickness: (thickness: number) => void
   onUpdateFilled: (filled: boolean) => void
@@ -45,11 +45,11 @@ interface UtilityProps {
 }
 
 /** 支持「填充」开关的形状（仅闭合矩形/椭圆） */
-const FILLABLE_SHAPES = new Set<ShapeEnum>(['rect', 'ellipse'])
+const FILLABLE_GRAPHICS = new Set<GraphicsEnum>(['rect', 'ellipse'])
 /** 支持「字号」滑块的形状 */
-const FONTSIZE_SHAPES = new Set<ShapeEnum>(['text', 'index'])
+const FONTSIZE_GRAPHICS = new Set<GraphicsEnum>(['text', 'index'])
 /** 不参与透明度调整的形状（模糊/马赛克/聚光灯的视觉语义不应被改） */
-const NON_OPACITY_SHAPES = new Set<ShapeEnum>(['mosaic', 'blur', 'spotlight'])
+const NON_OPACITY_GRAPHICS = new Set<GraphicsEnum>(['mosaic', 'blur', 'spotlight'])
 
 const UTILITIES: UtilityOption[] = [
   { type: 'rect', label: '矩形', icon: 'mdi:rectangle-outline' },
@@ -111,9 +111,9 @@ export default function Utility(props: UtilityProps) {
 
   // 属性面板开合：仅在选中工具后展开（不再独立使用 visible state）
   const visible = active !== null
-  const showFilled = active != null && FILLABLE_SHAPES.has(active)
-  const showFontSize = active != null && FONTSIZE_SHAPES.has(active)
-  const showOpacity = active != null && !NON_OPACITY_SHAPES.has(active)
+  const showFilled = active != null && FILLABLE_GRAPHICS.has(active)
+  const showFontSize = active != null && FONTSIZE_GRAPHICS.has(active)
+  const showOpacity = active != null && !NON_OPACITY_GRAPHICS.has(active)
   const [pickerOpen, setPickerOpen] = useState(false)
   const isCustomColor = !COLORS.some((c) => c.toUpperCase() === color.toUpperCase())
 
@@ -203,7 +203,7 @@ export default function Utility(props: UtilityProps) {
                       })}
                       whileTap={{ scale: 0.9 }}
                       onClick={function () {
-                        onUpdateUtility(utility.type)
+                        onUpdateUtility(active === utility.type ? null : utility.type)
                       }}>
                       <Icon
                         icon={utility.icon}
@@ -366,7 +366,9 @@ export default function Utility(props: UtilityProps) {
                     onChange={(c) => onUpdateColor(c.toHexString().toUpperCase())}>
                     <Tooltip title="自定义颜色">
                       <motion.button
-                        className={clsx(styles.color, { [styles.active]: isCustomColor })}
+                        className={clsx(styles.color, styles.palette, {
+                          [styles.active]: isCustomColor
+                        })}
                         whileTap={{ scale: 0.85 }}
                         animate={{
                           scale: pickerOpen ? 1.1 : 1,
@@ -380,8 +382,8 @@ export default function Utility(props: UtilityProps) {
                         {!isCustomColor && (
                           <Icon
                             icon="mdi:palette-outline"
-                            width={14}
-                            height={14}
+                            width={18}
+                            height={18}
                           />
                         )}
                       </motion.button>
@@ -389,29 +391,34 @@ export default function Utility(props: UtilityProps) {
                   </ColorPicker>
                 </div>
                 <div className={styles.separator} />
-                <div className={clsx(styles.ensemble, 'flex-1')}>
-                  <Slider
-                    className={clsx(styles.thickness)}
-                    value={thickness}
-                    onChange={(v) => onUpdateThickness(Math.round(v))}
-                    step={0.01}
-                    min={1}
-                    max={16}
-                    tooltip={{
-                      formatter: (v) => Math.round(v ?? 1)
-                    }}
-                    styles={{
-                      track: {
-                        backgroundImage: 'linear-gradient(180deg, #91caff, #1677ff)'
-                      },
-                      handle: {
-                        borderColor: '#1677ff',
-                        boxShadow: '0 2px 8px #1677ff',
-                        willChange: 'transform'
-                      }
-                    }}
-                  />
-                </div>
+                <Tooltip title={`粗细 ${Math.round(thickness)}`}>
+                  <div className={clsx(styles.ensemble, styles.compact)}>
+                    <Icon
+                      icon="mdi:format-line-weight"
+                      width={14}
+                      height={14}
+                    />
+                    <Slider
+                      className={clsx(styles.thickness)}
+                      value={thickness}
+                      onChange={(v) => onUpdateThickness(Math.round(v))}
+                      step={0.01}
+                      min={1}
+                      max={16}
+                      tooltip={{ open: false }}
+                      styles={{
+                        track: {
+                          backgroundImage: 'linear-gradient(180deg, #91caff, #1677ff)'
+                        },
+                        handle: {
+                          borderColor: '#1677ff',
+                          boxShadow: '0 2px 8px #1677ff',
+                          willChange: 'transform'
+                        }
+                      }}
+                    />
+                  </div>
+                </Tooltip>
 
                 {/* 填充开关：仅闭合形状（rect / ellipse） */}
                 {showFilled && (
@@ -452,9 +459,7 @@ export default function Utility(props: UtilityProps) {
                           step={1}
                           min={10}
                           max={64}
-                          tooltip={{
-                            formatter: (v) => Math.round(v ?? 16)
-                          }}
+                          tooltip={{ open: false }}
                         />
                       </div>
                     </Tooltip>
@@ -479,9 +484,7 @@ export default function Utility(props: UtilityProps) {
                           step={1}
                           min={5}
                           max={100}
-                          tooltip={{
-                            formatter: (v) => `${Math.round(v ?? 100)}%`
-                          }}
+                          tooltip={{ open: false }}
                         />
                       </div>
                     </Tooltip>

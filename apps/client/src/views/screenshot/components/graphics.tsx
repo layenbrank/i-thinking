@@ -6,7 +6,7 @@ import {
   Circle,
   Ellipse,
   Group,
-  Shape as KonvaShape,
+  Shape,
   Line,
   Rect,
   Image as ReImage,
@@ -14,7 +14,7 @@ import {
 } from 'react-konva'
 import { Html } from 'react-konva-utils'
 
-export type ShapeEnum =
+export type GraphicsEnum =
   | 'rect'
   | 'ellipse'
   | 'arrow'
@@ -32,9 +32,9 @@ export interface Point {
   y: number
 }
 
-export interface ShapeProps {
+export interface GraphicsProps {
   id: string
-  type: ShapeEnum
+  type: GraphicsEnum
   points: Point[]
   color: string
   thickness: number
@@ -53,7 +53,7 @@ export interface ShapeProps {
 }
 
 /** 形状渲染所需的交互回调（由父级 Annotation 注入） */
-export interface ShapeInteractiveProps {
+export interface InteractiveProps {
   /** 可点击/可拖拽（处于 editing 阶段时为 true） */
   interactive?: boolean
   /** 是否当前选中（仅作语义提示，Transformer 由上层依据 id 挂载） */
@@ -61,7 +61,7 @@ export interface ShapeInteractiveProps {
   /** 点击形状时回调 */
   onSelect?: (id: string) => void
   /** 拖拽 / Transform 结束后回写新的几何信息 */
-  onChange?: (next: ShapeProps) => void
+  onChange?: (next: GraphicsProps) => void
 }
 
 /** 马赛克像素块尺寸（px） */
@@ -86,7 +86,7 @@ const HIGHLIGHT_WIDTH = 16
 const HIGHLIGHT_OPACITY = 0.4
 
 /** 归一化包围盒（左上 + 宽高） */
-function findBoundingBox(a: Point, b: Point) {
+function findBounding(a: Point, b: Point) {
   return {
     x: Math.min(a.x, b.x),
     y: Math.min(a.y, b.y),
@@ -187,7 +187,7 @@ function FilteredImage(props: {
   )
 }
 
-const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
+const shapes: Record<GraphicsEnum, React.FC<GraphicsProps>> = {
   arrow(props) {
     const { points, color, thickness } = props
     if (points.length < 2) return null
@@ -211,7 +211,7 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
   blur(props) {
     const { points, sourceImage } = props
     if (points.length < 2 || !sourceImage) return null
-    const box = findBoundingBox(points[0], points[1])
+    const box = findBounding(points[0], points[1])
     return (
       <FilteredImage
         image={sourceImage}
@@ -286,7 +286,7 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
   spotlight(props) {
     const { points, color } = props
     if (points.length < 2) return null
-    const box = findBoundingBox(points[0], points[1])
+    const box = findBounding(points[0], points[1])
     // 「聚光灯」的外层暗罩由 Annotation 层统一渲染（避免多个聚光灯叠加变得过暗），
     // 这里只负责高亮区域的命中检测 + 视觉描边。
     return (
@@ -351,7 +351,7 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
   mosaic(props) {
     const { points, sourceImage } = props
     if (points.length < 2 || !sourceImage) return null
-    const box = findBoundingBox(points[0], points[1])
+    const box = findBounding(points[0], points[1])
     return (
       <FilteredImage
         image={sourceImage}
@@ -365,7 +365,7 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
   rect(props) {
     const { points, color, thickness, filled, opacity } = props
     if (points.length < 2) return null
-    const box = findBoundingBox(points[0], points[1])
+    const box = findBounding(points[0], points[1])
     return (
       <Rect
         {...box}
@@ -404,8 +404,8 @@ const shapes: Record<ShapeEnum, React.FC<ShapeProps>> = {
  *   让所有形状受同一套交互/状态机控制。
  * - 内层渲染器只负责绘制，不再持有任何 `draggable` 状态。
  */
-export default function Shape(props: ShapeProps & ShapeInteractiveProps) {
-  const { interactive, onSelect, onChange, isSelected: _isSelected, ...shapeProps } = props
+export default function Graphics(props: GraphicsProps & InteractiveProps) {
+  const { interactive, onSelect, onChange, isSelected: _isSelected, ...graphicsProps } = props
   const [editing, setEditing] = useState(false)
   const autoEditedRef = useRef(false)
 
@@ -413,17 +413,17 @@ export default function Shape(props: ShapeProps & ShapeInteractiveProps) {
   useEffect(function () {
     if (autoEditedRef.current) return
     autoEditedRef.current = true
-    if (shapeProps.type === 'text' && !shapeProps.text) {
+    if (graphicsProps.type === 'text' && !graphicsProps.text) {
       setEditing(true)
     }
   }, [])
 
-  const Renderer = shapes[shapeProps.type]
+  const Renderer = shapes[graphicsProps.type]
   if (!Renderer) return null
-  const isText = shapeProps.type === 'text'
+  const isText = graphicsProps.type === 'text'
 
   function handleSelect() {
-    onSelect?.(shapeProps.id)
+    onSelect?.(graphicsProps.id)
   }
 
   function handleDblClick() {
@@ -432,8 +432,8 @@ export default function Shape(props: ShapeProps & ShapeInteractiveProps) {
 
   function commitText(value: string) {
     setEditing(false)
-    if (value === (shapeProps.text ?? '')) return
-    onChange?.({ ...shapeProps, text: value })
+    if (value === (graphicsProps.text ?? '')) return
+    onChange?.({ ...graphicsProps, text: value })
   }
 
   function handleDragEnd(event: Konva.KonvaEventObject<DragEvent>) {
@@ -442,7 +442,7 @@ export default function Shape(props: ShapeProps & ShapeInteractiveProps) {
     const dy = node.y()
     node.position({ x: 0, y: 0 })
     if (dx === 0 && dy === 0) return
-    onChange?.({ ...shapeProps, points: translatePoints(shapeProps.points, dx, dy) })
+    onChange?.({ ...graphicsProps, points: translatePoints(graphicsProps.points, dx, dy) })
   }
 
   function handleTransformEnd(event: Konva.KonvaEventObject<Event>) {
@@ -454,25 +454,25 @@ export default function Shape(props: ShapeProps & ShapeInteractiveProps) {
     node.scale({ x: 1, y: 1 })
     node.position({ x: 0, y: 0 })
     if (sx === 1 && sy === 1 && dx === 0 && dy === 0) return
-    const nextPoints = transformPoints(shapeProps.points, dx, dy, sx, sy)
-    const next: ShapeProps = { ...shapeProps, points: nextPoints }
+    const nextPoints = transformPoints(graphicsProps.points, dx, dy, sx, sy)
+    const next: GraphicsProps = { ...graphicsProps, points: nextPoints }
     // 描边粗细 / 字号随缩放等比放大，保持视觉一致
     const avg = (Math.abs(sx) + Math.abs(sy)) / 2
-    if (shapeProps.thickness != null && (sx !== 1 || sy !== 1)) {
-      next.thickness = Math.max(1, shapeProps.thickness * avg)
+    if (graphicsProps.thickness != null && (sx !== 1 || sy !== 1)) {
+      next.thickness = Math.max(1, graphicsProps.thickness * avg)
     }
-    if (shapeProps.fontSize != null && (sx !== 1 || sy !== 1)) {
-      next.fontSize = Math.max(8, shapeProps.fontSize * avg)
+    if (graphicsProps.fontSize != null && (sx !== 1 || sy !== 1)) {
+      next.fontSize = Math.max(8, graphicsProps.fontSize * avg)
     }
     onChange?.(next)
   }
 
-  const editPoint = shapeProps.points[0]
-  const fontSize = shapeProps.fontSize ?? 16
+  const editPoint = graphicsProps.points[0]
+  const fontSize = graphicsProps.fontSize ?? 16
 
   return (
     <Group
-      id={shapeProps.id}
+      id={graphicsProps.id}
       name="annotation"
       draggable={interactive === true && !editing}
       listening={interactive === true}
@@ -482,19 +482,19 @@ export default function Shape(props: ShapeProps & ShapeInteractiveProps) {
       onDblTap={handleDblClick}
       onDragEnd={handleDragEnd}
       onTransformEnd={handleTransformEnd}>
-      {!editing && <Renderer {...shapeProps} />}
+      {!editing && <Renderer {...graphicsProps} />}
       {editing && isText && editPoint && (
         <Html groupProps={{ x: editPoint.x, y: editPoint.y }}>
           <textarea
             autoFocus
-            defaultValue={shapeProps.text ?? ''}
+            defaultValue={graphicsProps.text ?? ''}
             onBlur={function (e) {
               commitText(e.target.value)
             }}
             onKeyDown={function (e) {
               if (e.key === 'Escape') {
                 e.preventDefault()
-                commitText(shapeProps.text ?? '')
+                commitText(graphicsProps.text ?? '')
               } else if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 commitText((e.target as HTMLTextAreaElement).value)
@@ -508,7 +508,7 @@ export default function Shape(props: ShapeProps & ShapeInteractiveProps) {
               fontSize: fontSize,
               lineHeight: 1.2,
               fontFamily: 'sans-serif',
-              color: shapeProps.color,
+              color: graphicsProps.color,
               background: 'rgba(255, 255, 255, 0.9)',
               border: '1px dashed #4080ff',
               outline: 'none',
@@ -522,7 +522,7 @@ export default function Shape(props: ShapeProps & ShapeInteractiveProps) {
   )
 }
 
-export { findBoundingBox, shapes }
+export { findBounding as findBoundingBox, shapes }
 
 /**
  * 聚光灯共享暗罩。
@@ -535,7 +535,11 @@ export { findBoundingBox, shapes }
  *   而产生三角形伪影。
  * - `listening={false}`，命中检测由各 spotlight 自身的命中 Rect 负责。
  */
-export function SpotlightMask(props: { annotations: ShapeProps[]; width: number; height: number }) {
+export function SpotlightMask(props: {
+  annotations: GraphicsProps[]
+  width: number
+  height: number
+}) {
   const { annotations, width, height } = props
   const spotlights = annotations.filter(function (annotation) {
     return annotation.type === 'spotlight' && annotation.points.length >= 2
@@ -543,7 +547,7 @@ export function SpotlightMask(props: { annotations: ShapeProps[]; width: number;
   if (spotlights.length === 0) return null
 
   return (
-    <KonvaShape
+    <Shape
       listening={false}
       perfectDrawEnabled={false}
       fill={DIM_FILL}
@@ -554,7 +558,7 @@ export function SpotlightMask(props: { annotations: ShapeProps[]; width: number;
         context.rect(0, 0, width, height)
         // 每个 spotlight 添加一个独立子路径（rect 在 canvas 规范里是 closed sub-path）
         for (const annotation of spotlights) {
-          const box = findBoundingBox(annotation.points[0], annotation.points[1])
+          const box = findBounding(annotation.points[0], annotation.points[1])
           if (box.width <= 0 || box.height <= 0) continue
           context.rect(box.x, box.y, box.width, box.height)
         }

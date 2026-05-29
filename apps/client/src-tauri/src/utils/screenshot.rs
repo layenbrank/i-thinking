@@ -54,11 +54,11 @@ fn capture_primary() -> Result<CaptureResult, String> {
     })
 }
 
-/// 立即抓取主显示器画面并返回 PNG 数据
-#[tauri::command]
-pub fn screenshot_capture() -> Result<CaptureResult, String> {
-    capture_primary()
-}
+// /// 立即抓取主显示器画面并返回 PNG 数据
+// #[tauri::command]
+// pub fn screenshot_capture() -> Result<CaptureResult, String> {
+//     capture_primary()
+// }
 
 /// 弹出（或聚焦）全屏透明截图窗口（加载 `/screenshot` 路由）
 #[tauri::command]

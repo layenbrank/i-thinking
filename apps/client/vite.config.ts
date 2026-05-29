@@ -65,9 +65,11 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
     /[\\/]node_modules[\\/]@rc-component[\\/]/,
     /[\\/]node_modules[\\/]@ant-design[\\/]/,
     /[\\/]node_modules[\\/]antd-style[\\/]/,
+    /[\\/]node_modules[\\/]use-merge-value[\\/]/,
     /[\\/]node_modules[\\/]throttle-debounce[\\/]/,
 
     /[\\/]node_modules[\\/]@emotion[\\/]/,
+    /[\\/]node_modules[\\/]hoist-non-react-statics[\\/]/,
     /[\\/]node_modules[\\/]react-is[\\/]/,
     /[\\/]node_modules[\\/]json2mq[\\/]/,
     /[\\/]node_modules[\\/]string-convert[\\/]/,
@@ -136,12 +138,28 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 
   'ui-marks': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/, /~icons/],
 
-  'ui-animation': [/[\\/]node_modules[\\/](gsap|swiper)[\\/]/],
+  'ui-animation': [
+    /[\\/]node_modules[\\/]gsap[\\/]/,
+    /[\\/]node_modules[\\/]swiper[\\/]/,
+    /[\\/]node_modules[\\/]motion[\\/]/,
+    /[\\/]node_modules[\\/]framer-motion[\\/]/,
+    /[\\/]node_modules[\\/]motion-dom[\\/]/,
+    /[\\/]node_modules[\\/]motion-utils[\\/]/
+  ],
 
   'utils-media': [
-    /[\\/]node_modules[\\/](mp4box)[\\/]/,
-    /[\\/]node_modules[\\/](@ffmpeg)[\\/]/,
+    /[\\/]node_modules[\\/]mp4box[\\/]/,
+    /[\\/]node_modules[\\/]@ffmpeg[\\/]/,
     /[\\/]node_modules[\\/]ffmpeg-core\.(js|wasm|worker\.js)$/
+  ],
+
+  'utils-canvas': [
+    /[\\/]node_modules[\\/]konva[\\/]/,
+    /[\\/]node_modules[\\/]react-konva[\\/]/,
+    /[\\/]node_modules[\\/]react-konva-utils[\\/]/,
+    /[\\/]node_modules[\\/]use-image[\\/]/,
+    /[\\/]node_modules[\\/]its-fine[\\/]/,
+    /[\\/]node_modules[\\/]react-reconciler[\\/]/
   ],
 
   'utils-core': [
@@ -279,11 +297,11 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
 
   'utils-code': [/[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/],
 
-  'utils-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
+  'utils-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts|lunar-typescript)[\\/]/],
 
-  'utils-crypto': [/[\\/]node_modules[\\/](crypto-js)[\\/]/],
+  'utils-crypto': [/[\\/]node_modules[\\/]crypto-js[\\/]/],
 
-  'utils-matches': [/[\\/]node_modules[\\/](fuse\.js)[\\/]/],
+  'utils-matches': [/[\\/]node_modules[\\/]fuse\.js[\\/]/],
 
   'utils-math': [
     /[\\/]node_modules[\\/](mathjs|complex\.js|decimal\.js|escape-latex|fraction\.js)[\\/]/,
@@ -298,7 +316,7 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
   ],
 
   'utils-network': [
-    /[\\/]node_modules[\\/](@ngify)[\\/]/,
+    /[\\/]node_modules[\\/]@ngify[\\/]/,
     /[\\/]node_modules[\\/](axios|follow-redirects|form-data|proxy-from-env|cookie|set-cookie-parser)[\\/]/
   ],
 
