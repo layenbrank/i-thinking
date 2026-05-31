@@ -240,6 +240,57 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_table(
+                Table::create()
+                    .table(Countdown::Table)
+                    .if_not_exists()
+                    .col(ColumnDef::new(Countdown::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(Countdown::WorkStart)
+                            .string()
+                            .not_null()
+                            .default("09:00"),
+                    )
+                    .col(
+                        ColumnDef::new(Countdown::WorkEnd)
+                            .string()
+                            .not_null()
+                            .default("18:00"),
+                    )
+                    .col(
+                        ColumnDef::new(Countdown::WorkDays)
+                            .string()
+                            .not_null()
+                            .default("[1,2,3,4,5]"),
+                    )
+                    .col(
+                        ColumnDef::new(Countdown::MonthlySalary)
+                            .double()
+                            .not_null()
+                            .default(0.0),
+                    )
+                    .col(
+                        ColumnDef::new(Countdown::PayDay)
+                            .integer()
+                            .not_null()
+                            .default(15),
+                    )
+                    .col(ColumnDef::new(Countdown::CreatedAt).big_integer().not_null())
+                    .col(ColumnDef::new(Countdown::UpdatedAt).big_integer().not_null())
+                    .to_owned(),
+            )
+            .await?;
+
+        db.execute_unprepared(
+            "INSERT OR IGNORE INTO countdown \
+             (id, workStart, workEnd, workDays, monthlySalary, payDay, createdAt, updatedAt) \
+             VALUES ('00000000-0000-0000-0000-000000000001', '09:00', '18:00', '[1,2,3,4,5]', 0.0, 15, \
+             CAST(strftime('%s', 'now') AS INTEGER) * 1000, \
+             CAST(strftime('%s', 'now') AS INTEGER) * 1000)",
+        )
+        .await?;
+
         db.execute_unprepared(
             "CREATE INDEX IF NOT EXISTS idx_app_mirror ON application (mirrorID)",
         )
@@ -277,9 +328,32 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(Table::drop().table(Asset::Table).to_owned())
             .await?;
+        manager
+            .drop_table(Table::drop().table(Countdown::Table).to_owned())
+            .await?;
 
         Ok(())
     }
+}
+
+#[derive(Iden)]
+enum Countdown {
+    Table,
+    Id,
+    #[iden = "workStart"]
+    WorkStart,
+    #[iden = "workEnd"]
+    WorkEnd,
+    #[iden = "workDays"]
+    WorkDays,
+    #[iden = "monthlySalary"]
+    MonthlySalary,
+    #[iden = "payDay"]
+    PayDay,
+    #[iden = "createdAt"]
+    CreatedAt,
+    #[iden = "updatedAt"]
+    UpdatedAt,
 }
 
 #[derive(Iden)]

@@ -1,6 +1,7 @@
 use crate::databases::storage::Connection;
 use crate::migrations::migrations_v001;
 use sea_orm::DbErr;
+use sea_orm::sea_query::IntoIden;
 use sea_orm_migration::MigratorTrait;
 use tracing::{error, info};
 
@@ -8,8 +9,15 @@ use tracing::{error, info};
 pub struct AppMigrator;
 
 impl MigratorTrait for AppMigrator {
+    /// 自定义迁移记录表名（默认 `seaql_migrations`）
+    fn migration_table_name() -> sea_orm::DynIden {
+        sea_orm::sea_query::Alias::new("migrations").into_iden()
+    }
+
     fn migrations() -> Vec<Box<dyn sea_orm_migration::MigrationTrait>> {
-        vec![Box::new(migrations_v001::Migration)]
+        vec![
+            Box::new(migrations_v001::Migration),
+        ]
     }
 }
 

@@ -1,4 +1,18 @@
 {
+  // ── rust-analyzer ──────────────────────────────────────────────────────────
+  // true = 自动在项目 target/ 下建 rust-analyzer/ 子目录，避免与 cargo build 竞争锁
+  "rust-analyzer.cargo.targetDir": true,
+  // 仅分析 src-tauri 下的 Cargo.toml，不扫描整个 monorepo
+  "rust-analyzer.linkedProjects": ["apps/client/src-tauri/Cargo.toml"],
+  // 限制并发线程数，减少内存压力（4 核以上机器可适当调高）
+  "rust-analyzer.numThreads": 4,
+  // 不分析 examples/tests/benches，只分析 lib+bin
+  "rust-analyzer.cargo.allTargets": false,
+  // 禁用启动时预热缓存，避免首次加载冻结 14-23 秒
+  "rust-analyzer.cachePriming.enable": false,
+  // 降低 LRU 缓存容量（默认 128），减少 3-4GB 内存占用
+  "rust-analyzer.lru.capacity": 32,
+  // ── rust-analyzer end ──────────────────────────────────────────────────────
   "[css]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
@@ -132,13 +146,7 @@
     "vue": "html",
     "vue-html": "html"
   },
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "typescript",
-    "typescriptreact",
-    "vue"
-  ],
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "vue"],
   "eslint.workingDirectories": [
     {
       "mode": "auto"
@@ -214,15 +222,7 @@
   "i18n-ally.extract.keygenStyle": "kebab-case",
   "i18n-ally.extract.keyPrefix": "prefix-",
   "i18n-ally.extract.parsers.html": {
-    "attributes": [
-      "title",
-      "alt",
-      "aria-label",
-      "placeholder",
-      "label",
-      "text",
-      "sub-title"
-    ],
+    "attributes": ["title", "alt", "aria-label", "placeholder", "label", "text", "sub-title"],
     "ignoredTags": ["script", "style"],
     "inlineText": true,
     "vBind": true
@@ -280,9 +280,7 @@
   "iconify.customCollectionIdsMap": {
     "custom": "custom"
   },
-  "iconify.customCollectionJsonPaths": [
-    "packages/shared/src/assets/iconify.json"
-  ],
+  "iconify.customCollectionJsonPaths": ["packages/shared/src/assets/iconify.json"],
   "iconify.languageIds": ["typescript", "typescriptreact", "vue"],
   "iconify.preview.exclude": ["package.json"],
   "iconify.preview.include": ["**/*.vue", "**/*.jsx", "**/*.tsx"],
@@ -340,12 +338,7 @@
   },
   "search.followSymlinks": false,
   "search.searchEditor.singleClickBehaviour": "peekDefinition",
-  "tailwindCSS.files.exclude": [
-    "**/.git/**",
-    "**/node_modules/**",
-    "**/.hg/**",
-    "**/.svn/**"
-  ],
+  "tailwindCSS.files.exclude": ["**/.git/**", "**/node_modules/**", "**/.hg/**", "**/.svn/**"],
   "tailwindCSS.suggestions": true,
   "terminal.explorerKind": "external",
   "terminal.integrated.cursorBlinking": true,

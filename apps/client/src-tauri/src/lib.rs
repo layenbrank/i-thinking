@@ -1,3 +1,11 @@
+pub mod countdown {
+    pub mod command;
+    pub mod schema;
+    pub mod service;
+}
+
+pub mod click_through;
+
 pub mod databases {
     pub mod migration;
     pub mod storage;
@@ -53,11 +61,10 @@ pub mod ui {
 pub mod utils {
     pub mod bootstrap;
     pub mod exception;
-    pub mod image;
+    // pub mod image;
     pub mod invoke;
     pub mod pdf;
     pub mod scan;
-    pub mod screenshot;
     // pub mod bookmark;
     // pub mod client;
     // pub mod installer;

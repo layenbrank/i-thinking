@@ -1,6 +1,8 @@
 use tauri::{Manager, generate_context, generate_handler};
 
 use crate::{
+    click_through::{self, ClickThroughState, command as click_through_cmd},
+    countdown::command as countdown,
     databases::{
         migration,
         storage::{self, Storage, get_app_data_dir, get_database_path},
@@ -40,6 +42,8 @@ impl Bootstrap {
                 })
                 .expect("failed to initialize database");
                 app.manage(db_state);
+                app.manage(ClickThroughState::new("countdown"));
+                click_through::spawn_worker(app.handle().clone());
                 tray::setup(app)?;
                 Ok(())
             })
@@ -123,8 +127,14 @@ impl Bootstrap {
                 pdf::pdf_to_office,
                 // screenshot
                 screenshot::screenshot_capture,
-                // screenshot::,
-                // screenshot::screenshot_close
+                screenshot::screenshot_save,
+                screenshot::screenshot_copy,
+                // countdown / work config
+                countdown::countdown_config_read,
+                countdown::countdown_config_upsert,
+                countdown::countdown_config_update,
+                // click-through
+                click_through_cmd::click_through_update_rects
             ])
             .run(generate_context!())
             .expect("error while running application");

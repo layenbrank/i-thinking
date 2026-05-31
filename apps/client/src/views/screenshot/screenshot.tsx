@@ -129,9 +129,7 @@ export default function Screenshot() {
       onUpdateSelectedID(null)
       return
     }
-    if (selection) {
-      handleRefresh()
-    }
+    if (selection) handleRefresh()
   }
 
   // 快捷键：撤销 / 重做 / 删除 / 退出
@@ -486,16 +484,16 @@ export default function Screenshot() {
     <div className={clsx(styles.screenshot)}>
       <Annotation
         ref={annotationRef}
-        annotations={annotations}
-        clipRect={selection}
-        interactive={phase === 'editing'}
-        selectedID={selectedID}
-        sourceImage={sourceImage}
-        onSelect={onUpdateSelectedID}
-        onChange={handleAnnotationChange}
         onMove={handleMove}
+        clipRect={selection}
         onPress={handlePress}
+        selectedID={selectedID}
+        annotations={annotations}
+        sourceImage={sourceImage}
         onRelease={handleRelease}
+        onSelect={onUpdateSelectedID}
+        interactive={phase === 'editing'}
+        onChange={handleAnnotationChange}
       />
       {/* 选区遮罩：选区外区域半透明黑色；无选区时整屏黑 */}
       {(() => {
@@ -504,11 +502,11 @@ export default function Screenshot() {
             <AnimatePresence>
               <motion.div
                 key="full-mask"
-                className={clsx(styles.fullscreen, styles.mask)}
+                exit={{ opacity: 0 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
+                className={clsx(styles.fullscreen, styles.mask)}
               />
             </AnimatePresence>
           ) : null
@@ -558,28 +556,28 @@ export default function Screenshot() {
       />
 
       <Utility
-        selection={phase === 'selecting' ? null : selection}
+        color={color}
+        filled={filled}
         canRedo={canRedo}
         canUndo={canUndo}
         active={graphics}
-        color={color}
-        thickness={thickness}
-        filled={filled}
         opacity={opacity}
+        onPin={handlePin}
         fontSize={fontSize}
+        onCopy={handleCopy}
+        onRedo={handleRedo}
+        onUndo={handleUndo}
+        thickness={thickness}
         onClose={handleClose}
+        onRefresh={handleRefresh}
+        onPreserve={handlePreserve}
         onUpdateColor={handleUpdateColor}
+        onUpdateUtility={onUpdateGraphics}
         onUpdateFilled={handleUpdateFilled}
         onUpdateOpacity={handleUpdateOpacity}
         onUpdateFontSize={handleUpdateFontSize}
-        onCopy={handleCopy}
-        onPin={handlePin}
-        onRedo={handleRedo}
-        onRefresh={handleRefresh}
-        onPreserve={handlePreserve}
         onUpdateThickness={handleUpdateThickness}
-        onUndo={handleUndo}
-        onUpdateUtility={onUpdateGraphics}
+        selection={phase === 'selecting' ? null : selection}
       />
     </div>
   )

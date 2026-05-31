@@ -16,6 +16,26 @@ const OPTIONS: ApplicationOptions[] = [
     value: 'calendar'
   },
   {
+    label: '时钟',
+    value: 'clock'
+  },
+  {
+    label: '倒计时',
+    value: 'countdown'
+  },
+  {
+    label: '代码',
+    value: 'code'
+  },
+  {
+    label: 'Clipchamp',
+    value: 'clipchamp'
+  },
+  {
+    label: '应用集合',
+    value: 'collection'
+  },
+  {
     label: '应用商店',
     value: 'marketplace'
   },
@@ -36,14 +56,6 @@ const OPTIONS: ApplicationOptions[] = [
     value: 'intelligence'
   },
   {
-    label: 'Clipchamp',
-    value: 'clipchamp'
-  },
-  {
-    label: '应用集合',
-    value: 'collection'
-  },
-  {
     label: '开发者',
     value: 'developer'
   },
@@ -54,14 +66,6 @@ const OPTIONS: ApplicationOptions[] = [
   {
     label: '图库',
     value: 'gallery'
-  },
-  {
-    label: '时钟',
-    value: 'clock'
-  },
-  {
-    label: '代码',
-    value: 'code'
   },
   {
     label: '看板',

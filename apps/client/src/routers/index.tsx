@@ -1,5 +1,11 @@
 import { Navigate, createBrowserRouter, type RouteObject } from 'react-router-dom'
 
+const Clock = lazy(function () {
+  return import('@/views/clock/clock')
+})
+const Countdown = lazy(function () {
+  return import('@/views/countdown/countdown')
+})
 const Code = lazy(function () {
   return import('@/views/code/code')
 })
@@ -69,6 +75,14 @@ const routes: RouteObject[] = [
   {
     path: '/calendar',
     element: <Calendar />
+  },
+  {
+    path: '/clock',
+    element: <Clock />
+  },
+  {
+    path: '/countdown',
+    element: <Countdown />
   }
 ]
 

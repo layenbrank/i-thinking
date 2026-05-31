@@ -38,6 +38,7 @@ declare namespace Application {
     | 'marketplace'
     | 'developer'
     | 'collection'
+    | 'countdown'
     | 'signboard'
     | 'clock'
     | 'code' // 代码
@@ -81,7 +82,17 @@ declare namespace Application {
 
   /** 查询过滤参数：仅限 Rust Read 结构体暴露的字段 */
   type Read = Partial<
-    Pick<Application, 'id' | 'title' | 'url' | 'description' | 'mirrorID' | 'downloadCount' | 'updatedAt' | 'collectionID'>
+    Pick<
+      Application,
+      | 'id'
+      | 'title'
+      | 'url'
+      | 'description'
+      | 'mirrorID'
+      | 'downloadCount'
+      | 'updatedAt'
+      | 'collectionID'
+    >
   >
 
   /** 更新变更字段：除 id 外所有字段均可选 */

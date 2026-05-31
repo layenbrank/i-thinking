@@ -9,6 +9,9 @@ const Calendar = React.lazy(function () {
 const Clock = React.lazy(function () {
   return import('@/features/applications/clock/clock.tsx')
 })
+const Countdown = React.lazy(function () {
+  return import('@/features/applications/countdown/countdown.tsx')
+})
 const Collection = React.lazy(function () {
   return import('@/features/applications/collection/collection.tsx')
 })
@@ -63,6 +66,7 @@ const Reflection: Readonly<Application.Reflection> = {
   developer: Developer,
   example: Example,
   clock: Clock,
+  countdown: Countdown,
   collection: Collection,
   gallery: Gallery,
   signboard: Signboard,
@@ -76,6 +80,7 @@ export {
   Clock,
   Code,
   Collection,
+  Countdown,
   Developer,
   Example,
   Gallery,
@@ -84,9 +89,9 @@ export {
   Marketplace,
   Navigation,
   Reflection,
+  Screenshot,
   Settings,
-  Signboard,
-  Screenshot
+  Signboard
 }
 
 // const Applications = import.meta.glob<(props: ProviderProps) => JSX.Element>(

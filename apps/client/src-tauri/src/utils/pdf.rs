@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose, Engine as _};
+use base64::{Engine as _, engine::general_purpose};
 use pdfium_render::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
@@ -7,38 +7,38 @@ use std::io::Cursor;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PdfMeta {
-    pub path:        String,
-    pub title:       String,
-    pub author:      String,
-    pub page_count:  u32,
-    pub page_width:  f32,
+    pub path: String,
+    pub title: String,
+    pub author: String,
+    pub page_count: u32,
+    pub page_width: f32,
     pub page_height: f32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PageImage {
     pub data_base64: String,
-    pub width:       u32,
-    pub height:      u32,
-    pub page_index:  u32,
+    pub width: u32,
+    pub height: u32,
+    pub page_index: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchMatch {
     pub page_index: u32,
-    pub x:          f32,
-    pub y:          f32,
-    pub width:      f32,
-    pub height:     f32,
-    pub snippet:    String,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub snippet: String,
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /// Bind to the pdfium shared library found on the system PATH / next to the binary.
 fn load_pdfium() -> Result<Pdfium, String> {
-    let bindings = Pdfium::bind_to_system_library()
-        .map_err(|e| format!("pdfium library not found: {e}"))?;
+    let bindings =
+        Pdfium::bind_to_system_library().map_err(|e| format!("pdfium library not found: {e}"))?;
     Ok(Pdfium::new(bindings))
 }
 
@@ -53,15 +53,17 @@ fn render_page_to_image(
     page: &PdfPage,
     scale: f32,
 ) -> Result<(image::DynamicImage, u32, u32), String> {
-    let target_w = (page.width().value  * scale) as i32;
+    let target_w = (page.width().value * scale) as i32;
     let target_h = (page.height().value * scale) as i32;
 
     let config = PdfRenderConfig::new()
         .set_target_width(target_w)
         .set_maximum_height(target_h);
 
-    let bitmap = page.render_with_config(&config).map_err(|e| e.to_string())?;
-    let img    = bitmap.as_image();
+    let bitmap = page
+        .render_with_config(&config)
+        .map_err(|e| e.to_string())?;
+    let img = bitmap.as_image().map_err(|e| e.to_string())?;
     let (w, h) = (img.width(), img.height());
     Ok((img, w, h))
 }
@@ -72,14 +74,18 @@ fn render_page_to_image(
 #[tauri::command]
 pub fn pdf_open_file(path: String) -> Result<PdfMeta, String> {
     let pdfium = load_pdfium()?;
-    let doc    = pdfium.load_pdf_from_file(&path, None).map_err(|e| e.to_string())?;
+    let doc = pdfium
+        .load_pdf_from_file(&path, None)
+        .map_err(|e| e.to_string())?;
 
     let page_count = doc.pages().len() as u32;
-    let meta       = doc.metadata();
-    let title  = meta.get(PdfDocumentMetadataTagType::Title)
+    let meta = doc.metadata();
+    let title = meta
+        .get(PdfDocumentMetadataTagType::Title)
         .map(|t| t.value().to_string())
         .unwrap_or_default();
-    let author = meta.get(PdfDocumentMetadataTagType::Author)
+    let author = meta
+        .get(PdfDocumentMetadataTagType::Author)
         .map(|t| t.value().to_string())
         .unwrap_or_default();
 
@@ -90,45 +96,57 @@ pub fn pdf_open_file(path: String) -> Result<PdfMeta, String> {
         (595.0_f32, 842.0_f32)
     };
 
-    Ok(PdfMeta { path, title, author, page_count, page_width, page_height })
+    Ok(PdfMeta {
+        path,
+        title,
+        author,
+        page_count,
+        page_width,
+        page_height,
+    })
 }
 
 /// Render a single page to a base64-encoded PNG.
 /// `scale` — pixels-per-point multiplier (e.g. 2.0 ≈ 144 dpi for a 72-dpi PDF point).
 #[tauri::command]
-pub fn pdf_render_page(
-    path:       String,
-    page_index: u32,
-    scale:      f32,
-) -> Result<PageImage, String> {
+pub fn pdf_render_page(path: String, page_index: u32, scale: f32) -> Result<PageImage, String> {
     let pdfium = load_pdfium()?;
-    let doc    = pdfium.load_pdf_from_file(&path, None).map_err(|e| e.to_string())?;
-    let page   = doc.pages().get(page_index as u16).map_err(|e| e.to_string())?;
+    let doc = pdfium
+        .load_pdf_from_file(&path, None)
+        .map_err(|e| e.to_string())?;
+    let page = doc
+        .pages()
+        .get(page_index as i32)
+        .map_err(|e| e.to_string())?;
 
     let (img, w, h) = render_page_to_image(&page, scale)?;
-    Ok(PageImage { data_base64: image_to_base64_png(img)?, width: w, height: h, page_index })
+    Ok(PageImage {
+        data_base64: image_to_base64_png(img)?,
+        width: w,
+        height: h,
+        page_index,
+    })
 }
 
 /// Render every page at thumbnail scale and return one PageImage per page.
 /// Recommended `scale`: 0.5 – 0.7 (covers 2× DPR screens at ~180 px CSS display width).
 #[tauri::command]
-pub fn pdf_render_thumbnails(
-    path:  String,
-    scale: f32,
-) -> Result<Vec<PageImage>, String> {
-    let pdfium     = load_pdfium()?;
-    let doc        = pdfium.load_pdf_from_file(&path, None).map_err(|e| e.to_string())?;
+pub fn pdf_render_thumbnails(path: String, scale: f32) -> Result<Vec<PageImage>, String> {
+    let pdfium = load_pdfium()?;
+    let doc = pdfium
+        .load_pdf_from_file(&path, None)
+        .map_err(|e| e.to_string())?;
     let page_count = doc.pages().len();
     let mut results: Vec<PageImage> = Vec::with_capacity(page_count as usize);
 
     for i in 0..page_count {
-        let page        = doc.pages().get(i).map_err(|e| e.to_string())?;
+        let page = doc.pages().get(i).map_err(|e| e.to_string())?;
         let (img, w, h) = render_page_to_image(&page, scale)?;
         results.push(PageImage {
             data_base64: image_to_base64_png(img)?,
-            width:       w,
-            height:      h,
-            page_index:  i as u32,
+            width: w,
+            height: h,
+            page_index: i as u32,
         });
     }
 
@@ -138,32 +156,34 @@ pub fn pdf_render_thumbnails(
 /// Full-text search across all pages; returns one match per occurrence.
 /// Coordinates are page-relative PDF points (origin bottom-left).
 #[tauri::command]
-pub fn pdf_search_text(
-    path:  String,
-    query: String,
-) -> Result<Vec<SearchMatch>, String> {
-    let pdfium     = load_pdfium()?;
-    let doc        = pdfium.load_pdf_from_file(&path, None).map_err(|e| e.to_string())?;
+pub fn pdf_search_text(path: String, query: String) -> Result<Vec<SearchMatch>, String> {
+    let pdfium = load_pdfium()?;
+    let doc = pdfium
+        .load_pdf_from_file(&path, None)
+        .map_err(|e| e.to_string())?;
     let page_count = doc.pages().len();
     let query_lower = query.to_lowercase();
     let mut matches: Vec<SearchMatch> = Vec::new();
 
     for i in 0..page_count {
-        let page    = doc.pages().get(i).map_err(|e| e.to_string())?;
-        let text    = page.text().map_err(|e| e.to_string())?;
+        let page = doc.pages().get(i).map_err(|e| e.to_string())?;
+        let text = page.text().map_err(|e| e.to_string())?;
         let content = text.all();
         let content_lower = content.to_lowercase();
 
         let mut offset = 0usize;
         while let Some(rel) = content_lower[offset..].find(&query_lower) {
-            let abs          = offset + rel;
-            let snippet_s    = abs.saturating_sub(15);
-            let snippet_e    = (abs + query.len() + 15).min(content.len());
-            let snippet      = content[snippet_s..snippet_e].replace('\n', " ");
+            let abs = offset + rel;
+            let snippet_s = abs.saturating_sub(15);
+            let snippet_e = (abs + query.len() + 15).min(content.len());
+            let snippet = content[snippet_s..snippet_e].replace('\n', " ");
 
             matches.push(SearchMatch {
                 page_index: i as u32,
-                x: 0.0, y: 0.0, width: 0.0, height: 0.0,
+                x: 0.0,
+                y: 0.0,
+                width: 0.0,
+                height: 0.0,
                 snippet,
             });
 
@@ -202,9 +222,13 @@ fn split_columns(line: &str) -> Vec<String> {
             } else if space_run == 2 {
                 // Second space — this is a column separator.
                 // Remove the trailing single space we already added.
-                if current.ends_with(' ') { current.pop(); }
+                if current.ends_with(' ') {
+                    current.pop();
+                }
                 let trimmed = current.trim().to_string();
-                if !trimmed.is_empty() { cols.push(trimmed); }
+                if !trimmed.is_empty() {
+                    cols.push(trimmed);
+                }
                 current = String::new();
             }
             // More than 2 spaces: keep consuming without adding to current.
@@ -214,7 +238,9 @@ fn split_columns(line: &str) -> Vec<String> {
         }
     }
     let trimmed = current.trim().to_string();
-    if !trimmed.is_empty() { cols.push(trimmed); }
+    if !trimmed.is_empty() {
+        cols.push(trimmed);
+    }
     if cols.is_empty() && !line.trim().is_empty() {
         cols.push(line.trim().to_string());
     }
@@ -236,8 +262,7 @@ pub fn pdf_merge(paths: Vec<String>, dest: String) -> Result<(), String> {
     let pages_id: LopdfId = (merged.max_id, 0);
 
     for path in &paths {
-        let mut src = LopdfDoc::load(path)
-            .map_err(|e| format!("无法加载 {path}: {e}"))?;
+        let mut src = LopdfDoc::load(path).map_err(|e| format!("无法加载 {path}: {e}"))?;
 
         // Shift all object IDs to avoid collisions with objects already in `merged`.
         src.renumber_objects_with(merged.max_id + 1);
@@ -287,7 +312,9 @@ pub fn pdf_merge(paths: Vec<String>, dest: String) -> Result<(), String> {
     );
 
     merged.trailer.set("Root", LopdfObj::Reference(catalog_id));
-    merged.trailer.set("Size", LopdfObj::Integer((merged.max_id + 1) as i64));
+    merged
+        .trailer
+        .set("Size", LopdfObj::Integer((merged.max_id + 1) as i64));
 
     merged.save(&dest).map_err(|e| e.to_string())?;
     Ok(())
@@ -297,14 +324,14 @@ pub fn pdf_merge(paths: Vec<String>, dest: String) -> Result<(), String> {
 /// Returns the output file paths.
 #[tauri::command]
 pub fn pdf_split(
-    path:     String,
-    ranges:   Vec<[u32; 2]>,
+    path: String,
+    ranges: Vec<[u32; 2]>,
     dest_dir: String,
 ) -> Result<Vec<String>, String> {
     use std::path::Path;
 
-    let source     = LopdfDoc::load(&path).map_err(|e| e.to_string())?;
-    let pages_map  = source.get_pages(); // 1-based
+    let source = LopdfDoc::load(&path).map_err(|e| e.to_string())?;
+    let pages_map = source.get_pages(); // 1-based
     let page_count = pages_map.len() as u32;
 
     let stem = Path::new(&path)
@@ -317,12 +344,14 @@ pub fn pdf_split(
 
     for range in &ranges {
         let start = range[0].max(1).min(page_count);
-        let end   = range[1].max(start).min(page_count);
+        let end = range[1].max(start).min(page_count);
 
         let range_ids: Vec<LopdfId> = (start..=end)
             .filter_map(|n| pages_map.get(&n).copied())
             .collect();
-        if range_ids.is_empty() { continue; }
+        if range_ids.is_empty() {
+            continue;
+        }
 
         // Copy the full source object graph; unreferenced objects are benign.
         let mut doc = LopdfDoc::with_version("1.5");
@@ -362,7 +391,8 @@ pub fn pdf_split(
         );
 
         doc.trailer.set("Root", LopdfObj::Reference(catalog_id));
-        doc.trailer.set("Size", LopdfObj::Integer((doc.max_id + 1) as i64));
+        doc.trailer
+            .set("Size", LopdfObj::Integer((doc.max_id + 1) as i64));
 
         let out_path = format!("{dest_dir}/{stem}_{start}_{end}.pdf");
         doc.save(&out_path).map_err(|e| e.to_string())?;
@@ -375,9 +405,9 @@ pub fn pdf_split(
 /// Split a PDF into multiple files with a fixed number of pages each.
 #[tauri::command]
 pub fn pdf_split_by_count(
-    path:           String,
+    path: String,
     pages_per_file: u32,
-    dest_dir:       String,
+    dest_dir: String,
 ) -> Result<Vec<String>, String> {
     if pages_per_file == 0 {
         return Err("每个文件的页数必须大于 0".to_string());
@@ -402,15 +432,17 @@ pub fn pdf_split_by_count(
 /// Returns the list of output file paths.
 #[tauri::command]
 pub fn pdf_to_images(
-    path:     String,
-    scale:    f32,
-    format:   String,  // "png" | "jpg"
+    path: String,
+    scale: f32,
+    format: String, // "png" | "jpg"
     dest_dir: String,
 ) -> Result<Vec<String>, String> {
     use std::path::Path;
 
-    let pdfium     = load_pdfium()?;
-    let doc        = pdfium.load_pdf_from_file(&path, None).map_err(|e| e.to_string())?;
+    let pdfium = load_pdfium()?;
+    let doc = pdfium
+        .load_pdf_from_file(&path, None)
+        .map_err(|e| e.to_string())?;
     let page_count = doc.pages().len();
 
     let stem = Path::new(&path)
@@ -419,23 +451,23 @@ pub fn pdf_to_images(
         .unwrap_or("output")
         .to_string();
 
-    let fmt   = format.to_lowercase();
+    let fmt = format.to_lowercase();
     let is_png = fmt != "jpg" && fmt != "jpeg";
-    let ext    = if is_png { "png" } else { "jpg" };
+    let ext = if is_png { "png" } else { "jpg" };
 
     let mut output_paths = Vec::new();
 
     for i in 0..page_count {
-        let page          = doc.pages().get(i).map_err(|e| e.to_string())?;
-        let (img, _, _)   = render_page_to_image(&page, scale)?;
-        let out_path      = format!("{dest_dir}/{stem}_{:04}.{ext}", i + 1);
+        let page = doc.pages().get(i).map_err(|e| e.to_string())?;
+        let (img, _, _) = render_page_to_image(&page, scale)?;
+        let out_path = format!("{dest_dir}/{stem}_{:04}.{ext}", i + 1);
 
         if is_png {
             img.save_with_format(&out_path, image::ImageFormat::Png)
-               .map_err(|e| e.to_string())?;
+                .map_err(|e| e.to_string())?;
         } else {
             img.save_with_format(&out_path, image::ImageFormat::Jpeg)
-               .map_err(|e| e.to_string())?;
+                .map_err(|e| e.to_string())?;
         }
         output_paths.push(out_path);
     }
@@ -454,8 +486,8 @@ pub fn pdf_to_images(
 /// complex multi-column or heavily formatted layouts will have reduced fidelity.
 #[tauri::command]
 pub fn pdf_to_office(
-    path:     String,
-    format:   String,  // "docx" | "xlsx"
+    path: String,
+    format: String, // "docx" | "xlsx"
     dest_dir: String,
 ) -> Result<String, String> {
     use std::path::Path;
@@ -466,27 +498,28 @@ pub fn pdf_to_office(
         .unwrap_or("output")
         .to_string();
 
-    let pdfium     = load_pdfium()?;
-    let doc        = pdfium.load_pdf_from_file(&path, None).map_err(|e| e.to_string())?;
+    let pdfium = load_pdfium()?;
+    let doc = pdfium
+        .load_pdf_from_file(&path, None)
+        .map_err(|e| e.to_string())?;
     let page_count = doc.pages().len();
 
     match format.to_lowercase().as_str() {
         "docx" => {
-            use docx_rs::{Docx, Paragraph, Run, BreakType};
+            use docx_rs::{BreakType, Docx, Paragraph, Run};
 
             let mut docx = Docx::new();
             let mut first_page = true;
 
             for i in 0..page_count {
-                let page    = doc.pages().get(i).map_err(|e| e.to_string())?;
-                let text    = page.text().map_err(|e| e.to_string())?;
+                let page = doc.pages().get(i).map_err(|e| e.to_string())?;
+                let text = page.text().map_err(|e| e.to_string())?;
                 let content = text.all();
 
                 if !first_page {
                     // Separate pages with an explicit page break.
                     docx = docx.add_paragraph(
-                        Paragraph::new()
-                            .add_run(Run::new().add_break(BreakType::Page))
+                        Paragraph::new().add_run(Run::new().add_break(BreakType::Page)),
                     );
                 }
                 first_page = false;
@@ -496,10 +529,8 @@ pub fn pdf_to_office(
                     if trimmed.is_empty() {
                         docx = docx.add_paragraph(Paragraph::new());
                     } else {
-                        docx = docx.add_paragraph(
-                            Paragraph::new()
-                                .add_run(Run::new().add_text(trimmed))
-                        );
+                        docx = docx
+                            .add_paragraph(Paragraph::new().add_run(Run::new().add_text(trimmed)));
                     }
                 }
             }
@@ -516,17 +547,20 @@ pub fn pdf_to_office(
             let mut workbook = Workbook::new();
 
             for i in 0..page_count {
-                let page    = doc.pages().get(i).map_err(|e| e.to_string())?;
-                let text    = page.text().map_err(|e| e.to_string())?;
+                let page = doc.pages().get(i).map_err(|e| e.to_string())?;
+                let text = page.text().map_err(|e| e.to_string())?;
                 let content = text.all();
 
                 let ws = workbook.add_worksheet();
-                ws.set_name(&format!("Page {}", i + 1)).map_err(|e| e.to_string())?;
+                ws.set_name(&format!("Page {}", i + 1))
+                    .map_err(|e| e.to_string())?;
 
                 let mut excel_row: u32 = 0;
                 for line in content.split('\n') {
                     let trimmed = line.trim();
-                    if trimmed.is_empty() { continue; }
+                    if trimmed.is_empty() {
+                        continue;
+                    }
 
                     let cols = split_columns(trimmed);
                     for (col_idx, cell) in cols.iter().enumerate() {
@@ -544,6 +578,6 @@ pub fn pdf_to_office(
             Ok(out_path.to_string_lossy().into_owned())
         }
 
-        other => Err(format!("不支持的格式: {other}，请选择 docx 或 xlsx"))
+        other => Err(format!("不支持的格式: {other}，请选择 docx 或 xlsx")),
     }
 }

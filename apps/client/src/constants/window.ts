@@ -45,7 +45,28 @@ const WINDOW: WindowConfigure = {
     windowEffects: undefined
   },
   clipchamp: DEfAULT,
-  clock: DEfAULT,
+  clock: {
+    ...DEfAULT,
+    width: 480,
+    minWidth: 360,
+    height: 360,
+    minHeight: 280,
+    resizable: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    windowEffects: undefined
+  },
+  countdown: {
+    ...DEfAULT,
+    width: 400,
+    minWidth: 360,
+    height: 420,
+    minHeight: 380,
+    resizable: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    windowEffects: undefined
+  },
   code: DEfAULT,
   collection: DEfAULT,
   developer: DEfAULT,
