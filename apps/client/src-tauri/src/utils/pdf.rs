@@ -2,6 +2,7 @@ use base64::{Engine as _, engine::general_purpose};
 use pdfium_render::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
+use std::sync::{Mutex, OnceLock};
 
 // ─── Data Structures ─────────────────────────────────────────────────────────
 
@@ -35,11 +36,22 @@ pub struct SearchMatch {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/// Bind to the pdfium shared library found on the system PATH / next to the binary.
-fn load_pdfium() -> Result<Pdfium, String> {
-    let bindings =
-        Pdfium::bind_to_system_library().map_err(|e| format!("pdfium library not found: {e}"))?;
-    Ok(Pdfium::new(bindings))
+/// Global pdfium instance — initialized once, shared across all Tauri commands.
+/// `Pdfium::bind_to_system_library()` must only be called once per process;
+/// subsequent calls return `PdfiumLibraryBindingsAlreadyInitialized`.
+static PDFIUM: OnceLock<Result<Mutex<Pdfium>, String>> = OnceLock::new();
+
+fn load_pdfium() -> Result<std::sync::MutexGuard<'static, Pdfium>, String> {
+    PDFIUM
+        .get_or_init(|| {
+            Pdfium::bind_to_system_library()
+                .map(|b| Mutex::new(Pdfium::new(b)))
+                .map_err(|e| format!("pdfium library not found: {e}"))
+        })
+        .as_ref()
+        .map_err(|e| e.clone())?
+        .lock()
+        .map_err(|e| format!("pdfium mutex poisoned: {e}"))
 }
 
 fn image_to_base64_png(img: image::DynamicImage) -> Result<String, String> {

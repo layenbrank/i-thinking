@@ -318,7 +318,7 @@ export default function CountdownView() {
             h: Math.round(r.height)
           }
         })
-        invoke('click_through_update_rects', { rects }).catch(function () {
+        invoke('update_rects', { rects }).catch(function () {
           /* non-tauri env */
         })
       })
@@ -348,7 +348,7 @@ export default function CountdownView() {
       cancelAnimationFrame(frame)
       ro.disconnect()
       mo.disconnect()
-      invoke('click_through_update_rects', { rects: [] }).catch(function () {})
+      invoke('update_rects', { rects: [] }).catch(function () {})
     }
   }, [])
 
