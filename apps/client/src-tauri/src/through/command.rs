@@ -3,7 +3,7 @@ use tauri::State;
 use super::state::{ClickThroughState, Rect};
 
 #[tauri::command]
-pub async fn click_through_update_rects(
+pub async fn update_rects(
     rects: Vec<Rect>,
     state: State<'_, ClickThroughState>,
 ) -> Result<(), String> {

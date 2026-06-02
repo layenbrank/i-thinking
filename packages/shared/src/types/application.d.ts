@@ -29,19 +29,20 @@ declare namespace Application {
    */
   type Component =
     | 'bookmark'
+    | 'code'
+    | 'clock'
+    | 'countdown'
     | 'calendar'
-    | 'markdown'
-    | 'settings'
     | 'clipchamp'
+    | 'collection'
+    | 'markdown'
+    | 'morph'
+    | 'settings'
     | 'intelligence'
     | 'navigation'
     | 'marketplace'
     | 'developer'
-    | 'collection'
-    | 'countdown'
     | 'signboard'
-    | 'clock'
-    | 'code' // 代码
     | 'gallery' // 图库
     | 'screenshot' // 图库
     | 'example'

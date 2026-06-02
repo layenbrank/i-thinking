@@ -2981,6 +2981,7 @@ dependencies = [
  "dirs 6.0.0",
  "docx-rs",
  "hostname",
+ "i-thinking-core",
  "image",
  "libc",
  "lopdf",
@@ -2993,7 +2994,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.0",
- "sysinfo",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",
@@ -3023,6 +3023,30 @@ dependencies = [
  "uuid",
  "windows 0.61.3",
  "xcap",
+]
+
+[[package]]
+name = "i-thinking-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "chrono",
+ "core-graphics 0.24.0",
+ "image",
+ "pdfium-render",
+ "sea-orm",
+ "sea-orm-migration",
+ "sea-query 1.0.0",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
+ "windows 0.61.3",
 ]
 
 [[package]]

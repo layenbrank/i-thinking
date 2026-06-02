@@ -1,7 +1,7 @@
 use tauri::{Manager, generate_context, generate_handler};
 
 use crate::{
-    click_through::{self, ClickThroughState, command as click_through_cmd},
+    through::{self, ClickThroughState, command as click_through_cmd},
     countdown::command as countdown,
     databases::{
         migration,
@@ -43,7 +43,7 @@ impl Bootstrap {
                 .expect("failed to initialize database");
                 app.manage(db_state);
                 app.manage(ClickThroughState::new("countdown"));
-                click_through::spawn_worker(app.handle().clone());
+                through::spawn_worker(app.handle().clone());
                 tray::setup(app)?;
                 Ok(())
             })
@@ -77,6 +77,7 @@ impl Bootstrap {
                         api.prevent_close();
                         let _ = window.hide();
 
+
                         let app = window.app_handle();
                         if let Some(state) = app.try_state::<crate::ui::tray::TrayState>() {
                             // 首次隐藏时发送系统通知
@@ -90,7 +91,7 @@ impl Bootstrap {
                                     let _ = app
                                         .notification()
                                         .builder()
-                                        .title("i-Thinking")
+                                        .title("i thinking")
                                         .body("应用已最小化到系统托盘，点击托盘图标可重新显示")
                                         .show();
                                 }
@@ -134,7 +135,7 @@ impl Bootstrap {
                 countdown::countdown_config_upsert,
                 countdown::countdown_config_update,
                 // click-through
-                click_through_cmd::click_through_update_rects
+                click_through_cmd::update_rects
             ])
             .run(generate_context!())
             .expect("error while running application");

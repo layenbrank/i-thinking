@@ -48,6 +48,10 @@ const OPTIONS: ApplicationOptions[] = [
     value: 'markdown'
   },
   {
+    label: 'morph',
+    value: 'morph'
+  },
+  {
     label: '设置',
     value: 'settings'
   },
