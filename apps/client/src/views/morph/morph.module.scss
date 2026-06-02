@@ -3,6 +3,7 @@
     width: 100%;
     height: 100%;
     display: flex;
+    border-radius: 12px;
     flex-direction: column;
     overflow: hidden;
   }
@@ -39,6 +40,7 @@
     .ant-splitter-panel {
       height: 100%;
       overflow: hidden;
+      padding: 0px;
     }
   }
 }

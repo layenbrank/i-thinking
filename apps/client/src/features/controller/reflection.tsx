@@ -27,6 +27,9 @@ const Example = React.lazy(function () {
 const Intelligence = React.lazy(function () {
   return import('@/features/applications/intelligence/intelligence.tsx')
 })
+const Morph = React.lazy(function () {
+  return import('@/features/applications/morph/morph.tsx')
+})
 const Markdown = React.lazy(function () {
   return import('@/features/applications/markdown/markdown.tsx')
 })
@@ -57,16 +60,17 @@ const Reflection: Readonly<Application.Reflection> = {
   bookmark: Bookmark,
   calendar: Calendar,
   code: Code,
+  clipchamp: Clipchamp,
+  clock: Clock,
+  countdown: Countdown,
   intelligence: Intelligence,
   settings: Settings,
   navigation: Navigation,
-  clipchamp: Clipchamp,
   markdown: Markdown,
+  morph: Morph,
   marketplace: Marketplace,
   developer: Developer,
   example: Example,
-  clock: Clock,
-  countdown: Countdown,
   collection: Collection,
   gallery: Gallery,
   signboard: Signboard,

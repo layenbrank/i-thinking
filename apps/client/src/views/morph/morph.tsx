@@ -8,26 +8,30 @@ import SplitModal from '@/views/morph/overlay/components/SplitModal.tsx'
 import { Overlay } from '@/views/morph/overlay/index.ts'
 
 import styles from '@/views/morph/morph.module.scss'
-import './morph.scss'
 
 export default function Morph() {
   const summaryVisible = useMorphStore((s) => s.summaryVisible)
+  const [sizes, onUpdateSizes] = useState<(number | string)[]>(['20%', '80%'])
 
   return (
     <div className={clsx([styles.morph, styles.root])}>
       <Overlay.Utility />
 
       <div className={styles.workspace}>
-        <Splitter className={styles.splitter}>
+        <Splitter
+          onResize={onUpdateSizes}
+          className={styles.splitter}>
           <Splitter.Panel
-            min="180px"
-            max="320px"
-            defaultSize="220px"
+            size={sizes[0]}
+            min="20%"
+            max="50%"
             resizable
             className={styles.navigation}>
             <Overlay.Navigation />
           </Splitter.Panel>
-          <Splitter.Panel className={styles.section}>
+          <Splitter.Panel
+            size={sizes[1]}
+            className={styles.section}>
             <Overlay.Section />
           </Splitter.Panel>
         </Splitter>

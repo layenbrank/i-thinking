@@ -139,7 +139,7 @@ interface MorphState {
 
 export const useMorphStore = create<MorphState>()(
   devtools(
-    immer(function (set, get) {
+    immer(function (setter, getter) {
       // ── helpers ─────────────────────────────────────────────────────
 
       // Suppressed during undo/redo to prevent re-recording the inverse action.
@@ -147,7 +147,7 @@ export const useMorphStore = create<MorphState>()(
 
       function pushHistory(entry: HistoryEntry) {
         if (_suppressHistory) return
-        set((s) => {
+        setter((s) => {
           s.undoStack.push(entry)
           s.redoStack = []
         })
@@ -209,25 +209,26 @@ export const useMorphStore = create<MorphState>()(
           const paths = Array.isArray(selected) ? selected : [selected]
           if (paths.length === 0) return
           // Activate the first file
-          await get().openFile(paths[0])
+          await getter().openFile(paths[0])
           // Add remaining files to list without switching
           for (let i = 1; i < paths.length; i++) {
             const path = paths[i]
-            if (get().fileList.some((f) => f.path === path)) continue
+            if (getter().fileList.some((f) => f.path === path)) continue
             try {
               const meta: PdfMeta = await invoke('pdf_open_file', { path })
               // await upsertFile(meta)
-              set((s) => {
+              setter((s) => {
                 if (!s.fileList.some((f) => f.path === path)) s.fileList.push(meta)
               })
-            } catch {
+            } catch (error) {
+              console.log('error', error)
               // skip unreadable file
             }
           }
         },
 
         async openFile(path: string) {
-          set((s) => {
+          setter((s) => {
             s.isLoading = true
           })
           try {
@@ -237,7 +238,7 @@ export const useMorphStore = create<MorphState>()(
             // const annotations = await queryAnnotations(path)
             // const counts = await countAnnotationsByPage(path)
 
-            set((s) => {
+            setter((s) => {
               // Maintain fileList
               const idx = s.fileList.findIndex((f) => f.path === path)
               if (idx >= 0) s.fileList[idx] = meta
@@ -255,28 +256,28 @@ export const useMorphStore = create<MorphState>()(
               s.search = { query: '', results: [], activeIndex: -1 }
             })
 
-            await get().renderCurrentPage()
+            await getter().renderCurrentPage()
             // Load thumbnails in background
-            get().loadThumbnails()
+            getter().loadThumbnails()
           } finally {
-            set((s) => {
+            setter((s) => {
               s.isLoading = false
             })
           }
         },
 
         async switchFile(path: string) {
-          const { file, fileList } = get()
+          const { file, fileList } = getter()
           if (file?.path === path) return
           const target = fileList.find((f) => f.path === path)
           if (!target) return
-          set((s) => {
+          setter((s) => {
             s.isLoading = true
           })
           try {
             // const annotations = await queryAnnotations(path)
             // const counts = await countAnnotationsByPage(path)
-            set((s) => {
+            setter((s) => {
               s.file = target
               s.currentPage = 0
               // s.annotations = annotations
@@ -288,26 +289,26 @@ export const useMorphStore = create<MorphState>()(
               s.selectedAnnotationId = null
               s.search = { query: '', results: [], activeIndex: -1 }
             })
-            await get().renderCurrentPage()
-            get().loadThumbnails()
+            await getter().renderCurrentPage()
+            getter().loadThumbnails()
           } finally {
-            set((s) => {
+            setter((s) => {
               s.isLoading = false
             })
           }
         },
 
         closeFile(path: string) {
-          const { file, fileList } = get()
+          const { file, fileList } = getter()
           const remaining = fileList.filter((f) => f.path !== path)
-          set((s) => {
+          setter((s) => {
             s.fileList = remaining
           })
           if (file?.path !== path) return
           if (remaining.length > 0) {
-            void get().switchFile(remaining[remaining.length - 1].path)
+            void getter().switchFile(remaining[remaining.length - 1].path)
           } else {
-            set((s) => {
+            setter((s) => {
               s.file = null
               s.currentPage = 0
               s.annotations = []
@@ -325,37 +326,37 @@ export const useMorphStore = create<MorphState>()(
         // ── view ─────────────────────────────────────────────────────
 
         setPage(page: number) {
-          const { file, currentPage } = get()
+          const { file, currentPage } = getter()
           if (!file) return
           const clamped = Math.max(0, Math.min(page, file.page_count - 1))
           if (clamped === currentPage) return
-          set((s) => {
+          setter((s) => {
             s.currentPage = clamped
           })
-          get().renderCurrentPage()
+          getter().renderCurrentPage()
         },
 
         setZoom(zoom: number) {
           const clamped = Math.max(0.25, Math.min(zoom, 5.0))
-          set((s) => {
+          setter((s) => {
             s.zoom = clamped
             s.pageCache = {} // clear cache at new zoom in one set() to avoid double re-render
           })
-          get().renderCurrentPage()
+          getter().renderCurrentPage()
         },
 
         zoomIn() {
-          get().setZoom(Math.round((get().zoom + 0.25) * 4) / 4)
+          getter().setZoom(Math.round((getter().zoom + 0.25) * 4) / 4)
         },
         zoomOut() {
-          get().setZoom(Math.round((get().zoom - 0.25) * 4) / 4)
+          getter().setZoom(Math.round((getter().zoom - 0.25) * 4) / 4)
         },
         fitWidth() {
-          get().setZoom(1.0)
+          getter().setZoom(1.0)
         },
 
         setTool(tool: Tool) {
-          set((s) => {
+          setter((s) => {
             s.activeTool = tool
             // Switch to edit mode when a drawing tool is selected
             if (tool !== 'select') s.viewMode = 'edit'
@@ -363,12 +364,12 @@ export const useMorphStore = create<MorphState>()(
         },
 
         setViewMode(mode: ViewMode) {
-          set((s) => {
+          setter((s) => {
             s.viewMode = mode
           })
         },
         toggleSummary() {
-          set((s) => {
+          setter((s) => {
             s.summaryVisible = !s.summaryVisible
           })
         },
@@ -376,13 +377,13 @@ export const useMorphStore = create<MorphState>()(
         // ── rendering ────────────────────────────────────────────────
 
         async renderCurrentPage() {
-          const { file, currentPage, zoom } = get()
+          const { file, currentPage, zoom } = getter()
           if (!file) return
 
           // Return cached version first
-          if (get().pageCache[currentPage]) return
+          if (getter().pageCache[currentPage]) return
 
-          set((s) => {
+          setter((s) => {
             s.isLoading = true
           })
           try {
@@ -393,25 +394,25 @@ export const useMorphStore = create<MorphState>()(
               pageIndex: currentPage,
               scale
             })
-            set((s) => {
+            setter((s) => {
               s.pageCache[currentPage] = image
             })
           } finally {
-            set((s) => {
+            setter((s) => {
               s.isLoading = false
             })
           }
         },
 
         async loadThumbnails() {
-          const { file } = get()
+          const { file } = getter()
           if (!file) return
           try {
             const thumbs: PageImage[] = await invoke('pdf_render_thumbnails', {
               path: file.path,
               scale: 0.6 // ~357px wide for A4; 2× DPR covers 180px CSS display crisp
             })
-            set((s) => {
+            setter((s) => {
               s.thumbnails = thumbs
             })
           } catch (e) {
@@ -422,42 +423,42 @@ export const useMorphStore = create<MorphState>()(
         // ── search ────────────────────────────────────────────────────
 
         async searchText(query: string) {
-          const { file } = get()
+          const { file } = getter()
           if (!file || !query.trim()) return
           const results: SearchMatch[] = await invoke('pdf_search_text', {
             path: file.path,
             query
           })
-          set((s) => {
+          setter((s) => {
             s.search.query = query
             s.search.results = results
             s.search.activeIndex = results.length > 0 ? 0 : -1
           })
           // Jump to first match page
           if (results.length > 0) {
-            get().setPage(results[0].page_index)
+            getter().setPage(results[0].page_index)
           }
         },
 
         clearSearch() {
-          set((s) => {
+          setter((s) => {
             s.search = { query: '', results: [], activeIndex: -1 }
           })
         },
 
         setSearchActiveIndex(idx: number) {
-          const results = get().search.results
+          const results = getter().search.results
           if (idx < 0 || idx >= results.length) return
-          set((s) => {
+          setter((s) => {
             s.search.activeIndex = idx
           })
-          get().setPage(results[idx].page_index)
+          getter().setPage(results[idx].page_index)
         },
 
         // ── annotations ───────────────────────────────────────────────
 
         async addAnnotation(partial) {
-          const { file } = get()
+          const { file } = getter()
           if (!file) return
 
           const now = Date.now()
@@ -471,7 +472,7 @@ export const useMorphStore = create<MorphState>()(
 
           // await insertAnnotation(annotation)
 
-          set((s) => {
+          setter((s) => {
             s.annotations.push(annotation)
             s.annotationCounts[annotation.pageIndex] =
               (s.annotationCounts[annotation.pageIndex] ?? 0) + 1
@@ -487,13 +488,13 @@ export const useMorphStore = create<MorphState>()(
         },
 
         async updateAnnotationData(id, changes) {
-          const before = get().annotations.find((a) => a.id === id) ?? null
+          const before = getter().annotations.find((a) => a.id === id) ?? null
           if (!before) return
 
           // await updateAnnotation(id, changes)
 
           const now = Date.now()
-          set((s) => {
+          setter((s) => {
             const idx = s.annotations.findIndex((a) => a.id === id)
             if (idx >= 0) {
               if (changes.rect) s.annotations[idx].rect = changes.rect
@@ -512,12 +513,12 @@ export const useMorphStore = create<MorphState>()(
         },
 
         async removeAnnotationById(id) {
-          const before = get().annotations.find((a) => a.id === id) ?? null
+          const before = getter().annotations.find((a) => a.id === id) ?? null
           if (!before) return
 
           // await removeAnnotation(id)
 
-          set((s) => {
+          setter((s) => {
             s.annotations = s.annotations.filter((a) => a.id !== id)
             if (s.annotationCounts[before.pageIndex] > 0) {
               s.annotationCounts[before.pageIndex]--
@@ -535,7 +536,7 @@ export const useMorphStore = create<MorphState>()(
         },
 
         selectAnnotation(id) {
-          set((s) => {
+          setter((s) => {
             s.selectedAnnotationId = id
           })
         },
@@ -543,13 +544,13 @@ export const useMorphStore = create<MorphState>()(
         // ── export ────────────────────────────────────────────────────
 
         setExportState(patch) {
-          set((s) => {
+          setter((s) => {
             Object.assign(s.exportState, patch)
           })
         },
 
         async exportPdf(destPath: string) {
-          const { file } = get()
+          const { file } = getter()
           if (!file) return
           await invoke('pdf_export', { src: file.path, dest: destPath })
         },
@@ -557,8 +558,8 @@ export const useMorphStore = create<MorphState>()(
         // ── doc operation modals ─────────────────────────────────────
 
         openMergeModal() {
-          const { fileList } = get()
-          set((s) => {
+          const { fileList } = getter()
+          setter((s) => {
             s.mergeModal.open = true
             s.mergeModal.inputs = fileList.map((f) => f.path)
             s.mergeModal.output = ''
@@ -566,42 +567,42 @@ export const useMorphStore = create<MorphState>()(
           })
         },
         closeMergeModal() {
-          set((s) => {
+          setter((s) => {
             s.mergeModal.open = false
           })
         },
         setMergeModal(patch) {
-          set((s) => {
+          setter((s) => {
             Object.assign(s.mergeModal, patch)
           })
         },
         async executeMerge() {
-          const { mergeModal } = get()
-          set((s) => {
+          const { mergeModal } = getter()
+          setter((s) => {
             s.mergeModal.loading = true
             s.mergeModal.error = null
           })
           try {
             await invoke('pdf_merge', { paths: mergeModal.inputs, dest: mergeModal.output })
             antdMessage.success(`合并完成 → ${mergeModal.output}`)
-            set((s) => {
+            setter((s) => {
               s.mergeModal.open = false
             })
           } catch (e) {
             const msg = String(e)
-            set((s) => {
+            setter((s) => {
               s.mergeModal.error = msg
             })
             antdMessage.error(`合并失败：${msg}`)
           } finally {
-            set((s) => {
+            setter((s) => {
               s.mergeModal.loading = false
             })
           }
         },
 
         openSplitModal() {
-          set((s) => {
+          setter((s) => {
             s.splitModal.open = true
             s.splitModal.ranges = ''
             s.splitModal.count = 2
@@ -609,19 +610,19 @@ export const useMorphStore = create<MorphState>()(
           })
         },
         closeSplitModal() {
-          set((s) => {
+          setter((s) => {
             s.splitModal.open = false
           })
         },
         setSplitModal(patch) {
-          set((s) => {
+          setter((s) => {
             Object.assign(s.splitModal, patch)
           })
         },
         async executeSplit() {
-          const { splitModal, file } = get()
+          const { splitModal, file } = getter()
           if (!file) return
-          set((s) => {
+          setter((s) => {
             s.splitModal.loading = true
             s.splitModal.error = null
           })
@@ -650,42 +651,42 @@ export const useMorphStore = create<MorphState>()(
               })
               antdMessage.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
             }
-            set((s) => {
+            setter((s) => {
               s.splitModal.open = false
             })
           } catch (e) {
             const msg = String(e)
-            set((s) => {
+            setter((s) => {
               s.splitModal.error = msg
             })
             antdMessage.error(`拆分失败：${msg}`)
           } finally {
-            set((s) => {
+            setter((s) => {
               s.splitModal.loading = false
             })
           }
         },
 
         openConvertModal() {
-          set((s) => {
+          setter((s) => {
             s.convertModal.open = true
             s.convertModal.error = null
           })
         },
         closeConvertModal() {
-          set((s) => {
+          setter((s) => {
             s.convertModal.open = false
           })
         },
         setConvertModal(patch) {
-          set((s) => {
+          setter((s) => {
             Object.assign(s.convertModal, patch)
           })
         },
         async executeConvert() {
-          const { convertModal, file } = get()
+          const { convertModal, file } = getter()
           if (!file) return
-          set((s) => {
+          setter((s) => {
             s.convertModal.loading = true
             s.convertModal.error = null
           })
@@ -708,17 +709,17 @@ export const useMorphStore = create<MorphState>()(
               })
               antdMessage.success(`转换完成 → ${outPath}`)
             }
-            set((s) => {
+            setter((s) => {
               s.convertModal.open = false
             })
           } catch (e) {
             const msg = String(e)
-            set((s) => {
+            setter((s) => {
               s.convertModal.error = msg
             })
             antdMessage.error(`转换失败：${msg}`)
           } finally {
-            set((s) => {
+            setter((s) => {
               s.convertModal.loading = false
             })
           }
@@ -727,18 +728,18 @@ export const useMorphStore = create<MorphState>()(
         // ── history ───────────────────────────────────────────────────
 
         async undo() {
-          const { undoStack } = get()
+          const { undoStack } = getter()
           if (!undoStack.length) return
           const entry = undoStack[undoStack.length - 1]
 
-          set((s) => {
+          setter((s) => {
             s.undoStack.pop()
             s.redoStack.push(entry)
           })
 
           _suppressHistory = true
           try {
-            const store = get()
+            const store = getter()
             if (entry.kind === 'ADD_ANNOTATION' && entry.after) {
               await store.removeAnnotationById(entry.after.id)
             } else if (entry.kind === 'REMOVE_ANNOTATION' && entry.before) {
@@ -755,18 +756,18 @@ export const useMorphStore = create<MorphState>()(
         },
 
         async redo() {
-          const { redoStack } = get()
+          const { redoStack } = getter()
           if (!redoStack.length) return
           const entry = redoStack[redoStack.length - 1]
 
-          set((s) => {
+          setter((s) => {
             s.redoStack.pop()
             s.undoStack.push(entry)
           })
 
           _suppressHistory = true
           try {
-            const store = get()
+            const store = getter()
             if (entry.kind === 'ADD_ANNOTATION' && entry.after) {
               await store.addAnnotation(entry.after)
             } else if (entry.kind === 'REMOVE_ANNOTATION' && entry.after) {

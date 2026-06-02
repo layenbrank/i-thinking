@@ -7,7 +7,7 @@ type Configure = Omit<WebviewOptions, 'x' | 'y' | 'width' | 'height'> & WindowOp
 
 type WindowConfigure = Record<Application.Component, Configure>
 
-const DEfAULT: Configure = {
+const DEFAULT: Configure = {
   backgroundColor: '#00000000',
   center: true,
   closable: true,
@@ -35,18 +35,18 @@ const DEfAULT: Configure = {
 }
 
 const WINDOW: WindowConfigure = {
-  bookmark: DEfAULT,
+  bookmark: DEFAULT,
   calendar: {
-    ...DEfAULT,
+    ...DEFAULT,
     width: 600,
     minWidth: 600,
     height: 400,
     minHeight: 400,
     windowEffects: undefined
   },
-  clipchamp: DEfAULT,
+  clipchamp: DEFAULT,
   clock: {
-    ...DEfAULT,
+    ...DEFAULT,
     width: 480,
     minWidth: 360,
     height: 360,
@@ -57,7 +57,7 @@ const WINDOW: WindowConfigure = {
     windowEffects: undefined
   },
   countdown: {
-    ...DEfAULT,
+    ...DEFAULT,
     width: 400,
     minWidth: 360,
     height: 420,
@@ -67,21 +67,25 @@ const WINDOW: WindowConfigure = {
     skipTaskbar: true,
     windowEffects: undefined
   },
-  code: DEfAULT,
-  collection: DEfAULT,
-  developer: DEfAULT,
-  example: DEfAULT,
-  gallery: DEfAULT,
-  intelligence: DEfAULT,
-  markdown: DEfAULT,
-  marketplace: DEfAULT,
-  navigation: DEfAULT,
+  code: DEFAULT,
+  collection: DEFAULT,
+  developer: DEFAULT,
+  example: DEFAULT,
+  gallery: DEFAULT,
+  intelligence: DEFAULT,
+  markdown: DEFAULT,
+  morph: {
+    ...DEFAULT,
+    windowEffects: undefined
+  },
+  marketplace: DEFAULT,
+  navigation: DEFAULT,
   screenshot: {
-    ...DEfAULT,
+    ...DEFAULT,
     fullscreen: false
   },
-  settings: DEfAULT,
-  signboard: DEfAULT
+  settings: DEFAULT,
+  signboard: DEFAULT
 }
 
 export { WINDOW }
