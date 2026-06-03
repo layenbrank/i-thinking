@@ -25,7 +25,7 @@
     "antd-style": "catalog:",
     "@ant-design/colors": "catalog:",
     "@ant-design/icons": "catalog:",
-    "@ant-design/pro-components": "catalog:",
+    "@ant-design/pro-components": "^2.8.10",
     "@ant-design/x": "catalog:",
     "@ant-design/x-markdown": "catalog:",
     "@i-thinking/utils": "workspace:*",

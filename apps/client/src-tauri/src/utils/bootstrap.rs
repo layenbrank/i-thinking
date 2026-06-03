@@ -1,14 +1,14 @@
 use tauri::{Manager, generate_context, generate_handler};
 
 use crate::{
-    through::{self, ClickThroughState, command as click_through_cmd},
-    countdown::command as countdown,
+    countdown,
     databases::{
         migration,
         storage::{self, Storage, get_app_data_dir, get_database_path},
     },
-    screenshot::command as screenshot,
-    services::{application::command as application, mirror::command as mirror},
+    screenshot,
+    services::{application, mirror},
+    through::{self, ClickThroughState},
     ui::tray,
     utils::{invoke, pdf},
 };
@@ -77,7 +77,6 @@ impl Bootstrap {
                         api.prevent_close();
                         let _ = window.hide();
 
-
                         let app = window.app_handle();
                         if let Some(state) = app.try_state::<crate::ui::tray::TrayState>() {
                             // 首次隐藏时发送系统通知
@@ -106,15 +105,15 @@ impl Bootstrap {
                 invoke::os,
                 invoke::set_tray_badge,
                 // application
-                application::application_write,
-                application::application_read,
-                application::application_update,
-                application::application_remove,
+                application::command::application_write,
+                application::command::application_read,
+                application::command::application_update,
+                application::command::application_remove,
                 // mirror
-                mirror::mirror_write,
-                mirror::mirror_read,
-                mirror::mirror_update,
-                mirror::mirror_remove,
+                mirror::command::mirror_write,
+                mirror::command::mirror_read,
+                mirror::command::mirror_update,
+                mirror::command::mirror_remove,
                 // pdf
                 pdf::pdf_open_file,
                 pdf::pdf_render_page,
@@ -127,15 +126,15 @@ impl Bootstrap {
                 pdf::pdf_to_images,
                 pdf::pdf_to_office,
                 // screenshot
-                screenshot::screenshot_capture,
-                screenshot::screenshot_save,
-                screenshot::screenshot_copy,
+                screenshot::command::screenshot_capture,
+                screenshot::command::screenshot_save,
+                screenshot::command::screenshot_copy,
                 // countdown / work config
-                countdown::countdown_config_read,
-                countdown::countdown_config_upsert,
-                countdown::countdown_config_update,
+                countdown::command::countdown_config_read,
+                countdown::command::countdown_config_upsert,
+                countdown::command::countdown_config_update,
                 // click-through
-                click_through_cmd::update_rects
+                through::command::update_rects
             ])
             .run(generate_context!())
             .expect("error while running application");

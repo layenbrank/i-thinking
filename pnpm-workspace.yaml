@@ -8,7 +8,6 @@ catalog:
   'antd-style': ^3.7.1
   '@ant-design/colors': ^7.2.1
   '@ant-design/icons': ^6.1.0
-  '@ant-design/pro-components': ^2.8.10
   '@ant-design/x': ^2.1.1
   '@ant-design/x-markdown': ^2.1.1
   '@electron-forge/cli': ^7.11.1
@@ -44,3 +43,7 @@ onlyBuiltDependencies:
   - msw
   - prisma
   - unrs-resolver
+
+overrides:
+  'xlsx': 'https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz'
+  'dayjs': '1.11.21'

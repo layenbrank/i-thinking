@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable'
 import clsx from 'clsx'
 import { useMemo, useRef, type ReactNode } from 'react'
-import { useKeyPress } from 'react-use'
+import { useKeyModifier } from '@reactuses/core'
 
 import { Application, OverlayProvider } from '@/features/application/application.tsx'
 import styles from '@/features/controller/controller.module.scss'
@@ -36,7 +36,7 @@ const Controller = {
     const shape = 'rectangle'
     const direction = 'horizontal'
     // 使用 react-use 监听 Control 键状态
-    const [Control] = useKeyPress('Control')
+    const control = useKeyModifier('Control')
 
     const uniqueKeys = useMemo(
       function () {
@@ -102,7 +102,7 @@ const Controller = {
       const isSortableItem = uniqueKeys.includes(over.id.toString())
 
       // 只有在未按下 Control 键时，才允许排序
-      if (!Control && isSortableItem) {
+      if (!control && isSortableItem) {
         // 未按下 Control 键且目标是排序容器内的其他项，执行排序逻辑
         const oldIndex = applications?.findIndex(function (v) {
           return v.id === active.id
