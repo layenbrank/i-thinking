@@ -227,7 +227,7 @@ const Component: React.FC = function () {
           }
           return (
             <Row
-              draggable-region="true"
+              data-region="true"
               justify="end"
               gutter={8}
               style={{ padding: 8 }}>

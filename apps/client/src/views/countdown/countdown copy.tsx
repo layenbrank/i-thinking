@@ -271,17 +271,19 @@ export default function () {
       ref={containerRef}
       className={styles.container}>
       {/* Header */}
+
       <div
         className={styles.header}
         data-through="false"
-        onMouseDown={handleRegion}>
-        <span className={styles.dateText}>{dateLabel}</span>
+        data-region="true">
+        <span
+          className={styles.dateText}
+          data-region="true">
+          {dateLabel}
+        </span>
         <Tooltip title="工作配置">
           <motion.button
             aria-label="工作配置"
-            onMouseDown={function (e) {
-              e.stopPropagation()
-            }}
             className={clsx(styles.iconBtn, { [styles.iconBtnActive]: visible })}
             whileTap={{ scale: 0.9 }}
             onClick={function () {
@@ -302,7 +304,7 @@ export default function () {
       <div
         className={styles.card}
         data-through="false"
-        onMouseDown={handleRegion}>
+        data-region="true">
         <div className={clsx(styles.statusBadge, statusMeta.cls)}>
           <Icon
             icon={statusMeta.icon}
@@ -356,7 +358,7 @@ export default function () {
       <AnimatePresence>
         {config.monthlySalary > 0 && (status === 'working' || status === 'after') && (
           <motion.div
-            onMouseDown={handleRegion}
+            data-region="true"
             data-through="false"
             className={styles.card}
             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
@@ -383,7 +385,7 @@ export default function () {
       <div
         className={clsx(styles.card, styles.paydayCard)}
         data-through="false"
-        onMouseDown={handleRegion}>
+        data-region="true">
         <div className={styles.cardLabel}>
           <Icon
             icon="mdi:calendar-star"

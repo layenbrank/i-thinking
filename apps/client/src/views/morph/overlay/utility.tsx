@@ -95,13 +95,13 @@ export default function Utility() {
 
   return (
     <div
-      draggable-region="true"
+      data-region="true"
       onDoubleClick={onMaximizable}
       className={clsx([styles.utility, styles.root])}>
       {/* ── Left: app logo + name + filename ───────────────────── */}
       <div className={styles.leftGroup}>
         <Button
-          draggable-region="false"
+          data-region="false"
           className={clsx([styles.utility, styles.button])}>
           ☰
         </Button>
@@ -142,7 +142,7 @@ export default function Utility() {
               getPopupContainer={onTeleport}
               getTooltipContainer={onTeleport}>
               <Button
-                draggable-region="false"
+                data-region="false"
                 onClick={option.event}
                 className={clsx([styles.utility, styles.button, styles[option.key]])}>
                 {option.mark}

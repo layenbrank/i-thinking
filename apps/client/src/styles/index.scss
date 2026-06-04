@@ -92,10 +92,10 @@ body,
   }
 }
 
-*[draggable-region] {
+*[data-region='true'] {
   -webkit-app-region: drag;
 }
-*[draggable-region='false'] {
+*[data-region='false'] {
   -webkit-app-region: no-drag;
 }
 

@@ -36,7 +36,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px) saturate(1.8);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .dateText {
@@ -219,18 +226,20 @@
 // ─── Payday card ───────────────────────────────────────────
 
 .paydayCard {
-  background: linear-gradient(135deg, rgba(255, 171, 0, 0.08) 0%, rgba(255, 100, 0, 0.04) 100%);
+  background: linear-gradient(135deg, rgba(255, 171, 0, 0.5) 0%, rgba(255, 100, 0, 0.5) 100%);
   border-color: rgba(255, 150, 0, 0.15);
 
   .cardLabel {
-    color: rgba(200, 100, 0, 0.6);
+    // color: rgba(200, 100, 0, 0.6);
+    color: #ffffff;
   }
 }
 
 .paydayToday {
   font-size: 26px;
   font-weight: 600;
-  color: #e67e00;
+  // color: #e67e00;
+  color: #ffffff;
   text-align: center;
   padding: 6px 0;
 }
@@ -239,7 +248,8 @@
   font-size: 52px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #e67e00;
+  // color: #e67e00;
+  color: #ffffff;
   line-height: 1;
   font-family: 'Helvetica Neue', 'Arial', sans-serif;
 }
@@ -247,13 +257,15 @@
 .paydayUnit {
   font-size: 20px;
   font-weight: 400;
-  color: rgba(200, 100, 0, 0.7);
+  // color: rgba(200, 100, 0, 0.7);
+  color: #ffffff;
   margin-left: 4px;
 }
 
 .paydayDate {
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.38);
+  // color: rgba(0, 0, 0, 0.38);
+  color: #ffffff;
 }
 
 // ─── Settings card ─────────────────────────────────────────

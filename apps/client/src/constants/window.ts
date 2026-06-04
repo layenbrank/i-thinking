@@ -53,7 +53,7 @@ const WINDOW: WindowConfigure = {
     minHeight: 280,
     resizable: true,
     alwaysOnTop: true,
-    skipTaskbar: true,
+    skipTaskbar: false,
     windowEffects: undefined
   },
   countdown: {
@@ -64,7 +64,7 @@ const WINDOW: WindowConfigure = {
     minHeight: 380,
     resizable: true,
     alwaysOnTop: true,
-    skipTaskbar: true,
+    skipTaskbar: false,
     windowEffects: undefined
   },
   code: DEFAULT,

@@ -279,11 +279,11 @@ export default function ClockView() {
       <div
         className={styles.card}
         data-style={clockStyle}
-        draggable-region="">
+        data-region="true">
         {/* Date header */}
         <div
           className={clsx(styles.dateLabel, { [styles.dateLabelDark]: isNeon })}
-          draggable-region="">
+          data-region="true">
           {dateLabel}
         </div>
 
@@ -337,7 +337,9 @@ export default function ClockView() {
       </div>
 
       {/* Style switcher */}
-      <div className={styles.switcher}>
+      <div
+        data-region="true"
+        className={styles.switcher}>
         {STYLE_OPTIONS.map(function (opt) {
           return (
             <Tooltip

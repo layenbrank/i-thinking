@@ -83,7 +83,7 @@ function Provider(props: ComboboxProps) {
         }
       ])}>
       <div
-        draggable-region="false"
+        data-region="false"
         className={clsx([
           'combobox-trigger',
           styles.combobox,
@@ -98,11 +98,7 @@ function Provider(props: ComboboxProps) {
           placeholder={props.placeholder}
           onCompositionEnd={onCompositionFinal}
           onCompositionStart={onCompositionBegin}
-          className={clsx([
-            'combobox-composer',
-            styles.combobox,
-            styles.composer
-          ])}
+          className={clsx(['combobox-composer', styles.combobox, styles.composer])}
         />
         {props.suffix}
       </div>
@@ -183,10 +179,4 @@ const Rollback = {
   }
 }
 
-export {
-  Provider,
-  Collection,
-  type ComboboxProps,
-  type CollectionProps,
-  type CollectionOption
-}
+export { Provider, Collection, type ComboboxProps, type CollectionProps, type CollectionOption }

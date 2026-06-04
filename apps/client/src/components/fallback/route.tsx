@@ -5,9 +5,12 @@ export default function RouteFallback() {
   return (
     <div
       className={clsx(
-        'size-full bg-white dark:bg-black flex items-center justify-center flex-col gap-4'
+        'w-[100vw] h-[100vh] bg-white dark:bg-black flex items-center justify-center flex-col gap-4'
       )}>
-      <Spin size="large" />
+      <Spin
+        spinning={true}
+        size="large"
+      />
       <span>Loading...</span>
     </div>
   )
