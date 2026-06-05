@@ -9,6 +9,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Icons from 'unplugin-icons/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
+import { chunk } from '@i-thinking/wasm'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ws = createWriteStream(resolve(__dirname, 'chunks.log'), {
@@ -168,7 +169,8 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
     /[\\/]node_modules[\\/]uuid[\\/]/,
     /[\\/]node_modules[\\/]clsx[\\/]/,
     /[\\/]node_modules[\\/]reflect-metadata[\\/]/,
-    /[\\/]node_modules[\\/]react-use[\\/]/,
+    /[\\/]node_modules[\\/]@reactuses[\\/]/,
+    /[\\/]node_modules[\\/]@microsoft[\\/]/,
     /[\\/]node_modules[\\/]js-cookie[\\/]/,
     /[\\/]node_modules[\\/]nano-css[\\/]/,
     /[\\/]node_modules[\\/]react-universal-interface[\\/]/,
@@ -469,18 +471,20 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         output: {
           entryFileNames: 'javascript/[name]-[hash].js',
           chunkFileNames: 'javascript/[name]-[hash].js',
-          assetFileNames(chunkInfo) {
-            for (const name of chunkInfo.names) {
-              if (cssRegex.test(name)) return `css/${name}`
-              if (imageRegex.test(name)) return `images/${name}`
-              if (fontRegex.test(name)) return `fonts/${name}`
-              if (videoRegex.test(name)) return `videos/${name}`
-              if (audioRegex.test(name)) return `audios/${name}`
-              if (wasmRegex.test(name)) return `wasm/${name}`
-              if (workerRegex.test(name)) return `workers/${name}`
+          assetFileNames(chunk) {
+            if (!chunk.names) return 'assets/[name]-[hash].[ext]'
+
+            for (const name of chunk.names) {
+              if (cssRegex.test(name)) return `css/[name]-[hash][extname]`
+              if (imageRegex.test(name)) return `images/[name]-[hash][extname]`
+              if (fontRegex.test(name)) return `fonts/[name]-[hash][extname]`
+              if (videoRegex.test(name)) return `videos/[name]-[hash][extname]`
+              if (audioRegex.test(name)) return `audios/[name]-[hash][extname]`
+              if (wasmRegex.test(name)) return `wasm/[name]-[hash][extname]`
+              if (workerRegex.test(name)) return `workers/[name]-[hash][extname]`
             }
 
-            return 'assets/[name].[ext]'
+            return 'assets/[name]-[hash][extname]'
           },
           manualChunks(id) {
             // 遍历映射表，匹配当前模块路径
