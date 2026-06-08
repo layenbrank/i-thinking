@@ -30,6 +30,9 @@ const Intelligence = lazy(function () {
 const Calendar = lazy(function () {
   return import('@/views/calendar/calendar.tsx')
 })
+const Marketplace = lazy(function () {
+  return import('@/views/marketplace/marketplace.tsx')
+})
 // const Background = lazy(function () {
 //   return import('@/views/background/background.tsx')
 // })
@@ -83,6 +86,10 @@ const routes: RouteObject[] = [
   {
     path: '/countdown',
     element: <Countdown />
+  },
+  {
+    path: '/marketplace',
+    element: <Marketplace />
   }
 ]
 

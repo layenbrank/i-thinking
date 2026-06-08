@@ -1,3 +1,27 @@
 [build]
 target-dir    = "target"  # 构建输出目录
 rustc-wrapper = "sccache"
+
+# Windows MSVC 目标栈大小配置（8MB）
+# [target.x86_64-pc-windows-msvc]
+# rustflags = ["-C", "link-arg=/STACK:8000000"]
+
+# Windows MSVC 目标栈大小配置（16MB）
+# [target.x86_64-pc-windows-msvc]
+# rustflags = ["-C", "link-arg=/STACK:16777216"]
+
+# Windows MSVC 目标栈大小配置（32MB）
+# [target.x86_64-pc-windows-msvc]
+# rustflags = ["-C", "link-arg=/STACK:33554432"]   # 32MB
+
+# Windows MSVC 目标栈大小配置（64MB）
+# [target.x86_64-pc-windows-msvc]
+# rustflags = ["-C", "link-arg=/STACK:67108864"]
+
+# Windows MSVC 目标栈大小配置（256MB）
+# [target.x86_64-pc-windows-msvc]
+# rustflags = ["-C", "link-arg=/STACK:268435456"]
+
+# Windows MSVC 目标栈大小配置（512MB）
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=/STACK:536870912"]

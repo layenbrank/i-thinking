@@ -22,7 +22,7 @@ const DEFAULT: Configure = {
   minWidth: 800,
   resizable: true,
   decorations: false,
-  shadow: false,
+  shadow: true,
   skipTaskbar: false,
   theme: 'light',
   titleBarStyle: 'transparent',
@@ -50,6 +50,7 @@ const WINDOW: WindowConfigure = {
     width: 480,
     minWidth: 360,
     height: 360,
+    shadow: false,
     minHeight: 280,
     resizable: true,
     alwaysOnTop: true,
@@ -61,6 +62,7 @@ const WINDOW: WindowConfigure = {
     width: 400,
     minWidth: 360,
     height: 420,
+    shadow: false,
     minHeight: 380,
     resizable: true,
     alwaysOnTop: true,
@@ -78,7 +80,10 @@ const WINDOW: WindowConfigure = {
     ...DEFAULT,
     windowEffects: undefined
   },
-  marketplace: DEFAULT,
+  marketplace: {
+    ...DEFAULT,
+    transparent: true
+  },
   navigation: DEFAULT,
   screenshot: {
     ...DEFAULT,

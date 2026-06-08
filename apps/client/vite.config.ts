@@ -434,6 +434,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       })
     ],
     resolve: {
+      tsconfigPaths: true,
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
@@ -449,8 +450,9 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       // cssTarget: 'chrome128',
       emptyOutDir: true,
       minify: 'terser',
+      cssCodeSplit: true,
       // minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
-      cssMinify: 'esbuild',
+      cssMinify: 'lightningcss',
       sourcemap: mode === 'development' ? true : false,
       // sourcemap: !!process.env.TAURI_ENV_DEBUG,
       // 输出到包内 dist，便于 Turbo outputs 匹配
@@ -466,8 +468,8 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         // 默认情况下，不内联
         return false
       },
-      rollupOptions: {
-        maxParallelFileOps: 60,
+      rolldownOptions: {
+        // maxParallelFileOps: 60,
         output: {
           entryFileNames: 'javascript/[name]-[hash].js',
           chunkFileNames: 'javascript/[name]-[hash].js',

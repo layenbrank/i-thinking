@@ -145,4 +145,4 @@ function BuildMirror(options?: MirrorOptions) {
   }
 }
 
-export { BuildMirror }
+export { BuildMirror, OPTIONS }
