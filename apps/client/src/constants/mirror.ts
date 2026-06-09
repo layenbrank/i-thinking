@@ -40,10 +40,6 @@ const OPTIONS: ApplicationOptions[] = [
     value: 'marketplace'
   },
   {
-    label: 'example',
-    value: 'example'
-  },
-  {
     label: '备忘录',
     value: 'markdown'
   },
