@@ -82,6 +82,8 @@ const WINDOW: WindowConfigure = {
   },
   marketplace: {
     ...DEFAULT,
+    minWidth: 900,
+    minHeight: 600,
     transparent: true
   },
   navigation: DEFAULT,

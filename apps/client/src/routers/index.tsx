@@ -33,6 +33,15 @@ const Calendar = lazy(function () {
 const Marketplace = lazy(function () {
   return import('@/views/marketplace/marketplace.tsx')
 })
+const Booth = lazy(function () {
+  return import('@/views/marketplace/booth/booth')
+})
+const Customize = lazy(function () {
+  return import('@/views/marketplace/customize/customize.tsx')
+})
+const NavigatePage = lazy(function () {
+  return import('@/views/marketplace/navigate/navigate.tsx')
+})
 // const Background = lazy(function () {
 //   return import('@/views/background/background.tsx')
 // })
@@ -89,7 +98,25 @@ const routes: RouteObject[] = [
   },
   {
     path: '/marketplace',
-    element: <Marketplace />
+    element: <Marketplace />,
+    children: [
+      {
+        index: true,
+        element: <Booth />
+      },
+      {
+        path: 'booth',
+        element: <Booth />
+      },
+      {
+        path: 'customize',
+        element: <Customize />
+      },
+      {
+        path: 'navigate',
+        element: <NavigatePage />
+      }
+    ]
   }
 ]
 

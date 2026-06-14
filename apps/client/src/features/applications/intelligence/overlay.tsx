@@ -33,27 +33,15 @@ import {
   type ThoughtChainItemType
 } from '@ant-design/x'
 import XMarkdown, { type ComponentProps } from '@ant-design/x-markdown'
-import type {
-  SkillType,
-  SlotConfigType
-} from '@ant-design/x/es/sender/interface'
+import type { SkillType, SlotConfigType } from '@ant-design/x/es/sender/interface'
 import type { SuggestionItem } from '@ant-design/x/es/suggestion'
-import {
-  Divider,
-  Flex,
-  FloatButton,
-  message,
-  theme,
-  Typography,
-  type GetProp
-} from 'antd'
+import { Divider, Flex, FloatButton, message, theme, Typography, type GetProp } from 'antd'
 import clsx from 'clsx'
 import { vs as VSCODE } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { v4 as UUIDV4 } from 'uuid'
 
 import { timeSphere } from '@i-thinking/utils'
 
-// import { Scroll } from '@/components/scroll/scroll.tsx'
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'
 import {
   Application,
@@ -61,10 +49,7 @@ import {
   type OverlayControlProps
 } from '@/features/application/application.tsx'
 import styles from '@/features/applications/intelligence/overlay.module.scss'
-import {
-  session$,
-  useIntelligenceStore as store
-} from '@/stores/intelligence.ts'
+import { session$, useIntelligenceStore as store } from '@/stores/intelligence.ts'
 
 type AiSession = Application.Intelligence.AiSession
 type AiMessage = Application.Intelligence.AiMessage
@@ -220,8 +205,7 @@ export default function Overlay(props: OverlayControlProps) {
       key: '4',
       icon: <SmileOutlined style={{ color: '#52C41A' }} />,
       label: 'Tell me a Joke',
-      description:
-        'Why do not ants get sick? Because they have tiny ant-bodies!'
+      description: 'Why do not ants get sick? Because they have tiny ant-bodies!'
     },
     {
       key: '5',
@@ -277,8 +261,7 @@ export default function Overlay(props: OverlayControlProps) {
         status: 'success',
         description: 'status: success',
         icon: <CheckCircleOutlined />,
-        content:
-          'Ant Design X help you build AI chat/platform app as ready-to-use 📦.'
+        content: 'Ant Design X help you build AI chat/platform app as ready-to-use 📦.'
       },
       {
         title: 'Hello World!',
@@ -336,11 +319,7 @@ export default function Overlay(props: OverlayControlProps) {
     console.log('event', event.key, 'onKeyDown', onKeyDown)
   }
 
-  async function handleSubmit(
-    fragment: string,
-    slot?: SlotConfigType[],
-    skill?: SkillType
-  ) {
+  async function handleSubmit(fragment: string, slot?: SlotConfigType[], skill?: SkillType) {
     try {
       // 立即重置输入框，提供即时反馈
       updateSender('')
@@ -370,15 +349,13 @@ export default function Overlay(props: OverlayControlProps) {
         thinking: ''
       }
       // 构建消息列表（包含用户消息），在更新状态之前构建
-      const transferMSG: CommunicateMessage[] = messages
-        .concat([personal])
-        .map(function (value) {
-          return {
-            role: value.identity,
-            content: value.fragment,
-            thinking: value.thinking ?? undefined
-          }
-        })
+      const transferMSG: CommunicateMessage[] = messages.concat([personal]).map(function (value) {
+        return {
+          role: value.identity,
+          content: value.fragment,
+          thinking: value.thinking ?? undefined
+        }
+      })
 
       // 使用函数式更新添加用户消息和空的助手消息
       await store.getState().toInsertMessage([personal])
@@ -725,9 +702,7 @@ export default function Overlay(props: OverlayControlProps) {
           icon={<CustomerServiceOutlined />}>
           <FloatButton
             onClick={() => updateFullscreen(!fullscreen)}
-            icon={
-              fullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />
-            }
+            icon={fullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
           />
           <FloatButton icon={<CommentOutlined />} />
         </FloatButton.Group>

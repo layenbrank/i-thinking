@@ -544,9 +544,8 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       preprocessorOptions: {
         scss: {
           additionalData: `
-														@use "@/styles/variables.scss";
-														@use "@/styles/placeholder.scss";
-													`
+                          @use "@/styles/placeholder.scss" as *;
+                          `
         }
       }
     },

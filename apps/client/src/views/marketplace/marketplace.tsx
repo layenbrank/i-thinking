@@ -1,18 +1,13 @@
+'use client'
 import { clsx } from 'clsx'
-
-import { Overlay } from '@/views/marketplace/overlay/index'
+import { Outlet } from 'react-router-dom'
 
 import styles from '@/views/marketplace/marketplace.module.scss'
 
-export default function marketplace() {
+export default function Marketplace() {
   return (
     <div className={clsx([styles.marketplace, styles.root])}>
-      <Overlay.Utility />
-      <div className={clsx([styles.marketplace, styles.wrapper])}>
-        <Overlay.Navigation />
-        <Overlay.Section />
-      </div>
-      <Overlay.Summary />
+      <Outlet />
     </div>
   )
 }

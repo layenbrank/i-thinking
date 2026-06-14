@@ -17,7 +17,7 @@
     row-gap: var(--application-gap-y, 30px);
     column-gap: var(--application-gap-x, 30px);
 
-    @extend %application;
+    @include application;
   }
 
   // /* 拖拽预览样式 */

@@ -44,7 +44,7 @@ import { TableTriggerButton } from '@/components/tiptap-node/table-node/ui/table
 
 // import { Image } from '@/components/tiptap-node/image-node/image-node-extension'
 
-import { Scroll } from '@/components/scroll/scroll.tsx'
+import { Glide } from '@/components/glide/glide'
 
 // TODO FIX: 面板颜色无法选取应用
 // import { ColorTextPopover } from '@/components/tiptap-ui/color-text-popover/color-text-popover.tsx'
@@ -86,7 +86,7 @@ interface SectionProps {
 export default function Section(props: SectionProps) {
   return (
     <div className={clsx(['flex-1 min-w-0 h-full flex flex-col'])}>
-      <Scroll.X
+      <Glide.X
         classNames={{
           root: 'w-full h-[30px]',
           inner: 'h-full flex items-center gap-x-5'
@@ -124,9 +124,7 @@ export default function Section(props: SectionProps) {
         <ColorHighlightPopover
           editor={props.composer}
           hideWhenUnavailable={true}
-          onApplied={({ color, label }) =>
-            console.log(`Applied highlight: ${label} (${color})`)
-          }
+          onApplied={({ color, label }) => console.log(`Applied highlight: ${label} (${color})`)}
         />
         <ImageAlignButton
           editor={props.composer}
@@ -289,7 +287,7 @@ export default function Section(props: SectionProps) {
           onAligned={() => console.log('Text aligned!')}
         />
         <TableTriggerButton editor={props.composer} />
-      </Scroll.X>
+      </Glide.X>
 
       <ComposerContext value={{ editor: props.composer }}>
         <ComposerMarkdown

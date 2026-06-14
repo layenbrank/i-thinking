@@ -7,7 +7,7 @@ import { debounce } from 'lodash-es'
 import type { ReactNode } from 'react'
 
 import { Combobox } from '@/components/combobox/index.ts'
-import styles from '@/views/marketplace/overlay/utility.module.scss'
+import styles from '@/views/marketplace/booth/utility.module.scss'
 
 interface Option {
   mark: ReactNode
@@ -117,7 +117,7 @@ export default function Utility() {
       <Combobox
         visible={visible}
         onUpdate={onUpdateKeyword}
-        placeholder="搜索代码文件、符号、设置..."
+        placeholder="输入关键词..."
         className={clsx([styles.utility, styles['combobox-trigger']])}
         section={
           <Combobox.Collection

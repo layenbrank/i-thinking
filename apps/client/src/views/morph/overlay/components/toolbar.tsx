@@ -2,7 +2,7 @@ import { CompressOutlined, ScissorOutlined, SwapOutlined } from '@ant-design/ico
 import { Button, InputNumber, Segmented, Space, Tooltip } from 'antd'
 import { clsx } from 'clsx'
 
-import { Scroll } from '@/components/scroll/scroll.tsx'
+import { Glide } from '@/components/glide/glide'
 import { useMorphStore } from '@/stores/morph.ts'
 import styles from './toolbar.module.scss'
 
@@ -91,7 +91,7 @@ export default function Toolbar() {
       </div>
 
       {/* ── Center: all tools + ops (horizontally scrollable) ────── */}
-      <Scroll.X
+      <Glide.X
         classNames={{
           root: styles.scrollRoot,
           inner: styles.toolsRow
@@ -173,7 +173,7 @@ export default function Toolbar() {
             重做
           </button>
         </Tooltip>
-      </Scroll.X>
+      </Glide.X>
 
       {/* ── Right: view mode + export + print ─────────────────────── */}
       <div className={styles.rightGroup}>

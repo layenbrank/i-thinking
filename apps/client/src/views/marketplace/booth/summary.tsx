@@ -14,13 +14,6 @@ export default function () {
     onUpdateMirror(value)
   }
 
-  useEffect(
-    function () {
-      console.log('mirrors', mirrors)
-    },
-    [mirrors]
-  )
-
   return (
     <div className={clsx(styles.summary)}>
       <Glide.X
@@ -37,7 +30,7 @@ export default function () {
             justifyContent: 'flex-start'
           }
         }}>
-        {Array.from({ length: 30 }).map(function (value, index) {
+        {Array.from({ length: 30 }).map(function (_, index) {
           return (
             <div
               key={index}
@@ -68,8 +61,16 @@ export default function () {
           }}
           optionLabelProp="title"
         />
-        <Button type="dashed">网址</Button>
-        <Button type="dashed">定制</Button>
+        <Button
+          type="dashed"
+          href="/marketplace/navigate">
+          网址
+        </Button>
+        <Button
+          type="dashed"
+          href="/marketplace/customize">
+          定制
+        </Button>
       </Space.Compact>
     </div>
   )

@@ -92,7 +92,7 @@ import '@/styles/markdown-variables.scss'
 // import { Image } from '@/components/tiptap-node/image-node/image-node-extension'
 import { Marked } from 'marked'
 
-import { Scroll } from '@/components/scroll/scroll.tsx'
+import { Glide } from '@/components/glide/glide'
 import {
   Application,
   OverlayContext,
@@ -200,7 +200,7 @@ export default function Overlay(props: OverlayControlProps) {
       onOk={() => onUpdateVisible(false)}
       onCancel={() => onUpdateVisible(false)}>
       <div className={clsx([styles.overlay, styles.section])}>
-        <Scroll.X
+        <Glide.X
           classNames={{
             root: 'w-full h-[30px]',
             inner: 'h-full flex items-center gap-x-5'
@@ -238,9 +238,7 @@ export default function Overlay(props: OverlayControlProps) {
           <ColorHighlightPopover
             editor={composer}
             hideWhenUnavailable={true}
-            onApplied={({ color, label }) =>
-              console.log(`Applied highlight: ${label} (${color})`)
-            }
+            onApplied={({ color, label }) => console.log(`Applied highlight: ${label} (${color})`)}
           />
           <ImageAlignButton
             editor={composer}
@@ -403,7 +401,7 @@ export default function Overlay(props: OverlayControlProps) {
             onAligned={() => console.log('Text aligned!')}
           />
           <TableTriggerButton editor={composer} />
-        </Scroll.X>
+        </Glide.X>
 
         <ComposerContext value={{ editor: composer }}>
           <ComposerMarkdown

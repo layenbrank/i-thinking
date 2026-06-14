@@ -1,4 +1,4 @@
-%application {
+@mixin application {
   &.mini {
     --application-size: 60px;
   }
