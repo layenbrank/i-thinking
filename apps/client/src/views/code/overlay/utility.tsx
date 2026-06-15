@@ -1,10 +1,10 @@
-import { clsx } from 'clsx'
 import { Icon } from '@iconify/react'
-import type { TooltipPlacement } from 'antd/es/tooltip'
-import type { ReactNode } from 'react'
-import { Button, Space, Tooltip } from 'antd'
-import { debounce } from 'lodash-es'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { Button, Space, Tooltip } from 'antd'
+import type { TooltipPlacement } from 'antd/es/tooltip'
+import { clsx } from 'clsx'
+import { debounce } from 'lodash-es'
+import type { ReactNode } from 'react'
 
 import { Combobox } from '@/components/combobox/index.ts'
 import styles from '@/views/code/overlay/utility.module.scss'
@@ -115,7 +115,7 @@ export default function Utility() {
         placeholder="搜索代码文件、符号、设置..."
         className={clsx([styles.utility, styles['combobox-trigger']])}
         section={
-          <Combobox.Collection
+          <Combobox.Series
             options={Array.from({ length: 60 }).map(function (_, index) {
               return {
                 label: `搜索结果项 ${index + 1}`,

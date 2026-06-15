@@ -117,7 +117,7 @@ export default function Utility() {
         placeholder="搜索文字内容 / 页码 / 批注..."
         className={clsx([styles.utility, styles['combobox-trigger']])}
         section={
-          <Combobox.Collection
+          <Combobox.Series
             options={Array.from({ length: 60 }).map(function (_, index) {
               return {
                 label: `搜索结果项 ${index + 1}`,

@@ -9,30 +9,48 @@ $background: #ffffff;
   background-color: $background;
   font-size: 14px;
   line-height: 20px;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.04),
-    0 2px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition:
+    border-radius 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 
   &.is-active {
     border-radius: $round $round 0px 0px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   }
 
-  .combobox-composer {
-    width: 100%;
-    outline: none;
-    border: none;
+  &:not(.is-active) {
+  }
+}
 
-    padding-inline: 8px;
+:where(.combobox-composer) {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  // padding-block: 4px;
+  // padding-inline: 12px;
+}
+
+.combobox-trigger {
+  width: 100%;
+  height: 100%;
+  outline: none;
+  border: none;
+  line-height: calc(100% - 8px);
+  padding-inline: 10px;
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+
+  &:not(:disabled):hover {
+    border: none;
+    box-shadow: none;
     background-color: transparent;
   }
 }
 
-:where(.combobox-trigger) {
-}
-
 :where(.combobox-section) {
   width: 100%;
-  // padding: 8px;
   padding-block: 8px;
   padding-inline-start: 8px;
   padding-inline-end: 2px;
@@ -40,20 +58,26 @@ $background: #ffffff;
   border-radius: 0px 0px $round $round;
   top: var(--combobox-section-offset);
   background-color: $background;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.04),
-    0 2px 4px rgba(0, 0, 0, 0.04);
+
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+  // top: 100%;
+  margin-top: 0;
+
+  // 关键：大幅弱化独立阴影，让它与上方融为一体
+  box-shadow: 0 10px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-:where(.combobox-collection) {
+:where(.combobox-series) {
   max-height: 360px;
   overflow-y: scroll;
   scroll-behavior: smooth;
   padding-inline-end: 2px;
 }
 
-:where(.single-combobox) {
-  padding-block: 3px;
+:where(.combobox-fragment) {
   padding-inline: 6px;
   border-radius: 4px;
   cursor: pointer;

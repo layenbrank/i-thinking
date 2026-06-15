@@ -5,7 +5,6 @@ import { Navigation, Pagination, Scrollbar, A11y, Virtual } from 'swiper/modules
 
 import 'swiper/css'
 import 'swiper/css/virtual'
-import 'swiper/css/scrollbar'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 
@@ -51,14 +50,8 @@ const SHAPES: ShapeOption[] = [
 ]
 
 const DIRECTIONS: DirectionOption[] = [
-  {
-    label: '水平',
-    value: 'horizontal'
-  },
-  {
-    label: '垂直',
-    value: 'vertical'
-  }
+  { label: '水平', value: 'horizontal' },
+  { label: '垂直', value: 'vertical' }
 ]
 
 export function Section() {
@@ -91,10 +84,7 @@ interface ReBoothProps extends Application {
 }
 
 function ReBooth(props: ReBoothProps) {
-  const SwiperRef = useRef<SwiperRef>(null)
-
   const Component = Reflection[props.component]
-  console.log('props component', props.component)
   const [size, onUpdateSize] = useState(props.size)
   const [shape, onUpdateShape] = useState(props.shape)
   const [direction, onUpdateDirection] = useState(props.direction)
@@ -113,8 +103,8 @@ function ReBooth(props: ReBoothProps) {
     onUpdateSize(value)
     const index = SIZES.findIndex((i) => i.value === value)
     if (index === -1) return
-    console.log('index', index)
-    SwiperRef.current?.swiper?.slideToLoop(index)
+    // console.log('[onChangeSize] index', index)
+    useSwiper().slideToLoop(index)
   }
 
   function onChangeShape(value: Mirror.Shape) {
@@ -165,7 +155,6 @@ function ReBooth(props: ReBoothProps) {
       </div>
 
       <Swiper
-        ref={SwiperRef}
         virtual
         navigation
         loop={true}
@@ -175,7 +164,7 @@ function ReBooth(props: ReBoothProps) {
         scrollbar={{ draggable: true }}
         className={clsx(SModule.swiper)}
         pagination={{ clickable: true }}
-        modules={[Navigation, Pagination, Scrollbar, A11y, Virtual]}>
+        modules={[Navigation, Pagination, A11y, Virtual]}>
         {SIZES.map(function (sizev) {
           return (
             <SwiperSlide

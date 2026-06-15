@@ -32,6 +32,7 @@ import { clsx } from 'clsx'
 import { Glide } from '@/components/glide/glide'
 import { useMirrorStore } from '@/stores/mirror.ts'
 import { timeSphere } from '@i-thinking/utils'
+import ReUtility from '@/features/utility/utility.tsx'
 
 import styles from '@/features/applications/marketplace/overlay.module.scss'
 
@@ -79,6 +80,8 @@ export default function Customize() {
   const { token } = theme.useToken()
 
   const mirror = useMirrorStore((state) => state.active.mirror)
+  const [visible, onUpdateVisible] = useState(false)
+  const [keyword, onUpdateKeyword] = useState('')
   const DEFAULT_COLORS = useMemo(
     function () {
       return genPresets({
@@ -217,116 +220,119 @@ export default function Customize() {
   )
 
   return (
-    <Flex
-      justify="center"
-      className={clsx(['h-full'])}>
-      <Segmented
-        size="large"
-        value={activeSegmented}
-        onChange={updateActiveSegment}
-        orientation="vertical"
-        options={segmentedOptions}
+    <div className={clsx(['size-full flex flex-col items-center justify-center gap-y-[6px]'])}>
+      <ReUtility
+        visible={visible}
+        section={null}
+        onUpdateVisible={onUpdateVisible}
+        onUpdateKeyword={onUpdateKeyword}
       />
-      <Card className={clsx(['flex-1 h-full'])}>
-        <Form
-          form={form}
-          labelAlign="right"
-          labelCol={{ span: 4 }}
-          wrapperCol={{ span: 20 }}
-          initialValues={initialize}
-          style={{
-            maxWidth: 600
-          }}
-          onFinish={handleFinish}
-          validateMessages={validateMessages}>
-          <Form.Item
-            label="标题"
-            name="title"
-            className={clsx([styles.single, styles.title])}
-            rules={[{ required: true }]}>
-            <Input placeholder="请输入标题" />
-          </Form.Item>
-          <Form.Item
-            name="url"
-            label="链接"
-            className={clsx([styles.single, styles.url])}
-            rules={[{ required: true }]}>
-            <Input placeholder="请输入链接" />
-          </Form.Item>
-          <Form.Item
-            label="背景颜色"
-            className={clsx([styles.single, styles.color])}
-            rules={[{ required: true }]}>
-            <Glide.X
-              style={{
-                width: '100%',
-                height: '60px'
-              }}>
-              <Form.Item
-                name="color"
-                noStyle>
-                <Radio.Group>
-                  {colors.map(function (color) {
-                    return (
-                      <Radio
-                        key={color}
-                        style={{
-                          '--ant-color-bg-container': color
-                        }}
-                        value={color}></Radio>
-                    )
-                  })}
-                </Radio.Group>
-              </Form.Item>
-            </Glide.X>
-            <ColorPicker
-              onChangeComplete={onChangeComplete}
-              className={clsx([styles.color, styles.picker])}
-              defaultValue={token.colorPrimary}
-              styles={{ popupOverlayInner: { width: 480 } }}
-              presets={DEFAULT_COLORS}
-              panelRender={customPanelRender}
-            />
-          </Form.Item>
-          <Form.Item
-            label="背景图片"
-            className={clsx([styles.single, styles.image])}
-            rules={[{ required: true }]}>
-            <Glide.X
-              style={{
-                width: '100%',
-                height: '60px'
-              }}>
-              <Form.Item
-                name="image"
-                noStyle>
-                <Radio.Group
-                  options={[
-                    { value: 1, label: 'A' },
-                    { value: 2, label: 'B' },
-                    { value: 3, label: 'D' },
-                    { value: 4, label: 'E' },
-                    { value: 5, label: 'F' },
-                    { value: 6, label: 'G' },
-                    { value: 7, label: 'H' },
-                    { value: 8, label: 'I' },
-                    { value: 9, label: 'J' }
-                  ]}></Radio.Group>
-              </Form.Item>
-            </Glide.X>
-            <Flex>图片</Flex>
-          </Form.Item>
-          <Form.Item label={null}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              onClick={handleEnsure}>
-              确认
-            </Button>
-          </Form.Item>
-        </Form>
-      </Card>
-      <Upload
+
+      <Form
+        form={form}
+        labelAlign="right"
+        labelCol={{ span: 4 }}
+        wrapperCol={{ span: 20 }}
+        initialValues={initialize}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          width: '100%',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gridTemplateRows: 'repeat(4, 1fr)',
+          gap: '16px'
+        }}
+        onFinish={handleFinish}
+        validateMessages={validateMessages}>
+        <Form.Item
+          label="标题"
+          name="title"
+          className={clsx([styles.single, styles.title])}
+          rules={[{ required: true }]}>
+          <Input placeholder="请输入标题" />
+        </Form.Item>
+        <Form.Item
+          name="url"
+          label="链接"
+          className={clsx([styles.single, styles.url])}
+          rules={[{ required: true }]}>
+          <Input placeholder="请输入链接" />
+        </Form.Item>
+        <Form.Item
+          label="背景颜色"
+          className={clsx([styles.single, styles.color])}
+          rules={[{ required: true }]}>
+          <Glide.X
+            style={{
+              width: '100%',
+              height: '60px'
+            }}>
+            <Form.Item
+              name="color"
+              noStyle>
+              <Radio.Group>
+                {colors.map(function (color) {
+                  return (
+                    <Radio
+                      key={color}
+                      style={{
+                        '--ant-color-bg-container': color
+                      }}
+                      value={color}></Radio>
+                  )
+                })}
+              </Radio.Group>
+            </Form.Item>
+          </Glide.X>
+          <ColorPicker
+            onChangeComplete={onChangeComplete}
+            className={clsx([styles.color, styles.picker])}
+            defaultValue={token.colorPrimary}
+            styles={{ popupOverlayInner: { width: 480 } }}
+            presets={DEFAULT_COLORS}
+            panelRender={customPanelRender}
+          />
+        </Form.Item>
+        <Form.Item
+          label="背景图片"
+          className={clsx([styles.single, styles.image])}
+          rules={[{ required: true }]}>
+          <Glide.X
+            style={{
+              width: '100%',
+              height: '60px'
+            }}>
+            <Form.Item
+              name="image"
+              noStyle>
+              <Radio.Group
+                options={[
+                  { value: 1, label: 'A' },
+                  { value: 2, label: 'B' },
+                  { value: 3, label: 'D' },
+                  { value: 4, label: 'E' },
+                  { value: 5, label: 'F' },
+                  { value: 6, label: 'G' },
+                  { value: 7, label: 'H' },
+                  { value: 8, label: 'I' },
+                  { value: 9, label: 'J' }
+                ]}></Radio.Group>
+            </Form.Item>
+          </Glide.X>
+          <Flex>图片</Flex>
+        </Form.Item>
+        <Form.Item label={null}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            onClick={handleEnsure}>
+            添加
+          </Button>
+        </Form.Item>
+      </Form>
+
+      {/* <Upload
         showUploadList={true}
         fileList={files}
         name="applications"
@@ -334,7 +340,7 @@ export default function Customize() {
         beforeUpload={handleImport}>
         <Button> {files?.length ? '已' : '待'}导入</Button>
       </Upload>
-      <Button onClick={handleExport}>导出</Button>
-    </Flex>
+      <Button onClick={handleExport}>导出</Button> */}
+    </div>
   )
 }

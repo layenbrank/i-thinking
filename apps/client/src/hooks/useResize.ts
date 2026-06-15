@@ -16,7 +16,7 @@ const observe = new ResizeObserver(function (entries) {
 const handlers = new WeakMap<HTMLElement, ResizeCallback>()
 
 function useResize<T extends HTMLElement>(callback: ResizeCallback) {
-  const ref = useRef<T | null>(null)
+  const ref = useRef<T>(null)
 
   useEffect(
     function () {

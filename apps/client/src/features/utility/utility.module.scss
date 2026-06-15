@@ -1,0 +1,59 @@
+@use 'sass:math';
+
+$size-y: 38px;
+
+.utility {
+  width: 100%;
+  height: $size-y;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1;
+
+  .combobox-trigger {
+    width: 360px;
+    height: $size-y - 10px;
+    line-height: $size-y;
+    padding-block: 0px;
+  }
+
+  .button {
+    height: $size-y;
+    aspect-ratio: 4/3;
+    padding: 0px;
+    border-radius: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    background-color: transparent;
+
+    &:not(:disabled):hover {
+      border: none;
+      outline: none;
+      box-shadow: none;
+    }
+
+    &.minimize {
+      &:not(:disabled):hover {
+        background-color: rgba($color: #ffffff, $alpha: 0.4);
+      }
+    }
+
+    &.maximize {
+      @extend .minimize;
+    }
+
+    &.destroy {
+      &:hover {
+        color: #ffffff;
+        background-color: #c42b1c;
+      }
+    }
+  }
+
+  .space-region {
+  }
+}

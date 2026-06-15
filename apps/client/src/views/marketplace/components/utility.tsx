@@ -5,10 +5,9 @@ import type { TooltipPlacement } from 'antd/es/tooltip'
 import { clsx } from 'clsx'
 import { debounce } from 'lodash-es'
 import type { ReactNode } from 'react'
-import { useCallback, useEffect, useState } from 'react'
 
 import { Combobox } from '@/components/combobox/index.ts'
-import styles from '@/views/markdown/overlay/utility.module.scss'
+import styles from '@/features/utility/utility.module.scss'
 
 interface Option {
   mark: ReactNode
@@ -18,37 +17,40 @@ interface Option {
   event: () => void
 }
 
-// 最小、最大化、关闭窗口
-export default function Utility() {
-  const SuffixOptions: Option[] = [
-    {
-      mark: <Icon icon="custom:minimize-12-filled" />,
-      key: '最小化',
-      tooltip: '最小化窗口',
-      placement: 'bottom',
-      event() {
-        void getCurrentWindow().minimize()
-      }
-    },
-    {
-      mark: <Icon icon="custom:maximize-24-filled" />,
-      key: '最大化',
-      tooltip: '最大化窗口',
-      placement: 'bottom',
-      event() {
-        void getCurrentWindow().toggleMaximize()
-      }
-    },
-    {
-      mark: <Icon icon="custom:close-fill" />,
-      key: '关闭',
-      tooltip: '关闭窗口',
-      placement: 'bottomRight',
-      event() {
-        void getCurrentWindow().close()
-      }
+const EXCLUDES = ['/marketplace/customize']
+
+const SUFFIX: Option[] = [
+  {
+    mark: <Icon icon="custom:minimize-12-filled" />,
+    key: 'minimize',
+    tooltip: '最小化窗口',
+    placement: 'bottom',
+    event() {
+      void getCurrentWindow().minimize()
     }
-  ]
+  },
+  {
+    mark: <Icon icon="custom:maximize-24-filled" />,
+    key: 'maximize',
+    tooltip: '最大化窗口',
+    placement: 'bottom',
+    event() {
+      void getCurrentWindow().toggleMaximize()
+    }
+  },
+  {
+    mark: <Icon icon="custom:close-fill" />,
+    key: 'destroy',
+    tooltip: '关闭窗口',
+    placement: 'bottomRight',
+    event() {
+      void getCurrentWindow().close()
+    }
+  }
+]
+
+export default function Utility() {
+  const location = useLocation()
 
   const [visible, onUpdateVisible] = useState(false)
 
@@ -87,7 +89,7 @@ export default function Utility() {
     debounceUpdate()
   }
 
-  function onMaximizable(event: React.MouseEvent<HTMLDivElement>) {
+  function onMaximizable() {
     void getCurrentWindow().toggleMaximize()
   }
 
@@ -97,6 +99,9 @@ export default function Utility() {
 
   useEffect(function () {
     window.addEventListener('click', handleCombobox)
+
+    console.log('location', location)
+
     return function () {
       window.removeEventListener('click', handleCombobox)
     }
@@ -106,29 +111,37 @@ export default function Utility() {
 
   return (
     <div
+      data-region="true"
       onDoubleClick={onMaximizable}
-      className={clsx([styles.utility, styles.root])}>
+      className={clsx([styles.utility])}>
       <Space.Compact orientation="horizontal">
-        <Button className={clsx([styles.utility, styles.button])}>☰</Button>
+        <Button
+          data-region="false"
+          className={clsx([styles.button])}></Button>
       </Space.Compact>
-      <Combobox
-        visible={visible}
-        onUpdate={onUpdateKeyword}
-        placeholder="搜索文档、笔记、标签..."
-        className={clsx([styles.utility, styles['combobox-trigger']])}
-        section={
-          <Combobox.Series
-            options={Array.from({ length: 60 }).map(function (_, index) {
-              return {
-                label: `搜索结果项 ${index + 1}`,
-                value: `result-${index + 1}`,
-                key: `result-${index + 1}`
-              }
-            })}
-          />
-        }></Combobox>
-      <Space.Compact orientation="horizontal">
-        {SuffixOptions.map(function (option) {
+      {!EXCLUDES.includes(location.pathname) && (
+        <Combobox
+          visible={visible}
+          onUpdate={onUpdateKeyword}
+          placeholder="输入关键词..."
+          className={clsx([styles['combobox-trigger']])}
+          section={
+            <Combobox.Series
+              options={Array.from({ length: 60 }).map(function (_, index) {
+                return {
+                  label: `搜索结果项 ${index + 1}`,
+                  value: `result-${index + 1}`,
+                  key: `result-${index + 1}`
+                }
+              })}
+            />
+          }
+        />
+      )}
+      <Space.Compact
+        orientation="horizontal"
+        rootClassName={styles['space-region']}>
+        {SUFFIX.map(function (option) {
           return (
             <Tooltip
               arrow={true}
@@ -139,8 +152,9 @@ export default function Utility() {
               getPopupContainer={onTeleport}
               getTooltipContainer={onTeleport}>
               <Button
+                data-region="false"
                 onClick={option.event}
-                className={clsx([styles.utility, styles.button])}>
+                className={clsx([styles.button, styles[option.key]])}>
                 {option.mark}
               </Button>
             </Tooltip>

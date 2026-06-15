@@ -35,12 +35,13 @@ export default function () {
             <div
               key={index}
               style={{
-                paddingInline: '6px',
                 height: '100%',
-                whiteSpace: 'nowrap',
                 display: 'flex',
-                alignItems: 'center',
+                cursor: 'pointer',
                 borderRadius: '4px',
+                paddingInline: '6px',
+                whiteSpace: 'nowrap',
+                alignItems: 'center',
                 backgroundColor: 'rgba(255, 255, 255, 0.3)'
               }}>
               分类{index + 1}

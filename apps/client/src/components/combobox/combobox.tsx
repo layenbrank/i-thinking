@@ -1,10 +1,9 @@
 import { clsx } from 'clsx'
+import { AnimatePresence, motion } from 'framer-motion'
 import type { CompositionEvent, FormEvent } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 import { useResize } from '@/hooks/useResize'
 
-import styles from '@/components/combobox/combobox.module.scss'
 import '@/components/combobox/combobox.scss'
 
 type onUpdateEvent = (
@@ -14,6 +13,7 @@ type onUpdateEvent = (
 ) => void
 
 interface ComboboxProps {
+  ref?: React.Ref<HTMLDivElement>
   value?: string
   placeholder?: string
   className?: string
@@ -32,11 +32,23 @@ interface ComboboxProps {
 }
 
 function Provider(props: ComboboxProps) {
-  const [isComposing, onUpdateComposing] = useState(false)
   const [offsetY, updateOffsetY] = useState(0)
-  const resizableRef = useResize<HTMLDivElement>(function (value) {
+  const [isComposing, onUpdateComposing] = useState(false)
+  const ResizableRef = useResize<HTMLDivElement>(function (value) {
     updateOffsetY(value.height)
   })
+
+  const setRef = useCallback(
+    function (node: HTMLDivElement | null) {
+      ;(ResizableRef as React.RefObject<HTMLDivElement | null>).current = node
+      if (typeof props.ref === 'function') {
+        props.ref(node)
+      } else if (props.ref) {
+        ;(props.ref as React.RefObject<HTMLDivElement | null>).current = node
+      }
+    },
+    [ResizableRef, props.ref]
+  )
 
   function onUpdate(event: FormEvent<HTMLInputElement>) {
     if (isComposing) return
@@ -67,15 +79,13 @@ function Provider(props: ComboboxProps) {
   return (
     <div
       onClick={props.onClick}
-      ref={resizableRef}
+      ref={setRef}
       style={{
         // '--combobox-height': `${DOMRect?.height ?? 0}px`,
         '--combobox-section-offset': `${props.offset ?? offsetY}px`
       }}
       className={clsx([
         'combobox',
-        styles.combobox,
-        styles.root,
         props.className,
         props.classNames?.root,
         {
@@ -84,12 +94,7 @@ function Provider(props: ComboboxProps) {
       ])}>
       <div
         data-region="false"
-        className={clsx([
-          'combobox-trigger',
-          styles.combobox,
-          styles.trigger,
-          props.classNames?.trigger
-        ])}>
+        className={clsx(['combobox-composer'])}>
         {props.prefix}
         <input
           type="text"
@@ -98,7 +103,7 @@ function Provider(props: ComboboxProps) {
           placeholder={props.placeholder}
           onCompositionEnd={onCompositionFinal}
           onCompositionStart={onCompositionBegin}
-          className={clsx(['combobox-composer', styles.combobox, styles.composer])}
+          className={clsx(['combobox-trigger', props.classNames?.trigger])}
         />
         {props.suffix}
       </div>
@@ -106,19 +111,27 @@ function Provider(props: ComboboxProps) {
         {props.visible && (
           <motion.div
             key="combobox-section" // 必须设置key，用于识别组件身份
-            initial={{ opacity: 0, y: 0 }} // 初始状态
-            animate={{ opacity: 1, y: 0 }} // 动画目标状态
-            exit={{ opacity: 0, y: 0 }} // 退出状态
-            transition={{
-              duration: 0.3,
-              ease: [0.165, 0.84, 0.44, 1]
+            initial={{
+              opacity: 0,
+              scaleY: 0.6, // 从 0.6 而不是 0，减少“突然出现”感
+              y: -4
             }}
-            className={clsx([
-              'combobox-section',
-              styles.combobox,
-              styles.section,
-              props.classNames?.section
-            ])}>
+            animate={{
+              opacity: 1,
+              scaleY: 1,
+              y: 0
+            }}
+            exit={{
+              opacity: 0,
+              scaleY: 0.85, // exit 时不要缩得太小，更优雅
+              y: -2
+            }}
+            transition={{
+              duration: 0.26,
+              ease: [0.22, 1, 0.36, 1]
+            }}
+            style={{ transformOrigin: 'top' }}
+            className={clsx(['combobox-section', props.classNames?.section])}>
             {props.section}
           </motion.div>
         )}
@@ -127,29 +140,29 @@ function Provider(props: ComboboxProps) {
   )
 }
 
-interface CollectionOption {
+interface SeriesOption {
   label: string
   value: string
   key: string
   mark?: React.ReactNode
 }
 
-interface CollectionProps {
-  options: CollectionOption[]
-  single?: (option: CollectionOption) => React.ReactNode
+interface SeriesProps {
+  options: SeriesOption[]
+  single?: (option: SeriesOption) => React.ReactNode
 }
 
-function Collection(props: CollectionProps) {
+function Series(props: SeriesProps) {
   return (
-    <div className="combobox-collection">
+    <div className="combobox-series">
       {props.options.map(function (option) {
         return (
           <div
             key={option.key}
             datatype={option.value}
-            className="single-combobox">
+            className="combobox-fragment">
             {props.single?.(option) ?? (
-              <Rollback.Single
+              <Rollback.Fragment
                 label={option.label}
                 value={option.value}
                 mark={option.mark}
@@ -162,14 +175,14 @@ function Collection(props: CollectionProps) {
   )
 }
 
-interface SingleProps {
+interface FragmentProps {
   label: string
   value: string
   mark: React.ReactNode
 }
 
 const Rollback = {
-  Single(option: SingleProps) {
+  Fragment(option: FragmentProps) {
     return (
       <>
         {option.mark}
@@ -179,4 +192,4 @@ const Rollback = {
   }
 }
 
-export { Provider, Collection, type ComboboxProps, type CollectionProps, type CollectionOption }
+export { Provider, Series, type ComboboxProps, type SeriesOption, type SeriesProps }

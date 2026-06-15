@@ -51,31 +51,9 @@
 
 .body {
   width: 100%;
-  // display: flex;
-  // align-items: center;
-  // justify-content: flex-start;
 
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  // column-gap: 6px;
-  // grid-template-rows: repeat(2, 1fr);
-  // row-gap: 6px;
-
-  // .segmented {
-  //   grid-area: 1 / 1 / 2 / 5;
-  // }
-
-  // :global {
-  //   .ant-segmented-group {
-  //   }
-
-  //   .ant-segmented-item {
-  //   }
-  // }
-
-  // .increment {
-  //   grid-area: 2 / 1 / 3 / 5;
-  // }
 }
 
 .swiper {
@@ -96,10 +74,13 @@
       border-radius: 50%;
       color: #000000;
       background-color: #ffffff;
+      left: 12px;
     }
 
     .swiper-button-next {
       @extend .swiper-button-prev;
+      right: 12px;
+      left: unset;
     }
   }
 }

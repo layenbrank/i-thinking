@@ -4,9 +4,9 @@ import { Outlet } from 'react-router-dom'
 
 import styles from '@/views/marketplace/marketplace.module.scss'
 
-export default function Marketplace() {
+export default function () {
   return (
-    <div className={clsx([styles.marketplace, styles.root])}>
+    <div className={clsx([styles.marketplace])}>
       <Outlet />
     </div>
   )
