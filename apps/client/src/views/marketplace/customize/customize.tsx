@@ -10,7 +10,6 @@ import {
 } from '@tauri-apps/plugin-notification'
 import {
   Button,
-  Card,
   Col,
   ColorPicker,
   type ColorPickerProps,
@@ -34,7 +33,7 @@ import { useMirrorStore } from '@/stores/mirror.ts'
 import { timeSphere } from '@i-thinking/utils'
 import ReUtility from '@/features/utility/utility.tsx'
 
-import styles from '@/features/applications/marketplace/overlay.module.scss'
+import AOModule from '@/features/applications/marketplace/overlay.module.scss'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
@@ -248,20 +247,20 @@ export default function Customize() {
         <Form.Item
           label="标题"
           name="title"
-          className={clsx([styles.single, styles.title])}
+          className={clsx([AOModule.single, AOModule.title])}
           rules={[{ required: true }]}>
           <Input placeholder="请输入标题" />
         </Form.Item>
         <Form.Item
           name="url"
           label="链接"
-          className={clsx([styles.single, styles.url])}
+          className={clsx([AOModule.single, AOModule.url])}
           rules={[{ required: true }]}>
           <Input placeholder="请输入链接" />
         </Form.Item>
         <Form.Item
           label="背景颜色"
-          className={clsx([styles.single, styles.color])}
+          className={clsx([AOModule.single, AOModule.color])}
           rules={[{ required: true }]}>
           <Glide.X
             style={{
@@ -287,7 +286,7 @@ export default function Customize() {
           </Glide.X>
           <ColorPicker
             onChangeComplete={onChangeComplete}
-            className={clsx([styles.color, styles.picker])}
+            className={clsx([AOModule.color, AOModule.picker])}
             defaultValue={token.colorPrimary}
             styles={{ popupOverlayInner: { width: 480 } }}
             presets={DEFAULT_COLORS}
@@ -296,7 +295,7 @@ export default function Customize() {
         </Form.Item>
         <Form.Item
           label="背景图片"
-          className={clsx([styles.single, styles.image])}
+          className={clsx([AOModule.single, AOModule.image])}
           rules={[{ required: true }]}>
           <Glide.X
             style={{

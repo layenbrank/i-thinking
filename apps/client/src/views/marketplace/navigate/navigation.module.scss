@@ -1,0 +1,21 @@
+.navigation {
+  width: 200px;
+  min-width: 200px;
+  height: 100%;
+  overflow: hidden scroll;
+  padding-inline: 6px 0px;
+  border-radius: 0px;
+}
+
+.segmented {
+  width: 100%;
+  background-color: rgba($color: #ffffff, $alpha: 0.3);
+
+  :global {
+    .ant-segmented-item {
+      &.ant-segmented-item-selected {
+        background-color: rgba($color: #ffffff, $alpha: 0.6);
+      }
+    }
+  }
+}
