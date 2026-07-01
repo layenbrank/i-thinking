@@ -1,6 +1,7 @@
 {
   "extends": "@tsconfig/node24/tsconfig.json",
   "include": [
+    "vite.chunk.*",
     "vite.config.*",
     "vitest.config.*",
     "vite.config-d.ts",
