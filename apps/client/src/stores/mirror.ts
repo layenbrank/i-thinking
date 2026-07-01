@@ -34,7 +34,7 @@ interface MirrorSlice {
 interface ApplicationSlice {
   applications: Application[]
 
-  toReadApplication: (ID: string) => Application | null
+  toReadApplication: (ID: string) => Promise<Application | null>
   toInsertApplication: (values: ApplicationWrite[]) => Promise<void>
   toUpdateApplication: (values: ApplicationUpdate[]) => Promise<void>
   toRemoveApplication: (keys: string[]) => Promise<void>
@@ -133,7 +133,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
 
       const [firstApp] = getters().applications
       if (firstApp && !getters().active.application) {
-        getters().toReadApplication(firstApp.id)
+        await getters().toReadApplication(firstApp.id)
       }
     }
   }
@@ -143,11 +143,12 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
   return {
     applications: [],
 
-    toReadApplication(ID: string) {
-      const application = getters().applications.find((v) => v.id === ID) ?? null
+    async toReadApplication(ID: string) {
+      const applications = await invoke<Application[]>('application_read', { params: { id: ID } })
+      const [application] = applications
       setters(
         (state) => {
-          state.active.application = application
+          state.active.application = application ?? null
         },
         false,
         'toReadApplication'
@@ -160,10 +161,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
       if (!mirrorID) return
       const params = values.length === 1 ? values[0] : values
       await invoke('application_write', { params })
-      const applications = await invoke<Application[]>('application_read', { params: { mirrorID } })
-      getters().toUpdateApplications(
-        applications.filter((a) => !a.collectionID).toSorted((a, b) => a.index - b.index)
-      )
+      await getters().toReadMirror(mirrorID)
     },
 
     async toUpdateApplication(values: ApplicationUpdate[]) {
@@ -171,10 +169,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
       if (!mirrorID) return
       const params = values.length === 1 ? values[0] : values
       await invoke('application_update', { params })
-      const applications = await invoke<Application[]>('application_read', { params: { mirrorID } })
-      getters().toUpdateApplications(
-        applications.filter((a) => !a.collectionID).toSorted((a, b) => a.index - b.index)
-      )
+      await getters().toReadMirror(mirrorID)
     },
 
     async toRemoveApplication(keys: string[]) {
@@ -182,10 +177,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
       if (!mirrorID) return
       const params = keys.length === 1 ? keys[0] : keys
       await invoke('application_remove', { params })
-      const applications = await invoke<Application[]>('application_read', { params: { mirrorID } })
-      getters().toUpdateApplications(
-        applications.filter((a) => !a.collectionID).toSorted((a, b) => a.index - b.index)
-      )
+      await getters().toReadMirror(mirrorID)
     },
 
     toUpdateApplications(applications) {

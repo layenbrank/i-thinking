@@ -1,13 +1,14 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { Suspense } from 'react'
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 
-import { WINDOW } from '@/constants/window'
 import { DEFAULT_ABORT_TIMEOUT_MS } from '@/constants/application.ts'
+import { WINDOW } from '@/constants/window'
 import styles from '@/features/application/application.module.scss'
 
 type Cache = 'destroy' | 'keepAlive'
@@ -294,9 +295,23 @@ const Application = {
       <div
         {...listens}
         onDoubleClick={() => {
-          // onUpdateVisible(true)
+          const compmap: Partial<Record<Application.Component, () => void>> = {
+            navigation() {
+              if (!props.url) return
+              openUrl(props.url, 'chrome')
+
+              // new WebviewWindow(props.component, {
+              //   url: props.url,
+              //   title: props.title,
+              //   ...WINDOW[props.component]
+              // })
+            }
+          }
+          const handler = compmap[props.component]
+          if (handler) return handler()
+
           new WebviewWindow(props.component, {
-            url: `/${props.component}`,
+            url: `/${props.component}?id=${props.id}`,
             title: props.title,
             ...WINDOW[props.component]
           })

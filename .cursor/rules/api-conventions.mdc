@@ -1,0 +1,59 @@
+---
+description: API 接口函数与类型命名规范
+globs: src/apis/**/*.ts
+alwaysApply: false
+---
+
+# API 与请求
+
+## 接口函数
+
+格式：**请求方法 + 业务含义**，全大写方法 + 大写下划线业务名。
+
+```javascript
+// ✅
+function GET_USERS() {
+  /* ... */
+}
+function POST_SIGNIN(data) {
+  /* ... */
+}
+function PUT_USER(data) {
+  /* ... */
+}
+function DELETE_USER(id) {
+  /* ... */
+}
+
+// ❌
+const getUsers = () => {}
+function getUserInfo() {}
+```
+
+## 接口类型
+
+业务模块 → `namespace`，具体业务 → 子 `namespace`，请求/响应 → `Params` / `Response`。
+
+```javascript
+/**
+ * @namespace Schedule
+ */
+
+/**
+ * @typedef {Object} Schedule.Department.Params
+ * @property {string} key
+ */
+
+/**
+ * @typedef {Object} Schedule.Department.Response
+ * @property {string} label
+ * @property {string} value
+ */
+
+/**
+ * @param {Schedule.Department.Params} data
+ */
+function POST_DEPARTMENT(data) {
+  /* ... */
+}
+```

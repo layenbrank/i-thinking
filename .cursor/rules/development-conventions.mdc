@@ -1,0 +1,32 @@
+---
+description: 项目命名、函数写法与 TypeScript 类型规范
+alwaysApply: true
+---
+
+# 开发规范
+
+新代码严格遵循；存量 `getXxx`、全小写常量等可在迭代中逐步替换。
+
+接口定义全部大写，请求方法+具体业务，例如 POST_SIGNIN、GET_INFO。所有命名应尽量简洁优雅。
+
+## 命名
+
+- 禁止 `get` 前缀 → 用 `find` / `fetch`；解析用 `parse`，结果用 `parsed`
+  - ❌ `getUserInfo` → ✅ `findUserInfo`
+  - ❌ `resolveDate` → ✅ `parseDate`
+- 常量、枚举键、全局配置：**全大写** + 下划线（`API_BASE_URL`），默认值不加 `DEFAULT` 前缀
+- 非 `useState` 禁止 `set`；布尔用 `is` / `has` / `can`
+- 用单复数区分语义，避免 `list` 后缀（`users` 非 `userList`）
+- 名称简洁明确；除 `i`、`k` 外避免单字母；超过 20 字符应拆分
+
+## 函数
+
+- **非必要禁止箭头函数**；导出与对外 API 用 `function` 声明
+- 箭头函数仅用于：简短回调、`this` 绑定、compose/pipe 等约定工具
+- 按模块划分文件；导出名与文件名、职责一致
+
+## 类型与质量
+
+- 类型大驼峰；非专用类型文件时，类型放在 import 下方
+- 优先 TypeScript/JSDoc 类型，避免 `any`；公开 API 需有类型
+- 遵循 ESLint/格式化；复杂逻辑补充注释

@@ -84,7 +84,7 @@ function ReBooth(props: ReBoothProps) {
           </Button>
         </Space.Compact>
       </div>
-      <RePreview src="https://www.baidu.com" />
+      <RePreview src="https://cn.bing.com" />
     </div>
   )
 }

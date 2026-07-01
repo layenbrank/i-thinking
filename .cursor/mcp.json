@@ -2,6 +2,10 @@
   "mcpServers": {
     "vue-mcp": {
       "url": "http://localhost:1024/__mcp/sse"
+    },
+    "antd": {
+      "command": "antd",
+      "args": ["mcp"]
     }
   }
 }

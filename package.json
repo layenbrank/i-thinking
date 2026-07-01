@@ -132,6 +132,7 @@
     "is-hotkey": "^0.2.0",
     "katex": "^0.16.25",
     "konva": "^10.2.3",
+    "ky": "^2.0.2",
     "lodash-es": "^4.17.21",
     "lowlight": "^3.3.0",
     "lunar-typescript": "^1.8.4",

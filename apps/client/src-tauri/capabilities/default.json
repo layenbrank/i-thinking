@@ -379,5 +379,5 @@
       "https://*.weixin.qq.com"
     ]
   },
-  "windows": ["main", "marketplace"]
+  "windows": ["main", "marketplace", "navigation"]
 }

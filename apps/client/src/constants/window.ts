@@ -86,7 +86,11 @@ const WINDOW: WindowConfigure = {
     minHeight: 600,
     transparent: true
   },
-  navigation: DEFAULT,
+  navigation: {
+    ...DEFAULT,
+    transparent: true,
+    decorations: true
+  },
   screenshot: {
     ...DEFAULT,
     fullscreen: false
