@@ -1,9 +1,10 @@
-import { Input, Layout as Payload } from 'antd'
+import { Input, Layout as Payload, FloatButton } from 'antd'
 import { clsx } from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
 import { useClickOutside, useFocus, useActiveElement } from '@reactuses/core'
 import { Icon } from '@iconify/react'
 
+import ReSignIn from '@/views/signin/signin.tsx'
 import Controller from '@/features/controller/controller.tsx'
 import styles from '@/views/overview/overview.module.scss'
 
@@ -14,6 +15,7 @@ export default function Overview() {
 
   const [keyword, onUpdateKeyword] = useState<string>('')
   const [visible, onUpdateVisible] = useState<boolean>(false)
+  const [signinOpen, setSigninOpen] = useState(false)
 
   const activeEngine = useActiveElement<HTMLElement>()
   // const [engine, onUpdateEngine] = useFocus(engineRef)
@@ -30,12 +32,26 @@ export default function Overview() {
     onUpdateVisible(value.length > 0)
   }
 
+  function onOpenSignin() {
+    setSigninOpen(true)
+  }
+
+  function onCloseSignin() {
+    setSigninOpen(false)
+  }
+
+  function onEngineClick() {
+    if (keyword) {
+      onUpdateVisible(true)
+    }
+  }
+
   return (
     <Payload className={clsx(styles.overview, styles.payload)}>
       <Prefix className={clsx(styles.overview, styles.prefix)}>
         <div
           ref={engineRef}
-          onClick={() => keyword && onUpdateVisible(true)}
+          onClick={onEngineClick}
           className={clsx(styles.engine, styles.section, { [styles.active]: isActive })}>
           <Input.Search
             value={keyword}
@@ -65,6 +81,25 @@ export default function Overview() {
         </Controller.Mirror>
       </Core>
       <Suffix className={clsx(styles.overview, styles.suffix)}>footer</Suffix>
+      <FloatButton.Group
+        trigger="click"
+        placement="top"
+        style={{
+          bottom: 30,
+          insetInlineEnd: 30,
+          position: 'absolute'
+        }}
+        icon={<Icon icon="ant-design:arrow-up-outlined" />}>
+        <FloatButton
+          icon={<Icon icon="ant-design:login-outlined" />}
+          onClick={onOpenSignin}
+        />
+        <FloatButton icon={<Icon icon="ant-design:logout-outlined" />} />
+      </FloatButton.Group>
+      <ReSignIn
+        open={signinOpen}
+        onClose={onCloseSignin}
+      />
     </Payload>
   )
 }

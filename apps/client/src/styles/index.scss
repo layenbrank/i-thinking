@@ -118,15 +118,20 @@ body,
       height: 100%;
     }
 
+    .ant-modal {
+      top: 0;
+    }
+
     // div:is([class*=' overlay-'], [class=' overlay-']).ant-modal {
-    .application-overlay.ant-modal {
+    .ant-modal {
       min-width: 600px;
       max-width: initial;
       display: block;
       // background-color: rgb(0, 128, 0, 0.3);
-      // aspect-ratio: 16 / 9;
+      aspect-ratio: 16 / 9;
       border-radius: 8px;
       background-color: #ffffffff;
+      margin: 0;
       transform-origin: center center !important;
       transition:
         width 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
