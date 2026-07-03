@@ -1,0 +1,147 @@
+import { Icon } from '@iconify/react'
+import { Button, Segmented, Typography } from 'antd'
+import clsx from 'clsx'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useState } from 'react'
+
+import {
+  HEAD,
+  MOTION,
+  NAVS,
+  SECTION,
+  type SectionKey
+} from '@/features/applications/settings/constant'
+import AppearancePanel from '@/features/applications/settings/panels/appearance'
+import GeneralPanel from '@/features/applications/settings/panels/general'
+import styles from '@/features/applications/settings/shell.module.scss'
+
+type ShellProps = {
+  onClose: () => void
+}
+
+function Shell(props: ShellProps) {
+  const { onClose } = props
+  const isReducedMotion = useReducedMotion()
+  const [section, onSectionChange] = useState<SectionKey>(SECTION.APPEARANCE)
+
+  const headText = HEAD[section]
+  const headVariants = MOTION.variants({
+    isReducedMotion: !!isReducedMotion,
+    offset: MOTION.OFFSET.HEAD
+  })
+  const viewVariants = MOTION.fadeVariants(!!isReducedMotion)
+  const viewTransition = MOTION.transition(!!isReducedMotion)
+
+  const segmentedOptions = NAVS.map(function (nav) {
+    return { label: nav.label, value: nav.key, disabled: nav.isDisabled }
+  })
+
+  return (
+    <div className={styles.layout}>
+      <aside className={styles.aside}>
+        <div className={styles.asideHead}>
+          <div className={styles.asideTitle}>
+            <div className={styles.logo}>
+              <Icon
+                icon="ant-design:setting-outlined"
+                aria-hidden
+              />
+            </div>
+            <Typography.Title level={5}>设置</Typography.Title>
+          </div>
+          <Button
+            type="text"
+            size="small"
+            className={styles.closeBtn}
+            aria-label="关闭设置"
+            icon={
+              <Icon
+                icon="ant-design:close-outlined"
+                aria-hidden
+              />
+            }
+            onClick={onClose}
+          />
+        </div>
+
+        <nav
+          className={styles.nav}
+          aria-label="设置分类">
+          {NAVS.map(function (nav) {
+            const isActive = section === nav.key
+            return (
+              <button
+                key={nav.key}
+                type="button"
+                className={clsx(
+                  styles.navItem,
+                  isActive && styles.navItemActive,
+                  nav.isDisabled && styles.navItemDisabled
+                )}
+                aria-current={isActive ? 'page' : undefined}
+                disabled={nav.isDisabled}
+                onClick={function () {
+                  onSectionChange(nav.key)
+                }}>
+                <Icon
+                  icon={nav.icon}
+                  aria-hidden
+                />
+                <span>{nav.label}</span>
+              </button>
+            )
+          })}
+        </nav>
+
+        <div className={styles.mobileNav}>
+          <Segmented
+            block
+            options={segmentedOptions}
+            value={section}
+            onChange={function (value) {
+              onSectionChange(value as SectionKey)
+            }}
+          />
+        </div>
+      </aside>
+
+      <section className={styles.main}>
+        <AnimatePresence
+          mode="wait"
+          initial={false}>
+          <motion.header
+            key={section}
+            className={styles.head}
+            initial={headVariants.initial}
+            animate={headVariants.animate}
+            exit={headVariants.exit}
+            transition={viewTransition}>
+            <Typography.Title level={4}>{headText.title}</Typography.Title>
+            <Typography.Text type="secondary">{headText.subtitle}</Typography.Text>
+          </motion.header>
+        </AnimatePresence>
+
+        <div className={styles.stage}>
+          <AnimatePresence
+            mode="wait"
+            initial={false}>
+            <motion.div
+              key={section}
+              className={styles.panelWrap}
+              initial={viewVariants.initial}
+              animate={viewVariants.animate}
+              exit={viewVariants.exit}
+              transition={viewTransition}>
+              {section === SECTION.GENERAL && <GeneralPanel />}
+              {section === SECTION.APPEARANCE && <AppearancePanel />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export default Shell
+
+export type { ShellProps }

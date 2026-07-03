@@ -1,14 +1,11 @@
 import { XProvider } from '@ant-design/x'
-import { theme, type ThemeConfig } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
-// import enUS from 'antd/locale/en_US'
 
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import localeData from 'dayjs/plugin/localeData'
 
-// import { StrictMode } from 'react'
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { RouterProvider } from 'react-router-dom'
 
 import { Fallback } from '@/components/fallback/index.ts'
@@ -17,49 +14,25 @@ import { IntelligencePlugin } from '@/plugins/intelligence.ts'
 import { StoragePlugin } from '@/plugins/storage.ts'
 import { router } from '@/routers/index'
 import { useMirrorStore } from '@/stores/mirror.ts'
+import { useSettingsStore } from '@/stores/setting.ts'
+import { useProviderProps } from '@/themes'
 
-// import { POST_SIGNIN } from '@/apis/auth.ts'
 dayjs.extend(localeData)
 dayjs.locale('zh-cn')
 
-const themeConfigure: ThemeConfig = {
-  algorithm: theme.defaultAlgorithm,
-  token: {
-    colorPrimary: '#4080ff'
-  },
-  components: {
-    Button: {
-      algorithm: true
-    },
-    Input: {
-      algorithm: true
-    },
-    Layout: {
-      algorithm: true,
-      headerBg: '#000000',
-      bodyBg: '#f5f5f5',
-      footerBg: '#ffffff'
-    },
-    Menu: {
-      algorithm: true,
-      itemBg: '#000000',
-      colorText: '#ffffff'
-    }
-  }
-}
-
 const plugins: Plugin[] = [
   { ...StoragePlugin, priority: 10 },
-  // KeyCodePlugin,
   IntelligencePlugin
 ]
 
 function App() {
+  const provider = useProviderProps()
+
   useEffect(function () {
     void useMirrorStore.getState().toInitialize()
+    void useSettingsStore.getState().initialize()
   }, [])
 
-  // 注册全局截图快捷键（Tauri 环境，主窗口只注册一次）
   useEffect(function () {
     if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return
     let unregister: (() => void) | null = null
@@ -119,19 +92,17 @@ function App() {
   }
 
   return (
-    // <StrictMode>
     <PluginProvider
       plugins={plugins}
       onError={onPluginError}>
       <XProvider
         locale={zhCN}
-        theme={themeConfigure}>
+        {...provider}>
         <Suspense fallback={<Fallback.Route />}>
           <RouterProvider router={router} />
         </Suspense>
       </XProvider>
     </PluginProvider>
-    // </StrictMode>
   )
 }
 

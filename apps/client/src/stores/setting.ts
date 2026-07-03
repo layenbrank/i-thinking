@@ -1,5 +1,8 @@
-import { LazyStore, Store, type StoreOptions } from '@tauri-apps/plugin-store'
+import { LazyStore } from '@tauri-apps/plugin-store'
 import { create } from 'zustand'
+
+import type { Appearance as ThemeAppearance } from '@/themes/appearance'
+import { APPEARANCE_PRESET } from '@/themes/appearance'
 
 declare namespace Setting {
   export interface General {
@@ -7,29 +10,11 @@ declare namespace Setting {
     language: string
   }
 
-  export interface Appearance {
-    theme: 'light' | 'dark' | 'system'
-    accentColor: string
-  }
-
-  export interface Screenshot {
-    toClipboard: boolean
-    toFile: boolean
-    directory: string
-    format: 'png' | 'jpg' | 'webp'
-    quality: number
-    // 截屏触发
-    keycode: string
-  }
-
-  // 快捷启动应用
-  export type KeyCode = Record<Application.Component, string>
+  export type Appearance = ThemeAppearance
 
   export interface Composite {
     general: General
     appearance: Appearance
-    screenshot: Screenshot
-    keycode: Partial<KeyCode>
   }
 }
 
@@ -38,19 +23,7 @@ const SETTINGS: Setting.Composite = {
     autostart: true,
     language: 'zh-CN'
   },
-  appearance: {
-    theme: 'system',
-    accentColor: '#4080ff'
-  },
-  screenshot: {
-    toClipboard: true,
-    toFile: false,
-    directory: '',
-    format: 'png',
-    quality: 100,
-    keycode: 'Alt+S'
-  },
-  keycode: {}
+  appearance: APPEARANCE_PRESET
 }
 
 const settingStore = new LazyStore('settings.json', {
@@ -67,6 +40,7 @@ interface SettingsStore {
     value: Partial<Setting.Composite[K]>
   ) => Promise<void>
   reset: () => Promise<void>
+  resetAppearance: () => Promise<void>
 }
 
 export const useSettingsStore = create<SettingsStore>(function (setter, getter) {
@@ -80,7 +54,7 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
 
       const settings = { ...SETTINGS }
       for (const key of Object.keys(SETTINGS) as (keyof Setting.Composite)[]) {
-        const val = await settingStore.get<Setting.Composite[ typeof key ]>( key )
+        const val = await settingStore.get<Setting.Composite[typeof key]>(key)
 
         if (val !== undefined) {
           settings[key] = { ...SETTINGS[key], ...val } as never
@@ -100,6 +74,17 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
     async reset() {
       setter({ settings: SETTINGS })
       await settingStore.reset()
+    },
+
+    async resetAppearance() {
+      const current = getter().settings
+      setter({
+        settings: {
+          ...current,
+          appearance: APPEARANCE_PRESET
+        }
+      })
+      await settingStore.set('appearance', APPEARANCE_PRESET)
     }
   }
 })

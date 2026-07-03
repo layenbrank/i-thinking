@@ -203,7 +203,10 @@ const Application = {
         open={visible}
         centered={true}
         closable={false}
-        maskClosable={true}
+        mask={{
+          closable: true,
+          enabled: true
+        }}
         destroyOnHidden={resolvedDestroy}
         onCancel={handleCancel}
         afterClose={handleAfterClose}
@@ -305,6 +308,9 @@ const Application = {
               //   title: props.title,
               //   ...WINDOW[props.component]
               // })
+            },
+            settings() {
+              onUpdateVisible(true)
             }
           }
           const handler = compmap[props.component]

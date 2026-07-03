@@ -1,0 +1,97 @@
+$radius-brand: 12px;
+$primary: #4080ff;
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  @media (min-width: 900px) {
+    grid-template-columns: 1fr 280px;
+    align-items: start;
+  }
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.card {
+  border: 1px solid var(--ith-color-border, #e8e8e8);
+  border-radius: $radius-brand;
+  padding: 16px;
+  background: var(--ith-color-bg-container, #ffffff);
+}
+
+.cardTitle {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ith-color-text-heading, #171717);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  & + & {
+    margin-top: 14px;
+  }
+}
+
+.fieldLabel {
+  font-size: 13px;
+}
+
+.control {
+  width: fit-content;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  :global {
+    .ant-slider {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+    }
+  }
+}
+
+.previewSticky {
+  @media (min-width: 900px) {
+    position: sticky;
+    top: 0;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+
+  :global(.ant-btn) {
+    cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actions :global(.ant-btn) {
+    transition: none;
+  }
+}

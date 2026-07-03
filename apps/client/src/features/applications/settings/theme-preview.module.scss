@@ -1,0 +1,17 @@
+.preview {
+  border: 1px solid var(--ith-color-border, #d9d9d9);
+  border-radius: var(--preview-radius, 6px);
+  padding: 16px;
+  background: var(--ith-color-bg-container, #ffffff);
+  font-size: var(--preview-font-size, 14px);
+}
+
+.previewInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.previewMenu {
+  border-bottom: none;
+}

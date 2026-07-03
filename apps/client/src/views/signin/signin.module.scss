@@ -43,7 +43,7 @@ $brand-inset: 10px;
   gap: 0;
   overflow: hidden;
   border-radius: $radius-modal;
-  background-color: var(--color-background, #ffffff);
+  background-color: var(--ith-color-bg-container, #ffffff);
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -220,7 +220,7 @@ $brand-inset: 10px;
   justify-content: flex-start;
   overflow: hidden;
   padding: 32px 40px;
-  background-color: var(--color-background, #ffffff);
+  background-color: var(--ith-color-bg-container, #ffffff);
 
   @media (max-width: 768px) {
     padding: 24px;
@@ -267,7 +267,7 @@ $brand-inset: 10px;
 
     .ant-form-item-label > label {
       font-size: 13px;
-      color: var(--color-heading, #171717);
+      color: var(--ith-color-text-heading, #171717);
     }
   }
 }
