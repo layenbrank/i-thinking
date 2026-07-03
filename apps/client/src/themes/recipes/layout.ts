@@ -7,9 +7,10 @@ export const LAYOUT_RECIPES: ThemeComponent = {
     bodyBg: '#f5f5f5',
     footerBg: '#ffffff'
   },
-  Menu: {
-    algorithm: true,
-    itemBg: '#000000',
-    colorText: '#ffffff'
+  Divider: {
+    algorithm: true
+  },
+  FloatButton: {
+    algorithm: true
   }
 }

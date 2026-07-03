@@ -1,42 +1,44 @@
 import type { ThemeComponent } from '@/themes/antd'
 
-export const FORM_RECIPES: ThemeComponent = {
-  Button: {
+export const DATA_DISPLAY_RECIPES: ThemeComponent = {
+  Typography: {
     algorithm: true,
-    paddingInline: 12
+    titleMarginBottom: '0.5em'
   },
-  Input: {
+  Tag: {
     algorithm: true
   },
-  InputNumber: {
+  Badge: {
     algorithm: true
   },
-  Select: {
+  Empty: {
     algorithm: true
   },
-  Checkbox: {
+  Skeleton: {
     algorithm: true
   },
-  Radio: {
+  Card: {
     algorithm: true
   },
-  Switch: {
+  List: {
     algorithm: true
   },
-  Slider: {
+  Table: {
     algorithm: true
   },
-  ColorPicker: {
+  Calendar: {
     algorithm: true
   },
-  Form: {
-    algorithm: true,
-    itemMarginBottom: 16
-  },
-  DatePicker: {
+  Descriptions: {
     algorithm: true
   },
-  Upload: {
+  Statistic: {
+    algorithm: true
+  },
+  Timeline: {
+    algorithm: true
+  },
+  Collapse: {
     algorithm: true
   }
 }

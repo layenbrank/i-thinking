@@ -4,6 +4,17 @@ import type { SizeType } from 'antd/es/config-provider/SizeContext'
 
 export type ComponentSize = SizeType
 export type ComponentVariant = Variant
-export type ThemeComponent = NonNullable<ThemeConfig['components']>
-export type ThemeComponentKey = keyof ThemeComponent
+
+type AntdThemeComponents = NonNullable<ThemeConfig['components']>
+
+/**
+ * Component theme overrides.
+ * Ant Design runtime accepts component tokens (e.g. Modal.contentPadding) that are not fully exposed on Config types.
+ */
+export type ThemeComponent = {
+  [K in keyof AntdThemeComponents | string]?: Record<string, unknown>
+}
+
+export type ThemeComponentKey = keyof AntdThemeComponents | (string & {})
+
 export type ThemeToken = NonNullable<ThemeConfig['token']>

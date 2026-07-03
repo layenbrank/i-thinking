@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react'
-import { Button, Segmented, Typography } from 'antd'
+import { Button, Typography } from 'antd'
 import clsx from 'clsx'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
@@ -32,10 +32,6 @@ function Shell(props: ShellProps) {
   const viewVariants = MOTION.fadeVariants(!!isReducedMotion)
   const viewTransition = MOTION.transition(!!isReducedMotion)
 
-  const segmentedOptions = NAVS.map(function (nav) {
-    return { label: nav.label, value: nav.key, disabled: nav.isDisabled }
-  })
-
   return (
     <div className={styles.layout}>
       <aside className={styles.aside}>
@@ -47,11 +43,10 @@ function Shell(props: ShellProps) {
                 aria-hidden
               />
             </div>
-            <Typography.Title level={5}>设置</Typography.Title>
+            <Typography.Title level={5} className={styles.asideTitleText}>设置</Typography.Title>
           </div>
           <Button
             type="text"
-            size="small"
             className={styles.closeBtn}
             aria-label="关闭设置"
             icon={
@@ -92,17 +87,6 @@ function Shell(props: ShellProps) {
             )
           })}
         </nav>
-
-        <div className={styles.mobileNav}>
-          <Segmented
-            block
-            options={segmentedOptions}
-            value={section}
-            onChange={function (value) {
-              onSectionChange(value as SectionKey)
-            }}
-          />
-        </div>
       </aside>
 
       <section className={styles.main}>
@@ -116,8 +100,8 @@ function Shell(props: ShellProps) {
             animate={headVariants.animate}
             exit={headVariants.exit}
             transition={viewTransition}>
-            <Typography.Title level={4}>{headText.title}</Typography.Title>
-            <Typography.Text type="secondary">{headText.subtitle}</Typography.Text>
+            <Typography.Title level={4} className={styles.headTitle}>{headText.title}</Typography.Title>
+            <Typography.Text type="secondary" className={styles.headSubtitle}>{headText.subtitle}</Typography.Text>
           </motion.header>
         </AnimatePresence>
 

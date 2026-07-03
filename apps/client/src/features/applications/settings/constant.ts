@@ -25,7 +25,7 @@ const SECTION = {
 
 const NAVS: NavMeta[] = [
   { key: SECTION.GENERAL, icon: 'ant-design:setting-outlined', label: '通用' },
-  { key: SECTION.APPEARANCE, icon: 'ant-design:bg-colors-outlined', label: '外观与主题' }
+  { key: SECTION.APPEARANCE, icon: 'ant-design:bg-colors-outlined', label: '外观' }
 ]
 
 const HEAD: Record<SectionKey, HeadText> = {
@@ -34,7 +34,7 @@ const HEAD: Record<SectionKey, HeadText> = {
     subtitle: '应用基础偏好与系统行为'
   },
   appearance: {
-    title: '外观与主题',
+    title: '外观',
     subtitle: '定制界面风格、密度与组件样式'
   }
 }

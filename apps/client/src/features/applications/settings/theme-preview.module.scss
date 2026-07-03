@@ -1,7 +1,7 @@
 .preview {
-  border: 1px solid var(--ith-color-border, #d9d9d9);
+  border: 1px solid var(--ith-color-border, #e8e8e8);
   border-radius: var(--preview-radius, 6px);
-  padding: 16px;
+  padding: 12px;
   background: var(--ith-color-bg-container, #ffffff);
   font-size: var(--preview-font-size, 14px);
 }
@@ -9,7 +9,7 @@
 .previewInner {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .previewMenu {

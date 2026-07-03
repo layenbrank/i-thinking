@@ -1,12 +1,16 @@
 import type { ThemeComponent, ThemeComponentKey } from '@/themes/antd'
 
+import { DATA_DISPLAY_RECIPES } from '@/themes/recipes/data-display'
 import { FEEDBACK_RECIPES } from '@/themes/recipes/feedback'
 import { FORM_RECIPES } from '@/themes/recipes/form'
 import { LAYOUT_RECIPES } from '@/themes/recipes/layout'
+import { NAVIGATION_RECIPES } from '@/themes/recipes/navigation'
 
 export const RECIPES: ThemeComponent = mergeComponents(
   LAYOUT_RECIPES,
+  NAVIGATION_RECIPES,
   FORM_RECIPES,
+  DATA_DISPLAY_RECIPES,
   FEEDBACK_RECIPES
 )
 

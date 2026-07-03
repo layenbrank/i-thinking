@@ -10,6 +10,9 @@ import { Suspense } from 'react'
 import { DEFAULT_ABORT_TIMEOUT_MS } from '@/constants/application.ts'
 import { WINDOW } from '@/constants/window'
 import styles from '@/features/application/application.module.scss'
+import {
+  OVERLAY_FULLSCREEN
+} from '@/features/application/overlay-preset.ts'
 
 type Cache = 'destroy' | 'keepAlive'
 
@@ -157,12 +160,16 @@ const Application = {
     const {
       style,
       className,
+      width,
+      height,
+      styles: modalStyles,
       onCancel,
       children,
       cache,
       onAbort,
       abortTimeoutMs,
       destroyOnHidden,
+      fullscreen,
       ...remains
     } = props
     const { visible, onUpdateVisible, onUpdateRenderable } = useContext(OverlayContext)
@@ -210,16 +217,10 @@ const Application = {
         destroyOnHidden={resolvedDestroy}
         onCancel={handleCancel}
         afterClose={handleAfterClose}
-        afterOpenChange={(open) => {
-          console.log('afterOpenChange', open)
-        }}
-        width={props.fullscreen ? '100%' : '80%'}
-        height={props.fullscreen ? '100%' : 'unset'}
-        style={{
-          ...style,
-          borderRadius: props.fullscreen ? '0px' : '8px',
-          aspectRatio: props.fullscreen ? 'unset' : '16 / 9'
-        }}
+        width={fullscreen ? OVERLAY_FULLSCREEN.width : width}
+        height={fullscreen ? OVERLAY_FULLSCREEN.height : height}
+        style={fullscreen ? { ...style, ...OVERLAY_FULLSCREEN.style } : style}
+        styles={fullscreen ? { ...modalStyles, ...OVERLAY_FULLSCREEN.styles } : modalStyles}
         className={clsx(['application-overlay', className])}
         {...remains}>
         {children}
@@ -301,7 +302,7 @@ const Application = {
           const compmap: Partial<Record<Application.Component, () => void>> = {
             navigation() {
               if (!props.url) return
-              openUrl(props.url, 'chrome')
+              openUrl(props.url)
 
               // new WebviewWindow(props.component, {
               //   url: props.url,

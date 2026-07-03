@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { theme } from 'antd'
 
 import { APPEARANCE_PRESET } from '@/themes/appearance'
+import { RECIPES } from '@/themes/recipes/recipes'
 import { buildTheme } from '@/themes/runtime/build'
 import { parseScheme } from '@/themes/schemes/schemes'
 
@@ -47,5 +48,16 @@ describe('buildTheme', function () {
       color: '#ff0000'
     })
     expect(config.token?.colorPrimary).toBe('#ff0000')
+  })
+
+  it('applies modal content padding from recipes', function () {
+    expect(RECIPES.Modal?.contentPadding).toBe('12px 16px')
+    const config = buildTheme({ ...APPEARANCE_PRESET, theme: 'light' })
+    const modal = config.components?.Modal as Record<string, unknown> | undefined
+    expect(modal?.contentPadding).toBe('12px 16px')
+  })
+
+  it('registers at least 25 component recipes', function () {
+    expect(Object.keys(RECIPES).length).toBeGreaterThanOrEqual(25)
   })
 })

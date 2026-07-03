@@ -3,34 +3,21 @@ $radius-modal: 16px;
 .overlay {
   &.root {
     :global {
-      .ant-modal-wrap {
-        min-width: unset !important;
-      }
-
-      .ant-modal {
-        aspect-ratio: unset !important;
-        min-width: unset !important;
-        width: min(92vw, 960px) !important;
-        max-height: min(90vh, 680px) !important;
-        height: auto !important;
-        border-radius: $radius-modal !important;
-        overflow: hidden;
-      }
-
-      .ant-modal-container {
-        height: auto !important;
-      }
-
-      .ant-modal-body {
-        padding: 0 !important;
-        height: auto !important;
-      }
-
       .ant-modal-content {
-        padding: 0 !important;
-        border-radius: $radius-modal !important;
+        border-radius: $radius-modal;
         overflow: hidden;
+        box-shadow:
+          0 12px 40px rgba(15, 39, 68, 0.12),
+          0 0 0 1px rgba(0, 0, 0, 0.04);
       }
     }
   }
+}
+
+.frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }

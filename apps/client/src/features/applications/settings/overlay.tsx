@@ -6,33 +6,29 @@ import {
   OverlayContext,
   type OverlayControlProps
 } from '@/features/application/application.tsx'
+import { OVERLAY_PANEL } from '@/features/application/overlay-preset.ts'
 import Shell from '@/features/applications/settings/shell'
 import styles from '@/features/applications/settings/overlay.module.scss'
 
 export default function Overlay(props: OverlayControlProps) {
   const { visible, onUpdateVisible } = useContext(OverlayContext)
 
+  function onClose() {
+    onUpdateVisible(false)
+  }
+
   return (
     <Application.Overlay
+      {...OVERLAY_PANEL}
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}
       open={visible}
-      className={clsx([styles.overlay, styles.root])}
-      style={{
-        width: 'min(92vw, 960px)',
-        maxHeight: 'min(90vh, 680px)',
-        aspectRatio: 'unset',
-        height: 'auto'
-      }}
-      onCancel={function () {
-        onUpdateVisible(false)
-      }}>
-      <Shell
-        onClose={function () {
-          onUpdateVisible(false)
-        }}
-      />
+      rootClassName={clsx(styles.overlay, styles.root)}
+      onCancel={onClose}>
+      <div className={styles.frame}>
+        <Shell onClose={onClose} />
+      </div>
     </Application.Overlay>
   )
 }

@@ -48,6 +48,7 @@ import {
   OverlayContext,
   type OverlayControlProps
 } from '@/features/application/application.tsx'
+import { OVERLAY_RATIO } from '@/features/application/overlay-preset.ts'
 import styles from '@/features/applications/intelligence/overlay.module.scss'
 import { session$, useIntelligenceStore as store } from '@/stores/intelligence.ts'
 
@@ -613,7 +614,9 @@ export default function Overlay(props: OverlayControlProps) {
 
   return (
     <Application.Overlay
+      {...OVERLAY_RATIO}
       style={{
+        ...OVERLAY_RATIO.style,
         minWidth: '800px'
       }}
       cache={props.cache}

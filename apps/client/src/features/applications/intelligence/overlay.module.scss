@@ -2,8 +2,6 @@
 
 .overlay {
   &.root {
-    --ant-modal-content-padding: 12px;
-
     :global {
       .ant-modal-body {
         border-radius: 8px;

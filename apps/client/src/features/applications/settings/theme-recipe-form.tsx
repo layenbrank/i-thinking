@@ -1,4 +1,4 @@
-import { Button, ColorPicker, InputNumber, Space, Switch, Tabs } from 'antd'
+import { Button, ColorPicker, Input, InputNumber, Space, Switch, Tabs } from 'antd'
 import type { Color } from 'antd/es/color-picker'
 
 import type { ThemeComponent, ThemeComponentKey } from '@/themes'
@@ -9,6 +9,14 @@ import styles from '@/features/applications/settings/theme-recipe-form.module.sc
 interface ThemeRecipeFormProps {
   components: ThemeComponent
   onChange: (components: ThemeComponent) => void
+}
+
+const TAB_LABELS: Record<RecipeTab, string> = {
+  layout: '布局',
+  navigation: '导航',
+  form: '表单',
+  dataDisplay: '展示',
+  feedback: '反馈'
 }
 
 function findRecipeDefault(component: ThemeComponentKey, token: string): unknown {
@@ -74,6 +82,17 @@ function renderFieldControl(
       />
     )
   }
+  if (field.type === 'string') {
+    return (
+      <Input
+        value={typeof value === 'string' ? value : ''}
+        onChange={function (event) {
+          const next = event.target.value
+          onFieldChange(next.length > 0 ? next : undefined)
+        }}
+      />
+    )
+  }
   return (
     <ColorPicker
       value={typeof value === 'string' ? value : undefined}
@@ -94,7 +113,7 @@ export default function ThemeRecipeForm(props: ThemeRecipeFormProps) {
     const fields = RECIPE_FIELDS[tab]
     return {
       key: tab,
-      label: tab === 'layout' ? '布局' : tab === 'form' ? '表单' : '反馈',
+      label: TAB_LABELS[tab],
       children: (
         <div className={styles.fieldList}>
           {fields.map(function (field) {

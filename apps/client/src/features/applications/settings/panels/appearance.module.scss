@@ -1,67 +1,85 @@
 $radius-brand: 12px;
-$primary: #4080ff;
 
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-
-  @media (min-width: 900px) {
-    grid-template-columns: 1fr 280px;
-    align-items: start;
-  }
-}
-
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
+  gap: 12px;
+  max-width: 100%;
+  font-size: 14px;
 }
 
 .card {
   border: 1px solid var(--ith-color-border, #e8e8e8);
   border-radius: $radius-brand;
-  padding: 16px;
+  padding: 14px 16px;
   background: var(--ith-color-bg-container, #ffffff);
 }
 
 .cardTitle {
   display: block;
   margin-bottom: 12px;
-  font-size: 13px;
-  font-weight: 500;
+  padding-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--ith-color-text-heading, #171717);
+  border-bottom: 1px solid var(--ith-color-border-secondary, #f0f0f0);
 }
 
 .field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px 16px;
+  align-items: center;
 
   & + & {
-    margin-top: 14px;
+    margin-top: 12px;
   }
 }
 
-.fieldLabel {
-  font-size: 13px;
+.fieldStack {
+  .fieldControl {
+    width: 100%;
+  }
 }
 
-.control {
-  width: fit-content;
+.cardStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.fieldLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ith-color-text, rgba(0, 0, 0, 0.88));
+  line-height: 1.5;
+}
+
+.fieldControl {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+
+  :global {
+    .ant-segmented {
+      font-size: 14px;
+    }
+
+    .ant-radio-button-wrapper {
+      font-size: 14px;
+    }
+  }
 }
 
 .sliderRow {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
+  max-width: 400px;
 
   :global {
     .ant-slider {
@@ -72,21 +90,19 @@ $primary: #4080ff;
   }
 }
 
-.previewSticky {
-  @media (min-width: 900px) {
-    position: sticky;
-    top: 0;
-  }
+.previewCard {
+  background: var(--ith-color-bg-layout, #f7f8fa);
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   padding-top: 4px;
 
   :global(.ant-btn) {
     cursor: pointer;
+    font-size: 14px;
   }
 }
 
