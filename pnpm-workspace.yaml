@@ -34,7 +34,7 @@ catalog:
   '@electron-forge/plugin-fuses': ^7.11.1
   '@electron-forge/plugin-vite': ^7.11.1
   '@electron/fuses': ^1.8.0
-  '@electron/rebuild': ^3.6.0
+  '@electron/rebuild': ^4.0.4
   '@types/electron-squirrel-startup': ^1.0.2
   'prisma': ^7.8.0
   '@prisma/adapter-better-sqlite3': ^7.8.0
@@ -60,5 +60,6 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 overrides:
+  '@electron/rebuild': ^4.0.4
   'xlsx': 'https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz'
   'dayjs': '1.11.21'
