@@ -63,3 +63,6 @@ overrides:
   '@electron/rebuild': ^4.0.4
   'xlsx': 'https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz'
   'dayjs': '1.11.21'
+
+patchedDependencies:
+  electron@40.10.2: patches/electron@40.10.2.patch
