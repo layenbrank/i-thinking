@@ -1,3 +1,4 @@
+/** @deprecated 旧版截图入口，主路径请使用 views/screenshot + screenshot_open 快捷键 */
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'
 import { lazy } from 'react'

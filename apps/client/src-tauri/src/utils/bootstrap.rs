@@ -1,4 +1,8 @@
-use tauri::{Manager, generate_context, generate_handler};
+use std::time::Duration;
+
+use tauri::{
+    Emitter, Manager, RunEvent, generate_context, generate_handler,
+};
 
 use crate::{
     countdown,
@@ -7,10 +11,13 @@ use crate::{
         storage::{self, Storage, get_app_data_dir, get_database_path},
     },
     screenshot,
-    services::{application, mirror},
-    through::{self, ClickThroughState},
+    services::{application, asset, mirror},
+    through::{self, ThroughState},
     ui::tray,
-    utils::{invoke, pdf},
+    utils::{
+        corex::{self, CorexState},
+        invoke,
+    },
 };
 
 pub struct Bootstrap;
@@ -20,7 +27,6 @@ impl Bootstrap {
     pub fn run() {
         let builder = tauri::Builder::default();
 
-        // 开机自启（仅桂面平台）
         #[cfg(desktop)]
         let builder = builder.plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -42,16 +48,33 @@ impl Bootstrap {
                 })
                 .expect("failed to initialize database");
                 app.manage(db_state);
-                app.manage(ClickThroughState::new("countdown"));
+                app.manage(CorexState::new());
+                app.manage(ThroughState::new("countdown"));
                 through::spawn_worker(app.handle().clone());
                 tray::setup(app)?;
+
+                #[cfg(all(desktop, windows))]
+                {
+                    match corex::spawn_sidecar(app.handle()) {
+                        Ok(()) => {
+                            let corex_state = app.state::<CorexState>();
+                            let ready = corex::wait_for_daemon(Duration::from_secs(8), &corex_state);
+                            if !ready {
+                                let _ = app.emit("corex://not-ready", ());
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("corex-serve 启动失败: {e}");
+                            let _ = app.emit("corex://not-ready", ());
+                        }
+                    }
+                }
+
                 Ok(())
             })
-            // 核心插件
             .plugin(tauri_plugin_fs::init())
             .plugin(tauri_plugin_store::Builder::default().build())
             .plugin(tauri_plugin_sql::Builder::default().build())
-            // 系统级 插件
             .plugin(tauri_plugin_process::init())
             .plugin(tauri_plugin_shell::init())
             .plugin(tauri_plugin_http::init())
@@ -63,14 +86,12 @@ impl Bootstrap {
                     .expect("no main window")
                     .set_focus();
             }))
-            // UI 插件
             .plugin(tauri_plugin_notification::init())
             .plugin(tauri_plugin_positioner::init())
             .plugin(tauri_plugin_opener::init())
             .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_clipboard_manager::init())
             .plugin(tauri_plugin_global_shortcut::Builder::default().build())
-            // 拦截主窗口关闭事件：隐藏到系统托盘而非退出
             .on_window_event(|window, event| {
                 if window.label() == "main" {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -79,7 +100,6 @@ impl Bootstrap {
 
                         let app = window.app_handle();
                         if let Some(state) = app.try_state::<crate::ui::tray::TrayState>() {
-                            // 首次隐藏时发送系统通知
                             if !state
                                 .notified
                                 .swap(true, std::sync::atomic::Ordering::Relaxed)
@@ -99,44 +119,42 @@ impl Bootstrap {
                     }
                 }
             })
-            // invoke
             .invoke_handler(generate_handler![
                 invoke::greet,
                 invoke::os,
                 invoke::set_tray_badge,
-                // application
+                invoke::ipc_ready,
+                invoke::ipc_invoke,
                 application::command::application_write,
                 application::command::application_read,
                 application::command::application_update,
                 application::command::application_remove,
-                // mirror
                 mirror::command::mirror_write,
                 mirror::command::mirror_read,
                 mirror::command::mirror_update,
                 mirror::command::mirror_remove,
-                // pdf
-                pdf::pdf_open_file,
-                pdf::pdf_render_page,
-                pdf::pdf_render_thumbnails,
-                pdf::pdf_search_text,
-                pdf::pdf_export,
-                pdf::pdf_merge,
-                pdf::pdf_split,
-                pdf::pdf_split_by_count,
-                pdf::pdf_to_images,
-                pdf::pdf_to_office,
-                // screenshot
+                asset::command::assets_read,
+                asset::command::assets_reads,
+                asset::command::assets_insert,
+                asset::command::assets_inserts,
+                asset::command::assets_update,
+                asset::command::assets_updates,
+                asset::command::assets_remove,
+                asset::command::assets_removes,
                 screenshot::command::screenshot_capture,
-                screenshot::command::screenshot_save,
-                screenshot::command::screenshot_copy,
-                // countdown / work config
+                screenshot::command::screenshot_open,
+                screenshot::command::screenshot_close,
                 countdown::command::countdown_config_read,
                 countdown::command::countdown_config_upsert,
                 countdown::command::countdown_config_update,
-                // click-through
                 through::command::update_rects
             ])
-            .run(generate_context!())
-            .expect("error while running application");
+            .build(generate_context!())
+            .expect("error while building application")
+            .run(|app, event| {
+                if matches!(event, RunEvent::Exit) {
+                    corex::shutdown_sidecar(app);
+                }
+            });
     }
 }

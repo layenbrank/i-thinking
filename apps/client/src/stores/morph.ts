@@ -1,9 +1,10 @@
-import { invoke } from '@tauri-apps/api/core'
 import { open as dialogOpen } from '@tauri-apps/plugin-dialog'
 import { message as antdMessage } from 'antd'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
+
+import { MorphIpc } from '@/lib/morph-ipc'
 
 // import {
 //   countAnnotationsByPage,
@@ -215,7 +216,7 @@ export const useMorphStore = create<MorphState>()(
             const path = paths[i]
             if (getter().fileList.some((f) => f.path === path)) continue
             try {
-              const meta: PdfMeta = await invoke('pdf_open_file', { path })
+              const meta: PdfMeta = await MorphIpc.meta(path)
               // await upsertFile(meta)
               setter((s) => {
                 if (!s.fileList.some((f) => f.path === path)) s.fileList.push(meta)
@@ -232,7 +233,7 @@ export const useMorphStore = create<MorphState>()(
             s.isLoading = true
           })
           try {
-            const meta: PdfMeta = await invoke('pdf_open_file', { path })
+            const meta: PdfMeta = await MorphIpc.meta(path)
             // await upsertFile(meta)
 
             // const annotations = await queryAnnotations(path)
@@ -389,11 +390,7 @@ export const useMorphStore = create<MorphState>()(
           try {
             // Render at 2× the zoom factor for crisp display (device pixels)
             const scale = zoom * 2
-            const image: PageImage = await invoke('pdf_render_page', {
-              path: file.path,
-              pageIndex: currentPage,
-              scale
-            })
+            const image: PageImage = await MorphIpc.renderPage(file.path, currentPage, scale)
             setter((s) => {
               s.pageCache[currentPage] = image
             })
@@ -408,10 +405,7 @@ export const useMorphStore = create<MorphState>()(
           const { file } = getter()
           if (!file) return
           try {
-            const thumbs: PageImage[] = await invoke('pdf_render_thumbnails', {
-              path: file.path,
-              scale: 0.6 // ~357px wide for A4; 2× DPR covers 180px CSS display crisp
-            })
+            const thumbs: PageImage[] = await MorphIpc.renderThumbnails(file.path, 0.6)
             setter((s) => {
               s.thumbnails = thumbs
             })
@@ -425,10 +419,7 @@ export const useMorphStore = create<MorphState>()(
         async searchText(query: string) {
           const { file } = getter()
           if (!file || !query.trim()) return
-          const results: SearchMatch[] = await invoke('pdf_search_text', {
-            path: file.path,
-            query
-          })
+          const results: SearchMatch[] = await MorphIpc.search(file.path, query)
           setter((s) => {
             s.search.query = query
             s.search.results = results
@@ -552,7 +543,7 @@ export const useMorphStore = create<MorphState>()(
         async exportPdf(destPath: string) {
           const { file } = getter()
           if (!file) return
-          await invoke('pdf_export', { src: file.path, dest: destPath })
+          await MorphIpc.export(file.path, destPath)
         },
 
         // ── doc operation modals ─────────────────────────────────────
@@ -583,7 +574,7 @@ export const useMorphStore = create<MorphState>()(
             s.mergeModal.error = null
           })
           try {
-            await invoke('pdf_merge', { paths: mergeModal.inputs, dest: mergeModal.output })
+            await MorphIpc.merge(mergeModal.inputs, mergeModal.output)
             antdMessage.success(`合并完成 → ${mergeModal.output}`)
             setter((s) => {
               s.mergeModal.open = false
@@ -637,18 +628,21 @@ export const useMorphStore = create<MorphState>()(
                   return [a, b ?? a] as [number, number]
                 })
                 .filter(([a, b]) => !isNaN(a) && !isNaN(b) && a > 0 && b > 0)
-              const paths: string[] = await invoke('pdf_split', {
-                path: file.path,
-                ranges: ranges.map(([a, b]) => [a, b]),
-                destDir: splitModal.destDir
+              const rangeStrings = ranges.map(function ([a, b]) {
+                return `${a}-${b}`
               })
+              const paths: string[] = await MorphIpc.split(
+                file.path,
+                rangeStrings,
+                splitModal.destDir
+              )
               antdMessage.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
             } else {
-              const paths: string[] = await invoke('pdf_split_by_count', {
-                path: file.path,
-                pagesPerFile: splitModal.count,
-                destDir: splitModal.destDir
-              })
+              const paths: string[] = await MorphIpc.splitByCount(
+                file.path,
+                splitModal.count,
+                splitModal.destDir
+              )
               antdMessage.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
             }
             setter((s) => {
@@ -692,21 +686,21 @@ export const useMorphStore = create<MorphState>()(
           })
           try {
             if (convertModal.format === 'png' || convertModal.format === 'jpg') {
-              const paths: string[] = await invoke('pdf_to_images', {
-                path: file.path,
-                scale: convertModal.scale,
-                format: convertModal.format,
-                destDir: convertModal.destDir
-              })
+              const paths: string[] = await MorphIpc.toImages(
+                file.path,
+                convertModal.scale,
+                convertModal.format,
+                convertModal.destDir
+              )
               antdMessage.success(
                 `转换完成，已生成 ${paths.length} 张图片 → ${convertModal.destDir}`
               )
             } else {
-              const outPath: string = await invoke('pdf_to_office', {
-                path: file.path,
-                format: convertModal.format,
-                destDir: convertModal.destDir
-              })
+              const outPath: string = await MorphIpc.toOffice(
+                file.path,
+                convertModal.format,
+                convertModal.destDir
+              )
               antdMessage.success(`转换完成 → ${outPath}`)
             }
             setter((s) => {

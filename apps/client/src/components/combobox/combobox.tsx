@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'motion/react'
 import type { CompositionEvent, FormEvent } from 'react'
 
 import { useResize } from '@/hooks/useResize'

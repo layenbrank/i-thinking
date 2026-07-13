@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 $primary: #4080ff;
 $primary-dark: #2a5fd4;
 $brand-deep: #0f2744;
@@ -109,7 +111,7 @@ $brand-inset: 10px;
   @media (prefers-color-scheme: dark) {
     background:
       radial-gradient(circle at 85% 15%, rgba(64, 128, 255, 0.2) 0%, transparent 45%),
-      linear-gradient(155deg, darken($brand-deep, 4%) 0%, darken($brand-mid, 4%) 42%, darken($primary-dark, 10%) 100%);
+      linear-gradient(155deg, color.adjust($brand-deep, $lightness: -4%) 0%, color.adjust($brand-mid, $lightness: -4%) 42%, color.adjust($primary-dark, $lightness: -10%) 100%);
   }
 }
 

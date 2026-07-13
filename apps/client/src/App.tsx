@@ -35,6 +35,39 @@ function App() {
 
   useEffect(function () {
     if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return
+
+    let unlisten: (() => void) | undefined
+
+    ;(async function () {
+      try {
+        const [{ listen }, { invoke }, { message }] = await Promise.all([
+          import('@tauri-apps/api/event'),
+          import('@tauri-apps/api/core'),
+          import('antd')
+        ])
+
+        function warn() {
+          message.warning(
+            'corex 未就绪，PDF / 截图等功能暂不可用。请构建 corex-serve 后重启应用。',
+            8
+          )
+        }
+
+        unlisten = await listen('corex://not-ready', warn)
+        const ready = await invoke<boolean>('ipc_ready')
+        if (!ready) warn()
+      } catch (err) {
+        console.warn('[App] corex 状态检查失败', err)
+      }
+    })()
+
+    return function () {
+      unlisten?.()
+    }
+  }, [])
+
+  useEffect(function () {
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return
     let unregister: (() => void) | null = null
     let cancelled = false
     ;(async function () {

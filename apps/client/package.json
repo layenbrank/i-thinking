@@ -6,8 +6,10 @@
   "scripts": {
     "build": "tauri build",
     "build:core": "tsc && vite build",
+    "check:tauri": "node scripts/copy-corex-serve.mjs && cargo check --manifest-path src-tauri/Cargo.toml",
     "dev": "tauri dev",
     "dev:core": "vite",
+    "prepare:sidecar": "node scripts/copy-corex-serve.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
     "test:coverage": "vitest --coverage",

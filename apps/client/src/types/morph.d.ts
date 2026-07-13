@@ -1,111 +1,105 @@
-declare namespace Morph {
-  type Tool = 'select' | 'text' | 'highlight' | 'shape' | 'stamp' | 'crop' | 'rotate'
-  type ViewMode = 'view' | 'edit'
-  type AnnotationType = 'highlight' | 'shape' | 'stamp' | 'text-note'
-  type ShapeKind = 'rect' | 'ellipse' | 'line' | 'arrow'
-  type ExportFormat = 'pdf' | 'pdf-a' | 'png'
-  type ExportRange = 'all' | 'current' | 'custom'
+/**
+ * morph 类型（对齐 corex morph/schema 与 UI store）
+ */
+declare global {
+  namespace Morph {
+    type Tool = 'select' | 'text' | 'highlight' | 'shape' | 'stamp' | 'crop' | 'rotate'
+    type ViewMode = 'view' | 'edit'
+    type AnnotationType = 'highlight' | 'shape' | 'stamp' | 'text-note'
+    type ShapeKind = 'rect' | 'ellipse' | 'line' | 'arrow'
+    type ExportFormat = 'pdf' | 'pdf-a' | 'png'
+    type ExportRange = 'all' | 'current' | 'custom'
 
-  // ── Rust command return types ──────────────────────────────────────────
+    interface PdfMeta {
+      path: string
+      title: string
+      author: string
+      page_count: number
+      page_width: number
+      page_height: number
+    }
 
-  interface PdfMeta {
-    path: string
-    title: string
-    author: string
-    page_count: number
-    page_width: number
-    page_height: number
-  }
+    interface PageImage {
+      data_base64: string
+      width: number
+      height: number
+      page_index: number
+    }
 
-  interface PageImage {
-    data_base64: string
-    width: number
-    height: number
-    page_index: number
-  }
+    interface SearchMatch {
+      page_index: number
+      x: number
+      y: number
+      width: number
+      height: number
+      snippet: string
+    }
 
-  interface SearchMatch {
-    page_index: number
-    x: number
-    y: number
-    width: number
-    height: number
-    snippet: string
-  }
+    interface NormalizedRect {
+      x: number
+      y: number
+      w: number
+      h: number
+    }
 
-  // ── Annotation rect in PDF user-space ─────────────────────────────────
-  // Coordinates are normalized (0–1) relative to page width/height.
+    interface HighlightData {
+      color: string
+      opacity: number
+    }
 
-  interface NormalizedRect {
-    x: number
-    y: number
-    w: number
-    h: number
-  }
+    interface ShapeData {
+      kind: ShapeKind
+      stroke: string
+      fill: string
+      strokeWidth: number
+      opacity: number
+    }
 
-  // ── Annotation payloads ───────────────────────────────────────────────
+    interface StampData {
+      label: string
+      color: string
+    }
 
-  interface HighlightData {
-    color: string // hex, e.g. '#FFE066'
-    opacity: number // 0–1
-  }
+    interface TextNoteData {
+      content: string
+      fontSize: number
+      color: string
+      fontFamily: string
+    }
 
-  interface ShapeData {
-    kind: ShapeKind
-    stroke: string // hex
-    fill: string // hex or 'none'
-    strokeWidth: number
-    opacity: number
-  }
+    interface Annotation {
+      id: string
+      filePath: string
+      pageIndex: number
+      type: AnnotationType
+      rect: NormalizedRect
+      data: HighlightData | ShapeData | StampData | TextNoteData
+      createdAt: number
+      updatedAt: number
+    }
 
-  interface StampData {
-    label: string // e.g. '已签署', '草稿'
-    color: string
-  }
+    type HistoryActionKind = 'ADD_ANNOTATION' | 'UPDATE_ANNOTATION' | 'REMOVE_ANNOTATION'
 
-  interface TextNoteData {
-    content: string
-    fontSize: number
-    color: string
-    fontFamily: string
-  }
+    interface HistoryEntry {
+      kind: HistoryActionKind
+      label: string
+      timestamp: number
+      before: Annotation | null
+      after: Annotation | null
+    }
 
-  // ── Unified annotation record ─────────────────────────────────────────
+    interface SearchState {
+      query: string
+      results: SearchMatch[]
+      activeIndex: number
+    }
 
-  interface Annotation {
-    id: string
-    filePath: string
-    pageIndex: number
-    type: AnnotationType
-    rect: NormalizedRect
-    data: HighlightData | ShapeData | StampData | TextNoteData
-    createdAt: number
-    updatedAt: number
-  }
-
-  // ── History ────────────────────────────────────────────────────────────
-
-  type HistoryActionKind = 'ADD_ANNOTATION' | 'UPDATE_ANNOTATION' | 'REMOVE_ANNOTATION'
-
-  interface HistoryEntry {
-    kind: HistoryActionKind
-    label: string
-    timestamp: number
-    before: Annotation | null
-    after: Annotation | null
-  }
-
-  // ── Store state shape (used by morph store) ───────────────────────────
-
-  interface SearchState {
-    query: string
-    results: SearchMatch[]
-    activeIndex: number
-  }
-
-  interface ExportState {
-    format: ExportFormat
-    range: ExportRange
-    customRange: string // e.g. '1-3,5'
+    interface ExportState {
+      format: ExportFormat
+      range: ExportRange
+      customRange: string
+    }
   }
 }
+
+export {}

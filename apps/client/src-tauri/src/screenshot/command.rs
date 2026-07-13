@@ -1,119 +1,95 @@
-use tauri::{AppHandle, Emitter, Manager, webview::Webview};
+use std::io::Cursor;
+use std::path::Path;
 
-use crate::screenshot::{
-    schema::{CaptureResult, PinImageStore, PinPrepareResult, WindowInfo},
-    service,
-};
+use base64::{engine::general_purpose, Engine};
+use image::ImageReader;
+use serde_json::json;
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
-/// 截取主显示器，图片内存缓存，前端通过 capture:// 协议零拷贝读取。
-/// 截图在窗口隐藏时完成（避免截到自身 UI），完成后 emit `screenshot:ready`。
-/// BMP 后台异步写盘（仅供 pin 等需要文件路径的场景回退使用）。
+use crate::ipc;
+use crate::screenshot::schema::CaptureResult;
+
+fn build_capture_result(path: &Path, scale_factor: f32) -> Result<CaptureResult, String> {
+    let img = ImageReader::open(path)
+        .map_err(|e| format!("读取截图失败: {e}"))?
+        .decode()
+        .map_err(|e| format!("解码截图失败: {e}"))?;
+    let width = img.width();
+    let height = img.height();
+    let mut buf = Vec::new();
+    img.write_to(&mut Cursor::new(&mut buf), image::ImageFormat::Png)
+        .map_err(|e| format!("PNG 编码失败: {e}"))?;
+    let b64 = general_purpose::STANDARD.encode(&buf);
+    Ok(CaptureResult {
+        data_url: format!("data:image/png;base64,{b64}"),
+        width,
+        height,
+        scale_factor,
+    })
+}
+
+/// 截取主显示器，经 corex-serve IPC 捕获后返回 PNG data URL
 #[tauri::command]
-pub async fn screenshot_capture(app: AppHandle) -> Result<(), String> {
-    // 在阻塞线程中执行截图（窗口仍隐藏，不会截到自身 UI）
-    let app_clone = app.clone();
-    let monitors = tokio::task::spawn_blocking(move || service::capture(&app_clone))
+pub async fn screenshot_capture(app: AppHandle) -> Result<CaptureResult, String> {
+    let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| e.to_string())?
+        .join("screenshots");
+    std::fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
+    let cache_dir_str = cache_dir.to_string_lossy().into_owned();
+
+    let resp = tokio::task::spawn_blocking(move || {
+        ipc::invoke(
+            "screenshot",
+            json!({ "Capture": { "to": cache_dir_str } }),
+        )
+    })
+    .await
+    .map_err(|e| format!("截图线程异常: {e}"))??;
+
+    if !resp.ok {
+        return Err(resp.error.unwrap_or_else(|| "screenshot 失败".to_string()));
+    }
+    let path = resp
+        .path
+        .ok_or_else(|| "screenshot 成功但未返回 path".to_string())?;
+
+    tokio::task::spawn_blocking(move || build_capture_result(Path::new(&path), 1.0))
         .await
-        .map_err(|e| format!("截图线程异常: {e}"))??;
+        .map_err(|e| format!("截图处理线程异常: {e}"))?
+}
 
-    let result = CaptureResult { monitors };
+/// 弹出（或聚焦）全屏透明截图窗口；窗口加载 `/screenshot` 路由
+#[tauri::command]
+pub async fn screenshot_open(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("screenshot") {
+        let _ = window.show();
+        let _ = window.set_focus();
+        let _ = window.set_always_on_top(true);
+        return Ok(());
+    }
 
-    // 截图到内存后立即通知前端：显示窗口 + 从 capture:// 加载图片
-    let _ = app.emit("screenshot:ready", result);
-
-    // BMP 后台写盘（不阻塞窗口显示）
-    let app_bg = app.clone();
-    tokio::task::spawn_blocking(move || {
-        if let Err(e) = service::save_bmp_to_disk(&app_bg) {
-            tracing::warn!("BMP 后台写盘失败: {e}");
-        }
-    });
-
+    WebviewWindowBuilder::new(&app, "screenshot", WebviewUrl::App("/screenshot".into()))
+        .title("Screenshot")
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .fullscreen(true)
+        .focused(true)
+        .visible(true)
+        .build()
+        .map_err(|e| format!("无法创建截图窗口: {e}"))?;
     Ok(())
 }
 
-/// 裁剪选区并保存为文件，返回文件路径
-/// `final_image_base64`: 如果前端已合成标注层，传入完整 PNG base64；否则由后端纯裁剪
+/// 关闭并销毁截图窗口
 #[tauri::command]
-pub async fn screenshot_save(
-    app: AppHandle,
-    source_path: String,
-    x: u32,
-    y: u32,
-    w: u32,
-    h: u32,
-    final_image_base64: Option<String>,
-) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        let path = service::crop_and_save(
-            &app,
-            &source_path,
-            x,
-            y,
-            w,
-            h,
-            final_image_base64.as_deref(),
-        )?;
-        Ok(path.to_string_lossy().into_owned())
-    })
-    .await
-    .map_err(|e| format!("保存线程异常: {e}"))?
-}
-
-/// 裁剪选区并复制到剪贴板
-#[tauri::command]
-pub async fn screenshot_copy(
-    app: AppHandle,
-    source_path: String,
-    x: u32,
-    y: u32,
-    w: u32,
-    h: u32,
-    final_image_base64: Option<String>,
-) -> Result<(), String> {
-    tokio::task::spawn_blocking(move || {
-        let (rgba, cw, ch) = service::crop_to_rgba(
-            &app,
-            &source_path,
-            x,
-            y,
-            w,
-            h,
-            final_image_base64.as_deref(),
-        )?;
-        service::copy_image_to_clipboard(&app, rgba, cw, ch)
-    })
-    .await
-    .map_err(|e| format!("复制线程异常: {e}"))?
-}
-
-/// 为贴图窗口准备数据（生成 label + 存储图片路径），由前端创建实际窗口
-#[tauri::command]
-pub fn screenshot_pin(
-    app: AppHandle,
-    image_path: String,
-    width: u32,
-    height: u32,
-) -> Result<PinPrepareResult, String> {
-    service::prepare_pin(&app, &image_path, width, height)
-}
-
-/// Pin 窗口前端 mount 后查询自己的图片路径
-#[tauri::command]
-pub fn screenshot_image(webview: Webview, app: AppHandle) -> Result<String, String> {
-    let label = webview.label().to_string();
-    let store = app.state::<PinImageStore>();
-    let map = store
-        .0
-        .lock()
-        .map_err(|e: std::sync::PoisonError<_>| e.to_string())?;
-    map.get(&label)
-        .cloned()
-        .ok_or_else(|| format!("未找到窗口 {} 的图片路径", label))
-}
-
-/// 列举系统可见窗口（用于窗口自动检测）
-#[tauri::command]
-pub fn screenshot_windows() -> Result<Vec<WindowInfo>, String> {
-    service::windows()
+pub async fn screenshot_close(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("screenshot") {
+        let _ = window.close();
+    }
+    Ok(())
 }

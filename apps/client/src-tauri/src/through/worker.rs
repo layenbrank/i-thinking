@@ -3,7 +3,7 @@ use std::time::Duration;
 use tauri::{AppHandle, Manager, Runtime};
 
 use super::cursor::get_cursor_position;
-use super::state::ClickThroughState;
+use super::state::ThroughState;
 
 const POLL_INTERVAL_MS: u64 = 50;
 
@@ -12,7 +12,7 @@ pub fn spawn_worker<R: Runtime>(app: AppHandle<R>) {
     tauri::async_runtime::spawn(async move {
         // If the platform has no cursor backend, bail out — window stays clickable.
         if get_cursor_position().is_none() {
-            tracing::info!("click_through: cursor backend unavailable, skipping worker");
+            tracing::info!("through: cursor backend unavailable, skipping worker");
             return;
         }
 
@@ -21,7 +21,7 @@ pub fn spawn_worker<R: Runtime>(app: AppHandle<R>) {
         loop {
             tokio::time::sleep(Duration::from_millis(POLL_INTERVAL_MS)).await;
 
-            let state = match app.try_state::<ClickThroughState>() {
+            let state = match app.try_state::<ThroughState>() {
                 Some(s) => s,
                 None => continue,
             };
@@ -87,7 +87,7 @@ pub fn spawn_worker<R: Runtime>(app: AppHandle<R>) {
 
             if last_ignore != Some(should_ignore) {
                 if let Err(e) = window.set_ignore_cursor_events(should_ignore) {
-                    tracing::warn!("click_through: set_ignore_cursor_events failed: {e}");
+                    tracing::warn!("through: set_ignore_cursor_events failed: {e}");
                     continue;
                 }
                 last_ignore = Some(should_ignore);

@@ -247,14 +247,14 @@
     "withGlobalTauri": true
   },
   "build": {
-    "beforeBuildCommand": "pnpm build:core",
-    "beforeDevCommand": "pnpm dev:core",
+    "beforeBuildCommand": "node scripts/copy-corex-serve.mjs --strict && pnpm build:core",
+    "beforeDevCommand": "node scripts/copy-corex-serve.mjs && pnpm dev:core",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
   },
   "bundle": {
     "active": true,
-    "externalBin": [],
+    "externalBin": ["binaries/corex-serve"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -296,7 +296,7 @@
       "minimumSystemVersion": "10.13"
     },
     "publisher": "i thinking",
-    "resources": ["icons/", "pdfium.dll"],
+    "resources": ["icons/", "binaries/pdfium.dll"],
     "targets": "all",
     "windows": {
       "allowDowngrades": true,
