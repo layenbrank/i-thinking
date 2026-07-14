@@ -10,7 +10,6 @@
     "cli:default",
     "autostart:default",
     "global-shortcut:default",
-    "sql:default",
     "http:default"
   ]
 }

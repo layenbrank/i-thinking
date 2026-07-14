@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 use tracing::{info, warn};
@@ -9,7 +9,8 @@ use tracing::{info, warn};
 use crate::ipc;
 
 pub struct CorexState {
-    pub ready: AtomicBool,
+    ready: AtomicBool,
+    settled: AtomicBool,
     child: Mutex<Option<CommandChild>>,
 }
 
@@ -17,6 +18,7 @@ impl CorexState {
     pub fn new() -> Self {
         Self {
             ready: AtomicBool::new(false),
+            settled: AtomicBool::new(false),
             child: Mutex::new(None),
         }
     }
@@ -25,12 +27,23 @@ impl CorexState {
         self.ready.load(Ordering::Relaxed)
     }
 
-    pub fn mark_ready(&self) {
-        self.ready.store(true, Ordering::Relaxed);
+    /// `None` = 仍在探测；`Some(true/false)` = 已结束等待。
+    pub fn status(&self) -> Option<bool> {
+        if !self.settled.load(Ordering::Relaxed) {
+            return None;
+        }
+        Some(self.is_ready())
     }
 
-    pub fn mark_not_ready(&self) {
+    pub fn mark_ready(&self) {
+        self.ready.store(true, Ordering::Relaxed);
+        self.settled.store(true, Ordering::Relaxed);
+    }
+
+    /// 启动或运行失败：not ready + settled。
+    pub fn fail(&self) {
         self.ready.store(false, Ordering::Relaxed);
+        self.settled.store(true, Ordering::Relaxed);
     }
 }
 
@@ -77,11 +90,12 @@ pub fn spawn_sidecar(app: &AppHandle) -> Result<(), String> {
                     payload.code, payload.signal
                 );
                 if let Some(state) = app_for_task.try_state::<CorexState>() {
-                    state.mark_not_ready();
+                    state.fail();
                     if let Ok(mut guard) = state.child.lock() {
                         *guard = None;
                     }
                 }
+                let _ = app_for_task.emit("corex://not-ready", ());
                 break;
             }
         }
@@ -100,7 +114,7 @@ pub fn wait_for_daemon(timeout: std::time::Duration, state: &CorexState) -> bool
         }
         std::thread::sleep(std::time::Duration::from_millis(200));
     }
-    state.mark_not_ready();
+    state.fail();
     warn!("corex-serve 在超时内未就绪，重能力调用可能失败");
     false
 }

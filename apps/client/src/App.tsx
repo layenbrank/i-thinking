@@ -46,7 +46,10 @@ function App() {
           import('antd')
         ])
 
+        let warned = false
         function warn() {
+          if (warned) return
+          warned = true
           message.warning(
             'corex 未就绪，PDF / 截图等功能暂不可用。请构建 corex-serve 后重启应用。',
             8
@@ -54,8 +57,9 @@ function App() {
         }
 
         unlisten = await listen('corex://not-ready', warn)
-        const ready = await invoke<boolean>('ipc_ready')
-        if (!ready) warn()
+        // null = pending（启动中），不告警；false = settled 且失败
+        const ready = await invoke<boolean | null>('ipc_ready')
+        if (ready === false) warn()
       } catch (err) {
         console.warn('[App] corex 状态检查失败', err)
       }

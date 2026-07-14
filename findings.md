@@ -8,10 +8,10 @@
 
 ## corex morph IPC 契约
 
-| Args 键 | 返回 |
-|---------|------|
+| Args 键                                                                   | 返回   |
+| ------------------------------------------------------------------------- | ------ |
 | Meta, RenderPage, RenderThumbnails, Search, Split, SplitByCount, ToImages | `data` |
-| Export, Merge, ToOffice | `path` |
+| Export, Merge, ToOffice                                                   | `path` |
 
 字段 snake_case，与 `corex-core/src/morph/schema.rs` 一致。
 

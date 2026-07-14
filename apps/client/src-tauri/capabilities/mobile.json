@@ -13,7 +13,6 @@
     "notification:default",
     "clipboard-manager:default",
     "log:default",
-    "sql:default",
     "http:default"
   ]
 }
