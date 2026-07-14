@@ -2,9 +2,44 @@ packages:
   - apps/*
   - packages/*
 
+# 注册源（替代 .npmrc 中的 registry / @scope:registry）
+# https://pnpm.io/zh/blog/releases/11.0
+registries:
+  default: https://registry.npmmirror.com/
+
+# Node.js 运行时下载镜像（替代 .npmrc 的 node-mirror:*）
+nodeDownloadMirrors:
+  release: https://npmmirror.com/mirrors/node/
+
+# 依赖布局（原 .npmrc → kebab-case 已迁入此处）
+nodeLinker: hoisted
+strictPeerDependencies: false
+autoInstallPeers: true
+shamefullyHoist: true
+# 布局变更时允许非交互清理 node_modules（CI / 脚本）
+confirmModulesPurge: false
+
+hoistPattern:
+  - '*'
+  - '!@i-thinking/*'
+
+publicHoistPattern:
+  - '*eslint*'
+  - '*prettier*'
+  - '*typescript*'
+  - '*vite*'
+  - '*vitest*'
+  - '*turbo*'
+  - '*rollup*'
+  - '*@rollup/*'
+  - '*@nestjs/*'
+  - '*jest*'
+
+# 允许执行 install 脚本的包（取代已移除的 onlyBuiltDependencies）
 allowBuilds:
   '@nestjs/core': true
   '@parcel/watcher': true
+  '@prisma/client': true
   '@prisma/engines': true
   '@scarf/scarf': true
   '@swc/core': true
@@ -43,26 +78,7 @@ catalog:
   'electron-squirrel-startup': ^1.0.1
   'electron-store': ^11.0.2
 
-onlyBuiltDependencies:
-  - '@nestjs/core'
-  - '@parcel/watcher'
-  - '@prisma/client'
-  - '@prisma/engines'
-  - '@scarf/scarf'
-  - '@swc/core'
-  - better-sqlite3
-  - core-js
-  - electron
-  - electron-winstaller
-  - esbuild
-  - msw
-  - prisma
-  - unrs-resolver
-
 overrides:
   '@electron/rebuild': ^4.0.4
   'xlsx': 'https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz'
   'dayjs': '1.11.21'
-
-patchedDependencies:
-  electron@40.10.2: patches/electron@40.10.2.patch

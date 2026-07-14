@@ -32,7 +32,7 @@ const isStrict = args.includes('--strict')
 const cliPath = args.find((arg) => !arg.startsWith('--'))
 
 function resolveCorexServePath() {
-  const corexRoot = process.env.COREX_ROOT ?? 'D:/Documents/Rust/corex/master'
+  const corexRoot = process.env.COREX_ROOT ?? 'C:\\Users\\iwell\\Documents\\Rust\\corex\\master'
   const candidates = [
     cliPath,
     process.env.COREX_SERVE,

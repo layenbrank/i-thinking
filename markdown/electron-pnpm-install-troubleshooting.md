@@ -60,33 +60,19 @@ Cache hit
 
 ### 3. `.npmrc` 中的 `electron_mirror` 在 pnpm 11 下不生效
 
-项目 `.npmrc` 已配置：
+按 [pnpm 11.0](https://pnpm.io/zh/blog/releases/11.0)：
 
-```ini
-electron_mirror=https://npmmirror.com/mirrors/electron/
-```
+- **项目 `.npmrc` 仅用于注册源 / 认证**；提升、linker、`allowBuilds` 等一律放在 `pnpm-workspace.yaml`
+- 生命周期脚本**不再**注入 `npm_config_*`（与 Yarn 对齐）
+- 项目内 `.npmrc` / `pnpm-workspace.yaml` 的 `${ENV}` **也不再展开**（安全变更，见 11.5.3+）
 
-但 `@electron/get` 读取镜像的顺序为（见 `artifact-utils.js`）：
+`@electron/get` 读取镜像顺序：
 
 1. `process.env.npm_config_electron_mirror`
 2. `process.env.ELECTRON_MIRROR`
-3. `package.json` 中 `config.electron_mirror`（即 `npm_package_config_electron_mirror`）
+3. `package.json` 的 `config.electron_mirror`
 
-**pnpm 11 的重要变更：**
-
-- 生命周期脚本中**不再**将 `.npmrc` 配置注入为 `npm_config_*` 环境变量
-- 参考：[pnpm 11.0 发布说明](https://pnpm.io/blog/releases/11.0)、[pnpm Scripts 文档](https://pnpm.io/scripts)
-
-实测 `pnpm run` 时：
-
-```json
-{
-  "npm_config_electron_mirror": undefined,
-  "ELECTRON_MIRROR": undefined
-}
-```
-
-因此 `.npmrc` 里的 `electron_mirror` 对 `electron` 的 postinstall **无效**，脚本回退到 GitHub 官方地址。
+因此必须在本机 / CI 设置 **`ELECTRON_MIRROR`**，不能把镜像指望写在仓库 `.npmrc`。
 
 ### 4. 用户自定义环境变量仍会被保留
 
@@ -102,27 +88,34 @@ pnpm 11 会保留用户**主动设置**的环境变量（如 `ELECTRON_MIRROR`�
 
 全量 `pnpm install` 会安装并构建所有 workspace 包，因此即使用 `build:client` 也会触发 `electron` postinstall。
 
-## 当前项目采用的方案：pnpm patch
+## 当前项目采用的方案：环境变量 `ELECTRON_MIRROR`
 
-已通过 pnpm patch 在 `electron@40.10.2` 的 `install.js` 中注入默认镜像：
+按 [pnpm 11.0](https://pnpm.io/zh/blog/releases/11.0)：**`.npmrc` 仅用于认证/注册源**，生命周期脚本也不再注入 `npm_config_*`。因此改为在系统/CI 设置：
 
-```js
-const ELECTRON_MIRROR_URL = 'https://npmmirror.com/mirrors/electron/';
-if (!process.env.ELECTRON_MIRROR && !process.env.npm_config_electron_mirror) {
-  process.env.ELECTRON_MIRROR = ELECTRON_MIRROR_URL;
-}
+```powershell
+# 用户级（永久，新开终端后生效）
+[System.Environment]::SetEnvironmentVariable(
+  "ELECTRON_MIRROR",
+  "https://npmmirror.com/mirrors/electron/",
+  "User"
+)
 ```
 
-相关文件：
+**运行时证据（2026-07-14）：**
 
-| 文件 | 说明 |
-|------|------|
-| `patches/electron@40.10.2.patch` | patch 内容 |
-| `pnpm-workspace.yaml` → `patchedDependencies` | patch 注册 |
-| `.npmrc` | 保留 `electron_mirror` 配置并附注 pnpm 11 行为变更 |
+- 用户级已设置 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`
+- `pnpm install` 中 electron postinstall 日志：
+  - `Checking the cache ... (https://npmmirror.com/mirrors/electron/v40.10.2/...)`
+  - `Cache hit` → `Done`（约数秒，整次 install ~28s）
+- **未**走 `github.com/electron/electron/releases`
 
-**优点：** 团队克隆仓库后 `pnpm install` 自动生效，无需每人配环境变量。  
-**注意：** electron 升级版本后需重新 `pnpm patch electron@<新版本>` 并更新 patch 文件。
+**注意：** 若在设置用户环境变量之前已打开 Cursor/终端，当前会话可能仍读不到；请新开终端，或在会话中执行：
+
+```powershell
+$env:ELECTRON_MIRROR = [Environment]::GetEnvironmentVariable('ELECTRON_MIRROR','User')
+```
+
+已放弃 pnpm patch（`patches/electron@40.10.2.patch` 已移除）。CI 需同样配置 `ELECTRON_MIRROR`。
 
 ## 其他可选方案（不使用 patch）
 
@@ -245,10 +238,11 @@ options.mirror ||
 
 ## 后续维护清单
 
-- [ ] electron 版本升级后，检查 `patchedDependencies` 是否需更新
-- [ ] 若移除 patch，确保团队统一配置 `ELECTRON_MIRROR` 或采用其他方案
-- [ ] CI 流水线建议显式设置 `ELECTRON_MIRROR` 环境变量作为双保险
+- [x] 本机/用户级已设置 `ELECTRON_MIRROR`（勿依赖 `.npmrc` 的 `electron_mirror`）
+- [ ] CI 流水线显式设置 `ELECTRON_MIRROR` 环境变量
+- [ ] 同事新环境：设置同名用户/系统环境变量后**新开终端**再 `pnpm install`
 - [ ] 评估是否将根 `package.json` 中的 `electron` 仅保留在 `apps/studio`，减少无关安装
+- [ ] 若改回 patch 方案，需 `pnpm patch` + `patch-commit`，勿手写损坏的 diff
 
 ## 参考链接
 
