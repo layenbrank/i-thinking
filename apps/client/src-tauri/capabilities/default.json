@@ -150,7 +150,10 @@
     {
       "allow": [
         {
-          "args": ["--pipe", "\\\\.\\pipe\\corex"],
+          "args": [
+            "--pipe",
+            "\\\\.\\pipe\\corex"
+          ],
           "name": "binaries/corex-serve",
           "sidecar": true
         }
@@ -374,9 +377,14 @@
         }
       ],
       "identifier": "http:default"
-    }
+    },
+    "updater:default"
   ],
-  "platforms": ["macOS", "linux", "windows"],
+  "platforms": [
+    "macOS",
+    "linux",
+    "windows"
+  ],
   "remote": {
     "urls": [
       "http://*",
@@ -392,5 +400,11 @@
       "https://*.weixin.qq.com"
     ]
   },
-  "windows": ["main", "marketplace", "navigation", "overlay", "screenshot"]
+  "windows": [
+    "main",
+    "marketplace",
+    "navigation",
+    "overlay",
+    "screenshot"
+  ]
 }

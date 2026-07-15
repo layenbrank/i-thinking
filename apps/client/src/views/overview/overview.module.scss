@@ -1,9 +1,10 @@
 @use 'sass:math';
+$prefix-height: 64px;
+$suffix-height: 64px;
+$radius: 8px;
+$engine-size: 36px;
 
 .overview {
-  $prefix-height: 64px;
-  $suffix-height: 64px;
-
   &.payload {
     width: 100%;
     height: 100%;
@@ -33,10 +34,14 @@
     text-align: center;
     background-color: transparent;
   }
-}
 
-$radius: 8px;
-$engine-size: 36px;
+  .engine {
+    &.series {
+      width: $engine-size + 8px;
+      height: $engine-size;
+    }
+  }
+}
 
 .engine {
   &.section {
@@ -125,11 +130,12 @@ $engine-size: 36px;
   // ==================== Input.Search 内部元素（永远保持直角） ====================
   &.keyword {
     display: flex;
+    padding-inline: 0px;
   }
 
   &.trigger {
     padding-block: 4px;
-    padding-inline: 14px;
+    padding-inline: 14px 0px;
   }
 
   &.trigger,
@@ -144,11 +150,6 @@ $engine-size: 36px;
       box-shadow: none;
       background-color: transparent;
     }
-  }
-
-  &.series {
-    width: $engine-size + 8px;
-    height: $engine-size;
   }
 
   &.mark {

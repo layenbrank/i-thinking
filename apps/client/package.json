@@ -17,14 +17,15 @@
     "test:unit": "vitest"
   },
   "dependencies": {
-    "antd": "catalog:",
-    "antd-style": "catalog:",
     "@ant-design/colors": "catalog:",
     "@ant-design/icons": "catalog:",
     "@ant-design/x": "catalog:",
     "@ant-design/x-markdown": "catalog:",
     "@i-thinking/utils": "workspace:*",
-    "@i-thinking/wasm": "workspace:*"
+    "@i-thinking/wasm": "workspace:*",
+    "@tauri-apps/plugin-updater": "~2.10.1",
+    "antd": "catalog:",
+    "antd-style": "catalog:"
   },
   "devDependencies": {
     "@i-thinking/shared": "workspace:*"

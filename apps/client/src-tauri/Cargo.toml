@@ -7,7 +7,7 @@ edition     = "2024"
 
 [[bin]]
 name = "i-thinking"
-path = "src/bin/thinking.rs"
+path = "src/main.rs"
 
 [lib]
 name       = "thinking"
@@ -32,15 +32,15 @@ tauri = { version = "2.11.2", features = [
 ] } # 应用壳、窗口、tray、IPC
 
 # --- Tauri 插件（已在 bootstrap 注册）---
-tauri-plugin-opener = "2.5.2"             # 用系统默认应用打开 URL/路径
-tauri-plugin-fs = "2.4.5"                 # 文件系统读写
-tauri-plugin-websocket = "2.4.2"          # WebSocket（前端能力预留）
-tauri-plugin-dialog = "2.6.0"             # 原生对话框
-tauri-plugin-shell = "2.3.5"              # sidecar / 外部命令（corex-serve）
-tauri-plugin-store = "2.4.2"              # 持久化 KV
-tauri-plugin-process = "2.3.1"            # 退出 / 重启
-tauri-plugin-notification = "2.3.3"       # 系统通知
-tauri-plugin-clipboard-manager = "2.3.2"  # 剪贴板
+tauri-plugin-opener = "2.5.2" # 用系统默认应用打开 URL/路径
+tauri-plugin-fs = "2.4.5" # 文件系统读写
+tauri-plugin-websocket = "2.4.2" # WebSocket（前端能力预留）
+tauri-plugin-dialog = "2.6.0" # 原生对话框
+tauri-plugin-shell = "2.3.5" # sidecar / 外部命令（corex-serve）
+tauri-plugin-store = "2.4.2" # 持久化 KV
+tauri-plugin-process = "2.3.1" # 退出 / 重启
+tauri-plugin-notification = "2.3.3" # 系统通知
+tauri-plugin-clipboard-manager = "2.3.2" # 剪贴板
 tauri-plugin-http = { version = "2.5.7", features = [
   "charset",
   "cookies",
@@ -52,11 +52,11 @@ tauri-plugin-http = { version = "2.5.7", features = [
   "stream",
   "unsafe-headers",
 ] } # 前端 fetch
-tauri-plugin-os = "2.3.2"                 # OS 信息（前端能力预留）
+tauri-plugin-os = "2.3.2" # OS 信息（前端能力预留）
 
 # --- Tauri 插件（已声明，当前未 plugin()）---
-tauri-plugin-localhost = "2.3.2"          # 内嵌本地 HTTP；未接线
-tauri-plugin-log = "2.8.0"                # 日志桥；未接线
+tauri-plugin-localhost = "2.3.2" # 内嵌本地 HTTP；未接线
+tauri-plugin-log       = "2.8.0" # 日志桥；未接线
 
 # --- 数据层（SeaORM）---
 sea-orm = { version = "1.1.19", features = [
@@ -66,37 +66,40 @@ sea-orm = { version = "1.1.19", features = [
   "with-chrono",
   "with-uuid",
 ] } # ORM / entity / 连接
-sea-query = "1.0.0"                       # SQL DSL（经 sea_orm::sea_query 使用）
-sea-orm-migration = "1.1.19"              # 迁移
+sea-query = "1.0.0" # SQL DSL（经 sea_orm::sea_query 使用）
+sea-orm-migration = "1.1.19" # 迁移
 
 # --- 异步 / 时间 / ID ---
-tokio = { version = "1.52.3", features = ["full"] } # 异步运行时
-async-trait = "0.1"                       # async trait（migration）
-chrono = { version = "0.4.44", features = ["serde"] } # 时间戳
-uuid = { version = "1.22.0", features = ["v4"] } # 主键生成
+tokio       = { version = "1.52.3", features = ["full"] }  # 异步运行时
+async-trait = "0.1"                                        # async trait（migration）
+chrono      = { version = "0.4.44", features = ["serde"] } # 时间戳
+uuid        = { version = "1.22.0", features = ["v4"] }    # 主键生成
 
 # --- 序列化 ---
-serde = { version = "1", features = ["derive"] }
-serde_json = "1.0.150"                    # IPC / 配置 JSON
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1.0.150"                                # IPC / 配置 JSON
 
 # --- 错误 ---
-anyhow = "1.0.102"                        # 传播型错误（storage/bootstrap）
-thiserror = "2.0.18"                      # 类型化错误（exception）
+anyhow    = "1.0.102" # 传播型错误（storage/bootstrap）
+thiserror = "2.0.18"  # 类型化错误（exception）
 
 # --- 媒体 / 编解码 ---
-base64 = "0.22.1"                         # 截图 data URL
-image = "0.25.10"                         # 截图解码、托盘徽章
+base64 = "0.22.1"  # 截图 data URL
+image  = "0.25.10" # 截图解码、托盘徽章
 
 # --- 日志 ---
-tracing = "0.1.44"                        # 结构化日志宏
+tracing = "0.1.44" # 结构化日志宏
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 # --- 桌面专用插件 ---
-tauri-plugin-autostart = "2.5.1"          # 开机自启
-tauri-plugin-cli = "2.4.1"                # CLI；未接线
-tauri-plugin-global-shortcut = "2.3.1"    # 全局快捷键
-tauri-plugin-positioner = { version = "2.3.1", features = ["tray-icon"] } # 窗口/托盘定位
-tauri-plugin-single-instance = "2.4.0"    # 单实例
+tauri-plugin-autostart = "2.5.1" # 开机自启
+tauri-plugin-cli = "2.4.1" # CLI；未接线
+tauri-plugin-global-shortcut = "2.3.1" # 全局快捷键
+tauri-plugin-positioner = { version = "2.3.1", features = [
+  "tray-icon",
+] } # 窗口/托盘定位
+tauri-plugin-single-instance = "2.4.0" # 单实例
+tauri-plugin-updater = "2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 # --- Windows FFI ---
@@ -109,4 +112,11 @@ windows = { version = "0.61", features = [
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # --- macOS FFI ---
-core-graphics = "0.24"                    # 光标坐标
+core-graphics = "0.24" # 光标坐标
+
+[profile.release]
+codegen-units = 1
+lto           = true
+opt-level     = 3
+panic         = "abort"
+strip         = true

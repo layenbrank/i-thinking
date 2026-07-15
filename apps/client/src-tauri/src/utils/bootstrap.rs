@@ -1,8 +1,6 @@
 use std::time::Duration;
 
-use tauri::{
-    Emitter, Manager, RunEvent, generate_context, generate_handler,
-};
+use tauri::{Emitter, Manager, RunEvent, generate_context, generate_handler};
 
 use crate::{
     countdown,
@@ -60,7 +58,8 @@ impl Bootstrap {
                     match corex::spawn_sidecar(app.handle()) {
                         Ok(()) => {
                             let corex_state = app.state::<CorexState>();
-                            let ready = corex::wait_for_daemon(Duration::from_secs(8), &corex_state);
+                            let ready =
+                                corex::wait_for_daemon(Duration::from_secs(8), &corex_state);
                             if !ready {
                                 let _ = app.emit("corex://not-ready", ());
                             }
