@@ -392,14 +392,5 @@
       "https://*.weixin.qq.com"
     ]
   },
-  "windows": [
-    "main",
-    "marketplace",
-    "navigation",
-    "overlay",
-    "countdown",
-    "calendar",
-    "clock",
-    "screenshot"
-  ]
+  "windows": ["main", "marketplace", "navigation", "overlay", "screenshot"]
 }

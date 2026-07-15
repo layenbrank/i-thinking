@@ -4,15 +4,14 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
+import { createContext } from 'react'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { Suspense } from 'react'
 
 import { DEFAULT_ABORT_TIMEOUT_MS } from '@/constants/application.ts'
 import { WINDOW } from '@/constants/window'
 import styles from '@/features/application/application.module.scss'
-import {
-  OVERLAY_FULLSCREEN
-} from '@/features/application/overlay-preset.ts'
+import { OVERLAY_FULLSCREEN } from '@/features/application/overlay-preset.ts'
 
 type Cache = 'destroy' | 'keepAlive'
 
