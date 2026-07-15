@@ -287,11 +287,11 @@ export default function ClockView(props: ClockViewProps = {}) {
       <div
         className={styles.card}
         data-style={clockStyle}
-        data-region="true">
+        data-region={embedded ? 'false' : 'true'}>
         {/* Date header */}
         <div
           className={clsx(styles.dateLabel, { [styles.dateLabelDark]: isNeon })}
-          data-region="true"
+          data-region={embedded ? 'false' : 'true'}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{dateLabel}</span>
           {embedded && onClose ? (
@@ -366,7 +366,7 @@ export default function ClockView(props: ClockViewProps = {}) {
 
       {/* Style switcher */}
       <div
-        data-region="true"
+        {...(embedded ? {} : { 'data-region': 'true' })}
         className={styles.switcher}>
         {STYLE_OPTIONS.map(function (opt) {
           return (

@@ -290,7 +290,7 @@ export default function Countdown(props: CountdownProps = {}) {
       <div
         className={styles.header}
         data-through="false"
-        data-region="true"
+        data-region={embedded ? 'false' : 'true'}
         onMouseDown={handleRegion}>
         <span className={styles.dateText}>{dateLabel}</span>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>

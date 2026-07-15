@@ -36,11 +36,15 @@ export default function PanelWidget(props: PanelWidgetProps) {
 
   useThroughSource(widget.id, rootRef, true)
 
+  const INTERACTIVE =
+    'button, a, input, textarea, select, [role="button"], .ant-select, .ant-picker, .ant-radio-group, .ant-checkbox-wrapper'
+
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.button !== 0) return
     const target = e.target as HTMLElement
-    // Only start host drag from elements marked as drag region.
-    if (!target.closest('[data-region="true"]')) return
+    // Overlay in-layer drag handle uses data-region=false (avoids OS -webkit-app-region: drag).
+    if (!target.closest('[data-region="false"]')) return
+    if (target.closest(INTERACTIVE)) return
     bringToFront(widget.id)
     dragRef.current = {
       ox: e.clientX,

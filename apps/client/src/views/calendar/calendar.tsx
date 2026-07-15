@@ -201,7 +201,7 @@ const Component: React.FC<CalendarViewProps> = function (props = {}) {
       data-through="false">
       {embedded ? (
         <div
-          data-region="true"
+          data-region="false"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -262,7 +262,7 @@ const Component: React.FC<CalendarViewProps> = function (props = {}) {
           }
           return (
             <Row
-              data-region="true"
+              {...(embedded ? {} : { 'data-region': 'true' })}
               justify="end"
               gutter={8}
               style={{ padding: 8 }}>
