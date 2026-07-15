@@ -111,7 +111,13 @@ const useStyle = createStyles(({ token, css, cx }) => {
   }
 })
 
-const Component: React.FC = function () {
+export interface CalendarViewProps {
+  embedded?: boolean
+  onClose?: () => void
+}
+
+const Component: React.FC<CalendarViewProps> = function (props = {}) {
+  const { embedded = false, onClose } = props
   const { styles } = useStyle({ test: true })
 
   const [selectDate, setSelectDate] = React.useState<Dayjs>(() => dayjs())
@@ -190,7 +196,36 @@ const Component: React.FC = function () {
   }
 
   return (
-    <div className={clsx(styles.wrapper, stylem.calendar)}>
+    <div
+      className={clsx(styles.wrapper, stylem.calendar)}
+      data-through="false">
+      {embedded ? (
+        <div
+          data-region="true"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 10px 0'
+          }}>
+          <span style={{ fontSize: 13, opacity: 0.72 }}>日历</span>
+          {onClose ? (
+            <button
+              type="button"
+              aria-label="关闭日历"
+              onClick={onClose}
+              style={{
+                border: 0,
+                background: 'transparent',
+                cursor: 'pointer',
+                fontSize: 16,
+                lineHeight: 1
+              }}>
+              ×
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       <Calendar
         fullCellRender={cellRender}
         fullscreen={false}

@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use serde::Deserialize;
 use tokio::sync::RwLock;
 
@@ -19,14 +22,26 @@ impl Rect {
 
 pub struct ThroughState {
     pub window_label: String,
-    pub rects: RwLock<Vec<Rect>>,
+    /// Hit regions keyed by widget/source id so multiple overlays can coexist.
+    pub sources: RwLock<HashMap<String, Vec<Rect>>>,
+    /// When true, the overlay window never ignores cursor events (capture mode).
+    capture_mode: AtomicBool,
 }
 
 impl ThroughState {
     pub fn new(window_label: impl Into<String>) -> Self {
         Self {
             window_label: window_label.into(),
-            rects: RwLock::new(Vec::new()),
+            sources: RwLock::new(HashMap::new()),
+            capture_mode: AtomicBool::new(false),
         }
+    }
+
+    pub fn is_capture_mode(&self) -> bool {
+        self.capture_mode.load(Ordering::Relaxed)
+    }
+
+    pub fn set_capture_mode(&self, enabled: bool) {
+        self.capture_mode.store(enabled, Ordering::Relaxed);
     }
 }

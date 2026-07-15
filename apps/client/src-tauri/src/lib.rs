@@ -9,9 +9,15 @@ pub mod through {
     pub mod worker;
     pub mod cursor;
     pub mod state;
-    pub use command::update_rects;
+    pub use command::{update_rects, update_through_rects};
     pub use state::ThroughState;
     pub use worker::spawn_worker;
+}
+
+pub mod overlay {
+    pub mod command;
+    pub mod state;
+    pub use state::OverlayPending;
 }
 
 pub mod databases {

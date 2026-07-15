@@ -312,6 +312,26 @@ const Application = {
             },
             settings() {
               onUpdateVisible(true)
+            },
+            countdown() {
+              void import('@/views/overlay/tauri').then(function (mod) {
+                return mod.openOverlayPanel('countdown', props.id)
+              })
+            },
+            calendar() {
+              void import('@/views/overlay/tauri').then(function (mod) {
+                return mod.openOverlayPanel('calendar', props.id)
+              })
+            },
+            clock() {
+              void import('@/views/overlay/tauri').then(function (mod) {
+                return mod.openOverlayPanel('clock', props.id)
+              })
+            },
+            screenshot() {
+              void import('@tauri-apps/api/core').then(function (mod) {
+                return mod.invoke('screenshot_open')
+              })
             }
           }
           const handler = compmap[props.component]

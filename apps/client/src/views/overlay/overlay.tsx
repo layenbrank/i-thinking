@@ -1,0 +1,151 @@
+import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
+import { Suspense, lazy, useEffect } from 'react'
+
+import { Fallback } from '@/components/fallback'
+import {
+  useOverlayStore,
+  type OverlayMode,
+  type OverlayPanelKind
+} from '@/stores/overlay'
+import styles from '@/views/overlay/overlay.module.scss'
+import PanelWidget from '@/views/overlay/widgets/panel'
+import PinWidget from '@/views/overlay/widgets/pin'
+
+interface PendingMount {
+  kind: string
+  applicationId?: string | null
+}
+
+const Screenshot = lazy(function () {
+  return import('@/views/screenshot/screenshot')
+})
+
+interface MountPayload {
+  kind?: OverlayPanelKind
+  applicationId?: string
+}
+
+export default function OverlayShell() {
+  const mode = useOverlayStore(function (s) {
+    return s.mode
+  })
+  const widgets = useOverlayStore(function (s) {
+    return s.widgets
+  })
+  const setMode = useOverlayStore(function (s) {
+    return s.setMode
+  })
+  const mountPanel = useOverlayStore(function (s) {
+    return s.mountPanel
+  })
+  const exitCapture = useOverlayStore(function (s) {
+    return s.exitCapture
+  })
+  const addPin = useOverlayStore(function (s) {
+    return s.addPin
+  })
+  const clearPins = useOverlayStore(function (s) {
+    return s.clearPins
+  })
+
+  useEffect(
+    function () {
+      let unlistenMode: (() => void) | undefined
+      let unlistenMount: (() => void) | undefined
+      let unlistenClear: (() => void) | undefined
+      let unlistenHide: (() => void) | undefined
+      let cancelled = false
+
+      function applyMount(payload: MountPayload | PendingMount | null | undefined) {
+        const kind = payload?.kind as OverlayPanelKind | undefined
+        if (!kind) return
+        if (kind !== 'countdown' && kind !== 'calendar' && kind !== 'clock') return
+        const applicationId =
+          payload && 'applicationId' in payload
+            ? (payload.applicationId ?? undefined)
+            : undefined
+        mountPanel(kind, applicationId ?? undefined)
+      }
+
+      ;(async function () {
+        try {
+          unlistenMode = await listen<OverlayMode>('overlay://mode', function (event) {
+            setMode(event.payload)
+          })
+          unlistenMount = await listen<MountPayload>('overlay://mount', function (event) {
+            applyMount(event.payload)
+          })
+          unlistenClear = await listen('overlay://clear-pins', function () {
+            clearPins()
+          })
+          unlistenHide = await listen('overlay://hide', function () {
+            setMode('idle')
+            void invoke('overlay_hide')
+          })
+          const pending = await invoke<PendingMount | null>('overlay_take_pending')
+          if (!cancelled) applyMount(pending)
+        } catch (err) {
+          if (!cancelled) console.warn('[overlay] event listen failed', err)
+        }
+      })()
+
+      return function () {
+        cancelled = true
+        unlistenMode?.()
+        unlistenMount?.()
+        unlistenClear?.()
+        unlistenHide?.()
+      }
+    },
+    [clearPins, mountPanel, setMode]
+  )
+
+  const pins = widgets.filter(function (w) {
+    return w.kind === 'pin'
+  })
+  const panels = widgets.filter(function (w) {
+    return w.kind !== 'pin'
+  })
+
+  return (
+    <div className={styles.shell}>
+      <div className={styles.stage}>
+        {panels.map(function (widget) {
+          if (widget.kind === 'pin') return null
+          return (
+            <PanelWidget
+              key={widget.id}
+              widget={widget}
+            />
+          )
+        })}
+        {pins.map(function (widget) {
+          if (widget.kind !== 'pin') return null
+          return (
+            <PinWidget
+              key={widget.id}
+              widget={widget}
+            />
+          )
+        })}
+        {mode === 'capture' ? (
+          <div className={styles.capture}>
+            <Suspense fallback={<Fallback.Route />}>
+              <Screenshot
+                embedded
+                onExit={function () {
+                  void exitCapture()
+                }}
+                onPinned={function (input) {
+                  addPin(input)
+                  void exitCapture()
+                }}
+              />
+            </Suspense>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}

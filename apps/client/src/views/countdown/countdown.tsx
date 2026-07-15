@@ -42,7 +42,16 @@ const STATUS_META: Record<WorkStatus, { label: string; icon: string; cls: string
 // ─── Main View ─────────────────────────────────────────────
 const SCOPE = '[data-through="false"]'
 const GLOBAL = 'div[class~="countdown-through"]'
-export default function () {
+
+export interface CountdownProps {
+  /** When true, runs inside the shared overlay window (no OS window APIs). */
+  embedded?: boolean
+  onClose?: () => void
+  onSizeChange?: (height: number) => void
+}
+
+export default function Countdown(props: CountdownProps = {}) {
+  const { embedded = false, onClose, onSizeChange } = props
   const { message } = App.useApp()
   const { config, loaded, initialize, updateConfig } = useClockStore()
 
@@ -130,88 +139,94 @@ export default function () {
   } = computed
   const statusMeta = STATUS_META[status]
 
-  // ─── Phase A: dynamic window sizing ──────────────────────
+  // ─── Phase A: dynamic sizing (OS window or overlay panel) ─
   const showSalary = config.monthlySalary > 0 && (status === 'working' || status === 'after')
   useEffect(
     function () {
       const h = BASE_HEIGHT + (showSalary ? SALARY_DELTA : 0) + (visible ? SETTINGS_DELTA : 0)
+      if (embedded) {
+        onSizeChange?.(h)
+        return
+      }
       getCurrentWindow()
         .setSize(new LogicalSize(WINDOW_WIDTH, h))
         .catch(function () {
           /* non-tauri env */
         })
     },
-    [showSalary, visible]
+    [embedded, onSizeChange, showSalary, visible]
   )
 
-  // ─── Phase B4: register click-through rects ──────────────
+  // ─── Phase B4: register click-through rects (standalone window only)
   const containerRef = useRef<HTMLDivElement>(null)
-  useEffect(function () {
-    const root = containerRef.current
-    if (!root) return
+  useEffect(
+    function () {
+      if (embedded) return
+      const root = containerRef.current
+      if (!root) return
 
-    let frame = 0
-    const observed = new WeakSet<HTMLElement>()
+      let frame = 0
+      const observed = new WeakSet<HTMLElement>()
 
-    function sync() {
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(function () {
-        if (!root) return
-        // Send CSS (logical) pixels; Rust converts cursor via scale_factor.
-        const throughs = root.querySelectorAll<HTMLElement>(SCOPE)
+      function sync() {
+        cancelAnimationFrame(frame)
+        frame = requestAnimationFrame(function () {
+          if (!root) return
+          const throughs = root.querySelectorAll<HTMLElement>(SCOPE)
+          const throughg = document.querySelectorAll<HTMLElement>(GLOBAL)
+          const nodes = Array.from(throughs).concat(Array.from(throughg))
+          const rects = Array.from(nodes).map(function (el) {
+            const r = el.getBoundingClientRect()
+            return {
+              x: Math.round(r.left),
+              y: Math.round(r.top),
+              w: Math.round(r.width),
+              h: Math.round(r.height)
+            }
+          })
+          invoke('update_through_rects', { source: 'countdown-standalone', rects }).catch(
+            function () {
+              /* non-tauri env */
+            }
+          )
+        })
+      }
 
+      const ro = new ResizeObserver(sync)
+      ro.observe(root)
+
+      function observeAll() {
+        const throughs = root?.querySelectorAll<HTMLElement>(SCOPE) ?? []
         const throughg = document.querySelectorAll<HTMLElement>(GLOBAL)
-
-        const nodes = Array.from(throughs).concat(Array.from(throughg))
-
-        const rects = Array.from(nodes).map(function (el) {
-          const r = el.getBoundingClientRect()
-          return {
-            x: Math.round(r.left),
-            y: Math.round(r.top),
-            w: Math.round(r.width),
-            h: Math.round(r.height)
-          }
-        })
-        invoke('update_rects', { rects }).catch(function () {
-          /* non-tauri env */
-        })
-
-        console.log('nodes', nodes)
-      })
-    }
-
-    const ro = new ResizeObserver(sync)
-    ro.observe(root)
-
-    function observeAll() {
-      const throughs = root?.querySelectorAll<HTMLElement>(SCOPE) ?? []
-      const throughg = document.querySelectorAll<HTMLElement>(GLOBAL)
-
-      Array.from(throughs)
-        .concat(Array.from(throughg))
-        .forEach(function (el) {
-          if (observed.has(el)) return
-          ro.observe(el)
-          observed.add(el)
-        })
-    }
-    observeAll()
-
-    const mo = new MutationObserver(function () {
+        Array.from(throughs)
+          .concat(Array.from(throughg))
+          .forEach(function (el) {
+            if (observed.has(el)) return
+            ro.observe(el)
+            observed.add(el)
+          })
+      }
       observeAll()
-      sync()
-    })
-    mo.observe(root, { childList: true, subtree: true })
 
-    sync()
-    return function () {
-      cancelAnimationFrame(frame)
-      ro.disconnect()
-      mo.disconnect()
-      invoke('update_rects', { rects: [] }).catch(function () {})
-    }
-  }, [])
+      const mo = new MutationObserver(function () {
+        observeAll()
+        sync()
+      })
+      mo.observe(root, { childList: true, subtree: true })
+
+      sync()
+      return function () {
+        cancelAnimationFrame(frame)
+        ro.disconnect()
+        mo.disconnect()
+        invoke('update_through_rects', {
+          source: 'countdown-standalone',
+          rects: []
+        }).catch(function () {})
+      }
+    },
+    [embedded]
+  )
 
   const handleSave = useCallback(
     async function () {
@@ -263,6 +278,7 @@ export default function () {
   const dateLabel = now.format('YYYY年MM月DD日') + ' ' + WEEK_LABELS[now.day()]
 
   function handleRegion(e: React.MouseEvent) {
+    if (embedded) return
     if (e.button === 0) getCurrentWindow().startDragging()
   }
 
@@ -274,28 +290,49 @@ export default function () {
       <div
         className={styles.header}
         data-through="false"
+        data-region="true"
         onMouseDown={handleRegion}>
         <span className={styles.dateText}>{dateLabel}</span>
-        <Tooltip title="工作配置">
-          <motion.button
-            aria-label="工作配置"
-            onMouseDown={function (e) {
-              e.stopPropagation()
-            }}
-            className={clsx(styles.iconBtn, { [styles.iconBtnActive]: visible })}
-            whileTap={{ scale: 0.9 }}
-            onClick={function () {
-              onUpdateVisible(function (o) {
-                return !o
-              })
-            }}>
-            <Icon
-              icon="mdi:cog-outline"
-              width={17}
-              height={17}
-            />
-          </motion.button>
-        </Tooltip>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <Tooltip title="工作配置">
+            <motion.button
+              aria-label="工作配置"
+              onMouseDown={function (e) {
+                e.stopPropagation()
+              }}
+              className={clsx(styles.iconBtn, { [styles.iconBtnActive]: visible })}
+              whileTap={{ scale: 0.9 }}
+              onClick={function () {
+                onUpdateVisible(function (o) {
+                  return !o
+                })
+              }}>
+              <Icon
+                icon="mdi:cog-outline"
+                width={17}
+                height={17}
+              />
+            </motion.button>
+          </Tooltip>
+          {embedded && onClose ? (
+            <Tooltip title="关闭">
+              <motion.button
+                aria-label="关闭"
+                onMouseDown={function (e) {
+                  e.stopPropagation()
+                }}
+                className={styles.iconBtn}
+                whileTap={{ scale: 0.9 }}
+                onClick={onClose}>
+                <Icon
+                  icon="mdi:close"
+                  width={17}
+                  height={17}
+                />
+              </motion.button>
+            </Tooltip>
+          ) : null}
+        </div>
       </div>
 
       {/* Work status card */}

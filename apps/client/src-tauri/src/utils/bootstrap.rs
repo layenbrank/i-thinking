@@ -10,6 +10,7 @@ use crate::{
         migration,
         storage::{self, Storage, get_app_data_dir, get_database_path},
     },
+    overlay::{self, OverlayPending},
     screenshot,
     services::{application, asset, mirror},
     through::{self, ThroughState},
@@ -49,7 +50,8 @@ impl Bootstrap {
                 .expect("failed to initialize database");
                 app.manage(db_state);
                 app.manage(CorexState::new());
-                app.manage(ThroughState::new("countdown"));
+                app.manage(ThroughState::new("overlay"));
+                app.manage(OverlayPending::default());
                 through::spawn_worker(app.handle().clone());
                 tray::setup(app)?;
 
@@ -144,9 +146,15 @@ impl Bootstrap {
                 screenshot::command::screenshot_capture,
                 screenshot::command::screenshot_open,
                 screenshot::command::screenshot_close,
+                overlay::command::overlay_ensure,
+                overlay::command::overlay_hide,
+                overlay::command::overlay_set_mode,
+                overlay::command::overlay_mount,
+                overlay::command::overlay_take_pending,
                 countdown::command::countdown_config_read,
                 countdown::command::countdown_config_upsert,
                 countdown::command::countdown_config_update,
+                through::command::update_through_rects,
                 through::command::update_rects
             ])
             .build(generate_context!())

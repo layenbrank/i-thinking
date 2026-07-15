@@ -16,10 +16,18 @@ import {
   savePngToAppDir,
   writeImageToClipboard
 } from '@/views/screenshot/tauri'
+import { readImageNaturalSize, savePinPng } from '@/views/overlay/tauri'
 
 import styles from '@/views/screenshot/screenshot.module.scss'
 
 import URLBackground from '@/assets/screenshot-background.jpg'
+
+export interface ScreenshotProps {
+  /** Rendered inside the shared overlay window. */
+  embedded?: boolean
+  onExit?: () => void
+  onPinned?: (input: { src: string; w: number; h: number }) => void
+}
 
 type StageEvent = Konva.KonvaEventObject<MouseEvent>
 
@@ -48,7 +56,8 @@ const POINT_SHAPES = new Set<GraphicsEnum>(['text', 'index'])
 /** 多点追加型标注（拖拽路径上不断 append 点）：画笔、荧光笔 */
 const MULTI_POINT_GRAPHICS = new Set<GraphicsEnum>(['freehand', 'highlight'])
 
-export default function Screenshot() {
+export default function Screenshot(props: ScreenshotProps = {}) {
+  const { onExit, onPinned } = props
   const [phase, onUpdatePhase] = useState<Phase>('selecting')
   const [graphics, onUpdateGraphics] = useState<GraphicsEnum | null>(null)
   const [annotations, onUpdateAnnotations] = useState<GraphicsProps[]>([])
@@ -439,11 +448,19 @@ export default function Screenshot() {
     }
   }
 
+  async function exitCapture() {
+    if (onExit) {
+      onExit()
+      return
+    }
+    if (isTauri()) await closeScreenshotWindow()
+  }
+
   function handleCopy() {
     void withExportedPng(async function (dataUrl) {
       if (!isTauri()) return
       await writeImageToClipboard(dataUrl)
-      await closeScreenshotWindow()
+      await exitCapture()
     })
   }
 
@@ -456,21 +473,39 @@ export default function Screenshot() {
       })
       if (saved) {
         console.info('[screenshot] 已保存到', saved)
-        await closeScreenshotWindow()
+        await exitCapture()
       }
     })
   }
 
   function handlePin() {
-    // TODO(Phase 3+)：调用 Rust 端创建一个 alwaysOnTop 透明小窗以贴图
     void withExportedPng(async function (dataUrl) {
-      if (!isTauri()) return
-      await writeImageToClipboard(dataUrl)
+      if (!isTauri()) {
+        onPinned?.({ src: dataUrl, w: 320, h: 240 })
+        return
+      }
+      const size = await readImageNaturalSize(dataUrl)
+      const maxEdge = 480
+      const scale = Math.min(1, maxEdge / Math.max(size.w, size.h))
+      const w = Math.max(48, Math.round(size.w * scale))
+      const h = Math.max(48, Math.round(size.h * scale))
+      const id = `pin-${Date.now()}`
+      const src = await savePinPng(dataUrl, id).catch(function () {
+        return dataUrl
+      })
+      if (onPinned) {
+        onPinned({ src, w, h })
+        return
+      }
+      // Standalone /screenshot route fallback: still pin via store after ensure.
+      const { useOverlayStore } = await import('@/stores/overlay')
+      useOverlayStore.getState().addPin({ src, w, h })
+      await exitCapture()
     })
   }
 
   function handleClose() {
-    if (isTauri()) void closeScreenshotWindow()
+    void exitCapture()
   }
 
   useEffect(

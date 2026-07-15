@@ -74,14 +74,20 @@ pub fn spawn_worker<R: Runtime>(app: AppHandle<R>) {
                 && cursor_y >= win_top
                 && cursor_y < win_bottom;
 
-            let should_ignore = if !inside_window {
+            let should_ignore = if state.is_capture_mode() {
+                // Capture / annotate mode must receive all pointer events.
+                false
+            } else if !inside_window {
                 // Outside window — value irrelevant, but pick a safe default.
                 true
             } else {
                 let local_x = (cursor_x - win_left).floor() as i32;
                 let local_y = (cursor_y - win_top).floor() as i32;
-                let rects = state.rects.read().await;
-                let in_any = rects.iter().any(|r| r.contains(local_x, local_y));
+                let sources = state.sources.read().await;
+                let in_any = sources
+                    .values()
+                    .flat_map(|rects| rects.iter())
+                    .any(|r| r.contains(local_x, local_y));
                 !in_any
             };
 

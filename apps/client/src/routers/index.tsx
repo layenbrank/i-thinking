@@ -30,6 +30,9 @@ const Intelligence = lazy(function () {
 const Calendar = lazy(function () {
   return import('@/views/calendar/calendar.tsx')
 })
+const Overlay = lazy(function () {
+  return import('@/views/overlay/overlay')
+})
 const Marketplace = lazy(function () {
   return import('@/views/marketplace/marketplace.tsx')
 })
@@ -83,6 +86,10 @@ const routes: RouteObject[] = [
   {
     path: '/screenshot',
     element: <Screenshot />
+  },
+  {
+    path: '/overlay',
+    element: <Overlay />
   },
   {
     path: '/calendar',

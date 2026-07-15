@@ -253,7 +253,13 @@ function MinimalDisplay({ h, m, s }: ClockDisplayProps) {
 
 // ─── Main View ─────────────────────────────────────────────
 
-export default function ClockView() {
+export interface ClockViewProps {
+  embedded?: boolean
+  onClose?: () => void
+}
+
+export default function ClockView(props: ClockViewProps = {}) {
+  const { embedded = false, onClose } = props
   const { clockStyle, setClockStyle } = useClockStore()
 
   const [now, setNow] = useState(dayjs())
@@ -275,7 +281,9 @@ export default function ClockView() {
   const isNeon = clockStyle === 'neon'
 
   return (
-    <div className={styles.container}>
+    <div
+      className={styles.container}
+      data-through="false">
       <div
         className={styles.card}
         data-style={clockStyle}
@@ -283,8 +291,28 @@ export default function ClockView() {
         {/* Date header */}
         <div
           className={clsx(styles.dateLabel, { [styles.dateLabelDark]: isNeon })}
-          data-region="true">
-          {dateLabel}
+          data-region="true"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>{dateLabel}</span>
+          {embedded && onClose ? (
+            <button
+              type="button"
+              aria-label="关闭时钟"
+              onClick={onClose}
+              onMouseDown={function (e) {
+                e.stopPropagation()
+              }}
+              style={{
+                border: 0,
+                background: 'transparent',
+                cursor: 'pointer',
+                color: 'inherit',
+                fontSize: 16,
+                lineHeight: 1
+              }}>
+              ×
+            </button>
+          ) : null}
         </div>
 
         {/* Clock display — animated style switch */}

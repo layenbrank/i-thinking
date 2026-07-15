@@ -48,10 +48,14 @@ fn make_badge_icon(base_bytes: &[u8]) -> Vec<u8> {
 pub fn setup(app: &mut tauri::App) -> tauri::Result<()> {
     let handle = app.handle();
 
-    // ── 右键菜单：检查更新 / 设置 / 关于 / 退出 ─────────────────
+    // ── 右键菜单：检查更新 / 设置 / overlay / 关于 / 退出 ──────
     let check_update_item =
         MenuItem::with_id(handle, "check-update", "检查更新", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(handle, "settings", "设置", true, None::<&str>)?;
+    let clear_pins_item =
+        MenuItem::with_id(handle, "overlay-clear-pins", "清除全部贴图", true, None::<&str>)?;
+    let hide_overlay_item =
+        MenuItem::with_id(handle, "overlay-hide", "隐藏桌面浮层", true, None::<&str>)?;
     let sep1 = PredefinedMenuItem::separator(handle)?;
     let about_item = MenuItem::with_id(handle, "about", "关于 i-thinking", true, None::<&str>)?;
     let sep2 = PredefinedMenuItem::separator(handle)?;
@@ -60,6 +64,8 @@ pub fn setup(app: &mut tauri::App) -> tauri::Result<()> {
     let menu = MenuBuilder::new(handle)
         .item(&check_update_item)
         .item(&settings_item)
+        .item(&clear_pins_item)
+        .item(&hide_overlay_item)
         .item(&sep1)
         .item(&about_item)
         .item(&sep2)
@@ -105,6 +111,15 @@ pub fn setup(app: &mut tauri::App) -> tauri::Result<()> {
                     let _ = win.set_focus();
                 }
                 let _ = app.emit("tray:navigate", "/settings");
+            }
+            "overlay-clear-pins" => {
+                let _ = app.emit("overlay://clear-pins", ());
+            }
+            "overlay-hide" => {
+                let _ = app.emit("overlay://hide", ());
+                if let Some(win) = app.get_webview_window("overlay") {
+                    let _ = win.hide();
+                }
             }
             "about" => show_about(app),
             "quit" => app.exit(0),

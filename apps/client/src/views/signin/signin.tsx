@@ -79,15 +79,18 @@ function SignIn(props: SignInProps) {
       destroyOnHidden
       onCancel={onClose}
       rootClassName={styles.signin}
-      styles={{
-        body: { padding: 0, height: 'auto' }
-      }}
       style={{
         width: 'min(92vw, 880px)',
         maxHeight: 'min(90vh, 560px)',
         aspectRatio: 'unset',
         minWidth: 'unset',
         height: 'auto'
+      }}
+      styles={{
+        body: {
+          padding: 0,
+          height: 'auto'
+        }
       }}>
       <div className={styles.body}>
         <aside className={styles.brand}>

@@ -4,9 +4,10 @@ use std::path::Path;
 use base64::{engine::general_purpose, Engine};
 use image::ImageReader;
 use serde_json::json;
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager};
 
 use crate::ipc;
+use crate::overlay::command::{overlay_ensure, overlay_set_mode};
 use crate::screenshot::schema::CaptureResult;
 
 fn build_capture_result(path: &Path, scale_factor: f32) -> Result<CaptureResult, String> {
@@ -31,6 +32,13 @@ fn build_capture_result(path: &Path, scale_factor: f32) -> Result<CaptureResult,
 /// 截取主显示器，经 corex-serve IPC 捕获后返回 PNG data URL
 #[tauri::command]
 pub async fn screenshot_capture(app: AppHandle) -> Result<CaptureResult, String> {
+    // Avoid capturing the overlay surface itself while grabbing the desktop.
+    let overlay = app.get_webview_window("overlay");
+    if let Some(ref window) = overlay {
+        let _ = window.hide();
+        tokio::time::sleep(std::time::Duration::from_millis(60)).await;
+    }
+
     let cache_dir = app
         .path()
         .app_cache_dir()
@@ -48,6 +56,11 @@ pub async fn screenshot_capture(app: AppHandle) -> Result<CaptureResult, String>
     .await
     .map_err(|e| format!("截图线程异常: {e}"))??;
 
+    if let Some(window) = overlay {
+        let _ = window.show();
+        let _ = window.set_always_on_top(true);
+    }
+
     if !resp.ok {
         return Err(resp.error.unwrap_or_else(|| "screenshot 失败".to_string()));
     }
@@ -60,36 +73,22 @@ pub async fn screenshot_capture(app: AppHandle) -> Result<CaptureResult, String>
         .map_err(|e| format!("截图处理线程异常: {e}"))?
 }
 
-/// 弹出（或聚焦）全屏透明截图窗口；窗口加载 `/screenshot` 路由
+/// 进入 overlay 的 capture 模式（单窗口，不再单独创建 screenshot WebView）
 #[tauri::command]
 pub async fn screenshot_open(app: AppHandle) -> Result<(), String> {
+    // Tear down legacy screenshot window if any previous session created one.
     if let Some(window) = app.get_webview_window("screenshot") {
-        let _ = window.show();
-        let _ = window.set_focus();
-        let _ = window.set_always_on_top(true);
-        return Ok(());
+        let _ = window.close();
     }
-
-    WebviewWindowBuilder::new(&app, "screenshot", WebviewUrl::App("/screenshot".into()))
-        .title("Screenshot")
-        .decorations(false)
-        .transparent(true)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .resizable(false)
-        .fullscreen(true)
-        .focused(true)
-        .visible(true)
-        .build()
-        .map_err(|e| format!("无法创建截图窗口: {e}"))?;
-    Ok(())
+    overlay_ensure(app.clone()).await?;
+    overlay_set_mode(app, "capture".into()).await
 }
 
-/// 关闭并销毁截图窗口
+/// 退出 capture：回到 idle（由前端决定是否 hide 空层）
 #[tauri::command]
 pub async fn screenshot_close(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("screenshot") {
         let _ = window.close();
     }
-    Ok(())
+    overlay_set_mode(app, "idle".into()).await
 }

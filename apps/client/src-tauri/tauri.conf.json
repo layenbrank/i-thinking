@@ -184,6 +184,27 @@
         "theme": "Light"
       },
       {
+        "alwaysOnTop": true,
+        "backgroundColor": "#00000000",
+        "create": false,
+        "decorations": false,
+        "devtools": true,
+        "dragDropEnabled": false,
+        "focus": false,
+        "fullscreen": false,
+        "label": "overlay",
+        "maximizable": false,
+        "minimizable": false,
+        "resizable": false,
+        "shadow": false,
+        "skipTaskbar": true,
+        "theme": "Light",
+        "title": "Overlay",
+        "transparent": true,
+        "url": "/overlay",
+        "visible": false
+      },
+      {
         "alwaysOnBottom": true,
         "alwaysOnTop": false,
         "backgroundColor": "#00000000",
