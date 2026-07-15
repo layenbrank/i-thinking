@@ -3,9 +3,9 @@ import { Icon } from '@iconify/react'
 import { useState } from 'react'
 
 import { POST_SIGNUP } from '@/apis/auth.ts'
-import { LIMIT, RULE } from '@/views/signin/constants.ts'
-import { FormStagger, MotionField } from '@/views/signin/form-motion.tsx'
-import styles from '@/views/signin/signin.module.scss'
+import { LIMIT, RULE } from '@/features/signin/constants.ts'
+import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
+import styles from '@/features/signin/signin.module.scss'
 
 type SignupFormValues = {
   username: string

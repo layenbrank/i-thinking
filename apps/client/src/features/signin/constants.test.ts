@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { MODE, RULE, findIdentity } from '@/views/signin/constants.ts'
+import { MODE, RULE, findIdentity } from '@/features/signin/constants.ts'
 
 describe('findIdentity', function () {
   it('returns username for username mode', function () {

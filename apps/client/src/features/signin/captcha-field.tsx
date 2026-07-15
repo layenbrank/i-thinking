@@ -9,8 +9,8 @@ import {
   LIMIT,
   RULE,
   type AuthMode
-} from '@/views/signin/constants.ts'
-import styles from '@/views/signin/signin.module.scss'
+} from '@/features/signin/constants.ts'
+import styles from '@/features/signin/signin.module.scss'
 
 type CaptchaFieldProps = {
   form: FormInstance

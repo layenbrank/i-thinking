@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useClickOutside, useFocus, useActiveElement } from '@reactuses/core'
 import { Icon } from '@iconify/react'
 
-import ReSignIn from '@/views/signin/signin.tsx'
+import ReSignIn from '@/features/signin/signin.tsx'
 import Controller from '@/features/controller/controller.tsx'
 import styles from '@/views/overview/overview.module.scss'
 

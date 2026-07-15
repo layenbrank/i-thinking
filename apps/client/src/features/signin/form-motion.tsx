@@ -1,8 +1,8 @@
 import { motion, useReducedMotion } from 'motion/react'
 import type { ReactNode } from 'react'
 
-import { MOTION } from '@/views/signin/constants.ts'
-import styles from '@/views/signin/signin.module.scss'
+import { MOTION } from '@/features/signin/constants.ts'
+import styles from '@/features/signin/signin.module.scss'
 
 type FormStaggerProps = {
   children: ReactNode

@@ -1,4 +1,8 @@
 import { XProvider } from '@ant-design/x'
+import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
+import { isRegistered, register, unregister } from '@tauri-apps/plugin-global-shortcut'
+import { message } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 
 import dayjs from 'dayjs'
@@ -21,9 +25,13 @@ dayjs.extend(localeData)
 dayjs.locale('zh-cn')
 
 const plugins: Plugin[] = [
-  { ...StoragePlugin, priority: 10 },
+  {
+    ...StoragePlugin,
+    priority: 10
+  },
   IntelligencePlugin
 ]
+const SCREENSHOT_SHORTCUT = 'CommandOrControl+Alt+A'
 
 function App() {
   const provider = useProviderProps()
@@ -34,28 +42,17 @@ function App() {
   }, [])
 
   useEffect(function () {
-    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return
-
     let unlisten: (() => void) | undefined
+    let warned = false
 
-    ;(async function () {
+    function warn() {
+      if (warned) return
+      warned = true
+      message.warning('corex 未就绪，PDF / 截图等功能暂不可用。请构建 corex-serve 后重启应用。', 8)
+    }
+
+    async function bootstrap() {
       try {
-        const [{ listen }, { invoke }, { message }] = await Promise.all([
-          import('@tauri-apps/api/event'),
-          import('@tauri-apps/api/core'),
-          import('antd')
-        ])
-
-        let warned = false
-        function warn() {
-          if (warned) return
-          warned = true
-          message.warning(
-            'corex 未就绪，PDF / 截图等功能暂不可用。请构建 corex-serve 后重启应用。',
-            8
-          )
-        }
-
         unlisten = await listen('corex://not-ready', warn)
         // null = pending（启动中），不告警；false = settled 且失败
         const ready = await invoke<boolean | null>('ipc_ready')
@@ -63,7 +60,9 @@ function App() {
       } catch (err) {
         console.warn('[App] corex 状态检查失败', err)
       }
-    })()
+    }
+
+    void bootstrap()
 
     return function () {
       unlisten?.()
@@ -71,58 +70,33 @@ function App() {
   }, [])
 
   useEffect(function () {
-    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return
-    let unregister: (() => void) | null = null
+    let cleanup: (() => void) | null = null
     let cancelled = false
-    ;(async function () {
+
+    async function bootstrap() {
       try {
-        const [{ register, unregister: removeShortcut, isRegistered }, { invoke }] =
-          await Promise.all([
-            import('@tauri-apps/plugin-global-shortcut'),
-            import('@tauri-apps/api/core')
-          ])
-        const SHORTCUT = 'CommandOrControl+Alt+A'
-        if (await isRegistered(SHORTCUT)) await removeShortcut(SHORTCUT)
-        await register(SHORTCUT, function (event) {
+        if (await isRegistered(SCREENSHOT_SHORTCUT)) await unregister(SCREENSHOT_SHORTCUT)
+        await register(SCREENSHOT_SHORTCUT, function (event) {
           if (event.state === 'Pressed') void invoke('screenshot_open')
         })
-        if (cancelled) await removeShortcut(SHORTCUT)
-        else
-          unregister = function () {
-            void removeShortcut(SHORTCUT)
+        if (cancelled) await unregister(SCREENSHOT_SHORTCUT)
+        else {
+          cleanup = function () {
+            void unregister(SCREENSHOT_SHORTCUT)
           }
+        }
       } catch (err) {
         console.warn('[App] 注册截图快捷键失败', err)
       }
-    })()
+    }
+
+    void bootstrap()
+
     return function () {
       cancelled = true
-      unregister?.()
+      cleanup?.()
     }
   }, [])
-
-  // useEffect(function () {
-  //   POST_SIGNIN({
-  //     username: 'admin',
-  //     password: '123456'
-  //   }).subscribe(function (response) {
-  //     console.log('[POST_SIGNIN] response', response)
-  //   })
-  // }, [])
-
-  // const LANGUAGE = navigator.language || 'zh-CN'
-  // defer(function () {
-  // 	return http.get('')
-  // })
-  // 	.pipe(retry(3))
-  // 	.subscribe({
-  // 		next(value) {
-  // 			console.log('value')
-  // 		},
-  // 		error(err) {
-  // 			console.log('error', err)
-  // 		}
-  // 	})
 
   function onPluginError(plugin: Plugin, error: unknown) {
     console.error(`plugin error "${plugin.unique}"`, error)

@@ -11,11 +11,11 @@ import {
   PANEL,
   type AuthMode,
   type PanelView
-} from '@/views/signin/constants.ts'
-import { ForgotForm } from '@/views/signin/forgot-form.tsx'
-import { SigninForm } from '@/views/signin/signin-form.tsx'
-import { SignupForm } from '@/views/signin/signup-form.tsx'
-import styles from '@/views/signin/signin.module.scss'
+} from '@/features/signin/constants.ts'
+import { ForgotForm } from '@/features/signin/forgot-form.tsx'
+import { SigninForm } from '@/features/signin/signin-form.tsx'
+import { SignupForm } from '@/features/signin/signup-form.tsx'
+import styles from '@/features/signin/signin.module.scss'
 
 type SignInProps = {
   open: boolean
@@ -136,9 +136,8 @@ function SignIn(props: SignInProps) {
             </motion.header>
           </AnimatePresence>
           <div className={styles.stage}>
-            <AnimatePresence
-              mode="wait"
-              initial={false}>
+            {/* stage 不用 initial={false}：会经 PresenceContext 屏蔽嵌套 FormStagger 进场 */}
+            <AnimatePresence mode="wait">
               <motion.div
                 key={panelView}
                 initial={viewVariants.initial}

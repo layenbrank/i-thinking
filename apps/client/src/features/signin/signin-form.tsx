@@ -7,10 +7,10 @@ import {
   MODE,
   RULE,
   type AuthMode
-} from '@/views/signin/constants.ts'
-import { CaptchaField } from '@/views/signin/captcha-field.tsx'
-import { FormStagger, MotionField } from '@/views/signin/form-motion.tsx'
-import styles from '@/views/signin/signin.module.scss'
+} from '@/features/signin/constants.ts'
+import { CaptchaField } from '@/features/signin/captcha-field.tsx'
+import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
+import styles from '@/features/signin/signin.module.scss'
 
 type SigninFormValues = {
   username?: string
