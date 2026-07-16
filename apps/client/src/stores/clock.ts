@@ -64,7 +64,7 @@ export const useClockStore = create<ClockStore>()(
         async initialize() {
           if (getter().loaded) return
           try {
-            const config = await invoke<CountdownConfig | null>('countdown_config_read')
+            const config = await invoke<CountdownConfig | null>('countdown:read')
             setter(function (state) {
               state.config = config ?? DEFAULT_CONFIG
               state.loaded = true
@@ -84,7 +84,7 @@ export const useClockStore = create<ClockStore>()(
             Object.assign(state.config, update)
           })
           try {
-            await invoke('countdown_config_update', { params: update })
+            await invoke('countdown:update', { params: update })
           } catch (e) {
             // Rollback on failure
             setter(function (state) {

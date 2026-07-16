@@ -173,7 +173,7 @@ fn set_badge_internal(app: &AppHandle, has_badge: bool) {
 }
 
 /// 公开接口：设置 / 清除托盘图标徽章
-/// 前端通过 `invoke('set_tray_badge', { hasBadge: true/false })` 调用
+/// 前端通过 `invoke('tray:update-badge', { hasBadge: true/false })` 调用
 pub fn set_badge(app: &AppHandle, has_badge: bool) {
     set_badge_internal(app, has_badge);
 }

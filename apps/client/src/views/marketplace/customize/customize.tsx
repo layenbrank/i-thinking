@@ -265,7 +265,7 @@ export default function Customize() {
       await toInsertApplication([write])
       message.success('添加成功')
     } catch (error) {
-      console.error('[Customize] application_write failed:', error)
+      console.error('[Customize] application:write failed:', error)
       message.error(error instanceof Error ? error.message : '添加失败')
     } finally {
       updateSubmitting(false)
@@ -284,7 +284,7 @@ export default function Customize() {
         return
       }
 
-      void invoke<Application[]>('application_read', { params: { mirrorID } }).then(
+      void invoke<Application[]>('application:read', { params: { mirrorID } }).then(
         async function (applications) {
           let permissionGranted = await isPermissionGranted()
           if (!permissionGranted) {

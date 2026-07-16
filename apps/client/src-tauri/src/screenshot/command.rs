@@ -30,7 +30,7 @@ fn build_capture_result(path: &Path, scale_factor: f32) -> Result<CaptureResult,
 }
 
 /// 截取主显示器，经 corex-serve IPC 捕获后返回 PNG data URL
-#[tauri::command]
+#[tauri::command(rename = "screenshot:capture")]
 pub async fn screenshot_capture(app: AppHandle) -> Result<CaptureResult, String> {
     // Avoid capturing the overlay surface itself while grabbing the desktop.
     let overlay = app.get_webview_window("overlay");
@@ -74,7 +74,7 @@ pub async fn screenshot_capture(app: AppHandle) -> Result<CaptureResult, String>
 }
 
 /// 进入 overlay 的 capture 模式（单窗口，不再单独创建 screenshot WebView）
-#[tauri::command]
+#[tauri::command(rename = "screenshot:open")]
 pub async fn screenshot_open(app: AppHandle) -> Result<(), String> {
     // Tear down legacy screenshot window if any previous session created one.
     if let Some(window) = app.get_webview_window("screenshot") {
@@ -85,7 +85,7 @@ pub async fn screenshot_open(app: AppHandle) -> Result<(), String> {
 }
 
 /// 退出 capture：回到 idle（由前端决定是否 hide 空层）
-#[tauri::command]
+#[tauri::command(rename = "screenshot:close")]
 pub async fn screenshot_close(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("screenshot") {
         let _ = window.close();

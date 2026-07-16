@@ -197,7 +197,7 @@ export const useOverlayStore = create<OverlayStore>()(
           const { mode, widgets } = getter()
           if (mode === 'capture' || widgets.length > 0) return
           try {
-            await invoke('overlay_hide')
+            await invoke('overlay:hide')
           } catch {
             /* non-tauri */
           }
@@ -205,7 +205,7 @@ export const useOverlayStore = create<OverlayStore>()(
 
         async ensureVisible() {
           try {
-            await invoke('overlay_ensure')
+            await invoke('overlay:ensure')
           } catch {
             /* non-tauri */
           }
@@ -216,7 +216,7 @@ export const useOverlayStore = create<OverlayStore>()(
             state.mode = 'capture'
           })
           try {
-            await invoke('overlay_set_mode', { mode: 'capture' })
+            await invoke('overlay:update-mode', { mode: 'capture' })
           } catch {
             /* non-tauri */
           }
@@ -227,7 +227,7 @@ export const useOverlayStore = create<OverlayStore>()(
             state.mode = 'idle'
           })
           try {
-            await invoke('overlay_set_mode', { mode: 'idle' })
+            await invoke('overlay:update-mode', { mode: 'idle' })
           } catch {
             /* non-tauri */
           }

@@ -329,7 +329,7 @@ const Application = {
             },
             screenshot() {
               void import('@tauri-apps/api/core').then(function (mod) {
-                return mod.invoke('screenshot_open')
+                return mod.invoke('screenshot:open')
               })
             }
           }

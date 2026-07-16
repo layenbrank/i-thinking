@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 
 /**
  * Tauri 截图能力的轻量封装，前端通过这些函数与 Rust 端的
- * `screenshot_capture / screenshot_open / screenshot_close` 命令通信。
+ * `screenshot:capture / screenshot:open / screenshot:close` 命令通信。
  */
 
 export interface CaptureResult {
@@ -20,17 +20,17 @@ export function isTauri(): boolean {
 
 /** 主显示器即时截图（不弹窗，返回 PNG data URL） */
 export async function captureScreen(): Promise<CaptureResult> {
-  return invoke<CaptureResult>('screenshot_capture')
+  return invoke<CaptureResult>('screenshot:capture')
 }
 
 /** 弹出全屏透明截图窗口（懒加载窗口） */
 export async function openScreenshotWindow(): Promise<void> {
-  return invoke<void>('screenshot_open')
+  return invoke<void>('screenshot:open')
 }
 
 /** 关闭截图窗口 */
 export async function closeScreenshotWindow(): Promise<void> {
-  return invoke<void>('screenshot_close')
+  return invoke<void>('screenshot:close')
 }
 
 /** 将 data URL 解码为 HTMLImageElement（用于喂给 react-konva / canvas） */

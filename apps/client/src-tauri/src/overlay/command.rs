@@ -41,7 +41,7 @@ fn emit_mount(app: &AppHandle, payload: &OverlayMountPayload) {
 }
 
 /// Create (or show) the single always-on-top overlay window covering the primary monitor.
-#[tauri::command]
+#[tauri::command(rename = "overlay:ensure")]
 pub async fn overlay_ensure(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
         apply_primary_monitor_bounds(&app, OVERLAY_LABEL)?;
@@ -81,7 +81,7 @@ pub async fn overlay_ensure(app: AppHandle) -> Result<(), String> {
 }
 
 /// Hide the overlay window without destroying it.
-#[tauri::command]
+#[tauri::command(rename = "overlay:hide")]
 pub async fn overlay_hide(app: AppHandle) -> Result<(), String> {
     if let Some(through) = app.try_state::<ThroughState>() {
         through.set_capture_mode(false);
@@ -94,7 +94,7 @@ pub async fn overlay_hide(app: AppHandle) -> Result<(), String> {
 }
 
 /// Switch overlay interaction mode (`idle` | `capture`).
-#[tauri::command]
+#[tauri::command(rename = "overlay:update-mode")]
 pub async fn overlay_set_mode(app: AppHandle, mode: String) -> Result<(), String> {
     let parsed = match mode.as_str() {
         "idle" => OverlayMode::Idle,
@@ -119,7 +119,7 @@ pub async fn overlay_set_mode(app: AppHandle, mode: String) -> Result<(), String
 }
 
 /// Ensure overlay is visible and queue a panel mount (survives cold-start race).
-#[tauri::command]
+#[tauri::command(rename = "overlay:mount")]
 pub async fn overlay_mount(
     app: AppHandle,
     kind: String,
@@ -140,7 +140,7 @@ pub async fn overlay_mount(
 }
 
 /// Consume queued mount payload (called by overlay shell on boot).
-#[tauri::command]
+#[tauri::command(rename = "overlay:take-pending")]
 pub async fn overlay_take_pending(
     pending: State<'_, OverlayPending>,
 ) -> Result<Option<OverlayMountPayload>, String> {

@@ -69,7 +69,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
         'toReadMirror'
       )
       if (mirror?.id) {
-        const applications = await invoke<Application[]>('application_read', {
+        const applications = await invoke<Application[]>('application:read', {
           params: { mirrorID: mirror.id }
         })
         console.log('mirror application', applications)
@@ -82,22 +82,22 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
 
     async toInsertMirror(values: MirrorWrite[]) {
       const params = values.length === 1 ? values[0] : values
-      await invoke('mirror_write', { params })
-      const mirrors = await invoke<Mirror[]>('mirror_read', { params: {} })
+      await invoke('mirror:write', { params })
+      const mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
       getters().toUpdateMirrors(mirrors.toSorted((a, b) => a.index - b.index))
     },
 
     async toUpdateMirror(values: MirrorUpdate[]) {
       const params = values.length === 1 ? values[0] : values
-      await invoke('mirror_update', { params })
-      const mirrors = await invoke<Mirror[]>('mirror_read', { params: {} })
+      await invoke('mirror:update', { params })
+      const mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
       getters().toUpdateMirrors(mirrors.toSorted((a, b) => a.index - b.index))
     },
 
     async toRemoveMirror(keys: string[]) {
       const params = keys.length === 1 ? keys[0] : keys
-      await invoke('mirror_remove', { params })
-      const mirrors = await invoke<Mirror[]>('mirror_read', { params: {} })
+      await invoke('mirror:remove', { params })
+      const mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
       getters().toUpdateMirrors(mirrors.toSorted((a, b) => a.index - b.index))
     },
 
@@ -108,11 +108,11 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
     async toInitialize() {
       const { MIRRORS } = BuildMirror()
 
-      let mirrors = await invoke<Mirror[]>('mirror_read', { params: {} })
+      let mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
       if (isEmpty(mirrors)) {
         const writes: MirrorWrite[] = MIRRORS.map((value) => value)
-        await invoke('mirror_write', { params: writes })
-        mirrors = await invoke<Mirror[]>('mirror_read', { params: {} })
+        await invoke('mirror:write', { params: writes })
+        mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
       }
       getters().toUpdateMirrors(mirrors.toSorted((a, b) => a.index - b.index))
 
@@ -127,7 +127,7 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
         // 用实际入库的 first.id 重新构建，确保 mirrorID 匹配
         const { APPLICATIONS } = BuildMirror({ mirrorID: first.id })
         const writes: ApplicationWrite[] = APPLICATIONS.map((value) => value)
-        await invoke('application_write', { params: writes })
+        await invoke('application:write', { params: writes })
         await getters().toReadMirror(first.id)
       }
 
@@ -144,7 +144,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
     applications: [],
 
     async toReadApplication(ID: string) {
-      const applications = await invoke<Application[]>('application_read', { params: { id: ID } })
+      const applications = await invoke<Application[]>('application:read', { params: { id: ID } })
       const [application] = applications
       setters(
         (state) => {
@@ -160,7 +160,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
       const mirrorID = getters().active.mirror?.id
       if (!mirrorID) return
       const params = values.length === 1 ? values[0] : values
-      await invoke('application_write', { params })
+      await invoke('application:write', { params })
       await getters().toReadMirror(mirrorID)
     },
 
@@ -168,7 +168,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
       const mirrorID = getters().active.mirror?.id
       if (!mirrorID) return
       const params = values.length === 1 ? values[0] : values
-      await invoke('application_update', { params })
+      await invoke('application:update', { params })
       await getters().toReadMirror(mirrorID)
     },
 
@@ -176,7 +176,7 @@ const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, gett
       const mirrorID = getters().active.mirror?.id
       if (!mirrorID) return
       const params = keys.length === 1 ? keys[0] : keys
-      await invoke('application_remove', { params })
+      await invoke('application:remove', { params })
       await getters().toReadMirror(mirrorID)
     },
 

@@ -320,7 +320,7 @@ function Overlay(props: OverlayControlProps) {
   ]
 
   useEffect(function () {
-    void core.invoke<OSGenre>('os').then(updateOS)
+    void core.invoke<OSGenre>('system:os').then(updateOS)
   }, [])
 
   return (

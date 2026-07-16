@@ -1,0 +1,21 @@
+{
+  // Tauri 的 generate_context! 依赖 build.rs 产物；关闭后 bootstrap 常无提示/假错误
+  "rust-analyzer.cargo.buildScripts.enable": true,
+  "rust-analyzer.procMacro.enable": true,
+
+  // 保存时用 check，比 clippy 快一个数量级；clippy 留给 CI / 手动
+  "rust-analyzer.check.command": "check",
+  "rust-analyzer.checkOnSave": true,
+
+  // 只检查当前包的默认目标，减轻保存延迟
+  "rust-analyzer.cargo.allTargets": false,
+
+  "rust-analyzer.diagnostics.experimental.enable": false,
+
+  // 减少无关索引噪音
+  "rust-analyzer.files.excludeDirs": [
+    "target",
+    "binaries",
+    "gen"
+  ]
+}

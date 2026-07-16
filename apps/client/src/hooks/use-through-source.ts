@@ -18,7 +18,7 @@ export function useThroughSource(
   useEffect(
     function () {
       if (!enabled) {
-        void invoke('update_through_rects', { source, rects: [] as ThroughRect[] }).catch(
+        void invoke('through:update-rects', { source, rects: [] as ThroughRect[] }).catch(
           function () {}
         )
         return
@@ -46,7 +46,7 @@ export function useThroughSource(
                     h: Math.round(r.height)
                   }
                 ]
-          void invoke('update_through_rects', {
+          void invoke('through:update-rects', {
             source: sourceRef.current,
             rects
           }).catch(function () {})
@@ -69,7 +69,7 @@ export function useThroughSource(
         cancelAnimationFrame(frame)
         ro.disconnect()
         mo.disconnect()
-        void invoke('update_through_rects', {
+        void invoke('through:update-rects', {
           source: sourceRef.current,
           rects: [] as ThroughRect[]
         }).catch(function () {})

@@ -1,4 +1,4 @@
-/** @deprecated 磁贴入口；实际开窗走 overlay + screenshot_open */
+/** @deprecated 磁贴入口；实际开窗走 overlay + screenshot:open */
 import { invoke } from '@tauri-apps/api/core'
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'
@@ -19,7 +19,7 @@ export default function Screenshot(props: SectionProps) {
 
   async function onScreenshot() {
     try {
-      await invoke('screenshot_open')
+      await invoke('screenshot:open')
     } catch (error) {
       console.error('Error opening screenshot overlay:', error)
     }

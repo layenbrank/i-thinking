@@ -184,7 +184,7 @@ export default function Countdown(props: CountdownProps = {}) {
               h: Math.round(r.height)
             }
           })
-          invoke('update_through_rects', { source: 'countdown-standalone', rects }).catch(
+          invoke('through:update-rects', { source: 'countdown-standalone', rects }).catch(
             function () {
               /* non-tauri env */
             }
@@ -219,7 +219,7 @@ export default function Countdown(props: CountdownProps = {}) {
         cancelAnimationFrame(frame)
         ro.disconnect()
         mo.disconnect()
-        invoke('update_through_rects', {
+        invoke('through:update-rects', {
           source: 'countdown-standalone',
           rects: []
         }).catch(function () {})

@@ -1,17 +1,69 @@
+[workspace]
+members = [".", "crates/database", "crates/core", "crates/command"]
+resolver = "2"
+
+[workspace.dependencies]
+sea-orm = { version = "1.1.19", features = [
+  "sqlx-sqlite",
+  "runtime-tokio-rustls",
+  "macros",
+  "with-chrono",
+  "with-uuid",
+] }
+sea-query = "1.0.0"
+sea-orm-migration = "1.1.19"
+tokio = { version = "1.52.3", features = ["full"] }
+async-trait = "0.1"
+chrono = { version = "0.4.44", features = ["serde"] }
+uuid = { version = "1.22.0", features = ["v4"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.150"
+anyhow = "1.0.102"
+thiserror = "2.0.18"
+tracing = "0.1.44"
+tauri = { version = "2.11.2", features = [
+  "protocol-asset",
+  "macos-private-api",
+  "devtools",
+  "tray-icon",
+  "image-png",
+] }
+thinking-database = { path = "crates/database" }
+thinking-core = { path = "crates/core" }
+thinking-command = { path = "crates/command" }
+
 [package]
-name        = "i-thinking"
-version     = "0.1.0"
+name = "i-thinking"
+version = "0.1.0"
 description = "i thinking is a privacy-first extension that enhances your browsing experience with intelligent features while prioritizing your data security."
-authors     = ["layen"]
-edition     = "2024"
+authors = ["layen"]
+edition = "2024"
 
 [[bin]]
 name = "i-thinking"
 path = "src/main.rs"
 
 [lib]
-name       = "thinking"
+name = "thinking"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+[profile.dev]
+# 开发环境：关闭增量编译（有时增量编译反而会导致 target 膨胀和链接变慢）
+# 降低 debug 信息级别，极大减少 target 体积和链接时间
+debug = 0
+split-debuginfo = "unpacked"
+
+[profile.dev.package."*"]
+# 将所有第三方依赖的优化级别设为 1，加快运行速度，且只编译一次
+opt-level = 1
+
+[profile.release]
+# 生产环境：极限压缩体积（参考知识库中的 Tauri 优化方案）
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
 
 [build-dependencies]
 # 构建：tauri 代码生成 / 资源打包
@@ -22,14 +74,12 @@ tauri-build = { version = "2.6.2", features = [
 ] }
 
 [dependencies]
+thinking-database = { workspace = true }
+thinking-core = { workspace = true }
+thinking-command = { workspace = true }
+
 # --- Tauri 核心 ---
-tauri = { version = "2.11.2", features = [
-  "protocol-asset",
-  "macos-private-api",
-  "devtools",
-  "tray-icon",
-  "image-png",
-] } # 应用壳、窗口、tray、IPC
+tauri = { workspace = true } # 应用壳、窗口、tray、IPC
 
 # --- Tauri 插件（已在 bootstrap 注册）---
 tauri-plugin-opener = "2.5.2" # 用系统默认应用打开 URL/路径
@@ -56,39 +106,19 @@ tauri-plugin-os = "2.3.2" # OS 信息（前端能力预留）
 
 # --- Tauri 插件（已声明，当前未 plugin()）---
 tauri-plugin-localhost = "2.3.2" # 内嵌本地 HTTP；未接线
-tauri-plugin-log       = "2.8.0" # 日志桥；未接线
+tauri-plugin-log = "2.8.0"       # 日志桥；未接线
 
-# --- 数据层（SeaORM）---
-sea-orm = { version = "1.1.19", features = [
-  "sqlx-sqlite",
-  "runtime-tokio-rustls",
-  "macros",
-  "with-chrono",
-  "with-uuid",
-] } # ORM / entity / 连接
-sea-query = "1.0.0" # SQL DSL（经 sea_orm::sea_query 使用）
-sea-orm-migration = "1.1.19" # 迁移
-
-# --- 异步 / 时间 / ID ---
-tokio       = { version = "1.52.3", features = ["full"] }  # 异步运行时
-async-trait = "0.1"                                        # async trait（migration）
-chrono      = { version = "0.4.44", features = ["serde"] } # 时间戳
-uuid        = { version = "1.22.0", features = ["v4"] }    # 主键生成
-
-# --- 序列化 ---
-serde      = { version = "1", features = ["derive"] }
-serde_json = "1.0.150"                                # IPC / 配置 JSON
-
-# --- 错误 ---
-anyhow    = "1.0.102" # 传播型错误（storage/bootstrap）
-thiserror = "2.0.18"  # 类型化错误（exception）
+# --- 异步 / 时间 / 序列化 / 错误 / 日志 ---
+tokio = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
 
 # --- 媒体 / 编解码 ---
-base64 = "0.22.1"  # 截图 data URL
-image  = "0.25.10" # 截图解码、托盘徽章
-
-# --- 日志 ---
-tracing = "0.1.44" # 结构化日志宏
+base64 = "0.22.1" # 截图 data URL
+image = "0.25.10" # 截图解码、托盘徽章
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 # --- 桌面专用插件 ---
@@ -103,7 +133,7 @@ tauri-plugin-updater = "2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 # --- Windows FFI ---
-windows = { version = "0.61", features = [
+windows = { version = "0.62", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_Foundation",
   "Win32_Storage_FileSystem",
@@ -112,11 +142,4 @@ windows = { version = "0.61", features = [
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # --- macOS FFI ---
-core-graphics = "0.24" # 光标坐标
-
-[profile.release]
-codegen-units = 1
-lto           = true
-opt-level     = 3
-panic         = "abort"
-strip         = true
+core-graphics = "0.25" # 光标坐标

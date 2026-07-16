@@ -142,7 +142,7 @@ export default function Overlay(props: OverlayControlProps) {
   }
 
   const handleExport = useCallback(function () {
-    invoke<Application[]>('application_read', { params: {} }).then(async function (applications) {
+    invoke<Application[]>('application:read', { params: {} }).then(async function (applications) {
       let permissionGranted = await isPermissionGranted()
       if (!permissionGranted) {
         const permission = await requestPermission()
@@ -199,7 +199,7 @@ export default function Overlay(props: OverlayControlProps) {
             i.mirrorID = mirror?.id ?? ''
             i.collectionID = ''
           })
-          invoke('application_write', { params: parsed })
+          invoke('application:write', { params: parsed })
         } catch (error) {
           console.error('Invalid JSON file', error)
           return

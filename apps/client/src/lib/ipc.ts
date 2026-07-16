@@ -13,7 +13,7 @@ export interface IpcResponse {
 }
 
 export async function ipcInvoke(module: string, args: unknown): Promise<IpcResponse> {
-  return invoke<IpcResponse>('ipc_invoke', { module, args })
+  return invoke<IpcResponse>('ipc:invoke', { module, args })
 }
 
 export function parseData<T>(resp: IpcResponse): T {

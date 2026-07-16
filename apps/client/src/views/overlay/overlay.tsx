@@ -81,9 +81,9 @@ export default function OverlayShell() {
           })
           unlistenHide = await listen('overlay://hide', function () {
             setMode('idle')
-            void invoke('overlay_hide')
+            void invoke('overlay:hide')
           })
-          const pending = await invoke<PendingMount | null>('overlay_take_pending')
+          const pending = await invoke<PendingMount | null>('overlay:take-pending')
           if (!cancelled) applyMount(pending)
         } catch (err) {
           if (!cancelled) console.warn('[overlay] event listen failed', err)

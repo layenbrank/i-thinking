@@ -21,7 +21,7 @@ function OverlayDrawer(props: OverlayDrawerProps) {
 
     async function toLoad() {
       try {
-        const result = await invoke<Application[]>('collection_reads')
+        const result = await invoke<Application[]>('collection:reads')
         if (cancelled) return
 
         onUpdateApplications(result ?? [])
@@ -71,7 +71,9 @@ function OverlayDrawer(props: OverlayDrawerProps) {
       //   collectionID: props.id
       // } )
 
-      invoke('application_update', { id: ID, collectionID: props.id })
+      invoke('application:update', {
+        params: { key: ID, change: { collectionID: props.id } }
+      })
 
       onUpdateApplications(function (prev) {
         return prev.filter(function (application) {

@@ -55,7 +55,7 @@ function App() {
       try {
         unlisten = await listen('corex://not-ready', warn)
         // null = pending（启动中），不告警；false = settled 且失败
-        const ready = await invoke<boolean | null>('ipc_ready')
+        const ready = await invoke<boolean | null>('ipc:ready')
         if (ready === false) warn()
       } catch (err) {
         console.warn('[App] corex 状态检查失败', err)
@@ -77,7 +77,7 @@ function App() {
       try {
         if (await isRegistered(SCREENSHOT_SHORTCUT)) await unregister(SCREENSHOT_SHORTCUT)
         await register(SCREENSHOT_SHORTCUT, function (event) {
-          if (event.state === 'Pressed') void invoke('screenshot_open')
+          if (event.state === 'Pressed') void invoke('screenshot:open')
         })
         if (cancelled) await unregister(SCREENSHOT_SHORTCUT)
         else {

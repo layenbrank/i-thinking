@@ -3,15 +3,15 @@ import { invoke } from '@tauri-apps/api/core'
 import type { OverlayPanelKind } from '@/stores/overlay'
 
 export async function ensureOverlay(): Promise<void> {
-  await invoke('overlay_ensure')
+  await invoke('overlay:ensure')
 }
 
 export async function hideOverlay(): Promise<void> {
-  await invoke('overlay_hide')
+  await invoke('overlay:hide')
 }
 
 export async function setOverlayMode(mode: 'idle' | 'capture'): Promise<void> {
-  await invoke('overlay_set_mode', { mode })
+  await invoke('overlay:update-mode', { mode })
 }
 
 /** Open overlay (if needed) and ask the shell to mount a singleton panel widget. */
@@ -19,7 +19,7 @@ export async function openOverlayPanel(
   kind: OverlayPanelKind,
   applicationId?: string
 ): Promise<void> {
-  await invoke('overlay_mount', {
+  await invoke('overlay:mount', {
     kind,
     applicationId: applicationId ?? null
   })

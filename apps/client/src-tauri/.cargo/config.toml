@@ -1,6 +1,18 @@
 [build]
-target-dir    = "target"  # 构建输出目录
+# target-dir    = "target"  # 构建输出目录
 rustc-wrapper = "sccache"
+
+# Windows (MSVC)
+# [target.x86_64-pc-windows-msvc]
+# linker = "lld-link"
+
+# # macOS
+# [target.x86_64-apple-darwin]
+# rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/zld"] # 或使用默认的 ld64
+
+# # Linux
+# [target.x86_64-unknown-linux-gnu]
+# rustflags = ["-C", "linker=clang", "-C", "link-arg=-fuse-ld=mold"]
 
 # Windows MSVC 目标栈大小配置（8MB）
 # [target.x86_64-pc-windows-msvc]
@@ -23,5 +35,5 @@ rustc-wrapper = "sccache"
 # rustflags = ["-C", "link-arg=/STACK:268435456"]
 
 # Windows MSVC 目标栈大小配置（512MB）
-[target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "link-arg=/STACK:536870912"]
+# [target.x86_64-pc-windows-msvc]
+# rustflags = ["-C", "link-arg=/STACK:536870912"]

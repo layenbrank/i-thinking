@@ -89,7 +89,7 @@ export default function Overlay(props: OverlayControlProps & Props) {
   // const store = useMirrorStore()
   const applications = useLiveQuery<Application[], Application[]>(
     async function () {
-      const response = await invoke<Application[]>('application_read', {
+      const response = await invoke<Application[]>('application:read', {
         collectionID: props.id
       })
 

@@ -1,0 +1,45 @@
+{
+  "skill_name": "naming-conventions",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Design naming for a new Tauri CRUD resource called `resource` with insert/read/update/remove. Show the IPC strings, Rust command function names with rename attributes, service method names, and entity param enums using One|Many. Output a short markdown cheat sheet only — no real project paths.",
+      "expected_output": "Four-layer naming cheat sheet using namespace:action, resource_* commands with rename, to* services, *P::One|Many",
+      "files": [],
+      "expectations": [
+        "IPC names use namespace:action with colon separator (e.g. resource:read)",
+        "No IPC snake_case or camelCase command strings",
+        "Rust command fn names use resource_ prefix with rename = \"resource:...\"",
+        "Service methods use to* style (toRead, toInsert, toUpdate, toRemove)",
+        "Entity params use One|Many single entry (not insert/inserts dual commands)",
+        "Output contains no real repo paths or concrete business module names from a specific codebase"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "A teammate wrote these invokes — fix them to follow Tauri naming conventions and explain each fix in one line:\n1) invoke('feature_update_badge', { hasBadge: true })\n2) invoke('feature:updateBadge', { hasBadge: true })\n3) invoke('feature/set-badge', { hasBadge: true })\n4) invoke('resource:update', { id: 'x' }) where the entity expects { params: UpdateP }\nReturn corrected TypeScript snippets only plus brief notes.",
+      "expected_output": "Corrected invokes using feature:update-badge and resource:update with params wrapper; notes citing snake_case/camelCase/slash/set/params issues",
+      "files": [],
+      "expectations": [
+        "Corrected badge IPC is feature:update-badge (kebab-case, update- not set-)",
+        "Rejects or rewrites snake_case feature_update_badge",
+        "Rejects or rewrites camelCase feature:updateBadge",
+        "Rejects slash separator and set-badge",
+        "resource:update uses params-shaped payload matching Entity"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Code-review this proposed Tauri API for naming issues and propose renames:\n- Commands: pub fn read(...), pub fn inserts(...), pub fn set_mode(...)\n- Registered without rename (IPC would be read / inserts / set_mode)\n- Service: async fn read_all, async fn insert_many\n- Types: ResourceInsertParams for single, ResourceInsertParamsList for batch\nWrite a review checklist result and the corrected four-layer names using abstract `resource` / `feature` namespaces.",
+      "expected_output": "Review catching missing namespace prefix, dual insert entry, set_*, non-to* service, verbose type names; corrected names per conventions",
+      "files": [],
+      "expectations": [
+        "Flags bare command names without namespace prefix as collision risk",
+        "Flags inserts dual-entry; recommends One|Many single insert command",
+        "Replaces set_mode with update-mode style IPC",
+        "Recommends to* service names instead of read_all / insert_many",
+        "Recommends short *P types over ResourceInsertParams duplication"
+      ]
+    }
+  ]
+}
