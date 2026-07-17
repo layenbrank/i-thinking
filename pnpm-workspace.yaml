@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=./.vscode/schemas/pnpm-workspace.json
 packages:
   - apps/*
   - packages/*
@@ -60,14 +61,14 @@ catalog:
   '@ant-design/icons': ^6.1.0
   '@ant-design/x': ^2.8.0
   '@ant-design/x-markdown': ^2.8.0
-  '@electron-forge/cli': ^7.11.1
-  '@electron-forge/maker-deb': ^7.11.1
-  '@electron-forge/maker-rpm': ^7.11.1
-  '@electron-forge/maker-squirrel': ^7.11.1
-  '@electron-forge/maker-zip': ^7.11.1
-  '@electron-forge/plugin-auto-unpack-natives': ^7.11.1
-  '@electron-forge/plugin-fuses': ^7.11.1
-  '@electron-forge/plugin-vite': ^7.11.1
+  '@electron-forge/cli': ^7.11.2
+  '@electron-forge/maker-deb': ^7.11.2
+  '@electron-forge/maker-rpm': ^7.11.2
+  '@electron-forge/maker-squirrel': ^7.11.2
+  '@electron-forge/maker-zip': ^7.11.2
+  '@electron-forge/plugin-auto-unpack-natives': ^7.11.2
+  '@electron-forge/plugin-fuses': ^7.11.2
+  '@electron-forge/plugin-vite': ^7.11.2
   '@electron/fuses': ^1.8.0
   '@electron/rebuild': ^4.0.4
   '@types/electron-squirrel-startup': ^1.0.2

@@ -29,9 +29,9 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 let win: BrowserWindow | null = null
 let serviceProcess: ChildProcess | null = null
 
-const SERVICE_PORT = process.env['SERVICE_PORT'] ?? '3000'
-const SERVICE_HOST = process.env['SERVICE_HOST'] ?? '127.0.0.1'
-const SERVICE_PROTOCOL = process.env['SERVICE_PROTOCOL'] ?? 'http'
+const SERVICE_PORT = import.meta.env.VITE_PORT ?? '3000'
+const SERVICE_HOST = import.meta.env.VITE_HOSTNAME ?? '127.0.0.1'
+const SERVICE_PROTOCOL = import.meta.env.VITE_PROTOCOL ?? 'http'
 
 function getServiceRoot() {
   if (app.isPackaged) return process.resourcesPath
@@ -65,9 +65,7 @@ function startNestService() {
   }
 
   log(`serviceRoot=${serviceRoot}`)
-  log(
-    `env PORT=${SERVICE_PORT} HOST=${SERVICE_HOST} PROTOCOL=${SERVICE_PROTOCOL}`
-  )
+  log(`env PORT=${SERVICE_PORT} HOST=${SERVICE_HOST} PROTOCOL=${SERVICE_PROTOCOL}`)
 
   if (VITE_DEV_SERVER_URL) {
     const bunCmd = process.platform === 'win32' ? 'bun' : 'bun'
@@ -122,7 +120,7 @@ function stopNestService() {
   }
 }
 
-function createWindow() {
+function buildWindow() {
   win = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -145,7 +143,7 @@ function createWindow() {
       height: 35,
       symbolColor: '#000000'
     },
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    icon: path.join(import.meta.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
       minimumFontSize: 12,
       defaultFontSize: 16,
@@ -167,9 +165,7 @@ function createWindow() {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
   } else {
-    win.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
-    )
+    win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
   }
 
   // if (VITE_DEV_SERVER_URL) {
@@ -190,7 +186,7 @@ app.on('window-all-closed', function () {
 })
 
 app.on('activate', function () {
-  if (!BrowserWindow.getAllWindows()?.length) createWindow()
+  if (!BrowserWindow.getAllWindows()?.length) buildWindow()
 })
 
 app.whenReady().then(function () {
@@ -200,7 +196,7 @@ app.whenReady().then(function () {
     }
   })
   startNestService()
-  createWindow()
+  buildWindow()
 
   ipcMain.handle('devtools', function (event, args) {
     console.log('event', event, '\nargs', args, '\nwin', win)

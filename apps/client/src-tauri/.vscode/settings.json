@@ -10,12 +10,5 @@
   // 只检查当前包的默认目标，减轻保存延迟
   "rust-analyzer.cargo.allTargets": false,
 
-  "rust-analyzer.diagnostics.experimental.enable": false,
-
-  // 减少无关索引噪音
-  "rust-analyzer.files.excludeDirs": [
-    "target",
-    "binaries",
-    "gen"
-  ]
+  "rust-analyzer.diagnostics.experimental.enable": false
 }

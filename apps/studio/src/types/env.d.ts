@@ -1,16 +1,14 @@
 interface ImportMetaEnv {
   readonly VITE_APP_TITLE: string
 
-  readonly VITE_ENGINE: string
-  readonly VITE_THINKING: string
-  readonly VITE_INTELLIGENCE: string
+  readonly VITE_HOSTNAME: string
+  readonly VITE_PORT: string
+  readonly VITE_PROTOCOL: string
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
-
-type EnvURL = 'thinking' | 'engine' | 'intelligence'
 
 var MediaStreamTrackProcessor: {
   prototype: MediaStreamTrackProcessor
@@ -40,8 +38,6 @@ declare namespace NodeJS {
      * ```
      */
     APP_ROOT: string
-    /** /dist/ or /public/ */
-    VITE_PUBLIC: string
 
     NODE_ENV: 'development' | 'test' | 'production'
     readonly VITE_DEV_SERVER_URL: string
@@ -78,10 +74,7 @@ interface Window {
     }
     /** Database：传 SQL 动态查询（Prisma + better-sqlite3），对齐 Tauri plugin-sql */
     database: {
-      query: (
-        sql: string,
-        params?: unknown[]
-      ) => Promise<Record<string, unknown>[]>
+      query: (sql: string, params?: unknown[]) => Promise<Record<string, unknown>[]>
       execute: (sql: string, params?: unknown[]) => Promise<void>
       close: () => Promise<void>
     }

@@ -3,12 +3,7 @@ import { theme, type ThemeConfig } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
-// import { StrictMode } from 'react'
 import { HashRouter } from 'react-router-dom'
-
-import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
-import { IntelligencePlugin } from '@/plugins/intelligence.ts'
-import { MirrorPlugin } from '@/plugins/mirror.ts'
 
 import RouterView from '@/routers/routes.tsx'
 
@@ -47,8 +42,6 @@ const themeConfigure: ThemeConfig = {
   }
 }
 
-const plugins: Plugin[] = [{ ...MirrorPlugin, priority: 5 }, IntelligencePlugin]
-
 setInterval(() => {
   fetch('http://127.0.0.1:3000/api/v1').then(function (response) {
     console.log('response', response)
@@ -56,18 +49,13 @@ setInterval(() => {
 }, 6000)
 function App() {
   return (
-    // <StrictMode>
-    <PluginProvider plugins={plugins}>
-      <XProvider
-        locale={zhCN}
-        theme={themeConfigure}>
-        <HashRouter>
-          <RouterView />
-        </HashRouter>
-      </XProvider>
-    </PluginProvider>
-
-    // </StrictMode>
+    <XProvider
+      locale={zhCN}
+      theme={themeConfigure}>
+      <HashRouter>
+        <RouterView />
+      </HashRouter>
+    </XProvider>
   )
 }
 

@@ -1,4 +1,8 @@
 {
+  // SchemaStore 尚未收录 confirmModulesPurge，使用本地补丁 schema
+  "yaml.schemas": {
+    "./.vscode/schemas/pnpm-workspace.json": "/pnpm-workspace.yaml"
+  },
   // ── rust-analyzer ──────────────────────────────────────────────────────────
   // true = 自动在项目 target/ 下建 rust-analyzer/ 子目录，避免与 cargo build 竞争锁
   "rust-analyzer.cargo.targetDir": true,

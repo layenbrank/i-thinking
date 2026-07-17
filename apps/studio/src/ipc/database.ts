@@ -18,6 +18,7 @@ let PrismaClientCtor: typeof PrismaClient | null = null
 function getPrismaClientCtor(): typeof PrismaClient {
   if (PrismaClientCtor) return PrismaClientCtor
   const root = process.env.APP_ROOT || path.join(thisDir, '..', '..')
+  console.log('APP_ROOT', root)
   const generatedPath = path.join(root, 'generated', 'prisma')
   const generatedDir = path.dirname(generatedPath)
   const g = globalThis as typeof globalThis & {
@@ -73,10 +74,7 @@ export function registerDatabaseIpc(ipcMain: IpcMain): void {
     ) {
       const c = loadSqlite()
       await ensureSchema(c)
-      const rows = await c.$queryRawUnsafe<Record<string, unknown>[]>(
-        sql,
-        ...params
-      )
+      const rows = await c.$queryRawUnsafe<Record<string, unknown>[]>(sql, ...params)
       return Array.isArray(rows) ? rows : []
     }
   )
