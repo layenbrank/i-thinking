@@ -8,7 +8,7 @@ datasource db {
   provider = "sqlite"
 }
 
-// Add models as needed; IPC db:query/db:execute use $queryRaw/$executeRaw
+// Domain access via main DatabaseModule repositories (no raw SQL IPC)
 model User {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())

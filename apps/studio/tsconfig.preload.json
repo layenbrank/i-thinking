@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.preload.tsbuildinfo",
+    "lib": ["ESNext", "DOM"],
+    "types": ["node"],
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@preload/*": ["./src/preload/*"]
+    }
+  },
+  "include": ["src/preload/**/*.ts", "src/shared/**/*.ts"],
+  "exclude": ["**/node_modules/**", "**/*.test.ts"]
+}

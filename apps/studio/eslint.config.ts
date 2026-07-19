@@ -72,6 +72,57 @@ export default defineConfig([
     }
   },
   {
+    name: 'renderer-process-boundaries',
+    files: ['src/renderer/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@main', '@main/*', '**/src/main/**', 'electron'],
+              message: 'Renderer must not import main-process modules or electron'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    name: 'preload-process-boundaries',
+    files: ['src/preload/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@main', '@main/*', '@/', '@/*', '**/src/main/**', '**/src/renderer/**'],
+              message: 'Preload may only use @shared and electron APIs'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    name: 'main-process-boundaries',
+    files: ['src/main/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/', '@/*', '**/src/renderer/**'],
+              message: 'Main must not import renderer modules'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     name: 'app/files-to-ignore',
     ignores: []
   }

@@ -1,35 +1,41 @@
-# Task Plan: corex 就绪竞态修复 + Cargo.toml 整理
+# Task Plan: Studio 企业级架构 B+A
 
 ## Goal
-消除 App 挂载时对 corex「未就绪」的误报（三态 pending/ready/failed），并整理 Cargo.toml 分组注释、移除纯库死依赖。
+将 apps/studio 重构为域模块 + 组合根 + 契约 IPC + 安全基线；移除 Nest sidecar；废除任意 SQL IPC。
 
 ## Current Phase
-Complete
+Phase 4 — complete
 
 ## Phases
 
-### Phase 1: CorexState settled + 路径落态
-- [x] CorexState 增加 settled；status() -> Option<bool>
-- [x] wait_for_daemon / spawn Err / Terminated 调用 fail() + emit
+### Phase 1: 去 Nest + 入口骨架
+- [x] 移除 sidecar / Forge service / build 串联
+- [x] 建立 main/preload/shared 骨架
 - **Status:** complete
 
-### Phase 2: 前端 ipc_ready 探针
-- [x] ipc_ready 返回 Option<bool>
-- [x] App.tsx 仅 ready === false 告警，防双弹
+### Phase 2: 契约 / Bridge / Result
+- [x] shared/ipc + window.studio
 - **Status:** complete
 
-### Phase 3: Cargo.toml
-- [x] 分组 + 中文注释
-- [x] 删除 libc/urlencoding/sha2/machine-uid/hostname/dirs/tracing-subscriber
-- [x] 不删 tauri* / sea*
-- [x] cargo check 通过
+### Phase 3: 域模块迁入
+- [x] store/dialog/database/bin/window/security/devtools
 - **Status:** complete
 
-### Phase 4: 规划文件
-- [x] 更新 task_plan.md / findings.md / progress.md
+### Phase 4: 安全收尾 + 验收
+- [x] CSP/导航/测试/package
 - **Status:** complete
+
+## Decisions Made
+| Decision | Rationale |
+|----------|-----------|
+| 组合根非装饰器 DI | 可读可测 |
+| 废除 raw SQL IPC | XSS 威胁模型 |
+| UI 保留 src/ 根路径 | 减少无意义搬迁；入口与 lib 进 renderer/ |
+| Forge 入口 main.ts/preload.ts | 避免 index.js 命名冲突 |
+| ALLOWED_BINS 含 corex/generate/service.exe | 与 src/bin 一致 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
-| （无） | — | — |
+| erasableSyntaxOnly parameter props | 1 | 改写 DialogService 构造函数 |
+| Forge index.js 冲突风险 | 1 | 入口改为 main.ts / preload.ts |

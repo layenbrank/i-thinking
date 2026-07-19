@@ -27,9 +27,11 @@
     "types": [],
 
     "rootDir": ".",
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/renderer/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@main/*": ["./src/main/*"],
+      "@preload/*": ["./src/preload/*"]
     }
   },
   "exclude": ["postcss.config.js"],

@@ -51,6 +51,8 @@ mod tests {
             .expect("connect in-memory sqlite");
         let connection = std::sync::Arc::new(db);
         run(&connection).await.expect("migration should succeed");
-        check(&connection).await.expect("migration status should be readable");
+        check(&connection)
+            .await
+            .expect("migration status should be readable");
     }
 }

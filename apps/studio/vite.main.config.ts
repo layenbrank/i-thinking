@@ -5,13 +5,16 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@main': fileURLToPath(new URL('./src/main', import.meta.url)),
+      '@shared': fileURLToPath(new URL('./src/shared', import.meta.url))
     }
   },
   build: {
     rollupOptions: {
-      // 仅不打包 better-sqlite3（含原生 .node）；适配器打进主进程，避免打包后 node_modules 解析失败
-      external: ['better-sqlite3']
+      external: ['better-sqlite3'],
+      output: {
+        entryFileNames: 'main.js'
+      }
     }
   }
 })

@@ -63,11 +63,7 @@ const config: ForgeConfig = {
     // },
     name: appName,
     executableName: 'i-thinking',
-    extraResource: [
-      path.join(__dirname, '..', 'service', 'dist'),
-      path.join(__dirname, '..', 'service', 'node_modules'),
-      path.join(__dirname, 'src', 'bin')
-    ],
+    extraResource: [path.join(__dirname, 'src', 'bin')],
     // 打包后主进程 external 的 better-sqlite3 需在 app 目录存在（pnpm 下 node_modules 可能为链接，此处复制实体）
     afterCopy: [
       (
@@ -118,12 +114,12 @@ const config: ForgeConfig = {
       build: [
         {
           // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
-          entry: 'src/main.ts',
+          entry: 'src/main/main.ts',
           config: 'vite.main.config.ts',
           target: 'main'
         },
         {
-          entry: 'src/preload.ts',
+          entry: 'src/preload/preload.ts',
           config: 'vite.preload.config.ts',
           target: 'preload'
         }
@@ -139,10 +135,11 @@ const config: ForgeConfig = {
     // at package time, before code signing the application
     new FusesPlugin({
       version: FuseVersion.V1,
-      [FuseV1Options.RunAsNode]: true,
+      // 去 Nest sidecar 后关闭 RunAsNode，降低被滥用为通用 Node 宿主的风险
+      [FuseV1Options.RunAsNode]: false,
       [FuseV1Options.EnableCookieEncryption]: true,
-      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: true,
-      [FuseV1Options.EnableNodeCliInspectArguments]: true,
+      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
+      [FuseV1Options.EnableNodeCliInspectArguments]: false,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
       [FuseV1Options.OnlyLoadAppFromAsar]: true
     })

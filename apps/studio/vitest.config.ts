@@ -1,19 +1,17 @@
-import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
+import { defineConfig } from 'vitest/config'
 
-// https://vitejs.dev/config
 export default defineConfig({
   resolve: {
     alias: {
+      '@': fileURLToPath(new URL('./src/renderer', import.meta.url)),
       '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
+      '@main': fileURLToPath(new URL('./src/main', import.meta.url)),
       '@preload': fileURLToPath(new URL('./src/preload', import.meta.url))
     }
   },
-  build: {
-    rollupOptions: {
-      output: {
-        entryFileNames: 'preload.js'
-      }
-    }
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts']
   }
 })

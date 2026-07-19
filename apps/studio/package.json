@@ -10,7 +10,7 @@
     "dev": "electron-forge start",
     "dev:core": "vite",
     "package": "electron-forge package",
-    "build": "pnpm --filter @i-thinking/service build && electron-forge make",
+    "build": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "postinstall": "prisma generate && electron-rebuild",
@@ -35,7 +35,8 @@
     "@prisma/client": "catalog:",
     "better-sqlite3": "catalog:",
     "electron-squirrel-startup": "catalog:",
-    "electron-store": "catalog:"
+    "electron-store": "catalog:",
+    "zod": "^4.1.5"
   },
   "devDependencies": {
     "@electron-forge/cli": "catalog:",

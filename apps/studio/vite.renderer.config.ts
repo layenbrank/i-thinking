@@ -39,14 +39,17 @@ const noInlineRegexes: readonly RegExp[] = [
 const chunkMap: Readonly<Record<string, RegExp[]>> = {
   'workspace-deps': [/[\\/]packages[\\/](core|wasm)[\\/]/],
 
-  'core-apis': [/[\\/]src[\\/]apis[\\/]/],
-  'core-utils': [/[\\/]src[\\/]utils[\\/]/],
-  'core-hooks': [/[\\/]src[\\/]hooks[\\/]/],
-  'core-stores': [/[\\/]src[\\/]stores[\\/]/],
-  'core-assets': [/[\\/]src[\\/]assets[\\/]/],
-  'core-locales': [/[\\/]src[\\/]locales[\\/]/],
-  'core-plugins': [/[\\/]src[\\/]plugins[\\/]/],
-  'core-database': [/[\\/]src[\\/]database[\\/]/],
+  'core-apis': [/[\\/]src[\\/]renderer[\\/]apis[\\/]/],
+  'core-utils': [/[\\/]src[\\/]renderer[\\/]utils[\\/]/],
+  'core-hooks': [/[\\/]src[\\/]renderer[\\/]hooks[\\/]/],
+  'core-stores': [/[\\/]src[\\/]renderer[\\/]stores[\\/]/],
+  'core-assets': [/[\\/]src[\\/]renderer[\\/]assets[\\/]/],
+  'core-locales': [/[\\/]src[\\/]renderer[\\/]locales[\\/]/],
+  'core-plugins': [/[\\/]src[\\/]renderer[\\/]plugins[\\/]/],
+  'core-database': [/[\\/]src[\\/]renderer[\\/]databases[\\/]/],
+  'core-components': [/[\\/]src[\\/]renderer[\\/]components[\\/]/],
+  'core-views': [/[\\/]src[\\/]renderer[\\/]views[\\/]/],
+  'core-features': [/[\\/]src[\\/]renderer[\\/]features[\\/]/],
 
   'core-framework': [/[\\/]node_modules[\\/](react|react-dom)[\\/]/],
 
@@ -390,14 +393,15 @@ export default defineConfig(function ({
         }
       }),
       AutoImport({
-        dts: 'src/types/auto-imports.d.ts',
+        dts: 'src/renderer/types/auto-imports.d.ts',
         include: [/\.(?:ts|tsx|js|jsx)$/i],
         imports: ['react', 'react-router-dom']
       })
     ],
     resolve: {
       alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url))
+        '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
+        '@': fileURLToPath(new URL('./src/renderer', import.meta.url))
       }
     },
     optimizeDeps: {

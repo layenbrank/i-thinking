@@ -9,15 +9,16 @@
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0" />
+    <!-- CSP 由 Main security 模块通过 response headers 注入；此处仅作非 Electron 预览兜底 -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:3000 http://localhost:3000;" />
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:* http://localhost:* https: ws: wss:; font-src 'self' data:;" />
     <title>%VITE_APP_TITLE%</title>
   </head>
   <body>
     <div id="root"></div>
     <script
       type="module"
-      src="/src/renderer.tsx"></script>
+      src="/src/renderer/main.tsx"></script>
   </body>
 </html>
