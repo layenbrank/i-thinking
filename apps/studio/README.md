@@ -1,69 +1,44 @@
-# React + TypeScript + Vite
+# i thinking Studio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Electron 桌面应用（`@i-thinking/studio`）：Forge + Vite，主进程域模块 + 契约 IPC（`window.studio`），业务 HTTP 走远程 API。
 
-Currently, two official plugins are available:
+## 文档
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+完整文档索引：**[docs/README.md](./docs/README.md)**
 
-## Expanding the ESLint configuration
+| 文档 | 说明 |
+|------|------|
+| [架构方案](./docs/architecture.md) | 进程边界、组合根、IPC |
+| [开发指南](./docs/development.md) | 环境、脚本、扩展 |
+| [使用示例](./docs/examples.md) | 可复制调用与新增 IPC |
+| [API 参考](./docs/api-reference.md) | Channel / 错误码 |
+| [排障](./docs/troubleshooting.md) | 启动与 IPC 常见问题 |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 快速开始
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+在 monorepo 根目录：
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
+pnpm --filter @i-thinking/studio dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+仅网页预览（无 `window.studio`）：
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm --filter @i-thinking/studio dev:core
 ```
+
+单元测试：
+
+```bash
+pnpm --filter @i-thinking/studio test:unit
+```
+
+## 源码结构
+
+```text
+src/main | src/preload | src/renderer | src/shared | src/bin
+```
+
+详见 [docs/architecture.md](./docs/architecture.md)。

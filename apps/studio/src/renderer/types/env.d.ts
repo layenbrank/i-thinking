@@ -47,7 +47,3 @@ declare namespace NodeJS {
     electronApp: import('node:child_process').ChildProcess
   }
 }
-
-interface Window {
-  studio: import('../../shared/ipc/contracts').StudioApi
-}

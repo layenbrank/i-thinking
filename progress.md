@@ -1,9 +1,9 @@
-# Progress: Studio 企业级重构
+# Progress: Studio 文档
 
-## Code review hardening (done)
-- IPC: webContents 白名单 + Vite origin / file: 校验
-- before-quit: 等待 module.dispose 再 exit
-- APP_ROOT: app.getAppPath()
-- Fuses: RunAsNode/NodeOptions/Inspect 关闭
-- tsconfig 按 main/preload/renderer 拆分；去掉 @renderer；删空目录
-- Tests 10 passed；package OK
+## Done
+- docs/README.md — 索引
+- architecture.md / development.md / examples.md
+- api-reference.md / modules.md
+- security.md / packaging.md / troubleshooting.md
+- apps/studio/README.md 精简并挂链接
+- 保留 renderer-vite-root-cause.md
