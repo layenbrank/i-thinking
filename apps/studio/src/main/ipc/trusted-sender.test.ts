@@ -3,11 +3,10 @@ import { isAllowedPageUrl } from './trusted-sender'
 import type { AppContext } from '../app-context'
 
 function stubCtx(partial: Partial<AppContext> & Pick<AppContext, 'isDev'>): AppContext {
-  const origins = partial.findAllowedOrigins?.() ?? []
   return {
     app: {} as AppContext['app'],
     ipc: {} as AppContext['ipc'],
-    isDev: partial.isDev,
+    isDev: false,
     logger: {
       debug() {},
       info() {},
@@ -27,7 +26,7 @@ function stubCtx(partial: Partial<AppContext> & Pick<AppContext, 'isDev'>): AppC
       return true
     },
     findAllowedOrigins() {
-      return origins
+      return []
     },
     setAllowedOrigins() {},
     ...partial

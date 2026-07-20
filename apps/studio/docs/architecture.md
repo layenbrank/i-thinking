@@ -9,7 +9,7 @@
 | Forge + Vite 多进程桌面应用 | 嵌入 NestJS sidecar |
 | Main 域模块 + 组合根 | Tauri 式 Plugin 注册 API |
 | 契约 IPC（`window.studio`） | 暴露裸 `ipcRenderer` |
-| 本地能力：store / dialog / SQLite 仓储 / bin | Renderer 任意 SQL |
+| 本地能力：store / dialog / SQLite 仓储 / sidecar | Renderer 任意 SQL |
 | 业务 HTTP → 远程 `VITE_THINKING` | 本地再起一套 Nest |
 
 独立后端 [`apps/service`](../../service) 可单独部署，与 Studio **零运行时耦合**。
@@ -41,23 +41,24 @@ flowchart TB
 
 - **Renderer**：UI、远程 API 客户端；通过 `findStudio()` 调本地能力。
 - **Preload**：唯一桥；把 `IpcResult` 失败转为 `throw`。
-- **Main**：窗口、安全会话、IPC handlers、Prisma、白名单 bin。
+- **Main**：窗口、安全会话、IPC handlers、Prisma、白名单 sidecar。
 - **shared**：仅 channel / zod / 类型 / `IpcResult`（无 Node、无 Electron）。
 
 ## 3. 目录边界
 
 ```text
-apps/studio/src/
-├── main/           # @main — Electron Main
-│   ├── bootstrap.ts
-│   ├── app-context.ts
-│   ├── paths.ts    # 禁止依赖 import.meta.url（CJS 打包）
-│   ├── ipc/
-│   └── modules/
-├── preload/        # @preload — contextBridge
-├── renderer/       # @ → 此处 — React 应用
-├── shared/         # @shared — 跨进程契约
-└── bin/            # 打包进 extraResource 的可执行文件
+apps/studio/
+├── sidecar/        # Cargo workspace + staging + manifest（企业级侧车）
+└── src/
+    ├── main/       # @main — Electron Main
+    │   ├── bootstrap.ts
+    │   ├── app-context.ts
+    │   ├── paths.ts    # bundle / APP_ROOT / createRequire（规避 CJS 下 import.meta）
+    │   ├── ipc/
+    │   └── modules/    # 含 sidecar 运行时模块
+    ├── preload/        # @preload — contextBridge
+    ├── renderer/       # @ → 此处 — React 应用
+    └── shared/         # @shared — 跨进程契约
 ```
 
 | 别名 | 指向 | 谁可用 |
@@ -79,7 +80,7 @@ tsconfig 按进程拆分：`tsconfig.main.json` / `tsconfig.preload.json` / `tsc
 2. store  
 3. dialog  
 4. database  
-5. bin  
+5. sidecar  
 6. devtools  
 7. window  
 
@@ -101,7 +102,7 @@ interface StudioModule {
 handlers.ts  → sender 校验 + zod + 调 service
 service.ts   → 用例
 repositories/ → 仅 database；SQL 不出 Main
-index.ts     → createXxxModule()
+index.ts     → buildXxxModule()
 ```
 
 详见 [modules.md](./modules.md)。
@@ -124,7 +125,7 @@ Main 侧 `registerHandler`：校验 **已登记 webContents** + **允许 URL**�
 - CSP 由 security 模块注入 response headers
 - 导航 / `window.open` 受限
 - DevTools 仅非打包（`!app.isPackaged`）
-- 无任意 SQL IPC；bin 白名单
+- 无任意 SQL IPC；sidecar 白名单
 - Fuses：关闭 `RunAsNode` / Node CLI 相关开关
 
 详见 [security.md](./security.md)。
@@ -133,7 +134,7 @@ Main 侧 `registerHandler`：校验 **已登记 webContents** + **允许 URL**�
 
 - SQLite + Prisma（better-sqlite3 adapter），库文件在 `userData/databases/`
 - 仅领域命令：`user:list|create|update|remove`
-- Forge 将 main 打成 **CJS** 时 `import.meta.url` 会变成 `undefined` → 统一用 [`paths.ts`](../src/main/paths.ts)（`process.argv[1]` / `APP_ROOT`）
+- Main / Preload 为 **CJS**（`type: commonjs` + Forge 默认）；路径与 `createRequire` 统一用 [`paths.ts`](../src/main/paths.ts)（`process.argv[1]` / `APP_ROOT`）
 
 ## 8. 关键决策
 

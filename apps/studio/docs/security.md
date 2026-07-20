@@ -50,12 +50,13 @@
 | 风险 | 对策 |
 |------|------|
 | XSS → 任意 SQL | 废除 `db:query`；仅 `user:*` 仓储 |
-| 任意执行本地二进制 | `ALLOWED_BINS` + 禁路径穿越；`spawn({ shell: false })` |
+| 任意执行本地二进制 | `ALLOWED_SIDECARS`（含 Windows `.exe` 与 Unix 无扩展名）+ 禁路径穿越；`spawn({ shell: false })`；打包时 SHA-256 对照 `sidecar/manifest.json` |
 | 超大/恶意 args | zod 限制条数与长度，禁 `\0` |
+| 侧车被篡改 | `forge/hooks/sidecar.ts` 在 afterCopy 校验哈希，失败中断打包 |
 
 ## 7. Electron Fuses（打包时）
 
-见 `forge.config.ts`：
+见 `forge/plugins.ts`（由 `forge.config.ts` 组装）：
 
 | Fuse | 当前 | 说明 |
 |------|------|------|

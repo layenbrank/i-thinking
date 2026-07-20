@@ -1,49 +1,64 @@
 import { XProvider } from '@ant-design/x'
-import { theme, type ThemeConfig } from 'antd'
+import { App as AntApp } from 'antd'
+import { StyleProvider } from '@ant-design/cssinjs'
 import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
-import { HashRouter } from 'react-router-dom'
+import localeData from 'dayjs/plugin/localeData'
+import { Suspense, useEffect } from 'react'
+import { RouterProvider } from 'react-router-dom'
+import { MotionConfig } from 'motion/react'
 
-import RouterView from '@/routers/routes.tsx'
+import { Fallback } from '@/components/fallback/index.ts'
+import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
+import { QueryProvider } from '@/components/provider/query'
+import { router } from '@/routers/index'
+import { useSettingsStore } from '@/stores/setting.ts'
+import { useProviderProps } from '@/themes'
 
+dayjs.extend(localeData)
 dayjs.locale('zh-cn')
 
-const themeConfigure: ThemeConfig = {
-  algorithm: theme.defaultAlgorithm,
-  token: {
-    colorPrimary: '#4080ff'
-  },
-  components: {
-    Button: {
-      algorithm: true
-    },
-    Input: {
-      algorithm: true
-    },
-    Layout: {
-      algorithm: true,
-      headerBg: '#000000',
-      bodyBg: '#f5f5f5',
-      footerBg: '#ffffff'
-    },
-    Menu: {
-      algorithm: true,
-      itemBg: '#000000',
-      colorText: '#ffffff'
-    }
-  }
-}
+const plugins: Plugin[] = []
 
 function App() {
+  const provider = useProviderProps()
+
+  useEffect(function () {
+    void useSettingsStore.getState().initialize()
+
+    if (!import.meta.env.DEV) return
+    void window.studio.devtools
+      .updateVisible({ visible: true })
+      .catch(function () {})
+  }, [])
+
+  function onPluginError(plugin: Plugin, error: unknown) {
+    console.error(`plugin error "${plugin.unique}"`, error)
+  }
+
   return (
-    <XProvider
-      locale={zhCN}
-      theme={themeConfigure}>
-      <HashRouter>
-        <RouterView />
-      </HashRouter>
-    </XProvider>
+    <MotionConfig reducedMotion="user">
+      <PluginProvider
+        plugins={plugins}
+        onError={onPluginError}>
+        <StyleProvider hashPriority="low">
+          <XProvider
+            locale={zhCN}
+            {...provider}>
+            <QueryProvider>
+              <AntApp
+                message={{ maxCount: 3 }}
+                notification={{ maxCount: 1 }}>
+                <Suspense fallback={<Fallback.Route />}>
+                  <RouterProvider router={router} />
+                </Suspense>
+              </AntApp>
+            </QueryProvider>
+          </XProvider>
+        </StyleProvider>
+      </PluginProvider>
+    </MotionConfig>
   )
 }
 

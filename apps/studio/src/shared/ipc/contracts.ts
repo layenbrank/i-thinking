@@ -1,9 +1,9 @@
 import type {
-  BinExecInput,
-  BinNameInput,
   DevtoolsVisibleInput,
   DialogOpenInput,
   DialogSaveInput,
+  SidecarExecInput,
+  SidecarNameInput,
   StoreGetInput,
   StoreSetInput,
   UserCreateInput,
@@ -19,14 +19,14 @@ export interface UserRecord {
   email: string | null
 }
 
-export interface BinExecResult {
+export interface SidecarExecResult {
   code: number | null
   signal: string | null
   error?: string
 }
 
 /** Renderer SDK 与 Main 对齐的 API 形状（不含实现） */
-export interface StudioApi {
+export interface Studio {
   store: {
     get: (input: StoreGetInput) => Promise<unknown>
     set: (input: StoreSetInput) => Promise<void>
@@ -45,9 +45,9 @@ export interface StudioApi {
     update: (input: UserUpdateInput) => Promise<UserRecord>
     remove: (input: UserRemoveInput) => Promise<void>
   }
-  bin: {
-    getPath: (input: BinNameInput) => Promise<string>
-    exec: (input: BinExecInput) => Promise<BinExecResult>
+  sidecar: {
+    findPath: (input: SidecarNameInput) => Promise<string>
+    exec: (input: SidecarExecInput) => Promise<SidecarExecResult>
   }
   devtools: {
     updateVisible: (input: DevtoolsVisibleInput) => Promise<void>

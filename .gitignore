@@ -81,3 +81,7 @@ apps/studio/generated/
 
 *.mp4
 apps/studio/out
+apps/studio/sidecar/**/target
+apps/studio/sidecar/staging/**
+!apps/studio/sidecar/staging/.gitkeep
+!apps/studio/sidecar/staging/**/.gitkeep

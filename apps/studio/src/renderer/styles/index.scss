@@ -50,6 +50,13 @@
   background-color: rgba(0, 0, 0, 0.4);
 }
 
+*[data-region='true'] {
+  -webkit-app-region: drag;
+}
+*[data-region='false'] {
+  -webkit-app-region: no-drag;
+}
+
 body {
   font-family:
     Inter,
@@ -78,7 +85,8 @@ body {
 
 html,
 body,
-#root {
+#app,
+.ant-app {
   width: 100%;
   min-width: 600px;
   height: 100%;
@@ -156,46 +164,46 @@ body {
   }
 }
 
-#titleBarContainer {
-  position: absolute;
-  top: env(titlebar-area-y, 0);
-  height: env(titlebar-area-height, var(--fallback-title-bar-height));
-  width: 100%;
-  background-color: #254b85;
-}
+// #titleBarContainer {
+//   position: absolute;
+//   top: env(titlebar-area-y, 0);
+//   height: env(titlebar-area-height, var(--fallback-title-bar-height));
+//   width: 100%;
+//   background-color: #254b85;
+// }
 
-#titleBar {
-  position: absolute;
-  top: 0;
-  display: flex;
-  user-select: none;
-  height: 100%;
-  left: env(titlebar-area-x, 0);
-  width: env(titlebar-area-width, 100%);
+// #titleBar {
+//   position: absolute;
+//   top: 0;
+//   display: flex;
+//   user-select: none;
+//   height: 100%;
+//   left: env(titlebar-area-x, 0);
+//   width: env(titlebar-area-width, 100%);
 
-  color: #ffffff;
-  font-weight: bold;
-  text-align: center;
-}
+//   color: #ffffff;
+//   font-weight: bold;
+//   text-align: center;
+// }
 
-#titleBar > span {
-  margin: auto;
-  padding: 0px 16px 0px 16px;
-}
+// #titleBar > span {
+//   margin: auto;
+//   padding: 0px 16px 0px 16px;
+// }
 
-#titleBar > input {
-  flex: 1;
-  margin: 8px;
-  border-radius: 5px;
-  border: none;
-  padding: 8px;
-}
+// #titleBar > input {
+//   flex: 1;
+//   margin: 8px;
+//   border-radius: 5px;
+//   border: none;
+//   padding: 8px;
+// }
 
-#mainContent {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: env(titlebar-area-height, var(--fallback-title-bar-height));
-  overflow-y: scroll;
-}
+// #mainContent {
+//   position: absolute;
+//   left: 0;
+//   right: 0;
+//   bottom: 0;
+//   top: env(titlebar-area-height, var(--fallback-title-bar-height));
+//   overflow-y: scroll;
+// }

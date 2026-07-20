@@ -1,0 +1,9 @@
+[package]
+name = "corex"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "corex"
+path = "src/main.rs"

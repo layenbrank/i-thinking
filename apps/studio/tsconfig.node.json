@@ -37,13 +37,16 @@
   "exclude": ["postcss.config.js"],
   "include": [
     "forge.config.ts",
-    "vite.*",
+    "forge/**/*.ts",
     "vitest.config.*",
     "cypress.config.*",
     "nightwatch.conf.*",
     "playwright.config.*",
     "tailwind.config.*",
     "eslint.config.*",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "sidecar/scripts/**/*.ts",
+    "vite.config.*",
+    "vite.chunk.*"
   ]
 }

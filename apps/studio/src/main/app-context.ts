@@ -5,9 +5,9 @@ import {
   type IpcMain,
   type WebContents
 } from 'electron'
-import { createLogger, type Logger } from './logger'
+import { buildLogger, type Logger } from './logger'
 
-export interface AppContext {
+type AppContext = {
   app: typeof app
   ipc: IpcMain
   isDev: boolean
@@ -23,7 +23,7 @@ export interface AppContext {
   setAllowedOrigins: (origins: readonly string[]) => void
 }
 
-export function createAppContext(): AppContext {
+function buildAppContext(): AppContext {
   let mainWindow: BrowserWindow | null = null
   const trustedIds = new Set<number>()
   let allowedOrigins: readonly string[] = []
@@ -33,7 +33,7 @@ export function createAppContext(): AppContext {
     app,
     ipc: ipcMain,
     isDev,
-    logger: createLogger('main'),
+    logger: buildLogger('main'),
     findWindow() {
       return mainWindow
     },
@@ -57,3 +57,6 @@ export function createAppContext(): AppContext {
     }
   }
 }
+
+export type { AppContext }
+export { buildAppContext }

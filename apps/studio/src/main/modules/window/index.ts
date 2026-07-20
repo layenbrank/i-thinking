@@ -9,7 +9,7 @@ import { attachWindowGuards } from '../security'
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined
 declare const MAIN_WINDOW_VITE_NAME: string
 
-export function createWindowModule(): StudioModule {
+function buildWindowModule(): StudioModule {
   return {
     name: 'window',
     register(ctx: AppContext) {
@@ -26,6 +26,13 @@ export function createWindowModule(): StudioModule {
 
       function buildWindow() {
         const publicDir = process.env.VITE_PUBLIC ?? ''
+        const bundleDir = findBundleDir()
+        const htmlPath = path.join(
+          bundleDir,
+          `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
+        )
+        const preloadPath = path.join(bundleDir, 'preload.js')
+
         const win = new BrowserWindow({
           width: 1200,
           height: 800,
@@ -60,7 +67,7 @@ export function createWindowModule(): StudioModule {
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: true,
-            preload: path.join(findBundleDir(), 'preload.js')
+            preload: preloadPath
           }
         })
 
@@ -74,15 +81,14 @@ export function createWindowModule(): StudioModule {
           }
         })
 
+        if (ctx.isDev) {
+          win.webContents.openDevTools()
+        }
+
         if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
           void win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
         } else {
-          void win.loadFile(
-            path.join(
-              findBundleDir(),
-              `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
-            )
-          )
+          void win.loadFile(htmlPath)
         }
 
         win.on('close', function () {
@@ -116,3 +122,5 @@ export function createWindowModule(): StudioModule {
     }
   }
 }
+
+export { buildWindowModule }

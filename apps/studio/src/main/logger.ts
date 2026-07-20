@@ -1,5 +1,13 @@
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
+type Logger = {
+  debug: (message: string, extra?: unknown) => void
+  info: (message: string, extra?: unknown) => void
+  warn: (message: string, extra?: unknown) => void
+  error: (message: string, extra?: unknown) => void
+  child: (module: string) => Logger
+}
+
 function format(level: LogLevel, module: string, message: string, extra?: unknown) {
   const time = new Date().toISOString()
   const base = `[${time}] [${level.toUpperCase()}] [${module}] ${message}`
@@ -18,15 +26,7 @@ function stringifyExtra(extra: unknown) {
   }
 }
 
-export interface Logger {
-  debug: (message: string, extra?: unknown) => void
-  info: (message: string, extra?: unknown) => void
-  warn: (message: string, extra?: unknown) => void
-  error: (message: string, extra?: unknown) => void
-  child: (module: string) => Logger
-}
-
-export function createLogger(module: string): Logger {
+function buildLogger(module: string): Logger {
   return {
     debug(message, extra) {
       if (!process.env.STUDIO_DEBUG) return
@@ -42,7 +42,10 @@ export function createLogger(module: string): Logger {
       console.error(format('error', module, message, extra))
     },
     child(childModule) {
-      return createLogger(`${module}:${childModule}`)
+      return buildLogger(`${module}:${childModule}`)
     }
   }
 }
+
+export type { Logger }
+export { buildLogger }

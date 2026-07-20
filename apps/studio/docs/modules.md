@@ -8,7 +8,7 @@
 2. store  
 3. dialog  
 4. database  
-5. bin  
+5. sidecar  
 6. devtools  
 7. window  
 
@@ -20,7 +20,7 @@
 | store | `src/main/modules/store` | `electron-store` 键值持久化 + IPC |
 | dialog | `src/main/modules/dialog` | 打开/保存文件对话框 |
 | database | `src/main/modules/database` | Prisma + User 仓储 IPC（无 raw SQL） |
-| bin | `src/main/modules/bin` | 白名单可执行路径与 spawn |
+| sidecar | `src/main/modules/sidecar` | 白名单侧车路径与 spawn |
 | devtools | `src/main/modules/devtools` | 开发态开关 DevTools |
 | window | `src/main/modules/window` | BrowserWindow、preload、加载 URL、登记可信 webContents |
 
@@ -40,7 +40,7 @@
 推荐每个有业务的模块：
 
 ```text
-index.ts       → createXxxModule()
+index.ts       → buildXxxModule()
 handlers.ts    → registerHandler + zod
 service.ts     → 用例
 repositories/  → 仅 database 需要
@@ -50,7 +50,7 @@ repositories/  → 仅 database 需要
 
 ## 新增模块检查清单
 
-1. 在 `modules/<name>/` 实现 `createXxxModule`
+1. 在 `modules/<name>/` 实现 `buildXxxModule`
 2. 扩展 `shared/ipc`（channels / schemas / contracts）
 3. `bootstrap.ts` 数组中注册
 4. `preload/preload.ts` 挂到 `window.studio`

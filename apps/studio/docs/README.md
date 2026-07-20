@@ -12,7 +12,7 @@
 | 查方法、Channel、错误码 | [API 参考](./api-reference.md) |
 | 查 Main 模块职责与路径 | [模块说明](./modules.md) |
 | 安全基线与威胁模型 | [安全](./security.md) |
-| 打包、bin 资源、Fuses | [打包](./packaging.md) |
+| 打包、sidecar 资源、Fuses | [打包](./packaging.md) |
 | 启动失败 / IPC 拒绝 | [排障](./troubleshooting.md) |
 
 ## 文档列表
@@ -32,10 +32,11 @@
 ## 源码地图（速查）
 
 ```text
-apps/studio/src/
-├── main/       # Electron 主进程（组合根 + modules）
-├── preload/    # contextBridge → window.studio
-├── renderer/   # React UI（@ → 此处）
-├── shared/     # 跨进程契约（ipc）
-└── bin/        # 白名单原生可执行文件
+apps/studio/
+├── sidecar/    # Cargo workspace + staging + manifest
+└── src/
+    ├── main/       # Electron 主进程（组合根 + modules）
+    ├── preload/    # contextBridge → window.studio
+    ├── renderer/   # React UI（@ → 此处）
+    └── shared/     # 跨进程契约（ipc）
 ```

@@ -4,7 +4,7 @@ import type { AppContext } from '../../app-context'
 import { registerHandler } from '../../ipc/handle'
 import type { StudioModule } from '../../module'
 
-export function createDevtoolsModule(): StudioModule {
+function buildDevtoolsModule(): StudioModule {
   return {
     name: 'devtools',
     register(ctx: AppContext) {
@@ -29,3 +29,5 @@ export function createDevtoolsModule(): StudioModule {
     }
   }
 }
+
+export { buildDevtoolsModule }

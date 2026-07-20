@@ -4,7 +4,7 @@ import { disconnectPrisma } from './client'
 import { registerDatabaseHandlers } from './handlers'
 import { DatabaseService } from './service'
 
-export function createDatabaseModule(): StudioModule {
+function buildDatabaseModule(): StudioModule {
   const service = new DatabaseService()
   return {
     name: 'database',
@@ -18,4 +18,4 @@ export function createDatabaseModule(): StudioModule {
   }
 }
 
-export { DatabaseService }
+export { buildDatabaseModule, DatabaseService }

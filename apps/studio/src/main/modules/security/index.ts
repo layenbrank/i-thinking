@@ -5,7 +5,7 @@ import type { StudioModule } from '../../module'
 
 const ALLOWED_PERMISSIONS = new Set<string>([])
 
-export function createSecurityModule(): StudioModule {
+function buildSecurityModule(): StudioModule {
   return {
     name: 'security',
     register(ctx: AppContext) {
@@ -39,7 +39,7 @@ export function createSecurityModule(): StudioModule {
 }
 
 /** 附着到 BrowserWindow 的导航 / 开窗限制 */
-export function attachWindowGuards(ctx: AppContext, contents: WebContents): void {
+function attachWindowGuards(ctx: AppContext, contents: WebContents): void {
   const log = ctx.logger.child('security')
 
   contents.on('will-navigate', function (event, url) {
@@ -54,3 +54,5 @@ export function attachWindowGuards(ctx: AppContext, contents: WebContents): void
     return { action: 'deny' }
   })
 }
+
+export { attachWindowGuards, buildSecurityModule }

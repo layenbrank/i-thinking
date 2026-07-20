@@ -68,16 +68,16 @@ const updated = await studio.user.update({
 await studio.user.remove({ id: updated.id })
 ```
 
-## 5. Bin（白名单）
+## 5. Sidecar（白名单）
 
-当前允许：`corex.exe` / `generate.exe` / `service.exe`（见 `src/main/modules/bin/allowlist.ts`）。
+当前允许：Windows `corex.exe` / `generate.exe` / `service.exe`；Unix `corex` / `generate` / `service`（见 `src/main/modules/sidecar/allowlist.ts`）。
 
 ```ts
 const studio = findStudio()
 
-const binPath = await studio.bin.getPath({ exeName: 'corex.exe' })
-const result = await studio.bin.exec({
-  exeName: 'corex.exe',
+const sidecarPath = await studio.sidecar.findPath({ name: 'corex.exe' })
+const result = await studio.sidecar.exec({
+  name: 'corex.exe',
   args: ['--help']
 })
 // { code, signal, error? }
@@ -161,7 +161,7 @@ settings: {
 src/main/modules/settings/
   service.ts
   handlers.ts
-  index.ts      → createSettingsModule()
+  index.ts      → buildSettingsModule()
 ```
 
 `handlers.ts` 使用 `registerHandler(ctx, CHANNELS.SETTINGS_READ, schema, …)`。
@@ -169,7 +169,7 @@ src/main/modules/settings/
 ### 9.5 `bootstrap.ts` 注册
 
 ```ts
-createSettingsModule(), // 插入 modules 数组合适位置
+buildSettingsModule(), // 插入 modules 数组合适位置
 ```
 
 ### 9.6 `preload/preload.ts` 暴露

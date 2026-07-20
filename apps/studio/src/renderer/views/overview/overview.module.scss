@@ -1,6 +1,222 @@
+@use 'sass:math';
+$prefix-height: 64px;
+$suffix-height: 64px;
+$radius: 8px;
+$engine-size: env(titlebar-area-height, 35px);
+
 .overview {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  &.payload {
+    width: 100%;
+    height: 100%;
+    background: initial;
+    scrollbar-width: none;
+  }
+
+  &.prefix {
+    // flex: none;
+    // height: $prefix-height;
+    // z-index: 1;
+    // background: initial;
+    // background-color: transparent;
+    // display: flex;
+    // align-items: center;
+    // justify-content: center;
+    flex: none;
+    padding: 0px env(titlebar-area-x, 138px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: initial;
+    background-color: transparent;
+    top: env(titlebar-area-y, 0);
+    height: env(titlebar-area-height, var(--fallback-title-bar-height));
+    position: relative;
+    border-bottom: 1px solid rgba($color: #000000, $alpha: 0.1);
+    z-index: 1;
+  }
+
+  .utility {
+    &.button {
+      --ant-btn-border-width: 0px;
+      --ant-button-default-hover-bg: #d6dcde;
+      // --ant-button-default-hover-bg: rgba(0, 0, 0, 0.04);
+      --ant-btn-border-color-hover: transparent;
+      --ant-button-default-active-bg: #d6dcde;
+
+      width: env(titlebar-area-height, var(--fallback-title-bar-height));
+      height: env(titlebar-area-height, var(--fallback-title-bar-height));
+      padding: 0px;
+      color: #000000;
+      background-color: transparent;
+      border-radius: 0px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 150ms;
+
+      &:not(:disabled):not(.ant-btn-disabled):hover {
+        color: #000000;
+      }
+    }
+
+    &.begin {
+      width: 20%;
+      height: 100%;
+      order: 0;
+      flex-grow: 2;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    &.final {
+      width: 20%;
+      height: 100%;
+      padding-inline-end: env(titlebar-area-x, 138px);
+      order: 2;
+      min-width: min-content;
+      flex-grow: 2;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+  }
+
+  &.core {
+    flex: 1;
+  }
+
+  &.suffix {
+    height: $suffix-height;
+    flex: none;
+    z-index: 1;
+    text-align: center;
+    background-color: transparent;
+  }
+
+  .engine {
+    &.series {
+      width: calc($engine-size + 8px);
+      height: $engine-size;
+    }
+  }
+}
+
+.engine {
+  &.section {
+    width: 60%;
+    max-width: 400px;
+    height: $engine-size;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background-color: #ffffff;
+    border-radius: calc($engine-size / 2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition:
+      border-radius 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  // ==================== 默认状态：仅在 root（keyword）上应用圆角 ====================
+  // 这样 input 和 button 内部交界处永远是直角，无缝连接
+  &:not(.active) {
+    .keyword {
+    }
+  }
+
+  // ==================== 激活状态（fragment 展开）：整体上圆下直 ====================
+  &.active {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: $radius;
+    border-top-right-radius: $radius;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+
+    .keyword {
+      border-bottom: none;
+    }
+
+    .fragment {
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+      border-top: none;
+      top: 100%;
+      margin-top: 0;
+
+      // 关键：大幅弱化独立阴影，让它与上方融为一体
+      box-shadow: 0 10px 12px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  // ==================== Fragment 样式 ====================
+  &.fragment {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 40vh;
+    z-index: 20;
+    overflow: hidden scroll;
+    transform-origin: top;
+    background: #ffffff;
+    border-radius: $radius;
+    padding-inline: 6px;
+    padding-block: 6px;
+    backdrop-filter: blur(20px);
+  }
+
+  &.fragmentValue {
+    height: 32px;
+    line-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 10px 14px;
+    border-radius: 6px;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    & + & {
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  // ==================== Input.Search 内部元素（永远保持直角） ====================
+  &.keyword {
+    display: flex;
+    padding-inline: 0px;
+  }
+
+  &.trigger {
+    padding-block: 4px;
+    padding-inline: 14px 0px;
+  }
+
+  &.trigger,
+  &.series {
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+
+    &:not(:disabled):hover {
+      border: none;
+      box-shadow: none;
+      background-color: transparent;
+    }
+  }
+
+  &.mark {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }

@@ -24,8 +24,10 @@ pnpm install
 | `pnpm --filter @i-thinking/studio dev:core` | 仅 Vite 网页模式（**无** `window.studio`） |
 | `pnpm --filter @i-thinking/studio test:unit` | Vitest |
 | `pnpm --filter @i-thinking/studio lint` | ESLint |
-| `pnpm --filter @i-thinking/studio package` | 打出可运行目录（不装安装包） |
-| `pnpm --filter @i-thinking/studio build` | `electron-forge make` 安装包 |
+| `pnpm --filter @i-thinking/studio sidecar:build` | Rust 侧车 release → `sidecar/staging/<platform-arch>/` |
+| `pnpm --filter @i-thinking/studio package` | 打出可运行目录到 `out/`（需先 sidecar:build） |
+| `pnpm --filter @i-thinking/studio build` | 同 `package`（供 turbo / PR CI） |
+| `pnpm --filter @i-thinking/studio make` | `electron-forge make` → `out/make` |
 
 ## 3. 环境变量
 
@@ -50,7 +52,7 @@ Forge 注入（窗口加载）：
 ## 4. 目录与别名
 
 ```text
-src/main | src/preload | src/renderer | src/shared | src/bin
+src/main | src/preload | src/renderer | src/shared | sidecar/
 ```
 
 - `@/*` → `src/renderer/*`
@@ -61,7 +63,7 @@ src/main | src/preload | src/renderer | src/shared | src/bin
 ## 5. 本地调试
 
 - `dev` 启动后，DevTools **仅开发态**可通过 `studio.devtools.updateVisible({ visible: true })` 打开（生产打包默认关闭）。
-- 主进程日志：结构化 `createLogger(module)`；未捕获异常接入 bootstrap。
+- 主进程日志：结构化 `buildLogger(module)`；未捕获异常接入 bootstrap。
 - IPC 失败：preload 抛出 `Error('[CODE] message')`，见 [api-reference.md](./api-reference.md)。
 
 ## 6. 扩展功能
@@ -76,7 +78,7 @@ src/main | src/preload | src/renderer | src/shared | src/bin
 - 约定：`src/**/*.test.ts`
 - 现有覆盖示例：
   - `shared/ipc/schemas.test.ts`
-  - `main/modules/bin/allowlist.test.ts`
+  - `main/modules/sidecar/allowlist.test.ts`
   - `main/ipc/trusted-sender.test.ts`
   - `main/paths.test.ts`
   - `preload/expose.test.ts`（断言不暴露 `ipcRenderer`）

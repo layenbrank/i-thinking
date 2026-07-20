@@ -3,12 +3,24 @@
 ## 1. 构建工具
 
 - **Electron Forge** + `@electron-forge/plugin-vite`
-- 入口（`forge.config.ts`）：
-  - Main：`src/main/main.ts` → `.vite/build/main.js`
-  - Preload：`src/preload/preload.ts` → `.vite/build/preload.js`
-  - Renderer：`vite.renderer.config.ts`（`main_window`）
+- 配置入口：[forge.config.ts](../forge.config.ts)（组装 [forge/](../forge/) 模块）
+  - `forge/constants.ts` — appId / 名称 / 版本
+  - `forge/packager.ts` — asar、ignore、afterCopy
+  - `forge/makers.ts` — 全平台 makers
+  - `forge/plugins.ts` — Vite / Fuses / AutoUnpackNatives
+  - `forge/hooks/natives.ts` — better-sqlite3 复制
+  - `forge/hooks/sidecar.ts` — 侧车复制 + SHA-256 校验
+  - `sidecar/scripts/build.ts` / `sidecar/manifest.json` — 侧车构建与清单
 
-`package.json`：`"main": ".vite/build/main.js"`。
+构建产物目录：**仅** `apps/studio/out/`（勿使用 out-verify 等临时目录）。
+
+| 进程 | 入口 | 输出 |
+|------|------|------|
+| Main | `src/main/main.ts` | `.vite/build/main.js`（CJS） |
+| Preload | `src/preload/preload.ts` | `.vite/build/preload.js`（CJS，sandbox） |
+| Renderer | `vite.renderer.config.ts` | Forge `main_window` |
+
+`package.json`：`"type": "commonjs"`，`"main": ".vite/build/main.js"`。`appId`：`com.i-thinking.studio`。
 
 ## 2. 常用命令
 
@@ -16,46 +28,74 @@
 # 开发
 pnpm --filter @i-thinking/studio dev
 
-# 产出可运行目录（如 out/i-thinking-win32-x64）
+# Rust 侧车 release → sidecar/staging/<platform-arch>/ + 更新 manifest
+pnpm --filter @i-thinking/studio sidecar:build
+pnpm --filter @i-thinking/studio sidecar:verify
+
+# 可运行目录（需先 sidecar:build；输出到 out/）
 pnpm --filter @i-thinking/studio package
 
-# 安装包（make）
-pnpm --filter @i-thinking/studio build
+# 当前 OS 安装包（输出到 out/make）
+pnpm --filter @i-thinking/studio make
 ```
 
-`build` **不再**依赖 `@i-thinking/service` 构建。
+**Windows：** 打包前请关闭正在运行的 Studio，否则可能因 `app.asar` 被占用出现 `EBUSY`。
 
-## 3. 额外资源
+**约束：** 不能可靠交叉编译；全平台由 CI 在各 OS runner 上分别 `sidecar:build` + `make`。
 
-`packagerConfig.extraResource`：
+## 3. Sidecar（企业级侧车）
 
-- `src/bin` → 产物 `resources/bin/`（`corex.exe` / `generate.exe` / `service.exe` 等）
+源码：[`sidecar/`](../sidecar/)（Cargo workspace：`corex` / `generate` / `service`），release 启用 `lto` + `strip`。
 
-**不包含** `apps/service` 的 dist / node_modules。
+| 平台 | 文件名 |
+|------|--------|
+| Windows | `corex.exe` / `generate.exe` / `service.exe` |
+| macOS / Linux | `corex` / `generate` / `service` |
 
-`afterCopy`：复制实体 `better-sqlite3` 到应用 `node_modules`（兼容 pnpm 链接）。
+布局：
 
-## 4. 原生与 Prisma
+- 暂存：`sidecar/staging/<platform>-<arch>/`（如 `win32-x64`）
+- 打包后：`resources/sidecar/<file>`
+- 校验：[`sidecar/manifest.json`](../sidecar/manifest.json) 按平台存 SHA-256；`afterCopy` 失败则中断打包
+- 运行时：Main `modules/sidecar` 白名单 + `studio.sidecar.findPath` / `exec`
 
-打包前确保：
+## 4. 全平台 Makers
+
+| 平台 | Maker | 用途 |
+|------|-------|------|
+| Windows | Squirrel | 安装程序 |
+| Windows | ZIP | 便携包 |
+| macOS | DMG | 安装镜像 |
+| macOS | ZIP | 归档 |
+| Linux | Deb | Debian/Ubuntu |
+| Linux | Rpm | RHEL/Fedora |
+| Linux | ZIP | 通用归档 |
+
+## 5. asar / ignore
+
+- **asar 仅保留** `.vite/`、`package.json`、`generated/`；`prune: false`
+- `afterCopy`：better-sqlite3 + Sidecar
+
+## 6. 原生与 Prisma
 
 ```bash
 pnpm --filter @i-thinking/studio exec prisma generate
 pnpm --filter @i-thinking/studio rebuild
 ```
 
-`vite.main.config.ts` 将 `better-sqlite3` 设为 external；运行时从解压目录加载 `.node`。
+## 7. Fuses
 
-## 5. Fuses
+见 [security.md §7](./security.md#7-electron-fuses打包时)。
 
-打包阶段由 `FusesPlugin` 写入，见 [security.md §7](./security.md#7-electron-fuses打包时)。
+## 8. CI
 
-## 6. 产物注意
+[`.github/workflows/studio-desktop.yaml`](../../../.github/workflows/studio-desktop.yaml)：
 
-- 进程树中 **无** Nest / bun service 子进程
-- `resources` 侧重点：`app.asar`、`bin/`、解压的 native 模块
-- Main 路径解析使用 `paths.ts`（`argv[1]` / `APP_ROOT`），勿在业务里依赖 `import.meta.url`
+1. Rust toolchain + `sidecar:build`
+2. `make` → 上传 `apps/studio/out/**`
 
-## 7. Makers
+## 9. 产物注意
 
-配置含 Squirrel（Windows）、ZIP（darwin）、deb、rpm 等，按目标平台选择 `make` 环境。
+- 侧车进程独立于 Electron Main（非 Nest）
+- Main 路径用 `paths.ts`
+- 本轮未接代码签名 / 公证 / 自动更新

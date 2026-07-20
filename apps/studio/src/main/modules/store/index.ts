@@ -3,7 +3,7 @@ import type { StudioModule } from '../../module'
 import { registerStoreHandlers } from './handlers'
 import { StoreService } from './service'
 
-export function createStoreModule(): StudioModule {
+function buildStoreModule(): StudioModule {
   const service = new StoreService()
   return {
     name: 'store',
@@ -15,4 +15,4 @@ export function createStoreModule(): StudioModule {
 }
 
 /** 供单测 */
-export { StoreService }
+export { buildStoreModule, StoreService }

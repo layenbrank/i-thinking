@@ -1,0 +1,10 @@
+{
+  "sidecars": ["corex", "generate", "service"],
+  "platforms": {
+    "win32-x64": {
+      "corex.exe": "12052b32e62b027ad0f61068339003021430ac30d6e09a9af89d30e34056afca",
+      "generate.exe": "17b87ee200d2b8c341f2ec4c766aef508e50dda80a0dfa746df654c750101eee",
+      "service.exe": "812e0ec8ff23b1f088f5b4fed0fe9fc18d9a6c267117863afec4003337322897"
+    }
+  }
+}

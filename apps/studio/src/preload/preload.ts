@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { CHANNELS } from '../shared/ipc/channels'
 import type { IpcResult } from '../shared/ipc/result'
-import type { StudioApi } from '../shared/ipc/contracts'
+import type { Studio } from '../shared/ipc/contracts'
 
 async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
@@ -14,7 +14,7 @@ async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
   return result.data
 }
 
-const studio: StudioApi = {
+const studio: Studio = {
   store: {
     get(input) {
       return invoke(CHANNELS.STORE_GET, input)
@@ -57,12 +57,12 @@ const studio: StudioApi = {
       return invoke(CHANNELS.USER_REMOVE, input)
     }
   },
-  bin: {
-    getPath(input) {
-      return invoke(CHANNELS.BIN_GET_PATH, input)
+  sidecar: {
+    findPath(input) {
+      return invoke(CHANNELS.SIDECAR_FIND_PATH, input)
     },
     exec(input) {
-      return invoke(CHANNELS.BIN_EXEC, input)
+      return invoke(CHANNELS.SIDECAR_EXEC, input)
     }
   },
   devtools: {

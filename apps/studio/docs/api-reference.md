@@ -28,7 +28,7 @@ Preload `invoke`：若 `!ok`，抛出 `Error('[code] message')`；Renderer 看�
 
 ### Channel 命名
 
-`namespace:action`，多词 action 用 kebab-case（如 `bin:get-path`、`devtools:update-visible`）。
+`namespace:action`，多词 action 用 kebab-case（如 `sidecar:find-path`、`devtools:update-visible`）。
 
 ---
 
@@ -85,20 +85,19 @@ Preload `invoke`：若 `!ok`，抛出 `Error('[code] message')`；Renderer 看�
 
 ---
 
-## bin
+## sidecar
 
 | 方法 | Channel | 入参 | 返回 |
 |------|---------|------|------|
-| `getPath` | `bin:get-path` | `{ exeName }` | `Promise<string>` |
-| `exec` | `bin:exec` | `{ exeName, args? }` | `Promise<BinExecResult>` |
+| `findPath` | `sidecar:find-path` | `{ name }` | `Promise<string>` |
+| `exec` | `sidecar:exec` | `{ name, args? }` | `Promise<SidecarExecResult>` |
 
-`BinExecResult`：`{ code, signal, error? }`。
+`SidecarExecResult`：`{ code, signal, error? }`。
 
 白名单（禁止路径分隔符与 `..`）：
 
-- `corex.exe`
-- `generate.exe`
-- `service.exe`
+- Windows：`corex.exe` / `generate.exe` / `service.exe`
+- Unix：`corex` / `generate` / `service`
 
 `args`：最多 64 项，单条最长 4096，禁止 `\0`；`spawn` 使用 `shell: false`。
 
@@ -130,4 +129,4 @@ Preload `invoke`：若 `!ok`，抛出 `Error('[code] message')`；Renderer 看�
 | `IPC_INVALID_PAYLOAD` | zod 校验失败 |
 | `IPC_HANDLER_ERROR` | handler / 业务抛错（message 为错误信息） |
 
-另有业务层字符串错误（如 `bin not allowed: …`），经 `IPC_HANDLER_ERROR` 或结果对象的 `error` 字段返回（`bin.exec`）。
+另有业务层字符串错误（如 `sidecar not allowed: …`），经 `IPC_HANDLER_ERROR` 或结果对象的 `error` 字段返回（`sidecar.exec`）。

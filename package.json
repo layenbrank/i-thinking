@@ -40,6 +40,7 @@
     "unit": "turbo run unit"
   },
   "dependencies": {
+    "@ant-design/cssinjs": "^2.1.2",
     "@ariakit/react": "^0.4.20",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
@@ -61,6 +62,7 @@
     "@radix-ui/react-popover": "^1.1.15",
     "@react-spring/konva": "^10.0.3",
     "@reactuses/core": "^6.3.2",
+    "@tanstack/react-query": "^5.101.2",
     "@tauri-apps/api": "^2.9.1",
     "@tauri-apps/plugin-autostart": "~2.5.1",
     "@tauri-apps/plugin-barcode-scanner": "~2.4.2",
@@ -262,7 +264,7 @@
     "vitest": "^4.0.14",
     "vue-tsc": "^3.1.1"
   },
-  "packageManager": "pnpm@11.13.0+sha512.88d94724d8f2e6c186744a5584c6e59ecac869ec7ba15e9cb4cd628e8dc7066820b2481d8ee3b51ea8da323a7378068aa58c556a3720d32b7c20a051d088363a",
+  "packageManager": "pnpm@11.15.1+sha512.81350b07e53c9538a02f1f2303b4290fa2d7be04e56e2a970c4cc4b417dc761de196edabd49d55c7dc9580db81007c44143e4e3d7e462b3000d23c255122d065",
   "engines": {
     "node": ">=24.18.0"
   }

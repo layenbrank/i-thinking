@@ -14,7 +14,7 @@
         "tsconfig*.json"
       ],
       "outputLogs": "full",
-      "outputs": ["dist/**", ".vitepress/dist/**"]
+      "outputs": ["dist/**", ".vitepress/dist/**", ".vite/**", "out/**"]
     },
     "coverage": {
       "cache": true,

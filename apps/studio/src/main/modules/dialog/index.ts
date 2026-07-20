@@ -3,7 +3,7 @@ import type { StudioModule } from '../../module'
 import { registerDialogHandlers } from './handlers'
 import { DialogService } from './service'
 
-export function createDialogModule(): StudioModule {
+function buildDialogModule(): StudioModule {
   return {
     name: 'dialog',
     register(ctx: AppContext) {
@@ -15,3 +15,5 @@ export function createDialogModule(): StudioModule {
     }
   }
 }
+
+export { buildDialogModule }

@@ -1,18 +1,18 @@
 import started from 'electron-squirrel-startup'
 import path from 'node:path'
-import { createAppContext } from './app-context'
-import { createLogger } from './logger'
+import { buildAppContext } from './app-context'
+import { buildLogger } from './logger'
 import type { StudioModule } from './module'
-import { createBinModule } from './modules/bin'
-import { createDatabaseModule } from './modules/database'
-import { createDevtoolsModule } from './modules/devtools'
-import { createDialogModule } from './modules/dialog'
-import { createSecurityModule } from './modules/security'
-import { createStoreModule } from './modules/store'
-import { createWindowModule } from './modules/window'
+import { buildSidecarModule } from './modules/sidecar'
+import { buildDatabaseModule } from './modules/database'
+import { buildDevtoolsModule } from './modules/devtools'
+import { buildDialogModule } from './modules/dialog'
+import { buildSecurityModule } from './modules/security'
+import { buildStoreModule } from './modules/store'
+import { buildWindowModule } from './modules/window'
 
 export async function bootstrap(): Promise<void> {
-  const log = createLogger('bootstrap')
+  const log = buildLogger('bootstrap')
 
   if (started) {
     const { app } = await import('electron')
@@ -40,15 +40,15 @@ export async function bootstrap(): Promise<void> {
   process.env.APP_ROOT = appPath
   process.env.VITE_PUBLIC = path.join(appPath, 'public')
 
-  const ctx = createAppContext()
+  const ctx = buildAppContext()
   const modules: StudioModule[] = [
-    createSecurityModule(),
-    createStoreModule(),
-    createDialogModule(),
-    createDatabaseModule(),
-    createBinModule(),
-    createDevtoolsModule(),
-    createWindowModule()
+    buildSecurityModule(),
+    buildStoreModule(),
+    buildDialogModule(),
+    buildDatabaseModule(),
+    buildSidecarModule(),
+    buildDevtoolsModule(),
+    buildWindowModule()
   ]
 
   for (const mod of modules) {
@@ -75,5 +75,8 @@ export async function bootstrap(): Promise<void> {
     })()
   })
 
-  log.info('studio ready', { appPath, isDev: ctx.isDev })
+  log.info('studio ready', {
+    appPath,
+    isDev: ctx.isDev
+  })
 }

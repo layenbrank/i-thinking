@@ -12,6 +12,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        format: 'cjs',
         entryFileNames: 'preload.js'
       }
     }

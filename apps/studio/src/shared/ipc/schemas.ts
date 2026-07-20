@@ -50,12 +50,12 @@ export const userRemoveSchema = z.object({
   id: z.number().int().positive()
 })
 
-export const binNameSchema = z.object({
-  exeName: z.string().min(1)
+export const sidecarNameSchema = z.object({
+  name: z.string().min(1)
 })
 
-export const binExecSchema = z.object({
-  exeName: z.string().min(1),
+export const sidecarExecSchema = z.object({
+  name: z.string().min(1),
   args: z
     .array(z.string().max(4096).refine(function (value) {
       return !value.includes('\0')
@@ -75,6 +75,6 @@ export type DialogSaveInput = z.infer<typeof dialogSaveSchema>
 export type UserCreateInput = z.infer<typeof userCreateSchema>
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>
 export type UserRemoveInput = z.infer<typeof userRemoveSchema>
-export type BinNameInput = z.infer<typeof binNameSchema>
-export type BinExecInput = z.infer<typeof binExecSchema>
+export type SidecarNameInput = z.infer<typeof sidecarNameSchema>
+export type SidecarExecInput = z.infer<typeof sidecarExecSchema>
 export type DevtoolsVisibleInput = z.infer<typeof devtoolsVisibleSchema>

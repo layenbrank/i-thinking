@@ -15,8 +15,8 @@ export const CHANNELS = {
   USER_UPDATE: 'user:update',
   USER_REMOVE: 'user:remove',
 
-  BIN_GET_PATH: 'bin:get-path',
-  BIN_EXEC: 'bin:exec',
+  SIDECAR_FIND_PATH: 'sidecar:find-path',
+  SIDECAR_EXEC: 'sidecar:exec',
 
   DEVTOOLS_UPDATE_VISIBLE: 'devtools:update-visible',
 

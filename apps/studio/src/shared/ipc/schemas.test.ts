@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  binNameSchema,
+  sidecarNameSchema,
   storeGetSchema,
   userCreateSchema
 } from './schemas'
@@ -21,8 +21,8 @@ describe('ipc schemas', function () {
     expect(parsed.success).toBe(true)
   })
 
-  it('accepts bin name payload', function () {
-    const parsed = binNameSchema.safeParse({ exeName: 'tool.exe' })
+  it('accepts sidecar name payload', function () {
+    const parsed = sidecarNameSchema.safeParse({ name: 'tool.exe' })
     expect(parsed.success).toBe(true)
   })
 })

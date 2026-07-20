@@ -1,0 +1,89 @@
+name: Studio Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, develop]
+    paths:
+      - 'apps/studio/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/studio-desktop.yaml'
+
+concurrency:
+  group: studio-desktop-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  make:
+    name: make (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/studio/sidecar -> target
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate
+        run: pnpm --filter @i-thinking/studio exec prisma generate
+
+      - name: Rebuild natives
+        run: pnpm --filter @i-thinking/studio rebuild
+
+      - name: Build Rust sidecars
+        run: pnpm --filter @i-thinking/studio sidecar:build
+
+      - name: Make installers
+        env:
+          NODE_ENV: production
+        run: pnpm --filter @i-thinking/studio make
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-${{ matrix.os }}
+          retention-days: 14
+          path: |
+            apps/studio/out/**
+          if-no-files-found: warn
