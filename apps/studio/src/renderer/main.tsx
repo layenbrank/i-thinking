@@ -5,8 +5,12 @@ import App from '@/App.tsx'
 import '@/styles/index.scss'
 import { findStudio } from '@/lib/studio.ts'
 
-import CustomIconify from '@i-thinking/shared'
+import MDIconify from '@i-thinking/shared/mdi.json'
+import AntIconify from '@i-thinking/shared/ant-design.json'
+import CustomIconify from '@i-thinking/shared/iconify.json'
 
+addCollection(MDIconify)
+addCollection(AntIconify)
 addCollection(CustomIconify)
 
 const rootElement = document.getElementById('app') as HTMLElement
@@ -26,9 +30,10 @@ const root = createRoot(rootElement, {
 root.render(<App />)
 
 try {
-  window.studio.app.onMessage(function (message) {
+  findStudio().app.onMessage(function (message) {
     console.log('main-process-message', message)
   })
-} catch {
+} catch (error) {
   // 纯网页模式无 bridge
+  console.error('Error occurred while setting up message listener:', error)
 }
