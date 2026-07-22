@@ -7,7 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@main': fileURLToPath(new URL('./src/main', import.meta.url)),
-      '@shared': fileURLToPath(new URL('./src/shared', import.meta.url))
+      '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
+      '@generated': fileURLToPath(new URL('./generated', import.meta.url))
     }
   },
   build: {

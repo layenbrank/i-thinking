@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isAllowedPageUrl } from './trusted-sender'
-import type { AppContext } from '../app-context'
+import type { AppContext } from '@main/app-context'
 
 function stubCtx(partial: Partial<AppContext> & Pick<AppContext, 'isDev'>): AppContext {
   return {

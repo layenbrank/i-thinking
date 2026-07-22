@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { CHANNELS } from '../shared/ipc/channels'
-import type { IpcResult } from '../shared/ipc/result'
-import type { Studio } from '../shared/ipc/contracts'
+import { CHANNELS } from '@shared/ipc/channels'
+import type { IpcResult } from '@shared/ipc/result'
+import type { Studio } from '@shared/ipc/contracts'
 
 async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>

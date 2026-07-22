@@ -1,12 +1,12 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
+import { CHANNELS } from '@shared/ipc/channels'
 import {
   storeDeleteSchema,
   storeGetSchema,
   storeHasSchema,
   storeSetSchema
-} from '../../../shared/ipc/schemas'
-import type { AppContext } from '../../app-context'
-import { registerHandler } from '../../ipc/handle'
+} from '@shared/ipc/schemas'
+import type { AppContext } from '@main/app-context'
+import { registerHandler } from '@main/ipc/handle'
 import type { StoreService } from './service'
 
 export function registerStoreHandlers(ctx: AppContext, service: StoreService): void {

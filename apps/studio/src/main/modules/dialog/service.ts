@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog } from 'electron'
-import type { DialogOpenInput, DialogSaveInput } from '../../../shared/ipc/schemas'
+import type { DialogOpenInput, DialogSaveInput } from '@shared/ipc/schemas'
 
 export class DialogService {
   private readonly findWindow: () => BrowserWindow | null

@@ -1,5 +1,5 @@
 import type { IpcMainInvokeEvent } from 'electron'
-import type { AppContext } from '../app-context'
+import type { AppContext } from '@main/app-context'
 
 /**
  * 仅信任：已登记的本应用 WebContents，且 URL 落在允许 origin / 生产 file:。

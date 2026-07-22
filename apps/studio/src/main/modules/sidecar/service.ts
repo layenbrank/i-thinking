@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
-import type { SidecarExecResult } from '../../../shared/ipc/contracts'
+import type { SidecarExecResult } from '@shared/ipc/contracts'
 import { findPlatformSidecars, isAllowedSidecarName } from './allowlist'
 
 function findPlatformKey(platform = process.platform, arch = process.arch): string {

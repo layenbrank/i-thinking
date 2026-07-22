@@ -62,7 +62,8 @@
       "@/*": ["./src/renderer/*"],
       "@shared/*": ["./src/shared/*"],
       "@main/*": ["./src/main/*"],
-      "@preload/*": ["./src/preload/*"]
+      "@preload/*": ["./src/preload/*"],
+      "@generated/*": ["./generated/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],

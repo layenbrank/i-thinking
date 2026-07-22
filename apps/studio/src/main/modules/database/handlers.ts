@@ -1,11 +1,11 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
+import { CHANNELS } from '@shared/ipc/channels'
 import {
   userCreateSchema,
   userRemoveSchema,
   userUpdateSchema
-} from '../../../shared/ipc/schemas'
-import type { AppContext } from '../../app-context'
-import { registerHandler } from '../../ipc/handle'
+} from '@shared/ipc/schemas'
+import type { AppContext } from '@main/app-context'
+import { registerHandler } from '@main/ipc/handle'
 import type { DatabaseService } from './service'
 
 export function registerDatabaseHandlers(

@@ -2,8 +2,8 @@ import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { app } from 'electron'
 import { existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
-import type { PrismaClient } from '../../../../generated/prisma'
-import { findAppRequire, findAppRoot } from '../../paths'
+import type { PrismaClient } from '@generated/prisma'
+import { findAppRequire, findAppRoot } from '@main/paths'
 
 let PrismaClientCtor: typeof PrismaClient | null = null
 let client: PrismaClient | null = null

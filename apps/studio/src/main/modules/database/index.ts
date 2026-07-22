@@ -1,5 +1,5 @@
-import type { AppContext } from '../../app-context'
-import type { StudioModule } from '../../module'
+import type { AppContext } from '@main/app-context'
+import type { StudioModule } from '@main/module'
 import { disconnectPrisma } from './client'
 import { registerDatabaseHandlers } from './handlers'
 import { DatabaseService } from './service'

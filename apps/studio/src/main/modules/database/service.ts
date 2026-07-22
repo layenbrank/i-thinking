@@ -1,9 +1,9 @@
-import type { UserRecord } from '../../../shared/ipc/contracts'
+import type { UserRecord } from '@shared/ipc/contracts'
 import type {
   UserCreateInput,
   UserRemoveInput,
   UserUpdateInput
-} from '../../../shared/ipc/schemas'
+} from '@shared/ipc/schemas'
 import { UserRepository } from './repositories/user-repository'
 
 export class DatabaseService {

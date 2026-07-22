@@ -6,7 +6,8 @@
     "types": ["node"],
     "paths": {
       "@main/*": ["./src/main/*"],
-      "@shared/*": ["./src/shared/*"]
+      "@shared/*": ["./src/shared/*"],
+      "@generated/*": ["./generated/*"]
     }
   },
   "include": ["src/main/**/*.ts", "src/shared/**/*.ts"],

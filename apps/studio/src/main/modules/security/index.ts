@@ -1,7 +1,7 @@
 import { session, type WebContents } from 'electron'
-import type { AppContext } from '../../app-context'
-import { isAllowedPageUrl } from '../../ipc/trusted-sender'
-import type { StudioModule } from '../../module'
+import type { AppContext } from '@main/app-context'
+import { isAllowedPageUrl } from '@main/ipc/trusted-sender'
+import type { StudioModule } from '@main/module'
 
 const ALLOWED_PERMISSIONS = new Set<string>([])
 

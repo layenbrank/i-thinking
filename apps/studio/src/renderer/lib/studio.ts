@@ -1,4 +1,4 @@
-import type { Studio } from '../../shared/ipc/contracts'
+import type { Studio } from '@shared/ipc/contracts'
 
 export function findStudio(): Studio {
   if (typeof window === 'undefined' || !window.studio) {

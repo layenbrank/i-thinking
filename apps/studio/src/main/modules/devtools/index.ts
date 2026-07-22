@@ -1,8 +1,8 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { devtoolsVisibleSchema } from '../../../shared/ipc/schemas'
-import type { AppContext } from '../../app-context'
-import { registerHandler } from '../../ipc/handle'
-import type { StudioModule } from '../../module'
+import { CHANNELS } from '@shared/ipc/channels'
+import { devtoolsVisibleSchema } from '@shared/ipc/schemas'
+import type { AppContext } from '@main/app-context'
+import { registerHandler } from '@main/ipc/handle'
+import type { StudioModule } from '@main/module'
 
 function buildDevtoolsModule(): StudioModule {
   return {

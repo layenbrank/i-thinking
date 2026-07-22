@@ -1,10 +1,10 @@
 import { BrowserWindow } from 'electron'
 import path from 'node:path'
-import { CHANNELS } from '../../../shared/ipc/channels'
-import type { AppContext } from '../../app-context'
-import type { StudioModule } from '../../module'
-import { findBundleDir } from '../../paths'
-import { attachWindowGuards } from '../security'
+import { CHANNELS } from '@shared/ipc/channels'
+import type { AppContext } from '@main/app-context'
+import type { StudioModule } from '@main/module'
+import { findBundleDir } from '@main/paths'
+import { attachWindowGuards } from '@main/modules/security'
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined
 declare const MAIN_WINDOW_VITE_NAME: string

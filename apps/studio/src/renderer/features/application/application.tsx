@@ -1,7 +1,5 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { openUrl } from '@tauri-apps/plugin-opener'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
 import { createContext } from 'react'
@@ -303,7 +301,10 @@ const Application = {
     return (
       <div
         {...listens}
-        onDoubleClick={() => onUpdateVisible(true)}
+        onDoubleClick={function () {
+          if (props.component !== 'navigation') return onUpdateVisible(true)
+          // void window.studio.opener.openUrl(props.url ?? '')
+        }}
         {...attributes}
         ref={setNodeRef}
         data-id={props.id}

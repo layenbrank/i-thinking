@@ -1,7 +1,7 @@
-import { CHANNELS } from '../../../shared/ipc/channels'
-import { dialogOpenSchema, dialogSaveSchema } from '../../../shared/ipc/schemas'
-import type { AppContext } from '../../app-context'
-import { registerHandler } from '../../ipc/handle'
+import { CHANNELS } from '@shared/ipc/channels'
+import { dialogOpenSchema, dialogSaveSchema } from '@shared/ipc/schemas'
+import type { AppContext } from '@main/app-context'
+import { registerHandler } from '@main/ipc/handle'
 import type { DialogService } from './service'
 
 export function registerDialogHandlers(ctx: AppContext, service: DialogService): void {
