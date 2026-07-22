@@ -4,6 +4,7 @@ import { buildAppContext } from './app-context'
 import { buildLogger } from './logger'
 import type { StudioModule } from './module'
 import { buildSidecarModule } from './modules/sidecar'
+import { buildScreenshotModule } from './modules/screenshot'
 import { buildDatabaseModule } from './modules/database'
 import { buildDevtoolsModule } from './modules/devtools'
 import { buildDialogModule } from './modules/dialog'
@@ -47,6 +48,7 @@ export async function bootstrap(): Promise<void> {
     buildDialogModule(),
     buildDatabaseModule(),
     buildSidecarModule(),
+    buildScreenshotModule(),
     buildDevtoolsModule(),
     buildWindowModule()
   ]

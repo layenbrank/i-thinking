@@ -1,15 +1,31 @@
 import type { AppContext } from '@main/app-context'
 import type { StudioModule } from '@main/module'
+import type { CorexHost } from './corex-host'
 import { registerSidecarHandlers } from './handlers'
-import { SidecarService } from './service'
 
 function buildSidecarModule(): StudioModule {
-  const service = new SidecarService()
+  let corex: CorexHost | null = null
+
   return {
     name: 'sidecar',
-    register(ctx: AppContext) {
-      registerSidecarHandlers(ctx, service)
-      ctx.logger.child('sidecar').info('registered')
+    async register(ctx: AppContext) {
+      corex = ctx.corex
+      registerSidecarHandlers(ctx, ctx.sidecars)
+      try {
+        await ctx.corex.start()
+        ctx.logger.child('sidecar').info('registered', {
+          corexModules: ctx.corex.findModules()
+        })
+      } catch (error) {
+        // 常驻能力不可用时仍允许壳启动；域模块 invoke 时再失败
+        ctx.logger.child('sidecar').error('corex start failed', error)
+      }
+    },
+    async dispose() {
+      if (!corex) {
+        return
+      }
+      await corex.stop()
     }
   }
 }
@@ -17,3 +33,4 @@ function buildSidecarModule(): StudioModule {
 export { buildSidecarModule }
 export { isAllowedSidecarName } from './allowlist'
 export { SidecarService } from './service'
+export { CorexHost } from './corex-host'

@@ -6,12 +6,16 @@ import {
   type WebContents
 } from 'electron'
 import { buildLogger, type Logger } from './logger'
+import { CorexHost } from './modules/sidecar/corex-host'
+import { SidecarService } from './modules/sidecar/service'
 
 type AppContext = {
   app: typeof app
   ipc: IpcMain
   isDev: boolean
   logger: Logger
+  sidecars: SidecarService
+  corex: CorexHost
   findWindow: () => BrowserWindow | null
   setWindow: (win: BrowserWindow | null) => void
   /** 登记可信渲染进程（IPC / 导航校验用） */
@@ -28,12 +32,17 @@ function buildAppContext(): AppContext {
   const trustedIds = new Set<number>()
   let allowedOrigins: readonly string[] = []
   const isDev = !app.isPackaged
+  const logger = buildLogger('main')
+  const sidecars = new SidecarService()
+  const corex = new CorexHost(sidecars, logger)
 
   return {
     app,
     ipc: ipcMain,
     isDev,
-    logger: buildLogger('main'),
+    logger,
+    sidecars,
+    corex,
     findWindow() {
       return mainWindow
     },

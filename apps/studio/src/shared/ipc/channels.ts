@@ -18,6 +18,10 @@ export const CHANNELS = {
   SIDECAR_FIND_PATH: 'sidecar:find-path',
   SIDECAR_EXEC: 'sidecar:exec',
 
+  SCREENSHOT_CAPTURE: 'screenshot:capture',
+  SCREENSHOT_RECORD_START: 'screenshot:record-start',
+  SCREENSHOT_RECORD_STOP: 'screenshot:record-stop',
+
   DEVTOOLS_UPDATE_VISIBLE: 'devtools:update-visible',
 
   APP_MESSAGE: 'app:message'

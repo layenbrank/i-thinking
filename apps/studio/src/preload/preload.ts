@@ -65,6 +65,17 @@ const studio: Studio = {
       return invoke(CHANNELS.SIDECAR_EXEC, input)
     }
   },
+  screenshot: {
+    capture() {
+      return invoke(CHANNELS.SCREENSHOT_CAPTURE)
+    },
+    recordStart() {
+      return invoke(CHANNELS.SCREENSHOT_RECORD_START)
+    },
+    recordStop() {
+      return invoke(CHANNELS.SCREENSHOT_RECORD_STOP)
+    }
+  },
   devtools: {
     updateVisible(input) {
       return invoke(CHANNELS.DEVTOOLS_UPDATE_VISIBLE, input)

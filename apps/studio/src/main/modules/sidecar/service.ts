@@ -27,6 +27,8 @@ class SidecarService {
       return Promise.resolve({
         code: null,
         signal: null,
+        stdout: '',
+        stderr: '',
         error: `sidecar not allowed: ${name}`
       })
     }
@@ -35,6 +37,8 @@ class SidecarService {
       return Promise.resolve({
         code: null,
         signal: null,
+        stdout: '',
+        stderr: '',
         error: `sidecar not available on ${process.platform}: ${name}`
       })
     }
@@ -49,16 +53,26 @@ class SidecarService {
       return Promise.resolve({
         code: null,
         signal: null,
+        stdout: '',
+        stderr: '',
         error: `sidecar not found: ${sidecarPath}`
       })
     }
     return new Promise(function (resolve) {
       const proc = spawn(sidecarPath, safeArgs, { stdio: 'pipe', shell: false })
+      let stdout = ''
+      let stderr = ''
+      proc.stdout.on('data', function (chunk: Buffer) {
+        stdout += chunk.toString('utf8')
+      })
+      proc.stderr.on('data', function (chunk: Buffer) {
+        stderr += chunk.toString('utf8')
+      })
       proc.on('error', function (err) {
-        resolve({ code: null, signal: null, error: String(err) })
+        resolve({ code: null, signal: null, stdout, stderr, error: String(err) })
       })
       proc.on('close', function (code, signal) {
-        resolve({ code, signal })
+        resolve({ code, signal, stdout, stderr })
       })
     })
   }

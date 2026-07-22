@@ -22,7 +22,21 @@ export interface UserRecord {
 export interface SidecarExecResult {
   code: number | null
   signal: string | null
+  stdout?: string
+  stderr?: string
   error?: string
+}
+
+export interface ScreenshotCaptureResult {
+  path: string
+  width: number
+  height: number
+}
+
+export interface ScreenshotRecordStopResult {
+  path: string
+  frameCount: number
+  durationMs: number
 }
 
 /** Renderer SDK 与 Main 对齐的 API 形状（不含实现） */
@@ -48,6 +62,11 @@ export interface Studio {
   sidecar: {
     findPath: (input: SidecarNameInput) => Promise<string>
     exec: (input: SidecarExecInput) => Promise<SidecarExecResult>
+  }
+  screenshot: {
+    capture: () => Promise<ScreenshotCaptureResult>
+    recordStart: () => Promise<void>
+    recordStop: () => Promise<ScreenshotRecordStopResult>
   }
   devtools: {
     updateVisible: (input: DevtoolsVisibleInput) => Promise<void>

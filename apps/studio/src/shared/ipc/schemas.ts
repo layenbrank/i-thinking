@@ -68,6 +68,10 @@ export const devtoolsVisibleSchema = z.object({
   visible: z.boolean()
 })
 
+/** 截屏/录屏 IPC 无业务入参；路径由 Main 生成 */
+export const screenshotCaptureSchema = z.object({}).optional()
+export const screenshotRecordSchema = z.object({}).optional()
+
 export type StoreGetInput = z.infer<typeof storeGetSchema>
 export type StoreSetInput = z.infer<typeof storeSetSchema>
 export type DialogOpenInput = z.infer<typeof dialogOpenSchema>
@@ -78,3 +82,5 @@ export type UserRemoveInput = z.infer<typeof userRemoveSchema>
 export type SidecarNameInput = z.infer<typeof sidecarNameSchema>
 export type SidecarExecInput = z.infer<typeof sidecarExecSchema>
 export type DevtoolsVisibleInput = z.infer<typeof devtoolsVisibleSchema>
+export type ScreenshotCaptureInput = z.infer<typeof screenshotCaptureSchema>
+export type ScreenshotRecordInput = z.infer<typeof screenshotRecordSchema>
