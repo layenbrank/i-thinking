@@ -4,12 +4,12 @@ import { CHANNELS } from '@shared/ipc/channels'
 import type { AppContext } from '@main/app-context'
 import type { StudioModule } from '@main/module'
 import { findBundleDir } from '@main/paths'
-import { attachWindowGuards } from '@main/modules/security'
+import { attachGuards as attachWindowGuards } from '@main/modules/security'
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined
 declare const MAIN_WINDOW_VITE_NAME: string
 
-function buildWindowModule(): StudioModule {
+function buildModule(): StudioModule {
   return {
     name: 'window',
     register(ctx: AppContext) {
@@ -27,10 +27,7 @@ function buildWindowModule(): StudioModule {
       function buildWindow() {
         const publicDir = process.env.VITE_PUBLIC ?? ''
         const bundleDir = findBundleDir()
-        const htmlPath = path.join(
-          bundleDir,
-          `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
-        )
+        const htmlPath = path.join(bundleDir, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
         const preloadPath = path.join(bundleDir, 'preload.js')
 
         const win = new BrowserWindow({
@@ -77,13 +74,11 @@ function buildWindowModule(): StudioModule {
 
         win.webContents.on('did-finish-load', function () {
           if (!win.isDestroyed()) {
-            win.webContents.send(CHANNELS.APP_MESSAGE, new Date().toLocaleString())
+            win.webContents.send(CHANNELS.APP.MESSAGE, new Date().toLocaleString())
           }
         })
 
-        if (ctx.isDev) {
-          win.webContents.openDevTools()
-        }
+        if (ctx.isDev) win.webContents.openDevTools()
 
         if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
           void win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
@@ -123,4 +118,4 @@ function buildWindowModule(): StudioModule {
   }
 }
 
-export { buildWindowModule }
+export { buildModule }

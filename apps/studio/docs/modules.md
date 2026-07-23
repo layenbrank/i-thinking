@@ -40,18 +40,24 @@
 推荐每个有业务的模块：
 
 ```text
-index.ts       → buildXxxModule()
-handlers.ts    → registerHandler + zod
-service.ts     → 用例
-repositories/  → 仅 database 需要
+index.ts       → buildModule()（域外别名导入，如 buildModule as buildDialogModule）
+handlers.ts    → registerHandlers + 本模块 schemas
+schemas.ts     → 手写类型 + zod 校验（同文件；禁止 z.infer 当业务类型）
+service.ts     → 可选用例（跨实体编排 / 事务 / 领域规则）；域内类名 Service
+repositories/  → 仅 database；CRUD 可 handlers → repository；域内类名 Repository
 ```
+
+- **纯 CRUD**：`handlers` 直接组合 repository，不要为每个方法写 1:1 转发的 Service。
+- **有用例时**：新增具名 `service` / `services/<use-case>.ts`，再编排多个 repository；禁止复活巨型透传门面。
+- **命名**：域内用 `buildModule` / `registerHandlers` / `Service` / `OpenInput` 等短名；域外用别名消歧义。
+- **类型**：数据类型与 schema 同放 `modules/<domain>/schemas.ts`；`shared/ipc/studio.ts` 仅组合 `Studio` API 形状。
 
 `dispose`：释放资源（如 `database` disconnect Prisma）；bootstrap 退出时逆序 await。
 
 ## 新增模块检查清单
 
-1. 在 `modules/<name>/` 实现 `buildXxxModule`
-2. 扩展 `shared/ipc`（channels / schemas / contracts）
+1. 在 `modules/<name>/` 实现 `buildModule` + `schemas.ts`（类型+校验；bootstrap 侧别名导入）
+2. 扩展 `shared/ipc`（channels + `studio.ts` 挂上新命名空间）
 3. `bootstrap.ts` 数组中注册
 4. `preload/preload.ts` 挂到 `window.studio`
 5. 更新 [api-reference.md](./api-reference.md) 与 [examples.md](./examples.md)

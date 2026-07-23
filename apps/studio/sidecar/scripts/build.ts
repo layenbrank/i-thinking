@@ -3,9 +3,11 @@ import { createHash } from 'node:crypto'
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { ensureFfmpegVendor, findRuntimeDlls, findVendorRoot } from './fetch-ffmpeg.ts'
+
 const SIDECAR_ROOT = path.resolve(import.meta.dirname, '..')
 const MANIFEST_PATH = path.join(SIDECAR_ROOT, 'manifest.json')
-const SIDECARS = ['corex', 'generate', 'service'] as const
+const CARGO_SIDECARS = ['corex', 'generate', 'service'] as const
 const CARGO_PACKAGES = ['-p', 'corex', '-p', 'generate', '-p', 'service'] as const
 
 type SidecarAction = 'build' | 'stage' | 'verify'
@@ -23,10 +25,7 @@ function findPlatformKey(platform = process.platform, arch = process.arch): stri
   return `${platform}-${arch}`
 }
 
-function findSidecarFileName(
-  name: (typeof SIDECARS)[number],
-  platform = process.platform
-): string {
+function findSidecarFileName(name: string, platform = process.platform): string {
   return platform === 'win32' ? `${name}.exe` : name
 }
 
@@ -55,7 +54,7 @@ function findStagedDir(key = findPlatformKey()): string {
 
 function parseManifest(): SidecarManifest {
   if (!existsSync(MANIFEST_PATH)) {
-    return { sidecars: [...SIDECARS], platforms: {} }
+    return { sidecars: [...CARGO_SIDECARS], platforms: {} }
   }
   return JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) as SidecarManifest
 }
@@ -64,22 +63,58 @@ function writeManifest(manifest: SidecarManifest): void {
   writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
 }
 
-function buildCargoRelease(): void {
-  const cargo = spawnSync(
-    'cargo',
-    ['build', '--release', ...CARGO_PACKAGES],
-    {
-      cwd: SIDECAR_ROOT,
-      stdio: 'inherit',
-      shell: process.platform === 'win32'
+function findLibclangPath(): string | undefined {
+  const candidates = [
+    process.env.LIBCLANG_PATH,
+    String.raw`C:\Program Files\LLVM\bin`,
+    String.raw`C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\bin`,
+    String.raw`C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\Llvm\x64\bin`,
+    String.raw`C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin`
+  ]
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue
     }
-  )
+    if (existsSync(path.join(candidate, 'libclang.dll'))) {
+      return candidate
+    }
+  }
+  return undefined
+}
+
+async function buildCargoRelease(): Promise<void> {
+  await ensureFfmpegVendor()
+  const ffmpegDir = findVendorRoot()
+  const libclangPath = findLibclangPath()
+  if (!libclangPath) {
+    console.error(
+      '[sidecar] LIBCLANG_PATH missing. Install LLVM (https://github.com/llvm/llvm-project/releases) or set LIBCLANG_PATH to the folder containing libclang.dll'
+    )
+    process.exit(1)
+  }
+
+  const env = {
+    ...process.env,
+    FFMPEG_DIR: ffmpegDir,
+    LIBCLANG_PATH: libclangPath,
+    PATH: `${path.join(ffmpegDir, 'bin')}${path.delimiter}${process.env.PATH ?? ''}`
+  }
+
+  console.log(`[sidecar] FFMPEG_DIR=${ffmpegDir}`)
+  console.log(`[sidecar] LIBCLANG_PATH=${libclangPath}`)
+
+  const cargo = spawnSync('cargo', ['build', '--release', ...CARGO_PACKAGES], {
+    cwd: SIDECAR_ROOT,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+    env
+  })
   if (cargo.status !== 0) {
     process.exit(cargo.status ?? 1)
   }
 }
 
-function stageReleaseBinaries(): void {
+async function stageReleaseBinaries(): Promise<void> {
   const key = findPlatformKey()
   const destDir = findStagedDir(key)
   mkdirSync(destDir, { recursive: true })
@@ -88,7 +123,7 @@ function stageReleaseBinaries(): void {
   const platformHashes: Record<string, string> = {}
   const releaseDir = findReleaseDir()
 
-  for (const name of SIDECARS) {
+  for (const name of CARGO_SIDECARS) {
     const fileName = findSidecarFileName(name)
     const src = path.join(releaseDir, fileName)
     if (!existsSync(src)) {
@@ -101,7 +136,21 @@ function stageReleaseBinaries(): void {
     console.log(`[sidecar] staged ${key}/${fileName}`)
   }
 
-  manifest.sidecars = [...SIDECARS]
+  await ensureFfmpegVendor()
+  const dlls = findRuntimeDlls(key)
+  if (dlls.length === 0) {
+    console.error('[sidecar] no FFmpeg runtime DLLs found; run pnpm sidecar:ffmpeg')
+    process.exit(1)
+  }
+  for (const dllSrc of dlls) {
+    const fileName = path.basename(dllSrc)
+    const dest = path.join(destDir, fileName)
+    cpSync(dllSrc, dest)
+    platformHashes[fileName] = hashFile(dest)
+    console.log(`[sidecar] staged ${key}/${fileName}`)
+  }
+
+  manifest.sidecars = [...CARGO_SIDECARS]
   manifest.platforms = manifest.platforms ?? {}
   manifest.platforms[key] = platformHashes
   writeManifest(manifest)
@@ -141,7 +190,7 @@ function parseAction(raw: string | undefined): SidecarAction | undefined {
   return undefined
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const action = parseAction(process.argv[2] ?? 'build')
   if (!action) {
     console.error('usage: build.ts build|stage|verify')
@@ -149,13 +198,13 @@ function main(): void {
   }
 
   if (action === 'build') {
-    buildCargoRelease()
-    stageReleaseBinaries()
+    await buildCargoRelease()
+    await stageReleaseBinaries()
     process.exit(0)
   }
 
   if (action === 'stage') {
-    stageReleaseBinaries()
+    await stageReleaseBinaries()
     process.exit(0)
   }
 
@@ -163,7 +212,10 @@ function main(): void {
   process.exit(0)
 }
 
-main()
+main().catch(function (error) {
+  console.error(error instanceof Error ? error.message : error)
+  process.exit(1)
+})
 
 export {
   findPlatformKey,

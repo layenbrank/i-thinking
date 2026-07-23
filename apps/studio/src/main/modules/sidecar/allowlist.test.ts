@@ -17,6 +17,8 @@ describe('sidecar allowlist', function () {
     expect(isAllowedSidecarName('corex.exe')).toBe(true)
     expect(isAllowedSidecarName('corex')).toBe(true)
     expect(isAllowedSidecarName('generate')).toBe(true)
+    expect(isAllowedSidecarName('ffmpeg.exe')).toBe(false)
+    expect(isAllowedSidecarName('ffmpeg')).toBe(false)
   })
 
   it('accepts allowlisted names only', function () {

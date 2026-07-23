@@ -4,27 +4,16 @@ import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 
 import type { CorexHost } from '@main/modules/sidecar/corex-host'
+import type { CaptureResult, RecordStopResult } from './schemas'
 
-type ScreenshotCaptureResult = {
-  path: string
-  width: number
-  height: number
-}
-
-type ScreenshotRecordStopResult = {
-  path: string
-  frameCount: number
-  durationMs: number
-}
-
-class ScreenshotService {
+class Service {
   private readonly corex: CorexHost
 
   constructor(corex: CorexHost) {
     this.corex = corex
   }
 
-  async capture(): Promise<ScreenshotCaptureResult> {
+  async capture(): Promise<CaptureResult> {
     if (!this.corex.hasModule('screenshot')) {
       throw new Error('corex screenshot module unavailable')
     }
@@ -32,7 +21,7 @@ class ScreenshotService {
     const output = await this.buildOutputPath('screenshot', 'png')
     const data = (await this.corex.invoke('screenshot.capture', {
       output
-    })) as ScreenshotCaptureResult
+    })) as CaptureResult
 
     if (!data?.path || !existsSync(data.path)) {
       throw new Error('screenshot capture did not produce a file')
@@ -48,18 +37,19 @@ class ScreenshotService {
     if (!this.corex.hasModule('screenshot')) {
       throw new Error('corex screenshot module unavailable')
     }
-    await this.corex.invoke('screenshot.recordStart')
+
+    const output = await this.buildOutputPath('recording', 'mkv')
+    await this.corex.invoke('screenshot.recordStart', {
+      output
+    })
   }
 
-  async recordStop(): Promise<ScreenshotRecordStopResult> {
+  async recordStop(): Promise<RecordStopResult> {
     if (!this.corex.hasModule('screenshot')) {
       throw new Error('corex screenshot module unavailable')
     }
 
-    const output = await this.buildOutputPath('recording', 'gif')
-    const data = (await this.corex.invoke('screenshot.recordStop', {
-      output
-    })) as ScreenshotRecordStopResult
+    const data = (await this.corex.invoke('screenshot.recordStop', {})) as RecordStopResult
 
     if (!data?.path || !existsSync(data.path)) {
       throw new Error('screenshot recordStop did not produce a file')
@@ -74,10 +64,12 @@ class ScreenshotService {
   private async buildOutputPath(kind: 'screenshot' | 'recording', ext: string): Promise<string> {
     const dirName = kind === 'screenshot' ? 'screenshots' : 'recordings'
     const dir = path.join(app.getPath('userData'), dirName)
-    await mkdir(dir, { recursive: true })
+    await mkdir(dir, {
+      recursive: true
+    })
     return path.join(dir, `${kind}-${Date.now()}.${ext}`)
   }
 }
 
-export type { ScreenshotCaptureResult, ScreenshotRecordStopResult }
-export { ScreenshotService }
+export type { CaptureResult, RecordStopResult } from './schemas'
+export { Service }

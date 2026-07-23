@@ -7,7 +7,7 @@ import {
 } from 'electron'
 import { buildLogger, type Logger } from './logger'
 import { CorexHost } from './modules/sidecar/corex-host'
-import { SidecarService } from './modules/sidecar/service'
+import { Service as SidecarService } from './modules/sidecar/service'
 
 type AppContext = {
   app: typeof app

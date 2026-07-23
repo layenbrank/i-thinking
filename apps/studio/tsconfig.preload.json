@@ -6,9 +6,14 @@
     "types": ["node"],
     "paths": {
       "@shared/*": ["./src/shared/*"],
-      "@preload/*": ["./src/preload/*"]
+      "@preload/*": ["./src/preload/*"],
+      "@main/*": ["./src/main/*"]
     }
   },
-  "include": ["src/preload/**/*.ts", "src/shared/**/*.ts"],
+  "include": [
+    "src/preload/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/main/modules/**/schemas.ts"
+  ],
   "exclude": ["**/node_modules/**", "**/*.test.ts"]
 }

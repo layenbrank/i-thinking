@@ -1,18 +1,18 @@
 import type { AppContext } from '@main/app-context'
 import type { StudioModule } from '@main/module'
-import { registerStoreHandlers } from './handlers'
-import { StoreService } from './service'
+import { registerHandlers } from './handlers'
+import { Service } from './service'
 
-function buildStoreModule(): StudioModule {
-  const service = new StoreService()
+function buildModule(): StudioModule {
+  const service = new Service()
   return {
     name: 'store',
     register(ctx: AppContext) {
-      registerStoreHandlers(ctx, service)
+      registerHandlers(ctx, service)
       ctx.logger.child('store').info('registered')
     }
   }
 }
 
 /** 供单测 */
-export { buildStoreModule, StoreService }
+export { buildModule, Service }

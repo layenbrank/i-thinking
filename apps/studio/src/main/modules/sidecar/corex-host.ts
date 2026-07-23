@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 
 import type { Logger } from '@main/logger'
 import { findPlatformSidecars } from './allowlist'
-import { SidecarService } from './service'
+import { Service } from './service'
 
 const READY_TIMEOUT_MS = 15_000
 const INVOKE_TIMEOUT_MS = 60_000
@@ -30,7 +30,7 @@ type PendingInvoke = {
 }
 
 class CorexHost {
-  private readonly sidecars: SidecarService
+  private readonly sidecars: Service
   private readonly logger: Logger
   private child: ChildProcessWithoutNullStreams | null = null
   private stdoutLines: Interface | null = null
@@ -43,7 +43,7 @@ class CorexHost {
     reject: (error: Error) => void
   } | null = null
 
-  constructor(sidecars: SidecarService, logger: Logger) {
+  constructor(sidecars: Service, logger: Logger) {
     this.sidecars = sidecars
     this.logger = logger.child('corex')
   }

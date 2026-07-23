@@ -6,9 +6,9 @@
   ],
   "platforms": {
     "win32-x64": {
-      "corex.exe": "6a9cafcddb8077fedb0af92b5e07f230c903d8e067fbe2afa0a4d9bc3f3d48dd",
-      "generate.exe": "17b87ee200d2b8c341f2ec4c766aef508e50dda80a0dfa746df654c750101eee",
-      "service.exe": "812e0ec8ff23b1f088f5b4fed0fe9fc18d9a6c267117863afec4003337322897"
+      "corex.exe": "0fbaef1edfdfb0fdaecea858192fe4360c8d34e341e77496e6a39828007d8f39",
+      "generate.exe": "5c9ea39a7a8b46a0fb22c2ed4be40f2d9ae858bc8ce84ef5173dbc07ec86468b",
+      "service.exe": "ccb1905f708e6c2e01251ce963f6704047f8cd87a5465b00bfbd6653c34d05cd"
     }
   }
 }

@@ -2,9 +2,9 @@
 
 源码真相：
 
-- [`src/shared/ipc/contracts.ts`](../src/shared/ipc/contracts.ts) — `StudioApi`
+- [`src/shared/ipc/studio.ts`](../src/shared/ipc/studio.ts) — `Studio` API 形状
 - [`src/shared/ipc/channels.ts`](../src/shared/ipc/channels.ts) — Channel 常量
-- [`src/shared/ipc/schemas.ts`](../src/shared/ipc/schemas.ts) — zod 入参
+- `src/main/modules/<domain>/schemas.ts` — 手写类型 + zod 校验（不 `z.infer`）
 - [`src/preload/preload.ts`](../src/preload/preload.ts) — 暴露与错误转换
 
 获取实例：

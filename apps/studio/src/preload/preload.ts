@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { CHANNELS } from '@shared/ipc/channels'
 import type { IpcResult } from '@shared/ipc/result'
-import type { Studio } from '@shared/ipc/contracts'
+import type { Studio } from '@shared/ipc/studio'
 
 async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
@@ -17,68 +17,68 @@ async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
 const studio: Studio = {
   store: {
     get(input) {
-      return invoke(CHANNELS.STORE_GET, input)
+      return invoke(CHANNELS.STORE.GET, input)
     },
     set(input) {
-      return invoke(CHANNELS.STORE_SET, input)
+      return invoke(CHANNELS.STORE.SET, input)
     },
     has(input) {
-      return invoke(CHANNELS.STORE_HAS, input)
+      return invoke(CHANNELS.STORE.HAS, input)
     },
     delete(input) {
-      return invoke(CHANNELS.STORE_DELETE, input)
+      return invoke(CHANNELS.STORE.DELETE, input)
     },
     clear() {
-      return invoke(CHANNELS.STORE_CLEAR)
+      return invoke(CHANNELS.STORE.CLEAR)
     },
     keys() {
-      return invoke(CHANNELS.STORE_KEYS)
+      return invoke(CHANNELS.STORE.KEYS)
     }
   },
   dialog: {
     open(input) {
-      return invoke(CHANNELS.DIALOG_OPEN, input)
+      return invoke(CHANNELS.DIALOG.OPEN, input)
     },
     save(input) {
-      return invoke(CHANNELS.DIALOG_SAVE, input)
+      return invoke(CHANNELS.DIALOG.SAVE, input)
     }
   },
   user: {
     list() {
-      return invoke(CHANNELS.USER_LIST)
+      return invoke(CHANNELS.USER.LIST)
     },
     create(input) {
-      return invoke(CHANNELS.USER_CREATE, input)
+      return invoke(CHANNELS.USER.CREATE, input)
     },
     update(input) {
-      return invoke(CHANNELS.USER_UPDATE, input)
+      return invoke(CHANNELS.USER.UPDATE, input)
     },
     remove(input) {
-      return invoke(CHANNELS.USER_REMOVE, input)
+      return invoke(CHANNELS.USER.REMOVE, input)
     }
   },
   sidecar: {
     findPath(input) {
-      return invoke(CHANNELS.SIDECAR_FIND_PATH, input)
+      return invoke(CHANNELS.SIDECAR.FIND_PATH, input)
     },
     exec(input) {
-      return invoke(CHANNELS.SIDECAR_EXEC, input)
+      return invoke(CHANNELS.SIDECAR.EXEC, input)
     }
   },
   screenshot: {
     capture() {
-      return invoke(CHANNELS.SCREENSHOT_CAPTURE)
+      return invoke(CHANNELS.SCREENSHOT.CAPTURE)
     },
     recordStart() {
-      return invoke(CHANNELS.SCREENSHOT_RECORD_START)
+      return invoke(CHANNELS.SCREENSHOT.RECORD_START)
     },
     recordStop() {
-      return invoke(CHANNELS.SCREENSHOT_RECORD_STOP)
+      return invoke(CHANNELS.SCREENSHOT.RECORD_STOP)
     }
   },
   devtools: {
     updateVisible(input) {
-      return invoke(CHANNELS.DEVTOOLS_UPDATE_VISIBLE, input)
+      return invoke(CHANNELS.DEVTOOLS.UPDATE_VISIBLE, input)
     }
   },
   app: {
@@ -86,9 +86,9 @@ const studio: Studio = {
       function handler(_event: unknown, payload: unknown) {
         callback(payload)
       }
-      ipcRenderer.on(CHANNELS.APP_MESSAGE, handler)
+      ipcRenderer.on(CHANNELS.APP.MESSAGE, handler)
       return function () {
-        ipcRenderer.removeListener(CHANNELS.APP_MESSAGE, handler)
+        ipcRenderer.removeListener(CHANNELS.APP.MESSAGE, handler)
       }
     }
   }

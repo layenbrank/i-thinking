@@ -77,7 +77,9 @@ src/main | src/preload | src/renderer | src/shared | sidecar/
 - 配置：`vitest.config.ts`
 - 约定：`src/**/*.test.ts`
 - 现有覆盖示例：
-  - `shared/ipc/schemas.test.ts`
+  - `main/modules/store/schemas.test.ts`
+  - `main/modules/database/schemas.test.ts`
+  - `main/modules/sidecar/schemas.test.ts`
   - `main/modules/sidecar/allowlist.test.ts`
   - `main/ipc/trusted-sender.test.ts`
   - `main/paths.test.ts`

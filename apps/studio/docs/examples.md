@@ -133,25 +133,34 @@ try {
 ### 9.1 `shared/ipc/channels.ts`
 
 ```ts
-SETTINGS_READ: 'settings:read',
-SETTINGS_WRITE: 'settings:write',
+SETTINGS: {
+  READ: 'settings:read',
+  WRITE: 'settings:write'
+},
 ```
 
-### 9.2 `shared/ipc/schemas.ts`
+### 9.2 `modules/settings/schemas.ts`（类型 + zod）
 
 ```ts
-export const settingsWriteSchema = z.object({
+import { z } from 'zod'
+
+export type WriteInput = {
+  key: string
+  value: unknown
+}
+
+export const writeSchema = z.object({
   key: z.string().min(1),
   value: z.unknown()
 })
 ```
 
-### 9.3 `shared/ipc/contracts.ts` — 扩展 `StudioApi`
+### 9.3 `shared/ipc/studio.ts` — 扩展 `Studio`
 
 ```ts
 settings: {
   read: (input: { key: string }) => Promise<unknown>
-  write: (input: { key: string; value: unknown }) => Promise<void>
+  write: (input: SettingsWriteInput) => Promise<void>
 }
 ```
 
@@ -159,16 +168,19 @@ settings: {
 
 ```text
 src/main/modules/settings/
+  schemas.ts
   service.ts
   handlers.ts
-  index.ts      → buildSettingsModule()
+  index.ts      → buildModule()
 ```
 
-`handlers.ts` 使用 `registerHandler(ctx, CHANNELS.SETTINGS_READ, schema, …)`。
+`handlers.ts` 使用 `registerHandler(ctx, CHANNELS.SETTINGS.READ, schema, …)`。
 
 ### 9.5 `bootstrap.ts` 注册
 
 ```ts
+import { buildModule as buildSettingsModule } from './modules/settings'
+
 buildSettingsModule(), // 插入 modules 数组合适位置
 ```
 
@@ -177,10 +189,10 @@ buildSettingsModule(), // 插入 modules 数组合适位置
 ```ts
 settings: {
   read(input) {
-    return invoke(CHANNELS.SETTINGS_READ, input)
+    return invoke(CHANNELS.SETTINGS.READ, input)
   },
   write(input) {
-    return invoke(CHANNELS.SETTINGS_WRITE, input)
+    return invoke(CHANNELS.SETTINGS.WRITE, input)
   }
 }
 ```

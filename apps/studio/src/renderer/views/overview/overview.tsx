@@ -55,6 +55,21 @@ export default function Overview() {
     })
   }
 
+  function handleScreenshot() {
+    void findStudio()?.screenshot.capture()
+  }
+
+  async function handleRecord() {
+    const studio = findStudio()
+    if (!studio) return
+
+    await studio.screenshot.recordStart()
+    await new Promise(function (resolve) {
+      setTimeout(resolve, 1000 * 10)
+    })
+    await studio.screenshot.recordStop()
+  }
+
   return (
     <Payload className={clsx(styles.overview, styles.payload)}>
       <Prefix
@@ -67,7 +82,19 @@ export default function Overview() {
             data-region="false"
             onClick={handleDevtools}
             className={clsx(styles.utility, styles.button)}>
-            ☰
+            <Icon icon="mdi:dev-to" />
+          </Button>
+          <Button
+            data-region="false"
+            onClick={handleScreenshot}
+            className={clsx(styles.utility, styles.button)}>
+            <Icon icon="mdi:camera-outline" />
+          </Button>
+          <Button
+            data-region="false"
+            onClick={handleRecord}
+            className={clsx(styles.utility, styles.button)}>
+            <Icon icon="mdi:record-rec" />
           </Button>
         </Space.Compact>
         <div

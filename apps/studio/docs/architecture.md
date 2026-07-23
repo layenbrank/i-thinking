@@ -99,10 +99,11 @@ interface StudioModule {
 模块内部分层（有业务时）：
 
 ```text
-handlers.ts  → sender 校验 + zod + 调 service
-service.ts   → 用例
-repositories/ → 仅 database；SQL 不出 Main
-index.ts     → buildXxxModule()
+handlers.ts   → sender 校验 + 本模块 schemas + 调 service 或 repository
+schemas.ts    → 手写类型 + zod 校验；禁止 z.infer
+service.ts    → 可选用例（编排 / 事务）；禁止 CRUD 1:1 透传
+repositories/ → 仅 database；SQL 不出 Main；纯 CRUD 可直接被 handlers 调用
+index.ts      → buildModule()（域外别名导入）
 ```
 
 详见 [modules.md](./modules.md)。
@@ -110,9 +111,9 @@ index.ts     → buildXxxModule()
 ## 5. IPC 契约
 
 - Channel 格式：`namespace:action`（见 [`channels.ts`](../src/shared/ipc/channels.ts)）
-- 入参：zod（[`schemas.ts`](../src/shared/ipc/schemas.ts)）
+- 入参/出参类型与 zod：同域 `modules/<domain>/schemas.ts`（手写类型 + 校验，禁止 `z.infer`）
 - 返回：`IpcResult<T>`（[`result.ts`](../src/shared/ipc/result.ts)）
-- 前端形状：`StudioApi`（[`contracts.ts`](../src/shared/ipc/contracts.ts)）
+- 前端形状：`Studio`（[`studio.ts`](../src/shared/ipc/studio.ts)）
 - 暴露名：仅 `window.studio`
 
 Main 侧 `registerHandler`：校验 **已登记 webContents** + **允许 URL**（开发绑定 Vite origin，生产 `file:`）→ zod → 业务 → `ipcOk` / `ipcFail`。

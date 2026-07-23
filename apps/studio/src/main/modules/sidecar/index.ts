@@ -1,16 +1,16 @@
 import type { AppContext } from '@main/app-context'
 import type { StudioModule } from '@main/module'
 import type { CorexHost } from './corex-host'
-import { registerSidecarHandlers } from './handlers'
+import { registerHandlers } from './handlers'
 
-function buildSidecarModule(): StudioModule {
+function buildModule(): StudioModule {
   let corex: CorexHost | null = null
 
   return {
     name: 'sidecar',
     async register(ctx: AppContext) {
       corex = ctx.corex
-      registerSidecarHandlers(ctx, ctx.sidecars)
+      registerHandlers(ctx, ctx.sidecars)
       try {
         await ctx.corex.start()
         ctx.logger.child('sidecar').info('registered', {
@@ -30,7 +30,7 @@ function buildSidecarModule(): StudioModule {
   }
 }
 
-export { buildSidecarModule }
+export { buildModule }
 export { isAllowedSidecarName } from './allowlist'
-export { SidecarService } from './service'
+export { Service } from './service'
 export { CorexHost } from './corex-host'

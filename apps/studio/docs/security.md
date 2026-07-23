@@ -33,7 +33,7 @@
 
 ## 4. 导航与开窗
 
-`attachWindowGuards`：
+`attachGuards`（域外可别名为 `attachWindowGuards`）：
 
 - `will-navigate`：拒绝非允许 URL
 - `setWindowOpenHandler`：一律 `deny`

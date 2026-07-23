@@ -10,9 +10,15 @@ datasource db {
 
 // Domain access via main DatabaseModule repositories (no raw SQL IPC)
 model User {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   name      String?
   email     String?
+}
+
+model Application {
+  id   String  @id @default(uuid())
+  name String?
+  url  String
 }

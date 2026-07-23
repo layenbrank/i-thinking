@@ -1,32 +1,51 @@
-use std::fs::File;
-use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{self, Sender};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use gif::{Encoder, Frame as GifFrame, Repeat};
+use ffmpeg_next as ffmpeg;
+use ffmpeg_next::codec::{self, Context as CodecContext};
+use ffmpeg_next::encoder::Video as VideoEncoder;
+use ffmpeg_next::format::{self, Pixel};
+use ffmpeg_next::software::scaling::{context::Context as ScaleContext, flag::Flags as ScaleFlags};
+use ffmpeg_next::util::frame::video::Video as VideoFrame;
+use ffmpeg_next::{Dictionary, Packet, Rational};
 use serde_json::{json, Value};
 use xcap::Monitor;
 
 use crate::module::CorexModule;
 
-const MAX_RECORD_FRAMES: usize = 90;
-const FRAME_SAMPLE_EVERY: usize = 2;
-const GIF_WIDTH_MAX: u32 = 960;
+const MAX_RECORD_FRAMES: usize = 3_600;
+const FRAME_SAMPLE_EVERY: usize = 1;
+const INPUT_FRAME_RATE: i32 = 30;
 
-struct CapturedFrame {
+struct PendingRecord {
+    output: PathBuf,
+}
+
+struct ActiveRecord {
+    frame_tx: Sender<Option<Vec<u8>>>,
+    result_rx: mpsc::Receiver<Result<FinishedRecord, String>>,
     width: u32,
     height: u32,
-    raw: Vec<u8>,
+    frame_count: usize,
+}
+
+struct FinishedRecord {
+    path: PathBuf,
+    width: u32,
+    height: u32,
+    frame_count: usize,
 }
 
 pub struct ScreenshotModule {
     monitor: Option<Monitor>,
     recorder: Option<xcap::VideoRecorder>,
     is_recording: Arc<AtomicBool>,
-    frames: Arc<Mutex<Vec<CapturedFrame>>>,
+    pending: Arc<Mutex<Option<PendingRecord>>>,
+    active: Arc<Mutex<Option<ActiveRecord>>>,
     record_started_at: Option<Instant>,
 }
 
@@ -36,7 +55,8 @@ impl ScreenshotModule {
             monitor: None,
             recorder: None,
             is_recording: Arc::new(AtomicBool::new(false)),
-            frames: Arc::new(Mutex::new(Vec::new())),
+            pending: Arc::new(Mutex::new(None)),
+            active: Arc::new(Mutex::new(None)),
             record_started_at: None,
         }
     }
@@ -67,7 +87,7 @@ impl ScreenshotModule {
     }
 
     fn capture(&self, params: Value) -> Result<Value, String> {
-        let output = find_output_path(&params)?;
+        let output = find_required_path(&params, "output")?;
         ensure_parent_dir(&output)?;
 
         let monitor = self.require_monitor()?;
@@ -86,70 +106,96 @@ impl ScreenshotModule {
         }))
     }
 
-    fn record_start(&mut self) -> Result<Value, String> {
+    fn record_start(&mut self, params: Value) -> Result<Value, String> {
         if self.is_recording.load(Ordering::SeqCst) {
             return Err("recording already started".to_string());
         }
 
+        let output = find_required_path(&params, "output")?;
+        ensure_parent_dir(&output)?;
+
         {
-            let mut frames = self
-                .frames
+            let mut pending = self
+                .pending
                 .lock()
-                .map_err(|_| "frames lock poisoned".to_string())?;
-            frames.clear();
+                .map_err(|_| "pending lock poisoned".to_string())?;
+            *pending = Some(PendingRecord { output });
+        }
+        {
+            let mut active = self
+                .active
+                .lock()
+                .map_err(|_| "active lock poisoned".to_string())?;
+            *active = None;
         }
 
-        let recorder = self.require_recorder()?;
-        recorder
-            .start()
-            .map_err(|err| format!("record start failed: {err}"))?;
         self.is_recording.store(true, Ordering::SeqCst);
         self.record_started_at = Some(Instant::now());
+
+        let recorder = self.require_recorder()?;
+        if let Err(err) = recorder.start() {
+            self.is_recording.store(false, Ordering::SeqCst);
+            self.record_started_at = None;
+            let mut pending = self
+                .pending
+                .lock()
+                .map_err(|_| "pending lock poisoned".to_string())?;
+            *pending = None;
+            return Err(format!("record start failed: {err}"));
+        }
         Ok(json!({}))
     }
 
-    fn record_stop(&mut self, params: Value) -> Result<Value, String> {
+    fn record_stop(&mut self) -> Result<Value, String> {
         if !self.is_recording.load(Ordering::SeqCst) {
             return Err("recording not started".to_string());
         }
-
-        let output = find_output_path(&params)?;
-        ensure_parent_dir(&output)?;
 
         let recorder = self.require_recorder()?;
         recorder
             .stop()
             .map_err(|err| format!("record stop failed: {err}"))?;
+
+        // Keep accepting frames while armed, then disarm and finalize encoder.
+        thread::sleep(Duration::from_millis(200));
         self.is_recording.store(false, Ordering::SeqCst);
+        thread::sleep(Duration::from_millis(150));
 
-        // Allow in-flight frames to settle.
-        thread::sleep(Duration::from_millis(80));
-
-        let frames = {
-            let mut guard = self
-                .frames
+        {
+            let mut pending = self
+                .pending
                 .lock()
-                .map_err(|_| "frames lock poisoned".to_string())?;
-            std::mem::take(&mut *guard)
+                .map_err(|_| "pending lock poisoned".to_string())?;
+            *pending = None;
+        }
+
+        let session = self
+            .active
+            .lock()
+            .map_err(|_| "active lock poisoned".to_string())?
+            .take();
+
+        let Some(session) = session else {
+            return Err("no frames captured".to_string());
         };
 
-        if frames.is_empty() {
+        let finished = finalize_encoder(session)?;
+        if finished.frame_count == 0 {
             return Err("no frames captured".to_string());
         }
 
-        let frame_count = frames.len();
         let duration_ms = self
             .record_started_at
             .take()
             .map(|started| started.elapsed().as_millis() as u64)
             .unwrap_or(0);
 
-        encode_gif(&frames, &output, duration_ms)?;
-
         Ok(json!({
-            "path": output.to_string_lossy(),
-            "frameCount": frame_count,
+            "path": finished.path.to_string_lossy(),
+            "frameCount": finished.frame_count,
             "durationMs": duration_ms,
+            "width": finished.width,
+            "height": finished.height,
         }))
     }
 }
@@ -160,35 +206,70 @@ impl CorexModule for ScreenshotModule {
     }
 
     fn warm(&mut self) -> Result<(), String> {
+        ensure_ffmpeg_init()?;
         let monitor = Self::find_primary_monitor()?;
         let (recorder, rx) = monitor
             .video_recorder()
             .map_err(|err| format!("video_recorder: {err}"))?;
 
         let is_recording = Arc::clone(&self.is_recording);
-        let frames = Arc::clone(&self.frames);
+        let pending = Arc::clone(&self.pending);
+        let active = Arc::clone(&self.active);
 
         thread::spawn(move || {
             let mut sample_index = 0usize;
+
             while let Ok(frame) = rx.recv() {
                 if !is_recording.load(Ordering::SeqCst) {
                     continue;
                 }
+
                 sample_index = sample_index.wrapping_add(1);
                 if sample_index % FRAME_SAMPLE_EVERY != 0 {
                     continue;
                 }
-                let Ok(mut guard) = frames.lock() else {
+
+                let (out_w, out_h) = find_video_size(frame.width, frame.height);
+                let rgba = prepare_rgba(&frame.raw, frame.width, frame.height, out_w, out_h);
+
+                let mut guard = match active.lock() {
+                    Ok(guard) => guard,
+                    Err(_) => continue,
+                };
+
+                if guard.is_none() {
+                    let pending_record = match pending.lock() {
+                        Ok(mut pending_guard) => pending_guard.take(),
+                        Err(_) => None,
+                    };
+                    let Some(pending_record) = pending_record else {
+                        continue;
+                    };
+                    match spawn_encoder(&pending_record, out_w, out_h) {
+                        Ok(session) => *guard = Some(session),
+                        Err(err) => {
+                            eprintln!("[screenshot] spawn encoder failed: {err}");
+                            continue;
+                        }
+                    }
+                }
+
+                let Some(session) = guard.as_mut() else {
                     continue;
                 };
-                if guard.len() >= MAX_RECORD_FRAMES {
+                if session.frame_count >= MAX_RECORD_FRAMES {
                     continue;
                 }
-                guard.push(CapturedFrame {
-                    width: frame.width,
-                    height: frame.height,
-                    raw: frame.raw,
-                });
+                if session.width != out_w || session.height != out_h {
+                    continue;
+                }
+
+                if let Err(err) = session.frame_tx.send(Some(rgba)) {
+                    eprintln!("[screenshot] encode frame send failed: {err}");
+                    *guard = None;
+                    continue;
+                }
+                session.frame_count += 1;
             }
         });
 
@@ -200,22 +281,202 @@ impl CorexModule for ScreenshotModule {
     fn handle(&mut self, action: &str, params: Value) -> Result<Value, String> {
         match action {
             "capture" => self.capture(params),
-            "recordStart" => self.record_start(),
-            "recordStop" => self.record_stop(params),
+            "recordStart" => self.record_start(params),
+            "recordStop" => self.record_stop(),
             other => Err(format!("unknown action: {other}")),
         }
     }
 }
 
-fn find_output_path(params: &Value) -> Result<PathBuf, String> {
-    let output = params
-        .get("output")
-        .and_then(Value::as_str)
-        .ok_or_else(|| "params.output is required".to_string())?;
-    if output.is_empty() {
-        return Err("params.output is empty".to_string());
+fn ensure_ffmpeg_init() -> Result<(), String> {
+    static INIT: OnceLock<Result<(), String>> = OnceLock::new();
+    INIT.get_or_init(|| {
+        ffmpeg::init().map_err(|err| format!("ffmpeg init failed: {err}"))
+    })
+    .clone()
+}
+
+fn spawn_encoder(pending: &PendingRecord, width: u32, height: u32) -> Result<ActiveRecord, String> {
+    let (frame_tx, frame_rx) = mpsc::channel::<Option<Vec<u8>>>();
+    let (result_tx, result_rx) = mpsc::channel::<Result<FinishedRecord, String>>();
+    let output = pending.output.clone();
+
+    thread::spawn(move || {
+        let result = encode_session(output, width, height, frame_rx);
+        let _ = result_tx.send(result);
+    });
+
+    Ok(ActiveRecord {
+        frame_tx,
+        result_rx,
+        width,
+        height,
+        frame_count: 0,
+    })
+}
+
+fn finalize_encoder(session: ActiveRecord) -> Result<FinishedRecord, String> {
+    let frame_count = session.frame_count;
+    let _ = session.frame_tx.send(None);
+    drop(session.frame_tx);
+    let finished = session
+        .result_rx
+        .recv()
+        .map_err(|_| "encoder thread ended without result".to_string())??;
+    Ok(FinishedRecord {
+        path: finished.path,
+        width: finished.width,
+        height: finished.height,
+        frame_count,
+    })
+}
+
+fn encode_session(
+    output: PathBuf,
+    width: u32,
+    height: u32,
+    frame_rx: mpsc::Receiver<Option<Vec<u8>>>,
+) -> Result<FinishedRecord, String> {
+    let mut octx =
+        format::output(&output).map_err(|err| format!("open output failed: {err}"))?;
+
+    let codec = ffmpeg::encoder::find(codec::Id::FFV1).ok_or_else(|| "FFV1 encoder missing".to_string())?;
+    let time_base = Rational::new(1, INPUT_FRAME_RATE);
+    let stream_index = {
+        let mut stream = octx
+            .add_stream(codec)
+            .map_err(|err| format!("add stream failed: {err}"))?;
+        stream.set_time_base(time_base);
+        stream.index()
+    };
+
+    let mut encoder = unsafe {
+        let context_ptr = ffmpeg::ffi::avcodec_alloc_context3(codec.as_ptr());
+        if context_ptr.is_null() {
+            return Err("alloc codec context failed".to_string());
+        }
+        CodecContext::wrap(context_ptr, None)
     }
-    Ok(PathBuf::from(output))
+    .encoder()
+    .video()
+    .map_err(|err| format!("video encoder failed: {err}"))?;
+
+    encoder.set_width(width);
+    encoder.set_height(height);
+    encoder.set_format(Pixel::GBRP);
+    encoder.set_time_base(time_base);
+    encoder.set_frame_rate(Some(Rational::new(INPUT_FRAME_RATE, 1)));
+
+    let mut opts = Dictionary::new();
+    opts.set("level", "3");
+    let mut encoder = encoder
+        .open_with(opts)
+        .map_err(|err| format!("open FFV1 encoder failed: {err}"))?;
+
+    {
+        let mut stream = octx
+            .stream_mut(stream_index)
+            .ok_or_else(|| "output stream missing".to_string())?;
+        stream.set_parameters(&encoder);
+    }
+
+    octx.write_header()
+        .map_err(|err| format!("write header failed: {err}"))?;
+
+    let mut scaler = ScaleContext::get(
+        Pixel::RGBA,
+        width,
+        height,
+        Pixel::GBRP,
+        width,
+        height,
+        ScaleFlags::BICUBIC,
+    )
+    .map_err(|err| format!("create scaler failed: {err}"))?;
+
+    let mut pts = 0i64;
+    let mut encoded_frames = 0usize;
+
+    while let Ok(maybe_frame) = frame_rx.recv() {
+        let Some(rgba) = maybe_frame else {
+            break;
+        };
+
+        let mut src = VideoFrame::new(Pixel::RGBA, width, height);
+        let expected = (width as usize) * (height as usize) * 4;
+        if rgba.len() != expected {
+            return Err(format!(
+                "rgba size mismatch: got {}, expected {expected}",
+                rgba.len()
+            ));
+        }
+        src.data_mut(0)[..expected].copy_from_slice(&rgba);
+
+        let mut dst = VideoFrame::new(Pixel::GBRP, width, height);
+        scaler
+            .run(&src, &mut dst)
+            .map_err(|err| format!("scale frame failed: {err}"))?;
+        dst.set_pts(Some(pts));
+        pts += 1;
+
+        encoder
+            .send_frame(&dst)
+            .map_err(|err| format!("send frame failed: {err}"))?;
+        drain_packets(&mut encoder, &mut octx, stream_index, time_base)?;
+        encoded_frames += 1;
+    }
+
+    encoder
+        .send_eof()
+        .map_err(|err| format!("encoder eof failed: {err}"))?;
+    drain_packets(&mut encoder, &mut octx, stream_index, time_base)?;
+
+    octx.write_trailer()
+        .map_err(|err| format!("write trailer failed: {err}"))?;
+
+    if !output.exists() {
+        return Err("encoder did not produce output file".to_string());
+    }
+
+    Ok(FinishedRecord {
+        path: output,
+        width,
+        height,
+        frame_count: encoded_frames,
+    })
+}
+
+fn drain_packets(
+    encoder: &mut VideoEncoder,
+    octx: &mut format::context::Output,
+    stream_index: usize,
+    encoder_time_base: Rational,
+) -> Result<(), String> {
+    let mut packet = Packet::empty();
+    while encoder.receive_packet(&mut packet).is_ok() {
+        packet.set_stream(stream_index);
+        packet.set_position(-1);
+        let stream_tb = octx
+            .stream(stream_index)
+            .map(|stream| stream.time_base())
+            .unwrap_or(encoder_time_base);
+        packet.rescale_ts(encoder_time_base, stream_tb);
+        packet
+            .write_interleaved(octx)
+            .map_err(|err| format!("write packet failed: {err}"))?;
+    }
+    Ok(())
+}
+
+fn find_required_path(params: &Value, key: &str) -> Result<PathBuf, String> {
+    let value = params
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("params.{key} is required"))?;
+    if value.is_empty() {
+        return Err(format!("params.{key} is empty"));
+    }
+    Ok(PathBuf::from(value))
 }
 
 fn ensure_parent_dir(path: &Path) -> Result<(), String> {
@@ -228,73 +489,22 @@ fn ensure_parent_dir(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn encode_gif(frames: &[CapturedFrame], output: &Path, duration_ms: u64) -> Result<(), String> {
-    let first = frames.first().ok_or_else(|| "no frames".to_string())?;
-    let (out_w, out_h, scale) = find_gif_size(first.width, first.height);
-
-    let file = File::create(output).map_err(|err| format!("create gif failed: {err}"))?;
-    let mut encoder = Encoder::new(BufWriter::new(file), out_w as u16, out_h as u16, &[])
-        .map_err(|err| format!("gif encoder: {err}"))?;
-    encoder
-        .set_repeat(Repeat::Infinite)
-        .map_err(|err| format!("gif repeat: {err}"))?;
-
-    let delay_cs = find_frame_delay_cs(duration_ms, frames.len());
-
-    for frame in frames {
-        let mut rgba = scale_rgba(&frame.raw, frame.width, frame.height, out_w, out_h, scale);
-        let mut gif_frame =
-            GifFrame::from_rgba_speed(out_w as u16, out_h as u16, &mut rgba, 10);
-        gif_frame.delay = delay_cs;
-        encoder
-            .write_frame(&gif_frame)
-            .map_err(|err| format!("gif write: {err}"))?;
-    }
-
-    Ok(())
+fn find_video_size(width: u32, height: u32) -> (u32, u32) {
+    let out_w = (width & !1).max(2);
+    let out_h = (height & !1).max(2);
+    (out_w, out_h)
 }
 
-fn find_gif_size(width: u32, height: u32) -> (u32, u32, f32) {
-    if width <= GIF_WIDTH_MAX {
-        return (width, height, 1.0);
-    }
-    let scale = GIF_WIDTH_MAX as f32 / width as f32;
-    let out_w = GIF_WIDTH_MAX;
-    let out_h = ((height as f32) * scale).round().max(1.0) as u32;
-    (out_w, out_h, scale)
-}
-
-fn find_frame_delay_cs(duration_ms: u64, frame_count: usize) -> u16 {
-    if frame_count == 0 {
-        return 10;
-    }
-    let per_ms = (duration_ms as f64 / frame_count as f64).max(20.0);
-    ((per_ms / 10.0).round() as u16).clamp(2, 100)
-}
-
-fn scale_rgba(
-    raw: &[u8],
-    src_w: u32,
-    src_h: u32,
-    out_w: u32,
-    out_h: u32,
-    scale: f32,
-) -> Vec<u8> {
-    if (scale - 1.0).abs() < f32::EPSILON {
+fn prepare_rgba(raw: &[u8], src_w: u32, src_h: u32, out_w: u32, out_h: u32) -> Vec<u8> {
+    if src_w == out_w && src_h == out_h {
         return raw.to_vec();
     }
-
     let mut out = vec![0u8; (out_w * out_h * 4) as usize];
     for y in 0..out_h {
-        for x in 0..out_w {
-            let sx = ((x as f32) / scale).floor() as u32;
-            let sy = ((y as f32) / scale).floor() as u32;
-            let sx = sx.min(src_w.saturating_sub(1));
-            let sy = sy.min(src_h.saturating_sub(1));
-            let src_i = ((sy * src_w + sx) * 4) as usize;
-            let dst_i = ((y * out_w + x) * 4) as usize;
-            out[dst_i..dst_i + 4].copy_from_slice(&raw[src_i..src_i + 4]);
-        }
+        let src_row = (y * src_w * 4) as usize;
+        let dst_row = (y * out_w * 4) as usize;
+        let bytes = (out_w * 4) as usize;
+        out[dst_row..dst_row + bytes].copy_from_slice(&raw[src_row..src_row + bytes]);
     }
     out
 }

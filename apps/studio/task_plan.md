@@ -1,17 +1,36 @@
-# Task Plan — 还原 type: commonjs
+# Task Plan: 精简 database 分层
 
 ## Goal
-`type: module` 导致 Electron 无法启动；还原为 `commonjs`，并回退相关 Vite / PostCSS / 文档。
+删除 DatabaseService 的 1:1 透传，handlers 直接组合 UserRepository；文档标明 Service 为可选用例层。
 
-## Tasks
-- [x] package.json → `"type": "commonjs"`
-- [x] vite.main.config.ts 去掉 ESM `build.lib`，恢复 Forge 默认 CJS
-- [x] postcss.config.js → `module.exports`
-- [x] sidecar/scripts：本地 `package.json` type module，保证 `build.ts` 仍可用 node 执行
-- [x] 同步 docs + findings/progress
-- [x] sidecar:verify 通过
+## Current Phase
+Phase 3: Verification（complete）
 
-## Errors
-| Error | Resolution |
-|-------|------------|
-| type:module + CJS/ESM 入口冲突无法启动 | 还原 commonjs |
+## Phases
+
+### Phase 1: Requirements & Discovery
+- [x] 确认 DatabaseService 为纯透传
+- [x] 选定方案：handlers → Repository
+- **Status:** complete
+
+### Phase 2: Implementation
+- [x] 写入 planning 文件
+- [x] 删除 service.ts；改 handlers / index
+- [x] 更新 modules.md / architecture.md
+- **Status:** complete
+
+### Phase 3: Verification
+- [x] tsc -p tsconfig.main.json
+- [x] 确认无 DatabaseService 残留
+- **Status:** complete
+
+## Decisions Made
+| Decision | Rationale |
+|----------|-----------|
+| 删除 DatabaseService | 纯 CRUD 透传无业务价值，属 anemic pass-through |
+| CRUD 走 handlers → Repository | 与「repository API only」一致；有编排/事务再加用例 Service |
+
+## Errors Encountered
+| Error | Attempt | Resolution |
+|-------|---------|------------|
+|       | 1       |            |

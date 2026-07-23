@@ -1,27 +1,22 @@
 import { CHANNELS } from '@shared/ipc/channels'
-import {
-  userCreateSchema,
-  userRemoveSchema,
-  userUpdateSchema
-} from '@shared/ipc/schemas'
 import type { AppContext } from '@main/app-context'
 import { registerHandler } from '@main/ipc/handle'
-import type { DatabaseService } from './service'
+import type { Repository } from './repositories/user'
+import { createSchema, removeSchema, updateSchema } from './schemas'
 
-export function registerDatabaseHandlers(
-  ctx: AppContext,
-  service: DatabaseService
-): void {
-  registerHandler(ctx, CHANNELS.USER_LIST, null, function () {
-    return service.listUsers()
+function registerHandlers(ctx: AppContext, users: Repository): void {
+  registerHandler(ctx, CHANNELS.USER.LIST, null, function () {
+    return users.list()
   })
-  registerHandler(ctx, CHANNELS.USER_CREATE, userCreateSchema, function (input) {
-    return service.createUser(input)
+  registerHandler(ctx, CHANNELS.USER.CREATE, createSchema, function (input) {
+    return users.create(input)
   })
-  registerHandler(ctx, CHANNELS.USER_UPDATE, userUpdateSchema, function (input) {
-    return service.updateUser(input)
+  registerHandler(ctx, CHANNELS.USER.UPDATE, updateSchema, function (input) {
+    return users.update(input)
   })
-  registerHandler(ctx, CHANNELS.USER_REMOVE, userRemoveSchema, function (input) {
-    return service.removeUser(input)
+  registerHandler(ctx, CHANNELS.USER.REMOVE, removeSchema, function (input) {
+    return users.remove(input)
   })
 }
+
+export { registerHandlers }

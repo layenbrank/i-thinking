@@ -1,46 +1,30 @@
 import type {
-  DevtoolsVisibleInput,
-  DialogOpenInput,
-  DialogSaveInput,
-  SidecarExecInput,
-  SidecarNameInput,
-  StoreGetInput,
-  StoreSetInput,
-  UserCreateInput,
-  UserRemoveInput,
-  UserUpdateInput
-} from './schemas'
-
-export interface UserRecord {
-  id: number
-  createdAt: string
-  updatedAt: string
-  name: string | null
-  email: string | null
-}
-
-export interface SidecarExecResult {
-  code: number | null
-  signal: string | null
-  stdout?: string
-  stderr?: string
-  error?: string
-}
-
-export interface ScreenshotCaptureResult {
-  path: string
-  width: number
-  height: number
-}
-
-export interface ScreenshotRecordStopResult {
-  path: string
-  frameCount: number
-  durationMs: number
-}
+  CreateInput as UserCreateInput,
+  RemoveInput as UserRemoveInput,
+  UpdateInput as UserUpdateInput,
+  UserRecord
+} from '@main/modules/database/schemas'
+import type {
+  OpenInput as DialogOpenInput,
+  SaveInput as DialogSaveInput
+} from '@main/modules/dialog/schemas'
+import type { VisibleInput as DevtoolsVisibleInput } from '@main/modules/devtools/schemas'
+import type {
+  CaptureResult as ScreenshotCaptureResult,
+  RecordStopResult as ScreenshotRecordStopResult
+} from '@main/modules/screenshot/schemas'
+import type {
+  ExecInput as SidecarExecInput,
+  ExecResult as SidecarExecResult,
+  NameInput as SidecarNameInput
+} from '@main/modules/sidecar/schemas'
+import type {
+  GetInput as StoreGetInput,
+  SetInput as StoreSetInput
+} from '@main/modules/store/schemas'
 
 /** Renderer SDK 与 Main 对齐的 API 形状（不含实现） */
-export interface Studio {
+export type Studio = {
   store: {
     get: (input: StoreGetInput) => Promise<unknown>
     set: (input: StoreSetInput) => Promise<void>

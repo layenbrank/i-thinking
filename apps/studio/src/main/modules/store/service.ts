@@ -1,6 +1,6 @@
 import Store from 'electron-store'
 
-export class StoreService {
+export class Service {
   private readonly store = new Store()
 
   get(key: string): unknown {

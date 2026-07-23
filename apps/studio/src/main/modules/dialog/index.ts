@@ -1,19 +1,19 @@
 import type { AppContext } from '@main/app-context'
 import type { StudioModule } from '@main/module'
-import { registerDialogHandlers } from './handlers'
-import { DialogService } from './service'
+import { registerHandlers } from './handlers'
+import { Service } from './service'
 
-function buildDialogModule(): StudioModule {
+function buildModule(): StudioModule {
   return {
     name: 'dialog',
     register(ctx: AppContext) {
-      const service = new DialogService(function () {
+      const service = new Service(function () {
         return ctx.findWindow()
       })
-      registerDialogHandlers(ctx, service)
+      registerHandlers(ctx, service)
       ctx.logger.child('dialog').info('registered')
     }
   }
 }
 
-export { buildDialogModule }
+export { buildModule }

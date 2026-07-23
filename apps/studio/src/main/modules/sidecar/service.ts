@@ -3,14 +3,14 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
-import type { SidecarExecResult } from '@shared/ipc/contracts'
+import type { ExecResult } from './schemas'
 import { findPlatformSidecars, isAllowedSidecarName } from './allowlist'
 
 function findPlatformKey(platform = process.platform, arch = process.arch): string {
   return `${platform}-${arch}`
 }
 
-class SidecarService {
+class Service {
   findPath(name: string): string {
     if (!isAllowedSidecarName(name)) {
       throw new Error(`sidecar not allowed: ${name}`)
@@ -22,7 +22,7 @@ class SidecarService {
     return path.join(root, 'sidecar', 'staging', findPlatformKey(), name)
   }
 
-  exec(name: string, args?: string[]): Promise<SidecarExecResult> {
+  exec(name: string, args?: string[]): Promise<ExecResult> {
     if (!isAllowedSidecarName(name)) {
       return Promise.resolve({
         code: null,
@@ -78,4 +78,4 @@ class SidecarService {
   }
 }
 
-export { SidecarService }
+export { Service }

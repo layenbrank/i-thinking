@@ -1,15 +1,15 @@
 import type { AppContext } from '@main/app-context'
 import type { StudioModule } from '@main/module'
 import { disconnectPrisma } from './client'
-import { registerDatabaseHandlers } from './handlers'
-import { DatabaseService } from './service'
+import { registerHandlers } from './handlers'
+import { Repository } from './repositories/user'
 
-function buildDatabaseModule(): StudioModule {
-  const service = new DatabaseService()
+function buildModule(): StudioModule {
+  const users = new Repository()
   return {
     name: 'database',
     register(ctx: AppContext) {
-      registerDatabaseHandlers(ctx, service)
+      registerHandlers(ctx, users)
       ctx.logger.child('database').info('registered (repository API only)')
     },
     async dispose() {
@@ -18,4 +18,4 @@ function buildDatabaseModule(): StudioModule {
   }
 }
 
-export { buildDatabaseModule, DatabaseService }
+export { buildModule }

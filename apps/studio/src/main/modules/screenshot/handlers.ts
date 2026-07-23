@@ -1,19 +1,19 @@
 import { CHANNELS } from '@shared/ipc/channels'
-import { screenshotCaptureSchema, screenshotRecordSchema } from '@shared/ipc/schemas'
 import type { AppContext } from '@main/app-context'
 import { registerHandler } from '@main/ipc/handle'
-import type { ScreenshotService } from './service'
+import { captureSchema, recordSchema } from './schemas'
+import type { Service } from './service'
 
-function registerScreenshotHandlers(ctx: AppContext, service: ScreenshotService): void {
-  registerHandler(ctx, CHANNELS.SCREENSHOT_CAPTURE, screenshotCaptureSchema, function () {
+function registerHandlers(ctx: AppContext, service: Service): void {
+  registerHandler(ctx, CHANNELS.SCREENSHOT.CAPTURE, captureSchema, function () {
     return service.capture()
   })
-  registerHandler(ctx, CHANNELS.SCREENSHOT_RECORD_START, screenshotRecordSchema, function () {
+  registerHandler(ctx, CHANNELS.SCREENSHOT.RECORD_START, recordSchema, function () {
     return service.recordStart()
   })
-  registerHandler(ctx, CHANNELS.SCREENSHOT_RECORD_STOP, screenshotRecordSchema, function () {
+  registerHandler(ctx, CHANNELS.SCREENSHOT.RECORD_STOP, recordSchema, function () {
     return service.recordStop()
   })
 }
 
-export { registerScreenshotHandlers }
+export { registerHandlers }

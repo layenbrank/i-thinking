@@ -1,13 +1,8 @@
-import type { UserRecord } from '@shared/ipc/contracts'
-import type {
-  UserCreateInput,
-  UserRemoveInput,
-  UserUpdateInput
-} from '@shared/ipc/schemas'
+import type { CreateInput, RemoveInput, UpdateInput, UserRecord } from '../schemas'
 import { findPrismaClient } from '../client'
 
 function toRecord(row: {
-  id: number
+  id: string
   createdAt: Date
   updatedAt: Date
   name: string | null
@@ -22,15 +17,17 @@ function toRecord(row: {
   }
 }
 
-export class UserRepository {
+export class Repository {
   async list(): Promise<UserRecord[]> {
     const rows = await findPrismaClient().user.findMany({
-      orderBy: { id: 'asc' }
+      orderBy: {
+        id: 'asc'
+      }
     })
     return rows.map(toRecord)
   }
 
-  async create(input: UserCreateInput): Promise<UserRecord> {
+  async create(input: CreateInput): Promise<UserRecord> {
     const row = await findPrismaClient().user.create({
       data: {
         name: input.name ?? null,
@@ -40,20 +37,18 @@ export class UserRepository {
     return toRecord(row)
   }
 
-  async update(input: UserUpdateInput): Promise<UserRecord> {
+  async update(input: UpdateInput): Promise<UserRecord> {
     const row = await findPrismaClient().user.update({
       where: { id: input.id },
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.email !== undefined
-          ? { email: input.email ? input.email : null }
-          : {})
+        ...(input.email !== undefined ? { email: input.email ? input.email : null } : {})
       }
     })
     return toRecord(row)
   }
 
-  async remove(input: UserRemoveInput): Promise<void> {
+  async remove(input: RemoveInput): Promise<void> {
     await findPrismaClient().user.delete({ where: { id: input.id } })
   }
 }

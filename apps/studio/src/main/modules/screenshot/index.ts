@@ -1,18 +1,18 @@
 import type { AppContext } from '@main/app-context'
 import type { StudioModule } from '@main/module'
-import { registerScreenshotHandlers } from './handlers'
-import { ScreenshotService } from './service'
+import { registerHandlers } from './handlers'
+import { Service } from './service'
 
-function buildScreenshotModule(): StudioModule {
+function buildModule(): StudioModule {
   return {
     name: 'screenshot',
     register(ctx: AppContext) {
-      const service = new ScreenshotService(ctx.corex)
-      registerScreenshotHandlers(ctx, service)
+      const service = new Service(ctx.corex)
+      registerHandlers(ctx, service)
       ctx.logger.child('screenshot').info('registered')
     }
   }
 }
 
-export { buildScreenshotModule }
-export { ScreenshotService } from './service'
+export { buildModule }
+export { Service } from './service'

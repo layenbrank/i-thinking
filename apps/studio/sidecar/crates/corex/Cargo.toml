@@ -9,7 +9,8 @@ name = "corex"
 path = "src/main.rs"
 
 [dependencies]
-gif = "0.14"
+ffmpeg-next = "8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-xcap = "0.9"
+# Windows: enable `wgc` so VideoRecorder uses Graphics Capture (continuous frames).
+xcap = { version = "0.9", features = ["wgc"] }
