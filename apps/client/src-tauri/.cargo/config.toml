@@ -1,5 +1,5 @@
 [build]
-# target-dir    = "target"  # 构建输出目录
+target-dir    = "target"  # 构建输出目录
 rustc-wrapper = "sccache"
 
 # Windows (MSVC)

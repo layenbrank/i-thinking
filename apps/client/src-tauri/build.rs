@@ -7,7 +7,7 @@ fn main() {
         if let Err(e) = std::fs::write(pdfium, []) {
             panic!("create pdfium.dll placeholder for bundle check: {e}");
         }
-        println!("cargo:warning=binaries/pdfium.dll missing; using empty placeholder (run copy-corex-serve.mjs after building corex-serve)");
+        println!("cargo:warning=binaries/pdfium.dll missing; using empty placeholder (run prepare-sidecar.ts after building corex-serve)");
     }
     tauri_build::build()
 }

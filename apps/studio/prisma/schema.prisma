@@ -9,16 +9,55 @@ datasource db {
 }
 
 // Domain access via main DatabaseModule repositories (no raw SQL IPC)
-model User {
+model Auth {
   id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
   name      String?
   email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Component {
+  bookmark
+  code
+  clock
+  countdown
+  calendar
+  clipchamp
+  collection
+  markdown
+  morph
+  settings
+  intelligence
+  navigation
+  marketplace
+  developer
+  signboard
+  gallery
+  screenshot
+  example
 }
 
 model Application {
-  id   String  @id @default(uuid())
-  name String?
-  url  String
+  id            String    @id @default(uuid())
+  index         Int
+  title         String
+  url           String?
+  round         String?
+  mark          String?
+  mirrorID      String
+  textSize      String?
+  textColor     String?
+  component     Component
+  description   String    @default("")
+  collectionID  String?
+  downloadCount Int       @default(0)
+  background    Json?
+  backdrop      Json?
+  createdAt     BigInt
+  updatedAt     BigInt
+
+  @@index([mirrorID])
+  @@index([collectionID])
+  @@index([component])
 }

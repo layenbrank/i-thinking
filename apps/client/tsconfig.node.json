@@ -3,7 +3,7 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "ESNext",
     "lib": ["ESNext"],
-    "types": ["@types/node"],
+    "types": ["@types/node", "@i-thinking/shared/process-env"],
     "module": "ESNext",
     "skipLibCheck": true,
 

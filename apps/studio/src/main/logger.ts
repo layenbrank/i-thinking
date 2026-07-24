@@ -12,10 +12,10 @@ function format(level: LogLevel, module: string, message: string, extra?: unknow
   const time = new Date().toISOString()
   const base = `[${time}] [${level.toUpperCase()}] [${module}] ${message}`
   if (extra === undefined) return base
-  return `${base} ${stringifyExtra(extra)}`
+  return `${base} ${stringify(extra)}`
 }
 
-function stringifyExtra(extra: unknown) {
+function stringify(extra: unknown) {
   if (extra instanceof Error) {
     return extra.stack ?? extra.message
   }

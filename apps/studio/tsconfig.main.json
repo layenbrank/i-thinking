@@ -3,13 +3,13 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.main.tsbuildinfo",
     "lib": ["ESNext"],
-    "types": ["node"],
+    "types": ["@types/node", "@i-thinking/shared/process-env"],
     "paths": {
       "@main/*": ["./src/main/*"],
       "@shared/*": ["./src/shared/*"],
       "@generated/*": ["./generated/*"]
     }
   },
-  "include": ["src/main/**/*.ts", "src/shared/**/*.ts"],
+  "include": ["src/main/**/*.ts", "src/shared/**/*.ts", "src/types/**/*.d.ts"],
   "exclude": ["**/node_modules/**", "**/*.test.ts"]
 }

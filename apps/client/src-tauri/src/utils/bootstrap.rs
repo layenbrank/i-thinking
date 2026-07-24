@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use tauri::{Emitter, Manager, RunEvent, generate_context};
+use tauri::{Manager, RunEvent, generate_context};
 use thinking_database::{Storage, database_path, initialize, migration};
 
 use crate::{
@@ -55,21 +55,8 @@ impl Bootstrap {
 
                 #[cfg(all(desktop, windows))]
                 {
-                    match sidecar::spawn(app.handle()) {
-                        Ok(()) => {
-                            let sidecar_state = app.state::<SidecarState>();
-                            let ready =
-                                sidecar::wait_for_daemon(Duration::from_secs(8), &sidecar_state);
-                            if !ready {
-                                let _ = app.emit("corex://not-ready", ());
-                            }
-                        }
-                        Err(e) => {
-                            tracing::error!("corex-serve 启动失败: {e}");
-                            app.state::<SidecarState>().fail();
-                            let _ = app.emit("corex://not-ready", ());
-                        }
-                    }
+                    // 不阻塞 setup：后台等待就绪，仅在真正失败时发 corex://not-ready
+                    sidecar::spawn_and_watch(app.handle(), Duration::from_secs(20));
                 }
 
                 Ok(())

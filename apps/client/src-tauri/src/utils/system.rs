@@ -53,9 +53,12 @@ pub fn os() -> Result<OsContext, String> {
     serde_json::from_value(data).map_err(|e| format!("解析 OsContext 失败: {e}"))
 }
 
-/// `None` = 仍在探测；`Some(true/false)` = 已 settled。
+/// `None` = 启动中；`Some(true/false)` = 已结束。以管道连通性为准。
 #[tauri::command(rename = "ipc:ready")]
 pub fn ipc_ready(state: tauri::State<'_, SidecarState>) -> Option<bool> {
+    if state.probe() {
+        return Some(true);
+    }
     state.status()
 }
 

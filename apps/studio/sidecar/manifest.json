@@ -6,7 +6,7 @@
   ],
   "platforms": {
     "win32-x64": {
-      "corex.exe": "0fbaef1edfdfb0fdaecea858192fe4360c8d34e341e77496e6a39828007d8f39",
+      "corex.exe": "9692254aeb16a02d815dfc8f5bf03ae7743d90269775b34516cefa39bce3b29e",
       "generate.exe": "5c9ea39a7a8b46a0fb22c2ed4be40f2d9ae858bc8ce84ef5173dbc07ec86468b",
       "service.exe": "ccb1905f708e6c2e01251ce963f6704047f8cd87a5465b00bfbd6653c34d05cd"
     }

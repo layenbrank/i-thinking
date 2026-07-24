@@ -12,6 +12,10 @@ import {
 import { copyAndVerifySidecars } from './hooks/sidecar'
 import { copyBetterSqlite3 } from './hooks/natives'
 
+/** 国内默认镜像；Turbo strict 下需 turbo.json globalPassThroughEnv 透传 ELECTRON_MIRROR */
+const ELECTRON_DOWNLOAD_MIRROR =
+  process.env.ELECTRON_MIRROR || 'https://npmmirror.com/mirrors/electron/'
+
 /**
  * Vite 已打包业务与 workspace 依赖；asar 只保留：
  * - `.vite/` 构建产物
@@ -76,6 +80,11 @@ function buildPackagerConfig(): NonNullable<ForgeConfig['packagerConfig']> {
     appBundleId: APP_ID,
     appCopyright: `Copyright © ${new Date().getFullYear()} i-thinking`,
     ignore: isIgnoredPath,
+    download: {
+      mirrorOptions: {
+        mirror: ELECTRON_DOWNLOAD_MIRROR
+      }
+    },
     ...(icon ? { icon } : {}),
     afterCopy: [runAfterCopy]
   }

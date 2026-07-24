@@ -2,6 +2,15 @@
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [".env", "tsconfig.json"],
   "globalEnv": ["NODE_ENV"],
+  "globalPassThroughEnv": [
+    "ELECTRON_MIRROR",
+    "ELECTRON_CUSTOM_DIR",
+    "ELECTRON_CUSTOM_FILENAME",
+    "ELECTRON_GET_USE_PROXY",
+    "ELECTRON_SKIP_BINARY_DOWNLOAD",
+    "ELECTRON_BUILDER_BINARIES_MIRROR",
+    "npm_config_electron_mirror"
+  ],
   "tasks": {
     "build": {
       "cache": true,

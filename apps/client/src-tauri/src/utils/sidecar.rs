@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_shell::ShellExt;
@@ -33,7 +34,7 @@ impl SidecarState {
         self.ready.load(Ordering::Relaxed)
     }
 
-    /// `None` = 仍在探测；`Some(true/false)` = 已结束等待。
+    /// `None` = 仍在启动；`Some(true/false)` = 已结束。
     pub fn status(&self) -> Option<bool> {
         if !self.settled.load(Ordering::Relaxed) {
             return None;
@@ -41,12 +42,23 @@ impl SidecarState {
         Some(self.is_ready())
     }
 
+    /// 以 Named Pipe 为准；可纠正超时后的误判。
+    pub fn probe(&self) -> bool {
+        if self.is_ready() {
+            return true;
+        }
+        if ipc::is_ready() {
+            self.mark_ready();
+            return true;
+        }
+        false
+    }
+
     pub fn mark_ready(&self) {
         self.ready.store(true, Ordering::Relaxed);
         self.settled.store(true, Ordering::Relaxed);
     }
 
-    /// 启动或运行失败：not ready + settled。
     pub fn fail(&self) {
         self.ready.store(false, Ordering::Relaxed);
         self.settled.store(true, Ordering::Relaxed);
@@ -67,8 +79,30 @@ fn apply_pdfium_env(
     sidecar
 }
 
+/// 启动 sidecar，并在后台等待就绪；失败时发出 `corex://not-ready`。
+pub fn spawn_and_watch(app: &AppHandle, timeout: Duration) {
+    match spawn(app) {
+        Ok(()) => {
+            let app = app.clone();
+            std::thread::spawn(move || {
+                let Some(state) = app.try_state::<SidecarState>() else {
+                    return;
+                };
+                if !wait_for_daemon(timeout, &state) {
+                    let _ = app.emit("corex://not-ready", ());
+                }
+            });
+        }
+        Err(e) => {
+            tracing::error!("corex-serve 启动失败: {e}");
+            app.state::<SidecarState>().fail();
+            let _ = app.emit("corex://not-ready", ());
+        }
+    }
+}
+
 /// 启动 corex-serve sidecar 并监听进程退出。
-pub fn spawn(app: &AppHandle) -> Result<(), String> {
+fn spawn(app: &AppHandle) -> Result<(), String> {
     let sidecar = app
         .shell()
         .sidecar("binaries/corex-serve")
@@ -113,15 +147,14 @@ pub fn spawn(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-pub fn wait_for_daemon(timeout: std::time::Duration, state: &SidecarState) -> bool {
+fn wait_for_daemon(timeout: Duration, state: &SidecarState) -> bool {
     let start = std::time::Instant::now();
     while start.elapsed() < timeout {
-        if ipc::is_ready() {
-            state.mark_ready();
+        if state.probe() {
             info!("corex-serve IPC 已就绪");
             return true;
         }
-        std::thread::sleep(std::time::Duration::from_millis(200));
+        std::thread::sleep(Duration::from_millis(200));
     }
     state.fail();
     warn!("corex-serve 在超时内未就绪，重能力调用可能失败");
