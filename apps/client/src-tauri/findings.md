@@ -1,38 +1,31 @@
 # Findings & Decisions
 
 ## Requirements
-- Create project skill `naming-conventions` for Tauri IPC/Command/Service/Entity naming
-- Content must be portable: abstract names only (`resource`, `feature`, `namespace`)
-- No real repo paths, business module names, or "open file X" guidance
-- Include SKILL.md, ipc-patterns.md, examples.md
-- Light eval with with/without skill comparison + viewer
+- 全量接线：autostart / log / updater / process / cli / localhost
+- 不强制主窗切 localhost External
+- updater 无完整 CI；配置 + 调用入口即可
 
 ## Research Findings
-- Prompt fully specifies the seven rule sections to embed in SKILL.md
-- Prior repo naming refactor already uses `namespace:action` + `{namespace}_{action}` + `to*` + `*P::One|Many` (internal validation only; not cited in skill)
-- session-catchup.py is not present under this project's planning-with-files skill
-- Benchmark iteration-1: with_skill 100% vs without_skill 70% (delta +0.30)
-- Eval-1 (fix bad invokes) is non-discriminating: prompt itself encodes the target conventions, so baseline also scores 100%
-- Eval-0/2 discriminate well: baseline invents dual IPC one/many, omits `resource_` prefix and `to*`
+- autostart 已在 bootstrap 注册；前端现已 enable/disable
+- process 已 plugin()；前端现有 exit/relaunch
+- cli：`--minimized` / `--verbose`；desktop + default capability
+- localhost 端口：18923 → `http://localhost:18923`
+- updater endpoint：`https://github.com/layenbrank/i-thinking/releases/latest/download/latest.json`
+- 公钥已写入 tauri.conf；私钥曾生成于 `%TEMP%\i-thinking-updater.key`（发版前请妥善保管，勿提交仓库）
 
 ## Technical Decisions
 | Decision | Rationale |
 |----------|-----------|
-| name: naming-conventions | User request |
-| Keep Tauri-focused description | Triggers still match IPC/command work |
-| Progressive disclosure via two reference files | Keep SKILL.md lean |
-| Post-eval: forbid dual IPC insert-one/many | Close gap exposed by baseline |
+| LOCALHOST_PORT = 18923 | 避开 Vite 5173 |
+| CLI `--minimized` / `--verbose` | 自启托盘 + 日志级别 |
+| GeneralPanel 含自启/检查更新/退出 | 产品入口集中 |
 
-## Issues Encountered
-| Issue | Resolution |
-|-------|------------|
-| No session-catchup.py in project skill | Log and continue |
-| Windows GBK when reading UTF-8 eval JSON/md | PYTHONUTF8=1 |
-
-## Resources
-- Skill: `.cursor/skills/naming-conventions/`
-- Viewer: `naming-conventions-workspace/iteration-1/review.html`
-- Benchmark: `naming-conventions-workspace/iteration-1/benchmark.md`
-
-## Visual/Browser Findings
-- Static review.html opened for human Outputs/Benchmark tabs
+## Plugin Utilization Matrix
+| Plugin | Wired |
+|--------|-------|
+| autostart | yes — settings Switch + OS sync + `--minimized` |
+| log | yes — Stdout/LogDir/(debug)Webview + attachConsole |
+| updater | yes — plugin + conf + tray/settings checkUpdate |
+| process | yes — exitApp / relaunchApp |
+| cli | yes — conf args + applyCliMatches |
+| localhost | yes — port 18923, main window unchanged |

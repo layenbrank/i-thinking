@@ -1,46 +1,50 @@
-# Task Plan: Create naming-conventions Skill
+# Task Plan: Tauri Plugins Wire-up
 
 ## Goal
-在项目 `.cursor/skills/naming-conventions/` 创建通用 Tauri 四层命名规范 Skill（无真实业务路径），并用轻量 eval + viewer 做首轮验证。
+把 src-tauri 未接线/半成品插件（autostart、log、updater、process、cli、localhost）全部打通。
 
 ## Current Phase
-Phase 3 complete — awaiting optional human feedback in review.html
+Phase 7 complete
 
 ## Phases
 
-### Phase 0: Planning files
-- [x] Create/reset task_plan.md / findings.md / progress.md
+### Phase 1: Planning files
+- [x] Create task_plan.md / findings.md / progress.md
 - **Status:** complete
 
-### Phase 1: Draft skill
-- [x] Write SKILL.md with frontmatter name `naming-conventions`
-- [x] Write ipc-patterns.md and examples.md (abstract names only)
-- [x] Grep skill for forbidden real module/path references
+### Phase 2: Autostart
+- [x] store 同步 + GeneralPanel Switch + --minimized args
 - **Status:** complete
 
-### Phase 2: Light evals
-- [x] Create evals/evals.json (2–3 prompts + assertions)
-- [x] Run with_skill / without_skill into naming-conventions-workspace/iteration-1
-- [x] Grade, aggregate, launch eval-viewer
+### Phase 3: Log
+- [x] plugins.rs 注册 + attachConsole
 - **Status:** complete
 
-### Phase 3: Iterate on feedback
-- [x] Self-review grading gaps; apply skill fixes if needed
-- [ ] Optional: incorporate user feedback from review.html Submit
-- **Status:** complete (self-iteration done; human feedback optional)
+### Phase 4: Updater + Process
+- [x] updater 注册与前端入口；process exit/relaunch
+- **Status:** complete
+
+### Phase 5: CLI
+- [x] 注册 + conf + getMatches
+- **Status:** complete
+
+### Phase 6: Localhost
+- [x] 固定端口注册 + 导出常量
+- **Status:** complete
+
+### Phase 7: Verify
+- [x] cargo check + tsc + 注释更新
+- **Status:** complete
 
 ## Decisions Made
 | Decision | Rationale |
 |----------|-----------|
-| Skill name `naming-conventions` | User override of prompt's `tauri-naming-conventions` |
-| Omit disable-model-invocation | Auto-trigger on rename/IPC/review tasks |
-| Abstract placeholders only | Skill must stay portable across Tauri projects |
-| Light eval first | Plan default; full description loop only after feedback |
-| Clarify One\|Many stays in Entity not dual IPC | Baseline eval-0 split insert-one/insert-many |
+| store 为自启期望态 | 设置页偏好驱动 OS |
+| localhost 不改主窗协议 | 避免破坏 mica/overlay |
+| autostart args `--minimized` | 与 cli 协作托盘启动 |
+| updater pubkey 本机生成 | 发版需保存对应私钥 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
-| session-catchup at ~/.cursor/... missing | 1 | Project skill has no scripts/; continue without |
-| aggregate/viewer GBK decode | 1 | Set PYTHONUTF8=1 |
-| aggregate relative path wrong | 1 | Use absolute workspace path |
+|       | 1       |            |

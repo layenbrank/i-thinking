@@ -23,6 +23,8 @@ import { router } from '@/routers/index'
 import { useMirrorStore } from '@/stores/mirror.ts'
 import { useSettingsStore } from '@/stores/setting.ts'
 import { useProviderProps } from '@/themes'
+import { applyCliMatches } from '@/utils/cli'
+import { checkUpdate } from '@/utils/updater'
 
 dayjs.extend(localeData)
 dayjs.locale('zh-cn')
@@ -43,6 +45,61 @@ function App() {
   useEffect(function () {
     void useMirrorStore.getState().toInitialize()
     void useSettingsStore.getState().initialize()
+  }, [])
+
+  useEffect(function () {
+    if (!import.meta.env.DEV) return
+
+    let detach: (() => void) | undefined
+    let cancelled = false
+
+    async function attach() {
+      try {
+        const { attachConsole } = await import('@tauri-apps/plugin-log')
+        const detachConsole = await attachConsole()
+        if (cancelled) detachConsole()
+        else detach = detachConsole
+      } catch (err) {
+        console.warn('[App] attachConsole failed', err)
+      }
+    }
+
+    void attach()
+    return function () {
+      cancelled = true
+      detach?.()
+    }
+  }, [])
+
+  useEffect(function () {
+    void applyCliMatches()
+  }, [])
+
+  useEffect(function () {
+    let unlisten: (() => void) | undefined
+    let cancelled = false
+
+    async function bootstrap() {
+      try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
+        if (getCurrentWindow().label !== 'main') return
+
+        unlisten = await listen<string>('tray:action', function (event) {
+          if (event.payload === 'check-update') {
+            void checkUpdate()
+          }
+        })
+        if (cancelled) unlisten()
+      } catch (err) {
+        console.warn('[App] tray:action listen failed', err)
+      }
+    }
+
+    void bootstrap()
+    return function () {
+      cancelled = true
+      unlisten?.()
+    }
   }, [])
 
   useEffect(function () {

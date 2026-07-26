@@ -115,6 +115,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "externalBin": ["binaries/corex-serve"],
     "icon": [
       "icons/32x32.png",
@@ -185,6 +186,32 @@
     }
   },
   "identifier": "com.i-thinking.corex",
+  "plugins": {
+    "cli": {
+      "description": "i thinking desktop CLI",
+      "args": [
+        {
+          "name": "minimized",
+          "short": "m",
+          "description": "Start hidden in the system tray"
+        },
+        {
+          "name": "verbose",
+          "short": "v",
+          "description": "Enable verbose logging"
+        }
+      ]
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk4RTQwMDZERTc1MTc2ODMKUldTRGRsSG5iUURrbUdJR2ZGRGxKTGN5ZWxBTWVoeVdWMVpmdXd3dnZrQTg2ZnkwU2dBaG12eUUK",
+      "endpoints": [
+        "https://github.com/layenbrank/i-thinking/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "productName": "i thinking",
   "version": "0.1.0"
 }

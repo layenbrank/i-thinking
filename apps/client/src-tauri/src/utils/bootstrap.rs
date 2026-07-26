@@ -8,7 +8,7 @@ use crate::{
     through::{self, ThroughState},
     ui::tray,
     utils::{
-        handlers, plugins,
+        handlers, log_retention, plugins,
         sidecar::{self, SidecarState},
     },
 };
@@ -23,7 +23,7 @@ impl Bootstrap {
         #[cfg(desktop)]
         let builder = builder.plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec![]),
+            Some(vec!["--minimized".into()]),
         ));
 
         let builder = plugins::register_plugins(builder);
@@ -52,6 +52,7 @@ impl Bootstrap {
                 app.manage(OverlayPending::default());
                 through::spawn_worker(app.handle().clone());
                 tray::setup(app)?;
+                log_retention::prune_stale_logs(app.handle());
 
                 #[cfg(all(desktop, windows))]
                 {

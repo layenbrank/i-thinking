@@ -1,6 +1,7 @@
 import { LazyStore } from '@tauri-apps/plugin-store'
 import { create } from 'zustand'
 
+import { syncAutostart } from '@/features/magnetic-tiles/settings/autostart'
 import type { Appearance as ThemeAppearance } from '@/themes/appearance'
 import { APPEARANCE_PRESET } from '@/themes/appearance'
 
@@ -61,12 +62,29 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
         }
       }
 
+      try {
+        const enabled = await syncAutostart(settings.general.autostart)
+        settings.general = { ...settings.general, autostart: enabled }
+        await settingStore.set('general', settings.general)
+      } catch (error) {
+        console.warn('[settings] syncAutostart on init failed', error)
+      }
+
       setter({ settings, loaded: true })
     },
 
     async update(section, value) {
       const current = getter().settings
       const merged = { ...current[section], ...value }
+
+      if (section === 'general' && 'autostart' in value) {
+        const desired = (value as Partial<Setting.General>).autostart
+        if (typeof desired === 'boolean') {
+          const enabled = await syncAutostart(desired)
+          ;(merged as Setting.General).autostart = enabled
+        }
+      }
+
       setter({ settings: { ...current, [section]: merged } })
       await settingStore.set(section, merged)
     },
@@ -74,6 +92,11 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
     async reset() {
       setter({ settings: SETTINGS })
       await settingStore.reset()
+      try {
+        await syncAutostart(SETTINGS.general.autostart)
+      } catch (error) {
+        console.warn('[settings] syncAutostart on reset failed', error)
+      }
     },
 
     async resetAppearance() {
