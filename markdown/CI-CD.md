@@ -24,7 +24,8 @@
 文件：`.github/workflows/continuous-integration.yaml`
 
 - 触发：PR 到 `master`/`develop`，或 push 到 `develop`
-- 环境：Node 24 + pnpm 11，`actions/checkout@v6`、`actions/cache@v5`
+- 环境：Node 24 + pnpm（读取根 `package.json` 的 `packageManager`）
+- Actions 运行时：使用已支持 Node 24 的版本（如 `pnpm/action-setup@v6`、`actions/setup-node@v6`、`checkout@v6`、`cache@v5`）。**不要**设置 `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION`——那是临时继续用已弃用 Node 20 的退路，不是推荐做法
 - 步骤：
   - `pnpm install --frozen-lockfile`
   - `pnpm lint`
