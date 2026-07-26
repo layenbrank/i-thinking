@@ -63,7 +63,6 @@ static
 # Auto-generated files
 auto-imports.d.ts
 components.d.ts
-pnpm-lock.yaml
 
 # Prisma generated client (regenerated on install/build)
 apps/studio/generated/
