@@ -3,7 +3,7 @@ use serde_json::json;
 
 use crate::{ipc, utils::sidecar::SidecarState};
 
-const ALLOWED_MODULES: &[&str] = &["morph", "screenshot", "scan"];
+const ALLOWED_MODULES: &[&str] = &["morph", "screenshot", "scan", "engine"];
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Memory {
@@ -63,13 +63,19 @@ pub fn ipc_ready(state: tauri::State<'_, SidecarState>) -> Option<bool> {
 }
 
 #[tauri::command(rename = "ipc:invoke")]
-pub async fn ipc_invoke(module: String, args: serde_json::Value) -> Result<ipc::IpcResponse, String> {
+pub async fn ipc_invoke(
+    module: String,
+    args: serde_json::Value,
+    action: Option<String>,
+) -> Result<ipc::IpcResponse, String> {
     if !ALLOWED_MODULES.contains(&module.as_str()) {
         return Err(format!("IPC 模块不允许: {module}"));
     }
-    tokio::task::spawn_blocking(move || ipc::invoke(&module, args))
-        .await
-        .map_err(|e| format!("IPC 线程异常: {e}"))?
+    tokio::task::spawn_blocking(move || {
+        ipc::invoke_with(&module, action.as_deref(), args)
+    })
+    .await
+    .map_err(|e| format!("IPC 线程异常: {e}"))?
 }
 
 /// 从前端控制托盘图标徽章状态

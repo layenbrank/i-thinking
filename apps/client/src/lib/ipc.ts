@@ -12,8 +12,12 @@ export interface IpcResponse {
   error?: string
 }
 
-export async function ipcInvoke(module: string, args: unknown): Promise<IpcResponse> {
-  return invoke<IpcResponse>('ipc:invoke', { module, args })
+export async function ipcInvoke(
+  module: string,
+  args: unknown,
+  action?: string
+): Promise<IpcResponse> {
+  return invoke<IpcResponse>('ipc:invoke', { module, args, action })
 }
 
 export function parseData<T>(resp: IpcResponse): T {

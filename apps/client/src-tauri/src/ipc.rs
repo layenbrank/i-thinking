@@ -27,15 +27,27 @@ pub struct IpcResponse {
     pub error: Option<String>,
 }
 
-/// 调用任意 corex 模块
+/// 调用任意 corex 模块；`action` 为 CLI 子命令（kebab-case），可选
 pub fn invoke(module: &str, args: Value) -> Result<IpcResponse, String> {
+    invoke_with(module, None, args)
+}
+
+/// 带可选 `action` 的 invoke（engine / morph 等 action 模块需要）
+pub fn invoke_with(
+    module: &str,
+    action: Option<&str>,
+    args: Value,
+) -> Result<IpcResponse, String> {
     let id = REQUEST_ID.fetch_add(1, Ordering::Relaxed);
-    let payload = json!({
+    let mut payload = json!({
         "type": "invoke",
         "id": id,
         "module": module,
         "args": args,
     });
+    if let Some(action) = action {
+        payload["action"] = Value::String(action.to_string());
+    }
     let response = exchange(id, &payload.to_string())?;
     Ok(response)
 }
