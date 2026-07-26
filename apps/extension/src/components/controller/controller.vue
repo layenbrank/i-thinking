@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Contextmenu from '@/components/contextmenu/contextmenu.vue'
 import { useMirror } from '@/hooks/mirror'
-import { useMirrorStore, type ToUpdateApplication } from '@/stores/mirror.ts'
+import { useMirrorStore, type ToUpdateMagneticTile } from '@/stores/mirror.ts'
 import { resize } from '@i-thinking/directives'
 import Sortable from 'sortablejs'
 
@@ -47,8 +47,8 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
     // void
   },
   'remove-app'() {
-    console.log('[Remove application]', store.application)
-    void store.toRemoveApplication([store.application?.id ?? ''])
+    console.log('[Remove magneticTile]', store.magneticTile)
+    void store.toRemoveMagneticTile([store.magneticTile?.id ?? ''])
   },
   'update-wallpaper'() {
     // void
@@ -62,11 +62,11 @@ const contextmenuMap: Readonly<ContextMenuMap> = {
 }
 
 const options = computed(function () {
-  const application = store.applications?.find(function (application) {
-    return application.id === store.application?.id
+  const magneticTile = store.magneticTiles?.find(function (magneticTile) {
+    return magneticTile.id === store.magneticTile?.id
   })
-  if (!application) return []
-  const { component } = application
+  if (!magneticTile) return []
+  const { component } = magneticTile
   const handler = CONTEXTMENU[component]
   return handler?.() ?? MENUOPTIONS
 })
@@ -79,23 +79,23 @@ function updateActiveKey(value: ContextMenuOptions) {
 
 function handleController(e: MouseEvent) {
   const target = e.target as HTMLElement
-  const closest = target.closest<HTMLElement>('.application')
+  const closest = target.closest<HTMLElement>('.magnetic-tile')
 
   // if (!store.settingsVisible) return
   if (!closest?.dataset?.id) return
 
-  const application = store.applications?.find(function (app) {
+  const magneticTile = store.magneticTiles?.find(function (app) {
     return app.id === closest.dataset.id
   })
 
-  store.application = application ?? null
+  store.magneticTile = magneticTile ?? null
 }
 
 function mountContext(e: MouseEvent) {
   // if (store.settingsVisible) return
 
   const target = e.target as HTMLElement
-  const closest = target.closest<HTMLElement>('.application')
+  const closest = target.closest<HTMLElement>('.magnetic-tile')
 
   const contextmenu = contextmenuRef.value?.$el as HTMLElement
 
@@ -112,17 +112,17 @@ function mountContext(e: MouseEvent) {
 
     if (!closest?.dataset?.id) return
 
-    const application = store.applications?.find(function (app) {
+    const magneticTile = store.magneticTiles?.find(function (app) {
       return app.id === closest.dataset.id
     })
 
-    store.application = application ?? null
+    store.magneticTile = magneticTile ?? null
   }, 60)
 }
 
 function destroyContext() {
   visible.value = false
-  setTimeout(() => (store.application = null), 60)
+  setTimeout(() => (store.magneticTile = null), 60)
 }
 
 function handleResize(DOMRect: DOMRect) {
@@ -134,21 +134,21 @@ function handleDropZone(event: DragEvent) {
   const target = event.target as HTMLElement
   if (!target) return
 
-  const closest = target.closest<HTMLElement>('.application')
+  const closest = target.closest<HTMLElement>('.magnetic-tile')
   if (!closest) return
 
   const dataTransferID = event.dataTransfer?.getData('text/plain')
   if (!dataTransferID) return
 
-  const application = store.applications?.find(function (application) {
-    return application.id === dataTransferID
+  const magneticTile = store.magneticTiles?.find(function (magneticTile) {
+    return magneticTile.id === dataTransferID
   })
 
   console.log(
     '[DropZone dataTransferID]',
     dataTransferID,
-    '\n[DropZone application]',
-    application
+    '\n[DropZone magneticTile]',
+    magneticTile
   )
 }
 
@@ -178,26 +178,26 @@ function initialize() {
     store: {
       set(sortable) {
         const toArray = sortable.toArray()
-        const updates: ToUpdateApplication[] = []
+        const updates: ToUpdateMagneticTile[] = []
 
         for (let i = 0; i < toArray.length; i++) {
           const ID = toArray[i]
 
-          if (!store.applications) return
+          if (!store.magneticTiles) return
 
-          for (let application of store.applications) {
-            application = toRaw(application)
-            if (!application) continue
-            if (application.id !== ID) continue
-            updates.push({ key: application.id, changes: { index: i } })
+          for (let magneticTile of store.magneticTiles) {
+            magneticTile = toRaw(magneticTile)
+            if (!magneticTile) continue
+            if (magneticTile.id !== ID) continue
+            updates.push({ key: magneticTile.id, changes: { index: i } })
           }
         }
-        console.log('[Sortable applications]', updates)
-        void store.toUpdateApplication(updates)
+        console.log('[Sortable magneticTiles]', updates)
+        void store.toUpdateMagneticTile(updates)
       },
       get(sortable) {
-        const toArray = store.applications?.map(function (application) {
-          return application.id
+        const toArray = store.magneticTiles?.map(function (magneticTile) {
+          return magneticTile.id
         })
 
         return toArray ?? []
@@ -248,16 +248,16 @@ onUnmounted(function () {
     :class="[size, shape, direction]">
     <TransitionGroup name="application-fade">
       <template
-        v-for="application in store.applications"
-        :key="application.id">
+        v-for="magneticTile in store.magneticTiles"
+        :key="magneticTile.id">
         <component
           :size="size"
           :shape="shape"
           :direction="direction"
-          :application="application"
-          :is="APPLICATION[application.component]"
-          :data-id="application.id"
-          class="application sortable-draggable sortable-ghost sortable-chosen sortable-swap application-collection" />
+          :magneticTile="magneticTile"
+          :is="APPLICATION[magneticTile.component]"
+          :data-id="magneticTile.id"
+          class="magneticTile sortable-draggable sortable-ghost sortable-chosen sortable-swap magnetic-tile-collection" />
       </template>
     </TransitionGroup>
     <Teleport to="body">
@@ -272,7 +272,7 @@ onUnmounted(function () {
         @contextmenu.prevent="mountContext"
         :class="[
           {
-            'is-active': store.application && visible && options?.length
+            'is-active': store.magnetic-tile && visible && options?.length
           }
         ]" />
     </Teleport>

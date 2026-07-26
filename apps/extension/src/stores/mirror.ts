@@ -13,25 +13,25 @@ export interface ToUpdateMirror {
 
 export type ToInsertMirror = InsertType<Mirror, 'id'>
 
-export interface ToUpdateApplication {
+export interface ToUpdateMagneticTile {
   key: string
-  changes: UpdateSpec<Application>
+  changes: UpdateSpec<MagneticTile>
 }
 
-export type ToInsertApplication = InsertType<Application, 'id'>
+export type ToInsertMagneticTile = InsertType<MagneticTile, 'id'>
 
 export interface ToUpdateCollection {
   key: string
-  changes: UpdateSpec<Application.Collection>
+  changes: UpdateSpec<MagneticTile.Collection>
 }
-export type ToInsertCollection = InsertType<Application.Collection, 'id'>
+export type ToInsertCollection = InsertType<MagneticTile.Collection, 'id'>
 
 export const useMirrorStore = defineStore('mirror', function () {
   const mirrorID = ref<string | null>(null)
 
-  const application = ref<Application | null>(null)
+  const magneticTile = ref<MagneticTile | null>(null)
 
-  const { APPLICATIONS, MIRRORS } = useMirror()
+  const { MAGNETIC_TILES, MIRRORS } = useMirror()
 
   const mirrors = useObservable(
     from(
@@ -43,14 +43,14 @@ export const useMirrorStore = defineStore('mirror', function () {
         if (isEmpty(values)) void database.mirror.bulkAdd(MIRRORS)
         const [value] = values
         console.log('[useObservable mirrors]', values)
-        console.log('[APPLICATIONS]', APPLICATIONS)
+        console.log('[MAGNETIC_TILES]', MAGNETIC_TILES)
 
         if (value?.id) mirrorID.value = value?.id
       })
     )
   )
 
-  const applications = useObservable(
+  const magneticTiles = useObservable(
     new Observable<string>(function (subscribe) {
       watchEffect(function () {
         if (!mirrorID.value) return
@@ -61,12 +61,12 @@ export const useMirrorStore = defineStore('mirror', function () {
         return from(
           liveQuery(function () {
             return (
-              database.application
+              database.magneticTile
                 .where('mirrorID')
                 .equals(mirrorID)
-                .filter(function (application) {
+                .filter(function (magneticTile) {
                   // 不具有集合ID的
-                  return !application.collectionID
+                  return !magneticTile.collectionID
                 })
                 // .offset(1)
                 // .limit(30)
@@ -76,9 +76,9 @@ export const useMirrorStore = defineStore('mirror', function () {
         )
       }),
       tap(function (values) {
-        if (isEmpty(values)) void database.application.bulkAdd(APPLICATIONS)
+        if (isEmpty(values)) void database.magneticTile.bulkAdd(MAGNETIC_TILES)
 
-        console.log('[useObservable applications]', values)
+        console.log('[useObservable magneticTiles]', values)
       })
       // map( function ( values ) {
       // })
@@ -101,35 +101,35 @@ export const useMirrorStore = defineStore('mirror', function () {
     return response.filter(Boolean)
   }
 
-  async function toReadApplication(keys: string[]) {
-    const response = await database.application.bulkGet(keys)
+  async function toReadMagneticTile(keys: string[]) {
+    const response = await database.magneticTile.bulkGet(keys)
     return response.filter(Boolean)
   }
 
-  function toUpdateApplication(values: ToUpdateApplication[]) {
-    return database.application.bulkUpdate(values)
+  function toUpdateMagneticTile(values: ToUpdateMagneticTile[]) {
+    return database.magneticTile.bulkUpdate(values)
   }
 
-  function toInsertApplication(values: ToInsertApplication[]) {
-    return database.application.bulkAdd(values)
+  function toInsertMagneticTile(values: ToInsertMagneticTile[]) {
+    return database.magneticTile.bulkAdd(values)
   }
 
-  function toRemoveApplication(keys: string[]) {
-    return database.application.bulkDelete(keys)
+  function toRemoveMagneticTile(keys: string[]) {
+    return database.magneticTile.bulkDelete(keys)
   }
 
   return {
     mirrorID,
     mirrors,
-    application,
-    applications,
+    magneticTile,
+    magneticTiles,
     toReadMirror,
     toInsertMirror,
     toUpdateMirror,
     toRemoveMirror,
-    toReadApplication,
-    toUpdateApplication,
-    toInsertApplication,
-    toRemoveApplication
+    toReadMagneticTile,
+    toUpdateMagneticTile,
+    toInsertMagneticTile,
+    toRemoveMagneticTile
   }
 })

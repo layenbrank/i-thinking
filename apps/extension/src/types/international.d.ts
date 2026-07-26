@@ -51,7 +51,7 @@ declare namespace International {
 
     Game: string
     'AI-Hub': string
-    Application: string
+    MagneticTile: string
     Customization: string
 
     Edit: string

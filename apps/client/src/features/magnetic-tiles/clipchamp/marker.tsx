@@ -1,0 +1,21 @@
+import type { MarkerProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { MagneticTile } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import styles from '@/features/magnetic-tiles/clipchamp/marker.module.scss'
+import clsx from 'clsx'
+
+type Props = Omit<MarkerProps, 'children'>
+
+export default function Marker(props: Props) {
+  return (
+    <MagneticTile.Marker
+      {...props}
+      className={clsx([
+        styles.marker,
+        props.size,
+        props.direction,
+        props.shape
+      ])}>
+      clipchamp
+    </MagneticTile.Marker>
+  )
+}

@@ -77,7 +77,7 @@ export default function Overview() {
       </Prefix>
       <Core className={clsx(styles.overview, styles.core)}>
         <Controller.Mirror>
-          <Controller.Application />
+          <Controller.MagneticTile />
         </Controller.Mirror>
       </Core>
       <Suffix className={clsx(styles.overview, styles.suffix)}>footer</Suffix>

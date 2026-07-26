@@ -5,7 +5,7 @@ import type { WindowOptions } from '@tauri-apps/api/window'
 
 type Configure = Omit<WebviewOptions, 'x' | 'y' | 'width' | 'height'> & WindowOptions
 
-type WindowConfigure = Record<Application.Component, Configure>
+type WindowConfigure = Record<MagneticTile.Component, Configure>
 
 const DEFAULT: Configure = {
   backgroundColor: '#00000000',

@@ -60,40 +60,40 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Application::Table)
+                    .table(MagneticTile::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Application::Id)
+                        ColumnDef::new(MagneticTile::Id)
                             .string()
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Application::Index).big_integer().not_null())
-                    .col(ColumnDef::new(Application::Title).string().not_null())
-                    .col(ColumnDef::new(Application::Url).string().null())
-                    .col(ColumnDef::new(Application::Round).string().null())
-                    .col(ColumnDef::new(Application::Mark).string().null())
-                    .col(ColumnDef::new(Application::Component).string().not_null())
-                    .col(ColumnDef::new(Application::Description).string().null())
-                    .col(ColumnDef::new(Application::Background).string().null())
-                    .col(ColumnDef::new(Application::Backdrop).string().null())
-                    .col(ColumnDef::new(Application::MirrorID).string().not_null())
-                    .col(ColumnDef::new(Application::TextSize).string().null())
-                    .col(ColumnDef::new(Application::TextColor).string().null())
-                    .col(ColumnDef::new(Application::CollectionID).string().null())
+                    .col(ColumnDef::new(MagneticTile::Index).big_integer().not_null())
+                    .col(ColumnDef::new(MagneticTile::Title).string().not_null())
+                    .col(ColumnDef::new(MagneticTile::Url).string().null())
+                    .col(ColumnDef::new(MagneticTile::Round).string().null())
+                    .col(ColumnDef::new(MagneticTile::Mark).string().null())
+                    .col(ColumnDef::new(MagneticTile::Component).string().not_null())
+                    .col(ColumnDef::new(MagneticTile::Description).string().null())
+                    .col(ColumnDef::new(MagneticTile::Background).string().null())
+                    .col(ColumnDef::new(MagneticTile::Backdrop).string().null())
+                    .col(ColumnDef::new(MagneticTile::MirrorID).string().not_null())
+                    .col(ColumnDef::new(MagneticTile::TextSize).string().null())
+                    .col(ColumnDef::new(MagneticTile::TextColor).string().null())
+                    .col(ColumnDef::new(MagneticTile::CollectionID).string().null())
                     .col(
-                        ColumnDef::new(Application::DownloadCount)
+                        ColumnDef::new(MagneticTile::DownloadCount)
                             .integer()
                             .not_null()
                             .default(0),
                     )
                     .col(
-                        ColumnDef::new(Application::CreatedAt)
+                        ColumnDef::new(MagneticTile::CreatedAt)
                             .big_integer()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(Application::UpdatedAt)
+                        ColumnDef::new(MagneticTile::UpdatedAt)
                             .big_integer()
                             .not_null(),
                     )
@@ -292,7 +292,7 @@ impl MigrationTrait for Migration {
         .await?;
 
         db.execute_unprepared(
-            "CREATE INDEX IF NOT EXISTS idx_app_mirror ON application (mirrorID)",
+            "CREATE INDEX IF NOT EXISTS idx_magnetic_tile_mirror ON magneticTile (mirrorID)",
         )
         .await?;
         db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_asset_hash ON asset (hash)")
@@ -311,7 +311,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Application::Table).to_owned())
+            .drop_table(Table::drop().table(MagneticTile::Table).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(Mirror::Table).to_owned())
@@ -378,7 +378,8 @@ enum Mirror {
 }
 
 #[derive(Iden)]
-enum Application {
+enum MagneticTile {
+    #[iden = "magneticTile"]
     Table,
     Id,
     Index,

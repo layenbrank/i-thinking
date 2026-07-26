@@ -1,8 +1,8 @@
 import { http } from '@/utils/http/http.ts'
 import { INTELLIGENCE_TOKEN } from '@/utils/http/token.ts'
 
-type CommunicateParams = Application.Intelligence.Communicate.Params
-type CommunicateResponse = Application.Intelligence.Communicate.Response
+type CommunicateParams = MagneticTile.Intelligence.Communicate.Params
+type CommunicateResponse = MagneticTile.Intelligence.Communicate.Response
 
 // SSE server sent events
 export function POST_COMMUNICATE(data: CommunicateParams) {

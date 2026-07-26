@@ -4,8 +4,8 @@ import { create, type StateCreator } from 'zustand'
 import { devtools, subscribeWithSelector } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-type AiSession = Application.Intelligence.AiSession
-type AiMessage = Application.Intelligence.AiMessage
+type AiSession = MagneticTile.Intelligence.AiSession
+type AiMessage = MagneticTile.Intelligence.AiMessage
 
 interface UpdateMessage {
   key: string

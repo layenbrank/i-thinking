@@ -26,7 +26,7 @@ export function usePaginate<T extends Record<string, any>>(
 // 	page: 1,
 // 	size: 10,
 // 	limit: 10,
-// 	store: database.application
+// 	store: database.magneticTile
 // })
 
 // resp.forEach(function (item) {

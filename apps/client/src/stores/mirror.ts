@@ -9,17 +9,17 @@ import { cloneDeep } from 'lodash-es'
 import { BuildMirror } from '@/constants/mirror.ts'
 
 type MirrorWrite = Mirror.Write
-type ApplicationWrite = Application.Write
+type MagneticTileWrite = MagneticTile.Write
 type MirrorUpdate = Mirror.Update
-type ApplicationUpdate = Application.Update
+type MagneticTileUpdate = MagneticTile.Update
 
-export type { ApplicationUpdate, ApplicationWrite, MirrorUpdate, MirrorWrite }
+export type { MagneticTileUpdate, MagneticTileWrite, MirrorUpdate, MirrorWrite }
 
 interface MirrorSlice {
   mirrors: Mirror[]
   active: {
     mirror: Mirror | null
-    application: Application | null
+    magneticTile: MagneticTile | null
   }
 
   toReadMirror: (ID: string) => Promise<Mirror | null>
@@ -31,19 +31,19 @@ interface MirrorSlice {
   toInitialize: () => Promise<void>
 }
 
-interface ApplicationSlice {
-  applications: Application[]
+interface MagneticTileSlice {
+  magneticTiles: MagneticTile[]
 
-  toReadApplication: (ID: string) => Promise<Application | null>
-  toInsertApplication: (values: ApplicationWrite[]) => Promise<void>
-  toUpdateApplication: (values: ApplicationUpdate[]) => Promise<void>
-  toRemoveApplication: (keys: string[]) => Promise<void>
+  toReadMagneticTile: (ID: string) => Promise<MagneticTile | null>
+  toInsertMagneticTile: (values: MagneticTileWrite[]) => Promise<void>
+  toUpdateMagneticTile: (values: MagneticTileUpdate[]) => Promise<void>
+  toRemoveMagneticTile: (keys: string[]) => Promise<void>
 
-  toUpdateApplications: (applications: Application[]) => void
+  toUpdateMagneticTiles: (magneticTiles: MagneticTile[]) => void
 }
 
 /** 完整 Store 类型 */
-type MirrorStore = MirrorSlice & ApplicationSlice
+type MirrorStore = MirrorSlice & MagneticTileSlice
 
 /** 切片创建器类型 */
 type SliceCreator<T> = StateCreator<
@@ -56,25 +56,25 @@ type SliceCreator<T> = StateCreator<
 const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
   return {
     mirrors: [],
-    active: { mirror: null, application: null },
+    active: { mirror: null, magneticTile: null },
 
     async toReadMirror(ID: string) {
       const mirror = getters().mirrors.find((m) => m.id === ID) ?? null
       setters(
         (state) => {
           state.active.mirror = mirror
-          state.active.application = null
+          state.active.magneticTile = null
         },
         false,
         'toReadMirror'
       )
       if (mirror?.id) {
-        const applications = await invoke<Application[]>('application:read', {
+        const magneticTiles = await invoke<MagneticTile[]>('magnetic-tile:read', {
           params: { mirrorID: mirror.id }
         })
-        console.log('mirror application', applications)
-        getters().toUpdateApplications(
-          applications.filter((a) => !a.collectionID).toSorted((a, b) => a.index - b.index)
+        console.log('mirror magneticTiles', magneticTiles)
+        getters().toUpdateMagneticTiles(
+          magneticTiles.filter((a) => !a.collectionID).toSorted((a, b) => a.index - b.index)
         )
       }
       return mirror
@@ -123,65 +123,65 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
         await getters().toReadMirror(first.id)
       }
 
-      if (isEmpty(getters().applications)) {
+      if (isEmpty(getters().magneticTiles)) {
         // 用实际入库的 first.id 重新构建，确保 mirrorID 匹配
-        const { APPLICATIONS } = BuildMirror({ mirrorID: first.id })
-        const writes: ApplicationWrite[] = APPLICATIONS.map((value) => value)
-        await invoke('application:write', { params: writes })
+        const { MAGNETIC_TILES } = BuildMirror({ mirrorID: first.id })
+        const writes: MagneticTileWrite[] = MAGNETIC_TILES.map((value) => value)
+        await invoke('magnetic-tile:write', { params: writes })
         await getters().toReadMirror(first.id)
       }
 
-      const [firstApp] = getters().applications
-      if (firstApp && !getters().active.application) {
-        await getters().toReadApplication(firstApp.id)
+      const [firstApp] = getters().magneticTiles
+      if (firstApp && !getters().active.magneticTile) {
+        await getters().toReadMagneticTile(firstApp.id)
       }
     }
   }
 }
 
-const applicationSlice: SliceCreator<ApplicationSlice> = function (setters, getters) {
+const magneticTileSlice: SliceCreator<MagneticTileSlice> = function (setters, getters) {
   return {
-    applications: [],
+    magneticTiles: [],
 
-    async toReadApplication(ID: string) {
-      const applications = await invoke<Application[]>('application:read', { params: { id: ID } })
-      const [application] = applications
+    async toReadMagneticTile(ID: string) {
+      const magneticTiles = await invoke<MagneticTile[]>('magnetic-tile:read', { params: { id: ID } })
+      const [magneticTile] = magneticTiles
       setters(
         (state) => {
-          state.active.application = application ?? null
+          state.active.magneticTile = magneticTile ?? null
         },
         false,
-        'toReadApplication'
+        'toReadMagneticTile'
       )
-      return application
+      return magneticTile
     },
 
-    async toInsertApplication(values: ApplicationWrite[]) {
+    async toInsertMagneticTile(values: MagneticTileWrite[]) {
       const mirrorID = getters().active.mirror?.id
       if (!mirrorID) return
       const params = values.length === 1 ? values[0] : values
-      await invoke('application:write', { params })
+      await invoke('magnetic-tile:write', { params })
       await getters().toReadMirror(mirrorID)
     },
 
-    async toUpdateApplication(values: ApplicationUpdate[]) {
+    async toUpdateMagneticTile(values: MagneticTileUpdate[]) {
       const mirrorID = getters().active.mirror?.id
       if (!mirrorID) return
       const params = values.length === 1 ? values[0] : values
-      await invoke('application:update', { params })
+      await invoke('magnetic-tile:update', { params })
       await getters().toReadMirror(mirrorID)
     },
 
-    async toRemoveApplication(keys: string[]) {
+    async toRemoveMagneticTile(keys: string[]) {
       const mirrorID = getters().active.mirror?.id
       if (!mirrorID) return
       const params = keys.length === 1 ? keys[0] : keys
-      await invoke('application:remove', { params })
+      await invoke('magnetic-tile:remove', { params })
       await getters().toReadMirror(mirrorID)
     },
 
-    toUpdateApplications(applications) {
-      setters({ applications }, false, 'toUpdateApplications')
+    toUpdateMagneticTiles(magneticTiles) {
+      setters({ magneticTiles }, false, 'toUpdateMagneticTiles')
     }
   }
 }
@@ -191,7 +191,7 @@ const useMirrorStore = create<MirrorStore>()(
     immer(function (...args) {
       return {
         ...mirrorSlice(...args),
-        ...applicationSlice(...args)
+        ...magneticTileSlice(...args)
       }
     }),
     {

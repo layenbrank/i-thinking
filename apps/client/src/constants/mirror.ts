@@ -1,12 +1,12 @@
 import { v4 as UUIDV4 } from 'uuid'
 import { generateColor } from '@/utils/generate.ts'
 
-interface ApplicationOptions {
+interface MagneticTileOptions {
   label: string
-  value: Application.Component
+  value: MagneticTile.Component
 }
 
-const OPTIONS: ApplicationOptions[] = [
+const OPTIONS: MagneticTileOptions[] = [
   {
     label: '书签',
     value: 'bookmark'
@@ -108,8 +108,8 @@ function BuildMirror(options?: MirrorOptions) {
   //   return mirror.id === MIRROR_ID
   // })
 
-  const APPLICATIONS: readonly Application.Write[] = OPTIONS.map(function (single, index) {
-    const application: Application.Write = {
+  const MAGNETIC_TILES: readonly MagneticTile.Write[] = OPTIONS.map(function (single, index) {
+    const magneticTile: MagneticTile.Write = {
       // id: crypto?.randomUUID?.(),
       url: single.value === 'navigation' ? 'https://cn.bing.com' : null,
       mark: null,
@@ -130,14 +130,14 @@ function BuildMirror(options?: MirrorOptions) {
         color: generateColor()
       }
     }
-    return application
+    return magneticTile
   })
 
   return {
     MIRRORS,
     // MIRROR,
     MIRROR_ID,
-    APPLICATIONS
+    MAGNETIC_TILES
   }
 }
 

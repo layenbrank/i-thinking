@@ -33,7 +33,7 @@ export interface CountdownUpdate {
   payDay?: number
 }
 
-const DEFAULT_CONFIG: CountdownConfig = {
+const COUNTDOWN_CONFIG: CountdownConfig = {
   id: '00000000-0000-0000-0000-000000000001',
   workStart: '09:00',
   workEnd: '18:00',
@@ -50,14 +50,14 @@ interface ClockStore {
   loaded: boolean
   initialize: () => Promise<void>
   updateConfig: (update: CountdownUpdate) => Promise<void>
-  setClockStyle: (style: ClockStyle) => void
+  updateClockStyle: (style: ClockStyle) => void
 }
 
 export const useClockStore = create<ClockStore>()(
   devtools(
     immer(function (setter, getter) {
       return {
-        config: DEFAULT_CONFIG,
+        config: COUNTDOWN_CONFIG,
         clockStyle: loadClockStyle(),
         loaded: false,
 
@@ -66,7 +66,7 @@ export const useClockStore = create<ClockStore>()(
           try {
             const config = await invoke<CountdownConfig | null>('countdown:read')
             setter(function (state) {
-              state.config = config ?? DEFAULT_CONFIG
+              state.config = config ?? COUNTDOWN_CONFIG
               state.loaded = true
             })
           } catch (e) {
@@ -95,7 +95,7 @@ export const useClockStore = create<ClockStore>()(
           }
         },
 
-        setClockStyle(style: ClockStyle) {
+        updateClockStyle(style: ClockStyle) {
           setter(function (state) {
             state.clockStyle = style
           })

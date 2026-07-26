@@ -43,8 +43,8 @@
     "./mirror": {
       "types": "./src/types/mirror.d.ts"
     },
-    "./application": {
-      "types": "./src/types/application.d.ts"
+    "./magnetic-tile": {
+      "types": "./src/types/magnetic-tile.d.ts"
     },
     "./settings": {
       "types": "./src/types/settings.d.ts"
@@ -52,14 +52,14 @@
     "./backup": {
       "types": "./src/types/backup.d.ts"
     },
-    "./application-bookmark": {
-      "types": "./src/types/application-bookmark.d.ts"
+    "./magnetic-tile-bookmark": {
+      "types": "./src/types/magnetic-tile-bookmark.d.ts"
     },
-    "./application-markdown": {
-      "types": "./src/types/application-markdown.d.ts"
+    "./magnetic-tile-markdown": {
+      "types": "./src/types/magnetic-tile-markdown.d.ts"
     },
-    "./application-intelligence": {
-      "types": "./src/types/application-intelligence.ts"
+    "./magnetic-tile-intelligence": {
+      "types": "./src/types/magnetic-tile-intelligence.ts"
     }
   }
 }

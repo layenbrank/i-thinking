@@ -5,8 +5,8 @@ import type { ReactNode } from 'react'
 import { useClickOutside } from '@reactuses/core'
 
 import { Combobox } from '@/components/combobox/index.ts'
-import { Application } from '@/features/application/application.tsx'
-import { OverlayContext } from '@/features/application/overlay-context'
+import { MagneticTile } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { OverlayContext } from '@/features/magnetic-tile/overlay-context'
 import styles from '@/features/utility/utility.module.scss'
 
 interface UtilityProps {
@@ -83,7 +83,7 @@ export default function Utility(props: UtilityProps) {
           }
         />
       )}
-      <Application.Caption actions={extension} />
+      <MagneticTile.Caption actions={extension} />
     </div>
   )
 }

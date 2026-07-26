@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 
-import type { MarkerLayout } from '@/features/application/size'
+import type { MarkerLayout } from '@/features/magnetic-tile/size'
 import type { OverlayPanelKind } from '@/stores/overlay'
 
 export async function ensureOverlay(): Promise<void> {
@@ -11,22 +11,22 @@ export async function hideOverlay(): Promise<void> {
   await invoke('overlay:hide')
 }
 
-export async function setOverlayMode(mode: 'idle' | 'capture'): Promise<void> {
+export async function updateOverlayMode(mode: 'idle' | 'capture'): Promise<void> {
   await invoke('overlay:update-mode', { mode })
 }
 
 /**
- * Open overlay (if needed) and mount a singleton panel widget.
- * 由应用右键「浮层 → 添加」调用；overview 磁贴双击勿调用。
+ * Ensure overlay (if needed) and mount a singleton panel.
+ * 由磁贴右键「浮层 → 添加」调用；overview 磁贴双击勿调用。
  */
-export async function openOverlayPanel(
+export async function mountOverlayPanel(
   kind: OverlayPanelKind,
-  applicationId?: string,
+  magneticTileID?: string,
   layout?: Partial<MarkerLayout>
 ): Promise<void> {
   await invoke('overlay:mount', {
     kind,
-    applicationId: applicationId ?? null,
+    magneticTileID: magneticTileID ?? null,
     size: layout?.size ?? null,
     shape: layout?.shape ?? null,
     direction: layout?.direction ?? null
@@ -34,15 +34,15 @@ export async function openOverlayPanel(
 }
 
 /**
- * Remove a singleton panel widget by kind.
- * 由应用右键「浮层 → 移除」调用。
+ * Remove a singleton panel by kind.
+ * 由磁贴右键「浮层 → 移除」调用。
  */
 export async function removeOverlayPanel(kind: OverlayPanelKind): Promise<void> {
   await invoke('overlay:unmount', { kind })
 }
 
-export async function openApplicationOverlay(applicationId: string): Promise<void> {
-  await invoke('application:open-overlay', { applicationId })
+export async function showMagneticTileOverlay(magneticTileID: string): Promise<void> {
+  await invoke('magnetic-tile:show-overlay', { magneticTileID })
 }
 
 /**

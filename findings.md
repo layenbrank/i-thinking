@@ -1,11 +1,24 @@
-# Findings & Decisions
+# Findings: Magnetic Tiles Rename
 
-## Overlay Caption
-- Modal 用 flex 插槽（bar + body），禁止 absolute
-- `Application.Caption`：最大化 / 恢复 / 关闭；`actions` 可扩展在左侧
-- `caption={false}`：工作区 Utility 自带顶栏时关掉 Overlay 默认顶栏
-- Utility / workspace utility 去掉 Tauri min/max/close，改为 Caption + OverlayContext
+## Casing
+- PascalCase: MagneticTile
+- camelCase: magneticTileID
+- kebab: magnetic-tile, features/magnetic-tiles
+- snake: magnetic_tile, magnetic_tile_id
+- IPC: magnetic-tile:show-overlay / write / read / update / remove
 
-## Naming
-- `isExpanded` / `onUpdateExpanded` / `expand` / `collapse` / `close`
-- Context 抽到 `overlay-context.ts` 避免与 caption 循环依赖
+## ID
+- Forbidden: *Id (magneticTileId, applicationId)
+- Required: magneticTileID; Rust #[serde(rename = "magneticTileID")]
+
+## No open / no widget
+- showMagneticTileOverlay, registerShowOverlay, mountOverlayPanel
+- OverlayItem / items / panels/Panel
+- Third-party widget APIs untouched
+
+## Scope done
+- FE: features/magnetic-tile(s); shared magnetic-tile*; CSS --magnetic-tile-*
+- Overlay: Item/panels; pending unmount; Modal open discarded
+- Rust: entity/service/command magnetic_tile; table magnetic_tile
+- Extension: components/magnetic-tiles; Dexie magneticTile (v2); types MagneticTile
+- Countdown: computeCountdown + isValidShift (workEnd > workStart)

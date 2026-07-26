@@ -26,9 +26,9 @@ type MirrorEventType =
   | 'MIRROR_REMOVED'
   | 'MIRROR_SELECTED'
   | 'MIRRORS_SYNCED'
-  | 'APPLICATION_INSERTED'
-  | 'APPLICATION_UPDATED'
-  | 'APPLICATION_REMOVED'
+  | 'MAGNETIC_TILE_INSERTED'
+  | 'MAGNETIC_TILE_UPDATED'
+  | 'MAGNETIC_TILE_REMOVED'
 
 /** 事件载荷 */
 interface MirrorEvent<T = unknown> {
@@ -66,30 +66,30 @@ interface MirrorSliceActions {
   _setError: (error: string | null) => void
 }
 
-/** Application 切片状态 */
-interface ApplicationSliceState extends AsyncState {
-  application: Application | null
-  applications: Application[]
+/** MagneticTile 切片状态 */
+interface MagneticTileSliceState extends AsyncState {
+  magneticTile: MagneticTile | null
+  magneticTiles: MagneticTile[]
 }
 
-/** Application 切片 Actions */
-interface ApplicationSliceActions {
-  selectApplication: (id: string | null) => void
-  toInsertApplication: (
-    data: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>
+/** MagneticTile 切片 Actions */
+interface MagneticTileSliceActions {
+  selectMagneticTile: (id: string | null) => void
+  toInsertMagneticTile: (
+    data: Omit<MagneticTile, 'id' | 'createdAt' | 'updatedAt'>
   ) => Promise<string>
-  toUpdateApplication: (id: string, data: Partial<Application>) => Promise<void>
-  toRemoveApplication: (id: string) => Promise<void>
-  getApplicationsByMirrorId: (mirrorId: string) => Application[]
-  syncApplicationsFromDatabase: () => void
-  _setApplications: (applications: Application[]) => void
+  toUpdateMagneticTile: (id: string, data: Partial<MagneticTile>) => Promise<void>
+  toRemoveMagneticTile: (id: string) => Promise<void>
+  findMagneticTilesByMirrorID: (mirrorID: string) => MagneticTile[]
+  syncMagneticTilesFromDatabase: () => void
+  _setMagneticTiles: (magneticTiles: MagneticTile[]) => void
 }
 
 /** 完整 Store 类型 */
 type MirrorStore = MirrorSliceState &
   MirrorSliceActions &
-  ApplicationSliceState &
-  ApplicationSliceActions
+  MagneticTileSliceState &
+  MagneticTileSliceActions
 
 /** 切片创建器类型 */
 type SliceCreator<T> = StateCreator<
@@ -109,8 +109,8 @@ export const mirrorEvents$ = new Subject<MirrorEvent>()
 /** 当前选中的 Mirror - 响应式状态 */
 export const selectedMirror$ = new BehaviorSubject<Mirror | null>(null)
 
-/** 当前选中的 Application - 响应式状态 */
-export const selectedApplication$ = new BehaviorSubject<Application | null>(null)
+/** 当前选中的 MagneticTile - 响应式状态 */
+export const selectedMagneticTile$ = new BehaviorSubject<MagneticTile | null>(null)
 
 /** 搜索关键词 - 防抖处理 */
 export const mirrorSearchTerm$ = new BehaviorSubject<string>('')
@@ -299,13 +299,13 @@ const createMirrorSlice: SliceCreator<MirrorSliceState & MirrorSliceActions> = f
       )
 
       try {
-        // 使用事务同时删除相关的 Applications
+        // 使用事务同时删除相关的 Magnetic Tiles
         // await database.transaction(
         //   'rw',
-        //   [database.mirror, database.application],
+        //   [database.mirror, database.magneticTile],
         //   async function () {
         //     await database.mirror.delete(id)
-        //     await database.application.where('mirrorID').equals(id).delete()
+        //     await database.magneticTile.where('mirrorID').equals(id).delete()
         //   }
         // )
 
@@ -315,8 +315,8 @@ const createMirrorSlice: SliceCreator<MirrorSliceState & MirrorSliceActions> = f
           timestamp: Date.now()
         })
 
-        // 同步删除 applications
-        get().syncApplicationsFromDatabase()
+        // 同步删除 magneticTiles
+        get().syncMagneticTilesFromDatabase()
       } catch (err) {
         // 回滚
         set(
@@ -369,55 +369,55 @@ const createMirrorSlice: SliceCreator<MirrorSliceState & MirrorSliceActions> = f
 }
 
 // ============================================================================
-// Application 切片
+// MagneticTile 切片
 // ============================================================================
 
-const createApplicationSlice: SliceCreator<ApplicationSliceState & ApplicationSliceActions> =
+const createMagneticTileSlice: SliceCreator<MagneticTileSliceState & MagneticTileSliceActions> =
   function (set, get) {
     return {
       // 状态
-      application: null,
-      applications: [],
+      magneticTile: null,
+      magneticTiles: [],
       loading: false,
       error: null,
 
-      // 选择 Application
-      selectApplication(id) {
-        const applications = get().applications
-        const application = id
-          ? (applications.find(function (a) {
+      // 选择 MagneticTile
+      selectMagneticTile(id) {
+        const magneticTiles = get().magneticTiles
+        const magneticTile = id
+          ? (magneticTiles.find(function (a) {
               return a.id === id
             }) ?? null)
           : null
-        set({ application }, false, 'selectApplication')
-        selectedApplication$.next(application)
+        set({ magneticTile }, false, 'selectMagneticTile')
+        selectedMagneticTile$.next(magneticTile)
       },
 
-      // 插入 Application
-      async toInsertApplication(data) {
+      // 插入 MagneticTile
+      async toInsertMagneticTile(data) {
         const id = crypto.randomUUID()
         const now = Date.now()
-        const newApplication: Application = {
+        const newMagneticTile: MagneticTile = {
           ...data,
           id,
           createdAt: now,
           updatedAt: now
-        } as Application
+        } as MagneticTile
 
         // 乐观更新
         set(
           function (state) {
-            state.applications.push(newApplication)
+            state.magneticTiles.push(newMagneticTile)
           },
           false,
-          'toInsertApplication/optimistic'
+          'toInsertMagneticTile/optimistic'
         )
 
         try {
-          // await database.application.add(newApplication)
+          // await database.magneticTile.add(newMagneticTile)
           mirrorEvents$.next({
-            type: 'APPLICATION_INSERTED',
-            payload: newApplication,
+            type: 'MAGNETIC_TILE_INSERTED',
+            payload: newMagneticTile,
             timestamp: now
           })
           return id
@@ -425,25 +425,25 @@ const createApplicationSlice: SliceCreator<ApplicationSliceState & ApplicationSl
           // 回滚
           set(
             function (state) {
-              state.applications = state.applications.filter(function (a) {
+              state.magneticTiles = state.magneticTiles.filter(function (a) {
                 return a.id !== id
               })
             },
             false,
-            'toInsertApplication/rollback'
+            'toInsertMagneticTile/rollback'
           )
           throw err
         }
       },
 
-      // 更新 Application
-      async toUpdateApplication(id, data) {
-        const applications = get().applications
-        const oldApplication = applications.find(function (a) {
+      // 更新 MagneticTile
+      async toUpdateMagneticTile(id, data) {
+        const magneticTiles = get().magneticTiles
+        const oldMagneticTile = magneticTiles.find(function (a) {
           return a.id === id
         })
-        if (!oldApplication) {
-          throw new Error(`Application with id ${id} not found`)
+        if (!oldMagneticTile) {
+          throw new Error(`MagneticTile with id ${id} not found`)
         }
 
         const now = Date.now()
@@ -452,24 +452,24 @@ const createApplicationSlice: SliceCreator<ApplicationSliceState & ApplicationSl
         // 乐观更新
         set(
           function (state) {
-            const index = state.applications.findIndex(function (a) {
+            const index = state.magneticTiles.findIndex(function (a) {
               return a.id === id
             })
             if (index !== -1) {
-              Object.assign(state.applications[index], updatedData)
+              Object.assign(state.magneticTiles[index], updatedData)
             }
-            if (state.application?.id === id) {
-              Object.assign(state.application, updatedData)
+            if (state.magneticTile?.id === id) {
+              Object.assign(state.magneticTile, updatedData)
             }
           },
           false,
-          'toUpdateApplication/optimistic'
+          'toUpdateMagneticTile/optimistic'
         )
 
         try {
-          // await database.application.update(id, updatedData)
+          // await database.magneticTile.update(id, updatedData)
           mirrorEvents$.next({
-            type: 'APPLICATION_UPDATED',
+            type: 'MAGNETIC_TILE_UPDATED',
             payload: { id, changes: updatedData },
             timestamp: now
           })
@@ -477,49 +477,49 @@ const createApplicationSlice: SliceCreator<ApplicationSliceState & ApplicationSl
           // 回滚
           set(
             function (state) {
-              const index = state.applications.findIndex(function (a) {
+              const index = state.magneticTiles.findIndex(function (a) {
                 return a.id === id
               })
               if (index !== -1) {
-                state.applications[index] = oldApplication
+                state.magneticTiles[index] = oldMagneticTile
               }
-              if (state.application?.id === id) {
-                state.application = oldApplication
+              if (state.magneticTile?.id === id) {
+                state.magneticTile = oldMagneticTile
               }
             },
             false,
-            'toUpdateApplication/rollback'
+            'toUpdateMagneticTile/rollback'
           )
           throw err
         }
       },
 
-      // 删除 Application
-      async toRemoveApplication(id) {
-        const applications = get().applications
-        const oldApplication = applications.find(function (a) {
+      // 删除 MagneticTile
+      async toRemoveMagneticTile(id) {
+        const magneticTiles = get().magneticTiles
+        const oldMagneticTile = magneticTiles.find(function (a) {
           return a.id === id
         })
-        if (!oldApplication) return
+        if (!oldMagneticTile) return
 
         // 乐观更新
         set(
           function (state) {
-            state.applications = state.applications.filter(function (a) {
+            state.magneticTiles = state.magneticTiles.filter(function (a) {
               return a.id !== id
             })
-            if (state.application?.id === id) {
-              state.application = null
+            if (state.magneticTile?.id === id) {
+              state.magneticTile = null
             }
           },
           false,
-          'toRemoveApplication/optimistic'
+          'toRemoveMagneticTile/optimistic'
         )
 
         try {
-          // await database.application.delete(id)
+          // await database.magneticTile.delete(id)
           mirrorEvents$.next({
-            type: 'APPLICATION_REMOVED',
+            type: 'MAGNETIC_TILE_REMOVED',
             payload: { id },
             timestamp: Date.now()
           })
@@ -527,30 +527,30 @@ const createApplicationSlice: SliceCreator<ApplicationSliceState & ApplicationSl
           // 回滚
           set(
             function (state) {
-              state.applications.push(oldApplication)
+              state.magneticTiles.push(oldMagneticTile)
             },
             false,
-            'toRemoveApplication/rollback'
+            'toRemoveMagneticTile/rollback'
           )
           throw err
         }
       },
 
-      // 获取指定 Mirror 下的所有 Applications
-      getApplicationsByMirrorId(mirrorId) {
-        return get().applications.filter(function (a) {
-          return a.mirrorID === mirrorId
+      // 获取指定 Mirror 下的所有 Magnetic Tiles
+      findMagneticTilesByMirrorID(mirrorID) {
+        return get().magneticTiles.filter(function (a) {
+          return a.mirrorID === mirrorID
         })
       },
 
       // 从数据库同步
-      syncApplicationsFromDatabase() {
+      syncMagneticTilesFromDatabase() {
         // 由 liveQuery 订阅处理
       },
 
       // 内部方法
-      _setApplications(applications) {
-        set({ applications }, false, '_setApplications')
+      _setMagneticTiles(magneticTiles) {
+        set({ magneticTiles }, false, '_setMagneticTiles')
       }
     }
   }
@@ -565,7 +565,7 @@ export const useMirrorStore = create<MirrorStore>()(
       immer(function (...args) {
         return {
           ...createMirrorSlice(...args),
-          ...createApplicationSlice(...args)
+          ...createMagneticTileSlice(...args)
         }
       })
     ),
@@ -581,7 +581,7 @@ export const useMirrorStore = create<MirrorStore>()(
 // ============================================================================
 
 let mirrorsSubscription: Subscription | null = null
-let applicationsSubscription: Subscription | null = null
+let magneticTilesSubscription: Subscription | null = null
 
 /** 初始化 Dexie 同步 */
 export function initDexieSync(): void {
@@ -607,18 +607,18 @@ export function initDexieSync(): void {
   //     })
   //   )
   //   .subscribe()
-  // // 订阅 Applications 变化
-  // applicationsSubscription = from(
+  // // 订阅 Magnetic Tiles 变化
+  // magneticTilesSubscription = from(
   //   liveQuery(function () {
-  //     return database.application.orderBy('index').toArray()
+  //     return database.magneticTile.orderBy('index').toArray()
   //   })
   // )
   //   .pipe(
-  //     tap(function (applications) {
-  //       useMirrorStore.getState()._setApplications(applications)
+  //     tap(function (magneticTiles) {
+  //       useMirrorStore.getState()._setMagneticTiles(magneticTiles)
   //     }),
   //     catchError(function (err) {
-  //       console.error('Application sync error:', err)
+  //       console.error('MagneticTile sync error:', err)
   //       return from(Promise.resolve([]))
   //     })
   //   )
@@ -628,9 +628,9 @@ export function initDexieSync(): void {
 /** 销毁 Dexie 同步 */
 export function destroyDexieSync(): void {
   mirrorsSubscription?.unsubscribe()
-  applicationsSubscription?.unsubscribe()
+  magneticTilesSubscription?.unsubscribe()
   mirrorsSubscription = null
-  applicationsSubscription = null
+  magneticTilesSubscription = null
 }
 
 // ============================================================================
@@ -651,17 +651,17 @@ export const useSelectedMirror = function () {
   })
 }
 
-/** 获取所有 applications */
-export const useApplications = function () {
+/** 获取所有 magneticTiles */
+export const useMagneticTiles = function () {
   return useMirrorStore(function (state) {
-    return state.applications
+    return state.magneticTiles
   })
 }
 
-/** 获取当前选中的 application */
-export const useSelectedApplication = function () {
+/** 获取当前选中的 magneticTile */
+export const useSelectedMagneticTile = function () {
   return useMirrorStore(function (state) {
-    return state.application
+    return state.magneticTile
   })
 }
 
@@ -679,11 +679,11 @@ export const useError = function () {
   })
 }
 
-/** 根据 mirrorId 获取 applications */
-export const useApplicationsByMirrorId = function (mirrorId: string) {
+/** 根据 mirrorID 获取 magneticTiles */
+export const useMagneticTilesByMirrorID = function (mirrorID: string) {
   return useMirrorStore(function (state) {
-    return state.applications.filter(function (a) {
-      return a.mirrorID === mirrorId
+    return state.magneticTiles.filter(function (a) {
+      return a.mirrorID === mirrorID
     })
   })
 }
@@ -693,7 +693,7 @@ export const useMirrorStats = function () {
   return useMirrorStore(function (state) {
     return {
       totalMirrors: state.mirrors.length,
-      totalApplications: state.applications.length,
+      totalMagneticTiles: state.magneticTiles.length,
       selectedMirror: state.mirror?.title ?? null
     }
   })

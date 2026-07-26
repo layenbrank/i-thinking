@@ -23,20 +23,20 @@ export {
   // RxJS Observables
   mirrorEvents$,
   mirrorSearchTerm$,
-  selectedApplication$ as mirrorSelectedApplication$,
+  selectedMagneticTile$ as mirrorSelectedMagneticTile$,
   // RxJS utilities
   onMirrorEvent,
   selectedMirror$,
   // Subscriptions
   subscribeMirrorsChange,
   subscribeSelectedMirrorChange,
-  useApplicationsByMirrorId,
-  useApplications as useMirrorApplications,
+  useMagneticTilesByMirrorID,
+  useMagneticTiles as useMirrorMagneticTiles,
   useError as useMirrorError,
   useLoading as useMirrorLoading,
   // Selectors
   useMirrors,
-  useSelectedApplication as useMirrorSelectedApplication,
+  useSelectedMagneticTile as useMirrorSelectedMagneticTile,
   useMirrorStats,
   // Store
   useMirrorStore,
@@ -45,36 +45,8 @@ export {
 } from './mirror'
 
 // ============================================================================
-// Application Store
+// MagneticTile Store（示例代码已整文件注释，暂不导出）
 // ============================================================================
-
-export {
-  // RxJS Observables
-  applicationEvents$,
-  applicationsByComponent$,
-  applicationsByMirror$,
-  applicationSearchTerm$,
-  destroyApplicationSync,
-  filteredApplications$,
-  filterMirrorId$,
-  // 初始化/销毁
-  initApplicationSync,
-  onApplicationEvent,
-  selectedApplication$,
-  sortOptions$,
-  // Subscriptions
-  subscribeApplicationsChange,
-  useApplicationError,
-  useApplicationLoading,
-  // Selectors
-  useApplications,
-  useApplicationsByComponent,
-  useApplicationStats,
-  // Store
-  useApplicationStore,
-  useApplicationsByMirrorId as useFilteredApplicationsByMirrorId,
-  useSelectedApplication
-} from './application'
 
 // ============================================================================
 // Counter Store (示例)
@@ -128,7 +100,7 @@ export {
  * 建议在应用启动时调用
  */
 export function initAllStores(): void {
-  // Mirror 和 Application 同步在模块加载时自动初始化
+  // Mirror 和 MagneticTile 同步在模块加载时自动初始化
   // 这里可以添加额外的初始化逻辑
   if (import.meta.env.DEV) {
     console.log('[Stores] All stores initialized')

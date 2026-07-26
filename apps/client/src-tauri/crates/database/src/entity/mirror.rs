@@ -100,13 +100,13 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "crate::entity::application::Entity")]
-    Application,
+    #[sea_orm(has_many = "crate::entity::magnetic_tile::Entity")]
+    MagneticTile,
 }
 
-impl Related<crate::entity::application::Entity> for Entity {
+impl Related<crate::entity::magnetic_tile::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Application.def()
+        Relation::MagneticTile.def()
     }
 }
 

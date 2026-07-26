@@ -186,6 +186,7 @@ function Provider(props: ContextMenuProps) {
 
   function onContextMenu(event: ReactMouseEvent) {
     if (props.disabled) return
+    if (!props.items.length) return
     event.preventDefault()
     event.stopPropagation()
     openAt({ x: event.clientX, y: event.clientY }, props.items)

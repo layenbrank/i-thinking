@@ -5,46 +5,46 @@ import InsertMarker from '~icons/ant-design/plus-circle-outlined'
 import SettingsMarker from '~icons/ant-design/setting-outlined'
 
 const AppBookmark = defineAsyncComponent(function () {
-  return import('@/components/applications/bookmark/bookmark.vue')
+  return import('@/components/magnetic-tiles/bookmark/bookmark.vue')
 })
 const AppCalendar = defineAsyncComponent(function () {
-  return import('@/components/applications/calendar/calendar.vue')
+  return import('@/components/magnetic-tiles/calendar/calendar.vue')
 })
 const AppMarkdown = defineAsyncComponent(function () {
-  return import('@/components/applications/markdown/markdown.vue')
+  return import('@/components/magnetic-tiles/markdown/markdown.vue')
 })
 const AppIntelligence = defineAsyncComponent(function () {
-  return import('@/components/applications/intelligence/intelligence.vue')
+  return import('@/components/magnetic-tiles/intelligence/intelligence.vue')
 })
 const AppNavigation = defineAsyncComponent(function () {
-  return import('@/components/applications/navigation/navigation.vue')
+  return import('@/components/magnetic-tiles/navigation/navigation.vue')
 })
 const AppSettings = defineAsyncComponent(function () {
-  return import('@/components/applications/settings/settings.vue')
+  return import('@/components/magnetic-tiles/settings/settings.vue')
 })
 const AppMarketplace = defineAsyncComponent(function () {
-  return import('@/components/applications/marketplace/marketplace.vue')
+  return import('@/components/magnetic-tiles/marketplace/marketplace.vue')
 })
 const AppClipchamp = defineAsyncComponent(function () {
-  return import('@/components/applications/clipchamp/clipchamp.vue')
+  return import('@/components/magnetic-tiles/clipchamp/clipchamp.vue')
 })
 const AppCollection = defineAsyncComponent(function () {
-  return import('@/components/applications/collection/collection.vue')
+  return import('@/components/magnetic-tiles/collection/collection.vue')
 })
 const AppSignboard = defineAsyncComponent(function () {
-  return import('@/components/applications/signboard/signboard.vue')
+  return import('@/components/magnetic-tiles/signboard/signboard.vue')
 })
 const AppClock = defineAsyncComponent(function () {
-  return import('@/components/applications/clock/clock.vue')
+  return import('@/components/magnetic-tiles/clock/clock.vue')
 })
 const AppGallery = defineAsyncComponent(function () {
-  return import('@/components/applications/gallery/gallery.vue')
+  return import('@/components/magnetic-tiles/gallery/gallery.vue')
 })
 const AppExample = defineAsyncComponent(function () {
-  return import('@/components/applications/example/example.vue')
+  return import('@/components/magnetic-tiles/example/example.vue')
 })
 
-type ContextMenuReflect = Partial<Record<Application.Component, () => ContextMenuOptions[]>>
+type ContextMenuReflect = Partial<Record<MagneticTile.Component, () => ContextMenuOptions[]>>
 
 const MENUOPTIONS: ContextMenuOptions[] = [
   {
@@ -78,7 +78,7 @@ const CONTEXTMENU: ContextMenuReflect = {}
 
 const SIZES: readonly Mirror.Size[] = ['small', 'medium', 'large', 'huge', 'massive', 'ultra']
 
-const APPLICATION: Application.Reflect = {
+const APPLICATION: MagneticTile.Reflect = {
   bookmark: AppBookmark,
   calendar: AppCalendar,
   markdown: AppMarkdown,
@@ -96,7 +96,7 @@ const APPLICATION: Application.Reflect = {
 
 interface ApplicationOptions {
   label: string
-  value: Application.Component
+  value: MagneticTile.Component
 }
 
 const OPTIONS: ApplicationOptions[] = [
@@ -181,8 +181,8 @@ function useMirror(options?: MirrorOptions) {
     return mirror
   })
 
-  const APPLICATIONS: readonly Application[] = OPTIONS.map(function (value) {
-    const application: Application = {
+  const MAGNETIC_TILES: readonly MagneticTile[] = OPTIONS.map(function (value) {
+    const magneticTile: MagneticTile = {
       id: window.crypto.randomUUID() as string,
       url: null,
       mark: null,
@@ -203,7 +203,7 @@ function useMirror(options?: MirrorOptions) {
         color: '#ffffff'
       }
     }
-    return application
+    return magneticTile
   })
 
   return {
@@ -211,7 +211,7 @@ function useMirror(options?: MirrorOptions) {
     MIRRORS,
     MIRROR_ID,
     APPLICATION,
-    APPLICATIONS,
+    MAGNETIC_TILES,
     CONTEXTMENU,
     MENUOPTIONS
   }

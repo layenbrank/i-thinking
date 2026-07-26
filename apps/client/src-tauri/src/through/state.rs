@@ -22,7 +22,7 @@ impl Rect {
 
 pub struct ThroughState {
     pub window_label: String,
-    /// Hit regions keyed by widget/source id so multiple overlays can coexist.
+    /// Hit regions keyed by panel/source id so multiple overlays can coexist.
     pub sources: RwLock<HashMap<String, Vec<Rect>>>,
     /// When true, the overlay window never ignores cursor events (capture mode).
     capture_mode: AtomicBool,

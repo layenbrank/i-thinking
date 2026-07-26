@@ -77,11 +77,11 @@ body,
   scrollbar-width: none;
   min-width: 600px;
 
-  .ant-modal.application-overlay {
+  .ant-modal.magnetic-tile-overlay {
     min-width: 600px;
     aspect-ratio: 16/9;
     display: block;
-    border-radius: var(--application-global-overlay-round, 8px);
+    border-radius: var(--magnetic-tile-global-overlay-round, 8px);
 
     .ant-modal-content {
       padding: 0px;

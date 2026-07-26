@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { GeneratorJSON, POST_COMMUNICATE } from '@/apis/intelligence.ts'
 
-type CommunicateParams = Application.Intelligence.Communicate.Params
-type CommunicateResponse = Application.Intelligence.Communicate.Response
+type CommunicateParams = MagneticTile.Intelligence.Communicate.Params
+type CommunicateResponse = MagneticTile.Intelligence.Communicate.Response
 
 defineOptions({
   name: 'IntelligenceView'

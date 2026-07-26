@@ -4,10 +4,10 @@ import { liveQuery } from 'dexie'
 import { defineStore } from 'pinia'
 import { Observable, from, switchMap, tap } from 'rxjs'
 
-type AiSession = Application.Intelligence.AiSession
-type AiMessage = Application.Intelligence.AiMessage
-type CommunicateParams = Application.Intelligence.Communicate.Params
-type CommunicateMessage = Application.Intelligence.Communicate.Message
+type AiSession = MagneticTile.Intelligence.AiSession
+type AiMessage = MagneticTile.Intelligence.AiMessage
+type CommunicateParams = MagneticTile.Intelligence.Communicate.Params
+type CommunicateMessage = MagneticTile.Intelligence.Communicate.Message
 
 export const useAiStore = defineStore('intelligence', function () {
   const session = ref<AiSession | null>(null)

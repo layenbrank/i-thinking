@@ -1,14 +1,14 @@
 import { Dexie, type EntityTable } from 'dexie'
 
-type BookmarkEntry = Application.Bookmark.Entry
-type BookmarkDir = Application.Bookmark.Directory
-type AiMessage = Application.Intelligence.AiMessage
-type AiSession = Application.Intelligence.AiSession
-type AiCollection = Application.Intelligence.AiCollection
+type BookmarkEntry = MagneticTile.Bookmark.Entry
+type BookmarkDir = MagneticTile.Bookmark.Directory
+type AiMessage = MagneticTile.Intelligence.AiMessage
+type AiSession = MagneticTile.Intelligence.AiSession
+type AiCollection = MagneticTile.Intelligence.AiCollection
 
 interface DataBase extends Dexie {
   mirror: EntityTable<Mirror, 'id'>
-  application: EntityTable<Application, 'id'>
+  magneticTile: EntityTable<MagneticTile, 'id'>
 
   backup: EntityTable<Backup, 'id'>
 
@@ -40,7 +40,7 @@ const MIRROR: readonly string[] = [
   'updatedAt',
   'createdAt'
 ]
-const APPLICATION: readonly string[] = [
+const MAGNETIC_TILE: readonly string[] = [
   '&id',
   '[id+mirrorID]',
   '[id+collectionID]',
@@ -68,9 +68,9 @@ const AISESSION: readonly string[] = ['&id', 'collectionID', 'createdAt', 'updat
 const AIMESSAGE: readonly string[] = ['&id', 'sessionID', 'identity', 'createdAt', 'updatedAt']
 const AICOLLECTION: readonly string[] = ['&id', 'createdAt', 'updatedAt']
 
-database.version(1).stores({
+database.version(2).stores({
   mirror: MIRROR.join(','),
-  application: APPLICATION.join(','),
+  magneticTile: MAGNETIC_TILE.join(','),
 
   backup: BACKUP.join(','),
   setting: SETTING.join(','),

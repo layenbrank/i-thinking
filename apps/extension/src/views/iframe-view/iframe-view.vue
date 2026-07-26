@@ -6,7 +6,7 @@ import { useMarkdownRenderer } from '@/composables/useMarkdownRenderer'
 import { usePerformanceMonitor } from '@/composables/usePerformanceMonitor'
 import { createHighlightPlugin } from '@/plugins/highlight.plugin'
 
-type CommunicateParams = Application.Intelligence.Communicate.Params
+type CommunicateParams = MagneticTile.Intelligence.Communicate.Params
 
 defineOptions({
   name: 'iframe-view'

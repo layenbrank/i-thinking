@@ -37,10 +37,10 @@
       "@i-thinking/shared/mirror",
       "@i-thinking/shared/settings",
       "@i-thinking/shared/controller",
-      "@i-thinking/shared/application",
-      "@i-thinking/shared/application-bookmark",
-      "@i-thinking/shared/application-markdown",
-      "@i-thinking/shared/application-intelligence"
+      "@i-thinking/shared/magnetic-tile",
+      "@i-thinking/shared/magnetic-tile-bookmark",
+      "@i-thinking/shared/magnetic-tile-markdown",
+      "@i-thinking/shared/magnetic-tile-intelligence"
     ],
 
     /* Linting */

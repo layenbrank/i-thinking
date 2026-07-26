@@ -49,7 +49,7 @@ const mirrorStore = useMirrorStore()
 
 // watchEffect(function () {
 // 	console.log('mirrorStore mirrors', mirrorStore.mirrors)
-// 	console.log('mirrorStore applications', mirrorStore.applications)
+// 	console.log('mirrorStore magneticTiles', mirrorStore.magneticTiles)
 // })
 
 const timestamp = useTimestamp({
@@ -203,8 +203,8 @@ onMounted(function () {
   // .subscribe(function (response) {
   // 	console.log('response', response)
   // })
-  // GET_APPLICATION().subscribe(function (response) {
-  // 	console.log('application', response)
+  // FIND_MAGNETIC_TILE().subscribe(function (response) {
+  // 	console.log('magneticTile', response)
   // })
   // http.get(url)
 })

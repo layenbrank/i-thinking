@@ -651,11 +651,11 @@ export interface AppEventMap {
   'mirror:deleted': { id: string }
   'mirror:selected': { id: string | null }
 
-  // Application 事件
-  'application:created': { id: string; application: Application }
-  'application:updated': { id: string; changes: Partial<Application> }
-  'application:deleted': { id: string }
-  'application:selected': { id: string | null }
+  // MagneticTile 事件
+  'magnetic-tile:created': { id: string; magneticTile: MagneticTile }
+  'magnetic-tile:updated': { id: string; changes: Partial<MagneticTile> }
+  'magnetic-tile:deleted': { id: string }
+  'magnetic-tile:selected': { id: string | null }
 
   // UI 事件
   'ui:theme-changed': { theme: 'light' | 'dark' }
@@ -679,9 +679,9 @@ export interface AppCommandMap {
   'mirror:create': Omit<Mirror, 'id' | 'createdAt' | 'updatedAt'>
   'mirror:update': { id: string; changes: Partial<Mirror> }
   'mirror:delete': { id: string }
-  'application:create': Omit<Application, 'id' | 'createdAt' | 'updatedAt'>
-  'application:update': { id: string; changes: Partial<Application> }
-  'application:delete': { id: string }
+  'magnetic-tile:create': Omit<MagneticTile, 'id' | 'createdAt' | 'updatedAt'>
+  'magnetic-tile:update': { id: string; changes: Partial<MagneticTile> }
+  'magnetic-tile:delete': { id: string }
 }
 
 export const appCommandBus = new CommandBus<AppCommandMap>()

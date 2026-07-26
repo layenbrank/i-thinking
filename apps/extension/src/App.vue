@@ -9,7 +9,7 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { onBeforeMount } from 'vue'
 import { useI18n } from 'vue-i18n'
-// import { GET_APPLICATION, GET_FAVICON, GET_SINGLETON } from '@/apis/application.ts'
+// import { FIND_MAGNETIC_TILE, FIND_FAVICON, FIND_SINGLETON } from '@/apis/magnetic-tile.ts'
 
 defineOptions({
   name: 'App'
@@ -59,16 +59,16 @@ const themeConfigure: ThemeConfig = {
   }
 }
 
-// GET_APPLICATION().subscribe(function (resp) {
+// FIND_MAGNETIC_TILE().subscribe(function (resp) {
 // 	console.log('application', resp)
 // })
 // // const navigation='https://www.baidu.com/'
 // const navigation = 'https://weixin.qq.com/'
-// GET_FAVICON(navigation).subscribe(function (resp) {
+// FIND_FAVICON(navigation).subscribe(function (resp) {
 // 	console.log('favicon', resp)
 // })
 
-// GET_SINGLETON('3').subscribe(function (resp) {
+// FIND_SINGLETON('3').subscribe(function (resp) {
 // 	console.log('singleton', resp)
 // })
 

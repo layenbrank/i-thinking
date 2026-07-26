@@ -8,7 +8,7 @@ const General: International.General = {
 
   Game: 'Game',
   'AI-Hub': 'AI Hub',
-  Application: 'Application',
+  MagneticTile: 'MagneticTile',
   Customization: 'Customization',
 
   Edit: 'Edit',

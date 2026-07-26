@@ -7,7 +7,7 @@ use serde_json::json;
 use tauri::{AppHandle, Manager};
 
 use crate::ipc;
-use crate::overlay::command::{overlay_ensure, overlay_set_mode};
+use crate::overlay::command::{overlay_ensure, overlay_update_mode};
 use crate::screenshot::schema::CaptureResult;
 
 fn build_capture_result(path: &Path, scale_factor: f32) -> Result<CaptureResult, String> {
@@ -81,7 +81,7 @@ pub async fn screenshot_open(app: AppHandle) -> Result<(), String> {
         let _ = window.close();
     }
     overlay_ensure(app.clone()).await?;
-    overlay_set_mode(app, "capture".into()).await
+    overlay_update_mode(app, "capture".into()).await
 }
 
 /// 退出 capture：回到 idle（由前端决定是否 hide 空层）
@@ -90,5 +90,5 @@ pub async fn screenshot_close(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("screenshot") {
         let _ = window.close();
     }
-    overlay_set_mode(app, "idle".into()).await
+    overlay_update_mode(app, "idle".into()).await
 }

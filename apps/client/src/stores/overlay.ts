@@ -7,7 +7,7 @@ import {
   findMarkerBox,
   parseMarkerLayout,
   type MarkerLayout
-} from '@/features/application/size'
+} from '@/features/magnetic-tile/size'
 
 export type OverlayMode = 'idle' | 'capture'
 
@@ -19,7 +19,7 @@ function isOverlayPanelKind(value: string): value is OverlayPanelKind {
   return (OVERLAY_PANEL_KINDS as readonly string[]).includes(value)
 }
 
-export interface OverlayPinWidget {
+export interface OverlayPin {
   id: string
   kind: 'pin'
   x: number
@@ -32,7 +32,7 @@ export interface OverlayPinWidget {
   isThrough: boolean
 }
 
-export interface OverlayPanelWidget {
+export interface OverlayPanel {
   id: string
   kind: OverlayPanelKind
   x: number
@@ -40,22 +40,22 @@ export interface OverlayPanelWidget {
   w: number
   h: number
   z: number
-  applicationId?: string
+  magneticTileID?: string
   size: Mirror.Size
   shape: Mirror.Shape
   direction: Mirror.Direction
 }
 
-export type OverlayWidget = OverlayPinWidget | OverlayPanelWidget
+export type OverlayItem = OverlayPin | OverlayPanel
 
 interface OverlayStore {
   mode: OverlayMode
-  widgets: OverlayWidget[]
+  items: OverlayItem[]
   zCursor: number
-  setMode: (mode: OverlayMode) => void
+  updateMode: (mode: OverlayMode) => void
   mountPanel: (
     kind: OverlayPanelKind,
-    applicationId?: string,
+    magneticTileID?: string,
     layout?: Partial<MarkerLayout>
   ) => void
   addPin: (input: {
@@ -66,12 +66,12 @@ interface OverlayStore {
     h: number
     opacity?: number
   }) => string
-  updateWidget: (id: string, patch: Partial<Pick<OverlayWidget, 'x' | 'y' | 'w' | 'h' | 'z'>>) => void
+  updateItem: (id: string, patch: Partial<Pick<OverlayItem, 'x' | 'y' | 'w' | 'h' | 'z'>>) => void
   updatePin: (
     id: string,
-    patch: Partial<Pick<OverlayPinWidget, 'x' | 'y' | 'w' | 'h' | 'z' | 'opacity' | 'isThrough' | 'src'>>
+    patch: Partial<Pick<OverlayPin, 'x' | 'y' | 'w' | 'h' | 'z' | 'opacity' | 'isThrough' | 'src'>>
   ) => void
-  removeWidget: (id: string) => void
+  removeItem: (id: string) => void
   clearPins: () => void
   bringToFront: (id: string) => void
   hasContent: () => boolean
@@ -91,25 +91,25 @@ export const useOverlayStore = create<OverlayStore>()(
     immer(function (setter, getter) {
       return {
         mode: 'idle',
-        widgets: [],
+        items: [],
         zCursor: 10,
 
-        setMode(mode) {
+        updateMode(mode) {
           setter(function (state) {
             state.mode = mode
           })
         },
 
-        mountPanel(kind, applicationId, layout) {
+        mountPanel(kind, magneticTileID, layout) {
           setter(function (state) {
             const parsed = parseMarkerLayout(layout)
             const box = findMarkerBox(parsed)
-            const existing = state.widgets.find(function (w) {
+            const existing = state.items.find(function (w) {
               return w.kind === kind
             })
             if (existing && existing.kind !== 'pin') {
               existing.z = nextZ(state)
-              if (applicationId) existing.applicationId = applicationId
+              if (magneticTileID) existing.magneticTileID = magneticTileID
               existing.size = parsed.size
               existing.shape = parsed.shape
               existing.direction = parsed.direction
@@ -117,8 +117,8 @@ export const useOverlayStore = create<OverlayStore>()(
               existing.h = box.h
               return
             }
-            const margin = 48 + state.widgets.length * 24
-            state.widgets.push({
+            const margin = 48 + state.items.length * 24
+            state.items.push({
               id: kind,
               kind,
               x: margin,
@@ -126,7 +126,7 @@ export const useOverlayStore = create<OverlayStore>()(
               w: box.w,
               h: box.h,
               z: nextZ(state),
-              applicationId,
+              magneticTileID,
               size: parsed.size,
               shape: parsed.shape,
               direction: parsed.direction
@@ -139,8 +139,8 @@ export const useOverlayStore = create<OverlayStore>()(
           let id = ''
           setter(function (state) {
             id = `pin-${Date.now()}-${state.zCursor}`
-            const offset = (state.widgets.filter((w) => w.kind === 'pin').length % 8) * 28
-            state.widgets.push({
+            const offset = (state.items.filter((w) => w.kind === 'pin').length % 8) * 28
+            state.items.push({
               id,
               kind: 'pin',
               x: input.x ?? 80 + offset,
@@ -157,33 +157,33 @@ export const useOverlayStore = create<OverlayStore>()(
           return id
         },
 
-        updateWidget(id, patch) {
+        updateItem(id, patch) {
           setter(function (state) {
-            const widget = state.widgets.find(function (w) {
+            const entry = state.items.find(function (w) {
               return w.id === id
             })
-            if (!widget) return
-            if (patch.x !== undefined) widget.x = patch.x
-            if (patch.y !== undefined) widget.y = patch.y
-            if (patch.w !== undefined) widget.w = patch.w
-            if (patch.h !== undefined) widget.h = patch.h
-            if (patch.z !== undefined) widget.z = patch.z
+            if (!entry) return
+            if (patch.x !== undefined) entry.x = patch.x
+            if (patch.y !== undefined) entry.y = patch.y
+            if (patch.w !== undefined) entry.w = patch.w
+            if (patch.h !== undefined) entry.h = patch.h
+            if (patch.z !== undefined) entry.z = patch.z
           })
         },
 
         updatePin(id, patch) {
           setter(function (state) {
-            const widget = state.widgets.find(function (w) {
+            const entry = state.items.find(function (w) {
               return w.id === id && w.kind === 'pin'
             })
-            if (!widget || widget.kind !== 'pin') return
-            Object.assign(widget, patch)
+            if (!entry || entry.kind !== 'pin') return
+            Object.assign(entry, patch)
           })
         },
 
-        removeWidget(id) {
+        removeItem(id) {
           setter(function (state) {
-            state.widgets = state.widgets.filter(function (w) {
+            state.items = state.items.filter(function (w) {
               return w.id !== id
             })
           })
@@ -192,7 +192,7 @@ export const useOverlayStore = create<OverlayStore>()(
 
         clearPins() {
           setter(function (state) {
-            state.widgets = state.widgets.filter(function (w) {
+            state.items = state.items.filter(function (w) {
               return w.kind !== 'pin'
             })
           })
@@ -201,21 +201,21 @@ export const useOverlayStore = create<OverlayStore>()(
 
         bringToFront(id) {
           setter(function (state) {
-            const widget = state.widgets.find(function (w) {
+            const entry = state.items.find(function (w) {
               return w.id === id
             })
-            if (!widget) return
-            widget.z = nextZ(state)
+            if (!entry) return
+            entry.z = nextZ(state)
           })
         },
 
         hasContent() {
-          return getter().widgets.length > 0 || getter().mode === 'capture'
+          return getter().items.length > 0 || getter().mode === 'capture'
         },
 
         async hideIfEmpty() {
-          const { mode, widgets } = getter()
-          if (mode === 'capture' || widgets.length > 0) return
+          const { mode, items } = getter()
+          if (mode === 'capture' || items.length > 0) return
           try {
             await invoke('overlay:hide')
           } catch {

@@ -1,44 +1,44 @@
-@mixin application {
+@mixin magnetic-tile {
   &.mini {
-    --application-size: 60px;
+    --magnetic-tile-size: 60px;
   }
 
   &.small {
-    --application-size: 90px;
+    --magnetic-tile-size: 90px;
   }
 
   &.medium {
-    --application-size: 120px;
+    --magnetic-tile-size: 120px;
   }
 
   &.large {
-    --application-size: 150px;
+    --magnetic-tile-size: 150px;
   }
 
   &.huge {
-    --application-size: 180px;
+    --magnetic-tile-size: 180px;
   }
 
   &.massive {
-    --application-size: 210px;
+    --magnetic-tile-size: 210px;
   }
 
   // &. minimize ultimate {
   &.ultra {
-    --application-size: 240px;
+    --magnetic-tile-size: 240px;
   }
 
   &.rectangle {
     &.horizontal {
       // rectangle horizontal时 使用scss 数学函数计算获取 16/9 比例的最终宽度
-      grid-template-columns: repeat(auto-fill, calc(var(--application-size, 60px) * 16 / 9));
+      grid-template-columns: repeat(auto-fill, calc(var(--magnetic-tile-size, 60px) * 16 / 9));
     }
   }
 
   &:not(.rectangle),
   &.rectangle {
     &.vertical {
-      grid-template-columns: repeat(auto-fill, var(--application-size));
+      grid-template-columns: repeat(auto-fill, var(--magnetic-tile-size));
     }
   }
 

@@ -5,13 +5,21 @@ use tokio::sync::Mutex;
 #[serde(rename_all = "camelCase")]
 pub struct OverlayMountPayload {
     pub kind: String,
-    pub application_id: Option<String>,
+    #[serde(rename = "magneticTileID")]
+    pub magnetic_tile_id: Option<String>,
     pub size: Option<String>,
     pub shape: Option<String>,
     pub direction: Option<String>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OverlayUnmountPayload {
+    pub kind: String,
+}
+
 #[derive(Default)]
 pub struct OverlayPending {
     pub mount: Mutex<Option<OverlayMountPayload>>,
+    pub unmount: Mutex<Option<OverlayUnmountPayload>>,
 }

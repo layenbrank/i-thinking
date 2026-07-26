@@ -1,11 +1,6 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "src/types/**/*.d.ts"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"],
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
@@ -35,13 +30,12 @@
       "@i-thinking/shared/backup",
       "@i-thinking/shared/settings",
       "@i-thinking/shared/controller",
-      "@i-thinking/shared/application",
-      "@i-thinking/shared/application-bookmark",
-      "@i-thinking/shared/application-markdown",
-      "@i-thinking/shared/application-intelligence"
+      "@i-thinking/shared/magnetic-tile",
+      "@i-thinking/shared/magnetic-tile-bookmark",
+      "@i-thinking/shared/magnetic-tile-markdown",
+      "@i-thinking/shared/magnetic-tile-intelligence"
     ],
     "rootDir": ".",
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }

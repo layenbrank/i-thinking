@@ -55,17 +55,17 @@ function App() {
         if (getCurrentWindow().label !== 'main') return
 
         const { listen } = await import('@tauri-apps/api/event')
-        const { openOverlayById } = await import('@/features/application/overlay-registry')
-        unlisten = await listen<{ applicationId: string }>(
-          'application://open-overlay',
+        const { showMagneticTileOverlay } = await import('@/features/magnetic-tile/overlay-registry')
+        unlisten = await listen<{ magneticTileID: string }>(
+          'magnetic-tile://show-overlay',
           function (event) {
-            const id = event.payload?.applicationId
-            if (id) openOverlayById(id)
+            const id = event.payload?.magneticTileID
+            if (id) showMagneticTileOverlay(id)
           }
         )
         if (cancelled) unlisten()
       } catch (err) {
-        console.warn('[App] application://open-overlay listen failed', err)
+        console.warn('[App] magnetic-tile://show-overlay listen failed', err)
       }
     }
 

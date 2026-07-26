@@ -1,11 +1,11 @@
 /* color palette from <https://github.com/vuejs/theme> */
 :root {
-  --application-global-row-gap: 30px;
-  --application-global-col-gap: 30px;
-  --application-global-round: 12px;
-  --application-global-text-size: 13px;
-  --application-global-text-color: #000000;
-  --application-global-overlay-round: 8px;
+  --magnetic-tile-global-row-gap: 30px;
+  --magnetic-tile-global-col-gap: 30px;
+  --magnetic-tile-global-round: 12px;
+  --magnetic-tile-global-text-size: 13px;
+  --magnetic-tile-global-text-color: #000000;
+  --magnetic-tile-global-overlay-round: 8px;
 
   --vt-c-white: #ffffff;
   --vt-c-white-soft: #f8f8f8;
@@ -90,30 +90,30 @@
   }
 
   &.square {
-    // width: var(--application-size, 60px);
-    // height: var(--application-size, 60px);
-    // width: var(--application-width, 60px);
-    // height: var(--application-height, 60px);
+    // width: var(--magnetic-tile-size, 60px);
+    // height: var(--magnetic-tile-size, 60px);
+    // width: var(--magnetic-tile-width, 60px);
+    // height: var(--magnetic-tile-height, 60px);
   }
 
   &.rectangle.horizontal {
     // grid-column: span 2;
-    // width: calc(var(--application-width) * 2 + var(--application-row-gap) * 1);
-    // height: var(--application-height);
+    // width: calc(var(--magnetic-tile-width) * 2 + var(--magnetic-tile-row-gap) * 1);
+    // height: var(--magnetic-tile-height);
   }
 
   &.rectangle.vertical {
     // grid-row: span 2;
-    // width: var(--application-width);
-    // height: calc(var(--application-height) * 2 + var(--application-row-gap) * 1);
+    // width: var(--magnetic-tile-width);
+    // height: calc(var(--magnetic-tile-height) * 2 + var(--magnetic-tile-row-gap) * 1);
   }
 }
 
 .small {
   &.horizontal {
     // grid-column: span 2;
-    // width: calc(var(--application-width) * 2 + var(--application-row-gap) * 1);
-    // height: var(--application-height);
+    // width: calc(var(--magnetic-tile-width) * 2 + var(--magnetic-tile-row-gap) * 1);
+    // height: var(--magnetic-tile-height);
 
     &.square {
     }
@@ -127,8 +127,8 @@
 
   &.vertical {
     // grid-row: span 2;
-    // width: var(--application-width);
-    // height: calc(var(--application-height) * 2 + var(--application-row-gap) * 1);
+    // width: var(--magnetic-tile-width);
+    // height: calc(var(--magnetic-tile-height) * 2 + var(--magnetic-tile-row-gap) * 1);
 
     &.square {
     }
@@ -146,8 +146,8 @@
   &.vertical {
     // grid-column: span 2;
     // grid-row: span 2;
-    // width: calc(var(--application-width) * 2 + var(--application-col-gap));
-    // height: calc(var(--application-height) * 2 + var(--application-row-gap));
+    // width: calc(var(--magnetic-tile-width) * 2 + var(--magnetic-tile-col-gap));
+    // height: calc(var(--magnetic-tile-height) * 2 + var(--magnetic-tile-row-gap));
 
     &.square {
     }
@@ -163,8 +163,8 @@
 .large {
   // grid-column: span 2;
   // grid-row: span 2;
-  // width: calc(var(--application-width) * 2 + var(--application-col-gap));
-  // height: calc(var(--application-height) * 2 + var(--application-row-gap));
+  // width: calc(var(--magnetic-tile-width) * 2 + var(--magnetic-tile-col-gap));
+  // height: calc(var(--magnetic-tile-height) * 2 + var(--magnetic-tile-row-gap));
 
   &.horizontal {
     &.square {
@@ -192,8 +192,8 @@
 .huge {
   // grid-column: span 4;
   // grid-row: span 2;
-  // width: calc(var(--application-width) * 4 + var(--application-col-gap) * 3);
-  // height: calc(var(--application-height) * 2 + var(--application-row-gap));
+  // width: calc(var(--magnetic-tile-width) * 4 + var(--magnetic-tile-col-gap) * 3);
+  // height: calc(var(--magnetic-tile-height) * 2 + var(--magnetic-tile-row-gap));
 
   &.horizontal {
     &.square {
@@ -221,8 +221,8 @@
 .massive {
   // grid-column: span 7;
   // grid-row: span 4;
-  // width: calc(var(--application-width) * 7 + var(--application-col-gap) * 6);
-  // height: calc(var(--application-height) * 4 + var(--application-row-gap) * 3);
+  // width: calc(var(--magnetic-tile-width) * 7 + var(--magnetic-tile-col-gap) * 6);
+  // height: calc(var(--magnetic-tile-height) * 4 + var(--magnetic-tile-row-gap) * 3);
 
   &.horizontal {
     &.square {
@@ -250,8 +250,8 @@
 .ultra {
   // grid-column: span 4;
   // grid-row: span 7;
-  // width: calc(var(--application-width) * 4 + var(--application-col-gap) * 3);
-  // height: calc(var(--application-height) * 7 + var(--application-row-gap) * 6);
+  // width: calc(var(--magnetic-tile-width) * 4 + var(--magnetic-tile-col-gap) * 3);
+  // height: calc(var(--magnetic-tile-height) * 7 + var(--magnetic-tile-row-gap) * 6);
 
   &.horizontal {
     &.square {
