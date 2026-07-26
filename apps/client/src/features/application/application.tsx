@@ -1,17 +1,21 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { Icon } from '@iconify/react'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
-import { createContext } from 'react'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
-import { Suspense } from 'react'
+import { createContext, Suspense } from 'react'
 
+import { ContextMenu, type ContextMenuItem } from '@/components/contextmenu'
 import { DEFAULT_ABORT_TIMEOUT_MS } from '@/constants/application.ts'
-import { WINDOW } from '@/constants/window'
 import styles from '@/features/application/application.module.scss'
-import { OVERLAY_FULLSCREEN } from '@/features/application/overlay-preset.ts'
+import { Caption } from '@/features/application/caption'
+import { OverlayContext } from '@/features/application/overlay-context'
+import { registerOverlayOpener } from '@/features/application/overlay-registry.ts'
+import { startScreenshotCountdown } from '@/features/applications/screenshot/countdown.ts'
+import { isOverlayPanelKind } from '@/stores/overlay'
+import { openOverlayPanel, removeOverlayPanel } from '@/views/overlay/tauri'
 
 type Cache = 'destroy' | 'keepAlive'
 
@@ -28,6 +32,14 @@ interface SectionProps extends Application {
   abortTimeoutMs?: number
 }
 
+interface SectionContextProps {
+  id: string
+  component: Application.Component
+  size: Mirror.Size
+  shape: Mirror.Shape
+  direction: Mirror.Direction
+}
+
 interface MarkerProps {
   children: ReactNode
   onDoubleClick?: MouseEventHandler<HTMLElement>
@@ -38,9 +50,14 @@ interface MarkerProps {
   direction: Mirror.Direction
 }
 
+const SectionContext = createContext<SectionContextProps | null>(null)
+
 interface OverlayProps extends ModalProps {
   style?: CSSProperties
-  fullscreen?: boolean
+  /** false 隐藏顶栏；传入节点则整槽自定义；undefined 为默认 actions + Caption */
+  caption?: ReactNode | false
+  /** 默认顶栏中 Caption 左侧的应用扩展操作 */
+  actions?: ReactNode
   cache?: Cache
   onAbort?: () => Promise<void>
   abortTimeoutMs?: number
@@ -48,43 +65,45 @@ interface OverlayProps extends ModalProps {
 
 type OverlayControlProps = Pick<OverlayProps, 'cache' | 'onAbort' | 'abortTimeoutMs'>
 
-interface OverlayContextProps {
-  visible: boolean
-  renderable: boolean
-  onUpdateVisible: (value: boolean) => void
-  onUpdateRenderable: (value: boolean) => void
-}
-
-const OverlayContext = createContext<OverlayContextProps>({
-  visible: false,
-  renderable: false,
-  onUpdateVisible: (value) => void value,
-  onUpdateRenderable: (value) => void value
-})
-
 interface OverlayProviderProps {
   children: ReactNode
+  applicationId?: string
 }
 
 function OverlayProvider(props: OverlayProviderProps) {
-  const [visible, onUpdateVisible] = useState<boolean>(false)
-  const [renderable, onUpdateRenderable] = useState<boolean>(false)
+  const [visible, onUpdateVisible] = useState(false)
+  const [renderable, onUpdateRenderable] = useState(false)
+  const [fullscreen, onUpdateFullscreen] = useState(false)
 
   const handleUpdateVisible = useCallback(function (value: boolean) {
     onUpdateVisible(value)
-    if (value) onUpdateRenderable(true)
+    if (value) {
+      onUpdateRenderable(true)
+      return
+    }
+    onUpdateFullscreen(false)
   }, [])
+
+  useEffect(
+    function () {
+      if (!props.applicationId) return
+      return registerOverlayOpener(props.applicationId, handleUpdateVisible)
+    },
+    [props.applicationId, handleUpdateVisible]
+  )
 
   const context = useMemo(
     function () {
       return {
         visible,
         renderable,
+        fullscreen,
         onUpdateVisible: handleUpdateVisible,
-        onUpdateRenderable
+        onUpdateRenderable,
+        onUpdateFullscreen
       }
     },
-    [visible, renderable, handleUpdateVisible]
+    [visible, renderable, fullscreen, handleUpdateVisible]
   )
 
   return <OverlayContext value={context}>{props.children}</OverlayContext>
@@ -106,22 +125,78 @@ interface ApplicationSuspenseProps extends SkeletonProps {
   skeletonStyle?: CSSProperties
 }
 
-// interface SectionContextProps {}
-//
-// const SectionContext = createContext<SectionContextProps>()
-
-// const MarkerContext = createContext()
-
-// 复合组件模式：将子组件附加到主组件上
 const Application = {
   Marker(props: MarkerProps) {
+    const section = useContext(SectionContext)
+    const canMountPanel = section ? isOverlayPanelKind(section.component) : false
+
+    const menuItems = useMemo(
+      function (): ContextMenuItem[] {
+        if (!section) return []
+        return [
+          {
+            key: 'float',
+            label: '浮层',
+            icon: (
+              <Icon
+                icon="ant-design:block-outlined"
+                width={14}
+                height={14}
+              />
+            ),
+            children: [
+              {
+                key: 'float-increment',
+                label: '添加',
+                icon: (
+                  <Icon
+                    icon="ant-design:plus-outlined"
+                    width={14}
+                    height={14}
+                  />
+                ),
+                disabled: !canMountPanel,
+                onClick() {
+                  if (!isOverlayPanelKind(section.component)) return
+                  void openOverlayPanel(section.component, section.id, {
+                    size: section.size,
+                    shape: section.shape,
+                    direction: section.direction
+                  })
+                }
+              },
+              {
+                key: 'float-decrement',
+                label: '移除',
+                icon: (
+                  <Icon
+                    icon="ant-design:minus-outlined"
+                    width={14}
+                    height={14}
+                  />
+                ),
+                disabled: !canMountPanel,
+                onClick() {
+                  if (!isOverlayPanelKind(section.component)) return
+                  void removeOverlayPanel(section.component)
+                }
+              }
+            ]
+          }
+        ]
+      },
+      [canMountPanel, section]
+    )
+
     return (
-      <div
-        style={props.style}
-        onDoubleClick={props.onDoubleClick}
-        className={clsx(styles.marker, props.className)}>
-        {props.children}
-      </div>
+      <ContextMenu items={menuItems}>
+        <div
+          style={props.style}
+          onDoubleClick={props.onDoubleClick}
+          className={clsx(styles.marker, props.className)}>
+          {props.children}
+        </div>
+      </ContextMenu>
     )
   },
   Skeleton(props: SkeletonProps) {
@@ -155,30 +230,29 @@ const Application = {
       </Suspense>
     )
   },
+  Caption,
   Overlay(props: OverlayProps) {
     const {
-      style,
       className,
-      width,
+      width = '80%',
       height,
-      styles: modalStyles,
+
       onCancel,
       children,
-      cache,
+      cache = 'destroy',
       onAbort,
-      abortTimeoutMs,
+      abortTimeoutMs = DEFAULT_ABORT_TIMEOUT_MS,
       destroyOnHidden,
-      fullscreen,
+      caption,
+      actions,
       ...remains
     } = props
-    const { visible, onUpdateVisible, onUpdateRenderable } = useContext(OverlayContext)
+    const { visible, fullscreen, onUpdateVisible, onUpdateRenderable } = useContext(OverlayContext)
 
-    const resolvedCache = cache ?? 'destroy'
-    const resolvedAbortTimeoutMs = abortTimeoutMs ?? DEFAULT_ABORT_TIMEOUT_MS
-    const resolvedDestroy = resolvedCache === 'destroy' ? true : (destroyOnHidden ?? false)
+    const isDestroyOnHidden = cache === 'destroy' ? true : (destroyOnHidden ?? false)
 
     async function handleAfterClose() {
-      if (resolvedCache !== 'destroy') return
+      if (cache !== 'destroy') return
 
       onUpdateRenderable(false)
       if (!onAbort) return
@@ -187,7 +261,7 @@ const Application = {
         await Promise.race([
           onAbort(),
           new Promise<void>(function (resolve) {
-            window.setTimeout(resolve, resolvedAbortTimeoutMs)
+            window.setTimeout(resolve, abortTimeoutMs)
           })
         ])
       } catch {
@@ -202,28 +276,58 @@ const Application = {
       onCancel?.(e)
     }
 
+    const hasCaptionSlot = caption !== false
+    const title =
+      caption === false ? null : caption !== undefined && caption !== null ? (
+        caption
+      ) : (
+        <Caption actions={actions} />
+      )
+
     return (
       <Modal
-        title={null}
+        title={title}
         footer={null}
         open={visible}
         centered={true}
         closable={false}
+        children={children}
         mask={{
           closable: true,
           enabled: true
         }}
-        destroyOnHidden={resolvedDestroy}
+        destroyOnHidden={isDestroyOnHidden}
         onCancel={handleCancel}
         afterClose={handleAfterClose}
-        width={fullscreen ? OVERLAY_FULLSCREEN.width : width}
-        height={fullscreen ? OVERLAY_FULLSCREEN.height : height}
-        style={fullscreen ? { ...style, ...OVERLAY_FULLSCREEN.style } : style}
-        styles={fullscreen ? { ...modalStyles, ...OVERLAY_FULLSCREEN.styles } : modalStyles}
-        className={clsx(['application-overlay', className])}
-        {...remains}>
-        {children}
-      </Modal>
+        width={fullscreen ? '100%' : width}
+        height={fullscreen ? '100%' : height}
+        style={{
+          minWidth: fullscreen ? 'unset' : 600,
+          borderRadius: fullscreen ? '0' : '8px',
+          aspectRatio: fullscreen ? 'unset' : '16 / 9',
+          ...props.style
+        }}
+        styles={{
+          container: {
+            padding: 0,
+            height: '100%',
+            borderRadius: fullscreen ? '0' : 'var(--ith-border-radius-lg)'
+          },
+          header: {
+            borderRadius: fullscreen ? '0' : '8px'
+          },
+          body: {
+            padding: 0,
+            height: '100%',
+            display: 'flex',
+            overflow: 'hidden',
+            flexDirection: 'column'
+          },
+          ...props.styles
+        }}
+        className={clsx(['application-overlay', className, hasCaptionSlot && styles.withCaption])}
+        {...remains}
+      />
     )
   },
   Section(props: SectionProps) {
@@ -239,8 +343,6 @@ const Application = {
       },
       [visible, listeners]
     )
-
-    // console.log('Section', '\nvisible', visible, '\nlisteners', listeners)
 
     const properties = useMemo(
       function () {
@@ -295,81 +397,59 @@ const Application = {
     )
 
     return (
-      <div
-        {...listens}
-        onDoubleClick={() => {
-          const compmap: Partial<Record<Application.Component, () => void>> = {
-            navigation() {
-              if (!props.url) return
-              openUrl(props.url)
-
-              // new WebviewWindow(props.component, {
-              //   url: props.url,
-              //   title: props.title,
-              //   ...WINDOW[props.component]
-              // })
-            },
-            settings() {
-              onUpdateVisible(true)
-            },
-            countdown() {
-              void import('@/views/overlay/tauri').then(function (mod) {
-                return mod.openOverlayPanel('countdown', props.id)
-              })
-            },
-            calendar() {
-              void import('@/views/overlay/tauri').then(function (mod) {
-                return mod.openOverlayPanel('calendar', props.id)
-              })
-            },
-            clock() {
-              void import('@/views/overlay/tauri').then(function (mod) {
-                return mod.openOverlayPanel('clock', props.id)
-              })
-            },
-            screenshot() {
-              void import('@tauri-apps/api/core').then(function (mod) {
-                return mod.invoke('screenshot:open')
-              })
-            }
-          }
-          const handler = compmap[props.component]
-          if (handler) return handler()
-
-          new WebviewWindow(props.component, {
-            url: `/${props.component}?id=${props.id}`,
-            title: props.title,
-            ...WINDOW[props.component]
-          })
-        }}
-        {...attributes}
-        ref={setNodeRef}
-        data-id={props.id}
-        className={clsx([
-          'application',
-          styles.application,
-          props.className,
-          styles[props.size],
-          styles[props.shape],
-          styles[props.direction],
-          {
-            [styles.dragging]: isDragging
-          }
-        ])}
-        style={properties}>
-        {props.children}
-        <Tooltip
-          placement="bottom"
-          title={props.title}
-          autoAdjustOverflow={false}>
-          <span className={styles.title}>{props.title}</span>
-        </Tooltip>
+      <SectionContext.Provider
+        value={{
+          id: props.id,
+          component: props.component,
+          size: props.size,
+          shape: props.shape,
+          direction: props.direction
+        }}>
         <div
-          onClick={props.onTrash}
-          className={clsx(styles.destroy, styles.marker)}>
-          X
+          {...listens}
+          onDoubleClick={function () {
+            const compmap: Partial<Record<Application.Component, () => void>> = {
+              navigation() {
+                if (!props.url) return
+                openUrl(props.url)
+              },
+              screenshot() {
+                startScreenshotCountdown()
+              }
+            }
+            const handler = compmap[props.component]
+            if (handler) return handler()
+            onUpdateVisible(true)
+          }}
+          {...attributes}
+          ref={setNodeRef}
+          data-id={props.id}
+          className={clsx([
+            'application',
+            styles.application,
+            props.className,
+            styles[props.size],
+            styles[props.shape],
+            styles[props.direction],
+            {
+              [styles.dragging]: isDragging
+            }
+          ])}
+          style={properties}>
+          {props.children}
+          <Tooltip
+            placement="bottom"
+            title={props.title}
+            autoAdjustOverflow={false}>
+            <span className={styles.title}>{props.title}</span>
+          </Tooltip>
+          <div
+            onClick={props.onTrash}
+            className={clsx(styles.destroy, styles.marker)}>
+            X
+          </div>
         </div>
-      </div>
+      </SectionContext.Provider>
     )
   }
 }

@@ -5,15 +5,18 @@ import 'reflect-metadata'
 import App from '@/App.tsx'
 import '@/styles/index.scss'
 
+import AntDesignIconify from '@i-thinking/shared/ant-design.json'
 import MDIconify from '@i-thinking/shared/mdi.json'
 import CustomIconify from '@i-thinking/shared/iconify.json'
+import { CSSVAR } from '@/themes'
 
+addCollection(AntDesignIconify)
 addCollection(MDIconify)
 addCollection(CustomIconify)
 
 const rootElement = document.getElementById('root') as HTMLElement
 
-const root = createRoot(rootElement, {
+const appRoot = createRoot(rootElement, {
   onCaughtError(error) {
     console.error('Root caught an error:', error)
   },
@@ -22,8 +25,8 @@ const root = createRoot(rootElement, {
   },
   onRecoverableError(error) {
     console.error('Root caught a recoverable error:', error)
-  }
-  // identifierPrefix: 'i-thinking-'
+  },
+  identifierPrefix: CSSVAR.PREFIX
 })
 
-root.render(<App />)
+appRoot.render(<App />)

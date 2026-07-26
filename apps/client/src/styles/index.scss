@@ -1,4 +1,5 @@
 @use '@/styles/variables.scss' as *;
+@use '@/styles/overrides/ant-design.scss' as *;
 //@use '@/styles/markdown-composer.scss' as *;
 
 @tailwind base;
@@ -79,17 +80,12 @@ body {
 
 html,
 body,
-#root {
+#root,
+.ant-app {
   width: 100%;
   min-width: 600px;
   height: 100%;
   scrollbar-width: none;
-}
-
-.ant-splitter {
-  .ant-splitter-panel {
-    scrollbar-width: revert;
-  }
 }
 
 *[data-region='true'] {
@@ -97,20 +93,4 @@ body,
 }
 *[data-region='false'] {
   -webkit-app-region: no-drag;
-}
-
-.ant-modal-root {
-  .ant-modal-wrap {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    scrollbar-width: none;
-
-    .ant-modal {
-      top: 0;
-      margin: 0;
-    }
-  }
 }

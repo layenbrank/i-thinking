@@ -6,15 +6,7 @@ import {
   StarOutlined
 } from '@ant-design/icons'
 import { core } from '@tauri-apps/api'
-import {
-  Avatar,
-  Button,
-  Card,
-  Drawer,
-  List as Entries,
-  Segmented,
-  Space
-} from 'antd'
+import { Avatar, Button, Card, Drawer, List as Entries, Segmented, Space } from 'antd'
 import type { SegmentedOptions } from 'antd/es/segmented'
 import clsx from 'clsx'
 import { createElement, useContext, useEffect, useState } from 'react'
@@ -24,7 +16,6 @@ import {
   OverlayContext,
   type OverlayControlProps
 } from '@/features/application/application.tsx'
-import { OVERLAY_RATIO } from '@/features/application/overlay-preset.ts'
 import styles from '@/features/applications/developer/overlay.module.scss'
 
 // interface OverlayProps {}
@@ -132,8 +123,7 @@ function Overlay(props: OverlayControlProps) {
       label: 'nvm',
       url: 'https://github.com/coreybutler/nvm-windows/releases/download/1.2.2/nvm-setup.exe',
       icon: 'https://api.dicebear.com/7.x/miniavs/svg?seed=2',
-      description:
-        'A node.js version management utility for Windows. Ironically written in Go.'
+      description: 'A node.js version management utility for Windows. Ironically written in Go.'
     },
     {
       value: 'fnm',
@@ -162,8 +152,7 @@ function Overlay(props: OverlayControlProps) {
       label: 'Git',
       url: 'https://git-scm.com/download/win',
       icon: 'https://api.dicebear.com/7.x/miniavs/svg?seed=4',
-      description:
-        'Git 是一个分布式版本控制系统，用于跟踪计算机文件的更改，协助多人之间的协作。'
+      description: 'Git 是一个分布式版本控制系统，用于跟踪计算机文件的更改，协助多人之间的协作。'
     },
     {
       value: 'vscode',
@@ -226,24 +215,21 @@ function Overlay(props: OverlayControlProps) {
       label: 'Charles',
       url: 'https://www.charlesproxy.com/download/latest-release/',
       icon: 'https://api.dicebear.com/7.x/miniavs/svg?seed=12',
-      description:
-        'Charles 是一款跨平台的网络抓包工具，能够帮助开发者分析和调试网络请求。'
+      description: 'Charles 是一款跨平台的网络抓包工具，能够帮助开发者分析和调试网络请求。'
     },
     {
       value: 'fiddler',
       label: 'Fiddler',
       url: 'https://www.telerik.com/fiddler',
       icon: 'https://api.dicebear.com/7.x/miniavs/svg?seed=13',
-      description:
-        'Fiddler 是一款用于调试 HTTP 请求的代理工具，能够帮助开发者分析和修改网络流量。'
+      description: 'Fiddler 是一款用于调试 HTTP 请求的代理工具，能够帮助开发者分析和修改网络流量。'
     },
     {
       value: 'vim',
       label: 'gVim',
       url: 'https://www.vim.org/download.php',
       icon: 'https://api.dicebear.com/7.x/miniavs/svg?seed=14',
-      description:
-        'gVim 是一款高度可定制的文本编辑器，广泛用于程序开发和系统管理。'
+      description: 'gVim 是一款高度可定制的文本编辑器，广泛用于程序开发和系统管理。'
     },
     {
       value: 'sublime-text',
@@ -266,8 +252,7 @@ function Overlay(props: OverlayControlProps) {
       label: 'Geek Uninstaller',
       url: 'https://geekuninstaller.com/download',
       icon: 'https://api.dicebear.com/7.x/miniavs/svg?seed=17',
-      description:
-        'Geek Uninstaller 是一款轻量级的应用程序卸载工具，能够彻底删除软件及其残留文件。'
+      description: 'Geek Uninstaller 是一款轻量级的应用程序卸载工具，能够彻底删除软件及其残留文件。'
     },
     {
       value: 'HBuilderX',
@@ -314,8 +299,7 @@ function Overlay(props: OverlayControlProps) {
       label: 'uTools',
       url: 'https://u.tools/downloads',
       icon: 'https://api.dicebear.com/7.x/miniavs/svg?seed=22',
-      description:
-        'uTools 是一款集成了多种实用工具的桌面应用，旨在提高用户的工作效率和便捷性。'
+      description: 'uTools 是一款集成了多种实用工具的桌面应用，旨在提高用户的工作效率和便捷性。'
     }
   ]
 
@@ -325,7 +309,6 @@ function Overlay(props: OverlayControlProps) {
 
   return (
     <Application.Overlay
-      {...OVERLAY_RATIO}
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}

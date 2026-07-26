@@ -3,7 +3,6 @@ import {
   OverlayContext,
   type OverlayControlProps
 } from '@/features/application/application.tsx'
-import { OVERLAY_RATIO } from '@/features/application/overlay-preset.ts'
 import styles from '@/features/applications/bookmark/overlay.module.scss'
 
 // interface Props {}
@@ -13,7 +12,6 @@ export default function Overlay(props: OverlayControlProps) {
 
   return (
     <Application.Overlay
-      {...OVERLAY_RATIO}
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}

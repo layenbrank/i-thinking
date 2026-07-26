@@ -3,9 +3,21 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
+import {
+  findMarkerBox,
+  parseMarkerLayout,
+  type MarkerLayout
+} from '@/features/application/size'
+
 export type OverlayMode = 'idle' | 'capture'
 
 export type OverlayPanelKind = 'countdown' | 'calendar' | 'clock'
+
+const OVERLAY_PANEL_KINDS: readonly OverlayPanelKind[] = ['countdown', 'calendar', 'clock']
+
+function isOverlayPanelKind(value: string): value is OverlayPanelKind {
+  return (OVERLAY_PANEL_KINDS as readonly string[]).includes(value)
+}
 
 export interface OverlayPinWidget {
   id: string
@@ -29,22 +41,23 @@ export interface OverlayPanelWidget {
   h: number
   z: number
   applicationId?: string
+  size: Mirror.Size
+  shape: Mirror.Shape
+  direction: Mirror.Direction
 }
 
 export type OverlayWidget = OverlayPinWidget | OverlayPanelWidget
-
-const PANEL_DEFAULTS: Record<OverlayPanelKind, { w: number; h: number }> = {
-  countdown: { w: 400, h: 420 },
-  calendar: { w: 600, h: 400 },
-  clock: { w: 480, h: 360 }
-}
 
 interface OverlayStore {
   mode: OverlayMode
   widgets: OverlayWidget[]
   zCursor: number
   setMode: (mode: OverlayMode) => void
-  mountPanel: (kind: OverlayPanelKind, applicationId?: string) => void
+  mountPanel: (
+    kind: OverlayPanelKind,
+    applicationId?: string,
+    layout?: Partial<MarkerLayout>
+  ) => void
   addPin: (input: {
     src: string
     x?: number
@@ -87,29 +100,36 @@ export const useOverlayStore = create<OverlayStore>()(
           })
         },
 
-        mountPanel(kind, applicationId) {
+        mountPanel(kind, applicationId, layout) {
           setter(function (state) {
+            const parsed = parseMarkerLayout(layout)
+            const box = findMarkerBox(parsed)
             const existing = state.widgets.find(function (w) {
               return w.kind === kind
             })
-            if (existing) {
+            if (existing && existing.kind !== 'pin') {
               existing.z = nextZ(state)
-              if (applicationId && existing.kind !== 'pin') {
-                existing.applicationId = applicationId
-              }
+              if (applicationId) existing.applicationId = applicationId
+              existing.size = parsed.size
+              existing.shape = parsed.shape
+              existing.direction = parsed.direction
+              existing.w = box.w
+              existing.h = box.h
               return
             }
-            const size = PANEL_DEFAULTS[kind]
             const margin = 48 + state.widgets.length * 24
             state.widgets.push({
               id: kind,
               kind,
               x: margin,
               y: margin,
-              w: size.w,
-              h: size.h,
+              w: box.w,
+              h: box.h,
               z: nextZ(state),
-              applicationId
+              applicationId,
+              size: parsed.size,
+              shape: parsed.shape,
+              direction: parsed.direction
             })
           })
           void getter().ensureVisible()
@@ -238,3 +258,5 @@ export const useOverlayStore = create<OverlayStore>()(
     { name: 'overlay-store' }
   )
 )
+
+export { isOverlayPanelKind, OVERLAY_PANEL_KINDS }

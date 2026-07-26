@@ -15,6 +15,9 @@ import PinWidget from '@/views/overlay/widgets/pin'
 interface PendingMount {
   kind: string
   applicationId?: string | null
+  size?: string | null
+  shape?: string | null
+  direction?: string | null
 }
 
 const Screenshot = lazy(function () {
@@ -24,6 +27,9 @@ const Screenshot = lazy(function () {
 interface MountPayload {
   kind?: OverlayPanelKind
   applicationId?: string
+  size?: Mirror.Size
+  shape?: Mirror.Shape
+  direction?: Mirror.Direction
 }
 
 export default function OverlayShell() {
@@ -39,6 +45,9 @@ export default function OverlayShell() {
   const mountPanel = useOverlayStore(function (s) {
     return s.mountPanel
   })
+  const removeWidget = useOverlayStore(function (s) {
+    return s.removeWidget
+  })
   const exitCapture = useOverlayStore(function (s) {
     return s.exitCapture
   })
@@ -53,6 +62,7 @@ export default function OverlayShell() {
     function () {
       let unlistenMode: (() => void) | undefined
       let unlistenMount: (() => void) | undefined
+      let unlistenUnmount: (() => void) | undefined
       let unlistenClear: (() => void) | undefined
       let unlistenHide: (() => void) | undefined
       let cancelled = false
@@ -65,7 +75,18 @@ export default function OverlayShell() {
           payload && 'applicationId' in payload
             ? (payload.applicationId ?? undefined)
             : undefined
-        mountPanel(kind, applicationId ?? undefined)
+        mountPanel(kind, applicationId ?? undefined, {
+          size: (payload?.size ?? undefined) as Mirror.Size | undefined,
+          shape: (payload?.shape ?? undefined) as Mirror.Shape | undefined,
+          direction: (payload?.direction ?? undefined) as Mirror.Direction | undefined
+        })
+      }
+
+      function applyUnmount(payload: { kind?: string } | null | undefined) {
+        const kind = payload?.kind
+        if (!kind) return
+        if (kind !== 'countdown' && kind !== 'calendar' && kind !== 'clock') return
+        removeWidget(kind)
       }
 
       ;(async function () {
@@ -75,6 +96,9 @@ export default function OverlayShell() {
           })
           unlistenMount = await listen<MountPayload>('overlay://mount', function (event) {
             applyMount(event.payload)
+          })
+          unlistenUnmount = await listen<{ kind: string }>('overlay://unmount', function (event) {
+            applyUnmount(event.payload)
           })
           unlistenClear = await listen('overlay://clear-pins', function () {
             clearPins()
@@ -94,11 +118,12 @@ export default function OverlayShell() {
         cancelled = true
         unlistenMode?.()
         unlistenMount?.()
+        unlistenUnmount?.()
         unlistenClear?.()
         unlistenHide?.()
       }
     },
-    [clearPins, mountPanel, setMode]
+    [clearPins, mountPanel, removeWidget, setMode]
   )
 
   const pins = widgets.filter(function (w) {

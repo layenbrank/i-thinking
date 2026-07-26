@@ -198,7 +198,7 @@ const Controller = {
                   size={size}
                   shape={shape}
                   direction={direction}>
-                  <OverlayProvider>
+                  <OverlayProvider applicationId={value.id}>
                     <Component {...props} />
                   </OverlayProvider>
                 </Application.Suspense>

@@ -5,7 +5,6 @@ import {
   OverlayContext,
   type OverlayControlProps
 } from '@/features/application/application.tsx'
-import { OVERLAY_RATIO } from '@/features/application/overlay-preset.ts'
 import styles from '@/features/applications/clipchamp/overlay.module.scss'
 import {} from '@ffmpeg/ffmpeg'
 import {} from '@ffmpeg/util'
@@ -18,7 +17,6 @@ export default function Overlay(props: OverlayControlProps) {
 
   return (
     <Application.Overlay
-      {...OVERLAY_RATIO}
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}

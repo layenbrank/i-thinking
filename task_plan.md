@@ -1,33 +1,20 @@
-# Task Plan: Studio 完整开发与架构文档
+# Task Plan: Overlay Caption
 
 ## Goal
-在 apps/studio/docs 输出完整中文文档套件，并精简 README。
+Application.Overlay 插槽布局 + Caption（最大化/恢复/关闭）；Utility 组合扩展；清理重复控件。
 
 ## Current Phase
-Complete
+Phase 4: Verify — complete
 
 ## Phases
+### Phase 1: Caption + Context + Overlay slots — complete
+### Phase 2: Utility rewire — complete
+### Phase 3: App cleanup — complete
+### Phase 4: Verify — complete
 
-### Phase 1: 规划文件
-- [x] task_plan / findings / progress
-- **Status:** complete
-
-### Phase 2: 撰写 docs 全套
-- [x] docs/README + architecture/development/examples/api-reference/modules/security/packaging/troubleshooting
-- [x] 精简 apps/studio/README.md
-- **Status:** complete
-
-### Phase 3: 验收
-- [x] 链接齐全、与源码 API 一致
-- **Status:** complete
-
-## Decisions Made
+## Decisions
 | Decision | Rationale |
 |----------|-----------|
-| 文档放 apps/studio/docs | Studio 专属 |
-| 手写 Markdown | 不引入生成器 |
-
-## Errors Encountered
-| Error | Attempt | Resolution |
-|-------|---------|------------|
-| （无） | 1 | |
+| flex 插槽非 absolute | 文档流布局 |
+| Caption 最右可扩展 | 应用 actions 在左 |
+| Modal 语义非 Tauri | 避免关主窗口 |

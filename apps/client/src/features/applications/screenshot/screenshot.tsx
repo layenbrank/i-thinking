@@ -35,7 +35,11 @@ export default function Screenshot(props: SectionProps) {
       {...props}
       onTrash={onTrash}
       className={clsx(styles.screenshot, props.className)}>
-      <Marker />
+      <Marker
+        size={props.size}
+        shape={props.shape}
+        direction={props.direction}
+      />
     </Application.Section>
   )
 }

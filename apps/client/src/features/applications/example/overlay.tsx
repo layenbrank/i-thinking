@@ -1,29 +1,36 @@
 import { clsx } from 'clsx'
+import { Suspense, lazy } from 'react'
 
 import {
   Application,
   OverlayContext,
   type OverlayControlProps
 } from '@/features/application/application.tsx'
-import { OVERLAY_RATIO } from '@/features/application/overlay-preset.ts'
 import styles from '@/features/applications/example/overlay.module.scss'
 
-// interface Props {}
+const ExampleWorkspace = lazy(function () {
+  return import('@/features/applications/example/workspace/example')
+})
 
 export default function Overlay(props: OverlayControlProps) {
   const { visible, onUpdateVisible } = useContext(OverlayContext)
 
   return (
     <Application.Overlay
-      {...OVERLAY_RATIO}
+      caption={false}
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}
       open={visible}
       className={clsx([styles.overlay, styles.root])}
-      onOk={() => onUpdateVisible(false)}
-      onCancel={() => onUpdateVisible(false)}>
-      <div className={styles.overlay}>Overlay</div>
+      onCancel={function () {
+        onUpdateVisible(false)
+      }}>
+      <div className={styles.workspace}>
+        <Suspense fallback={null}>
+          <ExampleWorkspace />
+        </Suspense>
+      </div>
     </Application.Overlay>
   )
 }

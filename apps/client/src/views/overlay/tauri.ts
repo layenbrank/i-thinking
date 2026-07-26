@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 
+import type { MarkerLayout } from '@/features/application/size'
 import type { OverlayPanelKind } from '@/stores/overlay'
 
 export async function ensureOverlay(): Promise<void> {
@@ -14,15 +15,34 @@ export async function setOverlayMode(mode: 'idle' | 'capture'): Promise<void> {
   await invoke('overlay:update-mode', { mode })
 }
 
-/** Open overlay (if needed) and ask the shell to mount a singleton panel widget. */
+/**
+ * Open overlay (if needed) and mount a singleton panel widget.
+ * 由应用右键「浮层 → 添加」调用；overview 磁贴双击勿调用。
+ */
 export async function openOverlayPanel(
   kind: OverlayPanelKind,
-  applicationId?: string
+  applicationId?: string,
+  layout?: Partial<MarkerLayout>
 ): Promise<void> {
   await invoke('overlay:mount', {
     kind,
-    applicationId: applicationId ?? null
+    applicationId: applicationId ?? null,
+    size: layout?.size ?? null,
+    shape: layout?.shape ?? null,
+    direction: layout?.direction ?? null
   })
+}
+
+/**
+ * Remove a singleton panel widget by kind.
+ * 由应用右键「浮层 → 移除」调用。
+ */
+export async function removeOverlayPanel(kind: OverlayPanelKind): Promise<void> {
+  await invoke('overlay:unmount', { kind })
+}
+
+export async function openApplicationOverlay(applicationId: string): Promise<void> {
+  await invoke('application:open-overlay', { applicationId })
 }
 
 /**

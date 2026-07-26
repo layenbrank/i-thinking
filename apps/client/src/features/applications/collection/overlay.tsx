@@ -24,7 +24,6 @@ import {
   OverlayContext,
   type OverlayControlProps
 } from '@/features/application/application.tsx'
-import { OVERLAY_RATIO } from '@/features/application/overlay-preset.ts'
 import { Controller } from '@/features/applications/collection/controller.tsx'
 import styles from '@/features/applications/collection/overlay.module.scss'
 import { generateColor } from '@/utils/generate.ts'
@@ -170,11 +169,6 @@ export default function Overlay(props: OverlayControlProps & Props) {
 
   return (
     <Application.Overlay
-      {...OVERLAY_RATIO}
-      style={{
-        ...OVERLAY_RATIO.style,
-        overflow: 'hidden'
-      }}
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}

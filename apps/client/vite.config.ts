@@ -107,7 +107,13 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
       AutoImport({
         dts: 'src/types/auto-imports.d.ts',
         include: [/\.(?:ts|tsx|js|jsx)$/i],
-        imports: ['react', 'react-router-dom']
+        imports: [
+          'react',
+          'react-router-dom',
+          {
+            react: [['default', 'React']]
+          }
+        ]
       }),
       Compression({
         verbose: true,

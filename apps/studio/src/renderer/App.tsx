@@ -28,9 +28,7 @@ function App() {
     void useSettingsStore.getState().initialize()
 
     if (!import.meta.env.DEV) return
-    void window.studio.devtools
-      .updateVisible({ visible: true })
-      .catch(function () {})
+    void window.studio.devtools.updateVisible({ visible: true }).catch(function () {})
   }, [])
 
   function onPluginError(plugin: Plugin, error: unknown) {
@@ -39,25 +37,25 @@ function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <PluginProvider
-        plugins={plugins}
-        onError={onPluginError}>
-        <StyleProvider hashPriority="low">
-          <XProvider
-            locale={zhCN}
-            {...provider}>
+      <StyleProvider hashPriority="low">
+        <XProvider
+          locale={zhCN}
+          {...provider}>
+          <AntApp
+            message={{ maxCount: 3 }}
+            notification={{ maxCount: 1 }}>
             <QueryProvider>
-              <AntApp
-                message={{ maxCount: 3 }}
-                notification={{ maxCount: 1 }}>
+              <PluginProvider
+                plugins={plugins}
+                onError={onPluginError}>
                 <Suspense fallback={<Fallback.Route />}>
                   <RouterProvider router={router} />
                 </Suspense>
-              </AntApp>
+              </PluginProvider>
             </QueryProvider>
-          </XProvider>
-        </StyleProvider>
-      </PluginProvider>
+          </AntApp>
+        </XProvider>
+      </StyleProvider>
     </MotionConfig>
   )
 }

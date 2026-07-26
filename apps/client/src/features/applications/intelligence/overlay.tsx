@@ -5,8 +5,6 @@ import {
   CommentOutlined,
   CustomerServiceOutlined,
   FieldTimeOutlined,
-  FullscreenExitOutlined,
-  FullscreenOutlined,
   GithubOutlined,
   InfoCircleOutlined,
   LoadingOutlined,
@@ -48,7 +46,6 @@ import {
   OverlayContext,
   type OverlayControlProps
 } from '@/features/application/application.tsx'
-import { OVERLAY_RATIO } from '@/features/application/overlay-preset.ts'
 import styles from '@/features/applications/intelligence/overlay.module.scss'
 import { session$, useIntelligenceStore as store } from '@/stores/intelligence.ts'
 
@@ -94,7 +91,6 @@ export default function Overlay(props: OverlayControlProps) {
   const { visible, onUpdateVisible } = useContext(OverlayContext)
   const { onAbort } = props
   const overlayRef = useRef<HTMLDivElement>(null)
-  const [fullscreen, updateFullscreen] = useState(false)
   const [sender, updateSender] = useState('')
   const messages = store((state) => state.messages)
   const sessions = store((state) => state.sessions)
@@ -614,15 +610,9 @@ export default function Overlay(props: OverlayControlProps) {
 
   return (
     <Application.Overlay
-      {...OVERLAY_RATIO}
-      style={{
-        ...OVERLAY_RATIO.style,
-        minWidth: '800px'
-      }}
       cache={props.cache}
       onAbort={handleAbort}
       abortTimeoutMs={props.abortTimeoutMs}
-      fullscreen={fullscreen}
       wrapClassName={styles.rootTop}
       open={visible}
       className={clsx([styles.overlay, styles.root])}
@@ -703,10 +693,6 @@ export default function Overlay(props: OverlayControlProps) {
           trigger="click"
           className={clsx(styles.float, styles.group)}
           icon={<CustomerServiceOutlined />}>
-          <FloatButton
-            onClick={() => updateFullscreen(!fullscreen)}
-            icon={fullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
-          />
           <FloatButton icon={<CommentOutlined />} />
         </FloatButton.Group>
       </XProvider>

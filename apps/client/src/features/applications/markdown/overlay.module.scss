@@ -2,6 +2,25 @@
 
 .overlay {
   &.root {
+    overflow: hidden;
+
+    :global {
+      .ant-modal-container {
+        padding: 0;
+      }
+    }
+  }
+}
+
+.workspace {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.overlay {
+  &.legacyRoot {
     :global {
       .ant-modal-container {
         padding-block: 20px;

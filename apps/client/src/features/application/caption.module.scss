@@ -1,0 +1,64 @@
+$size-y: 32px;
+
+.caption {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  width: 100%;
+  min-height: $size-y;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cluster {
+}
+
+.button {
+  height: $size-y;
+  aspect-ratio: 4 / 4;
+  padding: 0;
+  border-width: 0;
+  border-color: transparent;
+  outline: none;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+
+  &:not(:disabled):not(.ant-btn-disabled):hover {
+    // &:not(:disabled):hover {
+    border-width: 0;
+    border-color: transparent;
+    box-shadow: none;
+    background: rgba(0, 0, 0, 0.06);
+  }
+}
+
+.expand {
+  &:not(:disabled):not(.ant-btn-disabled):hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+}
+
+.close {
+  &.fullscreen {
+    border-radius: 0;
+  }
+  &:not(.fullscreen) {
+    border-radius: 0 var(--ith-border-radius-lg) 0 0;
+  }
+
+  &:not(:disabled):not(.ant-btn-disabled):hover {
+    color: #ffffff;
+    background: #c42b1c;
+  }
+}

@@ -5,7 +5,9 @@ import { FOUNDATION, mergeSeed } from '@/themes/foundation/foundation'
 import { mergeComponents, RECIPES } from '@/themes/recipes/recipes'
 import { parseScheme, parseSystemTheme } from '@/themes/schemes/schemes'
 
-export const CSS_VAR_KEY = 'ith'
+export const CSSVAR = {
+  PREFIX: 'ith'
+}
 
 export function buildTheme(appearance: Appearance): ThemeConfig {
   const resolvedTheme = appearance.theme === 'system' ? parseSystemTheme() : appearance.theme
@@ -17,7 +19,9 @@ export function buildTheme(appearance: Appearance): ThemeConfig {
   const algorithm = parseScheme(resolvedTheme, appearance.density)
   const components = mergeComponents(RECIPES, appearance.components)
   return {
-    cssVar: { key: CSS_VAR_KEY },
+    cssVar: {
+      prefix: CSSVAR.PREFIX
+    },
     hashed: true,
     algorithm,
     token,

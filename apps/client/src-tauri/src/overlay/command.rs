@@ -40,6 +40,12 @@ fn emit_mount(app: &AppHandle, payload: &OverlayMountPayload) {
     let _ = app.emit("overlay://mount", payload);
 }
 
+fn emit_unmount(app: &AppHandle, kind: &str) {
+    let _ = app.emit("overlay://unmount", OverlayUnmountPayload {
+        kind: kind.to_string(),
+    });
+}
+
 /// Create (or show) the single always-on-top overlay window covering the primary monitor.
 #[tauri::command(rename = "overlay:ensure")]
 pub async fn overlay_ensure(app: AppHandle) -> Result<(), String> {
@@ -124,11 +130,17 @@ pub async fn overlay_mount(
     app: AppHandle,
     kind: String,
     application_id: Option<String>,
+    size: Option<String>,
+    shape: Option<String>,
+    direction: Option<String>,
     pending: State<'_, OverlayPending>,
 ) -> Result<(), String> {
     let payload = OverlayMountPayload {
         kind,
         application_id,
+        size,
+        shape,
+        direction,
     };
     {
         let mut guard = pending.mount.lock().await;
@@ -136,6 +148,53 @@ pub async fn overlay_mount(
     }
     overlay_ensure(app.clone()).await?;
     emit_mount(&app, &payload);
+    Ok(())
+}
+
+/// Remove a singleton panel widget by kind (no-op if absent).
+#[tauri::command(rename = "overlay:unmount")]
+pub async fn overlay_unmount(
+    app: AppHandle,
+    kind: String,
+    pending: State<'_, OverlayPending>,
+) -> Result<(), String> {
+    {
+        let mut guard = pending.mount.lock().await;
+        if guard.as_ref().is_some_and(|p| p.kind == kind) {
+            *guard = None;
+        }
+    }
+    emit_unmount(&app, &kind);
+    Ok(())
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OverlayUnmountPayload {
+    kind: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OpenOverlayPayload {
+    application_id: String,
+}
+
+/// Focus main window and ask it to open Application.Overlay for the given id.
+#[tauri::command(rename = "application:open-overlay")]
+pub async fn application_open_overlay(
+    app: AppHandle,
+    application_id: String,
+) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.show();
+        let _ = win.unminimize();
+        let _ = win.set_focus();
+    } else {
+        return Err("main window missing".to_string());
+    }
+    let payload = OpenOverlayPayload { application_id };
+    let _ = app.emit("application://open-overlay", &payload);
     Ok(())
 }
 

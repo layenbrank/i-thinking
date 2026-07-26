@@ -74,12 +74,12 @@ function printMissingHint(): void {
   console.error('并设置 CARGO_TARGET_DIR（指向 target 目录）')
 }
 
-function writePlaceholder(fallback: string): void {
+function writePlaceholder(fallback: string, reason: string): void {
   fs.mkdirSync(OUT_DIR, { recursive: true })
   fs.copyFileSync(fallback, DEST)
   fs.writeFileSync(PLACEHOLDER_MARKER, `${fallback}\n`, 'utf8')
   console.warn(`${LOG_PREFIX} corex-serve 未找到，已用占位二进制 ${fallback}`)
-  console.warn(`${LOG_PREFIX} 请设置 CARGO_TARGET_DIR 后重新运行`)
+  console.warn(`${LOG_PREFIX} ${reason}`)
 }
 
 function copySidecar(src: string): void {
@@ -93,27 +93,27 @@ function copySidecar(src: string): void {
 }
 
 function prepareSidecar(): void {
+  const cargoTargetDir = process.env.CARGO_TARGET_DIR
   const src = findCorexServePath()
+  const missingReason = !cargoTargetDir
+    ? '未设置 CARGO_TARGET_DIR（若经 turbo 启动，需在 turbo.json globalPassThroughEnv 中声明）'
+    : `在 CARGO_TARGET_DIR 下未找到 release/${BINARY_NAME}（当前: ${cargoTargetDir}）`
 
   if (!src || !fs.existsSync(src)) {
     if (IS_STRICT) {
-      console.error(
-        `${LOG_PREFIX} --strict: 源文件不存在${src ? `: ${src}` : '（未设置 CARGO_TARGET_DIR）'}`
-      )
+      console.error(`${LOG_PREFIX} --strict: ${missingReason}`)
       printMissingHint()
       process.exit(1)
     }
 
     const fallback = findPlaceholderBinary()
     if (!fallback) {
-      console.error(
-        `${LOG_PREFIX} 源文件不存在${src ? `: ${src}` : '（未设置 CARGO_TARGET_DIR）'}`
-      )
+      console.error(`${LOG_PREFIX} ${missingReason}`)
       printMissingHint()
       process.exit(1)
     }
 
-    writePlaceholder(fallback)
+    writePlaceholder(fallback, missingReason)
     return
   }
 

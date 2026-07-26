@@ -2,7 +2,9 @@ import { XProvider } from '@ant-design/x'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { isRegistered, register, unregister } from '@tauri-apps/plugin-global-shortcut'
-import { message } from 'antd'
+import { message, App as AntApp } from 'antd'
+import { StyleProvider } from '@ant-design/cssinjs'
+import { MotionConfig } from 'motion/react'
 import zhCN from 'antd/locale/zh_CN'
 
 import dayjs from 'dayjs'
@@ -12,6 +14,7 @@ import localeData from 'dayjs/plugin/localeData'
 import { Suspense, useEffect } from 'react'
 import { RouterProvider } from 'react-router-dom'
 
+import { QueryProvider } from '@/components/provider/query'
 import { Fallback } from '@/components/fallback/index.ts'
 import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
 import { IntelligencePlugin } from '@/plugins/intelligence.ts'
@@ -32,8 +35,7 @@ const plugins: Plugin[] = [
   IntelligencePlugin
 ]
 const SCREENSHOT_SHORTCUT = 'CommandOrControl+Alt+A'
-const COREX_NOT_READY =
-  'corex 未就绪，PDF / 截图等功能暂不可用。请构建 corex-serve 后重启应用。'
+const COREX_NOT_READY = 'corex 未就绪，PDF / 截图等功能暂不可用。请构建 corex-serve 后重启应用。'
 
 function App() {
   const provider = useProviderProps()
@@ -41,6 +43,37 @@ function App() {
   useEffect(function () {
     void useMirrorStore.getState().toInitialize()
     void useSettingsStore.getState().initialize()
+  }, [])
+
+  useEffect(function () {
+    let unlisten: (() => void) | undefined
+    let cancelled = false
+
+    async function bootstrap() {
+      try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
+        if (getCurrentWindow().label !== 'main') return
+
+        const { listen } = await import('@tauri-apps/api/event')
+        const { openOverlayById } = await import('@/features/application/overlay-registry')
+        unlisten = await listen<{ applicationId: string }>(
+          'application://open-overlay',
+          function (event) {
+            const id = event.payload?.applicationId
+            if (id) openOverlayById(id)
+          }
+        )
+        if (cancelled) unlisten()
+      } catch (err) {
+        console.warn('[App] application://open-overlay listen failed', err)
+      }
+    }
+
+    void bootstrap()
+    return function () {
+      cancelled = true
+      unlisten?.()
+    }
   }, [])
 
   useEffect(function () {
@@ -108,17 +141,27 @@ function App() {
   }
 
   return (
-    <PluginProvider
-      plugins={plugins}
-      onError={onPluginError}>
-      <XProvider
-        locale={zhCN}
-        {...provider}>
-        <Suspense fallback={<Fallback.Route />}>
-          <RouterProvider router={router} />
-        </Suspense>
-      </XProvider>
-    </PluginProvider>
+    <MotionConfig reducedMotion="user">
+      <StyleProvider hashPriority="low">
+        <XProvider
+          locale={zhCN}
+          {...provider}>
+          <AntApp
+            message={{ maxCount: 3 }}
+            notification={{ maxCount: 1 }}>
+            <QueryProvider>
+              <PluginProvider
+                plugins={plugins}
+                onError={onPluginError}>
+                <Suspense fallback={<Fallback.Route />}>
+                  <RouterProvider router={router} />
+                </Suspense>
+              </PluginProvider>
+            </QueryProvider>
+          </AntApp>
+        </XProvider>
+      </StyleProvider>
+    </MotionConfig>
   )
 }
 

@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react'
-import { Button, Typography } from 'antd'
+import { Typography } from 'antd'
 import clsx from 'clsx'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
@@ -15,12 +15,7 @@ import AppearancePanel from '@/features/applications/settings/panels/appearance'
 import GeneralPanel from '@/features/applications/settings/panels/general'
 import styles from '@/features/applications/settings/shell.module.scss'
 
-type ShellProps = {
-  onClose: () => void
-}
-
-function Shell(props: ShellProps) {
-  const { onClose } = props
+function Shell() {
   const isReducedMotion = useReducedMotion()
   const [section, onSectionChange] = useState<SectionKey>(SECTION.APPEARANCE)
 
@@ -43,20 +38,12 @@ function Shell(props: ShellProps) {
                 aria-hidden
               />
             </div>
-            <Typography.Title level={5} className={styles.asideTitleText}>设置</Typography.Title>
+            <Typography.Title
+              level={5}
+              className={styles.asideTitleText}>
+              设置
+            </Typography.Title>
           </div>
-          <Button
-            type="text"
-            className={styles.closeBtn}
-            aria-label="关闭设置"
-            icon={
-              <Icon
-                icon="ant-design:close-outlined"
-                aria-hidden
-              />
-            }
-            onClick={onClose}
-          />
         </div>
 
         <nav
@@ -100,8 +87,16 @@ function Shell(props: ShellProps) {
             animate={headVariants.animate}
             exit={headVariants.exit}
             transition={viewTransition}>
-            <Typography.Title level={4} className={styles.headTitle}>{headText.title}</Typography.Title>
-            <Typography.Text type="secondary" className={styles.headSubtitle}>{headText.subtitle}</Typography.Text>
+            <Typography.Title
+              level={4}
+              className={styles.headTitle}>
+              {headText.title}
+            </Typography.Title>
+            <Typography.Text
+              type="secondary"
+              className={styles.headSubtitle}>
+              {headText.subtitle}
+            </Typography.Text>
           </motion.header>
         </AnimatePresence>
 
@@ -127,5 +122,3 @@ function Shell(props: ShellProps) {
 }
 
 export default Shell
-
-export type { ShellProps }

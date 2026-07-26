@@ -103,9 +103,11 @@ pub fn spawn_and_watch(app: &AppHandle, timeout: Duration) {
 
 /// 启动 corex-serve sidecar 并监听进程退出。
 fn spawn(app: &AppHandle) -> Result<(), String> {
+    // sidecar() 只要 externalBin 的文件名，不要 `binaries/` 前缀；
+    // 运行时相对 current_exe 目录解析为 `corex-serve.exe`。
     let sidecar = app
         .shell()
-        .sidecar("binaries/corex-serve")
+        .sidecar("corex-serve")
         .map_err(|e| format!("创建 corex-serve sidecar 失败: {e}"))?
         .args(["--pipe", ipc::PIPE_NAME]);
 

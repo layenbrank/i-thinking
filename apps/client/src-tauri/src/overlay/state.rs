@@ -6,6 +6,9 @@ use tokio::sync::Mutex;
 pub struct OverlayMountPayload {
     pub kind: String,
     pub application_id: Option<String>,
+    pub size: Option<String>,
+    pub shape: Option<String>,
+    pub direction: Option<String>,
 }
 
 #[derive(Default)]

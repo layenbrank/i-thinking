@@ -3,6 +3,7 @@
   "globalDependencies": [".env", "tsconfig.json"],
   "globalEnv": ["NODE_ENV"],
   "globalPassThroughEnv": [
+    "CARGO_TARGET_DIR",
     "ELECTRON_MIRROR",
     "ELECTRON_CUSTOM_DIR",
     "ELECTRON_CUSTOM_FILENAME",
