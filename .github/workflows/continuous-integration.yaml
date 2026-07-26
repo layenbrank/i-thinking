@@ -17,19 +17,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 11
           run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
 
       - name: Get pnpm store path
         id: pnpm-cache
@@ -37,7 +37,7 @@ jobs:
         run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -59,10 +59,15 @@ jobs:
         run: |
           pnpm --filter=@i-thinking/service test || true
 
-      - name: Build all
+      - name: Build (exclude Tauri desktop)
         env:
           NODE_ENV: production
-        run: pnpm build
+        run: pnpm turbo run build --filter=!@i-thinking/client
+
+      - name: Build client web (Vite)
+        env:
+          NODE_ENV: production
+        run: pnpm --filter @i-thinking/client run build:core
 
       - name: Archive build artifacts
         if: always()

@@ -10,7 +10,10 @@
     "ELECTRON_GET_USE_PROXY",
     "ELECTRON_SKIP_BINARY_DOWNLOAD",
     "ELECTRON_BUILDER_BINARIES_MIRROR",
-    "npm_config_electron_mirror"
+    "npm_config_electron_mirror",
+    "TAURI_SIGNING_PRIVATE_KEY",
+    "TAURI_SIGNING_PRIVATE_KEY_PATH",
+    "TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
   ],
   "tasks": {
     "build": {

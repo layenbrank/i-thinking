@@ -5,7 +5,7 @@ on:
     branches: [master]
     paths:
       - 'apps/docs/**'
-      - 'pages.yaml'
+      - '.github/workflows/pages.yaml'
 
 permissions:
   contents: read
@@ -21,19 +21,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 11
           run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
