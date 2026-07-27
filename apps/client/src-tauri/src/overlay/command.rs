@@ -4,7 +4,9 @@ use tauri::{
     WebviewWindowBuilder,
 };
 
-use crate::overlay::state::{OverlayMountPayload, OverlayPending, OverlayUnmountPayload};
+use crate::overlay::state::{
+    OverlayMountPayload, OverlayPending, OverlayUnmountPayload, ShowOverlayPayload,
+};
 use crate::through::ThroughState;
 
 pub const OVERLAY_LABEL: &str = "overlay";
@@ -40,13 +42,8 @@ fn emit_mount(app: &AppHandle, payload: &OverlayMountPayload) {
     let _ = app.emit("overlay://mount", payload);
 }
 
-fn emit_unmount(app: &AppHandle, kind: &str) {
-    let _ = app.emit(
-        "overlay://unmount",
-        OverlayUnmountPayload {
-            kind: kind.to_string(),
-        },
-    );
+fn emit_unmount(app: &AppHandle, payload: &OverlayUnmountPayload) {
+    let _ = app.emit("overlay://unmount", payload);
 }
 
 /// Create (or show) the single always-on-top overlay window covering the primary monitor.
@@ -128,72 +125,64 @@ pub async fn overlay_update_mode(app: AppHandle, mode: String) -> Result<(), Str
 }
 
 /// Ensure overlay is visible and queue a panel mount (survives cold-start race).
+/// 冷启动：只写 pending（前端 take-pending）；热路径：只 emit（前端已 listen）。
 #[tauri::command(rename = "overlay:mount")]
 pub async fn overlay_mount(
     app: AppHandle,
-    kind: String,
-    #[allow(non_snake_case)] magneticTileID: Option<String>,
-    size: Option<String>,
-    shape: Option<String>,
-    direction: Option<String>,
+    payload: OverlayMountPayload,
     pending: State<'_, OverlayPending>,
 ) -> Result<(), String> {
-    let payload = OverlayMountPayload {
-        kind,
-        magnetic_tile_id: magneticTileID,
-        size,
-        shape,
-        direction,
-    };
-    {
-        let mut guard = pending.mount.lock().await;
-        *guard = Some(payload.clone());
-    }
+    let existed = app.get_webview_window(OVERLAY_LABEL).is_some();
     {
         let mut unmount_guard = pending.unmount.lock().await;
-        if unmount_guard.as_ref().is_some_and(|p| p.kind == payload.kind) {
+        if unmount_guard
+            .as_ref()
+            .is_some_and(|p| p.magnetic_tile_id == payload.magnetic_tile_id)
+        {
             *unmount_guard = None;
         }
     }
     overlay_ensure(app.clone()).await?;
-    emit_mount(&app, &payload);
+    if existed {
+        emit_mount(&app, &payload);
+    } else {
+        let mut guard = pending.mount.lock().await;
+        *guard = Some(payload);
+    }
     Ok(())
 }
 
-/// Remove a singleton panel by kind (no-op if absent). Queues pending for cold start.
+/// Remove a tile by magneticTileID.
 #[tauri::command(rename = "overlay:unmount")]
 pub async fn overlay_unmount(
     app: AppHandle,
-    kind: String,
+    payload: OverlayUnmountPayload,
     pending: State<'_, OverlayPending>,
 ) -> Result<(), String> {
+    let existed = app.get_webview_window(OVERLAY_LABEL).is_some();
     {
         let mut mount_guard = pending.mount.lock().await;
-        if mount_guard.as_ref().is_some_and(|p| p.kind == kind) {
+        if mount_guard
+            .as_ref()
+            .is_some_and(|p| p.magnetic_tile_id == payload.magnetic_tile_id)
+        {
             *mount_guard = None;
         }
     }
-    {
+    if existed {
+        emit_unmount(&app, &payload);
+    } else {
         let mut unmount_guard = pending.unmount.lock().await;
-        *unmount_guard = Some(OverlayUnmountPayload {
-            kind: kind.clone(),
-        });
+        *unmount_guard = Some(payload);
     }
-    emit_unmount(&app, &kind);
     Ok(())
-}
-
-#[derive(Clone, Debug, Serialize)]
-struct ShowOverlayPayload {
-    #[serde(rename = "magneticTileID")]
-    magnetic_tile_id: String,
 }
 
 /// Focus main window and ask it to show MagneticTile.Overlay for the given id.
 #[tauri::command(rename = "magnetic-tile:show-overlay")]
 pub async fn magnetic_tile_show_overlay(
     app: AppHandle,
-    #[allow(non_snake_case)] magneticTileID: String,
+    payload: ShowOverlayPayload,
 ) -> Result<(), String> {
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.show();
@@ -202,9 +191,6 @@ pub async fn magnetic_tile_show_overlay(
     } else {
         return Err("main window missing".to_string());
     }
-    let payload = ShowOverlayPayload {
-        magnetic_tile_id: magneticTileID,
-    };
     let _ = app.emit("magnetic-tile://show-overlay", &payload);
     Ok(())
 }

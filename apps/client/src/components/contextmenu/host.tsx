@@ -1,42 +1,32 @@
 import { AnimatePresence } from 'motion/react'
-import {
-  createElement,
-  useCallback,
-  useEffect,
-  useState,
-  useSyncExternalStore
-} from 'react'
+import { createElement, useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 
 import {
-  ContextMenuOverlay,
   findDefaultContainer,
+  MenuLayer,
   type ContextMenuProps
 } from '@/components/contextmenu/contextmenu'
-import {
-  findFocusableItems,
-  parseItems,
-  type ContextMenuClickInfo,
-  type ContextMenuItem,
-  type ParsedContextMenuItem
-} from '@/components/contextmenu/parse-items'
+import { useDismiss } from '@/components/contextmenu/dismiss'
+import { findFocusable, parseMenuItems } from '@/components/contextmenu/parse'
 import { VIEWPORT_PADDING, type Point } from '@/components/contextmenu/position'
+import type { MenuItem, MenuSelectInfo, ParsedMenuItem } from '@/components/contextmenu/types'
 
 type HostConfig = Omit<ContextMenuProps, 'children' | 'items' | 'open' | 'onOpenChange'> & {
-  items?: ContextMenuItem[]
+  items?: MenuItem[]
 }
 
 interface OpenPayload extends HostConfig {
   x: number
   y: number
-  items: ContextMenuItem[]
+  items: MenuItem[]
 }
 
 interface StoreState {
   open: boolean
   session: number
   anchor: Point
-  items: ParsedContextMenuItem[]
+  items: ParsedMenuItem[]
   config: HostConfig
 }
 
@@ -71,7 +61,7 @@ function findSnapshot() {
 
 function openMenu(payload: OpenPayload) {
   const { x, y, items, ...config } = payload
-  const parsed = parseItems(items)
+  const parsed = parseMenuItems(items)
   STORE = {
     open: true,
     session: STORE.session + 1,
@@ -121,59 +111,30 @@ function Host() {
 
   const container = (state.config.findPopupContainer ?? findDefaultContainer)()
 
+  useDismiss({
+    isOpen: state.open,
+    onClose: closeMenu
+  })
+
   useEffect(
     function () {
       if (!state.open) return
-      const focusable = findFocusableItems(state.items)
+      const focusable = findFocusable(state.items)
       setOpenPath([])
       setActiveKey(focusable[0]?.key)
     },
     [state.session, state.open]
   )
 
-  useEffect(
-    function () {
-      if (!state.open) return
-
-      function onPointerDown(event: MouseEvent) {
-        const target = event.target as Node | null
-        if (!target) return
-        const panels = document.querySelectorAll('.contextmenu-panel')
-        for (const panel of panels) {
-          if (panel.contains(target)) return
-        }
-        closeMenu()
-      }
-
-      function onKeyDown(event: KeyboardEvent) {
-        if (event.key === 'Escape') closeMenu()
-      }
-
-      function onResize() {
-        closeMenu()
-      }
-
-      document.addEventListener('mousedown', onPointerDown, true)
-      document.addEventListener('keydown', onKeyDown, true)
-      window.addEventListener('resize', onResize)
-      return function () {
-        document.removeEventListener('mousedown', onPointerDown, true)
-        document.removeEventListener('keydown', onKeyDown, true)
-        window.removeEventListener('resize', onResize)
-      }
-    },
-    [state.open]
-  )
-
-  function onItemClick(info: ContextMenuClickInfo) {
-    state.config.onClick?.(info)
+  function onSelect(info: MenuSelectInfo) {
+    state.config.onSelect?.(info)
     closeMenu()
   }
 
-  const overlay = state.open
-    ? createElement(ContextMenuOverlay, {
+  const layer = state.open
+    ? createElement(MenuLayer, {
         key: `contextmenu-host-${state.session}`,
-        overlay: { anchor: state.anchor, items: state.items },
+        layer: { anchor: state.anchor, items: state.items },
         openPath,
         activeKey,
         classNames: state.config.classNames,
@@ -189,7 +150,7 @@ function Host() {
         renderPanel: state.config.renderPanel,
         onOpenPathChange: setOpenPath,
         onActiveKeyChange: setActiveKey,
-        onItemClick,
+        onSelect,
         onRequestClose: closeMenu
       })
     : null
@@ -201,11 +162,11 @@ function Host() {
         setActiveKey(undefined)
         resetMenu()
       },
-      children: overlay
+      children: layer
     }),
     container
   )
 }
 
-export type { OpenPayload, HostConfig }
-export { useContextMenu, Host, openMenu, closeMenu, resetMenu }
+export { closeMenu, Host, openMenu, resetMenu, useContextMenu }
+export type { HostConfig, OpenPayload }

@@ -1,46 +1,37 @@
-import {
-  Provider,
-  type ContextMenuProps
-} from '@/components/contextmenu/contextmenu'
+import { Root, type ContextMenuProps } from '@/components/contextmenu/contextmenu'
 import {
   Host,
   useContextMenu,
   type HostConfig,
   type OpenPayload
-} from '@/components/contextmenu/use-context-menu'
+} from '@/components/contextmenu/host'
+import { findFocusable, parseMenuItems } from '@/components/contextmenu/parse'
+import { parseOrigin } from '@/components/contextmenu/position'
 import type {
-  ContextMenuClassNames,
-  ContextMenuClickInfo,
-  ContextMenuItem,
-  ContextMenuItemKind,
-  ContextMenuMotion,
-  ContextMenuStyles,
-  ParsedContextMenuItem
-} from '@/components/contextmenu/parse-items'
-import { parseItems, findFocusableItems } from '@/components/contextmenu/parse-items'
-import { parsePopupOrigin } from '@/components/contextmenu/position'
+  MenuClassNames,
+  MenuItem,
+  MenuItemKind,
+  MenuMotion,
+  MenuSelectInfo,
+  MenuStyles,
+  ParsedMenuItem
+} from '@/components/contextmenu/types'
 
-const ContextMenu = Object.assign(Provider, {
+const ContextMenu = Object.assign(Root, {
   Host
 })
 
 export type {
   ContextMenuProps,
-  ContextMenuClassNames,
-  ContextMenuClickInfo,
-  ContextMenuItem,
-  ContextMenuItemKind,
-  ContextMenuMotion,
-  ContextMenuStyles,
-  ParsedContextMenuItem,
   HostConfig,
-  OpenPayload
+  MenuClassNames,
+  MenuItem,
+  MenuItemKind,
+  MenuMotion,
+  MenuSelectInfo,
+  MenuStyles,
+  OpenPayload,
+  ParsedMenuItem
 }
 
-export {
-  ContextMenu,
-  useContextMenu,
-  parseItems,
-  findFocusableItems,
-  parsePopupOrigin
-}
+export { ContextMenu, findFocusable, parseMenuItems, parseOrigin, useContextMenu }

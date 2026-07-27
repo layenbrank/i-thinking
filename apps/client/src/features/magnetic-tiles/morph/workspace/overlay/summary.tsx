@@ -10,6 +10,7 @@ import {
   Tabs,
   Typography
 } from 'antd'
+import { save } from '@tauri-apps/plugin-dialog'
 import { clsx } from 'clsx'
 
 import { selectSelectedAnnotation, useMorphStore } from '@/stores/morph.ts'
@@ -160,7 +161,6 @@ function ExportTab() {
 
   async function handleExport() {
     if (!file) return
-    const { save } = await import('@tauri-apps/plugin-dialog')
     const dest = await save({
       title: '导出 PDF',
       filters: [{ name: 'PDF', extensions: ['pdf'] }],

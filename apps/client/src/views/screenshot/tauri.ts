@@ -1,4 +1,8 @@
 import { invoke } from '@tauri-apps/api/core'
+import { appLocalDataDir, join } from '@tauri-apps/api/path'
+import { writeImage } from '@tauri-apps/plugin-clipboard-manager'
+import { save } from '@tauri-apps/plugin-dialog'
+import { BaseDirectory, exists, mkdir, writeFile } from '@tauri-apps/plugin-fs'
 
 /**
  * Tauri 截图能力的轻量封装，前端通过这些函数与 Rust 端的
@@ -59,7 +63,6 @@ function dataUrlToBytes(dataUrl: string): Uint8Array {
 
 /** 把当前 Konva Stage 的最终画面写到剪贴板（PNG） */
 export async function writeImageToClipboard(dataUrl: string): Promise<void> {
-  const { writeImage } = await import('@tauri-apps/plugin-clipboard-manager')
   await writeImage(dataUrlToBytes(dataUrl))
 }
 
@@ -68,12 +71,8 @@ export async function writeImageToClipboard(dataUrl: string): Promise<void> {
  * 返回保存后的绝对路径（写入失败抛错）。
  */
 export async function savePngToAppDir(dataUrl: string, filename?: string): Promise<string> {
-  const [{ appLocalDataDir, join }, { mkdir, writeFile, exists, BaseDirectory }] =
-    await Promise.all([import('@tauri-apps/api/path'), import('@tauri-apps/plugin-fs')])
-
   const dir = await appLocalDataDir()
   const subdir = await join(dir, 'screenshot')
-  // 使用 BaseDirectory.AppLocalData 作为权限边界，目录不存在则创建
   if (!(await exists('screenshot', { baseDir: BaseDirectory.AppLocalData }))) {
     await mkdir('screenshot', {
       baseDir: BaseDirectory.AppLocalData,
@@ -91,8 +90,6 @@ export async function savePngWithDialog(
   dataUrl: string,
   suggested?: string
 ): Promise<string | null> {
-  const { save } = await import('@tauri-apps/plugin-dialog')
-  const { writeFile } = await import('@tauri-apps/plugin-fs')
   const path = await save({
     defaultPath: suggested ?? `screenshot-${formatTimestamp(new Date())}.png`,
     filters: [{ name: 'PNG', extensions: ['png'] }]

@@ -87,14 +87,16 @@ export default function SplitModal() {
             <Typography.Text style={{ display: 'block', marginBottom: 4 }}>
               每个文件页数
             </Typography.Text>
-            <InputNumber
-              min={1}
-              max={file?.page_count ?? 9999}
-              value={count}
-              onChange={(v) => setSplitModal({ count: v ?? 1 })}
-              style={{ width: '100%' }}
-              addonAfter="页 / 文件"
-            />
+            <Space.Compact style={{ width: '100%' }}>
+              <InputNumber
+                min={1}
+                max={file?.page_count ?? 9999}
+                value={count}
+                onChange={(v) => setSplitModal({ count: v ?? 1 })}
+                style={{ width: '100%' }}
+              />
+              <Button disabled>页 / 文件</Button>
+            </Space.Compact>
           </div>
         )}
 
@@ -119,7 +121,7 @@ export default function SplitModal() {
         {error && (
           <Alert
             type="error"
-            message={error}
+            title={error}
             showIcon
           />
         )}

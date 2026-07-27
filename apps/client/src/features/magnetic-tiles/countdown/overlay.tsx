@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react'
-import { App, Button, Checkbox, InputNumber, TimePicker } from 'antd'
+import { App, Button, Checkbox, InputNumber, Space, TimePicker } from 'antd'
 import { clsx } from 'clsx'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
@@ -231,19 +231,21 @@ export default function Overlay(props: OverlayControlProps) {
 
           <div className={styles.field}>
             <label>发薪日</label>
-            <InputNumber
-              min={1}
-              max={31}
-              precision={0}
-              addonAfter="日"
-              value={localConfig.payDay}
-              style={{ width: '100%' }}
-              onChange={function (v) {
-                onUpdateLocal(function (c) {
-                  return { ...c, payDay: v ?? 15 }
-                })
-              }}
-            />
+            <Space.Compact style={{ width: '100%' }}>
+              <InputNumber
+                min={1}
+                max={31}
+                precision={0}
+                value={localConfig.payDay}
+                style={{ width: '100%' }}
+                onChange={function (v) {
+                  onUpdateLocal(function (c) {
+                    return { ...c, payDay: v ?? 15 }
+                  })
+                }}
+              />
+              <Button disabled>日</Button>
+            </Space.Compact>
           </div>
         </div>
 

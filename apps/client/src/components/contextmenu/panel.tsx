@@ -7,40 +7,39 @@ import {
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode
 } from 'react'
 
-import {
-  findFocusableItems,
-  type ContextMenuClassNames,
-  type ContextMenuClickInfo,
-  type ContextMenuMotion,
-  type ContextMenuStyles,
-  type ParsedContextMenuItem
-} from '@/components/contextmenu/parse-items'
+import { findFocusable, hasChildren } from '@/components/contextmenu/parse'
 import { mergeMotionSlot, PANEL_MOTION, SUBMENU_MOTION } from '@/components/contextmenu/motion'
 import {
   findContainerRect,
-  parsePopupOrigin,
+  OFFSET_BY_PLACEMENT,
+  parseOrigin,
   type Point,
-  type Rect,
-  ROOT_OFFSET,
-  SUBMENU_OFFSET
+  type Rect
 } from '@/components/contextmenu/position'
+import type {
+  MenuClassNames,
+  MenuMotion,
+  MenuSelectInfo,
+  MenuStyles,
+  ParsedMenuItem
+} from '@/components/contextmenu/types'
 
 const SUBMENU_OPEN_DELAY_MS = 100
 const SUBMENU_CLOSE_DELAY_MS = 160
 
 interface MenuPanelProps {
-  items: ParsedContextMenuItem[]
+  items: ParsedMenuItem[]
   level: number
   keyPath: string[]
   openPath: string[]
   activeKey?: string
-  classNames?: ContextMenuClassNames
-  styles?: ContextMenuStyles
-  motionConfig?: ContextMenuMotion
+  classNames?: MenuClassNames
+  styles?: MenuStyles
+  motion?: MenuMotion
   offset?: [number, number]
   submenuOffset?: [number, number]
   boundaryPadding?: number
@@ -50,14 +49,14 @@ interface MenuPanelProps {
   anchor: Point | Rect
   placement: 'pointer' | 'submenu'
   preferRight?: boolean
-  renderItem?: (item: ParsedContextMenuItem, node: ReactNode) => ReactNode
+  renderItem?: (item: ParsedMenuItem, node: ReactNode) => ReactNode
   renderPanel?: (
     nodes: ReactNode,
-    meta: { level: number; items: ParsedContextMenuItem[] }
+    meta: { level: number; items: ParsedMenuItem[] }
   ) => ReactNode
   onOpenPathChange: (path: string[]) => void
   onActiveKeyChange: (key: string | undefined) => void
-  onItemClick: (info: ContextMenuClickInfo) => void
+  onSelect: (info: MenuSelectInfo) => void
   onRequestClose: () => void
 }
 
@@ -93,11 +92,11 @@ function MenuPanel(props: MenuPanelProps) {
 
   const openDelay = props.submenuOpenDelay ?? SUBMENU_OPEN_DELAY_MS
   const closeDelay = props.submenuCloseDelay ?? SUBMENU_CLOSE_DELAY_MS
-  const focusable = findFocusableItems(props.items)
+  const focusable = findFocusable(props.items)
 
   const motionSlot = mergeMotionSlot(
     props.level === 0 ? PANEL_MOTION : SUBMENU_MOTION,
-    props.level === 0 ? props.motionConfig?.panel : props.motionConfig?.submenu,
+    props.level === 0 ? props.motion?.panel : props.motion?.submenu,
     Boolean(isReduced)
   )
 
@@ -117,22 +116,16 @@ function MenuPanel(props: MenuPanelProps) {
       const panel = panelRef.current
       if (!panel) return
 
-      const size = {
-        width: panel.offsetWidth,
-        height: panel.offsetHeight
-      }
-      const containerRect = findContainerRect(props.container, props.boundaryPadding)
-
-      const next = parsePopupOrigin({
+      const next = parseOrigin({
         anchor: props.anchor,
-        panelSize: size,
+        panelSize: { width: panel.offsetWidth, height: panel.offsetHeight },
         placement: props.placement,
         offset:
           props.placement === 'submenu'
-            ? (props.submenuOffset ?? SUBMENU_OFFSET)
-            : (props.offset ?? ROOT_OFFSET),
+            ? (props.submenuOffset ?? OFFSET_BY_PLACEMENT.submenu)
+            : (props.offset ?? OFFSET_BY_PLACEMENT.pointer),
         padding: props.boundaryPadding,
-        containerRect,
+        containerRect: findContainerRect(props.container, props.boundaryPadding),
         preferRight: props.preferRight
       })
 
@@ -190,7 +183,7 @@ function MenuPanel(props: MenuPanelProps) {
     }
   }, [])
 
-  function scheduleOpen(itemKey: string) {
+  function openSubmenu(itemKey: string) {
     clearTimers()
     openTimerRef.current = setTimeout(function () {
       props.onOpenPathChange([...props.keyPath, itemKey])
@@ -198,120 +191,115 @@ function MenuPanel(props: MenuPanelProps) {
     }, openDelay)
   }
 
-  function scheduleCloseToParent() {
+  function closeSubmenu() {
     clearTimers()
     closeTimerRef.current = setTimeout(function () {
       props.onOpenPathChange(props.keyPath)
     }, closeDelay)
   }
 
-  function onPanelMouseEnter() {
+  function cancelPendingClose() {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current)
       closeTimerRef.current = null
     }
   }
 
-  function onItemMouseEnter(item: ParsedContextMenuItem) {
+  function onItemMouseEnter(item: ParsedMenuItem) {
     props.onActiveKeyChange(item.key)
     if (item.disabled) return
-    if (item.children && item.children.length > 0) {
-      scheduleOpen(item.key)
-    } else if (props.openPath.length > props.keyPath.length) {
-      scheduleCloseToParent()
+    if (hasChildren(item)) {
+      openSubmenu(item.key)
+      return
     }
+    if (props.openPath.length > props.keyPath.length) closeSubmenu()
   }
 
-  function onItemClick(event: ReactMouseEvent, item: ParsedContextMenuItem) {
-    event.preventDefault()
-    event.stopPropagation()
+  function selectItem(
+    item: ParsedMenuItem,
+    event: ReactPointerEvent | ReactKeyboardEvent | KeyboardEvent
+  ) {
     if (item.disabled) return
 
-    if (item.children && item.children.length > 0) {
+    if (hasChildren(item)) {
       props.onOpenPathChange([...props.keyPath, item.key])
       props.onActiveKeyChange(item.key)
       return
     }
 
-    const info: ContextMenuClickInfo = {
+    const info: MenuSelectInfo = {
       key: item.key,
       keyPath: [...props.keyPath, item.key],
-      domEvent: event,
+      event,
       item
     }
-    item.onClick?.(info)
-    props.onItemClick(info)
+    item.onSelect?.(info)
+    props.onSelect(info)
+  }
+
+  function onItemPointerDown(event: ReactPointerEvent, item: ParsedMenuItem) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    event.stopPropagation()
+    selectItem(item, event)
+  }
+
+  const KEYBOARD_ACTIONS: Record<
+    string,
+    (event: ReactKeyboardEvent<HTMLDivElement>, currentIndex: number) => void
+  > = {
+    Escape: function (event) {
+      event.preventDefault()
+      if (props.keyPath.length > 0) {
+        props.onOpenPathChange(props.keyPath.slice(0, -1))
+        return
+      }
+      props.onRequestClose()
+    },
+    ArrowDown: function (event, currentIndex) {
+      event.preventDefault()
+      const next = focusable[(currentIndex + 1 + focusable.length) % focusable.length]
+      props.onActiveKeyChange(next.key)
+    },
+    ArrowUp: function (event, currentIndex) {
+      event.preventDefault()
+      const next = focusable[(currentIndex - 1 + focusable.length) % focusable.length]
+      props.onActiveKeyChange(next.key)
+    },
+    ArrowRight: function (event, currentIndex) {
+      const current = focusable[currentIndex]
+      if (!current || !hasChildren(current)) return
+      event.preventDefault()
+      props.onOpenPathChange([...props.keyPath, current.key])
+      props.onActiveKeyChange(findFocusable(current.children!)[0]?.key)
+    },
+    ArrowLeft: function (event) {
+      if (props.keyPath.length === 0) return
+      event.preventDefault()
+      props.onOpenPathChange(props.keyPath.slice(0, -1))
+    },
+    Enter: function (event, currentIndex) {
+      const current = focusable[currentIndex]
+      if (!current) return
+      event.preventDefault()
+      selectItem(current, event)
+    },
+    ' ': function (event, currentIndex) {
+      const current = focusable[currentIndex]
+      if (!current) return
+      event.preventDefault()
+      selectItem(current, event)
+    }
   }
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     if (focusable.length === 0) return
-
+    const action = KEYBOARD_ACTIONS[event.key]
+    if (!action) return
     const currentIndex = focusable.findIndex(function (item) {
       return item.key === props.activeKey
     })
-
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      if (props.keyPath.length > 0) {
-        props.onOpenPathChange(props.keyPath.slice(0, -1))
-      } else {
-        props.onRequestClose()
-      }
-      return
-    }
-
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      const next = focusable[(currentIndex + 1 + focusable.length) % focusable.length]
-      props.onActiveKeyChange(next.key)
-      return
-    }
-
-    if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      const next = focusable[(currentIndex - 1 + focusable.length) % focusable.length]
-      props.onActiveKeyChange(next.key)
-      return
-    }
-
-    if (event.key === 'ArrowRight') {
-      const current = focusable[currentIndex]
-      if (current?.children && current.children.length > 0) {
-        event.preventDefault()
-        props.onOpenPathChange([...props.keyPath, current.key])
-        const childFocusable = findFocusableItems(current.children)
-        props.onActiveKeyChange(childFocusable[0]?.key)
-      }
-      return
-    }
-
-    if (event.key === 'ArrowLeft') {
-      if (props.keyPath.length > 0) {
-        event.preventDefault()
-        props.onOpenPathChange(props.keyPath.slice(0, -1))
-      }
-      return
-    }
-
-    if (event.key === 'Enter' || event.key === ' ') {
-      const current = focusable[currentIndex]
-      if (!current) return
-      event.preventDefault()
-      if (current.children && current.children.length > 0) {
-        props.onOpenPathChange([...props.keyPath, current.key])
-        const childFocusable = findFocusableItems(current.children)
-        props.onActiveKeyChange(childFocusable[0]?.key)
-        return
-      }
-      const info: ContextMenuClickInfo = {
-        key: current.key,
-        keyPath: [...props.keyPath, current.key],
-        domEvent: event.nativeEvent,
-        item: current
-      }
-      current.onClick?.(info)
-      props.onItemClick(info)
-    }
+    action(event, currentIndex)
   }
 
   const panelStyle: CSSProperties = {
@@ -324,14 +312,14 @@ function MenuPanel(props: MenuPanelProps) {
   }
 
   const itemsNode = (
-    <MenuPanelItems
+    <MenuItems
       items={props.items}
       activeKey={props.activeKey}
       openChildKey={openChildKey}
       classNames={props.classNames}
       styles={props.styles}
       onItemMouseEnter={onItemMouseEnter}
-      onItemClick={onItemClick}
+      onItemPointerDown={onItemPointerDown}
       renderItem={props.renderItem}
     />
   )
@@ -353,11 +341,12 @@ function MenuPanel(props: MenuPanelProps) {
         style={panelStyle}
         role="menu"
         tabIndex={-1}
+        data-region="false"
         initial={motionSlot.initial}
         animate={motionSlot.animate}
         exit={motionSlot.exit}
         transition={motionSlot.transition}
-        onMouseEnter={onPanelMouseEnter}
+        onMouseEnter={cancelPendingClose}
         onKeyDown={onKeyDown}
         data-flip-x={origin.flipX ? 'true' : 'false'}
         data-flip-y={origin.flipY ? 'true' : 'false'}>
@@ -375,7 +364,7 @@ function MenuPanel(props: MenuPanelProps) {
             activeKey={props.activeKey}
             classNames={props.classNames}
             styles={props.styles}
-            motionConfig={props.motionConfig}
+            motion={props.motion}
             offset={props.offset}
             submenuOffset={props.submenuOffset}
             boundaryPadding={props.boundaryPadding}
@@ -389,7 +378,7 @@ function MenuPanel(props: MenuPanelProps) {
             renderPanel={props.renderPanel}
             onOpenPathChange={props.onOpenPathChange}
             onActiveKeyChange={props.onActiveKeyChange}
-            onItemClick={props.onItemClick}
+            onSelect={props.onSelect}
             onRequestClose={props.onRequestClose}
           />
         ) : null}
@@ -399,19 +388,19 @@ function MenuPanel(props: MenuPanelProps) {
 }
 
 interface MenuItemRowProps {
-  item: ParsedContextMenuItem
+  item: ParsedMenuItem
   isActive: boolean
   isSubmenuOpen: boolean
-  classNames?: ContextMenuClassNames
-  styles?: ContextMenuStyles
+  classNames?: MenuClassNames
+  styles?: MenuStyles
   onMouseEnter: () => void
-  onClick: (event: ReactMouseEvent) => void
-  renderItem?: (item: ParsedContextMenuItem, node: ReactNode) => ReactNode
+  onPointerDown: (event: ReactPointerEvent) => void
+  renderItem?: (item: ParsedMenuItem, node: ReactNode) => ReactNode
 }
 
 function MenuItemRow(props: MenuItemRowProps) {
-  const hasChildren = Boolean(props.item.children && props.item.children.length > 0)
-  const shortcut = props.item.shortcut ?? props.item.extra
+  const isSubmenu = hasChildren(props.item)
+  const shortcut = props.item.shortcut
 
   const node = (
     <div
@@ -419,8 +408,8 @@ function MenuItemRow(props: MenuItemRowProps) {
       tabIndex={-1}
       data-contextmenu-key={props.item.key}
       aria-disabled={props.item.disabled || undefined}
-      aria-haspopup={hasChildren || undefined}
-      aria-expanded={hasChildren ? props.isSubmenuOpen : undefined}
+      aria-haspopup={isSubmenu || undefined}
+      aria-expanded={isSubmenu ? props.isSubmenuOpen : undefined}
       className={clsx(
         'contextmenu-item',
         props.classNames?.item,
@@ -428,11 +417,11 @@ function MenuItemRow(props: MenuItemRowProps) {
         props.isActive && 'is-active',
         props.item.disabled && 'is-disabled',
         props.item.danger && 'is-danger',
-        hasChildren && 'has-children'
+        isSubmenu && 'has-children'
       )}
       style={{ ...props.styles?.item, ...props.item.style }}
       onMouseEnter={props.onMouseEnter}
-      onClick={props.onClick}>
+      onPointerDown={props.onPointerDown}>
       {props.item.icon ? (
         <span
           className={clsx('contextmenu-icon', props.classNames?.icon)}
@@ -454,7 +443,7 @@ function MenuItemRow(props: MenuItemRowProps) {
           {shortcut}
         </span>
       ) : null}
-      {hasChildren ? (
+      {isSubmenu ? (
         <span
           className={clsx('contextmenu-arrow', props.classNames?.arrow)}
           style={props.styles?.arrow}>
@@ -469,71 +458,80 @@ function MenuItemRow(props: MenuItemRowProps) {
   return props.renderItem ? props.renderItem(props.item, node) : node
 }
 
-interface MenuPanelItemsProps {
-  items: ParsedContextMenuItem[]
+interface MenuItemsProps {
+  items: ParsedMenuItem[]
   activeKey?: string
   openChildKey?: string
-  classNames?: ContextMenuClassNames
-  styles?: ContextMenuStyles
-  onItemMouseEnter: (item: ParsedContextMenuItem) => void
-  onItemClick: (event: ReactMouseEvent, item: ParsedContextMenuItem) => void
-  renderItem?: (item: ParsedContextMenuItem, node: ReactNode) => ReactNode
+  classNames?: MenuClassNames
+  styles?: MenuStyles
+  onItemMouseEnter: (item: ParsedMenuItem) => void
+  onItemPointerDown: (event: ReactPointerEvent, item: ParsedMenuItem) => void
+  renderItem?: (item: ParsedMenuItem, node: ReactNode) => ReactNode
 }
 
-function MenuPanelItems(props: MenuPanelItemsProps) {
+type ItemRenderer = (props: MenuItemsProps, item: ParsedMenuItem) => ReactNode
+
+const ITEM_RENDERERS: Record<string, ItemRenderer> = {
+  divider: function (_props, item) {
+    return (
+      <div
+        key={item.key}
+        role="separator"
+        className={clsx('contextmenu-divider', _props.classNames?.divider, item.className)}
+        style={{ ..._props.styles?.divider, ...item.style }}
+      />
+    )
+  },
+  group: function (props, item) {
+    return (
+      <div
+        key={item.key}
+        className={clsx('contextmenu-group', props.classNames?.group, item.className)}
+        style={{ ...props.styles?.group, ...item.style }}
+        role="group">
+        {item.label ? (
+          <div
+            className={clsx('contextmenu-group-title', props.classNames?.groupTitle)}
+            style={props.styles?.groupTitle}>
+            {item.label}
+          </div>
+        ) : null}
+        {item.children ? (
+          <MenuItems
+            {...props}
+            items={item.children}
+          />
+        ) : null}
+      </div>
+    )
+  },
+  item: function (props, item) {
+    return (
+      <MenuItemRow
+        key={item.key}
+        item={item}
+        isActive={props.activeKey === item.key}
+        isSubmenuOpen={props.openChildKey === item.key}
+        classNames={props.classNames}
+        styles={props.styles}
+        onMouseEnter={function () {
+          props.onItemMouseEnter(item)
+        }}
+        onPointerDown={function (event) {
+          props.onItemPointerDown(event, item)
+        }}
+        renderItem={props.renderItem}
+      />
+    )
+  }
+}
+
+function MenuItems(props: MenuItemsProps) {
   return (
     <>
       {props.items.map(function (item) {
-        if (item.type === 'divider') {
-          return (
-            <div
-              key={item.key}
-              role="separator"
-              className={clsx('contextmenu-divider', props.classNames?.divider, item.className)}
-              style={{ ...props.styles?.divider, ...item.style }}
-            />
-          )
-        }
-        if (item.type === 'group') {
-          return (
-            <div
-              key={item.key}
-              className={clsx('contextmenu-group', props.classNames?.group, item.className)}
-              style={{ ...props.styles?.group, ...item.style }}
-              role="group">
-              {item.label ? (
-                <div
-                  className={clsx('contextmenu-group-title', props.classNames?.groupTitle)}
-                  style={props.styles?.groupTitle}>
-                  {item.label}
-                </div>
-              ) : null}
-              {item.children ? (
-                <MenuPanelItems
-                  {...props}
-                  items={item.children}
-                />
-              ) : null}
-            </div>
-          )
-        }
-        return (
-          <MenuItemRow
-            key={item.key}
-            item={item}
-            isActive={props.activeKey === item.key}
-            isSubmenuOpen={props.openChildKey === item.key}
-            classNames={props.classNames}
-            styles={props.styles}
-            onMouseEnter={function () {
-              props.onItemMouseEnter(item)
-            }}
-            onClick={function (event) {
-              props.onItemClick(event, item)
-            }}
-            renderItem={props.renderItem}
-          />
-        )
+        const render = ITEM_RENDERERS[item.type] ?? ITEM_RENDERERS.item
+        return render(props, item)
       })}
     </>
   )

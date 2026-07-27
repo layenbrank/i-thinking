@@ -19,7 +19,7 @@ interface Rect {
 
 type Placement = 'pointer' | 'submenu'
 
-interface PopupOriginInput {
+interface OriginInput {
   anchor: Point | Rect
   panelSize: Size
   placement: Placement
@@ -30,7 +30,7 @@ interface PopupOriginInput {
   preferRight?: boolean
 }
 
-interface PopupOrigin {
+interface Origin {
   left: number
   top: number
   flipX: boolean
@@ -41,8 +41,9 @@ const VIEWPORT_PADDING = 8
 const ROOT_OFFSET: [number, number] = [0, 4]
 const SUBMENU_OFFSET: [number, number] = [4, 0]
 
-function isRect(anchor: Point | Rect): anchor is Rect {
-  return 'width' in anchor && 'height' in anchor
+const OFFSET_BY_PLACEMENT: Record<Placement, [number, number]> = {
+  pointer: ROOT_OFFSET,
+  submenu: SUBMENU_OFFSET
 }
 
 function findViewportRect(padding = VIEWPORT_PADDING): Rect {
@@ -78,84 +79,104 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
-function parsePopupOrigin(input: PopupOriginInput): PopupOrigin {
-  const padding = input.padding ?? VIEWPORT_PADDING
-  const container = input.containerRect ?? findViewportRect(padding)
-  const offset = input.offset ?? (input.placement === 'submenu' ? SUBMENU_OFFSET : ROOT_OFFSET)
-  const preferRight = input.preferRight ?? true
-  const { panelSize } = input
-
-  let left = 0
-  let top = 0
+function parsePointerOrigin(
+  point: Point,
+  panelSize: Size,
+  offset: [number, number],
+  container: Rect
+): Origin {
+  let left = point.x + offset[0]
+  let top = point.y + offset[1]
   let flipX = false
   let flipY = false
 
-  if (input.placement === 'pointer') {
-    const point = input.anchor as Point
-    left = point.x + offset[0]
-    top = point.y + offset[1]
-
-    if (left + panelSize.width > container.right) {
-      left = point.x - panelSize.width - offset[0]
-      flipX = true
-    }
-    if (top + panelSize.height > container.bottom) {
-      top = point.y - panelSize.height - offset[1]
-      flipY = true
-    }
-  } else {
-    const anchor = input.anchor as Rect
-    const rightLeft = anchor.right + offset[0]
-    const leftLeft = anchor.left - panelSize.width - offset[0]
-
-    if (preferRight) {
-      if (rightLeft + panelSize.width <= container.right) {
-        left = rightLeft
-        flipX = false
-      } else if (leftLeft >= container.left) {
-        left = leftLeft
-        flipX = true
-      } else {
-        // 两侧都不够：选空间更大的一侧，再 shift
-        const spaceRight = container.right - anchor.right
-        const spaceLeft = anchor.left - container.left
-        if (spaceRight >= spaceLeft) {
-          left = rightLeft
-          flipX = false
-        } else {
-          left = leftLeft
-          flipX = true
-        }
-      }
-    } else {
-      if (leftLeft >= container.left) {
-        left = leftLeft
-        flipX = true
-      } else {
-        left = rightLeft
-        flipX = false
-      }
-    }
-
-    top = anchor.top + offset[1]
-    if (top + panelSize.height > container.bottom) {
-      top = anchor.bottom - panelSize.height - offset[1]
-      flipY = true
-    }
+  if (left + panelSize.width > container.right) {
+    left = point.x - panelSize.width - offset[0]
+    flipX = true
   }
-
-  left = clamp(left, container.left, container.right - panelSize.width)
-  top = clamp(top, container.top, container.bottom - panelSize.height)
+  if (top + panelSize.height > container.bottom) {
+    top = point.y - panelSize.height - offset[1]
+    flipY = true
+  }
 
   return { left, top, flipX, flipY }
 }
 
-export type { Point, Size, Rect, Placement, PopupOriginInput, PopupOrigin }
+function parseSubmenuOrigin(
+  anchor: Rect,
+  panelSize: Size,
+  offset: [number, number],
+  container: Rect,
+  preferRight: boolean
+): Origin {
+  const rightLeft = anchor.right + offset[0]
+  const leftLeft = anchor.left - panelSize.width - offset[0]
+  let left = 0
+  let flipX = false
+
+  if (preferRight) {
+    if (rightLeft + panelSize.width <= container.right) {
+      left = rightLeft
+      flipX = false
+    } else if (leftLeft >= container.left) {
+      left = leftLeft
+      flipX = true
+    } else {
+      const spaceRight = container.right - anchor.right
+      const spaceLeft = anchor.left - container.left
+      if (spaceRight >= spaceLeft) {
+        left = rightLeft
+        flipX = false
+      } else {
+        left = leftLeft
+        flipX = true
+      }
+    }
+  } else if (leftLeft >= container.left) {
+    left = leftLeft
+    flipX = true
+  } else {
+    left = rightLeft
+    flipX = false
+  }
+
+  let top = anchor.top + offset[1]
+  let flipY = false
+  if (top + panelSize.height > container.bottom) {
+    top = anchor.bottom - panelSize.height - offset[1]
+    flipY = true
+  }
+
+  return { left, top, flipX, flipY }
+}
+
+function parseOrigin(input: OriginInput): Origin {
+  const padding = input.padding ?? VIEWPORT_PADDING
+  const container = input.containerRect ?? findViewportRect(padding)
+  const offset = input.offset ?? OFFSET_BY_PLACEMENT[input.placement]
+  const preferRight = input.preferRight ?? true
+  const { panelSize } = input
+
+  const raw =
+    input.placement === 'pointer'
+      ? parsePointerOrigin(input.anchor as Point, panelSize, offset, container)
+      : parseSubmenuOrigin(input.anchor as Rect, panelSize, offset, container, preferRight)
+
+  return {
+    left: clamp(raw.left, container.left, container.right - panelSize.width),
+    top: clamp(raw.top, container.top, container.bottom - panelSize.height),
+    flipX: raw.flipX,
+    flipY: raw.flipY
+  }
+}
+
+export type { Point, Size, Rect, Placement, OriginInput, Origin }
 export {
   VIEWPORT_PADDING,
   ROOT_OFFSET,
   SUBMENU_OFFSET,
+  OFFSET_BY_PLACEMENT,
   findViewportRect,
   findContainerRect,
-  parsePopupOrigin
+  parseOrigin
 }

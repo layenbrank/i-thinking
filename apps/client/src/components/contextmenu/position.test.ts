@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseItems, findFocusableItems } from '@/components/contextmenu/parse-items'
-import { parsePopupOrigin, findViewportRect } from '@/components/contextmenu/position'
+import { parseMenuItems, findFocusable } from '@/components/contextmenu/parse'
+import { parseOrigin, findViewportRect } from '@/components/contextmenu/position'
 
-describe('parseItems', function () {
+describe('parseMenuItems', function () {
   it('assigns keys and nested types', function () {
-    const parsed = parseItems([
+    const parsed = parseMenuItems([
       { label: 'A', key: 'a' },
       { type: 'divider' },
       {
@@ -20,20 +20,22 @@ describe('parseItems', function () {
   })
 
   it('finds focusable leaf and parent items', function () {
-    const parsed = parseItems([
+    const parsed = parseMenuItems([
       { key: 'a', label: 'A' },
       { type: 'divider' },
       { key: 'b', label: 'B', disabled: true },
       { key: 'c', label: 'C', children: [{ key: 'c1', label: 'C1' }] }
     ])
-    const focusable = findFocusableItems(parsed)
-    expect(focusable.map(function (item) {
-      return item.key
-    })).toEqual(['a', 'c'])
+    const focusable = findFocusable(parsed)
+    expect(
+      focusable.map(function (item) {
+        return item.key
+      })
+    ).toEqual(['a', 'c'])
   })
 })
 
-describe('parsePopupOrigin', function () {
+describe('parseOrigin', function () {
   it('flips when overflowing right and bottom', function () {
     const container = {
       left: 0,
@@ -43,7 +45,7 @@ describe('parsePopupOrigin', function () {
       right: 200,
       bottom: 200
     }
-    const origin = parsePopupOrigin({
+    const origin = parseOrigin({
       anchor: { x: 180, y: 180 },
       panelSize: { width: 100, height: 80 },
       placement: 'pointer',
@@ -58,8 +60,7 @@ describe('parsePopupOrigin', function () {
   })
 
   it('opens submenu to the left when right space is insufficient', function () {
-    const container = findViewportRect(0)
-    // force small container
+    void findViewportRect(0)
     const box = {
       left: 0,
       top: 0,
@@ -68,7 +69,7 @@ describe('parsePopupOrigin', function () {
       right: 300,
       bottom: 300
     }
-    const origin = parsePopupOrigin({
+    const origin = parseOrigin({
       anchor: {
         left: 250,
         top: 40,

@@ -1,4 +1,4 @@
-import type { ContextMenuMotionSlot } from '@/components/contextmenu/parse-items'
+import type { MenuMotionSlot } from '@/components/contextmenu/types'
 
 const PANEL_TRANSITION = {
   duration: 0.16,
@@ -10,21 +10,21 @@ const SUBMENU_TRANSITION = {
   ease: [0.22, 1, 0.36, 1] as [number, number, number, number]
 }
 
-const PANEL_MOTION: ContextMenuMotionSlot = {
+const PANEL_MOTION: MenuMotionSlot = {
   initial: { opacity: 0, scale: 0.98, y: -4 },
   animate: { opacity: 1, scale: 1, y: 0 },
   exit: { opacity: 0, scale: 0.98, y: -2 },
   transition: PANEL_TRANSITION
 }
 
-const SUBMENU_MOTION: ContextMenuMotionSlot = {
+const SUBMENU_MOTION: MenuMotionSlot = {
   initial: { opacity: 0, scale: 0.98, x: -4 },
   animate: { opacity: 1, scale: 1, x: 0 },
   exit: { opacity: 0, scale: 0.98, x: -2 },
   transition: SUBMENU_TRANSITION
 }
 
-const REDUCED_MOTION: ContextMenuMotionSlot = {
+const REDUCED_MOTION: MenuMotionSlot = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
   exit: { opacity: 0 },
@@ -32,14 +32,12 @@ const REDUCED_MOTION: ContextMenuMotionSlot = {
 }
 
 function mergeMotionSlot(
-  base: ContextMenuMotionSlot,
-  override?: ContextMenuMotionSlot,
+  base: MenuMotionSlot,
+  override?: MenuMotionSlot,
   isReduced?: boolean
-): ContextMenuMotionSlot {
+): MenuMotionSlot {
   if (isReduced) {
     return {
-      ...REDUCED_MOTION,
-      ...override,
       initial: override?.initial ?? REDUCED_MOTION.initial,
       animate: override?.animate ?? REDUCED_MOTION.animate,
       exit: override?.exit ?? REDUCED_MOTION.exit,

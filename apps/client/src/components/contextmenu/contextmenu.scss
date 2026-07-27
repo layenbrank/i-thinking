@@ -2,6 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 1050;
+  /* 穿透壳：仅面板接收指针，避免挡住下层；壳本身不做 transform */
   pointer-events: none;
 }
 

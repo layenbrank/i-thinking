@@ -1,55 +1,48 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { Suspense, lazy, useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
-import { Fallback } from '@/components/fallback'
+import { useThrough } from '@/hooks/use-through'
 import {
   useOverlayStore,
-  isOverlayPanelKind,
+  isOverlayTileKind,
   type OverlayMode,
-  type OverlayPanelKind
+  type OverlayTile,
+  type OverlayTexture
 } from '@/stores/overlay'
 import styles from '@/views/overlay/overlay.module.scss'
-import Panel from '@/views/overlay/panels/panel'
-import Pin from '@/views/overlay/panels/pin'
+import Tile from '@/views/overlay/tile'
+import Texture from '@/views/overlay/texture'
 
-interface MountPanelPayload {
-  kind?: string
-  magneticTileID?: string | null
+const OVERLAY_SHELL_SOURCE = 'overlay-shell'
+
+interface MountTilePayload {
+  kind: string
+  magneticTileID: string
   size?: string | null
   shape?: string | null
   direction?: string | null
 }
 
-const Screenshot = lazy(function () {
-  return import('@/views/screenshot/screenshot')
-})
-
-export default function OverlayShell() {
-  const mode = useOverlayStore(function (s) {
-    return s.mode
-  })
+function OverlayShell() {
+  const shellRef = useRef<HTMLElement | null>(document.body)
   const items = useOverlayStore(function (s) {
     return s.items
   })
   const updateMode = useOverlayStore(function (s) {
     return s.updateMode
   })
-  const mountPanel = useOverlayStore(function (s) {
-    return s.mountPanel
+  const mountTile = useOverlayStore(function (s) {
+    return s.mountTile
   })
   const removeItem = useOverlayStore(function (s) {
     return s.removeItem
   })
-  const exitCapture = useOverlayStore(function (s) {
-    return s.exitCapture
+  const clearTextures = useOverlayStore(function (s) {
+    return s.clearTextures
   })
-  const addPin = useOverlayStore(function (s) {
-    return s.addPin
-  })
-  const clearPins = useOverlayStore(function (s) {
-    return s.clearPins
-  })
+
+  useThrough(OVERLAY_SHELL_SOURCE, { rootRef: shellRef, enabled: true })
 
   useEffect(
     function () {
@@ -60,50 +53,52 @@ export default function OverlayShell() {
       let unlistenHide: (() => void) | undefined
       let cancelled = false
 
-      function applyMount(payload: MountPanelPayload | null | undefined) {
-        const kind = payload?.kind
-        if (!kind || !isOverlayPanelKind(kind)) return
-        mountPanel(kind, payload?.magneticTileID ?? undefined, {
-          size: (payload?.size ?? undefined) as Mirror.Size | undefined,
-          shape: (payload?.shape ?? undefined) as Mirror.Shape | undefined,
-          direction: (payload?.direction ?? undefined) as Mirror.Direction | undefined
+      function applyMount(payload: MountTilePayload | null | undefined) {
+        if (!payload) return
+        if (!isOverlayTileKind(payload.kind) || !payload.magneticTileID) return
+        mountTile(payload.kind, payload.magneticTileID, {
+          size: (payload.size ?? undefined) as Mirror.Size | undefined,
+          shape: (payload.shape ?? undefined) as Mirror.Shape | undefined,
+          direction: (payload.direction ?? undefined) as Mirror.Direction | undefined
         })
       }
 
-      function applyUnmount(payload: { kind?: string } | null | undefined) {
-        const kind = payload?.kind
-        if (!kind || !isOverlayPanelKind(kind)) return
-        removeItem(kind)
+      function applyUnmount(payload: { magneticTileID?: string } | null | undefined) {
+        if (!payload?.magneticTileID) return
+        removeItem(payload.magneticTileID)
       }
 
-      ;(async function () {
+      async function bootstrap() {
         try {
           unlistenMode = await listen<OverlayMode>('overlay://mode', function (event) {
             updateMode(event.payload)
           })
-          unlistenMount = await listen<MountPanelPayload>('overlay://mount', function (event) {
+          unlistenMount = await listen<MountTilePayload>('overlay://mount', function (event) {
             applyMount(event.payload)
           })
-          unlistenUnmount = await listen<{ kind: string }>('overlay://unmount', function (event) {
-            applyUnmount(event.payload)
-          })
-          unlistenClear = await listen('overlay://clear-pins', function () {
-            clearPins()
+          unlistenUnmount = await listen<{ magneticTileID: string }>(
+            'overlay://unmount',
+            function (event) {
+              applyUnmount(event.payload)
+            }
+          )
+          unlistenClear = await listen('overlay://clear-textures', function () {
+            clearTextures()
           })
           unlistenHide = await listen('overlay://hide', function () {
             updateMode('idle')
             void invoke('overlay:hide')
           })
-          const pending = await invoke<MountPanelPayload | null>('overlay:take-pending')
-          if (!cancelled) applyMount(pending)
-          const pendingUnmount = await invoke<{ kind: string } | null>(
-            'overlay:take-pending-unmount'
+          applyMount(await invoke<MountTilePayload | null>('overlay:take-pending'))
+          applyUnmount(
+            await invoke<{ magneticTileID: string } | null>('overlay:take-pending-unmount')
           )
-          if (!cancelled) applyUnmount(pendingUnmount)
         } catch (err) {
-          if (!cancelled) console.warn('[overlay] event listen failed', err)
+          if (!cancelled) console.warn('[overlay] bootstrap failed', err)
         }
-      })()
+      }
+
+      void bootstrap()
 
       return function () {
         cancelled = true
@@ -114,54 +109,39 @@ export default function OverlayShell() {
         unlistenHide?.()
       }
     },
-    [clearPins, mountPanel, removeItem, updateMode]
+    [clearTextures, mountTile, removeItem, updateMode]
   )
 
-  const pins = items.filter(function (entry) {
-    return entry.kind === 'pin'
+  const textures = items.filter(function (entry): entry is OverlayTexture {
+    return entry.kind === 'texture'
   })
-  const panels = items.filter(function (entry) {
-    return entry.kind !== 'pin'
+  const tiles = items.filter(function (entry): entry is OverlayTile {
+    return entry.kind !== 'texture'
   })
 
   return (
     <div className={styles.shell}>
       <div className={styles.stage}>
-        {panels.map(function (entry) {
-          if (entry.kind === 'pin') return null
+        {tiles.map(function (entry) {
           return (
-            <Panel
+            <Tile
               key={entry.id}
               item={entry}
             />
           )
         })}
-        {pins.map(function (entry) {
-          if (entry.kind !== 'pin') return null
+        {textures.map(function (entry) {
           return (
-            <Pin
+            <Texture
               key={entry.id}
               item={entry}
             />
           )
         })}
-        {mode === 'capture' ? (
-          <div className={styles.capture}>
-            <Suspense fallback={<Fallback.Route />}>
-              <Screenshot
-                embedded
-                onExit={function () {
-                  void exitCapture()
-                }}
-                onPinned={function (input) {
-                  addPin(input)
-                  void exitCapture()
-                }}
-              />
-            </Suspense>
-          </div>
-        ) : null}
       </div>
     </div>
   )
 }
+
+export default OverlayShell
+export { OverlayShell }

@@ -1,5 +1,6 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { getMatches } from '@tauri-apps/plugin-cli'
+import { info } from '@tauri-apps/plugin-log'
 
 async function applyCliMatches() {
   try {
@@ -9,7 +10,6 @@ async function applyCliMatches() {
 
     if (verbose) {
       try {
-        const { info } = await import('@tauri-apps/plugin-log')
         await info('verbose mode enabled via --verbose')
       } catch {
         console.info('[cli] verbose mode enabled')

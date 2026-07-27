@@ -1,7 +1,9 @@
 import { XProvider } from '@ant-design/x'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { isRegistered, register, unregister } from '@tauri-apps/plugin-global-shortcut'
+import { attachConsole } from '@tauri-apps/plugin-log'
 import { message, App as AntApp } from 'antd'
 import { StyleProvider } from '@ant-design/cssinjs'
 import { MotionConfig } from 'motion/react'
@@ -17,6 +19,7 @@ import { RouterProvider } from 'react-router-dom'
 import { QueryProvider } from '@/components/provider/query'
 import { Fallback } from '@/components/fallback/index.ts'
 import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
+import { showMagneticTileOverlay } from '@/features/magnetic-tile/overlay-registry'
 import { IntelligencePlugin } from '@/plugins/intelligence.ts'
 import { StoragePlugin } from '@/plugins/storage.ts'
 import { router } from '@/routers/index'
@@ -55,7 +58,6 @@ function App() {
 
     async function attach() {
       try {
-        const { attachConsole } = await import('@tauri-apps/plugin-log')
         const detachConsole = await attachConsole()
         if (cancelled) detachConsole()
         else detach = detachConsole
@@ -81,7 +83,6 @@ function App() {
 
     async function bootstrap() {
       try {
-        const { getCurrentWindow } = await import('@tauri-apps/api/window')
         if (getCurrentWindow().label !== 'main') return
 
         unlisten = await listen<string>('tray:action', function (event) {
@@ -108,11 +109,8 @@ function App() {
 
     async function bootstrap() {
       try {
-        const { getCurrentWindow } = await import('@tauri-apps/api/window')
         if (getCurrentWindow().label !== 'main') return
 
-        const { listen } = await import('@tauri-apps/api/event')
-        const { showMagneticTileOverlay } = await import('@/features/magnetic-tile/overlay-registry')
         unlisten = await listen<{ magneticTileID: string }>(
           'magnetic-tile://show-overlay',
           function (event) {

@@ -16,22 +16,16 @@
   height: 100%;
 }
 
-.capture {
-  position: absolute;
-  inset: 0;
-  z-index: 10000;
-  pointer-events: auto;
-}
-
-.panel {
+.tile {
   position: absolute;
   pointer-events: auto;
-  box-sizing: border-box;
+  user-select: none;
 }
 
-.panelInner {
+.tileInner {
   width: 100%;
   height: 100%;
   overflow: hidden;
   border-radius: inherit;
+  pointer-events: none;
 }

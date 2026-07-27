@@ -52,10 +52,12 @@ pub fn setup(app: &mut tauri::App) -> tauri::Result<()> {
     let check_update_item =
         MenuItem::with_id(handle, "check-update", "检查更新", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(handle, "settings", "设置", true, None::<&str>)?;
-    let clear_pins_item =
-        MenuItem::with_id(handle, "overlay-clear-pins", "清除全部贴图", true, None::<&str>)?;
+    let clear_textures_item =
+        MenuItem::with_id(handle, "overlay-clear-textures", "清除全部贴图", true, None::<&str>)?;
     let hide_overlay_item =
         MenuItem::with_id(handle, "overlay-hide", "隐藏桌面浮层", true, None::<&str>)?;
+    let overlay_devtools_item =
+        MenuItem::with_id(handle, "overlay-devtools", "Overlay DevTools", true, None::<&str>)?;
     let sep1 = PredefinedMenuItem::separator(handle)?;
     let about_item = MenuItem::with_id(handle, "about", "关于 i-thinking", true, None::<&str>)?;
     let sep2 = PredefinedMenuItem::separator(handle)?;
@@ -64,8 +66,9 @@ pub fn setup(app: &mut tauri::App) -> tauri::Result<()> {
     let menu = MenuBuilder::new(handle)
         .item(&check_update_item)
         .item(&settings_item)
-        .item(&clear_pins_item)
+        .item(&clear_textures_item)
         .item(&hide_overlay_item)
+        .item(&overlay_devtools_item)
         .item(&sep1)
         .item(&about_item)
         .item(&sep2)
@@ -112,13 +115,19 @@ pub fn setup(app: &mut tauri::App) -> tauri::Result<()> {
                 }
                 let _ = app.emit("tray:navigate", "/settings");
             }
-            "overlay-clear-pins" => {
-                let _ = app.emit("overlay://clear-pins", ());
+            "overlay-clear-textures" => {
+                let _ = app.emit("overlay://clear-textures", ());
             }
             "overlay-hide" => {
                 let _ = app.emit("overlay://hide", ());
                 if let Some(win) = app.get_webview_window("overlay") {
                     let _ = win.hide();
+                }
+            }
+            "overlay-devtools" => {
+                if let Some(win) = app.get_webview_window("overlay") {
+                    let _ = win.show();
+                    win.open_devtools();
                 }
             }
             "about" => show_about(app),

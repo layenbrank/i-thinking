@@ -7,15 +7,15 @@ import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { createContext, Suspense } from 'react'
 
-import { ContextMenu, type ContextMenuItem } from '@/components/contextmenu'
+import { ContextMenu, type MenuItem } from '@/components/contextmenu'
 import { ABORT_TIMEOUT_MS } from '@/constants/magnetic-tile.ts'
 import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
 import { Caption } from '@/features/magnetic-tile/caption'
 import { OverlayContext } from '@/features/magnetic-tile/overlay-context'
 import { registerShowOverlay } from '@/features/magnetic-tile/overlay-registry.ts'
 import { startScreenshotCountdown } from '@/features/magnetic-tiles/screenshot/countdown.ts'
-import { isOverlayPanelKind } from '@/stores/overlay'
-import { mountOverlayPanel, removeOverlayPanel } from '@/views/overlay/tauri'
+import { isOverlayTileKind } from '@/stores/overlay'
+import { mountOverlayTile, removeOverlayTile } from '@/views/overlay/tauri'
 
 type Cache = 'destroy' | 'keepAlive'
 
@@ -128,10 +128,10 @@ interface MagneticTileSuspenseProps extends SkeletonProps {
 const MagneticTile = {
   Marker(props: MarkerProps) {
     const section = useContext(SectionContext)
-    const canMountPanel = section ? isOverlayPanelKind(section.component) : false
+    const canMountTile = section ? isOverlayTileKind(section.component) : false
 
     const menuItems = useMemo(
-      function (): ContextMenuItem[] {
+      function (): MenuItem[] {
         if (!section) return []
         return [
           {
@@ -155,10 +155,10 @@ const MagneticTile = {
                     height={14}
                   />
                 ),
-                disabled: !canMountPanel,
-                onClick() {
-                  if (!isOverlayPanelKind(section.component)) return
-                  void mountOverlayPanel(section.component, section.id, {
+                disabled: !canMountTile,
+                onSelect() {
+                  if (!isOverlayTileKind(section.component) || !section.id) return
+                  void mountOverlayTile(section.component, section.id, {
                     size: section.size,
                     shape: section.shape,
                     direction: section.direction
@@ -175,17 +175,17 @@ const MagneticTile = {
                     height={14}
                   />
                 ),
-                disabled: !canMountPanel,
-                onClick() {
-                  if (!isOverlayPanelKind(section.component)) return
-                  void removeOverlayPanel(section.component)
+                disabled: !canMountTile,
+                onSelect() {
+                  if (!isOverlayTileKind(section.component) || !section.id) return
+                  void removeOverlayTile(section.id)
                 }
               }
             ]
           }
         ]
       },
-      [canMountPanel, section]
+      [canMountTile, section]
     )
 
     return (

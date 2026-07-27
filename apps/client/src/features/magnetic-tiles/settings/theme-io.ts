@@ -1,3 +1,6 @@
+import { open, save } from '@tauri-apps/plugin-dialog'
+import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs'
+
 import type { Appearance } from '@/themes'
 import { parseAppearance, stringifyAppearance } from '@/themes'
 
@@ -10,8 +13,6 @@ function isTauri(): boolean {
 export async function exportAppearanceFile(appearance: Appearance): Promise<void> {
   const content = stringifyAppearance(appearance)
   if (isTauri()) {
-    const { save } = await import('@tauri-apps/plugin-dialog')
-    const { writeTextFile } = await import('@tauri-apps/plugin-fs')
     const path = await save({
       defaultPath: 'appearance.json',
       filters: THEME_FILE_FILTER
@@ -31,8 +32,6 @@ export async function exportAppearanceFile(appearance: Appearance): Promise<void
 
 export async function importAppearanceFile(): Promise<Appearance | null> {
   if (isTauri()) {
-    const { open } = await import('@tauri-apps/plugin-dialog')
-    const { readTextFile } = await import('@tauri-apps/plugin-fs')
     const path = await open({
       multiple: false,
       filters: THEME_FILE_FILTER

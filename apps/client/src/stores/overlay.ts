@@ -3,25 +3,21 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import {
-  findMarkerBox,
-  parseMarkerLayout,
-  type MarkerLayout
-} from '@/features/magnetic-tile/size'
+import { findMarkerBox, parseMarkerLayout, type MarkerLayout } from '@/features/magnetic-tile/size'
 
-export type OverlayMode = 'idle' | 'capture'
+type OverlayMode = 'idle' | 'capture'
 
-export type OverlayPanelKind = 'countdown' | 'calendar' | 'clock'
+type OverlayTileKind = 'countdown' | 'calendar' | 'clock'
 
-const OVERLAY_PANEL_KINDS: readonly OverlayPanelKind[] = ['countdown', 'calendar', 'clock']
+const OVERLAY_TILE_KINDS: readonly OverlayTileKind[] = ['countdown', 'calendar', 'clock']
 
-function isOverlayPanelKind(value: string): value is OverlayPanelKind {
-  return (OVERLAY_PANEL_KINDS as readonly string[]).includes(value)
+function isOverlayTileKind(value: string): value is OverlayTileKind {
+  return (OVERLAY_TILE_KINDS as readonly string[]).includes(value)
 }
 
-export interface OverlayPin {
+interface OverlayTexture {
   id: string
-  kind: 'pin'
+  kind: 'texture'
   x: number
   y: number
   w: number
@@ -32,33 +28,33 @@ export interface OverlayPin {
   isThrough: boolean
 }
 
-export interface OverlayPanel {
+interface OverlayTile {
   id: string
-  kind: OverlayPanelKind
+  kind: OverlayTileKind
   x: number
   y: number
   w: number
   h: number
   z: number
-  magneticTileID?: string
+  magneticTileID: string
   size: Mirror.Size
   shape: Mirror.Shape
   direction: Mirror.Direction
 }
 
-export type OverlayItem = OverlayPin | OverlayPanel
+type OverlayItem = OverlayTexture | OverlayTile
 
 interface OverlayStore {
   mode: OverlayMode
   items: OverlayItem[]
   zCursor: number
   updateMode: (mode: OverlayMode) => void
-  mountPanel: (
-    kind: OverlayPanelKind,
-    magneticTileID?: string,
+  mountTile: (
+    kind: OverlayTileKind,
+    magneticTileID: string,
     layout?: Partial<MarkerLayout>
   ) => void
-  addPin: (input: {
+  addTexture: (input: {
     src: string
     x?: number
     y?: number
@@ -67,12 +63,14 @@ interface OverlayStore {
     opacity?: number
   }) => string
   updateItem: (id: string, patch: Partial<Pick<OverlayItem, 'x' | 'y' | 'w' | 'h' | 'z'>>) => void
-  updatePin: (
+  updateTexture: (
     id: string,
-    patch: Partial<Pick<OverlayPin, 'x' | 'y' | 'w' | 'h' | 'z' | 'opacity' | 'isThrough' | 'src'>>
+    patch: Partial<
+      Pick<OverlayTexture, 'x' | 'y' | 'w' | 'h' | 'z' | 'opacity' | 'isThrough' | 'src'>
+    >
   ) => void
   removeItem: (id: string) => void
-  clearPins: () => void
+  clearTextures: () => void
   bringToFront: (id: string) => void
   hasContent: () => boolean
   hideIfEmpty: () => Promise<void>
@@ -86,7 +84,7 @@ function nextZ(state: { zCursor: number }): number {
   return state.zCursor
 }
 
-export const useOverlayStore = create<OverlayStore>()(
+const useOverlayStore = create<OverlayStore>()(
   devtools(
     immer(function (setter, getter) {
       return {
@@ -100,16 +98,16 @@ export const useOverlayStore = create<OverlayStore>()(
           })
         },
 
-        mountPanel(kind, magneticTileID, layout) {
+        mountTile(kind, magneticTileID, layout) {
           setter(function (state) {
             const parsed = parseMarkerLayout(layout)
             const box = findMarkerBox(parsed)
             const existing = state.items.find(function (w) {
-              return w.kind === kind
+              return w.kind !== 'texture' && w.id === magneticTileID
             })
-            if (existing && existing.kind !== 'pin') {
+            if (existing && existing.kind !== 'texture') {
               existing.z = nextZ(state)
-              if (magneticTileID) existing.magneticTileID = magneticTileID
+              existing.kind = kind
               existing.size = parsed.size
               existing.shape = parsed.shape
               existing.direction = parsed.direction
@@ -119,7 +117,7 @@ export const useOverlayStore = create<OverlayStore>()(
             }
             const margin = 48 + state.items.length * 24
             state.items.push({
-              id: kind,
+              id: magneticTileID,
               kind,
               x: margin,
               y: margin,
@@ -135,14 +133,19 @@ export const useOverlayStore = create<OverlayStore>()(
           void getter().ensureVisible()
         },
 
-        addPin(input) {
+        addTexture(input) {
           let id = ''
           setter(function (state) {
-            id = `pin-${Date.now()}-${state.zCursor}`
-            const offset = (state.items.filter((w) => w.kind === 'pin').length % 8) * 28
+            id = `texture-${Date.now()}-${state.zCursor}`
+            const offset =
+              (state.items.filter(function (w) {
+                return w.kind === 'texture'
+              }).length %
+                8) *
+              28
             state.items.push({
               id,
-              kind: 'pin',
+              kind: 'texture',
               x: input.x ?? 80 + offset,
               y: input.y ?? 80 + offset,
               w: input.w,
@@ -171,12 +174,12 @@ export const useOverlayStore = create<OverlayStore>()(
           })
         },
 
-        updatePin(id, patch) {
+        updateTexture(id, patch) {
           setter(function (state) {
             const entry = state.items.find(function (w) {
-              return w.id === id && w.kind === 'pin'
+              return w.id === id && w.kind === 'texture'
             })
-            if (!entry || entry.kind !== 'pin') return
+            if (!entry || entry.kind !== 'texture') return
             Object.assign(entry, patch)
           })
         },
@@ -190,10 +193,10 @@ export const useOverlayStore = create<OverlayStore>()(
           void getter().hideIfEmpty()
         },
 
-        clearPins() {
+        clearTextures() {
           setter(function (state) {
             state.items = state.items.filter(function (w) {
-              return w.kind !== 'pin'
+              return w.kind !== 'texture'
             })
           })
           void getter().hideIfEmpty()
@@ -259,4 +262,5 @@ export const useOverlayStore = create<OverlayStore>()(
   )
 )
 
-export { isOverlayPanelKind, OVERLAY_PANEL_KINDS }
+export type { OverlayMode, OverlayTileKind, OverlayTexture, OverlayTile, OverlayItem }
+export { useOverlayStore, isOverlayTileKind, OVERLAY_TILE_KINDS }
