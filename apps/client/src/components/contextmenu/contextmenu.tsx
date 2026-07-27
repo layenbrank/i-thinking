@@ -26,6 +26,7 @@ import {
 } from '@/components/contextmenu/parse-items'
 import { mergeMotionSlot, PANEL_MOTION } from '@/components/contextmenu/motion'
 import { VIEWPORT_PADDING, type Point } from '@/components/contextmenu/position'
+import { CSSVAR } from '@/themes'
 
 import '@/components/contextmenu/contextmenu.scss'
 
@@ -105,7 +106,7 @@ function ContextMenuOverlay(props: ContextMenuOverlayProps) {
 
   return (
     <Motion.div
-      className={clsx('contextmenu-root')}
+      className={clsx('contextmenu-root', CSSVAR.KEY)}
       initial={shellMotion.initial}
       animate={shellMotion.animate}
       exit={shellMotion.exit}

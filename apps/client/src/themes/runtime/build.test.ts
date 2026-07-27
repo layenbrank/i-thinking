@@ -12,7 +12,7 @@ describe('buildTheme', function () {
     expect(config.algorithm).toBe(theme.defaultAlgorithm)
     expect(config.token?.colorPrimary).toBe(APPEARANCE_PRESET.color)
     expect(config.token?.borderRadius).toBe(APPEARANCE_PRESET.radius)
-    expect(config.cssVar).toEqual({ key: 'ith' })
+    expect(config.cssVar).toEqual({ prefix: 'ith', key: 'ith' })
   })
 
   it('uses dark algorithm when theme is dark', function () {

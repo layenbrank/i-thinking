@@ -4,12 +4,12 @@
   "type": "module",
   "version": "0.1.0",
   "scripts": {
-    "build": "tauri build",
+    "build": "bun run scripts/build.ts",
     "build:core": "tsc && vite build",
-    "check:tauri": "bun run scripts/prepare-sidecar.ts && cargo check --manifest-path src-tauri/Cargo.toml",
+    "check:tauri": "bun run scripts/prepare.ts && cargo check --manifest-path src-tauri/Cargo.toml",
     "dev": "tauri dev",
     "dev:core": "vite",
-    "prepare:sidecar": "bun run scripts/prepare-sidecar.ts",
+    "prepare:bin": "bun run scripts/prepare.ts",
     "preview": "vite preview",
     "tauri": "tauri",
     "test:coverage": "vitest --coverage",
@@ -23,7 +23,6 @@
     "@ant-design/x-markdown": "catalog:",
     "@i-thinking/utils": "workspace:*",
     "@i-thinking/wasm": "workspace:*",
-    "@tauri-apps/plugin-updater": "~2.10.1",
     "antd": "catalog:",
     "antd-style": "catalog:"
   },

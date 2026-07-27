@@ -6,7 +6,7 @@
 
 ```bash
 # 在 apps/client 目录
-pnpm dev          # 自动执行 prepare-sidecar + vite + tauri dev
+pnpm dev          # 自动执行 prepare + vite + tauri dev
 ```
 
 ## Rust 检查 / 构建
@@ -15,8 +15,8 @@ pnpm dev          # 自动执行 prepare-sidecar + vite + tauri dev
 
 ```bash
 # 在 apps/client 目录
-pnpm prepare:sidecar    # bun run scripts/prepare-sidecar.ts
-pnpm check:tauri        # prepare:sidecar + cargo check
+pnpm prepare:bin        # bun run scripts/prepare.ts
+pnpm check:tauri        # prepare + cargo check
 ```
 
 真实 corex-serve 构建后，从 `CARGO_TARGET_DIR` 复制 release 产物：
@@ -24,7 +24,7 @@ pnpm check:tauri        # prepare:sidecar + cargo check
 ```bash
 # Windows 示例（指向 Cargo target 目录）
 set CARGO_TARGET_DIR=D:\Documents\Rust\corex\master\target
-bun run scripts/prepare-sidecar.ts
+bun run scripts/prepare.ts
 ```
 
 未找到二进制时脚本会复制系统占位文件（`cmd.exe` / `/bin/true`），**仅能通过编译，IPC 在运行时不可用**；应用启动后会提示「corex 未就绪」，但主窗口仍可打开。
@@ -39,13 +39,21 @@ cargo build -p corex-serve --release
 # 2. 复制 sidecar + pdfium.dll
 cd apps/client
 set CARGO_TARGET_DIR=D:/Documents/Rust/corex/master/target
-bun run scripts/prepare-sidecar.ts --strict
+bun run scripts/prepare.ts --strict
 
-# 3. 打包
-pnpm tauri build
+# 3. 打包（build 会注入空签名密码）
+pnpm build
 ```
 
-`prepare-sidecar.ts --strict` 禁止占位 sidecar；若 corex-serve 不存在则失败。
+`prepare.ts --strict` 禁止占位 sidecar；若 corex-serve 不存在则失败。
+
+本地发版：
+
+```bash
+pnpm build   # 或仓库根：pnpm build:client
+```
+
+私钥用系统/终端 `TAURI_SIGNING_PRIVATE_KEY`；`scripts/build.ts` 会设 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""`。
 
 ## 平台说明
 

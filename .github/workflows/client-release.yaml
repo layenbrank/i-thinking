@@ -89,8 +89,12 @@ jobs:
       - name: Build Tauri client
         env:
           NODE_ENV: production
+          # CI 未装 sccache：空值覆盖 .cargo/config.toml 的 rustc-wrapper
+          CARGO_BUILD_RUSTC_WRAPPER: ''
+          RUSTC_WRAPPER: ''
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # 无密码时必须是空字符串；Secret 未配置时 ${{ }} 为 null，会回退成交互式卡死
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
         run: pnpm build:client
 
       - name: Collect release artifacts

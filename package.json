@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "type": "module",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "name": "i-thinking",
   "private": true,
   "scripts": {
@@ -74,6 +74,7 @@
     "@tauri-apps/plugin-http": "~2.5.7",
     "@tauri-apps/plugin-log": "~2.8.0",
     "@tauri-apps/plugin-notification": "~2.3.3",
+    "@tauri-apps/plugin-updater": "~2.10.1",
     "@tauri-apps/plugin-opener": "^2.5.3",
     "@tauri-apps/plugin-positioner": "~2.3.1",
     "@tauri-apps/plugin-process": "~2.3.1",

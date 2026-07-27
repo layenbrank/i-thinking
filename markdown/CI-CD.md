@@ -54,7 +54,7 @@
 | Secret | 说明 |
 |--------|------|
 | `TAURI_SIGNING_PRIVATE_KEY` | Tauri updater 签名私钥（`createUpdaterArtifacts: true`） |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码（可选） |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码；无密码也需存在并为空字符串（勿省略，否则会交互卡死） |
 
 ### 3) Service Release（GHCR）
 
@@ -102,7 +102,7 @@ docker run -p 8080:80 web-ext
 ## 必要 Secrets 与环境
 
 - **GHCR**：默认 `GITHUB_TOKEN`（service-release）
-- **Tauri updater**：`TAURI_SIGNING_PRIVATE_KEY`（及可选 password）
+- **Tauri updater**：`TAURI_SIGNING_PRIVATE_KEY`；`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 无密码时也要为空字符串（不能 unset）
 - 如需私有 npm 源，添加 `NPM_TOKEN` 并在工作流中配置
 
 ## 发布操作
@@ -119,6 +119,7 @@ git push origin v0.1.0
 - pnpm workspace 构建失败：确认 `pnpm-lock.yaml` 与 `turbo.json` 同步。
 - Client 桌面包：仅在 `client-release`（Windows）构建；CI 只跑 `build:core`。
 - Updater 签名失败：检查仓库 Secrets 是否配置 `TAURI_SIGNING_*`。
+- 本地发版（Windows，空密码）：`pnpm build:client` / `pnpm --filter @i-thinking/client build`（`scripts/build.ts` 注入 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""`；私钥仍用系统/终端环境变量）。
 - Sidecar 缺失：确认 `apps/client/src-tauri/binaries/` 中已跟踪真实 `corex-serve`（非占位）。
 
 ## 后续可选增强

@@ -4,6 +4,8 @@
   "globalEnv": ["NODE_ENV"],
   "globalPassThroughEnv": [
     "CARGO_TARGET_DIR",
+    "CARGO_BUILD_RUSTC_WRAPPER",
+    "RUSTC_WRAPPER",
     "ELECTRON_MIRROR",
     "ELECTRON_CUSTOM_DIR",
     "ELECTRON_CUSTOM_FILENAME",
@@ -19,13 +21,7 @@
     "build": {
       "cache": true,
       "dependsOn": ["^build"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        ".env*",
-        "vite.config.*",
-        "rollup.config.*",
-        "tsconfig*.json"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "vite.config.*", "rollup.config.*", "tsconfig*.json"],
       "outputLogs": "full",
       "outputs": ["dist/**", ".vitepress/dist/**", ".vite/**", "out/**"]
     },
@@ -51,12 +47,7 @@
     "e2e": {
       "cache": false,
       "dependsOn": ["build"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "**/*.{test,spec}.ts",
-        "playwright.config.*",
-        ".env*"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.ts", "playwright.config.*", ".env*"],
       "outputLogs": "full",
       "outputs": ["playwright-report/**", "test-results/**"]
     },

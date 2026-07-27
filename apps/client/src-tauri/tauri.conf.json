@@ -109,7 +109,7 @@
   },
   "build": {
     "beforeBuildCommand": "pnpm build:core",
-    "beforeDevCommand": "bun run scripts/prepare-sidecar.ts && pnpm dev:core",
+    "beforeDevCommand": "bun run scripts/prepare.ts && pnpm dev:core",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
   },

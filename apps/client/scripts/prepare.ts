@@ -2,8 +2,8 @@
  * 构建前将 corex-serve 从 CARGO_TARGET_DIR 复制到 src-tauri/binaries/，并按 Tauri sidecar 命名。
  *
  * 用法（在 apps/client 目录）：
- *   bun run scripts/prepare-sidecar.ts
- *   bun run scripts/prepare-sidecar.ts --strict   # release 构建：禁止占位 sidecar
+ *   bun run scripts/prepare.ts
+ *   bun run scripts/prepare.ts --strict   # release 构建：禁止占位 sidecar
  *
  * 环境变量：
  *   CARGO_TARGET_DIR  — Cargo 产物目录（从此处查找 release/corex-serve）
@@ -24,7 +24,7 @@ const TARGET_TRIPLE = execSync('rustc --print host-tuple', { encoding: 'utf8' })
 const BINARY_NAME = `corex-serve${EXT}`
 const DEST = path.join(OUT_DIR, `corex-serve-${TARGET_TRIPLE}${EXT}`)
 const PDFIUM_DEST = path.join(OUT_DIR, 'pdfium.dll')
-const LOG_PREFIX = '[prepare-sidecar]'
+const LOG_PREFIX = '[prepare]'
 
 const IS_STRICT = process.argv.slice(2).includes('--strict')
 
@@ -92,7 +92,7 @@ function copySidecar(src: string): void {
   console.log(`${LOG_PREFIX} ${src} -> ${DEST}`)
 }
 
-function prepareSidecar(): void {
+function prepare(): void {
   const cargoTargetDir = process.env.CARGO_TARGET_DIR
   const src = findCorexServePath()
   const missingReason = !cargoTargetDir
@@ -120,6 +120,6 @@ function prepareSidecar(): void {
   copySidecar(src)
 }
 
-prepareSidecar()
+prepare()
 
-export { prepareSidecar, findCorexServePath, findPlaceholderBinary, copyPdfiumDll }
+export { prepare, findCorexServePath, findPlaceholderBinary, copyPdfiumDll }

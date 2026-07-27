@@ -6,8 +6,10 @@ import { mergeComponents, RECIPES } from '@/themes/recipes/recipes'
 import { parseScheme, parseSystemTheme } from '@/themes/schemes/schemes'
 
 export const CSSVAR = {
-  PREFIX: 'ith'
-}
+  PREFIX: 'ith',
+  /** DOM class matching head-injected `.ith { --ith-*: ... }` rules (antd cssVar.key). */
+  KEY: 'ith'
+} as const
 
 export function buildTheme(appearance: Appearance): ThemeConfig {
   const resolvedTheme = appearance.theme === 'system' ? parseSystemTheme() : appearance.theme
@@ -20,7 +22,8 @@ export function buildTheme(appearance: Appearance): ThemeConfig {
   const components = mergeComponents(RECIPES, appearance.components)
   return {
     cssVar: {
-      prefix: CSSVAR.PREFIX
+      prefix: CSSVAR.PREFIX,
+      key: CSSVAR.KEY
     },
     hashed: true,
     algorithm,
