@@ -1,15 +1,15 @@
-:where(.contextmenu-root) {
+.contextmenu-root {
   position: fixed;
   inset: 0;
   z-index: 1050;
   pointer-events: none;
 }
 
-:where(.contextmenu-trigger) {
+.contextmenu-trigger {
   display: contents;
 }
 
-:where(.contextmenu-panel) {
+.contextmenu-panel {
   position: fixed;
   z-index: 1050;
   min-width: 160px;
@@ -48,13 +48,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :where(.contextmenu-panel),
-  :where(.contextmenu-item) {
+  .contextmenu-panel,
+  .contextmenu-item {
     transition: none !important;
   }
 }
 
-:where(.contextmenu-item) {
+.contextmenu-item {
   position: relative;
   display: flex;
   align-items: center;
@@ -106,7 +106,7 @@
   }
 }
 
-:where(.contextmenu-icon) {
+.contextmenu-icon {
   display: inline-flex;
   flex: 0 0 14px;
   align-items: center;
@@ -121,7 +121,7 @@
   }
 }
 
-:where(.contextmenu-label) {
+.contextmenu-label {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -129,14 +129,14 @@
   white-space: nowrap;
 }
 
-:where(.contextmenu-shortcut) {
+.contextmenu-shortcut {
   flex: 0 0 auto;
   margin-inline-start: 16px;
   color: var(--ith-color-text-description, rgba(0, 0, 0, 0.45));
   font-size: var(--ith-font-size-sm, 12px);
 }
 
-:where(.contextmenu-arrow) {
+.contextmenu-arrow {
   display: inline-flex;
   flex: 0 0 12px;
   align-items: center;
@@ -149,17 +149,17 @@
   }
 }
 
-:where(.contextmenu-divider) {
+.contextmenu-divider {
   height: 1px;
   margin: 4px 0;
   background: var(--ith-color-split, rgba(0, 0, 0, 0.06));
 }
 
-:where(.contextmenu-group) {
+.contextmenu-group {
   margin: 0;
 }
 
-:where(.contextmenu-group-title) {
+.contextmenu-group-title {
   padding: 8px 12px 4px;
   color: var(--ith-color-text-description, rgba(0, 0, 0, 0.45));
   font-size: var(--ith-font-size-sm, 12px);

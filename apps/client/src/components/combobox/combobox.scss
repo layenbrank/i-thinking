@@ -1,7 +1,7 @@
 $round: 4px;
 $background: #ffffff;
 
-:where(.combobox) {
+.combobox {
   border-radius: $round;
   position: relative;
   display: flex;
@@ -23,7 +23,7 @@ $background: #ffffff;
   }
 }
 
-:where(.combobox-composer) {
+.combobox-composer {
   height: 100%;
   display: flex;
   align-items: center;
@@ -49,7 +49,7 @@ $background: #ffffff;
   }
 }
 
-:where(.combobox-section) {
+.combobox-section {
   width: 100%;
   padding-block: 8px;
   padding-inline-start: 8px;
@@ -70,14 +70,14 @@ $background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-:where(.combobox-series) {
+.combobox-series {
   max-height: 360px;
   overflow-y: scroll;
   scroll-behavior: smooth;
   padding-inline-end: 2px;
 }
 
-:where(.combobox-fragment) {
+.combobox-fragment {
   padding-inline: 6px;
   border-radius: 4px;
   cursor: pointer;
