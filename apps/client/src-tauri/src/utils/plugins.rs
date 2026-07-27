@@ -3,7 +3,6 @@
 use tauri::{AppHandle, Manager};
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind, TimezoneStrategy};
 
-use crate::utils::localhost::LOCALHOST_PORT;
 use crate::utils::log_retention::LOG_MAX_FILE_SIZE;
 
 /// 为 Builder 挂载桌面端通用插件。
@@ -22,7 +21,6 @@ pub fn register_plugins(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<t
 
     builder
         .plugin(log_builder.build())
-        .plugin(tauri_plugin_localhost::Builder::new(LOCALHOST_PORT).build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_process::init())

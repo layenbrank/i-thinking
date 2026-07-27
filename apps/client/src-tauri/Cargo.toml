@@ -104,9 +104,8 @@ tauri-plugin-http = { version = "2.5.7", features = [
 ] } # 前端 fetch
 tauri-plugin-os = "2.3.2" # OS 信息（前端能力预留）
 
-# --- Tauri 插件（资源服务 / 日志）---
-tauri-plugin-localhost = "2.3.2" # 内嵌本地 HTTP（端口见 utils::localhost）
-tauri-plugin-log = "2.8.0"       # 日志桥（Stdout + LogDir；debug 含 Webview）
+# --- Tauri 插件（日志）---
+tauri-plugin-log = "2.8.0" # 日志桥（Stdout + LogDir；debug 含 Webview）
 
 # --- 异步 / 时间 / 序列化 / 错误 / 日志 ---
 tokio = { workspace = true }
