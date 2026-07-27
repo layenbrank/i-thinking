@@ -1,13 +1,13 @@
 import { cyan, generate, green, presetPalettes, red } from '@ant-design/colors'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { invoke } from '@tauri-apps/api/core'
-import { BaseDirectory, create } from '@tauri-apps/plugin-fs'
 import {
   isPermissionGranted,
   requestPermission,
   sendNotification
 } from '@tauri-apps/plugin-notification'
 import {
+  App,
   Button,
   Card,
   Col,
@@ -16,7 +16,6 @@ import {
   Divider,
   Form,
   Input,
-  message,
   Radio,
   Row,
   Space,
@@ -30,12 +29,11 @@ import { clsx } from 'clsx'
 
 import { Glide } from '@/components/glide/glide'
 import { useMirrorStore, type MagneticTileWrite } from '@/stores/mirror.ts'
-import { timeSphere } from '@i-thinking/utils'
-import ReUtility from '@/features/utility/utility.tsx'
 
 import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
 import AOModule from '@/features/magnetic-tiles/marketplace/overlay.module.scss'
 import styles from '@/features/magnetic-tiles/marketplace/workspace/customize/customize.module.scss'
+import { exportMagneticTilesFile } from '@/features/magnetic-tiles/marketplace/workspace/customize/tile-io'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
@@ -220,12 +218,12 @@ function RePreview(
 
 export default function Customize() {
   const { token } = theme.useToken()
+  const { message } = App.useApp()
   const { onUpdatePage } = useContext(MarketplaceContext)
 
   const mirror = useMirrorStore((state) => state.active.mirror)
   const magneticTiles = useMirrorStore((state) => state.magneticTiles)
   const toInsertMagneticTile = useMirrorStore((state) => state.toInsertMagneticTile)
-  const [visible, onUpdateVisible] = useState(false)
   const [submitting, updateSubmitting] = useState(false)
   const DEFAULT_COLORS = useMemo(
     function () {
@@ -274,59 +272,49 @@ export default function Customize() {
     }
   }
 
-  function onUpdateKeyword(keyword: string) {
-    console.log('keyword', keyword)
-  }
-
   const handleExport = useCallback(
-    function () {
+    async function () {
       const mirrorID = mirror?.id
       if (!mirrorID) {
         message.error('请先选择镜像')
         return
       }
 
-      void invoke<MagneticTile[]>('magnetic-tile:read', { params: { mirrorID } }).then(
-        async function (magneticTiles) {
+      async function notify(body: string) {
+        try {
           let permissionGranted = await isPermissionGranted()
           if (!permissionGranted) {
             const permission = await requestPermission()
             permissionGranted = permission === 'granted'
           }
-          try {
-            const stringify = JSON.stringify(magneticTiles, null, 2)
-            const now = timeSphere.now()
-            const formatted = now.format('YYYY-MM-DD-HH-mm-ss')
-            const filename = `magnetic-tiles-${formatted}.json`
-            const encoder = new TextEncoder()
-            const uint8 = encoder.encode(stringify)
-            const file = await create(filename, {
-              baseDir: BaseDirectory.Download
+          if (permissionGranted) {
+            sendNotification({
+              title: import.meta.env.VITE_APP_TITLE,
+              body
             })
-            await file.write(uint8)
-            await file.close()
-            if (permissionGranted) {
-              sendNotification({
-                title: import.meta.env.VITE_APP_TITLE,
-                body: '导出成功'
-              })
-            }
-            message.success('导出成功')
-          } catch (error) {
-            if (permissionGranted) {
-              sendNotification({
-                icon: 'icons/icon.ico',
-                summary: (error as Error).message,
-                title: import.meta.env.VITE_APP_TITLE,
-                body: '导出失败'
-              })
-            }
-            message.error('导出失败')
           }
+        } catch (notifyError) {
+          console.warn('[Customize] notification failed:', notifyError)
         }
-      )
+      }
+
+      try {
+        const tiles = await invoke<MagneticTile[]>('magnetic-tile:read', {
+          params: { mirrorID }
+        })
+        const exported = await exportMagneticTilesFile(tiles)
+        if (!exported) return
+
+        message.success('导出成功')
+        await notify('导出成功')
+      } catch (error) {
+        console.error('[Customize] export failed:', error)
+        const detail = error instanceof Error ? error.message : '导出失败'
+        message.error(detail)
+        await notify(detail)
+      }
     },
-    [mirror?.id]
+    [mirror?.id, message]
   )
 
   const handleImport = useCallback(
@@ -378,7 +366,7 @@ export default function Customize() {
       reader.readAsText(file, 'utf-8')
       return false
     },
-    [magneticTiles.length, mirror?.id, toInsertMagneticTile]
+    [magneticTiles.length, mirror?.id, toInsertMagneticTile, message]
   )
 
   useEffect(
@@ -419,18 +407,6 @@ export default function Customize() {
 
   return (
     <div className={clsx([styles.customize, AOModule.overlay])}>
-      <ReUtility
-        visible={visible}
-        section={null}
-        onUpdateVisible={onUpdateVisible}
-        onUpdateKeyword={onUpdateKeyword}
-      />
-
-      <Divider
-        size="small"
-        style={{ marginBlock: 0 }}
-      />
-
       <div className={styles.toolbar}>
         <div className={styles.toolbarStart}>
           <Button
@@ -466,6 +442,11 @@ export default function Customize() {
           </Button>
         </Space>
       </div>
+
+      <Divider
+        size="small"
+        style={{ marginBlock: 0 }}
+      />
 
       <div className={styles.workspace}>
         <div className={styles.formPanel}>

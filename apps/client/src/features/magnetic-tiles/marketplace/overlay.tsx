@@ -8,28 +8,25 @@ import {
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/magnetic-tiles/marketplace/overlay.module.scss'
 
-const MarketplaceWorkspace = lazy(function () {
-  return import('@/features/magnetic-tiles/marketplace/workspace/marketplace')
+const Workspace = lazy(function () {
+  return import('@/features/magnetic-tiles/marketplace/workspace/workspace')
 })
 
 export default function Overlay(props: OverlayControlProps) {
-  const { visible, onUpdateVisible } = useContext(OverlayContext)
+  const { onUpdateVisible } = useContext(OverlayContext)
 
   return (
     <MagneticTile.Overlay
-      caption={false}
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}
-      className={clsx([styles.overlay, styles.root])}
+      className={clsx(styles.overlay, styles.root)}
       onCancel={function () {
         onUpdateVisible(false)
       }}>
-      <div className={styles.workspace}>
-        <Suspense fallback={null}>
-          <MarketplaceWorkspace />
-        </Suspense>
-      </div>
+      <Suspense fallback={null}>
+        <Workspace />
+      </Suspense>
     </MagneticTile.Overlay>
   )
 }
