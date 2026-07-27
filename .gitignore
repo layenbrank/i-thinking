@@ -86,3 +86,6 @@ apps/studio/sidecar/staging/**
 !apps/studio/sidecar/staging/**/.gitkeep
 apps/studio/sidecar/vendor/**
 .cursor/**/*.pyc
+findings.md
+progress.md
+task_plan.md

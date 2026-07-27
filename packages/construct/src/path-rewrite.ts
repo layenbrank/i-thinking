@@ -1,4 +1,4 @@
-import type { Plugin } from 'rollup'
+import type { Plugin } from 'rolldown'
 
 function definePathRewrite(rewrites: Record<string, string>): Plugin {
   return {

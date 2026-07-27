@@ -16,7 +16,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "rollup --config rollup.config.ts",
+    "build": "rolldown -c",
     "dev": "tsc --watch"
   },
   "dependencies": {},

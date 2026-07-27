@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["index.ts", "rollup.config.ts"],
+  "exclude": ["index.ts", "rolldown.config.ts"],
   "compilerOptions": {
     "declaration": false,
     "emitDeclarationOnly": false,

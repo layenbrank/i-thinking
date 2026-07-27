@@ -46,6 +46,9 @@ jobs:
           node-version: '24'
           cache: pnpm
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -88,7 +91,7 @@ jobs:
           NODE_ENV: production
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm --filter @i-thinking/client build
+        run: pnpm build:client
 
       - name: Collect release artifacts
         shell: pwsh
@@ -206,7 +209,7 @@ jobs:
             - **Node**: ${{ steps.build_info.outputs.node_version }}
             - **Rust**: ${{ steps.build_info.outputs.rust_version }}
             - **Cargo**: ${{ steps.build_info.outputs.cargo_version }}
-            - `pnpm --filter @i-thinking/client build` (Tauri 2)
+            - `pnpm build:client` (turbo ^build + Tauri 2)
 
             ### Updater
             - Endpoint: `https://github.com/${{ github.repository }}/releases/latest/download/latest.json`

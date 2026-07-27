@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "type": "module",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "name": "i-thinking",
   "private": true,
   "scripts": {

@@ -9,7 +9,7 @@
   "scripts": {
     "build": "run-s build:pre build:core build:post",
     "build:pre": "bun run scripts/build-prefix.ts",
-    "build:core": "rollup --config rollup.config.ts",
+    "build:core": "rolldown -c",
     "build:post": "bun run scripts/build-suffix.ts",
     "dev": "vite",
     "format": "prettier --write src/",
