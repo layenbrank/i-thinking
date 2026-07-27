@@ -1,12 +1,20 @@
-import { useCallback, useState } from 'react'
+import { Suspense, lazy, useCallback, useState } from 'react'
 
 import {
   MarketplaceProvider,
   type MarketplacePage
 } from '@/features/magnetic-tiles/marketplace/workspace/context'
-import Booth from '@/features/magnetic-tiles/marketplace/workspace/booth/booth'
-import NavigatePage from '@/features/magnetic-tiles/marketplace/workspace/navigate/navigate'
-import Customize from '@/features/magnetic-tiles/marketplace/workspace/customize/customize'
+import { MarketplacePageSkeleton } from '@/features/magnetic-tiles/marketplace/workspace/skeleton'
+
+const Booth = lazy(function () {
+  return import('@/features/magnetic-tiles/marketplace/workspace/booth/booth')
+})
+const NavigatePage = lazy(function () {
+  return import('@/features/magnetic-tiles/marketplace/workspace/navigate/navigate')
+})
+const Customize = lazy(function () {
+  return import('@/features/magnetic-tiles/marketplace/workspace/customize/customize')
+})
 
 const PAGE_VIEWS: Record<MarketplacePage, typeof Booth> = {
   booth: Booth,
@@ -27,7 +35,9 @@ export default function Workspace() {
     <MarketplaceProvider
       page={page}
       onUpdatePage={onUpdatePage}>
-      <View />
+      <Suspense fallback={<MarketplacePageSkeleton />}>
+        <View />
+      </Suspense>
     </MarketplaceProvider>
   )
 }

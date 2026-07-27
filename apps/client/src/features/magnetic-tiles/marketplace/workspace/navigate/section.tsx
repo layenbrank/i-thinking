@@ -1,17 +1,37 @@
+import { Button, Skeleton, Space } from 'antd'
 import { clsx } from 'clsx'
-import { Space, Button } from 'antd'
+import { useCallback, useState } from 'react'
 
 import { useResize } from '@/hooks/useResize.ts'
-
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 import SModule from '@/features/magnetic-tiles/marketplace/workspace/navigate/section.module.scss'
 
-// interface SectionProps {
-// }
+const VIEWPORT = { width: 1280, height: 720 }
 
-export function Section() {
+type PreviewProps = {
+  src: string
+}
+
+type PreviewPlaceholderProps = {
+  onPreview: () => void
+}
+
+type BoothProps = MagneticTile & {
+  isPreviewActive: boolean
+  onTogglePreview: (id: string) => void
+}
+
+function Section() {
   const magneticTiles = useMirrorStore((state) => state.magneticTiles)
+  const [previewId, onUpdatePreviewId] = useState<string | null>(null)
+
+  function onTogglePreview(id: string) {
+    onUpdatePreviewId(function (prev) {
+      if (prev === id) return null
+      return id
+    })
+  }
 
   return (
     <div className={clsx([SModule.section, SModule.root])}>
@@ -20,6 +40,8 @@ export function Section() {
           <ReBooth
             {...optionv}
             key={optionv.id}
+            isPreviewActive={previewId === optionv.id}
+            onTogglePreview={onTogglePreview}
           />
         )
       })}
@@ -27,28 +49,27 @@ export function Section() {
   )
 }
 
-const VIEWPORT = { width: 1280, height: 720 }
-
-function RePreview({ src }: { src: string }) {
-  const [scale, setScale] = useState(1)
+function RePreview(props: PreviewProps) {
+  const [scale, onUpdateScale] = useState(1)
   const onResize = useCallback(function (rect: DOMRectReadOnly) {
     const next = Math.min(rect.width / VIEWPORT.width, rect.height / VIEWPORT.height)
-    setScale(next)
+    onUpdateScale(next)
   }, [])
   const ResizeRef = useResize<HTMLDivElement>(onResize)
+
   return (
     <div
       ref={ResizeRef}
       className={clsx(SModule.preview)}>
       <div
-        className={clsx(SModule.frameWrap)}
+        className={clsx(SModule.wrap)}
         style={{
           width: VIEWPORT.width * scale,
           height: VIEWPORT.height * scale
         }}>
         <iframe
-          src={src}
-          referrerPolicy="unsafe-url"
+          src={props.src}
+          referrerPolicy="no-referrer"
           width={VIEWPORT.width}
           height={VIEWPORT.height}
           className={clsx(SModule.frame)}
@@ -62,9 +83,24 @@ function RePreview({ src }: { src: string }) {
   )
 }
 
-interface ReBoothProps extends MagneticTile {}
+function RePreviewPlaceholder(props: PreviewPlaceholderProps) {
+  return (
+    <button
+      type="button"
+      className={clsx(SModule.preview, SModule.placeholder, 'cursor-pointer')}
+      onClick={props.onPreview}>
+      <Skeleton.Image
+        active
+        className={clsx(SModule.skeleton)}
+      />
+      <span className={clsx(SModule.hint)}>点击预览</span>
+    </button>
+  )
+}
 
-function ReBooth(props: ReBoothProps) {
+function ReBooth(props: BoothProps) {
+  const previewUrl = props.url?.trim() || null
+
   return (
     <div className={clsx(SModule.container)}>
       <div className={clsx(SModule.wrappr)}>
@@ -82,9 +118,26 @@ function ReBooth(props: ReBoothProps) {
             rootClassName={clsx(SModule.increment)}>
             新增
           </Button>
+          <Button
+            className="cursor-pointer"
+            disabled={!previewUrl}
+            onClick={function () {
+              props.onTogglePreview(props.id)
+            }}>
+            {props.isPreviewActive ? '收起预览' : '预览'}
+          </Button>
         </Space.Compact>
       </div>
-      <RePreview src="https://cn.bing.com" />
+      {props.isPreviewActive && previewUrl ? (
+        <RePreview src={previewUrl} />
+      ) : (
+        <RePreviewPlaceholder
+          onPreview={function () {
+            if (!previewUrl) return
+            props.onTogglePreview(props.id)
+          }}
+        />
+      )}
     </div>
   )
 }

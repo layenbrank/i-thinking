@@ -1,11 +1,13 @@
-import { clsx } from 'clsx'
 import { Suspense, lazy } from 'react'
+
+import { clsx } from 'clsx'
 
 import {
   MagneticTile,
   OverlayContext,
   type OverlayControlProps
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { MarketplaceOverlaySkeleton } from '@/features/magnetic-tiles/marketplace/workspace/skeleton'
 import styles from '@/features/magnetic-tiles/marketplace/overlay.module.scss'
 
 const Workspace = lazy(function () {
@@ -24,7 +26,7 @@ export default function Overlay(props: OverlayControlProps) {
       onCancel={function () {
         onUpdateVisible(false)
       }}>
-      <Suspense fallback={null}>
+      <Suspense fallback={<MarketplaceOverlaySkeleton />}>
         <Workspace />
       </Suspense>
     </MagneticTile.Overlay>

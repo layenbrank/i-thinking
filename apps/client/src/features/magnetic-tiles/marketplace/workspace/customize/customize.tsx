@@ -18,6 +18,7 @@ import {
   Input,
   Radio,
   Row,
+  Skeleton,
   Space,
   theme,
   Typography,
@@ -240,9 +241,19 @@ export default function Customize() {
   const [form] = Form.useForm<CustomizeFormValues>()
   const [files, updateFiles] = useState<UploadFile<any>[]>()
   const [colors, updateColors] = useState<string[]>([])
-  const [images, updateImages] = useState<PicsumImage[]>(buildFallbackImages)
+  const [images, updateImages] = useState<PicsumImage[]>([])
+  const [isImagesLoading, updateImagesLoading] = useState(true)
 
-  const watched = Form.useWatch([], form)
+  const watchedTitle = Form.useWatch('title', form)
+  const watchedUrl = Form.useWatch('url', form)
+  const watchedColor = Form.useWatch('color', form)
+  const watchedImage = Form.useWatch('image', form)
+  const watched = {
+    title: watchedTitle,
+    url: watchedUrl,
+    color: watchedColor,
+    image: watchedImage
+  }
 
   function onChangeComplete(value: Color) {
     const color = value.toHexString()
@@ -389,10 +400,12 @@ export default function Customize() {
   useEffect(
     function () {
       let cancelled = false
+      updateImagesLoading(true)
 
       void fetchPicsumImages().then(function (nextImages) {
         if (cancelled) return
         updateImages(nextImages)
+        updateImagesLoading(false)
         form.setFieldsValue({
           image: nextImages[0]?.id
         })
@@ -555,32 +568,42 @@ export default function Customize() {
                     name="image"
                     noStyle>
                     <Radio.Group>
-                      {images.map(function (image) {
-                        const thumbUrl = buildPicsumUrl(
-                          image,
-                          PICSUM_THUMB_WIDTH,
-                          PICSUM_THUMB_HEIGHT
-                        )
+                      {isImagesLoading
+                        ? Array.from({ length: PICSUM_LIMIT }).map(function (_, index) {
+                            return (
+                              <Skeleton.Image
+                                key={index}
+                                active
+                                className={styles.skeleton}
+                              />
+                            )
+                          })
+                        : images.map(function (image) {
+                            const thumbUrl = buildPicsumUrl(
+                              image,
+                              PICSUM_THUMB_WIDTH,
+                              PICSUM_THUMB_HEIGHT
+                            )
 
-                        return (
-                          <Radio
-                            key={image.id}
-                            value={image.id}
-                            className={clsx([styles.imageRadio, 'cursor-pointer'])}
-                            styles={{
-                              icon: {
-                                display: 'none'
-                              }
-                            }}>
-                            <img
-                              src={thumbUrl}
-                              alt=""
-                              className={styles.imageThumb}
-                              loading="lazy"
-                            />
-                          </Radio>
-                        )
-                      })}
+                            return (
+                              <Radio
+                                key={image.id}
+                                value={image.id}
+                                className={clsx([styles.imageRadio, 'cursor-pointer'])}
+                                styles={{
+                                  icon: {
+                                    display: 'none'
+                                  }
+                                }}>
+                                <img
+                                  src={thumbUrl}
+                                  alt=""
+                                  className={styles.imageThumb}
+                                  loading="lazy"
+                                />
+                              </Radio>
+                            )
+                          })}
                     </Radio.Group>
                   </Form.Item>
                 </Glide.X>

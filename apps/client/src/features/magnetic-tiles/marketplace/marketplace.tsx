@@ -1,11 +1,13 @@
-import clsx from 'clsx'
 import { Suspense, lazy, type MouseEvent } from 'react'
+
+import clsx from 'clsx'
 
 import {
   MagneticTile,
   OverlayContext,
   type SectionProps
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { MarketplaceOverlaySkeleton } from '@/features/magnetic-tiles/marketplace/workspace/skeleton'
 import styles from '@/features/magnetic-tiles/marketplace/marketplace.module.scss'
 
 const Marker = lazy(function () {
@@ -35,7 +37,7 @@ export default function Marketplace(props: SectionProps) {
         shape={props.shape}
       />
       {isRenderOverlay ? (
-        <Suspense fallback={null}>
+        <Suspense fallback={<MarketplaceOverlaySkeleton />}>
           <Overlay
             cache={cache}
             onAbort={props.onAbort}

@@ -285,6 +285,20 @@ $image-radio-radius: 8px;
   pointer-events: none;
 }
 
+.skeleton {
+  width: $image-radio-width !important;
+  height: $image-radio-height !important;
+  flex-shrink: 0;
+
+  :global {
+    .ant-skeleton-image {
+      width: $image-radio-width !important;
+      height: $image-radio-height !important;
+      border-radius: $image-radio-radius;
+    }
+  }
+}
+
 .imageRadio {
   cursor: pointer;
 }

@@ -32,7 +32,7 @@ export default function Summary() {
             justifyContent: 'flex-start'
           }
         }}>
-        {Array.from({ length: 30 }).map(function (_, index) {
+        {Array.from({ length: 4 }).map(function (_, index) {
           return (
             <div
               key={index}

@@ -205,6 +205,12 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}
+
 .shell {
   display: flex;
   flex-direction: column;
