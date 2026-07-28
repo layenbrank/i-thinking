@@ -16,6 +16,7 @@
     grid-auto-flow: row dense;
     row-gap: var(--magnetic-tile-gap-y, 30px);
     column-gap: var(--magnetic-tile-gap-x, 30px);
+    grid-template-columns: repeat(auto-fill, calc(var(--magnetic-tile-size, 60px) * 16 / 9));
 
     @include magnetic-tile;
   }

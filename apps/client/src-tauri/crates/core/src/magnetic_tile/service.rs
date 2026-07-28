@@ -36,9 +36,11 @@ impl Service {
                     description: Set(p.description),
                     background: Set(p.background.and_then(toDeserialize)),
                     backdrop: Set(p.backdrop.and_then(toDeserialize)),
+                    size: Set(p.size),
+                    shape: Set(p.shape),
+                    direction: Set(p.direction),
 
                     mirror_id: Set(p.mirror_id),
-                    text_size: Set(p.text_size),
                     text_color: Set(p.text_color),
                     collection_id: Set(p.collection_id),
                     download_count: Set(0),
@@ -70,10 +72,12 @@ impl Service {
                             mark: Set(p.mark),
                             component: Set(p.component),
                             description: Set(p.description),
+                            size: Set(p.size),
+                            shape: Set(p.shape),
+                            direction: Set(p.direction),
                             background: Set(p.background.and_then(toDeserialize)),
                             backdrop: Set(p.backdrop.and_then(toDeserialize)),
                             mirror_id: Set(p.mirror_id),
-                            text_size: Set(p.text_size),
                             text_color: Set(p.text_color),
                             collection_id: Set(p.collection_id),
                             download_count: Set(0),
@@ -223,6 +227,15 @@ impl Service {
         if let Some(v) = payload.change.mark {
             active.mark = Set(Some(v));
         }
+        if let Some(v) = payload.change.size {
+            active.size = Set(v);
+        }
+        if let Some(v) = payload.change.shape {
+            active.shape = Set(v);
+        }
+        if let Some(v) = payload.change.direction {
+            active.direction = Set(v);
+        }
         if let Some(v) = payload.change.description {
             active.description = Set(Some(v));
         }
@@ -234,9 +247,6 @@ impl Service {
         }
         if let Some(v) = payload.change.mirror_id {
             active.mirror_id = Set(v);
-        }
-        if let Some(v) = payload.change.text_size {
-            active.text_size = Set(Some(v));
         }
         if let Some(v) = payload.change.text_color {
             active.text_color = Set(Some(v));
@@ -282,7 +292,15 @@ impl Service {
         if let Some(ref collection_id) = payload.collection_id {
             cond = cond.add(schema::Column::CollectionId.eq(collection_id.clone()));
         }
-
+        if let Some(ref size) = payload.size {
+            cond = cond.add(schema::Column::Size.eq(size.clone()));
+        }
+        if let Some(ref shape) = payload.shape {
+            cond = cond.add(schema::Column::Shape.eq(shape.clone()));
+        }
+        if let Some(ref direction) = payload.direction {
+            cond = cond.add(schema::Column::Direction.eq(direction.clone()));
+        }
         cond
     }
 }

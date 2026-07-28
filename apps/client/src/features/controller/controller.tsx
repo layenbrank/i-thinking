@@ -22,17 +22,21 @@ import { useKeyModifier } from '@reactuses/core'
 import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
-import { useMirrorStore } from '@/stores/mirror.ts'
+import { useMirrorStore, type MagneticTileWrite } from '@/stores/mirror.ts'
+
+interface MirrorProps {
+  children: ReactNode
+}
 
 const Controller = {
-  Mirror({ children }: { children: ReactNode }) {
+  Mirror(props: MirrorProps) {
     // console.log('[Controller.Mirror] render')
-    return <div className={clsx(styles.controller, styles.mirror)}>{children}</div>
+    return <div className={clsx(styles.controller, styles.mirror)}>{props.children}</div>
   },
   MagneticTile() {
     const magneticTiles = useMirrorStore((state) => state.magneticTiles)
     const controller = useRef<HTMLDivElement>(null)
-    const size: Mirror.Size = 'mini'
+    const size: MagneticTile.Size = 'mini'
     const shape = 'rectangle'
     const direction = 'horizontal'
     // 使用 react-use 监听 Control 键状态
@@ -185,13 +189,6 @@ const Controller = {
             {magneticTiles?.map(function (value) {
               const Component = Reflection[value.component]
 
-              const props = {
-                size,
-                shape,
-                ...value,
-                direction
-              }
-
               return (
                 <MagneticTile.Suspense
                   key={value.id}
@@ -199,7 +196,7 @@ const Controller = {
                   shape={shape}
                   direction={direction}>
                   <OverlayProvider magneticTileID={value.id}>
-                    <Component {...props} />
+                    <Component {...value} />
                   </OverlayProvider>
                 </MagneticTile.Suspense>
               )

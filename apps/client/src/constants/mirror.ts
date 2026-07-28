@@ -93,11 +93,9 @@ function BuildMirror(options?: MirrorOptions) {
       description: '默认镜像',
       // updatedAt: Date.now(),
       // createdAt: Date.now(),
-      size: 'mini',
       backdrop: null,
       background: null,
-      shape: 'square',
-      direction: 'vertical',
+
       overlay: '#000000AA'
     }
 
@@ -117,8 +115,10 @@ function BuildMirror(options?: MirrorOptions) {
       index: index,
       round: '12px',
       mirrorID: MIRROR_ID,
-      textSize: '13px',
       backdrop: null,
+      size: 'mini',
+      shape: 'square',
+      direction: 'vertical',
       component: single.value,
       textColor: '#ffffff',
       // updatedAt: Date.now(),

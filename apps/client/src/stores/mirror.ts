@@ -4,7 +4,6 @@ import type { StateCreator } from 'zustand'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
-import { cloneDeep } from 'lodash-es'
 
 import { BuildMirror } from '@/constants/mirror.ts'
 
@@ -144,7 +143,9 @@ const magneticTileSlice: SliceCreator<MagneticTileSlice> = function (setters, ge
     magneticTiles: [],
 
     async toReadMagneticTile(ID: string) {
-      const magneticTiles = await invoke<MagneticTile[]>('magnetic-tile:read', { params: { id: ID } })
+      const magneticTiles = await invoke<MagneticTile[]>('magnetic-tile:read', {
+        params: { id: ID }
+      })
       const [magneticTile] = magneticTiles
       setters(
         (state) => {

@@ -30,9 +30,6 @@ impl Service {
                     title: Set(p.title),
                     mark: Set(p.mark),
                     description: Set(p.description),
-                    size: Set(p.size),
-                    shape: Set(p.shape),
-                    direction: Set(p.direction),
                     overlay: Set(p.overlay),
                     background: Set(p.background.and_then(json_to_string)),
                     backdrop: Set(p.backdrop.and_then(json_to_string)),
@@ -61,9 +58,6 @@ impl Service {
                             title: Set(p.title),
                             mark: Set(p.mark),
                             description: Set(p.description),
-                            size: Set(p.size),
-                            shape: Set(p.shape),
-                            direction: Set(p.direction),
                             overlay: Set(p.overlay),
                             background: Set(p.background.and_then(json_to_string)),
                             backdrop: Set(p.backdrop.and_then(json_to_string)),
@@ -208,15 +202,6 @@ impl Service {
         if let Some(v) = payload.change.description {
             active.description = Set(v);
         }
-        if let Some(v) = payload.change.size {
-            active.size = Set(v);
-        }
-        if let Some(v) = payload.change.shape {
-            active.shape = Set(v);
-        }
-        if let Some(v) = payload.change.direction {
-            active.direction = Set(v);
-        }
         if let Some(v) = payload.change.overlay {
             active.overlay = Set(v);
         }
@@ -246,15 +231,7 @@ impl Service {
         if let Some(ref mark) = payload.mark {
             cond = cond.add(schema::Column::Mark.eq(mark.clone()));
         }
-        if let Some(ref size) = payload.size {
-            cond = cond.add(schema::Column::Size.eq(size.clone()));
-        }
-        if let Some(ref shape) = payload.shape {
-            cond = cond.add(schema::Column::Shape.eq(shape.clone()));
-        }
-        if let Some(ref direction) = payload.direction {
-            cond = cond.add(schema::Column::Direction.eq(direction.clone()));
-        }
+
         cond
     }
 }

@@ -26,24 +26,6 @@ impl MigrationTrait for Migration {
                             .default("暂无描述"),
                     )
                     .col(
-                        ColumnDef::new(Mirror::Size)
-                            .string()
-                            .not_null()
-                            .default("medium"),
-                    )
-                    .col(
-                        ColumnDef::new(Mirror::Shape)
-                            .string()
-                            .not_null()
-                            .default("rectangle"),
-                    )
-                    .col(
-                        ColumnDef::new(Mirror::Direction)
-                            .string()
-                            .not_null()
-                            .default("horizontal"),
-                    )
-                    .col(
                         ColumnDef::new(Mirror::Overlay)
                             .string()
                             .not_null()
@@ -78,9 +60,26 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(MagneticTile::Background).string().null())
                     .col(ColumnDef::new(MagneticTile::Backdrop).string().null())
                     .col(ColumnDef::new(MagneticTile::MirrorID).string().not_null())
-                    .col(ColumnDef::new(MagneticTile::TextSize).string().null())
                     .col(ColumnDef::new(MagneticTile::TextColor).string().null())
                     .col(ColumnDef::new(MagneticTile::CollectionID).string().null())
+                    .col(
+                        ColumnDef::new(MagneticTile::Size)
+                            .string()
+                            .not_null()
+                            .default("medium"),
+                    )
+                    .col(
+                        ColumnDef::new(MagneticTile::Shape)
+                            .string()
+                            .not_null()
+                            .default("rectangle"),
+                    )
+                    .col(
+                        ColumnDef::new(MagneticTile::Direction)
+                            .string()
+                            .not_null()
+                            .default("horizontal"),
+                    )
                     .col(
                         ColumnDef::new(MagneticTile::DownloadCount)
                             .integer()
@@ -245,7 +244,12 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Countdown::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(Countdown::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(Countdown::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(
                         ColumnDef::new(Countdown::WorkStart)
                             .string()
@@ -276,8 +280,16 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(15),
                     )
-                    .col(ColumnDef::new(Countdown::CreatedAt).big_integer().not_null())
-                    .col(ColumnDef::new(Countdown::UpdatedAt).big_integer().not_null())
+                    .col(
+                        ColumnDef::new(Countdown::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Countdown::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -364,9 +376,6 @@ enum Mirror {
     Index,
     Mark,
     Description,
-    Size,
-    Shape,
-    Direction,
     Overlay,
     Background,
     Backdrop,
@@ -391,11 +400,12 @@ enum MagneticTile {
     Description,
     Background,
     Backdrop,
+    Size,
+    Shape,
+    Direction,
 
     #[iden = "downloadCount"]
     DownloadCount,
-    #[iden = "textSize"]
-    TextSize,
     #[iden = "textColor"]
     TextColor,
     #[iden = "mirrorID"]

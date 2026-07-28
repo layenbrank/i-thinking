@@ -28,6 +28,10 @@ pub struct Model {
     pub mark: Option<String>,
     pub component: String,
     pub description: Option<String>,
+    pub size: Size,
+    pub shape: Shape,
+    pub direction: Direction,
+
     #[serde(serialize_with = "toSerialize")]
     pub background: Option<String>,
     #[serde(serialize_with = "toSerialize")]
@@ -36,9 +40,6 @@ pub struct Model {
     #[serde(rename = "mirrorID")]
     #[sea_orm(column_name = "mirrorID")]
     pub mirror_id: String,
-
-    #[sea_orm(column_name = "textSize")]
-    pub text_size: Option<String>,
 
     #[sea_orm(column_name = "textColor")]
     pub text_color: Option<String>,
@@ -86,6 +87,48 @@ pub struct Backdrop {
     pub url: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+#[serde(rename_all = "lowercase")]
+pub enum Shape {
+    #[sea_orm(string_value = "square")]
+    Square,
+    #[sea_orm(string_value = "circle")]
+    Circle,
+    #[sea_orm(string_value = "rectangle")]
+    Rectangle,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+#[serde(rename_all = "lowercase")]
+pub enum Size {
+    #[sea_orm(string_value = "mini")]
+    Mini,
+    #[sea_orm(string_value = "small")]
+    Small,
+    #[sea_orm(string_value = "medium")]
+    Medium,
+    #[sea_orm(string_value = "large")]
+    Large,
+    #[sea_orm(string_value = "huge")]
+    Huge,
+    #[sea_orm(string_value = "massive")]
+    Massive,
+    #[sea_orm(string_value = "ultra")]
+    Ultra,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+#[serde(rename_all = "lowercase")]
+pub enum Direction {
+    #[sea_orm(string_value = "vertical")]
+    Vertical,
+    #[sea_orm(string_value = "horizontal")]
+    Horizontal,
+}
+
 impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -113,6 +156,9 @@ pub struct Read {
     pub title: Option<String>,
     pub url: Option<String>,
     pub description: Option<String>,
+    pub size: Option<Size>,
+    pub shape: Option<Shape>,
+    pub direction: Option<Direction>,
 
     #[serde(rename = "mirrorID")]
     pub mirror_id: Option<String>,
@@ -146,11 +192,12 @@ pub struct Write {
     pub description: Option<String>,
     pub background: Option<Background>,
     pub backdrop: Option<Backdrop>,
+    pub size: Size,
+    pub shape: Shape,
+    pub direction: Direction,
 
     #[serde(rename = "mirrorID")]
     pub mirror_id: String,
-
-    pub text_size: Option<String>,
 
     pub text_color: Option<String>,
 
@@ -176,9 +223,11 @@ pub struct Change {
     pub description: Option<String>,
     pub background: Option<Background>,
     pub backdrop: Option<Backdrop>,
+    pub size: Option<Size>,
+    pub shape: Option<Shape>,
+    pub direction: Option<Direction>,
     #[serde(rename = "mirrorID")]
     pub mirror_id: Option<String>,
-    pub text_size: Option<String>,
     pub text_color: Option<String>,
     #[serde(rename = "collectionID")]
     pub collection_id: Option<String>,

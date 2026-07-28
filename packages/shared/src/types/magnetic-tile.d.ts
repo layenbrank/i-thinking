@@ -8,8 +8,10 @@ interface MagneticTile {
   url: string | null
   round: string | null
   mark: string | null
+  size: MagneticTile.Size
+  shape: MagneticTile.Shape
+  direction: MagneticTile.Direction
   mirrorID: string
-  textSize: string | null
   updatedAt: number
   createdAt: number
   textColor: string | null
@@ -23,6 +25,21 @@ interface MagneticTile {
 
 declare namespace MagneticTile {
   type Collection = Omit<MagneticTile, 'mirrorID'>
+
+  /**
+   * @description 组件布局方向
+   */
+  type Direction = 'horizontal' | 'vertical'
+
+  /**
+   * @description 组件形状
+   */
+  type Shape = 'square' | 'circle' | 'rectangle'
+
+  /**
+   * @description 组件尺寸
+   */
+  type Size = 'mini' | 'small' | 'medium' | 'large' | 'huge' | 'massive' | 'ultra'
 
   /**
    * @description 组件名称
@@ -91,6 +108,9 @@ declare namespace MagneticTile {
       | 'description'
       | 'mirrorID'
       | 'downloadCount'
+      | 'size'
+      | 'shape'
+      | 'direction'
       | 'updatedAt'
       | 'collectionID'
     >

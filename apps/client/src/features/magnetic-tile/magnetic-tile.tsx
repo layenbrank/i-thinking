@@ -23,9 +23,9 @@ interface SectionProps extends MagneticTile {
   children: ReactNode
   style?: CSSProperties
   className?: ClassValue
-  size: Mirror.Size
-  shape: Mirror.Shape
-  direction: Mirror.Direction
+  size: MagneticTile.Size
+  shape: MagneticTile.Shape
+  direction: MagneticTile.Direction
   onTrash?: MouseEventHandler<HTMLElement>
   cache?: Cache
   onAbort?: () => Promise<void>
@@ -35,9 +35,9 @@ interface SectionProps extends MagneticTile {
 interface SectionContextProps {
   id: string
   component: MagneticTile.Component
-  size: Mirror.Size
-  shape: Mirror.Shape
-  direction: Mirror.Direction
+  size: MagneticTile.Size
+  shape: MagneticTile.Shape
+  direction: MagneticTile.Direction
 }
 
 interface MarkerProps {
@@ -45,9 +45,9 @@ interface MarkerProps {
   onDoubleClick?: MouseEventHandler<HTMLElement>
   style?: CSSProperties
   className?: ClassValue
-  size: Mirror.Size
-  shape: Mirror.Shape
-  direction: Mirror.Direction
+  size: MagneticTile.Size
+  shape: MagneticTile.Shape
+  direction: MagneticTile.Direction
 }
 
 const SectionContext = createContext<SectionContextProps | null>(null)
@@ -112,9 +112,9 @@ function OverlayProvider(props: OverlayProviderProps) {
 interface SkeletonProps {
   className?: ClassValue
   style?: CSSProperties
-  size?: Mirror.Size
-  shape?: Mirror.Shape
-  direction?: Mirror.Direction
+  size?: MagneticTile.Size
+  shape?: MagneticTile.Shape
+  direction?: MagneticTile.Direction
 }
 
 interface MagneticTileSuspenseProps extends SkeletonProps {
