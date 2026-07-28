@@ -309,7 +309,7 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
           // additionalData: '@import "@/styles/variables.scss";',
           additionalData: `
 														@use "@/styles/variables.scss";
-														@use "@/styles/application.scss";
+														@use "@/styles/magnetic-tile.scss";
 													`
         }
       }

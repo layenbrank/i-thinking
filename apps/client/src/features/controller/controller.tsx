@@ -32,7 +32,7 @@ const Controller = {
   MagneticTile() {
     const magneticTiles = useMirrorStore((state) => state.magneticTiles)
     const controller = useRef<HTMLDivElement>(null)
-    const size = 'mini'
+    const size: Mirror.Size = 'mini'
     const shape = 'rectangle'
     const direction = 'horizontal'
     // 使用 react-use 监听 Control 键状态

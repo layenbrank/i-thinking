@@ -47,7 +47,6 @@ const noInlineRegexes: readonly RegExp[] = [
   /background.*\.(png|jpe?g)$/i // 背景图片
 ].concat(svgRegex, jsonRegex, videoRegex, audioRegex, fontRegex)
 
-
 export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
   const interfaces = networkInterfaces()
@@ -220,7 +219,7 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
       preprocessorOptions: {
         scss: {
           additionalData: `
-                          @use "@/styles/placeholder.scss" as *;
+                          @use "@/styles/mixins.scss" as *;
                           `
         }
       }
