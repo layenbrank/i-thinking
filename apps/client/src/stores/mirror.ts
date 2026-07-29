@@ -5,7 +5,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import { BuildMirror } from '@/constants/mirror.ts'
+import { BuildMirror, buildMissingNavigationWrites } from '@/constants/mirror.ts'
 
 type MirrorWrite = Mirror.Write
 type MagneticTileWrite = MagneticTile.Write
@@ -128,6 +128,17 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
         const writes: MagneticTileWrite[] = MAGNETIC_TILES.map((value) => value)
         await invoke('magnetic-tile:write', { params: writes })
         await getters().toReadMirror(first.id)
+      } else {
+        // 已有镜像：按 URL 去重补种常见 navigation
+        const missing = buildMissingNavigationWrites(
+          first.id,
+          getters().magneticTiles,
+          getters().magneticTiles.length
+        )
+        if (missing.length) {
+          await invoke('magnetic-tile:write', { params: missing })
+          await getters().toReadMirror(first.id)
+        }
       }
 
       const [firstApp] = getters().magneticTiles

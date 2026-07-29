@@ -1,5 +1,3 @@
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
@@ -110,6 +108,7 @@ function OverlayProvider(props: OverlayProviderProps) {
 interface SkeletonProps {
   className?: ClassValue
   style?: CSSProperties
+  id?: string
   size?: MagneticTile.Size
   shape?: MagneticTile.Shape
   direction?: MagneticTile.Direction
@@ -149,8 +148,11 @@ const MagneticTile = {
   Skeleton(props: SkeletonProps) {
     return (
       <div
+        data-id={props.id}
         style={props.style}
         className={clsx(
+          'magnetic-tile',
+          'magnetic-tile-skeleton',
           styles.magneticTile,
           styles.skeleton,
           props.className,
@@ -166,6 +168,7 @@ const MagneticTile = {
       <Suspense
         fallback={
           <MagneticTile.Skeleton
+            id={props.id}
             size={props.size}
             shape={props.shape}
             direction={props.direction}
@@ -279,20 +282,39 @@ const MagneticTile = {
     )
   },
   Section(props: SectionProps) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-      id: props.id
-    })
-
+    const nodeRef = useRef<HTMLDivElement>(null)
+    // 默认近视口，避免首屏先空 face 再挂 Marker 闪一下
+    const [isNear, setIsNear] = useState(true)
     const { visible, onUpdateVisible } = useContext(OverlayContext)
 
-    const dragListeners = useMemo(
+    useEffect(
       function () {
-        return visible ? {} : listeners
+        const el = nodeRef.current
+        if (!el) return
+
+        const root = el.closest('[data-mirror-scroller]') as HTMLElement | null
+        const observer = new IntersectionObserver(
+          function (entries) {
+            for (const entry of entries) {
+              // 滞回：进入即 true；离开后仍保持一屏缓冲（rootMargin）才 false
+              setIsNear(entry.isIntersecting)
+            }
+          },
+          {
+            root: root ?? null,
+            rootMargin: '100% 0px',
+            threshold: 0
+          }
+        )
+        observer.observe(el)
+        return function () {
+          observer.disconnect()
+        }
       },
-      [visible, listeners]
+      []
     )
 
-    const properties = useMemo(
+    const faceStyle = useMemo(
       function () {
         const round = props.round
         const size = props.background?.size
@@ -308,21 +330,14 @@ const MagneticTile = {
         const backgroundImage = image ? `url(${image})` : undefined
         const backgroundColor = image ? undefined : (color ?? '#ffffff')
 
-        // 被拖项锁定 scale；邻居保留完整 Transform 以滑动让位
-        const dragTransform =
-          transform && isDragging ? { ...transform, scaleX: 1, scaleY: 1 } : transform
-
         const design: CSSProperties = {
-          ...props.style,
-          transition,
           backgroundSize: size ?? 'cover',
           backgroundColor: backgroundColor,
           backgroundImage: backgroundImage,
           '--magnetic-tile-round': round ?? '12px',
           backgroundRepeat: repeat ?? 'no-repeat',
           backgroundPosition: position ?? 'center',
-          backgroundAttachment: attachment ?? 'fixed',
-          transform: CSS.Transform.toString(dragTransform)
+          backgroundAttachment: attachment ?? 'scroll'
         }
 
         if (clip) design.backgroundClip = clip
@@ -341,11 +356,7 @@ const MagneticTile = {
         props.background?.repeat,
         props.background?.position,
         props.background?.blendMode,
-        props.background?.attachment,
-        props.style,
-        transition,
-        transform,
-        isDragging
+        props.background?.attachment
       ]
     )
 
@@ -359,7 +370,7 @@ const MagneticTile = {
           direction: props.direction
         }}>
         <div
-          {...dragListeners}
+          ref={nodeRef}
           onDoubleClick={function () {
             const handlers: Partial<Record<MagneticTile.Component, () => void>> = {
               navigation() {
@@ -374,28 +385,30 @@ const MagneticTile = {
             if (handler) return handler()
             onUpdateVisible(true)
           }}
-          {...attributes}
-          ref={setNodeRef}
           data-id={props.id}
+          data-overlay-open={visible ? 'true' : undefined}
           className={clsx([
             'magnetic-tile',
             styles.magneticTile,
             props.className,
             styles[`lv${props.size}`],
             styles[props.shape],
-            styles[props.direction],
-            {
-              [styles.dragging]: isDragging
-            }
+            styles[props.direction]
           ])}
-          style={properties}>
-          {props.children}
-          <Tooltip
-            placement="bottom"
-            title={props.title}
-            autoAdjustOverflow={false}>
-            <span className={styles.title}>{props.title}</span>
-          </Tooltip>
+          style={props.style}>
+          <div
+            className={clsx('magnetic-tile-face', styles.face)}
+            style={faceStyle}>
+            {isNear ? props.children : null}
+          </div>
+          <span className={styles.title}>
+            <Tooltip
+              placement="bottom"
+              title={props.title}
+              autoAdjustOverflow={false}>
+              <span>{props.title}</span>
+            </Tooltip>
+          </span>
           <div
             onClick={props.onTrash}
             className={clsx(styles.destroy, styles.marker)}>

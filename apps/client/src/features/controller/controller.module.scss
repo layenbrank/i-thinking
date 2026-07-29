@@ -4,6 +4,21 @@
     height: 100%;
     // scrollbar-width: none;
     overflow: hidden scroll;
+    // 轻量边缘遮罩（视觉保留，尺寸收紧控合成成本）
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 8px,
+      #000 calc(100% - 10px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 8px,
+      #000 calc(100% - 10px),
+      transparent 100%
+    );
   }
 
   &.magnetic-tile {
@@ -18,4 +33,29 @@
     column-gap: var(--magnetic-tile-gap-x, 30px);
     grid-template-columns: repeat(auto-fill, calc(var(--magnetic-tile-size, 60px)));
   }
+}
+
+:global(.magnetic-tile-ghost) {
+  opacity: 0.35;
+}
+
+:global(.magnetic-tile-drag) {
+  cursor: grabbing;
+  z-index: 10000;
+  opacity: 1 !important;
+  // 跟手定位用 Sortable 的 transform，勿在此写 transform
+  pointer-events: none;
+}
+
+// 缩放加在内部 face，避免覆盖根节点 translate
+:global(.magnetic-tile-drag) > .magnetic-tile-face {
+  transform: scale(1.04);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.28),
+    0 4px 12px rgba(0, 0, 0, 0.16);
+  transition: box-shadow 180ms cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+:global(.magnetic-tile-chosen) {
+  cursor: grabbing;
 }

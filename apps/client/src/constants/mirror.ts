@@ -1,4 +1,6 @@
 import { v4 as UUIDV4 } from 'uuid'
+
+import { NAVIGATION_SITES } from '@/constants/navigation-sites'
 import { generateColor } from '@/utils/generate.ts'
 
 interface MagneticTileOptions {
@@ -81,38 +83,58 @@ interface MirrorOptions {
   mirrorID: string | null
 }
 
+function buildNavigationTile(
+  mirrorID: string,
+  site: { label: string; url: string },
+  index: number
+): MagneticTile.Write {
+  return {
+    url: site.url,
+    mark: null,
+    title: site.label,
+    index,
+    round: '12px',
+    mirrorID,
+    backdrop: null,
+    size: 1,
+    shape: 'square',
+    direction: 'vertical',
+    component: 'navigation',
+    textColor: '#ffffff',
+    description: site.label,
+    collectionID: null,
+    background: {
+      color: generateColor()
+    }
+  }
+}
+
 function BuildMirror(options?: MirrorOptions) {
   const MIRROR_ID = options?.mirrorID ?? crypto?.randomUUID?.() ?? UUIDV4()
 
   const MIRRORS: readonly Mirror.Write[] = Array.from({ length: 1 }).map(function () {
     const mirror: Mirror.Write = {
-      // id: MIRROR_ID,
       title: '镜像-01',
       index: 0,
       mark: '',
       description: '默认镜像',
-      // updatedAt: Date.now(),
-      // createdAt: Date.now(),
       backdrop: null,
       background: null,
-
       overlay: '#000000AA'
     }
 
     return mirror
   })
 
-  // const MIRROR: Mirror | undefined = MIRRORS.find(function (mirror) {
-  //   return mirror.id === MIRROR_ID
-  // })
-
-  const MAGNETIC_TILES: readonly MagneticTile.Write[] = OPTIONS.map(function (single, index) {
-    const magneticTile: MagneticTile.Write = {
-      // id: crypto?.randomUUID?.(),
-      url: single.value === 'navigation' ? 'https://cn.bing.com' : null,
+  const widgets: MagneticTile.Write[] = OPTIONS.filter(function (single) {
+    // navigation 由 NAVIGATION_SITES 批量生成，避免重复占位
+    return single.value !== 'navigation'
+  }).map(function (single, index) {
+    return {
+      url: null,
       mark: null,
       title: single.label,
-      index: index,
+      index,
       round: '12px',
       mirrorID: MIRROR_ID,
       backdrop: null,
@@ -121,24 +143,50 @@ function BuildMirror(options?: MirrorOptions) {
       direction: 'vertical',
       component: single.value,
       textColor: '#ffffff',
-      // updatedAt: Date.now(),
-      // createdAt: Date.now(),
       description: single.label,
       collectionID: null,
-      // downloadCount: 1000,
       background: {
         color: generateColor()
       }
     }
-    return magneticTile
   })
+
+  const navigations: MagneticTile.Write[] = NAVIGATION_SITES.map(function (site, offset) {
+    return buildNavigationTile(MIRROR_ID, site, widgets.length + offset)
+  })
+
+  const MAGNETIC_TILES: readonly MagneticTile.Write[] = [...widgets, ...navigations]
 
   return {
     MIRRORS,
-    // MIRROR,
     MIRROR_ID,
     MAGNETIC_TILES
   }
 }
 
-export { BuildMirror, OPTIONS }
+/** 按 URL 去重，生成待写入的 navigation 磁贴 */
+function buildMissingNavigationWrites(
+  mirrorID: string,
+  existing: readonly MagneticTile[],
+  startIndex: number
+): MagneticTile.Write[] {
+  const urls = new Set(
+    existing
+      .filter(function (tile) {
+        return tile.component === 'navigation' && tile.url
+      })
+      .map(function (tile) {
+        return tile.url as string
+      })
+  )
+
+  const missing = NAVIGATION_SITES.filter(function (site) {
+    return !urls.has(site.url)
+  })
+
+  return missing.map(function (site, offset) {
+    return buildNavigationTile(mirrorID, site, startIndex + offset)
+  })
+}
+
+export { BuildMirror, OPTIONS, buildMissingNavigationWrites, buildNavigationTile }

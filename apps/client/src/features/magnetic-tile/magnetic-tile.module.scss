@@ -11,62 +11,66 @@
 .magnetic-tile {
   cursor: pointer;
   position: relative;
-  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
-  background: var(--magnetic-tile-background);
-  border-radius: var(--magnetic-tile-round);
-  will-change: transform, box-shadow, width, height;
+  // 外壳只负责网格占位；背景/圆角在 .face（对齐 itab slide-app + icon）
+  background: transparent;
   outline: none;
+  overflow: visible;
   @include magnetic-tile;
 
   transition:
-    box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
     width 150ms linear,
     height 150ms linear;
 
-  &.dragging {
-    box-shadow:
-      0 12px 40px rgba(0, 0, 0, 0.28),
-      0 4px 12px rgba(0, 0, 0, 0.16);
+  &:global(.animating),
+  &:global(.dragging) {
+    will-change: transform, opacity;
+  }
+
+  &:global(.dragging) {
     cursor: grabbing;
     z-index: 1000;
-    // 拖拽中只跟 dnd transform，避免宽高 transition 打架
-    transition: box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
   }
 
-  /* 可选：添加一个拖拽手柄 */
-  // .drag-handle {
-  //   cursor: grab;
-  //   padding: 4px 8px;
-  //   margin-right: 8px;
-  //   background: rgba(255,255,255,0.2);
-  //   border-radius: 4px;
-  // }
-
-  & > .title {
-    width: 100%;
-    display: block;
-    color: #000000;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    text-wrap: nowrap;
-    word-break: normal;
-    word-wrap: break-word;
-    line-height: 1;
-    text-align: center;
-    margin-block-start: 6px;
-  }
-
-  & > .marker {
+  & > .face {
     width: 100%;
     height: 100%;
     overflow: hidden;
+    border-radius: inherit;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    background: var(--magnetic-tile-background);
+    // 滚动位移走合成层，避免牵动布局
+    backface-visibility: hidden;
+    transition: box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
 
-    // flex-grow: 1;
-    // flex-shrink: 1;
-    // flex-basis: 0%;
+  &:global(.dragging) > .face {
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.28),
+      0 4px 12px rgba(0, 0, 0, 0.16);
+  }
 
-    // 暂时样式
+  // 标题落在网格 row-gap 内
+  & > .title {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 100%;
+    display: block;
+    color: #000000;
+    font-size: 14px;
+    line-height: 1;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  & > .face .marker,
+  & > .face > .marker {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -102,13 +106,6 @@
       pointer-events: none;
     }
   }
-
-  // & > .overlay {
-  // 	width: 80% !important;
-  // 	background-color: red;
-  // width: 70%;
-  // aspect-ratio: 16 / 9;
-  // }
 }
 
 .suspense {

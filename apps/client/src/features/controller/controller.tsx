@@ -1,27 +1,17 @@
 'use client'
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  MouseSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent
-} from '@dnd-kit/core'
-import { restrictToParentElement } from '@dnd-kit/modifiers'
-import {
-  arrayMove,
-  rectSortingStrategy,
-  SortableContext,
-  sortableKeyboardCoordinates
-} from '@dnd-kit/sortable'
 import clsx from 'clsx'
-import { useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useKeyModifier } from '@reactuses/core'
 
-import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import {
+  bindSortableGrid,
+  reorderByIds,
+  type SortableGridSession
+} from '@/features/controller/sortable-grid'
 import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
+import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { bindTileScrollMotion } from '@/lib/gsap-magnetic-tile'
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 interface MirrorProps {
@@ -30,116 +20,178 @@ interface MirrorProps {
 
 const Controller = {
   Mirror(props: MirrorProps) {
-    return <div className={clsx(styles.controller, styles.mirror)}>{props.children}</div>
+    return (
+      <div
+        data-mirror-scroller
+        className={clsx(styles.controller, styles.mirror)}>
+        {props.children}
+      </div>
+    )
   },
   MagneticTile() {
     const magneticTiles = useMirrorStore((state) => state.magneticTiles)
-    const controller = useRef<HTMLDivElement>(null)
+    const gridRef = useRef<HTMLDivElement>(null)
+    const sortableRef = useRef<SortableGridSession | null>(null)
     const control = useKeyModifier('Control')
+    const controlRef = useRef(control)
+    const tilesRef = useRef(magneticTiles)
 
-    const uniqueKeys = useMemo(
+    controlRef.current = control
+    tilesRef.current = magneticTiles
+
+    useEffect(
       function () {
-        const keys = magneticTiles?.map(function (v) {
-          return v.id
-        })
-        return keys ?? []
-      },
-      [magneticTiles]
-    )
+        const gridEl = gridRef.current
+        if (!gridEl) return
 
-    const mouseSensor = useSensor(MouseSensor, {
-      activationConstraint: {
-        delay: 50,
-        distance: 10,
-        tolerance: 10
-      }
-    })
+        const scroller =
+          (gridEl.closest('[data-mirror-scroller]') as HTMLElement | null) ?? gridEl
 
-    const keyboardSensor = useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-      keyboardCodes: {
-        start: ['Space', 'Enter'],
-        cancel: ['Escape'],
-        end: ['Space', 'Enter']
-      }
-    })
+        const scrollMotion = bindTileScrollMotion(scroller)
 
-    const sensors = useSensors(mouseSensor, keyboardSensor)
-
-    function handleDragEnd(event: DragEndEvent) {
-      const { active, over } = event
-      if (!over) return
-      if (active.id === over.id) return
-
-      const isDropZone = over.id === 'navigation-drop-zone' || over.id === 'collection-drop-zone'
-
-      if (isDropZone) {
-        const draggedMagneticTile = magneticTiles?.find(function (v) {
-          return v.id === active.id
-        })
-
-        if (draggedMagneticTile) {
-          console.log('[Drop MagneticTile]', {
-            magneticTile: draggedMagneticTile,
-            target: over.id,
-            action: 'drop'
+        let syncRaf = 0
+        let syncTimer = 0
+        function syncScrollTiles() {
+          if (syncRaf) return
+          syncRaf = requestAnimationFrame(function () {
+            syncRaf = 0
+            window.clearTimeout(syncTimer)
+            syncTimer = window.setTimeout(function () {
+              const root = gridRef.current
+              if (!root) return
+              const tiles = Array.from(root.querySelectorAll<HTMLElement>('.magnetic-tile'))
+              scrollMotion.syncTiles(tiles)
+            }, 48)
           })
         }
-        return
-      }
 
-      const isSortableItem = uniqueKeys.includes(over.id.toString())
+        syncScrollTiles()
 
-      if (!control && isSortableItem) {
-        const oldIndex = magneticTiles?.findIndex(function (v) {
-          return v.id === active.id
+        const mutation = new MutationObserver(function () {
+          syncScrollTiles()
         })
-        const newIndex = magneticTiles?.findIndex(function (v) {
-          return v.id === over.id
-        })
+        mutation.observe(gridEl, { childList: true })
 
-        const moved = arrayMove(magneticTiles ?? [], oldIndex ?? 0, newIndex ?? 0)
+        let isPersisting = false
+        let pendingIds: string[] | null = null
 
-        const updates = moved.map(function (value, index) {
-          return {
-            ...value,
-            index: index
+        function persistReorder(orderedIds: string[]) {
+          const current = tilesRef.current ?? []
+          const moved = reorderByIds(current, orderedIds).map(function (tile, index) {
+            return { ...tile, index }
+          })
+
+          const prev = current
+          const store = useMirrorStore.getState()
+          store.toUpdateMagneticTiles(moved)
+
+          const updates = moved
+            .filter(function (tile) {
+              const before = prev.find(function (item) {
+                return item.id === tile.id
+              })
+              return before?.index !== tile.index
+            })
+            .map(function (tile) {
+              return {
+                key: tile.id,
+                change: { index: tile.index }
+              }
+            })
+
+          if (!updates.length) {
+            isPersisting = false
+            if (pendingIds) {
+              const next = pendingIds
+              pendingIds = null
+              persistReorder(next)
+            }
+            return
+          }
+
+          isPersisting = true
+          void store
+            .toUpdateMagneticTile(updates)
+            .catch(function () {
+              const mirrorID = useMirrorStore.getState().active.mirror?.id
+              if (mirrorID) {
+                void useMirrorStore.getState().toReadMirror(mirrorID)
+              } else {
+                useMirrorStore.getState().toUpdateMagneticTiles(prev)
+              }
+            })
+            .finally(function () {
+              isPersisting = false
+              if (pendingIds) {
+                const next = pendingIds
+                pendingIds = null
+                persistReorder(next)
+              }
+            })
+        }
+
+        const sortableSession = bindSortableGrid(gridEl, {
+          isDisabled: function () {
+            return Boolean(controlRef.current)
+          },
+          onSortStart: function () {
+            scrollMotion.pause()
+          },
+          onSortEnd: function () {
+            scrollMotion.resume()
+          },
+          onReorderIds: function (orderedIds) {
+            if (isPersisting) {
+              pendingIds = orderedIds
+              return
+            }
+            persistReorder(orderedIds)
           }
         })
-        useMirrorStore.getState().toUpdateMagneticTiles(updates)
-      }
-    }
+
+        sortableRef.current = sortableSession
+        sortableSession.updateDisabled(Boolean(controlRef.current))
+
+        return function () {
+          mutation.disconnect()
+          if (syncRaf) cancelAnimationFrame(syncRaf)
+          window.clearTimeout(syncTimer)
+          sortableSession.destroy()
+          sortableRef.current = null
+          scrollMotion.destroy()
+        }
+      },
+      []
+    )
+
+    useEffect(
+      function () {
+        sortableRef.current?.updateDisabled(Boolean(control))
+      },
+      [control]
+    )
 
     return (
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        modifiers={[restrictToParentElement]}>
-        <SortableContext
-          items={uniqueKeys}
-          strategy={rectSortingStrategy}>
-          <div
-            ref={controller}
-            className={clsx([styles.controller, styles['magnetic-tile']])}>
-            {magneticTiles?.map(function (value) {
-              const Component = Reflection[value.component]
+      <div
+        ref={gridRef}
+        className={clsx([styles.controller, styles['magnetic-tile']])}>
+        {magneticTiles?.map(function (value) {
+          const Component = Reflection[value.component]
 
-              return (
-                <MagneticTile.Suspense
-                  key={value.id}
-                  size={value.size}
-                  shape={value.shape}
-                  direction={value.direction}>
-                  <OverlayProvider magneticTileID={value.id}>
-                    <Component {...value} />
-                  </OverlayProvider>
-                </MagneticTile.Suspense>
-              )
-            })}
-          </div>
-        </SortableContext>
-      </DndContext>
+          return (
+            <MagneticTile.Suspense
+              key={value.id}
+              id={value.id}
+              size={value.size}
+              shape={value.shape}
+              direction={value.direction}>
+              <OverlayProvider magneticTileID={value.id}>
+                <Component {...value} />
+              </OverlayProvider>
+            </MagneticTile.Suspense>
+          )
+        })}
+      </div>
     )
   }
 }
