@@ -35,7 +35,7 @@ const Controller = {
   },
   MagneticTile() {
     const magneticTiles = useMirrorStore((state) => state.magneticTiles)
-    const controller = useRef<HTMLDivElement>(null)
+    const controllerRef = useRef<HTMLDivElement>(null)
     const size: MagneticTile.Size = 'mini'
     const shape = 'rectangle'
     const direction = 'horizontal'
@@ -178,7 +178,7 @@ const Controller = {
           items={uniqueKeys}
           strategy={rectSortingStrategy}>
           <div
-            ref={controller}
+            ref={controllerRef}
             className={clsx([
               styles[size],
               styles[shape],
