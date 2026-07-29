@@ -10,14 +10,14 @@ interface ControllerProps {
 }
 
 function Controller(props: ControllerProps) {
-  const size: Mirror.Size = 'mini'
+  const size: Mirror.Size = 1
   const shape: Mirror.Shape = 'rectangle'
   const direction: Mirror.Direction = 'horizontal'
 
   return (
     <div
       onClick={props.onClick}
-      className={clsx([styles[size], styles[shape], styles[direction], styles.magneticTile])}>
+      className={clsx([styles[`lv${size}`], styles[shape], styles[direction], styles.magneticTile])}>
       {props.magneticTiles?.map(function (value) {
         return (
           <Navigation

@@ -2,16 +2,20 @@
 
 use tauri::generate_handler;
 
-use crate::{overlay, screenshot, through, utils::system};
+use crate::{autostart, overlay, screenshot, system, through};
 
 /// 返回应用全部 `#[tauri::command]` 的 invoke handler。
 pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     generate_handler![
-        system::greet,
-        system::os,
-        system::tray_set_badge,
-        system::ipc_ready,
-        system::ipc_invoke,
+        #[cfg(desktop)]
+        autostart::command::autostart_update,
+        #[cfg(desktop)]
+        autostart::command::autostart_read,
+        system::command::greet,
+        system::command::os,
+        system::command::tray_set_badge,
+        system::command::ipc_ready,
+        system::command::ipc_invoke,
         thinking_command::magnetic_tile::magnetic_tile_write,
         thinking_command::magnetic_tile::magnetic_tile_read,
         thinking_command::magnetic_tile::magnetic_tile_update,

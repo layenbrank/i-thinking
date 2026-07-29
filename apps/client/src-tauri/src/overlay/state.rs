@@ -6,7 +6,7 @@ pub struct OverlayMountPayload {
     pub kind: String,
     #[serde(rename = "magneticTileID")]
     pub magnetic_tile_id: String,
-    pub size: Option<String>,
+    pub size: Option<i32>,
     pub shape: Option<String>,
     pub direction: Option<String>,
 }

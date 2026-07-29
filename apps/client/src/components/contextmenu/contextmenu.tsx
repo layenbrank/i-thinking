@@ -36,11 +36,16 @@ const SHELL_MOTION = {
   transition: { duration: 0.12 }
 }
 
+/** 触发器选择器：clone/wrap 时写入同名 data 属性 */
+const CONTEXTMENU_TRIGGER = '[data-contextmenu-trigger]'
+
 interface ContextMenuProps {
   items: MenuItem[]
   children?: ReactNode
   disabled?: boolean
   open?: boolean
+  /** closest 用选择器，默认 `[data-contextmenu-trigger]` */
+  trigger?: string
   className?: string
   classNames?: MenuClassNames
   styles?: MenuStyles
@@ -69,6 +74,12 @@ interface TriggerElementProps {
   className?: string
   onContextMenu?: (event: ReactMouseEvent) => void
   ref?: Ref<HTMLElement>
+  'data-contextmenu-trigger'?: string
+}
+
+function isOwnTrigger(own: HTMLElement | null, node: Element | null) {
+  if (!own || !node) return false
+  return node === own || own.contains(node)
 }
 
 interface MenuLayerProps {
@@ -150,8 +161,10 @@ function Root(props: ContextMenuProps) {
   const [openPath, setOpenPath] = useState<string[]>([])
   const [activeKey, setActiveKey] = useState<string | undefined>()
   const triggerRef = useRef<HTMLElement | null>(null)
+  const updateOpenRef = useRef<(next: boolean) => void>(function () {})
 
   const isOpen = isControlled ? Boolean(props.open) : innerOpen
+  const triggerSelector = props.trigger ?? CONTEXTMENU_TRIGGER
 
   function updateOpen(next: boolean) {
     if (!isControlled) setInnerOpen(next)
@@ -161,6 +174,8 @@ function Root(props: ContextMenuProps) {
       setActiveKey(undefined)
     }
   }
+
+  updateOpenRef.current = updateOpen
 
   function clearLayer() {
     setLayer(null)
@@ -183,6 +198,12 @@ function Root(props: ContextMenuProps) {
     if (props.disabled) return
     if (!props.items.length) return
     if (event.shiftKey) return
+
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const node = target.closest(triggerSelector)
+    if (!isOwnTrigger(triggerRef.current, node)) return
+
     event.preventDefault()
     event.stopPropagation()
     openAt({ x: event.clientX, y: event.clientY }, props.items)
@@ -199,6 +220,31 @@ function Root(props: ContextMenuProps) {
       updateOpen(false)
     }
   })
+
+  // 已打开时：capture 阶段若 closest 非本 trigger，关闭自身（无 Map 互斥）
+  useEffect(
+    function () {
+      if (!isOpen) return
+
+      function onDocumentContextMenu(event: MouseEvent) {
+        const target = event.target
+        if (!(target instanceof Element)) {
+          updateOpenRef.current(false)
+          return
+        }
+        const node = target.closest(triggerSelector)
+        if (!isOwnTrigger(triggerRef.current, node)) {
+          updateOpenRef.current(false)
+        }
+      }
+
+      document.addEventListener('contextmenu', onDocumentContextMenu, true)
+      return function () {
+        document.removeEventListener('contextmenu', onDocumentContextMenu, true)
+      }
+    },
+    [isOpen, triggerSelector]
+  )
 
   useEffect(
     function () {
@@ -221,6 +267,7 @@ function Root(props: ContextMenuProps) {
     const element = child as ReactElement<TriggerElementProps>
     trigger = cloneElement(element, {
       className: clsx(element.props.className, props.className, props.classNames?.root),
+      'data-contextmenu-trigger': '',
       onContextMenu: function (event: ReactMouseEvent) {
         element.props.onContextMenu?.(event)
         onContextMenu(event)
@@ -236,6 +283,7 @@ function Root(props: ContextMenuProps) {
         ref={function (node) {
           triggerRef.current = node
         }}
+        data-contextmenu-trigger=""
         className={clsx('contextmenu-trigger', props.className, props.classNames?.root)}
         style={props.styles?.root}
         onContextMenu={onContextMenu}>
@@ -284,4 +332,4 @@ function Root(props: ContextMenuProps) {
 }
 
 export type { ContextMenuProps, LayerState, MenuLayerProps }
-export { Root, findDefaultContainer, MenuLayer }
+export { Root, findDefaultContainer, MenuLayer, CONTEXTMENU_TRIGGER }

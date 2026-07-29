@@ -31,13 +31,13 @@ interface DirectionOption {
 }
 
 const SIZES: SizeOption[] = [
-  { label: '迷你', value: 'mini' },
-  { label: '小', value: 'small' },
-  { label: '中', value: 'medium' },
-  { label: '大', value: 'large' },
-  { label: '超大', value: 'huge' },
-  { label: '极大', value: 'ultra' },
-  { label: '巨大', value: 'massive' }
+  { label: '迷你', value: 1 },
+  { label: '小', value: 2 },
+  { label: '中', value: 3 },
+  { label: '大', value: 4 },
+  { label: '超大', value: 5 },
+  { label: '巨大', value: 6 },
+  { label: '极大', value: 7 }
 ]
 
 const SHAPES: ShapeOption[] = [
@@ -84,7 +84,7 @@ function useIsVisible(ref: RefObject<HTMLElement | null>) {
 }
 
 function Section() {
-  const size: Mirror.Size = 'mini'
+  const size: Mirror.Size = 1
   const shape: Mirror.Shape = 'rectangle'
   const direction: Mirror.Direction = 'horizontal'
   const magneticTiles = useMirrorStore((state) => state.magneticTiles)

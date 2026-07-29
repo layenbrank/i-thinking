@@ -64,9 +64,9 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(MagneticTile::CollectionID).string().null())
                     .col(
                         ColumnDef::new(MagneticTile::Size)
-                            .string()
+                            .integer()
                             .not_null()
-                            .default("medium"),
+                            .default(3),
                     )
                     .col(
                         ColumnDef::new(MagneticTile::Shape)

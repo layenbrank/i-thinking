@@ -1,4 +1,6 @@
-pub mod ipc;
+pub mod app;
+pub mod autostart;
+pub mod system;
 
 pub mod through {
     pub mod command;
@@ -27,4 +29,3 @@ pub mod ui {
 }
 
 pub mod utils;
-

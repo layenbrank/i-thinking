@@ -89,7 +89,7 @@ function BuildMirror(options?: MirrorOptions) {
       description: '默认镜像',
       updatedAt: Date.now(),
       createdAt: Date.now(),
-      size: 'mini',
+      size: 1,
       backdrop: null,
       background: null,
       shape: 'square',

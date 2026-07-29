@@ -7,7 +7,7 @@ use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tracing::{info, warn};
 
-use crate::ipc;
+use crate::utils::ipc;
 
 pub struct SidecarState {
     ready: AtomicBool,

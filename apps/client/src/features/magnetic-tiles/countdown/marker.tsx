@@ -65,7 +65,7 @@ export default function Marker(props: Props) {
     [now, loaded, config.workStart, config.workEnd, config.monthlySalary, config.payDay, workDays]
   )
 
-  const isCompact = props.size === 'mini' || props.size === 'small'
+  const isCompact = props.size === 1
   const statusLabel = STATUS_LABELS[computed.status]
   const earned = computed.todayEarned.toFixed(2)
   const workRange = `${config.workStart} – ${config.workEnd}`

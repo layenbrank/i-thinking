@@ -39,7 +39,7 @@ declare namespace MagneticTile {
   /**
    * @description 组件尺寸
    */
-  type Size = 'mini' | 'small' | 'medium' | 'large' | 'huge' | 'massive' | 'ultra'
+  type Size = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
   /**
    * @description 组件名称

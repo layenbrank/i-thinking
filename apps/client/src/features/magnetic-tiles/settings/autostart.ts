@@ -1,20 +1,11 @@
-import { disable, enable, isEnabled } from '@tauri-apps/plugin-autostart'
+import { invoke } from '@tauri-apps/api/core'
 
 async function findAutostartEnabled() {
-  return isEnabled()
+  return invoke<boolean>('autostart:read')
 }
 
 async function syncAutostart(desired: boolean) {
-  const enabled = await isEnabled()
-  if (desired === enabled) return enabled
-
-  if (desired) {
-    await enable()
-  } else {
-    await disable()
-  }
-
-  return isEnabled()
+  return invoke<boolean>('autostart:update', { enabled: desired })
 }
 
 export { findAutostartEnabled, syncAutostart }

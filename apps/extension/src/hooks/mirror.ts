@@ -76,7 +76,7 @@ const MENUOPTIONS: ContextMenuOptions[] = [
 
 const CONTEXTMENU: ContextMenuReflect = {}
 
-const SIZES: readonly Mirror.Size[] = ['small', 'medium', 'large', 'huge', 'massive', 'ultra']
+const SIZES: readonly Mirror.Size[] = [2, 3, 4, 5, 6, 7]
 
 const APPLICATION: MagneticTile.Reflect = {
   bookmark: AppBookmark,
@@ -170,7 +170,7 @@ function useMirror(options?: MirrorOptions) {
       description: '默认镜像',
       updatedAt: Date.now(),
       createdAt: Date.now(),
-      size: 'mini',
+      size: 1,
       backdrop: null,
       background: null,
       shape: 'square',

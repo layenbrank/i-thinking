@@ -25,7 +25,7 @@ export default function Marker(props: Props) {
     }
   }, [])
 
-  const isCompact = props.size === 'mini' || props.size === 'small'
+  const isCompact = props.size === 1
   const timeText =
     clockStyle === 'minimal' || isCompact ? now.format('HH:mm') : now.format('HH:mm:ss')
 

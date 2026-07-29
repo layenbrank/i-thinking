@@ -28,7 +28,7 @@ pub struct Model {
     pub mark: Option<String>,
     pub component: String,
     pub description: Option<String>,
-    pub size: Size,
+    pub size: i32,
     pub shape: Shape,
     pub direction: Direction,
 
@@ -102,26 +102,6 @@ pub enum Shape {
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
 #[serde(rename_all = "lowercase")]
-pub enum Size {
-    #[sea_orm(string_value = "mini")]
-    Mini,
-    #[sea_orm(string_value = "small")]
-    Small,
-    #[sea_orm(string_value = "medium")]
-    Medium,
-    #[sea_orm(string_value = "large")]
-    Large,
-    #[sea_orm(string_value = "huge")]
-    Huge,
-    #[sea_orm(string_value = "massive")]
-    Massive,
-    #[sea_orm(string_value = "ultra")]
-    Ultra,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
-#[serde(rename_all = "lowercase")]
 pub enum Direction {
     #[sea_orm(string_value = "vertical")]
     Vertical,
@@ -156,7 +136,7 @@ pub struct Read {
     pub title: Option<String>,
     pub url: Option<String>,
     pub description: Option<String>,
-    pub size: Option<Size>,
+    pub size: Option<i32>,
     pub shape: Option<Shape>,
     pub direction: Option<Direction>,
 
@@ -192,7 +172,7 @@ pub struct Write {
     pub description: Option<String>,
     pub background: Option<Background>,
     pub backdrop: Option<Backdrop>,
-    pub size: Size,
+    pub size: i32,
     pub shape: Shape,
     pub direction: Direction,
 
@@ -223,7 +203,7 @@ pub struct Change {
     pub description: Option<String>,
     pub background: Option<Background>,
     pub backdrop: Option<Backdrop>,
-    pub size: Option<Size>,
+    pub size: Option<i32>,
     pub shape: Option<Shape>,
     pub direction: Option<Direction>,
     #[serde(rename = "mirrorID")]

@@ -75,7 +75,7 @@ const Controller = {
   Application() {
     const [applications, onUpdateApplications] = useState(MOCK_APPLICATIONS)
     const controller = useRef<HTMLDivElement>(null)
-    const size = 'mini'
+    const size = 1
     const shape = 'rectangle'
     const direction = 'horizontal'
     const control = useKeyModifier('Control')

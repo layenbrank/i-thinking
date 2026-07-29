@@ -1,31 +1,31 @@
 # Findings & Decisions
 
 ## Requirements
-- 全量接线：autostart / log / updater / process / cli / localhost
-- 不强制主窗切 localhost External
-- updater 无完整 CI；配置 + 调用入口即可
+- magnetic-tile `size` 改为数字类型
+- 目前只有 1–7（对应原 mini…ultra）
+- 不改 Background.size（CSS）与 Ant Design size props
 
 ## Research Findings
-- autostart 已在 bootstrap 注册；前端现已 enable/disable
-- process 已 plugin()；前端现有 exit/relaunch
-- cli：`--minimized` / `--verbose`；desktop + default capability
-- localhost 端口：18923 → `http://localhost:18923`
-- updater endpoint：`https://github.com/layenbrank/i-thinking/releases/latest/download/latest.json`
-- 公钥已写入 tauri.conf；私钥曾生成于 `%TEMP%\i-thinking-updater.key`（发版前请妥善保管，勿提交仓库）
+- Size 字符串枚举在 `crates/database/src/entity/magnetic_tile.rs`
+- DB 默认 `"medium"` → 数字 `3`
+- shared: `packages/shared/src/types/magnetic-tile.d.ts`
+- 前端大量 `Mirror.Size`，但 Mirror 命名空间未定义 Size/Shape/Direction
+- 旁路：extension、studio 也用字符串 size
 
 ## Technical Decisions
 | Decision | Rationale |
 |----------|-----------|
-| LOCALHOST_PORT = 18923 | 避开 Vite 5173 |
-| CLI `--minimized` / `--verbose` | 自启托盘 + 日志级别 |
-| GeneralPanel 含自启/检查更新/退出 | 产品入口集中 |
+| i32 + TS union | 后端宽松、前端收窄 |
+| Mirror 别名 | 兼容现有 Mirror.Size 调用 |
+| isCompact: size <= 2 | 对应原 mini/small |
 
-## Plugin Utilization Matrix
-| Plugin | Wired |
-|--------|-------|
-| autostart | yes — settings Switch + OS sync + `--minimized` |
-| log | yes — Stdout/LogDir/(debug)Webview + attachConsole |
-| updater | yes — plugin + conf + tray/settings checkUpdate |
-| process | yes — exitApp / relaunchApp |
-| cli | yes — conf args + applyCliMatches |
-| localhost | yes — port 18923, main window unchanged |
+## Issues Encountered
+| Issue | Resolution |
+|-------|------------|
+| UPDATE 后列声明仍是 TEXT，sqlx 解码失败 | v002/v003 重建表为 INTEGER |
+
+## Resources
+- Entity: `crates/database/src/entity/magnetic_tile.rs`
+- Migration: `crates/database/src/migrations/`
+- Shared: `packages/shared/src/types/magnetic-tile.d.ts`
+- SIZE_PX: `apps/client/src/features/magnetic-tile/size.ts`

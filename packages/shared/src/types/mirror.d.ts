@@ -12,6 +12,10 @@ interface Mirror {
 }
 
 declare namespace Mirror {
+  type Size = MagneticTile.Size
+  type Shape = MagneticTile.Shape
+  type Direction = MagneticTile.Direction
+
   interface Backdrop {
     blur?: string
     brightness?: string

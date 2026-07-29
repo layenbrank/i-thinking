@@ -1,24 +1,35 @@
 # Progress Log
 
-## Session: 2026-07-27
+## Session: 2026-07-29
 
-### Phase 1: Planning files
-- **Status:** complete
-- Created task_plan.md / findings.md / progress.md
-
-### Phase 2–6: Implementation
+### Phase 0–5: size → 1–7
 - **Status:** complete
 - Actions taken:
-  - Rust: plugins.rs 注册 log/localhost/cli/updater；bootstrap autostart `--minimized`；localhost.rs
-  - tauri.conf：cli + updater + createUpdaterArtifacts
-  - 前端：autostart sync、GeneralPanel、process、updater、cli、App listen/tray/log
+  - Entity Size 枚举改为 i32；overlay payload 同步
+  - v001 默认 integer 3；v002/v003 重建 magneticTile 表
+  - shared MagneticTile.Size = 1\|…\|7；Mirror 别名
+  - client/extension/studio 字面量与 SIZE_PX/isCompact 更新
+  - cargo check + migration_runs_on_empty_sqlite 通过
 - Files created/modified:
-  - src-tauri/src/utils/{plugins,bootstrap,mod,localhost}.rs
-  - src-tauri/{Cargo.toml,tauri.conf.json,capabilities/default.json}
-  - src/{App.tsx,stores/setting.ts,utils/{process,updater,cli}.ts}
-  - src/features/magnetic-tiles/settings/{autostart.ts,panels/general.tsx,panels/general.module.scss}
+  - crates/database/src/entity/magnetic_tile.rs
+  - crates/database/src/migrations/migrations_v00{1,2,3}.rs
+  - crates/core/src/magnetic_tile/service.rs
+  - src/overlay/state.rs
+  - packages/shared/src/types/{magnetic-tile,mirror}.d.ts
+  - apps/client size.ts / booth / markers / constants / overlay.test
+  - apps/extension + studio 默认 size
 
-### Phase 7: Verify
-- **Status:** complete
-- `bun run check:tauri` — ok
-- `bunx tsc --noEmit` — ok
+## Test Results
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| cargo check | ok | ok | pass |
+| migration_runs_on_empty_sqlite | ok | ok | pass |
+
+## 5-Question Reboot Check
+| Question | Answer |
+|----------|--------|
+| Where am I? | All phases complete |
+| Where am I going? | Done |
+| What's the goal? | size → 数字 1–7 |
+| What have I learned? | SQLite 改类型必须重建表 |
+| What have I done? | See above |

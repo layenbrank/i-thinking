@@ -1,21 +1,19 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Icon } from '@iconify/react'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { createContext, Suspense } from 'react'
 
-import { ContextMenu, type MenuItem } from '@/components/contextmenu'
+import { ContextMenu } from '@/components/contextmenu'
 import { ABORT_TIMEOUT_MS } from '@/constants/magnetic-tile.ts'
+import { buildLayoutMenuItems } from '@/features/magnetic-tile/build-layout-menu'
 import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
 import { Caption } from '@/features/magnetic-tile/caption'
 import { OverlayContext } from '@/features/magnetic-tile/overlay-context'
 import { registerShowOverlay } from '@/features/magnetic-tile/overlay-registry.ts'
 import { startScreenshotCountdown } from '@/features/magnetic-tiles/screenshot/countdown.ts'
-import { isOverlayTileKind } from '@/stores/overlay'
-import { mountOverlayTile, removeOverlayTile } from '@/views/overlay/tauri'
 
 type Cache = 'destroy' | 'keepAlive'
 
@@ -128,64 +126,13 @@ interface MagneticTileSuspenseProps extends SkeletonProps {
 const MagneticTile = {
   Marker(props: MarkerProps) {
     const section = useContext(SectionContext)
-    const canMountTile = section ? isOverlayTileKind(section.component) : false
 
     const menuItems = useMemo(
-      function (): MenuItem[] {
+      function () {
         if (!section) return []
-        return [
-          {
-            key: 'float',
-            label: '浮层',
-            icon: (
-              <Icon
-                icon="ant-design:block-outlined"
-                width={14}
-                height={14}
-              />
-            ),
-            children: [
-              {
-                key: 'float-mount',
-                label: '添加',
-                icon: (
-                  <Icon
-                    icon="ant-design:plus-outlined"
-                    width={14}
-                    height={14}
-                  />
-                ),
-                disabled: !canMountTile,
-                onSelect() {
-                  if (!isOverlayTileKind(section.component) || !section.id) return
-                  void mountOverlayTile(section.component, section.id, {
-                    size: section.size,
-                    shape: section.shape,
-                    direction: section.direction
-                  })
-                }
-              },
-              {
-                key: 'float-unmount',
-                label: '移除',
-                icon: (
-                  <Icon
-                    icon="ant-design:minus-outlined"
-                    width={14}
-                    height={14}
-                  />
-                ),
-                disabled: !canMountTile,
-                onSelect() {
-                  if (!isOverlayTileKind(section.component) || !section.id) return
-                  void removeOverlayTile(section.id)
-                }
-              }
-            ]
-          }
-        ]
+        return buildLayoutMenuItems(section)
       },
-      [canMountTile, section]
+      [section]
     )
 
     return (
@@ -207,7 +154,7 @@ const MagneticTile = {
           styles.magneticTile,
           styles.skeleton,
           props.className,
-          props.size ? styles[props.size] : null,
+          props.size ? styles[`lv${props.size}`] : null,
           props.shape ? styles[props.shape] : null,
           props.direction ? styles[props.direction] : null
         )}
@@ -361,6 +308,10 @@ const MagneticTile = {
         const backgroundImage = image ? `url(${image})` : undefined
         const backgroundColor = image ? undefined : (color ?? '#ffffff')
 
+        // 被拖项锁定 scale；邻居保留完整 Transform 以滑动让位
+        const dragTransform =
+          transform && isDragging ? { ...transform, scaleX: 1, scaleY: 1 } : transform
+
         const design: CSSProperties = {
           ...props.style,
           transition,
@@ -371,7 +322,7 @@ const MagneticTile = {
           backgroundRepeat: repeat ?? 'no-repeat',
           backgroundPosition: position ?? 'center',
           backgroundAttachment: attachment ?? 'fixed',
-          transform: CSS.Transform.toString(transform)
+          transform: CSS.Transform.toString(dragTransform)
         }
 
         if (clip) design.backgroundClip = clip
@@ -393,7 +344,8 @@ const MagneticTile = {
         props.background?.attachment,
         props.style,
         transition,
-        transform
+        transform,
+        isDragging
       ]
     )
 
@@ -429,7 +381,7 @@ const MagneticTile = {
             'magnetic-tile',
             styles.magneticTile,
             props.className,
-            styles[props.size],
+            styles[`lv${props.size}`],
             styles[props.shape],
             styles[props.direction],
             {

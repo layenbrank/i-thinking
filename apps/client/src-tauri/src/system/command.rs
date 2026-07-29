@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{ipc, utils::sidecar::SidecarState};
+use crate::utils::ipc;
+use crate::utils::sidecar::SidecarState;
 
 const ALLOWED_MODULES: &[&str] = &["morph", "screenshot", "scan", "engine"];
 

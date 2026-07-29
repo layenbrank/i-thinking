@@ -16,6 +16,7 @@
   border-radius: var(--magnetic-tile-round);
   will-change: transform, box-shadow, width, height;
   outline: none;
+  @include magnetic-tile;
 
   transition:
     box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
@@ -23,10 +24,13 @@
     height 150ms linear;
 
   &.dragging {
-    box-shadow: 0px 4px 20px 0px rgba(0, 0, 0, 0.2);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.28),
+      0 4px 12px rgba(0, 0, 0, 0.16);
     cursor: grabbing;
     z-index: 1000;
-    // box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    // 拖拽中只跟 dnd transform，避免宽高 transition 打架
+    transition: box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
   }
 
   /* 可选：添加一个拖拽手柄 */
@@ -37,33 +41,6 @@
   //   background: rgba(255,255,255,0.2);
   //   border-radius: 4px;
   // }
-
-  &.circle {
-    height: var(--magnetic-tile-size);
-    width: var(--magnetic-tile-size);
-    border-radius: calc(var(--magnetic-tile-size) / 2);
-  }
-
-  &.square {
-    width: var(--magnetic-tile-size);
-    height: var(--magnetic-tile-size);
-  }
-
-  &.rectangle {
-    &.horizontal {
-      width: calc(var(--magnetic-tile-size) * 16 / 9);
-      height: var(--magnetic-tile-size);
-      // aspect-ratio: 16 / 9;
-      // @include ratio-width(var(--magnetic-tile-size), 16, 9);
-    }
-
-    &.vertical {
-      width: var(--magnetic-tile-size);
-      height: calc(var(--magnetic-tile-size) * 16 / 9);
-      // aspect-ratio: 9 / 16;
-      // @include ratio-height(var(--magnetic-tile-size), 9, 16);
-    }
-  }
 
   & > .title {
     width: 100%;

@@ -23,7 +23,7 @@ export default function Marker(props: Props) {
     }
   }, [])
 
-  const isCompact = props.size === 'mini' || props.size === 'small'
+  const isCompact = props.size === 1
 
   return (
     <MagneticTile.Marker

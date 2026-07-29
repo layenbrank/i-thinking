@@ -116,7 +116,7 @@ function BuildMirror(options?: MirrorOptions) {
       round: '12px',
       mirrorID: MIRROR_ID,
       backdrop: null,
-      size: 'mini',
+      size: 1,
       shape: 'square',
       direction: 'vertical',
       component: single.value,

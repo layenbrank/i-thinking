@@ -6,7 +6,7 @@ use image::ImageReader;
 use serde_json::json;
 use tauri::{AppHandle, Manager};
 
-use crate::ipc;
+use crate::utils::ipc;
 use crate::overlay::command::{overlay_ensure, overlay_update_mode};
 use crate::screenshot::schema::CaptureResult;
 

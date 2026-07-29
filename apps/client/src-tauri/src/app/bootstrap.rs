@@ -4,11 +4,13 @@ use tauri::{Manager, RunEvent, generate_context};
 use thinking_database::{Storage, database_path, initialize, migration};
 
 use crate::{
+    app::{handlers, plugins},
+    autostart,
     overlay::OverlayPending,
     through::{self, ThroughState},
     ui::tray,
     utils::{
-        handlers, log_retention, plugins,
+        log_retention,
         sidecar::{self, SidecarState},
     },
 };
@@ -18,15 +20,7 @@ pub struct Bootstrap;
 impl Bootstrap {
     #[cfg_attr(mobile, tauri::mobile_entry_point)]
     pub fn run() {
-        let builder = tauri::Builder::default();
-
-        #[cfg(desktop)]
-        let builder = builder.plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec!["--minimized".into()]),
-        ));
-
-        let builder = plugins::register_plugins(builder);
+        let builder = plugins::register_plugins(tauri::Builder::default());
 
         builder
             .setup(move |app| {
@@ -53,6 +47,7 @@ impl Bootstrap {
                 through::spawn_worker(app.handle().clone());
                 tray::setup(app)?;
                 log_retention::prune_stale_logs(app.handle());
+                autostart::reconcile(app.handle());
 
                 #[cfg(all(desktop, windows))]
                 {

@@ -1,50 +1,52 @@
-# Task Plan: Tauri Plugins Wire-up
+# Task Plan: Magnetic-tile size → 数字 1–7
 
 ## Goal
-把 src-tauri 未接线/半成品插件（autostart、log、updater、process、cli、localhost）全部打通。
+将 magnetic-tile 的 `size` 从字符串枚举（mini…ultra）改为数字 1–7，同步 Rust entity/DB、shared 类型与前端消费方。
 
 ## Current Phase
-Phase 7 complete
+Phase 5 complete
 
 ## Phases
 
-### Phase 1: Planning files
-- [x] Create task_plan.md / findings.md / progress.md
+### Phase 0: Planning files
+- [x] 重写 task_plan / findings / progress
 - **Status:** complete
 
-### Phase 2: Autostart
-- [x] store 同步 + GeneralPanel Switch + --minimized args
+### Phase 1: Rust entity + service
+- [x] Size 枚举 → i32
+- [x] service 过滤去掉 clone
+- [x] overlay payload size → Option\<i32\>
 - **Status:** complete
 
-### Phase 3: Log
-- [x] plugins.rs 注册 + attachConsole
+### Phase 2: DB migration
+- [x] v001 Size 列改为 integer default 3
+- [x] 删除 v002/v003，仅保留 v001
 - **Status:** complete
 
-### Phase 4: Updater + Process
-- [x] updater 注册与前端入口；process exit/relaunch
+### Phase 3: Shared 类型
+- [x] MagneticTile.Size = 1\|…\|7
+- [x] Mirror 补 Size/Shape/Direction 别名
 - **Status:** complete
 
-### Phase 5: CLI
-- [x] 注册 + conf + getMatches
+### Phase 4: 前端消费方
+- [x] client SIZE_PX / 字面量 / isCompact
+- [x] extension + studio
 - **Status:** complete
 
-### Phase 6: Localhost
-- [x] 固定端口注册 + 导出常量
-- **Status:** complete
-
-### Phase 7: Verify
-- [x] cargo check + tsc + 注释更新
+### Phase 5: Verify
+- [x] cargo check + migration test + 残留字符串排查
 - **Status:** complete
 
 ## Decisions Made
 | Decision | Rationale |
 |----------|-----------|
-| store 为自启期望态 | 设置页偏好驱动 OS |
-| localhost 不改主窗协议 | 避免破坏 mica/overlay |
-| autostart args `--minimized` | 与 cli 协作托盘启动 |
-| updater pubkey 本机生成 | 发版需保存对应私钥 |
+| Rust 用 i32 | 与 index / download_count 一致；不硬校验便于扩展 |
+| TS 用 1\|2\|…\|7 | 当前只有 7 档，类型收窄 |
+| v001 合并，无增量迁移 | 开发期清库即可；size 直接 INTEGER default 3 |
+| 映射 1=mini … 7=ultra | 按 SIZE_PX 升序 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
-|       | 1       |            |
+| size TEXT vs Option\<i32\> | 1 | v002/v003 重建表为 INTEGER |
+| query_all_unprepared 不存在 | 1 | v003 改为无条件重建 |

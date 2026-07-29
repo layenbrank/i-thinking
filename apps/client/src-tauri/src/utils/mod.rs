@@ -1,6 +1,5 @@
-pub mod bootstrap;
-pub mod handlers;
+//! 工具与基础设施客户端（无 Tauri command）。
+
+pub mod ipc;
 pub mod log_retention;
-pub mod plugins;
 pub mod sidecar;
-pub mod system;

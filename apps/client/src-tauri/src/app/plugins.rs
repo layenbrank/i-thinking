@@ -3,6 +3,7 @@
 use tauri::{AppHandle, Manager};
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind, TimezoneStrategy};
 
+use crate::autostart;
 use crate::utils::log_retention::LOG_MAX_FILE_SIZE;
 
 /// 为 Builder 挂载桌面端通用插件。
@@ -19,7 +20,7 @@ pub fn register_plugins(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<t
         log_builder = log_builder.target(Target::new(TargetKind::Webview));
     }
 
-    builder
+    let builder = builder
         .plugin(log_builder.build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -38,7 +39,9 @@ pub fn register_plugins(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<t
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_global_shortcut::Builder::default().build())
         .plugin(tauri_plugin_cli::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_updater::Builder::new().build());
+
+    autostart::register(builder)
 }
 
 fn focus_main_window(app: &AppHandle) {

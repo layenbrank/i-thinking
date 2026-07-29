@@ -292,8 +292,8 @@ impl Service {
         if let Some(ref collection_id) = payload.collection_id {
             cond = cond.add(schema::Column::CollectionId.eq(collection_id.clone()));
         }
-        if let Some(ref size) = payload.size {
-            cond = cond.add(schema::Column::Size.eq(size.clone()));
+        if let Some(size) = payload.size {
+            cond = cond.add(schema::Column::Size.eq(size));
         }
         if let Some(ref shape) = payload.shape {
             cond = cond.add(schema::Column::Shape.eq(shape.clone()));

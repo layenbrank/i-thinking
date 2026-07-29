@@ -21,8 +21,8 @@ describe('overlay store mountTile / removeItem', function () {
 
   it('mounts one tile per magneticTileID', function () {
     const store = useOverlayStore.getState()
-    store.mountTile('countdown', 'tile-a', { size: 'mini', shape: 'rectangle' })
-    store.mountTile('countdown', 'tile-b', { size: 'mini', shape: 'rectangle' })
+    store.mountTile('countdown', 'tile-a', { size: 1, shape: 'rectangle' })
+    store.mountTile('countdown', 'tile-b', { size: 1, shape: 'rectangle' })
 
     const tiles = useOverlayStore.getState().items.filter(function (item) {
       return item.kind !== 'texture'
@@ -35,8 +35,8 @@ describe('overlay store mountTile / removeItem', function () {
 
   it('remounting same magneticTileID updates instead of duplicating', function () {
     const store = useOverlayStore.getState()
-    store.mountTile('countdown', 'tile-a', { size: 'mini' })
-    store.mountTile('calendar', 'tile-a', { size: 'large' })
+    store.mountTile('countdown', 'tile-a', { size: 1 })
+    store.mountTile('calendar', 'tile-a', { size: 4 })
 
     const tiles = useOverlayStore.getState().items.filter(function (item) {
       return item.kind !== 'texture'
@@ -48,8 +48,8 @@ describe('overlay store mountTile / removeItem', function () {
 
   it('removeItem drops only the matching magneticTileID', function () {
     const store = useOverlayStore.getState()
-    store.mountTile('countdown', 'tile-a', { size: 'mini' })
-    store.mountTile('countdown', 'tile-b', { size: 'mini' })
+    store.mountTile('countdown', 'tile-a', { size: 1 })
+    store.mountTile('countdown', 'tile-b', { size: 1 })
     store.removeItem('tile-a')
 
     const tiles = useOverlayStore.getState().items.filter(function (item) {
