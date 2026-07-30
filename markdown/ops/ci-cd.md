@@ -1,45 +1,225 @@
-# Monorepo CI/CD 指南 (pnpm + Turborepo + GitHub Actions)
+# Monorepo CI/CD 指南
 
-本文档说明当前仓库的 CI/CD 设计与使用方法，覆盖：质量检查、按子项目独立发布、文档部署。
+本文说明本仓库的 GitHub Actions 设计：质量门禁、Client / Service 发版、文档站点部署，以及 **Secrets 从哪里来、两类签名分别做什么**。
 
-## 目标
+相关文件：
 
-- PR 自动质量门禁：安装、lint、类型检查、测试、构建（client 仅 Vite `build:core`），上传产物以便预览排查。
-- 按子项目发布：`v*` tag 分别触发 client（Tauri Windows + GitHub Release）与 service（GHCR 镜像）。
-- Docs 自动部署：推送到 master 且变更 `apps/docs/**` 时发布 VitePress 到 GitHub Pages。
+| 路径 | 说明 |
+| --- | --- |
+| `.github/workflows/*.yaml` | 工作流定义 |
+| `apps/<app>/bump.<app>.ts` | 各应用独立版本 bump |
+| [pnpm-and-native-mirrors.md](./pnpm-and-native-mirrors.md) | pnpm / Electron 镜像 |
 
-## 目录结构要点
+---
 
-- `apps/service`：NestJS 服务（端口 9000，产物在 `dist/`）
-- `apps/client`：Tauri 2 桌面 + React（安装包由 `client-release` 产出；Web 产物在 `dist/`）
-- `apps/studio`：Electron 桌面（`studio-desktop` 多平台 make）
-- `apps/extension`、`apps/devtools`：Vite 前端
-- `apps/docs`：VitePress
-- `packages/*`：共享包（产物在 `dist/`）
+## 1. 先建立概念
 
-## 工作流
+### 1.1 Workflow 里的「变量」从哪来
 
-### 1) CI（PR / Develop）
+YAML 里常见三种写法，含义不同：
+
+| 写法 | 来源 | 谁配置 | 会出现在日志里吗 |
+| --- | --- | --- | --- |
+| `${{ secrets.NAME }}` | 仓库 **Secrets** | 你在 GitHub 网页配置 | 掩码，不会明文打印 |
+| `${{ vars.NAME }}` | 仓库 **Variables** | 同上（非敏感配置） | 可能明文 |
+| `env:` 下的固定值 | 写死在 YAML | 改 workflow 文件 | 明文 |
+
+**关键路径（GitHub）：**
+
+`仓库 → Settings → Secrets and variables → Actions`
+
+- **Secrets**：密码、私钥、PFX 等敏感内容  
+- **Variables**：非敏感开关/URL（本仓库 Client 发版目前几乎全用 Secrets）
+
+Workflow **不会**自动读你本机环境变量。本机 `TAURI_SIGNING_PRIVATE_KEY=...` 只影响本地构建；CI 必须在仓库 Secrets 里再配一份同名（或 workflow 里写的那个名字）。
+
+示例（`client-release.yaml`）：
+
+```yaml
+env:
+  WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+  WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+```
+
+含义：从仓库 Secrets 取出值 → 注入成该 step 的环境变量 → 脚本用 `$env:WINDOWS_CERTIFICATE` 读取。  
+若 Secret **未配置**，注入结果是空字符串；脚本再决定「跳过」还是「失败」。
+
+### 1.2 两类「签名」不要混
+
+Client 发版涉及两套完全不同的签名：
+
+| | Tauri Updater 签名 | Windows Authenticode |
+| --- | --- | --- |
+| **干什么** | 给更新包生成 `.sig`，客户端校验「更新来自你们」 | 给 `.exe` / `.msi` 做系统级代码签名 |
+| **用户感知** | 应用内自动更新能否通过校验 | SmartScreen /「未知发布者」警告多少 |
+| **Secret** | `TAURI_SIGNING_PRIVATE_KEY`（**必填**） | `WINDOWS_CERTIFICATE`（**可选**） |
+| **没配会怎样** | Workflow **直接失败** | 跳过签名，安装包仍可发布，SmartScreen 更容易报警 |
+| **是不是「任意电脑的证书」** | 否：是 `tauri signer` 生成的密钥对 | 否：需正规 **Code Signing** 证书（或云签）；自签/随便导出的本机证书用户端不信任 |
+
+Updater 公钥写在 `tauri.conf.json` 的 updater 配置里；私钥只放 Secrets / 本机环境，**绝不进仓库**。
+
+Authenticode 则是 CA 签发的 Windows 代码签名证书，导出为 `.pfx` 再 Base64 进 Secret。许多现代 CA 只提供硬件 Token / 云 HSM，那种情况不能简单塞 PFX，需要改签名流程（本文按当前 workflow 的「PFX Base64」方式说明）。
+
+### 1.3 发版产物与渠道（Client）
+
+一次成功的 Client Release 大致产出：
+
+- 版本化 GitHub Release（如 `v1.2.0-alpha.4`）：安装包、`.sig`、`latest.json`、`SHA256SUMS.txt`
+- 浮动渠道 Release（如 `updater-alpha`）：只挂该渠道最新的 `latest.json`，供应用内 updater 拉取
+
+渠道由 **tag 的 SemVer 后缀** 决定：`stable` / `alpha` / `beta` / `rc`。
+
+---
+
+## 2. 仓库 Secrets 清单
+
+在 **Settings → Secrets and variables → Actions → Secrets** 配置。
+
+### 2.1 Client Release（必填）
+
+| Secret 名 | 用途 | 未配置时 |
+| --- | --- | --- |
+| `TAURI_SIGNING_PRIVATE_KEY` | Tauri updater 私钥（生成 `.sig` / `latest.json` 签名） | **失败**（有专门校验 step） |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码 | 无密码时也要创建该 Secret，值为**空字符串**（不能「不存在」） |
+
+生成密钥（本地一次即可）：
+
+```bash
+npm run tauri signer generate -w ~/.tauri/i-thinking.key
+# 公钥写入 tauri.conf.json；私钥内容放入 TAURI_SIGNING_PRIVATE_KEY
+```
+
+### 2.2 Client Release（可选 · Authenticode）
+
+| Secret 名 | 用途 | 未配置时 |
+| --- | --- | --- |
+| `WINDOWS_CERTIFICATE` | 代码签名 **PFX 文件的 Base64**（整文件编码，不是路径） | 跳过 Authenticode，继续发版 |
+| `WINDOWS_CERTIFICATE_PASSWORD` | PFX 密码 | 无密码可留空或不配 |
+
+Workflow 行为摘要：
+
+1. 读 `secrets.WINDOWS_CERTIFICATE`  
+2. 空 → 打印跳过日志，`codesign.enabled=false`  
+3. 非空 → Base64 解码为 `.pfx` → 导入 runner 证书库 → 写入 `tauri.conf.json` 的 `certificateThumbprint` → `tauri build` 签名
+
+将已有 PFX 转为 Base64（示例）：
+
+```powershell
+# Windows PowerShell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\path\to\codesign.pfx")) | Set-Clipboard
+```
+
+```bash
+# macOS / Linux
+base64 -i ./codesign.pfx | pbcopy   # 或重定向到文件再粘贴进 Secret
+```
+
+**不要**把开发机上任意「个人证书」塞进去指望消除 SmartScreen；需要的是面向发布的 Code Signing 证书。
+
+### 2.3 其他工作流
+
+| Secret / Token | 工作流 | 说明 |
+| --- | --- | --- |
+| `GITHUB_TOKEN` | service-release 等 | Actions 自动提供；推 GHCR 需 `packages: write` |
+| `QODANA_TOKEN` | qodana（若启用） | JetBrains Qodana |
+| `NPM_TOKEN` | （按需自行接入） | 私有 npm 源；当前默认 workflow 未接 |
+
+---
+
+## 3. 工作流一览
+
+| 工作流文件 | 名称 | 触发 | 作用 |
+| --- | --- | --- | --- |
+| `continuous-integration.yaml` | Continuous Integration | PR → `master`/`develop`；push → `develop` | lint / 类型检查 / 测试 / 构建（Client 仅 Vite） |
+| `client-release.yaml` | Client Release | tag `v*`；或手动 `workflow_dispatch` | Tauri Windows 安装包 + GitHub Release + updater 清单 |
+| `service-release.yaml` | Service Release | tag `v*`；或手动 | NestJS 镜像推 GHCR |
+| `studio-desktop.yaml` | Studio Desktop | 手动；或 push 变更 `apps/studio/**` | Electron 多平台安装包 artifact |
+| `pages.yaml` | Pages | `master` 上 `apps/docs/**` 变更 | VitePress → GitHub Pages |
+
+同一 `v*` tag 会**并行**触发 Client Release 与 Service Release。
+
+运行时约定：Node 24 + pnpm（根 `package.json` 的 `packageManager`）。Actions 使用支持 Node 24 的版本（如 `checkout@v6`、`setup-node@v6`）。不要依赖 `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION`。
+
+---
+
+## 4. 各工作流说明
+
+### 4.1 Continuous Integration
 
 文件：`.github/workflows/continuous-integration.yaml`
 
-- 触发：PR 到 `master`/`develop`，或 push 到 `develop`
-- 环境：Node 24 + pnpm（读取根 `package.json` 的 `packageManager`）
-- Actions 运行时：使用已支持 Node 24 的版本（如 `pnpm/action-setup@v6`、`actions/setup-node@v6`、`checkout@v6`、`cache@v5`）。**不要**设置 `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION`——那是临时继续用已弃用 Node 20 的退路，不是推荐做法
-- 步骤：
-  - `pnpm install --frozen-lockfile`
-  - `pnpm lint`
-  - 类型检查（extension / client）
-  - 单元测试（service）
-  - `pnpm turbo run build --filter=!@i-thinking/client`
-  - `pnpm --filter @i-thinking/client run build:core`（仅 Web，避免 Ubuntu 上跑 Tauri）
-  - 上传 `apps/**/dist/**`、`packages/**/dist/**` 等为制品
+主要步骤：
 
-### 2) Client Release（Tauri Windows · 企业级渠道）
+1. `pnpm install --frozen-lockfile`
+2. `pnpm lint`
+3. 类型检查（extension / client）
+4. 单元测试（service）
+5. `pnpm turbo run build --filter=!@i-thinking/client`
+6. `pnpm --filter @i-thinking/client run build:core`（仅 Web，避免 Ubuntu 上跑 Tauri）
+7. 上传 `dist` 等为 artifact
 
-文件：`.github/workflows/client-release.yaml`
+**注意：** PR CI **不构建** Tauri 桌面包；桌面安装包只在 `client-release`（`windows-latest`）产出。
 
-各应用独立版本：配置在 `apps/<project>/bump.<project>.ts`，根脚本 `pnpm bump:<project>`。
+### 4.2 Client Release
+
+文件：`.github/workflows/client-release.yaml`  
+Runner：`windows-latest`
+
+#### 能力摘要
+
+- **版本门禁**：tag 去掉 `v` 后必须等于 `tauri.conf.json`、`Cargo.toml`、`apps/client/package.json` 的 version  
+- **渠道**：由 SemVer 后缀映射到 `stable` | `alpha` | `beta` | `rc`  
+- **Updater 端点**：构建前写入对应 `updater-{channel}` 的 `latest.json` URL  
+- **Sidecar 验锁**：校验仓库内 `binaries/SHA256SUMS`（CI **只验不生成**）  
+- **`workflow_dispatch`**：按输入的 tag checkout，不构建默认分支 HEAD  
+- **Immutable Releases**：先以 draft 上传资产，再按需 publish；浮动渠道 Release 每次删建（保留 tag）以替换 `latest.json`
+
+#### 渠道对照
+
+| Tag 示例 | 渠道 | GitHub Release | 客户端检查的清单 |
+| --- | --- | --- | --- |
+| `v1.2.0` | stable | 正式版（`make_latest`） | `.../download/updater-stable/latest.json` |
+| `v1.2.0-alpha.1` | alpha | prerelease | `.../download/updater-alpha/latest.json` |
+| `v1.2.0-beta.1` | beta | prerelease | `.../download/updater-beta/latest.json` |
+| `v1.2.0-rc.1` | rc | prerelease | `.../download/updater-rc/latest.json` |
+
+仓库内 `tauri.conf.json` 默认多为 `updater-stable`；CI 会按本次渠道改写。
+
+#### 手动触发（推荐在 tag 受保护、不能重打时使用）
+
+1. Actions → **Client Release** → **Run workflow**  
+2. Branch 选含最新 workflow 的分支（通常 `master`）  
+3. `tag` 填已有 tag，例如 `v1.2.0-alpha.4`  
+4. 可选：`draft`（先审再公开）、`skip_channel_update`（不更新浮动清单）
+
+这样用的是 **所选分支上的 YAML**，构建的是 **tag 指向的代码**。
+
+### 4.3 Service Release
+
+文件：`.github/workflows/service-release.yaml`
+
+- 使用 `apps/service/Dockerfile`，多架构 `linux/amd64,linux/arm64`
+- 镜像：`ghcr.io/<owner>/<repo>-service:<tag>`
+- 登录 GHCR：默认 `GITHUB_TOKEN`（需 `packages: write`）
+
+### 4.4 Studio Desktop
+
+文件：`.github/workflows/studio-desktop.yaml`
+
+- Matrix：Windows / macOS / Ubuntu  
+- 产出 Electron 安装包 artifact（非 GitHub Release 发版流）
+
+### 4.5 Pages（Docs）
+
+文件：`.github/workflows/pages.yaml`
+
+- 构建 `apps/docs`，发布到 GitHub Pages
+
+---
+
+## 5. 版本 bump 与发版操作
+
+各应用版本独立，配置在 `apps/<project>/bump.<project>.ts`：
 
 | 命令 | 配置 |
 | --- | --- |
@@ -50,104 +230,54 @@
 | `pnpm bump:devtools` | `apps/devtools/bump.devtools.ts` |
 | `pnpm bump:docs` | `apps/docs/bump.docs.ts` |
 
-- 触发：push tag `v*`，或 `workflow_dispatch`（可勾选 draft）
-- Runner：`windows-latest`
-- 能力：
-  - **版本门禁**：tag 去掉 `v` 后必须等于 `tauri.conf.json` / `Cargo.toml` / `apps/client/package.json`
-  - **渠道**：由 SemVer 后缀决定 → `stable` | `alpha` | `beta` | `rc`
-  - **浮动清单**：每次成功发版更新 `updater-{channel}` Release 上的 `latest.json`（标为 prerelease，不抢 `/releases/latest`）
-  - 构建前把该渠道 endpoint 写入 `tauri.conf.json`，使 alpha/beta 包检查对应渠道
-  - sidecar **SHA256 验锁**（仓库内 `binaries/SHA256SUMS`；CI **只校验不生成**；由 `prepare.ts` 在复制真实 sidecar 后重写）
-  - `workflow_dispatch` 按填写的 tag **checkout**（不构建默认分支 HEAD）
-  - 强制要求 `TAURI_SIGNING_PRIVATE_KEY`
-  - 可选 Authenticode：配置 `WINDOWS_CERTIFICATE`（PFX Base64）+ `WINDOWS_CERTIFICATE_PASSWORD`
-  - 生成并上传 `latest.json` + 安装包 + `.sig` + `SHA256SUMS.txt`
-
-#### 如何发 prerelease（alpha / beta / rc）
-
-```bash
-# 1) 同步 bump 客户端版本（apps/client/bump.client.ts；不含 monorepo 根 package.json）
-pnpm bump:client 1.2.0-alpha.1
-# 或 beta / rc
-pnpm bump:client 1.2.0-beta.1
-pnpm bump:client 1.2.0-rc.1
-
-# 2) 提交版本变更
-git add apps/client/package.json apps/client/src-tauri/tauri.conf.json apps/client/src-tauri/Cargo.toml
-git commit -m "chore(release): 1.2.0-beta.1"
-
-# 3) 打 tag 并推送（触发 client-release）
-git tag v1.2.0-beta.1
-git push origin HEAD
-git push origin v1.2.0-beta.1
-```
-
-| Tag 示例 | 渠道 | GitHub Release | 客户端检查的清单 |
-| --- | --- | --- | --- |
-| `v1.2.0` | stable | 正式版（`make_latest`） | `.../download/updater-stable/latest.json` |
-| `v1.2.0-alpha.1` | alpha | prerelease | `.../download/updater-alpha/latest.json` |
-| `v1.2.0-beta.1` | beta | prerelease | `.../download/updater-beta/latest.json` |
-| `v1.2.0-rc.1` | rc | prerelease | `.../download/updater-rc/latest.json` |
-
-正式版：
+### 5.1 发布 Client（正式版）
 
 ```bash
 pnpm bump:client 1.2.0
-# commit + tag v1.2.0 + push
+git add apps/client/package.json apps/client/src-tauri/tauri.conf.json apps/client/src-tauri/Cargo.toml
+git commit -m "chore(release): 1.2.0"
+git tag v1.2.0
+git push <remote> HEAD
+git push <remote> v1.2.0
 ```
 
-草稿发版（先审再公开）：Actions → Client Release → Run workflow → 填 tag、勾选 `draft`。
+将 `<remote>` 换成你的远程名（本仓库常见为 `github`，不一定是 `origin`）。
 
-#### Updater 端点（默认 stable）
+### 5.2 发布 Client（预发版）
 
-`tauri.conf.json` 默认：
+```bash
+pnpm bump:client 1.2.0-beta.1
+# 同样 commit，然后：
+git tag v1.2.0-beta.1
+git push <remote> HEAD
+git push <remote> v1.2.0-beta.1
+```
 
-`https://github.com/<owner>/<repo>/releases/download/updater-stable/latest.json`
+### 5.3 草稿发版
 
-CI 会按渠道改写为 `updater-alpha` / `updater-beta` / `updater-rc`。
+Actions → Client Release → Run workflow → 填 tag → 勾选 `draft`。  
+资产先挂在 draft Release；确认后再在 GitHub 上 Publish（或依赖后续自动化）。
 
-**必需 Secrets：**
+### 5.4 更换 sidecar
 
-| Secret | 说明 |
-|--------|------|
-| `TAURI_SIGNING_PRIVATE_KEY` | Tauri updater 签名私钥（必填） |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码；无密码也需存在并为空字符串 |
+在 `apps/client` 执行 `pnpm prepare:bin`（需 `CARGO_TARGET_DIR`），脚本会重写 `src-tauri/binaries/SHA256SUMS`。  
+将二进制与清单一并 commit。CI 只校验、不生成。
 
-**可选 Secrets（Authenticode）：**
+### 5.5 本地构建 Client（Windows）
 
-| Secret | 说明 |
-|--------|------|
-| `WINDOWS_CERTIFICATE` | 代码签名 PFX 的 Base64 |
-| `WINDOWS_CERTIFICATE_PASSWORD` | PFX 密码 |
+```bash
+pnpm build:client
+# 或
+pnpm --filter @i-thinking/client build
+```
 
-### 3) Service Release（GHCR）
+`scripts/build.ts` 会注入空的 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`；私钥仍从本机环境变量读取。
 
-文件：`.github/workflows/service-release.yaml`
+---
 
-- 触发：push tag `v*`，或 `workflow_dispatch`
-- 使用 `apps/service/Dockerfile` 多架构构建并推送：`linux/amd64,linux/arm64`
-- 权限：`packages: write`（`GITHUB_TOKEN` 登录 GHCR）
-- 镜像：`ghcr.io/<owner>/<repo>-service:<tag>`
+## 6. Docker（补充）
 
-### 4) Studio Desktop
-
-文件：`.github/workflows/studio-desktop.yaml`
-
-- 触发：`workflow_dispatch`，或 push `master`/`develop` 且变更 `apps/studio/**`
-- Matrix：Windows / macOS / Ubuntu，产出 Electron 安装包 artifact
-
-### 5) Pages（Docs）
-
-文件：`.github/workflows/pages.yaml`
-
-- 触发：`master` 分支变更 `apps/docs/**` 或该 workflow 文件
-- 构建 `apps/docs` 并发布到 GitHub Pages
-
-## Docker
-
-### 服务镜像（NestJS）
-
-文件：`apps/service/Dockerfile`
+### 服务镜像
 
 ```bash
 docker build -t my-service -f apps/service/Dockerfile .
@@ -156,51 +286,40 @@ docker run -p 9000:9000 my-service
 
 ### 通用前端镜像（Nginx）
 
-文件：`docker/Dockerfile`
-
 ```bash
 docker build -t web-ext -f docker/Dockerfile --build-arg APP_DIR=apps/extension .
 docker run -p 8080:80 web-ext
 ```
 
-## 必要 Secrets 与环境
+---
 
-- **GHCR**：默认 `GITHUB_TOKEN`（service-release）
-- **Tauri updater**：`TAURI_SIGNING_PRIVATE_KEY`；`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 无密码时也要为空字符串（不能 unset）
-- **Windows Authenticode（可选）**：`WINDOWS_CERTIFICATE`（PFX Base64）、`WINDOWS_CERTIFICATE_PASSWORD`
-- 如需私有 npm 源，添加 `NPM_TOKEN` 并在工作流中配置
+## 7. 常见问题
 
-## 发布操作
+### Secrets / 签名
 
-```bash
-# 正式版
-pnpm bump:client 1.2.0
-git add apps/client/package.json apps/client/src-tauri/tauri.conf.json apps/client/src-tauri/Cargo.toml
-git commit -m "chore(release): 1.2.0"
-git tag v1.2.0 && git push origin HEAD && git push origin v1.2.0
+- **Updater 签名失败**：检查是否配置了 `TAURI_SIGNING_PRIVATE_KEY`；无密码时 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 是否存在且为空。  
+- **Release 里 Authenticode 显示 false**：正常，表示未配或跳过了 `WINDOWS_CERTIFICATE`。  
+- **以为配了本机证书就会在 CI 生效**：不会。必须写入仓库 Secrets，且名字与 `${{ secrets.XXX }}` 一致。
 
-# 预发版（示例 beta）
-pnpm bump:client 1.2.0-beta.1
-# …同样 commit + tag v1.2.0-beta.1 + push
-```
+### Tag / Immutable Releases
 
-同一 tag 会并行触发 `client-release` 与 `service-release`。含 `-alpha` / `-beta` / `-rc` 的 tag 会将 Client Release 标为 prerelease，并更新对应 `updater-{channel}` 浮动清单。
+- **Cannot upload asset … immutable release**：资产必须在 draft 阶段上传。当前 workflow 已按「先 draft 再 publish」处理。若上次失败留下「已发布但缺资产」的 Release，先删 **Release**（保留 tag），再用 `workflow_dispatch` 重跑。  
+- **仓库规则禁止删除 tag**：不要强删远程 tag；用 Actions 手动触发，Branch 选 `master`，`tag` 填现有 tag。  
+- **远程名不是 origin**：用 `git remote -v` 确认（例如 `github`）。
 
-更换 sidecar：在 `apps/client` 执行 `pnpm prepare:bin`（需 `CARGO_TARGET_DIR`），脚本会重写 `src-tauri/binaries/SHA256SUMS`；将二进制与清单一并 commit。CI 只验锁、不生成。
+### 构建
 
-## 常见问题
+- **pnpm / Electron postinstall 卡住**：见 [pnpm-and-native-mirrors.md](./pnpm-and-native-mirrors.md)。  
+- **pnpm workspace 构建失败**：确认 `pnpm-lock.yaml` 与 `turbo.json` 同步。  
+- **Sidecar 缺失**：确认 `apps/client/src-tauri/binaries/` 中已跟踪真实 `corex-serve`（非占位）及匹配的 `SHA256SUMS`。
 
-- pnpm / Electron postinstall 卡住：见 [pnpm-and-native-mirrors.md](./pnpm-and-native-mirrors.md)，需设置 `ELECTRON_MIRROR`。
-- pnpm workspace 构建失败：确认 `pnpm-lock.yaml` 与 `turbo.json` 同步。
-- Client 桌面包：仅在 `client-release`（Windows）构建；CI 只跑 `build:core`。
-- Updater 签名失败：检查仓库 Secrets 是否配置 `TAURI_SIGNING_*`。
-- 本地发版（Windows，空密码）：`pnpm build:client` / `pnpm --filter @i-thinking/client build`（`scripts/build.ts` 注入 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""`；私钥仍用系统/终端环境变量）。
-- Sidecar 缺失：确认 `apps/client/src-tauri/binaries/` 中已跟踪真实 `corex-serve`（非占位）。
+---
 
-## 后续可选增强
+## 8. 后续可选增强
 
-- extension / devtools 独立发布工作流
-- `changesets` 自动版本管理
-- `turbo prune` + 远程缓存
-- Playwright E2E
-- macOS / Linux client 安装包（IPC 能力有限）
+- extension / devtools 独立发布工作流  
+- `changesets` 自动版本管理  
+- `turbo` 远程缓存 / CI 中持久化 `.turbo`  
+- Playwright E2E  
+- macOS / Linux Client 安装包（能力视 IPC 而定）  
+- Authenticode 云签 / HSM（当 CA 不再提供可导出 PFX 时）

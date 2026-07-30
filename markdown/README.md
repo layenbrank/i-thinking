@@ -11,7 +11,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [ops/ci-cd.md](./ops/ci-cd.md) | CI、发版、Secrets、bump |
+| [ops/ci-cd.md](./ops/ci-cd.md) | CI/CD：Secrets 概念、两类签名、工作流与发版操作 |
 | [ops/testing.md](./ops/testing.md) | Vitest / Jest 约定与示例入口 |
 | [ops/pnpm-and-native-mirrors.md](./ops/pnpm-and-native-mirrors.md) | pnpm 11 配置与 Electron 镜像 |
 
