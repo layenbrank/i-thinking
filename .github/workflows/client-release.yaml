@@ -402,75 +402,104 @@ jobs:
           $hash = (Get-FileHash $jsonPath -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  latest.json" | Out-File -Encoding ascii -Append "release-artifacts/SHA256SUMS.txt"
 
-      # Immutable Releases：资产只能在 draft 阶段上传。
-      # softprops 对 prerelease 会先 publish 再 upload，触发
-      # "Cannot upload asset … to an immutable release"。
-      # 因此始终先建 draft，用户未勾选 draft 时再 publish。
-      - name: Create versioned GitHub Release (draft + assets)
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.meta.outputs.tag }}
-          files: release-artifacts/*
-          name: Client ${{ steps.meta.outputs.tag }}
-          draft: true
-          prerelease: ${{ steps.meta.outputs.is_prerelease == 'true' }}
-          make_latest: false
-          generate_release_notes: true
-          body: |
-            ## Client ${{ steps.meta.outputs.tag }}
-
-            | Field | Value |
-            | --- | --- |
-            | Channel | `${{ steps.meta.outputs.channel }}` |
-            | App version | `${{ steps.meta.outputs.version }}` |
-            | Commit | `${{ steps.build_info.outputs.short }}` |
-            | Authenticode | `${{ steps.codesign.outputs.enabled }}` |
-            | Updater endpoint | `${{ steps.meta.outputs.updater_endpoint }}` |
-
-            ### Commit
-            ```
-            ${{ steps.build_info.outputs.message }}
-            ```
-
-            ### Build
-            - Platform: Windows x64
-            - Node: ${{ steps.build_info.outputs.node_version }}
-            - Rust: ${{ steps.build_info.outputs.rust_version }}
-            - Cargo: ${{ steps.build_info.outputs.cargo_version }}
-
-            ### Updater
-            - Versioned manifest: this release `latest.json`
-            - Channel floating manifest: `updater-${{ steps.meta.outputs.channel }}` → `latest.json`
-            - Clients built from this tag check: `${{ steps.meta.outputs.updater_endpoint }}`
-
+      # Immutable Releases：
+      # - 禁止对已发布 Release 补传资产
+      # - 曾用于 immutable 的 tag 上，`gh release edit --draft=false` 会 422
+      # 做法：删掉该 tag 上已有 Release（保留 git tag）→ `gh release create` 带资产一次完成
+      # 注意：勿在 run:| 里用 PowerShell @" "@（结束符必须顶格，会破坏 YAML 缩进）
       - name: Publish versioned GitHub Release
-        if: ${{ steps.meta.outputs.draft != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          RELEASE_CHANNEL: ${{ steps.meta.outputs.channel }}
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+          RELEASE_KEEP_DRAFT: ${{ steps.meta.outputs.draft }}
+          RELEASE_IS_PRERELEASE: ${{ steps.meta.outputs.is_prerelease }}
+          RELEASE_COMMIT_SHORT: ${{ steps.build_info.outputs.short }}
+          RELEASE_COMMIT_MSG: ${{ steps.build_info.outputs.message }}
+          RELEASE_AUTHENTICODE: ${{ steps.codesign.outputs.enabled }}
+          RELEASE_UPDATER_ENDPOINT: ${{ steps.meta.outputs.updater_endpoint }}
+          RELEASE_NODE: ${{ steps.build_info.outputs.node_version }}
+          RELEASE_RUST: ${{ steps.build_info.outputs.rust_version }}
+          RELEASE_CARGO: ${{ steps.build_info.outputs.cargo_version }}
         shell: pwsh
         run: |
-          $tag = "${{ steps.meta.outputs.tag }}"
-          $isPrerelease = "${{ steps.meta.outputs.is_prerelease }}" -eq "true"
-          $isStable = "${{ steps.meta.outputs.channel }}" -eq "stable" -and -not $isPrerelease
+          $tag = $env:RELEASE_TAG
+          $keepDraft = $env:RELEASE_KEEP_DRAFT -eq "true"
+          $isPrerelease = $env:RELEASE_IS_PRERELEASE -eq "true"
+          $isStable = ($env:RELEASE_CHANNEL -eq "stable") -and (-not $isPrerelease)
 
-          $ghArgs = @("release", "edit", $tag, "--draft=false")
+          $notesFile = Join-Path $env:RUNNER_TEMP "versioned-release-notes.md"
+          @(
+            "## Client $tag"
+            ""
+            "| Field | Value |"
+            "| --- | --- |"
+            "| Channel | ``$($env:RELEASE_CHANNEL)`` |"
+            "| App version | ``$($env:RELEASE_VERSION)`` |"
+            "| Commit | ``$($env:RELEASE_COMMIT_SHORT)`` |"
+            "| Authenticode | ``$($env:RELEASE_AUTHENTICODE)`` |"
+            "| Updater endpoint | ``$($env:RELEASE_UPDATER_ENDPOINT)`` |"
+            ""
+            "### Commit"
+            '```'
+            $env:RELEASE_COMMIT_MSG
+            '```'
+            ""
+            "### Build"
+            "- Platform: Windows x64"
+            "- Node: $($env:RELEASE_NODE)"
+            "- Rust: $($env:RELEASE_RUST)"
+            "- Cargo: $($env:RELEASE_CARGO)"
+            ""
+            "### Updater"
+            "- Versioned manifest: this release ``latest.json``"
+            "- Channel floating manifest: ``updater-$($env:RELEASE_CHANNEL)`` → ``latest.json``"
+            "- Clients built from this tag check: ``$($env:RELEASE_UPDATER_ENDPOINT)``"
+          ) | Set-Content -Path $notesFile -Encoding utf8
+
+          $assets = @(Get-ChildItem -Path release-artifacts -File | ForEach-Object { $_.FullName })
+          if ($assets.Count -eq 0) {
+            Write-Error "No files under release-artifacts/"
+            exit 1
+          }
+
+          gh release view $tag 2>&1 | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Deleting existing release $tag (git tag kept) so assets can be published cleanly"
+            gh release delete $tag --yes
+          }
+
+          $ghArgs = @(
+            "release", "create", $tag
+            "--title", "Client $tag"
+            "--notes-file", $notesFile
+            "--verify-tag"
+          )
+          if ($keepDraft) { $ghArgs += "--draft" }
           if ($isPrerelease) { $ghArgs += "--prerelease" } else { $ghArgs += "--prerelease=false" }
-          if ($isStable) { $ghArgs += "--latest=true" } else { $ghArgs += "--latest=false" }
+          if ($isStable -and -not $keepDraft) { $ghArgs += "--latest=true" } else { $ghArgs += "--latest=false" }
+          $ghArgs += $assets
 
-          Write-Host "gh $($ghArgs -join ' ')"
+          Write-Host "gh release create $tag ($($assets.Count) assets) draft=$keepDraft prerelease=$isPrerelease"
           & gh @ghArgs
 
-      # Immutable Releases 禁止改已发布资产，浮动清单只能删建 Release（保留 tag）
+      # 浮动清单：删建 + create（一次带文件，勿 draft+edit）
       - name: Publish floating channel manifest
         if: ${{ steps.meta.outputs.skip_channel_update != 'true' && steps.meta.outputs.draft != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          CHANNEL_TAG: ${{ steps.meta.outputs.channel_tag }}
+          CHANNEL_NAME: ${{ steps.meta.outputs.channel }}
+          VERSION_TAG: ${{ steps.meta.outputs.tag }}
+          REPO_NAME: ${{ github.repository }}
+          TARGET_SHA: ${{ github.sha }}
         shell: pwsh
         run: |
-          $tag = "${{ steps.meta.outputs.channel_tag }}"
-          $channel = "${{ steps.meta.outputs.channel }}"
-          $versionTag = "${{ steps.meta.outputs.tag }}"
-          $repo = "${{ github.repository }}"
+          $tag = $env:CHANNEL_TAG
+          $channel = $env:CHANNEL_NAME
+          $versionTag = $env:VERSION_TAG
+          $repo = $env:REPO_NAME
           $notesFile = Join-Path $env:RUNNER_TEMP "updater-channel-notes.md"
           @(
             "Floating **$channel** updater manifest."
@@ -482,7 +511,7 @@ jobs:
 
           gh release view $tag 2>&1 | Out-Null
           if ($LASTEXITCODE -eq 0) {
-            Write-Host "Deleting existing immutable release $tag (tag kept)"
+            Write-Host "Deleting existing release $tag (tag kept)"
             gh release delete $tag --yes
           }
 
@@ -490,8 +519,7 @@ jobs:
             --title "Updater channel · $channel" `
             --notes-file $notesFile `
             --prerelease `
-            --draft `
-            --latest=false
+            --latest=false `
+            --target $env:TARGET_SHA
 
-          gh release edit $tag --draft=false --prerelease --latest=false
           Write-Host "Published floating channel release: $tag"
