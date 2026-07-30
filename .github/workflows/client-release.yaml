@@ -165,17 +165,7 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Cache cargo dependencies
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('apps/client/src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Cache Tauri target
+      - name: Cache Tauri / Cargo
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/client/src-tauri -> target
@@ -402,124 +392,56 @@ jobs:
           $hash = (Get-FileHash $jsonPath -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  latest.json" | Out-File -Encoding ascii -Append "release-artifacts/SHA256SUMS.txt"
 
-      # Immutable Releases：
-      # - 禁止对已发布 Release 补传资产
-      # - 曾用于 immutable 的 tag 上，`gh release edit --draft=false` 会 422
-      # 做法：删掉该 tag 上已有 Release（保留 git tag）→ `gh release create` 带资产一次完成
-      # 注意：勿在 run:| 里用 PowerShell @" "@（结束符必须顶格，会破坏 YAML 缩进）
-      - name: Publish versioned GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
-          RELEASE_CHANNEL: ${{ steps.meta.outputs.channel }}
-          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
-          RELEASE_KEEP_DRAFT: ${{ steps.meta.outputs.draft }}
-          RELEASE_IS_PRERELEASE: ${{ steps.meta.outputs.is_prerelease }}
-          RELEASE_COMMIT_SHORT: ${{ steps.build_info.outputs.short }}
-          RELEASE_COMMIT_MSG: ${{ steps.build_info.outputs.message }}
-          RELEASE_AUTHENTICODE: ${{ steps.codesign.outputs.enabled }}
-          RELEASE_UPDATER_ENDPOINT: ${{ steps.meta.outputs.updater_endpoint }}
-          RELEASE_NODE: ${{ steps.build_info.outputs.node_version }}
-          RELEASE_RUST: ${{ steps.build_info.outputs.rust_version }}
-          RELEASE_CARGO: ${{ steps.build_info.outputs.cargo_version }}
-        shell: pwsh
-        run: |
-          $tag = $env:RELEASE_TAG
-          $keepDraft = $env:RELEASE_KEEP_DRAFT -eq "true"
-          $isPrerelease = $env:RELEASE_IS_PRERELEASE -eq "true"
-          $isStable = ($env:RELEASE_CHANNEL -eq "stable") -and (-not $isPrerelease)
+      - name: Create versioned GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          files: release-artifacts/*
+          name: Client ${{ steps.meta.outputs.tag }}
+          draft: ${{ steps.meta.outputs.draft == 'true' }}
+          prerelease: ${{ steps.meta.outputs.is_prerelease == 'true' }}
+          make_latest: ${{ steps.meta.outputs.channel == 'stable' && steps.meta.outputs.draft != 'true' && steps.meta.outputs.is_prerelease != 'true' }}
+          generate_release_notes: true
+          body: |
+            ## Client ${{ steps.meta.outputs.tag }}
 
-          $notesFile = Join-Path $env:RUNNER_TEMP "versioned-release-notes.md"
-          @(
-            "## Client $tag"
-            ""
-            "| Field | Value |"
-            "| --- | --- |"
-            "| Channel | ``$($env:RELEASE_CHANNEL)`` |"
-            "| App version | ``$($env:RELEASE_VERSION)`` |"
-            "| Commit | ``$($env:RELEASE_COMMIT_SHORT)`` |"
-            "| Authenticode | ``$($env:RELEASE_AUTHENTICODE)`` |"
-            "| Updater endpoint | ``$($env:RELEASE_UPDATER_ENDPOINT)`` |"
-            ""
-            "### Commit"
-            '```'
-            $env:RELEASE_COMMIT_MSG
-            '```'
-            ""
-            "### Build"
-            "- Platform: Windows x64"
-            "- Node: $($env:RELEASE_NODE)"
-            "- Rust: $($env:RELEASE_RUST)"
-            "- Cargo: $($env:RELEASE_CARGO)"
-            ""
-            "### Updater"
-            "- Versioned manifest: this release ``latest.json``"
-            "- Channel floating manifest: ``updater-$($env:RELEASE_CHANNEL)`` → ``latest.json``"
-            "- Clients built from this tag check: ``$($env:RELEASE_UPDATER_ENDPOINT)``"
-          ) | Set-Content -Path $notesFile -Encoding utf8
+            | Field | Value |
+            | --- | --- |
+            | Channel | `${{ steps.meta.outputs.channel }}` |
+            | App version | `${{ steps.meta.outputs.version }}` |
+            | Commit | `${{ steps.build_info.outputs.short }}` |
+            | Authenticode | `${{ steps.codesign.outputs.enabled }}` |
+            | Updater endpoint | `${{ steps.meta.outputs.updater_endpoint }}` |
 
-          $assets = @(Get-ChildItem -Path release-artifacts -File | ForEach-Object { $_.FullName })
-          if ($assets.Count -eq 0) {
-            Write-Error "No files under release-artifacts/"
-            exit 1
-          }
+            ### Commit
+            ```
+            ${{ steps.build_info.outputs.message }}
+            ```
 
-          gh release view $tag 2>&1 | Out-Null
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "Deleting existing release $tag (git tag kept) so assets can be published cleanly"
-            gh release delete $tag --yes
-          }
+            ### Build
+            - Platform: Windows x64
+            - Node: ${{ steps.build_info.outputs.node_version }}
+            - Rust: ${{ steps.build_info.outputs.rust_version }}
+            - Cargo: ${{ steps.build_info.outputs.cargo_version }}
 
-          $ghArgs = @(
-            "release", "create", $tag
-            "--title", "Client $tag"
-            "--notes-file", $notesFile
-            "--verify-tag"
-          )
-          if ($keepDraft) { $ghArgs += "--draft" }
-          if ($isPrerelease) { $ghArgs += "--prerelease" } else { $ghArgs += "--prerelease=false" }
-          if ($isStable -and -not $keepDraft) { $ghArgs += "--latest=true" } else { $ghArgs += "--latest=false" }
-          $ghArgs += $assets
+            ### Updater
+            - Versioned manifest: this release `latest.json`
+            - Channel floating manifest: `updater-${{ steps.meta.outputs.channel }}` → `latest.json`
+            - Clients built from this tag check: `${{ steps.meta.outputs.updater_endpoint }}`
 
-          Write-Host "gh release create $tag ($($assets.Count) assets) draft=$keepDraft prerelease=$isPrerelease"
-          & gh @ghArgs
-
-      # 浮动清单：删建 + create（一次带文件，勿 draft+edit）
       - name: Publish floating channel manifest
         if: ${{ steps.meta.outputs.skip_channel_update != 'true' && steps.meta.outputs.draft != 'true' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CHANNEL_TAG: ${{ steps.meta.outputs.channel_tag }}
-          CHANNEL_NAME: ${{ steps.meta.outputs.channel }}
-          VERSION_TAG: ${{ steps.meta.outputs.tag }}
-          REPO_NAME: ${{ github.repository }}
-          TARGET_SHA: ${{ github.sha }}
-        shell: pwsh
-        run: |
-          $tag = $env:CHANNEL_TAG
-          $channel = $env:CHANNEL_NAME
-          $versionTag = $env:VERSION_TAG
-          $repo = $env:REPO_NAME
-          $notesFile = Join-Path $env:RUNNER_TEMP "updater-channel-notes.md"
-          @(
-            "Floating **$channel** updater manifest."
-            ""
-            "- Updated by: ``$versionTag``"
-            "- Endpoint: ``https://github.com/$repo/releases/download/$tag/latest.json``"
-            "- Do **not** delete this release tag; subsequent publishes recreate the release and replace ``latest.json``."
-          ) | Set-Content -Path $notesFile -Encoding utf8
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.meta.outputs.channel_tag }}
+          name: Updater channel · ${{ steps.meta.outputs.channel }}
+          # 始终标为 prerelease，避免抢走 GitHub /releases/latest
+          prerelease: true
+          make_latest: false
+          files: release-artifacts/latest.json
+          body: |
+            Floating **${{ steps.meta.outputs.channel }}** updater manifest.
 
-          gh release view $tag 2>&1 | Out-Null
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "Deleting existing release $tag (tag kept)"
-            gh release delete $tag --yes
-          }
-
-          gh release create $tag "release-artifacts/latest.json" `
-            --title "Updater channel · $channel" `
-            --notes-file $notesFile `
-            --prerelease `
-            --latest=false `
-            --target $env:TARGET_SHA
-
-          Write-Host "Published floating channel release: $tag"
+            - Updated by: `${{ steps.meta.outputs.tag }}`
+            - Endpoint: `https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.channel_tag }}/latest.json`
+            - Do **not** delete this release; subsequent channel publishes overwrite `latest.json`.

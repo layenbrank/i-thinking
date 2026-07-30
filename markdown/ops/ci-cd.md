@@ -172,7 +172,7 @@ Runner：`windows-latest`
 - **Updater 端点**：构建前写入对应 `updater-{channel}` 的 `latest.json` URL  
 - **Sidecar 验锁**：校验仓库内 `binaries/SHA256SUMS`（CI **只验不生成**）  
 - **`workflow_dispatch`**：按输入的 tag checkout，不构建默认分支 HEAD  
-- **Immutable Releases**：用 `gh release create` 一次带上资产（勿 `softprops` + `gh release edit --draft=false`）；浮动渠道每次删建 Release（保留 tag）以替换 `latest.json`
+- 浮动渠道 `updater-{channel}`：每次发版覆盖同 Release 上的 `latest.json`（仓库需关闭 **Immutable releases**，否则无法覆盖资产）
 
 #### 渠道对照
 
@@ -301,12 +301,10 @@ docker run -p 8080:80 web-ext
 - **Release 里 Authenticode 显示 false**：正常，表示未配或跳过了 `WINDOWS_CERTIFICATE`。  
 - **以为配了本机证书就会在 CI 生效**：不会。必须写入仓库 Secrets，且名字与 `${{ secrets.XXX }}` 一致。
 
-### Tag / Immutable Releases
+### Tag / Release
 
-- **Cannot upload asset … immutable release**：资产必须在「发布前」上传。当前 workflow 用 `gh release create` 带文件一次完成（内部 draft→upload→publish）。  
-- **`tag_name was used by an immutable release`（`gh release edit --draft=false`）**：该 tag 曾关联过 immutable Release 后，不能靠 edit 把 draft 改成正式版。应删除该 tag 上的 Release（保留 git tag），再 `gh release create` 重建。当前 workflow 已按此处理。  
-- **重跑前**：若 Actions 里还留着该 tag 的 draft / 残缺 Release，可先删掉，或直接重跑（步骤会先 `gh release delete`）。  
-- **仓库规则禁止删除 tag**：不要强删远程 tag；用 Actions 手动触发，Branch 选 `master`，`tag` 填现有 tag。  
+- **仓库已关闭 Immutable releases**：版本 Release 与浮动 `updater-*` 可正常创建/覆盖资产。若重新开启 Immutable，浮动清单覆盖会失败，需改架构（见上文渠道说明）或改回「删建 Release」权宜方案。  
+- **重跑同一 tag**：可先删掉该 tag 对应的 GitHub Release（保留 git tag），再 `workflow_dispatch` 重跑。  
 - **远程名不是 origin**：用 `git remote -v` 确认（例如 `github`）。
 
 ### 构建
