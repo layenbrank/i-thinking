@@ -55,6 +55,20 @@ pnpm build   # 或仓库根：pnpm build:client
 
 私钥用系统/终端 `TAURI_SIGNING_PRIVATE_KEY`；`scripts/build.ts` 会设 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""`。
 
+## CI 发版（stable / alpha / beta / rc）
+
+详见仓库根 `markdown/CI-CD.md`。摘要：
+
+```bash
+# 仓库根：仅 bump client（apps/client/bump.client.ts）
+pnpm bump:client 1.2.0-beta.1
+git add apps/client/package.json apps/client/src-tauri/tauri.conf.json apps/client/src-tauri/Cargo.toml
+git commit -m "chore(release): 1.2.0-beta.1"
+git tag v1.2.0-beta.1 && git push origin HEAD && git push origin v1.2.0-beta.1
+```
+
+更换 sidecar：`pnpm prepare:bin`（设置 `CARGO_TARGET_DIR`）会复制二进制并重写 `src-tauri/binaries/SHA256SUMS`；请将二者一并提交。CI 只校验清单。
+
 ## 平台说明
 
 - **IPC（Named Pipe）**：当前仅 Windows 桌面启用 corex-serve sidecar

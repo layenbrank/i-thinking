@@ -35,26 +35,90 @@
   - `pnpm --filter @i-thinking/client run build:core`（仅 Web，避免 Ubuntu 上跑 Tauri）
   - 上传 `apps/**/dist/**`、`packages/**/dist/**` 等为制品
 
-### 2) Client Release（Tauri Windows）
+### 2) Client Release（Tauri Windows · 企业级渠道）
 
 文件：`.github/workflows/client-release.yaml`
 
-- 触发：push tag `v*`，或 `workflow_dispatch`
+各应用独立版本：配置在 `apps/<project>/bump.<project>.ts`，根脚本 `pnpm bump:<project>`。
+
+| 命令 | 配置 |
+| --- | --- |
+| `pnpm bump:client` | `apps/client/bump.client.ts`（含 tauri.conf / Cargo.toml） |
+| `pnpm bump:service` | `apps/service/bump.service.ts` |
+| `pnpm bump:studio` | `apps/studio/bump.studio.ts` |
+| `pnpm bump:extension` | `apps/extension/bump.extension.ts` |
+| `pnpm bump:devtools` | `apps/devtools/bump.devtools.ts` |
+| `pnpm bump:docs` | `apps/docs/bump.docs.ts` |
+
+- 触发：push tag `v*`，或 `workflow_dispatch`（可勾选 draft）
 - Runner：`windows-latest`
-- 步骤概要：
-  - 校验已入库 sidecar：`apps/client/src-tauri/binaries/corex-serve-*.exe` + `pdfium.dll`
-  - `pnpm --filter @i-thinking/client build`（`tauri build`）
-  - 收集 NSIS/MSI、`.sig`、`latest.json` 到 `release-artifacts/`
-  - `softprops/action-gh-release@v3` 发布到 GitHub Releases
-- Updater 端点（见 `tauri.conf.json`）：
-  `https://github.com/<owner>/<repo>/releases/latest/download/latest.json`
+- 能力：
+  - **版本门禁**：tag 去掉 `v` 后必须等于 `tauri.conf.json` / `Cargo.toml` / `apps/client/package.json`
+  - **渠道**：由 SemVer 后缀决定 → `stable` | `alpha` | `beta` | `rc`
+  - **浮动清单**：每次成功发版更新 `updater-{channel}` Release 上的 `latest.json`（标为 prerelease，不抢 `/releases/latest`）
+  - 构建前把该渠道 endpoint 写入 `tauri.conf.json`，使 alpha/beta 包检查对应渠道
+  - sidecar **SHA256 验锁**（仓库内 `binaries/SHA256SUMS`；CI **只校验不生成**；由 `prepare.ts` 在复制真实 sidecar 后重写）
+  - `workflow_dispatch` 按填写的 tag **checkout**（不构建默认分支 HEAD）
+  - 强制要求 `TAURI_SIGNING_PRIVATE_KEY`
+  - 可选 Authenticode：配置 `WINDOWS_CERTIFICATE`（PFX Base64）+ `WINDOWS_CERTIFICATE_PASSWORD`
+  - 生成并上传 `latest.json` + 安装包 + `.sig` + `SHA256SUMS.txt`
+
+#### 如何发 prerelease（alpha / beta / rc）
+
+```bash
+# 1) 同步 bump 客户端版本（apps/client/bump.client.ts；不含 monorepo 根 package.json）
+pnpm bump:client 1.2.0-alpha.1
+# 或 beta / rc
+pnpm bump:client 1.2.0-beta.1
+pnpm bump:client 1.2.0-rc.1
+
+# 2) 提交版本变更
+git add apps/client/package.json apps/client/src-tauri/tauri.conf.json apps/client/src-tauri/Cargo.toml
+git commit -m "chore(release): 1.2.0-beta.1"
+
+# 3) 打 tag 并推送（触发 client-release）
+git tag v1.2.0-beta.1
+git push origin HEAD
+git push origin v1.2.0-beta.1
+```
+
+| Tag 示例 | 渠道 | GitHub Release | 客户端检查的清单 |
+| --- | --- | --- | --- |
+| `v1.2.0` | stable | 正式版（`make_latest`） | `.../download/updater-stable/latest.json` |
+| `v1.2.0-alpha.1` | alpha | prerelease | `.../download/updater-alpha/latest.json` |
+| `v1.2.0-beta.1` | beta | prerelease | `.../download/updater-beta/latest.json` |
+| `v1.2.0-rc.1` | rc | prerelease | `.../download/updater-rc/latest.json` |
+
+正式版：
+
+```bash
+pnpm bump:client 1.2.0
+# commit + tag v1.2.0 + push
+```
+
+草稿发版（先审再公开）：Actions → Client Release → Run workflow → 填 tag、勾选 `draft`。
+
+#### Updater 端点（默认 stable）
+
+`tauri.conf.json` 默认：
+
+`https://github.com/<owner>/<repo>/releases/download/updater-stable/latest.json`
+
+CI 会按渠道改写为 `updater-alpha` / `updater-beta` / `updater-rc`。
 
 **必需 Secrets：**
 
 | Secret | 说明 |
 |--------|------|
-| `TAURI_SIGNING_PRIVATE_KEY` | Tauri updater 签名私钥（`createUpdaterArtifacts: true`） |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码；无密码也需存在并为空字符串（勿省略，否则会交互卡死） |
+| `TAURI_SIGNING_PRIVATE_KEY` | Tauri updater 签名私钥（必填） |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码；无密码也需存在并为空字符串 |
+
+**可选 Secrets（Authenticode）：**
+
+| Secret | 说明 |
+|--------|------|
+| `WINDOWS_CERTIFICATE` | 代码签名 PFX 的 Base64 |
+| `WINDOWS_CERTIFICATE_PASSWORD` | PFX 密码 |
 
 ### 3) Service Release（GHCR）
 
@@ -103,16 +167,26 @@ docker run -p 8080:80 web-ext
 
 - **GHCR**：默认 `GITHUB_TOKEN`（service-release）
 - **Tauri updater**：`TAURI_SIGNING_PRIVATE_KEY`；`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 无密码时也要为空字符串（不能 unset）
+- **Windows Authenticode（可选）**：`WINDOWS_CERTIFICATE`（PFX Base64）、`WINDOWS_CERTIFICATE_PASSWORD`
 - 如需私有 npm 源，添加 `NPM_TOKEN` 并在工作流中配置
 
 ## 发布操作
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+# 正式版
+pnpm bump:client 1.2.0
+git add apps/client/package.json apps/client/src-tauri/tauri.conf.json apps/client/src-tauri/Cargo.toml
+git commit -m "chore(release): 1.2.0"
+git tag v1.2.0 && git push origin HEAD && git push origin v1.2.0
+
+# 预发版（示例 beta）
+pnpm bump:client 1.2.0-beta.1
+# …同样 commit + tag v1.2.0-beta.1 + push
 ```
 
-同一 tag 会并行触发 `client-release` 与 `service-release`。含 `alpha` / `beta` / `rc` 的 tag 会将 client Release 标为 prerelease。
+同一 tag 会并行触发 `client-release` 与 `service-release`。含 `-alpha` / `-beta` / `-rc` 的 tag 会将 Client Release 标为 prerelease，并更新对应 `updater-{channel}` 浮动清单。
+
+更换 sidecar：在 `apps/client` 执行 `pnpm prepare:bin`（需 `CARGO_TARGET_DIR`），脚本会重写 `src-tauri/binaries/SHA256SUMS`；将二进制与清单一并 commit。CI 只验锁、不生成。
 
 ## 常见问题
 

@@ -161,9 +161,9 @@
     "resources": ["icons/", "binaries/pdfium.dll"],
     "targets": "all",
     "windows": {
-      "allowDowngrades": true,
+      "allowDowngrades": false,
       "certificateThumbprint": null,
-      "digestAlgorithm": null,
+      "digestAlgorithm": "sha256",
       "nsis": {
         "compression": "lzma",
         "displayLanguageSelector": true,
@@ -173,15 +173,14 @@
         "startMenuFolder": "i thinking"
       },
       "signCommand": null,
-      "timestampUrl": null,
+      "timestampUrl": "http://timestamp.digicert.com",
       "tsp": false,
       "webviewInstallMode": {
         "silent": true,
         "type": "downloadBootstrapper"
       },
       "wix": {
-        "language": ["zh-CN", "en-US"],
-        "version": "0.1.0"
+        "language": ["zh-CN", "en-US"]
       }
     }
   },
@@ -205,7 +204,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk4RTQwMDZERTc1MTc2ODMKUldTRGRsSG5iUURrbUdJR2ZGRGxKTGN5ZWxBTWVoeVdWMVpmdXd3dnZrQTg2ZnkwU2dBaG12eUUK",
       "endpoints": [
-        "https://github.com/layenbrank/i-thinking/releases/latest/download/latest.json"
+        "https://github.com/layenbrank/i-thinking/releases/download/updater-stable/latest.json"
       ],
       "windows": {
         "installMode": "passive"
@@ -213,5 +212,5 @@
     }
   },
   "productName": "i thinking",
-  "version": "0.1.0"
+  "version": "1.2.0-alpha.1"
 }

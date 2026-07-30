@@ -5,7 +5,6 @@ import {
   defineConfigWithVueTs,
   vueTsConfigs
 } from '@vue/eslint-config-typescript'
-import pluginOxlint from 'eslint-plugin-oxlint'
 import pluginPlaywright from 'eslint-plugin-playwright'
 import pluginVue from 'eslint-plugin-vue'
 import { globalIgnores } from 'eslint/config'
@@ -32,7 +31,6 @@ export default defineConfigWithVueTs(
   vueTsConfigs.recommended,
   vueTsConfigs.recommendedTypeChecked,
   vueTsConfigs.stylisticTypeChecked,
-  pluginOxlint.configs['flat/recommended'],
   skipFormatting,
   globalIgnores(['dist', 'node_modules']),
   {

@@ -1,5 +1,6 @@
 /**
  * 构建前将 corex-serve 从 CARGO_TARGET_DIR 复制到 src-tauri/binaries/，并按 Tauri sidecar 命名。
+ * 复制真实二进制后重写 SHA256SUMS（CI client-release 只验锁、不生成）。
  *
  * 用法（在 apps/client 目录）：
  *   bun run scripts/prepare.ts
@@ -9,6 +10,7 @@
  *   CARGO_TARGET_DIR  — Cargo 产物目录（从此处查找 release/corex-serve）
  */
 
+import { createHash } from 'node:crypto'
 import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -19,11 +21,14 @@ const CLIENT_DIR = path.resolve(SCRIPT_DIR, '..')
 const TAURI_DIR = path.join(CLIENT_DIR, 'src-tauri')
 const OUT_DIR = path.join(TAURI_DIR, 'binaries')
 const PLACEHOLDER_MARKER = path.join(OUT_DIR, '.corex-placeholder')
+const SHA256SUMS_PATH = path.join(OUT_DIR, 'SHA256SUMS')
 const EXT = process.platform === 'win32' ? '.exe' : ''
 const TARGET_TRIPLE = execSync('rustc --print host-tuple', { encoding: 'utf8' }).trim()
 const BINARY_NAME = `corex-serve${EXT}`
 const DEST = path.join(OUT_DIR, `corex-serve-${TARGET_TRIPLE}${EXT}`)
+const DEST_BASENAME = path.basename(DEST)
 const PDFIUM_DEST = path.join(OUT_DIR, 'pdfium.dll')
+const PDFIUM_BASENAME = 'pdfium.dll'
 const LOG_PREFIX = '[prepare]'
 
 const IS_STRICT = process.argv.slice(2).includes('--strict')
@@ -74,10 +79,42 @@ function printMissingHint(): void {
   console.error('并设置 CARGO_TARGET_DIR（指向 target 目录）')
 }
 
+/** 计算文件 SHA-256（小写 hex）。 */
+function hashFileSha256(filePath: string): string {
+  const digest = createHash('sha256')
+  digest.update(fs.readFileSync(filePath))
+  return digest.digest('hex')
+}
+
+/**
+ * 写入 binaries/SHA256SUMS（`hash␠␠filename`，与 CI 正则一致）。
+ * 仅应在真实 sidecar 复制成功后调用。
+ */
+function writeSidecarChecksums(): void {
+  const lines: string[] = []
+  if (!fs.existsSync(DEST)) {
+    throw new Error(`missing sidecar for checksums: ${DEST}`)
+  }
+  lines.push(`${hashFileSha256(DEST)}  ${DEST_BASENAME}`)
+  if (fs.existsSync(PDFIUM_DEST)) {
+    lines.push(`${hashFileSha256(PDFIUM_DEST)}  ${PDFIUM_BASENAME}`)
+  }
+  fs.writeFileSync(SHA256SUMS_PATH, `${lines.join('\n')}\n`, 'utf8')
+  console.log(`${LOG_PREFIX} wrote ${SHA256SUMS_PATH}`)
+}
+
+/** 占位 sidecar 时移除过期清单，避免把 cmd.exe 等哈希提交进库。 */
+function clearSidecarChecksums(reason: string): void {
+  if (!fs.existsSync(SHA256SUMS_PATH)) return
+  fs.unlinkSync(SHA256SUMS_PATH)
+  console.warn(`${LOG_PREFIX} removed ${SHA256SUMS_PATH} (${reason})`)
+}
+
 function writePlaceholder(fallback: string, reason: string): void {
   fs.mkdirSync(OUT_DIR, { recursive: true })
   fs.copyFileSync(fallback, DEST)
   fs.writeFileSync(PLACEHOLDER_MARKER, `${fallback}\n`, 'utf8')
+  clearSidecarChecksums('placeholder sidecar')
   console.warn(`${LOG_PREFIX} corex-serve 未找到，已用占位二进制 ${fallback}`)
   console.warn(`${LOG_PREFIX} ${reason}`)
 }
@@ -89,6 +126,7 @@ function copySidecar(src: string): void {
 
   if (fs.existsSync(PLACEHOLDER_MARKER)) fs.unlinkSync(PLACEHOLDER_MARKER)
 
+  writeSidecarChecksums()
   console.log(`${LOG_PREFIX} ${src} -> ${DEST}`)
 }
 
@@ -122,4 +160,12 @@ function prepare(): void {
 
 prepare()
 
-export { prepare, findCorexServePath, findPlaceholderBinary, copyPdfiumDll }
+export {
+  prepare,
+  findCorexServePath,
+  findPlaceholderBinary,
+  copyPdfiumDll,
+  writeSidecarChecksums,
+  clearSidecarChecksums,
+  hashFileSha256
+}

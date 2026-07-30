@@ -1,29 +1,56 @@
 name: Client Release
 
+# 企业级 Tauri Windows 发版
+# - SemVer tag 与 tauri.conf / Cargo / package.json 强制对齐
+# - 渠道：stable | alpha | beta | rc（由 tag 后缀决定）
+# - 浮动清单：updater-{channel}/latest.json（应用内 updater 端点）
+# - 版本化 Release 仍上传安装包 + .sig + latest.json
+#
+# 发布示例：
+#   pnpm bump:client 1.2.0          && git tag v1.2.0          && git push --tags
+#   pnpm bump:client 1.2.0-alpha.1  && git tag v1.2.0-alpha.1  && git push --tags
+#   pnpm bump:client 1.2.0-beta.1   && git tag v1.2.0-beta.1   && git push --tags
+#   pnpm bump:client 1.2.0-rc.1     && git tag v1.2.0-rc.1     && git push --tags
+
 on:
   push:
     tags:
-      - v*
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag to publish (e.g. v0.1.0); required when not running on a tag push
+        description: Tag to publish (e.g. v1.2.0 / v1.2.0-beta.1); required when not on a tag push
         required: false
         type: string
+      draft:
+        description: Create draft Release (manual publish after review)
+        required: false
+        type: boolean
+        default: false
+      skip_channel_update:
+        description: Skip updating floating updater-{channel} manifest
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: client-release-${{ github.ref }}
+  group: client-release-${{ github.ref }}-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: '0'
+  SIDECAR_DIR: apps/client/src-tauri/binaries
   SIDECAR_EXE: apps/client/src-tauri/binaries/corex-serve-x86_64-pc-windows-msvc.exe
   SIDECAR_PDFIUM: apps/client/src-tauri/binaries/pdfium.dll
+  SIDECAR_SUMS: apps/client/src-tauri/binaries/SHA256SUMS
   BUNDLE_DIR: apps/client/src-tauri/target/release/bundle
+  TAURI_CONF: apps/client/src-tauri/tauri.conf.json
+  # Authenticode 时间戳服务（仅 signtool 协议，浏览器无法打开属正常）
+  WINDOWS_TIMESTAMP_URL: http://timestamp.digicert.com
 
 jobs:
   windows-x64:
@@ -32,8 +59,97 @@ jobs:
     timeout-minutes: 90
 
     steps:
+      - name: Resolve release metadata
+        id: meta
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $tag = "${{ github.ref_name }}"
+          } elseif ("${{ inputs.tag }}" -ne "") {
+            $tag = "${{ inputs.tag }}".Trim()
+          } else {
+            Write-Error "No tag: push a v* tag, or pass workflow_dispatch input tag"
+            exit 1
+          }
+
+          if ($tag -notmatch '^v(?<ver>\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)(?:\.\d+)?)?)$') {
+            Write-Error "Invalid tag '$tag'. Expected SemVer: v1.2.0 | v1.2.0-alpha.1 | v1.2.0-beta.1 | v1.2.0-rc.1"
+            exit 1
+          }
+
+          $version = $Matches['ver']
+          $channel = 'stable'
+          $isPrerelease = $false
+          if ($version -match '-alpha(?:\.|$)') { $channel = 'alpha'; $isPrerelease = $true }
+          elseif ($version -match '-beta(?:\.|$)') { $channel = 'beta'; $isPrerelease = $true }
+          elseif ($version -match '-rc(?:\.|$)') { $channel = 'rc'; $isPrerelease = $true }
+
+          $draft = '${{ inputs.draft }}' -eq 'true'
+          $skipChannel = '${{ inputs.skip_channel_update }}' -eq 'true'
+
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "channel=$channel" >> $env:GITHUB_OUTPUT
+          "is_prerelease=$($isPrerelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "draft=$($draft.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "skip_channel_update=$($skipChannel.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "channel_tag=updater-$channel" >> $env:GITHUB_OUTPUT
+          "updater_endpoint=https://github.com/${{ github.repository }}/releases/download/updater-$channel/latest.json" >> $env:GITHUB_OUTPUT
+
+          Write-Host "tag=$tag version=$version channel=$channel prerelease=$isPrerelease draft=$draft"
+
+      # workflow_dispatch 必须按 tag 取代码，避免构建默认分支 HEAD 却挂到旧 tag
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.meta.outputs.tag }}
+
+      - name: Enforce version alignment
+        shell: pwsh
+        run: |
+          $expected = "${{ steps.meta.outputs.version }}"
+          $errors = @()
+
+          $tauriConf = Get-Content $env:TAURI_CONF -Raw | ConvertFrom-Json
+          if ([string]$tauriConf.version -ne $expected) {
+            $errors += "tauri.conf.json version='$($tauriConf.version)' != '$expected'"
+          }
+
+          $cargoToml = Get-Content "apps/client/src-tauri/Cargo.toml" -Raw
+          if ($cargoToml -notmatch '(?ms)\[package\][^\[]*?^version\s*=\s*"([^"]+)"') {
+            $errors += "Cargo.toml [package] version not found"
+          } elseif ($Matches[1] -ne $expected) {
+            $errors += "Cargo.toml [package] version='$($Matches[1])' != '$expected'"
+          }
+
+          $clientPkg = Get-Content "apps/client/package.json" -Raw | ConvertFrom-Json
+          if ([string]$clientPkg.version -ne $expected) {
+            $errors += "apps/client/package.json version='$($clientPkg.version)' != '$expected'"
+          }
+
+          if ($errors.Count -gt 0) {
+            Write-Error @"
+Version gate failed. Tag implies version '$expected', but sources disagree:
+$($errors -join "`n")
+
+Fix: pnpm bump:client $expected   # bumps apps/client/package.json + tauri.conf + Cargo.toml
+Then commit, tag v$expected, and push.
+"@
+            exit 1
+          }
+
+          Write-Host "Version alignment OK: $expected"
+
+      - name: Require updater signing secrets
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            Write-Error "Missing secret TAURI_SIGNING_PRIVATE_KEY (required for updater .sig / latest.json)"
+            exit 1
+          }
+          Write-Host "Updater signing key present"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -72,28 +188,106 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify sidecar binaries
+      - name: Verify sidecar binaries + checksums
         shell: pwsh
         run: |
-          if (-not (Test-Path $env:SIDECAR_EXE)) {
-            Write-Error "Missing sidecar: $env:SIDECAR_EXE"
+          foreach ($path in @($env:SIDECAR_EXE, $env:SIDECAR_PDFIUM, $env:SIDECAR_SUMS)) {
+            if (-not (Test-Path $path)) {
+              Write-Error "Missing: $path"
+              exit 1
+            }
+          }
+
+          $failed = $false
+          Get-Content $env:SIDECAR_SUMS | Where-Object { $_.Trim() -and ($_ -notmatch '^\s*#') } | ForEach-Object {
+            if ($_ -notmatch '^(?<hash>[a-fA-F0-9]{64})\s{2}(?<name>.+)$') {
+              Write-Error "Malformed SHA256SUMS line: $_"
+              $failed = $true
+              return
+            }
+            $file = Join-Path $env:SIDECAR_DIR $Matches['name']
+            if (-not (Test-Path $file)) {
+              Write-Error "Checksum entry missing file: $file"
+              $failed = $true
+              return
+            }
+            $actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            $expected = $Matches['hash'].ToLowerInvariant()
+            if ($actual -ne $expected) {
+              Write-Error "Checksum mismatch for $($Matches['name']): expected $expected got $actual"
+              $failed = $true
+              return
+            }
+            Write-Host "OK $($Matches['name'])"
+          }
+
+          if ($failed) { exit 1 }
+
+      - name: Bind updater channel endpoint
+        shell: pwsh
+        env:
+          ENDPOINT: ${{ steps.meta.outputs.updater_endpoint }}
+          APP_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          $env:MSI_VERSION = ($env:APP_VERSION -split '-')[0]
+          node --input-type=module -e @"
+          import fs from 'node:fs'
+          const path = process.env.TAURI_CONF
+          const conf = JSON.parse(fs.readFileSync(path, 'utf8'))
+          if (!conf.plugins?.updater) throw new Error('plugins.updater missing')
+          conf.plugins.updater.endpoints = [process.env.ENDPOINT]
+          conf.bundle.windows.allowDowngrades = false
+          conf.bundle.windows.wix ??= {}
+          conf.bundle.windows.wix.version = process.env.MSI_VERSION
+          fs.writeFileSync(path, JSON.stringify(conf, null, 2) + '\n')
+          console.log('Updater endpoint =>', process.env.ENDPOINT)
+          console.log('wix.version =>', process.env.MSI_VERSION)
+          "@
+
+      - name: Import Windows Authenticode certificate (optional)
+        id: codesign
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE)) {
+            Write-Host "WINDOWS_CERTIFICATE not set — skipping Authenticode (SmartScreen may warn)"
+            "enabled=false" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+          $pfxPath = Join-Path $env:RUNNER_TEMP "windows-codesign.pfx"
+          [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $secure = ConvertTo-SecureString -String ($env:WINDOWS_CERTIFICATE_PASSWORD ?? '') -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $secure
+          $thumb = $cert.Thumbprint
+          if (-not $thumb) {
+            Write-Error "Failed to import WINDOWS_CERTIFICATE"
             exit 1
           }
-          if (-not (Test-Path $env:SIDECAR_PDFIUM)) {
-            Write-Error "Missing pdfium: $env:SIDECAR_PDFIUM"
-            exit 1
-          }
-          Write-Host "Sidecar OK: $env:SIDECAR_EXE"
-          Write-Host "Pdfium OK: $env:SIDECAR_PDFIUM"
+
+          $env:THUMBPRINT = $thumb
+          node --input-type=module -e @"
+          import fs from 'node:fs'
+          const path = process.env.TAURI_CONF
+          const conf = JSON.parse(fs.readFileSync(path, 'utf8'))
+          conf.bundle.windows.certificateThumbprint = process.env.THUMBPRINT
+          conf.bundle.windows.digestAlgorithm = 'sha256'
+          conf.bundle.windows.timestampUrl = process.env.WINDOWS_TIMESTAMP_URL
+          fs.writeFileSync(path, JSON.stringify(conf, null, 2) + '\n')
+          console.log('Authenticode thumbprint =>', process.env.THUMBPRINT)
+          "@
+
+          "enabled=true" >> $env:GITHUB_OUTPUT
+          "thumbprint=$thumb" >> $env:GITHUB_OUTPUT
 
       - name: Build Tauri client
         env:
           NODE_ENV: production
-          # CI 未装 sccache：空值覆盖 .cargo/config.toml 的 rustc-wrapper
           CARGO_BUILD_RUSTC_WRAPPER: ''
           RUSTC_WRAPPER: ''
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          # 无密码时必须是空字符串；Secret 未配置时 ${{ }} 为 null，会回退成交互式卡死
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
         run: pnpm build:client
 
@@ -114,8 +308,7 @@ jobs:
             "$bundleDir\nsis\*.sig",
             "$bundleDir\msi\*.sig",
             "$bundleDir\**\*.nsis.zip",
-            "$bundleDir\**\*.nsis.zip.sig",
-            "$bundleDir\**\latest.json"
+            "$bundleDir\**\*.nsis.zip.sig"
           )
 
           $copied = @()
@@ -127,25 +320,20 @@ jobs:
             }
           }
 
-          # Fallback: any installer under bundle
-          if ($copied.Count -eq 0) {
-            Get-ChildItem -Path $bundleDir -Recurse -Include *.exe,*.msi,*.sig,latest.json |
-              Where-Object { -not $_.PSIsContainer } |
-              ForEach-Object {
-                Copy-Item $_.FullName -Destination release-artifacts -Force
-                $copied += $_.Name
-                Write-Host "Copied (fallback): $($_.FullName)"
-              }
-          }
-
           if ($copied.Count -eq 0) {
             Write-Error "No release artifacts found under $bundleDir"
             Get-ChildItem -Path $bundleDir -Recurse | Select-Object FullName
             exit 1
           }
 
+          $sigCount = @(Get-ChildItem release-artifacts -Filter *.sig -File).Count
+          if ($sigCount -lt 1) {
+            Write-Error "No .sig files collected — updater signing failed"
+            exit 1
+          }
+
           Get-ChildItem release-artifacts -File | ForEach-Object {
-            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $($_.Name)" | Out-File -Encoding ascii -Append "release-artifacts/SHA256SUMS.txt"
             Write-Host "SHA256 $($_.Name): $hash"
           }
@@ -157,70 +345,118 @@ jobs:
         id: build_info
         shell: pwsh
         run: |
-          $commit_hash = git rev-parse HEAD
-          $commit_short = git rev-parse --short HEAD
-          $commit_message = git log -1 --pretty=format:"%s"
-          $commit_author = git log -1 --pretty=format:"%an"
-          $commit_date = git log -1 --pretty=format:"%ci"
-          $rust_version = rustc --version
-          $cargo_version = cargo --version
-          $node_version = node --version
+          echo "hash=$(git rev-parse HEAD)" >> $env:GITHUB_OUTPUT
+          echo "short=$(git rev-parse --short HEAD)" >> $env:GITHUB_OUTPUT
+          echo "message=$(git log -1 --pretty=format:%s)" >> $env:GITHUB_OUTPUT
+          echo "author=$(git log -1 --pretty=format:%an)" >> $env:GITHUB_OUTPUT
+          echo "date=$(git log -1 --pretty=format:%ci)" >> $env:GITHUB_OUTPUT
+          echo "rust_version=$(rustc --version)" >> $env:GITHUB_OUTPUT
+          echo "cargo_version=$(cargo --version)" >> $env:GITHUB_OUTPUT
+          echo "node_version=$(node --version)" >> $env:GITHUB_OUTPUT
 
-          echo "hash=$commit_hash" >> $env:GITHUB_OUTPUT
-          echo "short=$commit_short" >> $env:GITHUB_OUTPUT
-          echo "message=$commit_message" >> $env:GITHUB_OUTPUT
-          echo "author=$commit_author" >> $env:GITHUB_OUTPUT
-          echo "date=$commit_date" >> $env:GITHUB_OUTPUT
-          echo "rust_version=$rust_version" >> $env:GITHUB_OUTPUT
-          echo "cargo_version=$cargo_version" >> $env:GITHUB_OUTPUT
-          echo "node_version=$node_version" >> $env:GITHUB_OUTPUT
-
-      - name: Resolve release tag
-        id: release_tag
+      - name: Generate latest.json
         shell: pwsh
         run: |
-          if ("${{ github.ref_type }}" -eq "tag") {
-            echo "name=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
-          } elseif ("${{ inputs.tag }}" -ne "") {
-            echo "name=${{ inputs.tag }}" >> $env:GITHUB_OUTPUT
-          } else {
-            Write-Error "No tag: push a v* tag, or pass workflow_dispatch input tag"
+          $tag = "${{ steps.meta.outputs.tag }}"
+          $version = "${{ steps.meta.outputs.version }}"
+          $channel = "${{ steps.meta.outputs.channel }}"
+          $repo = "${{ github.repository }}"
+
+          $artifact = Get-ChildItem release-artifacts -File |
+            Where-Object { $_.Name -like '*.nsis.zip' } |
+            Select-Object -First 1
+          if (-not $artifact) {
+            $artifact = Get-ChildItem release-artifacts -File |
+              Where-Object { $_.Name -like '*-setup.exe' } |
+              Select-Object -First 1
+          }
+          if (-not $artifact) {
+            Write-Error "No Windows updater artifact (*.nsis.zip or *-setup.exe)"
             exit 1
           }
 
-      - name: Create GitHub Release
+          $sigPath = "$($artifact.FullName).sig"
+          if (-not (Test-Path $sigPath)) {
+            Write-Error "Missing signature: $sigPath"
+            exit 1
+          }
+
+          $signature = (Get-Content $sigPath -Raw).Trim()
+          $assetName = $artifact.Name -replace ' ', '.'
+          $url = "https://github.com/$repo/releases/download/$tag/$assetName"
+          $pubDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+
+          $latest = [ordered]@{
+            version = $version
+            notes = "Client $tag ($channel)"
+            pub_date = $pubDate
+            platforms = [ordered]@{
+              'windows-x86_64' = [ordered]@{
+                signature = $signature
+                url = $url
+              }
+            }
+          }
+
+          $jsonPath = "release-artifacts/latest.json"
+          $json = $latest | ConvertTo-Json -Depth 6
+          [System.IO.File]::WriteAllText((Join-Path (Get-Location) $jsonPath), $json + "`n")
+          Write-Host "Wrote $jsonPath"
+          Get-Content $jsonPath
+
+          $hash = (Get-FileHash $jsonPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  latest.json" | Out-File -Encoding ascii -Append "release-artifacts/SHA256SUMS.txt"
+
+      - name: Create versioned GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.release_tag.outputs.name }}
+          tag_name: ${{ steps.meta.outputs.tag }}
           files: release-artifacts/*
-          name: Client ${{ steps.release_tag.outputs.name }}
+          name: Client ${{ steps.meta.outputs.tag }}
+          draft: ${{ steps.meta.outputs.draft == 'true' }}
+          prerelease: ${{ steps.meta.outputs.is_prerelease == 'true' }}
+          make_latest: ${{ steps.meta.outputs.channel == 'stable' && steps.meta.outputs.draft != 'true' && steps.meta.outputs.is_prerelease != 'true' }}
+          generate_release_notes: true
           body: |
-            ## Client ${{ steps.release_tag.outputs.name }}
+            ## Client ${{ steps.meta.outputs.tag }}
 
-            ### Release Information
-            - **Tag**: ${{ steps.release_tag.outputs.name }}
-            - **Commit**: `${{ steps.build_info.outputs.short }}`
-            - **Author**: ${{ steps.build_info.outputs.author }}
-            - **Date**: ${{ steps.build_info.outputs.date }}
+            | Field | Value |
+            | --- | --- |
+            | Channel | `${{ steps.meta.outputs.channel }}` |
+            | App version | `${{ steps.meta.outputs.version }}` |
+            | Commit | `${{ steps.build_info.outputs.short }}` |
+            | Authenticode | `${{ steps.codesign.outputs.enabled }}` |
+            | Updater endpoint | `${{ steps.meta.outputs.updater_endpoint }}` |
 
-            ### Commit Message
+            ### Commit
             ```
             ${{ steps.build_info.outputs.message }}
             ```
 
-            ### Build Information
-            - **Platform**: Windows x64 (x86_64-pc-windows-msvc)
-            - **Node**: ${{ steps.build_info.outputs.node_version }}
-            - **Rust**: ${{ steps.build_info.outputs.rust_version }}
-            - **Cargo**: ${{ steps.build_info.outputs.cargo_version }}
-            - `pnpm build:client` (turbo ^build + Tauri 2)
+            ### Build
+            - Platform: Windows x64
+            - Node: ${{ steps.build_info.outputs.node_version }}
+            - Rust: ${{ steps.build_info.outputs.rust_version }}
+            - Cargo: ${{ steps.build_info.outputs.cargo_version }}
 
             ### Updater
-            - Endpoint: `https://github.com/${{ github.repository }}/releases/latest/download/latest.json`
-            - Installers and `.sig` / `latest.json` are attached when signing secrets are configured.
+            - Versioned manifest: this release `latest.json`
+            - Channel floating manifest: `updater-${{ steps.meta.outputs.channel }}` → `latest.json`
+            - Clients built from this tag check: `${{ steps.meta.outputs.updater_endpoint }}`
 
-            ### Full Changelog
-            **Full Commit**: [`${{ steps.build_info.outputs.short }}`](https://github.com/${{ github.repository }}/commit/${{ steps.build_info.outputs.hash }})
-          draft: false
-          prerelease: ${{ contains(steps.release_tag.outputs.name, 'alpha') || contains(steps.release_tag.outputs.name, 'beta') || contains(steps.release_tag.outputs.name, 'rc') }}
-          generate_release_notes: true
+      - name: Publish floating channel manifest
+        if: ${{ steps.meta.outputs.skip_channel_update != 'true' && steps.meta.outputs.draft != 'true' }}
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.meta.outputs.channel_tag }}
+          name: Updater channel · ${{ steps.meta.outputs.channel }}
+          # 始终标为 prerelease，避免抢走 GitHub /releases/latest
+          prerelease: true
+          make_latest: false
+          files: release-artifacts/latest.json
+          body: |
+            Floating **${{ steps.meta.outputs.channel }}** updater manifest.
+
+            - Updated by: `${{ steps.meta.outputs.tag }}`
+            - Endpoint: `https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.channel_tag }}/latest.json`
+            - Do **not** delete this release; subsequent channel publishes overwrite `latest.json`.
