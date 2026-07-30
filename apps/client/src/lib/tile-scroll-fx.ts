@@ -1,9 +1,11 @@
 /**
  * Mirror 磁贴滚动特效
  *
- * 1. 视口进出：每次 out→in 都播方向感知入场（滚动中也播，不静默定格）
- * 2. 跟滚景深：每次滚动会话都驱动 y / opacity / scale，停滚回弹
- * 3. 动效打在 face；缓存几何 + drivers；滚动帧零 querySelector
+ * - 视口进出：out→in 方向感知入场（滚动中也播）
+ * - 跟滚景深：滚动会话驱动 y / opacity / scale，停滚回弹
+ * - 波纹：空间相位 sin 叠加（海浪感）；停滚按距中心 stagger 涟漪回落
+ * - 动效打在 face；几何与 drivers 缓存；滚动帧零 querySelector
+ * - pause 仅供真实拖拽期间使用；幂等 pause/resume
  */
 import gsap from 'gsap'
 
@@ -17,6 +19,21 @@ const EDGE_SCALE = 0.028
 const VELOCITY_SETTLE = 0.08
 const QUICK_DURATION = 0.16
 const SCROLL_IDLE_MS = 140
+
+/** 波纹振幅（px） */
+const WAVE_AMP = 6
+/** 纵向相位频率（约 1–1.5 波长跨视口） */
+const WAVE_Y_FREQ = 0.012
+/** 横向相位频率（网格次波） */
+const WAVE_X_FREQ = 0.018
+/** 滚动位移耦合进相位（浪头跟滚） */
+const WAVE_SCROLL = 0.014
+/** |velocity| → 波纹强度 */
+const WAVE_VEL_SCALE = 0.045
+/** cos 相位弱 scale 调制 */
+const WAVE_SCALE_AMP = 0.008
+/** 停滚涟漪 stagger 总跨度（s） */
+const SETTLE_STAGGER = 0.12
 
 function hasReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -34,10 +51,18 @@ function easeOutCubic(t: number) {
   return 1 - Math.pow(1 - t, 3)
 }
 
+/** 相对 scroller 内容顶边的 offset（支持一层 offsetParent） */
 function findContentTop(tile: HTMLElement, scroller: HTMLElement) {
   const parent = tile.offsetParent as HTMLElement | null
   if (parent && parent !== scroller) return parent.offsetTop + tile.offsetTop
   return tile.offsetTop
+}
+
+/** 相对 scroller 内容左边的 offset（支持一层 offsetParent） */
+function findContentLeft(tile: HTMLElement, scroller: HTMLElement) {
+  const parent = tile.offsetParent as HTMLElement | null
+  if (parent && parent !== scroller) return parent.offsetLeft + tile.offsetLeft
+  return tile.offsetLeft
 }
 
 type TileDrivers = {
@@ -50,14 +75,24 @@ type TileCache = {
   tile: HTMLElement
   face: HTMLElement
   top: number
+  left: number
   height: number
+  width: number
   drivers: TileDrivers
   ioState: 'in' | 'out' | undefined
   /** 入场 tween 进行中时跟滚暂不抢写 */
   isEntering: boolean
 }
 
-function createDrivers(face: HTMLElement): TileDrivers {
+type TileScrollFx = {
+  track: (els: HTMLElement[]) => void
+  pause: () => void
+  resume: () => void
+  destroy: () => void
+}
+
+/** 将 quickTo 驱动绑到 face（y / opacity / scale） */
+function bindDrivers(face: HTMLElement): TileDrivers {
   return {
     y: gsap.quickTo(face, 'y', { duration: QUICK_DURATION, ease: 'power3.out' }),
     opacity: gsap.quickTo(face, 'opacity', { duration: QUICK_DURATION, ease: 'power2.out' }),
@@ -65,6 +100,15 @@ function createDrivers(face: HTMLElement): TileDrivers {
   }
 }
 
+/** 刷新几何缓存字段（top / left / size） */
+function applyGeometry(item: TileCache, tile: HTMLElement, scroller: HTMLElement) {
+  item.top = findContentTop(tile, scroller)
+  item.left = findContentLeft(tile, scroller)
+  item.height = tile.offsetHeight || item.height
+  item.width = tile.offsetWidth || item.width
+}
+
+/** 清除拖拽 fallback 幽灵上的 GSAP 残留 */
 function clearDragGhost(ghost: HTMLElement | null) {
   if (!ghost) return
   const face = findFace(ghost)
@@ -74,7 +118,8 @@ function clearDragGhost(ghost: HTMLElement | null) {
   face.style.removeProperty('will-change')
 }
 
-function clearTileMotion(tile: HTMLElement) {
+/** 将单块磁贴还原为静止态（拖拽 choose 时用，避免 transform 冲突） */
+function clearTileFx(tile: HTMLElement) {
   const face = findFace(tile)
   gsap.killTweensOf(tile)
   gsap.killTweensOf(face)
@@ -84,18 +129,11 @@ function clearTileMotion(tile: HTMLElement) {
   tile.style.removeProperty('will-change')
 }
 
-type TileScrollMotionSession = {
-  syncTiles: (els: HTMLElement[]) => void
-  pause: () => void
-  resume: () => void
-  destroy: () => void
-}
-
-function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
+function bindTileScrollFx(scroller: HTMLElement): TileScrollFx {
   let isPaused = false
   let hasUserScrolled = false
-  let scrolling = false
-  let willChangeOn = false
+  let isScrolling = false
+  let hasWillChange = false
   let scrollDirection = 1
   let lastTop = scroller.scrollTop
   let lastTs = performance.now()
@@ -107,41 +145,43 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
   const cache = new Map<HTMLElement, TileCache>()
   const visible = new Set<HTMLElement>()
   let tracked: HTMLElement[] = []
-  let visibleList: TileCache[] = []
+  let visibles: TileCache[] = []
 
-  function rebuildVisibleList() {
-    visibleList = []
+  function rebuildVisibles() {
+    visibles = []
     for (const tile of visible) {
       const item = cache.get(tile)
-      if (item) visibleList.push(item)
+      if (item) visibles.push(item)
     }
   }
 
   function refreshCache(tile: HTMLElement) {
     const prev = cache.get(tile)
     const face = prev?.face && prev.face.isConnected ? prev.face : findFace(tile)
-    const drivers = prev && prev.face === face ? prev.drivers : createDrivers(face)
+    const drivers = prev && prev.face === face ? prev.drivers : bindDrivers(face)
 
     cache.set(tile, {
       tile,
       face,
       top: findContentTop(tile, scroller),
+      left: findContentLeft(tile, scroller),
       height: tile.offsetHeight || prev?.height || 60,
+      width: tile.offsetWidth || prev?.width || 60,
       drivers,
       ioState: prev?.ioState,
       isEntering: prev?.isEntering ?? false
     })
   }
 
-  function renewDrivers(item: TileCache) {
-    item.drivers = createDrivers(item.face)
+  function rebindDrivers(item: TileCache) {
+    item.drivers = bindDrivers(item.face)
   }
 
-  function setWillChange(isOn: boolean) {
-    if (willChangeOn === isOn) return
-    willChangeOn = isOn
-    for (let i = 0; i < visibleList.length; i++) {
-      const face = visibleList[i].face
+  function updateWillChange(isOn: boolean) {
+    if (hasWillChange === isOn) return
+    hasWillChange = isOn
+    for (let i = 0; i < visibles.length; i++) {
+      const face = visibles[i].face
       if (isOn) face.style.willChange = 'transform, opacity'
       else face.style.removeProperty('will-change')
     }
@@ -150,16 +190,17 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
   function hardResetVisible() {
     settleTween?.kill()
     settleTween = null
-    setWillChange(false)
-    for (let i = 0; i < visibleList.length; i++) {
-      const item = visibleList[i]
+    updateWillChange(false)
+    for (let i = 0; i < visibles.length; i++) {
+      const item = visibles[i]
       item.isEntering = false
       gsap.killTweensOf(item.face)
       gsap.set(item.face, { y: 0, opacity: 1, scale: 1 })
-      renewDrivers(item)
+      rebindDrivers(item)
     }
   }
 
+  /** 视口入场 */
   function playEnter(item: TileCache) {
     if (item.ioState === 'in') return
     const prev = item.ioState
@@ -170,13 +211,14 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
       item.isEntering = false
       gsap.killTweensOf(item.face)
       gsap.set(item.face, { opacity: 1, y: 0, scale: 1 })
-      renewDrivers(item)
+      rebindDrivers(item)
       return
     }
 
-    // 每次 out→in 都播（含滚动中），不再静默定格
     item.isEntering = true
     const fromY = scrollDirection >= 0 ? 28 : -28
+    // 先杀掉 quickTo，避免 overwrite:'auto' 对 scale/y/opacity 触发 reset 警告
+    gsap.killTweensOf(item.face)
     gsap.fromTo(
       item.face,
       { opacity: 0.18, y: fromY, scale: 0.94 },
@@ -186,42 +228,42 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
         scale: 1,
         duration: ENTER_DURATION,
         ease: 'power3.out',
-        overwrite: 'auto',
-        onComplete: function () {
+        onComplete() {
           item.isEntering = false
-          renewDrivers(item)
+          rebindDrivers(item)
         }
       }
     )
   }
 
+  /** 视口退场（滚动中只记状态，避免 IO 抖动连环退场） */
   function playExit(item: TileCache) {
     if (item.ioState === 'out') return
     item.ioState = 'out'
     item.isEntering = false
 
-    // 滚动中只记状态，避免 IO 抖动连环退场；停滚时轻退
-    if (scrolling || hasReducedMotion() || isPaused) {
+    if (isScrolling || hasReducedMotion() || isPaused) {
       gsap.killTweensOf(item.face)
       gsap.set(item.face, { y: 0, opacity: 1, scale: 1 })
-      renewDrivers(item)
+      rebindDrivers(item)
       return
     }
 
+    gsap.killTweensOf(item.face)
     gsap.to(item.face, {
       opacity: 0.35,
       y: scrollDirection >= 0 ? -12 : 12,
       scale: 0.96,
       duration: EXIT_DURATION,
       ease: 'power2.in',
-      overwrite: 'auto',
-      onComplete: function () {
+      onComplete() {
         gsap.set(item.face, { y: 0, opacity: 1, scale: 1 })
-        renewDrivers(item)
+        rebindDrivers(item)
       }
     })
   }
 
+  /** 跟滚景深 + 空间相位波纹 */
   function applyScrollFx() {
     const scrollTop = scroller.scrollTop
     const viewH = scroller.clientHeight
@@ -231,22 +273,28 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
     const half = viewH / 2
     const inertiaY = clamp(-velocity * 0.65, -FOLLOW_MAX_Y, FOLLOW_MAX_Y)
     const speedBoost = clamp(Math.abs(velocity) * 0.001, 0, 0.025)
+    const intensity = clamp(Math.abs(velocity) * WAVE_VEL_SCALE, 0, 1)
 
-    for (let i = 0; i < visibleList.length; i++) {
-      const item = visibleList[i]
+    for (let i = 0; i < visibles.length; i++) {
+      const item = visibles[i]
       if (item.isEntering) continue
 
       const progress = clamp((item.top + item.height / 2 - rootCenter) / half, -1, 1)
       const edge = easeOutCubic(Math.abs(progress))
+      const phase = item.top * WAVE_Y_FREQ + item.left * WAVE_X_FREQ + scrollTop * WAVE_SCROLL
+      const amp = WAVE_AMP * intensity * (0.35 + 0.65 * edge)
+      const waveY = Math.sin(phase) * amp
+      const waveScale = Math.cos(phase) * WAVE_SCALE_AMP * intensity
 
-      item.drivers.y(progress * EDGE_Y * 0.55 + inertiaY)
+      item.drivers.y(progress * EDGE_Y * 0.55 + inertiaY + waveY)
       item.drivers.opacity(clamp(1 - edge * EDGE_FADE, 0.55, 1))
-      item.drivers.scale(clamp(1 - edge * EDGE_SCALE - speedBoost, 0.94, 1))
+      item.drivers.scale(clamp(1 - edge * EDGE_SCALE - speedBoost + waveScale, 0.94, 1))
     }
   }
 
+  /** 停滚涟漪回弹：按距视口中心近→远 stagger */
   function settle() {
-    scrolling = false
+    isScrolling = false
     if (idleTimer) {
       window.clearTimeout(idleTimer)
       idleTimer = 0
@@ -258,13 +306,37 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
     }
 
     settleTween?.kill()
-    setWillChange(true)
+    updateWillChange(true)
+
+    const scrollTop = scroller.scrollTop
+    const viewH = scroller.clientHeight
+    const viewW = scroller.clientWidth
+    const rootCenterY = scrollTop + viewH / 2
+    const rootCenterX = scroller.scrollLeft + viewW / 2
+
+    const ranked: { face: HTMLElement; dist: number; item: TileCache }[] = []
+    for (let i = 0; i < visibles.length; i++) {
+      const item = visibles[i]
+      item.isEntering = false
+      gsap.killTweensOf(item.face)
+      const cy = item.top + item.height / 2
+      const cx = item.left + item.width / 2
+      const dist = Math.hypot(cy - rootCenterY, cx - rootCenterX)
+      ranked.push({ face: item.face, dist, item })
+    }
+
+    ranked.sort(function (a, b) {
+      return a.dist - b.dist
+    })
 
     const faces: HTMLElement[] = []
-    for (let i = 0; i < visibleList.length; i++) {
-      const item = visibleList[i]
-      item.isEntering = false
-      faces.push(item.face)
+    for (let i = 0; i < ranked.length; i++) {
+      faces.push(ranked[i].face)
+    }
+
+    if (!faces.length) {
+      updateWillChange(false)
+      return
     }
 
     settleTween = gsap.to(faces, {
@@ -273,14 +345,14 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
       scale: 1,
       duration: FOLLOW_SETTLE,
       ease: 'power3.out',
-      overwrite: 'auto',
-      onComplete: function () {
-        for (let i = 0; i < visibleList.length; i++) {
-          const item = visibleList[i]
+      stagger: { amount: SETTLE_STAGGER, from: 'start' },
+      onComplete() {
+        for (let i = 0; i < visibles.length; i++) {
+          const item = visibles[i]
           gsap.set(item.face, { y: 0, opacity: 1, scale: 1 })
-          renewDrivers(item)
+          rebindDrivers(item)
         }
-        setWillChange(false)
+        updateWillChange(false)
         settleTween = null
       }
     })
@@ -300,16 +372,16 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
     lastTop = top
     lastTs = ts
 
-    // 滚动会话未结束（仍有 scroll 事件续命）时持续跟滚，不因瞬时 delta≈0 提前 settle
-    if (scrolling) {
-      setWillChange(true)
+    // 滚动会话未结束时持续跟滚，不因瞬时 delta≈0 提前 settle
+    if (isScrolling) {
+      updateWillChange(true)
       applyScrollFx()
       raf = requestAnimationFrame(onFrame)
       return
     }
 
     if (Math.abs(velocity) >= VELOCITY_SETTLE) {
-      setWillChange(true)
+      updateWillChange(true)
       applyScrollFx()
       raf = requestAnimationFrame(onFrame)
       return
@@ -321,8 +393,7 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
 
   function onScrollIdle() {
     idleTimer = 0
-    scrolling = false
-    // 交给 onFrame 用剩余速度收尾，或直接 settle
+    isScrolling = false
     if (!raf) {
       lastTs = performance.now()
       raf = requestAnimationFrame(onFrame)
@@ -332,7 +403,7 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
   function onScroll() {
     if (isPaused || hasReducedMotion()) return
     hasUserScrolled = true
-    scrolling = true
+    isScrolling = true
 
     settleTween?.kill()
     settleTween = null
@@ -353,15 +424,14 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
         refreshCache(tile)
         continue
       }
-      item.top = findContentTop(tile, scroller)
-      item.height = tile.offsetHeight || item.height
+      applyGeometry(item, tile, scroller)
     }
-    rebuildVisibleList()
+    rebuildVisibles()
   }
 
   const visibilityObserver = new IntersectionObserver(
     function (entries) {
-      let listDirty = false
+      let isDirty = false
       for (const entry of entries) {
         const el = entry.target as HTMLElement
         let item = cache.get(el)
@@ -374,17 +444,16 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
         if (entry.isIntersecting) {
           if (!visible.has(el)) {
             visible.add(el)
-            listDirty = true
+            isDirty = true
           }
           playEnter(item)
         } else {
-          if (visible.delete(el)) listDirty = true
+          if (visible.delete(el)) isDirty = true
           playExit(item)
         }
       }
-      if (listDirty) rebuildVisibleList()
+      if (isDirty) rebuildVisibles()
     },
-    // 不用过大 rootMargin，减少边缘 IO 抖动；进出仍可靠触发
     { root: scroller, rootMargin: '0px', threshold: 0 }
   )
 
@@ -392,7 +461,8 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
   window.addEventListener('resize', onResize, { passive: true })
 
   return {
-    syncTiles: function (els) {
+    /** 同步当前网格内磁贴节点（增删 / 几何刷新） */
+    track(els) {
       const next = new Set(els)
       for (const el of tracked) {
         if (!next.has(el)) {
@@ -408,19 +478,20 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
         } else {
           const item = cache.get(el)
           if (item) {
-            item.top = findContentTop(el, scroller)
-            item.height = el.offsetHeight || item.height
+            applyGeometry(item, el, scroller)
           } else {
             refreshCache(el)
           }
         }
       }
       tracked = els
-      rebuildVisibleList()
+      rebuildVisibles()
     },
-    pause: function () {
+    /** 拖拽开始：停跟滚并清 transform，避免与 Sortable 抢写 */
+    pause() {
+      if (isPaused) return
       isPaused = true
-      scrolling = false
+      isScrolling = false
       if (raf) cancelAnimationFrame(raf)
       raf = 0
       if (idleTimer) {
@@ -428,17 +499,18 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
         idleTimer = 0
       }
       hardResetVisible()
-      for (const el of tracked) clearTileMotion(el)
+      for (const el of tracked) clearTileFx(el)
     },
-    resume: function () {
+    /** 拖拽结束或取消：恢复跟滚能力（幂等） */
+    resume() {
       isPaused = false
       lastTop = scroller.scrollTop
       velocity = 0
-      scrolling = false
+      isScrolling = false
       for (const el of tracked) refreshCache(el)
-      rebuildVisibleList()
+      rebuildVisibles()
     },
-    destroy: function () {
+    destroy() {
       scroller.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onResize)
       if (raf) cancelAnimationFrame(raf)
@@ -447,19 +519,19 @@ function bindTileScrollMotion(scroller: HTMLElement): TileScrollMotionSession {
       visibilityObserver.disconnect()
       cache.clear()
       visible.clear()
-      visibleList = []
+      visibles = []
       tracked = []
     }
   }
 }
 
 export {
-  hasReducedMotion,
+  bindTileScrollFx,
   clearDragGhost,
-  clearTileMotion,
-  bindTileScrollMotion,
+  clearTileFx,
+  ENTER_DURATION,
   FOLLOW_MAX_Y,
-  ENTER_DURATION
+  hasReducedMotion
 }
 
-export type { TileScrollMotionSession }
+export type { TileScrollFx }

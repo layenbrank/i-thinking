@@ -1,0 +1,81 @@
+// 右侧纵向亮色玻璃胶囊；避开右下角 FloatButton
+.pager {
+  position: fixed;
+  right: 18px;
+  top: 50%;
+  z-index: 1200;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.track {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.52) 100%
+  );
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 10px 32px rgba(15, 23, 42, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 -1px 0 rgba(148, 163, 184, 0.12) inset;
+}
+
+.bullet {
+  appearance: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: #64748b;
+  background: transparent;
+  transition:
+    background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  &:not(:disabled):hover {
+    color: #0f172a;
+    background: rgba(15, 23, 42, 0.06);
+  }
+
+  &:not(:disabled):focus-visible {
+    outline: 2px solid rgba(59, 130, 246, 0.65);
+    outline-offset: 2px;
+  }
+}
+
+.active {
+  color: #fff;
+  background: linear-gradient(160deg, #60a5fa 0%, #3b82f6 100%);
+  box-shadow:
+    0 4px 12px rgba(59, 130, 246, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.35) inset;
+}

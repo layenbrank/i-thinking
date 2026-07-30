@@ -2,7 +2,16 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
-import { createContext, Suspense } from 'react'
+import {
+  createContext,
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 
 import { ContextMenu } from '@/components/contextmenu'
 import { ABORT_TIMEOUT_MS } from '@/constants/magnetic-tile.ts'
@@ -66,26 +75,47 @@ interface OverlayProviderProps {
   magneticTileID?: string
 }
 
-function OverlayProvider(props: OverlayProviderProps) {
-  const [visible, onUpdateVisible] = useState(false)
-  const [renderable, onUpdateRenderable] = useState(false)
-  const [fullscreen, onUpdateFullscreen] = useState(false)
+/**
+ * 双击打开：特殊组件走侧通道，其余打开 Overlay。
+ * Overlay 蒙层隔离交互，不 pause Mirror 滚动景深。
+ */
+function openByComponent(
+  component: MagneticTile.Component,
+  tile: Pick<MagneticTile, 'url'>,
+  openOverlay: () => void
+) {
+  if (component === 'navigation') {
+    if (!tile.url) return
+    void openUrl(tile.url)
+    return
+  }
+  if (component === 'screenshot') {
+    startScreenshotCountdown()
+    return
+  }
+  openOverlay()
+}
 
-  const handleUpdateVisible = useCallback(function (value: boolean) {
-    onUpdateVisible(value)
+function OverlayProvider(props: OverlayProviderProps) {
+  const [visible, setVisible] = useState(false)
+  const [renderable, setRenderable] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
+
+  const updateVisible = useCallback(function (value: boolean) {
+    setVisible(value)
     if (value) {
-      onUpdateRenderable(true)
+      setRenderable(true)
       return
     }
-    onUpdateFullscreen(false)
+    setFullscreen(false)
   }, [])
 
   useEffect(
     function () {
       if (!props.magneticTileID) return
-      return registerShowOverlay(props.magneticTileID, handleUpdateVisible)
+      return registerShowOverlay(props.magneticTileID, updateVisible)
     },
-    [props.magneticTileID, handleUpdateVisible]
+    [props.magneticTileID, updateVisible]
   )
 
   const context = useMemo(
@@ -94,12 +124,13 @@ function OverlayProvider(props: OverlayProviderProps) {
         visible,
         renderable,
         fullscreen,
-        onUpdateVisible: handleUpdateVisible,
-        onUpdateRenderable,
-        onUpdateFullscreen
+        // 对外仍用 onUpdate*，避免牵动各业务磁贴 workspace
+        onUpdateVisible: updateVisible,
+        onUpdateRenderable: setRenderable,
+        onUpdateFullscreen: setFullscreen
       }
     },
-    [visible, renderable, fullscreen, handleUpdateVisible]
+    [visible, renderable, fullscreen, updateVisible]
   )
 
   return <OverlayContext value={context}>{props.children}</OverlayContext>
@@ -372,20 +403,12 @@ const MagneticTile = {
         <div
           ref={nodeRef}
           onDoubleClick={function () {
-            const handlers: Partial<Record<MagneticTile.Component, () => void>> = {
-              navigation() {
-                if (!props.url) return
-                openUrl(props.url)
-              },
-              screenshot() {
-                startScreenshotCountdown()
-              }
-            }
-            const handler = handlers[props.component]
-            if (handler) return handler()
-            onUpdateVisible(true)
+            openByComponent(props.component, props, function () {
+              onUpdateVisible(true)
+            })
           }}
           data-id={props.id}
+          // 仅 Sortable filter 禁拖；与 Mirror 滚动景深零耦合
           data-overlay-open={visible ? 'true' : undefined}
           className={clsx([
             'magnetic-tile',

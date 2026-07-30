@@ -1,9 +1,10 @@
 /**
- * corex-serve IPC 客户端封装（对齐 serve/protocol Response）
+ * corex-serve IPC 传输层（对齐 serve/protocol Response）
+ * 领域 API 见 morph-ipc / engine-ipc
  */
 import { invoke } from '@tauri-apps/api/core'
 
-export interface IpcResponse {
+type IpcResponse = {
   id: number
   ok: boolean
   path?: string
@@ -12,15 +13,11 @@ export interface IpcResponse {
   error?: string
 }
 
-export async function ipcInvoke(
-  module: string,
-  args: unknown,
-  action?: string
-): Promise<IpcResponse> {
+async function ipcInvoke(module: string, args: unknown, action?: string): Promise<IpcResponse> {
   return invoke<IpcResponse>('ipc:invoke', { module, args, action })
 }
 
-export function parseData<T>(resp: IpcResponse): T {
+function parseData<T>(resp: IpcResponse): T {
   if (!resp.ok) {
     throw new Error(resp.error ?? `IPC ${resp.id} failed`)
   }
@@ -30,7 +27,7 @@ export function parseData<T>(resp: IpcResponse): T {
   return resp.data as T
 }
 
-export function parsePath(resp: IpcResponse): string {
+function parsePath(resp: IpcResponse): string {
   if (!resp.ok) {
     throw new Error(resp.error ?? `IPC ${resp.id} failed`)
   }
@@ -39,3 +36,6 @@ export function parsePath(resp: IpcResponse): string {
   }
   return resp.path
 }
+
+export { ipcInvoke, parseData, parsePath }
+export type { IpcResponse }

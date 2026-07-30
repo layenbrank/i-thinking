@@ -68,6 +68,18 @@ function findUserById(id: string) {
 }
 
 const ids = users.map(user => user.id)
+
+const session = {
+  pause() {},
+  resume() {},
+  destroy() {}
+}
+
+bindGrid(el, {
+  onDragStart() {
+    session.pause()
+  }
+})
 ```
 
 **Incorrect**
@@ -76,8 +88,20 @@ const ids = users.map(user => user.id)
 const findUserById = (id: string) => {
   return users.find(user => user.id === id)
 }
+
+const session = {
+  pause: function () {},
+  resume: () => {}
+}
+
+bindGrid(el, {
+  onDragStart: function () {
+    session.pause()
+  }
+})
 ```
 
+对象方法用简写（`pause() {}`），不要 `key: function () {}` 或箭头方法。
 ## 类型位置
 
 **Correct**（非专用类型文件）

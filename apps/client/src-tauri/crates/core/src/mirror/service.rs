@@ -79,15 +79,17 @@ impl Service {
         params: schema::ReadP,
     ) -> Result<Vec<schema::Model>, Exception> {
         match params {
+            // 与 magnetic_tile 一致：One 表示「一组过滤条件」，应用 .all()。
+            // 切勿用 .one()——空条件会 limit(1)，导致前端永远只读到 1 条并反复补种。
             schema::ReadP::One(p) => {
-                let model = schema::Entity::find()
+                let rows = schema::Entity::find()
                     .filter(Self::build_read_filter(&p))
                     .order_by_asc(schema::Column::Index)
                     .order_by_desc(schema::Column::CreatedAt)
-                    .one(db)
+                    .all(db)
                     .await?;
 
-                Ok(model.into_iter().collect())
+                Ok(rows)
             }
             schema::ReadP::Many(ps) => {
                 if ps.is_empty() {

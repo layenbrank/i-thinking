@@ -1,5 +1,5 @@
 /**
- * corex engine IPC（Bing 搜索建议）
+ * Engine 领域 IPC（Bing 搜索建议）
  */
 import { generateSecureCvid } from '@i-thinking/utils'
 
@@ -11,7 +11,7 @@ const PT = 'page.home'
 const CSR = '1'
 const PTHS = '1'
 
-interface SuggestionEnvelope {
+type SuggestionEnvelope = {
   data: Engine.Suggestion
 }
 

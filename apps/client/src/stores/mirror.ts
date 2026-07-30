@@ -5,7 +5,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import { BuildMirror, buildMissingNavigationWrites } from '@/constants/mirror.ts'
+import { BuildMirror } from '@/constants/mirror.ts'
 
 type MirrorWrite = Mirror.Write
 type MagneticTileWrite = MagneticTile.Write
@@ -13,6 +13,11 @@ type MirrorUpdate = Mirror.Update
 type MagneticTileUpdate = MagneticTile.Update
 
 export type { MagneticTileUpdate, MagneticTileWrite, MirrorUpdate, MirrorWrite }
+
+type MirrorPayload = {
+  mirror: Mirror
+  magneticTiles: MagneticTile[]
+}
 
 interface MirrorSlice {
   mirrors: Mirror[]
@@ -22,6 +27,10 @@ interface MirrorSlice {
   }
 
   toReadMirror: (ID: string) => Promise<Mirror | null>
+  /** 预取镜像与磁贴，不写 store（切换时与退场并行） */
+  toFetchMirrorPayload: (ID: string) => Promise<MirrorPayload | null>
+  /** 原子提交预取结果 */
+  toCommitMirrorPayload: (payload: MirrorPayload) => void
   toInsertMirror: (values: MirrorWrite[]) => Promise<void>
   toUpdateMirror: (values: MirrorUpdate[]) => Promise<void>
   toRemoveMirror: (keys: string[]) => Promise<void>
@@ -71,12 +80,43 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
         const magneticTiles = await invoke<MagneticTile[]>('magnetic-tile:read', {
           params: { mirrorID: mirror.id }
         })
-        console.log('mirror magneticTiles', magneticTiles)
         getters().toUpdateMagneticTiles(
           magneticTiles.filter((a) => !a.collectionID).toSorted((a, b) => a.index - b.index)
         )
       }
       return mirror
+    },
+
+    async toFetchMirrorPayload(ID: string) {
+      const mirror = getters().mirrors.find(function (item) {
+        return item.id === ID
+      })
+      if (!mirror) return null
+      const magneticTiles = await invoke<MagneticTile[]>('magnetic-tile:read', {
+        params: { mirrorID: mirror.id }
+      })
+      return {
+        mirror,
+        magneticTiles: magneticTiles
+          .filter(function (tile) {
+            return !tile.collectionID
+          })
+          .toSorted(function (a, b) {
+            return a.index - b.index
+          })
+      }
+    },
+
+    toCommitMirrorPayload(payload) {
+      setters(
+        function (state) {
+          state.active.mirror = payload.mirror
+          state.active.magneticTile = null
+          state.magneticTiles = payload.magneticTiles
+        },
+        false,
+        'toCommitMirrorPayload'
+      )
     },
 
     async toInsertMirror(values: MirrorWrite[]) {
@@ -109,37 +149,36 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
 
       let mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
       if (isEmpty(mirrors)) {
-        const writes: MirrorWrite[] = MIRRORS.map((value) => value)
+        const writes: MirrorWrite[] = MIRRORS.map(function (value) {
+          return value
+        })
         await invoke('mirror:write', { params: writes })
         mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
       }
-      getters().toUpdateMirrors(mirrors.toSorted((a, b) => a.index - b.index))
+
+      mirrors = mirrors.toSorted(function (a, b) {
+        return a.index - b.index
+      })
+      getters().toUpdateMirrors(mirrors)
 
       const [first] = mirrors
       if (!first) return
 
-      if (!getters().active.mirror) {
-        await getters().toReadMirror(first.id)
+      // 每个空镜像页补种 BuildMirror 磁贴（含第二页）
+      for (const mirror of mirrors) {
+        const tiles = await invoke<MagneticTile[]>('magnetic-tile:read', {
+          params: { mirrorID: mirror.id }
+        })
+        if (!isEmpty(tiles)) continue
+        const { MAGNETIC_TILES } = BuildMirror({ mirrorID: mirror.id })
+        const writes: MagneticTileWrite[] = MAGNETIC_TILES.map(function (value) {
+          return value
+        })
+        await invoke('magnetic-tile:write', { params: writes })
       }
 
-      if (isEmpty(getters().magneticTiles)) {
-        // 用实际入库的 first.id 重新构建，确保 mirrorID 匹配
-        const { MAGNETIC_TILES } = BuildMirror({ mirrorID: first.id })
-        const writes: MagneticTileWrite[] = MAGNETIC_TILES.map((value) => value)
-        await invoke('magnetic-tile:write', { params: writes })
-        await getters().toReadMirror(first.id)
-      } else {
-        // 已有镜像：按 URL 去重补种常见 navigation
-        const missing = buildMissingNavigationWrites(
-          first.id,
-          getters().magneticTiles,
-          getters().magneticTiles.length
-        )
-        if (missing.length) {
-          await invoke('magnetic-tile:write', { params: missing })
-          await getters().toReadMirror(first.id)
-        }
-      }
+      const activeMirror = getters().active.mirror
+      await getters().toReadMirror(activeMirror?.id ?? first.id)
 
       const [firstApp] = getters().magneticTiles
       if (firstApp && !getters().active.magneticTile) {

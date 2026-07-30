@@ -19,7 +19,7 @@ description: >-
 - [ ] API 与常量：全大写下划线（`POST_SIGNIN`、`GET_INFO`、`API_BASE_URL`）
 - [ ] 禁止 `get` 前缀；查询用 `find` / `fetch`，解析用 `parse` / `parsed`
 - [ ] 布尔用 `is` / `has` / `can`；非 `useState` 不用 `set`；避免 `list` 后缀
-- [ ] 非必要不用箭头函数；导出用 `function`；模块末尾 `export { ... }`
+- [ ] 非必要不用箭头函数；导出用 `function`；对象方法用简写、不写 `function`；模块末尾 `export { ... }`
 - [ ] 类型大驼峰；非专用类型文件时，类型放在 import 下方
 - [ ] HTTP 响应信封用 `RSF<T>` / 分页用 `RSP<T>`；未使用参数加 `_` 前缀
 
@@ -79,6 +79,37 @@ function POST_SIGNIN(data: SignInBody) {
 - 简短回调（如 `arr.map(x => x.id)`）
 - 必须保持外层 `this`
 - 团队约定的 compose / pipe 等工具
+
+### 对象方法用简写
+
+对象字面量中的方法**不要**写 `key: function () {}`，用方法简写：
+
+```ts
+// ✅
+bindSortableGrid(gridEl, {
+  onDragStart() {
+    scrollFx.pause()
+  },
+  onDragEnd() {
+    scrollFx.resume()
+  }
+})
+
+const session = {
+  pause() {},
+  resume() {},
+  destroy() {}
+}
+
+// ❌
+bindSortableGrid(gridEl, {
+  onDragStart: function () {
+    scrollFx.pause()
+  }
+})
+```
+
+独立函数、模块导出、`useEffect` / 回调参数等非对象方法位置，仍用 `function` 声明（非箭头）。
 
 ### 文件与导出
 

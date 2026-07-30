@@ -1,8 +1,14 @@
 .controller {
   &.mirror {
+    position: relative;
     width: 100%;
     height: 100%;
-    // scrollbar-width: none;
+    overflow: hidden;
+  }
+
+  .scroller {
+    width: 100%;
+    height: 100%;
     overflow: hidden scroll;
     // 轻量边缘遮罩（视觉保留，尺寸收紧控合成成本）
     -webkit-mask-image: linear-gradient(
@@ -19,6 +25,23 @@
       #000 calc(100% - 10px),
       transparent 100%
     );
+  }
+
+  // Mirror 切换动画作用层
+  .pane {
+    width: 100%;
+    min-height: 100%;
+  }
+
+  // 换页衔接 scrim：无 blur，极淡中性色，企业级克制
+  .scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    background: rgba(248, 250, 252, 0.72);
   }
 
   &.magnetic-tile {

@@ -112,8 +112,8 @@ function buildNavigationTile(
 function BuildMirror(options?: MirrorOptions) {
   const MIRROR_ID = options?.mirrorID ?? crypto?.randomUUID?.() ?? UUIDV4()
 
-  const MIRRORS: readonly Mirror.Write[] = Array.from({ length: 1 }).map(function () {
-    const mirror: Mirror.Write = {
+  const MIRRORS: readonly Mirror.Write[] = [
+    {
       title: '镜像-01',
       index: 0,
       mark: '',
@@ -121,10 +121,17 @@ function BuildMirror(options?: MirrorOptions) {
       backdrop: null,
       background: null,
       overlay: '#000000AA'
+    },
+    {
+      title: '镜像-02',
+      index: 1,
+      mark: '',
+      description: '第二镜像',
+      backdrop: null,
+      background: null,
+      overlay: '#000000AA'
     }
-
-    return mirror
-  })
+  ]
 
   const widgets: MagneticTile.Write[] = OPTIONS.filter(function (single) {
     // navigation 由 NAVIGATION_SITES 批量生成，避免重复占位
@@ -164,29 +171,4 @@ function BuildMirror(options?: MirrorOptions) {
   }
 }
 
-/** 按 URL 去重，生成待写入的 navigation 磁贴 */
-function buildMissingNavigationWrites(
-  mirrorID: string,
-  existing: readonly MagneticTile[],
-  startIndex: number
-): MagneticTile.Write[] {
-  const urls = new Set(
-    existing
-      .filter(function (tile) {
-        return tile.component === 'navigation' && tile.url
-      })
-      .map(function (tile) {
-        return tile.url as string
-      })
-  )
-
-  const missing = NAVIGATION_SITES.filter(function (site) {
-    return !urls.has(site.url)
-  })
-
-  return missing.map(function (site, offset) {
-    return buildNavigationTile(mirrorID, site, startIndex + offset)
-  })
-}
-
-export { BuildMirror, OPTIONS, buildMissingNavigationWrites, buildNavigationTile }
+export { BuildMirror, OPTIONS, buildNavigationTile }

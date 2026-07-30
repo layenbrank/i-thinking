@@ -1,7 +1,9 @@
 /**
- * Overview 搜索列表 GSAP 能力（插件单例注册，可复用）
- * 鼠标滚轮走原生滚动（避免 Observer + tween 跟手延迟/卡顿）
- * 键盘定位仍用 scrollTo 平滑对齐
+ * Overview 搜索列表滚动
+ *
+ * - 滚轮走原生滚动（避免 Observer + tween 跟手延迟）
+ * - 键盘 / 程序定位用 GSAP scrollTo 平滑对齐
+ * - 高亮指示条用 quickTo 跟手
  */
 import gsap from 'gsap'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
@@ -9,7 +11,7 @@ import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 let isRegistered = false
 
 const INDICATOR_DURATION = 0.2
-const KEYBOARD_SCROLL_DURATION = 0.28
+const SCROLL_DURATION = 0.28
 
 function ensurePlugins() {
   if (isRegistered) return
@@ -31,15 +33,13 @@ type ScrollToOptions = {
   onComplete?: () => void
 }
 
-type FragmentScrollSession = {
+type OverviewScrollSession = {
   scrollTo: (scrollTop: number, options?: number | ScrollToOptions) => void
   refresh: () => void
   destroy: () => void
 }
 
-type BindFragmentScrollOptions = {
-  /** @deprecated 滚轮已改原生，保留字段避免调用方破坏性变更 */
-  wheelGain?: number
+type BindOverviewScrollOptions = {
   onScrollTarget?: (scrollTop: number) => void
 }
 
@@ -49,10 +49,8 @@ type IndicatorDriver = {
   destroy: () => void
 }
 
-/**
- * 高亮条与行对齐：quickTo 跟手
- */
-function createIndicatorDriver(indicator: HTMLElement): IndicatorDriver {
+/** 高亮条与行对齐：quickTo 跟手 */
+function bindIndicatorDriver(indicator: HTMLElement): IndicatorDriver {
   ensurePlugins()
 
   const moveY = gsap.quickTo(indicator, 'y', {
@@ -86,7 +84,7 @@ function createIndicatorDriver(indicator: HTMLElement): IndicatorDriver {
   return {
     sync,
     hide,
-    destroy: function () {
+    destroy() {
       gsap.killTweensOf(indicator)
     }
   }
@@ -94,13 +92,13 @@ function createIndicatorDriver(indicator: HTMLElement): IndicatorDriver {
 
 /**
  * 绑定列表滚动：滚轮原生；键盘/程序定位用 scrollTo
- * 入场 stagger 由 Motion 负责，滚动中不再做 opacity fromTo（避免与滚轮抢主线程）
+ * 入场 stagger 由 Motion 负责，滚动中不做 opacity fromTo
  */
-function bindFragmentScroll(
+function bindOverviewScroll(
   container: HTMLElement,
   items: HTMLElement[],
-  options: BindFragmentScrollOptions = {}
-): FragmentScrollSession {
+  options: BindOverviewScrollOptions = {}
+): OverviewScrollSession {
   ensurePlugins()
 
   function syncScrollTarget() {
@@ -112,7 +110,7 @@ function bindFragmentScroll(
       typeof optionsOrDuration === 'number'
         ? { duration: optionsOrDuration }
         : (optionsOrDuration ?? {})
-    const duration = parsed.duration ?? KEYBOARD_SCROLL_DURATION
+    const duration = parsed.duration ?? SCROLL_DURATION
     const onComplete = parsed.onComplete
     const next = clampScrollTop(container, scrollTop)
     options.onScrollTarget?.(next)
@@ -135,19 +133,18 @@ function bindFragmentScroll(
 
   container.addEventListener('scroll', syncScrollTarget, { passive: true })
 
-  // 清除可能残留的行内 opacity，交给 Motion / CSS
   items.forEach(function (item) {
     gsap.set(item, { clearProps: 'opacity' })
   })
 
   return {
-    scrollTo: scrollTo,
-    refresh: function () {
+    scrollTo,
+    refresh() {
       items.forEach(function (item) {
         gsap.set(item, { clearProps: 'opacity' })
       })
     },
-    destroy: function () {
+    destroy() {
       container.removeEventListener('scroll', syncScrollTarget)
       gsap.killTweensOf(container)
       items.forEach(function (item) {
@@ -162,10 +159,10 @@ export {
   ensurePlugins,
   hasReducedMotion,
   clampScrollTop,
-  bindFragmentScroll,
-  createIndicatorDriver,
+  bindOverviewScroll,
+  bindIndicatorDriver,
   INDICATOR_DURATION,
-  KEYBOARD_SCROLL_DURATION as SCROLL_DURATION
+  SCROLL_DURATION
 }
 
-export type { FragmentScrollSession, IndicatorDriver }
+export type { OverviewScrollSession, IndicatorDriver }

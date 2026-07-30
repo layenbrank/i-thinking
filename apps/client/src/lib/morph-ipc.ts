@@ -1,3 +1,6 @@
+/**
+ * Morph（PDF）领域 IPC
+ */
 import { ipcInvoke, parseData, parsePath } from '@/lib/ipc'
 
 async function meta(path: string): Promise<Morph.PdfMeta> {
@@ -63,7 +66,7 @@ async function toOffice(path: string, format: string, dest_dir: string): Promise
   return parsePath(resp)
 }
 
-export const MorphIpc = {
+const MorphIpc = {
   meta,
   renderPage,
   renderThumbnails,
@@ -75,3 +78,5 @@ export const MorphIpc = {
   toImages,
   toOffice
 }
+
+export { MorphIpc }
