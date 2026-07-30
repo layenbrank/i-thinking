@@ -1,0 +1,44 @@
+.marker {
+  &.lv4 {
+    &.square {
+      &.horizontal {
+        padding: 14px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 40px; }
+        .date, .week { font-size: 12px; }
+        .analogFace { width: min(52%, 150px); }
+      }
+      &.vertical {
+        padding: 14px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 40px; }
+        .date, .week { font-size: 12px; }
+        .analogFace { width: min(52%, 150px); }
+      }
+    }
+    &.circle {
+      &.horizontal {
+        padding: 14px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 28px; }
+        .analogFace { width: min(56%, 140px); }
+      }
+      &.vertical {
+        padding: 14px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 28px; }
+        .analogFace { width: min(56%, 140px); }
+      }
+    }
+    &.rectangle {
+      &.horizontal {
+        padding: 14px 20px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 48px; }
+        .date, .week { font-size: 13px; }
+        .analogFace { width: min(26%, 150px); }
+      }
+      &.vertical {
+        padding: 14px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 36px; }
+        .date, .week { font-size: 12px; }
+        .analogFace { width: min(48%, 160px); }
+      }
+    }
+  }
+}

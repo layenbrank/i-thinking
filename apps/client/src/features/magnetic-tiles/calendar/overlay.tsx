@@ -1,5 +1,4 @@
-import { clsx } from 'clsx'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useContext } from 'react'
 
 import {
   MagneticTile,
@@ -12,26 +11,38 @@ const CalendarView = lazy(function () {
   return import('@/features/magnetic-tiles/calendar/calendar-view')
 })
 
-export default function Overlay(props: OverlayControlProps) {
-  const { visible, onUpdateVisible } = useContext(OverlayContext)
+const OVERLAY_STYLE = {
+  minWidth: 640,
+  aspectRatio: 'unset',
+  height: 'min(80vh, 720px)'
+} as const
+
+function Overlay(props: OverlayControlProps) {
+  const { onUpdateVisible } = useContext(OverlayContext)
 
   return (
     <MagneticTile.Overlay
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}
-      className={clsx([styles.overlay, styles.root])}
+      caption={true}
+      style={OVERLAY_STYLE}
+      className={styles.root}
       onCancel={function () {
         onUpdateVisible(false)
       }}>
-      <Suspense fallback={null}>
-        <CalendarView
-          embedded
-          onClose={function () {
-            onUpdateVisible(false)
-          }}
-        />
-      </Suspense>
+      <div className={styles.stage}>
+        <Suspense fallback={<div className={styles.fallback}>加载中…</div>}>
+          <CalendarView
+            embedded
+            onClose={function () {
+              onUpdateVisible(false)
+            }}
+          />
+        </Suspense>
+      </div>
     </MagneticTile.Overlay>
   )
 }
+
+export default Overlay

@@ -1,0 +1,44 @@
+.marker {
+  &.lv2 {
+    &.square {
+      &.horizontal {
+        padding: 10px;
+        .weekday, .ymd { font-size: 12px; }
+        .bigDay { font-size: 36px; }
+        .lunar, .term, .ganzhi, .iso { font-size: 11px; }
+      }
+      &.vertical {
+        padding: 10px;
+        .weekday, .ymd { font-size: 12px; }
+        .bigDay { font-size: 36px; }
+        .lunar, .term, .ganzhi, .iso { font-size: 11px; }
+      }
+    }
+    &.circle {
+      &.horizontal {
+        padding: 10px;
+        .weekday { font-size: 11px; }
+        .bigDay { font-size: 32px; }
+      }
+      &.vertical {
+        padding: 10px;
+        .weekday { font-size: 11px; }
+        .bigDay { font-size: 32px; }
+      }
+    }
+    &.rectangle {
+      &.horizontal {
+        padding: 10px 14px;
+        .weekday, .ymd { font-size: 13px; }
+        .bigDay { font-size: 40px; }
+        .lunar, .term, .ganzhi, .iso { font-size: 12px; }
+      }
+      &.vertical {
+        padding: 12px 10px;
+        .weekday, .ymd { font-size: 12px; }
+        .bigDay { font-size: 36px; }
+        .expandedBody { flex-direction: column; }
+      }
+    }
+  }
+}

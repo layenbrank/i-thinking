@@ -1,55 +1,193 @@
-.overlay {
-  &.root {
-    overflow: hidden;
-  }
+.root {
+  min-width: 0;
 }
 
-.body {
+.stage {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  height: 100%;
-  padding: 20px 24px;
-  background: #0f1115;
-  color: #f5f5f5;
+  gap: 12px;
+  padding: 12px 20px;
+  overflow: auto;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
+.panel {
+  padding: 14px 16px;
+  border-radius: var(--ith-border-radius-lg);
+  border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  background: var(--ith-color-bg-container);
 }
 
 .preview {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 16px;
-  background: #111827;
-  min-height: 180px;
+  min-height: 120px;
+  text-align: center;
 }
 
 .previewTime {
-  font-size: 48px;
+  font-size: 40px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
 }
 
 .previewDate {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  color: var(--ith-color-text-secondary);
 }
 
-.previewStyle {
+.neon {
+  border-color: var(--ith-color-primary-border, var(--ith-color-primary));
+  background: var(--ith-color-primary-bg);
+
+  .previewTime,
+  .previewDate {
+    color: var(--ith-color-primary);
+  }
+}
+
+.minimal .previewTime {
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.flip .previewTime {
+  letter-spacing: 0.04em;
+}
+
+.styleList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.styleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--ith-border-radius);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease;
+
+  &:hover {
+    background: var(--ith-color-primary-bg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ith-color-primary-border, var(--ith-color-primary));
+    outline-offset: 1px;
+  }
+}
+
+.styleRowActive {
+  border-color: var(--ith-color-primary);
+  background: var(--ith-color-primary-bg);
+}
+
+.styleMeta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.styleLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+}
+
+.styleHint {
   font-size: 12px;
-  color: #7dd3fc;
+  color: var(--ith-color-text-secondary);
+}
+
+.mini {
+  flex-shrink: 0;
+  width: 56px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
+  border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  background: var(--ith-color-bg-layout);
+}
+
+.miniTime {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text);
+}
+
+.mini.neon {
+  background: var(--ith-color-primary-bg);
+  border-color: var(--ith-color-primary-border, var(--ith-color-primary));
+
+  .miniTime {
+    color: var(--ith-color-primary);
+  }
+}
+
+.mini.flip .miniTime {
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--ith-color-border);
+  background: var(--ith-color-fill-quaternary, var(--ith-color-fill-secondary));
+}
+
+.mini.minimal .miniTime {
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.miniFace {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ith-color-border);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 50%;
+    width: 1.5px;
+    height: 5px;
+    margin-left: -0.75px;
+    background: var(--ith-color-text);
+    border-radius: 999px;
+    transform-origin: bottom center;
+    transform: rotate(40deg);
+  }
+}
+
+.accent {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .styleRow {
+    transition: none;
+  }
 }

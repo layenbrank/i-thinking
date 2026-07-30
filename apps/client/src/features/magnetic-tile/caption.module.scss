@@ -3,7 +3,6 @@ $size-y: 32px;
 .caption {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 8px;
   flex-shrink: 0;
   width: 100%;
@@ -17,6 +16,7 @@ $size-y: 32px;
 }
 
 .cluster {
+  margin-left: auto;
 }
 
 .button {

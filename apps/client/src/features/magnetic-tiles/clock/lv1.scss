@@ -1,0 +1,41 @@
+.marker {
+  &.lv1 {
+    &.square {
+      &.horizontal {
+        padding: 6px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 16px; }
+        .analogFace { width: min(78%, 44px); }
+      }
+      &.vertical {
+        padding: 6px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 16px; }
+        .analogFace { width: min(78%, 44px); }
+      }
+    }
+    &.circle {
+      &.horizontal {
+        padding: 6px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 14px; }
+        .analogFace { width: min(72%, 40px); }
+      }
+      &.vertical {
+        padding: 6px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 14px; }
+        .analogFace { width: min(72%, 40px); }
+      }
+    }
+    &.rectangle {
+      &.horizontal {
+        padding: 8px 12px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 22px; }
+        .date, .week { font-size: 11px; }
+        .analogFace { width: min(36%, 52px); }
+      }
+      &.vertical {
+        padding: 8px 6px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 16px; }
+        .analogFace { width: min(70%, 56px); }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+.marker {
+  &.lv1 {
+    &.square {
+      &.horizontal {
+        padding: 4px;
+        .month { font-size: 10px; }
+        .day { font-size: 18px; }
+      }
+      &.vertical {
+        padding: 4px;
+        .month { font-size: 10px; }
+        .day { font-size: 18px; }
+      }
+    }
+    &.circle {
+      &.horizontal {
+        padding: 4px;
+        .month { font-size: 9px; }
+        .day { font-size: 16px; }
+      }
+      &.vertical {
+        padding: 4px;
+        .month { font-size: 9px; }
+        .day { font-size: 16px; }
+      }
+    }
+    &.rectangle {
+      &.horizontal {
+        padding: 8px 12px;
+        .weekday { font-size: 12px; }
+        .bigDay { font-size: 28px; }
+        .ymd { font-size: 12px; }
+      }
+      &.vertical {
+        padding: 6px 4px;
+        .month { font-size: 10px; }
+        .day { font-size: 18px; }
+      }
+    }
+  }
+}

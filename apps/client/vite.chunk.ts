@@ -91,14 +91,14 @@ export const chunks: CodeSplitting[] = [
       return patterns.some((pattern) => pattern.test(id))
     }
   },
-  {
-    name: 'core-features',
-    priority: 100,
-    test(id) {
-      const patterns = [/[\\/]src[\\/]features[\\/]/]
-      return patterns.some((pattern) => pattern.test(id))
-    }
-  },
+  // {
+  //   name: 'core-features',
+  //   priority: 100,
+  //   test(id) {
+  //     const patterns = [/[\\/]src[\\/]features[\\/]/]
+  //     return patterns.some((pattern) => pattern.test(id))
+  //   }
+  // },
   {
     name: 'core-components',
     priority: 100,

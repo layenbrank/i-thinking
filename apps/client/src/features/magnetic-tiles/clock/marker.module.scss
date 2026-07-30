@@ -1,87 +1,210 @@
-@use 'mini.scss' as *;
-@use 'small.scss' as *;
-@use 'medium.scss' as *;
-@use 'large.scss' as *;
-@use 'huge.scss' as *;
-@use 'massive.scss' as *;
-@use 'ultra.scss' as *;
+@use 'lv1.scss' as *;
+@use 'lv2.scss' as *;
+@use 'lv3.scss' as *;
+@use 'lv4.scss' as *;
+@use 'lv5.scss' as *;
+@use 'lv6.scss' as *;
+@use 'lv7.scss' as *;
 
-.marker {
-  width: 100%;
-  height: 100%;
+.lv1,
+.lv2,
+.lv3,
+.lv4,
+.lv5,
+.lv6,
+.lv7,
+.square,
+.circle,
+.rectangle,
+.horizontal,
+.vertical,
+.digital,
+.analog,
+.flip,
+.neon,
+.minimal,
+.wide {
+  min-width: 0;
 }
 
-.island {
+.marker {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  border-radius: 22px;
-  background: #111827;
-  color: #fff;
+  border-radius: inherit;
+  border: none;
+  background: transparent;
+  color: var(--ith-color-text);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
   overflow: hidden;
-  transition: background-color 200ms ease, color 200ms ease;
-}
-
-.neon {
-  background: #020617;
-  box-shadow: inset 0 0 24px rgba(34, 211, 238, 0.25);
-
-  .time {
-    color: #22d3ee;
-    text-shadow: 0 0 8px rgba(34, 211, 238, 0.8);
-  }
-}
-
-.flip,
-.digital {
-  background: #0f172a;
-}
-
-.minimal {
-  background: #18181b;
-
-  .time {
-    font-weight: 500;
-    letter-spacing: 0.08em;
-  }
-}
-
-.analog {
-  background: #1e293b;
-}
-
-.analogFace {
-  position: relative;
-  width: min(72%, 72px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.35);
+  padding: 12px 14px;
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 4px;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  gap: 10px;
 }
 
-.time {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  font-size: clamp(14px, 3vw, 28px);
-  letter-spacing: 0.02em;
-  line-height: 1.1;
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.aside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 12px;
+  flex: 0 0 auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+}
+
+.date,
+.weekday,
+.week,
+.period {
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 .date {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--ith-color-text);
+  font-weight: 500;
+}
+
+.weekday,
+.week {
+  color: var(--ith-color-text-secondary);
+}
+
+.period {
+  color: var(--ith-color-primary);
+  font-weight: 600;
+}
+
+.digital {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.digitGroup {
+  display: inline-flex;
+}
+
+.digit {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+  letter-spacing: -0.02em;
+}
+
+.colon {
+  color: var(--ith-color-primary);
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 1px;
+  align-self: center;
+}
+
+.minimal {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.minimalTime {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+}
+
+.minimalSec {
+  font-size: 0.45em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text-secondary);
+}
+
+.neon {
+  border: 1px solid var(--ith-color-primary-border, var(--ith-color-primary));
+  background: var(--ith-color-primary-bg);
+
+  .digit,
+  .colon {
+    color: var(--ith-color-primary);
+  }
+
+  .aside {
+    border-top-color: var(--ith-color-primary-border, var(--ith-color-primary));
+  }
+
+  .date,
+  .weekday,
+  .week,
+  .period {
+    color: var(--ith-color-primary);
+  }
+}
+
+.flip {
+  .flipRow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .flipGroup {
+    display: inline-flex;
+    gap: 2px;
+  }
+
+  .flipCard {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0.7em;
+    padding: 0.18em 0.2em;
+    border-radius: var(--ith-border-radius);
+    border: 1px solid var(--ith-color-border);
+    background: var(--ith-color-fill-quaternary, var(--ith-color-fill-secondary));
+    color: var(--ith-color-text-heading, var(--ith-color-text));
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .flipColon {
+    color: var(--ith-color-primary);
+    font-weight: 600;
+    line-height: 1;
+  }
+}
+
+.analogFace {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--ith-color-border);
+  background: var(--ith-color-bg-container);
 }
 
 .handHour,
@@ -92,7 +215,7 @@
   bottom: 50%;
   transform-origin: bottom center;
   border-radius: 999px;
-  background: #fff;
+  background: var(--ith-color-text-heading, var(--ith-color-text));
 }
 
 .handHour {
@@ -105,14 +228,14 @@
   width: 2px;
   height: 38%;
   margin-left: -1px;
-  background: rgba(255, 255, 255, 0.85);
+  opacity: 0.75;
 }
 
 .handSecond {
   width: 1px;
   height: 42%;
   margin-left: -0.5px;
-  background: #f87171;
+  background: var(--ith-color-error);
 }
 
 .analogCenter {
@@ -122,11 +245,35 @@
   height: 6px;
   margin: -3px 0 0 -3px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--ith-color-text-heading, var(--ith-color-text));
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .island {
-    transition: none;
-  }
+/* 横矩形：时间 | 信息栏 并排填满，避免大片留白 */
+.wide .body {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.wide .stage {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+}
+
+.wide .aside {
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  padding-top: 0;
+  padding-left: 16px;
+  border-top: none;
+  border-left: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  min-width: 7.5em;
+}
+
+.circle .aside {
+  display: none;
 }

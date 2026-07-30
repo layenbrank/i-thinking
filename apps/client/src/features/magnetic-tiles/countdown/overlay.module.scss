@@ -1,68 +1,275 @@
-.overlay {
-  &.root {
-    overflow: hidden;
+/* 16:9：左即时预览 · 右设置；用信息块填满高度，禁止空洞 space-between */
+
+.root {
+  min-width: 0;
+}
+
+.warn {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ith-color-error);
+}
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(300px, 1.15fr);
+  gap: 12px;
+  padding: 12px 20px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.preview {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--ith-border-radius-lg);
+  border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  background: var(--ith-color-bg-container);
+}
+
+.previewHero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.previewMetric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.previewLabel {
+  font-size: 11px;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+}
+
+.previewTime {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+}
+
+.previewEarn {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--ith-color-success);
+}
+
+.previewFacts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-content: center;
+  min-height: 0;
+}
+
+.fact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--ith-border-radius);
+  background: var(--ith-color-fill-quaternary, var(--ith-color-fill-tertiary));
+}
+
+.factLabel {
+  font-size: 12px;
+  color: var(--ith-color-text-secondary);
+}
+
+.factValue {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text);
+}
+
+.previewTrackWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.previewTrackHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ith-color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.previewTrack {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ith-color-fill-secondary);
+  overflow: hidden;
+}
+
+.previewFill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ith-color-primary);
+  transition: width 180ms ease;
+}
+
+.after .previewFill,
+.rest .previewFill {
+  background: var(--ith-color-text-quaternary, var(--ith-color-text-secondary));
+}
+
+.previewBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 2px;
+  font-size: 12px;
+}
+
+.previewStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ith-color-text);
+  font-weight: 500;
+}
+
+.previewRange {
+  color: var(--ith-color-text-secondary);
+}
+
+.formCard {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px 12px;
+  border-radius: var(--ith-border-radius-lg);
+  border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  background: var(--ith-color-bg-container);
+}
+
+.form {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.section {
+  & + & {
+    padding-top: 12px;
+    border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
   }
 }
 
-.body {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 20px 24px 16px;
-  background: #0f1115;
-  color: #f5f5f5;
-}
-
-.header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.subtitle {
-  margin: 6px 0 0;
+.sectionTitle {
+  margin: 0 0 10px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
-  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ith-color-text);
 }
 
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px 20px;
-  flex: 1;
-  overflow: auto;
-  align-content: start;
+  gap: 0 12px;
 }
 
 .field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-bottom: 10px !important;
 
-  label {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.7);
-  }
+  :global(.ant-form-item-label) {
+    padding-bottom: 4px !important;
 
-  &.wide {
-    grid-column: 1 / -1;
+    > label {
+      font-size: 12px;
+      color: var(--ith-color-text-secondary);
+    }
   }
 }
 
-.footer {
+.control {
+  width: 100%;
+}
+
+.dayBlock {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  margin-top: 16px;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.dayLabel {
+  font-size: 12px;
+  color: var(--ith-color-text-secondary);
+}
+
+.dayChips {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.dayChip {
+  height: 32px;
+  border-radius: var(--ith-border-radius);
+  border: 1px solid var(--ith-color-border);
+  background: var(--ith-color-bg-container);
+  color: var(--ith-color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+
+  &:hover {
+    border-color: var(--ith-color-primary-border, var(--ith-color-primary));
+    color: var(--ith-color-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ith-color-primary-border, var(--ith-color-primary));
+    outline-offset: 1px;
+  }
+}
+
+.dayChipOn {
+  border-color: var(--ith-color-primary);
+  background: var(--ith-color-primary-bg);
+  color: var(--ith-color-primary);
+  font-weight: 600;
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .previewFill,
+  .dayChip {
+    transition: none;
+  }
 }

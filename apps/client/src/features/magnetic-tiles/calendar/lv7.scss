@@ -1,0 +1,47 @@
+.marker {
+  &.lv7 {
+    &.square {
+      &.horizontal {
+        padding: 16px;
+        .weekday { font-size: 14px; }
+        .bigDay { font-size: 52px; }
+        .ymd { font-size: 13px; }
+        .lunar, .term, .ganzhi { font-size: 13px; }
+      }
+      &.vertical {
+        padding: 16px;
+        .weekday { font-size: 14px; }
+        .bigDay { font-size: 52px; }
+        .ymd { font-size: 13px; }
+        .lunar, .term, .ganzhi { font-size: 13px; }
+      }
+    }
+    &.circle {
+      &.horizontal {
+        padding: 16px;
+        .weekday { font-size: 13px; }
+        .bigDay { font-size: 42px; }
+      }
+      &.vertical {
+        padding: 16px;
+        .weekday { font-size: 13px; }
+        .bigDay { font-size: 42px; }
+      }
+    }
+    &.rectangle {
+      &.horizontal {
+        padding: 16px 24px;
+        .weekday { font-size: 14px; }
+        .bigDay { font-size: 56px; }
+        .ymd { font-size: 13px; }
+        .lunar, .term, .ganzhi { font-size: 13px; }
+      }
+      &.vertical {
+        padding: 18px 16px;
+        .weekday { font-size: 14px; }
+        .bigDay { font-size: 52px; }
+        .expandedBody { flex-direction: column; }
+      }
+    }
+  }
+}

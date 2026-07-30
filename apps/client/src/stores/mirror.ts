@@ -5,7 +5,8 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import { BuildMirror } from '@/constants/mirror.ts'
+import { MAGNETIC_TILES } from '@/constants/magnetic-tiles'
+import { MIRRORS } from '@/constants/mirrors'
 
 type MirrorWrite = Mirror.Write
 type MagneticTileWrite = MagneticTile.Write
@@ -145,36 +146,30 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
     },
 
     async toInitialize() {
-      const { MIRRORS } = BuildMirror()
-
-      let mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
+      const mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
       if (isEmpty(mirrors)) {
-        const writes: MirrorWrite[] = MIRRORS.map(function (value) {
-          return value
-        })
-        await invoke('mirror:write', { params: writes })
-        mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
+        await getters().toInsertMirror([...MIRRORS])
+      } else {
+        getters().toUpdateMirrors(
+          mirrors.toSorted(function (a, b) {
+            return a.index - b.index
+          })
+        )
       }
 
-      mirrors = mirrors.toSorted(function (a, b) {
-        return a.index - b.index
-      })
-      getters().toUpdateMirrors(mirrors)
-
-      const [first] = mirrors
+      const [first] = getters().mirrors
       if (!first) return
 
-      // 每个空镜像页补种 BuildMirror 磁贴（含第二页）
-      for (const mirror of mirrors) {
+      for (const mirror of getters().mirrors) {
         const tiles = await invoke<MagneticTile[]>('magnetic-tile:read', {
           params: { mirrorID: mirror.id }
         })
         if (!isEmpty(tiles)) continue
-        const { MAGNETIC_TILES } = BuildMirror({ mirrorID: mirror.id })
-        const writes: MagneticTileWrite[] = MAGNETIC_TILES.map(function (value) {
-          return value
-        })
-        await invoke('magnetic-tile:write', { params: writes })
+        await getters().toInsertMagneticTile(
+          MAGNETIC_TILES.map(function (tile, index) {
+            return { ...tile, mirrorID: mirror.id, index }
+          })
+        )
       }
 
       const activeMirror = getters().active.mirror
@@ -208,11 +203,11 @@ const magneticTileSlice: SliceCreator<MagneticTileSlice> = function (setters, ge
     },
 
     async toInsertMagneticTile(values: MagneticTileWrite[]) {
-      const mirrorID = getters().active.mirror?.id
-      if (!mirrorID) return
+      if (isEmpty(values)) return
       const params = values.length === 1 ? values[0] : values
       await invoke('magnetic-tile:write', { params })
-      await getters().toReadMirror(mirrorID)
+      const mirrorID = getters().active.mirror?.id
+      if (mirrorID) await getters().toReadMirror(mirrorID)
     },
 
     async toUpdateMagneticTile(values: MagneticTileUpdate[]) {

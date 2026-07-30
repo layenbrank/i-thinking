@@ -8,14 +8,13 @@ import dayjs from 'dayjs'
 import { HolidayUtil, Lunar } from 'lunar-typescript'
 import React from 'react'
 
-// import { timeSphere } from '@i-thinking/utils'
+import stylesChrome from '@/features/magnetic-tiles/calendar/calendar-view.module.scss'
 
-import stylem from '@/features/magnetic-tiles/calendar/calendar-view.module.scss'
-
-const useStyle = createStyles(({ token, css, cx }) => {
+const useStyle = createStyles(function ({ token, css, cx }) {
   const lunar = css`
-    color: ${token.colorTextTertiary};
+    color: ${token.colorTextSecondary};
     font-size: ${token.fontSizeSM}px;
+    line-height: 1.2;
   `
   const weekend = css`
     color: ${token.colorError};
@@ -25,9 +24,12 @@ const useStyle = createStyles(({ token, css, cx }) => {
   `
   return {
     wrapper: css`
-      // border: 1px solid ${token.colorBorderSecondary};
-      // border-radius: ${token.borderRadiusOuter}px;
-      // padding: 10px;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: ${token.colorBgContainer};
     `,
     dateCell: css`
       position: relative;
@@ -36,30 +38,24 @@ const useStyle = createStyles(({ token, css, cx }) => {
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
       &:before {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         content: '';
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translateX(-50%) translateY(-50%);
+        inset: 2px;
         background: transparent;
-        transition: background-color 300ms;
-        border-radius: ${token.borderRadiusOuter}px;
+        transition: background-color 200ms ease;
+        border-radius: ${token.borderRadius}px;
         border: 1px solid transparent;
         box-sizing: border-box;
       }
       &:hover:before {
-        background: rgba(0, 0, 0, 0.04);
+        background: ${token.colorPrimaryBg};
       }
     `,
     today: css`
       &:before {
-        border: 1px solid ${token.colorPrimary};
+        border-color: ${token.colorPrimary};
       }
     `,
     text: css`
@@ -69,119 +65,126 @@ const useStyle = createStyles(({ token, css, cx }) => {
       align-items: center;
       justify-content: center;
       flex-direction: column;
+      gap: 2px;
       position: relative;
       z-index: 1;
+      color: ${token.colorText};
     `,
     lunar,
     current: css`
-      color: #4080ff;
+      color: ${token.colorPrimary};
       &:before {
-        background: #f0f0f0;
-      }
-      &:hover:before {
-        background: ${token.colorPrimary};
-        opacity: 0.8;
+        background: ${token.colorPrimaryBg};
+        border-color: ${token.colorPrimary};
       }
       .${cx(lunar)} {
-        color: #4080ff;
-        opacity: 0.9;
+        color: ${token.colorPrimary};
       }
       .${cx(weekend)} {
-        color: #4080ff;
+        color: ${token.colorPrimary};
       }
     `,
     monthCell: css`
-      width: 120px;
-      color: ${token.colorTextBase};
-      border-radius: ${token.borderRadiusOuter}px;
-      padding: 5px 0;
+      width: 100%;
+      max-width: 140px;
+      margin: 0 auto;
+      color: ${token.colorText};
+      border-radius: ${token.borderRadius}px;
+      padding: 10px 0;
+      text-align: center;
+      cursor: pointer;
       &:hover {
-        background: rgba(0, 0, 0, 0.04);
+        background: ${token.colorPrimaryBg};
       }
     `,
     monthCellCurrent: css`
       color: ${token.colorTextLightSolid};
       background: ${token.colorPrimary};
       &:hover {
-        background: ${token.colorPrimary};
-        opacity: 0.8;
+        background: ${token.colorPrimaryHover};
+        color: ${token.colorTextLightSolid};
       }
     `,
     weekend
   }
 })
 
-export interface CalendarViewProps {
+type CalendarViewProps = {
   embedded?: boolean
   onClose?: () => void
 }
 
-const Component: React.FC<CalendarViewProps> = function (props = {}) {
-  const { embedded = false, onClose } = props
-  const { styles } = useStyle({ test: true })
+function CalendarView(props: CalendarViewProps = {}) {
+  const { embedded = false, onClose: _onClose } = props
+  void _onClose
+  const { styles } = useStyle()
 
-  const [selectDate, setSelectDate] = React.useState<Dayjs>(() => dayjs())
-  const [panelDate, setPanelDate] = React.useState<Dayjs>(() => dayjs())
+  const [selectDate, onUpdateSelectDate] = React.useState<Dayjs>(function () {
+    return dayjs()
+  })
+  const [panelDate, onUpdatePanelDate] = React.useState<Dayjs>(function () {
+    return dayjs()
+  })
 
-  const onPanelChange = (value: Dayjs, mode: CalendarMode) => {
-    console.log(value.format('YYYY-MM-DD'), mode)
-    setPanelDate(value)
+  function handlePanelChange(value: Dayjs, _mode: CalendarMode) {
+    onUpdatePanelDate(value)
   }
 
-  const onDateChange: CalendarProps<Dayjs>['onSelect'] = (value, selectInfo) => {
+  const handleDateChange: CalendarProps<Dayjs>['onSelect'] = function (value, selectInfo) {
     if (selectInfo.source === 'date') {
-      setSelectDate(value)
+      onUpdateSelectDate(value)
     }
   }
 
-  const cellRender: CalendarProps<Dayjs>['fullCellRender'] = (date, info) => {
-    const d = Lunar.fromDate(date.toDate())
-    const lunar = d.getDayInChinese()
-    const solarTerm = d.getJieQi()
+  const cellRender: CalendarProps<Dayjs>['fullCellRender'] = function (date, info) {
+    const lunarDay = Lunar.fromDate(date.toDate())
+    const lunar = lunarDay.getDayInChinese()
+    const solarTerm = lunarDay.getJieQi()
     const isWeekend = date.day() === 6 || date.day() === 0
-    const h = HolidayUtil.getHoliday(date.get('year'), date.get('month') + 1, date.get('date'))
-    const displayHoliday = h?.getTarget() === h?.getDay() ? h?.getName() : undefined
+    const holiday = HolidayUtil.getHoliday(
+      date.get('year'),
+      date.get('month') + 1,
+      date.get('date')
+    )
+    const displayHoliday =
+      holiday?.getTarget() === holiday?.getDay() ? holiday?.getName() : undefined
 
-    const map: Partial<Record<typeof info.type, () => React.ReactNode>> = {
-      date() {
-        return React.cloneElement(info.originNode, {
-          ...(info.originNode as React.ReactElement<any>).props,
-          className: clsx(styles.dateCell, {
-            [styles.current]: selectDate.isSame(date, 'date'),
-            [styles.today]: date.isSame(dayjs(), 'date')
-          }),
-          children: (
-            <div className={styles.text}>
-              <span
-                className={clsx({
-                  [styles.weekend]: isWeekend,
-                  gray: !panelDate.isSame(date, 'month')
-                })}>
-                {date.get('date')}
-              </span>
-              {info.type === 'date' && (
-                <div className={styles.lunar}>{displayHoliday || solarTerm || lunar}</div>
-              )}
-            </div>
-          )
-        })
-      },
-      month() {
-        // Due to the fact that a solar month is part of the lunar month X and part of the lunar month X+1,
-        // when rendering a month, always take X as the lunar month of the month
-        const d2 = Lunar.fromDate(new Date(date.get('year'), date.get('month')))
-        const month = d2.getMonthInChinese()
-        return (
-          <div
-            className={clsx(styles.monthCell, {
-              [styles.monthCellCurrent]: selectDate.isSame(date, 'month')
-            })}>
-            {date.get('month') + 1}月（{month}月）
+    if (info.type === 'date') {
+      return React.cloneElement(info.originNode, {
+        ...(info.originNode as React.ReactElement<{ className?: string }>).props,
+        className: clsx(styles.dateCell, {
+          [styles.current]: selectDate.isSame(date, 'date'),
+          [styles.today]: date.isSame(dayjs(), 'date')
+        }),
+        children: (
+          <div className={styles.text}>
+            <span
+              className={clsx({
+                [styles.weekend]: isWeekend,
+                gray: !panelDate.isSame(date, 'month')
+              })}>
+              {date.get('date')}
+            </span>
+            <div className={styles.lunar}>{displayHoliday || solarTerm || lunar}</div>
           </div>
         )
-      }
+      })
     }
-    return map?.[info.type]?.()
+
+    if (info.type === 'month') {
+      const lunarMonth = Lunar.fromDate(new Date(date.get('year'), date.get('month')))
+      const monthName = lunarMonth.getMonthInChinese()
+      return (
+        <div
+          className={clsx(styles.monthCell, {
+            [styles.monthCellCurrent]: selectDate.isSame(date, 'month')
+          })}>
+          {date.get('month') + 1}月（{monthName}月）
+        </div>
+      )
+    }
+
+    return info.originNode
   }
 
   function findYearLabel(year: number) {
@@ -191,60 +194,21 @@ const Component: React.FC<CalendarViewProps> = function (props = {}) {
 
   function findMonthLabel(month: number, value: Dayjs) {
     const d = Lunar.fromDate(new Date(value.year(), month))
-    const lunar = d.getMonthInChinese()
-    return `${month + 1}月（${lunar}月）`
+    return `${month + 1}月（${d.getMonthInChinese()}月）`
   }
 
   return (
     <div
-      className={clsx(styles.wrapper, stylem.calendar)}
+      className={clsx(styles.wrapper, stylesChrome.calendar, embedded && stylesChrome.embedded)}
       data-through="false">
-      {embedded ? (
-        <div
-          data-region="false"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 10px 0'
-          }}>
-          <span style={{ fontSize: 13, opacity: 0.72 }}>日历</span>
-          {onClose ? (
-            <button
-              type="button"
-              aria-label="关闭日历"
-              onClick={onClose}
-              style={{
-                border: 0,
-                background: 'transparent',
-                cursor: 'pointer',
-                fontSize: 16,
-                lineHeight: 1
-              }}>
-              ×
-            </button>
-          ) : null}
-        </div>
-      ) : null}
       <Calendar
         fullCellRender={cellRender}
         fullscreen={false}
-        onPanelChange={onPanelChange}
-        onSelect={onDateChange}
-        headerRender={({ value, type, onChange, onTypeChange }) => {
-          const start = 0
-          const end = 12
+        onPanelChange={handlePanelChange}
+        onSelect={handleDateChange}
+        headerRender={function ({ value, type, onChange, onTypeChange }) {
           const monthOptions = []
-
-          let current = value.clone()
-          const localeData = value.localeData()
-          const months = []
           for (let i = 0; i < 12; i++) {
-            current = current.month(i)
-            months.push(localeData.monthsShort(current))
-          }
-
-          for (let i = start; i < end; i++) {
             monthOptions.push({
               label: findMonthLabel(i, value),
               value: i
@@ -253,48 +217,48 @@ const Component: React.FC<CalendarViewProps> = function (props = {}) {
 
           const year = value.year()
           const month = value.month()
-          const options = []
+          const yearOptions = []
           for (let i = year - 10; i < year + 10; i += 1) {
-            options.push({
+            yearOptions.push({
               label: findYearLabel(i),
               value: i
             })
           }
+
           return (
             <Row
-              {...(embedded ? {} : { 'data-region': 'true' })}
+              className={stylesChrome.toolbar}
               justify="end"
               gutter={8}
-              style={{ padding: 8 }}>
+              {...(embedded ? {} : { 'data-region': 'true' })}>
               <Col>
                 <Select
-                  size="small"
+                  size="middle"
                   popupMatchSelectWidth={false}
-                  className="my-year-select"
                   value={year}
-                  options={options}
-                  onChange={(newYear) => {
-                    const now = value.clone().year(newYear)
-                    onChange(now)
+                  options={yearOptions}
+                  onChange={function (newYear) {
+                    onChange(value.clone().year(newYear))
                   }}
                 />
               </Col>
               <Col>
                 <Select
-                  size="small"
+                  size="middle"
                   popupMatchSelectWidth={false}
                   value={month}
                   options={monthOptions}
-                  onChange={(newMonth) => {
-                    const now = value.clone().month(newMonth)
-                    onChange(now)
+                  onChange={function (newMonth) {
+                    onChange(value.clone().month(newMonth))
                   }}
                 />
               </Col>
               <Col>
                 <Radio.Group
-                  size="small"
-                  onChange={(e) => onTypeChange(e.target.value)}
+                  size="middle"
+                  onChange={function (e) {
+                    onTypeChange(e.target.value)
+                  }}
                   value={type}>
                   <Radio.Button value="month">月</Radio.Button>
                   <Radio.Button value="year">年</Radio.Button>
@@ -308,4 +272,5 @@ const Component: React.FC<CalendarViewProps> = function (props = {}) {
   )
 }
 
-export default Component
+export default CalendarView
+export type { CalendarViewProps }

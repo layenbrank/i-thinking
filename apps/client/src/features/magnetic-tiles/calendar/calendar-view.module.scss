@@ -1,6 +1,8 @@
 .calendar {
   width: 100%;
   height: 100%;
+  min-height: 0;
+  background: var(--ith-color-bg-container);
 
   :global {
     .ant-picker-calendar {
@@ -8,23 +10,47 @@
       height: 100%;
       display: flex;
       flex-direction: column;
+      background: transparent;
     }
 
     .ant-picker-panel {
       flex: 1;
-      min-height: 0px;
+      min-height: 0;
+      border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
     }
 
-    .ant-picker-date-panel {
+    .ant-picker-date-panel,
+    .ant-picker-month-panel {
+      width: 100%;
       height: 100%;
     }
 
     .ant-picker-body {
       height: 100%;
+      padding: 8px 0 0;
     }
 
     .ant-picker-content {
       height: 100%;
     }
+
+    .ant-picker-content th {
+      color: var(--ith-color-text-secondary);
+      font-weight: 500;
+      padding: 8px 0;
+    }
+
+    .ant-picker-cell {
+      padding: 2px 0;
+    }
   }
+}
+
+.embedded {
+  flex: 1;
+  min-height: 0;
+}
+
+.toolbar {
+  padding: 4px 0 12px;
 }

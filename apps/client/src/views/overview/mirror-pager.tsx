@@ -2,7 +2,7 @@
  * Mirror 悬浮胶囊分页（纵向亮色玻璃）
  *
  * - portal 到 body，保证 DOM 可见、不被 Layout/Scroller 裁剪
- * - 数据由 toInitialize（空库 BuildMirror 种子）保证
+ * - 数据由 toInitialize（空库种子常量）保证
  */
 import { clsx } from 'clsx'
 import { useEffect, useState } from 'react'

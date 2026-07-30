@@ -57,12 +57,14 @@ interface MarkerProps {
 
 const SectionContext = createContext<SectionContextProps | null>(null)
 
-interface OverlayProps extends Omit<ModalProps, 'open'> {
+interface OverlayProps extends Omit<ModalProps, 'open' | 'footer'> {
   style?: CSSProperties
-  /** false 隐藏顶栏；传入节点则整槽自定义；undefined 为默认 actions + Caption */
-  caption?: ReactNode | false
+  /** false 隐藏顶栏；true / undefined 为默认 Caption；传入节点则整槽自定义 */
+  caption?: ReactNode | boolean
   /** 默认顶栏中 Caption 左侧的扩展操作 */
   actions?: ReactNode
+  /** 底栏操作区；不传则不渲染 */
+  controls?: ReactNode
   cache?: Cache
   onAbort?: () => Promise<void>
   abortTimeoutMs?: number
@@ -225,6 +227,7 @@ const MagneticTile = {
       destroyOnHidden,
       caption,
       actions,
+      controls,
       open: _open,
       ...remains
     } = props as OverlayProps & { open?: boolean }
@@ -232,6 +235,8 @@ const MagneticTile = {
     const { visible, fullscreen, onUpdateVisible, onUpdateRenderable } = useContext(OverlayContext)
 
     const shouldDestroyOnHidden = cache === 'destroy' ? true : (destroyOnHidden ?? false)
+    const hasCaption = caption !== false
+    const hasControls = controls != null
 
     async function handleAfterClose() {
       if (cache !== 'destroy') return
@@ -258,22 +263,23 @@ const MagneticTile = {
       onCancel?.(e)
     }
 
-    const hasCaptionSlot = caption !== false
     const title =
-      caption === false ? null : caption !== undefined && caption !== null ? (
-        caption
-      ) : (
-        <Caption actions={actions} />
-      )
+      caption === false
+        ? null
+        : caption === true || caption === undefined || caption === null
+          ? (
+              <Caption actions={actions} />
+            )
+          : caption
 
     return (
       <Modal
         title={title}
-        footer={null}
+        footer={hasControls ? <div className={styles.controls}>{controls}</div> : null}
         open={visible}
         centered={true}
         closable={false}
-        children={children}
+        children={<div className={styles.body}>{children}</div>}
         mask={{
           closable: true,
           enabled: true
@@ -285,7 +291,7 @@ const MagneticTile = {
         height={fullscreen ? '100%' : height}
         style={{
           minWidth: fullscreen ? 'unset' : 600,
-          borderRadius: fullscreen ? '0' : '8px',
+          borderRadius: fullscreen ? '0' : 'var(--ith-border-radius-lg)',
           aspectRatio: fullscreen ? 'unset' : '16 / 9',
           ...props.style
         }}
@@ -293,10 +299,11 @@ const MagneticTile = {
           container: {
             padding: 0,
             height: '100%',
-            borderRadius: fullscreen ? '0' : 'var(--ith-border-radius-lg)'
+            borderRadius: fullscreen ? '0' : 'var(--ith-border-radius-lg)',
+            overflow: 'hidden'
           },
           header: {
-            borderRadius: fullscreen ? '0' : '8px'
+            borderRadius: fullscreen ? '0' : 'var(--ith-border-radius-lg) var(--ith-border-radius-lg) 0 0'
           },
           body: {
             padding: 0,
@@ -305,9 +312,22 @@ const MagneticTile = {
             overflow: 'hidden',
             flexDirection: 'column'
           },
+          footer: hasControls
+            ? {
+                margin: 0,
+                padding: 0,
+                borderTop: 'none'
+              }
+            : undefined,
           ...props.styles
         }}
-        className={clsx(['magnetic-tile-overlay', className, hasCaptionSlot && styles.withCaption])}
+        className={clsx(
+          'magnetic-tile-overlay',
+          styles.overlay,
+          className,
+          hasCaption && styles.withCaption,
+          hasControls && styles.withControls
+        )}
         {...remains}
       />
     )

@@ -1,0 +1,46 @@
+.marker {
+  &.lv3 {
+    &.square {
+      &.horizontal {
+        padding: 12px;
+        .weekday { font-size: 13px; }
+        .bigDay { font-size: 44px; }
+        .ymd { font-size: 12px; }
+      }
+      &.vertical {
+        padding: 12px;
+        .weekday { font-size: 13px; }
+        .bigDay { font-size: 44px; }
+        .ymd { font-size: 12px; }
+      }
+    }
+    &.circle {
+      &.horizontal {
+        padding: 12px;
+        .weekday { font-size: 12px; }
+        .bigDay { font-size: 36px; }
+      }
+      &.vertical {
+        padding: 12px;
+        .weekday { font-size: 12px; }
+        .bigDay { font-size: 36px; }
+      }
+    }
+    &.rectangle {
+      &.horizontal {
+        padding: 12px 16px;
+        .weekday { font-size: 14px; }
+        .bigDay { font-size: 48px; }
+        .ymd { font-size: 13px; }
+        .lunar, .term, .ganzhi { font-size: 12px; }
+      }
+      &.vertical {
+        padding: 14px 12px;
+        .weekday { font-size: 13px; }
+        .bigDay { font-size: 44px; }
+        .ymd { font-size: 12px; }
+        .expandedBody { flex-direction: column; }
+      }
+    }
+  }
+}

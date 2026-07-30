@@ -1,32 +1,125 @@
-@use 'mini.scss' as *;
-@use 'small.scss' as *;
-@use 'medium.scss' as *;
-@use 'large.scss' as *;
-@use 'huge.scss' as *;
-@use 'massive.scss' as *;
-@use 'ultra.scss' as *;
+@use 'lv1.scss' as *;
+@use 'lv2.scss' as *;
+@use 'lv3.scss' as *;
+@use 'lv4.scss' as *;
+@use 'lv5.scss' as *;
+@use 'lv6.scss' as *;
+@use 'lv7.scss' as *;
 
-.marker {
-  width: 100%;
-  height: 100%;
+.lv1,
+.lv2,
+.lv3,
+.lv4,
+.lv5,
+.lv6,
+.lv7,
+.square,
+.circle,
+.rectangle,
+.horizontal,
+.vertical,
+.compact,
+.expanded,
+.wide,
+.before,
+.working,
+.after,
+.rest {
+  min-width: 0;
 }
 
-.island {
+.marker {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  padding: 8px 10px;
-  border-radius: 22px;
-  background: #0a0a0a;
-  color: #fff;
+  border-radius: inherit;
+  border: none;
+  background: transparent;
+  color: var(--ith-color-text);
   overflow: hidden;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  transition:
-    background-color 200ms ease,
-    opacity 200ms ease;
+  padding: 10px 12px;
+  position: relative;
 }
+
+/* Data-Dense：内容块紧凑堆叠，禁止靠 space-between 撑出空洞 */
+
+/* ── 图标井 / 行内图标 / 水印装饰 ── */
+
+.iconWell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
+  font-size: 14px;
+  line-height: 1;
+}
+
+.iconWellSm {
+  width: 1.25em;
+  height: 1.25em;
+  font-size: 12px;
+}
+
+.iconWellPrimary {
+  color: var(--ith-color-primary);
+  background: var(--ith-color-primary-bg);
+}
+
+.iconWellSuccess {
+  color: var(--ith-color-success);
+  background: var(--ith-color-success-bg, var(--ith-color-primary-bg));
+}
+
+.iconWellStatus {
+  color: var(--ith-color-success);
+  background: var(--ith-color-success-bg, var(--ith-color-fill-secondary));
+}
+
+.after .iconWellStatus,
+.rest .iconWellStatus {
+  color: var(--ith-color-text-secondary);
+  background: var(--ith-color-fill-secondary);
+}
+
+.before .iconWellStatus {
+  color: var(--ith-color-primary);
+  background: var(--ith-color-primary-bg);
+}
+
+.metricHead {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.inlineIcon {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  vertical-align: -0.125em;
+}
+
+.decor {
+  position: absolute;
+  right: -4%;
+  bottom: -8%;
+  font-size: 88px;
+  line-height: 1;
+  color: var(--ith-color-primary);
+  opacity: 0.06;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+/* ── compact（对齐历史 island compact） ── */
 
 .compactBody {
   display: flex;
@@ -39,34 +132,93 @@
 }
 
 .compactIcon {
-  color: #7dd3fc;
+  color: inherit;
   flex-shrink: 0;
 }
 
 .compactTime {
-  font-size: 11px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   line-height: 1.1;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
 }
 
 .compactTrack {
   width: 70%;
   height: 3px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--ith-color-fill-secondary);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .compactFill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #38bdf8, #fff);
-  transition: width 200ms ease;
+  background: var(--ith-color-primary);
+  transition: width 180ms ease;
 }
 
+/* ── strip：size1 横矩形 ≈150×60，单行企业状态条 ── */
+
+.stripBody {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+.stripTime {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+  white-space: nowrap;
+}
+
+.stripTrack {
+  flex: 1 1 auto;
+  min-width: 24px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ith-color-fill-secondary);
+  overflow: hidden;
+}
+
+.stripFill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ith-color-primary);
+  transition: width 180ms ease;
+}
+
+.stripPct {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text-secondary);
+  min-width: 2em;
+  text-align: right;
+}
+
+.after .stripFill,
+.rest .stripFill {
+  background: var(--ith-color-text-quaternary, var(--ith-color-text-secondary));
+}
+
+/* ── expanded：顶指标（弹性）· 进度带 · 底栏，撑满卡片无悬空 ── */
+
 .expandedBody {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -74,13 +226,17 @@
   height: 100%;
   gap: 6px;
   min-width: 0;
+  min-height: 0;
 }
 
 .row {
   display: flex;
-  gap: 8px;
+  gap: 0;
   min-height: 0;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  align-items: stretch;
 }
 
 .col {
@@ -90,45 +246,77 @@
   flex-direction: column;
   justify-content: center;
   gap: 2px;
+  padding: 0 12px 0 0;
 }
 
-.labelEarn {
-  font-size: 10px;
-  color: #86efac;
+.col + .col {
+  padding: 0 0 0 12px;
+  border-left: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+}
+
+.label {
   line-height: 1.2;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  font-size: 11px;
+  font-weight: 500;
 }
 
-.labelCount {
-  font-size: 10px;
-  color: #7dd3fc;
-  line-height: 1.2;
-}
-
-.valueEarn {
-  font-size: clamp(14px, 2.8vw, 22px);
+.value {
   font-weight: 700;
-  color: #4ade80;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.valueCount {
-  font-size: clamp(16px, 3.2vw, 26px);
-  font-weight: 700;
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.15;
-  white-space: nowrap;
+.valueDim {
+  color: var(--ith-color-text-secondary);
+  font-weight: 600;
+}
+
+.earn .label {
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+}
+
+.earn .value {
+  color: var(--ith-color-success);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.progressHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 1;
+}
+
+.progressTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
 }
 
 .track {
   width: 100%;
-  height: 3px;
+  height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--ith-color-fill-secondary);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -136,44 +324,170 @@
 .fill {
   height: 100%;
   border-radius: inherit;
-  background: #22c55e;
-  transition: width 200ms ease;
+  background: var(--ith-color-primary);
+  transition: width 180ms ease;
+}
+
+.progressLabel {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text);
 }
 
 .footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  font-size: 10px;
+  gap: 8px;
   line-height: 1.2;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  padding-top: 6px;
+  border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
 }
 
 .status {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #fff;
+  color: var(--ith-color-text);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #22c55e;
+  background: var(--ith-color-success);
   flex-shrink: 0;
 }
 
 .range {
-  color: rgba(255, 255, 255, 0.45);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ith-color-text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  font-size: 12px;
+}
+
+/* ── 大容量：发薪 / 薪酬面板（对齐历史 views 卡片信息） ── */
+
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--ith-border-radius);
+  border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  background: var(--ith-color-bg-layout);
+  min-width: 0;
+}
+
+.panelLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ith-color-text-secondary);
+}
+
+.panelHero {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+}
+
+.panelUnit {
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 2px;
+  color: var(--ith-color-text-secondary);
+}
+
+.panelSub {
+  font-size: 11px;
+  color: var(--ith-color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wide .row {
+  gap: 0;
+}
+
+.wide .col {
+  padding-right: 16px;
+}
+
+.wide .col + .col {
+  padding-left: 16px;
+}
+
+.wide .panels {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+/* 竖排 / 圆形：取消列间竖线，改为顶部分隔 */
+.circle .col,
+.rectangle.vertical .col {
+  padding-right: 0;
+}
+
+.circle .col + .col,
+.rectangle.vertical .col + .col {
+  border-left: none;
+  padding-left: 0;
+  border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+.circle .footer,
+.circle .panels {
+  display: none;
+}
+
+.working .dot {
+  background: var(--ith-color-success);
+}
+
+.after .dot,
+.rest .dot {
+  background: var(--ith-color-text-quaternary, var(--ith-color-text-secondary));
+}
+
+.after .fill,
+.rest .fill {
+  background: var(--ith-color-text-quaternary, var(--ith-color-text-secondary));
+}
+
+.after .progressLabel,
+.rest .progressLabel {
+  color: var(--ith-color-text-secondary);
+}
+
+.before .dot {
+  background: var(--ith-color-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .island,
   .compactFill,
+  .stripFill,
   .fill {
     transition: none;
   }

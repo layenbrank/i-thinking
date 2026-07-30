@@ -1,7 +1,6 @@
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'
-
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useContext } from 'react'
 
 import {
   MagneticTile,
