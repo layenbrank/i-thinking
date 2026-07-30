@@ -190,6 +190,7 @@ pnpm bump:client 1.2.0-beta.1
 
 ## 常见问题
 
+- pnpm / Electron postinstall 卡住：见 [pnpm-and-native-mirrors.md](./pnpm-and-native-mirrors.md)，需设置 `ELECTRON_MIRROR`。
 - pnpm workspace 构建失败：确认 `pnpm-lock.yaml` 与 `turbo.json` 同步。
 - Client 桌面包：仅在 `client-release`（Windows）构建；CI 只跑 `build:core`。
 - Updater 签名失败：检查仓库 Secrets 是否配置 `TAURI_SIGNING_*`。

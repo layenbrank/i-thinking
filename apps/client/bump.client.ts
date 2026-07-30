@@ -6,14 +6,10 @@ import { defineConfig } from 'bumpp'
  * 用法：pnpm bump:client 1.2.0-beta.1
  */
 export default defineConfig({
-  tag: false,
-  commit: false,
-  push: false,
-  files: [
-    'package.json',
-    'src-tauri/tauri.conf.json',
-    'src-tauri/Cargo.toml'
-  ],
+  tag: true,
+  commit: true,
+  push: true,
+  files: ['package.json', 'src-tauri/tauri.conf.json', 'src-tauri/Cargo.toml'],
   progress({ event, updatedFiles }) {
     console.log(`${event} 🛠 ☛ ——> ${updatedFiles}`)
   }

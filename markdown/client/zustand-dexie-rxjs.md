@@ -1,6 +1,8 @@
 # Zustand + Dexie + RxJS 高级用法指南
 
-本文档详细介绍了项目中 Zustand 状态管理的高级用法，以及如何与 Dexie (IndexedDB) 和 RxJS 集成。
+本文档说明 **apps/client** 中 Zustand 与 Dexie / RxJS 的项目级用法（Mirror、乐观更新、示例工具）。
+
+基础用法（selector、actions 内聚等）见 VitePress：[apps/docs/guides/zustand.md](../../apps/docs/guides/zustand.md)。
 
 ## 目录
 
@@ -183,14 +185,19 @@ async toInsertMirror(data) {
 
 ```
 apps/client/src/stores/
-├── index.ts              # 统一导出入口
-├── mirror.ts             # Mirror Store (主 Store)
-├── application.ts        # Application Store
-├── counter.ts            # Counter Store (示例)
-└── utils/
-    ├── dexie-sync.ts     # Dexie 同步工具
-    └── rx-bridge.ts      # RxJS 桥接工具
+├── mirror.ts                 # Mirror Store（生产）
+├── overlay.ts / morph.ts / … # 其它业务 Store
+├── counter.ts / clock.ts     # 小型示例 Store
+└── example/                  # 进阶模式参考（非全部挂到生产入口）
+    ├── mirror.ts
+    ├── magnetic-tile.ts
+    ├── index.ts
+    └── utils/
+        ├── dexie-sync.ts     # Dexie 同步工具示例
+        └── rx-bridge.ts      # RxJS 桥接工具示例
 ```
+
+下文「Application Store / Dexie / RxJS」章节中的 import 路径若写 `@/stores/utils/...`，请对照实际位置 `stores/example/utils/`。生产路径以 `mirror.ts` 等现有文件为准。
 
 ---
 

@@ -78,6 +78,8 @@
 
 ## 使用示例
 
+更完整的调用片段见 [examples/ai-streaming-iframe-demo.md](./examples/ai-streaming-iframe-demo.md)。
+
 ```ts
 // 在父页面中
 await (window as any).__iframeViewAPI.render('# Hello')
@@ -104,7 +106,7 @@ console.log('FPS:', perf.current.fps)
 
 ## 目录索引
 
-- 视图：`apps/extension/src/views/iframe-view.vue`
+- 视图：`apps/extension/src/views/iframe-view/iframe-view.vue`（另有 demo：`views/demo/iframe-view.vue`）
 - 渲染：`apps/extension/src/composables/useMarkdownRenderer.ts`
 - 插件：`apps/extension/src/composables/useMarkdownPlugin.ts`
 - 通信：`apps/extension/src/composables/useCrossContextBridge.ts`

@@ -2,9 +2,11 @@
 
 本示例展示如何在父页面中调用 iframe 暴露的 API，进行 Markdown 渲染与 AI 流式渲染。
 
+主文档：[../ai-streaming-iframe.md](../ai-streaming-iframe.md)
+
 ## 前置
 
-- 已在页面中挂载 `iframe-view.vue` 组件
+- 已挂载 `apps/extension/src/views/iframe-view/iframe-view.vue`（或 demo 变体）
 - 组件会在 `window.__iframeViewAPI` 暴露以下方法
 
 ```ts

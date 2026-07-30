@@ -57,7 +57,7 @@ pnpm build   # 或仓库根：pnpm build:client
 
 ## CI 发版（stable / alpha / beta / rc）
 
-详见仓库根 `markdown/CI-CD.md`。摘要：
+详见仓库根 [`markdown/ops/ci-cd.md`](../../markdown/ops/ci-cd.md)。摘要：
 
 ```bash
 # 仓库根：仅 bump client（apps/client/bump.client.ts）

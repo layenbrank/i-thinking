@@ -1,5 +1,7 @@
 # Sortable.js TypeScript 使用指南
 
+> **本仓库用法**：`sortablejs` 用于 `apps/client`（controller 网格）与 `apps/extension`（controller / bookmark）。下文为 API 参考笔记。
+
 [![NPM版本](https://img.shields.io/npm/v/sortablejs.svg)](https://www.npmjs.com/package/sortablejs)
 [![许可证](https://img.shields.io/npm/l/sortablejs.svg)](https://github.com/SortableJS/Sortable/blob/master/LICENSE)
 [![周下载量](https://img.shields.io/npm/dw/sortablejs.svg)](https://www.npmjs.com/package/sortablejs)

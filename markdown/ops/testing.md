@@ -1,31 +1,32 @@
 # Vitest 测试指南
 
-本项目采用 monorepo 架构，每个子项目都有独立的 vitest 配置。
+本项目采用 monorepo 架构，多数子项目使用独立的 Vitest 配置。
 
-## 📁 项目测试配置
+## 项目测试配置
 
-### 已配置 Vitest 的项目
+### 使用 Vitest 的项目
 
 #### Apps
 
-- **apps/client** - React + Tauri 桌面应用
-- **apps/devtools** - Vue3 开发工具
-- **apps/extension** - Vue3 浏览器扩展
+- **apps/client** — React + Tauri 桌面应用（`*.test.ts(x)`，另有 `src/__test__/`）
+- **apps/studio** — Electron 桌面（Vitest + 可选 Playwright e2e）
+- **apps/devtools** — Vue3 开发工具
+- **apps/extension** — Vue3 浏览器扩展（`src/__tests__/`）
 
 #### Packages
 
-- **packages/core** - 核心工具库
-- **packages/ui** - Vue3 组件库
+- **packages/core** — 核心工具库
+- **packages/ui** — Vue3 组件库
 
-#### 不使用 Vitest 的项目
+### 不使用 Vitest 的项目
 
-- **apps/service** - NestJS 后端服务（使用 Jest）
-- **apps/docs** - VitePress 文档站点（不需要测试）
-- **packages/shared** - 仅类型定义（不需要测试）
+- **apps/service** — NestJS（Jest，`*.spec.ts`）
+- **apps/docs** — VitePress（无单元测试）
+- **packages/shared** — 以类型为主（无独立测试套件时跳过）
 
 ---
 
-## 🚀 运行测试
+## 运行测试
 
 ### 在根目录运行所有测试
 
@@ -61,7 +62,7 @@ pnpm test:coverage
 
 ---
 
-## 📝 编写测试
+## 编写测试
 
 ### 1. React 组件测试 (apps/client)
 
@@ -179,37 +180,21 @@ describe('API calls', () => {
 
 ---
 
-## 📦 测试文件组织
+## 测试文件组织
 
-### 推荐的文件结构
+本仓库常见两种布局：
 
-```
-src/
-├── components/
-│   ├── Button/
-│   │   ├── Button.tsx
-│   │   └── Button.test.tsx
-│   └── Input/
-│       ├── Input.vue
-│       └── Input.spec.ts
-├── utils/
-│   ├── helpers.ts
-│   └── helpers.test.ts
-└── hooks/
-    ├── useCounter.ts
-    └── useCounter.test.ts
-```
+1. **与源码同目录**：`foo.ts` 旁放 `foo.test.ts`（client / studio / packages 多用）
+2. **集中目录**：`src/__test__/`（client 示例）、`src/__tests__/`（extension）
 
-### 测试文件命名规则
+### 命名规则
 
-- `*.test.ts` - 单元测试
-- `*.test.tsx` - React 组件测试
-- `*.spec.ts` - 规范测试（可选）
-- `*.spec.tsx` - React 组件规范测试（可选）
+- `*.test.ts` / `*.test.tsx` — Vitest 单元与组件测试
+- `*.spec.ts` — NestJS（Jest）或个别 Vue 规范测试
 
 ---
 
-## 🔧 Vitest 配置说明
+## Vitest 配置说明
 
 每个项目的 `vitest.config.ts` 包含：
 
@@ -231,7 +216,7 @@ export default defineConfig({
 
 ---
 
-## 🎯 测试最佳实践
+## 测试最佳实践
 
 1. **测试文件应与源文件放在同一目录**
    - 便于查找和维护
@@ -264,7 +249,7 @@ export default defineConfig({
 
 ---
 
-## 📊 覆盖率报告
+## 覆盖率报告
 
 运行覆盖率测试后，在各项目的 `coverage/` 目录下查看报告：
 
@@ -278,7 +263,7 @@ pnpm test:coverage
 
 ---
 
-## 🔍 常用 API
+## 常用 API
 
 ### Vitest 核心 API
 
@@ -306,18 +291,16 @@ pnpm test:coverage
 
 ---
 
-## 💡 示例项目
+## 示例入口
 
-查看各项目中的 `src/example.test.ts(x)` 文件获取更多示例：
-
-- `apps/client/src/example.test.tsx` - React 测试示例
-- `apps/extension/src/example.test.ts` - Vue 测试示例
-- `packages/ui/src/example.test.ts` - UI 组件测试示例
-- `packages/core/src/example.test.ts` - 工具函数测试示例
+- `apps/client/src/__test__/example.test.tsx` — React 示例
+- `apps/extension/src/__tests__/example.test.ts` — Vue 示例
+- `packages/ui/src/example.test.ts` — UI 组件示例
+- `packages/core/src/example.test.ts` — 工具函数示例
 
 ---
 
-## 📚 参考资料
+## 参考资料
 
 - [Vitest 官方文档](https://vitest.dev/)
 - [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)

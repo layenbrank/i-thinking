@@ -407,7 +407,7 @@ apps/client/src/features/applications/settings/
   theme-recipe-form.tsx
 ```
 
-关键规则（对齐 [llms-semantic-cn.md](markdown/llms-semantic-cn.md) 与官方 v6 实践）：
+关键规则（对齐 [llms-semantic-cn.md](markdown/reference/antd/llms-semantic-cn.md) 与官方 v6 实践）：
 
 - 组件级改色优先 `algorithm: true`，让 antd 从 Seed 派生 hover/active
 - 禁止在业务代码直接使用 Seed Token（如 `colorBgBase`）

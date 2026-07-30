@@ -128,13 +128,8 @@ jobs:
           }
 
           if ($errors.Count -gt 0) {
-            Write-Error @"
-Version gate failed. Tag implies version '$expected', but sources disagree:
-$($errors -join "`n")
-
-Fix: pnpm bump:client $expected   # bumps apps/client/package.json + tauri.conf + Cargo.toml
-Then commit, tag v$expected, and push.
-"@
+            $detail = $errors -join [char]10
+            Write-Error "Version gate failed. Tag implies version '$expected', but sources disagree:`n$detail`nFix: pnpm bump:client $expected (apps/client/bump.client.ts)`nThen commit, tag v$expected, and push."
             exit 1
           }
 

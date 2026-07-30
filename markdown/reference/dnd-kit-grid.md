@@ -1,3 +1,7 @@
+# React + @dnd-kit 网格拖拽参考
+
+> **本仓库用法**：`@dnd-kit` 用于 `apps/client`（如 magnetic-tiles）与 `apps/studio` 的可排序网格。下文为通用实现笔记，安装请优先用仓库已有依赖与 `pnpm`，不必再单独 `npm install`。
+
 # React 19 + @dnd-kit + TS 实现可拖拽排序的网格布局
 
 下面是一个完整的实现方案，使用@dnd-kit在React 19中创建可拖拽排序的网格布局。
@@ -5,9 +9,7 @@
 ## 1. 安装依赖
 
 ```bash
-npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/modifiers
-# 或
-yarn add @dnd-kit/core @dnd-kit/sortable @dnd-kit/modifiers
+pnpm add @dnd-kit/core @dnd-kit/sortable @dnd-kit/modifiers
 ```
 
 ## 2. 完整实现代码
