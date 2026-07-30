@@ -9,6 +9,9 @@ export default defineConfig({
   tag: true,
   commit: true,
   push: true,
+  all: false,
+  confirm: false,
+  printCommits: true,
   files: ['package.json', 'src-tauri/tauri.conf.json', 'src-tauri/Cargo.toml'],
   progress({ event, updatedFiles }) {
     console.log(`${event} 🛠 ☛ ——> ${updatedFiles}`)
