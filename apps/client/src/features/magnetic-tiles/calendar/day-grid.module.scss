@@ -8,7 +8,7 @@
   cursor: pointer;
   box-sizing: border-box;
   background: var(--ith-color-bg-container);
-  border: 1px solid transparent;
+  border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
   border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
   transition:
     background-color 160ms ease,
@@ -17,7 +17,7 @@
 
   &:hover {
     background: var(--ith-color-fill-quaternary, var(--ith-color-primary-bg));
-    border-color: var(--ith-color-border-secondary, var(--ith-color-border));
+    border-color: var(--ith-color-border);
   }
 }
 
@@ -33,8 +33,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 6px 8px;
+  gap: var(--cal-cell-gap, 3px);
+  padding: var(--cal-cell-pad, 6px 4px 8px);
   position: relative;
   z-index: 1;
   color: var(--ith-color-text);
@@ -44,16 +44,21 @@
 }
 
 .dayNum {
-  font-size: 14px;
+  font-size: var(--cal-day-num, 13px);
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .lunar {
   color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
-  font-size: 11px;
+  font-size: var(--cal-lunar, 10px);
   font-weight: 400;
   line-height: 1.25;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-inline: 2px;
 }
 
 .festival {
@@ -66,9 +71,8 @@
 }
 
 .outside {
-  color: var(--ith-color-text-quaternary);
-  background: var(--ith-color-fill-quaternary, transparent);
-  border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
+  background: var(--ith-color-fill-quaternary, #fafafa);
+  border-color: var(--ith-color-border-secondary, var(--ith-color-border));
 
   .dayNum,
   .lunar,
@@ -81,7 +85,7 @@
 .current {
   background: var(--ith-color-primary-bg);
   border-color: var(--ith-color-primary-border, var(--ith-color-primary));
-  border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
+  box-shadow: inset 0 0 0 1px var(--ith-color-primary-border, var(--ith-color-primary));
 
   .dayNum {
     color: var(--ith-color-primary);
@@ -89,7 +93,7 @@
 
   .lunar {
     color: var(--ith-color-primary);
-    opacity: 0.85;
+    opacity: 0.88;
   }
 
   .festival {
@@ -102,60 +106,138 @@
   }
 }
 
+.markSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 100%;
+  height: var(--cal-mark-slot, 10px);
+  margin-top: 1px;
+}
+
 .mark {
-  position: absolute;
-  bottom: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 5px;
-  height: 5px;
+  display: block;
+  width: var(--cal-mark-size, 5px);
+  height: var(--cal-mark-size, 5px);
   border-radius: 50%;
   background: var(--ith-color-primary);
-  z-index: 2;
+  flex-shrink: 0;
 }
 
 .markOnCurrent {
   background: var(--ith-color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ith-color-primary) 22%, transparent);
 }
 
 .monthCell {
+  position: relative;
   width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
   margin: 0;
   color: var(--ith-color-text);
   border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
-  padding: 16px 8px;
-  text-align: center;
   cursor: pointer;
+  box-sizing: border-box;
   transition:
     background-color 160ms ease,
-    border-color 160ms ease;
-  font-size: 13px;
+    border-color 160ms ease,
+    box-shadow 160ms ease;
   border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
   background: var(--ith-color-bg-container);
 
   &:hover {
     background: var(--ith-color-fill-quaternary, var(--ith-color-primary-bg));
+    border-color: var(--ith-color-border);
   }
+}
+
+.monthCellToday {
+  border-color: var(--ith-color-primary);
+  box-shadow: inset 0 0 0 1px var(--ith-color-primary);
 }
 
 .monthCellCurrent {
   color: var(--ith-color-primary);
   background: var(--ith-color-primary-bg);
   border-color: var(--ith-color-primary-border, var(--ith-color-primary));
+  box-shadow: inset 0 0 0 1px var(--ith-color-primary-border, var(--ith-color-primary));
 
   &:hover {
     background: var(--ith-color-primary-bg);
     color: var(--ith-color-primary);
   }
+
+  .monthNum,
+  .monthUnit {
+    color: var(--ith-color-primary);
+  }
+
+  .monthLunar {
+    color: var(--ith-color-primary);
+    opacity: 0.88;
+  }
+}
+
+.monthText {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cal-month-gap, 6px);
+  padding: var(--cal-month-pad, 10px 8px);
+  box-sizing: border-box;
+  text-align: center;
+  border-radius: inherit;
+}
+
+.monthPrimary {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  line-height: 1;
+}
+
+.monthNum {
+  font-size: var(--cal-month-num, 22px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ith-color-text);
+}
+
+.monthUnit {
+  font-size: var(--cal-month-unit, 12px);
+  font-weight: 500;
+  color: var(--ith-color-text-secondary);
+  line-height: 1;
+}
+
+.monthLunar {
+  font-size: var(--cal-month-lunar, 11px);
+  font-weight: 400;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 0 0 12px;
-  min-height: 32px;
+  gap: 8px;
+  padding: 0 0 var(--cal-toolbar-pad, 8px);
+  min-height: var(--cal-toolbar-h, 28px);
+  flex-shrink: 0;
 }
 
 .toolbarLeft {
@@ -170,4 +252,94 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
+}
+
+@container calendar (min-height: 480px) {
+  .text {
+    --cal-cell-gap: 4px;
+    --cal-cell-pad: 8px 6px 10px;
+  }
+
+  .dayNum {
+    --cal-day-num: 15px;
+  }
+
+  .lunar {
+    --cal-lunar: 11px;
+  }
+
+  .markSlot {
+    --cal-mark-slot: 12px;
+  }
+
+  .mark {
+    --cal-mark-size: 6px;
+  }
+
+  .monthText {
+    --cal-month-gap: 8px;
+    --cal-month-pad: 12px 10px;
+  }
+
+  .monthNum {
+    --cal-month-num: 26px;
+  }
+
+  .monthUnit {
+    --cal-month-unit: 13px;
+  }
+
+  .monthLunar {
+    --cal-month-lunar: 12px;
+  }
+
+  .toolbar {
+    --cal-toolbar-pad: 8px;
+    --cal-toolbar-h: 32px;
+  }
+}
+
+@container calendar (min-height: 560px) {
+  .text {
+    --cal-cell-gap: 5px;
+    --cal-cell-pad: 10px 8px 12px;
+  }
+
+  .dayNum {
+    --cal-day-num: 17px;
+  }
+
+  .lunar {
+    --cal-lunar: 12px;
+  }
+
+  .markSlot {
+    --cal-mark-slot: 14px;
+  }
+
+  .mark {
+    --cal-mark-size: 6px;
+  }
+
+  .monthText {
+    --cal-month-gap: 10px;
+    --cal-month-pad: 14px 12px;
+  }
+
+  .monthNum {
+    --cal-month-num: 30px;
+  }
+
+  .monthUnit {
+    --cal-month-unit: 14px;
+  }
+
+  .monthLunar {
+    --cal-month-lunar: 13px;
+  }
+
+  .toolbar {
+    --cal-toolbar-pad: 10px;
+    --cal-toolbar-h: 36px;
+  }
 }

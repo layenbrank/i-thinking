@@ -26,12 +26,14 @@ function Overlay(props: OverlayControlProps) {
       }}>
       <div className={styles.stage}>
         <Suspense fallback={<div className={styles.fallback}>加载中…</div>}>
-          <CalendarView
-            embedded
-            onClose={function () {
-              onUpdateVisible(false)
-            }}
-          />
+          <div className={styles.view}>
+            <CalendarView
+              embedded
+              onClose={function () {
+                onUpdateVisible(false)
+              }}
+            />
+          </div>
         </Suspense>
       </div>
     </MagneticTile.Overlay>

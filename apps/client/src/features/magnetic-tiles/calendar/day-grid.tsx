@@ -49,7 +49,7 @@ function DayGrid(props: DayGridProps) {
   }
 
   const handleDateChange: CalendarProps<Dayjs>['onSelect'] = function (value, selectInfo) {
-    if (selectInfo.source === 'date') {
+    if (selectInfo.source === 'date' || selectInfo.source === 'month') {
       onSelectDate(value)
     }
   }
@@ -64,8 +64,12 @@ function DayGrid(props: DayGridProps) {
       const hasMark = markedDates.has(key)
       const isOutside = !panelDate.isSame(date, 'month')
 
-      return React.cloneElement(info.originNode, {
-        ...(info.originNode as React.ReactElement<{ className?: string }>).props,
+      const origin = info.originNode as React.ReactElement<{
+        className?: string
+        children?: React.ReactNode
+      }>
+
+      return React.cloneElement(origin, {
         className: clsx(styles.dateCell, {
           [styles.current]: isCurrent,
           [styles.today]: isToday && !isCurrent,
@@ -77,9 +81,11 @@ function DayGrid(props: DayGridProps) {
             <div className={clsx(styles.lunar, caption.isFestival && styles.festival)}>
               {caption.text}
             </div>
-            {hasMark ? (
-              <span className={clsx(styles.mark, isCurrent && styles.markOnCurrent)} />
-            ) : null}
+            <span className={styles.markSlot} aria-hidden={!hasMark}>
+              {hasMark ? (
+                <span className={clsx(styles.mark, isCurrent && styles.markOnCurrent)} />
+              ) : null}
+            </span>
           </div>
         )
       })
@@ -90,14 +96,28 @@ function DayGrid(props: DayGridProps) {
         timeSphere.format(new Date(date.year(), date.month(), 15), 'YYYY-MM-DD'),
         'lM'
       )
-      return (
-        <div
-          className={clsx(styles.monthCell, {
-            [styles.monthCellCurrent]: selectDate.isSame(date, 'month')
-          })}>
-          {date.month() + 1}月（{lunarMonth}）
-        </div>
-      )
+      const isCurrent = selectDate.isSame(date, 'month') && selectDate.isSame(date, 'year')
+      const isThisMonth = dayjs().isSame(date, 'month') && dayjs().isSame(date, 'year')
+      const origin = info.originNode as React.ReactElement<{
+        className?: string
+        children?: React.ReactNode
+      }>
+
+      return React.cloneElement(origin, {
+        className: clsx(styles.monthCell, {
+          [styles.monthCellCurrent]: isCurrent,
+          [styles.monthCellToday]: isThisMonth && !isCurrent
+        }),
+        children: (
+          <div className={styles.monthText}>
+            <div className={styles.monthPrimary}>
+              <span className={styles.monthNum}>{date.month() + 1}</span>
+              <span className={styles.monthUnit}>月</span>
+            </div>
+            <span className={styles.monthLunar}>{lunarMonth}</span>
+          </div>
+        )
+      })
     }
 
     return info.originNode
@@ -132,7 +152,7 @@ function DayGrid(props: DayGridProps) {
           <div className={styles.toolbar}>
             <div className={styles.toolbarLeft}>
               <Select
-                size="middle"
+                size="small"
                 popupMatchSelectWidth={false}
                 value={year}
                 options={yearOptions}
@@ -156,7 +176,7 @@ function DayGrid(props: DayGridProps) {
             </div>
             <div className={styles.toolbarRight}>
               <Radio.Group
-                size="middle"
+                size="small"
                 optionType="button"
                 buttonStyle="solid"
                 onChange={function (e) {

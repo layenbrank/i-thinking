@@ -1,4 +1,5 @@
 import React from '@vitejs/plugin-react-swc'
+import { createHash } from 'node:crypto'
 import { createWriteStream } from 'node:fs'
 import { dirname, resolve, basename } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
@@ -174,12 +175,16 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
         // 	const scoped = `${name}-${hash}`
         // 	return scoped
         // },
-        generateScopedName(name, filename, css) {
-          const fileBaseName = basename(filename, '.module.scss')
-          const hash = Buffer.from(css).toString('base64').slice(0, 6)
-          const scoped = `${fileBaseName}-${name}-${hash}`
-          // const scoped = `${name}-${hash}`
-          return scoped
+        generateScopedName(name, filename) {
+          // 必须含完整路径：calendar/countdown 等都叫 marker.module.scss，
+          // 旧实现只用 css 内容前 6 位 base64，文件都以 @use 开头 → 类名碰撞，样式串扰。
+          const fileBaseName = basename(filename).replace(/\.module\.(scss|css|sass|less)$/i, '')
+          const scope = basename(dirname(filename))
+          const hash = createHash('sha256')
+            .update(`${filename}\0${name}`)
+            .digest('base64url')
+            .slice(0, 6)
+          return `${scope}-${fileBaseName}-${name}-${hash}`
         },
         localsConvention: 'camelCase',
         scopeBehaviour: 'local',

@@ -1,50 +1,101 @@
 .calendar {
   width: 100%;
-  height: 100%;
+  flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--ith-color-bg-container);
+  container-type: size;
+  container-name: calendar;
 
   :global {
     .ant-picker-calendar {
       width: 100%;
       height: 100%;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       background: transparent;
     }
 
-    .ant-picker-panel {
+    .ant-picker-calendar .ant-picker-panel {
       flex: 1;
       min-height: 0;
       border-top: none;
-      border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .ant-picker-date-panel,
     .ant-picker-month-panel {
       width: 100%;
-      height: 100%;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
     }
 
     .ant-picker-body {
-      height: 100%;
+      flex: 1;
+      min-height: 0;
+      height: auto !important;
       padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .ant-picker-content {
-      height: 100%;
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      height: 100% !important;
+      table-layout: fixed;
       border-collapse: separate;
-      border-spacing: 4px;
+      border-spacing: var(--cal-spacing);
+    }
+
+    .ant-picker-content thead {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    .ant-picker-date-panel .ant-picker-content tbody {
+      display: table;
+      width: 100%;
+      height: calc(100% - var(--cal-th-h));
+      table-layout: fixed;
+    }
+
+    .ant-picker-date-panel .ant-picker-content tbody tr {
+      height: 16.666%;
+    }
+
+    /* 年面板无表头，4 行 × 3 列铺满 */
+    .ant-picker-month-panel .ant-picker-content tbody {
+      display: table;
+      width: 100%;
+      height: 100%;
+      table-layout: fixed;
+    }
+
+    .ant-picker-month-panel .ant-picker-content tbody tr {
+      height: 25%;
+    }
+
+    .ant-picker-month-panel .ant-picker-content {
+      border-spacing: var(--cal-year-spacing, var(--cal-spacing));
     }
 
     .ant-picker-content th {
       color: var(--ith-color-text-secondary);
       font-weight: 600;
-      padding: 8px;
-      font-size: 12px;
+      padding: 6px 2px;
+      font-size: var(--cal-th-fs);
+      height: var(--cal-th-h);
       text-align: center;
       border: none;
       border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
@@ -60,19 +111,39 @@
       padding: 0;
       border: none;
       vertical-align: middle;
+      height: inherit;
     }
 
-    .ant-picker-calendar-date {
+    /* 去掉 antd 选中/范围伪元素横条，避免盖住日期 */
+    .ant-picker-cell::before,
+    .ant-picker-cell-inner::before {
+      display: none !important;
+      content: none !important;
+    }
+
+    .ant-picker-calendar-date,
+    .ant-picker-cell .ant-picker-cell-inner {
       height: 100%;
-      margin: 0;
-      padding: 0;
+      margin: 0 !important;
+      padding: 0 !important;
       border: none !important;
-      border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
+      background: transparent !important;
+      border-radius: var(--ith-border-radius-sm, var(--ith-border-radius)) !important;
     }
 
     .ant-picker-cell-selected .ant-picker-calendar-date,
-    .ant-picker-cell-selected:hover .ant-picker-calendar-date {
-      background: transparent;
+    .ant-picker-cell-selected:hover .ant-picker-calendar-date,
+    .ant-picker-cell-in-view.ant-picker-cell-selected .ant-picker-cell-inner,
+    .ant-picker-calendar-date-selected,
+    .ant-picker-cell-selected .ant-picker-cell-inner {
+      background: transparent !important;
+      color: inherit !important;
+      border: none !important;
+    }
+
+    .ant-picker-cell:hover .ant-picker-cell-inner,
+    .ant-picker-cell:hover .ant-picker-calendar-date {
+      background: transparent !important;
     }
   }
 }
@@ -81,12 +152,21 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.95fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--cal-gap);
+  overflow: hidden;
+  --cal-gap: 8px;
+  --cal-main-pad: 8px;
+  --cal-th-fs: 12px;
+  --cal-th-h: 28px;
+  --cal-spacing: 4px;
+  --cal-year-spacing: 6px;
+  --cal-detail-max: 42%;
 
   @media (max-width: 720px) {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(240px, 1fr) minmax(280px, auto);
+    grid-template-rows: minmax(200px, 1fr) minmax(160px, auto);
     overflow: auto;
   }
 }
@@ -94,27 +174,25 @@
 .main {
   min-width: 0;
   min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--ith-color-bg-container);
   border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
   border-radius: var(--ith-border-radius-lg, var(--ith-border-radius));
-  padding: 12px;
+  padding: var(--cal-main-pad);
   overflow: hidden;
 }
 
 .side {
   min-width: 0;
   min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--cal-gap);
   padding: 0;
   overflow: hidden;
-
-  @media (max-width: 720px) {
-    overflow: auto;
-  }
 }
 
 .divider {
@@ -122,9 +200,15 @@
 }
 
 .gridPane {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
   :global {
     .ant-picker-calendar {
       min-height: 0;
+      flex: 1;
     }
   }
 }
@@ -132,4 +216,35 @@
 .embedded {
   flex: 1;
   min-height: 0;
+}
+
+@container calendar (min-height: 480px) {
+  .layout {
+    --cal-gap: 10px;
+    --cal-main-pad: 10px;
+    --cal-th-fs: 13px;
+    --cal-th-h: 32px;
+    --cal-spacing: 5px;
+    --cal-year-spacing: 8px;
+    --cal-detail-max: 48%;
+  }
+}
+
+@container calendar (min-height: 560px) {
+  .layout {
+    --cal-gap: 12px;
+    --cal-main-pad: 12px;
+    --cal-th-fs: 13px;
+    --cal-th-h: 34px;
+    --cal-spacing: 6px;
+    --cal-year-spacing: 10px;
+    --cal-detail-max: 52%;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 1fr);
+  }
+}
+
+@container calendar (min-width: 980px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr);
+  }
 }
