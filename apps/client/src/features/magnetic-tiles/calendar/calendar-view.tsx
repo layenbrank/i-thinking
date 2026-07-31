@@ -1,4 +1,3 @@
-import { createStyles } from 'antd-style'
 import { clsx } from 'clsx'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
@@ -8,7 +7,7 @@ import { timeSphere } from '@i-thinking/utils'
 import { DayAgenda } from '@/features/magnetic-tiles/calendar/day-agenda'
 import { DayDetail } from '@/features/magnetic-tiles/calendar/day-detail'
 import { DayGrid } from '@/features/magnetic-tiles/calendar/day-grid'
-import stylesChrome from '@/features/magnetic-tiles/calendar/calendar-view.module.scss'
+import styles from '@/features/magnetic-tiles/calendar/calendar-view.module.scss'
 import { useCalendarEventStore } from '@/stores/calendar-event'
 import { useReminderStore } from '@/stores/reminder'
 
@@ -16,59 +15,6 @@ type CalendarViewProps = {
   embedded?: boolean
   onClose?: () => void
 }
-
-const useStyle = createStyles(function ({ token, css }) {
-  return {
-    wrapper: css`
-      width: 100%;
-      height: 100%;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      background: ${token.colorBgContainer};
-    `,
-    layout: css`
-      flex: 1;
-      min-height: 0;
-      display: grid;
-      grid-template-columns: minmax(0, 1.65fr) minmax(240px, 1fr);
-      gap: 12px;
-      @media (max-width: 720px) {
-        grid-template-columns: 1fr;
-        grid-template-rows: minmax(240px, 1fr) minmax(220px, auto);
-        overflow: auto;
-      }
-    `,
-    main: css`
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      border-radius: ${token.borderRadiusLG}px;
-      background: ${token.colorBgContainer};
-    `,
-    side: css`
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      padding: 4px 4px 4px 8px;
-      border-left: 1px solid ${token.colorBorderSecondary};
-      overflow: auto;
-      @media (max-width: 720px) {
-        border-left: none;
-        border-top: 1px solid ${token.colorBorderSecondary};
-        padding: 12px 4px 4px;
-      }
-    `,
-    divider: css`
-      height: 1px;
-      background: ${token.colorBorderSecondary};
-      flex-shrink: 0;
-    `
-  }
-})
 
 function dayBounds(date: Dayjs): { from: number; to: number } {
   const start = date.startOf('day')
@@ -90,7 +36,6 @@ function monthBounds(date: Dayjs): { from: number; to: number } {
 function CalendarView(props: CalendarViewProps = {}) {
   const { embedded = false, onClose: _onClose } = props
   void _onClose
-  const { styles } = useStyle()
 
   const [selectDate, onUpdateSelectDate] = useState<Dayjs>(function () {
     return dayjs()
@@ -223,11 +168,9 @@ function CalendarView(props: CalendarViewProps = {}) {
   }
 
   return (
-    <div
-      className={clsx(styles.wrapper, stylesChrome.calendar, embedded && stylesChrome.embedded)}
-      data-through="false">
+    <div className={clsx(styles.calendar, embedded && styles.embedded)} data-through="false">
       <div className={styles.layout}>
-        <div className={clsx(styles.main, stylesChrome.gridPane)}>
+        <div className={clsx(styles.main, styles.gridPane)}>
           <DayGrid
             selectDate={selectDate}
             panelDate={panelDate}
@@ -244,8 +187,6 @@ function CalendarView(props: CalendarViewProps = {}) {
           />
         </div>
         <aside className={styles.side}>
-          <DayDetail date={selectDate} />
-          <div className={styles.divider} />
           <DayAgenda
             date={selectDate}
             events={dayEvents}
@@ -256,6 +197,7 @@ function CalendarView(props: CalendarViewProps = {}) {
             onRemoveEvent={handleRemoveEvent}
             onRemoveReminder={handleRemoveReminder}
           />
+          <DayDetail date={selectDate} />
         </aside>
       </div>
     </div>

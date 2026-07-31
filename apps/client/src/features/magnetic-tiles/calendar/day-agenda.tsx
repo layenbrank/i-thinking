@@ -1,9 +1,10 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
-import { Button, Checkbox, Empty, Form, Input, Modal, Segmented, Space, Typography } from 'antd'
-import { createStyles } from 'antd-style'
+import { Button, Checkbox, Form, Input, Segmented, Space } from 'antd'
+import { clsx } from 'clsx'
 import type { Dayjs } from 'dayjs'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
+import styles from '@/features/magnetic-tiles/calendar/day-agenda.module.scss'
 import type { CalendarEvent } from '@/stores/calendar-event'
 import type { Reminder } from '@/stores/reminder'
 
@@ -29,93 +30,6 @@ type AgendaItem = {
   timeLabel: string
 }
 
-const useStyle = createStyles(function ({ token, css }) {
-  return {
-    root: css`
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      min-height: 0;
-      flex: 1;
-    `,
-    header: css`
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    `,
-    title: css`
-      font-size: 13px;
-      font-weight: 600;
-      color: ${token.colorText};
-    `,
-    list: css`
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      overflow: auto;
-      min-height: 0;
-      flex: 1;
-      padding-right: 2px;
-    `,
-    item: css`
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: ${token.borderRadius}px;
-      background: ${token.colorFillTertiary};
-      border: 1px solid transparent;
-      transition:
-        background-color 200ms ease,
-        border-color 200ms ease;
-      cursor: default;
-      &:hover {
-        border-color: ${token.colorBorderSecondary};
-        background: ${token.colorFillSecondary};
-      }
-    `,
-    itemBody: css`
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    `,
-    itemTitle: css`
-      font-size: 13px;
-      font-weight: 500;
-      color: ${token.colorText};
-      line-height: 1.3;
-      &.done {
-        text-decoration: line-through;
-        color: ${token.colorTextQuaternary};
-      }
-    `,
-    itemMeta: css`
-      font-size: 11px;
-      color: ${token.colorTextSecondary};
-    `,
-    accent: css`
-      width: 3px;
-      align-self: stretch;
-      border-radius: 2px;
-      background: ${token.colorPrimary};
-      flex-shrink: 0;
-      &.reminder {
-        background: ${token.colorWarning};
-      }
-    `,
-    remove: css`
-      opacity: 0.55;
-      &:hover {
-        opacity: 1;
-        color: ${token.colorError} !important;
-      }
-    `
-  }
-})
-
 function formatTimeLabel(ms: number, isAllDay: boolean): string {
   if (isAllDay) return '全天'
   const date = new Date(ms)
@@ -135,11 +49,19 @@ function DayAgenda(props: DayAgendaProps) {
     onRemoveEvent,
     onRemoveReminder
   } = props
-  const { styles, cx } = useStyle()
-  const [open, onUpdateOpen] = useState(false)
+  const [composing, onUpdateComposing] = useState(false)
   const [kind, onUpdateKind] = useState<AgendaKind>('reminder')
   const [form] = Form.useForm<{ title: string; notes?: string }>()
   const [submitting, onUpdateSubmitting] = useState(false)
+  const dateKey = date.format('YYYY-MM-DD')
+
+  useEffect(
+    function () {
+      onUpdateComposing(false)
+      form.resetFields()
+    },
+    [dateKey, form]
+  )
 
   const items = useMemo(function (): AgendaItem[] {
     const eventItems: AgendaItem[] = events.map(function (event) {
@@ -171,7 +93,12 @@ function DayAgenda(props: DayAgendaProps) {
   function handleOpen() {
     form.resetFields()
     onUpdateKind('reminder')
-    onUpdateOpen(true)
+    onUpdateComposing(true)
+  }
+
+  function handleCancel() {
+    onUpdateComposing(false)
+    form.resetFields()
   }
 
   async function handleSubmit() {
@@ -183,113 +110,128 @@ function DayAgenda(props: DayAgendaProps) {
       } else {
         await onWriteReminder(values.title.trim(), values.notes?.trim() ?? '')
       }
-      onUpdateOpen(false)
+      onUpdateComposing(false)
+      form.resetFields()
     } finally {
       onUpdateSubmitting(false)
     }
   }
 
   return (
-    <div className={styles.root}>
-      <div className={styles.header}>
-        <div className={styles.title}>日程 · {date.format('M月D日')}</div>
-        <Button type="text" size="small" icon={<PlusOutlined />} onClick={handleOpen}>
-          添加
-        </Button>
+    <section className={styles.root}>
+      <header className={styles.header}>
+        <div className={styles.headerMain}>
+          <h3 className={styles.title}>日程</h3>
+          <span className={styles.subtitle}>{date.format('M月D日')}</span>
+          <span className={styles.count}>{items.length} 项</span>
+        </div>
+        {!composing ? (
+          <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpen}>
+            添加
+          </Button>
+        ) : null}
+      </header>
+
+      <div className={clsx(styles.composer, !composing && styles.composerHidden)} aria-hidden={!composing}>
+        <Segmented
+          size="small"
+          block
+          value={kind}
+          onChange={function (value) {
+            onUpdateKind(value as AgendaKind)
+          }}
+          options={[
+            { label: '提醒', value: 'reminder' },
+            { label: '事件', value: 'event' }
+          ]}
+        />
+        <Form
+          form={form}
+          layout="vertical"
+          size="small"
+          requiredMark={false}
+          className={styles.composerForm}
+          onFinish={function () {
+            void handleSubmit()
+          }}>
+          <Form.Item
+            name="title"
+            label="标题"
+            rules={[{ required: true, message: '请输入标题' }]}>
+            <Input placeholder="例如：周会 / 客户跟进" maxLength={80} />
+          </Form.Item>
+          <Form.Item name="notes" label="备注">
+            <Input.TextArea placeholder="可选" rows={2} maxLength={200} />
+          </Form.Item>
+        </Form>
+        <Space size={8} className={styles.composerActions}>
+          <Button size="small" onClick={handleCancel}>
+            取消
+          </Button>
+          <Button
+            type="primary"
+            size="small"
+            loading={submitting}
+            onClick={function () {
+              void handleSubmit()
+            }}>
+            保存
+          </Button>
+        </Space>
       </div>
 
       <div className={styles.list}>
-        {items.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="暂无日程或提醒"
-            style={{ margin: '12px 0' }}
-          />
-        ) : (
-          items.map(function (item) {
-            return (
-              <div key={`${item.kind}-${item.id}`} className={styles.item}>
-                <div className={cx(styles.accent, item.kind === 'reminder' && 'reminder')} />
-                {item.kind === 'reminder' ? (
-                  <Checkbox
-                    checked={Boolean(item.isCompleted)}
-                    onChange={function (e) {
-                      void onToggleReminder(item.id, e.target.checked)
-                    }}
-                  />
-                ) : null}
-                <div className={styles.itemBody}>
-                  <div className={cx(styles.itemTitle, item.isCompleted && 'done')}>
-                    {item.title}
-                  </div>
-                  <div className={styles.itemMeta}>
-                    {item.kind === 'event' ? '事件' : '提醒'} · {item.timeLabel}
-                    {item.notes ? ` · ${item.notes}` : ''}
-                  </div>
-                </div>
-                <Button
-                  type="text"
-                  size="small"
-                  className={styles.remove}
-                  icon={<DeleteOutlined />}
-                  onClick={function () {
-                    if (item.kind === 'event') {
-                      void onRemoveEvent(item.id)
-                    } else {
-                      void onRemoveReminder(item.id)
-                    }
+        {items.length === 0 && !composing ? (
+          <div className={styles.empty}>
+            <div className={styles.emptyTitle}>当日暂无日程</div>
+            <div className={styles.emptyDesc}>可添加提醒或事件，便于跟进当日安排。</div>
+            <Button type="link" size="small" icon={<PlusOutlined />} onClick={handleOpen}>
+              新建日程
+            </Button>
+          </div>
+        ) : null}
+        {items.map(function (item) {
+          return (
+            <div key={`${item.kind}-${item.id}`} className={styles.item}>
+              <div
+                className={clsx(styles.accent, item.kind === 'reminder' && styles.accentReminder)}
+              />
+              {item.kind === 'reminder' ? (
+                <Checkbox
+                  checked={Boolean(item.isCompleted)}
+                  onChange={function (e) {
+                    void onToggleReminder(item.id, e.target.checked)
                   }}
                 />
+              ) : null}
+              <div className={styles.itemBody}>
+                <div className={clsx(styles.itemTitle, item.isCompleted && styles.itemTitleDone)}>
+                  {item.title}
+                </div>
+                <div className={styles.itemMeta}>
+                  <span className={styles.kind}>{item.kind === 'event' ? '事件' : '提醒'}</span>
+                  <span>{item.timeLabel}</span>
+                  {item.notes ? <span className={styles.notes}>{item.notes}</span> : null}
+                </div>
               </div>
-            )
-          })
-        )}
+              <Button
+                type="text"
+                size="small"
+                className={styles.remove}
+                icon={<DeleteOutlined />}
+                onClick={function () {
+                  if (item.kind === 'event') {
+                    void onRemoveEvent(item.id)
+                  } else {
+                    void onRemoveReminder(item.id)
+                  }
+                }}
+              />
+            </div>
+          )
+        })}
       </div>
-
-      <Modal
-        title="添加日程"
-        open={open}
-        onCancel={function () {
-          onUpdateOpen(false)
-        }}
-        onOk={function () {
-          void handleSubmit()
-        }}
-        confirmLoading={submitting}
-        destroyOnHidden
-        okText="保存"
-        cancelText="取消">
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Segmented
-            block
-            value={kind}
-            onChange={function (value) {
-              onUpdateKind(value as AgendaKind)
-            }}
-            options={[
-              { label: '提醒', value: 'reminder' },
-              { label: '事件', value: 'event' }
-            ]}
-          />
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {kind === 'reminder'
-              ? '提醒独立存储，后续提醒磁贴可直接复用。'
-              : '日历归属日历；可后续再关联提醒。'}
-          </Typography.Text>
-          <Form form={form} layout="vertical" requiredMark={false}>
-            <Form.Item
-              name="title"
-              label="标题"
-              rules={[{ required: true, message: '请输入标题' }]}>
-              <Input placeholder="例如：开会 / 买菜" maxLength={80} />
-            </Form.Item>
-            <Form.Item name="notes" label="备注">
-              <Input.TextArea placeholder="可选" rows={2} maxLength={200} />
-            </Form.Item>
-          </Form>
-        </Space>
-      </Modal>
-    </div>
+    </section>
   )
 }
 

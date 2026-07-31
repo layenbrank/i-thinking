@@ -1,0 +1,173 @@
+.dateCell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  cursor: pointer;
+  box-sizing: border-box;
+  background: var(--ith-color-bg-container);
+  border: 1px solid transparent;
+  border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+
+  &:hover {
+    background: var(--ith-color-fill-quaternary, var(--ith-color-primary-bg));
+    border-color: var(--ith-color-border-secondary, var(--ith-color-border));
+  }
+}
+
+.today {
+  border-color: var(--ith-color-primary);
+  box-shadow: inset 0 0 0 1px var(--ith-color-primary);
+}
+
+.text {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px;
+  position: relative;
+  z-index: 1;
+  color: var(--ith-color-text);
+  box-sizing: border-box;
+  text-align: center;
+  border-radius: inherit;
+}
+
+.dayNum {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.lunar {
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.festival {
+  color: var(--ith-color-primary);
+  font-weight: 500;
+}
+
+.weekend {
+  color: var(--ith-color-error);
+}
+
+.outside {
+  color: var(--ith-color-text-quaternary);
+  background: var(--ith-color-fill-quaternary, transparent);
+  border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
+
+  .dayNum,
+  .lunar,
+  .festival,
+  .weekend {
+    color: var(--ith-color-text-quaternary);
+  }
+}
+
+.current {
+  background: var(--ith-color-primary-bg);
+  border-color: var(--ith-color-primary-border, var(--ith-color-primary));
+  border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
+
+  .dayNum {
+    color: var(--ith-color-primary);
+  }
+
+  .lunar {
+    color: var(--ith-color-primary);
+    opacity: 0.85;
+  }
+
+  .festival {
+    color: var(--ith-color-primary);
+    opacity: 1;
+  }
+
+  .weekend {
+    color: var(--ith-color-primary);
+  }
+}
+
+.mark {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ith-color-primary);
+  z-index: 2;
+}
+
+.markOnCurrent {
+  background: var(--ith-color-primary);
+}
+
+.monthCell {
+  width: 100%;
+  margin: 0;
+  color: var(--ith-color-text);
+  border-radius: var(--ith-border-radius-sm, var(--ith-border-radius));
+  padding: 16px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+  font-size: 13px;
+  border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  background: var(--ith-color-bg-container);
+
+  &:hover {
+    background: var(--ith-color-fill-quaternary, var(--ith-color-primary-bg));
+  }
+}
+
+.monthCellCurrent {
+  color: var(--ith-color-primary);
+  background: var(--ith-color-primary-bg);
+  border-color: var(--ith-color-primary-border, var(--ith-color-primary));
+
+  &:hover {
+    background: var(--ith-color-primary-bg);
+    color: var(--ith-color-primary);
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 0 12px;
+  min-height: 32px;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}

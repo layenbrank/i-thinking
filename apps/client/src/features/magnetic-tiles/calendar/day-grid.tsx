@@ -1,12 +1,13 @@
 import type { CalendarProps } from 'antd'
 import type { CalendarMode } from 'antd/es/calendar'
-import { Calendar, Col, Radio, Row, Select } from 'antd'
-import { createStyles } from 'antd-style'
+import { Calendar, Radio, Select } from 'antd'
 import { clsx } from 'clsx'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 import { calendar, timeSphere } from '@i-thinking/utils'
 import React from 'react'
+
+import styles from '@/features/magnetic-tiles/calendar/day-grid.module.scss'
 
 type DayGridProps = {
   selectDate: Dayjs
@@ -15,119 +16,6 @@ type DayGridProps = {
   onSelectDate(date: Dayjs): void
   onPanelDate(date: Dayjs): void
 }
-
-const useStyle = createStyles(function ({ token, css, cx }) {
-  const lunar = css`
-    color: ${token.colorTextSecondary};
-    font-size: ${token.fontSizeSM}px;
-    line-height: 1.2;
-  `
-  const weekend = css`
-    color: ${token.colorError};
-    &.gray {
-      opacity: 0.4;
-    }
-  `
-  const festival = css`
-    color: ${token.colorPrimary};
-  `
-  return {
-    dateCell: css`
-      position: relative;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      &:before {
-        content: '';
-        position: absolute;
-        inset: 2px;
-        background: transparent;
-        transition:
-          background-color 200ms ease,
-          border-color 200ms ease;
-        border-radius: ${token.borderRadius}px;
-        border: 1px solid transparent;
-        box-sizing: border-box;
-      }
-      &:hover:before {
-        background: ${token.colorPrimaryBg};
-      }
-    `,
-    today: css`
-      &:before {
-        border-color: ${token.colorPrimary};
-      }
-    `,
-    text: css`
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 2px;
-      position: relative;
-      z-index: 1;
-      color: ${token.colorText};
-    `,
-    lunar,
-    festival,
-    current: css`
-      color: ${token.colorTextLightSolid};
-      &:before {
-        background: ${token.colorPrimary};
-        border-color: ${token.colorPrimary};
-      }
-      .${cx(lunar)}, .${cx(festival)}, .${cx(weekend)} {
-        color: ${token.colorTextLightSolid};
-        opacity: 0.92;
-      }
-    `,
-    mark: css`
-      position: absolute;
-      bottom: 4px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: ${token.colorPrimary};
-      z-index: 2;
-    `,
-    markOnCurrent: css`
-      background: ${token.colorTextLightSolid};
-    `,
-    monthCell: css`
-      width: 100%;
-      max-width: 140px;
-      margin: 0 auto;
-      color: ${token.colorText};
-      border-radius: ${token.borderRadius}px;
-      padding: 10px 0;
-      text-align: center;
-      cursor: pointer;
-      transition: background-color 200ms ease;
-      &:hover {
-        background: ${token.colorPrimaryBg};
-      }
-    `,
-    monthCellCurrent: css`
-      color: ${token.colorTextLightSolid};
-      background: ${token.colorPrimary};
-      &:hover {
-        background: ${token.colorPrimaryHover};
-        color: ${token.colorTextLightSolid};
-      }
-    `,
-    weekend,
-    toolbar: css`
-      padding: 0 0 10px;
-    `
-  }
-})
 
 function findYearLabel(year: number) {
   const key = `${year}-06-15`
@@ -155,7 +43,6 @@ function findCellCaption(date: Dayjs): { text: string; isFestival: boolean } {
 
 function DayGrid(props: DayGridProps) {
   const { selectDate, panelDate, markedDates, onSelectDate, onPanelDate } = props
-  const { styles } = useStyle()
 
   function handlePanelChange(value: Dayjs, _mode: CalendarMode) {
     onPanelDate(value)
@@ -175,22 +62,18 @@ function DayGrid(props: DayGridProps) {
       const key = timeSphere.format(date.toDate(), 'YYYY-MM-DD')
       const caption = findCellCaption(date)
       const hasMark = markedDates.has(key)
+      const isOutside = !panelDate.isSame(date, 'month')
 
       return React.cloneElement(info.originNode, {
         ...(info.originNode as React.ReactElement<{ className?: string }>).props,
         className: clsx(styles.dateCell, {
           [styles.current]: isCurrent,
-          [styles.today]: isToday && !isCurrent
+          [styles.today]: isToday && !isCurrent,
+          [styles.outside]: isOutside && !isCurrent
         }),
         children: (
           <div className={styles.text}>
-            <span
-              className={clsx({
-                [styles.weekend]: isWeekend,
-                gray: !panelDate.isSame(date, 'month')
-              })}>
-              {date.date()}
-            </span>
+            <span className={clsx(styles.dayNum, isWeekend && styles.weekend)}>{date.date()}</span>
             <div className={clsx(styles.lunar, caption.isFestival && styles.festival)}>
               {caption.text}
             </div>
@@ -246,8 +129,8 @@ function DayGrid(props: DayGridProps) {
         }
 
         return (
-          <Row className={styles.toolbar} justify="end" gutter={8}>
-            <Col>
+          <div className={styles.toolbar}>
+            <div className={styles.toolbarLeft}>
               <Select
                 size="middle"
                 popupMatchSelectWidth={false}
@@ -259,8 +142,6 @@ function DayGrid(props: DayGridProps) {
                   onPanelDate(next)
                 }}
               />
-            </Col>
-            <Col>
               <Select
                 size="middle"
                 popupMatchSelectWidth={false}
@@ -272,19 +153,23 @@ function DayGrid(props: DayGridProps) {
                   onPanelDate(next)
                 }}
               />
-            </Col>
-            <Col>
+            </div>
+            <div className={styles.toolbarRight}>
               <Radio.Group
                 size="middle"
+                optionType="button"
+                buttonStyle="solid"
                 onChange={function (e) {
                   onTypeChange(e.target.value)
                 }}
-                value={type}>
-                <Radio.Button value="month">月</Radio.Button>
-                <Radio.Button value="year">年</Radio.Button>
-              </Radio.Group>
-            </Col>
-          </Row>
+                value={type}
+                options={[
+                  { label: '月', value: 'month' },
+                  { label: '年', value: 'year' }
+                ]}
+              />
+            </div>
+          </div>
         )
       }}
     />

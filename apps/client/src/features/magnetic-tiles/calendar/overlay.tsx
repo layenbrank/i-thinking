@@ -20,11 +20,6 @@ function Overlay(props: OverlayControlProps) {
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}
       caption={true}
-      width="88%"
-      style={{
-        minWidth: 860,
-        aspectRatio: '16 / 10'
-      }}
       className={styles.root}
       onCancel={function () {
         onUpdateVisible(false)

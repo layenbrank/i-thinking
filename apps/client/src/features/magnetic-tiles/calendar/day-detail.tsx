@@ -1,7 +1,9 @@
 import { Tag } from 'antd'
-import { createStyles } from 'antd-style'
+import { clsx } from 'clsx'
 import type { Dayjs } from 'dayjs'
 import { calendar, timeSphere } from '@i-thinking/utils'
+
+import styles from '@/features/magnetic-tiles/calendar/day-detail.module.scss'
 
 type DayDetailProps = {
   date: Dayjs
@@ -9,99 +11,12 @@ type DayDetailProps = {
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'] as const
 
-const useStyle = createStyles(function ({ token, css }) {
-  return {
-    root: css`
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      min-height: 0;
-    `,
-    header: css`
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-    `,
-    titleBlock: css`
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
-    `,
-    solar: css`
-      font-size: 16px;
-      font-weight: 600;
-      color: ${token.colorText};
-      line-height: 1.3;
-    `,
-    lunar: css`
-      font-size: 13px;
-      color: ${token.colorTextSecondary};
-      line-height: 1.4;
-    `,
-    dayBadge: css`
-      flex-shrink: 0;
-      width: 48px;
-      height: 48px;
-      border-radius: ${token.borderRadiusLG}px;
-      background: ${token.colorPrimary};
-      color: ${token.colorTextLightSolid};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      font-weight: 600;
-      line-height: 1;
-    `,
-    chips: css`
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    `,
-    section: css`
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    `,
-    row: css`
-      display: flex;
-      gap: 8px;
-      align-items: flex-start;
-      font-size: 12px;
-      line-height: 1.5;
-    `,
-    label: css`
-      flex-shrink: 0;
-      min-width: 28px;
-      font-weight: 600;
-      color: ${token.colorTextSecondary};
-    `,
-    yi: css`
-      color: ${token.colorSuccess};
-    `,
-    ji: css`
-      color: ${token.colorError};
-    `,
-    meta: css`
-      font-size: 12px;
-      color: ${token.colorTextSecondary};
-      line-height: 1.6;
-    `,
-    body: css`
-      color: ${token.colorText};
-      word-break: break-all;
-    `
-  }
-})
-
 function directionName(value: { toString(): string } | string): string {
   return typeof value === 'string' ? value : value.toString()
 }
 
 function DayDetail(props: DayDetailProps) {
   const { date } = props
-  const { styles } = useStyle()
   const key = timeSphere.format(date.toDate(), 'YYYY-MM-DD')
   const lunar = calendar.lunarDay(key)
   const cycle = calendar.sixtyCycle(key)
@@ -109,48 +24,72 @@ function DayDetail(props: DayDetailProps) {
   const weekday = WEEKDAY_LABELS[date.day()]
 
   return (
-    <div className={styles.root}>
-      <div className={styles.header}>
-        <div className={styles.titleBlock}>
+    <section className={styles.root}>
+      <header className={styles.hero}>
+        <div className={styles.dayNum}>{date.date()}</div>
+        <div className={styles.heroMain}>
           <div className={styles.solar}>
-            {key} 周{weekday}
+            {key}
+            <span className={styles.weekday}>周{weekday}</span>
+            {lunar.festival ? (
+              <Tag className={styles.festivalTag} color="processing">
+                {lunar.festival}
+              </Tag>
+            ) : null}
           </div>
-          <div className={styles.lunar}>{lunarText}</div>
           <div className={styles.lunar}>
+            {lunarText}
+            <span className={styles.sep}>·</span>
             {cycle.heavenStem}
-            {cycle.earthBranch}（{cycle.zodiac}）年
+            {cycle.earthBranch}
+            {cycle.zodiac}年
           </div>
         </div>
-        <div className={styles.dayBadge}>{date.date()}</div>
-      </div>
+      </header>
 
-      <div className={styles.chips}>
-        <Tag>生肖 {lunar.zodiac}</Tag>
-        <Tag>星座 {lunar.constellation}</Tag>
-        {lunar.festival ? <Tag color="blue">{lunar.festival}</Tag> : null}
-        {lunar.phase ? <Tag>{lunar.phase}</Tag> : null}
-      </div>
+      <div className={styles.panel}>
+        <div className={styles.panelTitle}>黄历</div>
+        <div className={styles.chips}>
+          <Tag bordered={false}>生肖 {lunar.zodiac}</Tag>
+          <Tag bordered={false}>星座 {lunar.constellation}</Tag>
+          {lunar.phase ? <Tag bordered={false}>{lunar.phase}</Tag> : null}
+        </div>
 
-      <div className={styles.section}>
-        <div className={styles.row}>
-          <span className={`${styles.label} ${styles.yi}`}>宜</span>
-          <span className={styles.body}>{lunar.beneficial || '—'}</span>
+        <div className={styles.yiJi}>
+          <div className={styles.yiJiCard}>
+            <div className={clsx(styles.yiJiLabel, styles.yi)}>宜</div>
+            <div className={styles.yiJiBody}>{lunar.beneficial || '—'}</div>
+          </div>
+          <div className={styles.yiJiCard}>
+            <div className={clsx(styles.yiJiLabel, styles.ji)}>忌</div>
+            <div className={styles.yiJiBody}>{lunar.unbeneficial || '—'}</div>
+          </div>
         </div>
-        <div className={styles.row}>
-          <span className={`${styles.label} ${styles.ji}`}>忌</span>
-          <span className={styles.body}>{lunar.unbeneficial || '—'}</span>
-        </div>
-      </div>
 
-      <div className={styles.meta}>
-        <div>物候：{lunar.phenologyDay || '—'}</div>
-        <div>
-          喜神 {directionName(lunar.directions.joyDirection)} · 财神{' '}
-          {directionName(lunar.directions.wealthDirection)} · 福神{' '}
-          {directionName(lunar.directions.mascotDirection)}
+        <div className={styles.metaGrid}>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>物候</span>
+            <span className={styles.metaValue}>{lunar.phenologyDay || '—'}</span>
+          </div>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>喜神</span>
+            <span className={styles.metaValue}>{directionName(lunar.directions.joyDirection)}</span>
+          </div>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>财神</span>
+            <span className={styles.metaValue}>
+              {directionName(lunar.directions.wealthDirection)}
+            </span>
+          </div>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>福神</span>
+            <span className={styles.metaValue}>
+              {directionName(lunar.directions.mascotDirection)}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
 
