@@ -1,5 +1,5 @@
+import { calendar, timeSphere } from '@i-thinking/utils'
 import dayjs from 'dayjs'
-import { HolidayUtil, Lunar } from 'lunar-typescript'
 import { useEffect, useMemo, useState } from 'react'
 
 import { MagneticTile, type MarkerProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
@@ -31,16 +31,14 @@ function Marker(props: Props) {
 
   const lunarInfo = useMemo(
     function () {
-      const lunar = Lunar.fromDate(now.toDate())
-      const holiday = HolidayUtil.getHoliday(now.year(), now.month() + 1, now.date())
-      const holidayName =
-        holiday?.getTarget() === holiday?.getDay() ? holiday?.getName() : undefined
+      const key = timeSphere.format(now.toDate(), 'YYYY-MM-DD')
+      const cycle = calendar.sixtyCycle(key)
       return {
-        day: lunar.getDayInChinese(),
-        month: lunar.getMonthInChinese(),
-        term: lunar.getJieQi(),
-        holiday: holidayName,
-        ganZhi: `${lunar.getYearInGanZhi()}${lunar.getYearShengXiao()}年`
+        day: calendar.format(key, 'lD'),
+        month: calendar.format(key, 'lM'),
+        term: calendar.term(key),
+        holiday: calendar.festival(key),
+        ganZhi: `${cycle.heavenStem}${cycle.earthBranch}${cycle.zodiac}年`
       }
     },
     [now]

@@ -5,7 +5,7 @@ import type { ConfigType, Dayjs, OpUnitType, UnitType } from 'dayjs'
  * @remarks
  * 支持运行时动态配置，所有选项都是可选的
  */
-export interface TimeSphereOptions extends Record<string, unknown> {
+export interface TimeSphereOptions {
   timezone?: string
   locale?: string
   format?: string
@@ -139,84 +139,46 @@ export type YearReturnType<T extends YearType> = T extends 'number'
 /**
  * 日期时间服务接口
  * @remarks
- * 定义了完整的日期时间处理功能，包括：
- * - 基础日期操作（解析、格式化、验证）
- * - 日期计算（加减、比较、范围判断）
- * - 工作日处理
- * - 季度处理
- * - 周处理
- * - 国际化支持
- * - 时区处理
+ * 全局单例门面：统一 timezone / locale / format / utc；
+ * 薄代理对齐 dayjs；`day` / `month` / `quarter` / `year` 提供 dayjs 没有的结构化日历结果。
  */
 export interface TimeSphereImpl {
-  /**
-   * 更新配置
-   */
+  /** 部分更新全局配置，立即作用于后续调用 */
   updateOptions(config: Partial<TimeSphereOptions>): void
 
-  /**
-   * 获取当前时间
-   */
+  /** 读取当前全局配置快照（只读拷贝） */
+  findOptions(): Readonly<TimeSphereOptions>
+
+  /** 当前时刻（受 utc / timezone 约束） */
   now(): Dayjs
 
-  /**
-   * 解析日期
-   */
+  /** 按全局配置解析为 Dayjs */
   parse(date?: ConfigType): Dayjs
 
   /**
-   * 格式化日期
-   * @example
-   * ```typescript
-   * const service = new TimeSphere()
-   *
-   * // 基本格式化
-   * service.format(new Date()) // => "2024-01-20 14:30:45"
-   *
-   * // 自定义格式
-   * service.format(new Date(), 'YYYY年MM月DD日') // => "2024年01月20日"
-   * service.format(new Date(), 'HH:mm') // => "14:30"
-   * ```
+   * 格式化；省略 format 时使用 options.format
    */
   format(date: ConfigType, format?: string): string
 
   /**
-   * 获取相对时间
-   * @remarks
-   * 返回相对时间字符串，例如 "2小时前"
+   * 相对 timeSphere.now() 的相对时间文案（受 locale 影响）
    */
   fromNow(date: ConfigType, withoutSuffix?: boolean): string
 
-  /**
-   * 验证日期是否有效
-   */
   isValid(date: ConfigType): boolean
 
-  /**
-   * 比较两个日期
-   * @remarks
-   * 返回 -1(早于), 0(相等), 1(晚于)
-   */
+  /** -1 早于 / 0 相等 / 1 晚于（按 unit） */
   compare(source: ConfigType, target: ConfigType, unit: UnitType): number
 
-  /**
-   * 添加时间
-   */
-  increment(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs
+  /** 对齐 dayjs.add，输入先经 parse */
+  add(targetDate: ConfigType, amount: number, unit: UnitType): Dayjs
 
-  /**
-   * 减少时间
-   */
-  decrement(target: ConfigType, amount: number, unit: UnitType): Dayjs
+  /** 对齐 dayjs.subtract，输入先经 parse */
+  subtract(target: ConfigType, amount: number, unit: UnitType): Dayjs
 
-  /**
-   * 计算时间差
-   */
+  /** source.diff(target, unit) */
   diff(source: ConfigType, target: ConfigType, unit: UnitType): number
 
-  /**
-   * 判断日期是否在范围内
-   */
   isBetween(
     target: ConfigType,
     rangeStart: ConfigType,
@@ -224,49 +186,38 @@ export interface TimeSphereImpl {
     unit?: OpUnitType
   ): boolean
 
-  /**
-   * 判断是否是今天
-   */
+  /** 相对配置时区下的「今天」 */
   isToday(target: ConfigType): boolean
 
-  /**
-   * 判断是否是明天
-   */
+  /** 相对配置时区下的「明天」 */
   isTomorrow(target: ConfigType): boolean
 
-  /**
-   * 判断是否是昨天
-   */
+  /** 相对配置时区下的「昨天」 */
   isYesterday(target: ConfigType): boolean
 
   /**
-   * 获取周数或周的时间范围
-   * @remarks
-   * type: ofYear(当年第几周), ofMonth(当月第几周), range/ranges/next(周范围)
+   * 日维度
+   * @remarks ofYear 年内第几天；ofMonth 月内日；begin/final；range 当日结构；ranges 区间每日（默认到月末）
    */
   day<T extends DayType>(target: ConfigType, type: T, rangeEnd?: ConfigType): DayReturnType<T>
 
   /**
-   * 获取季度数字、开始或结束时间、范围信息
-   * @remarks
-   * type: number(第几季度), begin(季度开始), final(季度结束), range(季度范围), ranges(季度内所有月份), next(下一季度)
+   * 季维度
+   * @remarks number；begin/final；range；ranges 季内月；next 下一季
    */
   quarter<T extends QuarterType>(target: ConfigType, type: T): QuarterReturnType<T>
 
   /**
-   * 获取月份数字、开始或结束时间、范围信息
-   * @remarks
-   * type: number(月份数字), begin(月初), final(月末), range(月份范围), ranges(月份内所有天)
+   * 月维度
+   * @remarks number 1–12；begin/final；range；ranges 月内每日（weekOfMonth 以周一起算）
    */
   month<T extends MonthType>(target: ConfigType, type: T): MonthReturnType<T>
 
   /**
-   * 获取年份数字、开始或结束时间、范围信息
+   * 年维度
+   * @remarks number；begin/final；range（含闰年）；ranges 年内月
    */
   year<T extends YearType>(target: ConfigType, type: T): YearReturnType<T>
 
-  /**
-   * 转换为时间戳
-   */
   toTimestamp(datetime: ConfigType): number
 }

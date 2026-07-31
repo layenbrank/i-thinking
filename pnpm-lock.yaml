@@ -461,7 +461,7 @@ importers:
         specifier: ^12.1.4
         version: 12.2.0
       tyme4ts:
-        specifier: ^1.3.5
+        specifier: ^1.5.2
         version: 1.5.2
       use-image:
         specifier: ^1.1.4

@@ -1,7 +1,9 @@
-pub mod magnetic_tile;
 pub mod asset;
+pub mod calendar_event;
 pub mod countdown;
 pub mod exception;
+pub mod magnetic_tile;
 pub mod mirror;
+pub mod reminder;
 
 pub use exception::{CommandResult, Exception};

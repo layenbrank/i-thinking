@@ -2,8 +2,13 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",
-    "rolldown.config.ts",
-    "eslint.config.ts",
+    "vite.config.*",
+    "vitest.config.*",
+    "cypress.config.*",
+    "nightwatch.conf.*",
+    "playwright.config.*",
+    "tailwind.config.*",
+    "eslint.config.*",
     "index.ts"
   ],
   "exclude": ["**/node_modules/**", "**/dist/**"],

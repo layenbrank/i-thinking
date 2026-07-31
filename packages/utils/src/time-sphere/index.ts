@@ -1,31 +1,21 @@
 /**
- * 日期时间工具
- * @description 基于 dayjs 的日期时间处理工具，支持全局配置、插件管理、国际化等特性。
+ * 日期时间工具（dayjs 全局单例门面）
+ * @description
+ * - 便捷使用 dayjs：入口统一走本实例，避免散落 `dayjs()` 导致插件/locale/时区不一致
+ * - 补齐 dayjs 未直接提供的结构化日历结果：`day` / `month` / `quarter` / `year`
+ * - 单例 + `updateOptions`：全局状态与配置一致，一键切换 timezone / locale / format / utc
  *
  * @example
  * ```typescript
- * // 基本使用
  * const now = timeSphere.now()
- * console.log(timeSphere.format(now)) // 2024-01-20 12:34:56
+ * console.log(timeSphere.format(now)) // 默认 options.format
  *
- * // 日期解析和格式化
- * const date = timeSphere.parse('2024-01-20')
- * console.log(timeSphere.format(date, 'YYYY年MM月DD日')) // 2024年01月20日
- *
- * // 相对时间
- * const pastDate = timeSphere.decrement(now, 1, 'day')
- * console.log(timeSphere.fromNow(pastDate)) // 1天前
- *
- * // 日期比较
- * const baseDate = timeSphere.parse('2024-01-20')
- * const compareDate = timeSphere.parse('2024-01-21')
- * console.log(timeSphere.compare(baseDate, compareDate, 'day')) // -1 (早于)
+ * timeSphere.updateOptions({ locale: 'en', timezone: 'America/New_York' })
+ * // 之后 parse / format / isToday / day(...) 均按新配置
  * ```
  *
  * @remarks
- * - 所有日期操作都是不可变的，不会修改原始日期对象
- * - 支持链式调用和方法组合
- * - 自动处理时区和国际化
+ * 日期操作不可变；相对日（isToday 等）与 fromNow 均相对 `now()`（配置时区），而非系统裸本地日。
  */
 
 import dayjs, {
@@ -71,50 +61,17 @@ import type {
   YearType
 } from './types'
 
+const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss'
+const TIME_LOCALE = 'zh-cn'
+const TIME_ZONE = 'Asia/Shanghai'
+
 /**
- * 日期时间服务实现
- * @remarks
- * 基于 dayjs 实现的日期时间处理服务，提供了完整的日期操作功能。
- * 使用策略模式实现了各种日期处理逻辑，支持自定义扩展。
- *
- * 主要功能：
- * - 日期解析和格式化
- * - 日期计算和比较
- * - 工作日处理
- * - 季度处理
- * - 周处理
- * - 国际化支持
- * - 时区处理
- *
- * 设计特点：
- * - 使用单例模式确保全局配置一致性
- * - 支持运行时动态配置
- * - 所有操作都是不可变的
- * - 自动处理时区和国际化
- *
- * @example
- * ```typescript
- * // 基本使用
- * const timeSphere = new TimeSphere()
- *
- * // 日期操作
- * const now = timeSphere.now()
- * const formatted = timeSphere.format(now)
- * const nextWeek = timeSphere.increment(now, 1, 'week')
- * ```
+ * 日期时间服务实现（单例）
  */
 @Singleton()
 class TimeSphere implements TimeSphereImpl {
-  /**
-   * 服务配置
-   * @remarks
-   * 包含时区、语言、格式等配置项
-   */
   private readonly options: TimeSphereOptions
 
-  /**
-   * 初始化服务配置和各种策略
-   */
   constructor() {
     dayjs.extend(utc)
     dayjs.extend(timezone)
@@ -144,9 +101,9 @@ class TimeSphere implements TimeSphereImpl {
     dayjs.extend(updateLocale)
 
     this.options = {
-      timezone: 'Asia/Shanghai',
-      locale: 'zh-cn',
-      format: 'YYYY-MM-DD HH:mm:ss',
+      timezone: TIME_ZONE,
+      locale: TIME_LOCALE,
+      format: TIME_FORMAT,
       utc: false
     }
 
@@ -154,9 +111,6 @@ class TimeSphere implements TimeSphereImpl {
     dayjs.tz.setDefault(this.options.timezone)
   }
 
-  /**
-   * 动态更新服务配置，支持部分更新
-   */
   updateOptions(options: Partial<TimeSphereOptions>) {
     Object.assign(this.options, options)
 
@@ -164,90 +118,46 @@ class TimeSphere implements TimeSphereImpl {
     if (this.options.timezone) dayjs.tz.setDefault(this.options.timezone)
   }
 
-  /**
-   * 获取当前时间
-   * @remarks
-   * 根据配置返回当前时间，支持 UTC 和本地时间
-   */
+  findOptions(): Readonly<TimeSphereOptions> {
+    return { ...this.options }
+  }
+
   now(): Dayjs {
-    return this.options.utc ? dayjs.utc() : dayjs()
+    if (this.options.utc) return dayjs.utc()
+    return dayjs.tz(dayjs(), this.options.timezone ?? TIME_ZONE)
   }
 
-  /**
-   * 解析日期
-   * @remarks
-   * 将各种格式的日期转换为 Dayjs 实例
-   */
   parse(target?: ConfigType): Dayjs {
-    const parsed = this.options.utc ? dayjs.utc(target) : dayjs(target)
-    return parsed.clone().locale(this.options.locale ?? 'zh-cn')
+    try {
+      const parsed = this.options.utc
+        ? dayjs.utc(target)
+        : dayjs.tz(target, this.options.timezone ?? TIME_ZONE)
+      return parsed.clone().locale(this.options.locale ?? TIME_LOCALE)
+    } catch {
+      return dayjs(NaN).locale(this.options.locale ?? TIME_LOCALE)
+    }
   }
 
-  /**
-   * 格式化日期
-   * @example
-   * ```typescript
-   * const timeSphere = new TimeSphere()
-   *
-   * // 基本格式化
-   * timeSphere.format(new Date()) // => "2024-01-20 14:30:45"
-   *
-   * // 自定义格式
-   * timeSphere.format(new Date(), 'YYYY年MM月DD日') // => "2024年01月20日"
-   * timeSphere.format(new Date(), 'HH:mm') // => "14:30"
-   *
-   * // 常用格式示例
-   * timeSphere.format(new Date(), 'YYYY-MM-DD') // => "2024-01-20"
-   * timeSphere.format(new Date(), 'MM/DD/YYYY') // => "01/20/2024"
-   * timeSphere.format(new Date(), 'DD/MM/YYYY') // => "20/01/2024"
-   * timeSphere.format(new Date(), 'YYYY.MM.DD') // => "2024.01.20"
-   * timeSphere.format(new Date(), 'ddd, MMM D YYYY') // => "Sat, Jan 20 2024"
-   * timeSphere.format(new Date(), 'dddd, MMMM D YYYY') // => "Saturday, January 20 2024"
-   * timeSphere.format(new Date(), 'YYYY年M月D日(ddd)') // => "2024年1月20日(周六)"
-   *
-   * // 时间格式
-   * timeSphere.format(new Date(), 'HH:mm:ss') // => "14:30:45" (24小时制)
-   * timeSphere.format(new Date(), 'hh:mm:ss A') // => "02:30:45 PM" (12小时制)
-   * timeSphere.format(new Date(), 'H:m:s') // => "14:30:45" (不补零)
-   *
-   * // 毫秒和时区
-   * timeSphere.format(new Date(), 'YYYY-MM-DD HH:mm:ss.SSS') // => "2024-01-20 14:30:45.123"
-   * timeSphere.format(new Date(), 'YYYY-MM-DD HH:mm:ss Z') // => "2024-01-20 14:30:45 +08:00"
-   *
-   * // 季度和星期
-   * timeSphere.format(new Date(), 'Qo季度 第W周') // => "1季度 第3周"
-   * timeSphere.format(new Date(), 'YYYY年第Q季度') // => "2024年第1季度"
-   * ```
-   */
   format(datetime: ConfigType, format?: string): string {
-    return this.parse(datetime).format(format)
+    return this.parse(datetime).format(format ?? this.options.format ?? TIME_FORMAT)
   }
 
-  /**
-   * 获取相对时间
-   * @remarks
-   * 返回相对时间字符串，例如 "2小时前"
-   */
   fromNow(datetime: ConfigType, withoutSuffix?: boolean): string {
-    return this.parse(datetime).fromNow(withoutSuffix)
+    return this.parse(datetime).from(this.now(), withoutSuffix)
   }
 
   toTimestamp(datetime: ConfigType): number {
     return this.parse(datetime).valueOf()
   }
 
-  /**
-   * 验证日期是否有效
-   */
   isValid(datetime: ConfigType): boolean {
-    return this.parse(datetime).isValid()
+    try {
+      return this.parse(datetime).isValid()
+    } catch {
+      return false
+    }
   }
 
-  /**
-   * 比较两个日期
-   * @remarks
-   * 返回 -1(早于), 0(相等), 1(晚于)
-   */
   compare(source: ConfigType, target: ConfigType, unit: UnitType): number {
     const base = this.parse(source)
     const compare = this.parse(target)
@@ -256,30 +166,18 @@ class TimeSphere implements TimeSphereImpl {
     return 0
   }
 
-  /**
-   * 添加时间
-   */
-  increment(datetime: ConfigType, amount: number, unit: UnitType): Dayjs {
+  add(datetime: ConfigType, amount: number, unit: UnitType): Dayjs {
     return this.parse(datetime).add(amount, unit)
   }
 
-  /**
-   * 减少时间
-   */
-  decrement(datetime: ConfigType, amount: number, unit: UnitType): Dayjs {
+  subtract(datetime: ConfigType, amount: number, unit: UnitType): Dayjs {
     return this.parse(datetime).subtract(amount, unit)
   }
 
-  /**
-   * 计算时间差
-   */
   diff(source: ConfigType, target: ConfigType, unit: UnitType): number {
     return this.parse(source).diff(this.parse(target), unit)
   }
 
-  /**
-   * 判断日期是否在范围内
-   */
   isBetween(
     target: ConfigType,
     rangeStart: ConfigType,
@@ -293,31 +191,22 @@ class TimeSphere implements TimeSphereImpl {
     )
   }
 
-  /**
-   * 判断是否是今天
-   */
   isToday(target: ConfigType): boolean {
-    return this.parse(target).isToday()
+    return this.parse(target).isSame(this.now(), 'day')
   }
 
-  /**
-   * 判断是否是明天
-   */
   isTomorrow(target: ConfigType): boolean {
-    return this.parse(target).isTomorrow()
+    return this.parse(target).isSame(this.add(this.now(), 1, 'day'), 'day')
   }
 
-  /**
-   * 判断是否是昨天
-   */
   isYesterday(target: ConfigType): boolean {
-    return this.parse(target).isYesterday()
+    return this.parse(target).isSame(this.subtract(this.now(), 1, 'day'), 'day')
   }
 
   /**
-   * 获取周数或周的时间范围
+   * 获取日维度信息或范围
    * @remarks
-   * type: ofYear(当年第几周), ofMonth(当月第几周), range/ranges/next(周范围)
+   * type: ofYear(年内第几天), ofMonth(月内第几天), begin/final(日起止), range/ranges(日范围)
    */
   day<T extends DayType>(
     target: ConfigType,
@@ -355,7 +244,6 @@ class TimeSphere implements TimeSphereImpl {
         }
       },
       ranges: () => {
-        // 如果没有提供rangeEnd，默认使用当月最后一天
         const endDate = rangeEnd
           ? this.parse(rangeEnd)
           : parsed.clone().endOf('month')
@@ -372,6 +260,7 @@ class TimeSphere implements TimeSphereImpl {
             dayOfWeek: current.format('dddd'),
             dayOfWeekShort: current.format('ddd'),
             isToday: this.isToday(current),
+            isWeekend: current.day() === 0 || current.day() === 6,
             dayOfYear: current.dayOfYear(),
             dayOfMonth: current.date()
           })
@@ -427,11 +316,10 @@ class TimeSphere implements TimeSphereImpl {
         const months = []
         let current = quarterStart.clone()
 
-        // 获取季度内的所有月份
         while (current.isSameOrBefore(quarterEnd, 'month')) {
           months.push({
             date: current.format('YYYY-MM-DD'),
-            month: current.month() + 1, // 1-12
+            month: current.month() + 1,
             monthName: current.format('MMMM'),
             monthShort: current.format('MMM'),
             year: current.year(),
@@ -444,7 +332,6 @@ class TimeSphere implements TimeSphereImpl {
         return months
       },
       next: () => {
-        // 使用原生的 dayjs add quarter 支持
         const nextQuarter = parsed.clone().add(1, 'quarter')
         const begin = nextQuarter.clone().startOf('quarter')
         const final = nextQuarter.clone().endOf('quarter')
@@ -472,7 +359,7 @@ class TimeSphere implements TimeSphereImpl {
     const parsed = this.parse(target)
 
     const reflection = {
-      number: () => parsed.month() + 1, // dayjs的month()返回0-11，这里返回1-12
+      number: () => parsed.month() + 1,
       begin: () => parsed.clone().startOf('month'),
       final: () => parsed.clone().endOf('month'),
       range: () => {
@@ -501,12 +388,10 @@ class TimeSphere implements TimeSphereImpl {
         const days = []
         let current = monthStart.clone()
 
-        // 获取月份内的所有天
-        const firstWeekday = monthStart.day() // 月初是星期几 (0=周日)
+        const firstWeekday = monthStart.day()
         while (current.isSameOrBefore(monthEnd, 'day')) {
           const dayOfMonth = current.date()
-          // 修正weekOfMonth计算：考虑月初是星期几
-          const offset = firstWeekday === 0 ? 6 : firstWeekday - 1 // 周一作为一周开始
+          const offset = firstWeekday === 0 ? 6 : firstWeekday - 1
           const weekOfMonth = Math.ceil((dayOfMonth + offset) / 7)
 
           days.push({
@@ -567,11 +452,10 @@ class TimeSphere implements TimeSphereImpl {
         const months = []
         let current = yearStart.clone()
 
-        // 获取年份内的所有月份
         while (current.isSameOrBefore(yearEnd, 'month')) {
           months.push({
             date: current.format('YYYY-MM-DD'),
-            month: current.month() + 1, // 1-12
+            month: current.month() + 1,
             monthName: current.format('MMMM'),
             monthShort: current.format('MMM'),
             year: current.year(),
@@ -591,4 +475,27 @@ class TimeSphere implements TimeSphereImpl {
   }
 }
 
-export const timeSphere = new TimeSphere()
+const timeSphere = new TimeSphere()
+
+export type {
+  DayInfo,
+  DayRange,
+  DayReturnType,
+  DayType,
+  MonthInfo,
+  MonthRange,
+  MonthReturnType,
+  MonthType,
+  NextQuarterInfo,
+  QuarterInfo,
+  QuarterRange,
+  QuarterReturnType,
+  QuarterType,
+  TimeSphereImpl,
+  TimeSphereOptions,
+  YearRange,
+  YearReturnType,
+  YearType
+} from './types'
+
+export { timeSphere }

@@ -507,7 +507,7 @@ export default function Overlay(props: OverlayControlProps) {
       collectionID: null,
       createdAt: Date.now(),
       updatedAt: Date.now()
-      // updatedAt: timeSphere.decrement(Date.now(), 2, 'day').valueOf()
+      // updatedAt: timeSphere.subtract(Date.now(), 2, 'day').valueOf()
     }
     await store.getState().toInsertSession([session])
     void store.getState().toReadSession(sessionID)

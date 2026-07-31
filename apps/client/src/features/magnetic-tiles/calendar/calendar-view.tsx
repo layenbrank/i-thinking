@@ -1,27 +1,23 @@
-import type { CalendarProps } from 'antd'
-import type { CalendarMode } from 'antd/es/calendar'
-import { Calendar, Col, Radio, Row, Select } from 'antd'
 import { createStyles } from 'antd-style'
 import { clsx } from 'clsx'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
-import { HolidayUtil, Lunar } from 'lunar-typescript'
-import React from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { timeSphere } from '@i-thinking/utils'
 
+import { DayAgenda } from '@/features/magnetic-tiles/calendar/day-agenda'
+import { DayDetail } from '@/features/magnetic-tiles/calendar/day-detail'
+import { DayGrid } from '@/features/magnetic-tiles/calendar/day-grid'
 import stylesChrome from '@/features/magnetic-tiles/calendar/calendar-view.module.scss'
+import { useCalendarEventStore } from '@/stores/calendar-event'
+import { useReminderStore } from '@/stores/reminder'
 
-const useStyle = createStyles(function ({ token, css, cx }) {
-  const lunar = css`
-    color: ${token.colorTextSecondary};
-    font-size: ${token.fontSizeSM}px;
-    line-height: 1.2;
-  `
-  const weekend = css`
-    color: ${token.colorError};
-    &.gray {
-      opacity: 0.4;
-    }
-  `
+type CalendarViewProps = {
+  embedded?: boolean
+  onClose?: () => void
+}
+
+const useStyle = createStyles(function ({ token, css }) {
   return {
     wrapper: css`
       width: 100%;
@@ -31,87 +27,64 @@ const useStyle = createStyles(function ({ token, css, cx }) {
       flex-direction: column;
       background: ${token.colorBgContainer};
     `,
-    dateCell: css`
-      position: relative;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      &:before {
-        content: '';
-        position: absolute;
-        inset: 2px;
-        background: transparent;
-        transition: background-color 200ms ease;
-        border-radius: ${token.borderRadius}px;
-        border: 1px solid transparent;
-        box-sizing: border-box;
-      }
-      &:hover:before {
-        background: ${token.colorPrimaryBg};
+    layout: css`
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(240px, 1fr);
+      gap: 12px;
+      @media (max-width: 720px) {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(240px, 1fr) minmax(220px, auto);
+        overflow: auto;
       }
     `,
-    today: css`
-      &:before {
-        border-color: ${token.colorPrimary};
-      }
-    `,
-    text: css`
-      width: 100%;
-      height: 100%;
+    main: css`
+      min-width: 0;
+      min-height: 0;
       display: flex;
-      align-items: center;
-      justify-content: center;
       flex-direction: column;
-      gap: 2px;
-      position: relative;
-      z-index: 1;
-      color: ${token.colorText};
+      border-radius: ${token.borderRadiusLG}px;
+      background: ${token.colorBgContainer};
     `,
-    lunar,
-    current: css`
-      color: ${token.colorPrimary};
-      &:before {
-        background: ${token.colorPrimaryBg};
-        border-color: ${token.colorPrimary};
-      }
-      .${cx(lunar)} {
-        color: ${token.colorPrimary};
-      }
-      .${cx(weekend)} {
-        color: ${token.colorPrimary};
-      }
-    `,
-    monthCell: css`
-      width: 100%;
-      max-width: 140px;
-      margin: 0 auto;
-      color: ${token.colorText};
-      border-radius: ${token.borderRadius}px;
-      padding: 10px 0;
-      text-align: center;
-      cursor: pointer;
-      &:hover {
-        background: ${token.colorPrimaryBg};
+    side: css`
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 4px 4px 4px 8px;
+      border-left: 1px solid ${token.colorBorderSecondary};
+      overflow: auto;
+      @media (max-width: 720px) {
+        border-left: none;
+        border-top: 1px solid ${token.colorBorderSecondary};
+        padding: 12px 4px 4px;
       }
     `,
-    monthCellCurrent: css`
-      color: ${token.colorTextLightSolid};
-      background: ${token.colorPrimary};
-      &:hover {
-        background: ${token.colorPrimaryHover};
-        color: ${token.colorTextLightSolid};
-      }
-    `,
-    weekend
+    divider: css`
+      height: 1px;
+      background: ${token.colorBorderSecondary};
+      flex-shrink: 0;
+    `
   }
 })
 
-type CalendarViewProps = {
-  embedded?: boolean
-  onClose?: () => void
+function dayBounds(date: Dayjs): { from: number; to: number } {
+  const start = date.startOf('day')
+  return {
+    from: start.valueOf(),
+    to: start.add(1, 'day').valueOf()
+  }
+}
+
+function monthBounds(date: Dayjs): { from: number; to: number } {
+  const start = date.startOf('month').startOf('week')
+  const end = date.endOf('month').endOf('week').add(1, 'day')
+  return {
+    from: start.valueOf(),
+    to: end.valueOf()
+  }
 }
 
 function CalendarView(props: CalendarViewProps = {}) {
@@ -119,155 +92,172 @@ function CalendarView(props: CalendarViewProps = {}) {
   void _onClose
   const { styles } = useStyle()
 
-  const [selectDate, onUpdateSelectDate] = React.useState<Dayjs>(function () {
+  const [selectDate, onUpdateSelectDate] = useState<Dayjs>(function () {
     return dayjs()
   })
-  const [panelDate, onUpdatePanelDate] = React.useState<Dayjs>(function () {
+  const [panelDate, onUpdatePanelDate] = useState<Dayjs>(function () {
     return dayjs()
   })
 
-  function handlePanelChange(value: Dayjs, _mode: CalendarMode) {
-    onUpdatePanelDate(value)
+  const events = useCalendarEventStore(function (state) {
+    return state.events
+  })
+  const reminders = useReminderStore(function (state) {
+    return state.reminders
+  })
+  const readEvents = useCalendarEventStore(function (state) {
+    return state.readEvents
+  })
+  const writeEvent = useCalendarEventStore(function (state) {
+    return state.writeEvent
+  })
+  const removeEvent = useCalendarEventStore(function (state) {
+    return state.removeEvent
+  })
+  const readReminders = useReminderStore(function (state) {
+    return state.readReminders
+  })
+  const writeReminder = useReminderStore(function (state) {
+    return state.writeReminder
+  })
+  const updateReminder = useReminderStore(function (state) {
+    return state.updateReminder
+  })
+  const removeReminder = useReminderStore(function (state) {
+    return state.removeReminder
+  })
+
+  async function refreshRange(anchor: Dayjs) {
+    const range = monthBounds(anchor)
+    await Promise.all([
+      readEvents({ rangeFrom: range.from, rangeTo: range.to }),
+      readReminders({ dueFrom: range.from, dueTo: range.to })
+    ])
   }
 
-  const handleDateChange: CalendarProps<Dayjs>['onSelect'] = function (value, selectInfo) {
-    if (selectInfo.source === 'date') {
-      onUpdateSelectDate(value)
-    }
-  }
+  useEffect(
+    function () {
+      void refreshRange(panelDate)
+    },
+    // 仅在面板月份变化时拉取区间数据
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [panelDate.format('YYYY-MM')]
+  )
 
-  const cellRender: CalendarProps<Dayjs>['fullCellRender'] = function (date, info) {
-    const lunarDay = Lunar.fromDate(date.toDate())
-    const lunar = lunarDay.getDayInChinese()
-    const solarTerm = lunarDay.getJieQi()
-    const isWeekend = date.day() === 6 || date.day() === 0
-    const holiday = HolidayUtil.getHoliday(
-      date.get('year'),
-      date.get('month') + 1,
-      date.get('date')
-    )
-    const displayHoliday =
-      holiday?.getTarget() === holiday?.getDay() ? holiday?.getName() : undefined
+  const dayRange = useMemo(function () {
+    return dayBounds(selectDate)
+  }, [selectDate])
 
-    if (info.type === 'date') {
-      return React.cloneElement(info.originNode, {
-        ...(info.originNode as React.ReactElement<{ className?: string }>).props,
-        className: clsx(styles.dateCell, {
-          [styles.current]: selectDate.isSame(date, 'date'),
-          [styles.today]: date.isSame(dayjs(), 'date')
-        }),
-        children: (
-          <div className={styles.text}>
-            <span
-              className={clsx({
-                [styles.weekend]: isWeekend,
-                gray: !panelDate.isSame(date, 'month')
-              })}>
-              {date.get('date')}
-            </span>
-            <div className={styles.lunar}>{displayHoliday || solarTerm || lunar}</div>
-          </div>
-        )
+  const dayEvents = useMemo(
+    function () {
+      return events.filter(function (event) {
+        return event.endAt >= dayRange.from && event.startAt < dayRange.to
       })
-    }
+    },
+    [events, dayRange]
+  )
 
-    if (info.type === 'month') {
-      const lunarMonth = Lunar.fromDate(new Date(date.get('year'), date.get('month')))
-      const monthName = lunarMonth.getMonthInChinese()
-      return (
-        <div
-          className={clsx(styles.monthCell, {
-            [styles.monthCellCurrent]: selectDate.isSame(date, 'month')
-          })}>
-          {date.get('month') + 1}月（{monthName}月）
-        </div>
-      )
-    }
+  const dayReminders = useMemo(
+    function () {
+      return reminders.filter(function (reminder) {
+        return reminder.dueAt >= dayRange.from && reminder.dueAt < dayRange.to
+      })
+    },
+    [reminders, dayRange]
+  )
 
-    return info.originNode
+  const markedDates = useMemo(
+    function () {
+      const marks = new Set<string>()
+      for (const event of events) {
+        marks.add(timeSphere.format(new Date(event.startAt), 'YYYY-MM-DD'))
+      }
+      for (const reminder of reminders) {
+        marks.add(timeSphere.format(new Date(reminder.dueAt), 'YYYY-MM-DD'))
+      }
+      return marks
+    },
+    [events, reminders]
+  )
+
+  async function handleWriteEvent(title: string, notes: string) {
+    const bounds = dayBounds(selectDate)
+    await writeEvent({
+      title,
+      notes,
+      startAt: bounds.from,
+      endAt: bounds.to - 1,
+      isAllDay: true
+    })
+    await refreshRange(panelDate)
   }
 
-  function findYearLabel(year: number) {
-    const d = Lunar.fromDate(new Date(year + 1, 0))
-    return `${d.getYearInChinese()}年（${d.getYearInGanZhi()}${d.getYearShengXiao()}年）`
+  async function handleWriteReminder(title: string, notes: string) {
+    const bounds = dayBounds(selectDate)
+    await writeReminder({
+      title,
+      notes,
+      dueAt: bounds.from + 9 * 60 * 60 * 1000,
+      isAllDay: false,
+      priority: 0
+    })
+    await refreshRange(panelDate)
   }
 
-  function findMonthLabel(month: number, value: Dayjs) {
-    const d = Lunar.fromDate(new Date(value.year(), month))
-    return `${month + 1}月（${d.getMonthInChinese()}月）`
+  async function handleToggleReminder(id: string, isCompleted: boolean) {
+    await updateReminder({
+      key: id,
+      change: { isCompleted }
+    })
+    await refreshRange(panelDate)
+  }
+
+  async function handleRemoveEvent(id: string) {
+    await removeEvent(id)
+    await refreshRange(panelDate)
+  }
+
+  async function handleRemoveReminder(id: string) {
+    await removeReminder(id)
+    await refreshRange(panelDate)
   }
 
   return (
     <div
       className={clsx(styles.wrapper, stylesChrome.calendar, embedded && stylesChrome.embedded)}
       data-through="false">
-      <Calendar
-        fullCellRender={cellRender}
-        fullscreen={false}
-        onPanelChange={handlePanelChange}
-        onSelect={handleDateChange}
-        headerRender={function ({ value, type, onChange, onTypeChange }) {
-          const monthOptions = []
-          for (let i = 0; i < 12; i++) {
-            monthOptions.push({
-              label: findMonthLabel(i, value),
-              value: i
-            })
-          }
-
-          const year = value.year()
-          const month = value.month()
-          const yearOptions = []
-          for (let i = year - 10; i < year + 10; i += 1) {
-            yearOptions.push({
-              label: findYearLabel(i),
-              value: i
-            })
-          }
-
-          return (
-            <Row
-              className={stylesChrome.toolbar}
-              justify="end"
-              gutter={8}
-              {...(embedded ? {} : { 'data-region': 'true' })}>
-              <Col>
-                <Select
-                  size="middle"
-                  popupMatchSelectWidth={false}
-                  value={year}
-                  options={yearOptions}
-                  onChange={function (newYear) {
-                    onChange(value.clone().year(newYear))
-                  }}
-                />
-              </Col>
-              <Col>
-                <Select
-                  size="middle"
-                  popupMatchSelectWidth={false}
-                  value={month}
-                  options={monthOptions}
-                  onChange={function (newMonth) {
-                    onChange(value.clone().month(newMonth))
-                  }}
-                />
-              </Col>
-              <Col>
-                <Radio.Group
-                  size="middle"
-                  onChange={function (e) {
-                    onTypeChange(e.target.value)
-                  }}
-                  value={type}>
-                  <Radio.Button value="month">月</Radio.Button>
-                  <Radio.Button value="year">年</Radio.Button>
-                </Radio.Group>
-              </Col>
-            </Row>
-          )
-        }}
-      />
+      <div className={styles.layout}>
+        <div className={clsx(styles.main, stylesChrome.gridPane)}>
+          <DayGrid
+            selectDate={selectDate}
+            panelDate={panelDate}
+            markedDates={markedDates}
+            onSelectDate={function (date) {
+              onUpdateSelectDate(date)
+              if (!panelDate.isSame(date, 'month')) {
+                onUpdatePanelDate(date)
+              }
+            }}
+            onPanelDate={function (date) {
+              onUpdatePanelDate(date)
+            }}
+          />
+        </div>
+        <aside className={styles.side}>
+          <DayDetail date={selectDate} />
+          <div className={styles.divider} />
+          <DayAgenda
+            date={selectDate}
+            events={dayEvents}
+            reminders={dayReminders}
+            onWriteEvent={handleWriteEvent}
+            onWriteReminder={handleWriteReminder}
+            onToggleReminder={handleToggleReminder}
+            onRemoveEvent={handleRemoveEvent}
+            onRemoveReminder={handleRemoveReminder}
+          />
+        </aside>
+      </div>
     </div>
   )
 }

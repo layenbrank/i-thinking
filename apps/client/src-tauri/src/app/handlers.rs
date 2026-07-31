@@ -43,6 +43,14 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         thinking_command::countdown::countdown_read,
         thinking_command::countdown::countdown_upsert,
         thinking_command::countdown::countdown_update,
+        thinking_command::reminder::reminder_write,
+        thinking_command::reminder::reminder_read,
+        thinking_command::reminder::reminder_update,
+        thinking_command::reminder::reminder_remove,
+        thinking_command::calendar_event::calendar_event_write,
+        thinking_command::calendar_event::calendar_event_read,
+        thinking_command::calendar_event::calendar_event_update,
+        thinking_command::calendar_event::calendar_event_remove,
         through::command::set_rects,
     ]
 }

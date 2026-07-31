@@ -40,8 +40,34 @@
       padding: 8px 0;
     }
 
+    /* 周末表头 */
+    .ant-picker-content th:nth-child(6),
+    .ant-picker-content th:nth-child(7) {
+      color: var(--ith-color-error);
+    }
+
     .ant-picker-cell {
       padding: 2px 0;
+    }
+
+    .ant-picker-calendar-date {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      border: none !important;
+    }
+
+    .ant-picker-cell-selected .ant-picker-calendar-date,
+    .ant-picker-cell-selected:hover .ant-picker-calendar-date {
+      background: transparent;
+    }
+  }
+}
+
+.gridPane {
+  :global {
+    .ant-picker-calendar {
+      min-height: 0;
     }
   }
 }
