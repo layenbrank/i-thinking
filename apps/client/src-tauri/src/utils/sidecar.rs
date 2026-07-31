@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_shell::ShellExt;
@@ -8,6 +8,15 @@ use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tracing::{info, warn};
 
 use crate::utils::ipc;
+
+/// 更新安装前等待 sidecar 退出的超时。
+pub const SIDECAR_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// 应用正常退出时的较短等待，避免拖慢退出。
+const SIDECAR_EXIT_TIMEOUT: Duration = Duration::from_secs(2);
+
+const GRACEFUL_WAIT: Duration = Duration::from_millis(500);
+const HANDLE_SETTLE: Duration = Duration::from_millis(200);
 
 pub struct SidecarState {
     ready: AtomicBool,
@@ -150,7 +159,7 @@ fn spawn(app: &AppHandle) -> Result<(), String> {
 }
 
 fn wait_for_daemon(timeout: Duration, state: &SidecarState) -> bool {
-    let start = std::time::Instant::now();
+    let start = Instant::now();
     while start.elapsed() < timeout {
         if state.probe() {
             info!("corex-serve IPC 已就绪");
@@ -163,16 +172,112 @@ fn wait_for_daemon(timeout: Duration, state: &SidecarState) -> bool {
     false
 }
 
-/// 请求 daemon 退出并等待 sidecar 进程结束。
+/// 应用退出时关闭 sidecar（较短超时）。
 pub fn shutdown(app: &AppHandle) {
-    let _ = ipc::shutdown();
+    let _ = shutdown_and_wait(app, SIDECAR_EXIT_TIMEOUT);
+}
 
-    let child = app
-        .try_state::<SidecarState>()
-        .and_then(|state| state.child.lock().ok().and_then(|mut guard| guard.take()));
+/// 请求 daemon 退出，kill 子进程，并等待其释放文件句柄。
+///
+/// 返回 `true` 表示确认已停；超时仍返回 `false`（调用方可不阻断，依赖 NSIS hook）。
+pub fn shutdown_and_wait(app: &AppHandle, timeout: Duration) -> bool {
+    info!("正在关闭 corex-serve…");
 
-    if let Some(child) = child {
-        let _ = child.kill();
-        info!("已请求终止 corex-serve");
+    match ipc::shutdown() {
+        Ok(()) => info!("已发送 corex-serve IPC shutdown"),
+        Err(e) => warn!("corex-serve IPC shutdown 失败（可忽略）: {e}"),
     }
+
+    let state = app.try_state::<SidecarState>();
+    let child = state
+        .as_ref()
+        .and_then(|s| s.child.lock().ok().and_then(|mut guard| guard.take()));
+
+    let start = Instant::now();
+    let stopped = if let Some(child) = child {
+        stop_child(child, timeout, start)
+    } else {
+        wait_until_pipe_closed(timeout, start)
+    };
+
+    if let Some(state) = state.as_ref() {
+        state.fail();
+    }
+
+    if stopped {
+        std::thread::sleep(HANDLE_SETTLE);
+        info!("corex-serve 已停止");
+    } else {
+        warn!("corex-serve 在 {:?} 内未确认退出，将依赖安装器 hook 兜底", timeout);
+    }
+
+    stopped
+}
+
+fn stop_child(child: CommandChild, timeout: Duration, start: Instant) -> bool {
+    let pid = child.pid();
+
+    let graceful = GRACEFUL_WAIT.min(timeout);
+    if wait_for_pid_exit(pid, graceful) {
+        info!("corex-serve 已优雅退出 (pid={pid})");
+        return true;
+    }
+
+    match child.kill() {
+        Ok(()) => info!("已请求终止 corex-serve (pid={pid})"),
+        Err(e) => warn!("kill corex-serve 失败 (pid={pid}): {e}"),
+    }
+
+    let remaining = timeout.saturating_sub(start.elapsed());
+    if wait_for_pid_exit(pid, remaining) {
+        info!("corex-serve 已退出 (pid={pid})");
+        return true;
+    }
+
+    warn!("等待 corex-serve 退出超时 (pid={pid})");
+    false
+}
+
+fn wait_until_pipe_closed(timeout: Duration, start: Instant) -> bool {
+    while start.elapsed() < timeout {
+        if !ipc::is_ready() {
+            info!("corex-serve IPC 已不可用");
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    !ipc::is_ready()
+}
+
+#[cfg(windows)]
+fn wait_for_pid_exit(pid: u32, timeout: Duration) -> bool {
+    use windows::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0, WAIT_TIMEOUT};
+    use windows::Win32::System::Threading::{OpenProcess, WaitForSingleObject, PROCESS_SYNCHRONIZE};
+
+    let handle = match unsafe { OpenProcess(PROCESS_SYNCHRONIZE, false, pid) } {
+        Ok(h) => h,
+        Err(_) => {
+            // 进程已不存在
+            return true;
+        }
+    };
+
+    let ms = timeout.as_millis().min(u32::MAX as u128) as u32;
+    let result = unsafe { WaitForSingleObject(handle, ms) };
+    let _ = unsafe { CloseHandle(handle) };
+
+    match result {
+        WAIT_OBJECT_0 => true,
+        WAIT_TIMEOUT => false,
+        other => {
+            warn!("WaitForSingleObject(pid={pid}) 异常: {other:?}");
+            false
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn wait_for_pid_exit(_pid: u32, timeout: Duration) -> bool {
+    std::thread::sleep(timeout.min(Duration::from_millis(200)));
+    true
 }

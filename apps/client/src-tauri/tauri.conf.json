@@ -167,6 +167,7 @@
       "nsis": {
         "compression": "lzma",
         "displayLanguageSelector": true,
+        "installerHooks": "./nsis/installer-hooks.nsh",
         "installerIcon": "icons/icon.ico",
         "installMode": "both",
         "languages": ["SimpChinese", "English"],

@@ -23,6 +23,7 @@
 | [client/components-api.md](./client/components-api.md) | Client 业务组件 API |
 | [client/components-semantic.md](./client/components-semantic.md) | Client 组件语义化 class |
 | [client/tauri-remote.md](./client/tauri-remote.md) | Tauri `remote.urls` 白名单 |
+| [client/updater-sidecar-file-lock.md](./client/updater-sidecar-file-lock.md) | Windows 更新时 corex-serve 文件锁：问题、根因与双保险方案 |
 
 Zustand 基础用法见 [apps/docs/guides/zustand.md](../apps/docs/guides/zustand.md)。
 
@@ -37,6 +38,7 @@ Zustand 基础用法见 [apps/docs/guides/zustand.md](../apps/docs/guides/zustan
 
 | 文档 | 说明 |
 |------|------|
+| [reference/icons.md](./reference/icons.md) | Iconify React/Vue 与 unplugin-icons；本仓库离线约定 |
 | [reference/dnd-kit-grid.md](./reference/dnd-kit-grid.md) | @dnd-kit 网格拖拽笔记（client / studio） |
 | [reference/sortablejs.md](./reference/sortablejs.md) | Sortable.js API 笔记（client / extension） |
 | [reference/antd/llms-full-cn.txt](./reference/antd/llms-full-cn.txt) | Ant Design 官方 llms-full 中文 dump |

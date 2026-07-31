@@ -16,6 +16,7 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         system::command::tray_set_badge,
         system::command::ipc_ready,
         system::command::ipc_invoke,
+        system::command::sidecar_shutdown,
         thinking_command::magnetic_tile::magnetic_tile_write,
         thinking_command::magnetic_tile::magnetic_tile_read,
         thinking_command::magnetic_tile::magnetic_tile_update,

@@ -1,8 +1,18 @@
+import { invoke } from '@tauri-apps/api/core'
 import { ask } from '@tauri-apps/plugin-dialog'
 import { check } from '@tauri-apps/plugin-updater'
 import { message } from 'antd'
 
 import { relaunchApp } from '@/utils/process'
+
+async function prepareUpdate() {
+  try {
+    await invoke('sidecar:shutdown')
+  } catch (error) {
+    const text = error instanceof Error ? error.message : String(error)
+    console.warn('[updater] sidecar:shutdown failed (NSIS hook will retry):', text)
+  }
+}
 
 async function checkUpdate() {
   try {
@@ -24,6 +34,9 @@ async function checkUpdate() {
 
     if (!confirmed) return
 
+    message.loading({ content: '正在准备更新…', key: 'updater', duration: 0 })
+    await prepareUpdate()
+
     message.loading({ content: '正在下载更新…', key: 'updater', duration: 0 })
     await update.downloadAndInstall()
     message.destroy('updater')
@@ -32,7 +45,7 @@ async function checkUpdate() {
   } catch (error) {
     message.destroy('updater')
     const text = error instanceof Error ? error.message : String(error)
-    message.info(`检查更新失败：${text}`)
+    message.info(`更新失败：${text}`)
   }
 }
 

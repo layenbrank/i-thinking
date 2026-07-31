@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::utils::ipc;
-use crate::utils::sidecar::SidecarState;
+use crate::utils::sidecar::{self, SidecarState, SIDECAR_SHUTDOWN_TIMEOUT};
 
 const ALLOWED_MODULES: &[&str] = &["morph", "screenshot", "scan", "engine"];
 
@@ -83,4 +83,17 @@ pub async fn ipc_invoke(
 #[tauri::command(rename = "tray:update-badge")]
 pub fn tray_set_badge(app: tauri::AppHandle, has_badge: bool) {
     crate::ui::tray::set_badge(&app, has_badge);
+}
+
+/// 停止 corex-serve 并等待进程退出（更新安装前调用）。
+///
+/// 超时仍返回 `Ok`，由 NSIS PREINSTALL hook 兜底，避免卡死更新。
+#[tauri::command(rename = "sidecar:shutdown")]
+pub async fn sidecar_shutdown(app: tauri::AppHandle) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        let _ = sidecar::shutdown_and_wait(&app, SIDECAR_SHUTDOWN_TIMEOUT);
+    })
+    .await
+    .map_err(|e| format!("sidecar shutdown 线程异常: {e}"))?;
+    Ok(())
 }
