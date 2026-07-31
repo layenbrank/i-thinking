@@ -11,7 +11,7 @@
 .magnetic-tile {
   cursor: pointer;
   position: relative;
-  // 外壳只负责网格占位；背景/圆角在 .face（对齐 itab slide-app + icon）
+  // 外壳只负责网格占位；背景/圆角在 .surface（对齐 itab slide-app + icon）
   background: transparent;
   outline: none;
   overflow: visible;
@@ -31,7 +31,7 @@
     z-index: 1000;
   }
 
-  & > .face {
+  & > .surface {
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -43,7 +43,7 @@
     transition: box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
   }
 
-  &:global(.dragging) > .face {
+  &:global(.dragging) > .surface {
     box-shadow:
       0 12px 40px rgba(0, 0, 0, 0.28),
       0 4px 12px rgba(0, 0, 0, 0.16);
@@ -66,8 +66,8 @@
     z-index: 1;
   }
 
-  & > .face .marker,
-  & > .face > .marker {
+  & > .surface .marker,
+  & > .surface > .marker {
     width: 100%;
     height: 100%;
     overflow: hidden;

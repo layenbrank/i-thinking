@@ -13,7 +13,7 @@ import {
   SortableContext,
   sortableKeyboardCoordinates
 } from '@dnd-kit/sortable'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { clsx } from 'clsx'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { v4 as UUIDV4 } from 'uuid'

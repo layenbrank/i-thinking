@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { App, Button, Form, InputNumber, Space, TimePicker } from 'antd'
 import { clsx } from 'clsx'
 import dayjs, { type Dayjs } from 'dayjs'

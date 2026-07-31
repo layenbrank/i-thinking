@@ -1,9 +1,8 @@
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import type { ReactNode } from 'react'
 
 import type { MenuItem } from '@/components/contextmenu'
 import { useMirrorStore } from '@/stores/mirror'
-import { isOverlayTileKind } from '@/stores/overlay'
 import { mountOverlayTile, removeOverlayTile } from '@/views/overlay/tauri'
 
 interface LayoutSection {
@@ -12,6 +11,8 @@ interface LayoutSection {
   size: MagneticTile.Size
   shape: MagneticTile.Shape
   direction: MagneticTile.Direction
+  round: string | null
+  background: MagneticTile.Background | null
 }
 
 const SIZES: MagneticTile.Size[] = [1, 2, 3, 4, 5, 6, 7]
@@ -60,7 +61,7 @@ function updateLayout(section: LayoutSection, change: MagneticTile.Change) {
 }
 
 function buildFloatMenuItems(section: LayoutSection): MenuItem {
-  const canMountTile = isOverlayTileKind(section.component)
+  const hasTile = Boolean(section.id)
 
   return {
     key: 'float',
@@ -83,13 +84,15 @@ function buildFloatMenuItems(section: LayoutSection): MenuItem {
             height={14}
           />
         ),
-        disabled: !canMountTile,
+        disabled: !hasTile,
         onSelect() {
-          if (!isOverlayTileKind(section.component) || !section.id) return
+          if (!section.id) return
           void mountOverlayTile(section.component, section.id, {
             size: section.size,
             shape: section.shape,
-            direction: section.direction
+            direction: section.direction,
+            round: section.round,
+            background: section.background
           })
         }
       },
@@ -103,9 +106,9 @@ function buildFloatMenuItems(section: LayoutSection): MenuItem {
             height={14}
           />
         ),
-        disabled: !canMountTile,
+        disabled: !hasTile,
         onSelect() {
-          if (!isOverlayTileKind(section.component) || !section.id) return
+          if (!section.id) return
           void removeOverlayTile(section.id)
         }
       }

@@ -1,66 +1,24 @@
-import { Icon } from '@iconify/react'
-import { Suspense, lazy, useRef, type ReactNode } from 'react'
+import { Icon } from '@iconify/react/offline'
+import clsx from 'clsx'
+import { Suspense, useMemo, useRef, type CSSProperties } from 'react'
 
 import { ContextMenu, type MenuItem } from '@/components/contextmenu'
 import { Fallback } from '@/components/fallback'
-import { LAYOUT_FALLBACK } from '@/features/magnetic-tile/size'
+import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
+import tileStyles from '@/features/magnetic-tile/magnetic-tile.module.scss'
+import { LAYOUT_FALLBACK, type MarkerLayout } from '@/features/magnetic-tile/size'
 import { useThrough } from '@/hooks/use-through'
-import { useOverlayStore, type OverlayTileKind, type OverlayTile } from '@/stores/overlay'
+import { useOverlayStore, type OverlayTile } from '@/stores/overlay'
+import { renderMarker } from '@/views/overlay/markers'
 import { removeOverlayTile, showMagneticTileOverlay } from '@/views/overlay/tauri'
 import styles from '@/views/overlay/overlay.module.scss'
-
-const CountdownMarker = lazy(function () {
-  return import('@/features/magnetic-tiles/countdown/marker')
-})
-const CalendarMarker = lazy(function () {
-  return import('@/features/magnetic-tiles/calendar/marker')
-})
-const ClockMarker = lazy(function () {
-  return import('@/features/magnetic-tiles/clock/marker')
-})
 
 interface TileProps {
   item: OverlayTile
 }
 
-interface MarkerHost {
-  size: Mirror.Size
-  shape: Mirror.Shape
-  direction: Mirror.Direction
-}
-
-const TILE_MARKER_RENDERERS: Record<OverlayTileKind, (host: MarkerHost) => ReactNode> = {
-  countdown(host) {
-    return (
-      <CountdownMarker
-        size={host.size}
-        shape={host.shape}
-        direction={host.direction}
-      />
-    )
-  },
-  calendar(host) {
-    return (
-      <CalendarMarker
-        size={host.size}
-        shape={host.shape}
-        direction={host.direction}
-      />
-    )
-  },
-  clock(host) {
-    return (
-      <ClockMarker
-        size={host.size}
-        shape={host.shape}
-        direction={host.direction}
-      />
-    )
-  }
-}
-
 const DRAG_THRESHOLD = 6
-const DBL_MS = 400
+const DOUBLE_CLICK_MS = 400
 
 function Tile(props: TileProps) {
   const { item } = props
@@ -84,10 +42,32 @@ function Tile(props: TileProps) {
 
   useThrough(item.id, { rootRef, enabled: true })
 
-  const size = item.size ?? LAYOUT_FALLBACK.size
-  const shape = item.shape ?? LAYOUT_FALLBACK.shape
-  const direction = item.direction ?? LAYOUT_FALLBACK.direction
-  const RenderMarker = TILE_MARKER_RENDERERS[item.kind]
+  const layout: MarkerLayout = {
+    size: item.size ?? LAYOUT_FALLBACK.size,
+    shape: item.shape ?? LAYOUT_FALLBACK.shape,
+    direction: item.direction ?? LAYOUT_FALLBACK.direction
+  }
+
+  const surfaceStyle = useMemo(
+    function () {
+      return buildSurfaceStyle({
+        round: item.round,
+        background: item.background
+      })
+    },
+    [item.round, item.background]
+  )
+
+  // 内联定位压过 magnetic-tile 的 position:relative；圆角由 mixin + CSS 变量负责
+  const shellStyle = {
+    position: 'absolute',
+    left: item.x,
+    top: item.y,
+    width: item.w,
+    height: item.h,
+    zIndex: item.z,
+    '--magnetic-tile-round': item.round ?? '12px'
+  } as CSSProperties
 
   const menuItems: MenuItem[] = [
     {
@@ -110,7 +90,7 @@ function Tile(props: TileProps) {
     if (e.button !== 0) return
 
     const now = Date.now()
-    if (now - lastDownAtRef.current <= DBL_MS) {
+    if (now - lastDownAtRef.current <= DOUBLE_CLICK_MS) {
       lastDownAtRef.current = 0
       dragRef.current = null
       void showMagneticTileOverlay(item.magneticTileID)
@@ -161,22 +141,25 @@ function Tile(props: TileProps) {
     <ContextMenu items={menuItems}>
       <div
         ref={rootRef}
-        className={styles.tile}
+        className={clsx(
+          styles.tile,
+          'magnetic-tile',
+          tileStyles.magneticTile,
+          tileStyles[`lv${layout.size}`],
+          tileStyles[layout.shape],
+          tileStyles[layout.direction]
+        )}
         data-region="false"
-        style={{
-          left: item.x,
-          top: item.y,
-          width: item.w,
-          height: item.h,
-          zIndex: item.z
-        }}
+        style={shellStyle}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}>
-        <div className={styles.tileInner}>
+        <div
+          className={clsx('magnetic-tile-surface', tileStyles.surface)}
+          style={surfaceStyle}>
           <Suspense fallback={<Fallback.Route />}>
-            {RenderMarker({ size, shape, direction })}
+            {renderMarker(item.kind, layout)}
           </Suspense>
         </div>
       </div>

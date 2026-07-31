@@ -3,7 +3,7 @@
  */
 import { Layout as Payload, FloatButton } from 'antd'
 import { clsx } from 'clsx'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { useState } from 'react'
 
 import ReSignIn from '@/features/signin/signin.tsx'

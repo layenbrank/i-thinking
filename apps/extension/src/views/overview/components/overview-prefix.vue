@@ -14,10 +14,7 @@ import {
   onClickOutside,
   useWindowFocus
 } from '@vueuse/core'
-import AppleFilled from '~icons/local/apple-filled'
-import BatteryFullOutline from '~icons/local/battery-full-outline'
-import MacToggle from '~icons/local/mac-toggle'
-import WifiMarker from '~icons/local/wifi'
+import { Icon } from '@iconify/vue/offline'
 
 const TSchema = zod.enum(['LT', 'MT', 'SC'])
 
@@ -217,7 +214,7 @@ onMounted(function () {
     <a-space-compact class="flex">
       <a-button class="mark-apple">
         <template #icon>
-          <apple-filled />
+          <Icon icon="custom:apple-filled" />
         </template>
       </a-button>
       <a-button> {{ $t('General.Mirror') }} </a-button>
@@ -230,12 +227,12 @@ onMounted(function () {
     <a-space-compact class="flex">
       <a-button class="mark-wifi">
         <template #icon>
-          <wifi-marker />
+          <Icon icon="custom:wifi" />
         </template>
       </a-button>
       <a-button class="mark-battery">
         <template #icon>
-          <battery-full-outline />
+          <Icon icon="custom:battery-full-outline" />
         </template>
       </a-button>
       <combobox-trigger
@@ -274,7 +271,7 @@ onMounted(function () {
 
       <a-button class="mark-toggle">
         <template #icon>
-          <mac-toggle />
+          <Icon icon="custom:mac-toggle" />
         </template>
       </a-button>
       <a-button class="date-time">

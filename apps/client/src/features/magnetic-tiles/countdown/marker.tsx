@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import clsx from 'clsx'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
@@ -117,7 +117,7 @@ function Marker(props: Props) {
   /** 右列：避免下班/休息态标签与主值、底栏三重重复 */
   let metricLabel = statusLabel
   let metricValue = computed.countdown
-  let metricIcon = METRIC_ICON.countdown
+  let metricIcon: (typeof METRIC_ICON)[keyof typeof METRIC_ICON] = METRIC_ICON.countdown
   let isMetricDim = false
   if (computed.status === 'after' || computed.status === 'rest') {
     if (hasSalary && !showPayday) {

@@ -1,5 +1,5 @@
 import { generate, presetPalettes } from '@ant-design/colors'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { Col, ColorPicker, Divider, Row, Slider, theme, Tooltip } from 'antd'
 import { clsx } from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'

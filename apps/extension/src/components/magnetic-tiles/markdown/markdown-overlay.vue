@@ -19,7 +19,7 @@ import HTML from 'highlight.js/lib/languages/xml'
 import { throttle } from 'lodash-es'
 import { all, createLowlight as definelowlight } from 'lowlight'
 import { from, take } from 'rxjs'
-import PlusOutlined from '~icons/ant-design/plus-outlined'
+import { Icon } from '@iconify/vue/offline'
 import { ColorHighlighter, MetadataExtension, SmilieReplacer } from './extension.ts'
 import MarkdownCodeBlock from './markdown-code-block.vue'
 import MarkdownControl from './markdown-control.vue'
@@ -378,7 +378,7 @@ onBeforeUnmount(function () {
               type="dashed"
               @click="buildMarkdown"
               class="insert-button">
-              <plus-outlined />
+              <Icon icon="ant-design:plus-outlined" />
             </a-button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { Button, Form, Input, message } from 'antd'
 import type { FormInstance } from 'antd/es/form'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { useEffect, useState } from 'react'
 
 import { POST_SEND_CAPTCHA } from '@/apis/auth.ts'

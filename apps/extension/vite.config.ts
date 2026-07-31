@@ -1,25 +1,16 @@
 import LanguagePlugin from '@intlify/unplugin-vue-i18n/vite'
 import Vue from '@vitejs/plugin-vue'
 import VueJsx from '@vitejs/plugin-vue-jsx'
-import { findUpSync } from 'find-up'
 import { readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
-import { FileSystemIconLoader } from 'unplugin-icons/loaders'
-import IconsResolver from 'unplugin-icons/resolver'
-import Icons from 'unplugin-icons/vite'
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
 import DevTools from 'vite-plugin-vue-devtools'
-import { Icon } from '@iconify/react'
 // import wasm from 'vite-plugin-wasm'
-
-// 查找 turbo.json 或 pnpm-workspace.yaml 等 monorepo 根目录特有的文件
-const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
-const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 
 const entries: readonly RegExp[] = [
   /src[\\/]libs[\\/]service-worker/,
@@ -74,8 +65,8 @@ const chunkMap: Readonly<Record<string, RegExp[]>> = {
     /[\\/]node_modules[\\/](resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal)[\\/]/
   ],
 
-  // Iconify 相关：@iconify/iconify @iconify/vue @iconify/json 以及虚拟 ~icons
-  'ui-markers': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|vue|iconify)[\\/]/, /~icons/],
+  // Iconify：@iconify/vue @iconify/json
+  'ui-markers': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|vue)[\\/]/],
 
   // ========== 编辑器 ==========
   'utils-markdown': [
@@ -155,26 +146,6 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
       // wasm(),
       VueJsx(),
       DevTools(),
-      Icons({
-        compiler: 'vue3',
-        autoInstall: true,
-        scale: 1,
-        defaultStyle: '',
-        defaultClass: '',
-        jsx: 'react',
-        iconCustomizer(collection, icon, props) {
-          props['aria-hidden'] = 'true'
-        },
-        customCollections: {
-          // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
-          local: FileSystemIconLoader(
-            resolve(rootDir, 'packages/shared/src/assets/icons'),
-            function (svg) {
-              return svg.replace(/^<svg /, '<svg fill="currentColor" ')
-            }
-          )
-        }
-      }),
       Compression({
         verbose: true,
         disable: false,
@@ -194,10 +165,6 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
         resolvers: [
           AntDesignVueResolver({
             importStyle: false
-          }),
-          IconsResolver({
-            prefix: 'i',
-            customCollections: ['local']
           })
         ]
       }),

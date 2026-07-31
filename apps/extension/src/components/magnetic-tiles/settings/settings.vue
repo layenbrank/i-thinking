@@ -3,7 +3,7 @@ import backgroundImage from '@/assets/wallpaper/r2e391.png'
 import Marker from '@/components/magnetic-tiles/settings/settings-marker.vue'
 import Overlay from '@/components/magnetic-tiles/settings/settings-overlay.vue'
 import { useStore } from '@/components/magnetic-tiles/settings/settings.ts'
-import DestroyMark from '~icons/local/close'
+import { Icon } from '@iconify/vue/offline'
 import { useMagneticTile } from '@/hooks/magnetic-tile.ts'
 
 defineOptions({
@@ -97,7 +97,7 @@ onUnmounted(function () {
       @dblclick="updateOverlay(true)"
       :class="[size, shape, direction]" />
     <span class="magnetic-tile-title">{{ application.title }}</span>
-    <destroy-mark class="magnetic-tile-trash-mark" />
+    <Icon icon="custom:close" class="magnetic-tile-trash-mark" />
   </div>
 </template>
 

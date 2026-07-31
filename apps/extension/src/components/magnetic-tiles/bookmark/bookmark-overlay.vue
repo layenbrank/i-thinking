@@ -5,10 +5,7 @@ import { timeSphere } from '@i-thinking/utils'
 import { message } from 'ant-design-vue'
 import Fuse, { type IFuseOptions } from 'fuse.js'
 import { debounce } from 'lodash-es'
-import PlusOutlined from '~icons/ant-design/plus-outlined'
-import ReloadOutlined from '~icons/ant-design/reload-outlined'
-import CloseOutlined from '~icons/local/close'
-import HandleOutlined from '~icons/local/handle'
+import { Icon } from '@iconify/vue/offline'
 import { useBookMark } from './use-bookmark.ts'
 
 type Entry = MagneticTile.Bookmark.Entry
@@ -156,9 +153,8 @@ function updateVisible() {
         <a-button
           @click="updateSort"
           class="sort-button">
-          <plus-outlined
-            stroke-width="90"
-            stroke="currentColor"
+          <Icon
+            icon="ant-design:plus-outlined"
             width="1.25rem"
             height="1.25rem" />
         </a-button>
@@ -209,23 +205,24 @@ function updateVisible() {
           <a-button
             @click="handleRefreshBookmarks"
             class="bookmark-operation-button refresh-button">
-            <reload-outlined
-              stroke-width="90"
-              stroke="currentColor"
+            <Icon
+              icon="ant-design:reload-outlined"
               width="1.25rem"
               height="1.25rem" />
           </a-button>
           <a-button
             @click="updateFullScreen"
             class="bookmark-operation-button fullscreen-button">
-            <handle-outlined
+            <Icon
+              icon="custom:handle"
               width="1.25rem"
               height="1.25rem" />
           </a-button>
           <a-button
             @click="updateVisible"
             class="bookmark-operation-button close-button">
-            <close-outlined
+            <Icon
+              icon="custom:close"
               width="1.25rem"
               height="1.25rem" />
           </a-button>

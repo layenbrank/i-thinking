@@ -1,5 +1,5 @@
 import { Button, Checkbox, Form, Input, Segmented, message } from 'antd'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { useEffect } from 'react'
 
 import {

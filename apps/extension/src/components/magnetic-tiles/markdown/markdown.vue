@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/magnetic-tiles/markdown/markdown-marker.vue'
 import Overlay from '@/components/magnetic-tiles/markdown/markdown-overlay.vue'
-import DestroyMark from '~icons/local/close'
+import { Icon } from '@iconify/vue/offline'
 import { useMagneticTile } from '@/hooks/magnetic-tile.ts'
 
 defineOptions({
@@ -84,7 +84,7 @@ function updateFullScreen(value: boolean) {
       @dblclick="updateOverlay(true)"
       :class="[size, shape, direction]" />
     <span class="magnetic-tile-title">{{ application.title }}</span>
-    <destroy-mark class="magnetic-tile-trash-mark" />
+    <Icon icon="custom:close" class="magnetic-tile-trash-mark" />
   </div>
 </template>
 

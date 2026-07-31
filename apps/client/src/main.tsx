@@ -1,12 +1,12 @@
-import { addCollection } from '@iconify/react'
+import { addCollection } from '@iconify/react/offline'
 import { createRoot } from 'react-dom/client'
 import 'reflect-metadata'
 
 import App from '@/App.tsx'
 import '@/styles/index.scss'
 
-import AntDesignIconify from '@i-thinking/shared/ant-design.json'
-import MDIconify from '@i-thinking/shared/mdi.json'
+import AntDesignIconify from '@iconify/json/json/ant-design.json'
+import MDIconify from '@iconify/json/json/mdi.json'
 import CustomIconify from '@i-thinking/shared/iconify.json'
 import { CSSVAR } from '@/themes'
 

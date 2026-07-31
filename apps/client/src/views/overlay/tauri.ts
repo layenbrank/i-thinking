@@ -2,8 +2,10 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { appLocalDataDir, join } from '@tauri-apps/api/path'
 import { BaseDirectory, exists, mkdir, writeFile } from '@tauri-apps/plugin-fs'
 
+import type { SurfaceStyleInput } from '@/features/magnetic-tile/surface-style'
 import type { MarkerLayout } from '@/features/magnetic-tile/size'
-import type { OverlayTileKind } from '@/stores/overlay'
+
+interface MountOverlayOptions extends Partial<MarkerLayout>, SurfaceStyleInput {}
 
 async function ensureOverlay(): Promise<void> {
   await invoke('overlay:ensure')
@@ -19,17 +21,19 @@ async function updateOverlayMode(mode: 'idle' | 'capture'): Promise<void> {
 
 /** 主窗磁贴右键「浮层 → 添加」 */
 async function mountOverlayTile(
-  kind: OverlayTileKind,
+  kind: MagneticTile.Component,
   magneticTileID: string,
-  layout?: Partial<MarkerLayout>
+  options?: MountOverlayOptions
 ): Promise<void> {
   await invoke('overlay:mount', {
     payload: {
       kind,
       magneticTileID,
-      size: layout?.size ?? null,
-      shape: layout?.shape ?? null,
-      direction: layout?.direction ?? null
+      size: options?.size ?? null,
+      shape: options?.shape ?? null,
+      direction: options?.direction ?? null,
+      round: options?.round ?? null,
+      background: options?.background ?? null
     }
   })
 }
@@ -82,3 +86,4 @@ export {
   saveTexturePng,
   readImageNaturalSize
 }
+export type { MountOverlayOptions }

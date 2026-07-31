@@ -284,7 +284,7 @@
   "iconify.customCollectionIdsMap": {
     "custom": "custom"
   },
-  "iconify.customCollectionJsonPaths": ["packages/shared/src/assets/iconify.json"],
+  "iconify.customCollectionJsonPaths": ["packages/shared/src/assets/icons/custom.json"],
   "iconify.languageIds": ["typescript", "typescriptreact", "vue"],
   "iconify.preview.exclude": ["package.json"],
   "iconify.preview.include": ["**/*.vue", "**/*.jsx", "**/*.tsx"],

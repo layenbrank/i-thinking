@@ -70,8 +70,8 @@
   pointer-events: none;
 }
 
-// 缩放加在内部 face，避免覆盖根节点 translate
-:global(.magnetic-tile-drag) > .magnetic-tile-face {
+// 缩放加在内部 surface，避免覆盖根节点 translate
+:global(.magnetic-tile-drag) > .magnetic-tile-surface {
   transform: scale(1.04);
   box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.28),

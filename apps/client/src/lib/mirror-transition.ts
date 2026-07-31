@@ -67,16 +67,16 @@ function clearPane(el: HTMLElement) {
   el.style.removeProperty('will-change')
 }
 
-/** 进场可 stagger 的磁贴 face（无则退回整 pane） */
-function findTileFaces(pane: HTMLElement): HTMLElement[] {
-  return Array.from(pane.querySelectorAll<HTMLElement>('.magnetic-tile-face'))
+/** 进场可 stagger 的磁贴 surface（无则退回整 pane） */
+function findTileSurfaces(pane: HTMLElement): HTMLElement[] {
+  return Array.from(pane.querySelectorAll<HTMLElement>('.magnetic-tile-surface'))
 }
 
-function clearTileFaces(faces: HTMLElement[]) {
-  if (!faces.length) return
-  gsap.set(faces, { clearProps: 'transform,opacity' })
-  for (let i = 0; i < faces.length; i++) {
-    faces[i].style.removeProperty('will-change')
+function clearTileSurfaces(surfaces: HTMLElement[]) {
+  if (!surfaces.length) return
+  gsap.set(surfaces, { clearProps: 'transform,opacity' })
+  for (let i = 0; i < surfaces.length; i++) {
+    surfaces[i].style.removeProperty('will-change')
   }
 }
 
@@ -169,8 +169,8 @@ function bindMirrorTransition(): MirrorTransitionSession {
       }
 
       prepareLayer(pane)
-      const faces = findTileFaces(pane)
-      const hasTiles = faces.length > 0
+      const surfaces = findTileSurfaces(pane)
+      const hasTiles = surfaces.length > 0
 
       if (scrim) {
         prepareLayer(scrim)
@@ -181,7 +181,7 @@ function bindMirrorTransition(): MirrorTransitionSession {
         defaults: { force3D: true },
         onComplete() {
           clearPane(pane)
-          clearTileFaces(faces)
+          clearTileSurfaces(surfaces)
           if (scrim) {
             gsap.set(scrim, { autoAlpha: 0 })
             scrim.style.removeProperty('will-change')
@@ -201,10 +201,10 @@ function bindMirrorTransition(): MirrorTransitionSession {
           force3D: true,
           transformOrigin: '50% 50%'
         })
-        for (let i = 0; i < faces.length; i++) {
-          faces[i].style.willChange = 'transform, opacity'
+        for (let i = 0; i < surfaces.length; i++) {
+          surfaces[i].style.willChange = 'transform, opacity'
         }
-        gsap.set(faces, {
+        gsap.set(surfaces, {
           opacity: 0,
           y: TILE_FROM_Y,
           x: direction * 10,
@@ -222,7 +222,7 @@ function bindMirrorTransition(): MirrorTransitionSession {
         )
 
         tl.to(
-          faces,
+          surfaces,
           {
             opacity: 1,
             y: 0,

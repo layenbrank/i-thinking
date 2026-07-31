@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import Marker from '@/components/magnetic-tiles/navigation/navigation-marker.vue'
 import { message } from 'ant-design-vue'
-import DestroyMark from '~icons/local/close'
+import { Icon } from '@iconify/vue/offline'
 import { useMagneticTile } from '@/hooks/magnetic-tile.ts'
 
 defineOptions({
@@ -61,7 +61,7 @@ function handleJumpLink() {
       @dblclick="handleJumpLink"
       :class="[size, shape, direction]" />
     <span class="magnetic-tile-title">{{ application.title }}</span>
-    <destroy-mark class="magnetic-tile-trash-mark" />
+    <Icon icon="custom:close" class="magnetic-tile-trash-mark" />
   </div>
 </template>
 

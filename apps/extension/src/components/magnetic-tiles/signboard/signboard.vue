@@ -2,7 +2,7 @@
 import Marker from '@/components/magnetic-tiles/signboard/signboard-marker.vue'
 import Overlay from '@/components/magnetic-tiles/signboard/signboard-overlay.vue'
 import { Modal } from 'ant-design-vue'
-import DestroyMark from '~icons/local/close'
+import { Icon } from '@iconify/vue/offline'
 import { useMagneticTile } from '@/hooks/magnetic-tile.ts'
 
 defineOptions({
@@ -84,7 +84,7 @@ function updateFullScreen(value: boolean) {
       @dblclick="updateOverlay(true)"
       :class="[size, shape, direction]" />
     <span class="magnetic-tile-title">{{ application.title }}</span>
-    <destroy-mark class="magnetic-tile-trash-mark" />
+    <Icon icon="custom:close" class="magnetic-tile-trash-mark" />
   </div>
 </template>
 

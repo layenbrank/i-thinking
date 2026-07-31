@@ -4,7 +4,7 @@
  * - 视口进出：out→in 方向感知入场（滚动中也播）
  * - 跟滚景深：滚动会话驱动 y / opacity / scale，停滚回弹
  * - 波纹：空间相位 sin 叠加（海浪感）；停滚按距中心 stagger 涟漪回落
- * - 动效打在 face；几何与 drivers 缓存；滚动帧零 querySelector
+ * - 动效打在 surface；几何与 drivers 缓存；滚动帧零 querySelector
  * - pause 仅供真实拖拽期间使用；幂等 pause/resume
  */
 import gsap from 'gsap'
@@ -39,8 +39,8 @@ function hasReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-function findFace(tile: HTMLElement): HTMLElement {
-  return (tile.querySelector('.magnetic-tile-face') as HTMLElement | null) ?? tile
+function findSurface(tile: HTMLElement): HTMLElement {
+  return (tile.querySelector('.magnetic-tile-surface') as HTMLElement | null) ?? tile
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -73,7 +73,7 @@ type TileDrivers = {
 
 type TileCache = {
   tile: HTMLElement
-  face: HTMLElement
+  surface: HTMLElement
   top: number
   left: number
   height: number
@@ -91,12 +91,12 @@ type TileScrollFx = {
   destroy: () => void
 }
 
-/** 将 quickTo 驱动绑到 face（y / opacity / scale） */
-function bindDrivers(face: HTMLElement): TileDrivers {
+/** 将 quickTo 驱动绑到 surface（y / opacity / scale） */
+function bindDrivers(surface: HTMLElement): TileDrivers {
   return {
-    y: gsap.quickTo(face, 'y', { duration: QUICK_DURATION, ease: 'power3.out' }),
-    opacity: gsap.quickTo(face, 'opacity', { duration: QUICK_DURATION, ease: 'power2.out' }),
-    scale: gsap.quickTo(face, 'scale', { duration: QUICK_DURATION, ease: 'power2.out' })
+    y: gsap.quickTo(surface, 'y', { duration: QUICK_DURATION, ease: 'power3.out' }),
+    opacity: gsap.quickTo(surface, 'opacity', { duration: QUICK_DURATION, ease: 'power2.out' }),
+    scale: gsap.quickTo(surface, 'scale', { duration: QUICK_DURATION, ease: 'power2.out' })
   }
 }
 
@@ -111,21 +111,21 @@ function applyGeometry(item: TileCache, tile: HTMLElement, scroller: HTMLElement
 /** 清除拖拽 fallback 幽灵上的 GSAP 残留 */
 function clearDragGhost(ghost: HTMLElement | null) {
   if (!ghost) return
-  const face = findFace(ghost)
+  const surface = findSurface(ghost)
   gsap.killTweensOf(ghost)
-  gsap.killTweensOf(face)
-  gsap.set(face, { y: 0, opacity: 1, scale: 1 })
-  face.style.removeProperty('will-change')
+  gsap.killTweensOf(surface)
+  gsap.set(surface, { y: 0, opacity: 1, scale: 1 })
+  surface.style.removeProperty('will-change')
 }
 
 /** 将单块磁贴还原为静止态（拖拽 choose 时用，避免 transform 冲突） */
 function clearTileFx(tile: HTMLElement) {
-  const face = findFace(tile)
+  const surface = findSurface(tile)
   gsap.killTweensOf(tile)
-  gsap.killTweensOf(face)
-  gsap.set(face, { y: 0, opacity: 1, scale: 1 })
+  gsap.killTweensOf(surface)
+  gsap.set(surface, { y: 0, opacity: 1, scale: 1 })
   gsap.set(tile, { y: 0, opacity: 1, scale: 1 })
-  face.style.removeProperty('will-change')
+  surface.style.removeProperty('will-change')
   tile.style.removeProperty('will-change')
 }
 
@@ -157,12 +157,12 @@ function bindTileScrollFx(scroller: HTMLElement): TileScrollFx {
 
   function refreshCache(tile: HTMLElement) {
     const prev = cache.get(tile)
-    const face = prev?.face && prev.face.isConnected ? prev.face : findFace(tile)
-    const drivers = prev && prev.face === face ? prev.drivers : bindDrivers(face)
+    const surface = prev?.surface && prev.surface.isConnected ? prev.surface : findSurface(tile)
+    const drivers = prev && prev.surface === surface ? prev.drivers : bindDrivers(surface)
 
     cache.set(tile, {
       tile,
-      face,
+      surface,
       top: findContentTop(tile, scroller),
       left: findContentLeft(tile, scroller),
       height: tile.offsetHeight || prev?.height || 60,
@@ -174,16 +174,16 @@ function bindTileScrollFx(scroller: HTMLElement): TileScrollFx {
   }
 
   function rebindDrivers(item: TileCache) {
-    item.drivers = bindDrivers(item.face)
+    item.drivers = bindDrivers(item.surface)
   }
 
   function updateWillChange(isOn: boolean) {
     if (hasWillChange === isOn) return
     hasWillChange = isOn
     for (let i = 0; i < visibles.length; i++) {
-      const face = visibles[i].face
-      if (isOn) face.style.willChange = 'transform, opacity'
-      else face.style.removeProperty('will-change')
+      const surface = visibles[i].surface
+      if (isOn) surface.style.willChange = 'transform, opacity'
+      else surface.style.removeProperty('will-change')
     }
   }
 
@@ -194,8 +194,8 @@ function bindTileScrollFx(scroller: HTMLElement): TileScrollFx {
     for (let i = 0; i < visibles.length; i++) {
       const item = visibles[i]
       item.isEntering = false
-      gsap.killTweensOf(item.face)
-      gsap.set(item.face, { y: 0, opacity: 1, scale: 1 })
+      gsap.killTweensOf(item.surface)
+      gsap.set(item.surface, { y: 0, opacity: 1, scale: 1 })
       rebindDrivers(item)
     }
   }
@@ -209,8 +209,8 @@ function bindTileScrollFx(scroller: HTMLElement): TileScrollFx {
     // 首屏首次出现：定格，避免闪烁
     if (prev !== 'out' || hasReducedMotion() || isPaused) {
       item.isEntering = false
-      gsap.killTweensOf(item.face)
-      gsap.set(item.face, { opacity: 1, y: 0, scale: 1 })
+      gsap.killTweensOf(item.surface)
+      gsap.set(item.surface, { opacity: 1, y: 0, scale: 1 })
       rebindDrivers(item)
       return
     }
@@ -218,9 +218,9 @@ function bindTileScrollFx(scroller: HTMLElement): TileScrollFx {
     item.isEntering = true
     const fromY = scrollDirection >= 0 ? 28 : -28
     // 先杀掉 quickTo，避免 overwrite:'auto' 对 scale/y/opacity 触发 reset 警告
-    gsap.killTweensOf(item.face)
+    gsap.killTweensOf(item.surface)
     gsap.fromTo(
-      item.face,
+      item.surface,
       { opacity: 0.18, y: fromY, scale: 0.94 },
       {
         opacity: 1,
@@ -243,21 +243,21 @@ function bindTileScrollFx(scroller: HTMLElement): TileScrollFx {
     item.isEntering = false
 
     if (isScrolling || hasReducedMotion() || isPaused) {
-      gsap.killTweensOf(item.face)
-      gsap.set(item.face, { y: 0, opacity: 1, scale: 1 })
+      gsap.killTweensOf(item.surface)
+      gsap.set(item.surface, { y: 0, opacity: 1, scale: 1 })
       rebindDrivers(item)
       return
     }
 
-    gsap.killTweensOf(item.face)
-    gsap.to(item.face, {
+    gsap.killTweensOf(item.surface)
+    gsap.to(item.surface, {
       opacity: 0.35,
       y: scrollDirection >= 0 ? -12 : 12,
       scale: 0.96,
       duration: EXIT_DURATION,
       ease: 'power2.in',
       onComplete() {
-        gsap.set(item.face, { y: 0, opacity: 1, scale: 1 })
+        gsap.set(item.surface, { y: 0, opacity: 1, scale: 1 })
         rebindDrivers(item)
       }
     })
@@ -314,32 +314,32 @@ function bindTileScrollFx(scroller: HTMLElement): TileScrollFx {
     const rootCenterY = scrollTop + viewH / 2
     const rootCenterX = scroller.scrollLeft + viewW / 2
 
-    const ranked: { face: HTMLElement; dist: number; item: TileCache }[] = []
+    const ranked: { surface: HTMLElement; dist: number; item: TileCache }[] = []
     for (let i = 0; i < visibles.length; i++) {
       const item = visibles[i]
       item.isEntering = false
-      gsap.killTweensOf(item.face)
+      gsap.killTweensOf(item.surface)
       const cy = item.top + item.height / 2
       const cx = item.left + item.width / 2
       const dist = Math.hypot(cy - rootCenterY, cx - rootCenterX)
-      ranked.push({ face: item.face, dist, item })
+      ranked.push({ surface: item.surface, dist, item })
     }
 
     ranked.sort(function (a, b) {
       return a.dist - b.dist
     })
 
-    const faces: HTMLElement[] = []
+    const surfaces: HTMLElement[] = []
     for (let i = 0; i < ranked.length; i++) {
-      faces.push(ranked[i].face)
+      surfaces.push(ranked[i].surface)
     }
 
-    if (!faces.length) {
+    if (!surfaces.length) {
       updateWillChange(false)
       return
     }
 
-    settleTween = gsap.to(faces, {
+    settleTween = gsap.to(surfaces, {
       y: 0,
       opacity: 1,
       scale: 1,
@@ -349,7 +349,7 @@ function bindTileScrollFx(scroller: HTMLElement): TileScrollFx {
       onComplete() {
         for (let i = 0; i < visibles.length; i++) {
           const item = visibles[i]
-          gsap.set(item.face, { y: 0, opacity: 1, scale: 1 })
+          gsap.set(item.surface, { y: 0, opacity: 1, scale: 1 })
           rebindDrivers(item)
         }
         updateWillChange(false)

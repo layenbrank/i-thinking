@@ -1,5 +1,5 @@
 import { Modal, Typography } from 'antd'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import clsx from 'clsx'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useState } from 'react'

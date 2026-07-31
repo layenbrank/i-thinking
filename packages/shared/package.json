@@ -5,16 +5,13 @@
   "private": true,
   "exports": {
     ".": {
-      "default": "./src/assets/iconify.json"
+      "default": "./src/assets/icons/custom.json"
     },
     "./iconify.json": {
-      "default": "./src/assets/iconify.json"
+      "default": "./src/assets/icons/custom.json"
     },
-    "./ant-design.json": {
-      "default": "./src/assets/icons/ant-design.json"
-    },
-    "./mdi.json": {
-      "default": "./src/assets/icons/mdi.json"
+    "./custom.json": {
+      "default": "./src/assets/icons/custom.json"
     },
     "./contextmenu": {
       "types": "./src/types/contextmenu.d.ts"

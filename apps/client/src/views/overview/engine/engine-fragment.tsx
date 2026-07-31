@@ -3,7 +3,7 @@
  */
 import { clsx } from 'clsx'
 import { motion } from 'motion/react'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { useEffect, useRef } from 'react'
 
 import {

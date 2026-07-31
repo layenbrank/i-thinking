@@ -16,6 +16,7 @@ import {
 import { ContextMenu } from '@/components/contextmenu'
 import { ABORT_TIMEOUT_MS } from '@/constants/magnetic-tile.ts'
 import { buildLayoutMenuItems } from '@/features/magnetic-tile/build-layout-menu'
+import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
 import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
 import { Caption } from '@/features/magnetic-tile/caption'
 import { OverlayContext } from '@/features/magnetic-tile/overlay-context'
@@ -43,6 +44,8 @@ interface SectionContextProps {
   size: MagneticTile.Size
   shape: MagneticTile.Shape
   direction: MagneticTile.Direction
+  round: string | null
+  background: MagneticTile.Background | null
 }
 
 interface MarkerProps {
@@ -334,7 +337,7 @@ const MagneticTile = {
   },
   Section(props: SectionProps) {
     const nodeRef = useRef<HTMLDivElement>(null)
-    // 默认近视口，避免首屏先空 face 再挂 Marker 闪一下
+    // 默认近视口，避免首屏先空 surface 再挂 Marker 闪一下
     const [isNear, setIsNear] = useState(true)
     const { visible, onUpdateVisible } = useContext(OverlayContext)
 
@@ -365,50 +368,14 @@ const MagneticTile = {
       []
     )
 
-    const faceStyle = useMemo(
+    const surfaceStyle = useMemo(
       function () {
-        const round = props.round
-        const size = props.background?.size
-        const clip = props.background?.clip
-        const color = props.background?.color
-        const image = props.background?.image
-        const origin = props.background?.origin
-        const repeat = props.background?.repeat
-        const position = props.background?.position
-        const blendMode = props.background?.blendMode
-        const attachment = props.background?.attachment
-
-        const backgroundImage = image ? `url(${image})` : undefined
-        const backgroundColor = image ? undefined : (color ?? '#ffffff')
-
-        const design: CSSProperties = {
-          backgroundSize: size ?? 'cover',
-          backgroundColor: backgroundColor,
-          backgroundImage: backgroundImage,
-          '--magnetic-tile-round': round ?? '12px',
-          backgroundRepeat: repeat ?? 'no-repeat',
-          backgroundPosition: position ?? 'center',
-          backgroundAttachment: attachment ?? 'scroll'
-        }
-
-        if (clip) design.backgroundClip = clip
-        if (origin) design.backgroundOrigin = origin
-        if (blendMode) design.backgroundBlendMode = blendMode
-
-        return design
+        return buildSurfaceStyle({
+          round: props.round,
+          background: props.background
+        })
       },
-      [
-        props.round,
-        props.background?.size,
-        props.background?.clip,
-        props.background?.color,
-        props.background?.image,
-        props.background?.origin,
-        props.background?.repeat,
-        props.background?.position,
-        props.background?.blendMode,
-        props.background?.attachment
-      ]
+      [props.round, props.background]
     )
 
     return (
@@ -418,7 +385,9 @@ const MagneticTile = {
           component: props.component,
           size: props.size,
           shape: props.shape,
-          direction: props.direction
+          direction: props.direction,
+          round: props.round,
+          background: props.background
         }}>
         <div
           ref={nodeRef}
@@ -440,8 +409,8 @@ const MagneticTile = {
           ])}
           style={props.style}>
           <div
-            className={clsx('magnetic-tile-face', styles.face)}
-            style={faceStyle}>
+            className={clsx('magnetic-tile-surface', styles.surface)}
+            style={surfaceStyle}>
             {isNear ? props.children : null}
           </div>
           <span className={styles.title}>

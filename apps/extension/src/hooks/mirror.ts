@@ -1,8 +1,20 @@
-import DownloadMarker from '~icons/ant-design/cloud-download-outlined'
-import CloudMarker from '~icons/ant-design/cloud-upload-outlined'
-import RemoveMarker from '~icons/ant-design/delete-outlined'
-import InsertMarker from '~icons/ant-design/plus-circle-outlined'
-import SettingsMarker from '~icons/ant-design/setting-outlined'
+import { Icon } from '@iconify/vue/offline'
+import { h, markRaw } from 'vue'
+
+function iconifyMark(icon: string) {
+  return markRaw({
+    name: `IconifyMark-${icon}`,
+    render() {
+      return h(Icon, { icon })
+    }
+  })
+}
+
+const DownloadMarker = iconifyMark('ant-design:cloud-download-outlined')
+const CloudMarker = iconifyMark('ant-design:cloud-upload-outlined')
+const RemoveMarker = iconifyMark('ant-design:delete-outlined')
+const InsertMarker = iconifyMark('ant-design:plus-circle-outlined')
+const SettingsMarker = iconifyMark('ant-design:setting-outlined')
 
 const AppBookmark = defineAsyncComponent(function () {
   return import('@/components/magnetic-tiles/bookmark/bookmark.vue')

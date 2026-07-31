@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Segmented } from 'antd'
-// import { Icon } from '@iconify/react'
+// import { Icon } from '@iconify/react/offline'
 
 import { OPTIONS } from '@/constants/mirror.ts'
 

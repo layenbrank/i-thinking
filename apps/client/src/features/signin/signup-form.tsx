@@ -1,5 +1,5 @@
 import { Button, Form, Input, message } from 'antd'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { useState } from 'react'
 
 import { POST_SIGNUP } from '@/apis/auth.ts'

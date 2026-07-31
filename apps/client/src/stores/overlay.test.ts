@@ -46,6 +46,22 @@ describe('overlay store mountTile / removeItem', function () {
     expect(tiles[0]?.magneticTileID).toBe('tile-a')
   })
 
+  it('mountTile stores surface style (round / background)', function () {
+    const store = useOverlayStore.getState()
+    store.mountTile('countdown', 'tile-a', {
+      size: 1,
+      shape: 'square',
+      round: '16px',
+      background: { color: '#F1F5F9' }
+    })
+
+    const tile = useOverlayStore.getState().items.find(function (item) {
+      return item.kind !== 'texture' && item.id === 'tile-a'
+    })
+    expect(tile && tile.kind !== 'texture' ? tile.round : null).toBe('16px')
+    expect(tile && tile.kind !== 'texture' ? tile.background : null).toEqual({ color: '#F1F5F9' })
+  })
+
   it('removeItem drops only the matching magneticTileID', function () {
     const store = useOverlayStore.getState()
     store.mountTile('countdown', 'tile-a', { size: 1 })

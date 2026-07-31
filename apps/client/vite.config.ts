@@ -1,12 +1,10 @@
 import React from '@vitejs/plugin-react-swc'
-import { findUpSync } from 'find-up'
 import { createWriteStream } from 'node:fs'
 import { dirname, resolve, basename } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 // 获取 本地网络IP地址
 import { networkInterfaces } from 'node:os'
 import AutoImport from 'unplugin-auto-import/vite'
-import Icons from 'unplugin-icons/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import Compression from 'vite-plugin-compression'
 import { chunks } from './vite.chunk'
@@ -23,9 +21,6 @@ const ws = createWriteStream(resolve(__dirname, 'chunks.log'), {
 // const host = '192.168.0.4'
 
 // console.log('host ===>', host)
-
-const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
-const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 
 const cssRegex: Readonly<RegExp> = /\.css$/i
 const imageRegex: Readonly<RegExp> = /\.(png|jpe?g|gif|svg|webp|ico)$/i
@@ -75,32 +70,6 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
         jsxImportSource: 'react',
         tsDecorators: true,
         plugins: []
-      }),
-      Icons({
-        compiler: 'jsx',
-        autoInstall: true,
-        scale: 1,
-        defaultStyle: '',
-        defaultClass: '',
-        jsx: 'react',
-        iconCustomizer(collection, icon, props) {
-          props['aria-hidden'] = 'true'
-        },
-        collectionsNodeResolvePath: [
-          '@iconify/icons-*',
-          '@iconify-json/*',
-          'packages/shared/src/assets/iconify.json'
-        ],
-        customCollections: {
-          // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
-          // custom: FileSystemIconLoader(resolve(rootDir, 'packages/shared/src/assets/iconify.json'))
-          // local: FileSystemIconLoader(
-          // 	resolve(rootDir, 'packages/shared/src/assets/icons'),
-          // 	function (svg) {
-          // 		return svg.replace(/^<svg /, '<svg fill="currentColor" ')
-          // 	}
-          // )
-        }
       }),
       AutoImport({
         dts: 'src/types/auto-imports.d.ts',

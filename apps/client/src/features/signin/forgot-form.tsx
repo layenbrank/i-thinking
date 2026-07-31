@@ -1,5 +1,5 @@
 import { Button, Form, Input, Segmented, message } from 'antd'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { useEffect } from 'react'
 
 import { POST_RESET_PASSWORD } from '@/apis/auth.ts'

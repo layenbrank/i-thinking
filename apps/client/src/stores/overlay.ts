@@ -3,17 +3,10 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
+import type { SurfaceStyleInput } from '@/features/magnetic-tile/surface-style'
 import { findMarkerBox, parseMarkerLayout, type MarkerLayout } from '@/features/magnetic-tile/size'
 
 type OverlayMode = 'idle' | 'capture'
-
-type OverlayTileKind = 'countdown' | 'calendar' | 'clock'
-
-const OVERLAY_TILE_KINDS: readonly OverlayTileKind[] = ['countdown', 'calendar', 'clock']
-
-function isOverlayTileKind(value: string): value is OverlayTileKind {
-  return (OVERLAY_TILE_KINDS as readonly string[]).includes(value)
-}
 
 interface OverlayTexture {
   id: string
@@ -30,7 +23,8 @@ interface OverlayTexture {
 
 interface OverlayTile {
   id: string
-  kind: OverlayTileKind
+  /** 磁贴 component，与主窗一致 */
+  kind: MagneticTile.Component
   x: number
   y: number
   w: number
@@ -40,6 +34,8 @@ interface OverlayTile {
   size: Mirror.Size
   shape: Mirror.Shape
   direction: Mirror.Direction
+  round: string | null
+  background: MagneticTile.Background | null
 }
 
 type OverlayItem = OverlayTexture | OverlayTile
@@ -50,9 +46,9 @@ interface OverlayStore {
   zCursor: number
   updateMode: (mode: OverlayMode) => void
   mountTile: (
-    kind: OverlayTileKind,
+    kind: MagneticTile.Component,
     magneticTileID: string,
-    layout?: Partial<MarkerLayout>
+    layout?: Partial<MarkerLayout> & SurfaceStyleInput
   ) => void
   addTexture: (input: {
     src: string
@@ -102,6 +98,8 @@ const useOverlayStore = create<OverlayStore>()(
           setter(function (state) {
             const parsed = parseMarkerLayout(layout)
             const box = findMarkerBox(parsed)
+            const round = layout?.round ?? null
+            const background = layout?.background ?? null
             const existing = state.items.find(function (w) {
               return w.kind !== 'texture' && w.id === magneticTileID
             })
@@ -111,6 +109,8 @@ const useOverlayStore = create<OverlayStore>()(
               existing.size = parsed.size
               existing.shape = parsed.shape
               existing.direction = parsed.direction
+              existing.round = round
+              existing.background = background
               existing.w = box.w
               existing.h = box.h
               return
@@ -127,7 +127,9 @@ const useOverlayStore = create<OverlayStore>()(
               magneticTileID,
               size: parsed.size,
               shape: parsed.shape,
-              direction: parsed.direction
+              direction: parsed.direction,
+              round,
+              background
             })
           })
           void getter().ensureVisible()
@@ -262,5 +264,5 @@ const useOverlayStore = create<OverlayStore>()(
   )
 )
 
-export type { OverlayMode, OverlayTileKind, OverlayTexture, OverlayTile, OverlayItem }
-export { useOverlayStore, isOverlayTileKind, OVERLAY_TILE_KINDS }
+export type { OverlayMode, OverlayTexture, OverlayTile, OverlayItem }
+export { useOverlayStore }

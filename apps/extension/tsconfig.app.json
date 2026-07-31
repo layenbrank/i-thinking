@@ -8,6 +8,7 @@
 
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
 
     "types": [
       "vite/client",
@@ -15,7 +16,6 @@
       "@ffmpeg/types",
       "reflect-metadata",
       "@i-thinking/wasm",
-      "unplugin-icons/types/vue3",
       "ant-design-vue/typings/global",
       "@i-thinking/utils",
       "@i-thinking/directives",

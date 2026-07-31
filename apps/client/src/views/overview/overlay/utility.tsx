@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Button, Space, Tooltip } from 'antd'
 import type { TooltipPlacement } from 'antd/es/tooltip'

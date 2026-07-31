@@ -229,7 +229,7 @@ export const chunks: CodeSplitting[] = [
     name: 'ui-marks',
     priority: 50,
     test(id) {
-      const patterns = [/[\\/]node_modules[\\/]@iconify[\\/](?:json|iconify)[\\/]/, /~icons/]
+      const patterns = [/[\\/]node_modules[\\/]@iconify[\\/](?:json|react|vue)[\\/]/]
       return patterns.some((pattern) => pattern.test(id))
     }
   },

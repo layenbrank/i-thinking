@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { Button, Space, Tooltip } from 'antd'
 import { clsx } from 'clsx'
 import type { ReactNode } from 'react'

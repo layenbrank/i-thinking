@@ -3,9 +3,9 @@ import { listen } from '@tauri-apps/api/event'
 import { useEffect, useRef } from 'react'
 
 import { useThrough } from '@/hooks/use-through'
+import { isMagneticTileComponent } from '@/constants/magnetic-tile'
 import {
   useOverlayStore,
-  isOverlayTileKind,
   type OverlayMode,
   type OverlayTile,
   type OverlayTexture
@@ -22,6 +22,8 @@ interface MountTilePayload {
   size?: string | null
   shape?: string | null
   direction?: string | null
+  round?: string | null
+  background?: MagneticTile.Background | null
 }
 
 function OverlayShell() {
@@ -55,11 +57,13 @@ function OverlayShell() {
 
       function applyMount(payload: MountTilePayload | null | undefined) {
         if (!payload) return
-        if (!isOverlayTileKind(payload.kind) || !payload.magneticTileID) return
+        if (!isMagneticTileComponent(payload.kind) || !payload.magneticTileID) return
         mountTile(payload.kind, payload.magneticTileID, {
           size: (payload.size ?? undefined) as Mirror.Size | undefined,
           shape: (payload.shape ?? undefined) as Mirror.Shape | undefined,
-          direction: (payload.direction ?? undefined) as Mirror.Direction | undefined
+          direction: (payload.direction ?? undefined) as Mirror.Direction | undefined,
+          round: payload.round ?? null,
+          background: payload.background ?? null
         })
       }
 
