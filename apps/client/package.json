@@ -2,7 +2,7 @@
   "name": "@i-thinking/client",
   "private": true,
   "type": "module",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "scripts": {
     "build": "bun run scripts/build.ts",
     "build:core": "tsc && vite build",
