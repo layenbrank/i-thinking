@@ -16,15 +16,14 @@ import { findFeatureTileHint } from '@/constants/feature-tile-hints'
 import { Reflection } from '@/features/controller/reflection.tsx'
 import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
+import { useEnterMotion } from '@/features/magnetic-tiles/marketplace/workspace/hooks/use-enter-motion'
+import { useVisible } from '@/features/magnetic-tiles/marketplace/workspace/hooks/use-visible'
+import { findLayoutKey, findMotionKey } from '@/features/magnetic-tiles/marketplace/workspace/lib/enter-motion'
+import { insertTile } from '@/features/magnetic-tiles/marketplace/workspace/lib/insert-tile'
 import {
-  findLayoutKey,
-  findMotionKey
-} from '@/features/magnetic-tiles/marketplace/workspace/find-motion-key'
-import { findBoothTiles } from '@/features/magnetic-tiles/marketplace/workspace/find-visible-tiles'
-import { formatUpdatedAt } from '@/features/magnetic-tiles/marketplace/workspace/format-updated-at'
-import { insertTile } from '@/features/magnetic-tiles/marketplace/workspace/insert-tile'
-import { useEnterMotion } from '@/features/magnetic-tiles/marketplace/workspace/use-enter-motion'
-import { useVisible } from '@/features/magnetic-tiles/marketplace/workspace/use-visible'
+  findBoothTiles,
+  formatUpdatedAt
+} from '@/features/magnetic-tiles/marketplace/workspace/lib/tiles'
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 import SModule from '@/features/magnetic-tiles/marketplace/workspace/booth/section.module.scss'

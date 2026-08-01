@@ -10,14 +10,13 @@ import {
   type NavigateBucket
 } from '@/constants/navigate-buckets'
 import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
+import { useEnterMotion } from '@/features/magnetic-tiles/marketplace/workspace/hooks/use-enter-motion'
+import { findLayoutKey, findMotionKey } from '@/features/magnetic-tiles/marketplace/workspace/lib/enter-motion'
+import { insertTile } from '@/features/magnetic-tiles/marketplace/workspace/lib/insert-tile'
 import {
-  findLayoutKey,
-  findMotionKey
-} from '@/features/magnetic-tiles/marketplace/workspace/find-motion-key'
-import { findNavigateTiles } from '@/features/magnetic-tiles/marketplace/workspace/find-visible-tiles'
-import { formatUpdatedAt } from '@/features/magnetic-tiles/marketplace/workspace/format-updated-at'
-import { insertTile } from '@/features/magnetic-tiles/marketplace/workspace/insert-tile'
-import { useEnterMotion } from '@/features/magnetic-tiles/marketplace/workspace/use-enter-motion'
+  findNavigateTiles,
+  formatUpdatedAt
+} from '@/features/magnetic-tiles/marketplace/workspace/lib/tiles'
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 import SModule from '@/features/magnetic-tiles/marketplace/workspace/navigate/section.module.scss'

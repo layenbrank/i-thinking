@@ -1,7 +1,7 @@
 import { type RefObject, useLayoutEffect } from 'react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-import { bindEnterMotion } from '@/features/magnetic-tiles/marketplace/workspace/enter-motion'
+import { bindEnterMotion } from '@/features/magnetic-tiles/marketplace/workspace/lib/enter-motion'
 
 /**
  * 滚动容器绑定列表进场。

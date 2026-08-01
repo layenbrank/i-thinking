@@ -14,7 +14,7 @@ import { CaptionActions } from '@/features/magnetic-tiles/marketplace/workspace/
 import {
   findBoothTiles,
   findNavigateTiles
-} from '@/features/magnetic-tiles/marketplace/workspace/find-visible-tiles'
+} from '@/features/magnetic-tiles/marketplace/workspace/lib/tiles'
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 import styles from '@/features/magnetic-tiles/marketplace/workspace/caption.module.scss'
