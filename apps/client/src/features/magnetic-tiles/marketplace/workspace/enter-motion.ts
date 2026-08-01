@@ -8,8 +8,11 @@ const ENTER_Y = 28
 const ENTER_DURATION = 0.45
 /** 向下：卡顶进入 scroller 约 85% 再播（gsap-skills） */
 const BATCH_START = 'top 85%'
-/** 向上：卡顶碰到 scroller 顶才 leave（官方 advanced：top top） */
-const BATCH_END = 'top top'
+/**
+ * leave：卡底越过 scroller 顶 = 完全离开上方。
+ * 不用 top top：彼时卡仍在视口内，与「仅出屏 hide」叠加会导致 played 不清、向上无动效。
+ */
+const BATCH_END = 'bottom top'
 /** 与 BATCH_START 同义：卡顶相对 scroller 高度的进场比例 */
 const ENTER_LINE_RATIO = 0.85
 const BATCH_INTERVAL = 0.08
@@ -51,14 +54,22 @@ function isPastEnterLine(card: HTMLElement, scroller: Element) {
   return cardRect.top <= enterY
 }
 
+/** 卡主要落在 scroller 上半区（向上进场漏触判定） */
+function isMostlyInUpperHalf(card: HTMLElement, scroller: Element) {
+  const cardRect = card.getBoundingClientRect()
+  const rootRect = scroller.getBoundingClientRect()
+  const midY = rootRect.top + rootRect.height * 0.5
+  return cardRect.bottom < midY
+}
+
 function findEnterY(from: EnterFrom) {
   return from === 'below' ? ENTER_Y : -ENTER_Y
 }
 
 /**
  * marketplace 列表进场（booth / navigate）：
- * - start/end 对齐 GSAP 文档；refresh 前清 y，避免触发线漂移
- * - 仅出屏才 hide / 清 played；兜底与进场线同阈值
+ * - start top 85% / end bottom top；refresh 前清 y
+ * - 仅出屏才 hide / 清 played；上下漏触窄范围兜底
  */
 function bindEnterMotion(scroller: Element, options?: BindEnterMotionOptions): EnterMotion {
   const selector = options?.selector ?? CARD_SELECTOR
@@ -131,19 +142,28 @@ function bindEnterMotion(scroller: Element, options?: BindEnterMotionOptions): E
       }
 
       /**
-       * 快滚漏触兜底：已过进场线、仍透明、无 tween → playEnter
-       * 不用「任意相交」hard show，避免抢 batch start
+       * 快滚漏触兜底（窄范围，禁止任意相交 hard show）：
+       * - 已过向下进场线 → playEnter below
+       * - 上半区出现、未过向下进场线 → playEnter above
        */
       function revealStuckCards() {
-        const stuck: HTMLElement[] = []
+        const stuckBelow: HTMLElement[] = []
+        const stuckAbove: HTMLElement[] = []
         for (const card of cards) {
-          if (!isPastEnterLine(card, scroller)) continue
+          if (!isCardInScroller(card, scroller)) continue
           if (gsap.isTweening(card)) continue
           if (played.has(card)) continue
           const opacity = Number(gsap.getProperty(card, 'opacity'))
-          if (opacity < STUCK_OPACITY) stuck.push(card)
+          if (opacity >= STUCK_OPACITY) continue
+
+          if (isPastEnterLine(card, scroller)) {
+            stuckBelow.push(card)
+          } else if (isMostlyInUpperHalf(card, scroller)) {
+            stuckAbove.push(card)
+          }
         }
-        if (stuck.length > 0) playEnter(stuck, 'below')
+        if (stuckBelow.length > 0) playEnter(stuckBelow, 'below')
+        if (stuckAbove.length > 0) playEnter(stuckAbove, 'above')
       }
 
       if (reduceMotion) {

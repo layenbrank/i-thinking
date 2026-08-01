@@ -50,12 +50,7 @@ function parseTileWrite(
 
 async function runInsert(options: InsertTileOptions) {
   const index = await findNextIndex(options.mirrorID)
-  const write = parseTileWrite(
-    options.tile,
-    options.mirrorID,
-    index,
-    options.overrides
-  )
+  const write = parseTileWrite(options.tile, options.mirrorID, index, options.overrides)
   await options.toInsertMagneticTile([write])
 }
 
