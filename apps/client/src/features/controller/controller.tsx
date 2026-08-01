@@ -1,13 +1,14 @@
 'use client'
 import clsx from 'clsx'
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useKeyModifier } from '@reactuses/core'
 
+import { useScrollFx } from '@/features/controller/hooks/use-scroll-fx'
 import {
-  bindSortableGrid,
-  reorderByIds,
-  type SortableGridSession
-} from '@/features/controller/sortable-grid'
+  bindSortable,
+  reorder,
+  type SortableSession
+} from '@/features/controller/lib/sortable'
 import { registerMirrorSwitch } from '@/features/controller/mirror-switch'
 import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
@@ -17,21 +18,10 @@ import {
   findMirrorDirection,
   type MirrorDirection
 } from '@/lib/mirror-transition'
-import { bindTileScrollFx, type TileScrollFx } from '@/lib/tile-scroll-fx'
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 interface MirrorProps {
   children: ReactNode
-}
-
-const SYNC_DEBOUNCE_MS = 48
-
-function findScroller(gridEl: HTMLElement): HTMLElement {
-  return (gridEl.closest('[data-mirror-scroller]') as HTMLElement | null) ?? gridEl
-}
-
-function findGridTiles(root: HTMLElement): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>('.magnetic-tile'))
 }
 
 const Controller = {
@@ -130,8 +120,7 @@ const Controller = {
   MagneticTile() {
     const magneticTiles = useMirrorStore((state) => state.magneticTiles)
     const gridRef = useRef<HTMLDivElement>(null)
-    const sortableRef = useRef<SortableGridSession | null>(null)
-    const scrollFxRef = useRef<TileScrollFx | null>(null)
+    const sortableRef = useRef<SortableSession | null>(null)
     const control = useKeyModifier('Control')
     const controlRef = useRef(control)
     const tilesRef = useRef(magneticTiles)
@@ -139,140 +128,116 @@ const Controller = {
     controlRef.current = control
     tilesRef.current = magneticTiles
 
-    useEffect(function () {
-      const gridEl = gridRef.current
-      if (!gridEl) return
-
-      const scroller = findScroller(gridEl)
-      const scrollFx = bindTileScrollFx(scroller)
-      scrollFxRef.current = scrollFx
-
-      let syncRaf = 0
-      let syncTimer = 0
-
-      /** 格子增删后防抖同步滚动跟踪节点 */
-      function trackTiles() {
-        if (syncRaf) return
-        syncRaf = requestAnimationFrame(function () {
-          syncRaf = 0
-          window.clearTimeout(syncTimer)
-          syncTimer = window.setTimeout(function () {
-            const root = gridRef.current
-            if (!root) return
-            scrollFx.track(findGridTiles(root))
-          }, SYNC_DEBOUNCE_MS)
-        })
-      }
-
-      // 延后跟踪，避开 pane 进场动画窗口内的 IO / quickTo 初始化开销
-      let isBooted = false
-      const bootTimer = window.setTimeout(function () {
-        isBooted = true
-        trackTiles()
-      }, 240)
-
-      const mutation = new MutationObserver(function () {
-        if (!isBooted) return
-        trackTiles()
-      })
-      mutation.observe(gridEl, { childList: true })
-
-      let isPersisting = false
-      let pendingIds: string[] | null = null
-
-      /** 乐观更新 index 并落库；并发重排进队列 */
-      function persistReorder(orderedIds: string[]) {
-        const current = tilesRef.current ?? []
-        const moved = reorderByIds(current, orderedIds).map(function (tile, index) {
-          return { ...tile, index }
-        })
-
-        const prev = current
-        const store = useMirrorStore.getState()
-        store.toUpdateMagneticTiles(moved)
-
-        const updates = moved
-          .filter(function (tile) {
-            const before = prev.find(function (item) {
-              return item.id === tile.id
-            })
-            return before?.index !== tile.index
-          })
+    const tilesKey = useMemo(
+      function () {
+        return (magneticTiles ?? [])
           .map(function (tile) {
-            return {
-              key: tile.id,
-              change: { index: tile.index }
-            }
+            return tile.id
+          })
+          .join(',')
+      },
+      [magneticTiles]
+    )
+
+    const scrollFx = useScrollFx(gridRef, tilesKey)
+
+    useEffect(
+      function () {
+        const gridEl = gridRef.current
+        if (!gridEl) return
+
+        let isPersisting = false
+        let pendingIds: string[] | null = null
+
+        /** 乐观更新 index 并落库；并发重排进队列 */
+        function persistReorder(ids: string[]) {
+          const current = tilesRef.current ?? []
+          const moved = reorder(current, ids).map(function (tile, index) {
+            return { ...tile, index }
           })
 
-        if (!updates.length) {
-          isPersisting = false
-          if (pendingIds) {
-            const next = pendingIds
-            pendingIds = null
-            persistReorder(next)
-          }
-          return
-        }
+          const prev = current
+          const store = useMirrorStore.getState()
+          store.toUpdateMagneticTiles(moved)
 
-        isPersisting = true
-        void store
-          .toUpdateMagneticTile(updates)
-          .catch(function () {
-            const mirrorID = useMirrorStore.getState().active.mirror?.id
-            if (mirrorID) {
-              void useMirrorStore.getState().toReadMirror(mirrorID)
-            } else {
-              useMirrorStore.getState().toUpdateMagneticTiles(prev)
-            }
-          })
-          .finally(function () {
+          const updates = moved
+            .filter(function (tile) {
+              const before = prev.find(function (item) {
+                return item.id === tile.id
+              })
+              return before?.index !== tile.index
+            })
+            .map(function (tile) {
+              return {
+                key: tile.id,
+                change: { index: tile.index }
+              }
+            })
+
+          if (!updates.length) {
             isPersisting = false
             if (pendingIds) {
               const next = pendingIds
               pendingIds = null
               persistReorder(next)
             }
-          })
-      }
-
-      const sortableSession = bindSortableGrid(gridEl, {
-        isDisabled() {
-          return Boolean(controlRef.current)
-        },
-        onDragStart() {
-          scrollFx.pause()
-        },
-        onDragEnd() {
-          scrollFx.resume()
-        },
-        onReorder(orderedIds) {
-          if (isPersisting) {
-            pendingIds = orderedIds
             return
           }
-          persistReorder(orderedIds)
+
+          isPersisting = true
+          void store
+            .toUpdateMagneticTile(updates)
+            .catch(function () {
+              const mirrorID = useMirrorStore.getState().active.mirror?.id
+              if (mirrorID) {
+                void useMirrorStore.getState().toReadMirror(mirrorID)
+              } else {
+                useMirrorStore.getState().toUpdateMagneticTiles(prev)
+              }
+            })
+            .finally(function () {
+              isPersisting = false
+              if (pendingIds) {
+                const next = pendingIds
+                pendingIds = null
+                persistReorder(next)
+              }
+            })
         }
-      })
 
-      sortableRef.current = sortableSession
-      sortableSession.updateDisabled(Boolean(controlRef.current))
+        const session = bindSortable(gridEl, {
+          isDisabled() {
+            return Boolean(controlRef.current)
+          },
+          onDragStart() {
+            scrollFx.pause()
+          },
+          onDragEnd() {
+            scrollFx.resume()
+          },
+          onReorder(ids) {
+            if (isPersisting) {
+              pendingIds = ids
+              return
+            }
+            persistReorder(ids)
+          }
+        })
 
-      return function () {
-        mutation.disconnect()
-        window.clearTimeout(bootTimer)
-        if (syncRaf) cancelAnimationFrame(syncRaf)
-        window.clearTimeout(syncTimer)
-        sortableSession.destroy()
-        sortableRef.current = null
-        scrollFx.destroy()
-        scrollFxRef.current = null
-      }
-    }, [])
+        sortableRef.current = session
+        session.disable(Boolean(controlRef.current))
+
+        return function () {
+          session.destroy()
+          sortableRef.current = null
+        }
+      },
+      [scrollFx]
+    )
 
     useEffect(
       function () {
-        sortableRef.current?.updateDisabled(Boolean(control))
+        sortableRef.current?.disable(Boolean(control))
       },
       [control]
     )
