@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { useCallback, useContext, useState } from 'react'
 
 import { clsx } from 'clsx'
 
@@ -7,28 +7,37 @@ import {
   OverlayContext,
   type OverlayControlProps
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import { MarketplaceOverlaySkeleton } from '@/features/magnetic-tiles/marketplace/workspace/skeleton'
+import {
+  MarketplaceProvider,
+  type MarketplaceMode
+} from '@/features/magnetic-tiles/marketplace/workspace/context'
+import { Caption } from '@/features/magnetic-tiles/marketplace/workspace/caption'
+import Workspace from '@/features/magnetic-tiles/marketplace/workspace/workspace'
 import styles from '@/features/magnetic-tiles/marketplace/overlay.module.scss'
-
-const Workspace = lazy(function () {
-  return import('@/features/magnetic-tiles/marketplace/workspace/workspace')
-})
 
 export default function Overlay(props: OverlayControlProps) {
   const { onUpdateVisible } = useContext(OverlayContext)
+  const [mode, onUpdateModeState] = useState<MarketplaceMode>('booth')
+
+  const onUpdateMode = useCallback(function (next: MarketplaceMode) {
+    onUpdateModeState(next)
+  }, [])
 
   return (
-    <MagneticTile.Overlay
-      cache={props.cache}
-      onAbort={props.onAbort}
-      abortTimeoutMs={props.abortTimeoutMs}
-      className={clsx(styles.overlay, styles.root)}
-      onCancel={function () {
-        onUpdateVisible(false)
-      }}>
-      <Suspense fallback={<MarketplaceOverlaySkeleton />}>
+    <MarketplaceProvider
+      mode={mode}
+      onUpdateMode={onUpdateMode}>
+      <MagneticTile.Overlay
+        cache={props.cache}
+        onAbort={props.onAbort}
+        abortTimeoutMs={props.abortTimeoutMs}
+        className={clsx(styles.overlay, styles.root)}
+        caption={<Caption />}
+        onCancel={function () {
+          onUpdateVisible(false)
+        }}>
         <Workspace />
-      </Suspense>
-    </MagneticTile.Overlay>
+      </MagneticTile.Overlay>
+    </MarketplaceProvider>
   )
 }

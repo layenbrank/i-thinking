@@ -20,12 +20,6 @@ const STYLES: { value: ClockStyle; label: string; hint: string }[] = [
   { value: 'minimal', label: '极简', hint: '轻量字距' }
 ]
 
-const OVERLAY_STYLE = {
-  minWidth: 440,
-  aspectRatio: 'unset',
-  height: 'auto'
-} as const
-
 function Overlay(props: OverlayControlProps) {
   const { onUpdateVisible } = useContext(OverlayContext)
   const { token } = theme.useToken()
@@ -50,8 +44,7 @@ function Overlay(props: OverlayControlProps) {
     }
   }, [])
 
-  const previewTime =
-    clockStyle === 'minimal' ? now.format('HH:mm') : now.format('HH:mm:ss')
+  const previewTime = clockStyle === 'minimal' ? now.format('HH:mm') : now.format('HH:mm:ss')
 
   return (
     <MagneticTile.Overlay
@@ -59,8 +52,6 @@ function Overlay(props: OverlayControlProps) {
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}
       caption={true}
-      width={520}
-      style={OVERLAY_STYLE}
       className={styles.root}
       onCancel={function () {
         onUpdateVisible(false)

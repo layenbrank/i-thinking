@@ -1,43 +1,34 @@
-import { Suspense, lazy, useCallback, useState } from 'react'
+import { Suspense, lazy, useContext } from 'react'
 
 import {
-  MarketplaceProvider,
-  type MarketplacePage
+  MarketplaceContext,
+  type MarketplaceMode
 } from '@/features/magnetic-tiles/marketplace/workspace/context'
-import { MarketplacePageSkeleton } from '@/features/magnetic-tiles/marketplace/workspace/skeleton'
+import { PageSkeleton } from '@/features/magnetic-tiles/marketplace/workspace/skeleton'
 
 const Booth = lazy(function () {
   return import('@/features/magnetic-tiles/marketplace/workspace/booth/booth')
 })
-const NavigatePage = lazy(function () {
+const Navigate = lazy(function () {
   return import('@/features/magnetic-tiles/marketplace/workspace/navigate/navigate')
 })
 const Customize = lazy(function () {
   return import('@/features/magnetic-tiles/marketplace/workspace/customize/customize')
 })
 
-const PAGE_VIEWS: Record<MarketplacePage, typeof Booth> = {
+const MODE_VIEWS: Record<MarketplaceMode, typeof Booth> = {
   booth: Booth,
-  navigate: NavigatePage,
+  navigate: Navigate,
   customize: Customize
 }
 
 export default function Workspace() {
-  const [page, onUpdatePageState] = useState<MarketplacePage>('booth')
-
-  const onUpdatePage = useCallback(function (next: MarketplacePage) {
-    onUpdatePageState(next)
-  }, [])
-
-  const View = PAGE_VIEWS[page]
+  const { mode } = useContext(MarketplaceContext)
+  const View = MODE_VIEWS[mode]
 
   return (
-    <MarketplaceProvider
-      page={page}
-      onUpdatePage={onUpdatePage}>
-      <Suspense fallback={<MarketplacePageSkeleton />}>
-        <View />
-      </Suspense>
-    </MarketplaceProvider>
+    <Suspense fallback={<PageSkeleton />}>
+      <View />
+    </Suspense>
   )
 }

@@ -1,23 +1,25 @@
-import { Divider } from 'antd'
+import { useContext } from 'react'
 import { clsx } from 'clsx'
 
-import ReNavigation from '@/features/magnetic-tiles/marketplace/workspace/navigate/navigation.tsx'
+import { NAVIGATE_BUCKETS } from '@/constants/navigate-buckets'
+import { Bucket } from '@/features/magnetic-tiles/marketplace/workspace/bucket'
+import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
 import ReSection from '@/features/magnetic-tiles/marketplace/workspace/navigate/section.tsx'
-import ReSummary from '@/features/magnetic-tiles/marketplace/workspace/navigate/summary.tsx'
 
 import styles from '@/features/magnetic-tiles/marketplace/workspace/navigate/navigate.module.scss'
 
 export default function Navigate() {
+  const { navigateBucket, onUpdateNavigateBucket } = useContext(MarketplaceContext)
+
   return (
     <div className={clsx(styles.navigate)}>
-      <ReSummary />
-      <Divider
-        size="small"
-        style={{ marginBlock: '0px' }}
-      />
       <div className={clsx(styles.workspace)}>
-        <ReNavigation />
-        <ReSection />
+        <Bucket
+          value={navigateBucket}
+          options={NAVIGATE_BUCKETS}
+          onUpdate={onUpdateNavigateBucket}
+        />
+        <ReSection bucket={navigateBucket} />
       </div>
     </div>
   )

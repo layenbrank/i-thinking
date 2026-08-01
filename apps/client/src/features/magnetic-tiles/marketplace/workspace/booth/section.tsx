@@ -1,44 +1,61 @@
-import { Select, Space, Button } from 'antd'
+import { Icon } from '@iconify/react/offline'
+import { App, Button, Empty, Select, Space, Tooltip, Typography } from 'antd'
 import { clsx } from 'clsx'
-import { type RefObject, useEffect, useRef, useState } from 'react'
+import { memo, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Swiper, type SwiperClass, SwiperSlide } from 'swiper/react'
 import { Navigation, Pagination, A11y, Virtual } from 'swiper/modules'
+import { useShallow } from 'zustand/react/shallow'
 
 import 'swiper/css'
 import 'swiper/css/virtual'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 
-import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import type { FeatureBucket } from '@/constants/feature-buckets'
+import { findFeatureTileHint } from '@/constants/feature-tile-hints'
 import { Reflection } from '@/features/controller/reflection.tsx'
+import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
+import {
+  findLayoutKey,
+  findMotionKey
+} from '@/features/magnetic-tiles/marketplace/workspace/find-motion-key'
+import { findBoothTiles } from '@/features/magnetic-tiles/marketplace/workspace/find-visible-tiles'
+import { formatUpdatedAt } from '@/features/magnetic-tiles/marketplace/workspace/format-updated-at'
+import { insertTile } from '@/features/magnetic-tiles/marketplace/workspace/insert-tile'
+import { useEnterMotion } from '@/features/magnetic-tiles/marketplace/workspace/use-enter-motion'
+import { useVisible } from '@/features/magnetic-tiles/marketplace/workspace/use-visible'
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 import SModule from '@/features/magnetic-tiles/marketplace/workspace/booth/section.module.scss'
 
-interface SizeOption {
+type SectionProps = {
+  bucket: FeatureBucket
+}
+
+type SizeOption = {
   label: string
   value: Mirror.Size
 }
 
-interface ShapeOption {
+type ShapeOption = {
   label: string
   value: Mirror.Shape
 }
 
-interface DirectionOption {
+type DirectionOption = {
   label: string
   value: Mirror.Direction
 }
 
-const SIZES: SizeOption[] = [
-  { label: '迷你', value: 1 },
-  { label: '小', value: 2 },
-  { label: '中', value: 3 },
-  { label: '大', value: 4 },
-  { label: '超大', value: 5 },
-  { label: '巨大', value: 6 },
-  { label: '极大', value: 7 }
-]
+type BoothCardViewProps = {
+  tile: MagneticTile
+  scrollRoot: Element | null
+}
+
+const SIZES: SizeOption[] = [1, 2, 3, 4, 5, 6, 7].map(function (value) {
+  return { label: String(value), value: value as Mirror.Size }
+})
 
 const SHAPES: ShapeOption[] = [
   { label: '矩形', value: 'rectangle' },
@@ -51,79 +68,111 @@ const DIRECTIONS: DirectionOption[] = [
   { label: '垂直', value: 'vertical' }
 ]
 
-const VISIBLE_ROOT_MARGIN = '120px 0px'
+const BOOT_SIZE: Mirror.Size = 1
+const BOOT_SHAPE: Mirror.Shape = 'rectangle'
+const BOOT_DIRECTION: Mirror.Direction = 'horizontal'
 
-function useIsVisible(ref: RefObject<HTMLElement | null>) {
-  const [isVisible, onUpdateVisible] = useState(false)
-
-  useEffect(
-    function () {
-      const node = ref.current
-      if (!node || isVisible) return
-
-      const observer = new IntersectionObserver(
-        function (entries) {
-          const entry = entries[0]
-          if (!entry?.isIntersecting) return
-          onUpdateVisible(true)
-          observer.disconnect()
-        },
-        { root: null, rootMargin: VISIBLE_ROOT_MARGIN, threshold: 0.01 }
-      )
-
-      observer.observe(node)
-
-      return function () {
-        observer.disconnect()
-      }
-    },
-    [ref, isVisible]
-  )
-
-  return isVisible
+function findTitleMark(title: string) {
+  const trimmed = title.trim()
+  if (!trimmed) return '#'
+  return trimmed.slice(0, 1).toUpperCase()
 }
 
-function Section() {
-  const size: Mirror.Size = 1
-  const shape: Mirror.Shape = 'rectangle'
-  const direction: Mirror.Direction = 'horizontal'
-  const magneticTiles = useMirrorStore((state) => state.magneticTiles)
+function Section(props: SectionProps) {
+  const listRef = useRef<HTMLDivElement>(null)
+  const [scrollRoot, onUpdateScrollRoot] = useState<Element | null>(null)
+  const { query } = useContext(MarketplaceContext)
+  const magneticTiles = useMirrorStore(function (state) {
+    return state.magneticTiles
+  })
+
+  const featureTiles = useMemo(
+    function () {
+      return findBoothTiles(magneticTiles, props.bucket, query)
+    },
+    [magneticTiles, props.bucket, query]
+  )
+
+  const motionKey = useMemo(
+    function () {
+      return findMotionKey(props.bucket, query, featureTiles)
+    },
+    [props.bucket, query, featureTiles]
+  )
+  const layoutKey = useMemo(
+    function () {
+      return findLayoutKey(featureTiles)
+    },
+    [featureTiles]
+  )
+
+  useLayoutEffect(
+    function () {
+      onUpdateScrollRoot(listRef.current)
+    },
+    [props.bucket, featureTiles.length]
+  )
+
+  useEnterMotion(listRef, motionKey, layoutKey)
 
   return (
     <div className={clsx([SModule.section, SModule.root])}>
-      {magneticTiles.map(function (optionv) {
-        return (
-          <ReBooth
-            {...optionv}
-            size={size}
-            shape={shape}
-            direction={direction}
-            key={optionv.id}
+      {featureTiles.length === 0 ? (
+        <div className={SModule.empty}>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={query.trim() ? '未找到匹配磁贴' : '该分类暂无磁贴'}
           />
-        )
-      })}
+        </div>
+      ) : (
+        <div
+          ref={listRef}
+          className={SModule.list}>
+          {featureTiles.map(function (tile) {
+            return (
+              <BoothCard
+                key={tile.id}
+                tile={tile}
+                scrollRoot={scrollRoot}
+              />
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
-interface ReBoothProps extends MagneticTile {
-  size: Mirror.Size
-  shape: Mirror.Shape
-  direction: Mirror.Direction
-}
-
-function ReBooth(props: ReBoothProps) {
-  const Component = Reflection[props.component]
-  const rootRef = useRef<HTMLDivElement>(null)
+function BoothCardView(props: BoothCardViewProps) {
+  const tile = props.tile
+  const Component = Reflection[tile.component]
+  const rootRef = useRef<HTMLElement>(null)
   const swiperRef = useRef<SwiperClass | null>(null)
-  const isVisible = useIsVisible(rootRef)
-  const [size, onUpdateSize] = useState(props.size)
-  const [shape, onUpdateShape] = useState(props.shape)
-  const [direction, onUpdateDirection] = useState(props.direction)
+  const isVisible = useVisible(rootRef, { root: props.scrollRoot })
+  const [size, onUpdateSize] = useState(BOOT_SIZE)
+  const [shape, onUpdateShape] = useState(BOOT_SHAPE)
+  const [direction, onUpdateDirection] = useState(BOOT_DIRECTION)
+  const [isAdding, onUpdateAdding] = useState(false)
+  const { message } = App.useApp()
+  const { targetMirrorID } = useContext(MarketplaceContext)
+  const { activeMirrorID, mirrors, toInsertMagneticTile } = useMirrorStore(
+    useShallow(function (state) {
+      return {
+        activeMirrorID: state.active.mirror?.id,
+        mirrors: state.mirrors,
+        toInsertMagneticTile: state.toInsertMagneticTile
+      }
+    })
+  )
+  const accent = tile.background?.color ?? '#DBEAFE'
+  const hint = findFeatureTileHint(tile.component, tile.description)
+  const mark = findTitleMark(tile.title)
 
   function onSlide(swiper: SwiperClass) {
     onUpdateSize(function (prev) {
-      const value = SIZES.map((i) => i.value)[swiper.realIndex]
+      const value = SIZES.map(function (item) {
+        return item.value
+      })[swiper.realIndex]
       if (value) return value
       return prev
     })
@@ -131,7 +180,9 @@ function ReBooth(props: ReBoothProps) {
 
   function onChangeSize(value: Mirror.Size) {
     onUpdateSize(value)
-    const index = SIZES.findIndex((i) => i.value === value)
+    const index = SIZES.findIndex(function (item) {
+      return item.value === value
+    })
     if (index === -1) return
     swiperRef.current?.slideToLoop(index)
   }
@@ -144,42 +195,110 @@ function ReBooth(props: ReBoothProps) {
     onUpdateDirection(value)
   }
 
+  async function onAdd() {
+    const mirrorID = targetMirrorID ?? activeMirrorID
+    if (!mirrorID) {
+      message.warning('请先选择镜像')
+      return
+    }
+
+    const mirror = mirrors.find(function (item) {
+      return item.id === mirrorID
+    })
+    const mirrorTitle = mirror?.title ?? '镜像'
+
+    onUpdateAdding(true)
+    try {
+      await insertTile({
+        tile,
+        mirrorID,
+        overrides: { size, shape, direction },
+        toInsertMagneticTile
+      })
+      message.success(`已添加到 ${mirrorTitle}`)
+    } catch (error) {
+      console.error('[Marketplace] add booth tile failed:', error)
+      message.error(error instanceof Error ? error.message : '添加失败')
+    } finally {
+      onUpdateAdding(false)
+    }
+  }
+
   return (
-    <div
+    <article
       ref={rootRef}
-      className={clsx(SModule.container)}>
-      <div className={clsx(SModule.wrappr)}>
-        <div className={clsx(SModule.head)}>
-          <span className={clsx(SModule.title)}>{props.title}</span>
-          <span className={clsx(SModule.description)}>{props.description}</span>
-          <span className={clsx(SModule.download)}>{props.downloadCount}</span>
+      data-list-card=""
+      className={SModule.card}>
+      <div className={SModule.meta}>
+        <div className={SModule.head}>
+          <div
+            className={SModule.avatar}
+            style={{
+              backgroundColor: accent,
+              color: tile.textColor ?? '#0F172A'
+            }}
+            aria-hidden>
+            {mark}
+          </div>
+          <div className={SModule.copy}>
+            <div className={SModule.titleRow}>
+              <Typography.Text
+                strong
+                className={SModule.title}
+                ellipsis={{ tooltip: tile.title }}>
+                {tile.title}
+              </Typography.Text>
+              <span className={SModule.badge}>{tile.downloadCount}</span>
+            </div>
+            <Typography.Text
+              className={SModule.description}
+              ellipsis={{ tooltip: hint }}>
+              {hint}
+            </Typography.Text>
+            <span className={SModule.updated}>{formatUpdatedAt(tile.updatedAt)}</span>
+          </div>
         </div>
+
         <Space.Compact
           orientation="horizontal"
-          className={clsx(SModule.body)}>
+          className={SModule.controls}>
           <Select
             value={size}
-            defaultValue={size}
             onChange={onChangeSize}
             options={SIZES}
+            popupMatchSelectWidth={false}
           />
           <Select
             value={shape}
-            defaultValue={shape}
             onChange={onChangeShape}
             options={SHAPES}
+            popupMatchSelectWidth={false}
           />
           <Select
             value={direction}
-            defaultValue={direction}
             onChange={onChangeDirection}
             options={DIRECTIONS}
+            popupMatchSelectWidth={false}
           />
-          <Button
-            type="primary"
-            rootClassName={clsx(SModule.increment)}>
-            新增
-          </Button>
+          <Tooltip title="新增到镜像">
+            <Button
+              type="primary"
+              loading={isAdding}
+              aria-label={`新增 ${tile.title}`}
+              className={clsx(SModule.add, 'cursor-pointer')}
+              onClick={function (event) {
+                event.stopPropagation()
+                void onAdd()
+              }}
+              icon={
+                <Icon
+                  icon="ant-design:plus-outlined"
+                  width={14}
+                  height={14}
+                />
+              }
+            />
+          </Tooltip>
         </Space.Compact>
       </div>
 
@@ -195,43 +314,43 @@ function ReBooth(props: ReBoothProps) {
           }}
           onSlideChange={onSlide}
           scrollbar={{ draggable: true }}
-          className={clsx(SModule.swiper)}
+          className={SModule.swiper}
           pagination={{ clickable: true }}
           modules={[Navigation, Pagination, A11y, Virtual]}>
-          {SIZES.map(function (sizev) {
+          {SIZES.map(function (sizeOption) {
             return (
               <SwiperSlide
-                key={sizev.value}
-                className={clsx(
-                  SModule.slide,
-                  SModule[props.size],
-                  SModule[props.shape],
-                  SModule[props.direction]
-                )}>
-                {sizev.value === size && (
+                key={sizeOption.value}
+                className={clsx(SModule.slide, SModule[size], SModule[shape], SModule[direction])}>
+                {sizeOption.value === size ? (
                   <MagneticTile.Suspense
-                    size={props.size}
-                    shape={props.shape}
-                    direction={props.direction}>
+                    size={size}
+                    shape={shape}
+                    direction={direction}>
                     <OverlayProvider>
-                      <Component {...props} />
+                      <Component
+                        {...tile}
+                        size={size}
+                        shape={shape}
+                        direction={direction}
+                      />
                     </OverlayProvider>
                   </MagneticTile.Suspense>
-                )}
+                ) : null}
               </SwiperSlide>
             )
           })}
         </Swiper>
       ) : (
-        <MagneticTile.Skeleton
-          size={props.size}
-          shape={props.shape}
-          direction={props.direction}
-          className={clsx(SModule.swiper, SModule.skeleton)}
+        <div
+          className={clsx(SModule.swiper, SModule.previewSlot)}
+          aria-hidden
         />
       )}
-    </div>
+    </article>
   )
 }
+
+const BoothCard = memo(BoothCardView)
 
 export default Section

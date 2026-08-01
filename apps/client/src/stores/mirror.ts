@@ -206,8 +206,18 @@ const magneticTileSlice: SliceCreator<MagneticTileSlice> = function (setters, ge
       if (isEmpty(values)) return
       const params = values.length === 1 ? values[0] : values
       await invoke('magnetic-tile:write', { params })
-      const mirrorID = getters().active.mirror?.id
-      if (mirrorID) await getters().toReadMirror(mirrorID)
+
+      const writes = Array.isArray(params) ? params : [params]
+      const writtenMirrorIDs = new Set(
+        writes.map(function (write) {
+          return write.mirrorID
+        })
+      )
+      const activeMirrorID = getters().active.mirror?.id
+      // 仅当写入目标包含当前 active 时刷新列表，避免切到其它镜像
+      if (activeMirrorID && writtenMirrorIDs.has(activeMirrorID)) {
+        await getters().toReadMirror(activeMirrorID)
+      }
     },
 
     async toUpdateMagneticTile(values: MagneticTileUpdate[]) {

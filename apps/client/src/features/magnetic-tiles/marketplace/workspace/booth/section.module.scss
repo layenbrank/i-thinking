@@ -1,86 +1,189 @@
 .section {
   &.root {
     flex: 1;
-    min-width: 0px;
+    min-width: 0;
     height: 100%;
     display: flex;
     flex-direction: column;
-    row-gap: 6px;
-    padding-inline: 0px 6px;
-    overflow: hidden scroll;
-    scroll-behavior: smooth;
+    gap: 10px;
+    padding: 8px 12px 12px;
+    overflow: hidden;
   }
 }
 
-.container {
+.empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  scroll-behavior: smooth;
+  padding: 2px;
+}
+
+.card {
   width: 100%;
   display: flex;
   flex-direction: row;
-  column-gap: 6px;
-  padding: 6px;
-  border-radius: 10px;
-  background-color: rgba($color: #ffffff, $alpha: 0.3);
+  gap: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+
+  &:hover {
+    border-color: rgba(22, 119, 255, 0.35);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+  }
 }
 
-.wrappr {
+.meta {
   flex: 1;
-  min-width: 50%;
+  min-width: 42%;
   display: flex;
   flex-direction: column;
-  row-gap: 6px;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .head {
   display: flex;
-  flex-direction: column;
-  row-gap: 6px;
-
-  .title {
-  }
-
-  .description {
-  }
-
-  .download {
-  }
-
-  .segmented {
-  }
+  align-items: flex-start;
+  gap: 12px;
 }
 
-.body {
-  width: 100%;
+.avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
 
+.copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: #0f172a !important;
+}
+
+.description {
+  font-size: 12px;
+  line-height: 18px;
+  color: #475569 !important;
+}
+
+.updated {
+  font-size: 12px;
+  line-height: 18px;
+  color: #64748b;
+}
+
+.badge {
+  flex-shrink: 0;
+  min-width: 28px;
+  padding: 0 8px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 20px;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.controls {
+  width: 100%;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr)) 36px;
+  gap: 0;
+}
+
+.add {
+  width: 36px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 6px 6px 0;
 }
 
 .swiper {
-  --swiper-navigation-size: 30px;
+  --swiper-navigation-size: 28px;
 
   flex: 1;
-  min-width: 50%;
-  aspect-ratio: 16/9;
-  background-color: rgba($color: #000000, $alpha: 0.05);
+  min-width: 46%;
+  aspect-ratio: 16 / 9;
+  background: #f8fafc;
   border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  overflow: hidden;
 
   :global {
-    .swiper-slide {
+    .swiper-button-prev,
+    .swiper-button-next {
+      padding: 8px;
+      border-radius: 50%;
+      color: #0f172a;
+      background-color: #ffffff;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
     }
 
     .swiper-button-prev {
-      padding: 8px;
-      border-radius: 50%;
-      color: #000000;
-      background-color: #ffffff;
-      left: 12px;
+      left: 10px;
     }
 
     .swiper-button-next {
-      @extend .swiper-button-prev;
-      right: 12px;
+      right: 10px;
       left: unset;
+    }
+
+    .swiper-pagination-bullet {
+      background: #94a3b8;
+      opacity: 0.55;
+    }
+
+    .swiper-pagination-bullet-active {
+      background: #1677ff;
+      opacity: 1;
     }
   }
 }
@@ -93,7 +196,10 @@
   @include magnetic-tile;
 }
 
-.skeleton {
+/** 与 .swiper 同契约，离屏占位不塌高 */
+.previewSlot {
   display: block;
-  border-radius: 10px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+  background-size: 200% 100%;
 }
+

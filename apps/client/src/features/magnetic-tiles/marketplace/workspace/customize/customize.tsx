@@ -1,11 +1,5 @@
+import { useEffect, useMemo, useState } from 'react'
 import { cyan, generate, green, presetPalettes, red } from '@ant-design/colors'
-import { ArrowLeftOutlined } from '@ant-design/icons'
-import { invoke } from '@tauri-apps/api/core'
-import {
-  isPermissionGranted,
-  requestPermission,
-  sendNotification
-} from '@tauri-apps/plugin-notification'
 import {
   App,
   Button,
@@ -18,23 +12,24 @@ import {
   Input,
   Radio,
   Row,
+  Select,
   Skeleton,
-  Space,
-  theme,
-  Typography,
-  Upload
+  Slider,
+  theme
 } from 'antd'
 import type { Color } from 'antd/es/color-picker'
-import type { RcFile, UploadFile } from 'antd/es/upload'
 import { clsx } from 'clsx'
 
 import { Glide } from '@/components/glide/glide'
-import { useMirrorStore, type MagneticTileWrite } from '@/stores/mirror.ts'
+import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
+import {
+  useMirrorStore,
+  type MagneticTileUpdate,
+  type MagneticTileWrite
+} from '@/stores/mirror.ts'
 
-import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
 import AOModule from '@/features/magnetic-tiles/marketplace/overlay.module.scss'
 import styles from '@/features/magnetic-tiles/marketplace/workspace/customize/customize.module.scss'
-import { exportMagneticTilesFile } from '@/features/magnetic-tiles/marketplace/workspace/customize/tile-io'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 
@@ -48,7 +43,9 @@ type CustomizeFormValues = {
   url: string
   color: string
   image: string
-  layout: 'horizontal' | 'vertical'
+  textColor: string
+  backdropBlur: number
+  backdropOpacity: number
 }
 
 const PICSUM_BASE = 'https://picsum.photos'
@@ -61,6 +58,10 @@ const COLOR_SWATCH_SIZE = 44
 const IMAGE_RADIO_HEIGHT = 72
 const PREVIEW_TITLE_PLACEHOLDER = '未命名应用'
 const PREVIEW_URL_PLACEHOLDER = '请输入链接预览'
+const TEXT_COLOR = '#ffffff'
+const CREATE_KEY = '__create__'
+const BLUR_MAX = 24
+const OPACITY_DEFAULT = 1
 
 const validateMessages = {
   required: '${label}是必填的!',
@@ -71,11 +72,13 @@ const validateMessages = {
 }
 
 function genPresets(presets = presetPalettes) {
-  return Object.entries(presets).map<Presets>(([label, colors]) => ({
-    label,
-    colors,
-    key: label
-  }))
+  return Object.entries(presets).map<Presets>(function ([label, colors]) {
+    return {
+      label,
+      colors,
+      key: label
+    }
+  })
 }
 
 function buildFallbackImages(): PicsumImage[] {
@@ -102,23 +105,82 @@ function findPicsumImage(images: PicsumImage[], imageId: string | undefined) {
   })
 }
 
+function findPicsumIdFromUrl(url: string | undefined, images: PicsumImage[]) {
+  if (!url) return undefined
+
+  const idMatch = url.match(/\/id\/([^/]+)\//)
+  if (idMatch) {
+    const id = idMatch[1]
+    if (
+      images.some(function (image) {
+        return image.id === id
+      })
+    ) {
+      return id
+    }
+  }
+
+  const seedMatch = url.match(/\/seed\/([^/]+)\//)
+  if (seedMatch) {
+    const seed = seedMatch[1]
+    const found = images.find(function (image) {
+      return image.seed === seed
+    })
+    if (found) return found.id
+  }
+
+  return undefined
+}
+
+function parseCssNumber(value: string | undefined, fallback: number) {
+  if (!value) return fallback
+  const matched = String(value).match(/([\d.]+)/)
+  if (!matched) return fallback
+  const parsed = Number(matched[1])
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function parseCustomizeBackdrop(
+  blur: number,
+  opacity: number
+): MagneticTile.Backdrop | null {
+  const hasBlur = blur > 0
+  const hasOpacity = opacity < OPACITY_DEFAULT
+  if (!hasBlur && !hasOpacity) return null
+
+  const backdrop: MagneticTile.Backdrop = {}
+  if (hasBlur) backdrop.blur = `${blur}px`
+  if (hasOpacity) backdrop.opacity = String(opacity)
+  return backdrop
+}
+
+function parseBackgroundImage(
+  value: CustomizeFormValues,
+  images: PicsumImage[],
+  keptImageUrl: string | null
+) {
+  const selectedImage = findPicsumImage(images, value.image)
+  if (selectedImage) {
+    return buildPicsumUrl(selectedImage, PICSUM_PREVIEW_WIDTH, PICSUM_PREVIEW_HEIGHT)
+  }
+  return keptImageUrl ?? undefined
+}
+
 function parseCustomizeWrite(
   value: CustomizeFormValues,
   images: PicsumImage[],
   mirrorID: string,
-  index: number
+  index: number,
+  keptImageUrl: string | null
 ): MagneticTileWrite {
-  const selectedImage = findPicsumImage(images, value.image)
-  const imageUrl = selectedImage
-    ? buildPicsumUrl(selectedImage, PICSUM_PREVIEW_WIDTH, PICSUM_PREVIEW_HEIGHT)
-    : undefined
+  const imageUrl = parseBackgroundImage(value, images, keptImageUrl)
 
   return {
     index,
     title: value.title.trim(),
     url: value.url.trim(),
     round: '12px',
-    mark: value.layout,
+    mark: null,
     component: 'navigation',
     description: value.title.trim(),
     background: {
@@ -127,29 +189,57 @@ function parseCustomizeWrite(
       size: 'cover',
       position: 'center'
     },
-    backdrop: null,
+    backdrop: parseCustomizeBackdrop(value.backdropBlur, value.backdropOpacity),
     mirrorID,
-    textSize: '13px',
-    textColor: '#ffffff',
-    collectionID: null
+    textColor: value.textColor,
+    collectionID: null,
+    size: 2,
+    shape: 'rectangle',
+    direction: 'horizontal'
   }
 }
 
-function parseImportedWrite(item: MagneticTile, mirrorID: string, index: number): MagneticTileWrite {
+function parseCustomizeChange(
+  value: CustomizeFormValues,
+  images: PicsumImage[],
+  keptImageUrl: string | null
+): MagneticTile.Change {
+  const imageUrl = parseBackgroundImage(value, images, keptImageUrl)
+
   return {
-    index: item.index ?? index,
-    title: item.title,
-    url: item.url,
-    round: item.round,
-    mark: item.mark,
-    component: item.component,
-    description: item.description,
-    background: item.background,
-    backdrop: item.backdrop,
-    mirrorID,
-    textSize: item.textSize,
-    textColor: item.textColor,
-    collectionID: null
+    title: value.title.trim(),
+    url: value.url.trim(),
+    description: value.title.trim(),
+    background: {
+      color: value.color,
+      image: imageUrl,
+      size: 'cover',
+      position: 'center'
+    },
+    backdrop: parseCustomizeBackdrop(value.backdropBlur, value.backdropOpacity),
+    textColor: value.textColor
+  }
+}
+
+function parseTileToForm(
+  tile: MagneticTile,
+  images: PicsumImage[],
+  fallbackColor: string
+): { values: Partial<CustomizeFormValues>; keptImageUrl: string | null } {
+  const imageUrl = tile.background?.image ?? null
+  const picsumId = findPicsumIdFromUrl(imageUrl ?? undefined, images)
+
+  return {
+    keptImageUrl: picsumId ? null : imageUrl,
+    values: {
+      title: tile.title,
+      url: tile.url ?? '',
+      color: tile.background?.color ?? fallbackColor,
+      image: picsumId ?? images[0]?.id,
+      textColor: tile.textColor ?? TEXT_COLOR,
+      backdropBlur: parseCssNumber(tile.backdrop?.blur, 0),
+      backdropOpacity: parseCssNumber(tile.backdrop?.opacity, OPACITY_DEFAULT)
+    }
   }
 }
 
@@ -167,50 +257,74 @@ async function fetchPicsumImages(): Promise<PicsumImage[]> {
   }
 }
 
-const customPanelRender: ColorPickerProps['panelRender'] = (
+const customPanelRender: ColorPickerProps['panelRender'] = function (
   _,
   { components: { Picker, Presets } }
-) => (
-  <Row
-    justify="space-between"
-    wrap={false}>
-    <Col span={12}>
-      <Presets />
-    </Col>
-    <Divider
-      vertical
-      style={{ height: 'auto' }}
-    />
-    <Col flex="auto">
-      <Picker />
-    </Col>
-  </Row>
-)
+) {
+  return (
+    <Row
+      justify="space-between"
+      wrap={false}>
+      <Col span={12}>
+        <Presets />
+      </Col>
+      <Divider
+        vertical
+        style={{ height: 'auto' }}
+      />
+      <Col flex="auto">
+        <Picker />
+      </Col>
+    </Row>
+  )
+}
 
 function RePreview(
   watched: Partial<CustomizeFormValues> | undefined,
   images: PicsumImage[],
-  fallbackColor: string
+  fallbackColor: string,
+  keptImageUrl: string | null
 ) {
   const previewTitle = watched?.title?.trim() || PREVIEW_TITLE_PLACEHOLDER
   const previewUrl = watched?.url?.trim() || PREVIEW_URL_PLACEHOLDER
   const previewColor = watched?.color ?? fallbackColor
+  const previewTextColor = watched?.textColor ?? TEXT_COLOR
   const selectedImage = findPicsumImage(images, watched?.image)
   const previewImageUrl = selectedImage
     ? buildPicsumUrl(selectedImage, PICSUM_PREVIEW_WIDTH, PICSUM_PREVIEW_HEIGHT)
-    : undefined
+    : (keptImageUrl ?? undefined)
+
+  const surfaceStyle = buildSurfaceStyle({
+    round: '12px',
+    textColor: previewTextColor,
+    background: {
+      color: previewColor,
+      image: previewImageUrl,
+      size: 'cover',
+      position: 'center'
+    },
+    backdrop: parseCustomizeBackdrop(
+      watched?.backdropBlur ?? 0,
+      watched?.backdropOpacity ?? OPACITY_DEFAULT
+    )
+  })
 
   return (
     <div className={styles.previewPanel}>
       <div
         className={styles.previewCard}
-        style={{
-          backgroundColor: previewColor,
-          backgroundImage: previewImageUrl ? `url(${previewImageUrl})` : undefined
-        }}>
+        style={surfaceStyle}>
         <div className={styles.previewOverlay}>
-          <p className={styles.previewTitle}>{previewTitle}</p>
-          <p className={styles.previewUrl}>{previewUrl}</p>
+          <p
+            className={styles.previewTitle}
+            style={{ color: previewTextColor }}>
+            {previewTitle}
+          </p>
+          <p
+            className={styles.previewUrl}
+            style={{ color: previewTextColor, opacity: 0.85 }}>
+            {previewUrl}
+          </p>
         </div>
       </div>
     </div>
@@ -220,12 +334,41 @@ function RePreview(
 export default function Customize() {
   const { token } = theme.useToken()
   const { message } = App.useApp()
-  const { onUpdatePage } = useContext(MarketplaceContext)
 
   const mirror = useMirrorStore((state) => state.active.mirror)
   const magneticTiles = useMirrorStore((state) => state.magneticTiles)
   const toInsertMagneticTile = useMirrorStore((state) => state.toInsertMagneticTile)
+  const toUpdateMagneticTile = useMirrorStore((state) => state.toUpdateMagneticTile)
   const [submitting, updateSubmitting] = useState(false)
+  const [selectedKey, updateSelectedKey] = useState(CREATE_KEY)
+  const [keptImageUrl, updateKeptImageUrl] = useState<string | null>(null)
+
+  const navigationTiles = useMemo(
+    function () {
+      return magneticTiles.filter(function (tile) {
+        return tile.component === 'navigation'
+      })
+    },
+    [magneticTiles]
+  )
+
+  const tileOptions = useMemo(
+    function () {
+      return [
+        { value: CREATE_KEY, label: '新建网址磁贴' },
+        ...navigationTiles.map(function (tile) {
+          return {
+            value: tile.id,
+            label: tile.title || tile.url || tile.id
+          }
+        })
+      ]
+    },
+    [navigationTiles]
+  )
+
+  const isCreateMode = selectedKey === CREATE_KEY
+
   const DEFAULT_COLORS = useMemo(
     function () {
       return genPresets({
@@ -239,7 +382,6 @@ export default function Customize() {
   )
 
   const [form] = Form.useForm<CustomizeFormValues>()
-  const [files, updateFiles] = useState<UploadFile<any>[]>()
   const [colors, updateColors] = useState<string[]>([])
   const [images, updateImages] = useState<PicsumImage[]>([])
   const [isImagesLoading, updateImagesLoading] = useState(true)
@@ -248,19 +390,67 @@ export default function Customize() {
   const watchedUrl = Form.useWatch('url', form)
   const watchedColor = Form.useWatch('color', form)
   const watchedImage = Form.useWatch('image', form)
+  const watchedTextColor = Form.useWatch('textColor', form)
+  const watchedBackdropBlur = Form.useWatch('backdropBlur', form)
+  const watchedBackdropOpacity = Form.useWatch('backdropOpacity', form)
   const watched = {
     title: watchedTitle,
     url: watchedUrl,
     color: watchedColor,
-    image: watchedImage
+    image: watchedImage,
+    textColor: watchedTextColor,
+    backdropBlur: watchedBackdropBlur,
+    backdropOpacity: watchedBackdropOpacity
+  }
+
+  function resetCreateForm(nextImages: PicsumImage[], nextColors: string[]) {
+    updateKeptImageUrl(null)
+    form.setFieldsValue({
+      title: '',
+      url: '',
+      color: nextColors[0] ?? token.colorPrimary,
+      image: nextImages[0]?.id,
+      textColor: TEXT_COLOR,
+      backdropBlur: 0,
+      backdropOpacity: OPACITY_DEFAULT
+    })
+  }
+
+  function onSelectTile(key: string) {
+    updateSelectedKey(key)
+
+    if (key === CREATE_KEY) {
+      resetCreateForm(images, colors)
+      return
+    }
+
+    const tile = navigationTiles.find(function (item) {
+      return item.id === key
+    })
+    if (!tile) return
+
+    const parsed = parseTileToForm(tile, images, token.colorPrimary)
+    updateKeptImageUrl(parsed.keptImageUrl)
+    form.setFieldsValue(parsed.values)
+
+    if (parsed.values.color && !colors.includes(parsed.values.color)) {
+      updateColors(function (prev) {
+        return [parsed.values.color as string, ...prev]
+      })
+    }
   }
 
   function onChangeComplete(value: Color) {
     const color = value.toHexString()
+    form.setFieldValue('color', color)
     updateColors(function (prev) {
       if (prev.includes(color)) return prev
       return [...prev, color]
     })
+  }
+
+  function onChangeTextColor(value: Color) {
+    form.setFieldValue('textColor', value.toHexString())
   }
 
   async function handleFinish(value: CustomizeFormValues) {
@@ -272,129 +462,56 @@ export default function Customize() {
 
     updateSubmitting(true)
     try {
-      const write = parseCustomizeWrite(value, images, mirrorID, magneticTiles.length)
-      await toInsertMagneticTile([write])
-      message.success('添加成功')
+      if (isCreateMode) {
+        const write = parseCustomizeWrite(
+          value,
+          images,
+          mirrorID,
+          magneticTiles.length,
+          keptImageUrl
+        )
+        await toInsertMagneticTile([write])
+        message.success('添加成功')
+        resetCreateForm(images, colors)
+      } else {
+        const change = parseCustomizeChange(value, images, keptImageUrl)
+        const update: MagneticTileUpdate = {
+          key: selectedKey,
+          change
+        }
+        await toUpdateMagneticTile([update])
+        message.success('保存成功')
+      }
     } catch (error) {
-      console.error('[Customize] magnetic-tile:write failed:', error)
-      message.error(error instanceof Error ? error.message : '添加失败')
+      console.error('[Customize] magnetic-tile save failed:', error)
+      message.error(error instanceof Error ? error.message : isCreateMode ? '添加失败' : '保存失败')
     } finally {
       updateSubmitting(false)
     }
   }
 
-  const handleExport = useCallback(
-    async function () {
-      const mirrorID = mirror?.id
-      if (!mirrorID) {
-        message.error('请先选择镜像')
-        return
-      }
-
-      async function notify(body: string) {
-        try {
-          let permissionGranted = await isPermissionGranted()
-          if (!permissionGranted) {
-            const permission = await requestPermission()
-            permissionGranted = permission === 'granted'
-          }
-          if (permissionGranted) {
-            sendNotification({
-              title: import.meta.env.VITE_APP_TITLE,
-              body
-            })
-          }
-        } catch (notifyError) {
-          console.warn('[Customize] notification failed:', notifyError)
-        }
-      }
-
-      try {
-        const tiles = await invoke<MagneticTile[]>('magnetic-tile:read', {
-          params: { mirrorID }
-        })
-        const exported = await exportMagneticTilesFile(tiles)
-        if (!exported) return
-
-        message.success('导出成功')
-        await notify('导出成功')
-      } catch (error) {
-        console.error('[Customize] export failed:', error)
-        const detail = error instanceof Error ? error.message : '导出失败'
-        message.error(detail)
-        await notify(detail)
-      }
-    },
-    [mirror?.id, message]
-  )
-
-  const handleImport = useCallback(
-    function (file: RcFile, entries: RcFile[]) {
-      const mirrorID = mirror?.id
-      if (!mirrorID) {
-        message.error('请先选择镜像')
-        return false
-      }
-
-      updateFiles(entries)
-
-      const reader = new FileReader()
-      const baseIndex = magneticTiles.length
-
-      reader.addEventListener(
-        'load',
-        function () {
-          const text = reader.result
-          let parsed: MagneticTile[] = []
-          try {
-            parsed = JSON.parse(text as string)
-            if (!Array.isArray(parsed) || parsed.length === 0) {
-              message.warning('导入文件为空')
-              return
-            }
-            const writes = parsed.map(function (item, index) {
-              return parseImportedWrite(item, mirrorID, baseIndex + index)
-            })
-            void toInsertMagneticTile(writes).then(
-              function () {
-                message.success(`已导入 ${writes.length} 个磁贴`)
-              },
-              function (error) {
-                console.error('[Customize] import failed:', error)
-                message.error(error instanceof Error ? error.message : '导入失败')
-              }
-            )
-          } catch (error) {
-            console.error('Invalid JSON file', error)
-            message.error('JSON 格式无效')
-          }
-        },
-        {
-          once: true
-        }
-      )
-
-      reader.readAsText(file, 'utf-8')
-      return false
-    },
-    [magneticTiles.length, mirror?.id, toInsertMagneticTile, message]
-  )
-
   useEffect(
     function () {
       const collect = Object.values(DEFAULT_COLORS).reduce<string[]>(function (acc, cur) {
-        const toStrings = cur.colors.map((color) => color.toString())
+        const toStrings = cur.colors.map(function (color) {
+          return color.toString()
+        })
         return acc.concat(toStrings)
       }, [])
 
       requestAnimationFrame(function () {
         updateColors(collect)
-        form.setFieldsValue({
-          color: collect[0] ?? token.colorPrimary
-        })
+        if (selectedKey === CREATE_KEY) {
+          form.setFieldsValue({
+            color: collect[0] ?? token.colorPrimary,
+            textColor: TEXT_COLOR,
+            backdropBlur: 0,
+            backdropOpacity: OPACITY_DEFAULT
+          })
+        }
       })
     },
-    [DEFAULT_COLORS, form, token.colorPrimary]
+    [DEFAULT_COLORS, form, token.colorPrimary, selectedKey]
   )
 
   useEffect(
@@ -406,61 +523,22 @@ export default function Customize() {
         if (cancelled) return
         updateImages(nextImages)
         updateImagesLoading(false)
-        form.setFieldsValue({
-          image: nextImages[0]?.id
-        })
+        if (selectedKey === CREATE_KEY) {
+          form.setFieldsValue({
+            image: nextImages[0]?.id
+          })
+        }
       })
 
       return function () {
         cancelled = true
       }
     },
-    [form]
+    [form, selectedKey]
   )
 
   return (
     <div className={clsx([styles.customize, AOModule.overlay])}>
-      <div className={styles.toolbar}>
-        <div className={styles.toolbarStart}>
-          <Button
-            type="text"
-            icon={<ArrowLeftOutlined />}
-            className="cursor-pointer"
-            onClick={function () {
-              onUpdatePage('booth')
-            }}>
-            返回
-          </Button>
-          <Typography.Title
-            level={5}
-            className={styles.toolbarTitle}>
-            磁贴定制
-          </Typography.Title>
-        </div>
-        <Space
-          size="small"
-          className={styles.toolbarActions}>
-          <Upload
-            showUploadList={false}
-            fileList={files}
-            name="magneticTiles"
-            accept="application/json"
-            beforeUpload={handleImport}>
-            <Button className="cursor-pointer">导入</Button>
-          </Upload>
-          <Button
-            className="cursor-pointer"
-            onClick={handleExport}>
-            导出
-          </Button>
-        </Space>
-      </div>
-
-      <Divider
-        size="small"
-        style={{ marginBlock: 0 }}
-      />
-
       <div className={styles.workspace}>
         <div className={styles.formPanel}>
           <Card
@@ -470,18 +548,28 @@ export default function Customize() {
             <Form
               form={form}
               labelAlign="right"
-              labelCol={{ span: 4 }}
-              wrapperCol={{ span: 20 }}
+              labelCol={{ span: 5 }}
+              wrapperCol={{ span: 19 }}
               initialValues={{
                 title: '',
                 url: '',
                 color: token.colorPrimary,
                 image: images[0]?.id,
-                layout: 'horizontal'
+                textColor: TEXT_COLOR,
+                backdropBlur: 0,
+                backdropOpacity: OPACITY_DEFAULT
               }}
               style={{ maxWidth: '100%' }}
               onFinish={handleFinish}
               validateMessages={validateMessages}>
+              <Form.Item label="磁贴">
+                <Select
+                  value={selectedKey}
+                  options={tileOptions}
+                  className="cursor-pointer"
+                  onChange={onSelectTile}
+                />
+              </Form.Item>
               <Form.Item
                 label="标题"
                 name="title"
@@ -495,15 +583,6 @@ export default function Customize() {
                 className={clsx([AOModule.single, AOModule.url])}
                 rules={[{ required: true }, { type: 'url' }]}>
                 <Input placeholder="请输入链接" />
-              </Form.Item>
-              <Form.Item
-                label="布局"
-                name="layout"
-                rules={[{ required: true }]}>
-                <Radio.Group>
-                  <Radio.Button value="horizontal">水平</Radio.Button>
-                  <Radio.Button value="vertical">垂直</Radio.Button>
-                </Radio.Group>
               </Form.Item>
               <Form.Item
                 label="背景颜色"
@@ -545,7 +624,7 @@ export default function Customize() {
                 <ColorPicker
                   onChangeComplete={onChangeComplete}
                   className={clsx([AOModule.color, AOModule.picker, styles.colorPicker])}
-                  defaultValue={token.colorPrimary}
+                  value={watchedColor ?? token.colorPrimary}
                   style={{
                     width: COLOR_SWATCH_SIZE,
                     height: COLOR_SWATCH_SIZE
@@ -556,9 +635,44 @@ export default function Customize() {
                 />
               </Form.Item>
               <Form.Item
+                label="文字颜色"
+                name="textColor"
+                rules={[{ required: true }]}
+                getValueFromEvent={function (color: Color) {
+                  return color.toHexString()
+                }}>
+                <ColorPicker
+                  className="cursor-pointer"
+                  showText
+                  onChangeComplete={onChangeTextColor}
+                />
+              </Form.Item>
+              <Form.Item
+                label="背景模糊"
+                name="backdropBlur">
+                <Slider
+                  min={0}
+                  max={BLUR_MAX}
+                  tooltip={{
+                    formatter: function (value) {
+                      return `${value ?? 0}px`
+                    }
+                  }}
+                />
+              </Form.Item>
+              <Form.Item
+                label="背景透明"
+                name="backdropOpacity">
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.05}
+                />
+              </Form.Item>
+              <Form.Item
                 label="背景图片"
                 className={clsx([AOModule.single, AOModule.image, styles.imageField])}
-                rules={[{ required: true }]}>
+                rules={[{ required: isCreateMode }]}>
                 <Glide.X
                   style={{
                     width: '100%',
@@ -567,7 +681,10 @@ export default function Customize() {
                   <Form.Item
                     name="image"
                     noStyle>
-                    <Radio.Group>
+                    <Radio.Group
+                      onChange={function () {
+                        updateKeptImageUrl(null)
+                      }}>
                       {isImagesLoading
                         ? Array.from({ length: PICSUM_LIMIT }).map(function (_, index) {
                             return (
@@ -608,20 +725,20 @@ export default function Customize() {
                   </Form.Item>
                 </Glide.X>
               </Form.Item>
-              <Form.Item wrapperCol={{ offset: 4, span: 20 }}>
+              <Form.Item wrapperCol={{ offset: 5, span: 19 }}>
                 <Button
                   type="primary"
                   htmlType="submit"
                   loading={submitting}
                   className="cursor-pointer">
-                  添加
+                  {isCreateMode ? '添加' : '保存'}
                 </Button>
               </Form.Item>
             </Form>
           </Card>
         </div>
 
-        {RePreview(watched, images, token.colorPrimary)}
+        {RePreview(watched, images, token.colorPrimary, keptImageUrl)}
       </div>
     </div>
   )

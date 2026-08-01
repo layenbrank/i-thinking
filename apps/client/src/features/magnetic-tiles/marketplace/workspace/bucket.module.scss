@@ -1,0 +1,54 @@
+.bucket {
+  width: 128px;
+  min-width: 128px;
+  height: 100%;
+  overflow: hidden scroll;
+  padding: 0 0 0 8px;
+  border-radius: 0;
+}
+
+.segmented {
+  width: 100%;
+  padding: 4px;
+  background-color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 12px;
+
+  :global {
+    .ant-segmented-group {
+      gap: 2px;
+    }
+
+    .ant-segmented-item {
+      border-radius: 8px;
+      transition:
+        background-color 180ms ease,
+        color 180ms ease,
+        box-shadow 180ms ease;
+
+      &:hover:not(.ant-segmented-item-selected) {
+        background-color: rgba(255, 255, 255, 0.55);
+      }
+
+      &.ant-segmented-item-selected {
+        background-color: #ffffff;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+        color: #0f172a;
+      }
+    }
+
+    .ant-segmented-item-label {
+      min-height: 34px;
+      line-height: 34px;
+      padding-inline: 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .ant-segmented-thumb {
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+  }
+}

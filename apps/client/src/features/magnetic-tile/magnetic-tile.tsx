@@ -64,8 +64,6 @@ interface OverlayProps extends Omit<ModalProps, 'open' | 'footer'> {
   style?: CSSProperties
   /** false 隐藏顶栏；true / undefined 为默认 Caption；传入节点则整槽自定义 */
   caption?: ReactNode | boolean
-  /** 默认顶栏中 Caption 左侧的扩展操作 */
-  actions?: ReactNode
   /** 底栏操作区；不传则不渲染 */
   controls?: ReactNode
   cache?: Cache
@@ -229,7 +227,6 @@ const MagneticTile = {
       abortTimeoutMs = ABORT_TIMEOUT_MS,
       destroyOnHidden,
       caption,
-      actions,
       controls,
       open: _open,
       ...remains
@@ -270,9 +267,7 @@ const MagneticTile = {
       caption === false
         ? null
         : caption === true || caption === undefined || caption === null
-          ? (
-              <Caption actions={actions} />
-            )
+          ? <Caption />
           : caption
 
     return (
@@ -372,10 +367,12 @@ const MagneticTile = {
       function () {
         return buildSurfaceStyle({
           round: props.round,
-          background: props.background
+          background: props.background,
+          backdrop: props.backdrop,
+          textColor: props.textColor
         })
       },
-      [props.round, props.background]
+      [props.round, props.background, props.backdrop, props.textColor]
     )
 
     return (

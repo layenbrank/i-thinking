@@ -1,91 +1,144 @@
-import { Skeleton } from 'antd'
+import { useContext } from 'react'
 import { clsx } from 'clsx'
 
-import { MagneticTile } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import {
+  MarketplaceContext,
+  type MarketplaceMode
+} from '@/features/magnetic-tiles/marketplace/workspace/context'
 import styles from '@/features/magnetic-tiles/marketplace/workspace/skeleton.module.scss'
 
-const ROW_COUNT = 4
-const PAGE_ROW_COUNT = 3
+const BOOT_ROWS = 3
+const NAVIGATE_ROWS = 6
+const SIDE_ITEMS = 7
 
-function MarketplaceOverlaySkeleton() {
-  return (
-    <div className={clsx(styles.skeleton, styles.overlay)}>
-      <div className={styles.toolbar}>
-        <Skeleton.Input
-          active
-          size="small"
-          className={styles.bar}
-        />
-        <Skeleton.Button
-          active
-          size="small"
-        />
-        <Skeleton.Button
-          active
-          size="small"
-        />
-      </div>
-      <div className={styles.body}>
-        <div className={styles.side}>
-          <Skeleton
-            active
-            title={false}
-            paragraph={{ rows: 8, width: ['80%', '60%', '90%', '70%', '85%', '55%', '75%', '65%'] }}
-          />
-        </div>
-        <div className={styles.main}>
-          {Array.from({ length: ROW_COUNT }).map(function (_, index) {
-            return (
-              <div
-                key={index}
-                className={styles.row}>
-                <div className={styles.meta}>
-                  <Skeleton
-                    active
-                    title={{ width: '40%' }}
-                    paragraph={{ rows: 2, width: ['90%', '70%'] }}
-                  />
-                </div>
-                <MagneticTile.Skeleton className={styles.thumb} />
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
+type ModeSkeletonProps = {
+  mode?: MarketplaceMode
 }
 
-function MarketplacePageSkeleton() {
+function SideSkeleton() {
   return (
-    <div className={clsx(styles.skeleton, styles.page)}>
-      <div className={styles.toolbar}>
-        <Skeleton.Input
-          active
-          size="small"
-          className={styles.bar}
-        />
-      </div>
-      <div className={styles.main}>
-        {Array.from({ length: PAGE_ROW_COUNT }).map(function (_, index) {
+    <aside className={styles.side}>
+      <div className={styles.sideInner}>
+        {Array.from({ length: SIDE_ITEMS }).map(function (_, index) {
           return (
             <div
               key={index}
-              className={styles.row}>
-              <div className={styles.meta}>
-                <Skeleton
-                  active
-                  title={{ width: '35%' }}
-                  paragraph={{ rows: 2, width: ['85%', '60%'] }}
-                />
-              </div>
-              <MagneticTile.Skeleton className={styles.thumb} />
-            </div>
+              className={styles.sideItem}
+            />
           )
         })}
+      </div>
+    </aside>
+  )
+}
+
+function BoothRows() {
+  return (
+    <div className={styles.boothList}>
+      {Array.from({ length: BOOT_ROWS }).map(function (_, index) {
+        return (
+          <div
+            key={index}
+            className={styles.boothCard}>
+            <div className={styles.boothMeta}>
+              <div className={styles.boothHead}>
+                <div className={styles.avatar} />
+                <div className={styles.copy}>
+                  <div className={clsx(styles.line, styles.lineTitle)} />
+                  <div className={clsx(styles.line, styles.lineDesc)} />
+                  <div className={clsx(styles.line, styles.lineMeta)} />
+                </div>
+              </div>
+              <div className={styles.controls}>
+                <div className={styles.control} />
+                <div className={styles.control} />
+                <div className={styles.control} />
+                <div className={styles.control} />
+              </div>
+            </div>
+            <div className={styles.preview} />
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function NavigateRows() {
+  return (
+    <div className={styles.navigateGrid}>
+      {Array.from({ length: NAVIGATE_ROWS }).map(function (_, index) {
+        return (
+          <div
+            key={index}
+            className={styles.navigateCard}>
+            <div className={styles.avatar} />
+            <div className={styles.navigateBody}>
+              <div className={clsx(styles.line, styles.lineTitle)} />
+              <div className={clsx(styles.line, styles.lineDesc)} />
+              <div className={clsx(styles.line, styles.lineMeta)} />
+            </div>
+            <div className={styles.navigateAside}>
+              <div className={styles.badge} />
+              <div className={styles.add} />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function CustomizeSkeleton() {
+  return (
+    <div className={styles.customizeBody}>
+      <div className={styles.formPanel}>
+        <div className={styles.formLine} />
+        <div className={styles.formLine} />
+        <div className={styles.formBlock} />
+        <div className={styles.formLine} />
+        <div className={styles.formBlock} />
+      </div>
+      <div className={styles.previewPanel}>
+        <div className={styles.previewCard} />
       </div>
     </div>
   )
 }
 
-export { MarketplaceOverlaySkeleton, MarketplacePageSkeleton }
+function ModeSkeleton(props: ModeSkeletonProps) {
+  const mode = props.mode ?? 'booth'
+
+  if (mode === 'customize') {
+    return <CustomizeSkeleton />
+  }
+
+  return (
+    <div className={styles.body}>
+      <SideSkeleton />
+      <div className={styles.main}>{mode === 'navigate' ? <NavigateRows /> : <BoothRows />}</div>
+    </div>
+  )
+}
+
+/** 打开 Overlay 时默认 booth 布局 */
+function OverlaySkeleton() {
+  return (
+    <div className={clsx(styles.skeleton, styles.overlay)}>
+      <ModeSkeleton mode="booth" />
+    </div>
+  )
+}
+
+/** mode 切换时按当前 mode 镜像 */
+function PageSkeleton() {
+  const { mode } = useContext(MarketplaceContext)
+
+  return (
+    <div className={clsx(styles.skeleton, styles.page)}>
+      <ModeSkeleton mode={mode} />
+    </div>
+  )
+}
+
+export { OverlaySkeleton, PageSkeleton }

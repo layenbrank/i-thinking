@@ -1,145 +1,233 @@
-import { Button, Skeleton, Space } from 'antd'
+import { Icon } from '@iconify/react/offline'
+import { App, Button, Empty, Tooltip, Typography } from 'antd'
 import { clsx } from 'clsx'
-import { useCallback, useState } from 'react'
+import { memo, useContext, useMemo, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
-import { useResize } from '@/hooks/useResize.ts'
+import {
+  findBucketLabel,
+  findNavigateBucket,
+  type NavigateBucket
+} from '@/constants/navigate-buckets'
+import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
+import {
+  findLayoutKey,
+  findMotionKey
+} from '@/features/magnetic-tiles/marketplace/workspace/find-motion-key'
+import { findNavigateTiles } from '@/features/magnetic-tiles/marketplace/workspace/find-visible-tiles'
+import { formatUpdatedAt } from '@/features/magnetic-tiles/marketplace/workspace/format-updated-at'
+import { insertTile } from '@/features/magnetic-tiles/marketplace/workspace/insert-tile'
+import { useEnterMotion } from '@/features/magnetic-tiles/marketplace/workspace/use-enter-motion'
 import { useMirrorStore } from '@/stores/mirror.ts'
 
 import SModule from '@/features/magnetic-tiles/marketplace/workspace/navigate/section.module.scss'
 
-const VIEWPORT = { width: 1280, height: 720 }
-
-type PreviewProps = {
-  src: string
+type SectionProps = {
+  bucket: NavigateBucket
 }
 
-type PreviewPlaceholderProps = {
-  onPreview: () => void
+type NavigateCardViewProps = {
+  tile: MagneticTile
 }
 
-type BoothProps = MagneticTile & {
-  isPreviewActive: boolean
-  onTogglePreview: (id: string) => void
-}
-
-function Section() {
-  const magneticTiles = useMirrorStore((state) => state.magneticTiles)
-  const [previewId, onUpdatePreviewId] = useState<string | null>(null)
-
-  function onTogglePreview(id: string) {
-    onUpdatePreviewId(function (prev) {
-      if (prev === id) return null
-      return id
-    })
+function parseHostname(url: string | null) {
+  if (!url) return ''
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
   }
+}
+
+function findTitleMark(title: string) {
+  const trimmed = title.trim()
+  if (!trimmed) return '#'
+  return trimmed.slice(0, 1).toUpperCase()
+}
+
+function findTileDescription(tile: MagneticTile) {
+  if (tile.description && tile.description !== tile.title) {
+    return tile.description
+  }
+  const bucket = findNavigateBucket(tile)
+  return `${findBucketLabel(bucket)}类网站`
+}
+
+function Section(props: SectionProps) {
+  const gridRef = useRef<HTMLDivElement>(null)
+  const { query } = useContext(MarketplaceContext)
+  const magneticTiles = useMirrorStore(function (state) {
+    return state.magneticTiles
+  })
+
+  const navigationTiles = useMemo(
+    function () {
+      return findNavigateTiles(magneticTiles, props.bucket, query)
+    },
+    [magneticTiles, props.bucket, query]
+  )
+
+  const motionKey = useMemo(
+    function () {
+      return findMotionKey(props.bucket, query, navigationTiles)
+    },
+    [props.bucket, query, navigationTiles]
+  )
+  const layoutKey = useMemo(
+    function () {
+      return findLayoutKey(navigationTiles)
+    },
+    [navigationTiles]
+  )
+
+  useEnterMotion(gridRef, motionKey, layoutKey)
 
   return (
     <div className={clsx([SModule.section, SModule.root])}>
-      {magneticTiles.map(function (optionv) {
-        return (
-          <ReBooth
-            {...optionv}
-            key={optionv.id}
-            isPreviewActive={previewId === optionv.id}
-            onTogglePreview={onTogglePreview}
+      {navigationTiles.length === 0 ? (
+        <div className={SModule.empty}>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={query.trim() ? '未找到匹配网址' : '该分类暂无网址'}
           />
-        )
-      })}
-    </div>
-  )
-}
-
-function RePreview(props: PreviewProps) {
-  const [scale, onUpdateScale] = useState(1)
-  const onResize = useCallback(function (rect: DOMRectReadOnly) {
-    const next = Math.min(rect.width / VIEWPORT.width, rect.height / VIEWPORT.height)
-    onUpdateScale(next)
-  }, [])
-  const ResizeRef = useResize<HTMLDivElement>(onResize)
-
-  return (
-    <div
-      ref={ResizeRef}
-      className={clsx(SModule.preview)}>
-      <div
-        className={clsx(SModule.wrap)}
-        style={{
-          width: VIEWPORT.width * scale,
-          height: VIEWPORT.height * scale
-        }}>
-        <iframe
-          src={props.src}
-          referrerPolicy="no-referrer"
-          width={VIEWPORT.width}
-          height={VIEWPORT.height}
-          className={clsx(SModule.frame)}
-          style={{
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left'
-          }}
-        />
-      </div>
-    </div>
-  )
-}
-
-function RePreviewPlaceholder(props: PreviewPlaceholderProps) {
-  return (
-    <button
-      type="button"
-      className={clsx(SModule.preview, SModule.placeholder, 'cursor-pointer')}
-      onClick={props.onPreview}>
-      <Skeleton.Image
-        active
-        className={clsx(SModule.skeleton)}
-      />
-      <span className={clsx(SModule.hint)}>点击预览</span>
-    </button>
-  )
-}
-
-function ReBooth(props: BoothProps) {
-  const previewUrl = props.url?.trim() || null
-
-  return (
-    <div className={clsx(SModule.container)}>
-      <div className={clsx(SModule.wrappr)}>
-        <div className={clsx(SModule.head)}>
-          <span className={clsx(SModule.title)}>{props.title}</span>
-          <span className={clsx(SModule.description)}>{props.description}</span>
-          <span className={clsx(SModule.download)}>{props.downloadCount}</span>
         </div>
-
-        <Space.Compact
-          orientation="horizontal"
-          className={clsx(SModule.body)}>
-          <Button
-            type="primary"
-            rootClassName={clsx(SModule.increment)}>
-            新增
-          </Button>
-          <Button
-            className="cursor-pointer"
-            disabled={!previewUrl}
-            onClick={function () {
-              props.onTogglePreview(props.id)
-            }}>
-            {props.isPreviewActive ? '收起预览' : '预览'}
-          </Button>
-        </Space.Compact>
-      </div>
-      {props.isPreviewActive && previewUrl ? (
-        <RePreview src={previewUrl} />
       ) : (
-        <RePreviewPlaceholder
-          onPreview={function () {
-            if (!previewUrl) return
-            props.onTogglePreview(props.id)
-          }}
-        />
+        <div
+          ref={gridRef}
+          className={SModule.grid}>
+          {navigationTiles.map(function (tile) {
+            return (
+              <NavigateCard
+                key={tile.id}
+                tile={tile}
+              />
+            )
+          })}
+        </div>
       )}
     </div>
   )
 }
+
+function NavigateCardView(props: NavigateCardViewProps) {
+  const tile = props.tile
+  const [isAdding, onUpdateAdding] = useState(false)
+  const { message } = App.useApp()
+  const { targetMirrorID } = useContext(MarketplaceContext)
+  const { activeMirrorID, mirrors, toInsertMagneticTile } = useMirrorStore(
+    useShallow(function (state) {
+      return {
+        activeMirrorID: state.active.mirror?.id,
+        mirrors: state.mirrors,
+        toInsertMagneticTile: state.toInsertMagneticTile
+      }
+    })
+  )
+  const accent = tile.background?.color ?? '#DBEAFE'
+  const hostname = parseHostname(tile.url)
+  const mark = findTitleMark(tile.title)
+  const description = findTileDescription(tile)
+  const updatedLabel = formatUpdatedAt(tile.updatedAt)
+
+  async function onAdd() {
+    const mirrorID = targetMirrorID ?? activeMirrorID
+    if (!mirrorID) {
+      message.warning('请先选择镜像')
+      return
+    }
+
+    const mirror = mirrors.find(function (item) {
+      return item.id === mirrorID
+    })
+    const mirrorTitle = mirror?.title ?? '镜像'
+
+    onUpdateAdding(true)
+    try {
+      await insertTile({
+        tile,
+        mirrorID,
+        toInsertMagneticTile
+      })
+      message.success(`已添加到 ${mirrorTitle}`)
+    } catch (error) {
+      console.error('[Marketplace] add navigate tile failed:', error)
+      message.error(error instanceof Error ? error.message : '添加失败')
+    } finally {
+      onUpdateAdding(false)
+    }
+  }
+
+  return (
+    <article
+      data-list-card=""
+      className={SModule.card}>
+      <div
+        className={SModule.avatar}
+        style={{
+          backgroundColor: accent,
+          color: tile.textColor ?? '#0F172A'
+        }}
+        aria-hidden>
+        {mark}
+      </div>
+
+      <div className={SModule.body}>
+        <Typography.Text
+          strong
+          className={SModule.title}
+          ellipsis={{ tooltip: tile.title }}>
+          {tile.title}
+        </Typography.Text>
+        <Typography.Text
+          className={SModule.description}
+          ellipsis={{ tooltip: description }}>
+          {description}
+        </Typography.Text>
+        <div className={SModule.metaRow}>
+          {hostname ? (
+            <Typography.Link
+              href={tile.url ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              className={SModule.host}
+              ellipsis
+              onClick={function (event) {
+                event.stopPropagation()
+              }}>
+              {hostname}
+            </Typography.Link>
+          ) : null}
+          <span className={SModule.updated}>{updatedLabel}</span>
+        </div>
+      </div>
+
+      <div className={SModule.aside}>
+        <span className={SModule.badge}>{tile.downloadCount}</span>
+        <Tooltip title="新增到镜像">
+          <Button
+            type="primary"
+            size="small"
+            loading={isAdding}
+            aria-label={`新增 ${tile.title}`}
+            className={clsx(SModule.add, 'cursor-pointer')}
+            onClick={function (event) {
+              event.stopPropagation()
+              void onAdd()
+            }}
+            icon={
+              <Icon
+                icon="ant-design:plus-outlined"
+                width={14}
+                height={14}
+              />
+            }
+          />
+        </Tooltip>
+      </div>
+    </article>
+  )
+}
+
+const NavigateCard = memo(NavigateCardView)
 
 export default Section

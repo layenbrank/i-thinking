@@ -3138,4 +3138,12 @@ const MAGNETIC_TILES: MagneticTile.Write[] = MAGNETIC_TILE_SEEDS.map(function (t
   }
 })
 
-export { MAGNETIC_TILES }
+const FEATURE_TILES = MAGNETIC_TILES.filter(function (tile) {
+  return tile.component !== 'navigation'
+})
+
+const NAVIGATION_TILES = MAGNETIC_TILES.filter(function (tile) {
+  return tile.component === 'navigation'
+})
+
+export { FEATURE_TILES, MAGNETIC_TILES, NAVIGATION_TILES }

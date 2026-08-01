@@ -1,13 +1,12 @@
-import { MAGNETIC_TILES } from '@/constants/magnetic-tiles'
+import { FEATURE_TILES } from '@/constants/magnetic-tiles'
 
 type MagneticTileOptions = {
   label: string
   value: MagneticTile.Component
 }
 
-const OPTIONS: MagneticTileOptions[] = MAGNETIC_TILES.filter(function (tile) {
-  return tile.component !== 'navigation'
-}).map(function (tile) {
+/** 功能磁贴组件选项（不含 navigation） */
+const OPTIONS: MagneticTileOptions[] = FEATURE_TILES.map(function (tile) {
   return {
     label: tile.title,
     value: tile.component
@@ -15,3 +14,4 @@ const OPTIONS: MagneticTileOptions[] = MAGNETIC_TILES.filter(function (tile) {
 })
 
 export { OPTIONS }
+export type { MagneticTileOptions }

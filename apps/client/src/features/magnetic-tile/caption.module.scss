@@ -9,6 +9,22 @@ $size-y: 32px;
   min-height: $size-y;
 }
 
+.start {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .actions {
   display: flex;
   align-items: center;
@@ -16,7 +32,7 @@ $size-y: 32px;
 }
 
 .cluster {
-  margin-left: auto;
+  display: inline-flex;
 }
 
 .button {
