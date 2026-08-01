@@ -34,7 +34,7 @@ thinking-command = { path = "crates/command" }
 
 [package]
 name = "i-thinking"
-version = "1.2.6"
+version = "1.2.7"
 description = "i thinking is a privacy-first extension that enhances your browsing experience with intelligent features while prioritizing your data security."
 authors = ["layen"]
 edition = "2024"
