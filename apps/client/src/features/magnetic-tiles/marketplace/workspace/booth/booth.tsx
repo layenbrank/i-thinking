@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 import { clsx } from 'clsx'
 
-import { FEATURE_BUCKETS } from '@/constants/feature-buckets'
+import { BOOTH_BUCKETS } from '@/constants/marketplace/buckets'
 import { Bucket } from '@/features/magnetic-tiles/marketplace/workspace/bucket'
 import ReSection from '@/features/magnetic-tiles/marketplace/workspace/booth/section.tsx'
 import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
@@ -9,17 +9,17 @@ import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/worksp
 import styles from '@/features/magnetic-tiles/marketplace/workspace/booth/booth.module.scss'
 
 export default function Booth() {
-  const { featureBucket, onUpdateFeatureBucket } = useContext(MarketplaceContext)
+  const { boothBucket, onUpdateBoothBucket } = useContext(MarketplaceContext)
 
   return (
     <div className={clsx(styles.booth)}>
       <div className={clsx(styles.workspace)}>
         <Bucket
-          value={featureBucket}
-          options={FEATURE_BUCKETS}
-          onUpdate={onUpdateFeatureBucket}
+          value={boothBucket}
+          options={BOOTH_BUCKETS}
+          onUpdate={onUpdateBoothBucket}
         />
-        <ReSection bucket={featureBucket} />
+        <ReSection bucket={boothBucket} />
       </div>
     </div>
   )

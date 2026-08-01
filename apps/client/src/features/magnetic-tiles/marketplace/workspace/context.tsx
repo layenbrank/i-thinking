@@ -1,15 +1,14 @@
 import { createContext, useMemo, useState, type ReactNode } from 'react'
 
-import type { FeatureBucket } from '@/constants/feature-buckets'
-import type { NavigateBucket } from '@/constants/navigate-buckets'
+import type { BoothBucket, NavigateBucket } from '@/constants/marketplace/buckets'
 
 type MarketplaceMode = 'booth' | 'navigate' | 'customize'
 
 interface MarketplaceContextProps {
   mode: MarketplaceMode
   onUpdateMode: (mode: MarketplaceMode) => void
-  featureBucket: FeatureBucket
-  onUpdateFeatureBucket: (bucket: FeatureBucket) => void
+  boothBucket: BoothBucket
+  onUpdateBoothBucket: (bucket: BoothBucket) => void
   navigateBucket: NavigateBucket
   onUpdateNavigateBucket: (bucket: NavigateBucket) => void
   query: string
@@ -21,8 +20,8 @@ interface MarketplaceContextProps {
 const MarketplaceContext = createContext<MarketplaceContextProps>({
   mode: 'booth',
   onUpdateMode: function () {},
-  featureBucket: 'all',
-  onUpdateFeatureBucket: function () {},
+  boothBucket: 'all',
+  onUpdateBoothBucket: function () {},
   navigateBucket: 'all',
   onUpdateNavigateBucket: function () {},
   query: '',
@@ -38,7 +37,7 @@ interface MarketplaceProviderProps {
 }
 
 function MarketplaceProvider(props: MarketplaceProviderProps) {
-  const [featureBucket, onUpdateFeatureBucket] = useState<FeatureBucket>('all')
+  const [boothBucket, onUpdateBoothBucket] = useState<BoothBucket>('all')
   const [navigateBucket, onUpdateNavigateBucket] = useState<NavigateBucket>('all')
   const [query, onUpdateQuery] = useState('')
   const [targetMirrorID, onUpdateTargetMirrorID] = useState<string | undefined>(undefined)
@@ -48,8 +47,8 @@ function MarketplaceProvider(props: MarketplaceProviderProps) {
       return {
         mode: props.mode,
         onUpdateMode: props.onUpdateMode,
-        featureBucket,
-        onUpdateFeatureBucket,
+        boothBucket,
+        onUpdateBoothBucket,
         navigateBucket,
         onUpdateNavigateBucket,
         query,
@@ -61,7 +60,7 @@ function MarketplaceProvider(props: MarketplaceProviderProps) {
     [
       props.mode,
       props.onUpdateMode,
-      featureBucket,
+      boothBucket,
       navigateBucket,
       query,
       targetMirrorID

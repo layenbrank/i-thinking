@@ -1,3 +1,68 @@
+// —— booth（按 MagneticTile.Component 分桶）——
+
+type BoothBucket =
+  | 'all'
+  | 'schedule'
+  | 'notes'
+  | 'media'
+  | 'dev'
+  | 'apps'
+  | 'system'
+
+type BoothBucketOption = {
+  label: string
+  value: BoothBucket
+}
+
+const BOOTH_BUCKETS: BoothBucketOption[] = [
+  { label: '全部', value: 'all' },
+  { label: '日程', value: 'schedule' },
+  { label: '笔记', value: 'notes' },
+  { label: '媒体', value: 'media' },
+  { label: '开发', value: 'dev' },
+  { label: '应用', value: 'apps' },
+  { label: '系统', value: 'system' }
+]
+
+const COMPONENT_BUCKET: Partial<Record<MagneticTile.Component, Exclude<BoothBucket, 'all'>>> = {
+  calendar: 'schedule',
+  clock: 'schedule',
+  countdown: 'schedule',
+  bookmark: 'notes',
+  markdown: 'notes',
+  signboard: 'notes',
+  clipchamp: 'media',
+  gallery: 'media',
+  screenshot: 'media',
+  morph: 'media',
+  code: 'dev',
+  developer: 'dev',
+  example: 'dev',
+  collection: 'apps',
+  marketplace: 'apps',
+  settings: 'system',
+  intelligence: 'system'
+}
+
+function findBoothBucket(component: MagneticTile.Component): Exclude<BoothBucket, 'all'> {
+  return COMPONENT_BUCKET[component] ?? 'system'
+}
+
+function matchBoothBucket(tile: Pick<MagneticTile, 'component'>, bucket: BoothBucket) {
+  if (tile.component === 'navigation') return false
+  if (bucket === 'all') return true
+  return findBoothBucket(tile.component) === bucket
+}
+
+function findBoothBucketLabel(bucket: BoothBucket) {
+  const option = BOOTH_BUCKETS.find(function (item) {
+    return item.value === bucket
+  })
+  return option?.label ?? '全部'
+}
+
+// —— navigate（按站点标题分桶）——
+
 type NavigateBucket =
   | 'all'
   | 'search'
@@ -182,7 +247,7 @@ function matchNavigateBucket(
   return findNavigateBucket(tile) === bucket
 }
 
-function findBucketLabel(bucket: NavigateBucket) {
+function findNavigateBucketLabel(bucket: NavigateBucket) {
   const option = NAVIGATE_BUCKETS.find(function (item) {
     return item.value === bucket
   })
@@ -190,9 +255,18 @@ function findBucketLabel(bucket: NavigateBucket) {
 }
 
 export {
+  BOOTH_BUCKETS,
   NAVIGATE_BUCKETS,
-  findBucketLabel,
+  findBoothBucket,
+  findBoothBucketLabel,
   findNavigateBucket,
+  findNavigateBucketLabel,
+  matchBoothBucket,
   matchNavigateBucket
 }
-export type { NavigateBucket, NavigateBucketOption }
+export type {
+  BoothBucket,
+  BoothBucketOption,
+  NavigateBucket,
+  NavigateBucketOption
+}

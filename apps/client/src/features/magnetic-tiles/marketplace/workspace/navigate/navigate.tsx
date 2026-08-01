@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 import { clsx } from 'clsx'
 
-import { NAVIGATE_BUCKETS } from '@/constants/navigate-buckets'
+import { NAVIGATE_BUCKETS } from '@/constants/marketplace/buckets'
 import { Bucket } from '@/features/magnetic-tiles/marketplace/workspace/bucket'
 import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
 import ReSection from '@/features/magnetic-tiles/marketplace/workspace/navigate/section.tsx'

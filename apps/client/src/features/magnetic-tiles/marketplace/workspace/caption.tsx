@@ -3,8 +3,10 @@ import { Input, Select, Segmented } from 'antd'
 import { clsx } from 'clsx'
 import { useShallow } from 'zustand/react/shallow'
 
-import { findBucketLabel as findFeatureLabel } from '@/constants/feature-buckets'
-import { findBucketLabel as findNavigateLabel } from '@/constants/navigate-buckets'
+import {
+  findBoothBucketLabel,
+  findNavigateBucketLabel
+} from '@/constants/marketplace/buckets'
 import { MagneticTile } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import {
   MarketplaceContext,
@@ -43,7 +45,7 @@ function Caption() {
   const {
     mode,
     onUpdateMode,
-    featureBucket,
+    boothBucket,
     navigateBucket,
     query,
     onUpdateQuery,
@@ -92,20 +94,20 @@ function Caption() {
   const meta = useMemo(function (): Meta | null {
     if (mode === 'booth') {
       return {
-        label: findFeatureLabel(featureBucket),
-        count: findBoothTiles(magneticTiles, featureBucket, query).length,
+        label: findBoothBucketLabel(boothBucket),
+        count: findBoothTiles(magneticTiles, boothBucket, query).length,
         unit: '磁贴'
       }
     }
     if (mode === 'navigate') {
       return {
-        label: findNavigateLabel(navigateBucket),
+        label: findNavigateBucketLabel(navigateBucket),
         count: findNavigateTiles(magneticTiles, navigateBucket, query).length,
         unit: '网址'
       }
     }
     return null
-  }, [mode, featureBucket, navigateBucket, magneticTiles, query])
+  }, [mode, boothBucket, navigateBucket, magneticTiles, query])
 
   const searchPlaceholder = mode === 'navigate' ? '搜索网址' : '搜索磁贴'
 

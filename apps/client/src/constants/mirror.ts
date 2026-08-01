@@ -1,17 +1,22 @@
-import { FEATURE_TILES } from '@/constants/magnetic-tiles'
-
-type MagneticTileOptions = {
-  label: string
-  value: MagneticTile.Component
-}
-
-/** 功能磁贴组件选项（不含 navigation） */
-const OPTIONS: MagneticTileOptions[] = FEATURE_TILES.map(function (tile) {
-  return {
-    label: tile.title,
-    value: tile.component
+const MIRRORS: Mirror.Write[] = [
+  {
+    title: '镜像-01',
+    index: 0,
+    mark: '',
+    description: '默认镜像',
+    background: null,
+    backdrop: null,
+    overlay: '#000000AA'
+  },
+  {
+    title: '镜像-02',
+    index: 1,
+    mark: '',
+    description: '第二镜像',
+    background: null,
+    backdrop: null,
+    overlay: '#000000AA'
   }
-})
+]
 
-export { OPTIONS }
-export type { MagneticTileOptions }
+export { MIRRORS }

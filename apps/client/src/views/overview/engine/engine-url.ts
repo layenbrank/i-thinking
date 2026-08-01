@@ -1,7 +1,7 @@
 /**
  * 搜索关键词 / 建议 URL 解析
  */
-import { ENGINE } from '@/constants/engine.ts'
+import { ENGINE } from '@/constants/engine'
 import { ENGINE_UI } from '@/views/overview/engine/engine-constants'
 
 function parseSuggestionLabel(q: string) {

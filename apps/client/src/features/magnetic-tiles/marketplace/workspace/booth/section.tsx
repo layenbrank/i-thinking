@@ -11,8 +11,8 @@ import 'swiper/css/virtual'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 
-import type { FeatureBucket } from '@/constants/feature-buckets'
-import { findFeatureTileHint } from '@/constants/feature-tile-hints'
+import type { BoothBucket } from '@/constants/marketplace/buckets'
+import { findTileHint } from '@/constants/marketplace/tile-hints'
 import { Reflection } from '@/features/controller/reflection.tsx'
 import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
@@ -29,7 +29,7 @@ import { useMirrorStore } from '@/stores/mirror.ts'
 import SModule from '@/features/magnetic-tiles/marketplace/workspace/booth/section.module.scss'
 
 type SectionProps = {
-  bucket: FeatureBucket
+  bucket: BoothBucket
 }
 
 type SizeOption = {
@@ -164,7 +164,7 @@ function BoothCardView(props: BoothCardViewProps) {
     })
   )
   const accent = tile.background?.color ?? '#DBEAFE'
-  const hint = findFeatureTileHint(tile.component, tile.description)
+  const hint = findTileHint(tile.component, tile.description)
   const mark = findTitleMark(tile.title)
 
   function onSlide(swiper: SwiperClass) {

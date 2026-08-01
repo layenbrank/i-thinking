@@ -5,10 +5,10 @@ import { memo, useContext, useMemo, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  findBucketLabel,
   findNavigateBucket,
+  findNavigateBucketLabel,
   type NavigateBucket
-} from '@/constants/navigate-buckets'
+} from '@/constants/marketplace/buckets'
 import { MarketplaceContext } from '@/features/magnetic-tiles/marketplace/workspace/context'
 import { useEnterMotion } from '@/features/magnetic-tiles/marketplace/workspace/hooks/use-enter-motion'
 import { findLayoutKey, findMotionKey } from '@/features/magnetic-tiles/marketplace/workspace/lib/enter-motion'
@@ -49,7 +49,7 @@ function findTileDescription(tile: MagneticTile) {
     return tile.description
   }
   const bucket = findNavigateBucket(tile)
-  return `${findBucketLabel(bucket)}类网站`
+  return `${findNavigateBucketLabel(bucket)}类网站`
 }
 
 function Section(props: SectionProps) {

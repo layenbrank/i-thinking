@@ -1,4 +1,4 @@
-const FEATURE_TILE_HINTS: Partial<Record<MagneticTile.Component, string>> = {
+const TILE_HINTS: Partial<Record<MagneticTile.Component, string>> = {
   bookmark: '收藏常用链接与站点入口',
   calendar: '日程安排与宜忌参考',
   clock: '数字与指针时钟样式',
@@ -18,8 +18,8 @@ const FEATURE_TILE_HINTS: Partial<Record<MagneticTile.Component, string>> = {
   example: '示例磁贴与演示'
 }
 
-function findFeatureTileHint(component: MagneticTile.Component, fallback: string) {
-  return FEATURE_TILE_HINTS[component] ?? fallback
+function findTileHint(component: MagneticTile.Component, fallback: string) {
+  return TILE_HINTS[component] ?? fallback
 }
 
-export { FEATURE_TILE_HINTS, findFeatureTileHint }
+export { TILE_HINTS, findTileHint }

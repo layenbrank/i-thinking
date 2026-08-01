@@ -3,7 +3,7 @@ import { listen } from '@tauri-apps/api/event'
 import { useEffect, useRef } from 'react'
 
 import { useThrough } from '@/hooks/use-through'
-import { isMagneticTileComponent } from '@/constants/magnetic-tile'
+import { isMagneticTileComponent } from '@/constants/magnetic-tile/components'
 import {
   useOverlayStore,
   type OverlayMode,

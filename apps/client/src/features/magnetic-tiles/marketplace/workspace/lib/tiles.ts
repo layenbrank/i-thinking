@@ -1,8 +1,12 @@
 import Fuse from 'fuse.js'
 import { timeSphere } from '@i-thinking/utils'
 
-import { matchFeatureBucket, type FeatureBucket } from '@/constants/feature-buckets'
-import { matchNavigateBucket, type NavigateBucket } from '@/constants/navigate-buckets'
+import {
+  matchBoothBucket,
+  matchNavigateBucket,
+  type BoothBucket,
+  type NavigateBucket
+} from '@/constants/marketplace/buckets'
 
 const FUSE_KEYS: Array<{ name: keyof MagneticTile; weight: number }> = [
   { name: 'title', weight: 0.5 },
@@ -71,7 +75,7 @@ function findCachedTiles(
 /** 磁贴列表：分类 + 搜索；同入参复用上次结果（Caption / Section 共享） */
 function findBoothTiles(
   magneticTiles: MagneticTile[],
-  bucket: FeatureBucket,
+  bucket: BoothBucket,
   query: string
 ) {
   const trimmed = query.trim()
@@ -79,7 +83,7 @@ function findBoothTiles(
   if (cached) return cached
 
   const bucketed = magneticTiles.filter(function (tile) {
-    return matchFeatureBucket(tile, bucket)
+    return matchBoothBucket(tile, bucket)
   })
   const tiles = searchTiles(bucketed, trimmed)
   visibleCache = {

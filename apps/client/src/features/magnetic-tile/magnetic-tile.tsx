@@ -14,7 +14,7 @@ import {
 } from 'react'
 
 import { ContextMenu } from '@/components/contextmenu'
-import { ABORT_TIMEOUT_MS } from '@/constants/magnetic-tile.ts'
+import { ABORT_TIMEOUT_MS } from '@/constants/magnetic-tile/components'
 import { buildLayoutMenuItems } from '@/features/magnetic-tile/build-layout-menu'
 import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
 import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'

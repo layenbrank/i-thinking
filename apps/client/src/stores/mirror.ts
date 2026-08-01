@@ -5,8 +5,8 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import { MAGNETIC_TILES } from '@/constants/magnetic-tiles'
-import { MIRRORS } from '@/constants/mirrors'
+import { MAGNETIC_TILES } from '@/constants/magnetic-tile/seeds'
+import { MIRRORS } from '@/constants/mirror'
 
 type MirrorWrite = Mirror.Write
 type MagneticTileWrite = MagneticTile.Write
