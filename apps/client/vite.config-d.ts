@@ -7,7 +7,7 @@
 // import { FileSystemIconLoader } from 'unplugin-icons/loaders'
 // import IconsResolver from 'unplugin-icons/resolver'
 // import Icons from 'unplugin-icons/vite'
-// import Compression from 'vite-plugin-compression'
+// import { compression } from 'vite-plugin-compression2'
 // import pkg from './package.json' with { type: 'json' }
 
 // const host = process.env.TAURI_DEV_HOST
@@ -70,14 +70,12 @@
 // 				imports: ['react', 'react-router-dom'],
 // 				dts: 'src/types/auto-imports.d.ts'
 // 			}),
-// 			Compression({
-// 				verbose: true,
-// 				disable: false,
-// 				filter: /\.(js|mjs|json|css|less|scss|html)$/i,
+// 			compression({
+// 				include: /\.(js|mjs|json|css|less|scss|html)$/i,
 // 				threshold: 10240,
-// 				deleteOriginFile: false, // 压缩完之后删除原文件
-// 				algorithm: 'gzip',
-// 				ext: '.gz'
+// 				deleteOriginalAssets: false,
+// 				algorithms: ['gzip'],
+// 				logLevel: 'info'
 // 			})
 // 		],
 // 		resolve: {

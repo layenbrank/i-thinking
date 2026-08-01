@@ -6,7 +6,7 @@ import { fileURLToPath, URL } from 'node:url'
 import React from '@vitejs/plugin-react-swc'
 import { findUpSync } from 'find-up'
 import AutoImport from 'unplugin-auto-import/vite'
-import Compression from 'vite-plugin-compression'
+import { compression } from 'vite-plugin-compression2'
 import Icons from 'unplugin-icons/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 
@@ -101,14 +101,12 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         include: [/\.(?:ts|tsx|js|jsx)$/i],
         imports: ['react', 'react-router-dom']
       }),
-      Compression({
-        verbose: true,
-        disable: false,
-        filter: /\.(js|mjs|json|css|less|scss|html)$/i,
+      compression({
+        include: /\.(js|mjs|json|css|less|scss|html)$/i,
         threshold: 10240,
-        deleteOriginFile: false, // 压缩完之后删除原文件
-        algorithm: 'gzip',
-        ext: '.gz'
+        deleteOriginalAssets: false,
+        algorithms: ['gzip'],
+        logLevel: 'info'
       })
     ],
     resolve: {

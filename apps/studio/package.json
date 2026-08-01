@@ -28,18 +28,17 @@
     "test:unit": "vitest"
   },
   "dependencies": {
-    "antd": "catalog:",
-    "antd-style": "catalog:",
     "@ant-design/colors": "catalog:",
     "@ant-design/icons": "catalog:",
-    "@ant-design/pro-components": "^2.8.10",
     "@ant-design/x": "catalog:",
     "@ant-design/x-markdown": "catalog:",
+    "@i-thinking/hooks": "workspace:*",
     "@i-thinking/utils": "workspace:*",
     "@i-thinking/wasm": "workspace:*",
-    "@i-thinking/hooks": "workspace:*",
     "@prisma/adapter-better-sqlite3": "catalog:",
     "@prisma/client": "catalog:",
+    "antd": "catalog:",
+    "antd-style": "catalog:",
     "better-sqlite3": "catalog:",
     "electron-squirrel-startup": "catalog:",
     "electron-store": "catalog:",
@@ -57,10 +56,10 @@
     "@electron-forge/plugin-vite": "catalog:",
     "@electron/fuses": "catalog:",
     "@electron/rebuild": "catalog:",
-    "@types/electron-squirrel-startup": "catalog:",
-    "prisma": "catalog:",
     "@i-thinking/shared": "workspace:*",
-    "electron": "catalog:"
+    "@types/electron-squirrel-startup": "catalog:",
+    "electron": "catalog:",
+    "prisma": "catalog:"
   },
   "keywords": [],
   "author": {

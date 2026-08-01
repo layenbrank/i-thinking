@@ -84,3 +84,17 @@ overrides:
   '@electron/rebuild': ^4.0.4
   'xlsx': 'https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz'
   'dayjs': '1.11.21'
+  # @reactuses/core 拉到的 1.2.0 未声明 React 19；1.6+ 已支持
+  'use-sync-external-store': '1.6.0'
+  # 1.2.0 只要 emnapi 2-alpha；1.2.2 兼容 emnapi 1.x
+  '@napi-rs/wasm-runtime': '1.2.2'
+
+# vitepress → @docsearch/react@3 未声明 React 19，运行无妨，放宽 peer 检查
+peerDependencyRules:
+  allowedVersions:
+    react: '19'
+    react-dom: '19'
+    '@types/react': '19'
+
+minimumReleaseAgeExclude:
+  - '@napi-rs/wasm-runtime@1.2.2'

@@ -8,7 +8,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
-import Compression from 'vite-plugin-compression'
+import { compression } from 'vite-plugin-compression2'
 import DevTools from 'vite-plugin-vue-devtools'
 // import wasm from 'vite-plugin-wasm'
 
@@ -146,14 +146,12 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
       // wasm(),
       VueJsx(),
       DevTools(),
-      Compression({
-        verbose: true,
-        disable: false,
-        filter: /\.(js|mjs|json|css|less|scss|html)$/i,
+      compression({
+        include: /\.(js|mjs|json|css|less|scss|html)$/i,
         threshold: 10240,
-        deleteOriginFile: false, // 压缩完之后删除原文件
-        algorithm: 'gzip',
-        ext: '.gz'
+        deleteOriginalAssets: false,
+        algorithms: ['gzip'],
+        logLevel: 'info'
       }),
       AutoImport({
         dts: 'src/types/auto-imports.d.ts',
