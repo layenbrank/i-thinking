@@ -16,6 +16,8 @@ gsap.registerPlugin(Observer)
 /** 实体磁贴（排除 Suspense 骨架） */
 const TILE_SELECTOR = '.magnetic-tile:not(.magnetic-tile-skeleton)'
 const SURFACE_SELECTOR = '.magnetic-tile-surface'
+/** 入场完成标记：配合 CSS 默认 opacity:0，clearProps 后仍可见 */
+const ENTERED_CLASS = 'magnetic-tile-entered'
 
 const ENTER_DURATION = 0.75
 const ENTER_Y = -36
@@ -118,6 +120,10 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
     syncFromDom()
   }
 
+  function markEntered(tiles: HTMLElement[]) {
+    for (const el of tiles) el.classList.add(ENTERED_CLASS)
+  }
+
   function playEnter(tiles: HTMLElement[]) {
     if (tiles.length === 0 || isDragging) return
 
@@ -127,12 +133,16 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
       const surface = findSurface(el)
       if (gsap.isTweening(el) || gsap.isTweening(surface)) {
         played.add(el)
+        el.classList.add(ENTERED_CLASS)
         continue
       }
       played.add(el)
       pending.push(el)
     }
     if (pending.length === 0) return
+
+    // 尽早打标：中断 clearProps 后靠 CSS .magnetic-tile-entered 保持可见
+    markEntered(pending)
 
     if (!canMotion) {
       for (const el of pending) {
@@ -143,15 +153,23 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
 
     const surfaces = pending.map(findSurface)
     gsap.killTweensOf(surfaces)
-    gsap.from(surfaces, {
-      duration: ENTER_DURATION,
+    // 同步藏起，赶在本帧 paint 前，避免先亮后藏的 FOUC
+    gsap.set(surfaces, {
       opacity: 0,
       y: ENTER_Y,
-      scale: ENTER_SCALE,
+      scale: ENTER_SCALE
+    })
+    gsap.to(surfaces, {
+      duration: ENTER_DURATION,
+      opacity: 1,
+      y: 0,
+      scale: 1,
       stagger: ENTER_STAGGER,
       ease: ENTER_EASE,
       overwrite: true,
-      clearProps: CLEAR_SURFACE_PROPS
+      onComplete() {
+        gsap.set(surfaces, { clearProps: CLEAR_SURFACE_PROPS })
+      }
     })
   }
 

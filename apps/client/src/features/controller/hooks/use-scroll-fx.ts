@@ -26,6 +26,7 @@ function syncTrack(fx: ScrollFx, grid: HTMLElement) {
 /**
  * 一次绑定 scroller；tilesKey / DOM 变化时仅 track 入场。
  * 拖拽 pause 时断开 MutationObserver。
+ * Mutation 合并用 microtask（同帧），避免 rAF 跨帧造成 FOUC。
  */
 function useScrollFx(
   gridRef: RefObject<HTMLElement | null>,
@@ -33,7 +34,7 @@ function useScrollFx(
 ): ScrollFxControls {
   const fxRef = useRef<ScrollFx | null>(null)
   const observerRef = useRef<MutationObserver | null>(null)
-  const frameRef = useRef(0)
+  const microtaskQueuedRef = useRef(false)
   const isPausedRef = useRef(false)
 
   function observeGrid(grid: HTMLElement) {
@@ -41,9 +42,12 @@ function useScrollFx(
 
     const observer = new MutationObserver(function () {
       if (isPausedRef.current) return
-      if (frameRef.current) return
-      frameRef.current = requestAnimationFrame(function () {
-        frameRef.current = 0
+      if (microtaskQueuedRef.current) return
+      microtaskQueuedRef.current = true
+
+      // 同帧合并多次 mutation；先于 paint 的 microtask 内同步 track/hide
+      queueMicrotask(function () {
+        microtaskQueuedRef.current = false
         if (isPausedRef.current || !fxRef.current || !gridRef.current) return
         syncTrack(fxRef.current, gridRef.current)
       })
@@ -65,8 +69,7 @@ function useScrollFx(
       return function () {
         observerRef.current?.disconnect()
         observerRef.current = null
-        if (frameRef.current) cancelAnimationFrame(frameRef.current)
-        frameRef.current = 0
+        microtaskQueuedRef.current = false
         fx.destroy()
         fxRef.current = null
       }
@@ -88,8 +91,7 @@ function useScrollFx(
       return function () {
         observerRef.current?.disconnect()
         observerRef.current = null
-        if (frameRef.current) cancelAnimationFrame(frameRef.current)
-        frameRef.current = 0
+        microtaskQueuedRef.current = false
       }
     },
     [gridRef, tilesKey]
@@ -101,10 +103,7 @@ function useScrollFx(
         pause() {
           isPausedRef.current = true
           observerRef.current?.disconnect()
-          if (frameRef.current) {
-            cancelAnimationFrame(frameRef.current)
-            frameRef.current = 0
-          }
+          microtaskQueuedRef.current = false
           fxRef.current?.pause()
         },
         resume() {

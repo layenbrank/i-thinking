@@ -41,6 +41,12 @@
     // 滚动位移走合成层，避免牵动布局
     backface-visibility: hidden;
     transition: box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+    // 入场前隐藏，避免 Suspense/首帧 FOUC；入场后加 .magnetic-tile-entered
+    opacity: 0;
+  }
+
+  &:global(.magnetic-tile-entered) > .surface {
+    opacity: 1;
   }
 
   &:global(.dragging) > .surface {
@@ -182,6 +188,10 @@
 @media (prefers-reduced-motion: reduce) {
   .skeleton::after {
     animation: none;
+  }
+
+  .magnetic-tile > .surface {
+    opacity: 1;
   }
 }
 

@@ -1,7 +1,8 @@
 /**
  * Mirror 舞台切换
  *
- * 横向翻页语义（与 pager index 方向一致）+ 磁贴涟漪 stagger 进场
+ * 横向翻页语义（与 pager index 方向一致）+ pane/scrim 过渡。
+ * 磁贴 stagger 入场由 scroll-fx 单独负责，避免双闪。
  * 仅 transform / opacity；scrim 无 blur，掩盖 remount 空隙
  */
 import gsap from 'gsap'
@@ -11,9 +12,6 @@ const ENTER_DURATION = 0.38
 const SLIDE_X = 36
 const SCALE = 0.97
 const SCRIM_OPACITY = 1
-/** 磁贴进场涟漪总跨度 */
-const TILE_STAGGER = 0.2
-const TILE_FROM_Y = 22
 
 const EASE_EXIT = 'power2.in'
 const EASE_ENTER = 'power3.out'
@@ -65,19 +63,6 @@ function prepareLayer(el: HTMLElement) {
 function clearPane(el: HTMLElement) {
   gsap.set(el, { clearProps: 'transform,opacity,visibility' })
   el.style.removeProperty('will-change')
-}
-
-/** 进场可 stagger 的磁贴 surface（无则退回整 pane） */
-function findTileSurfaces(pane: HTMLElement): HTMLElement[] {
-  return Array.from(pane.querySelectorAll<HTMLElement>('.magnetic-tile-surface'))
-}
-
-function clearTileSurfaces(surfaces: HTMLElement[]) {
-  if (!surfaces.length) return
-  gsap.set(surfaces, { clearProps: 'transform,opacity' })
-  for (let i = 0; i < surfaces.length; i++) {
-    surfaces[i].style.removeProperty('will-change')
-  }
 }
 
 function bindMirrorTransition(): MirrorTransitionSession {
@@ -169,8 +154,6 @@ function bindMirrorTransition(): MirrorTransitionSession {
       }
 
       prepareLayer(pane)
-      const surfaces = findTileSurfaces(pane)
-      const hasTiles = surfaces.length > 0
 
       if (scrim) {
         prepareLayer(scrim)
@@ -181,7 +164,6 @@ function bindMirrorTransition(): MirrorTransitionSession {
         defaults: { force3D: true },
         onComplete() {
           clearPane(pane)
-          clearTileSurfaces(surfaces)
           if (scrim) {
             gsap.set(scrim, { autoAlpha: 0 })
             scrim.style.removeProperty('will-change')
@@ -192,71 +174,25 @@ function bindMirrorTransition(): MirrorTransitionSession {
       })
       activeTween = tl
 
-      if (hasTiles) {
-        // pane 先到位可见；磁贴按翻页方向涟漪入场
-        gsap.set(pane, {
+      // 仅 pane 滑入；磁贴入场交给 scroll-fx
+      gsap.set(pane, {
+        autoAlpha: 0,
+        x: direction * SLIDE_X,
+        scale: SCALE,
+        force3D: true,
+        transformOrigin: '50% 50%'
+      })
+      tl.to(
+        pane,
+        {
           autoAlpha: 1,
-          x: direction * SLIDE_X * 0.35,
+          x: 0,
           scale: 1,
-          force3D: true,
-          transformOrigin: '50% 50%'
-        })
-        for (let i = 0; i < surfaces.length; i++) {
-          surfaces[i].style.willChange = 'transform, opacity'
-        }
-        gsap.set(surfaces, {
-          opacity: 0,
-          y: TILE_FROM_Y,
-          x: direction * 10,
-          scale: 0.94
-        })
-
-        tl.to(
-          pane,
-          {
-            x: 0,
-            duration: ENTER_DURATION * 0.7,
-            ease: EASE_ENTER
-          },
-          0
-        )
-
-        tl.to(
-          surfaces,
-          {
-            opacity: 1,
-            y: 0,
-            x: 0,
-            scale: 1,
-            duration: ENTER_DURATION,
-            ease: EASE_ENTER,
-            stagger: {
-              amount: TILE_STAGGER,
-              from: direction >= 0 ? 'start' : 'end'
-            }
-          },
-          0.04
-        )
-      } else {
-        gsap.set(pane, {
-          autoAlpha: 0,
-          x: direction * SLIDE_X,
-          scale: SCALE,
-          force3D: true,
-          transformOrigin: '50% 50%'
-        })
-        tl.to(
-          pane,
-          {
-            autoAlpha: 1,
-            x: 0,
-            scale: 1,
-            duration: ENTER_DURATION,
-            ease: EASE_ENTER
-          },
-          0
-        )
-      }
+          duration: ENTER_DURATION,
+          ease: EASE_ENTER
+        },
+        0
+      )
 
       if (scrim) {
         tl.to(
