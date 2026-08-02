@@ -155,6 +155,7 @@ function SignIn(props: SignInProps) {
                     onModeChange={setSigninMode}
                     onForgot={onForgot}
                     onSignup={onSignup}
+                    onSuccess={onClose}
                   />
                 )}
                 {panelView === PANEL.FORGOT && (

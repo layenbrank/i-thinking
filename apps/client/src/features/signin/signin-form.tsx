@@ -11,6 +11,7 @@ import {
 import { CaptchaField } from '@/features/signin/captcha-field.tsx'
 import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
 import styles from '@/features/signin/signin.module.scss'
+import { useSessionStore } from '@/stores/session.ts'
 
 type SigninFormValues = {
   username?: string
@@ -27,11 +28,15 @@ type SigninFormProps = {
   onModeChange: (mode: AuthMode) => void
   onForgot: () => void
   onSignup: () => void
+  onSuccess?: () => void
 }
 
 function SigninForm(props: SigninFormProps) {
-  const { motionKey, signinMode, onModeChange, onForgot, onSignup } = props
+  const { motionKey, signinMode, onModeChange, onForgot, onSignup, onSuccess } = props
   const [form] = Form.useForm<SigninFormValues>()
+  const toSignIn = useSessionStore(function (state) {
+    return state.toSignIn
+  })
 
   useEffect(
     function () {
@@ -41,8 +46,15 @@ function SigninForm(props: SigninFormProps) {
     [form, signinMode]
   )
 
-  function onFinish(_values: SigninFormValues) {
+  function onFinish(values: SigninFormValues) {
+    const username = values.username || values.email || values.phone || 'user'
+    toSignIn({
+      id: `mock-${Date.now()}`,
+      username,
+      avatarUrl: null
+    })
     message.success('登录成功（mock）')
+    onSuccess?.()
   }
 
   function onSegmentChange(value: string | number) {

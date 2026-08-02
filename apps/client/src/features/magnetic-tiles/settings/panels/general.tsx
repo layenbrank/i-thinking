@@ -1,6 +1,7 @@
 import { Button, Modal, Select, Space, Switch, Typography, message } from 'antd'
 import { useState } from 'react'
 
+import { useSessionStore } from '@/stores/session'
 import { useSettingsStore } from '@/stores/setting'
 import { exitApp } from '@/utils/process'
 import { checkUpdate } from '@/utils/updater'
@@ -16,8 +17,28 @@ function GeneralPanel() {
   const update = useSettingsStore(function (state) {
     return state.update
   })
+  const user = useSessionStore(function (state) {
+    return state.user
+  })
+  const toSignOut = useSessionStore(function (state) {
+    return state.toSignOut
+  })
   const [checking, setChecking] = useState(false)
   const [exiting, setExiting] = useState(false)
+
+  function onSignOut() {
+    Modal.confirm({
+      title: '退出登录',
+      content: '确定要退出当前账号吗？',
+      okText: '退出登录',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: function () {
+        toSignOut()
+        message.success('已退出登录')
+      }
+    })
+  }
 
   async function onAutostartChange(checked: boolean) {
     try {
@@ -91,6 +112,26 @@ function GeneralPanel() {
             </Typography.Text>
           </div>
         </div>
+      </div>
+
+      <div className={styles.card}>
+        <Typography.Text className={styles.cardTitle}>账号</Typography.Text>
+        <Space wrap>
+          {user ? (
+            <>
+              <Typography.Text type="secondary">
+                当前：{user.username}
+              </Typography.Text>
+              <Button
+                danger
+                onClick={onSignOut}>
+                退出登录
+              </Button>
+            </>
+          ) : (
+            <Typography.Text type="secondary">未登录</Typography.Text>
+          )}
+        </Space>
       </div>
 
       <div className={styles.card}>
