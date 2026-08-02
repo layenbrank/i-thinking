@@ -8,7 +8,8 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-const TILE = '.magnetic-tile'
+/** 实体磁贴（排除 Suspense 骨架） */
+const TILE = '.magnetic-tile:not(.magnetic-tile-skeleton)'
 const SURFACE = '.magnetic-tile-surface'
 
 const ENTER_Y = 28
@@ -142,6 +143,7 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
   let tracked: HTMLElement[] = []
   let triggers: ScrollTrigger[] = []
   let media: gsap.MatchMedia | null = null
+  let canMotion = true
   let isDragging = false
   let isScrolling = false
   let hasScrolled = false
@@ -397,7 +399,7 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
     triggers = []
   }
 
-  function bindBatch(canMotion: boolean) {
+  function bindBatch(fresh?: Set<HTMLElement>) {
     killBatch()
     if (tracked.length === 0) return
 
@@ -408,7 +410,14 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
       return
     }
 
-    gsap.set(surfaces, { autoAlpha: 0, y: ENTER_Y, scaleX: 0.96, scaleY: 0.96 })
+    // 仅对新入场节点设初始隐态，避免 track 重绑时整表闪一下
+    if (fresh && fresh.size > 0) {
+      const nextSurfaces: HTMLElement[] = []
+      for (const el of fresh) {
+        nextSurfaces.push(findSurface(el))
+      }
+      gsap.set(nextSurfaces, { autoAlpha: 0, y: ENTER_Y, scaleX: 0.96, scaleY: 0.96 })
+    }
 
     triggers = ScrollTrigger.batch(tracked, {
       scroller,
@@ -444,8 +453,8 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
         canMotion: '(prefers-reduced-motion: no-preference)'
       },
       function (context) {
-        const canMotion = Boolean(context.conditions?.canMotion)
-        bindBatch(canMotion)
+        canMotion = Boolean(context.conditions?.canMotion)
+        bindBatch(new Set(tracked))
 
         if (!canMotion) {
           return function () {
@@ -475,15 +484,35 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
 
   return {
     track(tiles) {
+      // 拖拽中由 hook 静默 observer；此处再挡一层，避免误 sync
+      if (isDragging) {
+        tracked = tiles
+        for (const el of tiles) syncTile(el)
+        return
+      }
+
+      const prev = new Set(tracked)
       const next = new Set(tiles)
+      const fresh = new Set<HTMLElement>()
+
       for (const el of tracked) {
         if (!next.has(el)) cache.delete(el)
       }
       for (const el of tiles) {
+        if (!prev.has(el)) fresh.add(el)
         syncTile(el)
       }
+
+      // 同集合仅换序：syncTile 已更新几何，勿 killBatch
+      const isSameMembership = fresh.size === 0 && prev.size === next.size
       tracked = tiles
-      mount()
+
+      if (isSameMembership) {
+        ScrollTrigger.refresh()
+        return
+      }
+
+      bindBatch(fresh)
       ScrollTrigger.refresh()
     },
     pause() {
@@ -500,12 +529,12 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
       for (const el of tracked) clearFx(el)
     },
     resume() {
+      // refresh / track 交给 hook.resume 单次 syncTrack，避免连刷
       isDragging = false
       lastTop = scroller.scrollTop
       velocity = 0
       isScrolling = false
       for (const el of tracked) syncTile(el)
-      ScrollTrigger.refresh()
     },
     destroy() {
       isDragging = true

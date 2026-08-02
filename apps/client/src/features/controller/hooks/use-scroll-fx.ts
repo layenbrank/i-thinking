@@ -1,6 +1,6 @@
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
-import { type RefObject, useMemo, useRef } from 'react'
+import { type RefObject, useLayoutEffect, useMemo, useRef } from 'react'
 
 import { bindScrollFx, TILE, type ScrollFx } from '@/features/controller/lib/scroll-fx'
 
@@ -15,16 +15,43 @@ function findScroller(grid: HTMLElement): HTMLElement {
   return (grid.closest('[data-mirror-scroller]') as HTMLElement | null) ?? grid
 }
 
-function findTiles(root: HTMLElement): HTMLElement[] {
+function findReadyTiles(root: HTMLElement): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(TILE))
 }
 
-/** 网格滚动特效：tilesKey 变化时重建；返回稳定的 pause / resume */
+function syncTrack(fx: ScrollFx, grid: HTMLElement) {
+  fx.track(findReadyTiles(grid))
+}
+
+/**
+ * 一次绑定 scroller；tilesKey / DOM 变化时仅 track。
+ * 拖拽 pause 时断开 MutationObserver，避免换位时反复 bindBatch。
+ */
 function useScrollFx(
   gridRef: RefObject<HTMLElement | null>,
   tilesKey: string
 ): ScrollFxControls {
   const fxRef = useRef<ScrollFx | null>(null)
+  const observerRef = useRef<MutationObserver | null>(null)
+  const frameRef = useRef(0)
+  const isPausedRef = useRef(false)
+
+  function observeGrid(grid: HTMLElement) {
+    observerRef.current?.disconnect()
+
+    const observer = new MutationObserver(function () {
+      if (isPausedRef.current) return
+      if (frameRef.current) return
+      frameRef.current = requestAnimationFrame(function () {
+        frameRef.current = 0
+        if (isPausedRef.current || !fxRef.current || !gridRef.current) return
+        syncTrack(fxRef.current, gridRef.current)
+      })
+    })
+
+    observer.observe(grid, { childList: true })
+    observerRef.current = observer
+  }
 
   useGSAP(
     function () {
@@ -33,32 +60,65 @@ function useScrollFx(
 
       const fx = bindScrollFx(findScroller(grid))
       fxRef.current = fx
-      fx.track(findTiles(grid))
+      syncTrack(fx, grid)
 
       return function () {
+        observerRef.current?.disconnect()
+        observerRef.current = null
+        if (frameRef.current) cancelAnimationFrame(frameRef.current)
+        frameRef.current = 0
         fx.destroy()
         fxRef.current = null
       }
     },
-    {
-      dependencies: [tilesKey],
-      revertOnUpdate: true,
-      scope: gridRef
-    }
+    { scope: gridRef }
+  )
+
+  useLayoutEffect(
+    function () {
+      const grid = gridRef.current
+      const fx = fxRef.current
+      if (!grid || !fx) return
+
+      if (!isPausedRef.current) {
+        syncTrack(fx, grid)
+        observeGrid(grid)
+      }
+
+      return function () {
+        observerRef.current?.disconnect()
+        observerRef.current = null
+        if (frameRef.current) cancelAnimationFrame(frameRef.current)
+        frameRef.current = 0
+      }
+    },
+    [gridRef, tilesKey]
   )
 
   return useMemo(
     function (): ScrollFxControls {
       return {
         pause() {
+          isPausedRef.current = true
+          observerRef.current?.disconnect()
+          if (frameRef.current) {
+            cancelAnimationFrame(frameRef.current)
+            frameRef.current = 0
+          }
           fxRef.current?.pause()
         },
         resume() {
+          isPausedRef.current = false
           fxRef.current?.resume()
+          const grid = gridRef.current
+          const fx = fxRef.current
+          if (!grid || !fx) return
+          syncTrack(fx, grid)
+          observeGrid(grid)
         }
       }
     },
-    []
+    [gridRef]
   )
 }
 
