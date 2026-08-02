@@ -16,8 +16,11 @@ gsap.registerPlugin(Observer)
 /** 实体磁贴（排除 Suspense 骨架） */
 const TILE_SELECTOR = '.magnetic-tile:not(.magnetic-tile-skeleton)'
 const SURFACE_SELECTOR = '.magnetic-tile-surface'
-/** 入场完成标记：配合 CSS 默认 opacity:0，clearProps 后仍可见 */
-const ENTERED_CLASS = 'magnetic-tile-entered'
+/**
+ * 入场完成标记：配合 CSS 默认 opacity:0，clearProps 后仍可见。
+ * 用 data-* 而非 class——React className 重渲会抹掉 classList 打的标。
+ */
+const ENTERED_ATTR = 'data-magnetic-tile-entered'
 
 const ENTER_DURATION = 0.75
 const ENTER_Y = -36
@@ -121,7 +124,15 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
   }
 
   function markEntered(tiles: HTMLElement[]) {
-    for (const el of tiles) el.classList.add(ENTERED_CLASS)
+    for (const el of tiles) el.setAttribute(ENTERED_ATTR, '')
+  }
+
+  function healEntered(tiles: HTMLElement[]) {
+    for (const el of tiles) {
+      if (!played.has(el)) continue
+      if (el.hasAttribute(ENTERED_ATTR)) continue
+      el.setAttribute(ENTERED_ATTR, '')
+    }
   }
 
   function playEnter(tiles: HTMLElement[]) {
@@ -133,7 +144,7 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
       const surface = findSurface(el)
       if (gsap.isTweening(el) || gsap.isTweening(surface)) {
         played.add(el)
-        el.classList.add(ENTERED_CLASS)
+        el.setAttribute(ENTERED_ATTR, '')
         continue
       }
       played.add(el)
@@ -141,7 +152,7 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
     }
     if (pending.length === 0) return
 
-    // 尽早打标：中断 clearProps 后靠 CSS .magnetic-tile-entered 保持可见
+    // 尽早打标：中断 clearProps 后靠 data-magnetic-tile-entered 保持可见
     markEntered(pending)
 
     if (!canMotion) {
@@ -198,6 +209,7 @@ function bindScrollFx(scroller: HTMLElement): ScrollFx {
         if (!played.has(el)) fresh.push(el)
       }
       tracked = tiles
+      healEntered(tiles)
       playEnter(fresh)
     },
     pause() {
