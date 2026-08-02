@@ -394,26 +394,26 @@
   min-height: 0;
 }
 
-/* —— 方块：左徽章右信息，底部日程吃满 —— */
+/* —— 方块：左徽章右信息；信息顶对齐吃满；空日程不占高 —— */
 .square .expandedBody {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   height: 100%;
   min-height: 0;
 }
 
 .square .mainPane {
-  flex: 1.2 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
   height: auto;
   column-gap: 8px;
 }
 
 .square .dayRail {
-  min-width: 3.75em;
-  padding: 8px 8px;
-  gap: 6px;
+  min-width: 3.5em;
+  padding: 6px 8px;
+  gap: 4px;
 }
 
 .square .dayRail .bigDay {
@@ -425,17 +425,60 @@
 }
 
 .square .infoRail {
-  justify-content: space-evenly;
+  justify-content: flex-start;
   gap: 4px;
+  padding: 1px 0;
+}
+
+.square .infoTop {
+  gap: 4px 6px;
 }
 
 .square .infoTop .ymd {
   font-size: 13px;
 }
 
+/* 农历独占一行完整展示，干支另起一行，避免「农…」截断 */
+.square .infoSub {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+}
+
+.square .infoSub .dotSep {
+  display: none;
+}
+
 .square .infoRail .lunar,
 .square .infoRail .ganzhi {
+  display: block;
+  width: 100%;
+  max-width: 100%;
   font-size: 12px;
+  flex-shrink: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.square .chipRow {
+  flex-wrap: nowrap;
+  gap: 4px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.square .chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.square .yiJiInline {
+  gap: 2px;
+  width: 100%;
 }
 
 .square .agenda,
@@ -444,9 +487,25 @@
   border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
   padding: 6px 0 0;
   height: auto;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
   max-height: none;
+}
+
+/* 有日程条目时再分配高度；空状态保持紧凑 */
+.square .agenda:has(.agendaList) {
+  flex: 0 1 42%;
+  max-height: 42%;
+  min-height: 0;
+}
+
+.square .agenda:has(.agendaEmpty) {
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.square .agendaEmpty {
+  padding: 2px 0 0;
 }
 
 /* —— 日程 —— */

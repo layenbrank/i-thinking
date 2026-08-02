@@ -139,7 +139,8 @@ function findVisibleFields(
     showGanZhi: isWideMode ? capacity >= 3 : capacity >= 2,
     showConstellation: dense >= 4,
     showPhase: dense >= 4,
-    showYiJi: dense >= 4,
+    // 方块 size2 高度紧，宜忌让给农历/chips；size3+ 再展开
+    showYiJi: isWideMode ? dense >= 4 : capacity >= 3,
     showChips: dense >= 4,
     showPhenology: dense >= 5,
     showGods: dense >= 6,
