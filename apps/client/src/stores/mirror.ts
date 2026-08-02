@@ -166,6 +166,20 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
             return a.index - b.index
           })
         )
+        // 库非空但少于种子数时按 index 补插缺失镜像（便于本地多镜像测试）
+        if (getters().mirrors.length < MIRRORS.length) {
+          const existingIndexes = new Set(
+            getters().mirrors.map(function (mirror) {
+              return mirror.index
+            })
+          )
+          const missing = MIRRORS.filter(function (seed) {
+            return !existingIndexes.has(seed.index)
+          })
+          if (missing.length) {
+            await getters().toInsertMirror(missing)
+          }
+        }
       }
 
       const [first] = getters().mirrors

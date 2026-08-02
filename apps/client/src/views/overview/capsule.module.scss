@@ -1,0 +1,241 @@
+// Overview 纵向胶囊浮层 —— antd cssVar（prefix: ith）
+
+.capsule {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1200;
+  pointer-events: none;
+  will-change: transform;
+
+  &[data-collapsed='true'] {
+    pointer-events: auto;
+
+    .shell {
+      pointer-events: auto;
+      cursor: pointer;
+    }
+  }
+}
+
+.shell {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ith-margin-xxs, 4px);
+  padding: var(--ith-padding-xs, 8px);
+  padding-top: 4px;
+  border-radius: 999px;
+  background: color-mix(
+    in srgb,
+    var(--ith-color-bg-elevated, var(--ith-color-bg-container)) 88%,
+    transparent
+  );
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  box-shadow: var(--ith-box-shadow-tertiary, var(--ith-box-shadow-secondary));
+  cursor: default;
+}
+
+.grip {
+  pointer-events: auto;
+  appearance: none;
+  border: none;
+  margin: 0;
+  padding: 4px 10px;
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ith-color-text-quaternary, var(--ith-color-text-tertiary));
+  background: transparent;
+  border-radius: 999px;
+  touch-action: none;
+
+  &:hover {
+    color: var(--ith-color-text-secondary);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ith-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.gripBar {
+  display: block;
+  width: 16px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.mirrors {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.mirror {
+  appearance: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  box-sizing: border-box;
+  min-width: 32px;
+  min-height: 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--ith-font-size-sm, 12px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--ith-color-text-secondary);
+  background: transparent;
+  transition:
+    background-color var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-in-out, ease),
+    color var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-in-out, ease);
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &:disabled:not(.mirrorActive) {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  &:not(:disabled):hover {
+    color: var(--ith-color-text);
+    background: var(--ith-control-item-bg-hover, var(--ith-color-fill-secondary));
+  }
+
+  &:not(:disabled):active {
+    background: var(--ith-control-item-bg-active, var(--ith-color-fill-tertiary));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ith-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.mirrorActive {
+  color: var(--ith-color-text-light-solid, #fff);
+  background: var(--ith-color-primary);
+  cursor: default;
+
+  &:hover {
+    color: var(--ith-color-text-light-solid, #fff);
+    background: var(--ith-color-primary);
+  }
+}
+
+.divider {
+  display: block;
+  width: 16px;
+  height: 1px;
+  margin-block: var(--ith-margin-xxs, 4px);
+  background: var(--ith-color-split, var(--ith-color-border-secondary));
+  flex: none;
+}
+
+.signIn {
+  appearance: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  box-sizing: border-box;
+  min-width: 32px;
+  min-height: 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ith-color-text-secondary);
+  background: transparent;
+  transition:
+    background-color var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-in-out, ease),
+    color var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-in-out, ease);
+
+  &:hover {
+    color: var(--ith-color-primary);
+    background: var(--ith-color-primary-bg);
+  }
+
+  &:active {
+    background: var(--ith-color-primary-bg-hover, var(--ith-color-primary-bg));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ith-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  overflow: hidden;
+
+  :global(.ant-avatar) {
+    background: var(--ith-color-primary-bg);
+    color: var(--ith-color-primary);
+    font-size: var(--ith-font-size-sm, 12px);
+    font-weight: 600;
+  }
+}
+
+.chevron {
+  display: none;
+  pointer-events: none;
+  color: var(--ith-color-text-secondary);
+  margin-block: 2px;
+}
+
+.capsule[data-collapsed='true'] {
+  .chevron {
+    display: inline-flex;
+  }
+
+  &[data-edge='right'] .chevron {
+    transform: scaleX(-1);
+  }
+
+  .mirrors,
+  .divider,
+  .signIn,
+  .avatar {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mirror,
+  .signIn {
+    transition: none;
+  }
+}
