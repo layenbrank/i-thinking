@@ -10,11 +10,6 @@
 
   &[data-collapsed='true'] {
     pointer-events: auto;
-
-    .shell {
-      pointer-events: auto;
-      cursor: pointer;
-    }
   }
 }
 
@@ -25,7 +20,6 @@
   align-items: center;
   gap: var(--ith-margin-xxs, 4px);
   padding: var(--ith-padding-xs, 8px);
-  padding-top: 4px;
   border-radius: 999px;
   background: color-mix(
     in srgb,
@@ -36,45 +30,15 @@
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
   border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
   box-shadow: var(--ith-box-shadow-tertiary, var(--ith-box-shadow-secondary));
-  cursor: default;
-}
-
-.grip {
-  pointer-events: auto;
-  appearance: none;
-  border: none;
-  margin: 0;
-  padding: 4px 10px;
   cursor: grab;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ith-color-text-quaternary, var(--ith-color-text-tertiary));
-  background: transparent;
-  border-radius: 999px;
   touch-action: none;
-
-  &:hover {
-    color: var(--ith-color-text-secondary);
-  }
+  transition:
+    box-shadow var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-in-out, ease),
+    background-color var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-in-out, ease);
 
   &:active {
     cursor: grabbing;
   }
-
-  &:focus-visible {
-    outline: 2px solid var(--ith-color-primary);
-    outline-offset: 2px;
-  }
-}
-
-.gripBar {
-  display: block;
-  width: 16px;
-  height: 3px;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0.85;
 }
 
 .mirrors {
@@ -209,33 +173,130 @@
   }
 }
 
-.chevron {
+.mirrorTooltip {
+  max-width: 220px;
+}
+
+.mirrorTooltipTitle {
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.mirrorTooltipDesc {
+  margin-top: 4px;
+  font-size: var(--ith-font-size-sm, 12px);
+  line-height: 1.4;
+  opacity: 0.85;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+// 收缩态：纵向迷你胶囊，仅居中小竖条
+.peek {
   display: none;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  color: var(--ith-color-text-secondary);
-  margin-block: 2px;
+}
+
+.peekBar {
+  display: block;
+  width: 4px;
+  height: 22px;
+  border-radius: 999px;
+  flex: none;
+  background: color-mix(
+    in srgb,
+    var(--ith-color-text-tertiary, rgba(15, 23, 42, 0.45)) 70%,
+    transparent
+  );
+  transition:
+    background-color var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-out, ease),
+    opacity var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-out, ease);
 }
 
 .capsule[data-collapsed='true'] {
-  .chevron {
-    display: inline-flex;
-  }
+  pointer-events: auto;
 
-  &[data-edge='right'] .chevron {
-    transform: scaleX(-1);
+  .shell {
+    position: relative;
+    box-sizing: border-box;
+    width: 28px;
+    min-width: 28px;
+    height: 76px;
+    min-height: 76px;
+    padding: 0;
+    gap: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    background: color-mix(
+      in srgb,
+      var(--ith-color-bg-elevated, var(--ith-color-bg-container)) 90%,
+      transparent
+    );
+    backdrop-filter: blur(14px) saturate(1.15);
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
+    border: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+    box-shadow: var(--ith-box-shadow-tertiary, var(--ith-box-shadow-secondary));
+    transition:
+      background-color var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-out, ease),
+      border-color var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-out, ease),
+      box-shadow var(--ith-motion-duration-mid, 0.2s) var(--ith-motion-ease-out, ease);
+
+    // 隐形热区：扩大悬浮命中，不改变可见尺寸 / 贴边坐标
+    &::before {
+      content: '';
+      position: absolute;
+      top: -16px;
+      bottom: -16px;
+      left: -12px;
+      right: -12px;
+    }
+
+    &:hover {
+      background: color-mix(
+        in srgb,
+        var(--ith-color-bg-elevated, var(--ith-color-bg-container)) 96%,
+        var(--ith-color-primary-bg, transparent)
+      );
+      border-color: color-mix(
+        in srgb,
+        var(--ith-color-primary) 40%,
+        var(--ith-color-border)
+      );
+      box-shadow: var(--ith-box-shadow-secondary, var(--ith-box-shadow));
+
+      .peekBar {
+        background: var(--ith-color-primary);
+        opacity: 1;
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--ith-color-primary);
+      outline-offset: 2px;
+    }
   }
 
   .mirrors,
   .divider,
   .signIn,
   .avatar {
-    visibility: hidden;
+    display: none;
+  }
+
+  .peek {
+    display: inline-flex;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .mirror,
-  .signIn {
+  .signIn,
+  .shell,
+  .peekBar {
     transition: none;
   }
 }

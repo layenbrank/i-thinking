@@ -1,7 +1,7 @@
 /**
- * Overview 纵向胶囊：镜像切换 + 登录/头像；可拖拽，贴边缩起
+ * Overview 纵向胶囊：镜像切换 + 登录/头像；整颗可拖，贴边缩起
  */
-import { Avatar } from 'antd'
+import { Avatar, Tooltip } from 'antd'
 import { useGSAP } from '@gsap/react'
 import { clsx } from 'clsx'
 import gsap from 'gsap'
@@ -22,6 +22,17 @@ gsap.registerPlugin(useGSAP)
 
 type OverviewCapsuleProps = {
   onSignIn: () => void
+}
+
+function findMirrorTooltip(mirror: Mirror) {
+  return (
+    <div className={styles.mirrorTooltip}>
+      <div className={styles.mirrorTooltipTitle}>{mirror.title}</div>
+      {mirror.description ? (
+        <div className={styles.mirrorTooltipDesc}>{mirror.description}</div>
+      ) : null}
+    </div>
+  )
 }
 
 function OverviewCapsule(props: OverviewCapsuleProps) {
@@ -69,27 +80,13 @@ function OverviewCapsule(props: OverviewCapsuleProps) {
       ref={capsuleRef}
       className={styles.capsule}
       data-overview-capsule
-      aria-expanded="true"
+      aria-expanded="false"
       aria-busy={isBusy || undefined}>
       <div className={styles.shell}>
-        <div
-          className={styles.grip}
-          data-capsule-grip
-          role="button"
-          tabIndex={0}
-          aria-label="拖动胶囊"
-          title="拖动">
-          <span className={styles.gripBar} aria-hidden="true" />
-        </div>
-
         <span
-          className={styles.chevron}
+          className={styles.peek}
           aria-hidden="true">
-          <Icon
-            icon="ant-design:right-outlined"
-            width={12}
-            height={12}
-          />
+          <span className={styles.peekBar} />
         </span>
 
         <div
@@ -99,24 +96,30 @@ function OverviewCapsule(props: OverviewCapsuleProps) {
           {sorted.map(function (mirror) {
             const isActive = mirror.id === activeId
             const page = mirror.index + 1
+            const tooltip = findMirrorTooltip(mirror)
             return (
-              <button
+              <Tooltip
                 key={mirror.id}
-                type="button"
-                role="tab"
-                data-mirror-bullet
-                data-active={isActive ? 'true' : undefined}
-                aria-selected={isActive}
-                aria-label={mirror.title}
-                title={mirror.title}
-                disabled={!canSwitch}
-                className={clsx(styles.mirror, isActive && styles.mirrorActive)}
-                onClick={function () {
-                  if (!canSwitch || isActive) return
-                  void requestMirrorSwitch(mirror.id)
-                }}>
-                {page}
-              </button>
+                title={tooltip}
+                placement="left"
+                mouseEnterDelay={0.35}
+                destroyOnHidden>
+                <button
+                  type="button"
+                  role="tab"
+                  data-mirror-bullet
+                  data-active={isActive ? 'true' : undefined}
+                  aria-selected={isActive}
+                  aria-label={mirror.description ? `${mirror.title}：${mirror.description}` : mirror.title}
+                  disabled={!canSwitch}
+                  className={clsx(styles.mirror, isActive && styles.mirrorActive)}
+                  onClick={function () {
+                    if (!canSwitch || isActive) return
+                    void requestMirrorSwitch(mirror.id)
+                  }}>
+                  {page}
+                </button>
+              </Tooltip>
             )
           })}
         </div>
