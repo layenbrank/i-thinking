@@ -1,14 +1,13 @@
 /**
- * Overview 胶囊：容器内拖拽 + 贴边收缩
+ * Overview 胶囊：容器内拖拽 + 始终贴左右边
  *
  * 状态机：collapsed | expanded | dragging
  * - tip：仅 hover 展开（无点击）
- * - expanded 且仍记着 edge：指针离开约 3s 缩回该边
- * - 拖拽结束 settle：贴边 → collapsed，否则 → expanded（清空 edge）
+ * - expanded 且仍记着 edge：指针离开约 IDLE 后缩回该边
+ * - 拖拽松手：按水平中心判断更近侧，吸附收缩（不允许停在中间）
  */
 import gsap from 'gsap'
 import { Draggable } from 'gsap/Draggable'
-import { InertiaPlugin } from 'gsap/InertiaPlugin'
 
 import {
   readCapsulePlacement,
@@ -16,10 +15,8 @@ import {
   type CapsuleEdge
 } from '@/views/overview/lib/capsule-placement'
 
-gsap.registerPlugin(Draggable, InertiaPlugin)
+gsap.registerPlugin(Draggable)
 
-/** 须小于 MARGIN_PX，否则展开落点仍被判定为贴边而再次缩起 */
-const EDGE_PX = 4
 const MARGIN_PX = 8
 const SETTLE_DURATION = 0.28
 const EXPAND_DURATION = 0.22
@@ -55,7 +52,7 @@ function bindCapsuleDrag(
   const expandDuration = isReducedMotion ? 0 : EXPAND_DURATION
 
   let mode: CapsuleMode = 'collapsed'
-  /** collapsed：当前贴边；expanded：idle 可缩回的边；dragging / 自由展开：null */
+  /** collapsed：当前贴边；expanded：idle 可缩回的边；dragging：null */
   let edge: CapsuleEdge | null = null
   let isAnimating = false
   let hasDragMoved = false
@@ -89,7 +86,12 @@ function bindCapsuleDrag(
     return Number(gsap.getProperty(el, 'x')) || 0
   }
 
-  /** DOM 只由此写入，避免 dataset / JS 分叉 */
+  /** 按胶囊水平中心判断更近的侧边 */
+  function findNearerSide(x: number, width: number, boundsWidth: number): CapsuleEdge {
+    const centerX = x + width / 2
+    return centerX < boundsWidth / 2 ? 'left' : 'right'
+  }
+
   function applyMode(next: CapsuleMode, nextEdge: CapsuleEdge | null) {
     mode = next
     edge = nextEdge
@@ -128,20 +130,15 @@ function bindCapsuleDrag(
   }
 
   function persist() {
-    const { width, height, boundsWidth, boundsHeight } = findMetrics()
-    if (!boundsWidth || !boundsHeight || !width || !height) return
+    if (!edge) return
 
-    const x = findCurrentX()
-    const y = findCurrentY()
-    const maxX = Math.max(1, boundsWidth - width)
+    const { height, boundsHeight } = findMetrics()
+    if (!boundsHeight || !height) return
+
     const maxY = Math.max(1, boundsHeight - height)
-    const isCollapsed = mode === 'collapsed'
-
     writeCapsulePlacement({
-      xRatio: clamp(x / maxX, 0, 1),
-      yRatio: clamp(y / maxY, 0, 1),
-      edge: isCollapsed ? edge : null,
-      collapsed: isCollapsed
+      yRatio: clamp(findCurrentY() / maxY, 0, 1),
+      edge
     })
   }
 
@@ -160,7 +157,6 @@ function bindCapsuleDrag(
     })
   }
 
-  /** 唯一收缩出口：idle 与 settle 贴边共用 */
   function collapse(side: CapsuleEdge, animDuration: number) {
     clearTimers()
     gsap.killTweensOf(el)
@@ -168,16 +164,19 @@ function bindCapsuleDrag(
 
     afterLayout(function () {
       const { width, height, boundsWidth, boundsHeight } = findMetrics()
-      animateTo(
-        findCollapsedX(side, width, boundsWidth),
-        clamp(findCurrentY(), 0, Math.max(0, boundsHeight - height)),
-        animDuration,
-        persist
-      )
+      const endX = findCollapsedX(side, width, boundsWidth)
+      const endY = clamp(findCurrentY(), 0, Math.max(0, boundsHeight - height))
+
+      if (animDuration <= 0) {
+        gsap.set(el, { x: endX, y: endY })
+        persist()
+        return
+      }
+
+      animateTo(endX, endY, animDuration, persist)
     })
   }
 
-  /** tip → 展开；保留 edge 供 idle 缩回 */
   function expand() {
     if (mode !== 'collapsed' || !edge) return
 
@@ -190,7 +189,11 @@ function bindCapsuleDrag(
       const { width, height, boundsWidth, boundsHeight } = findMetrics()
       animateTo(
         findExpandedX(side, width, boundsWidth),
-        clamp(findCurrentY(), MARGIN_PX, Math.max(MARGIN_PX, boundsHeight - height - MARGIN_PX)),
+        clamp(
+          findCurrentY(),
+          MARGIN_PX,
+          Math.max(MARGIN_PX, boundsHeight - height - MARGIN_PX)
+        ),
         expandDuration,
         function () {
           persist()
@@ -217,62 +220,35 @@ function bindCapsuleDrag(
     )
   }
 
+  /** 松手：始终吸附更近侧边，不允许停在中间 */
   function settle() {
     clearTimers()
     gsap.killTweensOf(el)
 
-    const { width, height, boundsWidth, boundsHeight } = findMetrics()
-    const x = findCurrentX()
-    const y = findCurrentY()
-    const nextY = clamp(y, MARGIN_PX, Math.max(MARGIN_PX, boundsHeight - height - MARGIN_PX))
-    const nextX = clamp(x, MARGIN_PX, Math.max(MARGIN_PX, boundsWidth - width - MARGIN_PX))
-
-    if (x <= EDGE_PX) {
-      collapse('left', duration)
-      return
-    }
-    if (boundsWidth - (x + width) <= EDGE_PX) {
-      collapse('right', duration)
-      return
-    }
-
-    applyMode('expanded', null)
-    animateTo(nextX, nextY, duration, persist)
+    const { width, boundsWidth } = findMetrics()
+    const side = findNearerSide(findCurrentX(), width, boundsWidth)
+    collapse(side, duration)
   }
 
   function placeFromStorage() {
     const placement = readCapsulePlacement()
-    const { width, height, boundsWidth, boundsHeight } = findMetrics()
+    const { width, boundsWidth } = findMetrics()
     if (!width || !boundsWidth) return
 
     clearTimers()
     gsap.set(el, { left: 0, top: 0 })
+    applyMode('collapsed', placement.edge)
 
-    if (placement.collapsed && placement.edge) {
-      applyMode('collapsed', placement.edge)
-      afterLayout(function () {
-        const metrics = findMetrics()
-        gsap.set(el, {
-          x: findCollapsedX(placement.edge!, metrics.width, metrics.boundsWidth),
-          y: clamp(
-            placement.yRatio * Math.max(0, metrics.boundsHeight - metrics.height),
-            0,
-            Math.max(0, metrics.boundsHeight - metrics.height)
-          )
-        })
+    afterLayout(function () {
+      const metrics = findMetrics()
+      gsap.set(el, {
+        x: findCollapsedX(placement.edge, metrics.width, metrics.boundsWidth),
+        y: clamp(
+          placement.yRatio * Math.max(0, metrics.boundsHeight - metrics.height),
+          0,
+          Math.max(0, metrics.boundsHeight - metrics.height)
+        )
       })
-      return
-    }
-
-    applyMode('expanded', null)
-    const maxX = Math.max(0, boundsWidth - width)
-    const maxY = Math.max(0, boundsHeight - height)
-    let x = clamp(placement.xRatio * maxX, MARGIN_PX, Math.max(MARGIN_PX, maxX - MARGIN_PX))
-    if (placement.edge === 'left') x = findExpandedX('left', width, boundsWidth)
-    if (placement.edge === 'right') x = findExpandedX('right', width, boundsWidth)
-    gsap.set(el, {
-      x,
-      y: clamp(placement.yRatio * maxY, MARGIN_PX, Math.max(MARGIN_PX, maxY))
     })
   }
 
@@ -280,19 +256,19 @@ function bindCapsuleDrag(
     clearTimers()
     gsap.killTweensOf(el)
     isAnimating = false
-    // 拖拽接管：取消 idle 归属边；DOM 用展开壳（宽度）
     applyMode('dragging', null)
   }
 
   const [draggable] = Draggable.create(el, {
     type: 'x,y',
     bounds,
-    edgeResistance: 0.65,
-    inertia: !isReducedMotion,
-    // 整颗胶囊可拖；minimumMovement 区分点击与拖拽
+    edgeResistance: 0.75,
+    inertia: false,
     dragClickables: true,
     zIndexBoost: false,
     minimumMovement: 4,
+    cursor: 'grab',
+    activeCursor: 'grabbing',
     onPress() {
       hasDragMoved = false
       clearHoverTimer()
@@ -302,11 +278,7 @@ function bindCapsuleDrag(
       beginDrag()
     },
     onDragEnd() {
-      if (this.isThrowing) return
       if (!hasDragMoved) return
-      settle()
-    },
-    onThrowComplete() {
       settle()
     }
   })
@@ -351,10 +323,17 @@ function bindCapsuleDrag(
       return
     }
 
-    gsap.set(el, {
-      x: clamp(findCurrentX(), MARGIN_PX, Math.max(MARGIN_PX, boundsWidth - width - MARGIN_PX)),
-      y: clamp(findCurrentY(), MARGIN_PX, Math.max(MARGIN_PX, boundsHeight - height - MARGIN_PX))
-    })
+    // 展开态：贴着归属边保持 MARGIN
+    if (mode === 'expanded' && edge) {
+      gsap.set(el, {
+        x: findExpandedX(edge, width, boundsWidth),
+        y: clamp(
+          findCurrentY(),
+          MARGIN_PX,
+          Math.max(MARGIN_PX, boundsHeight - height - MARGIN_PX)
+        )
+      })
+    }
   }
 
   placeFromStorage()

@@ -10,21 +10,6 @@
     width: 100%;
     height: 100%;
     overflow: hidden scroll;
-    // 轻量边缘遮罩（视觉保留，尺寸收紧控合成成本）
-    -webkit-mask-image: linear-gradient(
-      to bottom,
-      transparent 0,
-      #000 8px,
-      #000 calc(100% - 10px),
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      to bottom,
-      transparent 0,
-      #000 8px,
-      #000 calc(100% - 10px),
-      transparent 100%
-    );
   }
 
   // Mirror 切换动画作用层

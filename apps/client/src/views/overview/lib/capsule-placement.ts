@@ -1,23 +1,18 @@
 /**
- * Overview 胶囊位置：localStorage 持久化（相对坐标，适配 resize）
+ * Overview 胶囊位置：localStorage（贴边 + 垂直比例）
  */
 const STORAGE_KEY = 'ith:overview-capsule'
 
 type CapsuleEdge = 'left' | 'right'
 
 type CapsulePlacement = {
-  xRatio: number
   yRatio: number
-  edge: CapsuleEdge | null
-  collapsed: boolean
+  edge: CapsuleEdge
 }
 
-/** 无缓存时：右侧垂直居中 + 收缩 */
 const INITIAL_PLACEMENT: CapsulePlacement = {
-  xRatio: 1,
   yRatio: 0.5,
-  edge: 'right',
-  collapsed: true
+  edge: 'right'
 }
 
 function clampRatio(value: number) {
@@ -37,11 +32,11 @@ function readCapsulePlacement(): CapsulePlacement {
 
     const parsed = JSON.parse(raw) as Partial<CapsulePlacement>
     const edge = parseEdge(parsed.edge)
+    if (!edge) return { ...INITIAL_PLACEMENT }
+
     return {
-      xRatio: clampRatio(Number(parsed.xRatio)),
       yRatio: clampRatio(Number(parsed.yRatio)),
-      edge,
-      collapsed: typeof parsed.collapsed === 'boolean' ? parsed.collapsed : true
+      edge
     }
   } catch {
     return { ...INITIAL_PLACEMENT }
@@ -53,10 +48,8 @@ function writeCapsulePlacement(placement: CapsulePlacement) {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        xRatio: clampRatio(placement.xRatio),
         yRatio: clampRatio(placement.yRatio),
-        edge: placement.edge,
-        collapsed: placement.collapsed
+        edge: placement.edge
       })
     )
   } catch {
