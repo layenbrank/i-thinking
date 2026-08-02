@@ -2,7 +2,7 @@ import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { type RefObject, useLayoutEffect, useMemo, useRef } from 'react'
 
-import { bindScrollFx, TILE, type ScrollFx } from '@/features/controller/lib/scroll-fx'
+import { bindScrollFx, TILE_SELECTOR, type ScrollFx } from '@/features/controller/lib/scroll-fx'
 
 gsap.registerPlugin(useGSAP)
 
@@ -15,17 +15,17 @@ function findScroller(grid: HTMLElement): HTMLElement {
   return (grid.closest('[data-mirror-scroller]') as HTMLElement | null) ?? grid
 }
 
-function findReadyTiles(root: HTMLElement): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(TILE))
+function findTiles(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(TILE_SELECTOR))
 }
 
 function syncTrack(fx: ScrollFx, grid: HTMLElement) {
-  fx.track(findReadyTiles(grid))
+  fx.track(findTiles(grid))
 }
 
 /**
- * 一次绑定 scroller；tilesKey / DOM 变化时仅 track。
- * 拖拽 pause 时断开 MutationObserver，避免换位时反复 bindBatch。
+ * 一次绑定 scroller；tilesKey / DOM 变化时仅 track 入场。
+ * 拖拽 pause 时断开 MutationObserver。
  */
 function useScrollFx(
   gridRef: RefObject<HTMLElement | null>,
@@ -108,6 +108,7 @@ function useScrollFx(
           fxRef.current?.pause()
         },
         resume() {
+          if (!isPausedRef.current) return
           isPausedRef.current = false
           fxRef.current?.resume()
           const grid = gridRef.current

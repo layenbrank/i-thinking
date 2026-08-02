@@ -2,8 +2,8 @@
  * Mirror 磁贴网格 Sortable
  *
  * - delay 后 onChoose：清单块 transform，不 pause 滚动
- * - 真实拖拽 onStart 才 pause；onEnd / onUnchoose 必 resume
- * - overlay 打开时禁拖，与 scroll-fx 零耦合
+ * - 真实拖拽 onStart 才 pause；仅曾拖动时 onEnd 才 resume
+ * - overlay / skeleton 禁拖，与 scroll-fx 零耦合
  */
 import Sortable from 'sortablejs'
 
@@ -26,8 +26,18 @@ type SortableSession = {
   destroy(): void
 }
 
-function isLocked(el: HTMLElement) {
-  return el.closest('[data-overlay-open="true"]') != null
+/**
+ * Sortable 在 closest(draggable) 未命中时仍会调用 filter，此时 target 为 null
+ *（例如点在 grid gap / padding）。统一在此判定，避免散落 null 检查。
+ */
+function isDragBlocked(
+  target: HTMLElement | null | undefined,
+  isDisabled?: () => boolean
+) {
+  if (isDisabled?.()) return true
+  if (!target) return true
+  if (target.closest('.magnetic-tile-skeleton')) return true
+  return target.closest('[data-overlay-open="true"]') != null
 }
 
 function bindSortable(
@@ -50,10 +60,7 @@ function bindSortable(
     chosenClass: 'magnetic-tile-chosen',
     dragClass: 'magnetic-tile-drag',
     filter(_evt, target) {
-      if (options.isDisabled?.()) return true
-      const el = target as HTMLElement
-      if (el.closest('.magnetic-tile-skeleton')) return true
-      return isLocked(el)
+      return isDragBlocked(target, options.isDisabled)
     },
     preventOnFilter: true,
     onChoose(evt) {
@@ -66,11 +73,8 @@ function bindSortable(
       if (dragEl) dragEl.classList.add('dragging')
       options.onDragStart?.()
     },
-    onUnchoose() {
-      if (isDragging) return
-      options.onDragEnd?.()
-    },
     onEnd(evt) {
+      const wasDragging = isDragging
       isDragging = false
       evt.item.classList.remove('dragging')
       const dragEl = document.querySelector('.magnetic-tile-drag') as HTMLElement | null
@@ -79,28 +83,22 @@ function bindSortable(
 
       const from = evt.oldIndex
       const to = evt.newIndex
-      options.onDragEnd?.()
 
-      if (from == null || to == null || from === to) return
-
-      const ids = Array.from(evt.from.children)
-        .map(function (node) {
-          return (node as HTMLElement).dataset.id
-        })
-        .filter(function (id): id is string {
-          return Boolean(id)
-        })
-
-      const parent = evt.from
-      const item = evt.item
-      const children = parent.children
-      if (from < to) {
-        parent.insertBefore(item, children[from] ?? null)
-      } else {
-        parent.insertBefore(item, children[from + 1] ?? null)
+      // 先采序、还原 DOM、乐观落库，最后 resume，避免入场/滚动连刷
+      if (from != null && to != null && from !== to) {
+        const ids = sortable.toArray()
+        const parent = evt.from
+        const item = evt.item
+        const children = parent.children
+        if (from < to) {
+          parent.insertBefore(item, children[from] ?? null)
+        } else {
+          parent.insertBefore(item, children[from + 1] ?? null)
+        }
+        if (ids.length) options.onReorder?.(ids)
       }
 
-      if (ids.length) options.onReorder?.(ids)
+      if (wasDragging) options.onDragEnd?.()
     }
   })
 

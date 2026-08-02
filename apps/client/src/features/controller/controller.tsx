@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { useKeyModifier } from '@reactuses/core'
 
 import { useScrollFx } from '@/features/controller/hooks/use-scroll-fx'
+import { resetMirrorScroll } from '@/features/controller/lib/scroll-fx'
 import {
   bindSortable,
   reorder,
@@ -31,24 +32,24 @@ const Controller = {
   Mirror(props: MirrorProps) {
     const mirrors = useMirrorStore((state) => state.mirrors)
     const activeId = useMirrorStore((state) => state.active.mirror?.id ?? null)
-    const [paneId, setPaneId] = useState(activeId)
+    const [viewId, setViewId] = useState(activeId)
     const paneRef = useRef<HTMLDivElement>(null)
     const scrimRef = useRef<HTMLDivElement>(null)
     const transitionRef = useRef(bindMirrorTransition())
     const directionRef = useRef<MirrorDirection>(1)
     const isFirstEnter = useRef(true)
     const mirrorsRef = useRef(mirrors)
-    const paneIdRef = useRef(paneId)
+    const viewIdRef = useRef(viewId)
 
     mirrorsRef.current = mirrors
-    paneIdRef.current = paneId
+    viewIdRef.current = viewId
 
     // 外部首次注入 / 同步 active（非 pager 路径）
     useEffect(
       function () {
         if (!activeId) return
-        if (paneIdRef.current == null) {
-          setPaneId(activeId)
+        if (viewIdRef.current == null) {
+          setViewId(activeId)
         }
       },
       [activeId]
@@ -57,7 +58,7 @@ const Controller = {
     useEffect(function () {
       const transition = transitionRef.current
       return registerMirrorSwitch(async function (nextId) {
-        const currentId = paneIdRef.current
+        const currentId = viewIdRef.current
         if (!nextId || nextId === currentId) return
 
         const direction = findMirrorDirection(mirrorsRef.current, currentId, nextId)
@@ -72,7 +73,7 @@ const Controller = {
         const payload = await payloadPromise
         if (!payload) return
         store.toCommitMirrorPayload(payload)
-        setPaneId(nextId)
+        setViewId(nextId)
       })
     }, [])
 
@@ -86,20 +87,19 @@ const Controller = {
     useLayoutEffect(
       function () {
         const pane = paneRef.current
-        if (!pane || !paneId) return
+        if (!pane || !viewId) return
 
         if (isFirstEnter.current) {
           isFirstEnter.current = false
           return
         }
 
-        // 新页从顶部进入，避免继承旧滚动位置
         const scroller = pane.closest('[data-mirror-scroller]') as HTMLElement | null
-        if (scroller) scroller.scrollTop = 0
+        resetMirrorScroll(scroller)
 
         void transitionRef.current.playEnter(pane, directionRef.current, scrimRef.current)
       },
-      [paneId]
+      [viewId]
     )
 
     return (
@@ -107,7 +107,7 @@ const Controller = {
         <div data-mirror-scroller className={styles.scroller}>
           <div
             ref={paneRef}
-            key={paneId ?? 'empty'}
+            key={viewId ?? 'empty'}
             data-mirror-pane
             className={styles.pane}>
             {props.children}
@@ -128,12 +128,14 @@ const Controller = {
     controlRef.current = control
     tilesRef.current = magneticTiles
 
+    // membership only：换序不触发 layout sync，几何交给 observer / resume
     const tilesKey = useMemo(
       function () {
         return (magneticTiles ?? [])
           .map(function (tile) {
             return tile.id
           })
+          .toSorted()
           .join(',')
       },
       [magneticTiles]

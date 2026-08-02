@@ -62,6 +62,17 @@ type SliceCreator<T> = StateCreator<
   T
 >
 
+/** 拖拽重排：change 仅含 index 时跳过 toReadMirror */
+function isIndexOnlyUpdate(values: MagneticTileUpdate[]) {
+  if (!values.length) return false
+  return values.every(function (item) {
+    const keys = Object.keys(item.change)
+    return keys.length > 0 && keys.every(function (key) {
+      return key === 'index'
+    })
+  })
+}
+
 const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
   return {
     mirrors: [],
@@ -225,6 +236,8 @@ const magneticTileSlice: SliceCreator<MagneticTileSlice> = function (setters, ge
       if (!mirrorID) return
       const params = values.length === 1 ? values[0] : values
       await invoke('magnetic-tile:update', { params })
+      // index-only（拖拽重排）乐观序已是真相，跳过全量重读避免松手二次抖动
+      if (isIndexOnlyUpdate(values)) return
       await getters().toReadMirror(mirrorID)
     },
 
