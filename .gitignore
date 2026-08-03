@@ -85,7 +85,10 @@ apps/studio/sidecar/staging/**
 !apps/studio/sidecar/staging/.gitkeep
 !apps/studio/sidecar/staging/**/.gitkeep
 apps/studio/sidecar/vendor/**
-.cursor/**/*.pyc
+# Python bytecode (including under .cursor/skills)
+*.pyc
+__pycache__/
+
 findings.md
 progress.md
 task_plan.md
