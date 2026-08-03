@@ -16,7 +16,7 @@ import {
 
 import { ContextMenu } from '@/components/contextmenu'
 import { ABORT_TIMEOUT_MS } from '@/constants/magnetic-tile/components'
-import { buildLayoutMenuItems } from '@/features/magnetic-tile/build-layout-menu'
+import { buildItems, Picker, styles as menuStyles } from '@/features/magnetic-tile/layout-menu'
 import { Caption } from '@/features/magnetic-tile/caption'
 import { Enter, useEnter } from '@/features/magnetic-tile/enter-context'
 import { ENTER } from '@/features/magnetic-tile/enter-motion'
@@ -170,17 +170,35 @@ const MagneticTile = {
   Enter,
   Marker(props: MarkerProps) {
     const section = useContext(SectionContext)
+    const [menuOpen, setMenuOpen] = useState(false)
 
     const menuItems = useMemo(
       function () {
         if (!section) return []
-        return buildLayoutMenuItems(section)
+        return buildItems(section)
       },
       [section]
     )
 
     return (
-      <ContextMenu items={menuItems}>
+      <ContextMenu
+        open={menuOpen}
+        items={menuItems}
+        classNames={{ panel: menuStyles.panel }}
+        onOpenChange={setMenuOpen}
+        renderPanel={function (nodes, meta) {
+          if (meta.level > 0 || !section) return nodes
+          return (
+            <div className={menuStyles.body}>
+              <Picker tile={section} />
+              <div
+                className={menuStyles.rule}
+                role="separator"
+              />
+              {nodes}
+            </div>
+          )
+        }}>
         <div
           style={props.style}
           onDoubleClick={props.onDoubleClick}
