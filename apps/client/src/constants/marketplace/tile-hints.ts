@@ -48,14 +48,4 @@ function findTileHint(component: MagneticTile.Component, fallback: string) {
   return TILE_HINTS[component] ?? fallback
 }
 
-function isNavigationTile(component: MagneticTile.Component) {
-  return component === 'navigation'
-}
-
-export {
-  COMPONENT_LABELS,
-  TILE_HINTS,
-  findComponentLabel,
-  findTileHint,
-  isNavigationTile
-}
+export { COMPONENT_LABELS, TILE_HINTS, findComponentLabel, findTileHint }
