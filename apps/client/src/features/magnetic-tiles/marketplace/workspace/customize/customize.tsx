@@ -21,6 +21,11 @@ import type { Color } from 'antd/es/color-picker'
 import { clsx } from 'clsx'
 
 import { Glide } from '@/components/glide/glide'
+import {
+  findComponentLabel,
+  findTileHint,
+  isNavigationTile
+} from '@/constants/marketplace/tile-hints'
 import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
 import {
   useMirrorStore,
@@ -62,6 +67,7 @@ const TEXT_COLOR = '#ffffff'
 const CREATE_KEY = '__create__'
 const BLUR_MAX = 24
 const OPACITY_DEFAULT = 1
+const CREATE_COMPONENT: MagneticTile.Component = 'navigation'
 
 const validateMessages = {
   required: '${label}是必填的!',
@@ -199,17 +205,34 @@ function parseCustomizeWrite(
   }
 }
 
+function parseCustomizeUrl(url: string, component: MagneticTile.Component) {
+  const trimmed = url.trim()
+  if (trimmed) return trimmed
+  if (isNavigationTile(component)) return ''
+  return null
+}
+
+function canParseUrl(value: string) {
+  try {
+    return Boolean(new URL(value))
+  } catch {
+    return false
+  }
+}
+
 function parseCustomizeChange(
   value: CustomizeFormValues,
   images: PicsumImage[],
-  keptImageUrl: string | null
+  keptImageUrl: string | null,
+  component: MagneticTile.Component
 ): MagneticTile.Change {
   const imageUrl = parseBackgroundImage(value, images, keptImageUrl)
+  const title = value.title.trim()
 
   return {
-    title: value.title.trim(),
-    url: value.url.trim(),
-    description: value.title.trim(),
+    title,
+    url: parseCustomizeUrl(value.url, component),
+    description: title,
     background: {
       color: value.color,
       image: imageUrl,
@@ -219,6 +242,17 @@ function parseCustomizeChange(
     backdrop: parseCustomizeBackdrop(value.backdropBlur, value.backdropOpacity),
     textColor: value.textColor
   }
+}
+
+function findTileOptionLabel(tile: MagneticTile) {
+  const title = tile.title.trim() || tile.url || tile.id
+  if (isNavigationTile(tile.component)) return title
+  return `${title} · ${findComponentLabel(tile.component)}`
+}
+
+function matchTileOption(input: string, option?: { label?: unknown }) {
+  const label = String(option?.label ?? '')
+  return label.toLowerCase().includes(input.trim().toLowerCase())
 }
 
 function parseTileToForm(
@@ -283,16 +317,20 @@ function RePreview(
   watched: Partial<CustomizeFormValues> | undefined,
   images: PicsumImage[],
   fallbackColor: string,
-  keptImageUrl: string | null
+  keptImageUrl: string | null,
+  component: MagneticTile.Component
 ) {
   const previewTitle = watched?.title?.trim() || PREVIEW_TITLE_PLACEHOLDER
-  const previewUrl = watched?.url?.trim() || PREVIEW_URL_PLACEHOLDER
   const previewColor = watched?.color ?? fallbackColor
   const previewTextColor = watched?.textColor ?? TEXT_COLOR
   const selectedImage = findPicsumImage(images, watched?.image)
   const previewImageUrl = selectedImage
     ? buildPicsumUrl(selectedImage, PICSUM_PREVIEW_WIDTH, PICSUM_PREVIEW_HEIGHT)
     : (keptImageUrl ?? undefined)
+  const isNavigate = isNavigationTile(component)
+  const previewSubtitle = isNavigate
+    ? watched?.url?.trim() || PREVIEW_URL_PLACEHOLDER
+    : findTileHint(component, findComponentLabel(component))
 
   const surfaceStyle = buildSurfaceStyle({
     round: '12px',
@@ -315,6 +353,13 @@ function RePreview(
         className={styles.previewCard}
         style={surfaceStyle}>
         <div className={styles.previewOverlay}>
+          {!isNavigate ? (
+            <span
+              className={styles.previewBadge}
+              style={{ color: previewTextColor }}>
+              {findComponentLabel(component)}
+            </span>
+          ) : null}
           <p
             className={styles.previewTitle}
             style={{ color: previewTextColor }}>
@@ -323,7 +368,7 @@ function RePreview(
           <p
             className={styles.previewUrl}
             style={{ color: previewTextColor, opacity: 0.85 }}>
-            {previewUrl}
+            {previewSubtitle}
           </p>
         </div>
       </div>
@@ -343,31 +388,66 @@ export default function Customize() {
   const [selectedKey, updateSelectedKey] = useState(CREATE_KEY)
   const [keptImageUrl, updateKeptImageUrl] = useState<string | null>(null)
 
-  const navigationTiles = useMemo(
+  const editableTiles = useMemo(
     function () {
-      return magneticTiles.filter(function (tile) {
-        return tile.component === 'navigation'
+      return [...magneticTiles].sort(function (a, b) {
+        return a.index - b.index
       })
     },
     [magneticTiles]
   )
 
-  const tileOptions = useMemo(
+  const isCreateMode = selectedKey === CREATE_KEY
+
+  const selectedTile = useMemo(
     function () {
-      return [
-        { value: CREATE_KEY, label: '新建网址磁贴' },
-        ...navigationTiles.map(function (tile) {
-          return {
-            value: tile.id,
-            label: tile.title || tile.url || tile.id
-          }
-        })
-      ]
+      if (isCreateMode) return null
+      return (
+        editableTiles.find(function (tile) {
+          return tile.id === selectedKey
+        }) ?? null
+      )
     },
-    [navigationTiles]
+    [editableTiles, isCreateMode, selectedKey]
   )
 
-  const isCreateMode = selectedKey === CREATE_KEY
+  const editingComponent = selectedTile?.component ?? CREATE_COMPONENT
+  const isUrlRequired = isCreateMode || isNavigationTile(editingComponent)
+
+  const tileOptions = useMemo(
+    function () {
+      const navigateOptions = editableTiles
+        .filter(function (tile) {
+          return isNavigationTile(tile.component)
+        })
+        .map(function (tile) {
+          return {
+            value: tile.id,
+            label: findTileOptionLabel(tile)
+          }
+        })
+
+      const boothOptions = editableTiles
+        .filter(function (tile) {
+          return !isNavigationTile(tile.component)
+        })
+        .map(function (tile) {
+          return {
+            value: tile.id,
+            label: findTileOptionLabel(tile)
+          }
+        })
+
+      return [
+        { value: CREATE_KEY, label: '新建网址磁贴' },
+        ...(navigateOptions.length
+          ? [{ label: '网址', options: navigateOptions }]
+          : []),
+        ...(boothOptions.length ? [{ label: '磁贴', options: boothOptions }] : [])
+      ]
+    },
+    [editableTiles]
+  )
 
   const DEFAULT_COLORS = useMemo(
     function () {
@@ -421,10 +501,11 @@ export default function Customize() {
 
     if (key === CREATE_KEY) {
       resetCreateForm(images, colors)
+      form.setFields([{ name: 'url', errors: [] }])
       return
     }
 
-    const tile = navigationTiles.find(function (item) {
+    const tile = editableTiles.find(function (item) {
       return item.id === key
     })
     if (!tile) return
@@ -432,6 +513,7 @@ export default function Customize() {
     const parsed = parseTileToForm(tile, images, token.colorPrimary)
     updateKeptImageUrl(parsed.keptImageUrl)
     form.setFieldsValue(parsed.values)
+    form.setFields([{ name: 'url', errors: [] }])
 
     if (parsed.values.color && !colors.includes(parsed.values.color)) {
       updateColors(function (prev) {
@@ -474,7 +556,16 @@ export default function Customize() {
         message.success('添加成功')
         resetCreateForm(images, colors)
       } else {
-        const change = parseCustomizeChange(value, images, keptImageUrl)
+        if (!selectedTile) {
+          message.error('未找到要编辑的磁贴')
+          return
+        }
+        const change = parseCustomizeChange(
+          value,
+          images,
+          keptImageUrl,
+          selectedTile.component
+        )
         const update: MagneticTileUpdate = {
           key: selectedKey,
           change
@@ -564,9 +655,12 @@ export default function Customize() {
               validateMessages={validateMessages}>
               <Form.Item label="磁贴">
                 <Select
+                  showSearch
                   value={selectedKey}
                   options={tileOptions}
                   className="cursor-pointer"
+                  placeholder="选择要编辑的磁贴"
+                  filterOption={matchTileOption}
                   onChange={onSelectTile}
                 />
               </Form.Item>
@@ -581,8 +675,25 @@ export default function Customize() {
                 name="url"
                 label="链接"
                 className={clsx([AOModule.single, AOModule.url])}
-                rules={[{ required: true }, { type: 'url' }]}>
-                <Input placeholder="请输入链接" />
+                rules={
+                  isUrlRequired
+                    ? [{ required: true }, { type: 'url' }]
+                    : [
+                        {
+                          validator: function (_rule, value: string) {
+                            const trimmed = String(value ?? '').trim()
+                            if (!trimmed) return Promise.resolve()
+                            if (canParseUrl(trimmed)) return Promise.resolve()
+                            return Promise.reject(new Error('链接不是有效链接!'))
+                          }
+                        }
+                      ]
+                }>
+                <Input
+                  placeholder={
+                    isUrlRequired ? '请输入链接' : '可选，非网址磁贴可留空'
+                  }
+                />
               </Form.Item>
               <Form.Item
                 label="背景颜色"
@@ -738,7 +849,13 @@ export default function Customize() {
           </Card>
         </div>
 
-        {RePreview(watched, images, token.colorPrimary, keptImageUrl)}
+        {RePreview(
+          watched,
+          images,
+          token.colorPrimary,
+          keptImageUrl,
+          editingComponent
+        )}
       </div>
     </div>
   )

@@ -1,3 +1,24 @@
+const COMPONENT_LABELS: Record<MagneticTile.Component, string> = {
+  bookmark: '书签',
+  calendar: '日历',
+  clock: '时钟',
+  countdown: '倒计时',
+  code: '代码',
+  clipchamp: '视频',
+  collection: '集合',
+  marketplace: '商店',
+  markdown: '笔记',
+  morph: '变形',
+  settings: '设置',
+  intelligence: '智能',
+  developer: '开发者',
+  gallery: '图库',
+  signboard: '看板',
+  screenshot: '截屏',
+  example: '示例',
+  navigation: '网址'
+}
+
 const TILE_HINTS: Partial<Record<MagneticTile.Component, string>> = {
   bookmark: '收藏常用链接与站点入口',
   calendar: '日程安排与宜忌参考',
@@ -15,11 +36,26 @@ const TILE_HINTS: Partial<Record<MagneticTile.Component, string>> = {
   gallery: '图库浏览与管理',
   signboard: '看板任务与状态流转',
   screenshot: '截屏与标注工具',
-  example: '示例磁贴与演示'
+  example: '示例磁贴与演示',
+  navigation: '网址快捷入口'
+}
+
+function findComponentLabel(component: MagneticTile.Component) {
+  return COMPONENT_LABELS[component] ?? component
 }
 
 function findTileHint(component: MagneticTile.Component, fallback: string) {
   return TILE_HINTS[component] ?? fallback
 }
 
-export { TILE_HINTS, findTileHint }
+function isNavigationTile(component: MagneticTile.Component) {
+  return component === 'navigation'
+}
+
+export {
+  COMPONENT_LABELS,
+  TILE_HINTS,
+  findComponentLabel,
+  findTileHint,
+  isNavigationTile
+}
