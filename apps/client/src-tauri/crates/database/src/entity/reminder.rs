@@ -54,7 +54,8 @@ pub struct Read {
     pub title: Option<String>,
     pub enabled: Option<bool>,
     /// When true, include rows with archivedAt set. Default: active only.
-    pub include_archived: Option<bool>,
+    #[serde(default)]
+    pub archived: bool,
     pub due_from: Option<i64>,
     pub due_to: Option<i64>,
 }

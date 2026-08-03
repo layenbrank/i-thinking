@@ -205,7 +205,7 @@ impl Service {
         if let Some(ref reminder_id) = payload.reminder_id {
             cond = cond.add(schema::Column::ReminderId.eq(reminder_id.clone()));
         }
-        if payload.include_archived != Some(true) {
+        if !payload.archived {
             cond = cond.add(schema::Column::ArchivedAt.is_null());
         }
         if let Some(range_from) = payload.range_from {

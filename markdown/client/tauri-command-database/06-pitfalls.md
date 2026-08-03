@@ -28,7 +28,7 @@
 | 经 `reminder:update` 写 `lastFiredAt` | Change 无此字段，无效或类型错 | 交给 `toClaimFire` |
 | `weekDays: "[]"` 当重复闹钟 | 被当成 **one-shot**；响后 archive | 重复需非空 ISO 星期数组 |
 | update 省略字段 vs 传 `null` 搞混 | 该清的没清 / 不该改的被清 | 见 [03](./03-database.md) 三态 |
-| 读列表期望含已完成，却不传 `includeArchived` | 默认过滤 `archivedAt IS NULL` | `includeArchived: true` |
+| 读列表期望含已完成，却不传 `archived: true` | 默认过滤 `archivedAt IS NULL` | `archived: true` |
 | 照抄 `countdown:upsert` 做新业务 CRUD | 模式不一致 | 用 `write/read/update/remove` + `*P` |
 | 仍 invoke `calendar-event:*` / `alarm:*` | 未注册，调用失败 | 用 `calendar:*` / `reminder:*` |
 | 布尔字段继续用 `isXxx` 写入 | 与 schema 不符 | `enabled` / `entireDay` |

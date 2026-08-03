@@ -57,7 +57,7 @@ interface ReminderRead {
   id?: string
   title?: string
   enabled?: boolean
-  includeArchived?: boolean
+  archived?: boolean
   dueFrom?: number
   dueTo?: number
 }

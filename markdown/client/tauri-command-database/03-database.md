@@ -68,7 +68,7 @@ Crate：`thinking-database`（`apps/client/src-tauri/crates/database`）。
 | `updatedAt` | 最后更新（ms） |
 | `archivedAt` | `NULL` = 活跃；有值 = 终态（完成 / 软删 / 一次性关闭等） |
 
-读接口默认排除已归档（`includeArchived != true`）。硬删走 `remove`。
+读接口默认排除已归档（`archived: true` 才包含）。硬删走 `remove`。
 
 ## 非标准模块（勿照抄）
 

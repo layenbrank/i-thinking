@@ -276,7 +276,7 @@ impl Service {
         if let Some(enabled) = payload.enabled {
             cond = cond.add(schema::Column::Enabled.eq(enabled));
         }
-        if payload.include_archived != Some(true) {
+        if !payload.archived {
             cond = cond.add(schema::Column::ArchivedAt.is_null());
         }
         if let Some(due_from) = payload.due_from {

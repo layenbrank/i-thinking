@@ -53,7 +53,7 @@ fireTime != null && archivedAt == null
 - 一次性闹钟响后：worker 在 claim 时自动设 `archivedAt` + `enabled=false`
 - **不要**再找 `isCompleted` / `completedAt`
 
-读默认不含归档；需要历史时传 `includeArchived: true`。
+读默认不含归档；需要历史时传 `archived: true`。
 
 ## Calendar 字段
 

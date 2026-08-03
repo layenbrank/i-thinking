@@ -47,7 +47,7 @@ interface CalendarRead {
   id?: string
   title?: string
   reminderID?: string
-  includeArchived?: boolean
+  archived?: boolean
   rangeFrom?: number
   rangeTo?: number
 }

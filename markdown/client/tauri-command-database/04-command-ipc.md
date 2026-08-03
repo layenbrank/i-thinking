@@ -42,7 +42,7 @@ Many 批量时 Service 内开事务。
 **Write 要点**：必须提供 `dueAt` 或非空 `fireTime`。  
 **Change**：故意 **不含** `lastFiredAt`（仅 worker claim 写入）。
 
-**Read 过滤**：`id` / `title` / `enabled` / `includeArchived` / `dueFrom` / `dueTo`。
+**Read 过滤**：`id` / `title` / `enabled` / `archived` / `dueFrom` / `dueTo`。
 
 ## calendar:*
 

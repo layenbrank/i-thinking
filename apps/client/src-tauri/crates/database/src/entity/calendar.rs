@@ -54,7 +54,9 @@ pub struct Read {
     pub title: Option<String>,
     #[serde(rename = "reminderID")]
     pub reminder_id: Option<String>,
-    pub include_archived: Option<bool>,
+    /// When true, include rows with archivedAt set. Default: active only.
+    #[serde(default)]
+    pub archived: bool,
     pub range_from: Option<i64>,
     pub range_to: Option<i64>,
 }
