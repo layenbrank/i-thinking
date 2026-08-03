@@ -53,6 +53,67 @@ const EMPTY_DRAFT: Draft = {
   weekDays: []
 }
 
+function StageAnalog(props: { now: Dayjs }) {
+  const h = props.now.hour() % 12
+  const m = props.now.minute()
+  const s = props.now.second()
+  const hourDeg = h * 30 + m * 0.5
+  const minuteDeg = m * 6
+  const secondDeg = s * 6
+
+  return (
+    <div
+      className={styles.stageFace}
+      aria-hidden>
+      <span
+        className={styles.stageHandHour}
+        style={{ transform: `rotate(${hourDeg}deg)` }}
+      />
+      <span
+        className={styles.stageHandMinute}
+        style={{ transform: `rotate(${minuteDeg}deg)` }}
+      />
+      <span
+        className={styles.stageHandSecond}
+        style={{ transform: `rotate(${secondDeg}deg)` }}
+      />
+      <span className={styles.stageFaceCenter} />
+    </div>
+  )
+}
+
+function StageDigits(props: { now: Dayjs; clockStyle: ClockStyle }) {
+  const showSeconds = props.clockStyle !== 'minimal'
+  const text = showSeconds ? props.now.format('HH:mm:ss') : props.now.format('HH:mm')
+
+  if (props.clockStyle === 'flip') {
+    return (
+      <div className={styles.stageFlip}>
+        {text.split('').map(function (ch, i) {
+          if (ch === ':') {
+            return (
+              <span
+                key={`colon-${i}`}
+                className={styles.stageFlipColon}>
+                :
+              </span>
+            )
+          }
+          return (
+            <span
+              key={`${ch}-${i}`}
+              className={styles.stageFlipCard}>
+              {ch}
+            </span>
+          )
+        })}
+      </div>
+    )
+  }
+
+  return <span className={styles.stageDigits}>{text}</span>
+}
+
 function Overlay(props: OverlayControlProps) {
   const { onUpdateVisible } = useContext(OverlayContext)
   const { message } = App.useApp()
@@ -131,7 +192,11 @@ function Overlay(props: OverlayControlProps) {
     }
   }, [])
 
-  const previewTime = clockStyle === 'minimal' ? now.format('HH:mm') : now.format('HH:mm:ss')
+  const heroTime = clockStyle === 'minimal' ? now.format('HH:mm') : now.format('HH:mm:ss')
+  const styleLabel =
+    STYLES.find(function (s) {
+      return s.value === clockStyle
+    })?.label ?? '时钟'
   const nextFire = useMemo(
     function () {
       return findNextReminder(clockReminders, now)
@@ -297,12 +362,26 @@ function Overlay(props: OverlayControlProps) {
           <div className={styles.previewHero}>
             <div className={styles.previewMetric}>
               <span className={styles.previewLabel}>现在</span>
-              <span className={styles.previewTime}>{previewTime}</span>
+              <span className={styles.previewTime}>{heroTime}</span>
             </div>
             <div className={styles.previewMetric}>
               <span className={styles.previewLabel}>日期</span>
               <span className={styles.previewDate}>{now.format('M月D日 dddd')}</span>
             </div>
+          </div>
+
+          <div
+            className={clsx(styles.previewStage, styles[clockStyle])}
+            aria-live="polite"
+            aria-label={`预览 ${styleLabel}`}>
+            {clockStyle === 'analog' ? (
+              <StageAnalog now={now} />
+            ) : (
+              <StageDigits
+                now={now}
+                clockStyle={clockStyle}
+              />
+            )}
           </div>
 
           <div className={styles.previewFacts}>
@@ -311,7 +390,9 @@ function Overlay(props: OverlayControlProps) {
               <span className={styles.factValue}>
                 {nextFire
                   ? `${nextFire.reminder.fireTime} ${nextFire.reminder.title || '闹钟'}`
-                  : '暂无'}
+                  : clockReminders.length === 0
+                    ? '添加闹钟'
+                    : '暂无'}
               </span>
             </div>
             <div className={styles.fact}>
@@ -329,16 +410,14 @@ function Overlay(props: OverlayControlProps) {
                 width={14}
                 height={14}
               />
-              {STYLES.find(function (s) {
-                return s.value === clockStyle
-              })?.label ?? '时钟'}
+              {styleLabel}
             </span>
-            <span className={styles.previewRange}>{now.format('HH:mm:ss')}</span>
+            <span className={styles.previewRange}>{now.format('M月D日 ddd')}</span>
           </div>
         </div>
 
         <div className={styles.formCard}>
-          <div className={styles.section}>
+          <div className={styles.sectionAppearance}>
             <h3 className={styles.sectionTitle}>外观</h3>
             <div
               className={styles.styleList}
@@ -377,7 +456,7 @@ function Overlay(props: OverlayControlProps) {
             </div>
           </div>
 
-          <div className={styles.section}>
+          <div className={styles.sectionAlarms}>
             <div className={styles.sectionHead}>
               <h3 className={styles.sectionTitle}>闹钟</h3>
               {!isEditing ? (
