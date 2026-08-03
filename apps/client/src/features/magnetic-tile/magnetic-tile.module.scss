@@ -196,6 +196,7 @@
     .ant-modal-container {
       border-radius: inherit;
       overflow: hidden;
+      height: 100%;
     }
 
     .ant-modal-body {
@@ -203,6 +204,25 @@
       overflow: hidden;
     }
   }
+}
+
+/** 非全屏：锁定 16:9，并限制最大宽度（与 JS 常量一致） */
+.overlayRatio {
+  max-width: 1280px !important;
+  aspect-ratio: 16 / 9 !important;
+  height: auto !important;
+
+  :global(.ant-modal-content),
+  :global(.ant-modal-container) {
+    height: 100%;
+  }
+}
+
+.overlayFullscreen {
+  max-width: none !important;
+  aspect-ratio: unset !important;
+  height: 100% !important;
+  border-radius: 0 !important;
 }
 
 .body {

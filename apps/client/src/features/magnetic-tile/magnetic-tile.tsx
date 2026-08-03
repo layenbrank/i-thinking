@@ -74,6 +74,12 @@ interface OverlayProps extends Omit<ModalProps, 'open' | 'footer'> {
   abortTimeoutMs?: number
 }
 
+/** Overlay 默认宽度；非全屏锁定 16:9，并限制最大宽度 */
+const OVERLAY_WIDTH = '80%'
+const OVERLAY_MAX_WIDTH = 1280
+const OVERLAY_MIN_WIDTH = 600
+const OVERLAY_ASPECT_RATIO = '16 / 9'
+
 type OverlayControlProps = Pick<OverlayProps, 'cache' | 'onAbort' | 'abortTimeoutMs'>
 
 interface OverlayProviderProps {
@@ -223,8 +229,8 @@ const MagneticTile = {
   Overlay(props: OverlayProps) {
     const {
       className,
-      width = '80%',
-      height,
+      width = OVERLAY_WIDTH,
+      height: _height,
       onCancel,
       children,
       cache = 'destroy',
@@ -234,9 +240,11 @@ const MagneticTile = {
       caption,
       controls,
       open: _open,
+      style: styleProp,
       ...remains
     } = props as OverlayProps & { open?: boolean }
     void _open
+    void _height
     const { visible, fullscreen, onUpdateVisible, onUpdateRenderable } = useContext(OverlayContext)
 
     const shouldDestroyOnHidden = cache === 'destroy' ? true : (destroyOnHidden ?? false)
@@ -275,6 +283,25 @@ const MagneticTile = {
           ? <Caption />
           : caption
 
+    const overlayStyle: CSSProperties = fullscreen
+      ? {
+          ...styleProp,
+          minWidth: 'unset',
+          maxWidth: 'unset',
+          aspectRatio: 'unset',
+          height: '100%',
+          borderRadius: '0'
+        }
+      : {
+          ...styleProp,
+          minWidth: OVERLAY_MIN_WIDTH,
+          maxWidth: OVERLAY_MAX_WIDTH,
+          borderRadius: 'var(--ith-border-radius-lg)',
+          // 锁定比例：写在 styleProp 之后，禁止外部覆盖
+          aspectRatio: OVERLAY_ASPECT_RATIO,
+          height: 'auto'
+        }
+
     return (
       <Modal
         title={title}
@@ -291,13 +318,7 @@ const MagneticTile = {
         onCancel={handleCancel}
         afterClose={handleAfterClose}
         width={fullscreen ? '100%' : width}
-        height={fullscreen ? '100%' : height}
-        style={{
-          minWidth: fullscreen ? 'unset' : 600,
-          borderRadius: fullscreen ? '0' : 'var(--ith-border-radius-lg)',
-          aspectRatio: fullscreen ? 'unset' : '16 / 9',
-          ...props.style
-        }}
+        style={overlayStyle}
         styles={{
           container: {
             padding: 0,
@@ -327,6 +348,8 @@ const MagneticTile = {
         className={clsx(
           'magnetic-tile-overlay',
           styles.overlay,
+          !fullscreen && styles.overlayRatio,
+          fullscreen && styles.overlayFullscreen,
           className,
           hasCaption && styles.withCaption,
           hasControls && styles.withControls
