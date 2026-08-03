@@ -3,41 +3,57 @@
     &.square {
       &.horizontal {
         padding: 16px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 52px; }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 52px; }
         .date, .week { font-size: 14px; }
         .analogFace { width: min(44%, 210px); }
+        &.analog:not(.hasAside) .analogFace { width: min(68%, 294px); max-width: 100%; }
+        &.analog.hasAside .analogFace { width: min(52%, 241px); }
       }
       &.vertical {
         padding: 16px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 52px; }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 52px; }
         .date, .week { font-size: 14px; }
         .analogFace { width: min(44%, 210px); }
+        &.analog:not(.hasAside) .analogFace { width: min(68%, 294px); max-width: 100%; }
+        &.analog.hasAside .analogFace { width: min(52%, 241px); }
       }
     }
     &.circle {
       &.horizontal {
         padding: 16px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 34px; }
-        .analogFace { width: min(48%, 200px); }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 34px; }
+        .analogFace { width: min(96%, 100%); max-width: none; }
+        &.analog {
+          padding: 2px;
+          .analogFace { width: 100%; max-width: none; }
+        }
       }
       &.vertical {
         padding: 16px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 34px; }
-        .analogFace { width: min(48%, 200px); }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 34px; }
+        .analogFace { width: min(96%, 100%); max-width: none; }
+        &.analog {
+          padding: 2px;
+          .analogFace { width: 100%; max-width: none; }
+        }
       }
     }
     &.rectangle {
       &.horizontal {
         padding: 16px 24px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 60px; }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 60px; }
         .date, .week { font-size: 14px; }
         .analogFace { width: min(20%, 210px); }
+        &.analog:not(.hasAside) .analogFace { width: min(44%, 294px); max-width: 100%; }
+        &.analog.hasAside .analogFace { width: min(28%, 241px); }
       }
       &.vertical {
         padding: 18px 16px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 48px; }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 48px; }
         .date, .week { font-size: 14px; }
         .analogFace { width: min(42%, 220px); }
+        &.analog:not(.hasAside) .analogFace { width: min(66%, 308px); max-width: 100%; }
+        &.analog.hasAside .analogFace { width: min(50%, 252px); }
       }
     }
   }

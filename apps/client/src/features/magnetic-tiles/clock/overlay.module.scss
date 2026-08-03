@@ -75,8 +75,11 @@
 }
 
 .stageDigits {
-  font-size: clamp(28px, 4.2vw, 44px);
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  font-size: clamp(52px, 7.5vw, 96px);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -94,85 +97,34 @@
 
 .previewStage.minimal .stageDigits {
   font-weight: 500;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
 }
 
 .stageFlip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  font-size: clamp(44px, 6.5vw, 80px);
+  max-width: 100%;
 }
 
-.stageFlipCard {
-  min-width: 1.15em;
-  padding: 6px 5px;
-  border-radius: 6px;
-  border: 1px solid var(--ith-color-border);
-  background: var(--ith-color-bg-container);
-  font-size: clamp(20px, 3vw, 32px);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  text-align: center;
-  color: var(--ith-color-text-heading, var(--ith-color-text));
-  box-shadow: 0 1px 0 var(--ith-color-border-secondary, var(--ith-color-border));
+.stageFaceWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(248px, 64%);
+  filter: drop-shadow(0 6px 18px color-mix(in srgb, #000 6%, transparent));
 }
 
-.stageFlipColon {
-  font-size: clamp(20px, 3vw, 28px);
-  font-weight: 600;
-  color: var(--ith-color-text-secondary);
-  line-height: 1;
+.previewStage.analog {
+  background: var(--ith-color-fill-quaternary, var(--ith-color-fill-tertiary));
 }
 
+.stageFaceWrap .analogFace,
 .stageFace {
   position: relative;
-  width: min(148px, 42%);
+  width: 100%;
   aspect-ratio: 1;
   border-radius: 50%;
-  border: 2px solid var(--ith-color-border);
-  background: var(--ith-color-bg-container);
-}
-
-.stageHandHour,
-.stageHandMinute,
-.stageHandSecond {
-  position: absolute;
-  left: 50%;
-  bottom: 50%;
-  transform-origin: bottom center;
-  border-radius: 999px;
-  background: var(--ith-color-text);
-}
-
-.stageHandHour {
-  width: 3px;
-  height: 28%;
-  margin-left: -1.5px;
-}
-
-.stageHandMinute {
-  width: 2px;
-  height: 38%;
-  margin-left: -1px;
-}
-
-.stageHandSecond {
-  width: 1.5px;
-  height: 42%;
-  margin-left: -0.75px;
-  background: var(--ith-color-primary);
-}
-
-.stageFaceCenter {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
-  border-radius: 50%;
-  background: var(--ith-color-text);
 }
 
 .neon {
@@ -406,6 +358,36 @@
   border-radius: 50%;
   border: 1.5px solid var(--ith-color-border);
   position: relative;
+  background:
+    radial-gradient(circle at center, var(--ith-color-bg-container) 55%, transparent 56%),
+    conic-gradient(
+      from -1.5deg,
+      var(--ith-color-text) 0 2deg,
+      transparent 2deg 28deg,
+      var(--ith-color-border) 28deg 30deg,
+      transparent 30deg 58deg,
+      var(--ith-color-text) 58deg 62deg,
+      transparent 62deg 88deg,
+      var(--ith-color-border) 88deg 90deg,
+      transparent 90deg 118deg,
+      var(--ith-color-text) 118deg 122deg,
+      transparent 122deg 148deg,
+      var(--ith-color-border) 148deg 150deg,
+      transparent 150deg 178deg,
+      var(--ith-color-text) 178deg 182deg,
+      transparent 182deg 208deg,
+      var(--ith-color-border) 208deg 210deg,
+      transparent 210deg 238deg,
+      var(--ith-color-text) 238deg 242deg,
+      transparent 242deg 268deg,
+      var(--ith-color-border) 268deg 270deg,
+      transparent 270deg 298deg,
+      var(--ith-color-text) 298deg 302deg,
+      transparent 302deg 328deg,
+      var(--ith-color-border) 328deg 330deg,
+      transparent 330deg 358deg,
+      var(--ith-color-text) 358deg 360deg
+    );
 
   &::before {
     content: '';
@@ -419,6 +401,18 @@
     border-radius: 999px;
     transform-origin: bottom center;
     transform: rotate(40deg);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 3px;
+    height: 3px;
+    margin: -1.5px 0 0 -1.5px;
+    border-radius: 50%;
+    background: var(--ith-color-primary);
   }
 }
 

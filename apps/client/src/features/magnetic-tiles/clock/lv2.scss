@@ -3,44 +3,69 @@
     &.square {
       &.horizontal {
         padding: 10px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 28px; }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 28px; }
         .date, .week { font-size: 11px; }
         .analogFace { width: min(58%, 96px); }
+        &.analog:not(.hasAside) .analogFace { width: min(82%, 134px); max-width: 100%; }
+        &.analog.hasAside .analogFace { width: min(66%, 110px); }
       }
       &.vertical {
         padding: 10px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 28px; }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 28px; }
         .date, .week { font-size: 11px; }
         .analogFace { width: min(58%, 96px); }
+        &.analog:not(.hasAside) .analogFace { width: min(82%, 134px); max-width: 100%; }
+        &.analog.hasAside .analogFace { width: min(66%, 110px); }
       }
     }
     &.circle {
       &.horizontal {
         padding: 10px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 22px; }
-        .analogFace { width: min(62%, 88px); }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 22px; }
+        .analogFace { width: min(96%, 100%); max-width: none; }
+        &.analog {
+          padding: 2px;
+          .analogFace { width: 100%; max-width: none; }
+        }
       }
       &.vertical {
         padding: 10px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 22px; }
-        .analogFace { width: min(62%, 88px); }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 22px; }
+        .analogFace { width: min(96%, 100%); max-width: none; }
+        &.analog {
+          padding: 2px;
+          .analogFace { width: 100%; max-width: none; }
+        }
       }
     }
     &.rectangle {
       &.horizontal {
-        padding: 10px 14px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 34px; }
-        .date, .week, .weekday, .period { font-size: 12px; }
-        .alarmTime { font-size: 14px; }
-        .alarmLabel, .alarmSummary, .alarmEmpty { font-size: 11px; }
-        .analogFace { width: min(30%, 110px); }
-        .aside { gap: 6px; }
+        padding: 14px 18px;
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 40px; }
+        .date, .week, .weekday { font-size: 12px; }
+        .alarmTime { font-size: 16px; }
+        .alarmLabel, .alarmSummary, .alarmEmpty { font-size: 12px; }
+        .analogFace { width: min(34%, 120px); }
+        &.analog:not(.hasAside) .analogFace { width: min(58%, 168px); max-width: 100%; }
+        &.analog.hasAside .analogFace { width: min(42%, 132px); }
+        .aside { gap: 8px; }
+        &.wide {
+          padding: 12px 16px;
+          .digitSlot, .colon, .minimal, .flipStage {
+            font-size: clamp(18px, 21.5cqi, 34px);
+          }
+          .date { font-size: 13px; }
+          .weekday, .week { font-size: 12px; }
+          .alarmEmpty, .alarmSummary { font-size: 12px; }
+        }
       }
       &.vertical {
         padding: 12px 10px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 26px; }
+        .digitSlot, .colon, .minimal, .flipStage { font-size: 26px; }
         .date, .week { font-size: 11px; }
         .analogFace { width: min(55%, 110px); }
+        &.analog:not(.hasAside) .analogFace { width: min(79%, 154px); max-width: 100%; }
+        &.analog.hasAside .analogFace { width: min(63%, 126px); }
       }
     }
   }

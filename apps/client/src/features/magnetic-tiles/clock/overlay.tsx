@@ -17,14 +17,18 @@ import {
   formatWeekDays,
   parseWeekDays
 } from '@/features/magnetic-tiles/clock/alarm-time'
+import { AnalogFace, DigitalDigits, MinimalTime } from '@/features/magnetic-tiles/clock/clock-faces.tsx'
+import { FlipClock } from '@/features/magnetic-tiles/clock/flip-digit.tsx'
+import faceStyles from '@/features/magnetic-tiles/clock/marker.module.scss'
 import styles from '@/features/magnetic-tiles/clock/overlay.module.scss'
+import { useSecondTick } from '@/features/magnetic-tiles/clock/use-second-tick.ts'
 import { useClockStore, type ClockStyle } from '@/stores/clock'
 import { useReminderStore, type Reminder } from '@/stores/reminder'
 
 const STYLES: { value: ClockStyle; label: string; hint: string }[] = [
   { value: 'digital', label: '数字', hint: '清晰数字时钟' },
   { value: 'analog', label: '指针', hint: '经典表盘' },
-  { value: 'flip', label: '翻页', hint: '分段卡片' },
+  { value: 'flip', label: '翻页', hint: '立体翻页时钟' },
   { value: 'neon', label: '强调', hint: '主色点缀' },
   { value: 'minimal', label: '极简', hint: '轻量字距' }
 ]
@@ -54,64 +58,63 @@ const EMPTY_DRAFT: Draft = {
 }
 
 function StageAnalog(props: { now: Dayjs }) {
-  const h = props.now.hour() % 12
-  const m = props.now.minute()
-  const s = props.now.second()
-  const hourDeg = h * 30 + m * 0.5
-  const minuteDeg = m * 6
-  const secondDeg = s * 6
-
   return (
     <div
-      className={styles.stageFace}
+      className={styles.stageFaceWrap}
       aria-hidden>
-      <span
-        className={styles.stageHandHour}
-        style={{ transform: `rotate(${hourDeg}deg)` }}
+      <AnalogFace
+        now={props.now}
+        className={styles.stageFace}
       />
-      <span
-        className={styles.stageHandMinute}
-        style={{ transform: `rotate(${minuteDeg}deg)` }}
-      />
-      <span
-        className={styles.stageHandSecond}
-        style={{ transform: `rotate(${secondDeg}deg)` }}
-      />
-      <span className={styles.stageFaceCenter} />
     </div>
   )
 }
 
 function StageDigits(props: { now: Dayjs; clockStyle: ClockStyle }) {
   const showSeconds = props.clockStyle !== 'minimal'
-  const text = showSeconds ? props.now.format('HH:mm:ss') : props.now.format('HH:mm')
+  const h = props.now.format('HH')
+  const m = props.now.format('mm')
+  const s = props.now.format('ss')
+  const tick = props.now.second()
 
   if (props.clockStyle === 'flip') {
     return (
-      <div className={styles.stageFlip}>
-        {text.split('').map(function (ch, i) {
-          if (ch === ':') {
-            return (
-              <span
-                key={`colon-${i}`}
-                className={styles.stageFlipColon}>
-                :
-              </span>
-            )
-          }
-          return (
-            <span
-              key={`${ch}-${i}`}
-              className={styles.stageFlipCard}>
-              {ch}
-            </span>
-          )
-        })}
+      <FlipClock
+        hours={h}
+        minutes={m}
+        seconds={s}
+        showSeconds={showSeconds}
+        useDots
+        className={styles.stageFlip}
+      />
+    )
+  }
+
+  if (props.clockStyle === 'minimal') {
+    return (
+      <div className={styles.stageDigits}>
+        <MinimalTime
+          h={h}
+          m={m}
+          s={s}
+          showSeconds={showSeconds}
+        />
       </div>
     )
   }
 
-  return <span className={styles.stageDigits}>{text}</span>
+  return (
+    <div className={styles.stageDigits}>
+      <DigitalDigits
+        h={h}
+        m={m}
+        s={s}
+        showSeconds={showSeconds}
+        tick={tick}
+        className={props.clockStyle === 'neon' ? faceStyles.tonePrimary : undefined}
+      />
+    </div>
+  )
 }
 
 function Overlay(props: OverlayControlProps) {
@@ -135,9 +138,7 @@ function Overlay(props: OverlayControlProps) {
     return s.removeReminder
   })
 
-  const [now, onUpdateNow] = useState(function () {
-    return dayjs()
-  })
+  const now = useSecondTick()
   const [editingId, onUpdateEditingId] = useState<string | null>(null)
   const [draft, onUpdateDraft] = useState<Draft>(EMPTY_DRAFT)
   const [isCreating, onUpdateCreating] = useState(false)
@@ -182,15 +183,6 @@ function Overlay(props: OverlayControlProps) {
     },
     [readReminders]
   )
-
-  useEffect(function () {
-    const timer = setInterval(function () {
-      onUpdateNow(dayjs())
-    }, 1000)
-    return function () {
-      clearInterval(timer)
-    }
-  }, [])
 
   const heroTime = clockStyle === 'minimal' ? now.format('HH:mm') : now.format('HH:mm:ss')
   const styleLabel =

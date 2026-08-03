@@ -1,0 +1,282 @@
+/* Vue 同源：预渲染 0..total 牌面，靠 class 切换触发 CSS 动画，不挂卸 DOM */
+
+.root {
+  --flip-w: 0.78em;
+  --flip-h: 1.2em;
+  --flip-half: 0.5s;
+  --flip-radius: max(4px, 0.1em);
+  --flip-face: var(--ith-color-bg-elevated, var(--ith-color-bg-container, #f4f4f5));
+  --flip-ink: var(--ith-color-text-heading, var(--ith-color-text, #18181b));
+  --flip-edge: var(--ith-color-border-secondary, var(--ith-color-border, rgba(0, 0, 0, 0.12)));
+
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: var(--flip-w);
+  height: var(--flip-h);
+  font-size: 1em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  border-radius: var(--flip-radius);
+  background: var(--flip-face);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateZ(0);
+  contain: layout style;
+  overflow: hidden;
+}
+
+.digitList {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  list-style: none;
+}
+
+.digitItem {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  perspective: 200px;
+  visibility: hidden;
+}
+
+.digitActive,
+.digitPrevious {
+  visibility: visible;
+}
+
+.digitActive {
+  z-index: 2;
+}
+
+.digitPrevious {
+  z-index: 3;
+}
+
+.digitTop,
+.digitBottom {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.digitTop {
+  top: 0;
+  transform-origin: 50% 100%;
+  border-radius: var(--flip-radius) var(--flip-radius) 0 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    height: 1px;
+    background: var(--flip-edge);
+    pointer-events: none;
+  }
+}
+
+.digitBottom {
+  bottom: 0;
+  transform-origin: 50% 0%;
+  border-radius: 0 0 var(--flip-radius) var(--flip-radius);
+}
+
+.digitText {
+  position: absolute;
+  left: 0;
+  z-index: 1;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--flip-ink);
+  font-size: 0.92em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  background: var(--flip-face);
+  user-select: none;
+}
+
+.digitTop .digitText {
+  top: 0;
+}
+
+.digitBottom .digitText {
+  bottom: 0;
+}
+
+.digitShadow {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* 翻页态：与 Vue .flip-animation 一致，仅 class 换位重启动画 */
+.flipAnimation {
+  .digitPrevious {
+    z-index: 3;
+  }
+
+  .digitActive {
+    animation: flip-z 0.5s 0.5s linear both;
+    z-index: 2;
+  }
+
+  .digitPrevious .digitTop {
+    z-index: 2;
+    animation: turn-up var(--flip-half) linear both;
+  }
+
+  .digitActive .digitBottom {
+    z-index: 2;
+    animation: turn-down var(--flip-half) 0.5s linear both;
+  }
+
+  .digitPrevious .digitTop .digitShadow {
+    background: linear-gradient(rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.45) 100%);
+    animation: shade-show var(--flip-half) linear both;
+  }
+
+  .digitActive .digitTop .digitShadow {
+    background: linear-gradient(rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.45) 100%);
+    animation: shade-hide var(--flip-half) 0.3s linear both;
+  }
+
+  .digitPrevious .digitBottom .digitShadow {
+    background: linear-gradient(rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.05) 100%);
+    animation: shade-show var(--flip-half) linear both;
+  }
+
+  .digitActive .digitBottom .digitShadow {
+    background: linear-gradient(rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.05) 100%);
+    animation: shade-hide var(--flip-half) 0.3s linear both;
+  }
+}
+
+@keyframes turn-up {
+  from {
+    transform: rotateX(0deg);
+  }
+  to {
+    transform: rotateX(-90deg);
+  }
+}
+
+@keyframes turn-down {
+  from {
+    transform: rotateX(90deg);
+  }
+  to {
+    transform: rotateX(0deg);
+  }
+}
+
+@keyframes flip-z {
+  0% {
+    z-index: 2;
+  }
+  5% {
+    z-index: 4;
+  }
+  100% {
+    z-index: 4;
+  }
+}
+
+@keyframes shade-show {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shade-hide {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flipAnimation {
+    .digitPrevious .digitTop,
+    .digitActive .digitBottom,
+    .digitPrevious .digitTop .digitShadow,
+    .digitActive .digitTop .digitShadow,
+    .digitPrevious .digitBottom .digitShadow,
+    .digitActive .digitBottom .digitShadow,
+    .digitActive {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+    }
+  }
+}
+
+.flipRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.16em;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.separator {
+  --flip-h: 1.2em;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  align-self: center;
+  box-sizing: border-box;
+  height: var(--flip-h);
+  padding: 0.22em 0.08em;
+  flex-shrink: 0;
+
+  &::before,
+  &::after {
+    content: '';
+    display: block;
+    width: 0.13em;
+    height: 0.13em;
+    border-radius: 50%;
+    background: var(--ith-color-primary);
+    opacity: 0.9;
+    flex-shrink: 0;
+  }
+}
+
+.colon {
+  --flip-h: 1.2em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  height: var(--flip-h);
+  color: var(--ith-color-primary);
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 0.02em;
+  flex-shrink: 0;
+  opacity: 0.9;
+}

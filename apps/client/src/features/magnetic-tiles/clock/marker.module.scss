@@ -61,6 +61,8 @@
   justify-content: center;
   flex: 0 0 auto;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .aside {
@@ -73,6 +75,14 @@
   flex: 0 0 auto;
   padding-top: 8px;
   border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  min-width: 0;
+}
+
+.metaBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -168,12 +178,29 @@
   display: inline-flex;
 }
 
+.digitSlot {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 0.62em;
+  height: 1em;
+  overflow: hidden;
+  vertical-align: baseline;
+  perspective: 280px;
+  transform-style: preserve-3d;
+}
+
 .digit {
+  grid-area: 1 / 1;
+  display: inline-block;
+  font-size: 1em;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--ith-color-text-heading, var(--ith-color-text));
   letter-spacing: -0.02em;
+  transform-origin: center center;
+  backface-visibility: hidden;
 }
 
 .colon {
@@ -182,6 +209,7 @@
   line-height: 1;
   padding: 0 1px;
   align-self: center;
+  display: inline-block;
 }
 
 .minimal {
@@ -190,19 +218,46 @@
   gap: 8px;
 }
 
+.minimalTimeSlot {
+  position: relative;
+  display: inline-grid;
+  place-items: baseline start;
+  min-width: 4.2em;
+  overflow: hidden;
+  perspective: 320px;
+  transform-style: preserve-3d;
+}
+
 .minimalTime {
+  grid-area: 1 / 1;
+  font-size: 1em;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.06em;
   line-height: 1;
   color: var(--ith-color-text-heading, var(--ith-color-text));
+  transform-origin: center center;
+  backface-visibility: hidden;
+}
+
+.minimalSecSlot {
+  position: relative;
+  display: inline-grid;
+  place-items: baseline center;
+  min-width: 1.4em;
+  overflow: hidden;
+  perspective: 240px;
+  transform-style: preserve-3d;
 }
 
 .minimalSec {
+  grid-area: 1 / 1;
   font-size: 0.45em;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--ith-color-text-secondary);
+  transform-origin: center center;
+  backface-visibility: hidden;
 }
 
 .neon {
@@ -231,126 +286,363 @@
   }
 }
 
-.flip {
-  .flipRow {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .flipGroup {
-    display: inline-flex;
-    gap: 2px;
-  }
-
-  .flipCard {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0.7em;
-    padding: 0.18em 0.2em;
-    border-radius: var(--ith-border-radius);
-    border: 1px solid var(--ith-color-border);
-    background: var(--ith-color-fill-quaternary, var(--ith-color-fill-secondary));
-    color: var(--ith-color-text-heading, var(--ith-color-text));
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-  }
-
-  .flipColon {
+/** 仅主色数字，供 overlay 预览等不需要整块 neon 底的场景 */
+.tonePrimary {
+  .digit,
+  .colon,
+  .minimalTime {
     color: var(--ith-color-primary);
-    font-weight: 600;
-    line-height: 1;
   }
 }
 
+.flip {
+  .flipStage {
+    font-size: inherit;
+    max-width: 100%;
+  }
+
+  .stage {
+    overflow: visible;
+  }
+}
+
+/* 瑞士简约：平面盘、细刻度、纤针，无数字/无渐变 */
 .analogFace {
   position: relative;
   aspect-ratio: 1;
   border-radius: 50%;
-  border: 2px solid var(--ith-color-border);
-  background: var(--ith-color-bg-container);
+  background: transparent;
+  border: none;
+  box-shadow: 0 8px 28px color-mix(in srgb, #000 7%, transparent);
+  container-type: inline-size;
+  overflow: visible;
 }
 
-.handHour,
-.handMinute,
-.handSecond {
+.analogDial {
   position: absolute;
-  left: 50%;
-  bottom: 50%;
-  transform-origin: bottom center;
-  border-radius: 999px;
-  background: var(--ith-color-text-heading, var(--ith-color-text));
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
 }
 
-.handHour {
-  width: 3px;
-  height: 28%;
-  margin-left: -1.5px;
+.dialPlate {
+  fill: var(--ith-color-bg-container);
 }
 
-.handMinute {
-  width: 2px;
-  height: 38%;
-  margin-left: -1px;
-  opacity: 0.75;
+.dialRim {
+  stroke: var(--ith-color-border-secondary, var(--ith-color-border));
+  stroke-width: 0.55;
 }
 
-.handSecond {
-  width: 1px;
-  height: 42%;
-  margin-left: -0.5px;
-  background: var(--ith-color-error);
+.tickLine {
+  stroke: var(--ith-color-text-tertiary, var(--ith-color-border));
+  stroke-width: 0.28;
+  stroke-linecap: round;
+  opacity: 0.45;
 }
 
-.analogCenter {
-  position: absolute;
-  inset: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
-  border-radius: 50%;
-  background: var(--ith-color-text-heading, var(--ith-color-text));
+.tickHourLine {
+  stroke: var(--ith-color-text-secondary, var(--ith-color-text));
+  stroke-width: 0.7;
+  opacity: 0.72;
 }
 
-/* 横矩形：时间 | 信息栏 并排填满，避免大片留白 */
+.tickCardinalLine {
+  stroke: var(--ith-color-text-heading, var(--ith-color-text));
+  stroke-width: 1.05;
+  opacity: 0.88;
+}
+
+.handHourLine {
+  stroke: var(--ith-color-text-heading, var(--ith-color-text));
+  stroke-width: 2.35;
+  stroke-linecap: round;
+}
+
+.handMinuteLine {
+  stroke: var(--ith-color-text-heading, var(--ith-color-text));
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  opacity: 0.82;
+}
+
+.handSecondLine {
+  stroke: var(--ith-color-primary);
+  stroke-width: 0.55;
+  stroke-linecap: round;
+}
+
+.hubOuter {
+  fill: var(--ith-color-bg-container);
+  stroke: var(--ith-color-text-heading, var(--ith-color-text));
+  stroke-width: 0.7;
+}
+
+.hubInner {
+  fill: var(--ith-color-primary);
+}
+
+@container (max-width: 72px) {
+  .tickLine:not(.tickHourLine):not(.tickCardinalLine) {
+    opacity: 0;
+  }
+}
+
+@container (max-width: 48px) {
+  .handHourLine {
+    stroke-width: 2;
+  }
+
+  .handMinuteLine {
+    stroke-width: 1.3;
+  }
+}
+
+/* 横矩形：时间主导 + 右侧信息双区（元数据 / 闹钟） */
 .wide .body {
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr);
   align-items: stretch;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 0;
 }
 
 .wide .stage {
-  flex: 1 1 auto;
-  align-self: center;
-  justify-content: flex-start;
+  flex: unset;
+  align-self: stretch;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+  min-width: 0;
+  padding-right: 16px;
+  overflow: hidden;
+  container-type: inline-size;
+  container-name: clock-stage;
+}
+
+.wide .digital {
+  flex-wrap: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  gap: 2px;
+}
+
+.wide .digitSlot {
+  width: 0.58em;
+}
+
+.wide .digitGroup {
+  gap: 0;
+}
+
+.wide .digit {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.wide .colon {
+  padding: 0 2px;
+  font-size: 0.86em;
+  font-weight: 700;
 }
 
 .wide .aside {
-  flex: 1 1 42%;
-  max-width: 48%;
+  flex: unset;
+  max-width: none;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
   flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
+  justify-content: space-between;
   gap: 8px;
-  padding-top: 0;
-  padding-left: 14px;
+  padding: 0 0 0 16px;
   border-top: none;
   border-left: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
-  min-width: 9.5em;
+  overflow: hidden;
+}
+
+.wide .metaBlock {
+  flex-shrink: 0;
+  gap: 6px;
+  padding: 0;
+}
+
+.wide .period {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 4px;
+  background: var(--ith-color-primary-bg);
+  color: var(--ith-color-primary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
 }
 
 .wide .metaRow {
-  justify-content: flex-start;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+  row-gap: 2px;
 }
 
-.wide.lv2 .marker,
+.wide .date {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+  letter-spacing: -0.01em;
+}
+
+.wide .weekday,
+.wide .week {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--ith-color-text-secondary);
+}
+
+.wide .weekday::before,
+.wide .week::before {
+  content: '·';
+  margin: 0 6px;
+  font-weight: 400;
+  color: var(--ith-color-text-quaternary, var(--ith-color-text-tertiary));
+}
+
+.wide .alarmBlock {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 0;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--ith-border-radius-sm, 6px);
+  background: var(--ith-color-fill-tertiary, var(--ith-color-fill-quaternary));
+  overflow: hidden;
+}
+
+.wide .alarmEmpty {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--ith-color-text-secondary);
+}
+
+.wide .alarmRow {
+  gap: 6px;
+}
+
+.wide .alarmTime {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+}
+
+.wide .alarmSummary {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 12px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text-secondary);
+}
+
 .wide .alarmTitle {
   max-width: 100%;
+  font-size: 12px;
+  color: var(--ith-color-text-secondary);
 }
 
 .circle .aside {
   display: none;
+}
+
+.circle .stage {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.circle .flipStage {
+  transform: scale(0.96);
+  transform-origin: center;
+}
+
+/* 圆形 + 指针：表盘尽量贴合磁贴内缘 */
+.circle.analog {
+  .body {
+    gap: 0;
+    justify-content: center;
+  }
+
+  .stage {
+    flex: 1 1 auto;
+    align-self: stretch;
+    width: 100%;
+    height: 100%;
+  }
+
+  .analogFace {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    box-shadow: none;
+  }
+}
+
+.square.analog:not(.wide) .stage,
+.rectangle.vertical.analog .stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+/* 竖矩形：压缩 aside，保证时间区可见 */
+.rectangle.vertical .body {
+  gap: 6px;
+  justify-content: space-between;
+}
+
+.rectangle.vertical .stage {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.rectangle.vertical .aside {
+  flex: 0 1 auto;
+  min-height: 0;
+  padding-top: 6px;
+  gap: 4px;
+}
+
+/* flip 行防溢出 */
+.flip .stage {
+  width: 100%;
+}
+
+.flipStage {
+  font-size: inherit;
+}
+
+/* 宽横矩形：字号随左栏宽度缩放，避免 HH:MM:SS 溢出叠盖右侧 */
+.marker.wide.rectangle.horizontal {
+  .digitSlot,
+  .colon,
+  .minimal,
+  .flipStage {
+    font-size: clamp(16px, 21.5cqi, 56px);
+  }
 }
