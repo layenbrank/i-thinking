@@ -1,5 +1,11 @@
-$color-swatch-size: 44px;
-$color-swatch-radius: 6px;
+$swatch-size: 44px;
+$swatch-radius: 6px;
+$preset-size: 24px;
+$preset-gap: 8px;
+$preset-cols: 4;
+$presets-width: $preset-cols * $preset-size + ($preset-cols - 1) * $preset-gap;
+// antd ColorPicker 默认面板宽
+$picker-width: 234px;
 $image-radio-width: 128px;
 $image-radio-height: 72px;
 $image-radio-radius: 8px;
@@ -26,7 +32,17 @@ $image-radio-radius: 8px;
   flex-shrink: 0;
   min-height: 0;
   overflow-y: auto;
-  align-self: flex-start;
+  align-self: stretch;
+}
+
+.formCard {
+  min-height: 100%;
+
+  :global {
+    .ant-card-body {
+      min-height: 100%;
+    }
+  }
 }
 
 .previewPanel {
@@ -36,7 +52,7 @@ $image-radio-radius: 8px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  align-self: flex-start;
+  align-self: stretch;
 }
 
 .previewCard {
@@ -79,90 +95,93 @@ $image-radio-radius: 8px;
   white-space: nowrap;
 }
 
-.previewMeta {
+.tileOption {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 2px 0;
 }
 
-.previewMetaItem {
-  padding: 4px 10px;
-  border-radius: 4px;
+.tileOptionTitle {
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.88);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tileOptionDesc {
   font-size: 12px;
-  background: rgba(0, 0, 0, 0.04);
-  color: rgba(0, 0, 0, 0.65);
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@mixin square-color-radio {
+@mixin radio-row {
   :global {
-    .ant-radio-wrapper {
-      width: $color-swatch-size !important;
-      height: $color-swatch-size !important;
-      margin-inline: 0;
-      padding-inline: 0;
+    .ant-form-item-control-input-content {
+      display: flex;
+      align-items: center;
+      column-gap: 8px;
     }
 
-    .ant-radio {
-      width: $color-swatch-size !important;
-      height: $color-swatch-size !important;
-      margin: 0;
-      display: block;
-
-      &::after {
-        display: none !important;
-        visibility: hidden !important;
-        content: none !important;
-        opacity: 0 !important;
-      }
+    .ant-form-item {
+      margin-bottom: 0;
     }
 
-    .ant-radio-inner {
-      width: $color-swatch-size !important;
-      height: $color-swatch-size !important;
-      border-radius: $color-swatch-radius !important;
-
-      &::after {
-        display: none !important;
-        visibility: hidden !important;
-        content: none !important;
-      }
+    .ant-radio-group {
+      display: flex;
+      align-items: center;
+      column-gap: 8px;
+      width: max-content;
     }
   }
 }
 
-@mixin aspect-image-radio {
+.colorField {
+  @include radio-row;
+
   :global {
     .ant-radio-wrapper {
-      width: $image-radio-width !important;
-      height: $image-radio-height !important;
+      flex: 0 0 $swatch-size;
+      width: $swatch-size;
+      height: $swatch-size;
       margin-inline: 0;
       padding-inline: 0;
     }
 
     .ant-radio {
-      width: $image-radio-width !important;
-      height: $image-radio-height !important;
+      width: $swatch-size;
+      height: $swatch-size;
       margin: 0;
       display: block;
 
       &::after {
-        display: none !important;
-        visibility: hidden !important;
-        content: none !important;
-        opacity: 0 !important;
+        display: none;
       }
     }
 
     .ant-radio-inner {
-      width: $image-radio-width !important;
-      height: $image-radio-height !important;
-      border-radius: $image-radio-radius !important;
+      width: $swatch-size;
+      height: $swatch-size;
+      border-radius: $swatch-radius;
 
       &::after {
-        display: none !important;
-        visibility: hidden !important;
-        content: none !important;
+        display: none;
       }
+    }
+
+    .ant-radio-label {
+      display: none;
+    }
+
+    .ant-radio-wrapper-checked .ant-radio-inner {
+      outline: 2px solid var(--ant-color-primary);
+      outline-offset: 1px;
     }
   }
 }
@@ -171,39 +190,99 @@ $image-radio-radius: 8px;
   cursor: pointer;
 }
 
-.colorField {
-  @include square-color-radio;
-
-  :global {
-    .ant-radio-wrapper-checked .ant-radio-inner {
-      outline: 2px solid var(--ant-color-primary);
-      outline-offset: 1px;
-    }
-  }
-}
-
-.colorPicker {
-  width: $color-swatch-size !important;
-  height: $color-swatch-size !important;
-  min-width: $color-swatch-size !important;
+.colorTrigger {
+  width: $swatch-size;
+  height: $swatch-size;
+  min-width: $swatch-size;
   padding: 0;
   border: none;
 
-  :global {
-    .ant-color-picker-color-block {
-      width: 100%;
-      height: 100%;
-      border-radius: $color-swatch-radius;
-    }
+  :global(.ant-color-picker-color-block) {
+    width: 100%;
+    height: 100%;
+    border-radius: $swatch-radius;
+  }
+}
+
+/**
+ * panelRender → body portal
+ * .panel > .presets | .divider | .picker(min 234px)
+ */
+.panel {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 12px;
+  width: max-content;
+}
+
+.presets {
+  flex: 0 0 $presets-width;
+  width: $presets-width;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+
+  :global(.ant-collapse-item > .ant-collapse-header) {
+    display: none;
+  }
+
+  :global(.ant-collapse-body) {
+    padding: 0;
+  }
+
+  :global(.ant-color-picker-presets-items) {
+    display: grid;
+    grid-template-columns: repeat(#{$preset-cols}, #{$preset-size});
+    gap: $preset-gap;
+    width: $presets-width;
+  }
+
+  :global(.ant-color-picker-presets-color) {
+    width: $preset-size;
+    height: $preset-size;
+    border-radius: 4px;
+  }
+}
+
+.divider {
+  align-self: stretch;
+  height: auto;
+  margin: 0;
+}
+
+.picker {
+  flex: 0 0 $picker-width;
+  width: $picker-width;
+  min-width: $picker-width;
+
+  :global(.ant-color-picker-inner-content),
+  :global(.ant-color-picker-panel),
+  :global(.ant-color-picker-select),
+  :global(.ant-color-picker-palette),
+  :global(.ant-color-picker-slider-container),
+  :global(.ant-color-picker-input-container) {
+    width: $picker-width;
+    min-width: $picker-width;
+  }
+
+  :global(.ant-color-picker-palette) {
+    height: $picker-width;
   }
 }
 
 .imageField {
-  @include aspect-image-radio;
+  @include radio-row;
 
   :global {
     .ant-radio-wrapper {
       position: relative;
+      flex: 0 0 $image-radio-width;
+      width: $image-radio-width;
+      height: $image-radio-height;
+      margin-inline: 0;
+      padding-inline: 0;
     }
 
     .ant-radio {
@@ -212,63 +291,88 @@ $image-radio-radius: 8px;
       z-index: 1;
       width: 100%;
       height: 100%;
+      margin: 0;
       opacity: 0;
 
       &::after {
-        display: none !important;
-        visibility: hidden !important;
-        content: none !important;
-        opacity: 0 !important;
+        display: none;
       }
     }
 
     .ant-radio-inner {
-      display: none !important;
-      visibility: hidden !important;
+      display: none;
     }
 
     .ant-radio-label {
-      display: block !important;
-      visibility: visible !important;
-      padding: 0 !important;
+      display: block;
+      padding: 0;
       margin: 0;
       line-height: 0;
     }
   }
 
-  :global(.ant-radio-wrapper-checked) .imageThumb {
-    border-color: var(--ant-color-primary);
-  }
-}
+  :global(.ant-radio-wrapper-checked) {
+    .imageThumb {
+      border-color: var(--ant-color-primary);
+    }
 
-.imageThumb {
-  width: $image-radio-width;
-  height: $image-radio-height;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  border-radius: $image-radio-radius;
-  display: block;
-  box-sizing: border-box;
-  border: 2px solid rgba(0, 0, 0, 0.12);
-  pointer-events: none;
-}
-
-.skeleton {
-  width: $image-radio-width !important;
-  height: $image-radio-height !important;
-  flex-shrink: 0;
-
-  :global {
-    .ant-skeleton-image {
-      width: $image-radio-width !important;
-      height: $image-radio-height !important;
-      border-radius: $image-radio-radius;
+    .imageNone {
+      border-color: var(--ant-color-primary);
+      border-style: solid;
+      color: var(--ant-color-primary);
     }
   }
 }
 
 .imageRadio {
   cursor: pointer;
+}
+
+.imageThumb {
+  width: $image-radio-width;
+  height: $image-radio-height;
+  flex-shrink: 0;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: $image-radio-radius;
+  display: block;
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+.imageNone {
+  width: $image-radio-width;
+  height: $image-radio-height;
+  flex-shrink: 0;
+  aspect-ratio: 16 / 9;
+  border-radius: $image-radio-radius;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(0, 0, 0, 0.2);
+  background: repeating-conic-gradient(#f5f5f5 0% 25%, #ffffff 0% 50%) 50% / 12px 12px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  pointer-events: none;
+  transition:
+    border-color 200ms ease,
+    color 200ms ease;
+}
+
+.skeleton {
+  width: $image-radio-width;
+  height: $image-radio-height;
+  flex-shrink: 0;
+
+  :global {
+    .ant-skeleton-image {
+      width: $image-radio-width;
+      height: $image-radio-height;
+      border-radius: $image-radio-radius;
+    }
+  }
 }
 
 @media (max-width: 768px) {
