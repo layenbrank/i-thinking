@@ -1,13 +1,13 @@
 /**
  * Mirror 磁贴网格 Sortable
  *
- * - delay 后 onChoose：清单块 transform，不 pause 滚动
+ * - delay 后 onChoose：不 pause 滚动
  * - 真实拖拽 onStart 才 pause；仅曾拖动时 onEnd 才 resume
- * - overlay / skeleton 禁拖，与 scroll-fx 零耦合
+ * - overlay / skeleton 禁拖；入场由 Motion 拥有，不与 gsap 抢 surface
  */
 import Sortable from 'sortablejs'
 
-import { clearFx, clearGhost } from '@/features/controller/lib/scroll-fx'
+import { clearGhost } from '@/features/controller/lib/scroll-fx'
 
 const DRAG_DELAY = 50
 const DRAG_DISTANCE = 10
@@ -63,9 +63,6 @@ function bindSortable(
       return isDragBlocked(target, options.isDisabled)
     },
     preventOnFilter: true,
-    onChoose(evt) {
-      clearFx(evt.item)
-    },
     onStart(evt) {
       isDragging = true
       evt.item.classList.add('dragging')

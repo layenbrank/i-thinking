@@ -1,6 +1,6 @@
 'use client'
 import clsx from 'clsx'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useKeyModifier } from '@reactuses/core'
 
 import { useScrollFx } from '@/features/controller/hooks/use-scroll-fx'
@@ -128,20 +128,7 @@ const Controller = {
     controlRef.current = control
     tilesRef.current = magneticTiles
 
-    // membership only：换序不触发 layout sync，几何交给 observer / resume
-    const tilesKey = useMemo(
-      function () {
-        return (magneticTiles ?? [])
-          .map(function (tile) {
-            return tile.id
-          })
-          .toSorted()
-          .join(',')
-      },
-      [magneticTiles]
-    )
-
-    const scrollFx = useScrollFx(gridRef, tilesKey)
+    const scrollFx = useScrollFx(gridRef)
 
     useEffect(
       function () {
@@ -248,20 +235,23 @@ const Controller = {
       <div
         ref={gridRef}
         className={clsx([styles.controller, styles['magnetic-tile']])}>
-        {magneticTiles?.map(function (value) {
+        {magneticTiles?.map(function (value, index) {
           const Component = Reflection[value.component]
 
           return (
-            <MagneticTile.Suspense
+            <MagneticTile.Enter
               key={value.id}
-              id={value.id}
-              size={value.size}
-              shape={value.shape}
-              direction={value.direction}>
-              <OverlayProvider magneticTileID={value.id}>
-                <Component {...value} />
-              </OverlayProvider>
-            </MagneticTile.Suspense>
+              index={index}>
+              <MagneticTile.Suspense
+                id={value.id}
+                size={value.size}
+                shape={value.shape}
+                direction={value.direction}>
+                <OverlayProvider magneticTileID={value.id}>
+                  <Component {...value} />
+                </OverlayProvider>
+              </MagneticTile.Suspense>
+            </MagneticTile.Enter>
           )
         })}
       </div>

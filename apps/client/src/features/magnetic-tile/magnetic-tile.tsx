@@ -1,6 +1,7 @@
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Modal, Tooltip, type ModalProps } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
+import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import {
   createContext,
@@ -16,11 +17,13 @@ import {
 import { ContextMenu } from '@/components/contextmenu'
 import { ABORT_TIMEOUT_MS } from '@/constants/magnetic-tile/components'
 import { buildLayoutMenuItems } from '@/features/magnetic-tile/build-layout-menu'
-import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
-import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
 import { Caption } from '@/features/magnetic-tile/caption'
+import { Enter, useEnter } from '@/features/magnetic-tile/enter-context'
+import { ENTER } from '@/features/magnetic-tile/enter-motion'
+import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
 import { OverlayContext } from '@/features/magnetic-tile/overlay-context'
 import { registerShowOverlay } from '@/features/magnetic-tile/overlay-registry.ts'
+import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
 import { startScreenshotCountdown } from '@/features/magnetic-tiles/screenshot/countdown.ts'
 
 type Cache = 'destroy' | 'keepAlive'
@@ -157,6 +160,8 @@ interface MagneticTileSuspenseProps extends SkeletonProps {
 }
 
 const MagneticTile = {
+  /** 入场声明（Controller）；未包则 surface 无入场动画 */
+  Enter,
   Marker(props: MarkerProps) {
     const section = useContext(SectionContext)
 
@@ -335,6 +340,11 @@ const MagneticTile = {
     // 默认近视口，避免首屏先空 surface 再挂 Marker 闪一下
     const [isNear, setIsNear] = useState(true)
     const { visible, onUpdateVisible } = useContext(OverlayContext)
+    const enter = useEnter()
+    const isReducedMotion = useReducedMotion()
+    const isEnter = enter.isActive
+    // 锁定首挂 index：重排改序不重算 stagger，避免误触发观感变化
+    const staggerIndexRef = useRef(enter.index)
 
     useEffect(
       function () {
@@ -375,6 +385,13 @@ const MagneticTile = {
       [props.round, props.background, props.backdrop, props.textColor]
     )
 
+    const surfaceClassName = clsx('magnetic-tile-surface', styles.surface)
+    const surfaceBody = isNear ? props.children : null
+    const enterTransition = ENTER.transition(
+      staggerIndexRef.current,
+      !!isReducedMotion
+    )
+
     return (
       <SectionContext.Provider
         value={{
@@ -405,11 +422,23 @@ const MagneticTile = {
             styles[props.direction]
           ])}
           style={props.style}>
-          <div
-            className={clsx('magnetic-tile-surface', styles.surface)}
-            style={surfaceStyle}>
-            {isNear ? props.children : null}
-          </div>
+          {isEnter ? (
+            <motion.div
+              className={surfaceClassName}
+              style={surfaceStyle}
+              variants={ENTER.variants}
+              initial={isReducedMotion ? false : 'hidden'}
+              animate="show"
+              transition={enterTransition}>
+              {surfaceBody}
+            </motion.div>
+          ) : (
+            <div
+              className={surfaceClassName}
+              style={surfaceStyle}>
+              {surfaceBody}
+            </div>
+          )}
           <span className={styles.title}>
             <Tooltip
               placement="bottom"
