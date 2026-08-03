@@ -10,53 +10,69 @@ interface FlipDigitProps {
   className?: string
 }
 
+type FlipState = {
+  shown: number
+  previous: number
+  isFlipping: boolean
+}
+
+function DigitHalf(props: {
+  digit: number
+  half: 'top' | 'bottom'
+}) {
+  const halfClass = props.half === 'top' ? styles.top : styles.bottom
+
+  return (
+    <div className={halfClass}>
+      <span
+        className={styles.shade}
+        aria-hidden
+      />
+      <span className={styles.text}>{props.digit}</span>
+    </div>
+  )
+}
+
+/**
+ * 企业级翻页位：预渲染 0..total，渲染期同步 previous/shown，
+ * 仅切换 class 触发 CSS 动画（不挂卸 DOM、不 remount 半页）。
+ */
 function FlipDigitBase(props: FlipDigitProps) {
   const total = props.total ?? 9
-  const [previous, onUpdatePrevious] = useState(-1)
-  const [shown, onUpdateShown] = useState(props.current)
-  const [isFlipping, onUpdateFlipping] = useState(false)
-  const [flipGen, onUpdateFlipGen] = useState(0)
+  const [state, onUpdateState] = useState<FlipState>(function () {
+    return {
+      shown: props.current,
+      previous: -1,
+      isFlipping: false
+    }
+  })
 
-  // 渲染期同步 previous/shown，避免 useEffect 晚一帧：新数字先亮、旧牌未就位 → 闪烁
-  if (props.current !== shown) {
-    onUpdatePrevious(shown)
-    onUpdateShown(props.current)
-    if (!isFlipping) onUpdateFlipping(true)
-    onUpdateFlipGen(function (gen) {
-      return gen + 1
+  if (props.current !== state.shown) {
+    onUpdateState({
+      shown: props.current,
+      previous: state.shown,
+      isFlipping: true
     })
   }
 
   const digits = []
   for (let digit = 0; digit <= total; digit += 1) {
-    const isActive = shown === digit
-    const isPrevious = previous === digit
     digits.push(
       <li
         key={digit}
         className={clsx(
-          styles.digitItem,
-          isActive && styles.digitActive,
-          isPrevious && styles.digitPrevious
+          styles.item,
+          state.shown === digit && styles.active,
+          state.previous === digit && styles.previous
         )}>
-        <div
-          key={isActive || isPrevious ? `top-${flipGen}` : 'top'}
-          className={styles.digitTop}>
-          <div
-            className={styles.digitShadow}
-            aria-hidden
-          />
-          <div className={styles.digitText}>{digit}</div>
-        </div>
-        <div
-          key={isActive || isPrevious ? `bottom-${flipGen}` : 'bottom'}
-          className={styles.digitBottom}>
-          <div
-            className={styles.digitShadow}
-            aria-hidden
-          />
-          <div className={styles.digitText}>{digit}</div>
-        </div>
+        <DigitHalf
+          digit={digit}
+          half="top"
+        />
+        <DigitHalf
+          digit={digit}
+          half="bottom"
+        />
       </li>
     )
   }
@@ -65,11 +81,11 @@ function FlipDigitBase(props: FlipDigitProps) {
     <div
       className={clsx(
         styles.root,
-        isFlipping && styles.flipAnimation,
+        state.isFlipping && styles.isFlipping,
         props.className
       )}
-      aria-label={String(shown)}>
-      <ul className={styles.digitList}>{digits}</ul>
+      aria-label={String(state.shown)}>
+      <ul className={styles.list}>{digits}</ul>
     </div>
   )
 }
@@ -95,7 +111,7 @@ function FlipClockBase(props: FlipClockProps) {
   const useDots = props.useDots ?? true
 
   return (
-    <div className={clsx(styles.flipRow, props.className)}>
+    <div className={clsx(styles.row, props.className)}>
       <FlipDigit
         current={Number(props.hours[0])}
         total={2}
