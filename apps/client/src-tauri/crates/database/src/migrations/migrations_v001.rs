@@ -33,6 +33,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Mirror::Background).string().null())
                     .col(ColumnDef::new(Mirror::Backdrop).string().null())
+                    .col(ColumnDef::new(Mirror::ArchivedAt).big_integer().null())
                     .col(ColumnDef::new(Mirror::CreatedAt).big_integer().not_null())
                     .col(ColumnDef::new(Mirror::UpdatedAt).big_integer().not_null())
                     .to_owned(),
@@ -86,6 +87,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0),
                     )
+                    .col(ColumnDef::new(MagneticTile::ArchivedAt).big_integer().null())
                     .col(
                         ColumnDef::new(MagneticTile::CreatedAt)
                             .big_integer()
@@ -280,6 +282,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(15),
                     )
+                    .col(ColumnDef::new(Countdown::ArchivedAt).big_integer().null())
                     .col(
                         ColumnDef::new(Countdown::CreatedAt)
                             .big_integer()
@@ -294,10 +297,124 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // reminder must exist before calendar (FK)
+        manager
+            .create_table(
+                Table::create()
+                    .table(Reminder::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Reminder::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(Reminder::Title).string().not_null())
+                    .col(
+                        ColumnDef::new(Reminder::Notes)
+                            .string()
+                            .not_null()
+                            .default(""),
+                    )
+                    .col(ColumnDef::new(Reminder::DueAt).big_integer().null())
+                    .col(ColumnDef::new(Reminder::EndAt).big_integer().null())
+                    .col(ColumnDef::new(Reminder::FireTime).string().null())
+                    .col(
+                        ColumnDef::new(Reminder::WeekDays)
+                            .string()
+                            .not_null()
+                            .default("[]"),
+                    )
+                    .col(
+                        ColumnDef::new(Reminder::EntireDay)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(
+                        ColumnDef::new(Reminder::Enabled)
+                            .boolean()
+                            .not_null()
+                            .default(true),
+                    )
+                    .col(ColumnDef::new(Reminder::SnoozeUntil).big_integer().null())
+                    .col(ColumnDef::new(Reminder::LastFiredAt).big_integer().null())
+                    .col(
+                        ColumnDef::new(Reminder::Priority)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(ColumnDef::new(Reminder::ArchivedAt).big_integer().null())
+                    .col(
+                        ColumnDef::new(Reminder::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Reminder::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Calendar::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Calendar::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(Calendar::Title).string().not_null())
+                    .col(
+                        ColumnDef::new(Calendar::Notes)
+                            .string()
+                            .not_null()
+                            .default(""),
+                    )
+                    .col(ColumnDef::new(Calendar::StartAt).big_integer().not_null())
+                    .col(ColumnDef::new(Calendar::EndAt).big_integer().not_null())
+                    .col(
+                        ColumnDef::new(Calendar::EntireDay)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(ColumnDef::new(Calendar::Color).string().null())
+                    .col(ColumnDef::new(Calendar::ReminderID).string().null())
+                    .col(ColumnDef::new(Calendar::ArchivedAt).big_integer().null())
+                    .col(
+                        ColumnDef::new(Calendar::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Calendar::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_calendar_reminder")
+                            .from(Calendar::Table, Calendar::ReminderID)
+                            .to(Reminder::Table, Reminder::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
         db.execute_unprepared(
             "INSERT OR IGNORE INTO countdown \
-             (id, workStart, workEnd, workDays, monthlySalary, payDay, createdAt, updatedAt) \
-             VALUES ('00000000-0000-0000-0000-000000000001', '09:00', '18:00', '[1,2,3,4,5]', 0.0, 15, \
+             (id, workStart, workEnd, workDays, monthlySalary, payDay, archivedAt, createdAt, updatedAt) \
+             VALUES ('00000000-0000-0000-0000-000000000001', '09:00', '18:00', '[1,2,3,4,5]', 0.0, 15, NULL, \
              CAST(strftime('%s', 'now') AS INTEGER) * 1000, \
              CAST(strftime('%s', 'now') AS INTEGER) * 1000)",
         )
@@ -317,11 +434,41 @@ impl MigrationTrait for Migration {
         .await?;
         db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_cmt_tenant ON comment (tenantID)")
             .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_reminder_dueAt ON reminder (dueAt)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_reminder_fireTime ON reminder (fireTime)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_reminder_enabled ON reminder (enabled)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_reminder_archivedAt ON reminder (archivedAt)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_calendar_startAt ON calendar (startAt)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_calendar_reminderID ON calendar (reminderID)",
+        )
+        .await?;
 
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(Calendar::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Reminder::Table).to_owned())
+            .await?;
         manager
             .drop_table(Table::drop().table(MagneticTile::Table).to_owned())
             .await?;
@@ -362,6 +509,61 @@ enum Countdown {
     MonthlySalary,
     #[iden = "payDay"]
     PayDay,
+    #[iden = "archivedAt"]
+    ArchivedAt,
+    #[iden = "createdAt"]
+    CreatedAt,
+    #[iden = "updatedAt"]
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum Reminder {
+    Table,
+    Id,
+    Title,
+    Notes,
+    #[iden = "dueAt"]
+    DueAt,
+    #[iden = "endAt"]
+    EndAt,
+    #[iden = "fireTime"]
+    FireTime,
+    #[iden = "weekDays"]
+    WeekDays,
+    #[iden = "entireDay"]
+    EntireDay,
+    Enabled,
+    #[iden = "snoozeUntil"]
+    SnoozeUntil,
+    #[iden = "lastFiredAt"]
+    LastFiredAt,
+    Priority,
+    #[iden = "archivedAt"]
+    ArchivedAt,
+    #[iden = "createdAt"]
+    CreatedAt,
+    #[iden = "updatedAt"]
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum Calendar {
+    Table,
+    Id,
+    Title,
+    Notes,
+    #[iden = "startAt"]
+    StartAt,
+    #[iden = "endAt"]
+    EndAt,
+    #[iden = "entireDay"]
+    EntireDay,
+    Color,
+    #[iden = "reminderID"]
+    ReminderID,
+    #[iden = "archivedAt"]
+    ArchivedAt,
     #[iden = "createdAt"]
     CreatedAt,
     #[iden = "updatedAt"]
@@ -379,7 +581,8 @@ enum Mirror {
     Overlay,
     Background,
     Backdrop,
-
+    #[iden = "archivedAt"]
+    ArchivedAt,
     #[iden = "createdAt"]
     CreatedAt,
     #[iden = "updatedAt"]
@@ -412,6 +615,8 @@ enum MagneticTile {
     MirrorID,
     #[iden = "collectionID"]
     CollectionID,
+    #[iden = "archivedAt"]
+    ArchivedAt,
     #[iden = "createdAt"]
     CreatedAt,
     #[iden = "updatedAt"]

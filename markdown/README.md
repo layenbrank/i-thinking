@@ -23,6 +23,7 @@
 | [client/components-api.md](./client/components-api.md) | Client 业务组件 API |
 | [client/components-semantic.md](./client/components-semantic.md) | Client 组件语义化 class |
 | [client/tauri-remote.md](./client/tauri-remote.md) | Tauri `remote.urls` 白名单 |
+| [client/tauri-command-database/](./client/tauri-command-database/README.md) | Tauri command / database 分层与用法；Schema Reminder 统一改动说明 |
 | [client/updater-sidecar-file-lock.md](./client/updater-sidecar-file-lock.md) | Windows 更新时 corex-serve 文件锁：问题、根因与双保险方案 |
 
 Zustand 基础用法见 [apps/docs/guides/zustand.md](../apps/docs/guides/zustand.md)。

@@ -23,6 +23,9 @@ pub struct Model {
     #[sea_orm(column_name = "payDay")]
     pub pay_day: i32,
 
+    #[sea_orm(column_name = "archivedAt")]
+    pub archived_at: Option<i64>,
+
     #[sea_orm(column_name = "createdAt")]
     pub created_at: i64,
 

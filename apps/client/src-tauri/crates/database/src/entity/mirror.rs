@@ -15,6 +15,9 @@ pub struct Model {
     pub background: Option<String>,
     pub backdrop: Option<String>,
 
+    #[sea_orm(column_name = "archivedAt")]
+    pub archived_at: Option<i64>,
+
     #[sea_orm(column_name = "updatedAt")]
     pub updated_at: i64,
 

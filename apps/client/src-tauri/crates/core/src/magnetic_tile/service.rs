@@ -44,6 +44,7 @@ impl Service {
                     text_color: Set(p.text_color),
                     collection_id: Set(p.collection_id),
                     download_count: Set(0),
+                    archived_at: Set(None),
                     updated_at: Set(now),
                     created_at: Set(now),
                 };
@@ -81,6 +82,7 @@ impl Service {
                             text_color: Set(p.text_color),
                             collection_id: Set(p.collection_id),
                             download_count: Set(0),
+                            archived_at: Set(None),
                             updated_at: Set(now),
                             created_at: Set(now),
                         }

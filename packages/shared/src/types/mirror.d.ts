@@ -9,6 +9,7 @@ interface Mirror {
   background: Mirror.Background | null
   backdrop: Mirror.Backdrop | null
   overlay: string
+  archivedAt: number | null
 }
 
 declare namespace Mirror {
@@ -42,7 +43,7 @@ declare namespace Mirror {
   }
 
   /** 写入参数：全量字段，不含自动生成的 id / createdAt / updatedAt */
-  type Write = Omit<Mirror, 'id' | 'createdAt' | 'updatedAt'>
+  type Write = Omit<Mirror, 'id' | 'createdAt' | 'updatedAt' | 'archivedAt'>
 
   /** 查询过滤参数：仅限 Rust Read 结构体暴露的字段 */
   type Read = Partial<Pick<Mirror, 'id' | 'title' | 'mark'>>

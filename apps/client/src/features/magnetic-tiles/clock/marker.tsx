@@ -1,11 +1,18 @@
 import dayjs from 'dayjs'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { MagneticTile, type MarkerProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import { findCapacity, isWide } from '@/features/magnetic-tile/marker-density'
 import { markerClass } from '@/features/magnetic-tile/marker-class'
+import {
+  findClockReminders,
+  findEnabledCount,
+  findNextReminder,
+  findTodayEnabledCount
+} from '@/features/magnetic-tiles/clock/alarm-time'
 import styles from '@/features/magnetic-tiles/clock/marker.module.scss'
 import { useClockStore } from '@/stores/clock'
+import { useReminderStore } from '@/stores/reminder'
 
 type Props = Omit<MarkerProps, 'children'>
 
@@ -85,9 +92,41 @@ function Marker(props: Props) {
   const clockStyle = useClockStore(function (s) {
     return s.clockStyle
   })
+  const reminders = useReminderStore(function (s) {
+    return s.reminders
+  })
+  const readReminders = useReminderStore(function (s) {
+    return s.readReminders
+  })
   const [now, onUpdateNow] = useState(function () {
     return dayjs()
   })
+
+  useEffect(
+    function () {
+      void readReminders()
+    },
+    [readReminders]
+  )
+
+  useEffect(
+    function () {
+      let unlisten: (() => void) | undefined
+      void import('@tauri-apps/api/event').then(function (mod) {
+        void mod
+          .listen('reminder:fired', function () {
+            void readReminders()
+          })
+          .then(function (fn) {
+            unlisten = fn
+          })
+      })
+      return function () {
+        unlisten?.()
+      }
+    },
+    [readReminders]
+  )
 
   useEffect(function () {
     const timer = setInterval(function () {
@@ -105,18 +144,55 @@ function Marker(props: Props) {
   const showPeriod = capacity >= 3
   const showFullDate = capacity >= 4
   const showWeek = capacity >= 5
+  const showNextAlarm = capacity >= 2
+  const showAlarmSummary = capacity >= 3
+  const showSecondAlarm = capacity >= 5
 
   const h = pad(now.hour())
   const m = pad(now.minute())
   const s = pad(now.second())
   const period = now.hour() < 12 ? '上午' : '下午'
-  const dateLabel = showFullDate
-    ? now.format('YYYY年M月D日')
-    : now.format('M月D日')
+  const dateLabel = showFullDate ? now.format('YYYY年M月D日') : now.format('M月D日')
   const weekday = now.format('dddd')
   const weekOfYear = Math.max(
     1,
     Math.ceil((now.diff(now.startOf('year'), 'day') + now.startOf('year').day() + 1) / 7)
+  )
+
+  const clockReminders = useMemo(
+    function () {
+      return findClockReminders(reminders)
+    },
+    [reminders]
+  )
+
+  const todayEnabled = useMemo(
+    function () {
+      return findTodayEnabledCount(clockReminders, now)
+    },
+    [clockReminders, now]
+  )
+
+  const enabledTotal = useMemo(
+    function () {
+      return findEnabledCount(clockReminders)
+    },
+    [clockReminders]
+  )
+
+  const nextReminders = useMemo(
+    function () {
+      if (!showNextAlarm) return []
+      const first = findNextReminder(clockReminders, now)
+      if (!first) return []
+      if (!showSecondAlarm) return [first]
+      const rest = clockReminders.filter(function (r) {
+        return r.id !== first.reminder.id
+      })
+      const second = findNextReminder(rest, now)
+      return second ? [first, second] : [first]
+    },
+    [clockReminders, now, showNextAlarm, showSecondAlarm]
   )
 
   return (
@@ -128,7 +204,8 @@ function Marker(props: Props) {
         props.shape,
         props.direction,
         styles[clockStyle],
-        wide && styles.wide
+        wide && styles.wide,
+        showAside && styles.hasAside
       )}>
       <div className={styles.body}>
         <div className={styles.stage}>
@@ -173,10 +250,40 @@ function Marker(props: Props) {
 
         {showAside ? (
           <aside className={styles.aside}>
-            {showPeriod ? <span className={styles.period}>{period}</span> : null}
-            <span className={styles.date}>{dateLabel}</span>
-            <span className={styles.weekday}>{weekday}</span>
-            {showWeek ? <span className={styles.week}>第 {weekOfYear} 周</span> : null}
+            <div className={styles.metaRow}>
+              {showPeriod ? <span className={styles.period}>{period}</span> : null}
+              <span className={styles.date}>{dateLabel}</span>
+              <span className={styles.weekday}>{weekday}</span>
+              {showWeek ? <span className={styles.week}>第 {weekOfYear} 周</span> : null}
+            </div>
+
+            {showNextAlarm ? (
+              <div className={styles.alarmBlock}>
+                {nextReminders.length > 0 ? (
+                  nextReminders.map(function (item) {
+                    return (
+                      <div
+                        key={item.reminder.id}
+                        className={styles.alarmRow}>
+                        <span className={styles.alarmLabel}>下个</span>
+                        <span className={styles.alarmTime}>{item.reminder.fireTime}</span>
+                        <span className={styles.alarmTitle}>
+                          {item.reminder.title || '闹钟'}
+                        </span>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className={styles.alarmEmpty}>暂无闹钟</div>
+                )}
+                {showAlarmSummary ? (
+                  <div className={styles.alarmSummary}>
+                    今日已开 {todayEnabled}
+                    {enabledTotal !== todayEnabled ? ` · 全部 ${enabledTotal}` : ''}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </aside>
         ) : null}
       </div>

@@ -8,7 +8,7 @@ import { MagneticTile, type MarkerProps } from '@/features/magnetic-tile/magneti
 import { findCapacity, isWide, type Capacity } from '@/features/magnetic-tile/marker-density'
 import { markerClass } from '@/features/magnetic-tile/marker-class'
 import styles from '@/features/magnetic-tiles/calendar/marker.module.scss'
-import { useCalendarEventStore } from '@/stores/calendar-event'
+import { useCalendarStore } from '@/stores/calendar'
 import { useReminderStore } from '@/stores/reminder'
 
 type Props = Omit<MarkerProps, 'children'>
@@ -75,8 +75,8 @@ function directionLabel(value: { toString(): string } | string) {
   return typeof value === 'string' ? value : value.toString()
 }
 
-function formatTimeLabel(ms: number, isAllDay: boolean) {
-  if (isAllDay) return '全天'
+function formatTimeLabel(ms: number, entireDay: boolean) {
+  if (entireDay) return '全天'
   const date = new Date(ms)
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
@@ -302,13 +302,13 @@ function Marker(props: Props) {
     return dayjs()
   })
 
-  const events = useCalendarEventStore(function (state) {
+  const events = useCalendarStore(function (state) {
     return state.events
   })
   const reminders = useReminderStore(function (state) {
     return state.reminders
   })
-  const readEvents = useCalendarEventStore(function (state) {
+  const readEvents = useCalendarStore(function (state) {
     return state.readEvents
   })
   const readReminders = useReminderStore(function (state) {
@@ -362,22 +362,26 @@ function Marker(props: Props) {
             id: event.id,
             kind: 'event',
             title: event.title,
-            timeLabel: formatTimeLabel(event.startAt, event.isAllDay),
+            timeLabel: formatTimeLabel(event.startAt, event.entireDay),
             sortAt: event.startAt
           }
         })
       const reminderItems: AgendaItem[] = reminders
         .filter(function (reminder) {
-          return reminder.dueAt >= range.from && reminder.dueAt < range.to
+          return (
+            reminder.dueAt != null &&
+            reminder.dueAt >= range.from &&
+            reminder.dueAt < range.to
+          )
         })
         .map(function (reminder) {
           return {
             id: reminder.id,
             kind: 'reminder',
             title: reminder.title,
-            timeLabel: formatTimeLabel(reminder.dueAt, reminder.isAllDay),
-            sortAt: reminder.dueAt,
-            isCompleted: reminder.isCompleted
+            timeLabel: formatTimeLabel(reminder.dueAt ?? 0, reminder.entireDay),
+            sortAt: reminder.dueAt ?? 0,
+            isCompleted: reminder.archivedAt != null
           }
         })
       return [...eventItems, ...reminderItems].sort(function (a, b) {

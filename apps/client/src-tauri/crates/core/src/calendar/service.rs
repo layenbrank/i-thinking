@@ -3,7 +3,7 @@ use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ColumnTrait, Condition, ConnectionTrait, EntityTrait,
     QueryFilter, QueryOrder, TransactionTrait,
 };
-use thinking_database::entity::calendar_event as schema;
+use thinking_database::entity::calendar as schema;
 use uuid::Uuid;
 
 use crate::exception::Exception;
@@ -141,9 +141,10 @@ impl Service {
             notes: Set(p.notes),
             start_at: Set(p.start_at),
             end_at: Set(p.end_at),
-            is_all_day: Set(p.is_all_day),
+            entire_day: Set(p.entire_day),
             color: Set(p.color),
             reminder_id: Set(p.reminder_id),
+            archived_at: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
         };
@@ -158,9 +159,7 @@ impl Service {
         let model = schema::Entity::find_by_id(payload.key.clone())
             .one(db)
             .await?
-            .ok_or_else(|| {
-                Exception::NotFound(format!("calendar event not found: {}", payload.key))
-            })?;
+            .ok_or_else(|| Exception::NotFound(format!("calendar not found: {}", payload.key)))?;
 
         let mut active: schema::ActiveModel = model.into();
         let now = Utc::now().timestamp_millis();
@@ -177,14 +176,17 @@ impl Service {
         if let Some(v) = payload.change.end_at {
             active.end_at = Set(v);
         }
-        if let Some(v) = payload.change.is_all_day {
-            active.is_all_day = Set(v);
+        if let Some(v) = payload.change.entire_day {
+            active.entire_day = Set(v);
         }
         if let Some(v) = payload.change.color {
             active.color = Set(v);
         }
         if let Some(v) = payload.change.reminder_id {
             active.reminder_id = Set(v);
+        }
+        if let Some(v) = payload.change.archived_at {
+            active.archived_at = Set(v);
         }
         active.updated_at = Set(now);
 
@@ -202,6 +204,9 @@ impl Service {
         }
         if let Some(ref reminder_id) = payload.reminder_id {
             cond = cond.add(schema::Column::ReminderId.eq(reminder_id.clone()));
+        }
+        if payload.include_archived != Some(true) {
+            cond = cond.add(schema::Column::ArchivedAt.is_null());
         }
         if let Some(range_from) = payload.range_from {
             cond = cond.add(schema::Column::EndAt.gte(range_from));

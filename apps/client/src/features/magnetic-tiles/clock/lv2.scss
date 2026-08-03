@@ -28,10 +28,13 @@
     }
     &.rectangle {
       &.horizontal {
-        padding: 12px 16px;
-        .digit, .colon, .minimalTime, .flipCard { font-size: 36px; }
-        .date, .week { font-size: 12px; }
+        padding: 10px 14px;
+        .digit, .colon, .minimalTime, .flipCard { font-size: 34px; }
+        .date, .week, .weekday, .period { font-size: 12px; }
+        .alarmTime { font-size: 14px; }
+        .alarmLabel, .alarmSummary, .alarmEmpty { font-size: 11px; }
         .analogFace { width: min(30%, 110px); }
+        .aside { gap: 6px; }
       }
       &.vertical {
         padding: 12px 10px;

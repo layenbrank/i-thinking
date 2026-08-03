@@ -21,6 +21,7 @@ interface MagneticTile {
   downloadCount: number
   background: MagneticTile.Background | null
   backdrop: MagneticTile.Backdrop | null
+  archivedAt: number | null
 }
 
 declare namespace MagneticTile {
@@ -96,7 +97,10 @@ declare namespace MagneticTile {
    * 写入参数：不含自动生成的 id / createdAt / updatedAt
    * Rust Write 结构体中无 downloadCount，此处同步排除
    */
-  type Write = Omit<MagneticTile, 'id' | 'createdAt' | 'updatedAt' | 'downloadCount'>
+  type Write = Omit<
+    MagneticTile,
+    'id' | 'createdAt' | 'updatedAt' | 'downloadCount' | 'archivedAt'
+  >
 
   /** 查询过滤参数：仅限 Rust Read 结构体暴露的字段 */
   type Read = Partial<

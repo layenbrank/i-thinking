@@ -33,6 +33,7 @@ impl Service {
                     overlay: Set(p.overlay),
                     background: Set(p.background.and_then(json_to_string)),
                     backdrop: Set(p.backdrop.and_then(json_to_string)),
+                    archived_at: Set(None),
                     updated_at: Set(now),
                     created_at: Set(now),
                 };
@@ -61,6 +62,7 @@ impl Service {
                             overlay: Set(p.overlay),
                             background: Set(p.background.and_then(json_to_string)),
                             backdrop: Set(p.backdrop.and_then(json_to_string)),
+                            archived_at: Set(None),
                             updated_at: Set(now),
                             created_at: Set(now),
                         }

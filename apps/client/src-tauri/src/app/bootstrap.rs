@@ -7,6 +7,7 @@ use crate::{
     app::{handlers, plugins},
     autostart,
     overlay::OverlayPending,
+    reminder,
     through::{self, ThroughState},
     ui::tray,
     utils::{
@@ -45,6 +46,7 @@ impl Bootstrap {
                 app.manage(ThroughState::new("overlay"));
                 app.manage(OverlayPending::default());
                 through::spawn_worker(app.handle().clone());
+                reminder::spawn_worker(app.handle().clone());
                 tray::setup(app)?;
                 log_retention::prune_stale_logs(app.handle());
                 autostart::reconcile(app.handle());

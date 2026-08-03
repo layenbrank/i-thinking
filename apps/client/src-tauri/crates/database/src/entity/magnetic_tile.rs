@@ -51,6 +51,9 @@ pub struct Model {
     #[sea_orm(column_name = "downloadCount")]
     pub download_count: i32,
 
+    #[sea_orm(column_name = "archivedAt")]
+    pub archived_at: Option<i64>,
+
     #[sea_orm(column_name = "updatedAt")]
     pub updated_at: i64,
 

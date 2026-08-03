@@ -2,7 +2,7 @@ use sea_orm::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "calendarEvent")]
+#[sea_orm(table_name = "calendar")]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     #[sea_orm(primary_key)]
@@ -13,12 +13,14 @@ pub struct Model {
     pub start_at: i64,
     #[sea_orm(column_name = "endAt")]
     pub end_at: i64,
-    #[sea_orm(column_name = "isAllDay")]
-    pub is_all_day: bool,
+    #[sea_orm(column_name = "entireDay")]
+    pub entire_day: bool,
     pub color: Option<String>,
     #[serde(rename = "reminderID")]
     #[sea_orm(column_name = "reminderID")]
     pub reminder_id: Option<String>,
+    #[sea_orm(column_name = "archivedAt")]
+    pub archived_at: Option<i64>,
     #[sea_orm(column_name = "createdAt")]
     pub created_at: i64,
     #[sea_orm(column_name = "updatedAt")]
@@ -52,9 +54,8 @@ pub struct Read {
     pub title: Option<String>,
     #[serde(rename = "reminderID")]
     pub reminder_id: Option<String>,
-    /// Inclusive range start (epoch ms); overlaps when endAt >= range_from.
+    pub include_archived: Option<bool>,
     pub range_from: Option<i64>,
-    /// Exclusive range end (epoch ms); overlaps when startAt < range_to.
     pub range_to: Option<i64>,
 }
 
@@ -74,7 +75,7 @@ pub struct Write {
     pub start_at: i64,
     pub end_at: i64,
     #[serde(default)]
-    pub is_all_day: bool,
+    pub entire_day: bool,
     pub color: Option<String>,
     #[serde(rename = "reminderID")]
     pub reminder_id: Option<String>,
@@ -94,10 +95,11 @@ pub struct Change {
     pub notes: Option<String>,
     pub start_at: Option<i64>,
     pub end_at: Option<i64>,
-    pub is_all_day: Option<bool>,
+    pub entire_day: Option<bool>,
     pub color: Option<Option<String>>,
     #[serde(rename = "reminderID")]
     pub reminder_id: Option<Option<String>>,
+    pub archived_at: Option<Option<i64>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -23,7 +23,8 @@
 .flip,
 .neon,
 .minimal,
-.wide {
+.wide,
+.hasAside {
   min-width: 0;
 }
 
@@ -64,13 +65,23 @@
 
 .aside {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
   justify-content: center;
-  gap: 4px 12px;
+  gap: 6px;
   flex: 0 0 auto;
   padding-top: 8px;
   border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  min-width: 0;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
 }
 
 .date,
@@ -95,6 +106,56 @@
 .period {
   color: var(--ith-color-primary);
   font-weight: 600;
+}
+
+.alarmBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.alarmRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.alarmLabel {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+}
+
+.alarmTime {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+  letter-spacing: -0.02em;
+}
+
+.alarmTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ith-color-text-secondary);
+}
+
+.alarmEmpty {
+  font-size: 12px;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+}
+
+.alarmSummary {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  font-variant-numeric: tabular-nums;
 }
 
 .digital {
@@ -160,7 +221,12 @@
   .date,
   .weekday,
   .week,
-  .period {
+  .period,
+  .alarmTime,
+  .alarmTitle,
+  .alarmLabel,
+  .alarmSummary,
+  .alarmEmpty {
     color: var(--ith-color-primary);
   }
 }
@@ -251,27 +317,38 @@
 /* 横矩形：时间 | 信息栏 并排填满，避免大片留白 */
 .wide .body {
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
 .wide .stage {
   flex: 1 1 auto;
+  align-self: center;
   justify-content: flex-start;
 }
 
 .wide .aside {
-  flex: 0 0 auto;
+  flex: 1 1 42%;
+  max-width: 48%;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
   justify-content: center;
-  gap: 4px;
+  gap: 8px;
   padding-top: 0;
-  padding-left: 16px;
+  padding-left: 14px;
   border-top: none;
   border-left: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
-  min-width: 7.5em;
+  min-width: 9.5em;
+}
+
+.wide .metaRow {
+  justify-content: flex-start;
+}
+
+.wide.lv2 .marker,
+.wide .alarmTitle {
+  max-width: 100%;
 }
 
 .circle .aside {

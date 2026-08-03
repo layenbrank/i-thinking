@@ -8,7 +8,7 @@ import { DayAgenda } from '@/features/magnetic-tiles/calendar/day-agenda'
 import { DayDetail } from '@/features/magnetic-tiles/calendar/day-detail'
 import { DayGrid } from '@/features/magnetic-tiles/calendar/day-grid'
 import styles from '@/features/magnetic-tiles/calendar/calendar-view.module.scss'
-import { useCalendarEventStore } from '@/stores/calendar-event'
+import { useCalendarStore } from '@/stores/calendar'
 import { useReminderStore } from '@/stores/reminder'
 
 type CalendarViewProps = {
@@ -44,19 +44,19 @@ function CalendarView(props: CalendarViewProps = {}) {
     return dayjs()
   })
 
-  const events = useCalendarEventStore(function (state) {
+  const events = useCalendarStore(function (state) {
     return state.events
   })
   const reminders = useReminderStore(function (state) {
     return state.reminders
   })
-  const readEvents = useCalendarEventStore(function (state) {
+  const readEvents = useCalendarStore(function (state) {
     return state.readEvents
   })
-  const writeEvent = useCalendarEventStore(function (state) {
+  const writeEvent = useCalendarStore(function (state) {
     return state.writeEvent
   })
-  const removeEvent = useCalendarEventStore(function (state) {
+  const removeEvent = useCalendarStore(function (state) {
     return state.removeEvent
   })
   const readReminders = useReminderStore(function (state) {
@@ -105,7 +105,11 @@ function CalendarView(props: CalendarViewProps = {}) {
   const dayReminders = useMemo(
     function () {
       return reminders.filter(function (reminder) {
-        return reminder.dueAt >= dayRange.from && reminder.dueAt < dayRange.to
+        return (
+          reminder.dueAt != null &&
+          reminder.dueAt >= dayRange.from &&
+          reminder.dueAt < dayRange.to
+        )
       })
     },
     [reminders, dayRange]
@@ -118,6 +122,7 @@ function CalendarView(props: CalendarViewProps = {}) {
         marks.add(timeSphere.format(new Date(event.startAt), 'YYYY-MM-DD'))
       }
       for (const reminder of reminders) {
+        if (reminder.dueAt == null) continue
         marks.add(timeSphere.format(new Date(reminder.dueAt), 'YYYY-MM-DD'))
       }
       return marks
@@ -132,7 +137,7 @@ function CalendarView(props: CalendarViewProps = {}) {
       notes,
       startAt: bounds.from,
       endAt: bounds.to - 1,
-      isAllDay: true
+      entireDay: true
     })
     await refreshRange(panelDate)
   }
@@ -143,16 +148,16 @@ function CalendarView(props: CalendarViewProps = {}) {
       title,
       notes,
       dueAt: bounds.from + 9 * 60 * 60 * 1000,
-      isAllDay: false,
+      entireDay: false,
       priority: 0
     })
     await refreshRange(panelDate)
   }
 
-  async function handleToggleReminder(id: string, isCompleted: boolean) {
+  async function handleToggleReminder(id: string, completed: boolean) {
     await updateReminder({
       key: id,
-      change: { isCompleted }
+      change: { archivedAt: completed ? Date.now() : null }
     })
     await refreshRange(panelDate)
   }

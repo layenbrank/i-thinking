@@ -1,5 +1,6 @@
 pub mod app;
 pub mod autostart;
+pub mod reminder;
 pub mod system;
 
 pub mod through {

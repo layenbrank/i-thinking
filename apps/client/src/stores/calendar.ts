@@ -3,62 +3,65 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-interface CalendarEvent {
+interface Calendar {
   id: string
   title: string
   notes: string
   startAt: number
   endAt: number
-  isAllDay: boolean
+  entireDay: boolean
   color: string | null
   reminderID: string | null
+  archivedAt: number | null
   createdAt: number
   updatedAt: number
 }
 
-interface CalendarEventWrite {
+interface CalendarWrite {
   title: string
   notes?: string
   startAt: number
   endAt: number
-  isAllDay?: boolean
+  entireDay?: boolean
   color?: string | null
   reminderID?: string | null
 }
 
-interface CalendarEventChange {
+interface CalendarChange {
   title?: string
   notes?: string
   startAt?: number
   endAt?: number
-  isAllDay?: boolean
+  entireDay?: boolean
   color?: string | null
   reminderID?: string | null
+  archivedAt?: number | null
 }
 
-interface CalendarEventUpdate {
+interface CalendarUpdate {
   key: string
-  change: CalendarEventChange
+  change: CalendarChange
 }
 
-interface CalendarEventRead {
+interface CalendarRead {
   id?: string
   title?: string
   reminderID?: string
+  includeArchived?: boolean
   rangeFrom?: number
   rangeTo?: number
 }
 
-interface CalendarEventStore {
-  events: CalendarEvent[]
+interface CalendarStore {
+  events: Calendar[]
   loaded: boolean
-  readEvents(filter?: CalendarEventRead): Promise<CalendarEvent[]>
-  writeEvent(value: CalendarEventWrite): Promise<string | undefined>
-  updateEvent(value: CalendarEventUpdate): Promise<void>
+  readEvents(filter?: CalendarRead): Promise<Calendar[]>
+  writeEvent(value: CalendarWrite): Promise<string | undefined>
+  updateEvent(value: CalendarUpdate): Promise<void>
   removeEvent(key: string): Promise<void>
 }
 
-const useCalendarEventStore = create<CalendarEventStore>()(
+const useCalendarStore = create<CalendarStore>()(
   devtools(
     immer(function (setter) {
       return {
@@ -67,7 +70,7 @@ const useCalendarEventStore = create<CalendarEventStore>()(
 
         async readEvents(filter = {}) {
           try {
-            const events = await invoke<CalendarEvent[]>('calendar-event:read', {
+            const events = await invoke<Calendar[]>('calendar:read', {
               params: filter
             })
             setter(
@@ -80,7 +83,7 @@ const useCalendarEventStore = create<CalendarEventStore>()(
             )
             return events
           } catch (err) {
-            console.error('[calendar-event-store] readEvents failed:', err)
+            console.error('[calendar-store] readEvents failed:', err)
             setter(
               function (state) {
                 state.loaded = true
@@ -94,40 +97,34 @@ const useCalendarEventStore = create<CalendarEventStore>()(
 
         async writeEvent(value) {
           try {
-            const ids = await invoke<string[]>('calendar-event:write', { params: value })
+            const ids = await invoke<string[]>('calendar:write', { params: value })
             return ids[0]
           } catch (err) {
-            console.error('[calendar-event-store] writeEvent failed:', err)
+            console.error('[calendar-store] writeEvent failed:', err)
             return undefined
           }
         },
 
         async updateEvent(value) {
           try {
-            await invoke('calendar-event:update', { params: value })
+            await invoke('calendar:update', { params: value })
           } catch (err) {
-            console.error('[calendar-event-store] updateEvent failed:', err)
+            console.error('[calendar-store] updateEvent failed:', err)
           }
         },
 
         async removeEvent(key) {
           try {
-            await invoke('calendar-event:remove', { params: key })
+            await invoke('calendar:remove', { params: key })
           } catch (err) {
-            console.error('[calendar-event-store] removeEvent failed:', err)
+            console.error('[calendar-store] removeEvent failed:', err)
           }
         }
       }
     }),
-    { name: 'calendar-event-store' }
+    { name: 'calendar-store' }
   )
 )
 
-export { useCalendarEventStore }
-export type {
-  CalendarEvent,
-  CalendarEventChange,
-  CalendarEventRead,
-  CalendarEventUpdate,
-  CalendarEventWrite
-}
+export { useCalendarStore }
+export type { Calendar, CalendarChange, CalendarRead, CalendarUpdate, CalendarWrite }

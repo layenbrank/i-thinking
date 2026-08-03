@@ -5,14 +5,14 @@ import type { Dayjs } from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 
 import styles from '@/features/magnetic-tiles/calendar/day-agenda.module.scss'
-import type { CalendarEvent } from '@/stores/calendar-event'
+import type { Calendar } from '@/stores/calendar'
 import type { Reminder } from '@/stores/reminder'
 
 type AgendaKind = 'event' | 'reminder'
 
 type DayAgendaProps = {
   date: Dayjs
-  events: CalendarEvent[]
+  events: Calendar[]
   reminders: Reminder[]
   onWriteEvent(title: string, notes: string): Promise<void>
   onWriteReminder(title: string, notes: string): Promise<void>
@@ -30,8 +30,8 @@ type AgendaItem = {
   timeLabel: string
 }
 
-function formatTimeLabel(ms: number, isAllDay: boolean): string {
-  if (isAllDay) return '全天'
+function formatTimeLabel(ms: number, entireDay: boolean): string {
+  if (entireDay) return '全天'
   const date = new Date(ms)
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
@@ -70,7 +70,7 @@ function DayAgenda(props: DayAgendaProps) {
         kind: 'event',
         title: event.title,
         notes: event.notes,
-        timeLabel: formatTimeLabel(event.startAt, event.isAllDay)
+        timeLabel: formatTimeLabel(event.startAt, event.entireDay)
       }
     })
     const reminderItems: AgendaItem[] = reminders.map(function (reminder) {
@@ -79,8 +79,8 @@ function DayAgenda(props: DayAgendaProps) {
         kind: 'reminder',
         title: reminder.title,
         notes: reminder.notes,
-        isCompleted: reminder.isCompleted,
-        timeLabel: formatTimeLabel(reminder.dueAt, reminder.isAllDay)
+        isCompleted: reminder.archivedAt != null,
+        timeLabel: formatTimeLabel(reminder.dueAt ?? 0, reminder.entireDay)
       }
     })
     return [...eventItems, ...reminderItems].sort(function (a, b) {

@@ -41,6 +41,7 @@ impl Service {
                 work_days: Set(params.work_days),
                 monthly_salary: Set(params.monthly_salary),
                 pay_day: Set(params.pay_day),
+                archived_at: Set(None),
                 created_at: Set(now),
                 updated_at: Set(now),
             };

@@ -1,5 +1,5 @@
 pub mod asset;
-pub mod calendar_event;
+pub mod calendar;
 pub mod countdown;
 pub mod exception;
 pub mod magnetic_tile;
