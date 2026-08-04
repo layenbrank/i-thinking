@@ -9,6 +9,16 @@
 pnpm dev          # 自动执行 prepare + vite + tauri dev
 ```
 
+`beforeDevCommand` 会跑 `bun run scripts/prepare.ts`：按宿主架构从 GitHub Release 下载并解压：
+
+| 工具 | 来源 | 落盘 |
+|------|------|------|
+| corex-serve + pdfium | [layenbrank/corex v2.1.0](https://github.com/layenbrank/corex/releases/tag/v2.1.0)（目前仅 Windows x64） | `src-tauri/binaries/corex-serve-<triple>.exe` + `pdfium.dll`（Tauri sidecar） |
+| pandoc | [jgm/pandoc 3.10.1](https://github.com/jgm/pandoc/releases/tag/3.10.1) | `binaries/pandoc[.exe]`（仅落盘，未进 externalBin） |
+| ffmpeg / ffprobe | [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) 静态 GPL | `binaries/ffmpeg[.exe]`、`ffprobe[.exe]`（仅落盘） |
+
+归档缓存于 `apps/client/.cache/prepare/`（已 gitignore）。二次执行会命中缓存。
+
 ## Rust 检查 / 构建
 
 `cargo check` / `cargo build` 前需确保 sidecar 二进制存在（Tauri build script 会校验路径）：
@@ -19,7 +29,7 @@ pnpm prepare:bin        # bun run scripts/prepare.ts
 pnpm check:tauri        # prepare + cargo check
 ```
 
-真实 corex-serve 构建后，从 `CARGO_TARGET_DIR` 复制 release 产物：
+可选：本地 corex 开发时用 `CARGO_TARGET_DIR` **覆盖**远端下载（优先复制 release 产物）：
 
 ```bash
 # Windows 示例（指向 Cargo target 目录）
@@ -27,25 +37,20 @@ set CARGO_TARGET_DIR=D:\Documents\Rust\corex\master\target
 bun run scripts/prepare.ts
 ```
 
-未找到二进制时脚本会复制系统占位文件（`cmd.exe` / `/bin/true`），**仅能通过编译，IPC 在运行时不可用**；应用启动后会提示「corex 未就绪」，但主窗口仍可打开。
+若本地与下载都不可用，`prepare.ts` **直接报错退出**（不再使用 `cmd.exe` 等占位二进制）。
 
 ## 打包
 
 ```bash
-# 1. 构建 corex sidecar（含 pdfium）
-cd D:/Documents/Rust/corex/master
-cargo build -p corex-serve --release
-
-# 2. 复制 sidecar + pdfium.dll
+# 1. 准备真实 sidecar（下载 Release，或设置 CARGO_TARGET_DIR）
 cd apps/client
-set CARGO_TARGET_DIR=D:/Documents/Rust/corex/master/target
 bun run scripts/prepare.ts --strict
 
-# 3. 打包（build 会注入空签名密码）
+# 2. 打包（build 会注入空签名密码）
 pnpm build
 ```
 
-`prepare.ts --strict` 禁止占位 sidecar；若 corex-serve 不存在则失败。
+`prepare.ts`：corex 始终必需。`--strict` 时 pandoc / ffmpeg 失败也会退出。
 
 本地发版：
 
@@ -67,12 +72,12 @@ git commit -m "chore(release): 1.2.0-beta.1"
 git tag v1.2.0-beta.1 && git push origin HEAD && git push origin v1.2.0-beta.1
 ```
 
-更换 sidecar：`pnpm prepare:bin`（设置 `CARGO_TARGET_DIR`）会复制二进制并重写 `src-tauri/binaries/SHA256SUMS`；请将二者一并提交。CI 只校验清单。
+更换 sidecar：`pnpm prepare:bin` 会准备二进制并重写 `src-tauri/binaries/SHA256SUMS`（仅含 corex sidecar + pdfium）；请将二者一并提交。CI 只校验清单。pandoc / ffmpeg 不进清单、不建议提交。
 
 ## 平台说明
 
 - **IPC（Named Pipe）**：当前仅 Windows 桌面启用 corex-serve sidecar
-- **macOS / Linux**：可编译，但 morph、截图、`os` 扫描等 IPC 能力不可用
+- **macOS / Linux**：可编译，但 morph、截图、`os` 扫描等 IPC 能力不可用；BtbN FFmpeg 无 macOS 资产时 prepare 会 warn 并跳过
 
 ## IDE
 
