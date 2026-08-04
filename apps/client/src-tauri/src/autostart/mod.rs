@@ -1,7 +1,7 @@
 //! 开机自启：插件注册与路径对齐。OS 策略在此；command 见 `command` 子模块。
 //!
-//! - `tauri dev`（`is_dev`）不 reconcile 路径，避免 ephemeral debug exe 写入开机项。
-//! - `autostart:update` 在任何模式均可切换，便于测注册表；冷启动页面需用 build 产物验收。
+//! - `is_dev` 不 reconcile，且 `autostart:update` 不 `enable`（会清误注册），避免 debug 写入开机项。
+//! - 正式包启动时若 OS 已开自启，`reconcile` 用当前 exe 重写路径；冷启动需用安装/release 验收。
 
 pub mod command;
 
