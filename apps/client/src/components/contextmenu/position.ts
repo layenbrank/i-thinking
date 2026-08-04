@@ -21,7 +21,7 @@ type Placement = 'pointer' | 'submenu'
 
 interface OriginInput {
   anchor: Point | Rect
-  panelSize: Size
+  size: Size
   placement: Placement
   offset?: [number, number]
   padding?: number
@@ -81,7 +81,7 @@ function clamp(value: number, min: number, max: number) {
 
 function parsePointerOrigin(
   point: Point,
-  panelSize: Size,
+  size: Size,
   offset: [number, number],
   container: Rect
 ): Origin {
@@ -90,12 +90,12 @@ function parsePointerOrigin(
   let flipX = false
   let flipY = false
 
-  if (left + panelSize.width > container.right) {
-    left = point.x - panelSize.width - offset[0]
+  if (left + size.width > container.right) {
+    left = point.x - size.width - offset[0]
     flipX = true
   }
-  if (top + panelSize.height > container.bottom) {
-    top = point.y - panelSize.height - offset[1]
+  if (top + size.height > container.bottom) {
+    top = point.y - size.height - offset[1]
     flipY = true
   }
 
@@ -104,18 +104,18 @@ function parsePointerOrigin(
 
 function parseSubmenuOrigin(
   anchor: Rect,
-  panelSize: Size,
+  size: Size,
   offset: [number, number],
   container: Rect,
   preferRight: boolean
 ): Origin {
   const rightLeft = anchor.right + offset[0]
-  const leftLeft = anchor.left - panelSize.width - offset[0]
+  const leftLeft = anchor.left - size.width - offset[0]
   let left = 0
   let flipX = false
 
   if (preferRight) {
-    if (rightLeft + panelSize.width <= container.right) {
+    if (rightLeft + size.width <= container.right) {
       left = rightLeft
       flipX = false
     } else if (leftLeft >= container.left) {
@@ -142,8 +142,8 @@ function parseSubmenuOrigin(
 
   let top = anchor.top + offset[1]
   let flipY = false
-  if (top + panelSize.height > container.bottom) {
-    top = anchor.bottom - panelSize.height - offset[1]
+  if (top + size.height > container.bottom) {
+    top = anchor.bottom - size.height - offset[1]
     flipY = true
   }
 
@@ -155,16 +155,16 @@ function parseOrigin(input: OriginInput): Origin {
   const container = input.containerRect ?? findViewportRect(padding)
   const offset = input.offset ?? OFFSET_BY_PLACEMENT[input.placement]
   const preferRight = input.preferRight ?? true
-  const { panelSize } = input
+  const { size } = input
 
   const raw =
     input.placement === 'pointer'
-      ? parsePointerOrigin(input.anchor as Point, panelSize, offset, container)
-      : parseSubmenuOrigin(input.anchor as Rect, panelSize, offset, container, preferRight)
+      ? parsePointerOrigin(input.anchor as Point, size, offset, container)
+      : parseSubmenuOrigin(input.anchor as Rect, size, offset, container, preferRight)
 
   return {
-    left: clamp(raw.left, container.left, container.right - panelSize.width),
-    top: clamp(raw.top, container.top, container.bottom - panelSize.height),
+    left: clamp(raw.left, container.left, container.right - size.width),
+    top: clamp(raw.top, container.top, container.bottom - size.height),
     flipX: raw.flipX,
     flipY: raw.flipY
   }

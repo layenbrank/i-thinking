@@ -13,10 +13,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 
-import { useDismiss } from '@/components/contextmenu/dismiss'
-import { MenuPanel } from '@/components/contextmenu/panel'
-import { findFocusable, parseMenuItems } from '@/components/contextmenu/parse'
-import { VIEWPORT_PADDING, type Point } from '@/components/contextmenu/position'
+import { useDismiss, findFocusable, parseMenuItems } from '@/components/contextmenu/menu'
 import type {
   MenuClassNames,
   MenuItem,
@@ -24,7 +21,9 @@ import type {
   MenuSelectInfo,
   MenuStyles,
   ParsedMenuItem
-} from '@/components/contextmenu/types'
+} from '@/components/contextmenu/menu'
+import { Surface } from '@/components/contextmenu/surface'
+import { VIEWPORT_PADDING, type Point } from '@/components/contextmenu/position'
 import { CSSVAR } from '@/themes'
 
 import '@/components/contextmenu/contextmenu.scss'
@@ -36,15 +35,18 @@ const SHELL_MOTION = {
   transition: { duration: 0.12 }
 }
 
-/** 触发器选择器：clone/wrap 时写入同名 data 属性 */
-const CONTEXTMENU_TRIGGER = '[data-contextmenu-trigger]'
+/** 默认 trigger：clone 时写入 data-contextmenu-trigger */
+const TRIGGER = '[data-contextmenu-trigger]'
 
 interface ContextMenuProps {
-  items: MenuItem[]
+  /** 静态菜单；与 findItems 二选一，findItems 优先 */
+  items?: MenuItem[]
+  /** 按命中的 trigger 节点解析菜单（委托场景） */
+  findItems?: (trigger: Element) => MenuItem[]
   children?: ReactNode
   disabled?: boolean
-  open?: boolean
-  /** closest 用选择器，默认 `[data-contextmenu-trigger]` */
+  visible?: boolean
+  /** closest 选择器；自定义时不烙默认 data，由 root 委托 */
   trigger?: string
   className?: string
   classNames?: MenuClassNames
@@ -53,15 +55,14 @@ interface ContextMenuProps {
   offset?: [number, number]
   submenuOffset?: [number, number]
   boundaryPadding?: number
-  submenuOpenDelay?: number
-  submenuCloseDelay?: number
-  findPopupContainer?: () => HTMLElement
+  expandDelay?: number
+  collapseDelay?: number
+  /** Portal 挂载点，默认 document.body */
+  onTeleport?: () => HTMLElement
   renderItem?: (item: ParsedMenuItem, node: ReactNode) => ReactNode
-  renderPanel?: (
-    nodes: ReactNode,
-    meta: { level: number; items: ParsedMenuItem[] }
-  ) => ReactNode
-  onOpenChange?: (open: boolean) => void
+  renderSurface?: (nodes: ReactNode, meta: { level: number; items: ParsedMenuItem[] }) => ReactNode
+  /** 显隐受控回调 */
+  onUpdateVisible?: (visible: boolean) => void
   onSelect?: (info: MenuSelectInfo) => void
 }
 
@@ -77,14 +78,19 @@ interface TriggerElementProps {
   'data-contextmenu-trigger'?: string
 }
 
-function isOwnTrigger(own: HTMLElement | null, node: Element | null) {
-  if (!own || !node) return false
-  return node === own || own.contains(node)
+function isInRoot(root: HTMLElement | null, node: Element | null) {
+  if (!root || !node) return false
+  return node === root || root.contains(node)
+}
+
+function pickItems(props: ContextMenuProps, trigger: Element) {
+  if (props.findItems) return props.findItems(trigger)
+  return props.items ?? []
 }
 
 interface MenuLayerProps {
   layer: LayerState
-  openPath: string[]
+  path: string[]
   activeKey?: string
   classNames?: MenuClassNames
   styles?: MenuStyles
@@ -92,18 +98,18 @@ interface MenuLayerProps {
   offset?: [number, number]
   submenuOffset?: [number, number]
   boundaryPadding?: number
-  submenuOpenDelay?: number
-  submenuCloseDelay?: number
+  expandDelay?: number
+  collapseDelay?: number
   container: HTMLElement
   renderItem?: ContextMenuProps['renderItem']
-  renderPanel?: ContextMenuProps['renderPanel']
-  onOpenPathChange: (path: string[]) => void
-  onActiveKeyChange: (key: string | undefined) => void
+  renderSurface?: ContextMenuProps['renderSurface']
+  onUpdatePath: (path: string[]) => void
+  onUpdateActive: (key: string | undefined) => void
   onSelect: (info: MenuSelectInfo) => void
-  onRequestClose: () => void
+  onClose: () => void
 }
 
-function findDefaultContainer() {
+function findBody() {
   return document.body
 }
 
@@ -126,11 +132,11 @@ function MenuLayer(props: MenuLayerProps) {
       animate={SHELL_MOTION.animate}
       exit={SHELL_MOTION.exit}
       transition={SHELL_MOTION.transition}>
-      <MenuPanel
+      <Surface
         items={props.layer.items}
         level={0}
         keyPath={[]}
-        openPath={props.openPath}
+        path={props.path}
         activeKey={props.activeKey}
         classNames={props.classNames}
         styles={props.styles}
@@ -138,103 +144,114 @@ function MenuLayer(props: MenuLayerProps) {
         offset={props.offset}
         submenuOffset={props.submenuOffset}
         boundaryPadding={props.boundaryPadding ?? VIEWPORT_PADDING}
-        submenuOpenDelay={props.submenuOpenDelay}
-        submenuCloseDelay={props.submenuCloseDelay}
+        expandDelay={props.expandDelay}
+        collapseDelay={props.collapseDelay}
         container={props.container}
         anchor={props.layer.anchor}
         placement="pointer"
         renderItem={props.renderItem}
-        renderPanel={props.renderPanel}
-        onOpenPathChange={props.onOpenPathChange}
-        onActiveKeyChange={props.onActiveKeyChange}
+        renderSurface={props.renderSurface}
+        onpathChange={props.onUpdatePath}
+        onUpdateActive={props.onUpdateActive}
         onSelect={props.onSelect}
-        onRequestClose={props.onRequestClose}
+        onClose={props.onClose}
       />
     </Motion.div>
   )
 }
 
 function Root(props: ContextMenuProps) {
-  const isControlled = props.open !== undefined
-  const [innerOpen, setInnerOpen] = useState(false)
+  const isControlled = props.visible !== undefined
+  const isDelegate = props.trigger != null
+  const [innerVisible, setInnerVisible] = useState(false)
   const [layer, setLayer] = useState<LayerState | null>(null)
-  const [openPath, setOpenPath] = useState<string[]>([])
+  const [session, setSession] = useState(0)
+  const [path, setPath] = useState<string[]>([])
   const [activeKey, setActiveKey] = useState<string | undefined>()
-  const triggerRef = useRef<HTMLElement | null>(null)
-  const updateOpenRef = useRef<(next: boolean) => void>(function () {})
+  const rootRef = useRef<HTMLElement | null>(null)
+  const updateVisibleRef = useRef<(next: boolean) => void>(function () {})
+  const visibleRef = useRef(false)
 
-  const isOpen = isControlled ? Boolean(props.open) : innerOpen
-  const triggerSelector = props.trigger ?? CONTEXTMENU_TRIGGER
+  const visible = isControlled ? Boolean(props.visible) : innerVisible
+  visibleRef.current = visible
+  const triggerSelector = props.trigger ?? TRIGGER
 
-  function updateOpen(next: boolean) {
-    if (!isControlled) setInnerOpen(next)
-    props.onOpenChange?.(next)
+  function updateVisible(next: boolean) {
+    if (!isControlled) setInnerVisible(next)
+    props.onUpdateVisible?.(next)
     if (!next) {
-      setOpenPath([])
+      setPath([])
       setActiveKey(undefined)
     }
   }
 
-  updateOpenRef.current = updateOpen
+  updateVisibleRef.current = updateVisible
 
   function clearLayer() {
     setLayer(null)
-    setOpenPath([])
+    setPath([])
     setActiveKey(undefined)
   }
 
-  function openAt(point: Point, items: MenuItem[]) {
+  function presentAt(point: Point, items: MenuItem[]) {
     if (props.disabled) return
+    if (!items.length) return
     const parsed = parseMenuItems(items)
     const focusable = findFocusable(parsed)
+    // 换 session key 重播入场；onExitComplete 仅在关闭时清 layer，避免拆掉新层
+    setSession(function (n) {
+      return n + 1
+    })
     setLayer({ anchor: point, items: parsed })
-    setOpenPath([])
+    setPath([])
     setActiveKey(focusable[0]?.key)
-    if (!isControlled) setInnerOpen(true)
-    props.onOpenChange?.(true)
+    if (!isControlled) setInnerVisible(true)
+    props.onUpdateVisible?.(true)
   }
 
   function onContextMenu(event: ReactMouseEvent) {
     if (props.disabled) return
-    if (!props.items.length) return
     if (event.shiftKey) return
 
     const target = event.target
     if (!(target instanceof Element)) return
     const node = target.closest(triggerSelector)
-    if (!isOwnTrigger(triggerRef.current, node)) return
+    if (!node || !isInRoot(rootRef.current, node)) return
+
+    const items = pickItems(props, node)
+    if (!items.length) return
 
     event.preventDefault()
     event.stopPropagation()
-    openAt({ x: event.clientX, y: event.clientY }, props.items)
+    presentAt({ x: event.clientX, y: event.clientY }, items)
   }
 
   function onSelect(info: MenuSelectInfo) {
     props.onSelect?.(info)
-    updateOpen(false)
+    updateVisible(false)
   }
 
   useDismiss({
-    isOpen,
-    onClose: function () {
-      updateOpen(false)
+    visible,
+    onClose() {
+      updateVisible(false)
     }
   })
 
-  // 已打开时：capture 阶段若 closest 非本 trigger，关闭自身（无 Map 互斥）
+  // 已打开时：capture 阶段若 closest 非本 root 内 trigger，关闭自身
   useEffect(
     function () {
-      if (!isOpen) return
+      if (!visible) return
 
       function onDocumentContextMenu(event: MouseEvent) {
         const target = event.target
         if (!(target instanceof Element)) {
-          updateOpenRef.current(false)
+          updateVisibleRef.current(false)
           return
         }
         const node = target.closest(triggerSelector)
-        if (!isOwnTrigger(triggerRef.current, node)) {
-          updateOpenRef.current(false)
+        if (!isInRoot(rootRef.current, node)) {
+          updateVisibleRef.current(false)
         }
       }
 
@@ -243,37 +260,37 @@ function Root(props: ContextMenuProps) {
         document.removeEventListener('contextmenu', onDocumentContextMenu, true)
       }
     },
-    [isOpen, triggerSelector]
+    [visible, triggerSelector]
   )
 
   useEffect(
     function () {
-      if (isControlled && props.open && !layer) {
-        const el = triggerRef.current
+      if (isControlled && props.visible && !layer) {
+        const el = rootRef.current
         if (!el) return
         const box = el.getBoundingClientRect()
-        openAt({ x: box.left + box.width / 2, y: box.top + box.height / 2 }, props.items)
+        const items = props.findItems ? props.findItems(el) : (props.items ?? [])
+        presentAt({ x: box.left + box.width / 2, y: box.top + box.height / 2 }, items)
       }
     },
-    [isControlled, props.open]
+    [isControlled, props.visible]
   )
 
   const child = props.children
   let trigger: ReactNode = child
 
-  if (child === undefined || child === null) {
-    trigger = null
-  } else if (isValidElement(child)) {
+  if (child === undefined || child === null) trigger = null
+  else if (isValidElement(child)) {
     const element = child as ReactElement<TriggerElementProps>
     trigger = cloneElement(element, {
       className: clsx(element.props.className, props.className, props.classNames?.root),
-      'data-contextmenu-trigger': '',
-      onContextMenu: function (event: ReactMouseEvent) {
+      ...(isDelegate ? {} : { 'data-contextmenu-trigger': '' }),
+      onContextMenu(event: ReactMouseEvent) {
         element.props.onContextMenu?.(event)
         onContextMenu(event)
       },
-      ref: function (node: HTMLElement | null) {
-        triggerRef.current = node
+      ref(node: HTMLElement | null) {
+        rootRef.current = node
         assignRef(element.props.ref, node)
       }
     })
@@ -281,9 +298,9 @@ function Root(props: ContextMenuProps) {
     trigger = (
       <div
         ref={function (node) {
-          triggerRef.current = node
+          rootRef.current = node
         }}
-        data-contextmenu-trigger=""
+        {...(isDelegate ? {} : { 'data-contextmenu-trigger': '' })}
         className={clsx('contextmenu-trigger', props.className, props.classNames?.root)}
         style={props.styles?.root}
         onContextMenu={onContextMenu}>
@@ -292,18 +309,22 @@ function Root(props: ContextMenuProps) {
     )
   }
 
-  const container = (props.findPopupContainer ?? findDefaultContainer)()
+  const container = (props.onTeleport ?? findBody)()
 
   return (
     <>
       {trigger}
       {createPortal(
-        <AnimatePresence onExitComplete={clearLayer}>
-          {isOpen && layer ? (
+        <AnimatePresence
+          onExitComplete={function () {
+            // 已打开时 session remount 也会触发 exit；仅真正关闭后清 layer
+            if (!visibleRef.current) clearLayer()
+          }}>
+          {visible && layer ? (
             <MenuLayer
-              key="contextmenu-layer"
+              key={`contextmenu-${session}`}
               layer={layer}
-              openPath={openPath}
+              path={path}
               activeKey={activeKey}
               classNames={props.classNames}
               styles={props.styles}
@@ -311,16 +332,16 @@ function Root(props: ContextMenuProps) {
               offset={props.offset}
               submenuOffset={props.submenuOffset}
               boundaryPadding={props.boundaryPadding}
-              submenuOpenDelay={props.submenuOpenDelay}
-              submenuCloseDelay={props.submenuCloseDelay}
+              expandDelay={props.expandDelay}
+              collapseDelay={props.collapseDelay}
               container={container}
               renderItem={props.renderItem}
-              renderPanel={props.renderPanel}
-              onOpenPathChange={setOpenPath}
-              onActiveKeyChange={setActiveKey}
+              renderSurface={props.renderSurface}
+              onUpdatePath={setPath}
+              onUpdateActive={setActiveKey}
               onSelect={onSelect}
-              onRequestClose={function () {
-                updateOpen(false)
+              onClose={function () {
+                updateVisible(false)
               }}
             />
           ) : null}
@@ -332,4 +353,4 @@ function Root(props: ContextMenuProps) {
 }
 
 export type { ContextMenuProps, LayerState, MenuLayerProps }
-export { Root, findDefaultContainer, MenuLayer, CONTEXTMENU_TRIGGER }
+export { Root, findBody, MenuLayer, TRIGGER }

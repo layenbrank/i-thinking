@@ -3,27 +3,27 @@ import { createElement, useCallback, useEffect, useState, useSyncExternalStore }
 import { createPortal } from 'react-dom'
 
 import {
-  findDefaultContainer,
+  findBody,
   MenuLayer,
   type ContextMenuProps
 } from '@/components/contextmenu/contextmenu'
-import { useDismiss } from '@/components/contextmenu/dismiss'
-import { findFocusable, parseMenuItems } from '@/components/contextmenu/parse'
+import { findFocusable, parseMenuItems, useDismiss } from '@/components/contextmenu/menu'
+import type { MenuItem, MenuSelectInfo, ParsedMenuItem } from '@/components/contextmenu/menu'
 import { VIEWPORT_PADDING, type Point } from '@/components/contextmenu/position'
-import type { MenuItem, MenuSelectInfo, ParsedMenuItem } from '@/components/contextmenu/types'
 
-type HostConfig = Omit<ContextMenuProps, 'children' | 'items' | 'open' | 'onOpenChange'> & {
+type HostConfig = Omit<ContextMenuProps, 'children' | 'items' | 'visible' | 'onUpdateVisible'> & {
   items?: MenuItem[]
 }
 
-interface OpenPayload extends HostConfig {
+/** 命令式打开菜单的入参 */
+interface PresentInput extends HostConfig {
   x: number
   y: number
   items: MenuItem[]
 }
 
 interface StoreState {
-  open: boolean
+  visible: boolean
   session: number
   anchor: Point
   items: ParsedMenuItem[]
@@ -35,7 +35,7 @@ type Listener = () => void
 const LISTENERS = new Set<Listener>()
 
 let STORE: StoreState = {
-  open: false,
+  visible: false,
   session: 0,
   anchor: { x: 0, y: 0 },
   items: [],
@@ -59,11 +59,11 @@ function findSnapshot() {
   return STORE
 }
 
-function openMenu(payload: OpenPayload) {
-  const { x, y, items, ...config } = payload
+function presentMenu(input: PresentInput) {
+  const { x, y, items, ...config } = input
   const parsed = parseMenuItems(items)
   STORE = {
-    open: true,
+    visible: true,
     session: STORE.session + 1,
     anchor: { x, y },
     items: parsed,
@@ -72,18 +72,18 @@ function openMenu(payload: OpenPayload) {
   emit()
 }
 
-function closeMenu() {
-  if (!STORE.open) return
+function dismissMenu() {
+  if (!STORE.visible) return
   STORE = {
     ...STORE,
-    open: false
+    visible: false
   }
   emit()
 }
 
 function resetMenu() {
   STORE = {
-    open: false,
+    visible: false,
     session: STORE.session,
     anchor: { x: 0, y: 0 },
     items: [],
@@ -93,49 +93,50 @@ function resetMenu() {
 }
 
 function useContextMenu() {
-  const open = useCallback(function (payload: OpenPayload) {
-    openMenu(payload)
+  const present = useCallback(function (input: PresentInput) {
+    presentMenu(input)
   }, [])
 
-  const close = useCallback(function () {
-    closeMenu()
+  const dismiss = useCallback(function () {
+    dismissMenu()
   }, [])
 
-  return { open, close }
+  return { present, dismiss }
 }
 
 function Host() {
   const state = useSyncExternalStore(subscribe, findSnapshot, findSnapshot)
-  const [openPath, setOpenPath] = useState<string[]>([])
+  const [path, setPath] = useState<string[]>([])
   const [activeKey, setActiveKey] = useState<string | undefined>()
 
-  const container = (state.config.findPopupContainer ?? findDefaultContainer)()
+  const container = (state.config.onTeleport ?? findBody)()
 
   useDismiss({
-    isOpen: state.open,
-    onClose: closeMenu
+    visible: state.visible,
+    onClose: dismissMenu
   })
 
   useEffect(
     function () {
-      if (!state.open) return
+      if (!state.visible) return
       const focusable = findFocusable(state.items)
-      setOpenPath([])
+      setPath([])
       setActiveKey(focusable[0]?.key)
     },
-    [state.session, state.open]
+    [state.session, state.visible]
   )
 
   function onSelect(info: MenuSelectInfo) {
     state.config.onSelect?.(info)
-    closeMenu()
+    dismissMenu()
   }
 
-  const layer = state.open
+  // session 进 key：已打开再开时重播入场；onExitComplete 仅在关闭后 reset
+  const layer = state.visible
     ? createElement(MenuLayer, {
         key: `contextmenu-host-${state.session}`,
         layer: { anchor: state.anchor, items: state.items },
-        openPath,
+        path,
         activeKey,
         classNames: state.config.classNames,
         styles: state.config.styles,
@@ -143,22 +144,23 @@ function Host() {
         offset: state.config.offset,
         submenuOffset: state.config.submenuOffset,
         boundaryPadding: state.config.boundaryPadding ?? VIEWPORT_PADDING,
-        submenuOpenDelay: state.config.submenuOpenDelay,
-        submenuCloseDelay: state.config.submenuCloseDelay,
+        expandDelay: state.config.expandDelay,
+        collapseDelay: state.config.collapseDelay,
         container,
         renderItem: state.config.renderItem,
-        renderPanel: state.config.renderPanel,
-        onOpenPathChange: setOpenPath,
-        onActiveKeyChange: setActiveKey,
+        renderSurface: state.config.renderSurface,
+        onUpdatePath: setPath,
+        onUpdateActive: setActiveKey,
         onSelect,
-        onRequestClose: closeMenu
+        onClose: dismissMenu
       })
     : null
 
   return createPortal(
     createElement(AnimatePresence, {
       onExitComplete: function () {
-        setOpenPath([])
+        if (STORE.visible) return
+        setPath([])
         setActiveKey(undefined)
         resetMenu()
       },
@@ -168,5 +170,5 @@ function Host() {
   )
 }
 
-export { closeMenu, Host, openMenu, resetMenu, useContextMenu }
-export type { HostConfig, OpenPayload }
+export { dismissMenu, Host, presentMenu, resetMenu, useContextMenu }
+export type { HostConfig, PresentInput }

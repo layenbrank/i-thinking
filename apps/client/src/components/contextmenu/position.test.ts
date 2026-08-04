@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseMenuItems, findFocusable } from '@/components/contextmenu/parse'
+import { parseMenuItems, findFocusable } from '@/components/contextmenu/menu'
 import { parseOrigin, findViewportRect } from '@/components/contextmenu/position'
 
 describe('parseMenuItems', function () {
@@ -47,7 +47,7 @@ describe('parseOrigin', function () {
     }
     const origin = parseOrigin({
       anchor: { x: 180, y: 180 },
-      panelSize: { width: 100, height: 80 },
+      size: { width: 100, height: 80 },
       placement: 'pointer',
       offset: [0, 0],
       padding: 0,
@@ -78,7 +78,7 @@ describe('parseOrigin', function () {
         right: 290,
         bottom: 72
       },
-      panelSize: { width: 120, height: 100 },
+      size: { width: 120, height: 100 },
       placement: 'submenu',
       offset: [0, 0],
       padding: 0,

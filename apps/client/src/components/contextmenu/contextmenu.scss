@@ -10,7 +10,7 @@
   display: contents;
 }
 
-.contextmenu-panel {
+.contextmenu-surface {
   position: fixed;
   z-index: 1050;
   min-width: 160px;
@@ -49,7 +49,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .contextmenu-panel,
+  .contextmenu-surface,
   .contextmenu-item {
     transition: none !important;
   }

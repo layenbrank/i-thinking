@@ -3,10 +3,9 @@ import {
   Host,
   useContextMenu,
   type HostConfig,
-  type OpenPayload
+  type PresentInput
 } from '@/components/contextmenu/host'
-import { findFocusable, parseMenuItems } from '@/components/contextmenu/parse'
-import { parseOrigin } from '@/components/contextmenu/position'
+import { findFocusable, parseMenuItems } from '@/components/contextmenu/menu'
 import type {
   MenuClassNames,
   MenuItem,
@@ -15,7 +14,8 @@ import type {
   MenuSelectInfo,
   MenuStyles,
   ParsedMenuItem
-} from '@/components/contextmenu/types'
+} from '@/components/contextmenu/menu'
+import { parseOrigin } from '@/components/contextmenu/position'
 
 const ContextMenu = Object.assign(Root, {
   Host
@@ -30,7 +30,7 @@ export type {
   MenuMotion,
   MenuSelectInfo,
   MenuStyles,
-  OpenPayload,
+  PresentInput,
   ParsedMenuItem
 }
 

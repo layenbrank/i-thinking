@@ -11,8 +11,14 @@ import {
   type ReactNode
 } from 'react'
 
-import { findFocusable, hasChildren } from '@/components/contextmenu/parse'
-import { mergeMotionSlot, PANEL_MOTION, SUBMENU_MOTION } from '@/components/contextmenu/motion'
+import { findFocusable, hasChildren, parseMotion } from '@/components/contextmenu/menu'
+import type {
+  MenuClassNames,
+  MenuMotion,
+  MenuSelectInfo,
+  MenuStyles,
+  ParsedMenuItem
+} from '@/components/contextmenu/menu'
 import {
   findContainerRect,
   OFFSET_BY_PLACEMENT,
@@ -20,22 +26,15 @@ import {
   type Point,
   type Rect
 } from '@/components/contextmenu/position'
-import type {
-  MenuClassNames,
-  MenuMotion,
-  MenuSelectInfo,
-  MenuStyles,
-  ParsedMenuItem
-} from '@/components/contextmenu/types'
 
-const SUBMENU_OPEN_DELAY_MS = 100
-const SUBMENU_CLOSE_DELAY_MS = 160
+const EXPAND_DELAY_MS = 100
+const COLLAPSE_DELAY_MS = 160
 
-interface MenuPanelProps {
+interface SurfaceProps {
   items: ParsedMenuItem[]
   level: number
   keyPath: string[]
-  openPath: string[]
+  path: string[]
   activeKey?: string
   classNames?: MenuClassNames
   styles?: MenuStyles
@@ -43,21 +42,23 @@ interface MenuPanelProps {
   offset?: [number, number]
   submenuOffset?: [number, number]
   boundaryPadding?: number
-  submenuOpenDelay?: number
-  submenuCloseDelay?: number
+  expandDelay?: number
+  collapseDelay?: number
   container: HTMLElement
   anchor: Point | Rect
   placement: 'pointer' | 'submenu'
   preferRight?: boolean
+  /** 自定义面板内容；有值时替代菜单项列表 */
+  content?: ReactNode
   renderItem?: (item: ParsedMenuItem, node: ReactNode) => ReactNode
-  renderPanel?: (
+  renderSurface?: (
     nodes: ReactNode,
     meta: { level: number; items: ParsedMenuItem[] }
   ) => ReactNode
-  onOpenPathChange: (path: string[]) => void
-  onActiveKeyChange: (key: string | undefined) => void
+  onpathChange: (path: string[]) => void
+  onUpdateActive: (key: string | undefined) => void
   onSelect: (info: MenuSelectInfo) => void
-  onRequestClose: () => void
+  onClose: () => void
 }
 
 function RightArrow() {
@@ -81,44 +82,44 @@ function RightArrow() {
   )
 }
 
-function MenuPanel(props: MenuPanelProps) {
+function Surface(props: SurfaceProps) {
   const isReduced = useReducedMotion()
-  const panelRef = useRef<HTMLDivElement>(null)
+  const surfaceRef = useRef<HTMLDivElement>(null)
   const [origin, setOrigin] = useState({ left: -9999, top: -9999, flipX: false, flipY: false })
   const [isMeasured, setMeasured] = useState(false)
   const [childAnchor, setChildAnchor] = useState<Rect | null>(null)
-  const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const openDelay = props.submenuOpenDelay ?? SUBMENU_OPEN_DELAY_MS
-  const closeDelay = props.submenuCloseDelay ?? SUBMENU_CLOSE_DELAY_MS
+  const expandDelayMs = props.expandDelay ?? EXPAND_DELAY_MS
+  const collapseDelayMs = props.collapseDelay ?? COLLAPSE_DELAY_MS
   const focusable = findFocusable(props.items)
 
-  const motionSlot = mergeMotionSlot(
-    props.level === 0 ? PANEL_MOTION : SUBMENU_MOTION,
-    props.level === 0 ? props.motion?.panel : props.motion?.submenu,
+  const motion = parseMotion(
+    props.level,
+    props.level === 0 ? props.motion?.surface : props.motion?.submenu,
     Boolean(isReduced)
   )
 
   function clearTimers() {
-    if (openTimerRef.current) {
-      clearTimeout(openTimerRef.current)
-      openTimerRef.current = null
+    if (expandTimerRef.current) {
+      clearTimeout(expandTimerRef.current)
+      expandTimerRef.current = null
     }
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current)
-      closeTimerRef.current = null
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current)
+      collapseTimerRef.current = null
     }
   }
 
   useLayoutEffect(
     function () {
-      const panel = panelRef.current
-      if (!panel) return
+      const el = surfaceRef.current
+      if (!el) return
 
       const next = parseOrigin({
         anchor: props.anchor,
-        panelSize: { width: panel.offsetWidth, height: panel.offsetHeight },
+        size: { width: el.offsetWidth, height: el.offsetHeight },
         placement: props.placement,
         offset:
           props.placement === 'submenu'
@@ -144,21 +145,21 @@ function MenuPanel(props: MenuPanelProps) {
     ]
   )
 
-  const openChildKey = props.openPath[props.keyPath.length]
-  const openChild = openChildKey
+  const expandedKey = props.path[props.keyPath.length]
+  const expanded = expandedKey
     ? props.items.find(function (item) {
-        return item.key === openChildKey
+        return item.key === expandedKey
       })
     : undefined
 
   useLayoutEffect(
     function () {
-      if (!openChild || !panelRef.current) {
+      if (!expanded || !surfaceRef.current) {
         setChildAnchor(null)
         return
       }
-      const row = panelRef.current.querySelector<HTMLElement>(
-        `[data-contextmenu-key="${CSS.escape(openChild.key)}"]`
+      const row = surfaceRef.current.querySelector<HTMLElement>(
+        `[data-contextmenu-key="${CSS.escape(expanded.key)}"]`
       )
       if (!row) {
         setChildAnchor(null)
@@ -174,7 +175,7 @@ function MenuPanel(props: MenuPanelProps) {
         bottom: box.bottom
       })
     },
-    [openChild, props.openPath, origin.left, origin.top, isMeasured]
+    [expanded, props.path, origin.left, origin.top, isMeasured]
   )
 
   useEffect(function () {
@@ -183,36 +184,36 @@ function MenuPanel(props: MenuPanelProps) {
     }
   }, [])
 
-  function openSubmenu(itemKey: string) {
+  function expand(itemKey: string) {
     clearTimers()
-    openTimerRef.current = setTimeout(function () {
-      props.onOpenPathChange([...props.keyPath, itemKey])
-      props.onActiveKeyChange(itemKey)
-    }, openDelay)
+    expandTimerRef.current = setTimeout(function () {
+      props.onpathChange([...props.keyPath, itemKey])
+      props.onUpdateActive(itemKey)
+    }, expandDelayMs)
   }
 
-  function closeSubmenu() {
+  function collapse() {
     clearTimers()
-    closeTimerRef.current = setTimeout(function () {
-      props.onOpenPathChange(props.keyPath)
-    }, closeDelay)
+    collapseTimerRef.current = setTimeout(function () {
+      props.onpathChange(props.keyPath)
+    }, collapseDelayMs)
   }
 
   function cancelPendingClose() {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current)
-      closeTimerRef.current = null
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current)
+      collapseTimerRef.current = null
     }
   }
 
   function onItemMouseEnter(item: ParsedMenuItem) {
-    props.onActiveKeyChange(item.key)
+    props.onUpdateActive(item.key)
     if (item.disabled) return
     if (hasChildren(item)) {
-      openSubmenu(item.key)
+      expand(item.key)
       return
     }
-    if (props.openPath.length > props.keyPath.length) closeSubmenu()
+    if (props.path.length > props.keyPath.length) collapse()
   }
 
   function selectItem(
@@ -222,8 +223,8 @@ function MenuPanel(props: MenuPanelProps) {
     if (item.disabled) return
 
     if (hasChildren(item)) {
-      props.onOpenPathChange([...props.keyPath, item.key])
-      props.onActiveKeyChange(item.key)
+      props.onpathChange([...props.keyPath, item.key])
+      props.onUpdateActive(item.key)
       return
     }
 
@@ -251,32 +252,37 @@ function MenuPanel(props: MenuPanelProps) {
     Escape: function (event) {
       event.preventDefault()
       if (props.keyPath.length > 0) {
-        props.onOpenPathChange(props.keyPath.slice(0, -1))
+        props.onpathChange(props.keyPath.slice(0, -1))
         return
       }
-      props.onRequestClose()
+      props.onClose()
     },
     ArrowDown: function (event, currentIndex) {
       event.preventDefault()
       const next = focusable[(currentIndex + 1 + focusable.length) % focusable.length]
-      props.onActiveKeyChange(next.key)
+      props.onUpdateActive(next.key)
     },
     ArrowUp: function (event, currentIndex) {
       event.preventDefault()
       const next = focusable[(currentIndex - 1 + focusable.length) % focusable.length]
-      props.onActiveKeyChange(next.key)
+      props.onUpdateActive(next.key)
     },
     ArrowRight: function (event, currentIndex) {
       const current = focusable[currentIndex]
       if (!current || !hasChildren(current)) return
       event.preventDefault()
-      props.onOpenPathChange([...props.keyPath, current.key])
-      props.onActiveKeyChange(findFocusable(current.children!)[0]?.key)
+      props.onpathChange([...props.keyPath, current.key])
+      if (current.content != null) {
+        props.onUpdateActive(current.key)
+        return
+      }
+      const nested = findFocusable(current.children ?? [])
+      props.onUpdateActive(nested[0]?.key)
     },
     ArrowLeft: function (event) {
       if (props.keyPath.length === 0) return
       event.preventDefault()
-      props.onOpenPathChange(props.keyPath.slice(0, -1))
+      props.onpathChange(props.keyPath.slice(0, -1))
     },
     Enter: function (event, currentIndex) {
       const current = focusable[currentIndex]
@@ -302,8 +308,8 @@ function MenuPanel(props: MenuPanelProps) {
     action(event, currentIndex)
   }
 
-  const panelStyle: CSSProperties = {
-    ...props.styles?.panel,
+  const surfaceStyle: CSSProperties = {
+    ...props.styles?.surface,
     ...(props.level > 0 ? props.styles?.submenu : null),
     left: origin.left,
     top: origin.top,
@@ -311,56 +317,60 @@ function MenuPanel(props: MenuPanelProps) {
     pointerEvents: isMeasured ? 'auto' : 'none'
   }
 
-  const itemsNode = (
-    <MenuItems
-      items={props.items}
-      activeKey={props.activeKey}
-      openChildKey={openChildKey}
-      classNames={props.classNames}
-      styles={props.styles}
-      onItemMouseEnter={onItemMouseEnter}
-      onItemPointerDown={onItemPointerDown}
-      renderItem={props.renderItem}
-    />
-  )
+  const itemsNode =
+    props.content != null ? (
+      props.content
+    ) : (
+      <MenuItems
+        items={props.items}
+        activeKey={props.activeKey}
+        expandedKey={expandedKey}
+        classNames={props.classNames}
+        styles={props.styles}
+        onItemMouseEnter={onItemMouseEnter}
+        onItemPointerDown={onItemPointerDown}
+        renderItem={props.renderItem}
+      />
+    )
 
-  const panelContent = props.renderPanel
-    ? props.renderPanel(itemsNode, { level: props.level, items: props.items })
+  const surfaceContent = props.renderSurface
+    ? props.renderSurface(itemsNode, { level: props.level, items: props.items })
     : itemsNode
 
   return (
     <>
       <Motion.div
-        ref={panelRef}
+        ref={surfaceRef}
         className={clsx(
-          'contextmenu-panel',
+          'contextmenu-surface',
           props.level === 0 && 'is-root',
-          props.classNames?.panel,
+          props.classNames?.surface,
           props.level > 0 && props.classNames?.submenu
         )}
-        style={panelStyle}
+        style={surfaceStyle}
         role="menu"
         tabIndex={-1}
         data-region="false"
-        initial={motionSlot.initial}
-        animate={motionSlot.animate}
-        exit={motionSlot.exit}
-        transition={motionSlot.transition}
+        initial={motion.initial}
+        animate={motion.animate}
+        exit={motion.exit}
+        transition={motion.transition}
         onMouseEnter={cancelPendingClose}
         onKeyDown={onKeyDown}
         data-flip-x={origin.flipX ? 'true' : 'false'}
         data-flip-y={origin.flipY ? 'true' : 'false'}>
-        {panelContent}
+        {surfaceContent}
       </Motion.div>
 
       <AnimatePresence>
-        {openChild && openChild.children && childAnchor ? (
-          <MenuPanel
-            key={openChild.key}
-            items={openChild.children}
+        {expanded && childAnchor && (expanded.content != null || expanded.children) ? (
+          <Surface
+            key={expanded.key}
+            items={expanded.children ?? []}
+            content={expanded.content}
             level={props.level + 1}
-            keyPath={[...props.keyPath, openChild.key]}
-            openPath={props.openPath}
+            keyPath={[...props.keyPath, expanded.key]}
+            path={props.path}
             activeKey={props.activeKey}
             classNames={props.classNames}
             styles={props.styles}
@@ -368,18 +378,18 @@ function MenuPanel(props: MenuPanelProps) {
             offset={props.offset}
             submenuOffset={props.submenuOffset}
             boundaryPadding={props.boundaryPadding}
-            submenuOpenDelay={props.submenuOpenDelay}
-            submenuCloseDelay={props.submenuCloseDelay}
+            expandDelay={props.expandDelay}
+            collapseDelay={props.collapseDelay}
             container={props.container}
             anchor={childAnchor}
             placement="submenu"
             preferRight={!origin.flipX}
             renderItem={props.renderItem}
-            renderPanel={props.renderPanel}
-            onOpenPathChange={props.onOpenPathChange}
-            onActiveKeyChange={props.onActiveKeyChange}
+            renderSurface={props.renderSurface}
+            onpathChange={props.onpathChange}
+            onUpdateActive={props.onUpdateActive}
             onSelect={props.onSelect}
-            onRequestClose={props.onRequestClose}
+            onClose={props.onClose}
           />
         ) : null}
       </AnimatePresence>
@@ -390,7 +400,7 @@ function MenuPanel(props: MenuPanelProps) {
 interface MenuItemRowProps {
   item: ParsedMenuItem
   isActive: boolean
-  isSubmenuOpen: boolean
+  isExpanded: boolean
   classNames?: MenuClassNames
   styles?: MenuStyles
   onMouseEnter: () => void
@@ -409,7 +419,7 @@ function MenuItemRow(props: MenuItemRowProps) {
       data-contextmenu-key={props.item.key}
       aria-disabled={props.item.disabled || undefined}
       aria-haspopup={isSubmenu || undefined}
-      aria-expanded={isSubmenu ? props.isSubmenuOpen : undefined}
+      aria-expanded={isSubmenu ? props.isExpanded : undefined}
       className={clsx(
         'contextmenu-item',
         props.classNames?.item,
@@ -461,7 +471,7 @@ function MenuItemRow(props: MenuItemRowProps) {
 interface MenuItemsProps {
   items: ParsedMenuItem[]
   activeKey?: string
-  openChildKey?: string
+  expandedKey?: string
   classNames?: MenuClassNames
   styles?: MenuStyles
   onItemMouseEnter: (item: ParsedMenuItem) => void
@@ -486,16 +496,10 @@ const ITEM_RENDERERS: Record<string, ItemRenderer> = {
     return (
       <div
         key={item.key}
-        className={clsx('contextmenu-group', props.classNames?.group, item.className)}
-        style={{ ...props.styles?.group, ...item.style }}
+        className={clsx('contextmenu-group', item.className)}
+        style={item.style}
         role="group">
-        {item.label ? (
-          <div
-            className={clsx('contextmenu-group-title', props.classNames?.groupTitle)}
-            style={props.styles?.groupTitle}>
-            {item.label}
-          </div>
-        ) : null}
+        {item.label ? <div className="contextmenu-group-title">{item.label}</div> : null}
         {item.children ? (
           <MenuItems
             {...props}
@@ -511,7 +515,7 @@ const ITEM_RENDERERS: Record<string, ItemRenderer> = {
         key={item.key}
         item={item}
         isActive={props.activeKey === item.key}
-        isSubmenuOpen={props.openChildKey === item.key}
+        isExpanded={props.expandedKey === item.key}
         classNames={props.classNames}
         styles={props.styles}
         onMouseEnter={function () {
@@ -537,5 +541,5 @@ function MenuItems(props: MenuItemsProps) {
   )
 }
 
-export type { MenuPanelProps }
-export { MenuPanel }
+export type { SurfaceProps }
+export { Surface }
