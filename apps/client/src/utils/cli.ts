@@ -18,9 +18,7 @@ async function applyCliMatches() {
 
     if (minimized) {
       const win = getCurrentWindow()
-      if (win.label === 'main') {
-        await win.hide()
-      }
+      if (win.label === 'main') await win.hide()
     }
   } catch (error) {
     console.warn('[cli] applyCliMatches failed', error)

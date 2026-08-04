@@ -78,14 +78,37 @@ fn apply_pdfium_env(
     app: &AppHandle,
     sidecar: tauri_plugin_shell::process::Command,
 ) -> tauri_plugin_shell::process::Command {
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        let pdfium_dir = resource_dir.join("binaries");
-        if pdfium_dir.join("pdfium.dll").exists() {
-            return sidecar.env("COREX_PDFIUM_DIR", pdfium_dir);
+    for dir in pdfium_candidate_dirs(app) {
+        if dir.join("pdfium.dll").exists() {
+            info!(path = %dir.display(), "COREX_PDFIUM_DIR");
+            return sidecar.env("COREX_PDFIUM_DIR", dir);
         }
     }
 
+    warn!("未找到 pdfium.dll，morph PDF 能力可能不可用");
     sidecar
+}
+
+/// 打包资源 → sidecar 旁 → src-tauri/binaries（开发态）
+fn pdfium_candidate_dirs(app: &AppHandle) -> Vec<std::path::PathBuf> {
+    let mut dirs = Vec::new();
+
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        dirs.push(resource_dir.join("binaries"));
+        dirs.push(resource_dir);
+    }
+
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            dirs.push(parent.join("binaries"));
+            dirs.push(parent.to_path_buf());
+        }
+    }
+
+    // tauri dev：externalBin 与 resources 落在 target 旁；manifest binaries 为源真相
+    dirs.push(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("binaries"));
+
+    dirs
 }
 
 /// 启动 sidecar，并在后台等待就绪；失败时发出 `corex://not-ready`。
