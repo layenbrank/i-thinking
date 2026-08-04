@@ -4,8 +4,7 @@ import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 
 import { MagneticTile, type MarkerProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import { findCapacity, isWide } from '@/features/magnetic-tile/marker-density'
-import { markerClass } from '@/features/magnetic-tile/marker-class'
+import { findCapacity, isWide, markerClass } from '@/features/magnetic-tile/marker'
 import {
   computeCountdown,
   parseWorkDays,

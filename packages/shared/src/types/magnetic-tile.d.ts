@@ -40,7 +40,8 @@ declare namespace MagneticTile {
   /**
    * @description 组件尺寸
    */
-  type Size = 1 | 2 | 3 | 4 | 5 | 6 | 7
+  type Size = 1 | 2 | 3 | 4
+  // type Size = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
   /**
    * @description 组件名称
@@ -97,10 +98,7 @@ declare namespace MagneticTile {
    * 写入参数：不含自动生成的 id / createdAt / updatedAt
    * Rust Write 结构体中无 downloadCount，此处同步排除
    */
-  type Write = Omit<
-    MagneticTile,
-    'id' | 'createdAt' | 'updatedAt' | 'downloadCount' | 'archivedAt'
-  >
+  type Write = Omit<MagneticTile, 'id' | 'createdAt' | 'updatedAt' | 'downloadCount' | 'archivedAt'>
 
   /** 查询过滤参数：仅限 Rust Read 结构体暴露的字段 */
   type Read = Partial<

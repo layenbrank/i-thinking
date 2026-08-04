@@ -1,4 +1,4 @@
-/** @deprecated 磁贴入口；实际开窗走 overlay + screenshot:open */
+/** 磁贴入口；快捷键走 screenshot:open */
 import { invoke } from '@tauri-apps/api/core'
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'

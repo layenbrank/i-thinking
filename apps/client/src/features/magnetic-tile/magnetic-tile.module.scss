@@ -85,6 +85,8 @@
       right: 0 - math.div($size, 3);
       width: $size;
       height: $size;
+      padding: 0;
+      border: none;
       background-color: rgba(255, 0, 0, 0.5);
       border-radius: math.div($size, 2);
       color: #fff;
@@ -206,10 +208,22 @@
   }
 }
 
-/** 非全屏：锁定 16:9，并限制最大宽度（与 JS 常量一致） */
-.overlayRatio {
-  max-width: 1280px !important;
-  aspect-ratio: 16 / 9 !important;
+/* 尺寸单一源：变量 + class；JS 不重复写 max/ratio/min */
+.framed,
+.fluid,
+.fullscreen {
+  --overlay-width-min: 600px;
+  --overlay-width-max: 1280px;
+  --overlay-ratio: 16 / 9;
+  --overlay-height-fluid: 80%;
+}
+
+/** 配置弹层：封顶 + 16:9 */
+.framed {
+  min-width: var(--overlay-width-min);
+  max-width: var(--overlay-width-max);
+  aspect-ratio: var(--overlay-ratio);
+  /* antd Modal 常写死 height；用 auto 让 ratio 生效 */
   height: auto !important;
 
   :global(.ant-modal-content),
@@ -218,9 +232,24 @@
   }
 }
 
-.overlayFullscreen {
-  max-width: none !important;
-  aspect-ratio: unset !important;
+/** 工作台：不封顶、不锁比例；默认视口高度占比 */
+.fluid {
+  min-width: var(--overlay-width-min);
+  max-width: none;
+  aspect-ratio: unset;
+  height: var(--overlay-height-fluid);
+
+  :global(.ant-modal-content),
+  :global(.ant-modal-container) {
+    height: 100%;
+  }
+}
+
+.fullscreen {
+  min-width: unset;
+  max-width: none;
+  aspect-ratio: unset;
+  /* 全屏需压过 antd 内联尺寸 */
   height: 100% !important;
   border-radius: 0 !important;
 }

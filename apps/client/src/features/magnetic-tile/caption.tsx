@@ -1,9 +1,9 @@
 import { Icon } from '@iconify/react/offline'
 import { Button, Space, Tooltip } from 'antd'
 import { clsx } from 'clsx'
-import type { ReactNode } from 'react'
+import { useContext, type ReactNode } from 'react'
 
-import { OverlayContext } from '@/features/magnetic-tile/overlay-context'
+import { OverlayContext } from '@/features/magnetic-tile/overlay'
 import styles from '@/features/magnetic-tile/caption.module.scss'
 
 interface CaptionProps {

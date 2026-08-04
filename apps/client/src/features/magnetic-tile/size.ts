@@ -13,10 +13,10 @@ const SIZE_PX: Record<Mirror.Size, number> = {
   1: findTrackPx(1),
   2: findTrackPx(2),
   3: findTrackPx(3),
-  4: findTrackPx(4),
-  5: findTrackPx(5),
-  6: findTrackPx(6),
-  7: findTrackPx(7)
+  4: findTrackPx(4)
+  // 5: findTrackPx(5),
+  // 6: findTrackPx(6),
+  // 7: findTrackPx(7)
 }
 
 const LAYOUT_FALLBACK = {

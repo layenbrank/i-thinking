@@ -19,7 +19,7 @@ import { RouterProvider } from 'react-router-dom'
 import { QueryProvider } from '@/components/provider/query'
 import { Fallback } from '@/components/fallback/index.ts'
 import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
-import { showMagneticTileOverlay } from '@/features/magnetic-tile/overlay-registry'
+import { presentOverlay } from '@/features/magnetic-tile/overlay'
 import { IntelligencePlugin } from '@/plugins/intelligence.ts'
 import { StoragePlugin } from '@/plugins/storage.ts'
 import { router } from '@/routers/index'
@@ -115,7 +115,7 @@ function App() {
           'magnetic-tile://show-overlay',
           function (event) {
             const id = event.payload?.magneticTileID
-            if (id) showMagneticTileOverlay(id)
+            if (id) presentOverlay(id)
           }
         )
         if (cancelled) unlisten()

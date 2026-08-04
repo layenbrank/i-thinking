@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useKeyModifier } from '@reactuses/core'
 
+import { ContextMenu } from '@/components/contextmenu'
 import { useScrollFx } from '@/features/controller/hooks/use-scroll-fx'
 import { resetMirrorScroll } from '@/features/controller/lib/scroll-fx'
 import {
@@ -13,6 +14,7 @@ import {
 import { registerMirrorSwitch } from '@/features/controller/mirror-switch'
 import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
+import { buildItems, CLASS_NAMES } from '@/features/magnetic-tile/layout-menu'
 import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import {
   bindMirrorTransition,
@@ -232,29 +234,41 @@ const Controller = {
     )
 
     return (
-      <div
-        ref={gridRef}
-        className={clsx([styles.controller, styles['magnetic-tile']])}>
-        {magneticTiles?.map(function (value, index) {
-          const Component = Reflection[value.component]
+      <ContextMenu
+        trigger=".magnetic-tile"
+        classNames={CLASS_NAMES}
+        findItems={function (el) {
+          const id = el.getAttribute('data-id')
+          if (!id) return []
+          const tile = tilesRef.current?.find(function (item) {
+            return item.id === id
+          })
+          return tile ? buildItems(tile) : []
+        }}>
+        <div
+          ref={gridRef}
+          className={clsx([styles.controller, styles['magnetic-tile']])}>
+          {magneticTiles?.map(function (value, index) {
+            const Component = Reflection[value.component]
 
-          return (
-            <MagneticTile.Enter
-              key={value.id}
-              index={index}>
-              <MagneticTile.Suspense
-                id={value.id}
-                size={value.size}
-                shape={value.shape}
-                direction={value.direction}>
-                <OverlayProvider magneticTileID={value.id}>
-                  <Component {...value} />
-                </OverlayProvider>
-              </MagneticTile.Suspense>
-            </MagneticTile.Enter>
-          )
-        })}
-      </div>
+            return (
+              <MagneticTile.Enter
+                key={value.id}
+                index={index}>
+                <MagneticTile.Suspense
+                  id={value.id}
+                  size={value.size}
+                  shape={value.shape}
+                  direction={value.direction}>
+                  <OverlayProvider magneticTileID={value.id}>
+                    <Component {...value} />
+                  </OverlayProvider>
+                </MagneticTile.Suspense>
+              </MagneticTile.Enter>
+            )
+          })}
+        </div>
+      </ContextMenu>
     )
   }
 }

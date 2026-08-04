@@ -9,7 +9,7 @@ import {
   OverlayContext,
   type OverlayControlProps
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import { paintPrimary } from '@/features/magnetic-tile/paint'
+import { paintPrimary } from '@/features/magnetic-tile/surface-style'
 import {
   findClockReminders,
   findEnabledCount,

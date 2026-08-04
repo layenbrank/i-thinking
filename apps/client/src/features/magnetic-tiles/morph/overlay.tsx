@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useContext } from 'react'
 
 import {
   MagneticTile,
@@ -13,11 +13,12 @@ const MorphWorkspace = lazy(function () {
 })
 
 export default function Overlay(props: OverlayControlProps) {
-  const { visible, onUpdateVisible } = useContext(OverlayContext)
+  const { onUpdateVisible } = useContext(OverlayContext)
 
   return (
     <MagneticTile.Overlay
       caption={false}
+      mode="fluid"
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}

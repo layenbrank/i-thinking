@@ -2,80 +2,94 @@ import { Icon } from '@iconify/react/offline'
 import { clsx } from 'clsx'
 import { useEffect, useId, useState } from 'react'
 
-import type { MenuItem } from '@/components/contextmenu'
+import type { MenuClassNames, MenuItem } from '@/components/contextmenu'
 import styles from '@/features/magnetic-tile/layout-menu.module.scss'
 import { findMarkerBox } from '@/features/magnetic-tile/size'
 import { useMirrorStore } from '@/stores/mirror'
 import { mountOverlayTile, removeOverlayTile } from '@/views/overlay/tauri'
 
-interface Tile {
-  id: string
-  component: MagneticTile.Component
-  size: MagneticTile.Size
-  shape: MagneticTile.Shape
-  direction: MagneticTile.Direction
-  round: string | null
-  background: MagneticTile.Background | null
-}
+type Tile = Pick<
+  MagneticTile,
+  'id' | 'component' | 'size' | 'shape' | 'direction' | 'round' | 'background'
+>
 
-interface Kind {
-  shape: MagneticTile.Shape
-  direction: MagneticTile.Direction
+type ShapeOption = Pick<MagneticTile, 'shape' | 'direction'> & {
   label: string
 }
+
+type Draft = Pick<MagneticTile, 'size' | 'shape' | 'direction'>
 
 interface PickerProps {
   tile: Tile
 }
 
-/** 形状缩略图固定按 size=1 比例绘制，避免随选项缩放导致菜单抖动 */
-const THUMB_PREVIEW_SIZE = 1 as MagneticTile.Size
-/** 形状缩略图短边 */
-const THUMB_SHORT = 16
-/** 大小行：lv1 边长，逐级 +STEP（各按钮固定，不随选中项变化） */
-const THUMB_BASE = 8
-const THUMB_STEP = 2
+/** 形状缩略图固定按 size=1 比例绘制，避免菜单抖动 */
+const THUMB_SIZE: MagneticTile.Size = 1
+/** 矩形长边；短边由磁贴比例推导，横/竖条互为旋转 */
+const THUMB_LONG = 28
+/** 圆形略放大，补偿同等直径看起来更小的视错觉 */
+const CIRCLE_OPTICAL = 1.08
+const SIZE_BASE = 10
+const SIZE_STEP = 3
 
 const SIZES: MagneticTile.Size[] = [1, 2, 3, 4]
 
-const SHAPES: Kind[] = [
+const SHAPES: ShapeOption[] = [
   { shape: 'square', direction: 'horizontal', label: '方形' },
   { shape: 'circle', direction: 'horizontal', label: '圆形' },
   { shape: 'rectangle', direction: 'horizontal', label: '横条' },
   { shape: 'rectangle', direction: 'vertical', label: '竖条' }
 ]
 
-interface Draft {
-  size: MagneticTile.Size
-  shape: MagneticTile.Shape
-  direction: MagneticTile.Direction
+/** 磁贴右键菜单样式覆盖 */
+const CLASS_NAMES: MenuClassNames = {
+  surface: styles.frost,
+  submenu: styles.flyout,
+  item: styles.row,
+  divider: styles.sep
 }
 
-function ShapeThumb(props: {
-  shape: MagneticTile.Shape
+function findThumbSize(
+  shape: MagneticTile.Shape,
   direction: MagneticTile.Direction
-}) {
-  const box = findMarkerBox({
-    size: THUMB_PREVIEW_SIZE,
-    shape: props.shape,
-    direction: props.direction
+): { width: number; height: number } {
+  const rect = findMarkerBox({
+    size: THUMB_SIZE,
+    shape: 'rectangle',
+    direction: 'horizontal'
   })
-  const scale = THUMB_SHORT / Math.min(box.w, box.h)
+  const scale = THUMB_LONG / Math.max(rect.w, rect.h)
+  const long = Math.max(8, Math.round(rect.w * scale))
+  const short = Math.max(8, Math.round(rect.h * scale))
+
+  if (shape === 'rectangle') {
+    if (direction === 'vertical') return { width: short, height: long }
+    return { width: long, height: short }
+  }
+
+  // 方形/圆形按矩形面积对齐，体量与横/竖条一致
+  const side = Math.max(8, Math.round(Math.sqrt(long * short)))
+  if (shape === 'circle') {
+    const optical = Math.max(8, Math.round(side * CIRCLE_OPTICAL))
+    return { width: optical, height: optical }
+  }
+  return { width: side, height: side }
+}
+
+function ShapeThumb(props: { shape: MagneticTile.Shape; direction: MagneticTile.Direction }) {
+  const size = findThumbSize(props.shape, props.direction)
 
   return (
     <span
       className={clsx(styles.thumb, styles[props.shape])}
-      style={{
-        width: Math.max(8, Math.round(box.w * scale)),
-        height: Math.max(8, Math.round(box.h * scale))
-      }}
+      style={size}
       aria-hidden="true"
     />
   )
 }
 
 function SizeThumb(props: { size: MagneticTile.Size }) {
-  const side = THUMB_BASE + (props.size - 1) * THUMB_STEP
+  const side = SIZE_BASE + (props.size - 1) * SIZE_STEP
 
   return (
     <span
@@ -86,15 +100,15 @@ function SizeThumb(props: { size: MagneticTile.Size }) {
   )
 }
 
-function isShapeActive(draft: Draft, kind: Kind) {
-  if (draft.shape !== kind.shape) return false
-  if (kind.shape === 'rectangle') return draft.direction === kind.direction
+function isShapeActive(draft: Draft, option: ShapeOption) {
+  if (draft.shape !== option.shape) return false
+  if (option.shape === 'rectangle') return draft.direction === option.direction
   return true
 }
 
-function findDirection(draft: Draft, kind: Kind): MagneticTile.Direction {
-  if (kind.shape === 'rectangle') return kind.direction
-  if (draft.shape === kind.shape) return draft.direction
+function findDirection(draft: Draft, option: ShapeOption): MagneticTile.Direction {
+  if (option.shape === 'rectangle') return option.direction
+  if (draft.shape === option.shape) return draft.direction
   return 'horizontal'
 }
 
@@ -116,7 +130,7 @@ function parseDraft(tile: Tile): Draft {
   }
 }
 
-function Picker(props: PickerProps) {
+function LayoutPicker(props: PickerProps) {
   const { tile } = props
   const [draft, setDraft] = useState(function () {
     return parseDraft(tile)
@@ -139,17 +153,17 @@ function Picker(props: PickerProps) {
     updateTile(tile, { size: value })
   }
 
-  function onPickShape(kind: Kind) {
-    const direction = findDirection(draft, kind)
+  function onPickShape(option: ShapeOption) {
+    const direction = findDirection(draft, option)
     const isSame =
-      draft.shape === kind.shape &&
-      (kind.shape !== 'rectangle' || draft.direction === direction)
+      draft.shape === option.shape &&
+      (option.shape !== 'rectangle' || draft.direction === direction)
     if (isSame) return
     setDraft(function (prev) {
-      return { ...prev, shape: kind.shape, direction }
+      return { ...prev, shape: option.shape, direction }
     })
     updateTile(tile, {
-      shape: kind.shape,
+      shape: option.shape,
       direction
     })
   }
@@ -160,12 +174,17 @@ function Picker(props: PickerProps) {
       onPointerDown={function (event) {
         event.stopPropagation()
       }}>
-      <div className={styles.section}>
-        <div
-          className={styles.caption}
-          id={sizeId}>
-          大小
-        </div>
+      <section
+        className={styles.section}
+        aria-labelledby={sizeId}>
+        <header className={styles.header}>
+          <span
+            className={styles.caption}
+            id={sizeId}>
+            大小
+          </span>
+          <span className={styles.hint}>Lv.{draft.size}</span>
+        </header>
         <div
           className={styles.sizes}
           role="group"
@@ -184,46 +203,69 @@ function Picker(props: PickerProps) {
                   onPickSize(value)
                 }}>
                 <SizeThumb size={value} />
-                <span className={styles.mark}>{value}</span>
+                <span className={styles.digit}>{value}</span>
               </button>
             )
           })}
         </div>
-      </div>
-      <div className={styles.section}>
-        <div
-          className={styles.caption}
-          id={shapeId}>
-          形状
-        </div>
+      </section>
+
+      <div
+        className={styles.line}
+        role="separator"
+      />
+
+      <section
+        className={styles.section}
+        aria-labelledby={shapeId}>
+        <header className={styles.header}>
+          <span
+            className={styles.caption}
+            id={shapeId}>
+            形状
+          </span>
+        </header>
         <div
           className={styles.shapes}
           role="group"
           aria-labelledby={shapeId}>
-          {SHAPES.map(function (kind) {
-            const caption = kind.label
+          {SHAPES.map(function (option) {
             return (
               <button
-                key={`${kind.shape}-${kind.direction}`}
+                key={`${option.shape}-${option.direction}`}
                 type="button"
-                title={caption}
-                aria-label={caption}
-                aria-pressed={isShapeActive(draft, kind)}
-                className={clsx(styles.shape, isShapeActive(draft, kind) && styles.selected)}
+                aria-label={option.label}
+                aria-pressed={isShapeActive(draft, option)}
+                className={clsx(styles.shape, isShapeActive(draft, option) && styles.selected)}
                 onClick={function () {
-                  onPickShape(kind)
+                  onPickShape(option)
                 }}>
                 <ShapeThumb
-                  shape={kind.shape}
-                  direction={kind.direction}
+                  shape={option.shape}
+                  direction={option.direction}
                 />
               </button>
             )
           })}
         </div>
-      </div>
+      </section>
     </div>
   )
+}
+
+function buildLayout(tile: Tile): MenuItem {
+  return {
+    key: 'layout',
+    label: '布局',
+    icon: (
+      <Icon
+        icon="ant-design:appstore-outlined"
+        width={14}
+        height={14}
+      />
+    ),
+    content: <LayoutPicker tile={tile} />
+  }
 }
 
 function buildFloat(tile: Tile): MenuItem {
@@ -283,8 +325,8 @@ function buildFloat(tile: Tile): MenuItem {
 }
 
 function buildItems(tile: Tile): MenuItem[] {
-  return [buildFloat(tile)]
+  return [buildLayout(tile), buildFloat(tile)]
 }
 
-export { buildItems, Picker, styles }
+export { buildItems, CLASS_NAMES, styles }
 export type { Tile }

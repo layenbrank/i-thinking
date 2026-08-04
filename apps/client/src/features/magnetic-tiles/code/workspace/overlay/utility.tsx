@@ -4,7 +4,7 @@ import { debounce } from 'lodash-es'
 
 import { Combobox } from '@/components/combobox/index.ts'
 import { MagneticTile } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import { OverlayContext } from '@/features/magnetic-tile/overlay-context'
+import { OverlayContext } from '@/features/magnetic-tile/overlay'
 import styles from '@/features/magnetic-tiles/code/workspace/overlay/utility.module.scss'
 
 export default function Utility() {
