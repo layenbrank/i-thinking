@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react/offline'
 import type Konva from 'konva'
 import { useRef, useState } from 'react'
 import { Ellipse, Group, Image as KonvaImage, Layer, Rect, Stage, Text } from 'react-konva'
@@ -8,16 +9,6 @@ import { selectCurrentPageAnnotations, useMorphStore } from '@/stores/morph.ts'
 import styles from './canvas.module.scss'
 
 // ─── Tool hint text ────────────────────────────────────────────────────────────
-
-const TOOL_HINTS: Record<Morph.Tool, string> = {
-  select: '选择。单击选择对象；拖拽可多选。',
-  text: '文本。单击页面添加文本注释。',
-  highlight: '高亮。拖拽选择区域以高亮。',
-  shape: '形状。拖拽绘制矩形；按住 Shift（示意）可当作椭圆。',
-  stamp: '签章。单击页面放置签章。',
-  crop: '裁剪。拖拽选择裁剪区域。',
-  rotate: '旋转。单击旋转当前页面。'
-}
 
 const DEFAULT_COLORS: Record<Morph.Tool, string> = {
   select: '#000000',
@@ -266,6 +257,7 @@ export default function Canvas() {
   const pageAnnotations = useMorphStore(useShallow(selectCurrentPageAnnotations))
   const selectAnnotation = useMorphStore((s) => s.selectAnnotation)
   const addAnnotation = useMorphStore((s) => s.addAnnotation)
+  const openFilePicker = useMorphStore((s) => s.openFilePicker)
 
   const drawStart = useRef<{ x: number; y: number } | null>(null)
   const [draft, setDraft] = useState<DraftRect | null>(null)
@@ -359,6 +351,23 @@ export default function Canvas() {
 
   // ── render ─────────────────────────────────────────────────────────────
 
+  if (!file) {
+    return (
+      <div className={styles.canvas}>
+        <div className={styles.empty}>
+          <button
+            type="button"
+            className={styles.emptyCta}
+            onClick={openFilePicker}>
+            <Icon icon="ant-design:folder-open-outlined" width={14} height={14} />
+            打开 PDF
+          </button>
+          <p className={styles.emptyHint}>选择本地 PDF 开始浏览或批注</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.canvas}>
       <div className={styles.scroll}>
@@ -369,11 +378,11 @@ export default function Canvas() {
             height: stageH,
             cursor: isCursorCrosshair ? 'crosshair' : 'default'
           }}>
-          {isLoading && !pageImg && (
+          {isLoading && !pageImg ? (
             <div className={styles.placeholder}>
               <span className={styles.loadingDot} />
             </div>
-          )}
+          ) : null}
 
           <Stage
             width={stageW}
@@ -382,7 +391,6 @@ export default function Canvas() {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={cancelDraw}>
-            {/* Layer 1: PDF page image */}
             <Layer>
               <PdfLayer
                 pageImg={pageImg}
@@ -390,8 +398,6 @@ export default function Canvas() {
                 height={stageH}
               />
             </Layer>
-
-            {/* Layer 2: Annotations + draft */}
             <Layer>
               <AnnotationLayer
                 annotations={pageAnnotations}
@@ -408,8 +414,6 @@ export default function Canvas() {
           </Stage>
         </div>
       </div>
-
-      <div className={styles.hintBar}>{TOOL_HINTS[activeTool]}</div>
     </div>
   )
 }

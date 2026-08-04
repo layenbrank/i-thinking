@@ -1,4 +1,4 @@
-import { FolderOpenOutlined } from '@ant-design/icons'
+import { Icon } from '@iconify/react/offline'
 import { open as dialogOpen } from '@tauri-apps/plugin-dialog'
 import { Alert, Button, Input, InputNumber, Modal, Radio, Space, Typography } from 'antd'
 
@@ -111,7 +111,13 @@ export default function SplitModal() {
               style={{ flex: 1 }}
             />
             <Button
-              icon={<FolderOpenOutlined />}
+              icon={
+              <Icon
+                icon="ant-design:folder-open-outlined"
+                width={14}
+                height={14}
+              />
+            }
               onClick={() => void handleSelectDir()}>
               浏览...
             </Button>

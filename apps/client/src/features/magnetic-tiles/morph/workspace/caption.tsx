@@ -1,0 +1,110 @@
+import { Icon } from '@iconify/react/offline'
+import { Button } from 'antd'
+import { clsx } from 'clsx'
+import { debounce } from 'lodash-es'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+import { Combobox } from '@/components/combobox/index.ts'
+import { MagneticTile } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import styles from '@/features/magnetic-tiles/morph/workspace/caption.module.scss'
+import { useMorphStore } from '@/stores/morph.ts'
+
+/** Morph Overlay 顶栏：品牌 · 搜索 · 窗口控制 */
+function Caption() {
+  const [visible, onUpdateVisible] = useState(false)
+  const searchText = useMorphStore(function (s) {
+    return s.searchText
+  })
+  const fileName = useMorphStore(function (s) {
+    return s.file?.path.split(/[\\/]/).pop() ?? ''
+  })
+
+  const debounceUpdate = debounce(function () {
+    onUpdateVisible(function (prev) {
+      return !prev
+    })
+  }, 1000)
+
+  const visibleRef = useRef(visible)
+  useEffect(
+    function () {
+      visibleRef.current = visible
+    },
+    [visible]
+  )
+
+  const handleCombobox = useCallback(function (event: MouseEvent) {
+    if (!visibleRef.current) return
+    const target = event.target as HTMLElement
+    if (target.closest('.combobox')) return
+    onUpdateVisible(function (prev) {
+      return !prev
+    })
+  }, [])
+
+  async function onUpdateKeyword(value: string) {
+    if (value.trim()) await searchText(value)
+    debounceUpdate()
+  }
+
+  useEffect(
+    function () {
+      window.addEventListener('click', handleCombobox)
+      return function () {
+        window.removeEventListener('click', handleCombobox)
+      }
+    },
+    [handleCombobox]
+  )
+
+  return (
+    <MagneticTile.Caption
+      className={styles.caption}
+      start={
+        <div className={styles.chrome}>
+          <div className={styles.brand}>
+            <Button
+              type="text"
+              data-region="false"
+              aria-label="菜单"
+              className={styles.menu}
+              icon={
+                <Icon
+                  icon="ant-design:menu-outlined"
+                  width={14}
+                  height={14}
+                />
+              }
+            />
+            <span
+              className={styles.logo}
+              aria-hidden>
+              P
+            </span>
+            <span className={styles.name}>PDF morph</span>
+            {fileName ? <span className={styles.fileName}>{fileName}</span> : null}
+          </div>
+          <Combobox
+            visible={visible}
+            onUpdate={onUpdateKeyword}
+            placeholder="搜索文字内容 / 页码 / 批注..."
+            className={clsx(styles.search)}
+            section={
+              <Combobox.Series
+                options={Array.from({ length: 60 }).map(function (_, index) {
+                  return {
+                    label: `搜索结果项 ${index + 1}`,
+                    value: `result-${index + 1}`,
+                    key: `result-${index + 1}`
+                  }
+                })}
+              />
+            }
+          />
+        </div>
+      }
+    />
+  )
+}
+
+export { Caption }

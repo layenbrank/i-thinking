@@ -1,4 +1,4 @@
-import { FolderOpenOutlined, InfoCircleOutlined } from '@ant-design/icons'
+import { Icon } from '@iconify/react/offline'
 import { open as dialogOpen } from '@tauri-apps/plugin-dialog'
 import { Alert, Button, Input, Modal, Radio, Slider, Space, Tooltip, Typography } from 'antd'
 
@@ -74,7 +74,7 @@ export default function ConvertModal() {
             onChange={(e) =>
               setConvertModal({ format: e.target.value as 'png' | 'jpg' | 'docx' | 'xlsx' })
             }>
-            <Space direction="vertical">
+            <Space orientation="vertical">
               {FORMAT_OPTIONS.map((opt) => (
                 <Radio
                   key={opt.value}
@@ -92,7 +92,12 @@ export default function ConvertModal() {
             <Typography.Text style={{ display: 'block', marginBottom: 4 }}>
               分辨率缩放
               <Tooltip title={`scale = ${scale}×，越大越清晰，文件也越大`}>
-                <InfoCircleOutlined style={{ marginLeft: 6, color: 'rgba(0,0,0,0.35)' }} />
+                <Icon
+                  icon="ant-design:info-circle-outlined"
+                  width={14}
+                  height={14}
+                  style={{ marginLeft: 6, color: 'var(--ant-color-text-tertiary, rgba(0,0,0,0.35))' }}
+                />
               </Tooltip>
             </Typography.Text>
             <Slider
@@ -127,7 +132,13 @@ export default function ConvertModal() {
               style={{ flex: 1 }}
             />
             <Button
-              icon={<FolderOpenOutlined />}
+              icon={
+              <Icon
+                icon="ant-design:folder-open-outlined"
+                width={14}
+                height={14}
+              />
+            }
               onClick={() => void handleSelectDir()}>
               浏览...
             </Button>

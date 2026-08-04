@@ -1,4 +1,4 @@
-import { CompressOutlined, ScissorOutlined, SwapOutlined } from '@ant-design/icons'
+import { Icon } from '@iconify/react/offline'
 import { Button, InputNumber, Segmented, Space, Tooltip } from 'antd'
 import { clsx } from 'clsx'
 
@@ -6,122 +6,217 @@ import { Glide } from '@/components/glide/glide'
 import { useMorphStore } from '@/stores/morph.ts'
 import styles from './toolbar.module.scss'
 
+const ICON_SIZE = 14
+
 function onTeleport() {
   return document.body
 }
 
-// ─── Tool definitions ─────────────────────────────────────────────────────────
+type ToolDef = {
+  key: Morph.Tool
+  label: string
+  shortcut: string
+  icon: string
+}
 
-const TOOLS: { key: Morph.Tool; label: string; shortcut: string }[] = [
-  { key: 'select', label: '选择', shortcut: 'S' },
-  { key: 'text', label: '文本', shortcut: 'T' },
-  { key: 'highlight', label: '高亮', shortcut: 'H' },
-  { key: 'shape', label: '形状', shortcut: '□' },
-  { key: 'stamp', label: '签章', shortcut: '印' },
-  { key: 'crop', label: '裁剪', shortcut: 'C' },
-  { key: 'rotate', label: '旋转', shortcut: 'R' }
+const TOOLS: ToolDef[] = [
+  { key: 'select', label: '选择', shortcut: 'S', icon: 'ant-design:select-outlined' },
+  { key: 'text', label: '文本', shortcut: 'T', icon: 'ant-design:font-size-outlined' },
+  { key: 'highlight', label: '高亮', shortcut: 'H', icon: 'ant-design:highlight-outlined' },
+  { key: 'shape', label: '形状', shortcut: 'R', icon: 'ant-design:border-outlined' },
+  { key: 'stamp', label: '签章', shortcut: 'P', icon: 'ant-design:safety-certificate-outlined' },
+  { key: 'crop', label: '裁剪', shortcut: 'C', icon: 'ant-design:scissor-outlined' },
+  { key: 'rotate', label: '旋转', shortcut: 'O', icon: 'ant-design:rotate-right-outlined' }
 ]
 
-// ─── Toolbar ──────────────────────────────────────────────────────────────────
-
 export default function Toolbar() {
-  const activeTool = useMorphStore((s) => s.activeTool)
-  const viewMode = useMorphStore((s) => s.viewMode)
-  const currentPage = useMorphStore((s) => s.currentPage)
-  const pageCount = useMorphStore((s) => s.file?.page_count ?? 0)
-  const zoom = useMorphStore((s) => s.zoom)
-  const undo = useMorphStore((s) => s.undo)
-  const redo = useMorphStore((s) => s.redo)
-  const undoCount = useMorphStore((s) => s.undoStack.length)
-  const redoCount = useMorphStore((s) => s.redoStack.length)
-  const setTool = useMorphStore((s) => s.setTool)
-  const setViewMode = useMorphStore((s) => s.setViewMode)
-  const setPage = useMorphStore((s) => s.setPage)
-  const zoomIn = useMorphStore((s) => s.zoomIn)
-  const zoomOut = useMorphStore((s) => s.zoomOut)
-  const fitWidth = useMorphStore((s) => s.fitWidth)
-  const file = useMorphStore((s) => s.file)
-  const openMergeModal = useMorphStore((s) => s.openMergeModal)
-  const openSplitModal = useMorphStore((s) => s.openSplitModal)
-  const openConvertModal = useMorphStore((s) => s.openConvertModal)
-
-  const docTitle = file?.title || file?.path.split(/[\\/]/).pop() || '—'
-
-  // unused — filename already shown in utility bar
-  void docTitle
+  const activeTool = useMorphStore(function (s) {
+    return s.activeTool
+  })
+  const viewMode = useMorphStore(function (s) {
+    return s.viewMode
+  })
+  const currentPage = useMorphStore(function (s) {
+    return s.currentPage
+  })
+  const pageCount = useMorphStore(function (s) {
+    return s.file?.page_count ?? 0
+  })
+  const zoom = useMorphStore(function (s) {
+    return s.zoom
+  })
+  const undo = useMorphStore(function (s) {
+    return s.undo
+  })
+  const redo = useMorphStore(function (s) {
+    return s.redo
+  })
+  const undoCount = useMorphStore(function (s) {
+    return s.undoStack.length
+  })
+  const redoCount = useMorphStore(function (s) {
+    return s.redoStack.length
+  })
+  const setTool = useMorphStore(function (s) {
+    return s.setTool
+  })
+  const setViewMode = useMorphStore(function (s) {
+    return s.setViewMode
+  })
+  const setPage = useMorphStore(function (s) {
+    return s.setPage
+  })
+  const zoomIn = useMorphStore(function (s) {
+    return s.zoomIn
+  })
+  const zoomOut = useMorphStore(function (s) {
+    return s.zoomOut
+  })
+  const fitWidth = useMorphStore(function (s) {
+    return s.fitWidth
+  })
+  const openMergeModal = useMorphStore(function (s) {
+    return s.openMergeModal
+  })
+  const openSplitModal = useMorphStore(function (s) {
+    return s.openSplitModal
+  })
+  const openConvertModal = useMorphStore(function (s) {
+    return s.openConvertModal
+  })
 
   return (
-    <div className={clsx([styles.toolbar, styles.root])}>
-      {/* ── Left: page navigation + zoom ─────────────────────────── */}
+    <div className={clsx(styles.toolbar, styles.root)}>
       <div className={styles.navGroup}>
         <Space.Compact size="small">
           <Button
-            onClick={() => setPage(currentPage - 1)}
-            disabled={currentPage === 0}>
-            ‹
-          </Button>
+            type="text"
+            aria-label="上一页"
+            icon={
+              <Icon
+                icon="ant-design:left-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+              />
+            }
+            disabled={currentPage === 0}
+            onClick={function () {
+              setPage(currentPage - 1)
+            }}
+          />
           <InputNumber
             size="small"
             className={styles.pageInput}
             min={1}
             max={pageCount || 1}
             value={currentPage + 1}
-            onChange={(v) => v != null && setPage(v - 1)}
             controls={false}
+            onChange={function (v) {
+              if (v != null) setPage(v - 1)
+            }}
           />
           <Button
-            onClick={() => setPage(currentPage + 1)}
-            disabled={currentPage >= pageCount - 1}>
-            ›
-          </Button>
+            type="text"
+            aria-label="下一页"
+            icon={
+              <Icon
+                icon="ant-design:right-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+              />
+            }
+            disabled={currentPage >= pageCount - 1}
+            onClick={function () {
+              setPage(currentPage + 1)
+            }}
+          />
         </Space.Compact>
         <span className={styles.pageTotal}>/ {pageCount}</span>
-
-        <span className={styles.sep} />
-
+        <span
+          className={styles.sep}
+          aria-hidden
+        />
         <Space.Compact size="small">
-          <Button onClick={zoomOut}>−</Button>
           <Button
+            type="text"
+            aria-label="缩小"
+            icon={
+              <Icon
+                icon="ant-design:zoom-out-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+              />
+            }
+            onClick={zoomOut}
+          />
+          <Button
+            type="text"
             className={styles.zoomBtn}
             onClick={fitWidth}>
             {Math.round(zoom * 100)}%
           </Button>
-          <Button onClick={zoomIn}>+</Button>
+          <Button
+            type="text"
+            aria-label="放大"
+            icon={
+              <Icon
+                icon="ant-design:zoom-in-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+              />
+            }
+            onClick={zoomIn}
+          />
         </Space.Compact>
       </div>
 
-      {/* ── Center: all tools + ops (horizontally scrollable) ────── */}
       <Glide.X
         classNames={{
           root: styles.scrollRoot,
           inner: styles.toolsRow
         }}>
-        {/* Annotation tools */}
-        {TOOLS.map((tool) => (
-          <Tooltip
-            key={tool.key}
-            title={`${tool.label} (${tool.shortcut})`}
-            placement="bottom"
-            getPopupContainer={onTeleport}>
-            <button
-              className={clsx([styles.toolBtn, activeTool === tool.key && styles.active])}
-              onClick={() => setTool(tool.key)}>
-              {tool.label}
-            </button>
-          </Tooltip>
-        ))}
-
-        <span className={styles.sep} />
-
-        {/* Document operations */}
+        {TOOLS.map(function (tool) {
+          return (
+            <Tooltip
+              key={tool.key}
+              title={`${tool.label} (${tool.shortcut})`}
+              placement="bottom"
+              getPopupContainer={onTeleport}>
+              <button
+                type="button"
+                aria-label={tool.label}
+                aria-pressed={activeTool === tool.key}
+                className={clsx(styles.toolBtn, activeTool === tool.key && styles.active)}
+                onClick={function () {
+                  setTool(tool.key)
+                }}>
+                <Icon
+                  icon={tool.icon}
+                  width={ICON_SIZE}
+                  height={ICON_SIZE}
+                />
+              </button>
+            </Tooltip>
+          )
+        })}
+        <span
+          className={styles.sep}
+          aria-hidden
+        />
         <Tooltip
           title="将多个 PDF 合并为一个文件"
           placement="bottom"
           getPopupContainer={onTeleport}>
           <button
-            className={styles.toolBtn}
+            type="button"
+            className={styles.opBtn}
             onClick={openMergeModal}>
-            <CompressOutlined className={styles.opIcon} />
+            <Icon
+              icon="ant-design:compress-outlined"
+              width={ICON_SIZE}
+              height={ICON_SIZE}
+              className={styles.opIcon}
+            />
             合并
           </button>
         </Tooltip>
@@ -130,9 +225,15 @@ export default function Toolbar() {
           placement="bottom"
           getPopupContainer={onTeleport}>
           <button
-            className={styles.toolBtn}
+            type="button"
+            className={styles.opBtn}
             onClick={openSplitModal}>
-            <ScissorOutlined className={styles.opIcon} />
+            <Icon
+              icon="ant-design:scissor-outlined"
+              width={ICON_SIZE}
+              height={ICON_SIZE}
+              className={styles.opIcon}
+            />
             拆分
           </button>
         </Tooltip>
@@ -141,25 +242,39 @@ export default function Toolbar() {
           placement="bottom"
           getPopupContainer={onTeleport}>
           <button
-            className={styles.toolBtn}
+            type="button"
+            className={styles.opBtn}
             onClick={openConvertModal}>
-            <SwapOutlined className={styles.opIcon} />
+            <Icon
+              icon="ant-design:swap-outlined"
+              width={ICON_SIZE}
+              height={ICON_SIZE}
+              className={styles.opIcon}
+            />
             转换
           </button>
         </Tooltip>
-
-        <span className={styles.sep} />
-
-        {/* Undo / redo */}
+        <span
+          className={styles.sep}
+          aria-hidden
+        />
         <Tooltip
           title="撤销"
           placement="bottom"
           getPopupContainer={onTeleport}>
           <button
+            type="button"
+            aria-label="撤销"
             className={styles.toolBtn}
             disabled={undoCount === 0}
-            onClick={() => void undo()}>
-            撤销
+            onClick={function () {
+              void undo()
+            }}>
+            <Icon
+              icon="ant-design:undo-outlined"
+              width={ICON_SIZE}
+              height={ICON_SIZE}
+            />
           </button>
         </Tooltip>
         <Tooltip
@@ -167,26 +282,38 @@ export default function Toolbar() {
           placement="bottom"
           getPopupContainer={onTeleport}>
           <button
+            type="button"
+            aria-label="重做"
             className={styles.toolBtn}
             disabled={redoCount === 0}
-            onClick={() => void redo()}>
-            重做
+            onClick={function () {
+              void redo()
+            }}>
+            <Icon
+              icon="ant-design:redo-outlined"
+              width={ICON_SIZE}
+              height={ICON_SIZE}
+            />
           </button>
         </Tooltip>
       </Glide.X>
 
-      {/* ── Right: view mode + export + print ─────────────────────── */}
       <div className={styles.rightGroup}>
         <Segmented
           size="small"
           value={viewMode}
-          onChange={(v) => setViewMode(v as Morph.ViewMode)}
+          onChange={function (v) {
+            setViewMode(v as Morph.ViewMode)
+          }}
           options={[
             { label: '浏览', value: 'view' },
             { label: '编辑', value: 'edit' }
           ]}
         />
-        <span className={styles.sep} />
+        <span
+          className={styles.sep}
+          aria-hidden
+        />
         <Button
           size="small"
           type="primary"

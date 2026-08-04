@@ -1,4 +1,3 @@
-import { clsx } from 'clsx'
 import { Suspense, lazy, useContext } from 'react'
 
 import {
@@ -6,6 +5,7 @@ import {
   OverlayContext,
   type OverlayControlProps
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { Caption } from '@/features/magnetic-tiles/morph/workspace/caption'
 import styles from '@/features/magnetic-tiles/morph/overlay.module.scss'
 
 const MorphWorkspace = lazy(function () {
@@ -17,20 +17,18 @@ export default function Overlay(props: OverlayControlProps) {
 
   return (
     <MagneticTile.Overlay
-      caption={false}
+      caption={<Caption />}
       mode="fluid"
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}
-      className={clsx([styles.overlay, styles.root])}
+      className={styles.root}
       onCancel={function () {
         onUpdateVisible(false)
       }}>
-      <div className={styles.workspace}>
-        <Suspense fallback={null}>
-          <MorphWorkspace />
-        </Suspense>
-      </div>
+      <Suspense fallback={null}>
+        <MorphWorkspace />
+      </Suspense>
     </MagneticTile.Overlay>
   )
 }

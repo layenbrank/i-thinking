@@ -1,4 +1,4 @@
-import { CloseOutlined } from '@ant-design/icons'
+import { Icon } from '@iconify/react/offline'
 import {
   Button,
   ColorPicker,
@@ -264,7 +264,13 @@ export default function Summary() {
         <Button
           type="text"
           size="small"
-          icon={<CloseOutlined />}
+          icon={
+            <Icon
+              icon="ant-design:close-outlined"
+              width={14}
+              height={14}
+            />
+          }
           onClick={toggleSummary}
           className={styles.closeBtn}
         />

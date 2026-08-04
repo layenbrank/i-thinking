@@ -1,4 +1,4 @@
-import { DeleteOutlined, FolderOpenOutlined } from '@ant-design/icons'
+import { Icon } from '@iconify/react/offline'
 import { open as dialogOpen, save as dialogSave } from '@tauri-apps/plugin-dialog'
 import { Alert, Button, Input, Modal, Space, Typography } from 'antd'
 
@@ -131,7 +131,13 @@ export default function MergeModal() {
                     size="small"
                     type="text"
                     danger
-                    icon={<DeleteOutlined />}
+                    icon={
+                      <Icon
+                        icon="ant-design:delete-outlined"
+                        width={14}
+                        height={14}
+                      />
+                    }
                     onClick={() => handleRemove(i)}
                   />
                 </div>
@@ -142,7 +148,13 @@ export default function MergeModal() {
 
         <Button
           size="small"
-          icon={<FolderOpenOutlined />}
+          icon={
+            <Icon
+              icon="ant-design:folder-open-outlined"
+              width={14}
+              height={14}
+            />
+          }
           onClick={() => void handleAddFiles()}>
           添加 PDF 文件
         </Button>

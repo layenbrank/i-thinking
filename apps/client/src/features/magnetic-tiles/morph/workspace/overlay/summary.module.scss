@@ -3,15 +3,14 @@
     width: 280px;
     min-width: 280px;
     height: 100%;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    border-left: 1px solid rgba(0, 0, 0, 0.08);
-    background: rgba(252, 252, 252, 0.9);
+    border-left: 1px solid var(--ant-color-border-secondary, rgba(0, 0, 0, 0.08));
+    background: var(--ant-color-bg-container, #ffffff);
     overflow: hidden;
   }
 }
-
-// ── header ───────────────────────────────────────────────────────────────────
 
 .header {
   height: 36px;
@@ -19,14 +18,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--ant-color-border-secondary, rgba(0, 0, 0, 0.06));
   flex-shrink: 0;
 }
 
 .title {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
 }
 
 .closeBtn {
@@ -35,8 +34,6 @@
   min-width: 24px !important;
   padding: 0 !important;
 }
-
-// ── tabs ─────────────────────────────────────────────────────────────────────
 
 .tabs {
   flex: 1;
@@ -68,10 +65,19 @@
   }
 }
 
-// ── properties ────────────────────────────────────────────────────────────────
-
 .emptyProps {
-  padding-top: 32px;
+  padding-top: 20px;
+  margin-inline: 0;
+
+  :global(.ant-empty-image) {
+    height: 40px;
+    margin-bottom: 8px;
+  }
+
+  :global(.ant-empty-description) {
+    font-size: 12px;
+    color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
+  }
 }
 
 .propsForm {
@@ -99,8 +105,6 @@
   margin: 8px 0 !important;
 }
 
-// ── export ────────────────────────────────────────────────────────────────────
-
 .exportForm {
   display: flex;
   flex-direction: column;
@@ -110,8 +114,6 @@
     margin-bottom: 8px;
   }
 }
-
-// ── history ───────────────────────────────────────────────────────────────────
 
 .historyList {
   display: flex;
@@ -125,22 +127,23 @@
   align-items: center;
   padding: 5px 8px;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.03));
   cursor: pointer;
+  transition: background 0.15s;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.06));
   }
 }
 
 .historyLabel {
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
 }
 
 .historyTime {
   font-size: 11px;
-  color: rgba(0, 0, 0, 0.35);
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.25));
 }
 
 .undoBtn {

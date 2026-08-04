@@ -3,62 +3,78 @@
   flex-direction: column;
   align-items: center;
   padding: 8px 6px 6px;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   border: 2px solid transparent;
   transition:
-    border-color 0.15s,
-    background 0.15s;
+    border-color 150ms ease,
+    background 150ms ease;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
   }
 
   &.active {
-    border-color: #1677ff;
-    background: rgba(22, 119, 255, 0.06);
+    border-color: var(--ant-color-primary);
+    background: var(--ant-color-primary-bg);
   }
 }
 
 .imageWrap {
+  position: relative;
   width: 100%;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  background: var(--ith-color-bg-container, var(--ant-color-bg-container));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   border-radius: 2px;
   overflow: hidden;
-  line-height: 0; // prevents inline gap below img
+  line-height: 0;
 }
 
 .img {
   width: 100%;
-  height: auto; // natural page aspect ratio, no clipping
+  height: auto;
   display: block;
   user-select: none;
 }
 
+.badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--ant-color-primary);
+  color: var(--ant-color-text-light-solid, #fff);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
 .meta {
   margin-top: 5px;
-  width: 100%;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
 }
 
 .pageNum {
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(0, 0, 0, 0.75);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
 }
 
 .pageLabel {
-  font-size: 11px;
-  color: rgba(0, 0, 0, 0.4);
+  font-size: 10px;
+  color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.count {
-  font-size: 11px;
-  color: rgba(0, 0, 0, 0.35);
 }

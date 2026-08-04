@@ -1,23 +1,24 @@
 import { Splitter } from 'antd'
 import { clsx } from 'clsx'
+import { useState } from 'react'
 
-import { useMorphStore } from '@/stores/morph.ts'
 import ConvertModal from '@/features/magnetic-tiles/morph/workspace/overlay/components/ConvertModal.tsx'
 import MergeModal from '@/features/magnetic-tiles/morph/workspace/overlay/components/MergeModal.tsx'
 import SplitModal from '@/features/magnetic-tiles/morph/workspace/overlay/components/SplitModal.tsx'
 import { Overlay } from '@/features/magnetic-tiles/morph/workspace/overlay/index.ts'
+import { useMorphStore } from '@/stores/morph.ts'
 
 import styles from '@/features/magnetic-tiles/morph/workspace/morph.module.scss'
 
 export default function Morph() {
-  const summaryVisible = useMorphStore((s) => s.summaryVisible)
+  const summaryVisible = useMorphStore(function (s) {
+    return s.summaryVisible
+  })
   const [sizes, onUpdateSizes] = useState<(number | string)[]>(['20%', '80%'])
 
   return (
-    <div className={clsx([styles.morph, styles.root])}>
-      <Overlay.Utility />
-
-      <div className={styles.workspace}>
+    <div className={clsx(styles.root)}>
+      <div className={styles.panes}>
         <Splitter
           onResize={onUpdateSizes}
           className={styles.splitter}>
@@ -25,22 +26,15 @@ export default function Morph() {
             size={sizes[0]}
             min="20%"
             max="50%"
-            resizable
-            className={styles.navigation}>
+            resizable>
             <Overlay.Navigation />
           </Splitter.Panel>
-          <Splitter.Panel
-            size={sizes[1]}
-            className={styles.section}>
+          <Splitter.Panel size={sizes[1]}>
             <Overlay.Section />
           </Splitter.Panel>
         </Splitter>
 
-        {summaryVisible && (
-          <div className={styles.summary}>
-            <Overlay.Summary />
-          </div>
-        )}
+        {summaryVisible ? <Overlay.Summary /> : null}
       </div>
 
       <Overlay.StatusBar />

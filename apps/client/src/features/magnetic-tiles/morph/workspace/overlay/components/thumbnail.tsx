@@ -1,4 +1,5 @@
 import { clsx } from 'clsx'
+
 import styles from './thumbnail.module.scss'
 
 interface ThumbnailProps {
@@ -10,17 +11,12 @@ interface ThumbnailProps {
   onClick: () => void
 }
 
-export default function Thumbnail({
-  image,
-  pageIndex,
-  isActive,
-  annotationCount,
-  pageLabel,
-  onClick
-}: ThumbnailProps) {
+export default function Thumbnail(props: ThumbnailProps) {
+  const { image, pageIndex, isActive, annotationCount, pageLabel, onClick } = props
+
   return (
     <div
-      className={clsx([styles.thumbnail, isActive && styles.active])}
+      className={clsx(styles.thumbnail, isActive && styles.active)}
       onClick={onClick}>
       <div className={styles.imageWrap}>
         <img
@@ -29,13 +25,15 @@ export default function Thumbnail({
           alt={`第 ${pageIndex + 1} 页`}
           draggable={false}
         />
+        {annotationCount > 0 ? (
+          <span className={styles.badge} aria-label={`${annotationCount} 条批注`}>
+            {annotationCount}
+          </span>
+        ) : null}
       </div>
       <div className={styles.meta}>
-        <span className={styles.pageNum}>第 {pageIndex + 1} 页</span>
-        {pageLabel && <span className={styles.pageLabel}>{pageLabel}</span>}
-        <span className={styles.count}>
-          {annotationCount > 0 ? `${annotationCount} 条批注` : '0 条批注'}
-        </span>
+        <span className={styles.pageNum}>{pageIndex + 1}</span>
+        {pageLabel ? <span className={styles.pageLabel}>{pageLabel}</span> : null}
       </div>
     </div>
   )

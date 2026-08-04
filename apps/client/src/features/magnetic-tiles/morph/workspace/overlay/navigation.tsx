@@ -1,12 +1,7 @@
-import {
-  AppstoreOutlined,
-  CloseOutlined,
-  FileOutlined,
-  FolderOpenOutlined,
-  PlusOutlined
-} from '@ant-design/icons'
+import { Icon } from '@iconify/react/offline'
 import { Button, Empty, Segmented, Skeleton, Tooltip } from 'antd'
 import { clsx } from 'clsx'
+import { useState } from 'react'
 
 import { useMorphStore } from '@/stores/morph.ts'
 import Thumbnail from '@/features/magnetic-tiles/morph/workspace/overlay/components/thumbnail.tsx'
@@ -30,7 +25,13 @@ function WorkspaceSection() {
           <Button
             size="small"
             type="text"
-            icon={<PlusOutlined />}
+            icon={
+              <Icon
+                icon="ant-design:plus-outlined"
+                width={14}
+                height={14}
+              />
+            }
             className={styles.addBtn}
             onClick={openFilePicker}
           />
@@ -39,13 +40,13 @@ function WorkspaceSection() {
 
       {/* ── File list ──────────────────────────────────────────── */}
       {fileList.length === 0 ? (
-        <Button
-          size="small"
-          icon={<FolderOpenOutlined />}
-          className={styles.openBtn}
+        <button
+          type="button"
+          className={styles.emptyCta}
           onClick={openFilePicker}>
+          <Icon icon="ant-design:folder-open-outlined" width={14} height={14} />
           打开 PDF
-        </Button>
+        </button>
       ) : (
         <div className={styles.fileList}>
           {fileList.map((f) => {
@@ -56,7 +57,12 @@ function WorkspaceSection() {
                 key={f.path}
                 className={clsx(styles.fileItem, isActive && styles.fileItemActive)}
                 onClick={() => void switchFile(f.path)}>
-                <FileOutlined className={styles.fileItemIcon} />
+                <Icon
+                  icon="ant-design:file-outlined"
+                  width={14}
+                  height={14}
+                  className={styles.fileItemIcon}
+                />
                 <div className={styles.fileItemBody}>
                   <div className={styles.fileItemName}>{name}</div>
                   <div className={styles.fileItemMeta}>{f.page_count} 页</div>
@@ -67,7 +73,7 @@ function WorkspaceSection() {
                     e.stopPropagation()
                     closeFile(f.path)
                   }}>
-                  <CloseOutlined />
+                  <Icon icon="ant-design:close-outlined" width={12} height={12} />
                 </button>
               </div>
             )
@@ -114,7 +120,7 @@ function PagesSection() {
 
   return (
     <div className={styles.thumbnailList}>
-      <div className={styles.pageCount}>{pageCount}</div>
+      <div className={styles.pageCount}>共 {pageCount} 页</div>
       {thumbnails.map((img) => (
         <Thumbnail
           key={img.page_index}
@@ -143,8 +149,8 @@ export default function Navigation() {
           value={tab}
           onChange={(v) => setTab(v as 'file' | 'page')}
           options={[
-            { label: '文件', value: 'file', icon: <FileOutlined /> },
-            { label: '页面', value: 'page', icon: <AppstoreOutlined /> }
+            { label: '文件', value: 'file', icon: <Icon icon="ant-design:file-outlined" width={14} height={14} /> },
+            { label: '页面', value: 'page', icon: <Icon icon="ant-design:appstore-outlined" width={14} height={14} /> }
           ]}
           className={styles.tabSegment}
         />
