@@ -2,7 +2,7 @@
   "name": "@i-thinking/client",
   "private": true,
   "type": "module",
-  "version": "1.2.12",
+  "version": "1.2.13",
   "scripts": {
     "build": "bun run scripts/build.ts",
     "build:core": "run-p type-check \"build-only {@}\" --",
