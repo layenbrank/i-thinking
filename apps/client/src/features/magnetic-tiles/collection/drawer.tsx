@@ -65,7 +65,10 @@ function OverlayDrawer(props: OverlayDrawerProps) {
       if (!closest) return
 
       const ID = closest.getAttribute('data-id')
-      if (!ID) return message.error('磁贴 ID 未定义，无法新增磁贴')
+      if (!ID) {
+        message.error('磁贴 ID 未定义，无法新增磁贴')
+        return
+      }
 
       // database.magnetic-tile.update(ID, {
       //   collectionID: props.id

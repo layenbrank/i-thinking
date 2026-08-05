@@ -321,7 +321,10 @@ export default function Overlay(props: OverlayControlProps) {
       // 立即重置输入框，提供即时反馈
       updateSender('')
 
-      if (!session$.value?.id) return message.error('请先选择一个会话')
+      if (!session$.value?.id) {
+        message.error('请先选择一个会话')
+        return
+      }
 
       // 创建用户消息
       const personal: AiMessage = {
@@ -559,7 +562,10 @@ export default function Overlay(props: OverlayControlProps) {
       // 使用 requestAnimationFrame 实现平滑滚动
       function smoothScroll() {
         const container = scrollRef.current.container
-        if (!container) return (scrollRef.current.rafID = null)
+        if (!container) {
+          scrollRef.current.rafID = null
+          return
+        }
 
         // 应用累积的滚动量（使用缓动函数）
         const amount = scrollRef.current.accumulated * 0.3

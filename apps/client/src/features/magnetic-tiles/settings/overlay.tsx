@@ -17,7 +17,7 @@ export default function Overlay(props: OverlayControlProps) {
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}
-      rootClassName={clsx(styles.overlay, styles.root)}
+      className={clsx(styles.overlay, styles.root)}
       onCancel={function () {
         onUpdateVisible(false)
       }}>
