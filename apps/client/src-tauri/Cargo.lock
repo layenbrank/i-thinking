@@ -2630,7 +2630,7 @@ dependencies = [
 
 [[package]]
 name = "i-thinking"
-version = "1.2.12"
+version = "1.2.13"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
