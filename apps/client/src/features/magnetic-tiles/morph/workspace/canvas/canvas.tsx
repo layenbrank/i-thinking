@@ -4,8 +4,10 @@ import { useRef, useState } from 'react'
 import { Ellipse, Group, Image as KonvaImage, Layer, Rect, Stage, Text } from 'react-konva'
 import useImage from 'use-image'
 import { useShallow } from 'zustand/react/shallow'
+import { clsx } from 'clsx'
 
 import { selectCurrentPageAnnotations, useMorphStore } from '@/stores/morph.ts'
+import { CSSVAR } from '@/themes'
 import { DEFAULT_COLORS, SELECTION_STROKE } from './colors.ts'
 import styles from './canvas.module.scss'
 
@@ -342,7 +344,7 @@ export default function Canvas() {
 
   if (!file) {
     return (
-      <div className={styles.canvas}>
+      <div className={clsx(styles.canvas, CSSVAR.KEY)}>
         <div className={styles.empty}>
           <button
             type="button"
@@ -358,7 +360,7 @@ export default function Canvas() {
   }
 
   return (
-    <div className={styles.canvas}>
+    <div className={clsx(styles.canvas, CSSVAR.KEY)}>
       <div className={styles.scroll}>
         <div
           className={styles.pageWrapper}

@@ -5,7 +5,7 @@
     height: t.$toolbar-h;
     display: flex;
     align-items: stretch;
-    border-bottom: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+    border-bottom: 1px solid var(--ith-color-border-secondary);
     @include t.chrome-surface;
     flex-shrink: 0;
     overflow: hidden;
@@ -18,7 +18,7 @@
   gap: 4px;
   padding: 0 t.$chrome-pad-x;
   flex-shrink: 0;
-  border-right: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  border-right: 1px solid var(--ith-color-border-secondary);
 }
 
 .pageInput {
@@ -34,7 +34,7 @@
 
 .pageTotal {
   font-size: 12px;
-  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+  color: var(--ith-color-text-secondary);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   padding-right: 2px;
@@ -62,59 +62,67 @@
 }
 
 .toolBtn {
-  width: t.$tool-size;
-  height: t.$tool-size;
-  padding: 0;
-  border: none;
-  border-radius: t.$radius-control;
-  background: transparent;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: t.$icon-tool;
-  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+  width: t.$tool-size !important;
+  height: t.$tool-size !important;
+  min-width: t.$tool-size !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: t.$radius-control !important;
+  background: transparent !important;
+  color: var(--ith-color-text-secondary) !important;
   flex-shrink: 0;
 
   @include t.interactive-btn;
 
   &:hover:not(:disabled) {
-    background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.06));
-    color: var(--ith-color-text, var(--ant-color-text));
-  }
-
-  &.active {
-    background: var(--ant-color-primary-bg);
-    color: var(--ant-color-primary);
-    box-shadow: inset 0 0 0 1px var(--ant-color-primary-border, var(--ant-color-primary));
+    background: var(--ith-color-fill-tertiary) !important;
+    color: var(--ith-color-text) !important;
   }
 
   &:disabled {
     opacity: 0.32;
-    cursor: not-allowed;
+  }
+}
+
+.toolBtnActive {
+  background: var(--ith-color-primary-bg) !important;
+  color: var(--ith-color-primary) !important;
+  box-shadow: inset 0 0 0 1px var(--ith-color-primary-border);
+
+  &:hover:not(:disabled) {
+    background: var(--ith-color-primary-bg-hover) !important;
+    color: var(--ith-color-primary) !important;
   }
 }
 
 .opBtn {
-  height: t.$tool-size;
-  padding: 0 8px;
-  border: none;
-  border-radius: t.$radius-control;
-  background: transparent;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
+  height: t.$tool-size !important;
+  padding: 0 8px !important;
+  border: none !important;
+  border-radius: t.$radius-control !important;
+  background: transparent !important;
+  color: var(--ith-color-text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
   gap: 4px;
-  font-size: 12px;
-  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
-  white-space: nowrap;
   flex-shrink: 0;
 
   @include t.interactive-btn;
 
-  &:hover {
-    background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.06));
-    color: var(--ith-color-text, var(--ant-color-text));
+  &:hover:not(:disabled) {
+    background: var(--ith-color-fill-tertiary) !important;
+    color: var(--ith-color-text) !important;
+  }
+}
+
+.opBtnActive {
+  background: var(--ith-color-primary-bg) !important;
+  color: var(--ith-color-primary) !important;
+  box-shadow: inset 0 0 0 1px var(--ith-color-primary-border);
+
+  &:hover:not(:disabled) {
+    background: var(--ith-color-primary-bg-hover) !important;
+    color: var(--ith-color-primary) !important;
   }
 }
 
@@ -128,7 +136,7 @@
   flex-shrink: 0;
   width: 1px;
   height: t.$sep-h;
-  background: var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  background: var(--ith-color-border-secondary);
   margin: 0 8px;
   align-self: center;
 }
@@ -139,7 +147,7 @@
   gap: t.$tool-gap;
   padding: 0 t.$chrome-pad-x;
   flex-shrink: 0;
-  border-left: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  border-left: 1px solid var(--ith-color-border-secondary);
 }
 
 .modeSegment {

@@ -4,13 +4,10 @@ import { clsx } from 'clsx'
 
 import { Glide } from '@/components/glide/glide'
 import { useMorphStore } from '@/stores/morph.ts'
+import { useCssVarClassName } from '@/themes'
 import styles from './toolbar.module.scss'
 
 const ICON_SIZE = 16
-
-function onTeleport() {
-  return document.body
-}
 
 type ToolDef = {
   key: Morph.Tool
@@ -30,6 +27,7 @@ const TOOLS: ToolDef[] = [
 ]
 
 export default function Toolbar() {
+  const cssVarClassName = useCssVarClassName()
   const activeTool = useMorphStore(function (s) {
     return s.activeTool
   })
@@ -84,9 +82,18 @@ export default function Toolbar() {
   const openConvertModal = useMorphStore(function (s) {
     return s.openConvertModal
   })
+  const mergeOpen = useMorphStore(function (s) {
+    return s.mergeModal.open
+  })
+  const splitOpen = useMorphStore(function (s) {
+    return s.splitModal.open
+  })
+  const convertOpen = useMorphStore(function (s) {
+    return s.convertModal.open
+  })
 
   return (
-    <div className={clsx(styles.toolbar, styles.root)}>
+    <div className={clsx(styles.toolbar, styles.root, cssVarClassName)}>
       <div className={styles.navGroup}>
         <Space.Compact size="small">
           <Button
@@ -176,26 +183,29 @@ export default function Toolbar() {
           inner: styles.toolsRow
         }}>
         {TOOLS.map(function (tool) {
+          const isActive = activeTool === tool.key
           return (
             <Tooltip
               key={tool.key}
               title={`${tool.label} (${tool.shortcut})`}
-              placement="bottom"
-              getPopupContainer={onTeleport}>
-              <button
-                type="button"
+              placement="bottom">
+              <Button
+                type="text"
+                size="small"
                 aria-label={tool.label}
-                aria-pressed={activeTool === tool.key}
-                className={clsx(styles.toolBtn, activeTool === tool.key && styles.active)}
+                aria-pressed={isActive}
+                className={clsx(styles.toolBtn, isActive && styles.toolBtnActive)}
+                icon={
+                  <Icon
+                    icon={tool.icon}
+                    width={ICON_SIZE}
+                    height={ICON_SIZE}
+                  />
+                }
                 onClick={function () {
                   setTool(tool.key)
-                }}>
-                <Icon
-                  icon={tool.icon}
-                  width={ICON_SIZE}
-                  height={ICON_SIZE}
-                />
-              </button>
+                }}
+              />
             </Tooltip>
           )
         })}
@@ -205,54 +215,63 @@ export default function Toolbar() {
         />
         <Tooltip
           title="将多个 PDF 合并为一个文件"
-          placement="bottom"
-          getPopupContainer={onTeleport}>
-          <button
-            type="button"
-            className={styles.opBtn}
+          placement="bottom">
+          <Button
+            type="text"
+            size="small"
+            className={clsx(styles.opBtn, mergeOpen && styles.opBtnActive)}
+            aria-pressed={mergeOpen}
+            icon={
+              <Icon
+                icon="ant-design:compress-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+                className={styles.opIcon}
+              />
+            }
             onClick={openMergeModal}>
-            <Icon
-              icon="ant-design:compress-outlined"
-              width={ICON_SIZE}
-              height={ICON_SIZE}
-              className={styles.opIcon}
-            />
             合并
-          </button>
+          </Button>
         </Tooltip>
         <Tooltip
           title="按页码或书签拆分为多个文件"
-          placement="bottom"
-          getPopupContainer={onTeleport}>
-          <button
-            type="button"
-            className={styles.opBtn}
+          placement="bottom">
+          <Button
+            type="text"
+            size="small"
+            className={clsx(styles.opBtn, splitOpen && styles.opBtnActive)}
+            aria-pressed={splitOpen}
+            icon={
+              <Icon
+                icon="ant-design:scissor-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+                className={styles.opIcon}
+              />
+            }
             onClick={openSplitModal}>
-            <Icon
-              icon="ant-design:scissor-outlined"
-              width={ICON_SIZE}
-              height={ICON_SIZE}
-              className={styles.opIcon}
-            />
             拆分
-          </button>
+          </Button>
         </Tooltip>
         <Tooltip
           title="PDF ↔ Word / Excel / 图片"
-          placement="bottom"
-          getPopupContainer={onTeleport}>
-          <button
-            type="button"
-            className={styles.opBtn}
+          placement="bottom">
+          <Button
+            type="text"
+            size="small"
+            className={clsx(styles.opBtn, convertOpen && styles.opBtnActive)}
+            aria-pressed={convertOpen}
+            icon={
+              <Icon
+                icon="ant-design:swap-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+                className={styles.opIcon}
+              />
+            }
             onClick={openConvertModal}>
-            <Icon
-              icon="ant-design:swap-outlined"
-              width={ICON_SIZE}
-              height={ICON_SIZE}
-              className={styles.opIcon}
-            />
             转换
-          </button>
+          </Button>
         </Tooltip>
         <span
           className={styles.sep}
@@ -260,41 +279,45 @@ export default function Toolbar() {
         />
         <Tooltip
           title="撤销"
-          placement="bottom"
-          getPopupContainer={onTeleport}>
-          <button
-            type="button"
+          placement="bottom">
+          <Button
+            type="text"
+            size="small"
             aria-label="撤销"
             className={styles.toolBtn}
             disabled={undoCount === 0}
+            icon={
+              <Icon
+                icon="ant-design:undo-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+              />
+            }
             onClick={function () {
               void undo()
-            }}>
-            <Icon
-              icon="ant-design:undo-outlined"
-              width={ICON_SIZE}
-              height={ICON_SIZE}
-            />
-          </button>
+            }}
+          />
         </Tooltip>
         <Tooltip
           title="重做"
-          placement="bottom"
-          getPopupContainer={onTeleport}>
-          <button
-            type="button"
+          placement="bottom">
+          <Button
+            type="text"
+            size="small"
             aria-label="重做"
             className={styles.toolBtn}
             disabled={redoCount === 0}
+            icon={
+              <Icon
+                icon="ant-design:redo-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+              />
+            }
             onClick={function () {
               void redo()
-            }}>
-            <Icon
-              icon="ant-design:redo-outlined"
-              width={ICON_SIZE}
-              height={ICON_SIZE}
-            />
-          </button>
+            }}
+          />
         </Tooltip>
       </Glide.X>
 

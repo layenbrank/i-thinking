@@ -1,5 +1,6 @@
 import { clsx } from 'clsx'
 
+import { CSSVAR } from '@/themes'
 import styles from './thumbnail.module.scss'
 
 interface ThumbnailProps {
@@ -16,7 +17,7 @@ export default function Thumbnail(props: ThumbnailProps) {
 
   return (
     <div
-      className={clsx(styles.thumbnail, isActive && styles.active)}
+      className={clsx(styles.thumbnail, CSSVAR.KEY, isActive && styles.active)}
       onClick={onClick}>
       <div className={styles.imageWrap}>
         <img

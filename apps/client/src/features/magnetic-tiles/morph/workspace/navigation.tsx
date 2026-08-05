@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useMorphStore } from '@/stores/morph.ts'
 import Thumbnail from '@/features/magnetic-tiles/morph/workspace/thumbnail/thumbnail.tsx'
 import styles from '@/features/magnetic-tiles/morph/workspace/navigation.module.scss'
+import { CSSVAR } from '@/themes'
 
 function WorkspaceSection() {
   const openFilePicker = useMorphStore(function (s) {
@@ -181,7 +182,7 @@ export default function Navigation() {
   const [tab, onUpdateTab] = useState<'file' | 'page'>('file')
 
   return (
-    <div className={clsx(styles.navigation, styles.root)}>
+    <div className={clsx(styles.navigation, styles.root, CSSVAR.KEY)}>
       <div className={styles.tabs}>
         <Segmented
           size="small"

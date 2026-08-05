@@ -1,6 +1,7 @@
 import { clsx } from 'clsx'
 
 import { useMorphStore } from '@/stores/morph.ts'
+import { CSSVAR } from '@/themes'
 import styles from './statusbar.module.scss'
 
 const TOOL_LABELS: Record<Morph.Tool, string> = {
@@ -34,7 +35,7 @@ export default function StatusBar() {
   const pageLabel = pageCount > 0 ? `${currentPage + 1} / ${pageCount}` : '—'
 
   return (
-    <div className={clsx(styles.statusbar)}>
+    <div className={clsx(styles.statusbar, CSSVAR.KEY)}>
       <span className={styles.left}>
         就绪
         <span className={styles.dot} aria-hidden />

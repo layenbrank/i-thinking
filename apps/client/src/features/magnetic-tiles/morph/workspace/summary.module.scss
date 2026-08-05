@@ -8,7 +8,7 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    border-left: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+    border-left: 1px solid var(--ith-color-border-secondary);
     @include t.chrome-surface;
     overflow: hidden;
   }
@@ -20,15 +20,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  border-bottom: 1px solid var(--ith-color-border-secondary);
   flex-shrink: 0;
-  background: var(--ith-color-bg-container, var(--ant-color-bg-container));
+  background: var(--ith-color-bg-container);
 }
 
 .title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--ith-color-text, var(--ant-color-text));
+  color: var(--ith-color-text);
 }
 
 .closeBtn {
@@ -42,8 +42,8 @@
 .tabs {
   padding: 8px 8px 0;
   flex-shrink: 0;
-  background: var(--ith-color-bg-container, var(--ant-color-bg-container));
-  border-bottom: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  background: var(--ith-color-bg-container);
+  border-bottom: 1px solid var(--ith-color-border-secondary);
 }
 
 .tabSegment {
@@ -60,7 +60,7 @@
   }
 
   :global(.ant-segmented-item-selected) {
-    color: var(--ant-color-primary);
+    color: var(--ith-color-primary);
     font-weight: 600;
   }
 
@@ -77,7 +77,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px;
-  background: var(--ith-color-bg-layout, var(--ant-color-bg-layout));
+  background: var(--ith-color-bg-layout);
 }
 
 .emptyProps {
@@ -91,8 +91,8 @@
   gap: 8px;
   padding: 10px;
   border-radius: t.$radius-control;
-  background: var(--ith-color-bg-container, var(--ant-color-bg-container));
-  border: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  background: var(--ith-color-bg-container);
+  border: 1px solid var(--ith-color-border-secondary);
 }
 
 .sectionLabel {
@@ -129,8 +129,8 @@
   gap: 12px;
   padding: 10px;
   border-radius: t.$radius-control;
-  background: var(--ith-color-bg-container, var(--ant-color-bg-container));
-  border: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  background: var(--ith-color-bg-container);
+  border: 1px solid var(--ith-color-border-secondary);
 
   :global(.ant-form-item) {
     margin-bottom: 8px;
@@ -149,27 +149,27 @@
   align-items: center;
   padding: 8px 10px;
   border-radius: t.$radius-control;
-  background: var(--ith-color-bg-container, var(--ant-color-bg-container));
-  border: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  background: var(--ith-color-bg-container);
+  border: 1px solid var(--ith-color-border-secondary);
   cursor: pointer;
   transition:
     background t.$transition,
     border-color t.$transition;
 
   &:hover {
-    background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.06));
-    border-color: var(--ith-color-border, var(--ant-color-border));
+    background: var(--ith-color-fill-tertiary);
+    border-color: var(--ith-color-border);
   }
 }
 
 .historyLabel {
   font-size: 12px;
-  color: var(--ith-color-text, var(--ant-color-text));
+  color: var(--ith-color-text);
 }
 
 .historyTime {
   font-size: 11px;
-  color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
+  color: var(--ith-color-text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 

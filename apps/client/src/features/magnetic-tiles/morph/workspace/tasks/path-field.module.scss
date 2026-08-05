@@ -1,0 +1,21 @@
+@use '../../styles/tokens.scss' as t;
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  @include t.section-label;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ith-color-text);
+}
+
+.row {
+  display: flex;
+  width: 100%;
+}

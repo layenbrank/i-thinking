@@ -8,6 +8,7 @@ import {
   type SectionProps
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/magnetic-tiles/morph/morph.module.scss'
+import { CSSVAR } from '@/themes'
 
 const Marker = lazy(function () {
   return import('@/features/magnetic-tiles/morph/marker.tsx')
@@ -29,7 +30,7 @@ export default function Morph(props: SectionProps) {
     <MagneticTile.Section
       {...props}
       onTrash={onTrash}
-      className={clsx(styles.morph)}>
+      className={clsx(styles.morph, CSSVAR.KEY)}>
       <Marker
         size={props.size}
         shape={props.shape}

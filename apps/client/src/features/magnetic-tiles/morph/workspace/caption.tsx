@@ -6,6 +6,7 @@ import { Combobox } from '@/components/combobox/index.ts'
 import { MagneticTile } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/magnetic-tiles/morph/workspace/caption.module.scss'
 import { useMorphStore } from '@/stores/morph.ts'
+import { CSSVAR } from '@/themes'
 
 /** Morph Overlay 顶栏：品牌 · 搜索 · 窗口控制 */
 function Caption() {
@@ -57,7 +58,7 @@ function Caption() {
 
   return (
     <MagneticTile.Caption
-      className={styles.caption}
+      className={clsx(styles.caption, CSSVAR.KEY)}
       start={
         <div className={styles.chrome}>
           <div className={styles.brand}>

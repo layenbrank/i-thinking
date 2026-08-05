@@ -1,0 +1,187 @@
+@use '../../styles/tokens.scss' as t;
+
+.sectionLabel {
+  @include t.section-label;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ith-color-text);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.fileMeta {
+  font-size: 12px;
+  color: var(--ith-color-text-secondary);
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ith-color-border-secondary);
+  border-radius: t.$radius-control;
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ith-color-border-secondary);
+  background: var(--ith-color-bg-container);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.index {
+  width: 20px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text-tertiary);
+  text-align: right;
+}
+
+.fileInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fileName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ith-color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filePath {
+  font-size: 11px;
+  color: var(--ith-color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.empty {
+  @include t.empty-block;
+  padding: 28px 16px;
+  border: 1px dashed var(--ith-color-border);
+  border-radius: t.$radius-control;
+  gap: 10px;
+}
+
+.emptyText {
+  font-size: 12px;
+  color: var(--ith-color-text-secondary);
+}
+
+.addBtn {
+  align-self: flex-start;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.chip {
+  appearance: none;
+  border: 1px solid var(--ith-color-border-secondary);
+  background: var(--ith-color-fill-quaternary);
+  color: var(--ith-color-text-secondary);
+  border-radius: t.$radius-control;
+  padding: 2px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    border-color t.$transition,
+    color t.$transition,
+    background-color t.$transition;
+
+  &:hover {
+    border-color: var(--ith-color-primary);
+    color: var(--ith-color-primary);
+    background: var(--ith-color-primary-bg);
+  }
+
+  @include t.focus-ring;
+}
+
+.help {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ith-color-text-tertiary);
+  line-height: 1.45;
+}
+
+.formatGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.formatCard {
+  @include t.format-card;
+}
+
+.formatTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.formatHint {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ith-color-text-secondary);
+
+  .formatCard:hover &,
+  .formatCard[data-active='true'] & {
+    color: var(--ith-color-primary);
+    opacity: 0.8;
+  }
+}
+
+.segmented {
+  @include t.chrome-segmented;
+  width: 100%;
+}
+
+.infoIcon {
+  margin-left: 6px;
+  vertical-align: -1px;
+  color: var(--ith-color-text-tertiary);
+}
+
+.collapse {
+  :global(.ant-collapse-header) {
+    padding: 8px 0 !important;
+    font-size: 12px;
+  }
+
+  :global(.ant-collapse-content-box) {
+    padding: 0 0 4px !important;
+    font-size: 12px;
+    color: var(--ith-color-text-secondary);
+  }
+}

@@ -2,14 +2,12 @@ import { Splitter } from 'antd'
 import { clsx } from 'clsx'
 import { useState } from 'react'
 
-import ConvertModal from '@/features/magnetic-tiles/morph/workspace/modals/convert-modal.tsx'
-import MergeModal from '@/features/magnetic-tiles/morph/workspace/modals/merge-modal.tsx'
-import SplitModal from '@/features/magnetic-tiles/morph/workspace/modals/split-modal.tsx'
 import Navigation from '@/features/magnetic-tiles/morph/workspace/navigation.tsx'
 import Section from '@/features/magnetic-tiles/morph/workspace/section.tsx'
 import StatusBar from '@/features/magnetic-tiles/morph/workspace/statusbar.tsx'
 import Summary from '@/features/magnetic-tiles/morph/workspace/summary.tsx'
 import { useMorphStore } from '@/stores/morph.ts'
+import { CSSVAR } from '@/themes'
 
 import styles from '@/features/magnetic-tiles/morph/workspace/workspace.module.scss'
 
@@ -20,7 +18,7 @@ export default function Workspace() {
   const [sizes, onUpdateSizes] = useState<(number | string)[]>(['20%', '80%'])
 
   return (
-    <div className={clsx(styles.root)}>
+    <div className={clsx(styles.root, CSSVAR.KEY)}>
       <div className={styles.panes}>
         <Splitter
           onResize={onUpdateSizes}
@@ -41,10 +39,6 @@ export default function Workspace() {
       </div>
 
       <StatusBar />
-
-      <MergeModal />
-      <SplitModal />
-      <ConvertModal />
     </div>
   )
 }

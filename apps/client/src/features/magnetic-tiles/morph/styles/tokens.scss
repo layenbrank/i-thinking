@@ -20,22 +20,22 @@ $transition: 150ms ease;
   outline: none;
 
   &:focus-visible {
-    outline: $focus-ring solid var(--ant-color-primary);
+    outline: $focus-ring solid var(--ith-color-primary);
     outline-offset: 1px;
   }
 }
 
 @mixin chrome-surface {
-  background: var(--ith-color-bg-container, var(--ant-color-bg-container));
-  border-color: var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  background: var(--ith-color-bg-container);
+  border-color: var(--ith-color-border-secondary);
 }
 
 @mixin panel-well {
-  background: var(--ith-color-bg-layout, var(--ant-color-bg-layout));
+  background: var(--ith-color-bg-layout);
 }
 
 @mixin panel-divider {
-  border-color: var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  border-color: var(--ith-color-border-secondary);
 }
 
 @mixin section-label {
@@ -43,7 +43,7 @@ $transition: 150ms ease;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+  color: var(--ith-color-text-secondary);
 }
 
 @mixin empty-block {
@@ -61,7 +61,7 @@ $transition: 150ms ease;
   :global(.ant-empty-description) {
     font-size: 12px;
     line-height: 1.5;
-    color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+    color: var(--ith-color-text-secondary);
   }
 }
 
@@ -73,9 +73,9 @@ $transition: 150ms ease;
   min-height: 40px;
   padding: 0 16px;
   border-radius: $radius-control;
-  border: 1px dashed var(--ith-color-border, var(--ant-color-border));
+  border: 1px dashed var(--ith-color-border);
   background: transparent;
-  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+  color: var(--ith-color-text-secondary);
   cursor: pointer;
   font-size: 13px;
   transition:
@@ -84,9 +84,9 @@ $transition: 150ms ease;
     background-color $transition;
 
   &:hover {
-    border-color: var(--ant-color-primary);
-    color: var(--ant-color-primary);
-    background: var(--ant-color-primary-bg);
+    border-color: var(--ith-color-primary);
+    color: var(--ith-color-primary);
+    background: var(--ith-color-primary-bg);
   }
 
   @include focus-ring;
@@ -107,10 +107,10 @@ $transition: 150ms ease;
     .ant-tabs-nav {
       margin-bottom: 0 !important;
       padding: 0 8px;
-      background: var(--ith-color-bg-container, var(--ant-color-bg-container));
+      background: var(--ith-color-bg-container);
 
       &::before {
-        border-bottom: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+        border-bottom: 1px solid var(--ith-color-border-secondary);
       }
     }
 
@@ -123,13 +123,13 @@ $transition: 150ms ease;
       margin: 0 !important;
       font-size: 12px;
       font-weight: 500;
-      color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+      color: var(--ith-color-text-secondary);
       transition:
         color $transition,
         background $transition;
 
       &:hover {
-        color: var(--ith-color-text, var(--ant-color-text));
+        color: var(--ith-color-text);
       }
 
       + .ant-tabs-tab {
@@ -142,14 +142,14 @@ $transition: 150ms ease;
     }
 
     .ant-tabs-tab-active .ant-tabs-tab-btn {
-      color: var(--ant-color-primary) !important;
+      color: var(--ith-color-primary) !important;
       font-weight: 600;
       text-shadow: none;
     }
 
     .ant-tabs-ink-bar {
       height: 2px !important;
-      background: var(--ant-color-primary) !important;
+      background: var(--ith-color-primary) !important;
       border-radius: 1px 1px 0 0;
     }
 
@@ -176,4 +176,49 @@ $transition: 150ms ease;
   :global(.ant-segmented-item-label) {
     padding-inline: 10px !important;
   }
+}
+
+/** Canvas task workbench panel */
+@mixin task-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--ith-color-bg-container);
+  border-top: 1px solid var(--ith-color-border-secondary);
+}
+
+@mixin format-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: $radius-control;
+  border: 1px solid var(--ith-color-border-secondary);
+  background: var(--ith-color-bg-container);
+  color: var(--ith-color-text);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color $transition,
+    background-color $transition,
+    box-shadow $transition,
+    color $transition;
+
+  &:hover {
+    border-color: var(--ith-color-primary-border, var(--ith-color-primary));
+    background: var(--ith-color-primary-bg);
+    color: var(--ith-color-primary);
+  }
+
+  &[data-active='true'] {
+    border-color: var(--ith-color-primary);
+    background: var(--ith-color-primary-bg);
+    color: var(--ith-color-primary);
+    box-shadow: inset 0 0 0 1px var(--ith-color-primary);
+  }
+
+  @include focus-ring;
 }

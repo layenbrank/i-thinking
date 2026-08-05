@@ -15,6 +15,7 @@ import { clsx } from 'clsx'
 import { useState } from 'react'
 
 import { selectSelectedAnnotation, useMorphStore } from '@/stores/morph.ts'
+import { CSSVAR } from '@/themes'
 import styles from '@/features/magnetic-tiles/morph/workspace/summary.module.scss'
 
 // ─── Properties tab ──────────────────────────────────────────────────────────
@@ -264,7 +265,7 @@ export default function Summary() {
   const [tab, onUpdateTab] = useState<SummaryTab>('props')
 
   return (
-    <div className={clsx(styles.summary, styles.root)}>
+    <div className={clsx(styles.summary, styles.root, CSSVAR.KEY)}>
       <div className={styles.header}>
         <span className={styles.title}>属性</span>
         <Button

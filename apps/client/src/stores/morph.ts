@@ -555,6 +555,8 @@ export const useMorphStore = create<MorphState>()(
             s.mergeModal.inputs = fileList.map((f) => f.path)
             s.mergeModal.output = ''
             s.mergeModal.error = null
+            s.splitModal.open = false
+            s.convertModal.open = false
           })
         },
         closeMergeModal() {
@@ -598,6 +600,8 @@ export const useMorphStore = create<MorphState>()(
             s.splitModal.ranges = ''
             s.splitModal.count = 2
             s.splitModal.error = null
+            s.mergeModal.open = false
+            s.convertModal.open = false
           })
         },
         closeSplitModal() {
@@ -665,6 +669,8 @@ export const useMorphStore = create<MorphState>()(
           setter((s) => {
             s.convertModal.open = true
             s.convertModal.error = null
+            s.mergeModal.open = false
+            s.splitModal.open = false
           })
         },
         closeConvertModal() {

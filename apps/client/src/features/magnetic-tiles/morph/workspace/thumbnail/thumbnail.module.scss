@@ -14,20 +14,20 @@
     background t.$transition;
 
   &:hover {
-    background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+    background: var(--ith-color-fill-tertiary);
   }
 
   &.active {
-    border-color: var(--ant-color-primary);
-    background: var(--ant-color-primary-bg);
+    border-color: var(--ith-color-primary);
+    background: var(--ith-color-primary-bg);
 
     .imageWrap {
-      border-color: var(--ant-color-primary-border, var(--ant-color-primary));
+      border-color: var(--ith-color-primary-border, var(--ith-color-primary));
       box-shadow: none;
     }
 
     .pageNum {
-      color: var(--ant-color-primary);
+      color: var(--ith-color-primary);
       font-weight: 600;
     }
   }
@@ -38,9 +38,9 @@
 .imageWrap {
   position: relative;
   width: 100%;
-  background: var(--ith-color-bg-container, var(--ant-color-bg-container));
+  background: var(--ith-color-bg-container);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  border: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  border: 1px solid var(--ith-color-border-secondary);
   border-radius: 2px;
   overflow: hidden;
   line-height: 0;
@@ -61,8 +61,8 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background: var(--ant-color-primary);
-  color: var(--ant-color-text-light-solid, #fff);
+  background: var(--ith-color-primary);
+  color: var(--ith-color-text-light-solid);
   font-size: 10px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -84,12 +84,12 @@
 .pageNum {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+  color: var(--ith-color-text-secondary);
 }
 
 .pageLabel {
   font-size: 10px;
-  color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
+  color: var(--ith-color-text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

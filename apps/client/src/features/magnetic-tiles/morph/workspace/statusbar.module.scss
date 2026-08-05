@@ -7,10 +7,10 @@
   align-items: center;
   justify-content: space-between;
   @include t.panel-well;
-  border-top: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+  border-top: 1px solid var(--ith-color-border-secondary);
   flex-shrink: 0;
   font-size: 11px;
-  color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
+  color: var(--ith-color-text-tertiary);
   user-select: none;
 }
 
@@ -27,13 +27,13 @@
   width: 1px;
   height: 10px;
   margin: 0 8px;
-  background: var(--ith-color-border, var(--ant-color-border));
+  background: var(--ith-color-border);
   flex-shrink: 0;
 }
 
 .num {
   font-variant-numeric: tabular-nums;
   margin-left: 2px;
-  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+  color: var(--ith-color-text-secondary);
   font-weight: 500;
 }
