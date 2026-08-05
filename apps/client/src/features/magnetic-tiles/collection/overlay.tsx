@@ -92,19 +92,13 @@ export default function Overlay(props: OverlayControlProps & Props) {
   const magneticTiles = useLiveQuery<MagneticTile[], MagneticTile[]>(
     async function () {
       const response = await invoke<MagneticTile[]>('magnetic-tile:read', {
-        collectionID: props.id
+        params: { collectionID: props.id }
       })
 
-      console.log(
-        'Overlay fetched magneticTiles for collectionID:',
-        props.id,
-        '\nresponse:',
-        response
-      )
       if (response.length) return response
-      else return MAGNETIC_TILES
+      return MAGNETIC_TILES
     },
-    [],
+    [props.id],
     MAGNETIC_TILES
   )
 
