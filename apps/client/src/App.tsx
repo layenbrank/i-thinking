@@ -4,7 +4,7 @@ import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { isRegistered, register, unregister } from '@tauri-apps/plugin-global-shortcut'
 import { attachConsole } from '@tauri-apps/plugin-log'
-import { message, App as AntApp } from 'antd'
+import { App as AntApp } from 'antd'
 import { StyleProvider } from '@ant-design/cssinjs'
 import { MotionConfig } from 'motion/react'
 import zhCN from 'antd/locale/zh_CN'
@@ -132,37 +132,6 @@ function App() {
   }, [])
 
   useEffect(function () {
-    let unlisten: (() => void) | undefined
-    let disposed = false
-    let warned = false
-
-    function warn() {
-      if (disposed || warned) return
-      warned = true
-      message.warning(COREX_NOT_READY, 8)
-    }
-
-    async function bootstrap() {
-      try {
-        // 生命周期事件：仅在后端确认失败时触发
-        unlisten = await listen('corex://not-ready', warn)
-        // null = 启动中（等事件）；false = 已失败；true = 已就绪
-        const ready = await invoke<boolean | null>('ipc:ready')
-        if (ready === false) warn()
-      } catch (err) {
-        console.warn('[App] corex 状态检查失败', err)
-      }
-    }
-
-    void bootstrap()
-
-    return function () {
-      disposed = true
-      unlisten?.()
-    }
-  }, [])
-
-  useEffect(function () {
     let cleanup: (() => void) | null = null
     let cancelled = false
 
@@ -204,6 +173,7 @@ function App() {
           <AntApp
             message={{ maxCount: 3 }}
             notification={{ maxCount: 1 }}>
+            <CorexReadyGate />
             <QueryProvider>
               <PluginProvider
                 plugins={plugins}
@@ -218,6 +188,45 @@ function App() {
       </StyleProvider>
     </MotionConfig>
   )
+}
+
+/** 必须挂在 AntApp 内，才能走动态 message 上下文 */
+function CorexReadyGate() {
+  const { message } = AntApp.useApp()
+
+  useEffect(
+    function () {
+      let unlisten: (() => void) | undefined
+      let disposed = false
+      let warned = false
+
+      function warn() {
+        if (disposed || warned) return
+        warned = true
+        message.warning(COREX_NOT_READY, 8)
+      }
+
+      async function bootstrap() {
+        try {
+          unlisten = await listen('corex://not-ready', warn)
+          const ready = await invoke<boolean | null>('ipc:ready')
+          if (ready === false) warn()
+        } catch (err) {
+          console.warn('[App] corex 状态检查失败', err)
+        }
+      }
+
+      void bootstrap()
+
+      return function () {
+        disposed = true
+        unlisten?.()
+      }
+    },
+    [message]
+  )
+
+  return null
 }
 
 export default App
