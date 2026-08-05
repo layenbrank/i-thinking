@@ -23,3 +23,4 @@ HTML 结构保持简洁，避免无用嵌套。每一层容器都要有明确作
 1. 查看当前 git 改动，生成提交信息。
 2. 需要时按主题分批提交。
 3. client 版本升级使用 `bump:client`，以触发 client tag release 发布。
+4. 版本升级，以触发 tag release 发布。
