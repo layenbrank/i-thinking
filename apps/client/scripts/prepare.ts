@@ -1,17 +1,21 @@
 /**
  * 构建前准备 sidecar / 工具二进制：优先本地 CARGO_TARGET_DIR，否则按架构从 Release 下载。
- * corex-serve → Tauri sidecar 命名；pandoc / ffmpeg 仅落盘到 binaries/（不进 externalBin）。
+ * corex Release（≥ v2.1.1）zip 含：corex.exe（CLI）+ corex-serve.exe（sidecar）+ pdfium.dll。
+ * 本脚本只落盘 corex-serve + pdfium（按文件名精确匹配，勿与 corex CLI 混淆）。
+ * 校验以 Release 的 SHA256SUMS.txt 为准（含 zip 与包内文件）；本地 binaries/SHA256SUMS 仅 remap 落盘名供 CI。
+ * pandoc / ffmpeg / ffprobe 落盘到 binaries/，由 tauri.conf `bundle.resources` 打包（非 externalBin）。
  *
  * 用法（在 apps/client 目录）：
  *   bun run scripts/prepare.ts
  *   bun run scripts/prepare.ts --strict   # pandoc / ffmpeg 下载失败也退出（corex 始终必需）
+ *   bun run scripts/prepare.ts --force    # 强制按 COREX_VERSION 重新下载 sidecar
  *
  * 环境变量：
  *   CARGO_TARGET_DIR  — 可选；存在 release/corex-serve 时优先于远端下载
  */
 
-import { createHash } from 'node:crypto'
 import { execSync, spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import fs, { createWriteStream } from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
@@ -23,7 +27,6 @@ const CLIENT_DIR = path.resolve(SCRIPT_DIR, '..')
 const TAURI_DIR = path.join(CLIENT_DIR, 'src-tauri')
 const BINARIES_DIR = path.join(TAURI_DIR, 'binaries')
 const CACHE_DIR = path.join(CLIENT_DIR, '.cache', 'prepare')
-const PLACEHOLDER_MARKER = path.join(BINARIES_DIR, '.corex-placeholder')
 const SHA256SUMS_PATH = path.join(BINARIES_DIR, 'SHA256SUMS')
 const LOG_PREFIX = '[prepare]'
 
@@ -38,7 +41,7 @@ const PANDOC_DEST = path.join(BINARIES_DIR, `pandoc${EXE_SUFFIX}`)
 const FFMPEG_DEST = path.join(BINARIES_DIR, `ffmpeg${EXE_SUFFIX}`)
 const FFPROBE_DEST = path.join(BINARIES_DIR, `ffprobe${EXE_SUFFIX}`)
 
-const COREX_VERSION = 'v2.1.0'
+const COREX_VERSION = 'v2.1.1'
 const PANDOC_VERSION = '3.10.1'
 const COREX_REPO = 'layenbrank/corex'
 const PANDOC_REPO = 'jgm/pandoc'
@@ -47,6 +50,7 @@ const FFMPEG_TAG = 'latest'
 const DOWNLOAD_RETRIES = 3
 
 const IS_STRICT = process.argv.slice(2).includes('--strict')
+const IS_FORCE = process.argv.slice(2).includes('--force')
 
 type HostKey = 'win32-x64' | 'darwin-arm64' | 'darwin-x64' | 'linux-x64' | 'linux-arm64'
 
@@ -97,14 +101,23 @@ function findGithubAssetUrl(repo: string, tag: string, archiveName: string): str
   return `https://github.com/${repo}/releases/download/${tag}/${archiveName}`
 }
 
+/** Release 清单缓存路径（与官方 SHA256SUMS.txt 同内容，按 tag 分文件）。 */
+function findCorexSumsCachePath(): string {
+  return path.join(CACHE_DIR, `SHA256SUMS-${COREX_VERSION}.txt`)
+}
+
+/**
+ * corex Release 资产（见 https://github.com/layenbrank/corex/releases ）。
+ * v2.1.1+：zip + SHA256SUMS.txt（包内文件与 zip 自身校验）。
+ */
 function findCorexAsset(host: HostKey | null): ReleaseAsset | null {
   if (host !== 'win32-x64') return null
   const archiveName = `corex-${COREX_VERSION}-windows-x64.zip`
   return {
     url: findGithubAssetUrl(COREX_REPO, COREX_VERSION, archiveName),
     archiveName,
-    checksumUrl: findGithubAssetUrl(COREX_REPO, COREX_VERSION, `${archiveName}.sha256`),
-    checksumKind: 'file'
+    checksumUrl: findGithubAssetUrl(COREX_REPO, COREX_VERSION, 'SHA256SUMS.txt'),
+    checksumKind: 'sums'
   }
 }
 
@@ -153,9 +166,74 @@ function hasNonEmptyFile(filePath: string): boolean {
   }
 }
 
-/** 真实 sidecar：非空且无历史占位标记。 */
-function hasRealCorexSidecar(): boolean {
-  return hasNonEmptyFile(COREX_DEST) && !fs.existsSync(PLACEHOLDER_MARKER)
+/** 下载并缓存当前 COREX_VERSION 的 Release SHA256SUMS.txt。 */
+async function ensureCorexReleaseSums(): Promise<string> {
+  fs.mkdirSync(CACHE_DIR, { recursive: true })
+  const dest = findCorexSumsCachePath()
+  if (!hasNonEmptyFile(dest)) {
+    await downloadFile(findGithubAssetUrl(COREX_REPO, COREX_VERSION, 'SHA256SUMS.txt'), dest)
+  }
+  return dest
+}
+
+/** 离线兜底：本地 binaries/SHA256SUMS 与落盘文件一致。 */
+function matchesLocalChecksums(): boolean {
+  if (!hasNonEmptyFile(COREX_DEST) || !hasNonEmptyFile(SHA256SUMS_PATH)) return false
+  const expectedServe = parseSha256FromChecksum(
+    fs.readFileSync(SHA256SUMS_PATH, 'utf8'),
+    COREX_DEST_BASENAME,
+    'sums'
+  )
+  if (!expectedServe || hashFileSha256(COREX_DEST) !== expectedServe) return false
+  if (!hasNonEmptyFile(PDFIUM_DEST)) return true
+  const expectedPdfium = parseSha256FromChecksum(
+    fs.readFileSync(SHA256SUMS_PATH, 'utf8'),
+    PDFIUM_BASENAME,
+    'sums'
+  )
+  return !expectedPdfium || hashFileSha256(PDFIUM_DEST) === expectedPdfium
+}
+
+/**
+ * 已落盘 sidecar 是否匹配当前 COREX_VERSION（对照 Release SHA256SUMS.txt）。
+ * 无网络且无缓存时，退化为校验本地 binaries/SHA256SUMS。
+ */
+async function hasMatchingCorexSidecar(): Promise<boolean> {
+  if (!hasNonEmptyFile(COREX_DEST)) return false
+  try {
+    const sumsText = fs.readFileSync(await ensureCorexReleaseSums(), 'utf8')
+    const expectedServe = parseSha256FromChecksum(sumsText, COREX_SERVE_NAME, 'sums')
+    if (!expectedServe || hashFileSha256(COREX_DEST) !== expectedServe) return false
+    if (!hasNonEmptyFile(PDFIUM_DEST)) return true
+    const expectedPdfium = parseSha256FromChecksum(sumsText, PDFIUM_BASENAME, 'sums')
+    return !expectedPdfium || hashFileSha256(PDFIUM_DEST) === expectedPdfium
+  } catch {
+    return matchesLocalChecksums()
+  }
+}
+
+/** 用 Release 清单校验已落盘的 corex-serve / pdfium。 */
+function assertSidecarMatchesReleaseSums(sumsText: string): void {
+  const expectedServe = parseSha256FromChecksum(sumsText, COREX_SERVE_NAME, 'sums')
+  if (!expectedServe) {
+    throw new Error(`Release SHA256SUMS.txt 缺少 ${COREX_SERVE_NAME}`)
+  }
+  const actualServe = hashFileSha256(COREX_DEST)
+  if (actualServe !== expectedServe) {
+    throw new Error(
+      `SHA-256 mismatch for ${COREX_DEST_BASENAME}: expected ${expectedServe} got ${actualServe}`
+    )
+  }
+  if (!hasNonEmptyFile(PDFIUM_DEST)) return
+  const expectedPdfium = parseSha256FromChecksum(sumsText, PDFIUM_BASENAME, 'sums')
+  if (!expectedPdfium) return
+  const actualPdfium = hashFileSha256(PDFIUM_DEST)
+  if (actualPdfium !== expectedPdfium) {
+    throw new Error(
+      `SHA-256 mismatch for ${PDFIUM_BASENAME}: expected ${expectedPdfium} got ${actualPdfium}`
+    )
+  }
+  console.log(`${LOG_PREFIX} checksum ok ${COREX_SERVE_NAME} / ${PDFIUM_BASENAME}`)
 }
 
 function formatError(error: unknown): string {
@@ -170,20 +248,6 @@ function warnOrFail(label: string, error: unknown): void {
 
 function removeIfExists(filePath: string): void {
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
-}
-
-/** 校验 sidecar 是 Named Pipe daemon，而不是误拷的 corex CLI。 */
-function assertCorexServeDaemon(filePath: string): void {
-  const result = spawnSync(filePath, ['--help'], {
-    encoding: 'utf8',
-    windowsHide: true
-  })
-  const text = `${result.stdout ?? ''}\n${result.stderr ?? ''}`
-  if (!text.includes('--pipe') || text.includes('<COMMAND>')) {
-    throw new Error(
-      `不是 corex-serve daemon（缺少 --pipe）: ${filePath}\n${text.slice(0, 400)}`
-    )
-  }
 }
 
 function copyPdfiumDll(serveSrc: string): void {
@@ -207,7 +271,7 @@ function hashFileSha256(filePath: string): string {
 }
 
 /**
- * 写入 binaries/SHA256SUMS（`hash␠␠filename`，与 CI 正则一致）。
+ * 写入 binaries/SHA256SUMS：`hash␠␠filename`（落盘名；CI 校验）。
  * 仅应在真实 sidecar 复制成功后调用。
  */
 function writeSidecarChecksums(): void {
@@ -218,19 +282,14 @@ function writeSidecarChecksums(): void {
   if (fs.existsSync(PDFIUM_DEST)) {
     lines.push(`${hashFileSha256(PDFIUM_DEST)}  ${PDFIUM_BASENAME}`)
   }
-  fs.writeFileSync(SHA256SUMS_PATH, `${lines.join('\n')}\n`, 'utf8')
+  fs.writeFileSync(SHA256SUMS_PATH, lines.join('\n') + '\n', 'utf8')
   console.log(`${LOG_PREFIX} wrote ${SHA256SUMS_PATH}`)
-}
-
-function clearPlaceholderMarker(): void {
-  removeIfExists(PLACEHOLDER_MARKER)
 }
 
 function copySidecar(src: string): void {
   fs.mkdirSync(BINARIES_DIR, { recursive: true })
   fs.copyFileSync(src, COREX_DEST)
   copyPdfiumDll(src)
-  clearPlaceholderMarker()
   writeSidecarChecksums()
   console.log(`${LOG_PREFIX} ${src} -> ${COREX_DEST}`)
 }
@@ -293,7 +352,18 @@ function downloadWithCurl(url: string, partialPath: string): boolean {
 
   const result = spawnSync(
     curl,
-    ['-fL', '--retry', '3', '--retry-delay', '2', '--connect-timeout', '30', '-o', partialPath, url],
+    [
+      '-fL',
+      '--retry',
+      '3',
+      '--retry-delay',
+      '2',
+      '--connect-timeout',
+      '30',
+      '-o',
+      partialPath,
+      url
+    ],
     { encoding: 'utf8' }
   )
   if (result.status !== 0) {
@@ -336,7 +406,11 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
   throw lastError instanceof Error ? lastError : new Error(String(lastError))
 }
 
-function parseSha256FromChecksum(text: string, archiveName: string, kind: ChecksumKind): string | null {
+function parseSha256FromChecksum(
+  text: string,
+  archiveName: string,
+  kind: ChecksumKind
+): string | null {
   const lines = text
     .split(/\r?\n/)
     .map(function (line) {
@@ -363,7 +437,10 @@ function parseSha256FromChecksum(text: string, archiveName: string, kind: Checks
 async function verifyArchiveChecksum(archivePath: string, asset: ReleaseAsset): Promise<void> {
   if (!asset.checksumUrl || !asset.checksumKind) return
 
-  const checksumCache = path.join(CACHE_DIR, `${asset.archiveName}.checksum`)
+  const checksumCache =
+    asset.checksumUrl.endsWith('/SHA256SUMS.txt') && asset.archiveName.startsWith('corex-')
+      ? findCorexSumsCachePath()
+      : path.join(CACHE_DIR, `${asset.archiveName}.checksum`)
   if (!hasNonEmptyFile(checksumCache)) {
     try {
       await downloadFile(asset.checksumUrl, checksumCache)
@@ -436,8 +513,7 @@ function extractArchive(archivePath: string, extractDir: string): void {
 
   const lower = archivePath.toLowerCase()
   const isZip = lower.endsWith('.zip')
-  const isTar =
-    lower.endsWith('.tar.gz') || lower.endsWith('.tgz') || lower.endsWith('.tar.xz')
+  const isTar = lower.endsWith('.tar.gz') || lower.endsWith('.tgz') || lower.endsWith('.tar.xz')
 
   if (!isZip && !isTar) {
     throw new Error(`unsupported archive: ${archivePath}`)
@@ -468,9 +544,11 @@ function extractArchive(archivePath: string, extractDir: string): void {
  * 例：.../bin/ffmpeg.exe → extract/ffmpeg/ffmpeg.exe
  */
 function flattenExtractDir(extractDir: string, keepNames: string[]): void {
-  const keep = new Set(keepNames.map(function (name) {
-    return name.toLowerCase()
-  }))
+  const keep = new Set(
+    keepNames.map(function (name) {
+      return name.toLowerCase()
+    })
+  )
   const matched: string[] = []
 
   function walk(dir: string): void {
@@ -538,6 +616,10 @@ async function stageFromArchive(
     if (!src) {
       throw new Error(`archive missing ${copy.candidates.join('|')}: ${asset.archiveName}`)
     }
+    // zip 含 corex.exe 与 corex-serve.exe：candidates 必须精确 basename（勿用 corex 回退）
+    if (path.basename(src).toLowerCase() !== copy.candidates[0].toLowerCase()) {
+      throw new Error(`解压命中文件名不符: got ${path.basename(src)}, want ${copy.candidates[0]}`)
+    }
     fs.copyFileSync(src, copy.dest)
     console.log(`${LOG_PREFIX} ${src} -> ${copy.dest}`)
   }
@@ -551,13 +633,18 @@ async function prepareCorexFromDownload(host: HostKey | null): Promise<boolean> 
   }
 
   try {
-    await stageFromArchive(asset, 'corex', [
-      // 禁止回退到 corex CLI：会覆盖 sidecar，导致 `--pipe` 启动立刻 exit 2
-      { candidates: [`corex-serve${EXE_SUFFIX}`], dest: COREX_DEST },
-      { candidates: ['pdfium.dll'], dest: PDFIUM_DEST }
-    ])
-    assertCorexServeDaemon(COREX_DEST)
-    clearPlaceholderMarker()
+    await stageFromArchive(
+      asset,
+      'corex',
+      [
+        // 精确取 corex-serve；勿与同包 corex.exe（CLI）混淆
+        { candidates: [COREX_SERVE_NAME], dest: COREX_DEST },
+        { candidates: ['pdfium.dll'], dest: PDFIUM_DEST }
+      ],
+      [COREX_SERVE_NAME, 'pdfium.dll']
+    )
+    const sumsText = fs.readFileSync(await ensureCorexReleaseSums(), 'utf8')
+    assertSidecarMatchesReleaseSums(sumsText)
     writeSidecarChecksums()
     return true
   } catch (error) {
@@ -634,13 +721,16 @@ async function prepareCorex(host: HostKey | null): Promise<void> {
 
   if (localSrc) {
     copySidecar(localSrc)
-    assertCorexServeDaemon(COREX_DEST)
     return
   }
 
-  if (hasRealCorexSidecar()) {
-    console.log(`${LOG_PREFIX} corex sidecar exists ${COREX_DEST}`)
+  if (!IS_FORCE && (await hasMatchingCorexSidecar())) {
+    console.log(`${LOG_PREFIX} corex sidecar ${COREX_VERSION} ready ${COREX_DEST}`)
     return
+  }
+
+  if (IS_FORCE) {
+    console.log(`${LOG_PREFIX} --force：按 ${COREX_VERSION} 重新准备 sidecar`)
   }
 
   if (await prepareCorexFromDownload(host)) return
@@ -672,13 +762,13 @@ if (isDirectRun) {
 }
 
 export {
-  prepare,
-  findCorexServePath,
-  findHostKey,
-  findCorexAsset,
-  findPandocAsset,
-  findFfmpegAsset,
   copyPdfiumDll,
-  writeSidecarChecksums,
-  hashFileSha256
+  findCorexAsset,
+  findCorexServePath,
+  findFfmpegAsset,
+  findHostKey,
+  findPandocAsset,
+  hashFileSha256,
+  prepare,
+  writeSidecarChecksums
 }

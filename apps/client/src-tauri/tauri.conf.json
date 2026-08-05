@@ -158,7 +158,13 @@
       "minimumSystemVersion": "10.13"
     },
     "publisher": "i thinking",
-    "resources": ["icons/", "binaries/pdfium.dll"],
+    "resources": [
+      "icons/",
+      "binaries/pdfium.dll",
+      "binaries/pandoc.exe",
+      "binaries/ffmpeg.exe",
+      "binaries/ffprobe.exe"
+    ],
     "targets": "all",
     "windows": {
       "allowDowngrades": false,

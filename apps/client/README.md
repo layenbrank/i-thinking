@@ -13,11 +13,11 @@ pnpm dev          # 自动执行 prepare + vite + tauri dev
 
 | 工具 | 来源 | 落盘 |
 |------|------|------|
-| corex-serve + pdfium | [layenbrank/corex v2.1.0](https://github.com/layenbrank/corex/releases/tag/v2.1.0)（目前仅 Windows x64） | `src-tauri/binaries/corex-serve-<triple>.exe` + `pdfium.dll`（Tauri sidecar） |
-| pandoc | [jgm/pandoc 3.10.1](https://github.com/jgm/pandoc/releases/tag/3.10.1) | `binaries/pandoc[.exe]`（仅落盘，未进 externalBin） |
-| ffmpeg / ffprobe | [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) 静态 GPL | `binaries/ffmpeg[.exe]`、`ffprobe[.exe]`（仅落盘） |
+| corex-serve + pdfium | [layenbrank/corex v2.1.1](https://github.com/layenbrank/corex/releases/tag/v2.1.1)（目前仅 Windows x64；zip 含 CLI+sidecar+pdfium，仅落盘 serve） | `src-tauri/binaries/corex-serve-<triple>.exe` + `pdfium.dll`（Tauri sidecar） |
+| pandoc | [jgm/pandoc 3.10.1](https://github.com/jgm/pandoc/releases/tag/3.10.1) | `binaries/pandoc.exe`（`bundle.resources`，非 sidecar） |
+| ffmpeg / ffprobe | [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) 静态 GPL | `binaries/ffmpeg.exe`、`ffprobe.exe`（`bundle.resources`） |
 
-归档缓存于 `apps/client/.cache/prepare/`（已 gitignore）。二次执行会命中缓存。
+归档缓存于 `apps/client/.cache/prepare/`（已 gitignore）。二次执行会对照 Release [`SHA256SUMS.txt`](https://github.com/layenbrank/corex/releases/download/v2.1.1/SHA256SUMS.txt) 校验落盘哈希；不匹配或 `--force` 时重下 sidecar。本地 `binaries/SHA256SUMS` 仅 remap 文件名供 CI。
 
 ## Rust 检查 / 构建
 
@@ -72,7 +72,7 @@ git commit -m "chore(release): 1.2.0-beta.1"
 git tag v1.2.0-beta.1 && git push origin HEAD && git push origin v1.2.0-beta.1
 ```
 
-更换 sidecar：`pnpm prepare:bin` 会准备二进制并重写 `src-tauri/binaries/SHA256SUMS`（仅含 corex sidecar + pdfium）；请将二者一并提交。CI 只校验清单。pandoc / ffmpeg 不进清单、不建议提交。
+更换 sidecar：`pnpm prepare:bin` 会准备二进制并重写 `src-tauri/binaries/SHA256SUMS`（仅含 corex sidecar + pdfium）；请将二者一并提交。CI 只校验清单。pandoc / ffmpeg / ffprobe 由 `bundle.resources` 打进安装包，不进 SHA256SUMS、不建议提交。
 
 ## 平台说明
 
