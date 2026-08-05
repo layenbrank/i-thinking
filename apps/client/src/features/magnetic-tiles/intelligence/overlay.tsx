@@ -35,6 +35,7 @@ import type { SkillType, SlotConfigType } from '@ant-design/x/es/sender/interfac
 import type { SuggestionItem } from '@ant-design/x/es/suggestion'
 import { Divider, Flex, FloatButton, message, theme, Typography, type GetProp } from 'antd'
 import clsx from 'clsx'
+import type { CSSProperties } from 'react'
 import { vs as VSCODE } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { v4 as UUIDV4 } from 'uuid'
 
@@ -639,10 +640,12 @@ export default function Overlay(props: OverlayControlProps) {
             items={conversations}
             defaultActiveKey={session$.value?.id}
             onActiveChange={handleActiveKey}
-            style={{
-              '--background-color': token.colorBgContainer,
-              '--radius': `${token.borderRadius}px`
-            }}
+            style={
+              {
+                '--background-color': token.colorBgContainer,
+                '--radius': `${token.borderRadius}px`
+              } as CSSProperties
+            }
             groupable={groupable}
             className={clsx(styles.section, styles.conversations)}
           />
