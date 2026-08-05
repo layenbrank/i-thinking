@@ -1,5 +1,7 @@
+@use '../styles/tokens.scss' as t;
+
 .statusbar {
-  height: 24px;
+  height: t.$statusbar-h;
   padding: 0 12px;
   display: flex;
   align-items: center;
@@ -28,4 +30,5 @@
 .num {
   font-variant-numeric: tabular-nums;
   margin-left: 2px;
+  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
 }

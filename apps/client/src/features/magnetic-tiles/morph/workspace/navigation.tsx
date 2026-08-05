@@ -4,8 +4,8 @@ import { clsx } from 'clsx'
 import { useState } from 'react'
 
 import { useMorphStore } from '@/stores/morph.ts'
-import Thumbnail from '@/features/magnetic-tiles/morph/workspace/overlay/components/thumbnail.tsx'
-import styles from '@/features/magnetic-tiles/morph/workspace/overlay/navigation.module.scss'
+import Thumbnail from '@/features/magnetic-tiles/morph/workspace/thumbnail/thumbnail.tsx'
+import styles from '@/features/magnetic-tiles/morph/workspace/navigation.module.scss'
 
 // ─── Workspace tab ───────────────────────────────────────────────────────────
 

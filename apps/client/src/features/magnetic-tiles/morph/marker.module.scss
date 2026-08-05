@@ -1,10 +1,11 @@
-@use 'mini.scss' as *;
-@use 'small.scss' as *;
-@use 'medium.scss' as *;
-@use 'large.scss' as *;
-@use 'huge.scss' as *;
-@use 'massive.scss' as *;
-@use 'ultra.scss' as *;
+@use '../styles/sizes.scss' as sizes;
 
 .marker {
+  @include sizes.size-shape-dirs(mini);
+  @include sizes.size-shape-dirs(small);
+  @include sizes.size-shape-dirs(medium);
+  @include sizes.size-shape-dirs(large);
+  @include sizes.size-shape-dirs(huge);
+  @include sizes.size-shape-dirs(massive);
+  @include sizes.size-shape-dirs(ultra);
 }

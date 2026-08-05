@@ -1,9 +1,8 @@
-$toolbar-h: 36px;
-$tool-size: 28px;
+@use '../../styles/tokens.scss' as t;
 
 .toolbar {
   &.root {
-    height: $toolbar-h;
+    height: t.$toolbar-h;
     display: flex;
     align-items: stretch;
     border-bottom: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
@@ -17,7 +16,7 @@ $tool-size: 28px;
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 0 8px;
+  padding: 0 t.$chrome-pad-x;
   flex-shrink: 0;
   border-right: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
 }
@@ -56,15 +55,15 @@ $tool-size: 28px;
 .toolsRow {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 8px;
+  gap: t.$tool-gap;
+  padding: 0 t.$chrome-pad-x;
   height: 100%;
   white-space: nowrap;
 }
 
 .toolBtn {
-  width: $tool-size;
-  height: $tool-size;
+  width: t.$tool-size;
+  height: t.$tool-size;
   padding: 0;
   border: none;
   border-radius: 6px;
@@ -75,10 +74,9 @@ $tool-size: 28px;
   justify-content: center;
   font-size: 14px;
   color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
-  transition:
-    background 150ms ease,
-    color 150ms ease;
   flex-shrink: 0;
+
+  @include t.interactive-btn;
 
   &:hover:not(:disabled) {
     background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.06));
@@ -97,7 +95,7 @@ $tool-size: 28px;
 }
 
 .opBtn {
-  height: $tool-size;
+  height: t.$tool-size;
   padding: 0 8px;
   border: none;
   border-radius: 6px;
@@ -108,11 +106,10 @@ $tool-size: 28px;
   gap: 4px;
   font-size: 12px;
   color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
-  transition:
-    background 150ms ease,
-    color 150ms ease;
   white-space: nowrap;
   flex-shrink: 0;
+
+  @include t.interactive-btn;
 
   &:hover {
     background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.06));
@@ -131,15 +128,15 @@ $tool-size: 28px;
   width: 1px;
   height: 16px;
   background: var(--ith-color-border-secondary, var(--ant-color-border-secondary));
-  margin: 0 6px;
+  margin: 0 4px;
   align-self: center;
 }
 
 .rightGroup {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 10px;
+  gap: t.$tool-gap;
+  padding: 0 t.$chrome-pad-x;
   flex-shrink: 0;
   border-left: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
 }

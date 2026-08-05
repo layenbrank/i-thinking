@@ -1,3 +1,5 @@
+@use '../../styles/tokens.scss' as t;
+
 .thumbnail {
   display: flex;
   flex-direction: column;
@@ -18,13 +20,15 @@
     border-color: var(--ant-color-primary);
     background: var(--ant-color-primary-bg);
   }
+
+  @include t.focus-ring;
 }
 
 .imageWrap {
   position: relative;
   width: 100%;
   background: var(--ith-color-bg-container, var(--ant-color-bg-container));
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border-radius: 2px;
   overflow: hidden;
   line-height: 0;
@@ -57,7 +61,7 @@
 }
 
 .meta {
-  margin-top: 5px;
+  margin-top: 6px;
   display: flex;
   align-items: center;
   gap: 6px;

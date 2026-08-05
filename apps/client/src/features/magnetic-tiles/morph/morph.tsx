@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useContext } from 'react'
 
 import {
   MagneticTile,
@@ -16,7 +16,7 @@ const Overlay = lazy(function () {
   return import('@/features/magnetic-tiles/morph/overlay.tsx')
 })
 
-export default function Example(props: SectionProps) {
+export default function Morph(props: SectionProps) {
   const { renderable } = useContext(OverlayContext)
   const cache = props.cache ?? 'destroy'
   const isRenderOverlay = renderable

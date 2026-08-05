@@ -6,19 +6,8 @@ import useImage from 'use-image'
 import { useShallow } from 'zustand/react/shallow'
 
 import { selectCurrentPageAnnotations, useMorphStore } from '@/stores/morph.ts'
+import { DEFAULT_COLORS, SELECTION_STROKE } from './colors.ts'
 import styles from './canvas.module.scss'
-
-// ─── Tool hint text ────────────────────────────────────────────────────────────
-
-const DEFAULT_COLORS: Record<Morph.Tool, string> = {
-  select: '#000000',
-  text: '#000000',
-  highlight: '#FFE066',
-  shape: '#1677ff',
-  stamp: '#ff4d4f',
-  crop: '#000000',
-  rotate: '#000000'
-}
 
 // ─── Layer 1: PDF Image ───────────────────────────────────────────────────────
 
@@ -77,7 +66,7 @@ function AnnotationLayer({
               height={h}
               fill={d.color}
               opacity={d.opacity}
-              stroke={isSelected ? '#1677ff' : undefined}
+              stroke={isSelected ? SELECTION_STROKE : undefined}
               strokeWidth={isSelected ? 1 : 0}
               onClick={(e) => {
                 e.cancelBubble = true
@@ -90,7 +79,7 @@ function AnnotationLayer({
         if (ann.type === 'shape') {
           const d = ann.data as Morph.ShapeData
           const fill = d.fill === 'none' ? 'transparent' : d.fill
-          const stroke = isSelected ? '#1677ff' : d.stroke
+          const stroke = isSelected ? SELECTION_STROKE : d.stroke
           if (d.kind === 'ellipse') {
             return (
               <Ellipse
@@ -144,7 +133,7 @@ function AnnotationLayer({
                 width={w}
                 height={h}
                 fill="rgba(255,255,200,0.85)"
-                stroke={isSelected ? '#1677ff' : '#ccc'}
+                stroke={isSelected ? SELECTION_STROKE : '#ccc'}
                 strokeWidth={1}
                 cornerRadius={3}
               />
@@ -179,7 +168,7 @@ function AnnotationLayer({
                 width={w}
                 height={h}
                 fill="transparent"
-                stroke={isSelected ? '#1677ff' : d.color}
+                stroke={isSelected ? SELECTION_STROKE : d.color}
                 strokeWidth={2}
                 cornerRadius={4}
               />

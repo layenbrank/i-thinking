@@ -2,15 +2,18 @@ import { Splitter } from 'antd'
 import { clsx } from 'clsx'
 import { useState } from 'react'
 
-import ConvertModal from '@/features/magnetic-tiles/morph/workspace/overlay/components/ConvertModal.tsx'
-import MergeModal from '@/features/magnetic-tiles/morph/workspace/overlay/components/MergeModal.tsx'
-import SplitModal from '@/features/magnetic-tiles/morph/workspace/overlay/components/SplitModal.tsx'
-import { Overlay } from '@/features/magnetic-tiles/morph/workspace/overlay/index.ts'
+import ConvertModal from '@/features/magnetic-tiles/morph/workspace/modals/convert-modal.tsx'
+import MergeModal from '@/features/magnetic-tiles/morph/workspace/modals/merge-modal.tsx'
+import SplitModal from '@/features/magnetic-tiles/morph/workspace/modals/split-modal.tsx'
+import Navigation from '@/features/magnetic-tiles/morph/workspace/navigation.tsx'
+import Section from '@/features/magnetic-tiles/morph/workspace/section.tsx'
+import StatusBar from '@/features/magnetic-tiles/morph/workspace/statusbar.tsx'
+import Summary from '@/features/magnetic-tiles/morph/workspace/summary.tsx'
 import { useMorphStore } from '@/stores/morph.ts'
 
-import styles from '@/features/magnetic-tiles/morph/workspace/morph.module.scss'
+import styles from '@/features/magnetic-tiles/morph/workspace/workspace.module.scss'
 
-export default function Morph() {
+export default function Workspace() {
   const summaryVisible = useMorphStore(function (s) {
     return s.summaryVisible
   })
@@ -27,17 +30,17 @@ export default function Morph() {
             min="20%"
             max="50%"
             resizable>
-            <Overlay.Navigation />
+            <Navigation />
           </Splitter.Panel>
           <Splitter.Panel size={sizes[1]}>
-            <Overlay.Section />
+            <Section />
           </Splitter.Panel>
         </Splitter>
 
-        {summaryVisible ? <Overlay.Summary /> : null}
+        {summaryVisible ? <Summary /> : null}
       </div>
 
-      <Overlay.StatusBar />
+      <StatusBar />
 
       <MergeModal />
       <SplitModal />

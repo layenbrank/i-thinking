@@ -1,0 +1,56 @@
+// Morph dense productivity chrome — shared SCSS tokens & mixins
+
+$control-h: 28px;
+$toolbar-h: 36px;
+$tool-size: 28px;
+$statusbar-h: 24px;
+$panel-gap: 8px;
+$tool-gap: 6px;
+$chrome-pad-x: 10px;
+$focus-ring: 2px;
+
+@mixin focus-ring {
+  &:focus-visible {
+    outline: $focus-ring solid var(--ant-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+@mixin empty-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--ith-border-radius, 8px);
+  border: 1px dashed var(--ith-color-border, var(--ant-color-border));
+  background: transparent;
+  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+  cursor: pointer;
+  font-size: 13px;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background-color 150ms ease;
+
+  &:hover {
+    border-color: var(--ant-color-primary);
+    color: var(--ant-color-primary);
+    background: var(--ant-color-primary-bg);
+  }
+
+  @include focus-ring;
+}
+
+@mixin panel-divider {
+  border-color: var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+}
+
+@mixin interactive-btn {
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+
+  @include focus-ring;
+}

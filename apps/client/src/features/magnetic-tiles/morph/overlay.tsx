@@ -9,7 +9,7 @@ import { Caption } from '@/features/magnetic-tiles/morph/workspace/caption'
 import styles from '@/features/magnetic-tiles/morph/overlay.module.scss'
 
 const MorphWorkspace = lazy(function () {
-  return import('@/features/magnetic-tiles/morph/workspace/morph')
+  return import('@/features/magnetic-tiles/morph/workspace/workspace')
 })
 
 export default function Overlay(props: OverlayControlProps) {

@@ -14,7 +14,7 @@ import { save } from '@tauri-apps/plugin-dialog'
 import { clsx } from 'clsx'
 
 import { selectSelectedAnnotation, useMorphStore } from '@/stores/morph.ts'
-import styles from '@/features/magnetic-tiles/morph/workspace/overlay/summary.module.scss'
+import styles from '@/features/magnetic-tiles/morph/workspace/summary.module.scss'
 
 // ─── Properties tab ──────────────────────────────────────────────────────────
 
@@ -43,7 +43,6 @@ function PropertiesTab() {
         位置与尺寸
       </Typography.Text>
       <Form
-        layout="inline"
         size="small"
         className={styles.rectForm}>
         <Form.Item label="X">
@@ -144,6 +143,7 @@ function PropertiesTab() {
         danger
         size="small"
         block
+        className={styles.deleteBtn}
         onClick={() => void removeById(selected.id)}>
         删除批注
       </Button>

@@ -1,3 +1,5 @@
+@use '../../styles/tokens.scss' as t;
+
 .canvas {
   display: flex;
   flex-direction: column;
@@ -13,7 +15,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 24px;
+  padding: 28px 24px;
   min-height: 0;
 }
 
@@ -35,39 +37,17 @@
 }
 
 .emptyCta {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 16px;
-  border-radius: var(--ith-border-radius, 8px);
-  border: 1px dashed var(--ith-color-border, var(--ant-color-border));
-  background: transparent;
-  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
-  cursor: pointer;
-  font-size: 13px;
-  transition:
-    border-color 150ms ease,
-    color 150ms ease,
-    background-color 150ms ease;
-
-  &:hover {
-    border-color: var(--ant-color-primary);
-    color: var(--ant-color-primary);
-    background: var(--ant-color-primary-bg);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--ant-color-primary);
-    outline-offset: 1px;
-  }
+  @include t.empty-cta;
 }
 
 .pageWrapper {
   position: relative;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.08);
   background: var(--ith-color-bg-container, var(--ant-color-bg-container));
   flex-shrink: 0;
+  border-radius: 1px;
 }
 
 .placeholder {
