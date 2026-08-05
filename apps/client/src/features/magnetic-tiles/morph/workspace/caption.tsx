@@ -1,5 +1,3 @@
-import { Icon } from '@iconify/react/offline'
-import { Button } from 'antd'
 import { clsx } from 'clsx'
 import { debounce } from 'lodash-es'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -63,19 +61,6 @@ function Caption() {
       start={
         <div className={styles.chrome}>
           <div className={styles.brand}>
-            <Button
-              type="text"
-              data-region="false"
-              aria-label="菜单"
-              className={styles.menu}
-              icon={
-                <Icon
-                  icon="ant-design:menu-outlined"
-                  width={14}
-                  height={14}
-                />
-              }
-            />
             <span
               className={styles.logo}
               aria-hidden>

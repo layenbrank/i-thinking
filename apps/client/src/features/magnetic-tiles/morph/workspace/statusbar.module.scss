@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--ith-color-bg-layout, var(--ant-color-bg-layout));
+  @include t.panel-well;
   border-top: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
   flex-shrink: 0;
   font-size: 11px;
@@ -23,12 +23,17 @@
 }
 
 .dot {
-  margin: 0 6px;
-  opacity: 0.55;
+  display: inline-block;
+  width: 1px;
+  height: 10px;
+  margin: 0 8px;
+  background: var(--ith-color-border, var(--ant-color-border));
+  flex-shrink: 0;
 }
 
 .num {
   font-variant-numeric: tabular-nums;
   margin-left: 2px;
   color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+  font-weight: 500;
 }

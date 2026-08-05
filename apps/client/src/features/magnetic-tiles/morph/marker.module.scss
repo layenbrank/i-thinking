@@ -1,4 +1,4 @@
-@use '../styles/sizes.scss' as sizes;
+@use './styles/sizes.scss' as sizes;
 
 .marker {
   @include sizes.size-shape-dirs(mini);

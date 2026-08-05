@@ -6,12 +6,13 @@ import {
   Empty,
   Form,
   InputNumber,
+  Segmented,
   Select,
-  Tabs,
   Typography
 } from 'antd'
 import { save } from '@tauri-apps/plugin-dialog'
 import { clsx } from 'clsx'
+import { useState } from 'react'
 
 import { selectSelectedAnnotation, useMorphStore } from '@/stores/morph.ts'
 import styles from '@/features/magnetic-tiles/morph/workspace/summary.module.scss'
@@ -254,11 +255,16 @@ function HistoryTab() {
 
 // ─── Summary root ─────────────────────────────────────────────────────────────
 
+type SummaryTab = 'props' | 'export' | 'history'
+
 export default function Summary() {
-  const toggleSummary = useMorphStore((s) => s.toggleSummary)
+  const toggleSummary = useMorphStore(function (s) {
+    return s.toggleSummary
+  })
+  const [tab, onUpdateTab] = useState<SummaryTab>('props')
 
   return (
-    <div className={clsx([styles.summary, styles.root])}>
+    <div className={clsx(styles.summary, styles.root)}>
       <div className={styles.header}>
         <span className={styles.title}>属性</span>
         <Button
@@ -275,16 +281,29 @@ export default function Summary() {
           className={styles.closeBtn}
         />
       </div>
-      <Tabs
-        size="small"
-        className={styles.tabs}
-        defaultActiveKey="props"
-        items={[
-          { key: 'props', label: '属性', children: <PropertiesTab /> },
-          { key: 'export', label: '导出', children: <ExportTab /> },
-          { key: 'history', label: '历史', children: <HistoryTab /> }
-        ]}
-      />
+
+      <div className={styles.tabs}>
+        <Segmented
+          size="small"
+          block
+          value={tab}
+          className={styles.tabSegment}
+          onChange={function (v) {
+            onUpdateTab(v as SummaryTab)
+          }}
+          options={[
+            { label: '属性', value: 'props' },
+            { label: '导出', value: 'export' },
+            { label: '历史', value: 'history' }
+          ]}
+        />
+      </div>
+
+      <div className={styles.tabContent}>
+        {tab === 'props' ? <PropertiesTab /> : null}
+        {tab === 'export' ? <ExportTab /> : null}
+        {tab === 'history' ? <HistoryTab /> : null}
+      </div>
     </div>
   )
 }

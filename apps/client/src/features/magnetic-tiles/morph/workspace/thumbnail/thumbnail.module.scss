@@ -5,12 +5,13 @@
   flex-direction: column;
   align-items: center;
   padding: 8px 6px 6px;
-  border-radius: 6px;
+  border-radius: t.$radius-control;
   cursor: pointer;
   border: 2px solid transparent;
+  outline: none;
   transition:
-    border-color 150ms ease,
-    background 150ms ease;
+    border-color t.$transition,
+    background t.$transition;
 
   &:hover {
     background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
@@ -19,6 +20,16 @@
   &.active {
     border-color: var(--ant-color-primary);
     background: var(--ant-color-primary-bg);
+
+    .imageWrap {
+      border-color: var(--ant-color-primary-border, var(--ant-color-primary));
+      box-shadow: none;
+    }
+
+    .pageNum {
+      color: var(--ant-color-primary);
+      font-weight: 600;
+    }
   }
 
   @include t.focus-ring;
@@ -28,7 +39,8 @@
   position: relative;
   width: 100%;
   background: var(--ith-color-bg-container, var(--ant-color-bg-container));
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
   border-radius: 2px;
   overflow: hidden;
   line-height: 0;

@@ -3,16 +3,65 @@
 $control-h: 28px;
 $toolbar-h: 36px;
 $tool-size: 28px;
+$action-h: 28px;
 $statusbar-h: 24px;
 $panel-gap: 8px;
-$tool-gap: 6px;
+$tool-gap: 4px;
 $chrome-pad-x: 10px;
 $focus-ring: 2px;
+$radius-control: 6px;
+$radius-field: 6px;
+$radius-logo: 4px;
+$icon-tool: 16px;
+$sep-h: 18px;
+$transition: 150ms ease;
 
 @mixin focus-ring {
+  outline: none;
+
   &:focus-visible {
     outline: $focus-ring solid var(--ant-color-primary);
     outline-offset: 1px;
+  }
+}
+
+@mixin chrome-surface {
+  background: var(--ith-color-bg-container, var(--ant-color-bg-container));
+  border-color: var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+}
+
+@mixin panel-well {
+  background: var(--ith-color-bg-layout, var(--ant-color-bg-layout));
+}
+
+@mixin panel-divider {
+  border-color: var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+}
+
+@mixin section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+}
+
+@mixin empty-block {
+  padding: 48px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  :global(.ant-empty-image) {
+    height: 48px;
+    margin-bottom: 12px;
+  }
+
+  :global(.ant-empty-description) {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
   }
 }
 
@@ -23,16 +72,16 @@ $focus-ring: 2px;
   gap: 8px;
   min-height: 40px;
   padding: 0 16px;
-  border-radius: var(--ith-border-radius, 8px);
+  border-radius: $radius-control;
   border: 1px dashed var(--ith-color-border, var(--ant-color-border));
   background: transparent;
   color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
   cursor: pointer;
   font-size: 13px;
   transition:
-    border-color 150ms ease,
-    color 150ms ease,
-    background-color 150ms ease;
+    border-color $transition,
+    color $transition,
+    background-color $transition;
 
   &:hover {
     border-color: var(--ant-color-primary);
@@ -43,14 +92,88 @@ $focus-ring: 2px;
   @include focus-ring;
 }
 
-@mixin panel-divider {
-  border-color: var(--ith-color-border-secondary, var(--ant-color-border-secondary));
-}
-
 @mixin interactive-btn {
   transition:
-    background 150ms ease,
-    color 150ms ease;
+    background $transition,
+    color $transition,
+    box-shadow $transition;
 
   @include focus-ring;
+}
+
+/** Enterprise underline tabs (nav / summary) */
+@mixin chrome-tabs {
+  :global {
+    .ant-tabs-nav {
+      margin-bottom: 0 !important;
+      padding: 0 8px;
+      background: var(--ith-color-bg-container, var(--ant-color-bg-container));
+
+      &::before {
+        border-bottom: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
+      }
+    }
+
+    .ant-tabs-nav-list {
+      width: 100%;
+    }
+
+    .ant-tabs-tab {
+      padding: 8px 12px !important;
+      margin: 0 !important;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
+      transition:
+        color $transition,
+        background $transition;
+
+      &:hover {
+        color: var(--ith-color-text, var(--ant-color-text));
+      }
+
+      + .ant-tabs-tab {
+        margin-left: 0 !important;
+      }
+    }
+
+    .ant-tabs-tab-btn {
+      font-size: 12px;
+    }
+
+    .ant-tabs-tab-active .ant-tabs-tab-btn {
+      color: var(--ant-color-primary) !important;
+      font-weight: 600;
+      text-shadow: none;
+    }
+
+    .ant-tabs-ink-bar {
+      height: 2px !important;
+      background: var(--ant-color-primary) !important;
+      border-radius: 1px 1px 0 0;
+    }
+
+    .ant-tabs-content-holder {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .ant-tabs-content {
+      height: 100%;
+    }
+
+    .ant-tabs-tabpane {
+      height: 100%;
+    }
+  }
+}
+
+/** Compact segmented — light chrome only; do not override Ant selected/thumb */
+@mixin chrome-segmented {
+  border-radius: $radius-control;
+
+  :global(.ant-segmented-item-label) {
+    padding-inline: 10px !important;
+  }
 }

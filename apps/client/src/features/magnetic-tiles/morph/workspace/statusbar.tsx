@@ -37,18 +37,12 @@ export default function StatusBar() {
     <div className={clsx(styles.statusbar)}>
       <span className={styles.left}>
         就绪
-        <span className={styles.dot} aria-hidden>
-          ·
-        </span>
+        <span className={styles.dot} aria-hidden />
         工具：{TOOL_LABELS[activeTool]}
-        <span className={styles.dot} aria-hidden>
-          ·
-        </span>
+        <span className={styles.dot} aria-hidden />
         缩放：
         <span className={styles.num}>{Math.round(zoom * 100)}%</span>
-        <span className={styles.dot} aria-hidden>
-          ·
-        </span>
+        <span className={styles.dot} aria-hidden />
         {selectionLabel}
       </span>
       <span className={styles.right}>

@@ -6,7 +6,7 @@ import { Glide } from '@/components/glide/glide'
 import { useMorphStore } from '@/stores/morph.ts'
 import styles from './toolbar.module.scss'
 
-const ICON_SIZE = 14
+const ICON_SIZE = 16
 
 function onTeleport() {
   return document.body
@@ -302,6 +302,7 @@ export default function Toolbar() {
         <Segmented
           size="small"
           value={viewMode}
+          className={styles.modeSegment}
           onChange={function (v) {
             setViewMode(v as Morph.ViewMode)
           }}
@@ -322,6 +323,7 @@ export default function Toolbar() {
         </Button>
         <Button
           size="small"
+          type="default"
           className={styles.actionBtn}>
           打印
         </Button>

@@ -7,7 +7,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: var(--ith-color-bg-layout, var(--ant-color-bg-layout));
+    @include t.panel-well;
     border-right: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
   }
 }
@@ -19,42 +19,81 @@
 
 .tabSegment {
   width: 100%;
+
+  :global(.ant-segmented-item) {
+    outline: none;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+  :global(.ant-segmented-item-selected) {
+    color: var(--ant-color-primary);
+  }
+
+  :global(.ant-segmented-item-label) {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    line-height: 1;
+    padding-inline: 8px !important;
+  }
+}
+
+.segmentLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1;
+
+  :global(svg) {
+    display: block;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
 }
 
 .tabContent {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 10px 8px 12px;
 }
 
 .workspaceSection {
-  padding: 6px 6px 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .workspaceHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 2px 4px;
+  padding: 0 2px 2px;
 }
 
 .workspaceLabel {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  @include t.section-label;
 }
 
 .addBtn {
-  width: 22px !important;
-  height: 22px !important;
-  min-width: 22px !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
   padding: 0 !important;
-  color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary)) !important;
+  border-radius: t.$radius-control !important;
+  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary)) !important;
+  transition:
+    color t.$transition,
+    background t.$transition;
 
   &:hover {
     color: var(--ant-color-primary) !important;
@@ -62,33 +101,33 @@
   }
 }
 
-.openBtn {
-  width: 100%;
-  justify-content: flex-start;
-}
-
 .emptyCta {
   @include t.empty-cta;
   width: 100%;
   min-height: 72px;
-  margin-top: 4px;
   padding: 12px;
 }
 
 .fileList {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .fileItem {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 6px 6px 8px;
-  border-radius: 6px;
+  gap: 8px;
+  padding: 8px 8px 8px 10px;
+  border-radius: t.$radius-control;
   cursor: pointer;
-  transition: background 150ms ease;
+  border: 1px solid transparent;
+  border-left: 2px solid transparent;
+  background: var(--ith-color-bg-container, var(--ant-color-bg-container));
+  outline: none;
+  transition:
+    background t.$transition,
+    border-color t.$transition;
 
   &:hover {
     background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.06));
@@ -103,6 +142,8 @@
 
 .fileItemActive {
   background: var(--ant-color-primary-bg);
+  border-color: transparent;
+  border-left-color: var(--ant-color-primary);
   color: var(--ant-color-primary);
 
   .fileItemIcon {
@@ -111,7 +152,12 @@
 
   .fileItemName {
     color: var(--ant-color-primary);
-    font-weight: 500;
+    font-weight: 600;
+  }
+
+  .fileItemMeta {
+    color: var(--ant-color-primary);
+    opacity: 0.72;
   }
 
   &:hover {
@@ -120,8 +166,8 @@
 }
 
 .fileItemIcon {
-  font-size: 13px;
-  color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
+  font-size: 14px;
+  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
   flex-shrink: 0;
 }
 
@@ -130,7 +176,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .fileItemName {
@@ -143,8 +189,8 @@
 }
 
 .fileItemMeta {
-  font-size: 10px;
-  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.25));
+  font-size: 11px;
+  color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
   line-height: 1.3;
 }
 
@@ -154,15 +200,15 @@
   height: 18px;
   border: none;
   background: transparent;
-  border-radius: 4px;
+  border-radius: t.$radius-logo;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   opacity: 0;
   transition:
-    opacity 150ms ease,
-    background 150ms ease;
+    opacity t.$transition,
+    background t.$transition;
   color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
   font-size: 10px;
   padding: 0;
@@ -176,7 +222,6 @@
 }
 
 .thumbnailList {
-  padding: t.$panel-gap t.$panel-gap 0;
   display: flex;
   flex-direction: column;
   gap: t.$panel-gap;
@@ -184,13 +229,13 @@
 
 .pageCount {
   font-size: 11px;
-  color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
+  font-weight: 500;
+  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
   text-align: right;
-  padding: 0 2px 4px;
+  padding: 0 2px 2px;
 }
 
 .thumbLoading {
-  padding: t.$panel-gap;
   display: flex;
   flex-direction: column;
   gap: t.$panel-gap;
@@ -202,5 +247,6 @@
 }
 
 .empty {
-  padding: 24px 0;
+  @include t.empty-block;
+  padding-block: 32px;
 }

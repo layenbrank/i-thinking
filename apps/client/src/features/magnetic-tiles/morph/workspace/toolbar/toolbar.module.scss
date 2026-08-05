@@ -6,7 +6,7 @@
     display: flex;
     align-items: stretch;
     border-bottom: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
-    background: var(--ith-color-bg-container, var(--ant-color-bg-container));
+    @include t.chrome-surface;
     flex-shrink: 0;
     overflow: hidden;
   }
@@ -34,7 +34,7 @@
 
 .pageTotal {
   font-size: 12px;
-  color: var(--ith-color-text-tertiary, var(--ant-color-text-tertiary));
+  color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   padding-right: 2px;
@@ -66,13 +66,13 @@
   height: t.$tool-size;
   padding: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: t.$radius-control;
   background: transparent;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: t.$icon-tool;
   color: var(--ith-color-text-secondary, var(--ant-color-text-secondary));
   flex-shrink: 0;
 
@@ -86,6 +86,7 @@
   &.active {
     background: var(--ant-color-primary-bg);
     color: var(--ant-color-primary);
+    box-shadow: inset 0 0 0 1px var(--ant-color-primary-border, var(--ant-color-primary));
   }
 
   &:disabled {
@@ -98,7 +99,7 @@
   height: t.$tool-size;
   padding: 0 8px;
   border: none;
-  border-radius: 6px;
+  border-radius: t.$radius-control;
   background: transparent;
   cursor: pointer;
   display: inline-flex;
@@ -118,17 +119,17 @@
 }
 
 .opIcon {
-  font-size: 12px;
-  opacity: 0.75;
+  font-size: 14px;
+  opacity: 0.85;
 }
 
 .sep {
   display: inline-block;
   flex-shrink: 0;
   width: 1px;
-  height: 16px;
+  height: t.$sep-h;
   background: var(--ith-color-border-secondary, var(--ant-color-border-secondary));
-  margin: 0 4px;
+  margin: 0 8px;
   align-self: center;
 }
 
@@ -141,10 +142,14 @@
   border-left: 1px solid var(--ith-color-border-secondary, var(--ant-color-border-secondary));
 }
 
+.modeSegment {
+  @include t.chrome-segmented;
+}
+
 .actionBtn {
-  height: 26px !important;
+  height: t.$action-h !important;
   padding: 0 12px !important;
-  border-radius: 6px !important;
+  border-radius: t.$radius-control !important;
   font-size: 12px !important;
   font-weight: 500 !important;
   flex-shrink: 0;
