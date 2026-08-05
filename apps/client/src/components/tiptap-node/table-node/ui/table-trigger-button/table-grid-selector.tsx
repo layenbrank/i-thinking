@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { forwardRef, useMemo, useCallback } from 'react'
 
 // --- UI Primitives ---

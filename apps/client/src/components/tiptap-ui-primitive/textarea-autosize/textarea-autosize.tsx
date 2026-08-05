@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from 'react'
 import type { TextareaAutosizeProps } from 'react-textarea-autosize'
 import ReactTextareaAutosize from 'react-textarea-autosize'

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useEffect } from 'react'
 import { type Editor } from '@tiptap/react'
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor.ts'

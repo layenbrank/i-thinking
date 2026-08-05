@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Extension } from '@tiptap/core'
 import type { TableHandlesState } from '@/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts'
 import {

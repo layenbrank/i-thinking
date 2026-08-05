@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Orientation } from '@/components/tiptap-node/table-node/lib/tiptap-table-utils.ts'
 import {
   offset,

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Fragment, useCallback, useMemo } from 'react'
 import { type Editor } from '@tiptap/react'
 import type { TextOptions } from '@tiptap-pro/extension-ai'

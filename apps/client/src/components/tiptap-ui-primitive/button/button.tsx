@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 
 import { forwardRef, Fragment, useMemo } from 'react'

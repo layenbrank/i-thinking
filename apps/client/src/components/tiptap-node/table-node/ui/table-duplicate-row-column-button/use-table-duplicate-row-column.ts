@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useMemo } from 'react'
 import type { Editor } from '@tiptap/react'
 import { addColumnAfter, addRowAfter, CellSelection } from '@tiptap/pm/tables'

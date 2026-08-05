@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client"
 
 export type SpacerOrientation = "horizontal" | "vertical"

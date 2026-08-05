@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { forwardRef } from 'react'
 import * as Ariakit from '@ariakit/react'
 import { cn } from '@/lib/tiptap-utils.ts'

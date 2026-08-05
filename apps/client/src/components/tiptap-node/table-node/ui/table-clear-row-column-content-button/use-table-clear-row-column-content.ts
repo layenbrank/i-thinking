@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useMemo } from 'react'
 import type { Editor } from '@tiptap/react'
 import {

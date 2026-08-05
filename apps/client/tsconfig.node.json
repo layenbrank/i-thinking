@@ -1,33 +1,4 @@
 {
-  "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-    "target": "ESNext",
-    "lib": ["ESNext"],
-    "types": ["@types/node", "@i-thinking/shared/process-env"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
-
-    "composite": true,
-    "allowSyntheticDefaultImports": true,
-
-    "rootDir": "."
-  },
-  "exclude": ["postcss.config.js"],
   "include": [
     "vite.config.*",
     "vite.chunk.*",
@@ -37,7 +8,49 @@
     "playwright.config.*",
     "tailwind.config.*",
     "eslint.config.*",
-    "scripts/**/*.ts",
-    "vite.config-d.ts"
-  ]
+    "scripts/**/*.ts"
+  ],
+  "exclude": ["postcss.config.js", "**/node_modules/**", "**/dist/**"],
+  "compilerOptions": {
+    /* ---------- Incremental / Project refs ---------- */
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "composite": true,
+
+    /* ---------- Language / Emit ---------- */
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ESNext"],
+    "noEmit": true,
+    "skipLibCheck": true,
+
+    /* ---------- Ambient types ---------- */
+    "types": ["@types/node", "@i-thinking/shared/process-env"],
+
+    /* ---------- Bundler (Vite / Node tooling) ---------- */
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+
+    /* ---------- Strictness ---------- */
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedSideEffectImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "erasableSyntaxOnly": true,
+    /* 与 app 同步；二期开启 */
+    "noUncheckedIndexedAccess": false,
+
+    /* ---------- Lint ownership（unused → ESLint ^_） ---------- */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    /* ---------- Paths ---------- */
+    "rootDir": "."
+  }
 }

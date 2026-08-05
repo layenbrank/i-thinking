@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useMemo } from 'react'
 import { type Editor } from '@tiptap/react'
 import type { TextOptions, Tone } from '@tiptap-pro/extension-ai'

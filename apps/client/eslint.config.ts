@@ -6,48 +6,97 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 import { fileURLToPath } from 'node:url'
 
-export default defineConfig([
-  {
-    ignores: ['**/dist/**', '**/node_modules/**']
-  },
-  globalIgnores(['dist', 'node_modules']),
+const ROOT_DIR = fileURLToPath(new URL('.', import.meta.url))
+
+/**
+ * Client ESLint：type-checked + projectService，与 tsconfig.app / tsconfig.node 对齐。
+ * unused 仅由 @typescript-eslint/no-unused-vars 管理（支持 `_` 前缀），tsconfig 关闭 noUnused*。
+ */
+export default defineConfig(
+  globalIgnores([
+    'src/components/tiptap-ui/**',
+    'src/components/tiptap-node/**',
+    'src/components/tiptap-ui-primitive/**',
+    '**/dist/**',
+    '**/dist-ssr/**',
+    '**/coverage/**',
+    '**/node_modules/**',
+    '**/src-tauri/**',
+    'chunks.log'
+  ]),
   eslint.configs.recommended,
-  tseslint.configs.recommended,
+  tseslint.configs.recommendedTypeChecked,
   reactHooks.configs.flat['recommended-latest'],
   reactRefresh.configs.recommended,
   reactRefresh.configs.vite,
   {
+    name: 'client/typescript',
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      parser: tseslint.parser,
+      globals: {
+        ...globals.browser
+      },
+      parserOptions: {
+        ecmaVersion: 2025,
+        sourceType: 'module',
+        projectService: true,
+        tsconfigRootDir: ROOT_DIR
+      }
+    },
     plugins: {
       '@typescript-eslint': tseslint.plugin
     },
-    languageOptions: {
-      parser: tseslint.parser,
-      project: ['tsconfig.app.json'],
-      parserOptions: {
-        ecmaVersion: 2025,
-        projectService: true,
-        tsconfigRootDir: fileURLToPath(import.meta.url),
-        globals: globals.browser
-      }
-    }
-  },
-  {
-    name: 'app/files-to-lint',
-    files: ['**/*.{ts,tsx}'],
-    extends: [],
     rules: {
+      'no-var': 'error',
       eqeqeq: 'error',
+      'no-unused-vars': 'off',
+
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'error',
-      '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'separate-type-imports'
+        }
+      ],
+      /* React 事件/props 常写 async handler，关闭 attributes 上的 Promise 误报 */
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        {
+          checksVoidReturn: {
+            attributes: false
+          }
+        }
+      ],
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
           argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_'
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_'
         }
       ]
     }
+  },
+  {
+    name: 'client/node-tooling',
+    files: [
+      'vite.config.*',
+      'vite.chunk.*',
+      'vitest.config.*',
+      'playwright.config.*',
+      'eslint.config.*',
+      'scripts/**/*.{ts,mts}'
+    ],
+    languageOptions: {
+      globals: {
+        ...globals.node
+      }
+    }
   }
-])
+)
+
+

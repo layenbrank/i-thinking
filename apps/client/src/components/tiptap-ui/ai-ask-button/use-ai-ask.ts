@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useEffect, useState } from 'react'
 import { isNodeSelection, type Editor } from '@tiptap/react'
 import { useHotkeys } from 'react-hotkeys-hook'

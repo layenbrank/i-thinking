@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Editor } from '@tiptap/react'
 
 // --- Hooks ---

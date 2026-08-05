@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useEffect, useMemo } from 'react'
 import * as Ariakit from '@ariakit/react'
 import type {

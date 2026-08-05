@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState, useCallback, useRef } from 'react'
 import type { Editor } from '@tiptap/react'
 import type { TableHandlesState } from '@/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts'

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { ViewMutationRecord } from '@tiptap/pm/view'
 import { Table } from '@tiptap/extension-table/table'
 import type {

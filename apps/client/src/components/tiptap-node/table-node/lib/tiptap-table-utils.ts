@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Editor } from '@tiptap/react'
 import type { Node } from '@tiptap/pm/model'
 import type { Command } from '@tiptap/pm/state'

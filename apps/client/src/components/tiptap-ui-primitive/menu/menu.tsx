@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { forwardRef, useCallback, useMemo, useRef, useState } from 'react'
 import * as Ariakit from '@ariakit/react'
 

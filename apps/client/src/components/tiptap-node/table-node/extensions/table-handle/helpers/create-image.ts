@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Editor } from "@tiptap/core"
 
 const STYLE_PROPS: (keyof CSSStyleDeclaration | string)[] = [

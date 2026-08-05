@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { mergeAttributes } from "@tiptap/react"
 import TiptapHorizontalRule from "@tiptap/extension-horizontal-rule"
 

@@ -1,11 +1,12 @@
 {
+  /* Solution-style entry：仅组合 project references */
   "files": [],
   "references": [
     {
-      "path": "./tsconfig.node.json"
+      "path": "./tsconfig.app.json"
     },
     {
-      "path": "./tsconfig.app.json"
+      "path": "./tsconfig.node.json"
     }
   ]
 }

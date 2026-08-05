@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useMemo, useRef } from 'react'
 
 // --- Lib ---

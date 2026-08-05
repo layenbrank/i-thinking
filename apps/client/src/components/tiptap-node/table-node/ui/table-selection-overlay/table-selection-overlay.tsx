@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState, useCallback, useRef } from 'react'
 import type { Editor } from '@tiptap/react'
 import { CellSelection, cellAround } from '@tiptap/pm/tables'

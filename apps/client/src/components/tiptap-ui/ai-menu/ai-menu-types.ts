@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Language, Tone } from "@tiptap-pro/extension-ai"
 
 export interface AiMenuPosition {

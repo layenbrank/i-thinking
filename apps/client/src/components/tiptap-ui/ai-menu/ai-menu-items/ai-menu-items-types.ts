@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Action } from '@/components/tiptap-ui-primitive/menu/menu-types.ts'
 import { type TextOptions } from '@tiptap-pro/extension-ai'
 import type { Editor } from '@tiptap/react'

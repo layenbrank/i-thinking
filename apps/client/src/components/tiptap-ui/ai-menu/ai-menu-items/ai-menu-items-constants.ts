@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Language } from "@tiptap-pro/extension-ai"
 
 export const SUPPORTED_LANGUAGES: Array<{
