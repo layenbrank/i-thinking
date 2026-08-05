@@ -41,7 +41,7 @@ const PANDOC_DEST = path.join(BINARIES_DIR, `pandoc${EXE_SUFFIX}`)
 const FFMPEG_DEST = path.join(BINARIES_DIR, `ffmpeg${EXE_SUFFIX}`)
 const FFPROBE_DEST = path.join(BINARIES_DIR, `ffprobe${EXE_SUFFIX}`)
 
-const COREX_VERSION = 'v2.1.1'
+const COREX_VERSION = 'v2.1.2'
 const PANDOC_VERSION = '3.10.1'
 const COREX_REPO = 'layenbrank/corex'
 const PANDOC_REPO = 'jgm/pandoc'
