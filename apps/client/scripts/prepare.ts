@@ -172,6 +172,20 @@ function removeIfExists(filePath: string): void {
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
 }
 
+/** 校验 sidecar 是 Named Pipe daemon，而不是误拷的 corex CLI。 */
+function assertCorexServeDaemon(filePath: string): void {
+  const result = spawnSync(filePath, ['--help'], {
+    encoding: 'utf8',
+    windowsHide: true
+  })
+  const text = `${result.stdout ?? ''}\n${result.stderr ?? ''}`
+  if (!text.includes('--pipe') || text.includes('<COMMAND>')) {
+    throw new Error(
+      `不是 corex-serve daemon（缺少 --pipe）: ${filePath}\n${text.slice(0, 400)}`
+    )
+  }
+}
+
 function copyPdfiumDll(serveSrc: string): void {
   const pdfiumSrc = path.join(path.dirname(serveSrc), 'pdfium.dll')
   if (!fs.existsSync(pdfiumSrc)) {
@@ -538,9 +552,11 @@ async function prepareCorexFromDownload(host: HostKey | null): Promise<boolean> 
 
   try {
     await stageFromArchive(asset, 'corex', [
-      { candidates: [`corex-serve${EXE_SUFFIX}`, `corex${EXE_SUFFIX}`], dest: COREX_DEST },
+      // 禁止回退到 corex CLI：会覆盖 sidecar，导致 `--pipe` 启动立刻 exit 2
+      { candidates: [`corex-serve${EXE_SUFFIX}`], dest: COREX_DEST },
       { candidates: ['pdfium.dll'], dest: PDFIUM_DEST }
     ])
+    assertCorexServeDaemon(COREX_DEST)
     clearPlaceholderMarker()
     writeSidecarChecksums()
     return true
@@ -618,6 +634,7 @@ async function prepareCorex(host: HostKey | null): Promise<void> {
 
   if (localSrc) {
     copySidecar(localSrc)
+    assertCorexServeDaemon(COREX_DEST)
     return
   }
 
