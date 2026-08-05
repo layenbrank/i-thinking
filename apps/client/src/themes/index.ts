@@ -29,6 +29,7 @@ export {
 export { PRESET } from '@/themes/presets/default'
 
 export { CSSVAR, buildTheme } from '@/themes/runtime/build'
+export { useCssVarClassName } from '@/themes/runtime/css-var'
 export { useProviderProps, useTheme, type ProviderProps } from '@/themes/runtime/theme'
 export {
   parseAppearance,
