@@ -58,6 +58,8 @@ release
 # Cache
 .cache
 cache
+.eslintcache
+*.eslintcache
 static
 
 # Auto-generated files

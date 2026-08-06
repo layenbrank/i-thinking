@@ -1,4 +1,31 @@
-* -crlf -diff -merge
-**/* -crlf -diff -merge
-**/.gitattributes -crlf -diff -merge
+# Detect text files; keep CRLF in the working tree on Windows.
 * text=auto eol=crlf
+
+# Keep attributes file itself as text.
+.gitattributes text eol=crlf
+
+# Binaries — no line-ending conversion / text diff.
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.7z binary
+*.gz binary
+*.mp4 binary
+*.mp3 binary
+*.wav binary
+*.lockb binary
