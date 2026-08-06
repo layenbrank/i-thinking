@@ -74,43 +74,6 @@ impl SidecarState {
     }
 }
 
-fn apply_pdfium_env(
-    app: &AppHandle,
-    sidecar: tauri_plugin_shell::process::Command,
-) -> tauri_plugin_shell::process::Command {
-    for dir in pdfium_candidate_dirs(app) {
-        if dir.join("pdfium.dll").exists() {
-            info!(path = %dir.display(), "COREX_PDFIUM_DIR");
-            return sidecar.env("COREX_PDFIUM_DIR", dir);
-        }
-    }
-
-    warn!("未找到 pdfium.dll，morph PDF 能力可能不可用");
-    sidecar
-}
-
-/// 打包资源 → sidecar 旁 → src-tauri/binaries（开发态）
-fn pdfium_candidate_dirs(app: &AppHandle) -> Vec<std::path::PathBuf> {
-    let mut dirs = Vec::new();
-
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        dirs.push(resource_dir.join("binaries"));
-        dirs.push(resource_dir);
-    }
-
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(parent) = exe.parent() {
-            dirs.push(parent.join("binaries"));
-            dirs.push(parent.to_path_buf());
-        }
-    }
-
-    // tauri dev：externalBin 与 resources 落在 target 旁；manifest binaries 为源真相
-    dirs.push(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("binaries"));
-
-    dirs
-}
-
 /// 启动 sidecar，并在后台等待就绪；失败时发出 `corex://not-ready`。
 pub fn spawn_and_watch(app: &AppHandle, timeout: Duration) {
     match spawn(app) {
@@ -137,13 +100,12 @@ pub fn spawn_and_watch(app: &AppHandle, timeout: Duration) {
 fn spawn(app: &AppHandle) -> Result<(), String> {
     // sidecar() 只要 externalBin 的文件名，不要 `binaries/` 前缀；
     // 运行时相对 current_exe 目录解析为 `corex-serve.exe`。
+    // pdfium.dll 经 tauri.conf resources 映射到与 sidecar 同目录，无需 COREX_PDFIUM_DIR。
     let sidecar = app
         .shell()
         .sidecar("corex-serve")
         .map_err(|e| format!("创建 corex-serve sidecar 失败: {e}"))?
         .args(["--pipe", ipc::PIPE_NAME]);
-
-    let sidecar = apply_pdfium_env(app, sidecar);
 
     let (mut rx, child) = sidecar
         .spawn()

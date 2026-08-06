@@ -13,7 +13,7 @@ pnpm dev          # 自动执行 prepare + vite + tauri dev
 
 | 工具 | 来源 | 落盘 |
 |------|------|------|
-| corex-serve + pdfium | [layenbrank/corex v2.1.1](https://github.com/layenbrank/corex/releases/tag/v2.1.1)（目前仅 Windows x64；zip 含 CLI+sidecar+pdfium，仅落盘 serve） | `src-tauri/binaries/corex-serve-<triple>.exe` + `pdfium.dll`（Tauri sidecar） |
+| corex-serve + pdfium | [layenbrank/corex v2.1.1](https://github.com/layenbrank/corex/releases/tag/v2.1.1)（目前仅 Windows x64；zip 含 CLI+sidecar+pdfium，仅落盘 serve，不落 CLI） | 源：`src-tauri/binaries/corex-serve-<triple>.exe` + `pdfium.dll`；安装后：`corex-serve.exe` 与 `pdfium.dll` 同级（resources 映射，无需 `COREX_PDFIUM_DIR`） |
 | pandoc | [jgm/pandoc 3.10.1](https://github.com/jgm/pandoc/releases/tag/3.10.1) | `binaries/pandoc.exe`（`bundle.resources`，非 sidecar） |
 | ffmpeg / ffprobe | [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) 静态 GPL | `binaries/ffmpeg.exe`、`ffprobe.exe`（`bundle.resources`） |
 

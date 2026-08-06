@@ -2,8 +2,10 @@
  * 构建前准备 sidecar / 工具二进制：优先本地 CARGO_TARGET_DIR，否则按架构从 Release 下载。
  * corex Release（≥ v2.1.1）zip 含：corex.exe（CLI）+ corex-serve.exe（sidecar）+ pdfium.dll。
  * 本脚本只落盘 corex-serve + pdfium（按文件名精确匹配，勿与 corex CLI 混淆）。
- * 校验以 Release 的 SHA256SUMS.txt 为准（含 zip 与包内文件）；本地 binaries/SHA256SUMS 仅 remap 落盘名供 CI。
- * pandoc / ffmpeg / ffprobe 落盘到 binaries/，由 tauri.conf `bundle.resources` 打包（非 externalBin）。
+ * 源文件在 src-tauri/binaries/；打包时 tauri.conf 将 pdfium.dll 映射到 $RESOURCE/pdfium.dll
+ * （与 corex-serve.exe 同级，符合 serve 旁加载约定；无需 COREX_PDFIUM_DIR）。
+ * pandoc / ffmpeg / ffprobe 仍以 binaries/ 子路径进 resources。
+ * 校验以 Release 的 SHA256SUMS.txt 为准；本地 binaries/SHA256SUMS 仅 remap 落盘名供 CI。
  *
  * 用法（在 apps/client 目录）：
  *   bun run scripts/prepare.ts
@@ -11,7 +13,7 @@
  *   bun run scripts/prepare.ts --force    # 强制按 COREX_VERSION 重新下载 sidecar
  *
  * 环境变量：
- *   CARGO_TARGET_DIR  — 可选；存在 release/corex-serve 时优先于远端下载
+ *   CARGO_TARGET_DIR  — 可选；存在 release/corex-serve 时优先于远端下载（仅开发）
  */
 
 import { execSync, spawnSync } from 'node:child_process'

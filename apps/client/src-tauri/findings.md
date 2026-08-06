@@ -1,31 +1,30 @@
 # Findings & Decisions
 
 ## Requirements
-- magnetic-tile `size` 改为数字类型
-- 目前只有 1–7（对应原 mini…ultra）
-- 不改 Background.size（CSS）与 Ant Design size props
+- 安装后用户不设环境变量
+- pdfium 与 corex-serve 同目录
+- 不打包 corex.exe CLI
 
 ## Research Findings
-- Size 字符串枚举在 `crates/database/src/entity/magnetic_tile.rs`
-- DB 默认 `"medium"` → 数字 `3`
-- shared: `packages/shared/src/types/magnetic-tile.d.ts`
-- 前端大量 `Mirror.Size`，但 Mirror 命名空间未定义 Size/Shape/Direction
-- 旁路：extension、studio 也用字符串 size
+- corex-serve 静态链接 corex-core（feature serve）；不 spawn corex.exe
+- `\\.\pipe\corex` 仅为管道名
+- pdfium::load 只搜 serve 旁目录，再搜 COREX_PDFIUM_DIR
+- 原 resources 列表项 `binaries/pdfium.dll` → `$RESOURCE/binaries/pdfium.dll`，与 serve 分离
 
 ## Technical Decisions
 | Decision | Rationale |
 |----------|-----------|
-| i32 + TS union | 后端宽松、前端收窄 |
-| Mirror 别名 | 兼容现有 Mirror.Size 调用 |
-| isCompact: size <= 2 | 对应原 mini/small |
+| resources map: binaries/pdfium.dll → pdfium.dll | Windows $RESOURCE ≈ 主程序目录 |
+| 删除 apply_pdfium_env | 避免用 env 掩盖错误布局 |
+| pandoc/ffmpeg 仍在 binaries/ | 非 serve 同目录依赖 |
 
 ## Issues Encountered
 | Issue | Resolution |
 |-------|------------|
-| UPDATE 后列声明仍是 TEXT，sqlx 解码失败 | v002/v003 重建表为 INTEGER |
+|       |            |
 
 ## Resources
-- Entity: `crates/database/src/entity/magnetic_tile.rs`
-- Migration: `crates/database/src/migrations/`
-- Shared: `packages/shared/src/types/magnetic-tile.d.ts`
-- SIZE_PX: `apps/client/src/features/magnetic-tile/size.ts`
+- tauri.conf.json bundle.resources / externalBin
+- src/utils/sidecar.rs
+- scripts/prepare.ts
+- corex: corex-core/src/morph/pdfium.rs
