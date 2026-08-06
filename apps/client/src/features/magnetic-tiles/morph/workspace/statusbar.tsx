@@ -22,17 +22,17 @@ export default function StatusBar() {
     return s.zoom
   })
   const selectedId = useMorphStore(function (s) {
-    return s.selectedAnnotationId
+    return s.selectedId
   })
-  const currentPage = useMorphStore(function (s) {
-    return s.currentPage
+  const offset = useMorphStore(function (s) {
+    return s.offset
   })
-  const pageCount = useMorphStore(function (s) {
-    return s.file?.page_count ?? 0
+  const count = useMorphStore(function (s) {
+    return s.file?.count ?? 0
   })
 
   const selectionLabel = selectedId ? '已选中对象' : '未选中对象'
-  const pageLabel = pageCount > 0 ? `${currentPage + 1} / ${pageCount}` : '—'
+  const offsetLabel = count > 0 ? `${offset + 1} / ${count}` : '—'
 
   return (
     <div className={clsx(styles.statusbar, CSSVAR.KEY)}>
@@ -48,7 +48,7 @@ export default function StatusBar() {
       </span>
       <span className={styles.right}>
         页码：
-        <span className={styles.num}>{pageLabel}</span>
+        <span className={styles.num}>{offsetLabel}</span>
       </span>
     </div>
   )

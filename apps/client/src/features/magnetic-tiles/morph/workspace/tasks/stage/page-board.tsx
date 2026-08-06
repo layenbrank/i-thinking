@@ -12,18 +12,18 @@ const GROUP_PALETTE_SIZE = 6
 const THUMB_BASE = 168
 
 type PageBoardProps = {
-  thumbnails: Morph.PageImage[]
-  pageCount: number
-  selectedPages?: ReadonlySet<number>
+  thumbnails: Morph.Render[]
+  count: number
+  selectedOffsets?: ReadonlySet<number>
   /** 返回分组序号（0-based），用于拆分「固定页数」着色 */
-  resolveGroup?: (pageIndex: number) => number | null
+  resolveGroup?: (offset: number) => number | null
   /** 页卡底部标签；默认原稿页码。整理重排时传网格序号 */
-  pageLabel?: (pageIndex: number, gridIndex: number) => string
+  offsetLabel?: (offset: number, gridIndex: number) => string
   isLoading?: boolean
   hasError?: boolean
   onRetry?: () => void
   emptyText?: string
-  onPageClick?: (pageIndex: number) => void
+  onOffsetClick?: (offset: number) => void
   banner?: ReactNode
   className?: string
 }
@@ -31,20 +31,20 @@ type PageBoardProps = {
 function PageBoard(props: PageBoardProps) {
   const {
     thumbnails,
-    pageCount,
-    selectedPages,
+    count,
+    selectedOffsets,
     resolveGroup,
-    pageLabel,
+    offsetLabel,
     isLoading,
     hasError,
     onRetry,
     emptyText = '请先打开 PDF',
-    onPageClick,
+    onOffsetClick,
     banner,
     className
   } = props
   const isReducedMotion = useReducedMotion()
-  const isFewPages = pageCount > 0 && pageCount <= 3
+  const isFewPages = count > 0 && count <= 3
   const { boardScale, rootRef, resetScale } = useBoardScale()
   const thumbMin = Math.round(THUMB_BASE * boardScale)
   const gridStyle = {
@@ -70,7 +70,7 @@ function PageBoard(props: PageBoardProps) {
     )
   }
 
-  if (!pageCount) {
+  if (!count) {
     return (
       <div
         ref={rootRef}
@@ -122,7 +122,7 @@ function PageBoard(props: PageBoardProps) {
         <div
           className={clsx(styles.grid, isFewPages && styles.gridSparse)}
           style={gridStyle}>
-          {Array.from({ length: Math.min(pageCount, 8) }).map(function (_, i) {
+          {Array.from({ length: Math.min(count, 8) }).map(function (_, i) {
             return (
               <Skeleton.Image
                 key={i}
@@ -147,18 +147,18 @@ function PageBoard(props: PageBoardProps) {
         style={gridStyle}
         role="list">
         {thumbnails.map(function (image, index) {
-          const pageIndex = image.page_index
-          const isSelected = selectedPages?.has(pageIndex) ?? false
-          const group = resolveGroup?.(pageIndex) ?? null
-          const label = pageLabel
-            ? pageLabel(pageIndex, index)
-            : String(pageIndex + 1)
+          const offset = image.offset
+          const isSelected = selectedOffsets?.has(offset) ?? false
+          const group = resolveGroup?.(offset) ?? null
+          const label = offsetLabel
+            ? offsetLabel(offset, index)
+            : String(offset + 1)
           return (
             <motion.button
-              key={`${pageIndex}-${index}`}
+              key={`${offset}-${index}`}
               type="button"
               role="listitem"
-              aria-pressed={selectedPages ? isSelected : undefined}
+              aria-pressed={selectedOffsets ? isSelected : undefined}
               className={clsx(
                 styles.card,
                 isSelected && styles.cardSelected,
@@ -177,13 +177,13 @@ function PageBoard(props: PageBoardProps) {
                 ease: [0.22, 1, 0.36, 1]
               }}
               onClick={function () {
-                onPageClick?.(pageIndex)
+                onOffsetClick?.(offset)
               }}>
               <div className={styles.paper}>
                 <img
                   className={styles.img}
-                  src={`data:image/png;base64,${image.data_base64}`}
-                  alt={`第 ${pageIndex + 1} 页`}
+                  src={`data:image/png;base64,${image.base64}`}
+                  alt={`第 ${offset + 1} 页`}
                   draggable={false}
                 />
                 <span className={styles.badge}>{label}</span>

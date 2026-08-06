@@ -21,8 +21,8 @@ function WorkspaceSection() {
   const file = useMorphStore(function (s) {
     return s.file
   })
-  const fileList = useMorphStore(function (s) {
-    return s.fileList
+  const files = useMorphStore(function (s) {
+    return s.files
   })
 
   return (
@@ -31,36 +31,37 @@ function WorkspaceSection() {
         <span className={styles.workspaceLabel}>工作区</span>
         <Tooltip title="打开 PDF（支持多选）">
           <Button
-            size="small"
             type="text"
+            className={styles.addBtn}
+            aria-label="打开 PDF"
             icon={
               <Icon
-                icon="ant-design:plus-outlined"
+                icon="mdi:plus"
                 width={14}
                 height={14}
               />
             }
-            className={styles.addBtn}
             onClick={openFilePicker}
           />
         </Tooltip>
       </div>
 
-      {fileList.length === 0 ? (
+      {files.length === 0 ? (
         <button
           type="button"
           className={styles.emptyCta}
           onClick={openFilePicker}>
           <Icon
-            icon="ant-design:folder-open-outlined"
-            width={14}
-            height={14}
+            icon="mdi:folder-open"
+            width={16}
+            height={16}
+            className={styles.emptyCtaIcon}
           />
           打开 PDF
         </button>
       ) : (
         <div className={styles.fileList}>
-          {fileList.map(function (f) {
+          {files.map(function (f) {
             const name = f.path.split(/[\\/]/).pop() ?? f.path
             const isActive = f.path === file?.path
             return (
@@ -78,15 +79,18 @@ function WorkspaceSection() {
                     void switchFile(f.path)
                   }
                 }}>
-                <Icon
-                  icon="ant-design:file-pdf-outlined"
-                  width={14}
-                  height={14}
-                  className={styles.fileItemIcon}
-                />
+                <span
+                  className={styles.fileItemBadge}
+                  aria-hidden>
+                  <Icon
+                    icon="mdi:file-pdf-box"
+                    width={18}
+                    height={18}
+                  />
+                </span>
                 <div className={styles.fileItemBody}>
                   <div className={styles.fileItemName}>{name}</div>
-                  <div className={styles.fileItemMeta}>{f.page_count} 页</div>
+                  <div className={styles.fileItemMeta}>{f.count} 页</div>
                 </div>
                 <button
                   type="button"
@@ -115,17 +119,17 @@ function PagesSection() {
   const thumbnails = useMorphStore(function (s) {
     return s.thumbnails
   })
-  const currentPage = useMorphStore(function (s) {
-    return s.currentPage
+  const offset = useMorphStore(function (s) {
+    return s.offset
   })
-  const annotationCounts = useMorphStore(function (s) {
-    return s.annotationCounts
+  const annCounts = useMorphStore(function (s) {
+    return s.annCounts
   })
-  const pageCount = useMorphStore(function (s) {
-    return s.file?.page_count ?? 0
+  const count = useMorphStore(function (s) {
+    return s.file?.count ?? 0
   })
-  const setPage = useMorphStore(function (s) {
-    return s.setPage
+  const seekOffset = useMorphStore(function (s) {
+    return s.seekOffset
   })
   const file = useMorphStore(function (s) {
     return s.file
@@ -144,13 +148,16 @@ function PagesSection() {
   if (!thumbnails.length) {
     return (
       <div className={styles.thumbLoading}>
-        {Array.from({ length: Math.min(pageCount, 4) }).map(function (_, i) {
+        {Array.from({ length: Math.min(count, 4) }).map(function (_, i) {
           return (
-            <Skeleton.Image
+            <div
               key={i}
-              active
-              className={styles.skeletonThumb}
-            />
+              className={styles.skeletonThumb}>
+              <Skeleton.Image
+                active
+                className="size-full"
+              />
+            </div>
           )
         })}
       </div>
@@ -159,17 +166,18 @@ function PagesSection() {
 
   return (
     <div className={styles.thumbnailList}>
-      <div className={styles.pageCount}>共 {pageCount} 页</div>
-      {thumbnails.map(function (img) {
+      <div className={styles.pageCount}>共 {count} 页</div>
+      {thumbnails.map(function (img, index) {
+        const thumbOffset = Number.isFinite(img.offset) ? img.offset : index
         return (
           <Thumbnail
-            key={img.page_index}
+            key={`${file.path}:${thumbOffset}`}
             image={img}
-            pageIndex={img.page_index}
-            isActive={img.page_index === currentPage}
-            annotationCount={annotationCounts[img.page_index] ?? 0}
+            offset={thumbOffset}
+            isActive={thumbOffset === offset}
+            annotationCount={annCounts[thumbOffset] ?? 0}
             onClick={function () {
-              setPage(img.page_index)
+              seekOffset(thumbOffset, { source: 'thumb' })
             }}
           />
         )
@@ -185,7 +193,7 @@ export default function Navigation() {
     <div className={clsx(styles.navigation, styles.root, CSSVAR.KEY)}>
       <div className={styles.tabs}>
         <Segmented
-          size="small"
+          size="middle"
           block
           value={tab}
           onChange={function (v) {
@@ -194,29 +202,39 @@ export default function Navigation() {
           options={[
             {
               value: 'file',
+              title: '文件',
               label: (
                 <span className={styles.segmentLabel}>
-                  <Icon
-                    icon="ant-design:file-outlined"
-                    width={14}
-                    height={14}
-                    aria-hidden
-                  />
-                  文件
+                  <span
+                    className={styles.segBadge}
+                    data-tone="file"
+                    aria-hidden>
+                    <Icon
+                      icon="mdi:file-document-box"
+                      width={14}
+                      height={14}
+                    />
+                  </span>
+                  <span className={styles.segText}>文件</span>
                 </span>
               )
             },
             {
               value: 'page',
+              title: '页面',
               label: (
                 <span className={styles.segmentLabel}>
-                  <Icon
-                    icon="ant-design:appstore-outlined"
-                    width={14}
-                    height={14}
-                    aria-hidden
-                  />
-                  页面
+                  <span
+                    className={styles.segBadge}
+                    data-tone="page"
+                    aria-hidden>
+                    <Icon
+                      icon="mdi:view-grid"
+                      width={14}
+                      height={14}
+                    />
+                  </span>
+                  <span className={styles.segText}>页面</span>
                 </span>
               )
             }

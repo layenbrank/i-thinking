@@ -3,7 +3,7 @@ import { save as dialogSave } from '@tauri-apps/plugin-dialog'
 import { Alert, Button, Modal } from 'antd'
 import { useEffect, useMemo } from 'react'
 
-import { toggleIndex } from '@/features/magnetic-tiles/morph/workspace/tasks/page-ranges'
+import { toggleOffset } from '@/features/magnetic-tiles/morph/workspace/tasks/page-ranges'
 import { PathField } from '@/features/magnetic-tiles/morph/workspace/tasks/path-field'
 import { OperationStage } from '@/features/magnetic-tiles/morph/workspace/tasks/stage/operation-stage'
 import { PageBoard } from '@/features/magnetic-tiles/morph/workspace/tasks/stage/page-board'
@@ -38,8 +38,8 @@ function OrganizeTask() {
   const closeOperation = useMorphStore(function (s) {
     return s.closeOperation
   })
-  const setOrganizeModal = useMorphStore(function (s) {
-    return s.setOrganizeModal
+  const patchOrganize = useMorphStore(function (s) {
+    return s.patchOrganize
   })
   const executeOrganize = useMorphStore(function (s) {
     return s.executeOrganize
@@ -47,44 +47,44 @@ function OrganizeTask() {
   const openFilePicker = useMorphStore(function (s) {
     return s.openFilePicker
   })
-  const loadThumbnails = useMorphStore(function (s) {
-    return s.loadThumbnails
+  const fetchThumbnails = useMorphStore(function (s) {
+    return s.fetchThumbnails
   })
 
   useEffect(
     function () {
-      const pageCount = file?.page_count ?? 0
-      if (!pageCount) return
-      if (order.length === pageCount) return
-      setOrganizeModal({
-        order: Array.from({ length: pageCount }, function (_, i) {
+      const count = file?.count ?? 0
+      if (!count) return
+      if (order.length === count) return
+      patchOrganize({
+        order: Array.from({ length: count }, function (_, i) {
           return i
         }),
         selected: []
       })
-      if (!thumbnails.length) void loadThumbnails()
+      if (!thumbnails.length) void fetchThumbnails()
     },
-    [file?.page_count, file?.path, order.length, setOrganizeModal, thumbnails.length, loadThumbnails]
+    [file?.count, file?.path, order.length, patchOrganize, thumbnails.length, fetchThumbnails]
   )
 
-  const pagesInOrder = useMemo(
+  const images = useMemo(
     function () {
       if (!order.length) return thumbnails
-      const byIndex = new Map(
+      const byOffset = new Map(
         thumbnails.map(function (image) {
-          return [image.page_index, image] as const
+          return [image.offset, image] as const
         })
       )
       return order
-        .map(function (pageIndex) {
-          return byIndex.get(pageIndex)
+        .map(function (offset) {
+          return byOffset.get(offset)
         })
-        .filter(Boolean) as Morph.PageImage[]
+        .filter(Boolean) as Morph.Render[]
     },
     [order, thumbnails]
   )
 
-  const selectedPages = useMemo(
+  const selectedOffsets = useMemo(
     function () {
       return new Set(selected)
     },
@@ -96,12 +96,12 @@ function OrganizeTask() {
       title: '选择整理后的输出路径',
       filters: [{ name: 'PDF', extensions: ['pdf'] }]
     })
-    if (typeof selectedPath === 'string') setOrganizeModal({ dest: selectedPath })
+    if (typeof selectedPath === 'string') patchOrganize({ dest: selectedPath })
   }
 
-  function onPageClick(pageIndex: number) {
-    const next = toggleIndex(selectedPages, pageIndex)
-    setOrganizeModal({ selected: [...next] })
+  function onOffsetClick(offset: number) {
+    const next = toggleOffset(selectedOffsets, offset)
+    patchOrganize({ selected: [...next] })
   }
 
   /** 按当前 order 位置移动，跳过同属选中的邻居 */
@@ -110,8 +110,8 @@ function OrganizeTask() {
     const next = order.slice()
     const selectedSet = new Set(selected)
     const positions = selected
-      .map(function (pageIndex) {
-        return next.indexOf(pageIndex)
+      .map(function (offset) {
+        return next.indexOf(offset)
       })
       .filter(function (i) {
         return i >= 0
@@ -127,7 +127,7 @@ function OrganizeTask() {
       next[index] = next[target]
       next[target] = temp
     }
-    setOrganizeModal({ order: next })
+    patchOrganize({ order: next })
   }
 
   function onConfirmDelete() {
@@ -146,7 +146,7 @@ function OrganizeTask() {
   const canSubmit = Boolean(file) && Boolean(dest) && order.length > 0
   const canPageOp = Boolean(dest) && selected.length > 0 && !loading
   const meta = file
-    ? `${file.path.split(/[\\/]/).pop()} · 已选 ${selected.length} / ${file.page_count} 页`
+    ? `${file.path.split(/[\\/]/).pop()} · 已选 ${selected.length} / ${file.count} 页`
     : '请先打开 PDF'
 
   return (
@@ -222,7 +222,7 @@ function OrganizeTask() {
           </Button>
         </>
       }
-      fields={
+      extra={
         <PathField
           compact
           label="输出文件"
@@ -260,18 +260,18 @@ function OrganizeTask() {
         </div>
       ) : (
         <PageBoard
-          thumbnails={pagesInOrder}
-          pageCount={file.page_count}
-          selectedPages={selectedPages}
-          pageLabel={function (_pageIndex, gridIndex) {
+          thumbnails={images}
+          count={file.count}
+          selectedOffsets={selectedOffsets}
+          offsetLabel={function (_offset, gridIndex) {
             return String(gridIndex + 1)
           }}
           isLoading={!thumbnailsError && thumbnails.length === 0}
           hasError={Boolean(thumbnailsError)}
           onRetry={function () {
-            void loadThumbnails()
+            void fetchThumbnails()
           }}
-          onPageClick={onPageClick}
+          onOffsetClick={onOffsetClick}
         />
       )}
     </OperationStage>

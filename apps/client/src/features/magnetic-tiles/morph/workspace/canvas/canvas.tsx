@@ -3,10 +3,9 @@ import type Konva from 'konva'
 import { useEffect, useRef, useState } from 'react'
 import { Ellipse, Group, Image as KonvaImage, Layer, Rect, Stage, Text } from 'react-konva'
 import useImage from 'use-image'
-import { useShallow } from 'zustand/react/shallow'
 import { clsx } from 'clsx'
 
-import { selectCurrentPageAnnotations, useMorphStore } from '@/stores/morph.ts'
+import { useMorphStore } from '@/stores/morph.ts'
 import { CSSVAR } from '@/themes'
 import { DEFAULT_COLORS, SELECTION_STROKE } from './colors.ts'
 import styles from './canvas.module.scss'
@@ -14,19 +13,22 @@ import styles from './canvas.module.scss'
 const ZOOM_MIN = 0.25
 const ZOOM_MAX = 5
 const ZOOM_WHEEL_STEP = 0.1
+/** 渲染倍率：高于 CSS 像素以保持清晰；舞台尺寸需除回该值 */
+const RENDER_PIXEL_RATIO = 2
+const PAGE_OBSERVER_ROOT_MARGIN = '200px 0px'
 
 // ─── Layer 1: PDF Image ───────────────────────────────────────────────────────
 
 function PdfLayer({
-  pageImg,
+  render,
   width,
   height
 }: {
-  pageImg: Morph.PageImage | undefined
+  render: Morph.Render | undefined
   width: number
   height: number
 }) {
-  const src = pageImg ? `data:image/png;base64,${pageImg.data_base64}` : ''
+  const src = render ? `data:image/png;base64,${render.base64}` : ''
   const [image] = useImage(src)
   return (
     <KonvaImage
@@ -62,7 +64,7 @@ function AnnotationLayer({
         const isSelected = ann.id === selectedId
 
         if (ann.type === 'highlight') {
-          const d = ann.data as Morph.HighlightData
+          const d = ann.data as Morph.Highlight
           return (
             <Rect
               key={ann.id}
@@ -83,7 +85,7 @@ function AnnotationLayer({
         }
 
         if (ann.type === 'shape') {
-          const d = ann.data as Morph.ShapeData
+          const d = ann.data as Morph.Shape
           const fill = d.fill === 'none' ? 'transparent' : d.fill
           const stroke = isSelected ? SELECTION_STROKE : d.stroke
           if (d.kind === 'ellipse') {
@@ -125,7 +127,7 @@ function AnnotationLayer({
         }
 
         if (ann.type === 'text-note') {
-          const d = ann.data as Morph.TextNoteData
+          const d = ann.data as Morph.TextNote
           return (
             <Group
               key={ann.id}
@@ -160,7 +162,7 @@ function AnnotationLayer({
         }
 
         if (ann.type === 'stamp') {
-          const d = ann.data as Morph.StampData
+          const d = ann.data as Morph.Stamp
           return (
             <Group
               key={ann.id}
@@ -239,82 +241,41 @@ function DraftLayer({ draft, tool }: { draft: DraftRect | null; tool: Morph.Tool
   return null
 }
 
-// ─── Main Canvas ──────────────────────────────────────────────────────────────
+// ─── Per-page stage ───────────────────────────────────────────────────────────
 
-export default function Canvas() {
-  const file = useMorphStore((s) => s.file)
-  const currentPage = useMorphStore((s) => s.currentPage)
-  const zoom = useMorphStore((s) => s.zoom)
-  const activeTool = useMorphStore((s) => s.activeTool)
-  const pageCache = useMorphStore((s) => s.pageCache)
-  const isLoading = useMorphStore((s) => s.isLoading)
-  const selectedId = useMorphStore((s) => s.selectedAnnotationId)
-  const pageAnnotations = useMorphStore(useShallow(selectCurrentPageAnnotations))
-  const selectAnnotation = useMorphStore((s) => s.selectAnnotation)
-  const addAnnotation = useMorphStore((s) => s.addAnnotation)
-  const openFilePicker = useMorphStore((s) => s.openFilePicker)
-  const setZoom = useMorphStore(function (s) {
-    return s.setZoom
-  })
+type PageStageProps = {
+  offset: number
+  stageW: number
+  stageH: number
+  render: Morph.Render | undefined
+  annotations: Morph.Annotation[]
+  activeTool: Morph.Tool
+  selectedId: string | null
+  isCursorCrosshair: boolean
+  onSelect: (id: string | null) => void
+  onAddAnnotation: (
+    partial: Omit<Morph.Annotation, 'id' | 'path' | 'createdAt' | 'updatedAt'>
+  ) => Promise<void>
+}
 
+function PageStage({
+  offset,
+  stageW,
+  stageH,
+  render,
+  annotations,
+  activeTool,
+  selectedId,
+  isCursorCrosshair,
+  onSelect,
+  onAddAnnotation
+}: PageStageProps) {
   const drawStart = useRef<{ x: number; y: number } | null>(null)
-  const scrollRef = useRef<HTMLDivElement | null>(null)
-  const zoomRef = useRef(zoom)
   const [draft, setDraft] = useState<DraftRect | null>(null)
-
-  zoomRef.current = zoom
-
-  const pageImg = pageCache[currentPage]
-  const pageWidth = file?.page_width ?? 595
-  const pageHeight = file?.page_height ?? 842
-
-  const stageW = pageImg?.width ?? Math.round(pageWidth * zoom * 2)
-  const stageH = pageImg?.height ?? Math.round(pageHeight * zoom * 2)
-
-  const isCursorCrosshair = ['highlight', 'shape', 'crop', 'text'].includes(activeTool)
-
-  useEffect(
-    function () {
-      const root = scrollRef.current
-      if (!root) return
-
-      let raf = 0
-      let pending: number | null = null
-
-      function flushZoom() {
-        raf = 0
-        if (pending == null) return
-        setZoom(pending)
-        pending = null
-      }
-
-      function onWheel(event: WheelEvent) {
-        if (!event.ctrlKey && !event.metaKey) return
-        event.preventDefault()
-        const direction = event.deltaY > 0 ? -1 : 1
-        const next =
-          Math.round((zoomRef.current + direction * ZOOM_WHEEL_STEP) * 100) / 100
-        const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next))
-        if (clamped === zoomRef.current && pending == null) return
-        zoomRef.current = clamped
-        pending = clamped
-        if (!raf) raf = requestAnimationFrame(flushZoom)
-      }
-
-      root.addEventListener('wheel', onWheel, { passive: false })
-      return function () {
-        root.removeEventListener('wheel', onWheel)
-        if (raf) cancelAnimationFrame(raf)
-      }
-    },
-    [setZoom, file]
-  )
-
-  // ── mouse handlers ─────────────────────────────────────────────────────
 
   function handleMouseDown(e: Konva.KonvaEventObject<MouseEvent>) {
     if (activeTool === 'select') {
-      if (e.target === e.target.getStage()) selectAnnotation(null)
+      if (e.target === e.target.getStage()) onSelect(null)
       return
     }
     if (!['highlight', 'shape', 'crop', 'text'].includes(activeTool)) return
@@ -354,15 +315,15 @@ export default function Canvas() {
     const nh = height / stageH
 
     if (activeTool === 'highlight') {
-      await addAnnotation({
-        pageIndex: currentPage,
+      await onAddAnnotation({
+        offset,
         type: 'highlight',
         rect: { x: nx, y: ny, w: nw, h: nh },
         data: { color: DEFAULT_COLORS.highlight, opacity: 0.4 }
       })
     } else if (activeTool === 'shape') {
-      await addAnnotation({
-        pageIndex: currentPage,
+      await onAddAnnotation({
+        offset,
         type: 'shape',
         rect: { x: nx, y: ny, w: nw, h: nh },
         data: {
@@ -374,8 +335,8 @@ export default function Canvas() {
         }
       })
     } else if (activeTool === 'text') {
-      await addAnnotation({
-        pageIndex: currentPage,
+      await onAddAnnotation({
+        offset,
         type: 'text-note',
         rect: { x: nx, y: ny, w: nw, h: nh },
         data: {
@@ -388,7 +349,279 @@ export default function Canvas() {
     }
   }
 
-  // ── render ─────────────────────────────────────────────────────────────
+  return (
+    <div
+      className={styles.pageWrapper}
+      style={{
+        width: stageW,
+        height: stageH,
+        cursor: isCursorCrosshair ? 'crosshair' : 'default'
+      }}>
+      {!render ? (
+        <div className={styles.placeholder}>
+          <span className={styles.loadingDot} />
+        </div>
+      ) : (
+        <Stage
+          width={stageW}
+          height={stageH}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={cancelDraw}>
+          <Layer>
+            <PdfLayer
+              render={render}
+              width={stageW}
+              height={stageH}
+            />
+          </Layer>
+          <Layer>
+            <AnnotationLayer
+              annotations={annotations}
+              stageW={stageW}
+              stageH={stageH}
+              selectedId={selectedId}
+              onSelect={onSelect}
+            />
+            <DraftLayer
+              draft={draft}
+              tool={activeTool}
+            />
+          </Layer>
+        </Stage>
+      )}
+    </div>
+  )
+}
+
+// ─── Main Canvas ──────────────────────────────────────────────────────────────
+
+export default function Canvas() {
+  const file = useMorphStore(function (s) {
+    return s.file
+  })
+  const offset = useMorphStore(function (s) {
+    return s.offset
+  })
+  const seekSource = useMorphStore(function (s) {
+    return s.seekSource
+  })
+  const zoom = useMorphStore(function (s) {
+    return s.zoom
+  })
+  const activeTool = useMorphStore(function (s) {
+    return s.activeTool
+  })
+  const renders = useMorphStore(function (s) {
+    return s.renders
+  })
+  const annotations = useMorphStore(function (s) {
+    return s.annotations
+  })
+  const selectedId = useMorphStore(function (s) {
+    return s.selectedId
+  })
+  const selectAnnotation = useMorphStore(function (s) {
+    return s.selectAnnotation
+  })
+  const addAnnotation = useMorphStore(function (s) {
+    return s.addAnnotation
+  })
+  const openFilePicker = useMorphStore(function (s) {
+    return s.openFilePicker
+  })
+  const zoomTo = useMorphStore(function (s) {
+    return s.zoomTo
+  })
+  const seekOffset = useMorphStore(function (s) {
+    return s.seekOffset
+  })
+  const warmOffsets = useMorphStore(function (s) {
+    return s.warmOffsets
+  })
+
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const slotRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const zoomRef = useRef(zoom)
+  const offsetRef = useRef(offset)
+  const ignoreScrollSync = useRef(false)
+
+  zoomRef.current = zoom
+  offsetRef.current = offset
+
+  const pageWidth = file?.width ?? 595
+  const pageHeight = file?.height ?? 842
+  const count = file?.count ?? 0
+  const isCursorCrosshair = ['highlight', 'shape', 'crop', 'text'].includes(activeTool)
+
+  function slotSize(slot: number): { width: number; height: number } {
+    const render = renders[slot]
+    if (render) {
+      return {
+        width: Math.round(render.width / RENDER_PIXEL_RATIO),
+        height: Math.round(render.height / RENDER_PIXEL_RATIO)
+      }
+    }
+    return {
+      width: Math.round(pageWidth * zoom),
+      height: Math.round(pageHeight * zoom)
+    }
+  }
+
+  // Ctrl/Meta + wheel zoom
+  useEffect(
+    function () {
+      const root = scrollRef.current
+      if (!root) return
+
+      let raf = 0
+      let pending: number | null = null
+
+      function flushZoom() {
+        raf = 0
+        if (pending == null) return
+        zoomTo(pending)
+        pending = null
+      }
+
+      function onWheel(event: WheelEvent) {
+        if (!event.ctrlKey && !event.metaKey) return
+        event.preventDefault()
+        const direction = event.deltaY > 0 ? -1 : 1
+        const next =
+          Math.round((zoomRef.current + direction * ZOOM_WHEEL_STEP) * 100) / 100
+        const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next))
+        if (clamped === zoomRef.current && pending == null) return
+        zoomRef.current = clamped
+        pending = clamped
+        if (!raf) raf = requestAnimationFrame(flushZoom)
+      }
+
+      root.addEventListener('wheel', onWheel, { passive: false })
+      return function () {
+        root.removeEventListener('wheel', onWheel)
+        if (raf) cancelAnimationFrame(raf)
+      }
+    },
+    [zoomTo, file?.path]
+  )
+
+  // Lazy render pages entering viewport
+  useEffect(
+    function () {
+      const root = scrollRef.current
+      if (!root || !file) return
+
+      const observer = new IntersectionObserver(
+        function (entries) {
+          const visible: number[] = []
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue
+            const raw = (entry.target as HTMLElement).dataset.offset
+            if (raw == null) continue
+            const index = Number(raw)
+            if (!Number.isFinite(index)) continue
+            visible.push(index)
+            if (index > 0) visible.push(index - 1)
+            if (index < count - 1) visible.push(index + 1)
+          }
+          if (visible.length) void warmOffsets(visible)
+        },
+        {
+          root,
+          rootMargin: PAGE_OBSERVER_ROOT_MARGIN,
+          threshold: 0.01
+        }
+      )
+
+      const slots = root.querySelectorAll<HTMLElement>('[data-offset]')
+      slots.forEach(function (el) {
+        observer.observe(el)
+      })
+
+      return function () {
+        observer.disconnect()
+      }
+    },
+    [file?.path, count, zoom, warmOffsets]
+  )
+
+  // Scroll → offset (viewport center)
+  useEffect(
+    function () {
+      const root = scrollRef.current
+      if (!root || !file) return
+
+      let raf = 0
+
+      function syncCurrentFromScroll() {
+        raf = 0
+        if (ignoreScrollSync.current) return
+        const rootRect = root!.getBoundingClientRect()
+        const midY = rootRect.top + rootRect.height / 2
+        let bestIndex = offsetRef.current
+        let bestDist = Infinity
+
+        slotRefs.current.forEach(function (el, index) {
+          const rect = el.getBoundingClientRect()
+          const center = rect.top + rect.height / 2
+          const dist = Math.abs(center - midY)
+          if (dist < bestDist) {
+            bestDist = dist
+            bestIndex = index
+          }
+        })
+
+        if (bestIndex !== offsetRef.current) {
+          seekOffset(bestIndex, { source: 'scroll' })
+        }
+      }
+
+      function onScroll() {
+        if (raf) return
+        raf = requestAnimationFrame(syncCurrentFromScroll)
+      }
+
+      root.addEventListener('scroll', onScroll, { passive: true })
+      return function () {
+        root.removeEventListener('scroll', onScroll)
+        if (raf) cancelAnimationFrame(raf)
+      }
+    },
+    [file?.path, seekOffset]
+  )
+
+  // Toolbar / thumb → scrollIntoView
+  useEffect(
+    function () {
+      if (!file) return
+      if (seekSource === 'scroll' || seekSource == null) return
+      const el = slotRefs.current.get(offset)
+      if (!el) return
+
+      ignoreScrollSync.current = true
+      el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      const timer = window.setTimeout(function () {
+        ignoreScrollSync.current = false
+      }, 400)
+      return function () {
+        window.clearTimeout(timer)
+        ignoreScrollSync.current = false
+      }
+    },
+    [offset, seekSource, file?.path]
+  )
+
+  // Reset scroll when switching files
+  useEffect(
+    function () {
+      const root = scrollRef.current
+      if (!root) return
+      root.scrollTop = 0
+    },
+    [file?.path]
+  )
 
   if (!file) {
     return (
@@ -398,7 +631,11 @@ export default function Canvas() {
             type="button"
             className={styles.emptyCta}
             onClick={openFilePicker}>
-            <Icon icon="ant-design:folder-open-outlined" width={14} height={14} />
+            <Icon
+              icon="ant-design:folder-open-outlined"
+              width={14}
+              height={14}
+            />
             打开 PDF
           </button>
           <p className={styles.emptyHint}>选择本地 PDF 开始浏览或批注</p>
@@ -412,47 +649,37 @@ export default function Canvas() {
       <div
         ref={scrollRef}
         className={styles.scroll}>
-        <div
-          className={styles.pageWrapper}
-          style={{
-            width: stageW,
-            height: stageH,
-            cursor: isCursorCrosshair ? 'crosshair' : 'default'
-          }}>
-          {isLoading && !pageImg ? (
-            <div className={styles.placeholder}>
-              <span className={styles.loadingDot} />
-            </div>
-          ) : null}
-
-          <Stage
-            width={stageW}
-            height={stageH}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={cancelDraw}>
-            <Layer>
-              <PdfLayer
-                pageImg={pageImg}
-                width={stageW}
-                height={stageH}
-              />
-            </Layer>
-            <Layer>
-              <AnnotationLayer
-                annotations={pageAnnotations}
-                stageW={stageW}
-                stageH={stageH}
-                selectedId={selectedId}
-                onSelect={selectAnnotation}
-              />
-              <DraftLayer
-                draft={draft}
-                tool={activeTool}
-              />
-            </Layer>
-          </Stage>
+        <div className={styles.pagesStack}>
+          {Array.from({ length: count }, function (_, slot) {
+            const { width: stageW, height: stageH } = slotSize(slot)
+            const render = renders[slot]
+            const slotAnns = annotations.filter(function (a) {
+              return a.offset === slot
+            })
+            return (
+              <div
+                key={slot}
+                ref={function (node) {
+                  if (node) slotRefs.current.set(slot, node)
+                  else slotRefs.current.delete(slot)
+                }}
+                className={styles.pageSlot}
+                data-offset={slot}>
+                <PageStage
+                  offset={slot}
+                  stageW={stageW}
+                  stageH={stageH}
+                  render={render}
+                  annotations={slotAnns}
+                  activeTool={activeTool}
+                  selectedId={selectedId}
+                  isCursorCrosshair={isCursorCrosshair}
+                  onSelect={selectAnnotation}
+                  onAddAnnotation={addAnnotation}
+                />
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

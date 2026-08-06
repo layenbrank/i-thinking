@@ -22,8 +22,8 @@ import styles from '@/features/magnetic-tiles/morph/workspace/summary.module.scs
 
 function PropertiesTab() {
   const selected = useMorphStore(selectSelectedAnnotation)
-  const updateAnnotation = useMorphStore((s) => s.updateAnnotationData)
-  const removeById = useMorphStore((s) => s.removeAnnotationById)
+  const updateAnnotation = useMorphStore((s) => s.patchAnnotation)
+  const removeById = useMorphStore((s) => s.removeAnnotation)
 
   if (!selected) {
     return (
@@ -112,10 +112,10 @@ function PropertiesTab() {
           <Form.Item label="颜色">
             <ColorPicker
               size="small"
-              value={(data as Morph.HighlightData).color}
+              value={(data as Morph.Highlight).color}
               onChange={(c) =>
                 void updateAnnotation(selected.id, {
-                  data: { ...(data as Morph.HighlightData), color: c.toHexString() }
+                  data: { ...(data as Morph.Highlight), color: c.toHexString() }
                 })
               }
             />
@@ -158,8 +158,8 @@ function PropertiesTab() {
 function ExportTab() {
   const file = useMorphStore((s) => s.file)
   const exportState = useMorphStore((s) => s.exportState)
-  const setExport = useMorphStore((s) => s.setExportState)
-  const exportPdf = useMorphStore((s) => s.exportPdf)
+  const setExport = useMorphStore((s) => s.patchExport)
+  const exportDoc = useMorphStore((s) => s.exportDoc)
 
   async function handleExport() {
     if (!file) return
@@ -168,7 +168,7 @@ function ExportTab() {
       filters: [{ name: 'PDF', extensions: ['pdf'] }],
       defaultPath: file.path.replace(/\.pdf$/i, '_export.pdf')
     })
-    if (dest) await exportPdf(dest)
+    if (dest) await exportDoc(dest)
   }
 
   return (

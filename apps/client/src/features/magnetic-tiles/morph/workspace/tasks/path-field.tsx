@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react/offline'
-import { Button, Input, Space } from 'antd'
+import { Button, Input } from 'antd'
 import { clsx } from 'clsx'
 
 import styles from '@/features/magnetic-tiles/morph/workspace/tasks/path-field.module.scss'
@@ -19,14 +19,18 @@ function PathField(props: PathFieldProps) {
   return (
     <div className={clsx(styles.field, compact && styles.compact)}>
       {compact ? null : <span className={styles.label}>{label}</span>}
-      <Space.Compact className={styles.row}>
+      <div className={styles.row}>
         <Input
+          className={styles.input}
+          size="middle"
           value={value}
           placeholder={compact ? label || placeholder : placeholder}
           readOnly
           aria-label={label}
         />
         <Button
+          className={styles.browse}
+          size="middle"
           icon={
             <Icon
               icon="ant-design:folder-open-outlined"
@@ -37,7 +41,7 @@ function PathField(props: PathFieldProps) {
           onClick={onBrowse}>
           {browseLabel}
         </Button>
-      </Space.Compact>
+      </div>
     </div>
   )
 }

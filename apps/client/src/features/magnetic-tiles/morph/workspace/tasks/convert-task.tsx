@@ -25,7 +25,6 @@ type ScaleOption = {
   label: string
   detail: string
   hint: string
-  icon: string
   tone: 'draft' | 'standard' | 'hd' | 'uhd' | 'print'
   level: 1 | 2 | 3 | 4 | 5
 }
@@ -67,7 +66,6 @@ const SCALE_OPTIONS: ScaleOption[] = [
     label: '草稿',
     detail: '72 DPI',
     hint: '预览够用',
-    icon: 'mdi:quality-low',
     tone: 'draft',
     level: 1
   },
@@ -76,7 +74,6 @@ const SCALE_OPTIONS: ScaleOption[] = [
     label: '标准',
     detail: '144 DPI',
     hint: '日常分享',
-    icon: 'mdi:quality-medium',
     tone: 'standard',
     level: 2
   },
@@ -85,7 +82,6 @@ const SCALE_OPTIONS: ScaleOption[] = [
     label: '高清',
     detail: '300 DPI',
     hint: '屏幕阅读',
-    icon: 'mdi:quality-high',
     tone: 'hd',
     level: 3
   },
@@ -94,7 +90,6 @@ const SCALE_OPTIONS: ScaleOption[] = [
     label: '超清',
     detail: '600 DPI',
     hint: '细节保留',
-    icon: 'mdi:image-size-select-large',
     tone: 'uhd',
     level: 4
   },
@@ -103,7 +98,6 @@ const SCALE_OPTIONS: ScaleOption[] = [
     label: '印刷',
     detail: '1200 DPI',
     hint: '输出打印',
-    icon: 'mdi:printer',
     tone: 'print',
     level: 5
   }
@@ -111,7 +105,7 @@ const SCALE_OPTIONS: ScaleOption[] = [
 
 type SampleState = {
   key: string
-  image: Morph.PageImage | null
+  image: Morph.Render | null
 }
 
 function ConvertTask() {
@@ -142,8 +136,8 @@ function ConvertTask() {
   const closeOperation = useMorphStore(function (s) {
     return s.closeOperation
   })
-  const setConvertModal = useMorphStore(function (s) {
-    return s.setConvertModal
+  const patchConvert = useMorphStore(function (s) {
+    return s.patchConvert
   })
   const executeConvert = useMorphStore(function (s) {
     return s.executeConvert
@@ -151,8 +145,8 @@ function ConvertTask() {
   const openFilePicker = useMorphStore(function (s) {
     return s.openFilePicker
   })
-  const loadThumbnails = useMorphStore(function (s) {
-    return s.loadThumbnails
+  const fetchThumbnails = useMorphStore(function (s) {
+    return s.fetchThumbnails
   })
 
   const isImage = format === 'png' || format === 'jpg'
@@ -166,7 +160,7 @@ function ConvertTask() {
     function () {
       if (!file || !previewKey) return
       let cancelled = false
-      void MorphIpc.renderPage(file.path, 0, scale)
+      void MorphIpc.toRender(file.path, 0, scale)
         .then(function (image) {
           if (!cancelled) setSample({ key: previewKey, image })
         })
@@ -182,12 +176,12 @@ function ConvertTask() {
 
   async function onSelectDir() {
     const selected = await dialogOpen({ directory: true, title: '选择输出目录' })
-    if (typeof selected === 'string') setConvertModal({ destDir: selected })
+    if (typeof selected === 'string') patchConvert({ destDir: selected })
   }
 
   const canSubmit = Boolean(destDir) && Boolean(file)
   const meta = file
-    ? `${file.path.split(/[\\/]/).pop()} · ${file.page_count} 页 · ${format.toUpperCase()}`
+    ? `${file.path.split(/[\\/]/).pop()} · ${file.count} 页 · ${format.toUpperCase()}`
     : '请先打开 PDF'
 
   return (
@@ -198,47 +192,45 @@ function ConvertTask() {
       onBack={closeOperation}
       fields={
         <>
-          <div
-            className={styles.formatPicker}
-            role="radiogroup"
-            aria-label="输出格式">
-            {FORMAT_OPTIONS.map(function (option) {
-              const isActive = format === option.value
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={isActive}
-                  data-active={isActive}
-                  data-tone={option.tone}
-                  className={styles.formatOption}
-                  onClick={function () {
-                    setConvertModal({ format: option.value })
-                  }}>
-                  <span
-                    className={styles.formatBadge}
-                    aria-hidden>
-                    <Icon
-                      icon={option.icon}
-                      width={18}
-                      height={18}
-                    />
-                  </span>
-                  <span className={styles.formatText}>
-                    <span className={styles.formatTitle}>{option.label}</span>
-                    <span className={styles.formatHint}>{option.hint}</span>
-                  </span>
-                </button>
-              )
-            })}
+          <div className={styles.optionGroup}>
+            <div
+              className={styles.formatPicker}
+              role="radiogroup"
+              aria-label="输出格式">
+              {FORMAT_OPTIONS.map(function (option) {
+                const isActive = format === option.value
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={isActive}
+                    data-active={isActive}
+                    data-tone={option.tone}
+                    className={styles.formatOption}
+                    onClick={function () {
+                      patchConvert({ format: option.value })
+                    }}>
+                    <span
+                      className={styles.formatBadge}
+                      aria-hidden>
+                      <Icon
+                        icon={option.icon}
+                        width={16}
+                        height={16}
+                      />
+                    </span>
+                    <span className={styles.formatText}>
+                      <span className={styles.formatTitle}>{option.label}</span>
+                      <span className={styles.formatHint}>{option.hint}</span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
           {isImage ? (
-            <>
-              <span
-                className={styles.fieldSep}
-                aria-hidden
-              />
+            <div className={styles.optionGroup}>
               <div
                 className={styles.qualityPicker}
                 role="radiogroup"
@@ -257,16 +249,11 @@ function ConvertTask() {
                       data-level={option.level}
                       className={styles.qualityOption}
                       onClick={function () {
-                        setConvertModal({ scale: option.value })
+                        patchConvert({ scale: option.value })
                       }}>
                       <span
                         className={styles.qualityBadge}
                         aria-hidden>
-                        <Icon
-                          icon={option.icon}
-                          width={16}
-                          height={16}
-                        />
                         <span className={styles.qualityBars}>
                           {Array.from({ length: 5 }, function (_, index) {
                             return (
@@ -287,24 +274,22 @@ function ConvertTask() {
                   )
                 })}
               </div>
-            </>
+            </div>
           ) : null}
-          <span
-            className={styles.fieldSep}
-            aria-hidden
-          />
-          <PathField
-            compact
-            label="输出目录"
-            value={destDir}
-            placeholder="选择输出目录"
-            onBrowse={function () {
-              void onSelectDir()
-            }}
-          />
         </>
       }
-      hint={error ?? (canSubmit ? undefined : '请选择输出目录')}
+      extra={
+        <PathField
+          compact
+          label="输出目录"
+          value={destDir}
+          placeholder="选择输出目录"
+          onBrowse={function () {
+            void onSelectDir()
+          }}
+        />
+      }
+      hint={error ?? undefined}
       submitLabel="开始转换"
       submitDisabled={!canSubmit}
       submitLoading={loading}
@@ -334,7 +319,7 @@ function ConvertTask() {
           {previewImage ? (
             <img
               className={styles.sampleHero}
-              src={`data:image/png;base64,${previewImage.data_base64}`}
+              src={`data:image/png;base64,${previewImage.base64}`}
               alt="转换首页预览"
             />
           ) : (
@@ -347,10 +332,10 @@ function ConvertTask() {
               {thumbnails.slice(0, 8).map(function (image) {
                 return (
                   <img
-                    key={image.page_index}
+                    key={image.offset}
                     className={styles.stripThumb}
-                    src={`data:image/png;base64,${image.data_base64}`}
-                    alt={`第 ${image.page_index + 1} 页`}
+                    src={`data:image/png;base64,${image.base64}`}
+                    alt={`第 ${image.offset + 1} 页`}
                   />
                 )
               })}
@@ -360,11 +345,11 @@ function ConvertTask() {
       ) : (
         <PageBoard
           thumbnails={thumbnails}
-          pageCount={file.page_count}
+          count={file.count}
           isLoading={!thumbnailsError && thumbnails.length === 0}
           hasError={Boolean(thumbnailsError)}
           onRetry={function () {
-            void loadThumbnails()
+            void fetchThumbnails()
           }}
         />
       )}

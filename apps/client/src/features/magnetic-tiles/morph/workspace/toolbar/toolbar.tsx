@@ -34,11 +34,11 @@ export default function Toolbar() {
   const viewMode = useMorphStore(function (s) {
     return s.viewMode
   })
-  const currentPage = useMorphStore(function (s) {
-    return s.currentPage
+  const offset = useMorphStore(function (s) {
+    return s.offset
   })
-  const pageCount = useMorphStore(function (s) {
-    return s.file?.page_count ?? 0
+  const count = useMorphStore(function (s) {
+    return s.file?.count ?? 0
   })
   const zoom = useMorphStore(function (s) {
     return s.zoom
@@ -55,14 +55,14 @@ export default function Toolbar() {
   const redoCount = useMorphStore(function (s) {
     return s.redoStack.length
   })
-  const setTool = useMorphStore(function (s) {
-    return s.setTool
+  const pickTool = useMorphStore(function (s) {
+    return s.pickTool
   })
-  const setViewMode = useMorphStore(function (s) {
-    return s.setViewMode
+  const switchView = useMorphStore(function (s) {
+    return s.switchView
   })
-  const setPage = useMorphStore(function (s) {
-    return s.setPage
+  const seekOffset = useMorphStore(function (s) {
+    return s.seekOffset
   })
   const zoomIn = useMorphStore(function (s) {
     return s.zoomIn
@@ -97,20 +97,20 @@ export default function Toolbar() {
                 height={ICON_SIZE}
               />
             }
-            disabled={currentPage === 0}
+            disabled={offset === 0}
             onClick={function () {
-              setPage(currentPage - 1)
+              seekOffset(offset - 1, { source: 'toolbar' })
             }}
           />
           <InputNumber
             size="small"
             className={styles.pageInput}
             min={1}
-            max={pageCount || 1}
-            value={currentPage + 1}
+            max={count || 1}
+            value={offset + 1}
             controls={false}
             onChange={function (v) {
-              if (typeof v === 'number') setPage(v - 1)
+              if (typeof v === 'number') seekOffset(v - 1, { source: 'toolbar' })
             }}
           />
           <Button
@@ -123,13 +123,13 @@ export default function Toolbar() {
                 height={ICON_SIZE}
               />
             }
-            disabled={currentPage >= pageCount - 1}
+            disabled={offset >= count - 1}
             onClick={function () {
-              setPage(currentPage + 1)
+              seekOffset(offset + 1, { source: 'toolbar' })
             }}
           />
         </Space.Compact>
-        <span className={styles.pageTotal}>/ {pageCount}</span>
+        <span className={styles.pageTotal}>/ {count}</span>
         <span
           className={styles.sep}
           aria-hidden
@@ -194,7 +194,7 @@ export default function Toolbar() {
                   />
                 }
                 onClick={function () {
-                  setTool(tool.key)
+                  pickTool(tool.key)
                 }}
               />
             </Tooltip>
@@ -373,7 +373,7 @@ export default function Toolbar() {
           value={viewMode}
           className={styles.modeSegment}
           onChange={function (v) {
-            setViewMode(v as Morph.ViewMode)
+            switchView(v as Morph.ViewMode)
           }}
           options={[
             { label: '浏览', value: 'view' },

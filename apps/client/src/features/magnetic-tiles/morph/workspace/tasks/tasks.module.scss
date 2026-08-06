@@ -134,14 +134,11 @@
   line-height: 1.45;
 }
 
-.formatGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.formatCard {
-  @include t.format-card;
+.optionGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .formatPicker {
@@ -149,6 +146,7 @@
   align-items: stretch;
   gap: 6px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .formatOption {
@@ -156,18 +154,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 92px;
-  min-height: 44px;
-  padding: 5px 10px 5px 5px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 4px 10px 4px 4px;
   border-radius: t.$radius-control;
   border: 1px solid var(--ith-color-border-secondary);
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--format-tone, var(--ith-color-primary)) 8%, transparent),
-      transparent 62%
-    ),
-    var(--ith-color-bg-container);
+  background: var(--ith-color-bg-container);
   color: var(--ith-color-text);
   cursor: pointer;
   text-align: left;
@@ -193,21 +185,14 @@
   }
 
   &:hover {
-    border-color: color-mix(in srgb, var(--format-tone) 55%, var(--ith-color-border));
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--format-tone) 14%, transparent);
+    border-color: color-mix(in srgb, var(--format-tone) 45%, var(--ith-color-border));
+    background: color-mix(in srgb, var(--format-tone) 6%, var(--ith-color-bg-container));
   }
 
   &[data-active='true'] {
     border-color: var(--format-tone);
-    box-shadow:
-      inset 0 0 0 1px var(--format-tone),
-      0 2px 10px color-mix(in srgb, var(--format-tone) 18%, transparent);
-    background:
-      linear-gradient(
-        145deg,
-        color-mix(in srgb, var(--format-tone) 14%, transparent),
-        color-mix(in srgb, var(--format-tone) 4%, var(--ith-color-bg-container))
-      );
+    box-shadow: inset 0 0 0 1px var(--format-tone);
+    background: color-mix(in srgb, var(--format-tone) 10%, var(--ith-color-bg-container));
   }
 
   @include t.focus-ring;
@@ -218,21 +203,15 @@
 }
 
 .formatBadge {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: t.$radius-control;
   color: #fff;
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--format-tone) 92%, #fff),
-      var(--format-tone)
-    );
-  box-shadow: 0 2px 6px color-mix(in srgb, var(--format-tone) 35%, transparent);
+  background: var(--format-tone);
 }
 
 .formatText {
@@ -240,6 +219,7 @@
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  padding-right: 2px;
 }
 
 .formatTitle {
@@ -255,20 +235,10 @@
   line-height: 1.3;
   color: var(--ith-color-text-tertiary);
 
-  .formatCard:hover &,
-  .formatCard[data-active='true'] &,
   .formatOption:hover &,
   .formatOption[data-active='true'] & {
-    color: color-mix(in srgb, var(--format-tone, var(--ith-color-primary)) 75%, var(--ith-color-text));
+    color: color-mix(in srgb, var(--format-tone, var(--ith-color-primary)) 70%, var(--ith-color-text));
   }
-}
-
-.fieldSep {
-  width: 1px;
-  height: 28px;
-  flex-shrink: 0;
-  background: var(--ith-color-border-secondary);
-  align-self: center;
 }
 
 .qualityPicker {
@@ -276,6 +246,7 @@
   align-items: stretch;
   gap: 6px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .qualityOption {
@@ -283,18 +254,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 88px;
-  min-height: 44px;
-  padding: 5px 10px 5px 5px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 4px 10px 4px 4px;
   border-radius: t.$radius-control;
   border: 1px solid var(--ith-color-border-secondary);
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--quality-tone, var(--ith-color-primary)) 8%, transparent),
-      transparent 62%
-    ),
-    var(--ith-color-bg-container);
+  background: var(--ith-color-bg-container);
   color: var(--ith-color-text);
   cursor: pointer;
   text-align: left;
@@ -324,21 +289,14 @@
   }
 
   &:hover {
-    border-color: color-mix(in srgb, var(--quality-tone) 55%, var(--ith-color-border));
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--quality-tone) 14%, transparent);
+    border-color: color-mix(in srgb, var(--quality-tone) 45%, var(--ith-color-border));
+    background: color-mix(in srgb, var(--quality-tone) 6%, var(--ith-color-bg-container));
   }
 
   &[data-active='true'] {
     border-color: var(--quality-tone);
-    box-shadow:
-      inset 0 0 0 1px var(--quality-tone),
-      0 2px 10px color-mix(in srgb, var(--quality-tone) 18%, transparent);
-    background:
-      linear-gradient(
-        145deg,
-        color-mix(in srgb, var(--quality-tone) 14%, transparent),
-        color-mix(in srgb, var(--quality-tone) 4%, var(--ith-color-bg-container))
-      );
+    box-shadow: inset 0 0 0 1px var(--quality-tone);
+    background: color-mix(in srgb, var(--quality-tone) 10%, var(--ith-color-bg-container));
   }
 
   @include t.focus-ring;
@@ -349,56 +307,47 @@
 }
 
 .qualityBadge {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  border-radius: 8px;
-  color: #fff;
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--quality-tone) 92%, #fff),
-      var(--quality-tone)
-    );
-  box-shadow: 0 2px 6px color-mix(in srgb, var(--quality-tone) 35%, transparent);
+  border-radius: t.$radius-control;
+  background: var(--quality-tone);
 }
 
 .qualityBars {
   display: flex;
   align-items: flex-end;
-  gap: 1px;
-  height: 6px;
+  gap: 2px;
+  height: 12px;
 }
 
 .qualityBar {
-  width: 2px;
+  width: 3px;
   border-radius: 1px;
   background: rgb(255 255 255 / 35%);
   transition: background-color t.$transition;
 
   &:nth-child(1) {
-    height: 2px;
-  }
-
-  &:nth-child(2) {
-    height: 3px;
-  }
-
-  &:nth-child(3) {
     height: 4px;
   }
 
+  &:nth-child(2) {
+    height: 6px;
+  }
+
+  &:nth-child(3) {
+    height: 8px;
+  }
+
   &:nth-child(4) {
-    height: 5px;
+    height: 10px;
   }
 
   &:nth-child(5) {
-    height: 6px;
+    height: 12px;
   }
 
   &[data-on='true'] {
@@ -411,6 +360,7 @@
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  padding-right: 2px;
 }
 
 .qualityLabel {
@@ -428,7 +378,7 @@
 
   .qualityOption:hover &,
   .qualityOption[data-active='true'] & {
-    color: color-mix(in srgb, var(--quality-tone) 75%, var(--ith-color-text));
+    color: color-mix(in srgb, var(--quality-tone) 70%, var(--ith-color-text));
   }
 }
 

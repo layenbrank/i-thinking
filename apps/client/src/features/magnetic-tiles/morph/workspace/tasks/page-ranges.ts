@@ -1,9 +1,9 @@
 /**
- * Page-range helpers for split preview (1-based human ranges ↔ 0-based indexes).
+ * Page-range helpers for split preview (1-based human ranges ↔ 0-based offsets).
  */
 
-function parseRangesToIndexes(rangesText: string, pageCount: number): number[] {
-  const indexes: number[] = []
+function parseRangesToOffsets(rangesText: string, count: number): number[] {
+  const offsets: number[] = []
   const parts = rangesText
     .split(/[,;\n]+/)
     .map(function (part) {
@@ -19,20 +19,20 @@ function parseRangesToIndexes(rangesText: string, pageCount: number): number[] {
     const end = bits[1] ?? start
     if (!Number.isFinite(start) || !Number.isFinite(end)) continue
     const from = Math.max(1, Math.min(start, end))
-    const to = Math.min(pageCount, Math.max(start, end))
-    for (let page = from; page <= to; page += 1) {
-      indexes.push(page - 1)
+    const to = Math.min(count, Math.max(start, end))
+    for (let n = from; n <= to; n += 1) {
+      offsets.push(n - 1)
     }
   }
 
-  return [...new Set(indexes)].sort(function (a, b) {
+  return [...new Set(offsets)].sort(function (a, b) {
     return a - b
   })
 }
 
-function buildRangesFromIndexes(indexes: number[]): string {
-  if (!indexes.length) return ''
-  const sorted = [...new Set(indexes)].sort(function (a, b) {
+function buildRangesFromOffsets(offsets: number[]): string {
+  if (!offsets.length) return ''
+  const sorted = [...new Set(offsets)].sort(function (a, b) {
     return a - b
   })
   const ranges: string[] = []
@@ -53,11 +53,11 @@ function buildRangesFromIndexes(indexes: number[]): string {
   return ranges.join(', ')
 }
 
-function toggleIndex(indexes: ReadonlySet<number>, pageIndex: number): Set<number> {
-  const next = new Set(indexes)
-  if (next.has(pageIndex)) next.delete(pageIndex)
-  else next.add(pageIndex)
+function toggleOffset(offsets: ReadonlySet<number>, offset: number): Set<number> {
+  const next = new Set(offsets)
+  if (next.has(offset)) next.delete(offset)
+  else next.add(offset)
   return next
 }
 
-export { parseRangesToIndexes, buildRangesFromIndexes, toggleIndex }
+export { parseRangesToOffsets, buildRangesFromOffsets, toggleOffset }

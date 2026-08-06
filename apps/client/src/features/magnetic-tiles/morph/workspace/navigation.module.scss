@@ -19,27 +19,43 @@
 
 .tabSegment {
   width: 100%;
+  @include t.chrome-segmented;
+  background: var(--ith-color-fill-quaternary) !important;
 
   :global(.ant-segmented-item) {
+    flex: 1;
+    min-width: 0;
     outline: none;
 
     &:focus,
     &:focus-visible {
       outline: none;
     }
+
+    &:hover:not(.ant-segmented-item-selected) {
+      color: var(--ith-color-text);
+    }
   }
 
   :global(.ant-segmented-item-selected) {
-    color: var(--ith-color-primary);
+    color: var(--ith-color-text);
+
+    .segBadge {
+      opacity: 1;
+    }
+
+    .segText {
+      color: var(--ith-color-text);
+      font-weight: 600;
+    }
   }
 
   :global(.ant-segmented-item-label) {
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
-    min-height: 24px;
+    width: 100%;
     line-height: 1;
-    padding-inline: 8px !important;
   }
 }
 
@@ -47,9 +63,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 13px;
   line-height: 1;
+  min-width: 0;
 
   :global(svg) {
     display: block;
@@ -59,78 +76,151 @@
   }
 }
 
+.segBadge {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: #fff;
+  flex-shrink: 0;
+  opacity: 0.72;
+  transition: opacity t.$transition;
+
+  &[data-tone='file'] {
+    background: #2563eb;
+  }
+
+  &[data-tone='page'] {
+    background: #7c3aed;
+  }
+}
+
+.segText {
+  color: var(--ith-color-text-secondary);
+  white-space: nowrap;
+  transition:
+    color t.$transition,
+    font-weight t.$transition;
+}
+
 .tabContent {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 10px 8px 12px;
+  padding: 12px 10px 16px;
 }
 
 .workspaceSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .workspaceHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2px 2px;
+  gap: 8px;
+  padding: 0 2px;
+  min-height: 32px;
+  margin-bottom: 4px;
 }
 
 .workspaceLabel {
   @include t.section-label;
+  line-height: 1;
 }
 
 .addBtn {
-  width: 24px !important;
-  height: 24px !important;
-  min-width: 24px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
   padding: 0 !important;
+  margin: 0 !important;
   border-radius: t.$radius-control !important;
+  border: 1px dashed var(--ith-color-border) !important;
+  background: var(--ith-color-bg-container) !important;
   color: var(--ith-color-text-secondary) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none !important;
   transition:
     color t.$transition,
-    background t.$transition;
+    background t.$transition,
+    border-color t.$transition,
+    border-style t.$transition;
+
+  :global(.ant-btn-icon) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    margin-inline-end: 0 !important;
+  }
 
   &:hover {
     color: var(--ith-color-primary) !important;
+    border-color: var(--ith-color-primary) !important;
+    border-style: solid !important;
     background: var(--ith-color-primary-bg) !important;
+  }
+
+  &:active {
+    color: var(--ith-color-primary) !important;
+    background: color-mix(
+      in srgb,
+      var(--ith-color-primary-bg) 82%,
+      var(--ith-color-primary)
+    ) !important;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ith-color-primary);
+    outline-offset: 1px;
   }
 }
 
 .emptyCta {
   @include t.empty-cta;
   width: 100%;
-  min-height: 72px;
-  padding: 12px;
+  min-height: 88px;
+  padding: 16px 12px;
+  gap: 8px;
+}
+
+.emptyCtaIcon {
+  color: #ea580c;
+  flex-shrink: 0;
 }
 
 .fileList {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
 }
 
 .fileItem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 8px 8px 10px;
+  gap: 10px;
+  padding: 10px 12px;
   border-radius: t.$radius-control;
   cursor: pointer;
-  border: 1px solid transparent;
-  border-left: 2px solid transparent;
+  border: 1px solid var(--ith-color-border-secondary);
   background: var(--ith-color-bg-container);
   outline: none;
   transition:
     background t.$transition,
-    border-color t.$transition;
+    border-color t.$transition,
+    box-shadow t.$transition;
 
   &:hover {
-    background: var(--ith-color-fill-tertiary);
+    background: color-mix(in srgb, var(--ith-color-bg-container) 88%, var(--ith-color-fill-secondary));
+    border-color: var(--ith-color-border);
 
     .fileItemClose {
       opacity: 1;
@@ -141,34 +231,47 @@
 }
 
 .fileItemActive {
-  background: var(--ith-color-primary-bg);
-  border-color: transparent;
-  border-left-color: var(--ith-color-primary);
-  color: var(--ith-color-primary);
-
-  .fileItemIcon {
-    color: var(--ith-color-primary);
-  }
+  background: var(--ith-color-bg-container);
+  border-color: var(--ith-color-primary);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ith-color-primary) 22%, transparent),
+    0 1px 3px rgba(0, 0, 0, 0.04);
 
   .fileItemName {
-    color: var(--ith-color-primary);
+    color: var(--ith-color-text);
     font-weight: 600;
   }
 
   .fileItemMeta {
-    color: var(--ith-color-primary);
-    opacity: 0.72;
+    color: var(--ith-color-text-secondary);
+  }
+
+  .fileItemBadge {
+    box-shadow: 0 1px 2px color-mix(in srgb, #b91c1c 28%, transparent);
   }
 
   &:hover {
-    background: var(--ith-color-primary-bg-hover, var(--ith-color-primary-bg));
+    background: var(--ith-color-bg-container);
+    border-color: var(--ith-color-primary);
   }
 }
 
-.fileItemIcon {
-  font-size: 14px;
-  color: var(--ith-color-text-secondary);
+.fileItemBadge {
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: #fff;
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, #f43f5e 88%, #fff) 0%,
+      #e11d48 55%,
+      #be123c 100%
+    );
 }
 
 .fileItemBody {
@@ -180,27 +283,29 @@
 }
 
 .fileItemName {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--ith-color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .fileItemMeta {
   font-size: 11px;
   color: var(--ith-color-text-tertiary);
-  line-height: 1.3;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
 }
 
 .fileItemClose {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border: none;
   background: transparent;
-  border-radius: t.$radius-logo;
+  border-radius: t.$radius-control;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -208,14 +313,14 @@
   opacity: 0;
   transition:
     opacity t.$transition,
-    background t.$transition;
+    background t.$transition,
+    color t.$transition;
   color: var(--ith-color-text-tertiary);
-  font-size: 10px;
   padding: 0;
 
   &:hover {
     background: var(--ith-color-fill-secondary);
-    color: var(--ith-color-text-secondary);
+    color: var(--ith-color-text);
   }
 
   @include t.focus-ring;
@@ -224,26 +329,46 @@
 .thumbnailList {
   display: flex;
   flex-direction: column;
-  gap: t.$panel-gap;
+  gap: 12px;
 }
 
 .pageCount {
+  @include t.section-label;
+  text-transform: none;
+  letter-spacing: 0;
   font-size: 11px;
   font-weight: 500;
-  color: var(--ith-color-text-secondary);
+  color: var(--ith-color-text-tertiary);
   text-align: right;
-  padding: 0 2px 2px;
+  padding: 0 2px;
+  margin-bottom: -2px;
 }
 
 .thumbLoading {
   display: flex;
   flex-direction: column;
-  gap: t.$panel-gap;
+  gap: 12px;
 }
 
 .skeletonThumb {
-  width: 100% !important;
-  height: 120px !important;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border-radius: t.$radius-control;
+  border: 1px solid var(--ith-color-border-secondary);
+  background: var(--ith-color-bg-container);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  :global(.ant-skeleton),
+  :global(.ant-skeleton-image) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  :global(.ant-skeleton-image) {
+    border-radius: 0;
+  }
 }
 
 .empty {

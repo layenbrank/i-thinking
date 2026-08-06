@@ -23,8 +23,8 @@ function MergeTask() {
   const closeOperation = useMorphStore(function (s) {
     return s.closeOperation
   })
-  const setMergeModal = useMorphStore(function (s) {
-    return s.setMergeModal
+  const patchMerge = useMorphStore(function (s) {
+    return s.patchMerge
   })
   const executeMerge = useMorphStore(function (s) {
     return s.executeMerge
@@ -46,8 +46,8 @@ function MergeTask() {
       void Promise.all(
         inputs.map(async function (path) {
           try {
-            const page = await MorphIpc.renderPage(path, 0, 0.5)
-            return [path, page.data_base64] as const
+            const page = await MorphIpc.toRender(path, 0, 0.5)
+            return [path, page.base64] as const
           } catch {
             return [path, ''] as const
           }
@@ -75,7 +75,7 @@ function MergeTask() {
     })
     if (!selected) return
     const paths = Array.isArray(selected) ? selected : [selected]
-    setMergeModal({
+    patchMerge({
       inputs: [
         ...inputs,
         ...paths.filter(function (path) {
@@ -90,18 +90,18 @@ function MergeTask() {
       title: '选择合并输出路径',
       filters: [{ name: 'PDF', extensions: ['pdf'] }]
     })
-    if (typeof selected === 'string') setMergeModal({ output: selected })
+    if (typeof selected === 'string') patchMerge({ output: selected })
   }
 
   function onReorder(from: number, to: number) {
     const next = inputs.slice()
     const [item] = next.splice(from, 1)
     next.splice(to, 0, item)
-    setMergeModal({ inputs: next })
+    patchMerge({ inputs: next })
   }
 
   function onRemove(index: number) {
-    setMergeModal({
+    patchMerge({
       inputs: inputs.filter(function (_path, i) {
         return i !== index
       })
@@ -120,7 +120,7 @@ function MergeTask() {
       icon="ant-design:compress-outlined"
       meta={meta}
       onBack={closeOperation}
-      fields={
+      extra={
         <PathField
           compact
           label="输出文件"

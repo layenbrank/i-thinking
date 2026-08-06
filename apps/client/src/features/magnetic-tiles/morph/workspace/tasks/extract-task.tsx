@@ -2,7 +2,7 @@ import { save as dialogSave } from '@tauri-apps/plugin-dialog'
 import { Alert, Button } from 'antd'
 import { useEffect, useMemo } from 'react'
 
-import { toggleIndex } from '@/features/magnetic-tiles/morph/workspace/tasks/page-ranges'
+import { toggleOffset } from '@/features/magnetic-tiles/morph/workspace/tasks/page-ranges'
 import { PathField } from '@/features/magnetic-tiles/morph/workspace/tasks/path-field'
 import { OperationStage } from '@/features/magnetic-tiles/morph/workspace/tasks/stage/operation-stage'
 import { PageBoard } from '@/features/magnetic-tiles/morph/workspace/tasks/stage/page-board'
@@ -34,8 +34,8 @@ function ExtractTask() {
   const closeOperation = useMorphStore(function (s) {
     return s.closeOperation
   })
-  const setExtractModal = useMorphStore(function (s) {
-    return s.setExtractModal
+  const patchExtract = useMorphStore(function (s) {
+    return s.patchExtract
   })
   const executeExtract = useMorphStore(function (s) {
     return s.executeExtract
@@ -43,19 +43,19 @@ function ExtractTask() {
   const openFilePicker = useMorphStore(function (s) {
     return s.openFilePicker
   })
-  const loadThumbnails = useMorphStore(function (s) {
-    return s.loadThumbnails
+  const fetchThumbnails = useMorphStore(function (s) {
+    return s.fetchThumbnails
   })
 
   useEffect(
     function () {
       if (!file?.path) return
-      if (!thumbnails.length && !thumbnailsError) void loadThumbnails()
+      if (!thumbnails.length && !thumbnailsError) void fetchThumbnails()
     },
-    [file, thumbnails.length, thumbnailsError, loadThumbnails]
+    [file, thumbnails.length, thumbnailsError, fetchThumbnails]
   )
 
-  const selectedPages = useMemo(
+  const selectedOffsets = useMemo(
     function () {
       return new Set(selected)
     },
@@ -67,12 +67,12 @@ function ExtractTask() {
       title: '选择抽取输出路径',
       filters: [{ name: 'PDF', extensions: ['pdf'] }]
     })
-    if (typeof selectedPath === 'string') setExtractModal({ dest: selectedPath })
+    if (typeof selectedPath === 'string') patchExtract({ dest: selectedPath })
   }
 
-  function onPageClick(pageIndex: number) {
-    const next = toggleIndex(selectedPages, pageIndex)
-    setExtractModal({
+  function onOffsetClick(offset: number) {
+    const next = toggleOffset(selectedOffsets, offset)
+    patchExtract({
       selected: [...next].sort(function (a, b) {
         return a - b
       })
@@ -96,13 +96,13 @@ function ExtractTask() {
             size="small"
             type="text"
             onClick={function () {
-              setExtractModal({ selected: [] })
+              patchExtract({ selected: [] })
             }}>
             清空选中
           </Button>
         ) : null
       }
-      fields={
+      extra={
         <PathField
           compact
           label="输出文件"
@@ -141,14 +141,14 @@ function ExtractTask() {
       ) : (
         <PageBoard
           thumbnails={thumbnails}
-          pageCount={file.page_count}
-          selectedPages={selectedPages}
+          count={file.count}
+          selectedOffsets={selectedOffsets}
           isLoading={!thumbnailsError && thumbnails.length === 0}
           hasError={Boolean(thumbnailsError)}
           onRetry={function () {
-            void loadThumbnails()
+            void fetchThumbnails()
           }}
-          onPageClick={onPageClick}
+          onOffsetClick={onOffsetClick}
         />
       )}
     </OperationStage>

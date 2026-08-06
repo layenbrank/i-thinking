@@ -4,26 +4,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 6px 6px;
+  gap: 8px;
+  padding: 0;
+  border: none;
   border-radius: t.$radius-control;
   cursor: pointer;
-  border: 2px solid transparent;
+  background: transparent;
   outline: none;
-  transition:
-    border-color t.$transition,
-    background t.$transition;
+  transition: opacity t.$transition;
 
   &:hover {
-    background: var(--ith-color-fill-tertiary);
+    .imageWrap {
+      border-color: var(--ith-color-border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .pageNum {
+      color: var(--ith-color-text);
+    }
   }
 
   &.active {
-    border-color: var(--ith-color-primary);
-    background: var(--ith-color-primary-bg);
-
     .imageWrap {
-      border-color: var(--ith-color-primary-border, var(--ith-color-primary));
-      box-shadow: none;
+      border-color: var(--ith-color-primary);
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--ith-color-primary) 22%, transparent),
+        0 2px 10px color-mix(in srgb, var(--ith-color-primary) 14%, transparent);
     }
 
     .pageNum {
@@ -38,25 +44,34 @@
 .imageWrap {
   position: relative;
   width: 100%;
+  aspect-ratio: 9 / 16;
   background: var(--ith-color-bg-container);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--ith-color-border-secondary);
-  border-radius: 2px;
+  border-radius: t.$radius-control;
   overflow: hidden;
   line-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color t.$transition,
+    box-shadow t.$transition;
 }
 
 .img {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
   display: block;
   user-select: none;
 }
 
 .badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 6px;
+  right: 6px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
@@ -70,21 +85,25 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 .meta {
-  margin-top: 6px;
   display: flex;
   align-items: center;
   gap: 6px;
   width: 100%;
   justify-content: center;
+  padding-inline: 4px;
 }
 
 .pageNum {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--ith-color-text-secondary);
+  transition:
+    color t.$transition,
+    font-weight t.$transition;
 }
 
 .pageLabel {

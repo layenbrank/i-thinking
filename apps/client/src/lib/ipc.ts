@@ -18,9 +18,8 @@ async function ipcInvoke(module: string, args: unknown, action?: string): Promis
 }
 
 function parseData<T>(resp: IpcResponse): T {
-  if (!resp.ok) {
-    throw new Error(resp.error ?? `IPC ${resp.id} failed`)
-  }
+  if (!resp.ok) throw new Error(resp.error ?? `IPC ${resp.id} failed`)
+
   if (resp.data === undefined || resp.data === null) {
     throw new Error('IPC 响应缺少 data')
   }
@@ -28,12 +27,10 @@ function parseData<T>(resp: IpcResponse): T {
 }
 
 function parsePath(resp: IpcResponse): string {
-  if (!resp.ok) {
-    throw new Error(resp.error ?? `IPC ${resp.id} failed`)
-  }
-  if (!resp.path) {
-    throw new Error('IPC 响应缺少 path')
-  }
+  if (!resp.ok) throw new Error(resp.error ?? `IPC ${resp.id} failed`)
+
+  if (!resp.path) throw new Error('IPC 响应缺少 path')
+
   return resp.path
 }
 

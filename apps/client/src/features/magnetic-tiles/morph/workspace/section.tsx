@@ -20,8 +20,8 @@ function Section() {
   const pane = activeOperation ?? 'canvas'
   const offset = isReducedMotion ? 0 : OFFSET
   const transition = {
-    duration: isReducedMotion ? 0 : 0.2,
-    ease: EASE
+    ease: EASE,
+    duration: isReducedMotion ? 0 : 0.2
   }
 
   return (
@@ -34,9 +34,18 @@ function Section() {
           <motion.div
             key={pane}
             className={styles.pane}
-            initial={{ opacity: isReducedMotion ? 1 : 0, y: offset }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: isReducedMotion ? 1 : 0, y: -offset * 0.5 }}
+            initial={{
+              opacity: isReducedMotion ? 1 : 0,
+              y: offset
+            }}
+            animate={{
+              opacity: 1,
+              y: 0
+            }}
+            exit={{
+              opacity: isReducedMotion ? 1 : 0,
+              y: -offset * 0.5
+            }}
             transition={transition}>
             {pane === 'canvas' ? <Canvas /> : <TaskWorkbench />}
           </motion.div>

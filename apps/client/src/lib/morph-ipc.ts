@@ -1,54 +1,58 @@
 /**
  * Morph（PDF）领域 IPC
- * action 为 CLI 子命令（kebab-case），与 engine-ipc 一致
+ * action 与 Args 变体 kebab 对齐；args / data 与 schema 字段一致
  */
 import { ipcInvoke, parseData, parsePath } from '@/lib/ipc'
 
-async function meta(path: string): Promise<Morph.PdfMeta> {
+type SplitByRanges = {
+  ranges: string[]
+  limit?: never
+}
+
+type SplitByLimit = {
+  limit: number
+  ranges?: never
+}
+
+type SplitOptions = SplitByRanges | SplitByLimit
+
+async function toMeta(path: string): Promise<Morph.Meta> {
   const resp = await ipcInvoke('morph', { path }, 'meta')
-  return parseData<Morph.PdfMeta>(resp)
+  return parseData<Morph.Meta>(resp)
 }
 
-async function renderPage(
-  path: string,
-  page_index: number,
-  scale: number
-): Promise<Morph.PageImage> {
-  const resp = await ipcInvoke('morph', { path, page_index, scale }, 'render-page')
-  return parseData<Morph.PageImage>(resp)
+async function toRender(path: string, offset: number, scale: number): Promise<Morph.Render> {
+  const resp = await ipcInvoke('morph', { path, offset, scale }, 'render')
+  return parseData<Morph.Render>(resp)
 }
 
-async function renderThumbnails(path: string, scale: number): Promise<Morph.PageImage[]> {
-  const resp = await ipcInvoke('morph', { path, scale }, 'render-thumbnails')
-  return parseData<Morph.PageImage[]>(resp)
+async function toThumbnails(path: string, scale: number): Promise<Morph.Render[]> {
+  const resp = await ipcInvoke('morph', { path, scale }, 'thumbnails')
+  return parseData<Morph.Render[]>(resp)
 }
 
-async function search(path: string, query: string): Promise<Morph.SearchMatch[]> {
-  const resp = await ipcInvoke('morph', { path, query }, 'search')
-  return parseData<Morph.SearchMatch[]>(resp)
+async function toMatch(path: string, query: string): Promise<Morph.Hit[]> {
+  const resp = await ipcInvoke('morph', { path, query }, 'match')
+  return parseData<Morph.Hit[]>(resp)
 }
 
-async function exportPdf(src: string, dest: string): Promise<string> {
+async function toExport(src: string, dest: string): Promise<string> {
   const resp = await ipcInvoke('morph', { src, dest }, 'export')
   return parsePath(resp)
 }
 
-async function merge(paths: string[], dest: string): Promise<string> {
+async function toMerge(paths: string[], dest: string): Promise<string> {
   const resp = await ipcInvoke('morph', { paths, dest }, 'merge')
   return parsePath(resp)
 }
 
-async function split(path: string, ranges: string[], dest_dir: string): Promise<string[]> {
-  const resp = await ipcInvoke('morph', { path, ranges, dest_dir }, 'split')
-  return parseData<string[]>(resp)
-}
-
-async function splitByCount(
-  path: string,
-  pages_per_file: number,
-  dest_dir: string
-): Promise<string[]> {
-  const resp = await ipcInvoke('morph', { path, pages_per_file, dest_dir }, 'split-by-count')
+/** ranges 与 limit 二选一，统一走 action `split` */
+async function toSplit(path: string, dir: string, options: SplitOptions): Promise<string[]> {
+  const args =
+    'limit' in options && options.limit !== undefined
+      ? { path, limit: options.limit, dir }
+      : { path, ranges: options.ranges, dir }
+  const resp = await ipcInvoke('morph', args, 'split')
   return parseData<string[]>(resp)
 }
 
@@ -56,61 +60,56 @@ async function toImages(
   path: string,
   scale: number,
   format: string,
-  dest_dir: string
+  dir: string
 ): Promise<string[]> {
-  const resp = await ipcInvoke('morph', { path, scale, format, dest_dir }, 'to-images')
+  const resp = await ipcInvoke('morph', { path, scale, format, dir }, 'images')
   return parseData<string[]>(resp)
 }
 
-async function toOffice(path: string, format: string, dest_dir: string): Promise<string> {
-  const resp = await ipcInvoke('morph', { path, format, dest_dir }, 'to-office')
+async function toDocument(path: string, format: string, dir: string): Promise<string> {
+  const resp = await ipcInvoke('morph', { path, format, dir }, 'document')
   return parsePath(resp)
 }
 
-/** 0-based page order after reorder. */
-async function reorderPages(path: string, order: number[], dest: string): Promise<string> {
-  const resp = await ipcInvoke('morph', { path, order, dest }, 'reorder-pages')
+async function toReorder(path: string, order: number[], dest: string): Promise<string> {
+  const resp = await ipcInvoke('morph', { path, order, dest }, 'reorder')
   return parsePath(resp)
 }
 
-/** Rotate selected 0-based pages by degrees (90 / 180 / 270). */
-async function rotatePages(
+async function toRotate(
   path: string,
-  pages: number[],
+  offsets: number[],
   degrees: number,
   dest: string
 ): Promise<string> {
-  const resp = await ipcInvoke('morph', { path, pages, degrees, dest }, 'rotate-pages')
+  const resp = await ipcInvoke('morph', { path, offsets, degrees, dest }, 'rotate')
   return parsePath(resp)
 }
 
-/** Delete selected 0-based pages; writes to dest. */
-async function deletePages(path: string, pages: number[], dest: string): Promise<string> {
-  const resp = await ipcInvoke('morph', { path, pages, dest }, 'delete-pages')
+async function toRemove(path: string, offsets: number[], dest: string): Promise<string> {
+  const resp = await ipcInvoke('morph', { path, offsets, dest }, 'remove')
   return parsePath(resp)
 }
 
-/** Extract selected 0-based pages into a new PDF. */
-async function extractPages(path: string, pages: number[], dest: string): Promise<string> {
-  const resp = await ipcInvoke('morph', { path, pages, dest }, 'extract-pages')
+async function toExtract(path: string, offsets: number[], dest: string): Promise<string> {
+  const resp = await ipcInvoke('morph', { path, offsets, dest }, 'extract')
   return parsePath(resp)
 }
 
 const MorphIpc = {
-  meta,
-  renderPage,
-  renderThumbnails,
-  search,
-  export: exportPdf,
-  merge,
-  split,
-  splitByCount,
+  toMeta,
+  toRender,
+  toThumbnails,
+  toMatch,
+  toExport,
+  toMerge,
+  toSplit,
   toImages,
-  toOffice,
-  reorderPages,
-  rotatePages,
-  deletePages,
-  extractPages
+  toDocument,
+  toReorder,
+  toRotate,
+  toRemove,
+  toExtract
 }
 
 export { MorphIpc }

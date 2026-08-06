@@ -1,9 +1,13 @@
 @use '../../styles/tokens.scss' as t;
 
+$bar-h: 32px;
+
 .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  width: 100%;
 }
 
 .label {
@@ -12,19 +16,71 @@
   letter-spacing: 0;
   font-size: 12px;
   font-weight: 500;
-  color: var(--ith-color-text);
+  color: var(--ith-color-text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .row {
   display: flex;
   width: 100%;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+
+  &:global(.ant-input) {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+  }
+}
+
+.browse {
+  flex-shrink: 0;
+  margin-inline-start: -1px;
+  z-index: 1;
+
+  &:global(.ant-btn) {
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  :global(.ant-btn-icon) {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+  }
 }
 
 .compact {
-  flex: 1;
-  min-width: 200px;
-  max-width: 420px;
   flex-direction: row;
   align-items: center;
   gap: 0;
+  width: 100%;
+  max-width: none;
+
+  .row {
+    flex: 1;
+    min-width: 0;
+    height: $bar-h;
+  }
+
+  .input:global(.ant-input) {
+    height: $bar-h;
+    line-height: calc(#{$bar-h} - 2px);
+    padding-block: 0;
+  }
+
+  .browse:global(.ant-btn) {
+    height: $bar-h;
+    min-height: $bar-h;
+    padding-inline: 12px;
+  }
 }

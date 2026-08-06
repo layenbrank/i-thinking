@@ -1,34 +1,47 @@
 @use '@/features/magnetic-tiles/morph/styles/tokens.scss' as t;
 
+$bar-h: 32px;
+
 .footer {
-  min-height: t.$op-footer-h;
   flex-shrink: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 10px 16px;
+  flex-direction: column;
+  gap: 0;
   border-top: 1px solid var(--ith-color-border-secondary);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--ith-color-bg-container) 92%, var(--ith-color-primary-bg)),
-      var(--ith-color-bg-container)
-    );
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
-  flex-wrap: wrap;
+  background: var(--ith-color-bg-container);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.03);
 }
 
-.fields {
-  flex: 1 1 360px;
-  min-width: 0;
+.stacked {
+  min-height: auto;
+}
+
+.settings {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--ith-color-border-secondary);
+  background: color-mix(in srgb, var(--ith-color-bg-layout) 55%, var(--ith-color-bg-container));
+}
+
+.actionBar {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  min-height: 48px;
+  padding: 8px 16px;
 }
 
-.actions {
+.actionLead {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.actionTrail {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -38,12 +51,29 @@
 
 .hint {
   font-size: 12px;
-  line-height: 1.4;
+  line-height: $bar-h;
   color: var(--ith-color-text-tertiary);
-  max-width: min(360px, 40vw);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  max-width: min(220px, 24vw);
+  white-space: nowrap;
   overflow: hidden;
-  white-space: normal;
+  text-overflow: ellipsis;
+}
+
+.submit {
+  height: $bar-h !important;
+  min-height: $bar-h !important;
+  min-width: 112px;
+  padding-inline: 16px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  :global(.ant-btn-icon) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    margin-inline-end: 0 !important;
+  }
 }
