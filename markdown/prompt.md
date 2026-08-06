@@ -24,3 +24,7 @@ HTML 结构保持简洁，避免无用嵌套。每一层容器都要有明确作
 2. 需要时按主题分批提交。
 3. client 版本升级使用 `bump:client`，以触发 client tag release 发布。
 4. 版本升级，以触发 tag release 发布。
+
+```
+充分利用图标和图片装饰
+```
