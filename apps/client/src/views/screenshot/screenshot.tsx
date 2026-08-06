@@ -181,7 +181,7 @@ export default function Screenshot(props: ScreenshotProps = {}) {
       }
       img.src = URLBackground
     }
-    load()
+    void load()
     return function () {
       cancelled = true
     }
@@ -372,9 +372,9 @@ export default function Screenshot(props: ScreenshotProps = {}) {
       if (!current) return
       onUpdateColor(current.color)
       onUpdateThickness(current.thickness ?? 2)
-      if (current.opacity != null) onUpdateOpacity(current.opacity)
-      if (current.filled != null) onUpdateFilled(current.filled)
-      if (current.fontSize != null) onUpdateFontSize(current.fontSize)
+      if ((current.opacity !== null && current.opacity !== undefined)) onUpdateOpacity(current.opacity)
+      if ((current.filled !== null && current.filled !== undefined)) onUpdateFilled(current.filled)
+      if ((current.fontSize !== null && current.fontSize !== undefined)) onUpdateFontSize(current.fontSize)
     },
     [selectedID]
   )

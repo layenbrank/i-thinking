@@ -171,7 +171,7 @@ function Overlay(props: OverlayProps) {
 
   const shouldDestroyOnHidden = cache === 'destroy' ? true : (destroyOnHidden ?? false)
   const hasCaption = caption !== false
-  const hasControls = controls != null
+  const hasControls = (controls !== null && controls !== undefined)
   const isFluid = mode === 'fluid'
   const styleSlots = stylesProp
 
@@ -209,7 +209,7 @@ function Overlay(props: OverlayProps) {
 
   // 尺寸由 .framed / .fluid / .fullscreen 管；仅透传 style，fluid 可覆盖 height
   const overlayStyle: CSSProperties =
-    !fullscreen && height != null ? { ...styleProp, height } : { ...styleProp }
+    !fullscreen && (height !== null && height !== undefined) ? { ...styleProp, height } : { ...styleProp }
 
   return (
     <Modal

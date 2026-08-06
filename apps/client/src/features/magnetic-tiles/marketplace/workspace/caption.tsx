@@ -147,7 +147,7 @@ function Caption() {
               onChange={function (value) {
                 onUpdateSearchDraft('')
                 onUpdateQuery('')
-                onUpdateMode(value as MarketplaceMode)
+                onUpdateMode(value)
               }}
             />
             {mode !== 'customize' ? (

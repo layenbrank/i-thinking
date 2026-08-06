@@ -119,7 +119,7 @@ function findFocusable(items: ParsedMenuItem[]): ParsedMenuItem[] {
 }
 
 function hasChildren(item: ParsedMenuItem) {
-  if (item.content != null) return true
+  if ((item.content !== null && item.content !== undefined)) return true
   return Boolean(item.children && item.children.length > 0)
 }
 

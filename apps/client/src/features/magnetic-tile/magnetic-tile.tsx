@@ -151,7 +151,7 @@ const MagneticTile = {
         const el = nodeRef.current
         if (!el) return
 
-        const root = el.closest('[data-mirror-scroller]') as HTMLElement | null
+        const root = el.closest('[data-mirror-scroller]')
         const observer = new IntersectionObserver(
           function (entries) {
             for (const entry of entries) {

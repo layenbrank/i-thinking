@@ -101,7 +101,7 @@ export function cacheInterceptor(
   return next(request).pipe(
     tap((event) => {
       cacheService.toClean() // 顺便清理一下过期缓存
-      event instanceof HttpResponse && cacheService.toWrite(request, event)
+      if (event instanceof HttpResponse) cacheService.toWrite(request, event)
     })
   )
 }

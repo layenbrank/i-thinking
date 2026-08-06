@@ -25,14 +25,14 @@ export function mergeComponents(...parts: ThemeComponent[]): ThemeComponent {
       const bucket =
         current && typeof current === 'object' && typeof next === 'object'
           ? {
-              ...(current as Record<string, unknown>),
-              ...(next as Record<string, unknown>)
+              ...(current),
+              ...(next)
             }
           : next
       merged = {
         ...merged,
         [key]: bucket
-      } as ThemeComponent
+      }
     }
   }
   return merged

@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import dayjs from 'dayjs'
+import type dayjs from 'dayjs'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useRef } from 'react'
 

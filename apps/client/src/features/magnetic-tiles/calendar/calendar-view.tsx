@@ -106,7 +106,7 @@ function CalendarView(props: CalendarViewProps = {}) {
     function () {
       return reminders.filter(function (reminder) {
         return (
-          reminder.dueAt != null &&
+          (reminder.dueAt !== null && reminder.dueAt !== undefined) &&
           reminder.dueAt >= dayRange.from &&
           reminder.dueAt < dayRange.to
         )
@@ -122,7 +122,7 @@ function CalendarView(props: CalendarViewProps = {}) {
         marks.add(timeSphere.format(new Date(event.startAt), 'YYYY-MM-DD'))
       }
       for (const reminder of reminders) {
-        if (reminder.dueAt == null) continue
+        if ((reminder.dueAt === null || reminder.dueAt === undefined)) continue
         marks.add(timeSphere.format(new Date(reminder.dueAt), 'YYYY-MM-DD'))
       }
       return marks

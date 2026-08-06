@@ -37,11 +37,11 @@ export function parseRecipePatch(input: ThemeComponent): ThemeComponent {
     if (!component || typeof component !== 'object') {
       continue
     }
-    const value = (component as Record<string, unknown>)[field.token]
+    const value = (component)[field.token]
     if (value === undefined) {
       continue
     }
-    patches.push({ [field.component]: { [field.token]: value } } as ThemeComponent)
+    patches.push({ [field.component]: { [field.token]: value } })
   }
   return mergeComponents(...patches)
 }
@@ -51,7 +51,7 @@ export function parseAppearance(raw: string): Appearance {
   const file = AppearanceFileSchema.parse(parsed)
   return {
     ...file.appearance,
-    components: parseRecipePatch(file.appearance.components as ThemeComponent)
+    components: parseRecipePatch(file.appearance.components)
   }
 }
 

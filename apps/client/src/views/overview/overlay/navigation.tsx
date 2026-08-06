@@ -48,23 +48,25 @@ export default function Navigation() {
     })
   }
 
-  const onSelect: TreeProps['onSelect'] = async function (keys, info) {
-    console.log('Trigger Select', keys, info)
-    const [key] = keys
-    if (!info.node.isLeaf) return
-    if (typeof key !== 'string') return
-    if (key === rootKey) return
-    const documentPath = await documentDir()
-    const repath = await resolve('.', documentPath, key)
-    console.log('Selected path:', repath)
-    const fragment = await readTextFile(repath)
-    // const fragment = await readFile(repath)
-    // console.log('File content fragment:', fragment)
-    // // buffer to string
-    // const decoder = new TextDecoder('utf-8')
-    // const content = decoder.decode(fragment)
-    // console.log('File content:', content)
-    // props.onUpdateFragment?.(fragment)
+  const onSelect: TreeProps['onSelect'] = function (keys, info) {
+    void (async function () {
+      console.log('Trigger Select', keys, info)
+      const [key] = keys
+      if (!info.node.isLeaf) return
+      if (typeof key !== 'string') return
+      if (key === rootKey) return
+      const documentPath = await documentDir()
+      const repath = await resolve('.', documentPath, key)
+      console.log('Selected path:', repath)
+      const fragment = await readTextFile(repath)
+      // const fragment = await readFile(repath)
+      // console.log('File content fragment:', fragment)
+      // // buffer to string
+      // const decoder = new TextDecoder('utf-8')
+      // const content = decoder.decode(fragment)
+      // console.log('File content:', content)
+      // props.onUpdateFragment?.(fragment)
+    })()
   }
 
   const onExpand: TreeProps['onExpand'] = function (keys, info) {

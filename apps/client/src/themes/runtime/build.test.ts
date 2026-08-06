@@ -53,7 +53,9 @@ describe('buildTheme', function () {
   it('applies modal content padding from recipes', function () {
     expect(RECIPES.Modal?.contentPadding).toBe('12px 16px')
     const config = buildTheme({ ...APPEARANCE_PRESET, theme: 'light' })
-    const modal = config.components?.Modal as Record<string, unknown> | undefined
+    const modal = config.components?.Modal as
+      | { contentPadding?: string }
+      | undefined
     expect(modal?.contentPadding).toBe('12px 16px')
   })
 

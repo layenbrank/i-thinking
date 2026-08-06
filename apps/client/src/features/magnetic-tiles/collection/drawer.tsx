@@ -74,7 +74,7 @@ function OverlayDrawer(props: OverlayDrawerProps) {
       //   collectionID: props.id
       // } )
 
-      invoke('magnetic-tile:update', {
+      void invoke('magnetic-tile:update', {
         params: { key: ID, change: { collectionID: props.id } }
       })
 

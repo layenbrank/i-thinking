@@ -23,7 +23,7 @@ function Bucket<T extends string>(props: BucketProps<T>) {
         orientation="vertical"
         rootClassName={styles.segmented}
         onChange={function (next) {
-          props.onUpdate(next as T)
+          props.onUpdate(next)
         }}
       />
     </div>

@@ -111,9 +111,9 @@ export default function Utility(props: UtilityProps) {
 
   // 属性面板开合：仅在选中工具后展开（不再独立使用 visible state）
   const visible = active !== null
-  const showFilled = active != null && FILLABLE_GRAPHICS.has(active)
-  const showFontSize = active != null && FONTSIZE_GRAPHICS.has(active)
-  const showOpacity = active != null && !NON_OPACITY_GRAPHICS.has(active)
+  const showFilled = (active !== null && active !== undefined) && FILLABLE_GRAPHICS.has(active)
+  const showFontSize = (active !== null && active !== undefined) && FONTSIZE_GRAPHICS.has(active)
+  const showOpacity = (active !== null && active !== undefined) && !NON_OPACITY_GRAPHICS.has(active)
   const [pickerOpen, setPickerOpen] = useState(false)
   const isCustomColor = !COLORS.some((c) => c.toUpperCase() === color.toUpperCase())
 

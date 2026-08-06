@@ -368,7 +368,7 @@ function Marker(props: Props) {
       const reminderItems: AgendaItem[] = reminders
         .filter(function (reminder) {
           return (
-            reminder.dueAt != null &&
+            (reminder.dueAt !== null && reminder.dueAt !== undefined) &&
             reminder.dueAt >= range.from &&
             reminder.dueAt < range.to
           )
@@ -380,7 +380,7 @@ function Marker(props: Props) {
             title: reminder.title,
             timeLabel: formatTimeLabel(reminder.dueAt ?? 0, reminder.entireDay),
             sortAt: reminder.dueAt ?? 0,
-            isCompleted: reminder.archivedAt != null
+            isCompleted: (reminder.archivedAt !== null && reminder.archivedAt !== undefined)
           }
         })
       return [...eventItems, ...reminderItems].sort(function (a, b) {

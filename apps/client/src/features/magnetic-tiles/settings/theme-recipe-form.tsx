@@ -24,7 +24,7 @@ function findRecipeDefault(component: ThemeComponentKey, token: string): unknown
   if (!bucket || typeof bucket !== 'object') {
     return undefined
   }
-  return (bucket as Record<string, unknown>)[token]
+  return (bucket)[token]
 }
 
 function readFieldValue(components: ThemeComponent, field: RecipeField): unknown {
@@ -32,7 +32,7 @@ function readFieldValue(components: ThemeComponent, field: RecipeField): unknown
   if (!bucket || typeof bucket !== 'object') {
     return undefined
   }
-  return (bucket as Record<string, unknown>)[field.token]
+  return (bucket)[field.token]
 }
 
 function patchField(
@@ -45,16 +45,16 @@ function patchField(
     if (!bucket || typeof bucket !== 'object') {
       return components
     }
-    const rest = { ...(bucket as Record<string, unknown>) }
+    const rest = { ...(bucket) }
     delete rest[field.token]
     if (Object.keys(rest).length === 0) {
       const next = { ...components }
       delete next[field.component]
       return next
     }
-    return mergeComponents(components, { [field.component]: rest } as ThemeComponent)
+    return mergeComponents(components, { [field.component]: rest })
   }
-  return mergeComponents(components, { [field.component]: { [field.token]: value } } as ThemeComponent)
+  return mergeComponents(components, { [field.component]: { [field.token]: value } })
 }
 
 function renderFieldControl(

@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import Konva from 'konva'
+import type Konva from 'konva'
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { Layer, Image as ReImage, Stage, Transformer, type KonvaNodeEvents } from 'react-konva'
 import useImage from 'use-image'

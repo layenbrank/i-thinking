@@ -127,7 +127,7 @@ function AppearancePanel() {
               options={APPEARANCE_MODE_OPTIONS}
               value={appearance.theme}
               onChange={function (value) {
-                mergeAppearance({ theme: value as ThemeMode })
+                mergeAppearance({ theme: value })
               }}
             />
           </div>
@@ -185,7 +185,7 @@ function AppearancePanel() {
               options={APPEARANCE_VARIANT_OPTIONS}
               value={appearance.variant as ProviderVariant}
               onChange={function (value) {
-                mergeAppearance({ variant: value as ProviderVariant })
+                mergeAppearance({ variant: value })
               }}
             />
           </div>

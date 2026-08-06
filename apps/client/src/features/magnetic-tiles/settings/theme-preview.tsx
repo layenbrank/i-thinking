@@ -17,7 +17,7 @@ export default function ThemePreview(props: ThemePreviewProps) {
         {
           '--preview-radius': `${props.appearance.radius}px`,
           '--preview-font-size': `${props.appearance.fontSize}px`
-        } as CSSProperties
+        }
       }>
       <div className={styles.previewInner}>
         <Space wrap>

@@ -633,7 +633,9 @@ export default function Overlay(props: OverlayControlProps) {
             creation={{
               label: '开启新对话',
               align: 'start',
-              onClick: handleInsertSession,
+              onClick: function () {
+                void handleInsertSession()
+              },
               icon: <AppstoreAddOutlined />
             }}
             activeKey={session$.value?.id}
@@ -644,7 +646,7 @@ export default function Overlay(props: OverlayControlProps) {
               {
                 '--background-color': token.colorBgContainer,
                 '--radius': `${token.borderRadius}px`
-              } as CSSProperties
+              }
             }
             groupable={groupable}
             className={clsx(styles.section, styles.conversations)}

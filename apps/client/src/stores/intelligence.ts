@@ -144,7 +144,7 @@ const sessionSlice: SliceCreator<SessionSlice> = function (setters, getters) {
       const updates: UpdateSession[] = former.map(function (m) {
         const update = updatesMap.get(m.id)!
         return {
-          key: m.id as string,
+          key: m.id,
           changes: {
             ...m,
             ...update
@@ -308,7 +308,7 @@ const messageSlice: SliceCreator<MessageSlice> = function (setters, getters) {
       const updates: UpdateMessage[] = former.map(function (m) {
         const update = updatesMap.get(m.id)!
         return {
-          key: m.id as string,
+          key: m.id,
           changes: {
             ...m,
             ...update

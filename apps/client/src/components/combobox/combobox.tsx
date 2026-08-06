@@ -40,11 +40,11 @@ function Provider(props: ComboboxProps) {
 
   const setRef = useCallback(
     function (node: HTMLDivElement | null) {
-      ;(ResizableRef as React.RefObject<HTMLDivElement | null>).current = node
+      ;(ResizableRef).current = node
       if (typeof props.ref === 'function') {
         props.ref(node)
       } else if (props.ref) {
-        ;(props.ref as React.RefObject<HTMLDivElement | null>).current = node
+        ;(props.ref).current = node
       }
     },
     [ResizableRef, props.ref]

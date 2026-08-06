@@ -30,20 +30,14 @@ type SortableSession = {
  * Sortable 在 closest(draggable) 未命中时仍会调用 filter，此时 target 为 null
  *（例如点在 grid gap / padding）。统一在此判定，避免散落 null 检查。
  */
-function isDragBlocked(
-  target: HTMLElement | null | undefined,
-  isDisabled?: () => boolean
-) {
+function isDragBlocked(target: HTMLElement | null | undefined, isDisabled?: () => boolean) {
   if (isDisabled?.()) return true
   if (!target) return true
   if (target.closest('.magnetic-tile-skeleton')) return true
-  return target.closest('[data-overlay-open="true"]') != null
+  return target.closest('[data-overlay-open="true"]') !== null
 }
 
-function bindSortable(
-  container: HTMLElement,
-  options: SortableOptions = {}
-): SortableSession {
+function bindSortable(container: HTMLElement, options: SortableOptions = {}): SortableSession {
   let isDragging = false
 
   const sortable = Sortable.create(container, {
@@ -66,7 +60,7 @@ function bindSortable(
     onStart(evt) {
       isDragging = true
       evt.item.classList.add('dragging')
-      const dragEl = document.querySelector('.magnetic-tile-drag') as HTMLElement | null
+      const dragEl = document.querySelector('.magnetic-tile-drag')
       if (dragEl) dragEl.classList.add('dragging')
       options.onDragStart?.()
     },
@@ -74,7 +68,7 @@ function bindSortable(
       const wasDragging = isDragging
       isDragging = false
       evt.item.classList.remove('dragging')
-      const dragEl = document.querySelector('.magnetic-tile-drag') as HTMLElement | null
+      const dragEl = document.querySelector<HTMLElement>('.magnetic-tile-drag')
       if (dragEl) dragEl.classList.remove('dragging')
       clearGhost(dragEl)
 
@@ -82,7 +76,7 @@ function bindSortable(
       const to = evt.newIndex
 
       // 先采序、还原 DOM、乐观落库，最后 resume，避免入场/滚动连刷
-      if (from != null && to != null && from !== to) {
+      if (from !== null && from !== undefined && to !== null && to !== undefined && from !== to) {
         const ids = sortable.toArray()
         const parent = evt.from
         const item = evt.item

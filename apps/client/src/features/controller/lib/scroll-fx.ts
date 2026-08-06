@@ -39,7 +39,7 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function findSurface(tile: HTMLElement): HTMLElement {
-  return (tile.querySelector(SURFACE_SELECTOR) as HTMLElement | null) ?? tile
+  return (tile.querySelector(SURFACE_SELECTOR)) ?? tile
 }
 
 /** 拖拽 ghost：只杀残留 gsap，不 clearProps（避免抹掉 Motion surface） */

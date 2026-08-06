@@ -272,7 +272,7 @@ function Surface(props: SurfaceProps) {
       if (!current || !hasChildren(current)) return
       event.preventDefault()
       props.onpathChange([...props.keyPath, current.key])
-      if (current.content != null) {
+      if ((current.content !== null && current.content !== undefined)) {
         props.onUpdateActive(current.key)
         return
       }
@@ -318,7 +318,7 @@ function Surface(props: SurfaceProps) {
   }
 
   const itemsNode =
-    props.content != null ? (
+    (props.content !== null && props.content !== undefined) ? (
       props.content
     ) : (
       <MenuItems
@@ -363,7 +363,7 @@ function Surface(props: SurfaceProps) {
       </Motion.div>
 
       <AnimatePresence>
-        {expanded && childAnchor && (expanded.content != null || expanded.children) ? (
+        {expanded && childAnchor && ((expanded.content !== null && expanded.content !== undefined) || expanded.children) ? (
           <Surface
             key={expanded.key}
             items={expanded.children ?? []}

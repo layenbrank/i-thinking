@@ -118,7 +118,7 @@ export default function Magnifier({ sourceImage, visible }: MagnifierProps) {
           colorFormat === 'hex'
             ? rgbToHex(rgb[0], rgb[1], rgb[2])
             : `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`
-        navigator.clipboard.writeText(text).then(() => {
+        void navigator.clipboard.writeText(text).then(() => {
           setCopied(true)
           setTimeout(() => setCopied(false), 1500)
         })

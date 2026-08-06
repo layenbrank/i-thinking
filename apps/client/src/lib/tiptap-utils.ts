@@ -268,9 +268,9 @@ export function findNodePosition(props: {
 
   // If we have a valid position, use findNodeAtPosition
   if (hasValidPos) {
-    const nodeAtPos = findNodeAtPosition(editor, nodePos!)
+    const nodeAtPos = findNodeAtPosition(editor, nodePos)
     if (nodeAtPos) {
-      return { pos: nodePos!, node: nodeAtPos }
+      return { pos: nodePos, node: nodeAtPos }
     }
   }
 

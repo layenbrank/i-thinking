@@ -45,7 +45,7 @@ function buildTimeOnDate(base: Dayjs, fireTime: string) {
 }
 
 function findNextFire(reminder: ReminderLike, now: Dayjs): Dayjs | null {
-  if (!reminder.enabled || reminder.archivedAt != null) return null
+  if (!reminder.enabled || (reminder.archivedAt !== null && reminder.archivedAt !== undefined)) return null
   if (!reminder.fireTime) return null
 
   if (reminder.snoozeUntil) {
@@ -94,7 +94,7 @@ function findTodayEnabledCount(reminders: ReminderLike[], now: Dayjs) {
   const iso = findDayOfWeekISO(now)
   let count = 0
   for (const reminder of reminders) {
-    if (!reminder.enabled || reminder.archivedAt != null || !reminder.fireTime) continue
+    if (!reminder.enabled || (reminder.archivedAt !== null && reminder.archivedAt !== undefined) || !reminder.fireTime) continue
     const weekDays = parseWeekDays(reminder.weekDays)
     if (weekDays.length === 0 || weekDays.includes(iso)) {
       count += 1
@@ -105,7 +105,7 @@ function findTodayEnabledCount(reminders: ReminderLike[], now: Dayjs) {
 
 function findEnabledCount(reminders: ReminderLike[]) {
   return reminders.filter(function (r) {
-    return r.enabled && r.archivedAt == null && r.fireTime
+    return r.enabled && (r.archivedAt === null || r.archivedAt === undefined) && r.fireTime
   }).length
 }
 
@@ -124,7 +124,7 @@ function formatWeekDays(weekDays: string) {
 
 function findClockReminders<T extends ReminderLike>(reminders: T[]) {
   return reminders.filter(function (r): r is T & { fireTime: string } {
-    return r.fireTime != null && r.archivedAt == null
+    return (r.fireTime !== null && r.fireTime !== undefined) && (r.archivedAt === null || r.archivedAt === undefined)
   })
 }
 

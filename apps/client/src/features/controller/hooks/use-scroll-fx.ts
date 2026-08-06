@@ -12,7 +12,7 @@ type ScrollFxControls = {
 }
 
 function findScroller(grid: HTMLElement): HTMLElement {
-  return (grid.closest('[data-mirror-scroller]') as HTMLElement | null) ?? grid
+  return (grid.closest('[data-mirror-scroller]')) ?? grid
 }
 
 /**

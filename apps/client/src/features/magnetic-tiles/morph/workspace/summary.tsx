@@ -55,7 +55,7 @@ function PropertiesTab() {
             precision={3}
             value={rect.x}
             onChange={(v) =>
-              v != null && void updateAnnotation(selected.id, { rect: { ...rect, x: v } })
+              v !== null && void updateAnnotation(selected.id, { rect: { ...rect, x: v } })
             }
           />
         </Form.Item>
@@ -67,7 +67,7 @@ function PropertiesTab() {
             precision={3}
             value={rect.y}
             onChange={(v) =>
-              v != null && void updateAnnotation(selected.id, { rect: { ...rect, y: v } })
+              v !== null && void updateAnnotation(selected.id, { rect: { ...rect, y: v } })
             }
           />
         </Form.Item>
@@ -79,7 +79,7 @@ function PropertiesTab() {
             precision={3}
             value={rect.w}
             onChange={(v) =>
-              v != null && void updateAnnotation(selected.id, { rect: { ...rect, w: v } })
+              v !== null && void updateAnnotation(selected.id, { rect: { ...rect, w: v } })
             }
           />
         </Form.Item>
@@ -91,7 +91,7 @@ function PropertiesTab() {
             precision={3}
             value={rect.h}
             onChange={(v) =>
-              v != null && void updateAnnotation(selected.id, { rect: { ...rect, h: v } })
+              v !== null && void updateAnnotation(selected.id, { rect: { ...rect, h: v } })
             }
           />
         </Form.Item>
@@ -127,11 +127,11 @@ function PropertiesTab() {
                 max={1}
                 step={0.1}
                 precision={1}
-                value={(data as Morph.HighlightData).opacity}
+                value={data.opacity}
                 onChange={(v) =>
-                  v != null &&
+                  v !== null &&
                   void updateAnnotation(selected.id, {
-                    data: { ...(data as Morph.HighlightData), opacity: v }
+                    data: { ...data, opacity: v }
                   })
                 }
               />

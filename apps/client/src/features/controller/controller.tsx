@@ -6,11 +6,7 @@ import { useKeyModifier } from '@reactuses/core'
 import { ContextMenu } from '@/components/contextmenu'
 import { useScrollFx } from '@/features/controller/hooks/use-scroll-fx'
 import { resetMirrorScroll } from '@/features/controller/lib/scroll-fx'
-import {
-  bindSortable,
-  reorder,
-  type SortableSession
-} from '@/features/controller/lib/sortable'
+import { bindSortable, reorder, type SortableSession } from '@/features/controller/lib/sortable'
 import { registerMirrorSwitch } from '@/features/controller/mirror-switch'
 import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
@@ -50,7 +46,7 @@ const Controller = {
     useEffect(
       function () {
         if (!activeId) return
-        if (viewIdRef.current == null) {
+        if (viewIdRef.current === null || viewIdRef.current === undefined) {
           setViewId(activeId)
         }
       },
@@ -96,7 +92,7 @@ const Controller = {
           return
         }
 
-        const scroller = pane.closest('[data-mirror-scroller]') as HTMLElement | null
+        const scroller = pane.closest<HTMLElement>('[data-mirror-scroller]')
         resetMirrorScroll(scroller)
 
         void transitionRef.current.playEnter(pane, directionRef.current, scrimRef.current)
@@ -106,7 +102,9 @@ const Controller = {
 
     return (
       <div className={clsx(styles.controller, styles.mirror)}>
-        <div data-mirror-scroller className={styles.scroller}>
+        <div
+          data-mirror-scroller
+          className={styles.scroller}>
           <div
             ref={paneRef}
             key={viewId ?? 'empty'}
@@ -115,7 +113,11 @@ const Controller = {
             {props.children}
           </div>
         </div>
-        <div ref={scrimRef} className={styles.scrim} aria-hidden />
+        <div
+          ref={scrimRef}
+          className={styles.scrim}
+          aria-hidden
+        />
       </div>
     )
   },

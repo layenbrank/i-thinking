@@ -79,7 +79,7 @@ function DayAgenda(props: DayAgendaProps) {
         kind: 'reminder',
         title: reminder.title,
         notes: reminder.notes,
-        isCompleted: reminder.archivedAt != null,
+        isCompleted: (reminder.archivedAt !== null && reminder.archivedAt !== undefined),
         timeLabel: formatTimeLabel(reminder.dueAt ?? 0, reminder.entireDay)
       }
     })

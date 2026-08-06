@@ -152,7 +152,7 @@ function FilteredImage(props: {
     function () {
       const node = ref.current
       if (!node || box.width <= 0 || box.height <= 0) return
-      if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current)
+      if ((rafIdRef.current !== null && rafIdRef.current !== undefined)) cancelAnimationFrame(rafIdRef.current)
       rafIdRef.current = requestAnimationFrame(function () {
         rafIdRef.current = null
         node.clearCache()
@@ -160,7 +160,7 @@ function FilteredImage(props: {
         node.getLayer()?.batchDraw()
       })
       return function () {
-        if (rafIdRef.current != null) {
+        if ((rafIdRef.current !== null && rafIdRef.current !== undefined)) {
           cancelAnimationFrame(rafIdRef.current)
           rafIdRef.current = null
         }
@@ -458,10 +458,10 @@ export default function Graphics(props: GraphicsProps & InteractiveProps) {
     const next: GraphicsProps = { ...graphicsProps, points: nextPoints }
     // 描边粗细 / 字号随缩放等比放大，保持视觉一致
     const avg = (Math.abs(sx) + Math.abs(sy)) / 2
-    if (graphicsProps.thickness != null && (sx !== 1 || sy !== 1)) {
+    if ((graphicsProps.thickness !== null && graphicsProps.thickness !== undefined) && (sx !== 1 || sy !== 1)) {
       next.thickness = Math.max(1, graphicsProps.thickness * avg)
     }
-    if (graphicsProps.fontSize != null && (sx !== 1 || sy !== 1)) {
+    if ((graphicsProps.fontSize !== null && graphicsProps.fontSize !== undefined) && (sx !== 1 || sy !== 1)) {
       next.fontSize = Math.max(8, graphicsProps.fontSize * avg)
     }
     onChange?.(next)

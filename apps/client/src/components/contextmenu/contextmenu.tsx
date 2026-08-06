@@ -162,7 +162,7 @@ function MenuLayer(props: MenuLayerProps) {
 
 function Root(props: ContextMenuProps) {
   const isControlled = props.visible !== undefined
-  const isDelegate = props.trigger != null
+  const isDelegate = (props.trigger !== null && props.trigger !== undefined)
   const [innerVisible, setInnerVisible] = useState(false)
   const [layer, setLayer] = useState<LayerState | null>(null)
   const [session, setSession] = useState(0)
