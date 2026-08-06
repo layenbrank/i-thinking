@@ -1,0 +1,215 @@
+import { Icon } from '@iconify/react/offline'
+import { Button, Empty, Skeleton } from 'antd'
+import { clsx } from 'clsx'
+import { motion, useReducedMotion } from 'motion/react'
+import type { CSSProperties, ReactNode } from 'react'
+
+import styles from '@/features/magnetic-tiles/morph/workspace/tasks/stage/page-board.module.scss'
+import { useBoardScale } from '@/features/magnetic-tiles/morph/workspace/tasks/stage/use-board-scale'
+import { CSSVAR } from '@/themes'
+
+const GROUP_PALETTE_SIZE = 6
+const THUMB_BASE = 168
+
+type PageBoardProps = {
+  thumbnails: Morph.PageImage[]
+  pageCount: number
+  selectedPages?: ReadonlySet<number>
+  /** 返回分组序号（0-based），用于拆分「固定页数」着色 */
+  resolveGroup?: (pageIndex: number) => number | null
+  /** 页卡底部标签；默认原稿页码。整理重排时传网格序号 */
+  pageLabel?: (pageIndex: number, gridIndex: number) => string
+  isLoading?: boolean
+  hasError?: boolean
+  onRetry?: () => void
+  emptyText?: string
+  onPageClick?: (pageIndex: number) => void
+  banner?: ReactNode
+  className?: string
+}
+
+function PageBoard(props: PageBoardProps) {
+  const {
+    thumbnails,
+    pageCount,
+    selectedPages,
+    resolveGroup,
+    pageLabel,
+    isLoading,
+    hasError,
+    onRetry,
+    emptyText = '请先打开 PDF',
+    onPageClick,
+    banner,
+    className
+  } = props
+  const isReducedMotion = useReducedMotion()
+  const isFewPages = pageCount > 0 && pageCount <= 3
+  const { boardScale, rootRef, resetScale } = useBoardScale()
+  const thumbMin = Math.round(THUMB_BASE * boardScale)
+  const gridStyle = {
+    '--board-thumb-min': `${thumbMin}px`
+  } as CSSProperties
+
+  function renderScaleChip() {
+    if (boardScale === 1) return null
+    return (
+      <button
+        type="button"
+        className={styles.scaleChip}
+        title="双击复位缩放"
+        onDoubleClick={resetScale}
+        onClick={resetScale}>
+        <Icon
+          icon="ant-design:zoom-in-outlined"
+          width={12}
+          height={12}
+        />
+        {Math.round(boardScale * 100)}%
+      </button>
+    )
+  }
+
+  if (!pageCount) {
+    return (
+      <div
+        ref={rootRef}
+        className={clsx(styles.board, styles.root, CSSVAR.KEY, className)}>
+        <Empty
+          description={emptyText}
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          className={styles.empty}
+        />
+      </div>
+    )
+  }
+
+  if (hasError) {
+    return (
+      <div
+        ref={rootRef}
+        className={clsx(styles.board, styles.root, CSSVAR.KEY, className)}>
+        <Empty
+          description="缩略图加载失败"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          className={styles.empty}>
+          {onRetry ? (
+            <Button
+              size="small"
+              type="primary"
+              ghost
+              icon={
+                <Icon
+                  icon="ant-design:reload-outlined"
+                  width={14}
+                  height={14}
+                />
+              }
+              onClick={onRetry}>
+              重试
+            </Button>
+          ) : null}
+        </Empty>
+      </div>
+    )
+  }
+
+  if (isLoading || thumbnails.length === 0) {
+    return (
+      <div
+        ref={rootRef}
+        className={clsx(styles.board, styles.root, CSSVAR.KEY, className)}>
+        <div
+          className={clsx(styles.grid, isFewPages && styles.gridSparse)}
+          style={gridStyle}>
+          {Array.from({ length: Math.min(pageCount, 8) }).map(function (_, i) {
+            return (
+              <Skeleton.Image
+                key={i}
+                active
+                className={styles.skeleton}
+              />
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={rootRef}
+      className={clsx(styles.board, styles.root, CSSVAR.KEY, className)}>
+      {banner ? <div className={styles.banner}>{banner}</div> : null}
+      {renderScaleChip()}
+      <div
+        className={clsx(styles.grid, isFewPages && styles.gridSparse)}
+        style={gridStyle}
+        role="list">
+        {thumbnails.map(function (image, index) {
+          const pageIndex = image.page_index
+          const isSelected = selectedPages?.has(pageIndex) ?? false
+          const group = resolveGroup?.(pageIndex) ?? null
+          const label = pageLabel
+            ? pageLabel(pageIndex, index)
+            : String(pageIndex + 1)
+          return (
+            <motion.button
+              key={`${pageIndex}-${index}`}
+              type="button"
+              role="listitem"
+              aria-pressed={selectedPages ? isSelected : undefined}
+              className={clsx(
+                styles.card,
+                isSelected && styles.cardSelected,
+                group !== null && styles.cardGrouped
+              )}
+              data-group={
+                group !== null ? String(group % GROUP_PALETTE_SIZE) : undefined
+              }
+              initial={
+                isReducedMotion ? false : { opacity: 0, scale: 0.94, y: 10 }
+              }
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{
+                duration: isReducedMotion ? 0 : 0.28,
+                delay: isReducedMotion ? 0 : Math.min(index, 12) * 0.04,
+                ease: [0.22, 1, 0.36, 1]
+              }}
+              onClick={function () {
+                onPageClick?.(pageIndex)
+              }}>
+              <div className={styles.paper}>
+                <img
+                  className={styles.img}
+                  src={`data:image/png;base64,${image.data_base64}`}
+                  alt={`第 ${pageIndex + 1} 页`}
+                  draggable={false}
+                />
+                <span className={styles.badge}>{label}</span>
+                {isSelected ? (
+                  <span
+                    className={styles.check}
+                    aria-hidden>
+                    <Icon
+                      icon="ant-design:check-outlined"
+                      width={12}
+                      height={12}
+                    />
+                  </span>
+                ) : null}
+                {group !== null ? (
+                  <span className={styles.groupBadge}>组 {group + 1}</span>
+                ) : null}
+              </div>
+            </motion.button>
+          )
+        })}
+      </div>
+      <p className={styles.hint}>Ctrl + 滚轮缩放预览</p>
+    </div>
+  )
+}
+
+export { PageBoard }
+export type { PageBoardProps }

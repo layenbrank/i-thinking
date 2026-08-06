@@ -13,17 +13,11 @@ const OFFSET = 8
 
 function Section() {
   const isReducedMotion = useReducedMotion()
-  const mergeOpen = useMorphStore(function (s) {
-    return s.mergeModal.open
-  })
-  const splitOpen = useMorphStore(function (s) {
-    return s.splitModal.open
-  })
-  const convertOpen = useMorphStore(function (s) {
-    return s.convertModal.open
+  const activeOperation = useMorphStore(function (s) {
+    return s.activeOperation
   })
 
-  const pane = mergeOpen ? 'merge' : splitOpen ? 'split' : convertOpen ? 'convert' : 'canvas'
+  const pane = activeOperation ?? 'canvas'
   const offset = isReducedMotion ? 0 : OFFSET
   const transition = {
     duration: isReducedMotion ? 0 : 0.2,

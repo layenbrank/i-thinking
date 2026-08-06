@@ -178,6 +178,34 @@ $transition: 150ms ease;
   }
 }
 
+$op-thumb-min: 168px;
+$op-footer-h: 64px;
+$op-chrome-h: 44px;
+$op-page-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 6px 16px rgba(0, 0, 0, 0.06);
+$op-page-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12), 0 12px 28px rgba(0, 0, 0, 0.08);
+
+@mixin op-page-card {
+  background: var(--ith-color-bg-container);
+  border: 1px solid var(--ith-color-border-secondary);
+  border-radius: $radius-control;
+  box-shadow: $op-page-shadow;
+  transition:
+    box-shadow $transition,
+    border-color $transition,
+    transform $transition;
+}
+
+/** 操作台工作面井：微纹理 + 渐变，增强企业级层次 */
+@mixin op-board-well {
+  background:
+    radial-gradient(
+      ellipse 80% 50% at 50% 0%,
+      color-mix(in srgb, var(--ith-color-primary-bg) 55%, transparent),
+      transparent 70%
+    ),
+    var(--ith-color-bg-layout);
+}
+
 /** Canvas task workbench panel */
 @mixin task-panel {
   display: flex;

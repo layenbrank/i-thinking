@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
+import { parseRangesToIndexes } from '@/features/magnetic-tiles/morph/workspace/tasks/page-ranges'
 import { MorphIpc } from '@/lib/morph-ipc'
 
 // import {
@@ -36,11 +37,15 @@ interface MorphState {
   activeTool: Tool
   viewMode: ViewMode
   summaryVisible: boolean
+  /** Snapshot of summaryVisible when entering an operation; restored on exit. */
+  summaryBeforeOperation: boolean | null
   isLoading: boolean
 
   // Rendered pages (cache: pageIndex → base64 data-URL)
   pageCache: Record<number, PageImage>
   thumbnails: PageImage[]
+  /** 缩略图加载失败信息；成功或换文件时清空 */
+  thumbnailsError: string | null
 
   // Annotations
   annotations: Annotation[]
@@ -57,16 +62,15 @@ interface MorphState {
   undoStack: HistoryEntry[]
   redoStack: HistoryEntry[]
 
-  // Doc operation modals
+  // Doc operations (edit-first; activeOperation drives UI, not a tools-app mode)
+  activeOperation: Morph.Operation | null
   mergeModal: {
-    open: boolean
     inputs: string[]
     output: string
     loading: boolean
     error: string | null
   }
   splitModal: {
-    open: boolean
     mode: 'ranges' | 'count'
     ranges: string
     count: number
@@ -75,10 +79,23 @@ interface MorphState {
     error: string | null
   }
   convertModal: {
-    open: boolean
     format: 'png' | 'jpg' | 'docx' | 'xlsx'
     scale: number
     destDir: string
+    loading: boolean
+    error: string | null
+  }
+  organizeModal: {
+    /** 0-based working order */
+    order: number[]
+    selected: number[]
+    dest: string
+    loading: boolean
+    error: string | null
+  }
+  extractModal: {
+    selected: number[]
+    dest: string
     loading: boolean
     error: string | null
   }
@@ -118,22 +135,31 @@ interface MorphState {
   setExportState: (patch: Partial<Morph.ExportState>) => void
   exportPdf: (destPath: string) => Promise<void>
 
-  // Doc operation modals
-  openMergeModal: () => void
-  closeMergeModal: () => void
+  openOperation: (operation: Morph.Operation) => void
+  closeOperation: () => void
   setMergeModal: (patch: Partial<MorphState['mergeModal']>) => void
   executeMerge: () => Promise<void>
-  openSplitModal: () => void
-  closeSplitModal: () => void
   setSplitModal: (patch: Partial<MorphState['splitModal']>) => void
   executeSplit: () => Promise<void>
-  openConvertModal: () => void
-  closeConvertModal: () => void
   setConvertModal: (patch: Partial<MorphState['convertModal']>) => void
   executeConvert: () => Promise<void>
+  setOrganizeModal: (patch: Partial<MorphState['organizeModal']>) => void
+  executeOrganize: (action: 'reorder' | 'rotate' | 'delete') => Promise<void>
+  setExtractModal: (patch: Partial<MorphState['extractModal']>) => void
+  executeExtract: () => Promise<void>
 
-  undo: () => void
-  redo: () => void
+  /** @deprecated use openOperation('merge') */
+  openMergeModal: () => void
+  closeMergeModal: () => void
+  /** @deprecated use openOperation('split') */
+  openSplitModal: () => void
+  closeSplitModal: () => void
+  /** @deprecated use openOperation('convert') */
+  openConvertModal: () => void
+  closeConvertModal: () => void
+
+  undo: () => Promise<void>
+  redo: () => Promise<void>
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -164,10 +190,12 @@ export const useMorphStore = create<MorphState>()(
         activeTool: 'select',
         viewMode: 'view',
         summaryVisible: true,
+        summaryBeforeOperation: null,
         isLoading: false,
 
         pageCache: {},
         thumbnails: [],
+        thumbnailsError: null,
 
         annotations: [],
         annotationCounts: {},
@@ -179,9 +207,9 @@ export const useMorphStore = create<MorphState>()(
         undoStack: [],
         redoStack: [],
 
-        mergeModal: { open: false, inputs: [], output: '', loading: false, error: null },
+        activeOperation: null,
+        mergeModal: { inputs: [], output: '', loading: false, error: null },
         splitModal: {
-          open: false,
           mode: 'ranges',
           ranges: '',
           count: 2,
@@ -190,10 +218,22 @@ export const useMorphStore = create<MorphState>()(
           error: null
         },
         convertModal: {
-          open: false,
           format: 'png',
           scale: 2.0,
           destDir: '',
+          loading: false,
+          error: null
+        },
+        organizeModal: {
+          order: [],
+          selected: [],
+          dest: '',
+          loading: false,
+          error: null
+        },
+        extractModal: {
+          selected: [],
+          dest: '',
           loading: false,
           error: null
         },
@@ -251,6 +291,7 @@ export const useMorphStore = create<MorphState>()(
               // s.annotationCounts = counts
               s.pageCache = {}
               s.thumbnails = []
+              s.thumbnailsError = null
               s.undoStack = []
               s.redoStack = []
               s.selectedAnnotationId = null
@@ -259,7 +300,7 @@ export const useMorphStore = create<MorphState>()(
 
             await getter().renderCurrentPage()
             // Load thumbnails in background
-            getter().loadThumbnails()
+            void getter().loadThumbnails()
           } finally {
             setter((s) => {
               s.isLoading = false
@@ -285,13 +326,14 @@ export const useMorphStore = create<MorphState>()(
               // s.annotationCounts = counts
               s.pageCache = {}
               s.thumbnails = []
+              s.thumbnailsError = null
               s.undoStack = []
               s.redoStack = []
               s.selectedAnnotationId = null
               s.search = { query: '', results: [], activeIndex: -1 }
             })
             await getter().renderCurrentPage()
-            getter().loadThumbnails()
+            void getter().loadThumbnails()
           } finally {
             setter((s) => {
               s.isLoading = false
@@ -316,6 +358,7 @@ export const useMorphStore = create<MorphState>()(
               s.annotationCounts = {}
               s.pageCache = {}
               s.thumbnails = []
+              s.thumbnailsError = null
               s.undoStack = []
               s.redoStack = []
               s.selectedAnnotationId = null
@@ -334,7 +377,7 @@ export const useMorphStore = create<MorphState>()(
           setter((s) => {
             s.currentPage = clamped
           })
-          getter().renderCurrentPage()
+          void getter().renderCurrentPage()
         },
 
         setZoom(zoom: number) {
@@ -343,7 +386,7 @@ export const useMorphStore = create<MorphState>()(
             s.zoom = clamped
             s.pageCache = {} // clear cache at new zoom in one set() to avoid double re-render
           })
-          getter().renderCurrentPage()
+          void getter().renderCurrentPage()
         },
 
         zoomIn() {
@@ -404,13 +447,21 @@ export const useMorphStore = create<MorphState>()(
         async loadThumbnails() {
           const { file } = getter()
           if (!file) return
+          setter((s) => {
+            s.thumbnailsError = null
+          })
           try {
             const thumbs: PageImage[] = await MorphIpc.renderThumbnails(file.path, 0.6)
             setter((s) => {
               s.thumbnails = thumbs
+              s.thumbnailsError = null
             })
           } catch (e) {
             console.error('[morph] loadThumbnails failed:', e)
+            setter((s) => {
+              s.thumbnails = []
+              s.thumbnailsError = String(e)
+            })
           }
         },
 
@@ -448,9 +499,9 @@ export const useMorphStore = create<MorphState>()(
 
         // ── annotations ───────────────────────────────────────────────
 
-        async addAnnotation(partial) {
+        addAnnotation(partial) {
           const { file } = getter()
-          if (!file) return
+          if (!file) return Promise.resolve()
 
           const now = Date.now()
           const annotation: Annotation = {
@@ -476,11 +527,12 @@ export const useMorphStore = create<MorphState>()(
             before: null,
             after: annotation
           })
+          return Promise.resolve()
         },
 
-        async updateAnnotationData(id, changes) {
+        updateAnnotationData(id, changes) {
           const before = getter().annotations.find((a) => a.id === id) ?? null
-          if (!before) return
+          if (!before) return Promise.resolve()
 
           // await updateAnnotation(id, changes)
 
@@ -489,7 +541,7 @@ export const useMorphStore = create<MorphState>()(
             const idx = s.annotations.findIndex((a) => a.id === id)
             if (idx >= 0) {
               if (changes.rect) s.annotations[idx].rect = changes.rect
-              if (changes.data) s.annotations[idx].data = changes.data as Annotation['data']
+              if (changes.data) s.annotations[idx].data = changes.data
               s.annotations[idx].updatedAt = now
             }
           })
@@ -501,11 +553,12 @@ export const useMorphStore = create<MorphState>()(
             before,
             after: { ...before, ...changes, updatedAt: now }
           })
+          return Promise.resolve()
         },
 
-        async removeAnnotationById(id) {
+        removeAnnotationById(id) {
           const before = getter().annotations.find((a) => a.id === id) ?? null
-          if (!before) return
+          if (!before) return Promise.resolve()
 
           // await removeAnnotation(id)
 
@@ -524,6 +577,7 @@ export const useMorphStore = create<MorphState>()(
             before,
             after: null
           })
+          return Promise.resolve()
         },
 
         selectAnnotation(id) {
@@ -546,23 +600,72 @@ export const useMorphStore = create<MorphState>()(
           await MorphIpc.export(file.path, destPath)
         },
 
-        // ── doc operation modals ─────────────────────────────────────
+        // ── doc operations ───────────────────────────────────────────
 
-        openMergeModal() {
-          const { fileList } = getter()
+        openOperation(operation) {
+          const { fileList, file, summaryVisible, summaryBeforeOperation } = getter()
+          const pageCount = file?.page_count ?? 0
+          const order = Array.from({ length: pageCount }, function (_, i) {
+            return i
+          })
+
           setter((s) => {
-            s.mergeModal.open = true
-            s.mergeModal.inputs = fileList.map((f) => f.path)
-            s.mergeModal.output = ''
-            s.mergeModal.error = null
-            s.splitModal.open = false
-            s.convertModal.open = false
+            if (summaryBeforeOperation === null) {
+              s.summaryBeforeOperation = summaryVisible
+            }
+            s.summaryVisible = false
+            s.activeOperation = operation
+            if (operation === 'merge') {
+              s.mergeModal.inputs = fileList.map(function (f) {
+                return f.path
+              })
+              s.mergeModal.output = ''
+              s.mergeModal.error = null
+            } else if (operation === 'split') {
+              s.splitModal.ranges = ''
+              s.splitModal.count = 2
+              s.splitModal.error = null
+            } else if (operation === 'convert') {
+              s.convertModal.error = null
+            } else if (operation === 'organize') {
+              s.organizeModal.order = order
+              s.organizeModal.selected = []
+              s.organizeModal.dest = ''
+              s.organizeModal.error = null
+            } else if (operation === 'extract') {
+              s.extractModal.selected = []
+              s.extractModal.dest = ''
+              s.extractModal.error = null
+            }
+          })
+
+          if (
+            (operation === 'split' ||
+              operation === 'convert' ||
+              operation === 'organize' ||
+              operation === 'extract') &&
+            file &&
+            getter().thumbnails.length === 0
+          ) {
+            void getter().loadThumbnails()
+          }
+        },
+
+        closeOperation() {
+          setter((s) => {
+            s.activeOperation = null
+            if (s.summaryBeforeOperation !== null) {
+              s.summaryVisible = s.summaryBeforeOperation
+              s.summaryBeforeOperation = null
+            }
           })
         },
+
+        openMergeModal() {
+          getter().openOperation('merge')
+        },
         closeMergeModal() {
-          setter((s) => {
-            s.mergeModal.open = false
-          })
+          getter().closeOperation()
         },
         setMergeModal(patch) {
           setter((s) => {
@@ -578,9 +681,7 @@ export const useMorphStore = create<MorphState>()(
           try {
             await MorphIpc.merge(mergeModal.inputs, mergeModal.output)
             antdMessage.success(`合并完成 → ${mergeModal.output}`)
-            setter((s) => {
-              s.mergeModal.open = false
-            })
+            getter().closeOperation()
           } catch (e) {
             const msg = String(e)
             setter((s) => {
@@ -595,19 +696,10 @@ export const useMorphStore = create<MorphState>()(
         },
 
         openSplitModal() {
-          setter((s) => {
-            s.splitModal.open = true
-            s.splitModal.ranges = ''
-            s.splitModal.count = 2
-            s.splitModal.error = null
-            s.mergeModal.open = false
-            s.convertModal.open = false
-          })
+          getter().openOperation('split')
         },
         closeSplitModal() {
-          setter((s) => {
-            s.splitModal.open = false
-          })
+          getter().closeOperation()
         },
         setSplitModal(patch) {
           setter((s) => {
@@ -623,25 +715,44 @@ export const useMorphStore = create<MorphState>()(
           })
           try {
             if (splitModal.mode === 'ranges') {
-              const ranges = splitModal.ranges
-                .split(',')
-                .map((s) => s.trim())
-                .filter(Boolean)
-                .map((s) => {
-                  const [a, b] = s.split('-').map(Number)
-                  return [a, b ?? a] as [number, number]
+              const pageCount = file.page_count
+              const indexes = parseRangesToIndexes(splitModal.ranges, pageCount)
+              if (!indexes.length) {
+                throw new Error('请输入有效页码范围（不超过总页数）')
+              }
+              // 将 clamp 后的 0-based 索引还原为 1-based range 字符串再交 IPC
+              const rangeParts = splitModal.ranges
+                .split(/[,;\n]+/)
+                .map(function (part) {
+                  return part.trim()
                 })
-                .filter(([a, b]) => !isNaN(a) && !isNaN(b) && a > 0 && b > 0)
-              const rangeStrings = ranges.map(function ([a, b]) {
-                return `${a}-${b}`
-              })
+                .filter(Boolean)
+                .map(function (part) {
+                  const bits = part.split('-').map(Number)
+                  const start = bits[0]
+                  const end = bits[1] ?? start
+                  if (!Number.isFinite(start) || !Number.isFinite(end)) return null
+                  const from = Math.max(1, Math.min(start, end))
+                  const to = Math.min(pageCount, Math.max(start, end))
+                  if (from > pageCount || to < 1) return null
+                  return `${from}-${to}`
+                })
+                .filter(function (part): part is string {
+                  return part !== null
+                })
+              if (!rangeParts.length) {
+                throw new Error('请输入有效页码范围（不超过总页数）')
+              }
               const paths: string[] = await MorphIpc.split(
                 file.path,
-                rangeStrings,
+                rangeParts,
                 splitModal.destDir
               )
               antdMessage.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
             } else {
+              if (splitModal.count <= 0) {
+                throw new Error('每文件页数须大于 0')
+              }
               const paths: string[] = await MorphIpc.splitByCount(
                 file.path,
                 splitModal.count,
@@ -649,9 +760,7 @@ export const useMorphStore = create<MorphState>()(
               )
               antdMessage.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
             }
-            setter((s) => {
-              s.splitModal.open = false
-            })
+            getter().closeOperation()
           } catch (e) {
             const msg = String(e)
             setter((s) => {
@@ -666,17 +775,10 @@ export const useMorphStore = create<MorphState>()(
         },
 
         openConvertModal() {
-          setter((s) => {
-            s.convertModal.open = true
-            s.convertModal.error = null
-            s.mergeModal.open = false
-            s.splitModal.open = false
-          })
+          getter().openOperation('convert')
         },
         closeConvertModal() {
-          setter((s) => {
-            s.convertModal.open = false
-          })
+          getter().closeOperation()
         },
         setConvertModal(patch) {
           setter((s) => {
@@ -709,9 +811,7 @@ export const useMorphStore = create<MorphState>()(
               )
               antdMessage.success(`转换完成 → ${outPath}`)
             }
-            setter((s) => {
-              s.convertModal.open = false
-            })
+            getter().closeOperation()
           } catch (e) {
             const msg = String(e)
             setter((s) => {
@@ -721,6 +821,107 @@ export const useMorphStore = create<MorphState>()(
           } finally {
             setter((s) => {
               s.convertModal.loading = false
+            })
+          }
+        },
+
+        setOrganizeModal(patch) {
+          setter((s) => {
+            Object.assign(s.organizeModal, patch)
+          })
+        },
+        async executeOrganize(action) {
+          const { organizeModal, file } = getter()
+          if (!file) return
+          if (!organizeModal.dest) {
+            antdMessage.warning('请先选择输出路径')
+            return
+          }
+          setter((s) => {
+            s.organizeModal.loading = true
+            s.organizeModal.error = null
+          })
+          try {
+            let outPath = organizeModal.dest
+            if (action === 'reorder') {
+              outPath = await MorphIpc.reorderPages(
+                file.path,
+                organizeModal.order,
+                organizeModal.dest
+              )
+            } else if (action === 'rotate') {
+              if (!organizeModal.selected.length) {
+                throw new Error('请先选择要旋转的页面')
+              }
+              outPath = await MorphIpc.rotatePages(
+                file.path,
+                organizeModal.selected,
+                90,
+                organizeModal.dest
+              )
+            } else if (action === 'delete') {
+              if (!organizeModal.selected.length) {
+                throw new Error('请先选择要删除的页面')
+              }
+              outPath = await MorphIpc.deletePages(
+                file.path,
+                organizeModal.selected,
+                organizeModal.dest
+              )
+            }
+            antdMessage.success(`整理完成 → ${outPath}`)
+            getter().closeOperation()
+            await getter().openFile(outPath)
+          } catch (e) {
+            const msg = String(e)
+            setter((s) => {
+              s.organizeModal.error = msg
+            })
+            antdMessage.error(`整理失败：${msg}`)
+          } finally {
+            setter((s) => {
+              s.organizeModal.loading = false
+            })
+          }
+        },
+
+        setExtractModal(patch) {
+          setter((s) => {
+            Object.assign(s.extractModal, patch)
+          })
+        },
+        async executeExtract() {
+          const { extractModal, file } = getter()
+          if (!file) return
+          if (!extractModal.selected.length) {
+            antdMessage.warning('请先选择要抽取的页面')
+            return
+          }
+          if (!extractModal.dest) {
+            antdMessage.warning('请先选择输出路径')
+            return
+          }
+          setter((s) => {
+            s.extractModal.loading = true
+            s.extractModal.error = null
+          })
+          try {
+            const outPath = await MorphIpc.extractPages(
+              file.path,
+              extractModal.selected,
+              extractModal.dest
+            )
+            antdMessage.success(`抽取完成 → ${outPath}`)
+            getter().closeOperation()
+          } catch (e) {
+            const msg = String(e)
+            setter((s) => {
+              s.extractModal.error = msg
+            })
+            antdMessage.error(`抽取失败：${msg}`)
+          } finally {
+            setter((s) => {
+              s.extractModal.loading = false
             })
           }
         },

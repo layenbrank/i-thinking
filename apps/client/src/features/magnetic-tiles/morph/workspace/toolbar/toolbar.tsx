@@ -73,23 +73,14 @@ export default function Toolbar() {
   const fitWidth = useMorphStore(function (s) {
     return s.fitWidth
   })
-  const openMergeModal = useMorphStore(function (s) {
-    return s.openMergeModal
+  const openOperation = useMorphStore(function (s) {
+    return s.openOperation
   })
-  const openSplitModal = useMorphStore(function (s) {
-    return s.openSplitModal
+  const closeOperation = useMorphStore(function (s) {
+    return s.closeOperation
   })
-  const openConvertModal = useMorphStore(function (s) {
-    return s.openConvertModal
-  })
-  const mergeOpen = useMorphStore(function (s) {
-    return s.mergeModal.open
-  })
-  const splitOpen = useMorphStore(function (s) {
-    return s.splitModal.open
-  })
-  const convertOpen = useMorphStore(function (s) {
-    return s.convertModal.open
+  const activeOperation = useMorphStore(function (s) {
+    return s.activeOperation
   })
 
   return (
@@ -119,7 +110,7 @@ export default function Toolbar() {
             value={currentPage + 1}
             controls={false}
             onChange={function (v) {
-              if (v != null) setPage(v - 1)
+              if (typeof v === 'number') setPage(v - 1)
             }}
           />
           <Button
@@ -219,8 +210,8 @@ export default function Toolbar() {
           <Button
             type="text"
             size="small"
-            className={clsx(styles.opBtn, mergeOpen && styles.opBtnActive)}
-            aria-pressed={mergeOpen}
+            className={clsx(styles.opBtn, activeOperation === 'merge' && styles.opBtnActive)}
+            aria-pressed={activeOperation === 'merge'}
             icon={
               <Icon
                 icon="ant-design:compress-outlined"
@@ -229,18 +220,21 @@ export default function Toolbar() {
                 className={styles.opIcon}
               />
             }
-            onClick={openMergeModal}>
+            onClick={function () {
+              if (activeOperation === 'merge') closeOperation()
+              else openOperation('merge')
+            }}>
             合并
           </Button>
         </Tooltip>
         <Tooltip
-          title="按页码或书签拆分为多个文件"
+          title="按页码范围或固定页数拆分"
           placement="bottom">
           <Button
             type="text"
             size="small"
-            className={clsx(styles.opBtn, splitOpen && styles.opBtnActive)}
-            aria-pressed={splitOpen}
+            className={clsx(styles.opBtn, activeOperation === 'split' && styles.opBtnActive)}
+            aria-pressed={activeOperation === 'split'}
             icon={
               <Icon
                 icon="ant-design:scissor-outlined"
@@ -249,7 +243,10 @@ export default function Toolbar() {
                 className={styles.opIcon}
               />
             }
-            onClick={openSplitModal}>
+            onClick={function () {
+              if (activeOperation === 'split') closeOperation()
+              else openOperation('split')
+            }}>
             拆分
           </Button>
         </Tooltip>
@@ -259,8 +256,8 @@ export default function Toolbar() {
           <Button
             type="text"
             size="small"
-            className={clsx(styles.opBtn, convertOpen && styles.opBtnActive)}
-            aria-pressed={convertOpen}
+            className={clsx(styles.opBtn, activeOperation === 'convert' && styles.opBtnActive)}
+            aria-pressed={activeOperation === 'convert'}
             icon={
               <Icon
                 icon="ant-design:swap-outlined"
@@ -269,8 +266,57 @@ export default function Toolbar() {
                 className={styles.opIcon}
               />
             }
-            onClick={openConvertModal}>
+            onClick={function () {
+              if (activeOperation === 'convert') closeOperation()
+              else openOperation('convert')
+            }}>
             转换
+          </Button>
+        </Tooltip>
+        <Tooltip
+          title="重排、旋转或删除页面"
+          placement="bottom">
+          <Button
+            type="text"
+            size="small"
+            className={clsx(styles.opBtn, activeOperation === 'organize' && styles.opBtnActive)}
+            aria-pressed={activeOperation === 'organize'}
+            icon={
+              <Icon
+                icon="ant-design:appstore-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+                className={styles.opIcon}
+              />
+            }
+            onClick={function () {
+              if (activeOperation === 'organize') closeOperation()
+              else openOperation('organize')
+            }}>
+            整理
+          </Button>
+        </Tooltip>
+        <Tooltip
+          title="抽取选中页为新 PDF"
+          placement="bottom">
+          <Button
+            type="text"
+            size="small"
+            className={clsx(styles.opBtn, activeOperation === 'extract' && styles.opBtnActive)}
+            aria-pressed={activeOperation === 'extract'}
+            icon={
+              <Icon
+                icon="ant-design:export-outlined"
+                width={ICON_SIZE}
+                height={ICON_SIZE}
+                className={styles.opIcon}
+              />
+            }
+            onClick={function () {
+              if (activeOperation === 'extract') closeOperation()
+              else openOperation('extract')
+            }}>
+            抽取
           </Button>
         </Tooltip>
         <span

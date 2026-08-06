@@ -1,0 +1,220 @@
+@use '@/features/magnetic-tiles/morph/styles/tokens.scss' as t;
+
+.board {
+  &.root {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 100%;
+    @include t.op-board-well;
+  }
+}
+
+.empty {
+  @include t.empty-block;
+  margin: auto;
+}
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.scaleChip {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--ith-color-border-secondary);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ith-color-bg-container) 92%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--ith-color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  box-shadow: t.$op-page-shadow;
+  transition:
+    color t.$transition,
+    border-color t.$transition;
+
+  &:hover {
+    color: var(--ith-color-primary);
+    border-color: var(--ith-color-primary-border, var(--ith-color-primary));
+  }
+
+  @include t.focus-ring;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--board-thumb-min, #{t.$op-thumb-min}), 1fr));
+  gap: 16px;
+  align-content: start;
+  justify-items: stretch;
+  transition: gap t.$transition;
+}
+
+.gridSparse {
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(calc(var(--board-thumb-min, #{t.$op-thumb-min}) + 32px), 280px)
+  );
+  justify-content: center;
+  align-content: center;
+  flex: 1;
+  min-height: min(60vh, 520px);
+}
+
+.skeleton {
+  width: 100% !important;
+  aspect-ratio: 3 / 4;
+  border-radius: t.$radius-control;
+}
+
+.card {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  text-align: center;
+
+  @include t.focus-ring;
+}
+
+.paper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  @include t.op-page-card;
+
+  .card:hover & {
+    box-shadow: t.$op-page-shadow-hover;
+    transform: translateY(-2px);
+    border-color: var(--ith-color-primary-border, var(--ith-color-border));
+  }
+
+  .cardSelected & {
+    border-color: var(--ith-color-primary);
+    box-shadow:
+      0 0 0 2px var(--ith-color-primary),
+      t.$op-page-shadow-hover;
+  }
+}
+
+.img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text);
+  background: color-mix(in srgb, var(--ith-color-bg-container) 88%, transparent);
+  border: 1px solid var(--ith-color-border-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+  .cardSelected & {
+    color: var(--ith-color-text-light-solid);
+    background: var(--ith-color-primary);
+    border-color: var(--ith-color-primary);
+  }
+}
+
+.check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ith-color-primary);
+  color: var(--ith-color-text-light-solid);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--ith-color-primary) 40%, transparent);
+}
+
+.groupBadge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ith-color-text-light-solid);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.cardGrouped[data-group='0'] .groupBadge {
+  background: var(--ith-color-primary);
+}
+
+.cardGrouped[data-group='1'] .groupBadge {
+  background: #08979c;
+}
+
+.cardGrouped[data-group='2'] .groupBadge {
+  background: #d46b08;
+}
+
+.cardGrouped[data-group='3'] .groupBadge {
+  background: #531dab;
+}
+
+.cardGrouped[data-group='4'] .groupBadge {
+  background: #c41d7f;
+}
+
+.cardGrouped[data-group='5'] .groupBadge {
+  background: #389e0d;
+}
+
+.hint {
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--ith-color-text-quaternary, var(--ith-color-text-tertiary));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paper {
+    transition: none;
+
+    .card:hover & {
+      transform: none;
+    }
+  }
+}

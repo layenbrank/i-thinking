@@ -5,6 +5,8 @@ declare global {
   namespace Morph {
     type Tool = 'select' | 'text' | 'highlight' | 'shape' | 'stamp' | 'crop' | 'rotate'
     type ViewMode = 'view' | 'edit'
+    /** Document operations launched from the toolbar (edit-first; not a tools-app mode). */
+    type Operation = 'merge' | 'split' | 'convert' | 'organize' | 'extract'
     type AnnotationType = 'highlight' | 'shape' | 'stamp' | 'text-note'
     type ShapeKind = 'rect' | 'ellipse' | 'line' | 'arrow'
     type ExportFormat = 'pdf' | 'pdf-a' | 'png'

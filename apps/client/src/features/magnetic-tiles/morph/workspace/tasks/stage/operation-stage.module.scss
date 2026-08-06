@@ -1,0 +1,21 @@
+@use '@/features/magnetic-tiles/morph/styles/tokens.scss' as t;
+
+.stage {
+  &.root {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--ith-color-bg-layout);
+  }
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 18px;
+  @include t.op-board-well;
+}

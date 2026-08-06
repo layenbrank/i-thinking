@@ -1,0 +1,228 @@
+@use '@/features/magnetic-tiles/morph/styles/tokens.scss' as t;
+
+.board {
+  &.root {
+    position: relative;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    @include t.op-board-well;
+  }
+}
+
+.scaleChip {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--ith-color-border-secondary);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ith-color-bg-container) 92%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--ith-color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  box-shadow: t.$op-page-shadow;
+
+  &:hover {
+    color: var(--ith-color-primary);
+  }
+
+  @include t.focus-ring;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--board-thumb-min, 160px), 1fr));
+  gap: 16px;
+  align-content: start;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: grab;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.dragging {
+  opacity: 0.45;
+}
+
+.dropTarget .thumb {
+  border-color: var(--ith-color-primary);
+  box-shadow: 0 0 0 2px var(--ith-color-primary-bg);
+}
+
+.thumb {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--ith-color-text-tertiary);
+  @include t.op-page-card;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  &:hover {
+    box-shadow: t.$op-page-shadow-hover;
+  }
+}
+
+.skeleton {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.handle {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 18px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--ith-color-bg-container) 85%, transparent);
+  border: 1px solid var(--ith-color-border-secondary);
+  color: var(--ith-color-text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity t.$transition;
+
+  .card:hover &,
+  .card:focus-within & {
+    opacity: 1;
+  }
+}
+
+.index {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--ith-color-primary);
+  color: var(--ith-color-text-light-solid);
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--ith-color-primary) 35%, transparent);
+}
+
+.remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+  transition:
+    opacity t.$transition,
+    background t.$transition;
+
+  .card:hover &,
+  .card:focus-within &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--ith-color-error, #cf1322);
+  }
+
+  @include t.focus-ring;
+}
+
+.name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ith-color-text);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+.addTile {
+  appearance: none;
+  aspect-ratio: 3 / 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px dashed var(--ith-color-border);
+  border-radius: t.$radius-control;
+  background: color-mix(in srgb, var(--ith-color-bg-container) 50%, transparent);
+  color: var(--ith-color-text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition:
+    border-color t.$transition,
+    color t.$transition,
+    background-color t.$transition,
+    box-shadow t.$transition;
+
+  &:hover {
+    border-color: var(--ith-color-primary);
+    color: var(--ith-color-primary);
+    background: var(--ith-color-primary-bg);
+    box-shadow: t.$op-page-shadow;
+  }
+
+  @include t.focus-ring;
+}
+
+.addIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ith-color-primary-bg);
+  color: var(--ith-color-primary);
+  border: 1px solid var(--ith-color-primary-border, var(--ith-color-primary-bg));
+}
+
+.hint {
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--ith-color-text-quaternary, var(--ith-color-text-tertiary));
+}

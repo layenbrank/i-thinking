@@ -1,6 +1,6 @@
 import { Icon } from '@iconify/react/offline'
 import type Konva from 'konva'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Ellipse, Group, Image as KonvaImage, Layer, Rect, Stage, Text } from 'react-konva'
 import useImage from 'use-image'
 import { useShallow } from 'zustand/react/shallow'
@@ -10,6 +10,10 @@ import { selectCurrentPageAnnotations, useMorphStore } from '@/stores/morph.ts'
 import { CSSVAR } from '@/themes'
 import { DEFAULT_COLORS, SELECTION_STROKE } from './colors.ts'
 import styles from './canvas.module.scss'
+
+const ZOOM_MIN = 0.25
+const ZOOM_MAX = 5
+const ZOOM_WHEEL_STEP = 0.1
 
 // ─── Layer 1: PDF Image ───────────────────────────────────────────────────────
 
@@ -249,9 +253,16 @@ export default function Canvas() {
   const selectAnnotation = useMorphStore((s) => s.selectAnnotation)
   const addAnnotation = useMorphStore((s) => s.addAnnotation)
   const openFilePicker = useMorphStore((s) => s.openFilePicker)
+  const setZoom = useMorphStore(function (s) {
+    return s.setZoom
+  })
 
   const drawStart = useRef<{ x: number; y: number } | null>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const zoomRef = useRef(zoom)
   const [draft, setDraft] = useState<DraftRect | null>(null)
+
+  zoomRef.current = zoom
 
   const pageImg = pageCache[currentPage]
   const pageWidth = file?.page_width ?? 595
@@ -261,6 +272,43 @@ export default function Canvas() {
   const stageH = pageImg?.height ?? Math.round(pageHeight * zoom * 2)
 
   const isCursorCrosshair = ['highlight', 'shape', 'crop', 'text'].includes(activeTool)
+
+  useEffect(
+    function () {
+      const root = scrollRef.current
+      if (!root) return
+
+      let raf = 0
+      let pending: number | null = null
+
+      function flushZoom() {
+        raf = 0
+        if (pending == null) return
+        setZoom(pending)
+        pending = null
+      }
+
+      function onWheel(event: WheelEvent) {
+        if (!event.ctrlKey && !event.metaKey) return
+        event.preventDefault()
+        const direction = event.deltaY > 0 ? -1 : 1
+        const next =
+          Math.round((zoomRef.current + direction * ZOOM_WHEEL_STEP) * 100) / 100
+        const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next))
+        if (clamped === zoomRef.current && pending == null) return
+        zoomRef.current = clamped
+        pending = clamped
+        if (!raf) raf = requestAnimationFrame(flushZoom)
+      }
+
+      root.addEventListener('wheel', onWheel, { passive: false })
+      return function () {
+        root.removeEventListener('wheel', onWheel)
+        if (raf) cancelAnimationFrame(raf)
+      }
+    },
+    [setZoom, file]
+  )
 
   // ── mouse handlers ─────────────────────────────────────────────────────
 
@@ -310,7 +358,7 @@ export default function Canvas() {
         pageIndex: currentPage,
         type: 'highlight',
         rect: { x: nx, y: ny, w: nw, h: nh },
-        data: { color: DEFAULT_COLORS.highlight, opacity: 0.4 } as Morph.HighlightData
+        data: { color: DEFAULT_COLORS.highlight, opacity: 0.4 }
       })
     } else if (activeTool === 'shape') {
       await addAnnotation({
@@ -323,7 +371,7 @@ export default function Canvas() {
           fill: 'none',
           strokeWidth: 2,
           opacity: 1
-        } as Morph.ShapeData
+        }
       })
     } else if (activeTool === 'text') {
       await addAnnotation({
@@ -335,7 +383,7 @@ export default function Canvas() {
           fontSize: 14,
           color: '#000000',
           fontFamily: 'sans-serif'
-        } as Morph.TextNoteData
+        }
       })
     }
   }
@@ -361,7 +409,9 @@ export default function Canvas() {
 
   return (
     <div className={clsx(styles.canvas, CSSVAR.KEY)}>
-      <div className={styles.scroll}>
+      <div
+        ref={scrollRef}
+        className={styles.scroll}>
         <div
           className={styles.pageWrapper}
           style={{
