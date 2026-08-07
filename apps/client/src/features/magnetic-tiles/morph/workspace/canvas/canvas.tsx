@@ -480,7 +480,7 @@ export default function Canvas() {
 
       function flushZoom() {
         raf = 0
-        if (pending == null) return
+        if (pending === null) return
         zoomTo(pending)
         pending = null
       }
@@ -492,7 +492,7 @@ export default function Canvas() {
         const next =
           Math.round((zoomRef.current + direction * ZOOM_WHEEL_STEP) * 100) / 100
         const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next))
-        if (clamped === zoomRef.current && pending == null) return
+        if (clamped === zoomRef.current && pending === null) return
         zoomRef.current = clamped
         pending = clamped
         if (!raf) raf = requestAnimationFrame(flushZoom)
@@ -519,7 +519,7 @@ export default function Canvas() {
           for (const entry of entries) {
             if (!entry.isIntersecting) continue
             const raw = (entry.target as HTMLElement).dataset.offset
-            if (raw == null) continue
+            if (raw === undefined) continue
             const index = Number(raw)
             if (!Number.isFinite(index)) continue
             visible.push(index)
@@ -596,7 +596,7 @@ export default function Canvas() {
   useEffect(
     function () {
       if (!file) return
-      if (seekSource === 'scroll' || seekSource == null) return
+      if (seekSource === 'scroll' || seekSource === null) return
       const el = slotRefs.current.get(offset)
       if (!el) return
 
