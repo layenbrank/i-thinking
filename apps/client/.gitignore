@@ -1,6 +1,9 @@
 # prepare.ts download cache
 .cache/
 
+# 本机源链覆盖（见 sources.local.ts.example）
+scripts/prepare/sources.local.ts
+
 # Tool binaries staged by prepare (not Tauri externalBin; do not commit)
 src-tauri/binaries/pandoc
 src-tauri/binaries/pandoc.exe

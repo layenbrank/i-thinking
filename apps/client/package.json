@@ -4,7 +4,7 @@
   "type": "module",
   "version": "1.2.16",
   "scripts": {
-    "build": "bun run scripts/build.ts",
+    "build": "node scripts/build.ts",
     "build:core": "run-p type-check lint \"build-only {@}\" --",
     "build-only": "vite build",
     "check:cargo": "cargo check --manifest-path src-tauri/Cargo.toml",
@@ -13,7 +13,7 @@
     "dev:core": "vite",
     "dev:tauri": "tauri dev",
     "lint": "eslint . --cache",
-    "prepare:bin": "bun run scripts/prepare.ts",
+    "prepare:bin": "node scripts/prepare/index.ts",
     "preview": "vite preview",
     "tauri": "tauri",
     "test:coverage": "vitest --coverage",
