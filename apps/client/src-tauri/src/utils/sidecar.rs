@@ -71,6 +71,7 @@ impl SidecarState {
     pub fn fail(&self) {
         self.ready.store(false, Ordering::Relaxed);
         self.settled.store(true, Ordering::Relaxed);
+        ipc::drop_session();
     }
 }
 
@@ -224,14 +225,15 @@ fn stop_child(child: CommandChild, timeout: Duration, start: Instant) -> bool {
 }
 
 fn wait_until_pipe_closed(timeout: Duration, start: Instant) -> bool {
+    // shutdown() 已丢弃长连接；此处用短暂探测，不重建 SESSION。
     while start.elapsed() < timeout {
-        if !ipc::is_ready() {
+        if !ipc::is_listening() {
             info!("corex-serve IPC 已不可用");
             return true;
         }
         std::thread::sleep(Duration::from_millis(100));
     }
-    !ipc::is_ready()
+    !ipc::is_listening()
 }
 
 #[cfg(windows)]

@@ -1,4 +1,4 @@
-//! corex-serve Named Pipe IPC 客户端
+//! corex-serve Named Pipe IPC 客户端（长连接复用）
 
 use std::ffi::OsStr;
 use std::fs::File;
@@ -14,9 +14,8 @@ pub const PIPE_NAME: &str = r"\\.\pipe\corex";
 
 static REQUEST_ID: AtomicU64 = AtomicU64::new(1);
 
-/// corex-serve 通常只有 1 个 pipe 实例；同进程内并发 invoke（如 warmOffsets + thumbnails）
-/// 必须串行化，否则会出现 ERROR_PIPE_BUSY。
-static PIPE_LOCK: Mutex<()> = Mutex::new(());
+/// 进程内唯一长连接；同连接多行 Invoke，避免每请求 CreateFile 握手风暴。
+static SESSION: Mutex<Option<File>> = Mutex::new(None);
 
 /// IPC 响应（与 corex-core `serve::protocol::Response` 一致）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,18 +52,46 @@ pub fn invoke_with(
     if let Some(action) = action {
         payload["action"] = Value::String(action.to_string());
     }
-    let response = exchange(id, &payload.to_string())?;
-    Ok(response)
+    exchange(id, &payload.to_string())
 }
 
-/// 探测 Named Pipe 是否可连接（不发送业务请求）
+/// 是否已建立长连接会话（不 CreateFile 空连探测）。
+pub fn has_session() -> bool {
+    SESSION
+        .lock()
+        .map(|guard| guard.is_some())
+        .unwrap_or(false)
+}
+
+/// 探测 daemon 是否可连：优先复用已有会话；否则尝试建连并**保留**句柄。
 pub fn is_ready() -> bool {
     #[cfg(windows)]
     {
-        // 锁被占用说明已有会话正在使用管道，daemon 一定在线。
-        let Ok(_guard) = PIPE_LOCK.try_lock() else {
-            return true;
+        let Ok(mut guard) = SESSION.lock() else {
+            return false;
         };
+        if guard.is_some() {
+            return true;
+        }
+        match open_pipe(PIPE_NAME) {
+            Ok(file) => {
+                *guard = Some(file);
+                true
+            }
+            Err(_) => false,
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
+/// 仅探测 pipe 是否仍可连接（CreateFile 后立即关闭，不保留会话）。
+/// 用于 shutdown 等待，避免把探测变成新的长连接。
+pub fn is_listening() -> bool {
+    #[cfg(windows)]
+    {
         open_pipe(PIPE_NAME).is_ok()
     }
     #[cfg(not(windows))]
@@ -73,19 +100,37 @@ pub fn is_ready() -> bool {
     }
 }
 
+/// daemon 退出或失败时丢弃会话，下次 invoke / probe 再连。
+pub fn drop_session() {
+    if let Ok(mut guard) = SESSION.lock() {
+        *guard = None;
+    }
+}
+
 /// 请求 Daemon 优雅退出（应用关闭时调用）
 pub fn shutdown() -> Result<(), String> {
     #[cfg(windows)]
     {
-        let _guard = PIPE_LOCK
+        let mut guard = SESSION
             .lock()
             .map_err(|e| format!("IPC 锁失败: {e}"))?;
-        let mut file = open_pipe(PIPE_NAME)?;
-        file.write_all(br#"{"type":"shutdown"}"#)
-            .map_err(|e| e.to_string())?;
-        file.write_all(b"\n").map_err(|e| e.to_string())?;
-        file.flush().map_err(|e| e.to_string())?;
-        Ok(())
+        let file = match guard.as_mut() {
+            Some(file) => file,
+            None => {
+                let file = open_pipe(PIPE_NAME)?;
+                *guard = Some(file);
+                guard.as_mut().expect("刚写入会话")
+            }
+        };
+        let write_result = (|| -> Result<(), String> {
+            file.write_all(br#"{"type":"shutdown"}"#)
+                .map_err(|e| e.to_string())?;
+            file.write_all(b"\n").map_err(|e| e.to_string())?;
+            file.flush().map_err(|e| e.to_string())?;
+            Ok(())
+        })();
+        *guard = None;
+        write_result
     }
     #[cfg(not(windows))]
     {
@@ -96,18 +141,46 @@ pub fn shutdown() -> Result<(), String> {
 fn exchange(request_id: u64, request_json: &str) -> Result<IpcResponse, String> {
     #[cfg(windows)]
     {
-        let _guard = PIPE_LOCK
-            .lock()
-            .map_err(|e| format!("IPC 锁失败: {e}"))?;
-        let mut file = open_pipe(PIPE_NAME)?;
+        match exchange_once(request_id, request_json) {
+            Ok(response) => Ok(response),
+            Err(first) => {
+                // 连接可能被对端关闭：丢弃会话，重连后再试一次。
+                drop_session();
+                exchange_once(request_id, request_json).map_err(|second| {
+                    format!("IPC 失败（重连后仍失败）: {second}；首次: {first}")
+                })
+            }
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (request_id, request_json);
+        Err("IPC 当前仅支持 Windows Named Pipe".to_string())
+    }
+}
+
+#[cfg(windows)]
+fn exchange_once(request_id: u64, request_json: &str) -> Result<IpcResponse, String> {
+    let mut guard = SESSION
+        .lock()
+        .map_err(|e| format!("IPC 锁失败: {e}"))?;
+    if guard.is_none() {
+        *guard = Some(open_pipe(PIPE_NAME)?);
+    }
+    let file = guard.as_mut().ok_or_else(|| "IPC 会话丢失".to_string())?;
+
+    let result = (|| -> Result<IpcResponse, String> {
         file.write_all(request_json.as_bytes())
             .map_err(|e| e.to_string())?;
         file.write_all(b"\n").map_err(|e| e.to_string())?;
         file.flush().map_err(|e| e.to_string())?;
 
-        let mut reader = BufReader::new(&file);
+        let mut reader = BufReader::new(&*file);
         let mut line = String::new();
         reader.read_line(&mut line).map_err(|e| e.to_string())?;
+        if line.is_empty() {
+            return Err("IPC 响应为空（连接可能已关闭）".to_string());
+        }
 
         let response: IpcResponse =
             serde_json::from_str(line.trim()).map_err(|e| format!("解析 IPC 响应失败: {e}"))?;
@@ -118,16 +191,15 @@ fn exchange(request_id: u64, request_json: &str) -> Result<IpcResponse, String> 
             ));
         }
         Ok(response)
+    })();
+
+    if result.is_err() {
+        *guard = None;
     }
-    #[cfg(not(windows))]
-    {
-        let _ = (request_id, request_json);
-        Err("IPC 当前仅支持 Windows Named Pipe".to_string())
-    }
+    result
 }
 
 /// Named Pipe 忙时等待可用实例的超时（毫秒）。
-/// 单次 PDF 渲染/缩略图可能超过数秒，需覆盖整次业务处理。
 #[cfg(windows)]
 const PIPE_BUSY_WAIT_MS: u32 = 60_000;
 
@@ -170,7 +242,6 @@ fn open_pipe(pipe_name: &str) -> Result<File, String> {
         } {
             Ok(handle) => return Ok(unsafe { File::from_raw_handle(handle.0 as _) }),
             Err(e) if e.code() == ERROR_PIPE_BUSY.to_hresult() => {
-                // 实例被占用：等服务端再次 ConnectNamedPipe。
                 let waited = unsafe { WaitNamedPipeW(name, PIPE_BUSY_WAIT_MS) };
                 if !waited.as_bool() {
                     return Err(format!(
@@ -179,7 +250,6 @@ fn open_pipe(pipe_name: &str) -> Result<File, String> {
                 }
             }
             Err(e) if e.code() == ERROR_FILE_NOT_FOUND.to_hresult() => {
-                // Disconnect 与下一次 CreateNamedPipe 之间的短暂窗口。
                 thread::sleep(Duration::from_millis(50));
             }
             Err(e) => return Err(format!("无法连接 {pipe_name}: {e}")),
