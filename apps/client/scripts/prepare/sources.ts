@@ -66,12 +66,12 @@ const SOURCES: SourcesFile = {
   corex: {
     release: {
       repo: 'layenbrank/corex',
-      tag: 'v2.1.4',
-      archive: { 'win32-x64': 'corex-v2.1.4-windows-x64.zip' },
+      tag: 'v2.1.5',
+      archive: { 'win32-x64': 'corex-v2.1.5-windows-x64.zip' },
       checksum: {
         name: 'SHA256SUMS.txt',
         kind: 'sums',
-        cacheName: 'SHA256SUMS-v2.1.4.txt'
+        cacheName: 'SHA256SUMS-v2.1.5.txt'
       }
     },
     sources: [{ type: 'github', id: 'github' }]
