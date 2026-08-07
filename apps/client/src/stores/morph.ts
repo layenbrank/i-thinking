@@ -472,6 +472,8 @@ const useMorphStore = create<MorphState>()(
             setter((s) => {
               s.renders[offset] = image
             })
+          } catch (e) {
+            console.error('[morph] fetchRender failed:', e)
           } finally {
             pending.delete(offset)
           }
