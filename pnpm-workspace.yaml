@@ -52,6 +52,7 @@ allowBuilds:
   msw: true
   prisma: true
   unrs-resolver: true
+  workerd: true
 
 catalog:
   'electron': ^40.1.0

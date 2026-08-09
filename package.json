@@ -32,6 +32,8 @@
     "dev:devtools": "turbo run dev --filter=@i-thinking/devtools",
     "dev:extension": "turbo run dev --filter=@i-thinking/extension",
     "dev:service": "turbo run dev --filter=@i-thinking/service",
+    "deploy:worker": "pnpm --filter @i-thinking/worker deploy",
+    "secret:worker": "pnpm --filter @i-thinking/worker secret",
     "e2e": "turbo run e2e",
     "format": "prettier --write \"**/*.{ts,tsx,vue,json,scss,md}\"",
     "lint": "turbo run lint",
