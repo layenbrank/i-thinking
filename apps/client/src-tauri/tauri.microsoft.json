@@ -1,0 +1,18 @@
+{
+  "productName": "i thinking",
+  "mainBinaryName": "i-thinking",
+  "bundle": {
+    "publisher": "layen",
+    "targets": ["nsis"],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "offlineInstaller",
+        "silent": true
+      },
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installMode": "currentUser"
+      }
+    }
+  }
+}
