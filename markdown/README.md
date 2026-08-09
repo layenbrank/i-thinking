@@ -7,6 +7,16 @@
 | `markdown/` | CI/CD、排查记录、应用专题、第三方 API 参考 |
 | `apps/docs` | 对外/产品向文档站 |
 
+## Microsoft Store
+
+| 文档 | 说明 |
+|------|------|
+| [store-submission-guide.zh-CN.md](./store-submission-guide.zh-CN.md) | 上架填写总手册（属性 / 包 / 一览 / 版权与许可等） |
+| [store-package-handoff.md](./store-package-handoff.md) | 包 URL、R2 / Worker 托管与包页字段 |
+| [privacy-policy.zh-CN.md](./privacy-policy.zh-CN.md) | 隐私声明（属性页） |
+| [license-terms.zh-CN.md](./license-terms.zh-CN.md) | 许可条款（一览页） |
+| [认证说明.md](./认证说明.md) | 认证测试人员说明 |
+
 ## 运维（ops/）
 
 | 文档 | 说明 |
