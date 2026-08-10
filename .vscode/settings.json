@@ -395,5 +395,7 @@
   "workbench.list.fastScrollSensitivity": 10,
   "workbench.list.smoothScrolling": true,
   "workbench.startupEditor": "none",
-  "workbench.tree.enableStickyScroll": true
+  "workbench.tree.enableStickyScroll": true,
+  "chat.fontSize": 16,
+  "chat.editor.fontSize": 16
 }

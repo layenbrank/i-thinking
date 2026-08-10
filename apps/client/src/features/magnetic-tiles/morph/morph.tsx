@@ -1,6 +1,5 @@
 import clsx from 'clsx'
-import type { MouseEvent } from 'react'
-import { Suspense, lazy, useContext } from 'react'
+import { useContext, type MouseEvent } from 'react'
 
 import {
   MagneticTile,
@@ -10,12 +9,8 @@ import {
 import styles from '@/features/magnetic-tiles/morph/morph.module.scss'
 import { CSSVAR } from '@/themes'
 
-const Marker = lazy(function () {
-  return import('@/features/magnetic-tiles/morph/marker.tsx')
-})
-const Overlay = lazy(function () {
-  return import('@/features/magnetic-tiles/morph/overlay.tsx')
-})
+import Marker from '@/features/magnetic-tiles/morph/marker.tsx'
+import Overlay from '@/features/magnetic-tiles/morph/overlay.tsx'
 
 export default function Morph(props: SectionProps) {
   const { renderable } = useContext(OverlayContext)
@@ -37,13 +32,11 @@ export default function Morph(props: SectionProps) {
         direction={props.direction}
       />
       {isRenderOverlay ? (
-        <Suspense fallback={null}>
-          <Overlay
-            cache={cache}
-            onAbort={props.onAbort}
-            abortTimeoutMs={props.abortTimeoutMs}
-          />
-        </Suspense>
+        <Overlay
+          cache={cache}
+          onAbort={props.onAbort}
+          abortTimeoutMs={props.abortTimeoutMs}
+        />
       ) : null}
     </MagneticTile.Section>
   )

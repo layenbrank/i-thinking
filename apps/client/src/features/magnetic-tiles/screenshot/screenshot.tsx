@@ -2,15 +2,12 @@
 import { invoke } from '@tauri-apps/api/core'
 import clsx from 'clsx'
 import type { MouseEvent } from 'react'
-import { lazy } from 'react'
 
 import { MagneticTile, type SectionProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/magnetic-tiles/screenshot/screenshot.module.scss'
 import { useKeyCode } from '@/keycodes/react'
 
-const Marker = lazy(function () {
-  return import('@/features/magnetic-tiles/screenshot/marker.tsx')
-})
+import Marker from '@/features/magnetic-tiles/screenshot/marker.tsx'
 
 export default function Screenshot(props: SectionProps) {
   function onTrash(e: MouseEvent<HTMLElement>) {
