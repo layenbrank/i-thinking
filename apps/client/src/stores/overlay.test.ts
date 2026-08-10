@@ -10,7 +10,7 @@ vi.mock('@tauri-apps/api/core', function () {
 
 import { useOverlayStore } from '@/stores/overlay'
 
-describe('overlay store mountTile / removeItem', function () {
+describe('overlay store toMount / toRemove', function () {
   beforeEach(function () {
     useOverlayStore.setState({
       mode: 'idle',
@@ -21,8 +21,8 @@ describe('overlay store mountTile / removeItem', function () {
 
   it('mounts one tile per magneticTileID', function () {
     const store = useOverlayStore.getState()
-    store.mountTile('countdown', 'tile-a', { size: 1, shape: 'rectangle' })
-    store.mountTile('countdown', 'tile-b', { size: 1, shape: 'rectangle' })
+    store.toMount('countdown', 'tile-a', { size: 1, shape: 'rectangle' })
+    store.toMount('countdown', 'tile-b', { size: 1, shape: 'rectangle' })
 
     const tiles = useOverlayStore.getState().items.filter(function (item) {
       return item.kind !== 'texture'
@@ -35,8 +35,8 @@ describe('overlay store mountTile / removeItem', function () {
 
   it('remounting same magneticTileID updates instead of duplicating', function () {
     const store = useOverlayStore.getState()
-    store.mountTile('countdown', 'tile-a', { size: 1 })
-    store.mountTile('calendar', 'tile-a', { size: 4 })
+    store.toMount('countdown', 'tile-a', { size: 1 })
+    store.toMount('calendar', 'tile-a', { size: 4 })
 
     const tiles = useOverlayStore.getState().items.filter(function (item) {
       return item.kind !== 'texture'
@@ -46,9 +46,9 @@ describe('overlay store mountTile / removeItem', function () {
     expect(tiles[0]?.magneticTileID).toBe('tile-a')
   })
 
-  it('mountTile stores surface style (round / background)', function () {
+  it('toMount stores surface style (round / background)', function () {
     const store = useOverlayStore.getState()
-    store.mountTile('countdown', 'tile-a', {
+    store.toMount('countdown', 'tile-a', {
       size: 1,
       shape: 'square',
       round: '16px',
@@ -62,11 +62,11 @@ describe('overlay store mountTile / removeItem', function () {
     expect(tile && tile.kind !== 'texture' ? tile.background : null).toEqual({ color: '#F1F5F9' })
   })
 
-  it('removeItem drops only the matching magneticTileID', function () {
+  it('toRemove drops only the matching magneticTileID', function () {
     const store = useOverlayStore.getState()
-    store.mountTile('countdown', 'tile-a', { size: 1 })
-    store.mountTile('countdown', 'tile-b', { size: 1 })
-    store.removeItem('tile-a')
+    store.toMount('countdown', 'tile-a', { size: 1 })
+    store.toMount('countdown', 'tile-b', { size: 1 })
+    store.toRemove('tile-a')
 
     const tiles = useOverlayStore.getState().items.filter(function (item) {
       return item.kind !== 'texture'

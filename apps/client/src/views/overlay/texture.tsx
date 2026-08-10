@@ -14,14 +14,14 @@ function Texture(props: TextureProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ originX: number; originY: number; x: number; y: number } | null>(null)
 
-  const updateTexture = useOverlayStore(function (s) {
-    return s.updateTexture
+  const toUpdate = useOverlayStore(function (s) {
+    return s.toUpdate
   })
-  const removeItem = useOverlayStore(function (s) {
-    return s.removeItem
+  const toRemove = useOverlayStore(function (s) {
+    return s.toRemove
   })
-  const bringToFront = useOverlayStore(function (s) {
-    return s.bringToFront
+  const toFront = useOverlayStore(function (s) {
+    return s.toFront
   })
 
   useThrough(item.id, { rootRef, enabled: !item.isThrough })
@@ -30,7 +30,7 @@ function Texture(props: TextureProps) {
     if (e.button !== 0) return
     const target = e.target as HTMLElement
     if (target.closest('button')) return
-    bringToFront(item.id)
+    toFront(item.id)
     dragRef.current = {
       originX: e.clientX,
       originY: e.clientY,
@@ -43,7 +43,7 @@ function Texture(props: TextureProps) {
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     const drag = dragRef.current
     if (!drag) return
-    updateTexture(item.id, {
+    toUpdate(item.id, {
       x: drag.x + (e.clientX - drag.originX),
       y: drag.y + (e.clientY - drag.originY)
     })
@@ -65,13 +65,13 @@ function Texture(props: TextureProps) {
     if (e.ctrlKey) {
       const delta = e.deltaY > 0 ? -0.05 : 0.05
       const next = Math.min(1, Math.max(0.15, item.opacity + delta))
-      updateTexture(item.id, { opacity: next })
+      toUpdate(item.id, { opacity: next })
       return
     }
     const scale = e.deltaY > 0 ? 0.92 : 1.08
     const w = Math.max(48, Math.round(item.w * scale))
     const h = Math.max(48, Math.round(item.h * scale))
-    updateTexture(item.id, {
+    toUpdate(item.id, {
       w,
       h,
       x: item.x - (w - item.w) / 2,
@@ -109,7 +109,7 @@ function Texture(props: TextureProps) {
           aria-label={item.isThrough ? 'Disable click-through' : 'Enable click-through'}
           title="点击穿透"
           onClick={function () {
-            updateTexture(item.id, { isThrough: !item.isThrough })
+            toUpdate(item.id, { isThrough: !item.isThrough })
           }}>
           <Icon
             icon={item.isThrough ? 'mdi:cursor-default-click' : 'mdi:cursor-default-outline'}
@@ -122,7 +122,7 @@ function Texture(props: TextureProps) {
           aria-label="Close texture"
           title="关闭"
           onClick={function () {
-            removeItem(item.id)
+            toRemove(item.id)
           }}>
           <Icon
             icon="mdi:close"

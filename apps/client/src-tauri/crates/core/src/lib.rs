@@ -4,6 +4,7 @@ pub mod countdown;
 pub mod exception;
 pub mod magnetic_tile;
 pub mod mirror;
+pub mod overlay;
 pub mod reminder;
 
 pub use exception::{CommandResult, Exception};
