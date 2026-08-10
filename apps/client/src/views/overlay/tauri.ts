@@ -47,7 +47,9 @@ async function removeOverlayTile(magneticTileID: string): Promise<void> {
 
 async function showMagneticTileOverlay(magneticTileID: string): Promise<void> {
   await invoke('magnetic-tile:show-overlay', {
-    payload: { magneticTileID }
+    payload: {
+      magneticTileID
+    }
   })
 }
 
@@ -69,7 +71,10 @@ function readImageNaturalSize(dataUrl: string): Promise<{ w: number; h: number }
   return new Promise(function (resolve, reject) {
     const img = new Image()
     img.onload = function () {
-      resolve({ w: img.naturalWidth, h: img.naturalHeight })
+      resolve({
+        w: img.naturalWidth,
+        h: img.naturalHeight
+      })
     }
     img.onerror = reject
     img.src = dataUrl
