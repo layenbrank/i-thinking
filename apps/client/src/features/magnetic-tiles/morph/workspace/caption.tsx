@@ -11,8 +11,8 @@ import { CSSVAR } from '@/themes'
 /** Morph Overlay 顶栏：品牌 · 搜索 · 窗口控制 */
 function Caption() {
   const [visible, onUpdateVisible] = useState(false)
-  const matchText = useMorphStore(function (s) {
-    return s.matchText
+  const toMatchText = useMorphStore(function (s) {
+    return s.toMatchText
   })
   const fileName = useMorphStore(function (s) {
     return s.file?.path.split(/[\\/]/).pop() ?? ''
@@ -42,7 +42,7 @@ function Caption() {
   }, [])
 
   async function onUpdateKeyword(value: string) {
-    if (value.trim()) await matchText(value)
+    if (value.trim()) await toMatchText(value)
     debounceUpdate()
   }
 

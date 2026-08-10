@@ -20,14 +20,14 @@ function MergeTask() {
   const error = useMorphStore(function (s) {
     return s.mergeModal.error
   })
-  const closeOperation = useMorphStore(function (s) {
-    return s.closeOperation
+  const toCloseOperation = useMorphStore(function (s) {
+    return s.toCloseOperation
   })
-  const patchMerge = useMorphStore(function (s) {
-    return s.patchMerge
+  const toPatchMerge = useMorphStore(function (s) {
+    return s.toPatchMerge
   })
-  const executeMerge = useMorphStore(function (s) {
-    return s.executeMerge
+  const toExecuteMerge = useMorphStore(function (s) {
+    return s.toExecuteMerge
   })
 
   const inputsKey = inputs.join('\0')
@@ -75,7 +75,7 @@ function MergeTask() {
     })
     if (!selected) return
     const paths = Array.isArray(selected) ? selected : [selected]
-    patchMerge({
+    toPatchMerge({
       inputs: [
         ...inputs,
         ...paths.filter(function (path) {
@@ -90,18 +90,18 @@ function MergeTask() {
       title: '选择合并输出路径',
       filters: [{ name: 'PDF', extensions: ['pdf'] }]
     })
-    if (typeof selected === 'string') patchMerge({ output: selected })
+    if (typeof selected === 'string') toPatchMerge({ output: selected })
   }
 
   function onReorder(from: number, to: number) {
     const next = inputs.slice()
     const [item] = next.splice(from, 1)
     next.splice(to, 0, item)
-    patchMerge({ inputs: next })
+    toPatchMerge({ inputs: next })
   }
 
   function onRemove(index: number) {
-    patchMerge({
+    toPatchMerge({
       inputs: inputs.filter(function (_path, i) {
         return i !== index
       })
@@ -119,7 +119,7 @@ function MergeTask() {
       title="合并 PDF"
       icon="ant-design:compress-outlined"
       meta={meta}
-      onBack={closeOperation}
+      onBack={toCloseOperation}
       extra={
         <PathField
           compact
@@ -133,17 +133,13 @@ function MergeTask() {
       }
       hint={
         error ??
-        (canSubmit
-          ? undefined
-          : inputs.length < 2
-            ? '至少添加 2 个 PDF'
-            : '请选择输出路径')
+        (canSubmit ? undefined : inputs.length < 2 ? '至少添加 2 个 PDF' : '请选择输出路径')
       }
       submitLabel="开始合并"
       submitDisabled={!canSubmit}
       submitLoading={loading}
       onSubmit={function () {
-        void executeMerge()
+        void toExecuteMerge()
       }}>
       <MergeBoard
         inputs={inputs}

@@ -1,3 +1,4 @@
+import { StyleProvider } from '@ant-design/cssinjs'
 import { XProvider } from '@ant-design/x'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
@@ -5,9 +6,8 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { isRegistered, register, unregister } from '@tauri-apps/plugin-global-shortcut'
 import { attachConsole } from '@tauri-apps/plugin-log'
 import { App as AntApp } from 'antd'
-import { StyleProvider } from '@ant-design/cssinjs'
-import { MotionConfig } from 'motion/react'
 import zhCN from 'antd/locale/zh_CN'
+import { MotionConfig } from 'motion/react'
 
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
@@ -16,9 +16,9 @@ import localeData from 'dayjs/plugin/localeData'
 import { Suspense, useEffect } from 'react'
 import { RouterProvider } from 'react-router-dom'
 
-import { QueryProvider } from '@/components/provider/query'
 import { Fallback } from '@/components/fallback/index.ts'
 import { PluginProvider, type Plugin } from '@/components/provider/plugin.tsx'
+import { QueryProvider } from '@/components/provider/query'
 import { presentOverlay } from '@/features/magnetic-tile/overlay'
 import { IntelligencePlugin } from '@/plugins/intelligence.ts'
 import { StoragePlugin } from '@/plugins/storage.ts'
@@ -47,7 +47,7 @@ function App() {
 
   useEffect(function () {
     void useMirrorStore.getState().toInitialize()
-    void useSettingsStore.getState().initialize()
+    void useSettingsStore.getState().toInitialize()
   }, [])
 
   useEffect(function () {

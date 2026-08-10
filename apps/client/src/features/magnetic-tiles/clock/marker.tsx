@@ -8,7 +8,11 @@ import {
   findNextReminder,
   findTodayEnabledCount
 } from '@/features/magnetic-tiles/clock/alarm-time'
-import { AnalogFace, DigitalDigits, MinimalTime } from '@/features/magnetic-tiles/clock/clock-faces.tsx'
+import {
+  AnalogFace,
+  DigitalDigits,
+  MinimalTime
+} from '@/features/magnetic-tiles/clock/clock-faces.tsx'
 import { findDayPeriod } from '@/features/magnetic-tiles/clock/day-period.ts'
 import { FlipClock } from '@/features/magnetic-tiles/clock/flip-digit.tsx'
 import styles from '@/features/magnetic-tiles/clock/marker.module.scss'
@@ -29,16 +33,16 @@ function Marker(props: Props) {
   const reminders = useReminderStore(function (s) {
     return s.reminders
   })
-  const readReminders = useReminderStore(function (s) {
-    return s.readReminders
+  const toReadReminders = useReminderStore(function (s) {
+    return s.toReadReminders
   })
   const now = useSecondTick()
 
   useEffect(
     function () {
-      void readReminders()
+      void toReadReminders()
     },
-    [readReminders]
+    [toReadReminders]
   )
 
   useEffect(
@@ -47,7 +51,7 @@ function Marker(props: Props) {
       void import('@tauri-apps/api/event').then(function (mod) {
         void mod
           .listen('reminder:fired', function () {
-            void readReminders()
+            void toReadReminders()
           })
           .then(function (fn) {
             unlisten = fn
@@ -57,7 +61,7 @@ function Marker(props: Props) {
         unlisten?.()
       }
     },
-    [readReminders]
+    [toReadReminders]
   )
 
   const capacity = findCapacity(props.size, props.shape, props.direction)
@@ -67,10 +71,7 @@ function Marker(props: Props) {
   const isCircle = props.shape === 'circle'
 
   const showSeconds =
-    !isMinimal &&
-    !isCircle &&
-    capacity >= (isFlip ? 3 : 2) &&
-    props.size >= (isFlip ? 2 : 1)
+    !isMinimal && !isCircle && capacity >= (isFlip ? 3 : 2) && props.size >= (isFlip ? 2 : 1)
   const showAside = capacity >= 2 && !isCircle
   const showPeriod = capacity >= 3
   const showFullDate = capacity >= 4
@@ -196,9 +197,7 @@ function Marker(props: Props) {
                         className={styles.alarmRow}>
                         <span className={styles.alarmLabel}>下个</span>
                         <span className={styles.alarmTime}>{item.reminder.fireTime}</span>
-                        <span className={styles.alarmTitle}>
-                          {item.reminder.title || '闹钟'}
-                        </span>
+                        <span className={styles.alarmTitle}>{item.reminder.title || '闹钟'}</span>
                       </div>
                     )
                   })

@@ -35,13 +35,13 @@ const settingStore = new LazyStore('settings.json', {
 interface SettingsStore {
   settings: Setting.Composite
   loaded: boolean
-  initialize: () => Promise<void>
-  update: <K extends keyof Setting.Composite>(
+  toInitialize: () => Promise<void>
+  toUpdate: <K extends keyof Setting.Composite>(
     section: K,
     value: Partial<Setting.Composite[K]>
   ) => Promise<void>
-  reset: () => Promise<void>
-  resetAppearance: () => Promise<void>
+  toReset: () => Promise<void>
+  toResetAppearance: () => Promise<void>
 }
 
 export const useSettingsStore = create<SettingsStore>(function (setter, getter) {
@@ -49,7 +49,7 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
     settings: SETTINGS,
     loaded: false,
 
-    async initialize() {
+    async toInitialize() {
       if (getter().loaded) return
       await settingStore.init()
 
@@ -73,7 +73,7 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
       setter({ settings, loaded: true })
     },
 
-    async update(section, value) {
+    async toUpdate(section, value) {
       const current = getter().settings
       const merged = { ...current[section], ...value }
 
@@ -89,7 +89,7 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
       await settingStore.set(section, merged)
     },
 
-    async reset() {
+    async toReset() {
       setter({ settings: SETTINGS })
       await settingStore.reset()
       try {
@@ -99,7 +99,7 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
       }
     },
 
-    async resetAppearance() {
+    async toResetAppearance() {
       const current = getter().settings
       setter({
         settings: {

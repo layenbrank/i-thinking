@@ -43,20 +43,20 @@ function SplitTask() {
   const thumbnailsError = useMorphStore(function (s) {
     return s.thumbnailsError
   })
-  const closeOperation = useMorphStore(function (s) {
-    return s.closeOperation
+  const toCloseOperation = useMorphStore(function (s) {
+    return s.toCloseOperation
   })
-  const patchSplit = useMorphStore(function (s) {
-    return s.patchSplit
+  const toPatchSplit = useMorphStore(function (s) {
+    return s.toPatchSplit
   })
-  const executeSplit = useMorphStore(function (s) {
-    return s.executeSplit
+  const toExecuteSplit = useMorphStore(function (s) {
+    return s.toExecuteSplit
   })
-  const openFilePicker = useMorphStore(function (s) {
-    return s.openFilePicker
+  const toOpenFilePicker = useMorphStore(function (s) {
+    return s.toOpenFilePicker
   })
-  const fetchThumbnails = useMorphStore(function (s) {
-    return s.fetchThumbnails
+  const toFetchThumbnails = useMorphStore(function (s) {
+    return s.toFetchThumbnails
   })
 
   const count = file?.count ?? 0
@@ -70,13 +70,13 @@ function SplitTask() {
 
   async function onSelectDir() {
     const selected = await dialogOpen({ directory: true, title: '选择输出目录' })
-    if (typeof selected === 'string') patchSplit({ destDir: selected })
+    if (typeof selected === 'string') toPatchSplit({ destDir: selected })
   }
 
   function onOffsetClick(offset: number) {
     if (mode !== 'ranges') return
     const next = toggleOffset(selectedOffsets, offset)
-    patchSplit({ ranges: buildRangesFromOffsets([...next]) })
+    toPatchSplit({ ranges: buildRangesFromOffsets([...next]) })
   }
 
   function offsetGroup(offset: number) {
@@ -85,9 +85,7 @@ function SplitTask() {
   }
 
   const canSubmit =
-    Boolean(destDir) &&
-    Boolean(file) &&
-    (mode === 'limit' ? limit > 0 : selectedOffsets.size > 0)
+    Boolean(destDir) && Boolean(file) && (mode === 'limit' ? limit > 0 : selectedOffsets.size > 0)
 
   const meta = !file
     ? '请先打开 PDF'
@@ -100,14 +98,14 @@ function SplitTask() {
       title="拆分 PDF"
       icon="ant-design:scissor-outlined"
       meta={meta}
-      onBack={closeOperation}
+      onBack={toCloseOperation}
       actions={
         mode === 'ranges' && selectedOffsets.size > 0 ? (
           <Button
             size="small"
             type="text"
             onClick={function () {
-              patchSplit({ ranges: '' })
+              toPatchSplit({ ranges: '' })
             }}>
             清空选中
           </Button>
@@ -123,7 +121,7 @@ function SplitTask() {
               { label: '固定页数', value: 'limit' }
             ]}
             onChange={function (value) {
-              patchSplit({ mode: value as 'ranges' | 'limit' })
+              toPatchSplit({ mode: value as 'ranges' | 'limit' })
             }}
           />
           {mode === 'limit' ? (
@@ -134,7 +132,7 @@ function SplitTask() {
               value={limit}
               addonAfter="页/文件"
               onChange={function (value) {
-                patchSplit({ limit: value ?? 1 })
+                toPatchSplit({ limit: value ?? 1 })
               }}
             />
           ) : (
@@ -146,7 +144,7 @@ function SplitTask() {
                     type="button"
                     className={styles.chip}
                     onClick={function () {
-                      patchSplit({ ranges: example })
+                      toPatchSplit({ ranges: example })
                     }}>
                     {example}
                   </button>
@@ -172,7 +170,7 @@ function SplitTask() {
       submitDisabled={!canSubmit}
       submitLoading={loading}
       onSubmit={function () {
-        void executeSplit()
+        void toExecuteSplit()
       }}>
       {!file ? (
         <div className={styles.stageEmpty}>
@@ -185,7 +183,7 @@ function SplitTask() {
                 size="small"
                 type="link"
                 onClick={function () {
-                  void openFilePicker()
+                  void toOpenFilePicker()
                 }}>
                 打开 PDF
               </Button>
@@ -201,7 +199,7 @@ function SplitTask() {
           isLoading={!thumbnails.length && !thumbnailsError}
           hasError={Boolean(thumbnailsError)}
           onRetry={function () {
-            void fetchThumbnails()
+            void toFetchThumbnails()
           }}
           onOffsetClick={onOffsetClick}
         />

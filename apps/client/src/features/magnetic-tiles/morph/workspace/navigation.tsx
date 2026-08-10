@@ -3,20 +3,20 @@ import { Button, Empty, Segmented, Skeleton, Tooltip } from 'antd'
 import { clsx } from 'clsx'
 import { useState } from 'react'
 
-import { useMorphStore } from '@/stores/morph.ts'
-import Thumbnail from '@/features/magnetic-tiles/morph/workspace/thumbnail/thumbnail.tsx'
 import styles from '@/features/magnetic-tiles/morph/workspace/navigation.module.scss'
+import Thumbnail from '@/features/magnetic-tiles/morph/workspace/thumbnail/thumbnail.tsx'
+import { useMorphStore } from '@/stores/morph.ts'
 import { CSSVAR } from '@/themes'
 
 function WorkspaceSection() {
-  const openFilePicker = useMorphStore(function (s) {
-    return s.openFilePicker
+  const toOpenFilePicker = useMorphStore(function (s) {
+    return s.toOpenFilePicker
   })
-  const switchFile = useMorphStore(function (s) {
-    return s.switchFile
+  const toSwitchFile = useMorphStore(function (s) {
+    return s.toSwitchFile
   })
-  const closeFile = useMorphStore(function (s) {
-    return s.closeFile
+  const toCloseFile = useMorphStore(function (s) {
+    return s.toCloseFile
   })
   const file = useMorphStore(function (s) {
     return s.file
@@ -41,7 +41,7 @@ function WorkspaceSection() {
                 height={14}
               />
             }
-            onClick={openFilePicker}
+            onClick={toOpenFilePicker}
           />
         </Tooltip>
       </div>
@@ -50,7 +50,7 @@ function WorkspaceSection() {
         <button
           type="button"
           className={styles.emptyCta}
-          onClick={openFilePicker}>
+          onClick={toOpenFilePicker}>
           <Icon
             icon="mdi:folder-open"
             width={16}
@@ -71,12 +71,12 @@ function WorkspaceSection() {
                 tabIndex={0}
                 className={clsx(styles.fileItem, isActive && styles.fileItemActive)}
                 onClick={function () {
-                  void switchFile(f.path)
+                  void toSwitchFile(f.path)
                 }}
                 onKeyDown={function (e) {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    void switchFile(f.path)
+                    void toSwitchFile(f.path)
                   }
                 }}>
                 <span
@@ -98,7 +98,7 @@ function WorkspaceSection() {
                   aria-label="关闭文件"
                   onClick={function (e) {
                     e.stopPropagation()
-                    closeFile(f.path)
+                    toCloseFile(f.path)
                   }}>
                   <Icon
                     icon="ant-design:close-outlined"
@@ -128,8 +128,8 @@ function PagesSection() {
   const count = useMorphStore(function (s) {
     return s.file?.count ?? 0
   })
-  const seekOffset = useMorphStore(function (s) {
-    return s.seekOffset
+  const toSeekOffset = useMorphStore(function (s) {
+    return s.toSeekOffset
   })
   const file = useMorphStore(function (s) {
     return s.file
@@ -177,7 +177,7 @@ function PagesSection() {
             isActive={thumbOffset === offset}
             annotationCount={annCounts[thumbOffset] ?? 0}
             onClick={function () {
-              seekOffset(thumbOffset, { source: 'thumb' })
+              toSeekOffset(thumbOffset, { source: 'thumb' })
             }}
           />
         )

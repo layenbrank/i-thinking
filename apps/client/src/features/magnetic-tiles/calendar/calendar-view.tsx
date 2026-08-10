@@ -1,13 +1,13 @@
+import { timeSphere } from '@i-thinking/utils'
 import { clsx } from 'clsx'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
-import { timeSphere } from '@i-thinking/utils'
 
+import styles from '@/features/magnetic-tiles/calendar/calendar-view.module.scss'
 import { DayAgenda } from '@/features/magnetic-tiles/calendar/day-agenda'
 import { DayDetail } from '@/features/magnetic-tiles/calendar/day-detail'
 import { DayGrid } from '@/features/magnetic-tiles/calendar/day-grid'
-import styles from '@/features/magnetic-tiles/calendar/calendar-view.module.scss'
 import { useCalendarStore } from '@/stores/calendar'
 import { useReminderStore } from '@/stores/reminder'
 
@@ -50,33 +50,33 @@ function CalendarView(props: CalendarViewProps = {}) {
   const reminders = useReminderStore(function (state) {
     return state.reminders
   })
-  const readEvents = useCalendarStore(function (state) {
-    return state.readEvents
+  const toReadEvents = useCalendarStore(function (state) {
+    return state.toReadEvents
   })
-  const writeEvent = useCalendarStore(function (state) {
-    return state.writeEvent
+  const toWriteEvent = useCalendarStore(function (state) {
+    return state.toWriteEvent
   })
-  const removeEvent = useCalendarStore(function (state) {
-    return state.removeEvent
+  const toRemoveEvent = useCalendarStore(function (state) {
+    return state.toRemoveEvent
   })
-  const readReminders = useReminderStore(function (state) {
-    return state.readReminders
+  const toReadReminders = useReminderStore(function (state) {
+    return state.toReadReminders
   })
-  const writeReminder = useReminderStore(function (state) {
-    return state.writeReminder
+  const toWriteReminder = useReminderStore(function (state) {
+    return state.toWriteReminder
   })
-  const updateReminder = useReminderStore(function (state) {
-    return state.updateReminder
+  const toUpdateReminder = useReminderStore(function (state) {
+    return state.toUpdateReminder
   })
-  const removeReminder = useReminderStore(function (state) {
-    return state.removeReminder
+  const toRemoveReminder = useReminderStore(function (state) {
+    return state.toRemoveReminder
   })
 
   async function refreshRange(anchor: Dayjs) {
     const range = monthBounds(anchor)
     await Promise.all([
-      readEvents({ rangeFrom: range.from, rangeTo: range.to }),
-      readReminders({ dueFrom: range.from, dueTo: range.to })
+      toReadEvents({ rangeFrom: range.from, rangeTo: range.to }),
+      toReadReminders({ dueFrom: range.from, dueTo: range.to })
     ])
   }
 
@@ -89,9 +89,12 @@ function CalendarView(props: CalendarViewProps = {}) {
     [panelDate.format('YYYY-MM')]
   )
 
-  const dayRange = useMemo(function () {
-    return dayBounds(selectDate)
-  }, [selectDate])
+  const dayRange = useMemo(
+    function () {
+      return dayBounds(selectDate)
+    },
+    [selectDate]
+  )
 
   const dayEvents = useMemo(
     function () {
@@ -106,7 +109,8 @@ function CalendarView(props: CalendarViewProps = {}) {
     function () {
       return reminders.filter(function (reminder) {
         return (
-          (reminder.dueAt !== null && reminder.dueAt !== undefined) &&
+          reminder.dueAt !== null &&
+          reminder.dueAt !== undefined &&
           reminder.dueAt >= dayRange.from &&
           reminder.dueAt < dayRange.to
         )
@@ -122,7 +126,7 @@ function CalendarView(props: CalendarViewProps = {}) {
         marks.add(timeSphere.format(new Date(event.startAt), 'YYYY-MM-DD'))
       }
       for (const reminder of reminders) {
-        if ((reminder.dueAt === null || reminder.dueAt === undefined)) continue
+        if (reminder.dueAt === null || reminder.dueAt === undefined) continue
         marks.add(timeSphere.format(new Date(reminder.dueAt), 'YYYY-MM-DD'))
       }
       return marks
@@ -132,7 +136,7 @@ function CalendarView(props: CalendarViewProps = {}) {
 
   async function handleWriteEvent(title: string, notes: string) {
     const bounds = dayBounds(selectDate)
-    await writeEvent({
+    await toWriteEvent({
       title,
       notes,
       startAt: bounds.from,
@@ -144,7 +148,7 @@ function CalendarView(props: CalendarViewProps = {}) {
 
   async function handleWriteReminder(title: string, notes: string) {
     const bounds = dayBounds(selectDate)
-    await writeReminder({
+    await toWriteReminder({
       title,
       notes,
       dueAt: bounds.from + 9 * 60 * 60 * 1000,
@@ -155,7 +159,7 @@ function CalendarView(props: CalendarViewProps = {}) {
   }
 
   async function handleToggleReminder(id: string, completed: boolean) {
-    await updateReminder({
+    await toUpdateReminder({
       key: id,
       change: { archivedAt: completed ? Date.now() : null }
     })
@@ -163,17 +167,19 @@ function CalendarView(props: CalendarViewProps = {}) {
   }
 
   async function handleRemoveEvent(id: string) {
-    await removeEvent(id)
+    await toRemoveEvent(id)
     await refreshRange(panelDate)
   }
 
   async function handleRemoveReminder(id: string) {
-    await removeReminder(id)
+    await toRemoveReminder(id)
     await refreshRange(panelDate)
   }
 
   return (
-    <div className={clsx(styles.calendar, embedded && styles.embedded)} data-through="false">
+    <div
+      className={clsx(styles.calendar, embedded && styles.embedded)}
+      data-through="false">
       <div className={styles.layout}>
         <div className={clsx(styles.main, styles.gridPane)}>
           <DayGrid

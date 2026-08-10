@@ -35,20 +35,20 @@ function OrganizeTask() {
   const error = useMorphStore(function (s) {
     return s.organizeModal.error
   })
-  const closeOperation = useMorphStore(function (s) {
-    return s.closeOperation
+  const toCloseOperation = useMorphStore(function (s) {
+    return s.toCloseOperation
   })
-  const patchOrganize = useMorphStore(function (s) {
-    return s.patchOrganize
+  const toPatchOrganize = useMorphStore(function (s) {
+    return s.toPatchOrganize
   })
-  const executeOrganize = useMorphStore(function (s) {
-    return s.executeOrganize
+  const toExecuteOrganize = useMorphStore(function (s) {
+    return s.toExecuteOrganize
   })
-  const openFilePicker = useMorphStore(function (s) {
-    return s.openFilePicker
+  const toOpenFilePicker = useMorphStore(function (s) {
+    return s.toOpenFilePicker
   })
-  const fetchThumbnails = useMorphStore(function (s) {
-    return s.fetchThumbnails
+  const toFetchThumbnails = useMorphStore(function (s) {
+    return s.toFetchThumbnails
   })
 
   useEffect(
@@ -56,15 +56,15 @@ function OrganizeTask() {
       const count = file?.count ?? 0
       if (!count) return
       if (order.length === count) return
-      patchOrganize({
+      toPatchOrganize({
         order: Array.from({ length: count }, function (_, i) {
           return i
         }),
         selected: []
       })
-      if (!thumbnails.length) void fetchThumbnails()
+      if (!thumbnails.length) void toFetchThumbnails()
     },
-    [file?.count, file?.path, order.length, patchOrganize, thumbnails.length, fetchThumbnails]
+    [file?.count, file?.path, order.length, toPatchOrganize, thumbnails.length, toFetchThumbnails]
   )
 
   const images = useMemo(
@@ -96,12 +96,12 @@ function OrganizeTask() {
       title: '选择整理后的输出路径',
       filters: [{ name: 'PDF', extensions: ['pdf'] }]
     })
-    if (typeof selectedPath === 'string') patchOrganize({ dest: selectedPath })
+    if (typeof selectedPath === 'string') toPatchOrganize({ dest: selectedPath })
   }
 
   function onOffsetClick(offset: number) {
     const next = toggleOffset(selectedOffsets, offset)
-    patchOrganize({ selected: [...next] })
+    toPatchOrganize({ selected: [...next] })
   }
 
   /** 按当前 order 位置移动，跳过同属选中的邻居 */
@@ -127,7 +127,7 @@ function OrganizeTask() {
       next[index] = next[target]
       next[target] = temp
     }
-    patchOrganize({ order: next })
+    toPatchOrganize({ order: next })
   }
 
   function onConfirmDelete() {
@@ -138,7 +138,7 @@ function OrganizeTask() {
       okType: 'danger',
       cancelText: '取消',
       onOk() {
-        return executeOrganize('delete')
+        return toExecuteOrganize('delete')
       }
     })
   }
@@ -154,7 +154,7 @@ function OrganizeTask() {
       title="整理页面"
       icon="ant-design:appstore-outlined"
       meta={meta}
-      onBack={closeOperation}
+      onBack={toCloseOperation}
       actions={
         <>
           <Button
@@ -201,7 +201,7 @@ function OrganizeTask() {
               />
             }
             onClick={function () {
-              void executeOrganize('rotate')
+              void toExecuteOrganize('rotate')
             }}>
             旋转
           </Button>
@@ -238,7 +238,7 @@ function OrganizeTask() {
       submitDisabled={!canSubmit}
       submitLoading={loading}
       onSubmit={function () {
-        void executeOrganize('reorder')
+        void toExecuteOrganize('reorder')
       }}>
       {!file ? (
         <div className={styles.stageEmpty}>
@@ -251,7 +251,7 @@ function OrganizeTask() {
                 size="small"
                 type="link"
                 onClick={function () {
-                  void openFilePicker()
+                  void toOpenFilePicker()
                 }}>
                 打开 PDF
               </Button>
@@ -269,7 +269,7 @@ function OrganizeTask() {
           isLoading={!thumbnailsError && thumbnails.length === 0}
           hasError={Boolean(thumbnailsError)}
           onRetry={function () {
-            void fetchThumbnails()
+            void toFetchThumbnails()
           }}
           onOffsetClick={onOffsetClick}
         />

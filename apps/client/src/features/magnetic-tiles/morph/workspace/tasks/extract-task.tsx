@@ -31,28 +31,28 @@ function ExtractTask() {
   const error = useMorphStore(function (s) {
     return s.extractModal.error
   })
-  const closeOperation = useMorphStore(function (s) {
-    return s.closeOperation
+  const toCloseOperation = useMorphStore(function (s) {
+    return s.toCloseOperation
   })
-  const patchExtract = useMorphStore(function (s) {
-    return s.patchExtract
+  const toPatchExtract = useMorphStore(function (s) {
+    return s.toPatchExtract
   })
-  const executeExtract = useMorphStore(function (s) {
-    return s.executeExtract
+  const toExecuteExtract = useMorphStore(function (s) {
+    return s.toExecuteExtract
   })
-  const openFilePicker = useMorphStore(function (s) {
-    return s.openFilePicker
+  const toOpenFilePicker = useMorphStore(function (s) {
+    return s.toOpenFilePicker
   })
-  const fetchThumbnails = useMorphStore(function (s) {
-    return s.fetchThumbnails
+  const toFetchThumbnails = useMorphStore(function (s) {
+    return s.toFetchThumbnails
   })
 
   useEffect(
     function () {
       if (!file?.path) return
-      if (!thumbnails.length && !thumbnailsError) void fetchThumbnails()
+      if (!thumbnails.length && !thumbnailsError) void toFetchThumbnails()
     },
-    [file, thumbnails.length, thumbnailsError, fetchThumbnails]
+    [file, thumbnails.length, thumbnailsError, toFetchThumbnails]
   )
 
   const selectedOffsets = useMemo(
@@ -67,12 +67,12 @@ function ExtractTask() {
       title: '选择抽取输出路径',
       filters: [{ name: 'PDF', extensions: ['pdf'] }]
     })
-    if (typeof selectedPath === 'string') patchExtract({ dest: selectedPath })
+    if (typeof selectedPath === 'string') toPatchExtract({ dest: selectedPath })
   }
 
   function onOffsetClick(offset: number) {
     const next = toggleOffset(selectedOffsets, offset)
-    patchExtract({
+    toPatchExtract({
       selected: [...next].sort(function (a, b) {
         return a - b
       })
@@ -89,14 +89,14 @@ function ExtractTask() {
       title="抽取页面"
       icon="ant-design:export-outlined"
       meta={meta}
-      onBack={closeOperation}
+      onBack={toCloseOperation}
       actions={
         selected.length > 0 ? (
           <Button
             size="small"
             type="text"
             onClick={function () {
-              patchExtract({ selected: [] })
+              toPatchExtract({ selected: [] })
             }}>
             清空选中
           </Button>
@@ -118,7 +118,7 @@ function ExtractTask() {
       submitDisabled={!canSubmit}
       submitLoading={loading}
       onSubmit={function () {
-        void executeExtract()
+        void toExecuteExtract()
       }}>
       {!file ? (
         <div className={styles.stageEmpty}>
@@ -131,7 +131,7 @@ function ExtractTask() {
                 size="small"
                 type="link"
                 onClick={function () {
-                  void openFilePicker()
+                  void toOpenFilePicker()
                 }}>
                 打开 PDF
               </Button>
@@ -146,7 +146,7 @@ function ExtractTask() {
           isLoading={!thumbnailsError && thumbnails.length === 0}
           hasError={Boolean(thumbnailsError)}
           onRetry={function () {
-            void fetchThumbnails()
+            void toFetchThumbnails()
           }}
           onOffsetClick={onOffsetClick}
         />

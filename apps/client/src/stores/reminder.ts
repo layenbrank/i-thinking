@@ -65,10 +65,10 @@ interface ReminderRead {
 interface ReminderStore {
   reminders: Reminder[]
   loaded: boolean
-  readReminders(filter?: ReminderRead): Promise<Reminder[]>
-  writeReminder(value: ReminderWrite): Promise<string | undefined>
-  updateReminder(value: ReminderUpdate): Promise<void>
-  removeReminder(key: string): Promise<void>
+  toReadReminders(filter?: ReminderRead): Promise<Reminder[]>
+  toWriteReminder(value: ReminderWrite): Promise<string | undefined>
+  toUpdateReminder(value: ReminderUpdate): Promise<void>
+  toRemoveReminder(key: string): Promise<void>
 }
 
 const useReminderStore = create<ReminderStore>()(
@@ -78,7 +78,7 @@ const useReminderStore = create<ReminderStore>()(
         reminders: [],
         loaded: false,
 
-        async readReminders(filter = {}) {
+        async toReadReminders(filter = {}) {
           try {
             const reminders = await invoke<Reminder[]>('reminder:read', {
               params: filter
@@ -89,23 +89,23 @@ const useReminderStore = create<ReminderStore>()(
                 state.loaded = true
               },
               false,
-              'readReminders'
+              'toReadReminders'
             )
             return reminders
           } catch (err) {
-            console.error('[reminder-store] readReminders failed:', err)
+            console.error('[reminder-store] toReadReminders failed:', err)
             setter(
               function (state) {
                 state.loaded = true
               },
               false,
-              'readReminders/error'
+              'toReadReminders/error'
             )
             return []
           }
         },
 
-        async writeReminder(value) {
+        async toWriteReminder(value) {
           try {
             const ids = await invoke<string[]>('reminder:write', {
               params: {
@@ -121,15 +121,15 @@ const useReminderStore = create<ReminderStore>()(
                 priority: value.priority ?? 0
               }
             })
-            await getter().readReminders()
+            await getter().toReadReminders()
             return ids[0]
           } catch (err) {
-            console.error('[reminder-store] writeReminder failed:', err)
+            console.error('[reminder-store] toWriteReminder failed:', err)
             return undefined
           }
         },
 
-        async updateReminder(value) {
+        async toUpdateReminder(value) {
           const prev = getter().reminders
           setter(
             function (state) {
@@ -140,25 +140,25 @@ const useReminderStore = create<ReminderStore>()(
               Object.assign(target, value.change)
             },
             false,
-            'updateReminder/optimistic'
+            'toUpdateReminder/optimistic'
           )
           try {
             await invoke('reminder:update', { params: value })
-            await getter().readReminders()
+            await getter().toReadReminders()
           } catch (err) {
             setter(
               function (state) {
                 state.reminders = prev
               },
               false,
-              'updateReminder/rollback'
+              'toUpdateReminder/rollback'
             )
-            console.error('[reminder-store] updateReminder failed:', err)
+            console.error('[reminder-store] toUpdateReminder failed:', err)
             throw err
           }
         },
 
-        async removeReminder(key) {
+        async toRemoveReminder(key) {
           const prev = getter().reminders
           setter(
             function (state) {
@@ -167,7 +167,7 @@ const useReminderStore = create<ReminderStore>()(
               })
             },
             false,
-            'removeReminder/optimistic'
+            'toRemoveReminder/optimistic'
           )
           try {
             await invoke('reminder:remove', { params: key })
@@ -177,9 +177,9 @@ const useReminderStore = create<ReminderStore>()(
                 state.reminders = prev
               },
               false,
-              'removeReminder/rollback'
+              'toRemoveReminder/rollback'
             )
-            console.error('[reminder-store] removeReminder failed:', err)
+            console.error('[reminder-store] toRemoveReminder failed:', err)
             throw err
           }
         }

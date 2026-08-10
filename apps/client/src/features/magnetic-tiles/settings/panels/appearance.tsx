@@ -1,5 +1,4 @@
 import { generate, presetPalettes } from '@ant-design/colors'
-import clsx from 'clsx'
 import {
   Button,
   ColorPicker,
@@ -12,13 +11,14 @@ import {
   Typography
 } from 'antd'
 import type { Color } from 'antd/es/color-picker'
+import clsx from 'clsx'
 import { useMemo } from 'react'
 
-import ThemePreview from '@/features/magnetic-tiles/settings/theme-preview'
 import {
   exportAppearanceFile,
   importAppearanceFile
 } from '@/features/magnetic-tiles/settings/theme-io'
+import ThemePreview from '@/features/magnetic-tiles/settings/theme-preview'
 import ThemeRecipeForm from '@/features/magnetic-tiles/settings/theme-recipe-form'
 import { useSettingsStore } from '@/stores/setting'
 import {
@@ -56,11 +56,11 @@ function AppearancePanel() {
   const appearance = useSettingsStore(function (state) {
     return state.settings.appearance
   })
-  const update = useSettingsStore(function (state) {
-    return state.update
+  const toUpdate = useSettingsStore(function (state) {
+    return state.toUpdate
   })
-  const resetAppearance = useSettingsStore(function (state) {
-    return state.resetAppearance
+  const toResetAppearance = useSettingsStore(function (state) {
+    return state.toResetAppearance
   })
 
   const colorPresets = useMemo(function () {
@@ -87,7 +87,7 @@ function AppearancePanel() {
   )
 
   function mergeAppearance(patch: Partial<Appearance>) {
-    void update('appearance', patch)
+    void toUpdate('appearance', patch)
   }
 
   async function onExport() {
@@ -103,7 +103,7 @@ function AppearancePanel() {
     try {
       const parsed = await importAppearanceFile()
       if (!parsed) return
-      await update('appearance', parsed)
+      await toUpdate('appearance', parsed)
       message.success('主题已导入')
     } catch (error) {
       message.error(error instanceof Error ? error.message : '导入失败')
@@ -111,7 +111,7 @@ function AppearancePanel() {
   }
 
   async function onReset() {
-    await resetAppearance()
+    await toResetAppearance()
     message.success('已恢复默认主题')
   }
 

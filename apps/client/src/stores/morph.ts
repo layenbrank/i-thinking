@@ -61,8 +61,8 @@ interface MorphState {
   exportState: Morph.ExportState
 
   // History
-  undoStack: HistoryEntry[]
-  redoStack: HistoryEntry[]
+  toUndoStack: HistoryEntry[]
+  toRedoStack: HistoryEntry[]
 
   // Doc operations (edit-first; activeOperation drives UI, not a tools-app mode)
   activeOperation: Morph.Operation | null
@@ -105,66 +105,66 @@ interface MorphState {
 
   // ── Actions ────────────────────────────────────────────────────────────
 
-  openFilePicker: () => Promise<void>
-  openFile: (path: string) => Promise<void>
-  switchFile: (path: string) => Promise<void>
-  closeFile: (path: string) => void
-  seekOffset: (offset: number, opts?: { source?: Morph.SeekSource }) => void
-  zoomTo: (zoom: number) => void
-  zoomIn: () => void
-  zoomOut: () => void
-  fitWidth: () => void
-  pickTool: (tool: Tool) => void
-  switchView: (mode: ViewMode) => void
-  toggleSummary: () => void
+  toOpenFilePicker: () => Promise<void>
+  toOpenFile: (path: string) => Promise<void>
+  toSwitchFile: (path: string) => Promise<void>
+  toCloseFile: (path: string) => void
+  toSeekOffset: (offset: number, opts?: { source?: Morph.SeekSource }) => void
+  toZoomTo: (zoom: number) => void
+  toZoomIn: () => void
+  toZoomOut: () => void
+  toFitWidth: () => void
+  toPickTool: (tool: Tool) => void
+  toSwitchView: (mode: ViewMode) => void
+  toToggleSummary: () => void
 
-  fetchRender: (offset: number) => Promise<void>
-  fetchCurrent: () => Promise<void>
-  warmOffsets: (offsets: number[]) => Promise<void>
-  fetchThumbnails: () => Promise<void>
+  toFetchRender: (offset: number) => Promise<void>
+  toFetchCurrent: () => Promise<void>
+  toWarmOffsets: (offsets: number[]) => Promise<void>
+  toFetchThumbnails: () => Promise<void>
 
-  matchText: (query: string) => Promise<void>
-  clearSearch: () => void
-  seekMatch: (idx: number) => void
+  toMatchText: (query: string) => Promise<void>
+  toClearSearch: () => void
+  toSeekMatch: (idx: number) => void
 
-  addAnnotation: (
+  toAddAnnotation: (
     partial: Omit<Annotation, 'id' | 'path' | 'createdAt' | 'updatedAt'>
   ) => Promise<void>
-  patchAnnotation: (
+  toPatchAnnotation: (
     id: string,
     changes: Partial<Pick<Annotation, 'rect' | 'data'>>
   ) => Promise<void>
-  removeAnnotation: (id: string) => Promise<void>
-  selectAnnotation: (id: string | null) => void
+  toRemoveAnnotation: (id: string) => Promise<void>
+  toSelectAnnotation: (id: string | null) => void
 
-  patchExport: (patch: Partial<Morph.ExportState>) => void
-  exportDoc: (destPath: string) => Promise<void>
+  toPatchExport: (patch: Partial<Morph.ExportState>) => void
+  toExportDoc: (destPath: string) => Promise<void>
 
-  openOperation: (operation: Morph.Operation) => void
-  closeOperation: () => void
-  patchMerge: (patch: Partial<MorphState['mergeModal']>) => void
-  executeMerge: () => Promise<void>
-  patchSplit: (patch: Partial<MorphState['splitModal']>) => void
-  executeSplit: () => Promise<void>
-  patchConvert: (patch: Partial<MorphState['convertModal']>) => void
-  executeConvert: () => Promise<void>
-  patchOrganize: (patch: Partial<MorphState['organizeModal']>) => void
-  executeOrganize: (action: 'reorder' | 'rotate' | 'delete') => Promise<void>
-  patchExtract: (patch: Partial<MorphState['extractModal']>) => void
-  executeExtract: () => Promise<void>
+  toOpenOperation: (operation: Morph.Operation) => void
+  toCloseOperation: () => void
+  toPatchMerge: (patch: Partial<MorphState['mergeModal']>) => void
+  toExecuteMerge: () => Promise<void>
+  toPatchSplit: (patch: Partial<MorphState['splitModal']>) => void
+  toExecuteSplit: () => Promise<void>
+  toPatchConvert: (patch: Partial<MorphState['convertModal']>) => void
+  toExecuteConvert: () => Promise<void>
+  toPatchOrganize: (patch: Partial<MorphState['organizeModal']>) => void
+  toExecuteOrganize: (action: 'reorder' | 'rotate' | 'delete') => Promise<void>
+  toPatchExtract: (patch: Partial<MorphState['extractModal']>) => void
+  toExecuteExtract: () => Promise<void>
 
-  /** @deprecated use openOperation('merge') */
-  openMergeModal: () => void
-  closeMergeModal: () => void
-  /** @deprecated use openOperation('split') */
-  openSplitModal: () => void
-  closeSplitModal: () => void
-  /** @deprecated use openOperation('convert') */
-  openConvertModal: () => void
-  closeConvertModal: () => void
+  /** @deprecated use toOpenOperation('merge') */
+  toOpenMergeModal: () => void
+  toCloseMergeModal: () => void
+  /** @deprecated use toOpenOperation('split') */
+  toOpenSplitModal: () => void
+  toCloseSplitModal: () => void
+  /** @deprecated use toOpenOperation('convert') */
+  toOpenConvertModal: () => void
+  toCloseConvertModal: () => void
 
-  undo: () => Promise<void>
-  redo: () => Promise<void>
+  toUndo: () => Promise<void>
+  toRedo: () => Promise<void>
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -183,8 +183,8 @@ const useMorphStore = create<MorphState>()(
       function pushHistory(entry: HistoryEntry) {
         if (_suppressHistory) return
         setter((s) => {
-          s.undoStack.push(entry)
-          s.redoStack = []
+          s.toUndoStack.push(entry)
+          s.toRedoStack = []
         })
       }
 
@@ -221,8 +221,8 @@ const useMorphStore = create<MorphState>()(
         search: { query: '', results: [], active: -1 },
         exportState: { format: 'pdf', range: 'all', customRange: '' },
 
-        undoStack: [],
-        redoStack: [],
+        toUndoStack: [],
+        toRedoStack: [],
 
         activeOperation: null,
         mergeModal: { inputs: [], output: '', loading: false, error: null },
@@ -257,7 +257,7 @@ const useMorphStore = create<MorphState>()(
 
         // ── file ─────────────────────────────────────────────────────
 
-        async openFilePicker() {
+        async toOpenFilePicker() {
           const selected = await dialogOpen({
             title: '打开 PDF 文件',
             filters: [{ name: 'PDF', extensions: ['pdf'] }],
@@ -267,7 +267,7 @@ const useMorphStore = create<MorphState>()(
           const paths = Array.isArray(selected) ? selected : [selected]
           if (paths.length === 0) return
           // Activate the first file
-          await getter().openFile(paths[0])
+          await getter().toOpenFile(paths[0])
           // Add remaining files to list without switching
           for (let i = 1; i < paths.length; i++) {
             const path = paths[i]
@@ -285,7 +285,7 @@ const useMorphStore = create<MorphState>()(
           }
         },
 
-        async openFile(path: string) {
+        async toOpenFile(path: string) {
           setter((s) => {
             s.isLoading = true
           })
@@ -310,15 +310,15 @@ const useMorphStore = create<MorphState>()(
               s.renders = {}
               s.thumbnails = []
               s.thumbnailsError = null
-              s.undoStack = []
-              s.redoStack = []
+              s.toUndoStack = []
+              s.toRedoStack = []
               s.selectedId = null
               s.search = { query: '', results: [], active: -1 }
             })
 
-            await getter().warmOffsets(nearOffsets(0, meta.count))
+            await getter().toWarmOffsets(nearOffsets(0, meta.count))
             // Load thumbnails in background
-            void getter().fetchThumbnails()
+            void getter().toFetchThumbnails()
           } finally {
             setter((s) => {
               s.isLoading = false
@@ -326,7 +326,7 @@ const useMorphStore = create<MorphState>()(
           }
         },
 
-        async switchFile(path: string) {
+        async toSwitchFile(path: string) {
           const { file, files } = getter()
           if (file?.path === path) return
           const target = files.find((f) => f.path === path)
@@ -346,13 +346,13 @@ const useMorphStore = create<MorphState>()(
               s.renders = {}
               s.thumbnails = []
               s.thumbnailsError = null
-              s.undoStack = []
-              s.redoStack = []
+              s.toUndoStack = []
+              s.toRedoStack = []
               s.selectedId = null
               s.search = { query: '', results: [], active: -1 }
             })
-            await getter().warmOffsets(nearOffsets(0, target.count))
-            void getter().fetchThumbnails()
+            await getter().toWarmOffsets(nearOffsets(0, target.count))
+            void getter().toFetchThumbnails()
           } finally {
             setter((s) => {
               s.isLoading = false
@@ -360,7 +360,7 @@ const useMorphStore = create<MorphState>()(
           }
         },
 
-        closeFile(path: string) {
+        toCloseFile(path: string) {
           const { file, files } = getter()
           const remaining = files.filter((f) => f.path !== path)
           setter((s) => {
@@ -368,7 +368,7 @@ const useMorphStore = create<MorphState>()(
           })
           if (file?.path !== path) return
           if (remaining.length > 0) {
-            void getter().switchFile(remaining[remaining.length - 1].path)
+            void getter().toSwitchFile(remaining[remaining.length - 1].path)
           } else {
             setter((s) => {
               s.file = null
@@ -378,8 +378,8 @@ const useMorphStore = create<MorphState>()(
               s.renders = {}
               s.thumbnails = []
               s.thumbnailsError = null
-              s.undoStack = []
-              s.redoStack = []
+              s.toUndoStack = []
+              s.toRedoStack = []
               s.selectedId = null
               s.search = { query: '', results: [], active: -1 }
             })
@@ -388,7 +388,7 @@ const useMorphStore = create<MorphState>()(
 
         // ── view ─────────────────────────────────────────────────────
 
-        seekOffset(offset: number, opts?: { source?: Morph.SeekSource }) {
+        toSeekOffset(offset: number, opts?: { source?: Morph.SeekSource }) {
           const source = opts?.source ?? 'toolbar'
           const { file, offset: current } = getter()
           if (!file) return
@@ -406,11 +406,11 @@ const useMorphStore = create<MorphState>()(
             s.seekSource = source
           })
           if (source !== 'scroll') {
-            void getter().warmOffsets(nearOffsets(clamped, file.count))
+            void getter().toWarmOffsets(nearOffsets(clamped, file.count))
           }
         },
 
-        zoomTo(zoom: number) {
+        toZoomTo(zoom: number) {
           const clamped = Math.max(0.25, Math.min(zoom, 5.0))
           const { offset, file } = getter()
           setter((s) => {
@@ -419,21 +419,21 @@ const useMorphStore = create<MorphState>()(
           })
           pending.clear()
           if (file) {
-            void getter().warmOffsets(nearOffsets(offset, file.count))
+            void getter().toWarmOffsets(nearOffsets(offset, file.count))
           }
         },
 
-        zoomIn() {
-          getter().zoomTo(Math.round((getter().zoom + 0.25) * 4) / 4)
+        toZoomIn() {
+          getter().toZoomTo(Math.round((getter().zoom + 0.25) * 4) / 4)
         },
-        zoomOut() {
-          getter().zoomTo(Math.round((getter().zoom - 0.25) * 4) / 4)
+        toZoomOut() {
+          getter().toZoomTo(Math.round((getter().zoom - 0.25) * 4) / 4)
         },
-        fitWidth() {
-          getter().zoomTo(1.0)
+        toFitWidth() {
+          getter().toZoomTo(1.0)
         },
 
-        pickTool(tool: Tool) {
+        toPickTool(tool: Tool) {
           setter((s) => {
             s.activeTool = tool
             // Switch to edit mode when a drawing tool is selected
@@ -441,12 +441,12 @@ const useMorphStore = create<MorphState>()(
           })
         },
 
-        switchView(mode: ViewMode) {
+        toSwitchView(mode: ViewMode) {
           setter((s) => {
             s.viewMode = mode
           })
         },
-        toggleSummary() {
+        toToggleSummary() {
           setter((s) => {
             s.summaryVisible = !s.summaryVisible
           })
@@ -454,7 +454,7 @@ const useMorphStore = create<MorphState>()(
 
         // ── rendering ────────────────────────────────────────────────
 
-        async fetchRender(offset: number) {
+        async toFetchRender(offset: number) {
           const { file, zoom, renders } = getter()
           if (!file) return
           if (offset < 0 || offset >= file.count) return
@@ -473,17 +473,17 @@ const useMorphStore = create<MorphState>()(
               s.renders[offset] = image
             })
           } catch (e) {
-            console.error('[morph] fetchRender failed:', e)
+            console.error('[morph] toFetchRender failed:', e)
           } finally {
             pending.delete(offset)
           }
         },
 
-        async fetchCurrent() {
-          await getter().fetchRender(getter().offset)
+        async toFetchCurrent() {
+          await getter().toFetchRender(getter().offset)
         },
 
-        async warmOffsets(offsets: number[]) {
+        async toWarmOffsets(offsets: number[]) {
           const { file, renders } = getter()
           if (!file) return
           const unique = [...new Set(offsets)].filter(function (i) {
@@ -495,7 +495,7 @@ const useMorphStore = create<MorphState>()(
           async function worker() {
             while (cursor < unique.length) {
               const index = unique[cursor++]
-              await getter().fetchRender(index)
+              await getter().toFetchRender(index)
             }
           }
 
@@ -508,7 +508,7 @@ const useMorphStore = create<MorphState>()(
           await Promise.all(workers)
         },
 
-        async fetchThumbnails() {
+        async toFetchThumbnails() {
           const { file } = getter()
           if (!file) return
           setter((s) => {
@@ -521,7 +521,7 @@ const useMorphStore = create<MorphState>()(
               s.thumbnailsError = null
             })
           } catch (e) {
-            console.error('[morph] fetchThumbnails failed:', e)
+            console.error('[morph] toFetchThumbnails failed:', e)
             setter((s) => {
               s.thumbnails = []
               s.thumbnailsError = String(e)
@@ -531,7 +531,7 @@ const useMorphStore = create<MorphState>()(
 
         // ── search ────────────────────────────────────────────────────
 
-        async matchText(query: string) {
+        async toMatchText(query: string) {
           const { file } = getter()
           if (!file || !query.trim()) return
           const results: Hit[] = await MorphIpc.toMatch(file.path, query)
@@ -542,28 +542,28 @@ const useMorphStore = create<MorphState>()(
           })
           // Jump to first match page
           if (results.length > 0) {
-            getter().seekOffset(results[0].offset, { source: 'toolbar' })
+            getter().toSeekOffset(results[0].offset, { source: 'toolbar' })
           }
         },
 
-        clearSearch() {
+        toClearSearch() {
           setter((s) => {
             s.search = { query: '', results: [], active: -1 }
           })
         },
 
-        seekMatch(idx: number) {
+        toSeekMatch(idx: number) {
           const results = getter().search.results
           if (idx < 0 || idx >= results.length) return
           setter((s) => {
             s.search.active = idx
           })
-          getter().seekOffset(results[idx].offset, { source: 'toolbar' })
+          getter().toSeekOffset(results[idx].offset, { source: 'toolbar' })
         },
 
         // ── annotations ───────────────────────────────────────────────
 
-        addAnnotation(partial) {
+        toAddAnnotation(partial) {
           const { file } = getter()
           if (!file) return Promise.resolve()
 
@@ -580,8 +580,7 @@ const useMorphStore = create<MorphState>()(
 
           setter((s) => {
             s.annotations.push(annotation)
-            s.annCounts[annotation.offset] =
-              (s.annCounts[annotation.offset] ?? 0) + 1
+            s.annCounts[annotation.offset] = (s.annCounts[annotation.offset] ?? 0) + 1
           })
 
           pushHistory({
@@ -594,7 +593,7 @@ const useMorphStore = create<MorphState>()(
           return Promise.resolve()
         },
 
-        patchAnnotation(id, changes) {
+        toPatchAnnotation(id, changes) {
           const before = getter().annotations.find((a) => a.id === id) ?? null
           if (!before) return Promise.resolve()
 
@@ -620,7 +619,7 @@ const useMorphStore = create<MorphState>()(
           return Promise.resolve()
         },
 
-        removeAnnotation(id) {
+        toRemoveAnnotation(id) {
           const before = getter().annotations.find((a) => a.id === id) ?? null
           if (!before) return Promise.resolve()
 
@@ -644,7 +643,7 @@ const useMorphStore = create<MorphState>()(
           return Promise.resolve()
         },
 
-        selectAnnotation(id) {
+        toSelectAnnotation(id) {
           setter((s) => {
             s.selectedId = id
           })
@@ -652,13 +651,13 @@ const useMorphStore = create<MorphState>()(
 
         // ── export ────────────────────────────────────────────────────
 
-        patchExport(patch) {
+        toPatchExport(patch) {
           setter((s) => {
             Object.assign(s.exportState, patch)
           })
         },
 
-        async exportDoc(destPath: string) {
+        async toExportDoc(destPath: string) {
           const { file } = getter()
           if (!file) return
           await MorphIpc.toExport(file.path, destPath)
@@ -666,7 +665,7 @@ const useMorphStore = create<MorphState>()(
 
         // ── doc operations ───────────────────────────────────────────
 
-        openOperation(operation) {
+        toOpenOperation(operation) {
           const { files, file, summaryVisible, summaryBeforeOperation } = getter()
           const count = file?.count ?? 0
           const order = Array.from({ length: count }, function (_, i) {
@@ -711,11 +710,11 @@ const useMorphStore = create<MorphState>()(
             file &&
             getter().thumbnails.length === 0
           ) {
-            void getter().fetchThumbnails()
+            void getter().toFetchThumbnails()
           }
         },
 
-        closeOperation() {
+        toCloseOperation() {
           setter((s) => {
             s.activeOperation = null
             if (s.summaryBeforeOperation !== null) {
@@ -725,18 +724,18 @@ const useMorphStore = create<MorphState>()(
           })
         },
 
-        openMergeModal() {
-          getter().openOperation('merge')
+        toOpenMergeModal() {
+          getter().toOpenOperation('merge')
         },
-        closeMergeModal() {
-          getter().closeOperation()
+        toCloseMergeModal() {
+          getter().toCloseOperation()
         },
-        patchMerge(patch) {
+        toPatchMerge(patch) {
           setter((s) => {
             Object.assign(s.mergeModal, patch)
           })
         },
-        async executeMerge() {
+        async toExecuteMerge() {
           const { mergeModal } = getter()
           setter((s) => {
             s.mergeModal.loading = true
@@ -745,7 +744,7 @@ const useMorphStore = create<MorphState>()(
           try {
             await MorphIpc.toMerge(mergeModal.inputs, mergeModal.output)
             antdMessage.success(`合并完成 → ${mergeModal.output}`)
-            getter().closeOperation()
+            getter().toCloseOperation()
           } catch (e) {
             const msg = String(e)
             setter((s) => {
@@ -759,18 +758,18 @@ const useMorphStore = create<MorphState>()(
           }
         },
 
-        openSplitModal() {
-          getter().openOperation('split')
+        toOpenSplitModal() {
+          getter().toOpenOperation('split')
         },
-        closeSplitModal() {
-          getter().closeOperation()
+        toCloseSplitModal() {
+          getter().toCloseOperation()
         },
-        patchSplit(patch) {
+        toPatchSplit(patch) {
           setter((s) => {
             Object.assign(s.splitModal, patch)
           })
         },
-        async executeSplit() {
+        async toExecuteSplit() {
           const { splitModal, file } = getter()
           if (!file) return
           setter((s) => {
@@ -820,7 +819,7 @@ const useMorphStore = create<MorphState>()(
               })
               antdMessage.success(`拆分完成，已生成 ${paths.length} 个文件 → ${splitModal.destDir}`)
             }
-            getter().closeOperation()
+            getter().toCloseOperation()
           } catch (e) {
             const msg = String(e)
             setter((s) => {
@@ -834,18 +833,18 @@ const useMorphStore = create<MorphState>()(
           }
         },
 
-        openConvertModal() {
-          getter().openOperation('convert')
+        toOpenConvertModal() {
+          getter().toOpenOperation('convert')
         },
-        closeConvertModal() {
-          getter().closeOperation()
+        toCloseConvertModal() {
+          getter().toCloseOperation()
         },
-        patchConvert(patch) {
+        toPatchConvert(patch) {
           setter((s) => {
             Object.assign(s.convertModal, patch)
           })
         },
-        async executeConvert() {
+        async toExecuteConvert() {
           const { convertModal, file } = getter()
           if (!file) return
           setter((s) => {
@@ -871,7 +870,7 @@ const useMorphStore = create<MorphState>()(
               )
               antdMessage.success(`转换完成 → ${outPath}`)
             }
-            getter().closeOperation()
+            getter().toCloseOperation()
           } catch (e) {
             const msg = String(e)
             setter((s) => {
@@ -885,12 +884,12 @@ const useMorphStore = create<MorphState>()(
           }
         },
 
-        patchOrganize(patch) {
+        toPatchOrganize(patch) {
           setter((s) => {
             Object.assign(s.organizeModal, patch)
           })
         },
-        async executeOrganize(action) {
+        async toExecuteOrganize(action) {
           const { organizeModal, file } = getter()
           if (!file) return
           if (!organizeModal.dest) {
@@ -904,11 +903,7 @@ const useMorphStore = create<MorphState>()(
           try {
             let outPath = organizeModal.dest
             if (action === 'reorder') {
-              outPath = await MorphIpc.toReorder(
-                file.path,
-                organizeModal.order,
-                organizeModal.dest
-              )
+              outPath = await MorphIpc.toReorder(file.path, organizeModal.order, organizeModal.dest)
             } else if (action === 'rotate') {
               if (!organizeModal.selected.length) {
                 throw new Error('请先选择要旋转的页面')
@@ -930,8 +925,8 @@ const useMorphStore = create<MorphState>()(
               )
             }
             antdMessage.success(`整理完成 → ${outPath}`)
-            getter().closeOperation()
-            await getter().openFile(outPath)
+            getter().toCloseOperation()
+            await getter().toOpenFile(outPath)
           } catch (e) {
             const msg = String(e)
             setter((s) => {
@@ -945,12 +940,12 @@ const useMorphStore = create<MorphState>()(
           }
         },
 
-        patchExtract(patch) {
+        toPatchExtract(patch) {
           setter((s) => {
             Object.assign(s.extractModal, patch)
           })
         },
-        async executeExtract() {
+        async toExecuteExtract() {
           const { extractModal, file } = getter()
           if (!file) return
           if (!extractModal.selected.length) {
@@ -972,7 +967,7 @@ const useMorphStore = create<MorphState>()(
               extractModal.dest
             )
             antdMessage.success(`抽取完成 → ${outPath}`)
-            getter().closeOperation()
+            getter().toCloseOperation()
           } catch (e) {
             const msg = String(e)
             setter((s) => {
@@ -988,25 +983,25 @@ const useMorphStore = create<MorphState>()(
 
         // ── history ───────────────────────────────────────────────────
 
-        async undo() {
-          const { undoStack } = getter()
-          if (!undoStack.length) return
-          const entry = undoStack[undoStack.length - 1]
+        async toUndo() {
+          const { toUndoStack } = getter()
+          if (!toUndoStack.length) return
+          const entry = toUndoStack[toUndoStack.length - 1]
 
           setter((s) => {
-            s.undoStack.pop()
-            s.redoStack.push(entry)
+            s.toUndoStack.pop()
+            s.toRedoStack.push(entry)
           })
 
           _suppressHistory = true
           try {
             const store = getter()
             if (entry.kind === 'ADD_ANNOTATION' && entry.after) {
-              await store.removeAnnotation(entry.after.id)
+              await store.toRemoveAnnotation(entry.after.id)
             } else if (entry.kind === 'REMOVE_ANNOTATION' && entry.before) {
-              await store.addAnnotation(entry.before)
+              await store.toAddAnnotation(entry.before)
             } else if (entry.kind === 'UPDATE_ANNOTATION' && entry.before) {
-              await store.patchAnnotation(entry.before.id, {
+              await store.toPatchAnnotation(entry.before.id, {
                 rect: entry.before.rect,
                 data: entry.before.data
               })
@@ -1016,25 +1011,25 @@ const useMorphStore = create<MorphState>()(
           }
         },
 
-        async redo() {
-          const { redoStack } = getter()
-          if (!redoStack.length) return
-          const entry = redoStack[redoStack.length - 1]
+        async toRedo() {
+          const { toRedoStack } = getter()
+          if (!toRedoStack.length) return
+          const entry = toRedoStack[toRedoStack.length - 1]
 
           setter((s) => {
-            s.redoStack.pop()
-            s.undoStack.push(entry)
+            s.toRedoStack.pop()
+            s.toUndoStack.push(entry)
           })
 
           _suppressHistory = true
           try {
             const store = getter()
             if (entry.kind === 'ADD_ANNOTATION' && entry.after) {
-              await store.addAnnotation(entry.after)
+              await store.toAddAnnotation(entry.after)
             } else if (entry.kind === 'REMOVE_ANNOTATION' && entry.before) {
-              await store.removeAnnotation(entry.before.id)
+              await store.toRemoveAnnotation(entry.before.id)
             } else if (entry.kind === 'UPDATE_ANNOTATION' && entry.after) {
-              await store.patchAnnotation(entry.after.id, {
+              await store.toPatchAnnotation(entry.after.id, {
                 rect: entry.after.rect,
                 data: entry.after.data
               })
@@ -1060,9 +1055,11 @@ function selectOffsetAnns(state: MorphState) {
 }
 
 function selectSelectedAnnotation(state: MorphState) {
-  return state.annotations.find(function (a) {
-    return a.id === state.selectedId
-  }) ?? null
+  return (
+    state.annotations.find(function (a) {
+      return a.id === state.selectedId
+    }) ?? null
+  )
 }
 
-export { useMorphStore, selectOffsetAnns, selectSelectedAnnotation }
+export { selectOffsetAnns, selectSelectedAnnotation, useMorphStore }

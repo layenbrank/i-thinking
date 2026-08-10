@@ -17,7 +17,11 @@ import {
   formatWeekDays,
   parseWeekDays
 } from '@/features/magnetic-tiles/clock/alarm-time'
-import { AnalogFace, DigitalDigits, MinimalTime } from '@/features/magnetic-tiles/clock/clock-faces.tsx'
+import {
+  AnalogFace,
+  DigitalDigits,
+  MinimalTime
+} from '@/features/magnetic-tiles/clock/clock-faces.tsx'
 import { FlipClock } from '@/features/magnetic-tiles/clock/flip-digit.tsx'
 import faceStyles from '@/features/magnetic-tiles/clock/marker.module.scss'
 import styles from '@/features/magnetic-tiles/clock/overlay.module.scss'
@@ -125,17 +129,17 @@ function Overlay(props: OverlayControlProps) {
   const reminders = useReminderStore(function (s) {
     return s.reminders
   })
-  const readReminders = useReminderStore(function (s) {
-    return s.readReminders
+  const toReadReminders = useReminderStore(function (s) {
+    return s.toReadReminders
   })
-  const writeReminder = useReminderStore(function (s) {
-    return s.writeReminder
+  const toWriteReminder = useReminderStore(function (s) {
+    return s.toWriteReminder
   })
-  const updateReminder = useReminderStore(function (s) {
-    return s.updateReminder
+  const toUpdateReminder = useReminderStore(function (s) {
+    return s.toUpdateReminder
   })
-  const removeReminder = useReminderStore(function (s) {
-    return s.removeReminder
+  const toRemoveReminder = useReminderStore(function (s) {
+    return s.toRemoveReminder
   })
 
   const now = useSecondTick()
@@ -160,9 +164,9 @@ function Overlay(props: OverlayControlProps) {
 
   useEffect(
     function () {
-      void readReminders()
+      void toReadReminders()
     },
-    [readReminders]
+    [toReadReminders]
   )
 
   useEffect(
@@ -171,7 +175,7 @@ function Overlay(props: OverlayControlProps) {
       void import('@tauri-apps/api/event').then(function (mod) {
         void mod
           .listen('reminder:fired', function () {
-            void readReminders()
+            void toReadReminders()
           })
           .then(function (fn) {
             unlisten = fn
@@ -181,7 +185,7 @@ function Overlay(props: OverlayControlProps) {
         unlisten?.()
       }
     },
-    [readReminders]
+    [toReadReminders]
   )
 
   const heroTime = clockStyle === 'minimal' ? now.format('HH:mm') : now.format('HH:mm:ss')
@@ -256,7 +260,7 @@ function Overlay(props: OverlayControlProps) {
     try {
       const weekDays = JSON.stringify(draft.weekDays)
       if (isCreating) {
-        const id = await writeReminder({
+        const id = await toWriteReminder({
           title: draft.title.trim() || '闹钟',
           fireTime: draft.fireTime,
           weekDays,
@@ -265,7 +269,7 @@ function Overlay(props: OverlayControlProps) {
         if (!id) throw new Error('write failed')
         message.success('已添加闹钟')
       } else if (editingId) {
-        await updateReminder({
+        await toUpdateReminder({
           key: editingId,
           change: {
             title: draft.title.trim() || '闹钟',
@@ -285,7 +289,7 @@ function Overlay(props: OverlayControlProps) {
 
   async function handleToggle(reminder: Reminder, enabled: boolean) {
     try {
-      await updateReminder({
+      await toUpdateReminder({
         key: reminder.id,
         change: { enabled, snoozeUntil: null }
       })
@@ -296,7 +300,7 @@ function Overlay(props: OverlayControlProps) {
 
   async function handleRemove(id: string) {
     try {
-      await updateReminder({
+      await toUpdateReminder({
         key: id,
         change: { archivedAt: Date.now() }
       })
@@ -304,7 +308,7 @@ function Overlay(props: OverlayControlProps) {
       message.success('已归档')
     } catch {
       try {
-        await removeReminder(id)
+        await toRemoveReminder(id)
         if (editingId === id) cancelEdit()
         message.success('已删除')
       } catch {
@@ -315,7 +319,7 @@ function Overlay(props: OverlayControlProps) {
 
   async function handleSnooze(reminder: Reminder) {
     try {
-      await updateReminder({
+      await toUpdateReminder({
         key: reminder.id,
         change: {
           enabled: true,

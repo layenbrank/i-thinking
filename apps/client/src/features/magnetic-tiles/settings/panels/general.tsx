@@ -14,8 +14,8 @@ function GeneralPanel() {
   const general = useSettingsStore(function (state) {
     return state.settings.general
   })
-  const update = useSettingsStore(function (state) {
-    return state.update
+  const toUpdate = useSettingsStore(function (state) {
+    return state.toUpdate
   })
   const user = useSessionStore(function (state) {
     return state.user
@@ -42,7 +42,7 @@ function GeneralPanel() {
 
   async function onAutostartChange(checked: boolean) {
     try {
-      await update('general', { autostart: checked })
+      await toUpdate('general', { autostart: checked })
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error)
       message.error(`开机自启设置失败：${text}`)
@@ -119,9 +119,7 @@ function GeneralPanel() {
         <Space wrap>
           {user ? (
             <>
-              <Typography.Text type="secondary">
-                当前：{user.username}
-              </Typography.Text>
+              <Typography.Text type="secondary">当前：{user.username}</Typography.Text>
               <Button
                 danger
                 onClick={onSignOut}>

@@ -11,8 +11,8 @@ function TaskWorkbench() {
   const activeOperation = useMorphStore(function (s) {
     return s.activeOperation
   })
-  const closeOperation = useMorphStore(function (s) {
-    return s.closeOperation
+  const toCloseOperation = useMorphStore(function (s) {
+    return s.toCloseOperation
   })
 
   useEffect(
@@ -22,7 +22,7 @@ function TaskWorkbench() {
       function onKeyDown(event: KeyboardEvent) {
         if (event.key !== 'Escape') return
         event.preventDefault()
-        closeOperation()
+        toCloseOperation()
       }
 
       window.addEventListener('keydown', onKeyDown)
@@ -30,7 +30,7 @@ function TaskWorkbench() {
         window.removeEventListener('keydown', onKeyDown)
       }
     },
-    [activeOperation, closeOperation]
+    [activeOperation, toCloseOperation]
   )
 
   if (activeOperation === 'merge') return <MergeTask />

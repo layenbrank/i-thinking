@@ -133,27 +133,26 @@ function ConvertTask() {
   const thumbnailsError = useMorphStore(function (s) {
     return s.thumbnailsError
   })
-  const closeOperation = useMorphStore(function (s) {
-    return s.closeOperation
+  const toCloseOperation = useMorphStore(function (s) {
+    return s.toCloseOperation
   })
-  const patchConvert = useMorphStore(function (s) {
-    return s.patchConvert
+  const toPatchConvert = useMorphStore(function (s) {
+    return s.toPatchConvert
   })
-  const executeConvert = useMorphStore(function (s) {
-    return s.executeConvert
+  const toExecuteConvert = useMorphStore(function (s) {
+    return s.toExecuteConvert
   })
-  const openFilePicker = useMorphStore(function (s) {
-    return s.openFilePicker
+  const toOpenFilePicker = useMorphStore(function (s) {
+    return s.toOpenFilePicker
   })
-  const fetchThumbnails = useMorphStore(function (s) {
-    return s.fetchThumbnails
+  const toFetchThumbnails = useMorphStore(function (s) {
+    return s.toFetchThumbnails
   })
 
   const isImage = format === 'png' || format === 'jpg'
   const previewKey = isImage && file ? `${file.path}:${scale}` : ''
   const [sample, setSample] = useState<SampleState | null>(null)
-  const previewImage =
-    previewKey && sample?.key === previewKey ? sample.image : null
+  const previewImage = previewKey && sample?.key === previewKey ? sample.image : null
   const isSampleLoading = Boolean(previewKey) && sample?.key !== previewKey
 
   useEffect(
@@ -176,7 +175,7 @@ function ConvertTask() {
 
   async function onSelectDir() {
     const selected = await dialogOpen({ directory: true, title: '选择输出目录' })
-    if (typeof selected === 'string') patchConvert({ destDir: selected })
+    if (typeof selected === 'string') toPatchConvert({ destDir: selected })
   }
 
   const canSubmit = Boolean(destDir) && Boolean(file)
@@ -189,7 +188,7 @@ function ConvertTask() {
       title="转换 PDF"
       icon="ant-design:swap-outlined"
       meta={meta}
-      onBack={closeOperation}
+      onBack={toCloseOperation}
       fields={
         <>
           <div className={styles.optionGroup}>
@@ -209,7 +208,7 @@ function ConvertTask() {
                     data-tone={option.tone}
                     className={styles.formatOption}
                     onClick={function () {
-                      patchConvert({ format: option.value })
+                      toPatchConvert({ format: option.value })
                     }}>
                     <span
                       className={styles.formatBadge}
@@ -249,7 +248,7 @@ function ConvertTask() {
                       data-level={option.level}
                       className={styles.qualityOption}
                       onClick={function () {
-                        patchConvert({ scale: option.value })
+                        toPatchConvert({ scale: option.value })
                       }}>
                       <span
                         className={styles.qualityBadge}
@@ -294,7 +293,7 @@ function ConvertTask() {
       submitDisabled={!canSubmit}
       submitLoading={loading}
       onSubmit={function () {
-        void executeConvert()
+        void toExecuteConvert()
       }}>
       {!file ? (
         <div className={styles.stageEmpty}>
@@ -307,7 +306,7 @@ function ConvertTask() {
                 size="small"
                 type="link"
                 onClick={function () {
-                  void openFilePicker()
+                  void toOpenFilePicker()
                 }}>
                 打开 PDF
               </Button>
@@ -323,9 +322,7 @@ function ConvertTask() {
               alt="转换首页预览"
             />
           ) : (
-            <p className={styles.help}>
-              {isSampleLoading ? '正在渲染预览…' : '暂无预览'}
-            </p>
+            <p className={styles.help}>{isSampleLoading ? '正在渲染预览…' : '暂无预览'}</p>
           )}
           {thumbnails.length > 0 ? (
             <div className={styles.sampleStrip}>
@@ -349,7 +346,7 @@ function ConvertTask() {
           isLoading={!thumbnailsError && thumbnails.length === 0}
           hasError={Boolean(thumbnailsError)}
           onRetry={function () {
-            void fetchThumbnails()
+            void toFetchThumbnails()
           }}
         />
       )}

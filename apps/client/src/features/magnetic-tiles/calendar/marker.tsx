@@ -1,7 +1,7 @@
 import { calendar, timeSphere } from '@i-thinking/utils'
 import { Tooltip } from 'antd'
-import dayjs from 'dayjs'
 import type { Dayjs } from 'dayjs'
+import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 
 import { MagneticTile, type MarkerProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
@@ -121,10 +121,7 @@ function findDayInfo(now: Dayjs): DayInfo {
   }
 }
 
-function findVisibleFields(
-  capacity: Capacity,
-  mode: 'wide' | 'tall' | 'stack'
-): VisibleFields {
+function findVisibleFields(capacity: Capacity, mode: 'wide' | 'tall' | 'stack'): VisibleFields {
   // 非 wide 提前一档展示，吃满空间；wide 保持 size2 定稿门槛
   const boost = mode === 'wide' ? 1 : 2
   const dense = capacity + boost
@@ -175,7 +172,9 @@ function ChipRow(props: { dayInfo: DayInfo; fields: VisibleFields }) {
     <div className={styles.chipRow}>
       {chips.map(function (text) {
         return (
-          <span key={text} className={styles.chip}>
+          <span
+            key={text}
+            className={styles.chip}>
             {text}
           </span>
         )
@@ -234,10 +233,7 @@ function AgendaPanel(props: { items: AgendaItem[]; limit: number }) {
                 />
                 <span className={styles.agendaTime}>{item.timeLabel}</span>
                 <Tooltip title={item.title}>
-                  <span
-                    className={
-                      item.isCompleted ? styles.agendaTextDone : styles.agendaText
-                    }>
+                  <span className={item.isCompleted ? styles.agendaTextDone : styles.agendaText}>
                     {item.title}
                   </span>
                 </Tooltip>
@@ -273,16 +269,22 @@ function InfoBlock(props: {
               <span className={styles.lunar}>{dayInfo.lunar}</span>
             </Tooltip>
           ) : null}
-          {fields.showLunar && fields.showGanZhi ? (
-            <span className={styles.dotSep}>·</span>
-          ) : null}
+          {fields.showLunar && fields.showGanZhi ? <span className={styles.dotSep}>·</span> : null}
           {fields.showGanZhi ? <span className={styles.ganzhi}>{dayInfo.ganZhi}</span> : null}
         </div>
       ) : null}
-      <ChipRow dayInfo={dayInfo} fields={fields} />
+      <ChipRow
+        dayInfo={dayInfo}
+        fields={fields}
+      />
       {fields.showGods ? <span className={styles.gods}>{dayInfo.gods}</span> : null}
       {fields.showIso ? <span className={styles.iso}>{dayInfo.iso}</span> : null}
-      {fields.showYiJi ? <YiJiBlock dayInfo={dayInfo} maxItems={yiJiMax} /> : null}
+      {fields.showYiJi ? (
+        <YiJiBlock
+          dayInfo={dayInfo}
+          maxItems={yiJiMax}
+        />
+      ) : null}
     </div>
   )
 }
@@ -307,11 +309,11 @@ function Marker(props: Props) {
   const reminders = useReminderStore(function (state) {
     return state.reminders
   })
-  const readEvents = useCalendarStore(function (state) {
-    return state.readEvents
+  const toReadEvents = useCalendarStore(function (state) {
+    return state.toReadEvents
   })
-  const readReminders = useReminderStore(function (state) {
-    return state.readReminders
+  const toReadReminders = useReminderStore(function (state) {
+    return state.toReadReminders
   })
 
   useEffect(function () {
@@ -327,13 +329,13 @@ function Marker(props: Props) {
     function () {
       const range = dayBounds(now)
       void Promise.all([
-        readEvents({ rangeFrom: range.from, rangeTo: range.to }),
-        readReminders({ dueFrom: range.from, dueTo: range.to })
+        toReadEvents({ rangeFrom: range.from, rangeTo: range.to }),
+        toReadReminders({ dueFrom: range.from, dueTo: range.to })
       ])
     },
     // 按自然日刷新当日日程
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [now.format('YYYY-MM-DD'), readEvents, readReminders]
+    [now.format('YYYY-MM-DD'), toReadEvents, toReadReminders]
   )
 
   const capacity = findCapacity(props.size, props.shape, props.direction)
@@ -341,9 +343,12 @@ function Marker(props: Props) {
   const tall = isTall(props.shape, props.direction)
   const layoutMode = wide ? 'wide' : tall ? 'tall' : 'stack'
   const isCompact = capacity <= 1
-  const dayInfo = useMemo(function () {
-    return findDayInfo(now)
-  }, [now])
+  const dayInfo = useMemo(
+    function () {
+      return findDayInfo(now)
+    },
+    [now]
+  )
   const fields = findVisibleFields(capacity, layoutMode)
   const dateLine = fields.showFullYearMonth ? dayInfo.yearMonth : dayInfo.monthLabel
   const holidayLabel = fields.showHoliday && dayInfo.holiday ? dayInfo.holiday : null
@@ -368,7 +373,8 @@ function Marker(props: Props) {
       const reminderItems: AgendaItem[] = reminders
         .filter(function (reminder) {
           return (
-            (reminder.dueAt !== null && reminder.dueAt !== undefined) &&
+            reminder.dueAt !== null &&
+            reminder.dueAt !== undefined &&
             reminder.dueAt >= range.from &&
             reminder.dueAt < range.to
           )
@@ -380,7 +386,7 @@ function Marker(props: Props) {
             title: reminder.title,
             timeLabel: formatTimeLabel(reminder.dueAt ?? 0, reminder.entireDay),
             sortAt: reminder.dueAt ?? 0,
-            isCompleted: (reminder.archivedAt !== null && reminder.archivedAt !== undefined)
+            isCompleted: reminder.archivedAt !== null && reminder.archivedAt !== undefined
           }
         })
       return [...eventItems, ...reminderItems].sort(function (a, b) {
@@ -414,7 +420,10 @@ function Marker(props: Props) {
       ) : (
         <div className={styles.expandedBody}>
           <div className={styles.mainPane}>
-            <DayRail day={dayInfo.day} weekday={dayInfo.weekday} />
+            <DayRail
+              day={dayInfo.day}
+              weekday={dayInfo.weekday}
+            />
             <InfoBlock
               dayInfo={dayInfo}
               fields={fields}
@@ -424,7 +433,10 @@ function Marker(props: Props) {
             />
           </div>
           {showAgenda ? (
-            <AgendaPanel items={agendaItems} limit={fields.agendaLimit} />
+            <AgendaPanel
+              items={agendaItems}
+              limit={fields.agendaLimit}
+            />
           ) : null}
         </div>
       )}

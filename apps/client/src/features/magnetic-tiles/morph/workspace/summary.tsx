@@ -1,4 +1,5 @@
 import { Icon } from '@iconify/react/offline'
+import { save } from '@tauri-apps/plugin-dialog'
 import {
   Button,
   ColorPicker,
@@ -10,20 +11,19 @@ import {
   Select,
   Typography
 } from 'antd'
-import { save } from '@tauri-apps/plugin-dialog'
 import { clsx } from 'clsx'
 import { useState } from 'react'
 
+import styles from '@/features/magnetic-tiles/morph/workspace/summary.module.scss'
 import { selectSelectedAnnotation, useMorphStore } from '@/stores/morph.ts'
 import { CSSVAR } from '@/themes'
-import styles from '@/features/magnetic-tiles/morph/workspace/summary.module.scss'
 
 // ─── Properties tab ──────────────────────────────────────────────────────────
 
 function PropertiesTab() {
   const selected = useMorphStore(selectSelectedAnnotation)
-  const updateAnnotation = useMorphStore((s) => s.patchAnnotation)
-  const removeById = useMorphStore((s) => s.removeAnnotation)
+  const updateAnnotation = useMorphStore((s) => s.toPatchAnnotation)
+  const removeById = useMorphStore((s) => s.toRemoveAnnotation)
 
   if (!selected) {
     return (
@@ -158,8 +158,8 @@ function PropertiesTab() {
 function ExportTab() {
   const file = useMorphStore((s) => s.file)
   const exportState = useMorphStore((s) => s.exportState)
-  const setExport = useMorphStore((s) => s.patchExport)
-  const exportDoc = useMorphStore((s) => s.exportDoc)
+  const setExport = useMorphStore((s) => s.toPatchExport)
+  const toExportDoc = useMorphStore((s) => s.toExportDoc)
 
   async function handleExport() {
     if (!file) return
@@ -168,7 +168,7 @@ function ExportTab() {
       filters: [{ name: 'PDF', extensions: ['pdf'] }],
       defaultPath: file.path.replace(/\.pdf$/i, '_export.pdf')
     })
-    if (dest) await exportDoc(dest)
+    if (dest) await toExportDoc(dest)
   }
 
   return (
@@ -213,10 +213,10 @@ function ExportTab() {
 // ─── History tab ─────────────────────────────────────────────────────────────
 
 function HistoryTab() {
-  const undoStack = useMorphStore((s) => s.undoStack)
-  const undo = useMorphStore((s) => s.undo)
+  const toUndoStack = useMorphStore((s) => s.toUndoStack)
+  const toUndo = useMorphStore((s) => s.toUndo)
 
-  if (!undoStack.length) {
+  if (!toUndoStack.length) {
     return (
       <Empty
         description="暂无操作记录"
@@ -228,7 +228,7 @@ function HistoryTab() {
 
   return (
     <div className={styles.historyList}>
-      {[...undoStack].reverse().map((entry) => (
+      {[...toUndoStack].reverse().map((entry) => (
         <div
           key={entry.timestamp}
           className={styles.historyItem}>
@@ -245,8 +245,8 @@ function HistoryTab() {
       <Button
         size="small"
         block
-        onClick={undo}
-        disabled={!undoStack.length}
+        onClick={toUndo}
+        disabled={!toUndoStack.length}
         className={styles.undoBtn}>
         撤销最后操作
       </Button>
@@ -259,8 +259,8 @@ function HistoryTab() {
 type SummaryTab = 'props' | 'export' | 'history'
 
 export default function Summary() {
-  const toggleSummary = useMorphStore(function (s) {
-    return s.toggleSummary
+  const toToggleSummary = useMorphStore(function (s) {
+    return s.toToggleSummary
   })
   const [tab, onUpdateTab] = useState<SummaryTab>('props')
 
@@ -278,7 +278,7 @@ export default function Summary() {
               height={14}
             />
           }
-          onClick={toggleSummary}
+          onClick={toToggleSummary}
           className={styles.closeBtn}
         />
       </div>

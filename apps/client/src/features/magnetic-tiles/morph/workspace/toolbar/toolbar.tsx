@@ -43,41 +43,41 @@ export default function Toolbar() {
   const zoom = useMorphStore(function (s) {
     return s.zoom
   })
-  const undo = useMorphStore(function (s) {
-    return s.undo
+  const toUndo = useMorphStore(function (s) {
+    return s.toUndo
   })
-  const redo = useMorphStore(function (s) {
-    return s.redo
+  const toRedo = useMorphStore(function (s) {
+    return s.toRedo
   })
   const undoCount = useMorphStore(function (s) {
-    return s.undoStack.length
+    return s.toUndoStack.length
   })
   const redoCount = useMorphStore(function (s) {
-    return s.redoStack.length
+    return s.toRedoStack.length
   })
-  const pickTool = useMorphStore(function (s) {
-    return s.pickTool
+  const toPickTool = useMorphStore(function (s) {
+    return s.toPickTool
   })
-  const switchView = useMorphStore(function (s) {
-    return s.switchView
+  const toSwitchView = useMorphStore(function (s) {
+    return s.toSwitchView
   })
-  const seekOffset = useMorphStore(function (s) {
-    return s.seekOffset
+  const toSeekOffset = useMorphStore(function (s) {
+    return s.toSeekOffset
   })
-  const zoomIn = useMorphStore(function (s) {
-    return s.zoomIn
+  const toZoomIn = useMorphStore(function (s) {
+    return s.toZoomIn
   })
-  const zoomOut = useMorphStore(function (s) {
-    return s.zoomOut
+  const toZoomOut = useMorphStore(function (s) {
+    return s.toZoomOut
   })
-  const fitWidth = useMorphStore(function (s) {
-    return s.fitWidth
+  const toFitWidth = useMorphStore(function (s) {
+    return s.toFitWidth
   })
-  const openOperation = useMorphStore(function (s) {
-    return s.openOperation
+  const toOpenOperation = useMorphStore(function (s) {
+    return s.toOpenOperation
   })
-  const closeOperation = useMorphStore(function (s) {
-    return s.closeOperation
+  const toCloseOperation = useMorphStore(function (s) {
+    return s.toCloseOperation
   })
   const activeOperation = useMorphStore(function (s) {
     return s.activeOperation
@@ -99,7 +99,7 @@ export default function Toolbar() {
             }
             disabled={offset === 0}
             onClick={function () {
-              seekOffset(offset - 1, { source: 'toolbar' })
+              toSeekOffset(offset - 1, { source: 'toolbar' })
             }}
           />
           <InputNumber
@@ -110,7 +110,7 @@ export default function Toolbar() {
             value={offset + 1}
             controls={false}
             onChange={function (v) {
-              if (typeof v === 'number') seekOffset(v - 1, { source: 'toolbar' })
+              if (typeof v === 'number') toSeekOffset(v - 1, { source: 'toolbar' })
             }}
           />
           <Button
@@ -125,7 +125,7 @@ export default function Toolbar() {
             }
             disabled={offset >= count - 1}
             onClick={function () {
-              seekOffset(offset + 1, { source: 'toolbar' })
+              toSeekOffset(offset + 1, { source: 'toolbar' })
             }}
           />
         </Space.Compact>
@@ -145,12 +145,12 @@ export default function Toolbar() {
                 height={ICON_SIZE}
               />
             }
-            onClick={zoomOut}
+            onClick={toZoomOut}
           />
           <Button
             type="text"
             className={styles.zoomBtn}
-            onClick={fitWidth}>
+            onClick={toFitWidth}>
             {Math.round(zoom * 100)}%
           </Button>
           <Button
@@ -163,7 +163,7 @@ export default function Toolbar() {
                 height={ICON_SIZE}
               />
             }
-            onClick={zoomIn}
+            onClick={toZoomIn}
           />
         </Space.Compact>
       </div>
@@ -194,7 +194,7 @@ export default function Toolbar() {
                   />
                 }
                 onClick={function () {
-                  pickTool(tool.key)
+                  toPickTool(tool.key)
                 }}
               />
             </Tooltip>
@@ -221,8 +221,8 @@ export default function Toolbar() {
               />
             }
             onClick={function () {
-              if (activeOperation === 'merge') closeOperation()
-              else openOperation('merge')
+              if (activeOperation === 'merge') toCloseOperation()
+              else toOpenOperation('merge')
             }}>
             合并
           </Button>
@@ -244,8 +244,8 @@ export default function Toolbar() {
               />
             }
             onClick={function () {
-              if (activeOperation === 'split') closeOperation()
-              else openOperation('split')
+              if (activeOperation === 'split') toCloseOperation()
+              else toOpenOperation('split')
             }}>
             拆分
           </Button>
@@ -267,8 +267,8 @@ export default function Toolbar() {
               />
             }
             onClick={function () {
-              if (activeOperation === 'convert') closeOperation()
-              else openOperation('convert')
+              if (activeOperation === 'convert') toCloseOperation()
+              else toOpenOperation('convert')
             }}>
             转换
           </Button>
@@ -290,8 +290,8 @@ export default function Toolbar() {
               />
             }
             onClick={function () {
-              if (activeOperation === 'organize') closeOperation()
-              else openOperation('organize')
+              if (activeOperation === 'organize') toCloseOperation()
+              else toOpenOperation('organize')
             }}>
             整理
           </Button>
@@ -313,8 +313,8 @@ export default function Toolbar() {
               />
             }
             onClick={function () {
-              if (activeOperation === 'extract') closeOperation()
-              else openOperation('extract')
+              if (activeOperation === 'extract') toCloseOperation()
+              else toOpenOperation('extract')
             }}>
             抽取
           </Button>
@@ -340,7 +340,7 @@ export default function Toolbar() {
               />
             }
             onClick={function () {
-              void undo()
+              void toUndo()
             }}
           />
         </Tooltip>
@@ -361,7 +361,7 @@ export default function Toolbar() {
               />
             }
             onClick={function () {
-              void redo()
+              void toRedo()
             }}
           />
         </Tooltip>
@@ -373,7 +373,7 @@ export default function Toolbar() {
           value={viewMode}
           className={styles.modeSegment}
           onChange={function (v) {
-            switchView(v as Morph.ViewMode)
+            toSwitchView(v as Morph.ViewMode)
           }}
           options={[
             { label: '浏览', value: 'view' },

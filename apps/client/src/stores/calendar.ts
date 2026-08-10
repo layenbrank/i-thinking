@@ -55,10 +55,10 @@ interface CalendarRead {
 interface CalendarStore {
   events: Calendar[]
   loaded: boolean
-  readEvents(filter?: CalendarRead): Promise<Calendar[]>
-  writeEvent(value: CalendarWrite): Promise<string | undefined>
-  updateEvent(value: CalendarUpdate): Promise<void>
-  removeEvent(key: string): Promise<void>
+  toReadEvents(filter?: CalendarRead): Promise<Calendar[]>
+  toWriteEvent(value: CalendarWrite): Promise<string | undefined>
+  toUpdateEvent(value: CalendarUpdate): Promise<void>
+  toRemoveEvent(key: string): Promise<void>
 }
 
 const useCalendarStore = create<CalendarStore>()(
@@ -68,7 +68,7 @@ const useCalendarStore = create<CalendarStore>()(
         events: [],
         loaded: false,
 
-        async readEvents(filter = {}) {
+        async toReadEvents(filter = {}) {
           try {
             const events = await invoke<Calendar[]>('calendar:read', {
               params: filter
@@ -79,45 +79,45 @@ const useCalendarStore = create<CalendarStore>()(
                 state.loaded = true
               },
               false,
-              'readEvents'
+              'toReadEvents'
             )
             return events
           } catch (err) {
-            console.error('[calendar-store] readEvents failed:', err)
+            console.error('[calendar-store] toReadEvents failed:', err)
             setter(
               function (state) {
                 state.loaded = true
               },
               false,
-              'readEvents/error'
+              'toReadEvents/error'
             )
             return []
           }
         },
 
-        async writeEvent(value) {
+        async toWriteEvent(value) {
           try {
             const ids = await invoke<string[]>('calendar:write', { params: value })
             return ids[0]
           } catch (err) {
-            console.error('[calendar-store] writeEvent failed:', err)
+            console.error('[calendar-store] toWriteEvent failed:', err)
             return undefined
           }
         },
 
-        async updateEvent(value) {
+        async toUpdateEvent(value) {
           try {
             await invoke('calendar:update', { params: value })
           } catch (err) {
-            console.error('[calendar-store] updateEvent failed:', err)
+            console.error('[calendar-store] toUpdateEvent failed:', err)
           }
         },
 
-        async removeEvent(key) {
+        async toRemoveEvent(key) {
           try {
             await invoke('calendar:remove', { params: key })
           } catch (err) {
-            console.error('[calendar-store] removeEvent failed:', err)
+            console.error('[calendar-store] toRemoveEvent failed:', err)
           }
         }
       }

@@ -1,14 +1,14 @@
 import { Icon } from '@iconify/react/offline'
+import { clsx } from 'clsx'
 import type Konva from 'konva'
 import { useEffect, useRef, useState } from 'react'
 import { Ellipse, Group, Image as KonvaImage, Layer, Rect, Stage, Text } from 'react-konva'
 import useImage from 'use-image'
-import { clsx } from 'clsx'
 
 import { useMorphStore } from '@/stores/morph.ts'
 import { CSSVAR } from '@/themes'
-import { DEFAULT_COLORS, SELECTION_STROKE } from './colors.ts'
 import styles from './canvas.module.scss'
+import { DEFAULT_COLORS, SELECTION_STROKE } from './colors.ts'
 
 const ZOOM_MIN = 0.25
 const ZOOM_MAX = 5
@@ -422,23 +422,23 @@ export default function Canvas() {
   const selectedId = useMorphStore(function (s) {
     return s.selectedId
   })
-  const selectAnnotation = useMorphStore(function (s) {
-    return s.selectAnnotation
+  const toSelectAnnotation = useMorphStore(function (s) {
+    return s.toSelectAnnotation
   })
-  const addAnnotation = useMorphStore(function (s) {
-    return s.addAnnotation
+  const toAddAnnotation = useMorphStore(function (s) {
+    return s.toAddAnnotation
   })
-  const openFilePicker = useMorphStore(function (s) {
-    return s.openFilePicker
+  const toOpenFilePicker = useMorphStore(function (s) {
+    return s.toOpenFilePicker
   })
-  const zoomTo = useMorphStore(function (s) {
-    return s.zoomTo
+  const toZoomTo = useMorphStore(function (s) {
+    return s.toZoomTo
   })
-  const seekOffset = useMorphStore(function (s) {
-    return s.seekOffset
+  const toSeekOffset = useMorphStore(function (s) {
+    return s.toSeekOffset
   })
-  const warmOffsets = useMorphStore(function (s) {
-    return s.warmOffsets
+  const toWarmOffsets = useMorphStore(function (s) {
+    return s.toWarmOffsets
   })
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
@@ -481,7 +481,7 @@ export default function Canvas() {
       function flushZoom() {
         raf = 0
         if (pending === null) return
-        zoomTo(pending)
+        toZoomTo(pending)
         pending = null
       }
 
@@ -489,8 +489,7 @@ export default function Canvas() {
         if (!event.ctrlKey && !event.metaKey) return
         event.preventDefault()
         const direction = event.deltaY > 0 ? -1 : 1
-        const next =
-          Math.round((zoomRef.current + direction * ZOOM_WHEEL_STEP) * 100) / 100
+        const next = Math.round((zoomRef.current + direction * ZOOM_WHEEL_STEP) * 100) / 100
         const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next))
         if (clamped === zoomRef.current && pending === null) return
         zoomRef.current = clamped
@@ -504,7 +503,7 @@ export default function Canvas() {
         if (raf) cancelAnimationFrame(raf)
       }
     },
-    [zoomTo, file?.path]
+    [toZoomTo, file?.path]
   )
 
   // Lazy render pages entering viewport
@@ -526,7 +525,7 @@ export default function Canvas() {
             if (index > 0) visible.push(index - 1)
             if (index < count - 1) visible.push(index + 1)
           }
-          if (visible.length) void warmOffsets(visible)
+          if (visible.length) void toWarmOffsets(visible)
         },
         {
           root,
@@ -544,7 +543,7 @@ export default function Canvas() {
         observer.disconnect()
       }
     },
-    [file?.path, count, zoom, warmOffsets]
+    [file?.path, count, zoom, toWarmOffsets]
   )
 
   // Scroll → offset (viewport center)
@@ -574,7 +573,7 @@ export default function Canvas() {
         })
 
         if (bestIndex !== offsetRef.current) {
-          seekOffset(bestIndex, { source: 'scroll' })
+          toSeekOffset(bestIndex, { source: 'scroll' })
         }
       }
 
@@ -589,7 +588,7 @@ export default function Canvas() {
         if (raf) cancelAnimationFrame(raf)
       }
     },
-    [file?.path, seekOffset]
+    [file?.path, toSeekOffset]
   )
 
   // Toolbar / thumb → scrollIntoView
@@ -630,7 +629,7 @@ export default function Canvas() {
           <button
             type="button"
             className={styles.emptyCta}
-            onClick={openFilePicker}>
+            onClick={toOpenFilePicker}>
             <Icon
               icon="ant-design:folder-open-outlined"
               width={14}
@@ -674,8 +673,8 @@ export default function Canvas() {
                   activeTool={activeTool}
                   selectedId={selectedId}
                   isCursorCrosshair={isCursorCrosshair}
-                  onSelect={selectAnnotation}
-                  onAddAnnotation={addAnnotation}
+                  onSelect={toSelectAnnotation}
+                  onAddAnnotation={toAddAnnotation}
                 />
               </div>
             )
