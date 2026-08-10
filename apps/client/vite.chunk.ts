@@ -91,14 +91,16 @@ export const chunks: CodeSplitting[] = [
       return patterns.some((pattern) => pattern.test(id))
     }
   },
-  // {
-  //   name: 'core-features',
-  //   priority: 100,
-  //   test(id) {
-  //     const patterns = [/[\\/]src[\\/]features[\\/]/]
-  //     return patterns.some((pattern) => pattern.test(id))
-  //   }
-  // },
+  {
+    name(id) {
+      const match = id.match(/[\\/]magnetic-tiles[\\/]([^\\/]+)[\\/]/)
+      return match ? `tile-${match[1]}` : null
+    },
+    priority: 80,
+    test(id) {
+      return /[\\/]magnetic-tiles[\\/]/.test(id)
+    }
+  },
   {
     name: 'core-components',
     priority: 100,
