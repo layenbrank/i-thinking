@@ -33,11 +33,11 @@ function Tile(props: TileProps) {
   } | null>(null)
   const lastDownAtRef = useRef(0)
 
-  const updateItem = useOverlayStore(function (s) {
-    return s.updateItem
+  const toUpdate = useOverlayStore(function (s) {
+    return s.toUpdate
   })
-  const bringToFront = useOverlayStore(function (s) {
-    return s.bringToFront
+  const toFront = useOverlayStore(function (s) {
+    return s.toFront
   })
 
   useThrough(item.id, { rootRef, enabled: true })
@@ -116,11 +116,11 @@ function Tile(props: TileProps) {
     if (!drag.moved && Math.hypot(dx, dy) >= DRAG_THRESHOLD) {
       drag.moved = true
       lastDownAtRef.current = 0
-      bringToFront(item.id)
+      toFront(item.id)
       e.currentTarget.setPointerCapture(e.pointerId)
     }
     if (!drag.moved) return
-    updateItem(item.id, { x: drag.x + dx, y: drag.y + dy })
+    toUpdate(item.id, { x: drag.x + dx, y: drag.y + dy })
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {

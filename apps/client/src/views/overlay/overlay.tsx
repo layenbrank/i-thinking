@@ -31,17 +31,17 @@ function OverlayShell() {
   const items = useOverlayStore(function (s) {
     return s.items
   })
-  const updateMode = useOverlayStore(function (s) {
-    return s.updateMode
+  const toMode = useOverlayStore(function (s) {
+    return s.toMode
   })
-  const mountTile = useOverlayStore(function (s) {
-    return s.mountTile
+  const toMount = useOverlayStore(function (s) {
+    return s.toMount
   })
-  const removeItem = useOverlayStore(function (s) {
-    return s.removeItem
+  const toRemove = useOverlayStore(function (s) {
+    return s.toRemove
   })
-  const clearTextures = useOverlayStore(function (s) {
-    return s.clearTextures
+  const toClear = useOverlayStore(function (s) {
+    return s.toClear
   })
 
   useThrough(OVERLAY_SHELL_SOURCE, { rootRef: shellRef, enabled: true })
@@ -58,7 +58,7 @@ function OverlayShell() {
       function applyMount(payload: MountTilePayload | null | undefined) {
         if (!payload) return
         if (!isMagneticTileComponent(payload.kind) || !payload.magneticTileID) return
-        mountTile(payload.kind, payload.magneticTileID, {
+        toMount(payload.kind, payload.magneticTileID, {
           size: (payload.size ?? undefined) as Mirror.Size | undefined,
           shape: (payload.shape ?? undefined) as Mirror.Shape | undefined,
           direction: (payload.direction ?? undefined) as Mirror.Direction | undefined,
@@ -69,13 +69,13 @@ function OverlayShell() {
 
       function applyUnmount(payload: { magneticTileID?: string } | null | undefined) {
         if (!payload?.magneticTileID) return
-        removeItem(payload.magneticTileID)
+        toRemove(payload.magneticTileID)
       }
 
       async function bootstrap() {
         try {
           unlistenMode = await listen<OverlayMode>('overlay://mode', function (event) {
-            updateMode(event.payload)
+            toMode(event.payload)
           })
           unlistenMount = await listen<MountTilePayload>('overlay://mount', function (event) {
             applyMount(event.payload)
@@ -87,12 +87,13 @@ function OverlayShell() {
             }
           )
           unlistenClear = await listen('overlay://clear-textures', function () {
-            clearTextures()
+            toClear()
           })
           unlistenHide = await listen('overlay://hide', function () {
-            updateMode('idle')
+            toMode('idle')
             void invoke('overlay:hide')
           })
+          await useOverlayStore.getState().toInitialize()
           applyMount(await invoke<MountTilePayload | null>('overlay:take-pending'))
           applyUnmount(
             await invoke<{ magneticTileID: string } | null>('overlay:take-pending-unmount')
@@ -113,7 +114,7 @@ function OverlayShell() {
         unlistenHide?.()
       }
     },
-    [clearTextures, mountTile, removeItem, updateMode]
+    [toClear, toMount, toRemove, toMode]
   )
 
   const textures = items.filter(function (entry): entry is OverlayTexture {

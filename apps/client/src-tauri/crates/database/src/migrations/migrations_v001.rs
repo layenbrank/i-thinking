@@ -459,6 +459,57 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
+        // ── overlay（浮层项，逐行结构化存储，kind 区分 texture/tile） ──
+        manager
+            .create_table(
+                Table::create()
+                    .table(Overlay::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Overlay::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(Overlay::Kind).string().not_null())
+                    .col(ColumnDef::new(Overlay::X).double().not_null())
+                    .col(ColumnDef::new(Overlay::Y).double().not_null())
+                    .col(ColumnDef::new(Overlay::W).double().not_null())
+                    .col(ColumnDef::new(Overlay::H).double().not_null())
+                    .col(ColumnDef::new(Overlay::Z).big_integer().not_null())
+                    .col(ColumnDef::new(Overlay::Src).string().null())
+                    .col(ColumnDef::new(Overlay::Opacity).double().null())
+                    .col(ColumnDef::new(Overlay::TenantId).string().null())
+                    .col(ColumnDef::new(Overlay::Component).string().null())
+                    .col(ColumnDef::new(Overlay::Size).integer().null())
+                    .col(ColumnDef::new(Overlay::Shape).string().null())
+                    .col(ColumnDef::new(Overlay::Direction).string().null())
+                    .col(ColumnDef::new(Overlay::Round).string().null())
+                    .col(ColumnDef::new(Overlay::Background).string().null())
+                    .col(ColumnDef::new(Overlay::ArchivedAt).big_integer().null())
+                    .col(
+                        ColumnDef::new(Overlay::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Overlay::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_overlay_archivedAt ON overlay (archivedAt)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_overlay_tenantID ON overlay (tenantID)",
+        )
+        .await?;
+
         Ok(())
     }
 
@@ -489,6 +540,9 @@ impl MigrationTrait for Migration {
             .await?;
         manager
             .drop_table(Table::drop().table(Countdown::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Overlay::Table).to_owned())
             .await?;
 
         Ok(())
@@ -702,6 +756,34 @@ enum Comment {
     Version,
     #[iden = "deviceID"]
     DeviceId,
+    #[iden = "archivedAt"]
+    ArchivedAt,
+    #[iden = "createdAt"]
+    CreatedAt,
+    #[iden = "updatedAt"]
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum Overlay {
+    Table,
+    Id,
+    Kind,
+    X,
+    Y,
+    W,
+    H,
+    Z,
+    Src,
+    Opacity,
+    #[iden = "tenantID"]
+    TenantId,
+    Component,
+    Size,
+    Shape,
+    Direction,
+    Round,
+    Background,
     #[iden = "archivedAt"]
     ArchivedAt,
     #[iden = "createdAt"]

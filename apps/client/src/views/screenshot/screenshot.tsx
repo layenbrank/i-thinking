@@ -499,7 +499,7 @@ export default function Screenshot(props: ScreenshotProps = {}) {
         return
       }
       // Standalone /screenshot route: add texture via store after ensure.
-      useOverlayStore.getState().addTexture({ src, w, h })
+      useOverlayStore.getState().toWrite({ src, w, h })
       await exitCapture()
     })
   }

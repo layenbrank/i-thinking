@@ -51,6 +51,10 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         thinking_command::calendar::calendar_read,
         thinking_command::calendar::calendar_update,
         thinking_command::calendar::calendar_remove,
+        thinking_command::overlay::overlay_read,
+        thinking_command::overlay::overlay_write,
+        thinking_command::overlay::overlay_update,
+        thinking_command::overlay::overlay_remove,
         through::command::set_rects,
     ]
 }
