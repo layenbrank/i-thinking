@@ -1,4 +1,4 @@
-import { Suspense, lazy, useContext, type MouseEvent } from 'react'
+import { useContext, type MouseEvent } from 'react'
 
 import clsx from 'clsx'
 
@@ -10,12 +10,8 @@ import {
 import { OverlaySkeleton } from '@/features/magnetic-tiles/marketplace/workspace/skeleton'
 import styles from '@/features/magnetic-tiles/marketplace/marketplace.module.scss'
 
-const Marker = lazy(function () {
-  return import('@/features/magnetic-tiles/marketplace/marker.tsx')
-})
-const Overlay = lazy(function () {
-  return import('@/features/magnetic-tiles/marketplace/overlay.tsx')
-})
+import Marker from '@/features/magnetic-tiles/marketplace/marker.tsx'
+import Overlay from '@/features/magnetic-tiles/marketplace/overlay.tsx'
 
 export default function Marketplace(props: SectionProps) {
   const { renderable } = useContext(OverlayContext)
@@ -37,13 +33,11 @@ export default function Marketplace(props: SectionProps) {
         shape={props.shape}
       />
       {isRenderOverlay ? (
-        <Suspense fallback={<OverlaySkeleton />}>
-          <Overlay
-            cache={cache}
-            onAbort={props.onAbort}
-            abortTimeoutMs={props.abortTimeoutMs}
-          />
-        </Suspense>
+        <Overlay
+          cache={cache}
+          onAbort={props.onAbort}
+          abortTimeoutMs={props.abortTimeoutMs}
+        />
       ) : null}
     </MagneticTile.Section>
   )

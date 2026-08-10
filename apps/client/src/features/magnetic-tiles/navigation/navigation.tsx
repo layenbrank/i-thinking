@@ -1,6 +1,6 @@
 import clsx, { type ClassValue } from 'clsx'
 import type { CSSProperties } from 'react'
-import { Suspense, lazy, useContext } from 'react'
+import { useContext } from 'react'
 
 import type { SectionProps } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import {
@@ -9,12 +9,8 @@ import {
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/magnetic-tiles/navigation/navigation.module.scss'
 
-const Marker = lazy(function () {
-  return import('@/features/magnetic-tiles/navigation/marker.tsx')
-})
-const Overlay = lazy(function () {
-  return import('@/features/magnetic-tiles/navigation/overlay.tsx')
-})
+import Marker from '@/features/magnetic-tiles/navigation/marker.tsx'
+import Overlay from '@/features/magnetic-tiles/navigation/overlay.tsx'
 
 interface NavigationProps extends Omit<SectionProps, 'children'> {
   style?: CSSProperties
@@ -45,13 +41,11 @@ export default function Navigation(props: NavigationProps) {
         shape={props.shape}
       />
       {isRenderOverlay ? (
-        <Suspense fallback={null}>
-          <Overlay
-            cache={cache}
-            onAbort={props.onAbort}
-            abortTimeoutMs={props.abortTimeoutMs}
-          />
-        </Suspense>
+        <Overlay
+          cache={cache}
+          onAbort={props.onAbort}
+          abortTimeoutMs={props.abortTimeoutMs}
+        />
       ) : null}
     </MagneticTile.Section>
   )
