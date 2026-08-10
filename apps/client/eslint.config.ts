@@ -100,7 +100,7 @@ export default defineConfig(
       '@typescript-eslint/require-await': 'warn',
       '@typescript-eslint/no-base-to-string': 'warn',
       '@typescript-eslint/prefer-promise-reject-errors': 'warn',
-      'react-refresh/only-export-components': 'warn',
+      'react-refresh/only-export-components': 'off',
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/refs': 'warn',
       'react-hooks/immutability': 'warn',
