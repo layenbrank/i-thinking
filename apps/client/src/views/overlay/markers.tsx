@@ -65,9 +65,7 @@ const ExampleMarker = lazyMarker(function () {
   return import('@/features/magnetic-tiles/example/marker')
 })
 
-function bindMarker(
-  Marker: ReturnType<typeof lazyMarker>
-): (layout: MarkerLayout) => ReactNode {
+function bindMarker(Marker: ReturnType<typeof lazyMarker>): (layout: MarkerLayout) => ReactNode {
   return function render(layout) {
     return (
       <Marker
@@ -101,8 +99,8 @@ const MARKERS: Record<MagneticTile.Component, (layout: MarkerLayout) => ReactNod
   example: bindMarker(ExampleMarker)
 }
 
-function renderMarker(component: MagneticTile.Component, layout: MarkerLayout): ReactNode {
+function RenderMarker(component: MagneticTile.Component, layout: MarkerLayout): ReactNode {
   return MARKERS[component](layout)
 }
 
-export { MARKERS, renderMarker }
+export { MARKERS, RenderMarker }

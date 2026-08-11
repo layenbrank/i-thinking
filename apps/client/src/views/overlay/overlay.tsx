@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useThrough } from '@/hooks/use-through'
 import { isMagneticTileComponent } from '@/constants/magnetic-tile/components'
@@ -28,6 +28,9 @@ interface MountTilePayload {
 
 function OverlayShell() {
   const shellRef = useRef<HTMLElement | null>(document.body)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [ready, setReady] = useState(false)
+  const [stageBounds, setStageBounds] = useState({ width: window.innerWidth, height: window.innerHeight })
   const items = useOverlayStore(function (s) {
     return s.items
   })
@@ -45,6 +48,22 @@ function OverlayShell() {
   })
 
   useThrough(OVERLAY_SHELL_SOURCE, { rootRef: shellRef, enabled: true })
+
+  // 追踪 stage 尺寸作为拖拽边界
+  useEffect(
+    function () {
+      const stage = stageRef.current
+      if (!stage) return
+      const ro = new ResizeObserver(function () {
+        setStageBounds({ width: stage.clientWidth, height: stage.clientHeight })
+      })
+      ro.observe(stage)
+      return function () {
+        ro.disconnect()
+      }
+    },
+    []
+  )
 
   useEffect(
     function () {
@@ -98,6 +117,7 @@ function OverlayShell() {
           applyUnmount(
             await invoke<{ magneticTileID: string } | null>('overlay:take-pending-unmount')
           )
+          setReady(true)
         } catch (err) {
           if (!cancelled) console.warn('[overlay] bootstrap failed', err)
         }
@@ -126,23 +146,29 @@ function OverlayShell() {
 
   return (
     <div className={styles.shell}>
-      <div className={styles.stage}>
-        {tiles.map(function (entry) {
-          return (
-            <Tile
-              key={entry.id}
-              item={entry}
-            />
-          )
-        })}
-        {textures.map(function (entry) {
-          return (
-            <Texture
-              key={entry.id}
-              item={entry}
-            />
-          )
-        })}
+      <div
+        ref={stageRef}
+        className={styles.stage}>
+        {ready &&
+          tiles.map(function (entry) {
+            return (
+              <Tile
+                key={entry.id}
+                item={entry}
+                stageBounds={stageBounds}
+              />
+            )
+          })}
+        {ready &&
+          textures.map(function (entry) {
+            return (
+              <Texture
+                key={entry.id}
+                item={entry}
+                stageBounds={stageBounds}
+              />
+            )
+          })}
       </div>
     </div>
   )

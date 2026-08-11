@@ -21,4 +21,6 @@
   position: absolute;
   pointer-events: auto;
   user-select: none;
+  transition: none;
+  will-change: transform;
 }

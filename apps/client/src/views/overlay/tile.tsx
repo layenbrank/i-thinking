@@ -1,37 +1,79 @@
 import { Icon } from '@iconify/react/offline'
 import clsx from 'clsx'
-import { Suspense, useMemo, useRef, type CSSProperties } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
+import { Suspense, useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react'
 
 import { ContextMenu, type MenuItem } from '@/components/contextmenu'
-import { Fallback } from '@/components/fallback'
-import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
 import tileStyles from '@/features/magnetic-tile/magnetic-tile.module.scss'
-import { LAYOUT_FALLBACK, type MarkerLayout } from '@/features/magnetic-tile/size'
+import { findMarkerBox, findTrackPx, LAYOUT_FALLBACK, type MarkerLayout } from '@/features/magnetic-tile/size'
+import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
+import { useOverlayDrag } from '@/hooks/use-overlay-drag'
 import { useThrough } from '@/hooks/use-through'
 import { useOverlayStore, type OverlayTile } from '@/stores/overlay'
-import { renderMarker } from '@/views/overlay/markers'
-import { removeOverlayTile, showMagneticTileOverlay } from '@/views/overlay/tauri'
+import { RenderMarker } from '@/views/overlay/markers'
 import styles from '@/views/overlay/overlay.module.scss'
+import { removeOverlayTile } from '@/views/overlay/tauri'
 
 interface TileProps {
   item: OverlayTile
+  stageBounds: { width: number; height: number }
 }
 
 const DRAG_THRESHOLD = 6
-const DOUBLE_CLICK_MS = 400
+const SIZES: MagneticTile.Size[] = [1, 2, 3, 4]
+
+function SizePicker(props: {
+  current: MagneticTile.Size
+  layout: MarkerLayout
+  onChange: (size: MagneticTile.Size) => void
+}) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 4,
+        padding: '6px 8px',
+        minWidth: 160
+      }}
+      onPointerDown={function (e) {
+        e.stopPropagation()
+      }}>
+      {SIZES.map(function (value) {
+        const isSelected = value === props.current
+        return (
+          <button
+            key={value}
+            type="button"
+            aria-label={`大小 ${value}`}
+            aria-pressed={isSelected}
+            style={{
+              appearance: 'none',
+              border: 'none',
+              borderRadius: 6,
+              padding: '6px 0',
+              fontSize: 13,
+              fontWeight: isSelected ? 600 : 400,
+              cursor: 'pointer',
+              background: isSelected ? 'rgba(22, 119, 255, 0.12)' : 'transparent',
+              color: isSelected ? '#1677ff' : 'inherit',
+              transition: 'background 0.15s ease, color 0.15s ease'
+            }}
+            onClick={function () {
+              props.onChange(value)
+            }}>
+            {value}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 function Tile(props: TileProps) {
-  const { item } = props
+  const { item, stageBounds } = props
   const rootRef = useRef<HTMLDivElement>(null)
-  const dragRef = useRef<{
-    pointerId: number
-    originX: number
-    originY: number
-    x: number
-    y: number
-    moved: boolean
-  } | null>(null)
-  const lastDownAtRef = useRef(0)
 
   const toUpdate = useOverlayStore(function (s) {
     return s.toUpdate
@@ -41,6 +83,54 @@ function Tile(props: TileProps) {
   })
 
   useThrough(item.id, { rootRef, enabled: true })
+
+  const {
+    handlePointerDown: dragDown,
+    handlePointerMove: dragMove,
+    handlePointerUp: dragUp,
+    handlePointerCancel: dragCancel
+  } =
+    useOverlayDrag({
+      rootRef,
+      id: item.id,
+      storeX: item.x,
+      storeY: item.y,
+      elWidth: item.w,
+      elHeight: item.h,
+      boundsWidth: stageBounds.width,
+      boundsHeight: stageBounds.height,
+      threshold: DRAG_THRESHOLD,
+      enableInertia: true,
+      onCommit: function (x, y) {
+        toUpdate(item.id, { x, y })
+      }
+    })
+
+  // 挂载时初始化 GSAP transform（仅一次，不干扰拖拽）
+  useLayoutEffect(
+    function () {
+      const el = rootRef.current
+      if (!el) return
+      gsap.set(el, { x: item.x, y: item.y })
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  )
+
+  // store x/y 外部变化时同步 GSAP（如 toInitialize 边界修正）
+  const prevStoreRef = useRef({ x: item.x, y: item.y })
+  useGSAP(
+    function () {
+      const el = rootRef.current
+      if (!el) return
+      const prev = prevStoreRef.current
+      if (item.x !== prev.x || item.y !== prev.y) {
+        prevStoreRef.current = { x: item.x, y: item.y }
+        gsap.set(el, { x: item.x, y: item.y })
+      }
+    },
+    { scope: rootRef, dependencies: [item.x, item.y] }
+  )
 
   const layout: MarkerLayout = {
     size: item.size ?? LAYOUT_FALLBACK.size,
@@ -58,110 +148,104 @@ function Tile(props: TileProps) {
     [item.round, item.background]
   )
 
-  // 内联定位压过 magnetic-tile 的 position:relative；圆角由 mixin + CSS 变量负责
+  // 浮层用绝对定位，尺寸由 size/shape/direction 实时计算，不依赖存储的 w/h
+  const box = useMemo(
+    function () {
+      return findMarkerBox(layout)
+    },
+    [layout.size, layout.shape, layout.direction]
+  )
+
+  // GSAP 独占 transform 定位，React 不设置 transform
   const shellStyle = {
     position: 'absolute',
-    left: item.x,
-    top: item.y,
-    width: item.w,
-    height: item.h,
+    width: box.w,
+    height: box.h,
     zIndex: item.z,
-    '--magnetic-tile-round': item.round ?? '12px'
+    '--magnetic-tile-round': item.round ?? '12px',
+    '--magnetic-tile-size': `${findTrackPx(layout.size)}px`
   } as CSSProperties
 
-  const menuItems: MenuItem[] = [
-    {
-      key: 'float-unmount',
-      label: '移除',
-      icon: (
-        <Icon
-          icon="ant-design:minus-outlined"
-          width={14}
-          height={14}
-        />
-      ),
-      onSelect() {
-        void removeOverlayTile(item.magneticTileID)
-      }
-    }
-  ]
+  const menuItems = useMemo<MenuItem[]>(
+    function () {
+      return [
+        {
+          key: 'size',
+          label: '大小',
+          icon: (
+            <Icon
+              icon="ant-design:appstore-outlined"
+              width={14}
+              height={14}
+            />
+          ),
+          content: (
+            <SizePicker
+              current={layout.size}
+              layout={layout}
+              onChange={function (value) {
+                const box = findMarkerBox({
+                  size: value,
+                  shape: layout.shape,
+                  direction: layout.direction
+                })
+                toUpdate(item.id, { w: box.w, h: box.h, size: value })
+              }}
+            />
+          )
+        },
+        {
+          key: 'float-unmount',
+          label: '移除',
+          icon: (
+            <Icon
+              icon="ant-design:minus-outlined"
+              width={14}
+              height={14}
+            />
+          ),
+          onSelect() {
+            void removeOverlayTile(item.magneticTileID)
+          }
+        }
+      ]
+    },
+    [item.id, item.magneticTileID, layout, toUpdate]
+  )
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.button !== 0) return
-
-    const now = Date.now()
-    if (now - lastDownAtRef.current <= DOUBLE_CLICK_MS) {
-      lastDownAtRef.current = 0
-      dragRef.current = null
-      void showMagneticTileOverlay(item.magneticTileID)
-      return
-    }
-    lastDownAtRef.current = now
-
-    dragRef.current = {
-      pointerId: e.pointerId,
-      originX: e.clientX,
-      originY: e.clientY,
-      x: item.x,
-      y: item.y,
-      moved: false
-    }
-  }
-
-  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
-    const dx = e.clientX - drag.originX
-    const dy = e.clientY - drag.originY
-    if (!drag.moved && Math.hypot(dx, dy) >= DRAG_THRESHOLD) {
-      drag.moved = true
-      lastDownAtRef.current = 0
-      toFront(item.id)
-      e.currentTarget.setPointerCapture(e.pointerId)
-    }
-    if (!drag.moved) return
-    toUpdate(item.id, { x: drag.x + dx, y: drag.y + dy })
-  }
-
-  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
-    dragRef.current = null
-    if (drag.moved) e.currentTarget.releasePointerCapture(e.pointerId)
-  }
-
-  function handlePointerCancel(e: React.PointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
-    dragRef.current = null
-    lastDownAtRef.current = 0
+    toFront(item.id)
+    dragDown(e)
   }
 
   return (
     <ContextMenu items={menuItems}>
       <div
         ref={rootRef}
-        className={clsx(
-          styles.tile,
-          'magnetic-tile',
-          tileStyles.magneticTile,
-          tileStyles[`lv${layout.size}`],
-          tileStyles[layout.shape],
-          tileStyles[layout.direction]
-        )}
+        className={clsx(styles.tile, 'magnetic-tile', tileStyles.magneticTile)}
         data-region="false"
         style={shellStyle}
         onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}>
-        <div
-          className={clsx('magnetic-tile-surface', tileStyles.surface)}
-          style={surfaceStyle}>
-          <Suspense fallback={<Fallback.Route />}>
-            {renderMarker(item.kind, layout)}
-          </Suspense>
-        </div>
+        onPointerMove={dragMove}
+        onPointerUp={dragUp}
+        onPointerCancel={dragCancel}>
+        <Suspense
+          fallback={
+            <div
+              className={clsx('magnetic-tile-surface', tileStyles.surface)}
+              style={{
+                ...surfaceStyle,
+                background: 'rgba(0, 0, 0, 0.04)'
+              }}
+            />
+          }>
+          <div
+            className={clsx('magnetic-tile-surface', tileStyles.surface)}
+            style={surfaceStyle}>
+            {RenderMarker(item.kind, layout)}
+          </div>
+        </Suspense>
       </div>
     </ContextMenu>
   )

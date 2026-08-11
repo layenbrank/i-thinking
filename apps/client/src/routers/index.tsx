@@ -1,13 +1,12 @@
+import { lazy } from 'react'
 import { Navigate, createBrowserRouter, type RouteObject } from 'react-router-dom'
+import Overlay from '@/views/overlay/overlay'
 
 const Overview = lazy(function () {
   return import('@/views/overview/overview.tsx')
 })
 const Screenshot = lazy(function () {
   return import('@/views/screenshot/screenshot.tsx')
-})
-const Overlay = lazy(function () {
-  return import('@/views/overlay/overlay')
 })
 
 const routes: RouteObject[] = [

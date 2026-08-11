@@ -1,12 +1,14 @@
+import { Component, type ReactNode } from 'react'
+
 type ErrorBoundaryProps = {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 type ErrorBoundaryState = {
   hasError: boolean
 }
 
-export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
     this.state = { hasError: false }
@@ -17,7 +19,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   override render() {
-    if (this.state.hasError) return <div>Component failed</div>
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full bg-transparent flex items-center justify-center">
+          <span className="text-xs text-gray-400">Component error</span>
+        </div>
+      )
+    }
 
     return this.props.children
   }

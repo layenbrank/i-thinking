@@ -45,14 +45,6 @@ async function removeOverlayTile(magneticTileID: string): Promise<void> {
   })
 }
 
-async function showMagneticTileOverlay(magneticTileID: string): Promise<void> {
-  await invoke('magnetic-tile:show-overlay', {
-    payload: {
-      magneticTileID
-    }
-  })
-}
-
 async function saveTexturePng(dataUrl: string, id: string): Promise<string> {
   if (!(await exists('textures', { baseDir: BaseDirectory.AppLocalData }))) {
     await mkdir('textures', { baseDir: BaseDirectory.AppLocalData, recursive: true })
@@ -87,7 +79,6 @@ export {
   updateOverlayMode,
   mountOverlayTile,
   removeOverlayTile,
-  showMagneticTileOverlay,
   saveTexturePng,
   readImageNaturalSize
 }
