@@ -1,0 +1,57 @@
+.digital {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--clock-font-size);
+}
+
+.digitGroup {
+  display: inline-flex;
+}
+
+.digitSlot {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 0.62em;
+  height: 1em;
+  overflow: hidden;
+  vertical-align: baseline;
+}
+
+.digit {
+  grid-area: 1 / 1;
+  display: inline-block;
+  font-size: 1em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+  letter-spacing: -0.02em;
+  transform-origin: center center;
+}
+
+.colon {
+  color: var(--ith-color-primary);
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 1px;
+  align-self: center;
+  display: inline-block;
+}
+
+/** Neon 变体：使用主色覆盖数字和冒号颜色 */
+.neon {
+  .digit,
+  .colon {
+    color: var(--ith-color-primary);
+  }
+}
+
+/** 仅主色数字，供 overlay 预览等场景使用 */
+.tonePrimary {
+  .digit,
+  .colon {
+    color: var(--ith-color-primary);
+  }
+}

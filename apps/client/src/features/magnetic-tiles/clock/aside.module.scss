@@ -1,0 +1,237 @@
+.aside {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 6px;
+  flex: 1 1 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  min-width: 0;
+}
+
+.metaBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.date,
+.weekday,
+.week,
+.period {
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.date {
+  color: var(--ith-color-text);
+  font-weight: 500;
+}
+
+.weekday,
+.week {
+  color: var(--ith-color-text-secondary);
+}
+
+.period {
+  color: var(--ith-color-primary);
+  font-weight: 600;
+}
+
+.alarmBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.alarmRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.alarmLabel {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+}
+
+.alarmTime {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-text-heading, var(--ith-color-text));
+  letter-spacing: -0.02em;
+}
+
+.alarmTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ith-color-text-secondary);
+}
+
+.alarmEmpty {
+  font-size: 12px;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+}
+
+.alarmSummary {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  font-variant-numeric: tabular-nums;
+}
+
+/* Neon 变体：aside 整体使用主色 */
+.aside.neon {
+  border-top-color: var(--ith-color-primary-border, var(--ith-color-primary));
+
+  .date,
+  .weekday,
+  .week,
+  .period,
+  .alarmTime,
+  .alarmTitle,
+  .alarmLabel,
+  .alarmSummary,
+  .alarmEmpty {
+    color: var(--ith-color-primary);
+  }
+}
+
+/* 宽形布局覆盖 */
+.aside.wide {
+  flex: unset;
+  max-width: none;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0 0 16px;
+  border-top: none;
+  border-left: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  overflow: hidden;
+
+  .metaBlock {
+    flex-shrink: 0;
+    gap: 6px;
+    padding: 0;
+  }
+
+  .period {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 4px;
+    background: var(--ith-color-primary-bg);
+    color: var(--ith-color-primary);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.04em;
+  }
+
+  .metaRow {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0;
+    row-gap: 2px;
+  }
+
+  .date {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--ith-color-text-heading, var(--ith-color-text));
+    letter-spacing: -0.01em;
+  }
+
+  .weekday,
+  .week {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--ith-color-text-secondary);
+  }
+
+  .weekday::before,
+  .week::before {
+    content: '·';
+    margin: 0 6px;
+    font-weight: 400;
+    color: var(--ith-color-text-quaternary, var(--ith-color-text-tertiary));
+  }
+
+  .alarmBlock {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-height: 0;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: var(--ith-border-radius-sm, 6px);
+    background: var(--ith-color-fill-tertiary, var(--ith-color-fill-quaternary));
+    overflow: hidden;
+  }
+
+  .alarmEmpty {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--ith-color-text-secondary);
+  }
+
+  .alarmRow {
+    gap: 6px;
+  }
+
+  .alarmTime {
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    color: var(--ith-color-text-heading, var(--ith-color-text));
+  }
+
+  .alarmSummary {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-size: 12px;
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+    color: var(--ith-color-text-secondary);
+  }
+
+  .alarmTitle {
+    max-width: 100%;
+    font-size: 12px;
+    color: var(--ith-color-text-secondary);
+  }
+}

@@ -17,13 +17,10 @@ import {
   formatWeekDays,
   parseWeekDays
 } from '@/features/magnetic-tiles/clock/alarm-time'
-import {
-  AnalogFace,
-  DigitalDigits,
-  MinimalTime
-} from '@/features/magnetic-tiles/clock/clock-faces.tsx'
+import { AnalogClock } from '@/features/magnetic-tiles/clock/faces/analog/analog-clock.tsx'
+import { DigitalClock } from '@/features/magnetic-tiles/clock/faces/digital/digital-clock.tsx'
+import { MinimalClock } from '@/features/magnetic-tiles/clock/faces/minimal/minimal-clock.tsx'
 import { FlipClock } from '@/features/magnetic-tiles/clock/flip-digit.tsx'
-import faceStyles from '@/features/magnetic-tiles/clock/marker.module.scss'
 import styles from '@/features/magnetic-tiles/clock/overlay.module.scss'
 import { useSecondTick } from '@/features/magnetic-tiles/clock/use-second-tick.ts'
 import { useClockStore, type ClockStyle } from '@/stores/clock'
@@ -66,7 +63,7 @@ function StageAnalog(props: { now: Dayjs }) {
     <div
       className={styles.stageFaceWrap}
       aria-hidden>
-      <AnalogFace
+      <AnalogClock
         now={props.now}
         className={styles.stageFace}
       />
@@ -97,11 +94,12 @@ function StageDigits(props: { now: Dayjs; clockStyle: ClockStyle }) {
   if (props.clockStyle === 'minimal') {
     return (
       <div className={styles.stageDigits}>
-        <MinimalTime
+        <MinimalClock
           h={h}
           m={m}
           s={s}
           showSeconds={showSeconds}
+          isNeon={props.clockStyle === 'neon'}
         />
       </div>
     )
@@ -109,13 +107,13 @@ function StageDigits(props: { now: Dayjs; clockStyle: ClockStyle }) {
 
   return (
     <div className={styles.stageDigits}>
-      <DigitalDigits
+      <DigitalClock
         h={h}
         m={m}
         s={s}
         showSeconds={showSeconds}
         tick={tick}
-        className={props.clockStyle === 'neon' ? faceStyles.tonePrimary : undefined}
+        isNeon={props.clockStyle === 'neon'}
       />
     </div>
   )
