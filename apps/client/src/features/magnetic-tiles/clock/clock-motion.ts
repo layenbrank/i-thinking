@@ -6,16 +6,16 @@ const FLIP_TOTAL_MS = FLIP_HALF_S * 2 * 1000 + 48
 /** 数字滚轮：位移 + 透视翻转，非渐隐；槽位 overflow 裁切 */
 const DIGIT = {
   variants: {
-    initial: { y: '0.82em', rotateX: -72, scale: 0.88 },
-    animate: { y: 0, rotateX: 0, scale: 1 },
-    exit: { y: '-0.82em', rotateX: 72, scale: 0.88 }
+    initial: { y: '-0.82em' },
+    animate: { y: 0 },
+    exit: { y: '0.82em' }
   } satisfies Variants,
   transition(isReduced: boolean): Transition {
     if (isReduced) return { duration: 0 }
     return {
       type: 'spring',
-      visualDuration: 0.3,
-      bounce: 0.22
+      visualDuration: 0.35,
+      bounce: 0.15
     }
   }
 }

@@ -8,11 +8,10 @@ import {
   findNextReminder,
   findTodayEnabledCount
 } from '@/features/magnetic-tiles/clock/alarm-time'
-import {
-  AnalogFace,
-  DigitalDigits,
-  MinimalTime
-} from '@/features/magnetic-tiles/clock/clock-faces.tsx'
+import { AsidePanel } from '@/features/magnetic-tiles/clock/aside-panel.tsx'
+import { AnalogClock } from '@/features/magnetic-tiles/clock/faces/analog/analog-clock.tsx'
+import { DigitalClock } from '@/features/magnetic-tiles/clock/faces/digital/digital-clock.tsx'
+import { MinimalClock } from '@/features/magnetic-tiles/clock/faces/minimal/minimal-clock.tsx'
 import { findDayPeriod } from '@/features/magnetic-tiles/clock/day-period.ts'
 import { FlipClock } from '@/features/magnetic-tiles/clock/flip-digit.tsx'
 import styles from '@/features/magnetic-tiles/clock/marker.module.scss'
@@ -69,14 +68,15 @@ function Marker(props: Props) {
   const isFlip = clockStyle === 'flip'
   const isMinimal = clockStyle === 'minimal'
   const isCircle = props.shape === 'circle'
+  const isNeon = clockStyle === 'neon'
 
   const showSeconds =
     !isMinimal && !isCircle && capacity >= (isFlip ? 3 : 2) && props.size >= (isFlip ? 2 : 1)
-  const showAside = capacity >= 2 && !isCircle
+  const showAside = capacity >= 2 && !isCircle && !(wide && props.size === 1)
   const showPeriod = capacity >= 3
   const showFullDate = capacity >= 4
   const showWeek = capacity >= 5
-  const showNextAlarm = capacity >= 2
+  const showNextAlarm = capacity >= 2 && !(wide && props.size === 1)
   const showAlarmSummary = capacity >= 3
   const showSecondAlarm = capacity >= 5
   const useFlipDots = props.size >= 3
@@ -143,7 +143,7 @@ function Marker(props: Props) {
       )}>
       <div className={styles.body}>
         <div className={styles.stage}>
-          {clockStyle === 'analog' ? <AnalogFace now={now} /> : null}
+          {clockStyle === 'analog' ? <AnalogClock now={now} /> : null}
 
           {isFlip ? (
             <FlipClock
@@ -157,7 +157,7 @@ function Marker(props: Props) {
           ) : null}
 
           {isMinimal ? (
-            <MinimalTime
+            <MinimalClock
               h={h}
               m={m}
               s={s}
@@ -165,54 +165,34 @@ function Marker(props: Props) {
             />
           ) : null}
 
-          {clockStyle === 'digital' || clockStyle === 'neon' ? (
-            <DigitalDigits
+          {clockStyle === 'digital' || isNeon ? (
+            <DigitalClock
               h={h}
               m={m}
               s={s}
               showSeconds={showSeconds}
               tick={tick}
+              isNeon={isNeon}
             />
           ) : null}
         </div>
 
         {showAside ? (
-          <aside className={styles.aside}>
-            <div className={styles.metaBlock}>
-              {showPeriod ? <span className={styles.period}>{period}</span> : null}
-              <div className={styles.metaRow}>
-                <span className={styles.date}>{dateLabel}</span>
-                <span className={styles.weekday}>{weekday}</span>
-                {showWeek ? <span className={styles.week}>第 {weekOfYear} 周</span> : null}
-              </div>
-            </div>
-
-            {showNextAlarm ? (
-              <div className={styles.alarmBlock}>
-                {nextReminders.length > 0 ? (
-                  nextReminders.map(function (item) {
-                    return (
-                      <div
-                        key={item.reminder.id}
-                        className={styles.alarmRow}>
-                        <span className={styles.alarmLabel}>下个</span>
-                        <span className={styles.alarmTime}>{item.reminder.fireTime}</span>
-                        <span className={styles.alarmTitle}>{item.reminder.title || '闹钟'}</span>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <div className={styles.alarmEmpty}>暂无闹钟</div>
-                )}
-                {showAlarmSummary ? (
-                  <div className={styles.alarmSummary}>
-                    今日已开 {todayEnabled}
-                    {enabledTotal !== todayEnabled ? ` · 全部 ${enabledTotal}` : ''}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </aside>
+          <AsidePanel
+            period={period}
+            dateLabel={dateLabel}
+            weekday={weekday}
+            weekOfYear={weekOfYear}
+            showPeriod={showPeriod}
+            showWeek={showWeek}
+            showNextAlarm={showNextAlarm}
+            showAlarmSummary={showAlarmSummary}
+            nextReminders={nextReminders}
+            todayEnabled={todayEnabled}
+            enabledTotal={enabledTotal}
+            isNeon={isNeon}
+            wide={wide}
+          />
         ) : null}
       </div>
     </MagneticTile.Marker>
