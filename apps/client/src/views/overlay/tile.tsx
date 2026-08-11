@@ -100,7 +100,6 @@ function Tile(props: TileProps) {
       boundsWidth: stageBounds.width,
       boundsHeight: stageBounds.height,
       threshold: DRAG_THRESHOLD,
-      enableInertia: true,
       onCommit: function (x, y) {
         toUpdate(item.id, { x, y })
       }

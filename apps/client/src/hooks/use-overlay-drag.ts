@@ -1,22 +1,12 @@
 import gsap from 'gsap'
-import { InertiaPlugin } from 'gsap/InertiaPlugin'
 import { useCallback, useRef } from 'react'
-
-gsap.registerPlugin(InertiaPlugin)
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }
 
-function prefersReducedMotion() {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
-interface VelocitySample {
-  x: number
-  y: number
-  t: number
-}
+/** 阻尼跟随系数：0→无跟随，1→即时跟随，0.35 提供弹性阻尼感 */
+const DAMPING = 0.1
 
 interface UseOverlayDragOptions {
   rootRef: React.RefObject<HTMLElement | null>
@@ -29,8 +19,6 @@ interface UseOverlayDragOptions {
   boundsHeight: number
   /** 超过该像素才算拖拽（tile 用 6，texture 用 0） */
   threshold?: number
-  /** 释放时启用惯性滑行 */
-  enableInertia?: boolean
   onCommit: (x: number, y: number) => void
   onDragStateChange?: (isDragging: boolean) => void
 }
@@ -45,14 +33,33 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
     boundsWidth,
     boundsHeight,
     threshold = 0,
-    enableInertia = false,
     onCommit,
     onDragStateChange
   } = options
 
   /** 用 ref 穿透闭包，确保稳定回调始终读到最新 props */
-  const latestRef = useRef({ storeX, storeY, elWidth, elHeight, boundsWidth, boundsHeight, threshold, enableInertia, onCommit, onDragStateChange })
-  latestRef.current = { storeX, storeY, elWidth, elHeight, boundsWidth, boundsHeight, threshold, enableInertia, onCommit, onDragStateChange }
+  const latestRef = useRef({
+    storeX,
+    storeY,
+    elWidth,
+    elHeight,
+    boundsWidth,
+    boundsHeight,
+    threshold,
+    onCommit,
+    onDragStateChange
+  })
+  latestRef.current = {
+    storeX,
+    storeY,
+    elWidth,
+    elHeight,
+    boundsWidth,
+    boundsHeight,
+    threshold,
+    onCommit,
+    onDragStateChange
+  }
 
   /** 拖拽状态：origin=按下时指针位置，startX/Y=拖拽起始时元素坐标 */
   const dragRef = useRef<{
@@ -64,28 +71,44 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
     moved: boolean
   } | null>(null)
 
-  /** 最近 3 帧速度采样 */
-  const velocityRef = useRef<VelocitySample[]>([])
+  /** 阻尼收尾目标（pointerUp 后独立追踪，不依赖 dragRef） */
+  const dampingTargetRef = useRef<{ x: number; y: number } | null>(null)
 
-  /** 惯性动画 tween（用于 killTweensOf 竞争处理） */
-  const inertiaTweenRef = useRef<gsap.core.Tween | null>(null)
-
-  function addSample(x: number, y: number) {
-    const samples = velocityRef.current
-    samples.push({ x, y, t: performance.now() })
-    if (samples.length > 4) samples.shift()
+  /** 停止阻尼跟随动画 */
+  function stopDamping() {
+    gsap.ticker.remove(dampingTick)
   }
 
-  function getVelocity(): { vx: number; vy: number } {
-    const samples = velocityRef.current
-    if (samples.length < 2) return { vx: 0, vy: 0 }
-    const first = samples[0]
-    const last = samples[samples.length - 1]
-    const dt = (last.t - first.t) / 1000
-    if (dt <= 0) return { vx: 0, vy: 0 }
-    return {
-      vx: (last.x - first.x) / dt,
-      vy: (last.y - first.y) / dt
+  /** 阻尼跟随：每帧将元素位置向目标 lerp */
+  function dampingTick() {
+    const target = dampingTargetRef.current
+    if (!target) {
+      stopDamping()
+      return
+    }
+    const el = rootRef.current
+    if (!el) return
+
+    const cx = Number(gsap.getProperty(el, 'x')) || 0
+    const cy = Number(gsap.getProperty(el, 'y')) || 0
+    const nx = cx + (target.x - cx) * DAMPING
+    const ny = cy + (target.y - cy) * DAMPING
+
+    if (Math.abs(target.x - nx) < 0.5 && Math.abs(target.y - ny) < 0.5) {
+      gsap.set(el, { x: target.x, y: target.y })
+      dampingTargetRef.current = null
+      stopDamping()
+      latestRef.current.onCommit(target.x, target.y)
+      return
+    }
+
+    gsap.set(el, { x: nx, y: ny })
+
+    if (Math.abs(target.x - nx) < 1 && Math.abs(target.y - ny) < 1) {
+      gsap.set(el, { x: target.x, y: target.y })
+      dampingTargetRef.current = null
+      stopDamping()
+      latestRef.current.onCommit(target.x, target.y)
     }
   }
 
@@ -95,23 +118,22 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
       const el = rootRef.current
       if (!el) return
 
-      // 终止可能正在运行的惯性动画
-      if (inertiaTweenRef.current) {
-        inertiaTweenRef.current.kill()
-        inertiaTweenRef.current = null
-      }
+      // 终止上一轮阻尼动画
+      stopDamping()
 
-      const { storeX: sx, storeY: sy } = latestRef.current
+      // 读元素实际渲染位置并 snap 冻结，防止残余阻尼帧造成偏移
+      const actualX = Number(gsap.getProperty(el, 'x')) || 0
+      const actualY = Number(gsap.getProperty(el, 'y')) || 0
+      gsap.set(el, { x: actualX, y: actualY })
+      dampingTargetRef.current = null
       dragRef.current = {
         pointerId: e.pointerId,
         originX: e.clientX,
         originY: e.clientY,
-        startX: sx,
-        startY: sy,
+        startX: actualX,
+        startY: actualY,
         moved: false
       }
-      velocityRef.current = []
-      addSample(dragRef.current.startX, dragRef.current.startY)
     },
     [rootRef]
   )
@@ -123,7 +145,14 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
       const el = rootRef.current
       if (!el) return
 
-      const { boundsWidth: bw, boundsHeight: bh, elWidth: ew, elHeight: eh, threshold: th, onDragStateChange: onDSC } = latestRef.current
+      const {
+        boundsWidth: bw,
+        boundsHeight: bh,
+        elWidth: ew,
+        elHeight: eh,
+        threshold: th,
+        onDragStateChange: onDSC
+      } = latestRef.current
       const mx = Math.max(0, bw - ew)
       const my = Math.max(0, bh - eh)
 
@@ -139,11 +168,11 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
 
       const rawX = drag.startX + dx
       const rawY = drag.startY + dy
-      const x = clamp(rawX, 0, mx)
-      const y = clamp(rawY, 0, my)
+      const tx = clamp(rawX, 0, mx)
+      const ty = clamp(rawY, 0, my)
+      dampingTargetRef.current = { x: tx, y: ty }
 
-      addSample(x, y)
-      gsap.set(el, { x, y })
+      gsap.ticker.add(dampingTick)
     },
     [rootRef]
   )
@@ -160,59 +189,37 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
         /* already released */
       }
 
-      const { enableInertia: useInertia, onCommit: commit, onDragStateChange: onDSC } = latestRef.current
-      const maxXC = Math.max(0, latestRef.current.boundsWidth - latestRef.current.elWidth)
-      const maxYC = Math.max(0, latestRef.current.boundsHeight - latestRef.current.elHeight)
+      const { onDragStateChange: onDSC } = latestRef.current
 
       onDSC?.(false)
 
       if (!drag.moved || !el) {
+        stopDamping()
+        dampingTargetRef.current = null
         dragRef.current = null
         return
       }
 
-      const currentX = Number(gsap.getProperty(el, 'x')) || 0
-      const currentY = Number(gsap.getProperty(el, 'y')) || 0
-
-      if (useInertia && !prefersReducedMotion()) {
-        const { vx, vy } = getVelocity()
-        const speed = Math.hypot(vx, vy)
-
-        if (speed > 50) {
-          inertiaTweenRef.current = gsap.to(el, {
-            inertia: {
-              x: { velocity: vx, resistance: 300, minVelocity: 20 },
-              y: { velocity: vy, resistance: 300, minVelocity: 20 }
-            },
-            onComplete() {
-              const finalX = Number(gsap.getProperty(el, 'x')) || 0
-              const finalY = Number(gsap.getProperty(el, 'y')) || 0
-              const clampedX = clamp(finalX, 0, maxXC)
-              const clampedY = clamp(finalY, 0, maxYC)
-              inertiaTweenRef.current = null
-              commit(clampedX, clampedY)
-            }
-          })
-          dragRef.current = null
-          return
-        }
+      // 立即清空 dragRef，防止后续 pointerMove 误匹配旧 pointerId
+      // 阻尼收尾由 dampingTargetRef 独立追踪
+      const finalTarget = {
+        x: Number(gsap.getProperty(el, 'x')) || 0,
+        y: Number(gsap.getProperty(el, 'y')) || 0
       }
-
+      dampingTargetRef.current = finalTarget
       dragRef.current = null
-      commit(currentX, currentY)
     },
     [rootRef]
   )
 
-  const handlePointerCancel = useCallback(
-    function () {
-      const drag = dragRef.current
-      if (!drag) return
-      dragRef.current = null
-      latestRef.current.onDragStateChange?.(false)
-    },
-    []
-  )
+  const handlePointerCancel = useCallback(function () {
+    const drag = dragRef.current
+    if (!drag) return
+    stopDamping()
+    dampingTargetRef.current = null
+    dragRef.current = null
+    latestRef.current.onDragStateChange?.(false)
+  }, [])
 
   return {
     handlePointerDown,

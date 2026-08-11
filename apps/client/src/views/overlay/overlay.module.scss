@@ -23,4 +23,6 @@
   user-select: none;
   transition: none;
   will-change: transform;
+  border-radius: var(--magnetic-tile-round, 12px);
+  overflow: hidden;
 }
