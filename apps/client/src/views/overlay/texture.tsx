@@ -47,7 +47,6 @@ function Texture(props: TextureProps) {
     boundsWidth: stageBounds.width,
     boundsHeight: stageBounds.height,
     threshold: 0,
-    enableInertia: true,
     onCommit: function (x, y) {
       toUpdate(item.id, { x, y })
     }
