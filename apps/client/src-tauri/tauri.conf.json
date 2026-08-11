@@ -85,7 +85,7 @@
       {
         "alwaysOnTop": true,
         "backgroundColor": "#00000000",
-        "create": false,
+        "create": true,
         "decorations": false,
         "devtools": true,
         "dragDropEnabled": false,
@@ -102,7 +102,7 @@
         "title": "Overlay",
         "transparent": true,
         "url": "/overlay",
-        "visible": true
+        "visible": false
       }
     ],
     "withGlobalTauri": true

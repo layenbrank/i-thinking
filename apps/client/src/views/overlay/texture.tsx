@@ -1,18 +1,23 @@
 import { Icon } from '@iconify/react/offline'
-import { useRef } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
+import { useRef, useLayoutEffect } from 'react'
 
+import { useOverlayDrag } from '@/hooks/use-overlay-drag'
+import { useWheelScale } from '@/hooks/use-wheel-scale'
 import { useThrough } from '@/hooks/use-through'
 import { useOverlayStore, type OverlayTexture } from '@/stores/overlay'
+import { ResizeHandles } from '@/views/overlay/resize-handles'
 import styles from '@/views/overlay/texture.module.scss'
 
 interface TextureProps {
   item: OverlayTexture
+  stageBounds: { width: number; height: number }
 }
 
 function Texture(props: TextureProps) {
-  const { item } = props
+  const { item, stageBounds } = props
   const rootRef = useRef<HTMLDivElement>(null)
-  const dragRef = useRef<{ originX: number; originY: number; x: number; y: number } | null>(null)
 
   const toUpdate = useOverlayStore(function (s) {
     return s.toUpdate
@@ -26,57 +31,98 @@ function Texture(props: TextureProps) {
 
   useThrough(item.id, { rootRef, enabled: !item.isThrough })
 
+  // ── 拖拽（GSAP transform + 惯性） ──
+  const {
+    handlePointerDown: dragDown,
+    handlePointerMove: dragMove,
+    handlePointerUp: dragUp,
+    handlePointerCancel: dragCancel
+  } = useOverlayDrag({
+    rootRef,
+    id: item.id,
+    storeX: item.x,
+    storeY: item.y,
+    elWidth: item.w,
+    elHeight: item.h,
+    boundsWidth: stageBounds.width,
+    boundsHeight: stageBounds.height,
+    threshold: 0,
+    enableInertia: true,
+    onCommit: function (x, y) {
+      toUpdate(item.id, { x, y })
+    }
+  })
+
+  // ── 滚轮缩放 ──
+  const handleWheel = useWheelScale({
+    rootRef,
+    storeScale: item.scale,
+    storeOpacity: item.opacity,
+    onCommit: function (scale) {
+      toUpdate(item.id, { scale })
+    },
+    onOpacityCommit: function (opacity) {
+      toUpdate(item.id, { opacity })
+    }
+  })
+
+  // ── 四角缩放手柄 ──
+  const resizeBaseRef = useRef({ w: item.w, h: item.h })
+  resizeBaseRef.current = { w: item.w, h: item.h }
+
+  function handleResizeStart() {
+    toFront(item.id)
+  }
+
+  function handleResize(dw: number, dh: number) {
+    const el = rootRef.current
+    if (!el) return
+    const newW = Math.max(48, resizeBaseRef.current.w + dw)
+    const newH = Math.max(48, resizeBaseRef.current.h + dh)
+    gsap.set(el, { width: newW, height: newH })
+  }
+
+  function handleResizeEnd() {
+    const el = rootRef.current
+    if (!el) return
+    const finalW = Math.round(el.offsetWidth)
+    const finalH = Math.round(el.offsetHeight)
+    resizeBaseRef.current = { w: finalW, h: finalH }
+    toUpdate(item.id, { w: finalW, h: finalH })
+  }
+
+  // ── 挂载时初始化 GSAP transform（仅一次，不干扰拖拽） ──
+  useLayoutEffect(
+    function () {
+      const el = rootRef.current
+      if (!el) return
+      gsap.set(el, { x: item.x, y: item.y, scale: item.scale })
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  )
+
+  // ── store x/y/scale 外部变化时同步 GSAP ──
+  const prevStoreRef = useRef({ x: item.x, y: item.y, scale: item.scale })
+  useGSAP(
+    function () {
+      const el = rootRef.current
+      if (!el) return
+      const prev = prevStoreRef.current
+      if (item.x !== prev.x || item.y !== prev.y || item.scale !== prev.scale) {
+        prevStoreRef.current = { x: item.x, y: item.y, scale: item.scale }
+        gsap.set(el, { x: item.x, y: item.y, scale: item.scale })
+      }
+    },
+    { scope: rootRef, dependencies: [item.x, item.y, item.scale] }
+  )
+
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.button !== 0) return
     const target = e.target as HTMLElement
     if (target.closest('button')) return
     toFront(item.id)
-    dragRef.current = {
-      originX: e.clientX,
-      originY: e.clientY,
-      x: item.x,
-      y: item.y
-    }
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }
-
-  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current
-    if (!drag) return
-    toUpdate(item.id, {
-      x: drag.x + (e.clientX - drag.originX),
-      y: drag.y + (e.clientY - drag.originY)
-    })
-  }
-
-  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    if (!dragRef.current) return
-    dragRef.current = null
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId)
-    } catch {
-      /* already released */
-    }
-  }
-
-  function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
-    e.preventDefault()
-    e.stopPropagation()
-    if (e.ctrlKey) {
-      const delta = e.deltaY > 0 ? -0.05 : 0.05
-      const next = Math.min(1, Math.max(0.15, item.opacity + delta))
-      toUpdate(item.id, { opacity: next })
-      return
-    }
-    const scale = e.deltaY > 0 ? 0.92 : 1.08
-    const w = Math.max(48, Math.round(item.w * scale))
-    const h = Math.max(48, Math.round(item.h * scale))
-    toUpdate(item.id, {
-      w,
-      h,
-      x: item.x - (w - item.w) / 2,
-      y: item.y - (h - item.h) / 2
-    })
+    dragDown(e)
   }
 
   return (
@@ -85,16 +131,15 @@ function Texture(props: TextureProps) {
       className={styles.texture}
       {...(item.isThrough ? {} : { 'data-region': 'false' })}
       style={{
-        left: item.x,
-        top: item.y,
         width: item.w,
         height: item.h,
         zIndex: item.z,
         opacity: item.opacity
       }}
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
+      onPointerMove={dragMove}
+      onPointerUp={dragUp}
+      onPointerCancel={dragCancel}
       onWheel={handleWheel}>
       <img
         className={styles.image}
@@ -130,6 +175,11 @@ function Texture(props: TextureProps) {
           />
         </button>
       </div>
+      <ResizeHandles
+        onResizeStart={handleResizeStart}
+        onResize={handleResize}
+        onResizeEnd={handleResizeEnd}
+      />
     </div>
   )
 }

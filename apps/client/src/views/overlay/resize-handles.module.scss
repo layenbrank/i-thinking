@@ -1,0 +1,55 @@
+.handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--ith-color-primary);
+  border: 1.5px solid var(--ith-color-bg-container);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transition:
+    opacity 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+  z-index: 10;
+
+  &:hover {
+    background: color-mix(in srgb, var(--ith-color-primary) 80%, white);
+    transform: scale(1.15);
+  }
+
+  &:active {
+    background: color-mix(in srgb, var(--ith-color-primary) 70%, black);
+    transform: scale(0.95);
+  }
+}
+
+// 四角定位
+.tl {
+  top: -5px;
+  left: -5px;
+  cursor: nwse-resize;
+}
+
+.tr {
+  top: -5px;
+  right: -5px;
+  cursor: nesw-resize;
+}
+
+.bl {
+  bottom: -5px;
+  left: -5px;
+  cursor: nesw-resize;
+}
+
+.br {
+  bottom: -5px;
+  right: -5px;
+  cursor: nwse-resize;
+}
+
+// 父容器 hover 时显示
+.texture:hover & {
+  opacity: 1;
+}

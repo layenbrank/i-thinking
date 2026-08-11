@@ -35,7 +35,11 @@ pub struct Model {
     /// 背景配置 JSON 字符串
     pub background: Option<String>,
 
+    /// 缩放比例，默认 1.0
+    pub scale: f64,
+
     // ── 通用 ──
+    /// 软删除时间戳；仅贴图（texture）使用，磁贴（tile）为硬删除，此字段恒为 NULL。
     #[sea_orm(column_name = "archivedAt")]
     pub archived_at: Option<i64>,
 
@@ -75,6 +79,12 @@ pub struct Write {
     pub direction: Option<String>,
     pub round: Option<String>,
     pub background: Option<String>,
+    #[serde(default = "default_scale")]
+    pub scale: f64,
+}
+
+fn default_scale() -> f64 {
+    1.0
 }
 
 /// 更新 patch；仅更新 `Some` 的字段。
@@ -96,4 +106,5 @@ pub struct Update {
     pub direction: Option<String>,
     pub round: Option<String>,
     pub background: Option<String>,
+    pub scale: Option<f64>,
 }

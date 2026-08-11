@@ -39,7 +39,6 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         overlay::command::overlay_unmount,
         overlay::command::overlay_take_pending,
         overlay::command::overlay_take_pending_unmount,
-        overlay::command::magnetic_tile_show_overlay,
         thinking_command::countdown::countdown_read,
         thinking_command::countdown::countdown_upsert,
         thinking_command::countdown::countdown_update,

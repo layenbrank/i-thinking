@@ -22,12 +22,6 @@ pub struct OverlayUnmountPayload {
     pub magnetic_tile_id: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ShowOverlayPayload {
-    #[serde(rename = "magneticTileID")]
-    pub magnetic_tile_id: String,
-}
-
 #[derive(Default)]
 pub struct OverlayPending {
     pub mount: Mutex<Option<OverlayMountPayload>>,

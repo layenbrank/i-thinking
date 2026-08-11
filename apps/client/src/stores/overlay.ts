@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
@@ -23,6 +24,7 @@ interface OverlayTexture {
   z: number
   src: string
   opacity: number
+  scale: number
   isThrough: boolean
 }
 
@@ -35,6 +37,7 @@ interface OverlayTile {
   w: number
   h: number
   z: number
+  scale: number
   magneticTileID: string
   size: Mirror.Size
   shape: Mirror.Shape
@@ -53,6 +56,7 @@ interface TileWritePayload {
   w: number
   h: number
   z: number
+  scale: number
   tenantID: string
   component: MagneticTile.Component
   size: Mirror.Size
@@ -62,9 +66,10 @@ interface TileWritePayload {
   background: string | null
 }
 
-/** overlay:update patch：updateItem / updateTexture 字段并集（isThrough 不持久化） */
+/** overlay:update patch：texture / tile 可更新字段并集（isThrough 不持久化） */
 type OverlayPatch = Partial<
-  Pick<OverlayTexture, 'x' | 'y' | 'w' | 'h' | 'z' | 'opacity' | 'isThrough' | 'src'>
+  Pick<OverlayTexture, 'x' | 'y' | 'w' | 'h' | 'z' | 'opacity' | 'scale' | 'isThrough' | 'src'> &
+    Pick<OverlayTile, 'size' | 'shape' | 'direction' | 'round' | 'background'>
 >
 
 /** overlay:read 返回行 */
@@ -85,6 +90,7 @@ interface OverlayRow {
   direction?: Mirror.Direction | null
   round?: string | null
   background?: string | null
+  scale?: number | null
   archivedAt?: string | null
   createdAt: string
   updatedAt: string
@@ -201,19 +207,27 @@ const useOverlayStore = create<OverlayStore>()(
                 shape: parsed.shape,
                 direction: parsed.direction,
                 round,
-                background: background ? JSON.stringify(background) : null
+                background: background ? JSON.stringify(background) : null,
+                scale: existing.scale ?? 1
               }
               return
             }
-            const margin = 48 + state.items.length * 24
+            const screenW = window.innerWidth
+            const screenH = window.innerHeight
+            const jitter = function () {
+              return (Math.random() - 0.5) * 40
+            }
+            const cx = Math.max(0, (screenW - box.w) / 2 + jitter())
+            const cy = Math.max(0, (screenH - box.h) / 2 + jitter())
             state.items.push({
               id: magneticTileID,
               kind,
-              x: margin,
-              y: margin,
+              x: cx,
+              y: cy,
               w: box.w,
               h: box.h,
               z: nextZ(state),
+              scale: 1,
               magneticTileID,
               size: parsed.size,
               shape: parsed.shape,
@@ -223,11 +237,12 @@ const useOverlayStore = create<OverlayStore>()(
             })
             payload = {
               kind: 'tile',
-              x: margin,
-              y: margin,
+              x: cx,
+              y: cy,
               w: box.w,
               h: box.h,
               z: state.zCursor,
+              scale: 1,
               tenantID: magneticTileID,
               component: kind,
               size: parsed.size,
@@ -256,25 +271,28 @@ const useOverlayStore = create<OverlayStore>()(
             z: number
             src: string
             opacity: number
+            scale: number
           } | null = null
           setter(function (state) {
             id = `texture-${Date.now()}-${state.zCursor}`
-            const offset =
-              (state.items.filter(function (w) {
-                return w.kind === 'texture'
-              }).length %
-                8) *
-              28
+            const screenW = window.innerWidth
+            const screenH = window.innerHeight
+            const jitter = (state.items.filter(function (w) {
+              return w.kind === 'texture'
+            }).length % 8) * 28 * (Math.random() > 0.5 ? 1 : -1)
+            const defaultX = Math.max(0, (screenW - input.w) / 2 + jitter)
+            const defaultY = Math.max(0, (screenH - input.h) / 2 + jitter)
             const item: OverlayTexture = {
               id,
               kind: 'texture',
-              x: input.x ?? 80 + offset,
-              y: input.y ?? 80 + offset,
+              x: input.x ?? defaultX,
+              y: input.y ?? defaultY,
               w: input.w,
               h: input.h,
               z: nextZ(state),
               src: input.src,
               opacity: input.opacity ?? 1,
+              scale: 1,
               isThrough: false
             }
             state.items.push(item)
@@ -286,7 +304,8 @@ const useOverlayStore = create<OverlayStore>()(
               h: item.h,
               z: item.z,
               src: item.src,
-              opacity: item.opacity
+              opacity: item.opacity,
+              scale: item.scale
             }
           })
           if (writeItem) {
@@ -420,39 +439,44 @@ const useOverlayStore = create<OverlayStore>()(
             if (!Array.isArray(rows)) return
             const items: OverlayItem[] = []
             for (const row of rows) {
-              if (row.kind === 'texture') {
+              // structuredClone 确保每个 item 是可变的纯对象，避免 IPC/Immer 冻结
+              const base = structuredClone(row)
+              if (base.kind === 'texture') {
                 items.push({
-                  id: row.id,
+                  id: base.id,
                   kind: 'texture',
-                  x: row.x,
-                  y: row.y,
-                  w: row.w,
-                  h: row.h,
-                  z: row.z,
-                  src: row.src ?? '',
-                  opacity: row.opacity ?? 1,
+                  x: base.x,
+                  y: base.y,
+                  w: base.w,
+                  h: base.h,
+                  z: base.z,
+                  src: base.src ?? '',
+                  opacity: base.opacity ?? 1,
+                  scale: base.scale ?? 1,
                   isThrough: false
                 })
-              } else if (row.kind === 'tile') {
+              } else if (base.kind === 'tile') {
                 items.push({
-                  id: row.id,
-                  kind: row.component as MagneticTile.Component,
-                  x: row.x,
-                  y: row.y,
-                  w: row.w,
-                  h: row.h,
-                  z: row.z,
-                  magneticTileID: row.tenantID ?? row.id,
-                  size: row.size ?? LAYOUT_FALLBACK.size,
-                  shape: row.shape ?? LAYOUT_FALLBACK.shape,
-                  direction: row.direction ?? LAYOUT_FALLBACK.direction,
-                  round: row.round ?? null,
-                  background: row.background ? JSON.parse(row.background) : null
+                  id: base.id,
+                  kind: base.component as MagneticTile.Component,
+                  x: base.x,
+                  y: base.y,
+                  w: base.w,
+                  h: base.h,
+                  z: base.z,
+                  scale: base.scale ?? 1,
+                  magneticTileID: base.tenantID ?? base.id,
+                  size: base.size ?? LAYOUT_FALLBACK.size,
+                  shape: base.shape ?? LAYOUT_FALLBACK.shape,
+                  direction: base.direction ?? LAYOUT_FALLBACK.direction,
+                  round: base.round ?? null,
+                  background: base.background ? JSON.parse(base.background) : null
                 })
               }
             }
+            // 传入 store 的必须是副本，否则 Immer 会冻结原始 items 导致后续边界校验无法写入
             setter(function (state) {
-              state.items = items
+              state.items = structuredClone(items)
               if (items.length > 0) {
                 state.zCursor =
                   Math.max(
@@ -463,6 +487,54 @@ const useOverlayStore = create<OverlayStore>()(
                   ) + 1
               }
             })
+
+            // 坐标边界校验：适配多屏/缩放变化
+            let screenW = 1920
+            let screenH = 1080
+            try {
+              const win = getCurrentWindow()
+              const sf = await win.scaleFactor()
+              const sz = await win.innerSize()
+              screenW = sz.width / sf
+              screenH = sz.height / sf
+            } catch {
+              /* 非 Tauri 环境用默认值 */
+            }
+
+            const clampedItems = items.map(function (item) {
+              const cx = Math.max(0, Math.min(item.x, screenW - (item.w ?? 60)))
+              const cy = Math.max(0, Math.min(item.y, screenH - (item.h ?? 60)))
+              if (cx !== item.x || cy !== item.y) {
+                return { ...item, x: cx, y: cy }
+              }
+              return item
+            })
+            const needsSave = clampedItems.some(function (item, idx) {
+              return item.x !== items[idx].x || item.y !== items[idx].y
+            })
+
+            // 坐标有修正则更新 store 并批量持久化
+            if (needsSave) {
+              setter(function (state) {
+                for (const item of clampedItems) {
+                  const entry = state.items.find(function (w) {
+                    return w.id === item.id
+                  })
+                  if (entry) {
+                    entry.x = item.x
+                    entry.y = item.y
+                  }
+                }
+              })
+              for (const item of clampedItems) {
+                scheduleUpdate(item.id, { x: item.x, y: item.y })
+              }
+            }
+
+            // 有内容则自动恢复显示
+            if (clampedItems.length > 0) {
+              await getter().toShow()
+            }
           } catch (e) {
             console.warn('[overlay] toInitialize failed:', e)
           }

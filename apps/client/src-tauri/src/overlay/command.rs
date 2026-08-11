@@ -4,9 +4,7 @@ use tauri::{
     WebviewWindowBuilder,
 };
 
-use crate::overlay::state::{
-    OverlayMountPayload, OverlayPending, OverlayUnmountPayload, ShowOverlayPayload,
-};
+use crate::overlay::state::{OverlayMountPayload, OverlayPending, OverlayUnmountPayload};
 use crate::through::ThroughState;
 
 pub const OVERLAY_LABEL: &str = "overlay";
@@ -175,23 +173,6 @@ pub async fn overlay_unmount(
         let mut unmount_guard = pending.unmount.lock().await;
         *unmount_guard = Some(payload);
     }
-    Ok(())
-}
-
-/// Focus main window and ask it to show MagneticTile.Overlay for the given id.
-#[tauri::command(rename = "magnetic-tile:show-overlay")]
-pub async fn magnetic_tile_show_overlay(
-    app: AppHandle,
-    payload: ShowOverlayPayload,
-) -> Result<(), String> {
-    if let Some(win) = app.get_webview_window("main") {
-        let _ = win.show();
-        let _ = win.unminimize();
-        let _ = win.set_focus();
-    } else {
-        return Err("main window missing".to_string());
-    }
-    let _ = app.emit("magnetic-tile://show-overlay", &payload);
     Ok(())
 }
 

@@ -11,19 +11,23 @@ use crate::exception::Exception;
 pub struct Service;
 
 impl Service {
-    /// 读取所有未归档的浮层项，按 z 升序。
+    /// 读取浮层项：磁贴（tile）始终返回；贴图（texture）仅返回未归档行。按 z 升序。
     pub async fn read<C: ConnectionTrait + TransactionTrait>(
         db: &C,
     ) -> Result<Vec<schema::Model>, Exception> {
         let rows = schema::Entity::find()
-            .filter(schema::Column::ArchivedAt.is_null())
+            .filter(
+                schema::Column::Kind
+                    .eq("tile")
+                    .or(schema::Column::ArchivedAt.is_null()),
+            )
             .order_by_asc(schema::Column::Z)
             .all(db)
             .await?;
         Ok(rows)
     }
 
-    /// 写入浮层项：tile 以 `tenantID` 作 id（存在则更新/复活）；texture 生成 UUID。
+    /// 写入浮层项：tile 以 `tenantID` 作 id（存在则更新）；texture 生成 UUID。
     pub async fn write<C: ConnectionTrait + TransactionTrait>(
         db: &C,
         item: schema::Write,
@@ -31,10 +35,9 @@ impl Service {
         if item.kind == "tile" && item.tenant_id.is_some() {
             let id = item.tenant_id.clone().unwrap();
             if let Some(existing) = schema::Entity::find_by_id(id.clone()).one(db).await? {
-                // 已存在（含已归档）：全字段覆盖，已归档行复活
+                // 磁贴仅硬删除，此处为更新已存在的行
                 let mut active: schema::ActiveModel = existing.into();
                 Self::apply_write(&mut active, &item);
-                active.archived_at = Set(None);
                 active.updated_at = Set(Utc::now().timestamp_millis());
                 active.update(db).await?;
                 return Ok(id);
@@ -97,13 +100,16 @@ impl Service {
         if let Some(v) = patch.background {
             active.background = Set(Some(v));
         }
+        if let Some(v) = patch.scale {
+            active.scale = Set(v);
+        }
         active.updated_at = Set(Utc::now().timestamp_millis());
 
         active.update(db).await?;
         Ok(())
     }
 
-    /// 批量软删除：置 `archivedAt`。
+    /// 删除浮层项：磁贴（tile）硬删除（物理 DELETE）；贴图（texture）软删除（置 archivedAt）。
     pub async fn remove<C: ConnectionTrait + TransactionTrait>(
         db: &C,
         ids: Vec<String>,
@@ -112,23 +118,45 @@ impl Service {
             return Ok(());
         }
 
-        let now = Utc::now().timestamp_millis();
         let models = schema::Entity::find()
-            .filter(schema::Column::Id.is_in(ids))
+            .filter(schema::Column::Id.is_in(&ids))
             .all(db)
             .await?;
         if models.is_empty() {
             return Ok(());
         }
 
-        let txn = db.begin().await?;
-        for model in models {
-            let mut active: schema::ActiveModel = model.into();
-            active.archived_at = Set(Some(now));
-            active.updated_at = Set(now);
-            active.update(&txn).await?;
+        let (tile_models, texture_models): (Vec<_>, Vec<_>) = models
+            .into_iter()
+            .partition(|m| m.kind == "tile");
+        let tile_ids: Vec<String> = tile_models.into_iter().map(|m| m.id).collect();
+        let texture_ids: Vec<String> = texture_models.into_iter().map(|m| m.id).collect();
+
+        // 磁贴：物理 DELETE
+        if !tile_ids.is_empty() {
+            schema::Entity::delete_many()
+                .filter(schema::Column::Id.is_in(&tile_ids))
+                .exec(db)
+                .await?;
         }
-        txn.commit().await?;
+
+        // 贴图：软删除（置 archivedAt）
+        if !texture_ids.is_empty() {
+            let now = Utc::now().timestamp_millis();
+            let txn = db.begin().await?;
+            for model in schema::Entity::find()
+                .filter(schema::Column::Id.is_in(&texture_ids))
+                .all(&txn)
+                .await?
+            {
+                let mut active: schema::ActiveModel = model.into();
+                active.archived_at = Set(Some(now));
+                active.updated_at = Set(now);
+                active.update(&txn).await?;
+            }
+            txn.commit().await?;
+        }
+
         Ok(())
     }
 
@@ -155,6 +183,7 @@ impl Service {
             direction: Set(p.direction),
             round: Set(p.round),
             background: Set(p.background),
+            scale: Set(p.scale),
             archived_at: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
@@ -180,5 +209,6 @@ impl Service {
         active.direction = Set(p.direction.clone());
         active.round = Set(p.round.clone());
         active.background = Set(p.background.clone());
+        active.scale = Set(p.scale);
     }
 }
