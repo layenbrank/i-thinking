@@ -190,13 +190,17 @@ function YiJiBlock(props: { dayInfo: DayInfo; maxItems: number }) {
 
   return (
     <div className={styles.yiJiInline}>
-      <Tooltip title={dayInfo.beneficial || undefined}>
+      <Tooltip
+        placement="bottom"
+        title={dayInfo.beneficial || undefined}>
         <span className={styles.yiLine}>
           <span className={styles.yiJiLabel}>宜</span>
           <span className={styles.yiJiBody}>{yiText}</span>
         </span>
       </Tooltip>
-      <Tooltip title={dayInfo.unbeneficial || undefined}>
+      <Tooltip
+        placement="bottom"
+        title={dayInfo.unbeneficial || undefined}>
         <span className={styles.jiLine}>
           <span className={styles.jiLabel}>忌</span>
           <span className={styles.yiJiBody}>{jiText}</span>
