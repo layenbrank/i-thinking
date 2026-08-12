@@ -123,6 +123,7 @@ interface OverlayStore {
   toShow: () => Promise<void>
   toCapture: () => Promise<void>
   toExit: () => Promise<void>
+  toCaptureExit: () => Promise<void>
   toInitialize: () => Promise<void>
 }
 
@@ -431,6 +432,10 @@ const useOverlayStore = create<OverlayStore>()(
             /* non-tauri */
           }
           await getter().toHide()
+        },
+
+        async toCaptureExit() {
+          await getter().toExit()
         },
 
         async toInitialize() {

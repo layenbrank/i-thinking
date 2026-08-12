@@ -4,9 +4,9 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { Layer, Image as ReImage, Stage, Transformer, type KonvaNodeEvents } from 'react-konva'
 import useImage from 'use-image'
 
-import Graphics, { SpotlightMask, type GraphicsProps } from '@/views/screenshot/components/graphics'
+import Graphics, { SpotlightMask, type GraphicsProps } from '@/features/screenshot/components/graphics'
 
-import styles from '@/views/screenshot/components/annotation.module.scss'
+import styles from '@/features/screenshot/components/annotation.module.scss'
 
 import URLBackground from '@/assets/screenshot-background.jpg'
 

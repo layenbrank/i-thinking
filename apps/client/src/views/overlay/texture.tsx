@@ -7,6 +7,7 @@ import { useOverlayDrag } from '@/hooks/use-overlay-drag'
 import { useWheelScale } from '@/hooks/use-wheel-scale'
 import { useThrough } from '@/hooks/use-through'
 import { useOverlayStore, type OverlayTexture } from '@/stores/overlay'
+import { resolveTextureSrc } from '@/utils/tauri'
 import { ResizeHandles } from '@/views/overlay/resize-handles'
 import styles from '@/views/overlay/texture.module.scss'
 
@@ -142,7 +143,7 @@ function Texture(props: TextureProps) {
       onWheel={handleWheel}>
       <img
         className={styles.image}
-        src={item.src}
+        src={resolveTextureSrc(item.src)}
         alt="Screenshot texture"
         draggable={false}
       />

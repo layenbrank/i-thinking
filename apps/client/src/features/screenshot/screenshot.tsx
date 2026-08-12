@@ -4,22 +4,21 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { v4 as UUID } from 'uuid'
 
-import { Annotation, type AnnotationHandle } from '@/views/screenshot/components/annotation'
-import { type GraphicsEnum, type GraphicsProps } from '@/views/screenshot/components/graphics'
-import Magnifier from '@/views/screenshot/components/magnifier'
-import Utility from '@/views/screenshot/components/utility'
+import { Annotation, type AnnotationHandle } from '@/features/screenshot/components/annotation'
+import { type GraphicsEnum, type GraphicsProps } from '@/features/screenshot/components/graphics'
+import Magnifier from '@/features/screenshot/components/magnifier'
+import Utility from '@/features/screenshot/components/utility'
 import {
   captureScreen,
-  closeScreenshotWindow,
   isTauri,
-  loadDataUrl,
-  savePngToAppDir,
+  loadImageFromPath,
+  readImageNaturalSize,
+  registerAsset,
+  saveTexturePng,
   writeImageToClipboard
-} from '@/views/screenshot/tauri'
-import { readImageNaturalSize, saveTexturePng } from '@/views/overlay/tauri'
-import { useOverlayStore } from '@/stores/overlay'
+} from '@/features/screenshot/tauri'
 
-import styles from '@/views/screenshot/screenshot.module.scss'
+import styles from '@/features/screenshot/screenshot.module.scss'
 
 import URLBackground from '@/assets/screenshot-background.jpg'
 
@@ -139,7 +138,11 @@ export default function Screenshot(props: ScreenshotProps = {}) {
       onUpdateSelectedID(null)
       return
     }
-    if (selection) handleRefresh()
+    if (selection) {
+      handleRefresh()
+      return
+    }
+    onExit?.()
   }
 
   // 快捷键：撤销 / 重做 / 删除 / 退出
@@ -167,7 +170,7 @@ export default function Screenshot(props: ScreenshotProps = {}) {
       try {
         if (isTauri()) {
           const result = await captureScreen()
-          const img = await loadDataUrl(result.data_url)
+          const img = await loadImageFromPath(result.path)
           if (!cancelled) onUpdateSourceImage(img)
           return
         }
@@ -372,9 +375,11 @@ export default function Screenshot(props: ScreenshotProps = {}) {
       if (!current) return
       onUpdateColor(current.color)
       onUpdateThickness(current.thickness ?? 2)
-      if ((current.opacity !== null && current.opacity !== undefined)) onUpdateOpacity(current.opacity)
-      if ((current.filled !== null && current.filled !== undefined)) onUpdateFilled(current.filled)
-      if ((current.fontSize !== null && current.fontSize !== undefined)) onUpdateFontSize(current.fontSize)
+      if (current.opacity !== null && current.opacity !== undefined)
+        onUpdateOpacity(current.opacity)
+      if (current.filled !== null && current.filled !== undefined) onUpdateFilled(current.filled)
+      if (current.fontSize !== null && current.fontSize !== undefined)
+        onUpdateFontSize(current.fontSize)
     },
     [selectedID]
   )
@@ -449,63 +454,42 @@ export default function Screenshot(props: ScreenshotProps = {}) {
     }
   }
 
-  async function exitCapture() {
-    if (onExit) {
-      onExit()
-      return
-    }
-    if (isTauri()) await closeScreenshotWindow()
-  }
-
   function handleCopy() {
     void withExportedPng(async function (dataUrl) {
-      if (!isTauri()) return
       await writeImageToClipboard(dataUrl)
-      await exitCapture()
+      onExit?.()
     })
   }
 
   function handlePreserve() {
-    void withExportedPng(async function (dataUrl) {
-      if (!isTauri()) return
-      const saved = await savePngToAppDir(dataUrl).catch(function (err) {
-        console.error('[screenshot] 保存失败', err)
-        return null
-      })
-      if (saved) {
-        console.info('[screenshot] 已保存到', saved)
-        await exitCapture()
-      }
-    })
+    // 截图已在 Rust 端保存到 appDataDir/screenshots/，无需额外保存
+    console.info('[screenshot] 截图已保存到磁盘')
+    onExit?.()
   }
 
   function handlePin() {
     void withExportedPng(async function (dataUrl) {
-      if (!isTauri()) {
-        onTexture?.({ src: dataUrl, w: 320, h: 240 })
-        return
-      }
       const size = await readImageNaturalSize(dataUrl)
       const maxEdge = 480
       const scale = Math.min(1, maxEdge / Math.max(size.w, size.h))
       const w = Math.max(48, Math.round(size.w * scale))
       const h = Math.max(48, Math.round(size.h * scale))
       const id = `texture-${Date.now()}`
-      const src = await saveTexturePng(dataUrl, id).catch(function () {
-        return dataUrl
+      const filePath = await saveTexturePng(dataUrl, id).catch(function () {
+        return null
       })
-      if (onTexture) {
-        onTexture({ src, w, h })
-        return
+      if (filePath) {
+        const fileName = `${id}.png`
+        await registerAsset(filePath, fileName, 'image/png').catch(function (err) {
+          console.error('[screenshot] 资源注册失败', err)
+        })
+        onTexture?.({ src: filePath, w, h })
       }
-      // Standalone /screenshot route: add texture via store after ensure.
-      useOverlayStore.getState().toWrite({ src, w, h })
-      await exitCapture()
     })
   }
 
   function handleClose() {
-    void exitCapture()
+    onExit?.()
   }
 
   useEffect(
