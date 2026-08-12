@@ -1,6 +1,14 @@
 {
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
-  "exclude": ["**/node_modules/**", "**/dist/**", "**/src-tauri/**", "**/coverage/**", "src/components/tiptap-ui/**", "src/components/tiptap-node/**", "src/components/tiptap-ui-primitive/**"],
+  "exclude": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/src-tauri/**",
+    "**/coverage/**",
+    "src/components/tiptap-ui/**",
+    "src/components/tiptap-node/**",
+    "src/components/tiptap-ui-primitive/**"
+  ],
   "compilerOptions": {
     /* ---------- Incremental ---------- */
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
