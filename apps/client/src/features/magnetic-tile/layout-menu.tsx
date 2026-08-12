@@ -6,7 +6,7 @@ import type { MenuClassNames, MenuItem } from '@/components/contextmenu'
 import styles from '@/features/magnetic-tile/layout-menu.module.scss'
 import { findMarkerBox } from '@/features/magnetic-tile/size'
 import { useMirrorStore } from '@/stores/mirror'
-import { mountOverlayTile, removeOverlayTile } from '@/views/overlay/tauri'
+import { mountOverlayTile, removeOverlayTile } from '@/features/screenshot/tauri'
 
 type Tile = Pick<
   MagneticTile,

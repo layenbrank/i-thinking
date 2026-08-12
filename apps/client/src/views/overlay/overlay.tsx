@@ -1,18 +1,23 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 
-import { useThrough } from '@/hooks/use-through'
 import { isMagneticTileComponent } from '@/constants/magnetic-tile/components'
+import { useThrough } from '@/hooks/use-through'
 import {
   useOverlayStore,
   type OverlayMode,
-  type OverlayTile,
-  type OverlayTexture
+  type OverlayTexture,
+  type OverlayTile
 } from '@/stores/overlay'
 import styles from '@/views/overlay/overlay.module.scss'
-import Tile from '@/views/overlay/tile'
 import Texture from '@/views/overlay/texture'
+import Tile from '@/views/overlay/tile'
+
+const Screenshot = lazy(function () {
+  return import('@/features/screenshot/screenshot')
+})
 
 const OVERLAY_SHELL_SOURCE = 'overlay-shell'
 
@@ -30,7 +35,10 @@ function OverlayShell() {
   const shellRef = useRef<HTMLElement | null>(document.body)
   const stageRef = useRef<HTMLDivElement>(null)
   const [ready, setReady] = useState(false)
-  const [stageBounds, setStageBounds] = useState({ width: window.innerWidth, height: window.innerHeight })
+  const [stageBounds, setStageBounds] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  })
   const items = useOverlayStore(function (s) {
     return s.items
   })
@@ -46,24 +54,41 @@ function OverlayShell() {
   const toClear = useOverlayStore(function (s) {
     return s.toClear
   })
+  const mode = useOverlayStore(function (s) {
+    return s.mode
+  })
+  const toCaptureExit = useOverlayStore(function (s) {
+    return s.toCaptureExit
+  })
+  const toWrite = useOverlayStore(function (s) {
+    return s.toWrite
+  })
 
-  useThrough(OVERLAY_SHELL_SOURCE, { rootRef: shellRef, enabled: true })
+  useThrough(OVERLAY_SHELL_SOURCE, { rootRef: shellRef, enabled: mode !== 'capture' })
 
-  // 追踪 stage 尺寸作为拖拽边界
-  useEffect(
+  // 全局 ESC fallback：capture 模式下仍能退出截屏
+  useHotkeys(
+    'escape',
     function () {
-      const stage = stageRef.current
-      if (!stage) return
-      const ro = new ResizeObserver(function () {
-        setStageBounds({ width: stage.clientWidth, height: stage.clientHeight })
-      })
-      ro.observe(stage)
-      return function () {
-        ro.disconnect()
+      if (mode === 'capture') {
+        void toCaptureExit()
       }
     },
-    []
+    { enabled: mode === 'capture' }
   )
+
+  // 追踪 stage 尺寸作为拖拽边界
+  useEffect(function () {
+    const stage = stageRef.current
+    if (!stage) return
+    const ro = new ResizeObserver(function () {
+      setStageBounds({ width: stage.clientWidth, height: stage.clientHeight })
+    })
+    ro.observe(stage)
+    return function () {
+      ro.disconnect()
+    }
+  }, [])
 
   useEffect(
     function () {
@@ -149,7 +174,19 @@ function OverlayShell() {
       <div
         ref={stageRef}
         className={styles.stage}>
+        {mode === 'capture' && (
+          <Suspense fallback={null}>
+            <Screenshot
+              embedded={true}
+              onExit={toCaptureExit}
+              onTexture={function (input) {
+                toWrite(input)
+              }}
+            />
+          </Suspense>
+        )}
         {ready &&
+          mode !== 'capture' &&
           tiles.map(function (entry) {
             return (
               <Tile
@@ -160,6 +197,7 @@ function OverlayShell() {
             )
           })}
         {ready &&
+          mode !== 'capture' &&
           textures.map(function (entry) {
             return (
               <Texture

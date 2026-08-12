@@ -13,7 +13,7 @@ import { useThrough } from '@/hooks/use-through'
 import { useOverlayStore, type OverlayTile } from '@/stores/overlay'
 import { RenderMarker } from '@/views/overlay/markers'
 import styles from '@/views/overlay/overlay.module.scss'
-import { removeOverlayTile } from '@/views/overlay/tauri'
+import { removeOverlayTile } from '@/features/screenshot/tauri'
 
 interface TileProps {
   item: OverlayTile
