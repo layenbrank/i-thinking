@@ -116,7 +116,6 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 
 # --- 媒体 / 编解码 ---
-base64 = "0.22.1" # 截图 data URL
 image = "0.25.10" # 截图解码、托盘徽章
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
