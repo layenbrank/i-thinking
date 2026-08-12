@@ -1,7 +1,5 @@
-use std::io::Cursor;
 use std::path::Path;
 
-use base64::{engine::general_purpose, Engine};
 use image::ImageReader;
 use serde_json::json;
 use tauri::{AppHandle, Manager};
@@ -10,26 +8,20 @@ use crate::utils::ipc;
 use crate::overlay::command::{overlay_ensure, overlay_update_mode};
 use crate::screenshot::schema::CaptureResult;
 
-fn build_capture_result(path: &Path, scale_factor: f32) -> Result<CaptureResult, String> {
-    let img = ImageReader::open(path)
+fn build_capture_result(path: &str, scale_factor: f32) -> Result<CaptureResult, String> {
+    let img = ImageReader::open(Path::new(path))
         .map_err(|e| format!("读取截图失败: {e}"))?
         .decode()
         .map_err(|e| format!("解码截图失败: {e}"))?;
-    let width = img.width();
-    let height = img.height();
-    let mut buf = Vec::new();
-    img.write_to(&mut Cursor::new(&mut buf), image::ImageFormat::Png)
-        .map_err(|e| format!("PNG 编码失败: {e}"))?;
-    let b64 = general_purpose::STANDARD.encode(&buf);
     Ok(CaptureResult {
-        data_url: format!("data:image/png;base64,{b64}"),
-        width,
-        height,
+        path: path.to_string(),
+        width: img.width(),
+        height: img.height(),
         scale_factor,
     })
 }
 
-/// 截取主显示器，经 corex-serve IPC 捕获后返回 PNG data URL
+/// 截取主显示器，经 corex-serve IPC 捕获后返回截图文件路径
 #[tauri::command(rename = "screenshot:capture")]
 pub async fn screenshot_capture(app: AppHandle) -> Result<CaptureResult, String> {
     // Avoid capturing the overlay surface itself while grabbing the desktop.
@@ -39,18 +31,18 @@ pub async fn screenshot_capture(app: AppHandle) -> Result<CaptureResult, String>
         tokio::time::sleep(std::time::Duration::from_millis(60)).await;
     }
 
-    let cache_dir = app
+    let data_dir = app
         .path()
-        .app_cache_dir()
+        .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("screenshots");
-    std::fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
-    let cache_dir_str = cache_dir.to_string_lossy().into_owned();
+    std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
+    let data_dir_str = data_dir.to_string_lossy().into_owned();
 
     let resp = tokio::task::spawn_blocking(move || {
         ipc::invoke(
             "screenshot",
-            json!({ "Capture": { "to": cache_dir_str } }),
+            json!({ "Capture": { "to": data_dir_str } }),
         )
     })
     .await
@@ -68,7 +60,7 @@ pub async fn screenshot_capture(app: AppHandle) -> Result<CaptureResult, String>
         .path
         .ok_or_else(|| "screenshot 成功但未返回 path".to_string())?;
 
-    tokio::task::spawn_blocking(move || build_capture_result(Path::new(&path), 1.0))
+    tokio::task::spawn_blocking(move || build_capture_result(&path, 1.0))
         .await
         .map_err(|e| format!("截图处理线程异常: {e}"))?
 }

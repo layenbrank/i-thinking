@@ -110,14 +110,14 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Asset::Id).string().not_null().primary_key())
                     .col(ColumnDef::new(Asset::TenantId).string().null())
                     .col(ColumnDef::new(Asset::Kind).string().null())
-                    .col(ColumnDef::new(Asset::Hash).string().not_null())
+                    .col(ColumnDef::new(Asset::Hash).string().null())
                     .col(
                         ColumnDef::new(Asset::Sha)
                             .string()
                             .not_null()
                             .default("sha256"),
                     )
-                    .col(ColumnDef::new(Asset::Size).big_integer().not_null())
+                    .col(ColumnDef::new(Asset::Size).big_integer().null())
                     .col(
                         ColumnDef::new(Asset::Index)
                             .big_integer()
@@ -141,7 +141,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(1),
                     )
-                    .col(ColumnDef::new(Asset::DeviceId).string().not_null())
+                    .col(ColumnDef::new(Asset::DeviceId).string().null())
                     .col(ColumnDef::new(Asset::ArchivedAt).big_integer().null())
                     .col(ColumnDef::new(Asset::CreatedAt).big_integer().not_null())
                     .col(ColumnDef::new(Asset::UpdatedAt).big_integer().not_null())

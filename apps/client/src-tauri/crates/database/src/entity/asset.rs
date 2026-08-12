@@ -13,9 +13,9 @@ pub struct Model {
     pub tenant_id: Option<String>,
 
     pub kind: Option<String>,
-    pub hash: String,
+    pub hash: Option<String>,
     pub sha: String,
-    pub size: i64,
+    pub size: Option<i64>,
     pub index: i64,
     pub mime: String,
     pub extension: Option<String>,
@@ -31,7 +31,7 @@ pub struct Model {
 
     #[serde(rename = "deviceID")]
     #[sea_orm(column_name = "deviceID")]
-    pub device_id: String,
+    pub device_id: Option<String>,
 
     #[sea_orm(column_name = "archivedAt")]
     pub archived_at: Option<i64>,
@@ -82,9 +82,9 @@ pub struct Insert {
     #[serde(rename = "tenantID")]
     pub tenant_id: Option<String>,
     pub kind: Option<String>,
-    pub hash: String,
+    pub hash: Option<String>,
     pub sha: Option<String>,
-    pub size: i64,
+    pub size: Option<i64>,
     pub index: Option<i64>,
     pub mime: String,
     #[serde(default)]
@@ -96,7 +96,7 @@ pub struct Insert {
     pub metadata: Option<String>,
     pub status: Option<String>,
     #[serde(rename = "deviceID")]
-    pub device_id: String,
+    pub device_id: Option<String>,
     #[serde(rename = "archivedAt")]
     pub archived_at: Option<i64>,
 }

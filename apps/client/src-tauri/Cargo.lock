@@ -2633,7 +2633,6 @@ name = "i-thinking"
 version = "1.3.0"
 dependencies = [
  "anyhow",
- "base64 0.22.1",
  "chrono",
  "core-graphics 0.25.0",
  "image",
