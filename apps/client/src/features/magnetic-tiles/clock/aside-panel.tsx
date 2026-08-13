@@ -10,7 +10,7 @@ interface AsidePanelProps {
   showWeek: boolean
   showNextAlarm: boolean
   showAlarmSummary: boolean
-  nextReminders: Array<{ reminder: { id: string; fireTime: string; title?: string } }>
+  nextReminders: Array<{ reminder: { id: string; fireTime: string | null; title?: string } }>
   todayEnabled: number
   enabledTotal: number
   className?: string
