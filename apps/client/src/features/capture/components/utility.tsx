@@ -1,17 +1,17 @@
-import { generate, presetPalettes } from '@ant-design/colors'
 import { Icon } from '@iconify/react/offline'
-import { Col, ColorPicker, Divider, Row, Slider, theme, Tooltip } from 'antd'
+import { ColorPicker, Divider, Slider, theme, Tooltip } from 'antd'
 import { clsx } from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 
-import type { ColorPickerProps } from 'antd'
-
+import { Glide } from '@/components/glide/glide'
+import {
+  generateDerivedShades,
+  parsePresetHues
+} from '@/features/capture/components/colors'
 import { type GraphicsEnum } from '@/features/capture/components/graphics'
 
 import styles from '@/features/capture/components/utility.module.scss'
-
-type Presets = Required<ColorPickerProps>['presets'][number]
 
 interface UtilityOption {
   type: GraphicsEnum
@@ -64,22 +64,6 @@ const UTILITIES: UtilityOption[] = [
   { type: 'spotlight', label: '聚光灯', icon: 'mdi:spotlight' }
 ]
 
-const COLORS = [
-  '#FF0000',
-  '#FF6B00',
-  '#FFAB00',
-  '#00C853',
-  '#4080FF',
-  '#7C4DFF',
-  '#FFFFFF',
-  '#000000'
-]
-
-function genPresets(presets = presetPalettes) {
-  const entries = Object.entries(presets)
-  return entries.map<Presets>(([label, colors]) => ({ label, colors, key: label }))
-}
-
 export default function Utility(props: UtilityProps) {
   const {
     active,
@@ -109,11 +93,27 @@ export default function Utility(props: UtilityProps) {
 
   // 属性面板开合：仅在选中工具后展开（不再独立使用 visible state）
   const visible = active !== null
-  const showFilled = (active !== null && active !== undefined) && FILLABLE_GRAPHICS.has(active)
-  const showFontSize = (active !== null && active !== undefined) && FONTSIZE_GRAPHICS.has(active)
-  const showOpacity = (active !== null && active !== undefined) && !NON_OPACITY_GRAPHICS.has(active)
+  const showFilled = active !== null && active !== undefined && FILLABLE_GRAPHICS.has(active)
+  const showFontSize = active !== null && active !== undefined && FONTSIZE_GRAPHICS.has(active)
+  const showOpacity = active !== null && active !== undefined && !NON_OPACITY_GRAPHICS.has(active)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const isCustomColor = !COLORS.some((c) => c.toUpperCase() === color.toUpperCase())
+
+  // 平铺预设色相：弹层色板数据源，同时用于判断当前色是否为「自定义颜色」
+  const presetHues = useMemo(
+    function () {
+      return parsePresetHues(token.colorPrimary)
+    },
+    [token.colorPrimary]
+  )
+  const isCustomColor = !presetHues.some((c) => c === color.toUpperCase())
+
+  // 衍生色阶：随主色即时重算，展示在属性行原本颜色展示的位置
+  const derivedShades = useMemo(
+    function () {
+      return generateDerivedShades(color)
+    },
+    [color]
+  )
 
   // 工具栏跟随选区下沿定位：位置嵌下区域时翻到上沿；右贴边时水平内收
   const containerRef = useRef<HTMLDivElement>(null)
@@ -140,18 +140,6 @@ export default function Utility(props: UtilityProps) {
       setPosition({ top, left })
     },
     [selection, active]
-  )
-
-  const presets = useMemo(
-    function () {
-      return genPresets({
-        primary: generate(token.colorPrimary),
-        red: generate('#ff0000'),
-        green: generate('#008000'),
-        cyan: generate('#00ffff')
-      })
-    },
-    [token.colorPrimary]
   )
 
   return (
@@ -289,7 +277,7 @@ export default function Utility(props: UtilityProps) {
             </div>
           </div>
 
-          {/* 属性面板（颜色 + 粗细） */}
+          {/* 属性面板（横向：取色入口 + 滑块控件） */}
           <AnimatePresence>
             {visible && (
               <motion.div
@@ -309,13 +297,79 @@ export default function Utility(props: UtilityProps) {
                 transition={{
                   duration: 0.15
                 }}>
-                <div className={styles.ensemble}>
-                  {COLORS.map(function (value) {
+                {/* 调色/自定义颜色入口：与滑块控件同行，色板仅在弹层内展示 */}
+                <ColorPicker
+                  onOpenChange={setPickerOpen}
+                  value={color}
+                  disabledAlpha
+                  trigger="click"
+                  panelRender={function (panel, extra) {
+                    const { Picker } = extra.components
+                    return (
+                      <div className={styles.panelStack}>
+                        {/* 预设色板：单行横向滚动，不换行不分组 */}
+                        <Glide.X
+                          classNames={{
+                            root: styles.presetRow,
+                            inner: styles.presetTrack
+                          }}>
+                          {presetHues.map(function (value) {
+                            return (
+                              <button
+                                key={value}
+                                title={value}
+                                className={clsx(styles.color, {
+                                  [styles.active]: color.toUpperCase() === value
+                                })}
+                                onClick={() => onUpdateColor(value)}
+                                style={{
+                                  background: value
+                                }}
+                              />
+                            )
+                          })}
+                        </Glide.X>
+                        <Divider style={{ margin: 0 }} />
+                        <Picker />
+                      </div>
+                    )
+                  }}
+                  onChangeComplete={(c) => onUpdateColor(c.toHexString().toUpperCase())}>
+                  <Tooltip title="自定义颜色">
+                    <motion.button
+                      className={clsx(styles.color, styles.palette, {
+                        [styles.active]: isCustomColor
+                      })}
+                      whileTap={{ scale: 0.85 }}
+                      animate={{
+                        scale: pickerOpen ? 1.1 : 1,
+                        outline: pickerOpen ? '2px solid #1677ff' : '2px solid transparent'
+                      }}
+                      transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                      style={{
+                        background: isCustomColor ? color : 'transparent',
+                        color: isCustomColor ? undefined : 'currentColor'
+                      }}>
+                      {!isCustomColor && (
+                        <Icon
+                          icon="mdi:palette-outline"
+                          width={18}
+                          height={18}
+                        />
+                      )}
+                    </motion.button>
+                  </Tooltip>
+                </ColorPicker>
+
+                {/* 衍生色阶：浅色 → 主色 → 深色，紧凑单行平铺 */}
+                <div className={styles.shades}>
+                  {derivedShades.map(function (value) {
                     return (
                       <button
                         key={value}
-                        className={clsx(styles.color, {
-                          [styles.active]: color.toUpperCase() === value.toUpperCase()
+                        title={value}
+                        className={clsx(styles.shade, {
+                          [styles.active]: color.toUpperCase() === value
                         })}
                         onClick={() => onUpdateColor(value)}
                         style={{
@@ -324,59 +378,11 @@ export default function Utility(props: UtilityProps) {
                       />
                     )
                   })}
-                  <ColorPicker
-                    onOpenChange={setPickerOpen}
-                    value={color}
-                    disabledAlpha
-                    trigger="click"
-                    presets={presets}
-                    panelRender={function (panel, extra) {
-                      const { Picker, Presets } = extra.components
-                      return (
-                        <Row
-                          justify="space-between"
-                          wrap={false}>
-                          <Col span={12}>
-                            <Presets />
-                          </Col>
-                          <Divider
-                            vertical
-                            style={{ height: 'auto' }}
-                          />
-                          <Col flex="auto">
-                            <Picker />
-                          </Col>
-                        </Row>
-                      )
-                    }}
-                    onChange={(c) => onUpdateColor(c.toHexString().toUpperCase())}>
-                    <Tooltip title="自定义颜色">
-                      <motion.button
-                        className={clsx(styles.color, styles.palette, {
-                          [styles.active]: isCustomColor
-                        })}
-                        whileTap={{ scale: 0.85 }}
-                        animate={{
-                          scale: pickerOpen ? 1.1 : 1,
-                          outline: pickerOpen ? '2px solid #1677ff' : '2px solid transparent'
-                        }}
-                        transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                        style={{
-                          background: isCustomColor ? color : 'transparent',
-                          color: isCustomColor ? undefined : 'currentColor'
-                        }}>
-                        {!isCustomColor && (
-                          <Icon
-                            icon="mdi:palette-outline"
-                            width={18}
-                            height={18}
-                          />
-                        )}
-                      </motion.button>
-                    </Tooltip>
-                  </ColorPicker>
                 </div>
+
                 <div className={styles.separator} />
+
+                {/* 控件区：粗细 / 填充 / 字号 / 透明度 */}
                 <Tooltip title={`粗细 ${Math.round(thickness)}`}>
                   <div className={clsx(styles.ensemble, styles.compact)}>
                     <Icon
