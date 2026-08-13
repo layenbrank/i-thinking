@@ -58,8 +58,8 @@ const SignboardMarker = lazyMarker(function () {
 const GalleryMarker = lazyMarker(function () {
   return import('@/features/magnetic-tiles/gallery/marker')
 })
-const ScreenshotMarker = lazyMarker(function () {
-  return import('@/features/magnetic-tiles/screenshot/marker')
+const CaptureMarker = lazyMarker(function () {
+  return import('@/features/magnetic-tiles/capture/marker')
 })
 const ExampleMarker = lazyMarker(function () {
   return import('@/features/magnetic-tiles/example/marker')
@@ -95,7 +95,7 @@ const MARKERS: Record<MagneticTile.Component, (layout: MarkerLayout) => ReactNod
   developer: bindMarker(DeveloperMarker),
   signboard: bindMarker(SignboardMarker),
   gallery: bindMarker(GalleryMarker),
-  screenshot: bindMarker(ScreenshotMarker),
+  capture: bindMarker(CaptureMarker),
   example: bindMarker(ExampleMarker)
 }
 

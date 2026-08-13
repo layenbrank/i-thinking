@@ -2,7 +2,7 @@ use tauri::State;
 
 use super::state::{Rect, ThroughState};
 
-/// Replace hit-rects for a single source (panel / capture). Empty clears that source.
+/// Replace hit-rects for a single source (panel / screenshot). Empty clears that source.
 #[tauri::command(rename = "through:update-rects")]
 pub async fn set_rects(
     source: String,

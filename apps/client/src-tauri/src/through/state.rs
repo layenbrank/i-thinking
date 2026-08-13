@@ -24,8 +24,8 @@ pub struct ThroughState {
     pub window_label: String,
     /// Hit regions keyed by panel/source id so multiple overlays can coexist.
     pub sources: RwLock<HashMap<String, Vec<Rect>>>,
-    /// When true, the overlay window never ignores cursor events (capture mode).
-    capture_mode: AtomicBool,
+    /// When true, the overlay window never ignores cursor events (screenshot mode).
+    screenshot_mode: AtomicBool,
 }
 
 impl ThroughState {
@@ -33,15 +33,15 @@ impl ThroughState {
         Self {
             window_label: window_label.into(),
             sources: RwLock::new(HashMap::new()),
-            capture_mode: AtomicBool::new(false),
+            screenshot_mode: AtomicBool::new(false),
         }
     }
 
-    pub fn is_capture_mode(&self) -> bool {
-        self.capture_mode.load(Ordering::Relaxed)
+    pub fn is_screenshot_mode(&self) -> bool {
+        self.screenshot_mode.load(Ordering::Relaxed)
     }
 
-    pub fn set_capture_mode(&self, enabled: bool) {
-        self.capture_mode.store(enabled, Ordering::Relaxed);
+    pub fn set_screenshot_mode(&self, enabled: bool) {
+        self.screenshot_mode.store(enabled, Ordering::Relaxed);
     }
 }

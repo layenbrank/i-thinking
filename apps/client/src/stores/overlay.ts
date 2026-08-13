@@ -12,7 +12,7 @@ import {
   type MarkerLayout
 } from '@/features/magnetic-tile/size'
 
-type OverlayMode = 'idle' | 'capture'
+type OverlayMode = 'idle' | 'screenshot'
 
 interface OverlayTexture {
   id: string
@@ -121,9 +121,9 @@ interface OverlayStore {
   hasContent: () => boolean
   toHide: () => Promise<void>
   toShow: () => Promise<void>
-  toCapture: () => Promise<void>
+  toScreenshot: () => Promise<void>
   toExit: () => Promise<void>
-  toCaptureExit: () => Promise<void>
+  toScreenshotExit: () => Promise<void>
   toInitialize: () => Promise<void>
 }
 
@@ -390,12 +390,12 @@ const useOverlayStore = create<OverlayStore>()(
         },
 
         hasContent() {
-          return getter().items.length > 0 || getter().mode === 'capture'
+          return getter().items.length > 0 || getter().mode === 'screenshot'
         },
 
         async toHide() {
           const { mode, items } = getter()
-          if (mode === 'capture' || items.length > 0) return
+          if (mode === 'screenshot' || items.length > 0) return
           try {
             await invoke('overlay:hide')
           } catch {
@@ -411,12 +411,12 @@ const useOverlayStore = create<OverlayStore>()(
           }
         },
 
-        async toCapture() {
+        async toScreenshot() {
           setter(function (state) {
-            state.mode = 'capture'
+            state.mode = 'screenshot'
           })
           try {
-            await invoke('overlay:update-mode', { mode: 'capture' })
+            await invoke('overlay:update-mode', { mode: 'screenshot' })
           } catch {
             /* non-tauri */
           }
@@ -434,7 +434,7 @@ const useOverlayStore = create<OverlayStore>()(
           await getter().toHide()
         },
 
-        async toCaptureExit() {
+        async toScreenshotExit() {
           await getter().toExit()
         },
 

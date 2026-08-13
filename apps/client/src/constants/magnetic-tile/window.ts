@@ -91,7 +91,7 @@ const WINDOW: WindowConfigure = {
     transparent: true,
     decorations: true
   },
-  screenshot: {
+  capture: {
     ...DEFAULT,
     fullscreen: false
   },

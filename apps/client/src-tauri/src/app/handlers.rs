@@ -2,7 +2,7 @@
 
 use tauri::generate_handler;
 
-use crate::{autostart, overlay, screenshot, system, through};
+use crate::{autostart, capture, overlay, system, through};
 
 /// 返回应用全部 `#[tauri::command]` 的 invoke handler。
 pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
@@ -29,9 +29,9 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         thinking_command::asset::asset_insert,
         thinking_command::asset::asset_update,
         thinking_command::asset::asset_remove,
-        screenshot::command::screenshot_capture,
-        screenshot::command::screenshot_open,
-        screenshot::command::screenshot_close,
+        capture::command::capture_screenshot,
+        capture::command::capture_open,
+        capture::command::capture_close,
         overlay::command::overlay_ensure,
         overlay::command::overlay_hide,
         overlay::command::overlay_update_mode,

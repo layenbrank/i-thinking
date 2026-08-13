@@ -8,10 +8,10 @@ import type { MarkerLayout } from '@/features/magnetic-tile/size'
 
 /**
  * Tauri 截图能力的轻量封装，前端通过这些函数与 Rust 端的
- * `screenshot:capture` 命令通信。
+ * `capture:screenshot` 命令通信。
  */
 
-export interface CaptureResult {
+export interface ScreenshotResult {
   /** 截图保存后的磁盘绝对路径 */
   path: string
   width: number
@@ -25,23 +25,28 @@ export function isTauri(): boolean {
 }
 
 /** 主显示器即时截图（不弹窗，返回截图文件路径） */
-export async function captureScreen(): Promise<CaptureResult> {
-  return invoke<CaptureResult>('screenshot:capture')
+export async function takeScreenshot(): Promise<ScreenshotResult> {
+  return invoke<ScreenshotResult>('capture:screenshot')
 }
 
 /** 将磁盘图片路径加载为 HTMLImageElement（通过 fetch + blob 避免 asset:// 的 canvas tainting） */
 export async function loadImageFromPath(filePath: string): Promise<HTMLImageElement> {
   const assetUrl = convertFileSrc(filePath)
   const resp = await fetch(assetUrl)
+  if (!resp.ok) {
+    throw new Error(`loadImageFromPath: 读取图片失败 (status ${resp.status}) - ${filePath}`)
+  }
   const blob = await resp.blob()
   const blobUrl = URL.createObjectURL(blob)
   return new Promise(function (resolve, reject) {
     const img = new Image()
     img.onload = function () {
+      URL.revokeObjectURL(blobUrl)
       resolve(img)
     }
-    img.onerror = function (event) {
-      reject(event)
+    img.onerror = function () {
+      URL.revokeObjectURL(blobUrl)
+      reject(new Error(`loadImageFromPath: 图片解码失败 - ${filePath}`))
     }
     img.src = blobUrl
   })
@@ -117,7 +122,7 @@ async function hideOverlay(): Promise<void> {
   await invoke('overlay:hide')
 }
 
-async function updateOverlayMode(mode: 'idle' | 'capture'): Promise<void> {
+async function updateOverlayMode(mode: 'idle' | 'screenshot'): Promise<void> {
   await invoke('overlay:update-mode', { mode })
 }
 

@@ -52,8 +52,8 @@ const Gallery = React.lazy(function () {
 const Signboard = React.lazy(function () {
   return import('@/features/magnetic-tiles/signboard/signboard.tsx')
 })
-const Screenshot = React.lazy(function () {
-  return import('@/features/magnetic-tiles/screenshot/screenshot.tsx')
+const Capture = React.lazy(function () {
+  return import('@/features/magnetic-tiles/capture/capture.tsx')
 })
 
 const Reflection: Readonly<MagneticTile.Reflection> = {
@@ -74,12 +74,13 @@ const Reflection: Readonly<MagneticTile.Reflection> = {
   collection: Collection,
   gallery: Gallery,
   signboard: Signboard,
-  screenshot: Screenshot
+  capture: Capture
 }
 
 export {
   Bookmark,
   Calendar,
+  Capture,
   Clipchamp,
   Clock,
   Code,
@@ -93,7 +94,6 @@ export {
   Marketplace,
   Navigation,
   Reflection,
-  Screenshot,
   Settings,
   Signboard
 }

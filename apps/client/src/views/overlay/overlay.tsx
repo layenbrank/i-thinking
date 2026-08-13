@@ -15,8 +15,8 @@ import styles from '@/views/overlay/overlay.module.scss'
 import Texture from '@/views/overlay/texture'
 import Tile from '@/views/overlay/tile'
 
-const Screenshot = lazy(function () {
-  return import('@/features/screenshot/screenshot')
+const Capture = lazy(function () {
+  return import('@/features/capture/capture')
 })
 
 const OVERLAY_SHELL_SOURCE = 'overlay-shell'
@@ -57,24 +57,24 @@ function OverlayShell() {
   const mode = useOverlayStore(function (s) {
     return s.mode
   })
-  const toCaptureExit = useOverlayStore(function (s) {
-    return s.toCaptureExit
+  const toScreenshotExit = useOverlayStore(function (s) {
+    return s.toScreenshotExit
   })
   const toWrite = useOverlayStore(function (s) {
     return s.toWrite
   })
 
-  useThrough(OVERLAY_SHELL_SOURCE, { rootRef: shellRef, enabled: mode !== 'capture' })
+  useThrough(OVERLAY_SHELL_SOURCE, { rootRef: shellRef, enabled: mode !== 'screenshot' })
 
-  // 全局 ESC fallback：capture 模式下仍能退出截屏
+  // 全局 ESC fallback：screenshot 模式下仍能退出截屏
   useHotkeys(
     'escape',
     function () {
-      if (mode === 'capture') {
-        void toCaptureExit()
+      if (mode === 'screenshot') {
+        void toScreenshotExit()
       }
     },
-    { enabled: mode === 'capture' }
+    { enabled: mode === 'screenshot' }
   )
 
   // 追踪 stage 尺寸作为拖拽边界
@@ -174,11 +174,11 @@ function OverlayShell() {
       <div
         ref={stageRef}
         className={styles.stage}>
-        {mode === 'capture' && (
+        {mode === 'screenshot' && (
           <Suspense fallback={null}>
-            <Screenshot
+            <Capture
               embedded={true}
-              onExit={toCaptureExit}
+              onExit={toScreenshotExit}
               onTexture={function (input) {
                 toWrite(input)
               }}
@@ -186,7 +186,7 @@ function OverlayShell() {
           </Suspense>
         )}
         {ready &&
-          mode !== 'capture' &&
+          mode !== 'screenshot' &&
           tiles.map(function (entry) {
             return (
               <Tile
@@ -197,7 +197,7 @@ function OverlayShell() {
             )
           })}
         {ready &&
-          mode !== 'capture' &&
+          mode !== 'screenshot' &&
           textures.map(function (entry) {
             return (
               <Texture

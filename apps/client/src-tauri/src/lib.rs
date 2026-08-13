@@ -19,7 +19,7 @@ pub mod overlay {
     pub use state::OverlayPending;
 }
 
-pub mod screenshot {
+pub mod capture {
     pub mod command;
     pub mod schema;
 }

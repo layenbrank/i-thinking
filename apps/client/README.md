@@ -13,7 +13,7 @@ pnpm dev          # 自动执行 prepare + vite + tauri dev
 
 | 工具 | 来源 | 落盘 |
 |------|------|------|
-| corex-serve + pdfium | [layenbrank/corex v2.1.5](https://github.com/layenbrank/corex/releases/tag/v2.1.5)（目前仅 Windows x64；zip 含 CLI+sidecar+pdfium，仅落盘 serve，不落 CLI） | 源：`src-tauri/binaries/corex-serve-<triple>.exe` + `pdfium.dll`；安装后：`corex-serve.exe` 与 `pdfium.dll` 同级（resources 映射，无需 `COREX_PDFIUM_DIR`） |
+| corex-serve + pdfium | [layenbrank/corex v3.0.0](https://github.com/layenbrank/corex/releases/tag/v3.0.0)（目前仅 Windows x64；zip 含 CLI+sidecar+pdfium，仅落盘 serve，不落 CLI） | 源：`src-tauri/binaries/corex-serve-<triple>.exe` + `pdfium.dll`；安装后：`corex-serve.exe` 与 `pdfium.dll` 同级（resources 映射，无需 `COREX_PDFIUM_DIR`） |
 | pandoc | [jgm/pandoc 3.10.1](https://github.com/jgm/pandoc/releases/tag/3.10.1) | `binaries/pandoc.exe`（`bundle.resources`，非 sidecar） |
 | ffmpeg / ffprobe | [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) 静态 GPL | `binaries/ffmpeg.exe`、`ffprobe.exe`（`bundle.resources`） |
 
@@ -38,7 +38,7 @@ pnpm prepare:bin --only corex -v         # 详细日志
 | `-v, --verbose` | 详细下载 / 缓存 / 源链日志 |
 | `PREPARE_MIRRORS` | **已弃用**：注入为 `mirror` 并警告；请改 `sources*.ts` |
 
-二次执行会对照 Release [`SHA256SUMS.txt`](https://github.com/layenbrank/corex/releases/download/v2.1.5/SHA256SUMS.txt) 校验。本地 `binaries/SHA256SUMS` 仅 remap 文件名供 CI。
+二次执行会对照 Release [`SHA256SUMS.txt`](https://github.com/layenbrank/corex/releases/download/v3.0.0/SHA256SUMS.txt) 校验。本地 `binaries/SHA256SUMS` 仅 remap 文件名供 CI。
 
 ## Rust 检查 / 构建
 

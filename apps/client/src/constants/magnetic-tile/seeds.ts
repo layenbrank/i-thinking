@@ -373,7 +373,7 @@ const MAGNETIC_TILE_SEEDS: MagneticTile[] = [
     direction: "vertical",
     mirrorID: "b7bc5d50-3b4a-46d7-b834-2938df56de24",
     textColor: "#115E59",
-    component: "screenshot",
+    component: "capture",
     description: "截屏",
     collectionID: null,
     downloadCount: 0,
