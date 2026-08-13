@@ -1,5 +1,5 @@
 import gsap from 'gsap'
-import { useCallback, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface UseWheelScaleOptions {
   rootRef: React.RefObject<HTMLElement | null>
@@ -18,19 +18,7 @@ interface UseWheelScaleOptions {
 }
 
 function useWheelScale(options: UseWheelScaleOptions) {
-  const {
-    rootRef,
-    storeScale,
-    minScale = 0.25,
-    maxScale = 4.0,
-    step = 0.05,
-    onCommit,
-    onOpacityCommit,
-    storeOpacity = 1,
-    opacityMin = 0.15,
-    opacityMax = 1,
-    opacityStep = 0.05
-  } = options
+  const { rootRef, storeScale, storeOpacity = 1 } = options
 
   /** 当前实时 scale（GSAP 直写用） */
   const liveScaleRef = useRef(storeScale)
@@ -43,44 +31,54 @@ function useWheelScale(options: UseWheelScaleOptions) {
   liveScaleRef.current = storeScale
   liveOpacityRef.current = storeOpacity
 
-  const handleWheel = useCallback(
-    function (e: React.WheelEvent) {
-      e.preventDefault()
-      e.stopPropagation()
-      const el = rootRef.current
-      if (!el) return
+  const optsRef = useRef(options)
+  optsRef.current = options
 
-      // Ctrl+滚轮：调节 opacity
-      if (e.ctrlKey && onOpacityCommit) {
-        const delta = e.deltaY > 0 ? -opacityStep : opacityStep
-        const next = Math.round(Math.min(opacityMax, Math.max(opacityMin, liveOpacityRef.current + delta)) * 100) / 100
-        liveOpacityRef.current = next
-        gsap.set(el, { opacity: next })
+  const handler = useRef((e: WheelEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const el = rootRef.current
+    if (!el) return
 
-        clearTimeout(commitTimerRef.current)
-        commitTimerRef.current = setTimeout(function () {
-          commitTimerRef.current = undefined
-          onOpacityCommit(next)
-        }, 200)
-        return
-      }
+    const { onCommit: commit, onOpacityCommit: opCommit, step: s = 0.05, minScale: mn = 0.25, maxScale: mx = 4, opacityMin: oMn = 0.15, opacityMax: oMx = 1, opacityStep: oS = 0.05 } = optsRef.current
 
-      // 普通滚轮：调节 scale
-      const delta = e.deltaY > 0 ? -step : step
-      const next = Math.round(Math.min(maxScale, Math.max(minScale, liveScaleRef.current + delta)) * 100) / 100
-      liveScaleRef.current = next
-      gsap.set(el, { scale: next, transformOrigin: '50% 50%' })
+    // Ctrl+滚轮：调节 opacity
+    if (e.ctrlKey && opCommit) {
+      const delta = e.deltaY > 0 ? -oS : oS
+      const next = Math.round(Math.min(oMx, Math.max(oMn, liveOpacityRef.current + delta)) * 100) / 100
+      liveOpacityRef.current = next
+      gsap.set(el, { opacity: next })
 
       clearTimeout(commitTimerRef.current)
       commitTimerRef.current = setTimeout(function () {
         commitTimerRef.current = undefined
-        onCommit(next)
+        opCommit(next)
       }, 200)
-    },
-    [rootRef, minScale, maxScale, step, onCommit, onOpacityCommit, opacityMin, opacityMax, opacityStep]
-  )
+      return
+    }
 
-  return handleWheel
+    // 普通滚轮：调节 scale
+    const delta = e.deltaY > 0 ? -s : s
+    const next = Math.round(Math.min(mx, Math.max(mn, liveScaleRef.current + delta)) * 100) / 100
+    liveScaleRef.current = next
+    gsap.set(el, { scale: next, transformOrigin: '50% 50%' })
+
+    clearTimeout(commitTimerRef.current)
+    commitTimerRef.current = setTimeout(function () {
+      commitTimerRef.current = undefined
+      commit(next)
+    }, 200)
+  })
+
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el) return
+    function onWheel(e: WheelEvent) {
+      handler.current(e)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [rootRef])
 }
 
 export { useWheelScale }

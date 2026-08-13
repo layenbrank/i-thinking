@@ -1,4 +1,5 @@
 import { Icon } from '@iconify/react/offline'
+import { convertFileSrc } from '@tauri-apps/api/core'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { useRef, useLayoutEffect } from 'react'
@@ -7,7 +8,6 @@ import { useOverlayDrag } from '@/hooks/use-overlay-drag'
 import { useWheelScale } from '@/hooks/use-wheel-scale'
 import { useThrough } from '@/hooks/use-through'
 import { useOverlayStore, type OverlayTexture } from '@/stores/overlay'
-import { resolveTextureSrc } from '@/utils/tauri'
 import { ResizeHandles } from '@/views/overlay/resize-handles'
 import styles from '@/views/overlay/texture.module.scss'
 
@@ -54,7 +54,7 @@ function Texture(props: TextureProps) {
   })
 
   // ── 滚轮缩放 ──
-  const handleWheel = useWheelScale({
+  useWheelScale({
     rootRef,
     storeScale: item.scale,
     storeOpacity: item.opacity,
@@ -139,11 +139,10 @@ function Texture(props: TextureProps) {
       onPointerDown={handlePointerDown}
       onPointerMove={dragMove}
       onPointerUp={dragUp}
-      onPointerCancel={dragCancel}
-      onWheel={handleWheel}>
+      onPointerCancel={dragCancel}>
       <img
         className={styles.image}
-        src={resolveTextureSrc(item.src)}
+        src={convertFileSrc(item.src)}
         alt="Screenshot texture"
         draggable={false}
       />
