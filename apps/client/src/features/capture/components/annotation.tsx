@@ -261,11 +261,20 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
               ref={transformerRef}
               rotateEnabled={false}
               borderStroke="#4080FF"
+              borderStrokeWidth={1.5}
+              enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
               anchorStroke="#4080FF"
+              anchorStrokeWidth={1.5}
               anchorFill="#FFFFFF"
-              anchorSize={10}
+              anchorSize={Math.round(8 * Math.min(window.devicePixelRatio || 1, 2))}
+              anchorCornerRadius={50}
+              padding={4}
               keepRatio={false}
-              anchorCornerRadius={2}
+              flipEnabled={false}
+              anchorStyleFunc={(anchor) => {
+                anchor.shadowColor('rgba(64, 128, 255, 0.45)')
+                anchor.shadowBlur(6)
+              }}
               boundBoxFunc={function (source, target) {
                 if (Math.abs(target.width) < 10) return source
                 if (Math.abs(target.height) < 10) return source
