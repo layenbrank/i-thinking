@@ -4,6 +4,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { Layer, Image as ReImage, Stage, Transformer, type KonvaNodeEvents } from 'react-konva'
 
 import Graphics, { SpotlightMask, type GraphicsProps } from '@/features/capture/components/graphics'
+import SelectionOverlay from '@/features/capture/components/selection-overlay'
 
 import styles from '@/features/capture/components/annotation.module.scss'
 
@@ -23,6 +24,10 @@ interface AnnotationProps {
   onPress: KonvaNodeEvents['onMouseDown']
   onMove: KonvaNodeEvents['onMouseMove']
   onEditStart: (id: string, text: string) => void
+  selection: { x: number; y: number; w: number; h: number } | null
+  phase: 'selecting' | 'annotating' | 'editing'
+  onSelectionChange: (selection: { x: number; y: number; w: number; h: number }) => void
+  onClose: () => void
 }
 
 /** 暴露给父组件的导出能力 */
@@ -48,7 +53,8 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       onPress,
       onMove,
       onRelease,
-      onEditStart
+      onEditStart,
+      onClose
     } = props
 
     // 底图来自 Tauri 真实截图；加载中为 null，由上层黑罩/错误卡片接管
@@ -84,6 +90,12 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
             // 导出前临时隐藏 Transformer，避免控制点出现在最终图
             const tr = transformerRef.current
             if (tr) tr.visible(false)
+            const maskLayers = stage.find(function (node: Konva.Node) {
+              return node.name() === 'selection-overlay-layer'
+            })
+            maskLayers.forEach(function (layer) {
+              layer.visible(false)
+            })
             const opts: {
               pixelRatio: number
               x?: number
@@ -100,6 +112,9 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
               opts.height = clipRect.h
             }
             const url = stage.toDataURL(opts)
+            maskLayers.forEach(function (layer) {
+              layer.visible(true)
+            })
             if (tr) tr.visible(true)
             return url
           },
@@ -107,7 +122,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
             return stageRef.current
           },
           startEditing(id: string, initialText?: string) {
-            const text = initialText ?? annotations.find(a => a.id === id)?.text ?? ''
+            const text = initialText ?? annotations.find((a) => a.id === id)?.text ?? ''
             setEditingID(id)
             setOriginalText(text)
             setEditValue(text)
@@ -145,10 +160,14 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       [selectedID, annotations, editingID]
     )
 
+    function handleClose() {
+      onClose?.()
+    }
+
     function handleEditStart(id: string, text: string) {
       // 如果正在编辑另一个标注，先提交当前编辑
       if (editingID && editingID !== id) {
-        const currentAnnotation = annotations.find(a => a.id === editingID)
+        const currentAnnotation = annotations.find((a) => a.id === editingID)
         if (currentAnnotation && editValue !== originalText) {
           onChange({ ...currentAnnotation, text: editValue })
         }
@@ -164,7 +183,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       onSelect(null)
       if (!id) return
       if (value === originalText) return
-      const annotation = annotations.find(a => a.id === id)
+      const annotation = annotations.find((a) => a.id === id)
       if (annotation) {
         onChange({ ...annotation, text: value })
       }
@@ -225,6 +244,13 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
               />
             )}
           </Layer>
+          <SelectionOverlay
+            selection={props.selection}
+            phase={props.phase}
+            width={viewport.width}
+            height={viewport.height}
+            onSelectionChange={props.onSelectionChange}
+          />
           {/* 聚光灯共享暗罩：一个 even-odd 镂空 Shape，支持任意数量 spotlight 而不出现叠加伪影 */}
           <Layer listening={false}>
             <SpotlightMask
@@ -259,85 +285,89 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
 
             <Transformer
               ref={transformerRef}
-              rotateEnabled={false}
-              borderStroke="#4080FF"
-              borderStrokeWidth={1.5}
-              enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
-              anchorStroke="#4080FF"
-              anchorStrokeWidth={1.5}
+              anchorSize={10}
+              anchorCornerRadius={5}
+              anchorStroke="#3B82F6"
+              anchorStrokeWidth={2}
               anchorFill="#FFFFFF"
-              anchorSize={Math.round(8 * Math.min(window.devicePixelRatio || 1, 2))}
-              anchorCornerRadius={50}
+              borderStroke="#3B82F6"
+              borderStrokeWidth={1.5}
+              rotateAnchorOffset={24}
+              enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
+              rotateEnabled={false}
               padding={4}
               keepRatio={false}
               flipEnabled={false}
-              anchorStyleFunc={(anchor) => {
-                anchor.shadowColor('rgba(64, 128, 255, 0.45)')
-                anchor.shadowBlur(6)
-              }}
-              boundBoxFunc={function (source, target) {
-                if (Math.abs(target.width) < 10) return source
-                if (Math.abs(target.height) < 10) return source
-                return target
+              boundBoxFunc={(oldBox, newBox) => {
+                if (newBox.width < 5 || newBox.height < 5) {
+                  return oldBox
+                }
+                return newBox
               }}
             />
           </Layer>
         </Stage>
         {/* 文字编辑 textarea overlay */}
-        {editingID && (() => {
-          const annotation = annotations.find(a => a.id === editingID)
-          if (!annotation || annotation.type !== 'text') return null
-          const stage = stageRef.current
-          if (!stage) return null
-          const group = stage.findOne<Konva.Group>('#' + editingID)
-          const textNode = group?.findOne<Konva.Text>('Text')
-          if (!textNode) return null
+        {editingID &&
+          (() => {
+            const annotation = annotations.find((a) => a.id === editingID)
+            if (!annotation || annotation.type !== 'text') return null
+            const stage = stageRef.current
+            if (!stage) return null
+            const group = stage.findOne<Konva.Group>('#' + editingID)
+            const textNode = group?.findOne<Konva.Text>('Text')
+            if (!textNode) return null
 
-          const containerRect = stage.container().getBoundingClientRect()
-          const absPos = textNode.absolutePosition()
-          const fontSize = annotation.fontSize ?? 16
-          const textWidth = textNode.width() || 80
-          const textHeight = fontSize * 1.4
+            const containerRect = stage.container().getBoundingClientRect()
+            const absPos = textNode.absolutePosition()
+            const fontSize = annotation.fontSize ?? 16
+            const textWidth = textNode.width() || 80
+            const textHeight = fontSize * 1.4
 
-          return (
-            <textarea
-              value={editValue}
-              onChange={e => setEditValue(e.target.value)}
-              autoFocus
-              onBlur={() => handleEditCommit(editValue)}
-              onCompositionStart={() => { composingRef.current = true }}
-              onCompositionEnd={() => { composingRef.current = false }}
-              onKeyDown={e => {
-                if (e.key === 'Escape') {
-                  e.preventDefault()
-                  handleEditCancel()
-                } else if (e.key === 'Enter' && !e.shiftKey && !composingRef.current) {
-                  e.preventDefault()
-                  handleEditCommit(editValue)
-                }
-              }}
-              style={{
-                position: 'fixed',
-                left: `${containerRect.left + absPos.x}px`,
-                top: `${containerRect.top + absPos.y}px`,
-                minWidth: `${Math.max(textWidth, 80)}px`,
-                minHeight: `${textHeight}px`,
-                margin: 0,
-                padding: '2px 4px',
-                fontSize: `${fontSize}px`,
-                lineHeight: 1.2,
-                fontFamily: 'sans-serif',
-                color: annotation.color,
-                background: 'rgba(255, 255, 255, 0.92)',
-                border: '1px dashed #4080ff',
-                outline: 'none',
-                resize: 'both',
-                boxSizing: 'border-box',
-                zIndex: 10000
-              }}
-            />
-          )
-        })()}
+            return (
+              <textarea
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                autoFocus
+                onBlur={() => { handleEditCommit(editValue); handleClose() }}
+                onCompositionStart={() => {
+                  composingRef.current = true
+                }}
+                onCompositionEnd={() => {
+                  composingRef.current = false
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                    handleEditCancel()
+                  } else if (e.key === 'Enter' && !e.shiftKey && !composingRef.current) {
+                    e.preventDefault()
+                    handleEditCommit(editValue)
+                    handleClose()
+                  }
+                }}
+                style={{
+                  position: 'fixed',
+                  left: `${containerRect.left + absPos.x}px`,
+                  top: `${containerRect.top + absPos.y}px`,
+                  minWidth: `${Math.max(textWidth, 80)}px`,
+                  minHeight: `${textHeight}px`,
+                  margin: 0,
+                  padding: '2px 4px',
+                  fontSize: `${fontSize}px`,
+                  lineHeight: 1.2,
+                  fontFamily: 'sans-serif',
+                  color: annotation.color,
+                  background: 'rgba(255, 255, 255, 0.92)',
+                  border: '1px dashed #4080ff',
+                  outline: 'none',
+                  resize: 'both',
+                  boxSizing: 'border-box',
+                  zIndex: 10000
+                }}
+              />
+            )
+          })()}
       </div>
     )
   }
