@@ -158,6 +158,7 @@
     "motion-v": "^1.10.0",
     "mp4box": "^2.1.1",
     "pinia": "^3.0.3",
+    "pixi.js": "^8.19.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hotkeys-hook": "^5.2.1",
