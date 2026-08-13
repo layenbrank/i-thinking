@@ -78,6 +78,12 @@ export default function Capture(props: CaptureProps = {}) {
 
   /** 当前正在拖拽创建的草稿 id（避免通过 closure 读外层 state） */
   const draftIDRef = useRef<string | null>(null)
+  /** 鼠标按下时标记拖拽状态，避免闭包捕获 selection 导致判断失效 */
+  const isDraggingRef = useRef(false)
+  /** 标记拖拽已被取消（如 handleMove 防御触发），阻止后续 move 继续更新选区 */
+  const cancelledRef = useRef(false)
+  /** 标记 selecting 阶段是否已产生有效位移，避免依赖闭包中的 selection state */
+  const hasMovedRef = useRef(false)
   /** 鼠标按下时的起点（仅用于阈值判定 / 选区起点） */
   const beginRef = useRef<Point>({ x: 0, y: 0 })
   /** 暴露 Annotation 的导出能力 */
@@ -223,11 +229,16 @@ export default function Capture(props: CaptureProps = {}) {
     if (phase === 'annotating' && !clickedOnEmpty) return
 
     beginRef.current = pt
+    isDraggingRef.current = true
+    hasMovedRef.current = false
 
     if (phase === 'selecting') {
       onUpdateSelection({ x: pt.x, y: pt.y, w: 0, h: 0 })
       return
     }
+
+    // 防御：本轮拖拽已被取消，不再创建新标注
+    if (cancelledRef.current) return
 
     // annotating：创建一个草稿标注
     if (phase === 'annotating') {
@@ -268,8 +279,16 @@ export default function Capture(props: CaptureProps = {}) {
     const pt = readPointer(event)
     if (!pt) return
 
-    if (phase === 'selecting' && selection) {
-      // selecting 阶段实时更新选区（修复原 handleMove 为空函数的问题）
+    if (phase === 'selecting' && isDraggingRef.current) {
+      // 防御：鼠标已松开但 release 未触发（如 Alt+Tab 切走）
+      if (event.evt.buttons === 0) {
+        isDraggingRef.current = false
+        cancelledRef.current = true
+        return
+      }
+      // 标记已产生有效位移，handleRelease 据此判断是否保留选区
+      hasMovedRef.current = true
+      // selecting 阶段实时更新选区（用 beginRef 替代 selection 避免闭包陈旧值）
       onUpdateSelection({
         x: Math.min(beginRef.current.x, pt.x),
         y: Math.min(beginRef.current.y, pt.y),
@@ -278,6 +297,9 @@ export default function Capture(props: CaptureProps = {}) {
       })
       return
     }
+
+    // 防御：本轮拖拽已被取消，不再处理后续 move
+    if (cancelledRef.current) return
 
     if (phase === 'annotating' && draftIDRef.current) {
       // 单点型标注不需要在拖拽过程中更新多个顶点
@@ -305,14 +327,19 @@ export default function Capture(props: CaptureProps = {}) {
     const pt = readPointer(event)
     if (!pt) return
 
+    const moved = hasMovedRef.current
+    isDraggingRef.current = false
+    cancelledRef.current = false
+    hasMovedRef.current = false
+
     const dx = pt.x - beginRef.current.x
     const dy = pt.y - beginRef.current.y
     const tooSmall = Math.abs(dx) < MIN_DRAG_PX && Math.abs(dy) < MIN_DRAG_PX
 
     if (phase === 'selecting') {
       if (tooSmall) {
-        // 误触一下：保留旧选区不重置（如果之前没有选区则置 null）
-        if (!selection || selection.w === 0) onUpdateSelection(null)
+        // 误触一下：保留旧选区不重置（如果本次拖拽无有效位移则置 null）
+        if (!moved) onUpdateSelection(null)
         return
       }
       // 完成选区：进入 editing，等待用户选择工具
@@ -361,6 +388,10 @@ export default function Capture(props: CaptureProps = {}) {
         commitHistory(next)
         return next
       })
+      // 文字标注创建后直接进入编辑态（必须在 updater 外部调用，此时 state 已更新）
+      if (isSinglePoint && graphics === 'text') {
+        annotationRef.current?.startEditing(draftID, '')
+      }
     }
   }
 
@@ -437,6 +468,9 @@ export default function Capture(props: CaptureProps = {}) {
     onUpdateSelectedID(null)
     onUpdateAnnotations([])
     onUpdatePhase('selecting')
+    isDraggingRef.current = false
+    cancelledRef.current = false
+    hasMovedRef.current = false
     historyRef.current = [[]]
     historyStepRef.current = 0
     syncHistoryFlags()
@@ -537,8 +571,11 @@ export default function Capture(props: CaptureProps = {}) {
             sourceImage={sourceImage}
             onRelease={handleRelease}
             onSelect={onUpdateSelectedID}
-            interactive={phase === 'editing'}
+            interactive={true}
             onChange={handleAnnotationChange}
+            onEditStart={function () {
+              onUpdateSelectedID(null)
+            }}
           />
           {/* 选区遮罩：选区外区域半透明黑色；无选区时整屏黑 */}
           {(() => {

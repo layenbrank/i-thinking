@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import type Konva from 'konva'
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Layer, Image as ReImage, Stage, Transformer, type KonvaNodeEvents } from 'react-konva'
 
 import Graphics, { SpotlightMask, type GraphicsProps } from '@/features/capture/components/graphics'
@@ -22,6 +22,7 @@ interface AnnotationProps {
   onRelease: KonvaNodeEvents['onMouseUp']
   onPress: KonvaNodeEvents['onMouseDown']
   onMove: KonvaNodeEvents['onMouseMove']
+  onEditStart: (id: string, text: string) => void
 }
 
 /** 暴露给父组件的导出能力 */
@@ -30,6 +31,8 @@ export interface AnnotationHandle {
   exportPng(): string | null
   /** 获取底层 Stage 节点（高级用法） */
   getStage(): Konva.Stage | null
+  /** 启动指定文字标注的编辑态（可传入初始文本，用于新建标注时尚未入态的场景） */
+  startEditing(id: string, initialText?: string): void
 }
 
 export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
@@ -44,13 +47,18 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       onSelect,
       onPress,
       onMove,
-      onRelease
+      onRelease,
+      onEditStart
     } = props
 
     // 底图来自 Tauri 真实截图；加载中为 null，由上层黑罩/错误卡片接管
     const background = sourceImage
     const stageRef = useRef<Konva.Stage>(null)
     const transformerRef = useRef<Konva.Transformer>(null)
+    const [editingID, setEditingID] = useState<string | null>(null)
+    const [originalText, setOriginalText] = useState('')
+    const [editValue, setEditValue] = useState('')
+    const composingRef = useRef(false)
 
     /** 视口尺寸：跟随 window resize 同步，保证 Stage / 共享暗罩自适应 */
     const [viewport, setViewport] = useState<{ width: number; height: number }>(function () {
@@ -97,10 +105,16 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
           },
           getStage() {
             return stageRef.current
+          },
+          startEditing(id: string, initialText?: string) {
+            const text = initialText ?? annotations.find(a => a.id === id)?.text ?? ''
+            setEditingID(id)
+            setOriginalText(text)
+            setEditValue(text)
           }
         }
       },
-      [clipRect]
+      [clipRect, annotations]
     )
 
     /** 选中态变化时把 Transformer 挂到对应 Group 上 */
@@ -109,6 +123,12 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
         const tr = transformerRef.current
         const stage = stageRef.current
         if (!tr || !stage) return
+        // 编辑文字时隐藏 Transformer
+        if (editingID) {
+          tr.nodes([])
+          tr.getLayer()?.batchDraw()
+          return
+        }
         if (!selectedID) {
           tr.nodes([])
           tr.getLayer()?.batchDraw()
@@ -122,16 +142,59 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
         }
         tr.getLayer()?.batchDraw()
       },
-      [selectedID, annotations]
+      [selectedID, annotations, editingID]
     )
+
+    function handleEditStart(id: string, text: string) {
+      // 如果正在编辑另一个标注，先提交当前编辑
+      if (editingID && editingID !== id) {
+        const currentAnnotation = annotations.find(a => a.id === editingID)
+        if (currentAnnotation && editValue !== originalText) {
+          onChange({ ...currentAnnotation, text: editValue })
+        }
+      }
+      setEditingID(id)
+      setOriginalText(text)
+      setEditValue(text)
+    }
+
+    function handleEditCommit(value: string) {
+      const id = editingID
+      setEditingID(null)
+      onSelect(null)
+      if (!id) return
+      if (value === originalText) return
+      const annotation = annotations.find(a => a.id === id)
+      if (annotation) {
+        onChange({ ...annotation, text: value })
+      }
+    }
+
+    function handleEditCancel() {
+      setEditingID(null)
+      onSelect(null)
+    }
 
     /** 透传 mouseDown，并在编辑阶段点击空白处取消选中 */
     function handleMouseDown(event: Konva.KonvaEventObject<MouseEvent>) {
       if (interactive) {
         const clickedOnEmpty = event.target === event.target.getStage()
-        if (clickedOnEmpty) onSelect(null)
+        if (clickedOnEmpty) {
+          if (editingID) {
+            handleEditCancel()
+          }
+          onSelect(null)
+        }
       }
       onPress?.(event)
+    }
+
+    /** 点击形状时，若正在编辑则先取消编辑态 */
+    function handleShapeSelect(id: string) {
+      if (editingID) {
+        handleEditCancel()
+      }
+      onSelect(id)
     }
 
     /** 把滤镜底图自动注入到 mosaic / blur 类型的标注上 */
@@ -186,7 +249,9 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
                   {...withSource(annotation)}
                   interactive={interactive}
                   isSelected={annotation.id === selectedID}
-                  onSelect={onSelect}
+                  isEditing={annotation.id === editingID}
+                  onSelect={handleShapeSelect}
+                  onEditStart={handleEditStart}
                   onChange={onChange}
                 />
               )
@@ -209,6 +274,61 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
             />
           </Layer>
         </Stage>
+        {/* 文字编辑 textarea overlay */}
+        {editingID && (() => {
+          const annotation = annotations.find(a => a.id === editingID)
+          if (!annotation || annotation.type !== 'text') return null
+          const stage = stageRef.current
+          if (!stage) return null
+          const group = stage.findOne<Konva.Group>('#' + editingID)
+          const textNode = group?.findOne<Konva.Text>('Text')
+          if (!textNode) return null
+
+          const containerRect = stage.container().getBoundingClientRect()
+          const absPos = textNode.absolutePosition()
+          const fontSize = annotation.fontSize ?? 16
+          const textWidth = textNode.width() || 80
+          const textHeight = fontSize * 1.4
+
+          return (
+            <textarea
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              autoFocus
+              onBlur={() => handleEditCommit(editValue)}
+              onCompositionStart={() => { composingRef.current = true }}
+              onCompositionEnd={() => { composingRef.current = false }}
+              onKeyDown={e => {
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  handleEditCancel()
+                } else if (e.key === 'Enter' && !e.shiftKey && !composingRef.current) {
+                  e.preventDefault()
+                  handleEditCommit(editValue)
+                }
+              }}
+              style={{
+                position: 'fixed',
+                left: `${containerRect.left + absPos.x}px`,
+                top: `${containerRect.top + absPos.y}px`,
+                minWidth: `${Math.max(textWidth, 80)}px`,
+                minHeight: `${textHeight}px`,
+                margin: 0,
+                padding: '2px 4px',
+                fontSize: `${fontSize}px`,
+                lineHeight: 1.2,
+                fontFamily: 'sans-serif',
+                color: annotation.color,
+                background: 'rgba(255, 255, 255, 0.92)',
+                border: '1px dashed #4080ff',
+                outline: 'none',
+                resize: 'both',
+                boxSizing: 'border-box',
+                zIndex: 10000
+              }}
+            />
+          )
+        })()}
       </div>
     )
   }
