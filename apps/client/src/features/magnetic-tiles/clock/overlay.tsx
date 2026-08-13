@@ -99,7 +99,7 @@ function StageDigits(props: { now: Dayjs; clockStyle: ClockStyle }) {
           m={m}
           s={s}
           showSeconds={showSeconds}
-          isNeon={props.clockStyle === 'neon'}
+          isNeon={false}
         />
       </div>
     )
