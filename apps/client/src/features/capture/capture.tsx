@@ -9,12 +9,8 @@ import { type GraphicsEnum, type GraphicsProps } from '@/features/capture/compon
 import Magnifier from '@/features/capture/components/magnifier'
 import { motion, useReducedMotion } from 'motion/react'
 import Utility from '@/features/capture/components/utility'
-import {
-  isTauri,
-  loadImageFromPath,
-  takeScreenshot
-} from '@/features/capture/tauri'
-import { pinTexture, saveScreenshot } from '@/features/capture/clipboard'
+import { isTauri, loadImageFromPath, takeScreenshot } from '@/features/capture/tauri'
+import { pinTexture, saveToUserPath } from '@/features/capture/clipboard'
 
 import styles from '@/features/capture/capture.module.scss'
 
@@ -126,7 +122,7 @@ export default function Capture(props: CaptureProps = {}) {
   const hasMovedRef = useRef(false)
   /** 鼠标按下时的起点（仅用于阈值判定 / 选区起点） */
   const beginRef = useRef<Point>({ x: 0, y: 0 })
-  /** 暴露 Annotation 的导出能力 */
+  /** 暴露 Annotation 的画布渲染能力 */
   const annotationRef = useRef<AnnotationHandle>(null)
 
   /** 历史栈：每一帧都是 annotations 的完整快照（A 方案：commit / drag-end / transform-end / delete 入栈）*/
@@ -543,29 +539,30 @@ export default function Capture(props: CaptureProps = {}) {
     syncHistoryFlags()
   }
 
-  /** 取出当前 Stage 选区内的 PNG，触发某个 IO 后关闭截图窗口 */
-  async function withExportedPng<T>(action: (dataUrl: string) => Promise<T>) {
-    const dataUrl = annotationRef.current?.exportPng()
+  /** 取出当前 Stage 选区内渲染好的 PNG dataUrl，交给后续动作（贴图 / 保存） */
+  async function withStagePng<T>(action: (dataUrl: string) => Promise<T>) {
+    const dataUrl = annotationRef.current?.renderPng()
     if (!dataUrl) return
     try {
       await action(dataUrl)
     } catch (err) {
-      console.error('[capture] 导出失败', err)
+      console.error('[capture] 处理截图结果失败', err)
     }
   }
 
   function handlePin() {
-    void withExportedPng(async function (dataUrl) {
+    void withStagePng(async function (dataUrl) {
       const result = await pinTexture(dataUrl)
       onTexture?.({ src: result.filePath, w: result.w, h: result.h })
       onExit?.()
     })
   }
 
-  function handlePreserve() {
-    void withExportedPng(async function (dataUrl) {
-      await saveScreenshot(dataUrl)
-      onExit?.()
+  /** 「保存」：弹出系统保存对话框，将裁剪+标注后的 PNG 写入用户选择的路径 */
+  function handleSave() {
+    void withStagePng(async function (dataUrl) {
+      const path = await saveToUserPath(dataUrl)
+      if (path) onExit?.()
     })
   }
 
@@ -665,7 +662,7 @@ export default function Capture(props: CaptureProps = {}) {
               thickness={thickness}
               onClose={handleClose}
               onRefresh={handleRefresh}
-              onPreserve={handlePreserve}
+              onSave={handleSave}
               onUpdateColor={handleUpdateColor}
               onUpdateUtility={onUpdateGraphics}
               onUpdateFilled={handleUpdateFilled}

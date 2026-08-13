@@ -2,6 +2,7 @@ import { writeImage, writeText } from '@tauri-apps/plugin-clipboard-manager'
 import { invoke } from '@tauri-apps/api/core'
 import { appLocalDataDir, join } from '@tauri-apps/api/path'
 import { BaseDirectory, exists, mkdir, writeFile } from '@tauri-apps/plugin-fs'
+import { save as dialogSave } from '@tauri-apps/plugin-dialog'
 
 /** 将文本写入系统剪贴板 */
 export async function copyText(text: string): Promise<void> {
@@ -12,22 +13,6 @@ export async function copyText(text: string): Promise<void> {
 export async function copyImage(dataUrl: string): Promise<void> {
   const bytes = dataUrlToBytes(dataUrl)
   await writeImage(bytes)
-}
-
-/** 将截图保存为 `<appLocalDataDir>/screenshot/` 下的 PNG，返回磁盘文件路径 */
-export async function saveScreenshot(dataUrl: string, filename?: string): Promise<string> {
-  const dir = await appLocalDataDir()
-  const subdir = await join(dir, 'screenshot')
-  if (!(await exists('screenshot', { baseDir: BaseDirectory.AppLocalData }))) {
-    await mkdir('screenshot', {
-      baseDir: BaseDirectory.AppLocalData,
-      recursive: true
-    })
-  }
-  const name = filename ?? `screenshot-${formatTimestamp(new Date())}.png`
-  const path = await join(subdir, name)
-  await writeFile(path, dataUrlToBytes(dataUrl))
-  return path
 }
 
 /**
@@ -84,6 +69,20 @@ export async function pinTexture(
 }
 
 /* ─── internal helpers ─── */
+
+const PNG_FILTER = [{ name: 'PNG 图片', extensions: ['png'] }]
+
+/** 弹出系统保存对话框，将裁剪+标注后的 PNG 写入用户选择的路径 */
+export async function saveToUserPath(dataUrl: string): Promise<string | null> {
+  const defaultName = `screenshot-${formatTimestamp(new Date())}.png`
+  const dest = await dialogSave({
+    defaultPath: defaultName,
+    filters: PNG_FILTER
+  })
+  if (!dest) return null
+  await writeFile(dest, dataUrlToBytes(dataUrl))
+  return dest
+}
 
 function dataUrlToBytes(dataUrl: string): Uint8Array {
   const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '')

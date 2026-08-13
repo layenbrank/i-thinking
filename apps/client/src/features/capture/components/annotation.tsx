@@ -30,10 +30,10 @@ interface AnnotationProps {
   onClose: () => void
 }
 
-/** 暴露给父组件的导出能力 */
+/** 暴露给父组件的画布渲染能力 */
 export interface AnnotationHandle {
-  /** 导出选区内的 PNG data URL；无选区时导出整个 Stage */
-  exportPng(): string | null
+  /** 渲染选区内的 PNG data URL；无选区时渲染整个 Stage */
+  renderPng(): string | null
   /** 获取底层 Stage 节点（高级用法） */
   getStage(): Konva.Stage | null
   /** 启动指定文字标注的编辑态（可传入初始文本，用于新建标注时尚未入态的场景） */
@@ -84,10 +84,10 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       ref,
       function () {
         return {
-          exportPng() {
+          renderPng() {
             const stage = stageRef.current
             if (!stage) return null
-            // 导出前临时隐藏 Transformer，避免控制点出现在最终图
+            // 渲染前临时隐藏 Transformer，避免控制点出现在最终图
             const tr = transformerRef.current
             if (tr) tr.visible(false)
             const maskLayers = stage.find(function (node: Konva.Node) {
