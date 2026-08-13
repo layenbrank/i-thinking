@@ -23,14 +23,14 @@
   z-index: 90;
 }
 
-/* 选区边框（蓝色描边 + 角点辅助识别） */
+/* 选区边框（蓝色描边 + 可拖拽重定位） */
 .selectionFrame {
   position: absolute;
   border: 1.5px solid #4080ff;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.6),
     0 2px 12px rgba(64, 128, 255, 0.35);
-  pointer-events: none;
+  cursor: move;
   z-index: 100;
 }
 
@@ -143,4 +143,13 @@
     border-color: rgba(255, 255, 255, 0.4);
     background: rgba(255, 255, 255, 0.06);
   }
+}
+
+/* 截图入场闪光 */
+.captureFlash {
+  position: absolute;
+  inset: 0;
+  background: white;
+  pointer-events: none;
+  z-index: 200;
 }

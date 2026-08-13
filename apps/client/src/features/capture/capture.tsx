@@ -75,6 +75,8 @@ export default function Capture(props: CaptureProps = {}) {
   /** 可撤销/重做状态（从 historyRef 同步，但需要反应式驱动 UI） */
   const [canUndo, onUpdateCanUndo] = useState(false)
   const [canRedo, onUpdateCanRedo] = useState(false)
+  /** 截图入场闪光动画 */
+  const [showFlash, setShowFlash] = useState(false)
 
   /** 当前正在拖拽创建的草稿 id（避免通过 closure 读外层 state） */
   const draftIDRef = useRef<string | null>(null)
@@ -88,6 +90,13 @@ export default function Capture(props: CaptureProps = {}) {
   const beginRef = useRef<Point>({ x: 0, y: 0 })
   /** 暴露 Annotation 的导出能力 */
   const annotationRef = useRef<AnnotationHandle>(null)
+  /** 选区拖拽重定位的起点记录 */
+  const selectionDragRef = useRef<{
+    startX: number
+    startY: number
+    origX: number
+    origY: number
+  } | null>(null)
 
   /** 历史栈：每一帧都是 annotations 的完整快照（A 方案：commit / drag-end / transform-end / delete 入栈）*/
   const historyRef = useRef<GraphicsProps[][]>([[]])
@@ -171,6 +180,10 @@ export default function Capture(props: CaptureProps = {}) {
     e.preventDefault()
     handleEscape()
   })
+  useHotkeys('mod+r', function (e) {
+    e.preventDefault()
+    handleRefresh()
+  })
 
   /** 加载滤镜/放大镜共用的底图：仅支持 Tauri 桌面运行时，失败时进入 error 态供重试 */
   async function loadCapture() {
@@ -184,6 +197,7 @@ export default function Capture(props: CaptureProps = {}) {
       const img = await loadImageFromPath(result.path)
       onUpdateSourceImage(img)
       onUpdateCaptureStatus('ready')
+      setShowFlash(true)
     } catch (err) {
       console.error('[capture] 真实截图失败', err)
       onUpdateCaptureError(String(err))
@@ -476,6 +490,50 @@ export default function Capture(props: CaptureProps = {}) {
     syncHistoryFlags()
   }
 
+  /** 选区拖拽：鼠标按下记录起点 */
+  function handleSelectionDragStart(e: React.MouseEvent) {
+    if (!selection || phase === 'selecting') return
+    e.preventDefault()
+    e.stopPropagation()
+    selectionDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: selection.x,
+      origY: selection.y,
+    }
+  }
+
+  /** 选区拖拽：鼠标松开清除拖拽状态 */
+  function handleSelectionDragEnd() {
+    selectionDragRef.current = null
+  }
+
+  /** 选区拖拽期间注册 window 级监听，避免鼠标移出选区后丢失事件 */
+  useEffect(
+    function () {
+      if (!selectionDragRef.current) return
+      function onMove(e: MouseEvent) {
+        const drag = selectionDragRef.current
+        if (!drag || !selection) return
+        const dx = e.clientX - drag.startX
+        const dy = e.clientY - drag.startY
+        const newX = Math.max(0, Math.min(drag.origX + dx, window.innerWidth - selection.w))
+        const newY = Math.max(0, Math.min(drag.origY + dy, window.innerHeight - selection.h))
+        onUpdateSelection({ ...selection, x: newX, y: newY })
+      }
+      function onUp() {
+        handleSelectionDragEnd()
+      }
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUp)
+      return function () {
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+      }
+    },
+    [selection]
+  )
+
   /** 取出当前 Stage 选区内的 PNG，触发某个 IO 后关闭截图窗口 */
   async function withExportedPng<T>(action: (dataUrl: string) => Promise<T>) {
     const dataUrl = annotationRef.current?.exportPng()
@@ -517,6 +575,7 @@ export default function Capture(props: CaptureProps = {}) {
           console.error('[capture] 资源注册失败', err)
         })
         onTexture?.({ src: filePath, w, h })
+        onExit?.()
       }
     })
   }
@@ -577,6 +636,19 @@ export default function Capture(props: CaptureProps = {}) {
               onUpdateSelectedID(null)
             }}
           />
+          {/* 截图入场闪光动效 */}
+          <AnimatePresence>
+            {captureStatus === 'ready' && showFlash && (
+              <motion.div
+                key="capture-flash"
+                className={clsx(styles.captureFlash)}
+                initial={{ opacity: 0.6 }}
+                animate={{ opacity: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                onAnimationComplete={() => setShowFlash(false)}
+              />
+            )}
+          </AnimatePresence>
           {/* 选区遮罩：选区外区域半透明黑色；无选区时整屏黑 */}
           {(() => {
             if (!selection || selection.w <= 0 || selection.h <= 0) {
@@ -617,6 +689,7 @@ export default function Capture(props: CaptureProps = {}) {
                 <div
                   className={styles.selectionFrame}
                   style={{ left: x, top: y, width: w, height: h }}
+                  onMouseDown={handleSelectionDragStart}
                 />
                 {/* 选区尺寸标签：紧贴选区上沿外侧；上方不够时挪到内部 */}
                 <div
