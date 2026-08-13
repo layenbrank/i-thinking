@@ -1,29 +1,69 @@
+import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { clsx } from 'clsx'
 import type Konva from 'konva'
-import { AnimatePresence, motion } from 'motion/react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { v4 as UUID } from 'uuid'
 
 import { Annotation, type AnnotationHandle } from '@/features/capture/components/annotation'
 import { type GraphicsEnum, type GraphicsProps } from '@/features/capture/components/graphics'
 import Magnifier from '@/features/capture/components/magnifier'
+import { motion, useReducedMotion } from 'motion/react'
 import Utility from '@/features/capture/components/utility'
 import {
   isTauri,
   loadImageFromPath,
-  readImageNaturalSize,
-  registerAsset,
-  saveTexturePng,
-  takeScreenshot,
-  writeImageToClipboard
+  takeScreenshot
 } from '@/features/capture/tauri'
+import { pinTexture, saveScreenshot } from '@/features/capture/clipboard'
 
 import styles from '@/features/capture/capture.module.scss'
+
+// ============ Error Boundary ============
+
+interface CaptureErrorBoundaryProps {
+  children: ReactNode
+  onError: () => void
+  onClose: () => void
+}
+interface CaptureErrorBoundaryState {
+  error: Error | null
+}
+
+class CaptureErrorBoundary extends Component<CaptureErrorBoundaryProps, CaptureErrorBoundaryState> {
+  override state: CaptureErrorBoundaryState = { error: null }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+
+  override componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[CaptureErrorBoundary]', error, info)
+    this.props.onError()
+  }
+
+  override render() {
+    if (this.state.error) {
+      if (import.meta.env.DEV) {
+        return (
+          <div className={styles.errorPanel}>
+            <div className={styles.errorCard}>
+              <span className={styles.errorBadge}>CAPTURE CRASH</span>
+              <p className={styles.errorMessage}>{this.state.error.message}</p>
+            </div>
+          </div>
+        )
+      }
+      return null
+    }
+    return this.props.children
+  }
+}
 
 export interface CaptureProps {
   /** Rendered inside the shared overlay window. */
   embedded?: boolean
   onExit?: () => void
+  onClose?: () => void
   onTexture?: (input: { src: string; w: number; h: number }) => void
 }
 
@@ -55,7 +95,7 @@ const POINT_SHAPES = new Set<GraphicsEnum>(['text', 'index'])
 const MULTI_POINT_GRAPHICS = new Set<GraphicsEnum>(['freehand', 'highlight'])
 
 export default function Capture(props: CaptureProps = {}) {
-  const { onExit, onTexture } = props
+  const { onExit, onClose, onTexture } = props
   const [phase, onUpdatePhase] = useState<Phase>('selecting')
   const [graphics, onUpdateGraphics] = useState<GraphicsEnum | null>(null)
   const [annotations, onUpdateAnnotations] = useState<GraphicsProps[]>([])
@@ -68,15 +108,13 @@ export default function Capture(props: CaptureProps = {}) {
   const [selectedID, onUpdateSelectedID] = useState<string | null>(null)
   const [sourceImage, onUpdateSourceImage] = useState<HTMLImageElement | null>(null)
   /** 截图加载三态：loading 黑罩、ready 可交互、error 错误卡片 */
-  const [captureStatus, onUpdateCaptureStatus] = useState<'loading' | 'ready' | 'error'>(
-    'loading'
-  )
+  const [captureStatus, onUpdateCaptureStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [captureError, onUpdateCaptureError] = useState<string | null>(null)
   /** 可撤销/重做状态（从 historyRef 同步，但需要反应式驱动 UI） */
   const [canUndo, onUpdateCanUndo] = useState(false)
   const [canRedo, onUpdateCanRedo] = useState(false)
-  /** 截图入场闪光动画 */
-  const [showFlash, setShowFlash] = useState(false)
+
+  const isReducedMotion = useReducedMotion()
 
   /** 当前正在拖拽创建的草稿 id（避免通过 closure 读外层 state） */
   const draftIDRef = useRef<string | null>(null)
@@ -90,13 +128,6 @@ export default function Capture(props: CaptureProps = {}) {
   const beginRef = useRef<Point>({ x: 0, y: 0 })
   /** 暴露 Annotation 的导出能力 */
   const annotationRef = useRef<AnnotationHandle>(null)
-  /** 选区拖拽重定位的起点记录 */
-  const selectionDragRef = useRef<{
-    startX: number
-    startY: number
-    origX: number
-    origY: number
-  } | null>(null)
 
   /** 历史栈：每一帧都是 annotations 的完整快照（A 方案：commit / drag-end / transform-end / delete 入栈）*/
   const historyRef = useRef<GraphicsProps[][]>([[]])
@@ -197,7 +228,6 @@ export default function Capture(props: CaptureProps = {}) {
       const img = await loadImageFromPath(result.path)
       onUpdateSourceImage(img)
       onUpdateCaptureStatus('ready')
-      setShowFlash(true)
     } catch (err) {
       console.error('[capture] 真实截图失败', err)
       onUpdateCaptureError(String(err))
@@ -253,6 +283,15 @@ export default function Capture(props: CaptureProps = {}) {
 
     // 防御：本轮拖拽已被取消，不再创建新标注
     if (cancelledRef.current) return
+
+    // 标注创建必须落在裁剪选区内：选区为空或选区外点击均忽略
+    if (!selection) return
+    const inBounds =
+      pt.x >= selection.x &&
+      pt.x <= selection.x + selection.w &&
+      pt.y >= selection.y &&
+      pt.y <= selection.y + selection.h
+    if (!inBounds) return
 
     // annotating：创建一个草稿标注
     if (phase === 'annotating') {
@@ -318,6 +357,13 @@ export default function Capture(props: CaptureProps = {}) {
     if (phase === 'annotating' && draftIDRef.current) {
       // 单点型标注不需要在拖拽过程中更新多个顶点
       if (graphics && POINT_SHAPES.has(graphics)) return
+      // 将拖拽点约束到裁剪选区内，防止标注超出
+      const clamped = selection
+        ? {
+            x: Math.max(selection.x, Math.min(pt.x, selection.x + selection.w)),
+            y: Math.max(selection.y, Math.min(pt.y, selection.y + selection.h))
+          }
+        : pt
       const draftID = draftIDRef.current
       onUpdateAnnotations(function (prev) {
         return prev.map(function (value) {
@@ -325,12 +371,12 @@ export default function Capture(props: CaptureProps = {}) {
           if (MULTI_POINT_GRAPHICS.has(value.type)) {
             return {
               ...value,
-              points: value.points.concat([{ x: pt.x, y: pt.y }])
+              points: value.points.concat([{ x: clamped.x, y: clamped.y }])
             }
           }
           return {
             ...value,
-            points: [value.points[0], { x: pt.x, y: pt.y }]
+            points: [value.points[0], { x: clamped.x, y: clamped.y }]
           }
         })
       })
@@ -383,6 +429,13 @@ export default function Capture(props: CaptureProps = {}) {
         return
       }
 
+      // 将释放点约束到裁剪选区内，防止标注超出
+      const clamped = selection
+        ? {
+            x: Math.max(selection.x, Math.min(pt.x, selection.x + selection.w)),
+            y: Math.max(selection.y, Math.min(pt.y, selection.y + selection.h))
+          }
+        : pt
       // 提交草稿到历史栈
       onUpdateAnnotations(function (prev) {
         const next = prev.map(function (value) {
@@ -391,12 +444,12 @@ export default function Capture(props: CaptureProps = {}) {
           if (MULTI_POINT_GRAPHICS.has(value.type)) {
             return {
               ...value,
-              points: value.points.concat([{ x: pt.x, y: pt.y }])
+              points: value.points.concat([{ x: clamped.x, y: clamped.y }])
             }
           }
           return {
             ...value,
-            points: [value.points[0], { x: pt.x, y: pt.y }]
+            points: [value.points[0], { x: clamped.x, y: clamped.y }]
           }
         })
         commitHistory(next)
@@ -490,50 +543,6 @@ export default function Capture(props: CaptureProps = {}) {
     syncHistoryFlags()
   }
 
-  /** 选区拖拽：鼠标按下记录起点 */
-  function handleSelectionDragStart(e: React.MouseEvent) {
-    if (!selection || phase === 'selecting') return
-    e.preventDefault()
-    e.stopPropagation()
-    selectionDragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      origX: selection.x,
-      origY: selection.y,
-    }
-  }
-
-  /** 选区拖拽：鼠标松开清除拖拽状态 */
-  function handleSelectionDragEnd() {
-    selectionDragRef.current = null
-  }
-
-  /** 选区拖拽期间注册 window 级监听，避免鼠标移出选区后丢失事件 */
-  useEffect(
-    function () {
-      if (!selectionDragRef.current) return
-      function onMove(e: MouseEvent) {
-        const drag = selectionDragRef.current
-        if (!drag || !selection) return
-        const dx = e.clientX - drag.startX
-        const dy = e.clientY - drag.startY
-        const newX = Math.max(0, Math.min(drag.origX + dx, window.innerWidth - selection.w))
-        const newY = Math.max(0, Math.min(drag.origY + dy, window.innerHeight - selection.h))
-        onUpdateSelection({ ...selection, x: newX, y: newY })
-      }
-      function onUp() {
-        handleSelectionDragEnd()
-      }
-      window.addEventListener('mousemove', onMove)
-      window.addEventListener('mouseup', onUp)
-      return function () {
-        window.removeEventListener('mousemove', onMove)
-        window.removeEventListener('mouseup', onUp)
-      }
-    },
-    [selection]
-  )
-
   /** 取出当前 Stage 选区内的 PNG，触发某个 IO 后关闭截图窗口 */
   async function withExportedPng<T>(action: (dataUrl: string) => Promise<T>) {
     const dataUrl = annotationRef.current?.exportPng()
@@ -545,38 +554,18 @@ export default function Capture(props: CaptureProps = {}) {
     }
   }
 
-  function handleCopy() {
+  function handlePin() {
     void withExportedPng(async function (dataUrl) {
-      await writeImageToClipboard(dataUrl)
+      const result = await pinTexture(dataUrl)
+      onTexture?.({ src: result.filePath, w: result.w, h: result.h })
       onExit?.()
     })
   }
 
   function handlePreserve() {
-    // 截图已在 Rust 端保存到 appDataDir/screenshots/，无需额外保存
-    console.info('[capture] 截图已保存到磁盘')
-    onExit?.()
-  }
-
-  function handlePin() {
     void withExportedPng(async function (dataUrl) {
-      const size = await readImageNaturalSize(dataUrl)
-      const maxEdge = 480
-      const scale = Math.min(1, maxEdge / Math.max(size.w, size.h))
-      const w = Math.max(48, Math.round(size.w * scale))
-      const h = Math.max(48, Math.round(size.h * scale))
-      const id = `texture-${Date.now()}`
-      const filePath = await saveTexturePng(dataUrl, id).catch(function () {
-        return null
-      })
-      if (filePath) {
-        const fileName = `${id}.png`
-        await registerAsset(filePath, fileName, 'image/png').catch(function (err) {
-          console.error('[capture] 资源注册失败', err)
-        })
-        onTexture?.({ src: filePath, w, h })
-        onExit?.()
-      }
+      await saveScreenshot(dataUrl)
+      onExit?.()
     })
   }
 
@@ -592,150 +581,102 @@ export default function Capture(props: CaptureProps = {}) {
   )
 
   return (
-    <div className={clsx(styles.capture)}>
-      {captureStatus === 'error' ? (
-        <div className={styles.errorPanel}>
-          <div className={styles.errorCard}>
-            <span className={styles.errorBadge}>CAPTURE FAILED</span>
-            <p className={styles.errorMessage}>{captureError ?? '截图加载失败'}</p>
-            <div className={styles.errorActions}>
-              <button
-                type="button"
-                className={clsx(styles.errorButton, styles.errorRetry)}
-                onClick={function () {
-                  void loadCapture()
-                }}>
-                重试
-              </button>
-              <button
-                type="button"
-                className={clsx(styles.errorButton, styles.errorExit)}
-                onClick={function () {
-                  onExit?.()
-                }}>
-                退出
-              </button>
+    <CaptureErrorBoundary
+      onError={function () {
+        onExit?.()
+      }}
+      onClose={onClose ?? function () {}}>
+      <div className={clsx(styles.capture)}>
+        {captureStatus === 'error' ? (
+          <div className={styles.errorPanel}>
+            <div className={styles.errorCard}>
+              <span className={styles.errorBadge}>CAPTURE FAILED</span>
+              <p className={styles.errorMessage}>{captureError ?? '截图加载失败'}</p>
+              <div className={styles.errorActions}>
+                <button
+                  type="button"
+                  className={clsx(styles.errorButton, styles.errorRetry)}
+                  onClick={function () {
+                    void loadCapture()
+                  }}>
+                  重试
+                </button>
+                <button
+                  type="button"
+                  className={clsx(styles.errorButton, styles.errorExit)}
+                  onClick={function () {
+                    onExit?.()
+                  }}>
+                  退出
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <>
-          <Annotation
-            ref={annotationRef}
-            onMove={handleMove}
-            clipRect={selection}
-            onPress={handlePress}
-            selectedID={selectedID}
-            annotations={annotations}
-            sourceImage={sourceImage}
-            onRelease={handleRelease}
-            onSelect={onUpdateSelectedID}
-            interactive={true}
-            onChange={handleAnnotationChange}
-            onEditStart={function () {
-              onUpdateSelectedID(null)
-            }}
-          />
-          {/* 截图入场闪光动效 */}
-          <AnimatePresence>
-            {captureStatus === 'ready' && showFlash && (
-              <motion.div
-                key="capture-flash"
-                className={clsx(styles.captureFlash)}
-                initial={{ opacity: 0.6 }}
-                animate={{ opacity: 0 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
-                onAnimationComplete={() => setShowFlash(false)}
+        ) : (
+          <>
+            <motion.div
+              key="capture-ready"
+              initial={isReducedMotion ? undefined : { opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{
+                duration: 0.3,
+                ease: [0.22, 1, 0.36, 1]
+              }}>
+              <Annotation
+                ref={annotationRef}
+                onClose={onClose ?? function () {}}
+                onMove={handleMove}
+                clipRect={selection}
+                onPress={handlePress}
+                selectedID={selectedID}
+                annotations={annotations}
+                sourceImage={sourceImage}
+                onRelease={handleRelease}
+                onSelect={onUpdateSelectedID}
+                interactive={true}
+                onChange={handleAnnotationChange}
+                onEditStart={function () {
+                  onUpdateSelectedID(null)
+                }}
+                selection={selection}
+                phase={phase}
+                onSelectionChange={onUpdateSelection}
               />
-            )}
-          </AnimatePresence>
-          {/* 选区遮罩：选区外区域半透明黑色；无选区时整屏黑 */}
-          {(() => {
-            if (!selection || selection.w <= 0 || selection.h <= 0) {
-              return phase === 'selecting' ? (
-                <AnimatePresence>
-                  <motion.div
-                    key="full-mask"
-                    exit={{ opacity: 0 }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className={clsx(styles.fullscreen, styles.mask)}
-                  />
-                </AnimatePresence>
-              ) : null
-            }
-            const { x, y, w, h } = selection
-            return (
-              <>
-                {/* 上 / 下 / 左 / 右 四块构成选区外遮罩 */}
-                <div
-                  className={styles.selectionMask}
-                  style={{ left: 0, top: 0, right: 0, height: y }}
-                />
-                <div
-                  className={styles.selectionMask}
-                  style={{ left: 0, top: y + h, right: 0, bottom: 0 }}
-                />
-                <div
-                  className={styles.selectionMask}
-                  style={{ left: 0, top: y, width: x, height: h }}
-                />
-                <div
-                  className={styles.selectionMask}
-                  style={{ left: x + w, top: y, right: 0, height: h }}
-                />
-                {/* 选区边框 */}
-                <div
-                  className={styles.selectionFrame}
-                  style={{ left: x, top: y, width: w, height: h }}
-                  onMouseDown={handleSelectionDragStart}
-                />
-                {/* 选区尺寸标签：紧贴选区上沿外侧；上方不够时挪到内部 */}
-                <div
-                  className={styles.selectionSize}
-                  style={{
-                    left: x,
-                    top: y >= 24 ? y - 22 : y + 4
-                  }}>
-                  {Math.round(w)} × {Math.round(h)}
-                </div>
-              </>
-            )
-          })()}
+            </motion.div>
 
-          {/* 选区阶段的像素级放大镜 */}
-          <Magnifier
-            sourceImage={sourceImage}
-            visible={phase === 'selecting'}
-          />
+            {/* 选区阶段的像素级放大镜 */}
+            <Magnifier
+              sourceImage={sourceImage}
+              visible={phase === 'selecting'}
+              onClose={onClose ?? function () {}}
+            />
 
-          <Utility
-            color={color}
-            filled={filled}
-            canRedo={canRedo}
-            canUndo={canUndo}
-            active={graphics}
-            opacity={opacity}
-            onPin={handlePin}
-            fontSize={fontSize}
-            onCopy={handleCopy}
-            onRedo={handleRedo}
-            onUndo={handleUndo}
-            thickness={thickness}
-            onClose={handleClose}
-            onRefresh={handleRefresh}
-            onPreserve={handlePreserve}
-            onUpdateColor={handleUpdateColor}
-            onUpdateUtility={onUpdateGraphics}
-            onUpdateFilled={handleUpdateFilled}
-            onUpdateOpacity={handleUpdateOpacity}
-            onUpdateFontSize={handleUpdateFontSize}
-            onUpdateThickness={handleUpdateThickness}
-            selection={phase === 'selecting' ? null : selection}
-          />
-        </>
-      )}
-    </div>
+            <Utility
+              color={color}
+              filled={filled}
+              canRedo={canRedo}
+              canUndo={canUndo}
+              active={graphics}
+              opacity={opacity}
+              onPin={handlePin}
+              fontSize={fontSize}
+              onRedo={handleRedo}
+              onUndo={handleUndo}
+              thickness={thickness}
+              onClose={handleClose}
+              onRefresh={handleRefresh}
+              onPreserve={handlePreserve}
+              onUpdateColor={handleUpdateColor}
+              onUpdateUtility={onUpdateGraphics}
+              onUpdateFilled={handleUpdateFilled}
+              onUpdateOpacity={handleUpdateOpacity}
+              onUpdateFontSize={handleUpdateFontSize}
+              onUpdateThickness={handleUpdateThickness}
+              selection={phase === 'selecting' ? null : selection}
+            />
+          </>
+        )}
+      </div>
+    </CaptureErrorBoundary>
   )
 }

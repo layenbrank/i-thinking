@@ -37,9 +37,8 @@ interface UtilityProps {
   onUpdateFontSize: (fontSize: number) => void
   onUndo: () => void
   onRedo: () => void
-  onPreserve: () => void
-  onCopy: () => void
   onPin: () => void
+  onPreserve: () => void
   onClose: () => void
   onRefresh: () => void
 }
@@ -97,10 +96,9 @@ export default function Utility(props: UtilityProps) {
     onUpdateFilled,
     onUpdateFontSize,
     onUpdateOpacity,
-    onCopy,
-    onPin,
     onRedo,
     onRefresh,
+    onPin,
     onPreserve,
     onUpdateThickness,
     onUndo,
@@ -271,18 +269,6 @@ export default function Utility(props: UtilityProps) {
                   onClick={onPin}>
                   <Icon
                     icon="mdi:pin"
-                    width={18}
-                    height={18}
-                  />
-                </motion.button>
-              </Tooltip>
-              <Tooltip title="复制">
-                <motion.button
-                  className={styles.button}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={onCopy}>
-                  <Icon
-                    icon="mdi:content-copy"
                     width={18}
                     height={18}
                   />

@@ -3,51 +3,6 @@
   height: 100%;
 }
 
-.fullscreen {
-  width: 100%;
-  height: 100%;
-
-  &.mask {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    pointer-events: none;
-  }
-}
-
-/* 选区遮罩：4 块半透明黑色环绕选区，中间留洞 */
-.selectionMask {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.5);
-  pointer-events: none;
-  z-index: 90;
-}
-
-/* 选区边框（蓝色描边 + 可拖拽重定位） */
-.selectionFrame {
-  position: absolute;
-  border: 1.5px solid #4080ff;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.6),
-    0 2px 12px rgba(64, 128, 255, 0.35);
-  cursor: move;
-  z-index: 100;
-}
-
-/* 选区尺寸标签 */
-.selectionSize {
-  position: absolute;
-  padding: 2px 6px;
-  font-size: 12px;
-  font-family: ui-monospace, monospace;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.72);
-  border-radius: 3px;
-  pointer-events: none;
-  z-index: 101;
-  white-space: nowrap;
-}
-
 .overlay {
   position: absolute;
   inset: 0;
@@ -145,11 +100,29 @@
   }
 }
 
-/* 截图入场闪光 */
-.captureFlash {
+/* 关闭按钮 */
+.captureClose {
   position: absolute;
-  inset: 0;
-  background: white;
-  pointer-events: none;
-  z-index: 200;
+  top: 16px;
+  right: 16px;
+  z-index: 210;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(242, 244, 248, 0.86);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.32);
+  }
 }
+
