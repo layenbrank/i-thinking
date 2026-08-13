@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useMotionValue, useSpring } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { copyText } from '@/features/capture/clipboard'
 import styles from './magnifier.module.scss'
 
 /** 放大镜显示尺寸（px） */
@@ -21,6 +22,8 @@ interface MagnifierProps {
   sourceImage: HTMLImageElement | null
   /** 是否可见 */
   visible: boolean
+  /** 点击关闭回调 */
+  onClose?: () => void
 }
 
 function rgbToHex(r: number, g: number, b: number): string {
@@ -46,7 +49,7 @@ function computePos(px: number, py: number) {
  * - Shift 切换 HEX / RGB 格式
  * - C 复制当前颜色值
  */
-export default function Magnifier({ sourceImage, visible }: MagnifierProps) {
+export default function Magnifier({ sourceImage, visible, onClose }: MagnifierProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const [rgb, setRgb] = useState<[number, number, number] | null>(null)
@@ -60,6 +63,16 @@ export default function Magnifier({ sourceImage, visible }: MagnifierProps) {
   const springY = useSpring(motionY, SPRING)
   const isFirstMoveRef = useRef(true)
 
+  // 用 ref 持有 spring/motion 对象，避免放入 deps 导致无限渲染
+  const springXRef = useRef(springX)
+  const springYRef = useRef(springY)
+  const motionXRef = useRef(motionX)
+  const motionYRef = useRef(motionY)
+  springXRef.current = springX
+  springYRef.current = springY
+  motionXRef.current = motionX
+  motionYRef.current = motionY
+
   useEffect(() => {
     if (!visible) {
       setPos(null)
@@ -72,17 +85,17 @@ export default function Magnifier({ sourceImage, visible }: MagnifierProps) {
       const { left, top } = computePos(p.x, p.y)
       if (isFirstMoveRef.current) {
         // 首次出现：跳到正确位置，避免从 (0,0) 滑入
-        springX.jump(left)
-        springY.jump(top)
+        springXRef.current.jump(left)
+        springYRef.current.jump(top)
         isFirstMoveRef.current = false
       } else {
-        motionX.set(left)
-        motionY.set(top)
+        motionXRef.current.set(left)
+        motionYRef.current.set(top)
       }
     }
     window.addEventListener('mousemove', onMove)
     return () => window.removeEventListener('mousemove', onMove)
-  }, [visible, motionX, motionY, springX, springY])
+  }, [visible])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -108,20 +121,25 @@ export default function Magnifier({ sourceImage, visible }: MagnifierProps) {
 
   useEffect(() => {
     if (!visible) return
-    function onKeyDown(e: KeyboardEvent) {
+    async function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Shift') {
         setColorFormat((f) => (f === 'hex' ? 'rgb' : 'hex'))
       }
       if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault()
+        e.stopPropagation()
         if (!rgb) return
         const text =
           colorFormat === 'hex'
             ? rgbToHex(rgb[0], rgb[1], rgb[2])
             : `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`
-        void navigator.clipboard.writeText(text).then(() => {
+        try {
+          await copyText(text)
           setCopied(true)
           setTimeout(() => setCopied(false), 1500)
-        })
+        } catch (e) {
+          console.warn('[Magnifier] Clipboard write failed:', e)
+        }
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -141,6 +159,7 @@ export default function Magnifier({ sourceImage, visible }: MagnifierProps) {
         <motion.div
           className={styles.magnifier}
           style={{ left: springX, top: springY, width: SIZE, pointerEvents: 'none' }}
+          onClick={onClose}
           initial={{ opacity: 0, scale: 0.82 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.82 }}
