@@ -1,6 +1,6 @@
 import Konva from 'konva'
 import type { Filter } from 'konva/lib/Node'
-import { useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import {
   Arrow,
   Circle,
@@ -12,7 +12,6 @@ import {
   Image as ReImage,
   Text
 } from 'react-konva'
-import { Html } from 'react-konva-utils'
 
 export type GraphicsEnum =
   | 'rect'
@@ -54,12 +53,16 @@ export interface GraphicsProps {
 
 /** 形状渲染所需的交互回调（由父级 Annotation 注入） */
 export interface InteractiveProps {
-  /** 可点击/可拖拽（处于 editing 阶段时为 true） */
+  /** 可点击/可拖拽 */
   interactive?: boolean
-  /** 是否当前选中（仅作语义提示，Transformer 由上层依据 id 挂载） */
+  /** 是否当前选中 */
   isSelected?: boolean
+  /** 当前是否处于编辑态（由 Annotation 层控制） */
+  isEditing?: boolean
   /** 点击形状时回调 */
   onSelect?: (id: string) => void
+  /** 请求进入编辑态（双击文字标注时触发） */
+  onEditStart?: (id: string, text: string) => void
   /** 拖拽 / Transform 结束后回写新的几何信息 */
   onChange?: (next: GraphicsProps) => void
 }
@@ -405,18 +408,7 @@ const shapes: Record<GraphicsEnum, React.FC<GraphicsProps>> = {
  * - 内层渲染器只负责绘制，不再持有任何 `draggable` 状态。
  */
 export default function Graphics(props: GraphicsProps & InteractiveProps) {
-  const { interactive, onSelect, onChange, isSelected: _isSelected, ...graphicsProps } = props
-  const [editing, setEditing] = useState(false)
-  const autoEditedRef = useRef(false)
-
-  // 新建的空 text 标注：挂载后立即进入编辑态
-  useEffect(function () {
-    if (autoEditedRef.current) return
-    autoEditedRef.current = true
-    if (graphicsProps.type === 'text' && !graphicsProps.text) {
-      setEditing(true)
-    }
-  }, [])
+  const { interactive, onSelect, onChange, onEditStart, isSelected: _isSelected, ...graphicsProps } = props
 
   const Renderer = shapes[graphicsProps.type]
   if (!Renderer) return null
@@ -427,13 +419,9 @@ export default function Graphics(props: GraphicsProps & InteractiveProps) {
   }
 
   function handleDblClick() {
-    if (isText) setEditing(true)
-  }
-
-  function commitText(value: string) {
-    setEditing(false)
-    if (value === (graphicsProps.text ?? '')) return
-    onChange?.({ ...graphicsProps, text: value })
+    if (isText) {
+      onEditStart?.(graphicsProps.id, graphicsProps.text ?? '')
+    }
   }
 
   function handleDragEnd(event: Konva.KonvaEventObject<DragEvent>) {
@@ -467,14 +455,11 @@ export default function Graphics(props: GraphicsProps & InteractiveProps) {
     onChange?.(next)
   }
 
-  const editPoint = graphicsProps.points[0]
-  const fontSize = graphicsProps.fontSize ?? 16
-
   return (
     <Group
       id={graphicsProps.id}
       name="annotation"
-      draggable={interactive === true && !editing}
+      draggable={interactive === true && !props.isEditing}
       listening={interactive === true}
       onClick={handleSelect}
       onTap={handleSelect}
@@ -482,42 +467,8 @@ export default function Graphics(props: GraphicsProps & InteractiveProps) {
       onDblTap={handleDblClick}
       onDragEnd={handleDragEnd}
       onTransformEnd={handleTransformEnd}>
-      {!editing && <Renderer {...graphicsProps} />}
-      {editing && isText && editPoint && (
-        <Html groupProps={{ x: editPoint.x, y: editPoint.y }}>
-          <textarea
-            autoFocus
-            defaultValue={graphicsProps.text ?? ''}
-            onBlur={function (e) {
-              commitText(e.target.value)
-            }}
-            onKeyDown={function (e) {
-              if (e.key === 'Escape') {
-                e.preventDefault()
-                commitText(graphicsProps.text ?? '')
-              } else if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                commitText((e.target as HTMLTextAreaElement).value)
-              }
-            }}
-            style={{
-              margin: 0,
-              padding: '2px 4px',
-              minWidth: 80,
-              minHeight: fontSize * 1.4,
-              fontSize: fontSize,
-              lineHeight: 1.2,
-              fontFamily: 'sans-serif',
-              color: graphicsProps.color,
-              background: 'rgba(255, 255, 255, 0.9)',
-              border: '1px dashed #4080ff',
-              outline: 'none',
-              resize: 'both',
-              boxSizing: 'border-box'
-            }}
-          />
-        </Html>
-      )}
+      {/* 始终渲染 Renderer：textarea overlay 依赖 Konva Text 节点做定位，且 textarea 在 DOM 层覆盖不会造成视觉冲突 */}
+      <Renderer {...graphicsProps} />
     </Group>
   )
 }
