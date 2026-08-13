@@ -49,21 +49,6 @@ export async function loadImageFromPath(filePath: string): Promise<HTMLImageElem
   })
 }
 
-/** 将 data URL 解码为 HTMLImageElement（用于喂给 react-konva / canvas） */
-export function loadDataUrl(dataUrl: string): Promise<HTMLImageElement> {
-  return new Promise(function (resolve, reject) {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = function () {
-      resolve(img)
-    }
-    img.onerror = function (event) {
-      reject(event)
-    }
-    img.src = dataUrl
-  })
-}
-
 /* ─── Overlay 窗口管理（原 views/overlay/tauri.ts） ─── */
 
 interface MountOverlayOptions extends Partial<MarkerLayout>, SurfaceStyleInput {}

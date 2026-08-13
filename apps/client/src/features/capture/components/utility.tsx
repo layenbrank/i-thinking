@@ -38,7 +38,7 @@ interface UtilityProps {
   onUndo: () => void
   onRedo: () => void
   onPin: () => void
-  onPreserve: () => void
+  onSave: () => void
   onClose: () => void
   onRefresh: () => void
 }
@@ -99,7 +99,7 @@ export default function Utility(props: UtilityProps) {
     onRedo,
     onRefresh,
     onPin,
-    onPreserve,
+    onSave,
     onUpdateThickness,
     onUndo,
     onUpdateUtility
@@ -278,7 +278,7 @@ export default function Utility(props: UtilityProps) {
                 <motion.button
                   className={clsx(styles.button, styles.primary)}
                   whileTap={{ scale: 0.9 }}
-                  onClick={onPreserve}>
+                  onClick={onSave}>
                   <Icon
                     icon="mdi:content-save-outline"
                     width={18}
