@@ -153,16 +153,6 @@ interface MorphState {
   toPatchExtract: (patch: Partial<MorphState['extractModal']>) => void
   toExecuteExtract: () => Promise<void>
 
-  /** @deprecated use toOpenOperation('merge') */
-  toOpenMergeModal: () => void
-  toCloseMergeModal: () => void
-  /** @deprecated use toOpenOperation('split') */
-  toOpenSplitModal: () => void
-  toCloseSplitModal: () => void
-  /** @deprecated use toOpenOperation('convert') */
-  toOpenConvertModal: () => void
-  toCloseConvertModal: () => void
-
   toUndo: () => Promise<void>
   toRedo: () => Promise<void>
 }
@@ -724,12 +714,6 @@ const useMorphStore = create<MorphState>()(
           })
         },
 
-        toOpenMergeModal() {
-          getter().toOpenOperation('merge')
-        },
-        toCloseMergeModal() {
-          getter().toCloseOperation()
-        },
         toPatchMerge(patch) {
           setter((s) => {
             Object.assign(s.mergeModal, patch)
@@ -758,12 +742,6 @@ const useMorphStore = create<MorphState>()(
           }
         },
 
-        toOpenSplitModal() {
-          getter().toOpenOperation('split')
-        },
-        toCloseSplitModal() {
-          getter().toCloseOperation()
-        },
         toPatchSplit(patch) {
           setter((s) => {
             Object.assign(s.splitModal, patch)
@@ -833,12 +811,6 @@ const useMorphStore = create<MorphState>()(
           }
         },
 
-        toOpenConvertModal() {
-          getter().toOpenOperation('convert')
-        },
-        toCloseConvertModal() {
-          getter().toCloseOperation()
-        },
         toPatchConvert(patch) {
           setter((s) => {
             Object.assign(s.convertModal, patch)
