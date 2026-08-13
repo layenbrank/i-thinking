@@ -29,7 +29,7 @@ impl Bootstrap {
                 let db_state = tauri::async_runtime::block_on(async move {
                     let app_dir = handle_for_db
                         .path()
-                        .app_data_dir()
+                        .app_local_data_dir()
                         .map_err(|e| anyhow::anyhow!("获取应用数据目录失败: {}", e))?;
                     std::fs::create_dir_all(&app_dir)
                         .map_err(|e| anyhow::anyhow!("创建应用数据目录失败: {}", e))?;

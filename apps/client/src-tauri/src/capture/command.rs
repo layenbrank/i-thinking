@@ -35,7 +35,7 @@ pub async fn capture_screenshot(app: AppHandle) -> Result<ScreenshotResult, Stri
     let result = async {
         let data_dir = app
             .path()
-            .app_data_dir()
+            .app_local_data_dir()
             .map_err(|e| format!("[capture:screenshot] 获取数据目录失败: {e}"))?
             .join("screenshots");
         std::fs::create_dir_all(&data_dir)
@@ -75,10 +75,6 @@ pub async fn capture_screenshot(app: AppHandle) -> Result<ScreenshotResult, Stri
 /// 进入 overlay 的 screenshot 模式（单窗口，不再单独创建 screenshot WebView）
 #[tauri::command(rename = "capture:open")]
 pub async fn capture_open(app: AppHandle) -> Result<(), String> {
-    // Tear down legacy screenshot window if any previous session created one.
-    if let Some(window) = app.get_webview_window("screenshot") {
-        let _ = window.close();
-    }
     overlay_ensure(app.clone()).await?;
     overlay_update_mode(app, "screenshot".into()).await
 }
@@ -86,8 +82,5 @@ pub async fn capture_open(app: AppHandle) -> Result<(), String> {
 /// 退出 screenshot：回到 idle（由前端决定是否 hide 空层）
 #[tauri::command(rename = "capture:close")]
 pub async fn capture_close(app: AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("screenshot") {
-        let _ = window.close();
-    }
     overlay_update_mode(app, "idle".into()).await
 }
