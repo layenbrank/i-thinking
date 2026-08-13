@@ -60,18 +60,21 @@ function matchesLocalChecksums(): boolean {
   return !expectedPdfium || hashSha256(PDFIUM_DEST) === expectedPdfium
 }
 
-async function hasMatchingSidecar(): Promise<boolean> {
-  if (!hasFilledFile(COREX_DEST)) return false
-  try {
+function matchesRemoteChecksums(): Promise<boolean> {
+  return (async () => {
     const sumsText = readTextFile(await ensureReleaseSums())
     const expectedServe = parseSha256FromChecksum(sumsText, COREX_SERVE_NAME, 'sums')
     if (!expectedServe || hashSha256(COREX_DEST) !== expectedServe) return false
     if (!hasFilledFile(PDFIUM_DEST)) return true
     const expectedPdfium = parseSha256FromChecksum(sumsText, PDFIUM_BASENAME, 'sums')
     return !expectedPdfium || hashSha256(PDFIUM_DEST) === expectedPdfium
-  } catch {
-    return matchesLocalChecksums()
-  }
+  })()
+}
+
+function hasMatchingSidecar(): boolean | Promise<boolean> {
+  if (!hasFilledFile(COREX_DEST)) return false
+  if (hasFilledFile(SHA256SUMS_PATH)) return matchesLocalChecksums()
+  return matchesRemoteChecksums()
 }
 
 function writeSidecarChecksums(): void {
