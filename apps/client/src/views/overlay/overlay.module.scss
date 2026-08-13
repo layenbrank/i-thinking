@@ -14,6 +14,7 @@
   position: relative;
   width: 100%;
   height: 100%;
+  pointer-events: auto;
 }
 
 // 仅负责浮层绝对定位；壳/surface 视觉复用 magnetic-tile.module（对齐 Section）
