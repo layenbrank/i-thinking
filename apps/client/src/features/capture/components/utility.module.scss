@@ -81,13 +81,42 @@
   }
 }
 
+// ─── ColorPicker 弹层内部：预设色板在上、取色面板在下（仅方向改为纵向） ───
+// 宽度还原为 antd 原生面板宽度（colorPickerWidth: 234），避免比例失真
+.panelStack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 234px;
+}
+
+// glide 根容器：必须给出宽高（组件内部以 CSS 变量换算滚动方向）
+// 高度容纳 18px 色块 + 选中态环形指示（3.5px 外圈）
+.presetRow {
+  width: 100%;
+  height: 28px;
+}
+
+// glide 内层：单行不换行，色块禁止压缩
+.presetTrack {
+  gap: 8px;
+  padding: 0 2px;
+  flex-wrap: nowrap;
+
+  > * {
+    flex-shrink: 0;
+  }
+}
+
 // ─── 颜色按钮 ──────────────────────────────────────────
 .color {
   width: 18px;
   height: 18px;
   border-radius: 50%;
   cursor: pointer;
-  transition: box-shadow 0.15s;
+  transition:
+    box-shadow 0.15s,
+    transform 0.15s;
   box-shadow: 0 0 0 2px transparent;
 
   &:hover {
@@ -96,6 +125,62 @@
 
   &.active {
     box-shadow:
+      0 0 0 2px #4080ff,
+      0 0 0 3.5px rgba(64, 128, 255, 0.3);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px #4080ff,
+      0 0 0 3.5px rgba(64, 128, 255, 0.3);
+  }
+}
+
+// ─── 衍生色阶：工具栏属性行内紧凑单行平铺 ────────────
+// 9 档色块（浅 → 主 → 深）× 14px + 4px 间隙，与工具栏其余控件同高
+.shades {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.shade {
+  width: 14px;
+  height: 14px;
+  border: none;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  // 淡内描边：浅色阶在白底工具栏上保持可见（深色阶几乎无感）
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 0 0 2px transparent;
+  transition:
+    box-shadow 0.15s,
+    transform 0.15s;
+
+  &:hover {
+    transform: scale(1.15);
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+      0 0 0 2px rgba(0, 0, 0, 0.25);
+  }
+
+  &.active {
+    transform: scale(1.15);
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+      0 0 0 2px #4080ff,
+      0 0 0 3.5px rgba(64, 128, 255, 0.3);
+  }
+
+  &:focus-visible {
+    outline: none;
+    transform: scale(1.15);
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.08),
       0 0 0 2px #4080ff,
       0 0 0 3.5px rgba(64, 128, 255, 0.3);
   }
