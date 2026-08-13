@@ -4,7 +4,7 @@ use serde_json::json;
 use crate::utils::ipc;
 use crate::utils::sidecar::{self, SidecarState, SIDECAR_SHUTDOWN_TIMEOUT};
 
-const ALLOWED_MODULES: &[&str] = &["morph", "screenshot", "scan", "engine"];
+const ALLOWED_MODULES: &[&str] = &["morph", "capture", "scan", "engine"];
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Memory {

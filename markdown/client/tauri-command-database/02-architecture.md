@@ -67,4 +67,4 @@ pub async fn reminder_write(
 
 当前 `thinking_command` 导出：`asset`、`calendar`、`countdown`、`magnetic_tile`、`mirror`、`reminder`。
 
-另有 app 本地 command（如 `overlay:*`、`screenshot:*`），不在本 crate，本文不展开。
+另有 app 本地 command（如 `overlay:*`、`capture:*`），不在本 crate，本文不展开。

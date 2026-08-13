@@ -7,9 +7,9 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import type { ColorPickerProps } from 'antd'
 
-import { type GraphicsEnum } from '@/features/screenshot/components/graphics'
+import { type GraphicsEnum } from '@/features/capture/components/graphics'
 
-import styles from '@/features/screenshot/components/utility.module.scss'
+import styles from '@/features/capture/components/utility.module.scss'
 
 type Presets = Required<ColorPickerProps>['presets'][number]
 

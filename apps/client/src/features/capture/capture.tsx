@@ -4,25 +4,23 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { v4 as UUID } from 'uuid'
 
-import { Annotation, type AnnotationHandle } from '@/features/screenshot/components/annotation'
-import { type GraphicsEnum, type GraphicsProps } from '@/features/screenshot/components/graphics'
-import Magnifier from '@/features/screenshot/components/magnifier'
-import Utility from '@/features/screenshot/components/utility'
+import { Annotation, type AnnotationHandle } from '@/features/capture/components/annotation'
+import { type GraphicsEnum, type GraphicsProps } from '@/features/capture/components/graphics'
+import Magnifier from '@/features/capture/components/magnifier'
+import Utility from '@/features/capture/components/utility'
 import {
-  captureScreen,
   isTauri,
   loadImageFromPath,
   readImageNaturalSize,
   registerAsset,
   saveTexturePng,
+  takeScreenshot,
   writeImageToClipboard
-} from '@/features/screenshot/tauri'
+} from '@/features/capture/tauri'
 
-import styles from '@/features/screenshot/screenshot.module.scss'
+import styles from '@/features/capture/capture.module.scss'
 
-import URLBackground from '@/assets/screenshot-background.jpg'
-
-export interface ScreenshotProps {
+export interface CaptureProps {
   /** Rendered inside the shared overlay window. */
   embedded?: boolean
   onExit?: () => void
@@ -56,7 +54,7 @@ const POINT_SHAPES = new Set<GraphicsEnum>(['text', 'index'])
 /** 多点追加型标注（拖拽路径上不断 append 点）：画笔、荧光笔 */
 const MULTI_POINT_GRAPHICS = new Set<GraphicsEnum>(['freehand', 'highlight'])
 
-export default function Screenshot(props: ScreenshotProps = {}) {
+export default function Capture(props: CaptureProps = {}) {
   const { onExit, onTexture } = props
   const [phase, onUpdatePhase] = useState<Phase>('selecting')
   const [graphics, onUpdateGraphics] = useState<GraphicsEnum | null>(null)
@@ -69,6 +67,11 @@ export default function Screenshot(props: ScreenshotProps = {}) {
   const [fontSize, onUpdateFontSize] = useState(18)
   const [selectedID, onUpdateSelectedID] = useState<string | null>(null)
   const [sourceImage, onUpdateSourceImage] = useState<HTMLImageElement | null>(null)
+  /** 截图加载三态：loading 黑罩、ready 可交互、error 错误卡片 */
+  const [captureStatus, onUpdateCaptureStatus] = useState<'loading' | 'ready' | 'error'>(
+    'loading'
+  )
+  const [captureError, onUpdateCaptureError] = useState<string | null>(null)
   /** 可撤销/重做状态（从 historyRef 同步，但需要反应式驱动 UI） */
   const [canUndo, onUpdateCanUndo] = useState(false)
   const [canRedo, onUpdateCanRedo] = useState(false)
@@ -163,31 +166,27 @@ export default function Screenshot(props: ScreenshotProps = {}) {
     handleEscape()
   })
 
-  /** 加载滤镜/放大镜共用的底图：Tauri 环境下用主显示器实时截图，浏览器开发回退到占位图 */
+  /** 加载滤镜/放大镜共用的底图：仅支持 Tauri 桌面运行时，失败时进入 error 态供重试 */
+  async function loadCapture() {
+    onUpdateCaptureStatus('loading')
+    onUpdateCaptureError(null)
+    try {
+      if (!isTauri()) {
+        throw new Error('截图需要 Tauri 桌面运行时')
+      }
+      const result = await takeScreenshot()
+      const img = await loadImageFromPath(result.path)
+      onUpdateSourceImage(img)
+      onUpdateCaptureStatus('ready')
+    } catch (err) {
+      console.error('[capture] 真实截图失败', err)
+      onUpdateCaptureError(String(err))
+      onUpdateCaptureStatus('error')
+    }
+  }
+
   useEffect(function () {
-    let cancelled = false
-    async function load() {
-      try {
-        if (isTauri()) {
-          const result = await captureScreen()
-          const img = await loadImageFromPath(result.path)
-          if (!cancelled) onUpdateSourceImage(img)
-          return
-        }
-      } catch (err) {
-        console.warn('[screenshot] Tauri capture 失败，回退到占位图', err)
-      }
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = function () {
-        if (!cancelled) onUpdateSourceImage(img)
-      }
-      img.src = URLBackground
-    }
-    void load()
-    return function () {
-      cancelled = true
-    }
+    void loadCapture()
   }, [])
 
   /** 选择某个工具后，自动进入 annotating 阶段；shape 为 null 时回到 editing */
@@ -450,7 +449,7 @@ export default function Screenshot(props: ScreenshotProps = {}) {
     try {
       await action(dataUrl)
     } catch (err) {
-      console.error('[screenshot] 导出失败', err)
+      console.error('[capture] 导出失败', err)
     }
   }
 
@@ -463,7 +462,7 @@ export default function Screenshot(props: ScreenshotProps = {}) {
 
   function handlePreserve() {
     // 截图已在 Rust 端保存到 appDataDir/screenshots/，无需额外保存
-    console.info('[screenshot] 截图已保存到磁盘')
+    console.info('[capture] 截图已保存到磁盘')
     onExit?.()
   }
 
@@ -481,7 +480,7 @@ export default function Screenshot(props: ScreenshotProps = {}) {
       if (filePath) {
         const fileName = `${id}.png`
         await registerAsset(filePath, fileName, 'image/png').catch(function (err) {
-          console.error('[screenshot] 资源注册失败', err)
+          console.error('[capture] 资源注册失败', err)
         })
         onTexture?.({ src: filePath, w, h })
       }
@@ -500,104 +499,133 @@ export default function Screenshot(props: ScreenshotProps = {}) {
   )
 
   return (
-    <div className={clsx(styles.screenshot)}>
-      <Annotation
-        ref={annotationRef}
-        onMove={handleMove}
-        clipRect={selection}
-        onPress={handlePress}
-        selectedID={selectedID}
-        annotations={annotations}
-        sourceImage={sourceImage}
-        onRelease={handleRelease}
-        onSelect={onUpdateSelectedID}
-        interactive={phase === 'editing'}
-        onChange={handleAnnotationChange}
-      />
-      {/* 选区遮罩：选区外区域半透明黑色；无选区时整屏黑 */}
-      {(() => {
-        if (!selection || selection.w <= 0 || selection.h <= 0) {
-          return phase === 'selecting' ? (
-            <AnimatePresence>
-              <motion.div
-                key="full-mask"
-                exit={{ opacity: 0 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2 }}
-                className={clsx(styles.fullscreen, styles.mask)}
-              />
-            </AnimatePresence>
-          ) : null
-        }
-        const { x, y, w, h } = selection
-        return (
-          <>
-            {/* 上 / 下 / 左 / 右 四块构成选区外遮罩 */}
-            <div
-              className={styles.selectionMask}
-              style={{ left: 0, top: 0, right: 0, height: y }}
-            />
-            <div
-              className={styles.selectionMask}
-              style={{ left: 0, top: y + h, right: 0, bottom: 0 }}
-            />
-            <div
-              className={styles.selectionMask}
-              style={{ left: 0, top: y, width: x, height: h }}
-            />
-            <div
-              className={styles.selectionMask}
-              style={{ left: x + w, top: y, right: 0, height: h }}
-            />
-            {/* 选区边框 */}
-            <div
-              className={styles.selectionFrame}
-              style={{ left: x, top: y, width: w, height: h }}
-            />
-            {/* 选区尺寸标签：紧贴选区上沿外侧；上方不够时挪到内部 */}
-            <div
-              className={styles.selectionSize}
-              style={{
-                left: x,
-                top: y >= 24 ? y - 22 : y + 4
-              }}>
-              {Math.round(w)} × {Math.round(h)}
+    <div className={clsx(styles.capture)}>
+      {captureStatus === 'error' ? (
+        <div className={styles.errorPanel}>
+          <div className={styles.errorCard}>
+            <span className={styles.errorBadge}>CAPTURE FAILED</span>
+            <p className={styles.errorMessage}>{captureError ?? '截图加载失败'}</p>
+            <div className={styles.errorActions}>
+              <button
+                type="button"
+                className={clsx(styles.errorButton, styles.errorRetry)}
+                onClick={function () {
+                  void loadCapture()
+                }}>
+                重试
+              </button>
+              <button
+                type="button"
+                className={clsx(styles.errorButton, styles.errorExit)}
+                onClick={function () {
+                  onExit?.()
+                }}>
+                退出
+              </button>
             </div>
-          </>
-        )
-      })()}
+          </div>
+        </div>
+      ) : (
+        <>
+          <Annotation
+            ref={annotationRef}
+            onMove={handleMove}
+            clipRect={selection}
+            onPress={handlePress}
+            selectedID={selectedID}
+            annotations={annotations}
+            sourceImage={sourceImage}
+            onRelease={handleRelease}
+            onSelect={onUpdateSelectedID}
+            interactive={phase === 'editing'}
+            onChange={handleAnnotationChange}
+          />
+          {/* 选区遮罩：选区外区域半透明黑色；无选区时整屏黑 */}
+          {(() => {
+            if (!selection || selection.w <= 0 || selection.h <= 0) {
+              return phase === 'selecting' ? (
+                <AnimatePresence>
+                  <motion.div
+                    key="full-mask"
+                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className={clsx(styles.fullscreen, styles.mask)}
+                  />
+                </AnimatePresence>
+              ) : null
+            }
+            const { x, y, w, h } = selection
+            return (
+              <>
+                {/* 上 / 下 / 左 / 右 四块构成选区外遮罩 */}
+                <div
+                  className={styles.selectionMask}
+                  style={{ left: 0, top: 0, right: 0, height: y }}
+                />
+                <div
+                  className={styles.selectionMask}
+                  style={{ left: 0, top: y + h, right: 0, bottom: 0 }}
+                />
+                <div
+                  className={styles.selectionMask}
+                  style={{ left: 0, top: y, width: x, height: h }}
+                />
+                <div
+                  className={styles.selectionMask}
+                  style={{ left: x + w, top: y, right: 0, height: h }}
+                />
+                {/* 选区边框 */}
+                <div
+                  className={styles.selectionFrame}
+                  style={{ left: x, top: y, width: w, height: h }}
+                />
+                {/* 选区尺寸标签：紧贴选区上沿外侧；上方不够时挪到内部 */}
+                <div
+                  className={styles.selectionSize}
+                  style={{
+                    left: x,
+                    top: y >= 24 ? y - 22 : y + 4
+                  }}>
+                  {Math.round(w)} × {Math.round(h)}
+                </div>
+              </>
+            )
+          })()}
 
-      {/* 选区阶段的像素级放大镜 */}
-      <Magnifier
-        sourceImage={sourceImage}
-        visible={phase === 'selecting'}
-      />
+          {/* 选区阶段的像素级放大镜 */}
+          <Magnifier
+            sourceImage={sourceImage}
+            visible={phase === 'selecting'}
+          />
 
-      <Utility
-        color={color}
-        filled={filled}
-        canRedo={canRedo}
-        canUndo={canUndo}
-        active={graphics}
-        opacity={opacity}
-        onPin={handlePin}
-        fontSize={fontSize}
-        onCopy={handleCopy}
-        onRedo={handleRedo}
-        onUndo={handleUndo}
-        thickness={thickness}
-        onClose={handleClose}
-        onRefresh={handleRefresh}
-        onPreserve={handlePreserve}
-        onUpdateColor={handleUpdateColor}
-        onUpdateUtility={onUpdateGraphics}
-        onUpdateFilled={handleUpdateFilled}
-        onUpdateOpacity={handleUpdateOpacity}
-        onUpdateFontSize={handleUpdateFontSize}
-        onUpdateThickness={handleUpdateThickness}
-        selection={phase === 'selecting' ? null : selection}
-      />
+          <Utility
+            color={color}
+            filled={filled}
+            canRedo={canRedo}
+            canUndo={canUndo}
+            active={graphics}
+            opacity={opacity}
+            onPin={handlePin}
+            fontSize={fontSize}
+            onCopy={handleCopy}
+            onRedo={handleRedo}
+            onUndo={handleUndo}
+            thickness={thickness}
+            onClose={handleClose}
+            onRefresh={handleRefresh}
+            onPreserve={handlePreserve}
+            onUpdateColor={handleUpdateColor}
+            onUpdateUtility={onUpdateGraphics}
+            onUpdateFilled={handleUpdateFilled}
+            onUpdateOpacity={handleUpdateOpacity}
+            onUpdateFontSize={handleUpdateFontSize}
+            onUpdateThickness={handleUpdateThickness}
+            selection={phase === 'selecting' ? null : selection}
+          />
+        </>
+      )}
     </div>
   )
 }

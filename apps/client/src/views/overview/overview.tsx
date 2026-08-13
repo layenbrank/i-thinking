@@ -113,7 +113,7 @@ export default function Overview() {
       try {
         if (await isRegistered(SCREENSHOT_SHORTCUT)) await unregister(SCREENSHOT_SHORTCUT)
         await register(SCREENSHOT_SHORTCUT, function (event) {
-          if (event.state === 'Pressed') void invoke('screenshot:open')
+          if (event.state === 'Pressed') void invoke('capture:open')
         })
         if (cancelled) await unregister(SCREENSHOT_SHORTCUT)
         else {

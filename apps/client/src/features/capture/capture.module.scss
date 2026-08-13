@@ -1,0 +1,146 @@
+.capture {
+  width: 100%;
+  height: 100%;
+}
+
+.fullscreen {
+  width: 100%;
+  height: 100%;
+
+  &.mask {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+}
+
+/* 选区遮罩：4 块半透明黑色环绕选区，中间留洞 */
+.selectionMask {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 90;
+}
+
+/* 选区边框（蓝色描边 + 角点辅助识别） */
+.selectionFrame {
+  position: absolute;
+  border: 1.5px solid #4080ff;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.6),
+    0 2px 12px rgba(64, 128, 255, 0.35);
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* 选区尺寸标签 */
+.selectionSize {
+  position: absolute;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.72);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 101;
+  white-space: nowrap;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+/* 错误态：居中错误卡片（截图链路失败可见化） */
+.errorPanel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 200;
+}
+
+.errorCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 340px;
+  max-width: min(480px, calc(100vw - 64px));
+  padding: 24px 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(18, 20, 26, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(64, 128, 255, 0.12),
+    0 18px 48px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
+  color: #f2f4f8;
+}
+
+.errorBadge {
+  padding: 2px 7px;
+  border: 1px solid rgba(64, 128, 255, 0.45);
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  color: #8ab4ff;
+}
+
+.errorMessage {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(242, 244, 248, 0.78);
+  word-break: break-all;
+}
+
+.errorActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.errorButton {
+  appearance: none;
+  padding: 7px 22px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.errorRetry {
+  border: 1px solid transparent;
+  background: #4080ff;
+  color: #fff;
+
+  &:hover {
+    background: #5690ff;
+  }
+
+  &:active {
+    background: #336fe0;
+  }
+}
+
+.errorExit {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: rgba(242, 244, 248, 0.86);
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.06);
+  }
+}

@@ -4,7 +4,7 @@ import {
   MagneticTile,
   type MarkerProps
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
-import styles from '@/features/magnetic-tiles/screenshot/marker.module.scss'
+import styles from '@/features/magnetic-tiles/capture/marker.module.scss'
 
 type Props = Omit<MarkerProps, 'children'>
 
@@ -18,7 +18,7 @@ export default function Marker(props: Props) {
         props.direction,
         props.shape
       ])}>
-      screenshot
+      capture
     </MagneticTile.Marker>
   )
 }

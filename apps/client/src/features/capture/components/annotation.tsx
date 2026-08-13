@@ -2,13 +2,10 @@ import { clsx } from 'clsx'
 import type Konva from 'konva'
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { Layer, Image as ReImage, Stage, Transformer, type KonvaNodeEvents } from 'react-konva'
-import useImage from 'use-image'
 
-import Graphics, { SpotlightMask, type GraphicsProps } from '@/features/screenshot/components/graphics'
+import Graphics, { SpotlightMask, type GraphicsProps } from '@/features/capture/components/graphics'
 
-import styles from '@/features/screenshot/components/annotation.module.scss'
-
-import URLBackground from '@/assets/screenshot-background.jpg'
+import styles from '@/features/capture/components/annotation.module.scss'
 
 interface AnnotationProps {
   annotations: GraphicsProps[]
@@ -50,9 +47,8 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       onRelease
     } = props
 
-    const [fallbackBackground] = useImage(URLBackground)
-    // sourceImage 来自 Tauri 截图；未提供时回退到占位图，便于浏览器开发
-    const background = sourceImage ?? fallbackBackground ?? null
+    // 底图来自 Tauri 真实截图；加载中为 null，由上层黑罩/错误卡片接管
+    const background = sourceImage
     const stageRef = useRef<Konva.Stage>(null)
     const transformerRef = useRef<Konva.Transformer>(null)
 

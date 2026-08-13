@@ -74,8 +74,8 @@ pub fn spawn_worker<R: Runtime>(app: AppHandle<R>) {
                 && cursor_y >= win_top
                 && cursor_y < win_bottom;
 
-            let should_ignore = if state.is_capture_mode() {
-                // Capture / annotate mode must receive all pointer events.
+            let should_ignore = if state.is_screenshot_mode() {
+                // Screenshot / annotate mode must receive all pointer events.
                 false
             } else if !inside_window {
                 // Outside window — value irrelevant, but pick a safe default.

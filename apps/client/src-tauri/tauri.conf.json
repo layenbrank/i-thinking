@@ -6,6 +6,8 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
+          "$APPDATA/**",
+          "$APPDATA/screenshots/**",
           "*",
           "https://*",
           "http://*",

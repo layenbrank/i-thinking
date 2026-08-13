@@ -1,13 +1,11 @@
-import { emit } from '@tauri-apps/api/event'
 import {
-  getCurrentWebviewWindow,
-  WebviewWindow
+  getCurrentWebviewWindow
 } from '@tauri-apps/api/webviewWindow'
 import { register, unregister } from '@tauri-apps/plugin-global-shortcut'
 
 import type { Plugin } from '@/components/provider/plugin.tsx'
 
-import { dispatchKeyCode, registerKeyCodeHandler } from '@/keycodes/dispatcher'
+import { dispatchKeyCode } from '@/keycodes/dispatcher'
 import {
   loadKeyCodeBindings,
   subscribeKeyCodeBindingsChanged
@@ -29,25 +27,7 @@ const KeyCodePlugin: Plugin = {
 
     let registeredAccelerators: string[] = []
     let unsubscribeStoreChange: (() => void) | null = null
-    const disposers: Array<() => void> = []
     let beforeUnloadHandler: (() => void) | null = null
-
-    function addDefaultHandlers() {
-      // Escape 的默认行为：如果截图窗口存在，则通知其 cleanup。
-      // 其它页面/组件可以用更高 priority 的 handler 覆盖该行为。
-      disposers.push(
-        registerKeyCodeHandler(
-          'escape',
-          async () => {
-            const existing = await WebviewWindow.getByLabel('screenshot')
-            if (!existing) return false
-            await emit('screenshot', 'cleanup')
-            return true
-          },
-          { priority: -100 }
-        )
-      )
-    }
 
     async function unregisterAllRegistered() {
       const toRemove = [...new Set(registeredAccelerators)]
@@ -102,7 +82,7 @@ const KeyCodePlugin: Plugin = {
     }
 
     async function bootstrap() {
-      addDefaultHandlers()
+      // 旧版独立 'screenshot' 窗口的 escape cleanup 已移除：截图现走共享 overlay 窗口（capture:* 命令）
       const bindings = await loadKeyCodeBindings()
       await applyBindings(bindings)
 
@@ -127,9 +107,6 @@ const KeyCodePlugin: Plugin = {
           window.removeEventListener('beforeunload', beforeUnloadHandler)
           beforeUnloadHandler = null
         }
-
-        for (const dispose of disposers) dispose()
-        disposers.length = 0
 
         await unregisterAllRegistered()
       } finally {

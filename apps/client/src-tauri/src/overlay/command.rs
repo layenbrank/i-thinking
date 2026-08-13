@@ -14,7 +14,7 @@ pub const OVERLAY_URL: &str = "/overlay";
 #[serde(rename_all = "lowercase")]
 pub enum OverlayMode {
     Idle,
-    Capture,
+    Screenshot,
 }
 
 fn apply_primary_monitor_bounds(app: &AppHandle, label: &str) -> Result<(), String> {
@@ -88,7 +88,7 @@ pub async fn overlay_ensure(app: AppHandle) -> Result<(), String> {
 #[tauri::command(rename = "overlay:hide")]
 pub async fn overlay_hide(app: AppHandle) -> Result<(), String> {
     if let Some(through) = app.try_state::<ThroughState>() {
-        through.set_capture_mode(false);
+        through.set_screenshot_mode(false);
     }
     if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
         let _ = window.hide();
@@ -97,20 +97,20 @@ pub async fn overlay_hide(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// Switch overlay interaction mode (`idle` | `capture`).
+/// Switch overlay interaction mode (`idle` | `screenshot`).
 #[tauri::command(rename = "overlay:update-mode")]
 pub async fn overlay_update_mode(app: AppHandle, mode: String) -> Result<(), String> {
     let parsed = match mode.as_str() {
         "idle" => OverlayMode::Idle,
-        "capture" => OverlayMode::Capture,
+        "screenshot" => OverlayMode::Screenshot,
         other => return Err(format!("unknown overlay mode: {other}")),
     };
 
     if let Some(through) = app.try_state::<ThroughState>() {
-        through.set_capture_mode(matches!(parsed, OverlayMode::Capture));
+        through.set_screenshot_mode(matches!(parsed, OverlayMode::Screenshot));
     }
 
-    if matches!(parsed, OverlayMode::Capture) {
+    if matches!(parsed, OverlayMode::Screenshot) {
         overlay_ensure(app.clone()).await?;
         if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
             let _ = window.set_focus();

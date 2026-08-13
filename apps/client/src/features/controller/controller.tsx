@@ -252,6 +252,8 @@ const Controller = {
           className={clsx([styles.controller, styles['magnetic-tile']])}>
           {magneticTiles?.map(function (value, index) {
             const Component = Reflection[value.component]
+            // 旧库存量行的 component 可能不在白名单中，兜底跳过避免渲染崩溃
+            if (!Component) return null
 
             return (
               <MagneticTile.Enter

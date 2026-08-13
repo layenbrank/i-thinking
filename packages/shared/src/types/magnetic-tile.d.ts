@@ -63,7 +63,7 @@ declare namespace MagneticTile {
     | 'developer'
     | 'signboard'
     | 'gallery' // 图库
-    | 'screenshot' // 图库
+    | 'capture' // 截屏
     | 'example'
 
   interface Backdrop {
