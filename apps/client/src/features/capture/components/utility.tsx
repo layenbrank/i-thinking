@@ -2,7 +2,7 @@ import { Icon } from '@iconify/react/offline'
 import { ColorPicker, Divider, Slider, theme, Tooltip } from 'antd'
 import { clsx } from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { Glide } from '@/components/glide/glide'
 import {
@@ -37,6 +37,7 @@ interface UtilityProps {
   onUpdateFontSize: (fontSize: number) => void
   onUndo: () => void
   onRedo: () => void
+  onCopy: () => void
   onPin: () => void
   onSave: () => void
   onClose: () => void
@@ -82,6 +83,7 @@ export default function Utility(props: UtilityProps) {
     onUpdateOpacity,
     onRedo,
     onRefresh,
+    onCopy,
     onPin,
     onSave,
     onUpdateThickness,
@@ -91,6 +93,9 @@ export default function Utility(props: UtilityProps) {
 
   const { token } = theme.useToken()
 
+  // 主色：仅在点击预设色板时更新，衍生色 / Picker 自定义不影响
+  const [mainColor, setMainColor] = useState(color)
+
   // 属性面板开合：仅在选中工具后展开（不再独立使用 visible state）
   const visible = active !== null
   const showFilled = active !== null && active !== undefined && FILLABLE_GRAPHICS.has(active)
@@ -98,22 +103,35 @@ export default function Utility(props: UtilityProps) {
   const showOpacity = active !== null && active !== undefined && !NON_OPACITY_GRAPHICS.has(active)
   const [pickerOpen, setPickerOpen] = useState(false)
 
-  // 平铺预设色相：弹层色板数据源，同时用于判断当前色是否为「自定义颜色」
+  // 平铺预设色相：弹层色板数据源（仅依赖主题色，固定预设）
   const presetHues = useMemo(
     function () {
       return parsePresetHues(token.colorPrimary)
     },
     [token.colorPrimary]
   )
-  const isCustomColor = !presetHues.some((c) => c === color.toUpperCase())
-
-  // 衍生色阶：随主色即时重算，展示在属性行原本颜色展示的位置
+  // 衍生色阶：随 mainColor 重算（选衍生色 / 自定义时不会整段变化）
   const derivedShades = useMemo(
     function () {
-      return generateDerivedShades(color)
+      return generateDerivedShades(mainColor)
     },
-    [color]
+    [mainColor]
   )
+
+  // 外部重置 color（如切换选中对象）时，若新 color 落在预设主色中则同步 mainColor
+  useEffect(
+    function () {
+      if (presetHues.some((c) => c.toUpperCase() === color.toUpperCase())) {
+        setMainColor(color)
+      }
+    },
+    [color, presetHues]
+  )
+
+  // 自定义颜色判定：color 不在预设主色也不在衍生色阶中即为自定义
+  const isCustomColor =
+    !presetHues.some((c) => c.toUpperCase() === color.toUpperCase()) &&
+    !derivedShades.some((c) => c.toUpperCase() === color.toUpperCase())
 
   // 工具栏跟随选区下沿定位：位置嵌下区域时翻到上沿；右贴边时水平内收
   const containerRef = useRef<HTMLDivElement>(null)
@@ -250,6 +268,18 @@ export default function Utility(props: UtilityProps) {
                   />
                 </motion.button>
               </Tooltip>
+              <Tooltip title="复制">
+                <motion.button
+                  className={clsx(styles.button, styles.primary)}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={onCopy}>
+                  <Icon
+                    icon="mdi:content-copy"
+                    width={18}
+                    height={18}
+                  />
+                </motion.button>
+              </Tooltip>
               <Tooltip title="贴图">
                 <motion.button
                   className={styles.button}
@@ -319,9 +349,13 @@ export default function Utility(props: UtilityProps) {
                                 key={value}
                                 title={value}
                                 className={clsx(styles.color, {
-                                  [styles.active]: color.toUpperCase() === value
+                                  [styles.active]:
+                                    mainColor.toUpperCase() === value.toUpperCase()
                                 })}
-                                onClick={() => onUpdateColor(value)}
+                                onClick={() => {
+                                  setMainColor(value)
+                                  onUpdateColor(value)
+                                }}
                                 style={{
                                   background: value
                                 }}
@@ -369,7 +403,7 @@ export default function Utility(props: UtilityProps) {
                         key={value}
                         title={value}
                         className={clsx(styles.shade, {
-                          [styles.active]: color.toUpperCase() === value
+                          [styles.active]: color.toUpperCase() === value.toUpperCase()
                         })}
                         onClick={() => onUpdateColor(value)}
                         style={{

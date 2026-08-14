@@ -10,7 +10,7 @@ import Magnifier from '@/features/capture/components/magnifier'
 import { motion, useReducedMotion } from 'motion/react'
 import Utility from '@/features/capture/components/utility'
 import { isTauri, loadImageFromPath, takeScreenshot } from '@/features/capture/tauri'
-import { pinTexture, saveToUserPath } from '@/features/capture/clipboard'
+import { copyImage, pinTexture, saveToUserPath } from '@/features/capture/clipboard'
 
 import styles from '@/features/capture/capture.module.scss'
 
@@ -550,6 +550,14 @@ export default function Capture(props: CaptureProps = {}) {
     }
   }
 
+  /** 「复制」：将裁剪+标注后的 PNG 写入系统剪贴板 */
+  function handleCopy() {
+    void withStagePng(async function (dataUrl) {
+      await copyImage(dataUrl)
+      onExit?.()
+    })
+  }
+
   function handlePin() {
     void withStagePng(async function (dataUrl) {
       const result = await pinTexture(dataUrl)
@@ -638,6 +646,7 @@ export default function Capture(props: CaptureProps = {}) {
                 selection={selection}
                 phase={phase}
                 onSelectionChange={onUpdateSelection}
+                graphicsActive={graphics !== null}
               />
             </motion.div>
 
@@ -655,6 +664,7 @@ export default function Capture(props: CaptureProps = {}) {
               canUndo={canUndo}
               active={graphics}
               opacity={opacity}
+              onCopy={handleCopy}
               onPin={handlePin}
               fontSize={fontSize}
               onRedo={handleRedo}
