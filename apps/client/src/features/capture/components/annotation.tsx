@@ -4,7 +4,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { Layer, Image as ReImage, Stage, Transformer, type KonvaNodeEvents } from 'react-konva'
 
 import Graphics, { SpotlightMask, type GraphicsProps } from '@/features/capture/components/graphics'
-import SelectionOverlay from '@/features/capture/components/selection-overlay'
+import { SelectionOverlay, type SelectionOverlayHandle } from '@/features/capture/components/selection-overlay'
 
 import styles from '@/features/capture/components/annotation.module.scss'
 
@@ -27,6 +27,7 @@ interface AnnotationProps {
   selection: { x: number; y: number; w: number; h: number } | null
   phase: 'selecting' | 'annotating' | 'editing'
   onSelectionChange: (selection: { x: number; y: number; w: number; h: number }) => void
+  graphicsActive?: boolean
   onClose: () => void
 }
 
@@ -61,6 +62,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
     const background = sourceImage
     const stageRef = useRef<Konva.Stage>(null)
     const transformerRef = useRef<Konva.Transformer>(null)
+    const selectionOverlayRef = useRef<SelectionOverlayHandle>(null)
     const [editingID, setEditingID] = useState<string | null>(null)
     const [originalText, setOriginalText] = useState('')
     const [editValue, setEditValue] = useState('')
@@ -103,7 +105,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
               width?: number
               height?: number
             } = {
-              pixelRatio: window.devicePixelRatio || 1
+              pixelRatio: Math.max(2, window.devicePixelRatio || 1)
             }
             if (clipRect && clipRect.w > 0 && clipRect.h > 0) {
               opts.x = clipRect.x
@@ -194,6 +196,22 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       onSelect(null)
     }
 
+    /** Stage 级 mouseMove：优先转发给选区 overlay 驱动手柄拖拽，再回传标注层 */
+    function handleStageMouseMove(event: Konva.KonvaEventObject<MouseEvent>) {
+      const stage = event.target.getStage()
+      if (stage) {
+        const pt = stage.getPointerPosition()
+        if (pt) selectionOverlayRef.current?.handleStageMouseMove(pt)
+      }
+      onMove?.(event)
+    }
+
+    /** Stage 级 mouseUp：先通知 overlay 结束手柄拖拽，再回传标注层 */
+    function handleStageMouseUp(event: Konva.KonvaEventObject<MouseEvent>) {
+      selectionOverlayRef.current?.handleStageMouseUp()
+      onRelease?.(event)
+    }
+
     /** 透传 mouseDown，并在编辑阶段点击空白处取消选中 */
     function handleMouseDown(event: Konva.KonvaEventObject<MouseEvent>) {
       if (interactive) {
@@ -227,9 +245,9 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       <div className={clsx(styles.annotation)}>
         <Stage
           ref={stageRef}
-          onMouseMove={onMove}
+          onMouseMove={handleStageMouseMove}
           onMouseDown={handleMouseDown}
-          onMouseUp={onRelease}
+          onMouseUp={handleStageMouseUp}
           width={viewport.width}
           height={viewport.height}
           className={clsx(styles.stage)}>
@@ -245,11 +263,13 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
             )}
           </Layer>
           <SelectionOverlay
+            ref={selectionOverlayRef}
             selection={props.selection}
             phase={props.phase}
             width={viewport.width}
             height={viewport.height}
             onSelectionChange={props.onSelectionChange}
+            graphicsActive={props.graphicsActive}
           />
           {/* 聚光灯共享暗罩：一个 even-odd 镂空 Shape，支持任意数量 spotlight 而不出现叠加伪影 */}
           <Layer listening={false}>
@@ -261,6 +281,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
           </Layer>
           {/* 标注层：选区存在时裁剪到选区内，超出部分不可见也不可点击 */}
           <Layer
+            listening={annotations.length > 0}
             clipFunc={
               clipRect && clipRect.w > 0 && clipRect.h > 0
                 ? function (ctx) {
@@ -286,7 +307,9 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
             <Transformer
               ref={transformerRef}
               anchorSize={10}
-              anchorCornerRadius={5}
+              anchorStyleFunc={(anchor) => {
+                anchor.cornerRadius(anchor.width() / 2)
+              }}
               anchorStroke="#3B82F6"
               anchorStrokeWidth={2}
               anchorFill="#FFFFFF"
