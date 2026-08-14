@@ -34,7 +34,7 @@ const plugins: Plugin[] = [
   },
   IntelligencePlugin
 ]
-const SCREENSHOT_SHORTCUT = 'CommandOrControl+Alt+A'
+const SCREENSHOT_SHORTCUT = 'Alt+Q'
 const COREX_NOT_READY = 'corex 未就绪，PDF / 截图等功能暂不可用。请构建 corex-serve 后重启应用。'
 
 export default function Overview() {
