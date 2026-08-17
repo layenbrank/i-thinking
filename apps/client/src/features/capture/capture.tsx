@@ -1,15 +1,25 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Icon } from '@iconify/react/offline'
+import {
+  Component,
+  useEffect,
+  useRef,
+  useState,
+  type ErrorInfo,
+  type ReactNode
+} from 'react'
+
 import { clsx } from 'clsx'
 import type Konva from 'konva'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { v4 as UUID } from 'uuid'
 
+import { ContextMenu, useContextMenu, type MenuItem } from '@/components/contextmenu'
 import { Annotation, type AnnotationHandle } from '@/features/capture/components/annotation'
 import { type GraphicsEnum, type GraphicsProps } from '@/features/capture/components/graphics'
 import Magnifier from '@/features/capture/components/magnifier'
 import { motion, useReducedMotion } from 'motion/react'
 import Utility from '@/features/capture/components/utility'
-import { isTauri, loadImageFromPath, takeScreenshot } from '@/features/capture/tauri'
+import { fetchImageFromPath, takePendingScreenshot, takeScreenshot } from '@/features/capture/tauri'
 import { copyImage, pinTexture, saveToUserPath } from '@/features/capture/clipboard'
 
 import styles from '@/features/capture/capture.module.scss'
@@ -58,6 +68,8 @@ class CaptureErrorBoundary extends Component<CaptureErrorBoundaryProps, CaptureE
 export interface CaptureProps {
   /** Rendered inside the shared overlay window. */
   embedded?: boolean
+  /** false 时不加载截图；为 true 时消费 capture:open 的 pending */
+  active?: boolean
   onExit?: () => void
   onClose?: () => void
   onTexture?: (input: { src: string; w: number; h: number }) => void
@@ -90,8 +102,66 @@ const POINT_SHAPES = new Set<GraphicsEnum>(['text', 'index'])
 /** 多点追加型标注（拖拽路径上不断 append 点）：画笔、荧光笔 */
 const MULTI_POINT_GRAPHICS = new Set<GraphicsEnum>(['freehand', 'highlight'])
 
+/** 按住 Shift 时约束为正方形 / 正圆包围盒 */
+const RATIO_GRAPHICS = new Set<GraphicsEnum>(['rect', 'ellipse'])
+
+/** 把命中的 id 按 groupID 并集展开（同组成员全部进入选中集） */
+function expandSelectionIDs(ids: string[], list: GraphicsProps[]): string[] {
+  const result: string[] = []
+  const seen = new Set<string>()
+  for (const id of ids) {
+    const item = list.find(function (a) {
+      return a.id === id
+    })
+    if (!item) continue
+    if (item.groupID) {
+      for (const annotation of list) {
+        if (annotation.groupID !== item.groupID) continue
+        if (seen.has(annotation.id)) continue
+        seen.add(annotation.id)
+        result.push(annotation.id)
+      }
+      continue
+    }
+    if (seen.has(id)) continue
+    seen.add(id)
+    result.push(id)
+  }
+  return result
+}
+
+/** 从选中集中移除某 id 所属整组（无组则仅移除自身） */
+function removeSelectionGroup(selectedIDs: string[], id: string, list: GraphicsProps[]): string[] {
+  const item = list.find(function (a) {
+    return a.id === id
+  })
+  if (!item?.groupID) {
+    return selectedIDs.filter(function (v) {
+      return v !== id
+    })
+  }
+  const groupID = item.groupID
+  return selectedIDs.filter(function (v) {
+    const annotation = list.find(function (a) {
+      return a.id === v
+    })
+    return annotation?.groupID !== groupID
+  })
+}
+
+/** Shift：以起点为对角，约束为等宽高（正圆 / 正方形） */
+function constrainRatioPoint(origin: Point, pt: Point, shiftKey: boolean): Point {
+  if (!shiftKey) return pt
+  const dx = pt.x - origin.x
+  const dy = pt.y - origin.y
+  const size = Math.max(Math.abs(dx), Math.abs(dy))
+  const sx = dx === 0 ? (dy >= 0 ? 1 : -1) : Math.sign(dx)
+  const sy = dy === 0 ? (dx >= 0 ? 1 : -1) : Math.sign(dy)
+  return { x: origin.x + sx * size, y: origin.y + sy * size }
+}
+
 export default function Capture(props: CaptureProps = {}) {
-  const { onExit, onClose, onTexture } = props
+  const { onExit, onClose, onTexture, active = true } = props
   const [phase, onUpdatePhase] = useState<Phase>('selecting')
   const [graphics, onUpdateGraphics] = useState<GraphicsEnum | null>(null)
   const [annotations, onUpdateAnnotations] = useState<GraphicsProps[]>([])
@@ -102,6 +172,7 @@ export default function Capture(props: CaptureProps = {}) {
   const [opacity, onUpdateOpacity] = useState(1)
   const [fontSize, onUpdateFontSize] = useState(18)
   const [selectedID, onUpdateSelectedID] = useState<string | null>(null)
+  const [selectedIDs, onUpdateSelectedIDs] = useState<string[]>([])
   const [sourceImage, onUpdateSourceImage] = useState<HTMLImageElement | null>(null)
   /** 截图加载三态：loading 黑罩、ready 可交互、error 错误卡片 */
   const [captureStatus, onUpdateCaptureStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -111,6 +182,7 @@ export default function Capture(props: CaptureProps = {}) {
   const [canRedo, onUpdateCanRedo] = useState(false)
 
   const isReducedMotion = useReducedMotion()
+  const { present: presentContextMenu } = useContextMenu()
 
   /** 当前正在拖拽创建的草稿 id（避免通过 closure 读外层 state） */
   const draftIDRef = useRef<string | null>(null)
@@ -149,6 +221,7 @@ export default function Capture(props: CaptureProps = {}) {
     historyStepRef.current -= 1
     onUpdateAnnotations(historyRef.current[historyStepRef.current])
     onUpdateSelectedID(null)
+    onUpdateSelectedIDs([])
     syncHistoryFlags()
   }
 
@@ -157,30 +230,33 @@ export default function Capture(props: CaptureProps = {}) {
     historyStepRef.current += 1
     onUpdateAnnotations(historyRef.current[historyStepRef.current])
     onUpdateSelectedID(null)
+    onUpdateSelectedIDs([])
     syncHistoryFlags()
   }
 
-  /** 删除当前选中的标注 */
+  /** 删除选中的标注（多选 / 群组时一并删除） */
   function handleDelete() {
-    if (!selectedID) return
+    if (selectedIDs.length === 0) return
+    const ids = expandSelectionIDs(selectedIDs, annotations)
+    const idSet = new Set(ids)
     onUpdateAnnotations(function (prev) {
       const next = prev.filter(function (a) {
-        return a.id !== selectedID
+        return !idSet.has(a.id)
       })
       commitHistory(next)
       return next
     })
-    onUpdateSelectedID(null)
+    commitSelection([])
   }
 
   /** Esc 逐级退出：annotating → editing → 取消选中 → 重选 */
   function handleEscape() {
     if (phase === 'annotating') {
-      onUpdateGraphics(null)
+      handleUpdateGraphics(null)
       return
     }
-    if (selectedID) {
-      onUpdateSelectedID(null)
+    if (selectedIDs.length > 0) {
+      handleSelect(null)
       return
     }
     if (selection) {
@@ -212,16 +288,18 @@ export default function Capture(props: CaptureProps = {}) {
     handleRefresh()
   })
 
-  /** 加载滤镜/放大镜共用的底图：仅支持 Tauri 桌面运行时，失败时进入 error 态供重试 */
-  async function loadCapture() {
+  /** 加载底图：open 路径只消费 pending；forceFresh 才再截（重试） */
+  async function loadCapture(forceFresh = false) {
     onUpdateCaptureStatus('loading')
     onUpdateCaptureError(null)
     try {
-      if (!isTauri()) {
-        throw new Error('截图需要 Tauri 桌面运行时')
+      const result = forceFresh
+        ? await takeScreenshot()
+        : await takePendingScreenshot()
+      if (!result) {
+        throw new Error('未找到预截图，请点重试')
       }
-      const result = await takeScreenshot()
-      const img = await loadImageFromPath(result.path)
+      const img = await fetchImageFromPath(result.path)
       onUpdateSourceImage(img)
       onUpdateCaptureStatus('ready')
     } catch (err) {
@@ -231,22 +309,393 @@ export default function Capture(props: CaptureProps = {}) {
     }
   }
 
-  useEffect(function () {
-    void loadCapture()
-  }, [])
+  const loadStartedRef = useRef(false)
 
-  /** 选择某个工具后，自动进入 annotating 阶段；shape 为 null 时回到 editing */
   useEffect(
     function () {
-      if (graphics) {
-        onUpdatePhase('annotating')
-        onUpdateSelectedID(null)
-      } else if (selection) {
-        onUpdatePhase('editing')
+      if (!active) {
+        loadStartedRef.current = false
+        return
       }
+      // 同一次 active 会话只加载一次，避免 Strict Mode 双 mount 吃掉 pending 后静默再截
+      if (loadStartedRef.current) return
+      loadStartedRef.current = true
+      void loadCapture(false)
     },
-    [graphics]
+    [active]
   )
+
+  /** 工具切换时同步 phase（放在事件里，避免 useEffect 级联 setState） */
+  function handleUpdateGraphics(next: GraphicsEnum | null) {
+    onUpdateGraphics(next)
+    if (next) {
+      onUpdatePhase('annotating')
+      onUpdateSelectedID(null)
+      onUpdateSelectedIDs([])
+      return
+    }
+    if (selection) onUpdatePhase('editing')
+  }
+
+  /** 从标注同步工具栏默认值（选中时） */
+  function syncToolbarFromAnnotation(item: GraphicsProps) {
+    onUpdateColor(item.color)
+    onUpdateThickness(item.thickness ?? 2)
+    if (item.opacity !== null && item.opacity !== undefined) onUpdateOpacity(item.opacity)
+    if (item.filled !== null && item.filled !== undefined) onUpdateFilled(item.filled)
+    if (item.fontSize !== null && item.fontSize !== undefined) onUpdateFontSize(item.fontSize)
+  }
+
+  /** 写入选中集；selectedID 派生为末项 */
+  function commitSelection(nextIDs: string[]) {
+    onUpdateSelectedIDs(nextIDs)
+    onUpdateSelectedID(nextIDs[nextIDs.length - 1] ?? null)
+  }
+
+  /** 选中标注时同步工具栏属性；additive 为 Ctrl/Meta 多选（整组加/剔） */
+  function handleSelect(id: string | null, options?: { additive?: boolean }) {
+    if (!id) {
+      commitSelection([])
+      return
+    }
+    const current = annotations.find(function (a) {
+      return a.id === id
+    })
+    if (!current) return
+
+    if (options?.additive) {
+      const exists = selectedIDs.includes(id)
+      const nextIDs = exists
+        ? removeSelectionGroup(selectedIDs, id, annotations)
+        : expandSelectionIDs([...selectedIDs, id], annotations)
+      commitSelection(nextIDs)
+    } else {
+      // 有 groupID 时展开为整组，无法单独选中成员
+      commitSelection(expandSelectionIDs([id], annotations))
+    }
+    syncToolbarFromAnnotation(current)
+  }
+
+  /** 橡皮筋多选：按 groupID 并集展开（空数组 = 失焦） */
+  function handleSelectMany(ids: string[]) {
+    if (ids.length === 0) {
+      commitSelection([])
+      return
+    }
+    const expanded = expandSelectionIDs(ids, annotations)
+    if (expanded.length === 0) {
+      commitSelection([])
+      return
+    }
+    commitSelection(expanded)
+    const primaryID = expanded[expanded.length - 1]
+    const current = primaryID
+      ? annotations.find(function (a) {
+          return a.id === primaryID
+        })
+      : undefined
+    if (current) syncToolbarFromAnnotation(current)
+  }
+
+  /** 选中集整块上移/下移一层（保持相对顺序） */
+  function moveAnnotationsLayer(ids: string[], direction: 'up' | 'down') {
+    if (ids.length === 0) return
+    const idSet = new Set(ids)
+    onUpdateAnnotations(function (prev) {
+      const indices = ids
+        .map(function (id) {
+          return prev.findIndex(function (a) {
+            return a.id === id
+          })
+        })
+        .filter(function (index) {
+          return index >= 0
+        })
+        .sort(function (a, b) {
+          return a - b
+        })
+      if (indices.length === 0) return prev
+      const next = prev.slice()
+      if (direction === 'up') {
+        const top = indices[indices.length - 1]
+        if (top === undefined || top >= next.length - 1) return prev
+        for (let i = indices.length - 1; i >= 0; i -= 1) {
+          const index = indices[i]
+          if (index === undefined || index >= next.length - 1) continue
+          const above = next[index + 1]
+          if (!above || idSet.has(above.id)) continue
+          const current = next[index]
+          if (!current) continue
+          next[index] = above
+          next[index + 1] = current
+        }
+      } else {
+        const bottom = indices[0]
+        if (bottom === undefined || bottom <= 0) return prev
+        for (let i = 0; i < indices.length; i += 1) {
+          const index = indices[i]
+          if (index === undefined || index <= 0) continue
+          const below = next[index - 1]
+          if (!below || idSet.has(below.id)) continue
+          const current = next[index]
+          if (!current) continue
+          next[index] = below
+          next[index - 1] = current
+        }
+      }
+      commitHistory(next)
+      return next
+    })
+  }
+
+  /** 批量锁定/解锁：选中集中有未锁则全部锁，否则全部解锁 */
+  function toggleAnnotationsLock(ids: string[]) {
+    if (ids.length === 0) return
+    const idSet = new Set(ids)
+    const hasUnlocked = annotations.some(function (a) {
+      return idSet.has(a.id) && !a.locked
+    })
+    const nextLocked = hasUnlocked
+    onUpdateAnnotations(function (prev) {
+      const next = prev.map(function (a) {
+        return idSet.has(a.id) ? { ...a, locked: nextLocked } : a
+      })
+      commitHistory(next)
+      return next
+    })
+    if (nextLocked) {
+      commitSelection([])
+    }
+  }
+
+  function groupAnnotations(ids: string[]) {
+    if (ids.length < 2) return
+    const groupID = UUID()
+    const idSet = new Set(ids)
+    onUpdateAnnotations(function (prev) {
+      const next = prev.map(function (a) {
+        return idSet.has(a.id) ? { ...a, groupID } : a
+      })
+      commitHistory(next)
+      return next
+    })
+    commitSelection(ids)
+  }
+
+  function ungroupAnnotations(groupID: string) {
+    onUpdateAnnotations(function (prev) {
+      const next = prev.map(function (a) {
+        return a.groupID === groupID ? { ...a, groupID: undefined } : a
+      })
+      commitHistory(next)
+      return next
+    })
+  }
+
+  /** 复制选中标注到画布（新 id，轻偏移；同组关系保留为新 groupID） */
+  function copyAnnotations(ids: string[]) {
+    if (ids.length === 0) return
+    const idSet = new Set(ids)
+    const OFFSET = 12
+    const groupMap = new Map<string, string>()
+    const sources = annotations.filter(function (a) {
+      return idSet.has(a.id)
+    })
+    if (sources.length === 0) return
+
+    const clones: GraphicsProps[] = sources.map(function (source) {
+      let nextGroupID = source.groupID
+      if (source.groupID) {
+        let mapped = groupMap.get(source.groupID)
+        if (!mapped) {
+          mapped = UUID()
+          groupMap.set(source.groupID, mapped)
+        }
+        nextGroupID = mapped
+      }
+      return {
+        ...source,
+        id: UUID(),
+        groupID: nextGroupID,
+        locked: false,
+        points: source.points.map(function (p) {
+          return { x: p.x + OFFSET, y: p.y + OFFSET }
+        })
+      }
+    })
+
+    const cloneIDs = clones.map(function (c) {
+      return c.id
+    })
+    onUpdateAnnotations(function (prev) {
+      const next = prev.concat(clones)
+      commitHistory(next)
+      return next
+    })
+    commitSelection(cloneIDs)
+  }
+
+  /** 右键标注或选中包围盒：弹出上下文菜单；keepSelection 时不改选 */
+  function handleContextMenuAnnotation(payload: {
+    id: string
+    clientX: number
+    clientY: number
+    keepSelection?: boolean
+  }) {
+    const target = annotations.find(function (a) {
+      return a.id === payload.id
+    })
+    if (!target) return
+
+    let menuIDs = selectedIDs
+    // 已在多选内或明确要求保留选中时，绝不替换选中集
+    if (!payload.keepSelection && !selectedIDs.includes(payload.id)) {
+      if (target.groupID) {
+        menuIDs = annotations
+          .filter(function (a) {
+            return a.groupID === target.groupID
+          })
+          .map(function (a) {
+            return a.id
+          })
+      } else {
+        menuIDs = [payload.id]
+      }
+      commitSelection(menuIDs)
+      syncToolbarFromAnnotation(target)
+    } else if (menuIDs.length === 0) {
+      menuIDs = [payload.id]
+    }
+
+    const actionIDs = menuIDs.includes(payload.id) ? menuIDs : [payload.id]
+    /** 已是同一组则不必再群组；已成组可与其它元素合并为新组 */
+    const alreadyOneGroup = (function () {
+      if (actionIDs.length < 2) return false
+      let shared: string | undefined
+      for (const id of actionIDs) {
+        const item = annotations.find(function (a) {
+          return a.id === id
+        })
+        const groupID = item?.groupID
+        if (!groupID) return false
+        if (shared === undefined) shared = groupID
+        else if (shared !== groupID) return false
+      }
+      return shared !== undefined
+    })()
+    const canGroup = actionIDs.length >= 2 && !alreadyOneGroup
+    const isGrouped = Boolean(target.groupID)
+    const hasUnlocked = actionIDs.some(function (id) {
+      const item = annotations.find(function (a) {
+        return a.id === id
+      })
+      return item && !item.locked
+    })
+    const layerIndices = actionIDs
+      .map(function (id) {
+        return annotations.findIndex(function (a) {
+          return a.id === id
+        })
+      })
+      .filter(function (index) {
+        return index >= 0
+      })
+    const canMoveUp =
+      layerIndices.length > 0 && Math.max.apply(null, layerIndices) < annotations.length - 1
+    const canMoveDown = layerIndices.length > 0 && Math.min.apply(null, layerIndices) > 0
+
+    const menuIcon = function (name: string) {
+      return (
+        <Icon
+          icon={name}
+          width={14}
+          height={14}
+        />
+      )
+    }
+
+    const items: MenuItem[] = [
+      {
+        key: 'layer-up',
+        label: '上移一层',
+        icon: menuIcon('mdi:arrange-bring-forward'),
+        disabled: !canMoveUp,
+        onSelect() {
+          moveAnnotationsLayer(actionIDs, 'up')
+        }
+      },
+      {
+        key: 'layer-down',
+        label: '下移一层',
+        icon: menuIcon('mdi:arrange-send-backward'),
+        disabled: !canMoveDown,
+        onSelect() {
+          moveAnnotationsLayer(actionIDs, 'down')
+        }
+      },
+      { type: 'divider' },
+      {
+        key: 'group',
+        label: '群组',
+        icon: menuIcon('mdi:group'),
+        disabled: !canGroup,
+        onSelect() {
+          groupAnnotations(actionIDs)
+        }
+      },
+      {
+        key: 'ungroup',
+        label: '取消群组',
+        icon: menuIcon('mdi:ungroup'),
+        disabled: !isGrouped,
+        onSelect() {
+          const groupID = target.groupID
+          if (groupID) ungroupAnnotations(groupID)
+        }
+      },
+      { type: 'divider' },
+      {
+        key: 'lock',
+        label: hasUnlocked ? '锁定' : '解锁',
+        icon: menuIcon(hasUnlocked ? 'mdi:lock-outline' : 'mdi:lock-open-variant-outline'),
+        onSelect() {
+          toggleAnnotationsLock(actionIDs)
+        }
+      },
+      {
+        key: 'copy',
+        label: '复制',
+        icon: menuIcon('mdi:content-copy'),
+        onSelect() {
+          copyAnnotations(actionIDs)
+        }
+      },
+      {
+        key: 'delete',
+        label: '删除',
+        danger: true,
+        icon: menuIcon('mdi:delete-outline'),
+        onSelect() {
+          const idSet = new Set(actionIDs)
+          onUpdateAnnotations(function (prev) {
+            const next = prev.filter(function (a) {
+              return !idSet.has(a.id)
+            })
+            commitHistory(next)
+            return next
+          })
+          onUpdateSelectedID(null)
+          onUpdateSelectedIDs([])
+        }
+      }
+    ]
+
+    presentContextMenu({
+      x: payload.clientX,
+      y: payload.clientY,
+      items
+    })
+  }
 
   /** 从事件中取得 Stage 内的指针坐标（处理 DPR / 偏移 / 未来缩放） */
   function readPointer(event: StageEvent): Point | null {
@@ -354,12 +803,22 @@ export default function Capture(props: CaptureProps = {}) {
       // 单点型标注不需要在拖拽过程中更新多个顶点
       if (graphics && POINT_SHAPES.has(graphics)) return
       // 将拖拽点约束到裁剪选区内，防止标注超出
-      const clamped = selection
+      let clamped = selection
         ? {
             x: Math.max(selection.x, Math.min(pt.x, selection.x + selection.w)),
             y: Math.max(selection.y, Math.min(pt.y, selection.y + selection.h))
           }
         : pt
+      // 椭圆 / 矩形：Shift → 正圆 / 正方形
+      if (graphics && RATIO_GRAPHICS.has(graphics)) {
+        clamped = constrainRatioPoint(beginRef.current, clamped, event.evt.shiftKey)
+        if (selection) {
+          clamped = {
+            x: Math.max(selection.x, Math.min(clamped.x, selection.x + selection.w)),
+            y: Math.max(selection.y, Math.min(clamped.y, selection.y + selection.h))
+          }
+        }
+      }
       const draftID = draftIDRef.current
       onUpdateAnnotations(function (prev) {
         return prev.map(function (value) {
@@ -426,12 +885,21 @@ export default function Capture(props: CaptureProps = {}) {
       }
 
       // 将释放点约束到裁剪选区内，防止标注超出
-      const clamped = selection
+      let clamped = selection
         ? {
             x: Math.max(selection.x, Math.min(pt.x, selection.x + selection.w)),
             y: Math.max(selection.y, Math.min(pt.y, selection.y + selection.h))
           }
         : pt
+      if (graphics && RATIO_GRAPHICS.has(graphics)) {
+        clamped = constrainRatioPoint(beginRef.current, clamped, event.evt.shiftKey)
+        if (selection) {
+          clamped = {
+            x: Math.max(selection.x, Math.min(clamped.x, selection.x + selection.w)),
+            y: Math.max(selection.y, Math.min(clamped.y, selection.y + selection.h))
+          }
+        }
+      }
       // 提交草稿到历史栈
       onUpdateAnnotations(function (prev) {
         const next = prev.map(function (value) {
@@ -458,30 +926,32 @@ export default function Capture(props: CaptureProps = {}) {
     }
   }
 
-  /** 选中已有标注时，将该标注的属性值同步到工具栏，便于继续修改 */
-  useEffect(
-    function () {
-      if (!selectedID) return
-      const current = annotations.find(function (a) {
-        return a.id === selectedID
-      })
-      if (!current) return
-      onUpdateColor(current.color)
-      onUpdateThickness(current.thickness ?? 2)
-      if (current.opacity !== null && current.opacity !== undefined)
-        onUpdateOpacity(current.opacity)
-      if (current.filled !== null && current.filled !== undefined) onUpdateFilled(current.filled)
-      if (current.fontSize !== null && current.fontSize !== undefined)
-        onUpdateFontSize(current.fontSize)
-    },
-    [selectedID]
-  )
-
-  /** 单个标注被拖拽 / Transform 后回写并记入历史 */
-  function handleAnnotationChange(next: GraphicsProps) {
+  /** 单个标注被拖拽 / Transform 后回写；history=false 时仅预览不记栈 */
+  function handleAnnotationChange(
+    next: GraphicsProps,
+    options?: { history?: boolean }
+  ) {
+    const shouldCommit = options?.history !== false
     onUpdateAnnotations(function (prev) {
       const updated = prev.map(function (v) {
         return v.id === next.id ? next : v
+      })
+      if (shouldCommit) commitHistory(updated)
+      return updated
+    })
+  }
+
+  /** 多节点 Transform 结束：一次写回并入历史 */
+  function handleAnnotationsBatchChange(nexts: GraphicsProps[]) {
+    if (nexts.length === 0) return
+    const map = new Map(
+      nexts.map(function (item) {
+        return [item.id, item] as const
+      })
+    )
+    onUpdateAnnotations(function (prev) {
+      const updated = prev.map(function (v) {
+        return map.get(v.id) ?? v
       })
       commitHistory(updated)
       return updated
@@ -489,14 +959,16 @@ export default function Capture(props: CaptureProps = {}) {
   }
 
   /**
-   * 工具栏属性变更：若已选中某个标注 → 同时回写到该标注并记入历史；
+   * 工具栏属性变更：若已选中 → 批量回写选中集并记入历史；
    * 否则只更新「未来新建」的默认值。
    */
   function applyPropertyToSelected(patch: Partial<GraphicsProps>) {
-    if (!selectedID) return
+    if (selectedIDs.length === 0) return
+    const ids = expandSelectionIDs(selectedIDs, annotations)
+    const idSet = new Set(ids)
     onUpdateAnnotations(function (prev) {
       const updated = prev.map(function (v) {
-        return v.id === selectedID ? { ...v, ...patch } : v
+        return idSet.has(v.id) ? { ...v, ...patch } : v
       })
       commitHistory(updated)
       return updated
@@ -529,6 +1001,7 @@ export default function Capture(props: CaptureProps = {}) {
     onUpdateSelection(null)
     onUpdateGraphics(null)
     onUpdateSelectedID(null)
+    onUpdateSelectedIDs([])
     onUpdateAnnotations([])
     onUpdatePhase('selecting')
     isDraggingRef.current = false
@@ -578,13 +1051,6 @@ export default function Capture(props: CaptureProps = {}) {
     onExit?.()
   }
 
-  useEffect(
-    function () {
-      if (import.meta.env.DEV) console.log('[DEBUG] annotations', annotations)
-    },
-    [annotations]
-  )
-
   return (
     <CaptureErrorBoundary
       onError={function () {
@@ -602,7 +1068,7 @@ export default function Capture(props: CaptureProps = {}) {
                   type="button"
                   className={clsx(styles.errorButton, styles.errorRetry)}
                   onClick={function () {
-                    void loadCapture()
+                    void loadCapture(true)
                   }}>
                   重试
                 </button>
@@ -619,12 +1085,19 @@ export default function Capture(props: CaptureProps = {}) {
           </div>
         ) : (
           <>
+            {captureStatus === 'loading' && (
+              <div
+                className={styles.loadingMask}
+                aria-busy="true"
+                aria-label="正在加载截图"
+              />
+            )}
             <motion.div
               key="capture-ready"
-              initial={isReducedMotion ? undefined : { opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={isReducedMotion ? undefined : { opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{
-                duration: 0.3,
+                duration: 0.1,
                 ease: [0.22, 1, 0.36, 1]
               }}>
               <Annotation
@@ -634,14 +1107,18 @@ export default function Capture(props: CaptureProps = {}) {
                 clipRect={selection}
                 onPress={handlePress}
                 selectedID={selectedID}
+                selectedIDs={selectedIDs}
                 annotations={annotations}
                 sourceImage={sourceImage}
                 onRelease={handleRelease}
-                onSelect={onUpdateSelectedID}
-                interactive={true}
+                onSelect={handleSelect}
+                onSelectMany={handleSelectMany}
+                interactive={captureStatus === 'ready'}
                 onChange={handleAnnotationChange}
+                onBatchChange={handleAnnotationsBatchChange}
+                onContextMenuAnnotation={handleContextMenuAnnotation}
                 onEditStart={function () {
-                  onUpdateSelectedID(null)
+                  handleSelect(null)
                 }}
                 selection={selection}
                 phase={phase}
@@ -653,34 +1130,37 @@ export default function Capture(props: CaptureProps = {}) {
             {/* 选区阶段的像素级放大镜 */}
             <Magnifier
               sourceImage={sourceImage}
-              visible={phase === 'selecting'}
+              visible={phase === 'selecting' && captureStatus === 'ready'}
               onClose={onClose ?? function () {}}
             />
 
-            <Utility
-              color={color}
-              filled={filled}
-              canRedo={canRedo}
-              canUndo={canUndo}
-              active={graphics}
-              opacity={opacity}
-              onCopy={handleCopy}
-              onPin={handlePin}
-              fontSize={fontSize}
-              onRedo={handleRedo}
-              onUndo={handleUndo}
-              thickness={thickness}
-              onClose={handleClose}
-              onRefresh={handleRefresh}
-              onSave={handleSave}
-              onUpdateColor={handleUpdateColor}
-              onUpdateUtility={onUpdateGraphics}
-              onUpdateFilled={handleUpdateFilled}
-              onUpdateOpacity={handleUpdateOpacity}
-              onUpdateFontSize={handleUpdateFontSize}
-              onUpdateThickness={handleUpdateThickness}
-              selection={phase === 'selecting' ? null : selection}
-            />
+            {captureStatus === 'ready' && (
+              <Utility
+                color={color}
+                filled={filled}
+                canRedo={canRedo}
+                canUndo={canUndo}
+                active={graphics}
+                opacity={opacity}
+                onCopy={handleCopy}
+                onPin={handlePin}
+                fontSize={fontSize}
+                onRedo={handleRedo}
+                onUndo={handleUndo}
+                thickness={thickness}
+                onClose={handleClose}
+                onRefresh={handleRefresh}
+                onSave={handleSave}
+                onUpdateColor={handleUpdateColor}
+                onUpdateUtility={handleUpdateGraphics}
+                onUpdateFilled={handleUpdateFilled}
+                onUpdateOpacity={handleUpdateOpacity}
+                onUpdateFontSize={handleUpdateFontSize}
+                onUpdateThickness={handleUpdateThickness}
+                selection={phase === 'selecting' ? null : selection}
+              />
+            )}
+            <ContextMenu.Host />
           </>
         )}
       </div>

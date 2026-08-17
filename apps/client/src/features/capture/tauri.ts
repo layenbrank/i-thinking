@@ -5,10 +5,10 @@ import type { MarkerLayout } from '@/features/magnetic-tile/size'
 
 /**
  * Tauri 截图能力的轻量封装，前端通过这些函数与 Rust 端的
- * `capture:screenshot` 命令通信。
+ * `capture:*` 命令通信。
  */
 
-export interface ScreenshotResult {
+interface ScreenshotResult {
   /** 截图保存后的磁盘绝对路径 */
   path: string
   width: number
@@ -16,42 +16,36 @@ export interface ScreenshotResult {
   scale_factor: number
 }
 
-/** 仅在 Tauri 运行时返回 true */
-export function isTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
-}
+interface MountOverlayOptions extends Partial<MarkerLayout>, SurfaceStyleInput {}
 
 /** 主显示器即时截图（不弹窗，返回截图文件路径） */
-export async function takeScreenshot(): Promise<ScreenshotResult> {
+async function takeScreenshot(): Promise<ScreenshotResult> {
   return invoke<ScreenshotResult>('capture:screenshot')
 }
 
-/** 将磁盘图片路径加载为 HTMLImageElement（通过 fetch + blob 避免 asset:// 的 canvas tainting） */
-export async function loadImageFromPath(filePath: string): Promise<HTMLImageElement> {
-  const assetUrl = convertFileSrc(filePath)
-  const resp = await fetch(assetUrl)
-  if (!resp.ok) {
-    throw new Error(`loadImageFromPath: 读取图片失败 (status ${resp.status}) - ${filePath}`)
-  }
-  const blob = await resp.blob()
-  const blobUrl = URL.createObjectURL(blob)
-  return new Promise(function (resolve, reject) {
-    const img = new Image()
-    img.onload = function () {
-      URL.revokeObjectURL(blobUrl)
-      resolve(img)
-    }
-    img.onerror = function () {
-      URL.revokeObjectURL(blobUrl)
-      reject(new Error(`loadImageFromPath: 图片解码失败 - ${filePath}`))
-    }
-    img.src = blobUrl
-  })
+/** 消费 capture:open 预截好的结果；无则返回 null */
+async function takePendingScreenshot(): Promise<ScreenshotResult | null> {
+  return invoke<ScreenshotResult | null>('capture:take-pending')
 }
 
-/* ─── Overlay 窗口管理（原 views/overlay/tauri.ts） ─── */
+/**
+ * 磁盘路径 → HTMLImageElement（Konva / toDataURL 可用）。
+ * 使用 asset URL + crossOrigin 直解码；勿走 plugin-http fetch（那是远程 HTTP，会多一次 IPC 整图拷贝）。
+ */
+async function fetchImageFromPath(filePath: string): Promise<HTMLImageElement> {
+  const image = new Image()
+  image.crossOrigin = 'anonymous'
+  image.decoding = 'async'
+  image.src = convertFileSrc(filePath)
+  try {
+    await image.decode()
+  } catch {
+    throw new Error(`fetchImageFromPath: 图片解码失败 - ${filePath}`)
+  }
+  return image
+}
 
-interface MountOverlayOptions extends Partial<MarkerLayout>, SurfaceStyleInput {}
+/* ─── Overlay 窗口管理 ─── */
 
 async function ensureOverlay(): Promise<void> {
   await invoke('overlay:ensure')
@@ -93,9 +87,12 @@ async function removeOverlayTile(magneticTileID: string): Promise<void> {
 
 export {
   ensureOverlay,
+  fetchImageFromPath,
   hideOverlay,
-  updateOverlayMode,
   mountOverlayTile,
-  removeOverlayTile
+  removeOverlayTile,
+  takePendingScreenshot,
+  takeScreenshot,
+  updateOverlayMode
 }
-export type { MountOverlayOptions }
+export type { MountOverlayOptions, ScreenshotResult }

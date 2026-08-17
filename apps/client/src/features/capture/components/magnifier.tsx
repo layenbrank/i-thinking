@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useMotionValue, useSpring } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { copyText } from '@/features/capture/clipboard'
 import styles from './magnifier.module.scss'
@@ -11,9 +11,6 @@ const ZOOM = 8
 const SOURCE_SIZE = SIZE / ZOOM
 /** 距离鼠标偏移 */
 const OFFSET = 20
-
-/** Spring 配置：快速跟手，略带惯性 */
-const SPRING = { stiffness: 520, damping: 40, mass: 0.5 }
 
 type ColorFormat = 'hex' | 'rgb'
 
@@ -51,100 +48,119 @@ function computePos(px: number, py: number) {
  */
 export default function Magnifier({ sourceImage, visible, onClose }: MagnifierProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const posRef = useRef<{ x: number; y: number } | null>(null)
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const [rgb, setRgb] = useState<[number, number, number] | null>(null)
   const [colorFormat, setColorFormat] = useState<ColorFormat>('hex')
   const [copied, setCopied] = useState(false)
+  const rafRef = useRef(0)
 
-  // Spring 平滑跟随鼠标
-  const motionX = useMotionValue(0)
-  const motionY = useMotionValue(0)
-  const springX = useSpring(motionX, SPRING)
-  const springY = useSpring(motionY, SPRING)
-  const isFirstMoveRef = useRef(true)
-
-  // 用 ref 持有 spring/motion 对象，避免放入 deps 导致无限渲染
-  const springXRef = useRef(springX)
-  const springYRef = useRef(springY)
-  const motionXRef = useRef(motionX)
-  const motionYRef = useRef(motionY)
-  springXRef.current = springX
-  springYRef.current = springY
-  motionXRef.current = motionX
-  motionYRef.current = motionY
-
-  useEffect(() => {
-    if (!visible) {
-      setPos(null)
-      isFirstMoveRef.current = true
-      return
-    }
-    function onMove(e: MouseEvent) {
-      const p = { x: e.clientX, y: e.clientY }
-      setPos(p)
-      const { left, top } = computePos(p.x, p.y)
-      if (isFirstMoveRef.current) {
-        // 首次出现：跳到正确位置，避免从 (0,0) 滑入
-        springXRef.current.jump(left)
-        springYRef.current.jump(top)
-        isFirstMoveRef.current = false
-      } else {
-        motionXRef.current.set(left)
-        motionYRef.current.set(top)
-      }
-    }
-    window.addEventListener('mousemove', onMove)
-    return () => window.removeEventListener('mousemove', onMove)
-  }, [visible])
-
-  useEffect(() => {
+  function paint(samplePos: { x: number; y: number }) {
     const canvas = canvasRef.current
-    if (!canvas || !sourceImage || !pos) return
+    if (!canvas || !sourceImage) return
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (!ctx) return
     ctx.imageSmoothingEnabled = false
     ctx.clearRect(0, 0, SIZE, SIZE)
-    // sourceImage 自然尺寸可能 != 窗口尺寸，按比例换算到底图坐标
     const scaleX = sourceImage.naturalWidth / window.innerWidth
     const scaleY = sourceImage.naturalHeight / window.innerHeight
-    const sx = pos.x * scaleX - SOURCE_SIZE / 2
-    const sy = pos.y * scaleY - SOURCE_SIZE / 2
+    const sx = samplePos.x * scaleX - SOURCE_SIZE / 2
+    const sy = samplePos.y * scaleY - SOURCE_SIZE / 2
     ctx.drawImage(sourceImage, sx, sy, SOURCE_SIZE, SOURCE_SIZE, 0, 0, SIZE, SIZE)
     try {
       const data = ctx.getImageData(SIZE / 2, SIZE / 2, 1, 1).data
-      setRgb([data[0], data[1], data[2]])
+      const next: [number, number, number] = [data[0], data[1], data[2]]
+      setRgb(function (prev) {
+        if (prev && prev[0] === next[0] && prev[1] === next[1] && prev[2] === next[2]) {
+          return prev
+        }
+        return next
+      })
     } catch {
-      // 跨域底图会抛 SecurityError，忽略 RGB
-      setRgb(null)
+      setRgb(function (prev) {
+        return prev === null ? prev : null
+      })
     }
-  }, [pos, sourceImage])
+  }
 
-  useEffect(() => {
-    if (!visible) return
-    async function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Shift') {
-        setColorFormat((f) => (f === 'hex' ? 'rgb' : 'hex'))
+  useEffect(
+    function () {
+      if (!visible) {
+        posRef.current = null
+        setPos(function (prev) {
+          return prev === null ? prev : null
+        })
+        setRgb(function (prev) {
+          return prev === null ? prev : null
+        })
+        return
       }
-      if (e.key === 'c' || e.key === 'C') {
-        e.preventDefault()
-        e.stopPropagation()
-        if (!rgb) return
-        const text =
-          colorFormat === 'hex'
-            ? rgbToHex(rgb[0], rgb[1], rgb[2])
-            : `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`
-        try {
-          await copyText(text)
-          setCopied(true)
-          setTimeout(() => setCopied(false), 1500)
-        } catch (e) {
-          console.warn('[Magnifier] Clipboard write failed:', e)
+
+      function onMove(e: MouseEvent) {
+        const next = { x: e.clientX, y: e.clientY }
+        const prev = posRef.current
+        if (prev && prev.x === next.x && prev.y === next.y) return
+        posRef.current = next
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = requestAnimationFrame(function () {
+          const current = posRef.current
+          if (!current) return
+          setPos(function (p) {
+            if (p && p.x === current.x && p.y === current.y) return p
+            return current
+          })
+          paint(current)
+        })
+      }
+
+      window.addEventListener('mousemove', onMove)
+      return function () {
+        window.removeEventListener('mousemove', onMove)
+        cancelAnimationFrame(rafRef.current)
+      }
+    },
+    // sourceImage 仅用于 paint 闭包；可见性变化时重绑即可
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visible, sourceImage]
+  )
+
+  useEffect(
+    function () {
+      if (!visible) return
+      function onKeyDown(e: KeyboardEvent) {
+        if (e.key === 'Shift') {
+          setColorFormat(function (f) {
+            return f === 'hex' ? 'rgb' : 'hex'
+          })
+        }
+        if (e.key === 'c' || e.key === 'C') {
+          e.preventDefault()
+          e.stopPropagation()
+          const current = posRef.current
+          if (!current || !rgb) return
+          const text =
+            colorFormat === 'hex'
+              ? rgbToHex(rgb[0], rgb[1], rgb[2])
+              : `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`
+          void copyText(text)
+            .then(function () {
+              setCopied(true)
+              setTimeout(function () {
+                setCopied(false)
+              }, 1500)
+            })
+            .catch(function (err) {
+              console.warn('[Magnifier] Clipboard write failed:', err)
+            })
         }
       }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [visible, rgb, colorFormat])
+      window.addEventListener('keydown', onKeyDown)
+      return function () {
+        window.removeEventListener('keydown', onKeyDown)
+      }
+    },
+    [visible, rgb, colorFormat]
+  )
 
   const color = rgb ? `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})` : 'transparent'
   const displayColor = rgb
@@ -152,19 +168,19 @@ export default function Magnifier({ sourceImage, visible, onClose }: MagnifierPr
       ? rgbToHex(rgb[0], rgb[1], rgb[2])
       : `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`
     : '—'
+  const layout = pos ? computePos(pos.x, pos.y) : null
 
   return (
     <AnimatePresence>
-      {visible && pos && (
+      {visible && pos && layout && (
         <motion.div
           className={styles.magnifier}
-          style={{ left: springX, top: springY, width: SIZE, pointerEvents: 'none' }}
+          style={{ left: layout.left, top: layout.top, width: SIZE, pointerEvents: 'none' }}
           onClick={onClose}
           initial={{ opacity: 0, scale: 0.82 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.82 }}
           transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}>
-          {/* 放大画布 + 十字准星 */}
           <div className={styles.magnifierCanvasWrap}>
             <canvas
               ref={canvasRef}
@@ -177,33 +193,17 @@ export default function Magnifier({ sourceImage, visible, onClose }: MagnifierPr
             <div className={styles.centerPixel} />
           </div>
 
-          {/* 信息面板 */}
           <div className={styles.magnifierPanel}>
-            {/* 颜色行 */}
             <div className={styles.magnifierColorRow}>
-              <motion.span
+              <span
                 className={styles.colorSwatch}
-                animate={{ backgroundColor: color }}
-                transition={{ duration: 0.18 }}
+                style={{ backgroundColor: color }}
               />
               <div className={styles.colorTextWrap}>
-                <AnimatePresence
-                  mode="popLayout"
-                  initial={false}>
-                  <motion.span
-                    key={displayColor}
-                    className={styles.colorText}
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 6 }}
-                    transition={{ duration: 0.14, ease: 'easeOut' }}>
-                    {displayColor}
-                  </motion.span>
-                </AnimatePresence>
+                <span className={styles.colorText}>{displayColor}</span>
               </div>
             </div>
 
-            {/* 坐标行 */}
             <div className={styles.magnifierMeta}>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>POS</span>
@@ -213,49 +213,21 @@ export default function Magnifier({ sourceImage, visible, onClose }: MagnifierPr
               </div>
             </div>
 
-            {/* 快捷键提示行 */}
             <div className={styles.magnifierHints}>
-              <AnimatePresence initial={false}>
-                {copied ? (
-                  <motion.div
-                    key="copied"
-                    className={styles.copiedBanner}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 5 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}>
-                    ✓ 已复制
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="hints"
-                    className={styles.hintsRow}
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}>
-                    <span className={styles.hintItem}>
-                      <kbd className={styles.kbd}>Shift</kbd>
-                      <AnimatePresence
-                        mode="popLayout"
-                        initial={false}>
-                        <motion.span
-                          key={colorFormat}
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 4 }}
-                          transition={{ duration: 0.12 }}>
-                          {colorFormat === 'hex' ? 'RGB' : 'HEX'}
-                        </motion.span>
-                      </AnimatePresence>
-                    </span>
-                    <span className={styles.hintItem}>
-                      <kbd className={styles.kbd}>C</kbd>
-                      <span>复制</span>
-                    </span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {copied ? (
+                <div className={styles.copiedBanner}>✓ 已复制</div>
+              ) : (
+                <div className={styles.hintsRow}>
+                  <span className={styles.hintItem}>
+                    <kbd className={styles.kbd}>Shift</kbd>
+                    <span>{colorFormat === 'hex' ? 'RGB' : 'HEX'}</span>
+                  </span>
+                  <span className={styles.hintItem}>
+                    <kbd className={styles.kbd}>C</kbd>
+                    <span>复制</span>
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>

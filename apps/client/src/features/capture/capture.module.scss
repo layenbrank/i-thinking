@@ -10,6 +10,15 @@
   isolation: isolate;
 }
 
+.loadingMask {
+  position: absolute;
+  inset: 0;
+  z-index: 150;
+  background: rgba(0, 0, 0, 0.72);
+  pointer-events: auto;
+  cursor: wait;
+}
+
 /* 错误态：居中错误卡片（截图链路失败可见化） */
 .errorPanel {
   position: absolute;
