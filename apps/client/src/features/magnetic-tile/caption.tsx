@@ -8,6 +8,8 @@ import styles from '@/features/magnetic-tile/caption.module.scss'
 
 interface CaptionProps {
   className?: string
+  /** 是否显示最大化/恢复键；默认 true（false 时仅保留关闭键） */
+  expandable?: boolean
   /** 顶栏左侧主区域（标题、筛选、视图切换等） */
   start?: ReactNode
   /** 应用扩展操作，渲染在窗口控制键左侧（靠右） */
@@ -15,6 +17,7 @@ interface CaptionProps {
 }
 
 function Caption(props: CaptionProps) {
+  const { expandable = true } = props
   const { fullscreen, onUpdateFullscreen, onUpdateVisible } = useContext(OverlayContext)
 
   function close() {
@@ -31,26 +34,30 @@ function Caption(props: CaptionProps) {
         <Space.Compact
           orientation="horizontal"
           className={styles.cluster}>
-          <Tooltip
-            title={fullscreen ? '恢复' : '最大化'}
-            placement="bottom">
-            <Button
-              type="text"
-              data-region="false"
-              aria-label={fullscreen ? '恢复' : '最大化'}
-              className={clsx([styles.button, styles.expand])}
-              onClick={function () {
-                onUpdateFullscreen(!fullscreen)
-              }}
-              icon={
-                <Icon
-                  icon={fullscreen ? 'ant-design:switcher-outlined' : 'ant-design:border-outlined'}
-                  width={14}
-                  height={14}
-                />
-              }
-            />
-          </Tooltip>
+          {expandable ? (
+            <Tooltip
+              title={fullscreen ? '恢复' : '最大化'}
+              placement="bottom">
+              <Button
+                type="text"
+                data-region="false"
+                aria-label={fullscreen ? '恢复' : '最大化'}
+                className={clsx([styles.button, styles.expand])}
+                onClick={function () {
+                  onUpdateFullscreen(!fullscreen)
+                }}
+                icon={
+                  <Icon
+                    icon={
+                      fullscreen ? 'ant-design:switcher-outlined' : 'ant-design:border-outlined'
+                    }
+                    width={14}
+                    height={14}
+                  />
+                }
+              />
+            </Tooltip>
+          ) : null}
           <Tooltip
             title="关闭"
             placement="bottomRight">
