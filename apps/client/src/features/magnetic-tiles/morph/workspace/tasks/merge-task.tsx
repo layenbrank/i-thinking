@@ -1,4 +1,5 @@
 import { open as dialogOpen, save as dialogSave } from '@tauri-apps/plugin-dialog'
+import { Segmented, Typography, type SegmentedProps } from 'antd'
 import { useEffect, useState } from 'react'
 
 import { PathField } from '@/features/magnetic-tiles/morph/workspace/tasks/path-field'
@@ -8,6 +9,9 @@ import { MorphIpc } from '@/lib/morph-ipc'
 import { useMorphStore } from '@/stores/morph.ts'
 
 function MergeTask() {
+  const mode = useMorphStore(function (s) {
+    return s.mergeModal.mode
+  })
   const inputs = useMorphStore(function (s) {
     return s.mergeModal.inputs
   })
@@ -29,6 +33,14 @@ function MergeTask() {
   const toExecuteMerge = useMorphStore(function (s) {
     return s.toExecuteMerge
   })
+  const toExecuteStack = useMorphStore(function (s) {
+    return s.toExecuteStack
+  })
+  const file = useMorphStore(function (s) {
+    return s.file
+  })
+  const fileName = file?.path.split(/[\\/]/).pop() ?? ''
+  const isPages = mode === 'pages'
 
   const inputsKey = inputs.join('\0')
   const [coverState, setCoverState] = useState<{
@@ -40,7 +52,7 @@ function MergeTask() {
 
   useEffect(
     function () {
-      if (!inputs.length) return
+      if (isPages || !inputs.length) return
       const key = inputs.join('\0')
       let cancelled = false
       void Promise.all(
@@ -64,7 +76,7 @@ function MergeTask() {
         cancelled = true
       }
     },
-    [inputs, inputsKey]
+    [isPages, inputs, inputsKey]
   )
 
   async function onAddFiles() {
@@ -108,11 +120,21 @@ function MergeTask() {
     })
   }
 
-  const canSubmit = inputs.length >= 2 && Boolean(output)
-  const meta =
-    inputs.length === 0
+  const canSubmit = isPages
+    ? Boolean(file) && Boolean(output)
+    : inputs.length >= 2 && Boolean(output)
+  const meta = isPages
+    ? file
+      ? `当前文件：${fileName}`
+      : '未打开文件'
+    : inputs.length === 0
       ? '拖入或添加至少 2 个 PDF'
       : `共 ${inputs.length} 个文件 · 拖拽卡片调整顺序`
+
+  function onUpdateMode(value: SegmentedProps['value']) {
+    if (value !== 'files' && value !== 'pages') return
+    toPatchMerge({ mode: value, error: null })
+  }
 
   return (
     <OperationStage
@@ -121,36 +143,82 @@ function MergeTask() {
       meta={meta}
       onBack={toCloseOperation}
       extra={
-        <PathField
-          compact
-          label="输出文件"
-          value={output}
-          placeholder="选择合并输出路径"
-          onBrowse={function () {
-            void onSelectOutput()
-          }}
-        />
+        <>
+          <Segmented
+            value={mode}
+            onChange={onUpdateMode}
+            options={[
+              { label: '合并文件', value: 'files' },
+              { label: '合并页面', value: 'pages' }
+            ]}
+          />
+          <PathField
+            compact
+            label="输出文件"
+            value={output}
+            placeholder="选择合并输出路径"
+            onBrowse={function () {
+              void onSelectOutput()
+            }}
+          />
+        </>
       }
       hint={
         error ??
-        (canSubmit ? undefined : inputs.length < 2 ? '至少添加 2 个 PDF' : '请选择输出路径')
+        (canSubmit
+          ? undefined
+          : isPages
+            ? file
+              ? '请选择输出路径'
+              : '请先在左侧打开 PDF'
+            : inputs.length < 2
+              ? '至少添加 2 个 PDF'
+              : '请选择输出路径')
       }
       submitLabel="开始合并"
       submitDisabled={!canSubmit}
       submitLoading={loading}
       onSubmit={function () {
+        if (isPages) {
+          void toExecuteStack()
+          return
+        }
         void toExecuteMerge()
       }}>
-      <MergeBoard
-        inputs={inputs}
-        covers={covers}
-        isCoverLoading={isCoverLoading}
-        onReorder={onReorder}
-        onRemove={onRemove}
-        onAdd={function () {
-          void onAddFiles()
-        }}
-      />
+      {isPages ? (
+        <div
+          style={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            textAlign: 'center'
+          }}>
+          {file ? (
+            <>
+              <Typography.Text strong>{fileName}</Typography.Text>
+              <Typography.Text type="secondary">
+                相邻两页将上下拼接为一页（输出为图片页）
+              </Typography.Text>
+            </>
+          ) : (
+            <Typography.Text type="secondary">请先在左侧打开 PDF</Typography.Text>
+          )}
+        </div>
+      ) : (
+        <MergeBoard
+          inputs={inputs}
+          covers={covers}
+          isCoverLoading={isCoverLoading}
+          onReorder={onReorder}
+          onRemove={onRemove}
+          onAdd={function () {
+            void onAddFiles()
+          }}
+        />
+      )}
     </OperationStage>
   )
 }

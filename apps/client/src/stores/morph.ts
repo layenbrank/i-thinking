@@ -67,6 +67,8 @@ interface MorphState {
   // Doc operations (edit-first; activeOperation drives UI, not a tools-app mode)
   activeOperation: Morph.Operation | null
   mergeModal: {
+    /** files：多文件合并；pages：当前文件相邻页面拼接（stack） */
+    mode: 'files' | 'pages'
     inputs: string[]
     output: string
     loading: boolean
@@ -144,6 +146,7 @@ interface MorphState {
   toCloseOperation: () => void
   toPatchMerge: (patch: Partial<MorphState['mergeModal']>) => void
   toExecuteMerge: () => Promise<void>
+  toExecuteStack: () => Promise<void>
   toPatchSplit: (patch: Partial<MorphState['splitModal']>) => void
   toExecuteSplit: () => Promise<void>
   toPatchConvert: (patch: Partial<MorphState['convertModal']>) => void
@@ -215,7 +218,7 @@ const useMorphStore = create<MorphState>()(
         toRedoStack: [],
 
         activeOperation: null,
-        mergeModal: { inputs: [], output: '', loading: false, error: null },
+        mergeModal: { mode: 'files', inputs: [], output: '', loading: false, error: null },
         splitModal: {
           mode: 'ranges',
           ranges: '',
@@ -669,6 +672,7 @@ const useMorphStore = create<MorphState>()(
             s.summaryVisible = false
             s.activeOperation = operation
             if (operation === 'merge') {
+              s.mergeModal.mode = 'files'
               s.mergeModal.inputs = files.map(function (f) {
                 return f.path
               })
@@ -735,6 +739,41 @@ const useMorphStore = create<MorphState>()(
               s.mergeModal.error = msg
             })
             antdMessage.error(`合并失败：${msg}`)
+          } finally {
+            setter((s) => {
+              s.mergeModal.loading = false
+            })
+          }
+        },
+
+        async toExecuteStack() {
+          const { mergeModal, file } = getter()
+          if (!file) {
+            setter((s) => {
+              s.mergeModal.error = '请先打开 PDF'
+            })
+            return
+          }
+          if (!mergeModal.output) {
+            setter((s) => {
+              s.mergeModal.error = '请选择输出路径'
+            })
+            return
+          }
+          setter((s) => {
+            s.mergeModal.loading = true
+            s.mergeModal.error = null
+          })
+          try {
+            const outPath = await MorphIpc.toStack(file.path, mergeModal.output)
+            antdMessage.success(`拼接完成 → ${outPath}`)
+            getter().toCloseOperation()
+          } catch (e) {
+            const msg = String(e)
+            setter((s) => {
+              s.mergeModal.error = msg
+            })
+            antdMessage.error(`拼接失败：${msg}`)
           } finally {
             setter((s) => {
               s.mergeModal.loading = false
