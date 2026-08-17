@@ -5,7 +5,6 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import { MAGNETIC_TILES } from '@/constants/magnetic-tile/seeds'
 import { MIRRORS } from '@/constants/mirror'
 
 type MirrorWrite = Mirror.Write
@@ -184,18 +183,6 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
 
       const [first] = getters().mirrors
       if (!first) return
-
-      for (const mirror of getters().mirrors) {
-        const tiles = await invoke<MagneticTile[]>('magnetic-tile:read', {
-          params: { mirrorID: mirror.id }
-        })
-        if (!isEmpty(tiles)) continue
-        await getters().toInsertMagneticTile(
-          MAGNETIC_TILES.map(function (tile, index) {
-            return { ...tile, mirrorID: mirror.id, index }
-          })
-        )
-      }
 
       const activeMirror = getters().active.mirror
       await getters().toReadMirror(activeMirror?.id ?? first.id)
