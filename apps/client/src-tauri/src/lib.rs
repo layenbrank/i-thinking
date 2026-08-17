@@ -22,6 +22,8 @@ pub mod overlay {
 pub mod capture {
     pub mod command;
     pub mod schema;
+    pub mod state;
+    pub use state::CapturePending;
 }
 
 pub mod ui {
