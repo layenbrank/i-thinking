@@ -46,6 +46,12 @@ async function toMerge(paths: string[], dest: string): Promise<string> {
   return parsePath(resp)
 }
 
+/** 相邻两页上下拼接为一页；scale 默认 2.0 */
+async function toStack(path: string, dest: string, scale = 2): Promise<string> {
+  const resp = await ipcInvoke('morph', { path, dest, scale }, 'stack')
+  return parsePath(resp)
+}
+
 /** ranges 与 limit 二选一，统一走 action `split` */
 async function toSplit(path: string, dir: string, options: SplitOptions): Promise<string[]> {
   const args =
@@ -103,6 +109,7 @@ const MorphIpc = {
   toMatch,
   toExport,
   toMerge,
+  toStack,
   toSplit,
   toImages,
   toDocument,
