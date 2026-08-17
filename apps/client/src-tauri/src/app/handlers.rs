@@ -32,6 +32,7 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         capture::command::capture_screenshot,
         capture::command::capture_open,
         capture::command::capture_close,
+        capture::command::capture_take_pending,
         overlay::command::overlay_ensure,
         overlay::command::overlay_hide,
         overlay::command::overlay_update_mode,
