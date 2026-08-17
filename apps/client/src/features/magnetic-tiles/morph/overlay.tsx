@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Suspense, lazy, useContext } from 'react'
+import { Suspense, lazy, useContext, useEffect } from 'react'
 
 import {
   MagneticTile,
@@ -15,7 +15,15 @@ const MorphWorkspace = lazy(function () {
 })
 
 export default function Overlay(props: OverlayControlProps) {
-  const { onUpdateVisible } = useContext(OverlayContext)
+  const { visible, onUpdateVisible, onUpdateFullscreen } = useContext(OverlayContext)
+
+  // morph 打开即全屏，且不提供退出全屏入口
+  useEffect(
+    function () {
+      if (visible) onUpdateFullscreen(true)
+    },
+    [visible, onUpdateFullscreen]
+  )
 
   return (
     <MagneticTile.Overlay

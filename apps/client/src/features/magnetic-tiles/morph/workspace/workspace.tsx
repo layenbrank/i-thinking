@@ -25,8 +25,8 @@ export default function Workspace() {
           className={styles.splitter}>
           <Splitter.Panel
             size={sizes[0]}
-            min="20%"
-            max="50%"
+            min={200}
+            max="30%"
             resizable>
             <Navigation />
           </Splitter.Panel>

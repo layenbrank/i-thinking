@@ -58,6 +58,7 @@ function Caption() {
 
   return (
     <MagneticTile.Caption
+      expandable={false}
       className={clsx(styles.caption, CSSVAR.KEY)}
       start={
         <div className={styles.chrome}>
