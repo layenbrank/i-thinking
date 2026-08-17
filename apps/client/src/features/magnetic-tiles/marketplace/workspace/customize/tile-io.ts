@@ -6,10 +6,6 @@ import type { MagneticTileWrite } from '@/stores/mirror.ts'
 
 const FILE_FILTER = [{ name: 'JSON', extensions: ['json'] }]
 
-function isTauri() {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
-}
-
 function formatFilename() {
   const stamp = timeSphere.now().format('YYYY-MM-DD-HH-mm-ss')
   return `magnetic-tiles-${stamp}.json`
@@ -19,24 +15,12 @@ function formatFilename() {
 async function exportTiles(tiles: MagneticTile[]): Promise<boolean> {
   const content = JSON.stringify(tiles, null, 2)
   const filename = formatFilename()
-
-  if (isTauri()) {
-    const path = await save({
-      defaultPath: filename,
-      filters: FILE_FILTER
-    })
-    if (!path) return false
-    await writeTextFile(path, content)
-    return true
-  }
-
-  const blob = new Blob([content], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = filename
-  anchor.click()
-  URL.revokeObjectURL(url)
+  const path = await save({
+    defaultPath: filename,
+    filters: FILE_FILTER
+  })
+  if (!path) return false
+  await writeTextFile(path, content)
   return true
 }
 
