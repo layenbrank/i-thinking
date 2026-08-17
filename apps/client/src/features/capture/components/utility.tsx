@@ -2,7 +2,7 @@ import { Icon } from '@iconify/react/offline'
 import { ColorPicker, Divider, Slider, theme, Tooltip } from 'antd'
 import { clsx } from 'clsx'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { Glide } from '@/components/glide/glide'
 import {
@@ -93,8 +93,8 @@ export default function Utility(props: UtilityProps) {
 
   const { token } = theme.useToken()
 
-  // 主色：仅在点击预设色板时更新，衍生色 / Picker 自定义不影响
-  const [mainColor, setMainColor] = useState(color)
+  // 主色锚点：点击预设色板时写入；衍生色 / 自定义色不改锚点
+  const [pinnedMainColor, setPinnedMainColor] = useState(color)
 
   // 属性面板开合：仅在选中工具后展开（不再独立使用 visible state）
   const visible = active !== null
@@ -110,22 +110,26 @@ export default function Utility(props: UtilityProps) {
     },
     [token.colorPrimary]
   )
+
+  // 外部 color 若本身是预设主色（如切换选中对象），直接用作主色；否则沿用锚点
+  const presetMatch = useMemo(
+    function () {
+      return (
+        presetHues.find(function (c) {
+          return c.toUpperCase() === color.toUpperCase()
+        }) ?? null
+      )
+    },
+    [color, presetHues]
+  )
+  const mainColor = presetMatch ?? pinnedMainColor
+
   // 衍生色阶：随 mainColor 重算（选衍生色 / 自定义时不会整段变化）
   const derivedShades = useMemo(
     function () {
       return generateDerivedShades(mainColor)
     },
     [mainColor]
-  )
-
-  // 外部重置 color（如切换选中对象）时，若新 color 落在预设主色中则同步 mainColor
-  useEffect(
-    function () {
-      if (presetHues.some((c) => c.toUpperCase() === color.toUpperCase())) {
-        setMainColor(color)
-      }
-    },
-    [color, presetHues]
   )
 
   // 自定义颜色判定：color 不在预设主色也不在衍生色阶中即为自定义
@@ -155,7 +159,10 @@ export default function Utility(props: UtilityProps) {
       let left = selection.x
       if (left + rect.width + GAP > W) left = W - rect.width - GAP
       if (left < GAP) left = GAP
-      setPosition({ top, left })
+      setPosition(function (prev) {
+        if (prev.top === top && prev.left === left) return prev
+        return { top, left }
+      })
     },
     [selection, active]
   )
@@ -270,7 +277,7 @@ export default function Utility(props: UtilityProps) {
               </Tooltip>
               <Tooltip title="复制">
                 <motion.button
-                  className={clsx(styles.button, styles.primary)}
+                  className={styles.button}
                   whileTap={{ scale: 0.9 }}
                   onClick={onCopy}>
                   <Icon
@@ -294,7 +301,7 @@ export default function Utility(props: UtilityProps) {
               </Tooltip>
               <Tooltip title="保存">
                 <motion.button
-                  className={clsx(styles.button, styles.primary)}
+                  className={styles.button}
                   whileTap={{ scale: 0.9 }}
                   onClick={onSave}>
                   <Icon
@@ -353,7 +360,7 @@ export default function Utility(props: UtilityProps) {
                                     mainColor.toUpperCase() === value.toUpperCase()
                                 })}
                                 onClick={() => {
-                                  setMainColor(value)
+                                  setPinnedMainColor(value)
                                   onUpdateColor(value)
                                 }}
                                 style={{

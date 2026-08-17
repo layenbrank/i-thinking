@@ -1,34 +1,200 @@
 import { clsx } from 'clsx'
 import type Konva from 'konva'
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { Layer, Image as ReImage, Stage, Transformer, type KonvaNodeEvents } from 'react-konva'
+import { Layer, Image as ReImage, Rect, Stage, Transformer, type KonvaNodeEvents } from 'react-konva'
 
-import Graphics, { SpotlightMask, type GraphicsProps } from '@/features/capture/components/graphics'
+import {
+  ANCHOR_SIZE,
+  BORDER_STROKE,
+  BORDER_WIDTH,
+  ROTATE_OFFSET,
+  cornerAnchor
+} from '@/features/capture/components/corner-handle'
+import Graphics, {
+  SpotlightMask,
+  bakeTransformSize,
+  boundsContainsPoint,
+  boundsIntersect,
+  findDragPeerIDs,
+  findGraphicsBounds,
+  findKonvaByID,
+  findUnionBounds,
+  type Bounds,
+  type GraphicsProps
+} from '@/features/capture/components/graphics'
 import { SelectionOverlay, type SelectionOverlayHandle } from '@/features/capture/components/selection-overlay'
 
 import styles from '@/features/capture/components/annotation.module.scss'
+
+/** 橡皮筋视为有效框选的最小对角线像素 */
+const MIN_MARQUEE_PX = 3
+
+interface AnnotationContextMenuPayload {
+  id: string
+  clientX: number
+  clientY: number
+  /** 为 true 时上层不得改写当前多选 */
+  keepSelection?: boolean
+}
 
 interface AnnotationProps {
   annotations: GraphicsProps[]
   /** 当前选中的标注 id（null 表示未选中） */
   selectedID: string | null
+  /** 多选 id（Ctrl/Meta 叠加；群组点选会展开） */
+  selectedIDs: string[]
   /** 是否启用对已有标注的交互（editing 阶段 = true） */
   interactive: boolean
   /** 滤镜底图（mosaic / blur 共用），也会作为 Stage 背景 */
   sourceImage: HTMLImageElement | null
   /** 裁剪选区：不为空时，标注层会裁剪到该区域内 */
   clipRect: { x: number; y: number; w: number; h: number } | null
-  onSelect: (id: string | null) => void
-  onChange: (next: GraphicsProps) => void
+  onSelect: (id: string | null, options?: { additive?: boolean }) => void
+  /** 橡皮筋多选结果（可为空数组表示失焦） */
+  onSelectMany?: (ids: string[]) => void
+  onChange: (next: GraphicsProps, options?: { history?: boolean }) => void
+  /** 多节点 Transform 结束批量回写 */
+  onBatchChange?: (nexts: GraphicsProps[]) => void
   onRelease: KonvaNodeEvents['onMouseUp']
   onPress: KonvaNodeEvents['onMouseDown']
   onMove: KonvaNodeEvents['onMouseMove']
   onEditStart: (id: string, text: string) => void
+  /** 右键命中标注，或落在当前选中并集 AABB 内 */
+  onContextMenuAnnotation?: (payload: AnnotationContextMenuPayload) => void
   selection: { x: number; y: number; w: number; h: number } | null
   phase: 'selecting' | 'annotating' | 'editing'
   onSelectionChange: (selection: { x: number; y: number; w: number; h: number }) => void
   graphicsActive?: boolean
   onClose: () => void
+}
+
+/** 自命中节点向上查找 name=annotation 的 Group */
+function findAnnotationNode(target: Konva.Node): Konva.Node | null {
+  let node: Konva.Node | null = target
+  while (node) {
+    if (node.name() === 'annotation') return node
+    node = node.getParent()
+  }
+  return null
+}
+
+/** 是否点在 Transformer / 裁剪手柄上（这些位置不启动橡皮筋） */
+function isMarqueeBlockedTarget(target: Konva.Node): boolean {
+  let node: Konva.Node | null = target
+  while (node) {
+    if (node.getClassName() === 'Transformer') return true
+    if (node.name() === 'selection-overlay-layer') return true
+    node = node.getParent()
+  }
+  return false
+}
+
+/** 命中是否为当前已选中的标注（已选中则走拖拽，不抢橡皮筋） */
+function isSelectedAnnotationTarget(target: Konva.Node, selectedIDs: string[]): boolean {
+  const annotation = findAnnotationNode(target)
+  if (!annotation) return false
+  return selectedIDs.includes(annotation.id())
+}
+
+/** 用 Konva 节点真实包围盒做相交（比纯 points AABB 更准） */
+function findNodeBounds(stage: Konva.Stage, id: string): Bounds | null {
+  const node = findKonvaByID(stage, id)
+  if (!node) return null
+  const rect = node.getClientRect({ relativeTo: stage })
+  if (rect.width <= 0 && rect.height <= 0) return null
+  return { x: rect.x, y: rect.y, w: Math.max(rect.width, 1), h: Math.max(rect.height, 1) }
+}
+
+/** 右键几何探测：含锁定项（listening=false 时仍可解锁） */
+function findAnnotationAtPoint(
+  stage: Konva.Stage,
+  annotations: GraphicsProps[],
+  pt: { x: number; y: number }
+): GraphicsProps | null {
+  // 从上到下（数组末尾更靠上）
+  for (let i = annotations.length - 1; i >= 0; i -= 1) {
+    const annotation = annotations[i]
+    if (!annotation) continue
+    const bounds = findNodeBounds(stage, annotation.id) ?? findGraphicsBounds(annotation)
+    if (bounds && boundsContainsPoint(bounds, pt.x, pt.y)) {
+      return annotation
+    }
+  }
+  return null
+}
+
+function clampPointToClip(
+  pt: { x: number; y: number },
+  clip: { x: number; y: number; w: number; h: number } | null
+): { x: number; y: number } {
+  if (!clip || clip.w <= 0 || clip.h <= 0) return pt
+  return {
+    x: Math.max(clip.x, Math.min(pt.x, clip.x + clip.w)),
+    y: Math.max(clip.y, Math.min(pt.y, clip.y + clip.h))
+  }
+}
+
+function findSelectedUnionBounds(
+  annotations: GraphicsProps[],
+  selectedIDs: string[],
+  stage?: Konva.Stage | null
+): Bounds | null {
+  const idSet = new Set(selectedIDs)
+  const boxes: Bounds[] = []
+  for (const annotation of annotations) {
+    if (!idSet.has(annotation.id)) continue
+    const box =
+      (stage ? findNodeBounds(stage, annotation.id) : null) ?? findGraphicsBounds(annotation)
+    if (box) boxes.push(box)
+  }
+  return findUnionBounds(boxes)
+}
+
+/** 橡皮筋命中：输出原始命中 id（含缝隙：并集相交则推入该组任一成员）；整组展开由 expandSelectionIDs 负责 */
+function findMarqueeHitIDs(
+  annotations: GraphicsProps[],
+  box: Bounds,
+  stage: Konva.Stage | null
+): string[] {
+  const ids: string[] = []
+  const seen = new Set<string>()
+  const groupBoxes = new Map<string, Bounds[]>()
+
+  function pushID(id: string) {
+    if (seen.has(id)) return
+    seen.add(id)
+    ids.push(id)
+  }
+
+  for (const annotation of annotations) {
+    if (annotation.locked) continue
+    const bounds =
+      (stage ? findNodeBounds(stage, annotation.id) : null) ?? findGraphicsBounds(annotation)
+    if (!bounds) continue
+    if (annotation.groupID) {
+      const list = groupBoxes.get(annotation.groupID) ?? []
+      list.push(bounds)
+      groupBoxes.set(annotation.groupID, list)
+    }
+    if (boundsIntersect(bounds, box)) pushID(annotation.id)
+  }
+
+  // 缝隙：并集相交但未点中任一单员时，推入该组第一个未锁定成员
+  groupBoxes.forEach(function (boxes, groupID) {
+    const union = findUnionBounds(boxes)
+    if (!union || !boundsIntersect(union, box)) return
+    const already = annotations.some(function (annotation) {
+      return annotation.groupID === groupID && seen.has(annotation.id)
+    })
+    if (already) return
+    for (const annotation of annotations) {
+      if (annotation.locked || annotation.groupID !== groupID) continue
+      pushID(annotation.id)
+      return
+    }
+  })
+
+  return ids
 }
 
 /** 暴露给父组件的画布渲染能力 */
@@ -47,15 +213,20 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       annotations,
       clipRect,
       interactive,
-      selectedID,
+      selectedIDs,
       sourceImage,
       onChange,
       onSelect,
+      onSelectMany,
       onPress,
       onMove,
       onRelease,
       onEditStart,
-      onClose
+      onContextMenuAnnotation,
+      onClose,
+      onBatchChange,
+      phase,
+      graphicsActive
     } = props
 
     // 底图来自 Tauri 真实截图；加载中为 null，由上层黑罩/错误卡片接管
@@ -67,6 +238,91 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
     const [originalText, setOriginalText] = useState('')
     const [editValue, setEditValue] = useState('')
     const composingRef = useRef(false)
+    /** 橡皮筋起点；非空表示正在框选（兼作 marqueeActive） */
+    const marqueeStartRef = useRef<{ x: number; y: number } | null>(null)
+    const marqueeBoxRef = useRef<Bounds | null>(null)
+    /** 有效框选结束后吞掉同一次手势的 click，避免多选被点选冲掉 */
+    const ignoreSelectClickRef = useRef(false)
+    const [marqueeBox, setMarqueeBox] = useState<Bounds | null>(null)
+    const annotationsRef = useRef(annotations)
+    annotationsRef.current = annotations
+    const clipRectRef = useRef(clipRect)
+    clipRectRef.current = clipRect
+    const onSelectRef = useRef(onSelect)
+    onSelectRef.current = onSelect
+    const onSelectManyRef = useRef(onSelectMany)
+    onSelectManyRef.current = onSelectMany
+
+    /** 窗口级橡皮筋监听（稳定函数引用，便于 add/remove） */
+    const marqueeApiRef = useRef<{
+      move: (native: MouseEvent) => void
+      up: () => void
+      finish: () => void
+    } | null>(null)
+    if (!marqueeApiRef.current) {
+      marqueeApiRef.current = {
+        move(native: MouseEvent) {
+          const stage = stageRef.current
+          if (!stage || !marqueeStartRef.current) return
+          const rect = stage.container().getBoundingClientRect()
+          const scaleX = stage.width() / Math.max(rect.width, 1)
+          const scaleY = stage.height() / Math.max(rect.height, 1)
+          const pt = clampPointToClip(
+            {
+              x: (native.clientX - rect.left) * scaleX,
+              y: (native.clientY - rect.top) * scaleY
+            },
+            clipRectRef.current
+          )
+          const start = marqueeStartRef.current
+          const box: Bounds = {
+            x: Math.min(start.x, pt.x),
+            y: Math.min(start.y, pt.y),
+            w: Math.abs(pt.x - start.x),
+            h: Math.abs(pt.y - start.y)
+          }
+          marqueeBoxRef.current = box
+          setMarqueeBox(box)
+        },
+        finish() {
+          const api = marqueeApiRef.current
+          if (!api || !marqueeStartRef.current) return
+          marqueeStartRef.current = null
+          window.removeEventListener('mousemove', api.move)
+          window.removeEventListener('mouseup', api.up)
+          const box = marqueeBoxRef.current
+          marqueeBoxRef.current = null
+          setMarqueeBox(null)
+          const diag = box ? Math.hypot(box.w, box.h) : 0
+          // 微移：只收起框选，点选交给 Graphics onClick / 空白失焦
+          if (!box || diag < MIN_MARQUEE_PX) return
+          const ids = findMarqueeHitIDs(annotationsRef.current, box, stageRef.current)
+          // mouseup 后图形还会再发 click，不吞掉会把多选冲成单选
+          ignoreSelectClickRef.current = true
+          window.setTimeout(function () {
+            ignoreSelectClickRef.current = false
+          }, 0)
+          if (onSelectManyRef.current) {
+            onSelectManyRef.current(ids)
+          } else if (ids.length === 0) {
+            onSelectRef.current(null)
+          } else {
+            onSelectRef.current(ids[ids.length - 1] ?? null)
+          }
+        },
+        up() {
+          marqueeApiRef.current?.finish()
+        }
+      }
+    }
+    const marqueeApi = marqueeApiRef.current
+
+    useEffect(function () {
+      return function () {
+        window.removeEventListener('mousemove', marqueeApi.move)
+        window.removeEventListener('mouseup', marqueeApi.up)
+      }
+    }, [marqueeApi])
 
     /** 视口尺寸：跟随 window resize 同步，保证 Stage / 共享暗罩自适应 */
     const [viewport, setViewport] = useState<{ width: number; height: number }>(function () {
@@ -82,6 +338,23 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       }
     }, [])
 
+    /**
+     * 用系统 DPR 对齐：stage 逻辑尺寸 = 截图像素 / dpr，canvas 缓冲与 PNG 1:1，
+     * 避免按 window 尺寸 × 近似 scale 产生亚像素再采样发糊。
+     * 底图必须画在 Konva 上（勿改 HTML backdrop + 透明 Stage，会丢框选）。
+     * 详见：apps/client/docs/capture-sharpness-and-selection.md
+     */
+    const dpr = Math.max(1, window.devicePixelRatio || 1)
+    const stageWidth =
+      background && background.naturalWidth > 0
+        ? background.naturalWidth / dpr
+        : viewport.width
+    const stageHeight =
+      background && background.naturalHeight > 0
+        ? background.naturalHeight / dpr
+        : viewport.height
+    const pixelRatio = dpr
+
     useImperativeHandle(
       ref,
       function () {
@@ -89,7 +362,6 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
           renderPng() {
             const stage = stageRef.current
             if (!stage) return null
-            // 渲染前临时隐藏 Transformer，避免控制点出现在最终图
             const tr = transformerRef.current
             if (tr) tr.visible(false)
             const maskLayers = stage.find(function (node: Konva.Node) {
@@ -105,7 +377,8 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
               width?: number
               height?: number
             } = {
-              pixelRatio: Math.max(2, window.devicePixelRatio || 1)
+              // 与 Stage / 截图 DPR 对齐，导出物理像素与屏幕一致
+              pixelRatio
             }
             if (clipRect && clipRect.w > 0 && clipRect.h > 0) {
               opts.x = clipRect.x
@@ -131,36 +404,66 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
           }
         }
       },
-      [clipRect, annotations]
+      [clipRect, annotations, pixelRatio]
     )
 
-    /** 选中态变化时把 Transformer 挂到对应 Group 上 */
+    /** 选中态：挂载全部未锁定选中节点到 Transformer（支持整组变换） */
     useEffect(
       function () {
         const tr = transformerRef.current
         const stage = stageRef.current
         if (!tr || !stage) return
-        // 编辑文字时隐藏 Transformer
         if (editingID) {
           tr.nodes([])
           tr.getLayer()?.batchDraw()
           return
         }
-        if (!selectedID) {
+        if (selectedIDs.length === 0) {
           tr.nodes([])
           tr.getLayer()?.batchDraw()
           return
         }
-        const node = stage.findOne<Konva.Node>('#' + selectedID)
-        if (!node) {
-          tr.nodes([])
-        } else {
-          tr.nodes([node])
+        const nodes: Konva.Node[] = []
+        for (const id of selectedIDs) {
+          const annotation = annotations.find(function (a) {
+            return a.id === id
+          })
+          if (annotation?.locked) continue
+          const node = findKonvaByID(stage, id)
+          if (node) nodes.push(node)
         }
+        tr.nodes(nodes)
         tr.getLayer()?.batchDraw()
       },
-      [selectedID, annotations, editingID]
+      [selectedIDs, annotations, editingID]
     )
+
+    function handleTransformerEnd() {
+      const tr = transformerRef.current
+      if (!tr) return
+      const nodes = tr.nodes()
+      const updates: GraphicsProps[] = []
+      for (const node of nodes) {
+        const id = node.id()
+        const propsForNode = annotations.find(function (a) {
+          return a.id === id
+        })
+        if (!propsForNode) continue
+        const next = bakeTransformSize(node, propsForNode)
+        if (next) updates.push(next)
+      }
+      if (updates.length > 0) {
+        if (onBatchChange) {
+          onBatchChange(updates)
+        } else {
+          for (const item of updates) {
+            onChange(item, { history: true })
+          }
+        }
+      }
+      tr.forceUpdate()
+      tr.getLayer()?.batchDraw()
+    }
 
     function handleClose() {
       onClose?.()
@@ -177,6 +480,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       setEditingID(id)
       setOriginalText(text)
       setEditValue(text)
+      onEditStart(id, text)
     }
 
     function handleEditCommit(value: string) {
@@ -196,9 +500,9 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       onSelect(null)
     }
 
-    /** Stage 级 mouseMove：优先转发给选区 overlay 驱动手柄拖拽，再回传标注层 */
+    /** Stage 级 mouseMove：选区手柄 / 标注层（框选跟踪只走 window） */
     function handleStageMouseMove(event: Konva.KonvaEventObject<MouseEvent>) {
-      const stage = event.target.getStage()
+      const stage = stageRef.current ?? event.target.getStage()
       if (stage) {
         const pt = stage.getPointerPosition()
         if (pt) selectionOverlayRef.current?.handleStageMouseMove(pt)
@@ -206,17 +510,53 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
       onMove?.(event)
     }
 
-    /** Stage 级 mouseUp：先通知 overlay 结束手柄拖拽，再回传标注层 */
+    /** Stage 级 mouseUp：结束裁剪手柄，再回传标注层（框选结束只走 window mouseup） */
     function handleStageMouseUp(event: Konva.KonvaEventObject<MouseEvent>) {
       selectionOverlayRef.current?.handleStageMouseUp()
       onRelease?.(event)
     }
 
-    /** 透传 mouseDown，并在编辑阶段点击空白处取消选中 */
+    /** 透传 mouseDown：左键空白失焦 / 橡皮筋；右键不清除选中 */
     function handleMouseDown(event: Konva.KonvaEventObject<MouseEvent>) {
-      if (interactive) {
-        const clickedOnEmpty = event.target === event.target.getStage()
-        if (clickedOnEmpty) {
+      // 右键 / 中键：不触发失焦与框选，避免 contextmenu 前清选
+      if (event.evt.button !== 0) {
+        onPress?.(event)
+        return
+      }
+
+      const blocked = isMarqueeBlockedTarget(event.target)
+      const onSelected = isSelectedAnnotationTarget(event.target, selectedIDs)
+      // 已选中 → 拖拽移动；未选中/空白 → 橡皮筋；Shift+已选中 → 仍可框选（结果替换选中集）
+      const canMarquee =
+        interactive &&
+        phase !== 'selecting' &&
+        !graphicsActive &&
+        annotations.length > 0 &&
+        !blocked &&
+        (!onSelected || event.evt.shiftKey === true)
+
+      if (canMarquee) {
+        const stage = stageRef.current ?? event.target.getStage()
+        const pt = stage?.getPointerPosition()
+        if (pt && stage) {
+          if (editingID) {
+            handleEditCancel()
+          }
+          const start = clampPointToClip(pt, clipRectRef.current)
+          marqueeStartRef.current = start
+          const box: Bounds = { x: start.x, y: start.y, w: 0, h: 0 }
+          marqueeBoxRef.current = box
+          setMarqueeBox(box)
+          window.addEventListener('mousemove', marqueeApi.move)
+          window.addEventListener('mouseup', marqueeApi.up)
+        }
+        onPress?.(event)
+        return
+      }
+
+      if (interactive && !graphicsActive) {
+        const clickedOnEmpty = !findAnnotationNode(event.target)
+        if (clickedOnEmpty && !blocked) {
           if (editingID) {
             handleEditCancel()
           }
@@ -227,11 +567,58 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
     }
 
     /** 点击形状时，若正在编辑则先取消编辑态 */
-    function handleShapeSelect(id: string) {
+    function handleShapeSelect(id: string, options?: { additive?: boolean }) {
+      if (ignoreSelectClickRef.current) return
       if (editingID) {
         handleEditCancel()
       }
-      onSelect(id)
+      onSelect(id, options)
+    }
+
+    /** Stage 右键：标注命中（含锁定几何探测），或落在选中并集 AABB 内 */
+    function handleStageContextMenu(event: Konva.KonvaEventObject<PointerEvent>) {
+      event.evt.preventDefault()
+      if (!interactive) return
+      const stage = stageRef.current ?? event.target.getStage()
+      const pt = stage?.getPointerPosition()
+
+      const node = findAnnotationNode(event.target)
+      if (node) {
+        const id = node.id()
+        if (!id) return
+        onContextMenuAnnotation?.({
+          id,
+          clientX: event.evt.clientX,
+          clientY: event.evt.clientY,
+          keepSelection: selectedIDs.includes(id)
+        })
+        return
+      }
+
+      // 锁定项 listening=false：用几何命中补一次（解锁）
+      if (stage && pt) {
+        const probed = findAnnotationAtPoint(stage, annotations, pt)
+        if (probed) {
+          onContextMenuAnnotation?.({
+            id: probed.id,
+            clientX: event.evt.clientX,
+            clientY: event.evt.clientY,
+            keepSelection: selectedIDs.includes(probed.id)
+          })
+          return
+        }
+      }
+
+      const primaryID = selectedIDs[selectedIDs.length - 1]
+      if (!primaryID || !stage || !pt) return
+      const union = findSelectedUnionBounds(annotations, selectedIDs, stage)
+      if (!union || !boundsContainsPoint(union, pt.x, pt.y)) return
+      onContextMenuAnnotation?.({
+        id: primaryID,
+        clientX: event.evt.clientX,
+        clientY: event.evt.clientY,
+        keepSelection: true
+      })
     }
 
     /** 把滤镜底图自动注入到 mosaic / blur 类型的标注上 */
@@ -248,17 +635,21 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
           onMouseMove={handleStageMouseMove}
           onMouseDown={handleMouseDown}
           onMouseUp={handleStageMouseUp}
-          width={viewport.width}
-          height={viewport.height}
-          className={clsx(styles.stage)}>
-          {/* 背景层：裁剪的截图（物理像素缩放到 CSS 尺寸） */}
-          <Layer listening={false}>
+          onContextMenu={handleStageContextMenu}
+          width={stageWidth}
+          height={stageHeight}
+          pixelRatio={pixelRatio}>
+          <Layer listening={false} imageSmoothingEnabled={false}>
             {background && (
               <ReImage
                 image={background}
-                width={viewport.width}
-                height={viewport.height}
+                x={0}
+                y={0}
+                width={stageWidth}
+                height={stageHeight}
                 listening={false}
+                perfectDrawEnabled={false}
+                imageSmoothingEnabled={false}
               />
             )}
           </Layer>
@@ -266,20 +657,19 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
             ref={selectionOverlayRef}
             selection={props.selection}
             phase={props.phase}
-            width={viewport.width}
-            height={viewport.height}
+            width={stageWidth}
+            height={stageHeight}
             onSelectionChange={props.onSelectionChange}
             graphicsActive={props.graphicsActive}
+            hasAnnotations={annotations.length > 0}
           />
-          {/* 聚光灯共享暗罩：一个 even-odd 镂空 Shape，支持任意数量 spotlight 而不出现叠加伪影 */}
           <Layer listening={false}>
             <SpotlightMask
               annotations={annotations}
-              width={viewport.width}
-              height={viewport.height}
+              width={stageWidth}
+              height={stageHeight}
             />
           </Layer>
-          {/* 标注层：选区存在时裁剪到选区内，超出部分不可见也不可点击 */}
           <Layer
             listening={annotations.length > 0}
             clipFunc={
@@ -290,45 +680,72 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
                 : undefined
             }>
             {annotations.map(function (annotation) {
+              const peerIDs = findDragPeerIDs(annotation, annotations, selectedIDs)
+              const isGrouped = Boolean(annotation.groupID)
               return (
                 <Graphics
                   key={annotation.id}
                   {...withSource(annotation)}
                   interactive={interactive}
-                  isSelected={annotation.id === selectedID}
+                  isSelected={selectedIDs.includes(annotation.id)}
+                  hideSelectFrame={selectedIDs.length > 1 || isGrouped}
+                  dragPeerIDs={peerIDs}
+                  findGraphics={function (id) {
+                    return annotations.find(function (a) {
+                      return a.id === id
+                    })
+                  }}
                   isEditing={annotation.id === editingID}
                   onSelect={handleShapeSelect}
                   onEditStart={handleEditStart}
                   onChange={onChange}
+                  onBatchChange={onBatchChange}
+                  marqueeStartRef={marqueeStartRef}
                 />
               )
             })}
 
             <Transformer
               ref={transformerRef}
-              anchorSize={10}
-              anchorStyleFunc={(anchor) => {
-                anchor.cornerRadius(anchor.width() / 2)
-              }}
-              anchorStroke="#3B82F6"
-              anchorStrokeWidth={2}
-              anchorFill="#FFFFFF"
-              borderStroke="#3B82F6"
-              borderStrokeWidth={1.5}
-              rotateAnchorOffset={24}
+              anchorSize={ANCHOR_SIZE}
+              anchorCornerRadius={0}
+              anchorStyleFunc={cornerAnchor}
+              borderStroke={BORDER_STROKE}
+              borderStrokeWidth={BORDER_WIDTH}
+              rotateEnabled={true}
+              rotateAnchorOffset={ROTATE_OFFSET}
+              rotationSnaps={[0, 90, 180, 270]}
+              rotationSnapTolerance={15}
               enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
-              rotateEnabled={false}
-              padding={4}
+              ignoreStroke={true}
+              // Shift 时 Konva 内置 keepProportion；椭圆画圆在 capture 拖拽阶段另做约束
               keepRatio={false}
               flipEnabled={false}
-              boundBoxFunc={(oldBox, newBox) => {
+              padding={0}
+              boundBoxFunc={function (oldBox, newBox) {
                 if (newBox.width < 5 || newBox.height < 5) {
                   return oldBox
                 }
                 return newBox
               }}
+              onTransformEnd={handleTransformerEnd}
             />
           </Layer>
+          {marqueeBox && marqueeBox.w + marqueeBox.h > 0 && (
+            <Layer listening={false}>
+              <Rect
+                x={marqueeBox.x}
+                y={marqueeBox.y}
+                width={marqueeBox.w}
+                height={marqueeBox.h}
+                fill="rgba(64, 128, 255, 0.15)"
+                stroke="#4080ff"
+                strokeWidth={1}
+                dash={[4, 4]}
+                perfectDrawEnabled={false}
+              />
+            </Layer>
+          )}
         </Stage>
         {/* 文字编辑 textarea overlay */}
         {editingID &&
@@ -337,7 +754,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
             if (!annotation || annotation.type !== 'text') return null
             const stage = stageRef.current
             if (!stage) return null
-            const group = stage.findOne<Konva.Group>('#' + editingID)
+            const group = findKonvaByID(stage, editingID) as Konva.Group | null
             const textNode = group?.findOne<Konva.Text>('Text')
             if (!textNode) return null
 

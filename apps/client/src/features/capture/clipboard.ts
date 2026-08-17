@@ -18,25 +18,25 @@ export async function copyImage(dataUrl: string): Promise<void> {
 /**
  * 把截图保存为 textures 目录下的 PNG 并注册到 asset 表，
  * 返回 { filePath, w, h } 供磁贴消费。
+ * w/h 使用逻辑像素（natural / dpr），与屏幕 1:1，避免强行压到 480 后再放大发糊。
  */
 export async function pinTexture(
   dataUrl: string
 ): Promise<{ filePath: string; w: number; h: number }> {
-  // 读取原始尺寸
   const naturalSize = await new Promise<{ w: number; h: number }>(function (resolve, reject) {
     const img = new Image()
-    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight })
+    img.onload = function () {
+      resolve({ w: img.naturalWidth, h: img.naturalHeight })
+    }
     img.onerror = reject
     img.src = dataUrl
   })
 
-  // 等比缩放到 maxEdge
-  const maxEdge = 480
-  const scale = Math.min(1, maxEdge / Math.max(naturalSize.w, naturalSize.h))
-  const w = Math.max(48, Math.round(naturalSize.w * scale))
-  const h = Math.max(48, Math.round(naturalSize.h * scale))
+  const dpr = Math.max(1, window.devicePixelRatio || 1)
+  // 显示尺寸 = 截图像素 / DPR，与桌面同逻辑分辨率；PNG 本身保持全分辨率
+  const w = Math.max(48, Math.round(naturalSize.w / dpr))
+  const h = Math.max(48, Math.round(naturalSize.h / dpr))
 
-  // 写入 textures/<id>.png
   const id = `texture-${Date.now()}`
   if (!(await exists('textures', { baseDir: BaseDirectory.AppLocalData }))) {
     await mkdir('textures', { baseDir: BaseDirectory.AppLocalData, recursive: true })
@@ -45,7 +45,6 @@ export async function pinTexture(
   const filePath = await join(dir, 'textures', `${id}.png`)
   await writeFile(filePath, dataUrlToBytes(dataUrl))
 
-  // 注册到 asset 表
   await invoke('asset:insert', {
     params: {
       filePath,
