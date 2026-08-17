@@ -20,7 +20,7 @@ description: >-
 - [ ] 禁止 `get` 前缀；查询用 `find` / `fetch`，解析用 `parse` / `parsed`
 - [ ] 布尔用 `is` / `has` / `can`；非 `useState` 不用 `set`；避免 `list` 后缀
 - [ ] 非必要不用箭头函数；导出用 `function`；对象方法用简写、不写 `function`；模块末尾 `export { ... }`
-- [ ] 类型大驼峰；非专用类型文件时，类型放在 import 下方
+- [ ] 对象形状用 `interface`；联合/交叉/工具类型映射用 `type`
 - [ ] HTTP 响应信封用 `RSF<T>` / 分页用 `RSP<T>`；未使用参数加 `_` 前缀
 
 ## 命名
@@ -124,6 +124,7 @@ bindSortableGrid(gridEl, {
 ## 类型与质量
 
 - 类型命名：大驼峰
+- **对象形状优先 `interface`**（Props、DTO、结果体等）；联合类型、交叉不便 `extends`、映射/条件类型用 `type`
 - 非专门存放类型的文件：类型定义放在文件顶部、import 下方
 - 优先 TypeScript 类型，避免 `any`；公开 API 需有类型
 - 遵循项目 ESLint / 格式化；复杂逻辑、业务规则补充必要注释
