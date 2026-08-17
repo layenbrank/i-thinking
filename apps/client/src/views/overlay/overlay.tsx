@@ -15,6 +15,7 @@ import styles from '@/views/overlay/overlay.module.scss'
 import Texture from '@/views/overlay/texture'
 import Tile from '@/views/overlay/tile'
 
+/** 保持 lazy，避免 create:true 的 overlay 启动时就解析 Konva/Capture */
 const Capture = lazy(function () {
   return import('@/features/capture/capture')
 })
@@ -64,17 +65,19 @@ function OverlayShell() {
     return s.toWrite
   })
 
-  useThrough(OVERLAY_SHELL_SOURCE, { rootRef: shellRef, enabled: mode !== 'screenshot' })
+  const isScreenshot = mode === 'screenshot'
+
+  useThrough(OVERLAY_SHELL_SOURCE, { rootRef: shellRef, enabled: !isScreenshot })
 
   // 全局 ESC fallback：screenshot 模式下仍能退出截屏
   useHotkeys(
     'escape',
     function () {
-      if (mode === 'screenshot') {
+      if (isScreenshot) {
         void toScreenshotExit()
       }
     },
-    { enabled: mode === 'screenshot' }
+    { enabled: isScreenshot }
   )
 
   // 追踪 stage 尺寸作为拖拽边界
@@ -174,19 +177,20 @@ function OverlayShell() {
       <div
         ref={stageRef}
         className={styles.stage}>
-        {mode === 'screenshot' && (
+        {isScreenshot ? (
           <Suspense fallback={null}>
             <Capture
               embedded={true}
+              active={true}
               onExit={toScreenshotExit}
               onTexture={function (input) {
                 toWrite(input)
               }}
             />
           </Suspense>
-        )}
+        ) : null}
         {ready &&
-          mode !== 'screenshot' &&
+          !isScreenshot &&
           tiles.map(function (entry) {
             return (
               <Tile
@@ -197,7 +201,7 @@ function OverlayShell() {
             )
           })}
         {ready &&
-          mode !== 'screenshot' &&
+          !isScreenshot &&
           textures.map(function (entry) {
             return (
               <Texture

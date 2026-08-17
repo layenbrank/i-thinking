@@ -5,7 +5,18 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }
 
-/** 阻尼跟随系数：0→无跟随，1→即时跟随，0.35 提供弹性阻尼感 */
+/**
+ * 按「缩放后渲染尺寸」计算可拖范围。
+ * 小于舞台：限制在 [0, bounds - size]；
+ * 大于舞台：允许负偏移，保证仍能平移看全图。
+ */
+function findDragRange(bounds: number, rendered: number) {
+  const min = Math.min(0, bounds - rendered)
+  const max = Math.max(0, bounds - rendered)
+  return { min, max }
+}
+
+/** 阻尼跟随系数：0→无跟随，1→即时跟随 */
 const DAMPING = 0.1
 
 interface UseOverlayDragOptions {
@@ -17,6 +28,8 @@ interface UseOverlayDragOptions {
   elHeight: number
   boundsWidth: number
   boundsHeight: number
+  /** 当前缩放（贴图滚轮放大后必须传入，默认 1） */
+  scale?: number
   /** 超过该像素才算拖拽（tile 用 6，texture 用 0） */
   threshold?: number
   onCommit: (x: number, y: number) => void
@@ -32,6 +45,7 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
     elHeight,
     boundsWidth,
     boundsHeight,
+    scale = 1,
     threshold = 0,
     onCommit,
     onDragStateChange
@@ -45,6 +59,7 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
     elHeight,
     boundsWidth,
     boundsHeight,
+    scale,
     threshold,
     onCommit,
     onDragStateChange
@@ -56,12 +71,12 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
     elHeight,
     boundsWidth,
     boundsHeight,
+    scale,
     threshold,
     onCommit,
     onDragStateChange
   }
 
-  /** 拖拽状态：origin=按下时指针位置，startX/Y=拖拽起始时元素坐标 */
   const dragRef = useRef<{
     pointerId: number
     originX: number
@@ -71,15 +86,12 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
     moved: boolean
   } | null>(null)
 
-  /** 阻尼收尾目标（pointerUp 后独立追踪，不依赖 dragRef） */
   const dampingTargetRef = useRef<{ x: number; y: number } | null>(null)
 
-  /** 停止阻尼跟随动画 */
   function stopDamping() {
     gsap.ticker.remove(dampingTick)
   }
 
-  /** 阻尼跟随：每帧将元素位置向目标 lerp */
   function dampingTick() {
     const target = dampingTargetRef.current
     if (!target) {
@@ -118,10 +130,8 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
       const el = rootRef.current
       if (!el) return
 
-      // 终止上一轮阻尼动画
       stopDamping()
 
-      // 读元素实际渲染位置并 snap 冻结，防止残余阻尼帧造成偏移
       const actualX = Number(gsap.getProperty(el, 'x')) || 0
       const actualY = Number(gsap.getProperty(el, 'y')) || 0
       gsap.set(el, { x: actualX, y: actualY })
@@ -150,11 +160,14 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
         boundsHeight: bh,
         elWidth: ew,
         elHeight: eh,
+        scale: sc,
         threshold: th,
         onDragStateChange: onDSC
       } = latestRef.current
-      const mx = Math.max(0, bw - ew)
-      const my = Math.max(0, bh - eh)
+
+      // 边界必须按缩放后视觉尺寸计算（与 useWheelScale 一致）
+      const rangeX = findDragRange(bw, ew * sc)
+      const rangeY = findDragRange(bh, eh * sc)
 
       const dx = e.clientX - drag.originX
       const dy = e.clientY - drag.originY
@@ -166,10 +179,8 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
       }
       if (!drag.moved) return
 
-      const rawX = drag.startX + dx
-      const rawY = drag.startY + dy
-      const tx = clamp(rawX, 0, mx)
-      const ty = clamp(rawY, 0, my)
+      const tx = clamp(drag.startX + dx, rangeX.min, rangeX.max)
+      const ty = clamp(drag.startY + dy, rangeY.min, rangeY.max)
       dampingTargetRef.current = { x: tx, y: ty }
 
       gsap.ticker.add(dampingTick)
@@ -189,9 +200,7 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
         /* already released */
       }
 
-      const { onDragStateChange: onDSC } = latestRef.current
-
-      onDSC?.(false)
+      latestRef.current.onDragStateChange?.(false)
 
       if (!drag.moved || !el) {
         stopDamping()
@@ -200,8 +209,6 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
         return
       }
 
-      // 立即清空 dragRef，防止后续 pointerMove 误匹配旧 pointerId
-      // 阻尼收尾由 dampingTargetRef 独立追踪
       const finalTarget = {
         x: Number(gsap.getProperty(el, 'x')) || 0,
         y: Number(gsap.getProperty(el, 'y')) || 0
@@ -229,5 +236,5 @@ function useOverlayDrag(options: UseOverlayDragOptions) {
   }
 }
 
-export { useOverlayDrag }
+export { useOverlayDrag, findDragRange }
 export type { UseOverlayDragOptions }
