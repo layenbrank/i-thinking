@@ -24,12 +24,12 @@ import { http } from '@/utils/http.ts'
 
 const API_BASE_URL = '/auth'
 
-type SignInBody = {
+interface SignInBody {
   username: string
   password: string
 }
 
-type SignInResult = {
+interface SignInResult {
   token: string
   id: string
 }
@@ -109,7 +109,7 @@ bindGrid(el, {
 ```ts
 import { http } from '@/utils/http.ts'
 
-type ProfileBody = {
+interface ProfileBody {
   displayName: string
 }
 
@@ -121,3 +121,5 @@ export { PUT_PROFILE }
 ```
 
 类型放在 import 下方、实现之前；专用 `*.d.ts` / `types/` 文件不受此条限制。
+
+对象形状用 `interface`；需要联合、映射或难以 `extends` 的交叉时再用 `type`。

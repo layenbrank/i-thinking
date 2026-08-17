@@ -31,5 +31,6 @@ alwaysApply: true
 ## 类型与质量
 
 - 类型大驼峰；非专用类型文件时，类型放在 import 下方
+- 对象形状优先 `interface`；联合 / 不便 `extends` 的交叉 / 映射类型用 `type`
 - 优先 TypeScript/JSDoc 类型，避免 `any`；公开 API 需有类型
 - 遵循 ESLint/格式化；复杂逻辑补充注释
