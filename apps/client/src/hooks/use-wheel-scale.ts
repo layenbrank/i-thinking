@@ -1,6 +1,8 @@
 import gsap from 'gsap'
 import { useEffect, useRef } from 'react'
 
+import { findDragRange } from '@/hooks/use-overlay-drag'
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }
@@ -34,17 +36,12 @@ interface UseWheelScaleOptions {
 function useWheelScale(options: UseWheelScaleOptions) {
   const { rootRef, storeScale, storeX, storeY, storeOpacity = 1 } = options
 
-  /** 当前实时 scale（GSAP 直写用） */
   const liveScaleRef = useRef(storeScale)
-  /** 当前实时 x/y（GSAP 直写用） */
   const liveXRef = useRef(storeX)
   const liveYRef = useRef(storeY)
-  /** 当前实时 opacity（Ctrl+滚轮用） */
   const liveOpacityRef = useRef(storeOpacity)
-  /** debounce 定时器 */
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-  // 同步 store 值到 ref（store 变化时重置）
   liveScaleRef.current = storeScale
   liveXRef.current = storeX
   liveYRef.current = storeY
@@ -53,7 +50,7 @@ function useWheelScale(options: UseWheelScaleOptions) {
   const optsRef = useRef(options)
   optsRef.current = options
 
-  const handler = useRef((e: WheelEvent) => {
+  const handler = useRef(function (e: WheelEvent) {
     e.preventDefault()
     e.stopPropagation()
     const el = rootRef.current
@@ -74,10 +71,10 @@ function useWheelScale(options: UseWheelScaleOptions) {
       boundsHeight: bh
     } = optsRef.current
 
-    // Ctrl+滚轮：调节 opacity
     if (e.ctrlKey && opCommit) {
       const delta = e.deltaY > 0 ? -oS : oS
-      const next = Math.round(Math.min(oMx, Math.max(oMn, liveOpacityRef.current + delta)) * 100) / 100
+      const next =
+        Math.round(Math.min(oMx, Math.max(oMn, liveOpacityRef.current + delta)) * 100) / 100
       liveOpacityRef.current = next
       gsap.set(el, { opacity: next })
 
@@ -89,33 +86,27 @@ function useWheelScale(options: UseWheelScaleOptions) {
       return
     }
 
-    // 普通滚轮：以鼠标位置为中心缩放
     const oldScale = liveScaleRef.current
     const delta = e.deltaY > 0 ? -s : s
     const newScale = Math.round(Math.min(mx, Math.max(mn, oldScale + delta)) * 100) / 100
 
     if (newScale === oldScale) return
 
-    // 当前 GSAP 实际位置（x/y 是 transform: translate）
     const curX = Number(gsap.getProperty(el, 'x')) || 0
     const curY = Number(gsap.getProperty(el, 'y')) || 0
 
-    // 鼠标在元素局部坐标系中的位置（相对于元素左上角，未缩放的坐标）
-    // transformOrigin = '0 0'，所以 GSAP x/y 就是元素左上角在舞台中的位置
+    // transformOrigin = '0 0'：GSAP x/y 即元素左上角
     const mousePointX = (e.clientX - curX) / oldScale
     const mousePointY = (e.clientY - curY) / oldScale
 
-    // 缩放后调整位置，使鼠标下的内容点保持不动
     let newX = e.clientX - mousePointX * newScale
     let newY = e.clientY - mousePointY * newScale
 
-    // 边界约束：缩放后的渲染尺寸为 ew*newScale × eh*newScale
-    const renderedW = ew * newScale
-    const renderedH = eh * newScale
-    const maxX = Math.max(0, bw - renderedW)
-    const maxY = Math.max(0, bh - renderedH)
-    newX = clamp(newX, 0, maxX)
-    newY = clamp(newY, 0, maxY)
+    // 按缩放后渲染尺寸约束；大于舞台时允许负偏移以便平移查看
+    const rangeX = findDragRange(bw, ew * newScale)
+    const rangeY = findDragRange(bh, eh * newScale)
+    newX = clamp(newX, rangeX.min, rangeX.max)
+    newY = clamp(newY, rangeY.min, rangeY.max)
 
     liveScaleRef.current = newScale
     liveXRef.current = newX
@@ -130,15 +121,20 @@ function useWheelScale(options: UseWheelScaleOptions) {
     }, 200)
   })
 
-  useEffect(() => {
-    const el = rootRef.current
-    if (!el) return
-    function onWheel(e: WheelEvent) {
-      handler.current(e)
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [rootRef])
+  useEffect(
+    function () {
+      const el = rootRef.current
+      if (!el) return
+      function onWheel(e: WheelEvent) {
+        handler.current(e)
+      }
+      el.addEventListener('wheel', onWheel, { passive: false })
+      return function () {
+        el.removeEventListener('wheel', onWheel)
+      }
+    },
+    [rootRef]
+  )
 }
 
 export { useWheelScale }

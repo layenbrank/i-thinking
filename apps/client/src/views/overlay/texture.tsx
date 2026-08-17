@@ -45,6 +45,7 @@ function Texture(props: TextureProps) {
     elHeight: item.h,
     boundsWidth: stageBounds.width,
     boundsHeight: stageBounds.height,
+    scale: item.scale,
     threshold: 0,
     onCommit: function (x, y) {
       toUpdate(item.id, { x, y })
@@ -75,7 +76,13 @@ function Texture(props: TextureProps) {
     function () {
       const el = rootRef.current
       if (!el) return
-      gsap.set(el, { x: item.x, y: item.y, scale: item.scale, opacity: item.opacity })
+      gsap.set(el, {
+        x: item.x,
+        y: item.y,
+        scale: item.scale,
+        opacity: item.opacity,
+        transformOrigin: '0 0'
+      })
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -95,7 +102,13 @@ function Texture(props: TextureProps) {
         item.opacity !== prev.opacity
       if (changed) {
         prevStoreRef.current = { x: item.x, y: item.y, scale: item.scale, opacity: item.opacity }
-        gsap.set(el, { x: item.x, y: item.y, scale: item.scale, opacity: item.opacity })
+        gsap.set(el, {
+          x: item.x,
+          y: item.y,
+          scale: item.scale,
+          opacity: item.opacity,
+          transformOrigin: '0 0'
+        })
       }
     },
     { scope: rootRef, dependencies: [item.x, item.y, item.scale, item.opacity] }

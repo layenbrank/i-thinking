@@ -20,7 +20,6 @@ import styles from '@/views/overview/overview.module.scss'
 import { IntelligencePlugin } from '@/plugins/intelligence.ts'
 import { StoragePlugin } from '@/plugins/storage.ts'
 import { useMirrorStore } from '@/stores/mirror.ts'
-import { useOverlayStore } from '@/stores/overlay'
 import { useSettingsStore } from '@/stores/setting.ts'
 import { applyCliMatches } from '@/utils/cli'
 import { checkUpdate } from '@/utils/updater'
@@ -40,12 +39,11 @@ const COREX_NOT_READY = 'corex 未就绪，PDF / 截图等功能暂不可用。�
 export default function Overview() {
   const [signinOpen, setSigninOpen] = useState(false)
 
-  // 主窗口数据初始化：mirror + settings 种子数据，完成后显示 overlay 窗口
+  // 主窗口数据初始化：mirror + settings；overlay 仅在有内容时由 toInitialize 显示
   useEffect(function () {
     async function bootstrap() {
       await useMirrorStore.getState().toInitialize()
       await useSettingsStore.getState().toInitialize()
-      void useOverlayStore.getState().toShow()
     }
     void bootstrap()
   }, [])
@@ -87,9 +85,7 @@ export default function Overview() {
     async function bootstrap() {
       try {
         unlisten = await listen<string>('tray:action', function (event) {
-          if (event.payload === 'check-update') {
-            void checkUpdate()
-          }
+          if (event.payload === 'check-update') void checkUpdate()
         })
         if (cancelled) unlisten()
       } catch (err) {

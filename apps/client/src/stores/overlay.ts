@@ -398,38 +398,48 @@ const useOverlayStore = create<OverlayStore>()(
           if (mode === 'screenshot' || items.length > 0) return
           try {
             await invoke('overlay:hide')
-          } catch {
-            /* non-tauri */
+          } catch (e) {
+            console.warn('[overlay] toHide failed:', e)
           }
         },
 
         async toShow() {
           try {
             await invoke('overlay:ensure')
-          } catch {
-            /* non-tauri */
+          } catch (e) {
+            console.warn('[overlay] toShow failed:', e)
           }
         },
 
         async toScreenshot() {
+          const previous = getter().mode
           setter(function (state) {
             state.mode = 'screenshot'
           })
           try {
             await invoke('overlay:update-mode', { mode: 'screenshot' })
-          } catch {
-            /* non-tauri */
+          } catch (e) {
+            console.warn('[overlay] toScreenshot failed:', e)
+            setter(function (state) {
+              state.mode = previous
+            })
           }
         },
 
         async toExit() {
+          const previous = getter().mode
           setter(function (state) {
             state.mode = 'idle'
           })
           try {
-            await invoke('overlay:update-mode', { mode: 'idle' })
-          } catch {
-            /* non-tauri */
+            // capture:close 会清 pending 并切 idle，避免残留预截图
+            await invoke('capture:close')
+          } catch (e) {
+            console.warn('[overlay] toExit failed:', e)
+            setter(function (state) {
+              state.mode = previous
+            })
+            return
           }
           await getter().toHide()
         },
@@ -502,8 +512,8 @@ const useOverlayStore = create<OverlayStore>()(
               const sz = await win.innerSize()
               screenW = sz.width / sf
               screenH = sz.height / sf
-            } catch {
-              /* 非 Tauri 环境用默认值 */
+            } catch (e) {
+              console.warn('[overlay] read screen size failed, using fallback:', e)
             }
 
             const clampedItems = items.map(function (item) {
