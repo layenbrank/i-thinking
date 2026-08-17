@@ -15,9 +15,6 @@ import Overlay from '@/features/magnetic-tiles/navigation/overlay.tsx'
 interface NavigationProps extends Omit<SectionProps, 'children'> {
   style?: CSSProperties
   className?: ClassValue
-  size: Mirror.Size
-  shape: Mirror.Shape
-  direction: Mirror.Direction
   onPrevent?: React.MouseEventHandler<HTMLDivElement>
 }
 
@@ -39,6 +36,8 @@ export default function Navigation(props: NavigationProps) {
         size={props.size}
         direction={props.direction}
         shape={props.shape}
+        mark={props.mark}
+        title={props.title}
       />
       {isRenderOverlay ? (
         <Overlay
