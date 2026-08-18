@@ -8,7 +8,7 @@ use crate::utils::log_retention::LOG_MAX_FILE_SIZE;
 
 /// 为 Builder 挂载桌面端通用插件。
 pub fn register_plugins(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
-    let mut log_builder = tauri_plugin_log::Builder::new()
+    let log_builder = tauri_plugin_log::Builder::new()
         .rotation_strategy(RotationStrategy::KeepAll)
         .max_file_size(LOG_MAX_FILE_SIZE)
         .timezone_strategy(TimezoneStrategy::UseLocal)
@@ -16,9 +16,7 @@ pub fn register_plugins(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<t
         .target(Target::new(TargetKind::LogDir { file_name: None }));
 
     #[cfg(debug_assertions)]
-    {
-        log_builder = log_builder.target(Target::new(TargetKind::Webview));
-    }
+    let log_builder = log_builder.target(Target::new(TargetKind::Webview));
 
     let builder = builder
         .plugin(log_builder.build())
