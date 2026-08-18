@@ -21,6 +21,8 @@ import { motion, useReducedMotion } from 'motion/react'
 import Utility from '@/features/capture/components/utility'
 import { fetchImageFromPath, takePendingScreenshot, takeScreenshot } from '@/features/capture/tauri'
 import { copyImage, pinTexture, saveToUserPath } from '@/features/capture/clipboard'
+import { findHoverRegion, type CaptureRegion } from '@/features/capture/region'
+import { DETECT_WINDOW, useSettingsStore } from '@/stores/setting'
 
 import styles from '@/features/capture/capture.module.scss'
 
@@ -181,6 +183,11 @@ export default function Capture(props: CaptureProps = {}) {
   const [canUndo, onUpdateCanUndo] = useState(false)
   const [canRedo, onUpdateCanRedo] = useState(false)
 
+  const detect = useSettingsStore(function (state) {
+    return state.settings.capture.detect
+  })
+  const isWindowDetect = detect === DETECT_WINDOW
+
   const isReducedMotion = useReducedMotion()
   const { present: presentContextMenu } = useContextMenu()
 
@@ -194,6 +201,10 @@ export default function Capture(props: CaptureProps = {}) {
   const hasMovedRef = useRef(false)
   /** 鼠标按下时的起点（仅用于阈值判定 / 选区起点） */
   const beginRef = useRef<Point>({ x: 0, y: 0 })
+  /** 预缓存的窗口矩形（overlay 局部逻辑像素，顶层优先） */
+  const regionsRef = useRef<CaptureRegion[]>([])
+  /** 按下瞬间的悬停窗口，单击无拖拽时吸附 */
+  const snapCandidateRef = useRef<CaptureRegion | null>(null)
   /** 暴露 Annotation 的画布渲染能力 */
   const annotationRef = useRef<AnnotationHandle>(null)
 
@@ -300,6 +311,7 @@ export default function Capture(props: CaptureProps = {}) {
         throw new Error('未找到预截图，请点重试')
       }
       const img = await fetchImageFromPath(result.path)
+      regionsRef.current = result.regions ?? []
       onUpdateSourceImage(img)
       onUpdateCaptureStatus('ready')
     } catch (err) {
@@ -310,6 +322,10 @@ export default function Capture(props: CaptureProps = {}) {
   }
 
   const loadStartedRef = useRef(false)
+
+  useEffect(function () {
+    void useSettingsStore.getState().toInitialize()
+  }, [])
 
   useEffect(
     function () {
@@ -722,7 +738,9 @@ export default function Capture(props: CaptureProps = {}) {
     hasMovedRef.current = false
 
     if (phase === 'selecting') {
-      onUpdateSelection({ x: pt.x, y: pt.y, w: 0, h: 0 })
+      snapCandidateRef.current = isWindowDetect
+        ? findHoverRegion(regionsRef.current, pt.x, pt.y)
+        : null
       return
     }
 
@@ -796,6 +814,12 @@ export default function Capture(props: CaptureProps = {}) {
       return
     }
 
+    if (phase === 'selecting' && isWindowDetect) {
+      const hover = findHoverRegion(regionsRef.current, pt.x, pt.y)
+      onUpdateSelection(hover)
+      return
+    }
+
     // 防御：本轮拖拽已被取消，不再处理后续 move
     if (cancelledRef.current) return
 
@@ -853,10 +877,17 @@ export default function Capture(props: CaptureProps = {}) {
 
     if (phase === 'selecting') {
       if (tooSmall) {
-        // 误触一下：保留旧选区不重置（如果本次拖拽无有效位移则置 null）
+        const snap = snapCandidateRef.current
+        snapCandidateRef.current = null
+        if (snap && isWindowDetect) {
+          onUpdateSelection(snap)
+          onUpdatePhase('editing')
+          return
+        }
         if (!moved) onUpdateSelection(null)
         return
       }
+      snapCandidateRef.current = null
       // 完成选区：进入 editing，等待用户选择工具
       onUpdateSelection({
         x: Math.min(beginRef.current.x, pt.x),
@@ -1007,6 +1038,7 @@ export default function Capture(props: CaptureProps = {}) {
     isDraggingRef.current = false
     cancelledRef.current = false
     hasMovedRef.current = false
+    snapCandidateRef.current = null
     historyRef.current = [[]]
     historyStepRef.current = 0
     syncHistoryFlags()

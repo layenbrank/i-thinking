@@ -10,6 +10,10 @@
   pointer-events: none;
 }
 
+.concealed {
+  visibility: hidden;
+}
+
 .stage {
   position: relative;
   width: 100%;

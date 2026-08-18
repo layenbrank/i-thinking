@@ -2,6 +2,7 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 
 import type { SurfaceStyleInput } from '@/features/magnetic-tile/surface-style'
 import type { MarkerLayout } from '@/features/magnetic-tile/size'
+import type { CaptureRegion } from '@/features/capture/region'
 
 /**
  * Tauri 截图能力的轻量封装，前端通过这些函数与 Rust 端的
@@ -14,6 +15,7 @@ interface ScreenshotResult {
   width: number
   height: number
   scale_factor: number
+  regions?: CaptureRegion[]
 }
 
 interface MountOverlayOptions extends Partial<MarkerLayout>, SurfaceStyleInput {
@@ -100,4 +102,4 @@ export {
   takeScreenshot,
   updateOverlayMode
 }
-export type { MountOverlayOptions, ScreenshotResult }
+export type { CaptureRegion, MountOverlayOptions, ScreenshotResult }

@@ -2,7 +2,7 @@ import { Button, Modal, Select, Space, Switch, Typography, message } from 'antd'
 import { useState } from 'react'
 
 import { useSessionStore } from '@/stores/session'
-import { useSettingsStore } from '@/stores/setting'
+import { DETECT_OFF, DETECT_WINDOW, useSettingsStore } from '@/stores/setting'
 import { exitApp } from '@/utils/process'
 import { checkUpdate } from '@/utils/updater'
 
@@ -13,6 +13,9 @@ const LANGUAGE_OPTIONS = [{ label: '简体中文', value: 'zh-CN' }]
 function GeneralPanel() {
   const general = useSettingsStore(function (state) {
     return state.settings.general
+  })
+  const capture = useSettingsStore(function (state) {
+    return state.settings.capture
   })
   const toUpdate = useSettingsStore(function (state) {
     return state.toUpdate
@@ -46,6 +49,15 @@ function GeneralPanel() {
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error)
       message.error(`开机自启设置失败：${text}`)
+    }
+  }
+
+  async function onDetectChange(checked: boolean) {
+    try {
+      await toUpdate('capture', { detect: checked ? DETECT_WINDOW : DETECT_OFF })
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error)
+      message.error(`窗口检测设置失败：${text}`)
     }
   }
 
@@ -93,6 +105,20 @@ function GeneralPanel() {
               type="secondary"
               className={styles.hint}>
               开启后登录系统将自动启动，并以托盘形式运行
+            </Typography.Text>
+          </div>
+        </div>
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>截图窗口检测</span>
+          <div className={styles.fieldControl}>
+            <Switch
+              checked={capture.detect === DETECT_WINDOW}
+              onChange={onDetectChange}
+            />
+            <Typography.Text
+              type="secondary"
+              className={styles.hint}>
+              截图时悬停高亮窗口，单击吸附为选区；关闭后仅自由框选
             </Typography.Text>
           </div>
         </div>
