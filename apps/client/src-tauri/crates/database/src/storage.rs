@@ -3,7 +3,7 @@ use sea_orm::{
     Statement, TransactionTrait,
 };
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 pub type Connection = Arc<DatabaseConnection>;
 
@@ -35,14 +35,18 @@ impl Storage {
 
 /// 初始化数据库连接（使用 ConnectOptions + 完整性能配置）
 pub async fn initialize(uri: &str) -> Result<Connection, DbErr> {
-    info!("正在连接数据库: {}", uri);
+    info!("database connecting");
 
     let mut options = ConnectOptions::new(uri.to_owned());
     options
         .max_connections(1)
         .min_connections(1)
-        .sqlx_logging(true)
-        .sqlx_logging_level(tracing::log::LevelFilter::Debug);
+        .sqlx_logging(cfg!(debug_assertions))
+        .sqlx_logging_level(if cfg!(debug_assertions) {
+            tracing::log::LevelFilter::Debug
+        } else {
+            tracing::log::LevelFilter::Warn
+        });
 
     let connect = Database::connect(options).await?;
 
@@ -76,9 +80,9 @@ async fn configure(connect: &DatabaseConnection) -> Result<(), DbErr> {
             ))
             .await
         {
-            error!("SQLite 配置失败 {}: {}", key, e);
+            error!("SQLite pragma failed {key}: {e}");
         } else {
-            info!("SQLite 配置成功: {} = {}", key, value);
+            debug!("SQLite pragma {key}={value}");
         }
     }
 
