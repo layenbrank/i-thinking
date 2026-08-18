@@ -100,6 +100,12 @@ impl Service {
         if let Some(v) = patch.background {
             active.background = Set(Some(v));
         }
+        if let Some(v) = patch.title {
+            active.title = Set(v);
+        }
+        if let Some(v) = patch.mark {
+            active.mark = Set(Some(v));
+        }
         if let Some(v) = patch.scale {
             active.scale = Set(v);
         }
@@ -183,6 +189,8 @@ impl Service {
             direction: Set(p.direction),
             round: Set(p.round),
             background: Set(p.background),
+            title: Set(p.title),
+            mark: Set(p.mark),
             scale: Set(p.scale),
             archived_at: Set(None),
             created_at: Set(now),
@@ -209,6 +217,8 @@ impl Service {
         active.direction = Set(p.direction.clone());
         active.round = Set(p.round.clone());
         active.background = Set(p.background.clone());
+        active.title = Set(p.title.clone());
+        active.mark = Set(p.mark.clone());
         active.scale = Set(p.scale);
     }
 }

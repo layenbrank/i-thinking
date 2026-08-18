@@ -626,6 +626,13 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Overlay::Round).string().null())
                     .col(ColumnDef::new(Overlay::Background).string().null())
                     .col(
+                        ColumnDef::new(Overlay::Title)
+                            .string()
+                            .not_null()
+                            .default(""),
+                    )
+                    .col(ColumnDef::new(Overlay::Mark).string().null())
+                    .col(
                         ColumnDef::new(Overlay::Scale)
                             .double()
                             .not_null()
@@ -929,6 +936,8 @@ enum Overlay {
     Direction,
     Round,
     Background,
+    Title,
+    Mark,
     Scale,
     #[iden = "archivedAt"]
     ArchivedAt,

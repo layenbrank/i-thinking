@@ -16,7 +16,10 @@ interface ScreenshotResult {
   scale_factor: number
 }
 
-interface MountOverlayOptions extends Partial<MarkerLayout>, SurfaceStyleInput {}
+interface MountOverlayOptions extends Partial<MarkerLayout>, SurfaceStyleInput {
+  title?: string
+  mark?: string | null
+}
 
 /** 主显示器即时截图（不弹窗，返回截图文件路径） */
 async function takeScreenshot(): Promise<ScreenshotResult> {
@@ -73,7 +76,9 @@ async function mountOverlayTile(
       shape: options?.shape ?? null,
       direction: options?.direction ?? null,
       round: options?.round ?? null,
-      background: options?.background ?? null
+      background: options?.background ?? null,
+      title: options?.title ?? '',
+      mark: options?.mark ?? null
     }
   })
 }

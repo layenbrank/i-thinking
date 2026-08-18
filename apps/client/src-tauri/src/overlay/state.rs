@@ -14,6 +14,10 @@ pub struct OverlayMountPayload {
     pub round: Option<String>,
     #[serde(default)]
     pub background: Option<Value>,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub mark: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

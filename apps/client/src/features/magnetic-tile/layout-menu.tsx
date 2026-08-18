@@ -10,7 +10,15 @@ import { mountOverlayTile, removeOverlayTile } from '@/features/capture/tauri'
 
 type Tile = Pick<
   MagneticTile,
-  'id' | 'component' | 'size' | 'shape' | 'direction' | 'round' | 'background'
+  | 'id'
+  | 'component'
+  | 'size'
+  | 'shape'
+  | 'direction'
+  | 'round'
+  | 'background'
+  | 'title'
+  | 'mark'
 >
 
 type ShapeOption = Pick<MagneticTile, 'shape' | 'direction'> & {
@@ -300,7 +308,9 @@ function buildFloat(tile: Tile): MenuItem {
             shape: tile.shape,
             direction: tile.direction,
             round: tile.round,
-            background: tile.background
+            background: tile.background,
+            title: tile.title,
+            mark: tile.mark
           })
         }
       },
