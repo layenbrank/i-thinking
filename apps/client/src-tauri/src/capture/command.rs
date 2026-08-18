@@ -2,8 +2,9 @@ use std::path::Path;
 
 use image::ImageReader;
 use serde_json::json;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::capture::region::find_overlay_regions;
 use crate::capture::schema::ScreenshotResult;
 use crate::capture::state::CapturePending;
 use crate::overlay::command::{overlay_update_mode, OVERLAY_LABEL};
@@ -23,6 +24,7 @@ fn build_screenshot_result(path: &str, scale_factor: f32) -> Result<ScreenshotRe
         width,
         height,
         scale_factor,
+        regions: Vec::new(),
     })
 }
 
@@ -37,6 +39,7 @@ fn screenshot_from_ipc_data(path: String, data: &serde_json::Value) -> Option<Sc
         width,
         height,
         scale_factor: 1.0,
+        regions: Vec::new(),
     })
 }
 
@@ -82,47 +85,54 @@ async fn grab_screenshot(app: &AppHandle) -> Result<ScreenshotResult, String> {
         .map_err(|e| format!("[capture:screenshot] 截图处理线程异常: {e}"))?
 }
 
-/// 隐藏 overlay 以免截进浮层；返回隐藏前是否可见（供失败时恢复）
-async fn hide_overlay_for_capture(app: &AppHandle) -> bool {
+/// 不 hide 窗口：壳保持透明显示，仅把内容 visibility:hidden，避免磁贴/截图 UI 进位图
+async fn conceal_overlay_visuals(app: &AppHandle) -> bool {
     let Some(window) = app.get_webview_window(OVERLAY_LABEL) else {
         return false;
     };
     let was_visible = window.is_visible().unwrap_or(false);
-    let _ = window.hide();
     if was_visible {
+        let _ = app.emit("overlay://conceal", ());
         tokio::time::sleep(std::time::Duration::from_millis(60)).await;
     }
     was_visible
 }
 
-fn show_overlay(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
-        let _ = window.show();
-        let _ = window.set_always_on_top(true);
-    }
+fn reveal_overlay_visuals(app: &AppHandle) {
+    let _ = app.emit("overlay://reveal", ());
 }
 
 /// 截取主显示器（corex PNG），返回路径与尺寸
 #[tauri::command(rename = "capture:screenshot")]
 pub async fn capture_screenshot(app: AppHandle) -> Result<ScreenshotResult, String> {
-    let _was_visible = hide_overlay_for_capture(&app).await;
+    let concealed = conceal_overlay_visuals(&app).await;
+    let regions = find_overlay_regions(&app);
     let result = grab_screenshot(&app).await;
-    show_overlay(&app);
-    result
+    if concealed {
+        reveal_overlay_visuals(&app);
+    }
+    result.map(|mut shot| {
+        shot.regions = regions;
+        shot
+    })
 }
 
-/// 先截图再进入 screenshot 模式，避免空层等待
+/// 先截图再进入 screenshot 模式，避免空层等待。overlay 窗口保持显示。
 #[tauri::command(rename = "capture:open")]
 pub async fn capture_open(
     app: AppHandle,
     pending: State<'_, CapturePending>,
 ) -> Result<(), String> {
-    let was_visible = hide_overlay_for_capture(&app).await;
+    let concealed = conceal_overlay_visuals(&app).await;
+    let regions = find_overlay_regions(&app);
     let result = match grab_screenshot(&app).await {
-        Ok(result) => result,
+        Ok(mut result) => {
+            result.regions = regions;
+            result
+        }
         Err(err) => {
-            if was_visible {
-                show_overlay(&app);
+            if concealed {
+                reveal_overlay_visuals(&app);
             }
             return Err(err);
         }
@@ -131,7 +141,9 @@ pub async fn capture_open(
         let mut guard = pending.screenshot.lock().await;
         *guard = Some(result);
     }
-    overlay_update_mode(app, "screenshot".into()).await
+    let mode = overlay_update_mode(app.clone(), "screenshot".into()).await;
+    reveal_overlay_visuals(&app);
+    mode
 }
 
 /// 消费 capture:open 预截结果（一次性 take）

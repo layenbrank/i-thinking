@@ -131,14 +131,16 @@ tauri-plugin-updater = "2" # 检查更新
 
 [target.'cfg(target_os = "windows")'.dependencies]
 # --- Windows FFI ---
-windows = { version = "0.62", features = [
+windows = { version = "0.61", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_Foundation",
+  "Win32_Graphics_Dwm",
+  "Win32_Graphics_Gdi",
   "Win32_Storage_FileSystem",
   "Win32_Security",
   "Win32_System_Pipes",
   "Win32_System_Threading",
-] } # Named Pipe、光标坐标、sidecar 进程等待
+] } # 与 tauri 2.11 同主版本，避免 HWND 跨 crate 分裂
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # --- macOS FFI ---

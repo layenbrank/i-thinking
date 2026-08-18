@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
+import { clsx } from 'clsx'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
@@ -38,6 +39,7 @@ function OverlayShell() {
   const shellRef = useRef<HTMLElement | null>(document.body)
   const stageRef = useRef<HTMLDivElement>(null)
   const [ready, setReady] = useState(false)
+  const [concealed, setConcealed] = useState(false)
   const [stageBounds, setStageBounds] = useState({
     width: window.innerWidth,
     height: window.innerHeight
@@ -102,6 +104,8 @@ function OverlayShell() {
       let unlistenUnmount: (() => void) | undefined
       let unlistenClear: (() => void) | undefined
       let unlistenHide: (() => void) | undefined
+      let unlistenConceal: (() => void) | undefined
+      let unlistenReveal: (() => void) | undefined
       let cancelled = false
 
       function applyMount(payload: MountTilePayload | null | undefined) {
@@ -142,7 +146,14 @@ function OverlayShell() {
           })
           unlistenHide = await listen('overlay://hide', function () {
             toMode('idle')
+            setConcealed(false)
             void invoke('overlay:hide')
+          })
+          unlistenConceal = await listen('overlay://conceal', function () {
+            setConcealed(true)
+          })
+          unlistenReveal = await listen('overlay://reveal', function () {
+            setConcealed(false)
           })
           await useOverlayStore.getState().toInitialize()
           applyMount(await invoke<MountTilePayload | null>('overlay:take-pending'))
@@ -164,6 +175,8 @@ function OverlayShell() {
         unlistenUnmount?.()
         unlistenClear?.()
         unlistenHide?.()
+        unlistenConceal?.()
+        unlistenReveal?.()
       }
     },
     [toClear, toMount, toRemove, toMode]
@@ -177,7 +190,7 @@ function OverlayShell() {
   })
 
   return (
-    <div className={styles.shell}>
+    <div className={clsx(styles.shell, concealed && styles.concealed)}>
       <div
         ref={stageRef}
         className={styles.stage}>

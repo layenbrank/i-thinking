@@ -13,10 +13,24 @@ declare namespace Setting {
 
   export type Appearance = ThemeAppearance
 
+  export type CaptureDetect = 'off' | 'window'
+
+  export interface Capture {
+    detect: CaptureDetect
+  }
+
   export interface Composite {
     general: General
     appearance: Appearance
+    capture: Capture
   }
+}
+
+const DETECT_OFF: Setting.CaptureDetect = 'off'
+const DETECT_WINDOW: Setting.CaptureDetect = 'window'
+
+const CAPTURE: Setting.Capture = {
+  detect: DETECT_WINDOW
 }
 
 const SETTINGS: Setting.Composite = {
@@ -24,7 +38,8 @@ const SETTINGS: Setting.Composite = {
     autostart: true,
     language: 'zh-CN'
   },
-  appearance: APPEARANCE_PRESET
+  appearance: APPEARANCE_PRESET,
+  capture: CAPTURE
 }
 
 const settingStore = new LazyStore('settings.json', {
@@ -111,3 +126,5 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
     }
   }
 })
+
+export { DETECT_OFF, DETECT_WINDOW }
