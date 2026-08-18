@@ -26,6 +26,16 @@ impl Bootstrap {
 
         builder
             .setup(move |app| {
+                // fern 已在 log 插件初始化时注册；把 tracing 事件接到同一管道。
+                if let Err(err) = tracing_log::LogTracer::init() {
+                    log::error!("tracing-log init failed: {err}");
+                }
+                log::info!(
+                    target: "thinking",
+                    "application starting version={}",
+                    env!("CARGO_PKG_VERSION")
+                );
+
                 let handle_for_db = app.handle().clone();
                 let db_state = tauri::async_runtime::block_on(async move {
                     let app_dir = handle_for_db
