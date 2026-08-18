@@ -45,7 +45,7 @@
 1. 先查看当前 git 改动（`status` / `diff` / 近期 `log`），再生成提交信息。
 2. 需要时按主题分批提交；一条提交只表达一个意图。
 3. 提交信息简洁、说明「为什么」；风格对齐仓库近期 commit（如 `fix(client): …`、`chore(client): …`）。
-4. **不要**添加 `Co-authored-by: Cursor`、`Made-with: Cursor` 或任何 Cursor 归属 trailer。
+4. **禁止**添加 `Co-authored-by: Cursor`、`Made-with: Cursor` 或任何 Cursor 归属 trailer。
 5. client 版本升级使用 `bump:client`，以触发 client tag release 发布。
 6. 仓库版本升级按既有发版流程，以触发 tag release 发布。
 7. 未经明确要求：不 `push`、不改 git config、不跳过 hooks。
