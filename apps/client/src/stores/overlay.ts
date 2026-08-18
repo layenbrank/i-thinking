@@ -44,6 +44,8 @@ interface OverlayTile {
   direction: Mirror.Direction
   round: string | null
   background: MagneticTile.Background | null
+  title: string
+  mark: string | null
 }
 
 type OverlayItem = OverlayTexture | OverlayTile
@@ -64,12 +66,14 @@ interface TileWritePayload {
   direction: Mirror.Direction
   round: string | null
   background: string | null
+  title: string
+  mark: string | null
 }
 
 /** overlay:update patch：texture / tile 可更新字段并集（isThrough 不持久化） */
 type OverlayPatch = Partial<
   Pick<OverlayTexture, 'x' | 'y' | 'w' | 'h' | 'z' | 'opacity' | 'scale' | 'isThrough' | 'src'> &
-    Pick<OverlayTile, 'size' | 'shape' | 'direction' | 'round' | 'background'>
+    Pick<OverlayTile, 'size' | 'shape' | 'direction' | 'round' | 'background' | 'title' | 'mark'>
 >
 
 /** overlay:read 返回行 */
@@ -90,6 +94,8 @@ interface OverlayRow {
   direction?: Mirror.Direction | null
   round?: string | null
   background?: string | null
+  title?: string | null
+  mark?: string | null
   scale?: number | null
   archivedAt?: string | null
   createdAt: string
@@ -104,10 +110,15 @@ interface OverlayStore {
   toMount: (
     kind: MagneticTile.Component,
     magneticTileID: string,
-    layout?: Partial<MarkerLayout> & SurfaceStyleInput
+    layout?: Partial<MarkerLayout> &
+      SurfaceStyleInput & {
+        title?: string
+        mark?: string | null
+      }
   ) => void
   toWrite: (input: {
     src: string
+    title?: string
     x?: number
     y?: number
     w: number
@@ -182,6 +193,8 @@ const useOverlayStore = create<OverlayStore>()(
             const box = findMarkerBox(parsed)
             const round = layout?.round ?? null
             const background = layout?.background ?? null
+            const title = layout?.title ?? ''
+            const mark = layout?.mark ?? null
             const existing = state.items.find(function (w) {
               return w.kind !== 'texture' && w.id === magneticTileID
             })
@@ -193,6 +206,8 @@ const useOverlayStore = create<OverlayStore>()(
               existing.direction = parsed.direction
               existing.round = round
               existing.background = background
+              existing.title = title
+              existing.mark = mark
               existing.w = box.w
               existing.h = box.h
               payload = {
@@ -209,6 +224,8 @@ const useOverlayStore = create<OverlayStore>()(
                 direction: parsed.direction,
                 round,
                 background: background ? JSON.stringify(background) : null,
+                title,
+                mark,
                 scale: existing.scale ?? 1
               }
               return
@@ -234,7 +251,9 @@ const useOverlayStore = create<OverlayStore>()(
               shape: parsed.shape,
               direction: parsed.direction,
               round,
-              background
+              background,
+              title,
+              mark
             })
             payload = {
               kind: 'tile',
@@ -250,7 +269,9 @@ const useOverlayStore = create<OverlayStore>()(
               shape: parsed.shape,
               direction: parsed.direction,
               round,
-              background: background ? JSON.stringify(background) : null
+              background: background ? JSON.stringify(background) : null,
+              title,
+              mark
             }
           })
           if (payload) {
@@ -273,6 +294,8 @@ const useOverlayStore = create<OverlayStore>()(
             src: string
             opacity: number
             scale: number
+            title: string
+            mark: string | null
           } | null = null
           setter(function (state) {
             id = `texture-${Date.now()}-${state.zCursor}`
@@ -306,7 +329,9 @@ const useOverlayStore = create<OverlayStore>()(
               z: item.z,
               src: item.src,
               opacity: item.opacity,
-              scale: item.scale
+              scale: item.scale,
+              title: input.title ?? '',
+              mark: null
             }
           })
           if (writeItem) {
@@ -485,7 +510,9 @@ const useOverlayStore = create<OverlayStore>()(
                   shape: base.shape ?? LAYOUT_FALLBACK.shape,
                   direction: base.direction ?? LAYOUT_FALLBACK.direction,
                   round: base.round ?? null,
-                  background: base.background ? JSON.parse(base.background) : null
+                  background: base.background ? JSON.parse(base.background) : null,
+                  title: base.title ?? '',
+                  mark: base.mark ?? null
                 })
               }
             }

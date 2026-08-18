@@ -35,6 +35,13 @@ pub struct Model {
     /// 背景配置 JSON 字符串
     pub background: Option<String>,
 
+    /// 标题：tile 与磁贴一致；texture 可用文件名
+    #[serde(default)]
+    pub title: String,
+
+    /// 角标 / 缩写，可空
+    pub mark: Option<String>,
+
     /// 缩放比例，默认 1.0
     pub scale: f64,
 
@@ -79,6 +86,10 @@ pub struct Write {
     pub direction: Option<String>,
     pub round: Option<String>,
     pub background: Option<String>,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub mark: Option<String>,
     #[serde(default = "default_scale")]
     pub scale: f64,
 }
@@ -106,5 +117,7 @@ pub struct Update {
     pub direction: Option<String>,
     pub round: Option<String>,
     pub background: Option<String>,
+    pub title: Option<String>,
+    pub mark: Option<String>,
     pub scale: Option<f64>,
 }

@@ -30,6 +30,8 @@ interface MountTilePayload {
   direction?: string | null
   round?: string | null
   background?: MagneticTile.Background | null
+  title?: string | null
+  mark?: string | null
 }
 
 function OverlayShell() {
@@ -110,7 +112,9 @@ function OverlayShell() {
           shape: (payload.shape ?? undefined) as Mirror.Shape | undefined,
           direction: (payload.direction ?? undefined) as Mirror.Direction | undefined,
           round: payload.round ?? null,
-          background: payload.background ?? null
+          background: payload.background ?? null,
+          title: payload.title ?? '',
+          mark: payload.mark ?? null
         })
       }
 

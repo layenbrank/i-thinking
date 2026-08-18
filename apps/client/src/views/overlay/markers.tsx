@@ -2,9 +2,13 @@ import { lazy, type ComponentType, type ReactNode } from 'react'
 
 import type { MarkerLayout } from '@/features/magnetic-tile/size'
 
-type MarkerProps = MarkerLayout
+/** overlay 渲染时保证提供：布局 + 内容字段（不污染纯几何 MarkerLayout） */
+interface MarkerRenderProps extends MarkerLayout {
+  title: string
+  mark: string | null
+}
 
-type MarkerModule = { default: ComponentType<MarkerProps> }
+type MarkerModule = { default: ComponentType<MarkerRenderProps> }
 
 function lazyMarker(loader: () => Promise<MarkerModule>) {
   return lazy(loader)
@@ -65,20 +69,24 @@ const ExampleMarker = lazyMarker(function () {
   return import('@/features/magnetic-tiles/example/marker')
 })
 
-function bindMarker(Marker: ReturnType<typeof lazyMarker>): (layout: MarkerLayout) => ReactNode {
-  return function render(layout) {
+function bindMarker(
+  Marker: ReturnType<typeof lazyMarker>
+): (props: MarkerRenderProps) => ReactNode {
+  return function render(props) {
     return (
       <Marker
-        size={layout.size}
-        shape={layout.shape}
-        direction={layout.direction}
+        size={props.size}
+        shape={props.shape}
+        direction={props.direction}
+        title={props.title}
+        mark={props.mark}
       />
     )
   }
 }
 
 /** 浮层 Marker 映射，覆盖全部 MagneticTile.Component */
-const MARKERS: Record<MagneticTile.Component, (layout: MarkerLayout) => ReactNode> = {
+const MARKERS: Record<MagneticTile.Component, (props: MarkerRenderProps) => ReactNode> = {
   bookmark: bindMarker(BookmarkMarker),
   calendar: bindMarker(CalendarMarker),
   clock: bindMarker(ClockMarker),
@@ -99,8 +107,9 @@ const MARKERS: Record<MagneticTile.Component, (layout: MarkerLayout) => ReactNod
   example: bindMarker(ExampleMarker)
 }
 
-function RenderMarker(component: MagneticTile.Component, layout: MarkerLayout): ReactNode {
-  return MARKERS[component](layout)
+function RenderMarker(component: MagneticTile.Component, props: MarkerRenderProps): ReactNode {
+  return MARKERS[component](props)
 }
 
 export { MARKERS, RenderMarker }
+export type { MarkerRenderProps }

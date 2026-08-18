@@ -242,7 +242,13 @@ function Tile(props: TileProps) {
           <div
             className={clsx('magnetic-tile-surface', tileStyles.surface)}
             style={surfaceStyle}>
-            {RenderMarker(item.kind, layout)}
+            {RenderMarker(item.kind, {
+              size: layout.size,
+              shape: layout.shape,
+              direction: layout.direction,
+              title: item.title,
+              mark: item.mark
+            })}
           </div>
         </Suspense>
       </div>
