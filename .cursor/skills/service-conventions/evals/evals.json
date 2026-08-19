@@ -1,0 +1,20 @@
+{
+  "skill_name": "service-conventions",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "给 services/notification 加一套 CRUD，包含 schema、controller、service、迁移和 OpenAPI 文档",
+      "expected_output": "使用 toRead/toWrite/toUpdate/toRemove；请求响应命名为 XxxP/XxxR；无 Api 前缀；lib.rs 声明模块；表含 createdAt/creator/updatedAt/updater/archivedAt/expiresAt；oas 注册；README.md 按 auth 风格"
+    },
+    {
+      "id": 2,
+      "prompt": "把 UserCreateRequest 和 UserDetailResponse 重命名，并更新 oas 和 controller",
+      "expected_output": "改为 WriteP 和 UserR（或模块内对称命名）；更新 oas body! 与 path doc；无 Request/Response/Api 字样残留"
+    },
+    {
+      "id": 3,
+      "prompt": "新建 bootstrap/telemetry 子模块，不要在目录里放 mod.rs",
+      "expected_output": "在 src/lib.rs 的 pub mod bootstrap { ... } 内声明 telemetry；子目录仅 telemetry.rs 或 telemetry/*.rs 由 lib.rs 引用"
+    }
+  ]
+}
