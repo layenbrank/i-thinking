@@ -15,10 +15,8 @@ impl MigrationTrait for Migration {
             .drop_table(
                 Table::drop()
                     .if_exists()
-                    .table(Uploads::Table)
-                    .table(Users::Table)
-                    .table(Alias::new("auth"))
-                    .table(Alias::new("seaql_migrations"))
+                    .table(Asset::Table)
+                    .table(Auth::Table)
                     .cascade()
                     .to_owned(),
             )
@@ -27,46 +25,84 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Users::Table)
+                    .table(Auth::Table)
                     .if_not_exists()
-                    .col(pk_uuid(Users::Id))
-                    .col(text_uniq(Users::Username))
-                    .col(text(Users::Password))
-                    .col(text_null(Users::Email))
-                    .col(integer_null(Users::Age))
-                    .col(timestamp_with_time_zone(Users::CreatedAt))
-                    .col(timestamp_with_time_zone(Users::UpdatedAt))
+                    .col(pk_uuid(Auth::Id))
+                    .col(text_uniq(Auth::Username))
+                    .col(text(Auth::Password))
+                    .col(text_null(Auth::Email))
+                    .col(text_null(Auth::Phone))
+                    .col(integer_null(Auth::Age))
+                    .col(text_null(Auth::Gender))
+                    .col(date_null(Auth::Birthday))
+                    .col(uuid_null(Auth::Avatar))
+                    .col(timestamp_with_time_zone_null(Auth::ArchivedAt))
+                    .col(timestamp_with_time_zone(Auth::CreatedAt))
+                    .col(uuid_null(Auth::Creator))
+                    .col(timestamp_with_time_zone(Auth::UpdatedAt))
+                    .col(uuid_null(Auth::Updater))
+                    .col(timestamp_with_time_zone_null(Auth::ExpiresAt))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_auth_creator")
+                            .from(Auth::Table, Auth::Creator)
+                            .to(Auth::Table, Auth::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_auth_updater")
+                            .from(Auth::Table, Auth::Updater)
+                            .to(Auth::Table, Auth::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
                     .to_owned(),
             )
             .await?;
 
-        let mut uploaded_chunks = array(Uploads::UploadedChunks, ColumnType::Integer);
-        uploaded_chunks.default("{}");
+        let mut chunks = array(Asset::Chunks, ColumnType::Integer);
+        chunks.default("{}");
 
         manager
             .create_table(
                 Table::create()
-                    .table(Uploads::Table)
+                    .table(Asset::Table)
                     .if_not_exists()
-                    .col(pk_uuid(Uploads::Id))
-                    .col(text(Uploads::FileName))
-                    .col(big_integer(Uploads::FileSize))
-                    .col(text(Uploads::FileHash))
-                    .col(text(Uploads::MimeType))
-                    .col(integer(Uploads::ChunkSize))
-                    .col(integer(Uploads::TotalChunks))
-                    .col(uploaded_chunks)
-                    .col(text(Uploads::Status))
-                    .col(text_null(Uploads::StoragePath))
-                    .col(uuid_null(Uploads::UploaderId))
-                    .col(timestamp_with_time_zone(Uploads::CreatedAt))
-                    .col(timestamp_with_time_zone(Uploads::UpdatedAt))
-                    .col(timestamp_with_time_zone_null(Uploads::ExpiresAt))
+                    .col(pk_uuid(Asset::Id))
+                    .col(text_null(Asset::Kind))
+                    .col(text(Asset::Hash))
+                    .col(text_null(Asset::Sha))
+                    .col(big_integer(Asset::Size))
+                    .col(text(Asset::Mime))
+                    .col(text_null(Asset::Extension))
+                    .col(text(Asset::Name))
+                    .col(text_null(Asset::Path))
+                    .col(text_null(Asset::Metadata))
+                    .col(text(Asset::Status))
+                    .col(integer(Asset::Chunk))
+                    .col(integer(Asset::Total))
+                    .col(chunks)
+                    .col(timestamp_with_time_zone_null(Asset::ArchivedAt))
+                    .col(timestamp_with_time_zone(Asset::CreatedAt))
+                    .col(uuid_null(Asset::Creator))
+                    .col(timestamp_with_time_zone(Asset::UpdatedAt))
+                    .col(uuid_null(Asset::Updater))
+                    .col(timestamp_with_time_zone_null(Asset::ExpiresAt))
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk_uploads_uploader_id")
-                            .from(Uploads::Table, Uploads::UploaderId)
-                            .to(Users::Table, Users::Id)
+                            .name("fk_asset_creator")
+                            .from(Asset::Table, Asset::Creator)
+                            .to(Auth::Table, Auth::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_asset_updater")
+                            .from(Asset::Table, Asset::Updater)
+                            .to(Auth::Table, Auth::Id)
                             .on_delete(ForeignKeyAction::SetNull)
                             .on_update(ForeignKeyAction::Cascade),
                     )
@@ -78,9 +114,9 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .if_not_exists()
-                    .name("idx_uploads_file_hash")
-                    .table(Uploads::Table)
-                    .col(Uploads::FileHash)
+                    .name("idx_asset_hash")
+                    .table(Asset::Table)
+                    .col(Asset::Hash)
                     .to_owned(),
             )
             .await?;
@@ -89,9 +125,33 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .if_not_exists()
-                    .name("idx_uploads_uploader_id")
-                    .table(Uploads::Table)
-                    .col(Uploads::UploaderId)
+                    .name("idx_asset_creator")
+                    .table(Asset::Table)
+                    .col(Asset::Creator)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_auth_phone")
+                    .table(Auth::Table)
+                    .col(Auth::Phone)
+                    .unique()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name("fk_auth_avatar")
+                    .from(Auth::Table, Auth::Avatar)
+                    .to(Asset::Table, Asset::Id)
+                    .on_delete(ForeignKeyAction::SetNull)
+                    .on_update(ForeignKeyAction::Cascade)
                     .to_owned(),
             )
             .await?;
@@ -101,56 +161,73 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Uploads::Table).if_exists().to_owned())
+            .drop_foreign_key(
+                ForeignKey::drop()
+                    .name("fk_auth_avatar")
+                    .table(Auth::Table)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(Asset::Table).if_exists().to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(Users::Table).if_exists().to_owned())
+            .drop_table(Table::drop().table(Auth::Table).if_exists().to_owned())
             .await?;
         Ok(())
     }
 }
 
 #[derive(DeriveIden)]
-enum Users {
+enum Auth {
     Table,
     Id,
     Username,
     Password,
     Email,
+    Phone,
     Age,
+    Gender,
+    Birthday,
+    Avatar,
+    #[sea_orm(iden = "archivedAt")]
+    ArchivedAt,
     #[sea_orm(iden = "createdAt")]
     CreatedAt,
+    Creator,
     #[sea_orm(iden = "updatedAt")]
     UpdatedAt,
+    Updater,
+    #[sea_orm(iden = "expiresAt")]
+    ExpiresAt,
 }
 
 #[derive(DeriveIden)]
-enum Uploads {
+enum Asset {
     Table,
     Id,
-    #[sea_orm(iden = "fileName")]
-    FileName,
-    #[sea_orm(iden = "fileSize")]
-    FileSize,
-    #[sea_orm(iden = "fileHash")]
-    FileHash,
-    #[sea_orm(iden = "mimeType")]
-    MimeType,
-    #[sea_orm(iden = "chunkSize")]
-    ChunkSize,
-    #[sea_orm(iden = "totalChunks")]
-    TotalChunks,
-    #[sea_orm(iden = "uploadedChunks")]
-    UploadedChunks,
+    Kind,
+    Hash,
+    Sha,
+    Size,
+    Mime,
+    Extension,
+    Name,
+    Path,
+    Metadata,
     Status,
-    #[sea_orm(iden = "storagePath")]
-    StoragePath,
-    #[sea_orm(iden = "uploaderID")]
-    UploaderId,
+    Chunk,
+    Total,
+    Chunks,
+    #[sea_orm(iden = "archivedAt")]
+    ArchivedAt,
     #[sea_orm(iden = "createdAt")]
     CreatedAt,
+    Creator,
     #[sea_orm(iden = "updatedAt")]
     UpdatedAt,
+    Updater,
     #[sea_orm(iden = "expiresAt")]
     ExpiresAt,
 }

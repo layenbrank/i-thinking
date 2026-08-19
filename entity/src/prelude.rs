@@ -1,2 +1,2 @@
-pub use super::uploads::Entity as Uploads;
-pub use super::users::Entity as Users;
+pub use super::asset::Entity as Asset;
+pub use super::auth::Entity as Auth;

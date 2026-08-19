@@ -1,4 +1,4 @@
 pub mod prelude;
 
-pub mod uploads;
-pub mod users;
+pub mod asset;
+pub mod auth;
