@@ -55,7 +55,7 @@ impl Modify for SecurityAddon {
         version = env!("CARGO_PKG_VERSION"),
         description = "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。\
             错误码规则见 /guide/error-codes.md。ErrorBody.details 字段仅在开发环境返回。",
-        contact(name = "CoreX Team", email = "dev@example.com"),
+        contact(name = "CoreX Team", email = "15638470820@163.com"),
         license(name = "Proprietary")
     ),
     servers(
