@@ -30,4 +30,4 @@ sea-orm-cli migrate generate NAME_OF_MIGRATION
 
 应用启动时会调用 `Migrator::up`，一般不必单独跑 CLI。
 
-基线 `m20260819_000001_init_schema` 会 **DROP** 旧的 `users` / `uploads` / `auth` / `seaql_migrations` 后重建 camelCase 列 schema。记账表 `migration` 由 Migrator 维护，不要在业务迁移里 DROP。
+基线 `000001_20260819` 会 **DROP** 旧的 `users` / `uploads` / `auth` / `seaql_migrations` 后重建 camelCase 列 schema。记账表 `migration` 由 Migrator 维护，不要在业务迁移里 DROP。

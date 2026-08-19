@@ -1,6 +1,7 @@
 pub use sea_orm_migration::prelude::*;
 
-mod m20260819_000001_init_schema;
+#[path = "000001_20260819.rs"]
+mod m000001_20260819;
 
 pub struct Migrator;
 
@@ -11,6 +12,6 @@ impl MigratorTrait for Migrator {
     }
 
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        vec![Box::new(m20260819_000001_init_schema::Migration)]
+        vec![Box::new(m000001_20260819::Migration)]
     }
 }
