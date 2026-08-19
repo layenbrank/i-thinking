@@ -10,19 +10,10 @@ target = "x86_64-pc-windows-msvc"
 # 使用MSVC链接器（需安装Visual Studio构建工具）
 linker = "link.exe"
 rustflags = [
-  "-C",
-  "opt-level=3",  #
-  "-C",
-  "codegen-units=256",  # 单一代码生成单元以提升优化效果
-  "-C",
-  "target-cpu=native",  # CPU指令集优化
-  "-C",
-  "target-feature=+crt-static",  # 静态链接MSVC运行时
-  "-C",
-  "link-arg=/SUBSYSTEM:CONSOLE",  # 显示控制台窗口，需要 main 入口点（控制台应用（Rust 默认行为））
-  # "link-arg=/SUBSYSTEM:WINDOWS", # 隐藏控制台窗口，需要 WinMain 入口点(GUI 应用（如 Windows 窗口程序）)
-  "-C",
-  "link-arg=/OPT:REF",  # Windows (MSVC) — 需根据平台条件设置
+  "-C", "target-cpu=native",
+  "-C", "target-feature=+crt-static",
+  "-C", "link-arg=/SUBSYSTEM:CONSOLE",
+  "-C", "link-arg=/OPT:REF",
 ]
 
 # -------------------------- Linux 平台配置 --------------------------

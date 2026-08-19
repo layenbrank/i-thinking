@@ -36,13 +36,11 @@ edition.workspace = true
 # strip = "symbols"   # 移除调试符号（Rust 1.59+）
 
 [profile.dev]
-codegen-units = 256 # 单线程代码生成（提升优化）
-
+incremental = true
 
 [lib]
-name       = "core"
 path       = "src/lib.rs"
-crate-type = ["rlib", "cdylib", "staticlib"]
+crate-type = ["rlib"]
 doctest    = false
 
 [[bin]]
@@ -52,6 +50,14 @@ path = "src/bin/service.rs"
 [[bin]]
 name = "generate"
 path = "src/bin/generate.rs"
+
+[[bin]]
+name = "docs"
+path = "src/bin/docs.rs"
+
+[features]
+default = []
+openapi = ["dep:utoipa-swagger-ui"]
 
 [dependencies]
 # Web 框架
@@ -111,3 +117,10 @@ tracing-log = "0.2.0" # 将 log crate 接到 tracing
 
 # CLI / 终端输出
 dialoguer = "0.12.0" # generate 交互式菜单
+
+# OpenAPI 文档
+utoipa = { version = "=5.3.1", features = ["chrono"] }
+utoipa-swagger-ui = { version = "=8.0.3", features = ["actix-web"], optional = true }
+
+[dev-dependencies]
+actix-web = { version = "4.14.1" }

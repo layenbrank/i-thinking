@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-and-openapi:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run unit tests
+        run: cargo test --lib -p service
+
+      - name: Run OpenAPI consistency tests
+        run: cargo test --test oas_consistency
+
+      - name: Export OpenAPI spec
+        run: cargo run --bin docs
+
+      - name: Verify openapi.json is up to date
+        run: git diff --exit-code spec/openapi.json
+
+      - name: Build with openapi feature
+        run: cargo build --features openapi --bin service
