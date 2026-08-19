@@ -1,12 +1,14 @@
 use crate::configures::configure::Configure;
 use crate::databases::database;
-use crate::services::auth::schema::{
-    AuthUser, SigninRequest, SigninResponse, SignupRequest, SignupResponse,
-};
+use crate::services::auth::schema::{SigninRequest, SigninResponse, SignupRequest, SignupResponse};
+use crate::utils::db::is_unique_violation;
 use crate::utils::encryption::{EncryptionError, encrypt_password, verify_password};
 use crate::utils::jwt::{JwtError, generate_token};
 use crate::utils::response::{ApiErrorResponse, business};
-use mongodb::bson::{DateTime, doc};
+use chrono::Utc;
+use entity::users;
+use sea_orm::{ActiveModelTrait, Set};
+use uuid::Uuid;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
@@ -52,24 +54,28 @@ impl From<AuthError> for ApiErrorResponse {
     }
 }
 
+fn map_db_err(err: sea_orm::DbErr) -> AuthError {
+    if is_unique_violation(&err) {
+        AuthError::UserAlreadyExists
+    } else {
+        AuthError::DatabaseError(err.to_string())
+    }
+}
+
 pub struct AuthService;
 
 impl AuthService {
-    /// 用户登录
     pub async fn signin(
         db: &database::Storage,
         req: SigninRequest,
         config: &Configure,
     ) -> Result<SigninResponse, AuthError> {
-        // 查找用户
-        let user = db
-            .auth()
-            .find_one(doc! {"username": &req.username})
+        let user = users::Entity::find_by_username(&req.username)
+            .one(&db.db)
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))?
             .ok_or(AuthError::UserNotFound)?;
 
-        // 验证密码
         let is_valid = verify_password(
             &req.password,
             &user.password,
@@ -81,12 +87,12 @@ impl AuthService {
             return Err(AuthError::InvalidPassword);
         }
 
-        // 生成 JWT token
-        let user_id = user
-            .id
-            .ok_or_else(|| AuthError::DatabaseError("User ID is missing".to_string()))?
-            .to_hex();
-        let token = generate_token(&user_id, &user.username, &config.jwt_secret, None)?;
+        let token = generate_token(
+            &user.id.to_string(),
+            &user.username,
+            &config.jwt_secret,
+            None,
+        )?;
 
         Ok(SigninResponse {
             token,
@@ -94,16 +100,13 @@ impl AuthService {
         })
     }
 
-    /// 用户注册
     pub async fn signup(
         db: &database::Storage,
         req: SignupRequest,
         config: &Configure,
     ) -> Result<SignupResponse, AuthError> {
-        // 检查用户名是否已存在
-        let existing = db
-            .auth()
-            .find_one(doc! {"username": &req.username})
+        let existing = users::Entity::find_by_username(&req.username)
+            .one(&db.db)
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
 
@@ -111,44 +114,33 @@ impl AuthService {
             return Err(AuthError::UserAlreadyExists);
         }
 
-        // 加密密码
         let encrypted_password =
             encrypt_password(&req.password, &config.encryption, config.aes_key.as_deref())?;
 
-        // 创建用户
-        let now = DateTime::now().timestamp_millis();
-        let user = AuthUser {
-            id: None,
-            username: req.username.clone(),
-            password: encrypted_password,
-            created_at: mongodb::bson::DateTime::from_millis(now),
-            updated_at: mongodb::bson::DateTime::from_millis(now),
-        };
+        let now = Utc::now().fixed_offset();
+        let user = users::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            username: Set(req.username),
+            password: Set(encrypted_password),
+            email: Set(None),
+            age: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+        }
+        .insert(&db.db)
+        .await
+        .map_err(map_db_err)?;
 
-        // 保存到数据库
-        let result = db
-            .auth()
-            .insert_one(&user)
-            .await
-            .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
-
-        // 获取插入的用户 ID
-        let inserted_id = result.inserted_id.as_object_id().ok_or_else(|| {
-            AuthError::DatabaseError("Failed to POST-SIGNIN.HTTP inserted ID".to_string())
-        })?;
-
-        let user_id = inserted_id.to_hex();
-
-        // 生成 JWT token
-        let token = generate_token(&user_id, &user.username, &config.jwt_secret, None)?;
-
-        // 更新 user 对象，设置 id
-        let mut user_with_id = user;
-        user_with_id.id = Some(inserted_id);
+        let token = generate_token(
+            &user.id.to_string(),
+            &user.username,
+            &config.jwt_secret,
+            None,
+        )?;
 
         Ok(SignupResponse {
             token,
-            user: user_with_id.into(),
+            user: user.into(),
         })
     }
 }

@@ -1,32 +1,32 @@
-use crate::{databases::database::Storage, services::markdown::schema::MarkdownSchema};
+use crate::{databases::database::Storage, services::markdown::schema::Schema};
 use actix_web::Result;
 
 pub struct MarkdownService;
 
 impl MarkdownService {
-    pub fn read(storage: &Storage) -> Result<MarkdownSchema> {
+    pub fn read(storage: &Storage) -> Result<Schema> {
         // storage.markdown()
-        Ok(MarkdownSchema {
+        Ok(Schema {
             id: String::from(""),
-            content: String::from(""),
+            fragment: String::from(""),
         })
     }
-    pub fn insert() -> Result<MarkdownSchema> {
-        Ok(MarkdownSchema {
+    pub fn insert() -> Result<Schema> {
+        Ok(Schema {
             id: String::from(""),
-            content: String::from(""),
+            fragment: String::from(""),
         })
     }
-    pub fn update() -> Result<MarkdownSchema> {
-        Ok(MarkdownSchema {
+    pub fn update() -> Result<Schema> {
+        Ok(Schema {
             id: String::from(""),
-            content: String::from(""),
+            fragment: String::from(""),
         })
     }
-    pub fn remove() -> Result<MarkdownSchema> {
-        Ok(MarkdownSchema {
+    pub fn remove() -> Result<Schema> {
+        Ok(Schema {
             id: String::from(""),
-            content: String::from(""),
+            fragment: String::from(""),
         })
     }
 }

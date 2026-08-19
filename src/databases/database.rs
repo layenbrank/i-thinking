@@ -1,45 +1,47 @@
-use crate::services::{auth, markdown, upload, user};
-use anyhow::Result;
-use mongodb::{Client, Collection, Database};
+use anyhow::{Context, Result};
+use migration::{Migrator, MigratorTrait};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use std::time::Duration;
 
 #[derive(Clone)]
 pub struct Storage {
-    pub client: Client,
-    pub database: Database,
+    pub db: DatabaseConnection,
+    pub database: String,
 }
 
 impl Storage {
     pub async fn new(uri: &str) -> Result<Self> {
-        let client = Client::with_uri_str(uri).await?;
-        let database = client.database("i-thinking");
+        let database = database_name(uri);
 
-        client
-            .database("admin")
-            .run_command(mongodb::bson::doc! {
-                "ping": 1
-            })
-            .await?;
+        let mut opt = ConnectOptions::new(uri.to_owned());
+        opt.max_connections(20)
+            .min_connections(2)
+            .connect_timeout(Duration::from_secs(8))
+            .acquire_timeout(Duration::from_secs(8))
+            .idle_timeout(Duration::from_secs(8))
+            .max_lifetime(Duration::from_secs(1800))
+            .sqlx_logging(true)
+            .sqlx_logging_level(log::LevelFilter::Debug);
 
-        Ok(Storage { client, database })
+        let db = Database::connect(opt)
+            .await
+            .context("Failed to connect to PostgreSQL")?;
+
+        db.ping().await.context("PostgreSQL ping failed")?;
+
+        Migrator::up(&db, None)
+            .await
+            .context("Failed to migrate PostgreSQL schema")?;
+
+        Ok(Storage { db, database })
     }
+}
 
-    pub fn users(&self) -> Collection<user::schema::User> {
-        self.database.collection("users")
-    }
-
-    pub fn uploads(&self) -> Collection<upload::schema::Upload> {
-        self.database.collection("uploads")
-    }
-
-    pub fn auth(&self) -> Collection<auth::schema::AuthUser> {
-        self.database.collection("auth")
-    }
-
-    pub fn markdown(&self) -> Collection<markdown::schema::MarkdownSchema> {
-        self.database.collection("markdown")
-    }
-
-    // pub fn application(&self)->Collection<> {
-
-    // }
+fn database_name(uri: &str) -> String {
+    uri.rsplit('/')
+        .next()
+        .and_then(|tail| tail.split('?').next())
+        .filter(|name| !name.is_empty())
+        .unwrap_or("i-thinking")
+        .to_string()
 }

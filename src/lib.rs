@@ -8,19 +8,23 @@ pub mod configures {
 
 pub mod middlewares {
     pub mod cors;
+    pub mod jwt;
     pub mod response;
 }
 
 pub mod utils {
+    pub mod db;
     pub mod encryption;
     pub mod generate;
     pub mod jwt;
+    pub mod logger;
     pub mod response;
     pub mod timestamp;
 }
 
 pub mod services {
-    pub mod application {
+    #[allow(non_snake_case)]
+    pub mod magneticTile {
         pub mod controller;
         pub mod module;
         pub mod schema;

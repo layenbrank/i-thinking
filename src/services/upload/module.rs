@@ -1,3 +1,4 @@
+use crate::middlewares::jwt::JwtAuth;
 use crate::services::upload::controller::UploadController;
 use actix_web::web;
 
@@ -7,6 +8,7 @@ impl UploadModule {
     pub fn configure(cfg: &mut web::ServiceConfig) {
         cfg.service(
             web::scope("/upload")
+                .wrap(JwtAuth::upload())
                 .route("/prepare", web::post().to(UploadController::prepare))
                 .route("/chunk", web::post().to(UploadController::chunk))
                 .route("/finalize", web::post().to(UploadController::finalize))

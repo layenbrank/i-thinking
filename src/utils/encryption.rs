@@ -1,7 +1,7 @@
 use crate::configures::configure::Encryption;
 use aes_gcm::{
     Aes256Gcm, Key, Nonce,
-    aead::{Aead, AeadCore, KeyInit},
+    aead::{Aead, Generate, KeyInit},
 };
 use argon2::password_hash::{SaltString, rand_core::OsRng};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
@@ -71,10 +71,7 @@ fn encrypt_with_aes(password: &str, key_str: &str) -> Result<String, EncryptionE
         .map_err(|_| EncryptionError::InvalidKeyLength)?;
     let key: &Key<Aes256Gcm> = (&key_array).into();
     let cipher = Aes256Gcm::new(key);
-
-    // 生成随机 nonce
-    use aes_gcm::aead::OsRng as AesOsRng;
-    let nonce = Aes256Gcm::generate_nonce(&mut AesOsRng);
+    let nonce = Nonce::generate();
 
     // 加密
     let ciphertext = cipher

@@ -1,5 +1,5 @@
 use base64::{Engine, engine::general_purpose::STANDARD};
-use rand::{Rng, RngCore};
+use rand::{Rng, RngExt};
 
 /// 生成 JWT_SECRET (64 字符的随机字符串)
 pub fn generate_jwt_secret() -> String {

@@ -4,10 +4,9 @@ use actix_web::{
 };
 use core::{
     configures::configure::Configure, databases::database::Storage,
-    middlewares::response::ResponseWrapper, services::application::module::ApplicationModule,
+    middlewares::response::ResponseWrapper, services::magneticTile::module::ApplicationModule,
     utils,
 };
-use env_logger::Env;
 use std::{env, sync::Arc};
 
 #[actix_web::main]
@@ -34,9 +33,18 @@ async fn main() -> std::io::Result<()> {
         eprintln!("警告: 未找到 .env 文件，将使用默认值");
     }
 
+    let _log_guard = utils::logger::init().expect("Failed to initialize logger");
+
     let configure = Configure::from_env().expect("Failed to load configuration");
 
-    let storage = Storage::new(&configure.mongodb_uri)
+    tracing::info!(
+        host = %configure.host,
+        port = configure.port,
+        encryption = ?configure.encryption,
+        "configuration loaded"
+    );
+
+    let storage = Storage::new(&configure.database_uri)
         .await
         .expect("Failed to connect to database");
 
@@ -45,11 +53,7 @@ async fn main() -> std::io::Result<()> {
     let host = config.host.clone();
     let port = config.port;
 
-    println!("📝 API Documentation: http://{}:{}/api/v1", host, port);
-
-    println!("Configuration loaded: {:?}", configure);
-
-    env_logger::init_from_env(Env::default().default_filter_or("info"));
+    tracing::info!(host = %host, port, "service starting");
 
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -67,8 +71,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(store.clone()))
             .app_data(Data::new(config.clone()))
             .wrap(cors)
-            .wrap(ResponseWrapper) // 响应包装中间件（已包含详细的请求/响应日志）
-            // 移除重复的 Logger，ResponseWrapper 已提供详细的表格日志
+            .wrap(ResponseWrapper) // 请求/响应结构化日志
             .service(index)
             .service(index_html)
             .service(health_check)

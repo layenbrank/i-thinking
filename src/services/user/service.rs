@@ -1,129 +1,156 @@
 use crate::{
+    configures::configure::Configure,
     databases::database::Storage,
-    services::user::schema::{CreateUser, UpdateUser, User},
+    services::user::schema::{CreateUser, UpdateUser},
+    utils::{
+        db::is_unique_violation,
+        encryption::{EncryptionError, encrypt_password},
+        response::{ApiErrorResponse, business, request},
+    },
 };
-use actix_web::{Result, error};
-use futures::TryStreamExt;
-use mongodb::bson::{DateTime, doc, oid::ObjectId};
+use chrono::Utc;
+use entity::users;
+use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+use uuid::Uuid;
+
+#[derive(Debug, thiserror::Error)]
+pub enum UserError {
+    #[error("User already exists")]
+    UserAlreadyExists,
+    #[error("User not found")]
+    UserNotFound,
+    #[error("Invalid user ID")]
+    InvalidId,
+    #[error("Encryption error: {0}")]
+    EncryptionError(#[from] EncryptionError),
+    #[error("Database error: {0}")]
+    DatabaseError(String),
+}
+
+impl From<UserError> for ApiErrorResponse {
+    fn from(err: UserError) -> Self {
+        match err {
+            UserError::UserAlreadyExists => {
+                ApiErrorResponse::custom(business::user::USERNAME_EXISTS, "用户名已存在")
+            }
+            UserError::UserNotFound => {
+                ApiErrorResponse::custom(business::user::NOT_FOUND, "用户不存在")
+            }
+            UserError::InvalidId => {
+                ApiErrorResponse::custom(request::INVALID_PARAMETER_VALUE, "Invalid user ID")
+            }
+            UserError::EncryptionError(e) => {
+                ApiErrorResponse::internal_error(format!("加密错误: {e}"))
+            }
+            UserError::DatabaseError(e) => {
+                ApiErrorResponse::internal_error(format!("Database error: {e}"))
+            }
+        }
+    }
+}
+
+fn map_db_err(err: sea_orm::DbErr) -> UserError {
+    if is_unique_violation(&err) {
+        UserError::UserAlreadyExists
+    } else {
+        UserError::DatabaseError(err.to_string())
+    }
+}
 
 pub struct UserService;
 
 impl UserService {
-    pub async fn insert(db: &Storage, req: CreateUser) -> Result<User> {
-        let existing = db
-            .users()
-            .find_one(doc! {"username": &req.username})
+    pub async fn insert(
+        db: &Storage,
+        config: &Configure,
+        req: CreateUser,
+    ) -> Result<users::Model, UserError> {
+        if users::Entity::find_by_username(&req.username)
+            .one(&db.db)
             .await
-            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?;
-
-        // 如果用户已经存在，直接返回现有用户
-        if let Some(existing_user) = existing {
-            return Ok(existing_user);
-        }
-
-        let now = DateTime::now().timestamp_millis();
-        let user = User {
-            id: None,
-            age: None,
-            email: None,
-            username: req.username,
-            password: req.password,
-            created_at: mongodb::bson::DateTime::from_millis(now),
-            updated_at: mongodb::bson::DateTime::from_millis(now),
-        };
-
-        let resp = db.users().insert_one(&user).await.map_err(|e| {
-            error::ErrorInternalServerError(format!("Failed to insert user: {}", e))
-        })?;
-
-        let mut inserted = user;
-        inserted.id = Some(match resp.inserted_id.as_object_id() {
-            Some(id) => id,
-            None => {
-                return Err(error::ErrorInternalServerError(
-                    "Failed to POST-SIGNIN.HTTP inserted ID",
-                ));
-            }
-        });
-
-        Ok(inserted)
-    }
-
-    pub async fn find_one(database: &Storage, id: &str) -> Result<User> {
-        let object_id =
-            ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("Invalid user ID"))?;
-
-        let user = database
-            .users()
-            .find_one(doc! {"_id":object_id})
-            .await
-            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?
-            .ok_or_else(|| error::ErrorNotFound("User not found"))?;
-
-        Ok(user)
-    }
-
-    pub async fn find_all(database: &Storage) -> Result<Vec<User>> {
-        let mut cursor = database
-            .users()
-            .find(doc! {})
-            .await
-            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?;
-
-        let mut users = Vec::new();
-
-        while let Some(user) = cursor
-            .try_next()
-            .await
-            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?
+            .map_err(|e| UserError::DatabaseError(e.to_string()))?
+            .is_some()
         {
-            users.push(user);
+            return Err(UserError::UserAlreadyExists);
         }
 
-        Ok(users)
+        let password =
+            encrypt_password(&req.password, &config.encryption, config.aes_key.as_deref())?;
+        let now = Utc::now().fixed_offset();
+        users::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            username: Set(req.username),
+            password: Set(password),
+            email: Set(None),
+            age: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+        }
+        .insert(&db.db)
+        .await
+        .map_err(map_db_err)
     }
 
-    pub async fn update(database: &Storage, id: &str, req: UpdateUser) -> Result<User> {
-        let object_id =
-            ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("Invalid user ID"))?;
+    pub async fn find_one(db: &Storage, id: &str) -> Result<users::Model, UserError> {
+        let id = Uuid::parse_str(id).map_err(|_| UserError::InvalidId)?;
+        users::Entity::find_by_id(id)
+            .one(&db.db)
+            .await
+            .map_err(|e| UserError::DatabaseError(e.to_string()))?
+            .ok_or(UserError::UserNotFound)
+    }
 
-        let now_millis = chrono::Utc::now().timestamp_millis();
-        let mut update_doc = doc! {"updated_at": mongodb::bson::DateTime::from_millis(now_millis)};
+    pub async fn find_all(db: &Storage) -> Result<Vec<users::Model>, UserError> {
+        users::Entity::find()
+            .all(&db.db)
+            .await
+            .map_err(|e| UserError::DatabaseError(e.to_string()))
+    }
 
+    pub async fn update(
+        db: &Storage,
+        config: &Configure,
+        id: &str,
+        req: UpdateUser,
+    ) -> Result<users::Model, UserError> {
+        let id = Uuid::parse_str(id).map_err(|_| UserError::InvalidId)?;
+        let model = users::Entity::find_by_id(id)
+            .one(&db.db)
+            .await
+            .map_err(|e| UserError::DatabaseError(e.to_string()))?
+            .ok_or(UserError::UserNotFound)?;
+
+        let mut active: users::ActiveModel = model.into();
         if let Some(username) = req.username {
-            update_doc.insert("username", username);
+            active.username = Set(username);
         }
         if let Some(password) = req.password {
-            update_doc.insert("password", password);
+            active.password = Set(encrypt_password(
+                &password,
+                &config.encryption,
+                config.aes_key.as_deref(),
+            )?);
         }
         if let Some(email) = req.email {
-            update_doc.insert("email", email);
+            active.email = Set(Some(email));
         }
         if let Some(age) = req.age {
-            update_doc.insert("age", age);
+            active.age = Set(Some(age as i32));
         }
+        active.updated_at = Set(Utc::now().fixed_offset());
 
-        database
-            .users()
-            .update_one(doc! {"_id": object_id}, doc! {"$set": update_doc})
-            .await
-            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?;
-
-        UserService::find_one(database, id).await
+        active.update(&db.db).await.map_err(map_db_err)
     }
 
-    pub async fn remove(database: &Storage, id: &str) -> Result<()> {
-        let object_id =
-            ObjectId::parse_str(id).map_err(|_| error::ErrorBadRequest("Invalid ObjectId"))?;
-
-        let result = database
-            .users()
-            .delete_one(doc! {"_id": object_id})
+    pub async fn remove(db: &Storage, id: &str) -> Result<(), UserError> {
+        let id = Uuid::parse_str(id).map_err(|_| UserError::InvalidId)?;
+        let result = users::Entity::delete_by_id(id)
+            .exec(&db.db)
             .await
-            .map_err(|e| error::ErrorInternalServerError(format!("Storage error: {}", e)))?;
+            .map_err(|e| UserError::DatabaseError(e.to_string()))?;
 
-        if result.deleted_count == 0 {
-            return Err(error::ErrorNotFound("User not found"));
+        if result.rows_affected == 0 {
+            return Err(UserError::UserNotFound);
         }
 
         Ok(())

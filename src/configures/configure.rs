@@ -20,7 +20,7 @@ impl Encryption {
 pub struct Configure {
     pub host: String,
     pub port: u16,
-    pub mongodb_uri: String,
+    pub database_uri: String,
     pub secret: String,
     pub encryption: Encryption,
     pub jwt_secret: String,
@@ -45,8 +45,10 @@ impl Configure {
                 .parse()
                 .unwrap_or(3000),
 
-            mongodb_uri: env::var("MONGODB_URI")
-                .unwrap_or_else(|_| "mongodb://localhost:27017".to_string()),
+            database_uri: env::var("DATABASE_URL").unwrap_or_else(|_| {
+                "postgres://postgres:postgres@localhost:5432/i-thinking?sslmode=disable"
+                    .to_string()
+            }),
 
             secret: env::var("SECRET").unwrap_or_else(|_| "secret".to_string()),
 

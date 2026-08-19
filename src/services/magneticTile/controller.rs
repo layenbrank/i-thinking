@@ -1,6 +1,6 @@
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
-use crate::services::application::{schema::Schema, service::Service};
+use crate::services::magneticTile::{schema::Schema, service::Service};
 use crate::utils::response::{ApiErrorResponse, ApiResponse};
 use actix_web::{HttpResponse, Responder, Result, web};
 use std::sync::Arc;

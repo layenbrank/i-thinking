@@ -11,8 +11,9 @@ impl EngineController {
         // 手动提取查询参数，以便更好地处理错误
         let params = match web::Query::<URLParams>::from_query(req.query_string()) {
             Ok(query) => {
-                println!("URLParams: {}", query);
-                query.into_inner()
+                let params = query.into_inner();
+                tracing::debug!(%params, "URLParams");
+                params
             }
             Err(err) => {
                 // Query 参数解析失败，返回格式化的错误响应

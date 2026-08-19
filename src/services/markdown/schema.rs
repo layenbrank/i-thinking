@@ -1,4 +1,4 @@
-pub struct MarkdownSchema {
+pub struct Schema {
     pub id: String,
-    pub content: String,
+    pub fragment: String,
 }

@@ -1,6 +1,7 @@
 use crate::services::{
-    application::controller::ApplicationController, auth::module::AuthModule,
-    engine::module::EngineModule, upload::module::UploadModule, user::module::UserModule,
+    auth::module::AuthModule, engine::module::EngineModule,
+    magneticTile::controller::ApplicationController, upload::module::UploadModule,
+    user::module::UserModule,
 };
 use actix_web::web;
 
@@ -15,7 +16,7 @@ impl ApplicationModule {
                 .configure(UploadModule::configure)
                 .configure(EngineModule::configure)
                 .service(
-                    web::scope("/application")
+                    web::scope("/magnetic-tile")
                         .route("/toRead", web::get().to(ApplicationController::toRead)),
                 ),
         );

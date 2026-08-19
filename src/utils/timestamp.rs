@@ -1,35 +1,28 @@
-use mongodb::bson::DateTime;
+use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Deserializer, Serializer};
 use std::str::FromStr;
 
 /// 将 DateTime 序列化为毫秒时间戳
-pub fn to_ts<S>(dt: &DateTime, s: S) -> Result<S::Ok, S::Error>
+pub fn to_ts<S>(dt: &DateTime<Utc>, s: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
     s.serialize_i64(dt.timestamp_millis())
 }
 
-/// 从时间戳或 BSON DateTime 反序列化为 DateTime
-pub fn from_ts<'de, D>(d: D) -> Result<DateTime, D::Error>
+/// 从毫秒时间戳反序列化为 DateTime
+pub fn from_ts<'de, D>(d: D) -> Result<DateTime<Utc>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    #[derive(Deserialize)]
-    #[serde(untagged)]
-    enum DateTimeOrTs {
-        DateTime(DateTime),
-        Timestamp(i64),
-    }
-
-    match DateTimeOrTs::deserialize(d)? {
-        DateTimeOrTs::DateTime(dt) => Ok(dt),
-        DateTimeOrTs::Timestamp(ts) => Ok(DateTime::from_millis(ts)),
-    }
+    let ts = i64::deserialize(d)?;
+    Utc.timestamp_millis_opt(ts)
+        .single()
+        .ok_or_else(|| serde::de::Error::custom("invalid timestamp"))
 }
 
 /// 将 Option<DateTime> 序列化为可选的毫秒时间戳
-pub fn to_ts_opt<S>(dt: &Option<DateTime>, s: S) -> Result<S::Ok, S::Error>
+pub fn to_ts_opt<S>(dt: &Option<DateTime<Utc>>, s: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -40,11 +33,11 @@ where
 }
 
 /// 从可选的时间戳反序列化为 Option<DateTime>
-pub fn from_ts_opt<'de, D>(d: D) -> Result<Option<DateTime>, D::Error>
+pub fn from_ts_opt<'de, D>(d: D) -> Result<Option<DateTime<Utc>>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Option::<i64>::deserialize(d).map(|ts| ts.map(DateTime::from_millis))
+    Option::<i64>::deserialize(d).map(|ts| ts.and_then(|v| Utc.timestamp_millis_opt(v).single()))
 }
 
 /// 将字符串或数字反序列化为数字类型

@@ -2,13 +2,15 @@ use crate::{
     databases::database::Storage,
     services::upload::{
         schema::{FinalizeUploadRequest, UploadRequest},
-        service::UploadService,
+        service::{UploadService, sanitize_download_filename},
     },
-    utils::response::ApiResponse,
+    utils::jwt::Claims,
+    utils::response::{ApiErrorResponse, ApiResponse},
 };
 use actix_files::NamedFile;
 use actix_multipart::Multipart;
-use actix_web::{HttpResponse, Result, web};
+use actix_web::http::header::{ContentDisposition, DispositionParam, DispositionType};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Result, web};
 use futures::StreamExt;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -18,17 +20,23 @@ pub struct UploadController;
 impl UploadController {
     pub async fn prepare(
         db: web::Data<Arc<Storage>>,
+        http: HttpRequest,
         req: web::Json<UploadRequest>,
     ) -> Result<HttpResponse> {
-        println!("收到初始化上传请求: {:?}", req);
+        tracing::debug!(?req, "收到初始化上传请求");
 
-        match UploadService::prepare(&db, req.into_inner(), None).await {
+        let Some(claims) = http.extensions().get::<Claims>().cloned() else {
+            return ApiErrorResponse::unauthorized("用户未登录").transform();
+        };
+        let uploader_id = claims.sub;
+
+        match UploadService::prepare(&db, req.into_inner(), Some(uploader_id)).await {
             Ok(response) => {
-                println!("初始化上传成功: {:?}", response);
+                tracing::info!(?response, "初始化上传成功");
                 ApiResponse::success(response, "初始化上传成功").transform()
             }
             Err(err) => {
-                println!("初始化上传失败: {}", err);
+                tracing::error!(error = %err, "初始化上传失败");
                 crate::utils::response::ApiErrorResponse::bad_request(err.to_string()).transform()
             }
         }
@@ -169,15 +177,15 @@ impl UploadController {
         db: web::Data<Arc<Storage>>,
         req: web::Json<FinalizeUploadRequest>,
     ) -> Result<HttpResponse> {
-        println!("收到完成上传请求: {:?}", req);
+        tracing::debug!(?req, "收到完成上传请求");
 
         match UploadService::finalize(&db, &req.upload_id).await {
             Ok(response) => {
-                println!("完成上传成功: {:?}", response);
+                tracing::info!(?response, "完成上传成功");
                 ApiResponse::success(response, "完成上传成功").transform()
             }
             Err(err) => {
-                println!("完成上传失败: {}", err);
+                tracing::error!(error = %err, "完成上传失败");
                 Ok(HttpResponse::BadRequest().json(serde_json::json!({
                     "error": err.to_string()
                 })))
@@ -222,6 +230,7 @@ impl UploadController {
     pub async fn serve_file(
         db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
+        req: HttpRequest,
     ) -> Result<HttpResponse> {
         let file_hash = path.into_inner();
 
@@ -233,26 +242,13 @@ impl UploadController {
                     if file_path.exists() {
                         match NamedFile::open(&file_path) {
                             Ok(named_file) => {
-                                // 使用 TestRequest 创建虚拟 HttpRequest
-                                use actix_web::test::TestRequest;
-                                let req = TestRequest::default().to_http_request();
-                                let mut response = named_file.into_response(&req);
-
-                                // 添加文件名到响应头
-                                if let Some(header_value) =
-                                    actix_web::http::header::HeaderValue::from_str(&format!(
-                                        "attachment; filename=\"{}\"",
-                                        upload.file_name
-                                    ))
-                                    .ok()
-                                {
-                                    response.headers_mut().insert(
-                                        actix_web::http::header::CONTENT_DISPOSITION,
-                                        header_value,
-                                    );
-                                }
-
-                                Ok(response)
+                                let filename = sanitize_download_filename(&upload.file_name);
+                                let named_file =
+                                    named_file.set_content_disposition(ContentDisposition {
+                                        disposition: DispositionType::Attachment,
+                                        parameters: vec![DispositionParam::Filename(filename)],
+                                    });
+                                Ok(named_file.into_response(&req))
                             }
                             Err(_) => {
                                 Ok(HttpResponse::InternalServerError().json(serde_json::json!({

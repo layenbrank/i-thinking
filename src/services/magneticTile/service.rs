@@ -1,9 +1,9 @@
 use crate::{
-    services::application::schema::{Component, Direction, Schema, Shape, Size},
+    services::magneticTile::schema::{Component, Direction, Schema, Shape, Size},
     utils::response::ApiErrorResponse,
 };
 use actix_web::Result;
-use mongodb::bson::datetime::DateTime;
+use chrono::Utc;
 
 pub struct Service;
 
@@ -33,7 +33,7 @@ impl From<ApplicationError> for ApiErrorResponse {
 impl Service {
     pub async fn toRead() -> Result<Schema, ApplicationError> {
         // storage.application().find_one(None, None)?;
-        let now = DateTime::now().timestamp_millis();
+        let now = Utc::now().timestamp_millis();
 
         Ok(Schema {
             id: String::from("1234567890"),
@@ -62,7 +62,7 @@ impl Service {
     }
 
     pub async fn toInsert() -> Result<Schema> {
-        let now = DateTime::now().timestamp_millis();
+        let now = Utc::now().timestamp_millis();
 
         Ok(Schema {
             id: String::from("1234567890"),
@@ -90,7 +90,7 @@ impl Service {
         })
     }
     pub fn toUpdate() -> Result<Schema> {
-        let now = DateTime::now().timestamp_millis();
+        let now = Utc::now().timestamp_millis();
 
         Ok(Schema {
             id: String::from("1234567890"),
@@ -118,7 +118,7 @@ impl Service {
         })
     }
     pub fn toRemove() -> Result<Schema> {
-        let now = DateTime::now().timestamp_millis();
+        let now = Utc::now().timestamp_millis();
 
         Ok(Schema {
             id: String::from("1234567890"),

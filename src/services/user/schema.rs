@@ -1,21 +1,7 @@
 use crate::utils::timestamp::{from_ts, to_ts};
+use chrono::{DateTime, Utc};
+use entity::users;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct User {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<mongodb::bson::oid::ObjectId>,
-    pub username: String,
-    pub password: String,
-    pub email: Option<String>,
-    pub age: Option<u32>,
-    #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
-    pub created_at: mongodb::bson::DateTime,
-    #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
-    pub updated_at: mongodb::bson::DateTime,
-    // pub role: Option<String>,
-}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -31,8 +17,6 @@ pub struct UpdateUser {
     pub password: Option<String>,
     pub email: Option<String>,
     pub age: Option<u32>,
-    #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
-    pub updated_at: mongodb::bson::DateTime,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,20 +27,20 @@ pub struct UserResponse {
     pub email: Option<String>,
     pub age: Option<u32>,
     #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
-    pub created_at: mongodb::bson::DateTime,
+    pub created_at: DateTime<Utc>,
     #[serde(serialize_with = "to_ts", deserialize_with = "from_ts")]
-    pub updated_at: mongodb::bson::DateTime,
+    pub updated_at: DateTime<Utc>,
 }
 
-impl From<User> for UserResponse {
-    fn from(value: User) -> Self {
+impl From<users::Model> for UserResponse {
+    fn from(value: users::Model) -> Self {
         UserResponse {
-            id: value.id.map_or("".to_string(), |id| id.to_hex()),
+            id: value.id.to_string(),
             username: value.username,
             email: value.email,
-            age: value.age,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
+            age: value.age.map(|v| v as u32),
+            created_at: value.created_at.with_timezone(&Utc),
+            updated_at: value.updated_at.with_timezone(&Utc),
         }
     }
 }

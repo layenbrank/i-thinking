@@ -89,7 +89,7 @@ impl EngineService {
 
         // 检查响应状态码
         let status = response.status();
-        println!("Response status: {}", status);
+        tracing::debug!(status = %status, "Response status");
 
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
@@ -102,14 +102,9 @@ impl EngineService {
         // 先获取响应文本用于调试
         let text = response.text().await?;
 
-        // 打印响应内容用于调试
-        println!(
-            "Response body (first 500 chars): {}",
-            if text.len() > 500 {
-                &text[..500]
-            } else {
-                &text
-            }
+        tracing::debug!(
+            body = %if text.len() > 500 { &text[..500] } else { &text },
+            "Response body (first 500 chars)"
         );
 
         // 尝试解析 JSON
