@@ -1,6 +1,6 @@
 # Migrations
 
-SeaORM 官方迁移 crate。记账表为 `seaql_migrations`。
+SeaORM 官方迁移 crate。记账表为 `migration`（覆盖默认的 `seaql_migrations`）。
 
 ## CLI
 
@@ -30,4 +30,4 @@ sea-orm-cli migrate generate NAME_OF_MIGRATION
 
 应用启动时会调用 `Migrator::up`，一般不必单独跑 CLI。
 
-基线 `m20260819_000001_init_schema` 会 **DROP** 旧的 `users` / `uploads` / `auth` / 自定义 `migration` 表后重建 snake_case schema。
+基线 `m20260819_000001_init_schema` 会 **DROP** 旧的 `users` / `uploads` / `auth` / `seaql_migrations` 后重建 camelCase 列 schema。记账表 `migration` 由 Migrator 维护，不要在业务迁移里 DROP。

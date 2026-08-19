@@ -406,12 +406,12 @@ impl UploadService {
             .execute_raw(Statement::from_sql_and_values(
                 DatabaseBackend::Postgres,
                 r#"UPDATE uploads
-                   SET uploaded_chunks = CASE
-                         WHEN $2 = ANY(uploaded_chunks) THEN uploaded_chunks
-                         ELSE array_append(uploaded_chunks, $2)
+                   SET "uploadedChunks" = CASE
+                         WHEN $2 = ANY("uploadedChunks") THEN "uploadedChunks"
+                         ELSE array_append("uploadedChunks", $2)
                        END,
                        status = $3,
-                       updated_at = $4
+                       "updatedAt" = $4
                    WHERE id = $1"#,
                 [
                     upload.id.into(),

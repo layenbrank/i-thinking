@@ -13,7 +13,7 @@ impl MigrationTrait for Migration {
                     .table(Uploads::Table)
                     .table(Users::Table)
                     .table(Alias::new("auth"))
-                    .table(Alias::new("migration"))
+                    .table(Alias::new("seaql_migrations"))
                     .cascade()
                     .to_owned(),
             )
@@ -113,7 +113,9 @@ enum Users {
     Password,
     Email,
     Age,
+    #[sea_orm(iden = "createdAt")]
     CreatedAt,
+    #[sea_orm(iden = "updatedAt")]
     UpdatedAt,
 }
 
@@ -121,17 +123,29 @@ enum Users {
 enum Uploads {
     Table,
     Id,
+    #[sea_orm(iden = "fileName")]
     FileName,
+    #[sea_orm(iden = "fileSize")]
     FileSize,
+    #[sea_orm(iden = "fileHash")]
     FileHash,
+    #[sea_orm(iden = "mimeType")]
     MimeType,
+    #[sea_orm(iden = "chunkSize")]
     ChunkSize,
+    #[sea_orm(iden = "totalChunks")]
     TotalChunks,
+    #[sea_orm(iden = "uploadedChunks")]
     UploadedChunks,
     Status,
+    #[sea_orm(iden = "storagePath")]
     StoragePath,
+    #[sea_orm(iden = "uploaderID")]
     UploaderId,
+    #[sea_orm(iden = "createdAt")]
     CreatedAt,
+    #[sea_orm(iden = "updatedAt")]
     UpdatedAt,
+    #[sea_orm(iden = "expiresAt")]
     ExpiresAt,
 }
