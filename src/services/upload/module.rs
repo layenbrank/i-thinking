@@ -12,18 +12,9 @@ impl UploadModule {
                 .route("/prepare", web::post().to(UploadController::prepare))
                 .route("/chunk", web::post().to(UploadController::chunk))
                 .route("/finalize", web::post().to(UploadController::finalize))
-                .route(
-                    "/progress/{upload_id}",
-                    web::get().to(UploadController::progress),
-                )
-                .route(
-                    "/cancel/{upload_id}",
-                    web::delete().to(UploadController::cancel),
-                )
-                .route(
-                    "/files/{file_hash}",
-                    web::get().to(UploadController::serve_file),
-                ),
+                .route("/progress/{id}", web::get().to(UploadController::progress))
+                .route("/cancel/{id}", web::delete().to(UploadController::cancel))
+                .route("/files/{hash}", web::get().to(UploadController::serve_file)),
         );
     }
 }

@@ -1,5 +1,5 @@
-use crate::services::engine::schema::{Suggestion, URLParams};
-use crate::utils::response::ApiErrorResponse;
+use crate::services::engine::schema::{SuggestionR, QueryP};
+use crate::utils::response::ErrorBody;
 use actix_web::HttpRequest;
 use reqwest::{Client, Error as ReqwestError, header};
 use serde_json::Error as JsonError;
@@ -21,22 +21,22 @@ pub enum EngineError {
     InvalidResponseFormat(String),
 }
 
-impl From<EngineError> for ApiErrorResponse {
+impl From<EngineError> for ErrorBody {
     fn from(err: EngineError) -> Self {
         use crate::utils::response::data;
         match err {
             EngineError::HttpError(e) => {
-                ApiErrorResponse::custom(data::DATA_INCONSISTENCY, format!("网络请求失败: {}", e))
+                ErrorBody::custom(data::DATA_INCONSISTENCY, format!("网络请求失败: {}", e))
             }
             EngineError::JsonParseError(e) => {
-                ApiErrorResponse::custom(data::DATA_INCONSISTENCY, format!("响应解析失败: {}", e))
+                ErrorBody::custom(data::DATA_INCONSISTENCY, format!("响应解析失败: {}", e))
             }
-            EngineError::HttpStatusError { status, message } => ApiErrorResponse::custom(
+            EngineError::HttpStatusError { status, message } => ErrorBody::custom(
                 data::DATA_INCONSISTENCY,
                 format!("HTTP错误 {}: {}", status, message),
             ),
             EngineError::InvalidResponseFormat(msg) => {
-                ApiErrorResponse::custom(data::DATA_INCONSISTENCY, format!("响应格式错误: {}", msg))
+                ErrorBody::custom(data::DATA_INCONSISTENCY, format!("响应格式错误: {}", msg))
             }
         }
     }
@@ -51,9 +51,9 @@ impl EngineService {
     /// - `params`: URL 查询参数
     /// - `req`: HTTP 请求对象，用于提取 User-Agent 等请求头信息
     pub async fn suggestion(
-        params: URLParams,
+        params: QueryP,
         req: &HttpRequest,
-    ) -> Result<Suggestion, EngineError> {
+    ) -> Result<SuggestionR, EngineError> {
         let client = Client::new();
 
         // 构建请求头
@@ -108,7 +108,7 @@ impl EngineService {
         );
 
         // 尝试解析 JSON
-        let suggestion: Suggestion = serde_json::from_str(&text).map_err(|e| {
+        let suggestion: SuggestionR = serde_json::from_str(&text).map_err(|e| {
             EngineError::InvalidResponseFormat(format!(
                 "JSON解析失败: {}\n响应内容: {}",
                 e,

@@ -1,6 +1,7 @@
 use actix_web::{HttpResponse, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::ToSchema;
 
 /// 企业级业务状态码定义
 ///
@@ -184,9 +185,9 @@ pub fn description(code: i32) -> &'static str {
     }
 }
 
-/// 统一的 API 响应结构
+/// 统一的响应结构
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ApiResponse<T> {
+pub struct Body<T> {
     /// 业务状态码 (0=成功, 非0=各种业务错误)
     pub code: i32,
     /// 响应是否成功
@@ -200,7 +201,7 @@ pub struct ApiResponse<T> {
     pub timestamp: i64,
 }
 
-impl<T> ApiResponse<T>
+impl<T> Body<T>
 where
     T: Serialize,
 {
@@ -226,12 +227,12 @@ where
         }
     }
 
-    /// 创建创建成功响应 (201)
-    pub fn insert(data: T) -> Self {
+    /// 创建成功响应
+    pub fn write(data: T) -> Self {
         Self {
             code: SUCCESS,
             success: true,
-            msg: "insert successfully".to_string(),
+            msg: "创建成功".to_string(),
             data: Some(data),
             timestamp: chrono::Utc::now().timestamp_millis(),
         }
@@ -255,20 +256,23 @@ where
 }
 
 /// 错误响应专用结构 (不包含 data 字段)
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ApiErrorResponse {
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ErrorBody {
     /// 业务错误码 (非0表示各种业务错误)
     pub code: i32,
     pub success: bool,
     pub msg: String,
     pub timestamp: i64,
-    pub data: Option<Value>,
-    /// 详细错误信息 (开发环境使用)
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Object, nullable = true)]
+    pub data: Option<Value>,
+    /// 详细错误信息 (仅开发环境返回)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Object, nullable = true)]
     pub details: Option<Value>,
 }
 
-impl ApiErrorResponse {
+impl ErrorBody {
     /// 创建客户端错误响应 - 请求参数错误
     pub fn bad_request(msg: impl Into<String>) -> Self {
         Self {
@@ -354,7 +358,7 @@ impl ApiErrorResponse {
 }
 
 /// 空数据成功响应
-impl ApiResponse<()> {
+impl Body<()> {
     /// 创建无数据成功响应
     pub fn no_content() -> Self {
         Self {
@@ -380,51 +384,51 @@ impl ApiResponse<()> {
 
 /// 便捷的响应构建器宏
 #[macro_export]
-macro_rules! api_success {
+macro_rules! ok {
     ($data:expr) => {
-        $crate::utils::response::ApiResponse::success($data).transform()
+        $crate::utils::response::Body::success($data).transform()
     };
     ($data:expr, $message:expr) => {
-        $crate::utils::response::ApiResponse::success_with_message($data, $message).transform()
+        $crate::utils::response::Body::success_with_message($data, $message).transform()
     };
 }
 
 #[macro_export]
-macro_rules! api_created {
+macro_rules! created {
     ($data:expr) => {
-        $crate::utils::response::ApiResponse::created($data).transform()
+        $crate::utils::response::Body::write($data).transform()
     };
 }
 
 #[macro_export]
-macro_rules! api_no_content {
+macro_rules! no_content {
     () => {
-        $crate::utils::response::ApiResponse::no_content().transform()
+        $crate::utils::response::Body::no_content().transform()
     };
     ($message:expr) => {
-        $crate::utils::response::ApiResponse::message_only($message).transform()
+        $crate::utils::response::Body::message_only($message).transform()
     };
 }
 
 #[macro_export]
-macro_rules! api_error {
+macro_rules! fail {
     (bad_request, $message:expr) => {
-        $crate::utils::response::ApiErrorResponse::bad_request($message).transform()
+        $crate::utils::response::ErrorBody::bad_request($message).transform()
     };
     (unauthorized, $message:expr) => {
-        $crate::utils::response::ApiErrorResponse::unauthorized($message).transform()
+        $crate::utils::response::ErrorBody::unauthorized($message).transform()
     };
     (forbidden, $message:expr) => {
-        $crate::utils::response::ApiErrorResponse::forbidden($message).transform()
+        $crate::utils::response::ErrorBody::forbidden($message).transform()
     };
     (not_found, $message:expr) => {
-        $crate::utils::response::ApiErrorResponse::not_found($message).transform()
+        $crate::utils::response::ErrorBody::not_found($message).transform()
     };
     (internal, $message:expr) => {
-        $crate::utils::response::ApiErrorResponse::internal_error($message).transform()
+        $crate::utils::response::ErrorBody::internal_error($message).transform()
     };
     ($code:expr, $message:expr) => {
-        $crate::utils::response::ApiErrorResponse::custom($code, $message).transform()
+        $crate::utils::response::ErrorBody::custom($code, $message).transform()
     };
 }
 
@@ -467,9 +471,9 @@ impl<T> Paginated<T> {
 
 /// 分页响应宏
 #[macro_export]
-macro_rules! api_paginated {
+macro_rules! paginated {
     ($items:expr, $count:expr, $page:expr, $size:expr) => {
-        $crate::utils::response::ApiResponse::success($crate::utils::response::Paginated::new(
+        $crate::utils::response::Body::success($crate::utils::response::Paginated::new(
             $items, $count, $page, $size,
         ))
         .transform()

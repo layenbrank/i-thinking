@@ -1,3 +1,0 @@
-DELETE /api/v1/users/688ad53f069ea6e2ce0689e3 HTTP/1.1
-Host: 127.0.0.1:3000
-Content-Type: application/json

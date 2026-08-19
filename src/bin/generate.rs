@@ -1,4 +1,4 @@
-use core::utils::generate;
+use service::utils::generate;
 use dialoguer::{Select, theme::ColorfulTheme};
 
 fn main() {

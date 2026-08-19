@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum TSchema {
     LT,
@@ -16,7 +17,7 @@ pub enum TSchema {
     OS,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct EmptySchema {
     id: String,
     q: String,
@@ -24,25 +25,19 @@ pub struct EmptySchema {
     t: TSchema,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ISchema {
     ig: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Suggestion {
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct SuggestionR {
     s: Vec<EmptySchema>,
     i: ISchema,
 }
-// pt: 'page.home',
-// qry: value,
-// cp: value.length,
-// csr: '1',
-// pths: '1',
-// cvid: cvid
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct URLParams {
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct QueryP {
     pt: String,
     qry: String,
     cp: u64,
@@ -51,9 +46,9 @@ pub struct URLParams {
     cvid: String,
 }
 
-impl URLParams {
+impl QueryP {
     pub fn new(pt: String, qry: String, cp: u64, csr: String, pths: String, cvid: String) -> Self {
-        URLParams {
+        QueryP {
             pt,
             qry,
             cp,
@@ -64,18 +59,17 @@ impl URLParams {
     }
 }
 
-impl fmt::Display for Suggestion {
+impl fmt::Display for SuggestionR {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "suggestion s: {:?}, i: {:?}", self.s, self.i,)
     }
 }
 
-// 换行显示 URLParams
-impl fmt::Display for URLParams {
+impl fmt::Display for QueryP {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "URLParams:\npt: {}\nqry: {}\ncp: {}\ncsr: {}\npths: {}\ncvid: {}",
+            "QueryP:\npt: {}\nqry: {}\ncp: {}\ncsr: {}\npths: {}\ncvid: {}",
             self.pt, self.qry, self.cp, self.csr, self.pths, self.cvid
         )
     }

@@ -4,7 +4,7 @@ use actix_web::Result;
 pub struct MarkdownService;
 
 impl MarkdownService {
-    pub fn read(storage: &Storage) -> Result<Schema> {
+    pub fn read(_storage: &Storage) -> Result<Schema> {
         // storage.markdown()
         Ok(Schema {
             id: String::from(""),

@@ -1,75 +1,62 @@
 use crate::configures::configure::Configure;
-use crate::utils::response::{ApiErrorResponse, ApiResponse};
+use crate::utils::response::{Body, ErrorBody};
 use crate::{
     databases::database::Storage,
     services::user::{
-        schema::{CreateUser, UpdateUser, UserResponse},
-        service::UserService,
+        schema::{UpdateP, WriteP},
+        service::{ReadR, UserService},
     },
 };
-use actix_web::{HttpResponse, Result, web};
+use actix_web::{HttpRequest, HttpResponse, Result, web};
 use std::sync::Arc;
 
 pub struct UserController;
 
 impl UserController {
-    pub async fn find_all(database: web::Data<Arc<Storage>>) -> Result<HttpResponse> {
-        match UserService::find_all(&database).await {
-            Ok(users) => {
-                let resp: Vec<UserResponse> = users.into_iter().map(|u| u.into()).collect();
-                ApiResponse::success(resp, "Users retrieved successfully").transform()
-            }
-            Err(err) => ApiErrorResponse::from(err).transform(),
-        }
-    }
-
-    pub async fn find_one(
+    pub async fn toRead(
         db: web::Data<Arc<Storage>>,
-        path: web::Path<String>,
+        req: HttpRequest,
     ) -> Result<HttpResponse> {
-        let id = path.into_inner();
-        match UserService::find_one(&db, &id).await {
-            Ok(user) => {
-                ApiResponse::success(UserResponse::from(user), "User retrieved successfully")
-                    .transform()
-            }
-            Err(err) => ApiErrorResponse::from(err).transform(),
+        let id = req.match_info().get("id");
+        match UserService::toRead(&db, id).await {
+            Ok(ReadR::One(user)) => Body::success(user, "获取用户成功").transform(),
+            Ok(ReadR::Many(users)) => Body::success(users, "获取用户列表成功").transform(),
+            Err(err) => ErrorBody::from(err).transform(),
         }
     }
 
-    pub async fn insert(
+    pub async fn toWrite(
         db: web::Data<Arc<Storage>>,
         config: web::Data<Arc<Configure>>,
-        req_body: web::Json<CreateUser>,
+        req_body: web::Json<WriteP>,
     ) -> Result<HttpResponse> {
-        match UserService::insert(&db, &config, req_body.into_inner()).await {
-            Ok(user) => ApiResponse::insert(UserResponse::from(user)).transform(),
-            Err(err) => ApiErrorResponse::from(err).transform(),
+        match UserService::toWrite(&db, &config, req_body.into_inner()).await {
+            Ok(user) => Body::write(user).transform(),
+            Err(err) => ErrorBody::from(err).transform(),
         }
     }
 
-    pub async fn update(
+    pub async fn toUpdate(
         db: web::Data<Arc<Storage>>,
         config: web::Data<Arc<Configure>>,
         path: web::Path<String>,
-        req_body: web::Json<UpdateUser>,
+        req_body: web::Json<UpdateP>,
     ) -> Result<HttpResponse> {
         let id = path.into_inner();
-        match UserService::update(&db, &config, &id, req_body.into_inner()).await {
-            Ok(user) => ApiResponse::success(UserResponse::from(user), "User updated successfully")
-                .transform(),
-            Err(err) => ApiErrorResponse::from(err).transform(),
+        match UserService::toUpdate(&db, &config, &id, req_body.into_inner()).await {
+            Ok(user) => Body::success(user, "更新用户成功").transform(),
+            Err(err) => ErrorBody::from(err).transform(),
         }
     }
 
-    pub async fn remove(
+    pub async fn toRemove(
         db: web::Data<Arc<Storage>>,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
         let id = path.into_inner();
-        match UserService::remove(&db, &id).await {
-            Ok(()) => ApiResponse::message_only("User deleted successfully").transform(),
-            Err(err) => ApiErrorResponse::from(err).transform(),
+        match UserService::toRemove(&db, &id).await {
+            Ok(()) => Body::message_only("删除用户成功").transform(),
+            Err(err) => ErrorBody::from(err).transform(),
         }
     }
 }

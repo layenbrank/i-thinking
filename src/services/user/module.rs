@@ -9,11 +9,11 @@ impl UserModule {
         cfg.service(
             web::scope("/users")
                 .wrap(JwtAuth::required())
-                .route("", web::get().to(UserController::find_all))
-                .route("", web::post().to(UserController::insert))
-                .route("/{id}", web::get().to(UserController::find_one))
-                .route("/{id}", web::put().to(UserController::update))
-                .route("/{id}", web::delete().to(UserController::remove)),
+                .route("", web::get().to(UserController::toRead))
+                .route("", web::post().to(UserController::toWrite))
+                .route("/{id}", web::get().to(UserController::toRead))
+                .route("/{id}", web::put().to(UserController::toUpdate))
+                .route("/{id}", web::delete().to(UserController::toRemove)),
         );
     }
 }

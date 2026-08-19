@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum UploadStatus {
     Pending,
@@ -29,7 +30,7 @@ impl UploadStatus {
             "FAILED" => Self::Failed,
             "EXPIRED" => Self::Expired,
             other => {
-                tracing::warn!(status = other, "unknown upload status");
+                tracing::warn!(status = other, "unknown asset status");
                 Self::Failed
             }
         }
@@ -52,61 +53,53 @@ mod tests {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct UploadRequest {
-    pub file_name: String,
-    pub file_size: u64,
-    pub file_hash: String,
-    pub mime_type: String,
-    pub chunk_size: u32,
+pub struct PrepareP {
+    pub name: String,
+    pub size: u64,
+    pub hash: String,
+    pub mime: String,
+    pub chunk: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct UploadResponse {
-    pub upload_id: String,
-    pub file_exists: bool,
-    pub uploaded_chunks: Vec<u32>,
-    pub upload_url: String,
+pub struct PrepareR {
+    pub id: String,
+    pub exists: bool,
+    pub chunks: Vec<u32>,
+    pub url: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ChunkUploadRequest {
-    pub upload_id: String,
-    pub chunk_index: u32,
-    pub chunk_hash: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChunkUploadResponse {
+pub struct ChunkR {
     pub success: bool,
-    pub chunk_index: u32,
+    pub index: u32,
     pub message: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct FinalizeUploadRequest {
-    pub upload_id: String,
+pub struct FinalizeP {
+    pub id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct FinalizeUploadResponse {
+pub struct FinalizeR {
     pub success: bool,
-    pub file_url: String,
-    pub file_id: String,
+    pub url: String,
+    pub id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct UploadProgressResponse {
-    pub upload_id: String,
+pub struct ProgressR {
+    pub id: String,
     pub progress: f64,
-    pub uploaded_chunks: Vec<u32>,
-    pub total_chunks: u32,
+    pub chunks: Vec<u32>,
+    pub total: u32,
     pub status: UploadStatus,
 }

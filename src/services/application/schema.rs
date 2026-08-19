@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub enum Size {
     Mini,
     Small,
@@ -11,14 +12,14 @@ pub enum Size {
     Ultra,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub enum Shape {
     Square,
     Circle,
     Rectangle,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub enum Component {
     Bookmark,
     Calendar,
@@ -35,14 +36,14 @@ pub enum Component {
     Gallery,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub enum Direction {
     Horizontal,
     Vertical,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Schema {
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct App {
     pub id: String,
     pub index: u32,
     pub name: String,

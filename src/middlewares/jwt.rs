@@ -1,6 +1,6 @@
 use crate::configures::configure::Configure;
 use crate::utils::jwt::{JwtError, verify_token};
-use crate::utils::response::{ApiErrorResponse, auth as auth_codes};
+use crate::utils::response::{ErrorBody, auth as auth_codes};
 use actix_web::body::EitherBody;
 use actix_web::http::{Method, header};
 use actix_web::{
@@ -83,7 +83,7 @@ where
                 return Box::pin(async move {
                     Ok(json_error(
                         req,
-                        ApiErrorResponse::internal_error("服务配置缺失"),
+                        ErrorBody::internal_error("服务配置缺失"),
                     ))
                 });
             }
@@ -95,7 +95,7 @@ where
                 return Box::pin(async move {
                     Ok(json_error(
                         req,
-                        ApiErrorResponse::unauthorized("用户未登录"),
+                        ErrorBody::unauthorized("用户未登录"),
                     ))
                 });
             }
@@ -107,16 +107,22 @@ where
                 let fut = self.service.call(req);
                 Box::pin(async move { Ok(fut.await?.map_into_left_body()) })
             }
+            Err(JwtError::DecodingError(_)) => Box::pin(async move {
+                Ok(json_error(
+                    req,
+                    ErrorBody::custom(auth_codes::INVALID_CREDENTIALS, "登录凭证无效"),
+                ))
+            }),
             Err(JwtError::InvalidToken) => Box::pin(async move {
                 Ok(json_error(
                     req,
-                    ApiErrorResponse::custom(auth_codes::TOKEN_EXPIRED, "登录凭证过期"),
+                    ErrorBody::custom(auth_codes::TOKEN_EXPIRED, "登录凭证过期"),
                 ))
             }),
             Err(_) => Box::pin(async move {
                 Ok(json_error(
                     req,
-                    ApiErrorResponse::unauthorized("登录凭证无效"),
+                    ErrorBody::unauthorized("登录凭证无效"),
                 ))
             }),
         }
@@ -141,7 +147,7 @@ fn bearer_token(req: &ServiceRequest) -> Option<String> {
     }
 }
 
-fn json_error<B>(req: ServiceRequest, body: ApiErrorResponse) -> ServiceResponse<EitherBody<B>> {
+fn json_error<B>(req: ServiceRequest, body: ErrorBody) -> ServiceResponse<EitherBody<B>> {
     let (http_req, _) = req.into_parts();
     ServiceResponse::new(http_req, HttpResponse::Ok().json(body)).map_into_right_body()
 }

@@ -1,0 +1,2122 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CoreX Service API",
+    "description": "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。错误码规则见 /guide/error-codes.md。ErrorBody.details 字段仅在开发环境返回。",
+    "contact": {
+      "name": "CoreX Team",
+      "email": "dev@example.com"
+    },
+    "license": {
+      "name": "Proprietary"
+    },
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3000",
+      "description": "development"
+    },
+    {
+      "url": "https://api.example.com",
+      "description": "production"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "健康检查",
+        "description": "检查服务是否正常运行，无需鉴权。HTTP 状态码始终为 200。",
+        "operationId": "system.health",
+        "responses": {
+          "200": {
+            "description": "服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/application/toRead": {
+      "get": {
+        "tags": [
+          "Application"
+        ],
+        "summary": "读取应用配置",
+        "description": "返回 mock 应用配置，无需鉴权。",
+        "operationId": "application.toRead",
+        "responses": {
+          "200": {
+            "description": "服务错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/profile": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "获取个人信息",
+        "description": "需要 JWT 鉴权，返回当前登录用户的 profile。",
+        "operationId": "auth.toRead",
+        "responses": {
+          "200": {
+            "description": "未登录（code=300001）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "更新个人信息",
+        "description": "需要 JWT 鉴权，可更新 email、phone、gender、birthday、avatar 等字段。",
+        "operationId": "auth.toUpdate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/signin": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "用户登录",
+        "description": "公开接口，成功后返回 JWT token。HTTP 状态码始终为 200，业务结果见 body.code。",
+        "operationId": "auth.signin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SigninP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "凭证无效（code=500301）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/signup": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "用户注册",
+        "description": "公开接口，注册成功后自动登录并返回 JWT token。",
+        "operationId": "auth.signup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "用户名已存在等业务错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/engine/suggestion": {
+      "get": {
+        "tags": [
+          "Engine"
+        ],
+        "summary": "获取搜索建议",
+        "description": "代理 Bing AS Suggestions API，无需鉴权。",
+        "operationId": "engine.toRead",
+        "parameters": [
+          {
+            "name": "pt",
+            "in": "query",
+            "description": "页面类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "page.home"
+          },
+          {
+            "name": "qry",
+            "in": "query",
+            "description": "搜索关键词",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "rust"
+          },
+          {
+            "name": "cp",
+            "in": "query",
+            "description": "光标位置",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            },
+            "example": 4
+          },
+          {
+            "name": "csr",
+            "in": "query",
+            "description": "CSR 参数",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "pths",
+            "in": "query",
+            "description": "路径参数",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "cvid",
+            "in": "query",
+            "description": "客户端 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "参数格式错误或上游失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/upload/cancel/{id}": {
+      "delete": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "取消上传",
+        "operationId": "upload.cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "上传会话 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未登录或会话不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/chunk": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "上传分片",
+        "description": "multipart/form-data 上传单个分片。需要 JWT 鉴权。",
+        "operationId": "upload.chunk",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ChunkUploadForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或分片错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/files/{hash}": {
+      "get": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "访问已上传文件",
+        "description": "通过文件 hash 下载，无需 JWT（公开访问）。",
+        "operationId": "upload.serveFile",
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "path",
+            "description": "文件 SHA-256 hash",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "文件不存在（code=500204）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/upload/finalize": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "完成上传",
+        "description": "合并所有分片并完成上传。需要 JWT 鉴权。",
+        "operationId": "upload.finalize",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/prepare": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "初始化上传",
+        "description": "创建上传会话，返回 upload id 与已上传分片列表。需要 JWT 鉴权。",
+        "operationId": "upload.prepare",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/progress/{id}": {
+      "get": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "查询上传进度",
+        "operationId": "upload.progress",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "上传会话 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未登录或会话不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "获取用户列表",
+        "description": "后台管理员接口，返回全部用户，需要 JWT 鉴权。",
+        "operationId": "user.toRead",
+        "responses": {
+          "200": {
+            "description": "未登录或权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "创建用户",
+        "description": "后台管理员接口，需要 JWT 鉴权。",
+        "operationId": "user.toWrite",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "用户名已存在等业务错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "获取用户详情",
+        "operationId": "user.toReadById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "用户 UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户不存在（code=500101）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "summary": "更新用户",
+        "operationId": "user.toUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "用户 UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "用户不存在或参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "summary": "删除用户",
+        "operationId": "user.toRemove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "用户 UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "App": {
+        "type": "object",
+        "required": [
+          "id",
+          "index",
+          "name",
+          "size",
+          "shape",
+          "mirror_id",
+          "updated_at",
+          "created_at",
+          "component",
+          "direction",
+          "description",
+          "download_count"
+        ],
+        "properties": {
+          "background_color": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "background_image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "collection_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "component": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "created_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "description": {
+            "type": "string"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "download_count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "height": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "marker": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mirror_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "round": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "shape": {
+            "$ref": "#/components/schemas/Shape"
+          },
+          "size": {
+            "$ref": "#/components/schemas/Size"
+          },
+          "text_color": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "text_size": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "width": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ApplicationBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/App"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AuthR": {
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "Avatar": {
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "mime",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "ChunkR": {
+        "type": "object",
+        "required": [
+          "success",
+          "index",
+          "message"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ChunkUploadBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ChunkR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ChunkUploadForm": {
+        "type": "object",
+        "description": "multipart 分片上传表单",
+        "required": [
+          "id",
+          "index",
+          "file"
+        ],
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "二进制分片文件",
+            "contentMediaType": "application/octet-stream"
+          },
+          "id": {
+            "type": "string",
+            "description": "上传会话 ID",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int32",
+            "description": "分片序号（从 0 开始）",
+            "example": 0,
+            "minimum": 0
+          }
+        }
+      },
+      "Component": {
+        "type": "string",
+        "enum": [
+          "Bookmark",
+          "Calendar",
+          "Markdown",
+          "Settings",
+          "Clipchamp",
+          "Intelligence",
+          "Navigation",
+          "Marketplace",
+          "Developer",
+          "Collection",
+          "Signboard",
+          "Clock",
+          "Gallery"
+        ]
+      },
+      "Direction": {
+        "type": "string",
+        "enum": [
+          "Horizontal",
+          "Vertical"
+        ]
+      },
+      "EmptySchema": {
+        "type": "object",
+        "required": [
+          "id",
+          "q",
+          "u",
+          "t"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "q": {
+            "type": "string"
+          },
+          "t": {
+            "$ref": "#/components/schemas/TSchema"
+          },
+          "u": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorBody": {
+        "type": "object",
+        "description": "错误响应专用结构 (不包含 data 字段)",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务错误码 (非0表示各种业务错误)"
+          },
+          "data": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "details": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "详细错误信息 (仅开发环境返回)"
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "FinalizeP": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "FinalizeR": {
+        "type": "object",
+        "required": [
+          "success",
+          "url",
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "FinalizeUploadBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FinalizeR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Gender": {
+        "type": "string",
+        "enum": [
+          "MALE",
+          "FEMALE"
+        ]
+      },
+      "Health": {
+        "type": "object",
+        "description": "健康检查 data 字段",
+        "required": [
+          "status",
+          "version",
+          "timestamp",
+          "uptime"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uptime": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Health"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ISchema": {
+        "type": "object",
+        "required": [
+          "ig"
+        ],
+        "properties": {
+          "ig": {
+            "type": "string"
+          }
+        }
+      },
+      "PrepareP": {
+        "type": "object",
+        "required": [
+          "name",
+          "size",
+          "hash",
+          "mime",
+          "chunk"
+        ],
+        "properties": {
+          "chunk": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "hash": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "PrepareR": {
+        "type": "object",
+        "required": [
+          "id",
+          "exists",
+          "chunks",
+          "url"
+        ],
+        "properties": {
+          "chunks": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "ProfileBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ProfileP": {
+        "type": "object",
+        "properties": {
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "birthday": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ProfileR": {
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "age": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "avatar": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Avatar"
+              }
+            ]
+          },
+          "birthday": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "ProgressR": {
+        "type": "object",
+        "required": [
+          "id",
+          "progress",
+          "chunks",
+          "total",
+          "status"
+        ],
+        "properties": {
+          "chunks": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UploadStatus"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "QueryP": {
+        "type": "object",
+        "required": [
+          "pt",
+          "qry",
+          "cp",
+          "csr",
+          "pths",
+          "cvid"
+        ],
+        "properties": {
+          "cp": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "csr": {
+            "type": "string"
+          },
+          "cvid": {
+            "type": "string"
+          },
+          "pt": {
+            "type": "string"
+          },
+          "pths": {
+            "type": "string"
+          },
+          "qry": {
+            "type": "string"
+          }
+        }
+      },
+      "Shape": {
+        "type": "string",
+        "enum": [
+          "Square",
+          "Circle",
+          "Rectangle"
+        ]
+      },
+      "SigninBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SigninR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SigninErrorExample": {
+        "type": "object",
+        "description": "登录失败示例（凭证无效）",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SigninExampleData": {
+        "type": "object",
+        "required": [
+          "token",
+          "id",
+          "username",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "SigninP": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "SigninR": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AuthR"
+          },
+          {
+            "type": "object",
+            "required": [
+              "token"
+            ],
+            "properties": {
+              "token": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "SigninSuccessExample": {
+        "type": "object",
+        "description": "登录成功示例",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SigninExampleData"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SignupBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SignupR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SignupP": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "SignupR": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AuthR"
+          },
+          {
+            "type": "object",
+            "required": [
+              "token"
+            ],
+            "properties": {
+              "token": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "Size": {
+        "type": "string",
+        "enum": [
+          "Mini",
+          "Small",
+          "Medium",
+          "Large",
+          "Huge",
+          "Massive",
+          "Ultra"
+        ]
+      },
+      "SuggestionBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SuggestionR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SuggestionR": {
+        "type": "object",
+        "required": [
+          "s",
+          "i"
+        ],
+        "properties": {
+          "i": {
+            "$ref": "#/components/schemas/ISchema"
+          },
+          "s": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmptySchema"
+            }
+          }
+        }
+      },
+      "TSchema": {
+        "type": "string",
+        "enum": [
+          "LT",
+          "MT",
+          "SC",
+          "CT",
+          "UT",
+          "PN",
+          "MB",
+          "RI",
+          "NWB",
+          "OS"
+        ]
+      },
+      "UpdateP": {
+        "type": "object",
+        "description": "后台管理员更新用户（账号/密码/资料运维）\n用户自助修改个人信息请使用 PUT /api/v1/auth/profile",
+        "properties": {
+          "age": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "birthday": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "password": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UploadPrepareBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PrepareR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UploadProgressBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProgressR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UploadStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "UPLOADING",
+          "COMPLETED",
+          "FAILED",
+          "EXPIRED"
+        ]
+      },
+      "UserBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UserR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UserListBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/UserR"
+            }
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UserR": {
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "age": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "avatar": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Avatar"
+              }
+            ]
+          },
+          "birthday": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1700000000000
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1700000000000
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "WriteP": {
+        "type": "object",
+        "description": "后台管理员创建用户",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearer_auth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "登录接口返回的 JWT token，格式：Authorization: Bearer <token>"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "System",
+      "description": "系统级接口"
+    },
+    {
+      "name": "Auth",
+      "description": "认证与个人资料"
+    },
+    {
+      "name": "User",
+      "description": "后台用户管理（需 JWT）"
+    },
+    {
+      "name": "Upload",
+      "description": "分片文件上传"
+    },
+    {
+      "name": "Engine",
+      "description": "搜索引擎代理"
+    },
+    {
+      "name": "Application",
+      "description": "应用入口（Mock）"
+    }
+  ],
+  "externalDocs": {
+    "url": "/guide/error-codes.md",
+    "description": "业务错误码说明"
+  }
+}

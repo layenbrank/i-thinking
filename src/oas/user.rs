@@ -1,0 +1,90 @@
+use super::common::{ErrorBody, UserBody, UserListBody};
+use crate::services::user::schema::{UpdateP, WriteP};
+
+/// 获取用户列表
+#[utoipa::path(
+    get,
+    path = "/api/v1/users",
+    tag = "User",
+    operation_id = "user.toRead",
+    summary = "获取用户列表",
+    description = "后台管理员接口，返回全部用户，需要 JWT 鉴权。",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "获取成功（code=200000）", body = UserListBody),
+        (status = 200, description = "未登录或权限不足", body = ErrorBody),
+    )
+)]
+pub fn toRead_doc() {}
+
+/// 创建用户
+#[utoipa::path(
+    post,
+    path = "/api/v1/users",
+    tag = "User",
+    operation_id = "user.toWrite",
+    summary = "创建用户",
+    description = "后台管理员接口，需要 JWT 鉴权。",
+    security(("bearer_auth" = [])),
+    request_body = WriteP,
+    responses(
+        (status = 200, description = "创建成功（code=200000）", body = UserBody),
+        (status = 200, description = "用户名已存在等业务错误", body = ErrorBody),
+    )
+)]
+pub fn toWrite_doc() {}
+
+/// 获取单个用户
+#[utoipa::path(
+    get,
+    path = "/api/v1/users/{id}",
+    tag = "User",
+    operation_id = "user.toReadById",
+    summary = "获取用户详情",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = String, Path, description = "用户 UUID")
+    ),
+    responses(
+        (status = 200, description = "获取成功（code=200000）", body = UserBody),
+        (status = 200, description = "用户不存在（code=500101）", body = ErrorBody),
+    )
+)]
+pub fn toRead_by_id_doc() {}
+
+/// 更新用户
+#[utoipa::path(
+    put,
+    path = "/api/v1/users/{id}",
+    tag = "User",
+    operation_id = "user.toUpdate",
+    summary = "更新用户",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = String, Path, description = "用户 UUID")
+    ),
+    request_body = UpdateP,
+    responses(
+        (status = 200, description = "更新成功（code=200000）", body = UserBody),
+        (status = 200, description = "用户不存在或参数错误", body = ErrorBody),
+    )
+)]
+pub fn toUpdate_doc() {}
+
+/// 删除用户
+#[utoipa::path(
+    delete,
+    path = "/api/v1/users/{id}",
+    tag = "User",
+    operation_id = "user.toRemove",
+    summary = "删除用户",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = String, Path, description = "用户 UUID")
+    ),
+    responses(
+        (status = 200, description = "删除成功（code=200000）", body = UserBody),
+        (status = 200, description = "用户不存在", body = ErrorBody),
+    )
+)]
+pub fn toRemove_doc() {}

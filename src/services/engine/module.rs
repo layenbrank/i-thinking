@@ -13,7 +13,7 @@ pub struct EngineModule;
 impl EngineModule {
     pub fn configure(cfg: &mut web::ServiceConfig) {
         cfg.service(
-            web::scope("/engine").route("/suggestion", web::get().to(EngineController::find)),
+            web::scope("/engine").route("/suggestion", web::get().to(EngineController::toRead)),
         );
     }
 }
