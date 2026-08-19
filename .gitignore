@@ -2,3 +2,14 @@
 /chunks
 /uploads
 /logs
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# planning-with-files（仅仓库根）
+/findings.md
+/progress.md
+/task_plan.md
