@@ -1,102 +1,139 @@
-- main.rs
+# Master Service
 
-```rust
-mod app;
-mod modules;
-mod database;
-mod models;
-mod errors;
-mod configs;
-mod middlewares;
+基于 **Actix Web + SeaORM + PostgreSQL** 的 Rust HTTP 服务，提供认证、用户管理、分片上传、搜索建议等 API。
 
-use actix_web::{web, App, HttpServer, middleware::Logger};
-use env_logger::Env;
-use std::sync::Arc;
+## 技术栈
 
-use app::app_module::AppModule;
-use database::DataBase;
-use configs::Config;
+| 组件 | 说明 |
+|------|------|
+| Actix Web 4 | HTTP 框架 |
+| SeaORM 2 | PostgreSQL ORM |
+| JWT | 登录鉴权 |
+| Argon2 / AES-GCM | 密码与加密配置 |
+| utoipa | OpenAPI 3.x 文档生成 |
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    dotenv::dotenv().ok();
-    env_logger::init_from_env(Env::default().default_filter_or("info"));
+## 快速开始
 
-    let cfg = Config::from_env().expect("Failed to load configuration");
+### 环境
 
-    let database = DataBase::new(&cfg.mongodb_uri)
-        .await
-        .expect("Failed to connect to database");
+复制 `.env` 并配置：
 
-    let db = Arc::new(database);
-
-    println!("🚀 NestJS-style Server starting on {}:{}", cfg.host, cfg.port);
-
-    HttpServer::new(move || {
-        App::new()
-            .app_data(web::Data::new(db.clone()))
-            .wrap(Logger::default())
-            .wrap(middlewares::cors_middleware())
-            .configure(AppModule::configure) // 根模块配置
-    })
-    .bind((cfg.host.clone(), cfg.port))?
-    .run()
-    .await
-}
+```env
+HOST=127.0.0.1
+PORT=3000
+DATABASE_URL=postgres://user:pass@127.0.0.1:5432/dbname
+JWT_SECRET=...
+ENCRYPTION=aes
+AES_KEY=...
 ```
 
-- app.module.rs
+### 数据库迁移
 
-```rust
-pub mod users {
-    pub mod controllers {
-        pub mod user_controller;
-    }
-    pub mod services {
-        pub mod user_service;
-    }
-    pub mod dto {
-        pub mod create_user_dto;
-        pub mod update_user_dto;
-    }
-    pub mod entities {
-        pub mod user;
-    }
-    pub mod user_module;
-}
-
-pub mod health {
-    pub mod controllers {
-        pub mod health_controller;
-    }
-    pub mod health_module;
-}
-
-pub mod user {
-    pub mod user_controller;
-    pub mod user_module;
-    pub mod user_service;
-}
+```bash
+cargo run -p migration -- up
 ```
 
-- user.module.rs
+详见 [`migration/README.md`](migration/README.md)。
 
-```rust
-use actix_web::web;
-use crate::modules::users::users_controller::UsersController;
+### 启动服务
 
-pub struct UsersModule;
+```bash
+# 开发环境（含 Swagger UI）
+cargo run --bin service --features openapi
 
-impl UsersModule {
-    pub fn configure(cfg: &mut web::ServiceConfig) {
-        cfg.service(
-            web::scope("/users")
-                .route("", web::get().to(UsersController::find_all))
-                .route("", web::post().to(UsersController::create))
-                .route("/{id}", web::get().to(UsersController::find_one))
-                .route("/{id}", web::put().to(UsersController::update))
-                .route("/{id}", web::delete().to(UsersController::remove))
-        );
-    }
-}
+# 生产构建（不含 Swagger UI）
+cargo run --bin service --release
 ```
+
+服务默认监听 `http://127.0.0.1:3000`。
+
+**Swagger UI**（debug 构建 + `openapi` feature 默认开启）：
+
+- UI：`http://127.0.0.1:3000/swagger-ui/`
+- OpenAPI JSON：`http://127.0.0.1:3000/api-docs/openapi.json`
+
+环境变量：
+
+| 变量 | 说明 |
+|------|------|
+| `ENABLE_SWAGGER=true` | 强制开启 Swagger UI 与 `/guide/*` 静态文档（release 亦可用，仅限内网） |
+| `ENABLE_SWAGGER=false` | 强制关闭文档端点 |
+
+生产环境默认不暴露 `/swagger-ui` 与 `/api-docs/openapi.json`。
+
+### 导出 OpenAPI（Apifox 离线导入）
+
+```bash
+cargo run --bin docs
+# 生成 spec/openapi.json
+```
+
+### 测试
+
+```bash
+cargo test --lib -p service
+cargo test --test oas_consistency
+```
+
+## 项目结构
+
+```
+src/
+  bin/service.rs          # 入口
+  services/
+    auth/                 # 登录、注册、个人 profile
+    user/                 # 后台用户 CRUD
+    upload/               # 分片上传
+    engine/               # Bing 搜索建议代理
+    application/          # 应用入口（挂载 v1 路由）
+  middlewares/jwt.rs      # JWT 鉴权
+  oas/                    # utoipa 文档定义（path doc + OpenDoc）
+entity/                   # SeaORM Entity（auth、asset）
+migration/                # 数据库迁移
+http/                     # REST Client 测试文件
+guide/                    # 项目指南（人工文档）
+spec/                     # OpenAPI 生成物
+```
+
+## API 文档
+
+- **OpenAPI 规范**：[`spec/openapi.json`](spec/openapi.json)（`cargo run --bin docs` 生成）
+- **Swagger UI**：开发环境 `http://127.0.0.1:3000/swagger-ui/`
+- **业务错误码**：[`guide/error-codes.md`](guide/error-codes.md)
+- **[项目指南](guide/README.md)** — 鉴权、调用顺序、模块导航
+- **[数据库表协作](guide/database.md)** — ER 图、auth/asset 字段、跨模块流程
+
+> `cargo doc` 生成 Rustdoc；`cargo run --bin docs` 导出 OpenAPI 规范。
+
+### Apifox 导入
+
+1. Apifox → **导入** → **OpenAPI**
+2. 选择以下任一方式：
+   - URL：`http://127.0.0.1:3000/api-docs/openapi.json`（需先启动服务并开启 Swagger）
+   - 文件：导入 `spec/openapi.json`
+3. 配置环境变量（参考 [`http/http-client.env.json`](http/http-client.env.json)）：
+   - `baseUrl` = `http://127.0.0.1:3000`
+   - `token` = 登录后从 `POST /api/v1/auth/signin` 响应获取
+4. 建议开启 Apifox「自动同步」，指向 openapi.json URL
+
+> Apifox 断言请检查 `body.code === 200000`，而非 HTTP status code。
+
+| 模块 | 文档 |
+|------|------|
+| 认证 | [src/services/auth/README.md](src/services/auth/README.md) |
+| 用户(后台) | [src/services/user/README.md](src/services/user/README.md) |
+| 上传 | [src/services/upload/README.md](src/services/upload/README.md) |
+| 搜索引擎 | [src/services/engine/README.md](src/services/engine/README.md) |
+| 应用 | [src/services/application/README.md](src/services/application/README.md) |
+
+## HTTP 测试
+
+使用 VS Code / Cursor **REST Client** 打开 [`http/`](http/) 目录下 `.http` 文件，按注释顺序执行。
+
+## 职责划分
+
+| 场景 | 接口 |
+|------|------|
+| 用户自助改资料 | `PUT /api/v1/auth/profile` |
+| 后台管账号 | `/api/v1/users/*` |
+| 文件/头像上传 | `/api/v1/upload/*` |
