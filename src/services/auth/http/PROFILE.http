@@ -1,0 +1,112 @@
+# Profile 接口 — 按顺序执行各 ### 块
+# signin → GET profile → PUT 基本信息 → prepareAvatar → chunk → finalize → PUT avatar
+
+@host = http://127.0.0.1:3000
+@username = admin
+@password = 123456
+
+### 1. 登录
+# @name signin
+POST {{host}}/api/v1/auth/signin
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+###
+@token = {{signin.response.body.data.token}}
+
+### 2. GET /api/v1/auth/profile
+GET {{host}}/api/v1/auth/profile
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 3. PUT /api/v1/auth/profile — 更新基本信息
+PUT {{host}}/api/v1/auth/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "admin@example.com",
+  "phone": "13800138000",
+  "gender": "FEMALE",
+  "birthday": "1995-06-15"
+}
+
+### 4. 上传头像 — prepare
+@avatarFileHash = 46ffabaecc44bf964158d1723fb0ff9d3c5918cb70686a613f5aa471413a3682
+
+# @name prepareAvatar
+POST {{host}}/api/v1/upload/prepare
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "avatar.png",
+  "size": 37,
+  "hash": "{{avatarFileHash}}",
+  "mime": "image/png",
+  "chunk": 1048576
+}
+
+###
+@avatarAssetId = {{prepareAvatar.response.body.data.id}}
+
+### 5. 上传头像 — chunk
+POST {{host}}/api/v1/upload/chunk
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=AvatarBoundary
+
+--AvatarBoundary
+Content-Disposition: form-data; name="id"
+
+{{avatarAssetId}}
+--AvatarBoundary
+Content-Disposition: form-data; name="index"
+
+0
+--AvatarBoundary
+Content-Disposition: form-data; name="hash"
+
+{{avatarFileHash}}
+--AvatarBoundary
+Content-Disposition: form-data; name="chunk"; filename="avatar.png"
+Content-Type: application/octet-stream
+
+< ../../../../http/fixtures/chunk-0.bin
+--AvatarBoundary--
+
+### 6. 上传头像 — finalize
+POST {{host}}/api/v1/upload/finalize
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": "{{avatarAssetId}}"
+}
+
+### 7. PUT /api/v1/auth/profile — 绑定头像
+PUT {{host}}/api/v1/auth/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "avatar": "{{avatarAssetId}}"
+}
+
+### 8. PUT /api/v1/auth/profile — 清除头像
+PUT {{host}}/api/v1/auth/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "avatar": null
+}

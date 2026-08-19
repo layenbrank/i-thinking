@@ -1,0 +1,8 @@
+# 搜索建议
+# GET /api/v1/engine/suggestion
+# Query: pt, qry, cp, csr, pths, cvid
+
+@host = http://127.0.0.1:3000
+
+GET {{host}}/api/v1/engine/suggestion?pt=page.home&qry=rust&cp=4&csr=1&pths=1&cvid=00000000-0000-0000-0000-000000000001
+Accept: application/json
