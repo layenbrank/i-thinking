@@ -12,6 +12,7 @@ pub const HEALTH: &str = "/api/health";
 pub const AUTH_SIGNIN: &str = "/api/v1/auth/signin";
 pub const AUTH_SIGNUP: &str = "/api/v1/auth/signup";
 pub const AUTH_PROFILE: &str = "/api/v1/auth/profile";
+pub const AUTH_SIGNOUT: &str = "/api/v1/auth/signout";
 
 // --- User ---
 pub const USERS: &str = "/api/v1/users";
@@ -28,7 +29,10 @@ pub const UPLOAD_FILES: &str = "/api/v1/upload/files/{hash}";
 // --- Engine ---
 pub const ENGINE_SUGGESTION: &str = "/api/v1/engine/suggestion";
 
-// --- Magnetic Tile ---
+// --- Search ---
+pub const SEARCH_DOCS: &str = "/api/v1/search/docs";
+
+// --- Application ---
 pub const APPLICATION_TO_READ: &str = "/api/v1/application/toRead";
 
 /// 所有对外路由（不含静态页 `/`、`/index.html`）
@@ -52,6 +56,10 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "PUT",
         path: AUTH_PROFILE,
+    },
+    RouteDef {
+        method: "POST",
+        path: AUTH_SIGNOUT,
     },
     RouteDef {
         method: "GET",
@@ -100,6 +108,14 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: ENGINE_SUGGESTION,
+    },
+    RouteDef {
+        method: "POST",
+        path: SEARCH_DOCS,
+    },
+    RouteDef {
+        method: "GET",
+        path: SEARCH_DOCS,
     },
     RouteDef {
         method: "GET",

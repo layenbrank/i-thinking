@@ -3,6 +3,7 @@ pub mod common;
 pub mod engine;
 pub mod application;
 pub mod paths;
+pub mod search;
 pub mod system;
 pub mod upload;
 pub mod user;
@@ -13,7 +14,8 @@ use utoipa::{Modify, OpenApi};
 use crate::oas::common::{
     ErrorBody, ChunkUploadBody, ChunkUploadForm, HealthBody, SigninBody, SigninErrorExample,
     SigninSuccessExample, SignupBody, ProfileBody, UserBody, UserListBody, UploadPrepareBody,
-    FinalizeUploadBody, UploadProgressBody, SuggestionBody, ApplicationBody, Health,
+    FinalizeUploadBody, UploadProgressBody, SuggestionBody, ApplicationBody, Health, EmptyBody,
+    EmptyR, SearchBody, SearchWriteBody,
 };
 use crate::services::auth::schema::{
     AuthR, Avatar, Gender, ProfileR, SigninP, SigninR, SignupP, SignupR, ProfileP,
@@ -21,6 +23,9 @@ use crate::services::auth::schema::{
 use crate::services::engine::schema::{EmptySchema, ISchema, SuggestionR, TSchema, QueryP};
 use crate::services::application::schema::{
     App, Component, Direction, Shape, Size,
+};
+use crate::services::search::schema::{
+    HitR, QueryP as SearchQueryP, SearchR, WriteP as SearchWriteP, WriteR as SearchWriteR,
 };
 use crate::services::upload::schema::{
     ChunkR, FinalizeP, FinalizeR, ProgressR, PrepareP, PrepareR, UploadStatus,
@@ -68,6 +73,7 @@ impl Modify for SecurityAddon {
         auth::signup_doc,
         auth::toRead_doc,
         auth::toUpdate_doc,
+        auth::signout_doc,
         user::toRead_doc,
         user::toWrite_doc,
         user::toRead_by_id_doc,
@@ -80,6 +86,8 @@ impl Modify for SecurityAddon {
         upload::cancel_upload_doc,
         upload::serve_file_doc,
         engine::toRead_doc,
+        search::toWrite_doc,
+        search::toRead_doc,
         application::toRead_doc,
     ),
     components(
@@ -87,6 +95,8 @@ impl Modify for SecurityAddon {
             ErrorBody,
             Health,
             HealthBody,
+            EmptyR,
+            EmptyBody,
             SigninP,
             SigninR,
             SigninBody,
@@ -125,6 +135,13 @@ impl Modify for SecurityAddon {
             ISchema,
             SuggestionR,
             SuggestionBody,
+            SearchWriteP,
+            SearchWriteR,
+            SearchQueryP,
+            HitR,
+            SearchR,
+            SearchWriteBody,
+            SearchBody,
             App,
             ApplicationBody,
             Size,
@@ -139,6 +156,7 @@ impl Modify for SecurityAddon {
         (name = "User", description = "后台用户管理（需 JWT）"),
         (name = "Upload", description = "分片文件上传"),
         (name = "Engine", description = "搜索引擎代理"),
+        (name = "Search", description = "Elasticsearch 全文检索"),
         (name = "Application", description = "应用入口（Mock）"),
     ),
     modifiers(&SecurityAddon),

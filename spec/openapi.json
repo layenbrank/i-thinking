@@ -5,7 +5,7 @@
     "description": "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。错误码规则见 /guide/error-codes.md。ErrorBody.details 字段仅在开发环境返回。",
     "contact": {
       "name": "CoreX Team",
-      "email": "dev@example.com"
+      "email": "15638470820@163.com"
     },
     "license": {
       "name": "Proprietary"
@@ -29,7 +29,7 @@
           "System"
         ],
         "summary": "健康检查",
-        "description": "检查服务是否正常运行，无需鉴权。HTTP 状态码始终为 200。",
+        "description": "检查服务与 PostgreSQL / Redis / Elasticsearch 依赖状态，无需鉴权。HTTP 状态码始终为 200。",
         "operationId": "system.health",
         "responses": {
           "200": {
@@ -161,6 +161,33 @@
         }
       }
     },
+    "/api/v1/auth/signout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "用户登出",
+        "description": "需要 JWT。将当前 token 写入 Redis 黑名单直至过期，之后该 token 不可再用。",
+        "operationId": "auth.signout",
+        "responses": {
+          "200": {
+            "description": "未登录或缓存异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/signup": {
       "post": {
         "tags": [
@@ -276,6 +303,89 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/search/docs": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "全文检索",
+        "description": "需要 JWT。按 q 在 title/content 上 multi_match 检索。",
+        "operationId": "search.toRead",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "搜索关键词",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "返回条数，默认 10，最大 100",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未登录或参数/ES 错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "索引文档",
+        "description": "需要 JWT。将文档写入 Elasticsearch（示范搜索投影，不以 ES 为权威库）。",
+        "operationId": "search.toWrite",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或参数/ES 错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
       }
     },
     "/api/v1/upload/cancel/{id}": {
@@ -994,6 +1104,46 @@
           "Vertical"
         ]
       },
+      "EmptyBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EmptyR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "EmptyR": {
+        "type": "object",
+        "description": "无 data 载荷（如登出成功）"
+      },
       "EmptySchema": {
         "type": "object",
         "required": [
@@ -1137,9 +1287,24 @@
           "status",
           "version",
           "timestamp",
-          "uptime"
+          "uptime",
+          "postgres",
+          "redis",
+          "elasticsearch"
         ],
         "properties": {
+          "elasticsearch": {
+            "type": "string",
+            "description": "Elasticsearch 集群状态或 down"
+          },
+          "postgres": {
+            "type": "string",
+            "description": "PostgreSQL：up / down"
+          },
+          "redis": {
+            "type": "string",
+            "description": "Redis：up / down"
+          },
           "status": {
             "type": "string"
           },
@@ -1188,6 +1353,32 @@
           "timestamp": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "HitR": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "title": {
+            "type": "string"
           }
         }
       },
@@ -1437,33 +1628,116 @@
       "QueryP": {
         "type": "object",
         "required": [
-          "pt",
-          "qry",
-          "cp",
-          "csr",
-          "pths",
-          "cvid"
+          "q"
         ],
         "properties": {
-          "cp": {
-            "type": "integer",
+          "q": {
+            "type": "string",
+            "example": "Redis"
+          },
+          "size": {
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int64",
-            "minimum": 0
+            "example": 10
+          }
+        }
+      },
+      "SearchBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
           },
-          "csr": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SearchR"
+              }
+            ]
+          },
+          "msg": {
             "type": "string"
           },
-          "cvid": {
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SearchR": {
+        "type": "object",
+        "required": [
+          "took",
+          "total",
+          "hits"
+        ],
+        "properties": {
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HitR"
+            }
+          },
+          "took": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SearchWriteBody": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WriteR"
+              }
+            ]
+          },
+          "msg": {
             "type": "string"
           },
-          "pt": {
-            "type": "string"
+          "success": {
+            "type": "boolean"
           },
-          "pths": {
-            "type": "string"
-          },
-          "qry": {
-            "type": "string"
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -2065,16 +2339,40 @@
       },
       "WriteP": {
         "type": "object",
-        "description": "后台管理员创建用户",
         "required": [
-          "username",
-          "password"
+          "title",
+          "content"
         ],
         "properties": {
-          "password": {
+          "content": {
+            "type": "string",
+            "example": "接入 Redis 与 Elasticsearch"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "文档 ID；省略则自动生成 UUID",
+            "example": "doc-1"
+          },
+          "title": {
+            "type": "string",
+            "example": "Rust 服务端"
+          }
+        }
+      },
+      "WriteR": {
+        "type": "object",
+        "required": [
+          "id",
+          "index"
+        ],
+        "properties": {
+          "id": {
             "type": "string"
           },
-          "username": {
+          "index": {
             "type": "string"
           }
         }
@@ -2109,6 +2407,10 @@
     {
       "name": "Engine",
       "description": "搜索引擎代理"
+    },
+    {
+      "name": "Search",
+      "description": "Elasticsearch 全文检索"
     },
     {
       "name": "Application",

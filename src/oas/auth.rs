@@ -1,4 +1,4 @@
-use super::common::{ErrorBody, ProfileBody, SigninBody, SignupBody};
+use super::common::{EmptyBody, ErrorBody, ProfileBody, SigninBody, SignupBody};
 use crate::services::auth::schema::{SigninP, SignupP, ProfileP};
 
 /// 用户登录
@@ -65,3 +65,19 @@ pub fn toRead_doc() {}
     )
 )]
 pub fn toUpdate_doc() {}
+
+/// 登出（JWT 黑名单）
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/signout",
+    tag = "Auth",
+    operation_id = "auth.signout",
+    summary = "用户登出",
+    description = "需要 JWT。将当前 token 写入 Redis 黑名单直至过期，之后该 token 不可再用。",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "登出成功（code=200000）", body = EmptyBody),
+        (status = 200, description = "未登录或缓存异常", body = ErrorBody),
+    )
+)]
+pub fn signout_doc() {}

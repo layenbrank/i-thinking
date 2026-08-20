@@ -3,6 +3,7 @@ use crate::{
         auth::schema::{AuthR, Avatar, ProfileR, SigninR, SignupR},
         engine::schema::SuggestionR,
         application::schema::App,
+        search::schema::{SearchR, WriteR as SearchWriteR},
         upload::schema::{ChunkR, FinalizeR, ProgressR, PrepareR},
         user::schema::UserR,
     },
@@ -38,6 +39,9 @@ body!(FinalizeUploadBody, FinalizeR);
 body!(UploadProgressBody, ProgressR);
 body!(SuggestionBody, SuggestionR);
 body!(ApplicationBody, App);
+body!(SearchWriteBody, SearchWriteR);
+body!(SearchBody, SearchR);
+body!(EmptyBody, EmptyR);
 
 /// 健康检查 data 字段
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -47,7 +51,17 @@ pub struct Health {
     pub version: String,
     pub timestamp: i64,
     pub uptime: String,
+    /// PostgreSQL：up / down
+    pub postgres: String,
+    /// Redis：up / down
+    pub redis: String,
+    /// Elasticsearch 集群状态或 down
+    pub elasticsearch: String,
 }
+
+/// 无 data 载荷（如登出成功）
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct EmptyR {}
 
 /// multipart 分片上传表单
 #[derive(Debug, ToSchema)]
