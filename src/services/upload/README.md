@@ -205,12 +205,12 @@ curl -X POST http://127.0.0.1:3000/api/v1/upload/prepare \
 
 - [`http/03-upload.http`](../../../http/03-upload.http)
 - [`http/upload.http`](http/upload.http)
-- [`http/upload.mjs`](http/upload.mjs) — Node fetch：自动 SHA256、分片、秒传/续传、下载校验
+- [`http/upload.ts`](http/upload.ts) — Node fetch（TS）：`POST_SIGNIN` / `POST_PREPARE` 等 API 风格；自动 SHA256、分片、秒传/续传、下载校验
 
 ```bash
 # 服务启动后
-node src/services/upload/http/upload.mjs
-node src/services/upload/http/upload.mjs ./photo.png
+npx tsx src/services/upload/http/upload.ts
+npx tsx src/services/upload/http/upload.ts ./photo.png
 ```
 
 头像场景见 [`auth/README.md`](../auth/README.md) 与 [`http/01-auth.http`](../../../http/01-auth.http)。

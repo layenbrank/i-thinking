@@ -1,8 +1,8 @@
 # 上传模块 — 按顺序执行：signin → prepare → chunk → finalize
 # 鉴权: 全部需 JWT（含 GET /files/{hash}）
 # Node 端到端（自动算 hash / 分片）:
-#   node src/services/upload/http/upload.mjs
-#   node src/services/upload/http/upload.mjs ./your-file.bin
+#   npx tsx src/services/upload/http/upload.ts
+#   npx tsx src/services/upload/http/upload.ts ./your-file.bin
 
 @host = http://127.0.0.1:3000
 @username = admin
