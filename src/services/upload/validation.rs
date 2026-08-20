@@ -5,12 +5,24 @@ use crate::services::upload::schema::{PrepareP, UploadStatus};
 
 pub const UPLOAD_DIR: &str = "uploads";
 pub const CHUNK_DIR: &str = "chunks";
+pub const CAS_DIR: &str = "cas";
 pub const MAX_FILE_SIZE: u64 = 5 * 1024 * 1024 * 1024; // 5GB
 pub const MIN_CHUNK_SIZE: u32 = 1024 * 1024; // 1MB
 pub const MAX_CHUNK_SIZE: u32 = 10 * 1024 * 1024; // 10MB
 pub const EXPIRE_HOURS: i64 = 24;
 pub const FILE_URL_PREFIX: &str = "/api/v1/upload/files";
 pub const KIND: &str = "upload";
+
+pub fn normalize_hash(hash: Option<&str>) -> Option<&str> {
+    hash.map(str::trim).filter(|h| !h.is_empty())
+}
+
+pub fn validate_hash_hex(hash: &str) -> Result<(), UploadError> {
+    if hash.len() != 64 || !hash.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err(UploadError::BadRequest("文件哈希格式无效".into()));
+    }
+    Ok(())
+}
 
 pub fn validate_prepare(req: &PrepareP) -> Result<(), UploadError> {
     if req.size > MAX_FILE_SIZE {
@@ -36,8 +48,8 @@ pub fn validate_prepare(req: &PrepareP) -> Result<(), UploadError> {
         return Err(UploadError::BadRequest("文件名不能为空".into()));
     }
 
-    if req.hash.len() != 64 {
-        return Err(UploadError::BadRequest("文件哈希格式无效".into()));
+    if let Some(hash) = normalize_hash(req.hash.as_deref()) {
+        validate_hash_hex(hash)?;
     }
 
     Ok(())
@@ -63,21 +75,9 @@ pub fn validate_status(asset: &asset::Model) -> Result<(), UploadError> {
     }
 }
 
-pub fn validate_chunk(
-    asset: &asset::Model,
-    index: u32,
-    data: &[u8],
-    hash: &str,
-    calculated_hash: &str,
-) -> Result<(), UploadError> {
+pub fn expected_chunk_size(asset: &asset::Model, index: u32) -> Result<usize, UploadError> {
     if index >= asset.total as u32 {
         return Err(UploadError::BadRequest(format!("分片索引无效: {index}")));
-    }
-
-    if calculated_hash != hash {
-        return Err(UploadError::BadRequest(format!(
-            "分片哈希不匹配：期望 {hash}，实际 {calculated_hash}"
-        )));
     }
 
     let expected_size = if index == asset.total as u32 - 1 {
@@ -90,18 +90,52 @@ pub fn validate_chunk(
     } else {
         asset.chunk as usize
     };
+    Ok(expected_size)
+}
 
-    if data.len() != expected_size {
+pub fn validate_chunk_hash(hash: &str, calculated_hash: &str) -> Result<(), UploadError> {
+    validate_hash_hex(hash)?;
+    if calculated_hash != hash {
         return Err(UploadError::BadRequest(format!(
-            "分片大小不匹配：期望 {}，实际 {}",
-            expected_size,
-            data.len()
+            "分片哈希不匹配：期望 {hash}，实际 {calculated_hash}"
         )));
     }
     Ok(())
 }
 
+pub fn validate_chunk_size(
+    asset: &asset::Model,
+    index: u32,
+    data_len: usize,
+) -> Result<(), UploadError> {
+    let expected_size = expected_chunk_size(asset, index)?;
+    if data_len != expected_size {
+        return Err(UploadError::BadRequest(format!(
+            "分片大小不匹配：期望 {expected_size}，实际 {data_len}"
+        )));
+    }
+    Ok(())
+}
+
+pub fn validate_chunk(
+    asset: &asset::Model,
+    index: u32,
+    data: &[u8],
+    hash: &str,
+    calculated_hash: &str,
+) -> Result<(), UploadError> {
+    validate_chunk_hash(hash, calculated_hash)?;
+    validate_chunk_size(asset, index, data.len())
+}
+
 pub fn validate_completion(asset: &asset::Model) -> Result<(), UploadError> {
+    if normalize_hash(Some(asset.hash.as_str())).is_none() {
+        return Err(UploadError::BadRequest(
+            "尚未绑定整文件哈希，请先 PATCH /upload/hash".into(),
+        ));
+    }
+    validate_hash_hex(&asset.hash)?;
+
     if asset.chunks.len() != asset.total as usize {
         return Err(UploadError::BadRequest(format!(
             "上传未完成，缺少分片：{} / {}",
@@ -177,11 +211,23 @@ mod tests {
             mime: "application/octet-stream".into(),
             size: 1024,
             chunk: MIN_CHUNK_SIZE,
-            hash: "short".into(),
+            hash: Some("short".into()),
         };
         assert!(matches!(
             validate_prepare(&req),
             Err(UploadError::BadRequest(_))
         ));
+    }
+
+    #[test]
+    fn prepare_allows_missing_hash() {
+        let req = PrepareP {
+            name: "a.bin".into(),
+            mime: "application/octet-stream".into(),
+            size: 1024,
+            chunk: MIN_CHUNK_SIZE,
+            hash: None,
+        };
+        assert!(validate_prepare(&req).is_ok());
     }
 }

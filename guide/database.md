@@ -54,13 +54,13 @@ Entity：[`entity/src/asset.rs`](../entity/src/asset.rs)
 | id | uuid PK | 资源 ID |
 | kind | text | 类型，上传为 `upload` |
 | hash | text | 文件 SHA256（64 位 hex），索引 |
-| sha | text | 合并后磁盘文件 SHA |
+| sha | text | finalize 校验后的整文件 SHA（与 hash 一致） |
 | size | bigint | 文件总字节 |
 | mime | text | MIME |
 | extension | text | 扩展名 |
 | name | text | 文件名 |
-| path | text | 磁盘路径（完成后） |
-| metadata | text | 扩展元数据 |
+| path | text | 旧版合并文件路径；新流程为 null（流式下载） |
+| metadata | text | JSON：`chunkHashes` 分片 index→SHA256 |
 | status | text | PENDING / UPLOADING / COMPLETED / FAILED / EXPIRED |
 | chunk | int | 分片大小（字节） |
 | total | int | 分片总数 |
@@ -71,8 +71,9 @@ Entity：[`entity/src/asset.rs`](../entity/src/asset.rs)
 
 | 路径 | 用途 |
 |------|------|
-| `chunks/{uploadId}/chunk-{n}.part` | 分片临时文件 |
-| `uploads/{uploadId}-{filename}` | 合并后成品 |
+| `cas/{sha256}` | 分片内容寻址单副本（跨会话零拷贝复用） |
+| `chunks/{uploadId}/` | 旧会话临时目录（可清理，非主存储） |
+| `uploads/{uploadId}-{filename}` | 旧版合并成品（兼容下载） |
 
 **使用模块**：upload（分片上传）、auth/user（avatar 联查）
 

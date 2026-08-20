@@ -1,7 +1,8 @@
 /**
  * Upload API 端到端测试（Node fetch + TS）
  *
- * 流程：signin → prepare → chunk(s) → progress → finalize → download
+ * 流程：signin → prepare(无 hash) → chunk(s) → PATCH hash → progress → finalize → download
+ * 演示：先开会话再算/传 hash；分片 CAS 秒传（第二轮 reused）；断点跳过。
  *
  * 用法：
  *   npx tsx src/services/upload/http/upload.ts
@@ -62,11 +63,18 @@ declare namespace Auth {
 }
 
 declare namespace Upload {
+  namespace UploadedChunk {
+    export interface Item {
+      index: number
+      hash: string
+    }
+  }
+
   namespace Prepare {
     export interface Params {
       name: string
       size: number
-      hash: string
+      hash?: string
       mime: string
       chunk: number
     }
@@ -75,7 +83,22 @@ declare namespace Upload {
       id: string
       exists: boolean
       chunks: number[]
+      uploaded: UploadedChunk.Item[]
       url: string
+    }
+  }
+
+  namespace Hash {
+    export interface Params {
+      id: string
+      hash: string
+    }
+
+    export interface Response {
+      id: string
+      exists: boolean
+      chunks: number[]
+      uploaded: UploadedChunk.Item[]
     }
   }
 
@@ -84,12 +107,13 @@ declare namespace Upload {
       id: string
       index: number
       hash: string
-      data: Buffer
+      data?: Buffer
     }
 
     export interface Response {
       success: boolean
       index: number
+      reused: boolean
       message: string
     }
   }
@@ -111,6 +135,7 @@ declare namespace Upload {
       id: string
       progress: number
       chunks: number[]
+      uploaded: UploadedChunk.Item[]
       total: number
       status: string
     }
@@ -142,6 +167,21 @@ const http = {
     }
 
     const res = await fetch(`${BASE}${path}`, { method: 'POST', headers, body })
+    return (await res.json()) as T
+  },
+
+  async patch<T>(path: string, data: unknown, opts?: { context?: TokenContext }) {
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    }
+    const token = opts?.context?.token
+    if (token) headers.Authorization = `Bearer ${token}`
+    const res = await fetch(`${BASE}${path}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(data)
+    })
     return (await res.json()) as T
   },
 
@@ -186,16 +226,24 @@ function POST_PREPARE(data: Upload.Prepare.Params) {
   })
 }
 
+function PATCH_HASH(data: Upload.Hash.Params) {
+  return http.patch<RSF<Upload.Hash.Response>>('/api/v1/upload/hash', data, {
+    context: AUTH_TOKEN
+  })
+}
+
 function POST_CHUNK(data: Upload.Chunk.Params) {
   const form = new FormData()
   form.append('id', data.id)
   form.append('index', String(data.index))
   form.append('hash', data.hash)
-  form.append(
-    'chunk',
-    new Blob([data.data], { type: 'application/octet-stream' }),
-    `chunk-${data.index}.part`
-  )
+  if (data.data && data.data.length > 0) {
+    form.append(
+      'chunk',
+      new Blob([data.data], { type: 'application/octet-stream' }),
+      `chunk-${data.index}.part`
+    )
+  }
   return http.post<RSF<Upload.Chunk.Response>>('/api/v1/upload/chunk', undefined, {
     context: AUTH_TOKEN,
     form
@@ -219,12 +267,12 @@ function GET_FILES(pathOrUrl: string) {
   return http.getBuffer(path, { context: AUTH_TOKEN })
 }
 
-function sha256Hex(buf: Uint8Array) {
+function sha256Hex(buf: Buffer) {
   return createHash('sha256').update(buf).digest('hex')
 }
 
-function guessMime(name: string) {
-  const lower = name.toLowerCase()
+function guessMime(filePath: string) {
+  const lower = filePath.toLowerCase()
   if (lower.endsWith('.png')) return 'image/png'
   if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
   if (lower.endsWith('.pdf')) return 'application/pdf'
@@ -232,52 +280,38 @@ function guessMime(name: string) {
   return 'application/octet-stream'
 }
 
-/** 端到端固定步骤（分片循环在 step 3 内展开） */
-const STEPS = ['signin', 'prepare', 'chunk', 'progress', 'finalize', 'download'] as const
-
-type StepName = (typeof STEPS)[number]
-
-function stepLabel(name: StepName, detail?: string) {
-  const n = STEPS.indexOf(name) + 1
-  const total = STEPS.length
-  const suffix = detail ? ` ${detail}` : ''
-  return `[${n}/${total}] ${name}${suffix}`
-}
-
-function logStep(name: StepName, detail?: string, extra?: unknown) {
-  const label = stepLabel(name, detail)
-  if (extra !== undefined) console.log(label, extra)
-  else console.log(label)
-}
-
-function assertOk<T>(name: StepName, envelope: RSF<T>, detail?: string): T {
-  const label = stepLabel(name, detail)
-  if (!envelope || envelope.success !== true || envelope.code !== 200000) {
-    console.error(`✗ ${label} 失败`, envelope)
+function assertOk<T>(step: string, envelope: RSF<T>, detail = ''): T {
+  const tag = detail ? `${step} ${detail}` : step
+  if (!envelope.success) {
+    console.error(`✗ ${tag}`, envelope)
     process.exit(1)
   }
-  console.log(`✓ ${label}`, envelope.msg ?? '', envelope.data ?? '')
+  console.log(`✓ ${tag}`, envelope.msg)
   return envelope.data
+}
+
+function logStep(step: string, detail?: string) {
+  console.log(`→ ${step}${detail ? ` ${detail}` : ''}`)
 }
 
 async function ensureToken() {
   logStep('signin', 'POST /auth/signin')
   let envelope = await POST_SIGNIN({ username: USERNAME, password: PASSWORD })
-  if (envelope.success && envelope.code === 200000) {
+  if (envelope.success && envelope.data?.token) {
     AUTH_TOKEN.token = envelope.data.token
-    console.log(`✓ ${stepLabel('signin')}`, 'token acquired')
+    console.log(`✓ signin`, envelope.msg)
     return
   }
 
-  console.log(`… ${stepLabel('signin')} 登录失败，改 signup`, envelope.msg ?? envelope)
+  logStep('signup', 'POST /auth/signup（signin 失败则注册）')
   envelope = await POST_SIGNUP({ username: USERNAME, password: PASSWORD })
-  if (envelope.success && envelope.code === 200000) {
+  if (envelope.success && envelope.data?.token) {
     AUTH_TOKEN.token = envelope.data.token
-    console.log(`✓ ${stepLabel('signin')}`, 'signup → token acquired')
+    console.log(`✓ signup`, envelope.msg)
     return
   }
 
-  console.error(`✗ ${stepLabel('signin')} 无法获取 token`, envelope)
+  console.error('✗ 无法获取 token', envelope)
   process.exit(1)
 }
 
@@ -310,6 +344,104 @@ function splitChunks(buffer: Buffer, chunkSize: number) {
   return chunks
 }
 
+async function uploadParts(
+  uploadId: string,
+  parts: Array<{ index: number; data: Buffer; hash: string }>,
+  done: Map<number, string>,
+  preferReuseOnly: boolean
+) {
+  let reused = 0
+  let uploaded = 0
+  for (const part of parts) {
+    const known = done.get(part.index)
+    if (known === part.hash) {
+      console.log(`… chunk #${part.index + 1}/${parts.length} 已上传且 hash 一致，跳过`)
+      continue
+    }
+    logStep('chunk', `#${part.index + 1}/${parts.length}`)
+    const body =
+      preferReuseOnly || done.has(part.index)
+        ? { id: uploadId, index: part.index, hash: part.hash }
+        : { id: uploadId, index: part.index, hash: part.hash, data: part.data }
+    const res = assertOk('chunk', await POST_CHUNK(body), `#${part.index}`)
+    if (res.reused) reused++
+    else uploaded++
+    done.set(part.index, part.hash)
+  }
+  return { reused, uploaded }
+}
+
+async function runOnce(
+  label: string,
+  name: string,
+  mime: string,
+  buffer: Buffer,
+  parts: Array<{ index: number; data: Buffer; hash: string }>,
+  fileHash: string,
+  preferChunkReuse: boolean
+) {
+  console.log(`\n=== ${label} ===`)
+
+  logStep('prepare', 'POST /upload/prepare（无整文件 hash）')
+  let prepare = assertOk(
+    'prepare',
+    await POST_PREPARE({
+      name,
+      size: buffer.length,
+      mime,
+      chunk: CHUNK_SIZE
+    })
+  )
+
+  if (prepare.exists) {
+    console.log('… 文件秒传（prepare.exists）', prepare.id)
+    return prepare
+  }
+
+  const done = new Map(prepare.uploaded?.map((u) => [u.index, u.hash]) ?? [])
+  await uploadParts(prepare.id, parts, done, preferChunkReuse)
+
+  logStep('hash', 'PATCH /upload/hash')
+  const bound = assertOk(
+    'hash',
+    await PATCH_HASH({
+      id: prepare.id,
+      hash: fileHash
+    })
+  )
+  if (bound.exists) {
+    console.log('… 文件秒传（bindHash.exists）', bound.id)
+    return { ...prepare, id: bound.id, exists: true }
+  }
+  prepare = { ...prepare, id: bound.id, uploaded: bound.uploaded, chunks: bound.chunks }
+
+  logStep('progress', `GET /upload/progress/${prepare.id}`)
+  const progress = assertOk('progress', await GET_PROGRESS(prepare.id))
+  console.log(`✓ progress detail`, {
+    progress: progress.progress,
+    uploaded: progress.uploaded.length,
+    total: progress.total
+  })
+
+  logStep('finalize', 'POST /upload/finalize（不合并落盘）')
+  const finalized = assertOk('finalize', await POST_FINALIZE({ id: prepare.id }))
+
+  logStep('download', '流式拼接下载 ' + finalized.url)
+  const downloaded = await GET_FILES(finalized.url)
+  const downloadedHash = sha256Hex(downloaded)
+  if (downloadedHash !== fileHash || downloaded.length !== buffer.length) {
+    console.error('✗ download hash/size mismatch', {
+      expect: fileHash,
+      got: downloadedHash,
+      expectSize: buffer.length,
+      gotSize: downloaded.length
+    })
+    process.exit(1)
+  }
+  console.log(`✓ download hash match`, { size: downloaded.length, url: finalized.url })
+  return { ...prepare, exists: false }
+}
+
 async function main() {
   if (CHUNK_SIZE < 1024 * 1024 || CHUNK_SIZE > 10 * 1024 * 1024) {
     console.error('CHUNK_SIZE 须在 1MB~10MB')
@@ -317,11 +449,11 @@ async function main() {
   }
 
   const { name, mime, buffer } = loadOrGenerateFile(process.argv[2])
-  const fileHash = sha256Hex(buffer)
+  // 模拟「先 prepare 再算 hash」：先开会话，再在本地算
   const parts = splitChunks(buffer, CHUNK_SIZE)
+  const fileHash = sha256Hex(buffer)
 
   console.log('=== Upload test ===')
-  console.log('步骤:', STEPS.map((s, i) => `${i + 1}.${s}`).join(' → '))
   console.log({
     base: BASE,
     user: USERNAME,
@@ -335,88 +467,15 @@ async function main() {
 
   await ensureToken()
 
-  logStep('prepare', 'POST /upload/prepare')
-  const prepare = assertOk(
-    'prepare',
-    await POST_PREPARE({
-      name,
-      size: buffer.length,
-      hash: fileHash,
-      mime,
-      chunk: CHUNK_SIZE
-    })
-  )
+  await runOnce('首传（写入 CAS）', name, mime, buffer, parts, fileHash, false)
+  // 同内容再传：prepare 无 hash → 分片应全部 reused；bind 后文件秒传或 finalize
+  await runOnce('再传（分片/文件秒传）', `copy-${name}`, mime, buffer, parts, fileHash, true)
 
-  if (prepare.exists) {
-    logStep('chunk', '秒传跳过', prepare)
-  } else {
-    const done = new Set(prepare.chunks ?? [])
-    for (const part of parts) {
-      const detail = `#${part.index + 1}/${parts.length}`
-      if (done.has(part.index)) {
-        console.log(`… ${stepLabel('chunk', detail)} 已上传，跳过`)
-        continue
-      }
-      logStep('chunk', detail)
-      assertOk(
-        'chunk',
-        await POST_CHUNK({
-          id: prepare.id,
-          index: part.index,
-          hash: part.hash,
-          data: part.data
-        }),
-        detail
-      )
-    }
-  }
-
-  logStep('progress', `GET /upload/progress/${prepare.id}`)
-  const progress = assertOk('progress', await GET_PROGRESS(prepare.id))
-  console.log(`✓ ${stepLabel('progress')} detail`, progress)
-
-  if (!prepare.exists) {
-    logStep('finalize', 'POST /upload/finalize')
-    const finalized = assertOk('finalize', await POST_FINALIZE({ id: prepare.id }))
-
-    logStep('download', finalized.url)
-    const downloaded = await GET_FILES(finalized.url)
-    const dlHash = sha256Hex(downloaded)
-    if (dlHash !== fileHash || downloaded.length !== buffer.length) {
-      console.error(`✗ ${stepLabel('download')} 校验失败`, {
-        expect: fileHash,
-        actual: dlHash,
-        expectSize: buffer.length,
-        actualSize: downloaded.length
-      })
-      process.exit(1)
-    }
-    console.log(`✓ ${stepLabel('download')} hash match`, {
-      bytes: downloaded.length,
-      url: finalized.url
-    })
-  } else {
-    console.log(
-      `… 秒传完成，跳过 [${STEPS.indexOf('finalize') + 1}–${STEPS.length}] finalize/download`
-    )
-  }
-
-  console.log(`=== done（${STEPS.length}/${STEPS.length}）===`)
-}
-
-export {
-  GET_FILES,
-  GET_PROGRESS,
-  POST_CHUNK,
-  POST_FINALIZE,
-  POST_PREPARE,
-  POST_SIGNIN,
-  POST_SIGNUP
+  console.log('\n全部通过')
 }
 
 const isDirect =
-  process.argv[1] !== undefined && pathToFileURL(resolve(process.argv[1])).href === import.meta.url
-
+  process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 if (isDirect) {
   main().catch((err) => {
     console.error(err)

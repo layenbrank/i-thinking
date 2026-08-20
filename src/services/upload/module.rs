@@ -11,6 +11,7 @@ impl UploadModule {
             web::scope("/upload")
                 .wrap(Auth::required())
                 .route("/prepare", web::post().to(UploadController::prepare))
+                .route("/hash", web::patch().to(UploadController::bind_hash))
                 .route("/chunk", web::post().to(UploadController::chunk))
                 .route("/finalize", web::post().to(UploadController::finalize))
                 .route("/progress/{id}", web::get().to(UploadController::progress))

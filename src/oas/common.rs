@@ -6,7 +6,7 @@ use crate::services::{
     auth::schema::{AuthR, Avatar, ProfileR, SigninR, SignupR},
     engine::schema::SuggestionR,
     search::schema::{SearchR, WriteR as SearchWriteR},
-    upload::schema::{ChunkR, FinalizeR, PrepareR, ProgressR},
+    upload::schema::{ChunkR, FinalizeR, HashR, PrepareR, ProgressR},
     user::schema::UserR,
 };
 
@@ -33,6 +33,7 @@ envelope!(ProfileEnvelope, ProfileR);
 envelope!(UserEnvelope, UserR);
 envelope!(UserListEnvelope, Vec<UserR>);
 envelope!(UploadPrepareEnvelope, PrepareR);
+envelope!(UploadHashEnvelope, HashR);
 envelope!(ChunkUploadEnvelope, ChunkR);
 envelope!(FinalizeUploadEnvelope, FinalizeR);
 envelope!(UploadProgressEnvelope, ProgressR);
@@ -71,9 +72,12 @@ pub struct ChunkUploadForm {
     /// 分片序号（从 0 开始）
     #[schema(example = 0)]
     pub index: u32,
-    /// 二进制分片文件
+    /// 分片 SHA-256（64 hex）
+    #[schema(example = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824")]
+    pub hash: String,
+    /// 分片二进制；CAS 已存在时可省略（分片秒传）
     #[schema(format = Binary, content_media_type = "application/octet-stream")]
-    pub file: String,
+    pub chunk: Option<String>,
 }
 
 pub use crate::filters::exception::Exception;

@@ -53,12 +53,22 @@ mod tests {
     }
 }
 
+/// 已上传分片（含 hash，供续传对比与分片秒传）
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct UploadedChunk {
+    pub index: u32,
+    pub hash: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PrepareP {
     pub name: String,
     pub size: u64,
-    pub hash: String,
+    /// 整文件 SHA-256；可省略，稍后再 `PATCH /upload/hash` 绑定
+    #[serde(default)]
+    pub hash: Option<String>,
     pub mime: String,
     pub chunk: u32,
 }
@@ -68,8 +78,28 @@ pub struct PrepareP {
 pub struct PrepareR {
     pub id: String,
     pub exists: bool,
+    /// 已上传分片索引（兼容旧客户端）
     pub chunks: Vec<u32>,
+    /// 已上传分片及 hash（续传对比 / 分片秒传）
+    pub uploaded: Vec<UploadedChunk>,
     pub url: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct HashP {
+    pub id: String,
+    pub hash: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct HashR {
+    pub id: String,
+    /// 整文件已存在（秒传）
+    pub exists: bool,
+    pub chunks: Vec<u32>,
+    pub uploaded: Vec<UploadedChunk>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -77,6 +107,8 @@ pub struct PrepareR {
 pub struct ChunkR {
     pub success: bool,
     pub index: u32,
+    /// 分片内容已在 CAS 中，本次未写入新字节
+    pub reused: bool,
     pub message: String,
 }
 
@@ -100,6 +132,7 @@ pub struct ProgressR {
     pub id: String,
     pub progress: f64,
     pub chunks: Vec<u32>,
+    pub uploaded: Vec<UploadedChunk>,
     pub total: u32,
     pub status: UploadStatus,
 }

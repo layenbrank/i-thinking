@@ -1,7 +1,7 @@
-use crate::services::upload::schema::FinalizeP;
+use crate::services::upload::schema::{FinalizeP, HashP};
 use super::common::{
-    ChunkUploadEnvelope, ChunkUploadForm, Exception, FinalizeUploadEnvelope, UploadPrepareEnvelope,
-    UploadProgressEnvelope,
+    ChunkUploadEnvelope, ChunkUploadForm, Exception, FinalizeUploadEnvelope, UploadHashEnvelope,
+    UploadPrepareEnvelope, UploadProgressEnvelope,
 };
 
 /// 初始化分片上传
@@ -11,7 +11,8 @@ use super::common::{
     tag = "Upload",
     operation_id = "upload.prepare",
     summary = "初始化上传",
-    description = "创建上传会话，返回 upload id 与已上传分片列表。需要 JWT 鉴权。",
+    description = "创建上传会话。`hash` 可选：省略时可立刻开始传分片，稍后再 PATCH /upload/hash。\
+        若提供 hash 且文件已完成则秒传（exists=true）；若同用户有未完成会话则返回已传分片（断点续传）。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body = crate::services::upload::schema::PrepareP,
     responses(
@@ -21,6 +22,23 @@ use super::common::{
 )]
 pub fn prepare_upload_doc() {}
 
+/// 绑定整文件哈希
+#[utoipa::path(
+    patch,
+    path = "/api/v1/upload/hash",
+    tag = "Upload",
+    operation_id = "upload.bindHash",
+    summary = "绑定整文件哈希",
+    description = "为已创建的上传会话补绑整文件 SHA-256。若库中已有同 hash 完成文件则返回 exists=true（秒传）。需要 JWT。",
+    security(("bearer_auth" = [])),
+    request_body = HashP,
+    responses(
+        (status = 200, description = "绑定成功（code=200000）", body = UploadHashEnvelope),
+        (status = 200, description = "未登录或参数错误", body = Exception),
+    )
+)]
+pub fn bind_hash_doc() {}
+
 /// 上传分片
 #[utoipa::path(
     post,
@@ -28,7 +46,8 @@ pub fn prepare_upload_doc() {}
     tag = "Upload",
     operation_id = "upload.chunk",
     summary = "上传分片",
-    description = "multipart/form-data 上传单个分片。需要 JWT 鉴权。",
+    description = "multipart：id / index / hash / chunk(可选)。\
+        分片按 SHA-256 写入全局 CAS（单副本）；若 CAS 已有该 hash 则零拷贝复用（reused=true），可不传 chunk 字节。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body(content = ChunkUploadForm, content_type = "multipart/form-data"),
     responses(
@@ -45,7 +64,8 @@ pub fn chunk_upload_doc() {}
     tag = "Upload",
     operation_id = "upload.finalize",
     summary = "完成上传",
-    description = "合并所有分片并完成上传。需要 JWT 鉴权。",
+    description = "校验全部分片齐全且按序流式计算的整文件 SHA-256 与绑定 hash 一致；\
+        **不合并落盘**。下载时按序流式输出各 CAS 分片。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body = FinalizeP,
     responses(
@@ -98,7 +118,8 @@ pub fn cancel_upload_doc() {}
     tag = "Upload",
     operation_id = "upload.serveFile",
     summary = "访问已上传文件",
-    description = "通过文件 hash 下载，无需 JWT（公开访问）。",
+    description = "按文件 hash 下载。服务端按分片顺序流式拼接 CAS 对象为单一响应体（客户端一次落盘即为完整文件）。需要 JWT。",
+    security(("bearer_auth" = [])),
     params(
         ("hash" = String, Path, description = "文件 SHA-256 hash")
     ),

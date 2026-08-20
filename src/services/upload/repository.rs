@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use chrono::{Duration, Utc};
@@ -6,14 +7,25 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseBackend, EntityTrait,
     QueryFilter, Set, Statement,
 };
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::databases::database::Storage;
 use crate::services::upload::error::UploadError;
-use crate::services::upload::schema::{PrepareP, UploadStatus};
-use crate::services::upload::validation::{EXPIRE_HOURS, KIND};
+use crate::services::upload::schema::{PrepareP, UploadStatus, UploadedChunk};
+use crate::services::upload::validation::{EXPIRE_HOURS, KIND, normalize_hash};
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AssetMeta {
+    #[serde(default)]
+    chunk_hashes: BTreeMap<String, String>,
+}
 
 pub async fn find_completed(db: &Storage, hash: &str) -> Result<Option<asset::Model>, UploadError> {
+    if normalize_hash(Some(hash)).is_none() {
+        return Ok(None);
+    }
     asset::Entity::find()
         .filter(asset::Column::Hash.eq(hash))
         .filter(asset::Column::Status.eq(UploadStatus::Completed.as_str()))
@@ -35,6 +47,9 @@ pub async fn find_pending(
     hash: &str,
     creator: Option<&str>,
 ) -> Result<Option<asset::Model>, UploadError> {
+    if normalize_hash(Some(hash)).is_none() {
+        return Ok(None);
+    }
     let Some(creator) = creator else {
         return Ok(None);
     };
@@ -81,18 +96,24 @@ pub fn build_record(
     let extension = Path::new(&req.name)
         .extension()
         .map(|e| e.to_string_lossy().into_owned());
+    let hash = normalize_hash(req.hash.as_deref())
+        .unwrap_or("")
+        .to_string();
 
     Ok(asset::ActiveModel {
         id: Set(Uuid::new_v4()),
         kind: Set(Some(KIND.to_string())),
-        hash: Set(req.hash),
+        hash: Set(hash),
         sha: Set(None),
         size: Set(req.size as i64),
         mime: Set(req.mime),
         extension: Set(extension),
         name: Set(req.name),
         path: Set(None),
-        metadata: Set(None),
+        metadata: Set(Some(
+            serde_json::to_string(&AssetMeta::default())
+                .map_err(|e| UploadError::Internal(e.to_string()))?,
+        )),
         status: Set(UploadStatus::Pending.as_str().to_string()),
         chunk: Set(req.chunk as i32),
         total: Set(total as i32),
@@ -113,11 +134,61 @@ pub async fn insert(db: &Storage, record: asset::ActiveModel) -> Result<asset::M
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
+fn parse_meta(raw: &Option<String>) -> AssetMeta {
+    raw.as_deref()
+        .and_then(|s| serde_json::from_str(s).ok())
+        .unwrap_or_default()
+}
+
+pub fn chunk_hashes_map(asset: &asset::Model) -> BTreeMap<u32, String> {
+    let meta = parse_meta(&asset.metadata);
+    meta.chunk_hashes
+        .into_iter()
+        .filter_map(|(k, v)| k.parse::<u32>().ok().map(|i| (i, v)))
+        .collect()
+}
+
+pub fn uploaded_list(asset: &asset::Model) -> Vec<UploadedChunk> {
+    let map = chunk_hashes_map(asset);
+    let mut indices = asset.chunks.clone();
+    indices.sort();
+    indices
+        .into_iter()
+        .filter_map(|i| {
+            let index = i as u32;
+            map.get(&index).map(|hash| UploadedChunk {
+                index,
+                hash: hash.clone(),
+            })
+        })
+        .collect()
+}
+
+/// 按 0..total-1 顺序返回分片 hash；缺任一则 Err。
+pub fn ordered_chunk_hashes(asset: &asset::Model) -> Result<Vec<String>, UploadError> {
+    let map = chunk_hashes_map(asset);
+    let mut out = Vec::with_capacity(asset.total as usize);
+    for i in 0..asset.total as u32 {
+        let Some(hash) = map.get(&i) else {
+            return Err(UploadError::BadRequest(format!("缺少分片 {i} 的 hash 记录")));
+        };
+        out.push(hash.clone());
+    }
+    Ok(out)
+}
+
 pub async fn append_chunk(
     db: &Storage,
     asset: asset::Model,
     index: u32,
-) -> Result<(), UploadError> {
+    chunk_hash: &str,
+) -> Result<asset::Model, UploadError> {
+    let mut meta = parse_meta(&asset.metadata);
+    meta.chunk_hashes
+        .insert(index.to_string(), chunk_hash.to_string());
+    let metadata = serde_json::to_string(&meta)
+        .map_err(|e| UploadError::Internal(e.to_string()))?;
+
     let now = Utc::now().fixed_offset();
     db.db
         .execute_raw(Statement::from_sql_and_values(
@@ -127,19 +198,36 @@ pub async fn append_chunk(
                      WHEN $2 = ANY(chunks) THEN chunks
                      ELSE array_append(chunks, $2)
                    END,
-                   status = $3,
-                   "updatedAt" = $4
+                   metadata = $3,
+                   status = $4,
+                   "updatedAt" = $5
                WHERE id = $1"#,
             [
                 asset.id.into(),
                 (index as i32).into(),
+                metadata.into(),
                 UploadStatus::Uploading.as_str().into(),
                 now.into(),
             ],
         ))
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
-    Ok(())
+
+    find_by_id(db, &asset.id.to_string()).await
+}
+
+pub async fn bind_hash(
+    db: &Storage,
+    asset: asset::Model,
+    hash: &str,
+) -> Result<asset::Model, UploadError> {
+    let mut active: asset::ActiveModel = asset.into();
+    active.hash = Set(hash.to_string());
+    active.updated_at = Set(Utc::now().fixed_offset());
+    active
+        .update(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))
 }
 
 pub async fn save_chunks(
@@ -166,13 +254,14 @@ pub async fn save_chunks(
 pub async fn mark_completed(
     db: &Storage,
     asset: &asset::Model,
-    file_path: &Path,
     sha: &str,
 ) -> Result<(), UploadError> {
     let mut active: asset::ActiveModel = asset.clone().into();
     active.status = Set(UploadStatus::Completed.as_str().to_string());
-    active.path = Set(Some(file_path.to_string_lossy().into_owned()));
+    // 不分片合并落盘；下载时按 metadata 流式拼接 CAS
+    active.path = Set(None);
     active.sha = Set(Some(sha.to_string()));
+    active.expires_at = Set(None);
     active.updated_at = Set(Utc::now().fixed_offset());
     active
         .update(&db.db)
@@ -196,4 +285,15 @@ pub async fn mark_failed(db: &Storage, asset: asset::Model) -> Result<(), Upload
 
 pub fn to_u32_chunks(chunks: &[i32]) -> Vec<u32> {
     chunks.iter().copied().map(|v| v as u32).collect()
+}
+
+pub fn prepare_response(asset: &asset::Model, exists: bool) -> crate::services::upload::schema::PrepareR {
+    let uploaded = uploaded_list(asset);
+    crate::services::upload::schema::PrepareR {
+        id: asset.id.to_string(),
+        exists,
+        chunks: uploaded.iter().map(|c| c.index).collect(),
+        uploaded,
+        url: "/api/v1/upload/chunk".to_string(),
+    }
 }

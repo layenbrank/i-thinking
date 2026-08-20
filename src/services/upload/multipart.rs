@@ -9,14 +9,16 @@ pub struct ChunkForm {
     pub id: String,
     pub index: u32,
     pub hash: String,
-    pub data: Vec<u8>,
+    /// CAS 命中时可省略或为空（分片秒传）
+    pub data: Option<Vec<u8>>,
 }
 
 pub async fn parse_chunk_form(mut payload: Multipart) -> Result<ChunkForm, Exception> {
     let mut id = String::new();
     let mut index: Option<u32> = None;
     let mut hash = String::new();
-    let mut data = Vec::new();
+    let mut data: Option<Vec<u8>> = None;
+    let mut saw_chunk_field = false;
 
     while let Some(fields) = payload.next().await {
         let mut field = match fields {
@@ -53,14 +55,17 @@ pub async fn parse_chunk_form(mut payload: Multipart) -> Result<ChunkForm, Excep
                     )));
                 }
             },
-            "chunk" => match extract_binary_field(&mut field).await {
-                Ok(bytes) => data = bytes,
-                Err(err_msg) => {
-                    return Err(Exception::bad_request(format!(
-                        "读取 chunk 字段失败: {err_msg}"
-                    )));
+            "chunk" => {
+                saw_chunk_field = true;
+                match extract_binary_field(&mut field).await {
+                    Ok(bytes) => data = Some(bytes),
+                    Err(err_msg) => {
+                        return Err(Exception::bad_request(format!(
+                            "读取 chunk 字段失败: {err_msg}"
+                        )));
+                    }
                 }
-            },
+            }
             "hash" => match extract_field(&mut field).await {
                 Ok(value) => hash = value,
                 Err(err_msg) => {
@@ -88,9 +93,11 @@ pub async fn parse_chunk_form(mut payload: Multipart) -> Result<ChunkForm, Excep
     if hash.is_empty() {
         return Err(Exception::bad_request("缺少 hash 参数"));
     }
-    if data.is_empty() {
-        return Err(Exception::bad_request("缺少 chunk 数据"));
-    }
+
+    let data = match data {
+        Some(bytes) if bytes.is_empty() && saw_chunk_field => Some(Vec::new()),
+        other => other,
+    };
 
     Ok(ChunkForm {
         id,

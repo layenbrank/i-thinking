@@ -20,6 +20,7 @@ pub const USERS_BY_ID: &str = "/api/v1/users/{id}";
 
 // --- Upload ---
 pub const UPLOAD_PREPARE: &str = "/api/v1/upload/prepare";
+pub const UPLOAD_HASH: &str = "/api/v1/upload/hash";
 pub const UPLOAD_CHUNK: &str = "/api/v1/upload/chunk";
 pub const UPLOAD_FINALIZE: &str = "/api/v1/upload/finalize";
 pub const UPLOAD_PROGRESS: &str = "/api/v1/upload/progress/{id}";
@@ -84,6 +85,10 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "POST",
         path: UPLOAD_PREPARE,
+    },
+    RouteDef {
+        method: "PATCH",
+        path: UPLOAD_HASH,
     },
     RouteDef {
         method: "POST",

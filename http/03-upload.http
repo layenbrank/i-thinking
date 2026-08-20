@@ -1,8 +1,7 @@
 # ============================================================
 # 上传模块 /api/v1/upload
-# 鉴权: Bearer JWT（prepare/chunk/finalize/progress/cancel 需登录）
-#       GET /upload/files/{hash} 可匿名访问
-# 流程: signin → prepare → chunk → finalize → GET files/{hash}
+# 鉴权: Bearer JWT（全路由需登录）
+# 流程: signin → prepare(可无 hash) → chunk → PATCH hash → finalize → GET files/{hash}
 # ============================================================
 
 @host = http://127.0.0.1:3000
@@ -24,8 +23,7 @@ Accept: application/json
 ###
 @token = {{signin.response.body.data.token}}
 
-### POST /api/v1/upload/prepare — 初始化上传
-# Body: { name, size, hash, mime, chunk }
+### POST /api/v1/upload/prepare — 初始化上传（hash 可选）
 # @name prepare
 POST {{host}}/api/v1/upload/prepare
 Authorization: Bearer {{token}}
@@ -35,7 +33,6 @@ Accept: application/json
 {
   "name": "sample.pdf",
   "size": 1048576,
-  "hash": "{{fileHash}}",
   "mime": "application/pdf",
   "chunk": 1048576
 }
@@ -43,7 +40,18 @@ Accept: application/json
 ###
 @uploadId = {{prepare.response.body.data.id}}
 
-### POST /api/v1/upload/chunk — 上传分片
+### PATCH /api/v1/upload/hash — 绑定整文件哈希
+PATCH {{host}}/api/v1/upload/hash
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": "{{uploadId}}",
+  "hash": "{{fileHash}}"
+}
+
+### POST /api/v1/upload/chunk — 上传分片（CAS 命中时可省略 chunk 字段）
 POST {{host}}/api/v1/upload/chunk
 Authorization: Bearer {{token}}
 Content-Type: multipart/form-data; boundary=UploadBoundary
@@ -67,7 +75,7 @@ Content-Type: application/octet-stream
 < ./fixtures/chunk-0.bin
 --UploadBoundary--
 
-### POST /api/v1/upload/finalize — 完成上传
+### POST /api/v1/upload/finalize — 完成上传（不合并落盘）
 POST {{host}}/api/v1/upload/finalize
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -87,6 +95,7 @@ DELETE {{host}}/api/v1/upload/cancel/{{uploadId}}
 Authorization: Bearer {{token}}
 Accept: application/json
 
-### GET /api/v1/upload/files/{hash} — 下载已完成文件
+### GET /api/v1/upload/files/{hash} — 流式下载完整文件
 GET {{host}}/api/v1/upload/files/{{fileHash}}
+Authorization: Bearer {{token}}
 Accept: application/octet-stream

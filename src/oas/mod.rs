@@ -14,8 +14,8 @@ use utoipa::{Modify, OpenApi};
 use crate::oas::common::{
     ApplicationEnvelope, ChunkUploadEnvelope, ChunkUploadForm, EmptyEnvelope, EmptyR, Exception,
     FinalizeUploadEnvelope, Health, HealthEnvelope, ProfileEnvelope, SearchEnvelope, SearchWriteEnvelope, SigninEnvelope,
-    SigninErrorExample, SigninSuccessExample, SignupEnvelope, SuggestionEnvelope, UploadPrepareEnvelope,
-    UploadProgressEnvelope, UserEnvelope, UserListEnvelope,
+    SigninErrorExample, SigninSuccessExample, SignupEnvelope, SuggestionEnvelope, UploadHashEnvelope,
+    UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope, UserListEnvelope,
 };
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
@@ -26,7 +26,8 @@ use crate::services::search::schema::{
     HitR, QueryP as SearchQueryP, SearchR, WriteP as SearchWriteP, WriteR as SearchWriteR,
 };
 use crate::services::upload::schema::{
-    ChunkR, FinalizeP, FinalizeR, PrepareP, PrepareR, ProgressR, UploadStatus,
+    ChunkR, FinalizeP, FinalizeR, HashP, HashR, PrepareP, PrepareR, ProgressR, UploadStatus,
+    UploadedChunk,
 };
 use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP};
 
@@ -78,6 +79,7 @@ impl Modify for SecurityAddon {
         user::toUpdate_doc,
         user::toRemove_doc,
         upload::prepare_upload_doc,
+        upload::bind_hash_doc,
         upload::chunk_upload_doc,
         upload::finalize_upload_doc,
         upload::progress_upload_doc,
@@ -117,7 +119,11 @@ impl Modify for SecurityAddon {
             UserAvatar,
             PrepareP,
             PrepareR,
+            UploadedChunk,
             UploadPrepareEnvelope,
+            HashP,
+            HashR,
+            UploadHashEnvelope,
             ChunkUploadForm,
             ChunkR,
             ChunkUploadEnvelope,

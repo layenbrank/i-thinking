@@ -1,75 +1,69 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use entity::asset;
+use futures::stream::{self, Stream};
+use futures::StreamExt;
 use sha2::{Digest, Sha256};
 use tokio::fs::{self, File};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncReadExt;
 
 use crate::services::upload::error::UploadError;
-use crate::services::upload::validation::{CHUNK_DIR, UPLOAD_DIR};
+use crate::services::upload::validation::{CAS_DIR, CHUNK_DIR};
 
+pub async fn ensure_cas_dir() -> Result<(), UploadError> {
+    fs::create_dir_all(CAS_DIR).await?;
+    Ok(())
+}
+
+/// 兼容旧会话目录；新流程以 CAS + metadata 为准，可为空操作。
 pub async fn prepare_chunk_dir(id: &str) -> Result<(), UploadError> {
     let chunk_dir = PathBuf::from(CHUNK_DIR).join(id);
     fs::create_dir_all(&chunk_dir).await?;
-    Ok(())
+    ensure_cas_dir().await
 }
 
-pub async fn store_chunk(id: &str, index: u32, data: &[u8]) -> Result<(), UploadError> {
-    let chunk_path = PathBuf::from(CHUNK_DIR)
-        .join(id)
-        .join(format!("chunk-{index}.part"));
-    let mut chunk_file = File::create(&chunk_path).await?;
-    chunk_file.write_all(data).await?;
-    Ok(())
+pub fn cas_path(hash: &str) -> PathBuf {
+    PathBuf::from(CAS_DIR).join(hash)
 }
 
-pub async fn merge_chunks(asset: &asset::Model) -> Result<PathBuf, UploadError> {
-    let id = asset.id.to_string();
-    let final_path = stored_path(&id, &asset.name)?;
-
-    if let Some(parent) = final_path.parent() {
-        fs::create_dir_all(parent).await?;
-    }
-
-    let mut final_file = File::create(&final_path).await?;
-    let chunk_dir = PathBuf::from(CHUNK_DIR).join(&id);
-
-    for chunk_index in 0..asset.total {
-        let chunk_path = chunk_dir.join(format!("chunk-{chunk_index}.part"));
-        let mut chunk_file = File::open(&chunk_path).await?;
-        let mut buffer = Vec::new();
-        chunk_file.read_to_end(&mut buffer).await?;
-        final_file.write_all(&buffer).await?;
-    }
-
-    final_file.flush().await?;
-    Ok(final_path)
+pub async fn cas_exists(hash: &str) -> bool {
+    cas_path(hash).exists()
 }
 
-/// 落盘路径：`uploads/{id}-{safe_name}`，拒绝跳出 `UPLOAD_DIR`。
-pub fn stored_path(id: &str, name: &str) -> Result<PathBuf, UploadError> {
-    let safe = safe_filename(name);
-    let path = PathBuf::from(UPLOAD_DIR).join(format!("{id}-{safe}"));
-    if path
-        .components()
-        .any(|c| matches!(c, std::path::Component::ParentDir))
-    {
-        return Err(UploadError::BadRequest("文件名无效".into()));
-    }
-    // 规范化后仍须落在 uploads 前缀下（相对路径场景）
-    let base = PathBuf::from(UPLOAD_DIR);
-    if !path.starts_with(&base) {
-        return Err(UploadError::BadRequest("文件名无效".into()));
-    }
-    Ok(path)
+pub async fn cas_len(hash: &str) -> Result<u64, UploadError> {
+    let meta = fs::metadata(cas_path(hash)).await?;
+    Ok(meta.len())
 }
 
-pub async fn cleanup_chunks(id: &str) -> Result<(), UploadError> {
-    let chunk_dir = PathBuf::from(CHUNK_DIR).join(id);
-    if chunk_dir.exists() {
-        fs::remove_dir_all(&chunk_dir).await?;
+/// 写入 CAS；若已存在则**不拷贝、不覆盖**（零拷贝复用）。
+/// 返回 `true` 表示本次为复用已有对象。
+pub async fn store_cas(hash: &str, data: &[u8]) -> Result<bool, UploadError> {
+    ensure_cas_dir().await?;
+    let path = cas_path(hash);
+    if path.exists() {
+        let existing = cas_len(hash).await?;
+        if existing != data.len() as u64 {
+            return Err(UploadError::BadRequest(format!(
+                "CAS 对象大小不一致：期望 {}，实际 {existing}",
+                data.len()
+            )));
+        }
+        return Ok(true);
     }
-    Ok(())
+
+    let tmp = path.with_extension("tmp");
+    fs::write(&tmp, data).await?;
+    match fs::rename(&tmp, &path).await {
+        Ok(()) => Ok(false),
+        Err(err) => {
+            let _ = fs::remove_file(&tmp).await;
+            if path.exists() {
+                // 并发写入竞态：他方已落盘，视为复用
+                Ok(true)
+            } else {
+                Err(UploadError::Storage(err.to_string()))
+            }
+        }
+    }
 }
 
 pub fn calculate_hash(data: &[u8]) -> String {
@@ -78,33 +72,67 @@ pub fn calculate_hash(data: &[u8]) -> String {
     hex_encode(hasher.finalize().as_slice())
 }
 
-pub async fn file_sha256(file_path: &Path) -> Result<String, UploadError> {
-    let mut file = File::open(file_path).await?;
-    let mut hasher = Sha256::new();
-    let mut buffer = vec![0; 65536];
-
-    loop {
-        let bytes_read = file.read(&mut buffer).await?;
-        if bytes_read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..bytes_read]);
-    }
-    Ok(hex_encode(hasher.finalize().as_slice()))
-}
-
-pub async fn verify_integrity(
-    file_path: &Path,
+/// 按序流式读取各分片 CAS，计算整文件 SHA-256（不落盘合并）。
+pub async fn verify_chunks_integrity(
+    chunk_hashes: &[String],
     expected_hash: &str,
 ) -> Result<String, UploadError> {
-    let calculated_hash = file_sha256(file_path)
-        .await
-        .map_err(|e| UploadError::Internal(format!("计算文件哈希失败: {e}")))?;
-    if calculated_hash != expected_hash {
-        let _ = fs::remove_file(file_path).await;
+    let mut hasher = Sha256::new();
+    let mut buffer = vec![0u8; 65536];
+
+    for hash in chunk_hashes {
+        let path = cas_path(hash);
+        if !path.exists() {
+            return Err(UploadError::BadRequest(format!(
+                "分片 CAS 缺失: {hash}"
+            )));
+        }
+        let mut file = File::open(&path).await?;
+        loop {
+            let n = file.read(&mut buffer).await?;
+            if n == 0 {
+                break;
+            }
+            hasher.update(&buffer[..n]);
+        }
+    }
+
+    let calculated = hex_encode(hasher.finalize().as_slice());
+    if calculated != expected_hash {
         return Err(UploadError::ChecksumFailed);
     }
-    Ok(calculated_hash)
+    Ok(calculated)
+}
+
+/// 按序流式输出 CAS 分片字节（供下载；客户端收到的是完整文件流）。
+pub fn stream_cas_chunks(
+    chunk_hashes: Vec<String>,
+) -> impl Stream<Item = Result<actix_web::web::Bytes, std::io::Error>> {
+    stream::iter(chunk_hashes).then(|hash| async move {
+        let path = cas_path(&hash);
+        let data = tokio::fs::read(&path).await?;
+        Ok(actix_web::web::Bytes::from(data))
+    })
+}
+
+/// 校验全部 CAS 分片存在。
+pub async fn ensure_cas_present(chunk_hashes: &[String]) -> Result<(), UploadError> {
+    for hash in chunk_hashes {
+        if !cas_exists(hash).await {
+            return Err(UploadError::BadRequest(format!(
+                "分片 CAS 缺失: {hash}"
+            )));
+        }
+    }
+    Ok(())
+}
+
+pub async fn cleanup_chunks(id: &str) -> Result<(), UploadError> {
+    let chunk_dir = PathBuf::from(CHUNK_DIR).join(id);
+    if chunk_dir.exists() {
+        fs::remove_dir_all(&chunk_dir).await?;
+    }
+    Ok(())
 }
 
 pub async fn list_chunk_indices(id: &str) -> Result<Vec<i32>, UploadError> {
@@ -168,14 +196,17 @@ mod tests {
     }
 
     #[test]
-    fn stored_path_stays_under_upload_dir() {
-        let id = "550e8400-e29b-41d4-a716-446655440000";
-        let path = stored_path(id, "../../etc/passwd").unwrap();
-        assert!(path.starts_with(UPLOAD_DIR));
-        let name = path.file_name().unwrap().to_string_lossy();
-        assert_eq!(name, format!("{id}-passwd"));
-        assert!(!path
-            .components()
-            .any(|c| matches!(c, std::path::Component::ParentDir)));
+    fn cas_path_uses_hash() {
+        let p = cas_path("abc");
+        assert!(p.ends_with("abc"));
+        assert!(p.to_string_lossy().contains(CAS_DIR));
+    }
+
+    #[test]
+    fn calculate_hash_stable() {
+        assert_eq!(
+            calculate_hash(b"hello"),
+            "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        );
     }
 }
