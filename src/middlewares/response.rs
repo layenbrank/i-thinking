@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use actix_web::{
     Error, HttpMessage,
     dev::{ServiceRequest, ServiceResponse, Transform},
@@ -66,37 +68,30 @@ where
             match &response {
                 Ok(resp) => {
                     let status = resp.status().as_u16();
+                    // 摘要放进 message，终端一眼能扫到 METHOD PATH STATUS
                     if status < 400 {
                         tracing::info!(
                             request_id = %request_id,
-                            method = %method,
-                            path = %path,
-                            status,
-                            duration_ms,
                             client_ip = %client_ip,
-                            "request completed"
+                            duration_ms,
+                            "{method} {path} → {status}"
                         );
                     } else {
-                        tracing::error!(
+                        tracing::warn!(
                             request_id = %request_id,
-                            method = %method,
-                            path = %path,
-                            status,
-                            duration_ms,
                             client_ip = %client_ip,
-                            "request completed"
+                            duration_ms,
+                            "{method} {path} → {status}"
                         );
                     }
                 }
                 Err(err) => {
                     tracing::error!(
                         request_id = %request_id,
-                        method = %method,
-                        path = %path,
-                        duration_ms,
                         client_ip = %client_ip,
+                        duration_ms,
                         error = %err,
-                        "request failed"
+                        "{method} {path} → failed"
                     );
                 }
             }

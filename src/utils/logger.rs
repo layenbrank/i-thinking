@@ -13,6 +13,9 @@ const DEFAULT_RETENTION_DAYS: u64 = 14;
 
 /// 初始化 tracing：控制台人类可读输出 + 按日轮转 JSON 文件。
 ///
+/// - 控制台默认 `pretty` 多行（`LOG_FORMAT=compact` 可改回单行）
+/// - 文件始终 JSON，便于采集
+///
 /// 返回的 `WorkerGuard` 必须持有到进程退出，否则非阻塞写入线程会被提前终止。
 pub fn init() -> Result<WorkerGuard> {
     let log_dir = std::env::var("LOG_DIR").unwrap_or_else(|_| DEFAULT_LOG_DIR.to_string());
@@ -21,6 +24,9 @@ pub fn init() -> Result<WorkerGuard> {
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(DEFAULT_RETENTION_DAYS);
+    let log_format = std::env::var("LOG_FORMAT")
+        .unwrap_or_else(|_| "pretty".to_string())
+        .to_lowercase();
 
     fs::create_dir_all(&log_dir)
         .with_context(|| format!("Failed to create log directory `{log_dir}`"))?;
@@ -33,28 +39,53 @@ pub fn init() -> Result<WorkerGuard> {
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(DEFAULT_FILTER));
 
-    let console_layer = fmt::layer().with_ansi(true).with_target(true);
-
     let file_layer = fmt::layer()
         .json()
         .with_ansi(false)
+        .with_current_span(false)
+        .with_span_list(false)
         .with_writer(non_blocking);
 
-    tracing_subscriber::registry()
+    let registry = tracing_subscriber::registry()
         .with(env_filter)
-        .with(console_layer)
-        .with(file_layer)
-        .try_init()
-        .context("Failed to initialize tracing subscriber")?;
+        .with(file_layer);
+
+    if log_format == "compact" {
+        registry
+            .with(
+                fmt::layer()
+                    .compact()
+                    .with_ansi(true)
+                    .with_target(true)
+                    .with_level(true),
+            )
+            .try_init()
+            .context("Failed to initialize tracing subscriber")?;
+    } else {
+        // pretty：时间/级别一行，字段多行缩进，终端更易读
+        registry
+            .with(
+                fmt::layer()
+                    .pretty()
+                    .with_ansi(true)
+                    .with_target(true)
+                    .with_file(false)
+                    .with_line_number(false)
+                    .with_thread_ids(false)
+                    .with_thread_names(false),
+            )
+            .try_init()
+            .context("Failed to initialize tracing subscriber")?;
+    }
 
     // 把 actix / sqlx / sea-orm 等依赖的 `log` 记录接到 tracing。
-    // tracing-subscriber 默认 feature 可能已安装，重复安装时忽略错误。
     let _ = tracing_log::LogTracer::init();
 
     tracing::info!(
         log_dir = %log_dir,
         log_file = %log_file,
         retention_days,
+        log_format = %log_format,
         "logger initialized"
     );
 
