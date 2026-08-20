@@ -2,6 +2,7 @@ use crate::services::{
     application::controller::ApplicationController,
     auth::module::AuthModule,
     engine::module::EngineModule,
+    search::module::SearchModule,
     upload::module::UploadModule,
     user::module::UserModule,
 };
@@ -17,6 +18,7 @@ impl ApplicationModule {
                 .configure(UserModule::configure)
                 .configure(UploadModule::configure)
                 .configure(EngineModule::configure)
+                .configure(SearchModule::configure)
                 .service(
                     web::scope("/application")
                         .route("/toRead", web::get().to(ApplicationController::toRead)),
