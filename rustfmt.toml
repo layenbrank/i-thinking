@@ -1,0 +1,8 @@
+# 导入顺序：std → 外部依赖 → 本 crate（crate:: / super:: / self::），组间空行。
+# 下列选项需 nightly：`cargo +nightly fmt`
+# 稳定版可用：`python scripts/reorder_imports.py`
+reorder_imports = true
+
+# nightly only:
+# group_imports = "StdExternalCrate"
+# imports_granularity = "Module"

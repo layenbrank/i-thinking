@@ -20,6 +20,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Architecture hygiene
+        run: python scripts/check_architecture.py
+
       - name: Run unit tests
         run: cargo test --lib -p service
 
