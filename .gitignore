@@ -9,7 +9,10 @@ __pycache__/
 *$py.class
 *.so
 
-# planning-with-files（仅仓库根）
-/findings.md
-/progress.md
-/task_plan.md
+# planning-with-files（忽略全部，保留 .cursor 下任意嵌套）
+findings.md
+progress.md
+task_plan.md
+!.cursor/**/findings.md
+!.cursor/**/progress.md
+!.cursor/**/task_plan.md
