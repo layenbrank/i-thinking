@@ -14,7 +14,8 @@ impl AuthModule {
                     web::scope("")
                         .wrap(JwtAuth::required())
                         .route("/profile", web::get().to(AuthController::toRead))
-                        .route("/profile", web::put().to(AuthController::toUpdate)),
+                        .route("/profile", web::put().to(AuthController::toUpdate))
+                        .route("/signout", web::post().to(AuthController::signout)),
                 ),
         );
     }

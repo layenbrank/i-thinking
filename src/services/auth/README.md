@@ -7,6 +7,7 @@
 | 能力        | 说明                                                            |
 | ----------- | --------------------------------------------------------------- |
 | 登录 / 注册 | 公开接口，返回 JWT                                              |
+| 登出        | JWT 写入 Redis 黑名单，直至原 token 过期                        |
 | Profile     | 当前用户读/改个人信息（email、phone、gender、birthday、avatar） |
 
 **与 user 模块区别**：auth 面向**当前登录用户**；[`user`](../user/README.md) 面向**后台管理员** CRUD 任意用户。
@@ -19,12 +20,14 @@
 | POST | `/api/v1/auth/signup`  | 无   | 注册         |
 | GET  | `/api/v1/auth/profile` | JWT  | 获取个人信息 |
 | PUT  | `/api/v1/auth/profile` | JWT  | 更新个人信息 |
+| POST | `/api/v1/auth/signout` | JWT  | 登出（Redis 黑名单） |
 
 ## 鉴权说明
 
 - `signin` / `signup`：无 JWT
-- `profile`：挂载 [`JwtAuth::required()`](../../middlewares/jwt.rs)，从 `Authorization: Bearer` 解析 `Claims.sub` 作为用户 ID
+- `profile` / `signout`：挂载 [`JwtAuth::required()`](../../middlewares/jwt.rs)，从 `Authorization: Bearer` 解析 `Claims.sub` 作为用户 ID；中间件会查 Redis 黑名单
 - 未登录返回 `300001`「用户未登录」
+- 已登出 token 返回 `300002`「登录凭证已失效」
 
 ## 数据表
 

@@ -1,3 +1,4 @@
+use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database;
 use crate::services::auth::schema::{
@@ -34,6 +35,8 @@ pub enum AuthError {
     JwtError(#[from] JwtError),
     #[error("Database error: {0}")]
     DatabaseError(String),
+    #[error("Cache error: {0}")]
+    CacheError(String),
 }
 
 impl From<AuthError> for ErrorBody {
@@ -71,6 +74,10 @@ impl From<AuthError> for ErrorBody {
             AuthError::DatabaseError(e) => ErrorBody::custom(
                 external::DATABASE_ERROR,
                 format!("数据库错误: {}", e),
+            ),
+            AuthError::CacheError(e) => ErrorBody::custom(
+                external::CACHE_ERROR,
+                format!("缓存错误: {}", e),
             ),
         }
     }
@@ -190,6 +197,19 @@ impl AuthService {
         let user = Self::find_user(db, user_id).await?;
         let avatar = Self::load_avatar(db, user.avatar).await?;
         Ok(ProfileR::from_user(user, avatar))
+    }
+
+    pub async fn signout(
+        redis: &RedisPool,
+        token: &str,
+        exp: i64,
+    ) -> Result<(), AuthError> {
+        let now = Utc::now().timestamp();
+        let ttl = (exp - now).max(1);
+        redis
+            .blacklist_token(token, ttl)
+            .await
+            .map_err(|e| AuthError::CacheError(e.to_string()))
     }
 
     pub async fn toUpdate(

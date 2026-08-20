@@ -1,6 +1,7 @@
+use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::utils::jwt::{JwtError, verify_token};
-use crate::utils::response::{ErrorBody, auth as auth_codes};
+use crate::utils::response::{ErrorBody, auth as auth_codes, external};
 use actix_web::body::EitherBody;
 use actix_web::http::{Method, header};
 use actix_web::{
@@ -9,6 +10,7 @@ use actix_web::{
     web,
 };
 use futures::future::{LocalBoxFuture, Ready, ok};
+use std::rc::Rc;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
@@ -34,7 +36,7 @@ impl JwtAuth {
 
 impl<S, B> Transform<S, ServiceRequest> for JwtAuth
 where
-    S: actix_web::dev::Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S: actix_web::dev::Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
     B: 'static,
 {
@@ -46,20 +48,20 @@ where
 
     fn new_transform(&self, service: S) -> Self::Future {
         ok(JwtAuthMiddleware {
-            service,
+            service: Rc::new(service),
             allow_public_files: self.allow_public_files,
         })
     }
 }
 
 pub struct JwtAuthMiddleware<S> {
-    service: S,
+    service: Rc<S>,
     allow_public_files: bool,
 }
 
 impl<S, B> actix_web::dev::Service<ServiceRequest> for JwtAuthMiddleware<S>
 where
-    S: actix_web::dev::Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S: actix_web::dev::Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
     B: 'static,
 {
@@ -72,9 +74,10 @@ where
     }
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
+        let service = Rc::clone(&self.service);
+
         if self.allow_public_files && is_public_file(&req) {
-            let fut = self.service.call(req);
-            return Box::pin(async move { Ok(fut.await?.map_into_left_body()) });
+            return Box::pin(async move { Ok(service.call(req).await?.map_into_left_body()) });
         }
 
         let secret = match req.app_data::<web::Data<Arc<Configure>>>() {
@@ -89,6 +92,8 @@ where
             }
         };
 
+        let redis = req.app_data::<web::Data<Arc<RedisPool>>>().cloned();
+
         let token = match bearer_token(&req) {
             Some(token) => token,
             None => {
@@ -101,31 +106,56 @@ where
             }
         };
 
-        match verify_token(&token, &secret) {
-            Ok(claims) => {
-                req.extensions_mut().insert(claims);
-                let fut = self.service.call(req);
-                Box::pin(async move { Ok(fut.await?.map_into_left_body()) })
+        let claims = match verify_token(&token, &secret) {
+            Ok(claims) => claims,
+            Err(JwtError::DecodingError(_)) => {
+                return Box::pin(async move {
+                    Ok(json_error(
+                        req,
+                        ErrorBody::custom(auth_codes::INVALID_CREDENTIALS, "登录凭证无效"),
+                    ))
+                });
             }
-            Err(JwtError::DecodingError(_)) => Box::pin(async move {
-                Ok(json_error(
-                    req,
-                    ErrorBody::custom(auth_codes::INVALID_CREDENTIALS, "登录凭证无效"),
-                ))
-            }),
-            Err(JwtError::InvalidToken) => Box::pin(async move {
-                Ok(json_error(
-                    req,
-                    ErrorBody::custom(auth_codes::TOKEN_EXPIRED, "登录凭证过期"),
-                ))
-            }),
-            Err(_) => Box::pin(async move {
-                Ok(json_error(
-                    req,
-                    ErrorBody::unauthorized("登录凭证无效"),
-                ))
-            }),
-        }
+            Err(JwtError::InvalidToken) => {
+                return Box::pin(async move {
+                    Ok(json_error(
+                        req,
+                        ErrorBody::custom(auth_codes::TOKEN_EXPIRED, "登录凭证过期"),
+                    ))
+                });
+            }
+            Err(_) => {
+                return Box::pin(async move {
+                    Ok(json_error(
+                        req,
+                        ErrorBody::unauthorized("登录凭证无效"),
+                    ))
+                });
+            }
+        };
+
+        Box::pin(async move {
+            if let Some(redis) = redis.as_ref() {
+                match redis.is_blacklisted(&token).await {
+                    Ok(true) => {
+                        return Ok(json_error(
+                            req,
+                            ErrorBody::custom(auth_codes::INVALID_CREDENTIALS, "登录凭证已失效"),
+                        ));
+                    }
+                    Ok(false) => {}
+                    Err(_) => {
+                        return Ok(json_error(
+                            req,
+                            ErrorBody::custom(external::CACHE_ERROR, "缓存服务异常"),
+                        ));
+                    }
+                }
+            }
+
+            req.extensions_mut().insert(claims);
+            Ok(service.call(req).await?.map_into_left_body())
+        })
     }
 }
 

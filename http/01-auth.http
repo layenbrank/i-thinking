@@ -67,6 +67,11 @@ Accept: application/json
   "birthday": "1990-01-01"
 }
 
+### POST /api/v1/auth/signout — 登出（JWT 进 Redis 黑名单）
+POST {{host}}/api/v1/auth/signout
+Authorization: Bearer {{token}}
+Accept: application/json
+
 ###
 # 上传头像 asset（先执行 prepare → chunk → finalize，再绑定 profile）
 @avatarFileHash = 46ffabaecc44bf964158d1723fb0ff9d3c5918cb70686a613f5aa471413a3682

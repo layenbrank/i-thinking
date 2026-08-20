@@ -1,3 +1,4 @@
+use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::services::auth::schema::{SigninP, SignupP, ProfileP};
@@ -63,5 +64,42 @@ impl AuthController {
             Ok(response) => Body::success(response, "更新个人信息成功").transform(),
             Err(err) => ErrorBody::from(err).transform(),
         }
+    }
+
+    /// 登出：将当前 JWT 写入 Redis 黑名单
+    pub async fn signout(
+        redis: web::Data<Arc<RedisPool>>,
+        http: HttpRequest,
+    ) -> Result<HttpResponse> {
+        let Some(claims) = http.extensions().get::<Claims>().cloned() else {
+            return ErrorBody::unauthorized("用户未登录").transform();
+        };
+
+        let Some(token) = bearer_token(&http) else {
+            return ErrorBody::unauthorized("用户未登录").transform();
+        };
+
+        match AuthService::signout(&redis, &token, claims.exp).await {
+            Ok(()) => Body::message_only("登出成功").transform(),
+            Err(err) => ErrorBody::from(err).transform(),
+        }
+    }
+}
+
+fn bearer_token(req: &HttpRequest) -> Option<String> {
+    let value = req
+        .headers()
+        .get(actix_web::http::header::AUTHORIZATION)?
+        .to_str()
+        .ok()?;
+    if value.len() > 7 && value[..7].eq_ignore_ascii_case("bearer ") {
+        let token = value[7..].trim();
+        if token.is_empty() {
+            None
+        } else {
+            Some(token.to_string())
+        }
+    } else {
+        None
     }
 }
