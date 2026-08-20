@@ -65,7 +65,7 @@ actix-web = { version = "4.14.1", features = [
   "rustls",
 ] } # HTTP 服务（TLS 使用 rustls）
 actix-cors = "0.7.1" # CORS 跨域
-actix-files = "0.6.10" # 静态文件 / 下载
+actix-files = "0.7.0" # 静态文件 / 下载
 actix-multipart = "0.8.0" # multipart 文件上传
 
 # 异步运行时
@@ -88,6 +88,13 @@ reqwest = { version = "0.13.4", features = [
   "query",
   "rustls",
 ] } # 出站 HTTP 请求
+
+# Redis / Elasticsearch
+fred = { version = "10", features = ["enable-rustls", "partial-tracing"] }
+elasticsearch = { version = "9.1.0-alpha.1", default-features = false, features = [
+  "rustls-tls",
+] }
+url = "2"
 
 # 安全 / 加密
 argon2       = "0.5.3"                                            # 密码哈希
@@ -120,7 +127,9 @@ dialoguer = "0.12.0" # generate 交互式菜单
 
 # OpenAPI 文档
 utoipa = { version = "=5.3.1", features = ["chrono"] }
-utoipa-swagger-ui = { version = "=8.0.3", features = ["actix-web"], optional = true }
+utoipa-swagger-ui = { version = "=8.0.3", features = [
+  "actix-web",
+], optional = true }
 
 [dev-dependencies]
 actix-web = { version = "4.14.1" }

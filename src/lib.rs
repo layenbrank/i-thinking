@@ -15,7 +15,7 @@ pub mod bootstrap {
 /// 构建基础 Actix App（须在 `HttpServer::new` 闭包内展开，以保证类型推断）
 #[macro_export]
 macro_rules! bootstrap_app {
-    ($store:expr, $config:expr, $bootstrap:expr) => {{
+    ($store:expr, $config:expr, $redis:expr, $es:expr, $bootstrap:expr) => {{
         use actix_cors::Cors;
         use actix_web::{App, http::header, web::Data};
         use $crate::middlewares::response::ResponseWrapper;
@@ -32,11 +32,18 @@ macro_rules! bootstrap_app {
         App::new()
             .app_data(Data::new($store))
             .app_data(Data::new($config))
+            .app_data(Data::new($redis))
+            .app_data(Data::new($es))
             .wrap(cors)
             .wrap(ResponseWrapper)
             .configure(|cfg| $crate::bootstrap::BootstrapModule::configure(cfg, &$bootstrap))
             .configure(ApplicationModule::configure)
     }};
+}
+
+pub mod clients {
+    pub mod elasticsearch;
+    pub mod redis;
 }
 
 pub mod databases {
@@ -79,6 +86,13 @@ pub mod services {
     }
 
     pub mod engine {
+        pub mod controller;
+        pub mod module;
+        pub mod schema;
+        pub mod service;
+    }
+
+    pub mod search {
         pub mod controller;
         pub mod module;
         pub mod schema;

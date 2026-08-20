@@ -25,6 +25,15 @@ pub struct Configure {
     pub encryption: Encryption,
     pub jwt_secret: String,
     pub aes_key: Option<String>,
+    pub redis_url: String,
+    pub redis_pool_size: usize,
+    pub elasticsearch_url: String,
+    pub elasticsearch_index: String,
+    pub elasticsearch_api_key: Option<String>,
+    pub elasticsearch_username: Option<String>,
+    pub elasticsearch_password: Option<String>,
+    pub elasticsearch_cloud_id: Option<String>,
+    pub elasticsearch_insecure: bool,
 }
 
 impl Configure {
@@ -36,6 +45,16 @@ impl Configure {
         } else {
             env::var("AES_KEY").ok()
         };
+
+        let redis_pool_size = env::var("REDIS_POOL_SIZE")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(8)
+            .max(1);
+
+        let elasticsearch_insecure = env::var("ELASTICSEARCH_INSECURE")
+            .map(|v| v == "true" || v == "1")
+            .unwrap_or(false);
 
         Ok(Configure {
             host: env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
@@ -59,6 +78,33 @@ impl Configure {
             }),
 
             aes_key,
+
+            redis_url: env::var("REDIS_URL")
+                .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string()),
+
+            redis_pool_size,
+
+            elasticsearch_url: env::var("ELASTICSEARCH_URL")
+                .unwrap_or_else(|_| "https://127.0.0.1:9200".to_string()),
+
+            elasticsearch_index: env::var("ELASTICSEARCH_INDEX")
+                .unwrap_or_else(|_| "corex_docs".to_string()),
+
+            elasticsearch_api_key: env::var("ELASTICSEARCH_API_KEY").ok().filter(|s| !s.is_empty()),
+
+            elasticsearch_username: env::var("ELASTICSEARCH_USERNAME")
+                .ok()
+                .filter(|s| !s.is_empty()),
+
+            elasticsearch_password: env::var("ELASTICSEARCH_PASSWORD")
+                .ok()
+                .filter(|s| !s.is_empty()),
+
+            elasticsearch_cloud_id: env::var("ELASTICSEARCH_CLOUD_ID")
+                .ok()
+                .filter(|s| !s.is_empty()),
+
+            elasticsearch_insecure,
         })
     }
 }

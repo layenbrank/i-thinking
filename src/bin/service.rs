@@ -2,6 +2,7 @@ use actix_web::HttpServer;
 use service::{
     bootstrap::BootstrapOptions,
     bootstrap_app,
+    clients::{elasticsearch::EsClient, redis::RedisPool},
     configures::configure::Configure,
     databases::database::Storage,
     utils,
@@ -35,6 +36,8 @@ async fn main() -> std::io::Result<()> {
         host = %configure.host,
         port = configure.port,
         encryption = ?configure.encryption,
+        redis_url = %configure.redis_url,
+        elasticsearch_url = %configure.elasticsearch_url,
         "configuration loaded"
     );
 
@@ -42,8 +45,18 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to connect to database");
 
+    let redis = RedisPool::new(&configure.redis_url, configure.redis_pool_size)
+        .await
+        .expect("Failed to connect to Redis");
+
+    let es = EsClient::new(&configure)
+        .await
+        .expect("Failed to connect to Elasticsearch");
+
     let store = Arc::new(storage);
     let config = Arc::new(configure.clone());
+    let redis = Arc::new(redis);
+    let es = Arc::new(es);
     let host = config.host.clone();
     let port = config.port;
 
@@ -73,20 +86,34 @@ async fn main() -> std::io::Result<()> {
         use utoipa_swagger_ui::SwaggerUi;
 
         return HttpServer::new(move || {
-            bootstrap_app!(store.clone(), config.clone(), bootstrap.clone())
-                .service(swagger::redirect_to_ui)
-                .service(
-                    SwaggerUi::new("/swagger-ui/{_:.*}")
-                        .url("/api-docs/openapi.json", OpenDoc::openapi()),
-                )
+            bootstrap_app!(
+                store.clone(),
+                config.clone(),
+                redis.clone(),
+                es.clone(),
+                bootstrap.clone()
+            )
+            .service(swagger::redirect_to_ui)
+            .service(
+                SwaggerUi::new("/swagger-ui/{_:.*}")
+                    .url("/api-docs/openapi.json", OpenDoc::openapi()),
+            )
         })
         .bind((host, port))?
         .run()
         .await;
     }
 
-    HttpServer::new(move || bootstrap_app!(store.clone(), config.clone(), bootstrap.clone()))
-        .bind((host, port))?
-        .run()
-        .await
+    HttpServer::new(move || {
+        bootstrap_app!(
+            store.clone(),
+            config.clone(),
+            redis.clone(),
+            es.clone(),
+            bootstrap.clone()
+        )
+    })
+    .bind((host, port))?
+    .run()
+    .await
 }
