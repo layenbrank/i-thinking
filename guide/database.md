@@ -34,6 +34,8 @@ Entity：[`entity/src/auth.rs`](../entity/src/auth.rs)
 | gender | text | MALE / FEMALE |
 | birthday | date | 生日 |
 | avatar | uuid FK | → asset.id |
+| role | text | USER / ADMIN，默认 USER |
+| status | text | ACTIVE / DISABLED，默认 ACTIVE |
 | archivedAt | timestamptz | 归档时间 |
 | createdAt | timestamptz | 创建时间 |
 | creator | uuid FK | → auth.id |

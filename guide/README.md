@@ -12,6 +12,7 @@
 | 数据库协作 | [`database.md`](database.md) |
 | 环境变量 | [`env.md`](env.md) |
 | Redis / Elasticsearch（调研） | [`redis-elasticsearch.md`](redis-elasticsearch.md) |
+| 横切架构（Nest ↔ Actix） | [`architecture-cross-cutting.md`](architecture-cross-cutting.md) |
 | 模块接口详情 | [`src/services/*/README.md`](../src/services/auth/README.md) |
 | HTTP 测试 | [`http/`](../http/) |
 

@@ -13,6 +13,7 @@ description: CoreX Rust HTTP 服务的命名、Schema、CRUD、模块结构、�
 2. **简洁优雅** — 去掉冗余前缀/后缀（`Info`、`Api`、`Request`、`Response`）
 3. **禁止 `api` 词语** — 结构体、宏、函数名均不出现 `Api`、`api_`（URL 路径 `/api/v1/...` 除外）
 4. **lib.rs 统一导出** — 子目录不写 `mod.rs`，在 `src/lib.rs` 内联声明模块树
+5. **use 导入顺序** — `std` → 外部依赖（含 `entity` 等 workspace crate）→ 本 crate（`crate::` / `super::` / `self::`），**组间空一行**；组内按路径字母序。可用 `python scripts/reorder_imports.py` 批量整理。
 
 ---
 
@@ -82,12 +83,12 @@ pub fn toRead_doc() {}
 
 | 类型/宏 | 用途 |
 |---------|------|
-| `Body<T>` | 成功响应封装 |
-| `ErrorBody` | 错误响应 |
+| `Envelope<T>` | 成功响应信封 |
+| `Exception` | 异常响应 |
 | `ok!` / `created!` / `no_content!` / `fail!` / `paginated!` | Controller 快捷宏 |
-| `body!`（`oas/common.rs`） | 生成具象 OpenAPI Body（如 `SigninBody`） |
+| `envelope!`（`oas/common.rs`） | 生成具象 OpenAPI Envelope（如 `SigninEnvelope`） |
 
-业务成功码：`200000`（`utils::response::SUCCESS`）。HTTP 状态码对外恒为 200，结果看 `body.code`。
+业务成功码：`200000`（`utils::code::SUCCESS`）。HTTP 状态码对外恒为 200，结果看 `body.code`。
 
 ---
 
@@ -128,6 +129,19 @@ src/services/{name}/
 
 可选：`http/*.http` REST Client 用例。
 
+### 复杂度例外（额外文件）
+
+默认只允许上述四文件 + README。体量大的模块可拆分，但须在 README 写明职责，并登记到 `scripts/check_architecture.py`：
+
+| 模块 | 额外文件 | 原因 |
+|------|----------|------|
+| `upload` | `validation` / `storage` / `repository` / `error` / `multipart` | 分片上传 + 归属校验，单文件过重 |
+| `search` | `repository` | ES 领域查询与 client 连接分离 |
+
+禁止新建 `services/shared`；跨模块复用优先放在**拥有该领域**的模块（如 profile 辅助在 `auth::service`），或 `utils/` / `guards/` 等横切层。
+
+架构卫生：`python scripts/check_architecture.py`（CI 会跑）。
+
 ---
 
 ## 数据库字段
@@ -160,7 +174,7 @@ src/services/{name}/
 |------|------|
 | `mod.rs` | `OpenDoc` derive、schema 注册、`ALL_ROUTES` |
 | `{module}.rs` | `#[utoipa::path]` 文档函数（`signin_doc`、`toRead_doc`） |
-| `common.rs` | `body!` 宏、`ErrorBody`、示例 |
+| `common.rs` | `envelope!` 宏、`Exception`、示例 |
 | `paths.rs` | 路由清单 |
 
 **workflow — 新增接口：**
@@ -177,7 +191,7 @@ src/services/{name}/
 - 每个 operation 有中文 `summary` + 详细 `description`
 - 注明是否 JWT、`body.code` 语义
 - `operation_id` 格式：`{module}.{action}`（如 `auth.toRead`）
-- 成功/典型错误均声明 `body = XxxBody` 或 `ErrorBody`
+- 成功/典型错误均声明 `body = XxxEnvelope` 或 `Exception`
 
 详细模式见 [references/oas.md](references/oas.md)。
 
@@ -216,6 +230,7 @@ src/services/{name}/
 - [ ] `oas/` 文档 + `oas_consistency` 测试通过
 - [ ] `services/{name}/README.md` 已写并链到根 README
 - [ ] `#![allow(non_snake_case)]` 已在 lib.rs（允许 `toRead` 等 camelCase）
+- [ ] `python scripts/check_architecture.py` 通过（复杂度例外已登记）
 
 ---
 

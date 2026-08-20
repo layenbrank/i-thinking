@@ -71,6 +71,7 @@ cargo run --bin docs
 ### 测试
 
 ```bash
+python scripts/check_architecture.py
 cargo test --lib -p service
 cargo test --test oas_consistency
 ```
@@ -81,12 +82,17 @@ cargo test --test oas_consistency
 src/
   bin/service.rs          # 入口
   services/
-    auth/                 # 登录、注册、个人 profile
-    user/                 # 后台用户 CRUD
-    upload/               # 分片上传
+    auth/                 # 登录、注册、个人 profile（含 profile 辅助）
+    user/                 # 后台用户 CRUD（复用 auth::service 中 profile 辅助）
+    upload/               # 分片上传（validation/storage/repository）
+    search/               # ES 检索（repository 领域查询）
     engine/               # Bing 搜索建议代理
     application/          # 应用入口（挂载 v1 路由）
-  middlewares/jwt.rs      # JWT 鉴权
+  middlewares/            # CORS、AccessLog（Nest Middleware）
+  guards/                 # Auth、黑名单、公开路径（Nest Guard）
+  interceptors/envelope.rs    # Body / Paginated（Nest Interceptor）
+  filters/exception.rs   # Exception（Nest Filter）
+  utils/code.rs   # 业务状态码
   oas/                    # utoipa 文档定义（path doc + OpenDoc）
 entity/                   # SeaORM Entity（auth、asset）
 migration/                # 数据库迁移
@@ -123,8 +129,10 @@ spec/                     # OpenAPI 生成物
 | 认证 | [src/services/auth/README.md](src/services/auth/README.md) |
 | 用户(后台) | [src/services/user/README.md](src/services/user/README.md) |
 | 上传 | [src/services/upload/README.md](src/services/upload/README.md) |
+| 搜索 (ES) | [src/services/search/README.md](src/services/search/README.md) |
 | 搜索引擎 | [src/services/engine/README.md](src/services/engine/README.md) |
 | 应用 | [src/services/application/README.md](src/services/application/README.md) |
+| Markdown（占位） | [src/services/markdown/README.md](src/services/markdown/README.md) |
 
 ## HTTP 测试
 

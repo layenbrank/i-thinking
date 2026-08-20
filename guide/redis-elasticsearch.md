@@ -18,8 +18,8 @@ Configure::from_env → RedisPool / EsClient / Storage → Arc → bootstrap_app
 | Elasticsearch | [`src/clients/elasticsearch.rs`](../src/clients/elasticsearch.rs) |
 | 配置 | [`src/configures/configure.rs`](../src/configures/configure.rs) |
 | 启动注入 | [`src/bin/service.rs`](../src/bin/service.rs)、[`src/lib.rs`](../src/lib.rs) |
-| JWT 黑名单 | [`src/middlewares/jwt.rs`](../src/middlewares/jwt.rs)、`POST /api/v1/auth/signout` |
-| ES 检索 | [`src/services/search`](../src/services/search/README.md) |
+| JWT 黑名单 | [`src/guards/blacklist.rs`](../src/guards/blacklist.rs)、`POST /api/v1/auth/signout` |
+| ES 检索 | [`src/services/search/repository.rs`](../src/services/search/repository.rs) |
 
 ---
 
@@ -65,7 +65,7 @@ curl http://127.0.0.1:9200
 ### Redis：JWT 黑名单
 
 1. `POST /api/v1/auth/signout`（需 JWT）→ `SET auth:jwt:bl:{sha256(token)}` + TTL=剩余有效期  
-2. `JwtAuth` 在校验签名后查询黑名单；命中则拒绝  
+2. `Auth` 在校验签名后查询黑名单；命中则拒绝  
 
 ### Elasticsearch：文档索引与检索
 

@@ -31,7 +31,7 @@
 | 600001 | 数据库错误 |
 | 700001 | 数据不一致 |
 
-完整定义见 [`src/utils/response.rs`](../src/utils/response.rs)。
+完整定义见 [`src/utils/code.rs`](../src/utils/code.rs)。
 
 ## Apifox 断言建议
 

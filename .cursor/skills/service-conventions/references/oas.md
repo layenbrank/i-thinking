@@ -5,7 +5,7 @@
 ```
 src/oas/
 ├── mod.rs       # OpenDoc、ALL_ROUTES、components 注册
-├── common.rs    # body! 宏、ErrorBody、示例 struct
+├── common.rs    # envelope! 宏、Exception、示例 struct
 ├── paths.rs     # 路由常量
 ├── auth.rs      # 按业务模块拆分 path doc
 ├── user.rs
@@ -17,7 +17,7 @@ src/oas/
 每个 HTTP 接口对应一个空函数 + `#[utoipa::path]`：
 
 ```rust
-use super::common::{ErrorBody, ProfileBody};
+use super::common::{Exception, ProfileEnvelope};
 use crate::services::auth::schema::ProfileP;
 
 #[utoipa::path(
@@ -30,24 +30,24 @@ use crate::services::auth::schema::ProfileP;
     security(("bearer_auth" = [])),
     request_body = ProfileP,
     responses(
-        (status = 200, description = "更新成功（code=200000）", body = ProfileBody),
-        (status = 200, description = "未登录（code=300001）", body = ErrorBody),
-        (status = 200, description = "参数/业务错误", body = ErrorBody),
+        (status = 200, description = "更新成功（code=200000）", body = ProfileEnvelope),
+        (status = 200, description = "未登录（code=300001）", body = Exception),
+        (status = 200, description = "参数/业务错误", body = Exception),
     )
 )]
 pub fn toUpdate_doc() {}
 ```
 
-## Body schema（OpenAPI 不支持泛型）
+## Envelope schema（OpenAPI 不支持泛型）
 
-在 `common.rs` 用 `body!` 宏：
+在 `common.rs` 用 `envelope!` 宏：
 
 ```rust
-body!(ProfileBody, ProfileR);
-body!(UserListBody, Vec<UserR>);
+envelope!(ProfileEnvelope, ProfileR);
+envelope!(UserListEnvelope, Vec<UserR>);
 ```
 
-禁止命名 `ApiXxxBody`；用 `{Action}Body` 或 `{Entity}Body`。
+禁止命名 `ApiXxxEnvelope`；用 `{Action}Envelope` 或 `{Entity}Envelope`。
 
 ## mod.rs 注册
 
@@ -61,7 +61,7 @@ body!(UserListBody, Vec<UserR>);
     ),
     components(schemas(
         ProfileP, ProfileR, ProfileBody,
-        ErrorBody,
+        Exception,
         // ...
     )),
     // ...

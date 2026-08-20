@@ -77,7 +77,7 @@ docker volume rm master_postgres18_data master_postgres_data master_redis_data m
 |------|------|--------|------|
 | `JWT_SECRET` | 否 | （内置占位） | JWT 签名密钥，生产环境务必修改 |
 | `SECRET` | 否 | `secret` | 通用密钥 |
-| `ENCRYPTION` | 否 | `argon2` | 密码存储：`argon2` 或 `aes` |
+| `ENCRYPTION` | 否 | `argon2` | 密码存储：`argon2`（推荐）或 `aes`（遗留；**production/prod 下禁止用于写密码**） |
 | `AES_KEY` | ENCRYPTION=aes 时必需 | — | AES-256 密钥（`ENCRYPTION=aes` 时必填） |
 
 生成密钥：`cargo run --bin generate`
@@ -94,9 +94,10 @@ docker volume rm master_postgres18_data master_postgres_data master_redis_data m
 |------|--------|------|
 | `RUST_LOG` | `info` | EnvFilter |
 | `LOG_FORMAT` | `pretty` | 控制台：`pretty` 多行 / `compact` 单行；文件始终 JSON |
-| `LOG_DIR` | `logs` | 日志目录 |
-| `LOG_FILE` | `service.log` | 按日轮转文件名前缀 |
+| `LOG_DIR` | `logs` | 日志目录；文件名为 `YYYY-MM-DD.log` |
+| `LOG_BODY_MAX` | `8192` | 访问日志 JSON 体最大字节；超限跳过请求缓冲；响应非文本/大文件/`upload/files` 不采样 |
 | `LOG_RETENTION_DAYS` | `14` | 保留天数 |
+| `CORS_ORIGINS` | （空） | 逗号分隔 Origin；非空则白名单。空且非 production：`allow_any_origin`；空且 production：不放行任意跨域 |
 
 ## 示例 `.env`
 

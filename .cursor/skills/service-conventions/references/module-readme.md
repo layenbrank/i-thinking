@@ -25,7 +25,7 @@
 ## 鉴权说明
 
 - 哪些路由需要 JWT
-- 使用的中间件链接：[`JwtAuth::required()`](../../middlewares/jwt.rs)
+- 使用的守卫链接：[`Auth::required()`](../../guards/auth.rs)
 - 典型错误码（如 `300001` 未登录）
 
 ## 数据表
