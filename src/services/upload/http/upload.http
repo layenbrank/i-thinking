@@ -1,6 +1,6 @@
-# 上传模块 — 按顺序执行：signin → prepare → chunk → finalize
+# 上传模块 — prepare(可无 hash) → chunk → PATCH hash → finalize → 流式下载
 # 鉴权: 全部需 JWT（含 GET /files/{hash}）
-# Node 端到端（自动算 hash / 分片）:
+# Node 端到端（先 prepare 再算/传 hash，CAS 分片秒传）:
 #   npx tsx src/services/upload/http/upload.ts
 #   npx tsx src/services/upload/http/upload.ts ./your-file.bin
 
@@ -23,8 +23,7 @@ Accept: application/json
 ###
 @token = {{signin.response.body.data.token}}
 
-### 1. 初始化上传 — POST /api/v1/upload/prepare
-# Body: { name, size, hash, mime, chunk }
+### 1. 初始化上传 — POST /api/v1/upload/prepare（hash 可选）
 # @name prepare
 POST {{host}}/api/v1/upload/prepare
 Authorization: Bearer {{token}}
@@ -34,7 +33,6 @@ Accept: application/json
 {
   "name": "sample.pdf",
   "size": 1048576,
-  "hash": "{{fileHash}}",
   "mime": "application/pdf",
   "chunk": 1048576
 }
@@ -42,8 +40,19 @@ Accept: application/json
 ###
 @uploadId = {{prepare.response.body.data.id}}
 
+### 1b. 绑定整文件哈希 — PATCH /api/v1/upload/hash
+PATCH {{host}}/api/v1/upload/hash
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": "{{uploadId}}",
+  "hash": "{{fileHash}}"
+}
+
 ### 2. 上传分片 — POST /api/v1/upload/chunk
-# 表单: id, index, hash, chunk(文件)
+# 表单: id, index, hash, chunk(文件；CAS 命中时可省略)
 POST {{host}}/api/v1/upload/chunk
 Authorization: Bearer {{token}}
 Content-Type: multipart/form-data; boundary=UploadBoundary
