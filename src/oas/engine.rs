@@ -1,5 +1,5 @@
-use super::common::{ErrorBody, SuggestionBody};
 use crate::services::engine::schema::QueryP;
+use super::common::{Exception, SuggestionEnvelope};
 
 /// Bing 搜索建议代理
 #[utoipa::path(
@@ -8,7 +8,8 @@ use crate::services::engine::schema::QueryP;
     tag = "Engine",
     operation_id = "engine.toRead",
     summary = "获取搜索建议",
-    description = "代理 Bing AS Suggestions API，无需鉴权。",
+    description = "代理 Bing AS Suggestions API。需要 JWT。",
+    security(("bearer_auth" = [])),
     params(
         ("pt" = String, Query, description = "页面类型", example = "page.home"),
         ("qry" = String, Query, description = "搜索关键词", example = "rust"),
@@ -18,8 +19,8 @@ use crate::services::engine::schema::QueryP;
         ("cvid" = String, Query, description = "客户端 ID"),
     ),
     responses(
-        (status = 200, description = "获取成功（code=200000）", body = SuggestionBody),
-        (status = 200, description = "参数格式错误或上游失败", body = ErrorBody),
+        (status = 200, description = "获取成功（code=200000）", body = SuggestionEnvelope),
+        (status = 200, description = "未登录或上游失败", body = Exception),
     )
 )]
 pub fn toRead_doc() {}

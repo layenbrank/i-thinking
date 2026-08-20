@@ -15,16 +15,17 @@
 | POST   | `/api/v1/upload/finalize`      | JWT    | 合并分片并完成        |
 | GET    | `/api/v1/upload/progress/{id}` | JWT    | 查询进度              |
 | DELETE | `/api/v1/upload/cancel/{id}`   | JWT    | 取消上传              |
-| GET    | `/api/v1/upload/files/{hash}`  | **无** | 下载已完成文件        |
+| GET    | `/api/v1/upload/files/{hash}`  | JWT    | 下载已完成文件        |
 
 ## 鉴权说明
 
-[`JwtAuth::upload()`](../../middlewares/jwt.rs)：
+全路由挂载 [`Auth::required()`](../../guards/auth.rs)（**无匿名下载**）。
 
-- `prepare` / `chunk` / `finalize` / `progress` / `cancel`：需要 JWT
-- `GET /upload/files/*`：公开，便于直链下载
+`prepare` 从 JWT `Claims.sub` 写入 `asset.creator`。  
+`chunk` / `finalize` / `progress` / `cancel` 均校验 `Claims.sub == asset.creator`（防 IDOR）。  
+`GET /files/{hash}` 需登录；头像等直链须带 `Authorization: Bearer`。
 
-`prepare` 从 JWT `Claims.sub` 写入 `asset.creator`。
+模块拆分：`validation` / `storage` / `repository` / `error` / `multipart`；`service` 仅编排用例。
 
 ## 数据表 — asset
 
@@ -200,9 +201,16 @@ curl -X POST http://127.0.0.1:3000/api/v1/upload/prepare \
   -d '{"name":"a.pdf","size":1024,"hash":"...64hex...","mime":"application/pdf","chunk":1048576}'
 ```
 
-**HTTP 文件**
+**HTTP / Node 测试**
 
 - [`http/03-upload.http`](../../../http/03-upload.http)
 - [`http/upload.http`](http/upload.http)
+- [`http/upload.mjs`](http/upload.mjs) — Node fetch：自动 SHA256、分片、秒传/续传、下载校验
+
+```bash
+# 服务启动后
+node src/services/upload/http/upload.mjs
+node src/services/upload/http/upload.mjs ./photo.png
+```
 
 头像场景见 [`auth/README.md`](../auth/README.md) 与 [`http/01-auth.http`](../../../http/01-auth.http)。

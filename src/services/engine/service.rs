@@ -1,8 +1,9 @@
-use crate::services::engine::schema::{SuggestionR, QueryP};
-use crate::utils::response::ErrorBody;
 use actix_web::HttpRequest;
 use reqwest::{Client, Error as ReqwestError, header};
 use serde_json::Error as JsonError;
+
+use crate::filters::exception::Exception;
+use crate::services::engine::schema::{QueryP, SuggestionR};
 
 // 请求头常量
 const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -21,24 +22,24 @@ pub enum EngineError {
     InvalidResponseFormat(String),
 }
 
-impl From<EngineError> for ErrorBody {
+impl From<EngineError> for Exception {
     fn from(err: EngineError) -> Self {
-        use crate::utils::response::data;
-        match err {
+        use crate::utils::code::external;
+        match &err {
             EngineError::HttpError(e) => {
-                ErrorBody::custom(data::DATA_INCONSISTENCY, format!("网络请求失败: {}", e))
+                tracing::error!(error = %e, "engine upstream request failed");
             }
             EngineError::JsonParseError(e) => {
-                ErrorBody::custom(data::DATA_INCONSISTENCY, format!("响应解析失败: {}", e))
+                tracing::error!(error = %e, "engine json parse failed");
             }
-            EngineError::HttpStatusError { status, message } => ErrorBody::custom(
-                data::DATA_INCONSISTENCY,
-                format!("HTTP错误 {}: {}", status, message),
-            ),
+            EngineError::HttpStatusError { status, message } => {
+                tracing::error!(%status, error = %message, "engine upstream status error");
+            }
             EngineError::InvalidResponseFormat(msg) => {
-                ErrorBody::custom(data::DATA_INCONSISTENCY, format!("响应格式错误: {}", msg))
+                tracing::error!(error = %msg, "engine invalid response");
             }
         }
+        Exception::custom(external::THIRD_PARTY_API_ERROR, "搜索建议服务暂不可用")
     }
 }
 
@@ -50,10 +51,7 @@ impl EngineService {
     /// # 参数
     /// - `params`: URL 查询参数
     /// - `req`: HTTP 请求对象，用于提取 User-Agent 等请求头信息
-    pub async fn suggestion(
-        params: QueryP,
-        req: &HttpRequest,
-    ) -> Result<SuggestionR, EngineError> {
+    pub async fn suggestion(params: QueryP, req: &HttpRequest) -> Result<SuggestionR, EngineError> {
         let client = Client::new();
 
         // 构建请求头

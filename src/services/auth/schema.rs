@@ -3,6 +3,8 @@ use entity::{asset, auth};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+pub use crate::guards::permission::{Role, Status};
+
 const FILE_URL_PREFIX: &str = "/api/v1/upload/files";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -54,6 +56,8 @@ impl From<asset::Model> for Avatar {
 pub struct AuthR {
     pub id: String,
     pub username: String,
+    pub role: String,
+    pub status: String,
     #[serde(rename = "createdAt")]
     pub created_at: i64,
     #[serde(rename = "updatedAt")]
@@ -65,6 +69,8 @@ impl From<auth::Model> for AuthR {
         AuthR {
             id: user.id.to_string(),
             username: user.username,
+            role: user.role,
+            status: user.status,
             created_at: user.created_at.timestamp_millis(),
             updated_at: user.updated_at.timestamp_millis(),
         }
@@ -76,6 +82,8 @@ impl From<auth::Model> for AuthR {
 pub struct ProfileR {
     pub id: String,
     pub username: String,
+    pub role: String,
+    pub status: String,
     pub email: Option<String>,
     pub phone: Option<String>,
     pub gender: Option<String>,
@@ -93,6 +101,8 @@ impl ProfileR {
         Self {
             id: user.id.to_string(),
             username: user.username,
+            role: user.role,
+            status: user.status,
             email: user.email,
             phone: user.phone,
             gender: user.gender,
@@ -149,7 +159,7 @@ pub struct SignupR {
 
 #[cfg(test)]
 mod tests {
-    use super::{Gender, ProfileP};
+    use super::{Gender, ProfileP, Role, Status};
 
     #[test]
     fn gender_roundtrip() {
@@ -165,9 +175,12 @@ mod tests {
     fn birthday_parse() {
         let date = ProfileP::parse_birthday("1990-01-01");
         assert!(date.is_some());
-        assert_eq!(
-            date.unwrap().format("%Y-%m-%d").to_string(),
-            "1990-01-01"
-        );
+        assert_eq!(date.unwrap().format("%Y-%m-%d").to_string(), "1990-01-01");
+    }
+
+    #[test]
+    fn role_status_defaults() {
+        assert_eq!(Role::default().as_str(), "USER");
+        assert_eq!(Status::default().as_str(), "ACTIVE");
     }
 }

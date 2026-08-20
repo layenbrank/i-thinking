@@ -1,5 +1,5 @@
-use super::common::{EmptyBody, ErrorBody, ProfileBody, SigninBody, SignupBody};
-use crate::services::auth::schema::{SigninP, SignupP, ProfileP};
+use crate::services::auth::schema::{ProfileP, SigninP, SignupP};
+use super::common::{EmptyEnvelope, Exception, ProfileEnvelope, SigninEnvelope, SignupEnvelope};
 
 /// 用户登录
 #[utoipa::path(
@@ -11,8 +11,8 @@ use crate::services::auth::schema::{SigninP, SignupP, ProfileP};
     description = "公开接口，成功后返回 JWT token。HTTP 状态码始终为 200，业务结果见 body.code。",
     request_body = SigninP,
     responses(
-        (status = 200, description = "登录成功（code=200000）", body = SigninBody),
-        (status = 200, description = "凭证无效（code=500301）", body = ErrorBody),
+        (status = 200, description = "登录成功（code=200000）", body = SigninEnvelope),
+        (status = 200, description = "凭证无效（code=500301）", body = Exception),
     )
 )]
 pub fn signin_doc() {}
@@ -27,8 +27,8 @@ pub fn signin_doc() {}
     description = "公开接口，注册成功后自动登录并返回 JWT token。",
     request_body = SignupP,
     responses(
-        (status = 200, description = "注册成功（code=200000）", body = SignupBody),
-        (status = 200, description = "用户名已存在等业务错误", body = ErrorBody),
+        (status = 200, description = "注册成功（code=200000）", body = SignupEnvelope),
+        (status = 200, description = "用户名已存在等业务错误", body = Exception),
     )
 )]
 pub fn signup_doc() {}
@@ -43,8 +43,8 @@ pub fn signup_doc() {}
     description = "需要 JWT 鉴权，返回当前登录用户的 profile。",
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "获取成功（code=200000）", body = ProfileBody),
-        (status = 200, description = "未登录（code=300001）", body = ErrorBody),
+        (status = 200, description = "获取成功（code=200000）", body = ProfileEnvelope),
+        (status = 200, description = "未登录（code=300001）", body = Exception),
     )
 )]
 pub fn toRead_doc() {}
@@ -60,8 +60,8 @@ pub fn toRead_doc() {}
     security(("bearer_auth" = [])),
     request_body = ProfileP,
     responses(
-        (status = 200, description = "更新成功（code=200000）", body = ProfileBody),
-        (status = 200, description = "未登录或参数错误", body = ErrorBody),
+        (status = 200, description = "更新成功（code=200000）", body = ProfileEnvelope),
+        (status = 200, description = "未登录或参数错误", body = Exception),
     )
 )]
 pub fn toUpdate_doc() {}
@@ -76,8 +76,8 @@ pub fn toUpdate_doc() {}
     description = "需要 JWT。将当前 token 写入 Redis 黑名单直至过期，之后该 token 不可再用。",
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "登出成功（code=200000）", body = EmptyBody),
-        (status = 200, description = "未登录或缓存异常", body = ErrorBody),
+        (status = 200, description = "登出成功（code=200000）", body = EmptyEnvelope),
+        (status = 200, description = "未登录或缓存异常", body = Exception),
     )
 )]
 pub fn signout_doc() {}

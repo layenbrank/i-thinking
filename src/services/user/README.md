@@ -23,15 +23,17 @@
 
 | 方法   | 路径                 | 鉴权 | 说明     |
 | ------ | -------------------- | ---- | -------- |
-| GET    | `/api/v1/users`      | JWT  | 用户列表 |
-| POST   | `/api/v1/users`      | JWT  | 创建用户 |
-| GET    | `/api/v1/users/{id}` | JWT  | 用户详情 |
-| PUT    | `/api/v1/users/{id}` | JWT  | 更新用户 |
-| DELETE | `/api/v1/users/{id}` | JWT  | 删除用户 |
+| GET    | `/api/v1/users`      | JWT + ADMIN | 用户列表 |
+| POST   | `/api/v1/users`      | JWT + ADMIN | 创建用户 |
+| GET    | `/api/v1/users/{id}` | JWT + ADMIN | 用户详情 |
+| PUT    | `/api/v1/users/{id}` | JWT + ADMIN | 更新用户 |
+| DELETE | `/api/v1/users/{id}` | JWT + ADMIN | 删除用户 |
 
 ## 鉴权说明
 
-全路由挂载 [`JwtAuth::required()`](../../middlewares/jwt.rs)。当前未区分管理员角色，任意有效 JWT 均可操作（后续可扩展 RBAC）。
+全路由挂载 [`Auth::admin()`](../../guards/auth.rs)：JWT 有效且 `Claims.role == ADMIN`，否则 `300006` 权限不足。
+
+注册默认 `role=USER`；管理员可通过本模块 `WriteP.role` / `UpdateP.role` 提升为 `ADMIN`。
 
 ## 数据表 — auth
 

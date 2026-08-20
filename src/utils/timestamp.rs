@@ -1,6 +1,7 @@
+use std::str::FromStr;
+
 use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Deserializer, Serializer};
-use std::str::FromStr;
 
 /// 将 DateTime 序列化为毫秒时间戳
 pub fn to_ts<S>(dt: &DateTime<Utc>, s: S) -> Result<S::Ok, S::Error>

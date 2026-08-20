@@ -1,7 +1,8 @@
+use std::time::Duration;
+
 use anyhow::{Context, Result};
 use migration::{Migrator, MigratorTrait};
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use std::time::Duration;
 
 #[derive(Clone)]
 pub struct Storage {

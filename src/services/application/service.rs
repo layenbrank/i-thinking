@@ -1,9 +1,10 @@
-use crate::{
-    services::application::schema::{App, Component, Direction, Shape, Size},
-    utils::response::ErrorBody,
-};
 use actix_web::Result;
 use chrono::Utc;
+
+use crate::{
+    filters::exception::Exception,
+    services::application::schema::{App, Component, Direction, Shape, Size},
+};
 
 pub struct ApplicationService;
 
@@ -15,18 +16,18 @@ pub enum ApplicationError {
     InvalidResponseFormat(String),
 }
 
-impl From<ApplicationError> for ErrorBody {
+impl From<ApplicationError> for Exception {
     fn from(err: ApplicationError) -> Self {
-        use crate::utils::response::data;
-        match err {
-            ApplicationError::HttpStatusError { status, message } => ErrorBody::custom(
-                data::DATA_INCONSISTENCY,
-                format!("HTTP错误 {}: {}", status, message),
-            ),
+        use crate::utils::code::system;
+        match &err {
+            ApplicationError::HttpStatusError { status, message } => {
+                tracing::error!(%status, error = %message, "application status error");
+            }
             ApplicationError::InvalidResponseFormat(msg) => {
-                ErrorBody::custom(data::DATA_INCONSISTENCY, format!("响应格式错误: {}", msg))
+                tracing::error!(error = %msg, "application invalid response");
             }
         }
+        Exception::custom(system::INTERNAL_ERROR, "应用服务异常")
     }
 }
 

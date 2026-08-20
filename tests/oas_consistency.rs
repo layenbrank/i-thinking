@@ -1,6 +1,6 @@
 //! OAS 路由一致性测试：确保所有已注册路由均在 spec 中记录。
 
-use service::oas::{self, paths::ALL_ROUTES, OpenDoc};
+use service::oas::{self, OpenDoc, paths::ALL_ROUTES};
 use utoipa::OpenApi;
 
 #[test]
@@ -34,10 +34,7 @@ fn spec_has_unique_operation_ids() {
         .flatten()
         {
             if let Some(id) = &op.operation_id {
-                assert!(
-                    seen.insert(id.clone()),
-                    "duplicate operationId: {id}"
-                );
+                assert!(seen.insert(id.clone()), "duplicate operationId: {id}");
             }
         }
     }

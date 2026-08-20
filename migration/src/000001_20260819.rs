@@ -36,6 +36,8 @@ impl MigrationTrait for Migration {
                     .col(text_null(Auth::Gender))
                     .col(date_null(Auth::Birthday))
                     .col(uuid_null(Auth::Avatar))
+                    .col(text(Auth::Role).default("USER"))
+                    .col(text(Auth::Status).default("ACTIVE"))
                     .col(timestamp_with_time_zone_null(Auth::ArchivedAt))
                     .col(timestamp_with_time_zone(Auth::CreatedAt))
                     .col(uuid_null(Auth::Creator))
@@ -191,6 +193,8 @@ enum Auth {
     Gender,
     Birthday,
     Avatar,
+    Role,
+    Status,
     #[sea_orm(iden = "archivedAt")]
     ArchivedAt,
     #[sea_orm(iden = "createdAt")]

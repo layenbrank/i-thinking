@@ -1,6 +1,7 @@
-use crate::middlewares::jwt::JwtAuth;
-use crate::services::auth::controller::AuthController;
 use actix_web::web;
+
+use crate::guards::auth::Auth;
+use crate::services::auth::controller::AuthController;
 
 pub struct AuthModule;
 
@@ -12,7 +13,7 @@ impl AuthModule {
                 .route("/signup", web::post().to(AuthController::signup))
                 .service(
                     web::scope("")
-                        .wrap(JwtAuth::required())
+                        .wrap(Auth::required())
                         .route("/profile", web::get().to(AuthController::toRead))
                         .route("/profile", web::put().to(AuthController::toUpdate))
                         .route("/signout", web::post().to(AuthController::signout)),

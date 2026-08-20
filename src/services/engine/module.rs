@@ -1,19 +1,16 @@
-use crate::services::engine::controller::EngineController;
 use actix_web::web;
 
-pub struct EngineModule;
+use crate::guards::auth::Auth;
+use crate::services::engine::controller::EngineController;
 
-// pt: 'page.home',
-// qry: value,
-// cp: value.length,
-// csr: '1',
-// pths: '1',
-// cvid: cvid
+pub struct EngineModule;
 
 impl EngineModule {
     pub fn configure(cfg: &mut web::ServiceConfig) {
         cfg.service(
-            web::scope("/engine").route("/suggestion", web::get().to(EngineController::toRead)),
+            web::scope("/engine")
+                .wrap(Auth::required())
+                .route("/suggestion", web::get().to(EngineController::toRead)),
         );
     }
 }

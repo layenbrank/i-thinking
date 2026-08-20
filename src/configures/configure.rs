@@ -34,9 +34,18 @@ pub struct Configure {
     pub elasticsearch_password: Option<String>,
     pub elasticsearch_cloud_id: Option<String>,
     pub elasticsearch_insecure: bool,
+    /// 允许的 CORS Origin 列表；空 = 见 [`crate::middlewares::cors::cors`]
+    pub cors_origins: Vec<String>,
 }
 
 impl Configure {
+    pub fn is_production(&self) -> bool {
+        env::var("RUST_ENV")
+            .or_else(|_| env::var("APP_ENV"))
+            .ok()
+            .is_some_and(|v| matches!(v.to_ascii_lowercase().as_str(), "production" | "prod"))
+    }
+
     pub fn from_env() -> Result<Self, env::VarError> {
         let encryption = env::var("ENCRYPTION").unwrap_or_else(|_| "argon2".to_string());
 
@@ -56,6 +65,17 @@ impl Configure {
             .map(|v| v == "true" || v == "1")
             .unwrap_or(false);
 
+        let cors_origins = env::var("CORS_ORIGINS")
+            .ok()
+            .map(|raw| {
+                raw.split(',')
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_string)
+                    .collect()
+            })
+            .unwrap_or_default();
+
         Ok(Configure {
             host: env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
 
@@ -65,8 +85,7 @@ impl Configure {
                 .unwrap_or(3000),
 
             database_uri: env::var("DATABASE_URL").unwrap_or_else(|_| {
-                "postgres://postgres:postgres@localhost:5432/i-thinking?sslmode=disable"
-                    .to_string()
+                "postgres://postgres:postgres@localhost:5432/i-thinking?sslmode=disable".to_string()
             }),
 
             secret: env::var("SECRET").unwrap_or_else(|_| "secret".to_string()),
@@ -90,7 +109,9 @@ impl Configure {
             elasticsearch_index: env::var("ELASTICSEARCH_INDEX")
                 .unwrap_or_else(|_| "corex_docs".to_string()),
 
-            elasticsearch_api_key: env::var("ELASTICSEARCH_API_KEY").ok().filter(|s| !s.is_empty()),
+            elasticsearch_api_key: env::var("ELASTICSEARCH_API_KEY")
+                .ok()
+                .filter(|s| !s.is_empty()),
 
             elasticsearch_username: env::var("ELASTICSEARCH_USERNAME")
                 .ok()
@@ -105,6 +126,8 @@ impl Configure {
                 .filter(|s| !s.is_empty()),
 
             elasticsearch_insecure,
+
+            cors_origins,
         })
     }
 }

@@ -1,6 +1,8 @@
 use crate::clients::elasticsearch::EsClient;
+use crate::filters::exception::Exception;
+use crate::services::search::repository;
 use crate::services::search::schema::{HitR, QueryP, SearchR, WriteP, WriteR};
-use crate::utils::response::{ErrorBody, external, request};
+use crate::utils::code::{external, request};
 
 #[derive(Debug, thiserror::Error)]
 pub enum SearchError {
@@ -10,14 +12,15 @@ pub enum SearchError {
     EsError(String),
 }
 
-impl From<SearchError> for ErrorBody {
+impl From<SearchError> for Exception {
     fn from(err: SearchError) -> Self {
         match err {
             SearchError::InvalidParameter(msg) => {
-                ErrorBody::custom(request::INVALID_PARAMETER_VALUE, msg)
+                Exception::custom(request::INVALID_PARAMETER_VALUE, msg)
             }
             SearchError::EsError(msg) => {
-                ErrorBody::custom(external::THIRD_PARTY_API_ERROR, msg)
+                tracing::error!(error = %msg, "elasticsearch error");
+                Exception::custom(external::THIRD_PARTY_API_ERROR, "搜索服务异常")
             }
         }
     }
@@ -35,7 +38,7 @@ impl SearchService {
         }
 
         let id = req.resolve_id();
-        es.index_doc(&id, &req.title, &req.content)
+        repository::index_doc(es, &id, &req.title, &req.content)
             .await
             .map_err(|e| SearchError::EsError(e.to_string()))?;
 
@@ -52,8 +55,7 @@ impl SearchService {
         }
         let size = req.size.unwrap_or(10).clamp(1, 100);
 
-        let body = es
-            .search(q, size)
+        let body = repository::search(es, q, size)
             .await
             .map_err(|e| SearchError::EsError(e.to_string()))?;
 

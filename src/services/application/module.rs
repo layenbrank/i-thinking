@@ -1,12 +1,10 @@
+use actix_web::web;
+
 use crate::services::{
-    application::controller::ApplicationController,
-    auth::module::AuthModule,
-    engine::module::EngineModule,
-    search::module::SearchModule,
-    upload::module::UploadModule,
+    application::controller::ApplicationController, auth::module::AuthModule,
+    engine::module::EngineModule, search::module::SearchModule, upload::module::UploadModule,
     user::module::UserModule,
 };
-use actix_web::web;
 
 pub struct ApplicationModule;
 

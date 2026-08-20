@@ -1,18 +1,17 @@
-use crate::{
-    services::{
-        auth::schema::{AuthR, Avatar, ProfileR, SigninR, SignupR},
-        engine::schema::SuggestionR,
-        application::schema::App,
-        search::schema::{SearchR, WriteR as SearchWriteR},
-        upload::schema::{ChunkR, FinalizeR, ProgressR, PrepareR},
-        user::schema::UserR,
-    },
-};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-/// 生成具象 Body schema（OpenAPI 不支持泛型包装）
-macro_rules! body {
+use crate::services::{
+    application::schema::App,
+    auth::schema::{AuthR, Avatar, ProfileR, SigninR, SignupR},
+    engine::schema::SuggestionR,
+    search::schema::{SearchR, WriteR as SearchWriteR},
+    upload::schema::{ChunkR, FinalizeR, PrepareR, ProgressR},
+    user::schema::UserR,
+};
+
+/// 生成具象 Envelope schema（OpenAPI 不支持泛型包装）
+macro_rules! envelope {
     ($name:ident, $data:ty) => {
         #[derive(Debug, Serialize, ToSchema)]
         #[serde(rename_all = "camelCase")]
@@ -27,21 +26,21 @@ macro_rules! body {
     };
 }
 
-body!(HealthBody, Health);
-body!(SigninBody, SigninR);
-body!(SignupBody, SignupR);
-body!(ProfileBody, ProfileR);
-body!(UserBody, UserR);
-body!(UserListBody, Vec<UserR>);
-body!(UploadPrepareBody, PrepareR);
-body!(ChunkUploadBody, ChunkR);
-body!(FinalizeUploadBody, FinalizeR);
-body!(UploadProgressBody, ProgressR);
-body!(SuggestionBody, SuggestionR);
-body!(ApplicationBody, App);
-body!(SearchWriteBody, SearchWriteR);
-body!(SearchBody, SearchR);
-body!(EmptyBody, EmptyR);
+envelope!(HealthEnvelope, Health);
+envelope!(SigninEnvelope, SigninR);
+envelope!(SignupEnvelope, SignupR);
+envelope!(ProfileEnvelope, ProfileR);
+envelope!(UserEnvelope, UserR);
+envelope!(UserListEnvelope, Vec<UserR>);
+envelope!(UploadPrepareEnvelope, PrepareR);
+envelope!(ChunkUploadEnvelope, ChunkR);
+envelope!(FinalizeUploadEnvelope, FinalizeR);
+envelope!(UploadProgressEnvelope, ProgressR);
+envelope!(SuggestionEnvelope, SuggestionR);
+envelope!(ApplicationEnvelope, App);
+envelope!(SearchWriteEnvelope, SearchWriteR);
+envelope!(SearchEnvelope, SearchR);
+envelope!(EmptyEnvelope, EmptyR);
 
 /// 健康检查 data 字段
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -77,7 +76,7 @@ pub struct ChunkUploadForm {
     pub file: String,
 }
 
-pub use crate::utils::response::ErrorBody;
+pub use crate::filters::exception::Exception;
 
 /// 登录成功示例
 #[derive(Debug, Serialize, ToSchema)]

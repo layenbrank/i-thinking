@@ -1,8 +1,8 @@
-use super::common::{
-    ErrorBody, ChunkUploadBody, ChunkUploadForm, FinalizeUploadBody, UploadPrepareBody,
-    UploadProgressBody,
-};
 use crate::services::upload::schema::FinalizeP;
+use super::common::{
+    ChunkUploadEnvelope, ChunkUploadForm, Exception, FinalizeUploadEnvelope, UploadPrepareEnvelope,
+    UploadProgressEnvelope,
+};
 
 /// 初始化分片上传
 #[utoipa::path(
@@ -15,8 +15,8 @@ use crate::services::upload::schema::FinalizeP;
     security(("bearer_auth" = [])),
     request_body = crate::services::upload::schema::PrepareP,
     responses(
-        (status = 200, description = "初始化成功（code=200000）", body = UploadPrepareBody),
-        (status = 200, description = "未登录或参数错误", body = ErrorBody),
+        (status = 200, description = "初始化成功（code=200000）", body = UploadPrepareEnvelope),
+        (status = 200, description = "未登录或参数错误", body = Exception),
     )
 )]
 pub fn prepare_upload_doc() {}
@@ -32,8 +32,8 @@ pub fn prepare_upload_doc() {}
     security(("bearer_auth" = [])),
     request_body(content = ChunkUploadForm, content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "分片上传成功（code=200000）", body = ChunkUploadBody),
-        (status = 200, description = "未登录或分片错误", body = ErrorBody),
+        (status = 200, description = "分片上传成功（code=200000）", body = ChunkUploadEnvelope),
+        (status = 200, description = "未登录或分片错误", body = Exception),
     )
 )]
 pub fn chunk_upload_doc() {}
@@ -49,8 +49,8 @@ pub fn chunk_upload_doc() {}
     security(("bearer_auth" = [])),
     request_body = FinalizeP,
     responses(
-        (status = 200, description = "上传完成（code=200000）", body = FinalizeUploadBody),
-        (status = 200, description = "未登录或校验失败", body = ErrorBody),
+        (status = 200, description = "上传完成（code=200000）", body = FinalizeUploadEnvelope),
+        (status = 200, description = "未登录或校验失败", body = Exception),
     )
 )]
 pub fn finalize_upload_doc() {}
@@ -67,8 +67,8 @@ pub fn finalize_upload_doc() {}
         ("id" = String, Path, description = "上传会话 ID")
     ),
     responses(
-        (status = 200, description = "查询成功（code=200000）", body = UploadProgressBody),
-        (status = 200, description = "未登录或会话不存在", body = ErrorBody),
+        (status = 200, description = "查询成功（code=200000）", body = UploadProgressEnvelope),
+        (status = 200, description = "未登录或会话不存在", body = Exception),
     )
 )]
 pub fn progress_upload_doc() {}
@@ -86,7 +86,7 @@ pub fn progress_upload_doc() {}
     ),
     responses(
         (status = 200, description = "取消成功（code=200000）"),
-        (status = 200, description = "未登录或会话不存在", body = ErrorBody),
+        (status = 200, description = "未登录或会话不存在", body = Exception),
     )
 )]
 pub fn cancel_upload_doc() {}
@@ -104,7 +104,7 @@ pub fn cancel_upload_doc() {}
     ),
     responses(
         (status = 200, description = "文件二进制流", content_type = "application/octet-stream"),
-        (status = 200, description = "文件不存在（code=500204）", body = ErrorBody),
+        (status = 200, description = "文件不存在（code=500204）", body = Exception),
     )
 )]
 pub fn serve_file_doc() {}

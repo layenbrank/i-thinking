@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
+use actix_web::{HttpResponse, Responder, get, web};
+
 use crate::clients::elasticsearch::EsClient;
 use crate::clients::redis::RedisPool;
 use crate::databases::database::Storage;
+use crate::interceptors::envelope::Envelope;
 use crate::oas::common::Health;
-use crate::utils::response::Body;
-use actix_web::{HttpResponse, Responder, get, web};
-use std::sync::Arc;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(health_check);
@@ -51,7 +53,7 @@ async fn health_check(
         "服务部分依赖异常"
     };
 
-    Body::success(health, msg)
+    Envelope::success(health, msg)
         .transform()
         .unwrap_or_else(|_| HttpResponse::InternalServerError().json("Failed to generate response"))
 }

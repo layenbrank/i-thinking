@@ -1,3 +1,5 @@
+use std::{env, sync::Arc};
+
 use actix_web::HttpServer;
 use service::{
     bootstrap::BootstrapOptions,
@@ -7,7 +9,6 @@ use service::{
     databases::database::Storage,
     utils,
 };
-use std::{env, sync::Arc};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -52,6 +53,9 @@ async fn main() -> std::io::Result<()> {
     let es = EsClient::new(&configure)
         .await
         .expect("Failed to connect to Elasticsearch");
+    service::services::search::repository::ensure_index(&es)
+        .await
+        .expect("Failed to ensure Elasticsearch index");
 
     let store = Arc::new(storage);
     let config = Arc::new(configure.clone());
@@ -73,9 +77,7 @@ async fn main() -> std::io::Result<()> {
     }
     #[cfg(not(feature = "openapi"))]
     if enable_swagger {
-        tracing::warn!(
-            "Swagger 未编译，请使用: cargo run --bin service --features openapi"
-        );
+        tracing::warn!("Swagger 未编译，请使用: cargo run --bin service --features openapi");
     }
 
     #[cfg(feature = "openapi")]

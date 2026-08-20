@@ -1,5 +1,6 @@
-use crate::{databases::database::Storage, services::markdown::schema::Schema};
 use actix_web::Result;
+
+use crate::{databases::database::Storage, services::markdown::schema::Schema};
 
 pub struct MarkdownService;
 

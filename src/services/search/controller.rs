@@ -1,9 +1,12 @@
+use std::sync::Arc;
+
+use actix_web::{HttpResponse, Result, web};
+
 use crate::clients::elasticsearch::EsClient;
+use crate::filters::exception::Exception;
+use crate::interceptors::envelope::Envelope;
 use crate::services::search::schema::{QueryP, WriteP};
 use crate::services::search::service::SearchService;
-use crate::utils::response::{Body, ErrorBody};
-use actix_web::{HttpResponse, Result, web};
-use std::sync::Arc;
 
 pub struct SearchController;
 
@@ -14,8 +17,8 @@ impl SearchController {
         req: web::Json<WriteP>,
     ) -> Result<HttpResponse> {
         match SearchService::toWrite(&es, req.into_inner()).await {
-            Ok(data) => Body::success(data, "索引成功").transform(),
-            Err(err) => ErrorBody::from(err).transform(),
+            Ok(data) => Envelope::success(data, "索引成功").transform(),
+            Err(err) => Exception::from(err).transform(),
         }
     }
 
@@ -25,8 +28,8 @@ impl SearchController {
         query: web::Query<QueryP>,
     ) -> Result<HttpResponse> {
         match SearchService::toRead(&es, query.into_inner()).await {
-            Ok(data) => Body::success(data, "搜索成功").transform(),
-            Err(err) => ErrorBody::from(err).transform(),
+            Ok(data) => Envelope::success(data, "搜索成功").transform(),
+            Err(err) => Exception::from(err).transform(),
         }
     }
 }

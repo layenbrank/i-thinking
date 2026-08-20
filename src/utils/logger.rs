@@ -1,25 +1,27 @@
-use anyhow::{Context, Result};
 use std::{
     fs, io,
     time::{Duration, SystemTime},
 };
+
+use anyhow::{Context, Result};
 use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_appender::rolling::{Builder as RollingBuilder, Rotation};
+use tracing_subscriber::{
+    EnvFilter, fmt, fmt::time::ChronoLocal, layer::SubscriberExt, util::SubscriberInitExt,
+};
 
 const DEFAULT_LOG_DIR: &str = "logs";
-const DEFAULT_LOG_FILE: &str = "service.log";
 const DEFAULT_FILTER: &str = "info";
 const DEFAULT_RETENTION_DAYS: u64 = 14;
+/// 控制台 / 文件时间：精确到毫秒
+const TIME_FMT: &str = "%Y-%m-%d %H:%M:%S%.3f";
+const TIME_FMT_UTC: &str = "%Y-%m-%dT%H:%M:%S%.3fZ";
 
-/// 初始化 tracing：控制台人类可读输出 + 按日轮转 JSON 文件。
+/// 初始化 tracing：控制台人类可读 + 按日文件 `YYYY-MM-DD.log`（JSON）。
 ///
-/// - 控制台默认 `pretty` 多行（`LOG_FORMAT=compact` 可改回单行）
-/// - 文件始终 JSON，便于采集
-///
-/// 返回的 `WorkerGuard` 必须持有到进程退出，否则非阻塞写入线程会被提前终止。
+/// 返回的 `WorkerGuard` 必须持有到进程退出。
 pub fn init() -> Result<WorkerGuard> {
     let log_dir = std::env::var("LOG_DIR").unwrap_or_else(|_| DEFAULT_LOG_DIR.to_string());
-    let log_file = std::env::var("LOG_FILE").unwrap_or_else(|_| DEFAULT_LOG_FILE.to_string());
     let retention_days = std::env::var("LOG_RETENTION_DAYS")
         .ok()
         .and_then(|v| v.parse().ok())
@@ -33,7 +35,12 @@ pub fn init() -> Result<WorkerGuard> {
 
     prune_old_logs(&log_dir, retention_days)?;
 
-    let file_appender = tracing_appender::rolling::daily(&log_dir, &log_file);
+    // 仅 suffix → 文件名 `YYYY-MM-DD.log`
+    let file_appender = RollingBuilder::new()
+        .rotation(Rotation::DAILY)
+        .filename_suffix("log")
+        .build(&log_dir)
+        .context("Failed to build daily log appender")?;
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
     let env_filter =
@@ -44,6 +51,7 @@ pub fn init() -> Result<WorkerGuard> {
         .with_ansi(false)
         .with_current_span(false)
         .with_span_list(false)
+        .with_timer(fmt::time::ChronoUtc::new(TIME_FMT_UTC.to_string()))
         .with_writer(non_blocking);
 
     let registry = tracing_subscriber::registry()
@@ -57,12 +65,12 @@ pub fn init() -> Result<WorkerGuard> {
                     .compact()
                     .with_ansi(true)
                     .with_target(true)
-                    .with_level(true),
+                    .with_level(true)
+                    .with_timer(ChronoLocal::new(TIME_FMT.to_string())),
             )
             .try_init()
             .context("Failed to initialize tracing subscriber")?;
     } else {
-        // pretty：时间/级别一行，字段多行缩进，终端更易读
         registry
             .with(
                 fmt::layer()
@@ -72,18 +80,18 @@ pub fn init() -> Result<WorkerGuard> {
                     .with_file(false)
                     .with_line_number(false)
                     .with_thread_ids(false)
-                    .with_thread_names(false),
+                    .with_thread_names(false)
+                    .with_timer(ChronoLocal::new(TIME_FMT.to_string())),
             )
             .try_init()
             .context("Failed to initialize tracing subscriber")?;
     }
 
-    // 把 actix / sqlx / sea-orm 等依赖的 `log` 记录接到 tracing。
     let _ = tracing_log::LogTracer::init();
 
     tracing::info!(
         log_dir = %log_dir,
-        log_file = %log_file,
+        log_pattern = "%Y-%m-%d.log",
         retention_days,
         log_format = %log_format,
         "logger initialized"
@@ -110,6 +118,18 @@ fn prune_old_logs(log_dir: &str, retention_days: u64) -> Result<()> {
     for entry in entries.flatten() {
         let path = entry.path();
         if !path.is_file() {
+            continue;
+        }
+        // 仅清理 `*.log`（含 `2026-08-20.log` 与旧 `service.log.*`）
+        let is_log = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| e == "log")
+            || path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.contains(".log."));
+        if !is_log {
             continue;
         }
         let Ok(modified) = entry.metadata().and_then(|m| m.modified()) else {

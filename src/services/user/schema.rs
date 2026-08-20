@@ -1,8 +1,9 @@
-use crate::utils::timestamp::{from_ts, to_ts};
 use chrono::{DateTime, Utc};
 use entity::{asset, auth};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+use crate::utils::timestamp::{from_ts, to_ts};
 
 /// 后台管理员创建用户
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
@@ -10,6 +11,8 @@ use utoipa::ToSchema;
 pub struct WriteP {
     pub username: String,
     pub password: String,
+    /// USER / ADMIN，默认 USER
+    pub role: Option<String>,
 }
 
 /// 后台管理员更新用户（账号/密码/资料运维）
@@ -25,6 +28,8 @@ pub struct UpdateP {
     pub birthday: Option<String>,
     pub age: Option<u32>,
     pub avatar: Option<Option<String>>,
+    pub role: Option<String>,
+    pub status: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -52,6 +57,8 @@ impl From<asset::Model> for Avatar {
 pub struct UserR {
     pub id: String,
     pub username: String,
+    pub role: String,
+    pub status: String,
     pub email: Option<String>,
     pub phone: Option<String>,
     pub gender: Option<String>,
@@ -71,6 +78,8 @@ impl UserR {
         UserR {
             id: value.id.to_string(),
             username: value.username,
+            role: value.role,
+            status: value.status,
             email: value.email,
             phone: value.phone,
             gender: value.gender,

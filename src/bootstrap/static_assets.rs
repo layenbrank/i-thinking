@@ -61,9 +61,7 @@ pub fn configure(cfg: &mut web::ServiceConfig, config: StaticAssetsConfig) {
     }
 
     for mount in &config.mounts {
-        cfg.service(
-            Files::new(mount.prefix, mount.root).prefer_utf8(true),
-        );
+        cfg.service(Files::new(mount.prefix, mount.root).prefer_utf8(true));
     }
 }
 

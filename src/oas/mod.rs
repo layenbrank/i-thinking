@@ -1,7 +1,7 @@
+pub mod application;
 pub mod auth;
 pub mod common;
 pub mod engine;
-pub mod application;
 pub mod paths;
 pub mod search;
 pub mod system;
@@ -12,25 +12,23 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
 use crate::oas::common::{
-    ErrorBody, ChunkUploadBody, ChunkUploadForm, HealthBody, SigninBody, SigninErrorExample,
-    SigninSuccessExample, SignupBody, ProfileBody, UserBody, UserListBody, UploadPrepareBody,
-    FinalizeUploadBody, UploadProgressBody, SuggestionBody, ApplicationBody, Health, EmptyBody,
-    EmptyR, SearchBody, SearchWriteBody,
+    ApplicationEnvelope, ChunkUploadEnvelope, ChunkUploadForm, EmptyEnvelope, EmptyR, Exception,
+    FinalizeUploadEnvelope, Health, HealthEnvelope, ProfileEnvelope, SearchEnvelope, SearchWriteEnvelope, SigninEnvelope,
+    SigninErrorExample, SigninSuccessExample, SignupEnvelope, SuggestionEnvelope, UploadPrepareEnvelope,
+    UploadProgressEnvelope, UserEnvelope, UserListEnvelope,
 };
+use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
-    AuthR, Avatar, Gender, ProfileR, SigninP, SigninR, SignupP, SignupR, ProfileP,
+    AuthR, Avatar, Gender, ProfileP, ProfileR, SigninP, SigninR, SignupP, SignupR,
 };
-use crate::services::engine::schema::{EmptySchema, ISchema, SuggestionR, TSchema, QueryP};
-use crate::services::application::schema::{
-    App, Component, Direction, Shape, Size,
-};
+use crate::services::engine::schema::{EmptySchema, ISchema, QueryP, SuggestionR, TSchema};
 use crate::services::search::schema::{
     HitR, QueryP as SearchQueryP, SearchR, WriteP as SearchWriteP, WriteR as SearchWriteR,
 };
 use crate::services::upload::schema::{
-    ChunkR, FinalizeP, FinalizeR, ProgressR, PrepareP, PrepareR, UploadStatus,
+    ChunkR, FinalizeP, FinalizeR, PrepareP, PrepareR, ProgressR, UploadStatus,
 };
-use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, WriteP, UserR};
+use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP};
 
 struct SecurityAddon;
 
@@ -59,7 +57,7 @@ impl Modify for SecurityAddon {
         title = "CoreX Service API",
         version = env!("CARGO_PKG_VERSION"),
         description = "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。\
-            错误码规则见 /guide/error-codes.md。ErrorBody.details 字段仅在开发环境返回。",
+            错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。",
         contact(name = "CoreX Team", email = "15638470820@163.com"),
         license(name = "Proprietary")
     ),
@@ -92,58 +90,58 @@ impl Modify for SecurityAddon {
     ),
     components(
         schemas(
-            ErrorBody,
+            Exception,
             Health,
-            HealthBody,
+            HealthEnvelope,
             EmptyR,
-            EmptyBody,
+            EmptyEnvelope,
             SigninP,
             SigninR,
-            SigninBody,
+            SigninEnvelope,
             SigninSuccessExample,
             SigninErrorExample,
             SignupP,
             SignupR,
-            SignupBody,
+            SignupEnvelope,
             ProfileP,
             ProfileR,
-            ProfileBody,
+            ProfileEnvelope,
             AuthR,
             Avatar,
             Gender,
             WriteP,
             UpdateP,
             UserR,
-            UserBody,
-            UserListBody,
+            UserEnvelope,
+            UserListEnvelope,
             UserAvatar,
             PrepareP,
             PrepareR,
-            UploadPrepareBody,
+            UploadPrepareEnvelope,
             ChunkUploadForm,
             ChunkR,
-            ChunkUploadBody,
+            ChunkUploadEnvelope,
             FinalizeP,
             FinalizeR,
-            FinalizeUploadBody,
+            FinalizeUploadEnvelope,
             ProgressR,
-            UploadProgressBody,
+            UploadProgressEnvelope,
             UploadStatus,
             QueryP,
             TSchema,
             EmptySchema,
             ISchema,
             SuggestionR,
-            SuggestionBody,
+            SuggestionEnvelope,
             SearchWriteP,
             SearchWriteR,
             SearchQueryP,
             HitR,
             SearchR,
-            SearchWriteBody,
-            SearchBody,
+            SearchWriteEnvelope,
+            SearchEnvelope,
             App,
-            ApplicationBody,
+            ApplicationEnvelope,
             Size,
             Shape,
             Component,

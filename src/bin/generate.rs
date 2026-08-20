@@ -1,5 +1,5 @@
-use service::utils::generate;
 use dialoguer::{Select, theme::ColorfulTheme};
+use service::utils::generate;
 
 fn main() {
     println!("=== 生成 Auth 系统所需的密钥 ===\n");

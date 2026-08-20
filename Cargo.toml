@@ -118,7 +118,8 @@ tracing = "0.1.44" # 结构化日志 / 追踪
 tracing-subscriber = { version = "0.3.22", features = [
   "env-filter",
   "json",
-] } # EnvFilter、fmt、JSON
+  "chrono",
+] } # EnvFilter、fmt、JSON、毫秒时间
 tracing-appender = "0.2.4" # 按日轮转 + 非阻塞写入
 tracing-log = "0.2.0" # 将 log crate 接到 tracing
 

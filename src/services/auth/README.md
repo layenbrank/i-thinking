@@ -6,7 +6,7 @@
 
 | 能力        | 说明                                                            |
 | ----------- | --------------------------------------------------------------- |
-| 登录 / 注册 | 公开接口，返回 JWT                                              |
+| 登录 / 注册 | 公开接口，返回 JWT（含 `role`）；注册默认 `USER` + `ACTIVE` |
 | 登出        | JWT 写入 Redis 黑名单，直至原 token 过期                        |
 | Profile     | 当前用户读/改个人信息（email、phone、gender、birthday、avatar） |
 
@@ -25,7 +25,7 @@
 ## 鉴权说明
 
 - `signin` / `signup`：无 JWT
-- `profile` / `signout`：挂载 [`JwtAuth::required()`](../../middlewares/jwt.rs)，从 `Authorization: Bearer` 解析 `Claims.sub` 作为用户 ID；中间件会查 Redis 黑名单
+- `profile` / `signout`：挂载 [`Auth::required()`](../../guards/auth.rs)，从 `Authorization: Bearer` 解析 `Claims.sub` 作为用户 ID；守卫会查 Redis 黑名单
 - 未登录返回 `300001`「用户未登录」
 - 已登出 token 返回 `300002`「登录凭证已失效」
 
@@ -36,6 +36,7 @@
 | 列                                  | profile 相关                             |
 | ----------------------------------- | ---------------------------------------- |
 | id, username, password              | 读；profile **不可改** username/password |
+| role, status                        | 读（USER/ADMIN，ACTIVE/DISABLED）       |
 | email, phone, gender, birthday, age | 读/写                                    |
 | avatar                              | FK → asset.id，读/写                     |
 | createdAt, updatedAt, updater       | 读；更新时写 updater                     |

@@ -16,26 +16,18 @@ pub mod bootstrap {
 #[macro_export]
 macro_rules! bootstrap_app {
     ($store:expr, $config:expr, $redis:expr, $es:expr, $bootstrap:expr) => {{
-        use actix_cors::Cors;
-        use actix_web::{App, http::header, web::Data};
-        use $crate::middlewares::response::ResponseWrapper;
+        use actix_web::{App, web::Data};
+        use $crate::middlewares::access_log::AccessLog;
+        use $crate::middlewares::cors::cors;
         use $crate::services::application::module::ApplicationModule;
-
-        let cors = Cors::default()
-            .send_wildcard()
-            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-            .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
-            .allowed_header(header::CONTENT_TYPE)
-            .allow_any_origin()
-            .max_age(3600);
 
         App::new()
             .app_data(Data::new($store))
             .app_data(Data::new($config))
             .app_data(Data::new($redis))
             .app_data(Data::new($es))
-            .wrap(cors)
-            .wrap(ResponseWrapper)
+            .wrap(cors($config.as_ref()))
+            .wrap(AccessLog)
             .configure(|cfg| $crate::bootstrap::BootstrapModule::configure(cfg, &$bootstrap))
             .configure(ApplicationModule::configure)
     }};
@@ -55,19 +47,40 @@ pub mod configures {
 }
 
 pub mod middlewares {
+    //! HTTP 层 wrap（Nest Middleware 角色）：CORS、访问日志。
+    pub mod access_log;
     pub mod cors;
-    pub mod jwt;
-    pub mod response;
+}
+
+/// 鉴权守卫（Nest Guard 角色）：能否进入受保护 Handler。
+pub mod guards {
+    pub mod auth;
+    pub mod blacklist;
+    pub mod public;
+    pub mod permission;
+}
+
+/// 异常响应信封（Nest Filter 角色）
+pub mod filters {
+    pub mod exception;
+    pub use exception::Exception;
+}
+
+/// 成功响应信封（Nest Interceptor 角色）
+pub mod interceptors {
+    pub mod envelope;
+    pub use envelope::{Envelope, Paginated};
 }
 
 pub mod utils {
+    pub mod code;
     pub mod db;
     pub mod encryption;
     pub mod generate;
     pub mod jwt;
     pub mod logger;
-    pub mod response;
     pub mod timestamp;
+    pub mod token;
 }
 
 pub mod services {
@@ -95,6 +108,7 @@ pub mod services {
     pub mod search {
         pub mod controller;
         pub mod module;
+        pub mod repository;
         pub mod schema;
         pub mod service;
     }
@@ -115,9 +129,14 @@ pub mod services {
 
     pub mod upload {
         pub mod controller;
+        pub mod error;
         pub mod module;
+        pub mod multipart;
+        pub mod repository;
         pub mod schema;
         pub mod service;
+        pub mod storage;
+        pub mod validation;
     }
 }
 

@@ -1,5 +1,6 @@
-use service::oas::json_pretty;
 use std::{fs, path::Path};
+
+use service::oas::json_pretty;
 
 fn main() -> anyhow::Result<()> {
     let json = json_pretty();

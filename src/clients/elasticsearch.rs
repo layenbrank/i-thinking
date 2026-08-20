@@ -1,4 +1,3 @@
-use crate::configures::configure::Configure;
 use anyhow::{Context, Result, bail};
 use elasticsearch::{
     Elasticsearch,
@@ -6,13 +5,13 @@ use elasticsearch::{
     cert::CertificateValidation,
     cluster::ClusterHealthParts,
     http::transport::{SingleNodeConnectionPool, Transport, TransportBuilder},
-    indices::{IndicesCreateParts, IndicesExistsParts},
-    IndexParts, SearchParts,
 };
-use serde_json::{Value, json};
+use serde_json::Value;
 use url::Url;
 
-/// Elasticsearch 官方客户端封装。
+use crate::configures::configure::Configure;
+
+/// Elasticsearch 官方客户端封装（连接 / 健康；领域查询见 `search::repository`）。
 #[derive(Clone)]
 pub struct EsClient {
     client: Elasticsearch,
@@ -28,7 +27,6 @@ impl EsClient {
             index: config.elasticsearch_index.clone(),
         };
         es.ping().await?;
-        es.ensure_index().await?;
         Ok(es)
     }
 
@@ -74,101 +72,12 @@ impl EsClient {
             .unwrap_or("unknown")
             .to_string())
     }
-
-    async fn ensure_index(&self) -> Result<()> {
-        let exists = self
-            .client
-            .indices()
-            .exists(IndicesExistsParts::Index(&[&self.index]))
-            .send()
-            .await
-            .context("elasticsearch index exists failed")?;
-
-        if exists.status_code().is_success() {
-            return Ok(());
-        }
-
-        let response = self
-            .client
-            .indices()
-            .create(IndicesCreateParts::Index(&self.index))
-            .body(json!({
-                "mappings": {
-                    "properties": {
-                        "title": { "type": "text" },
-                        "content": { "type": "text" },
-                        "createdAt": { "type": "date" }
-                    }
-                }
-            }))
-            .send()
-            .await
-            .context("elasticsearch create index failed")?;
-
-        if !response.status_code().is_success() && response.status_code().as_u16() != 400 {
-            let status = response.status_code().as_u16();
-            let body = response.text().await.unwrap_or_default();
-            bail!("elasticsearch create index status {status}: {body}");
-        }
-        Ok(())
-    }
-
-    pub async fn index_doc(&self, id: &str, title: &str, content: &str) -> Result<()> {
-        let response = self
-            .client
-            .index(IndexParts::IndexId(&self.index, id))
-            .body(json!({
-                "title": title,
-                "content": content,
-                "createdAt": chrono::Utc::now().to_rfc3339(),
-            }))
-            .refresh(elasticsearch::params::Refresh::True)
-            .send()
-            .await
-            .context("elasticsearch index failed")?;
-
-        if !response.status_code().is_success() {
-            let status = response.status_code().as_u16();
-            let body = response.text().await.unwrap_or_default();
-            bail!("elasticsearch index status {status}: {body}");
-        }
-        Ok(())
-    }
-
-    pub async fn search(&self, query: &str, size: i64) -> Result<Value> {
-        let response = self
-            .client
-            .search(SearchParts::Index(&[&self.index]))
-            .body(json!({
-                "size": size,
-                "query": {
-                    "multi_match": {
-                        "query": query,
-                        "fields": ["title^2", "content"]
-                    }
-                }
-            }))
-            .send()
-            .await
-            .context("elasticsearch search failed")?;
-
-        if !response.status_code().is_success() {
-            let status = response.status_code().as_u16();
-            let body = response.text().await.unwrap_or_default();
-            bail!("elasticsearch search status {status}: {body}");
-        }
-
-        response
-            .json()
-            .await
-            .context("elasticsearch search json failed")
-    }
 }
 
 fn build_transport(config: &Configure) -> Result<Transport> {
     if let Some(cloud_id) = config.elasticsearch_cloud_id.as_deref() {
-        let credentials = resolve_credentials(config)?
-            .context("ELASTICSEARCH_CLOUD_ID requires credentials")?;
+        let credentials =
+            resolve_credentials(config)?.context("ELASTICSEARCH_CLOUD_ID requires credentials")?;
         return Transport::cloud(cloud_id, credentials)
             .context("elasticsearch cloud transport failed");
     }
@@ -185,7 +94,9 @@ fn build_transport(config: &Configure) -> Result<Transport> {
         builder = builder.cert_validation(CertificateValidation::None);
     }
 
-    builder.build().context("elasticsearch transport build failed")
+    builder
+        .build()
+        .context("elasticsearch transport build failed")
 }
 
 fn resolve_credentials(config: &Configure) -> Result<Option<Credentials>> {

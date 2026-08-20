@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CoreX Service API",
-    "description": "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。错误码规则见 /guide/error-codes.md。ErrorBody.details 字段仅在开发环境返回。",
+    "description": "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。",
     "contact": {
       "name": "CoreX Team",
       "email": "15638470820@163.com"
@@ -37,7 +37,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -59,7 +59,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -81,7 +81,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -116,7 +116,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -153,7 +153,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -175,7 +175,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -212,7 +212,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -226,7 +226,7 @@
           "Engine"
         ],
         "summary": "获取搜索建议",
-        "description": "代理 Bing AS Suggestions API，无需鉴权。",
+        "description": "代理 Bing AS Suggestions API。需要 JWT。",
         "operationId": "engine.toRead",
         "parameters": [
           {
@@ -293,16 +293,21 @@
         ],
         "responses": {
           "200": {
-            "description": "参数格式错误或上游失败",
+            "description": "未登录或上游失败",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
       }
     },
     "/api/v1/search/docs": {
@@ -340,7 +345,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -375,7 +380,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -412,7 +417,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -449,7 +454,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -487,7 +492,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -519,7 +524,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -556,7 +561,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -593,7 +598,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -620,7 +625,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -655,7 +660,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -692,7 +697,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -737,7 +742,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -772,7 +777,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
+                  "$ref": "#/components/schemas/Exception"
                 }
               }
             }
@@ -909,7 +914,7 @@
           }
         }
       },
-      "ApplicationBody": {
+      "ApplicationEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -1014,7 +1019,7 @@
           }
         }
       },
-      "ChunkUploadBody": {
+      "ChunkUploadEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -1104,7 +1109,7 @@
           "Vertical"
         ]
       },
-      "EmptyBody": {
+      "EmptyEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -1167,9 +1172,9 @@
           }
         }
       },
-      "ErrorBody": {
+      "Exception": {
         "type": "object",
-        "description": "错误响应专用结构 (不包含 data 字段)",
+        "description": "异常响应结构",
         "required": [
           "code",
           "success",
@@ -1193,7 +1198,7 @@
               "object",
               "null"
             ],
-            "description": "详细错误信息 (仅开发环境返回)"
+            "description": "详细错误信息（仅非生产环境返回）"
           },
           "msg": {
             "type": "string"
@@ -1237,7 +1242,7 @@
           }
         }
       },
-      "FinalizeUploadBody": {
+      "FinalizeUploadEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -1320,7 +1325,7 @@
           }
         }
       },
-      "HealthBody": {
+      "HealthEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -1452,7 +1457,7 @@
           }
         }
       },
-      "ProfileBody": {
+      "ProfileEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -1645,7 +1650,7 @@
           }
         }
       },
-      "SearchBody": {
+      "SearchEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -1705,7 +1710,7 @@
           }
         }
       },
-      "SearchWriteBody": {
+      "SearchWriteEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -1749,7 +1754,7 @@
           "Rectangle"
         ]
       },
-      "SigninBody": {
+      "SigninEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -1909,7 +1914,7 @@
           }
         }
       },
-      "SignupBody": {
+      "SignupEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -1990,7 +1995,7 @@
           "Ultra"
         ]
       },
-      "SuggestionBody": {
+      "SuggestionEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -2115,7 +2120,7 @@
           }
         }
       },
-      "UploadPrepareBody": {
+      "UploadPrepareEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -2151,7 +2156,7 @@
           }
         }
       },
-      "UploadProgressBody": {
+      "UploadProgressEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -2197,7 +2202,7 @@
           "EXPIRED"
         ]
       },
-      "UserBody": {
+      "UserEnvelope": {
         "type": "object",
         "required": [
           "code",
@@ -2233,7 +2238,7 @@
           }
         }
       },
-      "UserListBody": {
+      "UserListEnvelope": {
         "type": "object",
         "required": [
           "code",

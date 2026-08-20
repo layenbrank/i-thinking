@@ -20,6 +20,12 @@ pub struct Model {
     pub birthday: Option<Date>,
     #[sea_orm(nullable)]
     pub avatar: Option<Uuid>,
+    /// USER / ADMIN
+    #[sea_orm(column_type = "Text")]
+    pub role: String,
+    /// ACTIVE / DISABLED
+    #[sea_orm(column_type = "Text")]
+    pub status: String,
     #[sea_orm(column_name = "archivedAt", nullable)]
     pub archived_at: Option<DateTimeWithTimeZone>,
     #[sea_orm(column_name = "createdAt")]

@@ -10,11 +10,11 @@ Bing 搜索建议代理。路由前缀 `/api/v1/engine`。
 
 | 方法 | 路径                        | 鉴权 | 说明         |
 | ---- | --------------------------- | ---- | ------------ |
-| GET  | `/api/v1/engine/suggestion` | 无   | 获取搜索建议 |
+| GET  | `/api/v1/engine/suggestion` | JWT  | 获取搜索建议 |
 
 ## 鉴权说明
 
-公开接口，无 JWT。
+挂载 [`Auth::required()`](../../guards/auth.rs)，需有效 Bearer JWT。
 
 ## 数据表
 

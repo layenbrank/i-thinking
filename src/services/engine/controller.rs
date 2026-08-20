@@ -1,8 +1,11 @@
-use crate::{
-    services::engine::{schema::QueryP, service::EngineService},
-    utils::response::{ErrorBody, Body, request},
-};
 use actix_web::{HttpRequest, Responder, web};
+
+use crate::{
+    filters::exception::Exception,
+    interceptors::envelope::Envelope,
+    services::engine::{schema::QueryP, service::EngineService},
+    utils::code::request,
+};
 
 pub struct EngineController;
 
@@ -16,21 +19,18 @@ impl EngineController {
                 params
             }
             Err(err) => {
-                // Query 参数解析失败，返回格式化的错误响应
-                return ErrorBody::custom(
-                    request::INVALID_PARAMETER_FORMAT,
-                    format!("请求参数格式错误: {}", err),
-                )
-                .transform();
+                tracing::warn!(error = %err, "engine query parse failed");
+                return Exception::custom(request::INVALID_PARAMETER_FORMAT, "请求参数格式错误")
+                    .transform();
             }
         };
 
         // 直接传递 HttpRequest 给 service，统一在 controller 处理错误
         match EngineService::suggestion(params, &req).await {
-            Ok(suggestion) => Body::success(suggestion, "获取搜索建议成功").transform(),
+            Ok(suggestion) => Envelope::success(suggestion, "获取搜索建议成功").transform(),
             Err(err) => {
                 // 使用 From trait 自动转换错误
-                ErrorBody::from(err).transform()
+                Exception::from(err).transform()
             }
         }
     }

@@ -1,4 +1,4 @@
-use super::common::{ApplicationBody, ErrorBody};
+use super::common::{ApplicationEnvelope, Exception};
 
 /// 获取应用配置（Mock）
 #[utoipa::path(
@@ -9,8 +9,8 @@ use super::common::{ApplicationBody, ErrorBody};
     summary = "读取应用配置",
     description = "返回 mock 应用配置，无需鉴权。",
     responses(
-        (status = 200, description = "获取成功（code=200000）", body = ApplicationBody),
-        (status = 200, description = "服务错误", body = ErrorBody),
+        (status = 200, description = "获取成功（code=200000）", body = ApplicationEnvelope),
+        (status = 200, description = "服务错误", body = Exception),
     )
 )]
 pub fn toRead_doc() {}
