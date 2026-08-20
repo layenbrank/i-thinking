@@ -1,0 +1,79 @@
+# 本地依赖：PostgreSQL + Redis + Elasticsearch
+# 数据目录：./data/{postgres,redis,elasticsearch}（绑定挂载，便于备份/清理）
+# 用法：docker compose up -d
+# 停止：docker compose down
+# 清空绑定挂载数据：删掉 ./data 下对应目录后重新 up
+
+services:
+  postgres:
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
+    image: corex-postgres:18-zh
+    container_name: corex-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: machenike
+      POSTGRES_PASSWORD: "Li33333."
+      POSTGRES_DB: i-thinking
+      # locale 仅在首次 initdb（空 data/postgres）时生效
+      LANG: zh_CN.UTF-8
+      LC_ALL: zh_CN.UTF-8
+      POSTGRES_INITDB_ARGS: "--locale=zh_CN.UTF-8 --encoding=UTF8"
+    volumes:
+      # Postgres 18+ 挂载 /var/lib/postgresql
+      - ./data/postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U machenike -d i-thinking"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - corex
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: corex-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - corex
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.3
+    container_name: corex-elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.security.http.ssl.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      cluster.name: corex-es
+    volumes:
+      - ./data/elasticsearch:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+    networks:
+      - corex
+    restart: unless-stopped
+
+networks:
+  corex:
+    driver: bridge

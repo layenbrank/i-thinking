@@ -2,6 +2,7 @@
 /chunks
 /uploads
 /logs
+/data
 
 # Python
 __pycache__/
