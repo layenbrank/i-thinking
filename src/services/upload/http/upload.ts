@@ -9,10 +9,10 @@
  *   npx tsx src/services/upload/http/upload.ts ./path/to/file.bin
  *
  * 环境变量：
- *   API_BASE     默认 http://127.0.0.1:3000
- *   USERNAME     默认 admin
- *   PASSWORD     默认 123456
- *   CHUNK_SIZE   默认 1048576（1MB，服务端下限）
+ *   API_BASE          默认 http://127.0.0.1:3000
+ *   UPLOAD_USERNAME   默认 admin（勿用 USERNAME：Windows 会注入本机用户名）
+ *   UPLOAD_PASSWORD   默认 123456
+ *   CHUNK_SIZE        默认 10485760（10MB，服务端上限）
  */
 
 import { createHash, randomBytes } from 'node:crypto'
@@ -145,9 +145,11 @@ declare namespace Upload {
 type TokenContext = { token?: string }
 
 const BASE = process.env.API_BASE ?? 'http://127.0.0.1:3000'
-const USERNAME = process.env.USERNAME ?? 'admin'
-const PASSWORD = process.env.PASSWORD ?? '123456'
-const CHUNK_SIZE = Number(process.env.CHUNK_SIZE ?? 1024 * 1024)
+// Windows 会预设 USERNAME=本机账户，不能当登录名；统一用 UPLOAD_*。
+const USERNAME = process.env.UPLOAD_USERNAME ?? 'admin'
+const PASSWORD = process.env.UPLOAD_PASSWORD ?? '123456'
+// 10MB
+const CHUNK_SIZE = Number(process.env.CHUNK_SIZE ?? 1024 * 1024 * 10)
 
 /** 登录后写入，供需鉴权接口通过 context 携带 */
 const AUTH_TOKEN: TokenContext = {}
@@ -474,8 +476,7 @@ async function main() {
   console.log('\n全部通过')
 }
 
-const isDirect =
-  process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+const isDirect = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 if (isDirect) {
   main().catch((err) => {
     console.error(err)
