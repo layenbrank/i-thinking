@@ -13,7 +13,7 @@ description: CoreX Rust HTTP 服务的命名、Schema、CRUD、模块结构、�
 2. **简洁优雅** — 去掉冗余前缀/后缀（`Info`、`Api`、`Request`、`Response`）
 3. **禁止 `api` 词语** — 结构体、宏、函数名均不出现 `Api`、`api_`（URL 路径 `/api/v1/...` 除外）
 4. **lib.rs 统一导出** — 子目录不写 `mod.rs`，在 `src/lib.rs` 内联声明模块树
-5. **use 导入顺序** — `std` → 外部依赖（含 `entity` 等 workspace crate）→ 本 crate（`crate::` / `super::` / `self::`），**组间空一行**；组内按路径字母序。可用 `python scripts/reorder_imports.py` 批量整理。
+5. **use 导入顺序** — `std` → 外部依赖（含 `entity` 等 workspace crate）→ 本 crate（`crate::` / `super::` / `self::`），**组间空一行**；组内按路径字母序。可用 `pnpm run imports` 批量整理。
 
 ---
 
@@ -131,7 +131,7 @@ src/services/{name}/
 
 ### 复杂度例外（额外文件）
 
-默认只允许上述四文件 + README。体量大的模块可拆分，但须在 README 写明职责，并登记到 `scripts/check_architecture.py`：
+默认只允许上述四文件 + README。体量大的模块可拆分，但须在 README 写明职责，并登记到 `scripts/arch.ts`：
 
 | 模块 | 额外文件 | 原因 |
 |------|----------|------|
@@ -140,7 +140,7 @@ src/services/{name}/
 
 禁止新建 `services/shared`；跨模块复用优先放在**拥有该领域**的模块（如 profile 辅助在 `auth::service`），或 `utils/` / `guards/` 等横切层。
 
-架构卫生：`python scripts/check_architecture.py`（CI 会跑）。
+架构卫生：`pnpm run arch`（CI 会跑）。
 
 ---
 
@@ -150,6 +150,12 @@ src/services/{name}/
 
 - **DB 列名**：单个词语、**camelCase**（`createdAt`、`archivedAt`）
 - **Rust entity 字段**：snake_case + `#[sea_orm(column_name = "createdAt")]`
+- **标识 / 外键后缀**：用 **`xxxID`**，禁止 **`xxxId`**
+  - 正确：`tenantID`、`assetID`、`deviceID`
+  - 错误：`assetId`、`uploaderId`
+  - Rust：`tenant_id` / `asset_id` + `column_name = "tenantID"` / `"assetID"`
+  - 例外：主键列名仍为单词 **`id`**（全小写）
+  - JSON 与 DB 列一致时同样用 `xxxID`（如 `#[serde(rename = "tenantID")]`）
 
 ### 通用审计字段（大部分表必备）
 
@@ -230,7 +236,7 @@ src/services/{name}/
 - [ ] `oas/` 文档 + `oas_consistency` 测试通过
 - [ ] `services/{name}/README.md` 已写并链到根 README
 - [ ] `#![allow(non_snake_case)]` 已在 lib.rs（允许 `toRead` 等 camelCase）
-- [ ] `python scripts/check_architecture.py` 通过（复杂度例外已登记）
+- [ ] `pnpm run arch` 通过（复杂度例外已登记）
 
 ---
 

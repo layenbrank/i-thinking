@@ -8,6 +8,7 @@ pub mod system;
 pub mod upload;
 pub mod user;
 
+use utoipa::openapi::extensions::Extensions;
 use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
@@ -37,18 +38,22 @@ struct SecurityAddon;
 impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         if let Some(components) = openapi.components.as_mut() {
-            components.add_security_scheme(
-                "bearer_auth",
-                SecurityScheme::Http(
-                    HttpBuilder::new()
-                        .scheme(HttpAuthScheme::Bearer)
-                        .bearer_format("JWT")
-                        .description(Some(
-                            "登录接口返回的 JWT token，格式：Authorization: Bearer <token>",
-                        ))
-                        .build(),
-                ),
-            );
+            let mut http = HttpBuilder::new()
+                .scheme(HttpAuthScheme::Bearer)
+                .bearer_format("JWT")
+                .description(Some(
+                    "登录 `POST /api/v1/auth/signin` 返回的 `data.token`。\n\n\
+                     请求头：`Authorization: Bearer <token>`。\n\n\
+                     **Apifox**：鉴权组件 Token 请填 `{{token}}`（勿用 `{{bearerToken}}`）；\
+                     环境变量名统一为 `token`，可在登录接口后置操作写入。",
+                ))
+                .build();
+            // 供 Apifox / 部分客户端识别的默认占位（标准 OAS 无此字段）
+            http.extensions = Some(Extensions::from_iter([
+                ("x-default", serde_json::json!("{{token}}")),
+                ("x-apifox-default", serde_json::json!("{{token}}")),
+            ]));
+            components.add_security_scheme("bearer_auth", SecurityScheme::Http(http));
         }
     }
 }
@@ -59,7 +64,8 @@ impl Modify for SecurityAddon {
         title = "CoreX Service API",
         version = env!("CARGO_PKG_VERSION"),
         description = "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。\
-            错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。",
+            错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。\
+            鉴权：JWT Bearer；Apifox / REST Client 环境变量统一使用 {{token}}（来自 signin.data.token）。",
         contact(name = "CoreX Team", email = "15638470820@163.com"),
         license(name = "Proprietary")
     ),

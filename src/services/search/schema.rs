@@ -4,6 +4,11 @@ use uuid::Uuid;
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "id": "doc-1",
+    "title": "Rust 服务端",
+    "content": "接入 Redis 与 Elasticsearch"
+}))]
 pub struct WriteP {
     /// 文档 ID；省略则自动生成 UUID
     #[schema(example = "doc-1")]
@@ -16,6 +21,10 @@ pub struct WriteP {
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "q": "Redis",
+    "size": 10
+}))]
 pub struct QueryP {
     #[schema(example = "Redis")]
     pub q: String,

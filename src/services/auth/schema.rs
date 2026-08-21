@@ -34,9 +34,13 @@ impl Gender {
 #[derive(Debug, Serialize, Clone, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Avatar {
+    #[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
     pub id: String,
+    #[schema(example = "/api/v1/upload/asset/550e8400-e29b-41d4-a716-446655440000")]
     pub url: String,
+    #[schema(example = "image/png")]
     pub mime: String,
+    #[schema(example = "avatar.png")]
     pub name: String,
 }
 
@@ -54,13 +58,19 @@ impl From<asset::Model> for Avatar {
 #[derive(Debug, Serialize, Clone, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthR {
+    #[schema(example = "3c430c21-0891-43e1-bcd2-1a22eb4a5389")]
     pub id: String,
+    #[schema(example = "admin")]
     pub username: String,
+    #[schema(example = "USER")]
     pub role: String,
+    #[schema(example = "ACTIVE")]
     pub status: String,
     #[serde(rename = "createdAt")]
+    #[schema(example = 1700000000000_i64)]
     pub created_at: i64,
     #[serde(rename = "updatedAt")]
+    #[schema(example = 1700000000000_i64)]
     pub updated_at: i64,
 }
 
@@ -116,24 +126,48 @@ impl ProfileR {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[schema(example = json!({
+    "username": "admin",
+    "password": "123456"
+}))]
 pub struct SigninP {
+    #[schema(example = "admin", default = "admin")]
     pub username: String,
+    #[schema(example = "123456", default = "123456")]
     pub password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[schema(example = json!({
+    "username": "admin",
+    "password": "123456"
+}))]
 pub struct SignupP {
+    #[schema(example = "admin", default = "admin")]
     pub username: String,
+    #[schema(example = "123456", default = "123456")]
     pub password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "email": "admin@example.com",
+    "phone": "13800138000",
+    "gender": "MALE",
+    "birthday": "1990-01-01",
+    "avatar": "550e8400-e29b-41d4-a716-446655440000"
+}))]
 pub struct ProfileP {
+    #[schema(example = "admin@example.com")]
     pub email: Option<String>,
+    #[schema(example = "13800138000")]
     pub phone: Option<String>,
+    #[schema(example = "MALE")]
     pub gender: Option<String>,
+    #[schema(example = "1990-01-01")]
     pub birthday: Option<String>,
+    #[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
     pub avatar: Option<Option<String>>,
 }
 
@@ -145,6 +179,8 @@ impl ProfileP {
 
 #[derive(Debug, Serialize, Clone, ToSchema)]
 pub struct SigninR {
+    /// JWT；Apifox 请写入环境变量 `token`，鉴权填 `{{token}}`
+    #[schema(example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example")]
     pub token: String,
     #[serde(flatten)]
     pub auth: AuthR,
@@ -152,6 +188,7 @@ pub struct SigninR {
 
 #[derive(Debug, Serialize, Clone, ToSchema)]
 pub struct SignupR {
+    #[schema(example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example")]
     pub token: String,
     #[serde(flatten)]
     pub auth: AuthR,

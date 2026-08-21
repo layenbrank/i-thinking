@@ -4,10 +4,14 @@
 
 - PostgreSQL 列：**camelCase**，尽量**单个词语**（`creator` 而非 `created_by_user_id`）
 - Rust entity：`snake_case` + `column_name` 映射
+- **标识 / 外键后缀**：用 **`xxxID`**（`tenantID`、`assetID`），禁止 **`xxxId`**（如 `assetId`）；主键例外仍为 **`id`**
 
 ```rust
 #[sea_orm(column_name = "createdAt")]
 pub created_at: DateTimeWithTimeZone,
+
+#[sea_orm(column_name = "assetID")]
+pub asset_id: Uuid,
 ```
 
 ## 通用审计字段

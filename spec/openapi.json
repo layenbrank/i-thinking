@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CoreX Service API",
-    "description": "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。",
+    "description": "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。鉴权：JWT Bearer；Apifox / REST Client 环境变量统一使用 {{token}}（来自 signin.data.token）。",
     "contact": {
       "name": "CoreX Team",
       "email": "15638470820@163.com"
@@ -101,10 +101,18 @@
         "description": "需要 JWT 鉴权，可更新 email、phone、gender、birthday、avatar 等字段。",
         "operationId": "auth.toUpdate",
         "requestBody": {
+          "description": "可更新字段（均为可选）",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProfileP"
+              },
+              "example": {
+                "avatar": "550e8400-e29b-41d4-a716-446655440000",
+                "birthday": "1990-01-01",
+                "email": "admin@example.com",
+                "gender": "MALE",
+                "phone": "13800138000"
               }
             }
           },
@@ -135,13 +143,18 @@
           "Auth"
         ],
         "summary": "用户登录",
-        "description": "公开接口，成功后返回 JWT token。HTTP 状态码始终为 200，业务结果见 body.code。",
+        "description": "公开接口，成功后返回 JWT token。HTTP 状态码始终为 200，业务结果见 body.code。\n\n联调默认账号：`admin` / `123456`。成功后请将 `data.token` 写入环境变量 `token`。",
         "operationId": "auth.signin",
         "requestBody": {
+          "description": "登录凭证",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SigninP"
+              },
+              "example": {
+                "password": "123456",
+                "username": "admin"
               }
             }
           },
@@ -194,13 +207,18 @@
           "Auth"
         ],
         "summary": "用户注册",
-        "description": "公开接口，注册成功后自动登录并返回 JWT token。",
+        "description": "公开接口，注册成功后自动登录并返回 JWT token。\n\n示例账号：`admin` / `123456`（若已存在请改用其他用户名）。",
         "operationId": "auth.signup",
         "requestBody": {
+          "description": "注册凭证",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SignupP"
+              },
+              "example": {
+                "password": "123456",
+                "username": "admin"
               }
             }
           },
@@ -326,7 +344,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "Redis"
           },
           {
             "name": "size",
@@ -336,7 +355,8 @@
             "schema": {
               "type": "integer",
               "format": "int64"
-            }
+            },
+            "example": 10
           }
         ],
         "responses": {
@@ -365,10 +385,16 @@
         "description": "需要 JWT。将文档写入 Elasticsearch（示范搜索投影，不以 ES 为权威库）。",
         "operationId": "search.toWrite",
         "requestBody": {
+          "description": "待索引文档",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/WriteP"
+              },
+              "example": {
+                "content": "接入 Redis 与 Elasticsearch",
+                "id": "doc-1",
+                "title": "Rust 服务端"
               }
             }
           },
@@ -409,7 +435,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           }
         ],
         "responses": {
@@ -446,7 +473,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           }
         ],
         "responses": {
@@ -523,7 +551,8 @@
               "type": "integer",
               "format": "int32",
               "minimum": 0
-            }
+            },
+            "example": 1
           },
           {
             "name": "size",
@@ -534,7 +563,8 @@
               "type": "integer",
               "format": "int32",
               "minimum": 0
-            }
+            },
+            "example": 20
           },
           {
             "name": "status",
@@ -543,7 +573,8 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "COMPLETED"
           }
         ],
         "responses": {
@@ -581,7 +612,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           }
         ],
         "responses": {
@@ -612,10 +644,14 @@
         "description": "校验 chunk 表分片齐全并流式计算整文件 SHA-256；不合并落盘。返回按 asset id 的下载 URL。需要 JWT。",
         "operationId": "upload.finalize",
         "requestBody": {
+          "description": "上传会话 id",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/FinalizeP"
+              },
+              "example": {
+                "id": "550e8400-e29b-41d4-a716-446655440000"
               }
             }
           },
@@ -649,10 +685,15 @@
         "description": "为会话补绑整文件 SHA-256；可触发全局秒传并为当前用户克隆记录。需要 JWT。",
         "operationId": "upload.bindHash",
         "requestBody": {
+          "description": "会话 id + 整文件 SHA-256",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/HashP"
+              },
+              "example": {
+                "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "id": "550e8400-e29b-41d4-a716-446655440000"
               }
             }
           },
@@ -686,10 +727,17 @@
         "description": "创建上传会话。`hash` 可选。文件秒传：本人已完成直接返回；他人已完成则为当前用户克隆 COMPLETED（共享 CAS）。需要 JWT。",
         "operationId": "upload.prepare",
         "requestBody": {
+          "description": "初始化参数；hash 可省略",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PrepareP"
+              },
+              "example": {
+                "chunk": 1048576,
+                "mime": "application/pdf",
+                "name": "sample.pdf",
+                "size": 1048576
               }
             }
           },
@@ -729,7 +777,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           }
         ],
         "responses": {
@@ -785,10 +834,16 @@
         "description": "后台管理员接口，需要 JWT 鉴权。",
         "operationId": "user.toWrite",
         "requestBody": {
+          "description": "新用户账号",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/WriteP"
+              },
+              "example": {
+                "password": "123456",
+                "role": "USER",
+                "username": "alice"
               }
             }
           },
@@ -828,7 +883,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "3c430c21-0891-43e1-bcd2-1a22eb4a5389"
           }
         ],
         "responses": {
@@ -863,14 +919,26 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "3c430c21-0891-43e1-bcd2-1a22eb4a5389"
           }
         ],
         "requestBody": {
+          "description": "可更新字段（均为可选）",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateP"
+              },
+              "example": {
+                "age": 30,
+                "birthday": "1990-01-01",
+                "email": "alice@example.com",
+                "gender": "FEMALE",
+                "phone": "13800138000",
+                "role": "USER",
+                "status": "ACTIVE",
+                "username": "alice"
               }
             }
           },
@@ -908,7 +976,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "3c430c21-0891-43e1-bcd2-1a22eb4a5389"
           }
         ],
         "responses": {
@@ -973,10 +1042,12 @@
           },
           "created_at": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "example": 1700000000000
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "example": "应用入口配置"
           },
           "direction": {
             "$ref": "#/components/schemas/Direction"
@@ -984,6 +1055,7 @@
           "download_count": {
             "type": "integer",
             "format": "int32",
+            "example": 0,
             "minimum": 0
           },
           "height": {
@@ -993,11 +1065,13 @@
             ]
           },
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "app-1"
           },
           "index": {
             "type": "integer",
             "format": "int32",
+            "example": 0,
             "minimum": 0
           },
           "marker": {
@@ -1007,10 +1081,12 @@
             ]
           },
           "mirror_id": {
-            "type": "string"
+            "type": "string",
+            "example": "mirror-1"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "example": "CoreX"
           },
           "round": {
             "type": [
@@ -1038,13 +1114,15 @@
           },
           "updated_at": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "example": 1700000000000
           },
           "url": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "https://example.com"
           },
           "width": {
             "type": [
@@ -1099,6 +1177,7 @@
           "size",
           "mime",
           "hash",
+          "index",
           "status",
           "createdAt",
           "url"
@@ -1106,31 +1185,51 @@
         "properties": {
           "createdAt": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "example": 1700000000000
           },
           "hash": {
-            "type": "string"
+            "type": "string",
+            "example": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int64",
+            "description": "租户内列表排序（与分片序号无关）",
+            "example": 0
           },
           "mime": {
-            "type": "string"
+            "type": "string",
+            "example": "application/pdf"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "example": "sample.pdf"
           },
           "size": {
             "type": "integer",
             "format": "int64",
+            "example": 1048576,
             "minimum": 0
           },
           "status": {
             "$ref": "#/components/schemas/UploadStatus"
           },
+          "tenantID": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "tenant-demo"
+          },
           "url": {
             "type": "string",
-            "description": "按 id 下载：`/api/v1/upload/asset/{id}`"
+            "description": "按 id 下载：`/api/v1/upload/asset/{id}`",
+            "example": "/api/v1/upload/asset/550e8400-e29b-41d4-a716-446655440000"
           }
         }
       },
@@ -1147,23 +1246,29 @@
         "properties": {
           "createdAt": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "example": 1700000000000
           },
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "3c430c21-0891-43e1-bcd2-1a22eb4a5389"
           },
           "role": {
-            "type": "string"
+            "type": "string",
+            "example": "USER"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "example": "ACTIVE"
           },
           "updatedAt": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "example": 1700000000000
           },
           "username": {
-            "type": "string"
+            "type": "string",
+            "example": "admin"
           }
         }
       },
@@ -1177,16 +1282,20 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           },
           "mime": {
-            "type": "string"
+            "type": "string",
+            "example": "image/png"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "example": "avatar.png"
           },
           "url": {
-            "type": "string"
+            "type": "string",
+            "example": "/api/v1/upload/asset/550e8400-e29b-41d4-a716-446655440000"
           }
         }
       },
@@ -1202,17 +1311,21 @@
           "index": {
             "type": "integer",
             "format": "int32",
+            "example": 0,
             "minimum": 0
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "example": "分片 0 上传成功"
           },
           "reused": {
             "type": "boolean",
-            "description": "分片内容已在 CAS 中，本次未写入新字节"
+            "description": "分片内容已在 CAS 中，本次未写入新字节",
+            "example": false
           },
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": true
           }
         }
       },
@@ -1428,6 +1541,7 @@
             ],
             "format": "int32",
             "description": "页码，从 1 开始，默认 1",
+            "example": 1,
             "minimum": 0
           },
           "size": {
@@ -1437,6 +1551,7 @@
             ],
             "format": "int32",
             "description": "每页条数，默认 20，最大 100",
+            "example": 20,
             "minimum": 0
           },
           "status": {
@@ -1506,8 +1621,12 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           }
+        },
+        "example": {
+          "id": "550e8400-e29b-41d4-a716-446655440000"
         }
       },
       "FinalizeR": {
@@ -1519,13 +1638,16 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           },
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": true
           },
           "url": {
-            "type": "string"
+            "type": "string",
+            "example": "/api/v1/upload/asset/550e8400-e29b-41d4-a716-446655440000"
           }
         }
       },
@@ -1580,11 +1702,17 @@
         ],
         "properties": {
           "hash": {
-            "type": "string"
+            "type": "string",
+            "example": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           }
+        },
+        "example": {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "id": "550e8400-e29b-41d4-a716-446655440000"
         }
       },
       "HashR": {
@@ -1605,10 +1733,12 @@
             }
           },
           "exists": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": false
           },
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           },
           "uploaded": {
             "type": "array",
@@ -1743,6 +1873,8 @@
           "chunk": {
             "type": "integer",
             "format": "int32",
+            "description": "分片大小（字节），须在 1MB~10MB",
+            "example": 1048576,
             "minimum": 0
           },
           "hash": {
@@ -1750,19 +1882,46 @@
               "string",
               "null"
             ],
-            "description": "整文件 SHA-256；可省略，稍后再 `PATCH /upload/hash` 绑定"
+            "description": "整文件 SHA-256；可省略，稍后再 `PATCH /upload/hash` 绑定",
+            "example": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "index": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "租户内列表排序；省略则默认 0",
+            "example": 0
           },
           "mime": {
-            "type": "string"
+            "type": "string",
+            "example": "application/pdf"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "example": "sample.pdf"
           },
           "size": {
             "type": "integer",
             "format": "int64",
+            "example": 1048576,
             "minimum": 0
+          },
+          "tenantID": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "租户 ID（租户模型未接线前可选）",
+            "example": "tenant-demo"
           }
+        },
+        "example": {
+          "chunk": 1048576,
+          "mime": "application/pdf",
+          "name": "sample.pdf",
+          "size": 1048576
         }
       },
       "PrepareR": {
@@ -1784,10 +1943,12 @@
             }
           },
           "exists": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": false
           },
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           },
           "uploaded": {
             "type": "array",
@@ -1796,7 +1957,8 @@
             }
           },
           "url": {
-            "type": "string"
+            "type": "string",
+            "example": "/api/v1/upload/chunk"
           }
         }
       },
@@ -1843,32 +2005,44 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           },
           "birthday": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "1990-01-01"
           },
           "email": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "admin@example.com"
           },
           "gender": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "MALE"
           },
           "phone": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "13800138000"
           }
+        },
+        "example": {
+          "avatar": "550e8400-e29b-41d4-a716-446655440000",
+          "birthday": "1990-01-01",
+          "email": "admin@example.com",
+          "gender": "MALE",
+          "phone": "13800138000"
         }
       },
       "ProfileR": {
@@ -1966,11 +2140,13 @@
             }
           },
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           },
           "progress": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "example": 50.0
           },
           "status": {
             "$ref": "#/components/schemas/UploadStatus"
@@ -1978,6 +2154,7 @@
           "total": {
             "type": "integer",
             "format": "int32",
+            "example": 2,
             "minimum": 0
           },
           "uploaded": {
@@ -2006,6 +2183,10 @@
             "format": "int64",
             "example": 10
           }
+        },
+        "example": {
+          "q": "Redis",
+          "size": 10
         }
       },
       "SearchEnvelope": {
@@ -2211,11 +2392,19 @@
         ],
         "properties": {
           "password": {
-            "type": "string"
+            "type": "string",
+            "default": "123456",
+            "example": "123456"
           },
           "username": {
-            "type": "string"
+            "type": "string",
+            "default": "admin",
+            "example": "admin"
           }
+        },
+        "example": {
+          "password": "123456",
+          "username": "admin"
         }
       },
       "SigninR": {
@@ -2230,7 +2419,9 @@
             ],
             "properties": {
               "token": {
-                "type": "string"
+                "type": "string",
+                "description": "JWT；Apifox 请写入环境变量 `token`，鉴权填 `{{token}}`",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example"
               }
             }
           }
@@ -2316,11 +2507,19 @@
         ],
         "properties": {
           "password": {
-            "type": "string"
+            "type": "string",
+            "default": "123456",
+            "example": "123456"
           },
           "username": {
-            "type": "string"
+            "type": "string",
+            "default": "admin",
+            "example": "admin"
           }
+        },
+        "example": {
+          "password": "123456",
+          "username": "admin"
         }
       },
       "SignupR": {
@@ -2335,7 +2534,8 @@
             ],
             "properties": {
               "token": {
-                "type": "string"
+                "type": "string",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example"
               }
             }
           }
@@ -2432,62 +2632,82 @@
               "null"
             ],
             "format": "int32",
+            "example": 30,
             "minimum": 0
           },
           "avatar": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           },
           "birthday": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "1990-01-01"
           },
           "email": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "alice@example.com"
           },
           "gender": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "FEMALE"
           },
           "password": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "123456"
           },
           "phone": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "13800138000"
           },
           "role": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "USER"
           },
           "status": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "ACTIVE"
           },
           "username": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "alice"
           }
+        },
+        "example": {
+          "age": 30,
+          "birthday": "1990-01-01",
+          "email": "alice@example.com",
+          "gender": "FEMALE",
+          "phone": "13800138000",
+          "role": "USER",
+          "status": "ACTIVE",
+          "username": "alice"
         }
       },
       "UploadFilesEnvelope": {
@@ -2653,11 +2873,13 @@
         ],
         "properties": {
           "hash": {
-            "type": "string"
+            "type": "string",
+            "example": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
           },
           "index": {
             "type": "integer",
             "format": "int32",
+            "example": 0,
             "minimum": 0
           }
         }
@@ -2750,6 +2972,7 @@
               "null"
             ],
             "format": "int32",
+            "example": 30,
             "minimum": 0
           },
           "avatar": {
@@ -2766,7 +2989,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "1990-01-01"
           },
           "createdAt": {
             "type": "integer",
@@ -2777,28 +3001,34 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "admin@example.com"
           },
           "gender": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "MALE"
           },
           "id": {
-            "type": "string"
+            "type": "string",
+            "example": "3c430c21-0891-43e1-bcd2-1a22eb4a5389"
           },
           "phone": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "example": "13800138000"
           },
           "role": {
-            "type": "string"
+            "type": "string",
+            "example": "USER"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "example": "ACTIVE"
           },
           "updatedAt": {
             "type": "integer",
@@ -2806,7 +3036,8 @@
             "example": 1700000000000
           },
           "username": {
-            "type": "string"
+            "type": "string",
+            "example": "admin"
           }
         }
       },
@@ -2833,6 +3064,11 @@
             "type": "string",
             "example": "Rust 服务端"
           }
+        },
+        "example": {
+          "content": "接入 Redis 与 Elasticsearch",
+          "id": "doc-1",
+          "title": "Rust 服务端"
         }
       },
       "WriteR": {
@@ -2856,7 +3092,9 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "登录接口返回的 JWT token，格式：Authorization: Bearer <token>"
+        "description": "登录 `POST /api/v1/auth/signin` 返回的 `data.token`。\n\n请求头：`Authorization: Bearer <token>`。\n\n**Apifox**：鉴权组件 Token 请填 `{{token}}`（勿用 `{{bearerToken}}`）；环境变量名统一为 `token`，可在登录接口后置操作写入。",
+        "x-apifox-default": "{{token}}",
+        "x-default": "{{token}}"
       }
     }
   },

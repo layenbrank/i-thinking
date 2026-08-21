@@ -85,3 +85,8 @@ Swagger UI：`/swagger-ui/` · JSON：`/api-docs/openapi.json`
 - 是否公开 / JWT
 - 主要业务错误码指向 `guide/error-codes.md`
 - 关联模块（如头像需先 upload）
+
+## 请求/路径示例（Swagger / Apifox「试一试」）
+
+- Schema 字段加 `#[schema(example = ...)]`；path/query 在 `#[utoipa::path(params(... example = ...))]` 补全
+- JWT：`bearer_auth` 约定环境变量 **`{{token}}`**（signin `data.token`）；security scheme 描述与 `x-default` 已标明，Apifox 导入后若仍为 `{{bearerToken}}` 需手动改一次
