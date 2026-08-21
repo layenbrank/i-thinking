@@ -32,7 +32,7 @@ pub struct Auth {
 
 impl Auth {
     /// 任意有效 JWT（非黑名单）
-    pub fn required() -> Self {
+    pub fn isRequired() -> Self {
         Self { admin_only: false }
     }
 
@@ -218,16 +218,15 @@ mod tests {
     #[test]
     fn admin_flag() {
         assert!(Auth::admin().admin_only);
-        assert!(!Auth::required().admin_only);
+        assert!(!Auth::isRequired().admin_only);
     }
 
     #[actix_web::test]
     async fn required_without_config_returns_internal_envelope() {
-        let app = awtest::init_service(
-            App::new()
-                .wrap(Auth::required())
-                .route("/x", web::get().to(|| async { HttpResponse::Ok().body("ok") })),
-        )
+        let app = awtest::init_service(App::new().wrap(Auth::isRequired()).route(
+            "/x",
+            web::get().to(|| async { HttpResponse::Ok().body("ok") }),
+        ))
         .await;
 
         let req = awtest::TestRequest::get().uri("/x").to_request();
@@ -248,8 +247,11 @@ mod tests {
         let app = awtest::init_service(
             App::new()
                 .app_data(web::Data::new(Arc::new(cfg)))
-                .wrap(Auth::required())
-                .route("/x", web::get().to(|| async { HttpResponse::Ok().body("ok") })),
+                .wrap(Auth::isRequired())
+                .route(
+                    "/x",
+                    web::get().to(|| async { HttpResponse::Ok().body("ok") }),
+                ),
         )
         .await;
 
@@ -266,14 +268,10 @@ mod tests {
 
     #[actix_web::test]
     async fn files_require_auth_fail_closed() {
-        let app = awtest::init_service(
-            App::new()
-                .wrap(Auth::required())
-                .route(
-                    "/api/v1/upload/files/{hash}",
-                    web::get().to(|| async { HttpResponse::Ok().body("file") }),
-                ),
-        )
+        let app = awtest::init_service(App::new().wrap(Auth::isRequired()).route(
+            "/api/v1/upload/files/{hash}",
+            web::get().to(|| async { HttpResponse::Ok().body("file") }),
+        ))
         .await;
 
         let req = awtest::TestRequest::get()
@@ -288,20 +286,18 @@ mod tests {
     #[actix_web::test]
     async fn admin_only_rejects_user_role_token() {
         let cfg = test_configure();
-        let token = crate::utils::jwt::generate_token(
-            "u1",
-            "bob",
-            Role::User,
-            &cfg.jwt_secret,
-            Some(1),
-        )
-        .unwrap();
+        let token =
+            crate::utils::jwt::generate_token("u1", "bob", Role::User, &cfg.jwt_secret, Some(1))
+                .unwrap();
 
         let app = awtest::init_service(
             App::new()
                 .app_data(web::Data::new(Arc::new(cfg)))
                 .wrap(Auth::admin())
-                .route("/x", web::get().to(|| async { HttpResponse::Ok().body("ok") })),
+                .route(
+                    "/x",
+                    web::get().to(|| async { HttpResponse::Ok().body("ok") }),
+                ),
         )
         .await;
 

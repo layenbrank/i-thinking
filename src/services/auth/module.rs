@@ -13,7 +13,7 @@ impl AuthModule {
                 .route("/signup", web::post().to(AuthController::signup))
                 .service(
                     web::scope("")
-                        .wrap(Auth::required())
+                        .wrap(Auth::isRequired())
                         .route("/profile", web::get().to(AuthController::toRead))
                         .route("/profile", web::put().to(AuthController::toUpdate))
                         .route("/signout", web::post().to(AuthController::signout)),

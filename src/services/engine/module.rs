@@ -9,7 +9,7 @@ impl EngineModule {
     pub fn configure(cfg: &mut web::ServiceConfig) {
         cfg.service(
             web::scope("/engine")
-                .wrap(Auth::required())
+                .wrap(Auth::isRequired())
                 .route("/suggestion", web::get().to(EngineController::toRead)),
         );
     }

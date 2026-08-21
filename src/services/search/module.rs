@@ -9,7 +9,7 @@ impl SearchModule {
     pub fn configure(cfg: &mut web::ServiceConfig) {
         cfg.service(
             web::scope("/search")
-                .wrap(Auth::required())
+                .wrap(Auth::isRequired())
                 .route("/docs", web::post().to(SearchController::toWrite))
                 .route("/docs", web::get().to(SearchController::toRead)),
         );

@@ -9,7 +9,7 @@ impl UploadModule {
     pub fn configure(cfg: &mut web::ServiceConfig) {
         cfg.service(
             web::scope("/upload")
-                .wrap(Auth::required())
+                .wrap(Auth::isRequired())
                 .route("/prepare", web::post().to(UploadController::prepare))
                 .route("/hash", web::patch().to(UploadController::bind_hash))
                 .route("/chunk", web::post().to(UploadController::chunk))
