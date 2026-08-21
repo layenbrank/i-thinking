@@ -4,9 +4,9 @@ use crate::services::upload::error::UploadError;
 use crate::services::upload::schema::{PrepareP, UploadStatus};
 
 pub const CAS_DIR: &str = "cas";
-pub const MAX_FILE_SIZE: u64 = 5 * 1024 * 1024 * 1024; // 5GB
-pub const MIN_CHUNK_SIZE: u32 = 1024 * 1024; // 1MB
-pub const MAX_CHUNK_SIZE: u32 = 10 * 1024 * 1024; // 10MB
+pub const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024 * 1024; // 10GB
+pub const MIN_CHUNK_SIZE: u32 = 1024 * 1024 * 10; // 10MB
+pub const MAX_CHUNK_SIZE: u32 = 1024 * 1024 * 100; // 100MB
 pub const EXPIRE_HOURS: i64 = 24;
 pub const FILE_URL_PREFIX: &str = "/api/v1/upload/files";
 pub const ASSET_URL_PREFIX: &str = "/api/v1/upload/asset";
@@ -197,6 +197,8 @@ mod tests {
             size: 1024,
             chunk: MIN_CHUNK_SIZE,
             hash: Some("short".into()),
+            tenant_id: None,
+            index: None,
         };
         assert!(matches!(
             validate_prepare(&req),
@@ -212,6 +214,8 @@ mod tests {
             size: 1024,
             chunk: MIN_CHUNK_SIZE,
             hash: None,
+            tenant_id: None,
+            index: None,
         };
         assert!(validate_prepare(&req).is_ok());
     }

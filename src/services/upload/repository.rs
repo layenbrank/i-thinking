@@ -117,10 +117,12 @@ pub fn build_record(
 
     Ok(asset::ActiveModel {
         id: Set(Uuid::new_v4()),
+        tenant_id: Set(req.tenant_id),
         kind: Set(Some(KIND.to_string())),
         hash: Set(hash),
         sha: Set(None),
         size: Set(req.size as i64),
+        index: Set(req.index.unwrap_or(0)),
         mime: Set(req.mime),
         extension: Set(extension),
         name: Set(req.name),
@@ -145,22 +147,30 @@ pub async fn insert(db: &Storage, record: asset::ActiveModel) -> Result<asset::M
 }
 
 /// 全局秒传：为当前用户克隆 COMPLETED 资产 + chunk 行（共享 CAS，不拷贝字节）。
+/// `name` 使用当前会话/请求文件名，不用源用户文件名。
 pub async fn clone_completed_for(
     db: &Storage,
     source: &asset::Model,
     creator: &str,
+    name: &str,
 ) -> Result<asset::Model, UploadError> {
     let creator_id = UploadError::parse_user_id(creator)?;
     let now = Utc::now().fixed_offset();
+    let extension = std::path::Path::new(name)
+        .extension()
+        .map(|e| e.to_string_lossy().into_owned())
+        .or_else(|| source.extension.clone());
     let record = asset::ActiveModel {
         id: Set(Uuid::new_v4()),
+        tenant_id: Set(None),
         kind: Set(source.kind.clone()),
         hash: Set(source.hash.clone()),
         sha: Set(source.sha.clone()),
         size: Set(source.size),
+        index: Set(0),
         mime: Set(source.mime.clone()),
-        extension: Set(source.extension.clone()),
-        name: Set(source.name.clone()),
+        extension: Set(extension),
+        name: Set(name.to_string()),
         status: Set(UploadStatus::Completed.as_str().to_string()),
         chunk: Set(source.chunk),
         total: Set(source.total),
@@ -175,6 +185,21 @@ pub async fn clone_completed_for(
     let inserted = insert(db, record).await?;
     copy_chunks(db, source.id, inserted.id, Some(creator_id)).await?;
     Ok(inserted)
+}
+
+/// 文件级秒传要求 size 与分片大小一致（从而 total 一致）。
+pub fn layout_matches(pending: &asset::Model, existing: &asset::Model) -> bool {
+    pending.size == existing.size && pending.chunk == existing.chunk
+}
+
+/// Abort 未完成会话：硬删 asset（CASCADE 清 chunk 元数据），不动 CAS。
+pub async fn discard_session(db: &Storage, asset: asset::Model) -> Result<(), UploadError> {
+    let id = asset.id;
+    asset::Entity::delete_by_id(id)
+        .exec(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))?;
+    Ok(())
 }
 
 async fn copy_chunks(
@@ -300,13 +325,25 @@ pub async fn upsert_chunk(
     };
     let now = Utc::now().fixed_offset();
 
+    // 秒传 discard 可能与并发 chunk 竞态：插入前再确认会话仍在。
+    if asset::Entity::find_by_id(asset.id)
+        .one(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))?
+        .is_none()
+    {
+        return Err(UploadError::BadRequest(
+            "上传会话不存在或已结束（可能已秒传）".into(),
+        ));
+    }
+
     let result = db
         .db
         .execute_raw(Statement::from_sql_and_values(
             DatabaseBackend::Postgres,
-            r#"INSERT INTO chunk (id, "assetId", "index", hash, size, "createdAt", creator)
+            r#"INSERT INTO chunk (id, "assetID", "index", hash, size, "createdAt", creator)
                VALUES ($1, $2, $3, $4, $5, $6, $7)
-               ON CONFLICT ("assetId", "index") DO NOTHING"#,
+               ON CONFLICT ("assetID", "index") DO NOTHING"#,
             [
                 Uuid::new_v4().into(),
                 asset.id.into(),
@@ -318,7 +355,15 @@ pub async fn upsert_chunk(
             ],
         ))
         .await
-        .map_err(|e| UploadError::Database(e.to_string()))?;
+        .map_err(|e| {
+            if crate::utils::db::is_fk_violation(&e) {
+                UploadError::BadRequest(
+                    "上传会话不存在或已结束（可能已秒传）".into(),
+                )
+            } else {
+                UploadError::Database(e.to_string())
+            }
+        })?;
 
     if result.rows_affected() == 0 {
         // 并发插入：再读校验
@@ -388,7 +433,6 @@ pub async fn mark_failed(db: &Storage, asset: asset::Model) -> Result<(), Upload
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
 
-    // 级联删除 chunk 行（表 FK ON DELETE CASCADE）；若未级联则显式清理
     chunk::Entity::delete_many()
         .filter(chunk::Column::AssetId.eq(asset_id))
         .exec(&db.db)
@@ -413,6 +457,7 @@ pub async fn list_owned(
         .filter(asset::Column::Creator.eq(creator))
         .filter(asset::Column::ArchivedAt.is_null())
         .filter(asset::Column::Status.eq(status_filter))
+        .order_by_asc(asset::Column::Index)
         .order_by_desc(asset::Column::CreatedAt);
 
     let count = selector
@@ -436,10 +481,12 @@ pub async fn list_owned(
 pub fn asset_to_r(asset: asset::Model) -> AssetR {
     AssetR {
         id: asset.id.to_string(),
+        tenant_id: asset.tenant_id,
         name: asset.name,
         size: asset.size as u64,
         mime: asset.mime,
         hash: asset.hash.clone(),
+        index: asset.index,
         status: UploadStatus::from_db(&asset.status),
         created_at: asset.created_at.timestamp_millis(),
         url: format!("{ASSET_URL_PREFIX}/{}", asset.id),

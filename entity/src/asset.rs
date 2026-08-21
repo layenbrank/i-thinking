@@ -6,6 +6,8 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
+    #[sea_orm(column_name = "tenantID", column_type = "Text", nullable, indexed)]
+    pub tenant_id: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
     pub kind: Option<String>,
     #[sea_orm(column_type = "Text", indexed)]
@@ -13,6 +15,8 @@ pub struct Model {
     #[sea_orm(column_type = "Text", nullable)]
     pub sha: Option<String>,
     pub size: i64,
+    /// 租户内列表排序（用户可自定义）；与 chunk.index 无关
+    pub index: i64,
     #[sea_orm(column_type = "Text")]
     pub mime: String,
     #[sea_orm(column_type = "Text", nullable)]

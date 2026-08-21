@@ -71,10 +71,12 @@ impl MigrationTrait for Migration {
                     .table(Asset::Table)
                     .if_not_exists()
                     .col(pk_uuid(Asset::Id))
+                    .col(text_null(Asset::TenantId))
                     .col(text_null(Asset::Kind))
                     .col(text(Asset::Hash))
                     .col(text_null(Asset::Sha))
                     .col(big_integer(Asset::Size))
+                    .col(big_integer(Asset::Index).default(0))
                     .col(text(Asset::Mime))
                     .col(text_null(Asset::Extension))
                     .col(text(Asset::Name))
@@ -146,6 +148,17 @@ impl MigrationTrait for Migration {
                     .name("idx_asset_hash")
                     .table(Asset::Table)
                     .col(Asset::Hash)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_asset_tenant_id")
+                    .table(Asset::Table)
+                    .col(Asset::TenantId)
                     .to_owned(),
             )
             .await?;
@@ -265,10 +278,13 @@ enum Auth {
 enum Asset {
     Table,
     Id,
+    #[sea_orm(iden = "tenantID")]
+    TenantId,
     Kind,
     Hash,
     Sha,
     Size,
+    Index,
     Mime,
     Extension,
     Name,
@@ -291,7 +307,7 @@ enum Asset {
 enum Chunk {
     Table,
     Id,
-    #[sea_orm(iden = "assetId")]
+    #[sea_orm(iden = "assetID")]
     AssetId,
     Index,
     Hash,

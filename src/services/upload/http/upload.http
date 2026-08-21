@@ -1,8 +1,8 @@
 # 上传模块 — prepare(可无 hash) → chunk → PATCH hash → finalize → 列表 / asset 下载
 # 鉴权: 全部需 JWT
-# Node 端到端:
-#   npx tsx src/services/upload/http/upload.ts
-#   npx tsx src/services/upload/http/upload.ts ./your-file.bin
+# Node 端到端（需 Node >= 24）:
+#   pnpm run upload
+#   pnpm run upload -- ./your-file.bin
 
 @host = http://127.0.0.1:3000
 @username = admin

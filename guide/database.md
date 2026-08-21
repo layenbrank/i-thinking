@@ -20,7 +20,7 @@ erDiagram
 | `auth.avatar` → `asset.id` | 用户头像，删除 asset 时 SET NULL |
 | `auth.creator/updater` → `auth.id` | 账号审计，自引用 |
 | `asset.creator/updater` → `auth.id` | 上传/资源审计 |
-| `chunk.assetId` → `asset.id` | 分片归属，删除 asset 时 CASCADE |
+| `chunk.assetID` → `asset.id` | 分片归属，删除 asset 时 CASCADE |
 | `chunk.creator` → `auth.id` | 分片审计 |
 
 ## auth 表
@@ -56,10 +56,12 @@ Entity：[`entity/src/asset.rs`](../entity/src/asset.rs)
 | 列 (DB) | 类型 | 说明 |
 |---------|------|------|
 | id | uuid PK | 资源 ID |
+| tenantID | text | 租户 ID（可空） |
 | kind | text | 类型，上传为 `upload` |
 | hash | text | 文件 SHA256（64 位 hex），索引；prepare 时可先空串 |
 | sha | text | finalize 校验后的整文件 SHA（与 hash 一致） |
 | size | bigint | 文件总字节 |
+| index | bigint | 租户内列表排序（默认 0）；≠ chunk.index |
 | mime | text | MIME |
 | extension | text | 扩展名 |
 | name | text | 文件名 |
@@ -75,8 +77,8 @@ Entity：[`entity/src/chunk.rs`](../entity/src/chunk.rs)
 | 列 (DB) | 类型 | 说明 |
 |---------|------|------|
 | id | uuid PK | 分片记录 ID |
-| assetId | uuid FK | → asset.id，CASCADE |
-| index | int | 分片序号（从 0）；与 assetId 唯一 |
+| assetID | uuid FK | → asset.id，CASCADE |
+| index | int | 分片序号（从 0）；与 assetID 唯一 |
 | hash | text | 分片内容 SHA256（CAS key），索引 |
 | size | bigint | 分片字节数 |
 | createdAt | timestamptz | 创建时间 |
@@ -115,7 +117,7 @@ sequenceDiagram
   Note over Upload: INSERT chunk + 写 cas/{hash}
   Client->>Upload: POST /upload/finalize
   Upload->>Asset: UPDATE status=COMPLETED
-  Client->>Auth: PUT /auth/profile avatar=assetId
+  Client->>Auth: PUT /auth/profile avatar=assetID
   Auth->>Asset: 校验 COMPLETED + creator=当前用户
   Auth->>AuthTbl: UPDATE avatar FK
 ```

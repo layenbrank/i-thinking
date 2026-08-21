@@ -22,17 +22,27 @@ impl UploadService {
         if let Some(hash) = normalize_hash(req.hash.as_deref()) {
             if let Some(creator_id) = creator.as_deref() {
                 if let Some(mine) = repository::find_completed_owned(db, hash, creator_id).await? {
-                    return repository::prepare_response(db, &mine, true).await;
+                    if Self::prepare_layout_ok(&req, &mine) {
+                        return repository::prepare_response(db, &mine, true).await;
+                    }
                 }
             }
 
             if let Some(existing) = repository::find_completed(db, hash).await? {
                 if let Some(creator_id) = creator.as_deref() {
-                    let cloned =
-                        repository::clone_completed_for(db, &existing, creator_id).await?;
-                    return repository::prepare_response(db, &cloned, true).await;
+                    if Self::prepare_layout_ok(&req, &existing) {
+                        let cloned = repository::clone_completed_for(
+                            db,
+                            &existing,
+                            creator_id,
+                            &req.name,
+                        )
+                        .await?;
+                        return repository::prepare_response(db, &cloned, true).await;
+                    }
+                } else if Self::prepare_layout_ok(&req, &existing) {
+                    return repository::prepare_response(db, &existing, true).await;
                 }
-                return repository::prepare_response(db, &existing, true).await;
             }
 
             if let Some(existing) =
@@ -58,26 +68,32 @@ impl UploadService {
         validation::validate_status(&asset)?;
 
         if let Some(mine) = repository::find_completed_owned(db, &req.hash, user_id).await? {
-            repository::mark_failed(db, asset).await?;
-            let uploaded = repository::uploaded_list(db, mine.id).await?;
-            return Ok(HashR {
-                id: mine.id.to_string(),
-                exists: true,
-                chunks: uploaded.iter().map(|c| c.index).collect(),
-                uploaded,
-            });
+            if repository::layout_matches(&asset, &mine) {
+                repository::discard_session(db, asset).await?;
+                let uploaded = repository::uploaded_list(db, mine.id).await?;
+                return Ok(HashR {
+                    id: mine.id.to_string(),
+                    exists: true,
+                    chunks: uploaded.iter().map(|c| c.index).collect(),
+                    uploaded,
+                });
+            }
         }
 
         if let Some(existing) = repository::find_completed(db, &req.hash).await? {
-            repository::mark_failed(db, asset).await?;
-            let cloned = repository::clone_completed_for(db, &existing, user_id).await?;
-            let uploaded = repository::uploaded_list(db, cloned.id).await?;
-            return Ok(HashR {
-                id: cloned.id.to_string(),
-                exists: true,
-                chunks: uploaded.iter().map(|c| c.index).collect(),
-                uploaded,
-            });
+            if repository::layout_matches(&asset, &existing) {
+                let name = asset.name.clone();
+                repository::discard_session(db, asset).await?;
+                let cloned =
+                    repository::clone_completed_for(db, &existing, user_id, &name).await?;
+                let uploaded = repository::uploaded_list(db, cloned.id).await?;
+                return Ok(HashR {
+                    id: cloned.id.to_string(),
+                    exists: true,
+                    chunks: uploaded.iter().map(|c| c.index).collect(),
+                    uploaded,
+                });
+            }
         }
 
         if !asset.hash.is_empty() && asset.hash != req.hash {
@@ -86,16 +102,11 @@ impl UploadService {
             ));
         }
 
+        // 同 hash 另有未完成会话：丢掉*空闲*旧会话，保留当前正在传的会话。
+        // 切勿 discard 当前会话再切到旧 PENDING——客户端仍在用旧 id 传分片会中途「会话已结束」。
         if let Some(pending) = repository::find_pending(db, &req.hash, Some(user_id)).await? {
             if pending.id != asset.id {
-                repository::mark_failed(db, asset).await?;
-                let uploaded = repository::uploaded_list(db, pending.id).await?;
-                return Ok(HashR {
-                    id: pending.id.to_string(),
-                    exists: false,
-                    chunks: uploaded.iter().map(|c| c.index).collect(),
-                    uploaded,
-                });
+                repository::discard_session(db, pending).await?;
             }
         }
 
@@ -210,7 +221,10 @@ impl UploadService {
 
     pub async fn cancel(db: &Storage, id: &str, user_id: &str) -> Result<(), UploadError> {
         let asset = Self::load_owned(db, id, user_id).await?;
-        repository::mark_failed(db, asset).await?;
+        if UploadStatus::from_db(&asset.status) == UploadStatus::Completed {
+            return Err(UploadError::BadRequest("已完成的资产不能取消".into()));
+        }
+        repository::discard_session(db, asset).await?;
         Ok(())
     }
 
@@ -253,6 +267,10 @@ impl UploadService {
         let hashes = repository::ordered_chunk_hashes(db, asset).await?;
         storage::ensure_cas_present(&hashes).await?;
         Ok(hashes)
+    }
+
+    fn prepare_layout_ok(req: &PrepareP, existing: &asset::Model) -> bool {
+        req.size as i64 == existing.size && req.chunk as i32 == existing.chunk
     }
 
     async fn load_owned(

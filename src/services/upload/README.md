@@ -4,16 +4,26 @@
 
 ## 概述
 
-企业级分片流程：**prepare →（并行）chunk + hash 绑定 → finalize → 流式下载**。
+企业级三层模型：
+
+| 层 | 含义 | 本仓库对应 |
+|----|------|------------|
+| 物理 CAS | 按内容 hash 全局单副本，跨用户复用字节 | `cas/{sha256}` |
+| 上传会话 | 短暂任务；秒传/取消时 **Abort 硬删**，不是 FAILED | `asset` 行 PENDING/UPLOADING |
+| 逻辑文件 | 按用户隔离的成片元数据 | `asset` COMPLETED + 本人 `chunk` 元数据行 |
+
+流程：**prepare →（分片上传 ∥ 算 hash，算完即 PATCH）→ finalize → 流式下载**。
 
 | 能力 | 说明 |
 |------|------|
-| 异步 hash | `prepare` 可不传整文件 hash，稍后 `PATCH /hash` |
-| 文件秒传 | 全局按 SHA-256 去重；命中后为**当前用户**克隆 COMPLETED 记录（共享 CAS） |
-| 分片秒传 | 分片写入全局 `cas/{sha256}` 单副本；任意用户 hash 命中即可 `reused`（零拷贝） |
-| 断点续传 | 返回 `uploaded[{index,hash}]`；同 hash+用户恢复 PENDING/UPLOADING |
+| 异步 hash | `prepare` 可不传整文件 hash；**与分片并行计算**，算完立刻 `PATCH /hash`（勿等全部分片传完，也不必等 hash 才开传） |
+| 文件秒传 | 同 hash 且 size/chunk 一致：本人返回已有 COMPLETED；跨用户 **克隆**逻辑行（`name` 用当前请求）并 **discard** 临时会话 |
+| 分片秒传 | 分片写入全局 `cas/{sha256}`；任意用户 hash 命中即可 `reused`（零拷贝） |
+| 断点续传 | 按**本会话**返回 `uploaded[{index,hash}]`；同 hash+用户可恢复 PENDING/UPLOADING |
+| 废弃会话 | `cancel` / 秒传命中 → `discard_session`（删 asset，CASCADE chunk 元数据，CAS 保留）；并发 chunk 若仍打旧 id，返回参数错误而非裸 FK |
+| FAILED | 仅真实失败（校验等）；**不是**秒传或取消 |
 | 不合并落盘 | finalize 只校验；下载时按 `chunk` 表顺序流式输出 |
-| 下载隔离 | 仅 **creator** 可下载自己的完成件（按 hash 或按 asset id） |
+| 下载隔离 | 仅 **creator** 可下载自己的完成件 |
 | 本人列表 | `GET /files` 分页列出当前用户资产（默认 COMPLETED） |
 
 ## 路由一览
@@ -21,11 +31,11 @@
 | 方法   | 路径                           | 鉴权   | 说明                          |
 | ------ | ------------------------------ | ------ | ----------------------------- |
 | POST   | `/api/v1/upload/prepare`       | JWT    | 初始化（hash 可选）           |
-| PATCH  | `/api/v1/upload/hash`          | JWT    | 绑定整文件 SHA-256            |
+| PATCH  | `/api/v1/upload/hash`          | JWT    | 绑定整文件 SHA-256（宜尽早）  |
 | POST   | `/api/v1/upload/chunk`         | JWT    | 上传/秒传分片（multipart）    |
 | POST   | `/api/v1/upload/finalize`      | JWT    | 校验完成（不合并）            |
 | GET    | `/api/v1/upload/progress/{id}` | JWT    | 查询进度                      |
-| DELETE | `/api/v1/upload/cancel/{id}`   | JWT    | 取消上传                      |
+| DELETE | `/api/v1/upload/cancel/{id}`   | JWT    | Abort：硬删未完成会话         |
 | GET    | `/api/v1/upload/files`         | JWT    | 本人资产列表（分页）          |
 | GET    | `/api/v1/upload/files/{hash}`  | JWT    | 按 hash 流式下载（仅本人）    |
 | GET    | `/api/v1/upload/asset/{id}`    | JWT    | 按资产 id 流式下载（仅本人）  |
@@ -36,18 +46,20 @@
 
 `prepare` 从 JWT `Claims.sub` 写入 `asset.creator`。  
 `chunk` / `hash` / `finalize` / `progress` / `cancel` 校验归属。  
-下载与列表均只覆盖 **当前用户** 的资产（文件秒传会为命中用户克隆记录）。  
-分片 CAS 为**全局**共享（策略 1A）；整文件下载按 creator 隔离（策略 2B）。
+下载与列表均只覆盖 **当前用户** 的资产（跨用户文件秒传会为命中用户克隆逻辑行）。  
+分片 CAS **全局**共享；逻辑文件与下载按 creator 隔离。
 
 ## 数据表 — asset
 
 | 列                          | 用途                                                    |
 | --------------------------- | ------------------------------------------------------- |
 | id                          | 上传任务 / 资产 ID（UUID）                              |
+| tenantID                    | 租户 ID（可空；租户模型未接线前可不传）                 |
 | kind                        | `upload`                                                |
-| hash                        | 整文件 SHA256；可先空，再 PATCH 绑定                    |
+| hash                        | 整文件 SHA256；可先空，hash 就绪后立即 PATCH 绑定       |
 | sha                         | finalize 校验后的整文件 SHA                             |
 | size, mime, name, extension | 文件元信息                                              |
+| index                       | **资产列表排序**（用户可自定义，默认 0）；≠ chunk.index |
 | status                      | PENDING → UPLOADING → COMPLETED / FAILED / EXPIRED      |
 | chunk, total                | 分片大小与分片总数                                      |
 | creator, updater, expiresAt | 归属与 24h 过期（完成后 clears expiresAt）              |
@@ -57,17 +69,19 @@
 | 列                          | 用途                                                    |
 | --------------------------- | ------------------------------------------------------- |
 | id                          | 分片记录 UUID                                           |
-| assetId                     | → asset.id（CASCADE）                                   |
-| index                       | 分片序号（从 0 起）；与 assetId 唯一                    |
+| assetID                     | → asset.id（CASCADE）                                   |
+| index                       | **分片序号**（从 0 起）；与 assetID 唯一                |
 | hash                        | 分片内容 SHA-256（CAS key）                             |
 | size                        | 分片字节数                                              |
 | createdAt, creator          | 审计                                                    |
+
+> **注意**：`asset.index` 是租户内文件排序；`chunk.index` 是分片下标。二者无关。
 
 ## 磁盘协作
 
 | 路径 | 用途 |
 |------|------|
-| `cas/{sha256}` | **唯一**分片物理副本；跨会话复用，不拷贝 |
+| `cas/{sha256}` | **唯一**分片物理副本；跨会话/跨用户复用，不拷贝 |
 
 finalize **不会**生成整文件；下载时服务端按 `chunk` 表 `index` 顺序读 CAS 写入同一 HTTP 响应（`Content-Length` = `size`）。
 
@@ -77,26 +91,35 @@ finalize **不会**生成整文件；下载时服务端按 `chunk` 表 `index` �
 
 ## 推荐前端交互
 
-1. 选文件后**立刻** `prepare`（可不带 hash），本地持久化 `(fingerprint → uploadId)`。
-2. Worker 并行计算各 chunk hash 与整文件 hash。
-3. 每个 chunk hash 就绪即可 `POST /chunk`；CAS 可命中时可不带字节。
-4. 整文件 hash 就绪后 `PATCH /hash`：若 `exists` → 停止队列并提示秒传。
-5. 续传以服务端 `progress` / `uploaded[{index,hash}]` 为准。
-6. `finalize` 后用返回的 `/api/v1/upload/asset/{id}` 下载；或用 `GET /files` 列表取 url。
-7. 小文件可仍先算 hash 再 prepare，以尽早命中文件秒传。
+1. 选文件后**立刻** `prepare`（可不带 hash），同时开始算整文件 hash **并并行上传分片**。
+2. 整文件 hash **一算完**就 `PATCH /hash`（不必等分片传完）：若 `exists` → 停止分片队列（临时会话已被 discard；在途请求可能收到「会话已结束」，属正常）。
+3. 未秒传：继续缺片；CAS 可命中时可不带字节。
+4. 续传以服务端 `progress` / `uploaded[{index,hash}]` 为准（本会话）。
+5. `finalize` 后用 `/api/v1/upload/asset/{id}` 下载；或 `GET /files` 取 url。
+6. 小文件仍可先算 hash 再 prepare，以在 prepare 阶段命中文件秒传。
 
-并发建议 3–4。
+并发建议 3–4。**不要**等全部分片传完再 PATCH hash；也**不必**等 hash 算完才开始传分片。
+
+### 与常见对象存储的差异（企业级对齐）
+
+| 点 | OSS / S3 Multipart 等 | 本服务 |
+|----|----------------------|--------|
+| 上传会话 id | Complete 前稳定，不中途换成另一个 UploadId | `PATCH /hash` 秒传才 discard 当前临时会话；**不会**为合并旧 PENDING 而丢掉正在传的会话 |
+| 整对象校验 | 多在 Complete 时核对 | 允许提前 bind hash；未完成前会话 id 不变 |
+| 客户端停传 | 仅在服务端明确「已完成/秒传」时 Abort | 仅 `exists: true` 时 abort；勿把「CAS 中不存在」当成会话结束 |
 
 ## 实现架构
 
 ```
 UploadController::prepare
   └── UploadService::prepare
-        └── validate / find_completed / find_pending / insert asset
+        └── validate / find_completed(+layout) / clone_completed_for(name) / insert
 
 UploadController::bind_hash
   └── UploadService::bind_hash
-        └── 文件秒传（克隆 asset + chunk 行）或写入 asset.hash
+        └── COMPLETED 布局一致 → 文件秒传：discard *当前* 临时会话 + 复用/clone
+        └── 另有同 hash 的 PENDING → discard *旧* 会话，保留当前正在传的会话并 bind
+        └── 否则 bind asset.hash，继续分片（靠 CAS 复用）
 
 UploadController::chunk
   └── UploadService::chunk
@@ -107,6 +130,9 @@ UploadController::finalize
   └── UploadService::finalize
         └── 按 chunk 表顺序流式校验整文件 hash
         └── mark_completed（保留 CAS）
+
+UploadController::cancel
+  └── discard_session（硬删未完成会话）
 
 UploadController::toRead_files
   └── 本人资产分页列表
@@ -168,7 +194,7 @@ multipart 字段：`id`、`index`、`hash`、`chunk`（CAS 已存在时可省略
 
 Query：`page`（默认 1）、`size`（默认 20，最大 100）、`status`（默认 `COMPLETED`）。
 
-**成功 data**：分页 `items[]`（`AssetR`：id / name / size / mime / hash / status / createdAt / url）。
+**成功 data**：分页 `items[]`（`AssetR`：id / tenantID / name / size / mime / hash / index / status / createdAt / url）。
 
 ### GET /api/v1/upload/files/{hash}
 
@@ -180,6 +206,6 @@ Query：`page`（默认 1）、`size`（默认 20，最大 100）、`status`（�
 
 ## 手工测试
 
-- [`http/upload.ts`](http/upload.ts) — prepare → chunk → bind hash → finalize → 列表 / asset 下载
+- [`scripts/upload.ts`](../../../scripts/upload.ts) — prepare → chunk → bind hash → finalize → 列表 / asset 下载
 - [`http/upload.http`](http/upload.http)
 - [`http/03-upload.http`](../../../http/03-upload.http)

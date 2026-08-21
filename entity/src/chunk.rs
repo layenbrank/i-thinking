@@ -6,7 +6,7 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    #[sea_orm(column_name = "assetId", indexed)]
+    #[sea_orm(column_name = "assetID", indexed)]
     pub asset_id: Uuid,
     /// 分片序号（从 0 开始）
     pub index: i32,
