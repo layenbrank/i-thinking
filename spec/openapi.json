@@ -436,7 +436,7 @@
           "Upload"
         ],
         "summary": "上传分片",
-        "description": "multipart/form-data 上传单个分片。需要 JWT 鉴权。",
+        "description": "multipart：id / index / hash / chunk(可选)。分片按 SHA-256 写入全局 CAS（单副本）；若 CAS 已有该 hash 则零拷贝复用（reused=true），可不传 chunk 字节。需要 JWT。",
         "operationId": "upload.chunk",
         "requestBody": {
           "content": {
@@ -473,7 +473,7 @@
           "Upload"
         ],
         "summary": "访问已上传文件",
-        "description": "通过文件 hash 下载，无需 JWT（公开访问）。",
+        "description": "按文件 hash 下载。服务端按分片顺序流式拼接 CAS 对象为单一响应体（客户端一次落盘即为完整文件）。需要 JWT。",
         "operationId": "upload.serveFile",
         "parameters": [
           {
@@ -497,7 +497,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
       }
     },
     "/api/v1/upload/finalize": {
@@ -506,7 +511,7 @@
           "Upload"
         ],
         "summary": "完成上传",
-        "description": "合并所有分片并完成上传。需要 JWT 鉴权。",
+        "description": "校验全部分片齐全且按序流式计算的整文件 SHA-256 与绑定 hash 一致；**不合并落盘**。下载时按序流式输出各 CAS 分片。需要 JWT。",
         "operationId": "upload.finalize",
         "requestBody": {
           "content": {
@@ -537,13 +542,50 @@
         ]
       }
     },
+    "/api/v1/upload/hash": {
+      "patch": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "绑定整文件哈希",
+        "description": "为已创建的上传会话补绑整文件 SHA-256。若库中已有同 hash 完成文件则返回 exists=true（秒传）。需要 JWT。",
+        "operationId": "upload.bindHash",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HashP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/api/v1/upload/prepare": {
       "post": {
         "tags": [
           "Upload"
         ],
         "summary": "初始化上传",
-        "description": "创建上传会话，返回 upload id 与已上传分片列表。需要 JWT 鉴权。",
+        "description": "创建上传会话。`hash` 可选：省略时可立刻开始传分片，稍后再 PATCH /upload/hash。若提供 hash 且文件已完成则秒传（exists=true）；若同用户有未完成会话则返回已传分片（断点续传）。需要 JWT。",
         "operationId": "upload.prepare",
         "requestBody": {
           "content": {
@@ -955,6 +997,8 @@
         "required": [
           "id",
           "username",
+          "role",
+          "status",
           "createdAt",
           "updatedAt"
         ],
@@ -964,6 +1008,12 @@
             "format": "int64"
           },
           "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "status": {
             "type": "string"
           },
           "updatedAt": {
@@ -1003,6 +1053,7 @@
         "required": [
           "success",
           "index",
+          "reused",
           "message"
         ],
         "properties": {
@@ -1013,6 +1064,10 @@
           },
           "message": {
             "type": "string"
+          },
+          "reused": {
+            "type": "boolean",
+            "description": "分片内容已在 CAS 中，本次未写入新字节"
           },
           "success": {
             "type": "boolean"
@@ -1061,14 +1116,22 @@
         "required": [
           "id",
           "index",
-          "file"
+          "hash"
         ],
         "properties": {
-          "file": {
-            "type": "string",
+          "chunk": {
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "binary",
-            "description": "二进制分片文件",
+            "description": "分片二进制；CAS 已存在时可省略（分片秒传）",
             "contentMediaType": "application/octet-stream"
+          },
+          "hash": {
+            "type": "string",
+            "description": "分片 SHA-256（64 hex）",
+            "example": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
           },
           "id": {
             "type": "string",
@@ -1285,6 +1348,53 @@
           "FEMALE"
         ]
       },
+      "HashP": {
+        "type": "object",
+        "required": [
+          "id",
+          "hash"
+        ],
+        "properties": {
+          "hash": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "HashR": {
+        "type": "object",
+        "required": [
+          "id",
+          "exists",
+          "chunks",
+          "uploaded"
+        ],
+        "properties": {
+          "chunks": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          "exists": {
+            "type": "boolean",
+            "description": "整文件已存在（秒传）"
+          },
+          "id": {
+            "type": "string"
+          },
+          "uploaded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UploadedChunk"
+            }
+          }
+        }
+      },
       "Health": {
         "type": "object",
         "description": "健康检查 data 字段",
@@ -1403,7 +1513,6 @@
         "required": [
           "name",
           "size",
-          "hash",
           "mime",
           "chunk"
         ],
@@ -1414,7 +1523,11 @@
             "minimum": 0
           },
           "hash": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "整文件 SHA-256；可省略，稍后再 `PATCH /upload/hash` 绑定"
           },
           "mime": {
             "type": "string"
@@ -1435,6 +1548,7 @@
           "id",
           "exists",
           "chunks",
+          "uploaded",
           "url"
         ],
         "properties": {
@@ -1444,13 +1558,21 @@
               "type": "integer",
               "format": "int32",
               "minimum": 0
-            }
+            },
+            "description": "已上传分片索引（兼容旧客户端）"
           },
           "exists": {
             "type": "boolean"
           },
           "id": {
             "type": "string"
+          },
+          "uploaded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UploadedChunk"
+            },
+            "description": "已上传分片及 hash（续传对比 / 分片秒传）"
           },
           "url": {
             "type": "string"
@@ -1533,6 +1655,8 @@
         "required": [
           "id",
           "username",
+          "role",
+          "status",
           "createdAt",
           "updatedAt"
         ],
@@ -1586,6 +1710,12 @@
               "null"
             ]
           },
+          "role": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
           "updatedAt": {
             "type": "integer",
             "format": "int64"
@@ -1601,6 +1731,7 @@
           "id",
           "progress",
           "chunks",
+          "uploaded",
           "total",
           "status"
         ],
@@ -1627,6 +1758,12 @@
             "type": "integer",
             "format": "int32",
             "minimum": 0
+          },
+          "uploaded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UploadedChunk"
+            }
           }
         }
       },
@@ -2112,11 +2249,59 @@
               "null"
             ]
           },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "username": {
             "type": [
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "UploadHashEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HashR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -2202,6 +2387,24 @@
           "EXPIRED"
         ]
       },
+      "UploadedChunk": {
+        "type": "object",
+        "description": "已上传分片（含 hash，供续传对比与分片秒传）",
+        "required": [
+          "index",
+          "hash"
+        ],
+        "properties": {
+          "hash": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
       "UserEnvelope": {
         "type": "object",
         "required": [
@@ -2278,6 +2481,8 @@
         "required": [
           "id",
           "username",
+          "role",
+          "status",
           "createdAt",
           "updatedAt"
         ],
@@ -2331,6 +2536,12 @@
               "string",
               "null"
             ]
+          },
+          "role": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
           },
           "updatedAt": {
             "type": "integer",

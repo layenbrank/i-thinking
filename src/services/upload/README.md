@@ -59,17 +59,19 @@
 
 finalize **不会**生成整文件；下载时服务端按 `chunkHashes` 顺序读 CAS 写入同一 HTTP 响应（`Content-Length` = `size`），浏览器/客户端一次保存即为完整文件。
 
+**CAS 回收**：本阶段不做自动 GC。`cas/{sha256}` 会随分片秒传长期保留以节省重复上传带宽与空间；后续可按引用计数（扫描 `metadata.chunkHashes`）或孤儿扫描清理无引用对象，避免磁盘无限增长。
+
 ## 推荐前端交互
 
-1. 选文件后**立刻** `prepare`（可不带 hash），本地持久化 `uploadId`。
-2. Worker 并行计算各 chunk hash 与整文件 hash；UI 分「校验进度」与「上传进度」。
+1. 选文件后**立刻** `prepare`（可不带 hash），本地用 IndexedDB/localStorage 持久化 `(fingerprint → uploadId)`（fingerprint 可用 `name+size+lastModified`）。
+2. Worker 并行计算各 chunk hash 与整文件 hash；UI 分「校验/指纹进度」与「上传进度」两条。
 3. 每个 chunk hash 就绪即可 `POST /chunk`；若服务端/本地已知 CAS 可命中，可不带 `chunk` 字节（分片秒传）。
 4. 整文件 hash 就绪后 `PATCH /hash`：若 `exists` → 停止队列并提示秒传。
-5. 刷新后续传：用 `uploadId` 调 `progress`，对比 `uploaded[].hash`，一致则跳过。
+5. 刷新/断网续传：以**服务端** `progress` / `uploaded[{index,hash}]` 为准（本地缓存仅辅助找回 `uploadId`）；hash 一致则跳过，不一致则强制重传该片。
 6. 全部就绪后 `finalize`，再按返回 `url` 下载。
+7. 小文件（如 &lt; 8MB）可仍先算 hash 再 prepare，以尽早命中文件秒传。
 
-并发建议 3–4；小文件可仍先算 hash 再 prepare 以尽早文件秒传。
-
+并发建议 3–4。
 ## 实现架构
 
 ```
