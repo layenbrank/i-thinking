@@ -1,9 +1,9 @@
-/target
-/chunks
-/cas
-/uploads
-/logs
-/data
+/target/
+/chunks/
+/cas/
+/uploads/
+/logs/
+/data/
 
 # Python
 __pycache__/

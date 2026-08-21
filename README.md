@@ -41,6 +41,9 @@ cargo run -p migration -- up
 # 开发环境（含 Swagger UI）
 cargo run --bin service --features openapi
 
+# 热重载（务必忽略运行时目录，否则写入 cas/ 会杀进程 → 客户端 ECONNRESET）
+cargo watch -i cas -i cas/** -i chunks -i chunks/** -i logs -i logs/** -i data -i data/** -i uploads -i uploads/** -x "run --bin service --features openapi"
+
 # 生产构建（不含 Swagger UI）
 cargo run --bin service --release
 ```
