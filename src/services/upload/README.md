@@ -9,10 +9,11 @@
 | 能力 | 说明 |
 |------|------|
 | 异步 hash | `prepare` 可不传整文件 hash，稍后 `PATCH /hash` |
-| 文件秒传 | 同 SHA-256 已 COMPLETED → `exists: true` |
-| 分片秒传 | 分片写入全局 `cas/{sha256}` 单副本；命中则 `reused: true`，**零拷贝** |
+| 文件秒传 | 全局按 SHA-256 去重；命中后为**当前用户**克隆 COMPLETED 记录（共享 CAS） |
+| 分片秒传 | 分片写入全局 `cas/{sha256}` 单副本；任意用户 hash 命中即可 `reused`（零拷贝） |
 | 断点续传 | 返回 `uploaded[{index,hash}]`；同 hash+用户恢复 PENDING/UPLOADING |
 | 不合并落盘 | finalize 只校验；下载时按序流式输出分片，客户端一次收到完整文件 |
+| 下载隔离 | `GET /files/{hash}` 仅 **creator** 可下载自己的完成件 |
 
 ## 路由一览
 
@@ -24,7 +25,7 @@
 | POST   | `/api/v1/upload/finalize`      | JWT    | 校验完成（不合并）            |
 | GET    | `/api/v1/upload/progress/{id}` | JWT    | 查询进度                      |
 | DELETE | `/api/v1/upload/cancel/{id}`   | JWT    | 取消上传                      |
-| GET    | `/api/v1/upload/files/{hash}`  | JWT    | 按序流式下载完整文件          |
+| GET    | `/api/v1/upload/files/{hash}`  | JWT    | 流式下载（仅本人资产）        |
 
 ## 鉴权说明
 
@@ -32,7 +33,8 @@
 
 `prepare` 从 JWT `Claims.sub` 写入 `asset.creator`。  
 `chunk` / `hash` / `finalize` / `progress` / `cancel` 校验归属。  
-`GET /files/{hash}` 需登录。
+`GET /files/{hash}` 需登录，且只返回 **当前用户** 的 COMPLETED 资产（文件秒传会为命中用户克隆记录，故秒传后仍可下载）。  
+分片 CAS 仍为**全局**共享（策略 1A）；整文件下载按 creator 隔离（策略 2B）。
 
 ## 数据表 — asset
 
@@ -151,7 +153,8 @@ multipart 字段：`id`、`index`、`hash`、`chunk`（CAS 已存在时可省略
 
 ### GET /api/v1/upload/files/{hash}
 
-流式拼接分片；`Content-Disposition: attachment`。
+流式拼接分片；`Content-Disposition: attachment`。  
+仅当存在 `creator = 当前用户` 且 `status = COMPLETED` 的同 hash 资产时成功；否则 文件不存在。
 
 ## 手工测试
 

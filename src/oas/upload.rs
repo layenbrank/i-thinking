@@ -12,7 +12,8 @@ use super::common::{
     operation_id = "upload.prepare",
     summary = "初始化上传",
     description = "创建上传会话。`hash` 可选：省略时可立刻开始传分片，稍后再 PATCH /upload/hash。\
-        若提供 hash 且文件已完成则秒传（exists=true）；若同用户有未完成会话则返回已传分片（断点续传）。需要 JWT。",
+        若提供 hash：本人已完成则秒传；他人已完成则全局秒传并为当前用户克隆 COMPLETED 记录（共享 CAS）；\
+        同用户有未完成会话则返回已传分片（断点续传）。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body = crate::services::upload::schema::PrepareP,
     responses(
@@ -118,7 +119,8 @@ pub fn cancel_upload_doc() {}
     tag = "Upload",
     operation_id = "upload.serveFile",
     summary = "访问已上传文件",
-    description = "按文件 hash 下载。服务端按分片顺序流式拼接 CAS 对象为单一响应体（客户端一次落盘即为完整文件）。需要 JWT。",
+    description = "按文件 hash 下载。仅当前用户自己的 COMPLETED 资产可读；\
+        服务端按分片顺序流式拼接 CAS。文件秒传（全局去重）会为命中用户克隆一条记录，因此秒传后本人仍可下载。需要 JWT。",
     security(("bearer_auth" = [])),
     params(
         ("hash" = String, Path, description = "文件 SHA-256 hash")

@@ -152,9 +152,12 @@ impl UploadController {
         path: web::Path<String>,
         req: HttpRequest,
     ) -> Result<HttpResponse> {
+        let Some(claims) = req.extensions().get::<Claims>().cloned() else {
+            return Exception::unauthorized("用户未登录").transform();
+        };
         let hash = path.into_inner();
 
-        match UploadService::find_file_by_hash(&db, &hash).await {
+        match UploadService::find_file_for_download(&db, &hash, &claims.sub).await {
             Ok(Some(asset)) => {
                 // 优先：CAS 分片流式拼接（无整文件落盘）
                 if let Ok(chunk_hashes) = repository::ordered_chunk_hashes(&asset) {

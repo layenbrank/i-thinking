@@ -20,7 +20,20 @@ impl UploadService {
         validation::validate_prepare(&req)?;
 
         if let Some(hash) = normalize_hash(req.hash.as_deref()) {
+            // 本人已完成 → 直接秒传
+            if let Some(creator_id) = creator.as_deref() {
+                if let Some(mine) = repository::find_completed_owned(db, hash, creator_id).await? {
+                    return Ok(repository::prepare_response(&mine, true));
+                }
+            }
+
+            // 他人已完成 → 全局秒传：为当前用户克隆 COMPLETED 记录（共享 CAS，不拷贝）
             if let Some(existing) = repository::find_completed(db, hash).await? {
+                if let Some(creator_id) = creator.as_deref() {
+                    let cloned =
+                        repository::clone_completed_for(db, &existing, creator_id).await?;
+                    return Ok(repository::prepare_response(&cloned, true));
+                }
                 return Ok(repository::prepare_response(&existing, true));
             }
 
@@ -49,12 +62,25 @@ impl UploadService {
         let asset = Self::load_owned(db, &req.id, user_id).await?;
         validation::validate_status(&asset)?;
 
-        if let Some(existing) = repository::find_completed(db, &req.hash).await? {
-            // 文件秒传：归档当前会话，客户端应改用返回的 id
+        // 本人已有完成件
+        if let Some(mine) = repository::find_completed_owned(db, &req.hash, user_id).await? {
             repository::mark_failed(db, asset).await?;
-            let uploaded = repository::uploaded_list(&existing);
+            let uploaded = repository::uploaded_list(&mine);
             return Ok(HashR {
-                id: existing.id.to_string(),
+                id: mine.id.to_string(),
+                exists: true,
+                chunks: uploaded.iter().map(|c| c.index).collect(),
+                uploaded,
+            });
+        }
+
+        // 全局已有完成件 → 克隆给当前用户后秒传
+        if let Some(existing) = repository::find_completed(db, &req.hash).await? {
+            repository::mark_failed(db, asset).await?;
+            let cloned = repository::clone_completed_for(db, &existing, user_id).await?;
+            let uploaded = repository::uploaded_list(&cloned);
+            return Ok(HashR {
+                id: cloned.id.to_string(),
                 exists: true,
                 chunks: uploaded.iter().map(|c| c.index).collect(),
                 uploaded,
@@ -203,6 +229,15 @@ impl UploadService {
         hash: &str,
     ) -> Result<Option<asset::Model>, UploadError> {
         repository::find_file_by_hash(db, hash).await
+    }
+
+    /// 下载：仅当前用户自己的 COMPLETED 资产。
+    pub async fn find_file_for_download(
+        db: &Storage,
+        hash: &str,
+        user_id: &str,
+    ) -> Result<Option<asset::Model>, UploadError> {
+        repository::find_file_for_download(db, hash, user_id).await
     }
 
     /// 校验会话归属并返回 asset。

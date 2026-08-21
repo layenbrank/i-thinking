@@ -35,11 +35,40 @@ pub async fn find_completed(db: &Storage, hash: &str) -> Result<Option<asset::Mo
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
+/// 当前用户自己的已完成文件（下载 / 本人秒传复用）。
+pub async fn find_completed_owned(
+    db: &Storage,
+    hash: &str,
+    creator: &str,
+) -> Result<Option<asset::Model>, UploadError> {
+    if normalize_hash(Some(hash)).is_none() {
+        return Ok(None);
+    }
+    let creator = UploadError::parse_user_id(creator)?;
+    asset::Entity::find()
+        .filter(asset::Column::Hash.eq(hash))
+        .filter(asset::Column::Creator.eq(creator))
+        .filter(asset::Column::Status.eq(UploadStatus::Completed.as_str()))
+        .filter(asset::Column::ArchivedAt.is_null())
+        .one(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))
+}
+
 pub async fn find_file_by_hash(
     db: &Storage,
     hash: &str,
 ) -> Result<Option<asset::Model>, UploadError> {
     find_completed(db, hash).await
+}
+
+/// 供下载：仅返回当前用户已完成的同 hash 资产。
+pub async fn find_file_for_download(
+    db: &Storage,
+    hash: &str,
+    user_id: &str,
+) -> Result<Option<asset::Model>, UploadError> {
+    find_completed_owned(db, hash, user_id).await
 }
 
 pub async fn find_pending(
@@ -132,6 +161,41 @@ pub async fn insert(db: &Storage, record: asset::ActiveModel) -> Result<asset::M
         .insert(&db.db)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
+}
+
+/// 全局秒传命中后，为当前用户落一条 COMPLETED 记录（共享 CAS / metadata，不拷贝字节）。
+/// 这样「秒传全局 + 下载仅 creator」可以同时成立。
+pub async fn clone_completed_for(
+    db: &Storage,
+    source: &asset::Model,
+    creator: &str,
+) -> Result<asset::Model, UploadError> {
+    let creator = UploadError::parse_user_id(creator)?;
+    let now = Utc::now().fixed_offset();
+    let record = asset::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        kind: Set(source.kind.clone()),
+        hash: Set(source.hash.clone()),
+        sha: Set(source.sha.clone()),
+        size: Set(source.size),
+        mime: Set(source.mime.clone()),
+        extension: Set(source.extension.clone()),
+        name: Set(source.name.clone()),
+        path: Set(None),
+        metadata: Set(source.metadata.clone()),
+        status: Set(UploadStatus::Completed.as_str().to_string()),
+        chunk: Set(source.chunk),
+        total: Set(source.total),
+        chunks: Set(source.chunks.clone()),
+        archived_at: Set(None),
+        created_at: Set(now),
+        creator: Set(Some(creator)),
+        updated_at: Set(now),
+        updater: Set(Some(creator)),
+        expires_at: Set(None),
+        ..Default::default()
+    };
+    insert(db, record).await
 }
 
 fn parse_meta(raw: &Option<String>) -> AssetMeta {
