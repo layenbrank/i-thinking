@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 
 pub use crate::guards::permission::{Role, Status};
 
-const FILE_URL_PREFIX: &str = "/api/v1/upload/files";
+const ASSET_URL_PREFIX: &str = "/api/v1/upload/asset";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -44,7 +44,7 @@ impl From<asset::Model> for Avatar {
     fn from(asset: asset::Model) -> Self {
         Self {
             id: asset.id.to_string(),
-            url: format!("{FILE_URL_PREFIX}/{}", asset.hash),
+            url: format!("{ASSET_URL_PREFIX}/{}", asset.id),
             mime: asset.mime,
             name: asset.name,
         }

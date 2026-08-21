@@ -1,7 +1,7 @@
 # ============================================================
 # 上传模块 /api/v1/upload
 # 鉴权: Bearer JWT（全路由需登录）
-# 流程: signin → prepare(可无 hash) → chunk → PATCH hash → finalize → GET files/{hash}
+# 流程: signin → prepare(可无 hash) → chunk → PATCH hash → finalize → GET files / asset/{id}
 # ============================================================
 
 @host = http://127.0.0.1:3000
@@ -95,7 +95,17 @@ DELETE {{host}}/api/v1/upload/cancel/{{uploadId}}
 Authorization: Bearer {{token}}
 Accept: application/json
 
-### GET /api/v1/upload/files/{hash} — 流式下载完整文件
+### GET /api/v1/upload/files — 本人文件列表（分页）
+GET {{host}}/api/v1/upload/files?page=1&size=20
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET /api/v1/upload/asset/{id} — 按资产 id 流式下载
+GET {{host}}/api/v1/upload/asset/{{uploadId}}
+Authorization: Bearer {{token}}
+Accept: application/octet-stream
+
+### GET /api/v1/upload/files/{hash} — 按 hash 流式下载
 GET {{host}}/api/v1/upload/files/{{fileHash}}
 Authorization: Bearer {{token}}
 Accept: application/octet-stream

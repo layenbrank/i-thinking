@@ -38,7 +38,7 @@ impl UploadStatus {
 }
 
 #[cfg(test)]
-mod tests {
+mod status_tests {
     use super::UploadStatus;
 
     #[test]
@@ -78,9 +78,7 @@ pub struct PrepareP {
 pub struct PrepareR {
     pub id: String,
     pub exists: bool,
-    /// 已上传分片索引（兼容旧客户端）
     pub chunks: Vec<u32>,
-    /// 已上传分片及 hash（续传对比 / 分片秒传）
     pub uploaded: Vec<UploadedChunk>,
     pub url: String,
 }
@@ -96,7 +94,6 @@ pub struct HashP {
 #[serde(rename_all = "camelCase")]
 pub struct HashR {
     pub id: String,
-    /// 整文件已存在（秒传）
     pub exists: bool,
     pub chunks: Vec<u32>,
     pub uploaded: Vec<UploadedChunk>,
@@ -135,4 +132,63 @@ pub struct ProgressR {
     pub uploaded: Vec<UploadedChunk>,
     pub total: u32,
     pub status: UploadStatus,
+}
+
+/// 本人文件列表查询
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesP {
+    /// 页码，从 1 开始，默认 1
+    #[serde(default)]
+    pub page: Option<u32>,
+    /// 每页条数，默认 20，最大 100
+    #[serde(default)]
+    pub size: Option<u32>,
+    /// 状态过滤；默认只返回 COMPLETED
+    #[serde(default)]
+    pub status: Option<UploadStatus>,
+}
+
+/// 列表中的资产摘要
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetR {
+    pub id: String,
+    pub name: String,
+    pub size: u64,
+    pub mime: String,
+    pub hash: String,
+    pub status: UploadStatus,
+    #[serde(rename = "createdAt")]
+    pub created_at: i64,
+    /// 按 id 下载：`/api/v1/upload/asset/{id}`
+    pub url: String,
+}
+
+/// 分页列表 data
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FilesR {
+    pub items: Vec<AssetR>,
+    pub count: u64,
+    pub page: u32,
+    pub size: u32,
+    pub total: u32,
+    pub next: bool,
+    pub prev: bool,
+}
+
+impl FilesR {
+    pub fn from_page(items: Vec<AssetR>, count: u64, page: u32, size: u32) -> Self {
+        let page_data = crate::interceptors::envelope::Paginated::new(items, count, page, size);
+        Self {
+            items: page_data.items,
+            count: page_data.count,
+            page: page_data.page,
+            size: page_data.size,
+            total: page_data.total,
+            next: page_data.next,
+            prev: page_data.prev,
+        }
+    }
 }

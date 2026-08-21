@@ -4,10 +4,10 @@ use crate::databases::database::Storage;
 use crate::services::upload::error::UploadError;
 use crate::services::upload::repository;
 use crate::services::upload::schema::{
-    ChunkR, FinalizeR, HashP, HashR, PrepareP, PrepareR, ProgressR, UploadStatus,
+    ChunkR, FilesP, FilesR, FinalizeR, HashP, HashR, PrepareP, PrepareR, ProgressR, UploadStatus,
 };
 use crate::services::upload::storage;
-use crate::services::upload::validation::{self, FILE_URL_PREFIX, normalize_hash};
+use crate::services::upload::validation::{self, normalize_hash};
 
 pub struct UploadService;
 
@@ -20,39 +20,34 @@ impl UploadService {
         validation::validate_prepare(&req)?;
 
         if let Some(hash) = normalize_hash(req.hash.as_deref()) {
-            // 本人已完成 → 直接秒传
             if let Some(creator_id) = creator.as_deref() {
                 if let Some(mine) = repository::find_completed_owned(db, hash, creator_id).await? {
-                    return Ok(repository::prepare_response(&mine, true));
+                    return repository::prepare_response(db, &mine, true).await;
                 }
             }
 
-            // 他人已完成 → 全局秒传：为当前用户克隆 COMPLETED 记录（共享 CAS，不拷贝）
             if let Some(existing) = repository::find_completed(db, hash).await? {
                 if let Some(creator_id) = creator.as_deref() {
                     let cloned =
                         repository::clone_completed_for(db, &existing, creator_id).await?;
-                    return Ok(repository::prepare_response(&cloned, true));
+                    return repository::prepare_response(db, &cloned, true).await;
                 }
-                return Ok(repository::prepare_response(&existing, true));
+                return repository::prepare_response(db, &existing, true).await;
             }
 
             if let Some(existing) =
                 repository::find_pending(db, hash, creator.as_deref()).await?
             {
-                return Ok(repository::prepare_response(&existing, false));
+                return repository::prepare_response(db, &existing, false).await;
             }
         }
 
         let record = repository::build_record(req, creator)?;
         let inserted = repository::insert(db, record).await?;
-        let id = inserted.id.to_string();
-        storage::prepare_chunk_dir(&id).await?;
-
-        Ok(repository::prepare_response(&inserted, false))
+        storage::ensure_cas_dir().await?;
+        repository::prepare_response(db, &inserted, false).await
     }
 
-    /// 补绑整文件 hash：可触发文件秒传，或关联同 hash 未完成会话。
     pub async fn bind_hash(
         db: &Storage,
         req: HashP,
@@ -62,10 +57,9 @@ impl UploadService {
         let asset = Self::load_owned(db, &req.id, user_id).await?;
         validation::validate_status(&asset)?;
 
-        // 本人已有完成件
         if let Some(mine) = repository::find_completed_owned(db, &req.hash, user_id).await? {
             repository::mark_failed(db, asset).await?;
-            let uploaded = repository::uploaded_list(&mine);
+            let uploaded = repository::uploaded_list(db, mine.id).await?;
             return Ok(HashR {
                 id: mine.id.to_string(),
                 exists: true,
@@ -74,11 +68,10 @@ impl UploadService {
             });
         }
 
-        // 全局已有完成件 → 克隆给当前用户后秒传
         if let Some(existing) = repository::find_completed(db, &req.hash).await? {
             repository::mark_failed(db, asset).await?;
             let cloned = repository::clone_completed_for(db, &existing, user_id).await?;
-            let uploaded = repository::uploaded_list(&cloned);
+            let uploaded = repository::uploaded_list(db, cloned.id).await?;
             return Ok(HashR {
                 id: cloned.id.to_string(),
                 exists: true,
@@ -95,9 +88,8 @@ impl UploadService {
 
         if let Some(pending) = repository::find_pending(db, &req.hash, Some(user_id)).await? {
             if pending.id != asset.id {
-                // 同用户同 hash 已有会话：归档当前会话并切到该会话续传
                 repository::mark_failed(db, asset).await?;
-                let uploaded = repository::uploaded_list(&pending);
+                let uploaded = repository::uploaded_list(db, pending.id).await?;
                 return Ok(HashR {
                     id: pending.id.to_string(),
                     exists: false,
@@ -108,7 +100,7 @@ impl UploadService {
         }
 
         let updated = repository::bind_hash(db, asset, &req.hash).await?;
-        let uploaded = repository::uploaded_list(&updated);
+        let uploaded = repository::uploaded_list(db, updated.id).await?;
         Ok(HashR {
             id: updated.id.to_string(),
             exists: false,
@@ -130,9 +122,8 @@ impl UploadService {
         validation::validate_hash_hex(hash)?;
         validation::expected_chunk_size(&asset, index)?;
 
-        let map = repository::chunk_hashes_map(&asset);
-        if asset.chunks.contains(&(index as i32)) {
-            if map.get(&index).is_some_and(|h| h == hash) {
+        if let Some(existing) = repository::find_chunk(db, asset.id, index).await? {
+            if existing.hash == hash {
                 return Ok(ChunkR {
                     success: true,
                     index,
@@ -145,7 +136,7 @@ impl UploadService {
             )));
         }
 
-        let reused = if storage::cas_exists(hash).await {
+        let (reused, size) = if storage::cas_exists(hash).await {
             let len = storage::cas_len(hash).await? as usize;
             validation::validate_chunk_size(&asset, index, len)?;
             if let Some(ref bytes) = data {
@@ -155,7 +146,7 @@ impl UploadService {
                     validation::validate_chunk_size(&asset, index, bytes.len())?;
                 }
             }
-            true
+            (true, len as i64)
         } else {
             let Some(bytes) = data.filter(|b| !b.is_empty()) else {
                 return Err(UploadError::BadRequest(
@@ -164,10 +155,11 @@ impl UploadService {
             };
             let calculated = storage::calculate_hash(&bytes);
             validation::validate_chunk(&asset, index, &bytes, hash, &calculated)?;
-            storage::store_cas(hash, &bytes).await?
+            let reused = storage::store_cas(hash, &bytes).await?;
+            (reused, bytes.len() as i64)
         };
 
-        repository::append_chunk(db, asset, index, hash).await?;
+        repository::upsert_chunk(db, &asset, index, hash, size, Some(user_id)).await?;
 
         Ok(ChunkR {
             success: true,
@@ -183,29 +175,28 @@ impl UploadService {
 
     pub async fn finalize(db: &Storage, id: &str, user_id: &str) -> Result<FinalizeR, UploadError> {
         let asset = Self::load_owned(db, id, user_id).await?;
-        validation::validate_completion(&asset)?;
-        let chunk_hashes = repository::ordered_chunk_hashes(&asset)?;
+        let uploaded = repository::count_chunks(db, asset.id).await?;
+        validation::validate_completion(&asset, uploaded)?;
+        let chunk_hashes = repository::ordered_chunk_hashes(db, &asset).await?;
         storage::ensure_cas_present(&chunk_hashes).await?;
         let sha = storage::verify_chunks_integrity(&chunk_hashes, &asset.hash).await?;
         repository::mark_completed(db, &asset, &sha).await?;
-        // 仅清理旧式会话目录；CAS 分片保留供秒传与流式下载
-        storage::cleanup_chunks(id).await?;
 
         Ok(FinalizeR {
             success: true,
-            url: format!("{}/{}", FILE_URL_PREFIX, asset.hash),
+            url: repository::file_url_by_id(&asset.id),
             id: id.to_string(),
         })
     }
 
     pub async fn progress(db: &Storage, id: &str, user_id: &str) -> Result<ProgressR, UploadError> {
         let asset = Self::load_owned(db, id, user_id).await?;
+        let uploaded = repository::uploaded_list(db, asset.id).await?;
         let progress = if asset.total == 0 {
             0.0
         } else {
-            asset.chunks.len() as f64 / asset.total as f64 * 100.0
+            uploaded.len() as f64 / asset.total as f64 * 100.0
         };
-        let uploaded = repository::uploaded_list(&asset);
 
         Ok(ProgressR {
             id: id.to_string(),
@@ -220,18 +211,21 @@ impl UploadService {
     pub async fn cancel(db: &Storage, id: &str, user_id: &str) -> Result<(), UploadError> {
         let asset = Self::load_owned(db, id, user_id).await?;
         repository::mark_failed(db, asset).await?;
-        storage::cleanup_chunks(id).await?;
         Ok(())
     }
 
-    pub async fn find_file_by_hash(
+    pub async fn toRead_files(
         db: &Storage,
-        hash: &str,
-    ) -> Result<Option<asset::Model>, UploadError> {
-        repository::find_file_by_hash(db, hash).await
+        user_id: &str,
+        query: FilesP,
+    ) -> Result<FilesR, UploadError> {
+        let page = query.page.unwrap_or(1).max(1);
+        let size = query.size.unwrap_or(20).clamp(1, 100);
+        let (items, count) =
+            repository::list_owned(db, user_id, page, size, query.status.as_ref()).await?;
+        Ok(FilesR::from_page(items, count, page, size))
     }
 
-    /// 下载：仅当前用户自己的 COMPLETED 资产。
     pub async fn find_file_for_download(
         db: &Storage,
         hash: &str,
@@ -240,17 +234,25 @@ impl UploadService {
         repository::find_file_for_download(db, hash, user_id).await
     }
 
-    /// 校验会话归属并返回 asset。
-    ///
-    /// 旧版曾按 `chunks/{id}` 磁盘目录回写 `chunks` 列；新流程以
-    /// `metadata.chunkHashes` + CAS 为准，不再用磁盘索引覆盖 DB，
-    /// 以免出现「chunks 有 index 但缺 hash」的分裂状态。
-    pub async fn sync_chunks(
+    pub async fn find_owned_asset(
         db: &Storage,
         id: &str,
         user_id: &str,
     ) -> Result<asset::Model, UploadError> {
-        Self::load_owned(db, id, user_id).await
+        let asset = Self::load_owned(db, id, user_id).await?;
+        if UploadStatus::from_db(&asset.status) != UploadStatus::Completed {
+            return Err(UploadError::BadRequest("文件尚未完成上传".into()));
+        }
+        Ok(asset)
+    }
+
+    pub async fn stream_hashes_for_asset(
+        db: &Storage,
+        asset: &asset::Model,
+    ) -> Result<Vec<String>, UploadError> {
+        let hashes = repository::ordered_chunk_hashes(db, asset).await?;
+        storage::ensure_cas_present(&hashes).await?;
+        Ok(hashes)
     }
 
     async fn load_owned(

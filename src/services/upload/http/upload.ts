@@ -1,7 +1,7 @@
 /**
  * Upload API 端到端测试（Node fetch + TS）
  *
- * 流程：signin → prepare(无 hash) → chunk(s) → PATCH hash → progress → finalize → download
+ * 流程：signin → prepare(无 hash) → chunk(s) → PATCH hash → progress → finalize → 列表 → asset 下载
  * 演示：先开会话再算/传 hash；分片 CAS 秒传（第二轮 reused）；断点跳过。
  *
  * 用法：
@@ -140,6 +140,29 @@ declare namespace Upload {
       status: string
     }
   }
+
+  namespace Files {
+    export interface Asset {
+      id: string
+      name: string
+      size: number
+      mime: string
+      hash: string
+      status: string
+      createdAt: number
+      url: string
+    }
+
+    export interface Response {
+      items: Asset[]
+      count: number
+      page: number
+      size: number
+      total: number
+      next: boolean
+      prev: boolean
+    }
+  }
 }
 
 type TokenContext = { token?: string }
@@ -267,6 +290,13 @@ function GET_PROGRESS(id: string) {
 function GET_FILES(pathOrUrl: string) {
   const path = pathOrUrl.startsWith('http') ? new URL(pathOrUrl).pathname : pathOrUrl
   return http.getBuffer(path, { context: AUTH_TOKEN })
+}
+
+function GET_FILE_LIST(page = 1, size = 20) {
+  return http.get<RSF<Upload.Files.Response>>(
+    `/api/v1/upload/files?page=${page}&size=${size}`,
+    { context: AUTH_TOKEN }
+  )
 }
 
 function sha256Hex(buf: Buffer) {
@@ -428,7 +458,16 @@ async function runOnce(
   logStep('finalize', 'POST /upload/finalize（不合并落盘）')
   const finalized = assertOk('finalize', await POST_FINALIZE({ id: prepare.id }))
 
-  logStep('download', '流式拼接下载 ' + finalized.url)
+  logStep('list', 'GET /upload/files')
+  const listed = assertOk('list', await GET_FILE_LIST(1, 20))
+  const hit = listed.items.find((item) => item.id === finalized.id)
+  if (!hit) {
+    console.error('✗ list 未包含刚完成的资产', { id: finalized.id, count: listed.count })
+    process.exit(1)
+  }
+  console.log(`✓ list hit`, { id: hit.id, url: hit.url })
+
+  logStep('download', '按 asset id 流式下载 ' + finalized.url)
   const downloaded = await GET_FILES(finalized.url)
   const downloadedHash = sha256Hex(downloaded)
   if (downloadedHash !== fileHash || downloaded.length !== buffer.length) {

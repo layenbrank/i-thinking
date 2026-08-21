@@ -19,16 +19,12 @@ pub struct Model {
     pub extension: Option<String>,
     #[sea_orm(column_type = "Text")]
     pub name: String,
-    #[sea_orm(column_type = "Text", nullable)]
-    pub path: Option<String>,
-    #[sea_orm(column_type = "Text", nullable)]
-    pub metadata: Option<String>,
     #[sea_orm(column_type = "Text")]
     pub status: String,
+    /// 分片大小（字节）
     pub chunk: i32,
+    /// 分片总数
     pub total: i32,
-    #[sea_orm(default_value = "{}")]
-    pub chunks: Vec<i32>,
     #[sea_orm(column_name = "archivedAt", nullable)]
     pub archived_at: Option<DateTimeWithTimeZone>,
     #[sea_orm(column_name = "createdAt")]
@@ -58,6 +54,8 @@ pub struct Model {
         on_delete = "SetNull"
     )]
     pub updated_by: HasOne<super::auth::Entity>,
+    #[sea_orm(has_many)]
+    pub chunks: HasMany<super::chunk::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

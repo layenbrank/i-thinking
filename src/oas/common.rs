@@ -6,7 +6,7 @@ use crate::services::{
     auth::schema::{AuthR, Avatar, ProfileR, SigninR, SignupR},
     engine::schema::SuggestionR,
     search::schema::{SearchR, WriteR as SearchWriteR},
-    upload::schema::{ChunkR, FinalizeR, HashR, PrepareR, ProgressR},
+    upload::schema::{ChunkR, FilesR, FinalizeR, HashR, PrepareR, ProgressR},
     user::schema::UserR,
 };
 
@@ -37,6 +37,7 @@ envelope!(UploadHashEnvelope, HashR);
 envelope!(ChunkUploadEnvelope, ChunkR);
 envelope!(FinalizeUploadEnvelope, FinalizeR);
 envelope!(UploadProgressEnvelope, ProgressR);
+envelope!(UploadFilesEnvelope, FilesR);
 envelope!(SuggestionEnvelope, SuggestionR);
 envelope!(ApplicationEnvelope, App);
 envelope!(SearchWriteEnvelope, SearchWriteR);

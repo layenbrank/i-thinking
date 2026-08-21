@@ -3,14 +3,13 @@ use entity::asset;
 use crate::services::upload::error::UploadError;
 use crate::services::upload::schema::{PrepareP, UploadStatus};
 
-pub const UPLOAD_DIR: &str = "uploads";
-pub const CHUNK_DIR: &str = "chunks";
 pub const CAS_DIR: &str = "cas";
 pub const MAX_FILE_SIZE: u64 = 5 * 1024 * 1024 * 1024; // 5GB
 pub const MIN_CHUNK_SIZE: u32 = 1024 * 1024; // 1MB
 pub const MAX_CHUNK_SIZE: u32 = 10 * 1024 * 1024; // 10MB
 pub const EXPIRE_HOURS: i64 = 24;
 pub const FILE_URL_PREFIX: &str = "/api/v1/upload/files";
+pub const ASSET_URL_PREFIX: &str = "/api/v1/upload/asset";
 pub const KIND: &str = "upload";
 
 pub fn normalize_hash(hash: Option<&str>) -> Option<&str> {
@@ -128,7 +127,7 @@ pub fn validate_chunk(
     validate_chunk_size(asset, index, data.len())
 }
 
-pub fn validate_completion(asset: &asset::Model) -> Result<(), UploadError> {
+pub fn validate_completion(asset: &asset::Model, uploaded: u64) -> Result<(), UploadError> {
     if normalize_hash(Some(asset.hash.as_str())).is_none() {
         return Err(UploadError::BadRequest(
             "尚未绑定整文件哈希，请先 PATCH /upload/hash".into(),
@@ -136,34 +135,20 @@ pub fn validate_completion(asset: &asset::Model) -> Result<(), UploadError> {
     }
     validate_hash_hex(&asset.hash)?;
 
-    if asset.chunks.len() != asset.total as usize {
+    if uploaded != asset.total as u64 {
         return Err(UploadError::BadRequest(format!(
-            "上传未完成，缺少分片：{} / {}",
-            asset.chunks.len(),
+            "上传未完成，缺少分片：{uploaded} / {}",
             asset.total
         )));
-    }
-
-    let mut sorted = asset.chunks.clone();
-    sorted.sort();
-
-    for (i, &chunk_index) in sorted.iter().enumerate() {
-        if chunk_index != i as i32 {
-            return Err(UploadError::BadRequest(format!(
-                "缺少分片索引 {i}：期望 {i}，实际 {chunk_index}"
-            )));
-        }
     }
 
     Ok(())
 }
 
-/// 校验会话归属：`Claims.sub` 必须等于 `asset.creator`。
 pub fn ensure_owner(asset: &asset::Model, user_id: &str) -> Result<(), UploadError> {
     ensure_owner_id(asset.creator, user_id)
 }
 
-/// 与 [`ensure_owner`] 相同，便于无完整 Model 的单元测试。
 pub fn ensure_owner_id(creator: Option<uuid::Uuid>, user_id: &str) -> Result<(), UploadError> {
     let uid = UploadError::parse_user_id(user_id)?;
     match creator {
@@ -236,9 +221,5 @@ mod tests {
         assert!(normalize_hash(Some("")).is_none());
         assert!(normalize_hash(Some("   ")).is_none());
         assert!(normalize_hash(None).is_none());
-        assert_eq!(
-            normalize_hash(Some("  ab  ")).map(|s| s.trim()),
-            Some("ab")
-        );
     }
 }

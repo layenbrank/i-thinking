@@ -15,6 +15,7 @@ impl MigrationTrait for Migration {
             .drop_table(
                 Table::drop()
                     .if_exists()
+                    .table(Chunk::Table)
                     .table(Asset::Table)
                     .table(Auth::Table)
                     .cascade()
@@ -64,9 +65,6 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        let mut chunks = array(Asset::Chunks, ColumnType::Integer);
-        chunks.default("{}");
-
         manager
             .create_table(
                 Table::create()
@@ -80,12 +78,9 @@ impl MigrationTrait for Migration {
                     .col(text(Asset::Mime))
                     .col(text_null(Asset::Extension))
                     .col(text(Asset::Name))
-                    .col(text_null(Asset::Path))
-                    .col(text_null(Asset::Metadata))
                     .col(text(Asset::Status))
                     .col(integer(Asset::Chunk))
                     .col(integer(Asset::Total))
-                    .col(chunks)
                     .col(timestamp_with_time_zone_null(Asset::ArchivedAt))
                     .col(timestamp_with_time_zone(Asset::CreatedAt))
                     .col(uuid_null(Asset::Creator))
@@ -113,6 +108,38 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_table(
+                Table::create()
+                    .table(Chunk::Table)
+                    .if_not_exists()
+                    .col(pk_uuid(Chunk::Id))
+                    .col(uuid(Chunk::AssetId))
+                    .col(integer(Chunk::Index))
+                    .col(text(Chunk::Hash))
+                    .col(big_integer(Chunk::Size))
+                    .col(timestamp_with_time_zone(Chunk::CreatedAt))
+                    .col(uuid_null(Chunk::Creator))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_chunk_asset")
+                            .from(Chunk::Table, Chunk::AssetId)
+                            .to(Asset::Table, Asset::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_chunk_creator")
+                            .from(Chunk::Table, Chunk::Creator)
+                            .to(Auth::Table, Auth::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .create_index(
                 Index::create()
                     .if_not_exists()
@@ -130,6 +157,30 @@ impl MigrationTrait for Migration {
                     .name("idx_asset_creator")
                     .table(Asset::Table)
                     .col(Asset::Creator)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("uidx_chunk_asset_index")
+                    .table(Chunk::Table)
+                    .col(Chunk::AssetId)
+                    .col(Chunk::Index)
+                    .unique()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_chunk_hash")
+                    .table(Chunk::Table)
+                    .col(Chunk::Hash)
                     .to_owned(),
             )
             .await?;
@@ -171,6 +222,9 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .drop_table(Table::drop().table(Chunk::Table).if_exists().to_owned())
+            .await?;
         manager
             .drop_table(Table::drop().table(Asset::Table).if_exists().to_owned())
             .await?;
@@ -218,12 +272,9 @@ enum Asset {
     Mime,
     Extension,
     Name,
-    Path,
-    Metadata,
     Status,
     Chunk,
     Total,
-    Chunks,
     #[sea_orm(iden = "archivedAt")]
     ArchivedAt,
     #[sea_orm(iden = "createdAt")]
@@ -234,4 +285,18 @@ enum Asset {
     Updater,
     #[sea_orm(iden = "expiresAt")]
     ExpiresAt,
+}
+
+#[derive(DeriveIden)]
+enum Chunk {
+    Table,
+    Id,
+    #[sea_orm(iden = "assetId")]
+    AssetId,
+    Index,
+    Hash,
+    Size,
+    #[sea_orm(iden = "createdAt")]
+    CreatedAt,
+    Creator,
 }

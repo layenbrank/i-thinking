@@ -11,6 +11,8 @@ erDiagram
   auth ||--o| auth : updater
   asset ||--o| auth : creator
   asset ||--o| auth : updater
+  asset ||--o{ chunk : has
+  chunk ||--o| auth : creator
 ```
 
 | 关系 | 说明 |
@@ -18,6 +20,8 @@ erDiagram
 | `auth.avatar` → `asset.id` | 用户头像，删除 asset 时 SET NULL |
 | `auth.creator/updater` → `auth.id` | 账号审计，自引用 |
 | `asset.creator/updater` → `auth.id` | 上传/资源审计 |
+| `chunk.assetId` → `asset.id` | 分片归属，删除 asset 时 CASCADE |
+| `chunk.creator` → `auth.id` | 分片审计 |
 
 ## auth 表
 
@@ -53,27 +57,36 @@ Entity：[`entity/src/asset.rs`](../entity/src/asset.rs)
 |---------|------|------|
 | id | uuid PK | 资源 ID |
 | kind | text | 类型，上传为 `upload` |
-| hash | text | 文件 SHA256（64 位 hex），索引 |
+| hash | text | 文件 SHA256（64 位 hex），索引；prepare 时可先空串 |
 | sha | text | finalize 校验后的整文件 SHA（与 hash 一致） |
 | size | bigint | 文件总字节 |
 | mime | text | MIME |
 | extension | text | 扩展名 |
 | name | text | 文件名 |
-| path | text | 旧版合并文件路径；新流程为 null（流式下载） |
-| metadata | text | JSON：`chunkHashes` 分片 index→SHA256 |
 | status | text | PENDING / UPLOADING / COMPLETED / FAILED / EXPIRED |
 | chunk | int | 分片大小（字节） |
 | total | int | 分片总数 |
-| chunks | int[] | 已上传分片索引 |
 | archivedAt / createdAt / creator / updatedAt / updater / expiresAt | | 审计字段 |
+
+## chunk 表
+
+Entity：[`entity/src/chunk.rs`](../entity/src/chunk.rs)
+
+| 列 (DB) | 类型 | 说明 |
+|---------|------|------|
+| id | uuid PK | 分片记录 ID |
+| assetId | uuid FK | → asset.id，CASCADE |
+| index | int | 分片序号（从 0）；与 assetId 唯一 |
+| hash | text | 分片内容 SHA256（CAS key），索引 |
+| size | bigint | 分片字节数 |
+| createdAt | timestamptz | 创建时间 |
+| creator | uuid FK | → auth.id |
 
 **磁盘协作**（upload 模块）：
 
 | 路径 | 用途 |
 |------|------|
 | `cas/{sha256}` | 分片内容寻址单副本（跨会话零拷贝复用） |
-| `chunks/{uploadId}/` | 旧会话临时目录（可清理，非主存储） |
-| `uploads/{uploadId}-{filename}` | 旧版合并成品（兼容下载） |
 
 **使用模块**：upload（分片上传）、auth/user（avatar 联查）
 
@@ -99,8 +112,9 @@ sequenceDiagram
   Client->>Upload: POST /upload/prepare (image/png)
   Upload->>Asset: INSERT status=PENDING
   Client->>Upload: POST /upload/chunk
+  Note over Upload: INSERT chunk + 写 cas/{hash}
   Client->>Upload: POST /upload/finalize
-  Upload->>Asset: UPDATE status=COMPLETED, path
+  Upload->>Asset: UPDATE status=COMPLETED
   Client->>Auth: PUT /auth/profile avatar=assetId
   Auth->>Asset: 校验 COMPLETED + creator=当前用户
   Auth->>AuthTbl: UPDATE avatar FK

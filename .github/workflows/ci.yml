@@ -8,6 +8,10 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # 覆盖本地 .cargo/config.toml 里面向 Windows / sccache 的设置，保证 Linux runner 可编
+  CARGO_BUILD_TARGET: x86_64-unknown-linux-gnu
+  CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: cc
+  RUSTC_WRAPPER: ""
 
 jobs:
   test-and-openapi:
@@ -17,11 +21,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Neutralize local cargo wrappers for CI
+        run: |
+          # 仓库 .cargo/config.toml 默认指向 Windows + sccache，不适合 GitHub Linux runner
+          printf '%s\n' '[build]' 'target-dir = "target"' > .cargo/config.toml
+
       - name: Architecture hygiene
-        run: python scripts/check_architecture.py
+        run: python3 scripts/check_architecture.py
 
       - name: Run unit tests
         run: cargo test --lib -p service

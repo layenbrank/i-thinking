@@ -25,7 +25,9 @@ pub const UPLOAD_CHUNK: &str = "/api/v1/upload/chunk";
 pub const UPLOAD_FINALIZE: &str = "/api/v1/upload/finalize";
 pub const UPLOAD_PROGRESS: &str = "/api/v1/upload/progress/{id}";
 pub const UPLOAD_CANCEL: &str = "/api/v1/upload/cancel/{id}";
-pub const UPLOAD_FILES: &str = "/api/v1/upload/files/{hash}";
+pub const UPLOAD_FILES: &str = "/api/v1/upload/files";
+pub const UPLOAD_FILES_BY_HASH: &str = "/api/v1/upload/files/{hash}";
+pub const UPLOAD_ASSET: &str = "/api/v1/upload/asset/{id}";
 
 // --- Engine ---
 pub const ENGINE_SUGGESTION: &str = "/api/v1/engine/suggestion";
@@ -109,6 +111,14 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: UPLOAD_FILES,
+    },
+    RouteDef {
+        method: "GET",
+        path: UPLOAD_FILES_BY_HASH,
+    },
+    RouteDef {
+        method: "GET",
+        path: UPLOAD_ASSET,
     },
     RouteDef {
         method: "GET",

@@ -1,7 +1,7 @@
 use crate::services::upload::schema::{FinalizeP, HashP};
 use super::common::{
-    ChunkUploadEnvelope, ChunkUploadForm, Exception, FinalizeUploadEnvelope, UploadHashEnvelope,
-    UploadPrepareEnvelope, UploadProgressEnvelope,
+    ChunkUploadEnvelope, ChunkUploadForm, Exception, FinalizeUploadEnvelope, UploadFilesEnvelope,
+    UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope,
 };
 
 /// 初始化分片上传
@@ -11,9 +11,7 @@ use super::common::{
     tag = "Upload",
     operation_id = "upload.prepare",
     summary = "初始化上传",
-    description = "创建上传会话。`hash` 可选：省略时可立刻开始传分片，稍后再 PATCH /upload/hash。\
-        若提供 hash：本人已完成则秒传；他人已完成则全局秒传并为当前用户克隆 COMPLETED 记录（共享 CAS）；\
-        同用户有未完成会话则返回已传分片（断点续传）。需要 JWT。",
+    description = "创建上传会话。`hash` 可选。文件秒传：本人已完成直接返回；他人已完成则为当前用户克隆 COMPLETED（共享 CAS）。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body = crate::services::upload::schema::PrepareP,
     responses(
@@ -30,7 +28,7 @@ pub fn prepare_upload_doc() {}
     tag = "Upload",
     operation_id = "upload.bindHash",
     summary = "绑定整文件哈希",
-    description = "为已创建的上传会话补绑整文件 SHA-256。若库中已有同 hash 完成文件则返回 exists=true（秒传）。需要 JWT。",
+    description = "为会话补绑整文件 SHA-256；可触发全局秒传并为当前用户克隆记录。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body = HashP,
     responses(
@@ -47,8 +45,7 @@ pub fn bind_hash_doc() {}
     tag = "Upload",
     operation_id = "upload.chunk",
     summary = "上传分片",
-    description = "multipart：id / index / hash / chunk(可选)。\
-        分片按 SHA-256 写入全局 CAS（单副本）；若 CAS 已有该 hash 则零拷贝复用（reused=true），可不传 chunk 字节。需要 JWT。",
+    description = "multipart：id / index / hash / chunk(可选)。分片写入全局 CAS；命中则 reused。分片登记写入 chunk 表。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body(content = ChunkUploadForm, content_type = "multipart/form-data"),
     responses(
@@ -65,8 +62,7 @@ pub fn chunk_upload_doc() {}
     tag = "Upload",
     operation_id = "upload.finalize",
     summary = "完成上传",
-    description = "校验全部分片齐全且按序流式计算的整文件 SHA-256 与绑定 hash 一致；\
-        **不合并落盘**。下载时按序流式输出各 CAS 分片。需要 JWT。",
+    description = "校验 chunk 表分片齐全并流式计算整文件 SHA-256；不合并落盘。返回按 asset id 的下载 URL。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body = FinalizeP,
     responses(
@@ -112,22 +108,61 @@ pub fn progress_upload_doc() {}
 )]
 pub fn cancel_upload_doc() {}
 
-/// 下载/访问已上传文件
+/// 本人文件列表
+#[utoipa::path(
+    get,
+    path = "/api/v1/upload/files",
+    tag = "Upload",
+    operation_id = "upload.toRead",
+    summary = "本人文件列表",
+    description = "按 JWT 身份返回当前用户资产列表（默认 COMPLETED），支持 page/size/status 分页过滤。",
+    security(("bearer_auth" = [])),
+    params(
+        ("page" = Option<u32>, Query, description = "页码，从 1 开始，默认 1"),
+        ("size" = Option<u32>, Query, description = "每页条数，默认 20，最大 100"),
+        ("status" = Option<String>, Query, description = "状态过滤，如 COMPLETED；默认 COMPLETED"),
+    ),
+    responses(
+        (status = 200, description = "查询成功（code=200000）", body = UploadFilesEnvelope),
+        (status = 200, description = "未登录", body = Exception),
+    )
+)]
+pub fn toRead_files_doc() {}
+
+/// 按 hash 下载
 #[utoipa::path(
     get,
     path = "/api/v1/upload/files/{hash}",
     tag = "Upload",
     operation_id = "upload.serveFile",
-    summary = "访问已上传文件",
-    description = "按文件 hash 下载。仅当前用户自己的 COMPLETED 资产可读；\
-        服务端按分片顺序流式拼接 CAS。文件秒传（全局去重）会为命中用户克隆一条记录，因此秒传后本人仍可下载。需要 JWT。",
+    summary = "按 hash 下载文件",
+    description = "仅当前用户 COMPLETED 且同 hash 的资产可读；流式拼接 CAS。需要 JWT。",
     security(("bearer_auth" = [])),
     params(
         ("hash" = String, Path, description = "文件 SHA-256 hash")
     ),
     responses(
         (status = 200, description = "文件二进制流", content_type = "application/octet-stream"),
-        (status = 200, description = "文件不存在（code=500204）", body = Exception),
+        (status = 200, description = "文件不存在", body = Exception),
     )
 )]
 pub fn serve_file_doc() {}
+
+/// 按资产 id 下载
+#[utoipa::path(
+    get,
+    path = "/api/v1/upload/asset/{id}",
+    tag = "Upload",
+    operation_id = "upload.serveAsset",
+    summary = "按资产 id 下载文件",
+    description = "仅本人 COMPLETED 资产；按 chunk 表顺序流式输出。需要 JWT。",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = String, Path, description = "资产 UUID")
+    ),
+    responses(
+        (status = 200, description = "文件二进制流", content_type = "application/octet-stream"),
+        (status = 200, description = "文件不存在或未完成", body = Exception),
+    )
+)]
+pub fn serve_asset_doc() {}

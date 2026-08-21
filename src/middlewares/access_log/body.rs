@@ -54,7 +54,7 @@ pub fn is_json_ct(content_type: &str) -> bool {
 
 /// 是否跳过响应体采样（大文件 / 非文本 / 超限 Content-Length / 公开下载）。
 pub fn skip_response_peek(path: &str, headers: &actix_web::http::header::HeaderMap, max: usize) -> bool {
-    if path.starts_with("/api/v1/upload/files/") {
+    if path.starts_with("/api/v1/upload/files/") || path.starts_with("/api/v1/upload/asset/") {
         return true;
     }
     if let Some(len) = headers
@@ -248,6 +248,11 @@ mod tests {
         let mut h = HeaderMap::new();
         assert!(skip_response_peek(
             "/api/v1/upload/files/abc",
+            &h,
+            1024
+        ));
+        assert!(skip_response_peek(
+            "/api/v1/upload/asset/abc",
             &h,
             1024
         ));

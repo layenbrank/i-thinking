@@ -1,6 +1,6 @@
-# 上传模块 — prepare(可无 hash) → chunk → PATCH hash → finalize → 流式下载
-# 鉴权: 全部需 JWT（含 GET /files/{hash}）
-# Node 端到端（先 prepare 再算/传 hash，CAS 分片秒传）:
+# 上传模块 — prepare(可无 hash) → chunk → PATCH hash → finalize → 列表 / asset 下载
+# 鉴权: 全部需 JWT
+# Node 端到端:
 #   npx tsx src/services/upload/http/upload.ts
 #   npx tsx src/services/upload/http/upload.ts ./your-file.bin
 
@@ -78,6 +78,7 @@ Content-Type: application/octet-stream
 
 ### 3. 完成上传 — POST /api/v1/upload/finalize
 # Body: { id }
+# @name finalize
 POST {{host}}/api/v1/upload/finalize
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -92,12 +93,22 @@ GET {{host}}/api/v1/upload/progress/{{uploadId}}
 Authorization: Bearer {{token}}
 Accept: application/json
 
-### 5. 取消上传 — DELETE /api/v1/upload/cancel/{id}
-DELETE {{host}}/api/v1/upload/cancel/{{uploadId}}
+### 5. 本人文件列表 — GET /api/v1/upload/files
+GET {{host}}/api/v1/upload/files?page=1&size=20
 Authorization: Bearer {{token}}
 Accept: application/json
 
-### 6. 下载文件（需 JWT）— GET /api/v1/upload/files/{hash}
+### 6. 按资产 id 下载 — GET /api/v1/upload/asset/{id}
+GET {{host}}/api/v1/upload/asset/{{uploadId}}
+Authorization: Bearer {{token}}
+Accept: application/octet-stream
+
+### 7. 按 hash 下载 — GET /api/v1/upload/files/{hash}
 GET {{host}}/api/v1/upload/files/{{fileHash}}
 Authorization: Bearer {{token}}
 Accept: application/octet-stream
+
+### 8. 取消上传 — DELETE /api/v1/upload/cancel/{id}
+DELETE {{host}}/api/v1/upload/cancel/{{uploadId}}
+Authorization: Bearer {{token}}
+Accept: application/json

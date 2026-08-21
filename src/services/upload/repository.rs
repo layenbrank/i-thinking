@@ -1,26 +1,21 @@
-use std::collections::BTreeMap;
 use std::path::Path;
 
 use chrono::{Duration, Utc};
-use entity::asset;
+use entity::{asset, chunk};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseBackend, EntityTrait,
-    QueryFilter, Set, Statement,
+    PaginatorTrait, QueryFilter, QueryOrder, Set, Statement,
 };
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::databases::database::Storage;
 use crate::services::upload::error::UploadError;
-use crate::services::upload::schema::{PrepareP, UploadStatus, UploadedChunk};
-use crate::services::upload::validation::{EXPIRE_HOURS, KIND, normalize_hash};
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AssetMeta {
-    #[serde(default)]
-    chunk_hashes: BTreeMap<String, String>,
-}
+use crate::services::upload::schema::{
+    AssetR, PrepareP, UploadStatus, UploadedChunk,
+};
+use crate::services::upload::validation::{
+    ASSET_URL_PREFIX, EXPIRE_HOURS, FILE_URL_PREFIX, KIND, normalize_hash,
+};
 
 pub async fn find_completed(db: &Storage, hash: &str) -> Result<Option<asset::Model>, UploadError> {
     if normalize_hash(Some(hash)).is_none() {
@@ -35,7 +30,6 @@ pub async fn find_completed(db: &Storage, hash: &str) -> Result<Option<asset::Mo
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
-/// 当前用户自己的已完成文件（下载 / 本人秒传复用）。
 pub async fn find_completed_owned(
     db: &Storage,
     hash: &str,
@@ -55,14 +49,6 @@ pub async fn find_completed_owned(
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
-pub async fn find_file_by_hash(
-    db: &Storage,
-    hash: &str,
-) -> Result<Option<asset::Model>, UploadError> {
-    find_completed(db, hash).await
-}
-
-/// 供下载：仅返回当前用户已完成的同 hash 资产。
 pub async fn find_file_for_download(
     db: &Storage,
     hash: &str,
@@ -138,21 +124,16 @@ pub fn build_record(
         mime: Set(req.mime),
         extension: Set(extension),
         name: Set(req.name),
-        path: Set(None),
-        metadata: Set(Some(
-            serde_json::to_string(&AssetMeta::default())
-                .map_err(|e| UploadError::Internal(e.to_string()))?,
-        )),
         status: Set(UploadStatus::Pending.as_str().to_string()),
         chunk: Set(req.chunk as i32),
         total: Set(total as i32),
-        chunks: Set(vec![]),
         archived_at: Set(None),
         created_at: Set(now),
         creator: Set(creator),
         updated_at: Set(now),
         updater: Set(creator),
         expires_at: Set(Some(now + Duration::hours(EXPIRE_HOURS))),
+        ..Default::default()
     })
 }
 
@@ -163,14 +144,13 @@ pub async fn insert(db: &Storage, record: asset::ActiveModel) -> Result<asset::M
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
-/// 全局秒传命中后，为当前用户落一条 COMPLETED 记录（共享 CAS / metadata，不拷贝字节）。
-/// 这样「秒传全局 + 下载仅 creator」可以同时成立。
+/// 全局秒传：为当前用户克隆 COMPLETED 资产 + chunk 行（共享 CAS，不拷贝字节）。
 pub async fn clone_completed_for(
     db: &Storage,
     source: &asset::Model,
     creator: &str,
 ) -> Result<asset::Model, UploadError> {
-    let creator = UploadError::parse_user_id(creator)?;
+    let creator_id = UploadError::parse_user_id(creator)?;
     let now = Utc::now().fixed_offset();
     let record = asset::ActiveModel {
         id: Set(Uuid::new_v4()),
@@ -181,140 +161,188 @@ pub async fn clone_completed_for(
         mime: Set(source.mime.clone()),
         extension: Set(source.extension.clone()),
         name: Set(source.name.clone()),
-        path: Set(None),
-        metadata: Set(source.metadata.clone()),
         status: Set(UploadStatus::Completed.as_str().to_string()),
         chunk: Set(source.chunk),
         total: Set(source.total),
-        chunks: Set(source.chunks.clone()),
         archived_at: Set(None),
         created_at: Set(now),
-        creator: Set(Some(creator)),
+        creator: Set(Some(creator_id)),
         updated_at: Set(now),
-        updater: Set(Some(creator)),
+        updater: Set(Some(creator_id)),
         expires_at: Set(None),
         ..Default::default()
     };
-    insert(db, record).await
+    let inserted = insert(db, record).await?;
+    copy_chunks(db, source.id, inserted.id, Some(creator_id)).await?;
+    Ok(inserted)
 }
 
-fn parse_meta(raw: &Option<String>) -> AssetMeta {
-    raw.as_deref()
-        .and_then(|s| serde_json::from_str(s).ok())
-        .unwrap_or_default()
-}
-
-pub fn chunk_hashes_map(asset: &asset::Model) -> BTreeMap<u32, String> {
-    let meta = parse_meta(&asset.metadata);
-    meta.chunk_hashes
-        .into_iter()
-        .filter_map(|(k, v)| k.parse::<u32>().ok().map(|i| (i, v)))
-        .collect()
-}
-
-pub fn uploaded_list(asset: &asset::Model) -> Vec<UploadedChunk> {
-    let map = chunk_hashes_map(asset);
-    let mut indices = asset.chunks.clone();
-    indices.sort();
-    indices
-        .into_iter()
-        .filter_map(|i| {
-            let index = i as u32;
-            map.get(&index).map(|hash| UploadedChunk {
-                index,
-                hash: hash.clone(),
-            })
-        })
-        .collect()
-}
-
-/// 按 0..total-1 顺序返回分片 hash；缺任一则 Err。
-pub fn ordered_chunk_hashes(asset: &asset::Model) -> Result<Vec<String>, UploadError> {
-    let map = chunk_hashes_map(asset);
-    let mut out = Vec::with_capacity(asset.total as usize);
-    for i in 0..asset.total as u32 {
-        let Some(hash) = map.get(&i) else {
-            return Err(UploadError::BadRequest(format!("缺少分片 {i} 的 hash 记录")));
+async fn copy_chunks(
+    db: &Storage,
+    from_asset: Uuid,
+    to_asset: Uuid,
+    creator: Option<Uuid>,
+) -> Result<(), UploadError> {
+    let rows = list_chunk_rows(db, from_asset).await?;
+    let now = Utc::now().fixed_offset();
+    for row in rows {
+        let model = chunk::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            asset_id: Set(to_asset),
+            index: Set(row.index),
+            hash: Set(row.hash),
+            size: Set(row.size),
+            created_at: Set(now),
+            creator: Set(creator),
+            ..Default::default()
         };
-        out.push(hash.clone());
+        model
+            .insert(&db.db)
+            .await
+            .map_err(|e| UploadError::Database(e.to_string()))?;
+    }
+    Ok(())
+}
+
+pub async fn list_chunk_rows(
+    db: &Storage,
+    asset_id: Uuid,
+) -> Result<Vec<chunk::Model>, UploadError> {
+    chunk::Entity::find()
+        .filter(chunk::Column::AssetId.eq(asset_id))
+        .order_by_asc(chunk::Column::Index)
+        .all(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))
+}
+
+pub async fn uploaded_list(
+    db: &Storage,
+    asset_id: Uuid,
+) -> Result<Vec<UploadedChunk>, UploadError> {
+    let rows = list_chunk_rows(db, asset_id).await?;
+    Ok(rows
+        .into_iter()
+        .map(|r| UploadedChunk {
+            index: r.index as u32,
+            hash: r.hash,
+        })
+        .collect())
+}
+
+pub async fn ordered_chunk_hashes(
+    db: &Storage,
+    asset: &asset::Model,
+) -> Result<Vec<String>, UploadError> {
+    let rows = list_chunk_rows(db, asset.id).await?;
+    if rows.len() != asset.total as usize {
+        return Err(UploadError::BadRequest(format!(
+            "分片记录不完整：{} / {}",
+            rows.len(),
+            asset.total
+        )));
+    }
+    let mut out = Vec::with_capacity(asset.total as usize);
+    for (expected, row) in rows.into_iter().enumerate() {
+        if row.index != expected as i32 {
+            return Err(UploadError::BadRequest(format!(
+                "缺少分片索引 {expected}：实际 {}",
+                row.index
+            )));
+        }
+        out.push(row.hash);
     }
     Ok(out)
 }
 
-pub async fn append_chunk(
+pub async fn find_chunk(
     db: &Storage,
-    asset: asset::Model,
+    asset_id: Uuid,
+    index: u32,
+) -> Result<Option<chunk::Model>, UploadError> {
+    chunk::Entity::find()
+        .filter(chunk::Column::AssetId.eq(asset_id))
+        .filter(chunk::Column::Index.eq(index as i32))
+        .one(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))
+}
+
+pub async fn count_chunks(db: &Storage, asset_id: Uuid) -> Result<u64, UploadError> {
+    chunk::Entity::find()
+        .filter(chunk::Column::AssetId.eq(asset_id))
+        .count(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))
+}
+
+/// 登记分片：UPSERT，同 index 同 hash 幂等；同 index 不同 hash 拒绝。
+pub async fn upsert_chunk(
+    db: &Storage,
+    asset: &asset::Model,
     index: u32,
     chunk_hash: &str,
-) -> Result<asset::Model, UploadError> {
-    // 在 SQL 内用 jsonb_set 原子更新，避免并发分片读改写丢失其它 index 的 hash。
-    // 若该 index 已登记不同 hash，WHERE 不匹配 → 0 行，由调用方/重读判定冲突。
+    size: i64,
+    creator: Option<&str>,
+) -> Result<(), UploadError> {
+    if let Some(existing) = find_chunk(db, asset.id, index).await? {
+        if existing.hash != chunk_hash {
+            return Err(UploadError::BadRequest(format!(
+                "分片 {index} 已存在但 hash 不一致，请取消后重传"
+            )));
+        }
+        return Ok(());
+    }
+
+    let creator = match creator {
+        Some(id) => Some(UploadError::parse_user_id(id)?),
+        None => None,
+    };
     let now = Utc::now().fixed_offset();
-    let index_key = index.to_string();
+
     let result = db
         .db
         .execute_raw(Statement::from_sql_and_values(
             DatabaseBackend::Postgres,
-            r#"UPDATE asset
-               SET chunks = CASE
-                     WHEN $2 = ANY(chunks) THEN chunks
-                     ELSE array_append(chunks, $2)
-                   END,
-                   metadata = (
-                     jsonb_set(
-                       COALESCE(
-                         NULLIF(TRIM(COALESCE(metadata, '')), '')::jsonb,
-                         '{"chunkHashes":{}}'::jsonb
-                       ),
-                       ARRAY['chunkHashes', $3::text],
-                       to_jsonb($4::text),
-                       true
-                     )
-                   )::text,
-                   status = $5,
-                   "updatedAt" = $6
-               WHERE id = $1
-                 AND (
-                   (COALESCE(
-                      NULLIF(TRIM(COALESCE(metadata, '')), '')::jsonb,
-                      '{}'::jsonb
-                    ) #>> ARRAY['chunkHashes', $3::text]) IS NULL
-                   OR (COALESCE(
-                      NULLIF(TRIM(COALESCE(metadata, '')), '')::jsonb,
-                      '{}'::jsonb
-                    ) #>> ARRAY['chunkHashes', $3::text]) = $4
-                 )"#,
+            r#"INSERT INTO chunk (id, "assetId", "index", hash, size, "createdAt", creator)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)
+               ON CONFLICT ("assetId", "index") DO NOTHING"#,
             [
+                Uuid::new_v4().into(),
                 asset.id.into(),
                 (index as i32).into(),
-                index_key.into(),
                 chunk_hash.to_string().into(),
-                UploadStatus::Uploading.as_str().into(),
+                size.into(),
                 now.into(),
+                creator.into(),
             ],
         ))
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
 
     if result.rows_affected() == 0 {
-        let latest = find_by_id(db, &asset.id.to_string()).await?;
-        let map = chunk_hashes_map(&latest);
-        match map.get(&index) {
-            Some(existing) if existing == chunk_hash => return Ok(latest),
-            Some(_) => {
+        // 并发插入：再读校验
+        if let Some(existing) = find_chunk(db, asset.id, index).await? {
+            if existing.hash != chunk_hash {
                 return Err(UploadError::BadRequest(format!(
                     "分片 {index} 已存在但 hash 不一致，请取消后重传"
                 )));
             }
-            None => {
-                return Err(UploadError::Internal(
-                    "更新分片元数据失败：未匹配到会话行".into(),
-                ));
-            }
+            return Ok(());
         }
+        return Err(UploadError::Internal("登记分片失败".into()));
     }
 
-    find_by_id(db, &asset.id.to_string()).await
+    // 标记上传中
+    let mut active: asset::ActiveModel = asset.clone().into();
+    active.status = Set(UploadStatus::Uploading.as_str().to_string());
+    active.updated_at = Set(now);
+    active
+        .update(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))?;
+
+    Ok(())
 }
 
 pub async fn bind_hash(
@@ -331,27 +359,6 @@ pub async fn bind_hash(
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
-pub async fn save_chunks(
-    db: &Storage,
-    asset: asset::Model,
-    actual_chunks: Vec<i32>,
-) -> Result<asset::Model, UploadError> {
-    let status = if actual_chunks.is_empty() {
-        UploadStatus::Pending
-    } else {
-        UploadStatus::Uploading
-    };
-
-    let mut active: asset::ActiveModel = asset.into();
-    active.chunks = Set(actual_chunks);
-    active.status = Set(status.as_str().to_string());
-    active.updated_at = Set(Utc::now().fixed_offset());
-    active
-        .update(&db.db)
-        .await
-        .map_err(|e| UploadError::Database(e.to_string()))
-}
-
 pub async fn mark_completed(
     db: &Storage,
     asset: &asset::Model,
@@ -359,8 +366,6 @@ pub async fn mark_completed(
 ) -> Result<(), UploadError> {
     let mut active: asset::ActiveModel = asset.clone().into();
     active.status = Set(UploadStatus::Completed.as_str().to_string());
-    // 不分片合并落盘；下载时按 metadata 流式拼接 CAS
-    active.path = Set(None);
     active.sha = Set(Some(sha.to_string()));
     active.expires_at = Set(None);
     active.updated_at = Set(Utc::now().fixed_offset());
@@ -373,6 +378,7 @@ pub async fn mark_completed(
 
 pub async fn mark_failed(db: &Storage, asset: asset::Model) -> Result<(), UploadError> {
     let now = Utc::now().fixed_offset();
+    let asset_id = asset.id;
     let mut active: asset::ActiveModel = asset.into();
     active.status = Set(UploadStatus::Failed.as_str().to_string());
     active.archived_at = Set(Some(now));
@@ -381,20 +387,84 @@ pub async fn mark_failed(db: &Storage, asset: asset::Model) -> Result<(), Upload
         .update(&db.db)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
+
+    // 级联删除 chunk 行（表 FK ON DELETE CASCADE）；若未级联则显式清理
+    chunk::Entity::delete_many()
+        .filter(chunk::Column::AssetId.eq(asset_id))
+        .exec(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))?;
     Ok(())
 }
 
-pub fn to_u32_chunks(chunks: &[i32]) -> Vec<u32> {
-    chunks.iter().copied().map(|v| v as u32).collect()
+pub async fn list_owned(
+    db: &Storage,
+    user_id: &str,
+    page: u32,
+    size: u32,
+    status: Option<&UploadStatus>,
+) -> Result<(Vec<AssetR>, u64), UploadError> {
+    let creator = UploadError::parse_user_id(user_id)?;
+    let status_filter = status
+        .map(|s| s.as_str())
+        .unwrap_or(UploadStatus::Completed.as_str());
+
+    let selector = asset::Entity::find()
+        .filter(asset::Column::Creator.eq(creator))
+        .filter(asset::Column::ArchivedAt.is_null())
+        .filter(asset::Column::Status.eq(status_filter))
+        .order_by_desc(asset::Column::CreatedAt);
+
+    let count = selector
+        .clone()
+        .count(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))?;
+
+    let page = page.max(1);
+    let size = size.clamp(1, 100);
+    let rows = selector
+        .paginate(&db.db, size as u64)
+        .fetch_page((page as u64).saturating_sub(1))
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))?;
+
+    let items = rows.into_iter().map(asset_to_r).collect();
+    Ok((items, count))
 }
 
-pub fn prepare_response(asset: &asset::Model, exists: bool) -> crate::services::upload::schema::PrepareR {
-    let uploaded = uploaded_list(asset);
-    crate::services::upload::schema::PrepareR {
+pub fn asset_to_r(asset: asset::Model) -> AssetR {
+    AssetR {
+        id: asset.id.to_string(),
+        name: asset.name,
+        size: asset.size as u64,
+        mime: asset.mime,
+        hash: asset.hash.clone(),
+        status: UploadStatus::from_db(&asset.status),
+        created_at: asset.created_at.timestamp_millis(),
+        url: format!("{ASSET_URL_PREFIX}/{}", asset.id),
+    }
+}
+
+pub async fn prepare_response(
+    db: &Storage,
+    asset: &asset::Model,
+    exists: bool,
+) -> Result<crate::services::upload::schema::PrepareR, UploadError> {
+    let uploaded = uploaded_list(db, asset.id).await?;
+    Ok(crate::services::upload::schema::PrepareR {
         id: asset.id.to_string(),
         exists,
         chunks: uploaded.iter().map(|c| c.index).collect(),
         uploaded,
         url: "/api/v1/upload/chunk".to_string(),
-    }
+    })
+}
+
+pub fn file_url_by_hash(hash: &str) -> String {
+    format!("{FILE_URL_PREFIX}/{hash}")
+}
+
+pub fn file_url_by_id(id: &Uuid) -> String {
+    format!("{ASSET_URL_PREFIX}/{id}")
 }
