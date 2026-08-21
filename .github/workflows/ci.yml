@@ -26,14 +26,25 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
       - name: Neutralize local cargo wrappers for CI
         run: |
           # 仓库 .cargo/config.toml 默认指向 Windows + sccache，不适合 GitHub Linux runner
           printf '%s\n' '[build]' 'target-dir = "target"' > .cargo/config.toml
 
-      - name: Architecture hygiene
-        run: python3 scripts/check_architecture.py
+      - name: Install Node tooling
+        run: pnpm install --frozen-lockfile
 
+      - name: Architecture hygiene
+        run: pnpm run arch
       - name: Run unit tests
         run: cargo test --lib -p service
 

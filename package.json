@@ -1,0 +1,27 @@
+{
+  "name": "corex-service",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "arch": "node --import ./scripts/alias.ts ./scripts/arch.ts",
+    "build": "cargo build --release",
+    "dev": "node --import ./scripts/alias.ts ./scripts/dev.ts",
+    "docs": "cargo run --bin docs",
+    "format": "prettier --write \"scripts/**/*.ts\"",
+    "imports": "node --import ./scripts/alias.ts ./scripts/imports.ts",
+    "migrate:fresh": "sea-orm-cli migrate fresh",
+    "upload": "node --import ./scripts/alias.ts ./scripts/upload.ts"
+  },
+  "dependencies": {
+    "ky": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.22.0+sha512.1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621"
+}

@@ -11,6 +11,7 @@
 | JWT | 登录鉴权 |
 | Argon2 / AES-GCM | 密码与加密配置 |
 | utoipa | OpenAPI 3.x 文档生成 |
+| Node >= 24 + pnpm | 仓库脚本（`scripts/`，`@/` 别名，ky）；见 `package.json` |
 
 ## 快速开始
 
@@ -38,14 +39,21 @@ cargo run -p migration -- up
 ### 启动服务
 
 ```bash
-# 开发环境（含 Swagger UI）
+# 安装 Node 工具（架构检查 / 格式化 / 上传 e2e；需 Node >= 24，包管理用 pnpm）
+pnpm install
+
+# 开发热重载（scripts/dev.ts → cargo watch）
+pnpm run dev
+
+# 或直接：
 cargo run --bin service --features openapi
 
-# 热重载（务必忽略运行时目录，否则写入 cas/ 会杀进程 → 客户端 ECONNRESET）
-cargo watch -i cas -i cas/** -i chunks -i chunks/** -i logs -i logs/** -i data -i data/** -i uploads -i uploads/** -x "run --bin service --features openapi"
+# 热重载（cas/chunks/logs/data/uploads 已在 .gitignore，cargo-watch 默认不监听）
+cargo watch -c -x "run --bin service --features openapi"
 
 # 生产构建（不含 Swagger UI）
 cargo run --bin service --release
+# 或：pnpm run build
 ```
 
 服务默认监听 `http://127.0.0.1:3000`。
@@ -67,14 +75,15 @@ cargo run --bin service --release
 ### 导出 OpenAPI（Apifox 离线导入）
 
 ```bash
-cargo run --bin docs
+pnpm run docs
+# 或：cargo run --bin docs
 # 生成 spec/openapi.json
 ```
 
 ### 测试
 
 ```bash
-python scripts/check_architecture.py
+pnpm run arch
 cargo test --lib -p service
 cargo test --test oas_consistency
 ```
@@ -82,6 +91,12 @@ cargo test --test oas_consistency
 ## 项目结构
 
 ```
+scripts/                  # Node 脚本（pnpm run …）
+  alias.ts                # `@/*` → scripts/* 运行时别名
+  apis/                   # 接口封装（auth / upload）
+  types/                  # 请求/响应类型
+  utils/                  # http（ky）/ auth / http.errors
+  arch.ts | dev.ts | imports.ts | upload.ts
 src/
   bin/service.rs          # 入口
   services/
@@ -121,11 +136,13 @@ spec/                     # OpenAPI 生成物
    - URL：`http://127.0.0.1:3000/api-docs/openapi.json`（需先启动服务并开启 Swagger）
    - 文件：导入 `spec/openapi.json`
 3. 配置环境变量（参考 [`http/http-client.env.json`](http/http-client.env.json)）：
-   - `baseUrl` = `http://127.0.0.1:3000`
-   - `token` = 登录后从 `POST /api/v1/auth/signin` 响应获取
-4. 建议开启 Apifox「自动同步」，指向 openapi.json URL
+   - `baseUrl` / 前置 URL = `http://127.0.0.1:3000`
+   - `token` = 登录后从 `POST /api/v1/auth/signin` 的 `data.token` 写入（后置提取）
+4. **鉴权组件 `bearer_auth`**：Token 填 `{{token}}`（不要用导入时默认的 `{{bearerToken}}`）
+5. 建议开启 Apifox「自动同步」，指向 openapi.json URL
 
-> Apifox 断言请检查 `body.code === 200000`，而非 HTTP status code。
+> Apifox 断言请检查 `body.code === 200000`，而非 HTTP status code。  
+> OpenAPI 的 `bearer_auth` 已标注 `x-default: {{token}}`；若导入后仍是 `bearerToken`，按上一步手动改一次即可。
 
 | 模块 | 文档 |
 |------|------|

@@ -5,6 +5,10 @@
 /logs/
 /data/
 
+# Node
+/node_modules/
+/token
+
 # Python
 __pycache__/
 *.py[cod]

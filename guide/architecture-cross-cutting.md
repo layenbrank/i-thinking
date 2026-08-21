@@ -54,7 +54,7 @@ Middleware → Guard → Interceptor(pre) → Pipe → Handler
 | `src/services/upload/{validation,storage,repository,error,multipart}` | 上传拆分 + creator 校验（四文件例外） |
 | `src/services/auth/service.rs` | 含 profile 辅助（user 等可复用） |
 | `src/services/search/repository.rs` | ES 索引/检索（client 仅连接） |
-| `scripts/check_architecture.py` | 模块结构 / 禁止路径卫生检查（CI） |
+| `scripts/arch.ts`（`pnpm run arch`） | 模块结构 / 禁止路径卫生检查（CI） |
 
 ## 参考路径（Nest）
 

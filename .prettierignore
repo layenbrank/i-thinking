@@ -1,0 +1,9 @@
+node_modules/
+target/
+cas/
+chunks/
+uploads/
+logs/
+data/
+spec/openapi.json
+*.rmeta
