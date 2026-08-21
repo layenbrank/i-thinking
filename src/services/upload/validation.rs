@@ -230,4 +230,15 @@ mod tests {
         };
         assert!(validate_prepare(&req).is_ok());
     }
+
+    #[test]
+    fn empty_hash_is_treated_as_unbound() {
+        assert!(normalize_hash(Some("")).is_none());
+        assert!(normalize_hash(Some("   ")).is_none());
+        assert!(normalize_hash(None).is_none());
+        assert_eq!(
+            normalize_hash(Some("  ab  ")).map(|s| s.trim()),
+            Some("ab")
+        );
+    }
 }

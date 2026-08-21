@@ -61,6 +61,8 @@ finalize **不会**生成整文件；下载时服务端按 `chunkHashes` 顺序�
 
 **CAS 回收**：本阶段不做自动 GC。`cas/{sha256}` 会随分片秒传长期保留以节省重复上传带宽与空间；后续可按引用计数（扫描 `metadata.chunkHashes`）或孤儿扫描清理无引用对象，避免磁盘无限增长。
 
+**并发写分片**：`append_chunk` 在 SQL 内用 `jsonb_set` 原子更新 `chunkHashes`，避免并行上传不同 index 时互相覆盖丢失 hash。
+
 ## 推荐前端交互
 
 1. 选文件后**立刻** `prepare`（可不带 hash），本地用 IndexedDB/localStorage 持久化 `(fingerprint → uploadId)`（fingerprint 可用 `name+size+lastModified`）。

@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use futures::stream::{self, Stream};
-use futures::StreamExt;
 use sha2::{Digest, Sha256};
 use tokio::fs::{self, File};
 use tokio::io::AsyncReadExt;
@@ -9,8 +8,23 @@ use tokio::io::AsyncReadExt;
 use crate::services::upload::error::UploadError;
 use crate::services::upload::validation::{CAS_DIR, CHUNK_DIR};
 
+#[cfg(test)]
+thread_local! {
+    static CAS_ROOT_OVERRIDE: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
+}
+
+fn cas_root() -> PathBuf {
+    #[cfg(test)]
+    {
+        if let Some(path) = CAS_ROOT_OVERRIDE.with(|slot| slot.borrow().clone()) {
+            return path;
+        }
+    }
+    PathBuf::from(CAS_DIR)
+}
+
 pub async fn ensure_cas_dir() -> Result<(), UploadError> {
-    fs::create_dir_all(CAS_DIR).await?;
+    fs::create_dir_all(cas_root()).await?;
     Ok(())
 }
 
@@ -22,7 +36,7 @@ pub async fn prepare_chunk_dir(id: &str) -> Result<(), UploadError> {
 }
 
 pub fn cas_path(hash: &str) -> PathBuf {
-    PathBuf::from(CAS_DIR).join(hash)
+    cas_root().join(hash)
 }
 
 pub async fn cas_exists(hash: &str) -> bool {
@@ -105,14 +119,35 @@ pub async fn verify_chunks_integrity(
 }
 
 /// 按序流式输出 CAS 分片字节（供下载；客户端收到的是完整文件流）。
+/// 按 64KiB 块读取，避免将整片（最大 10MB）一次性载入内存。
 pub fn stream_cas_chunks(
     chunk_hashes: Vec<String>,
 ) -> impl Stream<Item = Result<actix_web::web::Bytes, std::io::Error>> {
-    stream::iter(chunk_hashes).then(|hash| async move {
-        let path = cas_path(&hash);
-        let data = tokio::fs::read(&path).await?;
-        Ok(actix_web::web::Bytes::from(data))
-    })
+    const BUF_SIZE: usize = 64 * 1024;
+    stream::try_unfold(
+        (chunk_hashes.into_iter(), None::<File>),
+        |(mut hashes, mut file)| async move {
+            loop {
+                if let Some(mut open) = file.take() {
+                    let mut buf = vec![0u8; BUF_SIZE];
+                    let n = open.read(&mut buf).await?;
+                    if n == 0 {
+                        continue;
+                    }
+                    buf.truncate(n);
+                    return Ok(Some((
+                        actix_web::web::Bytes::from(buf),
+                        (hashes, Some(open)),
+                    )));
+                }
+
+                let Some(hash) = hashes.next() else {
+                    return Ok(None);
+                };
+                file = Some(File::open(cas_path(&hash)).await?);
+            }
+        },
+    )
 }
 
 /// 校验全部 CAS 分片存在。
@@ -208,5 +243,61 @@ mod tests {
             calculate_hash(b"hello"),
             "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
         );
+    }
+
+    #[tokio::test]
+    async fn store_cas_reuses_without_copy() {
+        let dir = std::env::temp_dir().join(format!("upload-cas-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let _guard = CasOverride::set(dir.clone());
+
+        let data = b"chunk-payload-aaaa";
+        let hash = calculate_hash(data);
+        assert!(!store_cas(&hash, data).await.unwrap());
+        assert!(store_cas(&hash, data).await.unwrap());
+        assert_eq!(cas_len(&hash).await.unwrap(), data.len() as u64);
+        assert_eq!(tokio::fs::read(cas_path(&hash)).await.unwrap(), data);
+    }
+
+    #[tokio::test]
+    async fn stream_cas_chunks_concatenates() {
+        let dir = std::env::temp_dir().join(format!("upload-cas-stream-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let _guard = CasOverride::set(dir.clone());
+
+        let a = b"AAA";
+        let b = b"BBBB";
+        let ha = calculate_hash(a);
+        let hb = calculate_hash(b);
+        store_cas(&ha, a).await.unwrap();
+        store_cas(&hb, b).await.unwrap();
+
+        use futures::StreamExt;
+        let mut stream = Box::pin(stream_cas_chunks(vec![ha, hb]));
+        let mut out = Vec::new();
+        while let Some(item) = stream.next().await {
+            out.extend_from_slice(&item.unwrap());
+        }
+        assert_eq!(out, b"AAABBBB");
+    }
+
+    struct CasOverride;
+
+    impl CasOverride {
+        fn set(path: PathBuf) -> Self {
+            CAS_ROOT_OVERRIDE.with(|slot| {
+                *slot.borrow_mut() = Some(path);
+            });
+            Self
+        }
+    }
+
+    impl Drop for CasOverride {
+        fn drop(&mut self) {
+            let path = CAS_ROOT_OVERRIDE.with(|slot| slot.borrow_mut().take());
+            if let Some(path) = path {
+                let _ = std::fs::remove_dir_all(path);
+            }
+        }
     }
 }

@@ -50,8 +50,8 @@ impl UploadService {
         validation::validate_status(&asset)?;
 
         if let Some(existing) = repository::find_completed(db, &req.hash).await? {
-            // 文件秒传：当前会话可丢弃（客户端停传）
-            let _ = repository::mark_failed(db, asset).await;
+            // 文件秒传：归档当前会话，客户端应改用返回的 id
+            repository::mark_failed(db, asset).await?;
             let uploaded = repository::uploaded_list(&existing);
             return Ok(HashR {
                 id: existing.id.to_string(),
@@ -69,8 +69,8 @@ impl UploadService {
 
         if let Some(pending) = repository::find_pending(db, &req.hash, Some(user_id)).await? {
             if pending.id != asset.id {
-                // 同用户同 hash 已有会话：切到该会话续传
-                let _ = repository::mark_failed(db, asset).await;
+                // 同用户同 hash 已有会话：归档当前会话并切到该会话续传
+                repository::mark_failed(db, asset).await?;
                 let uploaded = repository::uploaded_list(&pending);
                 return Ok(HashR {
                     id: pending.id.to_string(),
@@ -205,18 +205,17 @@ impl UploadService {
         repository::find_file_by_hash(db, hash).await
     }
 
-    /// 按磁盘分片同步 DB（兼容旧会话）；新流程以 metadata 为准。
+    /// 校验会话归属并返回 asset。
+    ///
+    /// 旧版曾按 `chunks/{id}` 磁盘目录回写 `chunks` 列；新流程以
+    /// `metadata.chunkHashes` + CAS 为准，不再用磁盘索引覆盖 DB，
+    /// 以免出现「chunks 有 index 但缺 hash」的分裂状态。
     pub async fn sync_chunks(
         db: &Storage,
         id: &str,
         user_id: &str,
     ) -> Result<asset::Model, UploadError> {
-        let asset = Self::load_owned(db, id, user_id).await?;
-        let actual_chunks = storage::list_chunk_indices(id).await?;
-        if actual_chunks.is_empty() {
-            return Ok(asset);
-        }
-        repository::save_chunks(db, asset, actual_chunks).await
+        Self::load_owned(db, id, user_id).await
     }
 
     async fn load_owned(

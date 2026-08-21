@@ -183,14 +183,12 @@ pub async fn append_chunk(
     index: u32,
     chunk_hash: &str,
 ) -> Result<asset::Model, UploadError> {
-    let mut meta = parse_meta(&asset.metadata);
-    meta.chunk_hashes
-        .insert(index.to_string(), chunk_hash.to_string());
-    let metadata = serde_json::to_string(&meta)
-        .map_err(|e| UploadError::Internal(e.to_string()))?;
-
+    // 在 SQL 内用 jsonb_set 原子更新，避免并发分片读改写丢失其它 index 的 hash。
+    // 若该 index 已登记不同 hash，WHERE 不匹配 → 0 行，由调用方/重读判定冲突。
     let now = Utc::now().fixed_offset();
-    db.db
+    let index_key = index.to_string();
+    let result = db
+        .db
         .execute_raw(Statement::from_sql_and_values(
             DatabaseBackend::Postgres,
             r#"UPDATE asset
@@ -198,20 +196,59 @@ pub async fn append_chunk(
                      WHEN $2 = ANY(chunks) THEN chunks
                      ELSE array_append(chunks, $2)
                    END,
-                   metadata = $3,
-                   status = $4,
-                   "updatedAt" = $5
-               WHERE id = $1"#,
+                   metadata = (
+                     jsonb_set(
+                       COALESCE(
+                         NULLIF(TRIM(COALESCE(metadata, '')), '')::jsonb,
+                         '{"chunkHashes":{}}'::jsonb
+                       ),
+                       ARRAY['chunkHashes', $3::text],
+                       to_jsonb($4::text),
+                       true
+                     )
+                   )::text,
+                   status = $5,
+                   "updatedAt" = $6
+               WHERE id = $1
+                 AND (
+                   (COALESCE(
+                      NULLIF(TRIM(COALESCE(metadata, '')), '')::jsonb,
+                      '{}'::jsonb
+                    ) #>> ARRAY['chunkHashes', $3::text]) IS NULL
+                   OR (COALESCE(
+                      NULLIF(TRIM(COALESCE(metadata, '')), '')::jsonb,
+                      '{}'::jsonb
+                    ) #>> ARRAY['chunkHashes', $3::text]) = $4
+                 )"#,
             [
                 asset.id.into(),
                 (index as i32).into(),
-                metadata.into(),
+                index_key.into(),
+                chunk_hash.to_string().into(),
                 UploadStatus::Uploading.as_str().into(),
                 now.into(),
             ],
         ))
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
+
+    if result.rows_affected() == 0 {
+        let latest = find_by_id(db, &asset.id.to_string()).await?;
+        let map = chunk_hashes_map(&latest);
+        match map.get(&index) {
+            Some(existing) if existing == chunk_hash => return Ok(latest),
+            Some(_) => {
+                return Err(UploadError::BadRequest(format!(
+                    "分片 {index} 已存在但 hash 不一致，请取消后重传"
+                )));
+            }
+            None => {
+                return Err(UploadError::Internal(
+                    "更新分片元数据失败：未匹配到会话行".into(),
+                ));
+            }
+        }
+    }
 
     find_by_id(db, &asset.id.to_string()).await
 }
