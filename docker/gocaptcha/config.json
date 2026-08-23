@@ -1,0 +1,20 @@
+{
+  "config_version": 1,
+  "service_name": "go-captcha-service",
+  "service_node": 1,
+  "http_host": "0.0.0.0",
+  "http_port": "8080",
+  "grpc_host": "0.0.0.0",
+  "grpc_port": "50051",
+  "redis_addrs": "redis:6379",
+  "cache_type": "redis",
+  "cache_ttl": 1800,
+  "cache_key_prefix": "GO_CAPTCHA_DATA:",
+  "enable_dynamic_config": false,
+  "enable_service_discovery": false,
+  "rate_limit_qps": 1000,
+  "rate_limit_burst": 1000,
+  "enable_cors": true,
+  "log_level": "info",
+  "api_keys": ["change-me-gocaptcha-key"]
+}

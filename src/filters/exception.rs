@@ -7,6 +7,13 @@ use utoipa::ToSchema;
 
 use crate::utils::code::{auth, request, resource, system};
 
+use configures::runtime;
+
+/// 是否返回 Exception.details（非生产环境）。
+pub fn details_enabled(is_production: bool) -> bool {
+    !is_production
+}
+
 /// 异常响应结构
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Exception {
@@ -68,7 +75,7 @@ impl Exception {
 
     /// 添加详细错误信息（生产环境忽略）
     pub fn with_details(mut self, details: Value) -> Self {
-        if details_enabled_for(env_name()) {
+        if details_enabled_for(runtime::is_production()) {
             self.details = Some(details);
         }
         self
@@ -80,18 +87,8 @@ impl Exception {
     }
 }
 
-fn env_name() -> Option<String> {
-    std::env::var("RUST_ENV")
-        .or_else(|_| std::env::var("APP_ENV"))
-        .ok()
-}
-
-/// `RUST_ENV`/`APP_ENV` 为 production/prod 时关闭 details；未设置时跟随 debug_assertions。
-fn details_enabled_for(env: Option<String>) -> bool {
-    match env {
-        Some(v) => !matches!(v.to_ascii_lowercase().as_str(), "production" | "prod"),
-        None => cfg!(debug_assertions),
-    }
+fn details_enabled_for(is_production: bool) -> bool {
+    !is_production
 }
 
 #[cfg(test)]
@@ -108,9 +105,8 @@ mod tests {
 
     #[test]
     fn details_gated_by_env_name() {
-        assert!(!details_enabled_for(Some("production".into())));
-        assert!(!details_enabled_for(Some("PROD".into())));
-        assert!(details_enabled_for(Some("development".into())));
+        assert!(!details_enabled_for(true));
+        assert!(details_enabled_for(false));
     }
 }
 

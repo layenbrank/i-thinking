@@ -18,7 +18,6 @@ use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::filters::exception::Exception;
 use crate::guards::blacklist;
-use crate::guards::permission::Role;
 use crate::utils::code::{auth as auth_codes, external};
 use crate::utils::jwt::{JwtError, verify_token};
 use crate::utils::token::bearer;
@@ -88,7 +87,7 @@ where
         let admin_only = self.admin_only;
 
         let secret = match req.app_data::<web::Data<Arc<Configure>>>() {
-            Some(cfg) => cfg.jwt_secret.clone(),
+            Some(cfg) => cfg.jwt_secret().to_string(),
             None => {
                 return Box::pin(async move {
                     Ok(json_error(req, Exception::internal_error("服务配置缺失")))
@@ -174,6 +173,7 @@ pub fn jwt_exception(err: JwtError) -> Exception {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::guards::permission::Role;
     use crate::utils::code::{auth as auth_codes, system};
     use actix_web::test as awtest;
     use actix_web::{App, HttpResponse, web};
@@ -181,25 +181,7 @@ mod tests {
     use std::sync::Arc;
 
     fn test_configure() -> Configure {
-        Configure {
-            host: "127.0.0.1".into(),
-            port: 3000,
-            database_uri: "postgres://x".into(),
-            secret: "secret".into(),
-            encryption: crate::configures::configure::Encryption::Argon2,
-            jwt_secret: "test-secret-key-at-least-32-characters!".into(),
-            aes_key: None,
-            redis_url: "redis://127.0.0.1:6379".into(),
-            redis_pool_size: 1,
-            elasticsearch_url: "http://127.0.0.1:9200".into(),
-            elasticsearch_index: "test".into(),
-            elasticsearch_api_key: None,
-            elasticsearch_username: None,
-            elasticsearch_password: None,
-            elasticsearch_cloud_id: None,
-            elasticsearch_insecure: true,
-            cors_origins: vec![],
-        }
+        Configure::test("test-secret-key-at-least-32-characters!")
     }
 
     #[test]
@@ -242,7 +224,7 @@ mod tests {
     async fn required_without_redis_returns_cache_envelope() {
         let cfg = test_configure();
         let token =
-            crate::utils::jwt::generate_token("u1", "bob", Role::User, &cfg.jwt_secret, Some(1))
+            crate::utils::jwt::generate_token("u1", "bob", Role::User, cfg.jwt_secret(), Some(1))
                 .unwrap();
         let app = awtest::init_service(
             App::new()
@@ -287,7 +269,7 @@ mod tests {
     async fn admin_only_rejects_user_role_token() {
         let cfg = test_configure();
         let token =
-            crate::utils::jwt::generate_token("u1", "bob", Role::User, &cfg.jwt_secret, Some(1))
+            crate::utils::jwt::generate_token("u1", "bob", Role::User, cfg.jwt_secret(), Some(1))
                 .unwrap();
 
         let app = awtest::init_service(

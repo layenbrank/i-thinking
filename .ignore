@@ -1,6 +1,4 @@
-# 供 cargo-watch / ripgrep / ignore crate 使用。
-# Windows 上仅靠 .gitignore 的 `/cas` 仍可能让 watch 在写入分片时重启进程，
-# 从而在上传中途出现客户端 ECONNRESET。
+# 供 ripgrep / cargo-watch 过滤运行时目录（cargo watch 默认读本文件）。
 cas/
 chunks/
 logs/

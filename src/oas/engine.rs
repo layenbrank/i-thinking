@@ -1,5 +1,5 @@
-use crate::services::engine::schema::QueryP;
 use super::common::{Exception, SuggestionEnvelope};
+use crate::services::engine::schema::QueryP;
 
 /// Bing 搜索建议代理
 #[utoipa::path(

@@ -1,5 +1,5 @@
-use crate::services::search::schema::WriteP;
 use super::common::{Exception, SearchEnvelope, SearchWriteEnvelope};
+use crate::services::search::schema::WriteP;
 
 /// 索引文档到 Elasticsearch
 #[utoipa::path(

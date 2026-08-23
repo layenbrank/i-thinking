@@ -1,0 +1,73 @@
+app:
+  env: development
+  swagger: true
+
+server:
+  host: 127.0.0.1
+  port: 3000
+
+database:
+  url: postgres://machenike:Li33333.@127.0.0.1:5432/i-thinking
+
+redis:
+  url: redis://127.0.0.1:6379
+  pool_size: 8
+
+elasticsearch:
+  url: http://127.0.0.1:9200
+  index: corex_docs
+  insecure: false
+  username: null
+  password: null
+  api_key: null
+  cloud_id: null
+
+security:
+  # 通用应用密钥（预留；生产环境禁止占位值，当前业务代码未直接读取）
+  secret: change-me-secret
+  # JWT 签发/校验密钥（signin 等返回的 token）；至少 32 字符
+  jwt_secret: bWQkgpKWScV@r7HoX#WBaEXrGLlUt%kTIO&%keKQVW#Js#QYwzzJ9dPDAPczT@sb
+  # 用户密码入库算法：argon2（推荐）| aes（仅开发/迁移，生产禁用）
+  encryption: aes # argon2, aes
+  # encryption=aes 时必填；AES-256 密钥，Base64 编码（cargo run --bin generate）
+  aes_key: nFXrKNkTp/HcFcaRCbiyocEu19vg1TyqfDdDz67E6Nw=
+
+auth:
+  captcha:
+    base_url: http://127.0.0.1:8080
+    # 与 docker/gocaptcha/config.json 的 api_keys 一致；请求侧车时放在 X-API-Key 头
+    api_key: change-me-gocaptcha-key
+    kind: slide-default
+    timeout_ms: 5000
+    ip_rate_limit: 30
+  otp:
+    ttl_secs: 300
+    cooldown_secs: 60
+    max_attempts: 5
+    lock_secs: 900
+    mock: true
+  signin:
+    max_failures: 5
+  rate_limit:
+    enabled: true
+    burst_size: 20
+    requests_per_minute: 30
+  trust_proxy: false
+
+logging:
+  filter: info
+  dir: logs
+  retention_days: 14
+  format: pretty
+  body_max: 8192
+
+cors:
+  origins: []
+
+aliyun:
+  gateway:
+    base_url: http://127.0.0.1:8090
+    # 与 docker/aliyun-gateway/config.json 的 api_keys 一致
+    api_key: change-me-aliyun-gateway-key
+    timeout_ms: 10000
+    sms_template_code: SMS_xxxx

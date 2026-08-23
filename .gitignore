@@ -4,10 +4,14 @@
 /uploads/
 /logs/
 /data/
+/.tmp/
+/config.local.yaml
+/docker/aliyun-gateway/config.local.json
+/sidecars/aliyun-gateway/aliyun-gateway
+/sidecars/aliyun-gateway/aliyun-gateway.exe
 
-# Node
+# Bun / Node
 /node_modules/
-/token
 
 # Python
 __pycache__/

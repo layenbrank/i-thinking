@@ -18,8 +18,8 @@ pub fn is_unique_violation(err: &DbErr) -> bool {
     msg.contains("duplicate key") || msg.contains("unique constraint")
 }
 
-/// PostgreSQL foreign_key_violation (SQLSTATE 23503).
-/// 常见于秒传 discard 会话后，并发 chunk 仍写入已删除的 asset。
+/// PostgreSQL foreign_key_violation (SQLSTATE 23503)。
+/// 常见于 cancel 硬删会话后，并发 chunk 仍写入已删除的 asset。
 pub fn is_fk_violation(err: &DbErr) -> bool {
     if sqlstate(err).as_deref() == Some("23503") {
         return true;
@@ -40,9 +40,7 @@ mod tests {
 
     #[test]
     fn detects_fk_violation_message() {
-        let err = DbErr::Custom(
-            "插入或更新表 \"chunk\" 违反外键约束 \"fk_chunk_asset\"".into(),
-        );
+        let err = DbErr::Custom("插入或更新表 \"chunk\" 违反外键约束 \"fk_chunk_asset\"".into());
         assert!(is_fk_violation(&err));
         assert!(!is_unique_violation(&err));
     }

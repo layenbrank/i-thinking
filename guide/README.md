@@ -1,6 +1,6 @@
 # 项目指南
 
-基础 URL：`http://127.0.0.1:3000`（见 [`env.md`](env.md)）
+基础 URL：`http://127.0.0.1:3000`（见 [`configuration.md`](configuration.md)）
 
 ## 文档入口
 
@@ -10,7 +10,9 @@
 | Swagger UI | `/swagger-ui/`（需 `--features openapi`） |
 | 业务错误码 | [`error-codes.md`](error-codes.md) · 开发环境 `/guide/error-codes.md` |
 | 数据库协作 | [`database.md`](database.md) |
-| 环境变量 | [`env.md`](env.md) |
+| 配置（YAML） | [`configuration.md`](configuration.md) |
+| 外部集成（Sidecar） | [`integrations.md`](integrations.md) |
+| sidecars（Go 侧车入门） | [`../sidecars/README.md`](../sidecars/README.md) |
 | Redis / Elasticsearch（调研） | [`redis-elasticsearch.md`](redis-elasticsearch.md) |
 | 横切架构（Nest ↔ Actix） | [`architecture-cross-cutting.md`](architecture-cross-cutting.md) |
 | 模块接口详情 | [`src/services/*/README.md`](../src/services/auth/README.md) |

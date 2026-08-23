@@ -24,7 +24,7 @@ impl EsClient {
         let client = Elasticsearch::new(transport);
         let es = Self {
             client,
-            index: config.elasticsearch_index.clone(),
+            index: config.elasticsearch_index().to_string(),
         };
         es.ping().await?;
         Ok(es)
@@ -75,14 +75,14 @@ impl EsClient {
 }
 
 fn build_transport(config: &Configure) -> Result<Transport> {
-    if let Some(cloud_id) = config.elasticsearch_cloud_id.as_deref() {
+    if let Some(cloud_id) = config.elasticsearch_cloud_id() {
         let credentials =
             resolve_credentials(config)?.context("ELASTICSEARCH_CLOUD_ID requires credentials")?;
         return Transport::cloud(cloud_id, credentials)
             .context("elasticsearch cloud transport failed");
     }
 
-    let url = Url::parse(&config.elasticsearch_url).context("invalid ELASTICSEARCH_URL")?;
+    let url = Url::parse(config.elasticsearch_url()).context("invalid elasticsearch.url")?;
     let pool = SingleNodeConnectionPool::new(url);
     let mut builder = TransportBuilder::new(pool);
 
@@ -90,7 +90,7 @@ fn build_transport(config: &Configure) -> Result<Transport> {
         builder = builder.auth(credentials);
     }
 
-    if config.elasticsearch_insecure {
+    if config.elasticsearch_insecure() {
         builder = builder.cert_validation(CertificateValidation::None);
     }
 
@@ -100,17 +100,14 @@ fn build_transport(config: &Configure) -> Result<Transport> {
 }
 
 fn resolve_credentials(config: &Configure) -> Result<Option<Credentials>> {
-    if let Some(api_key) = config.elasticsearch_api_key.as_deref() {
+    if let Some(api_key) = config.elasticsearch_api_key() {
         if let Some((id, key)) = api_key.split_once(':') {
             return Ok(Some(Credentials::ApiKey(id.into(), key.into())));
         }
         return Ok(Some(Credentials::EncodedApiKey(api_key.into())));
     }
 
-    match (
-        config.elasticsearch_username.as_deref(),
-        config.elasticsearch_password.as_deref(),
-    ) {
+    match (config.elasticsearch_username(), config.elasticsearch_password()) {
         (Some(user), Some(pass)) => Ok(Some(Credentials::Basic(user.into(), pass.into()))),
         (None, None) => Ok(None),
         _ => bail!("ELASTICSEARCH_USERNAME and ELASTICSEARCH_PASSWORD must both be set"),

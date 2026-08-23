@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members  = [".", "entity", "migration"]
+members  = [".", "entity", "migration", "configures"]
 
 [workspace.package]
 version = "0.1.0"
@@ -67,6 +67,7 @@ actix-web = { version = "4.14.1", features = [
 actix-cors = "0.7.1" # CORS 跨域
 actix-files = "0.7.0" # 静态文件 / 下载
 actix-multipart = "0.8.0" # multipart 文件上传
+actix-governor = "0.10.0" # auth 路由 IP 限流
 
 # 异步运行时
 tokio   = { workspace = true } # 异步运行时（文件 I/O 等）
@@ -112,8 +113,9 @@ thiserror = "2.0.20"  # 类型化错误定义
 # 时间
 chrono = { version = "0.4.45", features = ["serde"] } # 时间戳 / JWT 过期
 
-# 配置 / 日志
-dotenv = "0.14.1" # 加载 .env
+# 配置
+config    = "0.15.19"
+configures = { path = "configures" }
 tracing = "0.1.44" # 结构化日志 / 追踪
 tracing-subscriber = { version = "0.3.22", features = [
   "env-filter",
@@ -127,8 +129,8 @@ tracing-log = "0.2.0" # 将 log crate 接到 tracing
 dialoguer = "0.12.0" # generate 交互式菜单
 
 # OpenAPI 文档
-utoipa = { version = "=5.3.1", features = ["chrono"] }
-utoipa-swagger-ui = { version = "=8.0.3", features = [
+utoipa = { version = "5.5.0", features = ["chrono"] }
+utoipa-swagger-ui = { version = "9.0.2", features = [
   "actix-web",
 ], optional = true }
 

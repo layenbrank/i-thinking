@@ -15,11 +15,10 @@ pub mod bootstrap {
 /// 构建基础 Actix App（须在 `HttpServer::new` 闭包内展开，以保证类型推断）
 #[macro_export]
 macro_rules! bootstrap_app {
-    ($store:expr, $config:expr, $redis:expr, $es:expr, $bootstrap:expr) => {{
+    ($store:expr, $config:expr, $redis:expr, $es:expr, $bootstrap:expr, $auth_governor:expr) => {{
         use actix_web::{App, web::Data};
         use $crate::middlewares::access_log::AccessLog;
         use $crate::middlewares::cors::cors;
-        use $crate::services::application::module::ApplicationModule;
 
         App::new()
             .app_data(Data::new($store))
@@ -29,12 +28,19 @@ macro_rules! bootstrap_app {
             .wrap(cors($config.as_ref()))
             .wrap(AccessLog)
             .configure(|cfg| $crate::bootstrap::BootstrapModule::configure(cfg, &$bootstrap))
-            .configure(ApplicationModule::configure)
+            .configure(|cfg| {
+                $crate::services::application::module::ApplicationModule::configure(
+                    cfg,
+                    $auth_governor.clone(),
+                )
+            })
     }};
 }
 
 pub mod clients {
+    pub mod aliyun_gateway;
     pub mod elasticsearch;
+    pub mod gocaptcha;
     pub mod redis;
 }
 
@@ -42,22 +48,21 @@ pub mod databases {
     pub mod database;
 }
 
-pub mod configures {
-    pub mod configure;
-}
+pub extern crate configures;
 
 pub mod middlewares {
-    //! HTTP 层 wrap（Nest Middleware 角色）：CORS、访问日志。
+    //! HTTP 层 wrap（Nest Middleware 角色）：CORS、访问日志、限流。
     pub mod access_log;
     pub mod cors;
+    pub mod rate_limit;
 }
 
 /// 鉴权守卫（Nest Guard 角色）：能否进入受保护 Handler。
 pub mod guards {
     pub mod auth;
     pub mod blacklist;
-    pub mod public;
     pub mod permission;
+    pub mod public;
 }
 
 /// 异常响应信封（Nest Filter 角色）
@@ -74,6 +79,7 @@ pub mod interceptors {
 
 pub mod utils {
     pub mod code;
+    pub mod client_ip;
     pub mod db;
     pub mod encryption;
     pub mod generate;
@@ -121,8 +127,10 @@ pub mod services {
     }
 
     pub mod auth {
+        pub mod captcha;
         pub mod controller;
         pub mod module;
+        pub mod otp;
         pub mod schema;
         pub mod service;
     }

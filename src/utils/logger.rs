@@ -1,5 +1,6 @@
 use std::{
     fs, io,
+    sync::OnceLock,
     time::{Duration, SystemTime},
 };
 
@@ -10,25 +11,49 @@ use tracing_subscriber::{
     EnvFilter, fmt, fmt::time::ChronoLocal, layer::SubscriberExt, util::SubscriberInitExt,
 };
 
-const DEFAULT_LOG_DIR: &str = "logs";
-const DEFAULT_FILTER: &str = "info";
-const DEFAULT_RETENTION_DAYS: u64 = 14;
+use crate::configures::configure::LoggingConfig;
+
+pub const DEFAULT_LOG_DIR: &str = "logs";
+pub const DEFAULT_FILTER: &str = "info";
+pub const DEFAULT_RETENTION_DAYS: u64 = 14;
+pub const DEFAULT_BODY_MAX: usize = 8192;
 /// 控制台 / 文件时间：精确到毫秒
 const TIME_FMT: &str = "%Y-%m-%d %H:%M:%S%.3f";
 const TIME_FMT_UTC: &str = "%Y-%m-%dT%H:%M:%S%.3fZ";
 
+static BODY_MAX: OnceLock<usize> = OnceLock::new();
+
+pub fn body_max() -> usize {
+    BODY_MAX.get().copied().unwrap_or(DEFAULT_BODY_MAX)
+}
+
 /// 初始化 tracing：控制台人类可读 + 按日文件 `YYYY-MM-DD.log`（JSON）。
 ///
 /// 返回的 `WorkerGuard` 必须持有到进程退出。
-pub fn init() -> Result<WorkerGuard> {
-    let log_dir = std::env::var("LOG_DIR").unwrap_or_else(|_| DEFAULT_LOG_DIR.to_string());
-    let retention_days = std::env::var("LOG_RETENTION_DAYS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(DEFAULT_RETENTION_DAYS);
-    let log_format = std::env::var("LOG_FORMAT")
-        .unwrap_or_else(|_| "pretty".to_string())
-        .to_lowercase();
+pub fn init(logging: &LoggingConfig) -> Result<WorkerGuard> {
+    let log_dir = logging
+        .dir
+        .trim()
+        .is_empty()
+        .then_some(DEFAULT_LOG_DIR)
+        .unwrap_or(logging.dir.as_str());
+    let log_dir = log_dir.to_string();
+    let retention_days = if logging.retention_days == 0 {
+        DEFAULT_RETENTION_DAYS
+    } else {
+        logging.retention_days
+    };
+    let log_format = if logging.format.trim().is_empty() {
+        "pretty".to_string()
+    } else {
+        logging.format.to_lowercase()
+    };
+    let body_max = if logging.body_max == 0 {
+        DEFAULT_BODY_MAX
+    } else {
+        logging.body_max
+    };
+    let _ = BODY_MAX.set(body_max);
 
     fs::create_dir_all(&log_dir)
         .with_context(|| format!("Failed to create log directory `{log_dir}`"))?;
@@ -43,8 +68,12 @@ pub fn init() -> Result<WorkerGuard> {
         .context("Failed to build daily log appender")?;
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
-    let env_filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(DEFAULT_FILTER));
+    let filter = logging.filter.trim();
+    let env_filter = if filter.is_empty() {
+        EnvFilter::new(DEFAULT_FILTER)
+    } else {
+        EnvFilter::new(filter)
+    };
 
     let file_layer = fmt::layer()
         .json()
@@ -94,6 +123,7 @@ pub fn init() -> Result<WorkerGuard> {
         log_pattern = "%Y-%m-%d.log",
         retention_days,
         log_format = %log_format,
+        body_max,
         "logger initialized"
     );
 

@@ -7,6 +7,7 @@ use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use base64::{Engine, engine::general_purpose::STANDARD};
 
 use crate::configures::configure::Encryption;
+use configures::runtime;
 
 #[derive(Debug, thiserror::Error)]
 pub enum EncryptionError {
@@ -31,7 +32,7 @@ pub fn encrypt_password(
 ) -> Result<String, EncryptionError> {
     match method {
         Encryption::Aes => {
-            if is_production_env() {
+            if runtime::is_production() {
                 return Err(EncryptionError::AesError(
                     "ENCRYPTION=aes is forbidden in production; use argon2".into(),
                 ));
@@ -148,13 +149,6 @@ fn verify_password_hash(password: &str, hashed: &str) -> Result<bool, Encryption
     }
 }
 
-fn is_production_env() -> bool {
-    std::env::var("RUST_ENV")
-        .or_else(|_| std::env::var("APP_ENV"))
-        .ok()
-        .is_some_and(|v| matches!(v.to_ascii_lowercase().as_str(), "production" | "prod"))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -182,14 +176,9 @@ mod tests {
 
     #[test]
     fn aes_password_forbidden_in_production() {
-        // SAFETY: 测试隔离设置环境变量
-        unsafe {
-            std::env::set_var("RUST_ENV", "production");
-        }
+        runtime::init(true);
         let err = encrypt_password("x", &Encryption::Aes, Some("ignored")).unwrap_err();
         assert!(matches!(err, EncryptionError::AesError(_)));
-        unsafe {
-            std::env::remove_var("RUST_ENV");
-        }
+        runtime::init(false);
     }
 }

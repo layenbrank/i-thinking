@@ -3,7 +3,7 @@ use utoipa::ToSchema;
 
 use crate::services::{
     application::schema::App,
-    auth::schema::{AuthR, Avatar, ProfileR, SigninR, SignupR},
+    auth::schema::{AuthR, Avatar, CaptchaR, ProfileR, SigninR, SignupR},
     engine::schema::SuggestionR,
     search::schema::{SearchR, WriteR as SearchWriteR},
     upload::schema::{ChunkR, FilesR, FinalizeR, HashR, PrepareR, ProgressR},
@@ -26,6 +26,7 @@ macro_rules! envelope {
     };
 }
 
+envelope!(CaptchaEnvelope, CaptchaR);
 envelope!(HealthEnvelope, Health);
 envelope!(SigninEnvelope, SigninR);
 envelope!(SignupEnvelope, SignupR);

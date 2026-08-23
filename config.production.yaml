@@ -1,0 +1,10 @@
+app:
+  env: production
+  swagger: false
+
+auth:
+  otp:
+    mock: false
+
+logging:
+  format: compact

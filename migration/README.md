@@ -8,7 +8,7 @@ SeaORM 官方迁移 crate。记账表为 `migration`（覆盖默认的 `seaql_mi
 cargo install sea-orm-cli@^2.0
 ```
 
-`.env` 使用 `DATABASE_URL`（与 sea-orm-cli 一致）。
+`.env` 已废弃；迁移与 CLI 从 YAML 读取 `database.url`（见 [`guide/configuration.md`](../guide/configuration.md)）。
 
 ```bash
 # 在仓库根目录

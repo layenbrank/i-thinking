@@ -128,25 +128,217 @@ impl ProfileR {
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 #[schema(example = json!({
     "username": "admin",
-    "password": "123456"
+    "password": "123456",
+    "captchaKey": "xxxx-xxxxx",
+    "captchaValue": "120"
 }))]
 pub struct SigninP {
-    #[schema(example = "admin", default = "admin")]
+    /// 用户名
+    #[schema(example = "admin", default = "admin", required)]
     pub username: String,
-    #[schema(example = "123456", default = "123456")]
+    /// 密码
+    #[schema(example = "123456", default = "123456", required)]
     pub password: String,
+    /// 行为验证码 key（来自 `POST /api/v1/auth/captcha` 的 `data.captchaKey`）
+    #[serde(rename = "captchaKey")]
+    #[schema(example = "xxxx-xxxxx", required)]
+    pub captcha_key: String,
+    /// 滑块 X 偏移或点选坐标（与 go-captcha-service `check-data` 的 `value` 一致）
+    #[serde(rename = "captchaValue")]
+    #[schema(example = "120", required)]
+    pub captcha_value: String,
+    /// 题型 ID，默认 `auth.captcha.kind`（如 `slide-default`）
+    #[serde(rename = "captchaKind", default)]
+    #[schema(example = "slide-default")]
+    pub captcha_kind: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 #[schema(example = json!({
-    "username": "admin",
-    "password": "123456"
+    "username": "newuser",
+    "password": "123456",
+    "captchaKey": "xxxx-xxxxx",
+    "captchaValue": "120"
 }))]
 pub struct SignupP {
-    #[schema(example = "admin", default = "admin")]
+    /// 用户名（唯一）
+    #[schema(example = "newuser", required)]
     pub username: String,
-    #[schema(example = "123456", default = "123456")]
+    /// 密码
+    #[schema(example = "123456", required)]
     pub password: String,
+    #[serde(rename = "captchaKey")]
+    #[schema(example = "xxxx-xxxxx", required)]
+    pub captcha_key: String,
+    #[serde(rename = "captchaValue")]
+    #[schema(example = "120", required)]
+    pub captcha_value: String,
+    #[serde(rename = "captchaKind", default)]
+    #[schema(example = "slide-default")]
+    pub captcha_kind: Option<String>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptchaP {
+    /// 题型 ID，默认 `auth.captcha.kind`
+    #[schema(example = "slide-default")]
+    pub kind: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptchaR {
+    /// 题型 ID（如 `slide-default`）
+    #[schema(example = "slide-default")]
+    pub kind: String,
+    /// 提交登录/注册/OTP 时作为 `captchaKey`
+    #[schema(example = "xxxx-xxxxx")]
+    pub captcha_key: String,
+    /// 主图 Base64（对齐 go-captcha-react `data.image`）
+    #[schema(example = "/9j/4AAQSkZJRg...")]
+    pub master_image: String,
+    /// 滑块/拼图块 Base64（对齐 `data.thumb`）
+    #[schema(example = "iVBORw0KGgo...")]
+    pub thumb_image: String,
+    #[schema(example = 0)]
+    pub thumb_x: i32,
+    #[schema(example = 80)]
+    pub thumb_y: i32,
+    #[schema(example = 60)]
+    pub thumb_width: i32,
+    #[schema(example = 60)]
+    pub thumb_height: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum OtpChannel {
+    Phone,
+    Email,
+}
+
+impl OtpChannel {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Phone => "phone",
+            Self::Email => "email",
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "channel": "PHONE",
+    "target": "13800138000",
+    "captchaKey": "xxxx-xxxxx",
+    "captchaValue": "120"
+}))]
+pub struct OtpP {
+    #[schema(example = "PHONE", required)]
+    pub channel: OtpChannel,
+    /// 手机号或邮箱
+    #[schema(example = "13800138000", required)]
+    pub target: String,
+    #[serde(rename = "captchaKey")]
+    #[schema(example = "xxxx-xxxxx", required)]
+    pub captcha_key: String,
+    #[serde(rename = "captchaValue")]
+    #[schema(example = "120", required)]
+    pub captcha_value: String,
+    #[serde(rename = "captchaKind", default)]
+    #[schema(example = "slide-default")]
+    pub captcha_kind: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "phone": "13800138000",
+    "code": "123456"
+}))]
+pub struct PhoneSigninP {
+    /// 手机号（须已绑定账号）
+    #[schema(example = "13800138000", required)]
+    pub phone: String,
+    /// OTP 六位数字
+    #[schema(example = "123456", required)]
+    pub code: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "email": "admin@example.com",
+    "code": "123456"
+}))]
+pub struct EmailSigninP {
+    /// 邮箱（须已绑定账号）
+    #[schema(example = "admin@example.com", required)]
+    pub email: String,
+    /// OTP 六位数字
+    #[schema(example = "123456", required)]
+    pub code: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "username": "admin",
+    "captchaKey": "xxxx-xxxxx",
+    "captchaValue": "120"
+}))]
+pub struct ForgotPasswordP {
+    #[schema(example = "admin")]
+    pub username: Option<String>,
+    pub channel: Option<OtpChannel>,
+    #[schema(example = "13800138000")]
+    pub target: Option<String>,
+    #[serde(rename = "captchaKey")]
+    #[schema(example = "xxxx-xxxxx", required)]
+    pub captcha_key: String,
+    #[serde(rename = "captchaValue")]
+    #[schema(example = "120", required)]
+    pub captcha_value: String,
+    #[serde(rename = "captchaKind", default)]
+    #[schema(example = "slide-default")]
+    pub captcha_kind: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "channel": "PHONE",
+    "target": "13800138000",
+    "code": "123456",
+    "newPassword": "654321"
+}))]
+pub struct ResetPasswordP {
+    pub username: Option<String>,
+    pub channel: Option<OtpChannel>,
+    #[schema(example = "13800138000")]
+    pub target: Option<String>,
+    #[schema(example = "123456", required)]
+    pub code: String,
+    #[serde(rename = "newPassword")]
+    #[schema(example = "654321", required)]
+    pub new_password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "oldPassword": "123456",
+    "newPassword": "654321"
+}))]
+pub struct PasswordP {
+    #[serde(rename = "oldPassword")]
+    #[schema(example = "123456", required)]
+    pub old_password: String,
+    #[serde(rename = "newPassword")]
+    #[schema(example = "654321", required)]
+    pub new_password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

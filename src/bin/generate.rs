@@ -25,7 +25,7 @@ fn main() {
             println!("JWT_SECRET={}", jwt_secret);
             println!("\n💡 使用说明：");
             println!("   - 用于 JWT token 的签名和验证");
-            println!("   - 将上述密钥添加到 .env 文件中");
+            println!("   - 写入 config.local.yaml 的 security.jwt_secret");
         }
         1 => {
             let aes_key = generate::generate_aes_key();
@@ -33,7 +33,7 @@ fn main() {
             println!("AES_KEY={}", aes_key);
             println!("\n💡 使用说明：");
             println!("   - 仅在使用 AES 加密方式时需要");
-            println!("   - 将上述密钥添加到 .env 文件中");
+            println!("   - 写入 config.local.yaml 的 security.jwt_secret");
         }
         2 => {
             let cvid = generate::generate_secure_cvid();
@@ -54,7 +54,7 @@ fn main() {
             println!("CVID={}", cvid);
 
             println!("\n=== 使用说明 ===");
-            println!("1. 将上述密钥添加到 .env 文件中");
+            println!("1. 将上述密钥写入 config.local.yaml（security 段）");
             println!("2. JWT_SECRET: 用于 JWT token 的签名和验证");
             println!("3. AES_KEY: 仅在使用 AES 加密方式时需要");
             println!("4. CVID: 加密随机数，符合 GUID v4 标准");

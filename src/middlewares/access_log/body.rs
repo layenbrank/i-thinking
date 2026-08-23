@@ -1,14 +1,7 @@
 //! 请求/响应 body 预览与敏感字段脱敏（可单测）。
 
-use actix_web::{
-    HttpMessage,
-    dev::ServiceRequest,
-    http::header,
-    web::Bytes,
-};
+use actix_web::{HttpMessage, dev::ServiceRequest, http::header, web::Bytes};
 use futures::StreamExt;
-
-pub const DEFAULT_BODY_MAX: usize = 8 * 1024;
 
 const SENSITIVE_KEYS: &[&str] = &[
     "password",
@@ -34,10 +27,7 @@ const SENSITIVE_QUERY_KEYS: &[&str] = &[
 ];
 
 pub fn body_max() -> usize {
-    std::env::var("LOG_BODY_MAX")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(DEFAULT_BODY_MAX)
+    crate::utils::logger::body_max()
 }
 
 pub fn header_str(req: &ServiceRequest, name: header::HeaderName) -> Option<String> {
@@ -53,7 +43,11 @@ pub fn is_json_ct(content_type: &str) -> bool {
 }
 
 /// 是否跳过响应体采样（大文件 / 非文本 / 超限 Content-Length / 公开下载）。
-pub fn skip_response_peek(path: &str, headers: &actix_web::http::header::HeaderMap, max: usize) -> bool {
+pub fn skip_response_peek(
+    path: &str,
+    headers: &actix_web::http::header::HeaderMap,
+    max: usize,
+) -> bool {
     if path.starts_with("/api/v1/upload/files/") || path.starts_with("/api/v1/upload/asset/") {
         return true;
     }
@@ -66,7 +60,10 @@ pub fn skip_response_peek(path: &str, headers: &actix_web::http::header::HeaderM
             return true;
         }
     }
-    match headers.get(header::CONTENT_TYPE).and_then(|h| h.to_str().ok()) {
+    match headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|h| h.to_str().ok())
+    {
         Some(ct) => {
             let ct = ct.to_ascii_lowercase();
             !(is_json_ct(&ct) || ct.starts_with("text/"))
@@ -246,16 +243,8 @@ mod tests {
     #[test]
     fn skip_public_files_and_large_and_binary() {
         let mut h = HeaderMap::new();
-        assert!(skip_response_peek(
-            "/api/v1/upload/files/abc",
-            &h,
-            1024
-        ));
-        assert!(skip_response_peek(
-            "/api/v1/upload/asset/abc",
-            &h,
-            1024
-        ));
+        assert!(skip_response_peek("/api/v1/upload/files/abc", &h, 1024));
+        assert!(skip_response_peek("/api/v1/upload/asset/abc", &h, 1024));
 
         h.insert(header::CONTENT_LENGTH, HeaderValue::from_static("99999"));
         h.insert(

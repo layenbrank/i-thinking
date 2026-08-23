@@ -55,7 +55,7 @@ docker compose up -d
 docker compose ps
 docker exec corex-redis redis-cli PING
 curl http://127.0.0.1:9200
-# 应用连宿主机映射端口，见 .env
+# 应用连宿主机映射端口，见 config.yaml / config.local.yaml
 ```
 
 ---

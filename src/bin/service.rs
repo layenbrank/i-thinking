@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 use actix_web::HttpServer;
 use service::{
@@ -7,46 +7,32 @@ use service::{
     clients::{elasticsearch::EsClient, redis::RedisPool},
     configures::configure::Configure,
     databases::database::Storage,
+    middlewares::rate_limit::build_auth_governor,
     utils,
 };
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let env_loaded = std::env::current_exe()
-        .ok()
-        .and_then(|exe_path| exe_path.parent().map(|p| p.join(".env")))
-        .filter(|p| p.exists())
-        .and_then(|p| dotenv::from_path(p.as_path()).ok())
-        .is_some()
-        || dotenv::dotenv().is_ok()
-        || env::home_dir()
-            .map(|home| home.join(".corex").join(".env"))
-            .filter(|p| p.exists())
-            .and_then(|p| dotenv::from_path(p.as_path()).ok())
-            .is_some();
+    let configure = Configure::load().expect("Failed to load configuration");
 
-    if !env_loaded {
-        eprintln!("警告: 未找到 .env 文件，将使用默认值");
-    }
-
-    let _log_guard = utils::logger::init().expect("Failed to initialize logger");
-
-    let configure = Configure::from_env().expect("Failed to load configuration");
+    let _log_guard = utils::logger::init(&configure.logging).expect("Failed to initialize logger");
 
     tracing::info!(
-        host = %configure.host,
-        port = configure.port,
-        encryption = ?configure.encryption,
-        redis_url = %configure.redis_url,
-        elasticsearch_url = %configure.elasticsearch_url,
+        profile = %configure.profile,
+        config_dir = %configure.config_dir.display(),
+        host = %configure.host(),
+        port = configure.port(),
+        encryption = ?configure.encryption(),
+        redis_url = %configure.redis_url(),
+        elasticsearch_url = %configure.elasticsearch_url(),
         "configuration loaded"
     );
 
-    let storage = Storage::new(&configure.database_uri)
+    let storage = Storage::new(configure.database_uri())
         .await
         .expect("Failed to connect to database");
 
-    let redis = RedisPool::new(&configure.redis_url, configure.redis_pool_size)
+    let redis = RedisPool::new(configure.redis_url(), configure.redis_pool_size())
         .await
         .expect("Failed to connect to Redis");
 
@@ -57,18 +43,16 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to ensure Elasticsearch index");
 
+    let host = configure.server.host.clone();
+    let port = configure.server.port;
+    let enable_swagger = configure.app.swagger;
     let store = Arc::new(storage);
-    let config = Arc::new(configure.clone());
+    let config = Arc::new(configure);
     let redis = Arc::new(redis);
     let es = Arc::new(es);
-    let host = config.host.clone();
-    let port = config.port;
-
-    let enable_swagger = env::var("ENABLE_SWAGGER")
-        .map(|v| v == "true" || v == "1")
-        .unwrap_or(cfg!(debug_assertions));
 
     let bootstrap = BootstrapOptions::development(enable_swagger);
+    let auth_governor = build_auth_governor(config.as_ref());
 
     tracing::info!(host = %host, port, enable_swagger, "service starting");
     #[cfg(feature = "openapi")]
@@ -93,7 +77,8 @@ async fn main() -> std::io::Result<()> {
                 config.clone(),
                 redis.clone(),
                 es.clone(),
-                bootstrap.clone()
+                bootstrap.clone(),
+                auth_governor.clone()
             )
             .service(swagger::redirect_to_ui)
             .service(
@@ -112,7 +97,8 @@ async fn main() -> std::io::Result<()> {
             config.clone(),
             redis.clone(),
             es.clone(),
-            bootstrap.clone()
+            bootstrap.clone(),
+            auth_governor.clone()
         )
     })
     .bind((host, port))?

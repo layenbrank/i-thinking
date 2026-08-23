@@ -1,5 +1,5 @@
-use crate::services::user::schema::{UpdateP, WriteP};
 use super::common::{Exception, UserEnvelope, UserListEnvelope};
+use crate::services::user::schema::{UpdateP, WriteP};
 
 /// 获取用户列表
 #[utoipa::path(

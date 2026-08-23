@@ -1,0 +1,24 @@
+# 复制为 config.local.yaml（不入库），覆盖本机密钥与连接串。
+
+database:
+  url: postgres://machenike:Li33333.@127.0.0.1:5432/i-thinking
+
+security:
+  secret: your-local-secret
+  jwt_secret: your-local-jwt-secret-at-least-32-characters-long
+  # encryption: aes
+  # aes_key: your-base64-aes-key
+
+auth:
+  captcha:
+    api_key: change-me-gocaptcha-key
+
+aliyun:
+  gateway:
+    api_key: change-me-aliyun-gateway-key
+
+redis:
+  url: redis://127.0.0.1:6379
+
+elasticsearch:
+  url: http://127.0.0.1:9200

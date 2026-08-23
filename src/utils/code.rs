@@ -70,6 +70,7 @@ pub mod business {
         pub const FILE_NOT_FOUND: i32 = 500204;
         pub const CHECKSUM_FAILED: i32 = 500205;
         pub const STORAGE_FULL: i32 = 500206;
+        pub const SESSION_GONE: i32 = 500207;
     }
 
     /// 认证模块 (5003xx)
@@ -79,6 +80,8 @@ pub mod business {
         pub const CAPTCHA_EXPIRED: i32 = 500303;
         pub const TOO_MANY_ATTEMPTS: i32 = 500304;
         pub const RESET_PASSWORD_FAILED: i32 = 500305;
+        pub const INVALID_OTP: i32 = 500306;
+        pub const OTP_EXPIRED: i32 = 500307;
     }
 }
 
@@ -149,6 +152,7 @@ pub fn description(code: i32) -> &'static str {
         business::upload::FILE_NOT_FOUND => "文件不存在",
         business::upload::CHECKSUM_FAILED => "文件校验失败",
         business::upload::STORAGE_FULL => "存储空间不足",
+        business::upload::SESSION_GONE => "上传会话不存在或已结束",
 
         business::login::INVALID_CREDENTIALS => "用户名或密码错误",
         business::login::INVALID_CAPTCHA => "验证码错误",

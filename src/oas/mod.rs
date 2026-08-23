@@ -13,15 +13,17 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
 use crate::oas::common::{
-    ApplicationEnvelope, ChunkUploadEnvelope, ChunkUploadForm, EmptyEnvelope, EmptyR, Exception,
-    FinalizeUploadEnvelope, Health, HealthEnvelope, ProfileEnvelope, SearchEnvelope,
-    SearchWriteEnvelope, SigninEnvelope, SigninErrorExample, SigninSuccessExample, SignupEnvelope,
-    SuggestionEnvelope, UploadFilesEnvelope, UploadHashEnvelope, UploadPrepareEnvelope,
-    UploadProgressEnvelope, UserEnvelope, UserListEnvelope,
+    ApplicationEnvelope, CaptchaEnvelope, ChunkUploadEnvelope, ChunkUploadForm, EmptyEnvelope,
+    EmptyR, Exception, FinalizeUploadEnvelope, Health, HealthEnvelope, ProfileEnvelope,
+    SearchEnvelope, SearchWriteEnvelope, SigninEnvelope, SigninErrorExample, SigninSuccessExample,
+    SignupEnvelope, SuggestionEnvelope, UploadFilesEnvelope, UploadHashEnvelope,
+    UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope, UserListEnvelope,
 };
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
-    AuthR, Avatar, Gender, ProfileP, ProfileR, SigninP, SigninR, SignupP, SignupR,
+    AuthR, Avatar, CaptchaP, CaptchaR, EmailSigninP, ForgotPasswordP, Gender, OtpChannel, OtpP,
+    PasswordP, PhoneSigninP, ProfileP, ProfileR, ResetPasswordP, SigninP, SigninR, SignupP,
+    SignupR,
 };
 use crate::services::engine::schema::{EmptySchema, ISchema, QueryP, SuggestionR, TSchema};
 use crate::services::search::schema::{
@@ -65,7 +67,8 @@ impl Modify for SecurityAddon {
         version = env!("CARGO_PKG_VERSION"),
         description = "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。\
             错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。\
-            鉴权：JWT Bearer；Apifox / REST Client 环境变量统一使用 {{token}}（来自 signin.data.token）。",
+            鉴权：JWT Bearer；Apifox 环境变量统一使用 {{token}}（来自 signin.data.token）。\
+            密码登录 / 注册 / 发 OTP 前须先 POST /api/v1/auth/captcha 获取 captchaKey（go-captcha 行为验证码）。",
         contact(name = "CoreX Team", email = "15638470820@163.com"),
         license(name = "Proprietary")
     ),
@@ -75,8 +78,15 @@ impl Modify for SecurityAddon {
     ),
     paths(
         system::health_doc,
+        auth::captcha_doc,
+        auth::otp_doc,
         auth::signin_doc,
+        auth::signin_phone_doc,
+        auth::signin_email_doc,
         auth::signup_doc,
+        auth::password_forgot_doc,
+        auth::password_reset_doc,
+        auth::password_doc,
         auth::toRead_doc,
         auth::toUpdate_doc,
         auth::signout_doc,
@@ -114,6 +124,16 @@ impl Modify for SecurityAddon {
             SignupP,
             SignupR,
             SignupEnvelope,
+            CaptchaP,
+            CaptchaR,
+            CaptchaEnvelope,
+            OtpP,
+            OtpChannel,
+            PhoneSigninP,
+            EmailSigninP,
+            ForgotPasswordP,
+            ResetPasswordP,
+            PasswordP,
             ProfileP,
             ProfileR,
             ProfileEnvelope,
@@ -169,7 +189,7 @@ impl Modify for SecurityAddon {
     ),
     tags(
         (name = "System", description = "系统级接口"),
-        (name = "Auth", description = "认证与个人资料"),
+        (name = "Auth", description = "认证与个人资料（图形验证码、OTP、密码/手机/邮箱登录）"),
         (name = "User", description = "后台用户管理（需 JWT）"),
         (name = "Upload", description = "分片文件上传"),
         (name = "Engine", description = "搜索引擎代理"),

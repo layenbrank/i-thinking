@@ -8,8 +8,11 @@ use crate::configures::configure::Configure;
 use crate::databases::database::{self, Storage};
 use crate::filters::exception::Exception;
 use crate::guards::blacklist;
+use crate::services::auth::captcha::{CaptchaError, CaptchaService};
+use crate::services::auth::otp::{OtpError, OtpPurpose, OtpService};
 use crate::services::auth::schema::{
-    Gender, ProfileP, ProfileR, Role, SigninP, SigninR, SignupP, SignupR, Status,
+    CaptchaR, EmailSigninP, ForgotPasswordP, Gender, OtpChannel, OtpP, PasswordP, PhoneSigninP,
+    ProfileP, ProfileR, ResetPasswordP, Role, SigninP, SigninR, SignupP, SignupR, Status,
 };
 use crate::utils::code::{auth as auth_codes, business, external, request, resource, system};
 use crate::utils::db::is_unique_violation;
@@ -59,6 +62,12 @@ pub enum AuthError {
     UserNotFound,
     #[error("Invalid password")]
     InvalidPassword,
+    #[error("Wrong old password")]
+    WrongOldPassword,
+    #[error("Weak password")]
+    WeakPassword,
+    #[error("Password reset failed")]
+    ResetPasswordFailed,
     #[error("Account disabled")]
     AccountDisabled,
     #[error("Invalid parameter: {0}")]
@@ -73,6 +82,12 @@ pub enum AuthError {
     DatabaseError(String),
     #[error("Cache error: {0}")]
     CacheError(String),
+    #[error("Captcha error: {0}")]
+    Captcha(#[from] CaptchaError),
+    #[error("OTP error: {0}")]
+    Otp(#[from] OtpError),
+    #[error("Too many attempts")]
+    TooManyAttempts,
 }
 
 impl From<AuthError> for Exception {
@@ -84,6 +99,15 @@ impl From<AuthError> for Exception {
             AuthError::UserNotFound => Exception::custom(business::user::NOT_FOUND, "用户不存在"),
             AuthError::InvalidPassword => {
                 Exception::custom(business::login::INVALID_CREDENTIALS, "用户名或密码错误")
+            }
+            AuthError::WrongOldPassword => {
+                Exception::custom(business::login::INVALID_CREDENTIALS, "原密码错误")
+            }
+            AuthError::WeakPassword => {
+                Exception::custom(business::user::WEAK_PASSWORD, "密码强度不够")
+            }
+            AuthError::ResetPasswordFailed => {
+                Exception::custom(business::login::RESET_PASSWORD_FAILED, "密码重置失败")
             }
             AuthError::AccountDisabled => {
                 Exception::custom(auth_codes::ACCOUNT_DISABLED, "账号已禁用")
@@ -103,6 +127,46 @@ impl From<AuthError> for Exception {
             AuthError::CacheError(msg) => {
                 tracing::error!(error = %msg, "auth cache error");
                 Exception::custom(external::CACHE_ERROR, "缓存错误")
+            }
+            AuthError::Captcha(e) => match e {
+                CaptchaError::Invalid => {
+                    Exception::custom(business::login::INVALID_CAPTCHA, "验证码错误")
+                }
+                CaptchaError::Expired => {
+                    Exception::custom(business::login::CAPTCHA_EXPIRED, "验证码已过期")
+                }
+                CaptchaError::RateLimited => {
+                    Exception::custom(business::login::TOO_MANY_ATTEMPTS, "尝试次数过多，请稍后再试")
+                }
+                CaptchaError::Cache(msg) => {
+                    tracing::error!(error = %msg, "captcha cache error");
+                    Exception::custom(external::CACHE_ERROR, "缓存错误")
+                }
+                CaptchaError::Upstream(msg) => {
+                    tracing::error!(error = %msg, "captcha upstream error");
+                    Exception::custom(system::SERVICE_UNAVAILABLE, "验证码服务不可用")
+                }
+            },
+            AuthError::Otp(e) => match e {
+                OtpError::Invalid => {
+                    Exception::custom(business::login::INVALID_OTP, "验证码错误")
+                }
+                OtpError::Expired => {
+                    Exception::custom(business::login::OTP_EXPIRED, "验证码已过期")
+                }
+                OtpError::RateLimited | OtpError::Locked => {
+                    Exception::custom(business::login::TOO_MANY_ATTEMPTS, "尝试次数过多，请稍后再试")
+                }
+                OtpError::SendFailed => {
+                    Exception::custom(system::SERVICE_UNAVAILABLE, "验证码发送失败，请稍后再试")
+                }
+                OtpError::Cache(msg) => {
+                    tracing::error!(error = %msg, "otp cache error");
+                    Exception::custom(external::CACHE_ERROR, "缓存错误")
+                }
+            },
+            AuthError::TooManyAttempts => {
+                Exception::custom(business::login::TOO_MANY_ATTEMPTS, "尝试次数过多，请稍后再试")
             }
         }
     }
@@ -190,11 +254,222 @@ pub async fn check_avatar(
 pub struct AuthService;
 
 impl AuthService {
+    pub async fn captcha(
+        redis: &RedisPool,
+        config: &Configure,
+        client_ip: &str,
+        kind: Option<&str>,
+    ) -> Result<CaptchaR, AuthError> {
+        Ok(CaptchaService::create(redis, config, client_ip, kind).await?)
+    }
+
+    pub async fn otp(
+        redis: &RedisPool,
+        config: &Configure,
+        db: &database::Storage,
+        req: OtpP,
+    ) -> Result<(), AuthError> {
+        validate_otp_target(req.channel, &req.target)?;
+
+        CaptchaService::verify(
+            config,
+            req.captcha_kind.as_deref(),
+            &req.captcha_key,
+            &req.captcha_value,
+        )
+        .await?;
+
+        let bound = match req.channel {
+            OtpChannel::Phone => Self::find_user_by_phone(db, &req.target).await?.is_some(),
+            OtpChannel::Email => Self::find_user_by_email(db, &req.target).await?.is_some(),
+        };
+
+        if !bound {
+            tracing::info!(
+                event = "auth.otp.send",
+                channel = req.channel.as_str(),
+                target_not_bound = true,
+                "otp skipped for unbound target"
+            );
+            return Ok(());
+        }
+
+        OtpService::send(redis, config, OtpPurpose::Login, req.channel, &req.target).await?;
+        Ok(())
+    }
+
+    pub async fn forgot_password(
+        redis: &RedisPool,
+        config: &Configure,
+        db: &database::Storage,
+        req: ForgotPasswordP,
+    ) -> Result<(), AuthError> {
+        CaptchaService::verify(
+            config,
+            req.captcha_kind.as_deref(),
+            &req.captcha_key,
+            &req.captcha_value,
+        )
+        .await?;
+
+        let mode = parse_password_identifier(
+            req.username.as_deref(),
+            req.channel,
+            req.target.as_deref(),
+        )?;
+
+        let user = match mode {
+            PasswordIdentifier::Username(username) => {
+                auth::Entity::find_by_username(&username)
+                    .one(&db.db)
+                    .await
+                    .map_err(|e| AuthError::DatabaseError(e.to_string()))?
+            }
+            PasswordIdentifier::Channel(channel, target) => {
+                validate_otp_target(channel, &target)?;
+                match channel {
+                    OtpChannel::Phone => Self::find_user_by_phone(db, &target).await?,
+                    OtpChannel::Email => Self::find_user_by_email(db, &target).await?,
+                }
+            }
+        };
+
+        let Some(user) = user else {
+            tracing::info!(event = "auth.password.forgot", skipped = true, "user not found");
+            return Ok(());
+        };
+
+        let targets = bound_otp_targets(&user);
+        if targets.is_empty() {
+            tracing::info!(
+                event = "auth.password.forgot",
+                skipped = true,
+                "no bound channel"
+            );
+            return Ok(());
+        }
+
+        let target_refs: Vec<(OtpChannel, &str)> = targets
+            .iter()
+            .map(|(ch, t)| (*ch, t.as_str()))
+            .collect();
+
+        OtpService::send_same_code_to_targets(
+            redis,
+            config,
+            OtpPurpose::PasswordReset,
+            &target_refs,
+        )
+        .await?;
+        Ok(())
+    }
+
+    pub async fn reset_password(
+        redis: &RedisPool,
+        config: &Configure,
+        db: &database::Storage,
+        req: ResetPasswordP,
+    ) -> Result<(), AuthError> {
+        validate_password_strength(&req.new_password)?;
+
+        let mode = parse_password_identifier(
+            req.username.as_deref(),
+            req.channel,
+            req.target.as_deref(),
+        )?;
+
+        let user = match mode {
+            PasswordIdentifier::Username(username) => {
+                let user = auth::Entity::find_by_username(&username)
+                    .one(&db.db)
+                    .await
+                    .map_err(|e| AuthError::DatabaseError(e.to_string()))?
+                    .ok_or(AuthError::ResetPasswordFailed)?;
+                verify_reset_otp_for_user(redis, config, &user, &req.code).await?;
+                user
+            }
+            PasswordIdentifier::Channel(channel, target) => {
+                validate_otp_target(channel, &target)?;
+                OtpService::verify(
+                    redis,
+                    config,
+                    OtpPurpose::PasswordReset,
+                    channel,
+                    &target,
+                    &req.code,
+                )
+                .await?;
+                let user = match channel {
+                    OtpChannel::Phone => Self::find_user_by_phone(db, &target).await?,
+                    OtpChannel::Email => Self::find_user_by_email(db, &target).await?,
+                }
+                .ok_or(AuthError::ResetPasswordFailed)?;
+                user
+            }
+        };
+
+        Self::ensure_active(&user)?;
+        Self::update_password_hash(db, config, &user, &req.new_password).await?;
+        tracing::info!(event = "auth.password.reset", user_id = %user.id, success = true);
+        Ok(())
+    }
+
+    pub async fn change_password(
+        db: &database::Storage,
+        redis: &RedisPool,
+        config: &Configure,
+        user_id: &str,
+        token: &str,
+        token_exp: i64,
+        req: PasswordP,
+    ) -> Result<(), AuthError> {
+        validate_password_strength(&req.new_password)?;
+
+        let user = Self::find_user(db, user_id).await?;
+        let old_valid = verify_password(
+            &req.old_password,
+            &user.password,
+            &config.encryption(),
+            config.aes_key(),
+        )?;
+        if !old_valid {
+            return Err(AuthError::WrongOldPassword);
+        }
+
+        let same_as_old = verify_password(
+            &req.new_password,
+            &user.password,
+            &config.encryption(),
+            config.aes_key(),
+        )?;
+        if same_as_old {
+            return Err(AuthError::InvalidParameter(
+                "新密码不能与旧密码相同".to_string(),
+            ));
+        }
+
+        Self::update_password_hash(db, config, &user, &req.new_password).await?;
+        Self::signout(redis, token, token_exp).await?;
+        tracing::info!(event = "auth.password.change", user_id = %user.id, success = true);
+        Ok(())
+    }
+
     pub async fn signin(
         db: &database::Storage,
+        redis: &RedisPool,
         req: SigninP,
         config: &Configure,
     ) -> Result<SigninR, AuthError> {
+        Self::check_signin_failures(redis, config, &req.username).await?;
+
+        CaptchaService::verify(
+            config,
+            req.captcha_kind.as_deref(),
+            &req.captcha_key,
+            &req.captcha_value,
+        )
+        .await?;
+
         let user = auth::Entity::find_by_username(&req.username)
             .one(&db.db)
             .await
@@ -204,38 +479,101 @@ impl AuthService {
         let is_valid = verify_password(
             &req.password,
             &user.password,
-            &config.encryption,
-            config.aes_key.as_deref(),
+            &config.encryption(),
+            config.aes_key(),
         )?;
 
         if !is_valid {
+            Self::record_signin_fail(redis, config, &req.username).await?;
+            tracing::info!(
+                event = "auth.signin",
+                username = %req.username,
+                success = false,
+                reason = "invalid_password"
+            );
             return Err(AuthError::InvalidPassword);
         }
 
-        if Status::parse(&user.status).unwrap_or(Status::Disabled) != Status::Active {
-            return Err(AuthError::AccountDisabled);
-        }
+        Self::clear_signin_fail(redis, &req.username).await?;
+        let response = Self::issue_token(&user, config)?;
+        tracing::info!(
+            event = "auth.signin",
+            username = %user.username,
+            success = true
+        );
+        Ok(response)
+    }
 
-        let role = Role::parse(&user.role).unwrap_or(Role::User);
-        let token = generate_token(
-            &user.id.to_string(),
-            &user.username,
-            role,
-            &config.jwt_secret,
-            None,
-        )?;
+    pub async fn signin_phone(
+        db: &database::Storage,
+        redis: &RedisPool,
+        req: PhoneSigninP,
+        config: &Configure,
+    ) -> Result<SigninR, AuthError> {
+        validate_phone(&req.phone)?;
 
-        Ok(SigninR {
-            token,
-            auth: user.into(),
-        })
+        OtpService::verify(
+            redis,
+            config,
+            OtpPurpose::Login,
+            OtpChannel::Phone,
+            &req.phone,
+            &req.code,
+        )
+        .await?;
+
+        let user = Self::find_user_by_phone(db, &req.phone)
+            .await?
+            .ok_or(AuthError::UserNotFound)?;
+
+        Self::ensure_active(&user)?;
+        let response = Self::issue_token(&user, config)?;
+        tracing::info!(event = "auth.signin.phone", success = true);
+        Ok(response)
+    }
+
+    pub async fn signin_email(
+        db: &database::Storage,
+        redis: &RedisPool,
+        req: EmailSigninP,
+        config: &Configure,
+    ) -> Result<SigninR, AuthError> {
+        validate_email(&req.email)?;
+
+        OtpService::verify(
+            redis,
+            config,
+            OtpPurpose::Login,
+            OtpChannel::Email,
+            &req.email,
+            &req.code,
+        )
+        .await?;
+
+        let user = Self::find_user_by_email(db, &req.email)
+            .await?
+            .ok_or(AuthError::UserNotFound)?;
+
+        Self::ensure_active(&user)?;
+        let response = Self::issue_token(&user, config)?;
+        tracing::info!(event = "auth.signin.email", success = true);
+        Ok(response)
     }
 
     pub async fn signup(
         db: &database::Storage,
+        _redis: &RedisPool,
         req: SignupP,
         config: &Configure,
     ) -> Result<SignupR, AuthError> {
+        CaptchaService::verify(
+            config,
+            req.captcha_kind.as_deref(),
+            &req.captcha_key,
+            &req.captcha_value,
+        )
+        .await?;
+
         let existing = auth::Entity::find_by_username(&req.username)
             .one(&db.db)
             .await
@@ -245,8 +583,10 @@ impl AuthService {
             return Err(AuthError::UserAlreadyExists);
         }
 
+        validate_password_strength(&req.password)?;
+
         let encrypted_password =
-            encrypt_password(&req.password, &config.encryption, config.aes_key.as_deref())?;
+            encrypt_password(&req.password, &config.encryption(), config.aes_key())?;
 
         let now = Utc::now().fixed_offset();
         let user = auth::ActiveModel {
@@ -276,7 +616,7 @@ impl AuthService {
             &user.id.to_string(),
             &user.username,
             Role::User,
-            &config.jwt_secret,
+            config.jwt_secret(),
             None,
         )?;
 
@@ -378,5 +718,253 @@ impl AuthService {
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))?
             .ok_or(AuthError::UserNotFound)
+    }
+
+    async fn find_user_by_phone(
+        db: &database::Storage,
+        phone: &str,
+    ) -> Result<Option<auth::Model>, AuthError> {
+        auth::Entity::find()
+            .filter(auth::Column::Phone.eq(phone.trim()))
+            .one(&db.db)
+            .await
+            .map_err(|e| AuthError::DatabaseError(e.to_string()))
+    }
+
+    async fn find_user_by_email(
+        db: &database::Storage,
+        email: &str,
+    ) -> Result<Option<auth::Model>, AuthError> {
+        auth::Entity::find()
+            .filter(auth::Column::Email.eq(email.trim().to_ascii_lowercase()))
+            .one(&db.db)
+            .await
+            .map_err(|e| AuthError::DatabaseError(e.to_string()))
+    }
+
+    fn issue_token(user: &auth::Model, config: &Configure) -> Result<SigninR, AuthError> {
+        Self::ensure_active(user)?;
+        let role = Role::parse(&user.role).unwrap_or(Role::User);
+        let token = generate_token(
+            &user.id.to_string(),
+            &user.username,
+            role,
+            config.jwt_secret(),
+            None,
+        )?;
+        Ok(SigninR {
+            token,
+            auth: user.clone().into(),
+        })
+    }
+
+    fn ensure_active(user: &auth::Model) -> Result<(), AuthError> {
+        if Status::parse(&user.status).unwrap_or(Status::Disabled) != Status::Active {
+            return Err(AuthError::AccountDisabled);
+        }
+        Ok(())
+    }
+
+    async fn check_signin_failures(
+        redis: &RedisPool,
+        config: &Configure,
+        username: &str,
+    ) -> Result<(), AuthError> {
+        use fred::interfaces::KeysInterface;
+
+        let key = signin_fail_key(username);
+        let fails: Option<i64> = redis
+            .pool()
+            .get(key)
+            .await
+            .map_err(|e| AuthError::CacheError(e.to_string()))?;
+
+        if fails.unwrap_or(0) >= config.auth.signin.max_failures as i64 {
+            return Err(AuthError::TooManyAttempts);
+        }
+        Ok(())
+    }
+
+    async fn record_signin_fail(
+        redis: &RedisPool,
+        config: &Configure,
+        username: &str,
+    ) -> Result<(), AuthError> {
+        use fred::interfaces::KeysInterface;
+
+        let key = signin_fail_key(username);
+        let count: i64 = redis
+            .pool()
+            .incr(key.clone())
+            .await
+            .map_err(|e| AuthError::CacheError(e.to_string()))?;
+
+        if count == 1 {
+            let _: () = redis
+                .pool()
+                .expire(key, 900, None)
+                .await
+                .map_err(|e| AuthError::CacheError(e.to_string()))?;
+        }
+
+        if count >= config.auth.signin.max_failures as i64 {
+            return Err(AuthError::TooManyAttempts);
+        }
+        Ok(())
+    }
+
+    async fn clear_signin_fail(redis: &RedisPool, username: &str) -> Result<(), AuthError> {
+        use fred::interfaces::KeysInterface;
+
+        redis
+            .pool()
+            .del::<(), _>(signin_fail_key(username))
+            .await
+            .map_err(|e| AuthError::CacheError(e.to_string()))?;
+        Ok(())
+    }
+
+    async fn update_password_hash(
+        db: &database::Storage,
+        config: &Configure,
+        user: &auth::Model,
+        new_password: &str,
+    ) -> Result<(), AuthError> {
+        let encrypted = encrypt_password(new_password, &config.encryption(), config.aes_key())
+            .map_err(|_| AuthError::ResetPasswordFailed)?;
+
+        let mut active: auth::ActiveModel = user.clone().into();
+        active.password = Set(encrypted);
+        active.updated_at = Set(Utc::now().fixed_offset());
+        active
+            .update(&db.db)
+            .await
+            .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
+        Ok(())
+    }
+}
+
+fn signin_fail_key(username: &str) -> String {
+    format!("auth:signin:fail:{}", username.trim().to_ascii_lowercase())
+}
+
+fn validate_phone(phone: &str) -> Result<(), AuthError> {
+    let p = phone.trim();
+    if p.len() >= 8 && p.chars().all(|c| c.is_ascii_digit() || c == '+' || c == '-') {
+        Ok(())
+    } else {
+        Err(AuthError::InvalidParameter("手机号格式无效".to_string()))
+    }
+}
+
+fn validate_email(email: &str) -> Result<(), AuthError> {
+    let e = email.trim();
+    if e.contains('@') && e.len() >= 5 {
+        Ok(())
+    } else {
+        Err(AuthError::InvalidParameter("邮箱格式无效".to_string()))
+    }
+}
+
+fn validate_otp_target(channel: OtpChannel, target: &str) -> Result<(), AuthError> {
+    match channel {
+        OtpChannel::Phone => validate_phone(target),
+        OtpChannel::Email => validate_email(target),
+    }
+}
+
+fn validate_password_strength(password: &str) -> Result<(), AuthError> {
+    if password.trim().len() < 6 {
+        return Err(AuthError::WeakPassword);
+    }
+    Ok(())
+}
+
+enum PasswordIdentifier {
+    Username(String),
+    Channel(OtpChannel, String),
+}
+
+fn parse_password_identifier(
+    username: Option<&str>,
+    channel: Option<OtpChannel>,
+    target: Option<&str>,
+) -> Result<PasswordIdentifier, AuthError> {
+    let has_username = username.is_some_and(|u| !u.trim().is_empty());
+    let has_channel = channel.is_some() && target.is_some_and(|t| !t.trim().is_empty());
+
+    match (has_username, has_channel) {
+        (true, false) => Ok(PasswordIdentifier::Username(
+            username.unwrap().trim().to_string(),
+        )),
+        (false, true) => Ok(PasswordIdentifier::Channel(
+            channel.unwrap(),
+            target.unwrap().trim().to_string(),
+        )),
+        (false, false) => Err(AuthError::InvalidParameter(
+            "请提供 username 或 channel+target".to_string(),
+        )),
+        (true, true) => Err(AuthError::InvalidParameter(
+            "username 与 channel+target 不能同时填写".to_string(),
+        )),
+    }
+}
+
+fn bound_otp_targets(user: &auth::Model) -> Vec<(OtpChannel, String)> {
+    let mut targets = Vec::new();
+    if let Some(phone) = user.phone.as_ref().filter(|p| !p.trim().is_empty()) {
+        targets.push((OtpChannel::Phone, phone.clone()));
+    }
+    if let Some(email) = user.email.as_ref().filter(|e| !e.trim().is_empty()) {
+        targets.push((OtpChannel::Email, email.clone()));
+    }
+    targets
+}
+
+async fn verify_reset_otp_for_user(
+    redis: &RedisPool,
+    config: &Configure,
+    user: &auth::Model,
+    code: &str,
+) -> Result<(), AuthError> {
+    let mut last_err: Option<OtpError> = None;
+
+    if let Some(email) = user.email.as_ref().filter(|e| !e.trim().is_empty()) {
+        match OtpService::verify(
+            redis,
+            config,
+            OtpPurpose::PasswordReset,
+            OtpChannel::Email,
+            email,
+            code,
+        )
+        .await
+        {
+            Ok(()) => return Ok(()),
+            Err(e) => last_err = Some(e),
+        }
+    }
+
+    if let Some(phone) = user.phone.as_ref().filter(|p| !p.trim().is_empty()) {
+        match OtpService::verify(
+            redis,
+            config,
+            OtpPurpose::PasswordReset,
+            OtpChannel::Phone,
+            phone,
+            code,
+        )
+        .await
+        {
+            Ok(()) => return Ok(()),
+            Err(e) => last_err = Some(e),
+        }
+    }
+
+    match last_err {
+        Some(e) => Err(e.into()),
+        None => Err(AuthError::InvalidParameter(
+            "账号未绑定手机或邮箱".to_string(),
+        )),
     }
 }

@@ -15,9 +15,9 @@ use crate::{
         user::schema::{UpdateP, UserR, WriteP},
     },
     utils::{
+        code::{business, request},
         db::is_unique_violation,
         encryption::{EncryptionError, encrypt_password},
-        code::{business, request},
     },
 };
 
@@ -56,10 +56,7 @@ impl From<UserError> for Exception {
             UserError::EncryptionError(_) => Exception::internal_error("加密服务异常"),
             UserError::DatabaseError(msg) => {
                 tracing::error!(error = %msg, "user database error");
-                Exception::custom(
-                    crate::utils::code::external::DATABASE_ERROR,
-                    "数据库错误",
-                )
+                Exception::custom(crate::utils::code::external::DATABASE_ERROR, "数据库错误")
             }
         }
     }
@@ -96,11 +93,12 @@ impl UserService {
         }
 
         let password =
-            encrypt_password(&req.password, &config.encryption, config.aes_key.as_deref())?;
+            encrypt_password(&req.password, &config.encryption(), config.aes_key())?;
         let role = match req.role.as_deref() {
             None => Role::User,
-            Some(v) => Role::parse(v)
-                .ok_or_else(|| UserError::InvalidParameter("角色无效，应为 USER 或 ADMIN".into()))?,
+            Some(v) => Role::parse(v).ok_or_else(|| {
+                UserError::InvalidParameter("角色无效，应为 USER 或 ADMIN".into())
+            })?,
         };
         let now = Utc::now().fixed_offset();
         let user = auth::ActiveModel {
@@ -191,8 +189,8 @@ impl UserService {
         if let Some(password) = req.password {
             active.password = Set(encrypt_password(
                 &password,
-                &config.encryption,
-                config.aes_key.as_deref(),
+                &config.encryption(),
+                config.aes_key(),
             )?);
         }
         if let Some(email) = req.email {
@@ -219,8 +217,9 @@ impl UserService {
             active.avatar = Set(avatar);
         }
         if let Some(role) = req.role {
-            let role = Role::parse(&role)
-                .ok_or_else(|| UserError::InvalidParameter("角色无效，应为 USER 或 ADMIN".into()))?;
+            let role = Role::parse(&role).ok_or_else(|| {
+                UserError::InvalidParameter("角色无效，应为 USER 或 ADMIN".into())
+            })?;
             active.role = Set(role.as_str().to_string());
         }
         if let Some(status) = req.status {

@@ -18,9 +18,9 @@ pub fn cors(config: &Configure) -> Cors {
         .allowed_header(header::CONTENT_TYPE)
         .max_age(3600);
 
-    if !config.cors_origins.is_empty() {
+    if !config.cors_origins().is_empty() {
         let mut cors = base;
-        for origin in &config.cors_origins {
+        for origin in config.cors_origins() {
             cors = cors.allowed_origin(origin);
         }
         return cors;

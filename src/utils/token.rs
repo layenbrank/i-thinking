@@ -37,10 +37,7 @@ mod tests {
             bearer(&headers("Bearer abc.def.ghi")).as_deref(),
             Some("abc.def.ghi")
         );
-        assert_eq!(
-            bearer(&headers("bearer xyz")).as_deref(),
-            Some("xyz")
-        );
+        assert_eq!(bearer(&headers("bearer xyz")).as_deref(), Some("xyz"));
     }
 
     #[test]

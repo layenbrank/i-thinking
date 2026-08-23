@@ -9,10 +9,17 @@ pub struct RouteDef {
 pub const HEALTH: &str = "/api/health";
 
 // --- Auth ---
+pub const AUTH_CAPTCHA: &str = "/api/v1/auth/captcha";
+pub const AUTH_OTP: &str = "/api/v1/auth/otp";
 pub const AUTH_SIGNIN: &str = "/api/v1/auth/signin";
+pub const AUTH_SIGNIN_PHONE: &str = "/api/v1/auth/signin/phone";
+pub const AUTH_SIGNIN_EMAIL: &str = "/api/v1/auth/signin/email";
 pub const AUTH_SIGNUP: &str = "/api/v1/auth/signup";
 pub const AUTH_PROFILE: &str = "/api/v1/auth/profile";
 pub const AUTH_SIGNOUT: &str = "/api/v1/auth/signout";
+pub const AUTH_PASSWORD_FORGOT: &str = "/api/v1/auth/password/forgot";
+pub const AUTH_PASSWORD_RESET: &str = "/api/v1/auth/password/reset";
+pub const AUTH_PASSWORD: &str = "/api/v1/auth/password";
 
 // --- User ---
 pub const USERS: &str = "/api/v1/users";
@@ -46,7 +53,23 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     },
     RouteDef {
         method: "POST",
+        path: AUTH_CAPTCHA,
+    },
+    RouteDef {
+        method: "POST",
+        path: AUTH_OTP,
+    },
+    RouteDef {
+        method: "POST",
         path: AUTH_SIGNIN,
+    },
+    RouteDef {
+        method: "POST",
+        path: AUTH_SIGNIN_PHONE,
+    },
+    RouteDef {
+        method: "POST",
+        path: AUTH_SIGNIN_EMAIL,
     },
     RouteDef {
         method: "POST",
@@ -63,6 +86,18 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "POST",
         path: AUTH_SIGNOUT,
+    },
+    RouteDef {
+        method: "POST",
+        path: AUTH_PASSWORD_FORGOT,
+    },
+    RouteDef {
+        method: "POST",
+        path: AUTH_PASSWORD_RESET,
+    },
+    RouteDef {
+        method: "PUT",
+        path: AUTH_PASSWORD,
     },
     RouteDef {
         method: "GET",

@@ -1,0 +1,9 @@
+app:
+  swagger: true
+
+auth:
+  otp:
+    mock: true
+
+logging:
+  format: pretty
