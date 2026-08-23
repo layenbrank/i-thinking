@@ -68,6 +68,7 @@ pub fn validate_status(asset: &asset::Model) -> Result<(), UploadError> {
 
     match UploadStatus::from_db(&asset.status) {
         UploadStatus::Pending | UploadStatus::Uploading => Ok(()),
+        UploadStatus::Superseded => Err(UploadError::BadRequest("上传已秒传".into())),
         UploadStatus::Completed => Err(UploadError::BadRequest("上传已完成".into())),
         UploadStatus::Failed => Err(UploadError::BadRequest("上传已失败，无法继续".into())),
         UploadStatus::Expired => Err(UploadError::BadRequest("上传已过期".into())),
@@ -225,5 +226,37 @@ mod tests {
         assert!(normalize_hash(Some("")).is_none());
         assert!(normalize_hash(Some("   ")).is_none());
         assert!(normalize_hash(None).is_none());
+    }
+
+    #[test]
+    fn superseded_is_not_a_writable_status() {
+        let mut asset = entity::asset::Model {
+            id: Uuid::new_v4(),
+            tenant_id: None,
+            kind: Some("upload".into()),
+            hash: String::new(),
+            sha: None,
+            size: 1,
+            index: 0,
+            mime: "application/octet-stream".into(),
+            extension: None,
+            name: "a.bin".into(),
+            status: UploadStatus::Superseded.as_str().to_string(),
+            chunk: MIN_CHUNK_SIZE as i32,
+            total: 1,
+            archived_at: None,
+            created_at: chrono::Utc::now().fixed_offset(),
+            creator: None,
+            updated_at: chrono::Utc::now().fixed_offset(),
+            updater: None,
+            expires_at: None,
+            superseded: Some(Uuid::new_v4()),
+        };
+        assert!(matches!(
+            validate_status(&asset),
+            Err(UploadError::BadRequest(msg)) if msg.contains("秒传")
+        ));
+        asset.status = UploadStatus::Uploading.as_str().to_string();
+        assert!(validate_status(&asset).is_ok());
     }
 }

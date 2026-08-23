@@ -4,15 +4,13 @@ use chrono::{Duration, Utc};
 use entity::{asset, chunk};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseBackend, EntityTrait,
-    PaginatorTrait, QueryFilter, QueryOrder, Set, Statement,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, Statement,
 };
 use uuid::Uuid;
 
 use crate::databases::database::Storage;
 use crate::services::upload::error::UploadError;
-use crate::services::upload::schema::{
-    AssetR, PrepareP, UploadStatus, UploadedChunk,
-};
+use crate::services::upload::schema::{AssetR, PrepareP, UploadStatus, UploadedChunk};
 use crate::services::upload::validation::{
     ASSET_URL_PREFIX, EXPIRE_HOURS, FILE_URL_PREFIX, KIND, normalize_hash,
 };
@@ -25,6 +23,8 @@ pub async fn find_completed(db: &Storage, hash: &str) -> Result<Option<asset::Mo
         .filter(asset::Column::Hash.eq(hash))
         .filter(asset::Column::Status.eq(UploadStatus::Completed.as_str()))
         .filter(asset::Column::ArchivedAt.is_null())
+        .order_by_desc(asset::Column::CreatedAt)
+        .limit(1)
         .one(&db.db)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
@@ -44,6 +44,8 @@ pub async fn find_completed_owned(
         .filter(asset::Column::Creator.eq(creator))
         .filter(asset::Column::Status.eq(UploadStatus::Completed.as_str()))
         .filter(asset::Column::ArchivedAt.is_null())
+        .order_by_desc(asset::Column::CreatedAt)
+        .limit(1)
         .one(&db.db)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
@@ -84,6 +86,8 @@ pub async fn find_pending(
                 .add(asset::Column::ExpiresAt.is_null())
                 .add(asset::Column::ExpiresAt.gt(now)),
         )
+        .order_by_desc(asset::Column::CreatedAt)
+        .limit(1)
         .one(&db.db)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
@@ -325,16 +329,14 @@ pub async fn upsert_chunk(
     };
     let now = Utc::now().fixed_offset();
 
-    // 秒传 discard 可能与并发 chunk 竞态：插入前再确认会话仍在。
+    // cancel 硬删可能与并发 chunk 竞态：插入前再确认会话仍在。
     if asset::Entity::find_by_id(asset.id)
         .one(&db.db)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?
         .is_none()
     {
-        return Err(UploadError::BadRequest(
-            "上传会话不存在或已结束（可能已秒传）".into(),
-        ));
+        return Err(UploadError::SessionGone);
     }
 
     let result = db
@@ -357,9 +359,7 @@ pub async fn upsert_chunk(
         .await
         .map_err(|e| {
             if crate::utils::db::is_fk_violation(&e) {
-                UploadError::BadRequest(
-                    "上传会话不存在或已结束（可能已秒传）".into(),
-                )
+                UploadError::SessionGone
             } else {
                 UploadError::Database(e.to_string())
             }
@@ -402,6 +402,23 @@ pub async fn bind_hash(
         .update(&db.db)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
+}
+
+/// 秒传：保留当前会话行，标记 SUPERSEDED 并指向已完成资产。
+pub async fn mark_superseded(
+    db: &Storage,
+    asset: asset::Model,
+    target: Uuid,
+) -> Result<(), UploadError> {
+    let mut active: asset::ActiveModel = asset.into();
+    active.status = Set(UploadStatus::Superseded.as_str().to_string());
+    active.superseded = Set(Some(target));
+    active.updated_at = Set(Utc::now().fixed_offset());
+    active
+        .update(&db.db)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))?;
+    Ok(())
 }
 
 pub async fn mark_completed(

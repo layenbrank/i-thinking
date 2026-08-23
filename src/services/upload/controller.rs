@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use actix_multipart::Multipart;
 use actix_web::http::header::{
-    ContentDisposition, DispositionParam, DispositionType, CONTENT_LENGTH,
+    CONTENT_LENGTH, ContentDisposition, DispositionParam, DispositionType,
 };
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Result, web};
 
@@ -12,7 +12,7 @@ use crate::{
     interceptors::envelope::Envelope,
     services::upload::{
         multipart,
-        schema::{FinalizeP, FilesP, HashP, PrepareP},
+        schema::{FilesP, FinalizeP, HashP, PrepareP},
         service::UploadService,
         storage::{self, safe_filename},
     },
@@ -179,10 +179,7 @@ impl UploadController {
         }
     }
 
-    async fn stream_asset(
-        db: &Arc<Storage>,
-        asset: entity::asset::Model,
-    ) -> Result<HttpResponse> {
+    async fn stream_asset(db: &Arc<Storage>, asset: entity::asset::Model) -> Result<HttpResponse> {
         let chunk_hashes = match UploadService::stream_hashes_for_asset(db, &asset).await {
             Ok(hashes) => hashes,
             Err(err) => return Exception::from(err).transform(),

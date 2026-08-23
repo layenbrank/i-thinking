@@ -89,6 +89,7 @@ impl MigrationTrait for Migration {
                     .col(timestamp_with_time_zone(Asset::UpdatedAt))
                     .col(uuid_null(Asset::Updater))
                     .col(timestamp_with_time_zone_null(Asset::ExpiresAt))
+                    .col(uuid_null(Asset::Superseded))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_asset_creator")
@@ -222,6 +223,18 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name("fk_asset_superseded")
+                    .from(Asset::Table, Asset::Superseded)
+                    .to(Asset::Table, Asset::Id)
+                    .on_delete(ForeignKeyAction::SetNull)
+                    .on_update(ForeignKeyAction::Cascade)
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 
@@ -231,6 +244,14 @@ impl MigrationTrait for Migration {
                 ForeignKey::drop()
                     .name("fk_auth_avatar")
                     .table(Auth::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_foreign_key(
+                ForeignKey::drop()
+                    .name("fk_asset_superseded")
+                    .table(Asset::Table)
                     .to_owned(),
             )
             .await?;
@@ -301,6 +322,7 @@ enum Asset {
     Updater,
     #[sea_orm(iden = "expiresAt")]
     ExpiresAt,
+    Superseded,
 }
 
 #[derive(DeriveIden)]

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CoreX Service API",
-    "description": "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。鉴权：JWT Bearer；Apifox / REST Client 环境变量统一使用 {{token}}（来自 signin.data.token）。",
+    "description": "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。鉴权：JWT Bearer；Apifox 环境变量统一使用 {{token}}（来自 signin.data.token）。密码登录 / 注册 / 发 OTP 前须先 POST /api/v1/auth/captcha 获取 captchaKey（go-captcha 行为验证码）。",
     "contact": {
       "name": "CoreX Team",
       "email": "15638470820@163.com"
@@ -67,13 +67,189 @@
         }
       }
     },
+    "/api/v1/auth/captcha": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "获取行为验证码",
+        "description": "公开接口。按客户端 IP 限流（`auth.captcha.ip_rate_limit` / 分钟）。\n\n后端代理 **go-captcha-service** `get-data`，返回滑块拼图数据，供前端 `go-captcha-react` 渲染。\n\n**联调流程（signin / signup / otp 前必做）：**\n1. 调用本接口（可选 body `kind`，默认 `auth.captcha.kind` 如 `slide-default`）\n2. 取 `data.captchaKey`、`masterImage`、`thumbImage`、`thumbX`/`thumbY` 等\n3. 用户完成交互后，在后续请求填写 `captchaKey` + `captchaValue`\n\n校验由侧车 `check-data` 完成；TTL 由侧车 Redis 缓存管理。",
+        "operationId": "auth.captcha",
+        "requestBody": {
+          "description": "可选：指定题型 ID",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptchaP"
+              },
+              "example": {
+                "kind": "slide-default"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "缓存异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/otp": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "发送 OTP",
+        "description": "公开接口。先通过行为验证码防刷，再向手机或邮箱发送一次性验证码。\n\n- `channel`：`PHONE` 或 `EMAIL`\n- `target`：手机号或邮箱（须与账号资料一致时用于登录）\n- `captchaKey` / `captchaValue`：来自 `POST /api/v1/auth/captcha` 与用户交互结果\n- 冷却时间 `auth.otp.cooldown_secs`（默认 60s）\n- 开发环境 `auth.otp.mock=true` 时 OTP 写入服务日志（`otp mock send`），不真正发短信/邮件\n\n成功时 `data` 为空，仅 `msg` 提示已发送。",
+        "operationId": "auth.otp",
+        "requestBody": {
+          "description": "渠道、目标与行为验证码",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpP"
+              },
+              "example": {
+                "captchaKey": "xxxx-xxxxx",
+                "captchaValue": "120",
+                "channel": "PHONE",
+                "target": "13800138000"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "参数无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password": {
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "修改密码",
+        "description": "需要 JWT。校验原密码后更新；成功后吊销当前 token，须重新登录。",
+        "operationId": "auth.password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/password/forgot": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "找回密码（发 OTP）",
+        "description": "公开接口。须行为验证码。提供 `username` **或** `channel`+`target`（二选一）。\n\n向账号已绑定的手机/邮箱发送找回密码 OTP（`password_reset` 用途，与登录 OTP 隔离）。\n用户不存在或未绑定渠道时仍返回成功，防止枚举。\n受 `auth.rate_limit` IP 限流保护（超限 code=200005）。",
+        "operationId": "auth.passwordForgot",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "验证码或参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password/reset": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "重置密码",
+        "description": "公开接口。凭找回密码 OTP 设置新密码（不自动登录）。\n提供 `username` **或** `channel`+`target`（须与发码时一致或能匹配绑定渠道）。",
+        "operationId": "auth.passwordReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "重置失败（code=500305）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/profile": {
       "get": {
         "tags": [
           "Auth"
         ],
         "summary": "获取个人信息",
-        "description": "需要 JWT 鉴权，返回当前登录用户的 profile。",
+        "description": "需要 JWT 鉴权，返回当前登录用户的 profile（含 avatar 元数据）。",
         "operationId": "auth.toRead",
         "responses": {
           "200": {
@@ -98,7 +274,7 @@
           "Auth"
         ],
         "summary": "更新个人信息",
-        "description": "需要 JWT 鉴权，可更新 email、phone、gender、birthday、avatar 等字段。",
+        "description": "需要 JWT 鉴权。可更新 `email`、`phone`、`gender`、`birthday`、`avatar`（asset UUID）。\n所有字段可选；`avatar` 传 `null` 可清空头像。",
         "operationId": "auth.toUpdate",
         "requestBody": {
           "description": "可更新字段（均为可选）",
@@ -142,17 +318,19 @@
         "tags": [
           "Auth"
         ],
-        "summary": "用户登录",
-        "description": "公开接口，成功后返回 JWT token。HTTP 状态码始终为 200，业务结果见 body.code。\n\n联调默认账号：`admin` / `123456`。成功后请将 `data.token` 写入环境变量 `token`。",
+        "summary": "用户登录（密码）",
+        "description": "公开接口。须携带**行为验证码**字段，否则 JSON 反序列化失败（400）。\n\n**推荐顺序：**\n1. `POST /api/v1/auth/captcha` → 拼图数据 + `captchaKey`\n2. 本接口：`username` + `password` + `captchaKey` + `captchaValue`\n\n成功后返回 JWT；Apifox 将 `data.token` 写入环境变量 `token`。\n联调默认账号：`admin` / `123456`。",
         "operationId": "auth.signin",
         "requestBody": {
-          "description": "登录凭证",
+          "description": "登录凭证（验证码字段均为必填）",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SigninP"
               },
               "example": {
+                "captchaKey": "xxxx-xxxxx",
+                "captchaValue": "120",
                 "password": "123456",
                 "username": "admin"
               }
@@ -162,7 +340,81 @@
         },
         "responses": {
           "200": {
-            "description": "凭证无效（code=500301）",
+            "description": "失败次数过多锁定（code=500304）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/signin/email": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "邮箱登录（OTP）",
+        "description": "公开接口。须先 `POST /api/v1/auth/otp`（`channel=EMAIL`）获取邮件验证码。\n\n- `email`：与 OTP 发送目标一致\n- `code`：OTP 六位数字（开发环境见服务日志）",
+        "operationId": "auth.signinEmail",
+        "requestBody": {
+          "description": "邮箱与 OTP",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailSigninP"
+              },
+              "example": {
+                "code": "123456",
+                "email": "admin@example.com"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OTP 锁定（code=500304）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/signin/phone": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "手机号登录（OTP）",
+        "description": "公开接口。须先 `POST /api/v1/auth/otp`（`channel=PHONE`）获取短信验证码。\n\n- `phone`：与 OTP 发送目标一致\n- `code`：OTP 六位数字（开发环境见服务日志）\n\n无需行为验证码；OTP 校验成功后消费。",
+        "operationId": "auth.signinPhone",
+        "requestBody": {
+          "description": "手机号与 OTP",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneSigninP"
+              },
+              "example": {
+                "code": "123456",
+                "phone": "13800138000"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OTP 锁定（code=500304）",
             "content": {
               "application/json": {
                 "schema": {
@@ -207,18 +459,20 @@
           "Auth"
         ],
         "summary": "用户注册",
-        "description": "公开接口，注册成功后自动登录并返回 JWT token。\n\n示例账号：`admin` / `123456`（若已存在请改用其他用户名）。",
+        "description": "公开接口，须携带行为验证码。注册成功后自动登录并返回 JWT。\n\n字段与 `signin` 相同（`username` / `password` / `captchaKey` / `captchaValue`）。\n建议先 `POST /api/v1/auth/captcha`。",
         "operationId": "auth.signup",
         "requestBody": {
-          "description": "注册凭证",
+          "description": "注册凭证（验证码字段均为必填）",
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SignupP"
               },
               "example": {
+                "captchaKey": "xxxx-xxxxx",
+                "captchaValue": "120",
                 "password": "123456",
-                "username": "admin"
+                "username": "newuser"
               }
             }
           },
@@ -226,7 +480,7 @@
         },
         "responses": {
           "200": {
-            "description": "用户名已存在等业务错误",
+            "description": "其他业务错误",
             "content": {
               "application/json": {
                 "schema": {
@@ -502,7 +756,7 @@
           "Upload"
         ],
         "summary": "上传分片",
-        "description": "multipart：id / index / hash / chunk(可选)。分片写入全局 CAS；命中则 reused。分片登记写入 chunk 表。需要 JWT。",
+        "description": "multipart：id / index / hash / chunk(可选)。分片写入全局 CAS；命中则 reused。SUPERSEDED/COMPLETED 会话幂等 200。需要 JWT。",
         "operationId": "upload.chunk",
         "requestBody": {
           "content": {
@@ -682,7 +936,7 @@
           "Upload"
         ],
         "summary": "绑定整文件哈希",
-        "description": "为会话补绑整文件 SHA-256；可触发全局秒传并为当前用户克隆记录。需要 JWT。",
+        "description": "为会话补绑整文件 SHA-256。命中已有 COMPLETED 时当前会话标 SUPERSEDED（不删除），返回 exists 与目标 id。在途 chunk 对 SUPERSEDED 幂等成功。需要 JWT。",
         "operationId": "upload.bindHash",
         "requestBody": {
           "description": "会话 id + 整文件 SHA-256",
@@ -768,6 +1022,7 @@
           "Upload"
         ],
         "summary": "查询上传进度",
+        "description": "SUPERSEDED 时 progress=100 并返回 superseded（目标 COMPLETED）。需要 JWT。",
         "operationId": "upload.progress",
         "parameters": [
           {
@@ -1299,6 +1554,110 @@
           }
         }
       },
+      "CaptchaEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CaptchaR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CaptchaP": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "题型 ID，默认 `auth.captcha.kind`",
+            "example": "slide-default"
+          }
+        }
+      },
+      "CaptchaR": {
+        "type": "object",
+        "required": [
+          "kind",
+          "captchaKey",
+          "masterImage",
+          "thumbImage",
+          "thumbX",
+          "thumbY",
+          "thumbWidth",
+          "thumbHeight"
+        ],
+        "properties": {
+          "captchaKey": {
+            "type": "string",
+            "description": "提交登录/注册/OTP 时作为 `captchaKey`",
+            "example": "xxxx-xxxxx"
+          },
+          "kind": {
+            "type": "string",
+            "description": "题型 ID（如 `slide-default`）",
+            "example": "slide-default"
+          },
+          "masterImage": {
+            "type": "string",
+            "description": "主图 Base64（对齐 go-captcha-react `data.image`）",
+            "example": "/9j/4AAQSkZJRg..."
+          },
+          "thumbHeight": {
+            "type": "integer",
+            "format": "int32",
+            "example": 60
+          },
+          "thumbImage": {
+            "type": "string",
+            "description": "滑块/拼图块 Base64（对齐 `data.thumb`）",
+            "example": "iVBORw0KGgo..."
+          },
+          "thumbWidth": {
+            "type": "integer",
+            "format": "int32",
+            "example": 60
+          },
+          "thumbX": {
+            "type": "integer",
+            "format": "int32",
+            "example": 0
+          },
+          "thumbY": {
+            "type": "integer",
+            "format": "int32",
+            "example": 80
+          }
+        }
+      },
       "ChunkR": {
         "type": "object",
         "required": [
@@ -1426,6 +1785,29 @@
           "Horizontal",
           "Vertical"
         ]
+      },
+      "EmailSigninP": {
+        "type": "object",
+        "required": [
+          "email",
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "OTP 六位数字",
+            "example": "123456"
+          },
+          "email": {
+            "type": "string",
+            "description": "邮箱（须已绑定账号）",
+            "example": "admin@example.com"
+          }
+        },
+        "example": {
+          "code": "123456",
+          "email": "admin@example.com"
+        }
       },
       "EmptyEnvelope": {
         "type": "object",
@@ -1687,6 +2069,59 @@
           }
         }
       },
+      "ForgotPasswordP": {
+        "type": "object",
+        "required": [
+          "captchaKey",
+          "captchaValue"
+        ],
+        "properties": {
+          "captchaKey": {
+            "type": "string",
+            "example": "xxxx-xxxxx"
+          },
+          "captchaKind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "slide-default"
+          },
+          "captchaValue": {
+            "type": "string",
+            "example": "120"
+          },
+          "channel": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OtpChannel"
+              }
+            ]
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "13800138000"
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "admin"
+          }
+        },
+        "example": {
+          "captchaKey": "xxxx-xxxxx",
+          "captchaValue": "120",
+          "username": "admin"
+        }
+      },
       "Gender": {
         "type": "string",
         "enum": [
@@ -1861,6 +2296,97 @@
           }
         }
       },
+      "OtpChannel": {
+        "type": "string",
+        "enum": [
+          "PHONE",
+          "EMAIL"
+        ]
+      },
+      "OtpP": {
+        "type": "object",
+        "required": [
+          "channel",
+          "target",
+          "captchaKey",
+          "captchaValue"
+        ],
+        "properties": {
+          "captchaKey": {
+            "type": "string",
+            "example": "xxxx-xxxxx"
+          },
+          "captchaKind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "slide-default"
+          },
+          "captchaValue": {
+            "type": "string",
+            "example": "120"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/OtpChannel"
+          },
+          "target": {
+            "type": "string",
+            "description": "手机号或邮箱",
+            "example": "13800138000"
+          }
+        },
+        "example": {
+          "captchaKey": "xxxx-xxxxx",
+          "captchaValue": "120",
+          "channel": "PHONE",
+          "target": "13800138000"
+        }
+      },
+      "PasswordP": {
+        "type": "object",
+        "required": [
+          "oldPassword",
+          "newPassword"
+        ],
+        "properties": {
+          "newPassword": {
+            "type": "string",
+            "example": "654321"
+          },
+          "oldPassword": {
+            "type": "string",
+            "example": "123456"
+          }
+        },
+        "example": {
+          "newPassword": "654321",
+          "oldPassword": "123456"
+        }
+      },
+      "PhoneSigninP": {
+        "type": "object",
+        "required": [
+          "phone",
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "OTP 六位数字",
+            "example": "123456"
+          },
+          "phone": {
+            "type": "string",
+            "description": "手机号（须已绑定账号）",
+            "example": "13800138000"
+          }
+        },
+        "example": {
+          "code": "123456",
+          "phone": "13800138000"
+        }
+      },
       "PrepareP": {
         "type": "object",
         "required": [
@@ -1873,7 +2399,7 @@
           "chunk": {
             "type": "integer",
             "format": "int32",
-            "description": "分片大小（字节），须在 1MB~10MB",
+            "description": "分片大小（字节），须在 10MB~100MB",
             "example": 1048576,
             "minimum": 0
           },
@@ -2151,6 +2677,14 @@
           "status": {
             "$ref": "#/components/schemas/UploadStatus"
           },
+          "superseded": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "秒传后的目标 COMPLETED 资产 id",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
           "total": {
             "type": "integer",
             "format": "int32",
@@ -2187,6 +2721,52 @@
         "example": {
           "q": "Redis",
           "size": 10
+        }
+      },
+      "ResetPasswordP": {
+        "type": "object",
+        "required": [
+          "code",
+          "newPassword"
+        ],
+        "properties": {
+          "channel": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OtpChannel"
+              }
+            ]
+          },
+          "code": {
+            "type": "string",
+            "example": "123456"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "654321"
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "13800138000"
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "example": {
+          "channel": "PHONE",
+          "code": "123456",
+          "newPassword": "654321",
+          "target": "13800138000"
         }
       },
       "SearchEnvelope": {
@@ -2388,21 +2968,45 @@
         "type": "object",
         "required": [
           "username",
-          "password"
+          "password",
+          "captchaKey",
+          "captchaValue"
         ],
         "properties": {
+          "captchaKey": {
+            "type": "string",
+            "description": "行为验证码 key（来自 `POST /api/v1/auth/captcha` 的 `data.captchaKey`）",
+            "example": "xxxx-xxxxx"
+          },
+          "captchaKind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "题型 ID，默认 `auth.captcha.kind`（如 `slide-default`）",
+            "example": "slide-default"
+          },
+          "captchaValue": {
+            "type": "string",
+            "description": "滑块 X 偏移或点选坐标（与 go-captcha-service `check-data` 的 `value` 一致）",
+            "example": "120"
+          },
           "password": {
             "type": "string",
+            "description": "密码",
             "default": "123456",
             "example": "123456"
           },
           "username": {
             "type": "string",
+            "description": "用户名",
             "default": "admin",
             "example": "admin"
           }
         },
         "example": {
+          "captchaKey": "xxxx-xxxxx",
+          "captchaValue": "120",
           "password": "123456",
           "username": "admin"
         }
@@ -2503,23 +3107,42 @@
         "type": "object",
         "required": [
           "username",
-          "password"
+          "password",
+          "captchaKey",
+          "captchaValue"
         ],
         "properties": {
+          "captchaKey": {
+            "type": "string",
+            "example": "xxxx-xxxxx"
+          },
+          "captchaKind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "slide-default"
+          },
+          "captchaValue": {
+            "type": "string",
+            "example": "120"
+          },
           "password": {
             "type": "string",
-            "default": "123456",
+            "description": "密码",
             "example": "123456"
           },
           "username": {
             "type": "string",
-            "default": "admin",
-            "example": "admin"
+            "description": "用户名（唯一）",
+            "example": "newuser"
           }
         },
         "example": {
+          "captchaKey": "xxxx-xxxxx",
+          "captchaValue": "120",
           "password": "123456",
-          "username": "admin"
+          "username": "newuser"
         }
       },
       "SignupR": {
@@ -2860,6 +3483,7 @@
           "PENDING",
           "UPLOADING",
           "COMPLETED",
+          "SUPERSEDED",
           "FAILED",
           "EXPIRED"
         ]
@@ -3093,8 +3717,8 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "登录 `POST /api/v1/auth/signin` 返回的 `data.token`。\n\n请求头：`Authorization: Bearer <token>`。\n\n**Apifox**：鉴权组件 Token 请填 `{{token}}`（勿用 `{{bearerToken}}`）；环境变量名统一为 `token`，可在登录接口后置操作写入。",
-        "x-apifox-default": "{{token}}",
-        "x-default": "{{token}}"
+        "x-default": "{{token}}",
+        "x-apifox-default": "{{token}}"
       }
     }
   },
@@ -3105,7 +3729,7 @@
     },
     {
       "name": "Auth",
-      "description": "认证与个人资料"
+      "description": "认证与个人资料（图形验证码、OTP、密码/手机/邮箱登录）"
     },
     {
       "name": "User",

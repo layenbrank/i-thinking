@@ -11,6 +11,8 @@ pub enum UploadError {
     BadRequest(String),
     #[error("资源不存在")]
     NotFound,
+    #[error("上传会话不存在或已结束")]
+    SessionGone,
     #[error("无权操作该上传会话")]
     Forbidden,
     #[error("创建者 ID 无效")]
@@ -52,6 +54,9 @@ impl From<UploadError> for Exception {
             UploadError::NotFound => {
                 Exception::custom(business::upload::FILE_NOT_FOUND, "资源不存在")
             }
+            UploadError::SessionGone => {
+                Exception::custom(business::upload::SESSION_GONE, "上传会话不存在或已结束")
+            }
             UploadError::Forbidden => {
                 Exception::custom(resource::ACCESS_RESTRICTED, "无权操作该上传会话")
             }
@@ -85,8 +90,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn session_gone_uses_dedicated_code() {
+        let body = Exception::from(UploadError::SessionGone);
+        assert_eq!(body.code, business::upload::SESSION_GONE);
+        assert_eq!(body.msg, "上传会话不存在或已结束");
+    }
+
+    #[test]
     fn database_error_hides_internals() {
-        let body = Exception::from(UploadError::Database("relation \"x\" does not exist".into()));
+        let body = Exception::from(UploadError::Database(
+            "relation \"x\" does not exist".into(),
+        ));
         assert_eq!(body.msg, "数据库错误");
         assert!(!body.msg.contains("relation"));
     }

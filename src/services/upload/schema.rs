@@ -7,6 +7,8 @@ pub enum UploadStatus {
     Pending,
     Uploading,
     Completed,
+    /// 整文件秒传：会话行保留，后续 chunk/progress 幂等成功
+    Superseded,
     Failed,
     Expired,
 }
@@ -17,6 +19,7 @@ impl UploadStatus {
             Self::Pending => "PENDING",
             Self::Uploading => "UPLOADING",
             Self::Completed => "COMPLETED",
+            Self::Superseded => "SUPERSEDED",
             Self::Failed => "FAILED",
             Self::Expired => "EXPIRED",
         }
@@ -27,6 +30,7 @@ impl UploadStatus {
             "PENDING" => Self::Pending,
             "UPLOADING" => Self::Uploading,
             "COMPLETED" => Self::Completed,
+            "SUPERSEDED" => Self::Superseded,
             "FAILED" => Self::Failed,
             "EXPIRED" => Self::Expired,
             other => {
@@ -34,6 +38,11 @@ impl UploadStatus {
                 Self::Failed
             }
         }
+    }
+
+    /// COMPLETED / SUPERSEDED：在途分片应幂等成功，不再写入
+    pub fn is_terminal_ok(&self) -> bool {
+        matches!(self, Self::Completed | Self::Superseded)
     }
 }
 
@@ -45,6 +54,13 @@ mod status_tests {
     fn from_db_maps_known_status() {
         assert_eq!(UploadStatus::from_db("PENDING"), UploadStatus::Pending);
         assert_eq!(UploadStatus::from_db("EXPIRED"), UploadStatus::Expired);
+        assert_eq!(
+            UploadStatus::from_db("SUPERSEDED"),
+            UploadStatus::Superseded
+        );
+        assert!(UploadStatus::Superseded.is_terminal_ok());
+        assert!(UploadStatus::Completed.is_terminal_ok());
+        assert!(!UploadStatus::Uploading.is_terminal_ok());
     }
 
     #[test]
@@ -82,7 +98,7 @@ pub struct PrepareP {
     pub hash: Option<String>,
     #[schema(example = "application/pdf")]
     pub mime: String,
-    /// 分片大小（字节），须在 1MB~10MB
+    /// 分片大小（字节），须在 10MB~100MB
     #[schema(example = 1048576_u32)]
     pub chunk: u32,
     /// 租户 ID（租户模型未接线前可选）
@@ -179,6 +195,10 @@ pub struct ProgressR {
     #[schema(example = 2)]
     pub total: u32,
     pub status: UploadStatus,
+    /// 秒传后的目标 COMPLETED 资产 id
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
+    pub superseded: Option<String>,
 }
 
 /// 本人文件列表查询

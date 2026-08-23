@@ -31,13 +31,9 @@ impl UploadService {
             if let Some(existing) = repository::find_completed(db, hash).await? {
                 if let Some(creator_id) = creator.as_deref() {
                     if Self::prepare_layout_ok(&req, &existing) {
-                        let cloned = repository::clone_completed_for(
-                            db,
-                            &existing,
-                            creator_id,
-                            &req.name,
-                        )
-                        .await?;
+                        let cloned =
+                            repository::clone_completed_for(db, &existing, creator_id, &req.name)
+                                .await?;
                         return repository::prepare_response(db, &cloned, true).await;
                     }
                 } else if Self::prepare_layout_ok(&req, &existing) {
@@ -45,9 +41,7 @@ impl UploadService {
                 }
             }
 
-            if let Some(existing) =
-                repository::find_pending(db, hash, creator.as_deref()).await?
-            {
+            if let Some(existing) = repository::find_pending(db, hash, creator.as_deref()).await? {
                 return repository::prepare_response(db, &existing, false).await;
             }
         }
@@ -58,41 +52,32 @@ impl UploadService {
         repository::prepare_response(db, &inserted, false).await
     }
 
-    pub async fn bind_hash(
-        db: &Storage,
-        req: HashP,
-        user_id: &str,
-    ) -> Result<HashR, UploadError> {
+    pub async fn bind_hash(db: &Storage, req: HashP, user_id: &str) -> Result<HashR, UploadError> {
         validation::validate_hash_hex(&req.hash)?;
         let asset = Self::load_owned(db, &req.id, user_id).await?;
+        let status = UploadStatus::from_db(&asset.status);
+
+        if status == UploadStatus::Superseded {
+            return Self::hash_r_from_superseded(db, &asset).await;
+        }
+        if status == UploadStatus::Completed {
+            return Self::hash_r_from_completed(db, &asset).await;
+        }
         validation::validate_status(&asset)?;
 
         if let Some(mine) = repository::find_completed_owned(db, &req.hash, user_id).await? {
             if repository::layout_matches(&asset, &mine) {
-                repository::discard_session(db, asset).await?;
-                let uploaded = repository::uploaded_list(db, mine.id).await?;
-                return Ok(HashR {
-                    id: mine.id.to_string(),
-                    exists: true,
-                    chunks: uploaded.iter().map(|c| c.index).collect(),
-                    uploaded,
-                });
+                repository::mark_superseded(db, asset, mine.id).await?;
+                return Self::hash_r_from_completed(db, &mine).await;
             }
         }
 
         if let Some(existing) = repository::find_completed(db, &req.hash).await? {
             if repository::layout_matches(&asset, &existing) {
                 let name = asset.name.clone();
-                repository::discard_session(db, asset).await?;
-                let cloned =
-                    repository::clone_completed_for(db, &existing, user_id, &name).await?;
-                let uploaded = repository::uploaded_list(db, cloned.id).await?;
-                return Ok(HashR {
-                    id: cloned.id.to_string(),
-                    exists: true,
-                    chunks: uploaded.iter().map(|c| c.index).collect(),
-                    uploaded,
-                });
+                let cloned = repository::clone_completed_for(db, &existing, user_id, &name).await?;
+                repository::mark_superseded(db, asset, cloned.id).await?;
+                return Self::hash_r_from_completed(db, &cloned).await;
             }
         }
 
@@ -103,7 +88,6 @@ impl UploadService {
         }
 
         // 同 hash 另有未完成会话：丢掉*空闲*旧会话，保留当前正在传的会话。
-        // 切勿 discard 当前会话再切到旧 PENDING——客户端仍在用旧 id 传分片会中途「会话已结束」。
         if let Some(pending) = repository::find_pending(db, &req.hash, Some(user_id)).await? {
             if pending.id != asset.id {
                 repository::discard_session(db, pending).await?;
@@ -129,6 +113,10 @@ impl UploadService {
         user_id: &str,
     ) -> Result<ChunkR, UploadError> {
         let asset = Self::load_owned(db, id, user_id).await?;
+        let status = UploadStatus::from_db(&asset.status);
+        if status.is_terminal_ok() {
+            return Ok(instant_chunk_response(index));
+        }
         validation::validate_status(&asset)?;
         validation::validate_hash_hex(hash)?;
         validation::expected_chunk_size(&asset, index)?;
@@ -186,6 +174,23 @@ impl UploadService {
 
     pub async fn finalize(db: &Storage, id: &str, user_id: &str) -> Result<FinalizeR, UploadError> {
         let asset = Self::load_owned(db, id, user_id).await?;
+        let status = UploadStatus::from_db(&asset.status);
+        if status == UploadStatus::Superseded {
+            let target = Self::resolve_superseded(db, &asset).await?;
+            return Ok(FinalizeR {
+                success: true,
+                url: repository::file_url_by_id(&target.id),
+                id: target.id.to_string(),
+            });
+        }
+        if status == UploadStatus::Completed {
+            return Ok(FinalizeR {
+                success: true,
+                url: repository::file_url_by_id(&asset.id),
+                id: asset.id.to_string(),
+            });
+        }
+
         let uploaded = repository::count_chunks(db, asset.id).await?;
         validation::validate_completion(&asset, uploaded)?;
         let chunk_hashes = repository::ordered_chunk_hashes(db, &asset).await?;
@@ -202,6 +207,11 @@ impl UploadService {
 
     pub async fn progress(db: &Storage, id: &str, user_id: &str) -> Result<ProgressR, UploadError> {
         let asset = Self::load_owned(db, id, user_id).await?;
+        let status = UploadStatus::from_db(&asset.status);
+        if status == UploadStatus::Superseded {
+            return Self::progress_superseded(db, id, &asset).await;
+        }
+
         let uploaded = repository::uploaded_list(db, asset.id).await?;
         let progress = if asset.total == 0 {
             0.0
@@ -215,7 +225,8 @@ impl UploadService {
             chunks: uploaded.iter().map(|c| c.index).collect(),
             uploaded,
             total: asset.total as u32,
-            status: UploadStatus::from_db(&asset.status),
+            status,
+            superseded: None,
         })
     }
 
@@ -254,7 +265,16 @@ impl UploadService {
         user_id: &str,
     ) -> Result<asset::Model, UploadError> {
         let asset = Self::load_owned(db, id, user_id).await?;
-        if UploadStatus::from_db(&asset.status) != UploadStatus::Completed {
+        let status = UploadStatus::from_db(&asset.status);
+        if status == UploadStatus::Superseded {
+            let target = Self::resolve_superseded(db, &asset).await?;
+            validation::ensure_owner(&target, user_id)?;
+            if UploadStatus::from_db(&target.status) != UploadStatus::Completed {
+                return Err(UploadError::BadRequest("文件尚未完成上传".into()));
+            }
+            return Ok(target);
+        }
+        if status != UploadStatus::Completed {
             return Err(UploadError::BadRequest("文件尚未完成上传".into()));
         }
         Ok(asset)
@@ -281,5 +301,92 @@ impl UploadService {
         let asset = repository::find_by_id(db, id).await?;
         validation::ensure_owner(&asset, user_id)?;
         Ok(asset)
+    }
+
+    async fn resolve_superseded(
+        db: &Storage,
+        asset: &asset::Model,
+    ) -> Result<asset::Model, UploadError> {
+        let Some(target) = asset.superseded else {
+            return Err(UploadError::BadRequest("秒传目标缺失".into()));
+        };
+        repository::find_by_id(db, &target.to_string()).await
+    }
+
+    async fn hash_r_from_completed(
+        db: &Storage,
+        asset: &asset::Model,
+    ) -> Result<HashR, UploadError> {
+        let uploaded = repository::uploaded_list(db, asset.id).await?;
+        Ok(HashR {
+            id: asset.id.to_string(),
+            exists: true,
+            chunks: uploaded.iter().map(|c| c.index).collect(),
+            uploaded,
+        })
+    }
+
+    async fn hash_r_from_superseded(
+        db: &Storage,
+        asset: &asset::Model,
+    ) -> Result<HashR, UploadError> {
+        let target = Self::resolve_superseded(db, asset).await?;
+        Self::hash_r_from_completed(db, &target).await
+    }
+
+    async fn progress_superseded(
+        db: &Storage,
+        session_id: &str,
+        asset: &asset::Model,
+    ) -> Result<ProgressR, UploadError> {
+        let target = Self::resolve_superseded(db, asset).await?;
+        let uploaded = repository::uploaded_list(db, target.id).await?;
+        Ok(ProgressR {
+            id: session_id.to_string(),
+            progress: 100.0,
+            chunks: uploaded.iter().map(|c| c.index).collect(),
+            uploaded,
+            total: target.total as u32,
+            status: UploadStatus::Superseded,
+            superseded: Some(target.id.to_string()),
+        })
+    }
+}
+
+/// SUPERSEDED / COMPLETED 时在途分片的幂等成功响应（不写库）。
+pub fn instant_chunk_response(index: u32) -> ChunkR {
+    ChunkR {
+        success: true,
+        index,
+        reused: true,
+        message: "文件已秒传".into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn terminal_status_yields_idempotent_chunk() {
+        assert!(UploadStatus::Superseded.is_terminal_ok());
+        assert!(UploadStatus::Completed.is_terminal_ok());
+        assert!(!UploadStatus::Uploading.is_terminal_ok());
+        assert!(!UploadStatus::Pending.is_terminal_ok());
+
+        let res = instant_chunk_response(43);
+        assert!(res.success);
+        assert!(res.reused);
+        assert_eq!(res.index, 43);
+        assert_eq!(res.message, "文件已秒传");
+    }
+
+    #[test]
+    fn bind_hash_instant_keeps_session_contract() {
+        // 秒传不得 DELETE 当前会话：chunk 看到 SUPERSEDED/COMPLETED 即 200。
+        // 与 upsert_chunk 的 SessionGone（真删除/GC）分开。
+        assert!(UploadStatus::from_db("SUPERSEDED").is_terminal_ok());
+        assert_eq!(crate::utils::code::business::upload::SESSION_GONE, 500207);
+        assert_eq!(crate::utils::code::request::INVALID_PARAMETER_VALUE, 200003);
     }
 }

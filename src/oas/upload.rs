@@ -1,8 +1,8 @@
-use crate::services::upload::schema::{FinalizeP, HashP, PrepareP};
 use super::common::{
     ChunkUploadEnvelope, ChunkUploadForm, Exception, FinalizeUploadEnvelope, UploadFilesEnvelope,
     UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope,
 };
+use crate::services::upload::schema::{FinalizeP, HashP, PrepareP};
 
 /// 初始化分片上传
 #[utoipa::path(
@@ -37,7 +37,7 @@ pub fn prepare_upload_doc() {}
     tag = "Upload",
     operation_id = "upload.bindHash",
     summary = "绑定整文件哈希",
-    description = "为会话补绑整文件 SHA-256；可触发全局秒传并为当前用户克隆记录。需要 JWT。",
+    description = "为会话补绑整文件 SHA-256。命中已有 COMPLETED 时当前会话标 SUPERSEDED（不删除），返回 exists 与目标 id。在途 chunk 对 SUPERSEDED 幂等成功。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body(
         content = HashP,
@@ -61,7 +61,7 @@ pub fn bind_hash_doc() {}
     tag = "Upload",
     operation_id = "upload.chunk",
     summary = "上传分片",
-    description = "multipart：id / index / hash / chunk(可选)。分片写入全局 CAS；命中则 reused。分片登记写入 chunk 表。需要 JWT。",
+    description = "multipart：id / index / hash / chunk(可选)。分片写入全局 CAS；命中则 reused。SUPERSEDED/COMPLETED 会话幂等 200。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body(content = ChunkUploadForm, content_type = "multipart/form-data"),
     responses(
@@ -101,6 +101,7 @@ pub fn finalize_upload_doc() {}
     tag = "Upload",
     operation_id = "upload.progress",
     summary = "查询上传进度",
+    description = "SUPERSEDED 时 progress=100 并返回 superseded（目标 COMPLETED）。需要 JWT。",
     security(("bearer_auth" = [])),
     params(
         ("id" = String, Path, description = "上传会话 ID", example = "550e8400-e29b-41d4-a716-446655440000")

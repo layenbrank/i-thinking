@@ -40,6 +40,9 @@ pub struct Model {
     pub updater: Option<Uuid>,
     #[sea_orm(column_name = "expiresAt", nullable)]
     pub expires_at: Option<DateTimeWithTimeZone>,
+    /// 秒传后指向目标 COMPLETED 资产；本行保持可调用直至 TTL/cancel
+    #[sea_orm(nullable)]
+    pub superseded: Option<Uuid>,
     #[sea_orm(
         belongs_to,
         from = "creator",

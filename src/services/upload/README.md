@@ -9,7 +9,7 @@
 | 层 | 含义 | 本仓库对应 |
 |----|------|------------|
 | 物理 CAS | 按内容 hash 全局单副本，跨用户复用字节 | `cas/{sha256}` |
-| 上传会话 | 短暂任务；秒传/取消时 **Abort 硬删**，不是 FAILED | `asset` 行 PENDING/UPLOADING |
+| 上传会话 | 短暂任务；`cancel` 才硬删。秒传标 **SUPERSEDED**，会话 id 仍可调用 | `asset` 行 PENDING/UPLOADING/SUPERSEDED |
 | 逻辑文件 | 按用户隔离的成片元数据 | `asset` COMPLETED + 本人 `chunk` 元数据行 |
 
 流程：**prepare →（分片上传 ∥ 算 hash，算完即 PATCH）→ finalize → 流式下载**。
@@ -17,11 +17,12 @@
 | 能力 | 说明 |
 |------|------|
 | 异步 hash | `prepare` 可不传整文件 hash；**与分片并行计算**，算完立刻 `PATCH /hash`（勿等全部分片传完，也不必等 hash 才开传） |
-| 文件秒传 | 同 hash 且 size/chunk 一致：本人返回已有 COMPLETED；跨用户 **克隆**逻辑行（`name` 用当前请求）并 **discard** 临时会话 |
+| 文件秒传 | 同 hash 且 size/chunk 一致：本人返回已有 COMPLETED；跨用户 **克隆**逻辑行（`name` 用当前请求）；当前会话标 **SUPERSEDED**（不 DELETE） |
 | 分片秒传 | 分片写入全局 `cas/{sha256}`；任意用户 hash 命中即可 `reused`（零拷贝） |
 | 断点续传 | 按**本会话**返回 `uploaded[{index,hash}]`；同 hash+用户可恢复 PENDING/UPLOADING |
-| 废弃会话 | `cancel` / 秒传命中 → `discard_session`（删 asset，CASCADE chunk 元数据，CAS 保留）；并发 chunk 若仍打旧 id，返回参数错误而非裸 FK |
+| 废弃会话 | `cancel` → `discard_session`（删 asset，CASCADE chunk 元数据，CAS 保留）。秒传**不**硬删；在途 chunk 对 SUPERSEDED/COMPLETED 幂等 200 |
 | FAILED | 仅真实失败（校验等）；**不是**秒传或取消 |
+| SESSION_GONE | `500207`：会话 id 无效或已被 cancel/GC。秒传路径不用此码，也不再用 `200003` |
 | 不合并落盘 | finalize 只校验；下载时按 `chunk` 表顺序流式输出 |
 | 下载隔离 | 仅 **creator** 可下载自己的完成件 |
 | 本人列表 | `GET /files` 分页列出当前用户资产（默认 COMPLETED） |
@@ -58,9 +59,10 @@
 | kind                        | `upload`                                                |
 | hash                        | 整文件 SHA256；可先空，hash 就绪后立即 PATCH 绑定       |
 | sha                         | finalize 校验后的整文件 SHA                             |
+| superseded                   | 秒传后指向目标 COMPLETED；本行 status=SUPERSEDED        |
 | size, mime, name, extension | 文件元信息                                              |
 | index                       | **资产列表排序**（用户可自定义，默认 0）；≠ chunk.index |
-| status                      | PENDING → UPLOADING → COMPLETED / FAILED / EXPIRED      |
+| status                      | PENDING → UPLOADING → COMPLETED / SUPERSEDED / FAILED / EXPIRED |
 | chunk, total                | 分片大小与分片总数                                      |
 | creator, updater, expiresAt | 归属与 24h 过期（完成后 clears expiresAt）              |
 
@@ -91,22 +93,29 @@ finalize **不会**生成整文件；下载时服务端按 `chunk` 表 `index` �
 
 ## 推荐前端交互
 
+服务端**不按文件大小分流**。同时支持 `prepare` 带 hash（入口秒传）与不带 hash（分片 ∥ 算 hash，算完 `PATCH /hash`）。何时先算、何时先传由客户端决定：
+
+- **小文件**：先算完整 hash 再 prepare（命中则 0 分片）
+- **大文件**：先 prepare 并上传，hash 并行，算完即绑
+
 1. 选文件后**立刻** `prepare`（可不带 hash），同时开始算整文件 hash **并并行上传分片**。
-2. 整文件 hash **一算完**就 `PATCH /hash`（不必等分片传完）：若 `exists` → 停止分片队列（临时会话已被 discard；在途请求可能收到「会话已结束」，属正常）。
+2. 整文件 hash **一算完**就 `PATCH /hash`（不必等分片传完）：若 `exists` → 停止分片队列。临时会话变为 **SUPERSEDED**（id 仍有效）；在途 `chunk` / `progress` / `finalize` 幂等成功，`superseded` 指向已完成资产。
 3. 未秒传：继续缺片；CAS 可命中时可不带字节。
 4. 续传以服务端 `progress` / `uploaded[{index,hash}]` 为准（本会话）。
-5. `finalize` 后用 `/api/v1/upload/asset/{id}` 下载；或 `GET /files` 取 url。
+5. `finalize` 后用 `/api/v1/upload/asset/{id}` 下载；或 `GET /files` 取 url。秒传后也可用原会话 id 下载（服务端跟随 `superseded`）。
 6. 小文件仍可先算 hash 再 prepare，以在 prepare 阶段命中文件秒传。
 
 并发建议 3–4。**不要**等全部分片传完再 PATCH hash；也**不必**等 hash 算完才开始传分片。
+
+`500207`（SESSION_GONE）仅表示 id 无效或已 cancel；**不要**把它和「CAS 中不存在」或秒传混为一谈。秒传时 chunk 返回 `200000` + `reused`。
 
 ### 与常见对象存储的差异（企业级对齐）
 
 | 点 | OSS / S3 Multipart 等 | 本服务 |
 |----|----------------------|--------|
-| 上传会话 id | Complete 前稳定，不中途换成另一个 UploadId | `PATCH /hash` 秒传才 discard 当前临时会话；**不会**为合并旧 PENDING 而丢掉正在传的会话 |
+| 上传会话 id | Complete 前稳定，不中途换成另一个 UploadId | 秒传将当前会话标 SUPERSEDED，**id 仍可调用**；返回的 `exists.id` 是 COMPLETED 资产 |
 | 整对象校验 | 多在 Complete 时核对 | 允许提前 bind hash；未完成前会话 id 不变 |
-| 客户端停传 | 仅在服务端明确「已完成/秒传」时 Abort | 仅 `exists: true` 时 abort；勿把「CAS 中不存在」当成会话结束 |
+| 客户端停传 | 仅在服务端明确「已完成/秒传」时 Abort | 仅 `exists: true` 时 abort；在途请求应对 SUPERSEDED 视为成功 |
 
 ## 实现架构
 
@@ -117,12 +126,13 @@ UploadController::prepare
 
 UploadController::bind_hash
   └── UploadService::bind_hash
-        └── COMPLETED 布局一致 → 文件秒传：discard *当前* 临时会话 + 复用/clone
+        └── COMPLETED 布局一致 → 文件秒传：当前会话 SUPERSEDED + superseded，不 DELETE
         └── 另有同 hash 的 PENDING → discard *旧* 会话，保留当前正在传的会话并 bind
         └── 否则 bind asset.hash，继续分片（靠 CAS 复用）
 
 UploadController::chunk
   └── UploadService::chunk
+        └── SUPERSEDED / COMPLETED → 幂等 200 reused（不写 chunk 行）
         └── CAS 命中 → 仅 INSERT chunk 行（零拷贝）
         └── 未命中 → 写入 cas/{hash} + INSERT chunk
 
@@ -141,7 +151,7 @@ UploadController::serve_asset / serve_file
   └── 按序 stream_cas_chunks → 单一响应体
 ```
 
-常量（[`validation.rs`](validation.rs)）：最大 5GB、分片 1MB~10MB、过期 24h。
+常量（[`validation.rs`](validation.rs)）：最大 10GB、分片 10MB~100MB、过期 24h。
 
 ---
 
@@ -177,7 +187,7 @@ UploadController::serve_asset / serve_file
 { "id": "upload-uuid", "hash": "64位sha256" }
 ```
 
-返回 `exists` / `uploaded`（同 prepare 语义）。
+返回 `exists` / `uploaded`（同 prepare 语义）。秒传时 `id` 为已完成资产；原会话变为 SUPERSEDED。
 
 ### POST /api/v1/upload/chunk
 
