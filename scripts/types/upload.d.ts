@@ -74,6 +74,7 @@ declare namespace Upload {
       uploaded: UploadedChunk.Item[]
       total: number
       status: string
+      superseded?: string
     }
   }
 

@@ -1,7 +1,7 @@
 /**
  * 按约定重排 Rust use 导入：std → 外部 → crate/super/self，组间空一行。
  *
- * 用法: pnpm run imports
+ * 用法: bun run imports
  */
 
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'

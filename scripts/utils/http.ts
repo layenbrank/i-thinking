@@ -1,13 +1,10 @@
 import ky, { type KyInstance } from 'ky'
 import { authToken } from '@/utils/auth.ts'
-import { loadEnv } from '@/utils/env.ts'
+import { loadConfig } from '@/utils/config.ts'
 import { TIMEOUT_MS } from '@/utils/http.errors.ts'
 
-loadEnv()
-
-const HOST = process.env.HOST ?? '127.0.0.1'
-const PORT = process.env.PORT ?? '3000'
-const BASE_URL = `http://${HOST}:${PORT}`
+const { host, port } = loadConfig().server
+const BASE_URL = `http://${host}:${port}`
 
 function HttpClient(): KyInstance {
   return ky.create({

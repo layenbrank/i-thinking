@@ -26,25 +26,20 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - uses: pnpm/action-setup@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          version: 11.22.0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: pnpm
+          bun-version: latest
 
       - name: Neutralize local cargo wrappers for CI
         run: |
           # 仓库 .cargo/config.toml 默认指向 Windows + sccache，不适合 GitHub Linux runner
           printf '%s\n' '[build]' 'target-dir = "target"' > .cargo/config.toml
 
-      - name: Install Node tooling
-        run: pnpm install --frozen-lockfile
+      - name: Install script dependencies
+        run: bun install --frozen-lockfile
 
       - name: Architecture hygiene
-        run: pnpm run arch
+        run: bun run arch
       - name: Run unit tests
         run: cargo test --lib -p service
 
@@ -59,3 +54,23 @@ jobs:
 
       - name: Build with openapi feature
         run: cargo build --features openapi --bin service
+
+  aliyun-gateway:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sidecars/aliyun-gateway
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: sidecars/aliyun-gateway/go.sum
+
+      - name: Go test
+        run: go test ./...
+
+      - name: Go build
+        run: go build ./command/server

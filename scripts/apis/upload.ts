@@ -19,20 +19,23 @@ function POST_CHUNK(data: Upload.Chunk.Params) {
   form.append('index', String(data.index))
   form.append('hash', data.hash)
   if (data.data && data.data.length > 0) {
-    const view = data.data
-    const bytes = view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength)
+    // Buffer.buffer 为 ArrayBufferLike，与 DOM BlobPart 不兼容；复制为 Uint8Array
+    const chunk = Uint8Array.from(data.data)
     form.append(
       'chunk',
-      new Blob([bytes], { type: 'application/octet-stream' }),
+      new Blob([chunk], { type: 'application/octet-stream' }),
       `chunk-${data.index}.part`
     )
   }
   return HttpResponse<Upload.Chunk.Response>(http.post(`${API_BASE_URL}/chunk`, { body: form }))
 }
 
-function POST_FINALIZE(data: Upload.Finalize.Params) {
+function POST_FINALIZE(data: Upload.Finalize.Params, options?: { timeout?: number }) {
   return HttpResponse<Upload.Finalize.Response>(
-    http.post(`${API_BASE_URL}/finalize`, { json: data })
+    http.post(`${API_BASE_URL}/finalize`, {
+      json: data,
+      timeout: options?.timeout
+    })
   )
 }
 

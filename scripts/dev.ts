@@ -1,45 +1,77 @@
 /**
- * 开发热重载入口。
+ * 开发热重载：cargo-watch 监听源码，变更后 `cargo run --bin service`。
  *
- * cas / chunks / logs / data / uploads 已在 `.gitignore`，cargo-watch 默认尊重；
- * 服务进程自身会 dotenv 加载 `.env`，无需再经 Node 注入。
+ * 用法:
+ *   bun run dev              变更即杀进程重启
+ *   bun run dev:no-restart   当前命令跑完再跑下一次（--no-restart）
  *
- * 用法: pnpm run dev
+ * 依赖: cargo install cargo-watch --locked
+ * Cursor / Windows 下原生文件通知经常不触发，默认 --poll。
+ * DEV_WATCH_WHY=1 打印触发路径。
  */
 
-import { spawn, type ChildProcess } from 'node:child_process'
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import process from 'node:process'
 
-/** clear + 热重载跑 openapi 调试服务 */
-const args = ['watch', '-c', '-x', 'run --bin service --features openapi']
+import { stopService } from '@/utils/dev-service.ts'
+import { ROOT } from '@/utils/env.ts'
 
-/** Windows cmd 引号；避免 shell+args 数组触发 DEP0190 / 参数重复 */
-function shellQuote(arg: string): string {
-  if (!/[\s"*?<>|&^%]/.test(arg)) return arg
-  return `"${arg.replace(/"/g, '\\"')}"`
-}
+const DELAY_SEC = '1'
 
-function spawnCargoWatch(): ChildProcess {
-  if (process.platform === 'win32') {
-    const cmdline = ['cargo', ...args].map(shellQuote).join(' ')
-    return spawn(cmdline, {
-      stdio: 'inherit',
-      shell: true,
-      env: process.env,
-      windowsHide: true
-    })
+/** -w 白名单：只盯源码与清单，不扫 cas/logs/target */
+const WATCH_PATHS = ['src', 'entity', 'migration', 'Cargo.toml'] as const
+
+const noRestart = process.argv.includes('--no-restart')
+
+function cargoWatchArgs(): string[] {
+  const args = [
+    'watch',
+    '-c',
+    '-d',
+    DELAY_SEC,
+    '--poll',
+    '--skip-local-deps',
+    ...(noRestart ? ['--no-restart'] : []),
+    ...WATCH_PATHS.flatMap((p) => ['-w', p]),
+    '-x',
+    'run --bin service --features openapi'
+  ]
+  if (process.env.DEV_WATCH_WHY === '1') {
+    args.splice(1, 0, '--why')
   }
-
-  return spawn('cargo', args, {
-    stdio: 'inherit',
-    env: process.env
-  })
+  return args
 }
 
-const child = spawnCargoWatch()
+function ensureCargoWatch(): void {
+  const r = spawnSync('cargo', ['watch', '--version'], {
+    encoding: 'utf8',
+    env: process.env,
+    windowsHide: true
+  })
+  if (r.status === 0) return
+  console.error('未找到 cargo-watch。请先执行: cargo install cargo-watch --locked')
+  process.exit(1)
+}
+
+ensureCargoWatch()
+stopService()
+
+console.log(
+  `dev — cargo watch -x "run --bin service --features openapi"${noRestart ? ' --no-restart' : ''}`
+)
+console.log(
+  `    watch: ${WATCH_PATHS.join(', ')}  (--poll, delay=${DELAY_SEC}s${noRestart ? ', no-restart' : ''})`
+)
+
+const child: ChildProcess = spawn('cargo', cargoWatchArgs(), {
+  stdio: 'inherit',
+  env: process.env,
+  cwd: ROOT,
+  windowsHide: false
+})
 
 child.on('error', (err) => {
-  console.error('无法启动 cargo watch（请确认已安装 cargo-watch）:', err.message)
+  console.error('无法启动 cargo watch:', err.message)
   process.exit(1)
 })
 

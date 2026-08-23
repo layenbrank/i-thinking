@@ -11,22 +11,20 @@
 | JWT | 登录鉴权 |
 | Argon2 / AES-GCM | 密码与加密配置 |
 | utoipa | OpenAPI 3.x 文档生成 |
-| Node >= 24 + pnpm | 仓库脚本（`scripts/`，`@/` 别名，ky）；见 `package.json` |
+| Bun + ky | 仓库脚本（`scripts/`，`@/` 由 tsconfig paths 解析）；见 `package.json` |
 
 ## 快速开始
 
-### 环境
+### 配置
 
-复制 `.env` 并配置：
+分层 YAML（见 [`guide/configuration.md`](guide/configuration.md)）：
 
-```env
-HOST=127.0.0.1
-PORT=3000
-DATABASE_URL=postgres://user:pass@127.0.0.1:5432/dbname
-JWT_SECRET=...
-ENCRYPTION=aes
-AES_KEY=...
+```powershell
+Copy-Item config.local.yaml.example config.local.yaml
+# 编辑 database.url、security.jwt_secret 等
 ```
+
+默认 `config.yaml` 已包含开发连接串；本机差异用 `config.local.yaml` 覆盖。
 
 ### 数据库迁移
 
@@ -39,21 +37,20 @@ cargo run -p migration -- up
 ### 启动服务
 
 ```bash
-# 安装 Node 工具（架构检查 / 格式化 / 上传 e2e；需 Node >= 24，包管理用 pnpm）
-pnpm install
+# 安装 Bun 与脚本依赖（架构检查 / 格式化 / 上传 e2e）
+bun install
 
-# 开发热重载（scripts/dev.ts → cargo watch）
-pnpm run dev
-
-# 或直接：
+# 开发热重载（cargo-watch；监听 src/entity/migration，Windows 下 --poll）
+bun run dev
+# 不打断正在运行的进程：变更排队，等当前 cargo run 结束后再启
+bun run dev:no-restart
+# 需已安装: cargo install cargo-watch --locked
+# 无 watch（可选）
 cargo run --bin service --features openapi
-
-# 热重载（cas/chunks/logs/data/uploads 已在 .gitignore，cargo-watch 默认不监听）
-cargo watch -c -x "run --bin service --features openapi"
 
 # 生产构建（不含 Swagger UI）
 cargo run --bin service --release
-# 或：pnpm run build
+# 或：bun run build
 ```
 
 服务默认监听 `http://127.0.0.1:3000`。
@@ -75,7 +72,7 @@ cargo run --bin service --release
 ### 导出 OpenAPI（Apifox 离线导入）
 
 ```bash
-pnpm run docs
+bun run docs
 # 或：cargo run --bin docs
 # 生成 spec/openapi.json
 ```
@@ -83,7 +80,7 @@ pnpm run docs
 ### 测试
 
 ```bash
-pnpm run arch
+bun run arch
 cargo test --lib -p service
 cargo test --test oas_consistency
 ```
@@ -91,8 +88,7 @@ cargo test --test oas_consistency
 ## 项目结构
 
 ```
-scripts/                  # Node 脚本（pnpm run …）
-  alias.ts                # `@/*` → scripts/* 运行时别名
+scripts/                  # Bun 脚本（bun run …）
   apis/                   # 接口封装（auth / upload）
   types/                  # 请求/响应类型
   utils/                  # http（ky）/ auth / http.errors

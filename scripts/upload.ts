@@ -1,19 +1,14 @@
 /**
- * Upload API 端到端测试（支持大文件流式读盘，避免 Node Buffer 2GiB 上限）
+ * Upload API 端到端测试（支持大文件流式读盘）
  *
  * 流程：signin → prepare(无 hash) →（流式算整文件 hash，完成即 PATCH）
  *       → 未秒传则按分片读盘上传 + progress 轮询 → finalize → 列表 → 流式校验下载
  *
  * 用法（必须指定已存在的本地文件）：
- *   pnpm run upload -- ./path/to/file.bin
- *   pnpm run upload -- "E:\\system\\ubuntu.iso"
+ *   bun run upload -- ./path/to/file.bin
+ *   bun run upload -- "E:\\system\\ubuntu.iso"
  *
- * 环境变量（来自仓库根目录 `.env`）：
- *   HOST / PORT           拼成 API 根地址，默认 http://127.0.0.1:3000
- *   UPLOAD_USERNAME       默认 admin（勿用 USERNAME：Windows 会注入本机用户名）
- *   UPLOAD_PASSWORD       默认 123456
- *   CHUNK_SIZE            默认 10485760（10MB；须在服务端 10MB~100MB）
- *   PROGRESS_INTERVAL_MS  默认 500
+ * API 地址来自仓库根目录 YAML（`config.yaml` 等）；账号密码见下方常量。
  */
 
 import { createHash } from 'node:crypto'
@@ -34,16 +29,16 @@ import {
 } from '@/apis/upload.ts'
 import { BASE_URL, http } from '@/utils/http.ts'
 import { authToken } from '@/utils/auth.ts'
-import { HttpException } from '@/utils/http.errors.ts'
+import { HttpException, TIMEOUT_MS } from '@/utils/http.errors.ts'
 
 /** 与 src/services/upload/validation.rs 对齐 */
 const MIN_CHUNK_SIZE = 1024 * 1024 * 10
 const MAX_CHUNK_SIZE = 1024 * 1024 * 100
 
-const USERNAME = process.env.UPLOAD_USERNAME ?? 'admin'
-const PASSWORD = process.env.UPLOAD_PASSWORD ?? '123456'
-const CHUNK_SIZE = Number(process.env.CHUNK_SIZE ?? MIN_CHUNK_SIZE)
-const PROGRESS_INTERVAL_MS = Number(process.env.PROGRESS_INTERVAL_MS ?? 500)
+const USERNAME = 'admin'
+const PASSWORD = '123456'
+const CHUNK_SIZE = MIN_CHUNK_SIZE
+const PROGRESS_INTERVAL_MS = 500
 
 type SourceFile = {
   name: string
@@ -110,7 +105,7 @@ async function ensureToken() {
 /** 必须提供存在的本地文件；否则直接退出，不发任何请求 */
 function loadFile(argvPath?: string): SourceFile {
   if (!argvPath) {
-    console.error('✗ 请指定要上传的文件路径，例如: pnpm run upload -- ./file.bin')
+    console.error('✗ 请指定要上传的文件路径，例如: bun run upload -- ./file.bin')
     process.exit(1)
   }
   const filePath = resolve(argvPath)
@@ -133,6 +128,12 @@ function loadFile(argvPath?: string): SourceFile {
 
 function totalChunks(size: number, chunkSize: number) {
   return Math.ceil(size / chunkSize)
+}
+
+/** finalize 顺序读完整文件 CAS 校验 hash；大文件需比默认 30s 更长 */
+function finalizeTimeoutMs(fileSize: number): number {
+  const estimated = 60_000 + Math.ceil(fileSize / (20 * 1024 * 1024)) * 1000
+  return Math.min(600_000, Math.max(TIMEOUT_MS, estimated))
 }
 
 /** 按分片读盘，单片不超过 CHUNK_SIZE，不整文件进 Buffer */
@@ -184,14 +185,18 @@ async function hashRemoteAsset(pathOrUrl: string): Promise<{ hash: string; size:
   return { hash: hash.digest('hex'), size }
 }
 
-/** 仅匹配服务端 discard 后的明确文案；勿用「不存在」——会误伤「分片在 CAS 中不存在」 */
+/** 与 `business::upload::SESSION_GONE` 对齐；旧文案作兼容 */
+const SESSION_GONE_CODE = 500207
+
 function isSessionGone(err: unknown): boolean {
   if (!(err instanceof HttpException)) return false
+  if (err.code === SESSION_GONE_CODE) return true
   const msg = err.message
-  return (
-    msg.includes('上传会话不存在或已结束') ||
-    msg === '资源不存在'
-  )
+  return msg.includes('上传会话不存在或已结束') || msg === '资源不存在'
+}
+
+function chunkTag(index: number, total: number) {
+  return `#${index + 1}/${total}`
 }
 
 async function uploadParts(
@@ -199,7 +204,8 @@ async function uploadParts(
   source: SourceFile,
   done: Map<number, string>,
   preferReuseOnly: boolean,
-  signal: AbortSignal
+  signal: AbortSignal,
+  shouldSoftExit: () => boolean
 ) {
   const total = totalChunks(source.size, CHUNK_SIZE)
   let reused = 0
@@ -213,10 +219,10 @@ async function uploadParts(
     const hash = sha256Hex(data)
     const known = done.get(index)
     if (known === hash) {
-      console.log(`… chunk #${index + 1}/${total} 已上传且 hash 一致，跳过`)
+      console.log(`… chunk ${chunkTag(index, total)} 已上传且 hash 一致，跳过`)
       continue
     }
-    logStep('chunk', `#${index + 1}/${total}`)
+    logStep('chunk', chunkTag(index, total))
     // hash 不一致时必须带字节；勿因 done 里有旧 hash 就改走「仅 hash」秒传
     const body: Upload.Chunk.Params = preferReuseOnly
       ? { id: uploadId, index, hash }
@@ -227,25 +233,24 @@ async function uploadParts(
         console.log('… chunk 上传已中止（文件秒传或取消）')
         break
       }
-      console.log(`✓ chunk #${index}`)
+      console.log(`✓ chunk ${chunkTag(index, total)}`)
       if (res.reused) reused++
       else uploaded++
       done.set(index, hash)
     } catch (err) {
-      // 仅在客户端已因 exists 秒传 abort 后，在途请求的会话结束才算正常
-      if (signal.aborted && isSessionGone(err)) {
-        console.log('… chunk 上传已中止（文件秒传，会话已 discard）')
-        break
-      }
       if (signal.aborted) {
         console.log('… chunk 上传已中止（文件秒传或取消）')
         break
       }
+      if (isSessionGone(err) && shouldSoftExit()) {
+        console.log('… chunk 上传已中止（会话已结束，等待 hash 绑定）')
+        break
+      }
       console.error(
-        `✗ chunk #${index}`,
+        `✗ chunk ${chunkTag(index, total)}`,
         err instanceof HttpException ? { code: err.code, msg: err.message } : err
       )
-      process.exit(1)
+      throw err
     }
   }
   return { reused, uploaded }
@@ -273,7 +278,7 @@ function watchProgress(uploadId: string, signal: AbortSignal): { stop: () => voi
       }
     } catch (err) {
       if (signal.aborted || isSessionGone(err)) {
-        // 秒传 discard 后 progress 404 / 会话结束属预期
+        // 秒传 / cancel 后 progress 会话结束属预期
         return
       }
       console.warn('↻ progress poll failed', err instanceof Error ? err.message : err)
@@ -323,29 +328,51 @@ async function runOnce(label: string, source: SourceFile, preferChunkReuse: bool
 
   let fileHash = ''
   let instantComplete = false
+  let bindDone = false
 
   try {
-    // hash 与分片并行：算完立刻 PATCH；秒传则 abort，在途 chunk 按「会话已结束」软退出
+    // hash 与分片并行：算完立刻 PATCH；秒传则 abort。在途 chunk 不依赖 abort 时序。
     const bindHashTask = (async () => {
-      fileHash = await hashPromise
-      logStep('hash', 'PATCH /upload/hash（算完即绑，与分片并行）')
-      const bound = await step('hash', PATCH_HASH({ id: uploadId, hash: fileHash }))
-      if (bound.exists) {
-        console.log('… 文件秒传（bindHash.exists），停止分片', bound.id)
-        instantComplete = true
-        abort.abort()
+      try {
+        fileHash = await hashPromise
+        logStep('hash', 'PATCH /upload/hash（算完即绑，与分片并行）')
+        const bound = await step('hash', PATCH_HASH({ id: uploadId, hash: fileHash }))
+        if (bound.exists) {
+          console.log('… 文件秒传（bindHash.exists），停止分片', bound.id)
+          instantComplete = true
+          abort.abort()
+          uploadId = bound.id
+          return
+        }
         uploadId = bound.id
-        return
-      }
-      uploadId = bound.id
-      for (const u of bound.uploaded ?? []) {
-        done.set(u.index, u.hash)
+        for (const u of bound.uploaded ?? []) {
+          done.set(u.index, u.hash)
+        }
+      } finally {
+        bindDone = true
       }
     })()
 
-    const chunksTask = uploadParts(uploadId, source, done, preferChunkReuse, abort.signal)
+    const chunksTask = uploadParts(
+      uploadId,
+      source,
+      done,
+      preferChunkReuse,
+      abort.signal,
+      () => !bindDone || instantComplete
+    )
 
     await Promise.all([bindHashTask, chunksTask])
+  } catch (err) {
+    if (instantComplete && isSessionGone(err)) {
+      console.log('… 在途分片已随秒传结束')
+    } else {
+      console.error(
+        '✗ upload',
+        err instanceof HttpException ? { code: err.code, msg: err.message } : err
+      )
+      process.exit(1)
+    }
   } finally {
     progressWatch.stop()
     if (!abort.signal.aborted) abort.abort()
@@ -363,8 +390,15 @@ async function runOnce(label: string, source: SourceFile, preferChunkReuse: bool
     total: prog.total
   })
 
-  logStep('finalize', 'POST /upload/finalize（不合并落盘）')
-  const finalized = await step('finalize', POST_FINALIZE({ id: uploadId }))
+  const finalizeTimeout = finalizeTimeoutMs(source.size)
+  logStep(
+    'finalize',
+    `POST /upload/finalize（不合并落盘，timeout=${Math.round(finalizeTimeout / 1000)}s）`
+  )
+  const finalized = await step(
+    'finalize',
+    POST_FINALIZE({ id: uploadId }, { timeout: finalizeTimeout })
+  )
 
   logStep('list', 'GET /upload/files')
   const listed = await step('list', GET_FILES(1, 20))
@@ -418,7 +452,7 @@ async function main() {
   await ensureToken()
 
   await runOnce('首传（写入 CAS）', source, false)
-  await runOnce('再传（分片/文件秒传）', { ...source, name: `copy-${source.name}` }, true)
+  await runOnce('再传（分片/文件秒传）', source, true)
 
   console.log('\n全部通过')
 }
