@@ -1,0 +1,71 @@
+{
+  "editor.folding": true,
+  "editor.foldingStrategy": "auto",
+  "editor.foldingHighlight": true,
+  "editor.foldingImportsByDefault": true,
+  "editor.showFoldingControls": "mouseover",
+  "explorer.compactFolders": true,
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "Cargo.toml": "Cargo.lock, rustfmt.toml",
+    "go.mod": "go.sum",
+    "package.json": "bun.lock, tsconfig.json, .prettierrc",
+    ".ignore": ".gitignore, .editorconfig,.prettierignore",
+    "config.yaml": "config.development.yaml, config.production.yaml, config.local.yaml, config.local.yaml.example",
+    "README.md": "task_plan.md, progress.md, findings.md"
+  },
+  "files.exclude": {
+    "**/target": true,
+    "**/cas": true,
+    "**/chunks": true,
+    "**/uploads": true,
+    "**/data": true,
+    "**/.tmp": true,
+    "**/node_modules": true,
+    "**/__pycache__": true
+  },
+  "search.exclude": {
+    "**/target": true,
+    "**/cas": true,
+    "**/chunks": true,
+    "**/uploads": true,
+    "**/logs": true,
+    "**/data": true,
+    "**/.tmp": true,
+    "**/node_modules": true,
+    "**/spec/openapi.json": true
+  },
+  "files.watcherExclude": {
+    "**/target/**": true,
+    "**/cas/**": true,
+    "**/chunks/**": true,
+    "**/uploads/**": true,
+    "**/logs/**": true,
+    "**/data/**": true,
+    "**/.tmp/**": true,
+    "**/node_modules/**": true
+  },
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
+  },
+  "[json]": {
+    "editor.tabSize": 2
+  },
+  "[jsonc]": {
+    "editor.tabSize": 2
+  },
+  "[go]": {
+    "editor.defaultFormatter": "golang.go",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4
+  },
+  "rust-analyzer.files.excludeDirs": ["cas", "chunks", "logs", "data", "uploads", ".tmp"]
+}
