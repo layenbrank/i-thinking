@@ -7,8 +7,12 @@
 /.tmp/
 /config.local.yaml
 /docker/aliyun-gateway/config.local.json
+
+# Sidecar 本地编译产物（任意输出名，含 *.exe 笔误）
+/sidecars/**/*.exe
+/sidecars/**/*.test
+/sidecars/**/*.out
 /sidecars/aliyun-gateway/aliyun-gateway
-/sidecars/aliyun-gateway/aliyun-gateway.exe
 
 # Bun / Node
 /node_modules/
