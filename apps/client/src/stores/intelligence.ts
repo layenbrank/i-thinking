@@ -1,19 +1,35 @@
-import { type UpdateSpec } from 'dexie'
-import { BehaviorSubject, Subject } from 'rxjs'
+import { invoke } from '@tauri-apps/api/core'
+import { Subject } from 'rxjs'
 import { create, type StateCreator } from 'zustand'
 import { devtools, subscribeWithSelector } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
 type AiSession = MagneticTile.Intelligence.AiSession
 type AiMessage = MagneticTile.Intelligence.AiMessage
+type AiCollection = MagneticTile.Intelligence.AiCollection
 
-interface UpdateMessage {
-  key: string
-  changes: UpdateSpec<AiMessage>
+interface SessionChange {
+  title?: string
+  pinned?: boolean
+  collectionID?: string | null
 }
-interface UpdateSession {
+
+interface MessageChange {
+  identity?: AiMessage['identity']
+  fragment?: string
+  thinking?: string | null
+  sessionID?: string
+  updatedAt?: number
+}
+
+interface SessionUpdate {
   key: string
-  changes: UpdateSpec<AiSession>
+  change: SessionChange
+}
+
+interface MessageUpdate {
+  key: string
+  change: MessageChange
 }
 
 type EventType =
@@ -27,6 +43,7 @@ type EventType =
   | 'MESSAGE:INSERTED'
   | 'MESSAGE:UPDATED'
   | 'MESSAGE:REMOVED'
+  | 'COLLECTION:SYNCED'
 
 interface IntelligenceEvent<T = unknown> {
   type: EventType
@@ -36,29 +53,41 @@ interface IntelligenceEvent<T = unknown> {
 
 interface SessionSlice {
   sessions: AiSession[]
+  activeSessionID: string | null
+  sessionsLoaded: boolean
 
-  // 选择器
-  toReadSession: (ID: string) => AiSession | null
-  // CRUD 操作
-  toInsertSession: (values: AiSession[]) => Promise<void>
-  toUpdateSession: (values: UpdateSpec<AiSession>[]) => Promise<void>
-  toRemoveSession: (keys: string[]) => Promise<void>
-
-  // 内部方法
-  toUpdateSessions: (sessions: AiSession[]) => void
+  toReadSessions(): Promise<AiSession[]>
+  toReadSession(key: string): AiSession | null
+  toWriteSession(values: AiSession[]): Promise<void>
+  toUpdateSession(values: Partial<AiSession>[]): Promise<void>
+  toRemoveSession(keys: string[]): Promise<void>
+  toUpdateSessions(sessions: AiSession[]): void
 }
+
 interface MessageSlice {
   messages: AiMessage[]
+  messagesLoaded: boolean
 
-  toReadMessage: (ID: string) => AiMessage | null
-  toInsertMessage: (values: AiMessage[]) => Promise<void>
-  toUpdateMessage: (values: UpdateSpec<AiMessage>[], options?: { skip?: boolean }) => Promise<void>
-  toRemoveMessage: (keys: string[]) => Promise<void>
-
-  toUpdateMessages: (messages: AiMessage[]) => void
+  toReadMessages(sessionID?: string): Promise<AiMessage[]>
+  toReadMessage(key: string): AiMessage | null
+  toWriteMessage(values: AiMessage[]): Promise<void>
+  toUpdateMessage(values: Partial<AiMessage>[], options?: { skip?: boolean }): Promise<void>
+  toRemoveMessage(keys: string[]): Promise<void>
+  toUpdateMessages(messages: AiMessage[]): void
 }
 
-type IntelligenceStore = SessionSlice & MessageSlice
+interface CollectionSlice {
+  collections: AiCollection[]
+  collectionsLoaded: boolean
+
+  toReadCollections(): Promise<AiCollection[]>
+  toWriteCollection(values: AiCollection[]): Promise<void>
+  toUpdateCollection(values: Partial<AiCollection>[]): Promise<void>
+  toRemoveCollection(keys: string[]): Promise<void>
+  toUpdateCollections(collections: AiCollection[]): void
+}
+
+type IntelligenceStore = SessionSlice & MessageSlice & CollectionSlice
 
 type SliceCreator<T> = StateCreator<
   IntelligenceStore,
@@ -69,22 +98,95 @@ type SliceCreator<T> = StateCreator<
 
 const event$ = new Subject<IntelligenceEvent>()
 
-const session$ = new BehaviorSubject<AiSession | null>(null)
+function toSessionWrite(value: AiSession) {
+  return {
+    id: value.id,
+    title: value.title,
+    pinned: value.pinned,
+    collectionID: value.collectionID,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt
+  }
+}
+
+function toMessageWrite(value: AiMessage) {
+  return {
+    id: value.id,
+    identity: value.identity,
+    fragment: value.fragment,
+    thinking: value.thinking,
+    sessionID: value.sessionID,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt
+  }
+}
+
+function toCollectionWrite(value: AiCollection) {
+  return {
+    id: value.id,
+    title: value.title,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt
+  }
+}
 
 const sessionSlice: SliceCreator<SessionSlice> = function (setters, getters) {
   return {
     sessions: [],
+    activeSessionID: null,
+    sessionsLoaded: false,
+
+    async toReadSessions() {
+      try {
+        const sessions = await invoke<AiSession[]>('aiSession:toRead', { params: {} })
+        setters(
+          function (state) {
+            state.sessions = sessions
+            state.sessionsLoaded = true
+            if (!state.activeSessionID && sessions[0]) {
+              state.activeSessionID = sessions[0].id
+            }
+          },
+          false,
+          'toReadSessions'
+        )
+        const activeSessionID = getters().activeSessionID
+        if (activeSessionID) {
+          await getters().toReadMessages(activeSessionID)
+        }
+        event$.next({
+          type: 'SESSION:SYNCED',
+          payload: sessions,
+          timestamp: Date.now()
+        })
+        return sessions
+      } catch (error) {
+        console.error('[intelligence-store] toReadSessions failed:', error)
+        setters(
+          function (state) {
+            state.sessionsLoaded = true
+          },
+          false,
+          'toReadSessions/error'
+        )
+        return []
+      }
+    },
+
     toReadSession(key: string) {
       const now = Date.now()
       const sessions = getters().sessions
-
-      const session = sessions.find(function (session) {
-        return session.id === key
+      const session = sessions.find(function (item) {
+        return item.id === key
       })
 
-      console.log('[toReadSession]', session)
-
-      session$.next(session ?? null)
+      setters(
+        function (state) {
+          state.activeSessionID = key
+        },
+        false,
+        'toReadSession/active'
+      )
 
       event$.next({
         type: 'SESSION:TOREAD',
@@ -94,70 +196,50 @@ const sessionSlice: SliceCreator<SessionSlice> = function (setters, getters) {
 
       return session ?? null
     },
-    async toInsertSession(values: AiSession[]) {
+
+    async toWriteSession(values: AiSession[]) {
       const former = structuredClone(getters().sessions)
       setters(
         function (state) {
           state.sessions.push(...values)
         },
         false,
-        'toInsertSession/optimistic'
+        'toWriteSession/optimistic'
       )
 
       try {
-        const now = Date.now()
-        // await database.AiSession.bulkAdd(values)
+        await invoke('aiSession:toWrite', {
+          params: values.map(toSessionWrite)
+        })
         event$.next({
           type: 'SESSION:INSERTED',
           payload: values,
-          timestamp: now
+          timestamp: Date.now()
         })
       } catch (error) {
-        setters(
-          {
-            sessions: former
-          },
-          false,
-          'toInsertSession/rollback'
-        )
+        setters({ sessions: former }, false, 'toWriteSession/rollback')
         throw error
       }
     },
 
-    async toUpdateSession(values: UpdateSpec<AiSession>[]) {
-      const dearthID = values.every(function (v) {
-        if (!v.id) return false
-        return true
+    async toUpdateSession(values: Partial<AiSession>[]) {
+      const hasID = values.every(function (v) {
+        return Boolean(v.id)
       })
-      if (!dearthID) throw new Error('ID is required')
+      if (!hasID) throw new Error('ID is required')
+
       const sessions = structuredClone(getters().sessions)
-
-      // 使用 Map 优化查找性能 O(n) 而不是 O(n²)
-      const updatesMap = new Map<string, UpdateSpec<AiSession>>()
+      const updatesMap = new Map<string, Partial<AiSession>>()
       values.forEach(function (v) {
-        if (v.id && typeof v.id === 'string') updatesMap.set(v.id, v)
-      })
-
-      const former = sessions.filter(function (m) {
-        return updatesMap.has(m.id)
-      })
-      const updates: UpdateSession[] = former.map(function (m) {
-        const update = updatesMap.get(m.id)!
-        return {
-          key: m.id,
-          changes: {
-            ...m,
-            ...update
-          }
-        }
+        if (v.id) updatesMap.set(v.id, v)
       })
 
       setters(
         function (state) {
-          state.sessions = sessions.map(function (u) {
-            const update = updatesMap.get(u.id)
-            if (!update) return u
-            return Object.assign({}, u, update)
+          state.sessions = sessions.map(function (item) {
+            const update = updatesMap.get(item.id)
+            if (!update) return item
+            return Object.assign({}, item, update)
           })
         },
         false,
@@ -165,66 +247,55 @@ const sessionSlice: SliceCreator<SessionSlice> = function (setters, getters) {
       )
 
       try {
-        const now = Date.now()
-        // await database.AiSession.bulkUpdate(updates)
-
+        const params: SessionUpdate[] = values.map(function (v) {
+          const { id, ...change } = v
+          return { key: id!, change }
+        })
+        await invoke('aiSession:toUpdate', { params })
         event$.next({
           type: 'SESSION:UPDATED',
           payload: values,
-          timestamp: now
+          timestamp: Date.now()
         })
       } catch (error) {
-        setters(
-          {
-            sessions: sessions
-          },
-          false,
-          'toUpdateSession/rollback'
-        )
+        setters({ sessions }, false, 'toUpdateSession/rollback')
         throw error
       }
     },
 
     async toRemoveSession(keys: string[]) {
-      const now = Date.now()
       const former = structuredClone(getters().sessions)
       try {
-        const sessions = former.filter(function (session) {
-          return !keys.includes(session.id)
-        })
         setters(
-          {
-            sessions: sessions
+          function (state) {
+            state.sessions = former.filter(function (session) {
+              return !keys.includes(session.id)
+            })
+            if (state.activeSessionID && keys.includes(state.activeSessionID)) {
+              state.activeSessionID = state.sessions[0]?.id ?? null
+            }
           },
           false,
           'toRemoveSession/optimistic'
         )
-        // await database.AiSession.bulkDelete(keys)
-
+        await invoke('aiSession:toRemove', { params: keys })
+        const activeSessionID = getters().activeSessionID
+        if (activeSessionID) {
+          await getters().toReadMessages(activeSessionID)
+        }
         event$.next({
           type: 'SESSION:REMOVED',
           payload: keys,
-          timestamp: now
+          timestamp: Date.now()
         })
       } catch (error) {
-        setters(
-          {
-            sessions: former
-          },
-          false,
-          'toRemoveSession/rollback'
-        )
+        setters({ sessions: former }, false, 'toRemoveSession/rollback')
         throw error
       }
     },
+
     toUpdateSessions(sessions) {
-      setters(
-        {
-          sessions
-        },
-        false,
-        'toUpdateSessions/synced'
-      )
+      setters({ sessions }, false, 'toUpdateSessions/synced')
       event$.next({
         type: 'SESSION:SYNCED',
         payload: sessions,
@@ -233,101 +304,111 @@ const sessionSlice: SliceCreator<SessionSlice> = function (setters, getters) {
     }
   }
 }
+
 const messageSlice: SliceCreator<MessageSlice> = function (setters, getters) {
   return {
     messages: [],
+    messagesLoaded: false,
+
+    async toReadMessages(sessionID?: string) {
+      try {
+        const params = sessionID ? { sessionID } : {}
+        const messages = await invoke<AiMessage[]>('aiMessage:toRead', { params })
+        setters(
+          function (state) {
+            if (sessionID) {
+              const others = state.messages.filter(function (message) {
+                return message.sessionID !== sessionID
+              })
+              state.messages = others.concat(messages).toSorted(function (a, b) {
+                return a.createdAt - b.createdAt
+              })
+            } else {
+              state.messages = messages
+            }
+            state.messagesLoaded = true
+          },
+          false,
+          'toReadMessages'
+        )
+        event$.next({
+          type: 'MESSAGE:SYNCED',
+          payload: messages,
+          timestamp: Date.now()
+        })
+        return messages
+      } catch (error) {
+        console.error('[intelligence-store] toReadMessages failed:', error)
+        setters(
+          function (state) {
+            state.messagesLoaded = true
+          },
+          false,
+          'toReadMessages/error'
+        )
+        return []
+      }
+    },
+
     toReadMessage(key: string) {
-      const now = Date.now()
-      const messages = getters().messages
-
-      const message = messages.find(function (message) {
-        return message.id === key
+      const message = getters().messages.find(function (item) {
+        return item.id === key
       })
-
       event$.next({
         type: 'MESSAGE:TOREAD',
         payload: { message },
-        timestamp: now
+        timestamp: Date.now()
       })
-
       return message ?? null
     },
-    async toInsertMessage(values: AiMessage[]) {
+
+    async toWriteMessage(values: AiMessage[]) {
       const former = structuredClone(getters().messages)
       setters(
-        function (prev) {
-          // 插入消息（追加到末尾，不排序）
-          // 注意：排序由 toUpdateMessages 从数据库同步时处理，避免重复排序导致无限循环
-          // prev.messages = [...prev.messages, ...values]
-          prev.messages = prev.messages.concat(values)
-          // .toSorted(function (a, b) {
-          //   return a.updatedAt - b.updatedAt // 正序：最早的在前
-          // })
+        function (state) {
+          state.messages = state.messages.concat(values)
         },
         false,
-        'toInsertMessage/optimistic'
+        'toWriteMessage/optimistic'
       )
 
       try {
-        const now = Date.now()
-        // await database.AiMessage.bulkAdd(values)
+        await invoke('aiMessage:toWrite', {
+          params: values.map(toMessageWrite)
+        })
         event$.next({
           type: 'MESSAGE:INSERTED',
           payload: values,
-          timestamp: now
+          timestamp: Date.now()
         })
       } catch (error) {
-        setters(
-          {
-            messages: former
-          },
-          false,
-          'toInsertMessage/rollback'
-        )
+        setters({ messages: former }, false, 'toWriteMessage/rollback')
         throw error
       }
     },
 
-    async toUpdateMessage(values: UpdateSpec<AiMessage>[], options?: { skip?: boolean }) {
-      const dearthID = values.every(function (v) {
-        if (!v.id) return false
-        return true
+    async toUpdateMessage(values: Partial<AiMessage>[], options?: { skip?: boolean }) {
+      const hasID = values.every(function (v) {
+        return Boolean(v.id)
       })
-      if (!dearthID) throw new Error('ID is required')
+      if (!hasID) throw new Error('ID is required')
+
       const messages = structuredClone(getters().messages)
-
-      // 使用 Map 优化查找性能 O(n) 而不是 O(n²)
-      const updatesMap = new Map<string, UpdateSpec<AiMessage>>()
+      const updatesMap = new Map<string, Partial<AiMessage>>()
       values.forEach(function (v) {
-        if (v.id && typeof v.id === 'string') updatesMap.set(v.id, v)
-      })
-
-      const former = messages.filter(function (m) {
-        return updatesMap.has(m.id)
-      })
-      const updates: UpdateMessage[] = former.map(function (m) {
-        const update = updatesMap.get(m.id)!
-        return {
-          key: m.id,
-          changes: {
-            ...m,
-            ...update
-          }
-        }
+        if (v.id) updatesMap.set(v.id, v)
       })
 
       setters(
-        function (prev) {
-          // 更新消息（不改变顺序，保持原有顺序）
-          // 注意：排序由 toUpdateMessages 从数据库同步时处理，避免重复排序导致无限循环
-          prev.messages = prev.messages
-            .map(function (u) {
-              const update = updatesMap.get(u.id)
-              if (!update) return u
-              return Object.assign({}, u, update)
+        function (state) {
+          state.messages = state.messages
+            .map(function (item) {
+              const update = updatesMap.get(item.id)
+              if (!update) return item
+              return Object.assign({}, item, update)
             })
             .toSorted(function (a, b) {
-              return a.updatedAt - b.updatedAt // 正序：最早的在前
+              return a.createdAt - b.createdAt
             })
         },
         false,
@@ -337,69 +418,171 @@ const messageSlice: SliceCreator<MessageSlice> = function (setters, getters) {
       if (options?.skip) return
 
       try {
-        const now = Date.now()
-        // await database.AiMessage.bulkUpdate(updates)
-
+        const params: MessageUpdate[] = values.map(function (v) {
+          const { id, ...change } = v
+          return { key: id!, change }
+        })
+        await invoke('aiMessage:toUpdate', { params })
         event$.next({
           type: 'MESSAGE:UPDATED',
           payload: values,
-          timestamp: now
+          timestamp: Date.now()
         })
       } catch (error) {
-        setters(
-          {
-            messages: messages
-          },
-          false,
-          'toUpdateMessage/rollback'
-        )
+        setters({ messages }, false, 'toUpdateMessage/rollback')
         throw error
       }
     },
 
     async toRemoveMessage(keys: string[]) {
-      const now = Date.now()
       const former = structuredClone(getters().messages)
       try {
-        const messages = former.filter(function (message) {
-          return !keys.includes(message.id)
-        })
         setters(
-          {
-            messages: messages
+          function (state) {
+            state.messages = former.filter(function (message) {
+              return !keys.includes(message.id)
+            })
           },
           false,
           'toRemoveMessage/optimistic'
         )
-        // await database.AiMessage.bulkDelete(keys)
-
+        await invoke('aiMessage:toRemove', { params: keys })
         event$.next({
           type: 'MESSAGE:REMOVED',
           payload: keys,
-          timestamp: now
+          timestamp: Date.now()
         })
       } catch (error) {
-        setters(
-          {
-            messages: former
-          },
-          false,
-          'toRemoveMessage/rollback'
-        )
+        setters({ messages: former }, false, 'toRemoveMessage/rollback')
         throw error
       }
     },
+
     toUpdateMessages(messages) {
-      setters(
-        {
-          messages
-        },
-        false,
-        'toUpdateMessages/synced'
-      )
+      setters({ messages }, false, 'toUpdateMessages/synced')
       event$.next({
         type: 'MESSAGE:SYNCED',
         payload: messages,
+        timestamp: Date.now()
+      })
+    }
+  }
+}
+
+const collectionSlice: SliceCreator<CollectionSlice> = function (setters, getters) {
+  return {
+    collections: [],
+    collectionsLoaded: false,
+
+    async toReadCollections() {
+      try {
+        const collections = await invoke<AiCollection[]>('aiCollection:toRead', { params: {} })
+        setters(
+          function (state) {
+            state.collections = collections
+            state.collectionsLoaded = true
+          },
+          false,
+          'toReadCollections'
+        )
+        event$.next({
+          type: 'COLLECTION:SYNCED',
+          payload: collections,
+          timestamp: Date.now()
+        })
+        return collections
+      } catch (error) {
+        console.error('[intelligence-store] toReadCollections failed:', error)
+        setters(
+          function (state) {
+            state.collectionsLoaded = true
+          },
+          false,
+          'toReadCollections/error'
+        )
+        return []
+      }
+    },
+
+    async toWriteCollection(values: AiCollection[]) {
+      const former = structuredClone(getters().collections)
+      setters(
+        function (state) {
+          state.collections.push(...values)
+        },
+        false,
+        'toWriteCollection/optimistic'
+      )
+      try {
+        await invoke('aiCollection:toWrite', {
+          params: values.map(toCollectionWrite)
+        })
+      } catch (error) {
+        setters({ collections: former }, false, 'toWriteCollection/rollback')
+        throw error
+      }
+    },
+
+    async toUpdateCollection(values: Partial<AiCollection>[]) {
+      const hasID = values.every(function (v) {
+        return Boolean(v.id)
+      })
+      if (!hasID) throw new Error('ID is required')
+
+      const collections = structuredClone(getters().collections)
+      const updatesMap = new Map<string, Partial<AiCollection>>()
+      values.forEach(function (v) {
+        if (v.id) updatesMap.set(v.id, v)
+      })
+
+      setters(
+        function (state) {
+          state.collections = collections.map(function (item) {
+            const update = updatesMap.get(item.id)
+            if (!update) return item
+            return Object.assign({}, item, update)
+          })
+        },
+        false,
+        'toUpdateCollection/optimistic'
+      )
+
+      try {
+        const params = values.map(function (v) {
+          const { id, ...change } = v
+          return { key: id!, change }
+        })
+        await invoke('aiCollection:toUpdate', { params })
+      } catch (error) {
+        setters({ collections }, false, 'toUpdateCollection/rollback')
+        throw error
+      }
+    },
+
+    async toRemoveCollection(keys: string[]) {
+      const former = structuredClone(getters().collections)
+      try {
+        setters(
+          function (state) {
+            state.collections = former.filter(function (collection) {
+              return !keys.includes(collection.id)
+            })
+          },
+          false,
+          'toRemoveCollection/optimistic'
+        )
+        await invoke('aiCollection:toRemove', { params: keys })
+      } catch (error) {
+        setters({ collections: former }, false, 'toRemoveCollection/rollback')
+        throw error
+      }
+    },
+
+    toUpdateCollections(collections) {
+      setters({ collections }, false, 'toUpdateCollections/synced')
+      event$.next({
+        type: 'COLLECTION:SYNCED',
+        payload: collections,
         timestamp: Date.now()
       })
     }
@@ -412,7 +595,8 @@ const useIntelligenceStore = create<IntelligenceStore>()(
       immer(function (...args) {
         return {
           ...sessionSlice(...args),
-          ...messageSlice(...args)
+          ...messageSlice(...args),
+          ...collectionSlice(...args)
         }
       })
     ),
@@ -425,10 +609,10 @@ const useIntelligenceStore = create<IntelligenceStore>()(
 
 export {
   event$,
-  session$,
   useIntelligenceStore,
+  type AiCollection,
   type AiMessage,
   type AiSession,
-  type UpdateMessage,
-  type UpdateSession
+  type MessageUpdate,
+  type SessionUpdate
 }
