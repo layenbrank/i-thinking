@@ -18,10 +18,6 @@ const ws = createWriteStream(resolve(__dirname, 'chunks.log'), {
 })
 
 // const host = process.env.TAURI_DEV_HOST
-// const host = 'localhost'
-// const host = '192.168.0.4'
-
-// console.log('host ===>', host)
 
 const cssRegex: Readonly<RegExp> = /\.css$/i
 const imageRegex: Readonly<RegExp> = /\.(png|jpe?g|gif|svg|webp|ico)$/i
@@ -46,9 +42,9 @@ const noInlineRegexes: readonly RegExp[] = [
 export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
   const interfaces = networkInterfaces()
-  const LOOPBACK = '0.0.0.0'
-  let IP = 'localhost'
+  const TAURI_DEV_HOST = process.env.TAURI_DEV_HOST
   const PORT = 5173
+  let IP = 'localhost'
 
   for (const inter of Object.keys(interfaces)) {
     const collection = interfaces[inter]
@@ -205,11 +201,11 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
     server: {
       port: PORT,
       strictPort: true,
-      host: LOOPBACK || false,
-      hmr: LOOPBACK
+      host: TAURI_DEV_HOST || '0.0.0.0',
+      hmr: TAURI_DEV_HOST
         ? {
             protocol: 'ws',
-            host: IP,
+            host: TAURI_DEV_HOST,
             port: 1421
           }
         : undefined,
