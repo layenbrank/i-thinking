@@ -6,8 +6,9 @@
 
 | Pattern | Example | Notes |
 |---------|---------|-------|
-| CRUD verb | `resource:read` | 单单词小写 action |
-| Write / upsert | `resource:write` | 语义由 service 解释 |
+| CRUD verb (legacy) | `resource:read` | 存量 kebab namespace |
+| Write / upsert (legacy) | `resource:write` | 语义由 service 解释 |
+| CRUD to* (new) | `aiSession:toRead` | 新模块 camelCase namespace |
 | Update field | `feature:update-mode` | 状态变更用 `update-*` |
 | Badge / flag | `feature:update-badge` | 不用 `set-badge` |
 | Pending drain | `feature:take-pending` | 多词 kebab-case |
@@ -29,10 +30,10 @@ One vs many 由 Entity 的 `*P::One | Many` 表达，IPC 保持单条（如 `res
 
 Prefer a small, stable set:
 
-- Read path: `read`
-- Create / persist: `write` 或 `insert`（项目内择一，保持一致）
-- Mutate: `update`、`update-*`
-- Delete: `remove`（优于 `delete`，若项目已统一则跟随项目）
+- Read path: `read`（legacy）或 `toRead`（新 CRUD IPC）
+- Create / persist: `write` / `toWrite`
+- Mutate: `update` / `toUpdate`、`update-*`
+- Delete: `remove` / `toRemove`
 - Lifecycle: `open`、`close`、`ensure`、`hide`、`mount`、`take-pending`
 
 ## Sync checklist when renaming IPC
