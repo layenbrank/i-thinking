@@ -5,8 +5,6 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import { MIRRORS } from '@/constants/mirror'
-
 type MirrorWrite = Mirror.Write
 type MagneticTileWrite = MagneticTile.Write
 type MirrorUpdate = Mirror.Update
@@ -157,29 +155,11 @@ const mirrorSlice: SliceCreator<MirrorSlice> = function (setters, getters) {
 
     async toInitialize() {
       const mirrors = await invoke<Mirror[]>('mirror:read', { params: {} })
-      if (isEmpty(mirrors)) {
-        await getters().toInsertMirror([...MIRRORS])
-      } else {
-        getters().toUpdateMirrors(
-          mirrors.toSorted(function (a, b) {
-            return a.index - b.index
-          })
-        )
-        // 库非空但少于种子数时按 index 补插缺失镜像（便于本地多镜像测试）
-        if (getters().mirrors.length < MIRRORS.length) {
-          const existingIndexes = new Set(
-            getters().mirrors.map(function (mirror) {
-              return mirror.index
-            })
-          )
-          const missing = MIRRORS.filter(function (seed) {
-            return !existingIndexes.has(seed.index)
-          })
-          if (missing.length) {
-            await getters().toInsertMirror(missing)
-          }
-        }
-      }
+      getters().toUpdateMirrors(
+        mirrors.toSorted(function (a, b) {
+          return a.index - b.index
+        })
+      )
 
       const [first] = getters().mirrors
       if (!first) return
