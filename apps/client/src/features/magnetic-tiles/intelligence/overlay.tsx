@@ -48,7 +48,7 @@ import {
   type OverlayControlProps
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/magnetic-tiles/intelligence/overlay.module.scss'
-import { session$, useIntelligenceStore as store } from '@/stores/intelligence.ts'
+import { useIntelligenceStore as store } from '@/stores/intelligence.ts'
 
 type AiSession = MagneticTile.Intelligence.AiSession
 type AiMessage = MagneticTile.Intelligence.AiMessage
@@ -95,6 +95,16 @@ export default function Overlay(props: OverlayControlProps) {
   const [sender, updateSender] = useState('')
   const messages = store((state) => state.messages)
   const sessions = store((state) => state.sessions)
+  const activeSessionID = store((state) => state.activeSessionID)
+  const sessionMessages = useMemo(
+    function () {
+      if (!activeSessionID) return []
+      return messages.filter(function (item) {
+        return item.sessionID === activeSessionID
+      })
+    },
+    [messages, activeSessionID]
+  )
   const done = useRef(false)
   const [thinking, updateThinking] = useState(false)
   const [expandedThinking, updateExpandedThinking] = useState(false)
@@ -137,7 +147,7 @@ export default function Overlay(props: OverlayControlProps) {
 
   const bubbles: BubbleItemType[] = useMemo(
     function () {
-      return messages.map(function (value) {
+      return sessionMessages.map(function (value) {
         const entry: BubbleItemType = {
           key: value.id,
           role: value.identity,
@@ -177,7 +187,7 @@ export default function Overlay(props: OverlayControlProps) {
         return entry
       })
     },
-    [messages, thinking, expandedThinking]
+    [sessionMessages, thinking, expandedThinking]
   )
 
   const prompts: PromptsItemType[] = [
@@ -322,16 +332,16 @@ export default function Overlay(props: OverlayControlProps) {
       // 立即重置输入框，提供即时反馈
       updateSender('')
 
-      if (!session$.value?.id) {
+      const activeID = activeSessionID
+      if (!activeID) {
         message.error('请先选择一个会话')
         return
       }
 
       // 创建用户消息
       const personal: AiMessage = {
-        // id: crypto.randomUUID(),
         id: UUIDV4(),
-        sessionID: session$.value?.id,
+        sessionID: activeID,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         identity: 'user',
@@ -342,15 +352,14 @@ export default function Overlay(props: OverlayControlProps) {
       // 创建助手消息（初始为空）
       const assistant: AiMessage = {
         id: UUIDV4(),
-        sessionID: session$.value?.id,
+        sessionID: activeID,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         identity: 'assistant',
         fragment: '',
         thinking: ''
       }
-      // 构建消息列表（包含用户消息），在更新状态之前构建
-      const transferMSG: CommunicateMessage[] = messages.concat([personal]).map(function (value) {
+      const transferMSG: CommunicateMessage[] = sessionMessages.concat([personal]).map(function (value) {
         return {
           role: value.identity,
           content: value.fragment,
@@ -359,8 +368,8 @@ export default function Overlay(props: OverlayControlProps) {
       })
 
       // 使用函数式更新添加用户消息和空的助手消息
-      await store.getState().toInsertMessage([personal])
-      await store.getState().toInsertMessage([assistant])
+      await store.getState().toWriteMessage([personal])
+      await store.getState().toWriteMessage([assistant])
       done.current = false
       abortControllerRef.current?.abort()
       const controller = new AbortController()
@@ -499,7 +508,8 @@ export default function Overlay(props: OverlayControlProps) {
   )
 
   function handleActiveKey(key: string) {
-    void store.getState().toReadSession(key)
+    store.getState().toReadSession(key)
+    void store.getState().toReadMessages(key)
   }
 
   async function handleInsertSession() {
@@ -511,10 +521,10 @@ export default function Overlay(props: OverlayControlProps) {
       collectionID: null,
       createdAt: Date.now(),
       updatedAt: Date.now()
-      // updatedAt: timeSphere.subtract(Date.now(), 2, 'day').valueOf()
     }
-    await store.getState().toInsertSession([session])
-    void store.getState().toReadSession(sessionID)
+    await store.getState().toWriteSession([session])
+    store.getState().toReadSession(sessionID)
+    void store.getState().toReadMessages(sessionID)
   }
 
   // 使用 useEffect 添加非被动的事件监听器
@@ -638,9 +648,8 @@ export default function Overlay(props: OverlayControlProps) {
               },
               icon: <AppstoreAddOutlined />
             }}
-            activeKey={session$.value?.id}
+            activeKey={activeSessionID ?? undefined}
             items={conversations}
-            defaultActiveKey={session$.value?.id}
             onActiveChange={handleActiveKey}
             style={
               {
