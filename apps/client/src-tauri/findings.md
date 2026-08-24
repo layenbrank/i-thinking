@@ -1,30 +1,14 @@
-# Findings & Decisions
+# Findings: AI 存储模块
 
-## Requirements
-- 安装后用户不设环境变量
-- pdfium 与 corex-serve 同目录
-- 不打包 corex.exe CLI
+## 审查发现（实施前）
 
-## Research Findings
-- corex-serve 静态链接 corex-core（feature serve）；不 spawn corex.exe
-- `\\.\pipe\corex` 仅为管道名
-- pdfium::load 只搜 serve 旁目录，再搜 COREX_PDFIUM_DIR
-- 原 resources 列表项 `binaries/pdfium.dll` → `$RESOURCE/binaries/pdfium.dll`，与 serve 分离
+1. **消息未按 session 隔离** — overlay bubbles / transferMSG 使用全库 messages
+2. **无启动 hydration** — store 注释掉 DB 调用，重启丢数据
+3. **session$ 双源状态** — JSX 直接读 session$.value 可能不重渲染
+4. **overlay/countdown Service** — legacy read/write，新 ai 模块用 to*
 
-## Technical Decisions
-| Decision | Rationale |
-|----------|-----------|
-| resources map: binaries/pdfium.dll → pdfium.dll | Windows $RESOURCE ≈ 主程序目录 |
-| 删除 apply_pdfium_env | 避免用 env 掩盖错误布局 |
-| pandoc/ffmpeg 仍在 binaries/ | 非 serve 同目录依赖 |
+## 参考
 
-## Issues Encountered
-| Issue | Resolution |
-|-------|------------|
-|       |            |
-
-## Resources
-- tauri.conf.json bundle.resources / externalBin
-- src/utils/sidecar.rs
-- scripts/prepare.ts
-- corex: corex-core/src/morph/pdfium.rs
+- Entity/Service 模式：reminder
+- Extension Dexie：AiSession / AiMessage / AiCollection
+- Shared 类型：packages/shared/src/types/magnetic-tile-intelligence.d.ts

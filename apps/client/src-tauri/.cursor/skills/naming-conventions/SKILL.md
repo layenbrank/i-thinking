@@ -32,27 +32,35 @@ description: >-
 
 格式：`namespace:action`
 
-- 多词 action 用 kebab-case
-- 命名空间与操作之间只用 `:`，不用 `/`、不用 `_`
+**存量模块（reminder / mirror 等）** — kebab-case namespace + 短动词：
+
+- `reminder:read` / `reminder:write` / `reminder:update` / `reminder:remove`
+
+**新模块（aiSession / aiMessage / aiCollection）** — camelCase namespace + `to*` CRUD：
+
+- `aiSession:toRead` / `aiSession:toWrite` / `aiSession:toUpdate` / `aiSession:toRemove`
+- 与 Service `toRead` / `toWrite` / … 对齐
+
+通用规则：
+
+- 多词 action 用 kebab-case（存量）或 camelCase `to*` 动词（新 CRUD）
+- 命名空间与操作之间只用 `:`
 - 禁止 IPC snake_case（如 `resource_read`）
-- 禁止 IPC camelCase（如 `updateBadge`）
-- 状态变更优先 `update-*`，不用 `set-*`
-- 单词 action 保持小写（`read`、`write`、`open`、`close`）
+- 状态变更优先 `update-*` 或 `toUpdate`，不用 `set-*`
 - 修改 IPC 名时，同步所有前端 invoke 与注释示例
 
 示例形态：
 
-- `resource:read` / `resource:write` / `resource:update` / `resource:remove`
-- `feature:update-mode` / `feature:update-badge` / `feature:take-pending`
+- 存量：`resource:read` / `feature:update-badge`
+- 新 CRUD：`aiSession:toWrite` / `aiMessage:toRead`
 
 更完整的模式表见 [ipc-patterns.md](ipc-patterns.md)。
 
 ## 2. Command（Rust）
 
-- 函数名带命名空间前缀，避免 Tauri 宏生成的内部符号跨模块冲突：`{namespace}_{action}`（Rust snake_case）
-- 对外 IPC 名用 `#[tauri::command(rename = "namespace:action")]` 绑定
-- 仅当 Rust 函数名已与 IPC 完全一致且不会冲突时，可省略 `rename`；否则必须显式 `rename`
-- handlers 优先按模块路径注册，避免 crate root 大量扁平 re-export
+- 存量：`{namespace}_{action}`（snake_case）+ `rename = "namespace:action"`
+- 新 ai 模块：`aiSessionToWrite` 等 camelCase + `rename = "aiSession:toWrite"`；实现文件首行 `#![allow(non_snake_case)]`（command / service / entity）；`lib.rs` / `mod.rs` 仅对 ai* 的 `pub mod` 声明加 `#[allow(non_snake_case)]`
+- handlers 优先按模块路径注册
 
 ```rust
 #[tauri::command(rename = "resource:update")]
@@ -61,9 +69,9 @@ pub async fn resource_update(/* ... */) { /* ... */ }
 
 ## 3. Service
 
-- 保留 `to*` 动词风格：`toRead`、`toWrite`、`toUpdate`、`toRemove`
-- 不要为了「Rust 惯用 snake_case」改掉既有 `to*` 约定
-- 项目已约定的短名辅助函数（如 serde helper）优先保留，不强行拉长
+- 统一 `toRead` / `toWrite` / `toUpdate` / `toRemove`
+- **Legacy（勿在新模块复制）**：`overlay` / `countdown` 仍用 `read` / `write` / `upsert`
+- core 模块组织：参考 `src/lib.rs` inline `pub mod aiSession { mod service; … }`，无 `mod.rs`；inline mod 声明加 `#[allow(non_snake_case)]`，`service.rs` 文件首行 `#![allow(non_snake_case)]`
 
 ## 4. Entity / DTO
 

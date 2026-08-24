@@ -1,37 +1,47 @@
-# Task Plan: corex-serve / pdfium 同目录修复
+# Task Plan: AI 存储模块
 
 ## Goal
-安装后无需用户环境变量：`corex-serve.exe` 与 `pdfium.dll` 同级；删除 `COREX_PDFIUM_DIR` 注入；不打包 `corex.exe`。
+新增 aiCollection / aiSession / aiMessage 持久化（v001 扩展），前端 store 接入 Tauri invoke，修复 intelligence overlay 会话隔离。
 
 ## Current Phase
-Phase 3 complete
+All phases complete
 
 ## Phases
 
-### Phase 0: Planning files
-- [x] 重写 task_plan / findings / progress
+### Phase 1: Planning files
+- [x] task_plan / findings / progress
 - **Status:** complete
 
-### Phase 1: Resources remap
-- [x] pdfium.dll → `$RESOURCE/pdfium.dll`
+### Phase 2: Database
+- [x] migrations_v001 三表 + 索引 + FK
+- [x] entity aiCollection / aiSession / aiMessage
 - **Status:** complete
 
-### Phase 2: Remove pdfium env injection
-- [x] 删除 apply_pdfium_env / pdfium_candidate_dirs
+### Phase 3: Core + Command
+- [x] ai* Service（toRead/toWrite/toUpdate/toRemove）
+- [x] ai* Command + handlers
 - **Status:** complete
 
-### Phase 3: Docs + verify
-- [x] prepare/README 注释；cargo check
+### Phase 4: Skill
+- [x] naming-conventions 更新
 - **Status:** complete
 
-## Decisions Made
+### Phase 5: Frontend
+- [x] intelligence.ts store + plugin + overlay fixes
+- **Status:** complete
+
+### Phase 6: Verify
+- [x] cargo check 通过
+- **Status:** complete
+
+## Decisions
 | Decision | Rationale |
 |----------|-----------|
-| 不打包 corex.exe | serve 内嵌 corex-core；CLI 非运行时依赖 |
-| pdfium 映射到资源根 | 与 serve 同目录，符合 corex 查找约定 |
-| 删除 COREX_PDFIUM_DIR 注入 | 布局正确后不再需要 |
+| v001 内联 DDL | 用户要求不升迁移版本 |
+| camelCase 模块 + to* IPC | aiSession:toWrite 等新规范 |
+| lib.rs 内联 mod | 参考 src/lib.rs，无 mod.rs |
 
-## Errors Encountered
+## Errors
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 |       |         |            |

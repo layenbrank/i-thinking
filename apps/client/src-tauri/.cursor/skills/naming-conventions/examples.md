@@ -21,7 +21,31 @@ invoke('feature/set-badge', ...)      // 用 / 或 set
 invoke('resource:update', { id })     // params 形状不匹配 Entity
 ```
 
-## Four-layer template (CRUD update)
+## Four-layer template (aiSession CRUD write)
+
+| Layer | Name |
+|-------|------|
+| IPC | `aiSession:toWrite` |
+| Command | `aiSessionToWrite` + `rename = "aiSession:toWrite"` |
+| Service | `toWrite` |
+| Entity | `WriteP::One \| Many` |
+
+```rust
+#![allow(non_snake_case)]
+
+#[tauri::command(rename = "aiSession:toWrite")]
+pub async fn aiSessionToWrite(params: WriteP) -> Result<Vec<String>, Error> {
+    Service::toWrite(conn, params).await
+}
+```
+
+```ts
+invoke('aiSession:toWrite', {
+  params: [{ id, title, pinned, collectionID, createdAt, updatedAt }]
+})
+```
+
+## Four-layer template (CRUD update, legacy)
 
 | Layer | Name |
 |-------|------|
@@ -49,6 +73,6 @@ match params {
 |-----|-----|--------|
 | `resource_insert` + `resource_inserts` | 双入口 | `resource:insert` + `InsertP::One\|Many` |
 | Command `read` / `update` without prefix | 宏符号冲突 | `resource_read` / `resource_update` |
-| Service `read` / `update_resource` | 破坏 `to*` | `toRead` / `toUpdate` |
+| Service `read` / `update_resource` | 破坏 `to*` | `toRead` / `toUpdate`（overlay/countdown 为 legacy） |
 | Type `ResourceUpdateParams` 重复 namespace | 冗长 | `UpdateP`（模块路径消歧） |
 | `get_database_path` | `get` 前缀 | `database_path` |
