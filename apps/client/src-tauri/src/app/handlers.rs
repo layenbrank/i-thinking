@@ -55,6 +55,18 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         thinking_command::overlay::overlay_write,
         thinking_command::overlay::overlay_update,
         thinking_command::overlay::overlay_remove,
+        thinking_command::aiCollection::aiCollectionToRead,
+        thinking_command::aiCollection::aiCollectionToWrite,
+        thinking_command::aiCollection::aiCollectionToUpdate,
+        thinking_command::aiCollection::aiCollectionToRemove,
+        thinking_command::aiSession::aiSessionToRead,
+        thinking_command::aiSession::aiSessionToWrite,
+        thinking_command::aiSession::aiSessionToUpdate,
+        thinking_command::aiSession::aiSessionToRemove,
+        thinking_command::aiMessage::aiMessageToRead,
+        thinking_command::aiMessage::aiMessageToWrite,
+        thinking_command::aiMessage::aiMessageToUpdate,
+        thinking_command::aiMessage::aiMessageToRemove,
         through::command::set_rects,
     ]
 }

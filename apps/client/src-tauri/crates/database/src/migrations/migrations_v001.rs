@@ -420,6 +420,13 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
+        // ── mirror 种子数据（与 magneticTile.mirrorID 对齐）──
+        db.execute_unprepared(
+            "INSERT OR IGNORE INTO mirror \
+             (id, title, [index], mark, description, overlay, background, backdrop, archivedAt, createdAt, updatedAt) \
+             VALUES ('b7bc5d50-3b4a-46d7-b834-2938df56de24', '镜像-01', 0, '', '默认镜像', '#000000AA', NULL, NULL, NULL, 1785423438774, 1785423438774)",
+        )
+        .await?;
 
         // ── magnetic tile 种子数据 ──
         db.execute_unprepared(r##"INSERT OR IGNORE INTO magneticTile (id,[index],title,url,round,mark,component,description,background,backdrop,mirrorID,textColor,collectionID,size,shape,direction,downloadCount,archivedAt,createdAt,updatedAt) VALUES ('d50246f5-1a28-4659-b002-a31448c1382d',0,'书签',NULL,'12px',NULL,'bookmark','书签','{"color":"#F1F5F9"}',NULL,'b7bc5d50-3b4a-46d7-b834-2938df56de24','0F172A',NULL,1,'square','vertical',0,NULL,1785423438774,1785423438774)"##).await?;
@@ -662,6 +669,128 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
+        // ── aiCollection / aiSession / aiMessage ──
+        manager
+            .create_table(
+                Table::create()
+                    .table(AiCollection::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(AiCollection::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(AiCollection::Title).string().not_null())
+                    .col(
+                        ColumnDef::new(AiCollection::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AiCollection::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(AiSession::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(AiSession::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(AiSession::Title).string().not_null())
+                    .col(
+                        ColumnDef::new(AiSession::Pinned)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(ColumnDef::new(AiSession::CollectionID).string().null())
+                    .col(
+                        ColumnDef::new(AiSession::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AiSession::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_aiSession_collectionID")
+                            .from(AiSession::Table, AiSession::CollectionID)
+                            .to(AiCollection::Table, AiCollection::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::NoAction),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(AiMessage::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(AiMessage::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(AiMessage::Identity).string().not_null())
+                    .col(ColumnDef::new(AiMessage::Fragment).text().not_null())
+                    .col(ColumnDef::new(AiMessage::Thinking).text().null())
+                    .col(ColumnDef::new(AiMessage::SessionID).string().not_null())
+                    .col(
+                        ColumnDef::new(AiMessage::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AiMessage::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_aiMessage_sessionID")
+                            .from(AiMessage::Table, AiMessage::SessionID)
+                            .to(AiSession::Table, AiSession::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::NoAction),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_aiSession_collectionID ON aiSession (collectionID)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_aiSession_updatedAt ON aiSession (updatedAt)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_aiMessage_sessionID ON aiMessage (sessionID)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_aiMessage_createdAt ON aiMessage (createdAt)",
+        )
+        .await?;
+
         Ok(())
     }
 
@@ -692,6 +821,15 @@ impl MigrationTrait for Migration {
             .await?;
         manager
             .drop_table(Table::drop().table(Countdown::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(AiMessage::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(AiSession::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(AiCollection::Table).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(Overlay::Table).to_owned())
@@ -941,6 +1079,49 @@ enum Overlay {
     Scale,
     #[iden = "archivedAt"]
     ArchivedAt,
+    #[iden = "createdAt"]
+    CreatedAt,
+    #[iden = "updatedAt"]
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum AiCollection {
+    #[iden = "aiCollection"]
+    Table,
+    Id,
+    Title,
+    #[iden = "createdAt"]
+    CreatedAt,
+    #[iden = "updatedAt"]
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum AiSession {
+    #[iden = "aiSession"]
+    Table,
+    Id,
+    Title,
+    Pinned,
+    #[iden = "collectionID"]
+    CollectionID,
+    #[iden = "createdAt"]
+    CreatedAt,
+    #[iden = "updatedAt"]
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum AiMessage {
+    #[iden = "aiMessage"]
+    Table,
+    Id,
+    Identity,
+    Fragment,
+    Thinking,
+    #[iden = "sessionID"]
+    SessionID,
     #[iden = "createdAt"]
     CreatedAt,
     #[iden = "updatedAt"]
