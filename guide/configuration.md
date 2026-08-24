@@ -2,7 +2,7 @@
 
 配置来源：[`configures/configure.rs`](../configures/src/configure.rs) · 加载器 [`configures/loader.rs`](../configures/src/loader.rs)
 
-应用不再使用 `.env` / `dotenv`。在仓库根目录维护分层 YAML：
+应用配置使用分层 YAML（见 [`config.yaml`](../config.yaml)），**不使用**任何 `.env` 文件。Docker 依赖栈见 [`docker-compose.yml`](../docker-compose.yml)（内置 `name: corex`，直接 `docker compose up -d` 即可）。
 
 | 文件 | 说明 |
 |------|------|
@@ -100,8 +100,6 @@ cargo run -p migration -- status
 ## Docker 本地依赖
 
 ```powershell
-# 可选：Compose 专用变量文件（与应用 YAML 无关）
-$env:COMPOSE_ENV_FILES=".env.compose"
 docker compose up -d
 docker compose ps
 ```

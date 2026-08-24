@@ -7,7 +7,7 @@
 注入方式：
 
 ```
-Configure::from_env → RedisPool / EsClient / Storage → Arc → bootstrap_app! → web::Data
+Configure::load → RedisPool / EsClient / Storage → Arc → bootstrap_app! → web::Data
 ```
 
 实现位置：
@@ -16,7 +16,7 @@ Configure::from_env → RedisPool / EsClient / Storage → Arc → bootstrap_app
 |------|------|
 | Redis | [`src/clients/redis.rs`](../src/clients/redis.rs) |
 | Elasticsearch | [`src/clients/elasticsearch.rs`](../src/clients/elasticsearch.rs) |
-| 配置 | [`src/configures/configure.rs`](../src/configures/configure.rs) |
+| 配置 | [`configures/src/configure.rs`](../configures/src/configure.rs) |
 | 启动注入 | [`src/bin/service.rs`](../src/bin/service.rs)、[`src/lib.rs`](../src/lib.rs) |
 | JWT 黑名单 | [`src/guards/blacklist.rs`](../src/guards/blacklist.rs)、`POST /api/v1/auth/signout` |
 | ES 检索 | [`src/services/search/repository.rs`](../src/services/search/repository.rs) |

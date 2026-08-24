@@ -47,7 +47,7 @@ Performance Optimization
 
 Key Conventions
 1. Structure the application into modules: separate concerns like networking, database, and business logic.
-2. Use environment variables for configuration management (e.g., `dotenv` crate).
+2. Use layered YAML configuration via the `configures` crate (`config.yaml`, `config.local.yaml`); optional shell overrides: `APP_ENV`, `RUST_ENV`.
 3. Ensure code is well-documented with inline comments and Rustdoc.
 
 Async Ecosystem

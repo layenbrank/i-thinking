@@ -3,6 +3,10 @@
 # 用法：docker compose up -d
 # 停止：docker compose down
 # 清空绑定挂载数据：删掉 ./data 下对应目录后重新 up
+#
+# 项目名固定为 corex（替代 COMPOSE_PROJECT_NAME / .env.compose；本文件无 ${VAR} 插值，不依赖 .env）
+
+name: corex
 
 services:
   postgres:
