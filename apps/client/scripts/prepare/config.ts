@@ -41,8 +41,8 @@ const HOST_KEYS = new Set<string>([
   'linux-arm64'
 ])
 
-const COREX_SERVE_NAME = `corex-serve${EXE_SUFFIX}`
-const COREX_DEST = path.join(BINARIES_DIR, `corex-serve-${HOST_TRIPLE}${EXE_SUFFIX}`)
+const COREX_SERVE_NAME = `corex-daemon${EXE_SUFFIX}`
+const COREX_DEST = path.join(BINARIES_DIR, `corex-daemon-${HOST_TRIPLE}${EXE_SUFFIX}`)
 const COREX_DEST_BASENAME = path.basename(COREX_DEST)
 const PDFIUM_DEST = path.join(BINARIES_DIR, 'pdfium.dll')
 const PDFIUM_BASENAME = 'pdfium.dll'

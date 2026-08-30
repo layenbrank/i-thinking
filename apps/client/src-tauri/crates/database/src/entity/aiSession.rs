@@ -11,8 +11,8 @@ pub struct Model {
     pub id: String,
     pub title: String,
     pub pinned: bool,
-    #[sea_orm(column_name = "collectionID")]
-    pub collectionID: Option<String>,
+    #[sea_orm(column_name = "workspaceID")]
+    pub workspaceID: Option<String>,
     #[sea_orm(column_name = "createdAt")]
     pub createdAt: i64,
     #[sea_orm(column_name = "updatedAt")]
@@ -28,7 +28,7 @@ pub enum Relation {}
 #[serde(rename_all = "camelCase")]
 pub struct Read {
     pub id: Option<String>,
-    pub collectionID: Option<String>,
+    pub workspaceID: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,7 +45,7 @@ pub struct Write {
     pub title: String,
     #[serde(default)]
     pub pinned: bool,
-    pub collectionID: Option<String>,
+    pub workspaceID: Option<String>,
     pub createdAt: Option<i64>,
     pub updatedAt: Option<i64>,
 }
@@ -62,7 +62,7 @@ pub enum WriteP {
 pub struct Change {
     pub title: Option<String>,
     pub pinned: Option<bool>,
-    pub collectionID: Option<Option<String>>,
+    pub workspaceID: Option<Option<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

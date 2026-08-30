@@ -1,3 +1,5 @@
+//! Agent workspace schema（aiWorkspace / aiWorkspaceFolder / aiProvider）。
+//! 未发版阶段以本文件为唯一真相；若本地库仍是旧 aiCollection 结构，请删除应用数据库后重建。
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -669,28 +671,98 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
-        // ── aiCollection / aiSession / aiMessage ──
+        // ── aiWorkspace / aiWorkspaceFolder / aiSession / aiMessage ──
         manager
             .create_table(
                 Table::create()
-                    .table(AiCollection::Table)
+                    .table(AiWorkspace::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(AiCollection::Id)
+                        ColumnDef::new(AiWorkspace::Id)
                             .string()
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(AiCollection::Title).string().not_null())
+                    .col(ColumnDef::new(AiWorkspace::Title).string().not_null())
                     .col(
-                        ColumnDef::new(AiCollection::CreatedAt)
+                        ColumnDef::new(AiWorkspace::Icon)
+                            .string()
+                            .not_null()
+                            .default("folder"),
+                    )
+                    .col(
+                        ColumnDef::new(AiWorkspace::Color)
+                            .string()
+                            .not_null()
+                            .default("#166534"),
+                    )
+                    .col(
+                        ColumnDef::new(AiWorkspace::Pinned)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(ColumnDef::new(AiWorkspace::ArchivedAt).big_integer().null())
+                    .col(
+                        ColumnDef::new(AiWorkspace::CreatedAt)
                             .big_integer()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(AiCollection::UpdatedAt)
+                        ColumnDef::new(AiWorkspace::UpdatedAt)
                             .big_integer()
                             .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(AiWorkspaceFolder::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(AiWorkspaceFolder::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(AiWorkspaceFolder::WorkspaceID)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(AiWorkspaceFolder::Path).string().not_null())
+                    .col(
+                        ColumnDef::new(AiWorkspaceFolder::IsPrimary)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(
+                        ColumnDef::new(AiWorkspaceFolder::Sort)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(AiWorkspaceFolder::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AiWorkspaceFolder::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_aiWorkspaceFolder_workspaceID")
+                            .from(AiWorkspaceFolder::Table, AiWorkspaceFolder::WorkspaceID)
+                            .to(AiWorkspace::Table, AiWorkspace::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::NoAction),
                     )
                     .to_owned(),
             )
@@ -714,7 +786,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(false),
                     )
-                    .col(ColumnDef::new(AiSession::CollectionID).string().null())
+                    .col(ColumnDef::new(AiSession::WorkspaceID).string().null())
                     .col(
                         ColumnDef::new(AiSession::CreatedAt)
                             .big_integer()
@@ -727,9 +799,9 @@ impl MigrationTrait for Migration {
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk_aiSession_collectionID")
-                            .from(AiSession::Table, AiSession::CollectionID)
-                            .to(AiCollection::Table, AiCollection::Id)
+                            .name("fk_aiSession_workspaceID")
+                            .from(AiSession::Table, AiSession::WorkspaceID)
+                            .to(AiWorkspace::Table, AiWorkspace::Id)
                             .on_delete(ForeignKeyAction::SetNull)
                             .on_update(ForeignKeyAction::NoAction),
                     )
@@ -751,6 +823,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(AiMessage::Identity).string().not_null())
                     .col(ColumnDef::new(AiMessage::Fragment).text().not_null())
                     .col(ColumnDef::new(AiMessage::Thinking).text().null())
+                    .col(ColumnDef::new(AiMessage::Parts).text().null())
                     .col(ColumnDef::new(AiMessage::SessionID).string().not_null())
                     .col(
                         ColumnDef::new(AiMessage::CreatedAt)
@@ -775,7 +848,15 @@ impl MigrationTrait for Migration {
             .await?;
 
         db.execute_unprepared(
-            "CREATE INDEX IF NOT EXISTS idx_aiSession_collectionID ON aiSession (collectionID)",
+            "CREATE INDEX IF NOT EXISTS idx_aiWorkspace_archivedAt ON aiWorkspace (archivedAt)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_aiWorkspaceFolder_workspaceID ON aiWorkspaceFolder (workspaceID)",
+        )
+        .await?;
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_aiSession_workspaceID ON aiSession (workspaceID)",
         )
         .await?;
         db.execute_unprepared(
@@ -788,6 +869,48 @@ impl MigrationTrait for Migration {
         .await?;
         db.execute_unprepared(
             "CREATE INDEX IF NOT EXISTS idx_aiMessage_createdAt ON aiMessage (createdAt)",
+        )
+        .await?;
+
+        // ── aiProvider（模型接入配置；apiKey 不落库，存 plugin-store） ──
+        manager
+            .create_table(
+                Table::create()
+                    .table(AiProvider::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(AiProvider::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(AiProvider::Kind).string().not_null())
+                    .col(ColumnDef::new(AiProvider::Name).string().not_null())
+                    .col(ColumnDef::new(AiProvider::BaseUrl).string().null())
+                    .col(ColumnDef::new(AiProvider::Models).text().null())
+                    .col(ColumnDef::new(AiProvider::Model).string().null())
+                    .col(
+                        ColumnDef::new(AiProvider::Enabled)
+                            .boolean()
+                            .not_null()
+                            .default(true),
+                    )
+                    .col(
+                        ColumnDef::new(AiProvider::CreatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(AiProvider::UpdatedAt)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        db.execute_unprepared(
+            "CREATE INDEX IF NOT EXISTS idx_aiProvider_kind ON aiProvider (kind)",
         )
         .await?;
 
@@ -829,7 +952,13 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(AiSession::Table).to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(AiCollection::Table).to_owned())
+            .drop_table(Table::drop().table(AiWorkspaceFolder::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(AiWorkspace::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(AiProvider::Table).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(Overlay::Table).to_owned())
@@ -1086,11 +1215,33 @@ enum Overlay {
 }
 
 #[derive(Iden)]
-enum AiCollection {
-    #[iden = "aiCollection"]
+enum AiWorkspace {
+    #[iden = "aiWorkspace"]
     Table,
     Id,
     Title,
+    Icon,
+    Color,
+    Pinned,
+    #[iden = "archivedAt"]
+    ArchivedAt,
+    #[iden = "createdAt"]
+    CreatedAt,
+    #[iden = "updatedAt"]
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum AiWorkspaceFolder {
+    #[iden = "aiWorkspaceFolder"]
+    Table,
+    Id,
+    #[iden = "workspaceID"]
+    WorkspaceID,
+    Path,
+    #[iden = "isPrimary"]
+    IsPrimary,
+    Sort,
     #[iden = "createdAt"]
     CreatedAt,
     #[iden = "updatedAt"]
@@ -1104,8 +1255,8 @@ enum AiSession {
     Id,
     Title,
     Pinned,
-    #[iden = "collectionID"]
-    CollectionID,
+    #[iden = "workspaceID"]
+    WorkspaceID,
     #[iden = "createdAt"]
     CreatedAt,
     #[iden = "updatedAt"]
@@ -1120,8 +1271,27 @@ enum AiMessage {
     Identity,
     Fragment,
     Thinking,
+    Parts,
     #[iden = "sessionID"]
     SessionID,
+    #[iden = "createdAt"]
+    CreatedAt,
+    #[iden = "updatedAt"]
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum AiProvider {
+    #[iden = "aiProvider"]
+    Table,
+    Id,
+    Kind,
+    Name,
+    #[iden = "baseUrl"]
+    BaseUrl,
+    Models,
+    Model,
+    Enabled,
     #[iden = "createdAt"]
     CreatedAt,
     #[iden = "updatedAt"]

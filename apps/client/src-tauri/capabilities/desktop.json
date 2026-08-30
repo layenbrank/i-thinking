@@ -7,7 +7,8 @@
   ],
   "windows": [
     "main",
-    "overlay"
+    "overlay",
+    "agent"
   ],
   "permissions": [
     "positioner:default",

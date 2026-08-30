@@ -116,7 +116,7 @@ const corexRelease = SOURCES.corex.release
 
 const corexRecipe: ArtifactRecipe = {
   id: 'corex',
-  label: `corex-serve + pdfium (${COREX_DEST})`,
+  label: `corex-daemon + pdfium (${COREX_DEST})`,
   isRequired: true,
   hasExisting() {
     return hasFilledFile(COREX_DEST)

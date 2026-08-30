@@ -135,6 +135,7 @@ impl Service {
             identity: Set(p.identity),
             fragment: Set(p.fragment),
             thinking: Set(p.thinking),
+            parts: Set(p.parts),
             sessionID: Set(p.sessionID),
             createdAt: Set(created_at),
             updatedAt: Set(updated_at),
@@ -162,6 +163,9 @@ impl Service {
         }
         if let Some(v) = payload.change.thinking {
             active.thinking = Set(v);
+        }
+        if let Some(v) = payload.change.parts {
+            active.parts = Set(v);
         }
         if let Some(v) = payload.change.sessionID {
             active.sessionID = Set(v);
