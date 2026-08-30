@@ -38,6 +38,7 @@ publicHoistPattern:
 
 # 允许执行 install 脚本的包（取代已移除的 onlyBuiltDependencies）
 allowBuilds:
+  '@bitdisaster/exe-icon-extractor': false
   '@nestjs/core': true
   '@parcel/watcher': true
   '@prisma/client': true
@@ -54,35 +55,58 @@ allowBuilds:
   unrs-resolver: true
   workerd: true
 
+# Electron 栈以 Forge 为准（与 electron-builder 二选一，勿混用）
+# catalog 收录 studio 会以 catalog: 引用的包；传递依赖仍由 Forge 自带
 catalog:
-  'electron': ^40.1.0
+  # —— 运行时 / UI ——
+  'electron': ^44.0.0
+  'electron-squirrel-startup': ^1.0.1
+  'electron-store': ^11.0.2
+  'electron-updater': ^6.8.9
   'antd': ^6.6.2
   'antd-style': ^4.1.0
   '@ant-design/colors': ^8.0.1
   '@ant-design/x': ^2.9.0
   '@ant-design/x-sdk': ^2.9.0
   '@ant-design/x-markdown': ^2.9.0
+
+  # —— Forge：CLI + makers ——
   '@electron-forge/cli': ^7.11.2
   '@electron-forge/maker-deb': ^7.11.2
   '@electron-forge/maker-dmg': ^7.11.2
   '@electron-forge/maker-rpm': ^7.11.2
   '@electron-forge/maker-squirrel': ^7.11.2
   '@electron-forge/maker-zip': ^7.11.2
+  '@electron-forge/maker-flatpak': ^7.11.2
+  '@electron-forge/maker-pkg': ^7.11.2
+  '@electron-forge/maker-msix': ^7.11.2
+  '@electron-forge/maker-wix': ^7.11.2
+
+  # —— Forge：plugins / publishers / types ——
   '@electron-forge/plugin-auto-unpack-natives': ^7.11.2
   '@electron-forge/plugin-fuses': ^7.11.2
   '@electron-forge/plugin-vite': ^7.11.2
-  '@electron/fuses': ^1.8.0
-  '@electron/rebuild': ^4.0.4
+  '@electron-forge/publisher-github': ^7.11.2
+  '@electron-forge/publisher-s3': ^7.11.2
+  '@electron-forge/shared-types': ^7.11.2
+
+  # —— Electron 工具（直接引用 / 签名）——
+  # fuses 2.x 仍导出 FuseV1Options；plugin-fuses peer 仍写 ^1，见下方 peerDependencyRules
+  '@electron/fuses': ^2.1.3
+  '@electron/rebuild': ^4.2.0
+  '@electron/windows-sign': ^2.0.6
   '@types/electron-squirrel-startup': ^1.0.2
-  'prisma': ^7.8.0
-  '@prisma/adapter-better-sqlite3': ^7.8.0
-  '@prisma/client': ^7.8.0
-  'better-sqlite3': ^12.6.2
-  'electron-squirrel-startup': ^1.0.1
-  'electron-store': ^11.0.2
+
+  # —— 本地 DB（studio 主进程）——
+  # Prisma 稳定线 7.10；adapter 依赖 better-sqlite3 ^12（勿上 13）
+  'prisma': ^7.10.0
+  '@prisma/adapter-better-sqlite3': ^7.10.0
+  '@prisma/client': ^7.10.0
+  'better-sqlite3': ^12.11.1
 
 overrides:
-  '@electron/rebuild': ^4.0.4
+  # 与 catalog 对齐，避免 forge / 传递依赖拉到旧 rebuild
+  '@electron/rebuild': ^4.2.0
   'xlsx': 'https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz'
   'dayjs': '1.11.21'
   # @reactuses/core 拉到的 1.2.0 未声明 React 19；1.6+ 已支持
@@ -96,6 +120,7 @@ peerDependencyRules:
     react: '19'
     react-dom: '19'
     '@types/react': '19'
+    '@electron/fuses': '>=1'
 
 minimumReleaseAgeExclude:
   - '@napi-rs/wasm-runtime@1.2.2'

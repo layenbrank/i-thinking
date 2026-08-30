@@ -1,9 +1,0 @@
-[package]
-name = "generate"
-version = "0.1.0"
-edition = "2021"
-publish = false
-
-[[bin]]
-name = "generate"
-path = "src/main.rs"

@@ -57,10 +57,14 @@ release
 
 # Cache
 .cache
+.cache/
 cache
 .eslintcache
 *.eslintcache
 static
+.tmp/
+.tmp-fuses/
+.packager-tmp/
 
 # Auto-generated files
 auto-imports.d.ts
@@ -82,11 +86,18 @@ apps/studio/generated/
 
 *.mp4
 apps/studio/out
-apps/studio/sidecar/**/target
 apps/studio/sidecar/staging/**
 !apps/studio/sidecar/staging/.gitkeep
 !apps/studio/sidecar/staging/**/.gitkeep
-apps/studio/sidecar/vendor/**
+apps/studio/sidecar/vendor/
+apps/studio/sidecar/.idea/
+apps/studio/sidecar/**/*.exe
+apps/studio/sidecar/**/*.dll
+apps/studio/sidecar/**/*.so
+apps/studio/sidecar/**/*.dylib
+apps/client/src-tauri/binaries/**
+!apps/client/src-tauri/binaries/.gitkeep
+!apps/client/src-tauri/binaries/**/.gitkeep
 # Python bytecode / coverage (including under .cursor/skills)
 *.pyc
 __pycache__/

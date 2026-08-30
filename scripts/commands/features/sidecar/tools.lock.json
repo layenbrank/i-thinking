@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "corex": {
+    "win32-x64": {
+      "version": "5.2.0",
+      "url": "https://github.com/layenbrank/corex/releases/download/v5.2.0/corex-v5.2.0-windows-x64.zip",
+      "sha256": "04ba555a415b30cae519bb44ebb8c26063c1f93e097ee061be6b52339b6f0073"
+    }
+  },
+  "ffmpeg": {
+    "win32-x64": {
+      "version": "master-latest",
+      "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
+      "sha256": "3b7b7cabc0bb66eba45c40194dddb7287d249f3c7030b76973044e7f1cb71838"
+    },
+    "linux-x64": {
+      "version": "master-latest",
+      "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz",
+      "sha256": "e2eae6dea51fe70b25861652e73302c15103957ee731f24d85fc49f0fd294388"
+    }
+  },
+  "pandoc": {
+    "win32-x64": {
+      "version": "3.6.4",
+      "url": "https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-windows-x86_64.zip",
+      "sha256": "a9e5feb3d56d2fb0e3e765d1c33b8ee6b72e6963d7de31504edeec8cd1be34b1"
+    },
+    "linux-x64": {
+      "version": "3.6.4",
+      "url": "https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-linux-amd64.tar.gz",
+      "sha256": "5def6e1ff535e397becce292ee97767a947306150b9fb1488003b67ac3417c5e"
+    },
+    "darwin-arm64": {
+      "version": "3.6.4",
+      "url": "https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-arm64-macOS.zip",
+      "sha256": "88af17f1885afacb25f70ce4c8c44428feb6da860b6cf690e30da77998456c7f"
+    },
+    "darwin-x64": {
+      "version": "3.6.4",
+      "url": "https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-x86_64-macOS.zip",
+      "sha256": "35789fb4afc61266b954035059820dd546b10d8f05fef36a8deadffaedffc2b8"
+    }
+  }
+}
