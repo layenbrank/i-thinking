@@ -2,17 +2,18 @@
 
 ## 1. 构建工具
 
-- **Electron Forge** + `@electron-forge/plugin-vite`
+- **Electron Forge** + `@electron-forge/plugin-vite`（**不**使用 electron-builder）
 - 配置入口：[forge.config.ts](../forge.config.ts)（组装 [forge/](../forge/) 模块）
   - `forge/constants.ts` — appId / 名称 / 版本
-  - `forge/packager.ts` — asar、ignore、afterCopy
-  - `forge/makers.ts` — 全平台 makers
+  - `forge/env.ts` — 签名 / 可选 makers / 发布 / 更新相关环境变量
+  - `forge/packager.ts` — asar、ignore、afterCopy、Windows/macOS 签名
+  - `forge/makers.ts` — 默认 + 可选 makers
+  - `forge/publishers.ts` — GitHub Releases / S3（默认关闭）
   - `forge/plugins.ts` — Vite / Fuses / AutoUnpackNatives
   - `forge/hooks/natives.ts` — better-sqlite3 复制
   - `forge/hooks/sidecar.ts` — 侧车复制 + SHA-256 校验
-  - `sidecar/scripts/build.ts` / `sidecar/manifest.json` — 侧车构建与清单
 
-构建产物目录：**仅** `apps/studio/out/`（勿使用 out-verify 等临时目录）。
+构建产物目录：**仅** `apps/studio/out/`。
 
 | 进程 | 入口 | 输出 |
 |------|------|------|
@@ -20,82 +21,79 @@
 | Preload | `src/preload/preload.ts` | `.vite/build/preload.js`（CJS，sandbox） |
 | Renderer | `vite.renderer.config.ts` | Forge `main_window` |
 
-`package.json`：`"type": "commonjs"`，`"main": ".vite/build/main.js"`。`appId`：`com.i-thinking.studio`。
+`appId`：`com.i-thinking.studio`。
 
 ## 2. 常用命令
 
 ```bash
-# 开发
 pnpm --filter @i-thinking/studio dev
-
-# Rust 侧车 release → sidecar/staging/<platform-arch>/ + 更新 manifest
-pnpm --filter @i-thinking/studio sidecar:build
-pnpm --filter @i-thinking/studio sidecar:verify
-
-# 可运行目录（需先 sidecar:build；输出到 out/）
+pnpm command sidecar bootstrap studio
 pnpm --filter @i-thinking/studio package
-
-# 当前 OS 安装包（输出到 out/make）
 pnpm --filter @i-thinking/studio make
+# 发版（需开启 publishers 环境变量）
+pnpm --filter @i-thinking/studio publish
 ```
 
-**Windows：** 打包前请关闭正在运行的 Studio，否则可能因 `app.asar` 被占用出现 `EBUSY`。
+**Windows：** 若出现 `EBUSY ... default_app.asar`，通常是杀软/索引或残留 Electron 占用临时文件。打包前会自动：
 
-**约束：** 不能可靠交叉编译；全平台由 CI 在各 OS runner 上分别 `sidecar:build` + `make`。
+1. 结束本仓库路径下的 `electron` / `i-thinking` 进程  
+2. 清理 monorepo 根 `.cache/packager/studio` 与 `%TEMP%\electron-packager`（兼容清理旧 `.packager-tmp`）  
+3. 清理 `apps/studio/out`  
 
-## 3. Sidecar（企业级侧车）
+仍失败时可手动关闭 Studio / 杀毒对 `apps/studio` 的实时扫描后再跑 `pnpm --filter @i-thinking/studio build`。
 
-源码：[`sidecar/`](../sidecar/)（Cargo workspace：`corex` / `generate` / `service`），release 启用 `lto` + `strip`。
+## 3. 全平台 Makers
 
-| 平台 | 文件名 |
-|------|--------|
-| Windows | `corex.exe` / `generate.exe` / `service.exe` |
-| macOS / Linux | `corex` / `generate` / `service` |
+| 平台 | Maker | 默认 | 说明 |
+|------|-------|------|------|
+| Windows | Squirrel | ✅ | 安装程序 + 可选 `remoteReleases` 增量 |
+| Windows | ZIP | ✅ | 便携包 |
+| Windows | MSIX | `STUDIO_MAKE_MSIX=1` | 需 Windows SDK |
+| Windows | WiX MSI | `STUDIO_MAKE_WIX=1` | 需 WiX Toolset |
+| macOS | DMG | ✅ | 安装镜像 |
+| macOS | ZIP | ✅ | 归档 / Sparkle 兼容 feed |
+| macOS | PKG | ✅（`STUDIO_MAKE_PKG_OFF=1` 关闭） | 企业安装包 |
+| Linux | Deb / Rpm / ZIP | ✅ | 常见发行版 |
+| Linux | Flatpak | `STUDIO_MAKE_FLATPAK=1` | 需 flatpak-builder |
 
-布局：
+## 4. 代码签名 / 公证
 
-- 暂存：`sidecar/staging/<platform>-<arch>/`（如 `win32-x64`）
-- 打包后：`resources/sidecar/<file>`
-- 校验：[`sidecar/manifest.json`](../sidecar/manifest.json) 按平台存 SHA-256；`afterCopy` 失败则中断打包
-- 运行时：Main `modules/sidecar` 白名单 + `studio.sidecar.findPath` / `exec`
+通过环境变量启用（未设置则跳过，本地开发不受影响）：
 
-## 4. 全平台 Makers
+| 变量 | 用途 |
+|------|------|
+| `WINDOWS_CERTIFICATE_FILE` + `WINDOWS_CERTIFICATE_PASSWORD` | Authenticode（PFX） |
+| `WINDOWS_CERTIFICATE_SUBJECT` | 证书存储按主题名（`signtool /n`） |
+| `STUDIO_OSX_SIGN=1` 或 `APPLE_IDENTITY` | macOS `osxSign` |
+| `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID` | Notarize |
 
-| 平台 | Maker | 用途 |
-|------|-------|------|
-| Windows | Squirrel | 安装程序 |
-| Windows | ZIP | 便携包 |
-| macOS | DMG | 安装镜像 |
-| macOS | ZIP | 归档 |
-| Linux | Deb | Debian/Ubuntu |
-| Linux | Rpm | RHEL/Fedora |
-| Linux | ZIP | 通用归档 |
+## 5. 发布（Publishers）
 
-## 5. asar / ignore
+| 变量 | 用途 |
+|------|------|
+| `STUDIO_PUBLISH_GITHUB=1` + `GITHUB_TOKEN` | GitHub Releases（默认 draft） |
+| `STUDIO_GITHUB_OWNER` / `STUDIO_GITHUB_REPO` | 仓库（默认 `i-thinking/i-thinking`） |
+| `STUDIO_PUBLISH_S3=1` + `STUDIO_S3_BUCKET` | S3 发布 |
+| `STUDIO_S3_REGION` / `STUDIO_S3_FOLDER` / `STUDIO_S3_PUBLIC` | S3 可选 |
+| `STUDIO_S3_UPDATE_BASE` | Squirrel / mac ZIP 增量 feed 前缀 |
 
-- **asar 仅保留** `.vite/`、`package.json`、`generated/`；`prune: false`
-- `afterCopy`：better-sqlite3 + Sidecar
+## 6. 自动更新（electron-updater）
 
-## 6. 原生与 Prisma
+主进程模块 `modules/updater`，Renderer：`studio.updater.*`。
 
-```bash
-pnpm --filter @i-thinking/studio exec prisma generate
-pnpm --filter @i-thinking/studio rebuild
-```
+| 变量 | 用途 |
+|------|------|
+| `STUDIO_UPDATE_PROVIDER=github\|generic` | 更新源 |
+| `STUDIO_UPDATE_URL` | generic feed URL |
+| `STUDIO_GITHUB_OWNER` / `STUDIO_GITHUB_REPO` | github provider |
 
-## 7. Fuses
+开发态（未 packaged）自动禁用；未配置时 `findStatus().enabled === false`。
 
-见 [security.md §7](./security.md#7-electron-fuses打包时)。
+## 7. asar / Sidecar / Fuses / CI
 
-## 8. CI
-
-[`.github/workflows/studio-desktop.yaml`](../../../.github/workflows/studio-desktop.yaml)：
-
-1. Rust toolchain + `sidecar:build`
-2. `make` → 上传 `apps/studio/out/**`
-
-## 9. 产物注意
-
-- 侧车进程独立于 Electron Main（非 Nest）
-- Main 路径用 `paths.ts`
-- 本轮未接代码签名 / 公证 / 自动更新
+- asar 仅保留 `.vite` / `package.json` / `generated`；侧车由 `forge/hooks/sidecar.ts` afterCopy 写入 `resources/sidecar`
+- 二进制**不进 Git**：`staging/`、`.cache/sidecar/`、exe/dll 均 gitignore
+- 版本真相：`scripts/commands/features/sidecar/tools.lock.json`；本地完整性：`staging/<platform>/checksums.json`
+- **corex** 来自 [layenbrank/corex releases](https://github.com/layenbrank/corex/releases)（`corex-daemon` + CLI），非仓库内自研 stub
+- 开发：`pnpm command sidecar bootstrap studio`
+- Fuses 见 [security.md](./security.md)；CI：[`.github/workflows/studio-desktop.yaml`](../../../.github/workflows/studio-desktop.yaml)

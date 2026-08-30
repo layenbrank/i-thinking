@@ -5,6 +5,7 @@
 - Node.js（与仓库约定一致）
 - pnpm（workspace）
 - Windows 上原生模块需能编译（`better-sqlite3` / `electron-rebuild`）
+- Sidecar 解压用系统 `tar` / Expand-Archive（**无需** 7-Zip，也无额外解压 npm 包）
 
 在 **monorepo 根**安装依赖：
 
@@ -24,8 +25,13 @@ pnpm install
 | `pnpm --filter @i-thinking/studio dev:core` | 仅 Vite 网页模式（**无** `window.studio`） |
 | `pnpm --filter @i-thinking/studio test:unit` | Vitest |
 | `pnpm --filter @i-thinking/studio lint` | ESLint |
-| `pnpm --filter @i-thinking/studio sidecar:build` | Rust 侧车 release → `sidecar/staging/<platform-arch>/` |
-| `pnpm --filter @i-thinking/studio package` | 打出可运行目录到 `out/`（需先 sidecar:build） |
+| `pnpm command sidecar bootstrap studio` | tools.lock → downloads → studio staging |
+| `pnpm command sidecar corex` | 仅下载 corex 到 `.cache/sidecar` |
+| `pnpm command sidecar ffmpeg` | 仅下载 FFmpeg（包较大，受网络影响） |
+| `pnpm command sidecar pandoc` | 仅下载 pandoc |
+| `pnpm command sidecar stage studio` | stage → studio staging |
+| `pnpm command sidecar verify studio` | 校验 staging checksums |
+| `pnpm --filter @i-thinking/studio package` | 打出可运行目录到 `out/`（需先 bootstrap） |
 | `pnpm --filter @i-thinking/studio build` | 同 `package`（供 turbo / PR CI） |
 | `pnpm --filter @i-thinking/studio make` | `electron-forge make` → `out/make` |
 
@@ -48,6 +54,8 @@ Forge 注入（窗口加载）：
 
 - `MAIN_WINDOW_VITE_DEV_SERVER_URL`
 - `MAIN_WINDOW_VITE_NAME`
+
+打包 / 签名 / 发布 / 自动更新环境变量见 [packaging.md](./packaging.md)。
 
 ## 4. 目录与别名
 
@@ -79,8 +87,8 @@ src/main | src/preload | src/renderer | src/shared | sidecar/
 - 现有覆盖示例：
   - `main/modules/store/schemas.test.ts`
   - `main/modules/database/schemas.test.ts`
-  - `main/modules/sidecar/schemas.test.ts`
-  - `main/modules/sidecar/allowlist.test.ts`
+  - `main/modules/sidecar/paths.test.ts`
+  - `main/modules/doc/schemas.test.ts`
   - `main/ipc/trusted-sender.test.ts`
   - `main/paths.test.ts`
   - `preload/expose.test.ts`（断言不暴露 `ipcRenderer`）

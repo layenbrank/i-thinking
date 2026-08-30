@@ -19,8 +19,10 @@ export const CHANNELS = {
     REMOVE: 'user:remove'
   },
   SIDECAR: {
-    FIND_PATH: 'sidecar:find-path',
-    EXEC: 'sidecar:exec'
+    FIND_STATUS: 'sidecar:find-status'
+  },
+  DOC: {
+    CONVERT: 'doc:convert'
   },
   SCREENSHOT: {
     CAPTURE: 'screenshot:capture',
@@ -29,6 +31,13 @@ export const CHANNELS = {
   },
   DEVTOOLS: {
     UPDATE_VISIBLE: 'devtools:update-visible'
+  },
+  UPDATER: {
+    FIND_STATUS: 'updater:find-status',
+    CHECK: 'updater:check',
+    DOWNLOAD: 'updater:download',
+    INSTALL: 'updater:install',
+    EVENT: 'updater:event'
   },
   APP: {
     MESSAGE: 'app:message'

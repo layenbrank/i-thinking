@@ -8,11 +8,9 @@
 | `IPC_UNTRUSTED_SENDER` | webContents 未登记，或 URL 不在 Vite origin / 非 `file:` | 确认 window 模块已 `trustWebContents`；开发态检查 `MAIN_WINDOW_VITE_DEV_SERVER_URL` origin |
 | `IPC_INVALID_PAYLOAD` | zod 校验失败 | 对照 [api-reference.md](./api-reference.md) 入参 |
 | `window.studio is unavailable` | 网页模式或 preload 未注入 | Electron 用 `dev`；网页用 try/catch 降级，见 [examples.md](./examples.md) |
-| `sidecar not allowed` / `sidecar not found` | 不在白名单或资源未打包 | 查 `ALLOWED_SIDECARS`；确认 `resources/sidecar` |
-| DevTools 打不开 | 生产包或非开发态 | 仅 `!app.isPackaged` 允许 |
-| highlight.js / lowlight `default` 导出错误 | monorepo 根依赖以 `/@fs/` 提供 CJS 未预构建 | 见 [renderer-vite-root-cause.md](./renderer-vite-root-cause.md) |
-| Prisma / better-sqlite3 加载失败 | 未 generate 或未 rebuild | `prisma generate` + `electron-rebuild`；打包检查 unpacked native |
-| 误以为本地 Nest 未启动 | 已去除 sidecar | 业务 API 配 `VITE_THINKING` 远程地址 |
+| `corex-daemon not found` / start failed | 未 bootstrap | `pnpm command sidecar bootstrap studio`；确认 staging 含 `corex-daemon.exe` |
+| `pandoc not found` | 未拉取/stage pandoc | `pnpm command sidecar pandoc` 后 `pnpm command sidecar stage studio` |
+| 误以为本地 Nest 未启动 | 已去除 Nest | 业务 API 配 `VITE_THINKING` 远程地址 |
 
 ## createRequire / import.meta.url（详解）
 

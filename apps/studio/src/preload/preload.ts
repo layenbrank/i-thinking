@@ -58,11 +58,13 @@ const studio: Studio = {
     }
   },
   sidecar: {
-    findPath(input) {
-      return invoke(CHANNELS.SIDECAR.FIND_PATH, input)
-    },
-    exec(input) {
-      return invoke(CHANNELS.SIDECAR.EXEC, input)
+    findStatus() {
+      return invoke(CHANNELS.SIDECAR.FIND_STATUS)
+    }
+  },
+  doc: {
+    convert(input) {
+      return invoke(CHANNELS.DOC.CONVERT, input)
     }
   },
   screenshot: {
@@ -74,6 +76,29 @@ const studio: Studio = {
     },
     recordStop() {
       return invoke(CHANNELS.SCREENSHOT.RECORD_STOP)
+    }
+  },
+  updater: {
+    findStatus() {
+      return invoke(CHANNELS.UPDATER.FIND_STATUS)
+    },
+    check() {
+      return invoke(CHANNELS.UPDATER.CHECK)
+    },
+    download() {
+      return invoke(CHANNELS.UPDATER.DOWNLOAD)
+    },
+    install() {
+      return invoke(CHANNELS.UPDATER.INSTALL)
+    },
+    onEvent(callback) {
+      function handler(_event: unknown, payload: Parameters<typeof callback>[0]) {
+        callback(payload)
+      }
+      ipcRenderer.on(CHANNELS.UPDATER.EVENT, handler)
+      return function () {
+        ipcRenderer.removeListener(CHANNELS.UPDATER.EVENT, handler)
+      }
     }
   },
   devtools: {

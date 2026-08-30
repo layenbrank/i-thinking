@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { CorexHost } from '@main/modules/sidecar/corex-host'
+import type { CorexHost } from '@main/modules/sidecar/host'
 import type { CaptureResult, RecordStopResult } from './schemas'
 
 class Service {
@@ -14,51 +14,30 @@ class Service {
   }
 
   async capture(): Promise<CaptureResult> {
-    if (!this.corex.hasModule('screenshot')) {
-      throw new Error('corex screenshot module unavailable')
+    if (!this.corex.hasAction('capture.screenshot')) {
+      throw new Error('corex action capture.screenshot unavailable')
     }
 
     const output = await this.buildOutputPath('screenshot', 'png')
-    const data = (await this.corex.invoke('screenshot.capture', {
-      output
-    })) as CaptureResult
+    const data = await this.corex.invokeAction('capture.screenshot', { to: output })
+    const resultPath = parseCapturePath(data, output)
 
-    if (!data?.path || !existsSync(data.path)) {
+    if (!resultPath || !existsSync(resultPath)) {
       throw new Error('screenshot capture did not produce a file')
     }
     return {
-      path: data.path,
-      width: Number(data.width) || 0,
-      height: Number(data.height) || 0
+      path: resultPath,
+      width: 0,
+      height: 0
     }
   }
 
   async recordStart(): Promise<void> {
-    if (!this.corex.hasModule('screenshot')) {
-      throw new Error('corex screenshot module unavailable')
-    }
-
-    const output = await this.buildOutputPath('recording', 'mkv')
-    await this.corex.invoke('screenshot.recordStart', {
-      output
-    })
+    throw new Error('screen recording is not provided by corex; use capture.screenshot')
   }
 
   async recordStop(): Promise<RecordStopResult> {
-    if (!this.corex.hasModule('screenshot')) {
-      throw new Error('corex screenshot module unavailable')
-    }
-
-    const data = (await this.corex.invoke('screenshot.recordStop', {})) as RecordStopResult
-
-    if (!data?.path || !existsSync(data.path)) {
-      throw new Error('screenshot recordStop did not produce a file')
-    }
-    return {
-      path: data.path,
-      frameCount: Number(data.frameCount) || 0,
-      durationMs: Number(data.durationMs) || 0
-    }
+    throw new Error('screen recording is not provided by corex; use capture.screenshot')
   }
 
   private async buildOutputPath(kind: 'screenshot' | 'recording', ext: string): Promise<string> {
@@ -69,6 +48,25 @@ class Service {
     })
     return path.join(dir, `${kind}-${Date.now()}.${ext}`)
   }
+}
+
+function parseCapturePath(data: unknown, fallback: string): string {
+  if (typeof data === 'string' && data.length > 0) {
+    return data
+  }
+  if (data && typeof data === 'object') {
+    const record = data as Record<string, unknown>
+    if (typeof record.path === 'string') {
+      return record.path
+    }
+    if (typeof record.File === 'string') {
+      return record.File
+    }
+    if (typeof record.to === 'string') {
+      return record.to
+    }
+  }
+  return fallback
 }
 
 export type { CaptureResult, RecordStopResult } from './schemas'

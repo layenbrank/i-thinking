@@ -68,22 +68,22 @@ const updated = await studio.user.update({
 await studio.user.remove({ id: updated.id })
 ```
 
-## 5. Sidecar（白名单）
-
-当前允许：Windows `corex.exe` / `generate.exe` / `service.exe`；Unix `corex` / `generate` / `service`（见 `src/main/modules/sidecar/allowlist.ts`）。
+## 5. Sidecar 状态与文档转换
 
 ```ts
 const studio = findStudio()
 
-const sidecarPath = await studio.sidecar.findPath({ name: 'corex.exe' })
-const result = await studio.sidecar.exec({
-  name: 'corex.exe',
-  args: ['--help']
+const status = await studio.sidecar.findStatus()
+// { isReady, version, modules, hasCorex, hasPandoc }
+
+const converted = await studio.doc.convert({
+  inputPath: 'C:/docs/note.md',
+  outputPath: 'C:/docs/note.html',
+  format: 'html'
 })
-// { code, signal, error? }
 ```
 
-路径穿越或未在白名单的名字会失败。
+截图走 `studio.screenshot.capture` → Main → `corex-daemon` Action `capture.screenshot`（官方协议）。录屏暂不支持。
 
 ## 6. DevTools（仅开发态）
 

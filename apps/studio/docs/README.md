@@ -33,7 +33,7 @@
 
 ```text
 apps/studio/
-├── sidecar/    # Cargo workspace + staging + manifest
+├── sidecar/    # staging only；tools.lock + scripts 在 scripts/commands/features/sidecar
 └── src/
     ├── main/       # Electron 主进程（组合根 + modules）
     ├── preload/    # contextBridge → window.studio

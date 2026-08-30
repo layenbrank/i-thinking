@@ -6,15 +6,13 @@ import {
   type WebContents
 } from 'electron'
 import { buildLogger, type Logger } from './logger'
-import { CorexHost } from './modules/sidecar/corex-host'
-import { Service as SidecarService } from './modules/sidecar/service'
+import { CorexHost } from './modules/sidecar/host'
 
 type AppContext = {
   app: typeof app
   ipc: IpcMain
   isDev: boolean
   logger: Logger
-  sidecars: SidecarService
   corex: CorexHost
   findWindow: () => BrowserWindow | null
   setWindow: (win: BrowserWindow | null) => void
@@ -33,15 +31,13 @@ function buildAppContext(): AppContext {
   let allowedOrigins: readonly string[] = []
   const isDev = !app.isPackaged
   const logger = buildLogger('main')
-  const sidecars = new SidecarService()
-  const corex = new CorexHost(sidecars, logger)
+  const corex = new CorexHost(logger)
 
   return {
     app,
     ipc: ipcMain,
     isDev,
     logger,
-    sidecars,
     corex,
     findWindow() {
       return mainWindow

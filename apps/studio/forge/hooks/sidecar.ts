@@ -4,9 +4,11 @@ import path from 'node:path'
 
 import { PACKAGE_ROOT } from '../constants'
 
-type SidecarManifest = {
-  sidecars: string[]
-  platforms: Record<string, Record<string, string>>
+const CHECKSUMS_FILE = 'checksums.json'
+
+interface StagingChecksums {
+  platform: string
+  files: Record<string, string>
 }
 
 function findPlatformKey(platform: string = process.platform, arch: string = process.arch): string {
@@ -23,16 +25,18 @@ function findStagedSidecarDir(key = findPlatformKey()): string {
   return path.join(PACKAGE_ROOT, 'sidecar', 'staging', key)
 }
 
-function parseSidecarManifest(): SidecarManifest {
-  const manifestPath = path.join(PACKAGE_ROOT, 'sidecar', 'manifest.json')
-  if (!existsSync(manifestPath)) {
-    throw new Error(`[sidecar] missing manifest: ${manifestPath}`)
+function parseStagingChecksums(key: string): StagingChecksums {
+  const filePath = path.join(findStagedSidecarDir(key), CHECKSUMS_FILE)
+  if (!existsSync(filePath)) {
+    throw new Error(
+      `[sidecar] missing ${filePath}. Run: pnpm command sidecar bootstrap studio`
+    )
   }
-  return JSON.parse(readFileSync(manifestPath, 'utf8')) as SidecarManifest
+  return JSON.parse(readFileSync(filePath, 'utf8')) as StagingChecksums
 }
 
 /**
- * 将当前平台 staged 侧车复制到 resources/sidecar，并按 manifest 校验 SHA-256。
+ * 将当前平台 staged 侧车复制到 resources/sidecar，并按本地 checksums.json 校验 SHA-256。
  */
 function copyAndVerifySidecars(
   buildPath: string,
@@ -47,23 +51,17 @@ function copyAndVerifySidecars(
     if (!existsSync(srcDir) || readdirSync(srcDir).length === 0) {
       done(
         new Error(
-          `[sidecar] no staged binaries at ${srcDir}. Run: pnpm --filter @i-thinking/studio sidecar:build`
+          `[sidecar] no staged binaries at ${srcDir}. Run: pnpm command sidecar bootstrap studio`
         )
       )
       return
     }
 
-    const manifest = parseSidecarManifest()
-    const expected = manifest.platforms[key]
-    if (!expected) {
-      done(new Error(`[sidecar] manifest missing platform ${key}. Run sidecar:build first.`))
-      return
-    }
-
+    const expected = parseStagingChecksums(key)
     const destDir = path.join(buildPath, '..', 'sidecar')
     mkdirSync(destDir, { recursive: true })
 
-    for (const [fileName, digest] of Object.entries(expected)) {
+    for (const [fileName, digest] of Object.entries(expected.files)) {
       const src = path.join(srcDir, fileName)
       if (!existsSync(src)) {
         done(new Error(`[sidecar] missing staged file: ${src}`))
@@ -83,10 +81,5 @@ function copyAndVerifySidecars(
   }
 }
 
-export {
-  copyAndVerifySidecars,
-  findPlatformKey,
-  findStagedSidecarDir,
-  parseSidecarManifest
-}
-export type { SidecarManifest }
+export { copyAndVerifySidecars, findPlatformKey, findStagedSidecarDir, parseStagingChecksums }
+export type { StagingChecksums }

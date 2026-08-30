@@ -9,8 +9,19 @@ import {
   APP_VERSION,
   PACKAGE_ROOT
 } from './constants'
+import {
+  APPLE_ID,
+  APPLE_ID_PASSWORD,
+  APPLE_TEAM_ID,
+  OSX_NOTARIZE,
+  OSX_SIGN,
+  WINDOWS_CERTIFICATE_FILE,
+  WINDOWS_CERTIFICATE_PASSWORD,
+  WINDOWS_CERTIFICATE_SUBJECT
+} from './env'
 import { copyAndVerifySidecars } from './hooks/sidecar'
 import { copyBetterSqlite3 } from './hooks/natives'
+import { PACKAGER_TMP } from './hooks/cleanup'
 
 /** 国内默认镜像；Turbo strict 下需 turbo.json globalPassThroughEnv 透传 ELECTRON_MIRROR */
 const ELECTRON_DOWNLOAD_MIRROR =
@@ -68,16 +79,51 @@ function runAfterCopy(
   })
 }
 
+function buildWindowsSign():
+  | NonNullable<ForgeConfig['packagerConfig']>['windowsSign']
+  | undefined {
+  if (WINDOWS_CERTIFICATE_FILE) {
+    return {
+      certificateFile: WINDOWS_CERTIFICATE_FILE,
+      certificatePassword: WINDOWS_CERTIFICATE_PASSWORD
+    }
+  }
+  // 证书存储：通过 signtool /n 按主题名选择
+  if (WINDOWS_CERTIFICATE_SUBJECT) {
+    return {
+      signWithParams: `/n "${WINDOWS_CERTIFICATE_SUBJECT}"`
+    }
+  }
+  return undefined
+}
+
+function buildOsxNotarize():
+  | NonNullable<ForgeConfig['packagerConfig']>['osxNotarize']
+  | undefined {
+  if (!OSX_NOTARIZE) return undefined
+  return {
+    appleId: APPLE_ID!,
+    appleIdPassword: APPLE_ID_PASSWORD!,
+    teamId: APPLE_TEAM_ID!
+  }
+}
+
 function buildPackagerConfig(): NonNullable<ForgeConfig['packagerConfig']> {
   const icon = findIconPath()
+  const windowsSign = buildWindowsSign()
+  const osxNotarize = buildOsxNotarize()
 
   return {
     asar: true,
     prune: false,
+    overwrite: true,
+    // 必须在 apps/studio 外（见 forge/hooks/cleanup.ts），否则会 copy 进自身子目录
+    tmpdir: PACKAGER_TMP,
     appVersion: APP_VERSION,
     name: APP_NAME,
     executableName: APP_EXECUTABLE,
     appBundleId: APP_ID,
+    appCategoryType: 'public.app-category.developer-tools',
     appCopyright: `Copyright © ${new Date().getFullYear()} i-thinking`,
     ignore: isIgnoredPath,
     download: {
@@ -86,6 +132,9 @@ function buildPackagerConfig(): NonNullable<ForgeConfig['packagerConfig']> {
       }
     },
     ...(icon ? { icon } : {}),
+    ...(windowsSign ? { windowsSign } : {}),
+    ...(OSX_SIGN ? { osxSign: {} } : {}),
+    ...(osxNotarize ? { osxNotarize } : {}),
     afterCopy: [runAfterCopy]
   }
 }

@@ -1,6 +1,6 @@
 import type { AppContext } from '@main/app-context'
 import type { StudioModule } from '@main/module'
-import type { CorexHost } from './corex-host'
+import type { CorexHost } from './host'
 import { registerHandlers } from './handlers'
 
 function buildModule(): StudioModule {
@@ -10,15 +10,19 @@ function buildModule(): StudioModule {
     name: 'sidecar',
     async register(ctx: AppContext) {
       corex = ctx.corex
-      registerHandlers(ctx, ctx.sidecars)
+      registerHandlers(ctx)
+
       try {
         await ctx.corex.start()
         ctx.logger.child('sidecar').info('registered', {
-          corexModules: ctx.corex.findModules()
+          corexModules: ctx.corex.findModules(),
+          version: ctx.corex.findVersion()
         })
       } catch (error) {
-        // 常驻能力不可用时仍允许壳启动；域模块 invoke 时再失败
-        ctx.logger.child('sidecar').error('corex start failed', error)
+        if (!ctx.isDev) {
+          throw error
+        }
+        ctx.logger.child('sidecar').error('corex start failed (dev degraded)', error)
       }
     },
     async dispose() {
@@ -31,6 +35,6 @@ function buildModule(): StudioModule {
 }
 
 export { buildModule }
-export { isAllowedSidecarName } from './allowlist'
-export { Service } from './service'
-export { CorexHost } from './corex-host'
+export { CorexHost } from './host'
+export { findStatus } from './status'
+export { findCliPath, findDaemonPath, findPandocPath, findSidecarRoot } from './paths'

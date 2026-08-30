@@ -34,7 +34,8 @@ function buildPlugins(): NonNullable<ForgeConfig['plugins']> {
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true
+      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+      [FuseV1Options.WasmTrapHandlers]: true
     })
   ]
 }

@@ -50,9 +50,9 @@
 | 风险 | 对策 |
 |------|------|
 | XSS → 任意 SQL | 废除 `db:query`；仅 `user:*` 仓储 |
-| 任意执行本地二进制 | `ALLOWED_SIDECARS`（含 Windows `.exe` 与 Unix 无扩展名）+ 禁路径穿越；`spawn({ shell: false })`；打包时 SHA-256 对照 `sidecar/manifest.json` |
-| 超大/恶意 args | zod 限制条数与长度，禁 `\0` |
-| 侧车被篡改 | `forge/hooks/sidecar.ts` 在 afterCopy 校验哈希，失败中断打包 |
+| 任意执行本地二进制 | Renderer 无通用 spawn；域模块（doc / screenshot→corex Action）+ `shell: false` |
+| 侧车/工具被篡改 | `tools.lock.json` 钉版本+SHA256；staging `checksums.json`；Forge afterCopy 校验 |
+| 不可复现构建 | corex / pandoc 禁止 floating URL；来自 GitHub Releases |
 
 ## 7. Electron Fuses（打包时）
 

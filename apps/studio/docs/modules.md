@@ -9,8 +9,11 @@
 3. dialog  
 4. database  
 5. sidecar  
-6. devtools  
-7. window  
+6. doc  
+7. screenshot  
+8. updater  
+9. devtools  
+10. window  
 
 ## 模块一览
 
@@ -20,7 +23,10 @@
 | store | `src/main/modules/store` | `electron-store` 键值持久化 + IPC |
 | dialog | `src/main/modules/dialog` | 打开/保存文件对话框 |
 | database | `src/main/modules/database` | Prisma + User 仓储 IPC（无 raw SQL） |
-| sidecar | `src/main/modules/sidecar` | 白名单侧车路径与 spawn |
+| sidecar | `src/main/modules/sidecar` | 启动 `corex-daemon`（官方 NDJSON IPC）+ `findStatus` |
+| doc | `src/main/modules/doc` | pandoc 文档转换（域内 spawn） |
+| screenshot | `src/main/modules/screenshot` | 截图 → `capture.screenshot` |
+| updater | `src/main/modules/updater` | `electron-updater` 检查 / 下载 / 安装（环境变量配置） |
 | devtools | `src/main/modules/devtools` | 开发态开关 DevTools |
 | window | `src/main/modules/window` | BrowserWindow、preload、加载 URL、登记可信 webContents |
 

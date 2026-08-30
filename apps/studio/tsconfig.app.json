@@ -49,11 +49,11 @@
       "@i-thinking/shared/mirror",
       "@i-thinking/shared/settings",
       "@i-thinking/shared/controller",
-      "@i-thinking/shared/application",
-      "@i-thinking/shared/application-bookmark",
-      "@i-thinking/shared/application-markdown",
-      "@electron-forge/plugin-vite/forge-vite-env",
-      "@i-thinking/shared/application-intelligence"
+      "@i-thinking/shared/magnetic-tile",
+      "@i-thinking/shared/magnetic-tile-bookmark",
+      "@i-thinking/shared/magnetic-tile-markdown",
+      "@i-thinking/shared/magnetic-tile-intelligence",
+      "@electron-forge/plugin-vite/forge-vite-env"
     ],
 
     /* Path */
