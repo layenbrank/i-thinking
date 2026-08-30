@@ -130,7 +130,7 @@
     {
       "allow": [
         {
-          "name": "binaries/corex-serve",
+          "name": "binaries/corex-daemon",
           "sidecar": true
         }
       ],
@@ -151,7 +151,7 @@
       "allow": [
         {
           "args": ["--pipe", "\\\\.\\pipe\\corex"],
-          "name": "binaries/corex-serve",
+          "name": "binaries/corex-daemon",
           "sidecar": true
         }
       ],
@@ -391,5 +391,5 @@
       "https://*.weixin.qq.com"
     ]
   },
-  "windows": ["main", "overlay"]
+  "windows": ["main", "overlay", "agent"]
 }

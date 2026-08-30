@@ -8,7 +8,13 @@ pub mod overlay;
 pub mod reminder;
 
 #[allow(non_snake_case)]
-pub mod aiCollection {
+pub mod aiWorkspace {
+    mod service;
+    pub use service::Service;
+}
+
+#[allow(non_snake_case)]
+pub mod aiWorkspaceFolder {
     mod service;
     pub use service::Service;
 }
@@ -21,6 +27,12 @@ pub mod aiSession {
 
 #[allow(non_snake_case)]
 pub mod aiMessage {
+    mod service;
+    pub use service::Service;
+}
+
+#[allow(non_snake_case)]
+pub mod aiProvider {
     mod service;
     pub use service::Service;
 }

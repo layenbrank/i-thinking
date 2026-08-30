@@ -7153,9 +7153,11 @@ name = "thinking-command"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "tauri",
  "thinking-core",
  "thinking-database",
+ "tokio",
 ]
 
 [[package]]

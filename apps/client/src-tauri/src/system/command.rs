@@ -4,7 +4,7 @@ use serde_json::json;
 use crate::utils::ipc;
 use crate::utils::sidecar::{self, SidecarState, SIDECAR_SHUTDOWN_TIMEOUT};
 
-const ALLOWED_MODULES: &[&str] = &["morph", "capture", "scan", "engine"];
+const ALLOWED_MODULES: &[&str] = &["morph", "capture", "scan", "engine", "file"];
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Memory {
@@ -72,6 +72,11 @@ pub async fn ipc_invoke(
     if !ALLOWED_MODULES.contains(&module.as_str()) {
         return Err(format!("IPC 模块不允许: {module}"));
     }
+    if let Some(ref act) = action {
+        if act.contains('.') {
+            return Err("IPC action 不得包含 '.'".into());
+        }
+    }
     tokio::task::spawn_blocking(move || {
         ipc::invoke_with(&module, action.as_deref(), args)
     })
@@ -85,7 +90,7 @@ pub fn tray_set_badge(app: tauri::AppHandle, has_badge: bool) {
     crate::ui::tray::set_badge(&app, has_badge);
 }
 
-/// 停止 corex-serve 并等待进程退出（更新安装前调用）。
+/// 停止 corex-daemon 并等待进程退出（更新安装前调用）。
 ///
 /// 超时仍返回 `Ok`，由 NSIS PREINSTALL hook 兜底，避免卡死更新。
 #[tauri::command(rename = "sidecar:shutdown")]

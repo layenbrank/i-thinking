@@ -12,6 +12,7 @@ pub struct Model {
     pub identity: String,
     pub fragment: String,
     pub thinking: Option<String>,
+    pub parts: Option<String>,
     #[sea_orm(column_name = "sessionID")]
     pub sessionID: String,
     #[sea_orm(column_name = "createdAt")]
@@ -46,6 +47,7 @@ pub struct Write {
     pub identity: String,
     pub fragment: String,
     pub thinking: Option<String>,
+    pub parts: Option<String>,
     pub sessionID: String,
     pub createdAt: Option<i64>,
     pub updatedAt: Option<i64>,
@@ -64,6 +66,7 @@ pub struct Change {
     pub identity: Option<String>,
     pub fragment: Option<String>,
     pub thinking: Option<Option<String>>,
+    pub parts: Option<Option<String>>,
     pub sessionID: Option<String>,
 }
 

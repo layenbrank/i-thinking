@@ -90,27 +90,27 @@ pub fn spawn_and_watch(app: &AppHandle, timeout: Duration) {
             });
         }
         Err(e) => {
-            tracing::error!("corex-serve 启动失败: {e}");
+            tracing::error!("corex-daemon 启动失败: {e}");
             app.state::<SidecarState>().fail();
             let _ = app.emit("corex://not-ready", ());
         }
     }
 }
 
-/// 启动 corex-serve sidecar 并监听进程退出。
+/// 启动 corex-daemon sidecar 并监听进程退出。
 fn spawn(app: &AppHandle) -> Result<(), String> {
     // sidecar() 只要 externalBin 的文件名，不要 `binaries/` 前缀；
-    // 运行时相对 current_exe 目录解析为 `corex-serve.exe`。
+    // 运行时相对 current_exe 目录解析为 `corex-daemon.exe`。
     // pdfium.dll 经 tauri.conf resources 映射到与 sidecar 同目录，无需 COREX_PDFIUM_DIR。
     let sidecar = app
         .shell()
-        .sidecar("corex-serve")
-        .map_err(|e| format!("创建 corex-serve sidecar 失败: {e}"))?
+        .sidecar("corex-daemon")
+        .map_err(|e| format!("创建 corex-daemon sidecar 失败: {e}"))?
         .args(["--pipe", ipc::PIPE_NAME]);
 
     let (mut rx, child) = sidecar
         .spawn()
-        .map_err(|e| format!("启动 corex-serve 失败: {e}"))?;
+        .map_err(|e| format!("启动 corex-daemon 失败: {e}"))?;
 
     {
         let state = app.state::<SidecarState>();
@@ -126,7 +126,7 @@ fn spawn(app: &AppHandle) -> Result<(), String> {
         while let Some(event) = rx.recv().await {
             if let CommandEvent::Terminated(payload) = event {
                 warn!(
-                    "corex-serve 已退出 (code={:?}, signal={:?})",
+                    "corex-daemon 已退出 (code={:?}, signal={:?})",
                     payload.code, payload.signal
                 );
                 if let Some(state) = app_for_task.try_state::<SidecarState>() {
@@ -148,13 +148,13 @@ fn wait_for_daemon(timeout: Duration, state: &SidecarState) -> bool {
     let start = Instant::now();
     while start.elapsed() < timeout {
         if state.probe() {
-            info!("corex-serve IPC 已就绪");
+            info!("corex-daemon IPC 已就绪");
             return true;
         }
         std::thread::sleep(Duration::from_millis(200));
     }
     state.fail();
-    warn!("corex-serve 在超时内未就绪，重能力调用可能失败");
+    warn!("corex-daemon 在超时内未就绪，重能力调用可能失败");
     false
 }
 
@@ -167,11 +167,11 @@ pub fn shutdown(app: &AppHandle) {
 ///
 /// 返回 `true` 表示确认已停；超时仍返回 `false`（调用方可不阻断，依赖 NSIS hook）。
 pub fn shutdown_and_wait(app: &AppHandle, timeout: Duration) -> bool {
-    info!("正在关闭 corex-serve…");
+    info!("正在关闭 corex-daemon…");
 
     match ipc::shutdown() {
-        Ok(()) => info!("已发送 corex-serve IPC shutdown"),
-        Err(e) => warn!("corex-serve IPC shutdown 失败（可忽略）: {e}"),
+        Ok(()) => info!("已发送 corex-daemon IPC shutdown"),
+        Err(e) => warn!("corex-daemon IPC shutdown 失败（可忽略）: {e}"),
     }
 
     let state = app.try_state::<SidecarState>();
@@ -192,9 +192,9 @@ pub fn shutdown_and_wait(app: &AppHandle, timeout: Duration) -> bool {
 
     if stopped {
         std::thread::sleep(HANDLE_SETTLE);
-        info!("corex-serve 已停止");
+        info!("corex-daemon 已停止");
     } else {
-        warn!("corex-serve 在 {:?} 内未确认退出，将依赖安装器 hook 兜底", timeout);
+        warn!("corex-daemon 在 {:?} 内未确认退出，将依赖安装器 hook 兜底", timeout);
     }
 
     stopped
@@ -205,22 +205,22 @@ fn stop_child(child: CommandChild, timeout: Duration, start: Instant) -> bool {
 
     let graceful = GRACEFUL_WAIT.min(timeout);
     if wait_for_pid_exit(pid, graceful) {
-        info!("corex-serve 已优雅退出 (pid={pid})");
+        info!("corex-daemon 已优雅退出 (pid={pid})");
         return true;
     }
 
     match child.kill() {
-        Ok(()) => info!("已请求终止 corex-serve (pid={pid})"),
-        Err(e) => warn!("kill corex-serve 失败 (pid={pid}): {e}"),
+        Ok(()) => info!("已请求终止 corex-daemon (pid={pid})"),
+        Err(e) => warn!("kill corex-daemon 失败 (pid={pid}): {e}"),
     }
 
     let remaining = timeout.saturating_sub(start.elapsed());
     if wait_for_pid_exit(pid, remaining) {
-        info!("corex-serve 已退出 (pid={pid})");
+        info!("corex-daemon 已退出 (pid={pid})");
         return true;
     }
 
-    warn!("等待 corex-serve 退出超时 (pid={pid})");
+    warn!("等待 corex-daemon 退出超时 (pid={pid})");
     false
 }
 
@@ -228,7 +228,7 @@ fn wait_until_pipe_closed(timeout: Duration, start: Instant) -> bool {
     // shutdown() 已丢弃长连接；此处用短暂探测，不重建 SESSION。
     while start.elapsed() < timeout {
         if !ipc::is_listening() {
-            info!("corex-serve IPC 已不可用");
+            info!("corex-daemon IPC 已不可用");
             return true;
         }
         std::thread::sleep(Duration::from_millis(100));
