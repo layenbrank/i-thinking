@@ -20,6 +20,7 @@ Electron 桌面应用（`@i-thinking/studio`）：Forge + Vite，主进程域模
 
 ```bash
 pnpm install
+pnpm command sidecar bootstrap studio   # tools.lock → .cache → staging（无需系统 7-Zip）
 pnpm --filter @i-thinking/studio dev
 ```
 

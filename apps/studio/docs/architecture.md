@@ -41,21 +41,21 @@ flowchart TB
 
 - **Renderer**：UI、远程 API 客户端；通过 `findStudio()` 调本地能力。
 - **Preload**：唯一桥；把 `IpcResult` 失败转为 `throw`。
-- **Main**：窗口、安全会话、IPC handlers、Prisma、白名单 sidecar。
+- **Main**：窗口、安全会话、IPC handlers、Prisma、`corex-daemon` 宿主与域模块。
 - **shared**：仅 channel / zod / 类型 / `IpcResult`（无 Node、无 Electron）。
 
 ## 3. 目录边界
 
 ```text
 apps/studio/
-├── sidecar/        # Cargo workspace + staging + manifest（企业级侧车）
+├── sidecar/        # tools.lock + scripts；corex/pandoc 从 Releases 拉取后 stage
 └── src/
     ├── main/       # @main — Electron Main
     │   ├── bootstrap.ts
     │   ├── app-context.ts
     │   ├── paths.ts    # bundle / APP_ROOT / createRequire（规避 CJS 下 import.meta）
     │   ├── ipc/
-    │   └── modules/    # 含 sidecar 运行时模块
+    │   └── modules/    # sidecar / doc / screenshot …
     ├── preload/        # @preload — contextBridge
     ├── renderer/       # @ → 此处 — React 应用
     └── shared/         # @shared — 跨进程契约
@@ -81,8 +81,11 @@ tsconfig 按进程拆分：`tsconfig.main.json` / `tsconfig.preload.json` / `tsc
 3. dialog  
 4. database  
 5. sidecar  
-6. devtools  
-7. window  
+6. doc  
+7. screenshot  
+8. updater  
+9. devtools  
+10. window  
 
 每个模块实现：
 
@@ -126,7 +129,7 @@ Main 侧 `registerHandler`：校验 **已登记 webContents** + **允许 URL**�
 - CSP 由 security 模块注入 response headers
 - 导航 / `window.open` 受限
 - DevTools 仅非打包（`!app.isPackaged`）
-- 无任意 SQL IPC；sidecar 白名单
+- 无任意 SQL IPC；无 Renderer 通用 sidecar spawn
 - Fuses：关闭 `RunAsNode` / Node CLI 相关开关
 
 详见 [security.md](./security.md)。

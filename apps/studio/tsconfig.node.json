@@ -45,7 +45,6 @@
     "tailwind.config.*",
     "eslint.config.*",
     "scripts/**/*.ts",
-    "sidecar/scripts/**/*.ts",
     "vite.config.*",
     "vite.chunk.*"
   ]

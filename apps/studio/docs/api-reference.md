@@ -28,7 +28,7 @@ Preload `invoke`：若 `!ok`，抛出 `Error('[code] message')`；Renderer 看�
 
 ### Channel 命名
 
-`namespace:action`，多词 action 用 kebab-case（如 `sidecar:find-path`、`devtools:update-visible`）。
+`namespace:action`，多词 action 用 kebab-case（如 `sidecar:find-status`、`devtools:update-visible`）。
 
 ---
 
@@ -89,17 +89,37 @@ Preload `invoke`：若 `!ok`，抛出 `Error('[code] message')`；Renderer 看�
 
 | 方法 | Channel | 入参 | 返回 |
 |------|---------|------|------|
-| `findPath` | `sidecar:find-path` | `{ name }` | `Promise<string>` |
-| `exec` | `sidecar:exec` | `{ name, args? }` | `Promise<SidecarExecResult>` |
+| `findStatus` | `sidecar:find-status` | 无 | `Promise<SidecarStatus>` |
 
-`SidecarExecResult`：`{ code, signal, error? }`。
+`SidecarStatus`：`{ isReady, version, modules, hasCorex, hasPandoc }`。
 
-白名单（禁止路径分隔符与 `..`）：
+Renderer **不能**通用 spawn 侧车。能力经域模块暴露（如 screenshot / doc）。
 
-- Windows：`corex.exe` / `generate.exe` / `service.exe`
-- Unix：`corex` / `generate` / `service`
+打包态 corex 启动失败会阻止模块就绪；开发态可 degraded。
 
-`args`：最多 64 项，单条最长 4096，禁止 `\0`；`spawn` 使用 `shell: false`。
+---
+
+## doc
+
+| 方法 | Channel | 入参 | 返回 |
+|------|---------|------|------|
+| `convert` | `doc:convert` | `{ inputPath, outputPath, format }` | `Promise<ConvertResult>` |
+
+`format`：`markdown` \| `html` \| `docx` \| `pdf` \| `plain`。Main 内 allowlist spawn `pandoc`，`shell: false`。
+
+---
+
+## updater
+
+| 方法 | Channel | 入参 | 返回 |
+|------|---------|------|------|
+| `findStatus` | `updater:find-status` | 无 | `Promise<UpdaterStatus>` |
+| `check` | `updater:check` | 无 | `Promise<CheckResult>` |
+| `download` | `updater:download` | 无 | `Promise<void>` |
+| `install` | `updater:install` | 无 | `Promise<void>` |
+| `onEvent(cb)` | 事件 `updater:event` | — | 取消订阅函数 |
+
+开发态或未配置 feed 时 `enabled: false`。配置见 [packaging.md](./packaging.md)。
 
 ---
 
@@ -129,4 +149,4 @@ Preload `invoke`：若 `!ok`，抛出 `Error('[code] message')`；Renderer 看�
 | `IPC_INVALID_PAYLOAD` | zod 校验失败 |
 | `IPC_HANDLER_ERROR` | handler / 业务抛错（message 为错误信息） |
 
-另有业务层字符串错误（如 `sidecar not allowed: …`），经 `IPC_HANDLER_ERROR` 或结果对象的 `error` 字段返回（`sidecar.exec`）。
+另有业务层字符串错误经 `IPC_HANDLER_ERROR` 返回。

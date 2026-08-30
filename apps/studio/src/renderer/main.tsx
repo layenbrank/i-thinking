@@ -5,12 +5,12 @@ import App from '@/App.tsx'
 import '@/styles/index.scss'
 import { findStudio } from '@/lib/studio.ts'
 
-import MDIconify from '@i-thinking/shared/mdi.json'
-import AntIconify from '@i-thinking/shared/ant-design.json'
+import AntDIconify from '@iconify/json/json/ant-design.json'
+import MDIconify from '@iconify/json/json/mdi.json'
 import CustomIconify from '@i-thinking/shared/iconify.json'
 
 addCollection(MDIconify)
-addCollection(AntIconify)
+addCollection(AntDIconify)
 addCollection(CustomIconify)
 
 const rootElement = document.getElementById('app') as HTMLElement

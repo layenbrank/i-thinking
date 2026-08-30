@@ -28,7 +28,9 @@ function App() {
     void useSettingsStore.getState().initialize()
 
     if (!import.meta.env.DEV) return
-    void window.studio.devtools.updateVisible({ visible: true }).catch(function () {})
+    void window.studio.devtools.updateVisible({
+      visible: true
+    })
   }, [])
 
   function onPluginError(plugin: Plugin, error: unknown) {

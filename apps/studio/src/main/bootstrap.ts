@@ -5,11 +5,13 @@ import { buildLogger } from './logger'
 import type { StudioModule } from './module'
 import { buildModule as buildSidecarModule } from './modules/sidecar'
 import { buildModule as buildScreenshotModule } from './modules/screenshot'
+import { buildModule as buildDocModule } from './modules/doc'
 import { buildModule as buildDatabaseModule } from './modules/database'
 import { buildModule as buildDevtoolsModule } from './modules/devtools'
 import { buildModule as buildDialogModule } from './modules/dialog'
 import { buildModule as buildSecurityModule } from './modules/security'
 import { buildModule as buildStoreModule } from './modules/store'
+import { buildModule as buildUpdaterModule } from './modules/updater'
 import { buildModule as buildWindowModule } from './modules/window'
 
 export async function bootstrap(): Promise<void> {
@@ -48,7 +50,9 @@ export async function bootstrap(): Promise<void> {
     buildDialogModule(),
     buildDatabaseModule(),
     buildSidecarModule(),
+    buildDocModule(),
     buildScreenshotModule(),
+    buildUpdaterModule(),
     buildDevtoolsModule(),
     buildWindowModule()
   ]
