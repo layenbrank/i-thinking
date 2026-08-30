@@ -1,6 +1,7 @@
 import { fetch } from '@tauri-apps/plugin-http'
 
 import { http } from '@/utils/http/http.ts'
+import { GeneratorJSON } from '@/utils/http/stream.ts'
 import { INTELLIGENCE_TOKEN } from '@/utils/http/token.ts'
 
 type CommunicateParams = MagneticTile.Intelligence.Communicate.Params
@@ -37,62 +38,7 @@ export function POST_COMMUNICATE(
   })
 }
 
-export async function* GeneratorJSON<
-  F extends (...args: any[]) => Promise<Response>,
-  T = CommunicateResponse
->(fetcher: F): AsyncGenerator<T, void, unknown> {
-  const response = await fetcher()
-  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-  if (!response.body)
-    throw new Error('ReadableStream not supported in this browser.')
-
-  const reader = response.body?.getReader()
-  const decoder = new TextDecoder('utf-8')
-  let buffer = ''
-  try {
-    while (true) {
-      if (!reader) break
-
-      const { value, done } = await reader.read()
-      const chunk = decoder.decode(value, { stream: !done })
-      buffer += chunk
-      const parts = buffer.split('\n')
-
-      // 最后一行可能是不完整的，留待下次解析
-      buffer = parts.pop() ?? ''
-
-      for (const part of parts) {
-        const trimmed = part.trim()
-
-        if (!trimmed) continue
-        try {
-          const parsed = JSON.parse(trimmed) as T
-          yield parsed
-        } catch (error) {
-          console.error('Failed to parse JSON:', error, trimmed)
-        }
-      }
-      // console.log('[chunk value]', done ? chunk : JSON.parse(chunk))
-      if (done) break
-    }
-
-    // 处理缓冲区中剩余的内容（流结束时，缓冲区中可能还有一个没有换行符的记录）
-    if (buffer.trim()) {
-      try {
-        const trimmed = buffer.trim()
-        const parsed = JSON.parse(trimmed)
-        yield parsed
-      } catch (error) {
-        console.error('Failed to parse remaining buffer:', error, buffer)
-      }
-    }
-  } catch (error) {
-    console.error('Error reading stream:', error)
-  } finally {
-    reader?.releaseLock()
-  }
-}
-
+export { GeneratorJSON }
 
 export function GET_TAGS() {
   return http.get('/tags', {

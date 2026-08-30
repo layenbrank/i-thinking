@@ -53,6 +53,7 @@ import { useIntelligenceStore as store } from '@/stores/intelligence.ts'
 type AiSession = MagneticTile.Intelligence.AiSession
 type AiMessage = MagneticTile.Intelligence.AiMessage
 type CommunicateMessage = MagneticTile.Intelligence.Communicate.Message
+type CommunicateResponse = MagneticTile.Intelligence.Communicate.Response
 // type CommunicateIdentity = MagneticTile.Intelligence.Communicate.Identity
 // type BubbleContentType = BubbleProps['contentRender']
 
@@ -346,7 +347,8 @@ export default function Overlay(props: OverlayControlProps) {
         updatedAt: Date.now(),
         identity: 'user',
         fragment: fragment,
-        thinking: null
+        thinking: null,
+        parts: null
       }
 
       // 创建助手消息（初始为空）
@@ -357,15 +359,18 @@ export default function Overlay(props: OverlayControlProps) {
         updatedAt: Date.now(),
         identity: 'assistant',
         fragment: '',
-        thinking: ''
+        thinking: '',
+        parts: null
       }
-      const transferMSG: CommunicateMessage[] = sessionMessages.concat([personal]).map(function (value) {
-        return {
-          role: value.identity,
-          content: value.fragment,
-          thinking: value.thinking ?? undefined
-        }
-      })
+      const transferMSG: CommunicateMessage[] = sessionMessages
+        .concat([personal])
+        .map(function (value) {
+          return {
+            role: value.identity,
+            content: value.fragment,
+            thinking: value.thinking ?? undefined
+          }
+        })
 
       // 使用函数式更新添加用户消息和空的助手消息
       await store.getState().toWriteMessage([personal])
@@ -374,20 +379,19 @@ export default function Overlay(props: OverlayControlProps) {
       abortControllerRef.current?.abort()
       const controller = new AbortController()
       abortControllerRef.current = controller
-      const generators = GeneratorJSON(
-        POST_COMMUNICATE.bind(
-          null,
-          {
-            model: 'qwen3:8b',
-            raw: true,
-            stream: true,
-            messages: transferMSG
-          },
-          {
-            signal: controller.signal
-          }
-        )
+      const fetcher = POST_COMMUNICATE.bind(
+        null,
+        {
+          model: 'qwen3:8b',
+          raw: true,
+          stream: true,
+          messages: transferMSG
+        },
+        {
+          signal: controller.signal
+        }
       )
+      const generators = GeneratorJSON<typeof fetcher, CommunicateResponse>(fetcher)
 
       /**
        * 批量提交累积的消息内容到 store
@@ -518,7 +522,7 @@ export default function Overlay(props: OverlayControlProps) {
       id: sessionID,
       title: '新对话' + (sessions.length + 1),
       pinned: false,
-      collectionID: null,
+      workspaceID: null,
       createdAt: Date.now(),
       updatedAt: Date.now()
     }
@@ -651,12 +655,10 @@ export default function Overlay(props: OverlayControlProps) {
             activeKey={activeSessionID ?? undefined}
             items={conversations}
             onActiveChange={handleActiveKey}
-            style={
-              {
-                '--background-color': token.colorBgContainer,
-                '--radius': `${token.borderRadius}px`
-              }
-            }
+            style={{
+              '--background-color': token.colorBgContainer,
+              '--radius': `${token.borderRadius}px`
+            }}
             groupable={groupable}
             className={clsx(styles.section, styles.conversations)}
           />

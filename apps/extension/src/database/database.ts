@@ -4,7 +4,8 @@ type BookmarkEntry = MagneticTile.Bookmark.Entry
 type BookmarkDir = MagneticTile.Bookmark.Directory
 type AiMessage = MagneticTile.Intelligence.AiMessage
 type AiSession = MagneticTile.Intelligence.AiSession
-type AiCollection = MagneticTile.Intelligence.AiCollection
+type AiWorkspace = MagneticTile.Intelligence.AiWorkspace
+type AiWorkspaceFolder = MagneticTile.Intelligence.AiWorkspaceFolder
 
 interface DataBase extends Dexie {
   mirror: EntityTable<Mirror, 'id'>
@@ -23,7 +24,8 @@ interface DataBase extends Dexie {
 
   AiSession: EntityTable<AiSession, 'id'>
   AiMessage: EntityTable<AiMessage, 'id'>
-  AiCollection: EntityTable<AiCollection, 'id'>
+  AiWorkspace: EntityTable<AiWorkspace, 'id'>
+  AiWorkspaceFolder: EntityTable<AiWorkspaceFolder, 'id'>
 }
 
 const DBNAME: Readonly<string> = 'i thinking'
@@ -64,9 +66,17 @@ const BOOKMARK_DIR: readonly string[] = ['&id', 'index', 'count', 'createdAt', '
 
 const MARKDOWN: readonly string[] = ['&id', 'index', 'createdAt', 'updatedAt']
 
-const AISESSION: readonly string[] = ['&id', 'collectionID', 'createdAt', 'updatedAt']
+const AISESSION: readonly string[] = ['&id', 'workspaceID', 'createdAt', 'updatedAt']
 const AIMESSAGE: readonly string[] = ['&id', 'sessionID', 'identity', 'createdAt', 'updatedAt']
-const AICOLLECTION: readonly string[] = ['&id', 'createdAt', 'updatedAt']
+const AIWORKSPACE: readonly string[] = ['&id', 'pinned', 'archivedAt', 'createdAt', 'updatedAt']
+const AIWORKSPACE_FOLDER: readonly string[] = [
+  '&id',
+  'workspaceID',
+  'isPrimary',
+  'sort',
+  'createdAt',
+  'updatedAt'
+]
 
 database.version(2).stores({
   mirror: MIRROR.join(','),
@@ -84,7 +94,14 @@ database.version(2).stores({
 
   AiSession: AISESSION.join(','),
   AiMessage: AIMESSAGE.join(','),
-  AiCollection: AICOLLECTION.join(',')
+  AiCollection: '&id,createdAt,updatedAt'
+})
+
+database.version(3).stores({
+  AiSession: AISESSION.join(','),
+  AiWorkspace: AIWORKSPACE.join(','),
+  AiWorkspaceFolder: AIWORKSPACE_FOLDER.join(','),
+  AiCollection: null
 })
 
 database.on(

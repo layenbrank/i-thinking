@@ -6,18 +6,20 @@ import { immer } from 'zustand/middleware/immer'
 
 type AiSession = MagneticTile.Intelligence.AiSession
 type AiMessage = MagneticTile.Intelligence.AiMessage
-type AiCollection = MagneticTile.Intelligence.AiCollection
+type AiWorkspace = MagneticTile.Intelligence.AiWorkspace
+type AiWorkspaceFolder = MagneticTile.Intelligence.AiWorkspaceFolder
 
 interface SessionChange {
   title?: string
   pinned?: boolean
-  collectionID?: string | null
+  workspaceID?: string | null
 }
 
 interface MessageChange {
   identity?: AiMessage['identity']
   fragment?: string
   thinking?: string | null
+  parts?: string | null
   sessionID?: string
   updatedAt?: number
 }
@@ -43,7 +45,8 @@ type EventType =
   | 'MESSAGE:INSERTED'
   | 'MESSAGE:UPDATED'
   | 'MESSAGE:REMOVED'
-  | 'COLLECTION:SYNCED'
+  | 'WORKSPACE:SYNCED'
+  | 'WORKSPACE_FOLDER:SYNCED'
 
 interface IntelligenceEvent<T = unknown> {
   type: EventType
@@ -76,18 +79,28 @@ interface MessageSlice {
   toUpdateMessages(messages: AiMessage[]): void
 }
 
-interface CollectionSlice {
-  collections: AiCollection[]
-  collectionsLoaded: boolean
+interface WorkspaceSlice {
+  workspaces: AiWorkspace[]
+  workspaceFolders: AiWorkspaceFolder[]
+  activeWorkspaceID: string | null
+  workspacesLoaded: boolean
+  workspaceFoldersLoaded: boolean
 
-  toReadCollections(): Promise<AiCollection[]>
-  toWriteCollection(values: AiCollection[]): Promise<void>
-  toUpdateCollection(values: Partial<AiCollection>[]): Promise<void>
-  toRemoveCollection(keys: string[]): Promise<void>
-  toUpdateCollections(collections: AiCollection[]): void
+  toReadWorkspaces(): Promise<AiWorkspace[]>
+  toWriteWorkspace(values: AiWorkspace[]): Promise<void>
+  toUpdateWorkspace(values: Partial<AiWorkspace>[]): Promise<void>
+  toRemoveWorkspace(keys: string[]): Promise<void>
+  toUpdateWorkspaces(workspaces: AiWorkspace[]): void
+  toActivateWorkspace(workspaceID: string | null): void
+
+  toReadWorkspaceFolders(workspaceID?: string): Promise<AiWorkspaceFolder[]>
+  toWriteWorkspaceFolder(values: AiWorkspaceFolder[]): Promise<void>
+  toUpdateWorkspaceFolder(values: Partial<AiWorkspaceFolder>[]): Promise<void>
+  toRemoveWorkspaceFolder(keys: string[]): Promise<void>
+  toReplaceWorkspaceFolders(workspaceID: string, folders: AiWorkspaceFolder[]): Promise<void>
 }
 
-type IntelligenceStore = SessionSlice & MessageSlice & CollectionSlice
+type IntelligenceStore = SessionSlice & MessageSlice & WorkspaceSlice
 
 type SliceCreator<T> = StateCreator<
   IntelligenceStore,
@@ -103,7 +116,7 @@ function toSessionWrite(value: AiSession) {
     id: value.id,
     title: value.title,
     pinned: value.pinned,
-    collectionID: value.collectionID,
+    workspaceID: value.workspaceID,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt
   }
@@ -115,16 +128,33 @@ function toMessageWrite(value: AiMessage) {
     identity: value.identity,
     fragment: value.fragment,
     thinking: value.thinking,
+    parts: value.parts,
     sessionID: value.sessionID,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt
   }
 }
 
-function toCollectionWrite(value: AiCollection) {
+function toWorkspaceWrite(value: AiWorkspace) {
   return {
     id: value.id,
     title: value.title,
+    icon: value.icon,
+    color: value.color,
+    pinned: value.pinned,
+    archivedAt: value.archivedAt,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt
+  }
+}
+
+function toWorkspaceFolderWrite(value: AiWorkspaceFolder) {
+  return {
+    id: value.id,
+    workspaceID: value.workspaceID,
+    path: value.path,
+    isPrimary: value.isPrimary,
+    sort: value.sort,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt
   }
@@ -469,82 +499,105 @@ const messageSlice: SliceCreator<MessageSlice> = function (setters, getters) {
   }
 }
 
-const collectionSlice: SliceCreator<CollectionSlice> = function (setters, getters) {
+const workspaceSlice: SliceCreator<WorkspaceSlice> = function (setters, getters) {
   return {
-    collections: [],
-    collectionsLoaded: false,
+    workspaces: [],
+    workspaceFolders: [],
+    activeWorkspaceID: null,
+    workspacesLoaded: false,
+    workspaceFoldersLoaded: false,
 
-    async toReadCollections() {
+    async toReadWorkspaces() {
       try {
-        const collections = await invoke<AiCollection[]>('aiCollection:toRead', { params: {} })
+        const workspaces = await invoke<AiWorkspace[]>('aiWorkspace:toRead', {
+          params: { archived: false }
+        })
         setters(
           function (state) {
-            state.collections = collections
-            state.collectionsLoaded = true
+            state.workspaces = workspaces
+            state.workspacesLoaded = true
+            if (!state.activeWorkspaceID && workspaces[0]) {
+              state.activeWorkspaceID = workspaces[0].id
+            }
           },
           false,
-          'toReadCollections'
+          'toReadWorkspaces'
         )
         event$.next({
-          type: 'COLLECTION:SYNCED',
-          payload: collections,
+          type: 'WORKSPACE:SYNCED',
+          payload: workspaces,
           timestamp: Date.now()
         })
-        return collections
+        return workspaces
       } catch (error) {
-        console.error('[intelligence-store] toReadCollections failed:', error)
+        console.error('[intelligence-store] toReadWorkspaces failed:', error)
         setters(
           function (state) {
-            state.collectionsLoaded = true
+            state.workspacesLoaded = true
           },
           false,
-          'toReadCollections/error'
+          'toReadWorkspaces/error'
         )
         return []
       }
     },
 
-    async toWriteCollection(values: AiCollection[]) {
-      const former = structuredClone(getters().collections)
+    async toWriteWorkspace(values: AiWorkspace[]) {
+      const former = structuredClone(getters().workspaces)
       setters(
         function (state) {
-          state.collections.push(...values)
+          state.workspaces.push(...values)
+          if (!state.activeWorkspaceID && values[0]) {
+            state.activeWorkspaceID = values[0].id
+          }
         },
         false,
-        'toWriteCollection/optimistic'
+        'toWriteWorkspace/optimistic'
       )
       try {
-        await invoke('aiCollection:toWrite', {
-          params: values.map(toCollectionWrite)
+        await invoke('aiWorkspace:toWrite', {
+          params: values.map(toWorkspaceWrite)
         })
       } catch (error) {
-        setters({ collections: former }, false, 'toWriteCollection/rollback')
+        setters({ workspaces: former }, false, 'toWriteWorkspace/rollback')
         throw error
       }
     },
 
-    async toUpdateCollection(values: Partial<AiCollection>[]) {
+    async toUpdateWorkspace(values: Partial<AiWorkspace>[]) {
       const hasID = values.every(function (v) {
         return Boolean(v.id)
       })
       if (!hasID) throw new Error('ID is required')
 
-      const collections = structuredClone(getters().collections)
-      const updatesMap = new Map<string, Partial<AiCollection>>()
+      const workspaces = structuredClone(getters().workspaces)
+      const updatesMap = new Map<string, Partial<AiWorkspace>>()
       values.forEach(function (v) {
         if (v.id) updatesMap.set(v.id, v)
       })
 
       setters(
         function (state) {
-          state.collections = collections.map(function (item) {
-            const update = updatesMap.get(item.id)
-            if (!update) return item
-            return Object.assign({}, item, update)
-          })
+          state.workspaces = workspaces
+            .map(function (item) {
+              const update = updatesMap.get(item.id)
+              if (!update) return item
+              return Object.assign({}, item, update)
+            })
+            .filter(function (item) {
+              return item.archivedAt == null
+            })
+          if (
+            state.activeWorkspaceID &&
+            !state.workspaces.some(function (item) {
+              return item.id === state.activeWorkspaceID
+            })
+          ) {
+            state.activeWorkspaceID = state.workspaces[0]?.id ?? null
+          }
         },
         false,
-        'toUpdateCollection/optimistic'
+        'toUpdateWorkspace/optimistic'
       )
 
       try {
@@ -552,39 +605,214 @@ const collectionSlice: SliceCreator<CollectionSlice> = function (setters, getter
           const { id, ...change } = v
           return { key: id!, change }
         })
-        await invoke('aiCollection:toUpdate', { params })
+        await invoke('aiWorkspace:toUpdate', { params })
       } catch (error) {
-        setters({ collections }, false, 'toUpdateCollection/rollback')
+        setters({ workspaces }, false, 'toUpdateWorkspace/rollback')
         throw error
       }
     },
 
-    async toRemoveCollection(keys: string[]) {
-      const former = structuredClone(getters().collections)
+    async toRemoveWorkspace(keys: string[]) {
+      const former = structuredClone(getters().workspaces)
+      const formerFolders = structuredClone(getters().workspaceFolders)
       try {
         setters(
           function (state) {
-            state.collections = former.filter(function (collection) {
-              return !keys.includes(collection.id)
+            state.workspaces = former.filter(function (workspace) {
+              return !keys.includes(workspace.id)
             })
+            state.workspaceFolders = formerFolders.filter(function (folder) {
+              return !keys.includes(folder.workspaceID)
+            })
+            if (state.activeWorkspaceID && keys.includes(state.activeWorkspaceID)) {
+              state.activeWorkspaceID = state.workspaces[0]?.id ?? null
+            }
           },
           false,
-          'toRemoveCollection/optimistic'
+          'toRemoveWorkspace/optimistic'
         )
-        await invoke('aiCollection:toRemove', { params: keys })
+        await invoke('aiWorkspace:toRemove', { params: keys })
       } catch (error) {
-        setters({ collections: former }, false, 'toRemoveCollection/rollback')
+        setters(
+          { workspaces: former, workspaceFolders: formerFolders },
+          false,
+          'toRemoveWorkspace/rollback'
+        )
         throw error
       }
     },
 
-    toUpdateCollections(collections) {
-      setters({ collections }, false, 'toUpdateCollections/synced')
+    toUpdateWorkspaces(workspaces) {
+      setters({ workspaces }, false, 'toUpdateWorkspaces/synced')
       event$.next({
-        type: 'COLLECTION:SYNCED',
-        payload: collections,
+        type: 'WORKSPACE:SYNCED',
+        payload: workspaces,
         timestamp: Date.now()
       })
+    },
+
+    toActivateWorkspace(workspaceID) {
+      setters(
+        function (state) {
+          state.activeWorkspaceID = workspaceID
+        },
+        false,
+        'toActivateWorkspace'
+      )
+    },
+
+    async toReadWorkspaceFolders(workspaceID) {
+      try {
+        const params = workspaceID ? { workspaceID } : {}
+        const folders = await invoke<AiWorkspaceFolder[]>('aiWorkspaceFolder:toRead', {
+          params
+        })
+        setters(
+          function (state) {
+            if (workspaceID) {
+              state.workspaceFolders = [
+                ...state.workspaceFolders.filter(function (folder) {
+                  return folder.workspaceID !== workspaceID
+                }),
+                ...folders
+              ]
+            } else {
+              state.workspaceFolders = folders
+            }
+            state.workspaceFoldersLoaded = true
+          },
+          false,
+          'toReadWorkspaceFolders'
+        )
+        event$.next({
+          type: 'WORKSPACE_FOLDER:SYNCED',
+          payload: folders,
+          timestamp: Date.now()
+        })
+        return folders
+      } catch (error) {
+        console.error('[intelligence-store] toReadWorkspaceFolders failed:', error)
+        setters(
+          function (state) {
+            state.workspaceFoldersLoaded = true
+          },
+          false,
+          'toReadWorkspaceFolders/error'
+        )
+        return []
+      }
+    },
+
+    async toWriteWorkspaceFolder(values: AiWorkspaceFolder[]) {
+      const former = structuredClone(getters().workspaceFolders)
+      setters(
+        function (state) {
+          state.workspaceFolders.push(...values)
+        },
+        false,
+        'toWriteWorkspaceFolder/optimistic'
+      )
+      try {
+        await invoke('aiWorkspaceFolder:toWrite', {
+          params: values.map(toWorkspaceFolderWrite)
+        })
+      } catch (error) {
+        setters({ workspaceFolders: former }, false, 'toWriteWorkspaceFolder/rollback')
+        throw error
+      }
+    },
+
+    async toUpdateWorkspaceFolder(values: Partial<AiWorkspaceFolder>[]) {
+      const hasID = values.every(function (v) {
+        return Boolean(v.id)
+      })
+      if (!hasID) throw new Error('ID is required')
+
+      const folders = structuredClone(getters().workspaceFolders)
+      const updatesMap = new Map<string, Partial<AiWorkspaceFolder>>()
+      values.forEach(function (v) {
+        if (v.id) updatesMap.set(v.id, v)
+      })
+
+      setters(
+        function (state) {
+          state.workspaceFolders = folders.map(function (item) {
+            const update = updatesMap.get(item.id)
+            if (!update) return item
+            return Object.assign({}, item, update)
+          })
+        },
+        false,
+        'toUpdateWorkspaceFolder/optimistic'
+      )
+
+      try {
+        const params = values.map(function (v) {
+          const { id, ...change } = v
+          return { key: id!, change }
+        })
+        await invoke('aiWorkspaceFolder:toUpdate', { params })
+      } catch (error) {
+        setters({ workspaceFolders: folders }, false, 'toUpdateWorkspaceFolder/rollback')
+        throw error
+      }
+    },
+
+    async toRemoveWorkspaceFolder(keys: string[]) {
+      const former = structuredClone(getters().workspaceFolders)
+      try {
+        setters(
+          function (state) {
+            state.workspaceFolders = former.filter(function (folder) {
+              return !keys.includes(folder.id)
+            })
+          },
+          false,
+          'toRemoveWorkspaceFolder/optimistic'
+        )
+        await invoke('aiWorkspaceFolder:toRemove', { params: keys })
+      } catch (error) {
+        setters({ workspaceFolders: former }, false, 'toRemoveWorkspaceFolder/rollback')
+        throw error
+      }
+    },
+
+    async toReplaceWorkspaceFolders(workspaceID, folders) {
+      const former = structuredClone(getters().workspaceFolders)
+      const removeKeys = former
+        .filter(function (folder) {
+          return folder.workspaceID === workspaceID
+        })
+        .map(function (folder) {
+          return folder.id
+        })
+
+      setters(
+        function (state) {
+          state.workspaceFolders = [
+            ...former.filter(function (folder) {
+              return folder.workspaceID !== workspaceID
+            }),
+            ...folders
+          ]
+        },
+        false,
+        'toReplaceWorkspaceFolders/optimistic'
+      )
+
+      try {
+        if (removeKeys.length) {
+          await invoke('aiWorkspaceFolder:toRemove', { params: removeKeys })
+        }
+        if (folders.length) {
+          await invoke('aiWorkspaceFolder:toWrite', {
+            params: folders.map(toWorkspaceFolderWrite)
+          })
+        }
+      } catch (error) {
+        setters({ workspaceFolders: former }, false, 'toReplaceWorkspaceFolders/rollback')
+        throw error
+      }
     }
   }
 }
@@ -596,7 +824,7 @@ const useIntelligenceStore = create<IntelligenceStore>()(
         return {
           ...sessionSlice(...args),
           ...messageSlice(...args),
-          ...collectionSlice(...args)
+          ...workspaceSlice(...args)
         }
       })
     ),
@@ -610,7 +838,8 @@ const useIntelligenceStore = create<IntelligenceStore>()(
 export {
   event$,
   useIntelligenceStore,
-  type AiCollection,
+  type AiWorkspace,
+  type AiWorkspaceFolder,
   type AiMessage,
   type AiSession,
   type MessageUpdate,

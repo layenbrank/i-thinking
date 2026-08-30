@@ -38,7 +38,7 @@ describe('buildTheme', function () {
       }
     })
     expect(config.components?.Layout?.headerBg).toBe('#111111')
-    expect(config.components?.Menu?.itemBg).toBe('#000000')
+    expect(config.components?.Menu?.algorithm).toBe(true)
   })
 
   it('applies custom color to seed token', function () {

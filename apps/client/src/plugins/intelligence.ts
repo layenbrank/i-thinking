@@ -4,7 +4,8 @@ import { useIntelligenceStore as store } from '@/stores/intelligence.ts'
 const IntelligencePlugin: Plugin = {
   unique: 'intelligence-plugin',
   mount() {
-    void store.getState().toReadCollections()
+    void store.getState().toReadWorkspaces()
+    void store.getState().toReadWorkspaceFolders()
     void store.getState().toReadSessions()
   },
   unmount() {}

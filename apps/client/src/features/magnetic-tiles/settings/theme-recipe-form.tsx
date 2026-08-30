@@ -16,7 +16,8 @@ const TAB_LABELS: Record<RecipeTab, string> = {
   navigation: '导航',
   form: '表单',
   dataDisplay: '展示',
-  feedback: '反馈'
+  feedback: '反馈',
+  ai: 'AI 对话'
 }
 
 function findRecipeDefault(component: ThemeComponentKey, token: string): unknown {
@@ -38,7 +39,7 @@ function readFieldValue(components: ThemeComponent, field: RecipeField): unknown
 function patchField(
   components: ThemeComponent,
   field: RecipeField,
-  value: unknown | undefined
+  value: unknown
 ): ThemeComponent {
   if (value === undefined) {
     const bucket = components[field.component]

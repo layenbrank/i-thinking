@@ -1,5 +1,5 @@
 /**
- * corex-serve IPC 传输层（对齐 serve/protocol Response）
+ * corex-daemon IPC 传输层（对齐 crates/ipc Response）
  * 领域 API 见 morph-ipc / engine-ipc
  */
 import { invoke } from '@tauri-apps/api/core'
