@@ -1,0 +1,121 @@
+.modal {
+  :global(.ant-modal-content) {
+    padding: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.16);
+  }
+}
+
+.container {
+  padding: 0;
+}
+
+.body {
+  padding: 0 !important;
+}
+
+.inputRow {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+}
+
+.input {
+  font-size: 15px;
+
+  :global(.ant-input) {
+    font-size: 15px;
+  }
+
+  :global(.ant-input-prefix) {
+    margin-inline-end: 10px;
+  }
+}
+
+.searchIcon {
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+}
+
+.metaRow {
+  padding: 8px 16px;
+}
+
+.metaLabel,
+.hints {
+  font-size: 12px;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--ith-color-border);
+  border-radius: 4px;
+  background: var(--ith-color-fill-quaternary, rgba(0, 0, 0, 0.03));
+  color: var(--ith-color-text-secondary);
+  font-size: 11px;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.list {
+  max-height: min(52vh, 420px);
+  min-height: 160px;
+  overflow-y: auto;
+  padding: 0 8px 12px;
+}
+
+.hit {
+  display: block !important;
+  height: auto !important;
+  margin-bottom: 2px;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+  text-align: left;
+  color: var(--ith-color-text) !important;
+
+  &:hover {
+    background: var(--ith-color-fill-quaternary, rgba(0, 0, 0, 0.04)) !important;
+  }
+}
+
+.hitActive {
+  background: var(--ith-color-fill-tertiary, rgba(0, 0, 0, 0.06)) !important;
+}
+
+.hitInner {
+  width: 100%;
+  min-width: 0;
+}
+
+.hitTitle {
+  flex: 0 1 42%;
+  min-width: 0;
+  max-width: 42%;
+  font-size: 13px !important;
+  color: var(--ith-color-text) !important;
+}
+
+.hitMeta {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px !important;
+}
+
+.hitDate {
+  flex: 0 0 auto;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+
+.empty {
+  margin-block: 24px !important;
+
+  :global(.ant-empty-description) {
+    font-size: 12px;
+    color: var(--ith-color-text-secondary);
+  }
+}
