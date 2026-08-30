@@ -15,14 +15,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  make:
-    name: make (${{ matrix.os }})
+  sidecar:
+    name: sidecar (${{ matrix.platform_key }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            platform_key: win32-x64
 
     steps:
       - name: Checkout
@@ -39,13 +41,61 @@ jobs:
           node-version: '24'
           cache: pnpm
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
+      - name: Bootstrap sidecars (corex release + pandoc)
+        run: pnpm command sidecar bootstrap studio
+
+      - name: Pack staging archive
+        shell: bash
+        run: |
+          KEY="${{ matrix.platform_key }}"
+          SHA="$(git rev-parse --short=12 HEAD)"
+          STAGING="apps/studio/sidecar/staging/${KEY}"
+          OUT="studio-sidecar-${SHA}-${KEY}.tar.gz"
+          tar -czf "${OUT}" -C "${STAGING}" .
+          if command -v sha256sum >/dev/null; then
+            sha256sum "${OUT}" > "${OUT}.sha256"
+          else
+            shasum -a 256 "${OUT}" > "${OUT}.sha256"
+          fi
+
+      - name: Upload sidecar artifacts
+        uses: actions/upload-artifact@v6
         with:
-          workspaces: apps/studio/sidecar -> target
+          name: sidecar-${{ matrix.platform_key }}
+          retention-days: 30
+          path: |
+            studio-sidecar-*.tar.gz
+            studio-sidecar-*.sha256
+
+  make:
+    name: make (${{ matrix.os }})
+    needs: sidecar
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform_key: win32-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
 
       - name: Get pnpm store path
         id: pnpm-cache
@@ -69,8 +119,21 @@ jobs:
       - name: Rebuild natives
         run: pnpm --filter @i-thinking/studio rebuild
 
-      - name: Build Rust sidecars
-        run: pnpm --filter @i-thinking/studio sidecar:build
+      - name: Download sidecar artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: sidecar-${{ matrix.platform_key }}
+          path: .sidecar-ci
+
+      - name: Restore staging
+        shell: bash
+        run: |
+          KEY="${{ matrix.platform_key }}"
+          DEST="apps/studio/sidecar/staging/${KEY}"
+          mkdir -p "${DEST}"
+          ARCHIVE="$(ls .sidecar-ci/studio-sidecar-*-${KEY}.tar.gz | head -n1)"
+          tar -xzf "${ARCHIVE}" -C "${DEST}"
+          pnpm command sidecar verify studio
 
       - name: Make installers
         env:
