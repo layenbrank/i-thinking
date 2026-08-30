@@ -23,8 +23,9 @@
     "bump:extension": "pnpm --filter @i-thinking/extension exec bumpp --configFilePath bump.extension.ts",
     "bump:service": "pnpm --filter @i-thinking/service exec bumpp --configFilePath bump.service.ts",
     "bump:studio": "pnpm --filter @i-thinking/studio exec bumpp --configFilePath bump.studio.ts",
-    "bundle": "pnpm build && node scripts/commands/bundle.mjs",
-    "corex": "bun run scripts/commands/index.ts",
+    "command": "node scripts/commands/index.ts",
+    "sidecar": "node scripts/commands/index.ts sidecar",
+    "worker": "node scripts/commands/index.ts worker",
     "coverage": "turbo run coverage",
     "dev": "turbo run dev",
     "dev:client": "turbo run dev --filter=@i-thinking/client",
@@ -32,8 +33,6 @@
     "dev:devtools": "turbo run dev --filter=@i-thinking/devtools",
     "dev:extension": "turbo run dev --filter=@i-thinking/extension",
     "dev:service": "turbo run dev --filter=@i-thinking/service",
-    "deploy:worker": "pnpm --filter @i-thinking/worker deploy",
-    "secret:worker": "pnpm --filter @i-thinking/worker secret",
     "e2e": "turbo run e2e",
     "format": "prettier --write \"**/*.{ts,tsx,vue,json,scss,md}\"",
     "lint": "turbo run lint",
@@ -188,6 +187,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260829.1",
     "@eslint/js": "^9.33.0",
     "@iconify/json": "^2.2.402",
     "@playwright/test": "^1.57.0",
@@ -275,49 +275,11 @@
     "vite-plugin-vue-devtools": "^8.0.3",
     "vite-plugin-wasm": "^3.5.0",
     "vitest": "^4.0.14",
-    "vue-tsc": "^3.1.1"
+    "vue-tsc": "^3.1.1",
+    "wrangler": "^4.127.1"
   },
   "packageManager": "pnpm@11.24.0+sha512.bd27e345e976dcb0be0b7a1228217b049a817e21b1f355c90dbe7dc46671895a8bc1e6d06c24554505ea93ea0b45f489a27ec1bfbc8de6a9659fca0f16fa0000",
   "engines": {
     "node": ">=24.18.0"
-  },
-  "workspaces": {
-    "packages": [
-      "apps/*",
-      "packages/*"
-    ],
-    "catalog": {
-      "electron": "^40.1.0",
-      "antd": "^6.6.2",
-      "antd-style": "^4.1.0",
-      "@ant-design/colors": "^8.0.1",
-      "@ant-design/x": "^2.9.0",
-      "@ant-design/x-markdown": "^2.9.0",
-      "@electron-forge/cli": "^7.11.2",
-      "@electron-forge/maker-deb": "^7.11.2",
-      "@electron-forge/maker-dmg": "^7.11.2",
-      "@electron-forge/maker-rpm": "^7.11.2",
-      "@electron-forge/maker-squirrel": "^7.11.2",
-      "@electron-forge/maker-zip": "^7.11.2",
-      "@electron-forge/plugin-auto-unpack-natives": "^7.11.2",
-      "@electron-forge/plugin-fuses": "^7.11.2",
-      "@electron-forge/plugin-vite": "^7.11.2",
-      "@electron/fuses": "^1.8.0",
-      "@electron/rebuild": "^4.0.4",
-      "@types/electron-squirrel-startup": "^1.0.2",
-      "prisma": "^7.8.0",
-      "@prisma/adapter-better-sqlite3": "^7.8.0",
-      "@prisma/client": "^7.8.0",
-      "better-sqlite3": "^12.6.2",
-      "electron-squirrel-startup": "^1.0.1",
-      "electron-store": "^11.0.2"
-    }
-  },
-  "overrides": {
-    "@electron/rebuild": "^4.0.4",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "dayjs": "1.11.21",
-    "use-sync-external-store": "1.6.0",
-    "@napi-rs/wasm-runtime": "1.2.2"
   }
 }
