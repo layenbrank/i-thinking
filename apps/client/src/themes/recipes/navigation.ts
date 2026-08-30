@@ -2,9 +2,7 @@ import type { ThemeComponent } from '@/themes/antd'
 
 export const NAVIGATION_RECIPES: ThemeComponent = {
   Menu: {
-    algorithm: true,
-    itemBg: '#000000',
-    colorText: '#ffffff'
+    algorithm: true
   },
   Tabs: {
     algorithm: true

@@ -1,10 +1,13 @@
 import { openUrl } from '@tauri-apps/plugin-opener'
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+
 import { Tooltip } from 'antd'
 import { clsx, type ClassValue } from 'clsx'
 import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
+import { WINDOW } from '@/constants/magnetic-tile/window'
 import { Caption } from '@/features/magnetic-tile/caption'
 import { Enter, ENTER, useEnter } from '@/features/magnetic-tile/enter'
 import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
@@ -64,7 +67,7 @@ type ActivateCtx = {
   present: () => void
 }
 
-type ActivateFn = (ctx: ActivateCtx) => void
+type ActivateFn = (ctx: ActivateCtx) => void | Promise<void>
 
 /**
  * 双击侧通道：未登记组件默认 present Overlay。
@@ -74,12 +77,27 @@ const SIDE_CHANNELS: Partial<Record<MagneticTile.Component, ActivateFn>> = {
   navigation(ctx) {
     if (!ctx.tile.url) return
     void openUrl(ctx.tile.url)
+  },
+  async intelligence() {
+    const existing = await WebviewWindow.getByLabel('agent')
+    if (existing) {
+      await existing.setFocus()
+      return
+    }
+    new WebviewWindow('agent', {
+      url: '/agent',
+      title: 'Agent',
+      ...WINDOW.intelligence
+    })
   }
 }
 
 function activateTile(tile: Pick<MagneticTile, 'component' | 'url'>, present: () => void) {
   const channel = SIDE_CHANNELS[tile.component]
-  if (channel) return channel({ tile, present })
+  if (channel) {
+    void channel({ tile, present })
+    return
+  }
 
   present()
 }
@@ -146,32 +164,29 @@ const MagneticTile = {
     // 锁定首挂 index：重排改序不重算 stagger，避免误触发观感变化
     const staggerIndexRef = useRef(enter.index)
 
-    useEffect(
-      function () {
-        const el = nodeRef.current
-        if (!el) return
+    useEffect(function () {
+      const el = nodeRef.current
+      if (!el) return
 
-        const root = el.closest('[data-mirror-scroller]')
-        const observer = new IntersectionObserver(
-          function (entries) {
-            for (const entry of entries) {
-              // 滞回：进入即 true；离开后仍保持一屏缓冲（rootMargin）才 false
-              setIsNear(entry.isIntersecting)
-            }
-          },
-          {
-            root: root ?? null,
-            rootMargin: '100% 0px',
-            threshold: 0
+      const root = el.closest('[data-mirror-scroller]')
+      const observer = new IntersectionObserver(
+        function (entries) {
+          for (const entry of entries) {
+            // 滞回：进入即 true；离开后仍保持一屏缓冲（rootMargin）才 false
+            setIsNear(entry.isIntersecting)
           }
-        )
-        observer.observe(el)
-        return function () {
-          observer.disconnect()
+        },
+        {
+          root: root ?? null,
+          rootMargin: '100% 0px',
+          threshold: 0
         }
-      },
-      []
-    )
+      )
+      observer.observe(el)
+      return function () {
+        observer.disconnect()
+      }
+    }, [])
 
     const surfaceStyle = useMemo(
       function () {

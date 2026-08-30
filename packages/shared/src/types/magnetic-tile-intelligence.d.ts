@@ -4,14 +4,28 @@ declare namespace MagneticTile {
       id: string
       title: string
       pinned: boolean
-      collectionID: string | null
+      workspaceID: string | null
       createdAt: number
       updatedAt: number
     }
 
-    interface AiCollection {
+    interface AiWorkspace {
       id: string
       title: string
+      icon: string
+      color: string
+      pinned: boolean
+      archivedAt: number | null
+      createdAt: number
+      updatedAt: number
+    }
+
+    interface AiWorkspaceFolder {
+      id: string
+      workspaceID: string
+      path: string
+      isPrimary: boolean
+      sort: number
       createdAt: number
       updatedAt: number
     }
@@ -21,6 +35,7 @@ declare namespace MagneticTile {
       identity: Identity
       fragment: string
       thinking: string | null
+      parts: string | null
       sessionID: string
       createdAt: number
       updatedAt: number

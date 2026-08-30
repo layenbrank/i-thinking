@@ -51,7 +51,7 @@ export const useAiStore = defineStore('intelligence', function () {
       id: crypto.randomUUID(),
       title: '新对话',
       pinned: false,
-      collectionID: null,
+      workspaceID: null,
       createdAt: Date.now(),
       updatedAt: Date.now()
     })
