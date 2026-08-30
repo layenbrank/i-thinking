@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@ant-design/colors": "catalog:",
-    "@ant-design/icons": "catalog:",
     "@ant-design/x": "catalog:",
     "@ant-design/x-markdown": "catalog:",
     "@i-thinking/utils": "workspace:*",
