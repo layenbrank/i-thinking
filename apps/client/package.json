@@ -2,7 +2,7 @@
   "name": "@i-thinking/client",
   "private": true,
   "type": "module",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "scripts": {
     "build": "node scripts/build.ts",
     "build:core": "run-p type-check lint \"build-only {@}\" --",
