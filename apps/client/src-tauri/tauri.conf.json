@@ -157,7 +157,7 @@
   },
   "build": {
     "beforeBuildCommand": "pnpm build:core",
-    "beforeDevCommand": "node scripts/prepare/index.ts && pnpm dev:core",
+    "beforeDevCommand": "pnpm prepare:bin && pnpm dev:core",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
   },
