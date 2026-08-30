@@ -1,6 +1,6 @@
 # Microsoft Store 包托管摘要
 
-面向 Partner Center 填写与自检。Worker 实现与运维见 [`apps/worker/README.md`](../apps/worker/README.md)。
+面向 Partner Center 填写与自检。Worker 实现与运维见 [`scripts/infra/worker/README.md`](../scripts/infra/worker/README.md)。
 
 当前版本：**1.3.0**
 
@@ -55,10 +55,10 @@ NSIS ExitCode 对照：`0` 成功 · `1` 用户取消 · `2` 脚本 Abort（勿�
 |----|-----|
 | R2 桶 | `i-thinking` |
 | 对象键 | `1.3.0/i-thinking_1.3.0_x64-setup.exe` |
-| Worker 代码 | [`apps/worker`](../apps/worker)（`@i-thinking/worker`） |
+| Worker 代码 | [`scripts/infra/worker`](../scripts/infra/worker)（非 workspace；根 CLI `pnpm command worker`） |
 | workers.dev 子域 | `layenbrank` |
 | 上传 | Worker multipart，或 rclone S3（见 Worker README） |
-| 部署 | 仓库根：`pnpm deploy:worker` |
+| 部署 | 仓库根：`pnpm command worker deploy` |
 
 ---
 
