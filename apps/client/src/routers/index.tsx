@@ -6,6 +6,10 @@ const Overview = lazy(function () {
   return import('@/views/overview/overview.tsx')
 })
 
+const Agent = lazy(function () {
+  return import('@/views/agent/agent.tsx')
+})
+
 const routes: RouteObject[] = [
   {
     path: '/',
@@ -23,6 +27,10 @@ const routes: RouteObject[] = [
   {
     path: '/overlay',
     element: <Overlay />
+  },
+  {
+    path: '/agent',
+    element: <Agent />
   }
 ]
 

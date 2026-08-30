@@ -1,0 +1,69 @@
+/* Agent 壳层：活动栏 + Splitter，沿用主题主色 */
+
+.agent {
+  display: grid;
+  grid-template-rows: 36px minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
+  background: var(--ith-color-bg-layout);
+  color: var(--ith-color-text);
+}
+
+.titlebar {
+  grid-column: 1 / -1;
+}
+
+.body {
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.splitter {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+
+  :global(.ant-splitter-bar) {
+    &::before {
+      background: var(--ith-color-border) !important;
+    }
+
+    &:hover::before,
+    &:active::before {
+      background: var(--ith-color-primary) !important;
+    }
+  }
+
+  :global(.ant-splitter-bar-dragger) {
+    width: 4px;
+    background: transparent;
+  }
+}
+
+.sidebar,
+.workbench,
+.planPane {
+  height: 100%;
+  min-height: 0;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--ith-color-bg-container);
+}
+
+.workbench {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--ith-color-bg-container);
+}
+
+.planPane {
+  display: flex;
+  flex-direction: column;
+  background: var(--ith-color-bg-layout);
+}

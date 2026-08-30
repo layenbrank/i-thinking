@@ -1,0 +1,243 @@
+/* 主对话区：舒适留白与底栏输入区 */
+
+.empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 48px 28px;
+  overflow-y: auto;
+}
+
+.emptyInner {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: 100%;
+  max-width: 880px;
+  margin-top: -4vh;
+}
+
+.emptyIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+  color: var(--ith-color-primary);
+  background: var(--ith-color-primary-bg);
+  border-radius: var(--ith-border-radius-lg, 8px);
+}
+
+.welcome {
+  width: 100%;
+}
+
+.welcomeTitle {
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  letter-spacing: -0.01em;
+  color: var(--ith-color-text) !important;
+}
+
+.welcomeDesc {
+  margin-top: 10px !important;
+  max-width: 36em;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+  color: var(--ith-color-text-secondary) !important;
+}
+
+.prompts {
+  width: 100%;
+  min-width: 0;
+}
+
+.promptsTitle {
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+}
+
+.promptsGlide {
+  width: 100%;
+  height: 132px;
+}
+
+.promptsTrack {
+  gap: 12px;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  padding: 2px 0;
+
+  > * {
+    flex-shrink: 0;
+  }
+}
+
+.promptCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 220px;
+  height: 100%;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--ith-color-border);
+  border-radius: var(--ith-border-radius-lg, 8px);
+  background: var(--ith-color-bg-container);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    transform 150ms ease-out;
+
+  &:hover {
+    border-color: var(--ith-color-primary-border, var(--ith-color-primary));
+    background: var(--ith-color-primary-bg, rgba(22, 119, 255, 0.04));
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ith-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.promptIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--ith-color-primary);
+  background: var(--ith-color-primary-bg, rgba(22, 119, 255, 0.08));
+  border-radius: var(--ith-border-radius, 6px);
+}
+
+.promptBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+
+.promptLabel {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ith-color-text);
+}
+
+.promptDesc {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ith-color-text-secondary);
+}
+
+@media (max-width: 960px) {
+  .empty {
+    padding: 28px 24px 20px;
+  }
+
+  .emptyInner {
+    max-width: 640px;
+    margin-top: 0;
+    gap: 22px;
+  }
+
+  .promptsGlide {
+    height: 120px;
+  }
+
+  .promptCard {
+    width: 200px;
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .promptReveal {
+    .promptCard {
+      animation: agentPromptIn 200ms ease-out both;
+    }
+
+    .promptCard:nth-child(1) {
+      animation-delay: 0ms;
+    }
+
+    .promptCard:nth-child(2) {
+      animation-delay: 40ms;
+    }
+
+    .promptCard:nth-child(3) {
+      animation-delay: 80ms;
+    }
+
+    .promptCard:nth-child(4) {
+      animation-delay: 120ms;
+    }
+
+    .promptCard:nth-child(5) {
+      animation-delay: 160ms;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promptCard:hover {
+    transform: none;
+  }
+}
+
+@keyframes agentPromptIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bubbles {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 28px;
+
+  :global(.ant-bubble-list) {
+    gap: 16px;
+  }
+
+  :global(.ant-bubble-content) {
+    border-radius: var(--ith-border-radius-lg, 8px);
+  }
+}
+
+.composer {
+  flex-shrink: 0;
+  padding: 12px 24px 16px;
+  border-top: 1px solid var(--ith-color-border);
+  background: var(--ith-color-bg-container);
+}

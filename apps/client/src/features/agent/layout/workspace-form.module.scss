@@ -1,0 +1,170 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ith-color-text);
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 96px;
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--ith-color-border);
+  border-radius: 10px;
+  background: var(--ith-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  color: var(--ith-color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--ith-color-primary);
+    color: var(--ith-color-primary);
+  }
+}
+
+.folderList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.folderItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ith-color-fill-quaternary, rgba(0, 0, 0, 0.03));
+}
+
+.folderPrimary {
+  background: var(--ith-color-fill-tertiary, rgba(0, 0, 0, 0.06));
+}
+
+.folderIcon {
+  flex-shrink: 0;
+  color: var(--ith-color-text-secondary);
+}
+
+.folderMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.folderName {
+  font-size: 13px;
+  color: var(--ith-color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folderPath {
+  font-size: 11px;
+  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.primaryTag {
+  margin-inline-end: 0 !important;
+}
+
+.iconGrid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.iconCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--ith-color-fill-quaternary, rgba(0, 0, 0, 0.03));
+  color: var(--ith-color-text-secondary);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ith-color-text);
+    background: var(--ith-color-fill-tertiary, rgba(0, 0, 0, 0.06));
+  }
+}
+
+.iconActive {
+  border-color: var(--ith-color-primary);
+  color: var(--ith-color-primary);
+  background: color-mix(in srgb, var(--ith-color-primary) 12%, transparent);
+}
+
+.colorRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.colorSwatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.colorActive {
+  border-color: var(--ith-color-primary);
+  box-shadow: 0 0 0 1px var(--ith-color-bg-elevated, #fff);
+}
+
+.preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--ith-color-fill-quaternary, rgba(0, 0, 0, 0.03));
+  color: var(--ith-color-text-secondary);
+  font-size: 12px;
+}
+
+.previewDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

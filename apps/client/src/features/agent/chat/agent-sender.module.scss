@@ -1,0 +1,192 @@
+/* AgentSender — 主题走 antd cssVar（--ith-*） */
+
+.main {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--ith-color-border);
+  border-radius: calc(var(--ith-border-radius, 6px) * 1.35);
+  background: var(--ith-color-bg-container);
+  overflow: hidden;
+  transition:
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+
+  &:focus-within {
+    border-color: var(--ith-color-primary);
+    box-shadow: 0 0 0 2px var(--ith-color-primary-bg, rgba(22, 119, 255, 0.16));
+  }
+
+  &[data-disabled='true'] {
+    background: var(--ith-color-bg-container-disabled, var(--ith-color-fill-tertiary));
+    opacity: 0.85;
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+.media {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+}
+
+.imageStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.imageCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+}
+
+.imageThumb {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--ith-border-radius, 6px);
+  overflow: hidden;
+  background: var(--ith-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+}
+
+.imagePreview {
+  width: 72px;
+  height: 72px;
+  cursor: zoom-in;
+}
+
+.imageRemove {
+  position: absolute;
+  top: 4px;
+  inset-inline-end: 4px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.72);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.imageName {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  color: var(--ith-color-text-secondary);
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  max-height: 144px;
+  overflow-y: auto;
+  outline: none;
+  scroll-behavior: smooth;
+  caret-color: var(--ith-color-primary);
+  color: var(--ith-color-text);
+  font-size: var(--ith-font-size, 14px);
+  line-height: 24px;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  &[data-empty='true']:before {
+    content: attr(data-placeholder);
+    color: var(--ith-color-text-quaternary, var(--ith-color-text-tertiary));
+    pointer-events: none;
+  }
+}
+
+.footer {
+  border-top: 1px solid var(--ith-color-border);
+  padding: 8px 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 220px;
+  height: 20px;
+  margin: 2px;
+  padding: 0 2px 0 4px;
+  border-radius: var(--ith-border-radius, 6px);
+  background: var(--ith-color-primary-bg, rgba(22, 119, 255, 0.1));
+  color: var(--ith-color-primary);
+  font-size: 12px;
+  line-height: 20px;
+  vertical-align: bottom;
+  user-select: none;
+}
+
+.chipIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+}
+
+.chipLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipClose {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ith-color-primary);
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.65;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--ith-color-primary) 16%, transparent);
+  }
+}
