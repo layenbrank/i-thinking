@@ -1,7 +1,7 @@
-import { contextBridge, ipcRenderer } from 'electron'
 import { CHANNELS } from '@shared/ipc/channels'
 import type { IpcResult } from '@shared/ipc/result'
-import type { Studio } from '@shared/ipc/studio'
+import type { ITC } from '@shared/ipc/studio'
+import { contextBridge, ipcRenderer } from 'electron'
 
 async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
   const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
@@ -14,19 +14,19 @@ async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
   return result.data
 }
 
-const studio: Studio = {
+const itc: ITC = {
   store: {
-    get(input) {
-      return invoke(CHANNELS.STORE.GET, input)
+    toRead(input) {
+      return invoke(CHANNELS.STORE.READ, input)
     },
-    set(input) {
-      return invoke(CHANNELS.STORE.SET, input)
+    toWrite(input) {
+      return invoke(CHANNELS.STORE.WRITE, input)
     },
     has(input) {
       return invoke(CHANNELS.STORE.HAS, input)
     },
-    delete(input) {
-      return invoke(CHANNELS.STORE.DELETE, input)
+    toRemove(input) {
+      return invoke(CHANNELS.STORE.REMOVE, input)
     },
     clear() {
       return invoke(CHANNELS.STORE.CLEAR)
@@ -44,16 +44,16 @@ const studio: Studio = {
     }
   },
   user: {
-    list() {
-      return invoke(CHANNELS.USER.LIST)
+    toRead() {
+      return invoke(CHANNELS.USER.READ)
     },
-    create(input) {
-      return invoke(CHANNELS.USER.CREATE, input)
+    toWrite(input) {
+      return invoke(CHANNELS.USER.WRITE, input)
     },
-    update(input) {
+    toUpdate(input) {
       return invoke(CHANNELS.USER.UPDATE, input)
     },
-    remove(input) {
+    toRemove(input) {
       return invoke(CHANNELS.USER.REMOVE, input)
     }
   },
@@ -70,12 +70,6 @@ const studio: Studio = {
   screenshot: {
     capture() {
       return invoke(CHANNELS.SCREENSHOT.CAPTURE)
-    },
-    recordStart() {
-      return invoke(CHANNELS.SCREENSHOT.RECORD_START)
-    },
-    recordStop() {
-      return invoke(CHANNELS.SCREENSHOT.RECORD_STOP)
     }
   },
   updater: {
@@ -119,4 +113,4 @@ const studio: Studio = {
   }
 }
 
-contextBridge.exposeInMainWorld('studio', studio)
+contextBridge.exposeInMainWorld('itc', itc)

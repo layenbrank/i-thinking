@@ -28,7 +28,7 @@ function App() {
     void useSettingsStore.getState().initialize()
 
     if (!import.meta.env.DEV) return
-    void window.studio.devtools.updateVisible({
+    void itc.devtools.updateVisible({
       visible: true
     })
   }, [])

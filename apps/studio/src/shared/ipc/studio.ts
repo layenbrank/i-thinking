@@ -1,66 +1,59 @@
+import type { UpdateVisibleP as DevtoolsUpdateVisibleP } from '@shared/ipc/devtools'
+import type { OpenP as DialogOpenP, SaveP as DialogSaveP } from '@shared/ipc/dialog'
+import type { ConvertP as DocConvertP, ConvertR as DocConvertR } from '@shared/ipc/doc'
+import type { CaptureR as ScreenshotCaptureR } from '@shared/ipc/screenshot'
+import type { FindStatusR as SidecarFindStatusR } from '@shared/ipc/sidecar'
 import type {
-  CreateInput as UserCreateInput,
-  RemoveInput as UserRemoveInput,
-  UpdateInput as UserUpdateInput,
-  UserRecord
-} from '@main/modules/database/schemas'
+  HasP as StoreHasP,
+  HasR as StoreHasR,
+  ReadP as StoreReadP,
+  ReadR as StoreReadR,
+  RemoveP as StoreRemoveP,
+  WriteP as StoreWriteP
+} from '@shared/ipc/store'
 import type {
-  OpenInput as DialogOpenInput,
-  SaveInput as DialogSaveInput
-} from '@main/modules/dialog/schemas'
+  CheckR as UpdaterCheckR,
+  FindStatusR as UpdaterFindStatusR
+} from '@shared/ipc/updater'
 import type {
-  ConvertInput as DocConvertInput,
-  ConvertResult as DocConvertResult
-} from '@main/modules/doc/schemas'
-import type { VisibleInput as DevtoolsVisibleInput } from '@main/modules/devtools/schemas'
-import type {
-  CaptureResult as ScreenshotCaptureResult,
-  RecordStopResult as ScreenshotRecordStopResult
-} from '@main/modules/screenshot/schemas'
-import type { SidecarStatus } from '@main/modules/sidecar/schemas'
-import type {
-  GetInput as StoreGetInput,
-  SetInput as StoreSetInput
-} from '@main/modules/store/schemas'
-import type {
-  CheckResult as UpdaterCheckResult,
-  UpdaterStatus
-} from '@main/modules/updater/schemas'
+  ReadR as UserReadR,
+  RemoveP as UserRemoveP,
+  UpdateP as UserUpdateP,
+  WriteP as UserWriteP
+} from '@shared/ipc/user'
 
 /** Renderer SDK 与 Main 对齐的 API 形状（不含实现） */
-export type Studio = {
+export interface ITC {
   store: {
-    get: (input: StoreGetInput) => Promise<unknown>
-    set: (input: StoreSetInput) => Promise<void>
-    has: (input: StoreGetInput) => Promise<boolean>
-    delete: (input: StoreGetInput) => Promise<void>
+    toRead: (input: StoreReadP) => Promise<StoreReadR>
+    toWrite: (input: StoreWriteP) => Promise<void>
+    has: (input: StoreHasP) => Promise<StoreHasR>
+    toRemove: (input: StoreRemoveP) => Promise<void>
     clear: () => Promise<void>
     keys: () => Promise<string[]>
   }
   dialog: {
-    open: (input?: DialogOpenInput) => Promise<string[] | null>
-    save: (input?: DialogSaveInput) => Promise<string | null>
+    open: (input?: DialogOpenP) => Promise<string[] | null>
+    save: (input?: DialogSaveP) => Promise<string | null>
   }
   user: {
-    list: () => Promise<UserRecord[]>
-    create: (input: UserCreateInput) => Promise<UserRecord>
-    update: (input: UserUpdateInput) => Promise<UserRecord>
-    remove: (input: UserRemoveInput) => Promise<void>
+    toRead: () => Promise<UserReadR[]>
+    toWrite: (input: UserWriteP) => Promise<UserReadR>
+    toUpdate: (input: UserUpdateP) => Promise<UserReadR>
+    toRemove: (input: UserRemoveP) => Promise<void>
   }
   sidecar: {
-    findStatus: () => Promise<SidecarStatus>
+    findStatus: () => Promise<SidecarFindStatusR>
   }
   doc: {
-    convert: (input: DocConvertInput) => Promise<DocConvertResult>
+    convert: (input: DocConvertP) => Promise<DocConvertR>
   }
   screenshot: {
-    capture: () => Promise<ScreenshotCaptureResult>
-    recordStart: () => Promise<void>
-    recordStop: () => Promise<ScreenshotRecordStopResult>
+    capture: () => Promise<ScreenshotCaptureR>
   }
   updater: {
-    findStatus: () => Promise<UpdaterStatus>
-    check: () => Promise<UpdaterCheckResult>
+    findStatus: () => Promise<UpdaterFindStatusR>
+    check: () => Promise<UpdaterCheckR>
     download: () => Promise<void>
     install: () => Promise<void>
     onEvent: (
@@ -74,7 +67,7 @@ export type Studio = {
     ) => () => void
   }
   devtools: {
-    updateVisible: (input: DevtoolsVisibleInput) => Promise<void>
+    updateVisible: (input: DevtoolsUpdateVisibleP) => Promise<void>
   }
   app: {
     onMessage: (callback: (payload: unknown) => void) => () => void

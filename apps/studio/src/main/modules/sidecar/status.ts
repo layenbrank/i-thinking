@@ -1,13 +1,13 @@
 import type { CorexHost } from './host'
 import { COREX_DAEMON, PANDOC_BINARY } from './constants'
 import { hasBinary } from './paths'
-import type { SidecarStatus } from './schemas'
+import type { FindStatusR } from '@shared/ipc/sidecar'
 
-function findStatus(corex: CorexHost): SidecarStatus {
+function findStatus(corex: CorexHost): FindStatusR {
   return {
     isReady: corex.isRunning(),
     version: corex.findVersion(),
-    modules: [...corex.findActions()],
+    actions: [...corex.findActions()],
     hasCorex: hasBinary(COREX_DAEMON),
     hasPandoc: hasBinary(PANDOC_BINARY)
   }

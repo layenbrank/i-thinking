@@ -3,7 +3,7 @@ import { CHANNELS } from '@shared/ipc/channels'
 import type { UpdateInfo } from 'electron-updater'
 import { autoUpdater } from 'electron-updater'
 
-import type { CheckResult, UpdaterStatus } from './schemas'
+import type { CheckR, FindStatusR } from '@shared/ipc/updater'
 
 type UpdaterEvent =
   | { type: 'checking' }
@@ -66,7 +66,7 @@ class Service {
     this.wireEvents()
   }
 
-  findStatus(): UpdaterStatus {
+  findStatus(): FindStatusR {
     return {
       enabled: this.enabled,
       checking: this.checking,
@@ -78,7 +78,7 @@ class Service {
     }
   }
 
-  async check(): Promise<CheckResult> {
+  async check(): Promise<CheckR> {
     if (!this.enabled) {
       return {
         available: false,

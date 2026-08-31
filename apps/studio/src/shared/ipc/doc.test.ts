@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { OUTPUT_FORMATS } from './constants'
-import { convertSchema } from './schemas'
+import { OUTPUT_FORMATS, ConvertSchema } from '@shared/ipc/doc'
 
 describe('doc schemas', function () {
   it('accepts allowed convert payloads', function () {
-    const parsed = convertSchema.parse({
+    const parsed = ConvertSchema.parse({
       inputPath: 'C:/tmp/a.md',
       outputPath: 'C:/tmp/a.html',
       format: 'html'
@@ -15,7 +14,7 @@ describe('doc schemas', function () {
 
   it('rejects unknown formats', function () {
     expect(function () {
-      convertSchema.parse({
+      ConvertSchema.parse({
         inputPath: 'a.md',
         outputPath: 'a.out',
         format: 'exe'

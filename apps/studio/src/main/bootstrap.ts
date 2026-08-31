@@ -1,5 +1,6 @@
 import started from 'electron-squirrel-startup'
 import path from 'node:path'
+import type { BrowserWindow } from 'electron'
 import { buildAppContext } from './app-context'
 import { buildLogger } from './logger'
 import type { StudioModule } from './module'
@@ -13,6 +14,10 @@ import { buildModule as buildSecurityModule } from './modules/security'
 import { buildModule as buildStoreModule } from './modules/store'
 import { buildModule as buildUpdaterModule } from './modules/updater'
 import { buildModule as buildWindowModule } from './modules/window'
+import {
+  acquireSingleInstanceLock,
+  attachSecondInstanceFocus
+} from './single-instance'
 
 export async function bootstrap(): Promise<void> {
   const log = buildLogger('bootstrap')
@@ -25,6 +30,12 @@ export async function bootstrap(): Promise<void> {
 
   const { app } = await import('electron')
 
+  if (!acquireSingleInstanceLock(app)) {
+    log.info('another instance holds the lock; quitting')
+    app.quit()
+    return
+  }
+
   if (process.platform === 'win32') {
     app.setAppUserModelId('com.i-thinking.studio')
   }
@@ -36,6 +47,14 @@ export async function bootstrap(): Promise<void> {
     log.error('unhandledRejection', reason)
   })
 
+  // findWindow 在 ctx 建好后绑定；二次启动可能早于建窗，focus 为 no-op
+  let findWindow: () => BrowserWindow | null = function () {
+    return null
+  }
+  attachSecondInstanceFocus(app, function () {
+    return findWindow()
+  })
+
   await app.whenReady()
 
   // 打包后为 app.asar / app 目录；开发为 apps/studio
@@ -44,22 +63,35 @@ export async function bootstrap(): Promise<void> {
   process.env.VITE_PUBLIC = path.join(appPath, 'public')
 
   const ctx = buildAppContext()
+  findWindow = function () {
+    return ctx.findWindow()
+  }
+
+  // 先建窗与本地 IPC；sidecar 后台启动，不阻塞后续模块
   const modules: StudioModule[] = [
     buildSecurityModule(),
     buildStoreModule(),
     buildDialogModule(),
     buildDatabaseModule(),
-    buildSidecarModule(),
+    buildWindowModule(),
+    buildDevtoolsModule(),
+    buildUpdaterModule(),
     buildDocModule(),
     buildScreenshotModule(),
-    buildUpdaterModule(),
-    buildDevtoolsModule(),
-    buildWindowModule()
+    buildSidecarModule()
   ]
 
-  for (const mod of modules) {
-    await mod.register(ctx)
-    log.info(`module registered: ${mod.name}`)
+  try {
+    for (const mod of modules) {
+      await mod.register(ctx)
+      log.info(`module registered: ${mod.name}`)
+    }
+  } catch (error) {
+    log.error('module registration failed', error)
+    if (!ctx.findWindow()) {
+      app.exit(1)
+      return
+    }
   }
 
   let isDisposing = false

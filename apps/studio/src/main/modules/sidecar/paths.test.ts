@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { findBinaryName, findPlatformKey } from './paths'
+import { COREX_PIPE } from './constants'
+import {
+  findBinaryName,
+  findDefaultIpcEndpoint,
+  findPlatformKey
+} from './paths'
 
 describe('sidecar paths', function () {
   it('builds platform keys', function () {
@@ -11,5 +16,19 @@ describe('sidecar paths', function () {
   it('adds exe suffix on windows', function () {
     expect(findBinaryName('corex', 'win32')).toBe('corex.exe')
     expect(findBinaryName('corex', 'linux')).toBe('corex')
+  })
+
+  it('uses corex default windows pipe', function () {
+    expect(COREX_PIPE).toBe(String.raw`\\.\pipe\corex`)
+  })
+
+  it('matches corex ipc_endpoint on windows', function () {
+    if (process.platform !== 'win32') return
+    expect(findDefaultIpcEndpoint()).toBe(COREX_PIPE)
+  })
+
+  it('uses data_dir/corex.sock on unix', function () {
+    if (process.platform === 'win32') return
+    expect(findDefaultIpcEndpoint().endsWith('corex.sock')).toBe(true)
   })
 })

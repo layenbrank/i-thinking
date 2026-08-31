@@ -7,7 +7,7 @@ const COREX_CLI = 'corex'
 const COREX_DAEMON = 'corex-daemon'
 const PANDOC_BINARY = 'pandoc'
 
-/** Default Windows named pipe; override with COREX_SOCKET. */
+/** Corex 官方默认 Windows named pipe（`ipc_endpoint`）；可用 COREX_SOCKET 覆盖。 */
 const COREX_PIPE = String.raw`\\.\pipe\corex`
 const COREX_SOCKET_ENV = 'COREX_SOCKET'
 const COREX_TOKEN_ENV = 'COREX_TOKEN'

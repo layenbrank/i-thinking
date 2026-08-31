@@ -8,22 +8,24 @@ function buildModule(): StudioModule {
 
   return {
     name: 'sidecar',
-    async register(ctx: AppContext) {
+    register(ctx: AppContext) {
       corex = ctx.corex
       registerHandlers(ctx)
 
-      try {
-        await ctx.corex.start()
-        ctx.logger.child('sidecar').info('registered', {
-          corexModules: ctx.corex.findModules(),
-          version: ctx.corex.findVersion()
+      // 后台启动：不阻塞 bootstrap，避免拖死后续模块（如 devtools）注册
+      const log = ctx.logger.child('sidecar')
+      void ctx.corex
+        .start()
+        .then(function () {
+          log.info('registered', {
+            corexActionCount: ctx.corex.findActions().length,
+            hasScreenshot: ctx.corex.hasAction('capture.screenshot'),
+            version: ctx.corex.findVersion()
+          })
         })
-      } catch (error) {
-        if (!ctx.isDev) {
-          throw error
-        }
-        ctx.logger.child('sidecar').error('corex start failed (dev degraded)', error)
-      }
+        .catch(function (error) {
+          log.error('corex start failed (degraded)', error)
+        })
     },
     async dispose() {
       if (!corex) {
@@ -37,4 +39,4 @@ function buildModule(): StudioModule {
 export { buildModule }
 export { CorexHost } from './host'
 export { findStatus } from './status'
-export { findCliPath, findDaemonPath, findPandocPath, findSidecarRoot } from './paths'
+export { findCliPath, findCorexDataDir, findDaemonPath, findDefaultIpcEndpoint, findPandocPath, findSidecarRoot } from './paths'

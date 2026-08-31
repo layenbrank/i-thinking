@@ -123,6 +123,31 @@ export default defineConfig([
     }
   },
   {
+    name: 'shared-process-boundaries',
+    files: ['src/shared/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@main',
+                '@main/*',
+                '@/',
+                '@/*',
+                '**/src/main/**',
+                '**/src/renderer/**',
+                'electron'
+              ],
+              message: 'shared 不得导入 main、renderer 或 electron'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     name: 'app/files-to-ignore',
     ignores: []
   }
