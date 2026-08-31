@@ -1,6 +1,6 @@
 # i thinking Studio
 
-Electron 桌面应用（`@i-thinking/studio`）：Forge + Vite，主进程域模块 + 契约 IPC（`window.studio`），业务 HTTP 走远程 API。
+Electron 桌面应用（`@i-thinking/studio`）：Forge + Vite，主进程域模块 + 契约 IPC（`window.itc`），业务 HTTP 走远程 API。
 
 ## 文档
 
@@ -24,7 +24,7 @@ pnpm command sidecar bootstrap studio   # tools.lock → .cache → staging（�
 pnpm --filter @i-thinking/studio dev
 ```
 
-仅网页预览（无 `window.studio`）：
+仅网页预览（无 `window.itc`）：
 
 ```bash
 pnpm --filter @i-thinking/studio dev:core

@@ -1,43 +1,31 @@
 # Progress Log
 
-## Session: 2026-07-23
+## Session: 2026-08-31
 
-### Phase 1: Discovery
+### Phase 0–5
 - **Status:** complete
 - Actions taken:
-  - 确认 DatabaseService 为 1:1 透传
-  - 选定 handlers → UserRepository
-
-### Phase 2: Implementation
-- **Status:** complete
-- Actions taken:
-  - 写入 task_plan.md / findings.md / progress.md
-  - 删除 service.ts
-  - handlers / index 改为注入 UserRepository
-  - 更新 modules.md / architecture.md
-- Files created/modified:
-  - src/main/modules/database/handlers.ts
-  - src/main/modules/database/index.ts
-  - src/main/modules/database/service.ts (deleted)
-  - docs/modules.md, docs/architecture.md
-
-### Phase 3: Verification
-- **Status:** complete
-- Actions taken:
-  - `npx tsc -p tsconfig.main.json --noEmit` 通过
-  - src 内无 DatabaseService 引用
+  - 重置规划文件
+  - 删除 Corex legacy API；SidecarStatus.actions
+  - 删除 record IPC 全链 + Overview 录制按钮
+  - IPC DTO 迁入 `src/shared/ipc/*`；删 main schemas
+  - shared ESLint 边界；`contract.test.ts`
+  - 钉死截图 path 解析；重写 architecture/modules/api/examples/development/README
+- Files created/modified: see git status under apps/studio
 
 ## Test Results
 | Test | Expected | Actual | Status |
 |------|----------|--------|--------|
-| tsc main | 无错误 | OK | pass |
-| DatabaseService in src | 无匹配 | 无匹配 | pass |
+| vitest unit | 全绿 | 12 files / 37 tests pass | pass |
+| tsc preload | 无错误 | OK | pass |
+| tsc main | 无本改动错误 | 仅 repositories/user Prisma 存量 | pass* |
+| tsc renderer | N/A 本轮 | 大量存量 UI 类型错误 | skip |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
 | Where am I? | Done |
 | Where am I going? | — |
-| What's the goal? | 精简 database 分层 |
+| What's the goal? | 去兼容 + shared 契约单源 |
 | What have I learned? | See findings.md |
-| What have I done? | See above |
+| What have I done? | All phases complete |

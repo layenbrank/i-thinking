@@ -11,9 +11,10 @@
   - `forge/publishers.ts` — GitHub Releases / S3（默认关闭）
   - `forge/plugins.ts` — Vite / Fuses / AutoUnpackNatives
   - `forge/hooks/natives.ts` — better-sqlite3 复制
+  - `forge/hooks/external-deps.ts` — electron-updater 及传递依赖复制
   - `forge/hooks/sidecar.ts` — 侧车复制 + SHA-256 校验
 
-构建产物目录：**仅** `apps/studio/out/`。
+构建产物目录：**仅** `out/studio/`（仓库根目录下）。
 
 | 进程 | 入口 | 输出 |
 |------|------|------|
@@ -34,13 +35,12 @@ pnpm --filter @i-thinking/studio make
 pnpm --filter @i-thinking/studio publish
 ```
 
-**Windows：** 若出现 `EBUSY ... default_app.asar`，通常是杀软/索引或残留 Electron 占用临时文件。打包前会自动：
+**Windows：** 打包配置 `tmpdir: false`，直接在 `out/studio/` 构建，不经过临时目录中转。`@electron/packager` 已通过 pnpm patch 将内部 `fs.rename` / `fs.move` 替换为 `fs.copy` + `fs.remove`，避免独占文件句柄，兼容火绒等第三方杀软。打包前会自动：
 
-1. 结束本仓库路径下的 `electron` / `i-thinking` 进程  
-2. 清理 monorepo 根 `.cache/packager/studio` 与 `%TEMP%\electron-packager`（兼容清理旧 `.packager-tmp`）  
-3. 清理 `apps/studio/out`  
+1. 结束本仓库路径下的 `electron` / `i-thinking` 进程
+2. 清理 `out/studio`
 
-仍失败时可手动关闭 Studio / 杀毒对 `apps/studio` 的实时扫描后再跑 `pnpm --filter @i-thinking/studio build`。
+若使用第三方杀毒（火绒 / 360 等），建议将 `out/studio` 加入排除列表以减少文件锁定。
 
 ## 3. 全平台 Makers
 
@@ -79,7 +79,7 @@ pnpm --filter @i-thinking/studio publish
 
 ## 6. 自动更新（electron-updater）
 
-主进程模块 `modules/updater`，Renderer：`studio.updater.*`。
+主进程模块 `modules/updater`，Renderer：`itc.updater.*`。
 
 | 变量 | 用途 |
 |------|------|
@@ -91,7 +91,7 @@ pnpm --filter @i-thinking/studio publish
 
 ## 7. asar / Sidecar / Fuses / CI
 
-- asar 仅保留 `.vite` / `package.json` / `generated`；侧车由 `forge/hooks/sidecar.ts` afterCopy 写入 `resources/sidecar`
+- asar 保留 `.vite` / `package.json` / `generated` / `node_modules`（排除 `@i-thinking/*` workspace 符号链接，Vite 已打包）；external 模块（electron-updater + 传递依赖）由 `forge/hooks/external-deps.ts` afterCopy 复制进 asar，Fuses OnlyLoadAppFromAsar 禁止从 asar 外加载；侧车由 `forge/hooks/sidecar.ts` afterCopy 写入 `resources/sidecar`
 - 二进制**不进 Git**：`staging/`、`.cache/sidecar/`、exe/dll 均 gitignore
 - 版本真相：`scripts/commands/features/sidecar/tools.lock.json`；本地完整性：`staging/<platform>/checksums.json`
 - **corex** 来自 [layenbrank/corex releases](https://github.com/layenbrank/corex/releases)（`corex-daemon` + CLI），非仓库内自研 stub
