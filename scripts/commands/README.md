@@ -34,6 +34,6 @@ pnpm worker deploy
 | `features/worker` | 驱动 `scripts/infra/worker` |
 | `../infra/worker` | Worker 源码（非 workspace 包） |
 
-缓存：`.cache/sidecar/<tool>/<platform>/`、`.cache/packager/`、`.cache/fuses/`。
+缓存：`.cache/sidecar/<tool>/<platform>/`、`.cache/fuses/`。
 
 代理：`HTTPS_PROXY` + 建议 `NODE_USE_ENV_PROXY=1`；下载用 `ky`，失败再 curl `-x`。

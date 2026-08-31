@@ -21,17 +21,21 @@ import {
 } from './env'
 import { copyAndVerifySidecars } from './hooks/sidecar'
 import { copyBetterSqlite3 } from './hooks/natives'
-import { PACKAGER_TMP } from './hooks/cleanup'
+import { copyExternalDependencies } from './hooks/external-deps'
 
 /** 国内默认镜像；Turbo strict 下需 turbo.json globalPassThroughEnv 透传 ELECTRON_MIRROR */
 const ELECTRON_DOWNLOAD_MIRROR =
   process.env.ELECTRON_MIRROR || 'https://npmmirror.com/mirrors/electron/'
 
 /**
- * Vite 已打包业务与 workspace 依赖；asar 只保留：
+ * Vite 已打包业务与 workspace 依赖；asar 保留：
  * - `.vite/` 构建产物
  * - `package.json`
  * - `generated/`（Prisma Client）
+ * - `node_modules/`（external 模块：electron-updater 及其传递依赖需进 asar，
+ *   因 Fuses OnlyLoadAppFromAsar 禁止从 asar 外加载）
+ * 排除 `@i-thinking/*`：pnpm workspace 符号链接指向包外，asar 无法处理；
+ * Vite 已将这些 workspace 依赖打包进 .vite/build/main.js
  * native / Rust 侧车由 afterCopy 写入
  *
  * prune:false：跳过 flora-colossus（pnpm hoisted + 嵌套 apps/* 会误报缺依赖）
@@ -40,7 +44,12 @@ function isIgnoredPath(filePath: string): boolean {
   const normalized = filePath.replace(/\\/g, '/')
   if (normalized === '' || normalized === '/') return false
 
-  const keep = [/^\/\.vite(\/|$)/, /^\/package\.json$/, /^\/generated(\/|$)/]
+  const keep = [
+    /^\/\.vite(\/|$)/,
+    /^\/package\.json$/,
+    /^\/generated(\/|$)/,
+    /^\/node_modules(\/(?!@i-thinking\/)|$)/
+  ]
   if (keep.some(function (pattern) {
     return pattern.test(normalized)
   })) {
@@ -75,7 +84,13 @@ function runAfterCopy(
       done(err)
       return
     }
-    copyAndVerifySidecars(buildPath, electronVersion, platform, arch, done)
+    copyExternalDependencies(buildPath, electronVersion, platform, arch, function (err) {
+      if (err) {
+        done(err)
+        return
+      }
+      copyAndVerifySidecars(buildPath, electronVersion, platform, arch, done)
+    })
   })
 }
 
@@ -117,8 +132,8 @@ function buildPackagerConfig(): NonNullable<ForgeConfig['packagerConfig']> {
     asar: true,
     prune: false,
     overwrite: true,
-    // 必须在 apps/studio 外（见 forge/hooks/cleanup.ts），否则会 copy 进自身子目录
-    tmpdir: PACKAGER_TMP,
+    // 跳过临时目录中转，直接在 out/ 构建；避免 Windows Defender 锁 electron.exe 导致 rename EPERM
+    tmpdir: false,
     appVersion: APP_VERSION,
     name: APP_NAME,
     executableName: APP_EXECUTABLE,

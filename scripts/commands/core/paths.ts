@@ -9,8 +9,6 @@ const SCRIPTS_INFRA = path.join(SCRIPTS_ROOT, 'infra')
 
 /** Sidecar 归档与解压产物：`.cache/sidecar/<tool>/<platform>/` */
 const DOWNLOADS_CACHE = path.join(REPO_ROOT, '.cache', 'sidecar')
-/** Electron Forge 打包临时目录：`.cache/packager/<app>/` */
-const PACKAGER_CACHE = path.join(REPO_ROOT, '.cache', 'packager')
 /** Fuses 等杂项临时：`.cache/fuses/` */
 const FUSES_CACHE = path.join(REPO_ROOT, '.cache', 'fuses')
 
@@ -19,7 +17,6 @@ export {
   CORE_DIR,
   DOWNLOADS_CACHE,
   FUSES_CACHE,
-  PACKAGER_CACHE,
   REPO_ROOT,
   SCRIPTS_INFRA,
   SCRIPTS_ROOT
