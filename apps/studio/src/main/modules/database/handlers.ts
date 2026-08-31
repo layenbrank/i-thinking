@@ -2,20 +2,20 @@ import { CHANNELS } from '@shared/ipc/channels'
 import type { AppContext } from '@main/app-context'
 import { registerHandler } from '@main/ipc/handle'
 import type { Repository } from './repositories/user'
-import { createSchema, removeSchema, updateSchema } from './schemas'
+import { RemoveSchema, UpdateSchema, WriteSchema } from '@shared/ipc/user'
 
 function registerHandlers(ctx: AppContext, users: Repository): void {
-  registerHandler(ctx, CHANNELS.USER.LIST, null, function () {
-    return users.list()
+  registerHandler(ctx, CHANNELS.USER.READ, null, function () {
+    return users.toRead()
   })
-  registerHandler(ctx, CHANNELS.USER.CREATE, createSchema, function (input) {
-    return users.create(input)
+  registerHandler(ctx, CHANNELS.USER.WRITE, WriteSchema, function (input) {
+    return users.toWrite(input)
   })
-  registerHandler(ctx, CHANNELS.USER.UPDATE, updateSchema, function (input) {
-    return users.update(input)
+  registerHandler(ctx, CHANNELS.USER.UPDATE, UpdateSchema, function (input) {
+    return users.toUpdate(input)
   })
-  registerHandler(ctx, CHANNELS.USER.REMOVE, removeSchema, function (input) {
-    return users.remove(input)
+  registerHandler(ctx, CHANNELS.USER.REMOVE, RemoveSchema, function (input) {
+    return users.toRemove(input)
   })
 }
 

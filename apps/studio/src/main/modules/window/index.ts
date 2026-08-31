@@ -35,6 +35,7 @@ function buildModule(): StudioModule {
           height: 800,
           minWidth: 800,
           minHeight: 600,
+          show: false,
           fullscreen: false,
           minimizable: true,
           maximizable: true,
@@ -72,9 +73,22 @@ function buildModule(): StudioModule {
         ctx.trustWebContents(win.webContents)
         attachWindowGuards(ctx, win.webContents)
 
+        win.once('ready-to-show', function () {
+          if (!win.isDestroyed()) {
+            win.show()
+          }
+        })
+
         win.webContents.on('did-finish-load', function () {
           if (!win.isDestroyed()) {
             win.webContents.send(CHANNELS.APP.MESSAGE, new Date().toLocaleString())
+          }
+        })
+
+        win.webContents.on('did-fail-load', function (_event, code, desc, url) {
+          log.error('did-fail-load', { code, desc, url })
+          if (!win.isDestroyed() && !win.isVisible()) {
+            win.show()
           }
         })
 

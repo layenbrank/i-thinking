@@ -9,7 +9,6 @@ import { Icon } from '@iconify/react'
 import ReSignIn from '@/features/signin/signin.tsx'
 import Controller from '@/features/controller/controller.tsx'
 import styles from '@/views/overview/overview.module.scss'
-import { findStudio } from '@/lib/studio'
 
 const { Content: Core, Header: Prefix, Footer: Suffix } = Payload
 
@@ -50,24 +49,13 @@ export default function Overview() {
   }
 
   function handleDevtools() {
-    void findStudio()?.devtools.updateVisible({
+    void itc.devtools.updateVisible({
       visible: true
     })
   }
 
   function handleScreenshot() {
-    void findStudio()?.screenshot.capture()
-  }
-
-  async function handleRecord() {
-    const studio = findStudio()
-    if (!studio) return
-
-    await studio.screenshot.recordStart()
-    await new Promise(function (resolve) {
-      setTimeout(resolve, 1000 * 10)
-    })
-    await studio.screenshot.recordStop()
+    void itc.screenshot.capture()
   }
 
   return (
@@ -89,12 +77,6 @@ export default function Overview() {
             onClick={handleScreenshot}
             className={clsx(styles.utility, styles.button)}>
             <Icon icon="mdi:camera-outline" />
-          </Button>
-          <Button
-            data-region="false"
-            onClick={handleRecord}
-            className={clsx(styles.utility, styles.button)}>
-            <Icon icon="mdi:record-rec" />
           </Button>
         </Space.Compact>
         <div

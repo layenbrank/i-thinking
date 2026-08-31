@@ -2,13 +2,13 @@ import { CHANNELS } from '@shared/ipc/channels'
 import type { AppContext } from '@main/app-context'
 import { registerHandler } from '@main/ipc/handle'
 import type { StudioModule } from '@main/module'
-import { updateVisibleSchema } from './schemas'
+import { UpdateVisibleSchema } from '@shared/ipc/devtools'
 
 function buildModule(): StudioModule {
   return {
     name: 'devtools',
     register(ctx: AppContext) {
-      registerHandler(ctx, CHANNELS.DEVTOOLS.UPDATE_VISIBLE, updateVisibleSchema, function (input) {
+      registerHandler(ctx, CHANNELS.DEVTOOLS.UPDATE_VISIBLE, UpdateVisibleSchema, function (input) {
         if (!ctx.isDev) {
           throw new Error('DevTools disabled in production')
         }

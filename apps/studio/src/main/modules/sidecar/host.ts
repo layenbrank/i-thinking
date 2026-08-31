@@ -1,5 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { createHash, randomBytes } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import net from 'node:net'
 import path from 'node:path'
 import { createInterface } from 'node:readline'
@@ -7,7 +7,6 @@ import { createInterface } from 'node:readline'
 import type { Logger } from '@main/logger'
 import {
   COREX_DAEMON,
-  COREX_PIPE,
   COREX_SOCKET_ENV,
   COREX_TOKEN_ENV,
   INVOKE_TIMEOUT_MS,
@@ -15,7 +14,7 @@ import {
   READY_TIMEOUT_MS,
   STOP_TIMEOUT_MS
 } from './constants'
-import { findDaemonPath, hasBinary } from './paths'
+import { findDaemonPath, findDefaultIpcEndpoint, hasBinary } from './paths'
 
 interface RpcErrorBody {
   code?: number
@@ -51,26 +50,12 @@ class CorexHost {
     return this.actions
   }
 
-  /** @deprecated prefer findActions — kept for status shape compatibility */
-  findModules(): readonly string[] {
-    return this.actions
-  }
-
   findVersion(): string {
     return this.version
   }
 
   hasAction(actionId: string): boolean {
     return this.actions.includes(actionId)
-  }
-
-  hasModule(name: string): boolean {
-    if (name === 'screenshot' || name === 'capture') {
-      return this.hasAction('capture.screenshot')
-    }
-    return this.actions.some(function (action) {
-      return action === name || action.startsWith(`${name}.`)
-    })
   }
 
   isRunning(): boolean {
@@ -88,7 +73,7 @@ class CorexHost {
 
     this.authToken = process.env[COREX_TOKEN_ENV]?.trim() || randomBytes(32).toString('hex')
     process.env[COREX_TOKEN_ENV] = this.authToken
-    this.endpoint = process.env[COREX_SOCKET_ENV]?.trim() || findDefaultEndpoint()
+    this.endpoint = process.env[COREX_SOCKET_ENV]?.trim() || findDefaultIpcEndpoint()
 
     const daemonPath = findDaemonPath()
     const child = spawn(daemonPath, ['--socket', this.endpoint], {
@@ -145,15 +130,6 @@ class CorexHost {
     return parseOkData(response)
   }
 
-  /**
-   * Legacy Studio stub method name → Action invoke.
-   * Prefer `invokeAction('capture.screenshot', …)`.
-   */
-  async invoke(method: string, params: Record<string, unknown> = {}): Promise<unknown> {
-    const action = mapLegacyMethod(method)
-    return this.invokeAction(action, mapLegacyParams(action, params))
-  }
-
   async stop(): Promise<void> {
     if (!this.child) {
       return
@@ -207,12 +183,7 @@ class CorexHost {
         id: this.requestId++,
         auth_token: this.authToken
       })
-      const data = parseOkData(response)
-      if (Array.isArray(data)) {
-        this.actions = data.map(String)
-      } else if (data && typeof data === 'object' && Array.isArray((data as { actions?: unknown }).actions)) {
-        this.actions = ((data as { actions: unknown[] }).actions).map(String)
-      }
+      this.actions = parseActionIds(parseOkData(response))
     } catch (error) {
       this.logger.warn('list_actions failed', error)
       this.actions = []
@@ -224,30 +195,49 @@ class CorexHost {
     const endpoint = this.endpoint
 
     return new Promise(function (resolve, reject) {
+      let isSettled = false
+      const socket = new net.Socket()
+
+      function finish(error: Error | null, value?: RpcResponse) {
+        if (isSettled) {
+          return
+        }
+        isSettled = true
+        clearTimeout(timer)
+        socket.removeAllListeners()
+        if (!socket.destroyed) {
+          socket.destroy()
+        }
+        if (error) {
+          reject(error)
+          return
+        }
+        resolve(value as RpcResponse)
+      }
+
       const timer = setTimeout(function () {
-        socket.destroy()
-        reject(new Error(`corex IPC timeout: ${String(payload.type)}`))
+        finish(new Error(`corex IPC timeout: ${String(payload.type)}`))
       }, INVOKE_TIMEOUT_MS)
 
-      const socket = net.createConnection({ path: endpoint }, function () {
-        socket.write(line)
-      })
-
-      const reader = createInterface({ input: socket })
-      reader.on('line', function (raw) {
-        clearTimeout(timer)
-        reader.close()
-        socket.end()
-        try {
-          resolve(JSON.parse(raw) as RpcResponse)
-        } catch (error) {
-          reject(error instanceof Error ? error : new Error(String(error)))
-        }
-      })
-
+      // 必须在 connect 前挂上，且用 on（非 once）：ENOENT 后 destroy 可能再发 error
       socket.on('error', function (err) {
-        clearTimeout(timer)
-        reject(err)
+        finish(err instanceof Error ? err : new Error(String(err)))
+      })
+
+      socket.connect({ path: endpoint }, function () {
+        const reader = createInterface({ input: socket })
+        reader.on('error', function (err) {
+          finish(err instanceof Error ? err : new Error(String(err)))
+        })
+        reader.on('line', function (raw) {
+          reader.close()
+          try {
+            finish(null, JSON.parse(raw) as RpcResponse)
+          } catch (error) {
+            finish(error instanceof Error ? error : new Error(String(error)))
+          }
+        })
+        socket.write(line)
       })
     })
   }
@@ -293,31 +283,6 @@ class CorexHost {
   }
 }
 
-function findDefaultEndpoint(): string {
-  if (process.platform === 'win32') {
-    return COREX_PIPE
-  }
-  const hash = createHash('sha256').update(String(process.pid)).digest('hex').slice(0, 8)
-  return path.join(process.env.TEMP || process.env.TMPDIR || '/tmp', `corex-${hash}.sock`)
-}
-
-function mapLegacyMethod(method: string): string {
-  if (method === 'screenshot.capture') {
-    return 'capture.screenshot'
-  }
-  return method
-}
-
-function mapLegacyParams(action: string, params: Record<string, unknown>): Record<string, unknown> {
-  if (action === 'capture.screenshot') {
-    const to = params.to ?? params.output
-    if (typeof to === 'string') {
-      return { to }
-    }
-  }
-  return params
-}
-
 function parseOkData(response: RpcResponse): unknown {
   if (response.type === 'ok') {
     return response.data
@@ -333,10 +298,43 @@ function parseOkData(response: RpcResponse): unknown {
   throw new Error(`unexpected corex response type: ${response.type}`)
 }
 
+/**
+ * corex `list_actions` 返回 `[{ id, name, description }, …]`（见 bins/daemon）。
+ * 兼容纯 string[] / `{ actions: … }`。
+ */
+function parseActionIds(data: unknown): string[] {
+  const items = findActionItems(data)
+  const ids: string[] = []
+  for (const item of items) {
+    if (typeof item === 'string' && item.length > 0) {
+      ids.push(item)
+      continue
+    }
+    if (!item || typeof item !== 'object') {
+      continue
+    }
+    const id = (item as { id?: unknown }).id
+    if (typeof id === 'string' && id.length > 0) {
+      ids.push(id)
+    }
+  }
+  return ids
+}
+
+function findActionItems(data: unknown): unknown[] {
+  if (Array.isArray(data)) {
+    return data
+  }
+  if (data && typeof data === 'object' && Array.isArray((data as { actions?: unknown }).actions)) {
+    return (data as { actions: unknown[] }).actions
+  }
+  return []
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise(function (resolve) {
     setTimeout(resolve, ms)
   })
 }
 
-export { CorexHost }
+export { CorexHost, parseActionIds }

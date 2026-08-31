@@ -3,11 +3,11 @@ import Store from 'electron-store'
 export class Service {
   private readonly store = new Store()
 
-  get(key: string): unknown {
+  toRead(key: string): unknown {
     return this.store.get(key) ?? null
   }
 
-  set(key: string, value: unknown): void {
+  toWrite(key: string, value: unknown): void {
     this.store.set(key, value)
   }
 
@@ -15,7 +15,7 @@ export class Service {
     return this.store.has(key)
   }
 
-  delete(key: string): void {
+  toRemove(key: string): void {
     this.store.delete(key)
   }
 

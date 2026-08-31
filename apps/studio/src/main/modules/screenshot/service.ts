@@ -4,7 +4,7 @@ import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 
 import type { CorexHost } from '@main/modules/sidecar/host'
-import type { CaptureResult, RecordStopResult } from './schemas'
+import type { CaptureR } from '@shared/ipc/screenshot'
 
 class Service {
   private readonly corex: CorexHost
@@ -13,14 +13,14 @@ class Service {
     this.corex = corex
   }
 
-  async capture(): Promise<CaptureResult> {
+  async capture(): Promise<CaptureR> {
     if (!this.corex.hasAction('capture.screenshot')) {
       throw new Error('corex action capture.screenshot unavailable')
     }
 
-    const output = await this.buildOutputPath('screenshot', 'png')
+    const output = await this.buildOutputPath()
     const data = await this.corex.invokeAction('capture.screenshot', { to: output })
-    const resultPath = parseCapturePath(data, output)
+    const resultPath = parseCapturePath(data)
 
     if (!resultPath || !existsSync(resultPath)) {
       throw new Error('screenshot capture did not produce a file')
@@ -32,42 +32,31 @@ class Service {
     }
   }
 
-  async recordStart(): Promise<void> {
-    throw new Error('screen recording is not provided by corex; use capture.screenshot')
-  }
-
-  async recordStop(): Promise<RecordStopResult> {
-    throw new Error('screen recording is not provided by corex; use capture.screenshot')
-  }
-
-  private async buildOutputPath(kind: 'screenshot' | 'recording', ext: string): Promise<string> {
-    const dirName = kind === 'screenshot' ? 'screenshots' : 'recordings'
-    const dir = path.join(app.getPath('userData'), dirName)
+  private async buildOutputPath(): Promise<string> {
+    const dir = path.join(app.getPath('userData'), 'screenshots')
     await mkdir(dir, {
       recursive: true
     })
-    return path.join(dir, `${kind}-${Date.now()}.${ext}`)
+    return path.join(dir, `screenshot-${Date.now()}.png`)
   }
 }
 
-function parseCapturePath(data: unknown, fallback: string): string {
+/**
+ * Corex capture.screenshot returns the written path as a string,
+ * or an object with `path`.
+ */
+function parseCapturePath(data: unknown): string {
   if (typeof data === 'string' && data.length > 0) {
     return data
   }
   if (data && typeof data === 'object') {
-    const record = data as Record<string, unknown>
-    if (typeof record.path === 'string') {
-      return record.path
-    }
-    if (typeof record.File === 'string') {
-      return record.File
-    }
-    if (typeof record.to === 'string') {
-      return record.to
+    const pathValue = (data as { path?: unknown }).path
+    if (typeof pathValue === 'string' && pathValue.length > 0) {
+      return pathValue
     }
   }
-  return fallback
+  throw new Error('screenshot capture returned unexpected payload')
 }
 
-export type { CaptureResult, RecordStopResult } from './schemas'
+export type { CaptureR } from '@shared/ipc/screenshot'
 export { Service }

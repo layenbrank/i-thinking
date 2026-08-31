@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 
 import App from '@/App.tsx'
 import '@/styles/index.scss'
-import { findStudio } from '@/lib/studio.ts'
 
 import AntDIconify from '@iconify/json/json/ant-design.json'
 import MDIconify from '@iconify/json/json/mdi.json'
@@ -30,7 +29,7 @@ const root = createRoot(rootElement, {
 root.render(<App />)
 
 try {
-  findStudio().app.onMessage(function (message) {
+  itc.app.onMessage(function (message) {
     console.log('main-process-message', message)
   })
 } catch (error) {

@@ -303,7 +303,7 @@ const Application = {
         {...listens}
         onDoubleClick={function () {
           if (props.component !== 'navigation') return onUpdateVisible(true)
-          // void window.studio.opener.openUrl(props.url ?? '')
+          // void itc.opener.openUrl(props.url ?? '')
         }}
         {...attributes}
         ref={setNodeRef}

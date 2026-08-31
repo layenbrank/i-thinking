@@ -44,7 +44,7 @@ export default function Utility() {
   const [visible, onUpdateVisible] = useState(false)
 
   function handleDevtools() {
-    void window.studio.devtools.updateVisible({ visible: true })
+    void itc.devtools.updateVisible({ visible: true })
   }
 
   const debounceUpdate = debounce(function () {

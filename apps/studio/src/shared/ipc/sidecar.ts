@@ -1,9 +1,9 @@
-interface SidecarStatus {
+interface FindStatusR {
   isReady: boolean
   version: string
-  modules: string[]
+  actions: string[]
   hasCorex: boolean
   hasPandoc: boolean
 }
 
-export type { SidecarStatus }
+export type { FindStatusR }

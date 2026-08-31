@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog } from 'electron'
-import type { OpenInput, SaveInput } from './schemas'
+import type { OpenP, SaveP } from '@shared/ipc/dialog'
 
 export class Service {
   private readonly findWindow: () => BrowserWindow | null
@@ -8,7 +8,7 @@ export class Service {
     this.findWindow = findWindow
   }
 
-  async open(options?: OpenInput): Promise<string[] | null> {
+  async open(options?: OpenP): Promise<string[] | null> {
     const w = BrowserWindow.getFocusedWindow() ?? this.findWindow()
     const result = w
       ? await dialog.showOpenDialog(w, {
@@ -26,7 +26,7 @@ export class Service {
     return result.canceled ? null : result.filePaths
   }
 
-  async save(options?: SaveInput): Promise<string | null> {
+  async save(options?: SaveP): Promise<string | null> {
     const w = BrowserWindow.getFocusedWindow() ?? this.findWindow()
     const result = w
       ? await dialog.showSaveDialog(w, {

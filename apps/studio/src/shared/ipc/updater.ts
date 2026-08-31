@@ -1,4 +1,4 @@
-type UpdaterStatus = {
+interface FindStatusR {
   enabled: boolean
   checking: boolean
   downloading: boolean
@@ -8,11 +8,11 @@ type UpdaterStatus = {
   error: string | null
 }
 
-type CheckResult = {
+interface CheckR {
   available: boolean
   version: string | null
   releaseNotes: string | null
   reason?: string
 }
 
-export type { CheckResult, UpdaterStatus }
+export type { CheckR, FindStatusR }

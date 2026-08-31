@@ -1,10 +1,10 @@
 /** IPC channel 单源；格式 namespace:action，按域分层 */
 export const CHANNELS = {
   STORE: {
-    GET: 'store:get',
-    SET: 'store:set',
+    READ: 'store:toRead',
+    WRITE: 'store:toWrite',
     HAS: 'store:has',
-    DELETE: 'store:delete',
+    REMOVE: 'store:toRemove',
     CLEAR: 'store:clear',
     KEYS: 'store:keys'
   },
@@ -13,10 +13,10 @@ export const CHANNELS = {
     SAVE: 'dialog:save'
   },
   USER: {
-    LIST: 'user:list',
-    CREATE: 'user:create',
-    UPDATE: 'user:update',
-    REMOVE: 'user:remove'
+    READ: 'user:toRead',
+    WRITE: 'user:toWrite',
+    UPDATE: 'user:toUpdate',
+    REMOVE: 'user:toRemove'
   },
   SIDECAR: {
     FIND_STATUS: 'sidecar:find-status'
@@ -25,9 +25,7 @@ export const CHANNELS = {
     CONVERT: 'doc:convert'
   },
   SCREENSHOT: {
-    CAPTURE: 'screenshot:capture',
-    RECORD_START: 'screenshot:record-start',
-    RECORD_STOP: 'screenshot:record-stop'
+    CAPTURE: 'screenshot:capture'
   },
   DEVTOOLS: {
     UPDATE_VISIBLE: 'devtools:update-visible'

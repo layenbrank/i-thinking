@@ -5,10 +5,10 @@ import path from 'node:path'
 import { findPandocPath, hasBinary } from '@main/modules/sidecar/paths'
 import { PANDOC_BINARY } from '@main/modules/sidecar/constants'
 import { CONVERT_TIMEOUT_MS } from './constants'
-import type { ConvertInput, ConvertResult } from './schemas'
+import type { ConvertP, ConvertR } from '@shared/ipc/doc'
 
 class Service {
-  convert(input: ConvertInput): Promise<ConvertResult> {
+  convert(input: ConvertP): Promise<ConvertR> {
     if (!hasBinary(PANDOC_BINARY)) {
       return Promise.reject(new Error(`pandoc not found at ${findPandocPath()}`))
     }

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { findStudio } from '@/lib/studio.ts'
+import { findITC } from '@/lib/itc.ts'
 import type { Appearance as ThemeAppearance } from '@/themes/appearance'
 import { APPEARANCE_PRESET } from '@/themes/appearance'
 
@@ -28,9 +28,9 @@ const SETTINGS: Setting.Composite = {
 
 const STORAGE_PREFIX = 'studio.settings.'
 
-function tryFindStudio() {
+function tryFindItc() {
   try {
-    return findStudio()
+    return findITC()
   } catch {
     return null
   }
@@ -39,9 +39,9 @@ function tryFindStudio() {
 async function readSection<K extends keyof Setting.Composite>(
   section: K
 ): Promise<Setting.Composite[K] | undefined> {
-  const studio = tryFindStudio()
-  if (studio) {
-    const value = await studio.store.get({ key: section })
+  const bridge = tryFindItc()
+  if (bridge) {
+    const value = await bridge.store.toRead({ key: section })
     if (value === null || value === undefined) return undefined
     return value as Setting.Composite[K]
   }
@@ -60,9 +60,9 @@ async function writeSection<K extends keyof Setting.Composite>(
   section: K,
   value: Setting.Composite[K]
 ): Promise<void> {
-  const studio = tryFindStudio()
-  if (studio) {
-    await studio.store.set({ key: section, value })
+  const bridge = tryFindItc()
+  if (bridge) {
+    await bridge.store.toWrite({ key: section, value })
     return
   }
 
@@ -71,10 +71,10 @@ async function writeSection<K extends keyof Setting.Composite>(
 }
 
 async function clearSections(): Promise<void> {
-  const studio = tryFindStudio()
-  if (studio) {
+  const bridge = tryFindItc()
+  if (bridge) {
     for (const key of Object.keys(SETTINGS) as (keyof Setting.Composite)[]) {
-      await studio.store.delete({ key })
+      await bridge.store.toRemove({ key })
     }
     return
   }
