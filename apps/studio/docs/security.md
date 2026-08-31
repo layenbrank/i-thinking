@@ -16,7 +16,7 @@
 
 ## 2. Preload 暴露面
 
-- **仅** `contextBridge.exposeInMainWorld('studio', …)`
+- **仅** `contextBridge.exposeInMainWorld('itc', …)`
 - **禁止**暴露裸 `ipcRenderer`
 - 静态测试：`src/preload/expose.test.ts`
 
@@ -77,7 +77,7 @@
 | 限制导航 / 新窗口 | 是 |
 | 校验 IPC sender | 是（webContents + URL） |
 | CSP | 是（headers） |
-| 不暴露 Electron API 给不可信内容 | 仅 studio 白名单 |
+| 不暴露 Electron API 给不可信内容 | 仅 itc 白名单 |
 | 保持 Electron 版本更新 | 依赖 catalog / 团队维护 |
 
 完整清单见 [Electron Security](https://www.electronjs.org/docs/latest/tutorial/security)。

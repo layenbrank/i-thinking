@@ -1,36 +1,50 @@
-# Task Plan: 精简 database 分层
+# Task Plan: Studio 破坏性去兼容与企业级架构
 
 ## Goal
-删除 DatabaseService 的 1:1 透传，handlers 直接组合 UserRepository；文档标明 Service 为可选用例层。
+以本计划为 SSOT，落地 shared IPC 契约单源 + main 域模块 + preload 薄桥 + forge 仅打包；删除 Corex legacy 与空壳 record API。
 
 ## Current Phase
-Phase 3: Verification（complete）
+Phase 5: Verification（complete）
 
 ## Phases
 
-### Phase 1: Requirements & Discovery
-- [x] 确认 DatabaseService 为纯透传
-- [x] 选定方案：handlers → Repository
+### Phase 0: Planning files
+- [x] 重置 task_plan / findings / progress
 - **Status:** complete
 
-### Phase 2: Implementation
-- [x] 写入 planning 文件
-- [x] 删除 service.ts；改 handlers / index
-- [x] 更新 modules.md / architecture.md
+### Phase 1: Corex / Sidecar 去兼容
+- [x] 删 invoke / mapLegacy* / findModules / hasModule
+- [x] SidecarStatus.modules → actions
 - **Status:** complete
 
-### Phase 3: Verification
-- [x] tsc -p tsconfig.main.json
-- [x] 确认无 DatabaseService 残留
+### Phase 2: 删除 record IPC
+- [x] 全链删除 recordStart/Stop + Overview 调用
+- **Status:** complete
+
+### Phase 3: shared 契约下沉
+- [x] IPC DTO 迁入 shared
+- [x] shared ESLint 边界
+- [x] 契约同步测试
+- **Status:** complete
+
+### Phase 4: 截图契约 + 文档重写
+- [x] 钉死 parseCapturePath
+- [x] 按 SSOT 重写 docs
+- **Status:** complete
+
+### Phase 5: 验证
+- [x] vitest 全绿；preload tsc 绿；main 仅存量 Prisma user 债
 - **Status:** complete
 
 ## Decisions Made
 | Decision | Rationale |
 |----------|-----------|
-| 删除 DatabaseService | 纯 CRUD 透传无业务价值，属 anemic pass-through |
-| CRUD 走 handlers → Repository | 与「repository API only」一致；有编排/事务再加用例 Service |
+| 本计划为架构 SSOT | 旧 docs/architecture.md 仅历史参考 |
+| 仅 IPC DTO 进 shared | 避免实现细节泄漏 |
+| 本轮不抽 SidecarPort | 仅一个 daemon；第二 sidecar 再抽 |
+| parseCapturePath 仅 string \| { path } | 去掉 File/to/fallback 多形状 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
-|       | 1       |            |
+| main tsc: prisma.user 不存在 | 1 | 存量债（schema 仅 Auth/Application）；与本改动无关，未扩 scope |

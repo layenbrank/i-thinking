@@ -22,7 +22,7 @@ pnpm install
 | 脚本 | 作用 |
 |------|------|
 | `pnpm --filter @i-thinking/studio dev` | Electron Forge 开发（Main + Preload + Renderer） |
-| `pnpm --filter @i-thinking/studio dev:core` | 仅 Vite 网页模式（**无** `window.studio`） |
+| `pnpm --filter @i-thinking/studio dev:core` | 仅 Vite 网页模式（**无** `window.itc`） |
 | `pnpm --filter @i-thinking/studio test:unit` | Vitest |
 | `pnpm --filter @i-thinking/studio lint` | ESLint |
 | `pnpm command sidecar bootstrap studio` | tools.lock → downloads → studio staging |
@@ -70,7 +70,7 @@ src/main | src/preload | src/renderer | src/shared | sidecar/
 
 ## 5. 本地调试
 
-- `dev` 启动后，DevTools **仅开发态**可通过 `studio.devtools.updateVisible({ visible: true })` 打开（生产打包默认关闭）。
+- `dev` 启动后，DevTools **仅开发态**可通过 `itc.devtools.updateVisible({ visible: true })` 打开（生产打包默认关闭）。
 - 主进程日志：结构化 `buildLogger(module)`；未捕获异常接入 bootstrap。
 - IPC 失败：preload 抛出 `Error('[CODE] message')`，见 [api-reference.md](./api-reference.md)。
 
@@ -85,12 +85,12 @@ src/main | src/preload | src/renderer | src/shared | sidecar/
 - 配置：`vitest.config.ts`
 - 约定：`src/**/*.test.ts`
 - 现有覆盖示例：
-  - `main/modules/store/schemas.test.ts`
-  - `main/modules/database/schemas.test.ts`
+  - `shared/ipc/store.test.ts`
+  - `shared/ipc/user.test.ts`
+  - `shared/ipc/doc.test.ts`
+  - `shared/ipc/contract.test.ts`
   - `main/modules/sidecar/paths.test.ts`
-  - `main/modules/doc/schemas.test.ts`
   - `main/ipc/trusted-sender.test.ts`
-  - `main/paths.test.ts`
   - `preload/expose.test.ts`（断言不暴露 `ipcRenderer`）
 
 ```bash

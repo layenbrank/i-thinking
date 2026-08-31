@@ -7,7 +7,7 @@
 | 启动弹窗：`createRequire` / `filename` Received undefined | Vite 将 main 打成 CJS 时，`import.meta.url` 可能变成 `undefined` | 使用 [`src/main/paths.ts`](../src/main/paths.ts)（`argv[1]` / `APP_ROOT`）；勿在 Main 顶层 `createRequire(import.meta.url)` |
 | `IPC_UNTRUSTED_SENDER` | webContents 未登记，或 URL 不在 Vite origin / 非 `file:` | 确认 window 模块已 `trustWebContents`；开发态检查 `MAIN_WINDOW_VITE_DEV_SERVER_URL` origin |
 | `IPC_INVALID_PAYLOAD` | zod 校验失败 | 对照 [api-reference.md](./api-reference.md) 入参 |
-| `window.studio is unavailable` | 网页模式或 preload 未注入 | Electron 用 `dev`；网页用 try/catch 降级，见 [examples.md](./examples.md) |
+| `itc is unavailable` / `window.itc` 缺失 | 网页模式或 preload 未注入 | Electron 用 `dev`；网页用 try/catch 降级，见 [examples.md](./examples.md) |
 | `corex-daemon not found` / start failed | 未 bootstrap | `pnpm command sidecar bootstrap studio`；确认 staging 含 `corex-daemon.exe` |
 | `pandoc not found` | 未拉取/stage pandoc | `pnpm command sidecar pandoc` 后 `pnpm command sidecar stage studio` |
 | 误以为本地 Nest 未启动 | 已去除 Nest | 业务 API 配 `VITE_THINKING` 远程地址 |
