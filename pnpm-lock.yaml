@@ -113,6 +113,9 @@ overrides:
   use-sync-external-store: 1.6.0
   '@napi-rs/wasm-runtime': 1.2.2
 
+# patchedDependencies:
+#   '@electron/packager@18.3.5': afd825e585aef3bd7e34cdf2050598e318ca369188556ac716ce6fa7002f0454
+
 importers:
 
   .:
@@ -15096,7 +15099,7 @@ snapshots:
       '@electron-forge/template-webpack-typescript': 7.11.2(@swc/core@1.15.43)(esbuild@0.28.1)(lightningcss@1.32.0)(postcss@8.5.16)(supports-color@10.0.0)(uglify-js@3.19.3)
       '@electron-forge/tracer': 7.11.2
       '@electron/get': 3.0.0(supports-color@10.0.0)
-      '@electron/packager': 18.3.5(supports-color@10.0.0)
+      '@electron/packager': 18.3.5(patch_hash=afd825e585aef3bd7e34cdf2050598e318ca369188556ac716ce6fa7002f0454)(supports-color@10.0.0)
       '@electron/rebuild': 4.2.0(supports-color@10.0.0)
       '@malept/cross-spawn-promise': 2.0.0
       '@vscode/sudo-prompt': 9.3.2
@@ -15310,7 +15313,7 @@ snapshots:
   '@electron-forge/shared-types@7.11.2(supports-color@10.0.0)':
     dependencies:
       '@electron-forge/tracer': 7.11.2
-      '@electron/packager': 18.3.5(supports-color@10.0.0)
+      '@electron/packager': 18.3.5(patch_hash=afd825e585aef3bd7e34cdf2050598e318ca369188556ac716ce6fa7002f0454)(supports-color@10.0.0)
       '@electron/rebuild': 4.2.0(supports-color@10.0.0)
       listr2: 7.0.2
     transitivePeerDependencies:
@@ -15445,7 +15448,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@electron/packager@18.3.5(supports-color@10.0.0)':
+  '@electron/packager@18.3.5(patch_hash=afd825e585aef3bd7e34cdf2050598e318ca369188556ac716ce6fa7002f0454)(supports-color@10.0.0)':
     dependencies:
       '@electron/asar': 3.4.1
       '@electron/get': 3.0.0(supports-color@10.0.0)

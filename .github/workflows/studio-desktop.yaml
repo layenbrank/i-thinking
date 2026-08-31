@@ -147,5 +147,5 @@ jobs:
           name: studio-${{ matrix.os }}
           retention-days: 14
           path: |
-            apps/studio/out/**
+            out/studio/**
           if-no-files-found: warn

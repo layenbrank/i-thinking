@@ -1,0 +1,46 @@
+diff --git a/dist/platform.js b/dist/platform.js
+index 08b519ae16652ae48841e93f12e06a63cfdfd896..c0cfcdeb676ecb54a4b3ad2e756762f559faee9a 100644
+--- a/dist/platform.js
++++ b/dist/platform.js
+@@ -11,6 +11,14 @@ const common_1 = require("./common");
+ const copy_filter_1 = require("./copy-filter");
+ const hooks_1 = require("./hooks");
+ const crypto_1 = __importDefault(require("crypto"));
++async function safeMove(src, dest, opts) {
++    await fs_extra_1.default.copy(src, dest, { overwrite: opts?.overwrite, dereference: true });
++    await fs_extra_1.default.remove(src);
++}
++async function safeRename(src, dest) {
++    await fs_extra_1.default.copy(src, dest, { dereference: true });
++    await fs_extra_1.default.remove(src);
++}
+ class App {
+     constructor(opts, templatePath) {
+         this.asarIntegrity = undefined;
+@@ -86,7 +94,7 @@ class App {
+     }
+     async relativeRename(basePath, oldName, newName) {
+         (0, common_1.debug)(`Renaming ${oldName} to ${newName} in ${basePath}`);
+-        await fs_extra_1.default.rename(path_1.default.join(basePath, oldName), path_1.default.join(basePath, newName));
++        await safeRename(path_1.default.join(basePath, oldName), path_1.default.join(basePath, newName));
+     }
+     async renameElectron() {
+         return this.relativeRename(this.electronBinaryDir, this.originalElectronName, this.newElectronName);
+@@ -108,7 +116,7 @@ class App {
+      */
+     async initialize() {
+         (0, common_1.debug)(`Initializing app in ${this.stagingPath} from ${this.templatePath} template`);
+-        await fs_extra_1.default.move(this.templatePath, this.stagingPath, { overwrite: true });
++        await safeMove(this.templatePath, this.stagingPath, { overwrite: true });
+         await this.removeDefaultApp();
+         if (this.opts.prebuiltAsar) {
+             await this.copyPrebuiltAsar();
+@@ -231,7 +239,7 @@ class App {
+         const finalPath = (0, common_1.generateFinalPath)(this.opts);
+         if (this.opts.tmpdir !== false) {
+             (0, common_1.debug)(`Moving ${this.stagingPath} to ${finalPath}`);
+-            await fs_extra_1.default.move(this.stagingPath, finalPath);
++            await safeMove(this.stagingPath, finalPath);
+         }
+         if (this.opts.afterComplete) {
+             const hookArgs = [

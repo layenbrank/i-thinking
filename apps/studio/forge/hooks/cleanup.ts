@@ -1,26 +1,18 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
-import os from 'node:os'
+import { existsSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 
 import { PACKAGE_ROOT } from '../constants'
 
-/**
- * 临时目录必须在 apps/studio **之外**，否则 packager 会把包根拷进自身子目录报错。
- * 统一缓存：monorepo 根 `.cache/packager/studio`。
- */
-const REPO_ROOT = path.resolve(PACKAGE_ROOT, '..', '..')
-const PACKAGER_TMP = path.join(REPO_ROOT, '.cache', 'packager', 'studio')
-const OUT_DIR = path.join(PACKAGE_ROOT, 'out')
+const OUT_DIR = path.resolve(PACKAGE_ROOT, '..', '..', 'out', 'studio')
 
 function removePath(target: string): void {
   if (!existsSync(target)) return
-  rmSync(target, {
-    recursive: true,
-    force: true,
-    maxRetries: 8,
-    retryDelay: 250
-  })
+  try {
+    rmSync(target, { recursive: true, force: true })
+  } catch {
+    // best-effort：EBUSY/EPERM 不阻塞构建
+  }
 }
 
 /**
@@ -35,7 +27,7 @@ function stopLockedStudioProcesses(): void {
     `$root = '${root}'`,
     'Get-Process -ErrorAction SilentlyContinue |',
     '  Where-Object {',
-    "    $_.ProcessName -match '^(electron|i-thinking)$' -and",
+    "    $_.ProcessName -match '^(electron|i-thinking|studio)$' -and",
     '    $_.Path -and',
     "    ($_.Path -replace '\\\\','/').ToLower().StartsWith($root)",
     '  } |',
@@ -54,21 +46,13 @@ function stopLockedStudioProcesses(): void {
 }
 
 /**
- * Forge prePackage：清理上次打包残留，降低 Win32 EBUSY。
+ * Forge prePackage：
+ * 1. 结束可能锁定产物的进程
+ * 2. 清理上次构建产物
  */
 async function cleanupBeforePackage(): Promise<void> {
   stopLockedStudioProcesses()
-  removePath(PACKAGER_TMP)
-  mkdirSync(PACKAGER_TMP, { recursive: true })
-
-  // 系统 Temp 里上次失败留下的 electron-packager 模板
-  removePath(path.join(os.tmpdir(), 'electron-packager'))
-  // 旧版路径残留
-  removePath(path.join(PACKAGE_ROOT, '.packager-tmp'))
-  removePath(path.join(REPO_ROOT, '.packager-tmp'))
-
-  // out/ 内正在运行的包也会锁 asar；overwrite 前先清更稳
   removePath(OUT_DIR)
 }
 
-export { PACKAGER_TMP, cleanupBeforePackage, stopLockedStudioProcesses }
+export { cleanupBeforePackage, stopLockedStudioProcesses }

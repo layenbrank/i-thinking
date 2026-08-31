@@ -9,7 +9,7 @@ import { buildPlugins } from './forge/plugins'
 import { buildPublishers } from './forge/publishers'
 
 const config: ForgeConfig = {
-  outDir: path.join(PACKAGE_ROOT, 'out'),
+  outDir: path.resolve(PACKAGE_ROOT, '..', '..', 'out', 'studio'),
   packagerConfig: buildPackagerConfig(),
   rebuildConfig: {
     // 与 postinstall electron-rebuild 对齐；打包阶段再确保 native 匹配 Electron ABI

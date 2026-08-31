@@ -64,7 +64,6 @@ cache
 static
 .tmp/
 .tmp-fuses/
-.packager-tmp/
 
 # Auto-generated files
 auto-imports.d.ts
@@ -85,7 +84,7 @@ apps/studio/generated/
 .npmrc
 
 *.mp4
-apps/studio/out
+out/studio
 apps/studio/sidecar/staging/**
 !apps/studio/sidecar/staging/.gitkeep
 !apps/studio/sidecar/staging/**/.gitkeep
@@ -98,6 +97,7 @@ apps/studio/sidecar/**/*.dylib
 apps/client/src-tauri/binaries/**
 !apps/client/src-tauri/binaries/.gitkeep
 !apps/client/src-tauri/binaries/**/.gitkeep
+apps/studio/out
 # Python bytecode / coverage (including under .cursor/skills)
 *.pyc
 __pycache__/

@@ -124,3 +124,6 @@ peerDependencyRules:
 
 minimumReleaseAgeExclude:
   - '@napi-rs/wasm-runtime@1.2.2'
+
+# patchedDependencies:
+#   '@electron/packager@18.3.5': patches/@electron__packager@18.3.5.patch
