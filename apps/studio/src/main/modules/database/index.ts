@@ -1,4 +1,4 @@
-import type { AppContext } from '@main/app-context'
+import type { Context } from '@main/context'
 import type { StudioModule } from '@main/module'
 import { disconnectPrisma } from './client'
 import { registerHandlers } from './handlers'
@@ -8,7 +8,7 @@ function buildModule(): StudioModule {
   const users = new Repository()
   return {
     name: 'database',
-    register(ctx: AppContext) {
+    register(ctx: Context) {
       registerHandlers(ctx, users)
       ctx.logger.child('database').info('registered (repository API only)')
     },

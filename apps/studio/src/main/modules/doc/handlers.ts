@@ -1,10 +1,10 @@
-import type { AppContext } from '@main/app-context'
+import type { Context } from '@main/context'
 import { registerHandler } from '@main/ipc/handle'
 import { CHANNELS } from '@shared/ipc/channels'
 import { ConvertSchema } from '@shared/ipc/doc'
 import type { Service } from './service'
 
-function registerHandlers(ctx: AppContext, service: Service): void {
+function registerHandlers(ctx: Context, service: Service): void {
   registerHandler(ctx, CHANNELS.DOC.CONVERT, ConvertSchema, function (input) {
     return service.convert(input)
   })

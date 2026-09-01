@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module'
-import path from 'node:path'
+import { join, resolve, dirname, isAbsolute } from 'node:path'
 
 type AppRequire = ReturnType<typeof createRequire>
 
@@ -9,25 +9,25 @@ type AppRequire = ReturnType<typeof createRequire>
  */
 function findBundleDir(): string {
   const entry = process.argv[1]
-  if (entry && path.isAbsolute(entry)) {
-    return path.dirname(entry)
+  if (entry && isAbsolute(entry)) {
+    return dirname(entry)
   }
 
   const root = process.env.APP_ROOT || process.cwd()
-  return path.join(root, '.vite', 'build')
+  return join(root, '.vite', 'build')
 }
 
 function findAppRoot(): string {
   if (process.env.APP_ROOT) return process.env.APP_ROOT
   // .vite/build -> 项目根（apps/studio）
-  return path.resolve(findBundleDir(), '..', '..')
+  return resolve(findBundleDir(), '..', '..')
 }
 
 let cachedRequire: AppRequire | null = null
 
 function findAppRequire(): AppRequire {
   if (cachedRequire) return cachedRequire
-  const filename = path.join(findBundleDir(), 'main.js')
+  const filename = join(findBundleDir(), 'main.js')
   cachedRequire = createRequire(filename)
   return cachedRequire
 }

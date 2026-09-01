@@ -1,32 +1,26 @@
-import {
-  app,
-  ipcMain,
-  type BrowserWindow,
-  type IpcMain,
-  type WebContents
-} from 'electron'
+import { app, ipcMain, type BrowserWindow, type IpcMain, type WebContents } from 'electron'
 import { buildLogger, type Logger } from './logger'
 import { CorexHost } from './modules/sidecar/host'
 
-type AppContext = {
+interface Context {
   app: typeof app
   ipc: IpcMain
   isDev: boolean
   logger: Logger
   corex: CorexHost
-  findWindow: () => BrowserWindow | null
-  setWindow: (win: BrowserWindow | null) => void
+  toReadWindow: () => BrowserWindow | null
+  toUpdateWindow: (win: BrowserWindow | null) => void
   /** 登记可信渲染进程（IPC / 导航校验用） */
   trustWebContents: (contents: WebContents) => void
   untrustWebContents: (contents: WebContents) => void
   isTrustedWebContents: (contents: WebContents) => boolean
   /** 开发态允许的页面 origin（如 Vite）；生产为空则仅 file: */
-  findAllowedOrigins: () => readonly string[]
-  setAllowedOrigins: (origins: readonly string[]) => void
+  toReadOrigins: () => readonly string[]
+  toUpdateOrigins: (origins: readonly string[]) => void
 }
 
-function buildAppContext(): AppContext {
-  let mainWindow: BrowserWindow | null = null
+function buildContext(): Context {
+  let window: BrowserWindow | null = null
   const trustedIds = new Set<number>()
   let allowedOrigins: readonly string[] = []
   const isDev = !app.isPackaged
@@ -39,11 +33,11 @@ function buildAppContext(): AppContext {
     isDev,
     logger,
     corex,
-    findWindow() {
-      return mainWindow
+    toReadWindow() {
+      return window
     },
-    setWindow(win) {
-      mainWindow = win
+    toUpdateWindow(win) {
+      window = win
     },
     trustWebContents(contents) {
       trustedIds.add(contents.id)
@@ -54,14 +48,14 @@ function buildAppContext(): AppContext {
     isTrustedWebContents(contents) {
       return trustedIds.has(contents.id)
     },
-    findAllowedOrigins() {
+    toReadOrigins() {
       return allowedOrigins
     },
-    setAllowedOrigins(origins) {
+    toUpdateOrigins(origins) {
       allowedOrigins = origins
     }
   }
 }
 
-export type { AppContext }
-export { buildAppContext }
+export { buildContext }
+export type { Context }

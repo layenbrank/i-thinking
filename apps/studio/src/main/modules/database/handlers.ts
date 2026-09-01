@@ -1,10 +1,10 @@
-import { CHANNELS } from '@shared/ipc/channels'
-import type { AppContext } from '@main/app-context'
+import type { Context } from '@main/context'
 import { registerHandler } from '@main/ipc/handle'
-import type { Repository } from './repositories/user'
+import { CHANNELS } from '@shared/ipc/channels'
 import { RemoveSchema, UpdateSchema, WriteSchema } from '@shared/ipc/user'
+import type { Repository } from './repositories/user'
 
-function registerHandlers(ctx: AppContext, users: Repository): void {
+function registerHandlers(ctx: Context, users: Repository): void {
   registerHandler(ctx, CHANNELS.USER.READ, null, function () {
     return users.toRead()
   })

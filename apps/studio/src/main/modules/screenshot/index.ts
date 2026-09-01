@@ -1,4 +1,4 @@
-import type { AppContext } from '@main/app-context'
+import type { Context } from '@main/context'
 import type { StudioModule } from '@main/module'
 import { registerHandlers } from './handlers'
 import { Service } from './service'
@@ -6,7 +6,7 @@ import { Service } from './service'
 function buildModule(): StudioModule {
   return {
     name: 'screenshot',
-    register(ctx: AppContext) {
+    register(ctx: Context) {
       const service = new Service(ctx.corex)
       registerHandlers(ctx, service)
       ctx.logger.child('screenshot').info('registered')
@@ -14,5 +14,5 @@ function buildModule(): StudioModule {
   }
 }
 
-export { buildModule }
 export { Service } from './service'
+export { buildModule }

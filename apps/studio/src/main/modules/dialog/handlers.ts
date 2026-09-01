@@ -1,10 +1,10 @@
-import { CHANNELS } from '@shared/ipc/channels'
-import type { AppContext } from '@main/app-context'
+import type { Context } from '@main/context'
 import { registerHandler } from '@main/ipc/handle'
+import { CHANNELS } from '@shared/ipc/channels'
 import { OpenSchema, SaveSchema } from '@shared/ipc/dialog'
 import type { Service } from './service'
 
-function registerHandlers(ctx: AppContext, service: Service): void {
+function registerHandlers(ctx: Context, service: Service): void {
   registerHandler(ctx, CHANNELS.DIALOG.OPEN, OpenSchema, function (input) {
     return service.open(input)
   })

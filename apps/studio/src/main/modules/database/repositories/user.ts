@@ -1,5 +1,5 @@
-import type { WriteP, RemoveP, UpdateP, ReadR } from '@shared/ipc/user'
-import { findPrismaClient } from '../client'
+import type { ReadR, RemoveP, UpdateP, WriteP } from '@shared/ipc/user'
+import { findClient } from '../client'
 
 function toRecord(row: {
   id: string
@@ -19,7 +19,7 @@ function toRecord(row: {
 
 export class Repository {
   async toRead(): Promise<ReadR[]> {
-    const rows = await findPrismaClient().auth.findMany({
+    const rows = await findClient().auth.findMany({
       orderBy: {
         id: 'asc'
       }
@@ -28,7 +28,7 @@ export class Repository {
   }
 
   async toWrite(input: WriteP): Promise<ReadR> {
-    const row = await findPrismaClient().auth.create({
+    const row = await findClient().auth.create({
       data: {
         name: input.name ?? null,
         email: input.email ? input.email : null
@@ -38,7 +38,7 @@ export class Repository {
   }
 
   async toUpdate(input: UpdateP): Promise<ReadR> {
-    const row = await findPrismaClient().auth.update({
+    const row = await findClient().auth.update({
       where: { id: input.id },
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
@@ -49,6 +49,6 @@ export class Repository {
   }
 
   async toRemove(input: RemoveP): Promise<void> {
-    await findPrismaClient().auth.delete({ where: { id: input.id } })
+    await findClient().auth.delete({ where: { id: input.id } })
   }
 }
