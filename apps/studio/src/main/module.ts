@@ -1,7 +1,7 @@
-import type { AppContext } from './app-context'
+import type { Context } from './context'
 
 export interface StudioModule {
   name: string
-  register: (ctx: AppContext) => void | Promise<void>
+  register: (ctx: Context) => void | Promise<void>
   dispose?: () => void | Promise<void>
 }

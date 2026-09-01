@@ -1,10 +1,10 @@
+import type { Context } from '@main/context'
+import type { StudioModule } from '@main/module'
+import { attachGuards as attachWindowGuards } from '@main/modules/security'
+import { findBundleDir } from '@main/paths'
+import { CHANNELS } from '@shared/ipc/channels'
 import { BrowserWindow } from 'electron'
 import path from 'node:path'
-import { CHANNELS } from '@shared/ipc/channels'
-import type { AppContext } from '@main/app-context'
-import type { StudioModule } from '@main/module'
-import { findBundleDir } from '@main/paths'
-import { attachGuards as attachWindowGuards } from '@main/modules/security'
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined
 declare const MAIN_WINDOW_VITE_NAME: string
@@ -12,15 +12,15 @@ declare const MAIN_WINDOW_VITE_NAME: string
 function buildModule(): StudioModule {
   return {
     name: 'window',
-    register(ctx: AppContext) {
+    register(ctx: Context) {
       const log = ctx.logger.child('window')
 
       if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         try {
           const origin = new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL).origin
-          ctx.setAllowedOrigins([origin])
+          ctx.toUpdateOrigins([origin])
         } catch {
-          ctx.setAllowedOrigins([])
+          ctx.toUpdateOrigins([])
         }
       }
 
@@ -69,7 +69,7 @@ function buildModule(): StudioModule {
           }
         })
 
-        ctx.setWindow(win)
+        ctx.toUpdateWindow(win)
         ctx.trustWebContents(win.webContents)
         attachWindowGuards(ctx, win.webContents)
 
@@ -106,8 +106,8 @@ function buildModule(): StudioModule {
           }
         })
         win.on('closed', function () {
-          if (ctx.findWindow() === win) {
-            ctx.setWindow(null)
+          if (ctx.toReadWindow() === win) {
+            ctx.toUpdateWindow(null)
           }
         })
 

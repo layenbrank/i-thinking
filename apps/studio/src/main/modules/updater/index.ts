@@ -1,4 +1,4 @@
-import type { AppContext } from '@main/app-context'
+import type { Context } from '@main/context'
 import type { StudioModule } from '@main/module'
 import { registerHandlers } from './handlers'
 import { Service } from './service'
@@ -6,7 +6,7 @@ import { Service } from './service'
 function buildModule(): StudioModule {
   return {
     name: 'updater',
-    register(ctx: AppContext) {
+    register(ctx: Context) {
       const service = new Service(ctx)
       service.configure()
       registerHandlers(ctx, service)

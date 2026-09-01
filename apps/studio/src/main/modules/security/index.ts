@@ -1,27 +1,25 @@
-import { session, type WebContents } from 'electron'
-import type { AppContext } from '@main/app-context'
+import type { Context } from '@main/context'
 import { isAllowedPageUrl } from '@main/ipc/trusted-sender'
 import type { StudioModule } from '@main/module'
+import { session, type WebContents } from 'electron'
 
 const ALLOWED_PERMISSIONS = new Set<string>([])
 
 function buildModule(): StudioModule {
   return {
     name: 'security',
-    register(ctx: AppContext) {
+    register(ctx: Context) {
       const log = ctx.logger.child('security')
 
-      session.defaultSession.setPermissionRequestHandler(function (
-        _webContents,
-        permission,
-        callback
-      ) {
-        const allowed = ALLOWED_PERMISSIONS.has(permission)
-        if (!allowed) {
-          log.warn('denied permission', { permission })
+      session.defaultSession.setPermissionRequestHandler(
+        function (_webContents, permission, callback) {
+          const allowed = ALLOWED_PERMISSIONS.has(permission)
+          if (!allowed) {
+            log.warn('denied permission', { permission })
+          }
+          callback(allowed)
         }
-        callback(allowed)
-      })
+      )
 
       session.defaultSession.webRequest.onHeadersReceived(function (details, callback) {
         const csp = ctx.isDev
@@ -39,7 +37,7 @@ function buildModule(): StudioModule {
 }
 
 /** 附着到 BrowserWindow 的导航 / 开窗限制 */
-function attachGuards(ctx: AppContext, contents: WebContents): void {
+function attachGuards(ctx: Context, contents: WebContents): void {
   const log = ctx.logger.child('security')
 
   contents.on('will-navigate', function (event, url) {

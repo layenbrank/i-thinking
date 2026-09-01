@@ -1,14 +1,14 @@
-import type { AppContext } from '@main/app-context'
+import type { Context } from '@main/context'
 import type { StudioModule } from '@main/module'
-import type { CorexHost } from './host'
 import { registerHandlers } from './handlers'
+import type { CorexHost } from './host'
 
 function buildModule(): StudioModule {
   let corex: CorexHost | null = null
 
   return {
     name: 'sidecar',
-    register(ctx: AppContext) {
+    register(ctx: Context) {
       corex = ctx.corex
       registerHandlers(ctx)
 
@@ -36,7 +36,14 @@ function buildModule(): StudioModule {
   }
 }
 
-export { buildModule }
 export { CorexHost } from './host'
+export {
+  findCliPath,
+  findCorexDataDir,
+  findDaemonPath,
+  findDefaultIpcEndpoint,
+  findPandocPath,
+  findSidecarRoot
+} from './paths'
 export { findStatus } from './status'
-export { findCliPath, findCorexDataDir, findDaemonPath, findDefaultIpcEndpoint, findPandocPath, findSidecarRoot } from './paths'
+export { buildModule }

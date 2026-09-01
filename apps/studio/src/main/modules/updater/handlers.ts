@@ -1,9 +1,9 @@
-import { CHANNELS } from '@shared/ipc/channels'
-import type { AppContext } from '@main/app-context'
+import type { Context } from '@main/context'
 import { registerHandler } from '@main/ipc/handle'
+import { CHANNELS } from '@shared/ipc/channels'
 import type { Service } from './service'
 
-function registerHandlers(ctx: AppContext, service: Service): void {
+function registerHandlers(ctx: Context, service: Service): void {
   registerHandler(ctx, CHANNELS.UPDATER.FIND_STATUS, null, function () {
     return service.findStatus()
   })

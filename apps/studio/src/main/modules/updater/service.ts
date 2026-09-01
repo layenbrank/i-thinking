@@ -1,4 +1,4 @@
-import type { AppContext } from '@main/app-context'
+import type { Context } from '@main/context'
 import { CHANNELS } from '@shared/ipc/channels'
 import type { UpdateInfo } from 'electron-updater'
 import { autoUpdater } from 'electron-updater'
@@ -14,7 +14,7 @@ type UpdaterEvent =
   | { type: 'error'; message: string }
 
 class Service {
-  private readonly ctx: AppContext
+  private readonly ctx: Context
   private checking = false
   private downloading = false
   private downloaded = false
@@ -24,7 +24,7 @@ class Service {
   private enabled = false
   private wired = false
 
-  constructor(ctx: AppContext) {
+  constructor(ctx: Context) {
     this.ctx = ctx
   }
 
@@ -186,7 +186,7 @@ class Service {
   }
 
   private emit(event: UpdaterEvent): void {
-    const win = this.ctx.findWindow()
+    const win = this.ctx.toReadWindow()
     if (!win || win.isDestroyed()) return
     win.webContents.send(CHANNELS.UPDATER.EVENT, event)
   }
@@ -207,5 +207,5 @@ function parseReleaseNotes(info: UpdateInfo): string | null {
   return null
 }
 
-export type { UpdaterEvent }
 export { Service }
+export type { UpdaterEvent }
