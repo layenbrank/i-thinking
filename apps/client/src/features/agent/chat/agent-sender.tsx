@@ -10,9 +10,9 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  type ClipboardEvent,
   type KeyboardEvent,
   type MouseEvent,
-  type ClipboardEvent,
   type ReactNode,
   type Ref
 } from 'react'
@@ -314,8 +314,7 @@ function AgentSenderInner(props: AgentSenderProps, ref: Ref<AgentSenderHandle>) 
     host.className = `${styles.chip} ${CSSVAR.KEY}`
 
     const fileName = chip.meta.name || chip.label
-    const iconName =
-      chip.kind === 'skill' ? 'mdi:hammer-wrench' : findFileIcon(fileName)
+    const iconName = chip.kind === 'skill' ? 'mdi:hammer-wrench' : findFileIcon(fileName)
     const tone = findFileIconTone(fileName, chip.kind)
 
     const iconWrap = document.createElement('span')
