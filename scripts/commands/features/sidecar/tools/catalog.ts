@@ -1,5 +1,6 @@
 import { CorexTool } from './corex.ts'
 import { FfmpegTool } from './ffmpeg.ts'
+import { GooseTool } from './goose.ts'
 import { PandocTool } from './pandoc.ts'
 
 import type { ToolStrategy } from './types.ts'
@@ -8,6 +9,7 @@ import type { ToolStrategy } from './types.ts'
 const TOOLS: Record<string, ToolStrategy> = {
   corex: CorexTool,
   ffmpeg: FfmpegTool,
+  goose: GooseTool,
   pandoc: PandocTool
 }
 

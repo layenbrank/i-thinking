@@ -66,6 +66,9 @@ function flattenExtractDir(extractDir: string, keepNames: string[]): void {
 
 function parseArchiveKind(archivePath: string): string {
   const lower = archivePath.toLowerCase()
+  if (lower.endsWith('.tar.bz2') || lower.endsWith('.tbz2') || lower.endsWith('.tbz')) {
+    return '.tar.bz2'
+  }
   if (lower.endsWith('.tar.gz') || lower.endsWith('.tgz')) {
     return '.tar.gz'
   }
@@ -80,11 +83,17 @@ function parseArchiveKind(archivePath: string): string {
 
 function parseArchiveExt(url: string): string {
   const lower = url.toLowerCase()
+  if (lower.includes('.tar.bz2') || lower.endsWith('.tbz2') || lower.endsWith('.tbz')) {
+    return '.tar.bz2'
+  }
   if (lower.includes('.tar.xz') || lower.endsWith('.txz')) {
     return '.tar.xz'
   }
   if (lower.includes('.tar.gz') || lower.endsWith('.tgz')) {
     return '.tar.gz'
+  }
+  if (lower.includes('.zip') || lower.endsWith('.zip')) {
+    return '.zip'
   }
   return path.extname(url) || '.zip'
 }
@@ -109,7 +118,10 @@ function extractArchive(archivePath: string, extractDir: string): void {
     lower.endsWith('.tar.gz') ||
     lower.endsWith('.tgz') ||
     lower.endsWith('.tar.xz') ||
-    lower.endsWith('.txz')
+    lower.endsWith('.txz') ||
+    lower.endsWith('.tar.bz2') ||
+    lower.endsWith('.tbz2') ||
+    lower.endsWith('.tbz')
 
   if (!isZip && !isTar) {
     throw new Error(`[extract] 不支持的归档: ${archivePath}`)

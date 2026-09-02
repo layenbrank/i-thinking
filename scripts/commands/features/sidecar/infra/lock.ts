@@ -13,6 +13,7 @@ interface ToolsLock {
   schemaVersion: number
   corex: Record<string, ToolPin>
   ffmpeg?: Record<string, ToolPin>
+  goose?: Record<string, ToolPin>
   pandoc: Record<string, ToolPin>
 }
 
@@ -25,6 +26,7 @@ function parseToolsLock(filePath = TOOLS_LOCK_PATH): ToolsLock {
     throw new Error(`[tools-lock] 不支持的 schemaVersion: ${parsed.schemaVersion}`)
   }
   parsed.ffmpeg = parsed.ffmpeg ?? {}
+  parsed.goose = parsed.goose ?? {}
   return parsed
 }
 
@@ -32,6 +34,7 @@ function findLockPins(lock: ToolsLock, toolId: string): Record<string, ToolPin> 
   const pinsById: Record<string, Record<string, ToolPin> | undefined> = {
     corex: lock.corex,
     ffmpeg: lock.ffmpeg,
+    goose: lock.goose,
     pandoc: lock.pandoc
   }
   return pinsById[toolId]

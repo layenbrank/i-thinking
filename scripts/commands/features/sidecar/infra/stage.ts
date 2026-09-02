@@ -42,8 +42,8 @@ async function stageVendoredTools(target: StageTarget, key = findPlatformKey()):
   for (const tool of Object.values(TOOLS)) {
     const pins = findLockPins(lock, tool.id)
     if (!pins || !hasToolPin(pins, key)) {
-      if (tool.id === 'corex') {
-        throw new Error(`[stage] 当前平台无 corex 钉死版本: ${key}（应用=${target.id}）`)
+      if (tool.id === 'corex' || (target.id === 'client' && tool.id === 'goose')) {
+        throw new Error(`[stage] 当前平台无 ${tool.id} 钉死版本: ${key}（应用=${target.id}）`)
       }
       continue
     }
