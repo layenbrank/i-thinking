@@ -10,7 +10,7 @@ export interface RecipeField {
   type: RecipeFieldType
 }
 
-export const RECIPE_TABS = ['layout', 'navigation', 'form', 'dataDisplay', 'feedback'] as const
+export const RECIPE_TABS = ['layout', 'navigation', 'form', 'dataDisplay', 'feedback', 'ai'] as const
 export type RecipeTab = (typeof RECIPE_TABS)[number]
 
 export const RECIPE_FIELDS: Record<RecipeTab, RecipeField[]> = {
@@ -50,6 +50,14 @@ export const RECIPE_FIELDS: Record<RecipeTab, RecipeField[]> = {
     { component: 'Modal', token: 'headerBg', label: '弹窗头部背景', type: 'color' },
     { component: 'Drawer', token: 'footerPaddingInline', label: '抽屉底部横向内边距', type: 'number' },
     { component: 'Tooltip', token: 'colorBgSpotlight', label: '提示背景色', type: 'color' }
+  ],
+  ai: [
+    { component: 'Sender', token: 'colorBgSlot', label: '输入框背景', type: 'color' },
+    { component: 'Sender', token: 'colorBorderSlot', label: '输入框边框', type: 'color' },
+    { component: 'Sender', token: 'colorTextSlotPlaceholder', label: '输入框占位文字', type: 'color' },
+    { component: 'Conversations', token: 'creationBgColor', label: '新对话按钮背景', type: 'color' },
+    { component: 'Think', token: 'colorTextBlink', label: '深度思考光标色', type: 'color' },
+    { component: 'ThoughtChain', token: 'itemBorderRadius', label: '思维链节点圆角', type: 'number' }
   ]
 }
 

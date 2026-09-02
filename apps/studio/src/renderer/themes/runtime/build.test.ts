@@ -12,7 +12,7 @@ describe('buildTheme', function () {
     expect(config.algorithm).toBe(theme.defaultAlgorithm)
     expect(config.token?.colorPrimary).toBe(APPEARANCE_PRESET.color)
     expect(config.token?.borderRadius).toBe(APPEARANCE_PRESET.radius)
-    expect(config.cssVar).toEqual({ key: 'ith' })
+    expect(config.cssVar).toEqual({ prefix: 'ith', key: 'ith' })
   })
 
   it('uses dark algorithm when theme is dark', function () {
@@ -38,7 +38,7 @@ describe('buildTheme', function () {
       }
     })
     expect(config.components?.Layout?.headerBg).toBe('#111111')
-    expect(config.components?.Menu?.itemBg).toBe('#000000')
+    expect(config.components?.Menu?.algorithm).toBe(true)
   })
 
   it('applies custom color to seed token', function () {
@@ -53,7 +53,9 @@ describe('buildTheme', function () {
   it('applies modal content padding from recipes', function () {
     expect(RECIPES.Modal?.contentPadding).toBe('12px 16px')
     const config = buildTheme({ ...APPEARANCE_PRESET, theme: 'light' })
-    const modal = config.components?.Modal as Record<string, unknown> | undefined
+    const modal = config.components?.Modal as
+      | { contentPadding?: string }
+      | undefined
     expect(modal?.contentPadding).toBe('12px 16px')
   })
 

@@ -1,102 +1,54 @@
 @use 'sass:math';
 $prefix-height: 64px;
-$suffix-height: 64px;
 $radius: 8px;
-$engine-size: env(titlebar-area-height, 35px);
+$engine-size: 36px;
 
 .overview {
   &.payload {
+    position: relative;
     width: 100%;
     height: 100%;
     background: initial;
     scrollbar-width: none;
+    overflow: visible;
   }
 
   &.prefix {
-    // flex: none;
-    // height: $prefix-height;
-    // z-index: 1;
-    // background: initial;
-    // background-color: transparent;
-    // display: flex;
-    // align-items: center;
-    // justify-content: center;
     flex: none;
-    padding: 0px env(titlebar-area-x, 138px);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    height: $prefix-height;
+    z-index: 1;
     background: initial;
     background-color: transparent;
-    top: env(titlebar-area-y, 0);
-    height: env(titlebar-area-height, var(--fallback-title-bar-height));
-    position: relative;
-    border-bottom: 1px solid rgba($color: #000000, $alpha: 0.1);
-    z-index: 1;
-  }
-
-  .utility {
-    &.button {
-      --ant-btn-border-width: 0px;
-      --ant-button-default-hover-bg: #d6dcde;
-      // --ant-button-default-hover-bg: rgba(0, 0, 0, 0.04);
-      --ant-btn-border-color-hover: transparent;
-      --ant-button-default-active-bg: #d6dcde;
-
-      width: env(titlebar-area-height, var(--fallback-title-bar-height));
-      height: env(titlebar-area-height, var(--fallback-title-bar-height));
-      padding: 0px;
-      color: #000000;
-      background-color: transparent;
-      border-radius: 0px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background-color 150ms;
-
-      &:not(:disabled):not(.ant-btn-disabled):hover {
-        color: #000000;
-      }
-    }
-
-    &.begin {
-      width: 20%;
-      height: 100%;
-      order: 0;
-      flex-grow: 2;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-    }
-
-    &.final {
-      width: 20%;
-      height: 100%;
-      padding-inline-end: env(titlebar-area-x, 138px);
-      order: 2;
-      min-width: min-content;
-      flex-grow: 2;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-    }
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   &.core {
     flex: 1;
-  }
-
-  &.suffix {
-    height: $suffix-height;
-    flex: none;
-    z-index: 1;
-    text-align: center;
-    background-color: transparent;
+    position: relative;
+    min-height: 0;
+    padding-block: 12px;
+    // 轻量边缘遮罩（视觉保留，尺寸收紧控合成成本）
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 12px,
+      #000 calc(100% - 14px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 12px,
+      #000 calc(100% - 14px),
+      transparent 100%
+    );
   }
 
   .engine {
     &.series {
-      width: calc($engine-size + 8px);
+      width: $engine-size + 8px;
       height: $engine-size;
     }
   }
@@ -104,14 +56,14 @@ $engine-size: env(titlebar-area-height, 35px);
 
 .engine {
   &.section {
-    width: 60%;
-    max-width: 400px;
+    width: 70%;
+    max-width: 600px;
     height: $engine-size;
     display: flex;
     flex-direction: column;
     position: relative;
     background-color: #ffffff;
-    border-radius: calc($engine-size / 2);
+    border-radius: math.div($engine-size, 2);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     transition:
       border-radius 0.28s cubic-bezier(0.22, 1, 0.36, 1),
@@ -159,31 +111,98 @@ $engine-size: env(titlebar-area-height, 35px);
     max-height: 40vh;
     z-index: 20;
     overflow: hidden scroll;
-    transform-origin: top;
-    background: #ffffff;
+    scroll-padding-block: 8px;
+    scroll-behavior: auto;
+    overscroll-behavior: contain;
+    background: rgba(255, 255, 255, 0.96);
     border-radius: $radius;
     padding-inline: 6px;
     padding-block: 6px;
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(18px) saturate(1.15);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15, 23, 42, 0.18) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.16);
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  }
+
+  &.fragmentTrack {
+    position: relative;
+    z-index: 1;
+  }
+
+  &.fragmentIndicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 0;
+    height: 36px;
+    border-radius: 8px;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(90deg, rgba(64, 128, 255, 0.22) 0%, rgba(64, 128, 255, 0.12) 100%);
+    box-shadow: inset 0 0 0 1px rgba(64, 128, 255, 0.12);
+    will-change: transform, height, opacity;
   }
 
   &.fragmentValue {
-    height: 32px;
-    line-height: 32px;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    min-height: 38px;
+    height: auto;
+    line-height: 1.4;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
     cursor: pointer;
-    padding: 10px 14px;
-    border-radius: 6px;
+    padding: 9px 14px;
+    border-radius: 8px;
+    color: #0f172a;
+    background: transparent;
+    transition: color 0.2s ease;
 
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
+    span {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+  }
 
-    & + & {
-      border-top: 1px solid rgba(0, 0, 0, 0.06);
-    }
+  &.fragmentMark {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    color: rgba(15, 23, 42, 0.28);
+    transform: translateX(0);
+    transition:
+      color 0.2s ease,
+      transform 0.2s ease,
+      opacity 0.2s ease;
+    opacity: 0.7;
+  }
+
+  &.fragmentActive {
+    color: #1d4ed8;
+  }
+
+  &.fragmentMarkActive {
+    color: #4080ff;
+    opacity: 1;
+    transform: translateX(3px);
   }
 
   // ==================== Input.Search 内部元素（永远保持直角） ====================

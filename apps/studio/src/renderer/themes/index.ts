@@ -19,10 +19,17 @@ export {
 } from '@/themes/appearance'
 
 export { RECIPES, mergeComponents } from '@/themes/recipes/recipes'
-export { RECIPE_FIELDS, RECIPE_FIELD_INDEX, RECIPE_TABS, type RecipeField, type RecipeTab } from '@/themes/recipes/meta'
+export {
+  RECIPE_FIELDS,
+  RECIPE_FIELD_INDEX,
+  RECIPE_TABS,
+  type RecipeField,
+  type RecipeTab
+} from '@/themes/recipes/meta'
 export { PRESET } from '@/themes/presets/default'
 
-export { CSS_VAR_KEY, buildTheme } from '@/themes/runtime/build'
+export { CSSVAR, buildTheme } from '@/themes/runtime/build'
+export { useCssVarClassName } from '@/themes/runtime/css-var'
 export { useProviderProps, useTheme, type ProviderProps } from '@/themes/runtime/theme'
 export {
   parseAppearance,
