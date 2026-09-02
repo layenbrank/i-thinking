@@ -132,6 +132,10 @@
         {
           "name": "binaries/corex-daemon",
           "sidecar": true
+        },
+        {
+          "name": "binaries/goose",
+          "sidecar": true
         }
       ],
       "identifier": "shell:allow-kill"
@@ -152,6 +156,23 @@
         {
           "args": ["--pipe", "\\\\.\\pipe\\corex"],
           "name": "binaries/corex-daemon",
+          "sidecar": true
+        },
+        {
+          "args": [
+            "serve",
+            "--tls",
+            "--platform",
+            "desktop",
+            "--enable-scheduler",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            {
+              "validator": "\\d+"
+            }
+          ],
+          "name": "binaries/goose",
           "sidecar": true
         }
       ],

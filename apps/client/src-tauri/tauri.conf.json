@@ -157,14 +157,14 @@
   },
   "build": {
     "beforeBuildCommand": "pnpm build:core",
-    "beforeDevCommand": "pnpm prepare:bin && pnpm dev:core",
+    "beforeDevCommand": "pnpm dev:core",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
   },
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "externalBin": ["binaries/corex-daemon"],
+    "externalBin": ["binaries/corex-daemon", "binaries/goose"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

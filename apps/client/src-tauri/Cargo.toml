@@ -114,9 +114,23 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
+uuid = { workspace = true }
 
 # --- 媒体 / 编解码 ---
 image = "0.25.10" # 截图解码、托盘徽章
+
+# --- Goose ACP serve / pinned WSS ---
+rand = "0.9"
+sha2 = "0.10"
+hex = "0.4"
+futures-util = "0.3"
+reqwest = { version = "0.12", default-features = false, features = [
+  "rustls-tls",
+] }
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+rustls-pki-types = "1"
+url = "2"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 # --- 桌面专用插件 ---

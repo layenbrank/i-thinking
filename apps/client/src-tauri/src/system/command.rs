@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::utils::ipc;
+use crate::utils::goose_serve::{self, GooseConnection, GooseServeState};
 use crate::utils::sidecar::{self, SidecarState, SIDECAR_SHUTDOWN_TIMEOUT};
 
 const ALLOWED_MODULES: &[&str] = &["morph", "capture", "scan", "engine", "file"];
@@ -101,4 +102,35 @@ pub async fn sidecar_shutdown(app: tauri::AppHandle) -> Result<(), String> {
     .await
     .map_err(|e| format!("sidecar shutdown 线程异常: {e}"))?;
     Ok(())
+}
+
+/// `None` = 启动中；`Some(true/false)` = 已结束。
+#[tauri::command(rename = "goose:ready")]
+pub fn goose_ready(state: tauri::State<'_, GooseServeState>) -> Option<bool> {
+    if state.is_ready() {
+        return Some(true);
+    }
+    state.status()
+}
+
+#[tauri::command(rename = "goose:connection")]
+pub fn goose_connection(state: tauri::State<'_, GooseServeState>) -> Result<GooseConnection, String> {
+    state
+        .connection()
+        .ok_or_else(|| "goose serve 未就绪".to_string())
+}
+
+#[tauri::command(rename = "goose:shutdown")]
+pub async fn goose_shutdown(app: tauri::AppHandle) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        goose_serve::shutdown(&app);
+    })
+    .await
+    .map_err(|e| format!("goose shutdown 线程异常: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command(rename = "goose:restart")]
+pub async fn goose_restart(app: tauri::AppHandle) -> Result<(), String> {
+    goose_serve::restart(&app).await
 }
