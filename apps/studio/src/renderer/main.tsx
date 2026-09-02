@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 
 import App from '@/App.tsx'
 import '@/styles/index.scss'
+import { CSSVAR } from '@/themes'
 
 import AntDIconify from '@iconify/json/json/ant-design.json'
 import MDIconify from '@iconify/json/json/mdi.json'
@@ -12,9 +13,9 @@ addCollection(MDIconify)
 addCollection(AntDIconify)
 addCollection(CustomIconify)
 
-const rootElement = document.getElementById('app') as HTMLElement
+const rootElement = document.getElementById('root') as HTMLElement
 
-const root = createRoot(rootElement, {
+const appRoot = createRoot(rootElement, {
   onCaughtError(error) {
     console.error('Root caught an error:', error)
   },
@@ -23,10 +24,11 @@ const root = createRoot(rootElement, {
   },
   onRecoverableError(error) {
     console.error('Root caught a recoverable error:', error)
-  }
+  },
+  identifierPrefix: CSSVAR.PREFIX
 })
 
-root.render(<App />)
+appRoot.render(<App />)
 
 try {
   itc.app.onMessage(function (message) {

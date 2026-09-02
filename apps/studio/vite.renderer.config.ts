@@ -1,26 +1,13 @@
-import { createWriteStream } from 'node:fs'
-import { networkInterfaces } from 'node:os'
-import { dirname, resolve, basename } from 'node:path'
+import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
+import { createHash } from 'node:crypto'
 
 import React from '@vitejs/plugin-react-swc'
-import { findUpSync } from 'find-up'
 import AutoImport from 'unplugin-auto-import/vite'
-import { compression } from 'vite-plugin-compression2'
-import Icons from 'unplugin-icons/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
+import { compression } from 'vite-plugin-compression2'
 
 import { chunks } from './vite.chunk'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const ws = createWriteStream(resolve(__dirname, 'chunks.log'), {
-  flush: true,
-  autoClose: true,
-  encoding: 'utf-8'
-})
-
-const rootMarkerPath = findUpSync(['turbo.json', 'pnpm-workspace.yaml'])
-const rootDir = rootMarkerPath ? dirname(rootMarkerPath) : process.cwd()
 
 const cssRegex: Readonly<RegExp> = /\.css$/i
 const imageRegex: Readonly<RegExp> = /\.(png|jpe?g|gif|svg|webp|ico)$/i
@@ -40,26 +27,15 @@ const noInlineRegexes: readonly RegExp[] = [
   /background.*\.(png|jpe?g)$/i // 背景图片
 ].concat(svgRegex, jsonRegex, videoRegex, audioRegex, fontRegex)
 
-export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig {
+export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
-  const interfaces = networkInterfaces()
-  const LOOPBACK = '0.0.0.0'
-  let IP = 'localhost'
+  // Forge 注入 MAIN_WINDOW_VITE_DEV_SERVER_URL 为 localhost，须与 server.host 一致；
+  // 勿绑到 WLAN 网卡 IP，否则 Electron 访问 localhost 会 ERR_CONNECTION_REFUSED。
   const PORT = 9523
-
-  for (const inter of Object.keys(interfaces)) {
-    const collection = interfaces[inter]
-    if (!collection) continue
-    for (const single of collection) {
-      if (inter !== 'WLAN') continue
-      if (single.family !== 'IPv4') continue
-      if (single.internal) continue
-      IP = single.address
-    }
-  }
+  const HOST = '127.0.0.1'
 
   console.log('env ===>', env)
-  console.log('IP ===>', `http://${IP}:${PORT}`)
+  console.log('dev server ===>', `http://${HOST}:${PORT}`)
 
   return {
     envDir: resolve(fileURLToPath(new URL('.', import.meta.url))),
@@ -70,36 +46,16 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         tsDecorators: true,
         plugins: []
       }),
-      Icons({
-        compiler: 'jsx',
-        autoInstall: true,
-        scale: 1,
-        defaultStyle: '',
-        defaultClass: '',
-        jsx: 'react',
-        iconCustomizer(collection, icon, props) {
-          props['aria-hidden'] = 'true'
-        },
-        collectionsNodeResolvePath: [
-          '@iconify/icons-*',
-          '@iconify-json/*',
-          'packages/shared/src/assets/iconify.json'
-        ],
-        customCollections: {
-          // 'local' 是自定义集合名称，可以改为任何你喜欢的名称
-          // custom: FileSystemIconLoader(resolve(rootDir, 'packages/shared/src/assets/iconify.json'))
-          // local: FileSystemIconLoader(
-          // 	resolve(rootDir, 'packages/shared/src/assets/icons'),
-          // 	function (svg) {
-          // 		return svg.replace(/^<svg /, '<svg fill="currentColor" ')
-          // 	}
-          // )
-        }
-      }),
       AutoImport({
         dts: 'src/renderer/types/auto-imports.d.ts',
         include: [/\.(?:ts|tsx|js|jsx)$/i],
-        imports: ['react', 'react-router-dom']
+        imports: [
+          'react',
+          'react-router-dom',
+          {
+            react: [['default', 'React']]
+          }
+        ]
       }),
       compression({
         include: /\.(js|mjs|json|css|less|scss|html)$/i,
@@ -110,6 +66,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       })
     ],
     resolve: {
+      tsconfigPaths: true,
       alias: {
         '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
         '@': fileURLToPath(new URL('./src/renderer', import.meta.url))
@@ -163,19 +120,17 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
         }
       }
     },
+    envPrefix: ['VITE_'],
     css: {
-      // modules: {
-      //   localsConvention: 'camelCase',
-      //   scopeBehaviour: 'local',
-      //   hashPrefix: 'prefix'
-      // },
       modules: {
-        generateScopedName(name, filename, css) {
-          const fileBaseName = basename(filename, '.module.scss')
-          const hash = Buffer.from(css).toString('base64').slice(0, 6)
-          const scoped = `${fileBaseName}-${name}-${hash}`
-
-          return scoped
+        generateScopedName(name, filename) {
+          const fileBaseName = basename(filename).replace(/\.module\.(scss|css|sass|less)$/i, '')
+          const scope = basename(dirname(filename))
+          const hash = createHash('sha256')
+            .update(`${filename}\0${name}`)
+            .digest('base64url')
+            .slice(0, 6)
+          return `${scope}-${fileBaseName}-${name}-${hash}`
         },
         localsConvention: 'camelCase',
         scopeBehaviour: 'local',
@@ -184,7 +139,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       preprocessorOptions: {
         scss: {
           additionalData: `
-                          @use "@/styles/placeholder.scss" as *;
+                          @use "@/styles/mixins.scss" as *;
                           `
         }
       }
@@ -192,8 +147,8 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
     clearScreen: false,
     server: {
       port: PORT,
-      strictPort: false,
-      host: LOOPBACK || false,
+      strictPort: true,
+      host: HOST,
       watch: {
         ignored: ['**/dist-electron/**']
       }
