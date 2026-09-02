@@ -6,7 +6,7 @@
  */
 import { LazyStore } from '@tauri-apps/plugin-store'
 
-import { parseModels, PROVIDER_KIND_META } from '@/features/agent/model/providers'
+import { parseModels } from '@/features/agent/model/providers'
 import type { ProviderConfig } from '@/features/agent/types'
 import type { AiProvider } from '@/stores/provider'
 
@@ -43,17 +43,18 @@ async function removeApiKey(providerID: string): Promise<void> {
   await keyStore.set('apiKeys', keys)
 }
 
-/** 合并 SQLite 元数据与 apiKey，得到可直接发起请求的配置 */
+/** 合并 SQLite 元数据与 apiKey，得到会话用配置 */
 async function resolveProviderConfig(provider: AiProvider): Promise<ProviderConfig> {
-  const meta = PROVIDER_KIND_META[provider.kind]
   const models = parseModels(provider.models)
+  const byKind = await readApiKey(provider.kind)
+  const byId = provider.id === provider.kind ? null : await readApiKey(provider.id)
   return {
     id: provider.id,
     kind: provider.kind,
     name: provider.name,
-    baseUrl: provider.baseUrl || meta.defaultBaseUrl,
-    model: provider.model || models[0] || meta.models[0] || '',
-    apiKey: meta.needsApiKey ? (await readApiKey(provider.id)) ?? undefined : undefined
+    baseUrl: provider.baseUrl || '',
+    model: provider.model || models[0] || '',
+    apiKey: byKind ?? byId ?? undefined
   }
 }
 

@@ -242,6 +242,13 @@
   color: var(--ith-color-text-secondary);
 }
 
+.fieldHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ith-color-text-secondary);
+}
+
 .addForm {
   padding: 14px 16px;
   border: 1px dashed var(--ith-color-border);

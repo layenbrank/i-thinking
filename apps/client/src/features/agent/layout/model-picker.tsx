@@ -1,5 +1,5 @@
 /**
- * 模型浮层选择器：按接入分组列表 + 模型设置
+ * 模型浮层选择器：按已启用接入分组 + 模型设置
  */
 import { Icon } from '@iconify/react/offline'
 import { Button, Flex, Popover, Typography } from 'antd'
@@ -7,8 +7,9 @@ import { useMemo, useState, type ReactNode } from 'react'
 
 import { AgentModelSettings } from '@/features/agent/layout/model-settings'
 import styles from '@/features/agent/layout/model-picker.module.scss'
+import { switchGooseProviderModel } from '@/features/agent/model/goose-acp'
 import { findModelPref, readModelPrefs } from '@/features/agent/model/model-prefs'
-import { parseModels, PROVIDER_KIND_META } from '@/features/agent/model/providers'
+import { parseModels } from '@/features/agent/model/providers'
 import { useProviderStore } from '@/stores/provider'
 
 interface ModelPickerProps {
@@ -41,6 +42,17 @@ function AgentModelPicker(props: ModelPickerProps) {
     [prefsTick, settingsOpen]
   )
 
+  async function selectModel(providerId: string, model: string) {
+    useProviderStore.getState().toSetActiveProvider(providerId)
+    await useProviderStore.getState().toUpdateProvider([{ id: providerId, model }])
+    updateOpen(false)
+    try {
+      await switchGooseProviderModel(providerId, model)
+    } catch (error) {
+      console.warn('[model-picker] 切换 goose session 失败:', error)
+    }
+  }
+
   return (
     <>
       <Popover
@@ -69,11 +81,11 @@ function AgentModelPicker(props: ModelPickerProps) {
                 <Typography.Text
                   type="secondary"
                   className={styles.empty}>
-                  请先在设置中添加模型接入
+                  请先在设置中配置 goose 供应商
                 </Typography.Text>
               ) : (
                 enabledProviders.map(function (provider) {
-                  const kindLabel = PROVIDER_KIND_META[provider.kind].label
+                  const kindLabel = provider.name || provider.kind
                   const models = parseModels(provider.models).filter(function (model) {
                     return findModelPref(provider.id, model, prefs).visible
                   })
@@ -84,7 +96,7 @@ function AgentModelPicker(props: ModelPickerProps) {
                       className={styles.group}>
                       <div className={styles.groupTitle}>
                         {provider.name}
-                        <span className={styles.kind}>{kindLabel}</span>
+                        <span className={styles.kind}>{provider.kind}</span>
                       </div>
                       {models.map(function (model) {
                         const isActive =
@@ -95,11 +107,7 @@ function AgentModelPicker(props: ModelPickerProps) {
                             type="button"
                             className={`${styles.row} ${isActive ? styles.rowActive : ''}`}
                             onClick={function () {
-                              useProviderStore.getState().toSetActiveProvider(provider.id)
-                              void useProviderStore.getState().toUpdateProvider([
-                                { id: provider.id, model }
-                              ])
-                              updateOpen(false)
+                              void selectModel(provider.id, model)
                             }}>
                             {isActive ? (
                               <Icon
@@ -123,7 +131,7 @@ function AgentModelPicker(props: ModelPickerProps) {
                               className={styles.rowBody}>
                               <span className={styles.modelName}>{model}</span>
                               <span className={styles.modelDesc}>
-                                {provider.name} · {kindLabel}
+                                {kindLabel} · {provider.kind}
                               </span>
                             </Flex>
                           </button>
