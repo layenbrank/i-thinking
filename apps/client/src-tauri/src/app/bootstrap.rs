@@ -12,6 +12,9 @@ use crate::{
     through::{self, ThroughState},
     ui::tray,
     utils::{
+        goose_acp::GooseAcpHub,
+        goose_serve::{self, GooseServeState},
+        goose_tls,
         log_retention,
         sidecar::{self, SidecarState},
     },
@@ -44,6 +47,9 @@ impl Bootstrap {
                 .expect("failed to initialize database");
                 app.manage(db_state);
                 app.manage(SidecarState::new());
+                app.manage(GooseServeState::new());
+                app.manage(GooseAcpHub::new());
+                goose_tls::install_crypto_provider();
                 app.manage(ThroughState::new("overlay"));
                 app.manage(OverlayPending::default());
                 app.manage(CapturePending::default());
@@ -53,10 +59,12 @@ impl Bootstrap {
                 log_retention::prune_stale_logs(app.handle());
                 autostart::reconcile(app.handle());
 
-                #[cfg(all(desktop, windows))]
+                #[cfg(desktop)]
                 {
-                    // 不阻塞 setup：后台等待就绪，仅在真正失败时发 corex://not-ready
+                    // 不阻塞 setup：后台等待就绪，仅在真正失败时发 corex://not-ready / goose://not-ready
+                    #[cfg(windows)]
                     sidecar::spawn_and_watch(app.handle(), Duration::from_secs(20));
+                    goose_serve::spawn_and_watch(app.handle(), Duration::from_secs(30));
                 }
 
                 Ok(())
@@ -92,6 +100,7 @@ impl Bootstrap {
             .expect("error while building application")
             .run(|app, event| {
                 if matches!(event, RunEvent::Exit) {
+                    goose_serve::shutdown(app);
                     sidecar::shutdown(app);
                 }
             });
