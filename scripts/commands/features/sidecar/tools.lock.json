@@ -7,6 +7,13 @@
       "sha256": "04ba555a415b30cae519bb44ebb8c26063c1f93e097ee061be6b52339b6f0073"
     }
   },
+  "goose": {
+    "win32-x64": {
+      "version": "1.48.0",
+      "url": "https://github.com/aaif-goose/goose/releases/download/v1.48.0/goose-x86_64-pc-windows-msvc.zip",
+      "sha256": "046a471c253581e5945ec5353305c08981403abbcbf769d344e29a7da094bf24"
+    }
+  },
   "ffmpeg": {
     "win32-x64": {
       "version": "master-latest",

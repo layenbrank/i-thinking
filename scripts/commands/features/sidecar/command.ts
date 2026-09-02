@@ -46,6 +46,14 @@ async function ensureTool(toolId: string): Promise<void> {
   await tool.ensure(findPlatformKey())
 }
 
+function isRequiredTool(toolId: string, app: string): boolean {
+  if (toolId === 'corex') {
+    return true
+  }
+  // client 依赖 goose ACP sidecar
+  return app === 'client' && toolId === 'goose'
+}
+
 async function runBootstrap(app: string): Promise<void> {
   const key = findPlatformKey()
   const lock = parseToolsLock()
@@ -54,8 +62,8 @@ async function runBootstrap(app: string): Promise<void> {
   for (const tool of Object.values(TOOLS)) {
     const pins = findLockPins(lock, tool.id)
     if (!pins || !hasToolPin(pins, key)) {
-      if (tool.id === 'corex') {
-        throw new Error(`[sidecar] 当前平台无 corex 钉死版本: ${key}`)
+      if (isRequiredTool(tool.id, app)) {
+        throw new Error(`[sidecar] 当前平台无 ${tool.id} 钉死版本: ${key}（应用=${app}）`)
       }
       continue
     }
@@ -112,6 +120,7 @@ const SidecarCommand: CommandModule = {
   pnpm sidecar stage studio
   pnpm command sidecar verify client
   pnpm command sidecar corex
+  pnpm command sidecar goose
   pnpm sidecar bootstrap -- --app studio
 `
       )

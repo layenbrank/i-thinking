@@ -12,6 +12,7 @@ const CHECKSUMS_FILE = 'checksums.json'
 
 const COREX_CLI = 'corex'
 const COREX_DAEMON = 'corex-daemon'
+const GOOSE_BINARY = 'goose'
 const PANDOC_BINARY = 'pandoc'
 const FFMPEG_BINARY = 'ffmpeg'
 
@@ -20,6 +21,7 @@ export {
   COREX_CLI,
   COREX_DAEMON,
   FFMPEG_BINARY,
+  GOOSE_BINARY,
   PANDOC_BINARY,
   SIDECAR_FEATURE_ROOT,
   TOOLS_LOCK_PATH,
