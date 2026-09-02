@@ -3,10 +3,12 @@ import { create, type StateCreator } from 'zustand'
 import { devtools, subscribeWithSelector } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-type ProviderKind = 'openai' | 'ollama'
+/** goose inventory providerId（历史伪 kind「goose」已过滤） */
+type ProviderKind = string
 
 interface AiProvider {
   id: string
+  /** 与 goose providerId 对齐；通常 id === kind */
   kind: ProviderKind
   name: string
   baseUrl: string | null
@@ -74,7 +76,11 @@ const providerSlice: SliceCreator<ProviderSlice> = function (setters, getters) {
 
     async toReadProviders() {
       try {
-        const providers = await invoke<AiProvider[]>('aiProvider:toRead', { params: {} })
+        const providers = (await invoke<AiProvider[]>('aiProvider:toRead', { params: {} })).filter(
+          function (provider) {
+            return provider.kind !== 'goose'
+          }
+        )
         setters(
           function (state) {
             state.providers = providers

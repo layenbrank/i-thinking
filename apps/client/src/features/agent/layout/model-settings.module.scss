@@ -131,8 +131,8 @@
 }
 
 .unsupported {
-  font-size: 13px;
-  color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
+  font-size: 12px;
+  color: var(--ith-color-text-quaternary, rgba(0, 0, 0, 0.35));
 }
 
 .thinkingSelect {
@@ -143,14 +143,24 @@
   }
 }
 
-/* Qoder CN：细竖条手柄 + 适度粗轨 + 标尺刻度 */
+/* 上下文滑块：当前值 + 轨道 + 等分刻度标签 */
 .contextControl {
   width: 100%;
-  max-width: 280px;
-  padding: 4px 0 0;
+  min-width: 200px;
+  max-width: 300px;
+  padding: 2px 0 0;
   outline: none;
   user-select: none;
   touch-action: none;
+}
+
+.contextValue {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ith-color-primary);
 }
 
 .contextDragging {
@@ -159,7 +169,7 @@
 
 .contextTrack {
   position: relative;
-  height: 16px;
+  height: 8px;
   border-radius: 4px;
   background: var(--ith-color-fill-tertiary, rgba(0, 0, 0, 0.06));
   cursor: grab;
@@ -191,12 +201,12 @@
   position: absolute;
   z-index: 1;
   top: 50%;
-  width: 3px;
+  width: 14px;
   height: 14px;
-  border-radius: 1.5px;
-  background: var(--ith-color-primary);
-  box-shadow: none;
-  border: none;
+  border-radius: 50%;
+  background: var(--ith-color-bg-container, #fff);
+  border: 2px solid var(--ith-color-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   transform: translate(-50%, -50%);
   pointer-events: none;
 
@@ -205,56 +215,33 @@
   }
 }
 
-.contextRuler {
-  position: relative;
-  height: 10px;
-  margin-top: 5px;
-}
-
-.contextTick {
-  position: absolute;
-  bottom: 0;
-  width: 1px;
-  transform: translateX(-50%);
-  background: var(--ith-color-border);
-  pointer-events: none;
-}
-
-.contextTickMajor {
-  height: 8px;
-  background: var(--ith-color-text-quaternary, rgba(0, 0, 0, 0.28));
-}
-
-.contextTickMinor {
-  height: 4px;
-  opacity: 0.7;
-}
-
 .contextLabels {
-  position: relative;
-  height: 16px;
-  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 8px;
 }
 
 .contextLabel {
-  position: absolute;
-  top: 0;
+  flex: 1;
+  min-width: 0;
   padding: 0;
   border: none;
   background: transparent;
   font-size: 11px;
   line-height: 1.2;
+  text-align: center;
   color: var(--ith-color-text-tertiary, var(--ith-color-text-secondary));
   cursor: pointer;
-  transform: translateX(-50%);
   white-space: nowrap;
 
   &:first-child {
-    transform: translateX(0);
+    text-align: left;
   }
 
   &:last-child {
-    transform: translateX(-100%);
+    text-align: right;
   }
 
   &:hover {
@@ -264,7 +251,7 @@
 
 .contextLabelActive {
   color: var(--ith-color-primary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .footer {

@@ -28,7 +28,7 @@ import {
   type ModelPref,
   type ThinkingLevel
 } from '@/features/agent/model/model-prefs'
-import { parseModels, PROVIDER_KIND_META } from '@/features/agent/model/providers'
+import { parseModels } from '@/features/agent/model/providers'
 import styles from '@/features/agent/layout/model-settings.module.scss'
 import { useProviderStore } from '@/stores/provider'
 
@@ -53,15 +53,7 @@ interface ContextWindowControlProps {
   onChange: (contextWindow: number) => void
 }
 
-interface RulerTick {
-  key: string
-  ratio: number
-  major: boolean
-  label?: string
-}
-
 const CONTEXT_LAST = CONTEXT_STEPS.length - 1
-const RULER_MINOR_PER_GAP = 4
 
 function clampRatio(value: number) {
   return Math.min(1, Math.max(0, value))
@@ -75,33 +67,6 @@ function findRatioByIndex(index: number) {
 function findIndexByRatio(ratio: number) {
   return Math.round(clampRatio(ratio) * CONTEXT_LAST)
 }
-
-function buildRulerTicks(): RulerTick[] {
-  const ticks: RulerTick[] = []
-  for (let major = 0; major <= CONTEXT_LAST; major += 1) {
-    const majorRatio = findRatioByIndex(major)
-    ticks.push({
-      key: `major-${major}`,
-      ratio: majorRatio,
-      major: true,
-      label: CONTEXT_INDEX_MARKS[major]
-    })
-    if (major >= CONTEXT_LAST) continue
-    const nextRatio = findRatioByIndex(major + 1)
-    for (let minor = 1; minor <= RULER_MINOR_PER_GAP; minor += 1) {
-      const t = minor / (RULER_MINOR_PER_GAP + 1)
-      ticks.push({
-        key: `minor-${major}-${minor}`,
-        ratio: majorRatio + (nextRatio - majorRatio) * t,
-        major: false
-      })
-    }
-  }
-  return ticks
-}
-
-const RULER_TICKS = buildRulerTicks()
-
 function ContextWindowControl(props: ContextWindowControlProps) {
   const trackRef = useRef<HTMLDivElement>(null)
   const draggingRef = useRef(false)
@@ -192,6 +157,7 @@ function ContextWindowControl(props: ContextWindowControlProps) {
       aria-valuetext={label}
       aria-label="上下文窗口"
       onKeyDown={handleKeyDown}>
+      <div className={styles.contextValue}>{label}</div>
       <div
         ref={trackRef}
         className={styles.contextTrack}
@@ -212,42 +178,21 @@ function ContextWindowControl(props: ContextWindowControlProps) {
       </div>
 
       <div
-        className={styles.contextRuler}
-        aria-hidden>
-        {RULER_TICKS.map(function (tick) {
-          return (
-            <span
-              key={tick.key}
-              className={clsx(
-                styles.contextTick,
-                tick.major ? styles.contextTickMajor : styles.contextTickMinor
-              )}
-              style={{ left: `${tick.ratio * 100}%` }}
-            />
-          )
-        })}
-      </div>
-
-      <div
         className={styles.contextLabels}
         aria-hidden>
-        {RULER_TICKS.filter(function (tick) {
-          return tick.major
-        }).map(function (tick) {
-          const index = Math.round(tick.ratio * CONTEXT_LAST)
+        {CONTEXT_STEPS.map(function (_step, index) {
           return (
             <button
-              key={tick.key}
+              key={CONTEXT_INDEX_MARKS[index]}
               type="button"
               className={clsx(
                 styles.contextLabel,
                 index === active && styles.contextLabelActive
               )}
-              style={{ left: `${tick.ratio * 100}%` }}
               onClick={function () {
                 commitRatio(findRatioByIndex(index))
               }}>
-              {tick.label}
+              {CONTEXT_INDEX_MARKS[index]}
             </button>
           )
         })}
@@ -273,7 +218,7 @@ function AgentModelSettings(props: ModelSettingsProps) {
           key: findModelKey(provider.id, model),
           providerID: provider.id,
           providerName: provider.name,
-          providerKind: PROVIDER_KIND_META[provider.kind].label,
+          providerKind: provider.name || provider.kind,
           model,
           supportsThinking: canThink(model)
         })
@@ -335,7 +280,8 @@ function AgentModelSettings(props: ModelSettingsProps) {
     <Modal
       open={props.open}
       centered
-      width={860}
+      width={920}
+      styles={{ body: { maxHeight: 'min(72vh, 640px)', overflow: 'auto' } }}
       destroyOnHidden
       className={styles.modal}
       getContainer={function () {
@@ -411,9 +357,7 @@ function AgentModelSettings(props: ModelSettingsProps) {
                     </span>
                     <Flex vertical>
                       <span className={styles.modelName}>{row.model}</span>
-                      <span className={styles.modelMeta}>
-                        {row.providerName} · {row.providerKind}
-                      </span>
+                      <span className={styles.modelMeta}>{row.providerName}</span>
                     </Flex>
                   </Flex>
                 )
@@ -463,7 +407,7 @@ function AgentModelSettings(props: ModelSettingsProps) {
             {
               title: '上下文窗口',
               key: 'context',
-              width: 280,
+              width: 300,
               render: function (_value, row) {
                 const pref = draft[row.key] ?? MODEL_PREF
                 return (

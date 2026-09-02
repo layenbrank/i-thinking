@@ -16,7 +16,7 @@ import type { SenderChip } from '@/features/agent/chat/sender-trigger'
 import type { PlanPaneSource } from '@/features/agent/layout/plan-pane'
 import styles from '@/features/agent/layout/workbench.module.scss'
 import { runAgentLoop } from '@/features/agent/model/agent-loop'
-import { buildReferenceHint } from '@/features/agent/model/agent-tools'
+import { appendAttachedPaths } from '@/features/agent/model/agent-tools'
 import type { ScenarioKey } from '@/features/agent/model/scenarios'
 import {
   applyDiff,
@@ -40,7 +40,7 @@ import { useProviderStore } from '@/stores/provider'
 const CONTEXT_MESSAGE_LIMIT = 20
 
 const TOOLS_HINT =
-  '你可以使用工具读取工作区文件与技能：用户消息中的 @路径 表示文件引用，/名称 表示技能引用，请调用 read_file 或 read_skill，不要臆造文件内容。'
+  '回答简洁、结构清晰；用户消息中的文件路径请用工具读取后再回答，不要臆造文件内容。'
 
 const SYSTEM_PROMPT_MAP: Record<Exclude<ScenarioKey, 'image'>, string> = {
   general: `你是 i-thinking 桌面端的智能助手，回答简洁、结构清晰，涉及代码时使用围栏代码块输出。\n${TOOLS_HINT}`,
@@ -227,23 +227,28 @@ function AgentWorkbench(props: WorkbenchProps) {
         })
       })
 
-      const refs = fileParts
+      const attachedPaths = fileParts
         .filter(function (part): part is Extract<MessagePart, { type: 'file' }> {
           return part.type === 'file'
         })
         .map(function (part) {
-          const chip = chips.find(function (item) {
-            return (item.meta.path || '').replace(/\\/g, '/') === part.data.path.replace(/\\/g, '/')
-          })
-          return {
-            kind: chip?.kind === 'skill' ? 'skill' : 'file',
-            path: part.data.path,
-            label: part.data.name
-          }
+          return normalizePath(part.data.path)
         })
-      const hint = buildReferenceHint(refs)
-      // 可见文本入库；引用清单仅附加到当次 transfer（下方再拼）
+        .filter(Boolean)
+
+      const workspaceFolders = useIntelligenceStore.getState().workspaceFolders
+      const activeWorkspaceID = useIntelligenceStore.getState().activeWorkspaceID
+      const roots = workspaceFolders
+        .filter(function (folder) {
+          return folder.workspaceID === activeWorkspaceID
+        })
+        .map(function (folder) {
+          return normalizePath(folder.path)
+        })
+
+      // UI 可见原文；发给 goose 的文本追加绝对路径（对齐 Desktop，不内联内容）
       const displayFragment = userContent
+      const transferUser = appendAttachedPaths(displayFragment, attachedPaths)
 
       updateInput('')
       const attachedSnapshot = props.contextFiles.slice()
@@ -274,7 +279,6 @@ function AgentWorkbench(props: WorkbenchProps) {
       await useIntelligenceStore.getState().toWriteMessage([assistant])
 
       const history = created ? [] : sessionMessages.slice(-CONTEXT_MESSAGE_LIMIT)
-      const transferUser = hint ? `${displayFragment}\n\n${hint}` : displayFragment
       const transfer: ChatMessage[] = [
         { role: 'system', content: findSystemPrompt(scenario) },
         ...history.map(function (item) {
@@ -293,16 +297,6 @@ function AgentWorkbench(props: WorkbenchProps) {
       updateStreamingID(assistant.id)
       bufferRef.current = { fragment: '', thinking: '', messageID: assistant.id }
 
-      const workspaceFolders = useIntelligenceStore.getState().workspaceFolders
-      const activeWorkspaceID = useIntelligenceStore.getState().activeWorkspaceID
-      const roots = workspaceFolders
-        .filter(function (folder) {
-          return folder.workspaceID === activeWorkspaceID
-        })
-        .map(function (folder) {
-          return normalizePath(folder.path)
-        })
-
       const enableTools = scenario === 'general' || scenario === 'code'
 
       try {
@@ -311,6 +305,7 @@ function AgentWorkbench(props: WorkbenchProps) {
           messages: transfer,
           context: { roots },
           enableTools,
+          sessionID,
           signal: controller.signal,
           onTextDelta: function (content, thinkingText) {
             bufferRef.current.fragment = content

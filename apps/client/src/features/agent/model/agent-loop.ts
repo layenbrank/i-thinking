@@ -25,6 +25,7 @@ interface AgentLoopParams {
   enableTools?: boolean
   signal?: AbortSignal
   temperature?: number
+  sessionID?: string
   onTextDelta?: (content: string, thinking: string) => void
   onToolPart?: (part: ToolPart) => void
 }
@@ -49,7 +50,9 @@ async function runAgentLoop(params: AgentLoopParams): Promise<AgentLoopResult> {
   let thinking = ''
   const toolParts: ToolPart[] = []
   let rounds = 0
-  const enableTools = Boolean(params.enableTools)
+  // 工具由 goose agent 侧执行，不注入本地 OpenAI tools
+  const enableTools = false
+
 
   while (rounds < MAX_TOOL_ROUNDS) {
     rounds += 1
@@ -60,6 +63,7 @@ async function runAgentLoop(params: AgentLoopParams): Promise<AgentLoopResult> {
     const stream = chatStream(params.config, transfer, {
       signal: params.signal,
       temperature: params.temperature,
+      sessionID: params.sessionID,
       tools: enableTools ? AGENT_TOOL_DEFINITIONS : undefined,
       toolChoice: enableTools ? 'auto' : undefined
     })

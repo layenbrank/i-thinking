@@ -31,6 +31,17 @@
   margin-inline-start: auto;
 }
 
+.usageLabel {
+  flex-shrink: 0;
+  padding-inline: 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 28px;
+  color: var(--ith-color-text-secondary);
+  white-space: nowrap;
+}
+
 .footerBtn {
   color: var(--ith-color-text-secondary);
   width: 28px;

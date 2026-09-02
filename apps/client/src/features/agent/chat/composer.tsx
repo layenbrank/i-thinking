@@ -19,9 +19,14 @@ import { TriggerPopup, type TriggerPopupHandle } from '@/features/agent/chat/tri
 import type { TriggerMatch, SenderChip } from '@/features/agent/chat/sender-trigger'
 import { savePasteImage } from '@/features/agent/chat/paste-image'
 import { AgentModelPicker } from '@/features/agent/layout/model-picker'
+import {
+  findGooseUsage,
+  formatGooseUsage,
+  subscribeGooseUsage
+} from '@/features/agent/acp/goose-usage'
+import { compactGooseSession } from '@/features/agent/model/goose-acp'
 import { findScenarioLabel, type ScenarioKey } from '@/features/agent/model/scenarios'
 import { isImageFile } from '@/features/agent/model/file-icon'
-import { PROVIDER_KIND_META } from '@/features/agent/model/providers'
 import { normalizePath } from '@/features/agent/model/workspace-path'
 import type { FilePartData } from '@/features/agent/types'
 import { WorkspaceGit } from '@/lib/workspace-git'
@@ -63,6 +68,8 @@ function AgentComposer(props: ComposerProps) {
   const [branchLoading, updateBranchLoading] = useState(false)
   const [branchOpen, updateBranchOpen] = useState(false)
   const [canSend, updateCanSend] = useState(false)
+  const [compacting, updateCompacting] = useState(false)
+  const [usageLabel, updateUsageLabel] = useState<string | null>(null)
   const senderRef = useRef<AgentSenderHandle>(null)
   const popupRef = useRef<TriggerPopupHandle>(null)
   const suppressedTriggerKey = useRef<string | null>(null)
@@ -83,6 +90,20 @@ function AgentComposer(props: ComposerProps) {
   const activeWorkspaceID = useIntelligenceStore(function (state) {
     return state.activeWorkspaceID
   })
+  const activeSessionID = useIntelligenceStore(function (state) {
+    return state.activeSessionID
+  })
+
+  useEffect(
+    function () {
+      updateUsageLabel(formatGooseUsage(findGooseUsage(activeSessionID)))
+      return subscribeGooseUsage(function (sessionID, usage) {
+        if (sessionID !== activeSessionID) return
+        updateUsageLabel(formatGooseUsage(usage))
+      })
+    },
+    [activeSessionID]
+  )
 
   const activeWorkspace = workspaces.find(function (item) {
     return item.id === activeWorkspaceID
@@ -132,7 +153,7 @@ function AgentComposer(props: ComposerProps) {
     return provider.id === activeProviderID && provider.enabled
   })
   const modelLabel = activeProvider
-    ? `${activeProvider.model || '未选模型'} · ${PROVIDER_KIND_META[activeProvider.kind].label}`
+    ? `${activeProvider.model || '未选模型'} · ${activeProvider.name || activeProvider.kind}`
     : '选择模型'
 
   const scenarioLabel = findScenarioLabel(props.scenario)
@@ -503,6 +524,42 @@ function AgentComposer(props: ComposerProps) {
         align="center"
         gap={6}
         className={styles.footerEnd}>
+        {usageLabel ? (
+          <span
+            className={styles.usageLabel}
+            title="当前会话上下文用量">
+            {usageLabel}
+          </span>
+        ) : null}
+        <Button
+          type="text"
+          size="small"
+          className={styles.footerBtn}
+          aria-label="压缩上下文"
+          title="压缩上下文"
+          loading={compacting}
+          disabled={props.loading || !activeSessionID}
+          icon={<Icon icon="mdi:arrow-collapse-vertical" width={14} height={14} />}
+          onClick={function () {
+            if (!activeSessionID) {
+              message.warning('请先发送一条消息后再压缩')
+              return
+            }
+            updateCompacting(true)
+            void compactGooseSession(activeSessionID)
+              .then(function () {
+                message.success('已请求 goose 压缩上下文')
+              })
+              .catch(function (error) {
+                console.error('[composer] compact failed:', error)
+                const detail = error instanceof Error ? error.message : '压缩失败'
+                message.error(detail)
+              })
+              .finally(function () {
+                updateCompacting(false)
+              })
+          }}
+        />
         <AgentModelPicker
           getPopupContainer={props.getPopupContainer}
           onOpenSettings={props.onOpenSettings}>

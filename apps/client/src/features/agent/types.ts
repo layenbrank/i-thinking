@@ -76,7 +76,8 @@ interface ToolCallResult {
 /** 运行时解析后的模型接入配置（apiKey 已从 plugin-store 合并） */
 interface ProviderConfig {
   id: string
-  kind: 'openai' | 'ollama'
+  /** goose inventory providerId */
+  kind: string
   name: string
   baseUrl: string
   model: string

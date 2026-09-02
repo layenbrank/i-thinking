@@ -266,16 +266,22 @@ async function executeAgentTool(
   }
 }
 
-function buildReferenceHint(refs: { kind: string; path: string; label?: string }[]) {
-  if (!refs.length) return ''
-  const lines = refs.map(function (item) {
-    return `- [${item.kind}] ${item.label || item.path} → ${item.path}`
-  })
-  return [
-    '用户已引用以下资源（请用工具读取，勿臆造内容）：',
-    ...lines,
-    '文件用 read_file，技能用 read_skill。'
-  ].join('\n')
+/**
+ * 对齐 Desktop appendDroppedFilePaths：把绝对路径拼进 user 文本，不内联内容。
+ * 已出现在原文中的路径不再重复追加。
+ */
+function appendAttachedPaths(text: string, paths: string[]): string {
+  const unique: string[] = []
+  for (const raw of paths) {
+    const path = normalizePath(raw)
+    if (!path) continue
+    if (unique.includes(path)) continue
+    if (text.includes(path)) continue
+    unique.push(path)
+  }
+  if (!unique.length) return text
+  const pathsString = unique.join(' ')
+  return text.trim() ? `${text.trim()} ${pathsString}` : pathsString
 }
 
 export {
@@ -284,7 +290,7 @@ export {
   TOOL_READ_FILE,
   TOOL_READ_SKILL,
   TOOL_SEARCH_FILES,
-  buildReferenceHint,
+  appendAttachedPaths,
   executeAgentTool,
   findIsPathUnderRoots,
   normalizePath
