@@ -81,7 +81,7 @@
   color: var(--ith-color-text-secondary);
 }
 
-.plusPopover {
+.attachMenuPopover {
   :global(.ant-popover-container),
   :global(.ant-popover-inner) {
     padding: 0 !important;
@@ -139,11 +139,15 @@
   display: flex;
   justify-content: flex-start;
   align-items: center;
+  flex-wrap: nowrap;
+  box-sizing: border-box;
+  min-height: 28px;
   padding-block: 4px 6px;
   padding-inline: 4px;
   color: var(--ith-color-text-secondary);
   font-size: 12px;
   gap: 0 !important;
+  overflow: hidden;
 }
 
 .statusItem {

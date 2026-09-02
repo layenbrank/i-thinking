@@ -32,9 +32,33 @@ import { useCalendarStore } from '@/stores/calendar'
 import { useIntelligenceStore } from '@/stores/intelligence.ts'
 import { useProviderStore } from '@/stores/provider'
 
+interface PlanSelection {
+  messageID: string
+  partIndex: number
+}
+
 function prefersReducedMotion() {
   if (typeof window === 'undefined') return false
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function findPlanSource(
+  selection: PlanSelection | null,
+  messages: { id: string; parts: string | null }[]
+): PlanPaneSource | null {
+  if (!selection) return null
+  const target = messages.find(function (item) {
+    return item.id === selection.messageID
+  })
+  if (!target) return null
+  const parts = parseParts(target.parts)
+  const part = parts[selection.partIndex]
+  if (!part || part.type !== 'plan') return null
+  return {
+    messageID: selection.messageID,
+    partIndex: selection.partIndex,
+    data: part.data
+  }
 }
 
 function Agent() {
@@ -44,10 +68,11 @@ function Agent() {
   const [sizes, updateSizes] = useState<SplitterSizes>(findSplitterSizes)
   const [isSearchOpen, updateSearchOpen] = useState(false)
   const [scenario, updateScenario] = useState<ScenarioKey>('general')
-  const [planSource, updatePlanSource] = useState<PlanPaneSource | null>(null)
+  const [planSelection, updatePlanSelection] = useState<PlanSelection | null>(null)
   const messages = useIntelligenceStore(function (state) {
     return state.messages
   })
+  const planSource = findPlanSource(planSelection, messages)
 
   useEffect(function () {
     void useIntelligenceStore.getState().toReadWorkspaces()
@@ -55,34 +80,6 @@ function Agent() {
     void useIntelligenceStore.getState().toReadSessions()
     void useProviderStore.getState().toReadProviders()
   }, [])
-
-  useEffect(
-    function () {
-      if (!planSource) return
-      const source = planSource
-      const target = messages.find(function (item) {
-        return item.id === source.messageID
-      })
-      if (!target) {
-        updatePlanSource(null)
-        return
-      }
-      const parts = parseParts(target.parts)
-      const part = parts[source.partIndex]
-      if (!part || part.type !== 'plan') {
-        updatePlanSource(null)
-        return
-      }
-      if (JSON.stringify(part.data) !== JSON.stringify(source.data)) {
-        updatePlanSource({
-          messageID: source.messageID,
-          partIndex: source.partIndex,
-          data: part.data
-        })
-      }
-    },
-    [messages, planSource]
-  )
 
   function findPopupContainer(_trigger?: HTMLElement) {
     return rootRef.current ?? document.body
@@ -118,30 +115,27 @@ function Agent() {
       session: session > SESSION_MIN / 2 ? session : 0,
       plan: plan > PLAN_MIN / 2 ? plan : 0
     })
-    if (plan < PLAN_MIN / 2) {
-      updatePlanSource(null)
-    }
+    if (plan < PLAN_MIN / 2) updatePlanSelection(null)
   }
 
   function handleDraggerDoubleClick(index: number) {
-    if (index === 0) {
-      persistSizes({ ...sizes, session: SESSION_SIZE })
-      return
-    }
-    if (index === 1) {
-      persistSizes({ ...sizes, plan: PLAN_SIZE })
-    }
+    if (index === 0) return persistSizes({ ...sizes, session: SESSION_SIZE })
+
+    if (index === 1) persistSizes({ ...sizes, plan: PLAN_SIZE })
   }
 
   function openPlanPane(source: PlanPaneSource) {
-    updatePlanSource(source)
+    updatePlanSelection({
+      messageID: source.messageID,
+      partIndex: source.partIndex
+    })
     if (sizes.plan <= 0) {
       persistSizes({ ...sizes, plan: PLAN_SIZE })
     }
   }
 
   function closePlanPane() {
-    updatePlanSource(null)
+    updatePlanSelection(null)
     persistSizes({ ...sizes, plan: 0 })
   }
 
@@ -159,10 +153,9 @@ function Agent() {
     })
     const data = { ...part.data, items }
     parts[planSource.partIndex] = { type: 'plan', data }
-    await useIntelligenceStore.getState().toUpdateMessage([
-      { id: planSource.messageID, parts: stringifyParts(parts) }
-    ])
-    updatePlanSource({ ...planSource, data })
+    await useIntelligenceStore
+      .getState()
+      .toUpdateMessage([{ id: planSource.messageID, parts: stringifyParts(parts) }])
   }
 
   async function handleWritePlanCalendar() {
