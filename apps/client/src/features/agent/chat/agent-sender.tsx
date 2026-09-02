@@ -1,5 +1,6 @@
 /**
  * AgentSender：contentEditable 输入区，通用触发 + IME，对齐 ant-design/x 结构
+ * chip / mention 采用纯 DOM（参考 Cursor 输入框），避免 createRoot 竞态
  */
 import { Icon } from '@iconify/react/offline'
 import { convertFileSrc } from '@tauri-apps/api/core'
@@ -15,9 +16,9 @@ import {
   type ReactNode,
   type Ref
 } from 'react'
-import { createRoot, type Root } from 'react-dom/client'
 
 import styles from '@/features/agent/chat/agent-sender.module.scss'
+import { findChipIconSvg } from '@/features/agent/chat/chip-icon-svg'
 import { collectClipboardImages } from '@/features/agent/chat/paste-image'
 import {
   parseTriggerToken,
@@ -26,9 +27,10 @@ import {
   type TriggerMatch,
   type TriggerRule
 } from '@/features/agent/chat/sender-trigger'
-import { findFileIcon } from '@/features/agent/model/file-icon'
+import { findFileIcon, findFileIconTone } from '@/features/agent/model/file-icon'
 import { findAssetPath } from '@/features/agent/model/workspace-path'
 import type { FilePartData } from '@/features/agent/types'
+import { CSSVAR } from '@/themes/runtime/build'
 
 interface AgentSenderProps {
   placeholder?: string
@@ -53,7 +55,10 @@ interface AgentSenderProps {
 
 interface AgentSenderHandle {
   focus: () => void
-  clear: () => void
+  /** silent：父级已同步空值时跳过 onChange，避免二次渲染 */
+  clear: (options?: { silent?: boolean }) => void
+  /** 写入纯文本（欢迎语快捷填入等），会清空现有 chip */
+  writePlainText: (text: string) => void
   submit: () => void
   insertChip: (chip: Omit<SenderChip, 'id'> & { id?: string }) => void
   /** 按路径移除编辑器内 chip（与附件区删除保持同步） */
@@ -68,6 +73,7 @@ const CHIP_ATTR = 'data-agent-chip'
 const CHIP_VALUE_ATTR = 'data-value'
 const CHIP_KIND_ATTR = 'data-kind'
 const CHIP_PATH_ATTR = 'data-path'
+const CHIP_CLOSE_ATTR = 'data-chip-close'
 const LINE_PX = 24
 
 function normalizeChipPath(path: string) {
@@ -186,7 +192,6 @@ function AgentSenderInner(props: AgentSenderProps, ref: Ref<AgentSenderHandle>) 
   const isComposing = useRef(false)
   const lastTriggerKey = useRef<string | null>(null)
   const chipSeq = useRef(0)
-  const iconRoots = useRef(new Map<string, Root>())
   const triggers = props.triggers ?? TRIGGER_RULES
   const minRows = props.autoSize?.minRows ?? 1
   const maxRows = props.autoSize?.maxRows ?? 6
@@ -294,61 +299,46 @@ function AgentSenderInner(props: AgentSenderProps, ref: Ref<AgentSenderHandle>) 
     }
   }
 
-  function unmountChipIcon(chipId: string) {
-    const root = iconRoots.current.get(chipId)
-    if (!root) return
-    root.unmount()
-    iconRoots.current.delete(chipId)
-  }
-
-  function mountChipIcon(chipId: string, host: HTMLElement, iconName: string) {
-    unmountChipIcon(chipId)
-    const root = createRoot(host)
-    iconRoots.current.set(chipId, root)
-    root.render(
-      <Icon
-        icon={iconName}
-        width={14}
-        height={14}
-      />
-    )
-  }
-
+  /** 纯 DOM mention（对齐 Cursor）：contenteditable=false + 彩色图标 + 关闭钮 */
   function buildChipElement(chip: SenderChip) {
-    const wrap = document.createElement('span')
-    wrap.setAttribute(CHIP_ATTR, 'true')
-    wrap.setAttribute(CHIP_VALUE_ATTR, chip.value)
-    wrap.setAttribute(CHIP_KIND_ATTR, chip.kind)
+    const host = document.createElement('span')
+    host.setAttribute(CHIP_ATTR, 'true')
+    host.setAttribute(CHIP_VALUE_ATTR, chip.value)
+    host.setAttribute(CHIP_KIND_ATTR, chip.kind)
     const pathKey = findChipPathKey(chip)
-    if (pathKey) wrap.setAttribute(CHIP_PATH_ATTR, pathKey)
-    if (chip.meta.relative) wrap.dataset.relative = normalizeChipPath(chip.meta.relative)
-    wrap.dataset.label = chip.label
-    wrap.setAttribute('contenteditable', 'false')
-    wrap.className = styles.chip
-    wrap.dataset.chipId = chip.id
+    if (pathKey) host.setAttribute(CHIP_PATH_ATTR, pathKey)
+    if (chip.meta.relative) host.dataset.relative = normalizeChipPath(chip.meta.relative)
+    host.dataset.label = chip.label
+    host.dataset.chipId = chip.id
+    host.setAttribute('contenteditable', 'false')
+    host.className = `${styles.chip} ${CSSVAR.KEY}`
 
+    const fileName = chip.meta.name || chip.label
     const iconName =
-      chip.kind === 'skill' ? 'mdi:hammer-wrench' : findFileIcon(chip.meta.name || chip.label)
+      chip.kind === 'skill' ? 'mdi:hammer-wrench' : findFileIcon(fileName)
+    const tone = findFileIconTone(fileName, chip.kind)
 
-    const iconHost = document.createElement('span')
-    iconHost.className = styles.chipIcon
-    wrap.appendChild(iconHost)
+    const iconWrap = document.createElement('span')
+    iconWrap.className = styles.chipIcon
+    iconWrap.dataset.tone = tone
+    iconWrap.setAttribute('aria-hidden', 'true')
+    iconWrap.innerHTML = findChipIconSvg(iconName, 12)
+    host.appendChild(iconWrap)
 
     const label = document.createElement('span')
     label.className = styles.chipLabel
     label.textContent = chip.label
-    wrap.appendChild(label)
+    host.appendChild(label)
 
     const close = document.createElement('button')
     close.type = 'button'
     close.className = styles.chipClose
     close.setAttribute('aria-label', '移除')
-    close.setAttribute('data-chip-close', 'true')
+    close.setAttribute(CHIP_CLOSE_ATTR, 'true')
     close.textContent = '×'
-    wrap.appendChild(close)
+    host.appendChild(close)
 
-    mountChipIcon(chip.id, iconHost, iconName)
-    return wrap
+    return host
   }
 
   function insertChip(chipInput: Omit<SenderChip, 'id'> & { id?: string }) {
@@ -407,24 +397,41 @@ function AgentSenderInner(props: AgentSenderProps, ref: Ref<AgentSenderHandle>) 
       const el = node as HTMLElement
       const chipPath = normalizeChipPath(el.getAttribute(CHIP_PATH_ATTR) || '')
       if (chipPath !== normalized) return
-      const chipId = el.dataset.chipId || ''
-      if (chipId) unmountChipIcon(chipId)
       el.remove()
     })
     emitChange()
   }
 
-  function clear() {
+  function clear(options?: { silent?: boolean }) {
     const root = editableRef.current
     if (!root) return
-    iconRoots.current.forEach(function (item) {
-      item.unmount()
-    })
-    iconRoots.current.clear()
     root.innerHTML = ''
     lastTriggerKey.current = null
     onTriggerChangeRef.current?.(null)
+    if (options?.silent) {
+      syncPlaceholder(root)
+      syncHeight(root)
+      return
+    }
     emitChange()
+  }
+
+  function writePlainText(text: string) {
+    const root = editableRef.current
+    if (!root) return
+    root.textContent = text
+    lastTriggerKey.current = null
+    onTriggerChangeRef.current?.(null)
+    const selection = window.getSelection()
+    if (selection) {
+      const range = document.createRange()
+      range.selectNodeContents(root)
+      range.collapse(false)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    }
+    emitChange()
+    root.focus()
   }
 
   function focusEditor() {
@@ -444,6 +451,7 @@ function AgentSenderInner(props: AgentSenderProps, ref: Ref<AgentSenderHandle>) 
     return {
       focus: focusEditor,
       clear,
+      writePlainText,
       submit: submitFromEditor,
       insertChip,
       removeChipByPath,
@@ -479,15 +487,6 @@ function AgentSenderInner(props: AgentSenderProps, ref: Ref<AgentSenderHandle>) 
     document.addEventListener('selectionchange', onSelectionChange)
     return function () {
       document.removeEventListener('selectionchange', onSelectionChange)
-    }
-  }, [])
-
-  useEffect(function () {
-    return function () {
-      iconRoots.current.forEach(function (item) {
-        item.unmount()
-      })
-      iconRoots.current.clear()
     }
   }, [])
 
@@ -537,8 +536,6 @@ function AgentSenderInner(props: AgentSenderProps, ref: Ref<AgentSenderHandle>) 
       }
       if (prev && (prev as HTMLElement).getAttribute?.(CHIP_ATTR) === 'true') {
         event.preventDefault()
-        const id = (prev as HTMLElement).dataset.chipId
-        if (id) unmountChipIcon(id)
         prev.parentNode?.removeChild(prev)
         emitChange()
         emitTrigger()
@@ -560,13 +557,11 @@ function AgentSenderInner(props: AgentSenderProps, ref: Ref<AgentSenderHandle>) 
 
   function handleClick(event: MouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement
-    const closeBtn = target.closest('[data-chip-close="true"]') as HTMLElement | null
+    const closeBtn = target.closest<HTMLElement>(`[${CHIP_CLOSE_ATTR}="true"]`)
     if (closeBtn) {
       event.preventDefault()
       event.stopPropagation()
-      const chip = closeBtn.closest(`[${CHIP_ATTR}="true"]`) as HTMLElement | null
-      const id = chip?.dataset.chipId
-      if (id) unmountChipIcon(id)
+      const chip = closeBtn.closest<HTMLElement>(`[${CHIP_ATTR}="true"]`)
       chip?.remove()
       emitChange()
       emitTrigger()
@@ -578,7 +573,7 @@ function AgentSenderInner(props: AgentSenderProps, ref: Ref<AgentSenderHandle>) 
 
   function handleMouseDown(event: MouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement
-    if (target.closest('[data-chip-close="true"]')) return
+    if (target.closest(`[${CHIP_CLOSE_ATTR}="true"]`)) return
     if (target.closest(`[${CHIP_ATTR}="true"]`)) {
       event.preventDefault()
     }

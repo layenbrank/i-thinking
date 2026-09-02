@@ -134,30 +134,121 @@
   padding: 8px 10px;
 }
 
+/* Cursor 风格 mention：inline chip + 彩色图标色标 */
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   max-width: 220px;
-  height: 20px;
-  margin: 2px;
-  padding: 0 2px 0 4px;
-  border-radius: var(--ith-border-radius, 6px);
-  background: var(--ith-color-primary-bg, rgba(22, 119, 255, 0.1));
+  height: 22px;
+  margin: 1px 2px;
+  padding: 0 4px 0 2px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ith-color-primary) 10%, var(--ith-color-bg-container));
   color: var(--ith-color-primary);
-  font-size: 12px;
-  line-height: 20px;
-  vertical-align: bottom;
+  font-size: 13px;
+  line-height: 22px;
+  vertical-align: baseline;
   user-select: none;
+  cursor: default;
 }
 
 .chipIcon {
   display: inline-flex;
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
   align-items: center;
   justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: #fff;
+  background: var(--chip-tone, #64748b);
+
+  &[data-tone='ts'] {
+    --chip-tone: #2563eb;
+  }
+
+  &[data-tone='js'] {
+    --chip-tone: #ca8a04;
+  }
+
+  &[data-tone='react'] {
+    --chip-tone: #0891b2;
+  }
+
+  &[data-tone='json'] {
+    --chip-tone: #a16207;
+  }
+
+  &[data-tone='md'] {
+    --chip-tone: #475569;
+  }
+
+  &[data-tone='css'] {
+    --chip-tone: #db2777;
+  }
+
+  &[data-tone='html'] {
+    --chip-tone: #ea580c;
+  }
+
+  &[data-tone='rs'] {
+    --chip-tone: #c2410c;
+  }
+
+  &[data-tone='py'] {
+    --chip-tone: #2563eb;
+  }
+
+  &[data-tone='go'] {
+    --chip-tone: #0e7490;
+  }
+
+  &[data-tone='java'] {
+    --chip-tone: #b91c1c;
+  }
+
+  &[data-tone='image'] {
+    --chip-tone: #0d9488;
+  }
+
+  &[data-tone='sql'] {
+    --chip-tone: #0284c7;
+  }
+
+  &[data-tone='shell'] {
+    --chip-tone: #4d7c0f;
+  }
+
+  &[data-tone='vue'] {
+    --chip-tone: #16a34a;
+  }
+
+  &[data-tone='docker'] {
+    --chip-tone: #2563eb;
+  }
+
+  &[data-tone='npm'] {
+    --chip-tone: #dc2626;
+  }
+
+  &[data-tone='skill'] {
+    --chip-tone: #7c3aed;
+  }
+
+  &[data-tone='folder'] {
+    --chip-tone: #ca8a04;
+  }
+
+  &[data-tone='file'] {
+    --chip-tone: #64748b;
+  }
+
+  :global(svg) {
+    display: block;
+    width: 12px;
+    height: 12px;
+  }
 }
 
 .chipLabel {
@@ -179,10 +270,10 @@
   border: none;
   border-radius: 3px;
   background: transparent;
-  color: var(--ith-color-primary);
+  color: inherit;
   font-size: 12px;
   line-height: 1;
-  opacity: 0.65;
+  opacity: 0.55;
   cursor: pointer;
 
   &:hover {

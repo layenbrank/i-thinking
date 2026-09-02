@@ -56,6 +56,12 @@ interface PopupItem {
   chip: Omit<SenderChip, 'id'>
 }
 
+function isPathExcluded(excluded: Set<string>, path: string, relative?: string) {
+  if (excluded.has(normalizePath(path))) return true
+  if (relative && excluded.has(normalizePath(relative))) return true
+  return false
+}
+
 function TriggerPopupInner(props: TriggerPopupProps, ref: Ref<TriggerPopupHandle>) {
   const [fileHits, updateFileHits] = useState<SearchHit[]>([])
   const [skills, updateSkills] = useState<WorkspaceSkill[]>([])
@@ -83,94 +89,90 @@ function TriggerPopupInner(props: TriggerPopupProps, ref: Ref<TriggerPopupHandle
     [activeIndex]
   )
 
-  const open = Boolean(props.match)
-  const behaviorId = props.match?.behaviorId ?? ''
-  const query = props.match?.query ?? ''
-  const kind = props.match?.kind ?? ''
+  const match = props.match
+  const open = match !== null
+  const behaviorId = match?.behaviorId ?? ''
+  const query = match?.query ?? ''
+  const kind = match?.kind ?? ''
+  const hasRoots = props.rootPaths.length > 0
+  const canSearchFiles = open && behaviorId === BEHAVIOR_PICK_FILE && hasRoots
+  const canFetchSkills = open && behaviorId === BEHAVIOR_PICK_SKILL && hasRoots
   const excludedSet = useMemo(
     function () {
-      const next = new Set<string>()
-      ;(props.excludedPaths || []).forEach(function (path) {
-        next.add(normalizePath(path))
-      })
-      return next
+      return new Set((props.excludedPaths ?? []).map(normalizePath))
     },
     [props.excludedPaths]
   )
 
-  function isPathExcluded(path: string, relative?: string) {
-    if (excludedSet.has(normalizePath(path))) return true
-    if (relative && excludedSet.has(normalizePath(relative))) return true
-    return false
-  }
-
   useEffect(
     function () {
-      if (!open || behaviorId !== BEHAVIOR_PICK_FILE) {
-        updateFileHits([])
-        return
-      }
-      if (props.rootPaths.length === 0) {
-        updateFileHits([])
-        return
-      }
+      if (!canSearchFiles) return
+
+      let cancelled = false
       const nextSeq = ++seq.current
-      updateLoading(true)
       const timer = window.setTimeout(function () {
+        updateLoading(true)
         void WorkspaceFiles.search(props.rootPaths, query, SEARCH_LIMIT)
           .then(function (hits) {
-            if (seq.current !== nextSeq) return
+            if (cancelled || seq.current !== nextSeq) return
             updateFileHits(hits)
             updateLoading(false)
           })
           .catch(function () {
-            if (seq.current !== nextSeq) return
+            if (cancelled || seq.current !== nextSeq) return
             updateFileHits([])
             updateLoading(false)
           })
       }, DEBOUNCE_MS)
+
       return function () {
+        cancelled = true
         window.clearTimeout(timer)
       }
     },
-    [open, behaviorId, query, props.rootPaths]
+    [canSearchFiles, query, props.rootPaths]
   )
 
   useEffect(
     function () {
-      if (!open || behaviorId !== BEHAVIOR_PICK_SKILL) {
-        updateSkills([])
-        return
-      }
-      if (props.rootPaths.length === 0) {
-        updateSkills([])
-        return
-      }
+      if (!canFetchSkills) return
+
+      let cancelled = false
       const nextSeq = ++seq.current
-      updateLoading(true)
-      void WorkspaceSkills.fetchSkills(props.rootPaths)
+      void Promise.resolve()
+        .then(function () {
+          if (cancelled) return
+          updateLoading(true)
+          return WorkspaceSkills.fetchSkills(props.rootPaths)
+        })
         .then(function (rows) {
-          if (seq.current !== nextSeq) return
+          if (cancelled || seq.current !== nextSeq || rows === undefined) return
           updateSkills(rows)
           updateLoading(false)
         })
         .catch(function () {
-          if (seq.current !== nextSeq) return
+          if (cancelled || seq.current !== nextSeq) return
           updateSkills([])
           updateLoading(false)
         })
+
+      return function () {
+        cancelled = true
+      }
     },
-    [open, behaviorId, props.rootPaths]
+    [canFetchSkills, props.rootPaths]
   )
+
+  const isListLoading = loading && (canSearchFiles || canFetchSkills)
 
   const items: PopupItem[] = useMemo(
     function () {
-      if (!props.match) return []
-      const behavior = findTriggerBehavior(props.match.behaviorId)
-      const prefix = behavior?.serializePrefix ?? props.match.char
+      if (!match) return []
+      const behavior = findTriggerBehavior(match.behaviorId)
+      const prefix = behavior?.serializePrefix ?? match.char
 
       if (behaviorId === BEHAVIOR_PICK_FILE) {
-        if (props.rootPaths.length === 0) {
+        if (!hasRoots) {
           return [
             {
               key: '__empty__',
@@ -184,14 +186,14 @@ function TriggerPopupInner(props: TriggerPopupProps, ref: Ref<TriggerPopupHandle
           return [
             {
               key: '__none__',
-              label: loading ? '搜索中…' : query ? '无匹配文件' : '输入关键字搜索文件',
+              label: isListLoading ? '搜索中…' : query ? '无匹配文件' : '输入关键字搜索文件',
               icon: 'mdi:file-search-outline',
               chip: { kind: 'file', label: '', value: '', meta: {} }
             }
           ]
         }
         const available = fileHits.filter(function (hit) {
-          return !isPathExcluded(hit.path, hit.relative)
+          return !isPathExcluded(excludedSet, hit.path, hit.relative)
         })
         if (available.length === 0) {
           return [
@@ -221,7 +223,7 @@ function TriggerPopupInner(props: TriggerPopupProps, ref: Ref<TriggerPopupHandle
       }
 
       if (behaviorId === BEHAVIOR_PICK_SKILL) {
-        if (props.rootPaths.length === 0) {
+        if (!hasRoots) {
           return [
             {
               key: '__empty__',
@@ -232,7 +234,7 @@ function TriggerPopupInner(props: TriggerPopupProps, ref: Ref<TriggerPopupHandle
           ]
         }
         const filtered = skills.filter(function (skill) {
-          if (isPathExcluded(skill.path, skill.relative)) return false
+          if (isPathExcluded(excludedSet, skill.path, skill.relative)) return false
           if (!query) return true
           const q = query.toLowerCase()
           return (
@@ -244,7 +246,7 @@ function TriggerPopupInner(props: TriggerPopupProps, ref: Ref<TriggerPopupHandle
           return [
             {
               key: '__none__',
-              label: loading
+              label: isListLoading
                 ? '加载中…'
                 : skills.length > 0 && !query
                   ? '所选技能均已引用'
@@ -280,14 +282,14 @@ function TriggerPopupInner(props: TriggerPopupProps, ref: Ref<TriggerPopupHandle
       return []
     },
     [
-      props.match,
+      match,
       behaviorId,
       kind,
       fileHits,
       skills,
       query,
-      loading,
-      props.rootPaths.length,
+      isListLoading,
+      hasRoots,
       excludedSet
     ]
   )
@@ -301,18 +303,18 @@ function TriggerPopupInner(props: TriggerPopupProps, ref: Ref<TriggerPopupHandle
     [items]
   )
 
+  const activeResetKey = `${match?.char ?? ''}\0${match?.query ?? ''}\0${match?.behaviorId ?? ''}\0${items.length}`
+  const [prevActiveResetKey, updatePrevActiveResetKey] = useState(activeResetKey)
+  if (prevActiveResetKey !== activeResetKey) {
+    updatePrevActiveResetKey(activeResetKey)
+    updateActiveIndex(0)
+  }
+
   useEffect(
     function () {
       selectableRef.current = selectable
     },
     [selectable]
-  )
-
-  useEffect(
-    function () {
-      updateActiveIndex(0)
-    },
-    [props.match?.char, props.match?.query, props.match?.behaviorId, items.length]
   )
 
   useEffect(

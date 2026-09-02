@@ -1,7 +1,6 @@
 import React from '@vitejs/plugin-react-swc'
 import { createHash } from 'node:crypto'
-import { createWriteStream } from 'node:fs'
-import { dirname, resolve, basename } from 'node:path'
+import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 // 获取 本地网络IP地址
 import { networkInterfaces } from 'node:os'
@@ -11,11 +10,6 @@ import { compression } from 'vite-plugin-compression2'
 import { chunks } from './vite.chunk'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const ws = createWriteStream(resolve(__dirname, 'chunks.log'), {
-  flush: true,
-  autoClose: true,
-  encoding: 'utf-8'
-})
 
 // const host = process.env.TAURI_DEV_HOST
 
@@ -99,16 +93,11 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
     },
     build: {
       target: 'esnext',
-      // target: process.env.TAURI_ENV_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
-      // cssTarget: 'chrome142',
-      // cssTarget: 'chrome128',
       emptyOutDir: true,
       minify: 'terser',
       cssCodeSplit: true,
-      // minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
       cssMinify: 'lightningcss',
       sourcemap: mode === 'development' ? true : false,
-      // sourcemap: !!process.env.TAURI_ENV_DEBUG,
       // 输出到包内 dist，便于 Turbo outputs 匹配
       outDir: resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist'),
       assetsInlineLimit(filePath) {

@@ -4,14 +4,14 @@ import 'reflect-metadata'
 
 import App from '@/App.tsx'
 import '@/styles/index.scss'
-
-import AntDesignIconify from '@iconify/json/json/ant-design.json'
-import MDIconify from '@iconify/json/json/mdi.json'
-import CustomIconify from '@i-thinking/shared/iconify.json'
 import { CSSVAR } from '@/themes'
 
-addCollection(AntDesignIconify)
+import AntDIconify from '@iconify/json/json/ant-design.json'
+import MDIconify from '@iconify/json/json/mdi.json'
+import CustomIconify from '@i-thinking/shared/iconify.json'
+
 addCollection(MDIconify)
+addCollection(AntDIconify)
 addCollection(CustomIconify)
 
 const rootElement = document.getElementById('root') as HTMLElement

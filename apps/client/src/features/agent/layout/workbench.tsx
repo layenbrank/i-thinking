@@ -128,7 +128,7 @@ function AgentWorkbench(props: WorkbenchProps) {
   })
 
   const [input, updateInput] = useState('')
-  const [composerKey, updateComposerKey] = useState(0)
+  const [fillRequest, updateFillRequest] = useState<{ token: number; text: string } | null>(null)
   const scenario = props.scenario
   const [streamingID, updateStreamingID] = useState<string | null>(null)
 
@@ -413,11 +413,11 @@ function AgentWorkbench(props: WorkbenchProps) {
   }
 
   function handleQuickPrompt(item: QuickPrompt) {
-    updateInput(item.label)
-    updateComposerKey(function (key) {
-      return key + 1
-    })
     props.onScenarioChange(item.scenario)
+    updateInput(item.label)
+    updateFillRequest(function (prev) {
+      return { token: (prev?.token ?? 0) + 1, text: item.label }
+    })
   }
 
   function handleAttachFile(file: FilePartData) {
@@ -650,8 +650,8 @@ function AgentWorkbench(props: WorkbenchProps) {
       )}
       <div className={styles.composer}>
         <AgentComposer
-          key={composerKey}
           value={input}
+          fillRequest={fillRequest}
           loading={Boolean(streamingID)}
           scenario={scenario}
           files={props.contextFiles}

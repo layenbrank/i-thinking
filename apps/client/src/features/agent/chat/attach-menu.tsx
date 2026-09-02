@@ -7,13 +7,13 @@ import type { InputRef } from 'antd'
 import { clsx } from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import styles from '@/features/agent/chat/plus-menu.module.scss'
+import styles from '@/features/agent/chat/attach-menu.module.scss'
 import { findEntryIcon, findFileIcon, findFolderIcon } from '@/features/agent/model/file-icon'
 import type { FilePartData } from '@/features/agent/types'
 import { WorkspaceFiles, type DirEntry, type SearchHit } from '@/lib/workspace-files'
 import { WorkspaceSkills, type WorkspaceSkill } from '@/lib/workspace-skills'
 
-type PlusCategory = 'goal' | 'plan' | 'files' | 'plugins' | 'skills'
+type AttachCategory = 'goal' | 'plan' | 'files' | 'plugins' | 'skills'
 
 interface WorkspaceRoot {
   id: string
@@ -21,17 +21,17 @@ interface WorkspaceRoot {
   label: string
 }
 
-interface PlusMenuPanelProps {
+interface AttachMenuProps {
   roots: WorkspaceRoot[]
-  category: PlusCategory
-  onCategoryChange: (category: PlusCategory) => void
+  category: AttachCategory
+  onCategoryChange: (category: AttachCategory) => void
   initialQuery?: string
-  onAttach: (file: FilePartData) => void
+  onAttach: (file: FilePartData, relative?: string) => void
   onPickFile?: (relative: string) => void
 }
 
 const CATEGORIES: Array<{
-  key: PlusCategory
+  key: AttachCategory
   label: string
   icon: string
   enabled: boolean
@@ -63,7 +63,7 @@ function parentRelative(relative: string) {
   return normalized.slice(0, index)
 }
 
-function PlusMenuPanel(props: PlusMenuPanelProps) {
+function AttachMenu(props: AttachMenuProps) {
   const { message } = App.useApp()
   const searchRef = useRef<InputRef | null>(null)
   const [activeRoot, updateActiveRoot] = useState<WorkspaceRoot | null>(null)
@@ -218,9 +218,10 @@ function PlusMenuPanel(props: PlusMenuPanelProps) {
   )
 
   function handleAttachPath(path: string, name: string, relativePath?: string) {
-    props.onAttach({ path: path.replace(/\\/g, '/'), name })
-    if (relativePath) {
-      props.onPickFile?.(relativePath)
+    const relative = relativePath ? relativePath.replace(/\\/g, '/') : undefined
+    props.onAttach({ path: path.replace(/\\/g, '/'), name }, relative)
+    if (relative) {
+      props.onPickFile?.(relative)
     }
   }
 
@@ -574,5 +575,5 @@ function PlusMenuPanel(props: PlusMenuPanelProps) {
   )
 }
 
-export { PlusMenuPanel, basename, rootLabel }
-export type { PlusCategory, PlusMenuPanelProps, WorkspaceRoot }
+export { AttachMenu, basename, rootLabel }
+export type { AttachCategory, AttachMenuProps, WorkspaceRoot }

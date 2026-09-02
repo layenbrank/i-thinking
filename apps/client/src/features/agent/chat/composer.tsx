@@ -3,25 +3,19 @@
  */
 import { Icon } from '@iconify/react/offline'
 import { open as dialogOpen } from '@tauri-apps/plugin-dialog'
-import { App, Button, Dropdown, Flex, Popover, Tag, Typography } from 'antd'
+import { App, Button, Dropdown, Flex, Popover, Typography } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import {
-  AgentSender,
-  type AgentSenderHandle
-} from '@/features/agent/chat/agent-sender'
+import { AgentSender, type AgentSenderHandle } from '@/features/agent/chat/agent-sender'
 import styles from '@/features/agent/chat/composer.module.scss'
 import {
-  PlusMenuPanel,
+  AttachMenu,
   basename,
   rootLabel,
-  type PlusCategory,
+  type AttachCategory,
   type WorkspaceRoot
-} from '@/features/agent/chat/plus-menu'
-import {
-  TriggerPopup,
-  type TriggerPopupHandle
-} from '@/features/agent/chat/trigger-popup'
+} from '@/features/agent/chat/attach-menu'
+import { TriggerPopup, type TriggerPopupHandle } from '@/features/agent/chat/trigger-popup'
 import type { TriggerMatch, SenderChip } from '@/features/agent/chat/sender-trigger'
 import { savePasteImage } from '@/features/agent/chat/paste-image'
 import { AgentModelPicker } from '@/features/agent/layout/model-picker'
@@ -39,6 +33,8 @@ interface ComposerProps {
   loading: boolean
   scenario: ScenarioKey
   files: FilePartData[]
+  /** 欢迎页快捷填入：token 递增时把 text 写入编辑器 */
+  fillRequest?: { token: number; text: string } | null
   getPopupContainer?: (trigger: HTMLElement) => HTMLElement
   onChange: (value: string) => void
   onAttach: (file: FilePartData) => void
@@ -57,8 +53,8 @@ function matchKey(match: TriggerMatch | null) {
 
 function AgentComposer(props: ComposerProps) {
   const { message } = App.useApp()
-  const [plusOpen, updatePlusOpen] = useState(false)
-  const [plusCategory, updatePlusCategory] = useState<PlusCategory>('files')
+  const [attachOpen, updateAttachOpen] = useState(false)
+  const [attachCategory, updateAttachCategory] = useState<AttachCategory>('files')
   const [triggerMatch, updateTriggerMatch] = useState<TriggerMatch | null>(null)
   const [chipPaths, updateChipPaths] = useState<string[]>([])
   const [branch, updateBranch] = useState<string | null>(null)
@@ -70,6 +66,7 @@ function AgentComposer(props: ComposerProps) {
   const senderRef = useRef<AgentSenderHandle>(null)
   const popupRef = useRef<TriggerPopupHandle>(null)
   const suppressedTriggerKey = useRef<string | null>(null)
+  const chipPathsRef = useRef<string[]>([])
 
   const providers = useProviderStore(function (state) {
     return state.providers
@@ -149,15 +146,6 @@ function AgentComposer(props: ComposerProps) {
     [props.files]
   )
 
-  const otherFiles = useMemo(
-    function () {
-      return props.files.filter(function (file) {
-        return !(isImageFile(file.name) || isImageFile(file.path))
-      })
-    },
-    [props.files]
-  )
-
   useEffect(
     function () {
       if (!primaryPath) return
@@ -206,17 +194,44 @@ function AgentComposer(props: ComposerProps) {
   useEffect(
     function () {
       if (props.value !== '') return
-      senderRef.current?.clear()
-      updateTriggerMatch(null)
-      updateChipPaths([])
-      updateCanSend(false)
+      senderRef.current?.clear({ silent: true })
+      chipPathsRef.current = []
       suppressedTriggerKey.current = null
     },
     [props.value]
   )
 
+  useEffect(
+    function () {
+      const request = props.fillRequest
+      if (!request) return
+      senderRef.current?.writePlainText(request.text)
+    },
+    [props.fillRequest]
+  )
+
+  const [prevValue, updatePrevValue] = useState(props.value)
+  if (prevValue !== props.value) {
+    updatePrevValue(props.value)
+    if (props.value === '') {
+      updateTriggerMatch(null)
+      updateChipPaths([])
+      updateCanSend(false)
+    }
+  }
+
   function syncChipPaths() {
-    updateChipPaths(senderRef.current?.findChipPaths() ?? [])
+    const paths = senderRef.current?.findChipPaths() ?? []
+    const prev = chipPathsRef.current
+    chipPathsRef.current = paths
+    updateChipPaths(paths)
+    for (const path of prev) {
+      if (paths.includes(path)) continue
+      const attached = props.files.some(function (file) {
+        return normalizePath(file.path) === path
+      })
+      if (attached) props.onRemoveFile(path)
+    }
   }
 
   function handleTriggerChange(match: TriggerMatch | null) {
@@ -282,21 +297,35 @@ function AgentComposer(props: ComposerProps) {
     }
   }
 
-  function handleAttach(file: FilePartData) {
+  function handleAttach(file: FilePartData, relative?: string) {
     const next = { ...file, path: normalizePath(file.path), name: file.name }
+    const relativePath = relative ? normalizePath(relative) : ''
     props.onAttach(next)
-    updatePlusOpen(false)
-    if (isImageFile(next.name) || isImageFile(next.path)) {
-      insertImageChip(next)
-    }
+    updateAttachOpen(false)
+    insertFileChip(next, relativePath)
   }
 
-  function insertImageChip(file: FilePartData) {
+  function handleAttachSkill(file: FilePartData, relative?: string) {
+    const path = normalizePath(file.path)
+    const relativePath = relative ? normalizePath(relative) : path
+    updateAttachOpen(false)
+    senderRef.current?.insertChip({
+      kind: 'skill',
+      label: file.name,
+      value: `/${file.name}`,
+      meta: { path, name: file.name, relative: relativePath }
+    })
+    syncChipPaths()
+  }
+
+  function insertFileChip(file: FilePartData, relative = '') {
+    const path = normalizePath(file.path)
+    const relativePath = relative || file.name
     senderRef.current?.insertChip({
       kind: 'file',
       label: file.name,
-      value: `@${file.name}`,
-      meta: { path: normalizePath(file.path), name: file.name }
+      value: `@${relativePath}`,
+      meta: { path, name: file.name, relative: relativePath }
     })
     syncChipPaths()
   }
@@ -321,7 +350,7 @@ function AgentComposer(props: ComposerProps) {
     if (!selected) return
     const paths = Array.isArray(selected) ? selected : [selected]
     for (const path of paths) {
-      props.onAttach({ path: normalizePath(path), name: basename(path) })
+      handleAttach({ path: normalizePath(path), name: basename(path) })
     }
   }
 
@@ -343,7 +372,7 @@ function AgentComposer(props: ComposerProps) {
           ) : null}
         </Flex>
       ),
-      onClick: function () {
+      onClick() {
         void handleCheckout(item)
       }
     }
@@ -362,16 +391,16 @@ function AgentComposer(props: ComposerProps) {
           trigger="click"
           placement="topLeft"
           arrow={false}
-          open={plusOpen}
+          open={attachOpen}
           onOpenChange={function (open) {
-            updatePlusOpen(open)
+            updateAttachOpen(open)
             if (open) {
-              updatePlusCategory('files')
+              updateAttachCategory('files')
               handleTriggerClose()
             }
           }}
           getPopupContainer={props.getPopupContainer}
-          classNames={{ root: styles.plusPopover }}
+          classNames={{ root: styles.attachMenuPopover }}
           styles={{
             container: {
               padding: 0,
@@ -383,11 +412,17 @@ function AgentComposer(props: ComposerProps) {
             }
           }}
           content={
-            <PlusMenuPanel
+            <AttachMenu
               roots={roots}
-              category={plusCategory}
-              onCategoryChange={updatePlusCategory}
-              onAttach={handleAttach}
+              category={attachCategory}
+              onCategoryChange={updateAttachCategory}
+              onAttach={function (file: FilePartData, relative?: string) {
+                if (attachCategory === 'skills') {
+                  handleAttachSkill(file, relative)
+                  return
+                }
+                handleAttach(file, relative)
+              }}
             />
           }>
           <Button
@@ -552,7 +587,10 @@ function AgentComposer(props: ComposerProps) {
               ? '输入消息，Enter 发送，Shift+Enter 换行；@ 引用文件，/ 引用技能'
               : `场景：${scenarioLabel}，描述需求后发送`
           }
-          autoSize={{ minRows: 1, maxRows: 6 }}
+          autoSize={{
+            minRows: 1,
+            maxRows: 6
+          }}
           footer={footer}
           onChange={function (value) {
             props.onChange(value)
@@ -575,29 +613,11 @@ function AgentComposer(props: ComposerProps) {
           }}
         />
       </div>
-      {otherFiles.length > 0 ? (
-        <div className={styles.files}>
-          {otherFiles.map(function (file) {
-            return (
-              <Tag
-                key={normalizePath(file.path)}
-                className={styles.fileTag}
-                closable
-                onClose={function () {
-                  props.onRemoveFile(file.path)
-                }}>
-                {file.name}
-              </Tag>
-            )
-          })}
-        </div>
-      ) : null}
       {activeWorkspace ? (
         <Flex
           align="center"
           justify="flex-start"
-          className={styles.status}
-          wrap="wrap">
+          className={styles.status}>
           {showGit ? (
             <Dropdown
               trigger={['click']}
@@ -645,7 +665,12 @@ function AgentComposer(props: ComposerProps) {
             <span className={styles.statusText}>本地</span>
           </span>
         </Flex>
-      ) : null}
+      ) : (
+        <div
+          className={styles.status}
+          aria-hidden
+        />
+      )}
     </div>
   )
 }

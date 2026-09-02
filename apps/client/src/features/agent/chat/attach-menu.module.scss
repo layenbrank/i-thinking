@@ -1,6 +1,6 @@
 .shell {
-  --plus-radius: 10px;
-  --plus-pad: 6px;
+  --attach-radius: 10px;
+  --attach-pad: 6px;
   display: flex;
   align-items: stretch;
   gap: 6px;
@@ -17,11 +17,11 @@
 .aside {
   width: 148px;
   flex-shrink: 0;
-  padding: var(--plus-pad);
+  padding: var(--attach-pad);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  border-radius: var(--plus-radius);
+  border-radius: var(--attach-radius);
   border: 1px solid color-mix(in srgb, var(--ith-color-border) 90%, transparent);
   background: var(--ith-color-bg-container);
   box-shadow:
@@ -103,7 +103,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border-radius: var(--plus-radius);
+  border-radius: var(--attach-radius);
   border: 1px solid color-mix(in srgb, var(--ith-color-border) 90%, transparent);
   background: var(--ith-color-bg-container);
   box-shadow:
