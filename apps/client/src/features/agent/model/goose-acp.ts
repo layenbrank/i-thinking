@@ -13,14 +13,10 @@ import {
 import { invoke } from '@tauri-apps/api/core'
 import { homeDir } from '@tauri-apps/api/path'
 
-import {
-  bindGooseNotReady,
-  clearAcpHandle,
-  findAcpHandle
-} from '@/features/agent/acp/connection'
+import { bindGooseNotReady, clearAcpHandle, findAcpHandle } from '@/features/agent/acp/connection'
 import { saveDefaults } from '@/features/agent/acp/goose-providers'
-import { parseAcpSessionUpdate, parseAcpUsageUpdate } from '@/features/agent/acp/normalize'
 import { clearGooseUsage, writeGooseUsage } from '@/features/agent/acp/goose-usage'
+import { parseAcpSessionUpdate, parseAcpUsageUpdate } from '@/features/agent/acp/normalize'
 import { parseModels, stringifyModels } from '@/features/agent/model/providers'
 import type { ChatMessage, NormalizedChunk, ProviderConfig } from '@/features/agent/types'
 import { useIntelligenceStore } from '@/stores/intelligence'
@@ -414,9 +410,11 @@ async function* chatGooseAcp(
     return
   }
 
-  const systemText = messages.find(function (item) {
-    return item.role === 'system' && item.content?.trim()
-  })?.content?.trim()
+  const systemText = messages
+    .find(function (item) {
+      return item.role === 'system' && item.content?.trim()
+    })
+    ?.content?.trim()
 
   await waitGooseReady()
   const handle = await findAcpHandle()
@@ -487,11 +485,11 @@ async function compactGooseSession(sessionID: string): Promise<void> {
   }
 
   const failureBox: { error?: Error } = {}
-  const promptPromise = cached.session
-    .prompt([{ type: 'text', text: '/compact' }])
-    .catch(function (error: unknown) {
-      failureBox.error = error instanceof Error ? error : new Error(String(error))
-    })
+  const promptPromise = cached.session.prompt([{ type: 'text', text: '/compact' }]).catch(function (
+    error: unknown
+  ) {
+    failureBox.error = error instanceof Error ? error : new Error(String(error))
+  })
 
   while (true) {
     if (failureBox.error) break
