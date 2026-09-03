@@ -48,7 +48,14 @@
 4. **禁止**添加 `Co-authored-by: Cursor`、`Made-with: Cursor` 或任何 Cursor 归属 trailer。
 5. client 版本升级使用 `bump:client`，以触发 client tag release 发布。
 6. 仓库版本升级按既有发版流程，以触发 tag release 发布。
-7. 未经明确要求：不 `push`、不改 git config、不跳过 hooks。
+7. 按 SemVer 语义，以下示例。
+
+   | 变更类型           | 该 bump         | 例子              |
+   | ------------------ | --------------- | ----------------- |
+   | 破坏性 API         | major（第一位） | `6.0.0`           |
+   | 新功能、兼容旧用法 | minor（第二位） | `5.3.0` cron 时区 |
+   | bugfix / 小改进    | patch（第三位） | **`5.3.1`**       |
+8. 未经明确要求：不 `push`、不改 git config、不跳过 hooks。
 
 ### 去除 Cursor 归属 trailer
 
@@ -105,3 +112,23 @@ subprocess.check_call([GIT, "update-ref", "HEAD", parent])
 ```
 
 验证：`git log -N --format=full` 中不应再出现 Cursor trailer。已 push 则勿强推，除非用户明确要求。也可在 Cursor 设置中关闭 commit 归属，从源头减少注入。
+
+
+
+
+注意代码逻辑优化，保持可长期维护、后续扩展的良好架构
+
+- 优先合并进现有逻辑，不要每次改动都叠一层补丁。
+- 重复打补丁会让实现变复杂、难维护；能删旧路径就删，避免双轨并存。
+- 只改任务所需代码，不做无关重构或顺手「清理」。
+
+- 简洁优雅，避免过长；超过约 20 字符应拆分。
+- 语义无法一眼看清时，用注释补充说明。
+- 命名时语义不要混淆。
+- 禁止 `get` 前缀 → 用 `find` / `fetch`；解析用 `parse` / `parsed`。
+- 常量、枚举键、接口名：全大写下划线（如 `POST_SIGNIN`、`API_BASE_URL`）。
+- 布尔用 `is` / `has` / `can`；非 `useState` 不用 `set`；集合用复数，避免 `list` 后缀。
+
+
+- 文件粒度适中：既不过度拆分，也不过度聚合。
+- 按模块划分；导出名与文件名、职责一致；
