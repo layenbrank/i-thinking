@@ -39,7 +39,7 @@ pnpm --filter @i-thinking/studio test:unit
 ## 源码结构
 
 ```text
-src/main | src/preload | src/renderer | src/shared | sidecar/
+src/main.ts | src/preload.ts | src/renderer.tsx | src/plugins/ | sidecar/
 ```
 
 详见 [docs/architecture.md](./docs/architecture.md)。

@@ -2,10 +2,10 @@
 
 源码真相：
 
-- [`src/shared/ipc/studio.ts`](../src/shared/ipc/studio.ts) — `Studio` API 形状
-- [`src/shared/ipc/channels.ts`](../src/shared/ipc/channels.ts) — Channel 常量
-- [`src/shared/ipc/<domain>.ts`](../src/shared/ipc/) — 手写类型 + zod（不 `z.infer`）
-- [`src/preload/preload.ts`](../src/preload/preload.ts) — 暴露与错误转换
+- [`src/plugins/itc.ts`](../src/plugins/itc.ts) — `ITC` API 形状
+- [`src/plugins/channels.ts`](../src/plugins/channels.ts) — Channel 常量
+- [`src/plugins/<domain>.ts`](../src/plugins/) — 手写类型 + zod（不 `z.infer`）
+- [`src/preload.ts`](../src/preload.ts) — 暴露与错误转换
 
 获取实例：
 
@@ -117,7 +117,7 @@ Preload `invoke`：若 `!ok`，抛出 `Error('[code] message')`。
 
 | 方法 | Channel | 入参 | 返回 |
 |------|---------|------|------|
-| `updateVisible` | `devtools:update-visible` | `{ visible: boolean }` | `Promise<void>` |
+| `toUpdate` | `devtools:toUpdate` | `{ visible: boolean }` | `Promise<void>` |
 
 仅开发态。
 

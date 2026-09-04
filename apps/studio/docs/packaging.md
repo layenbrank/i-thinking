@@ -18,9 +18,9 @@
 
 | 进程 | 入口 | 输出 |
 |------|------|------|
-| Main | `src/main/main.ts` | `.vite/build/main.js`（CJS） |
-| Preload | `src/preload/preload.ts` | `.vite/build/preload.js`（CJS，sandbox） |
-| Renderer | `vite.renderer.config.ts` | Forge `main_window` |
+| Main | `src/main.ts` | `.vite/build/main.js`（CJS） |
+| Preload | `src/preload.ts` | `.vite/build/preload.js`（CJS，sandbox） |
+| Renderer | `src/renderer.tsx`（`index.html`） | Forge `main_window` |
 
 `appId`：`com.i-thinking.studio`。
 

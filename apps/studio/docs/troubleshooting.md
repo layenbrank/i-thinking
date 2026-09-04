@@ -4,7 +4,7 @@
 
 | 现象 | 可能原因 | 处理 |
 |------|----------|------|
-| 启动弹窗：`createRequire` / `filename` Received undefined | Vite 将 main 打成 CJS 时，`import.meta.url` 可能变成 `undefined` | 使用 [`src/main/paths.ts`](../src/main/paths.ts)（`argv[1]` / `APP_ROOT`）；勿在 Main 顶层 `createRequire(import.meta.url)` |
+| 启动弹窗：`createRequire` / `filename` Received undefined | Vite 将 main 打成 CJS 时，`import.meta.url` 可能变成 `undefined` | 使用 [`src/plugins/paths.ts`](../src/plugins/paths.ts)（`argv[1]` / `APP_ROOT`）；勿在 Main 顶层 `createRequire(import.meta.url)` |
 | `IPC_UNTRUSTED_SENDER` | webContents 未登记，或 URL 不在 Vite origin / 非 `file:` | 确认 window 模块已 `trustWebContents`；开发态检查 `MAIN_WINDOW_VITE_DEV_SERVER_URL` origin |
 | `IPC_INVALID_PAYLOAD` | zod 校验失败 | 对照 [api-reference.md](./api-reference.md) 入参 |
 | `itc is unavailable` / `window.itc` 缺失 | 网页模式或 preload 未注入 | Electron 用 `dev`；网页用 try/catch 降级，见 [examples.md](./examples.md) |

@@ -35,8 +35,7 @@
 apps/studio/
 ├── sidecar/    # staging only；tools.lock + scripts 在 scripts/commands/features/sidecar
 └── src/
-    ├── main/       # Electron 主进程（组合根 + modules）
-    ├── preload/    # contextBridge → window.itc
-    ├── renderer/   # React UI（@ → 此处）
-    └── shared/     # 跨进程契约（ipc）
+    ├── main.ts / preload.ts / renderer.tsx
+    ├── plugins/    # 宿主能力（契约 + 实现）
+    └── …           # React UI（@ → src/）
 ```

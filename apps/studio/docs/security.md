@@ -18,7 +18,7 @@
 
 - **仅** `contextBridge.exposeInMainWorld('itc', …)`
 - **禁止**暴露裸 `ipcRenderer`
-- 静态测试：`src/preload/expose.test.ts`
+- 静态测试：`src/preload.expose.test.ts`
 
 ## 3. IPC 信任
 

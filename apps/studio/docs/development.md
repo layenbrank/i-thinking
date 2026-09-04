@@ -37,7 +37,7 @@ pnpm install
 
 ## 3. 环境变量
 
-由 Vite / 类型声明使用（见 `src/renderer/types/env.d.ts`）：
+由 Vite / 类型声明使用（见 `src/types/env.d.ts`）：
 
 | 变量 | 用途 |
 |------|------|
@@ -60,24 +60,24 @@ Forge 注入（窗口加载）：
 ## 4. 目录与别名
 
 ```text
-src/main | src/preload | src/renderer | src/shared | sidecar/
+src/main.ts | src/preload.ts | src/renderer.tsx | src/plugins/ | sidecar/
 ```
 
-- `@/*` → `src/renderer/*`
-- `@main/*` / `@shared/*` / `@preload/*` 分进程
+- `@/*` → `src/*`（UI）
+- 宿主：相对路径 `./plugins/…`（无 `@main` / `@shared`）
 
 进程边界由 ESLint `no-restricted-imports` 约束（见 `eslint.config.ts`）。
 
 ## 5. 本地调试
 
-- `dev` 启动后，DevTools **仅开发态**可通过 `itc.devtools.updateVisible({ visible: true })` 打开（生产打包默认关闭）。
+- `dev` 启动后，DevTools **仅开发态**可通过 `itc.devtools.toUpdate({ visible: true })` 打开（生产打包默认关闭）。
 - 主进程日志：结构化 `buildLogger(module)`；未捕获异常接入 bootstrap。
 - IPC 失败：preload 抛出 `Error('[CODE] message')`，见 [api-reference.md](./api-reference.md)。
 
 ## 6. 扩展功能
 
 1. 读 [modules.md](./modules.md) 了解模块挂载方式  
-2. 照 [examples.md](./examples.md)「新增 IPC 全链路」改 channels → schema → module → bootstrap → preload  
+2. 照 [examples.md](./examples.md)「新增 IPC 全链路」改 channels → plugin 单文件 → main.ts → preload  
 3. 更新 [api-reference.md](./api-reference.md) 中的表格（文档与代码同步）
 
 ## 7. 测试
@@ -85,13 +85,13 @@ src/main | src/preload | src/renderer | src/shared | sidecar/
 - 配置：`vitest.config.ts`
 - 约定：`src/**/*.test.ts`
 - 现有覆盖示例：
-  - `shared/ipc/store.test.ts`
-  - `shared/ipc/user.test.ts`
-  - `shared/ipc/doc.test.ts`
-  - `shared/ipc/contract.test.ts`
-  - `main/modules/sidecar/paths.test.ts`
-  - `main/ipc/trusted-sender.test.ts`
-  - `preload/expose.test.ts`（断言不暴露 `ipcRenderer`）
+  - `plugins/store.test.ts`
+  - `plugins/user.test.ts`
+  - `plugins/doc.test.ts`
+  - `plugins/contract.test.ts`
+  - `plugins/sidecar.paths.test.ts`
+  - `plugins/trusted-sender.test.ts`
+  - `preload.expose.test.ts`（断言不暴露 `ipcRenderer`）
 
 ```bash
 pnpm --filter @i-thinking/studio test:unit
