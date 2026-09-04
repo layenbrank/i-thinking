@@ -1,6 +1,6 @@
 # Studio 使用示例
 
-所有示例基于当前实现：全局 `itc`（`window.itc`，见 preload / `src/renderer/types/itc.d.ts`）。网页模式用 `findItc()` 探测。
+所有示例基于当前实现：全局 `itc`（`window.itc`，见 preload / `src/types/itc.d.ts`）。网页模式用 `findItc()` 探测。
 
 ## 1. 基础：直接用全局 / 探测
 
@@ -84,7 +84,7 @@ const converted = await itc.doc.convert({
 
 ```ts
 try {
-  await itc.devtools.updateVisible({ visible: true })
+  await itc.devtools.toUpdate({ visible: true })
 } catch (error) {
   // 生产打包会拒绝
   console.error(error)
@@ -155,26 +155,23 @@ settings: {
 }
 ```
 
-### 9.4 Main 模块
+### 9.4 Plugin
 
 ```text
-src/main/modules/settings/
-  service.ts
-  handlers.ts
-  index.ts      → buildModule()
+src/plugins/settings.ts   → models + desktop + commands + buildPlugin()
 ```
 
-`handlers.ts` 从 `@shared/ipc/settings` 引入 schema，使用 `registerHandler`。
+在同一文件内写 zod schema，并用 `registerHandler` 挂命令。
 
-### 9.5 `bootstrap.ts` 注册
+### 9.5 `main.ts` 注册
 
 ```ts
-import { buildModule as buildSettingsModule } from './modules/settings'
+import { buildPlugin as buildSettingsPlugin } from './plugins/settings'
 
-buildSettingsModule(), // 插入 modules 数组合适位置
+buildSettingsPlugin(), // 插入 plugins 数组合适位置
 ```
 
-### 9.6 `preload/preload.ts` 暴露
+### 9.6 `preload.ts` 暴露
 
 ```ts
 settings: {
@@ -206,7 +203,7 @@ window.ipcRenderer.invoke('anything')
 window.itc // 不存在 database.query(sql)
 
 // ❌ Main 里用 import.meta.url 解析路径（Vite CJS 会变成 undefined）
-// 应使用 src/main/paths.ts
+// 应使用 src/plugins/paths.ts
 ```
 
 ## 11. 网页模式降级
