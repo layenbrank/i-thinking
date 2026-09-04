@@ -6,13 +6,11 @@ import App from '@/App.tsx'
 import '@/styles/index.scss'
 import { CSSVAR } from '@/themes'
 
-import AntDIconify from '@iconify/json/json/ant-design.json'
+import AntIconify from '@iconify/json/json/ant-design.json'
 import MDIconify from '@iconify/json/json/mdi.json'
-import CustomIconify from '@i-thinking/shared/iconify.json'
 
 addCollection(MDIconify)
-addCollection(AntDIconify)
-addCollection(CustomIconify)
+addCollection(AntIconify)
 
 const rootElement = document.getElementById('root') as HTMLElement
 
