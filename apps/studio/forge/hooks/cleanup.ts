@@ -19,7 +19,7 @@ function removePath(target: string): void {
  * Windows 上若仍有本仓库的 electron / 已打包 Studio 在跑，会锁 asar。
  * 仅结束路径落在 monorepo 下的进程，避免误杀其它 Electron 应用。
  */
-function stopLockedStudioProcesses(): void {
+function stopLockedProcesses(): void {
   if (process.platform !== 'win32') return
 
   const root = PACKAGE_ROOT.replace(/\\/g, '/').toLowerCase()
@@ -35,11 +35,10 @@ function stopLockedStudioProcesses(): void {
   ].join(' ')
 
   try {
-    execFileSync(
-      'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-Command', script],
-      { stdio: 'ignore', windowsHide: true }
-    )
+    execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+      stdio: 'ignore',
+      windowsHide: true
+    })
   } catch {
     // 忽略：无权限或无匹配进程
   }
@@ -51,8 +50,8 @@ function stopLockedStudioProcesses(): void {
  * 2. 清理上次构建产物
  */
 async function cleanupBeforePackage(): Promise<void> {
-  stopLockedStudioProcesses()
+  stopLockedProcesses()
   removePath(OUT_DIR)
 }
 
-export { cleanupBeforePackage, stopLockedStudioProcesses }
+export { cleanupBeforePackage, stopLockedProcesses }

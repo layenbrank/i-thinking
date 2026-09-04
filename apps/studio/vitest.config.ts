@@ -4,10 +4,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src/renderer', import.meta.url)),
-      '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
-      '@main': fileURLToPath(new URL('./src/main', import.meta.url)),
-      '@preload': fileURLToPath(new URL('./src/preload', import.meta.url)),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@generated': fileURLToPath(new URL('./generated', import.meta.url))
     }
   },

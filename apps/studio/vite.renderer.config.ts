@@ -47,7 +47,7 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
         plugins: []
       }),
       AutoImport({
-        dts: 'src/renderer/types/auto-imports.d.ts',
+        dts: 'src/types/auto-imports.d.ts',
         include: [/\.(?:ts|tsx|js|jsx)$/i],
         imports: [
           'react',
@@ -68,8 +68,7 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
     resolve: {
       tsconfigPaths: true,
       alias: {
-        '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
-        '@': fileURLToPath(new URL('./src/renderer', import.meta.url))
+        '@': fileURLToPath(new URL('./src', import.meta.url))
       }
     },
     optimizeDeps: {
