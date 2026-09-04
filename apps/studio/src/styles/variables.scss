@@ -1,0 +1,9 @@
+:root {
+  /* 网格基元，对齐 itab --app-size；与 lv 像素解耦 */
+  --magnetic-tile-unit: 60px;
+  --magnetic-tile-row-gap: 30px;
+  --magnetic-tile-col-gap: 30px;
+  --magnetic-tile-round: 12px;
+  --magnetic-tile-text-color: #000000;
+  --magnetic-tile-overlay-round: 8px;
+}

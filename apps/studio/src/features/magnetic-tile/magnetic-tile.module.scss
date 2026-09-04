@@ -1,0 +1,283 @@
+@use 'sass:math';
+
+@mixin ratio-width($base-var, $w, $h) {
+  width: calc(#{$base-var} * (#{$w} / #{$h}));
+}
+
+@mixin ratio-height($base-var, $w, $h) {
+  height: calc(#{$base-var} * (#{$h} / #{$w}));
+}
+
+.magnetic-tile {
+  cursor: pointer;
+  position: relative;
+  // 外壳只负责网格占位；背景/圆角在 .surface（对齐 itab slide-app + icon）
+  background: transparent;
+  outline: none;
+  overflow: visible;
+  @include magnetic-tile;
+
+  transition:
+    width 150ms linear,
+    height 150ms linear;
+
+  &:global(.animating),
+  &:global(.dragging) {
+    will-change: transform, opacity;
+  }
+
+  &:global(.dragging) {
+    cursor: grabbing;
+    z-index: 1000;
+  }
+
+  & > .surface {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    background: var(--magnetic-tile-background);
+    // 滚动位移走合成层，避免牵动布局
+    backface-visibility: hidden;
+    transition: box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+
+  &:global(.dragging) > .surface {
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.28),
+      0 4px 12px rgba(0, 0, 0, 0.16);
+  }
+
+  // 标题落在网格 row-gap 内
+  & > .title {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 100%;
+    display: block;
+    color: #000000;
+    font-size: 14px;
+    line-height: 1;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  :where(& > .surface) .marker,
+  :where(& > .surface) > .marker {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  & > .destroy {
+    $size: 16px;
+
+    &.marker {
+      position: absolute;
+      top: 0 - math.div($size, 3);
+      right: 0 - math.div($size, 3);
+      width: $size;
+      height: $size;
+      padding: 0;
+      border: none;
+      background-color: rgba(255, 0, 0, 0.5);
+      border-radius: math.div($size, 2);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: $size;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    &.visible {
+      display: flex;
+    }
+
+    &:not(.visible) {
+      visibility: hidden;
+      pointer-events: none;
+    }
+  }
+}
+
+.suspense {
+  position: relative;
+  display: grid;
+
+  --skeleton-fade-ms: 200ms;
+}
+
+.suspense-layer {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+}
+
+.suspense-content {
+  opacity: 0;
+  transition: opacity var(--skeleton-fade-ms) ease;
+}
+
+.suspense-content-visible {
+  opacity: 1;
+}
+
+.suspense-content-no-suspense {
+  opacity: 1;
+  transition: none;
+}
+
+.suspense-skeleton {
+  opacity: 1;
+  transition: opacity var(--skeleton-fade-ms) ease;
+  pointer-events: none;
+}
+
+.suspense-skeleton-fade-out {
+  opacity: 0;
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.overlay-skeleton {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}
+
+.overlay {
+  :global {
+    .ant-modal-content {
+      border-radius: var(--ith-border-radius-lg);
+      overflow: hidden;
+      box-shadow: var(--ith-box-shadow-secondary);
+    }
+
+    .ant-modal-container {
+      border-radius: inherit;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .ant-modal-body {
+      border-radius: inherit;
+      overflow: hidden;
+    }
+  }
+}
+
+/* 尺寸单一源：变量 + class；JS 不重复写 max/ratio/min */
+.framed,
+.fluid,
+.fullscreen {
+  --overlay-width-min: 600px;
+  --overlay-width-max: 1280px;
+  --overlay-ratio: 16 / 9;
+  --overlay-height-fluid: 80%;
+}
+
+/** 配置弹层：封顶 + 16:9 */
+.framed {
+  min-width: var(--overlay-width-min);
+  max-width: var(--overlay-width-max);
+  aspect-ratio: var(--overlay-ratio);
+  /* antd Modal 常写死 height；用 auto 让 ratio 生效 */
+  height: auto !important;
+
+  :global(.ant-modal-content),
+  :global(.ant-modal-container) {
+    height: 100%;
+  }
+}
+
+/** 工作台：不封顶、不锁比例；默认视口高度占比 */
+.fluid {
+  min-width: var(--overlay-width-min);
+  max-width: none;
+  aspect-ratio: unset;
+  height: var(--overlay-height-fluid);
+
+  :global(.ant-modal-content),
+  :global(.ant-modal-container) {
+    height: 100%;
+  }
+}
+
+.fullscreen {
+  min-width: unset;
+  max-width: none;
+  aspect-ratio: unset;
+  /* 全屏需压过 antd 内联尺寸 */
+  height: 100% !important;
+  border-radius: 0 !important;
+}
+
+.body {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--ith-color-bg-layout);
+  color: var(--ith-color-text);
+}
+
+.controls {
+  box-sizing: border-box;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
+  background: var(--ith-color-bg-container);
+}
+
+.withControls {
+  :global(.ant-modal-footer) {
+    margin: 0;
+  }
+}

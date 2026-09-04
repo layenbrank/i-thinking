@@ -30,7 +30,7 @@ export default defineConfig([
     ],
     languageOptions: {
       parser: tseslint.parser,
-      project: ['tsconfig.app.json'],
+      project: ['tsconfig.json'],
       parserOptions: {
         ecmaVersion: 2025,
         projectService: true,
@@ -73,15 +73,20 @@ export default defineConfig([
   },
   {
     name: 'renderer-process-boundaries',
-    files: ['src/renderer/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/main.ts', 'src/plugins/**', 'src/preload.ts', 'src/preload.*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              group: ['@main', '@main/*', '**/src/main/**', 'electron'],
-              message: 'Renderer must not import main-process modules or electron'
+              regex: '^@/plugins/(?!itc$).*',
+              message: 'Renderer may only import type surface from @/plugins/itc'
+            },
+            {
+              group: ['electron'],
+              message: 'Renderer must not import electron'
             }
           ]
         }
@@ -90,15 +95,19 @@ export default defineConfig([
   },
   {
     name: 'preload-process-boundaries',
-    files: ['src/preload/**/*.{ts,tsx}'],
+    files: ['src/preload.ts', 'src/preload.*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              group: ['@main', '@main/*', '@/', '@/*', '**/src/main/**', '**/src/renderer/**'],
-              message: 'Preload may only use @shared and electron APIs'
+              regex: '^\\./plugins/(?!channels$|result$|itc$).*',
+              message: 'Preload may only use plugins/channels, result, itc'
+            },
+            {
+              group: ['@/', '@/*'],
+              message: 'Preload must not use @/ UI alias'
             }
           ]
         }
@@ -106,41 +115,16 @@ export default defineConfig([
     }
   },
   {
-    name: 'main-process-boundaries',
-    files: ['src/main/**/*.{ts,tsx}'],
+    name: 'host-process-boundaries',
+    files: ['src/main.ts', 'src/plugins/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              group: ['@/', '@/*', '**/src/renderer/**'],
-              message: 'Main must not import renderer modules'
-            }
-          ]
-        }
-      ]
-    }
-  },
-  {
-    name: 'shared-process-boundaries',
-    files: ['src/shared/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: [
-                '@main',
-                '@main/*',
-                '@/',
-                '@/*',
-                '**/src/main/**',
-                '**/src/renderer/**',
-                'electron'
-              ],
-              message: 'shared 不得导入 main、renderer 或 electron'
+              group: ['@/', '@/*'],
+              message: 'Host must not import renderer modules via @/'
             }
           ]
         }

@@ -1,9 +1,66 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.main.json" },
-    { "path": "./tsconfig.preload.json" },
-    { "path": "./tsconfig.renderer.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
+    "target": "ESNext",
+    "module": "ESNext",
+    "useDefineForClassFields": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+
+    "types": [
+      "vite/client",
+      "node",
+      "@types/react",
+      "@types/react-dom",
+      "@types/chrome",
+      "reflect-metadata",
+      "unplugin-icons/types/react",
+      "@i-thinking/utils",
+      "@i-thinking/hooks",
+      "@i-thinking/shared/response",
+      "@i-thinking/shared/decorator",
+      "@i-thinking/shared/constructor",
+      "@i-thinking/shared/contextmenu",
+      "@i-thinking/shared/user-profile",
+      "@i-thinking/shared/schema",
+      "@i-thinking/shared/backup",
+      "@i-thinking/shared/mirror",
+      "@i-thinking/shared/settings",
+      "@i-thinking/shared/controller",
+      "@i-thinking/shared/magnetic-tile",
+      "@i-thinking/shared/magnetic-tile-bookmark",
+      "@i-thinking/shared/magnetic-tile-markdown",
+      "@i-thinking/shared/magnetic-tile-intelligence",
+      "@i-thinking/shared/process-env",
+      "@electron-forge/plugin-vite/forge-vite-env"
+    ],
+
+    "rootDir": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@generated/*": ["./generated/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["**/node_modules/**", "**/dist/**"]
 }

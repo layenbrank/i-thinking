@@ -10,12 +10,17 @@ function buildPlugins(): NonNullable<ForgeConfig['plugins']> {
     new VitePlugin({
       build: [
         {
-          entry: 'src/main/main.ts',
+          entry: 'src/main.ts',
           config: 'vite.main.config.ts',
           target: 'main'
         },
         {
-          entry: 'src/preload/preload.ts',
+          entry: 'src/preload.ts',
+          config: 'vite.preload.config.ts',
+          target: 'preload'
+        },
+        {
+          entry: 'src/browser/chrome-preload.ts',
           config: 'vite.preload.config.ts',
           target: 'preload'
         }
