@@ -16,11 +16,11 @@
     "README.md": "task_plan.md, progress.md, findings.md"
   },
   "files.exclude": {
-    "**/target": true,
-    "**/cas": true,
-    "**/chunks": true,
-    "**/uploads": true,
-    "**/data": true,
+    "**/target": false,
+    "**/cas": false,
+    "**/chunks": false,
+    "**/uploads": false,
+    "**/data": false,
     "**/.tmp": true,
     "**/node_modules": true,
     "**/__pycache__": true

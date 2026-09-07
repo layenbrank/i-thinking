@@ -7,6 +7,7 @@ import (
 
 func APIKeyAuth(validKeys []string) func(http.Handler) http.Handler {
 	allowed := make(map[string]struct{}, len(validKeys))
+
 	for _, key := range validKeys {
 		if key != "" {
 			allowed[key] = struct{}{}

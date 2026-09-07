@@ -16,20 +16,20 @@ services:
     image: corex-postgres:18-zh
     container_name: corex-postgres
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_USER: machenike
-      POSTGRES_PASSWORD: "Li33333."
+      POSTGRES_PASSWORD: 'Li33333.'
       POSTGRES_DB: i-thinking
       # locale 仅在首次 initdb（空 data/postgres）时生效
       LANG: zh_CN.UTF-8
       LC_ALL: zh_CN.UTF-8
-      POSTGRES_INITDB_ARGS: "--locale=zh_CN.UTF-8 --encoding=UTF8"
+      POSTGRES_INITDB_ARGS: '--locale=zh_CN.UTF-8 --encoding=UTF8'
     volumes:
       # Postgres 18+ 挂载 /var/lib/postgresql
       - ./data/postgres:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U machenike -d i-thinking"]
+      test: ['CMD-SHELL', 'pg_isready -U machenike -d i-thinking']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -41,12 +41,12 @@ services:
     image: redis:7-alpine
     container_name: corex-redis
     ports:
-      - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
+      - '6379:6379'
+    command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - ./data/redis:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -60,10 +60,10 @@ services:
     platform: linux/amd64
     container_name: corex-gocaptcha
     ports:
-      - "8080:8080"
+      - '8080:8080'
     expose:
-      - "8080"
-      - "50051"
+      - '8080'
+      - '50051'
     volumes:
       - ./docker/gocaptcha/config.json:/app/config.json:ro
       - ./docker/gocaptcha/gocaptcha.json:/app/gocaptcha.json:ro
@@ -78,7 +78,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "/app/go-captcha-service", "--health-check"]
+      test: ['CMD', '/app/go-captcha-service', '--health-check']
       interval: 30s
       timeout: 5s
       retries: 3
@@ -95,7 +95,7 @@ services:
     image: corex-aliyun-gateway:local
     container_name: corex-aliyun-gateway
     ports:
-      - "8090:8090"
+      - '8090:8090'
     volumes:
       - ./docker/aliyun-gateway/config.json:/app/config.json:ro
       # 真实短信联调：复制 config.local.json.example → config.local.json 填入 AK/SK，并取消下行注释
@@ -104,7 +104,7 @@ services:
     environment:
       CONFIG: /app/config.json
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8090/healthz"]
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:8090/healthz']
       interval: 30s
       timeout: 5s
       retries: 3
@@ -117,18 +117,18 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.4.3
     container_name: corex-elasticsearch
     ports:
-      - "9200:9200"
-      - "9300:9300"
+      - '9200:9200'
+      - '9300:9300'
     environment:
       discovery.type: single-node
-      xpack.security.enabled: "false"
-      xpack.security.http.ssl.enabled: "false"
+      xpack.security.enabled: 'false'
+      xpack.security.http.ssl.enabled: 'false'
       ES_JAVA_OPTS: -Xms512m -Xmx512m
       cluster.name: corex-es
     volumes:
       - ./data/elasticsearch:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9200 >/dev/null || exit 1"]
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:9200 >/dev/null || exit 1']
       interval: 10s
       timeout: 5s
       retries: 30
