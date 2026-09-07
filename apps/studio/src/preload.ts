@@ -108,11 +108,6 @@ const itc: ITC = {
       return invoke(CHANNELS.OVERLAY.UPDATE, input)
     }
   },
-  shell: {
-    open(input) {
-      return invoke(CHANNELS.SHELL.OPEN, input)
-    }
-  },
   app: {
     onMessage(callback) {
       function handler(_event: unknown, payload: unknown) {

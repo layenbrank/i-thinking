@@ -1,9 +1,8 @@
-import { session, type WebContents } from 'electron'
+import { session, shell, type WebContents } from 'electron'
 
 import type { Context } from './context'
 import type { Plugin } from './module'
 import { isAllowedPageUrl } from './trusted-sender'
-import { canOpenUrl, openChrome } from './shell'
 
 const ALLOWED_PERMISSIONS = new Set<string>([])
 
@@ -23,7 +22,7 @@ function buildPlugin(): Plugin {
         }
       )
 
-      // 仅约束应用 defaultSession；persist:chrome 浏览器内容区不受此 CSP
+      // 仅约束应用 defaultSession（内置浏览器会话已随 apps/browser 迁出，无独立分区）
       session.defaultSession.webRequest.onHeadersReceived(function (details, callback) {
         const csp = ctx.isDev
           ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:* http://localhost:* https: ws: wss:; font-src 'self' data:;"
@@ -50,10 +49,11 @@ function attachGuards(ctx: Context, contents: WebContents): void {
     }
   })
 
-  // 外链用应用内 Chromium（地址栏窗）打开
+  // 外链交系统默认浏览器（内置 Chromium 浏览能力已迁往 apps/browser）
   contents.setWindowOpenHandler(function ({ url }) {
-    if (canOpenUrl(url)) {
-      openChrome(url)
+    const parsed = new URL(url)
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      void shell.openExternal(url)
     } else {
       log.warn('blocked window open', { url })
     }
