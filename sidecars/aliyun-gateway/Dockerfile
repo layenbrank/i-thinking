@@ -2,6 +2,8 @@
 FROM golang:1.22-alpine AS builder
 
 WORKDIR /src
+# 容器内无法直连 proxy.golang.org，改用国内模块代理（无代理环境）
+ENV GOPROXY=https://goproxy.cn,direct
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
