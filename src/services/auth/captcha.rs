@@ -18,7 +18,8 @@ impl CaptchaService {
     ) -> Result<CaptchaR, CaptchaError> {
         Self::check_ip_rate(redis, config, client_ip).await?;
 
-        let client = GoCaptchaClient::new(config).map_err(|e| CaptchaError::Upstream(e.to_string()))?;
+        let client =
+            GoCaptchaClient::new(config).map_err(|e| CaptchaError::Upstream(e.to_string()))?;
         let resolved = client.resolve_kind(kind);
         let challenge = client.get_data(&resolved).await?;
 
@@ -31,7 +32,17 @@ impl CaptchaService {
         captcha_key: &str,
         captcha_value: &str,
     ) -> Result<(), CaptchaError> {
-        let client = GoCaptchaClient::new(config).map_err(|e| CaptchaError::Upstream(e.to_string()))?;
+        if !config.captcha_enabled() {
+            tracing::debug!(
+                event = "auth.captcha.verify",
+                skipped = true,
+                "captcha disabled"
+            );
+            return Ok(());
+        }
+
+        let client =
+            GoCaptchaClient::new(config).map_err(|e| CaptchaError::Upstream(e.to_string()))?;
         let resolved = client.resolve_kind(kind);
         client
             .check_data(&resolved, captcha_key, captcha_value)

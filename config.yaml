@@ -3,7 +3,7 @@ app:
   swagger: true
 
 server:
-  host: 127.0.0.1
+  host: 0.0.0.0
   port: 3000
 
 database:
@@ -34,6 +34,8 @@ security:
 
 auth:
   captcha:
+    # false：跳过 check-data（终端/Apifox 联调）；生产必须 true
+    enabled: true
     base_url: http://127.0.0.1:8080
     # 与 docker/gocaptcha/config.json 的 api_keys 一致；请求侧车时放在 X-API-Key 头
     api_key: change-me-gocaptcha-key

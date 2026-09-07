@@ -134,6 +134,8 @@ impl Default for SecurityConfig {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct CaptchaConfig {
+    /// `false` 时跳过 `check-data`（仅开发联调；生产须为 `true`）
+    pub enabled: bool,
     pub base_url: String,
     pub api_key: String,
     pub kind: String,
@@ -144,6 +146,7 @@ pub struct CaptchaConfig {
 impl Default for CaptchaConfig {
     fn default() -> Self {
         Self {
+            enabled: true,
             base_url: "http://127.0.0.1:8080".to_string(),
             api_key: String::new(),
             kind: "slide-default".to_string(),
@@ -348,6 +351,9 @@ impl Configure {
 
         if cfg.is_production() {
             cfg.auth.otp.mock = false;
+            if !cfg.auth.captcha.enabled {
+                bail!("auth.captcha.enabled must be true in production");
+            }
         }
 
         cfg.validate()?;
@@ -452,6 +458,10 @@ impl Configure {
 
     pub fn elasticsearch_insecure(&self) -> bool {
         self.elasticsearch.insecure
+    }
+
+    pub fn captcha_enabled(&self) -> bool {
+        self.auth.captcha.enabled
     }
 
     pub fn captcha_base_url(&self) -> &str {

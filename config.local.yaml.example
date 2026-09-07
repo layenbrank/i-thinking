@@ -11,6 +11,7 @@ security:
 
 auth:
   captcha:
+    # enabled: false   # 临时关闭校验（开发联调）
     api_key: change-me-gocaptcha-key
 
 aliyun:

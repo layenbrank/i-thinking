@@ -2,8 +2,8 @@ use super::common::{
     CaptchaEnvelope, EmptyEnvelope, Exception, ProfileEnvelope, SigninEnvelope, SignupEnvelope,
 };
 use crate::services::auth::schema::{
-    CaptchaP, EmailSigninP, ForgotPasswordP, OtpP, PasswordP, PhoneSigninP, ProfileP, ResetPasswordP,
-    SigninP, SignupP,
+    CaptchaP, EmailSigninP, ForgotPasswordP, OtpP, PasswordP, PhoneSigninP, ProfileP,
+    ResetPasswordP, SigninP, SignupP,
 };
 
 /// 获取行为验证码（go-captcha 滑块/点选）
@@ -87,8 +87,8 @@ pub fn otp_doc() {}
         example = json!({
             "username": "admin",
             "password": "123456",
-            "captchaKey": "xxxx-xxxxx",
-            "captchaValue": "120"
+            "captchaKey": "dev",
+            "captchaValue": "0"
         })
     ),
     responses(
@@ -172,10 +172,10 @@ pub fn signin_email_doc() {}
         content = SignupP,
         description = "注册凭证（验证码字段均为必填）",
         example = json!({
-            "username": "newuser",
+            "username": "admin",
             "password": "123456",
-            "captchaKey": "xxxx-xxxxx",
-            "captchaValue": "120"
+            "captchaKey": "dev",
+            "captchaValue": "0"
         })
     ),
     responses(

@@ -65,6 +65,14 @@ import GoCaptcha from 'go-captcha-react'
 
 配置见 [`guide/configuration.md`](../../../guide/configuration.md) 中 `auth.captcha.*`。
 
+**终端联调**：development 下 `auth.captcha.enabled: false`（见 `config.development.yaml`）时跳过校验，请求里仍可填占位：
+
+```json
+{ "captchaKey": "dev", "captchaValue": "0" }
+```
+
+生产环境禁止关闭。
+
 ## OTP 短信（aliyun-gateway）
 
 | 模式 | 行为 |

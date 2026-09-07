@@ -3,6 +3,10 @@ declare namespace Auth {
     export interface Params {
       username: string
       password: string
+      /** 来自 POST /auth/captcha；`auth.captcha.enabled=false` 时可填占位 */
+      captchaKey: string
+      captchaValue: string
+      captchaKind?: string
     }
 
     export interface Response {
@@ -18,6 +22,9 @@ declare namespace Auth {
     export interface Params {
       username: string
       password: string
+      captchaKey: string
+      captchaValue: string
+      captchaKind?: string
     }
 
     export interface Response {

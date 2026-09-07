@@ -31,6 +31,7 @@
 | `security.encryption` | `argon2` | `argon2` 或 `aes`（生产禁止 aes 存密码） |
 | `logging.dir` | `logs` | 日志目录 |
 | `app.swagger` | `development: true` | 是否启用 Swagger UI |
+| `auth.captcha.enabled` | `true`（development 默认 `false`） | `false` 时跳过 `check-data`（仅联调）；生产强制 `true` |
 | `auth.captcha.base_url` | `http://127.0.0.1:8080` | go-captcha-service HTTP（仅内网） |
 | `auth.captcha.api_key` | （见 `config.yaml`） | 侧车 `X-API-Key`，生产放 `config.local.yaml` |
 | `auth.captcha.kind` | `slide-default` | 默认题型 ID（`get-data` / `check-data`） |
