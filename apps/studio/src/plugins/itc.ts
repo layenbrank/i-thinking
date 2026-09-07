@@ -10,7 +10,6 @@ import type { ConvertP as DocConvertP, ConvertR as DocConvertR } from './doc'
 import type { CaptureR as ScreenshotCaptureR } from './screenshot'
 import type { FindStatusR as SidecarFindStatusR } from './sidecar'
 import type { ReadR, UpdateP } from './overlay'
-import type { OpenP as ShellOpenP } from './shell'
 import type {
   HasP as StoreHasP,
   HasR as StoreHasR,
@@ -71,9 +70,6 @@ export interface ITC {
   overlay: {
     toRead: () => Promise<ReadR>
     toUpdate: (input: UpdateP) => Promise<void>
-  }
-  shell: {
-    open: (input: ShellOpenP) => Promise<void>
   }
   app: {
     onMessage: (callback: (payload: unknown) => void) => () => void

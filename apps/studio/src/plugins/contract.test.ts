@@ -19,7 +19,6 @@ const STUDIO_NAMESPACES = [
   'updater',
   'devtools',
   'overlay',
-  'shell',
   'app'
 ] as const
 
@@ -47,7 +46,6 @@ describe('ipc contract', function () {
       'updater',
       'devtools',
       'overlay',
-      'shell',
       'app'
     ])
   })

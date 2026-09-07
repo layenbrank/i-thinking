@@ -43,9 +43,6 @@ export const CHANNELS = {
   OVERLAY: {
     READ: 'overlay:toRead',
     UPDATE: 'overlay:toUpdate'
-  },
-  SHELL: {
-    OPEN: 'shell:open'
   }
 } as const
 

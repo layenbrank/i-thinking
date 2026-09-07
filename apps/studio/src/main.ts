@@ -13,7 +13,6 @@ import { buildPlugin as buildDialogPlugin } from './plugins/dialog'
 import { buildPlugin as buildDocPlugin } from './plugins/doc'
 import { buildPlugin as buildScreenshotPlugin } from './plugins/screenshot'
 import { buildPlugin as buildSecurityPlugin } from './plugins/security'
-import { buildPlugin as buildShellPlugin } from './plugins/shell'
 import { buildPlugin as buildSidecarPlugin, CorexHost } from './plugins/sidecar'
 import { buildPlugin as buildStorePlugin } from './plugins/store'
 import { buildPlugin as buildUpdaterPlugin } from './plugins/updater'
@@ -69,7 +68,6 @@ export async function bootstrap(): Promise<void> {
     buildUpdaterPlugin(),
     buildDocPlugin(),
     buildScreenshotPlugin(),
-    buildShellPlugin(),
     buildSidecarPlugin()
   ]
 
