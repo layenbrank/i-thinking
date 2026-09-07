@@ -1,0 +1,23 @@
+From: i-thinking <dev@i-thinking.local>
+Date: Fri, 4 Sep 2026 00:00:00 +0000
+Subject: [PATCH] show apps shortcut by default
+
+NOTE: Instructive / incomplete hunk. Find the pref that controls whether the
+Apps (now i-thinking) toolbar shortcut is shown and default it to true for
+new profiles. See patches/README.md.
+
+---
+ chrome/browser/ui/browser_ui_prefs.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_ui_prefs.cc
+index 00000000000..44444444444 100644
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -0,0 +1,3 @@
++// i-thinking: SEARCH show-apps-shortcut (or equivalent) pref registration:
++//   registry->RegisterBooleanPref(..., false);
++// REPLACE default with true so the shortcut is visible on first run.
+--
+NOTE: Pref key and registration file differ across milestones
+(pinned_toolbar_actions_model / browser_ui_prefs / etc.).

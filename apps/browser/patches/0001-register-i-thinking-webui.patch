@@ -1,0 +1,24 @@
+From: i-thinking <dev@i-thinking.local>
+Date: Fri, 4 Sep 2026 00:00:00 +0000
+Subject: [PATCH] register i-thinking WebUI (IThinkingUIConfig)
+
+NOTE: Instructive / incomplete hunk. Align with your Chromium milestone.
+See patches/README.md FILE/SEARCH/REPLACE for chrome_web_ui_configs.cc.
+
+---
+ chrome/browser/ui/webui/chrome_web_ui_configs.cc | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/chrome/browser/ui/webui/chrome_web_ui_configs.cc b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+index 00000000000..11111111111 100644
+--- a/chrome/browser/ui/webui/chrome_web_ui_configs.cc
++++ b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+@@ -0,0 +1,4 @@
++// i-thinking: ADD near other WebUI includes:
++#include "chrome/browser/ui/webui/i_thinking/i_thinking_ui.h"
++// i-thinking: ADD inside RegisterChromeWebUIConfigs (API name may vary):
++//   map.AddWebUIConfig(std::make_unique<IThinkingUIConfig>());
+--
+NOTE: Also add //chrome/browser/ui/webui/i_thinking to the parent BUILD.gn deps.
+This patch intentionally uses a documentation-style hunk so git apply may fail;
+use --3way or apply manually per patches/README.md.

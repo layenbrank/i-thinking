@@ -98,6 +98,13 @@ apps/client/src-tauri/binaries/**
 !apps/client/src-tauri/binaries/.gitkeep
 !apps/client/src-tauri/binaries/**/.gitkeep
 apps/studio/out
+# browser：Vite outDir 已由上方全局 `dist` 覆盖；stage/pack 产物在 build/
+apps/browser/build
+# browser sync 写入的 WebUI 快照（由 dist 生成，勿当源码提交）
+apps/browser/overlay/chrome/browser/resources/i_thinking/**
+!apps/browser/overlay/chrome/browser/resources/i_thinking/OWNERS
+apps/browser/gn/args.release.local.gn
+apps/browser/gn/*.local.gn
 # Python bytecode / coverage (including under .cursor/skills)
 *.pyc
 __pycache__/

@@ -1,0 +1,23 @@
+{
+  "productName": "i-thinking",
+  "webuiHost": "i-thinking",
+  "webuiUrl": "chrome://i-thinking",
+  "userDataDirName": "i-thinking",
+  "executableName": "i-thinking.exe",
+  "chromiumMilestone": "stable",
+  "workspaceRoot": "D:\\i-thinking-browser",
+  "depotTools": "D:\\i-thinking-browser\\depot_tools",
+  "chromiumCheckout": "D:\\i-thinking-browser\\chromium",
+  "chromiumRoot": "D:\\i-thinking-browser\\chromium\\src",
+  "gitCache": "D:\\i-thinking-browser\\git-cache",
+  "browserRoot": "apps/browser",
+  "webuiDist": "dist",
+  "outDir": "out/i-thinking",
+  "urls": {
+    "depotToolsArchive": "https://chromium.googlesource.com/chromium/tools/depot_tools/+archive/HEAD.tar.gz",
+    "depotToolsRepo": "https://chromium.googlesource.com/chromium/tools/depot_tools",
+    "chromiumSrc": "https://chromium.googlesource.com/chromium/src.git",
+    "chromiumDocsWindows": "https://chromium.googlesource.com/chromium/src/+/main/docs/windows_build_instructions.md",
+    "cipdClient": "https://chrome-infra-packages.appspot.com/client?platform=windows-amd64"
+  }
+}

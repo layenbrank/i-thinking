@@ -1,0 +1,47 @@
+.glide {
+  position: relative;
+  overflow: hidden;
+
+  /* ── X (horizontal scroll via rotation trick) ── */
+  .xWrapper {
+    width: var(--glide-height, 0px);
+    height: var(--glide-width, 0px);
+    overflow: hidden scroll;
+    position: relative;
+    transform-origin: left top;
+    transform: translateX(0px) translateY(var(--glide-height, 0px)) rotate(-90deg);
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .xInner {
+    display: flex;
+    align-items: center;
+    width: var(--glide-width, 0px);
+    height: var(--glide-height, 0px);
+    transform-origin: left top;
+    transform: translateX(var(--glide-height, 0px)) rotate(90deg);
+  }
+
+  /* ── Y (vertical scroll) ── */
+  .yWrapper {
+    width: 100%;
+    height: 100%;
+    overflow: hidden scroll;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .yInner {
+    width: 100%;
+    min-height: 100%;
+  }
+}
