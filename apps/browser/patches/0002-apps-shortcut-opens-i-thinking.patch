@@ -1,0 +1,26 @@
+From: i-thinking <dev@i-thinking.local>
+Date: Fri, 4 Sep 2026 00:00:00 +0000
+Subject: [PATCH] Apps shortcut opens chrome://i-thinking
+
+NOTE: Instructive / incomplete hunk. Locate AppsPageShortcutPressed (or
+equivalent) and chrome://apps navigation; redirect to chrome://i-thinking.
+Update button / IDS label strings accordingly. See patches/README.md.
+
+---
+ chrome/browser/ui/views/frame/browser_view.cc | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
+index 00000000000..22222222222 100644
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -0,0 +1,6 @@
++// i-thinking: In AppsPageShortcutPressed (or command handler):
++// SEARCH:  Navigate to chrome::kChromeUIAppsURL / "chrome://apps"
++// REPLACE: Navigate to chrome::kChromeUIIThinkingURL ("chrome://i-thinking")
++//
++// #include "chrome/common/i_thinking_url_constants.h"
++// ... OpenURL(GURL(chrome::kChromeUIIThinkingURL));
+--
+NOTE: Exact file/symbol names vary by milestone. Also change IDS label for the
+Apps toolbar button to "i-thinking" (or localized equivalent).
