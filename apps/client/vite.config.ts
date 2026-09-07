@@ -53,6 +53,7 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
   console.log('env ===>', env)
   console.log('IP ===>', `http://${IP}:${PORT}`)
   return {
+    envDir: resolve(fileURLToPath(new URL('.', import.meta.url))),
     plugins: [
       React({
         // jsxRuntime: 'automatic',
@@ -146,7 +147,6 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
       'TAURI_PLATFORM_TYPE',
       'TAURI_DEBUG'
     ],
-    envDir: resolve(fileURLToPath(new URL('.', import.meta.url))),
     css: {
       modules: {
         // generateScopedName: '[name]-[local]-[hash:base64:6]',
