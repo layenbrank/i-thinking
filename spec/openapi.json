@@ -329,8 +329,8 @@
                 "$ref": "#/components/schemas/SigninP"
               },
               "example": {
-                "captchaKey": "xxxx-xxxxx",
-                "captchaValue": "120",
+                "captchaKey": "dev",
+                "captchaValue": "0",
                 "password": "123456",
                 "username": "admin"
               }
@@ -469,10 +469,10 @@
                 "$ref": "#/components/schemas/SignupP"
               },
               "example": {
-                "captchaKey": "xxxx-xxxxx",
-                "captchaValue": "120",
+                "captchaKey": "dev",
+                "captchaValue": "0",
                 "password": "123456",
-                "username": "newuser"
+                "username": "admin"
               }
             }
           },
@@ -679,7 +679,7 @@
           "Upload"
         ],
         "summary": "按资产 id 下载文件",
-        "description": "仅本人 COMPLETED 资产；按 chunk 表顺序流式输出。需要 JWT。",
+        "description": "下载 COMPLETED 资产（按 chunk 表顺序流式输出）。\n\n路径对 Auth **放行匿名**；ACL：`PUBLIC` 无需登录；创建者始终可下；`RESTRICTED` 须 JWT 且在 `viewers` 中；`PRIVATE` 仅创建者。\n秒传会话 id（SUPERSEDED）仅创建者可跟随到目标资产。",
         "operationId": "upload.serveAsset",
         "parameters": [
           {
@@ -978,10 +978,10 @@
           "Upload"
         ],
         "summary": "初始化上传",
-        "description": "创建上传会话。`hash` 可选。文件秒传：本人已完成直接返回；他人已完成则为当前用户克隆 COMPLETED（共享 CAS）。需要 JWT。",
+        "description": "创建上传会话。`hash` 可选。文件秒传：本人已完成直接返回；他人已完成则为当前用户克隆 COMPLETED（共享 CAS，克隆行默认 PRIVATE）。\n\n**可见性**（`visibility`，默认 `PRIVATE`）：\n- `PRIVATE`：仅创建者可按 id 下载（需 JWT）\n- `PUBLIC`：匿名或已登录均可按 id 下载（`GET /asset/{id}` 对 Auth 放行）\n- `RESTRICTED`：创建者 + `viewers`（用户 UUID 列表，最多 100）可下载（需 JWT）\n\n上传会话写操作（chunk/hash/finalize 等）仍仅创建者。需要 JWT。",
         "operationId": "upload.prepare",
         "requestBody": {
-          "description": "初始化参数；hash 可省略",
+          "description": "初始化参数；hash / visibility 可省略（默认 PRIVATE）",
           "content": {
             "application/json": {
               "schema": {
@@ -991,7 +991,8 @@
                 "chunk": 1048576,
                 "mime": "application/pdf",
                 "name": "sample.pdf",
-                "size": 1048576
+                "size": 1048576,
+                "visibility": "PRIVATE"
               }
             }
           },
@@ -1434,6 +1435,7 @@
           "hash",
           "index",
           "status",
+          "visibility",
           "createdAt",
           "url"
         ],
@@ -1485,6 +1487,16 @@
             "type": "string",
             "description": "按 id 下载：`/api/v1/upload/asset/{id}`",
             "example": "/api/v1/upload/asset/550e8400-e29b-41d4-a716-446655440000"
+          },
+          "viewers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "RESTRICTED 时的可访问用户 id；其它模式为空数组"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
           }
         }
       },
@@ -2441,6 +2453,30 @@
             ],
             "description": "租户 ID（租户模型未接线前可选）",
             "example": "tenant-demo"
+          },
+          "viewers": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "RESTRICTED 时的可访问用户 id 列表；其它可见性忽略",
+            "example": [
+              "550e8400-e29b-41d4-a716-446655440000"
+            ]
+          },
+          "visibility": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Visibility",
+                "description": "可见性；省略则 PRIVATE"
+              }
+            ]
           }
         },
         "example": {
@@ -3665,6 +3701,15 @@
           }
         }
       },
+      "Visibility": {
+        "type": "string",
+        "description": "资产可见性：私有 / 公开 / 指定用户",
+        "enum": [
+          "PRIVATE",
+          "PUBLIC",
+          "RESTRICTED"
+        ]
+      },
       "WriteP": {
         "type": "object",
         "required": [
@@ -3717,8 +3762,8 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "登录 `POST /api/v1/auth/signin` 返回的 `data.token`。\n\n请求头：`Authorization: Bearer <token>`。\n\n**Apifox**：鉴权组件 Token 请填 `{{token}}`（勿用 `{{bearerToken}}`）；环境变量名统一为 `token`，可在登录接口后置操作写入。",
-        "x-default": "{{token}}",
-        "x-apifox-default": "{{token}}"
+        "x-apifox-default": "{{token}}",
+        "x-default": "{{token}}"
       }
     }
   },

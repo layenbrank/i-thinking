@@ -65,7 +65,9 @@ Entity：[`entity/src/asset.rs`](../entity/src/asset.rs)
 | mime | text | MIME |
 | extension | text | 扩展名 |
 | name | text | 文件名 |
-| status | text | PENDING / UPLOADING / COMPLETED / FAILED / EXPIRED |
+| status | text | PENDING / UPLOADING / COMPLETED / SUPERSEDED / FAILED / EXPIRED |
+| visibility | text | PRIVATE（默认）/ PUBLIC / RESTRICTED |
+| viewers | jsonb | RESTRICTED 时允许下载的用户 UUID 数组；其它可见性为 null |
 | chunk | int | 分片大小（字节） |
 | total | int | 分片总数 |
 | archivedAt / createdAt / creator / updatedAt / updater / expiresAt | | 审计字段 |

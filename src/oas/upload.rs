@@ -11,16 +11,22 @@ use crate::services::upload::schema::{FinalizeP, HashP, PrepareP};
     tag = "Upload",
     operation_id = "upload.prepare",
     summary = "初始化上传",
-    description = "创建上传会话。`hash` 可选。文件秒传：本人已完成直接返回；他人已完成则为当前用户克隆 COMPLETED（共享 CAS）。需要 JWT。",
+    description = "创建上传会话。`hash` 可选。文件秒传：本人已完成直接返回；他人已完成则为当前用户克隆 COMPLETED（共享 CAS，克隆行默认 PRIVATE）。\n\n\
+        **可见性**（`visibility`，默认 `PRIVATE`）：\n\
+        - `PRIVATE`：仅创建者可按 id 下载（需 JWT）\n\
+        - `PUBLIC`：匿名或已登录均可按 id 下载（`GET /asset/{id}` 对 Auth 放行）\n\
+        - `RESTRICTED`：创建者 + `viewers`（用户 UUID 列表，最多 100）可下载（需 JWT）\n\n\
+        上传会话写操作（chunk/hash/finalize 等）仍仅创建者。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body(
         content = PrepareP,
-        description = "初始化参数；hash 可省略",
+        description = "初始化参数；hash / visibility 可省略（默认 PRIVATE）",
         example = json!({
             "name": "sample.pdf",
             "size": 1048576,
             "mime": "application/pdf",
-            "chunk": 1048576
+            "chunk": 1048576,
+            "visibility": "PRIVATE"
         })
     ),
     responses(
@@ -178,7 +184,9 @@ pub fn serve_file_doc() {}
     tag = "Upload",
     operation_id = "upload.serveAsset",
     summary = "按资产 id 下载文件",
-    description = "仅本人 COMPLETED 资产；按 chunk 表顺序流式输出。需要 JWT。",
+    description = "下载 COMPLETED 资产（按 chunk 表顺序流式输出）。\n\n\
+        路径对 Auth **放行匿名**；ACL：`PUBLIC` 无需登录；创建者始终可下；`RESTRICTED` 须 JWT 且在 `viewers` 中；`PRIVATE` 仅创建者。\n\
+        秒传会话 id（SUPERSEDED）仅创建者可跟随到目标资产。",
     security(("bearer_auth" = [])),
     params(
         ("id" = String, Path, description = "资产 UUID", example = "550e8400-e29b-41d4-a716-446655440000")

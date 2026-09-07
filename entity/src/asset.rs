@@ -25,6 +25,12 @@ pub struct Model {
     pub name: String,
     #[sea_orm(column_type = "Text")]
     pub status: String,
+    /// PRIVATE / PUBLIC / RESTRICTED；默认 PRIVATE
+    #[sea_orm(column_type = "Text")]
+    pub visibility: String,
+    /// RESTRICTED 时允许访问的用户 id 列表（JSON uuid 数组）；其它可见性忽略
+    #[sea_orm(column_type = "JsonBinary", nullable)]
+    pub viewers: Option<Json>,
     /// 分片大小（字节）
     pub chunk: i32,
     /// 分片总数

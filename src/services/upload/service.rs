@@ -262,18 +262,24 @@ impl UploadService {
     pub async fn find_owned_asset(
         db: &Storage,
         id: &str,
-        user_id: &str,
+        user_id: Option<&str>,
     ) -> Result<asset::Model, UploadError> {
-        let asset = Self::load_owned(db, id, user_id).await?;
+        let asset = repository::find_by_id(db, id).await?;
         let status = UploadStatus::from_db(&asset.status);
         if status == UploadStatus::Superseded {
+            // 会话 id 仅创建者可用；跟随目标后再做下载 ACL
+            let Some(user_id) = user_id else {
+                return Err(UploadError::Forbidden);
+            };
+            validation::ensure_owner(&asset, user_id)?;
             let target = Self::resolve_superseded(db, &asset).await?;
-            validation::ensure_owner(&target, user_id)?;
+            validation::ensure_can_download(&target, Some(user_id))?;
             if UploadStatus::from_db(&target.status) != UploadStatus::Completed {
                 return Err(UploadError::BadRequest("文件尚未完成上传".into()));
             }
             return Ok(target);
         }
+        validation::ensure_can_download(&asset, user_id)?;
         if status != UploadStatus::Completed {
             return Err(UploadError::BadRequest("文件尚未完成上传".into()));
         }

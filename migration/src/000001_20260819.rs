@@ -81,6 +81,8 @@ impl MigrationTrait for Migration {
                     .col(text_null(Asset::Extension))
                     .col(text(Asset::Name))
                     .col(text(Asset::Status))
+                    .col(text(Asset::Visibility).default("PRIVATE"))
+                    .col(json_binary_null(Asset::Viewers))
                     .col(integer(Asset::Chunk))
                     .col(integer(Asset::Total))
                     .col(timestamp_with_time_zone_null(Asset::ArchivedAt))
@@ -310,6 +312,8 @@ enum Asset {
     Extension,
     Name,
     Status,
+    Visibility,
+    Viewers,
     Chunk,
     Total,
     #[sea_orm(iden = "archivedAt")]

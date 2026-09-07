@@ -10,9 +10,11 @@ use uuid::Uuid;
 
 use crate::databases::database::Storage;
 use crate::services::upload::error::UploadError;
-use crate::services::upload::schema::{AssetR, PrepareP, UploadStatus, UploadedChunk};
+use crate::services::upload::schema::{
+    viewers_from_json, AssetR, PrepareP, UploadStatus, UploadedChunk, Visibility,
+};
 use crate::services::upload::validation::{
-    ASSET_URL_PREFIX, EXPIRE_HOURS, FILE_URL_PREFIX, KIND, normalize_hash,
+    visibility_for_insert, ASSET_URL_PREFIX, EXPIRE_HOURS, FILE_URL_PREFIX, KIND, normalize_hash,
 };
 
 pub async fn find_completed(db: &Storage, hash: &str) -> Result<Option<asset::Model>, UploadError> {
@@ -118,6 +120,7 @@ pub fn build_record(
     let hash = normalize_hash(req.hash.as_deref())
         .unwrap_or("")
         .to_string();
+    let (visibility, viewers) = visibility_for_insert(&req)?;
 
     Ok(asset::ActiveModel {
         id: Set(Uuid::new_v4()),
@@ -131,6 +134,8 @@ pub fn build_record(
         extension: Set(extension),
         name: Set(req.name),
         status: Set(UploadStatus::Pending.as_str().to_string()),
+        visibility: Set(visibility),
+        viewers: Set(viewers),
         chunk: Set(req.chunk as i32),
         total: Set(total as i32),
         archived_at: Set(None),
@@ -176,6 +181,8 @@ pub async fn clone_completed_for(
         extension: Set(extension),
         name: Set(name.to_string()),
         status: Set(UploadStatus::Completed.as_str().to_string()),
+        visibility: Set(Visibility::Private.as_str().to_string()),
+        viewers: Set(None),
         chunk: Set(source.chunk),
         total: Set(source.total),
         archived_at: Set(None),
@@ -496,6 +503,14 @@ pub async fn list_owned(
 }
 
 pub fn asset_to_r(asset: asset::Model) -> AssetR {
+    let visibility = Visibility::from_db(&asset.visibility);
+    let viewers = match visibility {
+        Visibility::Restricted => viewers_from_json(&asset.viewers)
+            .into_iter()
+            .map(|id| id.to_string())
+            .collect(),
+        _ => Vec::new(),
+    };
     AssetR {
         id: asset.id.to_string(),
         tenant_id: asset.tenant_id,
@@ -505,6 +520,8 @@ pub fn asset_to_r(asset: asset::Model) -> AssetR {
         hash: asset.hash.clone(),
         index: asset.index,
         status: UploadStatus::from_db(&asset.status),
+        visibility,
+        viewers,
         created_at: asset.created_at.timestamp_millis(),
         url: format!("{ASSET_URL_PREFIX}/{}", asset.id),
     }

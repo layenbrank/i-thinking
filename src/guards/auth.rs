@@ -85,21 +85,26 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let service = Rc::clone(&self.service);
         let admin_only = self.admin_only;
+        let is_public = crate::guards::public::file(&req);
+
+        // 公开路径且无 Bearer：直接放行（可见性由 Handler ACL 判定）
+        let token = match bearer(req.headers()) {
+            Some(token) => token,
+            None if is_public => {
+                return Box::pin(async move { Ok(service.call(req).await?.map_into_left_body()) });
+            }
+            None => {
+                return Box::pin(async move {
+                    Ok(json_error(req, Exception::unauthorized("用户未登录")))
+                });
+            }
+        };
 
         let secret = match req.app_data::<web::Data<Arc<Configure>>>() {
             Some(cfg) => cfg.jwt_secret().to_string(),
             None => {
                 return Box::pin(async move {
                     Ok(json_error(req, Exception::internal_error("服务配置缺失")))
-                });
-            }
-        };
-
-        let token = match bearer(req.headers()) {
-            Some(token) => token,
-            None => {
-                return Box::pin(async move {
-                    Ok(json_error(req, Exception::unauthorized("用户未登录")))
                 });
             }
         };
@@ -211,7 +216,11 @@ mod tests {
         ))
         .await;
 
-        let req = awtest::TestRequest::get().uri("/x").to_request();
+        // 有 Bearer 才会走到 Configure 读取；无 token 直接未登录
+        let req = awtest::TestRequest::get()
+            .uri("/x")
+            .insert_header(("Authorization", "Bearer not-a-real-jwt"))
+            .to_request();
         let resp = awtest::call_service(&app, req).await;
         assert!(resp.status().is_success());
         let body: Value = awtest::read_body_json(resp).await;
@@ -263,6 +272,22 @@ mod tests {
         let body: Value = awtest::read_body_json(resp).await;
         assert_eq!(body["success"], false);
         assert_ne!(body["msg"], "file");
+    }
+
+    #[actix_web::test]
+    async fn public_asset_get_allows_anonymous() {
+        let app = awtest::init_service(App::new().wrap(Auth::isRequired()).route(
+            "/api/v1/upload/asset/{id}",
+            web::get().to(|| async { HttpResponse::Ok().body("asset") }),
+        ))
+        .await;
+
+        let req = awtest::TestRequest::get()
+            .uri("/api/v1/upload/asset/550e8400-e29b-41d4-a716-446655440000")
+            .to_request();
+        let resp = awtest::call_service(&app, req).await;
+        let body = awtest::read_body(resp).await;
+        assert_eq!(body, "asset");
     }
 
     #[actix_web::test]

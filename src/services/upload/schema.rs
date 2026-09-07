@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -46,9 +47,44 @@ impl UploadStatus {
     }
 }
 
+/// 资产可见性：私有 / 公开 / 指定用户
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default, ToSchema)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum Visibility {
+    /// 仅创建者可下载（默认）
+    #[default]
+    Private,
+    /// 任意已登录或匿名用户可下载
+    Public,
+    /// 创建者 + `viewers` 列表中的用户可下载
+    Restricted,
+}
+
+impl Visibility {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Private => "PRIVATE",
+            Self::Public => "PUBLIC",
+            Self::Restricted => "RESTRICTED",
+        }
+    }
+
+    pub fn from_db(s: &str) -> Self {
+        match s {
+            "PUBLIC" => Self::Public,
+            "RESTRICTED" => Self::Restricted,
+            "PRIVATE" => Self::Private,
+            other => {
+                tracing::warn!(visibility = other, "unknown asset visibility; treat as PRIVATE");
+                Self::Private
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod status_tests {
-    use super::UploadStatus;
+    use super::{UploadStatus, Visibility};
 
     #[test]
     fn from_db_maps_known_status() {
@@ -66,6 +102,14 @@ mod status_tests {
     #[test]
     fn from_db_unknown_is_failed() {
         assert_eq!(UploadStatus::from_db("bogus"), UploadStatus::Failed);
+    }
+
+    #[test]
+    fn visibility_defaults_private() {
+        assert_eq!(Visibility::default(), Visibility::Private);
+        assert_eq!(Visibility::from_db("bogus"), Visibility::Private);
+        assert_eq!(Visibility::from_db("PUBLIC"), Visibility::Public);
+        assert_eq!(Visibility::from_db("RESTRICTED"), Visibility::Restricted);
     }
 }
 
@@ -109,6 +153,19 @@ pub struct PrepareP {
     #[serde(default)]
     #[schema(example = 0_i64)]
     pub index: Option<i64>,
+    /// 可见性；省略则 PRIVATE
+    #[serde(default)]
+    pub visibility: Option<Visibility>,
+    /// RESTRICTED 时的可访问用户 id 列表；其它可见性忽略
+    #[serde(default)]
+    #[schema(example = json!(["550e8400-e29b-41d4-a716-446655440000"]))]
+    pub viewers: Option<Vec<String>>,
+}
+
+impl PrepareP {
+    pub fn visibility(&self) -> Visibility {
+        self.visibility.clone().unwrap_or_default()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -239,6 +296,10 @@ pub struct AssetR {
     #[schema(example = 0_i64)]
     pub index: i64,
     pub status: UploadStatus,
+    pub visibility: Visibility,
+    /// RESTRICTED 时的可访问用户 id；其它模式为空数组
+    #[serde(default)]
+    pub viewers: Vec<String>,
     #[serde(rename = "createdAt")]
     #[schema(value_type = i64, example = 1700000000000_i64)]
     pub created_at: i64,
@@ -273,4 +334,19 @@ impl FilesR {
             prev: page_data.prev,
         }
     }
+}
+
+/// 解析 viewers JSON（uuid 数组）；非法/缺失视为空
+pub fn viewers_from_json(value: &Option<sea_orm::prelude::Json>) -> Vec<Uuid> {
+    let Some(json) = value else {
+        return Vec::new();
+    };
+    serde_json::from_value::<Vec<Uuid>>(json.clone()).unwrap_or_default()
+}
+
+pub fn viewers_to_json(ids: &[Uuid]) -> Option<sea_orm::prelude::Json> {
+    if ids.is_empty() {
+        return None;
+    }
+    Some(serde_json::to_value(ids).unwrap_or(serde_json::Value::Null))
 }

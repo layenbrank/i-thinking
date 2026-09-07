@@ -1,7 +1,10 @@
 use entity::asset;
+use uuid::Uuid;
 
 use crate::services::upload::error::UploadError;
-use crate::services::upload::schema::{PrepareP, UploadStatus};
+use crate::services::upload::schema::{
+    viewers_to_json, PrepareP, UploadStatus, Visibility,
+};
 
 pub const CAS_DIR: &str = "cas";
 pub const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024 * 1024; // 10GB
@@ -11,6 +14,7 @@ pub const EXPIRE_HOURS: i64 = 24;
 pub const FILE_URL_PREFIX: &str = "/api/v1/upload/files";
 pub const ASSET_URL_PREFIX: &str = "/api/v1/upload/asset";
 pub const KIND: &str = "upload";
+pub const MAX_VIEWERS: usize = 100;
 
 pub fn normalize_hash(hash: Option<&str>) -> Option<&str> {
     hash.map(str::trim).filter(|h| !h.is_empty())
@@ -51,7 +55,53 @@ pub fn validate_prepare(req: &PrepareP) -> Result<(), UploadError> {
         validate_hash_hex(hash)?;
     }
 
+    validate_visibility(req)?;
+
     Ok(())
+}
+
+/// 校验可见性；RESTRICTED 时解析并去重 viewers，其它模式忽略 viewers。
+pub fn validate_visibility(req: &PrepareP) -> Result<(), UploadError> {
+    parse_viewers(req.visibility(), req.viewers.as_deref())?;
+    Ok(())
+}
+
+pub fn parse_viewers(
+    visibility: Visibility,
+    raw: Option<&[String]>,
+) -> Result<Vec<Uuid>, UploadError> {
+    if visibility != Visibility::Restricted {
+        return Ok(Vec::new());
+    }
+    let Some(raw) = raw else {
+        return Ok(Vec::new());
+    };
+    if raw.len() > MAX_VIEWERS {
+        return Err(UploadError::BadRequest(format!(
+            "指定用户数不能超过 {MAX_VIEWERS}"
+        )));
+    }
+    let mut out = Vec::with_capacity(raw.len());
+    for id in raw {
+        let uid = Uuid::parse_str(id.trim()).map_err(|_| {
+            UploadError::BadRequest(format!("viewers 含无效用户 ID: {id}"))
+        })?;
+        if !out.contains(&uid) {
+            out.push(uid);
+        }
+    }
+    Ok(out)
+}
+
+pub fn visibility_for_insert(
+    req: &PrepareP,
+) -> Result<(String, Option<sea_orm::prelude::Json>), UploadError> {
+    let visibility = req.visibility();
+    let viewers = parse_viewers(visibility.clone(), req.viewers.as_deref())?;
+    Ok((
+        visibility.as_str().to_string(),
+        viewers_to_json(&viewers),
+    ))
 }
 
 pub fn validate_status(asset: &asset::Model) -> Result<(), UploadError> {
@@ -150,11 +200,42 @@ pub fn ensure_owner(asset: &asset::Model, user_id: &str) -> Result<(), UploadErr
     ensure_owner_id(asset.creator, user_id)
 }
 
-pub fn ensure_owner_id(creator: Option<uuid::Uuid>, user_id: &str) -> Result<(), UploadError> {
+pub fn ensure_owner_id(creator: Option<Uuid>, user_id: &str) -> Result<(), UploadError> {
     let uid = UploadError::parse_user_id(user_id)?;
     match creator {
         Some(creator) if creator == uid => Ok(()),
         _ => Err(UploadError::Forbidden),
+    }
+}
+
+/// 下载 ACL：PUBLIC 可匿名；创建者始终可下；RESTRICTED 须登录且在 viewers（或本人）。
+pub fn ensure_can_download(
+    asset: &asset::Model,
+    user_id: Option<&str>,
+) -> Result<(), UploadError> {
+    match Visibility::from_db(&asset.visibility) {
+        Visibility::Public => Ok(()),
+        Visibility::Private => {
+            let Some(user_id) = user_id else {
+                return Err(UploadError::Forbidden);
+            };
+            ensure_owner(asset, user_id)
+        }
+        Visibility::Restricted => {
+            let Some(user_id) = user_id else {
+                return Err(UploadError::Forbidden);
+            };
+            let uid = UploadError::parse_user_id(user_id)?;
+            if asset.creator == Some(uid) {
+                return Ok(());
+            }
+            let viewers = crate::services::upload::schema::viewers_from_json(&asset.viewers);
+            if viewers.contains(&uid) {
+                Ok(())
+            } else {
+                Err(UploadError::Forbidden)
+            }
+        }
     }
 }
 
@@ -200,6 +281,8 @@ mod tests {
             hash: Some("short".into()),
             tenant_id: None,
             index: None,
+            visibility: None,
+            viewers: None,
         };
         assert!(matches!(
             validate_prepare(&req),
@@ -217,6 +300,8 @@ mod tests {
             hash: None,
             tenant_id: None,
             index: None,
+            visibility: None,
+            viewers: None,
         };
         assert!(validate_prepare(&req).is_ok());
     }
@@ -242,6 +327,8 @@ mod tests {
             extension: None,
             name: "a.bin".into(),
             status: UploadStatus::Superseded.as_str().to_string(),
+            visibility: Visibility::Private.as_str().to_string(),
+            viewers: None,
             chunk: MIN_CHUNK_SIZE as i32,
             total: 1,
             archived_at: None,
@@ -258,5 +345,81 @@ mod tests {
         ));
         asset.status = UploadStatus::Uploading.as_str().to_string();
         assert!(validate_status(&asset).is_ok());
+    }
+
+    #[test]
+    fn download_acl_private_public_restricted() {
+        let owner = Uuid::new_v4();
+        let other = Uuid::new_v4();
+        let guest = Uuid::new_v4();
+        let mut asset = entity::asset::Model {
+            id: Uuid::new_v4(),
+            tenant_id: None,
+            kind: Some("upload".into()),
+            hash: String::new(),
+            sha: None,
+            size: 1,
+            index: 0,
+            mime: "application/octet-stream".into(),
+            extension: None,
+            name: "a.bin".into(),
+            status: UploadStatus::Completed.as_str().to_string(),
+            visibility: Visibility::Private.as_str().to_string(),
+            viewers: None,
+            chunk: MIN_CHUNK_SIZE as i32,
+            total: 1,
+            archived_at: None,
+            created_at: chrono::Utc::now().fixed_offset(),
+            creator: Some(owner),
+            updated_at: chrono::Utc::now().fixed_offset(),
+            updater: Some(owner),
+            expires_at: None,
+            superseded: None,
+        };
+
+        assert!(ensure_can_download(&asset, Some(&owner.to_string())).is_ok());
+        assert!(matches!(
+            ensure_can_download(&asset, Some(&other.to_string())),
+            Err(UploadError::Forbidden)
+        ));
+        assert!(matches!(
+            ensure_can_download(&asset, None),
+            Err(UploadError::Forbidden)
+        ));
+
+        asset.visibility = Visibility::Public.as_str().to_string();
+        assert!(ensure_can_download(&asset, Some(&other.to_string())).is_ok());
+        assert!(ensure_can_download(&asset, None).is_ok());
+
+        asset.visibility = Visibility::Restricted.as_str().to_string();
+        asset.viewers = viewers_to_json(&[other]);
+        assert!(ensure_can_download(&asset, Some(&other.to_string())).is_ok());
+        assert!(matches!(
+            ensure_can_download(&asset, Some(&guest.to_string())),
+            Err(UploadError::Forbidden)
+        ));
+        assert!(matches!(
+            ensure_can_download(&asset, None),
+            Err(UploadError::Forbidden)
+        ));
+    }
+
+    #[test]
+    fn restricted_rejects_invalid_viewer_id() {
+        let req = PrepareP {
+            name: "a.bin".into(),
+            mime: "application/octet-stream".into(),
+            size: 1024,
+            chunk: MIN_CHUNK_SIZE,
+            hash: None,
+            tenant_id: None,
+            index: None,
+            visibility: Some(Visibility::Restricted),
+            viewers: Some(vec!["not-uuid".into()]),
+        };
+        assert!(matches!(
+            validate_prepare(&req),
+            Err(UploadError::BadRequest(_))
+        ));
     }
 }

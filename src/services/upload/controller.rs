@@ -144,18 +144,16 @@ impl UploadController {
         }
     }
 
-    /// 按资产 id 流式下载（仅本人 COMPLETED）
+    /// 按资产 id 流式下载（PUBLIC 可匿名；PRIVATE/RESTRICTED 需 JWT + ACL）
     pub async fn serve_asset(
         db: web::Data<Arc<Storage>>,
         http: HttpRequest,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
-        let Some(claims) = http.extensions().get::<Claims>().cloned() else {
-            return Exception::unauthorized("用户未登录").transform();
-        };
+        let user_id = http.extensions().get::<Claims>().map(|c| c.sub.clone());
         let id = path.into_inner();
 
-        match UploadService::find_owned_asset(&db, &id, &claims.sub).await {
+        match UploadService::find_owned_asset(&db, &id, user_id.as_deref()).await {
             Ok(asset) => Self::stream_asset(&db, asset).await,
             Err(err) => Exception::from(err).transform(),
         }

@@ -31,7 +31,7 @@ use crate::services::search::schema::{
 };
 use crate::services::upload::schema::{
     AssetR, ChunkR, FilesP, FilesR, FinalizeP, FinalizeR, HashP, HashR, PrepareP, PrepareR,
-    ProgressR, UploadStatus, UploadedChunk,
+    ProgressR, UploadStatus, UploadedChunk, Visibility,
 };
 use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP};
 
@@ -166,6 +166,7 @@ impl Modify for SecurityAddon {
             FilesR,
             UploadFilesEnvelope,
             UploadStatus,
+            Visibility,
             QueryP,
             TSchema,
             EmptySchema,

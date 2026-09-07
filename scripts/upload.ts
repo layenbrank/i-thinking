@@ -1,7 +1,7 @@
 /**
  * Upload API 端到端测试（支持大文件流式读盘）
  *
- * 流程：signin → prepare(无 hash) →（流式算整文件 hash，完成即 PATCH）
+ * 流程：signin（含 captcha 占位）→ prepare(无 hash, visibility=PUBLIC) →（流式算整文件 hash，完成即 PATCH）
  *       → 未秒传则按分片读盘上传 + progress 轮询 → finalize → 列表 → 流式校验下载
  *
  * 用法（必须指定已存在的本地文件）：
@@ -9,6 +9,7 @@
  *   bun run upload -- "E:\\system\\ubuntu.iso"
  *
  * API 地址来自仓库根目录 YAML（`config.yaml` 等）；账号密码见下方常量。
+ * development 下 `auth.captcha.enabled: false` 时用占位 captchaKey/captchaValue。
  */
 
 import { createHash } from 'node:crypto'
@@ -37,8 +38,13 @@ const MAX_CHUNK_SIZE = 1024 * 1024 * 100
 
 const USERNAME = 'admin'
 const PASSWORD = '123456'
+/** captcha 关闭时的占位（enabled=true 时需先 POST /auth/captcha） */
+const CAPTCHA_KEY = 'dev'
+const CAPTCHA_VALUE = '0'
 const CHUNK_SIZE = MIN_CHUNK_SIZE
 const PROGRESS_INTERVAL_MS = 500
+/** 脚本联调默认公开，便于按 id 下载验证 ACL；服务端省略字段仍为 PRIVATE */
+const DEFAULT_VISIBILITY: Upload.Visibility = 'PUBLIC'
 
 type SourceFile = {
   name: string
@@ -81,9 +87,16 @@ async function step<T>(name: string, task: Promise<T>, detail = ''): Promise<T> 
 }
 
 async function ensureToken() {
+  const authBody = {
+    username: USERNAME,
+    password: PASSWORD,
+    captchaKey: CAPTCHA_KEY,
+    captchaValue: CAPTCHA_VALUE
+  }
+
   logStep('signin', 'POST /auth/signin')
   try {
-    const data = await POST_SIGNIN({ username: USERNAME, password: PASSWORD })
+    const data = await POST_SIGNIN(authBody)
     authToken.toUpdate(data.token)
     console.log(`✓ signin`)
     return
@@ -93,7 +106,7 @@ async function ensureToken() {
 
   logStep('signup', 'POST /auth/signup（signin 失败则注册）')
   try {
-    const data = await POST_SIGNUP({ username: USERNAME, password: PASSWORD })
+    const data = await POST_SIGNUP(authBody)
     authToken.toUpdate(data.token)
     console.log(`✓ signup`)
   } catch (err) {
@@ -305,14 +318,15 @@ async function runOnce(label: string, source: SourceFile, preferChunkReuse: bool
 
   const hashPromise = hashSourceAsync(source)
 
-  logStep('prepare', 'POST /upload/prepare（无整文件 hash）')
+  logStep('prepare', `POST /upload/prepare（无整文件 hash，visibility=${DEFAULT_VISIBILITY}）`)
   const prepared = await step(
     'prepare',
     POST_PREPARE({
       name: source.name,
       size: source.size,
       mime: source.mime,
-      chunk: CHUNK_SIZE
+      chunk: CHUNK_SIZE,
+      visibility: DEFAULT_VISIBILITY
     })
   )
 
@@ -407,7 +421,19 @@ async function runOnce(label: string, source: SourceFile, preferChunkReuse: bool
     console.error('✗ list 未包含刚完成的资产', { id: finalized.id, count: listed.count })
     process.exit(1)
   }
-  console.log(`✓ list hit`, { id: hit.id, url: hit.url })
+  console.log(`✓ list hit`, {
+    id: hit.id,
+    url: hit.url,
+    visibility: hit.visibility,
+    viewers: hit.viewers
+  })
+  if (hit.visibility !== DEFAULT_VISIBILITY) {
+    console.error('✗ list visibility 与 prepare 不一致', {
+      expect: DEFAULT_VISIBILITY,
+      got: hit.visibility
+    })
+    process.exit(1)
+  }
 
   logStep('download', '流式下载并校验 hash ' + finalized.url)
   const downloaded = await hashRemoteAsset(finalized.url)
@@ -446,6 +472,7 @@ async function main() {
     chunkSize: CHUNK_SIZE,
     totalChunks: totalChunks(source.size, CHUNK_SIZE),
     progressIntervalMs: PROGRESS_INTERVAL_MS,
+    visibility: DEFAULT_VISIBILITY,
     mode: 'stream-from-disk'
   })
 

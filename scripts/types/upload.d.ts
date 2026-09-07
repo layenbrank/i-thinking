@@ -1,4 +1,7 @@
 declare namespace Upload {
+  /** PRIVATE | PUBLIC | RESTRICTED */
+  type Visibility = 'PRIVATE' | 'PUBLIC' | 'RESTRICTED'
+
   namespace UploadedChunk {
     export interface Item {
       index: number
@@ -13,6 +16,12 @@ declare namespace Upload {
       hash?: string
       mime: string
       chunk: number
+      tenantID?: string
+      index?: number
+      /** 默认服务端 PRIVATE；脚本测试默认传 PUBLIC */
+      visibility?: Visibility
+      /** RESTRICTED 时的可访问用户 UUID */
+      viewers?: string[]
     }
 
     export interface Response {
@@ -81,11 +90,15 @@ declare namespace Upload {
   namespace Files {
     export interface Asset {
       id: string
+      tenantID?: string | null
       name: string
       size: number
       mime: string
       hash: string
+      index?: number
       status: string
+      visibility: Visibility
+      viewers: string[]
       createdAt: number
       url: string
     }

@@ -24,7 +24,8 @@
 | FAILED | 仅真实失败（校验等）；**不是**秒传或取消 |
 | SESSION_GONE | `500207`：会话 id 无效或已被 cancel/GC。秒传路径不用此码，也不再用 `200003` |
 | 不合并落盘 | finalize 只校验；下载时按 `chunk` 表顺序流式输出 |
-| 下载隔离 | 仅 **creator** 可下载自己的完成件 |
+| 可见性 | `PRIVATE`（默认）/ `PUBLIC`（可匿名下载）/ `RESTRICTED`+`viewers`；仅影响按 id 下载 |
+| 下载隔离 | 按可见性 ACL；按 hash 下载仍仅本人 COMPLETED |
 | 本人列表 | `GET /files` 分页列出当前用户资产（默认 COMPLETED） |
 
 ## 路由一览
@@ -39,16 +40,16 @@
 | DELETE | `/api/v1/upload/cancel/{id}`   | JWT    | Abort：硬删未完成会话         |
 | GET    | `/api/v1/upload/files`         | JWT    | 本人资产列表（分页）          |
 | GET    | `/api/v1/upload/files/{hash}`  | JWT    | 按 hash 流式下载（仅本人）    |
-| GET    | `/api/v1/upload/asset/{id}`    | JWT    | 按资产 id 流式下载（仅本人）  |
+| GET    | `/api/v1/upload/asset/{id}`    | 可选 JWT | 按资产 id 流式下载（PUBLIC 可匿名） |
 
 ## 鉴权说明
 
-全路由挂载 [`Auth::required()`](../../guards/auth.rs)。
+全路由挂载 [`Auth::isRequired()`](../../guards/auth.rs)；其中 `GET /asset/{id}` 由 [`guards::public`](../../guards/public.rs) 放行匿名（可选 JWT）。
 
-`prepare` 从 JWT `Claims.sub` 写入 `asset.creator`。  
-`chunk` / `hash` / `finalize` / `progress` / `cancel` 校验归属。  
-下载与列表均只覆盖 **当前用户** 的资产（跨用户文件秒传会为命中用户克隆逻辑行）。  
-分片 CAS **全局**共享；逻辑文件与下载按 creator 隔离。
+`prepare` 从 JWT `Claims.sub` 写入 `asset.creator`；`visibility` 默认 `PRIVATE`。  
+`chunk` / `hash` / `finalize` / `progress` / `cancel` 校验归属（仅创建者）。  
+`GET /files` 与按 hash 下载仍仅本人；`GET /asset/{id}`：`PUBLIC` 可匿名，其余按 ACL。  
+跨用户文件秒传会为命中用户克隆逻辑行（克隆默认 `PRIVATE`）。分片 CAS **全局**共享。
 
 ## 数据表 — asset
 
@@ -63,6 +64,8 @@
 | size, mime, name, extension | 文件元信息                                              |
 | index                       | **资产列表排序**（用户可自定义，默认 0）；≠ chunk.index |
 | status                      | PENDING → UPLOADING → COMPLETED / SUPERSEDED / FAILED / EXPIRED |
+| visibility                  | PRIVATE（默认）/ PUBLIC / RESTRICTED                    |
+| viewers                     | jsonb：RESTRICTED 时的可下载用户 UUID 列表              |
 | chunk, total                | 分片大小与分片总数                                      |
 | creator, updater, expiresAt | 归属与 24h 过期（完成后 clears expiresAt）              |
 
@@ -204,7 +207,7 @@ multipart 字段：`id`、`index`、`hash`、`chunk`（CAS 已存在时可省略
 
 Query：`page`（默认 1）、`size`（默认 20，最大 100）、`status`（默认 `COMPLETED`）。
 
-**成功 data**：分页 `items[]`（`AssetR`：id / tenantID / name / size / mime / hash / index / status / createdAt / url）。
+**成功 data**：分页 `items[]`（`AssetR`：id / tenantID / name / size / mime / hash / index / status / visibility / viewers / createdAt / url）。
 
 ### GET /api/v1/upload/files/{hash}
 
