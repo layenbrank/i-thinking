@@ -15,13 +15,9 @@
 
 #### Packages
 
-- **packages/core** — 核心工具库
-- **packages/ui** — Vue3 组件库
-
 ### 不使用 Vitest 的项目
 
 - **apps/service** — NestJS（Jest，`*.spec.ts`）
-- **apps/docs** — VitePress（无单元测试）
 - **packages/shared** — 以类型为主（无独立测试套件时跳过）
 
 ---

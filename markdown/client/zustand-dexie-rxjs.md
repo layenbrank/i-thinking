@@ -2,7 +2,7 @@
 
 本文档说明 **apps/client** 中 Zustand 与 Dexie / RxJS 的项目级用法（Mirror、乐观更新、示例工具）。
 
-基础用法（selector、actions 内聚等）见 VitePress：[apps/docs/guides/zustand.md](../../apps/docs/guides/zustand.md)。
+基础用法（selector、actions 内聚等）见 [docs/guides/zustand.md](../../docs/guides/zustand.md)。
 
 ## 目录
 

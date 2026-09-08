@@ -31,19 +31,11 @@
 		},
 		{
 			"name": "docs",
-			"path": "apps/docs"
-		},
-		{
-			"name": "core",
-			"path": "packages/core"
+			"path": "docs"
 		},
 		{
 			"name": "shared",
 			"path": "packages/shared"
-		},
-		{
-			"name": "ui",
-			"path": "packages/ui"
 		}
 	],
 	"launch": {
