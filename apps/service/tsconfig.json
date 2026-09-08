@@ -35,7 +35,6 @@
 
     "types": ["node", "@i-thinking/shared/process-env"],
 
-    "baseUrl": ".",
     "rootDir": ".",
     "paths": {
       "@/*": ["./src/*"]

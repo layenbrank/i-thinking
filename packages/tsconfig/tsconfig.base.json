@@ -22,8 +22,6 @@
     "noImplicitThis": true,
     "strict": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-
-    "baseUrl": "."
+    "forceConsistentCasingInFileNames": true
   }
 }

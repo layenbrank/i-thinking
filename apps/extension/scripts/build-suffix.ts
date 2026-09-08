@@ -1,7 +1,7 @@
 // import { readdir} from 'node:fs'
 import { readdir, writeFile } from 'node:fs/promises'
 import { resolve, basename } from 'node:path'
-import Stringify from '../dist/manifest.json' assert { type: 'json' }
+import Stringify from '../dist/manifest.json' with { type: 'json' }
 
 export interface Manifest {
   name: string

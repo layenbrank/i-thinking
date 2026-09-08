@@ -17,8 +17,6 @@ nodeLinker: hoisted
 strictPeerDependencies: false
 autoInstallPeers: true
 shamefullyHoist: true
-# 布局变更时允许非交互清理 node_modules（CI / 脚本）
-confirmModulesPurge: false
 
 hoistPattern:
   - '*'
@@ -104,6 +102,22 @@ catalog:
   '@prisma/client': ^7.10.0
   'better-sqlite3': ^12.11.1
 
+  # —— toolchain（单一版本源，package.json 用 catalog: 引用）——
+  'vite': ^8.2.2
+  'rolldown': ^1.2.7
+  'rolldown-plugin-dts': ^0.28.5
+  'vitest': ^5.0.0
+  '@vitest/coverage-v8': ^5.0.0
+  '@vitest/eslint-plugin': ^1.6.27
+  'vue': ^3.5.42
+  '@vitejs/plugin-vue': ^6.0.8
+  '@vitejs/plugin-vue-jsx': ^5.1.6
+  '@vitejs/plugin-react': ^5.2.0
+  '@vitejs/plugin-react-swc': ^4.3.3
+  'vue-tsc': ^3.3.11
+  '@vue/tsconfig': ^0.9.1
+  'typescript': ~6.0.3
+
 overrides:
   # 与 catalog 对齐，避免 forge / 传递依赖拉到旧 rebuild
   '@electron/rebuild': ^4.2.0
@@ -124,6 +138,14 @@ peerDependencyRules:
 
 minimumReleaseAgeExclude:
   - '@napi-rs/wasm-runtime@1.2.2'
-
-# patchedDependencies:
-#   '@electron/packager@18.3.5': patches/@electron__packager@18.3.5.patch
+  - '@typescript-eslint/eslint-plugin@8.70.0'
+  - '@typescript-eslint/parser@8.70.0'
+  - '@typescript-eslint/project-service@8.70.0'
+  - '@typescript-eslint/scope-manager@8.70.0'
+  - '@typescript-eslint/tsconfig-utils@8.70.0'
+  - '@typescript-eslint/type-utils@8.70.0'
+  - '@typescript-eslint/types@8.70.0'
+  - '@typescript-eslint/typescript-estree@8.70.0'
+  - '@typescript-eslint/utils@8.70.0'
+  - '@typescript-eslint/visitor-keys@8.70.0'
+  - typescript-eslint@8.70.0

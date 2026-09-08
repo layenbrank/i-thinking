@@ -19,7 +19,6 @@
       "ant-design-vue/typings/global",
       "@i-thinking/utils",
       "@i-thinking/directives",
-      "@i-thinking/composables",
       "@i-thinking/shared/response",
       "@i-thinking/shared/decorator",
       "@i-thinking/shared/constructor",
