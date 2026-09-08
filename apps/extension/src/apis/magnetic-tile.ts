@@ -1,24 +1,23 @@
 import { http } from '@/utils/http/http.ts'
-import { COREX_TOKEN } from '@/utils/http/token.ts'
 
 function FIND_MAGNETIC_TILE() {
   return http.get('/magnetic-tile', {
-    context: COREX_TOKEN
+    env: 'corex'
   })
 }
 
 function FIND_SINGLETON(id: string) {
   return http.get(`/magnetic-tile/singleton/${id}`, {
-    context: COREX_TOKEN
+    env: 'corex'
   })
 }
 
 function FIND_FAVICON(url: string) {
   return http.get('/magnetic-tile/favicon', {
-    params: {
+    query: {
       url: decodeURIComponent(url)
     },
-    context: COREX_TOKEN
+    env: 'corex'
   })
 }
 

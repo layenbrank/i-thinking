@@ -3,7 +3,6 @@ import { debounce } from 'lodash-es'
 import * as zod from 'zod'
 import { generateSecureCvid } from '@/utils/generate.ts'
 import { http } from '@/utils/http/http.ts'
-import { COREX_TOKEN } from '@/utils/http/token.ts'
 import { useMirrorStore } from '@/stores/mirror.ts'
 import { useI18n } from 'vue-i18n'
 import {
@@ -131,7 +130,7 @@ const toQuery = debounce(function (value: string) {
   // 	.get<ResponseZod>('/AS/Suggestions', {
   http
     .get<RSF<ResponseZod>>('/engine/suggestion', {
-      params: {
+      query: {
         pt: 'page.home',
         qry: value,
         cp: value.length,
@@ -139,10 +138,9 @@ const toQuery = debounce(function (value: string) {
         pths: '1',
         cvid: cvid
       },
-      context: COREX_TOKEN
-      // context: ENGINE_TOKEN
+      env: 'corex'
     })
-    .subscribe(function (response) {
+    .then(function (response) {
       console.log('bing response', response, 'cvid', cvid)
       if (!response) return
       queries.value = response.data

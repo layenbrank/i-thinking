@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { http } from '@/utils/http/http.ts'
-import { ENV_TOKEN } from '@/utils/http/token.ts'
-import { HttpContext } from '@ngify/http'
 
 import { computed, ref, useTemplateRef } from 'vue'
 
@@ -262,24 +260,14 @@ async function beginUpload() {
 }
 
 async function prepareUpload(): Promise<PrepareResponse> {
-  return new Promise(function (resolve, reject) {
-    http
-      .post<Response<PrepareResponse>>('/upload/prepare', {
-        fileName: file.value?.name,
-        fileSize: file.value?.size,
-        fileHash: fileHash.value,
-        mimeType: file.value?.type,
-        chunkSize: chunkSize.value
-      })
-      .subscribe({
-        next(response) {
-          resolve(response.data)
-        },
-        error(error) {
-          reject(new Error(error.error ?? '初始化上传失败'))
-        }
-      })
+  const response = await http.post<Response<PrepareResponse>>('/upload/prepare', {
+    fileName: file.value?.name,
+    fileSize: file.value?.size,
+    fileHash: fileHash.value,
+    mimeType: file.value?.type,
+    chunkSize: chunkSize.value
   })
+  return response.data
 }
 
 async function uploadChunks() {
@@ -335,28 +323,15 @@ async function uploadChunk(chunk: Chunk) {
     formData.append('chunkHash', chunkHash)
     formData.append('chunkData', chunkBlob)
 
-    await new Promise<void>(function (resolve, reject) {
-      http
-        .post<Response<ChunkResponse>>('/upload/chunk', formData, {
-          context: new HttpContext().set(ENV_TOKEN, 'extension')
-        })
-        .subscribe({
-          next() {
-            chunk.status = 'completed'
-            uploadedChunks.value.add(chunk.index)
-            uploadedBytes.value += chunk.size
+    await http.post<Response<ChunkResponse>>('/upload/chunk', formData)
+    chunk.status = 'completed'
+    uploadedChunks.value.add(chunk.index)
+    uploadedBytes.value += chunk.size
 
-            updateChunkStatus(chunk)
-            updateProgress()
+    updateChunkStatus(chunk)
+    updateProgress()
 
-            logger(`分片 ${chunk.index + 1} 上传完成`, 'success')
-            resolve()
-          },
-          error(error) {
-            reject(new Error(error.error ?? '分片上传失败'))
-          }
-        })
-    })
+    logger(`分片 ${chunk.index + 1} 上传完成`, 'success')
   } catch (error: any) {
     chunk.retries++
 
@@ -378,23 +353,12 @@ async function finalizeUpload() {
   try {
     logger('正在合并文件...', 'info')
 
-    await new Promise<void>(function (resolve, reject) {
-      http
-        .post<Response<FinalizeResponse>>('/upload/finalize', {
-          uploadId: uploadId.value
-        })
-        .subscribe({
-          next(response) {
-            logger('文件上传完成！', 'success')
-            logger(`文件ID: ${response.data.fileId}`, 'info')
-            completeUpload()
-            resolve()
-          },
-          error(error) {
-            reject(new Error(error.error ?? '完成上传失败'))
-          }
-        })
+    const response = await http.post<Response<FinalizeResponse>>('/upload/finalize', {
+      uploadId: uploadId.value
     })
+    logger('文件上传完成！', 'success')
+    logger(`文件ID: ${response.data.fileId}`, 'info')
+    completeUpload()
   } catch (error: any) {
     logger(`完成上传失败: ${error.message}`, 'error')
     updateStatus('error')
@@ -414,24 +378,14 @@ function pauseUpload() {
   logger('上传已暂停', 'info')
 }
 
-function cancelUpload() {
+async function cancelUpload() {
   isPaused.value = true
   isUploading.value = false
 
   if (uploadId.value) {
     try {
-      http
-        .delete(`/upload/cancel/${uploadId.value}`, {
-          context: new HttpContext().set(ENV_TOKEN, 'extension')
-        })
-        .subscribe({
-          next() {
-            logger('上传已取消', 'info')
-          },
-          error(error: any) {
-            logger(`取消上传失败: ${error.message}`, 'error')
-          }
-        })
+      await http.delete(`/upload/cancel/${uploadId.value}`)
+      logger('上传已取消', 'info')
     } catch (error: any) {
       logger(`取消上传失败: ${error.message}`, 'error')
     }
