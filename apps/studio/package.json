@@ -30,7 +30,6 @@
     "@ant-design/x": "catalog:",
     "@ant-design/x-markdown": "catalog:",
     "@ant-design/x-sdk": "catalog:",
-    "@i-thinking/hooks": "workspace:*",
     "@i-thinking/utils": "workspace:*",
     "@i-thinking/wasm": "workspace:*",
     "@prisma/adapter-better-sqlite3": "catalog:",

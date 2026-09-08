@@ -26,7 +26,6 @@
   "devDependencies": {
     "@i-thinking/utils": "workspace:*",
     "@i-thinking/directives": "workspace:*",
-    "@i-thinking/composables": "workspace:*",
     "@i-thinking/wasm": "workspace:*",
     "@i-thinking/shared": "workspace:*"
   }
