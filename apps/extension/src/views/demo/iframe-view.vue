@@ -2,9 +2,7 @@
 import { MARKDOWN } from '@/constants/constant.ts'
 import { http } from '@/utils/http/http.ts'
 import dompurify from 'dompurify'
-import hljs from 'highlight.js'
 import { marked } from 'marked'
-import { DOMstringify } from './DOMstringify.ts'
 import IframeComponent from './iframe-component.vue'
 
 defineOptions({

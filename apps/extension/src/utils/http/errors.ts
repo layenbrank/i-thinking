@@ -7,11 +7,7 @@ export class HttpException extends Error {
   readonly status?: number
   readonly data?: unknown
 
-  constructor(
-    message: string,
-    code: number,
-    options: { status?: number; data?: unknown } = {}
-  ) {
+  constructor(message: string, code: number, options: { status?: number; data?: unknown } = {}) {
     super(message)
     this.name = 'HttpException'
     this.code = code
@@ -46,8 +42,5 @@ export function HttpError(error: unknown): HttpException {
     return new HttpException(error.message || '网络请求失败', -1, { status })
   }
 
-  return new HttpException(
-    error instanceof Error ? error.message : '网络请求失败',
-    -1
-  )
+  return new HttpException(error instanceof Error ? error.message : '网络请求失败', -1)
 }

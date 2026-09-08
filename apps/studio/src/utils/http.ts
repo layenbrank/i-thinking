@@ -1,31 +1,33 @@
-import ky, { type KyInstance } from 'ky'
-import { findAuthToken } from './auth'
+import { ofetch, type FetchOptions } from 'ofetch'
+
 import { TIMEOUT_MS } from '@/utils/http.errors'
+import { findAuthToken } from './auth'
 
-function HttpClient(): KyInstance {
-  return ky.create({
-    prefix: import.meta.env.VITE_THINKING,
-    timeout: TIMEOUT_MS,
-    retry: {
-      limit: 3,
-      methods: ['get', 'put', 'head', 'delete', 'options', 'trace'],
-      statusCodes: [408, 413, 429, 500, 502, 503, 504]
-    },
-    hooks: {
-      init: [],
-      beforeRequest: [
-        function injectAuth(state) {
-          const token = findAuthToken()
-          if (token) {
-            state.request.headers.set('Authorization', `Bearer ${token}`)
-          }
-        }
-      ],
-      afterResponse: [],
-      beforeError: [],
-      beforeRetry: []
-    }
-  })
+type HttpOptions = Omit<FetchOptions, 'method' | 'body'>
+
+const fetcher = ofetch.create({
+  baseURL: import.meta.env.VITE_THINKING,
+  timeout: TIMEOUT_MS,
+  onRequest({ options }) {
+    const token = findAuthToken()
+    if (token) options.headers.set('Authorization', `Bearer ${token}`)
+  }
+})
+
+export const http = {
+  get<T>(url: string, options?: HttpOptions) {
+    return fetcher<T>(url, { ...options, method: 'GET' })
+  },
+  post<T>(url: string, body?: unknown, options?: HttpOptions) {
+    return fetcher<T>(url, { ...options, method: 'POST', body })
+  },
+  put<T>(url: string, body?: unknown, options?: HttpOptions) {
+    return fetcher<T>(url, { ...options, method: 'PUT', body })
+  },
+  patch<T>(url: string, body?: unknown, options?: HttpOptions) {
+    return fetcher<T>(url, { ...options, method: 'PATCH', body })
+  },
+  delete<T>(url: string, options?: HttpOptions) {
+    return fetcher<T>(url, { ...options, method: 'DELETE' })
+  }
 }
-
-export const http = HttpClient()

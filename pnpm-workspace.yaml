@@ -51,6 +51,7 @@ allowBuilds:
   msw: true
   prisma: true
   unrs-resolver: true
+  vue-demi: true
   workerd: true
 
 # Electron 栈以 Forge 为准（与 electron-builder 二选一，勿混用）

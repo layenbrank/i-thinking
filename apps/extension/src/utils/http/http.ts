@@ -37,4 +37,3 @@ export const http = {
     return fetcher<T>(url, { ...options, method: 'DELETE' })
   }
 }
-

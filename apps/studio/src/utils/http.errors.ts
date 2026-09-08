@@ -1,4 +1,4 @@
-import { type ResponsePromise, HTTPError } from 'ky'
+import { FetchError } from 'ofetch'
 
 export const SUCCESS_CODE: number = 200
 export const TIMEOUT_MS: number = 30_000
@@ -24,19 +24,7 @@ export class HttpException extends Error {
   }
 }
 
-/**
- * 解析 `{ code, data, message }` 信封响应。
- * 业务 API 用法：`HttpResponse(http.get('users'))`
- */
-export async function HttpResponse<T>(request: ResponsePromise): Promise<T> {
-  try {
-    const envelope = await request.json<RSF<T>>()
-    return HttpEnvelope(envelope)
-  } catch (error) {
-    throw await HttpError(error)
-  }
-}
-
+/** 解析 `{ code, data, msg }` 信封响应，非成功码抛 HttpException */
 export function HttpEnvelope<T>(envelope: RSF<T>): T {
   if (envelope.code !== SUCCESS_CODE) {
     throw new HttpException(envelope.msg || '业务请求失败', envelope.code, {
@@ -46,36 +34,24 @@ export function HttpEnvelope<T>(envelope: RSF<T>): T {
   return envelope.data
 }
 
-export async function HttpError(error: unknown): Promise<HttpException> {
-  if (error instanceof HttpException) {
-    return error
-  }
+/** 归一化 ofetch 抛出的错误为 HttpException */
+export function HttpError(error: unknown): HttpException {
+  if (error instanceof HttpException) return error
 
-  if (error instanceof HTTPError) {
-    const status = error.response.status
-    let body: RSF<unknown> | undefined
-
-    try {
-      const clone = error.response.clone()
-      const stringify = await clone.json()
-      body = stringify as RSF<unknown>
-    } catch {
-      body = undefined
-    }
-
-    if (body && typeof body.code === 'number') {
-      return new HttpException(body.msg || error.message, body.code, {
+  if (error instanceof FetchError) {
+    const status = error.response?.status ?? 0
+    const data = error.data as RSF<unknown> | undefined
+    if (data && typeof data.code === 'number' && data.code !== SUCCESS_CODE) {
+      return new HttpException(data.msg || '业务请求失败', data.code, {
         status,
-        data: body.data
+        data: data.data
       })
     }
-
-    return new HttpException(error.message || `HTTP ${status}`, status, { status })
+    return new HttpException(error.message || '网络请求失败', -1, { status })
   }
 
-  if (error instanceof Error) {
-    return new HttpException(error.message, -1)
-  }
-
-  return new HttpException('未知网络错误', -1)
+  return new HttpException(
+    error instanceof Error ? error.message : '网络请求失败',
+    -1
+  )
 }

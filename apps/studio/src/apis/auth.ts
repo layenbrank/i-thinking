@@ -48,9 +48,7 @@ declare namespace Auth {
 }
 
 function POST_SIGNIN(data: Auth.SignIn.Params) {
-  return http.post<RSF<Auth.SignIn.Response>>('/auth/signin', {
-    body: JSON.stringify(data)
-  })
+  return http.post<RSF<Auth.SignIn.Response>>('/auth/signin', data)
 }
 
 // mock：验证码发送，后续接入真实接口
