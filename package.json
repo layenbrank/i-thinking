@@ -15,7 +15,6 @@
     "build:utils": "turbo run build --filter=@i-thinking/utils",
     "bump:client": "pnpm --filter @i-thinking/client exec bumpp --configFilePath bump.client.ts",
     "bump:devtools": "pnpm --filter @i-thinking/devtools exec bumpp --configFilePath bump.devtools.ts",
-    "bump:docs": "pnpm --filter @i-thinking/docs exec bumpp --configFilePath bump.docs.ts",
     "bump:extension": "pnpm --filter @i-thinking/extension exec bumpp --configFilePath bump.extension.ts",
     "bump:service": "pnpm --filter @i-thinking/service exec bumpp --configFilePath bump.service.ts",
     "bump:studio": "pnpm --filter @i-thinking/studio exec bumpp --configFilePath bump.studio.ts",
