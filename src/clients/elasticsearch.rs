@@ -84,7 +84,10 @@ fn build_transport(config: &Configure) -> Result<Transport> {
 
     let url = Url::parse(config.elasticsearch_url()).context("invalid elasticsearch.url")?;
     let pool = SingleNodeConnectionPool::new(url);
-    let mut builder = TransportBuilder::new(pool);
+    // 本地/内网 ES 直连：禁用 env 代理（HTTP(S)_PROXY / NO_PROXY 之外），
+    // 避免请求被本机系统代理（如 127.0.0.1:7892）拦截并返回 502。
+    // 仅作用于 ES 客户端，不影响其它出站 HTTP（engine 等走代理访问外网）。
+    let mut builder = TransportBuilder::new(pool).disable_proxy();
 
     if let Some(credentials) = resolve_credentials(config)? {
         builder = builder.auth(credentials);
