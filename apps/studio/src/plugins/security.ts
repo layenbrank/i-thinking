@@ -22,7 +22,7 @@ function buildPlugin(): Plugin {
         }
       )
 
-      // 仅约束应用 defaultSession（内置浏览器会话已随 apps/browser 迁出，无独立分区）
+      // 仅约束应用 defaultSession（不再托管内置浏览器，无独立分区）
       session.defaultSession.webRequest.onHeadersReceived(function (details, callback) {
         const csp = ctx.isDev
           ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' http://127.0.0.1:* http://localhost:* https: ws: wss:; font-src 'self' data:;"
@@ -49,7 +49,7 @@ function attachGuards(ctx: Context, contents: WebContents): void {
     }
   })
 
-  // 外链交系统默认浏览器（内置 Chromium 浏览能力已迁往 apps/browser）
+  // 外链一律交系统默认浏览器打开（不再托管内置 Chromium 浏览）
   contents.setWindowOpenHandler(function ({ url }) {
     const parsed = new URL(url)
     if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {

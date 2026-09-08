@@ -67,8 +67,7 @@ type ActivateFn = (ctx: ActivateCtx) => void | Promise<void>
 /**
  * 双击侧通道：未登记组件默认 present Overlay。
  * Overlay 蒙层隔离交互，不 pause Mirror 滚动景深。
- * navigation：内置 Chromium 浏览已迁往 apps/browser，改为 window.open →
- * 由 security 的 setWindowOpenHandler 交系统默认浏览器打开。
+ * navigation：经 window.open → 由 security 的 setWindowOpenHandler 交系统默认浏览器打开。
  */
 const SIDE_CHANNELS: Partial<Record<MagneticTile.Component, ActivateFn>> = {
   navigation(ctx) {

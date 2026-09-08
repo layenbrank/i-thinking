@@ -1,9 +1,0 @@
-# Local component build for i-thinking Chromium fork.
-# Apply via: pnpm command browser configure
-
-is_debug = false
-is_component_build = true
-is_official_build = false
-target_cpu = "x64"
-symbol_level = 1
-blink_symbol_level = 0
