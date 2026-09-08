@@ -9,7 +9,8 @@ declare module 'ofetch' {
   }
 }
 
-type HttpOptions = Omit<FetchOptions, 'method' | 'body'>
+type HttpOptions = Omit<FetchOptions<'json'>, 'method' | 'body'>
+type HttpBody = FetchOptions['body']
 
 const fetcher = ofetch.create({
   onRequest({ options }) {
@@ -24,13 +25,13 @@ export const http = {
   get<T>(url: string, options?: HttpOptions) {
     return fetcher<T>(url, { ...options, method: 'GET' })
   },
-  post<T>(url: string, body?: unknown, options?: HttpOptions) {
+  post<T>(url: string, body?: HttpBody, options?: HttpOptions) {
     return fetcher<T>(url, { ...options, method: 'POST', body })
   },
-  put<T>(url: string, body?: unknown, options?: HttpOptions) {
+  put<T>(url: string, body?: HttpBody, options?: HttpOptions) {
     return fetcher<T>(url, { ...options, method: 'PUT', body })
   },
-  patch<T>(url: string, body?: unknown, options?: HttpOptions) {
+  patch<T>(url: string, body?: HttpBody, options?: HttpOptions) {
     return fetcher<T>(url, { ...options, method: 'PATCH', body })
   },
   delete<T>(url: string, options?: HttpOptions) {
