@@ -1,8 +1,10 @@
 import { addCollection } from '@iconify/vue/offline'
+import { VueQueryPlugin } from '@tanstack/vue-query'
 import App from '@/App.vue'
 import locale from '@/plugins/locale.ts'
 import preload from '@/plugins/preload.ts'
 import router from '@/router/index.ts'
+import { buildQueryClient } from '@/utils/query-client.ts'
 import { debounce, resize } from '@i-thinking/directives'
 import AntDesignIconify from '@iconify/json/json/ant-design.json'
 import MDIconify from '@iconify/json/json/mdi.json'
@@ -36,6 +38,7 @@ for (const [key, directive] of Object.entries(directives)) {
 app
   .use(pinia)
   .use(router)
+  .use(VueQueryPlugin, { queryClient: buildQueryClient() })
   .use(preload)
   .use(locale)
 

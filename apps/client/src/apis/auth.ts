@@ -1,5 +1,4 @@
 import { http } from '@/utils/http/http.ts'
-import { THINKING_TOKEN } from '@/utils/http/token.ts'
 
 declare namespace Auth {
   namespace SignIn {
@@ -50,7 +49,7 @@ declare namespace Auth {
 
 function POST_SIGNIN(data: Auth.SignIn.Params) {
   return http.post<RSF<Auth.SignIn.Response>>('/auth/signin', data, {
-    context: THINKING_TOKEN
+    env: 'thinking'
   })
 }
 

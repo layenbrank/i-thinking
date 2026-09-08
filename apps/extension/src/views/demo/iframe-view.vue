@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { MARKDOWN } from '@/constants/constant.ts'
 import { http } from '@/utils/http/http.ts'
-import { HttpHeaders } from '@ngify/http'
 import dompurify from 'dompurify'
 import hljs from 'highlight.js'
 import { marked } from 'marked'
@@ -48,16 +47,9 @@ function handleSendMsg() {
   const data = new FormData()
   data.append('message', '帮我写一段介绍 Vue3 的文字，要求不少于200字。')
   data.append('chatId', 'user-123')
-  http
-    .post('/go/ai/chat/multi-turn', data, {
-      // headers: new HttpHeaders().set('Content- 		', value),
-      // headers: {
-      // 	'Content-Type': 'multipart/form-data'
-      // }
-    })
-    .subscribe(function (response) {
-      console.log('response', response)
-    })
+  void http.post('/go/ai/chat/multi-turn', data).then(function (response) {
+    console.log('response', response)
+  })
 }
 
 onMounted(function () {

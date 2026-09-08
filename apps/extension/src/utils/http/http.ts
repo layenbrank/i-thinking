@@ -1,13 +1,40 @@
-import { cacheInterceptor } from '@/utils/http/cache.ts'
-import { ENV_TOKEN } from '@/utils/http/token.ts'
-import { urlInterceptor } from '@/utils/http/url.ts'
-import { HttpClient, HttpContext, withFetch, withInterceptors } from '@ngify/http'
+import { ofetch, type FetchOptions } from 'ofetch'
 
-export const http = new HttpClient(
-  withFetch(),
-  withInterceptors([urlInterceptor, cacheInterceptor])
-)
+import { ENV_URLS } from './env.ts'
 
-http.get('', {
-  context: new HttpContext().set(ENV_TOKEN, 'extension')
+declare module 'ofetch' {
+  interface FetchOptions {
+    /** 目标环境，用于从 ENV_URLS 选择 baseURL */
+    env?: EnvURL
+  }
+}
+
+type HttpOptions = Omit<FetchOptions, 'method' | 'body'>
+
+const fetcher = ofetch.create({
+  onRequest({ options }) {
+    if (options.env) {
+      options.baseURL = ENV_URLS[options.env]
+      delete options.env
+    }
+  }
 })
+
+export const http = {
+  get<T>(url: string, options?: HttpOptions) {
+    return fetcher<T>(url, { ...options, method: 'GET' })
+  },
+  post<T>(url: string, body?: unknown, options?: HttpOptions) {
+    return fetcher<T>(url, { ...options, method: 'POST', body })
+  },
+  put<T>(url: string, body?: unknown, options?: HttpOptions) {
+    return fetcher<T>(url, { ...options, method: 'PUT', body })
+  },
+  patch<T>(url: string, body?: unknown, options?: HttpOptions) {
+    return fetcher<T>(url, { ...options, method: 'PATCH', body })
+  },
+  delete<T>(url: string, options?: HttpOptions) {
+    return fetcher<T>(url, { ...options, method: 'DELETE' })
+  }
+}
+

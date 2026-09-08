@@ -1,5 +1,4 @@
 import { http } from '@/utils/http/http.ts'
-import { INTELLIGENCE_TOKEN } from '@/utils/http/token.ts'
 
 type CommunicateParams = MagneticTile.Intelligence.Communicate.Params
 type CommunicateResponse = MagneticTile.Intelligence.Communicate.Response
@@ -75,14 +74,14 @@ export async function* GeneratorJSON<
 
 export function GET_TAGS() {
   return http.get('/tags', {
-    context: INTELLIGENCE_TOKEN
+    env: 'intelligence'
   })
 }
 
 export function GET_CHAT_HISTORY(params: { userId: string }) {
   return http.get('/chat/history', {
-    context: INTELLIGENCE_TOKEN,
-    params
+    env: 'intelligence',
+    query: params
   })
 }
 

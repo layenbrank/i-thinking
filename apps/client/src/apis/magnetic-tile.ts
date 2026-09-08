@@ -1,24 +1,23 @@
 import { http } from '@/utils/http/http.ts'
-import { THINKING_TOKEN } from '@/utils/http/token.ts'
 
 function FIND_MAGNETIC_TILE() {
   return http.get('/magnetic-tile', {
-    context: THINKING_TOKEN
+    env: 'thinking'
   })
 }
 
 function FIND_SINGLETON(id: string) {
   return http.get(`/magnetic-tile/singleton/${id}`, {
-    context: THINKING_TOKEN
+    env: 'thinking'
   })
 }
 
 function FIND_FAVICON(url: string) {
   return http.get('/magnetic-tile/favicon', {
-    params: {
+    query: {
       url: decodeURIComponent(url)
     },
-    context: THINKING_TOKEN
+    env: 'thinking'
   })
 }
 
