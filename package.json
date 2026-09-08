@@ -7,10 +7,12 @@
   "scripts": {
     "build": "turbo run build",
     "build:client": "turbo run build --filter=@i-thinking/client",
+    "build:composables": "turbo run build --filter=@i-thinking/composables",
     "build:studio": "turbo run build --filter=@i-thinking/studio",
     "build:devtools": "turbo run build --filter=@i-thinking/devtools",
     "build:directives": "turbo run build --filter=@i-thinking/directives",
     "build:extension": "turbo run build --filter=@i-thinking/extension",
+    "build:hooks": "turbo run build --filter=@i-thinking/hooks",
     "build:service": "turbo run build --filter=@i-thinking/service",
     "build:utils": "turbo run build --filter=@i-thinking/utils",
     "bump:client": "pnpm --filter @i-thinking/client exec bumpp --configFilePath bump.client.ts",

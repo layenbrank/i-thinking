@@ -84,4 +84,3 @@ export function GET_CHAT_HISTORY(params: { userId: string }) {
     query: params
   })
 }
-
