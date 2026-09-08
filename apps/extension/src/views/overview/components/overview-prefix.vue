@@ -198,7 +198,7 @@ onMounted(function () {
   // .subscribe(function (response) {
   // 	console.log('response', response)
   // })
-  // FIND_MAGNETIC_TILE().subscribe(function (response) {
+  // GET_TILES().subscribe(function (response) {
   // 	console.log('magneticTile', response)
   // })
   // http.get(url)
