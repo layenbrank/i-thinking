@@ -117,7 +117,11 @@ catalog:
   '@vitejs/plugin-react-swc': ^4.3.3
   'vue-tsc': ^3.3.11
   '@vue/tsconfig': ^0.9.1
-  'typescript': ~6.0.3
+  # —— TypeScript 7/6 并排（catalog 无法表达 npm alias，版本与别名在根 package.json 显式声明）——
+  # TS7.0 为 Go 原生移植、无稳定 API：typescript-eslint / vue-tsc(Volar) / @nestjs/cli
+  # 仍需 import 'typescript'（=TS6 API）。官方方案（TS7.0 公告 “Side-by-Side”）：
+  #   typescript         → npm:@typescript/typescript6（TS6 API + tsc6 可执行，不含 tsc）
+  #   @typescript/native → npm:typescript@^7（提供 TS7 的 tsc，作为默认 tsc）
 
 overrides:
   # 与 catalog 对齐，避免 forge / 传递依赖拉到旧 rebuild

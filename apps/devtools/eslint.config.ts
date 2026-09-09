@@ -11,6 +11,9 @@ import { globalIgnores } from 'eslint/config'
 import globals from 'globals'
 import { fileURLToPath } from 'node:url'
 
+// 本配置（eslint.config.ts）所在目录，即项目根目录
+const ROOT_DIR = fileURLToPath(new URL('.', import.meta.url))
+
 /**
  * 配置 Vue 项目的 ESLint 环境
  * @param {Object} options - 配置选项
@@ -21,7 +24,7 @@ configureVueProject({
   // 允许在 `.vue` 文件中使用 TypeScript 和 TSX
   scriptLangs: ['ts', 'tsx'],
   // 设置项目的根目录为当前模块的目录
-  rootDir: fileURLToPath(import.meta.url)
+  rootDir: ROOT_DIR
 })
 
 // More info at https://github.com/vuejs/eslint-config-typescript/#advanced-setup
@@ -48,7 +51,7 @@ export default defineConfigWithVueTs(
         // projectService: true，只需删除 project 行即可：
         // 是较新的 @typescript-eslint 推荐方式，它会自动发现并使用正确的 tsconfig（配合 tsconfigRootDir 限定查找范围），project 数组是旧方式，两者不能共存，移除 project 即可。
         projectService: true,
-        tsconfigRootDir: fileURLToPath(import.meta.url),
+        tsconfigRootDir: ROOT_DIR,
         globals: globals.browser
       }
     },
