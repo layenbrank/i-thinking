@@ -354,8 +354,16 @@ pub async fn workspaceFilesListDir(params: ListDirP) -> CommandResult<Vec<DirEnt
                 files.push(item);
             }
         }
-        dirs.sort_by(|a, b| a.name.to_ascii_lowercase().cmp(&b.name.to_ascii_lowercase()));
-        files.sort_by(|a, b| a.name.to_ascii_lowercase().cmp(&b.name.to_ascii_lowercase()));
+        dirs.sort_by(|a, b| {
+            a.name
+                .to_ascii_lowercase()
+                .cmp(&b.name.to_ascii_lowercase())
+        });
+        files.sort_by(|a, b| {
+            a.name
+                .to_ascii_lowercase()
+                .cmp(&b.name.to_ascii_lowercase())
+        });
         dirs.extend(files);
         Ok(dirs)
     })
@@ -382,7 +390,9 @@ pub async fn workspaceFilesSearch(params: SearchP) -> CommandResult<Vec<SearchHi
     let mut seen = HashSet::new();
     for root in roots {
         let relatives = if is_git_repo(&root).await {
-            git_ls_files(&root).await.unwrap_or_else(|_| walk_files(&root, MAX_VISITED))
+            git_ls_files(&root)
+                .await
+                .unwrap_or_else(|_| walk_files(&root, MAX_VISITED))
         } else {
             let root_clone = root.clone();
             tokio::task::spawn_blocking(move || walk_files(&root_clone, MAX_VISITED))

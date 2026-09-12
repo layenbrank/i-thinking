@@ -24,6 +24,7 @@
 - 禁止 `get` 前缀 → 用 `find` / `fetch`；解析用 `parse` / `parsed`。
 - 常量、枚举键、接口名：全大写下划线（如 `POST_SIGNIN`、`API_BASE_URL`）。
 - 布尔用 `is` / `has` / `can`；非 `useState` 不用 `set`；集合用复数，避免 `list` 后缀。
+- 根据命名空间、模块命名空间，可做极致精简命名
 
 ## 结构与样式
 

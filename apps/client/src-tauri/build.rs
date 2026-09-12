@@ -1,15 +1,11 @@
 fn main() {
     let pdfium = std::path::Path::new("binaries/pdfium.dll");
     if !pdfium.exists() {
-        panic!(
-            "binaries/pdfium.dll missing; run `pnpm sidecar bootstrap client` at repo root"
-        );
+        panic!("binaries/pdfium.dll missing; run `pnpm sidecar bootstrap client` at repo root");
     }
     let meta = std::fs::metadata(pdfium).expect("stat pdfium.dll");
     if meta.len() == 0 {
-        panic!(
-            "binaries/pdfium.dll is empty; run `pnpm sidecar bootstrap client` at repo root"
-        );
+        panic!("binaries/pdfium.dll is empty; run `pnpm sidecar bootstrap client` at repo root");
     }
 
     let host = std::env::var("TAURI_ENV_TARGET_TRIPLE")
@@ -30,9 +26,7 @@ fn main() {
     };
     let goose = std::path::Path::new(&goose_name);
     if !goose.exists() {
-        panic!(
-            "{goose_name} missing; run `pnpm sidecar bootstrap client` at repo root"
-        );
+        panic!("{goose_name} missing; run `pnpm sidecar bootstrap client` at repo root");
     }
 
     tauri_build::build()

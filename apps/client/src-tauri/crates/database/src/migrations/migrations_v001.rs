@@ -89,7 +89,11 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0),
                     )
-                    .col(ColumnDef::new(MagneticTile::ArchivedAt).big_integer().null())
+                    .col(
+                        ColumnDef::new(MagneticTile::ArchivedAt)
+                            .big_integer()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(MagneticTile::CreatedAt)
                             .big_integer()
@@ -348,16 +352,8 @@ impl MigrationTrait for Migration {
                             .default(0),
                     )
                     .col(ColumnDef::new(Reminder::ArchivedAt).big_integer().null())
-                    .col(
-                        ColumnDef::new(Reminder::CreatedAt)
-                            .big_integer()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Reminder::UpdatedAt)
-                            .big_integer()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(Reminder::CreatedAt).big_integer().not_null())
+                    .col(ColumnDef::new(Reminder::UpdatedAt).big_integer().not_null())
                     .to_owned(),
             )
             .await?;
@@ -391,16 +387,8 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Calendar::Color).string().null())
                     .col(ColumnDef::new(Calendar::ReminderID).string().null())
                     .col(ColumnDef::new(Calendar::ArchivedAt).big_integer().null())
-                    .col(
-                        ColumnDef::new(Calendar::CreatedAt)
-                            .big_integer()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Calendar::UpdatedAt)
-                            .big_integer()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(Calendar::CreatedAt).big_integer().not_null())
+                    .col(ColumnDef::new(Calendar::UpdatedAt).big_integer().not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_calendar_reminder")
@@ -582,10 +570,8 @@ impl MigrationTrait for Migration {
         .await?;
         db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_cmt_tenant ON comment (tenantID)")
             .await?;
-        db.execute_unprepared(
-            "CREATE INDEX IF NOT EXISTS idx_reminder_dueAt ON reminder (dueAt)",
-        )
-        .await?;
+        db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_reminder_dueAt ON reminder (dueAt)")
+            .await?;
         db.execute_unprepared(
             "CREATE INDEX IF NOT EXISTS idx_reminder_fireTime ON reminder (fireTime)",
         )
@@ -648,16 +634,8 @@ impl MigrationTrait for Migration {
                             .default(1.0),
                     )
                     .col(ColumnDef::new(Overlay::ArchivedAt).big_integer().null())
-                    .col(
-                        ColumnDef::new(Overlay::CreatedAt)
-                            .big_integer()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Overlay::UpdatedAt)
-                            .big_integer()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(Overlay::CreatedAt).big_integer().not_null())
+                    .col(ColumnDef::new(Overlay::UpdatedAt).big_integer().not_null())
                     .to_owned(),
             )
             .await?;

@@ -1,8 +1,8 @@
 use tauri::State;
-use thinking_core::reminder::Service;
 use thinking_core::CommandResult;
-use thinking_database::entity::reminder::{Model, ReadP, RemoveP, UpdateP, WriteP};
+use thinking_core::reminder::Service;
 use thinking_database::Storage;
+use thinking_database::entity::reminder::{Model, ReadP, RemoveP, UpdateP, WriteP};
 
 #[tauri::command(rename = "reminder:write")]
 pub async fn reminder_write(
@@ -13,10 +13,7 @@ pub async fn reminder_write(
 }
 
 #[tauri::command(rename = "reminder:read")]
-pub async fn reminder_read(
-    state: State<'_, Storage>,
-    params: ReadP,
-) -> CommandResult<Vec<Model>> {
+pub async fn reminder_read(state: State<'_, Storage>, params: ReadP) -> CommandResult<Vec<Model>> {
     Service::toRead(state.connection(), params).await
 }
 

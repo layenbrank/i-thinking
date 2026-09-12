@@ -5,7 +5,7 @@ use std::time::Duration;
 use chrono::{Local, TimeZone, Utc};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tauri_plugin_notification::NotificationExt;
-use thinking_core::reminder::{is_one_shot, should_fire, Service};
+use thinking_core::reminder::{Service, is_one_shot, should_fire};
 use thinking_database::Storage;
 
 const POLL_INTERVAL_SECS: u64 = 12;

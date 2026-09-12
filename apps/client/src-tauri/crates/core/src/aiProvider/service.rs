@@ -152,9 +152,7 @@ impl Service {
         let model = schema::Entity::find_by_id(payload.key.clone())
             .one(db)
             .await?
-            .ok_or_else(|| {
-                Exception::NotFound(format!("aiProvider not found: {}", payload.key))
-            })?;
+            .ok_or_else(|| Exception::NotFound(format!("aiProvider not found: {}", payload.key)))?;
 
         let mut active: schema::ActiveModel = model.into();
         let now = Utc::now().timestamp_millis();

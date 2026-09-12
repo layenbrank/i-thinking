@@ -41,16 +41,16 @@ fn find_windows_regions(
     size: PhysicalSize<u32>,
     scale: f64,
 ) -> Vec<CaptureRegion> {
-    use windows::core::BOOL;
     use windows::Win32::Foundation::{HWND, LPARAM, POINT, RECT, TRUE};
     use windows::Win32::Graphics::Dwm::{
-        DwmGetWindowAttribute, DWMWA_CLOAKED, DWMWA_EXTENDED_FRAME_BOUNDS,
+        DWMWA_CLOAKED, DWMWA_EXTENDED_FRAME_BOUNDS, DwmGetWindowAttribute,
     };
     use windows::Win32::Graphics::Gdi::ClientToScreen;
     use windows::Win32::UI::WindowsAndMessaging::{
-        EnumWindows, GetClassNameW, GetClientRect, GetWindowLongW, GetWindowRect, IsIconic,
-        IsWindowVisible, GWL_EXSTYLE, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+        EnumWindows, GWL_EXSTYLE, GetClassNameW, GetClientRect, GetWindowLongW, GetWindowRect,
+        IsIconic, IsWindowVisible, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
     };
+    use windows::core::BOOL;
 
     struct EnumState {
         ignore: Option<HWND>,
@@ -203,6 +203,11 @@ fn find_windows_regions(
         scale,
         regions: Vec::new(),
     };
-    let _ = unsafe { EnumWindows(Some(enum_proc), LPARAM(&mut state as *mut EnumState as isize)) };
+    let _ = unsafe {
+        EnumWindows(
+            Some(enum_proc),
+            LPARAM(&mut state as *mut EnumState as isize),
+        )
+    };
     state.regions
 }

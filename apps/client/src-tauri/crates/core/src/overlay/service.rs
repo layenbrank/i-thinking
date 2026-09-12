@@ -132,9 +132,8 @@ impl Service {
             return Ok(());
         }
 
-        let (tile_models, texture_models): (Vec<_>, Vec<_>) = models
-            .into_iter()
-            .partition(|m| m.kind == "tile");
+        let (tile_models, texture_models): (Vec<_>, Vec<_>) =
+            models.into_iter().partition(|m| m.kind == "tile");
         let tile_ids: Vec<String> = tile_models.into_iter().map(|m| m.id).collect();
         let texture_ids: Vec<String> = texture_models.into_iter().map(|m| m.id).collect();
 

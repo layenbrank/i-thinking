@@ -14,8 +14,7 @@ use crate::{
     utils::{
         goose_acp::GooseAcpHub,
         goose_serve::{self, GooseServeState},
-        goose_tls,
-        log_retention,
+        goose_tls, log_retention,
         sidecar::{self, SidecarState},
     },
 };

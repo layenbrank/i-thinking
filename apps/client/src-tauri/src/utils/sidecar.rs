@@ -194,7 +194,10 @@ pub fn shutdown_and_wait(app: &AppHandle, timeout: Duration) -> bool {
         std::thread::sleep(HANDLE_SETTLE);
         info!("corex-daemon 已停止");
     } else {
-        warn!("corex-daemon 在 {:?} 内未确认退出，将依赖安装器 hook 兜底", timeout);
+        warn!(
+            "corex-daemon 在 {:?} 内未确认退出，将依赖安装器 hook 兜底",
+            timeout
+        );
     }
 
     stopped
@@ -239,7 +242,9 @@ fn wait_until_pipe_closed(timeout: Duration, start: Instant) -> bool {
 #[cfg(windows)]
 fn wait_for_pid_exit(pid: u32, timeout: Duration) -> bool {
     use windows::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0, WAIT_TIMEOUT};
-    use windows::Win32::System::Threading::{OpenProcess, WaitForSingleObject, PROCESS_SYNCHRONIZE};
+    use windows::Win32::System::Threading::{
+        OpenProcess, PROCESS_SYNCHRONIZE, WaitForSingleObject,
+    };
 
     let handle = match unsafe { OpenProcess(PROCESS_SYNCHRONIZE, false, pid) } {
         Ok(h) => h,

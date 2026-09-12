@@ -1,8 +1,8 @@
 use tauri::State;
-use thinking_core::overlay::Service;
 use thinking_core::CommandResult;
-use thinking_database::entity::overlay as schema;
+use thinking_core::overlay::Service;
 use thinking_database::Storage;
+use thinking_database::entity::overlay as schema;
 
 #[tauri::command(rename = "overlay:read")]
 pub async fn overlay_read(state: State<'_, Storage>) -> CommandResult<Vec<schema::Model>> {
@@ -10,7 +10,10 @@ pub async fn overlay_read(state: State<'_, Storage>) -> CommandResult<Vec<schema
 }
 
 #[tauri::command(rename = "overlay:write")]
-pub async fn overlay_write(state: State<'_, Storage>, item: schema::Write) -> CommandResult<String> {
+pub async fn overlay_write(
+    state: State<'_, Storage>,
+    item: schema::Write,
+) -> CommandResult<String> {
     Service::write(state.connection(), item).await
 }
 
