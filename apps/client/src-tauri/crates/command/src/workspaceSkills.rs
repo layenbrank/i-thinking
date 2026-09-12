@@ -116,7 +116,12 @@ fn parse_frontmatter(content: &str) -> (Option<String>, Option<String>) {
     (name, description)
 }
 
-fn collect_from_skills_dir(root: &Path, skills_dir: &Path, out: &mut Vec<SkillR>, seen: &mut HashSet<String>) {
+fn collect_from_skills_dir(
+    root: &Path,
+    skills_dir: &Path,
+    out: &mut Vec<SkillR>,
+    seen: &mut HashSet<String>,
+) {
     let Ok(entries) = std::fs::read_dir(skills_dir) else {
         return;
     };
@@ -209,7 +214,11 @@ pub async fn workspaceSkillsList(params: ListSkillsP) -> CommandResult<Vec<Skill
                 }
             }
         }
-        out.sort_by(|a, b| a.name.to_ascii_lowercase().cmp(&b.name.to_ascii_lowercase()));
+        out.sort_by(|a, b| {
+            a.name
+                .to_ascii_lowercase()
+                .cmp(&b.name.to_ascii_lowercase())
+        });
         out
     })
     .await

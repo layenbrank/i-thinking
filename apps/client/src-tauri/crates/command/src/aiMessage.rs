@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use thinking_core::aiMessage::Service;
 use thinking_core::CommandResult;
-use thinking_database::entity::aiMessage::{Model, ReadP, RemoveP, UpdateP, WriteP};
+use thinking_core::aiMessage::Service;
 use thinking_database::Storage;
+use thinking_database::entity::aiMessage::{Model, ReadP, RemoveP, UpdateP, WriteP};
 
 #[tauri::command(rename = "aiMessage:toWrite")]
 pub async fn aiMessageToWrite(

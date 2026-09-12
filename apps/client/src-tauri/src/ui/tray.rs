@@ -52,12 +52,22 @@ pub fn setup(app: &mut tauri::App) -> tauri::Result<()> {
     let check_update_item =
         MenuItem::with_id(handle, "check-update", "检查更新", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(handle, "settings", "设置", true, None::<&str>)?;
-    let clear_textures_item =
-        MenuItem::with_id(handle, "overlay-clear-textures", "清除全部贴图", true, None::<&str>)?;
+    let clear_textures_item = MenuItem::with_id(
+        handle,
+        "overlay-clear-textures",
+        "清除全部贴图",
+        true,
+        None::<&str>,
+    )?;
     let hide_overlay_item =
         MenuItem::with_id(handle, "overlay-hide", "隐藏桌面浮层", true, None::<&str>)?;
-    let overlay_devtools_item =
-        MenuItem::with_id(handle, "overlay-devtools", "Overlay DevTools", true, None::<&str>)?;
+    let overlay_devtools_item = MenuItem::with_id(
+        handle,
+        "overlay-devtools",
+        "Overlay DevTools",
+        true,
+        None::<&str>,
+    )?;
     let sep1 = PredefinedMenuItem::separator(handle)?;
     let about_item = MenuItem::with_id(handle, "about", "关于 i-thinking", true, None::<&str>)?;
     let sep2 = PredefinedMenuItem::separator(handle)?;

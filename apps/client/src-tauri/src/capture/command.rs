@@ -7,7 +7,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::capture::region::find_overlay_regions;
 use crate::capture::schema::ScreenshotResult;
 use crate::capture::state::CapturePending;
-use crate::overlay::command::{overlay_update_mode, OVERLAY_LABEL};
+use crate::overlay::command::{OVERLAY_LABEL, overlay_update_mode};
 use crate::utils::ipc;
 
 /// 只读图片头获取宽高，避免整图 decode
@@ -29,7 +29,10 @@ fn build_screenshot_result(path: &str, scale_factor: f32) -> Result<ScreenshotRe
 }
 
 fn screenshot_from_ipc_data(path: String, data: &serde_json::Value) -> Option<ScreenshotResult> {
-    let width = data.get("width").and_then(|v| v.as_u64()).map(|v| v as u32)?;
+    let width = data
+        .get("width")
+        .and_then(|v| v.as_u64())
+        .map(|v| v as u32)?;
     let height = data
         .get("height")
         .and_then(|v| v.as_u64())

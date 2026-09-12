@@ -124,7 +124,10 @@ impl Service {
         Ok(ids)
     }
 
-    async fn read_query<C: ConnectionTrait>(db: &C, payload: &Read) -> Result<Vec<Model>, Exception> {
+    async fn read_query<C: ConnectionTrait>(
+        db: &C,
+        payload: &Read,
+    ) -> Result<Vec<Model>, Exception> {
         let mut query = schema::Entity::find()
             .filter(Self::read_filter(payload))
             .order_by_asc(schema::Column::Index)

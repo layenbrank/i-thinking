@@ -185,7 +185,11 @@ impl Service {
     }
 
     async fn write_one<C: ConnectionTrait>(db: &C, p: schema::Write) -> Result<String, Exception> {
-        if p.due_at.is_none() && p.fire_time.as_ref().map(|s| s.trim().is_empty()).unwrap_or(true)
+        if p.due_at.is_none()
+            && p.fire_time
+                .as_ref()
+                .map(|s| s.trim().is_empty())
+                .unwrap_or(true)
         {
             return Err(Exception::Validation(
                 "reminder requires dueAt or fireTime".to_string(),
@@ -296,7 +300,10 @@ fn already_fired_this_minute(last_fired_at: Option<i64>, minute_key: &str) -> bo
     let Some(dt) = chrono::DateTime::from_timestamp_millis(ts) else {
         return false;
     };
-    dt.with_timezone(&Local).format("%Y-%m-%d %H:%M").to_string() == minute_key
+    dt.with_timezone(&Local)
+        .format("%Y-%m-%d %H:%M")
+        .to_string()
+        == minute_key
 }
 
 /// Whether a schedulable reminder should fire at `now` (with catch-up within the same local minute window for dueAt / snooze / fireTime).
@@ -314,10 +321,7 @@ pub fn should_fire(model: &schema::Model, now_ms: i64) -> bool {
     if let Some(due_at) = model.due_at {
         // Catch-up: due within the last 24h and not yet fired after due.
         if now_ms >= due_at {
-            let fired_ok = model
-                .last_fired_at
-                .map(|t| t >= due_at)
-                .unwrap_or(false);
+            let fired_ok = model.last_fired_at.map(|t| t >= due_at).unwrap_or(false);
             return !fired_ok && now_ms - due_at < 24 * 60 * 60 * 1000;
         }
         return false;

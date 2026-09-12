@@ -4,11 +4,11 @@ use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// 默认 Named Pipe 名称（与 corex-daemon 一致）
 pub const PIPE_NAME: &str = r"\\.\pipe\corex";
@@ -42,14 +42,21 @@ struct RpcErrorBody {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum DaemonResponse {
-    Pong { id: u64 },
+    Pong {
+        id: u64,
+    },
     Ok {
         id: u64,
         #[serde(default)]
         data: Value,
     },
-    Error { id: u64, error: RpcErrorBody },
-    Bye { id: u64 },
+    Error {
+        id: u64,
+        error: RpcErrorBody,
+    },
+    Bye {
+        id: u64,
+    },
 }
 
 /// 拼出最终 action id。`action` 不得含 `.`，禁止用完整 id 覆盖 `module` 白名单。
@@ -97,7 +104,12 @@ fn token_candidates() -> Vec<PathBuf> {
         paths.push(PathBuf::from(dir).join("token"));
     }
     if let Ok(appdata) = std::env::var("APPDATA") {
-        paths.push(PathBuf::from(&appdata).join("corex").join("data").join("token"));
+        paths.push(
+            PathBuf::from(&appdata)
+                .join("corex")
+                .join("data")
+                .join("token"),
+        );
     }
     paths
 }
@@ -107,11 +119,7 @@ pub fn invoke(module: &str, args: Value) -> Result<IpcResponse, String> {
     invoke_with(module, None, args)
 }
 
-pub fn invoke_with(
-    module: &str,
-    action: Option<&str>,
-    args: Value,
-) -> Result<IpcResponse, String> {
+pub fn invoke_with(module: &str, action: Option<&str>, args: Value) -> Result<IpcResponse, String> {
     let id = REQUEST_ID.fetch_add(1, Ordering::Relaxed);
     let action_id = parse_action_id(module, action)?;
     let token = auth_token()?;
@@ -126,10 +134,7 @@ pub fn invoke_with(
 }
 
 pub fn has_session() -> bool {
-    SESSION
-        .lock()
-        .map(|guard| guard.is_some())
-        .unwrap_or(false)
+    SESSION.lock().map(|guard| guard.is_some()).unwrap_or(false)
 }
 
 pub fn is_ready() -> bool {
@@ -182,9 +187,7 @@ pub fn shutdown() -> Result<(), String> {
             "id": id,
             "auth_token": token,
         });
-        let mut guard = SESSION
-            .lock()
-            .map_err(|e| format!("IPC 锁失败: {e}"))?;
+        let mut guard = SESSION.lock().map_err(|e| format!("IPC 锁失败: {e}"))?;
         let file = match guard.as_mut() {
             Some(file) => file,
             None => {
@@ -216,9 +219,8 @@ fn exchange(request_id: u64, request_json: &str) -> Result<IpcResponse, String> 
             Ok(response) => Ok(response),
             Err(first) => {
                 drop_session();
-                exchange_once(request_id, request_json).map_err(|second| {
-                    format!("IPC 失败（重连后仍失败）: {second}；首次: {first}")
-                })
+                exchange_once(request_id, request_json)
+                    .map_err(|second| format!("IPC 失败（重连后仍失败）: {second}；首次: {first}"))
             }
         }
     }
@@ -277,9 +279,7 @@ fn parse_daemon_response(raw: &str, request_id: u64) -> Result<IpcResponse, Stri
 
 #[cfg(windows)]
 fn exchange_once(request_id: u64, request_json: &str) -> Result<IpcResponse, String> {
-    let mut guard = SESSION
-        .lock()
-        .map_err(|e| format!("IPC 锁失败: {e}"))?;
+    let mut guard = SESSION.lock().map_err(|e| format!("IPC 锁失败: {e}"))?;
     if guard.is_none() {
         *guard = Some(open_pipe(PIPE_NAME)?);
     }
@@ -319,13 +319,13 @@ fn open_pipe(pipe_name: &str) -> Result<File, String> {
     use std::thread;
     use std::time::Duration;
 
-    use windows::core::PCWSTR;
     use windows::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_PIPE_BUSY};
     use windows::Win32::Storage::FileSystem::{
         CreateFileW, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_SHARE_NONE,
         OPEN_EXISTING,
     };
     use windows::Win32::System::Pipes::WaitNamedPipeW;
+    use windows::core::PCWSTR;
 
     let wide: Vec<u16> = OsStr::new(pipe_name)
         .encode_wide()

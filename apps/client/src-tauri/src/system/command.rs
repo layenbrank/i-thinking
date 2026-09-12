@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::utils::ipc;
 use crate::utils::goose_serve::{self, GooseConnection, GooseServeState};
-use crate::utils::sidecar::{self, SidecarState, SIDECAR_SHUTDOWN_TIMEOUT};
+use crate::utils::ipc;
+use crate::utils::sidecar::{self, SIDECAR_SHUTDOWN_TIMEOUT, SidecarState};
 
 const ALLOWED_MODULES: &[&str] = &["morph", "capture", "scan", "engine", "file"];
 
@@ -78,11 +78,9 @@ pub async fn ipc_invoke(
             return Err("IPC action 不得包含 '.'".into());
         }
     }
-    tokio::task::spawn_blocking(move || {
-        ipc::invoke_with(&module, action.as_deref(), args)
-    })
-    .await
-    .map_err(|e| format!("IPC 线程异常: {e}"))?
+    tokio::task::spawn_blocking(move || ipc::invoke_with(&module, action.as_deref(), args))
+        .await
+        .map_err(|e| format!("IPC 线程异常: {e}"))?
 }
 
 /// 从前端控制托盘图标徽章状态
@@ -114,7 +112,9 @@ pub fn goose_ready(state: tauri::State<'_, GooseServeState>) -> Option<bool> {
 }
 
 #[tauri::command(rename = "goose:connection")]
-pub fn goose_connection(state: tauri::State<'_, GooseServeState>) -> Result<GooseConnection, String> {
+pub fn goose_connection(
+    state: tauri::State<'_, GooseServeState>,
+) -> Result<GooseConnection, String> {
     state
         .connection()
         .ok_or_else(|| "goose serve 未就绪".to_string())
