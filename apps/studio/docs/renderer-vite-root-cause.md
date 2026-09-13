@@ -31,7 +31,7 @@
 ## 可选方案（从根因出发，不依赖在 alias 里打补丁）
 
 1. **让 studio 的 Vite 明确以 studio 为 root，并让依赖优化包含 highlight.js**
-   - 在 `vite.renderer.config.ts` 中设置 `root: path.join(__dirname)`（或 `path.dirname(fileURLToPath(import.meta.url))`），确保 Vite 的 root 是 apps/studio。
+   - 在 `vite.renderer.config.mts` 中设置 `root: path.join(__dirname)`（或 `path.dirname(fileURLToPath(import.meta.url))`），确保 Vite 的 root 是 apps/studio。
    - 视情况设置 `optimizeDeps.include: ['highlight.js']`，让该包参与预构建，由 esbuild 做 CJS→ESM，避免直接提供 lib/core.js。
    - 若仍解析到根目录，可再配合 `server.fs.allow` 允许访问上级目录，便于预构建从正确位置扫描。
 
@@ -50,7 +50,7 @@
 ## 建议决策顺序
 
 1. 先确认 Electron Forge 启动 Vite 时 **root 和 cwd** 实际是什么（可在 config 里 `console.log` 或打日志）。
-2. 在 `vite.renderer.config.ts` 中**只保留** `root`（及必要时 `optimizeDeps.include`、`server.fs.allow`），**不**在 alias 里加 lowlight/highlight.js 等。
+2. 在 `vite.renderer.config.mts` 中**只保留** `root`（及必要时 `optimizeDeps.include`、`server.fs.allow`），**不**在 alias 里加 lowlight/highlight.js 等。
 3. 若仍报错，再考虑在 studio 的 package.json 显式依赖 highlight.js（及必要时 lowlight），或调整 node-linker/deploy，最后再考虑是否用 alias 兜底。
 
 这样可以从「monorepo 依赖在根 + Vite 未对根目录下该文件做预构建」这一根因出发做决策，而不是依赖一堆 alias。

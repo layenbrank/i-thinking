@@ -56,8 +56,7 @@
 
     "rootDir": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@generated/*": ["./generated/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"],

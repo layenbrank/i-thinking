@@ -7,7 +7,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import { compression } from 'vite-plugin-compression2'
 
-import { chunks } from './vite.chunk'
+import { chunks } from './vite.chunk.mts'
 
 const cssRegex: Readonly<RegExp> = /\.css$/i
 const imageRegex: Readonly<RegExp> = /\.(png|jpe?g|gif|svg|webp|ico)$/i

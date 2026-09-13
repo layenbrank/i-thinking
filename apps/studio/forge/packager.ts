@@ -31,7 +31,7 @@ const ELECTRON_DOWNLOAD_MIRROR =
  * Vite 已打包业务与 workspace 依赖；asar 保留：
  * - `.vite/` 构建产物
  * - `package.json`
- * - `generated/`（Prisma Client）
+ * - `drizzle/`（迁移 SQL + meta/journal，运行时 migrator 要读）
  * - `node_modules/`（external 模块：electron-updater 及其传递依赖需进 asar，
  *   因 Fuses OnlyLoadAppFromAsar 禁止从 asar 外加载）
  * 排除 `@i-thinking/*`：pnpm workspace 符号链接指向包外，asar 无法处理；
@@ -47,7 +47,8 @@ function isIgnoredPath(filePath: string): boolean {
   const keep = [
     /^\/\.vite(\/|$)/,
     /^\/package\.json$/,
-    /^\/generated(\/|$)/,
+    // 运行时 Drizzle migrator 需要读取 drizzle/migrations/（SQL + meta/journal）
+    /^\/drizzle(\/|$)/,
     /^\/node_modules(\/(?!@i-thinking\/)|$)/
   ]
   if (keep.some(function (pattern) {

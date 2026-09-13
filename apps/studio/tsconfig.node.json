@@ -29,7 +29,7 @@
     "vitest.config.*",
     "eslint.config.*",
     "tailwind.config.*",
-    "vite.*.ts",
+    "vite.*.mts",
     "vite.chunk.*"
   ],
   "exclude": ["**/node_modules/**"]
