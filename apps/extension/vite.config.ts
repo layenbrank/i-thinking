@@ -1,15 +1,18 @@
-import LanguagePlugin from '@intlify/unplugin-vue-i18n/vite'
-import Vue from '@vitejs/plugin-vue'
-import VueJsx from '@vitejs/plugin-vue-jsx'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
+import { networkInterfaces } from 'node:os'
+import LanguagePlugin from '@intlify/unplugin-vue-i18n/vite'
+import Vue from '@vitejs/plugin-vue'
+import VueJsx from '@vitejs/plugin-vue-jsx'
+
 import AutoImport from 'unplugin-auto-import/vite'
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import { compression } from 'vite-plugin-compression2'
 import DevTools from 'vite-plugin-vue-devtools'
+import { chunks } from './vite.chunk.ts'
 // import wasm from 'vite-plugin-wasm'
 
 const entries: readonly RegExp[] = [
@@ -26,6 +29,7 @@ const wasmRegex: Readonly<RegExp> = /\.wasm$/i
 const jsonRegex: Readonly<RegExp> = /\.json$/i
 const svgRegex: Readonly<RegExp> = /\.svg$/i
 const gifRegex: Readonly<RegExp> = /\.gif$/i
+const workerRegex: Readonly<RegExp> = /\.worker\.js$/i
 
 // 使用正则数组表示需要内联的文件类型
 const inlineRegexes: readonly RegExp[] = [gifRegex]
@@ -36,109 +40,24 @@ const noInlineRegexes: readonly RegExp[] = [
   /background.*\.(png|jpe?g)$/i // 背景图片
 ].concat(svgRegex, jsonRegex, videoRegex, audioRegex, fontRegex)
 
-// Vue3 + TypeScript 项目分包配置
-const chunkMap: Readonly<Record<string, RegExp[]>> = {
-  // ========== 本地依赖 ==========
-  'workspace-deps': [/[\\/]packages[\\/](core|wasm)[\\/]/],
-
-  'core-apis': [/[\\/]src[\\/]apis[\\/]/],
-  'core-utils': [/[\\/]src[\\/]utils[\\/]/],
-  'core-hooks': [/[\\/]src[\\/]hooks[\\/]/],
-  'core-stores': [/[\\/]src[\\/]stores[\\/]/],
-  'core-assets': [/[\\/]src[\\/]assets[\\/]/],
-  'core-locales': [/[\\/]src[\\/]locales[\\/]/],
-  'core-plugins': [/[\\/]src[\\/]plugins[\\/]/],
-  'core-database': [/[\\/]src[\\/]database[\\/]/],
-
-  // ========== Vue 核心生态 ==========
-  'core-framework': [/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/],
-
-  'utils-framework': [/[\\/]node_modules[\\/](@vueuse)[\\/]/],
-
-  // ========== UI 组件库 ==========
-  'ui-antd': [/[\\/]node_modules[\\/](ant-design-vue)[\\/]/],
-
-  'ui-antd-deps': [
-    /[\\/]node_modules[\\/](@ant-design|@ctrl\/tinycolor|@emotion|stylis)[\\/]/,
-    /[\\/]node_modules[\\/](@simonwep\/pickr|throttle-debounce|vue-types|warning)[\\/]/,
-    /[\\/]node_modules[\\/](array-tree-filter|async-validator|dom-align|dom-scroll-into-view)[\\/]/,
-    /[\\/]node_modules[\\/](resize-observer-polyfill|scroll-into-view-if-needed|shallow-equal)[\\/]/
-  ],
-
-  // Iconify：@iconify/vue @iconify/json
-  'ui-markers': [/[\\/]node_modules[\\/]@iconify[\\/](?:json|vue)[\\/]/],
-
-  // ========== 编辑器 ==========
-  'utils-markdown': [
-    /[\\/]node_modules[\\/]@tiptap[\\/]/,
-    /[\\/]node_modules[\\/]marked[\\/]/,
-    /[\\/]node_modules[\\/]prosemirror-/,
-    /[\\/]node_modules[\\/]dompurify[\\/]/,
-    /[\\/]node_modules[\\/]@floating-ui[\\/]/
-  ],
-
-  'utils-code': [/[\\/]node_modules[\\/](monaco-editor|highlight\.js|lowlight)[\\/]/],
-
-  'utils-languages': [/[\\/]node_modules[\\/](vue-i18n|@intlify)[\\/]/],
-
-  // ========== 媒体处理 ==========
-  'utils-media': [
-    /[\\/]node_modules[\\/](mp4box)[\\/]/,
-    /[\\/]node_modules[\\/](@ffmpeg)[\\/]/,
-    /[\\/]node_modules[\\/](ffmpeg-core\.(js|wasm|worker\.js))$/
-  ],
-
-  // ========== 工具库 ==========
-  'utils-core': [
-    /[\\/]node_modules[\\/](lodash-es|rxjs|uuid|clsx)[\\/]/,
-    /[\\/]node_modules[\\/](reflect-metadata)[\\/]/
-  ],
-
-  'utils-datetime': [/[\\/]node_modules[\\/](dayjs|lunisolar|tyme4ts)[\\/]/],
-
-  'utils-crypto': [/[\\/]node_modules[\\/](crypto-js)[\\/]/],
-
-  'utils-matches': [/[\\/]node_modules[\\/](fuse\.js)[\\/]/],
-
-  'utils-math': [
-    /[\\/]node_modules[\\/](mathjs)[\\/]/,
-    /[\\/]node_modules[\\/](mathjs|complex\.js|decimal\.js|escape-latex|fraction\.js)[\\/]/,
-    /[\\/]node_modules[\\/](javascript-natural-sort|seedrandom|tiny-emitter|typed-function)[\\/]/
-  ],
-
-  'utils-enhance': [/[\\/]node_modules[\\/](qrcode|d3)[\\/]/, /[\\/]node_modules[\\/]d3-/],
-
-  // ========== 网络与存储 ==========
-  'utils-network': [
-    /[\\/]node_modules[\\/](@ngify)[\\/]/,
-    /[\\/]node_modules[\\/](axios|follow-redirects|form-data|proxy-from-env)[\\/]/
-  ],
-
-  'utils-storage': [/[\\/]node_modules[\\/](dexie)[\\/]/],
-
-  'utils-validation': [/[\\/]node_modules[\\/](zod)[\\/]/],
-
-  // ========== UI 增强 ==========
-  'ui-animation': [/[\\/]node_modules[\\/](gsap|swiper)[\\/]/],
-
-  'ui-interaction': [/[\\/]node_modules[\\/](sortablejs)[\\/]/],
-
-  // ========== polyfill ==========
-  'utils-polyfill': [/[\\/]node_modules[\\/](@babel)[\\/]/],
-
-  // ========== 其他第三方依赖 ==========
-  'unknown-deps': [
-    /[\\/]node_modules[\\/](rope-sequence|w3c-keyname)[\\/]/,
-    /[\\/]node_modules[\\/](linkifyjs|devlop|orderedmap)[\\/]/,
-    /[\\/]node_modules[\\/](compute-scroll-into-view|tslib)[\\/]/,
-    /[\\/]node_modules[\\/](perfect-debounce|hookable|birpc)[\\/]/
-  ]
-}
-
-const chunkEntries = Object.entries(chunkMap)
-
 export default defineConfig(function ({ mode, command: _command }: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
+  const interfaces = networkInterfaces()
+  const PORT = 1024
+  let HOST = '0.0.0.0'
+
+  for (const inter of Object.keys(interfaces)) {
+    const collection = interfaces[inter]
+    if (!collection) continue
+    for (const single of collection) {
+      if (inter !== 'WLAN') continue
+      if (single.family !== 'IPv4') continue
+      if (single.internal) continue
+      HOST = single.address
+    }
+  }
+  console.log('env ===>', env)
+  console.log('IP ===>', `http://${HOST}:${PORT}`)
 
   return {
     plugins: [
@@ -171,6 +90,7 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
       })
     ],
     resolve: {
+      tsconfigPaths: true,
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
@@ -188,11 +108,11 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
     },
     build: {
       target: 'esnext',
-      cssTarget: 'chrome128',
       minify: 'terser',
-      cssMinify: 'esbuild',
-      cssCodeSplit: true,
       emptyOutDir: true,
+      cssCodeSplit: true,
+      cssTarget: 'chrome128',
+      cssMinify: 'lightningcss',
       sourcemap: mode === 'development' ? true : false,
       // 将产物输出到当前包目录的 dist，下游 Turbo outputs 可匹配到
       outDir: resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist'),
@@ -211,45 +131,37 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
         // 默认情况下，不内联
         return false
       },
-      rollupOptions: {
+      rolldownOptions: {
         input: {
           index: 'index.html',
           'service-worker': 'src/libs/service-worker.ts',
           'content-scripts': 'src/libs/content-scripts.ts'
         },
         output: {
-          // entryFileNames: 'javascript/[name]-[hash].js',
+          chunkFileNames: 'javascript/[name]-[hash].js',
           entryFileNames(chunk) {
             const pattern = entries.some((entry) => entry.test(chunk.facadeModuleId ?? ''))
-            if (pattern) console.log('chunk.name ===>', chunk.name)
+
             if (pattern) return `${chunk.name}-[hash].js`
             return 'javascript/[name]-[hash].js'
           },
-          chunkFileNames: 'javascript/[name]-[hash].js',
-          // assetFileNames: 'assets/[name]-[hash].[ext]',
           assetFileNames(chunk) {
-            if (!chunk.names) return 'assets/[name].[ext]'
+            if (!chunk.names) return 'assets/[name]-[hash].[ext]'
 
             for (const name of chunk.names) {
-              if (cssRegex.test(name)) return `css/${name}`
-              if (imageRegex.test(name)) return `images/${name}`
-              if (fontRegex.test(name)) return `fonts/${name}`
-              if (videoRegex.test(name)) return `videos/${name}`
-              if (audioRegex.test(name)) return `audios/${name}`
-              if (wasmRegex.test(name)) return `webAssembly/${name}`
+              if (cssRegex.test(name)) return `css/[name]-[hash][extname]`
+              if (imageRegex.test(name)) return `images/[name]-[hash][extname]`
+              if (fontRegex.test(name)) return `fonts/[name]-[hash][extname]`
+              if (videoRegex.test(name)) return `videos/[name]-[hash][extname]`
+              if (audioRegex.test(name)) return `audios/[name]-[hash][extname]`
+              if (wasmRegex.test(name)) return `wasm/[name]-[hash][extname]`
+              if (workerRegex.test(name)) return `workers/[name]-[hash][extname]`
             }
 
-            return 'assets/[name].[ext]'
+            return 'assets/[name]-[hash][extname]'
           },
-          manualChunks(id, _meta) {
-            // 遍历映射表，匹配当前模块路径
-            for (const [chunkName, patterns] of chunkEntries) {
-              const pattern = patterns.some((pattern) => pattern.test(id))
-              if (pattern) return chunkName
-            }
-
-            // 其他第三方依赖
-            if (/[\\/]node_modules[\\/]/.test(id)) return 'vendors'
+          codeSplitting: {
+            groups: chunks
           }
         }
       }
@@ -267,20 +179,17 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
       },
       preprocessorOptions: {
         scss: {
-          // api: 'modern-compiler',
-          // importer: '',
-          // importers:"",
-          // functions: false,
-          // additionalData: '@import "@/styles/variables.scss";',
           additionalData: `
-														@use "@/styles/variables.scss";
-														@use "@/styles/magnetic-tile.scss";
+                          @use "@/styles/variables.scss";
+                          @use "@/styles/magnetic-tile.scss";
 													`
         }
       }
     },
+    clearScreen: false,
     server: {
-      port: 1024,
+      port: PORT,
+      host: HOST,
       headers: {
         'Cross-Origin-Opener-Policy': 'same-origin',
         'Cross-Origin-Embedder-Policy': 'require-corp'

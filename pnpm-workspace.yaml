@@ -97,11 +97,12 @@ catalog:
   '@types/electron-squirrel-startup': ^1.0.2
 
   # —— 本地 DB（studio 主进程）——
-  # Prisma 稳定线 7.10；adapter 依赖 better-sqlite3 ^12（勿上 13）
-  'prisma': ^7.10.0
-  '@prisma/adapter-better-sqlite3': ^7.10.0
-  '@prisma/client': ^7.10.0
+  # 引擎 better-sqlite3 ^12（勿上 13）；访问层/迁移 Drizzle
+  # （选型与替换记录见 apps/studio/docs/prisma-to-drizzle.md）
   'better-sqlite3': ^12.11.1
+  'drizzle-orm': ^0.45.2
+  'drizzle-kit': ^0.31.10
+  '@types/better-sqlite3': ^9.6.0
 
   # —— toolchain（单一版本源，package.json 用 catalog: 引用）——
   'vite': ^8.2.2

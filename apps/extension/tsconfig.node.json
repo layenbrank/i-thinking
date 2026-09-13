@@ -16,6 +16,8 @@
     "noEmit": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
 
+    "allowImportingTsExtensions": true,
+
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "types": ["node", "@i-thinking/shared/process-env"],
