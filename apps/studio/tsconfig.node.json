@@ -12,7 +12,13 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
-    "noEmit": true,
+    "resolveJsonModule": true,
+    // 被 tsconfig.json 以 references 引用 → 必须是 composite 且不能禁用 emit；
+    // 这里只产出声明到临时目录，避免污染仓库
+    "composite": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./node_modules/.tmp/node-types",
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
@@ -30,6 +36,7 @@
     }
   },
   "include": [
+    "package.json",
     "forge.config.ts",
     "forge/**/*.ts",
     "vitest.config.*",

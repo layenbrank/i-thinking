@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import tseslint from 'typescript-eslint'
 
 /**
- * UI 包规则与 app 侧保持一致，但**不禁止箭头函数**：
+ * 设计包规则与 app 侧保持一致，但**不禁止箭头函数**：
  * 本包大量代码来自 shadcn / assistant-ui registry（copy-in），
  * 生成物用箭头函数表达 render prop / 事件回调，逐次改写不划算。
  */
@@ -62,7 +62,7 @@ export default defineConfig([
    * - 组件里读 ref 是上游的测量写法，本包不改上游实现
    */
   {
-    files: ['src/components/assistant-ui/**/*.tsx'],
+    files: ['src/assistant/**/*.tsx'],
     rules: {
       eqeqeq: ['error', 'smart'],
       'no-empty': ['error', { allowEmptyCatch: true }],

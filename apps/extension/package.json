@@ -29,7 +29,7 @@
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@i-thinking/ui": "workspace:*",
+    "@i-thinking/design": "workspace:*",
     "@i-thinking/shared": "workspace:*",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",

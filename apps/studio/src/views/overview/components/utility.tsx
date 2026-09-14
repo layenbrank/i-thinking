@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react/offline'
-import { Button } from '@i-thinking/ui/button'
+import { Button } from '@i-thinking/design/primitive/button'
 import { clsx } from 'clsx'
 import { useEffect, useReducer } from 'react'
 import { useNavigate } from 'react-router-dom'

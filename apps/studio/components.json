@@ -5,7 +5,7 @@
   "tsx": true,
   "tailwind": {
     "config": "",
-    "css": "../../packages/ui/src/styles/globals.css",
+    "css": "../../packages/design/src/styles/globals.css",
     "baseColor": "neutral",
     "cssVariables": true,
     "prefix": ""
@@ -16,7 +16,7 @@
     "ui": "@/components/ui",
     "lib": "@/utils",
     "hooks": "@/hooks",
-    "utils": "@i-thinking/ui/lib/utils"
+    "utils": "@i-thinking/design/lib/utils"
   },
   "registries": {
     "@assistant-ui": "https://r.assistant-ui.com/styles/{style}/{name}.json"

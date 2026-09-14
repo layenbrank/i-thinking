@@ -9,8 +9,8 @@ import {
 } from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { BrainIcon, ChevronDownIcon } from 'lucide-react'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible'
-import { cn } from '../../../lib/utils'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../primitive/collapsible'
+import { cn } from '../lib/utils'
 
 export const ANIMATION_DURATION = 200
 

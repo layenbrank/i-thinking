@@ -10,10 +10,10 @@ import {
   type ToolCallMessagePartStatus,
   type ToolCallMessagePartComponent
 } from '@assistant-ui/react'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../ui/collapsible'
-import { cn } from '../../../lib/utils'
-import { Button } from '../../ui/button'
-import { Textarea } from '../../ui/textarea'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../primitive/collapsible'
+import { cn } from '../lib/utils'
+import { Button } from '../primitive/button'
+import { Textarea } from '../primitive/textarea'
 
 const ANIMATION_DURATION = 200
 
