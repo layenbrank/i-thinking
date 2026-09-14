@@ -91,9 +91,6 @@ declare namespace MagneticTile {
     origin?: string
   }
 
-  type Overlay = ReturnType<(typeof import('ant-design-vue'))['Modal']['info']>
-  // type Overlay = ReturnType<Modal['info']>
-
   /**
    * 写入参数：不含自动生成的 id / createdAt / updatedAt
    * Rust Write 结构体中无 downloadCount，此处同步排除

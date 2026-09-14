@@ -1,6 +1,6 @@
 import { useEventListener } from '@vueuse/core'
 import type { MaybeRefOrGetter } from '@vueuse/shared'
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
+import { computed, ref, type ComputedRef } from 'vue'
 
 /**
  * 滚轮事件状态接口
@@ -171,8 +171,8 @@ export function useWheel(options: UseWheelOptions) {
   if (debug && max < min) log('warn', 'max should be greater than min')
 
   // 调试日志
-  function log(type: keyof Console, ...data: any[]) {
-    if (debug) (console[type] as (...data: any[]) => void).call(console, ...data)
+  function log(type: keyof Console, ...data: unknown[]) {
+    if (debug) (console[type] as (...data: unknown[]) => void).call(console, ...data)
   }
 
   // 确保值在范围内

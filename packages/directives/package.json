@@ -7,10 +7,7 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "scripts": {
-    "build": "run-s build:pre build:core build:post",
-    "build:pre": "bun run scripts/build-prefix.ts",
-    "build:core": "rolldown -c",
-    "build:post": "bun run scripts/build-suffix.ts",
+    "build": "rolldown -c",
     "dev": "vite",
     "format": "prettier --write src/",
     "lint": "run-s lint:*",
@@ -25,6 +22,9 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
+  },
+  "dependencies": {
+    "vue": "catalog:"
   },
   "files": [
     "dist"
