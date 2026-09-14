@@ -1,0 +1,117 @@
+/**
+ * 共享 chat 层：领域类型 + 端口接口 + assistant-ui 适配器。
+ *
+ * 环境无关是硬约束：本包只能依赖 React / assistant-ui，不得引入 Node、Electron、`chrome.*`。
+ * 两个 app 各自实现端口：
+ * - `apps/studio`：历史走主进程 IPC（Drizzle），模型走 MessagePort（本地 provider）
+ * - `apps/extension`：历史走 Dexie，模型走 apps/service 的 HTTPS 路由
+ */
+
+/** 会话（线程）元数据 */
+interface ChatThread {
+  id: string
+  title: string
+  pinned: boolean
+  /** epoch ms */
+  updatedAt: number
+  providerID: string | null
+}
+
+/**
+ * 一条消息的持久化行 —— assistant-ui 的存储契约，列名不可改名：
+ * `{ id, parent_id, format, content }`（见 drizzle/schema/chat.ts）。
+ * `content` 是该 `format` 对应适配器 encode 出的不透明字符串。
+ */
+interface ChatStoredMessage {
+  id: string
+  parentID: string | null
+  format: string
+  content: string
+}
+
+/** 历史端口：会话与消息的读写（studio / extension 各实现一份） */
+interface ChatHistoryPort {
+  /** 置顶优先、最近活动在前 */
+  findThreads(): Promise<ChatThread[]>
+  findThread(id: string): Promise<ChatThread | null>
+  createThread(input?: { title?: string; providerID?: string | null }): Promise<ChatThread>
+  updateThread(id: string, patch: { title?: string; pinned?: boolean }): Promise<ChatThread>
+  deleteThread(id: string): Promise<void>
+  /** 按时间升序返回整条会话 */
+  findMessages(input: { threadID: string }): Promise<ChatStoredMessage[]>
+  appendMessage(input: { threadID: string } & ChatStoredMessage): Promise<void>
+  updateMessage(input: { id: string; format?: string; content?: string }): Promise<void>
+  /** 删除消息（含其后继分支，由实现方决定级联语义） */
+  deleteMessages(input: { ids: string[] }): Promise<void>
+}
+
+/** 模型目标：由 app 注入（当前选中的 provider / 模型） */
+interface ChatTarget {
+  providerID: string
+  model: string
+}
+
+interface ChatRunMessage {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
+
+interface ChatRunInput {
+  system?: string
+  messages: ChatRunMessage[]
+}
+
+interface ChatUsage {
+  inputTokens?: number
+  outputTokens?: number
+  totalTokens?: number
+}
+
+/**
+ * 模型流事件（纯数据，跨进程/跨网络都用这一套）。
+ * `blockID` 用于把同一段文本（或同一段推理）的增量归组。
+ */
+type ChatStreamEvent =
+  | { kind: 'text'; blockID: string; text: string }
+  | { kind: 'reasoning'; blockID: string; text: string }
+  | { kind: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+  | { kind: 'finish'; finishReason: string; usage: ChatUsage }
+  | { kind: 'aborted' }
+  | { kind: 'error'; message: string }
+
+/** 模型端口：一次生成的事件流（实现方必须响应 `signal` 中止） */
+interface ChatModelPort {
+  /** 当前选中的 provider/模型；未配置时返回 null，由适配器抛可展示的错误。异步：配置来自 IPC/Dexie */
+  findTarget(): Promise<ChatTarget | null>
+  run(input: ChatRunInput & ChatTarget, signal: AbortSignal): AsyncIterable<ChatStreamEvent>
+}
+
+/** 给联合类型每个成员补上字段（分发式条件类型） */
+type WithRunID<T> = T extends unknown ? T & { runID: string } : never
+
+/**
+ * MessagePort 传输的请求（渲染进程 → 主进程）。
+ * 只有 Electron 通路用这套信封；extension 走 HTTPS + AI SDK 数据流，不涉及。
+ */
+type ChatPortRequest =
+  ({ kind: 'start'; runID: string } & ChatTarget & ChatRunInput) | { kind: 'abort'; runID: string }
+
+/**
+ * MessagePort 传输的事件（主进程 → 渲染进程）：共享事件形状 + 运行 id。
+ * 一个端口上可能同时跑多个运行，用 `runID` 区分。
+ */
+type ChatPortEvent = WithRunID<ChatStreamEvent>
+
+export type {
+  ChatHistoryPort,
+  ChatModelPort,
+  ChatPortEvent,
+  ChatPortRequest,
+  ChatRunInput,
+  ChatRunMessage,
+  ChatStoredMessage,
+  ChatStreamEvent,
+  ChatTarget,
+  ChatThread,
+  ChatUsage
+}
