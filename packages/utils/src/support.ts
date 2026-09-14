@@ -133,7 +133,7 @@ export const supported = {
     const isEdge = userAgent.indexOf('Edge') > -1
     return (
       !!userAgent.match('CriOS') ||
-      (null != chrome && 'Google Inc.' === vendor && !isOpera && !isEdge)
+      (null !== chrome && 'Google Inc.' === vendor && !isOpera && !isEdge)
     )
   },
   isIOS: isIOS,

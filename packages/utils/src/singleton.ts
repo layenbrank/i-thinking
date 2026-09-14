@@ -10,7 +10,7 @@ export function Singleton() {
     // 实例存储
     let instance: InstanceType<T> | null = null
 
-    let proxiedConstructor: T
+    let proxiedConstructor: T | null = null
 
     // 创建代理类
     proxiedConstructor = new Proxy(constructor, {
@@ -25,11 +25,7 @@ export function Singleton() {
 
         if (!instance) {
           try {
-            instance = Reflect.construct(
-              target,
-              args,
-              newTarget
-            ) as InstanceType<T>
+            instance = Reflect.construct(target, args, newTarget) as InstanceType<T>
           } catch (error) {
             console.error(`创建 ${constructor.name} 单例时出错:`, error)
             throw error

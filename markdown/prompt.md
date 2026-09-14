@@ -38,6 +38,7 @@
 - 颜色使用主色。
 - 非 antd 组件若要消费 antd 主题变量（`--ith-*`），须挂上 `CSSVAR.KEY`（见 `apps/client/src/themes/runtime/build.ts`），或用 `useCssVarClassName`；样式里写 `var(--ith-…)`，不要写 `var(--ant-*)`。
 - 注入规则为 `.ith { --ith-*: … }`，未挂 `ith` 作用域则变量不生效。
+- 设计稿的样式仅参考，不必原样照抄，实现时注意样式布局工整 对齐，el 组件size统一 small，尽量不使用css更改 el 组件大小，只允许更改大小之外的样式，颜色使用 el ui 主题色变量
 
 ### 装饰
 
