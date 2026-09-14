@@ -30,7 +30,3 @@ const appRoot = createRoot(rootElement, {
 })
 
 appRoot.render(<App />)
-
-itc.app.onMessage(function (message) {
-  console.log('main-process-message', message)
-})

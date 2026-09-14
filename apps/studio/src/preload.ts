@@ -197,17 +197,6 @@ const itc: ITC = {
         return invoke(CHANNELS.ASSISTANT.KEY.REMOVE, input)
       }
     }
-  },
-  app: {
-    onMessage(callback) {
-      function handler(_event: unknown, payload: unknown) {
-        callback(payload)
-      }
-      ipcRenderer.on(CHANNELS.APP.MESSAGE, handler)
-      return function () {
-        ipcRenderer.removeListener(CHANNELS.APP.MESSAGE, handler)
-      }
-    }
   }
 }
 
