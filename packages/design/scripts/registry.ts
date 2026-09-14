@@ -11,10 +11,22 @@
  *   2. `@/…` 导入 → 相对路径（按 AREAS 表解析到真实位置）
  *   3. 去掉 `"use client"` 指令；清掉空目录
  *
+ * 本文件由 Node 直接执行（Node ≥ 24 原生擦除类型，不需要编译），因此**只能用可擦除语法**：
+ * 禁 enum / namespace / 参数属性 / `import =`，类型与值要分清（`verbatimModuleSyntax`）。
+ *
  *   pnpm --filter @i-thinking/design registry:add @assistant-ui/thread   # CLI 装
  *   pnpm --filter @i-thinking/design registry:fix                        # 本脚本
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync
+} from 'node:fs'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -22,11 +34,13 @@ const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const MIRROR_DIR = join(PACKAGE_ROOT, '@')
 const SOURCE_DIR = join(PACKAGE_ROOT, 'src')
 
+/** CLI 的 `@/…` 前缀 → 本包的分类目录（分类目录名即对外子路径） */
+type AreaRule = readonly [prefix: string, target: string]
+
 /**
- * CLI 的 `@/…` 前缀 → 本包的分类目录（分类目录名即对外子路径）。
  * 新增一类组件只在这里加一行，同时补 `package.json` 的 exports。
  */
-const AREAS = [
+const AREAS: readonly AreaRule[] = [
   ['components/ui/', 'primitive/'],
   ['components/assistant-ui/', 'assistant/'],
   ['components/', 'composite/'],
@@ -40,7 +54,7 @@ const USE_CLIENT = /^\s*(?:"use client"|'use client');?\s*$/gm
 const ALIAS_IMPORT = /(from\s+['"])(@\/[^'"]+)(['"])|(import\s+['"])(@\/[^'"]+)(['"])/
 
 /** `@/a/b` → 真实文件路径（按 AREAS 表换到分类目录） */
-function resolveAlias(specifier) {
+function resolveAlias(specifier: string): string {
   const rest = specifier.slice('@/'.length)
   const area = AREAS.find(function ([prefix]) {
     return rest.startsWith(prefix)
@@ -48,7 +62,7 @@ function resolveAlias(specifier) {
   return join(SOURCE_DIR, area ? area[1] + rest.slice(area[0].length) : rest)
 }
 
-function walk(dir) {
+function walk(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap(function (entry) {
     const full = join(dir, entry.name)
     return entry.isDirectory() ? walk(full) : [full]
@@ -56,13 +70,13 @@ function walk(dir) {
 }
 
 /** `@/a/b` 从当前文件位置改写为相对说明符（保留原扩展名写法） */
-function toRelative(specifier, fromFile) {
+function toRelative(specifier: string, fromFile: string): string {
   const target = resolveAlias(specifier)
   const relativePath = relative(dirname(fromFile), target).split(sep).join('/')
   return relativePath.startsWith('.') ? relativePath : `./${relativePath}`
 }
 
-function rewriteImports(file) {
+function rewriteImports(file: string): void {
   const source = readFileSync(file, 'utf8')
   const rewritten = source
     .replace(USE_CLIENT, '')
@@ -76,7 +90,7 @@ function rewriteImports(file) {
   if (rewritten !== source) writeFileSync(file, rewritten)
 }
 
-function pruneEmptyDirs(dir) {
+function pruneEmptyDirs(dir: string): void {
   if (!existsSync(dir)) return
   readdirSync(dir, { withFileTypes: true }).forEach(function (entry) {
     if (entry.isDirectory()) pruneEmptyDirs(join(dir, entry.name))
@@ -84,8 +98,8 @@ function pruneEmptyDirs(dir) {
   if (readdirSync(dir).length === 0) rmSync(dir, { recursive: true, force: true })
 }
 
-const moved = []
-const skipped = []
+const moved: string[] = []
+const skipped: string[] = []
 
 if (existsSync(MIRROR_DIR)) {
   walk(MIRROR_DIR).forEach(function (file) {
@@ -102,7 +116,7 @@ if (existsSync(MIRROR_DIR)) {
 }
 
 // 已移入的文件 + 任何遗留 `@/` 导入（脚本可重复执行/可从半完成状态恢复）
-const touched = new Set(moved)
+const touched = new Set<string>(moved)
 walk(SOURCE_DIR).forEach(function (file) {
   const source = readFileSync(file, 'utf8')
   if (ALIAS_IMPORT.test(source) || /["']use client["']/.test(source)) touched.add(file)
@@ -110,11 +124,15 @@ walk(SOURCE_DIR).forEach(function (file) {
 touched.forEach(rewriteImports)
 
 pruneEmptyDirs(MIRROR_DIR)
-if (existsSync(MIRROR_DIR) && statSync(MIRROR_DIR).isDirectory() && readdirSync(MIRROR_DIR).length === 0) {
+if (
+  existsSync(MIRROR_DIR) &&
+  statSync(MIRROR_DIR).isDirectory() &&
+  readdirSync(MIRROR_DIR).length === 0
+) {
   rmSync(MIRROR_DIR, { recursive: true, force: true })
 }
 
-function toLines(files) {
+function toLines(files: readonly string[]): string {
   return files
     .map(function (file) {
       return `  ${relative(PACKAGE_ROOT, file)}`

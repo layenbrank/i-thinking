@@ -4,14 +4,6 @@
   "private": true,
   "type": "module",
   "description": "i thinking 设计系统：shadcn/ui 原子组件 + assistant-ui elements + 设计 token",
-  "exports": {
-    "./globals.css": "./src/styles/globals.css",
-    "./primitive/*": "./src/primitive/*.tsx",
-    "./assistant/*": "./src/assistant/*.tsx",
-    "./composite/*": "./src/composite/*.tsx",
-    "./hooks/*": "./src/hooks/*.ts",
-    "./lib/*": "./src/lib/*.ts"
-  },
   "scripts": {
     "type-check": "tsc --noEmit",
     "lint": "run-s lint:*",
@@ -19,7 +11,7 @@
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "format": "prettier --write src/",
     "registry:add": "shadcn add",
-    "registry:fix": "node scripts/normalize-registry.mjs",
+    "registry:fix": "node scripts/registry.ts",
     "test:unit": "vitest",
     "test:coverage": "vitest --coverage"
   },
@@ -46,5 +38,13 @@
     "shadcn": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:"
+  },
+  "exports": {
+    "./globals.css": "./src/styles/globals.css",
+    "./primitive/*": "./src/primitive/*.tsx",
+    "./assistant/*": "./src/assistant/*.tsx",
+    "./composite/*": "./src/composite/*.tsx",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./lib/*": "./src/lib/*.ts"
   }
 }

@@ -7,33 +7,33 @@
 ```text
 packages/design/
 ├── components.json          # shadcn 配置（style/baseColor/iconLibrary 必须与各 app 一致）
-├── scripts/normalize-registry.mjs  # CLI 产物按分类落位（见下文）
+├── scripts/registry.ts        # CLI 产物按分类落位（见下文；Node 直接执行，无需编译）
 ├── src/
 │   ├── primitive/           # shadcn 原子组件（CLI 安装）
 │   ├── assistant/           # assistant-ui registry 组件（CLI 安装）
-│   ├── composite/           # 组合/装配层（theme-provider 等）
+│   ├── composite/           # 组合/装配层（shadcn CLI 的 components/ 落点）
 │   ├── hooks/
-│   ├── lib/utils.ts         # cn()
+│   ├── lib/                 # CLI 的 lib/ 落点（cn 直接走 'cn' 包）
 │   └── styles/globals.css   # Tailwind v4 入口 + 全部设计 token（唯一源）
 └── tsconfig.json            # 故意不声明 paths（见「约束」）
 ```
 
 **目录名即子路径**：`src/<分类>/x.tsx` ↔ `@i-thinking/design/<分类>/x`，没有通配包根这一类后门。
 新增一类组件 = 在 `src/` 建一个目录 + 在 `package.json` 的 exports 加一行 + 在
-`scripts/normalize-registry.mjs` 的 `AREAS` 表加一行（CLI 落点由这张表决定）。
+`scripts/registry.ts` 的 `AREAS` 表加一行（CLI 落点由这张表决定）。
 
 ## 导入路径
 
 包名已含 `ui`，所以不再出现 `components/ui` 这样的重复段：
 
-| 导入写法 | 实际文件 |
-| --- | --- |
-| `@i-thinking/design/primitive/button` | `src/primitive/button.tsx` |
-| `@i-thinking/design/assistant/thread.aui` | `src/assistant/thread.aui.tsx` |
-| `@i-thinking/design/composite/theme-provider` | `src/composite/theme-provider.tsx` |
-| `@i-thinking/design/hooks/use-theme` | `src/hooks/use-theme.ts` |
-| `@i-thinking/design/lib/utils` | `src/lib/utils.ts` |
-| `@i-thinking/design/globals.css` | `src/styles/globals.css` |
+| 导入写法                                         | 实际文件                                              |
+| ------------------------------------------------ | ----------------------------------------------------- |
+| `@i-thinking/design/primitive/button`            | `src/primitive/button.tsx`                            |
+| `@i-thinking/design/assistant/thread.aui`        | `src/assistant/thread.aui.tsx`                        |
+| `@i-thinking/design/composite/<name>`            | `src/composite/<name>.tsx`（shadcn CLI 复合组件落点） |
+| `@i-thinking/design/hooks/use-copy-to-clipboard` | `src/hooks/use-copy-to-clipboard.ts`                  |
+| `@i-thinking/design/lib/<name>`                  | `src/lib/<name>.ts`（CLI 的 lib/ 落点）               |
+| `@i-thinking/design/globals.css`                 | `src/styles/globals.css`                              |
 
 `package.json` 的 exports 就是上面六个条目，每个通配一个**完整目录**（`./globals.css` 为显式条目）。
 新增组件只要落在对应目录里就能直接导入；新开一类目录则同时补 exports 与 `AREAS` 表两行。
@@ -41,7 +41,7 @@ packages/design/
 ## 约束
 
 - **token 只在 `src/styles/globals.css` 定义**；app 侧通过 `@import "@i-thinking/design/globals.css"` 引入，不要再定义同名变量。
-- 组件的类名合并统一用 `cn()`（本包导出），app 不要各自再包一层。
+- 类名合并统一用 `cn`，直接从 `cn` 包导入（`import { cn } from 'cn'`）；不要再包一层 re-export。
 - **包内一律相对路径导入**，不要使用 `@/...`：
   app 的 `resolve.tsconfigPaths` 会用 app 自己的 tsconfig 解析所有 importer 的 `@/*`，
   会把本包的内部导入解析到 `apps/<app>/src`（Vite 插件也拦不住，因为改写发生在插件之前）。
@@ -62,7 +62,7 @@ pnpm --filter @i-thinking/design registry:fix
 CLI 靠 tsconfig 的 `paths` 解析 `components.json` 里的 `@/…` aliases，而本包**故意不声明 `paths`**
 （见上文约束）→ 它把 aliases 当成相对路径，产物会落到字面量目录 `@/components/…`，导入也留着 `@/…`。
 
-`scripts/normalize-registry.mjs` 幂等地修掉这三件事：
+`scripts/registry.ts` 幂等地修掉这三件事：
 
 1. `@/**` → `src/**`（目标已存在时保留本包版本，丢弃 CLI 的同名副本）
 2. `@/…` 导入 → 相对路径
