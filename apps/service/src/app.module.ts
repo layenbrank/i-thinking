@@ -2,6 +2,7 @@ import { AppController } from '@/app.controller'
 import { AppService } from '@/app.service'
 import { ApplicationModule } from '@/services/application/application.module'
 import { AuthModule } from '@/services/auth/auth.module'
+import { ChatModule } from '@/services/chat/chat.module'
 import { ConsoleModule } from '@/services/console/console.module'
 import { DemoModule } from '@/services/demo/demo.module'
 import { PostsModule } from '@/services/posts/posts.module'
@@ -18,7 +19,7 @@ import process from 'node:process'
   imports: [
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      async useFactory(configService: ConfigService<NodeJS.ProcessEnv>) {
+      useFactory(configService: ConfigService<NodeJS.ProcessEnv>) {
         const uri = configService.get<string>('MONGODB_URI', {
           infer: true
         })
@@ -59,7 +60,8 @@ import process from 'node:process'
     UploadModule,
     ProfileModule,
     ConsoleModule,
-    ApplicationModule
+    ApplicationModule,
+    ChatModule
   ],
   controllers: [AppController],
   providers: [

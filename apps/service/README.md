@@ -58,6 +58,25 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+## 在线对话（chat）
+
+`POST /api/v1/chat`（需 JWT）：把 AI SDK 的 `UIMessage[]` 交给上游 OpenAI 兼容服务，返回 UI message 流（SSE）。
+
+| 变量               | 说明                                       |
+| ------------------ | ------------------------------------------ |
+| `AI_BASE_URL`      | 上游地址，例如 `http://127.0.0.1:11434/v1` |
+| `AI_PROVIDER_NAME` | provider 名，缺省 `openai-compatible`      |
+| `AI_API_KEY`       | 密钥，本机服务可留空                       |
+| `AI_MODEL`         | 默认模型，请求体可用 `model` 覆盖          |
+
+任一项缺失返回 `503`。请求体支持 `messages`（必填，≤200 条）、`model`、`system`。
+
+实现约束：
+
+- 控制器用 `@Res()` 直写响应：全局 `ResponseInterceptor` 的 `{ code, data, msg }` 包裹会破坏 SSE 流。
+- `ai` 为 ESM-only 包（无 `require` 条件导出），运行时依赖 Node ≥ 22.12 的 `require(esm)`；`Dockerfile` 的 `node:22-alpine` 满足该条件。
+- 类型检查走 `tsc --noEmit -p tsconfig.build.json`（`tsconfig.json` 含 `*.spec.ts`，已加 `jest` 类型）。
+
 ## Resources
 
 Check out a few resources that may come in handy when working with NestJS:

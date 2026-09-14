@@ -27,7 +27,7 @@ export class ApplicationService {
     return 'This action adds a new Application'
   }
 
-  async toReads() {
+  toReads() {
     return DEFAULT
   }
 

@@ -15,7 +15,7 @@ export class ConsoleController {
 
   @Get()
   findAll() {
-    return `${Reflect.defineMetadata}`
+    return String(Reflect.defineMetadata)
     // return this.consoleService.findAll()
   }
 

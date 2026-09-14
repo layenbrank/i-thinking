@@ -33,7 +33,7 @@
     "noUncheckedIndexedAccess": true,
     "strictPropertyInitialization": false,
 
-    "types": ["node", "@i-thinking/shared/process-env"],
+    "types": ["node", "jest", "@i-thinking/shared/process-env"],
 
     "rootDir": ".",
     "paths": {
