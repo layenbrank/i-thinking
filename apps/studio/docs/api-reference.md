@@ -11,11 +11,10 @@
 
 ```ts
 // 推荐：全局挂载（preload exposeInMainWorld('itc')）
-itc.store.toRead({ key: 'theme' })
+itc.store.toRead({ key: 'locale' })
 
-// 网页模式探测
-import { findItc } from '@/lib/itc'
-const bridge = findItc() // === window.itc === itc
+// 网页预览（dev:core）没有 preload，需自行容错
+const hasItc = typeof itc !== 'undefined'
 ```
 
 ## 约定
