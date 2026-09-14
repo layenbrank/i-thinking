@@ -1,17 +1,12 @@
+import tailwindcss from '@tailwindcss/vite'
+import React from '@vitejs/plugin-react-swc'
 import { readFileSync } from 'node:fs'
+import { networkInterfaces } from 'node:os'
 import { resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
-import { networkInterfaces } from 'node:os'
-import LanguagePlugin from '@intlify/unplugin-vue-i18n/vite'
-import Vue from '@vitejs/plugin-vue'
-import VueJsx from '@vitejs/plugin-vue-jsx'
 
-import AutoImport from 'unplugin-auto-import/vite'
-import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
-import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import { compression } from 'vite-plugin-compression2'
-import DevTools from 'vite-plugin-vue-devtools'
 import { chunks } from './vite.chunk.ts'
 // import wasm from 'vite-plugin-wasm'
 
@@ -61,32 +56,19 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
 
   return {
     plugins: [
-      Vue(),
-      // wasm(),
-      VueJsx(),
-      DevTools(),
+      tailwindcss(),
+      React({
+        devTarget: 'esnext',
+        jsxImportSource: 'react',
+        tsDecorators: true,
+        plugins: []
+      }),
       compression({
         include: /\.(js|mjs|json|css|less|scss|html)$/i,
         threshold: 10240,
         deleteOriginalAssets: false,
         algorithms: ['gzip'],
         logLevel: 'info'
-      }),
-      AutoImport({
-        dts: 'src/types/auto-imports.d.ts',
-        include: [/\.[tj]sx?$/, /\.vue$/],
-        imports: ['vue', 'vue-router', 'pinia']
-      }),
-      Components({
-        dts: 'src/types/components.d.ts',
-        resolvers: [
-          AntDesignVueResolver({
-            importStyle: false
-          })
-        ]
-      }),
-      LanguagePlugin({
-        include: resolve(fileURLToPath(import.meta.url), './src/locales')
       })
     ],
     resolve: {
@@ -94,17 +76,6 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
-    },
-    optimizeDeps: {
-      include: ['vue', 'vue-router', 'pinia'],
-      exclude: [
-        '@i-thinking/wasm',
-        '@ffmpeg/ffmpeg',
-        '@ffmpeg/util',
-        'ffmpeg-core.js',
-        'ffmpeg-core.wasm',
-        'ffmpeg-core.worker.js'
-      ]
     },
     build: {
       target: 'esnext',
@@ -176,14 +147,6 @@ export default defineConfig(function ({ mode, command: _command }: ConfigEnv): U
         scopeBehaviour: 'local',
         // 自定义哈希函数
         hashPrefix: 'prefix'
-      },
-      preprocessorOptions: {
-        scss: {
-          additionalData: `
-                          @use "@/styles/variables.scss";
-                          @use "@/styles/magnetic-tile.scss";
-													`
-        }
       }
     },
     clearScreen: false,

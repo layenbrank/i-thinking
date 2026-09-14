@@ -9,9 +9,10 @@
     "playwright.config.*",
     "tailwind.config.*",
     "eslint.config.*",
+    "bump.*.ts",
     "scripts/**/*.ts"
   ],
-  "exclude": ["postcss.config.js"],
+  "exclude": ["postcss.config.js", "dist"],
   "compilerOptions": {
     "noEmit": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",

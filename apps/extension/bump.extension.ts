@@ -10,6 +10,6 @@ export default defineConfig({
   push: false,
   files: ['package.json'],
   progress({ event, updatedFiles }) {
-    console.log(`${event} 🛠 ☛ ——> ${updatedFiles}`)
+    console.log(`${event} 🛠 ☛ ——> ${updatedFiles.join(', ')}`)
   }
 })

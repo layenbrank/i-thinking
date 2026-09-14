@@ -1,7 +1,6 @@
 // import { readdir} from 'node:fs'
-import { readdir, writeFile } from 'node:fs/promises'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve, basename } from 'node:path'
-import Stringify from '../dist/manifest.json' with { type: 'json' }
 
 export interface Manifest {
   name: string
@@ -40,33 +39,37 @@ export interface Resource {
 }
 
 const dist = resolve(__dirname, '..', 'dist')
+const manifestPath = resolve(dist, 'manifest.json')
 
-const manifest: Manifest = Stringify
+type Handler = (manifest: Manifest, file: string) => void
 
-function service(file: string) {
-  console.log('manifest service', file)
-  manifest.background.service_worker = basename(file)
-}
+const handlers: Record<string, Handler> = {
+  'service-worker': function (manifest, file) {
+    console.log('manifest service', file)
+    manifest.background.service_worker = basename(file)
+  },
+  'content-scripts': function (manifest, file) {
+    console.log('manifest content', file)
 
-function content(file: string) {
-  console.log('manifest content', file)
-
-  manifest.background.content_scripts = []
-
-  manifest.background.content_scripts.push({
-    matches: ['<all_urls>'],
-    js: [file]
-  })
-}
-
-const handlers: Record<string, (file: string) => void> = {
-  'service-worker': service,
-  'content-scripts': content
+    manifest.background.content_scripts = [
+      {
+        matches: ['<all_urls>'],
+        js: [file]
+      }
+    ]
+  }
 }
 
 const libs = Object.keys(handlers)
 
+// 运行时读取：manifest 是构建产物，静态 import 会让 type-check 依赖 dist
+async function parseManifest() {
+  const content = await readFile(manifestPath, 'utf-8')
+  return JSON.parse(content) as Manifest
+}
+
 async function runner() {
+  const manifest = await parseManifest()
   const files = await readdir(dist, {
     encoding: 'utf-8',
     recursive: true
@@ -80,17 +83,10 @@ async function runner() {
 
     const filename = basename(file, '.js')
     const replaced = filename.replace(/-([a-zA-Z0-9]{8,})$/, '')
-    const handler = handlers[replaced]
-    handler?.(file)
-    // console.log('filename', filename, '\nhandler', handler)
-
-    // manifest 对象排序
-    // manifest = Object.fromEntries(Object.entries(manifest).sort()) as Manifest
-
-    void writeFile(resolve(dist, 'manifest.json'), JSON.stringify(manifest, null, 2), {
-      encoding: 'utf-8'
-    })
+    handlers[replaced]?.(manifest, file)
   }
+
+  await writeFile(manifestPath, JSON.stringify(manifest, null, 2), { encoding: 'utf-8' })
 }
 
 void runner()

@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitest/config'
-import vue from '@vitejs/plugin-vue'
-import vueJsx from '@vitejs/plugin-vue-jsx'
+import React from '@vitejs/plugin-react-swc'
 import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
-  plugins: [vue(), vueJsx()],
+  plugins: [
+    React({ devTarget: 'esnext', jsxImportSource: 'react', tsDecorators: true, plugins: [] })
+  ],
   test: {
     globals: true,
     environment: 'jsdom',
