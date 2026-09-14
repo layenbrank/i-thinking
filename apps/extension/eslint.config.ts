@@ -1,165 +1,66 @@
-import pluginVitest from '@vitest/eslint-plugin'
-import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
-import {
-  configureVueProject,
-  defineConfigWithVueTs,
-  vueTsConfigs
-} from '@vue/eslint-config-typescript'
-import pluginPlaywright from 'eslint-plugin-playwright'
-import pluginVue from 'eslint-plugin-vue'
-import { globalIgnores } from 'eslint/config'
+import eslint from '@eslint/js'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
 import globals from 'globals'
 import { fileURLToPath } from 'node:url'
-
-// 本配置（eslint.config.ts）所在目录，即项目根目录
-const ROOT_DIR = fileURLToPath(new URL('.', import.meta.url))
+import tseslint from 'typescript-eslint'
 
 /**
- * 配置 Vue 项目的 ESLint 环境
- * @param {Object} options - 配置选项
- * @param {string[]} options.scriptLangs - 允许在 `.vue` 文件中使用的脚本语言
- * @param {string} options.rootDir - 项目的根目录
+ * extension 的 ESLint（flat config）：Vue 侧已全部迁到 React，这里不再需要
+ * `eslint-plugin-vue` / `@vue/eslint-config-*`，与 studio 保持一致。
  */
-configureVueProject({
-  // 允许在 `.vue` 文件中使用 TypeScript 和 TSX
-  scriptLangs: ['ts', 'tsx'],
-  // 设置项目的根目录为当前模块的目录
-  rootDir: ROOT_DIR
-})
+export default defineConfig([
+  globalIgnores(['dist', 'node_modules', 'coverage']),
+  eslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  reactHooks.configs.flat['recommended-latest'],
+  reactRefresh.configs.vite,
 
-// More info at https://github.com/vuejs/eslint-config-typescript/#advanced-setup
-
-export default defineConfigWithVueTs(
-  pluginVue.configs['flat/essential'],
-  vueTsConfigs.recommended,
-  vueTsConfigs.recommendedTypeChecked,
-  vueTsConfigs.stylisticTypeChecked,
-  skipFormatting,
-  globalIgnores(['dist', 'node_modules']),
   {
-    name: 'app/files-to-lint',
-    // plugins: {
-    // 	'@typescript-eslint': tseslint.plugin
-    // },
-    files: ['**/*.{ts,mts,tsx,vue}'],
-    // extends: [eslint.configs.recommended, tseslint.configs.recommended],
-    languageOptions: {
-      // parser: tseslint.parser,
-      sourceType: 'module',
-      parserOptions: {
-        // Parsing error: Enabling "project" does nothing when "projectService" is enabled. You can remove the "project" setting.
-        // projectService: true，只需删除 project 行即可：
-        // 是较新的 @typescript-eslint 推荐方式，它会自动发现并使用正确的 tsconfig（配合 tsconfigRootDir 限定查找范围），project 数组是旧方式，两者不能共存，移除 project 即可。
-        projectService: true,
-        tsconfigRootDir: ROOT_DIR,
-        globals: globals.browser
-      }
+    plugins: {
+      '@typescript-eslint': tseslint.plugin
     },
-    rules: {
-      /* 禁止使用 `var` 声明变量，推荐使用 `let` 或 `const` */
-      'no-var': 'error',
-      'no-trailing-spaces': 'error',
-      /* 要求使用严格相等（`===`）和严格不相等（`!==`），避免宽松相等带来的潜在问题 */
-      eqeqeq: 'error',
-      /* 对显式使用 `any` 类型发出警告，尽量避免使用 `any` 以保证类型安全 */
-      '@typescript-eslint/no-explicit-any': 'off',
-      /* 避免在条件表达式中使用赋值语句，这可能导致逻辑错误 */
-      '@typescript-eslint/no-unused-expressions': 'off',
-      /* 对不安全的赋值操作发出警告，确保赋值操作的类型安全 */
-      '@typescript-eslint/no-unsafe-assignment': 'error',
-      /* 限制嵌套代码块的最大深度，保持代码的清晰结构 */
-      'max-depth': ['error', 4],
-      '@typescript-eslint/no-namespace': 'off',
-      '@typescript-eslint/consistent-type-imports': 'error',
-      '@typescript-eslint/no-unsafe-argument': 'error',
-      /* 禁止未处理的 Promise语句 */
-      '@typescript-eslint/no-floating-promises': 'error',
-      /* 禁止将 Promise 传递到错误逻辑位置的代码 */
-      '@typescript-eslint/no-misused-promises': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'error',
-      '@typescript-eslint/no-unsafe-call': 'error',
-      '@typescript-eslint/no-unsafe-member-access': 'error',
-      '@typescript-eslint/no-redundant-type-constituents': 'off',
-
-      /* 对未使用的变量发出错误，保持代码的简洁性 */
-      '@typescript-eslint/no-unused-vars': [
-        'warn',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_'
-        }
-      ],
-      /* 限制每行代码的最大长度，增强代码的可读性 */
-      // 'vue/max-len': [
-      //   'error',
-      //   {
-      //     code: 300,
-      //     template: 300,
-      //     tabWidth: 2,
-      //     comments: 200,
-      //     ignorePattern: '(<svg.*>|<path.*>|<circle.*>|<g.*>|<rect.*>/.*>|xlink:href=".*"|d=.*)',
-      //     ignoreComments: false,
-      //     ignoreTrailingComments: false,
-      //     ignoreUrls: true,
-      //     ignoreStrings: false,
-      //     ignoreTemplateLiterals: false,
-      //     ignoreRegExpLiterals: false,
-      //     ignoreHTMLAttributeValues: false,
-      //     ignoreHTMLTextContents: true
-      //   }
-      // ],
-      /* 要求组件名称使用驼峰命名法，增强代码的可读性 */
-      'vue/multi-word-component-names': [
-        'error',
-        {
-          ignores: [
-            'contextmenu',
-            'controller',
-            'overview',
-
-            'bookmark',
-            'calendar',
-            'marketplace',
-            'settings',
-            'navigation',
-            'markdown',
-            'intelligence',
-            'clipchamp',
-            'example',
-            'gallery',
-            'collection',
-            'signboard',
-            'clock'
-          ]
-        }
-      ]
-      // 'prettier/prettier': [
-      // 	'error',
-      // 	{
-      // 		arrowParens: 'always',
-      // 		bracketSpacing: true,
-      // 		endOfLine: 'lf',
-      // 		printWidth: 100,
-      // 		semi: false,
-      // 		singleQuote: true,
-      // 		tabWidth: 2,
-      // 		trailingComma: 'none',
-      // 		useTabs: true
-      // 	}
-      // ]
+    languageOptions: {
+      parser: tseslint.parser,
+      ecmaVersion: 2025,
+      globals: {
+        ...globals.browser,
+        ...globals.worker,
+        chrome: 'readonly'
+      },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: fileURLToPath(new URL('.', import.meta.url))
+      }
     }
   },
 
   {
-    ...pluginVitest.configs.recommended,
-    files: ['src/**/__tests__/*']
+    name: 'app/rules',
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      eqeqeq: 'error',
+      '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
+      ]
+    }
   },
+
   {
-    ...pluginPlaywright.configs['flat/recommended'],
-    files: ['e2e/**/*.{test,spec}.{js,ts,jsx,tsx}']
-  },
-  {
-    name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**']
+    // MV3 的 service worker / content script 还留着旧代码，chrome.* 大量是 any
+    name: 'app/legacy-mv3',
+    files: ['src/libs/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-prototype-builtins': 'off'
+    }
   }
-)
+])

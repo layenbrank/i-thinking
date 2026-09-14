@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "run-s build:pre build:core build:post",
-    "build:pre": "bun run scripts/build-prefix.ts",
+    "build": "run-s build:core build:post",
     "build:core": "run-p type-check \"build-only {@}\" --",
     "build:post": "bun run scripts/build-suffix.ts",
     "build-only": "vite build",
-    "type-check": "vue-tsc --build",
+    "type-check": "tsc --build",
     "preview": "vite preview",
+    "smoke:dist": "node scripts/smoke-dist.ts",
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "lint:eslint": "eslint . --fix --cache",
     "lint": "run-s lint:*",
@@ -21,12 +21,18 @@
     "coverage": "vitest --coverage"
   },
   "dependencies": {
+    "@iconify/react": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router-dom": "catalog:",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@i-thinking/utils": "workspace:*",
-    "@i-thinking/directives": "workspace:*",
-    "@i-thinking/wasm": "workspace:*",
-    "@i-thinking/shared": "workspace:*"
+    "@i-thinking/ui": "workspace:*",
+    "@i-thinking/shared": "workspace:*",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react-swc": "catalog:"
   }
 }

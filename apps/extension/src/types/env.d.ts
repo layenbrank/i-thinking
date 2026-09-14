@@ -23,5 +23,3 @@ var MediaStreamTrackProcessor: {
   prototype: MediaStreamTrackProcessor
   new (options: MediaStreamTrack): TransformStream
 }
-
-declare type Recordable<T = any> = Record<string, T>
