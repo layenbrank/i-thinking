@@ -20,8 +20,7 @@ const STUDIO_NAMESPACES = [
   'devtools',
   'overlay',
   'chat',
-  'assistant',
-  'app'
+  'assistant'
 ] as const
 
 type StudioNamespace = (typeof STUDIO_NAMESPACES)[number]
@@ -49,8 +48,7 @@ describe('ipc contract', function () {
       'devtools',
       'overlay',
       'chat',
-      'assistant',
-      'app'
+      'assistant'
     ])
   })
 

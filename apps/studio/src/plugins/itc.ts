@@ -115,7 +115,4 @@ export interface ITC {
       toRemove: (input: KeyRefP) => Promise<void>
     }
   }
-  app: {
-    onMessage: (callback: (payload: unknown) => void) => () => void
-  }
 }

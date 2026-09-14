@@ -37,9 +37,6 @@ export const CHANNELS = {
     INSTALL: 'updater:install',
     EVENT: 'updater:event'
   },
-  APP: {
-    MESSAGE: 'app:message'
-  },
   OVERLAY: {
     READ: 'overlay:toRead',
     UPDATE: 'overlay:toUpdate'

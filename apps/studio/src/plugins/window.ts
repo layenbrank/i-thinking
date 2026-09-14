@@ -73,12 +73,6 @@ function attachLifecycle(
     toReveal(win, isFocusOnShow)
   })
 
-  win.webContents.on('did-finish-load', function () {
-    if (!win.isDestroyed()) {
-      win.webContents.send(CHANNELS.APP.MESSAGE, new Date().toLocaleString())
-    }
-  })
-
   win.webContents.on('did-fail-load', function (_event, code, desc, url) {
     log.error('did-fail-load', { code, desc, url })
     if (!isAutoShow || win.isDestroyed() || win.isVisible()) return
