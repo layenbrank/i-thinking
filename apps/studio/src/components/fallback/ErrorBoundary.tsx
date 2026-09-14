@@ -1,4 +1,4 @@
-import { Button } from '@i-thinking/ui/components/ui/button'
+import { Button } from '@i-thinking/ui/button'
 import { TriangleAlertIcon } from 'lucide-react'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 

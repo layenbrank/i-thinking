@@ -1,4 +1,4 @@
-import { Dialog, DialogContent } from '@i-thinking/ui/components/ui/dialog'
+import { Dialog, DialogContent } from '@i-thinking/ui/dialog'
 import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'

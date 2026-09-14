@@ -1,14 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@i-thinking/ui/components/ui/button'
-import { Checkbox } from '@i-thinking/ui/components/ui/checkbox'
+import { Button } from '@i-thinking/ui/button'
+import { Checkbox } from '@i-thinking/ui/checkbox'
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel
-} from '@i-thinking/ui/components/ui/form'
-import { Tabs, TabsList, TabsTrigger } from '@i-thinking/ui/components/ui/tabs'
+} from '@i-thinking/ui/form'
+import { Tabs, TabsList, TabsTrigger } from '@i-thinking/ui/tabs'
 import { LockIcon, MailIcon, SmartphoneIcon, UserIcon } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'

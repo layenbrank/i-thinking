@@ -1,12 +1,12 @@
-import { Button } from '@i-thinking/ui/components/ui/button'
+import { Button } from '@i-thinking/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle
-} from '@i-thinking/ui/components/ui/dialog'
-import { Switch } from '@i-thinking/ui/components/ui/switch'
+} from '@i-thinking/ui/dialog'
+import { Switch } from '@i-thinking/ui/switch'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { PlusIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'

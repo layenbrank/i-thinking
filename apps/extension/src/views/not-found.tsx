@@ -1,4 +1,4 @@
-import { Button } from '@i-thinking/ui/components/ui/button'
+import { Button } from '@i-thinking/ui/button'
 import { clsx } from 'clsx'
 import { useNavigate } from 'react-router-dom'
 

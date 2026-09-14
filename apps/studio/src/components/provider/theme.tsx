@@ -1,6 +1,6 @@
-import { ThemeProvider as BaseThemeProvider } from '@i-thinking/ui/components/theme-provider'
+import { ThemeProvider as BaseThemeProvider } from '@i-thinking/ui/theme-provider'
 import { useTheme } from '@i-thinking/ui/hooks/use-theme'
-import { Toaster } from '@i-thinking/ui/components/ui/sonner'
+import { Toaster } from '@i-thinking/ui/sonner'
 import { isThemeMode, type ThemeStorage } from '@i-thinking/ui/lib/theme'
 import type { ReactNode } from 'react'
 
