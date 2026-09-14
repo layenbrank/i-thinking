@@ -1,9 +1,9 @@
-import { memo, useCallback, useRef, useState, type FC, type PropsWithChildren } from 'react'
-import { ChevronDownIcon, LoaderIcon } from 'lucide-react'
-import { cva, type VariantProps } from 'class-variance-authority'
 import { useScrollLock } from '@assistant-ui/react'
+import { cva, type VariantProps } from 'class-variance-authority'
+import { cn } from 'cn'
+import { ChevronDownIcon, LoaderIcon } from 'lucide-react'
+import { memo, useCallback, useRef, useState, type FC, type PropsWithChildren } from 'react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../primitive/collapsible'
-import { cn } from '../lib/utils'
 
 const ANIMATION_DURATION = 200
 
@@ -199,4 +199,4 @@ ToolGroup.Root = ToolGroupRoot
 ToolGroup.Trigger = ToolGroupTrigger
 ToolGroup.Content = ToolGroupContent
 
-export { ToolGroup, ToolGroupRoot, ToolGroupTrigger, ToolGroupContent, toolGroupVariants }
+export { ToolGroup, ToolGroupContent, ToolGroupRoot, ToolGroupTrigger, toolGroupVariants }

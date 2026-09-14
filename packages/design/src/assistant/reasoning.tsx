@@ -1,3 +1,6 @@
+import { cva, type VariantProps } from 'class-variance-authority'
+import { cn } from 'cn'
+import { BrainIcon, ChevronDownIcon } from 'lucide-react'
 import {
   createContext,
   useCallback,
@@ -7,10 +10,7 @@ import {
   useRef,
   useState
 } from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
-import { BrainIcon, ChevronDownIcon } from 'lucide-react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../primitive/collapsible'
-import { cn } from '../lib/utils'
 
 export const ANIMATION_DURATION = 200
 
@@ -298,10 +298,10 @@ function ReasoningText({ className, children, ...props }: React.ComponentProps<'
 }
 
 export {
-  ReasoningRoot,
-  ReasoningTrigger,
   ReasoningContent,
-  ReasoningText,
   ReasoningFade,
+  ReasoningRoot,
+  ReasoningText,
+  ReasoningTrigger,
   reasoningVariants
 }

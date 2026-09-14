@@ -1,18 +1,18 @@
-import { memo, useCallback, useRef, useState } from 'react'
-import { AlertCircleIcon, CheckIcon, ChevronDownIcon, LoaderIcon, XCircleIcon } from 'lucide-react'
 import {
   toolApprovalAcceptsText,
   useScrollLock,
   useToolCallElapsed,
   type ToolApprovalOption,
   type ToolCallMessagePart,
+  type ToolCallMessagePartComponent,
   type ToolCallMessagePartProps,
-  type ToolCallMessagePartStatus,
-  type ToolCallMessagePartComponent
+  type ToolCallMessagePartStatus
 } from '@assistant-ui/react'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../primitive/collapsible'
-import { cn } from '../lib/utils'
+import { cn } from 'cn'
+import { AlertCircleIcon, CheckIcon, ChevronDownIcon, LoaderIcon, XCircleIcon } from 'lucide-react'
+import { memo, useCallback, useRef, useState } from 'react'
 import { Button } from '../primitive/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../primitive/collapsible'
 import { Textarea } from '../primitive/textarea'
 
 const ANIMATION_DURATION = 200
@@ -656,11 +656,11 @@ ToolFallback.Approval = ToolFallbackApproval
 
 export {
   ToolFallback,
-  ToolFallbackRoot,
-  ToolFallbackTrigger,
-  ToolFallbackContent,
+  ToolFallbackApproval,
   ToolFallbackArgs,
-  ToolFallbackResult,
+  ToolFallbackContent,
   ToolFallbackError,
-  ToolFallbackApproval
+  ToolFallbackResult,
+  ToolFallbackRoot,
+  ToolFallbackTrigger
 }

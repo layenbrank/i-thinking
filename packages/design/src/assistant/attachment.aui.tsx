@@ -12,7 +12,7 @@ import { Dialog, DialogTitle, DialogContent, DialogTrigger } from '../primitive/
 import { Avatar, AvatarImage, AvatarFallback } from '../primitive/avatar'
 import { TooltipIconButton } from './tooltip-icon-button'
 import { useAttachmentSrc } from '../hooks/use-attachment-src'
-import { cn } from '../lib/utils'
+import { cn } from 'cn'
 
 type AttachmentPreviewProps = {
   src: string

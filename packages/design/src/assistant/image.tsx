@@ -1,6 +1,6 @@
-import { memo, useState, useEffect, useCallback, useRef, type PropsWithChildren } from 'react'
-import { createPortal } from 'react-dom'
+import type { ImageMessagePart, ImageMessagePartComponent } from '@assistant-ui/react'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { cn } from 'cn'
 import {
   CopyIcon,
   DownloadIcon,
@@ -11,8 +11,8 @@ import {
   ShieldAlertIcon,
   XIcon
 } from 'lucide-react'
-import type { ImageMessagePart, ImageMessagePartComponent } from '@assistant-ui/react'
-import { cn } from '../lib/utils'
+import { memo, useCallback, useEffect, useRef, useState, type PropsWithChildren } from 'react'
+import { createPortal } from 'react-dom'
 
 const extensionForMimeType = (mimeType?: string): string => {
   switch (mimeType) {
@@ -471,12 +471,12 @@ Image.ContentFilterError = ImageContentFilterError
 
 export {
   Image,
-  ImageRoot,
-  ImagePreview,
-  ImageFilename,
-  ImageZoom,
   ImageActions,
-  ImageGenerating,
   ImageContentFilterError,
-  imageVariants
+  ImageFilename,
+  ImageGenerating,
+  ImagePreview,
+  ImageRoot,
+  imageVariants,
+  ImageZoom
 }

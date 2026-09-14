@@ -1,19 +1,19 @@
 import '@assistant-ui/react-markdown/styles/dot.css'
 
+import type { TextMessagePartProps } from '@assistant-ui/react'
 import {
   type CodeHeaderProps,
   MarkdownTextPrimitive,
   unstable_memoizeMarkdownComponents as memoizeMarkdownComponents,
   useIsMarkdownCodeBlock
 } from '@assistant-ui/react-markdown'
-import remarkGfm from 'remark-gfm'
-import { type FC, memo, useMemo, useRef } from 'react'
-import type { TextMessagePartProps } from '@assistant-ui/react'
 import { CheckIcon, CopyIcon } from 'lucide-react'
+import { type FC, memo, useMemo, useRef } from 'react'
+import remarkGfm from 'remark-gfm'
 
-import { TooltipIconButton } from './tooltip-icon-button'
+import { cn } from 'cn'
 import { useCopyToClipboard } from '../hooks/use-copy-to-clipboard'
-import { cn } from '../lib/utils'
+import { TooltipIconButton } from './tooltip-icon-button'
 
 type MarkdownTextProps = Partial<TextMessagePartProps> & {
   components?: Parameters<typeof memoizeMarkdownComponents>[0]
