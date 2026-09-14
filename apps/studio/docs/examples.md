@@ -1,32 +1,24 @@
 # Studio 使用示例
 
-所有示例基于当前实现：全局 `itc`（`window.itc`，见 preload / `src/types/itc.d.ts`）。网页模式用 `findItc()` 探测。
+所有示例基于当前实现：全局 `itc`（`window.itc`，见 preload / `src/types/itc.d.ts`）。该对象只由 preload 注入，网页预览（`dev:core`）下不存在。
 
-## 1. 基础：直接用全局 / 探测
+## 1. 基础
 
 ```ts
 // Electron 渲染进程：与 setTimeout 同理
-await itc.store.toRead({ key: 'theme' })
+await itc.store.toRead({ key: 'locale' })
 
-// 仅网页模式（pnpm dev:core）需要探测
-import { findItc } from '@/lib/itc'
-
-function tryFindItc() {
-  try {
-    return findItc()
-  } catch {
-    return null
-  }
-}
+// 网页预览（pnpm dev:core）没有 preload，需要兼容时自行判断
+const bridge = typeof itc === 'undefined' ? null : itc
 ```
 
 ## 2. Store
 
 ```ts
-await itc.store.toWrite({ key: 'theme', value: 'dark' })
-const theme = await itc.store.toRead({ key: 'theme' }) // 'dark' | null 等
-const has = await itc.store.has({ key: 'theme' })
-await itc.store.toRemove({ key: 'theme' })
+await itc.store.toWrite({ key: 'locale', value: 'zh-CN' })
+const locale = await itc.store.toRead({ key: 'locale' }) // 'zh-CN' | null 等
+const has = await itc.store.has({ key: 'locale' })
+await itc.store.toRemove({ key: 'locale' })
 const keys = await itc.store.keys()
 await itc.store.clear()
 ```
@@ -134,18 +126,7 @@ try {
 }
 ```
 
-## 8. 主进程消息
-
-```ts
-const off = itc.app.onMessage(function (payload) {
-  console.log('from main', payload)
-})
-
-// 组件卸载时
-off()
-```
-
-## 9. 错误处理
+## 8. 错误处理
 
 Preload 将 Main 的 `IpcResult` 失败转为抛错：
 
@@ -160,7 +141,7 @@ try {
 
 常见 `code` 见 [api-reference.md](./api-reference.md#错误码)。
 
-## 10. 端到端：新增一条 IPC（示例 settings）
+## 9. 端到端：新增一条 IPC（示例 settings）
 
 以下为**文档示例**，按同样步骤可落到真实模块。
 
@@ -236,7 +217,7 @@ const locale = await itc.settings.read({ key: 'locale' })
 
 同步更新 [api-reference.md](./api-reference.md)、[modules.md](./modules.md)，并保证 `contract.test.ts` 绿。
 
-## 11. 反例（禁止）
+## 10. 反例（禁止）
 
 ```ts
 // ❌ 裸 IPC
@@ -249,23 +230,12 @@ window.itc // 不存在 database.query(sql)
 // 应使用 src/plugins/paths.ts
 ```
 
-## 12. 网页模式降级
+## 11. 网页模式降级
 
 ```ts
-import { findItc } from '@/lib/itc'
-
-export async function loadTheme() {
-  const bridge = (() => {
-    try {
-      return findItc()
-    } catch {
-      return null
-    }
-  })()
-
-  if (!bridge) {
-    return localStorage.getItem('theme')
-  }
-  return (await bridge.store.toRead({ key: 'theme' })) as string | null
+export async function readSetting(key: string): Promise<unknown> {
+  // `itc` 由 preload 注入；网页预览（pnpm dev:core）没有它
+  if (typeof itc === 'undefined') return null
+  return await itc.store.toRead({ key })
 }
 ```

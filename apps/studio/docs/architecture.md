@@ -45,7 +45,7 @@ flowchart TB
 | ------------ | ----------------------------------------------------------------- | ------------------------------------------------- |
 | **plugins**  | 宿主能力：契约 + desktop 实现 + commands + init（单文件/域）      | 依赖 UI（`@/`）                                   |
 | **preload**  | `ITC` → `ipcRenderer.invoke/on`；仅 `channels` / `result` / `itc` | 业务逻辑、其它 plugin 实现                        |
-| **renderer** | UI + 远程 HTTP；全局 `itc` / `findITC()`                          | `electron`、plugin 实现（可 `import type` `itc`） |
+| **renderer** | UI + 远程 HTTP；全局 `itc`                                  | `electron`、plugin 实现（可 `import type` `itc`） |
 | **forge**    | 打包 / makers / hooks / sidecar stage                             | 业务代码、IPC 契约                                |
 
 ## 3. 目录
