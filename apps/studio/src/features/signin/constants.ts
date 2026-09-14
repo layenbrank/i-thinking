@@ -1,4 +1,4 @@
-import type { FormInstance, Rule, RuleObject } from 'antd/es/form'
+import { z } from 'zod'
 
 type HeadText = {
   title: string
@@ -72,39 +72,136 @@ const HEAD = {
   }
 } satisfies Record<PanelView, HeadText>
 
-const RULE = {
-  USERNAME: [
-    { required: true, message: '请输入用户名！' },
-    { min: 2, max: 12, message: '用户名长度为 2–12 个字符' }
-  ],
-  PHONE: [
-    { required: true, message: '请输入手机号！' },
-    { pattern: PATTERN.PHONE, message: '手机号格式错误！' }
-  ],
-  EMAIL: [
-    { required: true, message: '请输入邮箱！' },
-    { pattern: PATTERN.EMAIL, message: '邮箱格式错误！' }
-  ],
-  PASSWORD: [
-    { required: true, message: '请输入密码！' },
-    { min: 4, max: 20, message: '密码长度为 4–20 个字符' }
-  ],
-  CAPTCHA: [
-    { required: true, message: '请输入验证码！' },
-    { len: LIMIT.CAPTCHA, message: '验证码为 6 位数字' },
-    { pattern: /^\d{6}$/, message: '验证码格式错误！' }
-  ],
-  confirm(form: Pick<FormInstance, 'getFieldValue'>): RuleObject {
-    return {
-      validator(_rule: unknown, value: string, _callback?: (error?: string) => void) {
-        if (!value || form.getFieldValue('password') === value) {
-          return Promise.resolve()
-        }
-        return Promise.reject(new Error('两次输入的密码不一致！'))
-      }
-    }
-  }
+// ── 校验：zod schema（配合 react-hook-form 的 zodResolver）──
+
+const USERNAME_MESSAGE = '用户名长度为 2–12 个字符'
+const PASSWORD_MESSAGE = '密码长度为 4–20 个字符'
+
+const usernameField = z
+  .string()
+  .trim()
+  .min(1, '请输入用户名！')
+  .min(2, USERNAME_MESSAGE)
+  .max(LIMIT.USERNAME, USERNAME_MESSAGE)
+
+const phoneField = z.string().trim().min(1, '请输入手机号！').regex(PATTERN.PHONE, '手机号格式错误！')
+
+const emailField = z
+  .string()
+  .trim()
+  .min(1, '请输入邮箱！')
+  .max(LIMIT.EMAIL, `邮箱最长为 ${LIMIT.EMAIL} 个字符`)
+  .regex(PATTERN.EMAIL, '邮箱格式错误！')
+
+const passwordField = z
+  .string()
+  .min(1, '请输入密码！')
+  .min(4, PASSWORD_MESSAGE)
+  .max(LIMIT.PASSWORD, PASSWORD_MESSAGE)
+
+const confirmField = z.string().min(1, '请确认密码！')
+
+const captchaField = z
+  .string()
+  .min(1, '请输入验证码！')
+  .regex(/^\d{6}$/, '验证码为 6 位数字')
+
+const IDENTITY_MISMATCH = '两次输入的密码不一致！'
+const REMEMBER_FIELD = z.boolean().optional()
+
+/** 三种登录身份对应的表单校验 */
+const SIGNIN_SCHEMA = {
+  username: z.object({
+    username: usernameField,
+    password: passwordField,
+    remember: REMEMBER_FIELD
+  }),
+  phone: z.object({
+    phone: phoneField,
+    captcha: captchaField
+  }),
+  email: z.object({
+    email: emailField,
+    password: passwordField,
+    remember: REMEMBER_FIELD
+  })
+} satisfies Record<AuthMode, z.ZodType>
+
+/** 找回密码：身份 + 验证码 + 新密码 */
+const FORGOT_SCHEMA = {
+  username: z
+    .object({
+      username: usernameField,
+      captcha: captchaField,
+      password: passwordField,
+      confirm: confirmField
+    })
+    .refine(
+      function (values) {
+        return values.password === values.confirm
+      },
+      { message: IDENTITY_MISMATCH, path: ['confirm'] }
+    ),
+  phone: z
+    .object({
+      phone: phoneField,
+      captcha: captchaField,
+      password: passwordField,
+      confirm: confirmField
+    })
+    .refine(
+      function (values) {
+        return values.password === values.confirm
+      },
+      { message: IDENTITY_MISMATCH, path: ['confirm'] }
+    ),
+  email: z
+    .object({
+      email: emailField,
+      captcha: captchaField,
+      password: passwordField,
+      confirm: confirmField
+    })
+    .refine(
+      function (values) {
+        return values.password === values.confirm
+      },
+      { message: IDENTITY_MISMATCH, path: ['confirm'] }
+    )
+} satisfies Record<AuthMode, z.ZodType>
+
+const SIGNUP_SCHEMA = z
+  .object({
+    username: usernameField,
+    password: passwordField,
+    confirm: confirmField
+  })
+  .refine(
+    function (values) {
+      return values.password === values.confirm
+    },
+    { message: IDENTITY_MISMATCH, path: ['confirm'] }
+  )
+
+type SigninValues = {
+  username?: string
+  phone?: string
+  email?: string
+  password?: string
+  captcha?: string
+  remember?: boolean
 }
+
+type ForgotValues = {
+  username?: string
+  phone?: string
+  email?: string
+  captcha?: string
+  password?: string
+  confirm?: string
+}
+
+type SignupValues = z.infer<typeof SIGNUP_SCHEMA>
 
 const MOTION = {
   DURATION: 0.22,
@@ -186,14 +283,16 @@ function findIdentity(mode: AuthMode, values: IdentityValues) {
 
 export {
   CAPTCHA_COUNTDOWN,
+  FORGOT_SCHEMA,
   HEAD,
   LIMIT,
   MODE,
   MOTION,
   PANEL,
   PATTERN,
-  RULE,
+  SIGNIN_SCHEMA,
+  SIGNUP_SCHEMA,
   findIdentity
 }
 
-export type { AuthMode, HeadText, PanelView }
+export type { AuthMode, ForgotValues, HeadText, PanelView, SigninValues, SignupValues }

@@ -143,25 +143,10 @@ export const chunks: CodeSplitting[] = [
 
   // ========== 中优先级 (50)：UI 组件库 ==========
   {
-    name: 'ui-antd',
+    name: 'ui-rich',
     priority: 50,
     test(id) {
       const patterns = [
-        /[\\/]node_modules[\\/]antd[\\/]/,
-        /[\\/]node_modules[\\/]@rc-component[\\/]/,
-        /[\\/]node_modules[\\/]@ant-design[\\/]/,
-        /[\\/]node_modules[\\/]antd-style[\\/]/,
-        /[\\/]node_modules[\\/]use-merge-value[\\/]/,
-        /[\\/]node_modules[\\/]throttle-debounce[\\/]/,
-        /[\\/]node_modules[\\/]@emotion[\\/]/,
-        /[\\/]node_modules[\\/]hoist-non-react-statics[\\/]/,
-        /[\\/]node_modules[\\/]react-is[\\/]/,
-        /[\\/]node_modules[\\/]json2mq[\\/]/,
-        /[\\/]node_modules[\\/]string-convert[\\/]/,
-        /[\\/]node_modules[\\/]stylis[\\/]/,
-        /[\\/]node_modules[\\/]is-mobile[\\/]/,
-        /[\\/]node_modules[\\/]rc-util[\\/]/,
-        /[\\/]node_modules[\\/]rc-motion[\\/]/,
         /[\\/]node_modules[\\/]mermaid[\\/]/,
         /[\\/]node_modules[\\/]ts-dedent[\\/]/,
         /[\\/]node_modules[\\/]roughjs[\\/]/,

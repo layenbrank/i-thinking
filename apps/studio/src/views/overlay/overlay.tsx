@@ -1,16 +1,15 @@
-import { Layout } from 'antd'
 import { clsx } from 'clsx'
 
-import { Combination } from './components'
+import { Combination } from '@/views/overlay/components/index'
 
 import styles from '@/views/overlay/overlay.module.scss'
 
 export default function Overlay() {
   return (
-    <Layout className={clsx(styles.overlay)}>
+    <div className={clsx(styles.overlay)}>
       <Combination.Utility />
       <Combination.Section />
       <Combination.Summary />
-    </Layout>
+    </div>
   )
 }

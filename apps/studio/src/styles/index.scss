@@ -1,9 +1,7 @@
 @use '@/styles/variables.scss' as *;
-@use '@/styles/overrides/ant-design.scss' as *;
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+// Tailwind 由 ./tailwind.css（v4 入口）引入，且必须先于本文件加载；
+// 下方 @layer base 依赖该顺序与 Preflight 同层。
 
 // 必须放在 @layer base：与 Tailwind Preflight 同层。
 // 若写成无 layer 的全局规则，生产构建里会排在组件 CSS 之后，
@@ -84,8 +82,7 @@ body {
 
 html,
 body,
-#root,
-.ant-app {
+#root {
   width: 100%;
   min-width: 600px;
   height: 100%;

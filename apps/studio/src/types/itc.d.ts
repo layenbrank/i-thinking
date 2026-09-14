@@ -11,8 +11,7 @@ declare global {
     itc: ITC
   }
 
-  /** 全局标识符，对应 window.itc */
-  // eslint-disable-next-line no-var
+  /** 全局标识符，对应 window.itc（ambient 里 `var` 是唯一写法，`no-var` 不适用） */
   var itc: ITC
 }
 

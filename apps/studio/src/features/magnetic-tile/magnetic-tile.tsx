@@ -1,4 +1,8 @@
-import { Tooltip } from 'antd'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@i-thinking/ui/components/ui/tooltip'
 import { clsx, type ClassValue } from 'clsx'
 import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
@@ -226,11 +230,15 @@ const MagneticTile = {
           </div>
         )}
         <span className={styles.title}>
-          <Tooltip
-            placement="bottom"
-            title={props.title}
-            autoAdjustOverflow={false}>
-            <span>{props.title}</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>{props.title}</span>
+            </TooltipTrigger>
+            <TooltipContent
+              side="bottom"
+              avoidCollisions={false}>
+              {props.title}
+            </TooltipContent>
           </Tooltip>
         </span>
         <button

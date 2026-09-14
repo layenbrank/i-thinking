@@ -12,7 +12,7 @@
     0 10px 36px rgba(0, 0, 0, 0.12),
     0 2px 8px rgba(0, 0, 0, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  color: var(--ith-color-text, rgba(0, 0, 0, 0.88));
+  color: var(--foreground);
 }
 
 .flyout {
@@ -63,15 +63,15 @@
 }
 
 .caption {
-  color: var(--ith-color-text-secondary, rgba(0, 0, 0, 0.65));
-  font-size: var(--ith-font-size-sm, 12px);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.5;
   user-select: none;
 }
 
 .hint {
-  color: var(--ith-color-text-description, rgba(0, 0, 0, 0.45));
+  color: var(--muted-foreground);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -108,12 +108,12 @@
   border: none;
   border-radius: 0;
   background: transparent;
-  color: var(--ith-color-text-secondary, rgba(0, 0, 0, 0.65));
+  color: var(--muted-foreground);
   cursor: pointer;
   user-select: none;
   transition:
-    background-color 0.15s var(--ith-motion-ease-in-out, ease),
-    color 0.15s var(--ith-motion-ease-in-out, ease);
+    background-color 0.15s ease,
+    color 0.15s ease;
 
   &:not(:last-child)::after {
     content: '';
@@ -127,7 +127,7 @@
   }
 
   &:hover:not(.selected) {
-    color: var(--ith-color-text, rgba(0, 0, 0, 0.88));
+    color: var(--foreground);
     background: rgba(255, 255, 255, 0.7);
   }
 
@@ -137,8 +137,8 @@
 
   &.selected {
     z-index: 1;
-    color: var(--ith-color-primary, #1677ff);
-    background: color-mix(in srgb, var(--ith-color-primary, #1677ff) 10%, #fff);
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, #fff);
 
     &::after {
       opacity: 0;
@@ -146,7 +146,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--ith-color-primary, #1677ff);
+    outline: 2px solid var(--primary);
     outline-offset: -2px;
     z-index: 2;
   }
@@ -180,16 +180,16 @@
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.55);
-  color: var(--ith-color-text-secondary, rgba(0, 0, 0, 0.65));
+  color: var(--muted-foreground);
   cursor: pointer;
   user-select: none;
   transition:
-    background-color 0.15s var(--ith-motion-ease-in-out, ease),
-    border-color 0.15s var(--ith-motion-ease-in-out, ease),
-    color 0.15s var(--ith-motion-ease-in-out, ease);
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 
   &:hover:not(.selected) {
-    color: var(--ith-color-text, rgba(0, 0, 0, 0.88));
+    color: var(--foreground);
     background: rgba(255, 255, 255, 0.78);
     border-color: rgba(0, 0, 0, 0.1);
   }
@@ -199,13 +199,13 @@
   }
 
   &.selected {
-    color: var(--ith-color-primary, #1677ff);
-    background: color-mix(in srgb, var(--ith-color-primary, #1677ff) 10%, #fff);
-    border-color: var(--ith-color-primary-border, #91caff);
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, #fff);
+    border-color: color-mix(in srgb, var(--primary) 35%, transparent);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--ith-color-primary, #1677ff);
+    outline: 2px solid var(--primary);
     outline-offset: 1px;
   }
 }
@@ -218,8 +218,8 @@
   border: 1.5px solid currentColor;
   opacity: 0.9;
   transition:
-    opacity 0.15s var(--ith-motion-ease-in-out, ease),
-    background-color 0.15s var(--ith-motion-ease-in-out, ease);
+    opacity 0.15s ease,
+    background-color 0.15s ease;
 
   .size:hover &,
   .size.selected &,
@@ -230,7 +230,7 @@
 
   .size.selected &,
   .shape.selected & {
-    background: color-mix(in srgb, var(--ith-color-primary, #1677ff) 14%, transparent);
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
   }
 
   &.square,

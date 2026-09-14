@@ -1,17 +1,15 @@
-import { Button, Form, Input, message } from 'antd'
-import { Icon } from '@iconify/react'
-import { useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Button } from '@i-thinking/ui/components/ui/button'
+import { Form } from '@i-thinking/ui/components/ui/form'
+import { LockIcon, UserIcon } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 
 import { POST_SIGNUP } from '@/apis/auth.ts'
-import { LIMIT, RULE } from '@/features/signin/constants.ts'
+import { LIMIT, SIGNUP_SCHEMA, type SignupValues } from '@/features/signin/constants.ts'
+import { AuthField } from '@/features/signin/field.tsx'
 import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
 import styles from '@/features/signin/signin.module.scss'
-
-type SignupFormValues = {
-  username: string
-  password: string
-  confirm: string
-}
 
 type SignupFormProps = {
   motionKey: number
@@ -20,102 +18,91 @@ type SignupFormProps = {
 
 function SignupForm(props: SignupFormProps) {
   const { motionKey, onSignin } = props
-  const [form] = Form.useForm<SignupFormValues>()
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  async function onFinish(values: SignupFormValues) {
-    setIsSubmitting(true)
+  const form = useForm<SignupValues>({
+    resolver: zodResolver(SIGNUP_SCHEMA),
+    defaultValues: { username: '', password: '', confirm: '' }
+  })
 
+  async function onSubmit(values: SignupValues) {
     try {
       await POST_SIGNUP({
         username: values.username,
         password: values.password
       })
-      message.success('注册成功（mock）')
-      form.resetFields()
+      toast.success('注册成功（mock）')
+      form.reset()
       onSignin()
     } catch {
-      message.error('注册失败，请稍后重试')
-    } finally {
-      setIsSubmitting(false)
+      toast.error('注册失败，请稍后重试')
     }
   }
 
   return (
-    <Form
-      form={form}
-      name="signup"
-      layout="vertical"
-      requiredMark={false}
-      className={styles.form}
-      onFinish={onFinish}>
-      <FormStagger key={motionKey}>
-        <MotionField>
-          <Form.Item
-            name="username"
-            label="用户名"
-            rules={RULE.USERNAME}>
-            <Input
-              size="large"
-              maxLength={LIMIT.USERNAME}
-              prefix={<Icon icon="ant-design:user-outlined" />}
+    <Form {...form}>
+      <form
+        className={styles.form}
+        noValidate
+        onSubmit={form.handleSubmit(onSubmit)}>
+        <FormStagger key={motionKey}>
+          <MotionField>
+            <AuthField
+              control={form.control}
+              name="username"
+              label="用户名"
               placeholder="请输入用户名"
-              aria-label="用户名"
+              icon={<UserIcon />}
+              maxLength={LIMIT.USERNAME}
+              autoComplete="username"
             />
-          </Form.Item>
-        </MotionField>
+          </MotionField>
 
-        <MotionField>
-          <Form.Item
-            name="password"
-            label="密码"
-            rules={RULE.PASSWORD}>
-            <Input.Password
-              size="large"
-              maxLength={LIMIT.PASSWORD}
-              prefix={<Icon icon="ant-design:lock-outlined" />}
+          <MotionField>
+            <AuthField
+              control={form.control}
+              name="password"
+              type="password"
+              label="密码"
               placeholder="请输入密码"
-              aria-label="密码"
-            />
-          </Form.Item>
-        </MotionField>
-
-        <MotionField>
-          <Form.Item
-            name="confirm"
-            label="确认密码"
-            dependencies={['password']}
-            rules={[{ required: true, message: '请确认密码！' }, RULE.confirm(form)]}>
-            <Input.Password
-              size="large"
+              icon={<LockIcon />}
               maxLength={LIMIT.PASSWORD}
-              prefix={<Icon icon="ant-design:lock-outlined" />}
-              aria-label="确认密码"
-              placeholder="请再次输入密码"
+              autoComplete="new-password"
             />
-          </Form.Item>
-        </MotionField>
+          </MotionField>
 
-        <MotionField className={styles.actions}>
-          <Button
-            block
-            size="large"
-            type="primary"
-            htmlType="submit"
-            loading={isSubmitting}>
-            确认注册
-          </Button>
-        </MotionField>
+          <MotionField>
+            <AuthField
+              control={form.control}
+              name="confirm"
+              type="password"
+              label="确认密码"
+              placeholder="请再次输入密码"
+              icon={<LockIcon />}
+              maxLength={LIMIT.PASSWORD}
+              autoComplete="new-password"
+            />
+          </MotionField>
 
-        <MotionField className={styles.back}>
-          <Button
-            type="link"
-            htmlType="button"
-            onClick={onSignin}>
-            返回登录
-          </Button>
-        </MotionField>
-      </FormStagger>
+          <MotionField className={styles.actions}>
+            <Button
+              type="submit"
+              className="h-11 w-full"
+              aria-busy={form.formState.isSubmitting}>
+              确认注册
+            </Button>
+          </MotionField>
+
+          <MotionField className={styles.back}>
+            <Button
+              type="button"
+              variant="link"
+              className="h-auto p-0"
+              onClick={onSignin}>
+              返回登录
+            </Button>
+          </MotionField>
+        </FormStagger>
+      </form>
     </Form>
   )
 }

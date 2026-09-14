@@ -6,13 +6,13 @@
 
 **i thinking Studio**（`@i-thinking/studio`）是 monorepo 内的 Electron 桌面壳：
 
-| 做 | 不做 |
-|----|------|
-| Forge + Vite 多进程桌面应用 | NestJS 嵌在 Main |
-| plugins 能力单元 + 薄组合根 | 跨进程物理 feature 共目录 |
-| 契约 IPC（`window.itc` / 全局 `itc`） | 暴露裸 `ipcRenderer` |
-| 本地能力：store / dialog / SQLite / sidecar | Renderer 任意 SQL |
-| 业务 HTTP → 远程 `VITE_THINKING` | 本地再起一套 Nest |
+| 做                                          | 不做                      |
+| ------------------------------------------- | ------------------------- |
+| Forge + Vite 多进程桌面应用                 | NestJS 嵌在 Main          |
+| plugins 能力单元 + 薄组合根                 | 跨进程物理 feature 共目录 |
+| 契约 IPC（`window.itc` / 全局 `itc`）       | 暴露裸 `ipcRenderer`      |
+| 本地能力：store / dialog / SQLite / sidecar | Renderer 任意 SQL         |
+| 业务 HTTP → 远程 `VITE_THINKING`            | 本地再起一套 Nest         |
 
 独立后端 `apps/service` 与 Studio **零运行时耦合**。
 
@@ -41,12 +41,12 @@ flowchart TB
   HTTP --> Cloud
 ```
 
-| 层 | 职责 | 禁止 |
-|----|------|------|
-| **plugins** | 宿主能力：契约 + desktop 实现 + commands + init（单文件/域） | 依赖 UI（`@/`） |
-| **preload** | `ITC` → `ipcRenderer.invoke/on`；仅 `channels` / `result` / `itc` | 业务逻辑、其它 plugin 实现 |
-| **renderer** | UI + 远程 HTTP；全局 `itc` / `findITC()` | `electron`、plugin 实现（可 `import type` `itc`） |
-| **forge** | 打包 / makers / hooks / sidecar stage | 业务代码、IPC 契约 |
+| 层           | 职责                                                              | 禁止                                              |
+| ------------ | ----------------------------------------------------------------- | ------------------------------------------------- |
+| **plugins**  | 宿主能力：契约 + desktop 实现 + commands + init（单文件/域）      | 依赖 UI（`@/`）                                   |
+| **preload**  | `ITC` → `ipcRenderer.invoke/on`；仅 `channels` / `result` / `itc` | 业务逻辑、其它 plugin 实现                        |
+| **renderer** | UI + 远程 HTTP；全局 `itc` / `findITC()`                          | `electron`、plugin 实现（可 `import type` `itc`） |
+| **forge**    | 打包 / makers / hooks / sidecar stage                             | 业务代码、IPC 契约                                |
 
 ## 3. 目录
 
@@ -68,6 +68,19 @@ apps/studio/
 ```
 
 ESLint：renderer / preload / host（`main.ts` + `plugins/**`）边界规则。
+
+## 4. 对话双通路
+
+| 通路 | 路径                                                                | 要点                                                       |
+| ---- | ------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 离线 | renderer → `assistant:connect` → MessagePort → main → 本机 provider | 密钥只进主进程（safeStorage），渲染进程不读回              |
+| 在线 | renderer → `AssistantChatTransport` → `${VITE_THINKING}/chat`       | service 的 AI SDK 路由；`Authorization` 用渲染进程登录令牌 |
+
+- 两条通路共用同一份历史适配器与会话列表（`@i-thinking/chat`），差别只在 runtime hook：
+  离线 `useLocalRuntime` + `ChatModelPort`，在线 `useChatRuntime` + 传输层。
+- 通路选择持久化在设置存储 `chat.transport`；切换会换掉 `runtimeHook`，因此 `views/chat` 用
+  `key={kind}` 重建运行时（hook 顺序不能跨通路复用）。
+- 在线通路可用性 = 配置了 `VITE_THINKING` 且已登录，否则自动回落到离线并在选择器里禁用。
 
 ## 4. 组合根与插件
 
@@ -115,9 +128,9 @@ interface Plugin {
 
 ## 8. 决策
 
-| 决策 | 理由 |
-|------|------|
+| 决策                  | 理由                                                      |
+| --------------------- | --------------------------------------------------------- |
 | `src/plugins/` 单目录 | UI 已占 `src/` 根；对齐 Tauri 能力单元 + goose 单文件粒度 |
-| 删除 main/ + shared/ | 避免双轨与三层 handlers/service/schema |
-| 薄组合根 | 不抄 goose 巨石 main.ts |
-| paths.ts / Forge CJS | 打包现实约束 |
+| 删除 main/ + shared/  | 避免双轨与三层 handlers/service/schema                    |
+| 薄组合根              | 不抄 goose 巨石 main.ts                                   |
+| paths.ts / Forge CJS  | 打包现实约束                                              |

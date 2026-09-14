@@ -16,3 +16,15 @@
   background: transparent;
   color: inherit;
 }
+
+.fallback {
+  border-radius: inherit;
+  font-size: inherit;
+  background: transparent;
+  color: inherit;
+}
+
+// 方形/矩形磁贴的角标不留圆角
+.square {
+  border-radius: 6px;
+}

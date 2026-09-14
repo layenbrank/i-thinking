@@ -188,23 +188,22 @@
 }
 
 .overlay {
-  :global {
-    .ant-modal-content {
-      border-radius: var(--ith-border-radius-lg);
-      overflow: hidden;
-      box-shadow: var(--ith-box-shadow-secondary);
-    }
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--background);
+  box-shadow:
+    0 6px 16px 0 rgb(0 0 0 / 8%),
+    0 3px 6px -4px rgb(0 0 0 / 12%),
+    0 9px 28px 8px rgb(0 0 0 / 5%);
 
-    .ant-modal-container {
-      border-radius: inherit;
-      overflow: hidden;
-      height: 100%;
-    }
-
-    .ant-modal-body {
-      border-radius: inherit;
-      overflow: hidden;
-    }
+  /* keepAlive：Radix 关闭后仍挂载，这里兜住显隐 */
+  &[data-state='closed'] {
+    display: none;
   }
 }
 
@@ -223,13 +222,7 @@
   min-width: var(--overlay-width-min);
   max-width: var(--overlay-width-max);
   aspect-ratio: var(--overlay-ratio);
-  /* antd Modal 常写死 height；用 auto 让 ratio 生效 */
   height: auto !important;
-
-  :global(.ant-modal-content),
-  :global(.ant-modal-container) {
-    height: 100%;
-  }
 }
 
 /** 工作台：不封顶、不锁比例；默认视口高度占比 */
@@ -238,18 +231,12 @@
   max-width: none;
   aspect-ratio: unset;
   height: var(--overlay-height-fluid);
-
-  :global(.ant-modal-content),
-  :global(.ant-modal-container) {
-    height: 100%;
-  }
 }
 
 .fullscreen {
   min-width: unset;
   max-width: none;
   aspect-ratio: unset;
-  /* 全屏需压过 antd 内联尺寸 */
   height: 100% !important;
   border-radius: 0 !important;
 }
@@ -262,8 +249,8 @@
   overflow: auto;
   display: flex;
   flex-direction: column;
-  background: var(--ith-color-bg-layout);
-  color: var(--ith-color-text);
+  background: var(--background);
+  color: var(--foreground);
 }
 
 .controls {
@@ -272,12 +259,6 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 12px 20px 16px;
-  border-top: 1px solid var(--ith-color-border-secondary, var(--ith-color-border));
-  background: var(--ith-color-bg-container);
-}
-
-.withControls {
-  :global(.ant-modal-footer) {
-    margin: 0;
-  }
+  border-top: 1px solid var(--border);
+  background: var(--card);
 }

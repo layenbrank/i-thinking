@@ -1,4 +1,5 @@
-import { Button, Result, Space } from 'antd'
+import { Button } from '@i-thinking/ui/components/ui/button'
+import { TriangleAlertIcon } from 'lucide-react'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
 import { ERROR } from '@/components/fallback/constants.ts'
@@ -56,21 +57,22 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         className={styles.root}
         role="alert"
         aria-live="assertive">
-        <Result
-          status="error"
-          title={title}
-          subTitle={subTitle}
-          extra={
-            <Space size="middle">
-              <Button
-                type="primary"
-                onClick={this.handleRetry}>
-                {ERROR.RETRY}
-              </Button>
-              <Button onClick={this.handleReload}>{ERROR.RELOAD}</Button>
-            </Space>
-          }
-        />
+        <div className="flex max-w-md flex-col items-center gap-3 text-center">
+          <TriangleAlertIcon
+            aria-hidden
+            className="size-12 text-destructive"
+          />
+          <h1 className="text-lg font-medium">{title}</h1>
+          <p className="text-sm text-muted-foreground">{subTitle}</p>
+          <div className="mt-2 flex items-center gap-3">
+            <Button onClick={this.handleRetry}>{ERROR.RETRY}</Button>
+            <Button
+              variant="outline"
+              onClick={this.handleReload}>
+              {ERROR.RELOAD}
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }

@@ -3,6 +3,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { createHash } from 'node:crypto'
 
 import React from '@vitejs/plugin-react-swc'
+import tailwindcss from '@tailwindcss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
 import { compression } from 'vite-plugin-compression2'
@@ -40,6 +41,7 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
   return {
     envDir: resolve(fileURLToPath(new URL('.', import.meta.url))),
     plugins: [
+      tailwindcss(),
       React({
         devTarget: 'esnext',
         jsxImportSource: 'react',

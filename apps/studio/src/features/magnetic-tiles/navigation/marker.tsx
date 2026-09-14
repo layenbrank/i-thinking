@@ -1,5 +1,5 @@
-import { Avatar } from 'antd'
-import clsx from 'clsx'
+import { Avatar, AvatarFallback } from '@i-thinking/ui/components/ui/avatar'
+import { clsx } from 'clsx'
 
 import {
   MagneticTile,
@@ -23,10 +23,8 @@ export default function Marker(props: Props) {
         props.direction,
         props.shape
       ])}>
-      <Avatar
-        className={styles.avatar}
-        shape={props.shape === 'rectangle' ? 'square' : props.shape}>
-        {label}
+      <Avatar className={clsx(styles.avatar, props.shape !== 'circle' && styles.square)}>
+        <AvatarFallback className={styles.fallback}>{label}</AvatarFallback>
       </Avatar>
     </MagneticTile.Marker>
   )

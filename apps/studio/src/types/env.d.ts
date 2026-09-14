@@ -1,6 +1,6 @@
 interface ImportMetaEnv {
   readonly VITE_APP_TITLE: string
-  readonly VITE_THINKING: string
+  readonly VITE_THINKING?: string
   readonly VITE_HOSTNAME?: string
   readonly VITE_PORT?: string
   readonly VITE_PROTOCOL?: string
@@ -44,6 +44,8 @@ declare namespace NodeJS {
   }
 
   interface Process {
+    // 这里必须用 import() 内联类型：文件是 ambient 声明，写成顶层 import 会变成模块、丢掉全局
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     electronApp: import('node:child_process').ChildProcess
   }
 }

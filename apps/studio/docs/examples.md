@@ -65,7 +65,50 @@ const updated = await itc.user.toUpdate({
 await itc.user.toRemove({ id: updated.id })
 ```
 
-## 5. Sidecar 状态与文档转换
+## 5. Chat 会话 / 消息 / Provider
+
+对话数据全部落在主进程（Drizzle），渲染进程只存取不解析消息体：`format` + `content` 由本地 MessageFormatAdapter 产出（见 [api-reference.md](./api-reference.md#chat)）。
+
+```ts
+// 会话列表：置顶优先，其次最近活动
+const sessions = await itc.chat.session.toRead()
+
+const session = await itc.chat.session.toWrite({ title: '新会话' })
+
+// 追加一条消息（id 可用客户端生成，保证 parentID 分支关系与 UI 一致）
+const message = await itc.chat.message.toAppend({
+  id: crypto.randomUUID(),
+  sessionID: session.id,
+  parentID: null,
+  format: 'ai-sdk/v6',
+  content: JSON.stringify({ role: 'user', parts: [{ type: 'text', text: '你好' }] })
+})
+
+// 重生成分支：新消息挂到同一条父消息上
+await itc.chat.message.toAppend({
+  sessionID: session.id,
+  parentID: message.parentID,
+  format: 'ai-sdk/v6',
+  content: JSON.stringify({ role: 'assistant', parts: [{ type: 'text', text: '重生成的回答' }] })
+})
+
+// 会话重命名 / 置顶
+await itc.chat.session.toUpdate({ id: session.id, title: '改名', pinned: true })
+
+// provider 只存元数据，apiKey 不出主进程
+const provider = await itc.chat.provider.toWrite({
+  kind: 'ollama',
+  name: '本地 Ollama',
+  baseUrl: 'http://127.0.0.1:11434',
+  models: ['qwen3:8b'],
+  model: 'qwen3:8b'
+})
+
+await itc.chat.provider.toRemove({ id: provider.id })
+// 删 provider 不会删会话，只把会话的 providerID 置空
+```
+
+## 6. Sidecar 状态与文档转换
 
 ```ts
 const status = await itc.sidecar.findStatus()
@@ -80,7 +123,7 @@ const converted = await itc.doc.convert({
 
 截图：`itc.screenshot.capture()` → Main → corex Action `capture.screenshot`。
 
-## 6. DevTools（仅开发态）
+## 7. DevTools（仅开发态）
 
 ```ts
 try {
@@ -91,7 +134,7 @@ try {
 }
 ```
 
-## 7. 主进程消息
+## 8. 主进程消息
 
 ```ts
 const off = itc.app.onMessage(function (payload) {
@@ -102,7 +145,7 @@ const off = itc.app.onMessage(function (payload) {
 off()
 ```
 
-## 8. 错误处理
+## 9. 错误处理
 
 Preload 将 Main 的 `IpcResult` 失败转为抛错：
 
@@ -117,11 +160,11 @@ try {
 
 常见 `code` 见 [api-reference.md](./api-reference.md#错误码)。
 
-## 9. 端到端：新增一条 IPC（示例 settings）
+## 10. 端到端：新增一条 IPC（示例 settings）
 
 以下为**文档示例**，按同样步骤可落到真实模块。
 
-### 9.1 `shared/ipc/channels.ts`
+### 10.1 `shared/ipc/channels.ts`
 
 ```ts
 SETTINGS: {
@@ -130,7 +173,7 @@ SETTINGS: {
 },
 ```
 
-### 9.2 `shared/ipc/settings.ts`（类型 + zod）
+### 10.2 `shared/ipc/settings.ts`（类型 + zod）
 
 ```ts
 import { z } from 'zod'
@@ -146,7 +189,7 @@ export const WriteSchema = z.object({
 })
 ```
 
-### 9.3 `shared/ipc/studio.ts` — 扩展 `Studio`
+### 10.3 `shared/ipc/studio.ts` — 扩展 `Studio`
 
 ```ts
 settings: {
@@ -155,7 +198,7 @@ settings: {
 }
 ```
 
-### 9.4 Plugin
+### 10.4 Plugin
 
 ```text
 src/plugins/settings.ts   → models + desktop + commands + buildPlugin()
@@ -163,7 +206,7 @@ src/plugins/settings.ts   → models + desktop + commands + buildPlugin()
 
 在同一文件内写 zod schema，并用 `registerHandler` 挂命令。
 
-### 9.5 `main.ts` 注册
+### 10.5 `main.ts` 注册
 
 ```ts
 import { buildPlugin as buildSettingsPlugin } from './plugins/settings'
@@ -171,7 +214,7 @@ import { buildPlugin as buildSettingsPlugin } from './plugins/settings'
 buildSettingsPlugin(), // 插入 plugins 数组合适位置
 ```
 
-### 9.6 `preload.ts` 暴露
+### 10.6 `preload.ts` 暴露
 
 ```ts
 settings: {
@@ -184,7 +227,7 @@ settings: {
 }
 ```
 
-### 9.7 Renderer
+### 10.7 Renderer
 
 ```ts
 await itc.settings.write({ key: 'locale', value: 'zh-CN' })
@@ -193,7 +236,7 @@ const locale = await itc.settings.read({ key: 'locale' })
 
 同步更新 [api-reference.md](./api-reference.md)、[modules.md](./modules.md)，并保证 `contract.test.ts` 绿。
 
-## 10. 反例（禁止）
+## 11. 反例（禁止）
 
 ```ts
 // ❌ 裸 IPC
@@ -206,7 +249,7 @@ window.itc // 不存在 database.query(sql)
 // 应使用 src/plugins/paths.ts
 ```
 
-## 11. 网页模式降级
+## 12. 网页模式降级
 
 ```ts
 import { findItc } from '@/lib/itc'
