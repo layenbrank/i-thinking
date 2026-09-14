@@ -1,5 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
 
+import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { findUpSync } from 'find-up'
@@ -19,6 +20,7 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
 
   return {
     plugins: [
+      tailwindcss(),
       vue(),
       vueJsx(),
       vueDevTools(),
@@ -47,11 +49,17 @@ export default defineConfig(function ({ mode, command }: ConfigEnv): UserConfig 
       // 输出到包内 dist，便于 Turbo outputs 匹配
       outDir: resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist'),
       emptyOutDir: true,
-      rollupOptions: {
+      // Vite 8 = Rolldown：`manualChunks` 对象/函数写法已不被接受，改用 codeSplitting.groups
+      rolldownOptions: {
         output: {
           entryFileNames: '[name].js',
-          manualChunks: {
-            vue: ['vue', 'vue-router', 'pinia']
+          codeSplitting: {
+            groups: [
+              {
+                name: 'vue',
+                test: /[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/
+              }
+            ]
           }
         }
       }
