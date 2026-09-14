@@ -1,6 +1,19 @@
 {
-  "dependencies": {},
-  "devDependencies": {},
+  "dependencies": {
+    "pinia": "^3.0.3",
+    "vue": "catalog:",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "catalog:",
+    "@vitejs/plugin-vue-jsx": "catalog:",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.5.0",
+    "@vue/tsconfig": "catalog:",
+    "eslint-plugin-vue": "^10.5.1",
+    "unplugin-vue-components": "^30.0.0",
+    "vite-plugin-vue-devtools": "^8.0.3"
+  },
   "name": "@i-thinking/devtools",
   "private": true,
   "scripts": {

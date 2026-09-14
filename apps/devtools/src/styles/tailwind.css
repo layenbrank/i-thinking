@@ -1,0 +1,7 @@
+/**
+ * DevTools 渲染进程的 Tailwind v4 入口（原 `@tailwind base/components/utilities` 的 v4 等价物）。
+ * 本 app 不在 UI 重构范围内，仅做 v4 管线迁移以保证构建可用。
+ */
+@import 'tailwindcss';
+
+@source '../';
