@@ -1,15 +1,8 @@
-<!-- antd-cli setup start -->
-## Ant Design CLI MCP
+## UI 约定
 
-When working with Ant Design in this repository, use the configured `antd` MCP server before writing component code:
+仓库已完成 antd → shadcn/ui + Tailwind v4 迁移（studio / extension 不再有 antd 代码）：
 
-- Use `antd_info` for component props, defaults, common props, and native HTML element hints.
-- Use `antd_doc` when you need the full component API documentation.
-- Use `antd_demo` before generating non-trivial usage examples.
-- Use `antd_token` and `antd_design_md` for theme, token, and design-language work.
-- Use `antd_semantic` when customizing `classNames` or `styles` slots.
-- Use `antd_changelog` for version migration or API-diff questions.
-
-Use the shared Ant Design skill at `.agents/skills/antd/SKILL.md` for CLI fallback guidance and project-local agent instructions.
-
-<!-- antd-cli setup end -->
+- 组件：`@i-thinking/ui/components/ui/*`（shadcn `new-york` + radix base + lucide 图标）
+- 设计 token 唯一源：`packages/ui/src/styles/globals.css`；app 侧 `@source` 声明自己的源码
+- 新增组件走 registry：`pnpm --filter @i-thinking/ui registry:add <items>` → `registry:fix`
+- chat 相关走 assistant-ui（`packages/chat` 提供端口契约与适配器）
