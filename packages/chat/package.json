@@ -1,0 +1,29 @@
+{
+  "name": "@i-thinking/chat",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "i thinking 共享 chat 层：领域类型 + 端口接口 + assistant-ui 适配器（环境无关）",
+  "exports": {
+    "./ports": "./src/ports.ts",
+    "./adapters/*": "./src/adapters/*.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "lint": "run-s lint:*",
+    "lint:eslint": "eslint . --fix",
+    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+    "format": "prettier --write src/",
+    "test:unit": "vitest"
+  },
+  "dependencies": {
+    "@assistant-ui/ai-sdk": "catalog:",
+    "@assistant-ui/react": "catalog:",
+    "ai": "catalog:",
+    "assistant-stream": "catalog:",
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2"
+  }
+}
