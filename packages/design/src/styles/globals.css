@@ -4,7 +4,7 @@
  * 标准 shadcn 约定：
  * - 语义 token 在 `:root` 定义，`.dark` 覆盖同名变量；经 `@theme inline` 暴露为工具类
  * - 半径单一源：`--radius` 派生 radius-sm…4xl
- * - 暗色切换由根节点 `.dark` class 完成（见 `ThemeProvider`），不使用 `prefers-color-scheme` 媒体变量
+ * - 暗色切换由根节点 `.dark` class 完成，不使用 `prefers-color-scheme` 媒体变量
  * - `--primary` / `--ring` 取产品主色；其余为 shadcn neutral 基色
  *
  * 注意：CSS 注释正文里不要出现星号加斜杠的收尾序列，否则注释会被提前闭合。
@@ -12,7 +12,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
-@import "tw-shimmer";
+@import 'tw-shimmer';
 
 /* 本包组件源码纳入扫描；各 app 在自己的入口 CSS 里再 @source 各自 src */
 @source "../";
@@ -42,6 +42,20 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: #4080ff;
+  /*
+   * 交互态色阶（企业级做法：状态颜色在 token 层定义一次，组件只引用）。
+   * hover 略提亮 / active 下沉，与 antd 的 hover/active 语义一致；
+   * 经 @theme inline 暴露后可直接写 `bg-primary-hover` / `bg-primary-active`。
+   * 注意：自定义属性里的 var() 在**声明处**解析，所以 .dark 必须重写一份。
+   */
+  --primary-hover: color-mix(in oklab, var(--primary) 88%, white);
+  --primary-active: color-mix(in oklab, var(--primary) 82%, black);
+  --secondary-hover: color-mix(in oklab, var(--secondary) 94%, black);
+  --secondary-active: color-mix(in oklab, var(--secondary) 86%, black);
+  --accent-hover: color-mix(in oklab, var(--accent) 93%, black);
+  --accent-active: color-mix(in oklab, var(--accent) 85%, black);
+  --destructive-hover: color-mix(in oklab, var(--destructive) 88%, white);
+  --destructive-active: color-mix(in oklab, var(--destructive) 82%, black);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -77,6 +91,14 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: #4080ff;
+  --primary-hover: color-mix(in oklab, var(--primary) 88%, white);
+  --primary-active: color-mix(in oklab, var(--primary) 82%, black);
+  --secondary-hover: color-mix(in oklab, var(--secondary) 92%, white);
+  --secondary-active: color-mix(in oklab, var(--secondary) 86%, black);
+  --accent-hover: color-mix(in oklab, var(--accent) 92%, white);
+  --accent-active: color-mix(in oklab, var(--accent) 85%, black);
+  --destructive-hover: color-mix(in oklab, var(--destructive) 88%, white);
+  --destructive-active: color-mix(in oklab, var(--destructive) 82%, black);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -112,6 +134,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-active: var(--secondary-active);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-active: var(--destructive-active);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -131,19 +161,19 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   @keyframes collapsible-down {
-  from {
-    height: 0;
+    from {
+      height: 0;
     }
-  to {
-    height: var(--radix-collapsible-content-height, var(--collapsible-panel-height, auto));
+    to {
+      height: var(--radix-collapsible-content-height, var(--collapsible-panel-height, auto));
     }
   }
   @keyframes collapsible-up {
-  from {
-    height: var(--radix-collapsible-content-height, var(--collapsible-panel-height, auto));
+    from {
+      height: var(--radix-collapsible-content-height, var(--collapsible-panel-height, auto));
     }
-  to {
-    height: 0;
+    to {
+      height: 0;
     }
   }
 }
