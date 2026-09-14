@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react'
-import { generate } from '@ant-design/colors'
 
 interface SurfaceStyleInput {
   round?: string | null
@@ -44,7 +43,8 @@ function buildSurfaceStyle(input: SurfaceStyleInput = {}): CSSProperties {
   const backdropFilter = parseBackdropFilter(input.backdrop)
 
   const backgroundImage = image ? `url(${image})` : undefined
-  const backgroundColor = image ? undefined : (color ?? '#ffffff')
+  // 未指定颜色时落到 `--card`：写死白底会在暗色主题下与浅色文字互相吃掉
+  const backgroundColor = image ? undefined : (color ?? 'var(--card)')
 
   const style: CSSProperties = {
     backgroundSize: size ?? 'cover',
@@ -68,9 +68,5 @@ function buildSurfaceStyle(input: SurfaceStyleInput = {}): CSSProperties {
   return style
 }
 
-function paintPrimary(color: string) {
-  return generate(color)
-}
-
-export { buildSurfaceStyle, paintPrimary }
+export { buildSurfaceStyle }
 export type { SurfaceStyleInput }

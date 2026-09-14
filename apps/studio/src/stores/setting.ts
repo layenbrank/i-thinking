@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 
-import type { Appearance as ThemeAppearance } from '@/themes/appearance'
-import { APPEARANCE_PRESET } from '@/themes/appearance'
+import {
+  DEFAULT_CHAT_TRANSPORT,
+  type ChatTransportKind
+} from '@/features/chat/transport.ts'
 
 declare namespace Setting {
   export interface General {
@@ -9,11 +11,17 @@ declare namespace Setting {
     language: string
   }
 
-  export type Appearance = ThemeAppearance
+  export interface Chat {
+    transport: ChatTransportKind
+    /** 选中的本地 provider（null = 用第一个启用的） */
+    providerID: string | null
+    /** 模型覆盖（空 = 用 provider 默认 / 服务端 `AI_MODEL`） */
+    model: string
+  }
 
   export interface Composite {
     general: General
-    appearance: Appearance
+    chat: Chat
   }
 }
 
@@ -22,7 +30,11 @@ const SETTINGS: Setting.Composite = {
     autostart: true,
     language: 'zh-CN'
   },
-  appearance: APPEARANCE_PRESET
+  chat: {
+    transport: DEFAULT_CHAT_TRANSPORT,
+    providerID: null,
+    model: ''
+  }
 }
 
 async function readSection<K extends keyof Setting.Composite>(
@@ -55,7 +67,6 @@ interface SettingsStore {
     value: Partial<Setting.Composite[K]>
   ) => Promise<void>
   reset: () => Promise<void>
-  resetAppearance: () => Promise<void>
 }
 
 export const useSettingsStore = create<SettingsStore>(function (setter, getter) {
@@ -90,17 +101,6 @@ export const useSettingsStore = create<SettingsStore>(function (setter, getter) 
       for (const key of Object.keys(SETTINGS) as (keyof Setting.Composite)[]) {
         await writeSection(key, SETTINGS[key])
       }
-    },
-
-    async resetAppearance() {
-      const current = getter().settings
-      setter({
-        settings: {
-          ...current,
-          appearance: APPEARANCE_PRESET
-        }
-      })
-      await writeSection('appearance', APPEARANCE_PRESET)
     }
   }
 })

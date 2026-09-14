@@ -1,7 +1,9 @@
 import { Icon } from '@iconify/react/offline'
-import { Button, Layout, Space, App } from 'antd'
+import { Button } from '@i-thinking/ui/components/ui/button'
 import { clsx } from 'clsx'
 import { useEffect, useReducer } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
 import styles from '@/views/overview/components/utility.module.scss'
 
@@ -27,7 +29,7 @@ function visibleReducer(state: Reactive, action: Action): Reactive {
 }
 
 export default function Utility() {
-  const { message } = App.useApp()
+  const navigate = useNavigate()
   const [visible, dispatch] = useReducer(visibleReducer, VISIBLE)
 
   useEffect(function () {
@@ -55,9 +57,9 @@ export default function Utility() {
         visible: true
       })
       dispatch({ type: 'patch', payload: { devtools: true } })
-      message.success({ content: '开发工具已打开', duration: 1 })
+      toast.success('开发工具已打开', { duration: 1000 })
     } catch (error) {
-      message.error({ content: '开发工具打开失败', duration: 2 })
+      toast.error('开发工具打开失败', { duration: 2000 })
       console.error(error)
     }
   }
@@ -67,9 +69,9 @@ export default function Utility() {
     try {
       await itc.overlay.toUpdate({ visible: next })
       dispatch({ type: 'patch', payload: { overlay: next } })
-      message.success({ content: next ? '浮层已显示' : '浮层已隐藏', duration: 1 })
+      toast.success(next ? '浮层已显示' : '浮层已隐藏', { duration: 1000 })
     } catch (error) {
-      message.error({ content: '浮层状态切换失败', duration: 2 })
+      toast.error('浮层状态切换失败', { duration: 2000 })
       console.error(error)
     }
   }
@@ -77,43 +79,61 @@ export default function Utility() {
   async function handleReload() {
     try {
       window.location.reload()
-      message.success({ content: '重载成功', duration: 1 })
+      toast.success('重载成功', { duration: 1000 })
     } catch (error) {
-      message.error({ content: '重载失败', duration: 2 })
+      toast.error('重载失败', { duration: 2000 })
       console.error(error)
     }
   }
 
   return (
-    <Layout.Header
+    <header
       data-region="true"
       className={clsx(styles.utility)}>
-      <Space.Compact orientation="horizontal">
+      <div className={styles.group}>
         <Button
+          variant="ghost"
+          size="icon"
+          data-region="false"
+          onClick={function () {
+            void navigate('/chat')
+          }}
+          className={clsx(styles.button)}
+          aria-label="打开对话"
+          title="打开对话">
+          <Icon icon="mdi:chat-processing-outline"></Icon>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           data-region="false"
           onClick={handleDevtools}
-          className={clsx([styles.button])}
+          className={clsx(styles.button)}
           aria-label="打开开发工具"
           title="打开开发工具">
           <Icon icon="ant-design:bug-filled"></Icon>
         </Button>
         <Button
+          variant="ghost"
+          size="icon"
           data-region="false"
           onClick={handleOverlay}
-          className={clsx([styles.button])}
+          className={clsx(styles.button)}
           aria-label={visible.overlay ? '隐藏浮层' : '显示浮层'}
           title={visible.overlay ? '隐藏浮层' : '显示浮层'}>
           <Icon icon={visible.overlay ? 'mdi:eye-off-outline' : 'mdi:eye-outline'}></Icon>
         </Button>
         <Button
+          variant="ghost"
+          size="icon"
           data-region="false"
           onClick={handleReload}
-          className={clsx([styles.button])}
+          className={clsx(styles.button)}
           aria-label="重载页面"
           title="重载页面">
           <Icon icon="ant-design:reload-outlined"></Icon>
         </Button>
-      </Space.Compact>
-    </Layout.Header>
+      </div>
+    </header>
   )
 }

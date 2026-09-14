@@ -1,5 +1,5 @@
-import { Layout } from 'antd'
 import { clsx } from 'clsx'
+import { useState } from 'react'
 
 import ReSignIn from '@/features/signin/signin.tsx'
 import { Combination } from '@/views/overview/components/index'
@@ -10,7 +10,7 @@ export default function Overview() {
   const [visible, onUpdateVisible] = useState(false)
 
   return (
-    <Layout className={clsx(styles.overview)}>
+    <div className={clsx(styles.overview)}>
       <Combination.Utility />
       <Combination.Section />
       <Combination.Summary />
@@ -20,6 +20,6 @@ export default function Overview() {
           onUpdateVisible(false)
         }}
       />
-    </Layout>
+    </div>
   )
 }

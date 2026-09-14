@@ -34,7 +34,6 @@
       "@types/react-dom",
       "@types/chrome",
       "reflect-metadata",
-      "unplugin-icons/types/react",
       "@i-thinking/utils",
       "@i-thinking/shared/response",
       "@i-thinking/shared/decorator",
@@ -48,7 +47,6 @@
       "@i-thinking/shared/controller",
       "@i-thinking/shared/magnetic-tile",
       "@i-thinking/shared/magnetic-tile-bookmark",
-      "@i-thinking/shared/magnetic-tile-markdown",
       "@i-thinking/shared/magnetic-tile-intelligence",
       "@i-thinking/shared/process-env",
       "@electron-forge/plugin-vite/forge-vite-env"
@@ -60,5 +58,6 @@
     }
   },
   "include": ["src"],
-  "exclude": ["**/node_modules/**", "**/dist/**"]
+  "exclude": ["**/node_modules/**", "**/dist/**"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

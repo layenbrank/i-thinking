@@ -10,33 +10,6 @@ $radius-modal: 16px;
 $radius-brand: 12px;
 $brand-inset: 10px;
 
-.signin {
-  :global {
-    .ant-modal-wrap {
-      min-width: unset !important;
-    }
-
-    .ant-modal {
-      aspect-ratio: unset !important;
-      min-width: unset !important;
-      width: min(92vw, 880px) !important;
-      max-height: min(90vh, 560px) !important;
-      height: auto !important;
-      border-radius: $radius-modal !important;
-      overflow: hidden;
-    }
-
-    .ant-modal-container {
-      height: auto !important;
-    }
-
-    .ant-modal-body {
-      padding: 0 !important;
-      height: auto !important;
-    }
-  }
-}
-
 .body {
   display: flex;
   flex-direction: row;
@@ -45,7 +18,7 @@ $brand-inset: 10px;
   gap: 0;
   overflow: hidden;
   border-radius: $radius-modal;
-  background-color: var(--ith-color-bg-container, #ffffff);
+  background-color: var(--card);
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -111,7 +84,12 @@ $brand-inset: 10px;
   @media (prefers-color-scheme: dark) {
     background:
       radial-gradient(circle at 85% 15%, rgba(64, 128, 255, 0.2) 0%, transparent 45%),
-      linear-gradient(155deg, color.adjust($brand-deep, $lightness: -4%) 0%, color.adjust($brand-mid, $lightness: -4%) 42%, color.adjust($primary-dark, $lightness: -10%) 100%);
+      linear-gradient(
+        155deg,
+        color.adjust($brand-deep, $lightness: -4%) 0%,
+        color.adjust($brand-mid, $lightness: -4%) 42%,
+        color.adjust($primary-dark, $lightness: -10%) 100%
+      );
   }
 }
 
@@ -123,24 +101,21 @@ $brand-inset: 10px;
   align-items: flex-start;
   row-gap: 12px;
 
-  :global {
-    h3.ant-typography {
-      margin: 0 !important;
-      color: $brand-text !important;
-      font-weight: 600 !important;
-      font-size: 26px !important;
-      letter-spacing: 0.02em;
-      line-height: 1.25 !important;
-    }
+  h3 {
+    margin: 0;
+    color: $brand-text;
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+  }
 
-    p.ant-typography,
-    div.ant-typography {
-      margin: 0 !important;
-      max-width: 280px;
-      color: $brand-muted !important;
-      font-size: 14px;
-      line-height: 1.65;
-    }
+  p {
+    margin: 0;
+    max-width: 280px;
+    color: $brand-muted;
+    font-size: 14px;
+    line-height: 1.65;
   }
 }
 
@@ -156,7 +131,7 @@ $brand-inset: 10px;
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 
-  :global(svg) {
+  svg {
     width: 26px;
     height: 26px;
     color: $brand-text;
@@ -182,7 +157,7 @@ $brand-inset: 10px;
     line-height: 1.4;
   }
 
-  :global(svg) {
+  svg {
     flex-shrink: 0;
     width: 16px;
     height: 16px;
@@ -222,7 +197,7 @@ $brand-inset: 10px;
   justify-content: flex-start;
   overflow: hidden;
   padding: 32px 40px;
-  background-color: var(--ith-color-bg-container, #ffffff);
+  background-color: var(--card);
 
   @media (max-width: 768px) {
     padding: 24px;
@@ -256,32 +231,20 @@ $brand-inset: 10px;
 .fieldMotion {
   min-width: 0;
   width: 100%;
+  margin-bottom: 20px;
 }
 
 .form {
   min-width: 0;
   width: 100%;
-
-  :global {
-    .ant-form-item {
-      margin-bottom: 20px;
-    }
-
-    .ant-form-item-label > label {
-      font-size: 13px;
-      color: var(--ith-color-text-heading, #171717);
-    }
-  }
 }
 
 .head {
   margin-bottom: 28px;
 
-  :global {
-    h4.ant-typography {
-      margin-bottom: 4px !important;
-      font-weight: 600;
-    }
+  h4 {
+    margin-bottom: 4px;
+    font-weight: 600;
   }
 }
 
@@ -290,19 +253,6 @@ $brand-inset: 10px;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
-
-  :global {
-    .ant-form-item {
-      margin-bottom: 0;
-    }
-
-    .ant-btn-link {
-      padding: 0;
-      height: auto;
-      cursor: pointer;
-      transition: color 200ms ease;
-    }
-  }
 }
 
 .actions {
@@ -314,40 +264,15 @@ $brand-inset: 10px;
 .tabs {
   margin-bottom: 20px;
   width: 100%;
-
-  :global {
-    .ant-segmented {
-      width: 100%;
-      font-size: 13px;
-    }
-  }
+  font-size: 13px;
 }
 
 .captcha {
   display: flex;
   column-gap: 8px;
-
-  :global {
-    .ant-input-affix-wrapper {
-      flex: 1;
-      min-width: 0;
-    }
-  }
 }
 
 .back {
   margin-top: 8px;
   text-align: center;
-
-  :global(.ant-btn-link) {
-    padding: 0;
-    height: auto;
-    cursor: pointer;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .extra :global(.ant-btn-link) {
-    transition: none;
-  }
 }

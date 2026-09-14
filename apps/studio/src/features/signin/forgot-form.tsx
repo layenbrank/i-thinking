@@ -1,27 +1,25 @@
-import { Button, Form, Input, Segmented, message } from 'antd'
-import { Icon } from '@iconify/react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Button } from '@i-thinking/ui/components/ui/button'
+import { Form } from '@i-thinking/ui/components/ui/form'
+import { Tabs, TabsList, TabsTrigger } from '@i-thinking/ui/components/ui/tabs'
+import { LockIcon, MailIcon, SmartphoneIcon, UserIcon } from 'lucide-react'
 import { useEffect } from 'react'
+import { useForm, type Resolver } from 'react-hook-form'
+import { toast } from 'sonner'
 
 import { POST_RESET_PASSWORD } from '@/apis/auth.ts'
 import {
+  FORGOT_SCHEMA,
   LIMIT,
   MODE,
-  RULE,
   findIdentity,
-  type AuthMode
+  type AuthMode,
+  type ForgotValues
 } from '@/features/signin/constants.ts'
 import { CaptchaField } from '@/features/signin/captcha-field.tsx'
+import { AuthField } from '@/features/signin/field.tsx'
 import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
 import styles from '@/features/signin/signin.module.scss'
-
-type ForgotFormValues = {
-  username?: string
-  phone?: string
-  email?: string
-  captcha?: string
-  password?: string
-  confirm?: string
-}
 
 type ForgotFormProps = {
   motionKey: number
@@ -32,16 +30,19 @@ type ForgotFormProps = {
 
 function ForgotForm(props: ForgotFormProps) {
   const { motionKey, forgotMode, onModeChange, onSignin } = props
-  const [form] = Form.useForm<ForgotFormValues>()
+
+  const form = useForm<ForgotValues>({
+    resolver: zodResolver(FORGOT_SCHEMA[forgotMode]) as Resolver<ForgotValues>
+  })
 
   useEffect(
     function () {
-      form.resetFields()
+      form.reset()
     },
     [form, forgotMode]
   )
 
-  async function onFinish(values: ForgotFormValues) {
+  async function onSubmit(values: ForgotValues) {
     const target = findIdentity(forgotMode, values)
 
     try {
@@ -51,84 +52,80 @@ function ForgotForm(props: ForgotFormProps) {
         captcha: values.captcha ?? '',
         password: values.password ?? ''
       })
-      message.success('密码重置成功（mock）')
+      toast.success('密码重置成功（mock）')
       onSignin()
     } catch {
-      message.error('密码重置失败，请稍后重试')
+      toast.error('密码重置失败，请稍后重试')
     }
   }
 
-  function onSegmentChange(value: string | number) {
-    onModeChange(value as AuthMode)
-  }
-
   return (
-    <Form
-      form={form}
-      name="forgot"
-      layout="vertical"
-      requiredMark={false}
-      className={styles.form}
-      onFinish={onFinish}>
-      <FormStagger key={`${motionKey}-${forgotMode}`}>
+    <Form {...form}>
+      <form
+        className={styles.form}
+        noValidate
+        onSubmit={form.handleSubmit(onSubmit)}>
+        <FormStagger key={`${motionKey}-${forgotMode}`}>
           <MotionField className={styles.tabs}>
-            <Segmented
-              block
+            <Tabs
               value={forgotMode}
-              options={MODE.options}
-              onChange={onSegmentChange}
-            />
+              onValueChange={function (value) {
+                onModeChange(value as AuthMode)
+              }}>
+              <TabsList className="grid w-full grid-cols-3">
+                {MODE.options.map(function (option) {
+                  return (
+                    <TabsTrigger
+                      key={option.value}
+                      value={option.value}>
+                      {option.label}
+                    </TabsTrigger>
+                  )
+                })}
+              </TabsList>
+            </Tabs>
           </MotionField>
 
           {forgotMode === MODE.USERNAME && (
             <MotionField>
-              <Form.Item
+              <AuthField
+                control={form.control}
                 name="username"
                 label="用户名"
-                rules={RULE.USERNAME}>
-                <Input
-                  size="large"
-                  maxLength={LIMIT.USERNAME}
-                  prefix={<Icon icon="ant-design:user-outlined" />}
-                  placeholder="请输入用户名"
-                  aria-label="用户名"
-                />
-              </Form.Item>
+                placeholder="请输入用户名"
+                icon={<UserIcon />}
+                maxLength={LIMIT.USERNAME}
+                autoComplete="username"
+              />
             </MotionField>
           )}
 
           {forgotMode === MODE.PHONE && (
             <MotionField>
-              <Form.Item
+              <AuthField
+                control={form.control}
                 name="phone"
                 label="手机号"
-                rules={RULE.PHONE}>
-                <Input
-                  size="large"
-                  maxLength={LIMIT.PHONE}
-                  inputMode="numeric"
-                  prefix={<Icon icon="ant-design:mobile-outlined" />}
-                  placeholder="请输入手机号"
-                  aria-label="手机号"
-                />
-              </Form.Item>
+                placeholder="请输入手机号"
+                icon={<SmartphoneIcon />}
+                inputMode="numeric"
+                maxLength={LIMIT.PHONE}
+                autoComplete="tel"
+              />
             </MotionField>
           )}
 
           {forgotMode === MODE.EMAIL && (
             <MotionField>
-              <Form.Item
+              <AuthField
+                control={form.control}
                 name="email"
                 label="邮箱"
-                rules={RULE.EMAIL}>
-                <Input
-                  size="large"
-                  maxLength={LIMIT.EMAIL}
-                  prefix={<Icon icon="ant-design:mail-outlined" />}
-                  placeholder="请输入邮箱"
-                  aria-label="邮箱"
-                />
-              </Form.Item>
+                placeholder="请输入邮箱"
+                icon={<MailIcon />}
+                maxLength={LIMIT.EMAIL}
+                autoComplete="email"
+              />
             </MotionField>
           )}
 
@@ -141,58 +138,51 @@ function ForgotForm(props: ForgotFormProps) {
           </MotionField>
 
           <MotionField>
-            <Form.Item
+            <AuthField
+              control={form.control}
               name="password"
+              type="password"
               label="新密码"
-              rules={RULE.PASSWORD}>
-              <Input.Password
-                size="large"
-                maxLength={LIMIT.PASSWORD}
-                prefix={<Icon icon="ant-design:lock-outlined" />}
-                placeholder="请输入新密码"
-                aria-label="新密码"
-              />
-            </Form.Item>
+              placeholder="请输入新密码"
+              icon={<LockIcon />}
+              maxLength={LIMIT.PASSWORD}
+              autoComplete="new-password"
+            />
           </MotionField>
 
           <MotionField>
-            <Form.Item
+            <AuthField
+              control={form.control}
               name="confirm"
+              type="password"
               label="确认密码"
-              dependencies={['password']}
-              rules={[
-                { required: true, message: '请确认密码！' },
-                RULE.confirm(form)
-              ]}>
-              <Input.Password
-                size="large"
-                maxLength={LIMIT.PASSWORD}
-                prefix={<Icon icon="ant-design:lock-outlined" />}
-                placeholder="请再次输入新密码"
-                aria-label="确认密码"
-              />
-            </Form.Item>
+              placeholder="请再次输入新密码"
+              icon={<LockIcon />}
+              maxLength={LIMIT.PASSWORD}
+              autoComplete="new-password"
+            />
           </MotionField>
 
           <MotionField className={styles.actions}>
             <Button
-              block
-              size="large"
-              type="primary"
-              htmlType="submit">
-              确认重置
+              type="submit"
+              className="h-11 w-full"
+              aria-busy={form.formState.isSubmitting}>
+              重置密码
             </Button>
           </MotionField>
 
           <MotionField className={styles.back}>
             <Button
-              type="link"
-              htmlType="button"
+              type="button"
+              variant="link"
+              className="h-auto p-0"
               onClick={onSignin}>
               返回登录
             </Button>
           </MotionField>
         </FormStagger>
+      </form>
     </Form>
   )
 }

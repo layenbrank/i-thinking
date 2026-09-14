@@ -1,4 +1,4 @@
-import { Modal, type ModalProps } from 'antd'
+import { Dialog, DialogContent } from '@i-thinking/ui/components/ui/dialog'
 import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -11,18 +11,14 @@ type Cache = 'destroy' | 'keepAlive'
 /** framed：配置弹层；fluid：工作台（morph） */
 type OverlayMode = 'framed' | 'fluid'
 
-type OverlayStyles = Exclude<ModalProps['styles'], (...args: never[]) => unknown>
+/** 关闭手势：Esc / 点击遮罩 */
+type DismissReason = 'escape' | 'overlay'
 
 interface OverlayProps {
   children?: ReactNode
   className?: ClassValue
-  wrapClassName?: string
   style?: CSSProperties
-  /**
-   * 仅支持对象形式；函数式 styles 会被忽略（antd Modal 兼容形态，壳层不透传）。
-   */
-  styles?: OverlayStyles
-  width?: ModalProps['width']
+  width?: CSSProperties['width']
   /** fluid 覆盖默认高度；framed 由 aspect-ratio 定高，忽略本值 */
   height?: CSSProperties['height']
   /** framed：配置弹层；fluid：工作台（morph） */
@@ -33,8 +29,7 @@ interface OverlayProps {
   onAbort?: () => Promise<void>
   abortTimeoutMs?: number
   destroyOnHidden?: boolean
-  onCancel?: ModalProps['onCancel']
-  onOk?: ModalProps['onOk']
+  onCancel?: (reason: DismissReason) => void
 }
 
 type OverlayControlProps = Pick<OverlayProps, 'cache' | 'onAbort' | 'abortTimeoutMs'>
@@ -148,11 +143,9 @@ function OverlayProvider(props: OverlayProviderProps) {
 function Overlay(props: OverlayProps) {
   const {
     className,
-    wrapClassName,
     width = WIDTH,
     height,
     onCancel,
-    onOk,
     children,
     cache = 'destroy',
     onAbort,
@@ -160,16 +153,16 @@ function Overlay(props: OverlayProps) {
     destroyOnHidden,
     controls,
     style: styleProp,
-    styles: stylesProp,
     mode = 'framed'
   } = props
   const { visible, fullscreen, onUpdateVisible, onUpdateRenderable } = useContext(OverlayContext)
 
   const shouldDestroyOnHidden = cache === 'destroy' ? true : (destroyOnHidden ?? false)
+  /** keepAlive：关闭后仍留在 DOM（iframe 不重载）；关闭态靠 .overlay[data-state='closed'] 隐藏 */
+  const isKeepMounted = !shouldDestroyOnHidden
 
   const hasControls = controls !== null && controls !== undefined
   const isFluid = mode === 'fluid'
-  const styleSlots = stylesProp
 
   async function handleAfterClose() {
     if (cache !== 'destroy') return
@@ -189,11 +182,24 @@ function Overlay(props: OverlayProps) {
     }
   }
 
-  function handleCancel(
-    e: React.MouseEvent<HTMLButtonElement, MouseEvent> | React.KeyboardEvent<HTMLElement>
-  ) {
+  function handleCancel(reason: DismissReason) {
     onUpdateVisible(false)
-    onCancel?.(e)
+    onCancel?.(reason)
+  }
+
+  /** Esc / 遮罩 / 关闭按钮统一走这里；理由由 onEscapeKeyDown、onPointerDownOutside 补充 */
+  function handleOpenChange(open: boolean) {
+    if (open) return
+
+    onUpdateVisible(false)
+  }
+
+  function handleEscapeKeyDown() {
+    handleCancel('escape')
+  }
+
+  function handlePointerDownOutside() {
+    handleCancel('overlay')
   }
 
   // 尺寸由 .framed / .fluid / .fullscreen 管；仅透传 style，fluid 可覆盖 height
@@ -203,64 +209,28 @@ function Overlay(props: OverlayProps) {
       : { ...styleProp }
 
   return (
-    <Modal
-      title={null}
-      footer={hasControls ? <div className={styles.controls}>{controls}</div> : null}
+    <Dialog
       open={visible}
-      centered={true}
-      closable={false}
-      children={<div className={styles.body}>{children}</div>}
-      mask={{
-        closable: true,
-        enabled: true
-      }}
-      destroyOnHidden={shouldDestroyOnHidden}
-      onCancel={handleCancel}
-      onOk={onOk}
-      afterClose={handleAfterClose}
-      width={fullscreen ? '100%' : width}
-      wrapClassName={wrapClassName}
-      style={overlayStyle}
-      styles={{
-        container: {
-          padding: 0,
-          height: '100%',
-          borderRadius: fullscreen ? '0' : 'var(--ith-border-radius-lg)',
-          overflow: 'hidden',
-          ...styleSlots?.container
-        },
-        header: {
-          borderRadius: fullscreen
-            ? '0'
-            : 'var(--ith-border-radius-lg) var(--ith-border-radius-lg) 0 0',
-          ...styleSlots?.header
-        },
-        body: {
-          padding: 0,
-          height: '100%',
-          display: 'flex',
-          overflow: 'hidden',
-          flexDirection: 'column',
-          ...styleSlots?.body
-        },
-        footer: hasControls
-          ? {
-              margin: 0,
-              padding: 0,
-              borderTop: 'none',
-              ...styleSlots?.footer
-            }
-          : styleSlots?.footer
-      }}
-      className={clsx(
-        'magnetic-tile-overlay',
-        styles.overlay,
-        !fullscreen && (isFluid ? styles.fluid : styles.framed),
-        fullscreen && styles.fullscreen,
-        className,
-        hasControls && styles.withControls
-      )}
-    />
+      onOpenChange={handleOpenChange}>
+      <DialogContent
+        showCloseButton={false}
+        forceMount={isKeepMounted ? true : undefined}
+        data-slot="magnetic-tile-overlay"
+        className={clsx(
+          'magnetic-tile-overlay',
+          styles.overlay,
+          !fullscreen && (isFluid ? styles.fluid : styles.framed),
+          fullscreen && styles.fullscreen,
+          className
+        )}
+        style={{ ...overlayStyle, width: fullscreen ? '100%' : width }}
+        onEscapeKeyDown={handleEscapeKeyDown}
+        onPointerDownOutside={handlePointerDownOutside}
+        onCloseAutoFocus={handleAfterClose}>
+        <div className={styles.body}>{children}</div>
+        {hasControls ? <div className={styles.controls}>{controls}</div> : null}
+      </DialogContent>
+    </Dialog>
   )
 }
 

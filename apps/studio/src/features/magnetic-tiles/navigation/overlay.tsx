@@ -2,7 +2,6 @@ import { clsx } from 'clsx'
 
 import {
   MagneticTile,
-  OverlayContext,
   type OverlayControlProps
 } from '@/features/magnetic-tile/magnetic-tile.tsx'
 import styles from '@/features/magnetic-tiles/navigation/overlay.module.scss'
@@ -10,16 +9,12 @@ import styles from '@/features/magnetic-tiles/navigation/overlay.module.scss'
 // interface Props {}
 
 export default function Overlay(props: OverlayControlProps) {
-  const { visible, onUpdateVisible } = useContext(OverlayContext)
-
   return (
     <MagneticTile.Overlay
       cache={props.cache}
       onAbort={props.onAbort}
       abortTimeoutMs={props.abortTimeoutMs}
-      className={clsx([styles.overlay, styles.root])}
-      onOk={() => onUpdateVisible(false)}
-      onCancel={() => onUpdateVisible(false)}>
+      className={clsx([styles.overlay, styles.root])}>
       <iframe
         src="https://www.xiaohongshu.com"
         referrerPolicy="unsafe-url"
