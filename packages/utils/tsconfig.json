@@ -1,15 +1,16 @@
 {
   "include": [
+    "index.ts",
     "src/**/*.ts",
     "src/**/*.d.ts",
     "vite.config.*",
     "vitest.config.*",
+    "eslint.config.*",
     "cypress.config.*",
     "nightwatch.conf.*",
-    "playwright.config.*",
+    "rolldown.config.*",
     "tailwind.config.*",
-    "eslint.config.*",
-    "index.ts"
+    "playwright.config.*"
   ],
   "exclude": ["**/node_modules/**", "**/dist/**"],
   "compilerOptions": {
