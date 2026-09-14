@@ -7,13 +7,13 @@ import {
 } from 'lucide-react'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
 
-import { cn } from '../lib/utils'
+import { cn } from 'cn'
 
 /**
  * Toaster —— 通知层（替代 antd 的 `message` / `notification`）。
  *
  * - 颜色走本仓 token（`--popover` / `--border` / `--radius`），随 `.dark` 自动切换
- * - `theme` 由 app 的 ThemeProvider 按解析后的模式传入，不使用 next-themes
+ * - 不引入 next-themes，也不注入主题状态：颜色已由 token 决定，`theme` 交给消费方按需传
  */
 function Toaster({ className, ...props }: ToasterProps) {
   return (
