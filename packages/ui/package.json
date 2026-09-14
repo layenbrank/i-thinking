@@ -1,0 +1,48 @@
+{
+  "name": "@i-thinking/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "i thinking 共享 React UI 层：shadcn/ui 原子组件 + assistant-ui elements + 设计 token",
+  "exports": {
+    "./globals.css": "./src/styles/globals.css",
+    "./components/*": "./src/components/*.tsx",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./lib/*": "./src/lib/*.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "lint": "run-s lint:*",
+    "lint:eslint": "eslint . --fix",
+    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+    "format": "prettier --write src/",
+    "registry:add": "shadcn add",
+    "registry:fix": "node scripts/normalize-registry.mjs",
+    "test:unit": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "@assistant-ui/react": "catalog:",
+    "@assistant-ui/react-markdown": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "cn": "catalog:",
+    "lucide-react": "catalog:",
+    "radix-ui": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-hook-form": "catalog:",
+    "remark-gfm": "catalog:",
+    "sonner": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tw-shimmer": "catalog:",
+    "zustand": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "shadcn": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:"
+  }
+}
