@@ -12,7 +12,7 @@ scope:
     - packages/construct/src/**
     - packages/directives/src/**
     - packages/shared/src/**
-    - packages/ui/src/**
+    - packages/design/src/**
     - packages/utils/src/**
     - packages/wasm/src/**
   exclude:
