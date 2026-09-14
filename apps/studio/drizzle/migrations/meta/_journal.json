@@ -15,6 +15,20 @@
       "when": 1789238631670,
       "tag": "0001_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789366130325,
+      "tag": "0002_chat_domain",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789366135038,
+      "tag": "0003_drop_ai_domain",
+      "breakpoints": true
     }
   ]
 }

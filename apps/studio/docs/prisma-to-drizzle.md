@@ -187,3 +187,17 @@ function findClient() {
 - `Auth` 是 studio 自有示例仓储，表会建进**共享库**；是否保留该模型与 USER 通道
 - Rust 迁移里无对应实体的三表 `user` / `notification` / `comment` 当前未建（Tauri 版启动时用 `IF NOT EXISTS` 自建）
 - 可选增强：打开库时 `PRAGMA optimize`、`PRAGMA application_id` / `user_version`
+
+### 9.4 后续变更：ai 域 → chat 域（替换完成后）
+
+旧 ai 域（`aiWorkspace` / `aiWorkspaceFolder` / `aiSession` / `aiMessage` / `aiProvider`）studio 侧零引用，
+按 task_plan D5 换成 chat 域（`chatProvider` / `chatSession` / `chatMessage`，见 `drizzle/schema/chat.ts`）。
+三处随之调整（均已实测）：
+
+| 项          | 变更                                                                                                                                                                                   |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| schema      | 删 `drizzle/schema/ai.ts`，新增 `chat.ts`；消息的 `format` + `content` 是主进程不解析的不透明载荷，`parentID` 表达分支                                                                 |
+| 迁移        | `0002_chat_domain.sql`（建 chat 三表）+ `0003_drop_ai_domain.sql`（drop 旧 ai 五表）。拆两条是 drizzle-kit 的非交互限制：同一 diff 里"删旧表 + 建新表"会触发重命名询问，TTY 外无法回答 |
+| 基线采纳    | `adoptBaseline()` 改为只采纳冻结的 v1 两条（`BASELINE_TAGS`）—— 否则既有库会把 0002/0003 也当成"已应用"，用户的旧库永远拿不到 chat 表、且残留 ai 表                                    |
+| parity 脚本 | 表集合改为只单向核对（快照有、Drizzle 没有才算差异）；studio 自有/后加的表不再需要往 `ALLOWED` 里堆行；已记录 5 张 ai 表的 drop                                                        |
+| 验证        | `pnpm --filter @i-thinking/studio test:db` 6/6（含 chat 级联/分支/provider set null 的新集成用例）                                                                                     |

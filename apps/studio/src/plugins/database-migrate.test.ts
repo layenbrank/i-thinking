@@ -22,6 +22,7 @@ const INIT_SQL = 'CREATE TABLE "magneticTile" ("id" TEXT NOT NULL PRIMARY KEY);'
 const SEED_SQL = 'INSERT INTO "magneticTile" ("id") VALUES (\'tile-1\');'
 const WHEN_INIT = 1789238478993
 const WHEN_SEED = 1789238631670
+const WHEN_LATER = 1789366130325
 
 let dir: string
 let migrationsFolder: string
@@ -84,11 +85,19 @@ describe('adoptBaseline', function () {
     expect(count).toBe(2)
 
     const records = readRecords(seed)
-    expect(records.map((row) => row.hash)).toEqual([
+    expect(
+      records.map(function (row) {
+        return row.hash
+      })
+    ).toEqual([
       createHash('sha256').update(INIT_SQL).digest('hex'),
       createHash('sha256').update(SEED_SQL).digest('hex')
     ])
-    expect(records.map((row) => row.created_at)).toEqual([WHEN_INIT, WHEN_SEED])
+    expect(
+      records.map(function (row) {
+        return row.created_at
+      })
+    ).toEqual([WHEN_INIT, WHEN_SEED])
 
     // 已存在的数据不被触碰
     const tiles = seed.prepare('SELECT COUNT(*) AS n FROM "magneticTile"').all() as {
@@ -103,6 +112,40 @@ describe('adoptBaseline', function () {
     expect(adoptBaseline(db, migrationsFolder)).toBe(2)
     expect(adoptBaseline(db, migrationsFolder)).toBe(0)
     expect(readRecords(db)).toHaveLength(2)
+  })
+
+  it('晚于 v1 基线的迁移不被采纳（须由 migrate 真实执行）', function () {
+    // 模拟 v1 之后新增的迁移（如 0002 建 chat 域）：既有库也必须真实执行它，
+    // 否则用户的旧库永远拿不到新表
+    const laterSql = 'CREATE TABLE "chatSession" ("id" TEXT NOT NULL PRIMARY KEY);'
+    writeFileSync(join(migrationsFolder, '0002_chat_domain.sql'), laterSql)
+    writeFileSync(
+      join(migrationsFolder, 'meta', '_journal.json'),
+      JSON.stringify({
+        version: '7',
+        dialect: 'sqlite',
+        entries: [
+          { idx: 0, version: '6', when: WHEN_INIT, tag: '0000_init', breakpoints: true },
+          { idx: 1, version: '6', when: WHEN_SEED, tag: '0001_seed', breakpoints: true },
+          {
+            idx: 2,
+            version: '6',
+            when: WHEN_LATER,
+            tag: '0002_chat_domain',
+            breakpoints: true
+          }
+        ]
+      })
+    )
+
+    const db = openDb(dbPath)
+    db.exec(INIT_SQL)
+
+    expect(adoptBaseline(db, migrationsFolder)).toBe(2)
+    const adopted = readRecords(db).map(function (row) {
+      return row.hash
+    })
+    expect(adopted).not.toContain(createHash('sha256').update(laterSql).digest('hex'))
   })
 
   it('没有 journal 时不做任何事', function () {
