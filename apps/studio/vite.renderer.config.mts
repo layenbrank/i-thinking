@@ -74,8 +74,44 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
       }
     },
     optimizeDeps: {
-      include: ['react', 'react-dom', 'react-router-dom'],
-      exclude: ['node_modules']
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        /**
+         * dev 模式下 Vite 用 `react/jsx-dev-runtime`，但**已发布的三方产物是生产 JSX 转换**，
+         * 它们 import 的是 `react/jsx-runtime`（CJS）。只要这条链上有一个文件没被预构建，
+         * 浏览器就会拿到裸 CJS 并报 `does not provide an export named 'jsx'`（整条路由挂掉，
+         * 例如 /chat 依赖的 assistant-ui / ai 链路）。显式纳入预构建即可拿到带互操作的副本。
+         */
+        'react/jsx-runtime',
+        /**
+         * 懒加载路由（`/chat` 经 React.lazy）的依赖不在启动扫描里，首次进入才会被发现；
+         * 在优化器补跑完成前，这些包是**裸文件**下发的，其中 CJS 的会直接抛
+         * `does not provide an export named 'default'`。它们是非 ESM 产物，必须显式登记：
+         * `classnames` 与 `secure-json-parse` 是 assistant-ui / ai 链路实际发出的两个 CJS。
+         * （判据：加载 /chat 后统计所有非预构建的裸 node_modules 请求，逐个验 CJS 特征。）
+         */
+        'classnames',
+        'secure-json-parse',
+        // markdown 渲染链路：`hast-util-to-jsx-runtime`(ESM) 直接 import CJS 的 `style-to-js`，
+        // 只要它自己没被预构建，浏览器就会拿到 `style-to-js/cjs/index.js` 的裸文件 →
+        // `does not provide an export named 'default'`。把引用方一起登记，让 esbuild 连它的
+        // CJS 依赖一块打包并补上 default 互操作。
+        'hast-util-to-jsx-runtime',
+        'style-to-js'
+      ],
+      /**
+       * 被 exclude 的包不再参与启动扫描，它们的第三方依赖要靠这里补回来：
+       * 指向源码 glob，让优化器在启动时就顺着包内 import 把依赖收全，
+       * 避免进入懒加载路由时才触发 re-optimize + 整页 reload（以及中间那段裸 CJS 窗口）。
+       */
+      entries: [
+        'index.html',
+        '../../packages/design/src/**/*.{ts,tsx}',
+        '../../packages/chat/src/**/*.{ts,tsx}'
+      ],
+      exclude: ['@i-thinking/design', '@i-thinking/chat']
     },
     build: {
       target: 'esnext',
