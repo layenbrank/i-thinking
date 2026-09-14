@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
 
-import { cn } from '../../lib/utils'
+import { cn } from '../lib/utils'
 
 /**
  * Toaster —— 通知层（替代 antd 的 `message` / `notification`）。

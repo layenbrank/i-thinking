@@ -1,16 +1,16 @@
 {
-  "name": "@i-thinking/ui",
+  "name": "@i-thinking/design",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "i thinking 共享 React UI 层：shadcn/ui 原子组件 + assistant-ui elements + 设计 token",
+  "description": "i thinking 设计系统：shadcn/ui 原子组件 + assistant-ui elements + 设计 token",
   "exports": {
     "./globals.css": "./src/styles/globals.css",
-    "./theme-provider": "./src/components/theme-provider.tsx",
-    "./assistant/*": "./src/components/assistant-ui/*",
+    "./primitive/*": "./src/primitive/*.tsx",
+    "./assistant/*": "./src/assistant/*.tsx",
+    "./composite/*": "./src/composite/*.tsx",
     "./hooks/*": "./src/hooks/*.ts",
-    "./lib/*": "./src/lib/*.ts",
-    "./*": "./src/components/ui/*.tsx"
+    "./lib/*": "./src/lib/*.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",

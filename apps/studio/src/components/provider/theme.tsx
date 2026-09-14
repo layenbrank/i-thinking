@@ -1,7 +1,7 @@
-import { ThemeProvider as BaseThemeProvider } from '@i-thinking/ui/theme-provider'
-import { useTheme } from '@i-thinking/ui/hooks/use-theme'
-import { Toaster } from '@i-thinking/ui/sonner'
-import { isThemeMode, type ThemeStorage } from '@i-thinking/ui/lib/theme'
+import { ThemeProvider as BaseThemeProvider } from '@i-thinking/design/composite/theme-provider'
+import { useTheme } from '@i-thinking/design/hooks/use-theme'
+import { Toaster } from '@i-thinking/design/primitive/sonner'
+import { isThemeMode, type ThemeStorage } from '@i-thinking/design/lib/theme'
 import type { ReactNode } from 'react'
 
 /** 主题在 electron-store 里的扁平键（渲染进程经 preload 的 itc.store 读写） */
@@ -18,7 +18,7 @@ const storage: ThemeStorage = {
 }
 
 /**
- * Studio 主题提供者：`@i-thinking/ui` 的 ThemeProvider + electron-store 持久化。
+ * Studio 主题提供者：`@i-thinking/design` 的 ThemeProvider + electron-store 持久化。
  * 主题只关心明暗切换；颜色/圆角等一律是 globals.css 的 CSS 变量。
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {

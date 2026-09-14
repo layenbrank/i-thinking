@@ -17,9 +17,9 @@ import {
 import { ToolFallback } from './tool-fallback.aui'
 import { ToolGroupContent, ToolGroupRoot, ToolGroupTrigger } from './tool-group.aui'
 import { TooltipIconButton } from './tooltip-icon-button'
-import { Button } from '../../ui/button'
-import { Skeleton } from '../../ui/skeleton'
-import { cn } from '../../../lib/utils'
+import { Button } from '../primitive/button'
+import { Skeleton } from '../primitive/skeleton'
+import { cn } from '../lib/utils'
 import {
   ActionBarMorePrimitive,
   ActionBarPrimitive,

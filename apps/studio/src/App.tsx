@@ -1,4 +1,4 @@
-import { TooltipProvider } from '@i-thinking/ui/tooltip'
+import { TooltipProvider } from '@i-thinking/design/primitive/tooltip'
 import { MotionConfig } from 'motion/react'
 import { Suspense } from 'react'
 import { RouterProvider } from 'react-router-dom'

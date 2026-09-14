@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogTitle } from '@i-thinking/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@i-thinking/design/primitive/dialog'
 import { clsx } from 'clsx'
 import { CloudIcon, LightbulbIcon, ShieldCheckIcon, UsersIcon } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'

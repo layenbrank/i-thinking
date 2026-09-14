@@ -1,5 +1,5 @@
 /**
- * 把 shadcn CLI 的产物搬到本包的真实布局里。
+ * 把 shadcn CLI 的产物搬到本包的真实分类目录里。
  *
  * 为什么需要：本包**故意不声明 tsconfig `paths`**（见 README：共享包内部一律相对导入，
  * 残留 `@/` 要在 tsc 就报错）。而 shadcn CLI 靠 tsconfig 的 `paths` 解析 `components.json`
@@ -7,12 +7,12 @@
  * `@/components/…`、`@/hooks/…`，导入也留着 `@/…`。
  *
  * 本脚本做三件事（幂等）：
- *   1. `@/**` → `src/**`；目标已存在则保留现有（已归一化的）文件，丢弃 CLI 的同名副本
- *   2. `@/…` 导入 → 相对路径
+ *   1. `@/**` 按 AREAS 表落到 `src/<分类>/**`；目标已存在则保留现有（已归一化的）文件
+ *   2. `@/…` 导入 → 相对路径（按 AREAS 表解析到真实位置）
  *   3. 去掉 `"use client"` 指令；清掉空目录
  *
- *   pnpm --filter @i-thinking/ui registry:add @assistant-ui/thread   # CLI 装
- *   pnpm --filter @i-thinking/ui registry:fix                        # 本脚本
+ *   pnpm --filter @i-thinking/design registry:add @assistant-ui/thread   # CLI 装
+ *   pnpm --filter @i-thinking/design registry:fix                        # 本脚本
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve, sep } from 'node:path'
@@ -22,9 +22,31 @@ const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const MIRROR_DIR = join(PACKAGE_ROOT, '@')
 const SOURCE_DIR = join(PACKAGE_ROOT, 'src')
 
+/**
+ * CLI 的 `@/…` 前缀 → 本包的分类目录（分类目录名即对外子路径）。
+ * 新增一类组件只在这里加一行，同时补 `package.json` 的 exports。
+ */
+const AREAS = [
+  ['components/ui/', 'primitive/'],
+  ['components/assistant-ui/', 'assistant/'],
+  ['components/', 'composite/'],
+  ['hooks/', 'hooks/'],
+  ['lib/', 'lib/'],
+  ['styles/', 'styles/']
+]
+
 const USE_CLIENT = /^\s*(?:"use client"|'use client');?\s*$/gm
 /** 命中 `from '@/…'` 或副作用式 `import '@/…'`（单双引号都算） */
 const ALIAS_IMPORT = /(from\s+['"])(@\/[^'"]+)(['"])|(import\s+['"])(@\/[^'"]+)(['"])/
+
+/** `@/a/b` → 真实文件路径（按 AREAS 表换到分类目录） */
+function resolveAlias(specifier) {
+  const rest = specifier.slice('@/'.length)
+  const area = AREAS.find(function ([prefix]) {
+    return rest.startsWith(prefix)
+  })
+  return join(SOURCE_DIR, area ? area[1] + rest.slice(area[0].length) : rest)
+}
 
 function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap(function (entry) {
@@ -35,7 +57,7 @@ function walk(dir) {
 
 /** `@/a/b` 从当前文件位置改写为相对说明符（保留原扩展名写法） */
 function toRelative(specifier, fromFile) {
-  const target = join(SOURCE_DIR, specifier.slice('@/'.length))
+  const target = resolveAlias(specifier)
   const relativePath = relative(dirname(fromFile), target).split(sep).join('/')
   return relativePath.startsWith('.') ? relativePath : `./${relativePath}`
 }
@@ -67,7 +89,8 @@ const skipped = []
 
 if (existsSync(MIRROR_DIR)) {
   walk(MIRROR_DIR).forEach(function (file) {
-    const target = join(SOURCE_DIR, relative(MIRROR_DIR, file))
+    const aliased = `@/${relative(MIRROR_DIR, file).split(sep).join('/')}`
+    const target = resolveAlias(aliased)
     if (existsSync(target)) {
       skipped.push(relative(PACKAGE_ROOT, target))
       return

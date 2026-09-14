@@ -7,12 +7,12 @@ import {
   useAuiState,
   useAui
 } from '@assistant-ui/react'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../ui/tooltip'
-import { Dialog, DialogTitle, DialogContent, DialogTrigger } from '../../ui/dialog'
-import { Avatar, AvatarImage, AvatarFallback } from '../../ui/avatar'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../primitive/tooltip'
+import { Dialog, DialogTitle, DialogContent, DialogTrigger } from '../primitive/dialog'
+import { Avatar, AvatarImage, AvatarFallback } from '../primitive/avatar'
 import { TooltipIconButton } from './tooltip-icon-button'
-import { useAttachmentSrc } from '../../../hooks/use-attachment-src'
-import { cn } from '../../../lib/utils'
+import { useAttachmentSrc } from '../hooks/use-attachment-src'
+import { cn } from '../lib/utils'
 
 type AttachmentPreviewProps = {
   src: string

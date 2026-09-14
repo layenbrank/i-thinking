@@ -1,7 +1,7 @@
-import { Button } from '../../ui/button'
-import { Input } from '../../ui/input'
-import { Skeleton } from '../../ui/skeleton'
-import { cn } from '../../../lib/utils'
+import { Button } from '../primitive/button'
+import { Input } from '../primitive/input'
+import { Skeleton } from '../primitive/skeleton'
+import { cn } from '../lib/utils'
 import {
   AuiIf,
   ThreadListItemMorePrimitive,

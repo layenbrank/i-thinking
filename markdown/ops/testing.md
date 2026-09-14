@@ -86,7 +86,7 @@ describe('Button Component', () => {
 })
 ```
 
-### 2. Vue 组件测试 (apps/extension, apps/devtools, packages/ui)
+### 2. Vue 组件测试 (apps/extension, apps/devtools, packages/design)
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -291,7 +291,7 @@ pnpm test:coverage
 
 - `apps/client/src/__test__/example.test.tsx` — React 示例
 - `apps/extension/src/__tests__/example.test.ts` — Vue 示例
-- `packages/ui/src/example.test.ts` — UI 组件示例
+- `packages/design/src/example.test.ts` — UI 组件示例
 - `packages/core/src/example.test.ts` — 工具函数示例
 
 ---

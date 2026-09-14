@@ -1,4 +1,4 @@
-import { Button } from '@i-thinking/ui/button'
+import { Button } from '@i-thinking/design/primitive/button'
 import {
   Dialog,
   DialogContent,
@@ -6,16 +6,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '@i-thinking/ui/dialog'
-import { Input } from '@i-thinking/ui/input'
-import { Label } from '@i-thinking/ui/label'
+} from '@i-thinking/design/primitive/dialog'
+import { Input } from '@i-thinking/design/primitive/input'
+import { Label } from '@i-thinking/design/primitive/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '@i-thinking/ui/select'
+} from '@i-thinking/design/primitive/select'
 import { clsx } from 'clsx'
 import { useState } from 'react'
 

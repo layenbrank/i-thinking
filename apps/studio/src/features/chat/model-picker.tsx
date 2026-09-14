@@ -1,11 +1,11 @@
-import { Input } from '@i-thinking/ui/input'
+import { Input } from '@i-thinking/design/primitive/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '@i-thinking/ui/select'
+} from '@i-thinking/design/primitive/select'
 import { useQuery } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 

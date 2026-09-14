@@ -17,7 +17,7 @@ packages/chat/
 ## 约束
 
 - **环境无关**：不得依赖 Node、Electron、`chrome.*`。存储/传输差异一律通过 `ports.ts` 的端口由各 app 注入。
-- **包内一律相对路径导入**（同 `packages/ui`，且 tsconfig 不声明 `paths`）：app 的 `resolve.tsconfigPaths` 会用 app 自己的 tsconfig 解析所有 importer 的 `@/*`。
+- **包内一律相对路径导入**（同 `packages/design`，且 tsconfig 不声明 `paths`）：app 的 `resolve.tsconfigPaths` 会用 app 自己的 tsconfig 解析所有 importer 的 `@/*`。
 - **消息存储契约不可改名**：行形状为 `{ id, parent_id, format, content }`（`content` 是 `format` 对应适配器 encode 出的不透明字符串）。
   studio 侧对应 `drizzle/schema/chat.ts` 的 `chatMessage`。
 - 本包只放"与后端无关"的胶水；具体存储实现对某个 app 才成立的东西（表结构、Key、传输）留在 app 内。
