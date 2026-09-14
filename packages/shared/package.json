@@ -52,11 +52,11 @@
     "./magnetic-tile-bookmark": {
       "types": "./src/types/magnetic-tile-bookmark.d.ts"
     },
-    "./magnetic-tile-markdown": {
-      "types": "./src/types/magnetic-tile-markdown.d.ts"
-    },
     "./magnetic-tile-intelligence": {
       "types": "./src/types/magnetic-tile-intelligence.ts"
     }
+  },
+  "devDependencies": {
+    "@vue/tsconfig": "catalog:"
   }
 }

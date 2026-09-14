@@ -22,15 +22,41 @@
   },
   "dependencies": {
     "@ant-design/colors": "catalog:",
+    "@ant-design/cssinjs": "^2.1.2",
     "@ant-design/x": "catalog:",
     "@ant-design/x-markdown": "catalog:",
     "@ant-design/x-sdk": "catalog:",
     "@i-thinking/utils": "workspace:*",
     "@i-thinking/wasm": "workspace:*",
+    "@iconify/vue": "^5.0.0",
+    "@intlify/unplugin-vue-i18n": "^11.0.1",
+    "@tanstack/vue-query": "^5.102.8",
+    "@vueuse/core": "^14.1.0",
+    "@vueuse/integrations": "^14.1.0",
+    "@vueuse/rxjs": "^14.1.0",
+    "@vueuse/shared": "13.9.0",
+    "ant-design-vue": "^4.2.6",
     "antd": "catalog:",
-    "antd-style": "catalog:"
+    "antd-style": "catalog:",
+    "motion-v": "^1.10.0",
+    "pinia": "^3.0.3",
+    "swiper": "^12.1.4",
+    "vue": "catalog:",
+    "vue-i18n": "^11.1.12",
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
-    "@i-thinking/shared": "workspace:*"
+    "@i-thinking/shared": "workspace:*",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vitejs/plugin-vue-jsx": "catalog:",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.5.0",
+    "@vue/test-utils": "^2.4.6",
+    "eslint-plugin-vue": "^10.5.1",
+    "unplugin-fonts": "^2.0.0",
+    "unplugin-icons": "^22.5.0",
+    "unplugin-vue-components": "^30.0.0",
+    "vite-plugin-vue-devtools": "^8.0.3",
+    "vue-tsc": "catalog:"
   }
 }

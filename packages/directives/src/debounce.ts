@@ -1,8 +1,11 @@
 import type { Directive, DirectiveBinding } from 'vue'
 
+/** 点击后禁用按钮一段时间；卸载时需要拿同一个引用才能解绑 */
+const handlers = new WeakMap<HTMLElement, EventListener>()
+
 export const debounce: Directive = {
   beforeMount(el: HTMLButtonElement, binding: DirectiveBinding<number>) {
-    el.addEventListener('click', function () {
+    const handler: EventListener = function () {
       if (el.disabled) return
 
       el.disabled = true
@@ -12,9 +15,16 @@ export const debounce: Directive = {
       setTimeout(function () {
         el.disabled = false
       }, delay)
-    })
+    }
+
+    handlers.set(el, handler)
+    el.addEventListener('click', handler)
   },
   unmounted(el: HTMLButtonElement) {
-    el.removeEventListener('click', () => null)
+    const handler = handlers.get(el)
+    if (!handler) return
+
+    handlers.delete(el)
+    el.removeEventListener('click', handler)
   }
 }
