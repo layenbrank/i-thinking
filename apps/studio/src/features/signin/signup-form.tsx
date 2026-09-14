@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@i-thinking/ui/components/ui/button'
-import { Form } from '@i-thinking/ui/components/ui/form'
+import { Button } from '@i-thinking/ui/button'
+import { Form } from '@i-thinking/ui/form'
 import { LockIcon, UserIcon } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'

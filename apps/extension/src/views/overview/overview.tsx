@@ -7,9 +7,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle
-} from '@i-thinking/ui/components/ui/alert-dialog'
-import { Button } from '@i-thinking/ui/components/ui/button'
-import { Input } from '@i-thinking/ui/components/ui/input'
+} from '@i-thinking/ui/alert-dialog'
+import { Button } from '@i-thinking/ui/button'
+import { Input } from '@i-thinking/ui/input'
 import { clsx } from 'clsx'
 import { PlusIcon, SearchIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'

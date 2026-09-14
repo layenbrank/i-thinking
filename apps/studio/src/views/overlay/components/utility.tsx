@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react/offline'
-import { Button } from '@i-thinking/ui/components/ui/button'
+import { Button } from '@i-thinking/ui/button'
 import { clsx } from 'clsx'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'

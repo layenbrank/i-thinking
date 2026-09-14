@@ -2,7 +2,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
-} from '@i-thinking/ui/components/ui/tooltip'
+} from '@i-thinking/ui/tooltip'
 import { clsx, type ClassValue } from 'clsx'
 import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'

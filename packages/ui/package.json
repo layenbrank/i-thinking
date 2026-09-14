@@ -6,9 +6,11 @@
   "description": "i thinking 共享 React UI 层：shadcn/ui 原子组件 + assistant-ui elements + 设计 token",
   "exports": {
     "./globals.css": "./src/styles/globals.css",
-    "./components/*": "./src/components/*.tsx",
+    "./theme-provider": "./src/components/theme-provider.tsx",
+    "./assistant/*": "./src/components/assistant-ui/*",
     "./hooks/*": "./src/hooks/*.ts",
-    "./lib/*": "./src/lib/*.ts"
+    "./lib/*": "./src/lib/*.ts",
+    "./*": "./src/components/ui/*.tsx"
   },
   "scripts": {
     "type-check": "tsc --noEmit",

@@ -4,8 +4,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage
-} from '@i-thinking/ui/components/ui/form'
-import { Input } from '@i-thinking/ui/components/ui/input'
+} from '@i-thinking/ui/form'
+import { Input } from '@i-thinking/ui/input'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import type { Control, FieldPath, FieldValues } from 'react-hook-form'

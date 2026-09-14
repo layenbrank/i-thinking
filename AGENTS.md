@@ -2,7 +2,7 @@
 
 仓库已完成 antd → shadcn/ui + Tailwind v4 迁移（studio / extension 不再有 antd 代码）：
 
-- 组件：`@i-thinking/ui/components/ui/*`（shadcn `new-york` + radix base + lucide 图标）
+- 组件：`@i-thinking/ui/*`（shadcn `new-york` + radix base + lucide 图标）；`assistant/*` 是 assistant-ui elements，`hooks/*`、`lib/*`、`globals.css` 各自独立
 - 设计 token 唯一源：`packages/ui/src/styles/globals.css`；app 侧 `@source` 声明自己的源码
 - 新增组件走 registry：`pnpm --filter @i-thinking/ui registry:add <items>` → `registry:fix`
 - chat 相关走 assistant-ui（`packages/chat` 提供端口契约与适配器）
