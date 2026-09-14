@@ -1,0 +1,101 @@
+import type { ChatHistoryPort, ChatStoredMessage, ChatThread } from '@i-thinking/chat/ports'
+
+/**
+ * 历史端口（渲染进程实现）：直接映射 `itc.chat.*` 仓储 API。
+ *
+ * 数据在主进程独占（better-sqlite3），渲染进程只经 IPC 读写；
+ * 时间在 IPC 上是 ISO 字符串，这里换回 epoch ms（端口约定）。
+ */
+
+type SessionReadR = Awaited<ReturnType<typeof itc.chat.session.toRead>>[number]
+type MessageReadR = Awaited<ReturnType<typeof itc.chat.message.toRead>>[number]
+
+function toThread(session: SessionReadR): ChatThread {
+  return {
+    id: session.id,
+    title: session.title,
+    pinned: session.pinned,
+    updatedAt: Date.parse(session.updatedAt),
+    providerID: session.providerID
+  }
+}
+
+function toStoredMessage(message: MessageReadR): ChatStoredMessage {
+  return {
+    id: message.id,
+    parentID: message.parentID,
+    format: message.format,
+    content: message.content
+  }
+}
+
+function createHistoryPort(): ChatHistoryPort {
+  return {
+    async findThreads() {
+      const sessions = await itc.chat.session.toRead()
+      return sessions.map(toThread)
+    },
+
+    /** 没有单条读接口：列表本身很小，直接从列表里取，避免加一条只为取一的 IPC */
+    async findThread(id) {
+      const sessions = await itc.chat.session.toRead()
+      const session = sessions.find(function (item) {
+        return item.id === id
+      })
+      return session ? toThread(session) : null
+    },
+
+    async createThread(input) {
+      const session = await itc.chat.session.toWrite({
+        ...(input?.title ? { title: input.title } : {}),
+        providerID: input?.providerID ?? null
+      })
+      return toThread(session)
+    },
+
+    async updateThread(id, patch) {
+      const session = await itc.chat.session.toUpdate({
+        id,
+        ...(patch.title === undefined ? {} : { title: patch.title }),
+        ...(patch.pinned === undefined ? {} : { pinned: patch.pinned })
+      })
+      return toThread(session)
+    },
+
+    async deleteThread(id) {
+      await itc.chat.session.toRemove({ id })
+    },
+
+    async findMessages(input) {
+      const messages = await itc.chat.message.toRead({ sessionID: input.threadID })
+      return messages.map(toStoredMessage)
+    },
+
+    async appendMessage(input) {
+      await itc.chat.message.toAppend({
+        id: input.id,
+        sessionID: input.threadID,
+        parentID: input.parentID,
+        format: input.format,
+        content: input.content
+      })
+    },
+
+    async updateMessage(input) {
+      await itc.chat.message.toUpdate({
+        id: input.id,
+        ...(input.format === undefined ? {} : { format: input.format }),
+        ...(input.content === undefined ? {} : { content: input.content })
+      })
+    },
+
+    /** 逐条删：主进程侧按 parentID 级联删除后继分支 */
+    async deleteMessages(input) {
+      for (const id of input.ids) {
+        await itc.chat.message.toRemove({ id })
+      }
+    }
+  }
+}
+
+export { createHistoryPort }

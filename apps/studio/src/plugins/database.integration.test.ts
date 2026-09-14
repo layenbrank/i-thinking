@@ -29,8 +29,13 @@ const MIGRATIONS_FOLDER = join(PACKAGE_ROOT, 'drizzle', 'migrations')
 /** v1 参照快照（= Tauri 版 migrations_v001.rs 的 DDL + 种子） */
 const LEGACY_FIXTURE = join(PACKAGE_ROOT, 'scripts', 'fixtures', 'legacy-v1.sql')
 
-/** 业务表数量（不含 Drizzle 记账表），与 scripts/check-schema-parity.mjs 的口径一致 */
-const BUSINESS_TABLE_COUNT = 13
+/**
+ * 业务表数量（不含 Drizzle 记账表），与 scripts/check-schema-parity.mjs 的口径一致：
+ * v1 的 13 张 − 旧 ai 域 5 张 + chat 域 3 张 = 11。
+ */
+const BUSINESS_TABLE_COUNT = 11
+/** 迁移文件数：0000_init / 0001_seed / 0002_chat_domain / 0003_drop_ai_domain */
+const MIGRATION_COUNT = 4
 /** 种子行数，取自 Tauri 版 migrations_v001.rs（138 条 INSERT OR IGNORE） */
 const SEED_ROWS = { magneticTile: 136, mirror: 1, countdown: 1 }
 
@@ -98,7 +103,7 @@ describe('Drizzle 迁移（真实引擎 better-sqlite3）', function () {
     expect(bootstrap(db)).toBe(0)
 
     expect(tableNames(db)).toHaveLength(BUSINESS_TABLE_COUNT)
-    expect(rows(db, '__drizzle_migrations')).toBe(2)
+    expect(rows(db, '__drizzle_migrations')).toBe(MIGRATION_COUNT)
     expect(seedRowCounts(db)).toEqual(SEED_ROWS)
   })
 
@@ -110,7 +115,7 @@ describe('Drizzle 迁移（真实引擎 better-sqlite3）', function () {
     expect(bootstrap(db)).toBe(0)
 
     expect(tableNames(db)).toHaveLength(BUSINESS_TABLE_COUNT)
-    expect(rows(db, '__drizzle_migrations')).toBe(2)
+    expect(rows(db, '__drizzle_migrations')).toBe(MIGRATION_COUNT)
     expect(seedRowCounts(db)).toEqual(before)
   })
 
@@ -118,7 +123,9 @@ describe('Drizzle 迁移（真实引擎 better-sqlite3）', function () {
     const db = openDb()
     // 模拟"用户先用 Tauri/client 版建过库，再切到 studio"
     db.exec(readFileSync(LEGACY_FIXTURE, 'utf8'))
-    expect(tableNames(db)).toHaveLength(BUSINESS_TABLE_COUNT)
+    // 旧库里含 v1 的 13 张业务表（其中 5 张 ai 域表随后会被 0003 迁移 drop）
+    expect(tableNames(db)).toHaveLength(13)
+    expect(tableNames(db)).toContain('aiSession')
     // 另一版建的库里没有 Drizzle 记账表 —— 这正是需要采纳基线的场景
     expect(tableNames(db)).not.toContain('__drizzle_migrations')
 
@@ -130,15 +137,18 @@ describe('Drizzle 迁移（真实引擎 better-sqlite3）', function () {
     expect(bootstrap(db)).toBe(2)
 
     expect(tableNames(db)).toHaveLength(BUSINESS_TABLE_COUNT)
-    expect(rows(db, '__drizzle_migrations')).toBe(2)
+    expect(rows(db, '__drizzle_migrations')).toBe(MIGRATION_COUNT)
     // 种子是 INSERT OR IGNORE：旧库已有数据不受影响，也不重复插入
     expect(rows(db, 'magneticTile')).toBe(SEED_ROWS.magneticTile)
     expect(db.prepare('SELECT "title" FROM "mirror" WHERE "id" = ?').get('legacy-mirror')).toEqual({
       title: '既有数据'
     })
+    // 旧 ai 域被 0003 迁移移除，chat 域随之建立（旧库零引用旧域，无数据损失）
+    expect(tableNames(db)).not.toContain('aiSession')
+    expect(tableNames(db)).toContain('chatMessage')
 
     // 再启动一次：记账已存在，迁移为 no-op
     expect(bootstrap(db)).toBe(0)
-    expect(rows(db, '__drizzle_migrations')).toBe(2)
+    expect(rows(db, '__drizzle_migrations')).toBe(MIGRATION_COUNT)
   })
 })

@@ -1,4 +1,18 @@
 import type {
+  MessageAppendP,
+  MessageReadP,
+  MessageReadR,
+  MessageUpdateP,
+  ProviderReadR,
+  ProviderUpdateP,
+  ProviderWriteP,
+  RemoveP as ChatRemoveP,
+  SessionReadR,
+  SessionUpdateP,
+  SessionWriteP
+} from './chat'
+import type { KeyRefP, KeyWriteP } from './assistant-key'
+import type {
   ReadR as UserReadR,
   RemoveP as UserRemoveP,
   UpdateP as UserUpdateP,
@@ -70,6 +84,36 @@ export interface ITC {
   overlay: {
     toRead: () => Promise<ReadR>
     toUpdate: (input: UpdateP) => Promise<void>
+  }
+  chat: {
+    provider: {
+      toRead: () => Promise<ProviderReadR[]>
+      toWrite: (input: ProviderWriteP) => Promise<ProviderReadR>
+      toUpdate: (input: ProviderUpdateP) => Promise<ProviderReadR>
+      toRemove: (input: ChatRemoveP) => Promise<void>
+    }
+    session: {
+      toRead: () => Promise<SessionReadR[]>
+      toWrite: (input: SessionWriteP) => Promise<SessionReadR>
+      toUpdate: (input: SessionUpdateP) => Promise<SessionReadR>
+      toRemove: (input: ChatRemoveP) => Promise<void>
+    }
+    message: {
+      toRead: (input: MessageReadP) => Promise<MessageReadR[]>
+      toAppend: (input: MessageAppendP) => Promise<MessageReadR>
+      toUpdate: (input: MessageUpdateP) => Promise<MessageReadR>
+      toRemove: (input: ChatRemoveP) => Promise<void>
+    }
+  }
+  assistant: {
+    /** 建立离线通路；端口通过 `onPort` 交付（应为先注册、后 connect） */
+    connect: () => Promise<void>
+    onPort: (callback: (port: MessagePort) => void) => () => void
+    key: {
+      toWrite: (input: KeyWriteP) => Promise<void>
+      has: (input: KeyRefP) => Promise<boolean>
+      toRemove: (input: KeyRefP) => Promise<void>
+    }
   }
   app: {
     onMessage: (callback: (payload: unknown) => void) => () => void

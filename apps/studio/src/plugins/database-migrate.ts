@@ -33,6 +33,15 @@ interface JournalEntry {
   when: number
 }
 
+/**
+ * v1 基线迁移（冻结）：Tauri/Prisma 版建库时就已包含的 schema。
+ *
+ * 只采纳这些 —— 之后的迁移哪怕面对既有库也**必须真实执行**：
+ * 例如 0002_chat_domain 建 chat 表、0003_drop_ai_domain 删旧 ai 域，
+ * 若一并采纳，用户的既有库会既没有 chat 表、又残留废弃的 ai 表。
+ */
+const BASELINE_TAGS = ['0000_init', '0001_seed']
+
 export function migrationHash(sql: string): string {
   return createHash('sha256').update(sql).digest('hex')
 }
@@ -82,6 +91,9 @@ export function adoptBaseline(
   )
 
   const pending = entries
+    .filter(function (entry) {
+      return BASELINE_TAGS.includes(entry.tag)
+    })
     .map(function (entry) {
       return {
         when: entry.when,

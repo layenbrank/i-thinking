@@ -43,6 +43,37 @@ export const CHANNELS = {
   OVERLAY: {
     READ: 'overlay:toRead',
     UPDATE: 'overlay:toUpdate'
+  },
+  CHAT: {
+    PROVIDER: {
+      READ: 'chat:provider.toRead',
+      WRITE: 'chat:provider.toWrite',
+      UPDATE: 'chat:provider.toUpdate',
+      REMOVE: 'chat:provider.toRemove'
+    },
+    SESSION: {
+      READ: 'chat:session.toRead',
+      WRITE: 'chat:session.toWrite',
+      UPDATE: 'chat:session.toUpdate',
+      REMOVE: 'chat:session.toRemove'
+    },
+    MESSAGE: {
+      READ: 'chat:message.toRead',
+      APPEND: 'chat:message.toAppend',
+      UPDATE: 'chat:message.toUpdate',
+      REMOVE: 'chat:message.toRemove'
+    }
+  },
+  ASSISTANT: {
+    /** 建立离线通路（MessagePort，见 plugins/assistant.ts） */
+    CONNECT: 'assistant:connect',
+    /** 主进程 → 渲染进程推送端口；不是 invoke 通道 */
+    PORT: 'assistant:port',
+    KEY: {
+      WRITE: 'assistant:key.toWrite',
+      HAS: 'assistant:key.has',
+      REMOVE: 'assistant:key.toRemove'
+    }
   }
 } as const
 

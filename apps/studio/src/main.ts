@@ -8,6 +8,8 @@ import { buildContext } from './plugins/context'
 import { buildLogger } from './plugins/logger'
 import type { Plugin } from './plugins/module'
 import { buildPlugin as buildDatabasePlugin } from './plugins/database'
+import { buildPlugin as buildChatPlugin } from './plugins/chat'
+import { buildPlugin as buildAssistantPlugin } from './plugins/assistant'
 import { buildPlugin as buildDevtoolsPlugin } from './plugins/devtools'
 import { buildPlugin as buildDialogPlugin } from './plugins/dialog'
 import { buildPlugin as buildDocPlugin } from './plugins/doc'
@@ -63,6 +65,8 @@ export async function bootstrap(): Promise<void> {
     buildStorePlugin(),
     buildDialogPlugin(),
     buildDatabasePlugin(),
+    buildChatPlugin(),
+    buildAssistantPlugin(),
     buildWindowPlugin(),
     buildDevtoolsPlugin(),
     buildUpdaterPlugin(),
@@ -99,7 +103,7 @@ export async function bootstrap(): Promise<void> {
       app.exit(0)
     }
 
-    disposePlugins()
+    void disposePlugins()
   })
 
   log.info('studio ready', {

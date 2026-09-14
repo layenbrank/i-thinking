@@ -226,4 +226,4 @@ function buildPlugin(): Plugin {
 }
 
 export type { WriteP, UpdateP, RemoveP, ReadR, WriteR, UpdateR, RemoveR }
-export { WriteSchema, UpdateSchema, RemoveSchema, Repository, buildPlugin }
+export { WriteSchema, UpdateSchema, RemoveSchema, Repository, buildPlugin, findClient }

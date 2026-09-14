@@ -30,7 +30,13 @@ const ALLOWED = [
   'magneticTile 索引: 仅参照库有 (collectionID)',
   'magneticTile 索引: 仅参照库有 (component)',
   // Auth 是 studio 自有表（Tauri 版没有、无历史数据）：时间由应用显式写入，不设 DB 默认值
-  'Auth 列 createdAt: '
+  'Auth 列 createdAt: ',
+  // chat 域取代旧 ai 域（task_plan D5）：旧域 studio 从未引用，0003 迁移显式 drop 五张表
+  '表: 仅参照库有 aiWorkspace',
+  '表: 仅参照库有 aiWorkspaceFolder',
+  '表: 仅参照库有 aiSession',
+  '表: 仅参照库有 aiMessage',
+  '表: 仅参照库有 aiProvider'
 ]
 
 /**
@@ -185,7 +191,22 @@ const tablesA = findTables(dbA)
 const tablesB = findTables(dbB)
 const differences = []
 
-diffList('表', tablesA, tablesB).forEach(function (message) {
+/**
+ * 表集合只单向核对：v1 快照里有、Drizzle 里没有 → 差异（漏建/误删）。
+ * 反向（仅 Drizzle 有）是 studio 自有域（Auth、chat*）与后续新增，不属于"替换是否等价"的范围，
+ * 否则每加一张自有表都要往 ALLOWED 里堆一行。
+ */
+function diffTables(reference, drizzle) {
+  return reference
+    .filter(function (name) {
+      return !drizzle.includes(name)
+    })
+    .map(function (name) {
+      return `表: 仅参照库有 ${name}`
+    })
+}
+
+diffTables(tablesA, tablesB).forEach(function (message) {
   differences.push(message)
 })
 
