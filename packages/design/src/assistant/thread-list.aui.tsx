@@ -1,7 +1,3 @@
-import { Button } from '../primitive/button'
-import { Input } from '../primitive/input'
-import { Skeleton } from '../primitive/skeleton'
-import { cn } from '../lib/utils'
 import {
   AuiIf,
   ThreadListItemMorePrimitive,
@@ -10,6 +6,7 @@ import {
   useAui,
   useAuiState
 } from '@assistant-ui/react'
+import { cn } from 'cn'
 import {
   ArchiveIcon,
   Loader2Icon,
@@ -29,6 +26,9 @@ import {
   type ComponentPropsWithoutRef,
   type FC
 } from 'react'
+import { Button } from '../primitive/button'
+import { Input } from '../primitive/input'
+import { Skeleton } from '../primitive/skeleton'
 
 export const ThreadList: FC = () => {
   const [search, setSearch] = useState('')

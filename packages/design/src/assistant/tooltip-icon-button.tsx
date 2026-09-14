@@ -1,9 +1,9 @@
-import { type ComponentPropsWithRef, forwardRef } from 'react'
 import { Slot } from 'radix-ui'
+import { type ComponentPropsWithRef, forwardRef } from 'react'
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../primitive/tooltip'
+import { cn } from 'cn'
 import { Button } from '../primitive/button'
-import { cn } from '../lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../primitive/tooltip'
 
 export type TooltipIconButtonProps = ComponentPropsWithRef<typeof Button> & {
   tooltip: string

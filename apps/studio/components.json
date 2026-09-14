@@ -16,7 +16,7 @@
     "ui": "@/components/ui",
     "lib": "@/utils",
     "hooks": "@/hooks",
-    "utils": "@i-thinking/design/lib/utils"
+    "utils": "cn"
   },
   "registries": {
     "@assistant-ui": "https://r.assistant-ui.com/styles/{style}/{name}.json"

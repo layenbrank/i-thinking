@@ -1,30 +1,7 @@
 import {
-  ComposerAddAttachment,
-  ComposerAttachments,
-  UserMessageAttachments
-} from './attachment.aui'
-import { File } from './file'
-import { ThreadFollowupSuggestions } from './follow-up-suggestions.aui'
-import { Image } from './image'
-import { MarkdownText } from './markdown-text'
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningRoot,
-  ReasoningText,
-  ReasoningTrigger
-} from './reasoning.aui'
-import { ToolFallback } from './tool-fallback.aui'
-import { ToolGroupContent, ToolGroupRoot, ToolGroupTrigger } from './tool-group.aui'
-import { TooltipIconButton } from './tooltip-icon-button'
-import { Button } from '../primitive/button'
-import { Skeleton } from '../primitive/skeleton'
-import { cn } from '../lib/utils'
-import {
   ActionBarMorePrimitive,
   ActionBarPrimitive,
   AuiIf,
-  type AssistantState,
   BranchPickerPrimitive,
   ComposerPrimitive,
   ErrorPrimitive,
@@ -32,11 +9,13 @@ import {
   MessagePrimitive,
   SuggestionPrimitive,
   ThreadPrimitive,
+  useAuiState,
+  type AssistantState,
   type FileMessagePartComponent,
   type ImageMessagePartComponent,
-  type ToolCallMessagePartComponent,
-  useAuiState
+  type ToolCallMessagePartComponent
 } from '@assistant-ui/react'
+import { cn } from 'cn'
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -58,6 +37,27 @@ import {
   type FC,
   type PropsWithChildren
 } from 'react'
+import { Button } from '../primitive/button'
+import { Skeleton } from '../primitive/skeleton'
+import {
+  ComposerAddAttachment,
+  ComposerAttachments,
+  UserMessageAttachments
+} from './attachment.aui'
+import { File } from './file'
+import { ThreadFollowupSuggestions } from './follow-up-suggestions.aui'
+import { Image } from './image'
+import { MarkdownText } from './markdown-text'
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningRoot,
+  ReasoningText,
+  ReasoningTrigger
+} from './reasoning.aui'
+import { ToolFallback } from './tool-fallback.aui'
+import { ToolGroupContent, ToolGroupRoot, ToolGroupTrigger } from './tool-group.aui'
+import { TooltipIconButton } from './tooltip-icon-button'
 
 export type ThreadGroupPart = MessagePrimitive.GroupedParts.GroupPart
 
