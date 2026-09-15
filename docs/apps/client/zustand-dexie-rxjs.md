@@ -2,7 +2,7 @@
 
 本文档说明 **apps/client** 中 Zustand 与 Dexie / RxJS 的项目级用法（Mirror、乐观更新、示例工具）。
 
-基础用法（selector、actions 内聚等）见 [guides/zustand.md](../guides/zustand.md)。
+基础用法（selector、actions 内聚等）见 [guides/zustand.md](../../guides/zustand.md)。
 
 ## 目录
 

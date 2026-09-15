@@ -50,13 +50,13 @@ pub async fn reminder_write(
 
 相关文件：
 
-- [`storage.rs`](../../../apps/client/src-tauri/crates/database/src/storage.rs)
-- [`bootstrap.rs`](../../../apps/client/src-tauri/src/app/bootstrap.rs)
-- [`handlers.rs`](../../../apps/client/src-tauri/src/app/handlers.rs)
+- [`storage.rs`](../../../../apps/client/src-tauri/crates/database/src/storage.rs)
+- [`bootstrap.rs`](../../../../apps/client/src-tauri/src/app/bootstrap.rs)
+- [`handlers.rs`](../../../../apps/client/src-tauri/src/app/handlers.rs)
 
 ## Reminder Worker
 
-- 文件：[`src/reminder/worker.rs`](../../../apps/client/src-tauri/src/reminder/worker.rs)
+- 文件：[`src/reminder/worker.rs`](../../../../apps/client/src-tauri/src/reminder/worker.rs)
 - 启动时立刻 `tick_once`，之后约 **12s** 轮询
 - 流程：`toReadSchedulable` → `should_fire` → **`toClaimFire`** → 桌面通知 → `emit("reminder:fired", id)`
 - 前端 **不要** 再自行触发同等响铃逻辑，避免双通道
