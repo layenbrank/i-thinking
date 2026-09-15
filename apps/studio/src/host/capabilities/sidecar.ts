@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { createInterface } from 'node:readline'
 
-import { CHANNELS } from '../contract/channels'
+import { CHANNELS } from '../../shared/ipc/channels'
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Logger } from '../framework/logger'

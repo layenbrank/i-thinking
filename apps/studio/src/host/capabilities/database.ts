@@ -14,7 +14,7 @@ import { adoptBaseline } from './database-migrate'
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Plugin } from '../framework/module'
-import { CHANNELS } from '../contract/channels'
+import { CHANNELS } from '../../shared/ipc/channels'
 import { findAppRoot } from '../framework/paths'
 
 interface WriteP {

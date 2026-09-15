@@ -7,7 +7,7 @@ import { registerHandler } from '../framework/handle'
 import { UpdateSchema } from './overlay'
 import { attachGuards } from './security'
 import { findBundleDir } from '../framework/paths'
-import { CHANNELS } from '../contract/channels'
+import { CHANNELS } from '../../shared/ipc/channels'
 
 interface BundlePaths {
   route: string

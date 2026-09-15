@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { CHANNELS } from './host/contract/channels'
+import { CHANNELS } from './shared/ipc/channels'
 import type { ITC } from './host/contract/itc'
 import type { IpcResult } from './host/contract/result'
 
