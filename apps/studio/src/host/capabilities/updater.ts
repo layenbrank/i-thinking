@@ -2,34 +2,14 @@ import type { UpdateInfo } from 'electron-updater'
 import { autoUpdater } from 'electron-updater'
 
 import { CHANNELS } from '../../shared/ipc/channels'
+import type { Out, PushOut } from '../../shared/ipc/specs'
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Plugin } from '../framework/module'
 
-interface FindStatusR {
-  enabled: boolean
-  checking: boolean
-  downloading: boolean
-  downloaded: boolean
-  progress: number | null
-  version: string | null
-  error: string | null
-}
-
-interface CheckR {
-  available: boolean
-  version: string | null
-  releaseNotes: string | null
-  reason?: string
-}
-
-type UpdaterEvent =
-  | { type: 'checking' }
-  | { type: 'available'; version: string; releaseNotes: string | null }
-  | { type: 'not-available'; version: string }
-  | { type: 'progress'; percent: number }
-  | { type: 'downloaded'; version: string }
-  | { type: 'error'; message: string }
+type FindStatusR = Out<typeof CHANNELS.UPDATER.READ>
+type CheckR = Out<typeof CHANNELS.UPDATER.CHECK>
+type UpdaterEvent = PushOut<typeof CHANNELS.UPDATER.EVENT>
 
 class Service {
   private readonly ctx: Context

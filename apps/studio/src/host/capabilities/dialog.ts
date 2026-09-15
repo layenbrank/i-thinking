@@ -1,48 +1,17 @@
-import { z } from 'zod'
 import { BrowserWindow, dialog } from 'electron'
 
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Plugin } from '../framework/module'
 import { CHANNELS } from '../../shared/ipc/channels'
+import { OpenSchema, SaveSchema } from '../../shared/ipc/specs/dialog'
+import type { Filter } from '../../shared/ipc/specs/dialog'
+import type { In, Out } from '../../shared/ipc/specs'
 
-interface Filter {
-  name: string
-  extensions: string[]
-}
-
-interface OpenP {
-  multiple?: boolean
-  filters?: Filter[]
-}
-
-type OpenR = string[] | null
-
-interface SaveP {
-  defaultPath?: string
-  filters?: Filter[]
-}
-
-type SaveR = string | null
-
-const FilterSchema = z.object({
-  name: z.string(),
-  extensions: z.array(z.string())
-})
-
-const OpenSchema = z
-  .object({
-    multiple: z.boolean().optional(),
-    filters: z.array(FilterSchema).optional()
-  })
-  .optional()
-
-const SaveSchema = z
-  .object({
-    defaultPath: z.string().optional(),
-    filters: z.array(FilterSchema).optional()
-  })
-  .optional()
+type OpenP = In<typeof CHANNELS.DIALOG.OPEN>
+type OpenR = Out<typeof CHANNELS.DIALOG.OPEN>
+type SaveP = In<typeof CHANNELS.DIALOG.SAVE>
+type SaveR = Out<typeof CHANNELS.DIALOG.SAVE>
 
 class Service {
   private readonly findWindow: () => BrowserWindow | null
@@ -99,4 +68,6 @@ function buildPlugin(): Plugin {
 }
 
 export type { Filter, OpenP, OpenR, SaveP, SaveR }
-export { OpenSchema, SaveSchema, Service, buildPlugin }
+export { Service, buildPlugin }
+// 临时 re-export：specs 批次收尾时移除
+export { OpenSchema, SaveSchema } from '../../shared/ipc/specs/dialog'
