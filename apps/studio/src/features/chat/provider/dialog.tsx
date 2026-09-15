@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { PROVIDER_KIND_LABELS } from '@/features/chat/provider/constants.ts'
 import { ProviderForm, type ProviderRow } from '@/features/chat/provider/form.tsx'
 import { parseModels, type ProviderValues } from '@/features/chat/provider/schema.ts'
+import { toIpcMessage } from '@/utils/ipc.errors.ts'
 
 import styles from '@/features/chat/provider/dialog.module.scss'
 
@@ -94,7 +95,8 @@ function ProviderDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
       await refresh()
     },
     onError: function (error) {
-      toast.error(error instanceof Error ? error.message : '保存失败')
+      // 直接展示 error.message 会把 `[CODE] ` 前缀暴露给用户
+      toast.error(toIpcMessage(error, '保存失败'))
     }
   })
 
@@ -105,7 +107,7 @@ function ProviderDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
       await refresh()
     },
     onError: function (error) {
-      toast.error(error instanceof Error ? error.message : '删除失败')
+      toast.error(toIpcMessage(error, '删除失败'))
     }
   })
 

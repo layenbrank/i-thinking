@@ -4,6 +4,7 @@ import { Button } from '@i-thinking/design/components/button'
 import { clsx } from 'clsx'
 import { SettingsIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import { ModelPicker } from '@/features/chat/model-picker.tsx'
 import { ProviderDialog } from '@/features/chat/provider/dialog.tsx'
@@ -12,6 +13,7 @@ import { TransportSwitch } from '@/features/chat/transport-switch.tsx'
 import { resolveChatTransport } from '@/features/chat/transport.ts'
 import { UsageLine } from '@/features/chat/usage-line.tsx'
 import { useSettingsStore } from '@/stores/setting.ts'
+import { toIpcMessage } from '@/utils/ipc.errors.ts'
 
 import styles from '@/views/chat/chat.module.scss'
 
@@ -29,7 +31,11 @@ export default function Chat() {
 
   useEffect(
     function () {
-      void initialize()
+      // 必须在失败时发声：本组件在 !loaded 时渲染 null，
+      // initialize 静默失败会让 /chat 永远白屏而不是报错
+      void initialize().catch(function (error) {
+        toast.error(toIpcMessage(error, '设置读取失败'))
+      })
     },
     [initialize]
   )
