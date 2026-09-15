@@ -18,7 +18,7 @@ import {
   type PortEvent,
   type StartRequest
 } from './assistant-protocol'
-import { CHANNELS } from '../contract/channels'
+import { CHANNELS } from '../../shared/ipc/channels'
 import { Repository as ChatRepository } from './chat'
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'

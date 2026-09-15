@@ -6,7 +6,7 @@ import { z } from 'zod'
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Plugin } from '../framework/module'
-import { CHANNELS } from '../contract/channels'
+import { CHANNELS } from '../../shared/ipc/channels'
 import { findPandocPath, hasBinary, PANDOC_BINARY } from './sidecar'
 
 /** Pandoc convert process timeout (main-only). */

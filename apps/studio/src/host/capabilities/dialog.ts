@@ -4,7 +4,7 @@ import { BrowserWindow, dialog } from 'electron'
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Plugin } from '../framework/module'
-import { CHANNELS } from '../contract/channels'
+import { CHANNELS } from '../../shared/ipc/channels'
 
 interface Filter {
   name: string

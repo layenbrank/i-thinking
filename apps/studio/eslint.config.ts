@@ -108,8 +108,8 @@ export default defineConfig([
         {
           patterns: [
             {
-              regex: '^\\./host/(?!contract/(channels|result|itc)$).*',
-              message: 'Preload may only use host/contract/{channels,result,itc}'
+              regex: '^\\./host/(?!contract/(result|itc)$).*',
+              message: 'Preload may only use host/contract/{result,itc}'
             },
             {
               group: ['@/', '@/*'],
@@ -131,6 +131,29 @@ export default defineConfig([
             {
               group: ['@/', '@/*'],
               message: 'Host must not import renderer modules via @/'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    // src/shared 被三个进程同时引入，任何运行时框架依赖都会被带进渲染包。
+    // 把「框架无关」从口头约定变成机器可验的不变量。
+    name: 'shared-framework-free',
+    files: ['src/shared/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*'],
+              message: 'src/shared 必须框架无关：不得 import electron'
+            },
+            {
+              group: ['node:*'],
+              message: 'src/shared 必须框架无关：不得 import node 内置模块'
             }
           ]
         }

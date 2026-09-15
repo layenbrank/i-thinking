@@ -4,7 +4,7 @@ import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { chatMessage, chatProvider, chatSession } from '../../../drizzle/schema'
-import { CHANNELS } from '../contract/channels'
+import { CHANNELS } from '../../shared/ipc/channels'
 import type { Context } from '../framework/context'
 import { findClient } from './database'
 import { registerHandler } from '../framework/handle'
