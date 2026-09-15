@@ -1,7 +1,7 @@
 import { app, ipcMain, type BrowserWindow, type IpcMain, type WebContents } from 'electron'
 
 import { buildLogger, type Logger } from './logger'
-import type { CorexHost } from './sidecar'
+import type { CorexHost } from '../capabilities/sidecar'
 
 interface Context {
   app: typeof app

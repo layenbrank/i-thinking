@@ -3,10 +3,10 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
 
-import type { Context } from './context'
-import { registerHandler } from './handle'
-import type { Plugin } from './module'
-import { CHANNELS } from './channels'
+import type { Context } from '../framework/context'
+import { registerHandler } from '../framework/handle'
+import type { Plugin } from '../framework/module'
+import { CHANNELS } from '../contract/channels'
 import { findPandocPath, hasBinary, PANDOC_BINARY } from './sidecar'
 
 /** Pandoc convert process timeout (main-only). */

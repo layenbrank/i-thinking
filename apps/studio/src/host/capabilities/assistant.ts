@@ -18,11 +18,11 @@ import {
   type PortEvent,
   type StartRequest
 } from './assistant-protocol'
-import { CHANNELS } from './channels'
+import { CHANNELS } from '../contract/channels'
 import { Repository as ChatRepository } from './chat'
-import type { Context } from './context'
-import { registerHandler } from './handle'
-import type { Plugin } from './module'
+import type { Context } from '../framework/context'
+import { registerHandler } from '../framework/handle'
+import type { Plugin } from '../framework/module'
 
 /** 只要求用到的两个级别，便于测试注入假 logger */
 interface Log {

@@ -1,7 +1,7 @@
 import { session, shell, type WebContents } from 'electron'
 
-import type { Context } from './context'
-import type { Plugin } from './module'
+import type { Context } from '../framework/context'
+import type { Plugin } from '../framework/module'
 import { isAllowedPageUrl } from './trusted-sender'
 
 const ALLOWED_PERMISSIONS = new Set<string>([])

@@ -1,9 +1,9 @@
 import { z } from 'zod'
 
-import { CHANNELS } from './channels'
-import type { Context } from './context'
-import { registerHandler } from './handle'
-import type { Plugin } from './module'
+import { CHANNELS } from '../contract/channels'
+import type { Context } from '../framework/context'
+import { registerHandler } from '../framework/handle'
+import type { Plugin } from '../framework/module'
 
 interface UpdateP {
   visible: boolean

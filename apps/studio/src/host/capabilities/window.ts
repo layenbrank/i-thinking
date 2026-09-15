@@ -1,13 +1,13 @@
 import { BrowserWindow, screen } from 'electron'
 import path from 'node:path'
 
-import type { Context } from './context'
-import type { Plugin } from './module'
-import { registerHandler } from './handle'
+import type { Context } from '../framework/context'
+import type { Plugin } from '../framework/module'
+import { registerHandler } from '../framework/handle'
 import { UpdateSchema } from './overlay'
 import { attachGuards } from './security'
-import { findBundleDir } from './paths'
-import { CHANNELS } from './channels'
+import { findBundleDir } from '../framework/paths'
+import { CHANNELS } from '../contract/channels'
 
 interface BundlePaths {
   route: string

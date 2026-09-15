@@ -10,20 +10,20 @@ import type {
   SessionReadR,
   SessionUpdateP,
   SessionWriteP
-} from './chat'
-import type { KeyRefP, KeyWriteP } from './assistant-key'
+} from '../capabilities/chat'
+import type { KeyRefP, KeyWriteP } from '../capabilities/assistant-key'
 import type {
   ReadR as UserReadR,
   RemoveP as UserRemoveP,
   UpdateP as UserUpdateP,
   WriteP as UserWriteP
-} from './database'
-import type { UpdateP as DevtoolsUpdateP } from './devtools'
-import type { OpenP as DialogOpenP, SaveP as DialogSaveP } from './dialog'
-import type { ConvertP as DocConvertP, ConvertR as DocConvertR } from './doc'
-import type { CaptureR as ScreenshotCaptureR } from './screenshot'
-import type { FindStatusR as SidecarFindStatusR } from './sidecar'
-import type { ReadR, UpdateP } from './overlay'
+} from '../capabilities/database'
+import type { UpdateP as DevtoolsUpdateP } from '../capabilities/devtools'
+import type { OpenP as DialogOpenP, SaveP as DialogSaveP } from '../capabilities/dialog'
+import type { ConvertP as DocConvertP, ConvertR as DocConvertR } from '../capabilities/doc'
+import type { CaptureR as ScreenshotCaptureR } from '../capabilities/screenshot'
+import type { FindStatusR as SidecarFindStatusR } from '../capabilities/sidecar'
+import type { ReadR, UpdateP } from '../capabilities/overlay'
 import type {
   HasP as StoreHasP,
   HasR as StoreHasR,
@@ -31,8 +31,8 @@ import type {
   ReadR as StoreReadR,
   RemoveP as StoreRemoveP,
   WriteP as StoreWriteP
-} from './store'
-import type { CheckR as UpdaterCheckR, FindStatusR as UpdaterFindStatusR } from './updater'
+} from '../capabilities/store'
+import type { CheckR as UpdaterCheckR, FindStatusR as UpdaterFindStatusR } from '../capabilities/updater'
 
 /** Renderer SDK 与 Main 对齐的 API 形状（不含实现） */
 export interface ITC {

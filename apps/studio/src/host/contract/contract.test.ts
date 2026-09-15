@@ -58,7 +58,7 @@ describe('ipc contract', function () {
   })
 
   it('preload mounts Studio namespaces', function () {
-    const source = readFileSync(path.join(__dirname, '../preload.ts'), 'utf8')
+    const source = readFileSync(path.join(__dirname, '../../preload.ts'), 'utf8')
     for (const name of STUDIO_NAMESPACES) {
       expect(source).toContain(`${name}:`)
     }
