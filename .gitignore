@@ -110,6 +110,8 @@ apps/browser/gn/*.local.gn
 __pycache__/
 .coverage
 
+# planning-with-files 工作流产物：写在 cwd，属临时状态，勿提交
 findings.md
 progress.md
 task_plan.md
+planning-archive/
