@@ -16,13 +16,13 @@ scope:
     - packages/utils/src/**
     - packages/wasm/src/**
   exclude:
-    - "**/__tests__/**"
-    - "**/__test__/**"
-    - "**/*.test.*"
-    - "**/*.spec.*"
-    - "**/*.d.ts"
-    - "**/dist/**"
-    - "**/node_modules/**"
+    - '**/__tests__/**'
+    - '**/__test__/**'
+    - '**/*.test.*'
+    - '**/*.spec.*'
+    - '**/*.d.ts'
+    - '**/dist/**'
+    - '**/node_modules/**'
 
 repowiki:
   template: architecture
