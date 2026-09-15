@@ -108,8 +108,8 @@ export default defineConfig([
         {
           patterns: [
             {
-              regex: '^\\./host/(?!contract/itc$).*',
-              message: 'Preload may only use host/contract/itc'
+              regex: '^\\./host(/.*)?$',
+              message: 'Preload must not import main-process modules'
             },
             {
               group: ['@/', '@/*'],

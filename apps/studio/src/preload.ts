@@ -1,7 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { IpcRendererEvent } from 'electron'
+
+import type { Api, IpcFn, Subscribe, Unsubscribe } from './shared/ipc/api'
 import { CHANNELS } from './shared/ipc/channels'
-import type { ITC } from './host/contract/itc'
+import type { InvokeChannel, PushChannel } from './shared/ipc/channels'
 import { IpcClientError, type IpcEnvelope, type IpcErrorPayload } from './shared/ipc/error'
+import type { Out, PushOut } from './shared/ipc/specs'
+import { subscribePort } from './preload.port'
 
 function isEnvelope(value: unknown): value is IpcEnvelope<unknown> {
   return typeof value === 'object' && value !== null && 'ok' in value
@@ -9,9 +14,12 @@ function isEnvelope(value: unknown): value is IpcEnvelope<unknown> {
 
 /**
  * 解信封并转成异常语义：调用点只需 try/catch，不必检查 `ok` 标志。
- * 失败一律抛 `IpcClientError`（code 已编进 message —— 自定义属性过不了 contextBridge）。
+ *
+ * 失败一律抛 `IpcClientError`。注意 **code 已编进 message** ——
+ * `contextBridge` 会丢弃 Error 的自定义属性，渲染侧只能靠
+ * `decodeIpcMessage` 从 message 前缀还原。
  */
-async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
+async function invoke<K extends InvokeChannel>(channel: K, payload?: unknown): Promise<Out<K>> {
   const response: unknown = await ipcRenderer.invoke(channel, payload)
   if (!isEnvelope(response)) {
     throw new IpcClientError('IPC_UNKNOWN', `Invalid IPC response for ${channel}`)
@@ -23,193 +31,114 @@ async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
       stack: failure.stack
     })
   }
-  return response.data as T
+  return response.data as Out<K>
 }
 
 /**
- * 离线通路的端口交付：主进程收到 connect 后把端口推过来，而 renderer 侧的消费者
- * 可能在 connect 之后才注册回调 —— 这里先排队，避免丢端口（竞态）。
+ * 把一个 invoke 频道包成方法。**频道字符串只出现在这里与契约里** ——
+ * 渲染进程拿到的是一组具名方法，无法自己拼频道名。
  */
-const portCallbacks = new Set<(port: MessagePort) => void>()
-const pendingPorts: MessagePort[] = []
+function toInvoke<K extends InvokeChannel>(channel: K): IpcFn<K> {
+  return function invokeChannel(input?: unknown) {
+    return invoke(channel, input)
+  } as IpcFn<K>
+}
 
-ipcRenderer.on(CHANNELS.ASSISTANT.PORT, function (event) {
-  const port = event.ports[0]
-  if (!port) return
-  if (portCallbacks.size === 0) {
-    pendingPorts.push(port)
-    return
-  }
-  portCallbacks.forEach(function (callback) {
-    callback(port)
-  })
-})
-
-const itc: ITC = {
-  store: {
-    toRead(input) {
-      return invoke(CHANNELS.STORE.READ, input)
-    },
-    toWrite(input) {
-      return invoke(CHANNELS.STORE.WRITE, input)
-    },
-    has(input) {
-      return invoke(CHANNELS.STORE.HAS, input)
-    },
-    toRemove(input) {
-      return invoke(CHANNELS.STORE.REMOVE, input)
-    },
-    clear() {
-      return invoke(CHANNELS.STORE.CLEAR)
-    },
-    keys() {
-      return invoke(CHANNELS.STORE.KEYS)
+/**
+ * 把一个推送频道包成订阅。**事件对象一律不外传**（`IpcRendererEvent`
+ * 会泄漏 senderFrame），只交 payload。
+ */
+function toSubscribe<K extends PushChannel>(
+  channel: K,
+  toPayload: (raw: unknown) => PushOut<K>
+): Subscribe<PushOut<K>> {
+  return function subscribe(callback): Unsubscribe {
+    function handler(_event: IpcRendererEvent, raw: unknown): void {
+      callback(toPayload(raw))
     }
-  },
-  dialog: {
-    open(input) {
-      return invoke(CHANNELS.DIALOG.OPEN, input)
-    },
-    save(input) {
-      return invoke(CHANNELS.DIALOG.SAVE, input)
-    }
-  },
-  user: {
-    toRead() {
-      return invoke(CHANNELS.USER.READ)
-    },
-    toWrite(input) {
-      return invoke(CHANNELS.USER.WRITE, input)
-    },
-    toUpdate(input) {
-      return invoke(CHANNELS.USER.UPDATE, input)
-    },
-    toRemove(input) {
-      return invoke(CHANNELS.USER.REMOVE, input)
-    }
-  },
-  sidecar: {
-    toRead() {
-      return invoke(CHANNELS.SIDECAR.READ)
-    }
-  },
-  doc: {
-    convert(input) {
-      return invoke(CHANNELS.DOC.CONVERT, input)
-    }
-  },
-  screenshot: {
-    capture() {
-      return invoke(CHANNELS.SCREENSHOT.CAPTURE)
-    }
-  },
-  updater: {
-    toRead() {
-      return invoke(CHANNELS.UPDATER.READ)
-    },
-    check() {
-      return invoke(CHANNELS.UPDATER.CHECK)
-    },
-    download() {
-      return invoke(CHANNELS.UPDATER.DOWNLOAD)
-    },
-    install() {
-      return invoke(CHANNELS.UPDATER.INSTALL)
-    },
-    onEvent(callback) {
-      function handler(_event: unknown, payload: unknown) {
-        callback(payload as Parameters<typeof callback>[0])
-      }
-      ipcRenderer.on(CHANNELS.UPDATER.EVENT, handler)
-      return function () {
-        ipcRenderer.removeListener(CHANNELS.UPDATER.EVENT, handler)
-      }
-    }
-  },
-  devtools: {
-    toUpdate(input) {
-      return invoke(CHANNELS.DEVTOOLS.UPDATE, input)
-    }
-  },
-  overlay: {
-    toRead() {
-      return invoke(CHANNELS.OVERLAY.READ)
-    },
-    toUpdate(input) {
-      return invoke(CHANNELS.OVERLAY.UPDATE, input)
-    }
-  },
-  chat: {
-    provider: {
-      toRead() {
-        return invoke(CHANNELS.CHAT.PROVIDER.READ)
-      },
-      toWrite(input) {
-        return invoke(CHANNELS.CHAT.PROVIDER.WRITE, input)
-      },
-      toUpdate(input) {
-        return invoke(CHANNELS.CHAT.PROVIDER.UPDATE, input)
-      },
-      toRemove(input) {
-        return invoke(CHANNELS.CHAT.PROVIDER.REMOVE, input)
-      }
-    },
-    session: {
-      toRead() {
-        return invoke(CHANNELS.CHAT.SESSION.READ)
-      },
-      toWrite(input) {
-        return invoke(CHANNELS.CHAT.SESSION.WRITE, input)
-      },
-      toUpdate(input) {
-        return invoke(CHANNELS.CHAT.SESSION.UPDATE, input)
-      },
-      toRemove(input) {
-        return invoke(CHANNELS.CHAT.SESSION.REMOVE, input)
-      }
-    },
-    message: {
-      toRead(input) {
-        return invoke(CHANNELS.CHAT.MESSAGE.READ, input)
-      },
-      toAppend(input) {
-        return invoke(CHANNELS.CHAT.MESSAGE.APPEND, input)
-      },
-      toUpdate(input) {
-        return invoke(CHANNELS.CHAT.MESSAGE.UPDATE, input)
-      },
-      toRemove(input) {
-        return invoke(CHANNELS.CHAT.MESSAGE.REMOVE, input)
-      }
-    }
-  },
-  assistant: {
-    connect() {
-      return invoke(CHANNELS.ASSISTANT.CONNECT)
-    },
-    onPort(callback) {
-      portCallbacks.add(callback)
-      // 把先于注册到达的端口补交给它
-      while (pendingPorts.length > 0) {
-        const port = pendingPorts.shift()
-        if (port) callback(port)
-      }
-      return function () {
-        portCallbacks.delete(callback)
-      }
-    },
-    key: {
-      toWrite(input) {
-        return invoke(CHANNELS.ASSISTANT.KEY.WRITE, input)
-      },
-      has(input) {
-        return invoke(CHANNELS.ASSISTANT.KEY.HAS, input)
-      },
-      toRemove(input) {
-        return invoke(CHANNELS.ASSISTANT.KEY.REMOVE, input)
-      }
+    ipcRenderer.on(channel, handler)
+    return function unsubscribe() {
+      ipcRenderer.removeListener(channel, handler)
     }
   }
 }
 
-contextBridge.exposeInMainWorld('itc', itc)
+/** 主进程是发送方，推送载荷无需校验，只为渲染侧提供类型 */
+function toUpdaterEvent(raw: unknown): PushOut<typeof CHANNELS.UPDATER.EVENT> {
+  return raw as PushOut<typeof CHANNELS.UPDATER.EVENT>
+}
+
+const api = {
+  store: {
+    toRead: toInvoke(CHANNELS.STORE.READ),
+    toWrite: toInvoke(CHANNELS.STORE.WRITE),
+    has: toInvoke(CHANNELS.STORE.HAS),
+    toRemove: toInvoke(CHANNELS.STORE.REMOVE),
+    clear: toInvoke(CHANNELS.STORE.CLEAR),
+    keys: toInvoke(CHANNELS.STORE.KEYS)
+  },
+  dialog: {
+    open: toInvoke(CHANNELS.DIALOG.OPEN),
+    save: toInvoke(CHANNELS.DIALOG.SAVE)
+  },
+  user: {
+    toRead: toInvoke(CHANNELS.USER.READ),
+    toWrite: toInvoke(CHANNELS.USER.WRITE),
+    toUpdate: toInvoke(CHANNELS.USER.UPDATE),
+    toRemove: toInvoke(CHANNELS.USER.REMOVE)
+  },
+  sidecar: {
+    toRead: toInvoke(CHANNELS.SIDECAR.READ)
+  },
+  doc: {
+    convert: toInvoke(CHANNELS.DOC.CONVERT)
+  },
+  screenshot: {
+    capture: toInvoke(CHANNELS.SCREENSHOT.CAPTURE)
+  },
+  devtools: {
+    toUpdate: toInvoke(CHANNELS.DEVTOOLS.UPDATE)
+  },
+  updater: {
+    toRead: toInvoke(CHANNELS.UPDATER.READ),
+    check: toInvoke(CHANNELS.UPDATER.CHECK),
+    download: toInvoke(CHANNELS.UPDATER.DOWNLOAD),
+    install: toInvoke(CHANNELS.UPDATER.INSTALL),
+    onEvent: toSubscribe(CHANNELS.UPDATER.EVENT, toUpdaterEvent)
+  },
+  overlay: {
+    toRead: toInvoke(CHANNELS.OVERLAY.READ),
+    toUpdate: toInvoke(CHANNELS.OVERLAY.UPDATE)
+  },
+  chat: {
+    provider: {
+      toRead: toInvoke(CHANNELS.CHAT.PROVIDER.READ),
+      toWrite: toInvoke(CHANNELS.CHAT.PROVIDER.WRITE),
+      toUpdate: toInvoke(CHANNELS.CHAT.PROVIDER.UPDATE),
+      toRemove: toInvoke(CHANNELS.CHAT.PROVIDER.REMOVE)
+    },
+    session: {
+      toRead: toInvoke(CHANNELS.CHAT.SESSION.READ),
+      toWrite: toInvoke(CHANNELS.CHAT.SESSION.WRITE),
+      toUpdate: toInvoke(CHANNELS.CHAT.SESSION.UPDATE),
+      toRemove: toInvoke(CHANNELS.CHAT.SESSION.REMOVE)
+    },
+    message: {
+      toRead: toInvoke(CHANNELS.CHAT.MESSAGE.READ),
+      toAppend: toInvoke(CHANNELS.CHAT.MESSAGE.APPEND),
+      toUpdate: toInvoke(CHANNELS.CHAT.MESSAGE.UPDATE),
+      toRemove: toInvoke(CHANNELS.CHAT.MESSAGE.REMOVE)
+    }
+  },
+  assistant: {
+    connect: toInvoke(CHANNELS.ASSISTANT.CONNECT),
+    onPort: subscribePort,
+    key: {
+      toWrite: toInvoke(CHANNELS.ASSISTANT.KEY.WRITE),
+      has: toInvoke(CHANNELS.ASSISTANT.KEY.HAS),
+      toRemove: toInvoke(CHANNELS.ASSISTANT.KEY.REMOVE)
+    }
+  }
+} satisfies Api
+
+contextBridge.exposeInMainWorld('itc', api)
