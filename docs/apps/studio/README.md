@@ -19,7 +19,8 @@
 
 | 文档 | 说明 |
 |------|------|
-| [architecture.md](./architecture.md) | 进程边界、组合根、IPC、决策表 |
+| [architecture.md](./architecture.md) | 进程边界、分层、组合根、决策表 |
+| [ipc-contract.md](./ipc-contract.md) | IPC 契约规范：平台约束、闭环断言、错误模型、反模式 |
 | [development.md](./development.md) | 环境、脚本、别名、测试、扩展入口 |
 | [examples.md](./examples.md) | 调用样例 + 新增 IPC 全链路 |
 | [api-reference.md](./api-reference.md) | `Studio` / channels / 错误码 |
@@ -27,7 +28,7 @@
 | [security.md](./security.md) | sandbox、CSP、信任模型、Fuses |
 | [packaging.md](./packaging.md) | Forge、资源、产物 |
 | [troubleshooting.md](./troubleshooting.md) | 常见故障与处理 |
-| [renderer-vite-root-cause.md](./renderer-vite-root-cause.md) | monorepo + Vite CJS 预构建问题 |
+| [renderer-vite-root-cause.md](../../decisions/renderer-vite-root-cause.md) | monorepo + Vite CJS 预构建问题（已归入 decisions/） |
 
 ## 源码地图（速查）
 

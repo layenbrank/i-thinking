@@ -89,7 +89,8 @@ src/main.ts | src/preload.ts | src/renderer.tsx | src/host/capabilities/ | sidec
   - `host/capabilities/store.test.ts`
   - `host/capabilities/user.test.ts`
   - `host/capabilities/doc.test.ts`
-  - `host/contract/contract.test.ts`
+  - `shared/ipc/contract.test.ts`
+  - `host/ipc/register.test.ts`（假 IpcMain，无需启动 Electron）
   - `host/capabilities/sidecar.paths.test.ts`
   - `host/capabilities/trusted-sender.test.ts`
   - `preload.expose.test.ts`（断言不暴露 `ipcRenderer`）
@@ -114,7 +115,7 @@ pnpm test:db   # 真实引擎的数据库集成测试（迁移幂等 / 兼容另
 - **两版同实现**（Electron / Tauri，用户只装其一）：库路径与 schema 保持一致（`app_local_data_dir()/i-thinking.db`，identifier `com.i-thinking.corex`），**建表由各自完成** —— studio 启动时跑 Drizzle 官方 `migrate()`；若库里已有另一版建好的结构，则先"采纳基线"（`src/host/capabilities/database-migrate.ts`）。
 - 种子数据：`node scripts/sync-seed.mjs` 从 Tauri 版迁移抽取，写入 `drizzle/migrations/<idx>_seed.sql`（先 `drizzle-kit generate --custom --name=seed` 建空壳；勿手改生成物）。
 - schema 一致性校验：`node scripts/check-schema-parity.mjs`（对比 v1 参照快照 `scripts/fixtures/legacy-v1.sql` 与 Drizzle 迁移建出的库，允许差异见脚本内 `ALLOWED`）。
-- 迁移背景与逐表映射见 [prisma-to-drizzle.md](./prisma-to-drizzle.md)。
+- 迁移背景与逐表映射见 [prisma-to-drizzle.md](../../decisions/prisma-to-drizzle.md)。
 
 ## 9. 下一步
 
