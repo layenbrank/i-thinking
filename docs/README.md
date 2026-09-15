@@ -55,9 +55,8 @@
 
 ## 包（packages/）
 
-| 文档                                      | 说明                                       |
-| ----------------------------------------- | ------------------------------------------ |
-| [design/](./packages/design/)             | 设计系统：token、组件分层与来源、贡献流程  |
+各包的职责与对外契约见其 README（如 [`packages/design/README.md`](../packages/design/README.md)）。
+跨包的架构说明按需在 `packages/<name>/` 下新建专题文档。
 
 ## 指南（guides/）
 

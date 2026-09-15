@@ -1,6 +1,6 @@
 # 04 — Command / IPC 与前端 invoke
 
-命名完整规范见 skill：[naming-conventions](../../../apps/client/src-tauri/.cursor/skills/naming-conventions/SKILL.md)。下文只列用法要点与命令表。
+命名完整规范见 skill：[naming-conventions](../../../../apps/client/src-tauri/.cursor/skills/naming-conventions/SKILL.md)。下文只列用法要点与命令表。
 
 ## 四层命名
 
@@ -30,7 +30,7 @@ Many 批量时 Service 内开事务。
 
 ## reminder:*
 
-源码：[`command/src/reminder.rs`](../../../apps/client/src-tauri/crates/command/src/reminder.rs)
+源码：[`command/src/reminder.rs`](../../../../apps/client/src-tauri/crates/command/src/reminder.rs)
 
 | IPC | params | returns |
 |-----|--------|---------|
@@ -46,7 +46,7 @@ Many 批量时 Service 内开事务。
 
 ## calendar:*
 
-源码：[`command/src/calendar.rs`](../../../apps/client/src-tauri/crates/command/src/calendar.rs)
+源码：[`command/src/calendar.rs`](../../../../apps/client/src-tauri/crates/command/src/calendar.rs)
 
 | IPC | params | returns |
 |-----|--------|---------|
@@ -60,7 +60,7 @@ Many 批量时 Service 内开事务。
 
 ## 前端示例
 
-### Reminder（[`stores/reminder.ts`](../../../apps/client/src/stores/reminder.ts)）
+### Reminder（[`stores/reminder.ts`](../../../../apps/client/src/stores/reminder.ts)）
 
 ```ts
 invoke<Reminder[]>('reminder:read', { params: filter })
@@ -71,7 +71,7 @@ invoke('reminder:remove', { params: key }) // string → RemoveP::One
 
 write 返回 `ids`，通常取 `ids[0]`。
 
-### Calendar（[`stores/calendar.ts`](../../../apps/client/src/stores/calendar.ts)）
+### Calendar（[`stores/calendar.ts`](../../../../apps/client/src/stores/calendar.ts)）
 
 ```ts
 invoke<Calendar[]>('calendar:read', { params: filter })

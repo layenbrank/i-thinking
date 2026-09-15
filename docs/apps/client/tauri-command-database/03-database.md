@@ -4,7 +4,7 @@ Crate：`thinking-database`（`apps/client/src-tauri/crates/database`）。
 
 ## 迁移
 
-- **仅注册** [`migrations_v001`](../../../apps/client/src-tauri/crates/database/src/migrations/migrations_v001.rs)
+- **仅注册** [`migrations_v001`](../../../../apps/client/src-tauri/crates/database/src/migrations/migrations_v001.rs)
 - 迁移记录表名：`migrations`（非默认 `seaql_migrations`）
 - API：`migration::run` / `rollback` / `check`
 
@@ -83,5 +83,5 @@ Crate：`thinking-database`（`apps/client/src-tauri/crates/database`）。
 
 完整语义见 [05-reminder-calendar.md](./05-reminder-calendar.md)。Entity 源码：
 
-- [`entity/reminder.rs`](../../../apps/client/src-tauri/crates/database/src/entity/reminder.rs)
-- [`entity/calendar.rs`](../../../apps/client/src-tauri/crates/database/src/entity/calendar.rs)
+- [`entity/reminder.rs`](../../../../apps/client/src-tauri/crates/database/src/entity/reminder.rs)
+- [`entity/calendar.rs`](../../../../apps/client/src-tauri/crates/database/src/entity/calendar.rs)

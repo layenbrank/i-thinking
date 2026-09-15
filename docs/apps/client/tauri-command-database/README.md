@@ -2,7 +2,7 @@
 
 本专题说明 Client Tauri 侧 **command（IPC）** 与 **database（SeaORM / SQLite）** 的分层设计、正确用法，以及 Schema Reminder 统一后的破坏性改动摘要。
 
-与产品文档 [`docs`](../../../docs) 分离；命名细则见 skill：[`naming-conventions`](../../../apps/client/src-tauri/.cursor/skills/naming-conventions/SKILL.md)。
+命名细则见 skill：[`naming-conventions`](../../../../apps/client/src-tauri/.cursor/skills/naming-conventions/SKILL.md)。
 
 ## 文档地图
 

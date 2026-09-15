@@ -1,6 +1,6 @@
 # 05 — Reminder 与 Calendar：语义与正确用法
 
-本文避免把闹钟、待办、日程混用。Core：[`reminder/service.rs`](../../../apps/client/src-tauri/crates/core/src/reminder/service.rs)、[`calendar/`](../../../apps/client/src-tauri/crates/core/src/calendar/)。
+本文避免把闹钟、待办、日程混用。Core：[`reminder/service.rs`](../../../../apps/client/src-tauri/crates/core/src/reminder/service.rs)、[`calendar/`](../../../../apps/client/src-tauri/crates/core/src/calendar/)。
 
 ## 角色划分
 
@@ -44,7 +44,7 @@ Clock 列表过滤（前端）：
 fireTime != null && archivedAt == null
 ```
 
-见 [`alarm-time.ts`](../../../apps/client/src/features/magnetic-tiles/clock/alarm-time.ts)。
+见 [`alarm-time.ts`](../../../../apps/client/src/features/magnetic-tiles/clock/alarm-time.ts)。
 
 ### archivedAt 用法
 
@@ -71,7 +71,7 @@ fireTime != null && archivedAt == null
 
 ## 响铃：claim-then-notify
 
-Worker：[`src/reminder/worker.rs`](../../../apps/client/src-tauri/src/reminder/worker.rs)
+Worker：[`src/reminder/worker.rs`](../../../../apps/client/src-tauri/src/reminder/worker.rs)
 
 ```text
 toReadSchedulable (enabled && archivedAt IS NULL)
