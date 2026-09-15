@@ -2,7 +2,11 @@ import type { z } from 'zod'
 
 import { devtoolsSpecs } from './devtools'
 import { docSpecs } from './doc'
+import { overlaySpecs } from './overlay'
+import { screenshotSpecs } from './screenshot'
+import { sidecarSpecs } from './sidecar'
 import { storeSpecs } from './store'
+import { userSpecs } from './user'
 
 /**
  * invoke 通道的契约聚合 —— 准入参/出参类型的**唯一来源**。
@@ -13,7 +17,11 @@ import { storeSpecs } from './store'
 export const INVOKE_SPECS = {
   ...storeSpecs,
   ...devtoolsSpecs,
-  ...docSpecs
+  ...docSpecs,
+  ...overlaySpecs,
+  ...userSpecs,
+  ...sidecarSpecs,
+  ...screenshotSpecs
 } as const
 
 export type SpecChannel = keyof typeof INVOKE_SPECS

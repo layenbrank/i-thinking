@@ -2,22 +2,16 @@ import { app } from 'electron'
 import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
-import { z } from 'zod'
 
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Plugin } from '../framework/module'
 import { CHANNELS } from '../../shared/ipc/channels'
+import { CaptureSchema } from '../../shared/ipc/specs/screenshot'
+import type { Out } from '../../shared/ipc/specs'
 import type { CorexHost } from './sidecar'
 
-interface CaptureR {
-  path: string
-  width: number
-  height: number
-}
-
-/** 截屏 IPC 无业务入参；路径由 Main 生成 */
-const CaptureSchema = z.object({}).optional()
+type CaptureR = Out<typeof CHANNELS.SCREENSHOT.CAPTURE>
 
 class Service {
   private readonly corex: CorexHost
@@ -85,4 +79,6 @@ function buildPlugin(): Plugin {
 }
 
 export type { CaptureR }
-export { CaptureSchema, Service, buildPlugin }
+export { Service, buildPlugin }
+// 临时 re-export：specs 批次收尾时移除
+export { CaptureSchema } from '../../shared/ipc/specs/screenshot'
