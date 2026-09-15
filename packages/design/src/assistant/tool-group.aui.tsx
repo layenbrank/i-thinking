@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
 import { ChevronDownIcon, LoaderIcon } from 'lucide-react'
 import { memo, useCallback, useRef, useState, type FC, type PropsWithChildren } from 'react'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../primitive/collapsible'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/collapsible'
 
 const ANIMATION_DURATION = 200
 

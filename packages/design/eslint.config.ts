@@ -46,16 +46,8 @@ export default defineConfig([
     }
   },
 
-  // 工具脚本跑在 Node 里（registry:fix 由 Node 直接执行 .ts）
-  {
-    files: ['scripts/**/*.ts'],
-    languageOptions: {
-      globals: globals.node
-    }
-  },
-
   /**
-   * assistant-ui registry 生成物（`shadcn add @assistant-ui/*`，见 scripts/registry.ts）。
+   * assistant-ui registry 生成物（`shadcn add @assistant-ui/*`）。
    * 保持与上游一致，不做逐次改写 —— 否则每次重新 add 都要重做一遍：
    * - `== null` 是上游的 null/undefined 双检惯用法（smart 允许它，但仍禁其它 `==`）
    * - 空 catch 用于"尽力而为"的序列化回退

@@ -1,21 +1,27 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@i-thinking/design/primitive/button'
-import { Checkbox } from '@i-thinking/design/primitive/checkbox'
+import { Button } from '@i-thinking/design/components/button'
+import { Checkbox } from '@i-thinking/design/components/checkbox'
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel
-} from '@i-thinking/design/primitive/form'
-import { Tabs, TabsList, TabsTrigger } from '@i-thinking/design/primitive/tabs'
+} from '@i-thinking/design/components/form'
+import { Tabs, TabsList, TabsTrigger } from '@i-thinking/design/components/tabs'
 import { LockIcon, MailIcon, SmartphoneIcon, UserIcon } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { toast } from 'sonner'
 
-import { LIMIT, MODE, SIGNIN_SCHEMA, type AuthMode, type SigninValues } from '@/features/signin/constants.ts'
 import { CaptchaField } from '@/features/signin/captcha-field.tsx'
+import {
+  LIMIT,
+  MODE,
+  SIGNIN_SCHEMA,
+  type AuthMode,
+  type SigninValues
+} from '@/features/signin/constants.ts'
 import { AuthField } from '@/features/signin/field.tsx'
 import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
 import styles from '@/features/signin/signin.module.scss'

@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from '@i-thinking/design/primitive/avatar'
+import { Avatar, AvatarFallback } from '@i-thinking/design/components/avatar'
 import { clsx } from 'clsx'
 
 import {

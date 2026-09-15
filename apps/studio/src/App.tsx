@@ -1,5 +1,5 @@
-import { Toaster } from '@i-thinking/design/primitive/sonner'
-import { TooltipProvider } from '@i-thinking/design/primitive/tooltip'
+import { Toaster } from '@i-thinking/design/components/sonner'
+import { TooltipProvider } from '@i-thinking/design/components/tooltip'
 import { MotionConfig } from 'motion/react'
 import { Suspense } from 'react'
 import { RouterProvider } from 'react-router-dom'

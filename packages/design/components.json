@@ -12,10 +12,10 @@
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@/components",
-    "ui": "@/components/ui",
-    "lib": "@/lib",
-    "hooks": "@/hooks",
+    "components": "@i-thinking/design/components",
+    "ui": "@i-thinking/design/components",
+    "lib": "@i-thinking/design/lib",
+    "hooks": "@i-thinking/design/hooks",
     "utils": "cn"
   },
   "registries": {

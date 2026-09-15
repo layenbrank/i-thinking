@@ -11,9 +11,9 @@ import {
 import { cn } from 'cn'
 import { AlertCircleIcon, CheckIcon, ChevronDownIcon, LoaderIcon, XCircleIcon } from 'lucide-react'
 import { memo, useCallback, useRef, useState } from 'react'
-import { Button } from '../primitive/button'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../primitive/collapsible'
-import { Textarea } from '../primitive/textarea'
+import { Button } from '../components/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/collapsible'
+import { Textarea } from '../components/textarea'
 
 const ANIMATION_DURATION = 200
 

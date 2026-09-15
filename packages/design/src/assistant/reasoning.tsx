@@ -10,7 +10,7 @@ import {
   useRef,
   useState
 } from 'react'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../primitive/collapsible'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/collapsible'
 
 export const ANIMATION_DURATION = 200
 

@@ -7,9 +7,9 @@ import {
   useAuiState,
   useAui
 } from '@assistant-ui/react'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../primitive/tooltip'
-import { Dialog, DialogTitle, DialogContent, DialogTrigger } from '../primitive/dialog'
-import { Avatar, AvatarImage, AvatarFallback } from '../primitive/avatar'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/tooltip'
+import { Dialog, DialogTitle, DialogContent, DialogTrigger } from '../components/dialog'
+import { Avatar, AvatarImage, AvatarFallback } from '../components/avatar'
 import { TooltipIconButton } from './tooltip-icon-button'
 import { useAttachmentSrc } from '../hooks/use-attachment-src'
 import { cn } from 'cn'
