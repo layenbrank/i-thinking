@@ -4,7 +4,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '@i-thinking/design/primitive/select'
+} from '@i-thinking/design/components/select'
 import { clsx } from 'clsx'
 
 import {

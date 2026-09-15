@@ -22,7 +22,7 @@ import * as React from 'react'
  * | `shape="round"` | `className="rounded-full"` |
  * | `block` | `className="w-full"`（不设时按钮宽度由父容器决定）|
  * | 按下反馈（antd wave）| 各变体按 antd 色阶下沉（hover 变浅 / active 变深）+ `active:scale-*` |
- * | `loading` | 自行组合 `primitive/spinner`（不做内置 prop）|
+ * | `loading` | 自行组合 `components/spinner`（不做内置 prop）|
  * | `color` 预设色（blue/cyan/…）| 无对应 token，不提供 |
  */
 

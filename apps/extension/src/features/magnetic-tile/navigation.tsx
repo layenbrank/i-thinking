@@ -1,10 +1,10 @@
-import { Button } from '@i-thinking/design/primitive/button'
+import { Button } from '@i-thinking/design/components/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
-} from '@i-thinking/design/primitive/dropdown-menu'
+} from '@i-thinking/design/components/dropdown-menu'
 import { clsx } from 'clsx'
 import { MoreHorizontalIcon } from 'lucide-react'
 import { useState } from 'react'

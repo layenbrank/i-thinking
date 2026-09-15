@@ -1,12 +1,12 @@
-import { Button } from '@i-thinking/design/primitive/button'
+import { Button } from '@i-thinking/design/components/button'
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage
-} from '@i-thinking/design/primitive/form'
-import { Input } from '@i-thinking/design/primitive/input'
+} from '@i-thinking/design/components/form'
+import { Input } from '@i-thinking/design/components/input'
 import { ShieldCheckIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { FieldPath, FieldValues, UseFormReturn } from 'react-hook-form'

@@ -26,9 +26,9 @@ import {
   type ComponentPropsWithoutRef,
   type FC
 } from 'react'
-import { Button } from '../primitive/button'
-import { Input } from '../primitive/input'
-import { Skeleton } from '../primitive/skeleton'
+import { Button } from '../components/button'
+import { Input } from '../components/input'
+import { Skeleton } from '../components/skeleton'
 
 export const ThreadList: FC = () => {
   const [search, setSearch] = useState('')

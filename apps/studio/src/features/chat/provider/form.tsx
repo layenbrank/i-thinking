@@ -1,4 +1,4 @@
-import { Button } from '@i-thinking/design/primitive/button'
+import { Button } from '@i-thinking/design/components/button'
 import {
   Form,
   FormControl,
@@ -7,16 +7,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage
-} from '@i-thinking/design/primitive/form'
-import { Input } from '@i-thinking/design/primitive/input'
+} from '@i-thinking/design/components/form'
+import { Input } from '@i-thinking/design/components/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '@i-thinking/design/primitive/select'
-import { Switch } from '@i-thinking/design/primitive/switch'
+} from '@i-thinking/design/components/select'
+import { Switch } from '@i-thinking/design/components/switch'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 

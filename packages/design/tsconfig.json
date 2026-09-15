@@ -19,8 +19,12 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
 
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client"],
+
+    "paths": {
+      "@i-thinking/design/*": ["./src/*"]
+    }
   },
-  "include": ["src", "scripts", "eslint.config.ts"],
+  "include": ["src", "eslint.config.ts"],
   "exclude": ["**/node_modules/**", "**/dist/**"]
 }

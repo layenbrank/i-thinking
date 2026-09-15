@@ -37,8 +37,8 @@ import {
   type FC,
   type PropsWithChildren
 } from 'react'
-import { Button } from '../primitive/button'
-import { Skeleton } from '../primitive/skeleton'
+import { Button } from '../components/button'
+import { Skeleton } from '../components/skeleton'
 import {
   ComposerAddAttachment,
   ComposerAttachments,

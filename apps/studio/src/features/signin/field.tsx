@@ -4,8 +4,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage
-} from '@i-thinking/design/primitive/form'
-import { Input } from '@i-thinking/design/primitive/input'
+} from '@i-thinking/design/components/form'
+import { Input } from '@i-thinking/design/components/input'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import type { Control, FieldPath, FieldValues } from 'react-hook-form'
@@ -31,7 +31,17 @@ interface AuthFieldProps<T extends FieldValues> {
  * 内部仍是标准 shadcn 的 FormField + FormItem + FormControl + FormMessage。
  */
 function AuthField<T extends FieldValues>(props: AuthFieldProps<T>) {
-  const { control, name, label, placeholder, icon, type = 'text', maxLength, inputMode, autoComplete } = props
+  const {
+    control,
+    name,
+    label,
+    placeholder,
+    icon,
+    type = 'text',
+    maxLength,
+    inputMode,
+    autoComplete
+  } = props
   const [isRevealed, updateRevealed] = useState(false)
   const isPassword = type === 'password'
 
