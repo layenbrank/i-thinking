@@ -88,6 +88,8 @@ catalog:
   'class-variance-authority': ^0.7.1
   'lucide-react': ^1.45.0
   'radix-ui': ^1.6.7
+  # 迁移期与 radix 并存；最后一个组件迁完后移除 radix-ui
+  '@base-ui/react': ^1.8.0
   'sonner': ^2.0.8
   'react-hook-form': ^7.88.0
   '@hookform/resolvers': ^5.9.1
