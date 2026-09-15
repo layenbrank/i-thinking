@@ -7,7 +7,6 @@ import Database from 'better-sqlite3'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import { z } from 'zod'
 
 import { auth } from '../../../drizzle/schema'
 import { adoptBaseline } from './database-migrate'
@@ -15,52 +14,17 @@ import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Plugin } from '../framework/module'
 import { CHANNELS } from '../../shared/ipc/channels'
+import { RemoveSchema, UpdateSchema, WriteSchema } from '../../shared/ipc/specs/user'
+import type { In, Out } from '../../shared/ipc/specs'
 import { findAppRoot } from '../framework/paths'
 
-interface WriteP {
-  name?: string
-  /** 合法邮箱，或空字符串表示清空 */
-  email?: string
-}
-
-interface UpdateP {
-  id: string
-  name?: string
-  email?: string
-}
-
-interface RemoveP {
-  id: string
-}
-
-interface ReadR {
-  id: string
-  createdAt: string
-  updatedAt: string
-  name: string | null
-  email: string | null
-}
-
-type WriteR = ReadR
-type UpdateR = ReadR
-type RemoveR = void
-
-const OptionalEmail = z.union([z.string().email(), z.literal('')]).optional()
-
-const WriteSchema = z.object({
-  name: z.string().optional(),
-  email: OptionalEmail
-})
-
-const UpdateSchema = z.object({
-  id: z.uuid(),
-  name: z.string().optional(),
-  email: OptionalEmail
-})
-
-const RemoveSchema = z.object({
-  id: z.uuid()
-})
+type ReadR = Out<typeof CHANNELS.USER.READ>[number]
+type WriteP = In<typeof CHANNELS.USER.WRITE>
+type WriteR = Out<typeof CHANNELS.USER.WRITE>
+type UpdateP = In<typeof CHANNELS.USER.UPDATE>
+type UpdateR = Out<typeof CHANNELS.USER.UPDATE>
+type RemoveP = In<typeof CHANNELS.USER.REMOVE>
+type RemoveR = Out<typeof CHANNELS.USER.REMOVE>
 
 type Sqlite = InstanceType<typeof Database>
 type Conn = ReturnType<typeof drizzle>
@@ -226,4 +190,6 @@ function buildPlugin(): Plugin {
 }
 
 export type { WriteP, UpdateP, RemoveP, ReadR, WriteR, UpdateR, RemoveR }
-export { WriteSchema, UpdateSchema, RemoveSchema, Repository, buildPlugin, findClient }
+export { Repository, buildPlugin, findClient }
+// 临时 re-export：让既有测试与消费方不动，specs 批次收尾时移除
+export { WriteSchema, UpdateSchema, RemoveSchema } from '../../shared/ipc/specs/user'

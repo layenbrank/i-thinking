@@ -7,6 +7,7 @@ import path from 'node:path'
 import { createInterface } from 'node:readline'
 
 import { CHANNELS } from '../../shared/ipc/channels'
+import type { Out } from '../../shared/ipc/specs'
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Logger } from '../framework/logger'
@@ -463,13 +464,7 @@ function sleep(ms: number): Promise<void> {
   })
 }
 
-interface FindStatusR {
-  isReady: boolean
-  version: string
-  actions: string[]
-  hasCorex: boolean
-  hasPandoc: boolean
-}
+type FindStatusR = Out<typeof CHANNELS.SIDECAR.READ>
 
 function findStatus(corex: CorexHost): FindStatusR {
   return {

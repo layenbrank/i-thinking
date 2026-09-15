@@ -1,16 +1,9 @@
-import { z } from 'zod'
+import type { CHANNELS } from '../../shared/ipc/channels'
+import type { In, Out } from '../../shared/ipc/specs'
 
-interface ReadR {
-  visible: boolean
-}
+type ReadR = Out<typeof CHANNELS.OVERLAY.READ>
+type UpdateP = In<typeof CHANNELS.OVERLAY.UPDATE>
 
-interface UpdateP {
-  visible: boolean
-}
-
-const UpdateSchema = z.object({
-  visible: z.boolean()
-})
-
-export { UpdateSchema }
 export type { ReadR, UpdateP }
+// 临时 re-export：window.ts 从本模块取 schema，specs 批次收尾时移除
+export { UpdateSchema } from '../../shared/ipc/specs/overlay'
