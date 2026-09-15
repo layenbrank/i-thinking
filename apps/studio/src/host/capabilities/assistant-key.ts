@@ -1,4 +1,5 @@
-import { z } from 'zod'
+import type { CHANNELS } from '../../shared/ipc/channels'
+import type { In } from '../../shared/ipc/specs'
 
 /**
  * Provider 密钥（apiKey）的主进程存储。
@@ -26,23 +27,8 @@ export interface SecretStore {
   toRemove(key: string): void
 }
 
-interface KeyWriteP {
-  providerID: string
-  apiKey: string
-}
-
-interface KeyRefP {
-  providerID: string
-}
-
-const KeyWriteSchema = z.object({
-  providerID: z.uuid(),
-  apiKey: z.string().min(1).max(4096)
-})
-
-const KeyRefSchema = z.object({
-  providerID: z.uuid()
-})
+type KeyWriteP = In<typeof CHANNELS.ASSISTANT.KEY.WRITE>
+type KeyRefP = In<typeof CHANNELS.ASSISTANT.KEY.HAS>
 
 /** 落库键名；密文以 base64 文本存 electron-store（该文件不进任何导出/同步） */
 function secretKey(providerID: string): string {
@@ -88,5 +74,7 @@ class KeyStore {
   }
 }
 
-export { KeyStore, KeyWriteSchema, KeyRefSchema, secretKey }
+export { KeyStore, secretKey }
 export type { KeyWriteP, KeyRefP }
+// 临时 re-export：让既有测试与消费方不动，specs 批次收尾时移除
+export { KeyWriteSchema, KeyRefSchema } from '../../shared/ipc/specs/assistant'
