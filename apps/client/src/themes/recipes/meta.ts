@@ -1,6 +1,6 @@
 import type { ThemeComponentKey } from '@/themes/antd'
 
-/** Token 定义来源：markdown/reference/antd/llms-full-cn.txt → ## 组件 Token */
+/** Token 定义来源：Ant Design 官方 llms-full 中文 dump 的「组件 Token」章节 */
 export type RecipeFieldType = 'color' | 'boolean' | 'number' | 'string'
 
 export interface RecipeField {

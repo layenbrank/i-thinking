@@ -2,10 +2,10 @@
 
 源码真相：
 
-- [`src/plugins/itc.ts`](../src/plugins/itc.ts) — `ITC` API 形状
-- [`src/plugins/channels.ts`](../src/plugins/channels.ts) — Channel 常量
-- [`src/plugins/<domain>.ts`](../src/plugins/) — 手写类型 + zod（不 `z.infer`）
-- [`src/preload.ts`](../src/preload.ts) — 暴露与错误转换
+- [`src/plugins/itc.ts`](../../../apps/studio/src/plugins/itc.ts) — `ITC` API 形状
+- [`src/plugins/channels.ts`](../../../apps/studio/src/plugins/channels.ts) — Channel 常量
+- [`src/plugins/<domain>.ts`](../../../apps/studio/src/plugins/) — 手写类型 + zod（不 `z.infer`）
+- [`src/preload.ts`](../../../apps/studio/src/preload.ts) — 暴露与错误转换
 
 获取实例：
 

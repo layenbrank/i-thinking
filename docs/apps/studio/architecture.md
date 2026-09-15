@@ -84,7 +84,7 @@ ESLint：renderer / preload / host（`main.ts` + `plugins/**`）边界规则。
 
 ## 4. 组合根与插件
 
-[`main.ts`](../src/main.ts) 注册顺序：
+[`main.ts`](../../../apps/studio/src/main.ts) 注册顺序：
 
 1. security → 2. store → 3. dialog → 4. database → 5. window → 6. devtools → 7. updater → 8. doc → 9. screenshot → 10. sidecar
 
@@ -102,12 +102,12 @@ interface Plugin {
 
 ## 5. IPC 契约
 
-- Channel：`namespace:action`（[`channels.ts`](../src/plugins/channels.ts)）
+- Channel：`namespace:action`（[`channels.ts`](../../../apps/studio/src/plugins/channels.ts)）
 - DTO + zod：各域 `plugins/<domain>.ts`（对象用 `interface`；zod 为 `ReadSchema` 大驼峰；禁止 `z.infer` 当业务类型）
-- 返回：`IpcResult<T>`（[`result.ts`](../src/plugins/result.ts)）
-- 前端形状：`ITC`（[`itc.ts`](../src/plugins/itc.ts)）
+- 返回：`IpcResult<T>`（[`result.ts`](../../../apps/studio/src/plugins/result.ts)）
+- 前端形状：`ITC`（[`itc.ts`](../../../apps/studio/src/plugins/itc.ts)）
 - 暴露名：仅 `window.itc`（全局标识符 `itc`）
-- 契约同步：[`contract.test.ts`](../src/plugins/contract.test.ts)
+- 契约同步：[`contract.test.ts`](../../../apps/studio/src/plugins/contract.test.ts)
 
 ## 6. 安全（摘要）
 

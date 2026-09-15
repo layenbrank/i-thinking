@@ -1,6 +1,6 @@
 # Studio plugins 说明
 
-组合根：[`src/main.ts`](../src/main.ts)。
+组合根：[`src/main.ts`](../../../apps/studio/src/main.ts)。
 
 注册顺序（当前）：
 

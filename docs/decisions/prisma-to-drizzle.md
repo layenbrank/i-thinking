@@ -120,7 +120,7 @@ function findClient() {
 | 改   | `apps/studio/tsconfig.json`：删除 `@generated/*` 路径别名                                                                                                                        |
 | 改   | `i-thinking.code-workspace`：删除 `prisma.schemaPath`（Prisma 扩展不再需要）                                                                                                     |
 | 改   | `.gitignore`：去掉 `apps/studio/generated/`、`apps/studio/prisma/dev.db*`，加 drizzle 的本地库文件                                                                               |
-| 改   | `apps/studio/docs/development.md` §8：改写为 Drizzle 工作流（schema 改动 → `drizzle-kit generate` → 启动时自动迁移）                                                             |
+| 改   | `docs/apps/studio/development.md` §8：改写为 Drizzle 工作流（schema 改动 → `drizzle-kit generate` → 启动时自动迁移）                                                             |
 | 改   | `scripts/sync-seed.mjs`：输出目标改为 drizzle 自定义迁移目录                                                                                                                     |
 | 保留 | `forge/hooks/natives.ts`、`electron-rebuild`（better-sqlite3 仍是原生模块）                                                                                                      |
 

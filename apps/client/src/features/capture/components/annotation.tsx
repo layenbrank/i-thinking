@@ -342,7 +342,7 @@ export const Annotation = forwardRef<AnnotationHandle, AnnotationProps>(
      * 用系统 DPR 对齐：stage 逻辑尺寸 = 截图像素 / dpr，canvas 缓冲与 PNG 1:1，
      * 避免按 window 尺寸 × 近似 scale 产生亚像素再采样发糊。
      * 底图必须画在 Konva 上（勿改 HTML backdrop + 透明 Stage，会丢框选）。
-     * 详见：apps/client/docs/capture-sharpness-and-selection.md
+     * 详见：docs/apps/client/capture-sharpness-and-selection.md
      */
     const dpr = Math.max(1, window.devicePixelRatio || 1)
     const stageWidth =
