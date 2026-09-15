@@ -182,7 +182,7 @@ settings: {
 ### 10.4 Plugin
 
 ```text
-src/plugins/settings.ts   → models + desktop + commands + buildPlugin()
+src/host/capabilities/settings.ts   → models + desktop + commands + buildPlugin()
 ```
 
 在同一文件内写 zod schema，并用 `registerHandler` 挂命令。
@@ -190,9 +190,9 @@ src/plugins/settings.ts   → models + desktop + commands + buildPlugin()
 ### 10.5 `main.ts` 注册
 
 ```ts
-import { buildPlugin as buildSettingsPlugin } from './plugins/settings'
+import { buildPlugin as buildSettingsPlugin } from './host/capabilities/settings'
 
-buildSettingsPlugin(), // 插入 plugins 数组合适位置
+buildSettingsPlugin(), // 插入 host 注册数组的合适位置
 ```
 
 ### 10.6 `preload.ts` 暴露
@@ -227,7 +227,7 @@ window.ipcRenderer.invoke('anything')
 window.itc // 不存在 database.query(sql)
 
 // ❌ Main 里用 import.meta.url 解析路径（Vite CJS 会变成 undefined）
-// 应使用 src/plugins/paths.ts
+// 应使用 src/host/framework/paths.ts
 ```
 
 ## 11. 网页模式降级

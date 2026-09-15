@@ -61,11 +61,11 @@ Forge 注入（窗口加载）：
 ## 4. 目录与别名
 
 ```text
-src/main.ts | src/preload.ts | src/renderer.tsx | src/plugins/ | sidecar/
+src/main.ts | src/preload.ts | src/renderer.tsx | src/host/capabilities/ | sidecar/
 ```
 
 - `@/*` → `src/*`（UI）
-- 宿主：相对路径 `./plugins/…`（无 `@main` / `@shared`）
+- 宿主：相对路径 `./host/…`（无 `@main` / `@shared`）
 
 进程边界由 ESLint `no-restricted-imports` 约束（见 `eslint.config.ts`）。
 
@@ -86,12 +86,12 @@ src/main.ts | src/preload.ts | src/renderer.tsx | src/plugins/ | sidecar/
 - 配置：`vitest.config.ts`
 - 约定：`src/**/*.test.ts`
 - 现有覆盖示例：
-  - `plugins/store.test.ts`
-  - `plugins/user.test.ts`
-  - `plugins/doc.test.ts`
-  - `plugins/contract.test.ts`
-  - `plugins/sidecar.paths.test.ts`
-  - `plugins/trusted-sender.test.ts`
+  - `host/capabilities/store.test.ts`
+  - `host/capabilities/user.test.ts`
+  - `host/capabilities/doc.test.ts`
+  - `host/contract/contract.test.ts`
+  - `host/capabilities/sidecar.paths.test.ts`
+  - `host/capabilities/trusted-sender.test.ts`
   - `preload.expose.test.ts`（断言不暴露 `ipcRenderer`）
 
 ```bash
@@ -107,11 +107,11 @@ pnpm rebuild   # electron-rebuild（better-sqlite3 是原生模块）
 pnpm test:db   # 真实引擎的数据库集成测试（迁移幂等 / 兼容另一版建好的库）
 ```
 
-- 集成测试 `src/plugins/database.integration.test.ts` 需要 **Electron ABI** 的 `better-sqlite3`，普通 Node 加载会 ABI 不匹配，所以它被排除在 `test:unit` 之外；`test:db` 用 `ELECTRON_RUN_AS_NODE=1` 把 Electron 当 Node 跑 vitest（`scripts/run-db-tests.mjs`）。
+- 集成测试 `src/host/capabilities/database.integration.test.ts` 需要 **Electron ABI** 的 `better-sqlite3`，普通 Node 加载会 ABI 不匹配，所以它被排除在 `test:unit` 之外；`test:db` 用 `ELECTRON_RUN_AS_NODE=1` 把 Electron 当 Node 跑 vitest（`scripts/run-db-tests.mjs`）。
 
 - schema 按领域分文件放在 `drizzle/schema/`（`index.ts` 汇总），迁移产物在 `drizzle/migrations/`（SQL + `meta/journal`）。
 - 访问层用 **Drizzle ORM**，引擎 **better-sqlite3**；新增表应通过 **Repository + 领域 IPC** 暴露，禁止 raw SQL channel。
-- **两版同实现**（Electron / Tauri，用户只装其一）：库路径与 schema 保持一致（`app_local_data_dir()/i-thinking.db`，identifier `com.i-thinking.corex`），**建表由各自完成** —— studio 启动时跑 Drizzle 官方 `migrate()`；若库里已有另一版建好的结构，则先"采纳基线"（`src/plugins/database-migrate.ts`）。
+- **两版同实现**（Electron / Tauri，用户只装其一）：库路径与 schema 保持一致（`app_local_data_dir()/i-thinking.db`，identifier `com.i-thinking.corex`），**建表由各自完成** —— studio 启动时跑 Drizzle 官方 `migrate()`；若库里已有另一版建好的结构，则先"采纳基线"（`src/host/capabilities/database-migrate.ts`）。
 - 种子数据：`node scripts/sync-seed.mjs` 从 Tauri 版迁移抽取，写入 `drizzle/migrations/<idx>_seed.sql`（先 `drizzle-kit generate --custom --name=seed` 建空壳；勿手改生成物）。
 - schema 一致性校验：`node scripts/check-schema-parity.mjs`（对比 v1 参照快照 `scripts/fixtures/legacy-v1.sql` 与 Drizzle 迁移建出的库，允许差异见脚本内 `ALLOWED`）。
 - 迁移背景与逐表映射见 [prisma-to-drizzle.md](./prisma-to-drizzle.md)。
