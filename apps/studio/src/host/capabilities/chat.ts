@@ -1,10 +1,20 @@
 import { randomUUID } from 'node:crypto'
 
 import { desc, eq } from 'drizzle-orm'
-import { z } from 'zod'
 
 import { chatMessage, chatProvider, chatSession } from '../../../drizzle/schema'
 import { CHANNELS } from '../../shared/ipc/channels'
+import {
+  MessageAppendSchema,
+  MessageReadSchema,
+  MessageUpdateSchema,
+  ProviderUpdateSchema,
+  ProviderWriteSchema,
+  RemoveSchema,
+  SessionUpdateSchema,
+  SessionWriteSchema
+} from '../../shared/ipc/specs/chat'
+import type { In, Out } from '../../shared/ipc/specs'
 import type { Context } from '../framework/context'
 import { findClient } from './database'
 import { registerHandler } from '../framework/handle'
@@ -17,128 +27,17 @@ import type { Plugin } from '../framework/module'
  * 主进程只做存取与顺序保证，不解析内容；因此这里没有"消息结构"类型的耦合。
  */
 
-interface ProviderReadR {
-  id: string
-  kind: string
-  name: string
-  baseUrl: string | null
-  models: string[] | null
-  model: string | null
-  enabled: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-interface ProviderWriteP {
-  kind: string
-  name: string
-  baseUrl?: string | null
-  models?: string[] | null
-  model?: string | null
-  enabled?: boolean
-}
-
-interface ProviderUpdateP extends Partial<ProviderWriteP> {
-  id: string
-}
-
-interface SessionReadR {
-  id: string
-  title: string
-  pinned: boolean
-  providerID: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-interface SessionWriteP {
-  title?: string
-  providerID?: string | null
-}
-
-interface SessionUpdateP extends Partial<SessionWriteP> {
-  id: string
-  pinned?: boolean
-}
-
-interface MessageReadR {
-  id: string
-  sessionID: string
-  parentID: string | null
-  format: string
-  content: string
-  createdAt: string
-  updatedAt: string
-}
-
-interface MessageReadP {
-  sessionID: string
-}
-
-interface MessageAppendP {
-  id?: string
-  sessionID: string
-  parentID?: string | null
-  format: string
-  content: string
-}
-
-interface MessageUpdateP {
-  id: string
-  format?: string
-  content?: string
-}
-
-interface RemoveP {
-  id: string
-}
-
-const NullableUrl = z.union([z.string().url(), z.literal('')]).nullish()
-
-const ProviderWriteSchema = z.object({
-  kind: z.string().min(1),
-  name: z.string().min(1),
-  baseUrl: NullableUrl,
-  models: z.array(z.string()).nullish(),
-  model: z.string().nullish(),
-  enabled: z.boolean().optional()
-})
-
-const ProviderUpdateSchema = ProviderWriteSchema.partial().extend({
-  id: z.uuid()
-})
-
-const SessionWriteSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  providerID: z.uuid().nullish()
-})
-
-const SessionUpdateSchema = SessionWriteSchema.extend({
-  id: z.uuid(),
-  pinned: z.boolean().optional()
-})
-
-const MessageReadSchema = z.object({
-  sessionID: z.uuid()
-})
-
-const MessageAppendSchema = z.object({
-  id: z.uuid().optional(),
-  sessionID: z.uuid(),
-  parentID: z.uuid().nullish(),
-  format: z.string().min(1),
-  content: z.string()
-})
-
-const MessageUpdateSchema = z.object({
-  id: z.uuid(),
-  format: z.string().min(1).optional(),
-  content: z.string().optional()
-})
-
-const RemoveSchema = z.object({
-  id: z.uuid()
-})
+type ProviderReadR = Out<typeof CHANNELS.CHAT.PROVIDER.READ>[number]
+type ProviderWriteP = In<typeof CHANNELS.CHAT.PROVIDER.WRITE>
+type ProviderUpdateP = In<typeof CHANNELS.CHAT.PROVIDER.UPDATE>
+type SessionReadR = Out<typeof CHANNELS.CHAT.SESSION.READ>[number]
+type SessionWriteP = In<typeof CHANNELS.CHAT.SESSION.WRITE>
+type SessionUpdateP = In<typeof CHANNELS.CHAT.SESSION.UPDATE>
+type MessageReadR = Out<typeof CHANNELS.CHAT.MESSAGE.READ>[number]
+type MessageReadP = In<typeof CHANNELS.CHAT.MESSAGE.READ>
+type MessageAppendP = In<typeof CHANNELS.CHAT.MESSAGE.APPEND>
+type MessageUpdateP = In<typeof CHANNELS.CHAT.MESSAGE.UPDATE>
+type RemoveP = In<typeof CHANNELS.CHAT.PROVIDER.REMOVE>
 
 /** `models` 在 API 侧是数组，落库是 JSON 文本 */
 function parseModels(value: string | null): string[] | null {
@@ -424,8 +323,9 @@ function buildPlugin(): Plugin {
   }
 }
 
+export { buildPlugin, Repository }
+// 临时 re-export：让既有测试与消费方不动，specs 批次收尾时移除
 export {
-  buildPlugin,
   ProviderWriteSchema,
   ProviderUpdateSchema,
   SessionWriteSchema,
@@ -433,9 +333,8 @@ export {
   MessageReadSchema,
   MessageAppendSchema,
   MessageUpdateSchema,
-  RemoveSchema,
-  Repository
-}
+  RemoveSchema
+} from '../../shared/ipc/specs/chat'
 export type {
   ProviderReadR,
   ProviderWriteP,
