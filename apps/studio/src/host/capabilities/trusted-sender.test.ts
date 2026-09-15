@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Context } from './context'
+import type { Context } from '../framework/context'
 import { isAllowedPageUrl } from './trusted-sender'
 
 function stubCtx(partial: Partial<Context> & Pick<Context, 'isDev'>): Context {

@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { findAppRoot, findBundleDir } from './paths'
+import { findAppRoot, findBundleDir } from '../framework/paths'
 
 describe('main paths', function () {
   const originalArgv1 = process.argv[1]

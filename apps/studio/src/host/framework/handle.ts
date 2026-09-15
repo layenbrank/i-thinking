@@ -2,8 +2,8 @@ import type { IpcMainInvokeEvent } from 'electron'
 import type { ZodType } from 'zod'
 
 import type { Context } from './context'
-import { ipcFail, ipcOk, type IpcResult } from './result'
-import { isTrustedSender } from './trusted-sender'
+import { ipcFail, ipcOk, type IpcResult } from '../contract/result'
+import { isTrustedSender } from '../capabilities/trusted-sender'
 
 export function registerHandler<TInput, TOutput>(
   ctx: Context,

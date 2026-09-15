@@ -6,11 +6,11 @@ import os from 'node:os'
 import path from 'node:path'
 import { createInterface } from 'node:readline'
 
-import { CHANNELS } from './channels'
-import type { Context } from './context'
-import { registerHandler } from './handle'
-import type { Logger } from './logger'
-import type { Plugin } from './module'
+import { CHANNELS } from '../contract/channels'
+import type { Context } from '../framework/context'
+import { registerHandler } from '../framework/handle'
+import type { Logger } from '../framework/logger'
+import type { Plugin } from '../framework/module'
 
 const READY_TIMEOUT_MS = 15_000
 const INVOKE_TIMEOUT_MS = 60_000

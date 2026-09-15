@@ -3,12 +3,12 @@ import { randomUUID } from 'node:crypto'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { chatMessage, chatProvider, chatSession } from '../../drizzle/schema'
-import { CHANNELS } from './channels'
-import type { Context } from './context'
+import { chatMessage, chatProvider, chatSession } from '../../../drizzle/schema'
+import { CHANNELS } from '../contract/channels'
+import type { Context } from '../framework/context'
 import { findClient } from './database'
-import { registerHandler } from './handle'
-import type { Plugin } from './module'
+import { registerHandler } from '../framework/handle'
+import type { Plugin } from '../framework/module'
 
 /**
  * Chat 域：会话 / 消息 / provider 的仓储 IPC。

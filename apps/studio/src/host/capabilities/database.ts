@@ -9,13 +9,13 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { z } from 'zod'
 
-import { auth } from '../../drizzle/schema'
+import { auth } from '../../../drizzle/schema'
 import { adoptBaseline } from './database-migrate'
-import type { Context } from './context'
-import { registerHandler } from './handle'
-import type { Plugin } from './module'
-import { CHANNELS } from './channels'
-import { findAppRoot } from './paths'
+import type { Context } from '../framework/context'
+import { registerHandler } from '../framework/handle'
+import type { Plugin } from '../framework/module'
+import { CHANNELS } from '../contract/channels'
+import { findAppRoot } from '../framework/paths'
 
 interface WriteP {
   name?: string

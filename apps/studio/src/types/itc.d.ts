@@ -3,7 +3,7 @@
  * 浏览器环境下等同于全局绑定（与 setTimeout / window.setTimeout 同理）。
  * 声明 `var itc` 后可直接写 `itc.xxx`，不必 `window.itc`。
  */
-import type { ITC } from '@/plugins/itc'
+import type { ITC } from '@/host/contract/itc'
 
 declare global {
   interface Window {

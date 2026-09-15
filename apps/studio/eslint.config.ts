@@ -80,15 +80,15 @@ export default defineConfig([
   {
     name: 'renderer-process-boundaries',
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/main.ts', 'src/plugins/**', 'src/preload.ts', 'src/preload.*.ts'],
+    ignores: ['src/main.ts', 'src/host/**', 'src/preload.ts', 'src/preload.*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              regex: '^@/plugins/(?!itc$).*',
-              message: 'Renderer may only import type surface from @/plugins/itc'
+              regex: '^@/host/(?!contract/itc$).*',
+              message: 'Renderer may only import type surface from @/host/contract/itc'
             },
             {
               group: ['electron'],
@@ -108,8 +108,8 @@ export default defineConfig([
         {
           patterns: [
             {
-              regex: '^\\./plugins/(?!channels$|result$|itc$).*',
-              message: 'Preload may only use plugins/channels, result, itc'
+              regex: '^\\./host/(?!contract/(channels|result|itc)$).*',
+              message: 'Preload may only use host/contract/{channels,result,itc}'
             },
             {
               group: ['@/', '@/*'],
@@ -122,7 +122,7 @@ export default defineConfig([
   },
   {
     name: 'host-process-boundaries',
-    files: ['src/main.ts', 'src/plugins/**/*.{ts,tsx}'],
+    files: ['src/main.ts', 'src/host/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
