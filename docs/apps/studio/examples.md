@@ -128,7 +128,7 @@ try {
 
 ## 8. 错误处理
 
-Preload 将 Main 的 `IpcResult` 失败转为抛错：
+Preload 将 Main 的 `IpcEnvelope` 失败转为抛错（`IpcClientError`，code 带在 message 前缀里）：
 
 ```ts
 try {
@@ -143,9 +143,10 @@ try {
 
 ## 9. 端到端：新增一条 IPC（示例 settings）
 
-以下为**文档示例**，按同样步骤可落到真实模块。
+以下为**文档示例**，按同样步骤可落到真实域。**契约侧缺任何一步都编译不过** ——
+这是这套设计的核心保障。
 
-### 10.1 `shared/ipc/channels.ts`
+### 9.1 `shared/ipc/channels.ts` — 加频道
 
 ```ts
 SETTINGS: {
@@ -154,68 +155,74 @@ SETTINGS: {
 },
 ```
 
-### 10.2 `shared/ipc/settings.ts`（类型 + zod）
+### 9.2 `shared/ipc/specs/settings.ts` — 加 schema
 
 ```ts
 import { z } from 'zod'
 
-export type WriteP = {
-  key: string
-  value: unknown
-}
+import { CHANNELS } from '../channels'
+import type { ChannelOfDomain } from '../channels'
+import type { ChannelSpec } from '../spec'
 
-export const WriteSchema = z.object({
-  key: z.string().min(1),
-  value: z.unknown()
-})
+const WriteSchema = z.object({ key: z.string().min(1), value: z.unknown() })
+
+export const settingsSpecs = {
+  [CHANNELS.SETTINGS.READ]: { in: z.object({ key: z.string() }), out: z.unknown() },
+  [CHANNELS.SETTINGS.WRITE]: { in: WriteSchema, out: z.void() }
+} as const satisfies Record<ChannelOfDomain<'settings'>, ChannelSpec>
 ```
 
-### 10.3 `shared/ipc/studio.ts` — 扩展 `Studio`
+并入 `specs/index.ts` 的 `INVOKE_SPECS` —— 穷尽性断言会强制这一步。
+
+### 9.3 `shared/ipc/api.ts` — 加 Api 叶子
 
 ```ts
 settings: {
-  read: (input: { key: string }) => Promise<unknown>
-  write: (input: WriteP) => Promise<void>
+  read: IpcFn<typeof CHANNELS.SETTINGS.READ>
+  write: IpcFn<typeof CHANNELS.SETTINGS.WRITE>
 }
 ```
 
-### 10.4 Plugin
-
-```text
-src/host/capabilities/settings.ts   → models + desktop + commands + buildPlugin()
-```
-
-在同一文件内写 zod schema，并用 `registerHandler` 挂命令。
-
-### 10.5 `main.ts` 注册
+### 9.4 `host/ipc/handlers/settings.ts` — 实现切片
 
 ```ts
-import { buildPlugin as buildSettingsPlugin } from './host/capabilities/settings'
-
-buildSettingsPlugin(), // 插入 host 注册数组的合适位置
-```
-
-### 10.6 `preload.ts` 暴露
-
-```ts
-settings: {
-  read(input) {
-    return invoke(CHANNELS.SETTINGS.READ, input)
-  },
-  write(input) {
-    return invoke(CHANNELS.SETTINGS.WRITE, input)
+export function buildSettingsHandlers(): DomainHandlers<'settings'> {
+  return {
+    [CHANNELS.SETTINGS.READ]: function (input) {
+      return service.toRead(input.key)
+    },
+    [CHANNELS.SETTINGS.WRITE]: function (input) {
+      service.toWrite(input.key, input.value)
+    }
   }
 }
 ```
 
-### 10.7 Renderer
+并入 `host/ipc/index.ts` 的 `buildHandlers`。
+
+> **频道注册不再由该域承担** —— `host/ipc` 遍历契约统一注册。
+> 只有带生命周期需求（起停 / 建窗 / 关库）的域才写 `host/capabilities/<domain>.ts`
+> 插件并在 `main.ts` 注册。
+
+### 9.5 `preload.ts` — 加一行
+
+```ts
+settings: {
+  read: toInvoke(CHANNELS.SETTINGS.READ),
+  write: toInvoke(CHANNELS.SETTINGS.WRITE)
+},
+```
+
+漏掉这一行，`satisfies Api` 会当场报错。
+
+### 9.6 Renderer
 
 ```ts
 await itc.settings.write({ key: 'locale', value: 'zh-CN' })
 const locale = await itc.settings.read({ key: 'locale' })
 ```
 
-同步更新 [api-reference.md](./api-reference.md)、[modules.md](./modules.md)，并保证 `contract.test.ts` 绿。
+同步更新 [api-reference.md](./api-reference.md)、[modules.md](./modules.md)。
 
 ## 10. 反例（禁止）
 

@@ -24,7 +24,8 @@
 | 文档                                          | 说明                                     |
 | --------------------------------------------- | ---------------------------------------- |
 | [README.md](./apps/studio/README.md)          | 入口与索引                               |
-| [architecture.md](./apps/studio/architecture.md) | 进程模型、插件组合根、IPC 契约        |
+| [architecture.md](./apps/studio/architecture.md) | 进程模型、分层、组合根                |
+| [ipc-contract.md](./apps/studio/ipc-contract.md) | IPC 契约规范：平台约束、三处 satisfies 闭环、错误模型 |
 | [modules.md](./apps/studio/modules.md)        | 模块划分                                 |
 | [api-reference.md](./apps/studio/api-reference.md) | IPC 接口参考                        |
 | [development.md](./apps/studio/development.md) | 开发与调试                               |

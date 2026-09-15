@@ -22,7 +22,7 @@
 
 ## 3. IPC 信任
 
-`registerHandler` 调用 `isTrustedSender`：
+`host/ipc/register.ts` 的 wrapper 对**每个**频道调用 `isTrustedSender`：
 
 1. `event.sender` 必须已通过 `ctx.trustWebContents` 登记（window 创建时登记，close 时取消）
 2. URL 必须在允许范围：
