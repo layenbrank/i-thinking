@@ -1,17 +1,29 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { CHANNELS } from './shared/ipc/channels'
 import type { ITC } from './host/contract/itc'
-import type { IpcResult } from './host/contract/result'
+import { IpcClientError, type IpcEnvelope, type IpcErrorPayload } from './shared/ipc/error'
 
+function isEnvelope(value: unknown): value is IpcEnvelope<unknown> {
+  return typeof value === 'object' && value !== null && 'ok' in value
+}
+
+/**
+ * 解信封并转成异常语义：调用点只需 try/catch，不必检查 `ok` 标志。
+ * 失败一律抛 `IpcClientError`（code 已编进 message —— 自定义属性过不了 contextBridge）。
+ */
 async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
-  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
-  if (!result || typeof result !== 'object' || !('ok' in result)) {
-    throw new Error(`Invalid IPC response for ${channel}`)
+  const response: unknown = await ipcRenderer.invoke(channel, payload)
+  if (!isEnvelope(response)) {
+    throw new IpcClientError('IPC_UNKNOWN', `Invalid IPC response for ${channel}`)
   }
-  if (!result.ok) {
-    throw new Error(`[${result.code}] ${result.message}`)
+  if (!response.ok) {
+    const failure: IpcErrorPayload = response.error
+    throw new IpcClientError(failure.code, failure.message, {
+      details: failure.details,
+      stack: failure.stack
+    })
   }
-  return result.data
+  return response.data as T
 }
 
 /**
