@@ -3,7 +3,7 @@
 ## 1. 构建工具
 
 - **Electron Forge** + `@electron-forge/plugin-vite`（**不**使用 electron-builder）
-- 配置入口：[forge.config.ts](../forge.config.ts)（组装 [forge/](../forge/) 模块）
+- 配置入口：[forge.config.ts](../../../apps/studio/forge.config.ts)（组装 [forge/](../../../apps/studio/forge/) 模块）
   - `forge/constants.ts` — appId / 名称 / 版本
   - `forge/env.ts` — 签名 / 可选 makers / 发布 / 更新相关环境变量
   - `forge/packager.ts` — asar、ignore、afterCopy、Windows/macOS 签名

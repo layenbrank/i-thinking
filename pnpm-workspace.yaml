@@ -136,7 +136,7 @@ catalog:
 
   # —— 本地 DB（studio 主进程）——
   # 引擎 better-sqlite3 ^12（勿上 13）；访问层/迁移 Drizzle
-  # （选型与替换记录见 apps/studio/docs/prisma-to-drizzle.md）
+  # （选型与替换记录见 docs/decisions/prisma-to-drizzle.md）
   'better-sqlite3': ^12.11.1
   'drizzle-orm': ^0.45.2
   'drizzle-kit': ^0.31.10
