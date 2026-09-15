@@ -13,8 +13,14 @@
 - 重复打补丁会让实现变复杂、难维护；能删旧路径就删，避免双轨并存。
 - 只改任务所需代码，不做无关重构或顺手「清理」。
 - 实现优先保证**可长期维护、易扩展**：结构清晰、职责单一，后续改动能落在局部。
-- 整段算法/行为需按场景整体替换时，用**策略模式**拆出可互换的策略，便于扩展与复用。
+- 整段算法/行为需按场景整体替换时，用**设计模式** **策略模式**拆出可互换的策略，便于扩展与复用。
 - 单纯按输入取值/取处理器的逻辑判断，用**对象映射**表驱动实现，让数据代替分支。
+
+## 架构
+
+- IPC 是**契约单一事实源**：新增或修改一个频道要同时动 `shared/ipc/{channels,specs,api}`、
+  `host/ipc/handlers`、`preload.ts` —— **缺一处就编译不过**（这套断言是刻意设计的，不要绕过）。
+  完整规范见 [ipc-contract.md](../apps/studio/ipc-contract.md)。
 
 ## 命名
 
@@ -22,7 +28,8 @@
 - 语义无法一眼看清时，用注释补充说明。
 - 命名时语义不要混淆。
 - 禁止 `get` 前缀 → 用 `find` / `fetch`；解析用 `parse` / `parsed`。
-- 常量、枚举键、接口名：全大写下划线（如 `POST_SIGNIN`、`API_BASE_URL`）。
+- 常量、枚举键、API 名：全大写下划线（如 `POST_SIGNIN`、`API_BASE_URL`）。
+- 接口与类型：PascalCase（如 `ChannelSpec`、`IpcFailure`），不用下划线。
 - 布尔用 `is` / `has` / `can`；非 `useState` 不用 `set`；集合用复数，避免 `list` 后缀。
 - 根据命名空间、模块命名空间，可做极致精简命名
 
@@ -33,12 +40,29 @@
 - 结构保持简洁，避免无用嵌套。
 - 每一层容器都要有明确作用。
 
-### 颜色与 Token
+### UI 组件来源（按应用区分）
 
-- 颜色使用主色。
-- 非 antd 组件若要消费 antd 主题变量（`--ith-*`），须挂上 `CSSVAR.KEY`（见 `apps/client/src/themes/runtime/build.ts`），或用 `useCssVarClassName`；样式里写 `var(--ith-…)`，不要写 `var(--ant-*)`。
-- 注入规则为 `.ith { --ith-*: … }`，未挂 `ith` 作用域则变量不生效。
-- 设计稿的样式仅参考，不必原样照抄，实现时注意样式布局工整 对齐，el 组件size统一 small，尽量不使用css更改 el 组件大小，只允许更改大小之外的样式，颜色使用 el ui 主题色变量
+各应用 UI 栈不同，**不要跨应用套用约定**：
+
+| 应用             | UI 栈                                              |
+| ---------------- | -------------------------------------------------- |
+| `apps/studio`    | shadcn/ui + Tailwind v4（`@i-thinking/design`）    |
+| `apps/extension` | 同上                                               |
+| `apps/client`    | **antd**（尚未迁移）                               |
+| `apps/devtools`  | 纯 Vue 3，无组件库                                 |
+
+### shadcn（studio / extension）
+
+- 组件一律从 `@i-thinking/design/{components,assistant}/*` 引入；**不要手写 `<button>` / `<dialog>`，也不要在 app 内造一次性组件**
+- 设计 token 唯一源：`packages/design/src/styles/globals.css`；**app 侧不得另定义同名变量**
+- 用语义 token 的工具类（`bg-primary`、`text-muted-foreground`）；不写硬编码色值，不用任意值（`bg-[#4080ff]`）
+- 新增组件走 registry：`pnpm --filter @i-thinking/design registry:add <items>`
+
+### antd（仅 `apps/client`）
+
+- 颜色使用主色；消费主题变量（`--ith-*`）须挂 `CSSVAR.KEY`（见 `apps/client/src/themes/runtime/build.ts`），或用 `useCssVarClassName`；样式里写 `var(--ith-…)`，**不要写 `var(--ant-*)`**
+- 注入规则为 `.ith { --ith-*: … }`，未挂 `ith` 作用域则变量不生效
+- 设计稿的样式仅参考，不必原样照抄；实现时注意布局工整、对齐
 
 ### 装饰
 
@@ -50,63 +74,8 @@
 1. 先查看当前 git 改动（`status` / `diff` / 近期 `log`），再生成提交信息。
 2. 需要时按主题分批提交；一条提交只表达一个意图。
 3. 提交信息简洁、说明「为什么」；风格对齐仓库近期 commit（如 `fix(……): …`、`chore(): …`）。
-4. **禁止**添加 `Co-authored-by: Cursor`、`Made-with: Cursor` 或任何 Cursor 归属 trailer。
-5. client 版本升级使用 `bump:client`，以触发 client tag release 发布。
-6. 仓库版本升级按既有发版流程，以触发 tag release 发布。
-7. 未经明确要求：不 `push`、不改 git config、不跳过 hooks。
-
-### 去除 Cursor 归属 trailer
-
-Cursor Agent 通过普通 `git commit` / `git commit --amend` 时可能自动注入 `Co-authored-by: Cursor <cursoragent@cursor.com>`；`commit-tree` 等 plumbing 若被包装拦截，也会失败。提交后若发现 trailer，在**尚未 push** 时用系统 `git.exe` + Python 重写最近 N 个提交（改 `HEAD~N`）：
-
-```python
-import subprocess, sys, os
-
-GIT = r"D:\Applications\Git\cmd\git.exe"  # 按本机路径调整
-
-def run(*args):
-    return subprocess.check_output([GIT] + list(args), text=True, encoding="utf-8").strip()
-
-N = 4  # 要剥离的最近提交数
-base = run("rev-parse", f"HEAD~{N}")
-commits = run("rev-list", "--reverse", f"{base}..HEAD").splitlines()
-parent = base
-for c in commits:
-    tree = run("rev-parse", f"{c}^{{tree}}")
-    msg = run("log", "-1", "--format=%B", c)
-    lines = [
-        ln
-        for ln in msg.splitlines()
-        if not ln.startswith("Co-authored-by: Cursor")
-        and not ln.startswith("Made-with: Cursor")
-    ]
-    while lines and lines[-1].strip() == "":
-        lines.pop()
-    new_msg = "\n".join(lines) + "\n"
-    env = os.environ.copy()
-    env.update(
-        {
-            "GIT_AUTHOR_NAME": run("log", "-1", "--format=%an", c),
-            "GIT_AUTHOR_EMAIL": run("log", "-1", "--format=%ae", c),
-            "GIT_AUTHOR_DATE": run("log", "-1", "--format=%ad", "--date=raw", c),
-            "GIT_COMMITTER_NAME": run("log", "-1", "--format=%cn", c),
-            "GIT_COMMITTER_EMAIL": run("log", "-1", "--format=%ce", c),
-            "GIT_COMMITTER_DATE": run("log", "-1", "--format=%cd", "--date=raw", c),
-        }
-    )
-    p = subprocess.run(
-        [GIT, "commit-tree", tree, "-p", parent],
-        input=new_msg,
-        text=True,
-        encoding="utf-8",
-        capture_output=True,
-        env=env,
-    )
-    if p.returncode != 0:
-        print(p.stderr, file=sys.stderr)
-        sys.exit(1)
-    parent = p.stdout.strip()
-subprocess.check_call([GIT, "update-ref", "HEAD", parent])
-```
-
-验证：`git log -N --format=full` 中不应再出现 Cursor trailer。已 push 则勿强推，除非用户明确要求。也可在 Cursor 设置中关闭 commit 归属，从源头减少注入。
+4. client 版本升级使用 `bump:client`，以触发 client tag release 发布。
+5. 仓库版本升级按既有发版流程，以触发 tag release 发布。
+6. 未经明确要求：不 `push`、不改 git config、不跳过 hooks。
+7. **按文件逐个 `git add`**，不要 `git add <目录>` 或 `git add .` —— 工作树里常有未提交的 WIP，
+   宽泛 add 会把它一起夹带进提交。commit 前用 `git diff --cached --name-only` 复核一遍。
