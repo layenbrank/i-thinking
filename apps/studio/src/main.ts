@@ -19,6 +19,7 @@ import { buildPlugin as buildSidecarPlugin, CorexHost } from './host/capabilitie
 import { buildPlugin as buildStorePlugin } from './host/capabilities/store'
 import { buildPlugin as buildUpdaterPlugin } from './host/capabilities/updater'
 import { buildPlugin as buildWindowPlugin } from './host/capabilities/window'
+import { buildOverlayWindowPort } from './host/capabilities/overlay-window'
 import { acquireSingleInstanceLock, attachSecondInstanceFocus } from './host/lifecycle/single-instance'
 
 export async function bootstrap(): Promise<void> {
@@ -59,6 +60,9 @@ export async function bootstrap(): Promise<void> {
 
   findWindow = ctx.toReadWindow
 
+  // overlay 窗口的读写端口：window 插件负责 attach 窗口，overlay 频道从中读写
+  const overlayPort = buildOverlayWindowPort()
+
   // 先建窗与本地 IPC；sidecar 后台启动，不阻塞后续模块
   const plugins: Plugin[] = [
     buildSecurityPlugin(),
@@ -67,7 +71,7 @@ export async function bootstrap(): Promise<void> {
     buildDatabasePlugin(),
     buildChatPlugin(),
     buildAssistantPlugin(),
-    buildWindowPlugin(),
+    buildWindowPlugin(overlayPort),
     buildDevtoolsPlugin(),
     buildUpdaterPlugin(),
     buildDocPlugin(),

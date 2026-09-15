@@ -5,6 +5,7 @@ import type { Context } from '../framework/context'
 import type { Plugin } from '../framework/module'
 import { registerHandler } from '../framework/handle'
 import { UpdateSchema } from './overlay'
+import type { OverlayWindowPort } from './overlay-window'
 import { attachGuards } from './security'
 import { findBundleDir } from '../framework/paths'
 import { CHANNELS } from '../../shared/ipc/channels'
@@ -101,13 +102,12 @@ function buildWebPreferences(ctx: Context, preloadPath: string) {
   } as const
 }
 
-function buildPlugin(): Plugin {
+function buildPlugin(overlay: OverlayWindowPort): Plugin {
   return {
     name: 'window',
     register(ctx: Context) {
       const log = ctx.logger.child('window')
       const paths = findBundlePaths()
-      let overlayWindow: BrowserWindow | null = null
 
       if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         try {
@@ -183,45 +183,24 @@ function buildPlugin(): Plugin {
           webPreferences: buildWebPreferences(ctx, paths.preloadPath)
         })
 
-        overlayWindow = win
+        overlay.attach(win)
         attachLifecycle(ctx, win, log, { isAutoShow: false })
         toRedirect(win, paths.route, '/overlay')
 
         win.on('closed', function () {
-          if (overlayWindow === win) overlayWindow = null
+          overlay.attach(null)
         })
 
         log.info('overlay window created')
         return win
       }
 
-      function findOverlay() {
-        const win = overlayWindow
-        return {
-          visible: win !== null && !win.isDestroyed() && win.isVisible()
-        }
-      }
-
-      function updateOverlay(visible: boolean) {
-        const win = overlayWindow
-        if (!win || win.isDestroyed()) throw new Error('overlay window unavailable')
-
-        if (visible) {
-          win.setBounds(findWorkArea())
-          win.setFocusable(true)
-          win.setSkipTaskbar(true)
-          win.show()
-          return
-        }
-
-        win.hide()
-        win.setFocusable(false)
-      }
-
-      registerHandler(ctx, CHANNELS.OVERLAY.READ, null, findOverlay)
+      registerHandler(ctx, CHANNELS.OVERLAY.READ, null, function () {
+        return overlay.toRead()
+      })
 
       registerHandler(ctx, CHANNELS.OVERLAY.UPDATE, UpdateSchema, function (input) {
-        updateOverlay(input.visible)
+        overlay.toUpdate(input.visible)
       })
 
       ctx.app.on('window-all-closed', function () {
