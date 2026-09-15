@@ -76,6 +76,11 @@ function buildCipher(): SecretCipher {
   }
 }
 
+/** KeyStore 的唯一构造点：旧插件路径与新的 handler 切片共用，不各建一份 */
+export function buildKeyStore(): KeyStore {
+  return new KeyStore(toSecretStore(new Store({ name: 'assistant-secrets' })), buildCipher())
+}
+
 /**
  * 端口写出封装：`MessagePortMain` 没有 `isClosed()`，自行跟一个标志位，
  * 避免在端口已关闭（窗口销毁等）时 postMessage 报错。
@@ -201,7 +206,7 @@ function buildPlugin(): Plugin {
     name: 'assistant',
     register(ctx: Context) {
       const log = ctx.logger.child('assistant')
-      const keys = new KeyStore(toSecretStore(new Store({ name: 'assistant-secrets' })), buildCipher())
+      const keys = buildKeyStore()
 
       registerHandler(ctx, CHANNELS.ASSISTANT.CONNECT, null, function (_input, event) {
         const frame = event.senderFrame
