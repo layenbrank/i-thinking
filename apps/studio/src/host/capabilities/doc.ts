@@ -1,38 +1,20 @@
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { z } from 'zod'
 
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Plugin } from '../framework/module'
 import { CHANNELS } from '../../shared/ipc/channels'
+import { ConvertSchema } from '../../shared/ipc/specs/doc'
+import type { In, Out } from '../../shared/ipc/specs'
 import { findPandocPath, hasBinary, PANDOC_BINARY } from './sidecar'
 
 /** Pandoc convert process timeout (main-only). */
 const CONVERT_TIMEOUT_MS = 120_000
 
-/** Allowed pandoc output formats for convert IPC. */
-const OUTPUT_FORMATS = ['markdown', 'html', 'docx', 'pdf', 'plain'] as const
-
-type OutputFormat = (typeof OUTPUT_FORMATS)[number]
-
-interface ConvertP {
-  inputPath: string
-  outputPath: string
-  format: OutputFormat
-}
-
-interface ConvertR {
-  outputPath: string
-  format: OutputFormat
-}
-
-const ConvertSchema = z.object({
-  inputPath: z.string().min(1).max(4096),
-  outputPath: z.string().min(1).max(4096),
-  format: z.enum(OUTPUT_FORMATS)
-})
+type ConvertP = In<typeof CHANNELS.DOC.CONVERT>
+type ConvertR = Out<typeof CHANNELS.DOC.CONVERT>
 
 class Service {
   convert(input: ConvertP): Promise<ConvertR> {
@@ -99,5 +81,8 @@ function buildPlugin(): Plugin {
   }
 }
 
-export type { ConvertP, ConvertR, OutputFormat }
-export { ConvertSchema, OUTPUT_FORMATS, Service, buildPlugin }
+export type { ConvertP, ConvertR }
+export { Service, buildPlugin }
+// 临时 re-export：让既有测试与消费方不动，specs 批次收尾时移除
+export { ConvertSchema, OUTPUT_FORMATS } from '../../shared/ipc/specs/doc'
+export type { OutputFormat } from '../../shared/ipc/specs/doc'
