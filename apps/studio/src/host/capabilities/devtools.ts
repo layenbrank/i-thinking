@@ -1,19 +1,12 @@
-import { z } from 'zod'
-
-import { CHANNELS } from '../../shared/ipc/channels'
 import type { Context } from '../framework/context'
 import { registerHandler } from '../framework/handle'
 import type { Plugin } from '../framework/module'
+import { CHANNELS } from '../../shared/ipc/channels'
+import { UpdateSchema } from '../../shared/ipc/specs/devtools'
+import type { In, Out } from '../../shared/ipc/specs'
 
-interface UpdateP {
-  visible: boolean
-}
-
-type UpdateR = void
-
-const UpdateSchema = z.object({
-  visible: z.boolean()
-})
+type UpdateP = In<typeof CHANNELS.DEVTOOLS.UPDATE>
+type UpdateR = Out<typeof CHANNELS.DEVTOOLS.UPDATE>
 
 function buildPlugin(): Plugin {
   return {
@@ -34,5 +27,7 @@ function buildPlugin(): Plugin {
   }
 }
 
-export { buildPlugin, UpdateSchema }
 export type { UpdateP, UpdateR }
+export { buildPlugin }
+// 临时 re-export：specs 批次收尾时移除
+export { UpdateSchema } from '../../shared/ipc/specs/devtools'
