@@ -1,7 +1,7 @@
 import { CHANNELS } from '../../../shared/ipc/channels'
 import { Service } from '../../capabilities/updater'
-import type { Context } from '../../framework/context'
-import type { DomainHandlers } from '../types'
+import { type Context } from '../../framework/context'
+import { type DomainHandlers } from '../types'
 
 export function buildUpdaterHandlers(ctx: Context): DomainHandlers<'updater'> {
   const service = new Service(ctx)

@@ -1,12 +1,8 @@
 import { BrowserWindow, dialog } from 'electron'
 
-import type { Context } from '../framework/context'
-import { registerHandler } from '../framework/handle'
-import type { Plugin } from '../framework/module'
-import { CHANNELS } from '../../shared/ipc/channels'
-import { OpenSchema, SaveSchema } from '../../shared/ipc/specs/dialog'
-import type { Filter } from '../../shared/ipc/specs/dialog'
-import type { In, Out } from '../../shared/ipc/specs'
+import type { CHANNELS } from '../../shared/ipc/channels'
+import { type Filter } from '../../shared/ipc/specs/dialog'
+import { type In, type Out } from '../../shared/ipc/specs'
 
 type OpenP = In<typeof CHANNELS.DIALOG.OPEN>
 type OpenR = Out<typeof CHANNELS.DIALOG.OPEN>
@@ -49,25 +45,7 @@ class Service {
   }
 }
 
-function buildPlugin(): Plugin {
-  return {
-    name: 'dialog',
-    register(ctx: Context) {
-      const service = new Service(function () {
-        return ctx.toReadWindow()
-      })
-      registerHandler(ctx, CHANNELS.DIALOG.OPEN, OpenSchema, function (input) {
-        return service.open(input)
-      })
-      registerHandler(ctx, CHANNELS.DIALOG.SAVE, SaveSchema, function (input) {
-        return service.save(input)
-      })
-      ctx.logger.child('dialog').info('registered')
-    }
-  }
-}
-
 export type { Filter, OpenP, OpenR, SaveP, SaveR }
-export { Service, buildPlugin }
+export { Service }
 // 临时 re-export：specs 批次收尾时移除
 export { OpenSchema, SaveSchema } from '../../shared/ipc/specs/dialog'

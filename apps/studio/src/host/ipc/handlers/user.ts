@@ -1,6 +1,6 @@
 import { CHANNELS } from '../../../shared/ipc/channels'
 import { Repository } from '../../capabilities/database'
-import type { DomainHandlers } from '../types'
+import { type DomainHandlers } from '../types'
 
 export function buildUserHandlers(): DomainHandlers<'user'> {
   const users = new Repository()

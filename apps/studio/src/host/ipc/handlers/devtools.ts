@@ -1,7 +1,7 @@
 import { CHANNELS } from '../../../shared/ipc/channels'
 import { IpcError } from '../../../shared/ipc/error'
-import type { Context } from '../../framework/context'
-import type { DomainHandlers } from '../types'
+import { type Context } from '../../framework/context'
+import { type DomainHandlers } from '../types'
 
 export function buildDevtoolsHandlers(ctx: Context): DomainHandlers<'devtools'> {
   return {

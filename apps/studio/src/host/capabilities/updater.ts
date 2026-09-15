@@ -1,11 +1,10 @@
-import type { UpdateInfo } from 'electron-updater'
+import { type UpdateInfo } from 'electron-updater'
 import { autoUpdater } from 'electron-updater'
 
 import { CHANNELS } from '../../shared/ipc/channels'
-import type { Out, PushOut } from '../../shared/ipc/specs'
-import type { Context } from '../framework/context'
-import { registerHandler } from '../framework/handle'
-import type { Plugin } from '../framework/module'
+import { IpcError } from '../../shared/ipc/error'
+import { type Out, type PushOut } from '../../shared/ipc/specs'
+import { type Context } from '../framework/context'
 
 type FindStatusR = Out<typeof CHANNELS.UPDATER.READ>
 type CheckR = Out<typeof CHANNELS.UPDATER.CHECK>
@@ -138,7 +137,7 @@ class Service {
 
   async download(): Promise<void> {
     if (!this.enabled) {
-      throw new Error('Updater is not configured')
+      throw new IpcError('UPDATER_NOT_CONFIGURED', 'Updater is not configured')
     }
     this.downloading = true
     this.downloaded = false
@@ -149,10 +148,10 @@ class Service {
 
   install(): void {
     if (!this.enabled) {
-      throw new Error('Updater is not configured')
+      throw new IpcError('UPDATER_NOT_CONFIGURED', 'Updater is not configured')
     }
     if (!this.downloaded) {
-      throw new Error('No update downloaded')
+      throw new IpcError('UPDATER_NO_UPDATE_DOWNLOADED', 'No update downloaded')
     }
     autoUpdater.quitAndInstall(false, true)
   }
@@ -206,28 +205,5 @@ function parseReleaseNotes(info: UpdateInfo): string | null {
   return null
 }
 
-function buildPlugin(): Plugin {
-  return {
-    name: 'updater',
-    register(ctx: Context) {
-      const service = new Service(ctx)
-      service.configure()
-      registerHandler(ctx, CHANNELS.UPDATER.READ, null, function () {
-        return service.toRead()
-      })
-      registerHandler(ctx, CHANNELS.UPDATER.CHECK, null, function () {
-        return service.check()
-      })
-      registerHandler(ctx, CHANNELS.UPDATER.DOWNLOAD, null, async function () {
-        await service.download()
-      })
-      registerHandler(ctx, CHANNELS.UPDATER.INSTALL, null, function () {
-        service.install()
-      })
-      ctx.logger.child('updater').info('registered', service.toRead())
-    }
-  }
-}
-
-export { buildPlugin, Service }
+export { Service }
 export type { CheckR, FindStatusR, UpdaterEvent }

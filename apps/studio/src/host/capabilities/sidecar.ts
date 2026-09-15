@@ -6,10 +6,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { createInterface } from 'node:readline'
 
-import { CHANNELS } from '../../shared/ipc/channels'
+import type { CHANNELS } from '../../shared/ipc/channels'
 import type { Out } from '../../shared/ipc/specs'
 import type { Context } from '../framework/context'
-import { registerHandler } from '../framework/handle'
 import type { Logger } from '../framework/logger'
 import type { Plugin } from '../framework/module'
 
@@ -483,9 +482,6 @@ function buildPlugin(): Plugin {
     name: 'sidecar',
     register(ctx: Context) {
       corex = ctx.corex
-      registerHandler(ctx, CHANNELS.SIDECAR.READ, null, function () {
-        return findStatus(ctx.corex)
-      })
 
       const log = ctx.logger.child('sidecar')
       void ctx.corex

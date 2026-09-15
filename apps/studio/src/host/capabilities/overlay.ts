@@ -1,5 +1,5 @@
 import type { CHANNELS } from '../../shared/ipc/channels'
-import type { In, Out } from '../../shared/ipc/specs'
+import { type In, type Out } from '../../shared/ipc/specs'
 
 type ReadR = Out<typeof CHANNELS.OVERLAY.READ>
 type UpdateP = In<typeof CHANNELS.OVERLAY.UPDATE>
