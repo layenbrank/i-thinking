@@ -3,16 +3,16 @@
  * 浏览器环境下等同于全局绑定（与 setTimeout / window.setTimeout 同理）。
  * 声明 `var itc` 后可直接写 `itc.xxx`，不必 `window.itc`。
  */
-import type { ITC } from '@/host/contract/itc'
+import type { Api } from '@/shared/ipc/api'
 
 declare global {
   interface Window {
     /** Preload: contextBridge.exposeInMainWorld('itc', …) */
-    itc: ITC
+    itc: Api
   }
 
   /** 全局标识符，对应 window.itc（ambient 里 `var` 是唯一写法，`no-var` 不适用） */
-  var itc: ITC
+  var itc: Api
 }
 
 export {}

@@ -43,7 +43,7 @@ export type Out<K extends InvokeChannel> = z.infer<(typeof INVOKE_SPECS)[K]['out
 export type PushOut<K extends PushChannel> = z.infer<(typeof PUSH_SPECS)[K]['out']>
 
 /**
- * 渲染侧方法参数元组。三种形态与手写的 `ITC` 保持一致：
+ * 渲染侧方法参数元组。三种形态由入参 schema 的形态决定：
  * 无入参 → `[]`；可空入参 → `[input?]`；必需入参 → `[input]`
  */
 export type ArgsOf<K extends InvokeChannel> = [In<K>] extends [void]
