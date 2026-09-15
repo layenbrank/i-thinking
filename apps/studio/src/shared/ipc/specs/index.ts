@@ -1,5 +1,6 @@
 import type { z } from 'zod'
 
+import { chatSpecs } from './chat'
 import { devtoolsSpecs } from './devtools'
 import { docSpecs } from './doc'
 import { overlaySpecs } from './overlay'
@@ -21,7 +22,8 @@ export const INVOKE_SPECS = {
   ...overlaySpecs,
   ...userSpecs,
   ...sidecarSpecs,
-  ...screenshotSpecs
+  ...screenshotSpecs,
+  ...chatSpecs
 } as const
 
 export type SpecChannel = keyof typeof INVOKE_SPECS
