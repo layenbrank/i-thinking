@@ -1,14 +1,11 @@
 import { BrowserWindow, screen } from 'electron'
 import path from 'node:path'
 
-import type { Context } from '../framework/context'
-import type { Plugin } from '../framework/module'
-import { registerHandler } from '../framework/handle'
-import { UpdateSchema } from './overlay'
-import type { OverlayWindowPort } from './overlay-window'
+import { type Context } from '../framework/context'
+import { type Plugin } from '../framework/module'
+import { type OverlayWindowPort } from './overlay-window'
 import { attachGuards } from './security'
 import { findBundleDir } from '../framework/paths'
-import { CHANNELS } from '../../shared/ipc/channels'
 
 interface BundlePaths {
   route: string
@@ -194,14 +191,6 @@ function buildPlugin(overlay: OverlayWindowPort): Plugin {
         log.info('overlay window created')
         return win
       }
-
-      registerHandler(ctx, CHANNELS.OVERLAY.READ, null, function () {
-        return overlay.toRead()
-      })
-
-      registerHandler(ctx, CHANNELS.OVERLAY.UPDATE, UpdateSchema, function (input) {
-        overlay.toUpdate(input.visible)
-      })
 
       ctx.app.on('window-all-closed', function () {
         if (process.platform !== 'darwin') ctx.app.quit()

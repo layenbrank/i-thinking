@@ -1,6 +1,6 @@
-import type { IpcMainInvokeEvent } from 'electron'
+import { type IpcMainInvokeEvent } from 'electron'
 
-import type { Context } from '../framework/context'
+import { type Context } from '../framework/context'
 
 /**
  * 仅信任：已登记的本应用 WebContents，且 URL 落在允许 origin / 生产 file:。

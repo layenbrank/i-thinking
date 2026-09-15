@@ -3,22 +3,10 @@ import { randomUUID } from 'node:crypto'
 import { desc, eq } from 'drizzle-orm'
 
 import { chatMessage, chatProvider, chatSession } from '../../../drizzle/schema'
-import { CHANNELS } from '../../shared/ipc/channels'
-import {
-  MessageAppendSchema,
-  MessageReadSchema,
-  MessageUpdateSchema,
-  ProviderUpdateSchema,
-  ProviderWriteSchema,
-  RemoveSchema,
-  SessionUpdateSchema,
-  SessionWriteSchema
-} from '../../shared/ipc/specs/chat'
-import type { In, Out } from '../../shared/ipc/specs'
-import type { Context } from '../framework/context'
+import type { CHANNELS } from '../../shared/ipc/channels'
+import { IpcError } from '../../shared/ipc/error'
+import { type In, type Out } from '../../shared/ipc/specs'
 import { findClient } from './database'
-import { registerHandler } from '../framework/handle'
-import type { Plugin } from '../framework/module'
 
 /**
  * Chat 域：会话 / 消息 / provider 的仓储 IPC。
@@ -160,7 +148,7 @@ class Repository {
       })
       .where(eq(chatProvider.id, input.id))
       .returning()
-    if (rows.length === 0) throw new Error(`[CHAT] provider 不存在: ${input.id}`)
+    if (rows.length === 0) throw new IpcError('CHAT_PROVIDER_NOT_FOUND', `provider 不存在: ${input.id}`)
     return toProvider(rows[0])
   }
 
@@ -170,7 +158,7 @@ class Repository {
       .delete(chatProvider)
       .where(eq(chatProvider.id, input.id))
       .returning()
-    if (rows.length === 0) throw new Error(`[CHAT] provider 不存在: ${input.id}`)
+    if (rows.length === 0) throw new IpcError('CHAT_PROVIDER_NOT_FOUND', `provider 不存在: ${input.id}`)
   }
 
   /** 置顶优先，其次最近更新 */
@@ -208,7 +196,7 @@ class Repository {
       })
       .where(eq(chatSession.id, input.id))
       .returning()
-    if (rows.length === 0) throw new Error(`[CHAT] session 不存在: ${input.id}`)
+    if (rows.length === 0) throw new IpcError('CHAT_SESSION_NOT_FOUND', `session 不存在: ${input.id}`)
     return toSession(rows[0])
   }
 
@@ -217,7 +205,7 @@ class Repository {
       .delete(chatSession)
       .where(eq(chatSession.id, input.id))
       .returning()
-    if (rows.length === 0) throw new Error(`[CHAT] session 不存在: ${input.id}`)
+    if (rows.length === 0) throw new IpcError('CHAT_SESSION_NOT_FOUND', `session 不存在: ${input.id}`)
   }
 
   /** 按时间升序返回整条会话（分支关系由 parentID 表达） */
@@ -263,7 +251,7 @@ class Repository {
       })
       .where(eq(chatMessage.id, input.id))
       .returning()
-    if (rows.length === 0) throw new Error(`[CHAT] message 不存在: ${input.id}`)
+    if (rows.length === 0) throw new IpcError('CHAT_MESSAGE_NOT_FOUND', `message 不存在: ${input.id}`)
     return toMessage(rows[0])
   }
 
@@ -273,57 +261,11 @@ class Repository {
       .delete(chatMessage)
       .where(eq(chatMessage.id, input.id))
       .returning()
-    if (rows.length === 0) throw new Error(`[CHAT] message 不存在: ${input.id}`)
+    if (rows.length === 0) throw new IpcError('CHAT_MESSAGE_NOT_FOUND', `message 不存在: ${input.id}`)
   }
 }
 
-function buildPlugin(): Plugin {
-  const chat = new Repository()
-  return {
-    name: 'chat',
-    register(ctx: Context) {
-      registerHandler(ctx, CHANNELS.CHAT.PROVIDER.READ, null, function () {
-        return chat.findProviders()
-      })
-      registerHandler(ctx, CHANNELS.CHAT.PROVIDER.WRITE, ProviderWriteSchema, function (input) {
-        return chat.writeProvider(input)
-      })
-      registerHandler(ctx, CHANNELS.CHAT.PROVIDER.UPDATE, ProviderUpdateSchema, function (input) {
-        return chat.updateProvider(input)
-      })
-      registerHandler(ctx, CHANNELS.CHAT.PROVIDER.REMOVE, RemoveSchema, function (input) {
-        return chat.removeProvider(input)
-      })
-      registerHandler(ctx, CHANNELS.CHAT.SESSION.READ, null, function () {
-        return chat.findSessions()
-      })
-      registerHandler(ctx, CHANNELS.CHAT.SESSION.WRITE, SessionWriteSchema, function (input) {
-        return chat.writeSession(input)
-      })
-      registerHandler(ctx, CHANNELS.CHAT.SESSION.UPDATE, SessionUpdateSchema, function (input) {
-        return chat.updateSession(input)
-      })
-      registerHandler(ctx, CHANNELS.CHAT.SESSION.REMOVE, RemoveSchema, function (input) {
-        return chat.removeSession(input)
-      })
-      registerHandler(ctx, CHANNELS.CHAT.MESSAGE.READ, MessageReadSchema, function (input) {
-        return chat.findMessages(input)
-      })
-      registerHandler(ctx, CHANNELS.CHAT.MESSAGE.APPEND, MessageAppendSchema, function (input) {
-        return chat.appendMessage(input)
-      })
-      registerHandler(ctx, CHANNELS.CHAT.MESSAGE.UPDATE, MessageUpdateSchema, function (input) {
-        return chat.updateMessage(input)
-      })
-      registerHandler(ctx, CHANNELS.CHAT.MESSAGE.REMOVE, RemoveSchema, function (input) {
-        return chat.removeMessage(input)
-      })
-      ctx.logger.child('chat').info('registered')
-    }
-  }
-}
-
-export { buildPlugin, Repository }
+export { Repository }
 // 临时 re-export：让既有测试与消费方不动，specs 批次收尾时移除
 export {
   ProviderWriteSchema,

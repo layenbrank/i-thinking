@@ -7,17 +7,10 @@ import type { BrowserWindow } from 'electron'
 import { buildContext } from './host/framework/context'
 import { buildLogger } from './host/framework/logger'
 import type { Plugin } from './host/framework/module'
+import { registerStudioIpc } from './host/ipc'
 import { buildPlugin as buildDatabasePlugin } from './host/capabilities/database'
-import { buildPlugin as buildChatPlugin } from './host/capabilities/chat'
-import { buildPlugin as buildAssistantPlugin } from './host/capabilities/assistant'
-import { buildPlugin as buildDevtoolsPlugin } from './host/capabilities/devtools'
-import { buildPlugin as buildDialogPlugin } from './host/capabilities/dialog'
-import { buildPlugin as buildDocPlugin } from './host/capabilities/doc'
-import { buildPlugin as buildScreenshotPlugin } from './host/capabilities/screenshot'
 import { buildPlugin as buildSecurityPlugin } from './host/capabilities/security'
 import { buildPlugin as buildSidecarPlugin, CorexHost } from './host/capabilities/sidecar'
-import { buildPlugin as buildStorePlugin } from './host/capabilities/store'
-import { buildPlugin as buildUpdaterPlugin } from './host/capabilities/updater'
 import { buildPlugin as buildWindowPlugin } from './host/capabilities/window'
 import { buildOverlayWindowPort } from './host/capabilities/overlay-window'
 import { acquireSingleInstanceLock, attachSecondInstanceFocus } from './host/lifecycle/single-instance'
@@ -63,19 +56,16 @@ export async function bootstrap(): Promise<void> {
   // overlay 窗口的读写端口：window 插件负责 attach 窗口，overlay 频道从中读写
   const overlayPort = buildOverlayWindowPort()
 
-  // 先建窗与本地 IPC；sidecar 后台启动，不阻塞后续模块
+  // IPC **必须先于插件循环注册**：window 插件会 loadURL，渲染进程随即 invoke；
+  // 注册晚一拍会让首个 store:toRead 失败，而 /chat 在 loaded=false 时永远渲染 null（白屏）。
+  const ipc = registerStudioIpc(ctx.ipc, { ctx, overlay: overlayPort })
+
+  // 插件只负责生命周期（安全会话 / 关库 / 建窗 / 起 sidecar）；
+  // 频道注册已由 IPC 装配层遍历契约完成
   const plugins: Plugin[] = [
     buildSecurityPlugin(),
-    buildStorePlugin(),
-    buildDialogPlugin(),
     buildDatabasePlugin(),
-    buildChatPlugin(),
-    buildAssistantPlugin(),
     buildWindowPlugin(overlayPort),
-    buildDevtoolsPlugin(),
-    buildUpdaterPlugin(),
-    buildDocPlugin(),
-    buildScreenshotPlugin(),
     buildSidecarPlugin()
   ]
 
@@ -104,6 +94,14 @@ export async function bootstrap(): Promise<void> {
           log.error(`dispose failed: ${plugin.name}`, error)
         }
       }
+
+      // 拆除全部 owned 频道（LIFO，只拆自己注册的）
+      try {
+        ipc.dispose()
+      } catch (error) {
+        log.error('ipc dispose failed', error)
+      }
+
       app.exit(0)
     }
 

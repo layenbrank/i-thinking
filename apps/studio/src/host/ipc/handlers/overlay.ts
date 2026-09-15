@@ -1,6 +1,6 @@
 import { CHANNELS } from '../../../shared/ipc/channels'
-import type { OverlayWindowPort } from '../../capabilities/overlay-window'
-import type { DomainHandlers } from '../types'
+import { type OverlayWindowPort } from '../../capabilities/overlay-window'
+import { type DomainHandlers } from '../types'
 
 /**
  * overlay 两个频道的实现。窗口本身由 window 插件创建/销毁，

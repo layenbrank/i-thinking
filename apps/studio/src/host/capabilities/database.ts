@@ -10,12 +10,11 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 
 import { auth } from '../../../drizzle/schema'
 import { adoptBaseline } from './database-migrate'
-import type { Context } from '../framework/context'
-import { registerHandler } from '../framework/handle'
-import type { Plugin } from '../framework/module'
-import { CHANNELS } from '../../shared/ipc/channels'
-import { RemoveSchema, UpdateSchema, WriteSchema } from '../../shared/ipc/specs/user'
-import type { In, Out } from '../../shared/ipc/specs'
+import { type Context } from '../framework/context'
+import { type Plugin } from '../framework/module'
+import type { CHANNELS } from '../../shared/ipc/channels'
+import { IpcError } from '../../shared/ipc/error'
+import { type In, type Out } from '../../shared/ipc/specs'
 import { findAppRoot } from '../framework/paths'
 
 type ReadR = Out<typeof CHANNELS.USER.READ>[number]
@@ -146,7 +145,7 @@ class Repository {
       .where(eq(auth.id, input.id))
       .returning()
     if (rows.length === 0) {
-      throw new Error(`[USER] 记录不存在: ${input.id}`)
+      throw new IpcError('USER_RECORD_NOT_FOUND', `记录不存在: ${input.id}`)
     }
     return toRecord(rows[0])
   }
@@ -158,30 +157,17 @@ class Repository {
       .where(eq(auth.id, input.id))
       .returning()
     if (rows.length === 0) {
-      throw new Error(`[USER] 记录不存在: ${input.id}`)
+      throw new IpcError('USER_RECORD_NOT_FOUND', `记录不存在: ${input.id}`)
     }
   }
 }
 
+/** 只负责生命周期：把 logger 接上（连接是惰性建立的），退出时关库 */
 function buildPlugin(): Plugin {
-  const users = new Repository()
   return {
     name: 'database',
     register(ctx: Context) {
       logger = ctx.logger.child('database')
-      registerHandler(ctx, CHANNELS.USER.READ, null, function () {
-        return users.toRead()
-      })
-      registerHandler(ctx, CHANNELS.USER.WRITE, WriteSchema, function (input) {
-        return users.toWrite(input)
-      })
-      registerHandler(ctx, CHANNELS.USER.UPDATE, UpdateSchema, function (input) {
-        return users.toUpdate(input)
-      })
-      registerHandler(ctx, CHANNELS.USER.REMOVE, RemoveSchema, function (input) {
-        return users.toRemove(input)
-      })
-      ctx.logger.child('database').info('registered (repository API only)')
     },
     async dispose() {
       closeDatabase()

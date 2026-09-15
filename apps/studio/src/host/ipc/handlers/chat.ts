@@ -1,6 +1,6 @@
 import { CHANNELS } from '../../../shared/ipc/channels'
 import { Repository } from '../../capabilities/chat'
-import type { DomainHandlers } from '../types'
+import { type DomainHandlers } from '../types'
 
 export function buildChatHandlers(): DomainHandlers<'chat'> {
   const chat = new Repository()

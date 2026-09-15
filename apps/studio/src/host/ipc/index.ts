@@ -1,8 +1,8 @@
-import type { IpcMain } from 'electron'
+import { type IpcMain } from 'electron'
 
-import type { InvokeChannel } from '../../shared/ipc/channels'
-import type { OverlayWindowPort } from '../capabilities/overlay-window'
-import type { Context } from '../framework/context'
+import { type InvokeChannel } from '../../shared/ipc/channels'
+import { type OverlayWindowPort } from '../capabilities/overlay-window'
+import { type Context } from '../framework/context'
 import { buildAssistantHandlers } from './handlers/assistant'
 import { buildChatHandlers } from './handlers/chat'
 import { buildDevtoolsHandlers } from './handlers/devtools'
@@ -15,7 +15,7 @@ import { buildStoreHandlers } from './handlers/store'
 import { buildUpdaterHandlers } from './handlers/updater'
 import { buildUserHandlers } from './handlers/user'
 import { registerAll, type IpcDisposable } from './register'
-import type { Handlers } from './types'
+import { type Handlers } from './types'
 
 export interface IpcDeps {
   ctx: Context

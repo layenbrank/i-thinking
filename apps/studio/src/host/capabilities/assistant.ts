@@ -9,7 +9,7 @@ import {
 } from 'electron'
 import Store from 'electron-store'
 
-import { KeyRefSchema, KeyStore, KeyWriteSchema, type SecretCipher, type SecretStore } from './assistant-key'
+import { KeyStore, type SecretCipher, type SecretStore } from './assistant-key'
 import {
   findErrorMessage,
   MAX_CONCURRENT_RUNS,
@@ -18,11 +18,8 @@ import {
   type PortEvent,
   type StartRequest
 } from './assistant-protocol'
+import type { Repository as ChatRepository } from './chat'
 import { CHANNELS } from '../../shared/ipc/channels'
-import { Repository as ChatRepository } from './chat'
-import type { Context } from '../framework/context'
-import { registerHandler } from '../framework/handle'
-import type { Plugin } from '../framework/module'
 
 /** 只要求用到的两个级别，便于测试注入假 logger */
 interface Log {
@@ -39,7 +36,7 @@ interface Log {
  * 3. 之后全部走端口的**纯数据**协议（见 assistant-protocol.ts），主进程不暴露对象。
  *
  * 安全边界：
- * - 端口只在已登记且 URL 合规的 sender 上建立（registerHandler 的 trusted-sender 校验）；
+ * - 端口只在已登记且 URL 合规的 sender 上建立（host/ipc 装配层的 trusted-sender 校验）；
  * - apiKey 只留主进程（assistant-key.ts 的 safeStorage 存储），端口协议里没有它；
  * - 端口关闭 / 窗口销毁 → 该端口上所有运行立即 abort。
  */
@@ -199,35 +196,5 @@ function connect(
   log.info('port attached')
 }
 
-function buildPlugin(): Plugin {
-  const chat = new ChatRepository()
-
-  return {
-    name: 'assistant',
-    register(ctx: Context) {
-      const log = ctx.logger.child('assistant')
-      const keys = buildKeyStore()
-
-      registerHandler(ctx, CHANNELS.ASSISTANT.CONNECT, null, function (_input, event) {
-        const frame = event.senderFrame
-        if (!frame) throw new Error('[ASSISTANT] 无可用的 senderFrame')
-        connect(frame, event.sender, keys, chat, log)
-      })
-
-      registerHandler(ctx, CHANNELS.ASSISTANT.KEY.WRITE, KeyWriteSchema, function (input) {
-        keys.toWrite(input.providerID, input.apiKey)
-      })
-      registerHandler(ctx, CHANNELS.ASSISTANT.KEY.HAS, KeyRefSchema, function (input) {
-        return keys.has(input.providerID)
-      })
-      registerHandler(ctx, CHANNELS.ASSISTANT.KEY.REMOVE, KeyRefSchema, function (input) {
-        keys.toRemove(input.providerID)
-      })
-
-      log.info('registered')
-    }
-  }
-}
-
-export { buildPlugin, connect }
+export { connect }
 export type { Log }

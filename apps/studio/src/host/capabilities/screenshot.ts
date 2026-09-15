@@ -3,12 +3,9 @@ import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { Context } from '../framework/context'
-import { registerHandler } from '../framework/handle'
-import type { Plugin } from '../framework/module'
-import { CHANNELS } from '../../shared/ipc/channels'
-import { CaptureSchema } from '../../shared/ipc/specs/screenshot'
-import type { Out } from '../../shared/ipc/specs'
+import type { CHANNELS } from '../../shared/ipc/channels'
+import { IpcError } from '../../shared/ipc/error'
+import { type Out } from '../../shared/ipc/specs'
 import type { CorexHost } from './sidecar'
 
 type CaptureR = Out<typeof CHANNELS.SCREENSHOT.CAPTURE>
@@ -22,7 +19,7 @@ class Service {
 
   async capture(): Promise<CaptureR> {
     if (!this.corex.hasAction('capture.screenshot')) {
-      throw new Error('corex action capture.screenshot unavailable')
+      throw new IpcError('SCREENSHOT_ACTION_UNAVAILABLE', 'corex action capture.screenshot unavailable')
     }
 
     const output = await this.buildOutputPath()
@@ -30,7 +27,7 @@ class Service {
     const resultPath = parseCapturePath(data)
 
     if (!resultPath || !existsSync(resultPath)) {
-      throw new Error('screenshot capture did not produce a file')
+      throw new IpcError('SCREENSHOT_NO_FILE', 'screenshot capture did not produce a file')
     }
     return {
       path: resultPath,
@@ -62,23 +59,10 @@ function parseCapturePath(data: unknown): string {
       return pathValue
     }
   }
-  throw new Error('screenshot capture returned unexpected payload')
-}
-
-function buildPlugin(): Plugin {
-  return {
-    name: 'screenshot',
-    register(ctx: Context) {
-      const service = new Service(ctx.corex)
-      registerHandler(ctx, CHANNELS.SCREENSHOT.CAPTURE, CaptureSchema, function () {
-        return service.capture()
-      })
-      ctx.logger.child('screenshot').info('registered')
-    }
-  }
+  throw new IpcError('SCREENSHOT_BAD_PAYLOAD', 'screenshot capture returned unexpected payload')
 }
 
 export type { CaptureR }
-export { Service, buildPlugin }
+export { Service }
 // 临时 re-export：specs 批次收尾时移除
 export { CaptureSchema } from '../../shared/ipc/specs/screenshot'

@@ -1,5 +1,6 @@
-import { screen } from 'electron'
-import type { BrowserWindow } from 'electron'
+import { screen, type BrowserWindow } from 'electron'
+
+import { IpcError } from '../../shared/ipc/error'
 
 /**
  * overlay 窗口的读写端口。
@@ -33,7 +34,7 @@ export function buildOverlayWindowPort(): OverlayWindowPort {
     toUpdate(visible) {
       const win = overlayWindow
       if (!win || win.isDestroyed()) {
-        throw new Error('overlay window unavailable')
+        throw new IpcError('OVERLAY_UNAVAILABLE', 'overlay window unavailable')
       }
 
       if (visible) {

@@ -1,5 +1,6 @@
 import type { CHANNELS } from '../../shared/ipc/channels'
-import type { In } from '../../shared/ipc/specs'
+import { IpcError } from '../../shared/ipc/error'
+import { type In } from '../../shared/ipc/specs'
 
 /**
  * Provider 密钥（apiKey）的主进程存储。
@@ -46,7 +47,7 @@ class KeyStore {
 
   toWrite(providerID: string, apiKey: string): void {
     if (!this.cipher.isAvailable()) {
-      throw new Error('[ASSISTANT] 系统密钥库不可用，拒绝保存 apiKey')
+      throw new IpcError('ASSISTANT_KEYSTORE_UNAVAILABLE', '系统密钥库不可用，拒绝保存 apiKey')
     }
     this.store.toWrite(secretKey(providerID), this.cipher.encrypt(apiKey).toString('base64'))
   }
