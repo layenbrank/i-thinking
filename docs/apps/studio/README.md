@@ -36,6 +36,6 @@ apps/studio/
 ├── sidecar/    # staging only；tools.lock + scripts 在 scripts/commands/features/sidecar
 └── src/
     ├── main.ts / preload.ts / renderer.tsx
-    ├── plugins/    # 宿主能力（契约 + 实现）
+    ├── host/       # 宿主能力（框架 + 契约 + 能力域 + 生命周期）
     └── …           # React UI（@ → src/）
 ```

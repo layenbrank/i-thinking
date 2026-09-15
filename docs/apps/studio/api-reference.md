@@ -2,9 +2,9 @@
 
 源码真相：
 
-- [`src/plugins/itc.ts`](../../../apps/studio/src/plugins/itc.ts) — `ITC` API 形状
-- [`src/plugins/channels.ts`](../../../apps/studio/src/plugins/channels.ts) — Channel 常量
-- [`src/plugins/<domain>.ts`](../../../apps/studio/src/plugins/) — 手写类型 + zod（不 `z.infer`）
+- [`src/host/contract/itc.ts`](../../../apps/studio/src/host/contract/itc.ts) — `ITC` API 形状
+- [`src/host/contract/channels.ts`](../../../apps/studio/src/host/contract/channels.ts) — Channel 常量
+- [`src/host/capabilities/<domain>.ts`](../../../apps/studio/src/host/capabilities/) — 手写类型 + zod（不 `z.infer`）
 - [`src/preload.ts`](../../../apps/studio/src/preload.ts) — 暴露与错误转换
 
 获取实例：
@@ -162,7 +162,7 @@ Preload `invoke`：若 `!ok`，抛出 `Error('[code] message')`。
 | `key.has`      | `assistant:key.has`            | `{ providerID }`         | `Promise<boolean>`                          |
 | `key.toRemove` | `assistant:key.toRemove`       | `{ providerID }`         | `Promise<void>`                             |
 
-**端口协议**（`src/plugins/assistant-protocol.ts`，均为可结构化克隆的纯数据）：
+**端口协议**（`src/host/capabilities/assistant-protocol.ts`，均为可结构化克隆的纯数据）：
 
 | 方向            | 消息                                                                               |
 | --------------- | ---------------------------------------------------------------------------------- |
