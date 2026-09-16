@@ -10,8 +10,9 @@ function removePath(target: string): void {
   if (!existsSync(target)) return
   try {
     rmSync(target, { recursive: true, force: true })
-  } catch {
-    // best-effort：EBUSY/EPERM 不阻塞构建
+  } catch (error) {
+    // best-effort：EBUSY/EPERM 不阻塞构建，但必须出声（否则不知道产物没清掉）
+    console.warn('[forge] 清理路径失败，继续打包', target, error)
   }
 }
 
@@ -39,8 +40,9 @@ function stopLockedProcesses(): void {
       stdio: 'ignore',
       windowsHide: true
     })
-  } catch {
-    // 忽略：无权限或无匹配进程
+  } catch (error) {
+    // 无权限或无匹配进程：不阻断打包，但要能看见
+    console.warn('[forge] 结束占用进程失败', error)
   }
 }
 

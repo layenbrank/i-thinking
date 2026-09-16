@@ -1,22 +1,13 @@
-import { Icon } from '@iconify/react/offline'
 import { clsx } from 'clsx'
-import { useEffect, useId, useState } from 'react'
+import { useId, useState } from 'react'
 
-import type { MenuClassNames, MenuItem } from '@/components/contextmenu'
+import type { MenuClassNames } from '@/components/contextmenu'
 import styles from '@/features/magnetic-tile/layout-menu.module.scss'
 import { findMarkerBox } from '@/features/magnetic-tile/size'
 
 type Tile = Pick<
   MagneticTile,
-  | 'id'
-  | 'component'
-  | 'size'
-  | 'shape'
-  | 'direction'
-  | 'round'
-  | 'background'
-  | 'title'
-  | 'mark'
+  'id' | 'component' | 'size' | 'shape' | 'direction' | 'round' | 'background' | 'title' | 'mark'
 >
 
 type ShapeOption = Pick<MagneticTile, 'shape' | 'direction'> & {
@@ -45,44 +36,6 @@ const SHAPES: ShapeOption[] = [
   { shape: 'circle', direction: 'horizontal', label: '圆形' },
   { shape: 'rectangle', direction: 'horizontal', label: '横条' },
   { shape: 'rectangle', direction: 'vertical', label: '竖条' }
-]
-
-/** 右键菜单占位动作，后续接真实逻辑 */
-const ACTIONS: MenuItem[] = [
-  {
-    key: 'rename',
-    label: '重命名',
-    icon: (
-      <Icon
-        icon="ant-design:edit-outlined"
-        width={14}
-        height={14}
-      />
-    )
-  },
-  {
-    key: 'copy',
-    label: '复制',
-    icon: (
-      <Icon
-        icon="ant-design:copy-outlined"
-        width={14}
-        height={14}
-      />
-    )
-  },
-  {
-    key: 'remove',
-    label: '删除',
-    danger: true,
-    icon: (
-      <Icon
-        icon="ant-design:delete-outlined"
-        width={14}
-        height={14}
-      />
-    )
-  }
 ]
 
 /** 磁贴右键菜单样式覆盖 */
@@ -170,18 +123,13 @@ function parseDraft(tile: Tile): Draft {
 
 function LayoutPicker(props: PickerProps) {
   const { tile } = props
+  // 外部（tile）改了布局就换 key 重挂载，而不是在 effect 里 setDraft 回灌：
+  // 见 layout-items.tsx 的 `key={...}`。
   const [draft, setDraft] = useState(function () {
     return parseDraft(tile)
   })
   const sizeId = useId()
   const shapeId = useId()
-
-  useEffect(
-    function () {
-      setDraft(parseDraft(tile))
-    },
-    [tile.size, tile.shape, tile.direction]
-  )
 
   function onPickSize(value: MagneticTile.Size) {
     if (value === draft.size) return
@@ -291,74 +239,5 @@ function LayoutPicker(props: PickerProps) {
   )
 }
 
-function buildLayout(tile: Tile): MenuItem {
-  return {
-    key: 'layout',
-    label: '布局',
-    icon: (
-      <Icon
-        icon="ant-design:appstore-outlined"
-        width={14}
-        height={14}
-      />
-    ),
-    content: <LayoutPicker tile={tile} />
-  }
-}
-
-function buildFloat(tile: Tile): MenuItem {
-  const hasTile = Boolean(tile.id)
-
-  return {
-    key: 'float',
-    label: '浮层',
-    icon: (
-      <Icon
-        icon="ant-design:block-outlined"
-        width={14}
-        height={14}
-      />
-    ),
-    children: [
-      {
-        key: 'float-mount',
-        label: '添加',
-        icon: (
-          <Icon
-            icon="ant-design:plus-outlined"
-            width={14}
-            height={14}
-          />
-        ),
-        disabled: !hasTile,
-        onSelect() {
-          if (!tile.id) return
-          void itc.overlay.toUpdate({ visible: true })
-        }
-      },
-      {
-        key: 'float-unmount',
-        label: '移除',
-        icon: (
-          <Icon
-            icon="ant-design:minus-outlined"
-            width={14}
-            height={14}
-          />
-        ),
-        disabled: !hasTile,
-        onSelect() {
-          if (!tile.id) return
-          void itc.overlay.toUpdate({ visible: false })
-        }
-      }
-    ]
-  }
-}
-
-function buildItems(tile: Tile): MenuItem[] {
-  return [buildLayout(tile), buildFloat(tile), { type: 'divider' }, ...ACTIONS]
-}
-
-export { buildItems, CLASS_NAMES, styles }
+export { CLASS_NAMES, LayoutPicker }
 export type { Tile }

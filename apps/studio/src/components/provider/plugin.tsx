@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef } from 'react'
+import { createContext, useEffect, useMemo, useRef } from 'react'
 
 import { uniqWith } from 'lodash-es'
 
@@ -36,12 +36,10 @@ interface PluginContextValue {
 }
 
 const PluginContext = createContext<PluginContextValue>({
-  getState: () => undefined
+  getState() {
+    return undefined
+  }
 })
-
-function usePluginContext() {
-  return useContext(PluginContext)
-}
 
 // ─── Provider ────────────────────────────────────────────
 
@@ -53,9 +51,15 @@ function PluginProvider(props: PluginProviderProps) {
   const plugins = useMemo(
     function () {
       if (!Array.isArray(rawPlugins)) return []
-      return uniqWith(rawPlugins, (a, b) => a.unique === b.unique)
-        .filter((p) => p.enabled !== false)
-        .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
+      return uniqWith(rawPlugins, function (a, b) {
+        return a.unique === b.unique
+      })
+        .filter(function (p) {
+          return p.enabled !== false
+        })
+        .sort(function (a, b) {
+          return (b.priority ?? 0) - (a.priority ?? 0)
+        })
     },
     [rawPlugins]
   )
@@ -63,7 +67,11 @@ function PluginProvider(props: PluginProviderProps) {
   useEffect(
     function () {
       const registry = registryRef.current
-      const nextKeys = new Set(plugins.map((p) => p.unique))
+      const nextKeys = new Set(
+        plugins.map(function (p) {
+          return p.unique
+        })
+      )
 
       // Phase 1: 卸载已移除的插件
       for (const [key, state] of registry) {
@@ -117,4 +125,4 @@ function PluginProvider(props: PluginProviderProps) {
   return <PluginContext.Provider value={contextValue}>{children}</PluginContext.Provider>
 }
 
-export { PluginProvider, usePluginContext, type Plugin, type PluginProviderProps, type PluginState }
+export { PluginProvider, type Plugin, type PluginProviderProps, type PluginState }

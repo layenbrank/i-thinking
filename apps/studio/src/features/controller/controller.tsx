@@ -8,7 +8,8 @@ import { useScrollFx } from '@/features/controller/hooks/use-scroll-fx'
 import { bindSortable, reorder, type SortableSession } from '@/features/controller/lib/sortable'
 import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
-import { buildItems, CLASS_NAMES } from '@/features/magnetic-tile/layout-menu'
+import { buildItems } from '@/features/magnetic-tile/layout-items'
+import { CLASS_NAMES } from '@/features/magnetic-tile/layout-menu'
 import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
 
 interface MirrorProps {

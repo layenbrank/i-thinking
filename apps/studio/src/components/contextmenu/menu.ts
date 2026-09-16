@@ -119,7 +119,7 @@ function findFocusable(items: ParsedMenuItem[]): ParsedMenuItem[] {
 }
 
 function hasChildren(item: ParsedMenuItem) {
-  if ((item.content !== null && item.content !== undefined)) return true
+  if (item.content !== null && item.content !== undefined) return true
   return Boolean(item.children && item.children.length > 0)
 }
 
@@ -207,8 +207,6 @@ interface DismissOptions {
 function useDismiss(options: DismissOptions) {
   const { visible, onClose, graceMs = DISMISS_GRACE_MS } = options
   const shownAtRef = useRef(0)
-  const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
 
   useEffect(
     function () {
@@ -219,15 +217,15 @@ function useDismiss(options: DismissOptions) {
         if (event.button !== 0) return
         if (Date.now() - shownAtRef.current < graceMs) return
         if (isInsideMenu(event)) return
-        onCloseRef.current()
+        onClose()
       }
 
       function onKeyDown(event: KeyboardEvent) {
-        if (event.key === 'Escape') onCloseRef.current()
+        if (event.key === 'Escape') onClose()
       }
 
       function onResize() {
-        onCloseRef.current()
+        onClose()
       }
 
       document.addEventListener('pointerdown', onPointerDown)
@@ -239,7 +237,7 @@ function useDismiss(options: DismissOptions) {
         window.removeEventListener('resize', onResize)
       }
     },
-    [visible, graceMs]
+    [visible, onClose, graceMs]
   )
 }
 

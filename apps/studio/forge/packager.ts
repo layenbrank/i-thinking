@@ -142,6 +142,12 @@ function buildPackagerConfig(): NonNullable<ForgeConfig['packagerConfig']> {
     appCategoryType: 'public.app-category.developer-tools',
     appCopyright: `Copyright © ${new Date().getFullYear()} i-thinking`,
     ignore: isIgnoredPath,
+    // 窗口 / 托盘图标：`public/` 不在 ignore 白名单里（会被整个排除），
+    // 所以显式把它们随包发到 resources/，运行时用 `findAppIconPath()` 取
+    extraResource: [
+      path.join(PACKAGE_ROOT, 'public', 'icon.ico'),
+      path.join(PACKAGE_ROOT, 'public', 'icon.png')
+    ],
     download: {
       mirrorOptions: {
         mirror: ELECTRON_DOWNLOAD_MIRROR

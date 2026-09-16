@@ -35,6 +35,8 @@ function copyBetterSqlite3(
 
     done()
   } catch (error) {
+    // 交给 Forge 的 done 之前先出声：构建日志里要留痕
+    console.warn('[forge] 复制 better-sqlite3 原生模块失败', error)
     done(error instanceof Error ? error : new Error(String(error)))
   }
 }

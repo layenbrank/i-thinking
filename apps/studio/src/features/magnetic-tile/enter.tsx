@@ -1,17 +1,7 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import type { Transition, Variants } from 'motion/react'
 
-type EnterValue = {
-  isActive: boolean
-  index: number
-}
-
-const ENTER_IDLE: EnterValue = {
-  isActive: false,
-  index: 0
-}
-
-const EnterContext = createContext<EnterValue>(ENTER_IDLE)
+import { EnterContext, type EnterValue } from '@/features/magnetic-tile/enter-context'
 
 type EnterProps = {
   children: ReactNode
@@ -29,10 +19,6 @@ function Enter(props: EnterProps) {
     index: props.index ?? 0
   }
   return <EnterContext value={value}>{props.children}</EnterContext>
-}
-
-function useEnter() {
-  return useContext(EnterContext)
 }
 
 /** 对齐原 scroll-fx 入场参数 */
@@ -67,5 +53,5 @@ const ENTER = {
   }
 }
 
-export { Enter, EnterContext, ENTER, useEnter }
-export type { EnterProps, EnterValue }
+export { Enter, ENTER }
+export type { EnterProps }

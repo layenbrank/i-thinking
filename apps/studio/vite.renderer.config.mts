@@ -1,11 +1,12 @@
-import { basename, dirname, resolve } from 'node:path'
-import { fileURLToPath, URL } from 'node:url'
 import { createHash } from 'node:crypto'
+import { realpathSync } from 'node:fs'
+import { basename, dirname, resolve, sep } from 'node:path'
+import { fileURLToPath, URL } from 'node:url'
 
-import React from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
+import React from '@vitejs/plugin-react-swc'
 import AutoImport from 'unplugin-auto-import/vite'
-import { defineConfig, loadEnv, type ConfigEnv, type UserConfig } from 'vite'
+import { defineConfig, loadEnv, type ConfigEnv, type Plugin, type UserConfig } from 'vite'
 import { compression } from 'vite-plugin-compression2'
 
 import { chunks } from './vite.chunk.mts'
@@ -28,6 +29,54 @@ const noInlineRegexes: readonly RegExp[] = [
   /background.*\.(png|jpe?g)$/i // 背景图片
 ].concat(svgRegex, jsonRegex, videoRegex, audioRegex, fontRegex)
 
+/**
+ * dev 下 `packages/*` 的改动不会触发 HMR（组件改了「没反应」，改 apps 下的文件却正常）。
+ *
+ * 原因不是「没监听」：事件能收到（tailwind 会跟着重扫 `@source`，能看到 css 更新），
+ * 但这些包既不在 vite root（apps/studio）内，又是 pnpm 软链进 node_modules 的，
+ * 于是 watcher 上报的路径与模块图里的 id 不是同一种形式：
+ * `moduleGraph.getModulesByFile(file)` 查不到模块 → 不失效转译缓存、也不推 js-update，
+ * 界面会一直跑旧组件，**直到重启 dev server**。
+ *
+ * 所以这里在 handleHotUpdate 里按「上报路径 + realpath」两种形式再查一次模块图，
+ * 查到就交回给 vite 走正常的 HMR（React 组件依旧是 Fast Refresh，不会整页重载）。
+ * client / extension 两个 app 也有同样的结构，遇到同样症状时照搬这个插件即可。
+ */
+function WorkSpace(): Plugin {
+  const workspacePackages = fileURLToPath(new URL('../../packages/', import.meta.url))
+  const linkedMarker = `${sep}node_modules${sep}@i-thinking${sep}`
+
+  return {
+    name: 'studio:workspace-source-hmr',
+    apply: 'serve',
+    handleHotUpdate: function (ctx) {
+      const isWorkspaceSource =
+        ctx.file.startsWith(workspacePackages) || ctx.file.includes(linkedMarker)
+      if (!isWorkspaceSource) return undefined
+
+      const modules = new Set(ctx.modules)
+      const candidates = new Set([ctx.file, toRealPath(ctx.file)])
+      for (const candidate of candidates) {
+        const found = ctx.server.moduleGraph.getModulesByFile(candidate)
+        if (!found) continue
+        for (const mod of found) modules.add(mod)
+      }
+
+      return modules.size > ctx.modules.length ? Array.from(modules) : undefined
+    }
+  }
+}
+
+/** realpath 失败（文件刚被删除）时退回原路径，不把 HMR 链路搞崩 */
+function toRealPath(file: string): string {
+  try {
+    return realpathSync.native(file)
+  } catch (error) {
+    console.warn('[studio:workspace-source-hmr] realpath 失败，按原路径处理', file, error)
+    return file
+  }
+}
+
 export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
   const env = loadEnv(mode || 'development', '')
   // Forge 注入 MAIN_WINDOW_VITE_DEV_SERVER_URL 为 localhost，须与 server.host 一致；
@@ -42,6 +91,7 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
     envDir: resolve(fileURLToPath(new URL('.', import.meta.url))),
     plugins: [
       tailwindcss(),
+      WorkSpace(),
       React({
         devTarget: 'esnext',
         jsxImportSource: 'react',

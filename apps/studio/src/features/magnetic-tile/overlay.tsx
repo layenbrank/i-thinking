@@ -1,18 +1,17 @@
 import { Dialog, DialogContent } from '@i-thinking/design/components/dialog'
 import { clsx, type ClassValue } from 'clsx'
 import type { CSSProperties, ReactNode } from 'react'
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 import { ABORT_TIMEOUT_MS } from '@/constants/magnetic-tile/components'
+import {
+  bindOverlay,
+  OverlayContext,
+  type Cache,
+  type DismissReason,
+  type OverlayMode
+} from '@/features/magnetic-tile/overlay-context'
 import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
-
-type Cache = 'destroy' | 'keepAlive'
-
-/** framed：配置弹层；fluid：工作台（morph） */
-type OverlayMode = 'framed' | 'fluid'
-
-/** 关闭手势：Esc / 点击遮罩 */
-type DismissReason = 'escape' | 'overlay'
 
 interface OverlayProps {
   children?: ReactNode
@@ -34,69 +33,12 @@ interface OverlayProps {
 
 type OverlayControlProps = Pick<OverlayProps, 'cache' | 'onAbort' | 'abortTimeoutMs'>
 
-interface OverlayContextProps {
-  visible: boolean
-  renderable: boolean
-  fullscreen: boolean
-  onUpdateVisible: (value: boolean) => void
-  onUpdateRenderable: (value: boolean) => void
-  onUpdateFullscreen: (value: boolean) => void
-}
-
 interface OverlayProviderProps {
   children: ReactNode
   magneticTileID?: string
 }
 
 const WIDTH = '80%'
-
-const OverlayContext = createContext<OverlayContextProps>({
-  visible: false,
-  renderable: false,
-  fullscreen: false,
-  onUpdateVisible: function (value) {
-    void value
-  },
-  onUpdateRenderable: function (value) {
-    void value
-  },
-  onUpdateFullscreen: function (value) {
-    void value
-  }
-})
-
-/** 主窗内：磁贴 id → Overlay 显隐回调 */
-type VisibleFn = (visible: boolean) => void
-
-const HANDLERS = new Map<string, VisibleFn>()
-
-function bindOverlay(id: string, onVisible: VisibleFn) {
-  HANDLERS.set(id, onVisible)
-  return function unbind() {
-    if (HANDLERS.get(id) === onVisible) HANDLERS.delete(id)
-  }
-}
-
-/** 按磁贴 id 呈现 Overlay（须已 bind） */
-function presentOverlay(id: string) {
-  const onVisible = HANDLERS.get(id)
-  if (!onVisible) {
-    console.warn('[overlay] unbound id', id)
-    return false
-  }
-  onVisible(true)
-  return true
-}
-
-function useOverlayLazy(visible: boolean, cache: Cache) {
-  const hasOpenedRef = useRef(false)
-
-  if (visible) hasOpenedRef.current = true
-
-  if (cache === 'destroy') return visible
-
-  return visible || hasOpenedRef.current
-}
 
 function OverlayProvider(props: OverlayProviderProps) {
   const [visible, setVisible] = useState(false)
@@ -177,8 +119,9 @@ function Overlay(props: OverlayProps) {
           window.setTimeout(resolve, abortTimeoutMs)
         })
       ])
-    } catch {
-      // ignore cleanup errors to ensure forced unload
+    } catch (error) {
+      // 清理失败不能挡住强制卸载：出声后继续
+      console.error('[overlay] 强制卸载前的清理失败', error)
     }
   }
 
@@ -234,10 +177,10 @@ function Overlay(props: OverlayProps) {
   )
 }
 
-export { Overlay, OverlayContext, OverlayProvider, bindOverlay, presentOverlay, useOverlayLazy }
+export { Overlay, OverlayProvider }
 export type {
   Cache,
-  OverlayContextProps,
+  DismissReason,
   OverlayControlProps,
   OverlayMode,
   OverlayProps,
