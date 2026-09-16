@@ -1,116 +1,73 @@
 import { BrowserWindow, screen } from 'electron'
-import path from 'node:path'
 
 import { type Context } from '../framework/context'
 import { type Plugin } from '../framework/module'
 import { type OverlayWindowPort } from './overlay-window'
-import { attachGuards } from './security'
-import { findBundleDir } from '../framework/paths'
-
-interface BundlePaths {
-  route: string
-  preloadPath: string
-  iconPath?: string
-}
-
-interface LifecycleOpts {
-  isFocusOnShow?: boolean
-  isAutoShow?: boolean
-}
-
-function findBundlePaths(): BundlePaths {
-  const publicDir = process.env.VITE_PUBLIC ?? ''
-  const bundleDir = findBundleDir()
-  return {
-    route: path.join(bundleDir, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    preloadPath: path.join(bundleDir, 'preload.js'),
-    iconPath: publicDir ? path.join(publicDir, 'electron-vite.svg') : undefined
-  }
-}
+import { attachLifecycle, buildWebPreferences, findBundlePaths, toRedirect } from './window-factory'
 
 function findWorkArea() {
   return screen.getPrimaryDisplay().workArea
 }
 
-/** 开发态走 Vite URL，打包走 index.html；hash 为 Hash 路由路径，如 `/overlay` */
-function toRedirect(win: BrowserWindow, route: string, hash?: string) {
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    const url = new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
-    if (hash) url.hash = `#${hash}`
-    void win.loadURL(url.toString())
-    return
-  }
-
-  if (hash) {
-    void win.loadFile(route, { hash })
-    return
-  }
-
-  void win.loadFile(route)
+/**
+ * 主窗口的显隐端口。
+ *
+ * 托盘和「二次启动」都需要「把主窗口叫出来」，而窗口引用握在 window 插件手里 ——
+ * 与 overlay 同一套做法：插件在创建/销毁时 `attach`，外部只表达意图。
+ *
+ * 主窗口运行时**只会被隐藏、不会被销毁**（关闭 = 收进托盘），所以这里不需要「重建窗口」那条路。
+ */
+interface MainWindowPort {
+  attach(win: BrowserWindow | null): void
+  /** 显示并聚焦主窗口（最小化则先恢复） */
+  toReveal(): void
 }
 
-function toReveal(win: BrowserWindow, isFocusOnShow: boolean) {
-  if (isFocusOnShow) win.show()
-  else win.showInactive()
-}
+function buildMainWindowPort(): MainWindowPort {
+  let mainWindow: BrowserWindow | null = null
 
-function attachLifecycle(
-  ctx: Context,
-  win: BrowserWindow,
-  log: ReturnType<Context['logger']['child']>,
-  opts: LifecycleOpts = {}
-) {
-  const isFocusOnShow = opts.isFocusOnShow ?? true
-  const isAutoShow = opts.isAutoShow ?? true
-
-  ctx.trustWebContents(win.webContents)
-  attachGuards(ctx, win.webContents)
-
-  win.once('ready-to-show', function () {
-    if (!isAutoShow || win.isDestroyed()) return
-    toReveal(win, isFocusOnShow)
-  })
-
-  win.webContents.on('did-fail-load', function (_event, code, desc, url) {
-    log.error('did-fail-load', { code, desc, url })
-    if (!isAutoShow || win.isDestroyed() || win.isVisible()) return
-    toReveal(win, isFocusOnShow)
-  })
-
-  win.on('close', function () {
-    if (!win.isDestroyed()) ctx.untrustWebContents(win.webContents)
-  })
-}
-
-function buildWebPreferences(ctx: Context, preloadPath: string) {
   return {
-    minimumFontSize: 12,
-    defaultFontSize: 16,
-    spellcheck: true,
-    defaultEncoding: 'utf-8',
-    webgl: true,
-    webSecurity: true,
-    allowRunningInsecureContent: false,
-    devTools: ctx.isDev,
-    contextIsolation: true,
-    nodeIntegration: false,
-    sandbox: true,
-    preload: preloadPath
-  } as const
+    attach(next) {
+      mainWindow = next
+    },
+
+    toReveal() {
+      const win = mainWindow
+      if (!win || win.isDestroyed()) return
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    }
+  }
 }
 
-function buildPlugin(overlay: OverlayWindowPort): Plugin {
+interface WindowPlugin extends Plugin {
+  /** 供给托盘 / 二次启动：把主窗口叫出来 */
+  mainWindow: MainWindowPort
+}
+
+function buildPlugin(overlay: OverlayWindowPort): WindowPlugin {
+  const mainWindow = buildMainWindowPort()
+  /** 真退出时才放行关闭；否则「关闭」= 收进托盘（托盘里有「退出」） */
+  let isQuitting = false
+
   return {
     name: 'window',
+    mainWindow,
     register(ctx: Context) {
       const log = ctx.logger.child('window')
       const paths = findBundlePaths()
+
+      ctx.app.on('before-quit', function () {
+        isQuitting = true
+      })
 
       if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         try {
           const origin = new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL).origin
           ctx.toUpdateOrigins([origin])
-        } catch {
+        } catch (error) {
+          console.warn('[window] VITE_DEV_SERVER_URL 不是合法 URL，不放开任何 origin', error)
           ctx.toUpdateOrigins([])
         }
       }
@@ -144,11 +101,22 @@ function buildPlugin(overlay: OverlayWindowPort): Plugin {
         })
 
         ctx.toUpdateWindow(win)
+        mainWindow.attach(win)
+
+        // 必须先于 attachLifecycle 注册：它按注册顺序跑，而它要在同一次 close 里
+        // 看到 `event.defaultPrevented` 才不撤信任（撤了这窗口就再也发不出 IPC）
+        win.on('close', function (event) {
+          if (isQuitting) return
+          event.preventDefault()
+          win.hide()
+        })
+
         attachLifecycle(ctx, win, log)
         toRedirect(win, paths.route)
 
         win.on('closed', function () {
           if (ctx.toReadWindow() === win) ctx.toUpdateWindow(null)
+          mainWindow.attach(null)
         })
 
         log.info('main window created')
@@ -210,3 +178,4 @@ function buildPlugin(overlay: OverlayWindowPort): Plugin {
 }
 
 export { buildPlugin }
+export type { MainWindowPort, WindowPlugin }

@@ -37,7 +37,19 @@ const StartSchema = z.object({
   providerID: z.string().min(1).max(MAX_RUN_ID_CHARS),
   model: z.string().min(1).max(200),
   system: z.string().max(MAX_CONTENT_CHARS).optional(),
-  messages: z.array(MessageSchema).min(1).max(MAX_MESSAGES)
+  messages: z.array(MessageSchema).min(1).max(MAX_MESSAGES),
+  /** 宿主扩展：工具集 / 审批策略 / 工作区沙箱 / 会话（变更日记） */
+  host: z
+    .object({
+      tools: z.array(z.string().max(64)).max(32).optional(),
+      approval: z.enum(['auto', 'ask', 'readonly']).optional(),
+      workspaceID: z.uuid().nullish(),
+      /** 当前会话：fs_write 变更日记按它归集，供「已编辑 N 个文件」撤销 */
+      sessionID: z.uuid().nullish(),
+      /** 本次对话引用的工作区文件（相对路径）：注入系统提示词，让模型知道该读哪些文件 */
+      references: z.array(z.string().max(1024)).max(32).optional()
+    })
+    .optional()
 })
 
 const AbortSchema = z.object({
@@ -45,10 +57,19 @@ const AbortSchema = z.object({
   runID: z.string().min(1).max(MAX_RUN_ID_CHARS)
 })
 
-const InboundSchema = z.discriminatedUnion('kind', [StartSchema, AbortSchema])
+/** 工具审批回执：渲染进程 UI 拍板后回传，主进程据此继续或拒绝 */
+const ToolApprovalSchema = z.object({
+  kind: z.literal('tool-approval'),
+  runID: z.string().min(1).max(MAX_RUN_ID_CHARS),
+  toolCallId: z.string().min(1).max(MAX_RUN_ID_CHARS),
+  approved: z.boolean()
+})
+
+const InboundSchema = z.discriminatedUnion('kind', [StartSchema, AbortSchema, ToolApprovalSchema])
 
 type StartRequest = z.infer<typeof StartSchema>
 type AbortRequest = z.infer<typeof AbortSchema>
+type ToolApprovalRequest = z.infer<typeof ToolApprovalSchema>
 type InboundRequest = z.infer<typeof InboundSchema>
 
 interface Usage {
@@ -68,23 +89,39 @@ type PortEvent =
       toolName: string
       input: unknown
     }
+  | {
+      kind: 'tool-approval-request'
+      runID: string
+      toolCallId: string
+      toolName: string
+      input: unknown
+      prompt: string
+    }
+  | {
+      kind: 'tool-result'
+      runID: string
+      toolCallId: string
+      toolName: string
+      output: unknown
+      isError: boolean
+    }
   | { kind: 'finish'; runID: string; finishReason: string; usage: Usage }
   | { kind: 'aborted'; runID: string }
   | { kind: 'error'; runID: string; message: string }
 
 /** `streamText().fullStream` 的片段类型（从返回值推导，不依赖其类型是否被导出） */
-type StreamPart = Awaited<ReturnType<typeof streamText>>['fullStream'] extends AsyncIterable<
-  infer Part
->
-  ? Part
-  : never
+type StreamPart =
+  Awaited<ReturnType<typeof streamText>>['fullStream'] extends AsyncIterable<infer Part>
+    ? Part
+    : never
 
 function isWithinPayloadLimit(raw: unknown): boolean {
   try {
     const encoded = JSON.stringify(raw)
     return typeof encoded === 'string' && encoded.length <= MAX_PAYLOAD_CHARS
-  } catch {
-    // 循环引用 / 不可序列化 → 一律拒绝
+  } catch (error) {
+    // 循环引用 / 不可序列化 → 一律拒绝（并且要出声，否则看起来像「消息凭空消失」）
+    console.warn('[assistant-protocol] 载荷不可序列化，按超限拒绝', error)
     return false
   }
 }
@@ -97,13 +134,29 @@ function parseInbound(raw: unknown): InboundRequest | null {
   return parsed.success ? parsed.data : null
 }
 
-function findErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  if (typeof error === 'string') return error
-  return 'Unknown error'
+/**
+ * 已知「配置错了」的失败模式，直接把下一步改哪儿写进消息里 ——
+ * 否则用户只能对着 `Not Found` 干瞪眼（Ollama 漏了 /v1 就是这个 404）。
+ */
+function findErrorHint(error: unknown): string {
+  if (typeof error !== 'object' || error === null || !('statusCode' in error)) return ''
+  if ((error as { statusCode?: unknown }).statusCode !== 404) return ''
+
+  return '检查 provider 的「服务地址」有没有带 /v1（Ollama：http://127.0.0.1:11434/v1）'
 }
 
-function toUsage(usage: { inputTokens?: number; outputTokens?: number; totalTokens?: number }): Usage {
+function findErrorMessage(error: unknown): string {
+  const message =
+    error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+  const hint = findErrorHint(error)
+  return hint ? `${message}（${hint}）` : message
+}
+
+function toUsage(usage: {
+  inputTokens?: number
+  outputTokens?: number
+  totalTokens?: number
+}): Usage {
   return {
     ...(usage.inputTokens === undefined ? {} : { inputTokens: usage.inputTokens }),
     ...(usage.outputTokens === undefined ? {} : { outputTokens: usage.outputTokens }),
@@ -128,6 +181,24 @@ function toPortEvent(part: StreamPart, runID: string): PortEvent | null {
         toolName: part.toolName,
         input: part.input
       }
+    case 'tool-result':
+      return {
+        kind: 'tool-result',
+        runID,
+        toolCallId: part.toolCallId,
+        toolName: part.toolName,
+        output: part.output,
+        isError: false
+      }
+    case 'tool-error':
+      return {
+        kind: 'tool-result',
+        runID,
+        toolCallId: part.toolCallId,
+        toolName: part.toolName,
+        output: findErrorMessage(part.error),
+        isError: true
+      }
     case 'finish':
       return {
         kind: 'finish',
@@ -144,5 +215,21 @@ function toPortEvent(part: StreamPart, runID: string): PortEvent | null {
   }
 }
 
-export { parseInbound, toPortEvent, findErrorMessage, StartSchema, AbortSchema, InboundSchema }
-export type { InboundRequest, StartRequest, AbortRequest, PortEvent, StreamPart, Usage }
+export {
+  AbortSchema,
+  findErrorMessage,
+  InboundSchema,
+  parseInbound,
+  StartSchema,
+  ToolApprovalSchema,
+  toPortEvent
+}
+export type {
+  AbortRequest,
+  InboundRequest,
+  PortEvent,
+  StartRequest,
+  StreamPart,
+  ToolApprovalRequest,
+  Usage
+}

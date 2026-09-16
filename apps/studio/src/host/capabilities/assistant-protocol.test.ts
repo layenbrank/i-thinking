@@ -133,7 +133,12 @@ describe('toPortEvent', function () {
         }),
         RUN_ID
       )
-    ).toEqual({ kind: 'finish', runID: RUN_ID, finishReason: 'stop', usage: { inputTokens: 3, outputTokens: 5, totalTokens: 8 } })
+    ).toEqual({
+      kind: 'finish',
+      runID: RUN_ID,
+      finishReason: 'stop',
+      usage: { inputTokens: 3, outputTokens: 5, totalTokens: 8 }
+    })
 
     expect(
       toPortEvent(
@@ -154,6 +159,17 @@ describe('toPortEvent', function () {
       kind: 'error',
       runID: RUN_ID,
       message: 'Unknown error'
+    })
+  })
+
+  it('404 类失败在消息里带上「检查 /v1」的提示', function () {
+    const error = Object.assign(new Error('Not Found'), { statusCode: 404 })
+
+    expect(toPortEvent(part({ type: 'error', error }), RUN_ID)).toEqual({
+      kind: 'error',
+      runID: RUN_ID,
+      message:
+        'Not Found（检查 provider 的「服务地址」有没有带 /v1（Ollama：http://127.0.0.1:11434/v1））'
     })
   })
 

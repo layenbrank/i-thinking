@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState, type PropsWithChildren } from 'react'
 import { createPortal } from 'react-dom'
+import { useAssistantLabels } from './labels'
 
 const extensionForMimeType = (mimeType?: string): string => {
   switch (mimeType) {
@@ -217,7 +218,8 @@ type ImageZoomProps = PropsWithChildren<{
   alt?: string
 }>
 
-function ImageZoom({ src, alt = 'Image preview', children }: ImageZoomProps) {
+function ImageZoom({ src, alt, children }: ImageZoomProps) {
+  const labels = useAssistantLabels()
   const [isOpen, setIsOpen] = useState(false)
   const triggerRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -287,7 +289,7 @@ function ImageZoom({ src, alt = 'Image preview', children }: ImageZoomProps) {
         role="button"
         tabIndex={0}
         className="aui-image-zoom-trigger cursor-zoom-in"
-        aria-label="Click to zoom image">
+        aria-label={labels.clickToZoom}>
         {children}
       </div>
       {isOpen &&
@@ -299,11 +301,11 @@ function ImageZoom({ src, alt = 'Image preview', children }: ImageZoomProps) {
             aria-modal="true"
             className="aui-image-zoom-overlay fade-in animate-in fixed inset-0 z-50 flex items-center justify-center bg-black/80 duration-200"
             onClick={handleClose}
-            aria-label="Zoomed image">
+            aria-label={labels.zoomedImage}>
             <img
               data-slot="image-zoom-content"
               src={src}
-              alt={alt}
+              alt={alt ?? labels.imagePreview}
               className="aui-image-zoom-content fade-in zoom-in-95 animate-in max-h-[90vh] max-w-[90vw] cursor-zoom-out object-contain duration-200"
               onClick={(e) => {
                 e.stopPropagation()
@@ -313,7 +315,7 @@ function ImageZoom({ src, alt = 'Image preview', children }: ImageZoomProps) {
             <button
               ref={closeRef}
               type="button"
-              aria-label="Close zoomed image"
+              aria-label={labels.closeZoomedImage}
               onClick={(e) => {
                 e.stopPropagation()
                 handleClose()
@@ -329,17 +331,21 @@ function ImageZoom({ src, alt = 'Image preview', children }: ImageZoomProps) {
 }
 
 function ImageGenerating({ className }: { className?: string }) {
+  const labels = useAssistantLabels()
+
   return (
     <div
       data-slot="image-generating"
       className={cn('bg-muted/50 flex min-h-32 items-center justify-center p-4', className)}>
       <Loader2Icon className="text-muted-foreground size-8 animate-spin" />
-      <span className="sr-only">Generating image…</span>
+      <span className="sr-only">{labels.generatingImage}</span>
     </div>
   )
 }
 
 function ImageContentFilterError({ className, reason }: { className?: string; reason?: string }) {
+  const labels = useAssistantLabels()
+
   return (
     <div
       data-slot="image-content-filter-error"
@@ -348,7 +354,7 @@ function ImageContentFilterError({ className, reason }: { className?: string; re
         className
       )}>
       <ShieldAlertIcon className="text-muted-foreground size-8" />
-      <p className="text-sm font-medium">Image could not be generated</p>
+      <p className="text-sm font-medium">{labels.imageGenerationFailed}</p>
       {reason && <p className="text-muted-foreground text-xs">{reason}</p>}
     </div>
   )
@@ -365,6 +371,7 @@ export type ImageActionsProps = {
 }
 
 function RegenerateButton({ onRegenerate }: { onRegenerate: () => void | Promise<void> }) {
+  const labels = useAssistantLabels()
   const [isRegenerating, setIsRegenerating] = useState(false)
   return (
     <button
@@ -380,7 +387,7 @@ function RegenerateButton({ onRegenerate }: { onRegenerate: () => void | Promise
       }}
       disabled={isRegenerating}
       data-slot="image-regenerate"
-      aria-label="Regenerate image"
+      aria-label={labels.regenerateImage}
       className="hover:bg-muted inline-flex size-7 items-center justify-center rounded disabled:opacity-50">
       <RefreshCwIcon className={cn('size-4', isRegenerating && 'animate-spin')} />
     </button>
@@ -388,6 +395,8 @@ function RegenerateButton({ onRegenerate }: { onRegenerate: () => void | Promise
 }
 
 function ImageActions({ part, onRegenerate, className }: ImageActionsProps) {
+  const labels = useAssistantLabels()
+
   return (
     <div
       data-slot="image-actions"
@@ -396,7 +405,7 @@ function ImageActions({ part, onRegenerate, className }: ImageActionsProps) {
         type="button"
         onClick={() => downloadImagePart(part)}
         data-slot="image-download"
-        aria-label="Download image"
+        aria-label={labels.downloadImage}
         className="hover:bg-muted inline-flex size-7 items-center justify-center rounded">
         <DownloadIcon className="size-4" />
       </button>
@@ -406,7 +415,7 @@ function ImageActions({ part, onRegenerate, className }: ImageActionsProps) {
           copyImagePart(part).catch(() => {})
         }}
         data-slot="image-copy"
-        aria-label="Copy image"
+        aria-label={labels.copyImage}
         className="hover:bg-muted inline-flex size-7 items-center justify-center rounded">
         <CopyIcon className="size-4" />
       </button>
@@ -416,6 +425,7 @@ function ImageActions({ part, onRegenerate, className }: ImageActionsProps) {
 }
 
 const ImageImpl: ImageMessagePartComponent = (props) => {
+  const labels = useAssistantLabels()
   const { image, filename, status } = props
 
   if (status?.type === 'running') {
@@ -430,19 +440,21 @@ const ImageImpl: ImageMessagePartComponent = (props) => {
   if (status?.type === 'incomplete' && status.reason === 'content-filter') {
     return (
       <ImageRoot>
-        <ImageContentFilterError reason="The provider blocked this image." />
+        <ImageContentFilterError reason={labels.imageBlockedByProvider} />
       </ImageRoot>
     )
   }
+
+  const alt = filename ?? labels.imageContent
 
   return (
     <ImageRoot>
       <ImageZoom
         src={image}
-        alt={filename || 'Image content'}>
+        alt={alt}>
         <ImagePreview
           src={image}
-          alt={filename || 'Image content'}
+          alt={alt}
         />
       </ImageZoom>
       <ImageFilename>{filename}</ImageFilename>

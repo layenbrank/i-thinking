@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { CHANNELS } from '../channels'
 import type { ChannelOfDomain } from '../channels'
+import { CHANNELS } from '../channels'
 import type { ChannelSpec } from '../spec'
 
 const FilterSchema = z.object({
@@ -12,6 +12,8 @@ const FilterSchema = z.object({
 const OpenSchema = z
   .object({
     multiple: z.boolean().optional(),
+    /** true = 选目录（工作区根），false/省略 = 选文件 */
+    directory: z.boolean().optional(),
     filters: z.array(FilterSchema).optional()
   })
   .optional()

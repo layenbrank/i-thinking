@@ -1,6 +1,7 @@
 import { type IpcMain } from 'electron'
 
 import { type InvokeChannel } from '../../shared/ipc/channels'
+import { type AgentWindowPort } from '../capabilities/agent-window'
 import { type OverlayWindowPort } from '../capabilities/overlay-window'
 import { type Context } from '../framework/context'
 import { buildAssistantHandlers } from './handlers/assistant'
@@ -14,6 +15,8 @@ import { buildSidecarHandlers } from './handlers/sidecar'
 import { buildStoreHandlers } from './handlers/store'
 import { buildUpdaterHandlers } from './handlers/updater'
 import { buildUserHandlers } from './handlers/user'
+import { buildWindowHandlers } from './handlers/window'
+import { buildWorkspaceHandlers } from './handlers/workspace'
 import { registerAll, type IpcDisposable } from './register'
 import { type Handlers } from './types'
 
@@ -21,6 +24,8 @@ export interface IpcDeps {
   ctx: Context
   /** 与 window 插件共用的 overlay 窗口端口 */
   overlay: OverlayWindowPort
+  /** 按需创建的 Agent 子窗口端口（不归 window 插件管） */
+  agentWindow: AgentWindowPort
 }
 
 type AssertNever<T extends never> = T
@@ -45,6 +50,8 @@ export function buildHandlers(deps: IpcDeps) {
     ...buildSidecarHandlers(deps.ctx),
     ...buildScreenshotHandlers(deps.ctx),
     ...buildOverlayHandlers(deps.overlay),
+    ...buildWindowHandlers(deps.agentWindow),
+    ...buildWorkspaceHandlers(),
     ...buildChatHandlers(),
     ...buildAssistantHandlers(deps.ctx),
     ...buildUpdaterHandlers(deps.ctx)

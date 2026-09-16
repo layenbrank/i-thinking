@@ -1,8 +1,8 @@
 import type { IpcMainInvokeEvent } from 'electron'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { CHANNELS, INVOKE_CHANNELS } from '../../shared/ipc/channels'
 import type { InvokeChannel } from '../../shared/ipc/channels'
+import { CHANNELS, INVOKE_CHANNELS } from '../../shared/ipc/channels'
 import { IpcError, type IpcEnvelope } from '../../shared/ipc/error'
 import type { Context } from '../framework/context'
 import { assertExhaustive, registerAll, type IpcDisposable } from './register'
@@ -116,7 +116,7 @@ describe('registerAll', function () {
     disposable = registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
 
     expect(ipc.size()).toBe(INVOKE_CHANNELS.length)
-    expect(ipc.size()).toBe(38)
+    expect(ipc.size()).toBe(56)
     for (const channel of INVOKE_CHANNELS) {
       expect(ipc.has(channel)).toBe(true)
     }
@@ -189,7 +189,7 @@ describe('registerAll', function () {
 
     expect(failure.code).toBe('IPC_INVALID_PAYLOAD')
     expect(Array.isArray(failure.details)).toBe(true)
-    expect(function clone() {
+    expect(function () {
       structuredClone(failure.details)
     }).not.toThrow()
   })
@@ -215,7 +215,7 @@ describe('registerAll', function () {
     ]
 
     for (const envelope of envelopes) {
-      expect(function clone() {
+      expect(function () {
         structuredClone(envelope)
       }).not.toThrow()
     }
@@ -223,7 +223,7 @@ describe('registerAll', function () {
 
   it('lets ipcMain reject a duplicate registration', function () {
     registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
-    expect(function second() {
+    expect(function () {
       registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
     }).toThrow(/second handler/)
   })
@@ -231,7 +231,7 @@ describe('registerAll', function () {
   describe('dispose', function () {
     it('removes every owned handler and is idempotent', function () {
       disposable = registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
-      expect(ipc.size()).toBe(38)
+      expect(ipc.size()).toBe(56)
 
       disposable.dispose()
       expect(ipc.size()).toBe(0)
@@ -259,13 +259,13 @@ describe('assertExhaustive', function () {
     const handlers = stubHandlers() as Record<string, unknown>
     delete handlers[CHANNELS.STORE.KEYS]
 
-    expect(function check() {
+    expect(function () {
       assertExhaustive(handlers as unknown as Handlers)
     }).toThrow(new RegExp(CHANNELS.STORE.KEYS))
   })
 
   it('passes for a complete table', function () {
-    expect(function check() {
+    expect(function () {
       assertExhaustive(stubHandlers())
     }).not.toThrow()
   })

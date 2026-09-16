@@ -1,7 +1,7 @@
 import type { z } from 'zod'
 
-import { CHANNELS } from '../channels'
 import type { InvokeChannel, PushChannel } from '../channels'
+import { CHANNELS } from '../channels'
 import type { PushChannelSpec } from '../spec'
 import { assistantPushSpec, assistantSpecs } from './assistant'
 import { chatSpecs } from './chat'
@@ -14,6 +14,8 @@ import { sidecarSpecs } from './sidecar'
 import { storeSpecs } from './store'
 import { updaterPushSpec, updaterSpecs } from './updater'
 import { userSpecs } from './user'
+import { windowSpecs } from './window'
+import { workspaceSpecs } from './workspace'
 
 /** invoke 通道的契约聚合 —— 准入参/出参类型的**唯一来源** */
 export const INVOKE_SPECS = {
@@ -27,7 +29,9 @@ export const INVOKE_SPECS = {
   ...screenshotSpecs,
   ...chatSpecs,
   ...assistantSpecs,
-  ...updaterSpecs
+  ...updaterSpecs,
+  ...windowSpecs,
+  ...workspaceSpecs
 } as const
 
 /** 推送通道（主进程 → 渲染进程）的契约；无入参，不参与 invoke 注册 */

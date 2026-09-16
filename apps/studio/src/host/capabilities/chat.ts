@@ -33,7 +33,8 @@ function parseModels(value: string | null): string[] | null {
   try {
     const parsed: unknown = JSON.parse(value)
     return Array.isArray(parsed) ? (parsed as string[]) : null
-  } catch {
+  } catch (error) {
+    console.warn('[chat] provider.models 不是合法 JSON，按未配置处理', error)
     return null
   }
 }
@@ -67,6 +68,7 @@ function toSession(row: {
   title: string
   pinned: boolean
   providerID: string | null
+  workspaceID: string | null
   createdAt: Date
   updatedAt: Date
 }): SessionReadR {
@@ -75,6 +77,7 @@ function toSession(row: {
     title: row.title,
     pinned: row.pinned,
     providerID: row.providerID,
+    workspaceID: row.workspaceID,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString()
   }
@@ -119,7 +122,11 @@ class Repository {
   }
 
   async findProvider(id: string): Promise<ProviderReadR | null> {
-    const rows = await findClient().select().from(chatProvider).where(eq(chatProvider.id, id)).limit(1)
+    const rows = await findClient()
+      .select()
+      .from(chatProvider)
+      .where(eq(chatProvider.id, id))
+      .limit(1)
     return rows.length === 0 ? null : toProvider(rows[0])
   }
 
@@ -148,7 +155,8 @@ class Repository {
       })
       .where(eq(chatProvider.id, input.id))
       .returning()
-    if (rows.length === 0) throw new IpcError('CHAT_PROVIDER_NOT_FOUND', `provider 不存在: ${input.id}`)
+    if (rows.length === 0)
+      throw new IpcError('CHAT_PROVIDER_NOT_FOUND', `provider 不存在: ${input.id}`)
     return toProvider(rows[0])
   }
 
@@ -158,7 +166,8 @@ class Repository {
       .delete(chatProvider)
       .where(eq(chatProvider.id, input.id))
       .returning()
-    if (rows.length === 0) throw new IpcError('CHAT_PROVIDER_NOT_FOUND', `provider 不存在: ${input.id}`)
+    if (rows.length === 0)
+      throw new IpcError('CHAT_PROVIDER_NOT_FOUND', `provider 不存在: ${input.id}`)
   }
 
   /** 置顶优先，其次最近更新 */
@@ -178,6 +187,7 @@ class Repository {
         id: randomUUID(),
         title: input.title ?? '新会话',
         providerID: input.providerID ?? null,
+        workspaceID: input.workspaceID ?? null,
         createdAt: now,
         updatedAt: now
       })
@@ -192,11 +202,13 @@ class Repository {
         ...(input.title !== undefined ? { title: input.title } : {}),
         ...(input.pinned !== undefined ? { pinned: input.pinned } : {}),
         ...(input.providerID !== undefined ? { providerID: input.providerID ?? null } : {}),
+        ...(input.workspaceID !== undefined ? { workspaceID: input.workspaceID ?? null } : {}),
         updatedAt: new Date()
       })
       .where(eq(chatSession.id, input.id))
       .returning()
-    if (rows.length === 0) throw new IpcError('CHAT_SESSION_NOT_FOUND', `session 不存在: ${input.id}`)
+    if (rows.length === 0)
+      throw new IpcError('CHAT_SESSION_NOT_FOUND', `session 不存在: ${input.id}`)
     return toSession(rows[0])
   }
 
@@ -205,7 +217,8 @@ class Repository {
       .delete(chatSession)
       .where(eq(chatSession.id, input.id))
       .returning()
-    if (rows.length === 0) throw new IpcError('CHAT_SESSION_NOT_FOUND', `session 不存在: ${input.id}`)
+    if (rows.length === 0)
+      throw new IpcError('CHAT_SESSION_NOT_FOUND', `session 不存在: ${input.id}`)
   }
 
   /** 按时间升序返回整条会话（分支关系由 parentID 表达） */
@@ -251,7 +264,8 @@ class Repository {
       })
       .where(eq(chatMessage.id, input.id))
       .returning()
-    if (rows.length === 0) throw new IpcError('CHAT_MESSAGE_NOT_FOUND', `message 不存在: ${input.id}`)
+    if (rows.length === 0)
+      throw new IpcError('CHAT_MESSAGE_NOT_FOUND', `message 不存在: ${input.id}`)
     return toMessage(rows[0])
   }
 
@@ -261,7 +275,8 @@ class Repository {
       .delete(chatMessage)
       .where(eq(chatMessage.id, input.id))
       .returning()
-    if (rows.length === 0) throw new IpcError('CHAT_MESSAGE_NOT_FOUND', `message 不存在: ${input.id}`)
+    if (rows.length === 0)
+      throw new IpcError('CHAT_MESSAGE_NOT_FOUND', `message 不存在: ${input.id}`)
   }
 }
 

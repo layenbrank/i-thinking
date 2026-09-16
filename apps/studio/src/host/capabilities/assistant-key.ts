@@ -10,7 +10,7 @@ import { type In } from '../../shared/ipc/specs'
  * - 系统密钥库不可用时**拒绝写入**，不退化成明文落盘。
  *
  * 依赖以最小接口注入（`SecretCipher` / `SecretStore`），与 `electron.safeStorage`、
- * `electron-store` 解耦 —— 普通 Node 即可单测（同 database-migrate.ts 的做法）。
+ * `electron-store` 解耦 —— 普通 Node 即可单测。
  */
 
 /** 加解密端口：生产实现包 `electron.safeStorage`，测试注入假实现 */
@@ -68,8 +68,9 @@ class KeyStore {
 
     try {
       return this.cipher.decrypt(Buffer.from(encrypted, 'base64'))
-    } catch {
-      // 系统密钥库换过（如重装/换机器）时解不开：当作没有，不向上抛
+    } catch (error) {
+      // 系统密钥库换过（如重装/换机器）时解不开：当作没有，不向上抛，但必须出声
+      console.warn('[assistant-key] 密钥解不开（密钥库可能变过），按未配置处理', error)
       return null
     }
   }

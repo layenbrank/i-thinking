@@ -68,6 +68,38 @@ export interface Api {
     toUpdate: IpcFn<typeof CHANNELS.OVERLAY.UPDATE>
   }
 
+  window: {
+    agent: {
+      toOpen: IpcFn<typeof CHANNELS.WINDOW.AGENT.OPEN>
+    }
+  }
+
+  workspace: {
+    toRead: IpcFn<typeof CHANNELS.WORKSPACE.READ>
+    toWrite: IpcFn<typeof CHANNELS.WORKSPACE.WRITE>
+    toUpdate: IpcFn<typeof CHANNELS.WORKSPACE.UPDATE>
+    toRemove: IpcFn<typeof CHANNELS.WORKSPACE.REMOVE>
+    toArchive: IpcFn<typeof CHANNELS.WORKSPACE.ARCHIVE>
+    folders: {
+      toWrite: IpcFn<typeof CHANNELS.WORKSPACE.FOLDERS.WRITE>
+      toUpdate: IpcFn<typeof CHANNELS.WORKSPACE.FOLDERS.UPDATE>
+      toRemove: IpcFn<typeof CHANNELS.WORKSPACE.FOLDERS.REMOVE>
+    }
+    listDir: IpcFn<typeof CHANNELS.WORKSPACE.LIST_DIR>
+    search: IpcFn<typeof CHANNELS.WORKSPACE.SEARCH>
+    readFile: IpcFn<typeof CHANNELS.WORKSPACE.READ_FILE>
+    listSkills: IpcFn<typeof CHANNELS.WORKSPACE.LIST_SKILLS>
+    git: {
+      probe: IpcFn<typeof CHANNELS.WORKSPACE.GIT.PROBE>
+      branches: IpcFn<typeof CHANNELS.WORKSPACE.GIT.BRANCHES>
+      checkout: IpcFn<typeof CHANNELS.WORKSPACE.GIT.CHECKOUT>
+    }
+    changes: {
+      toRead: IpcFn<typeof CHANNELS.WORKSPACE.CHANGES.READ>
+      toUndo: IpcFn<typeof CHANNELS.WORKSPACE.CHANGES.UNDO>
+    }
+  }
+
   chat: {
     provider: {
       toRead: IpcFn<typeof CHANNELS.CHAT.PROVIDER.READ>
@@ -91,8 +123,6 @@ export interface Api {
 
   assistant: {
     connect: IpcFn<typeof CHANNELS.ASSISTANT.CONNECT>
-    /** 推送：离线通路的 MessagePort */
-    onPort: Subscribe<PushOut<typeof CHANNELS.ASSISTANT.PORT>>
     key: {
       toWrite: IpcFn<typeof CHANNELS.ASSISTANT.KEY.WRITE>
       has: IpcFn<typeof CHANNELS.ASSISTANT.KEY.HAS>
