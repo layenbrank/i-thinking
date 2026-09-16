@@ -66,6 +66,7 @@ const LOCAL_CODEC: MessageFormatAdapter<ThreadMessage, LocalPayload> = {
   }
 }
 
+/** 写入必须落在某个会话上：没有活动会话就是真错误，抛给调用方 */
 function requireThreadID(findThreadID: () => string | null): string {
   const threadID = findThreadID()
   if (!threadID) throw new Error('[CHAT] 没有活动会话')
@@ -116,7 +117,12 @@ function createFormattedAdapter<TMessage, TStorageFormat extends Record<string, 
 
   return {
     async load() {
-      const rows = await port.findMessages({ threadID: findThread() })
+      // 还没有活动会话（首启，或 runtime 还没回调 onThreadIdChange）是**正常状态**而不是错误：
+      // 历史就是空的。抛错会被 assistant-ui 记成 `load failed`，首屏也读不到历史。
+      const threadID = findThreadID()
+      if (!threadID) return { headId: null, messages: [] }
+
+      const rows = await port.findMessages({ threadID })
       const items = rows
         .filter(function (row) {
           return row.format === formatAdapter.format

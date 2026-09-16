@@ -11,6 +11,7 @@ import {
   useState
 } from 'react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/collapsible'
+import { useAssistantLabels } from './labels'
 
 export const ANIMATION_DURATION = 200
 
@@ -158,7 +159,7 @@ function ReasoningTrigger({
   active?: boolean
   duration?: number
 }) {
-  const durationText = duration ? ` (${duration}s)` : ''
+  const labels = useAssistantLabels()
 
   return (
     <CollapsibleTrigger
@@ -178,7 +179,7 @@ function ReasoningTrigger({
           'aui-reasoning-trigger-label-wrapper inline-block leading-none tabular-nums',
           active && 'shimmer motion-reduce:animate-none'
         )}>
-        Reasoning{durationText}
+        {labels.reasoning(duration)}
       </span>
       <ChevronDownIcon
         data-slot="reasoning-trigger-chevron"

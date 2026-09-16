@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import type { FileMessagePartComponent } from '@assistant-ui/react'
 import { cn } from 'cn'
+import { useAssistantLabels } from './labels'
 
 const fileVariants = cva(
   'aui-file-root inline-flex items-center gap-3 rounded-lg transition-colors',
@@ -191,6 +192,7 @@ function FileDownload({
   children,
   ...props
 }: FileDownloadProps) {
+  const labels = useAssistantLabels()
   if (typeof data !== 'string') return null
   const kind = getFileDataKind(data, sourceType)
   if (kind === 'id') return null
@@ -207,7 +209,7 @@ function FileDownload({
         'text-muted-foreground hover:bg-accent hover:text-accent-foreground shrink-0 rounded-md p-1 transition-colors',
         className
       )}
-      aria-label={!children ? `Download ${filename || 'file'}` : undefined}
+      aria-label={!children ? labels.downloadFile(filename) : undefined}
       {...props}>
       {children || <DownloadIcon className="size-4" />}
     </a>

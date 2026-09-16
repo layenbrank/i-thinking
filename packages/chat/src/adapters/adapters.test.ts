@@ -25,20 +25,28 @@ class MemoryPort implements ChatHistoryPort {
     return this.threads.get(id) ?? null
   }
 
-  async createThread(input?: { title?: string; providerID?: string | null }): Promise<ChatThread> {
+  async createThread(input?: {
+    title?: string
+    providerID?: string | null
+    workspaceID?: string | null
+  }): Promise<ChatThread> {
     this.seq += 1
     const thread: ChatThread = {
       id: `thread-${this.seq}`,
       title: input?.title ?? '新会话',
       pinned: false,
       updatedAt: this.seq,
-      providerID: input?.providerID ?? null
+      providerID: input?.providerID ?? null,
+      workspaceID: input?.workspaceID ?? null
     }
     this.threads.set(thread.id, thread)
     return thread
   }
 
-  async updateThread(id: string, patch: { title?: string; pinned?: boolean }): Promise<ChatThread> {
+  async updateThread(
+    id: string,
+    patch: { title?: string; pinned?: boolean; workspaceID?: string | null }
+  ): Promise<ChatThread> {
     const thread = this.threads.get(id)
     if (!thread) throw new Error(`thread not found: ${id}`)
     const next = { ...thread, ...patch, updatedAt: thread.updatedAt + 1 }
@@ -207,13 +215,23 @@ describe('createThreadHistoryAdapter', function () {
     expect((await adapter.load()).messages).toHaveLength(0)
   })
 
-  it('没有活动会话时给出可展示的错误', async function () {
+  it('没有活动会话时读历史返回空，写消息仍然报错', async function () {
     const { port } = await buildPort()
     const adapter = createThreadHistoryAdapter(port, function () {
       return null
     })
 
-    await expect(adapter.load()).rejects.toThrow('[CHAT] 没有活动会话')
+    await expect(adapter.load()).resolves.toEqual({ headId: null, messages: [] })
+    await expect(
+      adapter.append({
+        parentId: null,
+        message: fromThreadMessageLike(
+          { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+          'm1',
+          { type: 'complete', reason: 'unknown' }
+        )
+      })
+    ).rejects.toThrow('[CHAT] 没有活动会话')
   })
 })
 

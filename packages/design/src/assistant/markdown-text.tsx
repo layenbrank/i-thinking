@@ -13,6 +13,7 @@ import remarkGfm from 'remark-gfm'
 
 import { cn } from 'cn'
 import { useCopyToClipboard } from '../hooks/use-copy-to-clipboard'
+import { useAssistantLabels } from './labels'
 import { TooltipIconButton } from './tooltip-icon-button'
 
 type MarkdownTextProps = Partial<TextMessagePartProps> & {
@@ -56,6 +57,7 @@ const MarkdownTextImpl: FC<MarkdownTextProps> = ({ components }) => {
 export const MarkdownText = memo(MarkdownTextImpl)
 
 const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
+  const labels = useAssistantLabels()
   const { isCopied, copyToClipboard } = useCopyToClipboard()
   const onCopy = () => {
     if (!code || isCopied) return
@@ -68,7 +70,7 @@ const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
         {language}
       </span>
       <TooltipIconButton
-        tooltip="Copy"
+        tooltip={labels.copy}
         onClick={onCopy}>
         {!isCopied && <CopyIcon className="animate-in zoom-in-75 fade-in duration-150" />}
         {isCopied && <CheckIcon className="animate-in zoom-in-50 fade-in duration-200 ease-out" />}
