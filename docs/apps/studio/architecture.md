@@ -41,12 +41,12 @@ flowchart TB
   HTTP --> Cloud
 ```
 
-| 层              | 职责                                                          | 禁止                                              |
-| --------------- | ------------------------------------------------------------- | ------------------------------------------------- |
-| **host**        | 宿主能力：框架 + IPC 装配 + 能力域实现 + 生命周期             | 依赖 UI（`@/`）                                   |
-| **preload**     | `Api` → `ipcRenderer.invoke/on`；只碰 `shared/ipc/` 的契约   | 业务逻辑、`host/**`、让频道字符串外流             |
-| **renderer**    | UI + 远程 HTTP；全局 `itc`                                    | `electron`、host 实现（可 `import type` `itc`）   |
-| **forge**       | 打包 / makers / hooks / sidecar stage                         | 业务代码、IPC 契约                                |
+| 层           | 职责                                                       | 禁止                                            |
+| ------------ | ---------------------------------------------------------- | ----------------------------------------------- |
+| **host**     | 宿主能力：框架 + IPC 装配 + 能力域实现 + 生命周期          | 依赖 UI（`@/`）                                 |
+| **preload**  | `Api` → `ipcRenderer.invoke/on`；只碰 `shared/ipc/` 的契约 | 业务逻辑、`host/**`、让频道字符串外流           |
+| **renderer** | UI + 远程 HTTP；全局 `itc`                                 | `electron`、host 实现（可 `import type` `itc`） |
+| **forge**    | 打包 / makers / hooks / sidecar stage                      | 业务代码、IPC 契约                              |
 
 ## 3. 目录
 
@@ -73,13 +73,13 @@ apps/studio/
 
 各层的边界含义：
 
-| 层                  | 放什么                             | 判据                                                    |
-| ------------------- | ---------------------------------- | ------------------------------------------------------- |
-| `shared/ipc/`       | 频道、schema、派生类型、错误码     | 被三端同时打包；`shared-framework-free` 规则强制零框架依赖 |
-| `host/framework/`   | 插件机制与主进程基建               | 被能力域引用，自身不引用能力域                          |
-| `host/ipc/`         | handler 实现与注册装配             | 频道字符串的唯一来源是契约                              |
-| `host/capabilities/`| 域的服务实现（**不再是插件**）     | 被 `host/ipc/handlers` 调用                             |
-| `host/lifecycle/`   | 进程级钩子，非插件                 | 在 `main.ts` 里直接调用而非注册                         |
+| 层                   | 放什么                         | 判据                                                       |
+| -------------------- | ------------------------------ | ---------------------------------------------------------- |
+| `shared/ipc/`        | 频道、schema、派生类型、错误码 | 被三端同时打包；`shared-framework-free` 规则强制零框架依赖 |
+| `host/framework/`    | 插件机制与主进程基建           | 被能力域引用，自身不引用能力域                             |
+| `host/ipc/`          | handler 实现与注册装配         | 频道字符串的唯一来源是契约                                 |
+| `host/capabilities/` | 域的服务实现（**不再是插件**） | 被 `host/ipc/handlers` 调用                                |
+| `host/lifecycle/`    | 进程级钩子，非插件             | 在 `main.ts` 里直接调用而非注册                            |
 
 ESLint：renderer / preload / host / shared 四条边界规则（`eslint.config.ts`）。
 
@@ -95,6 +95,8 @@ ESLint：renderer / preload / host / shared 四条边界规则（`eslint.config.
 - 通路选择持久化在设置存储 `chat.transport`；切换会换掉 `runtimeHook`，因此 `views/chat` 用
   `key={kind}` 重建运行时（hook 顺序不能跨通路复用）。
 - 在线通路可用性 = 配置了 `VITE_THINKING` 且已登录，否则自动回落到离线并在选择器里禁用。
+- `/agent` 跑在**独立子窗口**（主窗口 overview 的「打开 Agent 窗口」经 `window:agent.toOpen` 打开），
+  不在主窗口内跳路由；两个窗口各有自己的渲染上下文与运行时。
 
 ## 5. 组合根与插件
 
@@ -103,9 +105,10 @@ ESLint：renderer / preload / host / shared 四条边界规则（`eslint.config.
 ```ts
 const ctx = buildContext(new CorexHost(buildLogger('main')))
 const overlayPort = buildOverlayWindowPort()
+const chatWindowPort = buildChatWindowPort(ctx)
 
 // ① IPC 注册 —— 必须先于插件循环
-const ipc = registerStudioIpc(ctx.ipc, { ctx, overlay: overlayPort })
+const ipc = registerStudioIpc(ctx.ipc, { ctx, overlay: overlayPort, chatWindow: chatWindowPort })
 
 // ② 插件只负责生命周期：security → database → window → sidecar
 for (const plugin of plugins) await plugin.register(ctx)
@@ -114,7 +117,7 @@ for (const plugin of plugins) await plugin.register(ctx)
 ```
 
 **顺序不可颠倒**：window 插件会 `loadURL`，渲染进程随即 `invoke`。注册晚一拍会让首个
-`store:toRead` 失败，而 `/chat` 在 `loaded === false` 时永远渲染 `null` ——
+`store:toRead` 失败，而 `/agent` 在 `loaded === false` 时永远渲染 `null` ——
 是白屏而不是崩溃。
 
 ```ts
@@ -129,6 +132,10 @@ interface Plugin {
   起停 sidecar（sidecar）。**频道注册已不由插件承担** —— 那是 `host/ipc` 遍历契约的职责
 - **注册必须显式**：写在 `main.ts` 的数组里。不用基于 glob 的副作用自动注册 —— 那会破坏
   tree-shaking 与可测性。
+- **多窗口**：主窗口与浮层窗口由 window 插件在启动期创建（浮层经 `OverlayWindowPort` 读写）；
+  **Agent 子窗口按需创建**，归 `capabilities/agent-window.ts` 的 `AgentWindowPort`，由
+  `window:agent.toOpen` 触发。建窗公共原语（路径解析 / 加载 / 安全附着）在
+  `capabilities/window-factory.ts` —— 各窗口只写自己的选项，不再各复制一份建窗代码。
 - 能力域粒度：小域单文件（`capabilities/window.ts`）；有内部辅助的域用前缀分组
   （`capabilities/assistant.ts` + `assistant-protocol.ts` + `assistant-key.ts`）。
 - 单文件超过约 300 行即拆分（`sidecar.ts` 目前 545 行，是本层待拆的已知项）。
@@ -139,7 +146,7 @@ interface Plugin {
 摘要：
 
 - 单一事实源：[`src/shared/ipc/`](../../../apps/studio/src/shared/ipc/)，零 `electron` / `node` / `dom` 依赖，被三端同时打包
-- 频道：`namespace:action`，40 个（38 invoke + 2 push），见 [`channels.ts`](../../../apps/studio/src/shared/ipc/channels.ts)
+- 频道：`namespace:action`，48 个（46 invoke + 2 push），见 [`channels.ts`](../../../apps/studio/src/shared/ipc/channels.ts)
 - **schema-first**：类型由 `z.infer` 从 zod schema 推导（[`specs/`](../../../apps/studio/src/shared/ipc/specs/)），**不另手写 DTO**
 - 三处 `satisfies` 闭环：main 的 `Handlers`、preload 的 `Api`、renderer 的 `Window.itc`；
   契约聚合另有四条穷尽性断言，缺一个频道即编译失败
@@ -175,15 +182,15 @@ interface Plugin {
 
 ## 9. 决策
 
-| 决策                                | 理由                                                                    |
-| ----------------------------------- | ----------------------------------------------------------------------- |
-| 保留 Forge 扁平进程入口             | `main.ts`/`preload.ts`/`renderer.tsx` 是 Forge 官方模板形态              |
-| `host/` 按角色分层                  | 原 `plugins/` 单层平铺混了框架/契约/能力/生命周期四种角色                |
-| 契约提到 `src/shared/ipc/`          | 它被三端同时打包，挂在「主进程」名下语义不对                            |
-| eslint 强制 `shared/**` 框架无关    | 目录名不声明约束，靠规则把不变量变成机器可验                            |
-| 能力模块内嵌 host，不取代进程划分   | 注册显式、按域内聚；与 VS Code 的 `contrib/` 是同类思路（非同一形态）    |
-| 删除 `host/contract/`               | `itc.ts` 手工维护 38 个类型，已由 specs 派生取代                        |
-| 删除 `framework/handle.ts`          | 频道注册的唯一来源收敛到 `registerAll`                                  |
-| 8 个空壳插件整体删除                | 频道注册迁走后它们只剩一行日志；保留的 4 个只做生命周期                  |
-| 删除 `through.ts`                   | 0 字节空文件                                                            |
-| `paths.ts` / Forge CJS              | 打包现实约束                                                            |
+| 决策                              | 理由                                                                  |
+| --------------------------------- | --------------------------------------------------------------------- |
+| 保留 Forge 扁平进程入口           | `main.ts`/`preload.ts`/`renderer.tsx` 是 Forge 官方模板形态           |
+| `host/` 按角色分层                | 原 `plugins/` 单层平铺混了框架/契约/能力/生命周期四种角色             |
+| 契约提到 `src/shared/ipc/`        | 它被三端同时打包，挂在「主进程」名下语义不对                          |
+| eslint 强制 `shared/**` 框架无关  | 目录名不声明约束，靠规则把不变量变成机器可验                          |
+| 能力模块内嵌 host，不取代进程划分 | 注册显式、按域内聚；与 VS Code 的 `contrib/` 是同类思路（非同一形态） |
+| 删除 `host/contract/`             | `itc.ts` 手工维护 38 个类型，已由 specs 派生取代                      |
+| 删除 `framework/handle.ts`        | 频道注册的唯一来源收敛到 `registerAll`                                |
+| 8 个空壳插件整体删除              | 频道注册迁走后它们只剩一行日志；保留的 4 个只做生命周期               |
+| 删除 `through.ts`                 | 0 字节空文件                                                          |
+| `paths.ts` / Forge CJS            | 打包现实约束                                                          |

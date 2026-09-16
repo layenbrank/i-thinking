@@ -7,11 +7,11 @@ Studio 的 IPC（`invoke`）按一份**单一事实源**的契约组织。本文
 
 所有设计都从这三条推导。它们不是取舍，是 Electron 给定的前提。
 
-| #   | 约束                                                                                                       | 后果                                                                     |
-| --- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 1   | `contextBridge` 只传可克隆值（函数被代理，其余复制并冻结）                                                 | 渲染进程无法拿到真实桥对象，**类型必须独立声明**，运行时边界天然无类型   |
-| 2   | Electron 丢弃跨 IPC 抛出错误的身份 —— 只保留 `message`，自定义属性全丢                                     | 领域错误**绝不可靠 `throw` 跨 IPC**；渲染侧只会看到重建的 `Error`        |
-| 3   | 主进程是信任边界，渲染进程可能发任何东西且类型已擦除                                                       | 校验**必须**在 main 侧、在 handler 之前                                  |
+| #   | 约束                                                                   | 后果                                                                   |
+| --- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 1   | `contextBridge` 只传可克隆值（函数被代理，其余复制并冻结）             | 渲染进程无法拿到真实桥对象，**类型必须独立声明**，运行时边界天然无类型 |
+| 2   | Electron 丢弃跨 IPC 抛出错误的身份 —— 只保留 `message`，自定义属性全丢 | 领域错误**绝不可靠 `throw` 跨 IPC**；渲染侧只会看到重建的 `Error`      |
+| 3   | 主进程是信任边界，渲染进程可能发任何东西且类型已擦除                   | 校验**必须**在 main 侧、在 handler 之前                                |
 
 第 2 条还决定了**渲染进程拿不到 `IpcClientError.code`**：preload 与渲染进程是两个 JS realm，
 自定义属性跨桥即丢。所以 **code 必须以 message 前缀为载体**（`[CODE] 文本`），
@@ -22,7 +22,7 @@ Studio 的 IPC（`invoke`）按一份**单一事实源**的契约组织。本文
 ```text
 src/
 ├── shared/ipc/          # 契约：零 electron / node / dom import
-│   ├── channels.ts      # 40 个频道 + Domain/ChannelOfDomain/InvokeChannel/PushChannel
+│   ├── channels.ts      # 48 个频道 + Domain/ChannelOfDomain/InvokeChannel/PushChannel
 │   ├── spec.ts          # ChannelSpec（in/out 用 ZodType<any>）
 │   ├── specs/           # 每域一个 spec + 聚合 + In/Out/ArgsOf
 │   ├── api.ts           # Api —— 渲染进程可见的唯一宿主面
@@ -31,16 +31,16 @@ src/
 │   ├── types.ts         # Handler<K> / Handlers / DomainHandlers<D>
 │   ├── register.ts      # wrapHandler / assertExhaustive / registerAll
 │   ├── index.ts         # buildHandlers / registerStudioIpc
-│   └── handlers/        # 11 个域切片
+│   └── handlers/        # 13 个域切片
 └── preload.ts           # 纯适配器：契约驱动构建 api + 解信封
 ```
 
-| 层            | 放什么                                                | 禁止                                            |
-| ------------- | ----------------------------------------------------- | ----------------------------------------------- |
-| `shared/ipc/` | 频道、schema、派生类型、错误码词汇表                  | `electron`、Node 内置、DOM —— 它要被三端同时打包 |
-| `host/ipc/`   | handler 实现与装配                                    | 依赖渲染侧模块                                  |
-| `preload.ts`  | 契约驱动的桥对象、解信封                              | 业务逻辑、暴露 `ipcRenderer`、让频道字符串外流  |
-| 渲染侧        | 调用点、错误文案归一                                  | 看见频道字符串、`import electron`               |
+| 层            | 放什么                               | 禁止                                             |
+| ------------- | ------------------------------------ | ------------------------------------------------ |
+| `shared/ipc/` | 频道、schema、派生类型、错误码词汇表 | `electron`、Node 内置、DOM —— 它要被三端同时打包 |
+| `host/ipc/`   | handler 实现与装配                   | 依赖渲染侧模块                                   |
+| `preload.ts`  | 契约驱动的桥对象、解信封             | 业务逻辑、暴露 `ipcRenderer`、让频道字符串外流   |
+| 渲染侧        | 调用点、错误文案归一                 | 看见频道字符串、`import electron`                |
 
 **`shared/**` 的框架无关是机器强制的**，不是口头约定 —— `eslint.config.ts` 的
 `shared-framework-free` 规则禁止该目录 import `electron` 与 `node:*`。
@@ -69,7 +69,7 @@ export const storeSpecs = {
 
 ```ts
 // main：漏频道 / 多频道 / 返回类型错 → 编译错误
-const handlers = { ...11 个切片 } satisfies Handlers
+const handlers = { ...13 个切片 } satisfies Handlers
 
 // preload：缺键 / 多键 / 键映射错频道 → 编译错误
 const api = { … } satisfies Api
@@ -85,17 +85,26 @@ declare global { interface Window { itc: Api } }
 
 **分工，不是二选一**：
 
-| 错误类型                         | 处理                                                            |
-| -------------------------------- | --------------------------------------------------------------- |
-| 预期内的业务失败                 | `throw new IpcError(code, msg)` → wrapper 编码进信封            |
-| 编程错误 / 未预期异常            | 让它 reject → `IPC_HANDLER_ERROR`（语义正确，不混为一谈）       |
+| 错误类型              | 处理                                                      |
+| --------------------- | --------------------------------------------------------- |
+| 预期内的业务失败      | `throw new IpcError(code, msg)` → wrapper 编码进信封      |
+| 编程错误 / 未预期异常 | 让它 reject → `IPC_HANDLER_ERROR`（语义正确，不混为一谈） |
 
 信封：
 
 ```ts
 type IpcEnvelope<T> =
   | { ok: true; data: T }
-  | { ok: false; error: { code: IpcErrorCode; name: string; message: string; details?: unknown; stack?: string } }
+  | {
+      ok: false
+      error: {
+        code: IpcErrorCode
+        name: string
+        message: string
+        details?: unknown
+        stack?: string
+      }
+    }
 ```
 
 - `code` —— 有限联合（`IPC_ERROR_CODES`），调用方可穷尽检查
@@ -126,7 +135,7 @@ for (const plugin of plugins) await plugin.register(ctx)
 ```
 
 **顺序不可颠倒**：window 插件会 `loadURL`，渲染进程随即 `invoke`。注册晚一拍会让首个
-`store:toRead` 失败，而 `/chat` 在 `loaded === false` 时永远渲染 `null` ——
+`store:toRead` 失败，而 `/agent` 在 `loaded === false` 时永远渲染 `null` ——
 **是白屏而不是崩溃，冒烟测试很难发现**。
 
 `registerAll` 遍历 `INVOKE_CHANNELS` 注册，**频道字符串的唯一来源是契约，循环里不出现字面量**。
@@ -149,7 +158,7 @@ for (const plugin of plugins) await plugin.register(ctx)
 权威来源点名的，本仓一律不采用：
 
 - 暴露裸 `ipcRenderer` / `ipcRenderer.on` —— Electron 安全清单 #20 原话：
-  *"gives renderer processes direct access to the entire IPC event system"*
+  _"gives renderer processes direct access to the entire IPC event system"_
 - 跳过 sender 校验（#17）
 - 信任渲染进程输入、main 侧不做 schema 校验
 - 为方便开 `nodeIntegration: true` / `contextIsolation: false` / `sandbox: false`

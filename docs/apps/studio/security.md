@@ -47,14 +47,17 @@
 
 ## 6. 数据面
 
-| 风险                       | 对策                                                                                                                                        |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| XSS → 任意 SQL             | 废除 `db:query`；仅 `user:*` 仓储                                                                                                           |
-| XSS 偷模型密钥             | apiKey 只在主进程：`assistant-key.ts` 用 `safeStorage` 落密文，IPC 只有写/问有没有/删，**没有读回接口**；密钥库不可用时拒绝保存而非明文落盘 |
-| 被攻破的渲染进程压垮主进程 | 离线通路（`assistant:connect` → MessagePort）限制单消息 ≤ 1MB、单请求 ≤ 200 条、并发 ≤ 4；入站消息过 zod；端口关/窗口销毁即 abort           |
-| 任意执行本地二进制         | Renderer 无通用 spawn；域模块（doc / screenshot→corex Action）+ `shell: false`                                                              |
-| 侧车/工具被篡改            | `tools.lock.json` 钉版本+SHA256；staging `checksums.json`；Forge afterCopy 校验                                                             |
-| 不可复现构建               | corex / pandoc 禁止 floating URL；来自 GitHub Releases                                                                                      |
+| 风险                       | 对策                                                                                                                                                                       |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| XSS → 任意 SQL             | 废除 `db:query`；仅 `user:*` 仓储                                                                                                                                          |
+| XSS 偷模型密钥             | apiKey 只在主进程：`assistant-key.ts` 用 `safeStorage` 落密文，IPC 只有写/问有没有/删，**没有读回接口**；密钥库不可用时拒绝保存而非明文落盘                                |
+| 被攻破的渲染进程压垮主进程 | 离线通路（`assistant:connect` → MessagePort）限制单消息 ≤ 1MB、单请求 ≤ 200 条、并发 ≤ 4；入站消息过 zod；端口关/窗口销毁即 abort                                          |
+| 任意执行本地二进制         | Renderer 无通用 spawn；域模块（doc / screenshot→corex Action）+ `shell: false`                                                                                             |
+| Agent 工具越出工作区读写   | 工具只在主进程执行；路径一律「workspaceID → primary + 相对路径」，`resolveInside` 三道防线（拒绍绝对路径/`..`、以 realpath 根比前缀、祖先 realpath 再验一次）→ 抛 `WORKSPACE_PATH_ESCAPE` |
+| Agent 静默改文件           | 写类工具（`fs_write`）默认走审批：运行挂在工具的 `execute` 之前等渲染进程回执，超时/abort 均按**拒绝**落地；`chat.approval` 可切 auto / ask / readonly                     |
+| 工具上下文无限膨胀         | 单文件读 2MB 上限；目录列 500 条、检索限深 8/目录 2000/命中 200；一次生成最多 8 步（`stepCountIs`）后必须收尾                                                              |
+| 侧车/工具被篡改            | `tools.lock.json` 钉版本+SHA256；staging `checksums.json`；Forge afterCopy 校验                                                                                            |
+| 不可复现构建               | corex / pandoc 禁止 floating URL；来自 GitHub Releases                                                                                                                     |
 
 ## 7. Electron Fuses（打包时）
 
