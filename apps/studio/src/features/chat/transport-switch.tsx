@@ -5,7 +5,6 @@ import {
   SelectTrigger,
   SelectValue
 } from '@i-thinking/design/components/select'
-import { clsx } from 'clsx'
 
 import {
   CHAT_TRANSPORT_KINDS,
@@ -13,19 +12,17 @@ import {
   resolveChatTransport,
   type ChatTransportKind
 } from '@/features/chat/transport.ts'
-import { useSettingsStore } from '@/stores/setting.ts'
-
-import styles from '@/views/chat/chat.module.scss'
+import { useAgentStore } from '@/stores/agent.ts'
 
 /**
  * 通路选择器：写进设置存储（`chat.transport`），切换后 `ChatRuntimeProvider` 因 `key` 变化重建。
  * 选中的通路不可用时回落（`resolveChatTransport`），并禁用对应选项。
  */
 export function TransportSwitch() {
-  const transport = useSettingsStore(function (state) {
+  const transport = useAgentStore(function (state) {
     return state.settings.chat.transport
   })
-  const update = useSettingsStore(function (state) {
+  const update = useAgentStore(function (state) {
     return state.update
   })
 
@@ -38,7 +35,7 @@ export function TransportSwitch() {
       value={resolveChatTransport(transport)}
       onValueChange={handleChange}>
       <SelectTrigger
-        className={clsx(styles.transportTrigger)}
+        className="h-8 w-auto px-2 text-xs"
         aria-label="对话通路">
         <SelectValue />
       </SelectTrigger>

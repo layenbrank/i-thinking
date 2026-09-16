@@ -13,6 +13,10 @@ import type {
  * 建连（端口异步到达，先排队）→ 发 `start` → 收事件 → `finish`/`error`/`aborted` 收束。
  */
 
+import { findLatestReferences } from '@/features/agent/references.ts'
+
+import { subscribeAssistantPort } from './assistant-port.ts'
+
 interface EventQueue<T> {
   push: (item: T) => void
   close: () => void
@@ -71,7 +75,7 @@ function createPortSession() {
     if (listening) return
     listening = true
 
-    itc.assistant.onPort(function (next) {
+    subscribeAssistantPort(function (next) {
       channel = next
       waiting.splice(0).forEach(function (resolve) {
         resolve(next)
@@ -149,11 +153,28 @@ export function resolveTarget(
 
 function createModelPort(findSelection: () => ModelSelection): ChatModelPort {
   const session = createPortSession()
+  /** 当前运行的端口与 runID：审批回执得知道回到哪一次运行上 */
+  let active: { channel: MessagePort; runID: string } | null = null
 
   return {
     /** 当前选中的本地 provider/模型 */
     async findTarget(): Promise<ChatTarget | null> {
       return resolveTarget(await itc.chat.provider.toRead(), findSelection())
+    },
+
+    /**
+     * 回答一次工具审批。事件流里出现过 `tool-approval-request` 时才有意义；
+     * 没有进行中的运行时静默忽略（用户可能在运行结束后才点到按钮）。
+     */
+    respondToApproval(input) {
+      const current = active
+      if (!current) return
+      current.channel.postMessage({
+        kind: 'tool-approval',
+        runID: current.runID,
+        toolCallId: input.toolCallId,
+        approved: input.approved
+      })
     },
 
     async *run(input, signal) {
@@ -177,15 +198,23 @@ function createModelPort(findSelection: () => ModelSelection): ChatModelPort {
 
       channel.addEventListener('message', listener)
       signal.addEventListener('abort', abort)
+      active = { channel, runID }
 
       try {
-        const request: ChatPortRequest = { kind: 'start', runID, ...input }
+        const references = findLatestReferences(input.messages)
+        const request: ChatPortRequest = {
+          kind: 'start',
+          runID,
+          ...input,
+          ...(references.length > 0 ? { host: { ...input.host, references } } : {})
+        }
         channel.postMessage(request)
 
         for await (const streamEvent of queue.drain()) {
           yield streamEvent
         }
       } finally {
+        active = null
         channel.removeEventListener('message', listener)
         signal.removeEventListener('abort', abort)
       }

@@ -6,7 +6,7 @@
  * 放在组件里用 ref 会被 react-hooks v6 的 refs/immutability 规则拦下
  * （传 ref 给函数 ≈ 渲染期读 ref；改传给 hook 的对象 ≈ 违规变更）。
  *
- * studio 同时只会挂一个 chat runtime（`/chat` 路由），因此单一指针足够。
+ * studio 同时只会挂一个 chat runtime（`/agent` 路由），因此单一指针足够。
  */
 
 const ACTIVE = { id: null as string | null }

@@ -1,27 +1,32 @@
-import { Input } from '@i-thinking/design/components/input'
+import { Button } from '@i-thinking/design/components/button'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@i-thinking/design/components/select'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@i-thinking/design/components/dropdown-menu'
+import { Input } from '@i-thinking/design/components/input'
 import { useQuery } from '@tanstack/react-query'
-import { clsx } from 'clsx'
+import { CheckIcon, ChevronDownIcon, CircleAlertIcon, SearchIcon, SettingsIcon } from 'lucide-react'
+import { useState } from 'react'
 
 import { findSelectedProvider, findUsableProviders } from '@/features/chat/port/model.ts'
 import { resolveChatTransport } from '@/features/chat/transport.ts'
-import { useSettingsStore } from '@/stores/setting.ts'
-
-import styles from '@/views/chat/chat.module.scss'
+import { useAgentStore } from '@/stores/agent.ts'
 
 /** 主进程 provider 行的展示类型（渲染进程不 import 主进程类型） */
 type ProviderRow = Awaited<ReturnType<typeof itc.chat.provider.toRead>>[number]
 
-/** provider 可选的模型：默认模型 + 模型列表（去重） */
-function collectModels(provider: ProviderRow | null): string[] {
-  if (!provider) return []
+interface ModelPickerProps {
+  /** 没有可用 provider 时的出路：由 app 决定去哪儿（这里是设置页） */
+  onOpenSettings?: () => void
+}
 
+/** provider 可选的模型：默认模型 + 模型列表（去重） */
+function collectModels(provider: ProviderRow): string[] {
   const models = provider.models ?? []
   if (!provider.model) return models
 
@@ -34,20 +39,20 @@ function collectModels(provider: ProviderRow | null): string[] {
 }
 
 /**
- * 模型选择：离线从 provider 列表里选（provider + 模型），在线只填模型名（provider 由服务端 env 决定）。
- * 写入设置存储 `chat`，端口/传输层在每次运行时现读。
+ * 模型选择：provider + 模型合成一个下拉；带搜索与「模型设置」入口。
  */
-export function ModelPicker() {
-  const transport = useSettingsStore(function (state) {
+export function ModelPicker(props: ModelPickerProps) {
+  const [query, updateQuery] = useState('')
+  const transport = useAgentStore(function (state) {
     return state.settings.chat.transport
   })
-  const providerID = useSettingsStore(function (state) {
+  const providerID = useAgentStore(function (state) {
     return state.settings.chat.providerID
   })
-  const model = useSettingsStore(function (state) {
+  const model = useAgentStore(function (state) {
     return state.settings.chat.model
   })
-  const update = useSettingsStore(function (state) {
+  const update = useAgentStore(function (state) {
     return state.update
   })
 
@@ -60,19 +65,15 @@ export function ModelPicker() {
     enabled: kind === 'offline'
   })
 
-  function writeModel(value: string): void {
-    void update('chat', { model: value })
-  }
-
   if (kind === 'online') {
     return (
       <Input
-        className={clsx(styles.modelInput)}
+        className="hover:border-border h-7 w-36 border-transparent bg-transparent text-xs shadow-none"
         value={model}
         placeholder="服务端默认模型"
         aria-label="在线模型"
         onChange={function (event) {
-          writeModel(event.target.value)
+          void update('chat', { model: event.target.value })
         }}
       />
     )
@@ -80,57 +81,118 @@ export function ModelPicker() {
 
   const usable = findUsableProviders(providers.data ?? [])
   if (usable.length === 0) {
-    return <span className={clsx(styles.modelHint)}>未配置可用的本地 provider</span>
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="text-muted-foreground hover:text-foreground h-7 max-w-52 justify-start px-2 text-xs"
+        aria-label="选择模型"
+        title={providers.isLoading ? '正在读取 provider…' : '未配置本地 provider，点这里去设置'}
+        disabled={providers.isLoading}
+        onClick={props.onOpenSettings}>
+        <CircleAlertIcon />
+        <span className="truncate">{providers.isLoading ? '读取模型…' : '选择模型'}</span>
+      </Button>
+    )
   }
 
   const selected = findSelectedProvider(usable, { providerID, model })
-  const models = collectModels(selected)
+  const activeModel = model.trim() || selected?.model || selected?.models?.[0] || ''
+  const keyword = query.trim().toLowerCase()
+
+  function pick(nextProviderID: string, nextModel: string) {
+    void update('chat', { providerID: nextProviderID, model: nextModel })
+  }
 
   return (
-    <div className={clsx(styles.modelPicker)}>
-      <Select
-        value={selected?.id ?? ''}
-        onValueChange={function (value) {
-          void update('chat', { providerID: value, model: '' })
-        }}>
-        <SelectTrigger
-          className={clsx(styles.modelTrigger)}
-          aria-label="本地 provider">
-          <SelectValue placeholder="选择 provider" />
-        </SelectTrigger>
-        <SelectContent>
-          {usable.map(function (provider) {
-            return (
-              <SelectItem
-                key={provider.id}
-                value={provider.id}>
-                {provider.name}
-              </SelectItem>
-            )
-          })}
-        </SelectContent>
-      </Select>
+    <DropdownMenu
+      onOpenChange={function (open) {
+        if (!open) updateQuery('')
+      }}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-foreground h-7 max-w-52 justify-start gap-1 px-2 text-xs"
+          aria-label="选择模型"
+          title={selected ? `${selected.name} · ${activeModel}` : undefined}>
+          <span className="truncate">{activeModel || '选择模型'}</span>
+          <ChevronDownIcon className="size-3.5 shrink-0 opacity-60" />
+        </Button>
+      </DropdownMenuTrigger>
 
-      <Select
-        value={model || models[0] || ''}
-        onValueChange={writeModel}>
-        <SelectTrigger
-          className={clsx(styles.modelTrigger)}
-          aria-label="本地模型">
-          <SelectValue placeholder="选择模型" />
-        </SelectTrigger>
-        <SelectContent>
-          {models.map(function (item) {
+      <DropdownMenuContent
+        align="end"
+        className="w-72 p-0">
+        <div className="border-border relative border-b p-2">
+          <SearchIcon className="text-muted-foreground pointer-events-none absolute start-4 top-1/2 size-3.5 -translate-y-1/2" />
+          <Input
+            value={query}
+            placeholder="搜索模型…"
+            aria-label="搜索模型"
+            className="h-8 ps-8 text-xs"
+            onKeyDown={function (event) {
+              event.stopPropagation()
+            }}
+            onChange={function (event) {
+              updateQuery(event.target.value)
+            }}
+          />
+        </div>
+
+        <div className="max-h-72 overflow-y-auto p-1">
+          {usable.map(function (provider) {
+            const models = collectModels(provider).filter(function (item) {
+              if (!keyword) return true
+              return (
+                item.toLowerCase().includes(keyword) ||
+                provider.name.toLowerCase().includes(keyword)
+              )
+            })
+            if (models.length === 0) return null
+
             return (
-              <SelectItem
-                key={item}
-                value={item}>
-                {item}
-              </SelectItem>
+              <DropdownMenuGroup key={provider.id}>
+                <DropdownMenuLabel className="text-muted-foreground text-xs">
+                  {provider.name}
+                </DropdownMenuLabel>
+
+                {models.map(function (item) {
+                  const isActive = provider.id === selected?.id && item === activeModel
+
+                  return (
+                    <DropdownMenuItem
+                      key={item}
+                      onSelect={function () {
+                        pick(provider.id, item)
+                      }}>
+                      <CheckIcon className={isActive ? 'text-primary' : 'opacity-0'} />
+                      <span className="truncate">{item}</span>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuGroup>
             )
           })}
-        </SelectContent>
-      </Select>
-    </div>
+        </div>
+
+        {props.onOpenSettings ? (
+          <>
+            <DropdownMenuSeparator className="m-0" />
+            <div className="p-1">
+              <DropdownMenuItem
+                onSelect={function () {
+                  props.onOpenSettings?.()
+                }}>
+                <SettingsIcon />
+                模型设置
+              </DropdownMenuItem>
+            </div>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

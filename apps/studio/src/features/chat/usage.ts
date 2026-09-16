@@ -8,8 +8,29 @@ function formatCount(value: number | undefined): string {
   return value === undefined ? '-' : String(value)
 }
 
-/** 无可读字段时返回 null（不渲染用量行） */
-export function formatUsage(usage: ThreadTokenUsage | undefined): string | null {
+/** 输入框底栏用：`1.2k` 口径；无可读字段时返回 null */
+function formatTokenShort(count: number): string {
+  if (count >= 1_000_000) return `${Math.round(count / 1_000_000)}M`
+  if (count >= 1_000) return `${Math.round(count / 1_000)}k`
+  return String(count)
+}
+
+function formatUsageCompact(usage: ThreadTokenUsage | undefined): string | null {
+  if (!usage) return null
+
+  const used = usage.totalTokens ?? usage.inputTokens
+  if (used === undefined) return null
+
+  // 有缓存命中时顺带标一下，避免只看合计看不出「其实在吃缓存」
+  if (usage.cachedInputTokens !== undefined && usage.cachedInputTokens > 0) {
+    return `${formatTokenShort(used)} · 缓存 ${formatTokenShort(usage.cachedInputTokens)}`
+  }
+
+  return formatTokenShort(used)
+}
+
+/** 右栏详述：无可读字段时返回 null（不渲染用量行） */
+function formatUsage(usage: ThreadTokenUsage | undefined): string | null {
   if (!usage) return null
 
   const parts = [
@@ -23,3 +44,5 @@ export function formatUsage(usage: ThreadTokenUsage | undefined): string | null 
 
   return parts.join(' · ')
 }
+
+export { formatUsage, formatUsageCompact }
