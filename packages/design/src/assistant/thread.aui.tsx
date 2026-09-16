@@ -47,6 +47,7 @@ import {
 import { File } from './file'
 import { ThreadFollowupSuggestions } from './follow-up-suggestions.aui'
 import { Image } from './image'
+import { useAssistantLabels } from './labels'
 import { MarkdownText } from './markdown-text'
 import {
   Reasoning,
@@ -74,6 +75,32 @@ export type ThreadComponents = {
   ToolFallback?: ToolCallMessagePartComponent | undefined
   ToolGroup?: ComponentType<PropsWithChildren<{ group: ThreadGroupPart }>> | undefined
   ReasoningGroup?: ComponentType<PropsWithChildren<{ group: ThreadGroupPart }>> | undefined
+  /**
+   * 输入区左下角的自定义动作，渲染在附件按钮之前。
+   * app 用它挂自己的工作区引用 / 文件选择 —— 库不关心引用从哪来。
+   */
+  ComposerStart?: ComponentType | undefined
+  /**
+   * 覆盖库自带的系统选文件按钮。传 `null` 表示不渲染。
+   * app 用 `ComposerStart` 统一接管「文件 / 文件夹 / 图片」入口时用得到 ——
+   * 否则输入区会同时出现两个 `+`。
+   */
+  ComposerAttach?: ComponentType | null | undefined
+  /**
+   * 输入区右下角的自定义动作，渲染在语音 / 发送之前。
+   * app 用它挂模型、审批策略这类属于当前会话的开关。
+   */
+  ComposerEnd?: ComponentType | undefined
+  /**
+   * 输入框**下方**的一行（与输入框同宽、跟着它居中或吸底）。
+   * app 用它摆「本次任务在哪个工作区、什么执行模式」这类发送前要核对的信息。
+   */
+  ComposerFooter?: ComponentType | undefined
+  /**
+   * `@` / `/` 等 TriggerPopover，挂在 `Unstable_TriggerPopoverRoot` 内、与 Input 同级。
+   * app 用它接工作区文件 mention、技能 slash —— 库只留槽位。
+   */
+  ComposerTriggers?: ComponentType | undefined
 }
 
 export type ThreadProps = {
@@ -97,25 +124,29 @@ const isHistoryLoadingView = (s: AssistantState) =>
   !s.thread.isDisabled &&
   !s.threads.isLoading
 
-const ThreadHistorySkeleton: FC = () => (
-  <div
-    data-slot="aui_thread-history-skeleton"
-    role="status"
-    className="animate-in fade-in fill-mode-both flex flex-col gap-y-6 [animation-delay:150ms] [animation-duration:200ms]">
-    <span className="sr-only">Loading conversation</span>
-    <Skeleton className="ml-auto h-9 w-2/5 rounded-xl motion-reduce:animate-none" />
-    <div className="flex flex-col gap-y-2">
-      <Skeleton className="h-4 w-11/12 motion-reduce:animate-none" />
-      <Skeleton className="h-4 w-4/5 motion-reduce:animate-none" />
-      <Skeleton className="h-4 w-3/5 motion-reduce:animate-none" />
+const ThreadHistorySkeleton: FC = () => {
+  const labels = useAssistantLabels()
+
+  return (
+    <div
+      data-slot="aui_thread-history-skeleton"
+      role="status"
+      className="animate-in fade-in fill-mode-both flex flex-col gap-y-6 [animation-delay:150ms] [animation-duration:200ms]">
+      <span className="sr-only">{labels.loadingConversation}</span>
+      <Skeleton className="ml-auto h-9 w-2/5 rounded-xl motion-reduce:animate-none" />
+      <div className="flex flex-col gap-y-2">
+        <Skeleton className="h-4 w-11/12 motion-reduce:animate-none" />
+        <Skeleton className="h-4 w-4/5 motion-reduce:animate-none" />
+        <Skeleton className="h-4 w-3/5 motion-reduce:animate-none" />
+      </div>
+      <Skeleton className="ml-auto h-9 w-1/3 rounded-xl motion-reduce:animate-none" />
+      <div className="flex flex-col gap-y-2">
+        <Skeleton className="h-4 w-10/12 motion-reduce:animate-none" />
+        <Skeleton className="h-4 w-2/3 motion-reduce:animate-none" />
+      </div>
     </div>
-    <Skeleton className="ml-auto h-9 w-1/3 rounded-xl motion-reduce:animate-none" />
-    <div className="flex flex-col gap-y-2">
-      <Skeleton className="h-4 w-10/12 motion-reduce:animate-none" />
-      <Skeleton className="h-4 w-2/3 motion-reduce:animate-none" />
-    </div>
-  </div>
-)
+  )
+}
 
 export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS, autoFocus = true }) => {
   const isEmpty = useAuiState(isNewChatView)
@@ -131,28 +162,32 @@ export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS, autoFoc
 }
 
 const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({ isEmpty, autoFocus }) => {
-  const { Welcome = ThreadWelcome } = useContext(ThreadComponentsContext)
+  const { Welcome = ThreadWelcome, ComposerFooter } = useContext(ThreadComponentsContext)
 
   return (
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root bg-background @container flex h-full flex-col"
       style={{
-        ['--thread-max-width' as string]: '44rem',
-        ['--composer-bg' as string]: 'var(--color-card)',
-        ['--composer-radius' as string]: '1.5rem',
-        ['--composer-padding' as string]: '8px'
+        ['--thread-max-width' as string]: '55rem',
+        ['--composer-bg' as string]: 'var(--color-background)',
+        ['--composer-radius' as string]: '0.5rem',
+        ['--composer-padding' as string]: '10px'
       }}>
+      {/*
+       * 输入框必须在 Viewport **之外**：Qoder / client 同款。
+       * 放进 overflow 滚动区再用 sticky/mt-auto，空态内容不够高时仍会跟欢迎区挤在中间。
+       */}
       <ThreadPrimitive.Viewport
         turnAnchor="top"
         data-slot="aui_thread-viewport"
-        className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth">
+        className="relative min-h-0 flex-1 overflow-x-auto overflow-y-auto scroll-smooth">
         <div
-          className={cn(
-            'mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4',
-            isEmpty && 'justify-center'
-          )}>
+          data-slot="aui_thread-viewport-inner"
+          className="mx-auto flex min-h-full w-full max-w-(--thread-max-width) flex-col px-6 pt-5">
           <AuiIf condition={isNewChatView}>
-            <Welcome />
+            <div className="flex flex-1 flex-col items-center justify-center py-6">
+              <Welcome />
+            </div>
           </AuiIf>
           <AuiIf condition={isHistoryLoadingView}>
             <ThreadHistorySkeleton />
@@ -160,24 +195,34 @@ const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({ isEmpty, aut
 
           <div
             data-slot="aui_message-group"
-            className="mb-14 flex flex-col gap-y-6 empty:hidden">
+            className={cn(
+              'flex flex-col gap-y-6 empty:hidden',
+              isEmpty ? 'mb-0' : 'mb-6'
+            )}>
             <ThreadPrimitive.Messages>{() => <ThreadMessage />}</ThreadPrimitive.Messages>
           </div>
-
-          <ThreadPrimitive.ViewportFooter
-            className={cn(
-              'aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6',
-              !isEmpty && 'sticky bottom-0 mt-auto rounded-t-(--composer-radius)'
-            )}>
-            <ThreadScrollToBottom />
-            <ThreadFollowupSuggestions />
-            <Composer autoFocus={autoFocus} />
-            <AuiIf condition={(s) => isNewChatView(s) && s.composer.isEmpty}>
-              <ThreadSuggestions />
-            </AuiIf>
-          </ThreadPrimitive.ViewportFooter>
         </div>
       </ThreadPrimitive.Viewport>
+
+      {/*
+       * dock 不用 gap：可选子项（suggestions / followups）存在与否会吃掉 gap，
+       * 造成输入区整体高度跳变。间距改由「有内容的块」自己带 margin。
+       */}
+      <div
+        data-slot="aui_thread-composer-dock"
+        className="aui-thread-viewport-footer bg-background relative mx-auto flex w-full max-w-(--thread-max-width) shrink-0 flex-col px-6 pt-2 pb-4 md:pb-5">
+        <ThreadScrollToBottom />
+        <ThreadFollowupSuggestions />
+        <Composer autoFocus={autoFocus} />
+        {ComposerFooter ? (
+          <div className="mt-2">
+            <ComposerFooter />
+          </div>
+        ) : null}
+        <AuiIf condition={(s) => s.thread.suggestions.length > 0}>
+          <ThreadSuggestions />
+        </AuiIf>
+      </div>
     </ThreadPrimitive.Root>
   )
 }
@@ -194,10 +239,12 @@ const ThreadMessage: FC = () => {
 }
 
 const ThreadScrollToBottom: FC = () => {
+  const labels = useAssistantLabels()
+
   return (
     <ThreadPrimitive.ScrollToBottom asChild>
       <TooltipIconButton
-        tooltip="Scroll to bottom"
+        tooltip={labels.scrollToBottom}
         variant="outline"
         className="aui-thread-scroll-to-bottom dark:border-border dark:bg-background dark:hover:bg-accent absolute -top-12 z-10 self-center rounded-full p-4 disabled:invisible">
         <ArrowDownIcon />
@@ -207,10 +254,12 @@ const ThreadScrollToBottom: FC = () => {
 }
 
 const ThreadWelcome: FC = () => {
+  const labels = useAssistantLabels()
+
   return (
     <div className="aui-thread-welcome-root mb-6 flex flex-col items-center px-4 text-center">
       <h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-2xl font-medium tracking-tight duration-200">
-        How can I help you today?
+        {labels.welcome}
       </h1>
     </div>
   )
@@ -218,7 +267,7 @@ const ThreadWelcome: FC = () => {
 
 const ThreadSuggestions: FC = () => {
   return (
-    <div className="aui-thread-welcome-suggestions flex w-full flex-wrap items-center justify-center gap-2 px-4">
+    <div className="aui-thread-welcome-suggestions mt-2 flex w-full flex-wrap items-center justify-center gap-2 px-4">
       <ThreadPrimitive.Suggestions>{() => <ThreadSuggestionItem />}</ThreadPrimitive.Suggestions>
     </div>
   )
@@ -242,44 +291,63 @@ const ThreadSuggestionItem: FC = () => {
 }
 
 const Composer: FC<{ autoFocus: boolean }> = ({ autoFocus }) => {
+  const labels = useAssistantLabels()
+  const { ComposerTriggers } = useContext(ThreadComponentsContext)
+
   return (
-    <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
-      <ComposerPrimitive.AttachmentDropzone asChild>
-        <div
-          data-slot="aui_composer-shell"
-          className="border-border/60 data-[dragging=true]:border-ring focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 flex w-full cursor-text flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) transition-[border-color] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))]">
-          <ComposerAttachments />
-          <ComposerPrimitive.Input
-            placeholder="Send a message..."
-            className="aui-composer-input caret-primary placeholder:text-muted-foreground/60 max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none"
-            rows={1}
-            autoFocus={autoFocus}
-            enterKeyHint="send"
-            aria-label="Message input"
-          />
-          <ComposerAction />
-        </div>
-      </ComposerPrimitive.AttachmentDropzone>
-    </ComposerPrimitive.Root>
+    <ComposerPrimitive.Unstable_TriggerPopoverRoot>
+      <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
+        <ComposerPrimitive.AttachmentDropzone asChild>
+          <div
+            data-slot="aui_composer-shell"
+            className="border-border/60 data-[dragging=true]:border-ring focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 shadow-xs flex w-full cursor-text flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) transition-[border-color] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))]">
+            <ComposerAttachments />
+            <ComposerPrimitive.Input
+              placeholder={labels.composerPlaceholder}
+              className="aui-composer-input caret-primary placeholder:text-muted-foreground/60 w-full resize-none bg-transparent px-2.5 py-0 text-[14px] leading-[24px] outline-none"
+              rows={2}
+              minRows={2}
+              maxRows={6}
+              autoFocus={autoFocus}
+              enterKeyHint="send"
+              aria-label={labels.messageInput}
+            />
+            <ComposerAction />
+          </div>
+        </ComposerPrimitive.AttachmentDropzone>
+        {ComposerTriggers ? <ComposerTriggers /> : null}
+      </ComposerPrimitive.Root>
+    </ComposerPrimitive.Unstable_TriggerPopoverRoot>
   )
 }
 
 const ComposerAction: FC = () => {
+  const { ComposerStart, ComposerAttach, ComposerEnd } = useContext(ThreadComponentsContext)
+  const labels = useAssistantLabels()
+
   return (
     <div className="aui-composer-action-wrapper relative flex items-center justify-between">
-      <ComposerAddAttachment />
       <div className="flex items-center gap-1.5">
+        {ComposerStart ? <ComposerStart /> : null}
+        {ComposerAttach === null ? null : ComposerAttach ? (
+          <ComposerAttach />
+        ) : (
+          <ComposerAddAttachment />
+        )}
+      </div>
+      <div className="flex items-center gap-1.5">
+        {ComposerEnd ? <ComposerEnd /> : null}
         <AuiIf condition={(s) => s.thread.capabilities.dictation}>
           <AuiIf condition={(s) => s.composer.dictation == null}>
             <ComposerPrimitive.Dictate asChild>
               <TooltipIconButton
-                tooltip="Voice input"
+                tooltip={labels.startDictation}
                 side="bottom"
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="aui-composer-dictate text-muted-foreground hover:text-foreground size-7 rounded-full"
-                aria-label="Start voice input">
+                aria-label={labels.startDictation}>
                 <MicIcon className="aui-composer-dictate-icon size-4" />
               </TooltipIconButton>
             </ComposerPrimitive.Dictate>
@@ -287,13 +355,13 @@ const ComposerAction: FC = () => {
           <AuiIf condition={(s) => s.composer.dictation != null}>
             <ComposerPrimitive.StopDictation asChild>
               <TooltipIconButton
-                tooltip="Stop dictation"
+                tooltip={labels.stopDictation}
                 side="bottom"
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="aui-composer-stop-dictation text-destructive size-7 rounded-full"
-                aria-label="Stop voice input">
+                aria-label={labels.stopDictation}>
                 <SquareIcon className="aui-composer-stop-dictation-icon size-3.5 animate-pulse fill-current" />
               </TooltipIconButton>
             </ComposerPrimitive.StopDictation>
@@ -302,13 +370,13 @@ const ComposerAction: FC = () => {
         <AuiIf condition={(s) => !s.thread.isRunning}>
           <ComposerPrimitive.Send asChild>
             <TooltipIconButton
-              tooltip="Send message"
+              tooltip={labels.send}
               side="bottom"
               type="button"
               variant="default"
               size="icon"
-              className="aui-composer-send size-7 rounded-full"
-              aria-label="Send message">
+              className="aui-composer-send size-7 rounded-md"
+              aria-label={labels.send}>
               <ArrowUpIcon className="aui-composer-send-icon size-4" />
             </TooltipIconButton>
           </ComposerPrimitive.Send>
@@ -319,8 +387,8 @@ const ComposerAction: FC = () => {
               type="button"
               variant="default"
               size="icon"
-              className="aui-composer-cancel size-7 rounded-full"
-              aria-label="Stop generating">
+              className="aui-composer-cancel size-7 rounded-md"
+              aria-label={labels.stopGenerating}>
               <SquareIcon className="aui-composer-cancel-icon size-3.5 fill-current" />
             </Button>
           </ComposerPrimitive.Cancel>
@@ -347,6 +415,7 @@ const AssistantMessage: FC = () => {
     ReasoningGroup
   } = useContext(ThreadComponentsContext)
 
+  const labels = useAssistantLabels()
   const ACTION_BAR_PT = 'pt-1.5'
   // Keep the action bar inside the contained root's paint box, then cancel its reserved space in flow.
   const ACTION_BAR_HEIGHT = `min-h-7.5 ${ACTION_BAR_PT}`
@@ -425,7 +494,7 @@ const AssistantMessage: FC = () => {
                   <span
                     data-slot="aui_assistant-message-indicator"
                     className="animate-pulse font-sans"
-                    aria-label="Assistant is working">
+                    aria-label={labels.working}>
                     {'●'}
                   </span>
                 )
@@ -448,13 +517,15 @@ const AssistantMessage: FC = () => {
 }
 
 const AssistantActionBar: FC = () => {
+  const labels = useAssistantLabels()
+
   return (
     <ActionBarPrimitive.Root
       hideWhenRunning
       autohide="not-last"
       className="aui-assistant-action-bar-root text-muted-foreground animate-in fade-in col-start-3 row-start-2 -ms-1 flex gap-1 duration-200">
       <ActionBarPrimitive.Copy asChild>
-        <TooltipIconButton tooltip="Copy">
+        <TooltipIconButton tooltip={labels.copy}>
           <AuiIf condition={(s) => s.message.isCopied}>
             <CheckIcon className="animate-in zoom-in-50 fade-in duration-200 ease-out" />
           </AuiIf>
@@ -464,14 +535,14 @@ const AssistantActionBar: FC = () => {
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>
       <ActionBarPrimitive.Reload asChild>
-        <TooltipIconButton tooltip="Refresh">
+        <TooltipIconButton tooltip={labels.reload}>
           <RefreshCwIcon />
         </TooltipIconButton>
       </ActionBarPrimitive.Reload>
       <ActionBarMorePrimitive.Root>
         <ActionBarMorePrimitive.Trigger asChild>
           <TooltipIconButton
-            tooltip="More"
+            tooltip={labels.more}
             className="data-[state=open]:bg-accent">
             <MoreHorizontalIcon />
           </TooltipIconButton>
@@ -484,7 +555,7 @@ const AssistantActionBar: FC = () => {
           <ActionBarPrimitive.ExportMarkdown asChild>
             <ActionBarMorePrimitive.Item className="aui-action-bar-more-item hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none">
               <DownloadIcon className="size-4" />
-              Export as Markdown
+              {labels.exportMarkdown}
             </ActionBarMorePrimitive.Item>
           </ActionBarPrimitive.ExportMarkdown>
         </ActionBarMorePrimitive.Content>
@@ -535,6 +606,8 @@ const UserMessage: FC = () => {
 }
 
 const UserActionBar: FC = () => {
+  const labels = useAssistantLabels()
+
   return (
     <ActionBarPrimitive.Root
       hideWhenRunning
@@ -542,7 +615,7 @@ const UserActionBar: FC = () => {
       className="aui-user-action-bar-root flex flex-col items-end">
       <ActionBarPrimitive.Edit asChild>
         <TooltipIconButton
-          tooltip="Edit"
+          tooltip={labels.edit}
           className="aui-user-action-edit">
           <PencilIcon />
         </TooltipIconButton>
@@ -552,6 +625,8 @@ const UserActionBar: FC = () => {
 }
 
 const EditComposer: FC = () => {
+  const labels = useAssistantLabels()
+
   return (
     <MessagePrimitive.Root
       data-slot="aui_edit-composer-wrapper"
@@ -567,14 +642,14 @@ const EditComposer: FC = () => {
               variant="ghost"
               size="sm"
               className="h-8 rounded-full px-3.5">
-              Cancel
+              {labels.cancel}
             </Button>
           </ComposerPrimitive.Cancel>
           <ComposerPrimitive.Send asChild>
             <Button
               size="sm"
               className="h-8 rounded-full px-3.5">
-              Update
+              {labels.update}
             </Button>
           </ComposerPrimitive.Send>
         </div>
@@ -584,6 +659,8 @@ const EditComposer: FC = () => {
 }
 
 const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest }) => {
+  const labels = useAssistantLabels()
+
   return (
     <BranchPickerPrimitive.Root
       hideWhenSingleBranch
@@ -593,7 +670,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest
       )}
       {...rest}>
       <BranchPickerPrimitive.Previous asChild>
-        <TooltipIconButton tooltip="Previous">
+        <TooltipIconButton tooltip={labels.previous}>
           <ChevronLeftIcon />
         </TooltipIconButton>
       </BranchPickerPrimitive.Previous>
@@ -601,7 +678,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest
         <BranchPickerPrimitive.Number /> / <BranchPickerPrimitive.Count />
       </span>
       <BranchPickerPrimitive.Next asChild>
-        <TooltipIconButton tooltip="Next">
+        <TooltipIconButton tooltip={labels.next}>
           <ChevronRightIcon />
         </TooltipIconButton>
       </BranchPickerPrimitive.Next>
