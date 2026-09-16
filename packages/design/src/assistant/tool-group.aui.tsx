@@ -4,6 +4,7 @@ import { cn } from 'cn'
 import { ChevronDownIcon, LoaderIcon } from 'lucide-react'
 import { memo, useCallback, useRef, useState, type FC, type PropsWithChildren } from 'react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/collapsible'
+import { useAssistantLabels } from './labels'
 
 const ANIMATION_DURATION = 200
 
@@ -76,14 +77,21 @@ function ToolGroupRoot({
 
 function ToolGroupTrigger({
   count,
+  failed,
+  label,
   active = false,
   className,
   ...props
 }: React.ComponentProps<typeof CollapsibleTrigger> & {
   count: number
+  /** 其中失败的次数；0 / undefined 时不播报失败 */
+  failed?: number
+  /** 覆盖折叠条文案（默认走 `labels.toolCalls`）；app 用它表达「不显示次数」这类偏好 */
+  label?: React.ReactNode
   active?: boolean
 }) {
-  const label = `${count} tool ${count === 1 ? 'call' : 'calls'}`
+  const labels = useAssistantLabels()
+  const text = label ?? labels.toolCalls(count, failed)
 
   return (
     <CollapsibleTrigger
@@ -111,7 +119,7 @@ function ToolGroupTrigger({
           'group-data-[variant=muted]/tool-group-root:grow',
           active && 'shimmer motion-reduce:animate-none'
         )}>
-        {label}
+        {text}
       </span>
       <ChevronDownIcon
         data-slot="tool-group-trigger-chevron"
