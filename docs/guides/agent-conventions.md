@@ -82,13 +82,19 @@
 
 ## 本地工具（corex）
 
-需要桌面 UI 证据（截图、控件树、窗口定位）时用 **corex**，不要臆测界面状态。完整 CLI 以 `corex help` / `corex help <cmd>` 为准。
+需要桌面 UI 证据（对照 Qoder、验收 Studio 窗口）时用 **corex**，不要臆测界面。完整 CLI：`corex help` / `corex help <cmd>`；动作参数以 `corex actions <id>` 为准。
 
-会话内优先：
+### 推荐流程
 
-- `corex ui` —— Windows UIAutomation：探测窗口 / 控件，取边界与文本
-- `corex actions` —— 列出可用动作；给 id 可看参数与步骤片段
-- `corex create` —— 写可复用指令（截图、点击、OCR 等），再 `corex run <name|path>`
-- `corex run` —— 执行已有指令 YAML
+1. **查能力**：`corex actions --bucket ui`（另有 `data` / `system`）；给 id 看参数表。
+2. **找窗口**：`corex ui window list`，按标题过滤（如 `Qoder`、`i thinking`）。
+3. **写指令 YAML**（落在临时目录，如 `apps/studio/scripts/.tmp-*-captures/`）→ `corex validate <path>` → `corex run <path>`。
+4. **读产物**：用 Read 打开生成的 PNG / OCR 文本，再改代码；勿把 `.tmp-*` 提交进仓库。
 
-对照竞品（如 Qoder）或核对 Studio 窗口时：先 `ui` / `actions` 定位目标，再用 `create` + `run` 固化截图与交互步骤；结果落盘后再据此改代码。
+典型步骤链：`ui.window.focus`（`title_contains` + `prefer_largest`）→ `ui.wait` → `capture.screenshot`；需要时再加 `ui.click`、`capture.crop`、`capture.ocr`。
+
+### 踩坑（会话实操）
+
+- **Electron / Chromium 的 UIA 几乎只有标题栏**（最小化 / 最大化 / 关闭），React 内容树进不了 `ui element tree` —— UI 验收以截图为主，不要死磕控件树。
+- PowerShell 下不要用 bash heredoc；用文件写入 YAML，路径写成正斜杠（`d:/.../out.png`）。
+- 先 `corex actions capture.screenshot`（及 focus / click / crop / ocr）确认参数，再写 YAML，避免跑通后才发现字段名不对。
