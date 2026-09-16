@@ -28,9 +28,7 @@ function findStagedSidecarDir(key = findPlatformKey()): string {
 function parseStagingChecksums(key: string): StagingChecksums {
   const filePath = path.join(findStagedSidecarDir(key), CHECKSUMS_FILE)
   if (!existsSync(filePath)) {
-    throw new Error(
-      `[sidecar] missing ${filePath}. Run: pnpm command sidecar bootstrap studio`
-    )
+    throw new Error(`[sidecar] missing ${filePath}. Run: pnpm command sidecar bootstrap studio`)
   }
   return JSON.parse(readFileSync(filePath, 'utf8')) as StagingChecksums
 }
@@ -69,7 +67,9 @@ function copyAndVerifySidecars(
       }
       const actual = hashFile(src)
       if (actual !== digest) {
-        done(new Error(`[sidecar] hash mismatch for ${fileName}: expected ${digest}, got ${actual}`))
+        done(
+          new Error(`[sidecar] hash mismatch for ${fileName}: expected ${digest}, got ${actual}`)
+        )
         return
       }
       cpSync(src, path.join(destDir, fileName))
@@ -77,6 +77,8 @@ function copyAndVerifySidecars(
 
     done()
   } catch (error) {
+    // 交给 Forge 的 done 之前先出声：构建日志里要留痕
+    console.warn('[forge] sidecar 复制/校验失败', error)
     done(error instanceof Error ? error : new Error(String(error)))
   }
 }

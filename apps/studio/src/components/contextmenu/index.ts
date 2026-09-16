@@ -1,10 +1,10 @@
 import { Root, type ContextMenuProps } from '@/components/contextmenu/contextmenu'
+import { Host } from '@/components/contextmenu/host'
 import {
-  Host,
   useContextMenu,
   type HostConfig,
   type PresentInput
-} from '@/components/contextmenu/host'
+} from '@/components/contextmenu/host-store'
 import { findFocusable, parseMenuItems } from '@/components/contextmenu/menu'
 import type {
   MenuClassNames,

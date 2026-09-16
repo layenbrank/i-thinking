@@ -1,130 +1,29 @@
 import { AnimatePresence } from 'motion/react'
-import { createElement, useCallback, useEffect, useState, useSyncExternalStore } from 'react'
+import { createElement, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 
+import { MenuLayer } from '@/components/contextmenu/contextmenu'
+import { useDismiss } from '@/components/contextmenu/menu'
+import type { MenuSelectInfo } from '@/components/contextmenu/menu'
 import {
-  findBody,
-  MenuLayer,
-  type ContextMenuProps
-} from '@/components/contextmenu/contextmenu'
-import { findFocusable, parseMenuItems, useDismiss } from '@/components/contextmenu/menu'
-import type { MenuItem, MenuSelectInfo, ParsedMenuItem } from '@/components/contextmenu/menu'
-import { VIEWPORT_PADDING, type Point } from '@/components/contextmenu/position'
-
-type HostConfig = Omit<ContextMenuProps, 'children' | 'items' | 'visible' | 'onUpdateVisible'> & {
-  items?: MenuItem[]
-}
-
-/** 命令式打开菜单的入参 */
-interface PresentInput extends HostConfig {
-  x: number
-  y: number
-  items: MenuItem[]
-}
-
-interface StoreState {
-  visible: boolean
-  session: number
-  anchor: Point
-  items: ParsedMenuItem[]
-  config: HostConfig
-}
-
-type Listener = () => void
-
-const LISTENERS = new Set<Listener>()
-
-let STORE: StoreState = {
-  visible: false,
-  session: 0,
-  anchor: { x: 0, y: 0 },
-  items: [],
-  config: {}
-}
-
-function emit() {
-  for (const listener of LISTENERS) {
-    listener()
-  }
-}
-
-function subscribe(listener: Listener) {
-  LISTENERS.add(listener)
-  return function () {
-    LISTENERS.delete(listener)
-  }
-}
-
-function findSnapshot() {
-  return STORE
-}
-
-function presentMenu(input: PresentInput) {
-  const { x, y, items, ...config } = input
-  const parsed = parseMenuItems(items)
-  STORE = {
-    visible: true,
-    session: STORE.session + 1,
-    anchor: { x, y },
-    items: parsed,
-    config
-  }
-  emit()
-}
-
-function dismissMenu() {
-  if (!STORE.visible) return
-  STORE = {
-    ...STORE,
-    visible: false
-  }
-  emit()
-}
-
-function resetMenu() {
-  STORE = {
-    visible: false,
-    session: STORE.session,
-    anchor: { x: 0, y: 0 },
-    items: [],
-    config: {}
-  }
-  emit()
-}
-
-function useContextMenu() {
-  const present = useCallback(function (input: PresentInput) {
-    presentMenu(input)
-  }, [])
-
-  const dismiss = useCallback(function () {
-    dismissMenu()
-  }, [])
-
-  return { present, dismiss }
-}
+  dismissMenu,
+  findSnapshot,
+  resetMenu,
+  subscribe,
+  updateActiveKey,
+  updatePath
+} from '@/components/contextmenu/host-store'
+import { VIEWPORT_PADDING } from '@/components/contextmenu/position'
 
 function Host() {
   const state = useSyncExternalStore(subscribe, findSnapshot, findSnapshot)
-  const [path, setPath] = useState<string[]>([])
-  const [activeKey, setActiveKey] = useState<string | undefined>()
 
-  const container = (state.config.onTeleport ?? findBody)()
+  const container = state.config.onTeleport?.() ?? document.body
 
   useDismiss({
     visible: state.visible,
     onClose: dismissMenu
   })
-
-  useEffect(
-    function () {
-      if (!state.visible) return
-      const focusable = findFocusable(state.items)
-      setPath([])
-      setActiveKey(focusable[0]?.key)
-    },
-    [state.session, state.visible]
-  )
 
   function onSelect(info: MenuSelectInfo) {
     state.config.onSelect?.(info)
@@ -136,8 +35,8 @@ function Host() {
     ? createElement(MenuLayer, {
         key: `contextmenu-host-${state.session}`,
         layer: { anchor: state.anchor, items: state.items },
-        path,
-        activeKey,
+        path: state.path,
+        activeKey: state.activeKey,
         classNames: state.config.classNames,
         styles: state.config.styles,
         motion: state.config.motion,
@@ -149,8 +48,8 @@ function Host() {
         container,
         renderItem: state.config.renderItem,
         renderSurface: state.config.renderSurface,
-        onUpdatePath: setPath,
-        onUpdateActive: setActiveKey,
+        onUpdatePath: updatePath,
+        onUpdateActive: updateActiveKey,
         onSelect,
         onClose: dismissMenu
       })
@@ -159,9 +58,8 @@ function Host() {
   return createPortal(
     createElement(AnimatePresence, {
       onExitComplete: function () {
-        if (STORE.visible) return
-        setPath([])
-        setActiveKey(undefined)
+        // 用最新快照而不是这次渲染的 state：已重新打开时不能把新层 reset 掉
+        if (findSnapshot().visible) return
         resetMenu()
       },
       children: layer
@@ -170,5 +68,4 @@ function Host() {
   )
 }
 
-export { dismissMenu, Host, presentMenu, resetMenu, useContextMenu }
-export type { HostConfig, PresentInput }
+export { Host }

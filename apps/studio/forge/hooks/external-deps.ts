@@ -34,9 +34,7 @@ function copyExternalDependencies(
       if (seen.has(realPkgDir)) continue
       seen.add(realPkgDir)
 
-      const pkgJson = JSON.parse(
-        readFileSync(path.join(realPkgDir, 'package.json'), 'utf-8')
-      )
+      const pkgJson = JSON.parse(readFileSync(path.join(realPkgDir, 'package.json'), 'utf-8'))
       const deps = pkgJson.dependencies
       if (deps) {
         for (const dep of Object.keys(deps)) {
@@ -53,6 +51,8 @@ function copyExternalDependencies(
 
     done()
   } catch (error) {
+    // 交给 Forge 的 done 之前先出声：构建日志里要留痕
+    console.warn('[forge] 复制外部依赖失败', error)
     done(error instanceof Error ? error : new Error(String(error)))
   }
 }

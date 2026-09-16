@@ -3,6 +3,7 @@ import { AnimatePresence, motion as Motion } from 'motion/react'
 import {
   cloneElement,
   isValidElement,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -108,10 +109,6 @@ interface MenuLayerProps {
   onClose: () => void
 }
 
-function findBody() {
-  return document.body
-}
-
 function assignRef(ref: Ref<HTMLElement> | undefined, node: HTMLElement | null) {
   if (typeof ref === 'function') {
     ref(node)
@@ -160,31 +157,54 @@ function MenuLayer(props: MenuLayerProps) {
 }
 
 function Root(props: ContextMenuProps) {
-  const isControlled = props.visible !== undefined
-  const isDelegate = (props.trigger !== null && props.trigger !== undefined)
+  // 进 hook 依赖的值先解构出来：直接写 `props.x` 会被 exhaustive-deps 要求把整个 props 当依赖
+  const {
+    disabled,
+    findItems,
+    items: menuItems,
+    onUpdateVisible,
+    visible: controlledVisible
+  } = props
+  const isControlled = controlledVisible !== undefined
+  const isDelegate = props.trigger !== null && props.trigger !== undefined
   const [innerVisible, setInnerVisible] = useState(false)
   const [layer, setLayer] = useState<LayerState | null>(null)
   const [session, setSession] = useState(0)
   const [path, setPath] = useState<string[]>([])
   const [activeKey, setActiveKey] = useState<string | undefined>()
   const rootRef = useRef<HTMLElement | null>(null)
-  const updateVisibleRef = useRef<(next: boolean) => void>(function () {})
-  const visibleRef = useRef(false)
 
-  const visible = isControlled ? Boolean(props.visible) : innerVisible
-  visibleRef.current = visible
+  const visible = isControlled ? Boolean(controlledVisible) : innerVisible
   const triggerSelector = props.trigger ?? TRIGGER
 
-  function updateVisible(next: boolean) {
-    if (!isControlled) setInnerVisible(next)
-    props.onUpdateVisible?.(next)
-    if (!next) {
-      setPath([])
-      setActiveKey(undefined)
-    }
-  }
+  const updateVisible = useCallback(
+    function (next: boolean) {
+      if (!isControlled) setInnerVisible(next)
+      onUpdateVisible?.(next)
+      if (!next) {
+        setPath([])
+        setActiveKey(undefined)
+      }
+    },
+    [isControlled, onUpdateVisible]
+  )
 
-  updateVisibleRef.current = updateVisible
+  const bindRoot = useCallback(function (node: HTMLElement | null) {
+    rootRef.current = node
+  }, [])
+
+  // 触发节点既要进 rootRef，也要转交调用方自带的 ref（原始 child 的 ref）
+  // 触发节点既要进 rootRef，也要转交调用方自带的 ref（原始 child 的 ref）
+  const childRef = isValidElement(props.children)
+    ? (props.children as ReactElement<TriggerElementProps>).props.ref
+    : undefined
+  const bindTriggerRef = useCallback(
+    function (node: HTMLElement | null) {
+      rootRef.current = node
+      assignRef(childRef, node)
+    },
+    [childRef]
+  )
 
   function clearLayer() {
     setLayer(null)
@@ -192,21 +212,24 @@ function Root(props: ContextMenuProps) {
     setActiveKey(undefined)
   }
 
-  function presentAt(point: Point, items: MenuItem[]) {
-    if (props.disabled) return
-    if (!items.length) return
-    const parsed = parseMenuItems(items)
-    const focusable = findFocusable(parsed)
-    // 换 session key 重播入场；onExitComplete 仅在关闭时清 layer，避免拆掉新层
-    setSession(function (n) {
-      return n + 1
-    })
-    setLayer({ anchor: point, items: parsed })
-    setPath([])
-    setActiveKey(focusable[0]?.key)
-    if (!isControlled) setInnerVisible(true)
-    props.onUpdateVisible?.(true)
-  }
+  const presentAt = useCallback(
+    function (point: Point, items: MenuItem[]) {
+      if (disabled) return
+      if (!items.length) return
+      const parsed = parseMenuItems(items)
+      const focusable = findFocusable(parsed)
+      // 换 session key 重播入场；onExitComplete 仅在关闭时清 layer，避免拆掉新层
+      setSession(function (n) {
+        return n + 1
+      })
+      setLayer({ anchor: point, items: parsed })
+      setPath([])
+      setActiveKey(focusable[0]?.key)
+      if (!isControlled) setInnerVisible(true)
+      onUpdateVisible?.(true)
+    },
+    [disabled, isControlled, onUpdateVisible]
+  )
 
   function onContextMenu(event: ReactMouseEvent) {
     if (props.disabled) return
@@ -245,12 +268,12 @@ function Root(props: ContextMenuProps) {
       function onDocumentContextMenu(event: MouseEvent) {
         const target = event.target
         if (!(target instanceof Element)) {
-          updateVisibleRef.current(false)
+          updateVisible(false)
           return
         }
         const node = target.closest(triggerSelector)
         if (!isInRoot(rootRef.current, node)) {
-          updateVisibleRef.current(false)
+          updateVisible(false)
         }
       }
 
@@ -259,20 +282,20 @@ function Root(props: ContextMenuProps) {
         document.removeEventListener('contextmenu', onDocumentContextMenu, true)
       }
     },
-    [visible, triggerSelector]
+    [updateVisible, visible, triggerSelector]
   )
 
   useEffect(
     function () {
-      if (isControlled && props.visible && !layer) {
+      if (isControlled && controlledVisible && !layer) {
         const el = rootRef.current
         if (!el) return
         const box = el.getBoundingClientRect()
-        const items = props.findItems ? props.findItems(el) : (props.items ?? [])
+        const items = findItems ? findItems(el) : (menuItems ?? [])
         presentAt({ x: box.left + box.width / 2, y: box.top + box.height / 2 }, items)
       }
     },
-    [isControlled, props.visible]
+    [controlledVisible, findItems, isControlled, layer, menuItems, presentAt]
   )
 
   const child = props.children
@@ -281,6 +304,7 @@ function Root(props: ContextMenuProps) {
   if (child === undefined || child === null) trigger = null
   else if (isValidElement(child)) {
     const element = child as ReactElement<TriggerElementProps>
+    // eslint-disable-next-line react-hooks/refs -- cloneElement 传 ref 是官方用法，规则只认 JSX 上的 ref 属性
     trigger = cloneElement(element, {
       className: clsx(element.props.className, props.className, props.classNames?.root),
       ...(isDelegate ? {} : { 'data-contextmenu-trigger': '' }),
@@ -288,17 +312,12 @@ function Root(props: ContextMenuProps) {
         element.props.onContextMenu?.(event)
         onContextMenu(event)
       },
-      ref(node: HTMLElement | null) {
-        rootRef.current = node
-        assignRef(element.props.ref, node)
-      }
+      ref: bindTriggerRef
     })
   } else {
     trigger = (
       <div
-        ref={function (node) {
-          rootRef.current = node
-        }}
+        ref={bindRoot}
         {...(isDelegate ? {} : { 'data-contextmenu-trigger': '' })}
         className={clsx('contextmenu-trigger', props.className, props.classNames?.root)}
         style={props.styles?.root}
@@ -308,7 +327,7 @@ function Root(props: ContextMenuProps) {
     )
   }
 
-  const container = (props.onTeleport ?? findBody)()
+  const container = props.onTeleport?.() ?? document.body
 
   return (
     <>
@@ -317,7 +336,8 @@ function Root(props: ContextMenuProps) {
         <AnimatePresence
           onExitComplete={function () {
             // 已打开时 session remount 也会触发 exit；仅真正关闭后清 layer
-            if (!visibleRef.current) clearLayer()
+            // （回调由本次渲染创建，AnimatePresence 调用的就是最新的这份，直接读 visible 即可）
+            if (!visible) clearLayer()
           }}>
           {visible && layer ? (
             <MenuLayer
@@ -352,4 +372,4 @@ function Root(props: ContextMenuProps) {
 }
 
 export type { ContextMenuProps, LayerState, MenuLayerProps }
-export { Root, findBody, MenuLayer, TRIGGER }
+export { Root, MenuLayer, TRIGGER }

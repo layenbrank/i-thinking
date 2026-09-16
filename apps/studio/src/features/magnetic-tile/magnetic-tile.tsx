@@ -1,24 +1,21 @@
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@i-thinking/design/components/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@i-thinking/design/components/tooltip'
 import { clsx, type ClassValue } from 'clsx'
 import { motion, useReducedMotion } from 'motion/react'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 import { Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { Enter, ENTER, useEnter } from '@/features/magnetic-tile/enter'
+import { Enter, ENTER } from '@/features/magnetic-tile/enter'
+import { useEnter } from '@/features/magnetic-tile/enter-context'
 import styles from '@/features/magnetic-tile/magnetic-tile.module.scss'
 import {
   Overlay,
-  OverlayContext,
   OverlayProvider,
   type Cache,
   type OverlayControlProps,
   type OverlayMode,
   type OverlayProps
 } from '@/features/magnetic-tile/overlay'
+import { OverlayContext } from '@/features/magnetic-tile/overlay-context'
 import { buildSurfaceStyle } from '@/features/magnetic-tile/surface-style'
 
 interface SectionProps extends MagneticTile {
