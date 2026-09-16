@@ -1,0 +1,25 @@
+name: qoder-new-task
+description: Open Qoder new task agent view
+steps:
+  - id: focus
+    action: ui.window.focus
+    params:
+      hwnd: 461154
+  - id: wait1
+    action: ui.wait
+    params:
+      ms: 200
+  - id: click-new
+    action: ui.click
+    params:
+      x: 100
+      y: 128
+  - id: wait2
+    action: ui.wait
+    params:
+      ms: 900
+  - id: shot
+    action: capture.screenshot
+    params:
+      to: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/qoder-task.png"
+      format: png
