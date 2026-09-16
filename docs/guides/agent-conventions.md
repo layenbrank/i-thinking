@@ -44,12 +44,12 @@
 
 各应用 UI 栈不同，**不要跨应用套用约定**：
 
-| 应用             | UI 栈                                              |
-| ---------------- | -------------------------------------------------- |
-| `apps/studio`    | shadcn/ui + Tailwind v4（`@i-thinking/design`）    |
-| `apps/extension` | 同上                                               |
-| `apps/client`    | **antd**（尚未迁移）                               |
-| `apps/devtools`  | 纯 Vue 3，无组件库                                 |
+| 应用             | UI 栈                                           |
+| ---------------- | ----------------------------------------------- |
+| `apps/studio`    | shadcn/ui + Tailwind v4（`@i-thinking/design`） |
+| `apps/extension` | 同上                                            |
+| `apps/client`    | **antd**（尚未迁移）                            |
+| `apps/devtools`  | 纯 Vue 3，无组件库                              |
 
 ### shadcn（studio / extension）
 
@@ -79,3 +79,40 @@
 6. 未经明确要求：不 `push`、不改 git config、不跳过 hooks。
 7. **按文件逐个 `git add`**，不要 `git add <目录>` 或 `git add .` —— 工作树里常有未提交的 WIP，
    宽泛 add 会把它一起夹带进提交。commit 前用 `git diff --cached --name-only` 复核一遍。
+
+本地可用工具
+
+corex help
+Corex —— 可组合的指令与动作
+
+Usage: corex.exe [OPTIONS] <COMMAND>
+
+Commands:
+run 按名称或文件路径运行指令
+schedule 列出可用指令名
+actions 列出已注册动作（按 bucket 分组）；给 id 时打印它的参数表与步骤片段
+create 生成新的指令骨架（交互向导，或 -t 选模板）
+edit 用 $COREX_EDITOR / $EDITOR 或系统默认程序打开指令 YAML
+validate 校验指令 YAML；不给路径时校验配置
+schema 输出指令 YAML 的 JSON Schema，供编辑器补全与校验
+completions 打印某个 shell 的补全注册脚本（候选由 corex 现算，升级后无需重生成）
+history 列出最近的执行记录
+doctor 自检：数据目录、配置、守护进程、动作与指令
+repl 交互式 REPL
+daemon 守护进程控制
+watch 文件监听 supervisor（PM2 风格）
+cron cron 调度 supervisor
+ui UI 元素探测（Windows UIAutomation）
+update 从 GitHub Releases 自更新
+help Print this message or the help of the given subcommand(s)
+
+Options:
+--dir <DIR> 指令 / 配置的搜索目录
+-v, --verbose... 提高日志详细程度
+--config <PATH> 使用指定配置文件，而非默认搜索路径
+-h, --help Print help
+-V, --version Print version
+
+actions、ui 可以利用获取一些关键信息
+
+可以使用corex创建指令获取所需的 Qoder 的截图和交互信息等

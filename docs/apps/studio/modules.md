@@ -17,28 +17,29 @@
 
 ## 插件一览
 
-| 插件       | 路径                                                       | 职责                                                   |
-| ---------- | ---------------------------------------------------------- | ------------------------------------------------------ |
-| security   | `src/host/capabilities/security.ts`                                  | session 权限、CSP、导航守卫                            |
-| store      | `src/host/capabilities/store.ts`                                     | electron-store + IPC                                   |
-| dialog     | `src/host/capabilities/dialog.ts`                                    | 打开/保存对话框                                        |
-| database   | `src/host/capabilities/database.ts`                                  | better-sqlite3 + Drizzle 连接、迁移采纳、User 仓储 IPC |
-| chat       | `src/host/capabilities/chat.ts`                                      | chat 域仓储 IPC（provider / session / message）        |
-| assistant  | `src/host/capabilities/assistant.ts` + `assistant-{protocol,key}.ts` | 离线通路：MessagePort 流式 + safeStorage 密钥          |
-| window     | `src/host/capabilities/window.ts`                                    | BrowserWindow、preload、信任登记                       |
-| sidecar    | `src/host/capabilities/sidecar.ts`                                   | corex-daemon 宿主 + findStatus                         |
-| doc        | `src/host/capabilities/doc.ts`                                       | pandoc 转换                                            |
-| screenshot | `src/host/capabilities/screenshot.ts`                                | `capture.screenshot`                                   |
-| updater    | `src/host/capabilities/updater.ts`                                   | electron-updater                                       |
-| devtools   | `src/host/capabilities/devtools.ts`                                  | 开发态 DevTools                                        |
+| 插件       | 路径                                                                        | 职责                                                    |
+| ---------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
+| security   | `src/host/capabilities/security.ts`                                         | session 权限、CSP、导航守卫                             |
+| store      | `src/host/capabilities/store.ts`                                            | electron-store + IPC                                    |
+| dialog     | `src/host/capabilities/dialog.ts`                                           | 打开/保存对话框                                         |
+| database   | `src/host/capabilities/database.ts`                                         | better-sqlite3 + Drizzle 连接、迁移采纳、User 仓储 IPC  |
+| chat       | `src/host/capabilities/chat.ts`                                             | chat 域仓储 IPC（provider / session / message）         |
+| workspace  | `workspace.ts` + `workspace-path.ts` + `workspace-git.ts` + `workspace-changes.ts` | 工作区（多文件夹）+ 根内目录/检索/读文件 + git 分支 + 变更日记 |
+| assistant  | `src/host/capabilities/assistant.ts` + `assistant-{protocol,key}.ts` | 离线通路：MessagePort 流式 + safeStorage 密钥 |
+| window     | `window.ts` + `window-factory.ts` + `overlay-window.ts` + `agent-window.ts` | 建窗（主窗口 / 浮层 / Agent 子窗口）、preload、信任登记 |
+| sidecar    | `src/host/capabilities/sidecar.ts`                                          | corex-daemon 宿主 + findStatus                          |
+| doc        | `src/host/capabilities/doc.ts`                                              | pandoc 转换                                             |
+| screenshot | `src/host/capabilities/screenshot.ts`                                       | `capture.screenshot`                                    |
+| updater    | `src/host/capabilities/updater.ts`                                          | electron-updater                                        |
+| devtools   | `src/host/capabilities/devtools.ts`                                         | 开发态 DevTools                                         |
 
 上述路径是**域内实现**（Repository / Service）。IPC 契约与装配不在其中：
 
-| 放置        | 路径                                   | 内容                              |
-| ----------- | -------------------------------------- | --------------------------------- |
-| 契约        | `src/shared/ipc/`                      | 频道 + schema + 派生类型 + 错误码 |
-| handler     | `src/host/ipc/handlers/<domain>.ts`    | invoke 入口（切片，装配点统一注册）|
-| 插件        | `src/host/capabilities/<domain>.ts`    | **仅当该域有生命周期需求**才写     |
+| 放置    | 路径                                | 内容                                |
+| ------- | ----------------------------------- | ----------------------------------- |
+| 契约    | `src/shared/ipc/`                   | 频道 + schema + 派生类型 + 错误码   |
+| handler | `src/host/ipc/handlers/<domain>.ts` | invoke 入口（切片，装配点统一注册） |
+| 插件    | `src/host/capabilities/<domain>.ts` | **仅当该域有生命周期需求**才写      |
 
 > **频道注册不再由各域承担** —— `host/ipc` 遍历契约统一注册。
 > 多数域已经不再导出 `buildPlugin()`。

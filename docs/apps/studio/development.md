@@ -105,16 +105,18 @@ pnpm --filter @i-thinking/studio test:unit
 # 在 apps/studio
 pnpm exec drizzle-kit generate --name=<name>   # 改 drizzle/schema 后生成迁移
 pnpm rebuild   # electron-rebuild（better-sqlite3 是原生模块）
-pnpm test:db   # 真实引擎的数据库集成测试（迁移幂等 / 兼容另一版建好的库）
+pnpm test:db   # 真实引擎的数据库集成测试（建表 / 种子 / 迁移幂等）
 ```
 
-- 集成测试 `src/host/capabilities/database.integration.test.ts` 需要 **Electron ABI** 的 `better-sqlite3`，普通 Node 加载会 ABI 不匹配，所以它被排除在 `test:unit` 之外；`test:db` 用 `ELECTRON_RUN_AS_NODE=1` 把 Electron 当 Node 跑 vitest（`scripts/run-db-tests.mjs`）。
+- 集成测试 `src/host/capabilities/*.integration.test.ts` 需要 **Electron ABI** 的 `better-sqlite3`，普通 Node 加载会 ABI 不匹配，所以它们被排除在 `test:unit` 之外；`test:db` 用 `ELECTRON_RUN_AS_NODE=1` 把 Electron 当 Node 跑 vitest（`scripts/run-db-tests.mjs`）。
 
 - schema 按领域分文件放在 `drizzle/schema/`（`index.ts` 汇总），迁移产物在 `drizzle/migrations/`（SQL + `meta/journal`）。
 - 访问层用 **Drizzle ORM**，引擎 **better-sqlite3**；新增表应通过 **Repository + 领域 IPC** 暴露，禁止 raw SQL channel。
-- **两版同实现**（Electron / Tauri，用户只装其一）：库路径与 schema 保持一致（`app_local_data_dir()/i-thinking.db`，identifier `com.i-thinking.corex`），**建表由各自完成** —— studio 启动时跑 Drizzle 官方 `migrate()`；若库里已有另一版建好的结构，则先"采纳基线"（`src/host/capabilities/database-migrate.ts`）。
-- 种子数据：`node scripts/sync-seed.mjs` 从 Tauri 版迁移抽取，写入 `drizzle/migrations/<idx>_seed.sql`（先 `drizzle-kit generate --custom --name=seed` 建空壳；勿手改生成物）。
-- schema 一致性校验：`node scripts/check-schema-parity.mjs`（对比 v1 参照快照 `scripts/fixtures/legacy-v1.sql` 与 Drizzle 迁移建出的库，允许差异见脚本内 `ALLOWED`）。
+- **迁移只有一个文件**：`drizzle/migrations/0000_init.sql`（全量建表 + 138 条种子 `INSERT OR IGNORE`）。开发阶段不保留历史版本 —— 改 schema 后直接重新生成，把种子并回去，并删掉本地库让它重建。
+- 工作区现为 `workspace` + `workspaceFolder`（会话挂 `workspaceID`）。本地若仍是旧 `workspaceRoot` 结构，**删库重建**即可。
+- **studio 自己建表**：启动时跑 Drizzle 官方 `migrate()`（`src/host/capabilities/database.ts`）。库里已有同名表会让 migrator 直接报错 —— **不支持「库是别的版本建的」**这种情况，冲突当场暴露比猜别人的 schema 好。
+- 两个 app 的库路径仍指向同一文件（`app_local_data_dir()/i-thinking.db`，identifier `com.i-thinking.corex`），以便日后互读；但建表/迁移互不负责。
+- 改 schema 的流程：改 `drizzle/schema/*.ts` → `pnpm --filter @i-thinking/studio exec drizzle-kit generate --name <名字>`；确认没多余产物后重启 app。
 - 迁移背景与逐表映射见 [prisma-to-drizzle.md](../../decisions/prisma-to-drizzle.md)。
 
 ## 9. 下一步

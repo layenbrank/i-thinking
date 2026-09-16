@@ -4,7 +4,7 @@
 
 源码真相：
 
-- [`src/shared/ipc/channels.ts`](../../../apps/studio/src/shared/ipc/channels.ts) — 40 个频道常量
+- [`src/shared/ipc/channels.ts`](../../../apps/studio/src/shared/ipc/channels.ts) — 48 个频道常量
 - [`src/shared/ipc/specs/`](../../../apps/studio/src/shared/ipc/specs/) — 每域的 zod schema（**类型由 `z.infer` 推导，不另手写**）
 - [`src/shared/ipc/api.ts`](../../../apps/studio/src/shared/ipc/api.ts) — `Api`，渲染进程可见的唯一宿主面
 - [`src/host/ipc/handlers/`](../../../apps/studio/src/host/ipc/handlers/) — 主进程 handler 实现
@@ -28,7 +28,16 @@ const hasItc = typeof itc !== 'undefined'
 ```ts
 type IpcEnvelope<T> =
   | { ok: true; data: T }
-  | { ok: false; error: { code: IpcErrorCode; name: string; message: string; details?: unknown; stack?: string } }
+  | {
+      ok: false
+      error: {
+        code: IpcErrorCode
+        name: string
+        message: string
+        details?: unknown
+        stack?: string
+      }
+    }
 ```
 
 Preload 的 `invoke` 失败时抛 `IpcClientError`，**code 已编进 message 前缀**（`[CODE] 文本`）——
@@ -110,13 +119,13 @@ Preload 的 `invoke` 失败时抛 `IpcClientError`，**code 已编进 message �
 
 ## updater
 
-| 方法          | Channel          | 入参 | 返回                   |
-| ------------- | ---------------- | ---- | ---------------------- |
-| `toRead`      | `updater:toRead` | 无   | `Promise<FindStatusR>` |
-| `check`       | `updater:check`  | 无   | `Promise<CheckR>`      |
-| `download`    | `updater:download` | 无 | `Promise<void>`        |
-| `install`     | `updater:install`  | 无 | `Promise<void>`        |
-| `onEvent(cb)` | `updater:event`  | —    | 取消订阅函数           |
+| 方法          | Channel            | 入参 | 返回                   |
+| ------------- | ------------------ | ---- | ---------------------- |
+| `toRead`      | `updater:toRead`   | 无   | `Promise<FindStatusR>` |
+| `check`       | `updater:check`    | 无   | `Promise<CheckR>`      |
+| `download`    | `updater:download` | 无   | `Promise<void>`        |
+| `install`     | `updater:install`  | 无   | `Promise<void>`        |
+| `onEvent(cb)` | `updater:event`    | —    | 取消订阅函数           |
 
 **`updater:event` 是推送通道，不是 invoke** —— 渲染侧以 `subscribe` 形态暴露。
 
@@ -130,17 +139,70 @@ Preload 的 `invoke` 失败时抛 `IpcClientError`，**code 已编进 message �
 
 仅开发态；生产调用抛 `DEVTOOLS_DISABLED`。
 
+DevTools 开到**调用窗口自己**（handler 用 `event.sender` 定位）—— 多窗口下各开各的，
+不再固定指向主窗口。
+
 ---
 
 ## overlay
 
-| 方法       | Channel            | 入参                   | 返回                     |
-| ---------- | ------------------ | ---------------------- | ------------------------ |
-| `toRead`   | `overlay:toRead`   | 无                     | `Promise<{ visible }>`   |
-| `toUpdate` | `overlay:toUpdate` | `{ visible: boolean }` | `Promise<void>`          |
+| 方法       | Channel            | 入参                   | 返回                   |
+| ---------- | ------------------ | ---------------------- | ---------------------- |
+| `toRead`   | `overlay:toRead`   | 无                     | `Promise<{ visible }>` |
+| `toUpdate` | `overlay:toUpdate` | `{ visible: boolean }` | `Promise<void>`        |
 
 浮层窗口由 window 插件创建/销毁，两个频道经 `OverlayWindowPort` 读写它
 （窗口不可用时抛 `OVERLAY_UNAVAILABLE`）。
+
+---
+
+## window
+
+窗口域只负责「把窗口开出来」；当前只有 Agent 子窗口一种。
+
+| 方法           | Channel               | 入参 | 返回            |
+| -------------- | --------------------- | ---- | --------------- |
+| `agent.toOpen` | `window:agent.toOpen` | 无   | `Promise<void>` |
+
+Agent 子窗口**按需创建**（首次调用时建，已开则聚焦/从最小化恢复），窗口生命周期收在
+`AgentWindowPort`（`host/capabilities/agent-window.ts`）；它是主窗口的子窗口（`parent`），
+随主窗口关闭。主窗口 overview 用本频道打开 Agent 窗口，**不再在主窗口内跳转路由**。
+
+---
+
+## workspace
+
+Agent 的**沙箱边界**：工作区（可挂多个源文件夹，其一为 primary）由主进程落库；
+渲染进程只能按 `workspaceID` + **相对路径**访问 —— 绝对路径与越界路径在主进程被拒。
+
+| 方法               | Channel                         | 入参                                      | 返回                         |
+| ------------------ | ------------------------------- | ----------------------------------------- | ---------------------------- |
+| `toRead`           | `workspace:toRead`              | 无                                        | `Promise<WorkspaceReadR[]>`  |
+| `toWrite`          | `workspace:toWrite`             | `{ title, icon?, color?, folders }`       | `Promise<WorkspaceReadR>`    |
+| `toUpdate`         | `workspace:toUpdate`            | `{ id, title?, icon?, color?, … }`        | `Promise<WorkspaceReadR>`    |
+| `toRemove`         | `workspace:toRemove`            | `{ id }`                                  | `Promise<void>`              |
+| `toArchive`        | `workspace:toArchive`           | `{ id }`                                  | `Promise<WorkspaceReadR>`    |
+| `folders.toWrite`  | `workspace:folders.toWrite`     | `{ workspaceID, path, isPrimary? }`       | `Promise<FolderR>`           |
+| `folders.toUpdate` | `workspace:folders.toUpdate`    | `{ id, isPrimary?, sort? }`               | `Promise<FolderR>`           |
+| `folders.toRemove` | `workspace:folders.toRemove`    | `{ id }`                                  | `Promise<void>`              |
+| `listDir`          | `workspace:listDir`             | `{ workspaceID, relative? }`              | `Promise<DirEntryR[]>`       |
+| `search`           | `workspace:search`              | `{ workspaceID, query, limit? }`          | `Promise<SearchHitR[]>`      |
+| `readFile`         | `workspace:readFile`            | `{ workspaceID, relative }`               | `Promise<FileContentR>`      |
+| `git.probe`        | `workspace:git.probe`           | `{ workspaceID }`                         | `Promise<{ isRepo, branch }>`|
+| `git.branches`     | `workspace:git.branches`        | `{ workspaceID }`                         | `Promise<{ current, branches }>` |
+| `git.checkout`     | `workspace:git.checkout`        | `{ workspaceID, branch }`                 | `Promise<{ branch }>`        |
+| `changes.toRead`   | `workspace:changes.toRead`      | `{ sessionID }`                           | `Promise<ChangesR>`          |
+| `changes.toUndo`   | `workspace:changes.toUndo`      | `{ sessionID, changeID? }`                | `Promise<ChangesR>`          |
+
+- 错误码：`WORKSPACE_NOT_FOUND` / `WORKSPACE_PATH_DUPLICATE` / `WORKSPACE_PATH_UNAVAILABLE` /
+  `WORKSPACE_FOLDER_NOT_FOUND` / `WORKSPACE_FOLDER_REQUIRED` / `WORKSPACE_PATH_ESCAPE` /
+  `WORKSPACE_ENTRY_NOT_FOUND` / `WORKSPACE_FILE_TOO_LARGE` / `WORKSPACE_GIT_FAILED` /
+  `WORKSPACE_CHANGE_NOT_FOUND`
+- 文件 API 与 git 一律以 **primary folder** 为沙箱根
+- `changes` 日记只活在主进程内存（追踪本会话 `fs_write`，供撤销卡）
+- 遍历一律跳过 `node_modules` / `.git` / `dist` 等与隐藏项（`.env.example` 例外）；
+  单文件读取上限 2MB，检索有界（深度 8 / 目录 2000 / 命中 200）
+- 目录选择用 `dialog.open({ directory: true })`
 
 ---
 
@@ -190,16 +252,40 @@ Preload 的 `invoke` 失败时抛 `IpcClientError`，**code 已编进 message �
 
 **端口协议**（`src/host/capabilities/assistant-protocol.ts`，均为可结构化克隆的纯数据）：
 
-| 方向            | 消息                                                                               |
-| --------------- | ---------------------------------------------------------------------------------- |
-| renderer → main | `{ kind: 'start', runID, providerID, model, system?, messages: {role,content}[] }` |
-| renderer → main | `{ kind: 'abort', runID }`                                                         |
-| main → renderer | `{ kind: 'text' \| 'reasoning', runID, blockID, text }`                            |
-| main → renderer | `{ kind: 'tool-call', runID, toolCallId, toolName, input }`                        |
-| main → renderer | `{ kind: 'finish', runID, finishReason, usage }`                                   |
-| main → renderer | `{ kind: 'aborted' \| 'error', runID, message? }`                                  |
+| 方向            | 消息                                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------- |
+| renderer → main | `{ kind: 'start', runID, providerID, model, system?, messages: {role,content}[], host? }` |
+| renderer → main | `{ kind: 'abort', runID }`                                                                |
+| renderer → main | `{ kind: 'tool-approval', runID, toolCallId, approved }`                                  |
+| main → renderer | `{ kind: 'text' \| 'reasoning', runID, blockID, text }`                                   |
+| main → renderer | `{ kind: 'tool-call', runID, toolCallId, toolName, input }`                               |
+| main → renderer | `{ kind: 'tool-approval-request', runID, toolCallId, toolName, input, prompt }`           |
+| main → renderer | `{ kind: 'tool-result', runID, toolCallId, toolName, output, isError }`                   |
+| main → renderer | `{ kind: 'finish', runID, finishReason, usage }`                                          |
+| main → renderer | `{ kind: 'aborted' \| 'error', runID, message? }`                                         |
 
 约束：单条消息 ≤ 1MB（JSON 字符数）、单请求 ≤ 200 条消息、同一端口并发运行 ≤ 4；端口关闭或窗口销毁 → 该端口所有运行立即 abort。
+
+**`host` 是宿主扩展位**（`{ tools?: string[], approval?: 'auto' | 'ask' | 'readonly', workspaceID?: string | null, sessionID?: string, references?: string[] }`）：
+渲染进程声明「本次运行允许哪些工具、怎么审批、沙箱根是哪个、引用了哪些文件」。根 → 路径由主进程查库解析，
+工具清单以 `src/shared/agent-tools.ts` 为单一事实源（主进程白名单化，未声明的一律不暴露给模型）。
+
+**引用（@ 工作区文件）以「路径名单」入提示词，不内联文件内容**：
+
+- 渲染侧：composer 的 `@` 按钮（`views/agent/components/reference-picker.tsx`）基于 `workspace:listDir / search`
+  选文件，落成 assistant-ui 的 **file 附件**（`aui.composer.addAttachment`）—— 所以引用在输入区可移除、随消息落库
+- 适配器（`@i-thinking/chat/adapters/chat-model`）把用户消息里的 file/image part 收成 `attachments: string[]`
+- studio 端口清洗后（`features/agent/references.ts`：去控制字符 / 限长 1024 / 最多 20 条 / 去重）放进 `host.references`
+- 主进程把它拼到系统提示词末尾，并要求模型**用 `fs_read` 自己读**，不得臆造内容；
+  真正的越界拦截仍由路径约束负责（提示词里的名单不构成授权）
+
+**工具执行与审批**（离线通路独有；在线通路仍为纯文本）：
+
+- 工具（`fs_list` / `fs_search` / `fs_read` / `fs_write`）在**主进程**执行，路径一律「workspaceID → primary path + 相对路径」，
+  越界抛 `WORKSPACE_PATH_ESCAPE`（详见 [security.md](./security.md#6-数据面)）
+- 写类工具执行前挂起等 `tool-approval` 回执；**超时或 abort 一律按拒绝落地**
+- 审批策略：`auto` 全放行 / `ask`（默认）只读直接执行、写类询问 / `readonly` 拒绝一切写操作
+- 一次生成最多 8 步（`stepCountIs(8)`），防止模型在工具间无限打转
 
 **apiKey 不进端口、也不出主进程**：`key.toWrite` 只写、`key.has` 只答是与否，没有读回接口；系统密钥库（`safeStorage`）不可用时**拒绝保存**（`ASSISTANT_KEYSTORE_UNAVAILABLE`），不退化成明文。
 
@@ -211,33 +297,33 @@ Preload 的 `invoke` 失败时抛 `IpcClientError`，**code 已编进 message �
 
 ### 传输层
 
-| code                   | 含义                        |
-| ---------------------- | --------------------------- |
-| `IPC_UNTRUSTED_SENDER` | sender 未登记或 URL 不合规  |
+| code                   | 含义                                          |
+| ---------------------- | --------------------------------------------- |
+| `IPC_UNTRUSTED_SENDER` | sender 未登记或 URL 不合规                    |
 | `IPC_INVALID_PAYLOAD`  | zod 校验失败（`details` 为拍平的 issue 列表） |
-| `IPC_HANDLER_ERROR`    | 未预期异常（保留原始 `name`） |
-| `IPC_UNKNOWN`          | 无法从 message 前缀还原 code |
+| `IPC_HANDLER_ERROR`    | 未预期异常（保留原始 `name`）                 |
+| `IPC_UNKNOWN`          | 无法从 message 前缀还原 code                  |
 
 ### 业务失败
 
-| code                              | 域            |
-| --------------------------------- | ------------- |
-| `CHAT_PROVIDER_NOT_FOUND`         | chat          |
-| `CHAT_SESSION_NOT_FOUND`          | chat          |
-| `CHAT_MESSAGE_NOT_FOUND`          | chat          |
-| `USER_RECORD_NOT_FOUND`           | user          |
-| `OVERLAY_UNAVAILABLE`             | overlay       |
-| `DEVTOOLS_DISABLED`               | devtools      |
-| `UPDATER_NOT_CONFIGURED`          | updater       |
-| `UPDATER_NO_UPDATE_DOWNLOADED`    | updater       |
-| `UPDATER_CHECK_FAILED`            | updater       |
-| `ASSISTANT_FRAME_UNAVAILABLE`     | assistant     |
-| `ASSISTANT_KEYSTORE_UNAVAILABLE`  | assistant     |
-| `DOC_PANDOC_MISSING`              | doc           |
-| `DOC_INPUT_NOT_FOUND`             | doc           |
-| `DOC_CONVERT_FAILED`              | doc           |
-| `DOC_TIMEOUT`                     | doc           |
-| `SCREENSHOT_ACTION_UNAVAILABLE`   | screenshot    |
-| `SCREENSHOT_NO_FILE`              | screenshot    |
-| `SCREENSHOT_BAD_PAYLOAD`          | screenshot    |
-| `SIDECAR_NOT_READY`               | sidecar       |
+| code                             | 域         |
+| -------------------------------- | ---------- |
+| `CHAT_PROVIDER_NOT_FOUND`        | chat       |
+| `CHAT_SESSION_NOT_FOUND`         | chat       |
+| `CHAT_MESSAGE_NOT_FOUND`         | chat       |
+| `USER_RECORD_NOT_FOUND`          | user       |
+| `OVERLAY_UNAVAILABLE`            | overlay    |
+| `DEVTOOLS_DISABLED`              | devtools   |
+| `UPDATER_NOT_CONFIGURED`         | updater    |
+| `UPDATER_NO_UPDATE_DOWNLOADED`   | updater    |
+| `UPDATER_CHECK_FAILED`           | updater    |
+| `ASSISTANT_FRAME_UNAVAILABLE`    | assistant  |
+| `ASSISTANT_KEYSTORE_UNAVAILABLE` | assistant  |
+| `DOC_PANDOC_MISSING`             | doc        |
+| `DOC_INPUT_NOT_FOUND`            | doc        |
+| `DOC_CONVERT_FAILED`             | doc        |
+| `DOC_TIMEOUT`                    | doc        |
+| `SCREENSHOT_ACTION_UNAVAILABLE`  | screenshot |
+| `SCREENSHOT_NO_FILE`             | screenshot |
+| `SCREENSHOT_BAD_PAYLOAD`         | screenshot |
+| `SIDECAR_NOT_READY`              | sidecar    |

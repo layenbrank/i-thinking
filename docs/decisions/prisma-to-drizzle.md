@@ -74,6 +74,7 @@ aiProvider(kind)
    （输出形如 `drizzle/0000_init.sql` + `drizzle/meta/_journal.json` + snapshot；具体命名以生成结果为准）。
 2. **种子数据复用现有文件**：把现在 `prisma/migrations/*_seed/migration.sql`（由 `scripts/sync-seed.mjs` 从 Rust 迁移抽取的 138 条 `INSERT OR IGNORE`）
    放进 `drizzle-kit generate --custom --name=seed` 生成的**自定义迁移**里。脚本 `sync-seed.mjs` 的输出路径改到 drizzle 目录。
+   > 注：这是当时的计划。`sync-seed.mjs` 与独立的种子迁移后来都删了，种子已内联进 `0000_init.sql` —— 见 §9.5。
 3. **schema 对齐校验（必须自动化）**：
    - 用 Prisma 迁移建一个库 A（现有 `prisma/migrations` 交付前先留一份）
    - 用 Drizzle 迁移建一个库 B
@@ -155,32 +156,31 @@ function findClient() {
 
 ## 9. 执行状态
 
-| 步骤                 | 状态    | 结果                                                                                                                     |
-| -------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
-| ① 依赖 + 工具链      | ✅      | `drizzle-orm` / `drizzle-kit` / `@types/better-sqlite3` 已装；`postinstall` 只剩 `electron-rebuild`                      |
-| ② schema 分领域文件  | ✅      | `drizzle/schema/{index,auth,mirror,asset,overlay,schedule,ai}.ts`：13 表 4 外键                                          |
-| ③ init 迁移 + parity | ✅      | `drizzle/migrations/0000_init.sql`；parity exit 0（4 条已记录差异在 `ALLOWED`）                                          |
-| ④ 种子迁移           | ✅      | `0001_seed.sql`（138 条 `INSERT OR IGNORE`），由 `scripts/sync-seed.mjs` 自 Tauri 迁移抽取                               |
-| ⑤ 运行时改造         | ✅      | `database.ts`：better-sqlite3 + `migrate()`；采纳逻辑在 `database-migrate.ts`；自研 runner 已删                          |
-| ⑥ 清理 Prisma        | ✅      | 删 `prisma/`、`generated/`、`prisma.config.ts`、`.env` 的 `DATABASE_URL`；依赖 / 别名 / asar keep / 文档全部改到 Drizzle |
-| ⑦ 验证               | 🟡 部分 | 见下（可复跑的已全绿）                                                                                                   |
+| 步骤                | 状态    | 结果                                                                                                                     |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| ① 依赖 + 工具链     | ✅      | `drizzle-orm` / `drizzle-kit` / `@types/better-sqlite3` 已装；`postinstall` 只剩 `electron-rebuild`                      |
+| ② schema 分领域文件 | ✅      | `drizzle/schema/{index,auth,mirror,asset,overlay,schedule,ai}.ts`：13 表 4 外键                                          |
+| ③ init 迁移         | ✅      | `drizzle/migrations/0000_init.sql`（全量建表）                                                                           |
+| ④ 种子数据          | ✅      | 138 条 `INSERT OR IGNORE`，**已并进 `0000_init.sql`**（原先的 `0001_seed.sql` 已删）                                     |
+| ⑤ 运行时改造        | ✅      | `database.ts`：better-sqlite3 + 官方 `migrate()`；自研 runner 已删                                                       |
+| ⑥ 清理 Prisma       | ✅      | 删 `prisma/`、`generated/`、`prisma.config.ts`、`.env` 的 `DATABASE_URL`；依赖 / 别名 / asar keep / 文档全部改到 Drizzle |
+| ⑦ 验证              | 🟡 部分 | 见下（可复跑的已全绿）                                                                                                   |
 
 ### 9.1 已验证（可复跑）
 
-| 命令                                                        | 结果                                                                                                                                      |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `node scripts/check-schema-parity.mjs`                      | exit 0；参照已冻结为 `scripts/fixtures/legacy-v1.sql`，删掉 Prisma 目录后仍能长期对照                                                     |
-| `pnpm --filter @i-thinking/studio test:db`                  | 3/3：真实 `better-sqlite3` + 官方 `migrate()`——空库建表+种子、启动幂等、旧库采纳（不重复建表、数据不动）                                  |
-| `pnpm exec vitest run src/plugins/database-migrate.test.ts` | 4/4：用 `node:sqlite` 替身验采纳逻辑（hash / created_at 按实测格式登记）                                                                  |
-| `pnpm exec vitest run`                                      | 14/15 文件通过；唯一失败 `src/components/contextmenu/position.test.ts`（`window is not defined`，DOM 环境缺失）为既有问题，与本次改动无关 |
+| 命令                                               | 结果                                                                                                                              |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @i-thinking/studio test:db`         | 2 文件 / 6 用例全绿：真实 `better-sqlite3` + 官方 `migrate()` —— 空库建表+种子、启动幂等（不重复播种）、chat 域的三件 schema 语义 |
+| `pnpm --filter @i-thinking/studio exec vitest run` | 32 文件 / 203 用例全绿（`test:unit`，不含 `test:db`）                                                                             |
 
 集成测试为何单独一条命令：`better-sqlite3` 是按 Electron ABI 编译的原生模块，普通 Node 加载会 ABI 不匹配，故用 `ELECTRON_RUN_AS_NODE=1` 把 Electron 当 Node 跑（`scripts/run-db-tests.mjs`），并被排除在 `test:unit` 之外。
 
 ### 9.2 未做（需交互或环境）
 
 - `electron-forge package` 烟测：确认 asar 内 `drizzle/` 可读（keep 列表已含 `/drizzle`）
-- 与 Tauri 版**双向互读**（需两版切着跑）
 - Auth 仓储的 IPC 冒烟（走现有通道，可用 `pnpm dev` 手测）
+- 与 Tauri 版**双向互读**：库文件位置仍一致，但 studio 已不再兼容「库是 Tauri 版建的」，
+  要互读得先补回采纳逻辑（见 §9.5 的代价说明）
 
 ### 9.3 待确认（早前提过，未拍板）
 
@@ -194,10 +194,27 @@ function findClient() {
 按 task_plan D5 换成 chat 域（`chatProvider` / `chatSession` / `chatMessage`，见 `drizzle/schema/chat.ts`）。
 三处随之调整（均已实测）：
 
-| 项          | 变更                                                                                                                                                                                   |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| schema      | 删 `drizzle/schema/ai.ts`，新增 `chat.ts`；消息的 `format` + `content` 是主进程不解析的不透明载荷，`parentID` 表达分支                                                                 |
-| 迁移        | `0002_chat_domain.sql`（建 chat 三表）+ `0003_drop_ai_domain.sql`（drop 旧 ai 五表）。拆两条是 drizzle-kit 的非交互限制：同一 diff 里"删旧表 + 建新表"会触发重命名询问，TTY 外无法回答 |
-| 基线采纳    | `adoptBaseline()` 改为只采纳冻结的 v1 两条（`BASELINE_TAGS`）—— 否则既有库会把 0002/0003 也当成"已应用"，用户的旧库永远拿不到 chat 表、且残留 ai 表                                    |
-| parity 脚本 | 表集合改为只单向核对（快照有、Drizzle 没有才算差异）；studio 自有/后加的表不再需要往 `ALLOWED` 里堆行；已记录 5 张 ai 表的 drop                                                        |
-| 验证        | `pnpm --filter @i-thinking/studio test:db` 6/6（含 chat 级联/分支/provider set null 的新集成用例）                                                                                     |
+| 项     | 变更                                                                                                                                                                                                                       |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| schema | 删 `drizzle/schema/ai.ts`，新增 `chat.ts`；消息的 `format` + `content` 是主进程不解析的不透明载荷，`parentID` 表达分支                                                                                                     |
+| 迁移   | 旧 ai 五表直接不建；chat 三表 + `workspace` / `workspaceFolder` 由 `0000_init.sql` 建出；`chatSession.workspaceID` 内联在列定义里（开发期 schema 变更可 wipe 本地库） |
+| 验证   | `pnpm --filter @i-thinking/studio test:db` 6/6（含 chat 级联 / 分支 / provider set null 的集成用例）                                                                                                                       |
+
+### 9.5 开发期把迁移压成一个文件
+
+原先迁移动过六版（`0000_init` / `0001_seed` / `0002_chat_domain` / `0003_drop_ai_domain` /
+`0004_workspace_domain` / `0005_chat_session_root`），每条都带自己的 snapshot。开发阶段这种账没什么用，已压成
+`0000_init.sql` 一个文件（建表 + 种子），`meta/` 只留 `_journal.json` + `0000_snapshot.json`。
+
+随之删掉的旧代码（都是为「兼容另一版建好的库」服务的）：
+
+- `src/host/capabilities/database-migrate.ts` 的 `adoptBaseline()`（把 v1 两条迁移登记为「已应用」）及其单测
+- `scripts/check-schema-parity.mjs` + `scripts/fixtures/legacy-v1.sql`（与 v1 冻结参照做 parity）
+- `scripts/sync-seed.mjs`（从 Tauri 迁移抽取种子）—— 种子已内联进 `0000_init.sql`，改它时两版手动对齐
+
+代价与前提：**库里已有同名表时 migrator 会直接报错**，因此 studio 不再能接管别的版本建好的库；
+本地已有旧库的话删掉重建即可（开发期），这也是选这条路的代价。
+
+压缩手法：删掉 `drizzle/migrations/**` 后让 `drizzle-kit generate --name init` 从空状态重新生成全量建表，
+再把种子追加到同一个文件（`--> statement-breakpoint` 分隔）。校验：
+`drizzle-kit generate` 再跑一次应输出 `No schema changes`，`test:db` 6/6。
