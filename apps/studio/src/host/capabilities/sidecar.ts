@@ -39,7 +39,8 @@ function isPackagedApp(): boolean {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const electron = require('electron') as { app?: { isPackaged?: boolean } }
     return Boolean(electron.app?.isPackaged)
-  } catch {
+  } catch (error) {
+    console.warn('[sidecar] 读 electron.app.isPackaged 失败，按未打包处理', error)
     return false
   }
 }
@@ -132,11 +133,12 @@ function isWritableDir(dir: string): boolean {
     writeFileSync(probe, '')
     unlinkSync(probe)
     return true
-  } catch {
+  } catch (error) {
+    console.warn('[sidecar] 探测目录可写失败', dir, error)
     try {
       openSync(dir, 'r')
-    } catch {
-      // ignore
+    } catch (readError) {
+      console.warn('[sidecar] 目录也不可读', dir, readError)
     }
     return false
   }
@@ -214,20 +216,24 @@ class CorexHost {
     })
     this.child = child
 
-    child.on('error', (err) => {
-      this.logger.error('corex-daemon process error', err)
-      this.markNotReady(String(err))
+    // 事件回调必须是 function（禁用箭头），而它们要用的 `this` 是类实例 —— 先存一份别名，
+    // 通过 `host.x` 访问能保住调用者绑定，行为与箭头一样。
+    const host = this
+
+    child.on('error', function (err) {
+      host.logger.error('corex-daemon process error', err)
+      host.markNotReady(String(err))
     })
 
-    child.on('exit', (code, signal) => {
-      this.logger.warn('corex-daemon exited', { code, signal })
-      this.markNotReady(`corex-daemon exited (code=${code}, signal=${signal})`)
+    child.on('exit', function (code, signal) {
+      host.logger.warn('corex-daemon exited', { code, signal })
+      host.markNotReady(`corex-daemon exited (code=${code}, signal=${signal})`)
     })
 
-    child.stderr.on('data', (chunk: Buffer) => {
+    child.stderr.on('data', function (chunk: Buffer) {
       const text = chunk.toString('utf8').trim()
       if (text) {
-        this.logger.warn('corex-daemon stderr', { text })
+        host.logger.warn('corex-daemon stderr', { text })
       }
     })
 
@@ -294,8 +300,9 @@ class CorexHost {
         if (response.type === 'pong' || response.type === 'ok') {
           return
         }
-      } catch {
-        // retry until timeout
+      } catch (error) {
+        // 重试直到超时：每次都出声，避免「等半天最后 timeout」却看不到原因
+        console.warn('[sidecar] ping 失败，稍后重试', error)
       }
       await sleep(PING_INTERVAL_MS)
     }
@@ -360,6 +367,7 @@ class CorexHost {
           try {
             finish(null, JSON.parse(raw) as RpcResponse)
           } catch (error) {
+            console.warn('[sidecar] RPC 响应不是合法 JSON', error)
             finish(error instanceof Error ? error : new Error(String(error)))
           }
         })
@@ -388,8 +396,8 @@ class CorexHost {
       const timer = setTimeout(function () {
         try {
           child.kill()
-        } catch {
-          // ignore
+        } catch (error) {
+          console.warn('[sidecar] 超时后强杀 daemon 失败', error)
         }
         resolve()
       }, STOP_TIMEOUT_MS)
@@ -401,7 +409,8 @@ class CorexHost {
 
       try {
         child.kill()
-      } catch {
+      } catch (error) {
+        console.warn('[sidecar] 停止 daemon 失败', error)
         clearTimeout(timer)
         resolve()
       }

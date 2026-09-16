@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { COREX_PIPE } from './sidecar'
-import {
-  findBinaryName,
-  findDefaultIpcEndpoint,
-  findPlatformKey
-} from './sidecar'
+import { COREX_PIPE, findBinaryName, findDefaultIpcEndpoint, findPlatformKey } from './sidecar'
 
 describe('sidecar paths', function () {
   it('builds platform keys', function () {
@@ -32,4 +27,3 @@ describe('sidecar paths', function () {
     expect(findDefaultIpcEndpoint().endsWith('corex.sock')).toBe(true)
   })
 })
-

@@ -109,7 +109,7 @@ describe('toZodDetails', function () {
       { path: 'email', code: 'invalid_format', message: 'Invalid email' },
       { path: 'nested.id', code: 'invalid_type', message: 'Expected string' }
     ])
-    expect(function clone() {
+    expect(function () {
       structuredClone(details)
     }).not.toThrow()
   })
@@ -131,7 +131,7 @@ describe('envelope clone safety', function () {
     ]
 
     for (const envelope of failures) {
-      expect(function clone() {
+      expect(function () {
         structuredClone(envelope)
       }).not.toThrow()
     }

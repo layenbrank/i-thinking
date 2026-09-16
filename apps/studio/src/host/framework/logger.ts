@@ -21,7 +21,9 @@ function stringify(extra: unknown) {
   }
   try {
     return JSON.stringify(extra)
-  } catch {
+  } catch (error) {
+    // 不能调 logger 自己（递归）：直接 console；不可序列化的 extra 本身就是要看的信息
+    console.warn('[logger] extra 不可序列化，回退 String()', error)
     return String(extra)
   }
 }

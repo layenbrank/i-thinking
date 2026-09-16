@@ -26,6 +26,16 @@ export const IPC_ERROR_CODES = [
   'CHAT_SESSION_NOT_FOUND',
   'CHAT_MESSAGE_NOT_FOUND',
   'USER_RECORD_NOT_FOUND',
+  'WORKSPACE_NOT_FOUND',
+  'WORKSPACE_PATH_DUPLICATE',
+  'WORKSPACE_PATH_UNAVAILABLE',
+  'WORKSPACE_FOLDER_NOT_FOUND',
+  'WORKSPACE_FOLDER_REQUIRED',
+  'WORKSPACE_PATH_ESCAPE',
+  'WORKSPACE_ENTRY_NOT_FOUND',
+  'WORKSPACE_FILE_TOO_LARGE',
+  'WORKSPACE_GIT_FAILED',
+  'WORKSPACE_CHANGE_NOT_FOUND',
   'OVERLAY_UNAVAILABLE',
   'DEVTOOLS_DISABLED',
   'UPDATER_NOT_CONFIGURED',
@@ -125,10 +135,7 @@ export class IpcClientError extends Error {
 }
 
 /** 把任意抛出物归一成信封可用的 payload；`details` 必须结构化克隆安全 */
-export function toErrorPayload(
-  error: unknown,
-  options: { isDev?: boolean } = {}
-): IpcErrorPayload {
+export function toErrorPayload(error: unknown, options: { isDev?: boolean } = {}): IpcErrorPayload {
   const isDev = options.isDev === true
 
   if (error instanceof IpcError) {
@@ -159,7 +166,7 @@ export function toErrorPayload(
 export function toZodDetails(error: {
   issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; code: string; message: string }>
 }): Array<{ path: string; code: string; message: string }> {
-  return error.issues.map(function flatten(issue) {
+  return error.issues.map(function (issue) {
     return {
       path: issue.path.map(String).join('.'),
       code: issue.code,

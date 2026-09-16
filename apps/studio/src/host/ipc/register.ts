@@ -30,10 +30,7 @@ function wrapHandler<K extends InvokeChannel>(ctx: Context, channel: K, handler:
   const log = ctx.logger.child('ipc')
   const spec = INVOKE_SPECS[channel]
 
-  return async function invokeWrapper(
-    event: IpcMainInvokeEvent,
-    raw: unknown
-  ): Promise<IpcEnvelope<Out<K>>> {
+  return async function (event: IpcMainInvokeEvent, raw: unknown): Promise<IpcEnvelope<Out<K>>> {
     if (!isTrustedSender(ctx, event)) {
       log.warn('rejected untrusted sender', { channel })
       return envelopeFail({
@@ -76,10 +73,10 @@ function wrapHandler<K extends InvokeChannel>(ctx: Context, channel: K, handler:
  * 这里先挡住更常见的"漏一个"。
  */
 export function assertExhaustive(handlers: Handlers): void {
-  const missingHandlers = INVOKE_CHANNELS.filter(function isMissing(channel) {
+  const missingHandlers = INVOKE_CHANNELS.filter(function (channel) {
     return typeof handlers[channel] !== 'function'
   })
-  const missingSpecs = INVOKE_CHANNELS.filter(function hasNoSpec(channel) {
+  const missingSpecs = INVOKE_CHANNELS.filter(function (channel) {
     return INVOKE_SPECS[channel] === undefined
   })
 

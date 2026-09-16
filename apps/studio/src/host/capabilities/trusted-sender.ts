@@ -13,7 +13,8 @@ export function isTrustedSender(ctx: Context, event: IpcMainInvokeEvent): boolea
   let url = ''
   try {
     url = event.senderFrame?.url || sender.getURL() || ''
-  } catch {
+  } catch (error) {
+    console.warn('[trusted-sender] 取 senderFrame.url 失败，按不可信处理', error)
     return false
   }
   if (!url) return false

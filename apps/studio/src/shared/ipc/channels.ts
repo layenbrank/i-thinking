@@ -46,6 +46,36 @@ export const CHANNELS = {
     READ: 'overlay:toRead',
     UPDATE: 'overlay:toUpdate'
   },
+  WINDOW: {
+    AGENT: {
+      OPEN: 'window:agent.toOpen'
+    }
+  },
+  WORKSPACE: {
+    READ: 'workspace:toRead',
+    WRITE: 'workspace:toWrite',
+    UPDATE: 'workspace:toUpdate',
+    REMOVE: 'workspace:toRemove',
+    ARCHIVE: 'workspace:toArchive',
+    FOLDERS: {
+      WRITE: 'workspace:folders.toWrite',
+      UPDATE: 'workspace:folders.toUpdate',
+      REMOVE: 'workspace:folders.toRemove'
+    },
+    LIST_DIR: 'workspace:listDir',
+    SEARCH: 'workspace:search',
+    READ_FILE: 'workspace:readFile',
+    LIST_SKILLS: 'workspace:listSkills',
+    GIT: {
+      PROBE: 'workspace:git.probe',
+      BRANCHES: 'workspace:git.branches',
+      CHECKOUT: 'workspace:git.checkout'
+    },
+    CHANGES: {
+      READ: 'workspace:changes.toRead',
+      UNDO: 'workspace:changes.toUndo'
+    }
+  },
   CHAT: {
     PROVIDER: {
       READ: 'chat:provider.toRead',
@@ -85,7 +115,7 @@ type NestedValue<T> = T extends string
     ? { [K in keyof T]: NestedValue<T[K]> }[keyof T]
     : never
 
-/** 全部 40 个频道的扁平联合 */
+/** 全部频道的扁平联合 */
 export type Channel = NestedValue<typeof CHANNELS>
 
 /** 顶层域名的小写形式，即渲染侧 API 的命名空间：STORE → 'store' */
@@ -101,7 +131,7 @@ export const PUSH_CHANNELS = [CHANNELS.ASSISTANT.PORT, CHANNELS.UPDATER.EVENT] a
 
 export type PushChannel = (typeof PUSH_CHANNELS)[number]
 
-/** invoke 通道 = 全部频道去掉推送通道（38 个） */
+/** invoke 通道 = 全部频道去掉推送通道 */
 export type InvokeChannel = Exclude<Channel, PushChannel>
 
 function walk(node: unknown, out: string[]): void {
@@ -128,7 +158,7 @@ const PUSH_SET: readonly string[] = PUSH_CHANNELS
 
 /** 全部 invoke 通道，稳定排序；`registerAll` 的遍历源 */
 export const INVOKE_CHANNELS: readonly InvokeChannel[] = flattenChannels()
-  .filter(function isInvoke(channel: Channel): channel is InvokeChannel {
+  .filter(function (channel: Channel): channel is InvokeChannel {
     return !PUSH_SET.includes(channel)
   })
   .sort()

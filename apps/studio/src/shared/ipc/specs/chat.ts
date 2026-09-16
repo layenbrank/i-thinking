@@ -37,13 +37,16 @@ const SessionReadSchema = z.object({
   title: z.string(),
   pinned: z.boolean(),
   providerID: z.string().nullable(),
+  /** 归属的工作区；工作区被删则置空 */
+  workspaceID: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string()
 })
 
 const SessionWriteSchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  providerID: z.uuid().nullish()
+  providerID: z.uuid().nullish(),
+  workspaceID: z.uuid().nullish()
 })
 
 const SessionUpdateSchema = SessionWriteSchema.extend({

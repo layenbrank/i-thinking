@@ -6,7 +6,7 @@
  *   pnpm --filter @i-thinking/studio test:db
  *
  * 覆盖迁移落地后的三件 schema 语义：
- *   1. chat 三表齐备、旧 ai 域已 drop
+ *   1. chat 三表齐备（旧 ai 域已不存在）
  *   2. 会话 → 消息级联；消息的分支自引用（parentID）级联
  *   3. provider 被删时会话保留、默认 provider 置空（on delete set null）
  */
@@ -19,9 +19,9 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { adoptBaseline } from './database-migrate'
 
-const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
+// 本文件在 src/host/capabilities/ 下，要上溯三层才到包根（apps/studio）
+const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const MIGRATIONS_FOLDER = join(PACKAGE_ROOT, 'drizzle', 'migrations')
 
 const handles: SqliteHandle[] = []
@@ -36,7 +36,6 @@ function openDb(): SqliteHandle {
   db.pragma('synchronous = NORMAL')
   db.pragma('foreign_keys = ON')
 
-  adoptBaseline(db, MIGRATIONS_FOLDER)
   migrate(drizzle({ client: db }), { migrationsFolder: MIGRATIONS_FOLDER })
 
   handles.push(db)
@@ -99,9 +98,11 @@ describe('chat 域（真实引擎 better-sqlite3）', function () {
     expect(tables).toContain('chatProvider')
     expect(tables).toContain('chatSession')
     expect(tables).toContain('chatMessage')
-    expect(tables.filter(function (name) {
-      return name.startsWith('ai')
-    })).toEqual([])
+    expect(
+      tables.filter(function (name) {
+        return name.startsWith('ai')
+      })
+    ).toEqual([])
   })
 
   it('会话级联删消息；分支自引用级联删后继', function () {
@@ -116,9 +117,9 @@ describe('chat 域（真实引擎 better-sqlite3）', function () {
     insertMessage(db, 'message-branch', 'session-1', 'message-1')
     db.prepare('DELETE FROM "chatMessage" WHERE "id" = ?').run('message-2')
     expect(count(db, 'chatMessage')).toBe(2)
-    expect(db.prepare('SELECT "parentID" FROM "chatMessage" WHERE "id" = ?').get('message-branch')).toEqual(
-      { parentID: 'message-1' }
-    )
+    expect(
+      db.prepare('SELECT "parentID" FROM "chatMessage" WHERE "id" = ?').get('message-branch')
+    ).toEqual({ parentID: 'message-1' })
 
     // 删会话 → 余下消息级联清空
     db.prepare('DELETE FROM "chatSession" WHERE "id" = ?').run('session-1')
@@ -133,8 +134,8 @@ describe('chat 域（真实引擎 better-sqlite3）', function () {
     db.prepare('DELETE FROM "chatProvider" WHERE "id" = ?').run('provider-1')
 
     expect(count(db, 'chatSession')).toBe(1)
-    expect(db.prepare('SELECT "providerID" FROM "chatSession" WHERE "id" = ?').get('session-1')).toEqual(
-      { providerID: null }
-    )
+    expect(
+      db.prepare('SELECT "providerID" FROM "chatSession" WHERE "id" = ?').get('session-1')
+    ).toEqual({ providerID: null })
   })
 })

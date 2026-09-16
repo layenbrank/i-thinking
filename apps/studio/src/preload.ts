@@ -1,12 +1,12 @@
-import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 
+import { attachAssistantPort } from './preload.port'
 import type { Api, IpcFn, Subscribe, Unsubscribe } from './shared/ipc/api'
-import { CHANNELS } from './shared/ipc/channels'
 import type { InvokeChannel, PushChannel } from './shared/ipc/channels'
+import { CHANNELS } from './shared/ipc/channels'
 import { IpcClientError, type IpcEnvelope, type IpcErrorPayload } from './shared/ipc/error'
 import type { Out, PushOut } from './shared/ipc/specs'
-import { subscribePort } from './preload.port'
 
 function isEnvelope(value: unknown): value is IpcEnvelope<unknown> {
   return typeof value === 'object' && value !== null && 'ok' in value
@@ -39,7 +39,7 @@ async function invoke<K extends InvokeChannel>(channel: K, payload?: unknown): P
  * 渲染进程拿到的是一组具名方法，无法自己拼频道名。
  */
 function toInvoke<K extends InvokeChannel>(channel: K): IpcFn<K> {
-  return function invokeChannel(input?: unknown) {
+  return function (input?: unknown) {
     return invoke(channel, input)
   } as IpcFn<K>
 }
@@ -52,12 +52,12 @@ function toSubscribe<K extends PushChannel>(
   channel: K,
   toPayload: (raw: unknown) => PushOut<K>
 ): Subscribe<PushOut<K>> {
-  return function subscribe(callback): Unsubscribe {
+  return function (callback): Unsubscribe {
     function handler(_event: IpcRendererEvent, raw: unknown): void {
       callback(toPayload(raw))
     }
     ipcRenderer.on(channel, handler)
-    return function unsubscribe() {
+    return function () {
       ipcRenderer.removeListener(channel, handler)
     }
   }
@@ -110,6 +110,36 @@ const api = {
     toRead: toInvoke(CHANNELS.OVERLAY.READ),
     toUpdate: toInvoke(CHANNELS.OVERLAY.UPDATE)
   },
+  window: {
+    agent: {
+      toOpen: toInvoke(CHANNELS.WINDOW.AGENT.OPEN)
+    }
+  },
+  workspace: {
+    toRead: toInvoke(CHANNELS.WORKSPACE.READ),
+    toWrite: toInvoke(CHANNELS.WORKSPACE.WRITE),
+    toUpdate: toInvoke(CHANNELS.WORKSPACE.UPDATE),
+    toRemove: toInvoke(CHANNELS.WORKSPACE.REMOVE),
+    toArchive: toInvoke(CHANNELS.WORKSPACE.ARCHIVE),
+    folders: {
+      toWrite: toInvoke(CHANNELS.WORKSPACE.FOLDERS.WRITE),
+      toUpdate: toInvoke(CHANNELS.WORKSPACE.FOLDERS.UPDATE),
+      toRemove: toInvoke(CHANNELS.WORKSPACE.FOLDERS.REMOVE)
+    },
+    listDir: toInvoke(CHANNELS.WORKSPACE.LIST_DIR),
+    search: toInvoke(CHANNELS.WORKSPACE.SEARCH),
+    readFile: toInvoke(CHANNELS.WORKSPACE.READ_FILE),
+    listSkills: toInvoke(CHANNELS.WORKSPACE.LIST_SKILLS),
+    git: {
+      probe: toInvoke(CHANNELS.WORKSPACE.GIT.PROBE),
+      branches: toInvoke(CHANNELS.WORKSPACE.GIT.BRANCHES),
+      checkout: toInvoke(CHANNELS.WORKSPACE.GIT.CHECKOUT)
+    },
+    changes: {
+      toRead: toInvoke(CHANNELS.WORKSPACE.CHANGES.READ),
+      toUndo: toInvoke(CHANNELS.WORKSPACE.CHANGES.UNDO)
+    }
+  },
   chat: {
     provider: {
       toRead: toInvoke(CHANNELS.CHAT.PROVIDER.READ),
@@ -132,7 +162,6 @@ const api = {
   },
   assistant: {
     connect: toInvoke(CHANNELS.ASSISTANT.CONNECT),
-    onPort: subscribePort,
     key: {
       toWrite: toInvoke(CHANNELS.ASSISTANT.KEY.WRITE),
       has: toInvoke(CHANNELS.ASSISTANT.KEY.HAS),
@@ -140,5 +169,8 @@ const api = {
     }
   }
 } satisfies Api
+
+// 离线通路的端口转发必须显式挂上：不能只靠 `import './preload.port'` 的副作用（怕被 tree-shake）
+attachAssistantPort()
 
 contextBridge.exposeInMainWorld('itc', api)

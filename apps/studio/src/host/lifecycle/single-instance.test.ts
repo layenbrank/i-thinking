@@ -14,9 +14,15 @@ describe('single-instance', function () {
     const show = vi.fn()
     const focus = vi.fn()
     const win = {
-      isDestroyed: () => false,
-      isMinimized: () => true,
-      isVisible: () => true,
+      isDestroyed() {
+        return false
+      },
+      isMinimized() {
+        return true
+      },
+      isVisible() {
+        return true
+      },
       restore,
       show,
       focus
@@ -31,9 +37,15 @@ describe('single-instance', function () {
     const show = vi.fn()
     const focus = vi.fn()
     const win = {
-      isDestroyed: () => false,
-      isMinimized: () => false,
-      isVisible: () => false,
+      isDestroyed() {
+        return false
+      },
+      isMinimized() {
+        return false
+      },
+      isVisible() {
+        return false
+      },
       restore: vi.fn(),
       show,
       focus
@@ -48,9 +60,15 @@ describe('single-instance', function () {
       focusWindow(null)
     }).not.toThrow()
     focusWindow({
-      isDestroyed: () => true,
-      isMinimized: () => false,
-      isVisible: () => false,
+      isDestroyed() {
+        return true
+      },
+      isMinimized() {
+        return false
+      },
+      isVisible() {
+        return false
+      },
       restore: vi.fn(),
       show: vi.fn(),
       focus: vi.fn()

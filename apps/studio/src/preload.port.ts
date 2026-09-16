@@ -1,40 +1,22 @@
 import { ipcRenderer } from 'electron'
 
-import type { Subscribe } from './shared/ipc/api'
+import { ASSISTANT_PORT_MESSAGE } from './shared/ipc/assistant-port'
 import { CHANNELS } from './shared/ipc/channels'
-import type { PushOut } from './shared/ipc/specs'
 
 /**
- * 离线通路的端口交付：主进程收到 connect 后把端口推过来，而 renderer 侧的消费者
- * 可能在 connect 之后才注册回调 —— 这里先排队，避免丢端口（竞态）。
+ * 离线通路的端口交付：主进程收到 connect 后把端口推过来，这里接一手并**原样转交给主世界**。
  *
- * 逐字自 preload.ts 搬出，**队列逻辑一行未改**：这是本文件唯一无测试覆盖的
- * 运行时路径，改动风险不值得。
+ * 必须用 `window.postMessage` 的 transfer list，**不能**当作 contextBridge 回调的参数传：
+ * 过桥的端口会退化成没有 `addEventListener` 的代理对象（实测报
+ * `channel.addEventListener is not a function`）。排队与订阅因此都落在主世界
+ * （`@/features/chat/port/assistant-port.ts`）。
  */
-const portCallbacks = new Set<(port: MessagePort) => void>()
-const pendingPorts: MessagePort[] = []
-
-ipcRenderer.on(CHANNELS.ASSISTANT.PORT, function (event) {
-  const port = event.ports[0]
-  if (!port) return
-  if (portCallbacks.size === 0) {
-    pendingPorts.push(port)
-    return
-  }
-  portCallbacks.forEach(function (callback) {
-    callback(port)
+function attachAssistantPort(): void {
+  ipcRenderer.on(CHANNELS.ASSISTANT.PORT, function (event) {
+    const port = event.ports[0]
+    if (!port) return
+    window.postMessage(ASSISTANT_PORT_MESSAGE, '*', [port])
   })
-})
-
-/** 订阅离线通路端口；返回退订函数 */
-export const subscribePort: Subscribe<PushOut<typeof CHANNELS.ASSISTANT.PORT>> = function (callback) {
-  portCallbacks.add(callback)
-  // 把先于注册到达的端口补交给它
-  while (pendingPorts.length > 0) {
-    const port = pendingPorts.shift()
-    if (port) callback(port)
-  }
-  return function unsubscribe() {
-    portCallbacks.delete(callback)
-  }
 }
+
+export { attachAssistantPort }

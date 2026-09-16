@@ -1,5 +1,6 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
-import { streamText } from 'ai'
+import { stepCountIs, streamText } from 'ai'
+import { and, asc, eq } from 'drizzle-orm'
 import {
   MessageChannelMain,
   safeStorage,
@@ -9,6 +10,11 @@ import {
 } from 'electron'
 import Store from 'electron-store'
 
+import { workspaceFolder } from '../../../drizzle/schema'
+import { AGENT_TOOL_LABELS, isApprovalFreeTool } from '../../shared/agent-tools'
+import { CHANNELS } from '../../shared/ipc/channels'
+import { buildAgentTools, pickAgentTools } from './agent-tools'
+import { createApprovalTicket, type ApprovalTicket } from './assistant-approval'
 import { KeyStore, type SecretCipher, type SecretStore } from './assistant-key'
 import {
   findErrorMessage,
@@ -19,7 +25,7 @@ import {
   type StartRequest
 } from './assistant-protocol'
 import type { Repository as ChatRepository } from './chat'
-import { CHANNELS } from '../../shared/ipc/channels'
+import { findClient } from './database'
 
 /** 只要求用到的两个级别，便于测试注入假 logger */
 interface Log {
@@ -105,16 +111,130 @@ function buildSink(port: MessagePortMain): PortSink {
   }
 }
 
+/**
+ * 一次生成的运行状态。
+ *
+ * `approvals` 是「工具待审批」的登记表：工具执行前在这里挂起，
+ * 渲染进程回执到达时唤醒它 —— 或者 abort / 超时强制落地。
+ */
+interface RunContext {
+  controller: AbortController
+  approvals: Map<string, ApprovalTicket>
+}
+
+/** 一次生成最多推进多少步（含工具回调），防模型在工具间无限打转 */
+const MAX_AGENT_STEPS = 8
+/** 审批等待上限：超时按拒绝处理，绝不把运行永久挂住 */
+const APPROVAL_TIMEOUT_MS = 5 * 60_000
+
+function describeApproval(toolName: string, input: unknown): string {
+  const label = AGENT_TOOL_LABELS[toolName as keyof typeof AGENT_TOOL_LABELS] ?? toolName
+  if (input && typeof input === 'object' && 'path' in input) {
+    const target = (input as { path?: unknown }).path
+    return `${label}：${typeof target === 'string' ? target : '（未指定路径）'}`
+  }
+  return label
+}
+
+/** 工作区 id → primary folder 绝对路径；未选或已失效时返回 null（工具集随之关闭） */
+async function resolvePrimaryPath(
+  workspaceID: string | null | undefined
+): Promise<string | null> {
+  if (!workspaceID) return null
+
+  const db = findClient()
+  const primary = await db
+    .select()
+    .from(workspaceFolder)
+    .where(
+      and(eq(workspaceFolder.workspaceID, workspaceID), eq(workspaceFolder.isPrimary, true))
+    )
+    .limit(1)
+
+  if (primary.length > 0) return primary[0].path
+
+  const fallback = await db
+    .select()
+    .from(workspaceFolder)
+    .where(eq(workspaceFolder.workspaceID, workspaceID))
+    .orderBy(asc(workspaceFolder.sort))
+    .limit(1)
+  return fallback.length === 0 ? null : fallback[0].path
+}
+
+/**
+ * 等渲染进程的审批回执。票据负责「永远落地」（回执 / abort / 超时），
+ * 这里只负责登记 + 把请求发出去。
+ */
+function awaitApproval(
+  context: RunContext,
+  runID: string,
+  toolCallId: string,
+  toolName: string,
+  input: unknown,
+  sink: PortSink
+): Promise<boolean> {
+  const ticket = createApprovalTicket({
+    signal: context.controller.signal,
+    timeoutMs: APPROVAL_TIMEOUT_MS
+  })
+  context.approvals.set(toolCallId, ticket)
+
+  void ticket.decision.finally(function () {
+    context.approvals.delete(toolCallId)
+  })
+
+  sink.post({
+    kind: 'tool-approval-request',
+    runID,
+    toolCallId,
+    toolName,
+    input,
+    prompt: describeApproval(toolName, input)
+  })
+
+  return ticket.decision
+}
+
+/**
+ * 把「用户引用了哪些文件」接到系统提示词后面。
+ *
+ * 引用只给**路径名单**，不内联内容 —— 内容由模型用 fs_read 拿，
+ * 这样提示词不会因为拖进一个大文件而爆掉，也保证读到的是当时的真实内容。
+ */
+function appendReferences(
+  system: string | undefined,
+  references: readonly string[]
+): string | undefined {
+  if (references.length === 0) return system
+
+  const list = references.map(function (item) {
+    return `- ${item}`
+  })
+
+  const block = [
+    '用户在本次消息里引用了这些工作区文件（相对路径）：',
+    ...list,
+    '需要内容时用 fs_read 读取这些路径，不要凭猜测编造文件内容。'
+  ].join('\n')
+
+  return system ? `${system}\n\n${block}` : block
+}
+
+/** 终态事件：渲染侧收到第一个就结束本次运行，主进程靠它判断「这次运行落过地没有」 */
+const TERMINAL_KINDS = new Set(['finish', 'error', 'aborted'])
+
 async function run(
   request: StartRequest,
   sink: PortSink,
-  runs: Map<string, AbortController>,
+  context: RunContext,
   keys: KeyStore,
   chat: ChatRepository,
   log: Log
 ): Promise<void> {
-  const controller = new AbortController()
-  runs.set(request.runID, controller)
+  const { controller } = context
+  /** 本次运行是否已经落过终态：渲染侧只认第一个，主进程靠它做收尾兜底 */
+  let isSettled = false
 
   try {
     const provider = await chat.findProvider(request.providerID)
@@ -128,22 +248,80 @@ async function run(
       ...(apiKey ? { apiKey } : {})
     })
 
+    const rootPath = await resolvePrimaryPath(request.host?.workspaceID)
+    const tools = pickAgentTools(
+      buildAgentTools(rootPath, request.host?.sessionID),
+      request.host?.tools
+    )
+    const hasTools = Object.keys(tools).length > 0
+    const approval = request.host?.approval ?? 'ask'
+    const system = appendReferences(request.system, request.host?.references ?? [])
+
     const result = streamText({
       model: local.chatModel(request.model),
-      ...(request.system ? { system: request.system } : {}),
+      ...(system ? { system } : {}),
       messages: request.messages,
-      abortSignal: controller.signal
+      abortSignal: controller.signal,
+      /**
+       * 失败**不一定**以 `error` 片段交到消费者手上：早期请求失败（连不上 / 404）是直接
+       * reject 内部 promise，`for await (fullStream)` 会一直等下去 → 界面永远卡在「生成中」。
+       * 所以终态在这里落，并 abort 让下面的 for await 收束（渲染侧只认第一个终态）。
+       */
+      onError(options: { error: unknown }) {
+        isSettled = true
+        log.warn('stream failed', options.error)
+        sink.post({ kind: 'error', runID: request.runID, message: findErrorMessage(options.error) })
+        controller.abort()
+      },
+      ...(hasTools
+        ? {
+            tools,
+            stopWhen: stepCountIs(MAX_AGENT_STEPS),
+            // 审批挂在「模型要求调用」与「真的执行」之间
+            async toolApproval(options: {
+              toolCall: { toolName: string; toolCallId?: string; input?: unknown }
+            }) {
+              const call = options.toolCall
+              const toolCallId = call.toolCallId ?? request.runID
+
+              if (approval === 'auto') return 'approved' as const
+              if (isApprovalFreeTool(call.toolName)) return 'not-applicable' as const
+              if (approval === 'readonly') {
+                log.info(`tool denied by readonly policy: ${call.toolName}`)
+                return 'denied' as const
+              }
+
+              const approved = await awaitApproval(
+                context,
+                request.runID,
+                toolCallId,
+                call.toolName,
+                call.input,
+                sink
+              )
+              log.info(`tool approval: ${call.toolName} => ${approved ? 'approved' : 'denied'}`)
+              return approved ? ('approved' as const) : ('denied' as const)
+            }
+          }
+        : {})
     })
 
     for await (const part of result.fullStream) {
       const event = toPortEvent(part, request.runID)
-      if (event) sink.post(event)
+      if (!event) continue
+      if (TERMINAL_KINDS.has(event.kind)) isSettled = true
+      sink.post(event)
     }
   } catch (error) {
+    isSettled = true
     sink.post({ kind: 'error', runID: request.runID, message: findErrorMessage(error) })
     log.warn('run failed', error)
   } finally {
-    runs.delete(request.runID)
+    // 收束保证：任何路径都得给渲染侧一个终态，否则界面会永远停在「生成中」
+    if (!isSettled) {
+      sink.post({ kind: 'error', runID: request.runID, message: '模型流意外结束' })
+      log.warn('stream ended without terminal event')
+    }
   }
 }
 
@@ -157,7 +335,7 @@ function connect(
   const channel = new MessageChannelMain()
   const port = channel.port1
   const sink = buildSink(port)
-  const runs = new Map<string, AbortController>()
+  const runs = new Map<string, RunContext>()
 
   port.on('message', function (event) {
     const request = parseInbound(event.data)
@@ -166,19 +344,32 @@ function connect(
       return
     }
     if (request.kind === 'abort') {
-      runs.get(request.runID)?.abort()
+      runs.get(request.runID)?.controller.abort()
+      return
+    }
+    if (request.kind === 'tool-approval') {
+      runs.get(request.runID)?.approvals.get(request.toolCallId)?.settle(request.approved)
       return
     }
     if (runs.size >= MAX_CONCURRENT_RUNS) {
       sink.post({ kind: 'error', runID: request.runID, message: '并发运行数已达上限' })
       return
     }
-    void run(request, sink, runs, keys, chat, log)
+
+    const context: RunContext = { controller: new AbortController(), approvals: new Map() }
+    runs.set(request.runID, context)
+    void run(request, sink, context, keys, chat, log).finally(function () {
+      context.approvals.forEach(function (ticket) {
+        ticket.dispose()
+      })
+      context.approvals.clear()
+      runs.delete(request.runID)
+    })
   })
 
   function abortAll() {
-    runs.forEach(function (controller) {
-      controller.abort()
+    runs.forEach(function (context) {
+      context.controller.abort()
     })
     runs.clear()
   }
