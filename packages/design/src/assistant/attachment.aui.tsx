@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../com
 import { Dialog, DialogTitle, DialogContent, DialogTrigger } from '../components/dialog'
 import { Avatar, AvatarImage, AvatarFallback } from '../components/avatar'
 import { TooltipIconButton } from './tooltip-icon-button'
+import { useAssistantLabels } from './labels'
 import { useAttachmentSrc } from '../hooks/use-attachment-src'
 import { cn } from 'cn'
 
@@ -19,11 +20,12 @@ type AttachmentPreviewProps = {
 }
 
 const AttachmentPreview: FC<AttachmentPreviewProps> = ({ src }) => {
+  const labels = useAssistantLabels()
   const [isLoaded, setIsLoaded] = useState(false)
   return (
     <img
       src={src}
-      alt="Attachment preview"
+      alt={labels.attachmentPreview}
       className={cn(
         'block h-auto max-h-[80vh] w-auto max-w-full rounded-sm object-contain transition-opacity duration-300 motion-reduce:transition-none',
         isLoaded
@@ -36,6 +38,7 @@ const AttachmentPreview: FC<AttachmentPreviewProps> = ({ src }) => {
 }
 
 const AttachmentPreviewDialog: FC<PropsWithChildren> = ({ children }) => {
+  const labels = useAssistantLabels()
   const src = useAttachmentSrc()
 
   if (!src) return children
@@ -48,7 +51,7 @@ const AttachmentPreviewDialog: FC<PropsWithChildren> = ({ children }) => {
         {isValidElement(children) ? children : <button type="button">{children}</button>}
       </DialogTrigger>
       <DialogContent className="aui-attachment-preview-dialog-content [&>button]:bg-foreground/60 [&>button]:hover:bg-foreground/80 [&_svg]:text-background p-2 sm:max-w-3xl [&>button]:rounded-full [&>button]:p-1 [&>button]:opacity-100 [&>button]:ring-0!">
-        <DialogTitle className="aui-sr-only sr-only">Image Attachment Preview</DialogTitle>
+        <DialogTitle className="aui-sr-only sr-only">{labels.attachmentPreviewTitle}</DialogTitle>
         <div className="aui-attachment-preview bg-background relative mx-auto flex max-h-[80dvh] w-full items-center justify-center overflow-hidden rounded-sm">
           <AttachmentPreview src={src} />
         </div>
@@ -58,13 +61,14 @@ const AttachmentPreviewDialog: FC<PropsWithChildren> = ({ children }) => {
 }
 
 const AttachmentThumb: FC = () => {
+  const labels = useAssistantLabels()
   const src = useAttachmentSrc()
 
   return (
     <Avatar className="aui-attachment-tile-avatar h-full w-full rounded-none">
       <AvatarImage
         src={src}
-        alt="Attachment preview"
+        alt={labels.attachmentPreview}
         className="aui-attachment-tile-image rounded-none object-cover"
       />
       <AvatarFallback>
@@ -75,23 +79,12 @@ const AttachmentThumb: FC = () => {
 }
 
 const AttachmentUI: FC = () => {
+  const labels = useAssistantLabels()
   const aui = useAui()
   const isComposer = aui.attachment.source !== 'message'
 
   const isImage = useAuiState((s) => s.attachment.type === 'image')
-  const typeLabel = useAuiState((s) => {
-    const type = s.attachment.type
-    switch (type) {
-      case 'image':
-        return 'Image'
-      case 'document':
-        return 'Document'
-      case 'file':
-        return 'File'
-      default:
-        return type
-    }
-  })
+  const typeLabel = useAuiState((s) => labels.attachmentType(s.attachment.type))
 
   const uploadState = useAuiState((s) =>
     s.attachment.status.type === 'running'
@@ -105,7 +98,7 @@ const AttachmentUI: FC = () => {
 
   const errorMessage = useAuiState((s) =>
     s.attachment.status.type === 'incomplete' && s.attachment.status.reason === 'error'
-      ? (s.attachment.status.message ?? 'Upload failed')
+      ? (s.attachment.status.message ?? labels.uploadFailed)
       : undefined
   )
 
@@ -138,9 +131,10 @@ const AttachmentUI: FC = () => {
                 onKeyUp={(e) => {
                   if (e.key === ' ') e.currentTarget.click()
                 }}
-                aria-label={`${typeLabel} attachment${
-                  isError ? ', upload failed' : isUploading ? ', uploading' : ''
-                }`}>
+                aria-label={labels.attachmentLabel(
+                  typeLabel,
+                  isError ? 'error' : isUploading ? 'uploading' : 'idle'
+                )}>
                 <AttachmentThumb />
                 {isUploading && (
                   <div
@@ -171,10 +165,12 @@ const AttachmentUI: FC = () => {
 }
 
 const AttachmentRemove: FC = () => {
+  const labels = useAssistantLabels()
+
   return (
     <AttachmentPrimitive.Remove asChild>
       <TooltipIconButton
-        tooltip="Remove file"
+        tooltip={labels.removeAttachment}
         className="aui-attachment-tile-remove absolute end-1 top-1 size-5 rounded-full bg-black/50! text-white after:absolute after:-inset-1.5 hover:bg-black/70! hover:text-white! active:scale-[0.96] motion-reduce:transition-none"
         side="top">
         <XIcon className="aui-attachment-remove-icon size-3 stroke-[2.5]" />
@@ -192,23 +188,31 @@ export const UserMessageAttachments: FC = () => {
 }
 
 export const ComposerAttachments: FC = () => {
+  const hasAttachments = useAuiState(function (state) {
+    return state.composer.attachments.length > 0
+  })
+
+  if (!hasAttachments) return null
+
   return (
-    <div className="aui-composer-attachments flex w-full flex-row items-center gap-2 overflow-x-auto empty:hidden">
+    <div className="aui-composer-attachments flex w-full flex-row items-center gap-2 overflow-x-auto">
       <ComposerPrimitive.Attachments>{() => <AttachmentUI />}</ComposerPrimitive.Attachments>
     </div>
   )
 }
 
 export const ComposerAddAttachment: FC = () => {
+  const labels = useAssistantLabels()
+
   return (
     <ComposerPrimitive.AddAttachment asChild>
       <TooltipIconButton
-        tooltip="Add Attachment"
+        tooltip={labels.addAttachment}
         side="bottom"
         variant="ghost"
         size="icon"
-        className="aui-composer-add-attachment text-muted-foreground hover:text-foreground hover:bg-muted-foreground/15 dark:border-muted-foreground/15 dark:hover:bg-muted-foreground/30 size-7 rounded-full active:scale-[0.96] motion-reduce:transition-none"
-        aria-label="Add Attachment">
+        className="aui-composer-add-attachment text-muted-foreground hover:text-foreground hover:bg-muted-foreground/15 dark:border-muted-foreground/15 dark:hover:bg-muted-foreground/30 size-7 rounded-md active:scale-[0.96] motion-reduce:transition-none"
+        aria-label={labels.addAttachment}>
         <PlusIcon className="aui-attachment-add-icon size-4" />
       </TooltipIconButton>
     </ComposerPrimitive.AddAttachment>

@@ -21,7 +21,7 @@ function toMetadata(thread: ChatThread): ThreadMetadata {
     remoteId: thread.id,
     title: thread.title,
     lastMessageAt: new Date(thread.updatedAt),
-    custom: { pinned: thread.pinned }
+    custom: { pinned: thread.pinned, workspaceID: thread.workspaceID }
   }
 }
 
