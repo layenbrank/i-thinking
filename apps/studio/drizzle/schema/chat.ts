@@ -40,14 +40,29 @@ export const chatSession = sqliteTable(
     title: text('title').notNull(),
     pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),
     /** 会话默认 provider；provider 被删则置空（会话保留） */
-    providerID: text('providerID').references(() => chatProvider.id, { onDelete: 'set null' }),
+    providerID: text('providerID').references(
+      function () {
+        return chatProvider.id
+      },
+      { onDelete: 'set null' }
+    ),
+    /**
+     * 归属的工作区：左栏按它归拢会话（对齐 Qoder 的「一个项目一撮任务」）。
+     *
+     * **刻意不加外键**：SQLite 的 `ALTER TABLE ADD COLUMN` 带不出 `ON DELETE`，
+     * 而没有 `SET NULL` 的外键会把「删工作区」变成报错；
+     * 重建表又会在事务里隐式 `DELETE FROM`，把会话的消息 CASCADE 掉。
+     * 这里只需要一个分组指针 —— 工作区没了就是「未关联工作区」，由 `thread-groups` 兜底。
+     */
+    workspaceID: text('workspaceID'),
     createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
     updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull()
   },
   function (table) {
     return [
       index('idx_chatSession_updatedAt').on(table.updatedAt),
-      index('idx_chatSession_providerID').on(table.providerID)
+      index('idx_chatSession_providerID').on(table.providerID),
+      index('idx_chatSession_workspaceID').on(table.workspaceID)
     ]
   }
 )
@@ -58,11 +73,21 @@ export const chatMessage = sqliteTable(
     id: text('id').primaryKey(),
     sessionID: text('sessionID')
       .notNull()
-      .references(() => chatSession.id, { onDelete: 'cascade' }),
+      .references(
+        function () {
+          return chatSession.id
+        },
+        { onDelete: 'cascade' }
+      ),
     /** 自引用：删除一条消息会连带删除其后续分支 */
-    parentID: text('parentID').references((): AnySQLiteColumn => chatMessage.id, {
-      onDelete: 'cascade'
-    }),
+    parentID: text('parentID').references(
+      function (): AnySQLiteColumn {
+        return chatMessage.id
+      },
+      {
+        onDelete: 'cascade'
+      }
+    ),
     /** MessageFormatAdapter 标识，参与契约，不可改名 */
     format: text('format').notNull(),
     /** `fmt.encode()` 产物 */

@@ -9,7 +9,6 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 
 import { auth } from '../../../drizzle/schema'
-import { adoptBaseline } from './database-migrate'
 import { type Context } from '../framework/context'
 import { type Plugin } from '../framework/module'
 import type { CHANNELS } from '../../shared/ipc/channels'
@@ -60,6 +59,9 @@ function findSharedDatabasePath(): string {
  * 打开库并应用迁移（studio 自己建表；Drizzle 官方 migrator，无需 CLI ——
  * Prisma 的 `migrate deploy` 在 Electron 内不可用，已实测）。
  * 连接级 pragma 与 Tauri 版 storage.rs 的 configure() 保持一致。
+ *
+ * 开发阶段只有一条迁移，其 DDL 全部写成 IF NOT EXISTS，
+ * 因此「表已存在」（库是上一版建的、或手工建过）不是错误，迁移可安全重跑。
  */
 function findClient(): Conn {
   if (client) return client
@@ -75,9 +77,6 @@ function findClient(): Conn {
   file.pragma('foreign_keys = ON')
 
   const migrationsFolder = join(findAppRoot(), 'drizzle', 'migrations')
-  adoptBaseline(file, migrationsFolder, function (message) {
-    logger?.info(message)
-  })
 
   const db = drizzle({ client: file })
   migrate(db, { migrationsFolder })
@@ -136,9 +135,7 @@ class Repository {
       .update(auth)
       .set({
         ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.email !== undefined
-          ? { email: input.email ? input.email : null }
-          : {}),
+        ...(input.email !== undefined ? { email: input.email ? input.email : null } : {}),
         // 旧实现靠 Prisma 的 @updatedAt 自动维护
         updatedAt: new Date()
       })
@@ -152,10 +149,7 @@ class Repository {
 
   async toRemove(input: RemoveP): Promise<void> {
     // 旧实现用 Prisma delete，目标不存在时会报错；保持一致
-    const rows = await findClient()
-      .delete(auth)
-      .where(eq(auth.id, input.id))
-      .returning()
+    const rows = await findClient().delete(auth).where(eq(auth.id, input.id)).returning()
     if (rows.length === 0) {
       throw new IpcError('USER_RECORD_NOT_FOUND', `记录不存在: ${input.id}`)
     }

@@ -41,10 +41,15 @@ export const calendar = sqliteTable(
     endAt: integer('endAt').notNull(),
     entireDay: integer('entireDay', { mode: 'boolean' }).notNull().default(false),
     color: text('color'),
-    reminderID: text('reminderID').references(() => reminder.id, {
-      onDelete: 'set null',
-      onUpdate: 'cascade'
-    }),
+    reminderID: text('reminderID').references(
+      function () {
+        return reminder.id
+      },
+      {
+        onDelete: 'set null',
+        onUpdate: 'cascade'
+      }
+    ),
     archivedAt: integer('archivedAt'),
     createdAt: integer('createdAt').notNull(),
     updatedAt: integer('updatedAt').notNull()

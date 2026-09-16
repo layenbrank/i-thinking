@@ -1,428 +1,9 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "2b71e257-8163-4fb1-adbe-14a6d5fdb1e0",
+  "id": "251709a2-53fb-4a8c-8f72-b2bf2c359b75",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "aiMessage": {
-      "name": "aiMessage",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "identity": {
-          "name": "identity",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "fragment": {
-          "name": "fragment",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "thinking": {
-          "name": "thinking",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "parts": {
-          "name": "parts",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "sessionID": {
-          "name": "sessionID",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "idx_aiMessage_sessionID": {
-          "name": "idx_aiMessage_sessionID",
-          "columns": [
-            "sessionID"
-          ],
-          "isUnique": false
-        },
-        "idx_aiMessage_createdAt": {
-          "name": "idx_aiMessage_createdAt",
-          "columns": [
-            "createdAt"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "aiMessage_sessionID_aiSession_id_fk": {
-          "name": "aiMessage_sessionID_aiSession_id_fk",
-          "tableFrom": "aiMessage",
-          "tableTo": "aiSession",
-          "columnsFrom": [
-            "sessionID"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "aiProvider": {
-      "name": "aiProvider",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "baseUrl": {
-          "name": "baseUrl",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "models": {
-          "name": "models",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "idx_aiProvider_kind": {
-          "name": "idx_aiProvider_kind",
-          "columns": [
-            "kind"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "aiSession": {
-      "name": "aiSession",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "pinned": {
-          "name": "pinned",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "workspaceID": {
-          "name": "workspaceID",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "idx_aiSession_workspaceID": {
-          "name": "idx_aiSession_workspaceID",
-          "columns": [
-            "workspaceID"
-          ],
-          "isUnique": false
-        },
-        "idx_aiSession_updatedAt": {
-          "name": "idx_aiSession_updatedAt",
-          "columns": [
-            "updatedAt"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "aiSession_workspaceID_aiWorkspace_id_fk": {
-          "name": "aiSession_workspaceID_aiWorkspace_id_fk",
-          "tableFrom": "aiSession",
-          "tableTo": "aiWorkspace",
-          "columnsFrom": [
-            "workspaceID"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "aiWorkspace": {
-      "name": "aiWorkspace",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "icon": {
-          "name": "icon",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'folder'"
-        },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'#166534'"
-        },
-        "pinned": {
-          "name": "pinned",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "archivedAt": {
-          "name": "archivedAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "idx_aiWorkspace_archivedAt": {
-          "name": "idx_aiWorkspace_archivedAt",
-          "columns": [
-            "archivedAt"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "aiWorkspaceFolder": {
-      "name": "aiWorkspaceFolder",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspaceID": {
-          "name": "workspaceID",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "path": {
-          "name": "path",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "isPrimary": {
-          "name": "isPrimary",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "sort": {
-          "name": "sort",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "idx_aiWorkspaceFolder_workspaceID": {
-          "name": "idx_aiWorkspaceFolder_workspaceID",
-          "columns": [
-            "workspaceID"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "aiWorkspaceFolder_workspaceID_aiWorkspace_id_fk": {
-          "name": "aiWorkspaceFolder_workspaceID_aiWorkspace_id_fk",
-          "tableFrom": "aiWorkspaceFolder",
-          "tableTo": "aiWorkspace",
-          "columnsFrom": [
-            "workspaceID"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "asset": {
       "name": "asset",
       "columns": {
@@ -619,6 +200,292 @@
       },
       "indexes": {},
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "chatMessage": {
+      "name": "chatMessage",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sessionID": {
+          "name": "sessionID",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parentID": {
+          "name": "parentID",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "format": {
+          "name": "format",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_chatMessage_sessionID": {
+          "name": "idx_chatMessage_sessionID",
+          "columns": [
+            "sessionID"
+          ],
+          "isUnique": false
+        },
+        "idx_chatMessage_parentID": {
+          "name": "idx_chatMessage_parentID",
+          "columns": [
+            "parentID"
+          ],
+          "isUnique": false
+        },
+        "idx_chatMessage_createdAt": {
+          "name": "idx_chatMessage_createdAt",
+          "columns": [
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "chatMessage_sessionID_chatSession_id_fk": {
+          "name": "chatMessage_sessionID_chatSession_id_fk",
+          "tableFrom": "chatMessage",
+          "tableTo": "chatSession",
+          "columnsFrom": [
+            "sessionID"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "chatMessage_parentID_chatMessage_id_fk": {
+          "name": "chatMessage_parentID_chatMessage_id_fk",
+          "tableFrom": "chatMessage",
+          "tableTo": "chatMessage",
+          "columnsFrom": [
+            "parentID"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "chatProvider": {
+      "name": "chatProvider",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "baseUrl": {
+          "name": "baseUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "models": {
+          "name": "models",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_chatProvider_kind": {
+          "name": "idx_chatProvider_kind",
+          "columns": [
+            "kind"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "chatSession": {
+      "name": "chatSession",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pinned": {
+          "name": "pinned",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "providerID": {
+          "name": "providerID",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rootID": {
+          "name": "rootID",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_chatSession_updatedAt": {
+          "name": "idx_chatSession_updatedAt",
+          "columns": [
+            "updatedAt"
+          ],
+          "isUnique": false
+        },
+        "idx_chatSession_providerID": {
+          "name": "idx_chatSession_providerID",
+          "columns": [
+            "providerID"
+          ],
+          "isUnique": false
+        },
+        "idx_chatSession_rootID": {
+          "name": "idx_chatSession_rootID",
+          "columns": [
+            "rootID"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "chatSession_providerID_chatProvider_id_fk": {
+          "name": "chatSession_providerID_chatProvider_id_fk",
+          "tableFrom": "chatSession",
+          "tableTo": "chatProvider",
+          "columnsFrom": [
+            "providerID"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -1392,6 +1259,74 @@
           "name": "idx_reminder_archivedAt",
           "columns": [
             "archivedAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "workspaceRoot": {
+      "name": "workspaceRoot",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sort": {
+          "name": "sort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "workspaceRoot_path_unique": {
+          "name": "workspaceRoot_path_unique",
+          "columns": [
+            "path"
+          ],
+          "isUnique": true
+        },
+        "idx_workspaceRoot_sort": {
+          "name": "idx_workspaceRoot_sort",
+          "columns": [
+            "sort"
           ],
           "isUnique": false
         }

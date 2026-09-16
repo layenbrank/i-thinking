@@ -1,12 +1,14 @@
 /**
  * 数据库集成校验：真实 better-sqlite3（Electron ABI）+ Drizzle 官方 migrator。
  *
- * 与 database-migrate.test.ts 的分工：那边用 node:sqlite 替身验采纳逻辑（普通 Node 可跑）；
  * 这边走真实引擎与真实迁移文件，覆盖启动路径上的三件事：
  *   1. 空库：建表 + 种子数据一次到位
  *   2. 幂等：重复 migrate() 不重复执行、不二次播种
- *   3. 兼容旧库：另一版（Tauri/client，或旧的 Prisma 版）已建好表的库 ——
- *      采纳基线后不再重复 CREATE TABLE、且既有数据不被改动
+ *   3. 可重跑：记账丢失（库是别的版本建的）时重跑，DDL 撞不到已存在的表
+ *
+ * 开发阶段只有 0000_init 一条迁移：整库 DDL 全是 IF NOT EXISTS、种子全是 INSERT OR IGNORE。
+ * 所以「表已存在」是正常状态而不是错误 —— 迁移无论重跑几次都安全。
+ * 但幂等不等于会迁移旧 schema：结构真改了请直接删掉本地 dev 库重建，别指望重跑能改表。
  *
  * better-sqlite3 是按 Electron ABI 编译的原生模块，普通 Node 加载会 ABI 不匹配，
  * 因此本文件被 vitest.config.ts 排除在 test:unit 之外，改用 Electron 运行时执行：
@@ -17,25 +19,20 @@ import type { Database as SqliteHandle } from 'better-sqlite3'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { adoptBaseline } from './database-migrate'
 
-const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
+// 本文件在 src/host/capabilities/ 下，要上溯三层才到包根（apps/studio）
+const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const MIGRATIONS_FOLDER = join(PACKAGE_ROOT, 'drizzle', 'migrations')
-/** v1 参照快照（= Tauri 版 migrations_v001.rs 的 DDL + 种子） */
-const LEGACY_FIXTURE = join(PACKAGE_ROOT, 'scripts', 'fixtures', 'legacy-v1.sql')
 
-/**
- * 业务表数量（不含 Drizzle 记账表），与 scripts/check-schema-parity.mjs 的口径一致：
- * v1 的 13 张 − 旧 ai 域 5 张 + chat 域 3 张 = 11。
- */
-const BUSINESS_TABLE_COUNT = 11
-/** 迁移文件数：0000_init / 0001_seed / 0002_chat_domain / 0003_drop_ai_domain */
-const MIGRATION_COUNT = 4
+/** 业务表数量（不含 Drizzle 记账表）：v1 的 8 张 + chat 域 3 张 + workspace/workspaceFolder 2 张 = 13 */
+const BUSINESS_TABLE_COUNT = 13
+/** 迁移文件数：只有 0000_init（建表 + 种子） */
+const MIGRATION_COUNT = 1
 /** 种子行数，取自 Tauri 版 migrations_v001.rs（138 条 INSERT OR IGNORE） */
 const SEED_ROWS = { magneticTile: 136, mirror: 1, countdown: 1 }
 
@@ -54,11 +51,9 @@ function openDb(): SqliteHandle {
   return db
 }
 
-/** 与 database.ts 的启动顺序一致：先采纳基线，再跑迁移 */
-function bootstrap(db: SqliteHandle): number {
-  const adopted = adoptBaseline(db, MIGRATIONS_FOLDER)
+/** 与 database.ts 的启动顺序一致：直接跑官方 migrator（studio 自己建表） */
+function bootstrap(db: SqliteHandle): void {
   migrate(drizzle({ client: db }), { migrationsFolder: MIGRATIONS_FOLDER })
-  return adopted
 }
 
 function tableNames(db: SqliteHandle): string[] {
@@ -100,7 +95,7 @@ describe('Drizzle 迁移（真实引擎 better-sqlite3）', function () {
   it('空库：建表 + 种子数据一次到位', function () {
     const db = openDb()
 
-    expect(bootstrap(db)).toBe(0)
+    bootstrap(db)
 
     expect(tableNames(db)).toHaveLength(BUSINESS_TABLE_COUNT)
     expect(rows(db, '__drizzle_migrations')).toBe(MIGRATION_COUNT)
@@ -112,43 +107,24 @@ describe('Drizzle 迁移（真实引擎 better-sqlite3）', function () {
     bootstrap(db)
     const before = seedRowCounts(db)
 
-    expect(bootstrap(db)).toBe(0)
+    bootstrap(db)
 
     expect(tableNames(db)).toHaveLength(BUSINESS_TABLE_COUNT)
     expect(rows(db, '__drizzle_migrations')).toBe(MIGRATION_COUNT)
     expect(seedRowCounts(db)).toEqual(before)
   })
 
-  it('兼容旧库：另一版建好的库被采纳，不重复建表、不动数据', function () {
+  it('可重跑：记账丢失后重跑，DDL 撞不到已存在的表', function () {
     const db = openDb()
-    // 模拟"用户先用 Tauri/client 版建过库，再切到 studio"
-    db.exec(readFileSync(LEGACY_FIXTURE, 'utf8'))
-    // 旧库里含 v1 的 13 张业务表（其中 5 张 ai 域表随后会被 0003 迁移 drop）
-    expect(tableNames(db)).toHaveLength(13)
-    expect(tableNames(db)).toContain('aiSession')
-    // 另一版建的库里没有 Drizzle 记账表 —— 这正是需要采纳基线的场景
-    expect(tableNames(db)).not.toContain('__drizzle_migrations')
+    bootstrap(db)
+    const before = seedRowCounts(db)
+    // 模拟「库是别的版本建的」：表都在，但记账里没有这次迁移的记录
+    db.prepare('DELETE FROM __drizzle_migrations').run()
 
-    // 旧库里手写一条业务数据，采纳 + 迁移后必须原样保留
-    db.prepare(
-      'INSERT INTO "mirror" ("id", "title", "index", "createdAt", "updatedAt") VALUES (?, ?, ?, ?, ?)'
-    ).run('legacy-mirror', '既有数据', 99, 1, 1)
-
-    expect(bootstrap(db)).toBe(2)
+    bootstrap(db)
 
     expect(tableNames(db)).toHaveLength(BUSINESS_TABLE_COUNT)
     expect(rows(db, '__drizzle_migrations')).toBe(MIGRATION_COUNT)
-    // 种子是 INSERT OR IGNORE：旧库已有数据不受影响，也不重复插入
-    expect(rows(db, 'magneticTile')).toBe(SEED_ROWS.magneticTile)
-    expect(db.prepare('SELECT "title" FROM "mirror" WHERE "id" = ?').get('legacy-mirror')).toEqual({
-      title: '既有数据'
-    })
-    // 旧 ai 域被 0003 迁移移除，chat 域随之建立（旧库零引用旧域，无数据损失）
-    expect(tableNames(db)).not.toContain('aiSession')
-    expect(tableNames(db)).toContain('chatMessage')
-
-    // 再启动一次：记账已存在，迁移为 no-op
-    expect(bootstrap(db)).toBe(0)
-    expect(rows(db, '__drizzle_migrations')).toBe(MIGRATION_COUNT)
+    expect(seedRowCounts(db)).toEqual(before)
   })
 })
