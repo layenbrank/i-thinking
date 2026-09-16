@@ -1,5 +1,7 @@
 import type { ChatHistoryPort, ChatStoredMessage, ChatThread } from '@i-thinking/chat/ports'
 
+import { useAgentStore } from '@/stores/agent.ts'
+
 /**
  * 历史端口（渲染进程实现）：直接映射 `itc.chat.*` 仓储 API。
  *
@@ -16,8 +18,17 @@ function toThread(session: SessionReadR): ChatThread {
     title: session.title,
     pinned: session.pinned,
     updatedAt: Date.parse(session.updatedAt),
-    providerID: session.providerID
+    providerID: session.providerID,
+    workspaceID: session.workspaceID
   }
+}
+
+/**
+ * 新建会话归属当前工作区（左栏按它归拢会话）。
+ * 指针本身已由 `useActiveWorkspaceID` 自愈，所以这里直接读 agent 存储即可。
+ */
+function findActiveWorkspaceID(): string | null {
+  return useAgentStore.getState().settings.workspace.activeWorkspaceID
 }
 
 function toStoredMessage(message: MessageReadR): ChatStoredMessage {
@@ -48,7 +59,8 @@ function createHistoryPort(): ChatHistoryPort {
     async createThread(input) {
       const session = await itc.chat.session.toWrite({
         ...(input?.title ? { title: input.title } : {}),
-        providerID: input?.providerID ?? null
+        providerID: input?.providerID ?? null,
+        workspaceID: input?.workspaceID ?? findActiveWorkspaceID()
       })
       return toThread(session)
     },
@@ -57,7 +69,8 @@ function createHistoryPort(): ChatHistoryPort {
       const session = await itc.chat.session.toUpdate({
         id,
         ...(patch.title === undefined ? {} : { title: patch.title }),
-        ...(patch.pinned === undefined ? {} : { pinned: patch.pinned })
+        ...(patch.pinned === undefined ? {} : { pinned: patch.pinned }),
+        ...(patch.workspaceID === undefined ? {} : { workspaceID: patch.workspaceID })
       })
       return toThread(session)
     },

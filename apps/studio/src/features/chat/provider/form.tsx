@@ -27,8 +27,6 @@ import {
   type ProviderValues
 } from '@/features/chat/provider/schema.ts'
 
-import styles from '@/features/chat/provider/dialog.module.scss'
-
 /** 主进程 provider 行的展示类型（渲染进程不 import 主进程类型） */
 type ProviderRow = Awaited<ReturnType<typeof itc.chat.provider.toRead>>[number]
 
@@ -64,7 +62,7 @@ function ProviderForm(props: ProviderFormProps) {
     <Form {...form}>
       <form
         noValidate
-        className={styles.form}
+        className="flex flex-col gap-4"
         onSubmit={form.handleSubmit(onSubmit)}>
         <FormField
           control={form.control}
@@ -128,10 +126,13 @@ function ProviderForm(props: ProviderFormProps) {
                 <FormControl>
                   <Input
                     {...field}
-                    placeholder="http://127.0.0.1:11434"
+                    placeholder="http://127.0.0.1:11434/v1"
                   />
                 </FormControl>
-                <FormDescription>OpenAI 兼容端点（含 /v1 前缀视服务而定）</FormDescription>
+                <FormDescription>
+                  OpenAI 兼容根路径，要带 /v1（Ollama：http://127.0.0.1:11434/v1；LM Studio：
+                  http://127.0.0.1:1234/v1）
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )
@@ -204,7 +205,7 @@ function ProviderForm(props: ProviderFormProps) {
           name="enabled"
           render={function ({ field }) {
             return (
-              <FormItem className={styles.inlineItem}>
+              <FormItem className="flex flex-row items-center justify-between">
                 <FormLabel>启用</FormLabel>
                 <FormControl>
                   <Switch
@@ -218,7 +219,7 @@ function ProviderForm(props: ProviderFormProps) {
           }}
         />
 
-        <div className={styles.formActions}>
+        <div className="flex justify-end gap-2">
           <Button
             type="button"
             variant="outline"

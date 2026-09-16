@@ -6,7 +6,9 @@ export function generateColor() {
   // 半透明 alpha（如 0.3 ~ 0.7 之间）
   const a = (Math.random() * 0.4 + 0.3).toFixed(2)
   // 转为十六进制并拼接
-  const hex = (x: number) => x.toString(16).padStart(2, '0')
+  const hex = function (x: number) {
+    return x.toString(16).padStart(2, '0')
+  }
   return `#${hex(r)}${hex(g)}${hex(b)}${Math.round(Number(a) * 255)
     .toString(16)
     .padStart(2, '0')}`
