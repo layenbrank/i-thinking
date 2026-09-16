@@ -1,0 +1,17 @@
+name: shot-studio
+description: Click studio center and screenshot
+steps:
+  - id: click
+    action: ui.click
+    params:
+      x: 853
+      y: 512
+  - id: wait
+    action: ui.wait
+    params:
+      ms: 400
+  - id: shot
+    action: capture.screenshot
+    params:
+      to: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/studio-after.png"
+      format: png

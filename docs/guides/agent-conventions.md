@@ -88,8 +88,8 @@
 
 1. **查能力**：`corex actions --bucket ui`（另有 `data` / `system`）；给 id 看参数表。
 2. **找窗口**：`corex ui window list`，按标题过滤（如 `Qoder`、`i thinking`）。
-3. **写指令 YAML**（落在临时目录，如 `apps/studio/scripts/.tmp-*-captures/`）→ `corex validate <path>` → `corex run <path>`。
-4. **读产物**：用 Read 打开生成的 PNG / OCR 文本，再改代码；勿把 `.tmp-*` 提交进仓库。
+3. **写指令 YAML**（可复用的放 `apps/studio/scripts/corex/`）→ `corex validate <path>` → `corex run <path>`。
+4. **读产物**：截图 / OCR 等落在 `.tmp-*`（如 `apps/studio/scripts/.tmp-*-captures/`）；用 Read 打开后再改代码。**只提交指令 YAML，不提交 `.tmp-*` 产物。**
 
 典型步骤链：`ui.window.focus`（`title_contains` + `prefer_largest`）→ `ui.wait` → `capture.screenshot`；需要时再加 `ui.click`、`capture.crop`、`capture.ocr`。
 

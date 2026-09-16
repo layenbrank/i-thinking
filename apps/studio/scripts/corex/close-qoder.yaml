@@ -1,0 +1,19 @@
+name: close-qoder-modal
+description: Escape Qoder modal and raise studio
+steps:
+  - id: esc1
+    action: ui.key
+    params:
+      keys: Escape
+  - id: wait1
+    action: ui.wait
+    params:
+      ms: 200
+  - id: esc2
+    action: ui.key
+    params:
+      keys: Escape
+  - id: wait2
+    action: ui.wait
+    params:
+      ms: 200

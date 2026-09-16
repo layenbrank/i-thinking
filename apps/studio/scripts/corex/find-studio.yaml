@@ -1,0 +1,7 @@
+name: find-studio
+description: Find i thinking window
+steps:
+  - id: find
+    action: ui.window.find
+    params:
+      title_contains: i thinking

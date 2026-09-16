@@ -1,0 +1,9 @@
+name: list-qoder
+description: List Qoder UIA elements
+steps:
+  - id: list
+    action: ui.element.list
+    params:
+      hwnd: 461154
+      depth: 4
+      limit: 80

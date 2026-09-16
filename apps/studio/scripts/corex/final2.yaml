@@ -1,0 +1,26 @@
+name: final2
+description: Final studio capture
+steps:
+  - id: click
+    action: ui.click
+    params:
+      x: 120
+      y: 76
+  - id: wait
+    action: ui.wait
+    params:
+      ms: 400
+  - id: shot
+    action: capture.screenshot
+    params:
+      to: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/studio-full5.png"
+      format: png
+  - id: crop
+    action: capture.crop
+    params:
+      from: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/studio-full5.png"
+      to: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/studio-final.png"
+      x: 80
+      y: 40
+      width: 1500
+      height: 920

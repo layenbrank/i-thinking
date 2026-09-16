@@ -1,0 +1,30 @@
+name: shot-studio-top
+description: Shot topmost studio and crop
+steps:
+  - id: click
+    action: ui.click
+    params:
+      x: 853
+      y: 512
+  - id: wait
+    action: ui.wait
+    params:
+      ms: 400
+  - id: shot
+    action: capture.screenshot
+    params:
+      to: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/studio-full2.png"
+      format: png
+  - id: crop
+    action: capture.crop
+    params:
+      from: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/studio-full2.png"
+      to: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/studio-after.png"
+      x: 366
+      y: 148
+      width: 974
+      height: 729
+  - id: untotop
+    action: ui.wait
+    params:
+      ms: 100

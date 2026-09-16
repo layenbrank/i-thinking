@@ -1,0 +1,12 @@
+name: crop-studio
+description: Crop full shot to studio window
+steps:
+  - id: crop
+    action: capture.crop
+    params:
+      from: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/studio-full.png"
+      to: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/studio-after.png"
+      x: 246
+      y: 108
+      width: 1214
+      height: 809

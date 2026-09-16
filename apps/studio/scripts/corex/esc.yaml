@@ -1,0 +1,19 @@
+name: close-dialog-shot
+description: Escape folder dialog then shot studio
+steps:
+  - id: esc
+    action: ui.key
+    params:
+      keys: Escape
+  - id: wait1
+    action: ui.wait
+    params:
+      ms: 300
+  - id: esc2
+    action: ui.key
+    params:
+      keys: Escape
+  - id: wait2
+    action: ui.wait
+    params:
+      ms: 400
