@@ -80,39 +80,15 @@
 7. **按文件逐个 `git add`**，不要 `git add <目录>` 或 `git add .` —— 工作树里常有未提交的 WIP，
    宽泛 add 会把它一起夹带进提交。commit 前用 `git diff --cached --name-only` 复核一遍。
 
-本地可用工具
+## 本地工具（corex）
 
-corex help
-Corex —— 可组合的指令与动作
+需要桌面 UI 证据（截图、控件树、窗口定位）时用 **corex**，不要臆测界面状态。完整 CLI 以 `corex help` / `corex help <cmd>` 为准。
 
-Usage: corex.exe [OPTIONS] <COMMAND>
+会话内优先：
 
-Commands:
-run 按名称或文件路径运行指令
-schedule 列出可用指令名
-actions 列出已注册动作（按 bucket 分组）；给 id 时打印它的参数表与步骤片段
-create 生成新的指令骨架（交互向导，或 -t 选模板）
-edit 用 $COREX_EDITOR / $EDITOR 或系统默认程序打开指令 YAML
-validate 校验指令 YAML；不给路径时校验配置
-schema 输出指令 YAML 的 JSON Schema，供编辑器补全与校验
-completions 打印某个 shell 的补全注册脚本（候选由 corex 现算，升级后无需重生成）
-history 列出最近的执行记录
-doctor 自检：数据目录、配置、守护进程、动作与指令
-repl 交互式 REPL
-daemon 守护进程控制
-watch 文件监听 supervisor（PM2 风格）
-cron cron 调度 supervisor
-ui UI 元素探测（Windows UIAutomation）
-update 从 GitHub Releases 自更新
-help Print this message or the help of the given subcommand(s)
+- `corex ui` —— Windows UIAutomation：探测窗口 / 控件，取边界与文本
+- `corex actions` —— 列出可用动作；给 id 可看参数与步骤片段
+- `corex create` —— 写可复用指令（截图、点击、OCR 等），再 `corex run <name|path>`
+- `corex run` —— 执行已有指令 YAML
 
-Options:
---dir <DIR> 指令 / 配置的搜索目录
--v, --verbose... 提高日志详细程度
---config <PATH> 使用指定配置文件，而非默认搜索路径
--h, --help Print help
--V, --version Print version
-
-actions、ui 可以利用获取一些关键信息
-
-可以使用corex创建指令获取所需的 Qoder 的截图和交互信息等
+对照竞品（如 Qoder）或核对 Studio 窗口时：先 `ui` / `actions` 定位目标，再用 `create` + `run` 固化截图与交互步骤；结果落盘后再据此改代码。
