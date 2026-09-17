@@ -2,6 +2,10 @@
 
 会话内优先遵循以下约定。完整编码规范见 `.cursor/skills/coding-conventions/`；本文件只收高频、易忘的约束。
 
+## 协作方式
+
+- 动手前先说明改动方案并等我确认，避免理解偏差造成无效改动。
+
 ## 文件组织
 
 - 文件粒度适中：既不过度拆分，也不过度聚合。
@@ -13,25 +17,33 @@
 - 重复打补丁会让实现变复杂、难维护；能删旧路径就删，避免双轨并存。
 - 只改任务所需代码，不做无关重构或顺手「清理」。
 - 实现优先保证**可长期维护、易扩展**：结构清晰、职责单一，后续改动能落在局部。
-- 整段算法/行为需按场景整体替换时，用**设计模式** **策略模式**拆出可互换的策略，便于扩展与复用。
+- 整段算法/行为需按场景整体替换时，用**策略模式**拆出可互换的策略，便于扩展与复用。
 - 单纯按输入取值/取处理器的逻辑判断，用**对象映射**表驱动实现，让数据代替分支。
 
 ## 架构
 
 - IPC 是**契约单一事实源**：新增或修改一个频道要同时动 `shared/ipc/{channels,specs,api}`、
   `host/ipc/handlers`、`preload.ts` —— **缺一处就编译不过**（这套断言是刻意设计的，不要绕过）。
-  完整规范见 [ipc-contract.md](../apps/studio/ipc-contract.md)。
+  完整规范见 [IPC 契约规范](../apps/studio/ipc-contract.md)。
 
 ## 命名
 
+### 通用
+
 - 简洁优雅，避免过长；超过约 20 字符应拆分。
+- 有明确命名空间（模块 / 包）时可极致精简，不必重复前缀。
 - 语义无法一眼看清时，用注释补充说明。
-- 命名时语义不要混淆。
-- 禁止 `get` 前缀 → 用 `find` / `fetch`；解析用 `parse` / `parsed`。
-- 常量、枚举键、API 名：全大写下划线（如 `POST_SIGNIN`、`API_BASE_URL`）。
+
+### 大小写
+
+- 常量、枚举键、API 名：全大写下划线（如 `POST_SIGNIN`、`BASE_URL`）。
 - 接口与类型：PascalCase（如 `ChannelSpec`、`IpcFailure`），不用下划线。
+
+### 语义
+
+- 同一概念用词一致，不同概念不复用同一个名字。
+- 禁止 `get` 前缀 → 用 `find` / `fetch`；解析用 `parse` / `parsed`。
 - 布尔用 `is` / `has` / `can`；非 `useState` 不用 `set`；集合用复数，避免 `list` 后缀。
-- 根据命名空间、模块命名空间，可做极致精简命名
 
 ## 结构与样式
 
@@ -40,7 +52,12 @@
 - 结构保持简洁，避免无用嵌套。
 - 每一层容器都要有明确作用。
 
-### UI 组件来源（按应用区分）
+### 装饰
+
+- 充分利用图标和图片做层次与点缀，避免纯文字堆砌的空界面。
+- 装饰服务于信息层级，不抢主内容、不堆砌无意义图标。
+
+## UI 组件库
 
 各应用 UI 栈不同，**不要跨应用套用约定**：
 
@@ -53,32 +70,30 @@
 
 ### shadcn（studio / extension）
 
-- 组件一律从 `@i-thinking/design/{components,assistant}/*` 引入；**不要手写 `<button>` / `<dialog>`，也不要在 app 内造一次性组件**
-- 设计 token 唯一源：`packages/design/src/styles/globals.css`；**app 侧不得另定义同名变量**
-- 用语义 token 的工具类（`bg-primary`、`text-muted-foreground`）；不写硬编码色值，不用任意值（`bg-[#4080ff]`）
-- 新增组件走 registry：`pnpm --filter @i-thinking/design registry:add <items>`
+- 组件一律从 `@i-thinking/design/{components,assistant}/*` 引入；**不要手写 `<button>` / `<dialog>`，也不要在 app 内造一次性组件**。
+- 设计 token 唯一源：`packages/design/src/styles/globals.css`；**app 侧不得另定义同名变量**。
+- 用语义 token 的工具类（`bg-primary`、`text-muted-foreground`）；不写硬编码色值，不用任意值（`bg-[#4080ff]`）。
+- 新增组件走 registry：`pnpm --filter @i-thinking/design registry:add <items>`。
 
 ### antd（仅 `apps/client`）
 
-- 颜色使用主色；消费主题变量（`--ith-*`）须挂 `CSSVAR.KEY`（见 `apps/client/src/themes/runtime/build.ts`），或用 `useCssVarClassName`；样式里写 `var(--ith-…)`，**不要写 `var(--ant-*)`**
-- 注入规则为 `.ith { --ith-*: … }`，未挂 `ith` 作用域则变量不生效
-- 设计稿的样式仅参考，不必原样照抄；实现时注意布局工整、对齐
-
-### 装饰
-
-- 充分利用图标和图片做层次与点缀，避免纯文字堆砌的空界面。
-- 装饰服务于信息层级，不抢主内容、不堆砌无意义图标。
+- 颜色使用主色；消费主题变量（`--ith-*`）须挂 `CSSVAR.KEY`（见 `apps/client/src/themes/runtime/build.ts`），或用 `useCssVarClassName`；样式里写 `var(--ith-…)`，**不要写 `var(--ant-*)`**。
+- 注入规则为 `.ith { --ith-*: … }`，未挂 `ith` 作用域则变量不生效。
+- 设计稿的样式仅参考，不必原样照抄；实现时注意布局工整、对齐。
 
 ## Git 提交
 
 1. 先查看当前 git 改动（`status` / `diff` / 近期 `log`），再生成提交信息。
 2. 需要时按主题分批提交；一条提交只表达一个意图。
 3. 提交信息简洁、说明「为什么」；风格对齐仓库近期 commit（如 `fix(……): …`、`chore(): …`）。
-4. client 版本升级使用 `bump:client`，以触发 client tag release 发布。
-5. 仓库版本升级按既有发版流程，以触发 tag release 发布。
-6. 未经明确要求：不 `push`、不改 git config、不跳过 hooks。
-7. **按文件逐个 `git add`**，不要 `git add <目录>` 或 `git add .` —— 工作树里常有未提交的 WIP，
+4. 未经明确要求：不 `push`、不改 git config、不跳过 hooks。
+5. **按文件逐个 `git add`**，不要 `git add <目录>` 或 `git add .` —— 工作树里常有未提交的 WIP，
    宽泛 add 会把它一起夹带进提交。commit 前用 `git diff --cached --name-only` 复核一遍。
+
+## 版本发布
+
+- client 版本升级使用 `bump:client`，以触发 client tag release 发布。
+- 仓库版本升级按既有发版流程，以触发 tag release 发布。
 
 ## 本地工具（corex）
 
