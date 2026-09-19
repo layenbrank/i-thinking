@@ -50,6 +50,7 @@ const ASSISTANT_LABELS_ZH: AssistantLabelsOverride = {
 
   // 输入区
   composerPlaceholder: '消息，或 @ 引用文件，/ 调用技能',
+  composerPlaceholderContinue: '继续这个任务...',
   messageInput: '消息输入框',
 
   // 部件
