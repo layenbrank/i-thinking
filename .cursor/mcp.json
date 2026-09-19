@@ -2,11 +2,11 @@
   "mcpServers": {
     "antd": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@ant-design/cli",
-        "mcp"
-      ]
+      "args": ["-y", "@ant-design/cli", "mcp"]
+    },
+    "corex": {
+      "command": "corex-mcp",
+      "args": ["--directives", ".cache/corex/directives"]
     }
   }
 }

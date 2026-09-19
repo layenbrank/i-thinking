@@ -1,8 +1,0 @@
-name: ocr-qoder
-description: OCR Qoder settings to find back button
-steps:
-  - id: ocr
-    action: capture.ocr
-    params:
-      file: "d:/Documents/monorepo/i-thinking/master/apps/studio/scripts/.tmp-qoder-captures/qoder-agent.png"
-      language: ch_sim+en
