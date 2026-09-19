@@ -64,12 +64,34 @@ class WorkspaceGitService {
       const branch = (await runGit(cwd, ['branch', '--show-current'])).trim()
       return { branch }
     } catch (error) {
-      throw new IpcError(
-        'WORKSPACE_GIT_FAILED',
-        error instanceof Error ? error.message : `切换分支失败: ${input.branch}`
-      )
+      const raw = findGitFailure(error)
+      console.warn('[workspace-git] 切换分支失败', raw)
+      throw new IpcError('WORKSPACE_GIT_FAILED', parseCheckoutFailure(raw, input.branch))
     }
   }
+}
+
+/** 把 git 的英文失败收成一句人话。脏工作区不能硬切，否则会盖掉未提交的文件。 */
+function parseCheckoutFailure(raw: string, branch: string): string {
+  const text = raw.toLowerCase()
+  if (
+    text.includes('would be overwritten') ||
+    text.includes('please commit your changes or stash') ||
+    text.includes('your local changes')
+  ) {
+    return `工作区还有未提交的改动，切到 ${branch} 会盖掉这些文件。先提交或暂存后再切。`
+  }
+  if (text.includes('did not match any file') || text.includes('pathspec')) {
+    return `找不到分支 ${branch}`
+  }
+  return `切换到 ${branch} 失败`
+}
+
+function findGitFailure(error: unknown): string {
+  if (!error || typeof error !== 'object') return String(error)
+  const stderr = 'stderr' in error ? String(error.stderr ?? '') : ''
+  const message = error instanceof Error ? error.message : ''
+  return `${message}\n${stderr}`.trim()
 }
 
 async function runGit(cwd: string, args: string[]): Promise<string> {
@@ -81,4 +103,4 @@ async function runGit(cwd: string, args: string[]): Promise<string> {
   return stdout
 }
 
-export { WorkspaceGitService }
+export { WorkspaceGitService, parseCheckoutFailure }
