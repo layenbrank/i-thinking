@@ -73,3 +73,19 @@ aliyun:
     api_key: change-me-aliyun-gateway-key
     timeout_ms: 10000
     sms_template_code: SMS_xxxx
+
+gateway:
+  # 全局兜底：无租户身份（用户维度）与团队租户使用
+  daily_token_quota: 1000000
+  # 个人租户免费档：无有效订阅时使用
+  free_daily_token_quota: 100000
+  # 个人租户订阅档位：档位名 -> 日 token 配额（与 subscription.plan 对应）
+  plan_daily_token_quota:
+    BASIC: 500000
+    PRO: 5000000
+  # 上游模型流式读超时（毫秒）
+  upstream_timeout_ms: 120000
+  # 用量事件写入的 Elasticsearch 索引
+  usage_es_index: gateway_usage
+  # 审计落库开关
+  audit_enabled: true

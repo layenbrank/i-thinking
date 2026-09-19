@@ -146,6 +146,37 @@ pub mod services {
         pub mod storage;
         pub mod validation;
     }
+
+    pub mod tenant {
+        pub mod controller;
+        pub mod module;
+        pub mod schema;
+        pub mod service;
+    }
+
+    pub mod gateway {
+        pub mod client;
+        pub mod controller;
+        pub mod module;
+        pub mod quota;
+        pub mod repository;
+        pub mod schema;
+        pub mod service;
+    }
+
+    pub mod sso {
+        pub mod controller;
+        pub mod module;
+        pub mod schema;
+        pub mod service;
+    }
+
+    pub mod subscription {
+        pub mod controller;
+        pub mod module;
+        pub mod schema;
+        pub mod service;
+    }
 }
 
 pub mod oas;

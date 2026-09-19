@@ -42,6 +42,12 @@ async fn main() -> std::io::Result<()> {
     service::services::search::repository::ensure_index(&es)
         .await
         .expect("Failed to ensure Elasticsearch index");
+    service::services::gateway::repository::ensure_usage_index(
+        &es,
+        configure.gateway_usage_es_index(),
+    )
+    .await
+    .expect("Failed to ensure gateway usage index");
 
     let host = configure.server.host.clone();
     let port = configure.server.port;

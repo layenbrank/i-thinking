@@ -89,6 +89,43 @@ pub fn encrypt_field(plaintext: &str, key_str: &str) -> Result<String, Encryptio
     Ok(STANDARD.encode(&combined))
 }
 
+/// 解密 AES-256-GCM 密文，返回明文（用于运行时读取集中加密的密钥）。
+pub fn decrypt_field(encrypted: &str, key_str: &str) -> Result<String, EncryptionError> {
+    let key_bytes = STANDARD
+        .decode(key_str)
+        .map_err(|e| EncryptionError::Base64Error(e.to_string()))?;
+
+    if key_bytes.len() != 32 {
+        return Err(EncryptionError::InvalidKeyLength);
+    }
+
+    let key_array: [u8; 32] = key_bytes
+        .try_into()
+        .map_err(|_| EncryptionError::InvalidKeyLength)?;
+    let key: &Key<Aes256Gcm> = (&key_array).into();
+    let cipher = Aes256Gcm::new(key);
+
+    let combined = STANDARD
+        .decode(encrypted)
+        .map_err(|e| EncryptionError::Base64Error(e.to_string()))?;
+
+    if combined.len() < 12 {
+        return Err(EncryptionError::AesError("Invalid ciphertext length".to_string()));
+    }
+
+    let nonce_bytes: [u8; 12] = combined[..12]
+        .try_into()
+        .map_err(|_| EncryptionError::AesError("Invalid nonce length".to_string()))?;
+    let nonce = Nonce::from(nonce_bytes);
+    let ciphertext = &combined[12..];
+
+    let decrypted = cipher
+        .decrypt(&nonce, ciphertext)
+        .map_err(|_| EncryptionError::AesError("Decryption failed".to_string()))?;
+
+    String::from_utf8(decrypted).map_err(|e| EncryptionError::AesError(e.to_string()))
+}
+
 /// 校验明文是否等于 AES 密文解密结果。
 pub fn verify_field(
     plaintext: &str,
@@ -172,6 +209,16 @@ mod tests {
         assert_ne!(encrypted, password);
         assert!(verify_field(password, &encrypted, &key_str).unwrap());
         assert!(!verify_field("wrong_password", &encrypted, &key_str).unwrap());
+    }
+
+    #[test]
+    fn test_aes_field_roundtrip() {
+        let key_bytes: [u8; 32] = [7u8; 32];
+        let key_str = STANDARD.encode(key_bytes);
+        let secret = "sk-1234567890";
+        let encrypted = encrypt_field(secret, &key_str).unwrap();
+        let decrypted = decrypt_field(&encrypted, &key_str).unwrap();
+        assert_eq!(decrypted, secret);
     }
 
     #[test]

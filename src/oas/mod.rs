@@ -2,9 +2,13 @@ pub mod application;
 pub mod auth;
 pub mod common;
 pub mod engine;
+pub mod gateway;
 pub mod paths;
 pub mod search;
+pub mod sso;
+pub mod subscription;
 pub mod system;
+pub mod tenant;
 pub mod upload;
 pub mod user;
 
@@ -14,10 +18,15 @@ use utoipa::{Modify, OpenApi};
 
 use crate::oas::common::{
     ApplicationEnvelope, CaptchaEnvelope, ChunkUploadEnvelope, ChunkUploadForm, EmptyEnvelope,
-    EmptyR, Exception, FinalizeUploadEnvelope, Health, HealthEnvelope, ProfileEnvelope,
-    SearchEnvelope, SearchWriteEnvelope, SigninEnvelope, SigninErrorExample, SigninSuccessExample,
-    SignupEnvelope, SuggestionEnvelope, UploadFilesEnvelope, UploadHashEnvelope,
-    UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope, UserListEnvelope,
+    EmptyR, Exception, FinalizeUploadEnvelope, Health, HealthEnvelope, MemberEnvelope,
+    MemberListEnvelope, ModelEnvelope, ModelListEnvelope, ProfileEnvelope, ProviderEnvelope,
+    ProviderListEnvelope, QuotaEnvelope, SearchEnvelope, SearchWriteEnvelope, SigninEnvelope,
+    SigninErrorExample,
+    SigninSuccessExample, SignupEnvelope, SsoConnectionEnvelope, SsoConnectionListEnvelope,
+    SsoLoginEnvelope, SubscriptionEnvelope, SubscriptionListEnvelope, SuggestionEnvelope,
+    TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope,
+    UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope,
+    UserListEnvelope,
 };
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
@@ -26,8 +35,18 @@ use crate::services::auth::schema::{
     SignupR,
 };
 use crate::services::engine::schema::{EmptySchema, ISchema, QueryP, SuggestionR, TSchema};
+use crate::services::gateway::schema::{
+    ChatCompletionsP, ModelR, ModelUpdateP, ModelWriteP, ProviderR, ProviderUpdateP, ProviderWriteP,
+};
 use crate::services::search::schema::{
     HitR, QueryP as SearchQueryP, SearchR, WriteP as SearchWriteP, WriteR as SearchWriteR,
+};
+use crate::services::sso::schema::{
+    SsoConnectionR, SsoConnectionUpdateP, SsoConnectionWriteP, SsoLoginR,
+};
+use crate::services::subscription::schema::{QuotaR, SubscribeP, SubscriptionR};
+use crate::services::tenant::schema::{
+    MemberR, MemberUpdateP, MemberWriteP, TenantR, TenantRole, TenantUpdateP, TenantWriteP,
 };
 use crate::services::upload::schema::{
     AssetR, ChunkR, FilesP, FilesR, FinalizeP, FinalizeR, HashP, HashR, PrepareP, PrepareR,
@@ -108,6 +127,37 @@ impl Modify for SecurityAddon {
         search::toWrite_doc,
         search::toRead_doc,
         application::toRead_doc,
+        tenant::toList_doc,
+        tenant::toWrite_doc,
+        tenant::toRead_by_id_doc,
+        tenant::toUpdate_doc,
+        tenant::toRemove_doc,
+        tenant::members_doc,
+        tenant::member_add_doc,
+        tenant::member_update_doc,
+        tenant::member_remove_doc,
+        subscription::toList_doc,
+        subscription::toWrite_doc,
+        subscription::toRemove_doc,
+        subscription::quota_doc,
+        gateway::chat_doc,
+        gateway::models_doc,
+        gateway::providers_doc,
+        gateway::provider_write_doc,
+        gateway::provider_update_doc,
+        gateway::provider_remove_doc,
+        gateway::models_admin_doc,
+        gateway::model_write_doc,
+        gateway::model_update_doc,
+        gateway::model_remove_doc,
+        gateway::usage_doc,
+        gateway::audit_doc,
+        sso::connections_doc,
+        sso::connection_write_doc,
+        sso::connection_update_doc,
+        sso::connection_remove_doc,
+        sso::authorize_doc,
+        sso::callback_doc,
     ),
     components(
         schemas(
@@ -186,6 +236,41 @@ impl Modify for SecurityAddon {
             Shape,
             Component,
             Direction,
+            TenantR,
+            MemberR,
+            TenantWriteP,
+            TenantUpdateP,
+            MemberWriteP,
+            MemberUpdateP,
+            TenantRole,
+            TenantEnvelope,
+            TenantListEnvelope,
+            MemberEnvelope,
+            MemberListEnvelope,
+            SubscribeP,
+            SubscriptionR,
+            SubscriptionEnvelope,
+            SubscriptionListEnvelope,
+            QuotaR,
+            QuotaEnvelope,
+            ChatCompletionsP,
+            ProviderR,
+            ProviderWriteP,
+            ProviderUpdateP,
+            ModelR,
+            ModelWriteP,
+            ModelUpdateP,
+            ProviderEnvelope,
+            ProviderListEnvelope,
+            ModelEnvelope,
+            ModelListEnvelope,
+            SsoConnectionR,
+            SsoConnectionWriteP,
+            SsoConnectionUpdateP,
+            SsoLoginR,
+            SsoConnectionEnvelope,
+            SsoConnectionListEnvelope,
+            SsoLoginEnvelope,
         )
     ),
     tags(
@@ -196,6 +281,10 @@ impl Modify for SecurityAddon {
         (name = "Engine", description = "搜索引擎代理"),
         (name = "Search", description = "Elasticsearch 全文检索"),
         (name = "Application", description = "应用入口（Mock）"),
+        (name = "Tenant", description = "多租户组织与成员（需 JWT）"),
+        (name = "Subscription", description = "个人租户订阅：免费/付费档位配额（需 JWT）"),
+        (name = "Gateway", description = "模型网关：转发/配额/用量/审计（需 JWT）"),
+        (name = "SSO", description = "单点登录（OIDC）"),
     ),
     modifiers(&SecurityAddon),
     external_docs(

@@ -88,7 +88,9 @@ reqwest = { version = "0.13.4", features = [
   "json",
   "query",
   "rustls",
-] } # 出站 HTTP 请求
+  "stream",
+  "form",
+] } # 出站 HTTP 请求（stream：模型网关 SSE 直传）
 
 # Redis / Elasticsearch
 fred = { version = "10", features = ["enable-rustls", "partial-tracing"] }

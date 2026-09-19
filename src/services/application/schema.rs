@@ -59,6 +59,7 @@ pub struct App {
     pub height: Option<String>,
     pub marker: Option<String>,
     #[schema(example = "mirror-1")]
+    #[serde(rename = "mirrorID")]
     pub mirror_id: String,
     pub text_size: Option<String>,
     #[schema(example = 1700000000000_i64)]
@@ -70,6 +71,7 @@ pub struct App {
     pub direction: Direction,
     #[schema(example = "应用入口配置")]
     pub description: String,
+    #[serde(rename = "collectionID")]
     pub collection_id: Option<String>,
     #[schema(example = 0)]
     pub download_count: u32,

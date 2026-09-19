@@ -49,8 +49,11 @@ pub struct GoCaptchaClient {
 impl GoCaptchaClient {
     pub fn new(config: &Configure) -> Result<Self> {
         let timeout = Duration::from_millis(config.captcha_timeout_ms());
+        // 本地侧车直连（127.0.0.1:8080）：禁用代理，否则请求会被本机系统代理
+        // （如 127.0.0.1:7892）拦截并返回 502。仅作用于本客户端。
         let http = Client::builder()
             .timeout(timeout)
+            .no_proxy()
             .build()
             .context("failed to build go-captcha http client")?;
 

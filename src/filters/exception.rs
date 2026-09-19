@@ -87,6 +87,24 @@ impl Exception {
     }
 }
 
+impl std::fmt::Display for Exception {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}] {}", self.code, self.msg)
+    }
+}
+
+/// 支持在 handler 中用 `?` 传播异常：对外 HTTP 状态码恒为 200，
+/// 业务错误由响应体 `code` 表达（与 [`Exception::transform`] 行为一致）。
+impl actix_web::ResponseError for Exception {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        actix_web::http::StatusCode::OK
+    }
+
+    fn error_response(&self) -> HttpResponse {
+        HttpResponse::Ok().json(self)
+    }
+}
+
 fn details_enabled_for(is_production: bool) -> bool {
     !is_production
 }

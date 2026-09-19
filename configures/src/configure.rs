@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
@@ -288,6 +289,36 @@ impl Default for AliyunConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
+pub struct GatewayConfig {
+    /// 全局兜底日 token 配额（无租户 / 团队租户）
+    pub daily_token_quota: i64,
+    /// 个人租户免费档日 token 配额（无有效订阅时生效）
+    pub free_daily_token_quota: i64,
+    /// 个人租户订阅档位日 token 配额：档位名 -> 配额
+    pub plan_daily_token_quota: HashMap<String, i64>,
+    /// 上游模型流式读超时（毫秒）
+    pub upstream_timeout_ms: u64,
+    /// 用量事件写入的 Elasticsearch 索引
+    pub usage_es_index: String,
+    /// 审计落库开关
+    pub audit_enabled: bool,
+}
+
+impl Default for GatewayConfig {
+    fn default() -> Self {
+        Self {
+            daily_token_quota: 1_000_000,
+            free_daily_token_quota: 100_000,
+            plan_daily_token_quota: HashMap::new(),
+            upstream_timeout_ms: 120_000,
+            usage_es_index: "gateway_usage".to_string(),
+            audit_enabled: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
 pub struct CorsConfig {
     pub origins: Vec<String>,
 }
@@ -309,6 +340,7 @@ pub struct Configure {
     pub security: SecurityConfig,
     pub auth: AuthConfig,
     pub aliyun: AliyunConfig,
+    pub gateway: GatewayConfig,
     pub logging: LoggingConfig,
     pub cors: CorsConfig,
     /// 合并时使用的 profile（`resolve_profile()`）。
@@ -330,6 +362,7 @@ impl Default for Configure {
             security: SecurityConfig::default(),
             auth: AuthConfig::default(),
             aliyun: AliyunConfig::default(),
+            gateway: GatewayConfig::default(),
             logging: LoggingConfig::default(),
             cors: CorsConfig::default(),
             profile: "development".to_string(),
@@ -498,6 +531,36 @@ impl Configure {
 
     pub fn aliyun_sms_template_code(&self) -> &str {
         &self.aliyun.gateway.sms_template_code
+    }
+
+    pub fn gateway_daily_token_quota(&self) -> i64 {
+        self.gateway.daily_token_quota
+    }
+
+    /// 个人租户免费档日 token 配额（无有效订阅时生效）。
+    pub fn gateway_free_daily_token_quota(&self) -> i64 {
+        self.gateway.free_daily_token_quota
+    }
+
+    /// 个人租户订阅档位日 token 配额；未知档位返回 `None`（调用方回落免费档）。
+    pub fn gateway_plan_daily_token_quota(&self, plan: &str) -> Option<i64> {
+        self.gateway
+            .plan_daily_token_quota
+            .get(plan)
+            .copied()
+            .filter(|quota| *quota > 0)
+    }
+
+    pub fn gateway_upstream_timeout_ms(&self) -> u64 {
+        self.gateway.upstream_timeout_ms.max(1)
+    }
+
+    pub fn gateway_usage_es_index(&self) -> &str {
+        &self.gateway.usage_es_index
+    }
+
+    pub fn gateway_audit_enabled(&self) -> bool {
+        self.gateway.audit_enabled
     }
 
     /// 测试与守卫用构造器。

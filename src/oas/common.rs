@@ -5,7 +5,11 @@ use crate::services::{
     application::schema::App,
     auth::schema::{AuthR, Avatar, CaptchaR, ProfileR, SigninR, SignupR},
     engine::schema::SuggestionR,
+    gateway::schema::{ModelR, ProviderR},
     search::schema::{SearchR, WriteR as SearchWriteR},
+    sso::schema::{SsoConnectionR, SsoLoginR},
+    subscription::schema::{QuotaR, SubscriptionR},
+    tenant::schema::{MemberR, TenantR},
     upload::schema::{ChunkR, FilesR, FinalizeR, HashR, PrepareR, ProgressR},
     user::schema::UserR,
 };
@@ -44,6 +48,20 @@ envelope!(ApplicationEnvelope, App);
 envelope!(SearchWriteEnvelope, SearchWriteR);
 envelope!(SearchEnvelope, SearchR);
 envelope!(EmptyEnvelope, EmptyR);
+envelope!(TenantEnvelope, TenantR);
+envelope!(TenantListEnvelope, Vec<TenantR>);
+envelope!(MemberEnvelope, MemberR);
+envelope!(MemberListEnvelope, Vec<MemberR>);
+envelope!(SubscriptionEnvelope, SubscriptionR);
+envelope!(SubscriptionListEnvelope, Vec<SubscriptionR>);
+envelope!(QuotaEnvelope, QuotaR);
+envelope!(ProviderEnvelope, ProviderR);
+envelope!(ProviderListEnvelope, Vec<ProviderR>);
+envelope!(ModelEnvelope, ModelR);
+envelope!(ModelListEnvelope, Vec<ModelR>);
+envelope!(SsoConnectionEnvelope, SsoConnectionR);
+envelope!(SsoConnectionListEnvelope, Vec<SsoConnectionR>);
+envelope!(SsoLoginEnvelope, SsoLoginR);
 
 /// 健康检查 data 字段
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
