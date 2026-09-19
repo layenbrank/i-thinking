@@ -1,0 +1,166 @@
+@use '../space' as *;
+
+.shell {
+  width: 70%;
+  max-width: 600px;
+  height: $engine-size;
+  display: flex;
+  position: relative;
+  align-items: center;
+  background: #fff;
+  color: #0f172a;
+  border-radius: calc($engine-size / 2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  &:focus-within {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--ring) 45%, transparent);
+  }
+
+  :global(.dark) & {
+    background: oklch(0.22 0 0);
+    color: oklch(0.95 0 0);
+  }
+}
+
+.active {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: $radius;
+  border-top-right-radius: $radius;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.engine,
+.submit {
+  flex: none;
+  width: $side-size;
+  height: $engine-size;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  :global(svg) {
+    width: $mark-size;
+    height: $mark-size;
+  }
+}
+
+.field {
+  flex: 1;
+  min-width: 0;
+  height: $engine-size;
+  box-sizing: border-box;
+  border: 0;
+  padding: $input-pad-block 0;
+  color: inherit;
+  background: transparent;
+  outline: none;
+  font: inherit;
+
+  &::placeholder {
+    color: rgba(15, 23, 42, 0.38);
+  }
+
+  :global(.dark) &::placeholder {
+    color: rgba(255, 255, 255, 0.38);
+  }
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + #{$fragment-pad});
+  left: 0;
+  z-index: 21;
+  min-width: 140px;
+  margin: 0;
+  padding: $fragment-pad;
+  border-radius: $radius;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+
+  :global(.dark) & {
+    background: oklch(0.22 0 0);
+    color: oklch(0.95 0 0);
+  }
+}
+
+.menuItem,
+.option {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: $option-min-height;
+  margin: 0;
+  padding: $option-pad-block $option-pad-inline;
+  border: 0;
+  border-radius: $radius;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: $option-gap;
+  text-align: left;
+}
+
+.menuItem:hover,
+.menuItemActive,
+.optionActive {
+  background: rgba(64, 128, 255, 0.12);
+}
+
+.option {
+  justify-content: space-between;
+
+  span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.optionActive {
+  color: #1d4ed8;
+  background: rgba(64, 128, 255, 0.16);
+}
+
+.fragment {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 40vh;
+  z-index: 20;
+  margin: 0;
+  overflow: auto;
+  scroll-padding-block: $scroll-pad;
+  padding: $fragment-pad;
+  border-radius: 0 0 $radius $radius;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 12px rgba(0, 0, 0, 0.1);
+
+  :global(.dark) & {
+    background: oklch(0.22 0 0);
+    color: oklch(0.95 0 0);
+  }
+}
+
+.mark {
+  flex: none;
+  width: $mark-size;
+  height: $mark-size;
+  color: rgba(15, 23, 42, 0.28);
+
+  :global(.dark) & {
+    color: rgba(255, 255, 255, 0.38);
+  }
+}
+
+.markActive {
+  color: #4080ff;
+}

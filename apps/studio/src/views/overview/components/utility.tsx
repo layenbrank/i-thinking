@@ -2,8 +2,13 @@ import { Utility, UtilityButton } from '@/components/utility'
 import { DevtoolsAction, OverlayAction, ReloadAction } from '@/features/window/actions'
 import { toast } from 'sonner'
 
+interface OverviewUtilityProps {
+  /** 暂时的登录入口，弹窗状态仍由概览页持有 */
+  onOpenSignIn: () => void
+}
+
 /** 主窗口标题栏：Agent 入口 + 主窗口用得到的宿主动作 */
-export default function OverviewUtility() {
+export default function OverviewUtility(props: OverviewUtilityProps) {
   async function handleOpenAgent() {
     try {
       await itc.window.agent.toOpen()
@@ -15,6 +20,11 @@ export default function OverviewUtility() {
 
   return (
     <Utility>
+      <UtilityButton
+        icon="mdi:login"
+        label="登录"
+        onClick={props.onOpenSignIn}
+      />
       <UtilityButton
         icon="mdi:chat-processing-outline"
         label="打开 Agent 窗口"

@@ -1,0 +1,18 @@
+// 概览上中下的间距。搜索条尺寸对齐 client overview，不放标题栏高度。
+$prefix-height: 64px;
+$summary-height: 48px;
+$core-pad-block: 12px;
+
+$engine-size: 36px;
+$radius: 8px;
+// 两侧按钮同宽。图标 16 时，左右各剩 14，和输入框原来的起始内边距一致。
+$side-size: $engine-size + 8px;
+$mark-size: 16px;
+$input-pad-block: 4px;
+
+$fragment-pad: 6px;
+$scroll-pad: 8px;
+$option-min-height: 38px;
+$option-pad-block: 9px;
+$option-pad-inline: 14px;
+$option-gap: 10px;
