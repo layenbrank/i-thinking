@@ -326,6 +326,9 @@ catalogs:
     electron-updater:
       specifier: ^6.8.9
       version: 6.8.9
+    go-captcha-react:
+      specifier: 1.0.5
+      version: 1.0.5
     lucide-react:
       specifier: ^1.45.0
       version: 1.45.0
@@ -1399,6 +1402,9 @@ importers:
       electron-updater:
         specifier: 'catalog:'
         version: 6.8.9(supports-color@10.0.0)
+      go-captcha-react:
+        specifier: 'catalog:'
+        version: 1.0.5(react@19.2.7)
       lucide-react:
         specifier: 'catalog:'
         version: 1.45.0(react@19.2.7)
@@ -11156,6 +11162,12 @@ packages:
   globalthis@1.0.4:
     resolution: {integrity: sha512-DpLKbNU4WylpxJykQujfCcwYWiV/Jhm50Goo0wrVILAv5jOr9d+H+UR3PhSCD2rCCEIg0uc+G+muBTwD54JhDQ==}
     engines: {node: '>= 0.4'}
+
+  go-captcha-react@1.0.5:
+    resolution: {integrity: sha512-lZ84pfJhGxVvA0gZfPylWAH00cD0VwetQgp6mJ2IFLEaNpkAC8hPK2Q+45gb9zxGYjuqXqQe4sJLCGrHhECJCg==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      react: '>=16'
 
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
@@ -26451,6 +26463,11 @@ snapshots:
     dependencies:
       define-properties: 1.2.1
       gopd: 1.2.0
+
+  go-captcha-react@1.0.5(react@19.2.7):
+    dependencies:
+      classnames: 2.5.1
+      react: 19.2.7
 
   gopd@1.2.0: {}
 

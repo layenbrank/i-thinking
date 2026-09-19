@@ -1,6 +1,6 @@
 import { FetchError } from 'ofetch'
 
-export const SUCCESS_CODE: number = 200
+export const SUCCESS_CODE: number = 200000
 export const TIMEOUT_MS: number = 30_000
 
 export class HttpException extends Error {

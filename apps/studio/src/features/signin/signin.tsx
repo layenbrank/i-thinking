@@ -1,9 +1,9 @@
 import { Dialog, DialogContent, DialogTitle } from '@i-thinking/design/components/dialog'
 import { clsx } from 'clsx'
-import { CloudIcon, LightbulbIcon, ShieldCheckIcon, UsersIcon } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 
+import { Brand } from '@/features/signin/brand.tsx'
 import {
   HEAD,
   MODE,
@@ -21,13 +21,6 @@ type SignInProps = {
   visible: boolean
   onClose: () => void
 }
-
-/** 品牌侧的三条卖点，与图标一一对应 */
-const POINTS = [
-  { icon: <ShieldCheckIcon />, label: '企业级安全防护' },
-  { icon: <CloudIcon />, label: '多端数据实时同步' },
-  { icon: <UsersIcon />, label: '智能协作工作流' }
-]
 
 function SignIn(props: SignInProps) {
   const { visible, onClose } = props
@@ -85,29 +78,10 @@ function SignIn(props: SignInProps) {
     <Dialog
       open={visible}
       onOpenChange={onVisibleChange}>
-      <DialogContent className="w-[min(92vw,880px)] max-w-none gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-none">
+      <DialogContent className="w-[min(94vw,1080px)] max-w-none gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-none">
         <DialogTitle className="sr-only">登录 i-thinking</DialogTitle>
         <div className={styles.body}>
-          <aside className={styles.brand}>
-            <div className={styles.core}>
-              <div className={styles.logo}>
-                <LightbulbIcon aria-hidden />
-              </div>
-              <h3 className="text-lg font-semibold">i-thinking</h3>
-              <p className="text-sm">企业智能工作台，赋能团队高效决策与协作</p>
-            </div>
-            <ul className={styles.points}>
-              {POINTS.map(function (point) {
-                return (
-                  <li key={point.label}>
-                    {point.icon}
-                    <span>{point.label}</span>
-                  </li>
-                )
-              })}
-            </ul>
-            <footer className={styles.foot}>© 2026 i-thinking · SSL 加密传输</footer>
-          </aside>
+          <Brand />
           <section className={styles.panel}>
             <AnimatePresence
               mode="wait"
@@ -143,6 +117,7 @@ function SignIn(props: SignInProps) {
                       onModeChange={setSigninMode}
                       onForgot={onForgot}
                       onSignup={onSignup}
+                      onSuccess={onClose}
                     />
                   )}
                   {panelView === PANEL.FORGOT && (
@@ -157,6 +132,7 @@ function SignIn(props: SignInProps) {
                     <SignupForm
                       motionKey={panelMotionKey}
                       onSignin={onSignin}
+                      onSuccess={onClose}
                     />
                   )}
                 </motion.div>

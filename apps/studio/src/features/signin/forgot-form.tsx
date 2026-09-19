@@ -7,12 +7,12 @@ import { useEffect } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { toast } from 'sonner'
 
-import { POST_RESET_PASSWORD } from '@/apis/auth.ts'
+import { POST_PASSWORD_RESET } from '@/apis/auth.ts'
 import {
+  CHANNEL,
   FORGOT_SCHEMA,
   LIMIT,
   MODE,
-  findIdentity,
   type AuthMode,
   type ForgotValues
 } from '@/features/signin/constants.ts'
@@ -20,6 +20,8 @@ import { CaptchaField } from '@/features/signin/captcha-field.tsx'
 import { AuthField } from '@/features/signin/field.tsx'
 import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
 import styles from '@/features/signin/signin.module.scss'
+import { useSlideProof } from '@/features/signin/slide.tsx'
+import { HttpError } from '@/utils/http.errors.ts'
 
 type ForgotFormProps = {
   motionKey: number
@@ -28,8 +30,35 @@ type ForgotFormProps = {
   onSignin: () => void
 }
 
+const RESET: Record<AuthMode, (values: ForgotValues) => Promise<unknown>> = {
+  username(values) {
+    return POST_PASSWORD_RESET({
+      username: values.username ?? '',
+      code: values.captcha ?? '',
+      newPassword: values.password ?? ''
+    })
+  },
+  phone(values) {
+    return POST_PASSWORD_RESET({
+      channel: CHANNEL.phone,
+      target: values.phone ?? '',
+      code: values.captcha ?? '',
+      newPassword: values.password ?? ''
+    })
+  },
+  email(values) {
+    return POST_PASSWORD_RESET({
+      channel: CHANNEL.email,
+      target: values.email ?? '',
+      code: values.captcha ?? '',
+      newPassword: values.password ?? ''
+    })
+  }
+}
+
 function ForgotForm(props: ForgotFormProps) {
   const { motionKey, forgotMode, onModeChange, onSignin } = props
+  const { askSlide, dialog } = useSlideProof()
 
   const form = useForm<ForgotValues>({
     resolver: zodResolver(FORGOT_SCHEMA[forgotMode]) as Resolver<ForgotValues>
@@ -43,19 +72,12 @@ function ForgotForm(props: ForgotFormProps) {
   )
 
   async function onSubmit(values: ForgotValues) {
-    const target = findIdentity(forgotMode, values)
-
     try {
-      await POST_RESET_PASSWORD({
-        mode: forgotMode,
-        target,
-        captcha: values.captcha ?? '',
-        password: values.password ?? ''
-      })
-      toast.success('密码重置成功（mock）')
+      await RESET[forgotMode](values)
+      toast.success('密码已重置')
       onSignin()
-    } catch {
-      toast.error('密码重置失败，请稍后重试')
+    } catch (error) {
+      toast.error(HttpError(error).message || '密码重置失败')
     }
   }
 
@@ -133,7 +155,9 @@ function ForgotForm(props: ForgotFormProps) {
             <CaptchaField
               form={form}
               mode={forgotMode}
+              purpose="forgot"
               targetField={forgotMode}
+              askSlide={askSlide}
             />
           </MotionField>
 
@@ -182,6 +206,7 @@ function ForgotForm(props: ForgotFormProps) {
             </Button>
           </MotionField>
         </FormStagger>
+        {dialog}
       </form>
     </Form>
   )

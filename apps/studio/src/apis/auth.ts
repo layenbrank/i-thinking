@@ -1,75 +1,98 @@
+import { HttpEnvelope } from '@/utils/http.errors.ts'
 import { http } from '@/utils/http.ts'
 
-declare namespace Auth {
-  namespace SignIn {
-    export interface Params {
-      username: string
-      password: string
-    }
-
-    export interface Response {
-      token: string
-      id: string
-      username: string
-      createdAt: number
-      updatedAt: number
-    }
-  }
-
-  namespace SendCaptcha {
-    export interface Params {
-      mode: 'username' | 'phone' | 'email'
-      target: string
-    }
-  }
-
-  namespace ResetPassword {
-    export interface Params {
-      mode: 'username' | 'phone' | 'email'
-      target: string
-      captcha: string
-      password: string
-    }
-  }
-
-  namespace SignUp {
-    export interface Params {
-      username: string
-      password: string
-    }
-
-    export interface Response {
-      id: string
-      username: string
-      createdAt: number
-      updatedAt: number
-    }
-  }
+interface SlideProof {
+  captchaKey: string
+  captchaValue: string
+  captchaKind?: string
 }
 
-function POST_SIGNIN(data: Auth.SignIn.Params) {
-  return http.post<RSF<Auth.SignIn.Response>>('/auth/signin', data)
+interface AuthSession {
+  token: string
+  id: string
+  username: string
+  role: string
+  status: string
+  createdAt: number
+  updatedAt: number
 }
 
-// mock：验证码发送，后续接入真实接口
-function POST_SEND_CAPTCHA(_data: Auth.SendCaptcha.Params) {
-  return Promise.resolve()
+interface CaptchaChallenge {
+  kind: string
+  captchaKey: string
+  masterImage: string
+  thumbImage: string
+  thumbX: number
+  thumbY: number
+  thumbWidth: number
+  thumbHeight: number
 }
 
-// mock：密码重置，后续接入真实接口
-function POST_RESET_PASSWORD(_data: Auth.ResetPassword.Params) {
-  return Promise.resolve()
+type OtpChannel = 'PHONE' | 'EMAIL'
+
+interface OtpParams extends SlideProof {
+  channel: OtpChannel
+  target: string
 }
 
-// mock：用户注册，后续接入真实接口
-function POST_SIGNUP(_data: Auth.SignUp.Params) {
-  const now = Date.now()
-  return Promise.resolve<Auth.SignUp.Response>({
-    id: 'mock-id',
-    username: _data.username,
-    createdAt: now,
-    updatedAt: now
-  })
+interface PasswordIdentity {
+  username?: string
+  channel?: OtpChannel
+  target?: string
 }
 
-export { POST_RESET_PASSWORD, POST_SEND_CAPTCHA, POST_SIGNIN, POST_SIGNUP }
+interface ForgotParams extends PasswordIdentity, SlideProof {}
+
+interface ResetParams extends PasswordIdentity {
+  code: string
+  newPassword: string
+}
+
+async function unwrap<T>(pending: Promise<RSF<T>>): Promise<T> {
+  return HttpEnvelope(await pending)
+}
+
+function POST_CAPTCHA() {
+  return unwrap(http.post<RSF<CaptchaChallenge>>('/auth/captcha', {}))
+}
+
+function POST_OTP(data: OtpParams) {
+  return unwrap(http.post<RSF<null>>('/auth/otp', data))
+}
+
+function POST_SIGNIN(data: { username: string; password: string } & SlideProof) {
+  return unwrap(http.post<RSF<AuthSession>>('/auth/signin', data))
+}
+
+function POST_SIGNIN_PHONE(data: { phone: string; code: string }) {
+  return unwrap(http.post<RSF<AuthSession>>('/auth/signin/phone', data))
+}
+
+function POST_SIGNIN_EMAIL(data: { email: string; code: string }) {
+  return unwrap(http.post<RSF<AuthSession>>('/auth/signin/email', data))
+}
+
+function POST_SIGNUP(data: { username: string; password: string } & SlideProof) {
+  return unwrap(http.post<RSF<AuthSession>>('/auth/signup', data))
+}
+
+function POST_PASSWORD_FORGOT(data: ForgotParams) {
+  return unwrap(http.post<RSF<null>>('/auth/password/forgot', data))
+}
+
+function POST_PASSWORD_RESET(data: ResetParams) {
+  return unwrap(http.post<RSF<null>>('/auth/password/reset', data))
+}
+
+export {
+  POST_CAPTCHA,
+  POST_OTP,
+  POST_PASSWORD_FORGOT,
+  POST_PASSWORD_RESET,
+  POST_SIGNIN,
+  POST_SIGNIN_EMAIL,
+  POST_SIGNIN_PHONE,
+  POST_SIGNUP
+}
+
+export type { AuthSession, CaptchaChallenge, OtpChannel, SlideProof }
