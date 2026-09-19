@@ -1,8 +1,13 @@
-import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
-import { Switch } from '@i-thinking/design/components/switch'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@i-thinking/design/components/dialog'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { PlusIcon, TrashIcon } from 'lucide-react'
+import { PencilIcon, PlusIcon, ServerIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -12,11 +17,11 @@ import { parseModels, type ProviderValues } from '@/features/chat/provider/schem
 import { toIpcMessage } from '@/utils/ipc.errors.ts'
 
 /**
- * Provider 配置面板：本地 provider（OpenAI 兼容端点）的增删改。
+ * 设置里的「模型」页，对照 Qoder：页头说明 + 添加模型，下面是个人模型列表。
  *
- * 是**面板**不是 Dialog —— 外层弹窗由设置统一提供，这样设置入口只有一处。
- * apiKey 与 provider 行分开走：行落 SQLite（`chat:provider.*`），Key 落主进程密钥库
- * （`assistant:key.*`，只有写/问有没有/删）。
+ * 添加和更新走对话框。行落 SQLite（`chat:provider.*`），Key 落主进程密钥库
+ * （`assistant:key.*`，只有写 / 问有没有 / 删）。没有 Qoder CLI 的 Provider 目录，
+ * 所以 Provider 是本机三种 OpenAI 兼容接入，服务地址由用户填写。
  */
 
 const PROVIDERS_KEY = ['chat', 'providers'] as const
@@ -52,25 +57,17 @@ async function removeProvider(id: string): Promise<void> {
   await itc.chat.provider.toRemove({ id })
 }
 
-function KeyBadge(props: { providerID: string }) {
-  const keyQuery = useQuery({
-    queryKey: ['chat', 'provider-key', props.providerID],
-    queryFn: function () {
-      return itc.assistant.key.has({ providerID: props.providerID })
-    }
-  })
-
-  if (!keyQuery.data) return null
-  return (
-    <Badge
-      variant="secondary"
-      className="h-5 shrink-0 px-1.5 text-[11px]">
-      已存 Key
-    </Badge>
-  )
+function findModelTitle(provider: ProviderRow): string {
+  return provider.model || provider.name || '未命名模型'
 }
 
-export function ProviderPanel() {
+function findModelHint(provider: ProviderRow): string {
+  const kind = PROVIDER_KIND_LABELS[provider.kind] ?? provider.kind
+  const vendor = provider.name && provider.name !== provider.model ? provider.name : kind
+  return provider.enabled ? `${vendor} · 本机` : `${vendor} · 已停用`
+}
+
+function ProviderPanel() {
   const [editing, updateEditing] = useState<ProviderRow | null>(null)
   const [isCreating, updateCreating] = useState(false)
   const queryClient = useQueryClient()
@@ -88,13 +85,12 @@ export function ProviderPanel() {
 
   const saveMutation = useMutation({
     mutationFn: saveProvider,
-    onSuccess: async function () {
-      toast.success('已保存 provider')
+    onSuccess: async function (_id, input) {
+      toast.success(input.id ? '已更新模型' : '已添加模型')
       closeForm()
       await refresh()
     },
     onError: function (error) {
-      // 直接展示 error.message 会把 `[CODE] ` 前缀暴露给用户
       toast.error(toIpcMessage(error, '保存失败'))
     }
   })
@@ -102,7 +98,7 @@ export function ProviderPanel() {
   const removeMutation = useMutation({
     mutationFn: removeProvider,
     onSuccess: async function () {
-      toast.success('已删除 provider')
+      toast.success('已删除模型')
       await refresh()
     },
     onError: function (error) {
@@ -110,95 +106,112 @@ export function ProviderPanel() {
     }
   })
 
-  const toggleMutation = useMutation({
-    mutationFn: function (input: { id: string; enabled: boolean }) {
-      return itc.chat.provider.toUpdate({ id: input.id, enabled: input.enabled })
-    },
-    onSuccess: refresh
-  })
-
-  if (isCreating || editing !== null) {
-    return (
-      <ProviderForm
-        provider={editing}
-        isSaving={saveMutation.isPending}
-        onSubmit={function (values) {
-          saveMutation.mutate({ id: editing?.id ?? null, values })
-        }}
-        onCancel={closeForm}
-      />
-    )
-  }
-
   const providers = providersQuery.data ?? []
+  const isOpen = isCreating || editing !== null
 
   return (
-    <div className="flex flex-col gap-2">
-      {providers.length === 0 ? (
-        <p className="text-muted-foreground py-4 text-sm">
-          还没有 provider。本地的 Ollama / LM Studio，或任意 OpenAI 兼容服务都可以加。
-        </p>
-      ) : null}
-
-      {providers.map(function (provider) {
-        return (
-          <div
-            key={provider.id}
-            className="border-border flex items-center gap-2.5 rounded-md border px-2.5 py-2">
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="truncate text-sm font-medium">{provider.name}</span>
-              <span className="text-muted-foreground truncate text-xs">
-                {PROVIDER_KIND_LABELS[provider.kind] ?? provider.kind} ·{' '}
-                {provider.model ?? '未设默认模型'}
-              </span>
-            </div>
-
-            <KeyBadge providerID={provider.id} />
-
-            <Switch
-              checked={provider.enabled}
-              aria-label="启用"
-              onCheckedChange={function (enabled) {
-                toggleMutation.mutate({ id: provider.id, enabled })
-              }}
-            />
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={function () {
-                updateEditing(provider)
-              }}>
-              编辑
-            </Button>
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="删除"
-              disabled={removeMutation.isPending}
-              onClick={function () {
-                removeMutation.mutate(provider.id)
-              }}>
-              <TrashIcon />
-            </Button>
-          </div>
-        )
-      })}
-
-      <div className="flex justify-end pt-1">
+    <div className="flex flex-col gap-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="text-base font-medium">模型</h2>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            使用自己的 API Key 添加并管理个人模型。这些模型只在本机运行，密钥只写入主进程密钥库。
+          </p>
+        </div>
         <Button
           type="button"
-          variant="outline"
+          className="shrink-0"
           onClick={function () {
             updateCreating(true)
           }}>
           <PlusIcon />
-          新建 provider
+          添加模型
         </Button>
       </div>
+
+      <div className="flex flex-col gap-2">
+        <h3 className="text-sm font-medium">个人模型</h3>
+
+        {providers.length === 0 ? (
+          <p className="text-muted-foreground py-6 text-sm">
+            还没有个人模型。本地的 Ollama、LM Studio，或任意 OpenAI 兼容服务都可以加。
+          </p>
+        ) : (
+          <div className="border-border divide-border divide-y rounded-lg border">
+            {providers.map(function (provider) {
+              return (
+                <div
+                  key={provider.id}
+                  className="flex items-center gap-3 px-3 py-3">
+                  <div className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
+                    <ServerIcon className="size-4" />
+                  </div>
+
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-sm font-medium">{findModelTitle(provider)}</span>
+                    <span className="text-muted-foreground truncate text-xs">
+                      {findModelHint(provider)}
+                    </span>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={function () {
+                      updateEditing(provider)
+                    }}>
+                    <PencilIcon />
+                    更新 API Key
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="destructive-outline"
+                    size="sm"
+                    disabled={removeMutation.isPending}
+                    onClick={function () {
+                      removeMutation.mutate(provider.id)
+                    }}>
+                    <TrashIcon />
+                    删除
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      <Dialog
+        open={isOpen}
+        onOpenChange={function (open) {
+          if (!open) closeForm()
+        }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? '更新 API Key' : '添加模型'}</DialogTitle>
+            <DialogDescription>
+              {editing
+                ? `为「${findModelTitle(editing)}」输入新的 API Key。旧密钥不会显示，留空表示不修改。`
+                : '选择本机接入的 Provider 和模型。调用走你填的服务地址，费用由该服务结算。'}
+            </DialogDescription>
+          </DialogHeader>
+          <ProviderForm
+            key={editing?.id ?? 'new'}
+            provider={editing}
+            isSaving={saveMutation.isPending}
+            isUpdating={editing !== null}
+            submitLabel={editing ? '更新 API Key' : '添加模型'}
+            onSubmit={function (values) {
+              saveMutation.mutate({ id: editing?.id ?? null, values })
+            }}
+            onCancel={closeForm}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+
+export { ProviderPanel }

@@ -11,7 +11,7 @@ const PROVIDER_SCHEMA = z.object({
   kind: z.string().min(1),
   name: z.string().min(1, '请填写名称').max(60, '名称过长'),
   baseUrl: z.union([z.string().url('请填写正确的地址'), z.literal('')]),
-  model: z.string().min(1, '请填写默认模型').max(120),
+  model: z.string().min(1, '请填写模型').max(120),
   /** 逗号分隔的可选模型清单；留空表示只提供默认模型 */
   models: z.string().max(2000),
   apiKey: z.string().max(4096),

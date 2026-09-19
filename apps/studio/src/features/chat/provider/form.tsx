@@ -18,7 +18,9 @@ import {
 } from '@i-thinking/design/components/select'
 import { Switch } from '@i-thinking/design/components/switch'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
+import { useState } from 'react'
+import { useForm, type Control, type ControllerRenderProps } from 'react-hook-form'
 
 import { PROVIDER_KINDS } from '@/features/chat/provider/constants.ts'
 import {
@@ -33,6 +35,8 @@ type ProviderRow = Awaited<ReturnType<typeof itc.chat.provider.toRead>>[number]
 interface ProviderFormProps {
   provider: ProviderRow | null
   isSaving: boolean
+  isUpdating: boolean
+  submitLabel: string
   onSubmit: (values: ProviderValues) => void
   onCancel: () => void
 }
@@ -50,8 +54,67 @@ function toDefaults(provider: ProviderRow | null): ProviderValues {
   }
 }
 
+function KeyField(props: {
+  provider: ProviderRow | null
+  field: ControllerRenderProps<ProviderValues, 'apiKey'>
+}) {
+  const [isVisible, updateVisible] = useState(false)
+  const { field } = props
+
+  return (
+    <div className="relative">
+      <Input
+        {...field}
+        type={isVisible ? 'text' : 'password'}
+        autoComplete="off"
+        className="pe-9"
+        placeholder={props.provider ? '留空表示不修改' : '输入 API Key'}
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="absolute inset-e-0.5 top-1/2 -translate-y-1/2"
+        aria-label={isVisible ? '隐藏 API Key' : '显示 API Key'}
+        onClick={function () {
+          updateVisible(function (current) {
+            return !current
+          })
+        }}>
+        {isVisible ? <EyeOffIcon /> : <EyeIcon />}
+      </Button>
+    </div>
+  )
+}
+
+function ApiKeyField(props: { control: Control<ProviderValues>; provider: ProviderRow | null }) {
+  return (
+    <FormField
+      control={props.control}
+      name="apiKey"
+      render={function ({ field }) {
+        return (
+          <FormItem>
+            <FormLabel>API Key</FormLabel>
+            <FormControl>
+              <KeyField
+                provider={props.provider}
+                field={field}
+              />
+            </FormControl>
+            <FormDescription>
+              旧密钥不会显示。留空表示不修改，填写后只写入主进程密钥库。
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )
+      }}
+    />
+  )
+}
+
 function ProviderForm(props: ProviderFormProps) {
-  const { provider, isSaving, onSubmit, onCancel } = props
+  const { provider, isSaving, isUpdating, submitLabel, onSubmit, onCancel } = props
 
   const form = useForm<ProviderValues>({
     resolver: zodResolver(PROVIDER_SCHEMA),
@@ -64,18 +127,36 @@ function ProviderForm(props: ProviderFormProps) {
         noValidate
         className="flex flex-col gap-4"
         onSubmit={form.handleSubmit(onSubmit)}>
+        {isUpdating ? (
+          <ApiKeyField
+            control={form.control}
+            provider={provider}
+          />
+        ) : null}
         <FormField
           control={form.control}
           name="kind"
           render={function ({ field }) {
             return (
               <FormItem>
-                <FormLabel>类型</FormLabel>
+                <FormLabel>Provider</FormLabel>
                 <Select
                   value={field.value}
-                  onValueChange={field.onChange}>
+                  onValueChange={function (value) {
+                    field.onChange(value)
+                    const next = PROVIDER_KINDS.find(function (item) {
+                      return item.value === value
+                    })
+                    const current = form.getValues('baseUrl')
+                    const isPreset = PROVIDER_KINDS.some(function (item) {
+                      return item.baseUrl !== '' && item.baseUrl === current
+                    })
+                    if (next && (current === '' || isPreset)) {
+                      form.setValue('baseUrl', next.baseUrl)
+                    }
+                  }}>
                   <FormControl>
-                    <SelectTrigger aria-label="类型">
+                    <SelectTrigger aria-label="Provider">
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
@@ -145,7 +226,7 @@ function ProviderForm(props: ProviderFormProps) {
           render={function ({ field }) {
             return (
               <FormItem>
-                <FormLabel>默认模型</FormLabel>
+                <FormLabel>模型</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -178,27 +259,12 @@ function ProviderForm(props: ProviderFormProps) {
           }}
         />
 
-        <FormField
-          control={form.control}
-          name="apiKey"
-          render={function ({ field }) {
-            return (
-              <FormItem>
-                <FormLabel>API Key</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="password"
-                    autoComplete="off"
-                    placeholder={provider ? '留空表示不修改' : '本地服务通常不需要'}
-                  />
-                </FormControl>
-                <FormDescription>只写入主进程密钥库，不会再读回界面</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )
-          }}
-        />
+        {isUpdating ? null : (
+          <ApiKeyField
+            control={form.control}
+            provider={provider}
+          />
+        )}
 
         <FormField
           control={form.control}
@@ -229,7 +295,7 @@ function ProviderForm(props: ProviderFormProps) {
           <Button
             type="submit"
             disabled={isSaving}>
-            {isSaving ? '保存中…' : '保存'}
+            {isSaving ? '保存中…' : submitLabel}
           </Button>
         </div>
       </form>
