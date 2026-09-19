@@ -5,6 +5,7 @@ import type {
   ChatStreamEvent,
   ChatTarget
 } from '@i-thinking/chat/ports'
+import { toast } from 'sonner'
 
 /**
  * 模型端口（渲染进程实现）：走 `itc.assistant` 的 MessagePort 到主进程。
@@ -14,6 +15,7 @@ import type {
  */
 
 import { findLatestReferences } from '@/features/agent/references.ts'
+import { prepareImages } from '@/features/agent/images.ts'
 
 import { subscribeAssistantPort } from './assistant-port.ts'
 
@@ -201,11 +203,15 @@ function createModelPort(findSelection: () => ModelSelection): ChatModelPort {
       active = { channel, runID }
 
       try {
-        const references = findLatestReferences(input.messages)
+        const prepared = prepareImages(input.messages, input.model)
+        if (prepared.notice) toast.warning(prepared.notice)
+
+        const references = findLatestReferences(prepared.messages)
         const request: ChatPortRequest = {
           kind: 'start',
           runID,
           ...input,
+          messages: prepared.messages,
           ...(references.length > 0 ? { host: { ...input.host, references } } : {})
         }
         channel.postMessage(request)

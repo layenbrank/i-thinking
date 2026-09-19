@@ -60,14 +60,23 @@ interface ChatTarget {
   model: string
 }
 
+/** 随用户消息发出的图片。data 是 data URL，共享层不解释像素 */
+interface ChatImage {
+  mediaType: string
+  data: string
+}
+
 interface ChatRunMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
   /**
    * 随消息一起发出的附件/引用名单（文件名或路径）。
    * 共享层只传递标签，怎么解释（工作区相对路径 / 上传文件 id）由 app 决定。
+   * 图片不放这里：图片内容在 `images`。
    */
   attachments?: readonly string[]
+  /** 只有用户消息会带。模型看不看得见由 app 在发送前决定 */
+  images?: readonly ChatImage[]
 }
 
 interface ChatRunInput {
@@ -151,6 +160,7 @@ type ChatPortEvent = WithRunID<ChatStreamEvent>
 
 export type {
   ChatHistoryPort,
+  ChatImage,
   ChatModelPort,
   ChatPortEvent,
   ChatPortRequest,

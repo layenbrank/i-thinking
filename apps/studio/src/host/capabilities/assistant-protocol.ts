@@ -26,9 +26,20 @@ export const MAX_CONCURRENT_RUNS = 4
 /** runID 长度上限（渲染进程生成，uuid 足够） */
 const MAX_RUN_ID_CHARS = 64
 
+/** 单张图片 data URL 上限：再大就会顶破整包 payload */
+const MAX_IMAGE_CHARS = 700_000
+const MAX_IMAGES = 4
+
+const ImageSchema = z.object({
+  mediaType: z.string().min(1).max(128),
+  data: z.string().min(1).max(MAX_IMAGE_CHARS)
+})
+
 const MessageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant']),
-  content: z.string().max(MAX_CONTENT_CHARS)
+  content: z.string().max(MAX_CONTENT_CHARS),
+  /** 只有用户消息会带图片；纯文本消息省略这个字段 */
+  images: z.array(ImageSchema).max(MAX_IMAGES).optional()
 })
 
 const StartSchema = z.object({

@@ -1,17 +1,21 @@
 import { TooltipProvider } from '@i-thinking/design/components/tooltip'
 
+import { ComposerClip } from '@/views/agent/chat/components/composer-clip.tsx'
 import { ComposerContextMenu } from '@/views/agent/chat/components/composer-context-menu.tsx'
+import { ComposerInbound } from '@/views/agent/chat/components/composer-inbound.tsx'
 
 /**
- * 输入区左下角入口：`+` 双栏添加上下文（工作区 / 技能）。
+ * 输入区左下角：`+` 加上下文，回形针加附件。
  *
  * `@` / `/` 改由键入触发（`ComposerTriggers`），不再挂独立按钮。
- * `ComposerAttach: null` 关掉库自带选文件按钮，避免双 `+`。
+ * `ComposerAttach: null` 关掉库自带选文件按钮，避免和这里叠两个加号。
  */
 export function ComposerActions() {
   return (
     <TooltipProvider>
       <ComposerContextMenu />
+      <ComposerClip />
+      <ComposerInbound />
     </TooltipProvider>
   )
 }

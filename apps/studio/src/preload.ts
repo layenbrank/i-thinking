@@ -1,5 +1,5 @@
 import type { IpcRendererEvent } from 'electron'
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 import { attachAssistantPort } from './preload.port'
 import type { Api, IpcFn, Subscribe, Unsubscribe } from './shared/ipc/api'
@@ -170,7 +170,21 @@ const api = {
   }
 } satisfies Api
 
+function pathOf(file: File): string {
+  try {
+    return webUtils.getPathForFile(file)
+  } catch (error) {
+    console.warn('[preload] 读不到拖放文件的路径', error)
+    return ''
+  }
+}
+
+const bridge = {
+  ...api,
+  pathOf
+}
+
 // 离线通路的端口转发必须显式挂上：不能只靠 `import './preload.port'` 的副作用（怕被 tree-shake）
 attachAssistantPort()
 
-contextBridge.exposeInMainWorld('itc', api)
+contextBridge.exposeInMainWorld('itc', bridge)

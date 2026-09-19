@@ -78,30 +78,50 @@ function toRunMessages(messages: readonly ThreadMessage[]): ChatRunMessage[] {
 
     const content = collectText(message)
     const attachments = collectAttachments(message)
-    if (!content && attachments.length === 0) continue
+    const images = collectImages(message)
+    if (!content && attachments.length === 0 && images.length === 0) continue
 
     runs.push({
       role: message.role,
       content,
-      ...(attachments.length > 0 ? { attachments } : {})
+      ...(attachments.length > 0 ? { attachments } : {}),
+      ...(images.length > 0 ? { images } : {})
     })
   }
   return runs
 }
 
 /**
- * 附件/引用名单：用户的 file/image part 落到这里。
- * 正文不内联文件内容 —— 引用只是「路径名单」，内容交给工具按需读取。
+ * 工作区引用名单：只有 file part（相对路径，内容为空）。
+ * 图片不进这份名单，否则文件名会被当成 fs_read 路径。
  */
 function collectAttachments(message: ThreadMessage): string[] {
   const names: string[] = []
   for (const part of message.content) {
-    if (part.type !== 'file' && part.type !== 'image') continue
+    if (part.type !== 'file') continue
     if (!part.filename) continue
     if (names.includes(part.filename)) continue
     names.push(part.filename)
   }
   return names
+}
+
+function mediaTypeOf(dataUrl: string): string {
+  const match = /^data:([^;,]+)/.exec(dataUrl)
+  return match?.[1] || 'image/png'
+}
+
+/** 用户消息里的图片 data URL。非 data URL（空引用）不算图片内容 */
+function collectImages(message: ThreadMessage): { mediaType: string; data: string }[] {
+  if (message.role !== 'user') return []
+
+  const images: { mediaType: string; data: string }[] = []
+  for (const part of message.content) {
+    if (part.type !== 'image') continue
+    if (!part.image.startsWith('data:')) continue
+    images.push({ mediaType: mediaTypeOf(part.image), data: part.image })
+  }
+  return images
 }
 
 function buildContent(

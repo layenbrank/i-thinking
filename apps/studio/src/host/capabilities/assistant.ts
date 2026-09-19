@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
-import { stepCountIs, streamText } from 'ai'
+import { stepCountIs, streamText, type ModelMessage } from 'ai'
 import { and, asc, eq } from 'drizzle-orm'
 import {
   MessageChannelMain,
@@ -221,6 +221,25 @@ function appendReferences(
   return system ? `${system}\n\n${block}` : block
 }
 
+/** 有图片的用户消息改成多模态 content；其余保持纯文本 */
+function toModelMessages(messages: StartRequest['messages']): ModelMessage[] {
+  return messages.map(function (message): ModelMessage {
+    if (!message.images || message.images.length === 0) {
+      return { role: message.role, content: message.content }
+    }
+
+    const content: Array<
+      { type: 'text'; text: string } | { type: 'image'; image: string; mediaType: string }
+    > = []
+    if (message.content) content.push({ type: 'text', text: message.content })
+    for (const image of message.images) {
+      content.push({ type: 'image', image: image.data, mediaType: image.mediaType })
+    }
+
+    return { role: 'user', content }
+  })
+}
+
 /** 终态事件：渲染侧收到第一个就结束本次运行，主进程靠它判断「这次运行落过地没有」 */
 const TERMINAL_KINDS = new Set(['finish', 'error', 'aborted'])
 
@@ -260,7 +279,7 @@ async function run(
     const result = streamText({
       model: local.chatModel(request.model),
       ...(system ? { system } : {}),
-      messages: request.messages,
+      messages: toModelMessages(request.messages),
       abortSignal: controller.signal,
       /**
        * 失败**不一定**以 `error` 片段交到消费者手上：早期请求失败（连不上 / 404）是直接
