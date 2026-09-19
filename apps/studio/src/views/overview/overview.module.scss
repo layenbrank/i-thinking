@@ -1,3 +1,5 @@
+@use './space' as *;
+
 .overview {
   position: relative;
   display: flex;
@@ -7,4 +9,16 @@
   background: initial;
   scrollbar-width: none;
   overflow: visible;
+}
+
+.prefix {
+  flex: none;
+  height: $prefix-height;
+  margin: 0;
+  padding: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
 }

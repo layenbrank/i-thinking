@@ -2,6 +2,7 @@ import { session, shell, type WebContents } from 'electron'
 
 import type { Context } from '../framework/context'
 import type { Plugin } from '../framework/module'
+import { SUGGEST_ORIGIN } from '../../shared/suggest'
 import { isAllowedPageUrl } from './trusted-sender'
 
 const ALLOWED_PERMISSIONS = new Set<string>([])
@@ -30,6 +31,10 @@ function buildPlugin(): Plugin {
 
         const headers = { ...details.responseHeaders }
         headers['Content-Security-Policy'] = [csp]
+        // 搜索建议由页面直接请求必应。必应不回跨域头，这里只放行这一条地址。
+        if (details.url.startsWith(SUGGEST_ORIGIN)) {
+          headers['Access-Control-Allow-Origin'] = ['*']
+        }
         callback({ responseHeaders: headers })
       })
 
