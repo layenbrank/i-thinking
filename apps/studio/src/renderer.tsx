@@ -2,6 +2,7 @@ import { addCollection } from '@iconify/react/offline'
 import { createRoot } from 'react-dom/client'
 
 import App from '@/App.tsx'
+import { watchAppearance } from '@/features/window/appearance.ts'
 import '@/styles/tailwind.css'
 import '@/styles/index.scss'
 
@@ -13,6 +14,7 @@ const IDENTIFIER_PREFIX = 'ith'
 
 addCollection(MDIconify)
 addCollection(AntIconify)
+watchAppearance()
 
 const rootElement = document.getElementById('root') as HTMLElement
 
