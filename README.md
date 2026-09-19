@@ -4,14 +4,14 @@
 
 ## 技术栈
 
-| 组件 | 说明 |
-|------|------|
-| Actix Web 4 | HTTP 框架 |
-| SeaORM 2 | PostgreSQL ORM |
-| JWT | 登录鉴权 |
-| Argon2 / AES-GCM | 密码与加密配置 |
-| utoipa | OpenAPI 3.x 文档生成 |
-| Bun + ky | 仓库脚本（`scripts/`，`@/` 由 tsconfig paths 解析）；见 `package.json` |
+| 组件             | 说明                                                                   |
+| ---------------- | ---------------------------------------------------------------------- |
+| Actix Web 4      | HTTP 框架                                                              |
+| SeaORM 2         | PostgreSQL ORM                                                         |
+| JWT              | 登录鉴权                                                               |
+| Argon2 / AES-GCM | 密码与加密配置                                                         |
+| utoipa           | OpenAPI 3.x 文档生成                                                   |
+| Bun + ky         | 仓库脚本（`scripts/`，`@/` 由 tsconfig paths 解析）；见 `package.json` |
 
 ## 快速开始
 
@@ -62,10 +62,10 @@ cargo run --bin service --release
 
 环境变量：
 
-| 变量 | 说明 |
-|------|------|
-| `ENABLE_SWAGGER=true` | 强制开启 Swagger UI 与 `/guide/*` 静态文档（release 亦可用，仅限内网） |
-| `ENABLE_SWAGGER=false` | 强制关闭文档端点 |
+| 变量                   | 说明                                                                   |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `ENABLE_SWAGGER=true`  | 强制开启 Swagger UI 与 `/guide/*` 静态文档（release 亦可用，仅限内网） |
+| `ENABLE_SWAGGER=false` | 强制关闭文档端点                                                       |
 
 生产环境默认不暴露 `/swagger-ui` 与 `/api-docs/openapi.json`。
 
@@ -101,6 +101,11 @@ src/
     upload/               # 分片上传（validation/storage/repository）
     search/               # ES 检索（repository 领域查询）
     engine/               # Bing 搜索建议代理
+    markdown/             # Markdown 占位脚手架（未挂载到路由）
+    tenant/               # 多租户组织与成员
+    subscription/         # 个人租户订阅（免费 / 付费档位）
+    gateway/              # 模型网关：转发 / 配额 / 用量 / 审计
+    sso/                  # 单点登录（OIDC）
     application/          # 应用入口（挂载 v1 路由）
   middlewares/            # CORS、AccessLog（Nest Middleware）
   guards/                 # Auth、黑名单、公开路径（Nest Guard）
@@ -108,12 +113,32 @@ src/
   filters/exception.rs   # Exception（Nest Filter）
   utils/code.rs   # 业务状态码
   oas/                    # utoipa 文档定义（path doc + OpenDoc）
-entity/                   # SeaORM Entity（auth、asset）
+entity/                   # SeaORM Entity（auth / asset / chunk / tenant / tenant_member / subscription / gateway_* / sso_connection）
 migration/                # 数据库迁移
 http/                     # REST Client 测试文件
 guide/                    # 项目指南（人工文档）
 spec/                     # OpenAPI 生成物
 ```
+
+## 模块文档
+
+每个 `src/services/{name}/` 的职责、路由、数据表与错误码见其 README：
+
+| 模块         | 路由前缀                             | 文档                                                |
+| ------------ | ------------------------------------ | --------------------------------------------------- |
+| 认证         | `/api/v1/auth`                       | [auth](src/services/auth/README.md)                 |
+| 用户(后台)   | `/api/v1/users`                      | [user](src/services/user/README.md)                 |
+| 上传         | `/api/v1/upload`                     | [upload](src/services/upload/README.md)             |
+| 搜索引擎代理 | `/api/v1/engine`                     | [engine](src/services/engine/README.md)             |
+| Markdown     | —（未挂载）                          | [markdown](src/services/markdown/README.md)         |
+| ES 全文检索  | `/api/v1/search`                     | [search](src/services/search/README.md)             |
+| 租户         | `/api/v1/tenants`                    | [tenant](src/services/tenant/README.md)             |
+| 订阅         | `/api/v1/tenants/{id}/subscriptions` | [subscription](src/services/subscription/README.md) |
+| 模型网关     | `/api/v1/gateway`                    | [gateway](src/services/gateway/README.md)           |
+| 单点登录     | `/api/v1/sso`                        | [sso](src/services/sso/README.md)                   |
+| 应用         | `/api/v1/application`                | [application](src/services/application/README.md)   |
+
+模块导航（含 HTTP 测试文件）见 [`guide/README.md`](guide/README.md#模块导航)。
 
 ## API 文档
 
@@ -140,15 +165,15 @@ spec/                     # OpenAPI 生成物
 > Apifox 断言请检查 `body.code === 200000`，而非 HTTP status code。  
 > OpenAPI 的 `bearer_auth` 已标注 `x-default: {{token}}`；若导入后仍是 `bearerToken`，按上一步手动改一次即可。
 
-| 模块 | 文档 |
-|------|------|
-| 认证 | [src/services/auth/README.md](src/services/auth/README.md) |
-| 用户(后台) | [src/services/user/README.md](src/services/user/README.md) |
-| 上传 | [src/services/upload/README.md](src/services/upload/README.md) |
-| 搜索 (ES) | [src/services/search/README.md](src/services/search/README.md) |
-| 搜索引擎 | [src/services/engine/README.md](src/services/engine/README.md) |
-| 应用 | [src/services/application/README.md](src/services/application/README.md) |
-| Markdown（占位） | [src/services/markdown/README.md](src/services/markdown/README.md) |
+| 模块             | 文档                                                                     |
+| ---------------- | ------------------------------------------------------------------------ |
+| 认证             | [src/services/auth/README.md](src/services/auth/README.md)               |
+| 用户(后台)       | [src/services/user/README.md](src/services/user/README.md)               |
+| 上传             | [src/services/upload/README.md](src/services/upload/README.md)           |
+| 搜索 (ES)        | [src/services/search/README.md](src/services/search/README.md)           |
+| 搜索引擎         | [src/services/engine/README.md](src/services/engine/README.md)           |
+| 应用             | [src/services/application/README.md](src/services/application/README.md) |
+| Markdown（占位） | [src/services/markdown/README.md](src/services/markdown/README.md)       |
 
 ## HTTP 测试
 
@@ -156,8 +181,8 @@ spec/                     # OpenAPI 生成物
 
 ## 职责划分
 
-| 场景 | 接口 |
-|------|------|
+| 场景           | 接口                       |
+| -------------- | -------------------------- |
 | 用户自助改资料 | `PUT /api/v1/auth/profile` |
-| 后台管账号 | `/api/v1/users/*` |
-| 文件/头像上传 | `/api/v1/upload/*` |
+| 后台管账号     | `/api/v1/users/*`          |
+| 文件/头像上传  | `/api/v1/upload/*`         |

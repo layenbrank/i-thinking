@@ -4,11 +4,11 @@
 
 应用配置使用分层 YAML（见 [`config.yaml`](../config.yaml)），**不使用**任何 `.env` 文件。Docker 依赖栈见 [`docker-compose.yml`](../docker-compose.yml)（内置 `name: corex`，直接 `docker compose up -d` 即可）。
 
-| 文件 | 说明 |
-|------|------|
-| `config.yaml` | 基础默认值（入库） |
-| `config.{profile}.yaml` | profile 覆盖（如 `development` / `production`） |
-| `config.local.yaml` | 本机密钥与连接串（**不入库**，见 `config.local.yaml.example`） |
+| 文件                    | 说明                                                           |
+| ----------------------- | -------------------------------------------------------------- |
+| `config.yaml`           | 基础默认值（入库）                                             |
+| `config.{profile}.yaml` | profile 覆盖（如 `development` / `production`）                |
+| `config.local.yaml`     | 本机密钥与连接串（**不入库**，见 `config.local.yaml.example`） |
 
 合并顺序：`config.yaml` → `config.{profile}.yaml` → `config.local.yaml`（后者覆盖前者）。
 
@@ -22,29 +22,51 @@
 
 ## 常用字段
 
-| 路径 | 默认值 | 说明 |
-|------|--------|------|
-| `server.host` | `127.0.0.1` | 监听地址 |
-| `server.port` | `3000` | 监听端口 |
-| `database.url` | 见 `config.yaml` | PostgreSQL 连接串 |
-| `security.jwt_secret` | （占位） | JWT 签名，至少 32 字符 |
-| `security.encryption` | `argon2` | `argon2` 或 `aes`（生产禁止 aes 存密码） |
-| `logging.dir` | `logs` | 日志目录 |
-| `app.swagger` | `development: true` | 是否启用 Swagger UI |
-| `auth.captcha.enabled` | `true`（development 默认 `false`） | `false` 时跳过 `check-data`（仅联调）；生产强制 `true` |
-| `auth.captcha.base_url` | `http://127.0.0.1:8080` | go-captcha-service HTTP（仅内网） |
-| `auth.captcha.api_key` | （见 `config.yaml`） | 侧车 `X-API-Key`，生产放 `config.local.yaml` |
-| `auth.captcha.kind` | `slide-default` | 默认题型 ID（`get-data` / `check-data`） |
-| `auth.captcha.timeout_ms` | `5000` | 调用侧车超时 |
-| `auth.captcha.ip_rate_limit` | `30` | 每分钟每 IP 取题次数 |
-| `auth.rate_limit.enabled` | `true` | Auth 路由 HTTP IP 限流（actix-governor） |
-| `auth.rate_limit.burst_size` | `20` | 突发请求上限 |
-| `auth.rate_limit.requests_per_minute` | `30` | 每分钟每 IP 补充配额 |
-| `auth.trust_proxy` | `false` | 是否信任 `X-Forwarded-For`（反向代理场景） |
-| `aliyun.gateway.base_url` | `http://127.0.0.1:8090` | aliyun-gateway HTTP（仅内网） |
-| `aliyun.gateway.api_key` | （见 `config.yaml`） | 侧车 `X-API-Key`，生产放 `config.local.yaml` |
-| `aliyun.gateway.timeout_ms` | `10000` | 调用侧车超时 |
-| `aliyun.gateway.sms_template_code` | `SMS_xxxx` | 默认短信模板 ID |
+| 路径                                  | 默认值                             | 说明                                                           |
+| ------------------------------------- | ---------------------------------- | -------------------------------------------------------------- |
+| `server.host`                         | `127.0.0.1`                        | 监听地址                                                       |
+| `server.port`                         | `3000`                             | 监听端口                                                       |
+| `database.url`                        | 见 `config.yaml`                   | PostgreSQL 连接串                                              |
+| `security.jwt_secret`                 | （占位）                           | JWT 签名，至少 32 字符                                         |
+| `security.encryption`                 | `argon2`                           | `argon2` 或 `aes`（生产禁止 aes 存密码）                       |
+| `logging.dir`                         | `logs`                             | 日志目录                                                       |
+| `app.swagger`                         | `development: true`                | 是否启用 Swagger UI                                            |
+| `auth.captcha.enabled`                | `true`（development 默认 `false`） | `false` 时跳过 `check-data`（仅联调）；生产强制 `true`         |
+| `auth.captcha.base_url`               | `http://127.0.0.1:8080`            | go-captcha-service HTTP（仅内网）                              |
+| `auth.captcha.api_key`                | （见 `config.yaml`）               | 侧车 `X-API-Key`，生产放 `config.local.yaml`                   |
+| `auth.captcha.kind`                   | `slide-default`                    | 默认题型 ID（`get-data` / `check-data`）                       |
+| `auth.captcha.timeout_ms`             | `5000`                             | 调用侧车超时                                                   |
+| `auth.captcha.ip_rate_limit`          | `30`                               | 每分钟每 IP 取题次数                                           |
+| `auth.rate_limit.enabled`             | `true`                             | Auth 路由 HTTP IP 限流（actix-governor）                       |
+| `auth.rate_limit.burst_size`          | `20`                               | 突发请求上限                                                   |
+| `auth.rate_limit.requests_per_minute` | `30`                               | 每分钟每 IP 补充配额                                           |
+| `auth.trust_proxy`                    | `false`                            | 是否信任 `X-Forwarded-For`（反向代理场景）                     |
+| `aliyun.gateway.base_url`             | `http://127.0.0.1:8090`            | aliyun-gateway HTTP（仅内网）                                  |
+| `aliyun.gateway.api_key`              | （见 `config.yaml`）               | 侧车 `X-API-Key`，生产放 `config.local.yaml`                   |
+| `aliyun.gateway.timeout_ms`           | `10000`                            | 调用侧车超时                                                   |
+| `aliyun.gateway.sms_template_code`    | `SMS_xxxx`                         | 默认短信模板 ID                                                |
+| `gateway.daily_token_quota`           | `1000000`                          | 全局兜底日 token 配额（无租户身份、团队租户）                  |
+| `gateway.free_daily_token_quota`      | `100000`                           | 个人租户免费档日 token 配额（无有效订阅时）                    |
+| `gateway.plan_daily_token_quota`      | `BASIC` / `PRO`                    | 订阅档位日配额（`档位名 → 配额`），与 `subscription.plan` 对应 |
+| `gateway.upstream_timeout_ms`         | `120000`                           | 上游模型流式读超时                                             |
+| `gateway.usage_es_index`              | `gateway_usage`                    | 用量事件写入的 ES 索引                                         |
+| `gateway.audit_enabled`               | `true`                             | 审计落库开关                                                   |
+
+### 模型网关配额
+
+日配额按下列优先级取**第一个命中项**；Redis 键 `gateway:quota:{scope}:{id}:{yyyy-mm-dd}`，按 UTC 午夜重置。
+
+| 优先级 | 来源                                            | 适用                                                       |
+| ------ | ----------------------------------------------- | ---------------------------------------------------------- |
+| 1      | `gateway_model.dailyTokenQuota > 0`             | 单模型覆盖                                                 |
+| 2      | 订阅档位 `gateway.plan_daily_token_quota[plan]` | 个人租户（`tenant.type = PERSONAL`）且有**此刻生效**的订阅 |
+| 3      | 免费档 `gateway.free_daily_token_quota`         | 个人租户无有效订阅（含订阅已过期）                         |
+| 4      | 全局兜底 `gateway.daily_token_quota`            | 团队租户（`TEAM`）与无租户身份（按用户维度计）             |
+
+未知档位名（配置删改后残留的订阅）回落**免费档**，避免超发。订阅的增删改见 [`src/services/subscription/README.md`](../src/services/subscription/README.md)；
+查某租户当前生效的配额与来源用 `GET /api/v1/tenants/{id}/quota`（`source` = `PLAN` / `FREE` / `GLOBAL`）。
+
+档位解析结果带 **60s Redis 缓存**（`gateway:plan:{tenantID}`，开通/取消订阅时立即失效），避免聊天热路径每次请求都查库。
 
 完整字段见 [`config.yaml`](../config.yaml)。集成总览见 [`integrations.md`](integrations.md)。
 
@@ -105,8 +127,8 @@ docker compose up -d
 docker compose ps
 ```
 
-| 服务 | 端口 | 数据目录（绑定挂载） |
-|------|------|----------------------|
+| 服务     | 端口 | 数据目录（绑定挂载）                                                         |
+| -------- | ---- | ---------------------------------------------------------------------------- |
 | postgres | 5432 | [`data/postgres`](../data/postgres)；镜像 `docker/postgres`（`zh_CN.UTF-8`） |
 
 locale 只在**首次** initdb 写入。若已是 `en_US`，需：

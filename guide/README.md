@@ -46,6 +46,7 @@ Token 来自 `POST /api/v1/auth/signin` 或 `signup` 响应的 `data.token`。
 | 搜索引擎代理 | `/api/v1/engine` | [engine](../src/services/engine/README.md) | [`http/04-engine.http`](../http/04-engine.http) |
 | ES 全文检索 | `/api/v1/search` | [search](../src/services/search/README.md) | [`http/06-search.http`](../http/06-search.http) |
 | 应用 | `/api/v1/application` | [application](../src/services/application/README.md) | [`http/05-application.http`](../http/05-application.http) |
+| 订阅 | `/api/v1/tenants/{id}/subscriptions` | [subscription](../src/services/subscription/README.md) | OpenAPI |
 
 ## 典型调用顺序
 
