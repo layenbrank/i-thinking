@@ -41,6 +41,8 @@ type AssistantLabels = {
 
   // 输入区
   composerPlaceholder: string
+  /** 已有消息时的占位，空会话仍用 composerPlaceholder */
+  composerPlaceholderContinue: string
   messageInput: string
 
   // 部件
@@ -104,6 +106,7 @@ const ASSISTANT_LABELS_EN: AssistantLabels = {
   stopDictation: 'Stop voice input',
 
   composerPlaceholder: 'Send a message...',
+  composerPlaceholderContinue: 'Continue this task...',
   messageInput: 'Message input',
 
   reasoning: (seconds) => `Reasoning${seconds ? ` (${seconds}s)` : ''}`,

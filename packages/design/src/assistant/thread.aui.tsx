@@ -293,6 +293,9 @@ const ThreadSuggestionItem: FC = () => {
 const Composer: FC<{ autoFocus: boolean }> = ({ autoFocus }) => {
   const labels = useAssistantLabels()
   const { ComposerTriggers } = useContext(ThreadComponentsContext)
+  const hasMessages = useAuiState(function (state) {
+    return state.thread.messages.length > 0
+  })
 
   return (
     <ComposerPrimitive.Unstable_TriggerPopoverRoot>
@@ -303,7 +306,9 @@ const Composer: FC<{ autoFocus: boolean }> = ({ autoFocus }) => {
             className="border-border/60 data-[dragging=true]:border-ring focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 shadow-xs flex w-full cursor-text flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) transition-[border-color] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))]">
             <ComposerAttachments />
             <ComposerPrimitive.Input
-              placeholder={labels.composerPlaceholder}
+              placeholder={
+                hasMessages ? labels.composerPlaceholderContinue : labels.composerPlaceholder
+              }
               className="aui-composer-input caret-primary placeholder:text-muted-foreground/60 w-full resize-none bg-transparent px-2.5 py-0 text-[14px] leading-[24px] outline-none"
               rows={2}
               minRows={2}
