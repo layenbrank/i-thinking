@@ -58,12 +58,12 @@ describe('SIGNIN_SCHEMA', function () {
     )
   })
 
-  it('邮箱模式校验邮箱格式与密码长度', function () {
-    expect(SIGNIN_SCHEMA.email.safeParse({ email: 'a@b.com', password: 'secret' }).success).toBe(
+  it('邮箱模式要求邮箱格式与 6 位验证码', function () {
+    expect(SIGNIN_SCHEMA.email.safeParse({ email: 'a@b.com', captcha: '123456' }).success).toBe(
       true
     )
-    expect(SIGNIN_SCHEMA.email.safeParse({ email: 'nope', password: 'secret' }).success).toBe(false)
-    expect(SIGNIN_SCHEMA.email.safeParse({ email: 'a@b.com', password: 'ab' }).success).toBe(false)
+    expect(SIGNIN_SCHEMA.email.safeParse({ email: 'nope', captcha: '123456' }).success).toBe(false)
+    expect(SIGNIN_SCHEMA.email.safeParse({ email: 'a@b.com', captcha: '12' }).success).toBe(false)
   })
 
   it('用户名模式校验 2–12 个字符', function () {

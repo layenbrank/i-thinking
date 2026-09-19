@@ -14,6 +14,12 @@ import { useEffect } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { toast } from 'sonner'
 
+import {
+  POST_SIGNIN,
+  POST_SIGNIN_EMAIL,
+  POST_SIGNIN_PHONE,
+  type SlideProof
+} from '@/apis/auth.ts'
 import { CaptchaField } from '@/features/signin/captcha-field.tsx'
 import {
   LIMIT,
@@ -25,6 +31,9 @@ import {
 import { AuthField } from '@/features/signin/field.tsx'
 import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
 import styles from '@/features/signin/signin.module.scss'
+import { useSlideProof } from '@/features/signin/slide.tsx'
+import { HttpError } from '@/utils/http.errors.ts'
+import { writeAuthToken } from '@/utils/auth.ts'
 
 type SigninFormProps = {
   motionKey: number
@@ -32,10 +41,47 @@ type SigninFormProps = {
   onModeChange: (mode: AuthMode) => void
   onForgot: () => void
   onSignup: () => void
+  onSuccess: () => void
+}
+
+interface SigninSession {
+  token: string
+  isRemembered: boolean
+}
+
+const SIGNIN: Record<
+  AuthMode,
+  (values: SigninValues, askSlide: () => Promise<SlideProof | null>) => Promise<SigninSession | null>
+> = {
+  async username(values, askSlide) {
+    const proof = await askSlide()
+    if (!proof) return null
+    const session = await POST_SIGNIN({
+      username: values.username ?? '',
+      password: values.password ?? '',
+      ...proof
+    })
+    return { token: session.token, isRemembered: values.remember !== false }
+  },
+  async phone(values) {
+    const session = await POST_SIGNIN_PHONE({
+      phone: values.phone ?? '',
+      code: values.captcha ?? ''
+    })
+    return { token: session.token, isRemembered: true }
+  },
+  async email(values) {
+    const session = await POST_SIGNIN_EMAIL({
+      email: values.email ?? '',
+      code: values.captcha ?? ''
+    })
+    return { token: session.token, isRemembered: true }
+  }
 }
 
 function SigninForm(props: SigninFormProps) {
-  const { motionKey, signinMode, onModeChange, onForgot, onSignup } = props
+  const { motionKey, signinMode, onModeChange, onForgot, onSignup, onSuccess } = props
+  const { askSlide, dialog } = useSlideProof()
 
   // 每个身份对应一套 schema；收窄一次泛型以满足 RHF 的联合类型
   const form = useForm<SigninValues>({
@@ -50,11 +96,19 @@ function SigninForm(props: SigninFormProps) {
     [form, signinMode]
   )
 
-  function onSubmit(_values: SigninValues) {
-    toast.success('登录成功（mock）')
+  async function onSubmit(values: SigninValues) {
+    try {
+      const session = await SIGNIN[signinMode](values, askSlide)
+      if (!session) return
+      writeAuthToken(session.token, session.isRemembered)
+      toast.success('登录成功')
+      onSuccess()
+    } catch (error) {
+      toast.error(HttpError(error).message || '登录失败')
+    }
   }
 
-  const isPasswordMode = signinMode === MODE.USERNAME || signinMode === MODE.EMAIL
+  const isPasswordMode = signinMode === MODE.USERNAME
 
   return (
     <Form {...form}>
@@ -129,7 +183,9 @@ function SigninForm(props: SigninFormProps) {
                 <CaptchaField
                   form={form}
                   mode={MODE.PHONE}
+                  purpose="otp"
                   targetField="phone"
+                  askSlide={askSlide}
                 />
               </MotionField>
             </>
@@ -149,15 +205,12 @@ function SigninForm(props: SigninFormProps) {
                 />
               </MotionField>
               <MotionField>
-                <AuthField
-                  control={form.control}
-                  name="password"
-                  type="password"
-                  label="密码"
-                  placeholder="请输入密码"
-                  icon={<LockIcon />}
-                  maxLength={LIMIT.PASSWORD}
-                  autoComplete="current-password"
+                <CaptchaField
+                  form={form}
+                  mode={MODE.EMAIL}
+                  purpose="otp"
+                  targetField="email"
+                  askSlide={askSlide}
                 />
               </MotionField>
             </>
@@ -210,6 +263,7 @@ function SigninForm(props: SigninFormProps) {
             </Button>
           </MotionField>
         </FormStagger>
+        {dialog}
       </form>
     </Form>
   )

@@ -75,7 +75,7 @@ const HEAD = {
 // ── 校验：zod schema（配合 react-hook-form 的 zodResolver）──
 
 const USERNAME_MESSAGE = '用户名长度为 2–12 个字符'
-const PASSWORD_MESSAGE = '密码长度为 4–20 个字符'
+const PASSWORD_MESSAGE = '密码长度为 6–20 个字符'
 
 const usernameField = z
   .string()
@@ -96,7 +96,7 @@ const emailField = z
 const passwordField = z
   .string()
   .min(1, '请输入密码！')
-  .min(4, PASSWORD_MESSAGE)
+  .min(6, PASSWORD_MESSAGE)
   .max(LIMIT.PASSWORD, PASSWORD_MESSAGE)
 
 const confirmField = z.string().min(1, '请确认密码！')
@@ -122,8 +122,7 @@ const SIGNIN_SCHEMA = {
   }),
   email: z.object({
     email: emailField,
-    password: passwordField,
-    remember: REMEMBER_FIELD
+    captcha: captchaField
   })
 } satisfies Record<AuthMode, z.ZodType>
 
@@ -275,14 +274,30 @@ const MOTION = {
   }
 }
 
+const CHANNEL = {
+  phone: 'PHONE',
+  email: 'EMAIL'
+} as const
+
+const IDENTITY: Record<AuthMode, (values: IdentityValues) => string> = {
+  username(values) {
+    return values.username ?? ''
+  },
+  phone(values) {
+    return values.phone ?? ''
+  },
+  email(values) {
+    return values.email ?? ''
+  }
+}
+
 function findIdentity(mode: AuthMode, values: IdentityValues) {
-  if (mode === MODE.USERNAME) return values.username ?? ''
-  if (mode === MODE.PHONE) return values.phone ?? ''
-  return values.email ?? ''
+  return IDENTITY[mode](values)
 }
 
 export {
   CAPTCHA_COUNTDOWN,
+  CHANNEL,
   FORGOT_SCHEMA,
   HEAD,
   LIMIT,

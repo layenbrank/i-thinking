@@ -10,14 +10,19 @@ import { LIMIT, SIGNUP_SCHEMA, type SignupValues } from '@/features/signin/const
 import { AuthField } from '@/features/signin/field.tsx'
 import { FormStagger, MotionField } from '@/features/signin/form-motion.tsx'
 import styles from '@/features/signin/signin.module.scss'
+import { useSlideProof } from '@/features/signin/slide.tsx'
+import { HttpError } from '@/utils/http.errors.ts'
+import { writeAuthToken } from '@/utils/auth.ts'
 
 type SignupFormProps = {
   motionKey: number
   onSignin: () => void
+  onSuccess: () => void
 }
 
 function SignupForm(props: SignupFormProps) {
-  const { motionKey, onSignin } = props
+  const { motionKey, onSignin, onSuccess } = props
+  const { askSlide, dialog } = useSlideProof()
 
   const form = useForm<SignupValues>({
     resolver: zodResolver(SIGNUP_SCHEMA),
@@ -26,15 +31,19 @@ function SignupForm(props: SignupFormProps) {
 
   async function onSubmit(values: SignupValues) {
     try {
-      await POST_SIGNUP({
+      const proof = await askSlide()
+      if (!proof) return
+      const session = await POST_SIGNUP({
         username: values.username,
-        password: values.password
+        password: values.password,
+        ...proof
       })
-      toast.success('注册成功（mock）')
+      writeAuthToken(session.token, true)
+      toast.success('注册成功')
       form.reset()
-      onSignin()
-    } catch {
-      toast.error('注册失败，请稍后重试')
+      onSuccess()
+    } catch (error) {
+      toast.error(HttpError(error).message || '注册失败，请稍后重试')
     }
   }
 
@@ -102,6 +111,7 @@ function SignupForm(props: SignupFormProps) {
             </Button>
           </MotionField>
         </FormStagger>
+        {dialog}
       </form>
     </Form>
   )

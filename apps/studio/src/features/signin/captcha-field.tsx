@@ -12,22 +12,51 @@ import { useEffect, useState } from 'react'
 import type { FieldPath, FieldValues, UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 
-import { POST_SEND_CAPTCHA } from '@/apis/auth.ts'
-import { CAPTCHA_COUNTDOWN, LIMIT, type AuthMode } from '@/features/signin/constants.ts'
+import { POST_OTP, POST_PASSWORD_FORGOT, type SlideProof } from '@/apis/auth.ts'
+import { CAPTCHA_COUNTDOWN, CHANNEL, LIMIT, type AuthMode } from '@/features/signin/constants.ts'
 import styles from '@/features/signin/signin.module.scss'
+import { HttpError } from '@/utils/http.errors.ts'
 
 /** 表单里验证码字段的固定名（泛型 T 由各表单给出，故此处收窄一次） */
 const CAPTCHA_NAME = 'captcha'
 
+type CaptchaPurpose = 'otp' | 'forgot'
+
+type CaptchaSender = (target: string, proof: SlideProof) => Promise<unknown>
+
+const SEND: Record<CaptchaPurpose, Partial<Record<AuthMode, CaptchaSender>>> = {
+  otp: {
+    phone(target, proof) {
+      return POST_OTP({ channel: CHANNEL.phone, target, ...proof })
+    },
+    email(target, proof) {
+      return POST_OTP({ channel: CHANNEL.email, target, ...proof })
+    }
+  },
+  forgot: {
+    username(target, proof) {
+      return POST_PASSWORD_FORGOT({ username: target, ...proof })
+    },
+    phone(target, proof) {
+      return POST_PASSWORD_FORGOT({ channel: CHANNEL.phone, target, ...proof })
+    },
+    email(target, proof) {
+      return POST_PASSWORD_FORGOT({ channel: CHANNEL.email, target, ...proof })
+    }
+  }
+}
+
 interface CaptchaFieldProps<T extends FieldValues> {
   form: UseFormReturn<T>
   mode: AuthMode
+  purpose: CaptchaPurpose
   /** 发送前需要先通过校验的身份字段（username / phone / email） */
   targetField: FieldPath<T>
+  askSlide: () => Promise<SlideProof | null>
 }
 
 function CaptchaField<T extends FieldValues>(props: CaptchaFieldProps<T>) {
-  const { form, mode, targetField } = props
+  const { form, mode, purpose, targetField, askSlide } = props
   const [countdown, updateCountdown] = useState(0)
   const [isSending, updateSending] = useState(false)
 
@@ -56,11 +85,17 @@ function CaptchaField<T extends FieldValues>(props: CaptchaFieldProps<T>) {
     updateSending(true)
 
     try {
-      await POST_SEND_CAPTCHA({ mode, target })
-      toast.success('验证码已发送（mock: 123456）')
+      const proof = await askSlide()
+      if (!proof) return
+
+      const send = SEND[purpose][mode]
+      if (!send) return
+      await send(target, proof)
+
+      toast.success('验证码已发送')
       updateCountdown(CAPTCHA_COUNTDOWN)
-    } catch {
-      toast.error('验证码发送失败，请稍后重试')
+    } catch (error) {
+      toast.error(HttpError(error).message || '验证码发送失败')
     } finally {
       updateSending(false)
     }
