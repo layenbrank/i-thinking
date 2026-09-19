@@ -21,7 +21,6 @@ import {
   MoreHorizontalIcon,
   PinIcon,
   PlusIcon,
-  SettingsIcon,
   UserIcon
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -35,6 +34,7 @@ import {
 } from '@/features/agent/workspace/client.ts'
 import { toIpcMessage } from '@/utils/ipc.errors.ts'
 import { useWorkspaceThreadGroups } from '@/views/agent/chat/components/thread-groups.ts'
+import { ProfileMenu } from '@/views/agent/chat/components/profile-menu.tsx'
 import { ICON_MAP, WorkspaceForm } from '@/views/agent/chat/components/workspace-form.tsx'
 
 interface SidebarProps {
@@ -46,7 +46,7 @@ interface SidebarProps {
 /**
  * 左栏（导航）：新任务 / 搜索 + 工作区 Collapse 树 → 会话 + 底栏头像/设置。
  *
- * 入口唯一性：**全应用的设置只有底部这一个入口**（对齐 client profile 行）。
+ * 入口唯一性：设置页只从底部齿轮菜单的「设置」进去。
  */
 export default function AgentSidebar(props: SidebarProps) {
   const labels = useAssistantLabels()
@@ -342,16 +342,7 @@ export default function AgentSidebar(props: SidebarProps) {
           </Avatar>
           <span className="truncate text-xs">本地</span>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          className="text-muted-foreground hover:text-foreground size-8 shrink-0 rounded-md"
-          aria-label="设置"
-          title="设置"
-          onClick={props.onOpenSettings}>
-          <SettingsIcon className="size-4" />
-        </Button>
+        <ProfileMenu onOpenSettings={props.onOpenSettings} />
       </div>
 
       <WorkspaceForm
