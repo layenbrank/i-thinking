@@ -211,8 +211,8 @@ function ProviderForm(props: ProviderFormProps) {
                   />
                 </FormControl>
                 <FormDescription>
-                  OpenAI 兼容根路径，要带 /v1（Ollama：http://127.0.0.1:11434/v1；LM Studio：
-                  http://127.0.0.1:1234/v1）
+                  OpenAI 兼容根路径，通常带 /v1。本机示例：Ollama http://127.0.0.1:11434/v1；云端用
+                  Provider 预设即可。
                 </FormDescription>
                 <FormMessage />
               </FormItem>

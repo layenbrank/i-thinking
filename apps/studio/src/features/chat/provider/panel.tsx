@@ -64,7 +64,9 @@ function findModelTitle(provider: ProviderRow): string {
 function findModelHint(provider: ProviderRow): string {
   const kind = PROVIDER_KIND_LABELS[provider.kind] ?? provider.kind
   const vendor = provider.name && provider.name !== provider.model ? provider.name : kind
-  return provider.enabled ? `${vendor} · 本机` : `${vendor} · 已停用`
+  const isLocal = provider.kind === 'ollama' || provider.kind === 'lm-studio'
+  const place = isLocal ? '本机' : 'BYOK'
+  return provider.enabled ? `${vendor} · ${place}` : `${vendor} · 已停用`
 }
 
 function ProviderPanel() {
@@ -115,7 +117,8 @@ function ProviderPanel() {
         <div className="flex min-w-0 flex-col gap-1">
           <h2 className="text-base font-medium">模型</h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            使用自己的 API Key 添加并管理个人模型。这些模型只在本机运行，密钥只写入主进程密钥库。
+            管理本机与 BYOK 云供应商（Ollama / LM Studio / OpenAI / DeepSeek
+            等）。对话走本地通路时使用这里的配置；密钥只写入主进程密钥库。在线通路的模型目录在服务端，输入区直接切换。
           </p>
         </div>
         <Button
@@ -134,7 +137,7 @@ function ProviderPanel() {
 
         {providers.length === 0 ? (
           <p className="text-muted-foreground py-6 text-sm">
-            还没有个人模型。本地的 Ollama、LM Studio，或任意 OpenAI 兼容服务都可以加。
+            还没有个人模型。本机 Ollama / LM Studio，或 OpenAI / DeepSeek 等 BYOK 云端点都可以加。
           </p>
         ) : (
           <div className="border-border divide-border divide-y rounded-lg border">
@@ -194,7 +197,7 @@ function ProviderPanel() {
             <DialogDescription>
               {editing
                 ? `为「${findModelTitle(editing)}」输入新的 API Key。旧密钥不会显示，留空表示不修改。`
-                : '选择本机接入的 Provider 和模型。调用走你填的服务地址，费用由该服务结算。'}
+                : '选择 Provider 与模型。调用走你填的服务地址（本机或云端 BYOK），费用由该服务结算。'}
             </DialogDescription>
           </DialogHeader>
           <ProviderForm

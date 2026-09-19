@@ -12,7 +12,7 @@ import { APPROVAL_POLICIES, type ApprovalPolicy } from '@/features/chat/approval
 import {
   CHAT_TRANSPORT_KINDS,
   CHAT_TRANSPORTS,
-  findChatEndpoint,
+  findGatewayChatEndpoint,
   resolveChatTransport,
   type ChatTransportKind
 } from '@/features/chat/transport.ts'
@@ -22,7 +22,7 @@ import { SettingRow, SettingsSection } from '@/views/agent/settings/components/s
 /** 通路不可用的具体原因：把「为什么点不了」说出来，而不是只把选项灰掉 */
 function findTransportBlocker(kind: ChatTransportKind): string | null {
   if (CHAT_TRANSPORTS[kind].isReady()) return null
-  if (!findChatEndpoint()) return '未配置服务地址（构建时的 VITE_THINKING）'
+  if (!findGatewayChatEndpoint()) return '未配置服务地址（构建时的 VITE_THINKING，应对 rust-service /api/v1）'
   return '尚未登录'
 }
 
@@ -118,7 +118,7 @@ export function GeneralSection() {
 
       <SettingsSection
         title="对话通路"
-        hint="本地 provider 直连本机模型，密钥不出主进程；在线服务经 Thinking 转发，用当前登录令牌。">
+        hint="本地 provider 直连本机 / BYOK 端点，密钥不出主进程；在线走 rust-service gateway，用当前登录令牌与服务端模型目录。">
         <SettingRow
           label="通路"
           hint={CHAT_TRANSPORTS[kind].hint}
