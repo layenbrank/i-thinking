@@ -51,6 +51,32 @@ describe('parseInbound', function () {
     expect(parseInbound('start')).toBeNull()
   })
 
+  it('接受带图片的用户消息，拒绝超长图片', function () {
+    const withImage = {
+      ...validStart(),
+      messages: [
+        {
+          role: 'user',
+          content: '看这张图',
+          images: [{ mediaType: 'image/png', data: 'data:image/png;base64,a' }]
+        }
+      ]
+    }
+    expect(parseInbound(withImage)).toEqual(withImage)
+
+    const tooBig = {
+      ...validStart(),
+      messages: [
+        {
+          role: 'user',
+          content: '看这张图',
+          images: [{ mediaType: 'image/png', data: 'x'.repeat(700_001) }]
+        }
+      ]
+    }
+    expect(parseInbound(tooBig)).toBeNull()
+  })
+
   it('拒绝超量消息、超长正文', function () {
     const tooMany = {
       ...validStart(),

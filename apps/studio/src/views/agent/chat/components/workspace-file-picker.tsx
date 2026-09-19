@@ -1,6 +1,6 @@
 import { Button } from '@i-thinking/design/components/button'
 import { Input } from '@i-thinking/design/components/input'
-import { ScrollArea } from '@i-thinking/design/components/scroll-area'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@i-thinking/design/components/tooltip'
 import { cn } from 'cn'
 import { ChevronLeftIcon, FileIcon, FolderIcon, Loader2Icon } from 'lucide-react'
 import { useState } from 'react'
@@ -33,6 +33,13 @@ interface WorkspaceFilePickerProps {
   onBack?: () => void
 }
 
+function findParentLabel(relative: string, name: string) {
+  if (relative === name) return ''
+  const suffix = `/${name}`
+  if (relative.endsWith(suffix)) return relative.slice(0, -suffix.length)
+  return relative
+}
+
 function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
   const workspaceID = useActiveWorkspaceID()
   const [relative, updateRelative] = useState('')
@@ -55,7 +62,7 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
 
   return (
     <div className={props.className}>
-      <div className="flex items-center gap-1 border-b p-2">
+      <div className="flex shrink-0 items-center gap-1 border-b p-2">
         {canGoUp ? (
           <Button
             type="button"
@@ -94,7 +101,7 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
         <p className="text-muted-foreground truncate px-2.5 pt-1.5 text-[11px]">{relative}</p>
       ) : null}
 
-      <ScrollArea className={cn('max-h-70 p-1.5', props.listClassName)}>
+      <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5', props.listClassName)}>
         {isPending ? (
           <p className="text-muted-foreground flex items-center gap-1.5 p-2.5 text-xs">
             <Loader2Icon className="size-3.5 animate-spin" />
@@ -105,30 +112,41 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
         {!isPending
           ? entries.map(function (entry) {
               const isDir = entry.kind === 'dir'
+              const parentLabel = findParentLabel(entry.relative, entry.name)
 
               return (
-                <Button
-                  key={entry.relative}
-                  type="button"
-                  variant="ghost"
-                  className="h-auto w-full justify-start gap-2 px-2 py-1.5 text-xs font-normal"
-                  onClick={function () {
-                    if (isDir) {
-                      updateRelative(entry.relative)
-                      return
-                    }
-                    props.onPick(entry.relative)
-                  }}>
-                  {isDir ? (
-                    <FolderIcon className="text-muted-foreground size-3.5 shrink-0" />
-                  ) : (
-                    <FileIcon className="text-muted-foreground size-3.5 shrink-0" />
-                  )}
-                  <span className="max-w-[45%] shrink-0 truncate">{entry.name}</span>
-                  <span className="text-muted-foreground min-w-0 flex-1 truncate text-end text-[11px]">
+                <Tooltip key={entry.relative}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-auto w-full min-w-0 shrink justify-start gap-2 px-2 py-1.5 text-xs font-normal"
+                      onClick={function () {
+                        if (isDir) {
+                          updateRelative(entry.relative)
+                          return
+                        }
+                        props.onPick(entry.relative)
+                      }}>
+                      {isDir ? (
+                        <FolderIcon className="text-muted-foreground size-3.5 shrink-0" />
+                      ) : (
+                        <FileIcon className="text-muted-foreground size-3.5 shrink-0" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate text-start">{entry.name}</span>
+                      {parentLabel ? (
+                        <span className="text-muted-foreground max-w-[40%] shrink truncate text-end text-[11px]">
+                          {parentLabel}
+                        </span>
+                      ) : null}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    className="max-w-sm text-start wrap-break-word">
                     {entry.relative}
-                  </span>
-                </Button>
+                  </TooltipContent>
+                </Tooltip>
               )
             })
           : null}
@@ -138,7 +156,7 @@ function WorkspaceFilePicker(props: WorkspaceFilePickerProps) {
             {isSearching ? '没有匹配的文件' : workspaceID ? '这个目录是空的' : '先在左栏添加工作区'}
           </p>
         ) : null}
-      </ScrollArea>
+      </div>
     </div>
   )
 }
