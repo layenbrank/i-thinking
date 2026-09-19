@@ -1,10 +1,11 @@
+import { Button } from '@i-thinking/design/components/button'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@i-thinking/design/components/select'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@i-thinking/design/components/dropdown-menu'
+import { CheckIcon, ChevronDownIcon } from 'lucide-react'
 
 import {
   APPROVAL_POLICIES,
@@ -13,7 +14,7 @@ import {
 } from '@/features/chat/approval.ts'
 import { useAgentStore } from '@/stores/agent.ts'
 
-/** 顶栏里的审批策略快捷切换；完整说明在设置弹窗的「模型」页签 */
+/** 输入区右下角的审批策略。和设置页「模型」里的是同一项，改完下一轮生效 */
 export function ApprovalSwitch() {
   const approval = useAgentStore(function (state) {
     return state.settings.chat.approval
@@ -25,29 +26,40 @@ export function ApprovalSwitch() {
   const current = findApprovalPolicy(approval)
 
   return (
-    <Select
-      value={approval}
-      onValueChange={function (value) {
-        void update('chat', { approval: value as ApprovalPolicy })
-      }}>
-      <SelectTrigger
-        className="hover:bg-accent-hover h-7 w-auto gap-1 border-transparent bg-transparent px-2 text-xs shadow-none dark:bg-transparent"
-        aria-label="工具审批策略"
-        title={current?.hint}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-label="工具审批策略"
+          title={current?.hint}
+          className="text-muted-foreground hover:text-foreground h-7 gap-1 px-2 text-xs font-normal">
+          {current?.label ?? '询问审批'}
+          <ChevronDownIcon className="size-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="w-64">
         {APPROVAL_POLICIES.map(function (policy) {
+          const isCurrent = policy.value === approval
           return (
-            <SelectItem
+            <DropdownMenuItem
               key={policy.value}
-              value={policy.value}
-              title={policy.hint}>
-              {policy.label}
-            </SelectItem>
+              className="items-start gap-2"
+              onSelect={function () {
+                void update('chat', { approval: policy.value as ApprovalPolicy })
+              }}>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span>{policy.label}</span>
+                <span className="text-muted-foreground text-xs leading-snug">{policy.hint}</span>
+              </span>
+              {isCurrent ? <CheckIcon className="mt-0.5 size-3.5" /> : null}
+            </DropdownMenuItem>
           )
         })}
-      </SelectContent>
-    </Select>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
