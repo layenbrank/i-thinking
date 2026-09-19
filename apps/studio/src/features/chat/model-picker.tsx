@@ -13,6 +13,8 @@ import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, ChevronDownIcon, CircleAlertIcon, SearchIcon, SettingsIcon } from 'lucide-react'
 import { useState } from 'react'
 
+import { canThink, findModelKey, findModelPref, readModelPrefs } from '@/features/chat/model-prefs.ts'
+import { ModelSettings, type ModelRow } from '@/features/chat/model-settings.tsx'
 import { findSelectedProvider, findUsableProviders } from '@/features/chat/port/model.ts'
 import { resolveChatTransport } from '@/features/chat/transport.ts'
 import { useAgentStore } from '@/stores/agent.ts'
@@ -39,10 +41,13 @@ function collectModels(provider: ProviderRow): string[] {
 }
 
 /**
- * 模型选择：provider + 模型合成一个下拉；带搜索与「模型设置」入口。
+ * 模型选择：provider + 模型合成一个下拉。
+ * 「模型设置」打开偏好弹层（Qoder 的表格），不跳设置页。没配 provider 时才去设置页加接入。
  */
 export function ModelPicker(props: ModelPickerProps) {
   const [query, updateQuery] = useState('')
+  const [isSettingsOpen, updateSettingsOpen] = useState(false)
+  const [prefs, updatePrefs] = useState(readModelPrefs)
   const transport = useAgentStore(function (state) {
     return state.settings.chat.transport
   })
@@ -105,7 +110,20 @@ export function ModelPicker(props: ModelPickerProps) {
     void update('chat', { providerID: nextProviderID, model: nextModel })
   }
 
+  const rows: ModelRow[] = usable.flatMap(function (provider) {
+    return collectModels(provider).map(function (item) {
+      return {
+        key: findModelKey(provider.id, item),
+        providerID: provider.id,
+        providerName: provider.name,
+        model: item,
+        canThink: canThink(item)
+      }
+    })
+  })
+
   return (
+    <>
     <DropdownMenu
       onOpenChange={function (open) {
         if (!open) updateQuery('')
@@ -145,6 +163,7 @@ export function ModelPicker(props: ModelPickerProps) {
         <div className="max-h-72 overflow-y-auto p-1">
           {usable.map(function (provider) {
             const models = collectModels(provider).filter(function (item) {
+              if (!findModelPref(provider.id, item, prefs).isVisible) return false
               if (!keyword) return true
               return (
                 item.toLowerCase().includes(keyword) ||
@@ -178,21 +197,27 @@ export function ModelPicker(props: ModelPickerProps) {
           })}
         </div>
 
-        {props.onOpenSettings ? (
-          <>
-            <DropdownMenuSeparator className="m-0" />
-            <div className="p-1">
-              <DropdownMenuItem
-                onSelect={function () {
-                  props.onOpenSettings?.()
-                }}>
-                <SettingsIcon />
-                模型设置
-              </DropdownMenuItem>
-            </div>
-          </>
-        ) : null}
+        <DropdownMenuSeparator className="m-0" />
+        <div className="p-1">
+          <DropdownMenuItem
+            onSelect={function () {
+              updateSettingsOpen(true)
+            }}>
+            <SettingsIcon />
+            模型设置
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
+    <ModelSettings
+      open={isSettingsOpen}
+      rows={rows}
+      onOpenProviders={props.onOpenSettings}
+      onOpenChange={function (open) {
+        updateSettingsOpen(open)
+        if (!open) updatePrefs(readModelPrefs())
+      }}
+    />
+    </>
   )
 }
