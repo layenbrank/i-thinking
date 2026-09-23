@@ -5,7 +5,7 @@ import path from 'node:path'
 import type { CHANNELS } from '../../shared/ipc/channels'
 import { IpcError } from '../../shared/ipc/error'
 import { type In, type Out } from '../../shared/ipc/specs'
-import { findPandocPath, hasBinary, PANDOC_BINARY } from './sidecar'
+import { findPandocPath, hasPandoc } from './sidecar/install'
 
 /** Pandoc convert process timeout (main-only). */
 const CONVERT_TIMEOUT_MS = 120_000
@@ -15,7 +15,7 @@ type ConvertR = Out<typeof CHANNELS.DOC.CONVERT>
 
 class Service {
   convert(input: ConvertP): Promise<ConvertR> {
-    if (!hasBinary(PANDOC_BINARY)) {
+    if (!hasPandoc()) {
       return Promise.reject(new IpcError('DOC_PANDOC_MISSING', `pandoc not found at ${findPandocPath()}`))
     }
 

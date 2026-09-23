@@ -68,6 +68,11 @@ function toUpdaterEvent(raw: unknown): PushOut<typeof CHANNELS.UPDATER.EVENT> {
   return raw as PushOut<typeof CHANNELS.UPDATER.EVENT>
 }
 
+/** corex 进度帧：主进程主动推，无需校验，只为渲染侧提供类型 */
+function toSidecarProgress(raw: unknown): PushOut<typeof CHANNELS.SIDECAR.PROGRESS> {
+  return raw as PushOut<typeof CHANNELS.SIDECAR.PROGRESS>
+}
+
 const api = {
   store: {
     toRead: toInvoke(CHANNELS.STORE.READ),
@@ -88,7 +93,14 @@ const api = {
     toRemove: toInvoke(CHANNELS.USER.REMOVE)
   },
   sidecar: {
-    toRead: toInvoke(CHANNELS.SIDECAR.READ)
+    toRead: toInvoke(CHANNELS.SIDECAR.READ),
+    actions: toInvoke(CHANNELS.SIDECAR.ACTIONS),
+    directives: toInvoke(CHANNELS.SIDECAR.DIRECTIVES),
+    directive: toInvoke(CHANNELS.SIDECAR.DIRECTIVE),
+    saveDirective: toInvoke(CHANNELS.SIDECAR.SAVE),
+    invoke: toInvoke(CHANNELS.SIDECAR.INVOKE),
+    run: toInvoke(CHANNELS.SIDECAR.RUN),
+    onProgress: toSubscribe(CHANNELS.SIDECAR.PROGRESS, toSidecarProgress)
   },
   doc: {
     convert: toInvoke(CHANNELS.DOC.CONVERT)
@@ -110,10 +122,20 @@ const api = {
     toRead: toInvoke(CHANNELS.OVERLAY.READ),
     toUpdate: toInvoke(CHANNELS.OVERLAY.UPDATE)
   },
-  window: {
-    agent: {
-      toOpen: toInvoke(CHANNELS.WINDOW.AGENT.OPEN)
+  mirror: {
+    toRead: toInvoke(CHANNELS.MIRROR.READ),
+    toWrite: toInvoke(CHANNELS.MIRROR.WRITE),
+    toUpdate: toInvoke(CHANNELS.MIRROR.UPDATE),
+    toRemove: toInvoke(CHANNELS.MIRROR.REMOVE),
+    tile: {
+      toRead: toInvoke(CHANNELS.MIRROR.TILE.READ),
+      toWrite: toInvoke(CHANNELS.MIRROR.TILE.WRITE),
+      toUpdate: toInvoke(CHANNELS.MIRROR.TILE.UPDATE),
+      toRemove: toInvoke(CHANNELS.MIRROR.TILE.REMOVE)
     }
+  },
+  window: {
+    toOpen: toInvoke(CHANNELS.WINDOW.OPEN)
   },
   workspace: {
     toRead: toInvoke(CHANNELS.WORKSPACE.READ),

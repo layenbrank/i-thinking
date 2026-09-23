@@ -3,13 +3,16 @@ import { z } from 'zod'
 import type { ChannelOfDomain } from '../channels'
 import { CHANNELS } from '../channels'
 import type { ChannelSpec } from '../spec'
+import { LAZY_WINDOW_KEYS } from '../../windows'
 
 /**
- * 窗口域：只负责「把某个窗口开出来」这件事。
+ * 窗口域：只负责「把某个按需窗口开出来」这件事。
  *
- * 窗口的创建/聚焦在 `capabilities/agent-window.ts` 的端口里，渲染侧只发触发信号；
- * 无入参 —— 当前只有一种子窗口，参数化（路由/尺寸）等真有第二种窗口时再加。
+ * 键是唯一入参 —— 窗口的创建/聚焦在 host/capabilities/window-registry.ts 的端口里，
+ * 规格（尺寸/标题/路由）也在那里。新增一个按需窗口因此不需要新频道。
  */
+const windowKey = z.enum(LAZY_WINDOW_KEYS)
+
 export const windowSpecs = {
-  [CHANNELS.WINDOW.AGENT.OPEN]: { in: z.void(), out: z.void() }
+  [CHANNELS.WINDOW.OPEN]: { in: z.object({ key: windowKey }), out: z.void() }
 } as const satisfies Record<ChannelOfDomain<'window'>, ChannelSpec>
