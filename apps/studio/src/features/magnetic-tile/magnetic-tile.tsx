@@ -74,13 +74,21 @@ const SIDE_CHANNELS: Partial<Record<MagneticTile.Component, ActivateFn>> = {
   navigation(ctx) {
     if (!ctx.tile.url) return
     window.open(ctx.tile.url, '_blank', 'noopener')
+  },
+  async intelligence() {
+    await itc.window.toOpen({ key: 'agent' })
+  },
+  async directive() {
+    await itc.window.toOpen({ key: 'directive' })
   }
 }
 
 function activateTile(tile: Pick<MagneticTile, 'component' | 'url'>, present: () => void) {
   const channel = SIDE_CHANNELS[tile.component]
   if (channel) {
-    void channel({ tile, present })
+    void Promise.resolve(channel({ tile, present })).catch(function (error) {
+      console.error('[magnetic-tile] 侧通道激活失败', error)
+    })
     return
   }
 

@@ -7,9 +7,11 @@ type RouteModule = {
   default: RouteObject | RouteObject[]
 }
 
-const modules: Record<string, RouteModule> = import.meta.glob('./routes/**/*.{ts,tsx}', {
-  eager: true
-})
+/** 排除测试文件：这个 glob 在构建期捞文件，被捞到的东西会真的进生产包（vitest 也会跟着进去） */
+const modules: Record<string, RouteModule> = import.meta.glob(
+  ['./routes/**/*.{ts,tsx}', '!**/*.test.{ts,tsx}'],
+  { eager: true }
+)
 
 const pages: RouteObject[] = []
 

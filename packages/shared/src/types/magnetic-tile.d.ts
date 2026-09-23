@@ -64,6 +64,7 @@ declare namespace MagneticTile {
     | 'signboard'
     | 'gallery' // 图库
     | 'capture' // 截屏
+    | 'directive' // 指令
     | 'example'
 
   interface Backdrop {
