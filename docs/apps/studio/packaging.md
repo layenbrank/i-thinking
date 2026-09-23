@@ -10,8 +10,7 @@
   - `forge/makers.ts` — 默认 + 可选 makers
   - `forge/publishers.ts` — GitHub Releases / S3（默认关闭）
   - `forge/plugins.ts` — Vite / Fuses / AutoUnpackNatives
-  - `forge/hooks/natives.ts` — better-sqlite3 复制
-  - `forge/hooks/external-deps.ts` — electron-updater 及传递依赖复制
+  - `forge/hooks/external-deps.ts` — Vite external（better-sqlite3、electron-updater）及依赖闭包复制
   - `forge/hooks/sidecar.ts` — 侧车复制 + SHA-256 校验
 
 构建产物目录：**仅** `out/studio/`（仓库根目录下）。
@@ -91,7 +90,7 @@ pnpm --filter @i-thinking/studio publish
 
 ## 7. asar / Sidecar / Fuses / CI
 
-- asar 保留 `.vite` / `package.json` / `generated` / `node_modules`（排除 `@i-thinking/*` workspace 符号链接，Vite 已打包）；external 模块（electron-updater + 传递依赖）由 `forge/hooks/external-deps.ts` afterCopy 复制进 asar，Fuses OnlyLoadAppFromAsar 禁止从 asar 外加载；侧车由 `forge/hooks/sidecar.ts` afterCopy 写入 `resources/sidecar`
+- asar 保留 `.vite` / `package.json` / `generated` / `node_modules`（排除 `@i-thinking/*` workspace 符号链接，Vite 已打包）；Vite external 模块（better-sqlite3、electron-updater）及其依赖闭包由 `forge/hooks/external-deps.ts` afterCopy 复制进 asar，Fuses OnlyLoadAppFromAsar 禁止从 asar 外加载；侧车由 `forge/hooks/sidecar.ts` afterCopy 写入 `resources/sidecar`
 - 二进制**不进 Git**：`staging/`、`.cache/sidecar/`、exe/dll 均 gitignore
 - 版本真相：`scripts/commands/features/sidecar/tools.lock.json`；本地完整性：`staging/<platform>/checksums.json`
 - **corex** 来自 [layenbrank/corex releases](https://github.com/layenbrank/corex/releases)（`corex-daemon` + CLI），非仓库内自研 stub

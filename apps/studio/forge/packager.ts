@@ -20,7 +20,6 @@ import {
   WINDOWS_CERTIFICATE_SUBJECT
 } from './env'
 import { copyAndVerifySidecars } from './hooks/sidecar'
-import { copyBetterSqlite3 } from './hooks/natives'
 import { copyExternalDependencies } from './hooks/external-deps'
 
 /** 国内默认镜像；Turbo strict 下需 turbo.json globalPassThroughEnv 透传 ELECTRON_MIRROR */
@@ -32,11 +31,11 @@ const ELECTRON_DOWNLOAD_MIRROR =
  * - `.vite/` 构建产物
  * - `package.json`
  * - `drizzle/`（迁移 SQL + meta/journal，运行时 migrator 要读）
- * - `node_modules/`（external 模块：electron-updater 及其传递依赖需进 asar，
+ * - `node_modules/`（external 模块：better-sqlite3、electron-updater 及其依赖闭包需进 asar，
  *   因 Fuses OnlyLoadAppFromAsar 禁止从 asar 外加载）
  * 排除 `@i-thinking/*`：pnpm workspace 符号链接指向包外，asar 无法处理；
  * Vite 已将这些 workspace 依赖打包进 .vite/build/main.js
- * native / Rust 侧车由 afterCopy 写入
+ * hoisted 到仓库根的 external 依赖与 native 侧车由 afterCopy 写入
  *
  * prune:false：跳过 flora-colossus（pnpm hoisted + 嵌套 apps/* 会误报缺依赖）
  */
@@ -80,18 +79,12 @@ function runAfterCopy(
   arch: string,
   done: (err?: Error) => void
 ): void {
-  copyBetterSqlite3(buildPath, electronVersion, platform, arch, function (err) {
+  copyExternalDependencies(buildPath, electronVersion, platform, arch, function (err) {
     if (err) {
       done(err)
       return
     }
-    copyExternalDependencies(buildPath, electronVersion, platform, arch, function (err) {
-      if (err) {
-        done(err)
-        return
-      }
-      copyAndVerifySidecars(buildPath, electronVersion, platform, arch, done)
-    })
+    copyAndVerifySidecars(buildPath, electronVersion, platform, arch, done)
   })
 }
 
