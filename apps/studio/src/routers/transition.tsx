@@ -1,13 +1,15 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Suspense } from 'react'
-import { useLocation, useNavigationType, useOutlet } from 'react-router-dom'
+import { useMatches, useNavigationType, useOutlet } from 'react-router-dom'
 
 import { Fallback } from '@/components/fallback/index.ts'
+
+import { findTransitionKey } from './transition-key.ts'
 
 /**
  * 路由切换的进场动效（挂在无路径布局路由上，见 `index.ts`）。
  *
- * 按 `pathname` 换 key → 新页面挂载即播一次「按导航方向滑入 + 淡入」：
+ * 按页面（路由，见 `findTransitionKey`）换 key → 新页面挂载即播一次「按导航方向滑入 + 淡入」：
  * 前进（PUSH，如 `/agent/chat` → `/agent/settings`）从右侧进，返回（POP）从左侧进 ——
  * 这样才读得出「换页了」，纯淡入太容易被当成刷新。
  *
@@ -23,7 +25,7 @@ import { Fallback } from '@/components/fallback/index.ts'
  * `prefers-reduced-motion` 下只留淡入，不做位移。
  */
 function RouteTransition() {
-  const location = useLocation()
+  const matches = useMatches()
   const outlet = useOutlet()
   const navigationType = useNavigationType()
   const isReducedMotion = useReducedMotion()
@@ -33,7 +35,7 @@ function RouteTransition() {
   return (
     <AnimatePresence initial={false}>
       <motion.div
-        key={location.pathname}
+        key={findTransitionKey(matches)}
         className="h-full w-full"
         initial={{ opacity: 0, x: distance }}
         animate={{ opacity: 1, x: 0 }}

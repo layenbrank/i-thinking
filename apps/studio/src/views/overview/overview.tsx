@@ -2,8 +2,9 @@ import { clsx } from 'clsx'
 import { useState } from 'react'
 
 import ReSignIn from '@/features/signin/signin.tsx'
-import { Combination } from '@/views/overview/components/index'
+import OverviewUtility from '@/views/overview/components/utility'
 import { EngineSearch } from '@/views/overview/engine/search'
+import Stage from '@/views/stage/stage.tsx'
 
 import styles from '@/views/overview/overview.module.scss'
 
@@ -12,7 +13,7 @@ export default function Overview() {
 
   return (
     <div className={clsx(styles.overview)}>
-      <Combination.Utility
+      <OverviewUtility
         onOpenSignIn={function () {
           onUpdateVisible(true)
         }}
@@ -20,8 +21,7 @@ export default function Overview() {
       <div className={styles.prefix}>
         <EngineSearch />
       </div>
-      <Combination.Section />
-      <Combination.Summary />
+      <Stage isPadded />
       <ReSignIn
         visible={visible}
         onClose={function () {
