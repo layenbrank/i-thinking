@@ -98,7 +98,9 @@ function makeDeps() {
     calls,
     deps: {
       mainWindow: {
-        attach: function () {},
+        toRead: function () {
+          return null
+        },
         toReveal: function () {
           calls.reveal += 1
         }

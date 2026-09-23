@@ -1,11 +1,12 @@
 import { CHANNELS } from '../../../shared/ipc/channels'
 import { Service } from '../../capabilities/dialog'
-import { type Context } from '../../framework/context'
+import { type MainWindowPort } from '../../capabilities/window'
 import { type DomainHandlers } from '../types'
 
-export function buildDialogHandlers(ctx: Context): DomainHandlers<'dialog'> {
+/** 系统对话框以主窗口为 parent（父窗口缺失时 Electron 退化为无父模态） */
+export function buildDialogHandlers(mainWindow: MainWindowPort): DomainHandlers<'dialog'> {
   const service = new Service(function () {
-    return ctx.toReadWindow()
+    return mainWindow.toRead()
   })
 
   return {

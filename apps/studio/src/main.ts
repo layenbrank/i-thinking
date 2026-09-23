@@ -4,13 +4,13 @@ import path from 'node:path'
 
 import type { BrowserWindow } from 'electron'
 
-import { buildAgentWindowPort } from './host/capabilities/agent-window'
 import { buildPlugin as buildDatabasePlugin } from './host/capabilities/database'
 import { buildOverlayWindowPort } from './host/capabilities/overlay-window'
 import { buildPlugin as buildSecurityPlugin } from './host/capabilities/security'
 import { buildPlugin as buildSidecarPlugin, CorexHost } from './host/capabilities/sidecar'
 import { buildPlugin as buildTrayPlugin } from './host/capabilities/tray'
 import { buildPlugin as buildWindowPlugin } from './host/capabilities/window'
+import { buildWindowPorts } from './host/capabilities/window-registry'
 import { buildContext } from './host/framework/context'
 import { buildLogger } from './host/framework/logger'
 import type { Plugin } from './host/framework/module'
@@ -56,31 +56,32 @@ export async function bootstrap(): Promise<void> {
 
   const ctx = buildContext(new CorexHost(buildLogger('main')))
 
-  findWindow = ctx.toReadWindow
+  // 窗口端口在组合根一次建好，再分发给三个消费者：IPC 分派、托盘、二次启动聚焦。
+  // 端口构造无副作用（真正建窗在插件 register 里），所以能先于插件循环创建。
+  const overlayPort = buildOverlayWindowPort(ctx)
+  const windows = buildWindowPorts(ctx)
+  const windowPlugin = buildWindowPlugin(overlayPort)
 
-  // overlay 窗口的读写端口：window 插件负责 attach 窗口，overlay 频道从中读写
-  const overlayPort = buildOverlayWindowPort()
-  // Agent 子窗口按需创建，不由插件在启动期建窗，故端口在组合根建好后直接注入 IPC
-  const agentWindowPort = buildAgentWindowPort(ctx)
+  findWindow = windowPlugin.mainWindow.toRead
 
   // IPC **必须先于插件循环注册**：window 插件会 loadURL，渲染进程随即 invoke；
   // 注册晚一拍会让首个 store:toRead 失败，而 /agent 在 loaded=false 时永远渲染 null（白屏）。
   const ipc = registerStudioIpc(ctx.ipc, {
     ctx,
     overlay: overlayPort,
-    agentWindow: agentWindowPort
+    windows,
+    mainWindow: windowPlugin.mainWindow
   })
 
   // 插件只负责生命周期（安全会话 / 关库 / 建窗 / 起 sidecar）；
   // 频道注册已由 IPC 装配层遍历契约完成
-  const windowPlugin = buildWindowPlugin(overlayPort)
   const plugins: Plugin[] = [
     buildSecurityPlugin(),
     buildDatabasePlugin(),
     windowPlugin,
     buildSidecarPlugin(),
     // 托盘放在最后：它要用主窗口端口把窗口叫回来
-    buildTrayPlugin({ mainWindow: windowPlugin.mainWindow, agentWindow: agentWindowPort })
+    buildTrayPlugin({ mainWindow: windowPlugin.mainWindow, agentWindow: windows.agent })
   ]
 
   try {
@@ -90,7 +91,7 @@ export async function bootstrap(): Promise<void> {
     }
   } catch (error) {
     log.error('plugin registration failed', error)
-    if (!ctx.toReadWindow()) return app.exit(1)
+    if (!windowPlugin.mainWindow.toRead()) return app.exit(1)
   }
 
   let isDisposing = false

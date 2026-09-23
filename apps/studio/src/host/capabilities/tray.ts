@@ -2,8 +2,8 @@ import { app, Menu, nativeImage, Tray, type MenuItemConstructorOptions } from 'e
 
 import type { Context } from '../framework/context'
 import type { Plugin } from '../framework/module'
-import type { AgentWindowPort } from './agent-window'
 import type { MainWindowPort } from './window'
+import type { WindowPort } from './window-registry'
 import { findAppIconPath } from './window-factory'
 
 /**
@@ -19,7 +19,8 @@ import { findAppIconPath } from './window-factory'
 
 interface TrayDeps {
   mainWindow: MainWindowPort
-  agentWindow: AgentWindowPort
+  /** 开 Agent 窗口：托盘只表达意图，窗口归注册表的端口持有 */
+  agentWindow: WindowPort
 }
 
 /** Windows 从多尺寸 .ico 里自己挑，别缩；其他平台缩到托盘尺寸（否则 256px 会糊） */

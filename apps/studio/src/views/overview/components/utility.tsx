@@ -11,7 +11,7 @@ interface OverviewUtilityProps {
 export default function OverviewUtility(props: OverviewUtilityProps) {
   async function handleOpenAgent() {
     try {
-      await itc.window.agent.toOpen()
+      await itc.window.toOpen({ key: 'agent' })
     } catch (error) {
       toast.error('Agent 窗口打开失败', { duration: 2000 })
       console.error(error)
