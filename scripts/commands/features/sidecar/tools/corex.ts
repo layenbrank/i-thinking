@@ -1,4 +1,13 @@
-import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
+import {
+  chmodSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import path from 'node:path'
 
 import { COREX_CLI, COREX_DAEMON, VENDOR_DIR } from '../infra/constants.ts'
@@ -21,8 +30,19 @@ function findDaemonBinary(key = findPlatformKey()): string {
   return path.join(findCorexBinDir(key), findBinaryName(COREX_DAEMON))
 }
 
-function hasCorexVendor(key = findPlatformKey()): boolean {
-  return existsSync(findDaemonBinary(key))
+/** 缓存命中不是「有文件就算」，而是「有 lock 里那个版本」：版本记号对不上就重下 */
+const VERSION_MARKER = '.version'
+
+function findCorexVersionMarker(key = findPlatformKey()): string {
+  return path.join(findCorexVendorDir(key), VERSION_MARKER)
+}
+
+function hasCorexVendor(version: string, key = findPlatformKey()): boolean {
+  const marker = findCorexVersionMarker(key)
+  if (!existsSync(marker) || !existsSync(findDaemonBinary(key))) {
+    return false
+  }
+  return readFileSync(marker, 'utf8').trim() === version
 }
 
 /**
@@ -30,14 +50,14 @@ function hasCorexVendor(key = findPlatformKey()): boolean {
  * Layout: corex-daemon(.exe), corex(.exe), optional pdfium.dll / *.so
  */
 async function ensureCorexVendor(key = findPlatformKey()): Promise<string> {
+  const lock = parseToolsLock()
+  const pin = findToolPin(lock.corex, 'corex', key)
   const daemonPath = findDaemonBinary(key)
-  if (hasCorexVendor(key)) {
-    console.log(`[corex] 缓存命中 ${daemonPath}`)
+  if (hasCorexVendor(pin.version, key)) {
+    console.log(`[corex] 缓存命中 ${pin.version} → ${daemonPath}`)
     return daemonPath
   }
 
-  const lock = parseToolsLock()
-  const pin = findToolPin(lock.corex, 'corex', key)
   const vendorDir = findCorexVendorDir(key)
   mkdirSync(vendorDir, { recursive: true })
 
@@ -87,6 +107,7 @@ async function ensureCorexVendor(key = findPlatformKey()): Promise<string> {
   }
 
   rmSync(extractDir, { recursive: true, force: true })
+  writeFileSync(findCorexVersionMarker(key), `${pin.version}\n`, 'utf8')
   console.log(`[corex] 已落盘 ${pin.version} → ${binDir}`)
   return daemonPath
 }
