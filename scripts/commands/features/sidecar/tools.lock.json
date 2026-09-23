@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "corex": {
     "win32-x64": {
-      "version": "5.2.0",
-      "url": "https://github.com/layenbrank/corex/releases/download/v5.2.0/corex-v5.2.0-windows-x64.zip",
-      "sha256": "04ba555a415b30cae519bb44ebb8c26063c1f93e097ee061be6b52339b6f0073"
+      "version": "11.0.0",
+      "url": "https://github.com/layenbrank/corex/releases/download/v11.0.0/corex-v11.0.0-windows-x64.zip",
+      "sha256": "b70c6b5603687fea9de351560acf28c86e28794e76a1bb11943c87d3af2944f3"
     }
   },
   "goose": {
