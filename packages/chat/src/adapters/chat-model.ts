@@ -161,7 +161,7 @@ function createChatModelAdapter(
   return {
     async *run(runOptions) {
       const target = await port.findTarget()
-      if (!target) throw new Error('[CHAT] 未配置本地模型 provider')
+      if (!target) throw new Error('[CHAT] 未配置模型')
 
       const messages = toRunMessages(runOptions.messages)
       if (messages.length === 0) throw new Error('[CHAT] 没有可发送的消息')

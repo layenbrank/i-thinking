@@ -183,7 +183,7 @@ export default function AgentAside(props: AsideProps) {
         <Section label="生效模型">
           <p className="text-xs leading-5 break-all">
             {kind === 'online'
-              ? model || '服务端默认'
+              ? model || '未选择（服务端目录为空）'
               : `${providerID ?? '自动'} · ${model || '默认'}`}
           </p>
         </Section>

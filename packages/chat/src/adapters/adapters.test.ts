@@ -327,7 +327,7 @@ describe('createChatModelAdapter', function () {
           // 不应该有任何事件
         }
       })()
-    ).rejects.toThrow('未配置本地模型 provider')
+    ).rejects.toThrow('未配置模型')
 
     const noText = createChatModelAdapter({
       findTarget: async function () {
