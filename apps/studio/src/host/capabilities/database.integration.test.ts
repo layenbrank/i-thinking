@@ -33,8 +33,8 @@ const MIGRATIONS_FOLDER = join(PACKAGE_ROOT, 'drizzle', 'migrations')
 const BUSINESS_TABLE_COUNT = 13
 /** 迁移文件数：只有 0000_init（建表 + 种子） */
 const MIGRATION_COUNT = 1
-/** 种子行数，取自 Tauri 版 migrations_v001.rs（138 条 INSERT OR IGNORE） */
-const SEED_ROWS = { magneticTile: 136, mirror: 1, countdown: 1 }
+/** 种子行数（139 条 INSERT OR IGNORE；client 已废弃，不再同步） */
+const SEED_ROWS = { magneticTile: 137, mirror: 1, countdown: 1 }
 
 const handles: SqliteHandle[] = []
 const tempDirs: string[] = []
