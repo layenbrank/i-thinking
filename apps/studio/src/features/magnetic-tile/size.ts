@@ -9,7 +9,7 @@ function findTrackPx(span: number) {
 }
 
 /** 短边像素：size k → k×k 轨道边长 */
-const SIZE_PX: Record<Mirror.Size, number> = {
+const SIZE_PX: Record<MagneticTile.Size, number> = {
   1: findTrackPx(1),
   2: findTrackPx(2),
   3: findTrackPx(3),
@@ -61,12 +61,12 @@ function parseMarkerLayout(input?: Partial<MarkerLayout> | null): MarkerLayout {
 }
 
 export {
-  SIZE_PX,
-  TILE_UNIT,
-  TILE_GAP,
   LAYOUT_FALLBACK,
-  findTrackPx,
+  SIZE_PX,
+  TILE_GAP,
+  TILE_UNIT,
   findMarkerBox,
+  findTrackPx,
   parseMarkerLayout
 }
-export type { MarkerLayout, MarkerBox }
+export type { MarkerBox, MarkerLayout }

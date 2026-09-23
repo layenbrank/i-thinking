@@ -1,0 +1,24 @@
+// 舞台上下的留白与底栏高度：两处都从主窗口的观感取值。
+$pad-block: 12px;
+$foot-height: 48px;
+
+.stage {
+  width: 100%;
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0%;
+  min-height: 0px;
+  margin: 0;
+  padding: 0;
+}
+
+.padded {
+  padding-block: $pad-block;
+}
+
+.foot {
+  height: $foot-height;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
