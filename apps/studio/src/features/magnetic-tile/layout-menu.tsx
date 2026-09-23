@@ -109,8 +109,11 @@ function findDirection(draft: Draft, option: ShapeOption): MagneticTile.Directio
   return 'horizontal'
 }
 
-function updateTile(_tile: Tile, _change: MagneticTile.Change) {
-  // 占位：后续接 store / IPC
+function updateTile(tile: Tile, change: MagneticTile.Change) {
+  if (!tile.id) return
+  void itc.mirror.tile.toUpdate({ id: tile.id, ...change }).catch(function (error) {
+    console.error('[layout-menu] 磁贴布局更新失败', error)
+  })
 }
 
 function parseDraft(tile: Tile): Draft {

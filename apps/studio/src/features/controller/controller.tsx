@@ -1,58 +1,20 @@
-'use client'
-import clsx from 'clsx'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useKeyModifier } from '@reactuses/core'
+import clsx from 'clsx'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 import { ContextMenu } from '@/components/contextmenu'
+import styles from '@/features/controller/controller.module.scss'
 import { useScrollFx } from '@/features/controller/hooks/use-scroll-fx'
 import { bindSortable, reorder, type SortableSession } from '@/features/controller/lib/sortable'
-import styles from '@/features/controller/controller.module.scss'
 import { Reflection } from '@/features/controller/reflection.tsx'
 import { buildItems } from '@/features/magnetic-tile/layout-items'
 import { CLASS_NAMES } from '@/features/magnetic-tile/layout-menu'
 import { MagneticTile, OverlayProvider } from '@/features/magnetic-tile/magnetic-tile.tsx'
+import { useMirrorStore } from '@/stores/mirror'
 
 interface MirrorProps {
   children: ReactNode
 }
-
-const STAMP = Date.now()
-
-const SITES: { url: string; title: string; color: string }[] = [
-  { url: 'https://www.baidu.com', title: '百度', color: '#1677ff' },
-  { url: 'https://www.taobao.com', title: '淘宝', color: '#ff6a00' },
-  { url: 'https://www.jd.com', title: '京东', color: '#e1251b' },
-  { url: 'https://www.bilibili.com', title: '哔哩哔哩', color: '#fb7299' },
-  { url: 'https://www.zhihu.com', title: '知乎', color: '#056de8' },
-  { url: 'https://www.xiaohongshu.com', title: '小红书', color: '#ff2442' },
-  { url: 'https://www.douban.com', title: '豆瓣', color: '#00b51d' },
-  { url: 'https://www.weibo.com', title: '微博', color: '#e6162d' }
-]
-
-const TILES: MagneticTile[] = SITES.map(function (site, index) {
-  return {
-    id: `tile-nav-${index}`,
-    index,
-    title: site.title,
-    url: site.url,
-    round: '12px',
-    mark: [...site.title].at(0) ?? null,
-    size: 1,
-    shape: 'square',
-    direction: 'horizontal',
-    mirrorID: 'mirror-placeholder',
-    updatedAt: STAMP,
-    createdAt: STAMP,
-    textColor: '#ffffff',
-    component: 'navigation',
-    description: site.title,
-    collectionID: null,
-    downloadCount: 0,
-    background: { color: site.color },
-    backdrop: null,
-    archivedAt: null
-  }
-})
 
 const Controller = {
   /** 占位滚动视口；mirror 切换与 store 尚未接入 */
@@ -72,30 +34,34 @@ const Controller = {
     )
   },
   MagneticTile() {
-    const [tiles, setTiles] = useState(TILES)
+    const magneticTiles = useMirrorStore(function (state) {
+      return state.magneticTiles
+    })
     const gridRef = useRef<HTMLDivElement>(null)
     const sortableRef = useRef<SortableSession | null>(null)
     const control = useKeyModifier('Control')
     const controlRef = useRef(control)
-    const tilesRef = useRef(tiles)
+    const tilesRef = useRef(magneticTiles)
 
     controlRef.current = control
-    tilesRef.current = tiles
+    tilesRef.current = magneticTiles
 
     const scrollFx = useScrollFx(gridRef)
+
+    useEffect(function () {
+      // 失败由 store 自己报（打印 + toast），这里等不到 rejection
+      void useMirrorStore.getState().initialize()
+    }, [])
 
     useEffect(
       function () {
         const gridEl = gridRef.current
         if (!gridEl) return
 
-        /** 占位：仅本地重排，不落库 */
+        /** 拖拽重排：乐观更新 + 逐个 index 落库；写不动时由 store 提示并重读真值 */
         function persistReorder(ids: string[]) {
-          const current = tilesRef.current
-          const moved = reorder(current, ids).map(function (tile, index) {
-            return { ...tile, index }
-          })
-          setTiles(moved)
+          const moved = reorder(tilesRef.current, ids)
+          void useMirrorStore.getState().toApplyOrder(moved)
         }
 
         const session = bindSortable(gridEl, {
@@ -146,7 +112,7 @@ const Controller = {
         <div
           ref={gridRef}
           className={clsx([styles.controller, styles['magnetic-tile']])}>
-          {tiles.map(function (value, index) {
+          {magneticTiles.map(function (value, index) {
             const Component = Reflection[value.component]
             // 旧库存量行的 component 可能不在白名单中，兜底跳过避免渲染崩溃
             if (!Component) return null

@@ -219,7 +219,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS `workspaceFolder_path_unique` ON `workspaceFol
 CREATE INDEX IF NOT EXISTS `idx_workspaceFolder_workspaceID` ON `workspaceFolder` (`workspaceID`);--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS `idx_workspaceFolder_sort` ON `workspaceFolder` (`sort`);
 --> statement-breakpoint
--- 种子数据：与 client（Tauri）版 v1 迁移一致的 138 条 INSERT OR IGNORE；两版要同步改。
+-- 种子数据：139 条 INSERT OR IGNORE（client 已废弃，不再同步）。
 
 INSERT OR IGNORE INTO countdown (id, workStart, workEnd, workDays, monthlySalary, payDay, archivedAt, createdAt, updatedAt) VALUES ('00000000-0000-0000-0000-000000000001', '09:00', '18:00', '[1,2,3,4,5]', 0.0, 15, NULL, CAST(strftime('%s', 'now') AS INTEGER) * 1000, CAST(strftime('%s', 'now') AS INTEGER) * 1000);
 --> statement-breakpoint
@@ -496,3 +496,5 @@ INSERT OR IGNORE INTO magneticTile (id,[index],title,url,round,mark,component,de
 INSERT OR IGNORE INTO magneticTile (id,[index],title,url,round,mark,component,description,background,backdrop,mirrorID,textColor,collectionID,size,shape,direction,downloadCount,archivedAt,createdAt,updatedAt) VALUES ('ea161ec5-391a-49ce-9d78-fe91f96519bd',134,'Vercel','https://vercel.com','12px',NULL,'navigation','Vercel','{"color":"#FDF2F8"}',NULL,'b7bc5d50-3b4a-46d7-b834-2938df56de24','0F172A',NULL,1,'square','vertical',0,NULL,1785423438774,1785423438774);
 --> statement-breakpoint
 INSERT OR IGNORE INTO magneticTile (id,[index],title,url,round,mark,component,description,background,backdrop,mirrorID,textColor,collectionID,size,shape,direction,downloadCount,archivedAt,createdAt,updatedAt) VALUES ('3175fa5c-195f-4311-9d18-ecbc7c29f6d5',135,'Netlify','https://www.netlify.com','12px',NULL,'navigation','Netlify','{"color":"#ECFEFF"}',NULL,'b7bc5d50-3b4a-46d7-b834-2938df56de24','0F172A',NULL,1,'square','vertical',0,NULL,1785423438774,1785423438774);
+--> statement-breakpoint
+INSERT OR IGNORE INTO magneticTile (id,[index],title,url,round,mark,component,description,background,backdrop,mirrorID,textColor,collectionID,size,shape,direction,downloadCount,archivedAt,createdAt,updatedAt) VALUES ('b2c3d4e5-6f70-4a81-9b2c-3d4e5f6a7b8c',136,'指令',NULL,'12px',NULL,'directive','指令','{"color":"#F5F3FF"}',NULL,'b7bc5d50-3b4a-46d7-b834-2938df56de24','5B21B6',NULL,1,'square','vertical',0,NULL,1785423438774,1785423438774);
