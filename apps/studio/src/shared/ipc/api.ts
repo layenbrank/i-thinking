@@ -40,6 +40,13 @@ export interface Api {
 
   sidecar: {
     toRead: IpcFn<typeof CHANNELS.SIDECAR.READ>
+    actions: IpcFn<typeof CHANNELS.SIDECAR.ACTIONS>
+    directives: IpcFn<typeof CHANNELS.SIDECAR.DIRECTIVES>
+    directive: IpcFn<typeof CHANNELS.SIDECAR.DIRECTIVE>
+    saveDirective: IpcFn<typeof CHANNELS.SIDECAR.SAVE>
+    invoke: IpcFn<typeof CHANNELS.SIDECAR.INVOKE>
+    run: IpcFn<typeof CHANNELS.SIDECAR.RUN>
+    onProgress: Subscribe<PushOut<typeof CHANNELS.SIDECAR.PROGRESS>>
   }
 
   doc: {
@@ -68,10 +75,22 @@ export interface Api {
     toUpdate: IpcFn<typeof CHANNELS.OVERLAY.UPDATE>
   }
 
-  window: {
-    agent: {
-      toOpen: IpcFn<typeof CHANNELS.WINDOW.AGENT.OPEN>
+  mirror: {
+    toRead: IpcFn<typeof CHANNELS.MIRROR.READ>
+    toWrite: IpcFn<typeof CHANNELS.MIRROR.WRITE>
+    toUpdate: IpcFn<typeof CHANNELS.MIRROR.UPDATE>
+    toRemove: IpcFn<typeof CHANNELS.MIRROR.REMOVE>
+    tile: {
+      toRead: IpcFn<typeof CHANNELS.MIRROR.TILE.READ>
+      toWrite: IpcFn<typeof CHANNELS.MIRROR.TILE.WRITE>
+      toUpdate: IpcFn<typeof CHANNELS.MIRROR.TILE.UPDATE>
+      toRemove: IpcFn<typeof CHANNELS.MIRROR.TILE.REMOVE>
     }
+  }
+
+  window: {
+    /** 开某个按需窗口，键即 shared/windows.ts 的 LAZY_WINDOW_KEYS */
+    toOpen: IpcFn<typeof CHANNELS.WINDOW.OPEN>
   }
 
   workspace: {

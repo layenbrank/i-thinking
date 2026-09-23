@@ -8,9 +8,10 @@ import { chatSpecs } from './chat'
 import { devtoolsSpecs } from './devtools'
 import { dialogSpecs } from './dialog'
 import { docSpecs } from './doc'
+import { mirrorSpecs } from './mirror'
 import { overlaySpecs } from './overlay'
 import { screenshotSpecs } from './screenshot'
-import { sidecarSpecs } from './sidecar'
+import { sidecarPushSpec, sidecarSpecs } from './sidecar'
 import { storeSpecs } from './store'
 import { updaterPushSpec, updaterSpecs } from './updater'
 import { userSpecs } from './user'
@@ -31,13 +32,15 @@ export const INVOKE_SPECS = {
   ...assistantSpecs,
   ...updaterSpecs,
   ...windowSpecs,
-  ...workspaceSpecs
+  ...workspaceSpecs,
+  ...mirrorSpecs
 } as const
 
 /** 推送通道（主进程 → 渲染进程）的契约；无入参，不参与 invoke 注册 */
 export const PUSH_SPECS = {
   ...updaterPushSpec,
-  ...assistantPushSpec
+  ...assistantPushSpec,
+  ...sidecarPushSpec
 } as const satisfies Record<PushChannel, PushChannelSpec>
 
 export type In<K extends InvokeChannel> = z.infer<(typeof INVOKE_SPECS)[K]['in']>

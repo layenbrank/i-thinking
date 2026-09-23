@@ -24,7 +24,14 @@ export const CHANNELS = {
     REMOVE: 'user:toRemove'
   },
   SIDECAR: {
-    READ: 'sidecar:toRead'
+    READ: 'sidecar:toRead',
+    ACTIONS: 'sidecar:actions',
+    DIRECTIVES: 'sidecar:directives',
+    DIRECTIVE: 'sidecar:directive',
+    SAVE: 'sidecar:saveDirective',
+    INVOKE: 'sidecar:invoke',
+    RUN: 'sidecar:run',
+    PROGRESS: 'sidecar:progress'
   },
   DOC: {
     CONVERT: 'doc:convert'
@@ -46,10 +53,21 @@ export const CHANNELS = {
     READ: 'overlay:toRead',
     UPDATE: 'overlay:toUpdate'
   },
-  WINDOW: {
-    AGENT: {
-      OPEN: 'window:agent.toOpen'
+  MIRROR: {
+    READ: 'mirror:toRead',
+    WRITE: 'mirror:toWrite',
+    UPDATE: 'mirror:toUpdate',
+    REMOVE: 'mirror:toRemove',
+    TILE: {
+      READ: 'mirror:tile.toRead',
+      WRITE: 'mirror:tile.toWrite',
+      UPDATE: 'mirror:tile.toUpdate',
+      REMOVE: 'mirror:tile.toRemove'
     }
+  },
+  WINDOW: {
+    /** 开一个按需窗口；窗口键见 shared/windows.ts，新增窗口不需要新频道 */
+    OPEN: 'window:toOpen'
   },
   WORKSPACE: {
     READ: 'workspace:toRead',
@@ -127,7 +145,11 @@ export type ChannelOfDomain<D extends Domain> = NestedValue<
 >
 
 /** 主进程 → 渲染进程的推送通道；不走 invoke，渲染侧以 subscribe 形态暴露 */
-export const PUSH_CHANNELS = [CHANNELS.ASSISTANT.PORT, CHANNELS.UPDATER.EVENT] as const
+export const PUSH_CHANNELS = [
+  CHANNELS.ASSISTANT.PORT,
+  CHANNELS.UPDATER.EVENT,
+  CHANNELS.SIDECAR.PROGRESS
+] as const
 
 export type PushChannel = (typeof PUSH_CHANNELS)[number]
 
