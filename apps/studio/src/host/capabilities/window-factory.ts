@@ -8,11 +8,22 @@ import { findBundleDir } from '../framework/paths'
 import { attachGuards } from './security'
 
 /**
- * 建窗的公共原语：路径解析、加载、安全附着。
+ * 建窗的公共原语：路径解析、加载、安全附着、共用窗口选项。
  *
- * 主窗口（`window.ts`）与 Agent 子窗口（`agent-window.ts`）用的都是这些 ——
+ * 主窗口（`window.ts`）与按需子窗口（`window-registry.ts`）用的都是这些 ——
  * 各窗口的选项各异，但「怎么加载、怎么验、怎么显示」只有一份。
  */
+
+/**
+ * 隐藏原生标题栏后由系统绘制的窗口按钮区。
+ *
+ * 主窗口与子窗口必须完全一致，否则切换焦点时按钮会跳位；各写一遍必然漏改。
+ */
+const TITLE_BAR_OVERLAY = {
+  color: '#00000000',
+  height: 35,
+  symbolColor: '#000000'
+} as const
 
 interface BundlePaths {
   route: string
@@ -122,5 +133,12 @@ function buildWebPreferences(ctx: Context, preloadPath: string) {
   } as const
 }
 
-export { attachLifecycle, buildWebPreferences, findAppIconPath, findBundlePaths, toRedirect }
+export {
+  attachLifecycle,
+  buildWebPreferences,
+  findAppIconPath,
+  findBundlePaths,
+  toRedirect,
+  TITLE_BAR_OVERLAY
+}
 export type { BundlePaths, LifecycleOpts }

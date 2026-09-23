@@ -1,3 +1,4 @@
+import { type BrowserWindow } from 'electron'
 import { type UpdateInfo } from 'electron-updater'
 import { autoUpdater } from 'electron-updater'
 
@@ -12,6 +13,7 @@ type UpdaterEvent = PushOut<typeof CHANNELS.UPDATER.EVENT>
 
 class Service {
   private readonly ctx: Context
+  private readonly findWindow: () => BrowserWindow | null
   private checking = false
   private downloading = false
   private downloaded = false
@@ -21,8 +23,9 @@ class Service {
   private enabled = false
   private wired = false
 
-  constructor(ctx: Context) {
+  constructor(ctx: Context, findWindow: () => BrowserWindow | null) {
     this.ctx = ctx
+    this.findWindow = findWindow
   }
 
   configure(): void {
@@ -184,7 +187,7 @@ class Service {
   }
 
   private emit(event: UpdaterEvent): void {
-    const win = this.ctx.toReadWindow()
+    const win = this.findWindow()
     if (!win || win.isDestroyed()) return
     win.webContents.send(CHANNELS.UPDATER.EVENT, event)
   }

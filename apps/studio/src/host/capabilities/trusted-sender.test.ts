@@ -17,10 +17,6 @@ function stubCtx(partial: Partial<Context> & Pick<Context, 'isDev'>): Context {
       }
     },
     corex: {} as Context['corex'],
-    toReadWindow() {
-      return null
-    },
-    toUpdateWindow() {},
     trustWebContents() {},
     untrustWebContents() {},
     isTrustedWebContents() {

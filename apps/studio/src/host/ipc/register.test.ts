@@ -25,10 +25,6 @@ function stubCtx(partial: Partial<Context> & Pick<Context, 'isDev'>): Context {
       }
     },
     corex: {} as Context['corex'],
-    toReadWindow() {
-      return null
-    },
-    toUpdateWindow() {},
     trustWebContents() {},
     untrustWebContents() {},
     isTrustedWebContents() {
@@ -116,7 +112,7 @@ describe('registerAll', function () {
     disposable = registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
 
     expect(ipc.size()).toBe(INVOKE_CHANNELS.length)
-    expect(ipc.size()).toBe(56)
+    expect(ipc.size()).toBe(70)
     for (const channel of INVOKE_CHANNELS) {
       expect(ipc.has(channel)).toBe(true)
     }
@@ -231,7 +227,7 @@ describe('registerAll', function () {
   describe('dispose', function () {
     it('removes every owned handler and is idempotent', function () {
       disposable = registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
-      expect(ipc.size()).toBe(56)
+      expect(ipc.size()).toBe(70)
 
       disposable.dispose()
       expect(ipc.size()).toBe(0)

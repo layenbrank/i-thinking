@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { LAZY_WINDOW_KEYS } from '../../shared/windows'
 import type { Context } from '../framework/context'
-import { buildAgentWindowPort } from './agent-window'
+import { buildWindowPorts } from './window-registry'
 
 /**
- * electron 在 vitest（纯 Node）里不可用，且 agent-window 会连带加载 security 的
- * `session` / `shell`，所以整体替换成最小可观测的假实现：只记录「建了几个窗、
- * 点了多少次 focus、加载了什么 URL」——正是本端口要保证的契约。
+ * electron 在 vitest（纯 Node）里不可用，且建窗会连带加载 security 的 `session` / `shell`，
+ * 所以整体替换成最小可观测的假实现：只记录「建了几个窗、点了多少次 focus、加载了什么 URL」
+ * —— 正是端口要保证的契约。规格表的每个键都按同一组断言跑一遍，避免只测了 agent。
  */
 const state = vi.hoisted(function () {
   return {
@@ -106,10 +107,6 @@ function stubCtx(): Context {
       }
     },
     corex: {} as Context['corex'],
-    toReadWindow() {
-      return null
-    },
-    toUpdateWindow() {},
     trustWebContents() {},
     untrustWebContents() {},
     isTrustedWebContents() {
@@ -122,7 +119,7 @@ function stubCtx(): Context {
   }
 }
 
-describe('agent window port', function () {
+describe('lazy window ports', function () {
   beforeEach(function () {
     state.windows.length = 0
     state.focusCount = 0
@@ -136,45 +133,49 @@ describe('agent window port', function () {
     vi.unstubAllGlobals()
   })
 
-  it('opens the agent route in a new window', function () {
-    const port = buildAgentWindowPort(stubCtx())
+  it('opens every declared key at its own route', function () {
+    const ports = buildWindowPorts(stubCtx())
 
-    port.toOpen()
+    for (const key of LAZY_WINDOW_KEYS) ports[key].toOpen()
 
-    expect(state.windows).toHaveLength(1)
-    expect(state.windows[0].loadedUrl).toBe('http://127.0.0.1:9523/#/agent/chat')
+    expect(state.windows.map((win) => win.loadedUrl)).toEqual([
+      'http://127.0.0.1:9523/#/agent/chat',
+      'http://127.0.0.1:9523/#/directive'
+    ])
   })
 
-  it('focuses the existing window instead of opening a second one', function () {
-    const port = buildAgentWindowPort(stubCtx())
+  it.each(LAZY_WINDOW_KEYS)(
+    'focuses the %s window instead of opening a second one',
+    function (key) {
+      const ports = buildWindowPorts(stubCtx())
 
-    port.toOpen()
-    port.toOpen()
+      ports[key].toOpen()
+      ports[key].toOpen()
 
-    expect(state.windows).toHaveLength(1)
-    expect(state.focusCount).toBe(1)
-  })
+      expect(state.windows).toHaveLength(1)
+      expect(state.focusCount).toBe(1)
+    }
+  )
 
-  it('restores a minimized window before focusing it', function () {
-    const port = buildAgentWindowPort(stubCtx())
+  it.each(LAZY_WINDOW_KEYS)('restores the %s window before focusing it', function (key) {
+    const ports = buildWindowPorts(stubCtx())
 
-    port.toOpen()
+    ports[key].toOpen()
     state.windows[0].minimized = true
-    port.toOpen()
+    ports[key].toOpen()
 
-    expect(state.windows).toHaveLength(1)
     expect(state.restoreCount).toBe(1)
     expect(state.focusCount).toBe(1)
+    expect(state.windows).toHaveLength(1)
   })
 
-  it('recreates the window after it was closed', function () {
-    const port = buildAgentWindowPort(stubCtx())
+  it.each(LAZY_WINDOW_KEYS)('rebuilds the %s window after it was destroyed', function (key) {
+    const ports = buildWindowPorts(stubCtx())
 
-    port.toOpen()
+    ports[key].toOpen()
     state.windows[0].close()
-    port.toOpen()
+    ports[key].toOpen()
 
     expect(state.windows).toHaveLength(2)
-    expect(state.windows[1].loadedUrl).toBe('http://127.0.0.1:9523/#/agent/chat')
   })
 })

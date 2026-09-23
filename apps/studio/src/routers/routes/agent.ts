@@ -13,7 +13,7 @@ const Settings = lazy(function () {
  * `/agent` 是 agent 窗口的**入口**（布局路由）：聊天与设置都是它的**子页面**，互斥渲染。
  *
  * URL 只有两个：`/agent/chat`（默认）与 `/agent/settings`；`/agent` 自己重定向到 `/agent/chat`
- * （窗口启动也直接开 `/agent/chat`，见 `host/capabilities/agent-window.ts`）。
+ * （窗口启动也直接开 `/agent/chat`，见 `host/capabilities/window-registry.ts` 的规格表）。
  * 两个子页之间的切换由根布局的转场统一接管（`routers/transition.tsx`）。
  *
  * 目录与路由同形：页面是 `views/agent/`，两个子页面分别是 `views/agent/chat/` 与
