@@ -34,6 +34,7 @@
     "@hookform/resolvers": "catalog:",
     "@i-thinking/chat": "workspace:*",
     "@i-thinking/design": "workspace:*",
+    "@i-thinking/hooks": "workspace:*",
     "@i-thinking/utils": "workspace:*",
     "@i-thinking/wasm": "workspace:*",
     "ai": "catalog:",
@@ -45,6 +46,7 @@
     "go-captcha-react": "catalog:",
     "lucide-react": "catalog:",
     "sonner": "catalog:",
+    "yaml": "^2.9.1",
     "zod": "^4.1.5"
   },
   "devDependencies": {
@@ -68,8 +70,8 @@
     "@electron/rebuild": "catalog:",
     "@electron/windows-sign": "catalog:",
     "@i-thinking/shared": "workspace:*",
-    "@types/electron-squirrel-startup": "catalog:",
     "@types/better-sqlite3": "catalog:",
+    "@types/electron-squirrel-startup": "catalog:",
     "drizzle-kit": "catalog:",
     "electron": "catalog:"
   },

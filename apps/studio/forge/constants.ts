@@ -5,6 +5,9 @@ import pkg from '../package.json' with { type: 'json' }
 
 const FORGE_DIR = path.dirname(fileURLToPath(import.meta.url))
 
+/** pnpm workspace 根目录 */
+const MONOREPO_ROOT = path.resolve(FORGE_DIR, '..', '..', '..')
+
 /** apps/studio 包根目录 */
 const PACKAGE_ROOT = path.resolve(FORGE_DIR, '..')
 
@@ -24,6 +27,7 @@ export {
   APP_NAME,
   APP_VERSION,
   FORGE_DIR,
+  MONOREPO_ROOT,
   PACKAGE_ROOT,
   PRODUCT_NAME
 }
