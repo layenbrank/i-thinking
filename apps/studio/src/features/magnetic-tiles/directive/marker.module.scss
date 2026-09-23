@@ -1,0 +1,40 @@
+.marker {
+  flex-direction: column;
+  gap: 0.45em;
+
+  // 内容字号随尺寸档放大（外壳已由 lv 决定占位网格）
+  &.lv1 {
+    font-size: 0.7rem;
+  }
+
+  &.lv2 {
+    font-size: 0.85rem;
+  }
+
+  &.lv3 {
+    font-size: 1rem;
+  }
+
+  &.lv4 {
+    font-size: 1.2rem;
+  }
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+
+  :global(svg) {
+    width: 1.4em;
+    height: 1.4em;
+  }
+}
+
+.name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
