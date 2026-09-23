@@ -252,13 +252,22 @@ class CorexHost {
 
     try {
       if (this.isReady) {
-        await Promise.race([this.call('shutdown'), sleep(STOP_TIMEOUT_MS)])
+        await Promise.race([this.requestShutdown(), sleep(STOP_TIMEOUT_MS)])
       }
     } catch (error) {
       this.logger.warn('corex shutdown 请求失败', error)
     }
 
     await this.killChild()
+  }
+
+  /**
+   * 叫 daemon 优雅退出。**不能**走 `call()`：`shutdown` 的终帧是 `bye`（契约里「道别」
+   * 就是收到并准备退出），而 `parseOkData` 只认 `ok` / `pong`，会把这一帧报成「不认识的
+   * 响应类型」——每次停止都记一条假失败。
+   */
+  private requestShutdown(): Promise<RpcResponse> {
+    return this.exchange({ type: 'shutdown', id: this.requestId++, auth_token: this.authToken })
   }
 
   private async call(

@@ -46,7 +46,7 @@ const log = {
 let server: net.Server | null = null
 let disconnectOnList = false
 
-/** 假 daemon：认 ping，list_actions 回一条动作 */
+/** 假 daemon：认 ping，list_actions 回一条动作，shutdown 用契约里的终帧 `bye` 道别 */
 function serve(socket: net.Socket): void {
   const reader = createInterface({ input: socket })
   reader.on('line', function (raw) {
@@ -58,7 +58,9 @@ function serve(socket: net.Socket): void {
     const response =
       request.type === 'ping'
         ? { type: 'pong', id: request.id }
-        : { type: 'ok', id: request.id, data: [{ id: 'file.copy' }] }
+        : request.type === 'shutdown'
+          ? { type: 'bye', id: request.id }
+          : { type: 'ok', id: request.id, data: [{ id: 'file.copy' }] }
     socket.write(`${JSON.stringify(response)}\n`)
   })
 }
@@ -110,6 +112,43 @@ describe('CorexHost.start', function () {
 
     await expect(host.listDirectives()).rejects.toThrow()
     expect(host.isRunning()).toBe(false)
+  })
+})
+
+describe('CorexHost.stop', function () {
+  it('takes the bye farewell for a normal shutdown reply', async function () {
+    await listen()
+    const warns: unknown[] = []
+    const spied = {
+      debug: function () {},
+      info: function () {},
+      warn: function (...args: unknown[]) {
+        warns.push(args)
+      },
+      error: function (...args: unknown[]) {
+        warns.push(args)
+      },
+      child: function () {
+        return spied
+      }
+    } as unknown as Logger
+
+    const host = new CorexHost(spied)
+    await host.start()
+    // 只有自己起的 daemon 才关，复用的那份只断开 —— 给个假 child 走完整路径
+    const closed = {
+      killed: false,
+      once: function (_event: string, listener: () => void) {
+        listener()
+        return closed
+      },
+      kill: function () {}
+    }
+    ;(host as unknown as { child: unknown }).child = closed
+
+    await host.stop()
+
+    expect(warns).toEqual([])
   })
 })
 
