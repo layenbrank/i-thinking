@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "corex": {
     "win32-x64": {
-      "version": "12.0.0",
-      "url": "https://github.com/layenbrank/corex/releases/download/v12.0.0/corex-v12.0.0-windows-x64.zip",
-      "sha256": "fcdb3062d615500e20d1d69cf5c11e6b9284de5f6859673c9e37d4f9c0569e85"
+      "version": "12.1.0",
+      "url": "https://github.com/layenbrank/corex/releases/download/v12.1.0/corex-v12.1.0-windows-x64.zip",
+      "sha256": "ec675a935e506457f4f6ed11d7f349250bca1fa39724ec5f0cbbc60ac08510d1"
     }
   },
   "goose": {
@@ -14,11 +14,28 @@
       "sha256": "046a471c253581e5945ec5353305c08981403abbcbf769d344e29a7da094bf24"
     }
   },
+  "opencode": {
+    "win32-x64": {
+      "version": "2.0.15",
+      "url": "https://opencode.ai/files/bin/2.0.15/opencode-windows-x64.zip",
+      "sha256": "9c5fd842e9b1dc1cbd0bac8073cd1c7f685912bf040d313c3dc01fdbd8f371bf"
+    },
+    "darwin-arm64": {
+      "version": "2.0.15",
+      "url": "https://opencode.ai/files/bin/2.0.15/opencode-darwin-arm64.zip",
+      "sha256": "4090acfb5a854d8c1c59250b62da8aad9c17872c793e0033c0a55adc3f4739da"
+    },
+    "linux-x64": {
+      "version": "2.0.15",
+      "url": "https://opencode.ai/files/bin/2.0.15/opencode-linux-x64.tar.gz",
+      "sha256": "115b4659141507c5a0942ac23a821e25fadc8397cb4b2770e34072a91222830e"
+    }
+  },
   "ffmpeg": {
     "win32-x64": {
       "version": "master-latest",
       "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
-      "sha256": "3b7b7cabc0bb66eba45c40194dddb7287d249f3c7030b76973044e7f1cb71838"
+      "sha256": "71bc125cee1337d2e5b74cb2c400ff86a3120b8b6de20502c80a5c97c2fe1725"
     },
     "linux-x64": {
       "version": "master-latest",

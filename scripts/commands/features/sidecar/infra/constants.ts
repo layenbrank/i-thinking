@@ -15,6 +15,7 @@ const COREX_DAEMON = 'corex-daemon'
 const GOOSE_BINARY = 'goose'
 const PANDOC_BINARY = 'pandoc'
 const FFMPEG_BINARY = 'ffmpeg'
+const OPENCODE_BINARY = 'opencode'
 
 export {
   CHECKSUMS_FILE,
@@ -22,6 +23,7 @@ export {
   COREX_DAEMON,
   FFMPEG_BINARY,
   GOOSE_BINARY,
+  OPENCODE_BINARY,
   PANDOC_BINARY,
   SIDECAR_FEATURE_ROOT,
   TOOLS_LOCK_PATH,

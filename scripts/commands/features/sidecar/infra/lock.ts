@@ -14,6 +14,7 @@ interface ToolsLock {
   corex: Record<string, ToolPin>
   ffmpeg?: Record<string, ToolPin>
   goose?: Record<string, ToolPin>
+  opencode?: Record<string, ToolPin>
   pandoc: Record<string, ToolPin>
 }
 
@@ -27,6 +28,7 @@ function parseToolsLock(filePath = TOOLS_LOCK_PATH): ToolsLock {
   }
   parsed.ffmpeg = parsed.ffmpeg ?? {}
   parsed.goose = parsed.goose ?? {}
+  parsed.opencode = parsed.opencode ?? {}
   return parsed
 }
 
@@ -35,12 +37,17 @@ function findLockPins(lock: ToolsLock, toolId: string): Record<string, ToolPin> 
     corex: lock.corex,
     ffmpeg: lock.ffmpeg,
     goose: lock.goose,
+    opencode: lock.opencode,
     pandoc: lock.pandoc
   }
   return pinsById[toolId]
 }
 
-function findToolPin(pins: Record<string, ToolPin>, tool: string, key = findPlatformKey()): ToolPin {
+function findToolPin(
+  pins: Record<string, ToolPin>,
+  tool: string,
+  key = findPlatformKey()
+): ToolPin {
   const pin = pins[key]
   if (!pin) {
     throw new Error(`[tools-lock] 无 ${tool} 钉死版本: ${key}`)
