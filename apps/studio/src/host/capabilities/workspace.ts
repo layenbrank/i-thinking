@@ -2,13 +2,10 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, realpathSync, statSync } from 'node:fs'
 import path from 'node:path'
 
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull } from 'drizzle-orm'
 
 import { workspace, workspaceFolder } from '../../../drizzle/schema'
-import {
-  WORKSPACE_COLOR,
-  WORKSPACE_ICON
-} from '../../shared/workspace-icons'
+import { WORKSPACE_COLOR, WORKSPACE_ICON } from '../../shared/workspace-icons'
 import type { CHANNELS } from '../../shared/ipc/channels'
 import { IpcError } from '../../shared/ipc/error'
 import { type In, type Out } from '../../shared/ipc/specs'
@@ -123,7 +120,7 @@ class WorkspaceService {
   async toUpdate(input: WorkspaceUpdateP): Promise<WorkspaceReadR> {
     const db = findClient()
     const now = new Date()
-    const current = await this.requireWorkspaceRow(input.id)
+    const current = await this.requireWorkspaceRow(input.id, true)
 
     await db
       .update(workspace)
@@ -133,6 +130,9 @@ class WorkspaceService {
         ...(input.color !== undefined ? { color: input.color } : {}),
         ...(input.pinned !== undefined ? { pinned: input.pinned } : {}),
         ...(input.sort !== undefined ? { sort: input.sort } : {}),
+        ...(input.archived !== undefined
+          ? { archivedAt: input.archived ? (current.archivedAt ?? now) : null }
+          : {}),
         updatedAt: now
       })
       .where(eq(workspace.id, input.id))
@@ -164,14 +164,13 @@ class WorkspaceService {
       }
     }
 
-    return this.requireWorkspace(input.id)
+    // 归档工作区也要能读回（取消归档是恢复的唯一入口），所以按更新后的状态决定可见性
+    const archived = input.archived ?? current.archivedAt !== null
+    return this.requireWorkspace(input.id, archived)
   }
 
   async toRemove(input: WorkspaceIDP): Promise<void> {
-    const rows = await findClient()
-      .delete(workspace)
-      .where(eq(workspace.id, input.id))
-      .returning()
+    const rows = await findClient().delete(workspace).where(eq(workspace.id, input.id)).returning()
     if (rows.length === 0) {
       throw new IpcError('WORKSPACE_NOT_FOUND', `工作区不存在: ${input.id}`)
     }
@@ -328,9 +327,7 @@ class WorkspaceService {
     const rows = await findClient()
       .select()
       .from(workspaceFolder)
-      .where(
-        and(eq(workspaceFolder.workspaceID, workspaceID), eq(workspaceFolder.isPrimary, true))
-      )
+      .where(and(eq(workspaceFolder.workspaceID, workspaceID), eq(workspaceFolder.isPrimary, true)))
       .limit(1)
 
     if (rows.length === 0) {
@@ -370,12 +367,7 @@ class WorkspaceService {
   }
 }
 
-function toFolder(row: {
-  id: string
-  path: string
-  isPrimary: boolean
-  sort: number
-}): FolderR {
+function toFolder(row: { id: string; path: string; isPrimary: boolean; sort: number }): FolderR {
   return {
     id: row.id,
     path: row.path,
@@ -416,6 +408,109 @@ function toWorkspaceRead(
   }
 }
 
+/**
+ * 「当前工作区」在运行时的样子：agent 引擎（要一个真能跑的工作目录）与聊天落库
+ * （要一个存在的 workspaceID 外键）必须拿到同一个答案。
+ */
+interface WorkspaceTarget {
+  id: string
+  title: string
+  /** 主根目录：agent 的工作目录，也是模型默认的沙箱边界 */
+  primaryPath: string
+  /** 全部根目录（primary 在前），只有磁盘上还存在的 */
+  folders: string[]
+}
+
+/** 未归档工作区 + 各自的根目录，按左栏展示顺序返回 */
+async function findAllWorkspaceTargets(): Promise<WorkspaceTarget[]> {
+  const db = findClient()
+  const rows = await db
+    .select({ id: workspace.id, title: workspace.title })
+    .from(workspace)
+    .where(isNull(workspace.archivedAt))
+    .orderBy(asc(workspace.sort))
+  if (rows.length === 0) return []
+
+  const folders = await db
+    .select()
+    .from(workspaceFolder)
+    .orderBy(desc(workspaceFolder.isPrimary), asc(workspaceFolder.sort))
+
+  const grouped = new Map<string, string[]>()
+  for (const folder of folders) {
+    const paths = grouped.get(folder.workspaceID)
+    if (paths) paths.push(folder.path)
+    else grouped.set(folder.workspaceID, [folder.path])
+  }
+
+  const targets: WorkspaceTarget[] = []
+  for (const row of rows) {
+    const paths = grouped.get(row.id) ?? []
+    const primaryPath = paths[0]
+    // 没有根目录的工作区当不了运行目标：模型没有落点
+    if (!primaryPath) continue
+    targets.push({ id: row.id, title: row.title, primaryPath, folders: paths })
+  }
+  return targets
+}
+
+/**
+ * 工作区指针的**唯一**解析处。
+ *
+ * 渲染进程送来的 id 不能直接信：store 是异步水合的（首启、开新窗前可能还是 null），
+ * 用户删掉工作区后指针还会悬空（`removeWorkspace` 不清指针）。这种值直接落库就是
+ * 「外键悬空 → 会话与消息都写不进去 → 界面里聊过、库里是空的」。所以：请求的 id
+ * 有效就用它，否则回落到第一个未归档工作区，一个都没有才返回 null。
+ */
+async function resolveWorkspaceID(requested?: string | null): Promise<string | null> {
+  const targets = await findAllWorkspaceTargets()
+  const match = targets.find(function (target) {
+    return target.id === requested
+  })
+  return (match ?? targets[0])?.id ?? null
+}
+
+/**
+ * agent 运行目标：目录必须**真的在磁盘上**（模型的一切读写都落在它上面）。
+ *
+ * 解析不到就是 null，由调用方直白报错 —— **不能**悄悄退到别处：历史上这里退到 studio
+ * 私有沙箱，结果是模型看不到工作区，只好从盘符根开始全盘找用户提到的目录，而且工作区里
+ * 的每个路径都成了「工作区外」，连自动审批档也要为它们弹审批。
+ */
+async function resolveWorkspaceTarget(requested?: string | null): Promise<WorkspaceTarget | null> {
+  const targets = await findAllWorkspaceTargets()
+  const usable = targets
+    .map(function (target) {
+      return { ...target, folders: target.folders.filter(existsSync) }
+    })
+    .filter(function (target) {
+      return target.folders.length > 0
+    })
+
+  const match = usable.find(function (target) {
+    return target.id === requested
+  })
+  const chosen = match ?? usable[0]
+  if (!chosen) return null
+  // primary 没了好用下一个根兜底，反正它已经在磁盘上
+  return { ...chosen, primaryPath: chosen.folders[0] }
+}
+
+/**
+ * 全部工作区的根目录（去重）。
+ *
+ * opencode 的会话只有一个工作目录，工作区里的第二个根在它眼里属于「工作区外」；
+ * 这份清单用来把用户自己登记的根显式授权回去。
+ */
+async function findAllWorkspaceFolders(): Promise<string[]> {
+  const targets = await findAllWorkspaceTargets()
+  const paths = new Set<string>()
+  for (const target of targets) {
+    for (const folder of target.folders) paths.add(folder)
+  }
+  return [...paths]
+}
+
 async function assertPathsUnique(paths: string[], excludeWorkspaceID?: string) {
   const db = findClient()
   for (const absolute of paths) {
@@ -430,5 +525,5 @@ async function assertPathsUnique(paths: string[], excludeWorkspaceID?: string) {
   }
 }
 
-export { WorkspaceService }
-export type { DirEntryR, FileContentR, SearchHitR, WorkspaceReadR }
+export { WorkspaceService, findAllWorkspaceFolders, resolveWorkspaceID, resolveWorkspaceTarget }
+export type { DirEntryR, FileContentR, SearchHitR, WorkspaceReadR, WorkspaceTarget }

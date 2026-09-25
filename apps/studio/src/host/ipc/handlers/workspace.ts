@@ -13,8 +13,8 @@ export function buildWorkspaceHandlers(): DomainHandlers<'workspace'> {
   const git = new WorkspaceGitService(workspace)
 
   return {
-    [CHANNELS.WORKSPACE.READ]: function () {
-      return workspace.toRead()
+    [CHANNELS.WORKSPACE.READ]: function (input) {
+      return workspace.toRead(input?.includeArchived ?? false)
     },
     [CHANNELS.WORKSPACE.WRITE]: function (input) {
       return workspace.toWrite(input)
@@ -64,6 +64,9 @@ export function buildWorkspaceHandlers(): DomainHandlers<'workspace'> {
 
     [CHANNELS.WORKSPACE.CHANGES.READ]: function (input) {
       return workspaceChangeJournal.toRead(input)
+    },
+    [CHANNELS.WORKSPACE.CHANGES.PATCH]: function (input) {
+      return workspaceChangeJournal.toReadPatch(input)
     },
     [CHANNELS.WORKSPACE.CHANGES.UNDO]: function (input) {
       return workspaceChangeJournal.toUndo(input)

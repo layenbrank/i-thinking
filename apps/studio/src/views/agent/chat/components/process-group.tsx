@@ -8,7 +8,8 @@ import {
 import type { ThreadGroupPart } from '@i-thinking/design/assistant/thread.aui'
 import type { PropsWithChildren } from 'react'
 
-import { useAgentStore, type DurationFormat } from '@/stores/agent.ts'
+import { formatDurationSeconds } from '@/features/agent/duration.ts'
+import { useAgentStore } from '@/stores/agent.ts'
 
 /**
  * 回复过程折叠条（覆盖 `ThreadComponents.ReasoningGroup`）。
@@ -20,11 +21,6 @@ import { useAgentStore, type DurationFormat } from '@/stores/agent.ts'
  * 耗时取整条助手消息的 `timing.totalStreamTime`；runtime 没填时就不显示秒数 ——
  * 编一个数字出来比不显示更糟。
  */
-
-/** `precise` 给到 0.1s，`integer` 取整到秒 */
-function formatDurationSeconds(ms: number, format: DurationFormat): number {
-  return format === 'precise' ? Math.round(ms / 100) / 10 : Math.round(ms / 1000)
-}
 
 interface ProcessGroupProps {
   group: ThreadGroupPart

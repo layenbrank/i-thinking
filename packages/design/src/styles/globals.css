@@ -39,9 +39,23 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.508 0.118 165.612);
+  --success-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: #4080ff;
+  /*
+   * 终端面板（命令输出 / Code Mode / diff）恒深色 —— 一块「暗色孤岛」，
+   * 与主题无关，所以 light/dark 用同一组值；面板内的状态色也必须自带，
+   * 否则浅色主题下 `--success` 是深绿，压在深底上等于看不见。
+   */
+  --terminal: oklch(0.141 0.005 285.823);
+  --terminal-surface: oklch(0.21 0.006 285.885);
+  --terminal-border: oklch(0.274 0.006 286.033);
+  --terminal-foreground: oklch(0.967 0.001 286.375);
+  --terminal-muted: oklch(0.705 0.015 286.067);
+  --terminal-accent: oklch(0.765 0.177 163.223);
+  --terminal-danger: oklch(0.712 0.194 13.428);
   /*
    * 交互态色阶（企业级做法：状态颜色在 token 层定义一次，组件只引用）。
    * hover 略提亮 / active 下沉，与 antd 的 hover/active 语义一致；
@@ -88,6 +102,8 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.845 0.143 164.978);
+  --success-foreground: oklch(0.145 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: #4080ff;
@@ -131,6 +147,15 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-terminal: var(--terminal);
+  --color-terminal-surface: var(--terminal-surface);
+  --color-terminal-border: var(--terminal-border);
+  --color-terminal-foreground: var(--terminal-foreground);
+  --color-terminal-muted: var(--terminal-muted);
+  --color-terminal-accent: var(--terminal-accent);
+  --color-terminal-danger: var(--terminal-danger);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -160,6 +185,15 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /*
+   * 微字号：终端输出、侧栏徽标这类小字反复出现，
+   * 收进 token 后各 app 不必再写 `text-[11px]` 这种任意值。
+   */
+  --text-3xs: 0.625rem;
+  --text-2xs: 0.6875rem;
+  --text-md: 0.8125rem;
+
   @keyframes collapsible-down {
     from {
       height: 0;

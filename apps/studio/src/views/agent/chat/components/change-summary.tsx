@@ -1,61 +1,33 @@
 import { useAuiState } from '@assistant-ui/react'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from '@i-thinking/design/components/collapsible'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  ChevronDownIcon,
-  FilePenLineIcon,
-  RotateCcwIcon,
-  ScanSearchIcon
-} from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
+import { FilePenLineIcon, RotateCcwIcon, ScanSearchIcon } from 'lucide-react'
 
-import { toIpcMessage } from '@/utils/ipc.errors.ts'
+import { useSessionChanges, useUndoChanges } from '@/features/agent/changes.ts'
+import { useSessionID } from '@/features/chat/session.ts'
+import { useAsidePanel } from '@/views/agent/chat/components/use-aside-panel.ts'
 
 /**
- * 本会话 `fs_write` 变更汇总（对齐 Qoder「已编辑 N 个文件」卡）。
- * 数据来自主进程 change journal，不靠 git status。
+ * 本会话文件变更汇总条（对齐 Qoder「已编辑 N 个文件」卡）。
+ *
+ * 数据来自主进程 change journal，不靠 git status；这里只给「有几个文件、加减多少行」和
+ * 两个动作，完整清单与逐文件撤销在右栏「变更」段 —— 同一份数据两处都渲染列表，
+ * 迟早出现「这里撤销了、那里还显示」的错觉。
  */
 export function ChangeSummary() {
-  const sessionID = useAuiState(function (state) {
-    return state.threads.mainThreadId
-  })
+  const sessionID = useSessionID()
+  if (sessionID === null) return null
+
+  return <ChangeSummaryBar sessionID={sessionID} />
+}
+
+function ChangeSummaryBar(props: { sessionID: string }) {
   const isRunning = useAuiState(function (state) {
     return state.thread.isRunning
   })
-  const [isReviewOpen, updateReviewOpen] = useState(false)
-  const client = useQueryClient()
-
-  const changes = useQuery({
-    queryKey: ['workspace', 'changes', sessionID],
-    queryFn: function () {
-      return itc.workspace.changes.toRead({ sessionID })
-    },
-    enabled: Boolean(sessionID),
-    refetchInterval: isRunning ? 1_200 : false
-  })
-
-  const undo = useMutation({
-    mutationFn: function (changeID?: string) {
-      return itc.workspace.changes.toUndo({
-        sessionID,
-        ...(changeID ? { changeID } : {})
-      })
-    },
-    onSuccess: async function () {
-      await client.invalidateQueries({ queryKey: ['workspace', 'changes', sessionID] })
-      toast.success('已撤销变更')
-    },
-    onError: function (error) {
-      toast.error(toIpcMessage(error, '撤销失败'))
-    }
-  })
+  const changes = useSessionChanges(props.sessionID, isRunning)
+  const undo = useUndoChanges(props.sessionID)
+  const { open } = useAsidePanel()
 
   const entries = changes.data?.entries ?? []
   if (entries.length === 0) return null
@@ -72,12 +44,12 @@ export function ChangeSummary() {
           <p className="text-muted-foreground flex items-center gap-2 text-xs">
             <Badge
               variant="outline"
-              className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+              className="border-success/40 text-success">
               +{added}
             </Badge>
             <Badge
               variant="outline"
-              className="border-rose-500/40 text-rose-600 dark:text-rose-400">
+              className="border-destructive/40 text-destructive">
               −{removed}
             </Badge>
           </p>
@@ -100,57 +72,12 @@ export function ChangeSummary() {
           size="sm"
           className="h-7 text-xs"
           onClick={function () {
-            updateReviewOpen(function (open) {
-              return !open
-            })
+            open('changes')
           }}>
           <ScanSearchIcon />
           审阅
         </Button>
       </div>
-
-      <Collapsible
-        open={isReviewOpen}
-        onOpenChange={updateReviewOpen}>
-        <CollapsibleTrigger className="text-muted-foreground hover:bg-muted/40 flex w-full items-center gap-1 border-t px-3 py-1.5 text-xs">
-          <ChevronDownIcon
-            className={
-              isReviewOpen ? 'size-3.5 rotate-180 transition-transform' : 'size-3.5 transition-transform'
-            }
-          />
-          {isReviewOpen ? '收起文件列表' : `查看 ${entries.length} 个文件`}
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <ul className="border-border/60 max-h-48 overflow-y-auto border-t">
-            {entries.map(function (entry) {
-              return (
-                <li
-                  key={entry.id}
-                  className="hover:bg-muted/30 flex items-center gap-2 px-3 py-1.5 text-xs">
-                  <span
-                    className="min-w-0 flex-1 truncate font-mono"
-                    title={entry.path}>
-                    {entry.path}
-                  </span>
-                  <span className="text-emerald-600 dark:text-emerald-400">+{entry.added}</span>
-                  <span className="text-rose-600 dark:text-rose-400">−{entry.removed}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={`撤销 ${entry.path}`}
-                    disabled={undo.isPending}
-                    onClick={function () {
-                      undo.mutate(entry.id)
-                    }}>
-                    <RotateCcwIcon />
-                  </Button>
-                </li>
-              )
-            })}
-          </ul>
-        </CollapsibleContent>
-      </Collapsible>
     </div>
   )
 }

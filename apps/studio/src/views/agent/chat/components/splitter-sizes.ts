@@ -19,9 +19,10 @@ const SIDEBAR_SIZE = 260
 const SIDEBAR_MIN = 200
 const SIDEBAR_MAX = 420
 
-const PANEL_SIZE = 280
+/** 任务详情内容变多（运行 / 计划 / 变更 / 用量 / 模型…），默认宽与上限一并放宽 */
+const PANEL_SIZE = 320
 const PANEL_MIN = 240
-const PANEL_MAX = 480
+const PANEL_MAX = 560
 
 /** 中栏（对话）的最小宽度；留不下时库会先把可收起的栏收掉 */
 const MAIN_MIN = 360

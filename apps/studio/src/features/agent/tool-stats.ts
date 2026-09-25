@@ -9,8 +9,9 @@
  * 只声明我们真正读的字段。
  *
  * 不用 `ThreadMessage['content'][number]`：按 `type` 收窄后拿到的是
- * `ToolCallMessagePart`（`assistant-stream` 的），它身上**没有** `status`；
- * 而 `state.message.parts` 的元素是带 `status` 的状态型部件。用结构类型两边都能接。
+ * `ToolCallMessagePart`（`@assistant-ui/react` 从 `assistant-stream` 转出的），
+ * 它身上**没有** `status`；而 `state.message.parts` 的元素是带 `status` 的状态型部件。
+ * 用结构类型两边都能接。
  */
 interface ToolPartLike {
   type: string
@@ -25,18 +26,26 @@ interface ToolPartLike {
  *
  * 「等待审批」（`requires-action`）**不算失败** —— 它还没跑，算进去会让正在跑的回合
  * 一上来就显示「有失败」。
+ *
+ * 单独导出是因为右栏的「执行工具」统计也按同一口径数失败：折条与右栏同时挂在屏幕上，
+ * 两处数字对不上比不显示更糟。
  */
+function isFailedToolPart(part: ToolPartLike): boolean {
+  if (part.type !== 'tool-call') return false
+  return part.isError === true || part.status?.type === 'incomplete'
+}
+
 function countToolFailures(parts: readonly ToolPartLike[], indices: readonly number[]): number {
   let failed = 0
 
   for (const index of indices) {
     const part = parts[index]
-    if (!part || part.type !== 'tool-call') continue
-    if (part.isError === true || part.status?.type === 'incomplete') failed += 1
+    if (!part) continue
+    if (isFailedToolPart(part)) failed += 1
   }
 
   return failed
 }
 
-export { countToolFailures }
+export { countToolFailures, isFailedToolPart }
 export type { ToolPartLike }
