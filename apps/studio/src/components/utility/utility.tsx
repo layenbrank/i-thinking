@@ -1,31 +1,43 @@
 import { Button } from '@i-thinking/design/components/button'
 import { Icon } from '@iconify/react/offline'
 import { clsx } from 'clsx'
-import type { ReactNode } from 'react'
+import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from 'react'
 
 import styles from '@/components/utility/utility.module.scss'
 
-interface UtilityButtonProps {
-  icon: string
+/** 余下的 button 属性一律透传给底层按钮：radix 下拉要把自己的 aria/data-state 挂在它身上 */
+interface UtilityButtonProps extends Omit<
+  ComponentPropsWithoutRef<'button'>,
+  'aria-label' | 'title'
+> {
+  /** 离线 Iconify 图标名；不传则渲染 `children`（头像这类非图形内容） */
+  icon?: string
+  /** 无障碍标签与原生 title */
   label: string
-  onClick: () => void
 }
 
-/** 标题栏图标按钮：方形、与标题栏同高，且必须在拖拽区之外（data-region=false） */
-function UtilityButton(props: UtilityButtonProps) {
+/**
+ * 标题栏图标按钮：方形、与标题栏同高，且必须在拖拽区之外（data-region=false）。
+ *
+ * 显式 `forwardRef`：radix 的 `asChild` 触发器要拿到真实 DOM 节点当锚点（见 `tooltip-icon-button`）。
+ */
+const UtilityButton = forwardRef<HTMLButtonElement, UtilityButtonProps>(function (props, ref) {
+  const { icon, label, className, children, ...rest } = props
+
   return (
     <Button
       variant="ghost"
       size="icon"
       data-region="false"
-      className={clsx(styles.button)}
-      onClick={props.onClick}
-      aria-label={props.label}
-      title={props.label}>
-      <Icon icon={props.icon}></Icon>
+      className={clsx(styles.button, className)}
+      aria-label={label}
+      title={label}
+      ref={ref}
+      {...rest}>
+      {icon ? <Icon icon={icon}></Icon> : children}
     </Button>
   )
-}
+})
 
 interface UtilityProps {
   /** 本窗口的动作按钮 —— 每个窗口的操作各不相同，故由调用方传入 */
@@ -53,3 +65,4 @@ function Utility(props: UtilityProps) {
 
 export { UtilityButton }
 export default Utility
+export type { UtilityButtonProps }

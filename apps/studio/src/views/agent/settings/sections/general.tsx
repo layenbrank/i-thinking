@@ -8,29 +8,19 @@ import {
 import { Switch } from '@i-thinking/design/components/switch'
 import { CircleAlertIcon } from 'lucide-react'
 
-import { APPROVAL_POLICIES, type ApprovalPolicy } from '@/features/chat/approval.ts'
-import {
-  CHAT_TRANSPORT_KINDS,
-  CHAT_TRANSPORTS,
-  findChatEndpoint,
-  resolveChatTransport,
-  type ChatTransportKind
-} from '@/features/chat/transport.ts'
+import { APPROVAL_POLICIES, findApprovalPolicy } from '@/features/chat/approval.ts'
+import { findPlatformBlocker, findPlatformRow } from '@/features/chat/platform.ts'
+import { useProviders } from '@/features/chat/provider/query.ts'
+import { collectProviderModels } from '@/features/chat/provider/row.ts'
 import { useAgentStore, type DurationFormat } from '@/stores/agent.ts'
 import { SettingRow, SettingsSection } from '@/views/agent/settings/components/section.tsx'
 
-/** 通路不可用的具体原因：把「为什么点不了」说出来，而不是只把选项灰掉 */
-function findTransportBlocker(kind: ChatTransportKind): string | null {
-  if (CHAT_TRANSPORTS[kind].isReady()) return null
-  if (!findChatEndpoint()) return '未配置服务地址（构建时的 VITE_THINKING）'
-  return '尚未登录'
-}
-
 /**
- * 常规：对话区怎么渲染，以及通路、审批。
+ * 常规：对话区怎么渲染，模型从哪来，以及审批。
  *
- * 每个开关都有真实的消费者，不是摆设。通路和审批原先堆在「模型」页，
- * Qoder 的模型页只放个人模型，所以挪到这里。
+ * 每个开关都有真实的消费者，不是摆设。原先这里有个「对话通路」选择器（本地 / 在线）——
+ * 那是个伪选项：通路由**选中的模型**决定，两边的发送链路、工具、审批本来就是同一套，
+ * 所以现在只报告状态，切换去「模型」页选模型。
  */
 export function GeneralSection() {
   const chat = useAgentStore(function (state) {
@@ -40,8 +30,10 @@ export function GeneralSection() {
     return state.update
   })
 
-  const kind = resolveChatTransport(chat.transport)
-  const blocker = findTransportBlocker(kind)
+  const providers = useProviders().data ?? []
+  const platform = findPlatformRow(providers)
+  const blocker = findPlatformBlocker()
+  const personalCount = providers.length - (platform ? 1 : 0)
   const policy = APPROVAL_POLICIES.find(function (item) {
     return item.value === chat.approval
   })
@@ -117,44 +109,28 @@ export function GeneralSection() {
       </SettingsSection>
 
       <SettingsSection
-        title="对话通路"
-        hint="本地 provider 直连本机模型，密钥不出主进程；在线服务经 Thinking 转发，用当前登录令牌。">
+        title="模型来源"
+        hint="组织模型由管理员在服务端配置，个人模型用你自己的 API Key 添加。两类模型走同一条发送链路，能力完全一致。">
         <SettingRow
-          label="通路"
-          hint={CHAT_TRANSPORTS[kind].hint}
+          label="组织模型"
+          hint={blocker ?? '登录后自动同步服务端目录，在「模型」页可见。'}
           control={
-            <Select
-              value={kind}
-              onValueChange={function (value) {
-                void update('chat', { transport: value as ChatTransportKind })
-              }}>
-              <SelectTrigger
-                className="w-40"
-                aria-label="对话通路">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CHAT_TRANSPORT_KINDS.map(function (item) {
-                  const meta = CHAT_TRANSPORTS[item]
-
-                  return (
-                    <SelectItem
-                      key={item}
-                      value={item}
-                      disabled={!meta.isReady()}>
-                      {meta.label}
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
+            <span className="text-sm">
+              {platform ? `${collectProviderModels(platform).length} 个模型` : '未同步'}
+            </span>
           }
+        />
+
+        <SettingRow
+          label="个人模型"
+          hint="本机 Ollama / LM Studio，或任意 OpenAI 兼容服务。密钥只写入主进程密钥库。"
+          control={<span className="text-sm">{personalCount} 个</span>}
         />
 
         {blocker ? (
           <p className="text-muted-foreground flex items-start gap-1.5 pb-2.5 text-xs">
             <CircleAlertIcon className="mt-0.5 size-3.5 shrink-0" />
-            {CHAT_TRANSPORTS.online.label}当前不可用：{blocker}
+            组织模型当前不可用：{blocker}
           </p>
         ) : null}
       </SettingsSection>
@@ -169,7 +145,8 @@ export function GeneralSection() {
             <Select
               value={chat.approval}
               onValueChange={function (value) {
-                void update('chat', { approval: value as ApprovalPolicy })
+                const next = findApprovalPolicy(value)
+                if (next) void update('chat', { approval: next.value })
               }}>
               <SelectTrigger
                 className="w-40"

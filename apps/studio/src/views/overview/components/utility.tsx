@@ -1,10 +1,52 @@
-import { Utility, UtilityButton } from '@/components/utility'
-import { DevtoolsAction, OverlayAction, ReloadAction } from '@/features/window/actions'
+import { DropdownMenu, DropdownMenuTrigger } from '@i-thinking/design/components/dropdown-menu'
 import { toast } from 'sonner'
 
+import { Utility, UtilityButton } from '@/components/utility'
+import { AccountMenuContent } from '@/features/account/account-menu.tsx'
+import { useAccountSession } from '@/features/account/session.ts'
+import { DevtoolsAction, OverlayAction, ReloadAction } from '@/features/window/actions'
+
 interface OverviewUtilityProps {
-  /** 暂时的登录入口，弹窗状态仍由概览页持有 */
+  /** 登录弹窗归概览页持有（标题栏只是入口） */
   onOpenSignIn: () => void
+}
+
+/**
+ * 主窗口标题栏的账号位：未登录是直达登录弹窗的入口，已登录换成账号下拉。
+ *
+ * 不按登录态切换按钮就没有意义 —— 登录之后还挂着「登录」等于告诉用户没登录。
+ * 菜单内容复用 Agent 窗口那一份（`features/account/account-menu.tsx`），
+ * 两个窗口对「我是谁」「怎么退出」不会各说各话。
+ */
+function AccountEntry(props: OverviewUtilityProps) {
+  const session = useAccountSession()
+  const identity = session.identity
+
+  if (!session.token) {
+    return (
+      <UtilityButton
+        icon="mdi:login"
+        label="登录"
+        onClick={props.onOpenSignIn}
+      />
+    )
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <UtilityButton
+          icon="mdi:account-circle"
+          label={identity ? identity.name : '账号'}
+        />
+      </DropdownMenuTrigger>
+      <AccountMenuContent
+        side="bottom"
+        align="start"
+        onSignIn={props.onOpenSignIn}
+      />
+    </DropdownMenu>
+  )
 }
 
 /** 主窗口标题栏：Agent 入口 + 主窗口用得到的宿主动作 */
@@ -20,11 +62,7 @@ export default function OverviewUtility(props: OverviewUtilityProps) {
 
   return (
     <Utility>
-      <UtilityButton
-        icon="mdi:login"
-        label="登录"
-        onClick={props.onOpenSignIn}
-      />
+      <AccountEntry onOpenSignIn={props.onOpenSignIn} />
       <UtilityButton
         icon="mdi:chat-processing-outline"
         label="打开 Agent 窗口"

@@ -19,7 +19,8 @@ export function ComposerEnd() {
       <ApprovalSwitch />
       <ModelPicker
         onOpenSettings={function () {
-          void navigate('/agent/settings')
+          // 模型菜单里的「添加模型 / 模型设置」都落到模型分组，而不是设置页首页
+          void navigate('/agent/settings?section=model')
         }}
       />
     </TooltipProvider>

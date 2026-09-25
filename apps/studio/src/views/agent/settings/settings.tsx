@@ -1,23 +1,41 @@
 import { Button } from '@i-thinking/design/components/button'
 import { Input } from '@i-thinking/design/components/input'
 import {
+  BoxesIcon,
+  ChartColumnIcon,
   ChevronLeftIcon,
+  GaugeIcon,
   KeyboardIcon,
+  ScrollTextIcon,
   SearchIcon,
+  ServerIcon,
   Settings2Icon,
-  SparklesIcon
+  SparklesIcon,
+  UserRoundIcon
 } from 'lucide-react'
 import { useMemo, useState, type ComponentType } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
+import { useIsAdmin } from '@/features/account/session.ts'
 import AgentUtility from '@/views/agent/components/utility.tsx'
+import { AccountSection } from '@/views/agent/settings/sections/account.tsx'
 import { GeneralSection } from '@/views/agent/settings/sections/general.tsx'
 import { ModelSection } from '@/views/agent/settings/sections/model.tsx'
+import { AuditSection } from '@/views/agent/settings/sections/platform-audit.tsx'
+import { PlatformModelSection } from '@/views/agent/settings/sections/platform-models.tsx'
+import { PlatformProviderSection } from '@/views/agent/settings/sections/platform-providers.tsx'
+import { UsageSection } from '@/views/agent/settings/sections/platform-usage.tsx'
+import { QuotaSection } from '@/views/agent/settings/sections/quota.tsx'
 import { ShortcutsSection } from '@/views/agent/settings/sections/shortcuts.tsx'
 
 /**
  * 设置页（`/agent/settings`）：左导航 + 右内容，顶部「返回应用」。
  * 只放真有消费者的分组，不做截图里的假入口。
+ *
+ * 分组可以直达：`/agent/settings?section=quota`。入口散在各处（左栏额度按钮、模型菜单里
+ * 「去添加模型接入」），把人丢到设置页首页再让他自己找一遍是说不过去的。分组 id 就是
+ * `GROUPS` 里的 id —— 入口只报 id，不拼页面内部结构。点导航也会把这个参数写回地址，
+ * 刷新 / 从别处再跳进来时落在同一分组。
  */
 
 interface SettingsItem {
@@ -29,6 +47,8 @@ interface SettingsItem {
 
 interface SettingsGroup {
   label: string
+  /** 服务端管理面只认 ADMIN，非管理员连入口都不该看见 */
+  adminOnly?: boolean
   items: SettingsItem[]
 }
 
@@ -36,44 +56,95 @@ const GROUPS: SettingsGroup[] = [
   {
     label: '个人',
     items: [
+      { id: 'account', label: '账号', icon: UserRoundIcon, section: AccountSection },
       { id: 'general', label: '常规', icon: Settings2Icon, section: GeneralSection },
       { id: 'shortcuts', label: '快捷键', icon: KeyboardIcon, section: ShortcutsSection },
-      { id: 'model', label: '模型', icon: SparklesIcon, section: ModelSection }
+      { id: 'model', label: '模型', icon: SparklesIcon, section: ModelSection },
+      { id: 'quota', label: '额度', icon: GaugeIcon, section: QuotaSection }
+    ]
+  },
+  {
+    label: '平台',
+    adminOnly: true,
+    items: [
+      {
+        id: 'platform-providers',
+        label: '供应商',
+        icon: ServerIcon,
+        section: PlatformProviderSection
+      },
+      {
+        id: 'platform-models',
+        label: '平台模型',
+        icon: BoxesIcon,
+        section: PlatformModelSection
+      },
+      { id: 'platform-usage', label: '用量', icon: ChartColumnIcon, section: UsageSection },
+      { id: 'platform-audit', label: '审计', icon: ScrollTextIcon, section: AuditSection }
     ]
   }
 ]
 
 export default function Settings() {
   const navigate = useNavigate()
+  const [searchParams, updateSearchParams] = useSearchParams()
   const [query, updateQuery] = useState('')
-  const [activeID, updateActiveID] = useState('general')
+  /** 用户在本页点出来的分组；还没点过就听地址里的 `?section=` */
+  const [pickedID, updatePickedID] = useState<string | null>(null)
+
+  const admin = useIsAdmin()
+  const groups = useMemo(
+    function () {
+      return GROUPS.filter(function (group) {
+        return !group.adminOnly || admin
+      })
+    },
+    [admin]
+  )
 
   const keyword = query.trim().toLowerCase()
   const visibleGroups = useMemo(
     function () {
-      if (!keyword) return GROUPS
+      if (!keyword) return groups
 
-      return GROUPS.map(function (group) {
-        return {
-          label: group.label,
-          items: group.items.filter(function (item) {
-            return item.label.toLowerCase().includes(keyword)
-          })
-        }
-      }).filter(function (group) {
-        return group.items.length > 0
-      })
+      return groups
+        .map(function (group) {
+          return {
+            label: group.label,
+            items: group.items.filter(function (item) {
+              return item.label.toLowerCase().includes(keyword)
+            })
+          }
+        })
+        .filter(function (group) {
+          return group.items.length > 0
+        })
     },
-    [keyword]
+    [keyword, groups]
   )
 
+  const items = useMemo(
+    function () {
+      return groups.flatMap(function (group) {
+        return group.items
+      })
+    },
+    [groups]
+  )
+
+  // 地址里的分组对非管理员可能是藏起来的（平台分组），对不上就落回第一个
+  const wantedID = pickedID ?? searchParams.get('section')
   const active =
-    GROUPS.flatMap(function (group) {
-      return group.items
-    }).find(function (item) {
-      return item.id === activeID
-    }) ?? GROUPS[0].items[0]
+    items.find(function (item) {
+      return item.id === wantedID
+    }) ?? items[0]
   const ActiveSection = active.section
+
+  /** 点导航时把分组写回地址：刷新、从别处再跳进来都落在同一处 */
+  function openSection(id: string) {
+    updatePickedID(id)
+    updateSearchParams({ section: id }, { replace: true })
+  }
 
   return (
     <div className="bg-background text-foreground flex h-full w-full flex-col">
@@ -135,7 +206,7 @@ export default function Settings() {
                             : 'text-muted-foreground hover:text-foreground w-full justify-start'
                         }
                         onClick={function () {
-                          updateActiveID(item.id)
+                          openSection(item.id)
                         }}>
                         <Icon className="size-4" />
                         {item.label}

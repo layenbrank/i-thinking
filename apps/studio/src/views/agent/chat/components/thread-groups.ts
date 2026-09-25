@@ -47,9 +47,7 @@ function groupThreadsByWorkspace(
   for (const entry of entries) {
     // 工作区已被移除的会话按未关联算：列表里已经没有它的位置了
     const id =
-      entry.workspaceID && labelByID.has(entry.workspaceID)
-        ? entry.workspaceID
-        : UNBOUND_GROUP_ID
+      entry.workspaceID && labelByID.has(entry.workspaceID) ? entry.workspaceID : UNBOUND_GROUP_ID
     const existing = groups.get(id)
     if (existing) {
       existing.indices.push(entry.index)
@@ -77,17 +75,16 @@ function groupThreadsByWorkspace(
   return ordered
 }
 
-/** @deprecated 用 `groupThreadsByWorkspace` */
-function groupThreadsByRoot(
-  entries: readonly ThreadEntry[],
-  workspaces: readonly { id: string; title: string }[],
-  activeWorkspaceID: string | null
-): ThreadGroup[] {
-  return groupThreadsByWorkspace(entries, workspaces, activeWorkspaceID)
-}
-
-/** 搜索只过滤标题；命中的条目再分组 —— 分组是视图，不该影响「搜得到」 */
-function useWorkspaceThreadGroups(searchQuery: string) {
+/**
+ * 搜索只过滤标题；命中的条目再分组 —— 分组是视图，不该影响「搜得到」。
+ *
+ * `archivedWorkspaces` 也要建标签：归档工作区的会话仍该落在它自己的组里（侧栏画了归档区），
+ * 否则会掉进「未关联工作区」——那个位置是留给**真的没有归属**的会话的。
+ */
+function useWorkspaceThreadGroups(
+  searchQuery: string,
+  archivedWorkspaces: readonly { id: string; title: string }[] = []
+) {
   const threadIds = useAuiState(function (state) {
     return state.threads.threadIds
   })
@@ -121,15 +118,18 @@ function useWorkspaceThreadGroups(searchQuery: string) {
         })
       }
 
+      // 归档工作区排在活跃之后；组顺序由 labels 的先后决定
+      const labels = [...(workspaceRows ?? []), ...archivedWorkspaces]
+
       return {
         threadIds,
         indices: entries.map(function (entry) {
           return entry.index
         }),
-        groups: groupThreadsByWorkspace(entries, workspaceRows ?? [], activeWorkspaceID)
+        groups: groupThreadsByWorkspace(entries, labels, activeWorkspaceID)
       }
     },
-    [threadIds, threadItems, query, workspaceRows, activeWorkspaceID]
+    [threadIds, threadItems, query, workspaceRows, archivedWorkspaces, activeWorkspaceID]
   )
 }
 
@@ -137,7 +137,6 @@ export {
   UNBOUND_GROUP_ID,
   UNBOUND_GROUP_LABEL,
   UNTITLED_LABEL,
-  groupThreadsByRoot,
   groupThreadsByWorkspace,
   useWorkspaceThreadGroups
 }

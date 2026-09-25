@@ -17,12 +17,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: dbOnly
-      ? ['src/**/*.integration.test.ts']
-      : ['src/**/*.test.ts'],
-    exclude: [
-      ...configDefaults.exclude,
-      ...(dbOnly ? [] : ['src/**/*.integration.test.ts'])
-    ]
+    // 渲染测试要写 JSX，故 `.tsx` 也在收集范围内（环境由文件首行 `@vitest-environment` 决定）
+    include: dbOnly ? ['src/**/*.integration.test.ts'] : ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    exclude: [...configDefaults.exclude, ...(dbOnly ? [] : ['src/**/*.integration.test.ts'])]
   }
 })
