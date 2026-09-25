@@ -87,14 +87,17 @@ await itc.chat.message.toAppend({
 // 会话重命名 / 置顶
 await itc.chat.session.toUpdate({ id: session.id, title: '改名', pinned: true })
 
-// provider 只存元数据，apiKey 不出主进程
+// provider 只存元数据，apiKey 走 itc.assistant.key.toWrite，不出主进程
 const provider = await itc.chat.provider.toWrite({
   kind: 'ollama',
-  name: '本地 Ollama',
+  name: '我的 Ollama',
   baseUrl: 'http://127.0.0.1:11434',
-  models: ['qwen3:8b'],
+  // 模型声明可带能力与上下文窗口；写成纯字符串（`['qwen3:8b']`）等价于只给 id
+  models: [{ id: 'qwen3:8b', capabilities: { tools: true }, limit: { context: 131_072 } }],
   model: 'qwen3:8b'
 })
+
+await itc.assistant.key.toWrite({ providerID: provider.id, apiKey: 'sk-...' })
 
 await itc.chat.provider.toRemove({ id: provider.id })
 // 删 provider 不会删会话，只把会话的 providerID 置空

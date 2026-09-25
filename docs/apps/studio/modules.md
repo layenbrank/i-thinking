@@ -17,21 +17,22 @@
 
 ## 插件一览
 
-| 插件       | 路径                                                                        | 职责                                                    |
-| ---------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
-| security   | `src/host/capabilities/security.ts`                                         | session 权限、CSP、导航守卫                             |
-| store      | `src/host/capabilities/store.ts`                                            | electron-store + IPC                                    |
-| dialog     | `src/host/capabilities/dialog.ts`                                           | 打开/保存对话框                                         |
-| database   | `src/host/capabilities/database.ts`                                         | better-sqlite3 + Drizzle 连接、迁移采纳、User 仓储 IPC  |
-| chat       | `src/host/capabilities/chat.ts`                                             | chat 域仓储 IPC（provider / session / message）         |
-| workspace  | `workspace.ts` + `workspace-path.ts` + `workspace-git.ts` + `workspace-changes.ts` | 工作区（多文件夹）+ 根内目录/检索/读文件 + git 分支 + 变更日记 |
-| assistant  | `src/host/capabilities/assistant.ts` + `assistant-{protocol,key}.ts` | 离线通路：MessagePort 流式 + safeStorage 密钥 |
-| window     | `window.ts` + `window-factory.ts` + `overlay-window.ts` + `agent-window.ts` | 建窗（主窗口 / 浮层 / Agent 子窗口）、preload、信任登记 |
-| sidecar    | `src/host/capabilities/sidecar.ts`                                          | corex-daemon 宿主 + findStatus                          |
-| doc        | `src/host/capabilities/doc.ts`                                              | pandoc 转换                                             |
-| screenshot | `src/host/capabilities/screenshot.ts`                                       | `capture.screenshot`                                    |
-| updater    | `src/host/capabilities/updater.ts`                                          | electron-updater                                        |
-| devtools   | `src/host/capabilities/devtools.ts`                                         | 开发态 DevTools                                         |
+| 插件       | 路径                                                                                                                                       | 职责                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| security   | `src/host/capabilities/security.ts`                                                                                                        | session 权限、CSP、导航守卫                                                                                            |
+| store      | `src/host/capabilities/store.ts`                                                                                                           | electron-store + IPC                                                                                                   |
+| dialog     | `src/host/capabilities/dialog.ts`                                                                                                          | 打开/保存对话框                                                                                                        |
+| database   | `src/host/capabilities/database.ts`                                                                                                        | better-sqlite3 + Drizzle 连接、迁移采纳、User 仓储 IPC                                                                 |
+| chat       | `src/host/capabilities/chat.ts`                                                                                                            | chat 域仓储 IPC（provider / session / message / 用量账本）                                                             |
+| workspace  | `workspace.ts` + `workspace-path.ts` + `workspace-git.ts` + `workspace-changes.ts`                                                         | 工作区（多文件夹）+ 根内目录/检索/读文件 + git 分支 + 变更卡 IPC 转发（变更的实际记录方是 opencode 的 `session.diff`） |
+| assistant  | `src/host/capabilities/assistant.ts` + `assistant-{protocol,key,model,approval}.ts`                                                        | agent 运行时的宿主侧：MessagePort 帧编解码、safeStorage / 登录令牌凭据分派、工具名与审批档位                           |
+| opencode   | `src/host/capabilities/opencode/`（`paths` / `server` / `client` / `config` / `permission` / `events` / `session` / `engine` / `changes`） | **agent 真正跑在这里**：拉起 `opencode serve` 子进程、把 provider 配置注入进去、转发审批、汇总 `session.diff` 出变更卡 |
+| window     | `window.ts` + `window-factory.ts` + `overlay-window.ts` + `agent-window.ts`                                                                | 建窗（主窗口 / 浮层 / Agent 子窗口）、preload、信任登记                                                                |
+| sidecar    | `src/host/capabilities/sidecar.ts`                                                                                                         | corex-daemon 宿主 + findStatus                                                                                         |
+| doc        | `src/host/capabilities/doc.ts`                                                                                                             | pandoc 转换                                                                                                            |
+| screenshot | `src/host/capabilities/screenshot.ts`                                                                                                      | `capture.screenshot`                                                                                                   |
+| updater    | `src/host/capabilities/updater.ts`                                                                                                         | electron-updater                                                                                                       |
+| devtools   | `src/host/capabilities/devtools.ts`                                                                                                        | 开发态 DevTools                                                                                                        |
 
 上述路径是**域内实现**（Repository / Service）。IPC 契约与装配不在其中：
 

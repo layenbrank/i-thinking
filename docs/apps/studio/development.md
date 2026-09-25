@@ -27,6 +27,7 @@ pnpm install
 | `pnpm --filter @i-thinking/studio test:db`   | 数据库集成测试（在 Electron 运行时里跑，见 §8）  |
 | `pnpm --filter @i-thinking/studio lint`      | ESLint                                           |
 | `pnpm command sidecar bootstrap studio`      | tools.lock → downloads → studio staging          |
+| `pnpm command sidecar opencode`              | 仅下载 opencode（按 tools.lock 的 pin 校验版本） |
 | `pnpm command sidecar corex`                 | 仅下载 corex 到 `.cache/sidecar`                 |
 | `pnpm command sidecar ffmpeg`                | 仅下载 FFmpeg（包较大，受网络影响）              |
 | `pnpm command sidecar pandoc`                | 仅下载 pandoc                                    |
@@ -40,11 +41,17 @@ pnpm install
 
 由 Vite / 类型声明使用（见 `src/types/env.d.ts`）：
 
-| 变量                                            | 用途                                            |
-| ----------------------------------------------- | ----------------------------------------------- |
-| `VITE_THINKING`                                 | Renderer HTTP `prefix`（远程 Thinking API）     |
-| `VITE_APP_TITLE`                                | `index.html` 标题占位                           |
-| `VITE_HOSTNAME` / `VITE_PORT` / `VITE_PROTOCOL` | 遗留本地服务相关（当前已不启 Nest；可按需清理） |
+| 变量                                            | 用途                                                                          |
+| ----------------------------------------------- | ----------------------------------------------------------------------------- |
+| `VITE_THINKING`                                 | Renderer HTTP `prefix`（远程 Thinking API；平台模型走其下的 `/gateway` 网关） |
+| `VITE_APP_TITLE`                                | `index.html` 标题占位                                                         |
+| `VITE_HOSTNAME` / `VITE_PORT` / `VITE_PROTOCOL` | 遗留本地服务相关（当前已不启 Nest；可按需清理）                               |
+
+> **业务后端不在这个仓库**：`apps/service`（NestJS）已下线 —— 登录 / 注册 / 租户 / 配额 / 订阅与
+> AI 网关（`/gateway/*`）都在独立的 Rust 仓库里维护，本地这样起：
+> `cargo watch -x "run --bin service --features openapi"`，再把 `VITE_THINKING` 指到它的 `/api/v1`
+> （如 `http://127.0.0.1:3000/api/v1`）。studio 只依赖这套 HTTP 契约，不 vendor 后端代码；
+> agent 的运行则在 studio 自己的内嵌 opencode 里，与服务端无关。
 
 Main 运行时由 bootstrap 设置：
 
@@ -84,7 +91,7 @@ src/main.ts | src/preload.ts | src/renderer.tsx | src/host/capabilities/ | sidec
 ## 7. 测试
 
 - 配置：`vitest.config.ts`
-- 约定：`src/**/*.test.ts`
+- 约定：`src/**/*.test.ts`；渲染测试写 `*.test.tsx`，并在文件首行加 `// @vitest-environment jsdom` 切到 DOM 环境（默认环境是 `node`，没有 `document`）
 - 现有覆盖示例：
   - `host/capabilities/store.test.ts`
   - `host/capabilities/user.test.ts`
@@ -94,6 +101,7 @@ src/main.ts | src/preload.ts | src/renderer.tsx | src/host/capabilities/ | sidec
   - `host/capabilities/sidecar.paths.test.ts`
   - `host/capabilities/trusted-sender.test.ts`
   - `preload.expose.test.ts`（断言不暴露 `ipcRenderer`）
+  - `components/contextmenu/contextmenu.test.tsx`、`views/agent/chat/components/{diff-view,tool-terminal}.test.tsx`（组件渲染，走 `@testing-library/react`）
 
 ```bash
 pnpm --filter @i-thinking/studio test:unit
@@ -104,9 +112,12 @@ pnpm --filter @i-thinking/studio test:unit
 ```bash
 # 在 apps/studio
 pnpm exec drizzle-kit generate --name=<name>   # 改 drizzle/schema 后生成迁移
-pnpm rebuild   # electron-rebuild（better-sqlite3 是原生模块）
-pnpm test:db   # 真实引擎的数据库集成测试（建表 / 种子 / 迁移幂等）
+pnpm run rebuild   # = electron-rebuild -f：按 Electron ABI 重建 better-sqlite3 / msgpackr-extract
+pnpm test:db       # 真实引擎的数据库集成测试（建表 / 种子 / 迁移幂等）
 ```
+
+- 必须显式写 `pnpm run rebuild`（等价 `pnpm --filter @i-thinking/studio run rebuild`）：裸 `pnpm rebuild` 是 pnpm 的**内置命令**，不会执行这个 script，而是对全仓包重跑 install 脚本（为**宿主 Node** 构建原生模块，会把 Electron ABI 的 `better-sqlite3` 覆盖成宿主 ABI → `NODE_MODULE_VERSION` 不匹配）。为此 [pnpm-workspace.yaml](../../../pnpm-workspace.yaml) 里 `allowBuilds.better-sqlite3: false` 关掉了 better-sqlite3 自己的 install 脚本，构建统一交给 `@electron/rebuild`。
+- 该 script 带 `-f`：`@electron/rebuild` 只读 `build/Release/.forge-meta`（内容 `<arch>--<ABI>`）判断「是否已构建」，**不校验二进制是否存在或正确**；marker 与当前 Electron 一致时会打印 `✔ Rebuild Complete` 却什么都不做，所以修 ABI 问题必须强制重建。
 
 - 集成测试 `src/host/capabilities/*.integration.test.ts` 需要 **Electron ABI** 的 `better-sqlite3`，普通 Node 加载会 ABI 不匹配，所以它们被排除在 `test:unit` 之外；`test:db` 用 `ELECTRON_RUN_AS_NODE=1` 把 Electron 当 Node 跑 vitest（`scripts/run-db-tests.mjs`）。
 

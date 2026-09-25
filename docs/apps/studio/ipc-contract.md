@@ -126,6 +126,12 @@ type IpcEnvelope<T> =
 
 推论：payload 必须**结构化克隆安全**（无类实例、无函数）。
 
+**客户端生成的 id 只约束形状，不约束格式**：消息 id 由渲染侧 runtime 产出
+（assistant-ui 的 `generateId()` 是 7 位 nanoid），若在契约里写成 `z.uuid()`，每次
+`chat:message.toAppend` 都会先被 `IPC_INVALID_PAYLOAD` 挡回 —— 表现是会话能建、标题能改，
+**历史却一条都存不下**（写入失败只 reject 在 runtime 内部，界面不报错）。会话 id 才是主进程
+`randomUUID()` 生成的 uuid，两者不共用 schema。
+
 ## 6. 装配与生命周期
 
 ```ts
@@ -151,7 +157,12 @@ for (const plugin of plugins) await plugin.register(ctx)
 （它会泄漏 `senderFrame`）。
 
 `assistant:port` 的竞态队列（端口可能先于回调到达）在 `src/preload.port.ts`，
-与主进程侧的端口协议见 [api-reference](./api-reference.md#assistant离线通路)。
+与主进程侧的端口协议见 [api-reference](./api-reference.md#assistantagent-运行时)。
+
+端口交付到渲染侧后**必须 `start()`**：`MessagePort` 在接收端默认处于「未启动」状态，
+只挂 `addEventListener('message')` 一条消息都收不到（Electron 44 实测）。开闸放在交付边界
+（`features/chat/port/assistant-port.ts` 收到即 `start()`），订阅者拿到的端口一定可用；
+漏掉这一步的表现是「主进程把模型跑完了，界面与终端却毫无动静」。
 
 ## 8. 反模式
 
