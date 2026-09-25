@@ -55,6 +55,8 @@ const WorkspaceUpdateSchema = z.object({
   color: z.string().min(1).max(32).optional(),
   pinned: z.boolean().optional(),
   sort: z.number().int().optional(),
+  /** 归档 / 取消归档（`workspace:archive` 只能单向归档） */
+  archived: z.boolean().optional(),
   folders: z
     .array(
       z.object({
@@ -177,14 +179,32 @@ const ChangesReadResultSchema = z.object({
   removed: z.number()
 })
 
+const ChangesPatchSchema = z.object({
+  sessionID: z.uuid(),
+  /** 条目的 `id`（工作区相对路径）。按需读取：全量 patch 不进变更清单（否则每次轮询都背一遍 diff） */
+  changeID: z.string().min(1)
+})
+
+const ChangesPatchResultSchema = z.object({
+  /** unified diff 原文；超出上限时尾部带截断提示行 */
+  patch: z.string()
+})
+
 const ChangesUndoSchema = z.object({
   sessionID: z.uuid(),
   /** 省略则撤销该会话全部未撤销变更 */
   changeID: z.string().optional()
 })
 
+/** 已归档的工作区不出现在常规列表里；侧栏的「已归档」分区显式索取 */
+const WorkspaceReadInputSchema = z
+  .object({
+    includeArchived: z.boolean().optional()
+  })
+  .optional()
+
 export const workspaceSpecs = {
-  [CHANNELS.WORKSPACE.READ]: { in: z.void(), out: z.array(WorkspaceReadSchema) },
+  [CHANNELS.WORKSPACE.READ]: { in: WorkspaceReadInputSchema, out: z.array(WorkspaceReadSchema) },
   [CHANNELS.WORKSPACE.WRITE]: { in: WorkspaceWriteSchema, out: WorkspaceReadSchema },
   [CHANNELS.WORKSPACE.UPDATE]: { in: WorkspaceUpdateSchema, out: WorkspaceReadSchema },
   [CHANNELS.WORKSPACE.REMOVE]: { in: WorkspaceIDSchema, out: z.void() },
@@ -204,10 +224,12 @@ export const workspaceSpecs = {
   [CHANNELS.WORKSPACE.GIT.CHECKOUT]: { in: GitCheckoutSchema, out: GitCheckoutResultSchema },
 
   [CHANNELS.WORKSPACE.CHANGES.READ]: { in: ChangesReadSchema, out: ChangesReadResultSchema },
+  [CHANNELS.WORKSPACE.CHANGES.PATCH]: { in: ChangesPatchSchema, out: ChangesPatchResultSchema },
   [CHANNELS.WORKSPACE.CHANGES.UNDO]: { in: ChangesUndoSchema, out: ChangesReadResultSchema }
 } as const satisfies Record<ChannelOfDomain<'workspace'>, ChannelSpec>
 
 export {
+  ChangeEntrySchema,
   DirEntrySchema,
   FileContentSchema,
   FolderSchema,
@@ -216,3 +238,6 @@ export {
   WorkspaceReadSchema,
   WorkspaceWriteSchema
 }
+
+/** 变更清单里的一行（侧栏与消息流共用同一份形状） */
+export type ChangeEntry = z.infer<typeof ChangeEntrySchema>

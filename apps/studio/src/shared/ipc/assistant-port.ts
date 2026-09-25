@@ -1,5 +1,5 @@
 /**
- * 离线通路的 MessagePort 交付标签（preload 的世界 → 主世界）。
+ * agent 运行时端口的 MessagePort 交付标签（preload 的世界 → 主世界）。
  *
  * 为什么需要它：`MessagePort` **不能**当作 contextBridge 回调的参数传 —— 过了桥会退化成
  * 没有 `addEventListener` 的代理对象（实测报 `channel.addEventListener is not a function`）。

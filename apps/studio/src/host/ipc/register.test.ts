@@ -112,7 +112,7 @@ describe('registerAll', function () {
     disposable = registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
 
     expect(ipc.size()).toBe(INVOKE_CHANNELS.length)
-    expect(ipc.size()).toBe(70)
+    expect(ipc.size()).toBe(72)
     for (const channel of INVOKE_CHANNELS) {
       expect(ipc.has(channel)).toBe(true)
     }
@@ -190,6 +190,31 @@ describe('registerAll', function () {
     }).not.toThrow()
   })
 
+  it('放行 runtime 生成的消息 id（7 位 nanoid，不是 uuid）', async function () {
+    const seen: unknown[] = []
+    disposable = registerAll(
+      ipc as never,
+      stubCtx({ isDev: false }),
+      stubHandlers({
+        [CHANNELS.CHAT.MESSAGE.APPEND]: function (payload: unknown) {
+          seen.push(payload)
+          return null
+        }
+      })
+    )
+
+    const envelope = (await ipc.invoke(CHANNELS.CHAT.MESSAGE.APPEND, {
+      id: 'a1B2c3D',
+      sessionID: '2f8b0f2e-6d3c-4a51-9c2b-1c0f5a7d9e10',
+      parentID: null,
+      format: 'ith/thread-message-like',
+      content: '{"role":"user"}'
+    })) as IpcEnvelope<unknown>
+
+    expect(envelope.ok).toBe(true)
+    expect(seen).toHaveLength(1)
+  })
+
   it('keeps every failure envelope structured-clone safe', async function () {
     disposable = registerAll(
       ipc as never,
@@ -227,7 +252,7 @@ describe('registerAll', function () {
   describe('dispose', function () {
     it('removes every owned handler and is idempotent', function () {
       disposable = registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
-      expect(ipc.size()).toBe(70)
+      expect(ipc.size()).toBe(INVOKE_CHANNELS.length)
 
       disposable.dispose()
       expect(ipc.size()).toBe(0)

@@ -1,13 +1,13 @@
 import { create } from 'zustand'
 
-import { DEFAULT_APPROVAL_POLICY, type ApprovalPolicy } from '@/features/chat/approval.ts'
-import { DEFAULT_CHAT_TRANSPORT, type ChatTransportKind } from '@/features/chat/transport.ts'
+import { DEFAULT_APPROVAL_POLICY } from '@/features/chat/approval.ts'
+import type { AgentApprovalMode } from '@/shared/agent-tools'
 
 /**
  * **agent 域自己的设置与数据** —— 谁的功能谁维护。
  *
  * 这里每一项都只服务 agent：工作台与它自己的设置页（`/agent/settings`）读设置
- * （通路 / 模型 / 审批 / 工具展示），工作区指针是它的运行数据。
+ * （模型 / 审批 / 工具展示），工作区指针是它的运行数据。
  * 应用级设置（窗口 / 外观 / 启动…）**目前一项都没有**，等真有消费者的项出现时再开
  * `stores/settings.ts`；别往这里混装，也别把 agent 的东西塞回应用设置。
  *
@@ -19,16 +19,20 @@ import { DEFAULT_CHAT_TRANSPORT, type ChatTransportKind } from '@/features/chat/
 declare namespace Agent {
   /** agent 自己的设置（数据层叫 chat） */
   export interface Chat {
-    transport: ChatTransportKind
-    /** 选中的本地 provider（null = 用第一个启用的） */
+    /**
+     * 选中的 provider（null = 自动：按当前可用模型跑，组织模型优先，见
+     * `features/chat/port/model.ts` 的 `findFallbackProvider`）。
+     * 平台网关是固定 id 的一行（见 `features/chat/platform.ts`），所以这个字段同时
+     * 表达「本地 BYOK」与「组织模型」两种来源 —— 来源由 provider 的 kind 决定。
+     */
     providerID: string | null
-    /** 模型覆盖（空 = 用 provider 默认 / 服务端 `AI_MODEL`） */
+    /** 模型覆盖（空 = 用 provider 的默认模型） */
     model: string
     /**
-     * 工具审批策略（Qoder 的「自动审批」）：
-     * auto = 全放行 / ask = 只对写类工具逐条问 / readonly = 只放行只读工具
+     * 工具审批策略（Qoder 的「访问权限」）：
+     * auto = 需要拍板的动作直接放行 / ask = 只对写类动作逐条问 / readonly = 只给只读工具
      */
-    approval: ApprovalPolicy
+    approval: AgentApprovalMode
     /** 工具折叠条是否播报「N 次」 */
     showToolCount: boolean
     /** 工具卡默认展开（不展开时只看到一行摘要） */
@@ -56,7 +60,6 @@ export type DurationFormat = 'integer' | 'precise'
 
 const AGENT: Agent.Composite = {
   chat: {
-    transport: DEFAULT_CHAT_TRANSPORT,
     providerID: null,
     model: '',
     approval: DEFAULT_APPROVAL_POLICY,
@@ -68,6 +71,25 @@ const AGENT: Agent.Composite = {
   workspace: {
     activeWorkspaceID: null
   }
+}
+
+/**
+ * 读库时只认当前有定义的键。
+ *
+ * 旧版本在 `chat` 段里存过 `transport` / `onlineModel`（两条通路时代的选择）；
+ * 不清理也能跑（合并是「默认值 + 库值」），但废弃键会被后续每次 `update` 写回库里，
+ * 让人误以为还有两条通路。
+ */
+function parseChatSection(value: unknown): Agent.Chat {
+  if (!value || typeof value !== 'object') return AGENT.chat
+  const stored = value as Agent.Chat
+  const chat: Agent.Chat = { ...AGENT.chat }
+
+  for (const key of Object.keys(chat) as (keyof Agent.Chat)[]) {
+    const next = stored[key]
+    if (next !== undefined) chat[key] = next as never
+  }
+  return chat
 }
 
 /** 读库时把旧键 `activeRootID` 迁到 `activeWorkspaceID` */
@@ -116,18 +138,12 @@ export const useAgentStore = create<AgentStore>(function (setter, getter) {
     async initialize() {
       if (getter().loaded) return
 
-      const settings = { ...AGENT }
-      for (const key of Object.keys(AGENT) as (keyof Agent.Composite)[]) {
-        const val = await readSection(key)
-        if (val === undefined) continue
-        if (key === 'workspace') {
-          settings.workspace = parseWorkspaceSection(val)
-          continue
-        }
-        settings[key] = { ...AGENT[key], ...val } as never
-      }
+      const [chat, workspace] = await Promise.all([readSection('chat'), readSection('workspace')])
 
-      setter({ settings, loaded: true })
+      setter({
+        settings: { chat: parseChatSection(chat), workspace: parseWorkspaceSection(workspace) },
+        loaded: true
+      })
     },
 
     async update(section, value) {

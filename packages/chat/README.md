@@ -24,18 +24,24 @@ packages/chat/
 
 ## 端口（`ports.ts`）
 
-| 端口              | 谁实现           | studio 实现                         | extension 实现            |
-| ----------------- | ---------------- | ----------------------------------- | ------------------------- |
-| `ChatHistoryPort` | 会话与消息读写   | 主进程 IPC（Drizzle）               | Dexie                     |
-| `ChatModelPort`   | 一次生成的事件流 | 主进程 MessagePort（本地 provider） | `apps/service` HTTPS 路由 |
+| 端口              | 谁实现           | studio 实现                        | extension 实现 |
+| ----------------- | ---------------- | ---------------------------------- | -------------- |
+| `ChatHistoryPort` | 会话与消息读写   | 主进程 IPC（Drizzle）              | 暂未接入       |
+| `ChatModelPort`   | 一次生成的事件流 | 主进程 MessagePort（agent 运行时） | 暂未接入       |
 
-`ChatStreamEvent` 是两个环境共用的流事件形状（`text` / `reasoning` / `tool-call` / `finish` / `aborted` / `error`）。
+`ChatStreamEvent` 是两个环境共用的流事件形状（`text` / `reasoning` / `tool-call` / `tool-result` /
+`tool-approval-request` / `tool-approval-failed` / `finish` / `aborted` / `error`）。
 
 ## 适配器要点
 
-- `createThreadHistoryAdapter(port, findThreadID)`：
-  - 内置格式 `ith/thread-message-like`（`content` 为其 JSON 载荷），供离线 `useLocalRuntime` 使用；
-  - `withFormat(adapter)` 交给在线 runtime（AI SDK 格式）复用同一存储，**不要**把两种格式写进同一条会话；
-  - `findThreadID` **每次调用都重新取**当前线程：runtime 会在切线程后再读，不要在构造时捕获 id。
+- `createThreadHistoryAdapter(port, identity)`：
+  - 内置格式 `ith/thread-message-like`（`content` 为其 JSON 载荷），studio 的 `useLocalRuntime` 用它；
+  - `withFormat(adapter)` 给别的 runtime（AI SDK 格式）复用同一存储，**不要**把两种格式写进同一条会话；
+  - `identity` **每次调用都重新取**当前线程：runtime 会在切线程后再读，不要在构造时捕获 id。
+    它有两个方法，混用会丢消息：
+    - `read(): string | null` —— 只读快照，`load()` 用它。读历史**不建会话**，没有会话就是空历史；
+    - `ensure(): Promise<string>` —— 写路径用它。会话 id 要落库后才存在（新建线程在
+      `initialize()` 之前只有 `__LOCALID_x`），且 promotion / reconcile 期间快照可能是旧值；
+      拿空值去写会撞 `chatMessage.sessionID` 外键，而 assistant-ui 会**静默吞掉**写入 rejection。
 - `createThreadListAdapter(port)`：`list/rename/initialize/delete/fetch` 已实现；`generateTitle` 用本地启发式（首条用户文本）并落库；**归档暂不支持**（`archive`/`unarchive` 抛可展示错误）。
-- `createChatModelAdapter(port)`：把 `ChatStreamEvent` 增量聚合成 assistant-ui 需要的快照；V1 只处理文本与推理，工具调用待特性对齐时再开。
+- `createChatModelAdapter(port, { findHost })`：把 `ChatStreamEvent` 增量聚合成 assistant-ui 需要的快照；文本、推理与工具调用（含审批回执 `requires-action`）都已实现。`findHost` 可以是异步的 —— 会话 id 同样要 `ensure()` 后才权威。

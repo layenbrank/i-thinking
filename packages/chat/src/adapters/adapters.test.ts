@@ -4,11 +4,11 @@ import {
   type MessageStorageEntry,
   type ThreadMessage
 } from '@assistant-ui/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { ChatHistoryPort, ChatModelPort, ChatStoredMessage, ChatThread } from '../ports'
 import { createChatModelAdapter } from './chat-model'
-import { createThreadHistoryAdapter, LOCAL_FORMAT } from './thread-history'
+import { createThreadHistoryAdapter, LOCAL_FORMAT, type ThreadIdentity } from './thread-history'
 import { createThreadListAdapter } from './thread-list'
 
 /** 内存版历史端口：按写入顺序返回消息，语义与主进程实现一致 */
@@ -87,6 +87,32 @@ class MemoryPort implements ChatHistoryPort {
       if (doomed.has(this.messages[index].id)) this.messages.splice(index, 1)
     }
   }
+
+  /** 消息落到了哪些会话（按写入顺序）：断言"写对了会话"用 */
+  get appendedThreadIDs(): string[] {
+    return this.messages.map(function (row) {
+      return row.threadID
+    })
+  }
+}
+
+/** 一条已落库的历史行（`LOCAL_CODEC` 能解出来的形状） */
+function toStoredRow(
+  threadID: string,
+  id: string,
+  text: string
+): { threadID: string } & ChatStoredMessage {
+  return {
+    threadID,
+    id,
+    parentID: null,
+    format: LOCAL_FORMAT,
+    content: JSON.stringify({
+      role: 'user',
+      content: [{ type: 'text', text }],
+      createdAt: new Date('2026-01-01T00:00:00.000Z').toISOString()
+    })
+  }
 }
 
 /** withFormat 测试用的消息形状 */
@@ -112,12 +138,43 @@ async function buildPort(): Promise<{ port: MemoryPort; threadID: string }> {
   return { port, threadID: thread.id }
 }
 
+/** 已落库线程的身份 */
+function identityOf(threadID: string): ThreadIdentity {
+  return {
+    async resolve() {
+      return threadID
+    },
+    async ensure() {
+      return threadID
+    }
+  }
+}
+
+/**
+ * 新建线程的身份假件：快照在会话落库前读不到 id（真实实现里那是 assistant-ui 的
+ * 列表项状态，新建线程 promotion 期间可能还是空值），`ensure()` 才去建会话
+ * —— 用它锁住「写路径必须 ensure」。
+ */
+function buildPendingIdentity(port: MemoryPort) {
+  let remoteId: string | null = null
+  const ensure = vi.fn(async function (): Promise<string> {
+    if (!remoteId) remoteId = (await port.createThread()).id
+    return remoteId
+  })
+  const identity: ThreadIdentity = {
+    async resolve() {
+      return remoteId
+    },
+    ensure
+  }
+
+  return { identity, ensure }
+}
+
 describe('createThreadHistoryAdapter', function () {
   it('append 后 load 能原样读回，并按 lastMessageAt 计算 head', async function () {
     const { port, threadID } = await buildPort()
-    const adapter = createThreadHistoryAdapter(port, function () {
-      return threadID
-    })
+    const adapter = createThreadHistoryAdapter(port, identityOf(threadID))
 
     await adapter.append({ parentId: null, message: buildMessage('m1', '你好') })
     await adapter.append({ parentId: 'm1', message: buildMessage('m2', '在的', 'assistant') })
@@ -134,9 +191,7 @@ describe('createThreadHistoryAdapter', function () {
 
   it('分支时 head 取最近的叶子（无子节点）', async function () {
     const { port, threadID } = await buildPort()
-    const adapter = createThreadHistoryAdapter(port, function () {
-      return threadID
-    })
+    const adapter = createThreadHistoryAdapter(port, identityOf(threadID))
 
     await adapter.append({ parentId: null, message: buildMessage('m1', '根') })
     await adapter.append({ parentId: 'm1', message: buildMessage('m2', '分支 A', 'assistant') })
@@ -150,9 +205,7 @@ describe('createThreadHistoryAdapter', function () {
 
   it('跳过其它格式的行（本地与在线格式不混读）', async function () {
     const { port, threadID } = await buildPort()
-    const adapter = createThreadHistoryAdapter(port, function () {
-      return threadID
-    })
+    const adapter = createThreadHistoryAdapter(port, identityOf(threadID))
 
     await adapter.append({ parentId: null, message: buildMessage('m1', '本地') })
     await port.appendMessage({
@@ -169,11 +222,46 @@ describe('createThreadHistoryAdapter', function () {
     expect(LOCAL_FORMAT).toBe('ith/thread-message-like')
   })
 
+  it('一行坏数据（JSON 被截断 / 旧形状）只跳过它，后面的消息照常读回', async function () {
+    const { port, threadID } = await buildPort()
+    const adapter = createThreadHistoryAdapter(port, identityOf(threadID))
+    const spied = vi.spyOn(console, 'warn').mockImplementation(function () {})
+
+    await adapter.append({ parentId: null, message: buildMessage('m1', '好') })
+    await port.appendMessage({
+      threadID,
+      id: 'broken',
+      parentID: 'm1',
+      format: LOCAL_FORMAT,
+      // 写一半断电留下的截断 JSON
+      content: '{"role":"user","content":[{"type":"te'
+    })
+    await port.appendMessage({
+      threadID,
+      id: 'm2',
+      parentID: 'broken',
+      format: LOCAL_FORMAT,
+      content: JSON.stringify({
+        role: 'user',
+        content: [{ type: 'text', text: '后面这条要能看到' }],
+        createdAt: new Date().toISOString()
+      })
+    })
+
+    const repository = await adapter.load()
+    expect(
+      repository.messages.map(function (item) {
+        return item.message.id
+      })
+    ).toEqual(['m1', 'm2'])
+    expect(spied).toHaveBeenCalled()
+
+    spied.mockRestore()
+  })
+
   it('delete 按 id 删除；update 覆写同一条', async function () {
     const { port, threadID } = await buildPort()
-    const adapter = createThreadHistoryAdapter(port, function () {
-      return threadID
-    })
+    const adapter = createThreadHistoryAdapter(port, identityOf(threadID))
 
     await adapter.append({ parentId: null, message: buildMessage('m1', '原文') })
     await adapter.update?.({ parentId: null, message: buildMessage('m1', '改后') })
@@ -184,11 +272,33 @@ describe('createThreadHistoryAdapter', function () {
     expect((await adapter.load()).messages).toHaveLength(0)
   })
 
+  it('持久化 metadata.custom（用量）：刷新后仍读得到，无 custom 的消息不写 metadata', async function () {
+    const { port, threadID } = await buildPort()
+    const adapter = createThreadHistoryAdapter(port, identityOf(threadID))
+
+    const custom = { usage: { inputTokens: 3, totalTokens: 9 } }
+    await adapter.append({
+      parentId: null,
+      message: fromThreadMessageLike(
+        { role: 'assistant', content: [{ type: 'text', text: '好' }], metadata: { custom } },
+        'm1',
+        { type: 'complete', reason: 'stop' }
+      )
+    })
+    await adapter.append({ parentId: 'm1', message: buildMessage('m2', '纯文本') })
+
+    const rows = await port.findMessages({ threadID })
+    expect(JSON.parse(rows[0].content).metadata).toEqual({ custom })
+    // 没有 custom 的消息不落 metadata，别让每行都背上空对象
+    expect(JSON.parse(rows[1].content)).not.toHaveProperty('metadata')
+
+    const repository = await adapter.load()
+    expect(repository.messages[0].message.metadata?.custom).toEqual(custom)
+  })
+
   it('withFormat 用调用方的格式适配器读写同一存储', async function () {
     const { port, threadID } = await buildPort()
-    const adapter = createThreadHistoryAdapter(port, function () {
-      return threadID
-    })
+    const adapter = createThreadHistoryAdapter(port, identityOf(threadID))
 
     const formatted = adapter.withFormat?.({
       format: 'ai-sdk/v6',
@@ -215,13 +325,77 @@ describe('createThreadHistoryAdapter', function () {
     expect((await adapter.load()).messages).toHaveLength(0)
   })
 
-  it('没有活动会话时读历史返回空，写消息仍然报错', async function () {
-    const { port } = await buildPort()
-    const adapter = createThreadHistoryAdapter(port, function () {
-      return null
-    })
+  it('没有会话时读历史返回空、且不建会话（读路径不建会话）', async function () {
+    const port = new MemoryPort()
+    const { identity } = buildPendingIdentity(port)
+    const adapter = createThreadHistoryAdapter(port, identity)
 
     await expect(adapter.load()).resolves.toEqual({ headId: null, messages: [] })
+    expect(await port.findThreads()).toHaveLength(0)
+    expect(port.appendedThreadIDs).toEqual([])
+  })
+
+  it('已有会话按权威 id 读回历史，且读路径绝不建会话', async function () {
+    const { port, threadID } = await buildPort()
+    await port.appendMessage(toStoredRow(threadID, 'm1', '早上好'))
+
+    // 切会话那一刻列表项状态可能还没带上 remoteId（「点开会话一片空白」就是这条）：
+    // 读路径必须走 resolve() 去拿权威 id，而不是只认那份可能还没发布的快照
+    const ensure = vi.fn()
+    const adapter = createThreadHistoryAdapter(port, {
+      resolve: async function () {
+        return threadID
+      },
+      ensure
+    })
+
+    expect((await adapter.load()).headId).toBe('m1')
+    expect(ensure).not.toHaveBeenCalled()
+  })
+
+  it('新建线程的第一条消息：先 ensure 拿落库后的 id 再写（否则会外键失败被静默吞掉）', async function () {
+    const port = new MemoryPort()
+    const { identity, ensure } = buildPendingIdentity(port)
+    const adapter = createThreadHistoryAdapter(port, identity)
+
+    await adapter.append({ parentId: null, message: buildMessage('m1', '测试') })
+
+    expect(ensure).toHaveBeenCalledTimes(1)
+    expect(port.appendedThreadIDs).toEqual(['thread-1'])
+    // 端口拿到的必须是真会话 id，否则主进程那条 insert 会撞外键
+    expect(await port.findThread(port.appendedThreadIDs[0])).not.toBeNull()
+
+    await adapter.append({ parentId: 'm1', message: buildMessage('m2', '好的', 'assistant') })
+    const repository = await adapter.load()
+    expect(repository.headId).toBe('m2')
+  })
+
+  it('update / delete 不碰会话身份（改的是已存在的消息）', async function () {
+    const port = new MemoryPort()
+    const { identity, ensure } = buildPendingIdentity(port)
+    const adapter = createThreadHistoryAdapter(port, identity)
+
+    await adapter.append({ parentId: null, message: buildMessage('m1', '原文') })
+    expect(ensure).toHaveBeenCalledTimes(1)
+
+    await adapter.update?.({ parentId: null, message: buildMessage('m1', '改后') })
+    await adapter.delete?.([{ parentId: null, message: buildMessage('m1', '改后') }])
+
+    expect(ensure).toHaveBeenCalledTimes(1)
+  })
+
+  it('身份解析失败要留日志再抛（assistant-ui 会静默吞掉写入失败）', async function () {
+    const port = new MemoryPort()
+    const spied = vi.spyOn(console, 'error').mockImplementation(function () {})
+    const adapter = createThreadHistoryAdapter(port, {
+      async resolve() {
+        return null
+      },
+      async ensure() {
+        throw new Error('[CHAT] 没有活动会话')
+      }
+    })
+
     await expect(
       adapter.append({
         parentId: null,
@@ -232,6 +406,9 @@ describe('createThreadHistoryAdapter', function () {
         )
       })
     ).rejects.toThrow('[CHAT] 没有活动会话')
+    expect(spied).toHaveBeenCalled()
+
+    spied.mockRestore()
   })
 })
 
@@ -285,7 +462,7 @@ describe('createChatModelAdapter', function () {
     ])
   })
 
-  it('error 事件抛出可展示错误，aborted 直接结束', async function () {
+  it('error 事件抛出可展示错误，aborted 交出终态快照', async function () {
     const failing = createChatModelAdapter(
       buildModelPort([{ kind: 'error', message: '连接被拒绝' }])
     )
@@ -299,14 +476,19 @@ describe('createChatModelAdapter', function () {
       })()
     ).rejects.toThrow('连接被拒绝')
 
-    const aborted = createChatModelAdapter(buildModelPort([{ kind: 'aborted' }]))
-    const results: unknown[] = []
-    for await (const result of (aborted.run as (input: never) => AsyncGenerator<unknown>)({
+    // 取消不是错误，但这一轮**已经用掉的 token**要随终态快照交出来（真正的账在主进程的账本里）
+    const aborted = createChatModelAdapter(
+      buildModelPort([{ kind: 'aborted', usage: { totalTokens: 5 } }])
+    )
+    const results: Array<{ status?: unknown; metadata?: unknown }> = []
+    for await (const result of (aborted.run as (input: never) => AsyncGenerator<never>)({
       messages: [buildMessage('m1', '你好')]
     } as never)) {
-      results.push(result)
+      results.push(result as { status?: unknown; metadata?: unknown })
     }
-    expect(results).toHaveLength(0)
+    expect(results).toHaveLength(1)
+    expect(results[0].status).toEqual({ type: 'incomplete', reason: 'cancelled' })
+    expect(results[0].metadata).toMatchObject({ custom: { usage: { totalTokens: 5 } } })
   })
 
   it('未配置 provider / 没有可用文本时报错', async function () {
@@ -327,7 +509,7 @@ describe('createChatModelAdapter', function () {
           // 不应该有任何事件
         }
       })()
-    ).rejects.toThrow('未配置本地模型 provider')
+    ).rejects.toThrow('没有可用的模型')
 
     const noText = createChatModelAdapter({
       findTarget: async function () {

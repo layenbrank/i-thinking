@@ -24,13 +24,13 @@ void 0 as unknown as _ScreenshotOnlyCapture
 void 0 as unknown as _UpdaterHasOnEvent
 
 describe('channel derivation', function () {
-  it('flattens to exactly 73 channels', function () {
-    expect(flattenChannels()).toHaveLength(73)
+  it('flattens to exactly 75 channels', function () {
+    expect(flattenChannels()).toHaveLength(75)
   })
 
-  it('splits invoke (70) from push (3) with no overlap', function () {
+  it('splits invoke (72) from push (3) with no overlap', function () {
     expect(PUSH_CHANNELS).toHaveLength(3)
-    expect(INVOKE_CHANNELS).toHaveLength(70)
+    expect(INVOKE_CHANNELS).toHaveLength(72)
     for (const push of PUSH_CHANNELS) {
       expect(INVOKE_CHANNELS).not.toContain(push)
     }
@@ -44,6 +44,7 @@ describe('channel derivation', function () {
     expect(CHANNELS.STORE.READ).toBe('store:toRead')
     expect(CHANNELS.SCREENSHOT.CAPTURE).toBe('screenshot:capture')
     expect(CHANNELS.CHAT.PROVIDER.READ).toBe('chat:provider.toRead')
+    expect(CHANNELS.CHAT.USAGE.READ).toBe('chat:usage.toRead')
     expect(CHANNELS.WINDOW.OPEN).toBe('window:toOpen')
     expect(CHANNELS.WORKSPACE.READ_FILE).toBe('workspace:readFile')
     expect(CHANNELS.MIRROR.READ).toBe('mirror:toRead')

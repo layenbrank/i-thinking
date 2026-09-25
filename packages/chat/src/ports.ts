@@ -2,9 +2,10 @@
  * 共享 chat 层：领域类型 + 端口接口 + assistant-ui 适配器。
  *
  * 环境无关是硬约束：本包只能依赖 React / assistant-ui，不得引入 Node、Electron、`chrome.*`。
- * 两个 app 各自实现端口：
- * - `apps/studio`：历史走主进程 IPC（Drizzle），模型走 MessagePort（本地 provider）
- * - `apps/extension`：历史走 Dexie，模型走 apps/service 的 HTTPS 路由
+ * 端口由 app 各自实现，当前只有 `apps/studio`：
+ * - `apps/studio`：历史走主进程 IPC（Drizzle），模型走 MessagePort（agent 运行时：
+ *   个人模型用自带 Key，组织模型用登录令牌，链路与工具/审批完全一致）
+ * - `apps/extension`：暂未接入本包
  */
 
 /** 会话（线程）元数据 */
@@ -80,10 +81,9 @@ interface ChatRunMessage {
 }
 
 interface ChatRunInput {
-  system?: string
   messages: ChatRunMessage[]
   /**
-   * 宿主侧扩展（工具集、审批策略、沙箱根…）。
+   * 宿主侧扩展（模型能力、审批策略、沙箱根…）。
    * 形状由各 app 自己定义与校验 —— 共享层只负责把它原样传给端口实现。
    */
   host?: Record<string, unknown>
@@ -118,9 +118,27 @@ type ChatStreamEvent =
       output: unknown
       isError?: boolean
     }
+  | {
+      /**
+       * 回执没被受理：发起这次审批的那次运行已经不在等待它了。
+       *
+       * UI 该把这一项按失败收敛（而不是让它永远停在「待审批」），并提示用户重新发送。
+       */
+      kind: 'tool-approval-failed'
+      toolCallId: string
+      /** 给用户看的一句话（回执为什么不算数） */
+      message: string
+    }
   | { kind: 'finish'; finishReason: string; usage: ChatUsage }
-  | { kind: 'aborted' }
-  | { kind: 'error'; message: string }
+  /**
+   * 取消 / 被新一轮取代。
+   *
+   * **已经烧掉的 token 照样要报**：用户中途点停也在花钱，漏掉它账面上就是「花了却没计」。
+   * 端口拿不到数字时省略（例如还没收到任何一步就被取消）。
+   */
+  | { kind: 'aborted'; usage?: ChatUsage }
+  /** 失败同样带用量（重试过的步骤也花过 token）；拿不到时省略 */
+  | { kind: 'error'; message: string; usage?: ChatUsage }
 
 /** 工具审批回执（渲染进程 → 宿主）：由 UI 决定是否放行 */
 interface ChatToolApproval {
@@ -135,9 +153,10 @@ interface ChatModelPort {
   run(input: ChatRunInput & ChatTarget, signal: AbortSignal): AsyncIterable<ChatStreamEvent>
   /**
    * 回答一次工具审批（事件流里出现过 `tool-approval-request`）。
-   * 实现方须把它转到当前运行；无进行中的运行时为 no-op。
+   * 实现方须把它转到**发起这次审批的那次运行**；返回 `false` 表示这次审批已经不在等待中
+   * （运行结束 / 工具已跑完），调用方据此如实提示用户，而不是假报成功。
    */
-  respondToApproval?(input: ChatToolApproval): void
+  respondToApproval?(input: ChatToolApproval): boolean
 }
 
 /** 给联合类型每个成员补上字段（分发式条件类型） */
@@ -145,7 +164,7 @@ type WithRunID<T> = T extends unknown ? T & { runID: string } : never
 
 /**
  * MessagePort 传输的请求（渲染进程 → 主进程）。
- * 只有 Electron 通路用这套信封；extension 走 HTTPS + AI SDK 数据流，不涉及。
+ * 只有 studio（Electron）用这套信封；extension 走 HTTPS + AI SDK 数据流，不涉及。
  */
 type ChatPortRequest =
   | ({ kind: 'start'; runID: string } & ChatTarget & ChatRunInput)

@@ -159,6 +159,7 @@ const api = {
     },
     changes: {
       toRead: toInvoke(CHANNELS.WORKSPACE.CHANGES.READ),
+      toPatch: toInvoke(CHANNELS.WORKSPACE.CHANGES.PATCH),
       toUndo: toInvoke(CHANNELS.WORKSPACE.CHANGES.UNDO)
     }
   },
@@ -180,6 +181,9 @@ const api = {
       toAppend: toInvoke(CHANNELS.CHAT.MESSAGE.APPEND),
       toUpdate: toInvoke(CHANNELS.CHAT.MESSAGE.UPDATE),
       toRemove: toInvoke(CHANNELS.CHAT.MESSAGE.REMOVE)
+    },
+    usage: {
+      toRead: toInvoke(CHANNELS.CHAT.USAGE.READ)
     }
   },
   assistant: {
@@ -206,7 +210,7 @@ const bridge = {
   pathOf
 }
 
-// 离线通路的端口转发必须显式挂上：不能只靠 `import './preload.port'` 的副作用（怕被 tree-shake）
+// agent 运行时端口的转发必须显式挂上：不能只靠 `import './preload.port'` 的副作用（怕被 tree-shake）
 attachAssistantPort()
 
 contextBridge.exposeInMainWorld('itc', bridge)

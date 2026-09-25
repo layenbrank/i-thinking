@@ -14,7 +14,7 @@ const KeyRefSchema = z.object({
 })
 
 /**
- * 离线通路的端口推送：`MessagePort` 由 Electron 代理传递，不参与校验，
+ * `assistant:connect` 之后的端口推送：`MessagePort` 由 Electron 代理传递，不参与校验，
  * 这里只为渲染侧提供类型。注意这是**全局类型引用**而非 import，
  * 不破坏 src/shared 的框架无关约束。
  */

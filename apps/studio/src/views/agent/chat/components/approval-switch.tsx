@@ -7,11 +7,7 @@ import {
 } from '@i-thinking/design/components/dropdown-menu'
 import { CheckIcon, ChevronDownIcon } from 'lucide-react'
 
-import {
-  APPROVAL_POLICIES,
-  findApprovalPolicy,
-  type ApprovalPolicy
-} from '@/features/chat/approval.ts'
+import { APPROVAL_POLICIES, findApprovalPolicy } from '@/features/chat/approval.ts'
 import { useAgentStore } from '@/stores/agent.ts'
 
 /** 输入区右下角的审批策略。和设置页「模型」里的是同一项，改完下一轮生效 */
@@ -49,7 +45,7 @@ export function ApprovalSwitch() {
               key={policy.value}
               className="items-start gap-2"
               onSelect={function () {
-                void update('chat', { approval: policy.value as ApprovalPolicy })
+                void update('chat', { approval: policy.value })
               }}>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span>{policy.label}</span>

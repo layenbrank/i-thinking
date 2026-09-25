@@ -5,9 +5,9 @@ import { ASSISTANT_PORT_MESSAGE } from '@/shared/ipc/assistant-port.ts'
 
 import { subscribeAssistantPort } from './assistant-port.ts'
 
-/** 断言用假端口：jsdom 拿不到真的 MessagePort，这里只关心「哪个对象被交付了」 */
+/** 断言用假端口：jsdom 拿不到真的 MessagePort，这里只关心「哪个对象被交付了」以及有没有开闸 */
 function buildFakePort(): MessagePort {
-  return { postMessage: vi.fn() } as unknown as MessagePort
+  return { postMessage: vi.fn(), start: vi.fn() } as unknown as MessagePort
 }
 
 /** 模拟 preload 的 `window.postMessage(msg, '*', [port])` */
@@ -45,6 +45,23 @@ describe('assistant MessagePort 交付', function () {
 
     expect(seen).toEqual([port])
     second()
+  })
+
+  it('端口在交付前已开闸（不 start 就一条消息都收不到）', function () {
+    const port = buildFakePort()
+    const order: string[] = []
+    ;(port.start as unknown as () => void) = function () {
+      order.push('start')
+    }
+
+    const unsubscribe = subscribeAssistantPort(function () {
+      order.push('deliver')
+    })
+
+    deliverPort(port)
+
+    expect(order).toEqual(['start', 'deliver'])
+    unsubscribe()
   })
 
   it('忽略不是本窗口发来的同标签消息', function () {

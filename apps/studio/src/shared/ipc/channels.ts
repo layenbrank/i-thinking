@@ -91,6 +91,7 @@ export const CHANNELS = {
     },
     CHANGES: {
       READ: 'workspace:changes.toRead',
+      PATCH: 'workspace:changes.toPatch',
       UNDO: 'workspace:changes.toUndo'
     }
   },
@@ -112,10 +113,14 @@ export const CHANNELS = {
       APPEND: 'chat:message.toAppend',
       UPDATE: 'chat:message.toUpdate',
       REMOVE: 'chat:message.toRemove'
+    },
+    USAGE: {
+      /** 用量账本聚合（本会话累计 / 今日合计） */
+      READ: 'chat:usage.toRead'
     }
   },
   ASSISTANT: {
-    /** 建立离线通路（MessagePort，见 host/capabilities/assistant.ts） */
+    /** 建立 agent 运行时端口（MessagePort，见 host/capabilities/assistant.ts） */
     CONNECT: 'assistant:connect',
     /** 主进程 → 渲染进程推送端口；不是 invoke 通道 */
     PORT: 'assistant:port',

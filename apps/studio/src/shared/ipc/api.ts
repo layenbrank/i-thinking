@@ -115,6 +115,7 @@ export interface Api {
     }
     changes: {
       toRead: IpcFn<typeof CHANNELS.WORKSPACE.CHANGES.READ>
+      toPatch: IpcFn<typeof CHANNELS.WORKSPACE.CHANGES.PATCH>
       toUndo: IpcFn<typeof CHANNELS.WORKSPACE.CHANGES.UNDO>
     }
   }
@@ -137,6 +138,9 @@ export interface Api {
       toAppend: IpcFn<typeof CHANNELS.CHAT.MESSAGE.APPEND>
       toUpdate: IpcFn<typeof CHANNELS.CHAT.MESSAGE.UPDATE>
       toRemove: IpcFn<typeof CHANNELS.CHAT.MESSAGE.REMOVE>
+    }
+    usage: {
+      toRead: IpcFn<typeof CHANNELS.CHAT.USAGE.READ>
     }
   }
 

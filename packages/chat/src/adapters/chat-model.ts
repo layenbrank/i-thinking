@@ -6,10 +6,10 @@ import type {
   ToolCallMessagePartStatus
 } from '@assistant-ui/react'
 
-import type { ChatModelPort, ChatRunMessage, ChatUsage } from '../ports'
+import type { ChatModelPort, ChatRunMessage, ChatTarget, ChatUsage } from '../ports'
 
 /**
- * 离线模型适配器：把 `ChatModelPort` 的事件流聚合成 assistant-ui 需要的**快照**。
+ * 模型适配器：把 `ChatModelPort` 的事件流聚合成 assistant-ui 需要的**快照**。
  *
  * runtime 期望的是"当前完整内容"而不是增量，所以每个事件后推一份累计快照；
  * 中止（`abortSignal`）由端口实现负责打断底层请求。
@@ -144,14 +144,21 @@ function toStatus(finishReason: string): ChatModelRunResult['status'] {
     : { type: 'complete', reason: 'stop' }
 }
 
-function toCustom(usage: ChatUsage): Record<string, unknown> {
-  return { usage }
+/** 用量随消息快照落进 `metadata.custom`（历史适配器按它持久化，界面也读它） */
+function toCustom(usage: ChatUsage | undefined): Record<string, unknown> {
+  return usage ? { usage } : {}
 }
 
-/** 适配器可选项：宿主扩展（工具集 / 审批策略 / 沙箱根）与系统提示词由 app 提供，每次运行现读 */
+/** 适配器可选项：宿主扩展（模型能力 / 审批策略 / 沙箱根）由 app 提供，每次运行现读 */
 interface ChatModelAdapterOptions {
-  findHost?: () => Record<string, unknown>
-  findSystem?: () => string | undefined
+  /**
+   * 现读本次运行的宿主扩展。入参是刚解析出的运行目标 —— 实现方不必再去猜「当前用的是哪个
+   * 模型」：两个会话并发跑时，「当前」这种写法必然把后一个的模型读给前一个。
+   *
+   * 允许异步：会话 id 要落库后才存在（新建线程要先 initialize），同步读可能拿到旧快照，
+   * 而运行必须带着权威会话 id —— 主进程按它记 `studio 线程 → opencode 会话` 的映射。
+   */
+  findHost?: (target: ChatTarget) => Record<string, unknown> | Promise<Record<string, unknown>>
 }
 
 function createChatModelAdapter(
@@ -161,17 +168,13 @@ function createChatModelAdapter(
   return {
     async *run(runOptions) {
       const target = await port.findTarget()
-      if (!target) throw new Error('[CHAT] 未配置本地模型 provider')
+      if (!target) throw new Error('[CHAT] 没有可用的模型：请先在设置里添加或启用一个 provider')
 
       const messages = toRunMessages(runOptions.messages)
       if (messages.length === 0) throw new Error('[CHAT] 没有可发送的消息')
 
-      const host = options.findHost?.() ?? {}
-      const system = options.findSystem?.()
-      const extras = {
-        ...(system ? { system } : {}),
-        ...(Object.keys(host).length > 0 ? { host } : {})
-      }
+      const host = (await options.findHost?.(target)) ?? {}
+      const extras = Object.keys(host).length > 0 ? { host } : {}
       const input = { ...target, messages, ...extras }
 
       let text = ''
@@ -225,6 +228,20 @@ function createChatModelAdapter(
             })
             break
           }
+          case 'tool-approval-failed': {
+            const existing = tools.get(event.toolCallId)
+            // 回执没被受理（发起它的那次运行已经不在等待）：把这一项按失败收敛。
+            // 不收敛的话卡片会永远停在「待审批」，用户以为点了没反应
+            if (existing) {
+              tools.set(event.toolCallId, {
+                ...existing,
+                result: event.message,
+                isError: true,
+                approval: undefined
+              })
+            }
+            break
+          }
           case 'finish':
             yield {
               content: buildContent(text, reasoning, tools),
@@ -233,8 +250,24 @@ function createChatModelAdapter(
             }
             return
           case 'aborted':
+            // 取消（或被新一轮取代）不是错误，但这一轮**已经烧掉的 token 是真的**。
+            //
+            // 局限说明（别把它当成可靠来源）：用户手动点停时 runtime 会在取到这一份快照之后
+            // 先判 `abortSignal.aborted` 再把它丢掉（见 @assistant-ui/core 的
+            // local-thread-runtime-core）；被服务端「取代」那种取消则会正常收下。
+            // 真正的账在主进程的用量账本里（`engine.settle` 先记账再发终态）。
+            yield {
+              content: buildContent(text, reasoning, tools),
+              status: { type: 'incomplete', reason: 'cancelled' },
+              metadata: { custom: toCustom(event.usage) }
+            }
             return
           case 'error':
+            // 报错前先交一份带用量的快照：runtime 的 catch 只改 status，不动这份 metadata。
+            yield {
+              content: buildContent(text, reasoning, tools),
+              metadata: { custom: toCustom(event.usage) }
+            }
             throw new Error(event.message)
         }
 

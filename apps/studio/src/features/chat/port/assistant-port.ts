@@ -9,6 +9,10 @@ import { ASSISTANT_PORT_MESSAGE } from '@/shared/ipc/assistant-port.ts'
  * 否则 node 环境的单测（如 `model.test.ts` 会 import 本模块）导入时就摸 `window` 直接炸。
  *
  * 仍然保留队列：订阅者尚未注册时到达的端口要能补交，不丢。
+ *
+ * 端口**必须显式 `start()`**：转交过来的端口初始是「未启动」状态，只有 `start()`（或赋 `onmessage`）
+ * 才会打开收件队列，仅挂 `addEventListener` 一条消息都收不到（实测 Electron 44）。开闸放在交付边界，
+ * 保证订阅者拿到的端口一定可用 —— 否则表现为主进程正常跑完、界面与终端却毫无动静。
  */
 const subscribers = new Set<(port: MessagePort) => void>()
 const pending: MessagePort[] = []
@@ -32,11 +36,13 @@ function listen(): void {
     if (event.source !== window) return
     if (event.data !== ASSISTANT_PORT_MESSAGE) return
     const [port] = event.ports
-    if (port) offerAssistantPort(port)
+    if (!port) return
+    port.start()
+    offerAssistantPort(port)
   })
 }
 
-/** 订阅离线通路端口；返回退订函数 */
+/** 订阅 agent 运行时端口；返回退订函数 */
 function subscribeAssistantPort(subscriber: (port: MessagePort) => void): () => void {
   listen()
   subscribers.add(subscriber)
