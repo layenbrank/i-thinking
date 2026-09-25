@@ -3,6 +3,7 @@ pub mod auth;
 pub mod common;
 pub mod engine;
 pub mod gateway;
+pub mod payment;
 pub mod paths;
 pub mod search;
 pub mod sso;
@@ -17,16 +18,15 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
 
 use crate::oas::common::{
-    ApplicationEnvelope, CaptchaEnvelope, ChunkUploadEnvelope, ChunkUploadForm, EmptyEnvelope,
-    EmptyR, Exception, FinalizeUploadEnvelope, Health, HealthEnvelope, MemberEnvelope,
-    MemberListEnvelope, ModelEnvelope, ModelListEnvelope, ProfileEnvelope, ProviderEnvelope,
-    ProviderListEnvelope, QuotaEnvelope, SearchEnvelope, SearchWriteEnvelope, SigninEnvelope,
-    SigninErrorExample,
+    ApplicationEnvelope, CaptchaEnvelope, CatalogEnvelope, ChunkUploadEnvelope, ChunkUploadForm,
+    EmptyEnvelope, EmptyR, Exception, FinalizeUploadEnvelope, Health, HealthEnvelope, MemberEnvelope,
+    MemberListEnvelope, ModelEnvelope, ModelListEnvelope, OrderEnvelope, OrderListEnvelope,
+    PlansEnvelope, ProfileEnvelope, ProviderEnvelope, ProviderListEnvelope, QuotaEnvelope,
+    SearchEnvelope, SearchWriteEnvelope, SelfQuotaEnvelope, SigninEnvelope, SigninErrorExample,
     SigninSuccessExample, SignupEnvelope, SsoConnectionEnvelope, SsoConnectionListEnvelope,
     SsoLoginEnvelope, SubscriptionEnvelope, SubscriptionListEnvelope, SuggestionEnvelope,
-    TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope,
-    UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope,
-    UserListEnvelope,
+    TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope, UploadHashEnvelope,
+    UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope, UserListEnvelope,
 };
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
@@ -36,8 +36,10 @@ use crate::services::auth::schema::{
 };
 use crate::services::engine::schema::{EmptySchema, ISchema, QueryP, SuggestionR, TSchema};
 use crate::services::gateway::schema::{
-    ChatCompletionsP, ModelR, ModelUpdateP, ModelWriteP, ProviderR, ProviderUpdateP, ProviderWriteP,
+    ChatCompletionsP, ModelR, ModelUpdateP, ModelWriteP, PlanR, PlansR, ProviderR, ProviderUpdateP,
+    ProviderWriteP, SelfQuotaP, SelfQuotaR,
 };
+use crate::services::payment::schema::{CatalogR, OrderP, OrderR};
 use crate::services::search::schema::{
     HitR, QueryP as SearchQueryP, SearchR, WriteP as SearchWriteP, WriteR as SearchWriteR,
 };
@@ -152,12 +154,22 @@ impl Modify for SecurityAddon {
         gateway::model_remove_doc,
         gateway::usage_doc,
         gateway::audit_doc,
+        gateway::quota_me_doc,
+        gateway::plans_doc,
         sso::connections_doc,
         sso::connection_write_doc,
         sso::connection_update_doc,
         sso::connection_remove_doc,
         sso::authorize_doc,
         sso::callback_doc,
+        payment::catalog_doc,
+        payment::toList_doc,
+        payment::toWrite_doc,
+        payment::toRead_by_no_doc,
+        payment::sync_doc,
+        payment::close_doc,
+        payment::notify_wechat_doc,
+        payment::notify_alipay_doc,
     ),
     components(
         schemas(
@@ -264,6 +276,12 @@ impl Modify for SecurityAddon {
             ProviderListEnvelope,
             ModelEnvelope,
             ModelListEnvelope,
+            SelfQuotaP,
+            SelfQuotaR,
+            SelfQuotaEnvelope,
+            PlanR,
+            PlansR,
+            PlansEnvelope,
             SsoConnectionR,
             SsoConnectionWriteP,
             SsoConnectionUpdateP,
@@ -271,6 +289,12 @@ impl Modify for SecurityAddon {
             SsoConnectionEnvelope,
             SsoConnectionListEnvelope,
             SsoLoginEnvelope,
+            CatalogR,
+            CatalogEnvelope,
+            OrderP,
+            OrderR,
+            OrderEnvelope,
+            OrderListEnvelope,
         )
     ),
     tags(
@@ -285,6 +309,7 @@ impl Modify for SecurityAddon {
         (name = "Subscription", description = "个人租户订阅：免费/付费档位配额（需 JWT）"),
         (name = "Gateway", description = "模型网关：转发/配额/用量/审计（需 JWT）"),
         (name = "SSO", description = "单点登录（OIDC）"),
+        (name = "Payment", description = "支付：档位/渠道目录、订单、渠道回调（下单需 JWT）"),
     ),
     modifiers(&SecurityAddon),
     external_docs(

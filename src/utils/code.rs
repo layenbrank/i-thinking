@@ -83,6 +83,26 @@ pub mod business {
         pub const INVALID_OTP: i32 = 500306;
         pub const OTP_EXPIRED: i32 = 500307;
     }
+
+    /// 支付模块 (5004xx)
+    pub mod payment {
+        /// 订单不存在（或不属于当前租户）
+        pub const ORDER_NOT_FOUND: i32 = 500401;
+        /// 订单已关闭（超时 / 主动关单），不可再支付
+        pub const ORDER_CLOSED: i32 = 500402;
+        /// 订单已过期
+        pub const ORDER_EXPIRED: i32 = 500403;
+        /// 上游回调 / 查单金额与订单金额不一致
+        pub const AMOUNT_MISMATCH: i32 = 500404;
+        /// 渠道未配置或未开通
+        pub const CHANNEL_UNAVAILABLE: i32 = 500405;
+        /// 签名或回调验签失败
+        pub const SIGNATURE_INVALID: i32 = 500406;
+        /// 支付渠道上游返回错误
+        pub const UPSTREAM_ERROR: i32 = 500407;
+        /// 档位未定价 / 不可售
+        pub const PLAN_NOT_PURCHASABLE: i32 = 500408;
+    }
 }
 
 /// 外部服务错误 (60xxxx)
@@ -159,6 +179,15 @@ pub fn description(code: i32) -> &'static str {
         business::login::CAPTCHA_EXPIRED => "验证码已过期",
         business::login::TOO_MANY_ATTEMPTS => "登录失败次数过多",
         business::login::RESET_PASSWORD_FAILED => "密码重置失败",
+
+        business::payment::ORDER_NOT_FOUND => "订单不存在",
+        business::payment::ORDER_CLOSED => "订单已关闭",
+        business::payment::ORDER_EXPIRED => "订单已过期",
+        business::payment::AMOUNT_MISMATCH => "支付金额与订单不一致",
+        business::payment::CHANNEL_UNAVAILABLE => "支付渠道不可用",
+        business::payment::SIGNATURE_INVALID => "支付签名校验失败",
+        business::payment::UPSTREAM_ERROR => "支付渠道返回错误",
+        business::payment::PLAN_NOT_PURCHASABLE => "该档位暂不可购买",
 
         external::DATABASE_ERROR => "数据库连接失败",
         external::DATABASE_OPERATION_FAILED => "数据库操作失败",

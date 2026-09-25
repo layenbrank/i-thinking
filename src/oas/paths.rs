@@ -53,6 +53,13 @@ pub const TENANT_MEMBER_BY_ID: &str = "/api/v1/tenants/{id}/members/{userID}";
 pub const TENANT_SUBSCRIPTIONS: &str = "/api/v1/tenants/{id}/subscriptions";
 pub const TENANT_SUBSCRIPTION_BY_ID: &str = "/api/v1/tenants/{id}/subscriptions/{subscriptionID}";
 pub const TENANT_QUOTA: &str = "/api/v1/tenants/{id}/quota";
+pub const TENANT_PAY_CATALOG: &str = "/api/v1/tenants/{id}/pay/catalog";
+pub const TENANT_PAY_ORDERS: &str = "/api/v1/tenants/{id}/orders";
+pub const TENANT_PAY_ORDER_BY_NO: &str = "/api/v1/tenants/{id}/orders/{orderNo}";
+pub const TENANT_PAY_ORDER_SYNC: &str = "/api/v1/tenants/{id}/orders/{orderNo}/sync";
+pub const TENANT_PAY_ORDER_CLOSE: &str = "/api/v1/tenants/{id}/orders/{orderNo}/close";
+pub const PAY_NOTIFY_WECHAT: &str = "/api/v1/pay/notify/wechat";
+pub const PAY_NOTIFY_ALIPAY: &str = "/api/v1/pay/notify/alipay";
 
 // --- Gateway ---
 pub const GATEWAY_CHAT: &str = "/api/v1/gateway/chat/completions";
@@ -63,6 +70,8 @@ pub const GATEWAY_ADMIN_MODELS: &str = "/api/v1/gateway/admin/models";
 pub const GATEWAY_ADMIN_MODELS_BY_ID: &str = "/api/v1/gateway/admin/models/{id}";
 pub const GATEWAY_USAGE: &str = "/api/v1/gateway/usage";
 pub const GATEWAY_AUDIT: &str = "/api/v1/gateway/audit";
+pub const GATEWAY_QUOTA_ME: &str = "/api/v1/gateway/quota/me";
+pub const GATEWAY_PLANS: &str = "/api/v1/gateway/plans";
 
 // --- SSO ---
 pub const SSO_CONNECTIONS: &str = "/api/v1/sso/connections";
@@ -249,6 +258,38 @@ pub const ALL_ROUTES: &[RouteDef] = &[
         path: TENANT_QUOTA,
     },
     RouteDef {
+        method: "GET",
+        path: TENANT_PAY_CATALOG,
+    },
+    RouteDef {
+        method: "GET",
+        path: TENANT_PAY_ORDERS,
+    },
+    RouteDef {
+        method: "POST",
+        path: TENANT_PAY_ORDERS,
+    },
+    RouteDef {
+        method: "GET",
+        path: TENANT_PAY_ORDER_BY_NO,
+    },
+    RouteDef {
+        method: "POST",
+        path: TENANT_PAY_ORDER_SYNC,
+    },
+    RouteDef {
+        method: "POST",
+        path: TENANT_PAY_ORDER_CLOSE,
+    },
+    RouteDef {
+        method: "POST",
+        path: PAY_NOTIFY_WECHAT,
+    },
+    RouteDef {
+        method: "POST",
+        path: PAY_NOTIFY_ALIPAY,
+    },
+    RouteDef {
         method: "POST",
         path: GATEWAY_CHAT,
     },
@@ -295,6 +336,14 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: GATEWAY_AUDIT,
+    },
+    RouteDef {
+        method: "GET",
+        path: GATEWAY_QUOTA_ME,
+    },
+    RouteDef {
+        method: "GET",
+        path: GATEWAY_PLANS,
     },
     RouteDef {
         method: "GET",

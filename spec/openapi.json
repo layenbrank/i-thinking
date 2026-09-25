@@ -849,6 +849,33 @@
         ]
       }
     },
+    "/api/v1/gateway/plans": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "档位目录",
+        "description": "可开通档位（档位名 + 日 token 配额）与免费档基线，来自服务端配置而非数据库。",
+        "operationId": "gateway.plans",
+        "responses": {
+          "200": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/api/v1/gateway/providers": {
       "get": {
         "tags": [
@@ -993,6 +1020,44 @@
         ]
       }
     },
+    "/api/v1/gateway/quota/me": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "自助配额（只读）",
+        "description": "返回当前身份此刻的日窗用量与上限，口径与聊天热路径同源（模型覆盖 > 档位 > 免费档）。带 `X-Tenant-ID` 且确为成员时按租户作用域回答，否则按用户作用域。",
+        "operationId": "gateway.quotaMe",
+        "parameters": [
+          {
+            "name": "model",
+            "in": "query",
+            "description": "目录里的模型名；缺省或 auto 时按身份级配额回答",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/api/v1/gateway/usage": {
       "get": {
         "tags": [
@@ -1079,6 +1144,70 @@
             "bearer_auth": []
           }
         ]
+      }
+    },
+    "/api/v1/pay/notify/alipay": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "支付宝回调",
+        "description": "**支付宝服务器调用，匿名**：表单参数 RSA2 验签、`app_id` 防串号、金额核对、幂等核销。响应不是平台信封：成功返回**纯文本** `success`，失败返回 `failure`（支付宝按重试策略重发）。",
+        "operationId": "payment.notifyAlipay",
+        "requestBody": {
+          "description": "支付宝异步通知表单原文",
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "验签失败或订单不存在，返回 failure",
+            "content": {
+              "text/plain": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pay/notify/wechat": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "微信支付回调",
+        "description": "**渠道服务器调用，匿名**：验签（`Wechatpay-Signature` + 平台证书公钥）、APIv3 密钥解密 `resource`、金额与币种核对、幂等核销。响应不是平台信封：成功 `{\"code\":\"SUCCESS\"}`（HTTP 200），失败 `{\"code\":\"FAIL\"}`（HTTP 500，微信会重试）。",
+        "operationId": "payment.notifyWechat",
+        "requestBody": {
+          "description": "微信回调原始 JSON 报文（验签对象即原始 body）",
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "已受理",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "500": {
+            "description": "验签或处理失败，微信将重试",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
       }
     },
     "/api/v1/search/docs": {
@@ -1748,6 +1877,269 @@
         "responses": {
           "200": {
             "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/orders": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "订单历史",
+        "description": "按创建时间倒序返回最近 20 条；返回前会惰性关闭已超时的待支付订单。",
+        "operationId": "payment.toList",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "创建支付订单",
+        "description": "**金额由服务端按档位定价**，请求体只接受档位与渠道；同一用户 + 档位 + 渠道的未过期待支付订单会直接复用（避免重复下单）。返回 `codeUrl` 由客户端渲染二维码，`orderExpiresAt` 为支付截止时间。",
+        "operationId": "payment.toWrite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "档位与支付渠道",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "档位不可购买 / 渠道未配置 / 上游下单失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/orders/{orderNo}": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "订单详情",
+        "operationId": "payment.toReadByNo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderNo",
+            "in": "path",
+            "description": "商户订单号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "订单不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/orders/{orderNo}/close": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "关闭订单",
+        "description": "仅待支付订单可关闭；已支付订单返回 `500402`。",
+        "operationId": "payment.close",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderNo",
+            "in": "path",
+            "description": "商户订单号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "订单不存在 / 已支付不可关闭",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/orders/{orderNo}/sync": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "同步支付状态",
+        "description": "回调丢失时的兜底（也是「刷新支付状态」按钮的实现）：向渠道查单，支付成功则核销并开通订阅；已收款未开通会自动补齐；超时未支付则关单。",
+        "operationId": "payment.sync",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderNo",
+            "in": "path",
+            "description": "商户订单号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "订单不存在 / 上游查询失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/pay/catalog": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "可售档位与支付渠道",
+        "description": "收银台唯一数据源：档位价格由服务端定价，渠道按配置返回可用性与不可用原因。",
+        "operationId": "payment.catalog",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "非个人租户或权限不足",
             "content": {
               "application/json": {
                 "schema": {
@@ -2931,6 +3323,158 @@
           }
         }
       },
+      "CatalogChannelR": {
+        "type": "object",
+        "description": "支付渠道。",
+        "required": [
+          "code",
+          "label",
+          "enabled"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CatalogEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CatalogR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CatalogPlanR": {
+        "type": "object",
+        "description": "可售档位。",
+        "required": [
+          "plan",
+          "label",
+          "amount",
+          "currency",
+          "dailyTokenQuota",
+          "purchasable"
+        ],
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "dailyTokenQuota": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "durationDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "生效时长（天）；null = 永久"
+          },
+          "label": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "purchasable": {
+            "type": "boolean",
+            "description": "是否可下单（未定价 / 档位已下线时为 false）"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "不可下单原因"
+          }
+        }
+      },
+      "CatalogR": {
+        "type": "object",
+        "description": "价格 / 渠道目录：客户端渲染「档位 → 渠道 → 下单」三步的唯一数据源。",
+        "required": [
+          "currency",
+          "orderTtlSecs",
+          "plans",
+          "channels"
+        ],
+        "properties": {
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogChannelR"
+            }
+          },
+          "currency": {
+            "type": "string"
+          },
+          "currentPlan": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "当前租户当前生效档位；null = 免费档"
+          },
+          "orderTtlSecs": {
+            "type": "integer",
+            "format": "int64",
+            "description": "订单有效期（秒）",
+            "minimum": 0
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogPlanR"
+            }
+          }
+        }
+      },
       "ChatCompletionsP": {
         "type": "object",
         "description": "OpenAI 兼容 chat/completions 请求；`model` 用于解析上游，其余字段原样透传。",
@@ -3814,6 +4358,21 @@
               "type": "string"
             }
           },
+          "capabilities": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "能力声明；未声明时不下发（客户端按默认兜底）"
+          },
+          "contextWindow": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "上下文窗口（token）；未知时不下发"
+          },
           "createdAt": {
             "type": "integer",
             "format": "int64"
@@ -3837,6 +4396,13 @@
           "providerID": {
             "type": "string"
           },
+          "providerName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "上游供应商展示名。用户面目录下发给**所有**登录用户（含非管理员，\n他们读不到 `/gateway/providers`），客户端据此展示模型挂在谁家。"
+          },
           "updatedAt": {
             "type": "integer",
             "format": "int64"
@@ -3845,6 +4411,9 @@
       },
       "ModelUpdateP": {
         "type": "object",
+        "required": [
+          "capabilities"
+        ],
         "properties": {
           "allowRoles": {
             "type": [
@@ -3854,6 +4423,21 @@
             "items": {
               "type": "string"
             }
+          },
+          "capabilities": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "提供即覆盖；空对象 / null 表示清空声明"
+          },
+          "contextWindow": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "提供即覆盖；≤ 0 表示清空（未知）"
           },
           "dailyTokenQuota": {
             "type": [
@@ -3887,7 +4471,8 @@
         "required": [
           "providerID",
           "name",
-          "label"
+          "label",
+          "capabilities"
         ],
         "properties": {
           "allowRoles": {
@@ -3899,6 +4484,21 @@
               "type": "string"
             },
             "description": "允许调用的角色；空 = 全角色放行"
+          },
+          "capabilities": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "能力声明（`{\"tools\":true,\"reasoning\":true,\"vision\":false}`）；缺省 = 未声明"
+          },
+          "contextWindow": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "上下文窗口（token）；缺省或 ≤ 0 = 未知"
           },
           "dailyTokenQuota": {
             "type": [
@@ -3923,6 +4523,193 @@
           },
           "providerID": {
             "type": "string"
+          }
+        }
+      },
+      "OrderEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrderR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "OrderListEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/OrderR"
+            }
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "OrderP": {
+        "type": "object",
+        "description": "创建订单请求。\n\n**只接受档位与渠道**：金额由服务端按 `pay.plans` 定价，客户端无法指定价格。",
+        "required": [
+          "plan",
+          "channel"
+        ],
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "支付渠道：`WECHAT` / `ALIPAY`"
+          },
+          "plan": {
+            "type": "string",
+            "description": "档位名（须同时存在于 `pay.plans` 与 `gateway.planDailyTokenQuota`）"
+          }
+        }
+      },
+      "OrderR": {
+        "type": "object",
+        "description": "订单视图。",
+        "required": [
+          "orderNo",
+          "tenantID",
+          "plan",
+          "channel",
+          "amount",
+          "currency",
+          "status",
+          "dailyTokenQuota",
+          "createdAt",
+          "orderExpiresAt"
+        ],
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "金额（**分**）"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "codeUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "支付凭证链接（微信 `weixin://wxpay/...`；支付宝 `https://qr.alipay.com/...`），\n客户端据此渲染二维码；异常情况下可能为 null，此时可调用 `sync` 重新获取"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "dailyTokenQuota": {
+            "type": "integer",
+            "format": "int64",
+            "description": "档位对应的日 token 配额（展示用）"
+          },
+          "durationDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "生效时长（天）；null = 永久"
+          },
+          "orderExpiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "支付截止时间（超过即自动关单）"
+          },
+          "orderNo": {
+            "type": "string"
+          },
+          "paidAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "remark": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "`PENDING` / `PAID` / `CLOSED` / `REFUNDED`"
+          },
+          "subscriptionID": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "开通后生效的订阅 ID，未开通为 null"
+          },
+          "tenantID": {
+            "type": "string"
+          },
+          "transactionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "上游交易号（微信 `transaction_id` / 支付宝 `trade_no`），未支付为 null"
           }
         }
       },
@@ -4015,6 +4802,79 @@
         "example": {
           "code": "123456",
           "phone": "13800138000"
+        }
+      },
+      "PlanR": {
+        "type": "object",
+        "description": "可开通档位：配额数字来自 `gateway.plan_daily_token_quota`，不落库。",
+        "required": [
+          "plan",
+          "dailyTokenQuota"
+        ],
+        "properties": {
+          "dailyTokenQuota": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "plan": {
+            "type": "string"
+          }
+        }
+      },
+      "PlansEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PlansR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PlansR": {
+        "type": "object",
+        "description": "档位目录：可开通档位 + 免费档基线。",
+        "required": [
+          "plans",
+          "freeDailyTokenQuota"
+        ],
+        "properties": {
+          "freeDailyTokenQuota": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanR"
+            }
+          }
         }
       },
       "PrepareP": {
@@ -4770,6 +5630,126 @@
           "timestamp": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "SelfQuotaEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SelfQuotaR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SelfQuotaP": {
+        "type": "object",
+        "description": "自助配额查询参数。",
+        "properties": {
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "目录里的模型名；缺省（或 `auto`）时按身份级配额回答"
+          }
+        }
+      },
+      "SelfQuotaR": {
+        "type": "object",
+        "description": "当前身份此刻的日窗配额状态（只读：不改计数、不落库）。",
+        "required": [
+          "scope",
+          "scopeID",
+          "source",
+          "limit",
+          "used",
+          "remaining",
+          "exhausted",
+          "resetsAt"
+        ],
+        "properties": {
+          "exhausted": {
+            "type": "boolean",
+            "description": "是否已触顶；触顶后平台模型的新请求会被拒（400006）"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int64",
+            "description": "日配额上限（token）"
+          },
+          "plan": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "档位名；仅 `PLAN` 有"
+          },
+          "remaining": {
+            "type": "integer",
+            "format": "int64",
+            "description": "剩余（不小于 0）"
+          },
+          "resetsAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "日窗重置时刻（毫秒时间戳）"
+          },
+          "scope": {
+            "type": "string",
+            "description": "配额归属：`TENANT`（有租户身份）/ `USER`（无租户身份）"
+          },
+          "scopeID": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "上限来源：`MODEL` 单模型覆盖 / `PLAN` 订阅档位 / `FREE` 免费档 / `GLOBAL` 全局兜底"
+          },
+          "tenantID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tenantType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "归属租户类型：`PERSONAL` / `TEAM`；无租户身份时不发"
+          },
+          "used": {
+            "type": "integer",
+            "format": "int64",
+            "description": "今日已用（token，取 Redis 日窗计数）"
           }
         }
       },
@@ -6183,8 +7163,8 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "登录 `POST /api/v1/auth/signin` 返回的 `data.token`。\n\n请求头：`Authorization: Bearer <token>`。\n\n**Apifox**：鉴权组件 Token 请填 `{{token}}`（勿用 `{{bearerToken}}`）；环境变量名统一为 `token`，可在登录接口后置操作写入。",
-        "x-apifox-default": "{{token}}",
-        "x-default": "{{token}}"
+        "x-default": "{{token}}",
+        "x-apifox-default": "{{token}}"
       }
     }
   },
@@ -6232,6 +7212,10 @@
     {
       "name": "SSO",
       "description": "单点登录（OIDC）"
+    },
+    {
+      "name": "Payment",
+      "description": "支付：档位/渠道目录、订单、渠道回调（下单需 JWT）"
     }
   ],
   "externalDocs": {

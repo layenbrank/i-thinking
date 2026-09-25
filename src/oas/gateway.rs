@@ -1,6 +1,6 @@
 use super::common::{
-    EmptyEnvelope, Exception, ModelEnvelope, ModelListEnvelope, ProviderEnvelope,
-    ProviderListEnvelope,
+    EmptyEnvelope, Exception, ModelEnvelope, ModelListEnvelope, PlansEnvelope, ProviderEnvelope,
+    ProviderListEnvelope, SelfQuotaEnvelope,
 };
 use crate::services::gateway::schema::{
     ChatCompletionsP, ModelUpdateP, ModelWriteP, ProviderUpdateP, ProviderWriteP,
@@ -35,6 +35,40 @@ pub fn chat_doc() {}
     )
 )]
 pub fn models_doc() {}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/gateway/quota/me",
+    tag = "Gateway",
+    operation_id = "gateway.quotaMe",
+    summary = "自助配额（只读）",
+    description = "返回当前身份此刻的日窗用量与上限，口径与聊天热路径同源（模型覆盖 > 档位 > 免费档）。\
+        带 `X-Tenant-ID` 且确为成员时按租户作用域回答，否则按用户作用域。",
+    security(("bearer_auth" = [])),
+    params(
+        ("model" = Option<String>, Query, description = "目录里的模型名；缺省或 auto 时按身份级配额回答"),
+    ),
+    responses(
+        (status = 200, description = "成功", body = SelfQuotaEnvelope),
+        (status = 200, description = "未登录", body = Exception),
+    )
+)]
+pub fn quota_me_doc() {}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/gateway/plans",
+    tag = "Gateway",
+    operation_id = "gateway.plans",
+    summary = "档位目录",
+    description = "可开通档位（档位名 + 日 token 配额）与免费档基线，来自服务端配置而非数据库。",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "成功", body = PlansEnvelope),
+        (status = 200, description = "未登录", body = Exception),
+    )
+)]
+pub fn plans_doc() {}
 
 #[utoipa::path(
     get,
