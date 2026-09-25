@@ -12,7 +12,7 @@ use crate::services::sso::schema::{SsoConnectionUpdateP, SsoConnectionWriteP};
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "成功", body = SsoConnectionListEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn connections_doc() {}
@@ -27,7 +27,7 @@ pub fn connections_doc() {}
     request_body(content = SsoConnectionWriteP, description = "连接信息"),
     responses(
         (status = 200, description = "成功", body = SsoConnectionEnvelope),
-        (status = 200, description = "参数错误", body = Exception),
+        (status = "default", description = "业务异常（参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn connection_write_doc() {}
@@ -43,7 +43,7 @@ pub fn connection_write_doc() {}
     request_body(content = SsoConnectionUpdateP, description = "连接信息"),
     responses(
         (status = 200, description = "成功", body = SsoConnectionEnvelope),
-        (status = 200, description = "未找到", body = Exception),
+        (status = "default", description = "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn connection_update_doc() {}
@@ -58,7 +58,7 @@ pub fn connection_update_doc() {}
     params(("id" = String, Path, description = "连接 ID")),
     responses(
         (status = 200, description = "成功", body = EmptyEnvelope),
-        (status = 200, description = "未找到", body = Exception),
+        (status = "default", description = "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn connection_remove_doc() {}
@@ -72,7 +72,7 @@ pub fn connection_remove_doc() {}
     params(("id" = String, Path, description = "连接 ID")),
     responses(
         (status = 302, description = "重定向到身份提供商"),
-        (status = 200, description = "连接不存在", body = Exception),
+        (status = "default", description = "业务异常（连接不存在）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn authorize_doc() {}
@@ -90,7 +90,7 @@ pub fn authorize_doc() {}
     ),
     responses(
         (status = 200, description = "成功（返回 JWT）", body = SsoLoginEnvelope),
-        (status = 200, description = "登录失败", body = Exception),
+        (status = "default", description = "业务异常（登录失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn callback_doc() {}

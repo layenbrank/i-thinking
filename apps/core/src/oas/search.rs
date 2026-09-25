@@ -21,7 +21,7 @@ use crate::services::search::schema::WriteP;
     ),
     responses(
         (status = 200, description = "索引成功（code=200000）", body = SearchWriteEnvelope),
-        (status = 200, description = "未登录或参数/ES 错误", body = Exception),
+        (status = "default", description = "业务异常（未登录或参数/ES 错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toWrite_doc() {}
@@ -41,7 +41,7 @@ pub fn toWrite_doc() {}
     ),
     responses(
         (status = 200, description = "搜索成功（code=200000）", body = SearchEnvelope),
-        (status = 200, description = "未登录或参数/ES 错误", body = Exception),
+        (status = "default", description = "业务异常（未登录或参数/ES 错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRead_doc() {}

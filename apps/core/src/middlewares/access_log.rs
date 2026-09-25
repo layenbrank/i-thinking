@@ -19,6 +19,7 @@ use uuid::Uuid;
 use self::body::{
     body_max, buffer_json_body, header_str, preview_body, redact_query, skip_response_peek,
 };
+use super::trace;
 
 /// 访问日志中间件
 pub struct AccessLog;
@@ -196,10 +197,13 @@ fn log_access(
     let req_body = req_body.unwrap_or("-");
     let res_body = res_body.unwrap_or("-");
     let content_length = content_length.unwrap_or("-");
+    // 链路 ID 由 Trace 中间件放进任务作用域，AccessLog 始终挂在其内侧
+    let trace_id = trace::current_trace_id().unwrap_or_else(|| "-".to_string());
 
     if let Some(err) = error {
         tracing::error!(
             reqID = %req_id,
+            traceID = %trace_id,
             method = %method,
             path = %path,
             query = %query,
@@ -219,6 +223,7 @@ fn log_access(
         if level_error {
             tracing::error!(
                 reqID = %req_id,
+                traceID = %trace_id,
                 method = %method,
                 path = %path,
                 query = %query,
@@ -235,6 +240,7 @@ fn log_access(
         } else if level_warn {
             tracing::warn!(
                 reqID = %req_id,
+                traceID = %trace_id,
                 method = %method,
                 path = %path,
                 query = %query,
@@ -251,6 +257,7 @@ fn log_access(
         } else {
             tracing::info!(
                 reqID = %req_id,
+                traceID = %trace_id,
                 method = %method,
                 path = %path,
                 query = %query,

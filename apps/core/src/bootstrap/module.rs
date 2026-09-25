@@ -31,8 +31,9 @@ impl BootstrapOptions {
 pub struct BootstrapModule;
 
 impl BootstrapModule {
-    /// 注册系统路由与静态资源（health、guide、index 等）
+    /// 注册系统路由、框架层拒绝处理与静态资源（health、guide、index 等）
     pub fn configure(cfg: &mut web::ServiceConfig, options: &BootstrapOptions) {
+        super::errors::configure(cfg);
         super::system::configure(cfg);
         configure_static(cfg, options.static_assets.clone());
     }

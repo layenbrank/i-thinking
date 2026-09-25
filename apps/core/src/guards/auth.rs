@@ -162,7 +162,8 @@ where
 
 fn json_error<B>(req: ServiceRequest, body: Exception) -> ServiceResponse<EitherBody<B>> {
     let (http_req, _) = req.into_parts();
-    ServiceResponse::new(http_req, HttpResponse::Ok().json(body)).map_into_right_body()
+    let status = body.status();
+    ServiceResponse::new(http_req, HttpResponse::build(status).json(body)).map_into_right_body()
 }
 
 /// JWT 校验失败 → 业务错误信封（可单测）。
@@ -180,6 +181,7 @@ mod tests {
     use super::*;
     use crate::guards::permission::Role;
     use crate::utils::code::{auth as auth_codes, system};
+    use actix_web::http::StatusCode;
     use actix_web::test as awtest;
     use actix_web::{App, HttpResponse, web};
     use serde_json::Value;
@@ -222,7 +224,7 @@ mod tests {
             .insert_header(("Authorization", "Bearer not-a-real-jwt"))
             .to_request();
         let resp = awtest::call_service(&app, req).await;
-        assert!(resp.status().is_success());
+        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
         let body: Value = awtest::read_body_json(resp).await;
         assert_eq!(body["success"], false);
         assert_eq!(body["code"], system::INTERNAL_ERROR);
@@ -251,6 +253,7 @@ mod tests {
             .insert_header(("Authorization", format!("Bearer {token}")))
             .to_request();
         let resp = awtest::call_service(&app, req).await;
+        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
         let body: Value = awtest::read_body_json(resp).await;
         assert_eq!(body["success"], false);
         assert_eq!(body["code"], external::CACHE_ERROR);
@@ -269,6 +272,7 @@ mod tests {
             .uri("/api/v1/upload/files/abc")
             .to_request();
         let resp = awtest::call_service(&app, req).await;
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
         let body: Value = awtest::read_body_json(resp).await;
         assert_eq!(body["success"], false);
         assert_ne!(body["msg"], "file");
@@ -313,6 +317,7 @@ mod tests {
             .insert_header(("Authorization", format!("Bearer {token}")))
             .to_request();
         let resp = awtest::call_service(&app, req).await;
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
         let body: Value = awtest::read_body_json(resp).await;
         assert_eq!(body["success"], false);
         assert_eq!(body["code"], auth_codes::INSUFFICIENT_PERMISSIONS);

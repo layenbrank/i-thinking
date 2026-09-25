@@ -17,7 +17,7 @@ use crate::services::gateway::schema::{
     request_body(content = ChatCompletionsP, description = "OpenAI 兼容请求"),
     responses(
         (status = 200, description = "成功（raw OpenAI 响应）", body = Object),
-        (status = 200, description = "鉴权/白名单/配额错误", body = Exception),
+        (status = "default", description = "业务异常（鉴权/白名单/配额错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn chat_doc() {}
@@ -31,7 +31,7 @@ pub fn chat_doc() {}
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "成功", body = ModelListEnvelope),
-        (status = 200, description = "未登录", body = Exception),
+        (status = "default", description = "业务异常（未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn models_doc() {}
@@ -50,7 +50,7 @@ pub fn models_doc() {}
     ),
     responses(
         (status = 200, description = "成功", body = SelfQuotaEnvelope),
-        (status = 200, description = "未登录", body = Exception),
+        (status = "default", description = "业务异常（未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn quota_me_doc() {}
@@ -65,7 +65,7 @@ pub fn quota_me_doc() {}
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "成功", body = PlansEnvelope),
-        (status = 200, description = "未登录", body = Exception),
+        (status = "default", description = "业务异常（未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn plans_doc() {}
@@ -79,7 +79,7 @@ pub fn plans_doc() {}
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "成功", body = ProviderListEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn providers_doc() {}
@@ -94,7 +94,7 @@ pub fn providers_doc() {}
     request_body(content = ProviderWriteP, description = "供应商信息"),
     responses(
         (status = 200, description = "成功", body = ProviderEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn provider_write_doc() {}
@@ -110,7 +110,7 @@ pub fn provider_write_doc() {}
     request_body(content = ProviderUpdateP, description = "供应商信息"),
     responses(
         (status = 200, description = "成功", body = ProviderEnvelope),
-        (status = 200, description = "未找到", body = Exception),
+        (status = "default", description = "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn provider_update_doc() {}
@@ -125,7 +125,7 @@ pub fn provider_update_doc() {}
     params(("id" = String, Path, description = "供应商 ID")),
     responses(
         (status = 200, description = "成功", body = EmptyEnvelope),
-        (status = 200, description = "未找到", body = Exception),
+        (status = "default", description = "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn provider_remove_doc() {}
@@ -139,7 +139,7 @@ pub fn provider_remove_doc() {}
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "成功", body = ModelListEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn models_admin_doc() {}
@@ -154,7 +154,7 @@ pub fn models_admin_doc() {}
     request_body(content = ModelWriteP, description = "模型信息"),
     responses(
         (status = 200, description = "成功", body = ModelEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn model_write_doc() {}
@@ -170,7 +170,7 @@ pub fn model_write_doc() {}
     request_body(content = ModelUpdateP, description = "模型信息"),
     responses(
         (status = 200, description = "成功", body = ModelEnvelope),
-        (status = 200, description = "未找到", body = Exception),
+        (status = "default", description = "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn model_update_doc() {}
@@ -185,7 +185,7 @@ pub fn model_update_doc() {}
     params(("id" = String, Path, description = "模型 ID")),
     responses(
         (status = 200, description = "成功", body = EmptyEnvelope),
-        (status = 200, description = "未找到", body = Exception),
+        (status = "default", description = "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn model_remove_doc() {}
@@ -207,7 +207,7 @@ pub fn model_remove_doc() {}
     ),
     responses(
         (status = 200, description = "成功", body = Object),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn usage_doc() {}
@@ -226,7 +226,7 @@ pub fn usage_doc() {}
     ),
     responses(
         (status = 200, description = "成功", body = Object),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn audit_doc() {}

@@ -1,6 +1,7 @@
 # 业务错误码说明
 
-本服务所有 API 的 HTTP 状态码均为 **200**，业务结果通过响应 body 中的 `code` 字段判断。
+HTTP 状态码表达「这次调用在协议语义上是否成功」，响应体 `code` 表达「业务语义为何失败」；
+两者由 `code::http_status` 统一推导，业务结果一律以 `code` 为准（见 [api-versioning.md](api-versioning.md)）。
 
 ## 编码规则（XXYYZZ）
 
@@ -47,7 +48,7 @@
 
 ## Apifox 断言建议
 
-断言 `body.code === 200000` 而非 HTTP status code。
+断言 `body.code === 200000`，不要断言 HTTP 状态码（状态码只表达协议语义，见上）。
 
 ## 开发环境字段
 

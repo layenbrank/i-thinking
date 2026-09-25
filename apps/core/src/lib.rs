@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 pub mod bootstrap {
+    pub mod errors;
     pub mod module;
     pub mod static_assets;
     pub mod system;
@@ -19,14 +20,20 @@ macro_rules! bootstrap_app {
         use actix_web::{App, web::Data};
         use $crate::middlewares::access_log::AccessLog;
         use $crate::middlewares::cors::cors;
+        use $crate::middlewares::reject::RejectNormalizer;
+        use $crate::middlewares::trace::Trace;
 
         App::new()
             .app_data(Data::new($store))
             .app_data(Data::new($config))
             .app_data(Data::new($redis))
             .app_data(Data::new($es))
+            // 归一中间件最内层：最先接住框架自产响应（如 405 空体），其余 wrap 都在信封之外
+            .wrap(RejectNormalizer)
             .wrap(cors($config.as_ref()))
             .wrap(AccessLog)
+            // 链路中间件在最外层：限流、CORS 预检等未进入 Handler 的响应同样带 traceID
+            .wrap(Trace)
             .configure(|cfg| $crate::bootstrap::BootstrapModule::configure(cfg, &$bootstrap))
             .configure(|cfg| {
                 $crate::services::application::module::ApplicationModule::configure(
@@ -51,10 +58,12 @@ pub mod databases {
 pub extern crate configures;
 
 pub mod middlewares {
-    //! HTTP 层 wrap（Nest Middleware 角色）：CORS、访问日志、限流。
+    //! HTTP 层 wrap（Nest Middleware 角色）：CORS、链路追踪、访问日志、限流、框架响应归一。
     pub mod access_log;
     pub mod cors;
     pub mod rate_limit;
+    pub mod reject;
+    pub mod trace;
 }
 
 /// 鉴权守卫（Nest Guard 角色）：能否进入受保护 Handler。

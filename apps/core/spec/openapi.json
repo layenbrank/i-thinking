@@ -157,6 +157,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -335,6 +342,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -465,6 +479,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -642,6 +663,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -763,6 +791,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -800,7 +835,7 @@
         ],
         "type": "object"
       },
-      "Exception": {
+      "ErrorEnvelope": {
         "description": "异常响应结构",
         "properties": {
           "code": {
@@ -830,6 +865,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -987,6 +1029,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1177,6 +1226,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1250,6 +1306,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1285,6 +1348,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1381,6 +1451,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1416,6 +1493,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1642,6 +1726,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1677,6 +1768,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1937,6 +2035,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2118,6 +2223,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2329,6 +2441,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2364,6 +2483,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2536,6 +2662,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2653,6 +2786,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2713,6 +2853,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2749,6 +2896,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2877,6 +3031,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3071,6 +3232,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3180,6 +3348,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3215,6 +3390,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3382,6 +3564,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3451,6 +3640,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3486,6 +3682,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3564,6 +3767,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3633,6 +3843,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3668,6 +3885,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3886,6 +4110,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3922,6 +4153,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3958,6 +4196,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3994,6 +4239,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -4061,6 +4313,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -4096,6 +4355,13 @@
           "timestamp": {
             "format": "int64",
             "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -4250,7 +4516,7 @@
     "securitySchemes": {
       "bearer_auth": {
         "bearerFormat": "JWT",
-        "description": "登录 `POST /api/v1/auth/signin` 返回的 `data.token`。\n\n请求头：`Authorization: Bearer <token>`。\n\n**Apifox**：鉴权组件 Token 请填 `{{token}}`（勿用 `{{bearerToken}}`）；环境变量名统一为 `token`，可在登录接口后置操作写入。",
+        "description": "登录 `POST /api/v1/auth/signin` 返回的 `data.token`。\n\n请求头：`Authorization: Bearer {{token}}`。\n\n**Apifox**：鉴权组件 Token 请填 `{{token}}`（勿用 `{{bearerToken}}`）；环境变量名统一为 `token`，可在登录接口后置操作写入。",
         "scheme": "bearer",
         "type": "http",
         "x-apifox-default": "{{token}}",
@@ -4267,8 +4533,9 @@
       "email": "15638470820@163.com",
       "name": "CoreX Team"
     },
-    "description": "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。鉴权：JWT Bearer；Apifox 环境变量统一使用 {{token}}（来自 signin.data.token）。密码登录 / 注册 / 发 OTP 前须先 POST /api/v1/auth/captcha 获取 captchaKey（go-captcha 行为验证码）。",
+    "description": "响应体统一信封：成功 code=200000，失败 code 为业务错误码且 details 仅在开发环境返回，错误码规则见 /guide/error-codes.md。接口版本与兼容策略见 /guide/api-versioning.md：主版本在 URL（/api/v1）、info.version 取构建版本、错误码只增不改。HTTP 状态码由错误码归属推导（校验类 400/422、未认证 401、无权限 403、不存在 404、冲突 409、超限 413、限流 429、上游失败 502、内部错误 500），成功恒为 200；未预期状态以契约中的 default 响应描述。链路追踪：请求可带 W3C `traceparent`（缺省由服务端生成），响应始终回显该头，响应体信封的 traceID 即其 trace-id。鉴权：JWT Bearer；Apifox 环境变量统一使用 {{token}}（来自 signin.data.token）。密码登录 / 注册 / 发 OTP 前须先 POST /api/v1/auth/captcha 获取 captchaKey（go-captcha 行为验证码）。",
     "license": {
+      "identifier": "LicenseRef-Proprietary",
       "name": "Proprietary"
     },
     "title": "CoreX Service API",
@@ -4278,18 +4545,65 @@
   "paths": {
     "/api/health": {
       "get": {
-        "description": "检查服务与 PostgreSQL / Redis / Elasticsearch 依赖状态，无需鉴权。HTTP 状态码始终为 200。",
+        "description": "检查服务与 PostgreSQL / Redis / Elasticsearch 依赖状态，无需鉴权。依赖异常不改变 HTTP 状态码（200），通过 data.status=degraded 与各依赖项 up/down 表达。",
         "operationId": "system.health",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/HealthEnvelope"
                 }
               }
             },
-            "description": "服务异常"
+            "description": "服务正常（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（服务异常）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "健康检查",
@@ -4302,16 +4616,63 @@
       "get": {
         "description": "返回 mock 应用配置，无需鉴权。",
         "operationId": "application.toRead",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ApplicationEnvelope"
                 }
               }
             },
-            "description": "服务错误"
+            "description": "获取成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（服务错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "读取应用配置",
@@ -4324,6 +4685,21 @@
       "post": {
         "description": "公开接口。按客户端 IP 限流（`auth.captcha.ip_rate_limit` / 分钟）。\n\n后端代理 **go-captcha-service** `get-data`，返回滑块拼图数据，供前端 `go-captcha-react` 渲染。\n\n**联调流程（signin / signup / otp 前必做）：**\n1. 调用本接口（可选 body `kind`，默认 `auth.captcha.kind` 如 `slide-default`）\n2. 取 `data.captchaKey`、`masterImage`、`thumbImage`、`thumbX`/`thumbY` 等\n3. 用户完成交互后，在后续请求填写 `captchaKey` + `captchaValue`\n\n校验由侧车 `check-data` 完成；TTL 由侧车 Redis 缓存管理。",
         "operationId": "auth.captcha",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4343,11 +4719,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/CaptchaEnvelope"
                 }
               }
             },
-            "description": "缓存异常"
+            "description": "生成成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（IP 限流（code=500304） / 侧车不可用（code=100002） / 缓存异常）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "获取行为验证码",
@@ -4360,6 +4768,21 @@
       "post": {
         "description": "公开接口。先通过行为验证码防刷，再向手机或邮箱发送一次性验证码。\n\n- `channel`：`PHONE` 或 `EMAIL`\n- `target`：手机号或邮箱（须与账号资料一致时用于登录）\n- `captchaKey` / `captchaValue`：来自 `POST /api/v1/auth/captcha` 与用户交互结果\n- 冷却时间 `auth.otp.cooldown_secs`（默认 60s）\n- 开发环境 `auth.otp.mock=true` 时 OTP 写入服务日志（`otp mock send`），不真正发短信/邮件\n\n成功时 `data` 为空，仅 `msg` 提示已发送。",
         "operationId": "auth.otp",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4382,11 +4805,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "参数无效"
+            "description": "发送成功（code=200000，无 data）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（验证码错误（code=500302） / 验证码已过期（code=500303） / 发送过于频繁（code=500304） / 参数无效）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "发送 OTP",
@@ -4399,6 +4854,21 @@
       "put": {
         "description": "需要 JWT。校验原密码后更新；成功后吊销当前 token，须重新登录。",
         "operationId": "auth.password",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4414,11 +4884,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "未登录"
+            "description": "修改成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（原密码错误或弱密码 / 未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4436,6 +4938,21 @@
       "post": {
         "description": "公开接口。须行为验证码。提供 `username` **或** `channel`+`target`（二选一）。\n\n向账号已绑定的手机/邮箱发送找回密码 OTP（`password_reset` 用途，与登录 OTP 隔离）。\n用户不存在或未绑定渠道时仍返回成功，防止枚举。\n受 `auth.rate_limit` IP 限流保护（超限 code=200005）。",
         "operationId": "auth.passwordForgot",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4451,11 +4968,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "验证码或参数错误"
+            "description": "已受理（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（请求频率过高（code=200005） / 验证码或参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "找回密码（发 OTP）",
@@ -4468,6 +5017,21 @@
       "post": {
         "description": "公开接口。凭找回密码 OTP 设置新密码（不自动登录）。\n提供 `username` **或** `channel`+`target`（须与发码时一致或能匹配绑定渠道）。",
         "operationId": "auth.passwordReset",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4483,11 +5047,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "重置失败（code=500305）"
+            "description": "重置成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（OTP 错误或过期 / 密码强度不够（code=500105） / 重置失败（code=500305））：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "重置密码",
@@ -4500,16 +5096,63 @@
       "get": {
         "description": "需要 JWT 鉴权，返回当前登录用户的 profile（含 avatar 元数据）。",
         "operationId": "auth.toRead",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ProfileEnvelope"
                 }
               }
             },
-            "description": "未登录（code=300001）"
+            "description": "获取成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录（code=300001））：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4525,6 +5168,21 @@
       "put": {
         "description": "需要 JWT 鉴权。可更新 `email`、`phone`、`gender`、`birthday`、`avatar`（asset UUID）。\n所有字段可选；`avatar` 传 `null` 可清空头像。",
         "operationId": "auth.toUpdate",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4548,11 +5206,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ProfileEnvelope"
                 }
               }
             },
-            "description": "未登录或参数错误"
+            "description": "更新成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4570,6 +5260,21 @@
       "post": {
         "description": "公开接口。须携带**行为验证码**字段，否则 JSON 反序列化失败（400）。\n\n**推荐顺序：**\n1. `POST /api/v1/auth/captcha` → 拼图数据 + `captchaKey`\n2. 本接口：`username` + `password` + `captchaKey` + `captchaValue`\n\n成功后返回 JWT；Apifox 将 `data.token` 写入环境变量 `token`。\n联调默认账号：`admin` / `123456`。",
         "operationId": "auth.signin",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4592,11 +5297,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SigninEnvelope"
                 }
               }
             },
-            "description": "失败次数过多锁定（code=500304）"
+            "description": "登录成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（用户名或密码错误（code=500301） / 验证码错误（code=500302） / 验证码已过期（code=500303） / 失败次数过多锁定（code=500304））：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "用户登录（密码）",
@@ -4609,6 +5346,21 @@
       "post": {
         "description": "公开接口。须先 `POST /api/v1/auth/otp`（`channel=EMAIL`）获取邮件验证码。\n\n- `email`：与 OTP 发送目标一致\n- `code`：OTP 六位数字（开发环境见服务日志）",
         "operationId": "auth.signinEmail",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4629,11 +5381,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SigninEnvelope"
                 }
               }
             },
-            "description": "OTP 锁定（code=500304）"
+            "description": "登录成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（OTP 错误（code=500306） / OTP 过期（code=500307） / 用户不存在或账号异常 / OTP 锁定（code=500304））：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "邮箱登录（OTP）",
@@ -4646,6 +5430,21 @@
       "post": {
         "description": "公开接口。须先 `POST /api/v1/auth/otp`（`channel=PHONE`）获取短信验证码。\n\n- `phone`：与 OTP 发送目标一致\n- `code`：OTP 六位数字（开发环境见服务日志）\n\n无需行为验证码；OTP 校验成功后消费。",
         "operationId": "auth.signinPhone",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4666,11 +5465,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SigninEnvelope"
                 }
               }
             },
-            "description": "OTP 锁定（code=500304）"
+            "description": "登录成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（OTP 错误（code=500306） / OTP 过期（code=500307） / 用户不存在或账号异常 / OTP 锁定（code=500304））：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "手机号登录（OTP）",
@@ -4683,16 +5514,63 @@
       "post": {
         "description": "需要 JWT。将当前 token 写入 Redis 黑名单直至过期，之后该 token 不可再用。",
         "operationId": "auth.signout",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "未登录或缓存异常"
+            "description": "登出成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或缓存异常）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4710,6 +5588,21 @@
       "post": {
         "description": "公开接口，须携带行为验证码。注册成功后自动登录并返回 JWT。\n\n字段与 `signin` 相同（`username` / `password` / `captchaKey` / `captchaValue`）。\n建议先 `POST /api/v1/auth/captcha`。",
         "operationId": "auth.signup",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4732,11 +5625,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SignupEnvelope"
                 }
               }
             },
-            "description": "其他业务错误"
+            "description": "注册成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（用户名已存在（code=500102） / 验证码错误（code=500302） / 验证码已过期（code=500303） / 其他业务错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "用户注册",
@@ -4810,6 +5735,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4817,11 +5755,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SuggestionEnvelope"
                 }
               }
             },
-            "description": "未登录或上游失败"
+            "description": "获取成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或上游失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4838,16 +5808,63 @@
     "/api/v1/gateway/admin/models": {
       "get": {
         "operationId": "gateway.modelsAdmin",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ModelListEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4862,6 +5879,21 @@
       },
       "post": {
         "operationId": "gateway.modelWrite",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4878,11 +5910,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ModelEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4908,6 +5972,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4915,11 +5992,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "未找到"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4943,6 +6052,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -4961,11 +6083,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ModelEnvelope"
                 }
               }
             },
-            "description": "未找到"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5013,6 +6167,19 @@
               "minimum": 0,
               "type": "integer"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5020,11 +6187,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "type": "object"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5042,6 +6241,21 @@
       "post": {
         "description": "需要 JWT。body 兼容 OpenAI chat/completions；stream=true 返回 SSE，否则返回原始 JSON。",
         "operationId": "gateway.chat",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -5058,11 +6272,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "type": "object"
                 }
               }
             },
-            "description": "鉴权/白名单/配额错误"
+            "description": "成功（raw OpenAI 响应）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（鉴权/白名单/配额错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5079,16 +6325,63 @@
     "/api/v1/gateway/models": {
       "get": {
         "operationId": "gateway.models",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ModelListEnvelope"
                 }
               }
             },
-            "description": "未登录"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5106,16 +6399,63 @@
       "get": {
         "description": "可开通档位（档位名 + 日 token 配额）与免费档基线，来自服务端配置而非数据库。",
         "operationId": "gateway.plans",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/PlansEnvelope"
                 }
               }
             },
-            "description": "未登录"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5132,16 +6472,63 @@
     "/api/v1/gateway/providers": {
       "get": {
         "operationId": "gateway.providers",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ProviderListEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5156,6 +6543,21 @@
       },
       "post": {
         "operationId": "gateway.providerWrite",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -5172,11 +6574,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ProviderEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5202,6 +6636,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5209,11 +6656,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "未找到"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5237,6 +6716,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -5255,11 +6747,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ProviderEnvelope"
                 }
               }
             },
-            "description": "未找到"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5286,6 +6810,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5293,11 +6830,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SelfQuotaEnvelope"
                 }
               }
             },
-            "description": "未登录"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5374,6 +6943,19 @@
               "minimum": 0,
               "type": "integer"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5381,11 +6963,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "type": "object"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5403,6 +7017,21 @@
       "post": {
         "description": "**支付宝服务器调用，匿名**：表单参数 RSA2 验签、`app_id` 防串号、金额核对、幂等核销。响应不是平台信封：成功返回**纯文本** `success`，失败返回 `failure`（支付宝按重试策略重发）。",
         "operationId": "payment.notifyAlipay",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "text/plain": {
@@ -5419,19 +7048,46 @@
             "content": {
               "text/plain": {}
             },
-            "description": "验签失败或订单不存在，返回 failure"
+            "description": "已受理：成功返回纯文本 `success`，验签失败或订单不存在返回 `failure`（支付宝按重试策略重发）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "支付宝回调",
         "tags": [
           "Payment"
-        ]
+        ],
+        "x-response-shape": "vendor"
       }
     },
     "/api/v1/pay/notify/wechat": {
       "post": {
         "description": "**渠道服务器调用，匿名**：验签（`Wechatpay-Signature` + 平台证书公钥）、APIv3 密钥解密 `resource`、金额与币种核对、幂等核销。响应不是平台信封：成功 `{\"code\":\"SUCCESS\"}`（HTTP 200），失败 `{\"code\":\"FAIL\"}`（HTTP 500，微信会重试）。",
         "operationId": "payment.notifyWechat",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "text/plain": {
@@ -5448,19 +7104,42 @@
             "content": {
               "application/json": {}
             },
-            "description": "已受理"
+            "description": "已受理",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
               "application/json": {}
             },
-            "description": "验签或处理失败，微信将重试"
+            "description": "验签或处理失败，微信将重试",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "微信支付回调",
         "tags": [
           "Payment"
-        ]
+        ],
+        "x-response-shape": "vendor"
       }
     },
     "/api/v1/search/docs": {
@@ -5488,6 +7167,19 @@
               "format": "int64",
               "type": "integer"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5495,11 +7187,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SearchEnvelope"
                 }
               }
             },
-            "description": "未登录或参数/ES 错误"
+            "description": "搜索成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或参数/ES 错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5515,6 +7239,21 @@
       "post": {
         "description": "需要 JWT。将文档写入 Elasticsearch（示范搜索投影，不以 ES 为权威库）。",
         "operationId": "search.toWrite",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -5536,11 +7275,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SearchWriteEnvelope"
                 }
               }
             },
-            "description": "未登录或参数/ES 错误"
+            "description": "索引成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或参数/ES 错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5557,16 +7328,63 @@
     "/api/v1/sso/connections": {
       "get": {
         "operationId": "sso.connections",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SsoConnectionListEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5581,6 +7399,21 @@
       },
       "post": {
         "operationId": "sso.connectionWrite",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -5597,11 +7430,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SsoConnectionEnvelope"
                 }
               }
             },
-            "description": "参数错误"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5627,6 +7492,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5634,11 +7512,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "未找到"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5662,6 +7572,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -5680,11 +7603,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SsoConnectionEnvelope"
                 }
               }
             },
-            "description": "未找到"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5710,21 +7665,56 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "200": {
+          "302": {
+            "description": "重定向到身份提供商",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "连接不存在"
-          },
-          "302": {
-            "description": "重定向到身份提供商"
+            "description": "业务异常（连接不存在）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "发起 OIDC 授权（302 到 IdP）",
@@ -5763,6 +7753,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5770,11 +7773,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SsoLoginEnvelope"
                 }
               }
             },
-            "description": "登录失败"
+            "description": "成功（返回 JWT）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（登录失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "OIDC 回调（换取 token）",
@@ -5786,16 +7821,63 @@
     "/api/v1/tenants": {
       "get": {
         "operationId": "tenant.toList",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/TenantListEnvelope"
                 }
               }
             },
-            "description": "未登录"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5810,6 +7892,21 @@
       },
       "post": {
         "operationId": "tenant.toWrite",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -5826,11 +7923,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/TenantEnvelope"
                 }
               }
             },
-            "description": "参数错误"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5856,6 +7985,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5863,11 +8005,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5891,6 +8065,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5898,11 +8085,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/TenantEnvelope"
                 }
               }
             },
-            "description": "未找到"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5926,6 +8145,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -5944,11 +8176,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/TenantEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5974,6 +8238,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5981,11 +8258,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/MemberListEnvelope"
                 }
               }
             },
-            "description": "未找到"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6009,6 +8318,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -6027,11 +8349,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/MemberEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6066,6 +8420,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6073,11 +8440,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6110,6 +8509,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -6128,11 +8540,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/MemberEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6159,6 +8603,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6166,11 +8623,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/OrderListEnvelope"
                 }
               }
             },
-            "description": "权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6195,6 +8684,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -6213,11 +8715,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/OrderEnvelope"
                 }
               }
             },
-            "description": "档位不可购买 / 渠道未配置 / 上游下单失败"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（档位不可购买 / 渠道未配置 / 上游下单失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6252,6 +8786,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6259,11 +8806,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/OrderEnvelope"
                 }
               }
             },
-            "description": "订单不存在"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（订单不存在）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6299,6 +8878,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6306,11 +8898,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/OrderEnvelope"
                 }
               }
             },
-            "description": "订单不存在 / 已支付不可关闭"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（订单不存在 / 已支付不可关闭）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6346,6 +8970,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6353,11 +8990,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/OrderEnvelope"
                 }
               }
             },
-            "description": "订单不存在 / 上游查询失败"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（订单不存在 / 上游查询失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6384,6 +9053,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6391,11 +9073,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/CatalogEnvelope"
                 }
               }
             },
-            "description": "非个人租户或权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（非个人租户或权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6422,6 +9136,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6429,11 +9156,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/QuotaEnvelope"
                 }
               }
             },
-            "description": "非租户成员"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（非租户成员）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6460,6 +9219,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6467,11 +9239,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SubscriptionListEnvelope"
                 }
               }
             },
-            "description": "非租户成员"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（非租户成员）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6496,6 +9300,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -6514,11 +9331,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/SubscriptionEnvelope"
                 }
               }
             },
-            "description": "参数错误 / 权限不足"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（参数错误 / 权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6554,6 +9403,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6561,11 +9423,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/EmptyEnvelope"
                 }
               }
             },
-            "description": "未找到"
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6593,18 +9487,59 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
             "content": {
+              "application/octet-stream": {}
+            },
+            "description": "文件二进制流",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "文件不存在或未完成"
+            "description": "业务异常（文件不存在或未完成）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6631,18 +9566,56 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
+            "description": "取消成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "未登录或会话不存在"
+            "description": "业务异常（未登录或会话不存在）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6660,6 +9633,21 @@
       "post": {
         "description": "multipart：id / index / hash / chunk(可选)。分片写入全局 CAS；命中则 reused。SUPERSEDED/COMPLETED 会话幂等 200。需要 JWT。",
         "operationId": "upload.chunk",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -6675,11 +9663,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ChunkUploadEnvelope"
                 }
               }
             },
-            "description": "未登录或分片错误"
+            "description": "分片上传成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或分片错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6731,6 +9751,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6738,11 +9771,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/UploadFilesEnvelope"
                 }
               }
             },
-            "description": "未登录"
+            "description": "查询成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6770,18 +9835,59 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
             "content": {
+              "application/octet-stream": {}
+            },
+            "description": "文件二进制流",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "文件不存在"
+            "description": "业务异常（文件不存在）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6799,6 +9905,21 @@
       "post": {
         "description": "校验 chunk 表分片齐全并流式计算整文件 SHA-256；不合并落盘。返回按 asset id 的下载 URL。需要 JWT。",
         "operationId": "upload.finalize",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6818,11 +9939,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/FinalizeUploadEnvelope"
                 }
               }
             },
-            "description": "未登录或校验失败"
+            "description": "上传完成（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或校验失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6840,6 +9993,21 @@
       "patch": {
         "description": "为会话补绑整文件 SHA-256。命中已有 COMPLETED 时当前会话标 SUPERSEDED（不删除），返回 exists 与目标 id。在途 chunk 对 SUPERSEDED 幂等成功。需要 JWT。",
         "operationId": "upload.bindHash",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6860,11 +10028,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/UploadHashEnvelope"
                 }
               }
             },
-            "description": "未登录或参数错误"
+            "description": "绑定成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6882,6 +10082,21 @@
       "post": {
         "description": "创建上传会话。`hash` 可选。文件秒传：本人已完成直接返回；他人已完成则为当前用户克隆 COMPLETED（共享 CAS，克隆行默认 PRIVATE）。\n\n**可见性**（`visibility`，默认 `PRIVATE`）：\n- `PRIVATE`：仅创建者可按 id 下载（需 JWT）\n- `PUBLIC`：匿名或已登录均可按 id 下载（`GET /asset/{id}` 对 Auth 放行）\n- `RESTRICTED`：创建者 + `viewers`（用户 UUID 列表，最多 100）可下载（需 JWT）\n\n上传会话写操作（chunk/hash/finalize 等）仍仅创建者。需要 JWT。",
         "operationId": "upload.prepare",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6905,11 +10120,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/UploadPrepareEnvelope"
                 }
               }
             },
-            "description": "未登录或参数错误"
+            "description": "初始化成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6937,6 +10184,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6944,11 +10204,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/UploadProgressEnvelope"
                 }
               }
             },
-            "description": "未登录或会话不存在"
+            "description": "查询成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或会话不存在）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6966,16 +10258,63 @@
       "get": {
         "description": "后台管理员接口，返回全部用户，需要 JWT 鉴权。",
         "operationId": "user.toRead",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/UserListEnvelope"
                 }
               }
             },
-            "description": "未登录或权限不足"
+            "description": "获取成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未登录或权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6991,6 +10330,21 @@
       "post": {
         "description": "后台管理员接口，需要 JWT 鉴权。",
         "operationId": "user.toWrite",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -7012,11 +10366,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/UserEnvelope"
                 }
               }
             },
-            "description": "用户名已存在等业务错误"
+            "description": "创建成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（用户名已存在等业务错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7043,6 +10429,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7050,11 +10449,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/UserEnvelope"
                 }
               }
             },
-            "description": "用户不存在"
+            "description": "删除成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（用户不存在）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7079,6 +10510,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7086,11 +10530,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/UserEnvelope"
                 }
               }
             },
-            "description": "用户不存在（code=500101）"
+            "description": "获取成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（用户不存在（code=500101））：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7113,6 +10589,19 @@
             "name": "id",
             "required": true,
             "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
               "type": "string"
             }
           }
@@ -7143,11 +10632,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Exception"
+                  "$ref": "#/components/schemas/UserEnvelope"
                 }
               }
             },
-            "description": "用户不存在或参数错误"
+            "description": "更新成功（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（用户不存在或参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [

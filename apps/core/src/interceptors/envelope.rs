@@ -3,6 +3,7 @@
 use actix_web::{HttpResponse, Result};
 use serde::{Deserialize, Serialize};
 
+use crate::middlewares::trace;
 use crate::utils::code::SUCCESS;
 
 /// 统一的成功响应信封
@@ -19,6 +20,9 @@ pub struct Envelope<T> {
     pub data: Option<T>,
     /// 时间戳
     pub timestamp: i64,
+    /// 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub traceID: Option<String>,
 }
 
 impl<T> Envelope<T>
@@ -33,6 +37,7 @@ where
             msg: message.into(),
             data: Some(data),
             timestamp: chrono::Utc::now().timestamp_millis(),
+            traceID: trace::current_trace_id(),
         }
     }
 
@@ -44,6 +49,7 @@ where
             msg: "创建成功".to_string(),
             data: Some(data),
             timestamp: chrono::Utc::now().timestamp_millis(),
+            traceID: trace::current_trace_id(),
         }
     }
 
@@ -62,6 +68,7 @@ impl Envelope<()> {
             msg: "No content".to_string(),
             data: None,
             timestamp: chrono::Utc::now().timestamp_millis(),
+            traceID: trace::current_trace_id(),
         }
     }
 
@@ -73,6 +80,7 @@ impl Envelope<()> {
             msg: message.into(),
             data: None,
             timestamp: chrono::Utc::now().timestamp_millis(),
+            traceID: trace::current_trace_id(),
         }
     }
 }
@@ -144,4 +152,32 @@ macro_rules! paginated {
         )
         .transform()
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn trace_id_omitted_outside_request_scope() {
+        let envelope = Envelope::no_content();
+        assert!(envelope.traceID.is_none());
+        let json = serde_json::to_value(&envelope).expect("序列化失败");
+        assert!(
+            json.get("traceID").is_none(),
+            "无链路上下文时不应输出空 traceID"
+        );
+    }
+
+    #[actix_web::test]
+    async fn trace_id_filled_inside_request_scope() {
+        let ctx = trace::TraceContext::new_root();
+        let expected = ctx.trace_id.clone();
+
+        let envelope = trace::scoped(ctx, async { Envelope::message_only("已受理") }).await;
+
+        assert_eq!(envelope.traceID.as_deref(), Some(expected.as_str()));
+        let json = serde_json::to_value(&envelope).expect("序列化失败");
+        assert_eq!(json["traceID"], serde_json::json!(expected));
+    }
 }

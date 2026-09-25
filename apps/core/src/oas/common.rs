@@ -27,6 +27,10 @@ macro_rules! envelope {
             pub msg: String,
             pub data: Option<$data>,
             pub timestamp: i64,
+            /// 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用
+            // 运行时信封没有 rename_all，字段名本身就是 traceID，这里显式覆盖 camelCase
+            #[serde(rename = "traceID")]
+            pub traceID: Option<String>,
         }
     };
 }

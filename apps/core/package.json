@@ -5,6 +5,9 @@
   "scripts": {
     "arch": "bun run ./scripts/arch.ts",
     "build": "cargo build --release",
+    "contracts": "bun run ./scripts/contracts.ts all",
+    "contracts:check": "bun run ./scripts/contracts.ts all --check",
+    "contracts:ts": "bun run ./scripts/contracts.ts ts",
     "dev": "bun run ./scripts/dev.ts",
     "dev:stable": "bun run ./scripts/dev.ts --no-restart",
     "docs": "cargo run --bin docs",
@@ -17,7 +20,9 @@
     "ky": "^2.0.2"
   },
   "devDependencies": {
+    "@openapitools/openapi-generator-cli": "2.30.0",
     "@types/bun": "latest",
+    "openapi-typescript": "7.10.1",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3"
   },

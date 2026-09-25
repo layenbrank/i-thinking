@@ -27,9 +27,7 @@ use crate::services::auth::schema::{
     ),
     responses(
         (status = 200, description = "生成成功（code=200000）", body = CaptchaEnvelope),
-        (status = 200, description = "IP 限流（code=500304）", body = Exception),
-        (status = 200, description = "侧车不可用（code=100002）", body = Exception),
-        (status = 200, description = "缓存异常", body = Exception),
+        (status = "default", description = "业务异常（IP 限流（code=500304） / 侧车不可用（code=100002） / 缓存异常）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn captcha_doc() {}
@@ -60,10 +58,7 @@ pub fn captcha_doc() {}
     ),
     responses(
         (status = 200, description = "发送成功（code=200000，无 data）", body = EmptyEnvelope),
-        (status = 200, description = "验证码错误（code=500302）", body = Exception),
-        (status = 200, description = "验证码已过期（code=500303）", body = Exception),
-        (status = 200, description = "发送过于频繁（code=500304）", body = Exception),
-        (status = 200, description = "参数无效", body = Exception),
+        (status = "default", description = "业务异常（验证码错误（code=500302） / 验证码已过期（code=500303） / 发送过于频繁（code=500304） / 参数无效）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn otp_doc() {}
@@ -93,10 +88,7 @@ pub fn otp_doc() {}
     ),
     responses(
         (status = 200, description = "登录成功（code=200000）", body = SigninEnvelope),
-        (status = 200, description = "用户名或密码错误（code=500301）", body = Exception),
-        (status = 200, description = "验证码错误（code=500302）", body = Exception),
-        (status = 200, description = "验证码已过期（code=500303）", body = Exception),
-        (status = 200, description = "失败次数过多锁定（code=500304）", body = Exception),
+        (status = "default", description = "业务异常（用户名或密码错误（code=500301） / 验证码错误（code=500302） / 验证码已过期（code=500303） / 失败次数过多锁定（code=500304））：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn signin_doc() {}
@@ -122,10 +114,7 @@ pub fn signin_doc() {}
     ),
     responses(
         (status = 200, description = "登录成功（code=200000）", body = SigninEnvelope),
-        (status = 200, description = "OTP 错误（code=500306）", body = Exception),
-        (status = 200, description = "OTP 过期（code=500307）", body = Exception),
-        (status = 200, description = "用户不存在或账号异常", body = Exception),
-        (status = 200, description = "OTP 锁定（code=500304）", body = Exception),
+        (status = "default", description = "业务异常（OTP 错误（code=500306） / OTP 过期（code=500307） / 用户不存在或账号异常 / OTP 锁定（code=500304））：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn signin_phone_doc() {}
@@ -150,10 +139,7 @@ pub fn signin_phone_doc() {}
     ),
     responses(
         (status = 200, description = "登录成功（code=200000）", body = SigninEnvelope),
-        (status = 200, description = "OTP 错误（code=500306）", body = Exception),
-        (status = 200, description = "OTP 过期（code=500307）", body = Exception),
-        (status = 200, description = "用户不存在或账号异常", body = Exception),
-        (status = 200, description = "OTP 锁定（code=500304）", body = Exception),
+        (status = "default", description = "业务异常（OTP 错误（code=500306） / OTP 过期（code=500307） / 用户不存在或账号异常 / OTP 锁定（code=500304））：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn signin_email_doc() {}
@@ -180,10 +166,7 @@ pub fn signin_email_doc() {}
     ),
     responses(
         (status = 200, description = "注册成功（code=200000）", body = SignupEnvelope),
-        (status = 200, description = "用户名已存在（code=500102）", body = Exception),
-        (status = 200, description = "验证码错误（code=500302）", body = Exception),
-        (status = 200, description = "验证码已过期（code=500303）", body = Exception),
-        (status = 200, description = "其他业务错误", body = Exception),
+        (status = "default", description = "业务异常（用户名已存在（code=500102） / 验证码错误（code=500302） / 验证码已过期（code=500303） / 其他业务错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn signup_doc() {}
@@ -199,7 +182,7 @@ pub fn signup_doc() {}
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "获取成功（code=200000）", body = ProfileEnvelope),
-        (status = 200, description = "未登录（code=300001）", body = Exception),
+        (status = "default", description = "业务异常（未登录（code=300001））：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRead_doc() {}
@@ -227,7 +210,7 @@ pub fn toRead_doc() {}
     ),
     responses(
         (status = 200, description = "更新成功（code=200000）", body = ProfileEnvelope),
-        (status = 200, description = "未登录或参数错误", body = Exception),
+        (status = "default", description = "业务异常（未登录或参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toUpdate_doc() {}
@@ -243,7 +226,7 @@ pub fn toUpdate_doc() {}
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "登出成功（code=200000）", body = EmptyEnvelope),
-        (status = 200, description = "未登录或缓存异常", body = Exception),
+        (status = "default", description = "业务异常（未登录或缓存异常）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn signout_doc() {}
@@ -262,8 +245,7 @@ pub fn signout_doc() {}
     request_body(content = ForgotPasswordP),
     responses(
         (status = 200, description = "已受理（code=200000）", body = EmptyEnvelope),
-        (status = 200, description = "请求频率过高（code=200005）", body = Exception),
-        (status = 200, description = "验证码或参数错误", body = Exception),
+        (status = "default", description = "业务异常（请求频率过高（code=200005） / 验证码或参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn password_forgot_doc() {}
@@ -280,9 +262,7 @@ pub fn password_forgot_doc() {}
     request_body(content = ResetPasswordP),
     responses(
         (status = 200, description = "重置成功（code=200000）", body = EmptyEnvelope),
-        (status = 200, description = "OTP 错误或过期", body = Exception),
-        (status = 200, description = "密码强度不够（code=500105）", body = Exception),
-        (status = 200, description = "重置失败（code=500305）", body = Exception),
+        (status = "default", description = "业务异常（OTP 错误或过期 / 密码强度不够（code=500105） / 重置失败（code=500305））：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn password_reset_doc() {}
@@ -299,8 +279,7 @@ pub fn password_reset_doc() {}
     request_body(content = PasswordP),
     responses(
         (status = 200, description = "修改成功（code=200000）", body = EmptyEnvelope),
-        (status = 200, description = "原密码错误或弱密码", body = Exception),
-        (status = 200, description = "未登录", body = Exception),
+        (status = "default", description = "业务异常（原密码错误或弱密码 / 未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn password_doc() {}

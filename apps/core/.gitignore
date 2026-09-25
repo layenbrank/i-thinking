@@ -18,6 +18,9 @@
 # Bun / Node
 /node_modules/
 
+# 契约按需生成物（Python/Rust 客户端暂无消费者；见 guide/contract-codegen.md）
+/.generated/
+
 # Python
 __pycache__/
 *.py[cod]

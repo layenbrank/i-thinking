@@ -8,7 +8,10 @@
   },
   "exports": {
     ".": {
-      "types": "./src/index.d.ts"
+      "types": "./src/openapi.d.ts"
+    },
+    "./openapi": {
+      "types": "./src/openapi.d.ts"
     }
   }
 }

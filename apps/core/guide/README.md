@@ -9,6 +9,8 @@
 | OpenAPI 规范（生成） | [`../spec/openapi.json`](../spec/openapi.json) · 开发环境 `/api-docs/openapi.json` |
 | Swagger UI | `/swagger-ui/`（需 `--features openapi`） |
 | 业务错误码 | [`error-codes.md`](error-codes.md) · 开发环境 `/guide/error-codes.md` |
+| API 版本与兼容策略 | [`api-versioning.md`](api-versioning.md) |
+| 契约代码生成 | [`contract-codegen.md`](contract-codegen.md) |
 | 数据库协作 | [`database.md`](database.md) |
 | 配置（YAML） | [`configuration.md`](configuration.md) |
 | 外部集成（Sidecar） | [`integrations.md`](integrations.md) |
@@ -22,10 +24,10 @@
 
 ## 统一响应
 
-HTTP 状态码始终为 **200**，业务结果看 body：
+HTTP 状态码表达「调用在协议语义上是否成功」，业务结果看 body：
 
-- 成功：`code = 200000`，`success = true`
-- 失败：`success = false`，`code` 见 [error-codes.md](error-codes.md)
+- 成功：`code = 200000`，`success = true`，HTTP 200
+- 失败：`success = false`，HTTP 状态码按 `code` 段位推导（见 [error-codes.md](error-codes.md)）
 
 ## 鉴权
 

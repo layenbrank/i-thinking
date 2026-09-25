@@ -20,7 +20,7 @@ use crate::services::engine::schema::QueryP;
     ),
     responses(
         (status = 200, description = "获取成功（code=200000）", body = SuggestionEnvelope),
-        (status = 200, description = "未登录或上游失败", body = Exception),
+        (status = "default", description = "业务异常（未登录或上游失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRead_doc() {}

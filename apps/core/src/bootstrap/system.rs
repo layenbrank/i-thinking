@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
-use actix_web::{HttpResponse, Responder, get, web};
+use actix_web::{Responder, ResponseError, get, web};
 
 use crate::clients::elasticsearch::EsClient;
 use crate::clients::redis::RedisPool;
 use crate::databases::database::Storage;
+use crate::filters::exception::Exception;
 use crate::interceptors::envelope::Envelope;
 use crate::oas::common::Health;
 
@@ -55,5 +56,5 @@ async fn health_check(
 
     Envelope::success(health, msg)
         .transform()
-        .unwrap_or_else(|_| HttpResponse::InternalServerError().json("Failed to generate response"))
+        .unwrap_or_else(|_| Exception::internal_error("健康检查响应序列化失败").error_response())
 }

@@ -7,11 +7,13 @@ on:
     branches: [main, master]
     paths:
       - 'apps/core/**'
+      - 'packages/types/src/openapi.d.ts'
       - '.github/workflows/core-ci.yaml'
   pull_request:
     branches: [main, master]
     paths:
       - 'apps/core/**'
+      - 'packages/types/src/openapi.d.ts'
       - '.github/workflows/core-ci.yaml'
 
 permissions:
@@ -73,10 +75,40 @@ jobs:
         run: cargo run --bin docs
 
       - name: Verify openapi.json is up to date
-        run: git diff --exit-code spec/openapi.json
+        run: git diff --exit-code spec/
 
       - name: Build with openapi feature
         run: cargo build --features openapi --bin service
+
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install script dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # 消费的是已提交的 spec（其新鲜度由 test-and-openapi 的漂移门禁保证），故本 job 不需要 cargo。
+      # 三个生成器同时充当 spec 的第三方校验器：任一对契约报错即失败。
+      - name: Verify generated clients match the contract
+        run: bun run contracts --check
 
   licenses:
     runs-on: ubuntu-latest

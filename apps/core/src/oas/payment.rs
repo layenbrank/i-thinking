@@ -12,7 +12,7 @@ use crate::services::payment::schema::OrderP;
     params(("id" = String, Path, description = "租户 ID")),
     responses(
         (status = 200, description = "成功", body = CatalogEnvelope),
-        (status = 200, description = "非个人租户或权限不足", body = Exception),
+        (status = "default", description = "业务异常（非个人租户或权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn catalog_doc() {}
@@ -28,7 +28,7 @@ pub fn catalog_doc() {}
     params(("id" = String, Path, description = "租户 ID")),
     responses(
         (status = 200, description = "成功", body = OrderListEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toList_doc() {}
@@ -47,7 +47,7 @@ pub fn toList_doc() {}
     request_body(content = OrderP, description = "档位与支付渠道"),
     responses(
         (status = 200, description = "成功", body = OrderEnvelope),
-        (status = 200, description = "档位不可购买 / 渠道未配置 / 上游下单失败", body = Exception),
+        (status = "default", description = "业务异常（档位不可购买 / 渠道未配置 / 上游下单失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toWrite_doc() {}
@@ -65,7 +65,7 @@ pub fn toWrite_doc() {}
     ),
     responses(
         (status = 200, description = "成功", body = OrderEnvelope),
-        (status = 200, description = "订单不存在", body = Exception),
+        (status = "default", description = "业务异常（订单不存在）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRead_by_no_doc() {}
@@ -85,7 +85,7 @@ pub fn toRead_by_no_doc() {}
     ),
     responses(
         (status = 200, description = "成功", body = OrderEnvelope),
-        (status = 200, description = "订单不存在 / 上游查询失败", body = Exception),
+        (status = "default", description = "业务异常（订单不存在 / 上游查询失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn sync_doc() {}
@@ -104,7 +104,7 @@ pub fn sync_doc() {}
     ),
     responses(
         (status = 200, description = "成功", body = OrderEnvelope),
-        (status = 200, description = "订单不存在 / 已支付不可关闭", body = Exception),
+        (status = "default", description = "业务异常（订单不存在 / 已支付不可关闭）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn close_doc() {}
@@ -138,8 +138,7 @@ pub fn notify_wechat_doc() {}
                    失败返回 `failure`（支付宝按重试策略重发）。",
     request_body(content = String, description = "支付宝异步通知表单原文"),
     responses(
-        (status = 200, description = "已受理", content_type = "text/plain"),
-        (status = 200, description = "验签失败或订单不存在，返回 failure", content_type = "text/plain"),
+        (status = 200, description = "已受理：成功返回纯文本 `success`，验签失败或订单不存在返回 `failure`（支付宝按重试策略重发）", content_type = "text/plain"),
     )
 )]
 pub fn notify_alipay_doc() {}

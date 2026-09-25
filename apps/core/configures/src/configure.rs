@@ -554,7 +554,10 @@ impl Configure {
             .map(|(name, _)| name)
             .collect::<Vec<_>>();
             if !missing.is_empty() {
-                bail!("pay.wechat.{} is required when pay.wechat.enabled", missing.join(", pay.wechat."));
+                bail!(
+                    "pay.wechat.{} is required when pay.wechat.enabled",
+                    missing.join(", pay.wechat.")
+                );
             }
             if wechat.api_v3_key.chars().count() != 32 {
                 bail!("pay.wechat.api_v3_key must be exactly 32 characters");
@@ -578,7 +581,10 @@ impl Configure {
             .map(|(name, _)| name)
             .collect::<Vec<_>>();
             if !missing.is_empty() {
-                bail!("pay.alipay.{} is required when pay.alipay.enabled", missing.join(", pay.alipay."));
+                bail!(
+                    "pay.alipay.{} is required when pay.alipay.enabled",
+                    missing.join(", pay.alipay.")
+                );
             }
         }
 
@@ -772,18 +778,12 @@ impl Configure {
 
     /// 档位计价；未定价（`amount <= 0`）返回 `None`，调用方据此判定「不可售」。
     pub fn pay_plan(&self, plan: &str) -> Option<&PayPlanConfig> {
-        self.pay
-            .plans
-            .get(plan)
-            .filter(|spec| spec.amount > 0)
+        self.pay.plans.get(plan).filter(|spec| spec.amount > 0)
     }
 
     /// 全部可售档位（已过滤未定价项）。
     pub fn pay_plans(&self) -> impl Iterator<Item = (&String, &PayPlanConfig)> {
-        self.pay
-            .plans
-            .iter()
-            .filter(|(_, spec)| spec.amount > 0)
+        self.pay.plans.iter().filter(|(_, spec)| spec.amount > 0)
     }
 
     pub fn pay_wechat(&self) -> &WechatPayConfig {
@@ -830,7 +830,9 @@ mod tests {
     fn validate_rejects_half_configured_wechat_pay() {
         let mut cfg = Configure::default();
         cfg.pay.wechat.enabled = true;
-        let err = cfg.validate().expect_err("half configured wechat must fail");
+        let err = cfg
+            .validate()
+            .expect_err("half configured wechat must fail");
         assert!(err.to_string().contains("pay.wechat.mch_id"));
     }
 

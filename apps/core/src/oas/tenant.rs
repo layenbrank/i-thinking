@@ -13,7 +13,7 @@ use crate::services::tenant::schema::{MemberUpdateP, MemberWriteP, TenantUpdateP
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "成功", body = TenantListEnvelope),
-        (status = 200, description = "未登录", body = Exception),
+        (status = "default", description = "业务异常（未登录）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toList_doc() {}
@@ -28,7 +28,7 @@ pub fn toList_doc() {}
     request_body(content = TenantWriteP, description = "租户信息"),
     responses(
         (status = 200, description = "成功", body = TenantEnvelope),
-        (status = 200, description = "参数错误", body = Exception),
+        (status = "default", description = "业务异常（参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toWrite_doc() {}
@@ -43,7 +43,7 @@ pub fn toWrite_doc() {}
     params(("id" = String, Path, description = "租户 ID")),
     responses(
         (status = 200, description = "成功", body = TenantEnvelope),
-        (status = 200, description = "未找到", body = Exception),
+        (status = "default", description = "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRead_by_id_doc() {}
@@ -59,7 +59,7 @@ pub fn toRead_by_id_doc() {}
     request_body(content = TenantUpdateP, description = "租户信息"),
     responses(
         (status = 200, description = "成功", body = TenantEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toUpdate_doc() {}
@@ -74,7 +74,7 @@ pub fn toUpdate_doc() {}
     params(("id" = String, Path, description = "租户 ID")),
     responses(
         (status = 200, description = "成功", body = EmptyEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRemove_doc() {}
@@ -89,7 +89,7 @@ pub fn toRemove_doc() {}
     params(("id" = String, Path, description = "租户 ID")),
     responses(
         (status = 200, description = "成功", body = MemberListEnvelope),
-        (status = 200, description = "未找到", body = Exception),
+        (status = "default", description = "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn members_doc() {}
@@ -105,7 +105,7 @@ pub fn members_doc() {}
     request_body(content = MemberWriteP, description = "成员信息"),
     responses(
         (status = 200, description = "成功", body = MemberEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn member_add_doc() {}
@@ -124,7 +124,7 @@ pub fn member_add_doc() {}
     request_body(content = MemberUpdateP, description = "角色/状态"),
     responses(
         (status = 200, description = "成功", body = MemberEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn member_update_doc() {}
@@ -142,7 +142,7 @@ pub fn member_update_doc() {}
     ),
     responses(
         (status = 200, description = "成功", body = EmptyEnvelope),
-        (status = 200, description = "权限不足", body = Exception),
+        (status = "default", description = "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn member_remove_doc() {}

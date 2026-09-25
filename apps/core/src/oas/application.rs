@@ -10,7 +10,7 @@ use super::common::{ApplicationEnvelope, Exception};
     description = "返回 mock 应用配置，无需鉴权。",
     responses(
         (status = 200, description = "获取成功（code=200000）", body = ApplicationEnvelope),
-        (status = 200, description = "服务错误", body = Exception),
+        (status = "default", description = "业务异常（服务错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRead_doc() {}

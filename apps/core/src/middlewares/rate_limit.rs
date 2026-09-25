@@ -48,8 +48,8 @@ impl ClientIpKeyExtractor {
 
     pub fn extract(&self, req: &ServiceRequest) -> Result<IpAddr, KeyExtractionError> {
         let raw = client_ip::from_service_request(req, self.trust_proxy);
-        let mut ip =
-            client_ip::parse_ip_addr(&raw).ok_or(KeyExtractionError("无法从请求中解析客户端 IP"))?;
+        let mut ip = client_ip::parse_ip_addr(&raw)
+            .ok_or(KeyExtractionError("无法从请求中解析客户端 IP"))?;
 
         // 同一 /64 前缀归并为一个桶，避免终端用户轮换 IPv6 地址绕过限流。
         if let IpAddr::V6(ipv6) = ip {
@@ -85,9 +85,8 @@ impl AuthGovernorConfig {
         _negative: &NotUntil<QuantaInstant>,
         mut response: HttpResponseBuilder,
     ) -> HttpResponse {
-        response.status(actix_web::http::StatusCode::OK).json(
-            Exception::custom(request::RATE_LIMIT_EXCEEDED, "请求频率过高"),
-        )
+        let err = Exception::custom(request::RATE_LIMIT_EXCEEDED, "请求频率过高");
+        response.status(err.status()).json(err)
     }
 }
 
@@ -105,9 +104,8 @@ pub fn build_auth_governor(config: &Configure) -> AuthGovernor {
 
     // 等价于 governor 的 `requests_per_minute(rpm) + burst_size(burst)`：
     // 每 60s/rpm 补充一个令牌，桶容量为 burst。
-    let replenish_interval = Duration::from_nanos(
-        (Duration::from_secs(60).as_nanos() / rpm as u128).max(1) as u64,
-    );
+    let replenish_interval =
+        Duration::from_nanos((Duration::from_secs(60).as_nanos() / rpm as u128).max(1) as u64);
     let quota = Quota::with_period(replenish_interval)
         .expect("replenish interval is non-zero")
         .allow_burst(NonZeroU32::new(burst).expect("burst size is non-zero"));
@@ -163,14 +161,20 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let Some(config) = self.config.as_ref() else {
-            return Either::Left(self.service.call(req).map_ok(|resp| resp.map_into_left_body()));
+            return Either::Left(
+                self.service
+                    .call(req)
+                    .map_ok(|resp| resp.map_into_left_body()),
+            );
         };
 
         match config.extractor.extract(&req) {
             Ok(ip) => match config.limiter.check_key(&ip) {
-                Ok(_) => {
-                    Either::Left(self.service.call(req).map_ok(|resp| resp.map_into_left_body()))
-                }
+                Ok(_) => Either::Left(
+                    self.service
+                        .call(req)
+                        .map_ok(|resp| resp.map_into_left_body()),
+                ),
                 Err(negative) => {
                     let wait_time = negative
                         .wait_time_from(DefaultClock::default().now())
@@ -203,8 +207,8 @@ mod tests {
 
     #[test]
     fn keyed_limiter_rejects_after_burst_exhausted() {
-        let quota = Quota::per_minute(NonZeroU32::new(1).unwrap())
-            .allow_burst(NonZeroU32::new(2).unwrap());
+        let quota =
+            Quota::per_minute(NonZeroU32::new(1).unwrap()).allow_burst(NonZeroU32::new(2).unwrap());
         let limiter: DefaultKeyedRateLimiter<IpAddr> = RateLimiter::keyed(quota);
         let ip: IpAddr = "192.168.1.1".parse().unwrap();
 

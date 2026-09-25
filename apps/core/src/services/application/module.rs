@@ -3,9 +3,9 @@ use actix_web::web;
 use crate::middlewares::rate_limit::AuthGovernor;
 use crate::services::{
     application::controller::ApplicationController, auth::module::AuthModule,
-    engine::module::EngineModule, gateway::module::GatewayModule,
-    payment::module::PaymentModule, search::module::SearchModule, sso::module::SsoModule,
-    tenant::module::TenantModule, upload::module::UploadModule, user::module::UserModule,
+    engine::module::EngineModule, gateway::module::GatewayModule, payment::module::PaymentModule,
+    search::module::SearchModule, sso::module::SsoModule, tenant::module::TenantModule,
+    upload::module::UploadModule, user::module::UserModule,
 };
 
 pub struct ApplicationModule;

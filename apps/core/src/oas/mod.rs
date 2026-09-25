@@ -1,10 +1,11 @@
+pub mod addons;
 pub mod application;
 pub mod auth;
 pub mod common;
 pub mod engine;
 pub mod gateway;
-pub mod payment;
 pub mod paths;
+pub mod payment;
 pub mod search;
 pub mod sso;
 pub mod subscription;
@@ -13,20 +14,20 @@ pub mod tenant;
 pub mod upload;
 pub mod user;
 
-use utoipa::openapi::extensions::Extensions;
-use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
-use utoipa::{Modify, OpenApi};
+use crate::oas::addons::ContractAddon;
+use utoipa::OpenApi;
 
 use crate::oas::common::{
     ApplicationEnvelope, CaptchaEnvelope, CatalogEnvelope, ChunkUploadEnvelope, ChunkUploadForm,
-    EmptyEnvelope, EmptyR, Exception, FinalizeUploadEnvelope, Health, HealthEnvelope, MemberEnvelope,
-    MemberListEnvelope, ModelEnvelope, ModelListEnvelope, OrderEnvelope, OrderListEnvelope,
-    PlansEnvelope, ProfileEnvelope, ProviderEnvelope, ProviderListEnvelope, QuotaEnvelope,
-    SearchEnvelope, SearchWriteEnvelope, SelfQuotaEnvelope, SigninEnvelope, SigninErrorExample,
-    SigninSuccessExample, SignupEnvelope, SsoConnectionEnvelope, SsoConnectionListEnvelope,
-    SsoLoginEnvelope, SubscriptionEnvelope, SubscriptionListEnvelope, SuggestionEnvelope,
-    TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope, UploadHashEnvelope,
-    UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope, UserListEnvelope,
+    EmptyEnvelope, EmptyR, Exception, FinalizeUploadEnvelope, Health, HealthEnvelope,
+    MemberEnvelope, MemberListEnvelope, ModelEnvelope, ModelListEnvelope, OrderEnvelope,
+    OrderListEnvelope, PlansEnvelope, ProfileEnvelope, ProviderEnvelope, ProviderListEnvelope,
+    QuotaEnvelope, SearchEnvelope, SearchWriteEnvelope, SelfQuotaEnvelope, SigninEnvelope,
+    SigninErrorExample, SigninSuccessExample, SignupEnvelope, SsoConnectionEnvelope,
+    SsoConnectionListEnvelope, SsoLoginEnvelope, SubscriptionEnvelope, SubscriptionListEnvelope,
+    SuggestionEnvelope, TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope,
+    UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope,
+    UserListEnvelope,
 };
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
@@ -56,38 +57,20 @@ use crate::services::upload::schema::{
 };
 use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP};
 
-struct SecurityAddon;
-
-impl Modify for SecurityAddon {
-    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-        if let Some(components) = openapi.components.as_mut() {
-            let mut http = HttpBuilder::new()
-                .scheme(HttpAuthScheme::Bearer)
-                .bearer_format("JWT")
-                .description(Some(
-                    "登录 `POST /api/v1/auth/signin` 返回的 `data.token`。\n\n\
-                     请求头：`Authorization: Bearer <token>`。\n\n\
-                     **Apifox**：鉴权组件 Token 请填 `{{token}}`（勿用 `{{bearerToken}}`）；\
-                     环境变量名统一为 `token`，可在登录接口后置操作写入。",
-                ))
-                .build();
-            // 供 Apifox / 部分客户端识别的默认占位（标准 OAS 无此字段）
-            http.extensions = Some(Extensions::from_iter([
-                ("x-default", serde_json::json!("{{token}}")),
-                ("x-apifox-default", serde_json::json!("{{token}}")),
-            ]));
-            components.add_security_scheme("bearer_auth", SecurityScheme::Http(http));
-        }
-    }
-}
-
 #[derive(OpenApi)]
 #[openapi(
     info(
         title = "CoreX Service API",
         version = env!("CARGO_PKG_VERSION"),
-        description = "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。\
-            错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。\
+        description = "响应体统一信封：成功 code=200000，失败 code 为业务错误码且 details 仅在开发环境返回，\
+            错误码规则见 /guide/error-codes.md。\
+            接口版本与兼容策略见 /guide/api-versioning.md：主版本在 URL（/api/v1）、info.version 取构建版本、\
+            错误码只增不改。\
+            HTTP 状态码由错误码归属推导（校验类 400/422、未认证 401、\
+            无权限 403、不存在 404、冲突 409、超限 413、限流 429、上游失败 502、内部错误 500），\
+            成功恒为 200；未预期状态以契约中的 default 响应描述。\
+            链路追踪：请求可带 W3C `traceparent`（缺省由服务端生成），响应始终回显该头，\
+            响应体信封的 traceID 即其 trace-id。\
             鉴权：JWT Bearer；Apifox 环境变量统一使用 {{token}}（来自 signin.data.token）。\
             密码登录 / 注册 / 发 OTP 前须先 POST /api/v1/auth/captcha 获取 captchaKey（go-captcha 行为验证码）。",
         contact(name = "CoreX Team", email = "15638470820@163.com"),
@@ -311,7 +294,7 @@ impl Modify for SecurityAddon {
         (name = "SSO", description = "单点登录（OIDC）"),
         (name = "Payment", description = "支付：档位/渠道目录、订单、渠道回调（下单需 JWT）"),
     ),
-    modifiers(&SecurityAddon),
+    modifiers(&ContractAddon),
     external_docs(
         url = "/guide/error-codes.md",
         description = "业务错误码说明"

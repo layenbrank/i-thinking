@@ -14,7 +14,7 @@ use crate::services::subscription::schema::SubscribeP;
     params(("id" = String, Path, description = "租户 ID")),
     responses(
         (status = 200, description = "成功", body = SubscriptionListEnvelope),
-        (status = 200, description = "非租户成员", body = Exception),
+        (status = "default", description = "业务异常（非租户成员）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toList_doc() {}
@@ -31,7 +31,7 @@ pub fn toList_doc() {}
     request_body(content = SubscribeP, description = "订阅信息"),
     responses(
         (status = 200, description = "成功", body = SubscriptionEnvelope),
-        (status = 200, description = "参数错误 / 权限不足", body = Exception),
+        (status = "default", description = "业务异常（参数错误 / 权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toWrite_doc() {}
@@ -50,7 +50,7 @@ pub fn toWrite_doc() {}
     ),
     responses(
         (status = 200, description = "成功", body = EmptyEnvelope),
-        (status = 200, description = "未找到", body = Exception),
+        (status = "default", description = "业务异常（未找到）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRemove_doc() {}
@@ -66,7 +66,7 @@ pub fn toRemove_doc() {}
     params(("id" = String, Path, description = "租户 ID")),
     responses(
         (status = 200, description = "成功", body = QuotaEnvelope),
-        (status = 200, description = "非租户成员", body = Exception),
+        (status = "default", description = "业务异常（非租户成员）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn quota_doc() {}

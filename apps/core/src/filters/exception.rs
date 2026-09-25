@@ -1,11 +1,12 @@
 //! 异常响应信封（Nest Filter 角色）
 
-use actix_web::{HttpResponse, Result};
+use actix_web::{HttpResponse, Result, http::StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::ToSchema;
 
-use crate::utils::code::{auth, request, resource, system};
+use crate::middlewares::trace;
+use crate::utils::code::{self, auth, request, resource, system};
 
 use configures::runtime;
 
@@ -16,12 +17,16 @@ pub fn details_enabled(is_production: bool) -> bool {
 
 /// 异常响应结构
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[schema(as = ErrorEnvelope)]
 pub struct Exception {
     /// 业务错误码 (非0表示各种业务错误)
     pub code: i32,
     pub success: bool,
     pub msg: String,
     pub timestamp: i64,
+    /// 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub traceID: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(value_type = Object, nullable = true)]
     pub data: Option<Value>,
@@ -39,6 +44,7 @@ impl Exception {
             msg: msg.into(),
             data: None,
             timestamp: chrono::Utc::now().timestamp_millis(),
+            traceID: trace::current_trace_id(),
             details: None,
         }
     }
@@ -81,9 +87,15 @@ impl Exception {
         self
     }
 
-    /// 转换为 HttpResponse，始终返回 HTTP 200，业务错误通过响应体中的 code 字段表示
+    /// 该异常对应的 HTTP 状态码（由错误码段位映射，见 [`code::http_status`]）
+    pub fn status(&self) -> StatusCode {
+        StatusCode::from_u16(code::http_status(self.code))
+            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    /// 转换为 HttpResponse，HTTP 状态码与响应体 `code` 表达同一故障
     pub fn transform(self) -> Result<HttpResponse> {
-        Ok(HttpResponse::Ok().json(self))
+        Ok(HttpResponse::build(self.status()).json(self))
     }
 }
 
@@ -93,15 +105,15 @@ impl std::fmt::Display for Exception {
     }
 }
 
-/// 支持在 handler 中用 `?` 传播异常：对外 HTTP 状态码恒为 200，
-/// 业务错误由响应体 `code` 表达（与 [`Exception::transform`] 行为一致）。
+/// 支持在 handler 中用 `?` 传播异常：HTTP 状态码与响应体 `code` 一致
+/// （与 [`Exception::transform`] 行为一致）。
 impl actix_web::ResponseError for Exception {
-    fn status_code(&self) -> actix_web::http::StatusCode {
-        actix_web::http::StatusCode::OK
+    fn status_code(&self) -> StatusCode {
+        self.status()
     }
 
     fn error_response(&self) -> HttpResponse {
-        HttpResponse::Ok().json(self)
+        HttpResponse::build(self.status()).json(self)
     }
 }
 
@@ -125,6 +137,39 @@ mod tests {
     fn details_gated_by_env_name() {
         assert!(!details_enabled_for(true));
         assert!(details_enabled_for(false));
+    }
+
+    #[test]
+    fn status_reflects_fault_owner() {
+        assert_eq!(
+            Exception::bad_request("x").status(),
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            Exception::unauthorized("x").status(),
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(Exception::forbidden("x").status(), StatusCode::FORBIDDEN);
+        assert_eq!(Exception::not_found("x").status(), StatusCode::NOT_FOUND);
+        assert_eq!(
+            Exception::internal_error("x").status(),
+            StatusCode::INTERNAL_SERVER_ERROR
+        );
+        assert_eq!(
+            Exception::custom(code::system::SERVICE_UNAVAILABLE, "x").status(),
+            StatusCode::SERVICE_UNAVAILABLE
+        );
+    }
+
+    #[test]
+    fn trace_id_omitted_outside_request_scope() {
+        let err = Exception::bad_request("x");
+        assert!(err.traceID.is_none());
+        let json = serde_json::to_value(&err).expect("序列化失败");
+        assert!(
+            json.get("traceID").is_none(),
+            "无链路上下文时不应输出空 traceID"
+        );
     }
 }
 

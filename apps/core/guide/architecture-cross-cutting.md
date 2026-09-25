@@ -40,7 +40,8 @@ Middleware → Guard → Interceptor(pre) → Pipe → Handler
 | Pipe | `web::Json` + schema `*P` |
 | Decorator | 模块 `configure` + Auth 作用域 |
 
-统一响应形状：`code` / `success` / `msg` / `data` / `timestamp`。HTTP 状态码恒为 200，业务看 `code`（见 [error-codes.md](error-codes.md)）。
+统一响应形状：`code` / `success` / `msg` / `data` / `timestamp` / `traceID`。HTTP 状态码由错误码归属推导（成功恒为 200，失败按 `code` 段位返回 4xx/5xx），业务仍以 `code` 为准（见 [error-codes.md](error-codes.md)）。
+链路追踪：请求可带 W3C `traceparent`（缺省由服务端生成），响应始终回显该头，信封 `traceID` 即其 trace-id（见 [`trace`](../src/middlewares/trace.rs)）。
 
 ## 目录约定
 

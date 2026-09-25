@@ -38,5 +38,8 @@
 *.pyi text
 *.toml text
 
+# 契约生成物：入库内容必须与生成器输出逐字节一致（LF），不接受行尾转换。
+packages/types/src/openapi.d.ts text eol=lf
+
 # Shell 脚本需要直接在 Linux CI 上执行，强制以 LF 入库。
 *.sh text eol=lf

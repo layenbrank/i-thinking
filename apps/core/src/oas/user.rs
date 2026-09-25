@@ -12,7 +12,7 @@ use crate::services::user::schema::{UpdateP, WriteP};
     security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "获取成功（code=200000）", body = UserListEnvelope),
-        (status = 200, description = "未登录或权限不足", body = Exception),
+        (status = "default", description = "业务异常（未登录或权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRead_doc() {}
@@ -37,7 +37,7 @@ pub fn toRead_doc() {}
     ),
     responses(
         (status = 200, description = "创建成功（code=200000）", body = UserEnvelope),
-        (status = 200, description = "用户名已存在等业务错误", body = Exception),
+        (status = "default", description = "业务异常（用户名已存在等业务错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toWrite_doc() {}
@@ -55,7 +55,7 @@ pub fn toWrite_doc() {}
     ),
     responses(
         (status = 200, description = "获取成功（code=200000）", body = UserEnvelope),
-        (status = 200, description = "用户不存在（code=500101）", body = Exception),
+        (status = "default", description = "业务异常（用户不存在（code=500101））：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRead_by_id_doc() {}
@@ -87,7 +87,7 @@ pub fn toRead_by_id_doc() {}
     ),
     responses(
         (status = 200, description = "更新成功（code=200000）", body = UserEnvelope),
-        (status = 200, description = "用户不存在或参数错误", body = Exception),
+        (status = "default", description = "业务异常（用户不存在或参数错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toUpdate_doc() {}
@@ -105,7 +105,7 @@ pub fn toUpdate_doc() {}
     ),
     responses(
         (status = 200, description = "删除成功（code=200000）", body = UserEnvelope),
-        (status = 200, description = "用户不存在", body = Exception),
+        (status = "default", description = "业务异常（用户不存在）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
     )
 )]
 pub fn toRemove_doc() {}
