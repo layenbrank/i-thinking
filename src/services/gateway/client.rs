@@ -21,8 +21,11 @@ pub struct Upstream {
 impl Upstream {
     pub fn new(config: &Configure) -> Self {
         // 只设连接超时：流式响应可能长时间持续，不能用总超时掐断。
+        // 供应商 baseUrl 由管理员显式配置（含 ollama/vLLM 等本机或内网上游），
+        // 因此禁用 env 代理：否则本机系统代理（如 127.0.0.1:7892）会拦截请求并返回 502。
         let http = Client::builder()
             .connect_timeout(Duration::from_millis(config.gateway_upstream_timeout_ms()))
+            .no_proxy()
             .build()
             .expect("failed to build gateway http client");
         Self { http }
@@ -39,10 +42,19 @@ impl Upstream {
         if let Some(key) = api_key.filter(|k| !k.is_empty()) {
             req = req.header(reqwest::header::AUTHORIZATION, format!("Bearer {key}"));
         }
-        let resp = req.send().await?;
+        let resp = req.send().await.map_err(|err| {
+            tracing::error!(error = %err, url = %url, "gateway upstream request failed");
+            UpstreamError::Http(err)
+        })?;
         if !resp.status().is_success() {
             let status = resp.status().as_u16();
             let detail = resp.text().await.unwrap_or_default();
+            tracing::warn!(
+                status,
+                url = %url,
+                detail = %truncate(&detail, 500),
+                "gateway upstream returned non-success status"
+            );
             return Err(UpstreamError::Status {
                 status,
                 detail: truncate(&detail, 500),
