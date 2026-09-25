@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `asset` (
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS `idx_asset_hash` ON `asset` (`hash`);--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS `idx_asset_path` ON `asset` (`filePath`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `Auth` (
+CREATE TABLE IF NOT EXISTS `auth` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text,
 	`email` text,

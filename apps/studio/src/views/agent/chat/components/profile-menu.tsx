@@ -49,7 +49,8 @@ function findSettingsShortcut() {
 
 /**
  * 左栏底部的齿轮。Qoder 点开是菜单（设置 / 外观 / 关于），不是直接进设置页。
- * 宠物、退出登录、语言字体这些 studio 没有对应能力，不放进去。
+ * 宠物、语言字体这些 studio 没有对应能力，不放进去；账号与退出登录归旁边的账号区
+ * （`features/account/account-menu.tsx`），免得同一件事有两个入口。
  */
 export function ProfileMenu(props: ProfileMenuProps) {
   const [mode, updateMode] = useState<AppearanceMode>(readAppearance)

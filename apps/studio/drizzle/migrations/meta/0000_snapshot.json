@@ -159,8 +159,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "Auth": {
-      "name": "Auth",
+    "auth": {
+      "name": "auth",
       "columns": {
         "id": {
           "name": "id",

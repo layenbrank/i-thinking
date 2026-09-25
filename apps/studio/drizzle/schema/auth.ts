@@ -5,7 +5,7 @@ import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
  * 不属于 Tauri 版的实体集，故不受"两版同 schema"约束；
  * 时间戳用 `timestamp_ms`（Date ↔ INTEGER 毫秒），与旧 Prisma 的 DATETIME 列在 SQLite 下语义等价。
  */
-export const auth = sqliteTable('Auth', {
+export const auth = sqliteTable('auth', {
   id: text('id').primaryKey(),
   name: text('name'),
   email: text('email'),

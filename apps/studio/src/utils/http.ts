@@ -2,6 +2,7 @@ import { ofetch, type FetchOptions } from 'ofetch'
 
 import { TIMEOUT_MS } from '@/utils/http.errors'
 import { findAuthToken } from './auth'
+import { findActiveTenantID } from './tenant'
 
 type HttpOptions = Omit<FetchOptions<'json'>, 'method' | 'body'>
 type HttpBody = FetchOptions['body']
@@ -10,8 +11,12 @@ const fetcher = ofetch.create({
   baseURL: import.meta.env.VITE_THINKING,
   timeout: TIMEOUT_MS,
   onRequest({ request, options }) {
+    const url = findRequestUrl(request)
+    const tenantID = isGatewayUrl(url) ? findActiveTenantID() : null
+    if (tenantID) options.headers.set('X-Tenant-ID', tenantID)
+
     const token = findAuthToken()
-    if (!token || !isThinkingUrl(findRequestUrl(request))) return
+    if (!token || !isThinkingUrl(url)) return
     options.headers.set('Authorization', `Bearer ${token}`)
   }
 })
@@ -28,6 +33,18 @@ function isThinkingUrl(url: string) {
   const base = import.meta.env.VITE_THINKING
   if (!base) return false
   return url.startsWith(base)
+}
+
+/**
+ * 网关接口（`/gateway/*`）：模型目录、转发、配额、档位。
+ *
+ * 这些接口认 `X-Tenant-ID`，服务端据此决定「能看见哪些模型」与「配额记在谁头上」；不带这个头
+ * 就按账号归属兜底，团队共享的模型会整批不可见 —— 目录为空就是这么来的。客户端一律用相对路径
+ * 调网关（`baseURL` 已含 `/api/v1`），绝对地址这里只按路径片段判断。
+ */
+function isGatewayUrl(url: string): boolean {
+  if (!isThinkingUrl(url)) return false
+  return url.includes('/gateway/')
 }
 
 export const http = {

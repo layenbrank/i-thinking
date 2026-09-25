@@ -17,6 +17,28 @@ interface AuthSession {
   updatedAt: number
 }
 
+interface AuthAvatar {
+  id: string
+  url: string
+  name: string
+}
+
+/** 与 service 的 `ProfileR` 同名同形（`GET /auth/profile`） */
+interface AuthProfile {
+  id: string
+  username: string
+  role: string
+  status: string
+  email: string | null
+  phone: string | null
+  gender: string | null
+  birthday: string | null
+  age: number | null
+  avatar: AuthAvatar | null
+  createdAt: number
+  updatedAt: number
+}
+
 interface CaptchaChallenge {
   kind: string
   captchaKey: string
@@ -84,7 +106,19 @@ function POST_PASSWORD_RESET(data: ResetParams) {
   return unwrap(http.post<RSF<null>>('/auth/password/reset', data))
 }
 
+/** 当前登录账号的资料；令牌失效时服务端回 300001/300002/300003（见 `isSessionInvalid`） */
+function GET_AUTH_PROFILE() {
+  return unwrap(http.get<RSF<AuthProfile>>('/auth/profile'))
+}
+
+/** 登出：服务端把这份令牌记进黑名单，之后它连资料都读不到 */
+function POST_AUTH_SIGNOUT() {
+  return unwrap(http.post<RSF<null>>('/auth/signout'))
+}
+
 export {
+  GET_AUTH_PROFILE,
+  POST_AUTH_SIGNOUT,
   POST_CAPTCHA,
   POST_OTP,
   POST_PASSWORD_FORGOT,
@@ -95,4 +129,4 @@ export {
   POST_SIGNUP
 }
 
-export type { AuthSession, CaptchaChallenge, OtpChannel, SlideProof }
+export type { AuthAvatar, AuthProfile, AuthSession, CaptchaChallenge, OtpChannel, SlideProof }
