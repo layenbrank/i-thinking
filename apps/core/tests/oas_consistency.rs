@@ -48,3 +48,23 @@ fn spec_json_export_is_valid() {
     assert!(json.contains("bearer_auth"));
     assert!(json.contains("/guide/error-codes.md"));
 }
+
+/// 导出必须字节稳定：manifest 里 `securitySchemes.*` 的 Apifox 扩展来自 utoipa 的
+/// `Extensions`（内部是 `HashMap`），未规范化时键序随进程随机，会让 CI 的
+/// `git diff --exit-code spec/openapi.json` 随机失败。
+#[test]
+fn spec_json_export_is_deterministic() {
+    let first = oas::json_pretty();
+    assert_eq!(first, oas::json_pretty(), "同一进程内两次导出结果不一致");
+
+    let apifox = first
+        .find("\"x-apifox-default\"")
+        .expect("securityScheme 缺少 x-apifox-default");
+    let default = first
+        .find("\"x-default\"")
+        .expect("securityScheme 缺少 x-default");
+    assert!(
+        apifox < default,
+        "键序未规范化，导出结果会随运行随机变化"
+    );
+}

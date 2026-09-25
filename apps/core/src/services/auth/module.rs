@@ -1,4 +1,3 @@
-use actix_governor::Governor;
 use actix_web::web;
 
 use crate::guards::auth::Auth;
@@ -43,9 +42,9 @@ macro_rules! auth_routes {
 
 impl AuthModule {
     pub fn configure(cfg: &mut web::ServiceConfig, auth_governor: &AuthGovernor) {
-        if let Some(gov) = auth_governor.0.as_ref() {
+        if auth_governor.0.is_some() {
             cfg.service(auth_routes!(
-                web::scope("/auth").wrap(Governor::new(gov.as_ref()))
+                web::scope("/auth").wrap(auth_governor.clone())
             ));
         } else {
             cfg.service(auth_routes!(web::scope("/auth")));

@@ -18,7 +18,7 @@
 | 模块接口详情 | [`src/services/*/README.md`](../src/services/auth/README.md) |
 | HTTP 测试 | [`http/`](../http/) |
 
-生成 OpenAPI：`cargo run --bin docs`
+生成 OpenAPI：`cargo run --bin docs`（输出为规范序，键升序，可做字节级漂移校验）
 
 ## 统一响应
 

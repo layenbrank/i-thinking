@@ -4,11 +4,13 @@
 # Keep attributes file itself as text.
 .gitattributes text eol=crlf
 
-# Binaries — no line-ending conversion / text diff.
+# Binary files — no line-ending conversion / text diff.
 *.exe binary
 *.dll binary
 *.so binary
 *.dylib binary
+*.wasm binary
+*.bin binary
 *.png binary
 *.jpg binary
 *.jpeg binary
@@ -29,3 +31,12 @@
 *.mp3 binary
 *.wav binary
 *.lockb binary
+
+# Polyglot sources — 显式声明为文本，行尾沿用上面的 CRLF 检出策略。
+*.rs text
+*.py text
+*.pyi text
+*.toml text
+
+# Shell 脚本需要直接在 Linux CI 上执行，强制以 LF 入库。
+*.sh text eol=lf

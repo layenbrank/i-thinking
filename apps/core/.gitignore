@@ -24,10 +24,7 @@ __pycache__/
 *$py.class
 *.so
 
-# planning-with-files（忽略全部，保留 .cursor 下任意嵌套）
+# planning-with-files 的「磁盘工作记忆」，仅存会话工作区
 findings.md
 progress.md
 task_plan.md
-!.cursor/**/findings.md
-!.cursor/**/progress.md
-!.cursor/**/task_plan.md

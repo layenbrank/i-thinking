@@ -37,7 +37,7 @@
 | `auth.captcha.kind`                   | `slide-default`                    | 默认题型 ID（`get-data` / `check-data`）                       |
 | `auth.captcha.timeout_ms`             | `5000`                             | 调用侧车超时                                                   |
 | `auth.captcha.ip_rate_limit`          | `30`                               | 每分钟每 IP 取题次数                                           |
-| `auth.rate_limit.enabled`             | `true`                             | Auth 路由 HTTP IP 限流（actix-governor）                       |
+| `auth.rate_limit.enabled`             | `true`                             | Auth 路由 HTTP IP 限流（governor）                            |
 | `auth.rate_limit.burst_size`          | `20`                               | 突发请求上限                                                   |
 | `auth.rate_limit.requests_per_minute` | `30`                               | 每分钟每 IP 补充配额                                           |
 | `auth.trust_proxy`                    | `false`                            | 是否信任 `X-Forwarded-For`（反向代理场景）                     |

@@ -151,6 +151,10 @@ spec/                     # OpenAPI 生成物
 
 > `cargo doc` 生成 Rustdoc；`cargo run --bin docs` 导出 OpenAPI 规范。
 
+> 导出的规范是**规范序**（所有对象键按升序排列），因此产物字节稳定，CI 可用
+> `cargo run --bin docs && git diff --exit-code spec/openapi.json` 做漂移校验；
+> 手工编辑 `spec/openapi.json` 会被下一次生成覆盖。
+
 ### Apifox 导入
 
 1. Apifox → **导入** → **OpenAPI**

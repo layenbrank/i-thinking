@@ -319,9 +319,32 @@ impl Modify for SecurityAddon {
 )]
 pub struct OpenDoc;
 
-/// 生成 OpenAPI JSON 字符串
+/// 生成 OpenAPI JSON 字符串。
+///
+/// 输出必须规范化（所有对象键递归升序）：utoipa 的 `Extensions` 内部是 `HashMap`，
+/// 直接序列化时键序随进程随机化——同一二进制连续运行会产出两种字节序列，
+/// 会让「重新生成 + git diff」的漂移校验随机失败。排序由本函数自身保证，
+/// 不依赖 `serde_json` 的 `preserve_order` 特性开关。
 pub fn json_pretty() -> String {
-    OpenDoc::openapi().to_pretty_json().expect("valid oas spec")
+    let mut spec = serde_json::to_value(OpenDoc::openapi()).expect("valid oas spec");
+    sort_keys(&mut spec);
+    serde_json::to_string_pretty(&spec).expect("valid oas spec")
+}
+
+fn sort_keys(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Object(map) => {
+            let mut entries: Vec<(String, serde_json::Value)> =
+                std::mem::take(map).into_iter().collect();
+            entries.sort_by(|a, b| a.0.cmp(&b.0));
+            for (key, mut child) in entries {
+                sort_keys(&mut child);
+                map.insert(key, child);
+            }
+        }
+        serde_json::Value::Array(items) => items.iter_mut().for_each(sort_keys),
+        _ => {}
+    }
 }
 
 /// 判断 spec 是否包含指定路由（method + path）

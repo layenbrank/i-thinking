@@ -1,0 +1,101 @@
+name: Core CI
+
+# Rust 核心服务（apps/core）的独立流水线：与根 pnpm/turbo 流水线解耦，
+# 由 apps/core 自己的 bun + cargo 工具链负责。
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'apps/core/**'
+      - '.github/workflows/core-ci.yaml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'apps/core/**'
+      - '.github/workflows/core-ci.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/core
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-and-openapi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/core
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Neutralize local cargo wrappers for CI
+        run: |
+          # .cargo/config.toml 面向 Windows + sccache，不适合 GitHub Linux runner
+          printf '%s\n' '[build]' 'target-dir = "target"' > .cargo/config.toml
+
+      - name: Install script dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Architecture hygiene
+        run: bun run arch
+
+      - name: Run unit tests
+        run: cargo test --lib -p service
+
+      - name: Run integration tests
+        run: |
+          cargo test --test oas_consistency
+          cargo test --test route_reachability
+
+      - name: Export OpenAPI spec
+        run: cargo run --bin docs
+
+      - name: Verify openapi.json is up to date
+        run: git diff --exit-code spec/openapi.json
+
+      - name: Build with openapi feature
+        run: cargo build --features openapi --bin service
+
+  licenses:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/core
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@cargo-deny
+
+      - name: Check dependency licenses, bans and advisories
+        run: cargo deny check

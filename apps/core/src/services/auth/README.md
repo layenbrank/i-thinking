@@ -87,7 +87,7 @@ import GoCaptcha from 'go-captcha-react'
 
 - `signin` / `signup` / `captcha` / `otp` / `password/forgot` / `password/reset`：无 JWT
 - `profile` / `password` / `signout`：挂载 [`Auth::required()`](../../guards/auth.rs)
-- Auth 路由受 `actix-governor` IP 限流（`auth.rate_limit`），超限 `code=200005`
+- Auth 路由受 `governor` IP 限流（`auth.rate_limit`），超限 `code=200005`
 - 未登录返回 `300001`；已登出 token 返回 `300002`
 
 ## 接口示例

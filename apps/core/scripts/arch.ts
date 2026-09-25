@@ -23,6 +23,11 @@ const COMPLEX_SERVICES: Record<string, { extra: Set<string> }> = {
   search: { extra: new Set(['repository.rs']) }
 }
 
+/** 标准服务模块允许出现的额外文件；新增文件必须在此登记，避免模块悄悄膨胀 */
+const STANDARD_SERVICE_EXTRA: Record<string, readonly string[]> = {
+  auth: ['captcha.rs', 'otp.rs']
+}
+
 const FORBIDDEN_FILES = [
   join(SRC, 'utils', 'http.rs'),
   join(SRC, 'utils', 'response.rs'),
@@ -91,6 +96,7 @@ function checkServices(errors: string[]) {
     if (name in COMPLEX_SERVICES) {
       for (const e of COMPLEX_SERVICES[name].extra) allowed.add(e)
     }
+    for (const e of STANDARD_SERVICE_EXTRA[name] ?? []) allowed.add(e)
 
     for (const entry of readdirSync(dirPath)) {
       const full = join(dirPath, entry)

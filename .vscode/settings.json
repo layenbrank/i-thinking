@@ -6,8 +6,8 @@
   // ── rust-analyzer ──────────────────────────────────────────────────────────
   // true = 自动在项目 target/ 下建 rust-analyzer/ 子目录，避免与 cargo build 竞争锁
   "rust-analyzer.cargo.targetDir": true,
-  // 仅分析 src-tauri 下的 Cargo.toml，不扫描整个 monorepo
-  "rust-analyzer.linkedProjects": ["apps/client/src-tauri/Cargo.toml"],
+  // 仅分析显式声明的 Cargo.toml，不扫描整个 monorepo
+  "rust-analyzer.linkedProjects": ["apps/client/src-tauri/Cargo.toml", "apps/core/Cargo.toml"],
   // 限制并发线程数，减少内存压力（4 核以上机器可适当调高）
   "rust-analyzer.numThreads": 4,
   // 不分析 examples/tests/benches，只分析 lib+bin
@@ -40,6 +40,11 @@
   },
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
+  },
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4
   },
   "[sass]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -161,6 +166,7 @@
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
     ".editorconfig": ".browserslistrc,.lintstagedrc,.prettierrc*,.prettierignore",
+    "Cargo.toml": "Cargo.lock, rustfmt.toml",
     ".gitignore": ".gitattributes, .gitconfig, .gitpod.yml, .git*, git*",
     "*.env": "$(capture).env.*",
     "dist.pem": "dist.*",
@@ -203,12 +209,20 @@
     "**/.gitignore": true,
     "**/.idea": true,
     "**/.svn": true,
+    "**/.tmp": true,
     "**/.vscode": true,
+    "**/apps/core/cas": true,
+    "**/apps/core/chunks": true,
+    "**/apps/core/data": true,
+    "**/apps/core/logs": true,
+    "**/apps/core/uploads": true,
     "**/build": true,
     "**/dist": true,
     "**/node_modules": true,
     "**/package-lock.json": true,
     "**/pnpm-lock.yaml": true,
+    "**/spec/openapi.json": true,
+    "**/target": true,
     "**/tmp": true,
     "**/yarn.lock": true
   },
@@ -328,12 +342,20 @@
     "**/.gitignore": true,
     "**/.idea": true,
     "**/.svn": true,
+    "**/.tmp": true,
     "**/.vscode": true,
+    "**/apps/core/cas": true,
+    "**/apps/core/chunks": true,
+    "**/apps/core/data": true,
+    "**/apps/core/logs": true,
+    "**/apps/core/uploads": true,
     "**/build": true,
     "**/dist": true,
     "**/node_modules": true,
     "**/package-lock.json": true,
     "**/pnpm-lock.yaml": true,
+    "**/spec/openapi.json": true,
+    "**/target": true,
     "**/tmp": true,
     "**/yarn.lock": true
   },
