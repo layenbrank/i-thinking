@@ -1,15 +1,19 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="dataSourceStorageLocal" created-in="WS-261.26222.58">
-    <data-source name="@localhost" uuid="9a0a2d36-ebc9-4338-a5ae-be5ca3b3725e">
+<DataSourcesHistory>
+  <DataSourceFromHistory isRemovedFromProject="false">
+    <data-source source="LOCAL" name="@localhost" uuid="9a0a2d36-ebc9-4338-a5ae-be5ca3b3725e">
       <database-info product="Mongo DB" version="8.0.3" jdbc-version="4.2" driver-name="MongoDB JDBC Driver" driver-version="1.20" dbms="MONGO" exact-version="8.0.3" exact-driver-version="1.20" />
       <case-sensitivity plain-identifiers="mixed" quoted-identifiers="mixed" />
+      <driver-ref>mongo.4</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.dbschema.MongoJdbcDriver</jdbc-driver>
+      <jdbc-url>mongodb://localhost:27017</jdbc-url>
       <secret-storage>master_key</secret-storage>
       <schema-mapping>
         <introspection-scope>
           <node kind="schema" negative="1" />
         </introspection-scope>
       </schema-mapping>
+      <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-  </component>
-</project>
+  </DataSourceFromHistory>
+</DataSourcesHistory>
