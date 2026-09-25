@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 
 use super::loader::{load_merged_config, resolve_profile};
@@ -317,6 +317,120 @@ impl Default for GatewayConfig {
     }
 }
 
+/// 单个可售档位的计价信息；`amount <= 0` 视为未定价（不可售）。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct PayPlanConfig {
+    /// 售价（**分**，CNY）；`<= 0` 视为未定价
+    pub amount: i64,
+    /// 开通时长（天）；`None` = 永久有效
+    pub duration_days: Option<i32>,
+    /// 展示名；为空时前端回落档位名
+    pub label: Option<String>,
+}
+
+impl Default for PayPlanConfig {
+    fn default() -> Self {
+        Self {
+            amount: 0,
+            duration_days: Some(30),
+            label: None,
+        }
+    }
+}
+
+/// 微信支付（APIv3 / Native 扫码）。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct WechatPayConfig {
+    pub enabled: bool,
+    /// 商户号
+    pub mch_id: String,
+    /// 公众号 / 开放平台 appid（Native 下单必填）
+    pub app_id: String,
+    /// APIv3 密钥（32 位），用于回调 `resource` 的 AES-256-GCM 解密
+    pub api_v3_key: String,
+    /// 商户 API 证书序列号（请求签名头 `serial_no`）
+    pub serial_no: String,
+    /// 商户 API 私钥（PKCS#8 PEM，即 `apiclient_key.pem` 内容）
+    pub private_key: String,
+    /// 微信支付平台证书公钥（PEM，SPKI 公钥：`openssl x509 -pubkey -noout -in cert.pem`）
+    pub platform_public_key: String,
+    /// 回调通知地址（必须公网 HTTPS）
+    pub notify_url: String,
+    /// 接口基址，便于联调或私有化
+    pub api_base: String,
+}
+
+impl Default for WechatPayConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            mch_id: String::new(),
+            app_id: String::new(),
+            api_v3_key: String::new(),
+            serial_no: String::new(),
+            private_key: String::new(),
+            platform_public_key: String::new(),
+            notify_url: String::new(),
+            api_base: "https://api.mch.weixin.qq.com".to_string(),
+        }
+    }
+}
+
+/// 支付宝（当面付 `alipay.trade.precreate` → 二维码）。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct AlipayPayConfig {
+    pub enabled: bool,
+    /// 开放平台应用 app_id
+    pub app_id: String,
+    /// 应用私钥（PKCS#8 PEM）
+    pub private_key: String,
+    /// 支付宝公钥（PEM），用于响应与回调验签
+    pub alipay_public_key: String,
+    /// 网关地址（生产为 `https://openapi.alipay.com/gateway.do`）
+    pub gateway_url: String,
+    /// 异步通知地址（必须公网可访问）
+    pub notify_url: String,
+}
+
+impl Default for AlipayPayConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            app_id: String::new(),
+            private_key: String::new(),
+            alipay_public_key: String::new(),
+            gateway_url: "https://openapi.alipay.com/gateway.do".to_string(),
+            notify_url: String::new(),
+        }
+    }
+}
+
+/// 支付（订单 / 渠道凭据 / 定价）。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct PayConfig {
+    /// 订单有效期（秒）：超时后不再受理支付
+    pub order_ttl_secs: u64,
+    /// 可售档位：档位名 -> 计价（档位名须与 `gateway.plan_daily_token_quota` 对应）
+    pub plans: HashMap<String, PayPlanConfig>,
+    pub wechat: WechatPayConfig,
+    pub alipay: AlipayPayConfig,
+}
+
+impl Default for PayConfig {
+    fn default() -> Self {
+        Self {
+            order_ttl_secs: 1800,
+            plans: HashMap::new(),
+            wechat: WechatPayConfig::default(),
+            alipay: AlipayPayConfig::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct CorsConfig {
@@ -341,6 +455,7 @@ pub struct Configure {
     pub auth: AuthConfig,
     pub aliyun: AliyunConfig,
     pub gateway: GatewayConfig,
+    pub pay: PayConfig,
     pub logging: LoggingConfig,
     pub cors: CorsConfig,
     /// 合并时使用的 profile（`resolve_profile()`）。
@@ -363,6 +478,7 @@ impl Default for Configure {
             auth: AuthConfig::default(),
             aliyun: AliyunConfig::default(),
             gateway: GatewayConfig::default(),
+            pay: PayConfig::default(),
             logging: LoggingConfig::default(),
             cors: CorsConfig::default(),
             profile: "development".to_string(),
@@ -400,7 +516,8 @@ impl Configure {
         }
 
         let encryption = Encryption::from_str(&self.security.encryption);
-        if encryption == Encryption::Aes && self.security.aes_key.as_ref().is_none_or(|k| k.is_empty())
+        if encryption == Encryption::Aes
+            && self.security.aes_key.as_ref().is_none_or(|k| k.is_empty())
         {
             bail!("security.aes_key is required when security.encryption is aes");
         }
@@ -414,11 +531,78 @@ impl Configure {
             }
         }
 
+        self.validate_pay()?;
+
+        Ok(())
+    }
+
+    /// 支付配置校验：宁可启动失败，也不要带着半截凭据上线（下单/验签会静默失效）。
+    fn validate_pay(&self) -> Result<()> {
+        let wechat = &self.pay.wechat;
+        if wechat.enabled {
+            let missing = [
+                ("mch_id", wechat.mch_id.as_str()),
+                ("app_id", wechat.app_id.as_str()),
+                ("api_v3_key", wechat.api_v3_key.as_str()),
+                ("serial_no", wechat.serial_no.as_str()),
+                ("private_key", wechat.private_key.as_str()),
+                ("platform_public_key", wechat.platform_public_key.as_str()),
+                ("notify_url", wechat.notify_url.as_str()),
+            ]
+            .into_iter()
+            .filter(|(_, value)| value.trim().is_empty())
+            .map(|(name, _)| name)
+            .collect::<Vec<_>>();
+            if !missing.is_empty() {
+                bail!("pay.wechat.{} is required when pay.wechat.enabled", missing.join(", pay.wechat."));
+            }
+            if wechat.api_v3_key.chars().count() != 32 {
+                bail!("pay.wechat.api_v3_key must be exactly 32 characters");
+            }
+            if !wechat.notify_url.starts_with("https://") {
+                bail!("pay.wechat.notify_url must be an https url");
+            }
+        }
+
+        let alipay = &self.pay.alipay;
+        if alipay.enabled {
+            let missing = [
+                ("app_id", alipay.app_id.as_str()),
+                ("private_key", alipay.private_key.as_str()),
+                ("alipay_public_key", alipay.alipay_public_key.as_str()),
+                ("gateway_url", alipay.gateway_url.as_str()),
+                ("notify_url", alipay.notify_url.as_str()),
+            ]
+            .into_iter()
+            .filter(|(_, value)| value.trim().is_empty())
+            .map(|(name, _)| name)
+            .collect::<Vec<_>>();
+            if !missing.is_empty() {
+                bail!("pay.alipay.{} is required when pay.alipay.enabled", missing.join(", pay.alipay."));
+            }
+        }
+
+        // 定价档位必须与配额档位对齐，否则用户付费后拿到的仍是免费档配额。
+        let mismatch = self
+            .pay_plans()
+            .map(|(plan, _)| plan.clone())
+            .filter(|plan| self.gateway_plan_daily_token_quota(plan).is_none())
+            .collect::<Vec<_>>();
+        if !mismatch.is_empty() {
+            bail!(
+                "pay.plans has no matching gateway.plan_daily_token_quota entry: {}",
+                mismatch.join(", ")
+            );
+        }
+
         Ok(())
     }
 
     pub fn is_production(&self) -> bool {
-        matches!(self.app.env.to_ascii_lowercase().as_str(), "production" | "prod")
+        matches!(
+            self.app.env.to_ascii_lowercase().as_str(),
+            "production" | "prod"
+        )
     }
 
     pub fn is_development_details(&self) -> bool {
@@ -474,19 +658,31 @@ impl Configure {
     }
 
     pub fn elasticsearch_api_key(&self) -> Option<&str> {
-        self.elasticsearch.api_key.as_deref().filter(|s| !s.is_empty())
+        self.elasticsearch
+            .api_key
+            .as_deref()
+            .filter(|s| !s.is_empty())
     }
 
     pub fn elasticsearch_username(&self) -> Option<&str> {
-        self.elasticsearch.username.as_deref().filter(|s| !s.is_empty())
+        self.elasticsearch
+            .username
+            .as_deref()
+            .filter(|s| !s.is_empty())
     }
 
     pub fn elasticsearch_password(&self) -> Option<&str> {
-        self.elasticsearch.password.as_deref().filter(|s| !s.is_empty())
+        self.elasticsearch
+            .password
+            .as_deref()
+            .filter(|s| !s.is_empty())
     }
 
     pub fn elasticsearch_cloud_id(&self) -> Option<&str> {
-        self.elasticsearch.cloud_id.as_deref().filter(|s| !s.is_empty())
+        self.elasticsearch
+            .cloud_id
+            .as_deref()
+            .filter(|s| !s.is_empty())
     }
 
     pub fn elasticsearch_insecure(&self) -> bool {
@@ -542,6 +738,13 @@ impl Configure {
         self.gateway.free_daily_token_quota
     }
 
+    /// 全部可开通档位（档位名 → 日 token 配额）；空表 = 平台未开放任何档位。
+    ///
+    /// 档位目录接口用它渲染可选项，避免客户端手填档位名。
+    pub fn gateway_plan_daily_token_quota_table(&self) -> &HashMap<String, i64> {
+        &self.gateway.plan_daily_token_quota
+    }
+
     /// 个人租户订阅档位日 token 配额；未知档位返回 `None`（调用方回落免费档）。
     pub fn gateway_plan_daily_token_quota(&self, plan: &str) -> Option<i64> {
         self.gateway
@@ -561,6 +764,34 @@ impl Configure {
 
     pub fn gateway_audit_enabled(&self) -> bool {
         self.gateway.audit_enabled
+    }
+
+    pub fn pay_order_ttl_secs(&self) -> u64 {
+        self.pay.order_ttl_secs.clamp(60, 24 * 3600)
+    }
+
+    /// 档位计价；未定价（`amount <= 0`）返回 `None`，调用方据此判定「不可售」。
+    pub fn pay_plan(&self, plan: &str) -> Option<&PayPlanConfig> {
+        self.pay
+            .plans
+            .get(plan)
+            .filter(|spec| spec.amount > 0)
+    }
+
+    /// 全部可售档位（已过滤未定价项）。
+    pub fn pay_plans(&self) -> impl Iterator<Item = (&String, &PayPlanConfig)> {
+        self.pay
+            .plans
+            .iter()
+            .filter(|(_, spec)| spec.amount > 0)
+    }
+
+    pub fn pay_wechat(&self) -> &WechatPayConfig {
+        &self.pay.wechat
+    }
+
+    pub fn pay_alipay(&self) -> &AlipayPayConfig {
+        &self.pay.alipay
     }
 
     /// 测试与守卫用构造器。
@@ -593,5 +824,32 @@ mod tests {
         let mut cfg = Configure::default();
         cfg.security.jwt_secret = "short".into();
         assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn validate_rejects_half_configured_wechat_pay() {
+        let mut cfg = Configure::default();
+        cfg.pay.wechat.enabled = true;
+        let err = cfg.validate().expect_err("half configured wechat must fail");
+        assert!(err.to_string().contains("pay.wechat.mch_id"));
+    }
+
+    #[test]
+    fn validate_rejects_priced_plan_without_quota() {
+        let mut cfg = Configure::default();
+        cfg.pay.plans.insert(
+            "PRO".to_string(),
+            PayPlanConfig {
+                amount: 1900,
+                duration_days: Some(30),
+                label: None,
+            },
+        );
+        assert!(cfg.validate().is_err());
+
+        cfg.gateway
+            .plan_daily_token_quota
+            .insert("PRO".to_string(), 5_000_000);
+        assert!(cfg.validate().is_ok());
     }
 }

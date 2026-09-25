@@ -89,3 +89,38 @@ gateway:
   usage_es_index: gateway_usage
   # 审计落库开关
   audit_enabled: true
+
+# 支付（订单与渠道凭据）。凭据放 config.local.yaml / 部署环境的 profile 覆盖，不入库。
+# plans 里定价（amount > 0）的档位只能由支付回调开通：自助开通用 500408 拒绝。
+# 详见 src/services/payment/README.md
+pay:
+  # 订单有效期（秒）：超过即自动关单，逾期支付走「迟到支付」补偿
+  order_ttl_secs: 300
+  plans:
+    PRO:
+      amount: 1990 # 分（CNY）
+      duration_days: 30 # null = 永久
+      label: 专业版
+  wechat:
+    enabled: false
+    mch_id: ''
+    app_id: ''
+    # APIv3 密钥（32 字符），同时用于回调解密与应答签名
+    api_v3_key: ''
+    # 商户 API 证书序列号（请求签名头 serial_no）
+    serial_no: ''
+    # 商户 API 私钥（PKCS#8 PEM，即 apiclient_key.pem 的内容）
+    private_key: ''
+    # 微信支付平台证书公钥（PEM：openssl x509 -pubkey -noout -in cert.pem）
+    platform_public_key: ''
+    # 必须为公网可达的 https 地址，微信只回调这里
+    notify_url: https://example.com/api/v1/pay/notify/wechat
+    api_base: https://api.mch.weixin.qq.com
+  alipay:
+    enabled: false
+    app_id: ''
+    # 应用私钥（PKCS#8 PEM）与支付宝公钥（PEM 内容）
+    private_key: ''
+    alipay_public_key: ''
+    gateway_url: https://openapi.alipay.com/gateway.do
+    notify_url: https://example.com/api/v1/pay/notify/alipay

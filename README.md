@@ -134,6 +134,7 @@ spec/                     # OpenAPI 生成物
 | ES 全文检索  | `/api/v1/search`                     | [search](src/services/search/README.md)             |
 | 租户         | `/api/v1/tenants`                    | [tenant](src/services/tenant/README.md)             |
 | 订阅         | `/api/v1/tenants/{id}/subscriptions` | [subscription](src/services/subscription/README.md) |
+| 支付         | `/api/v1/tenants/{id}/orders`        | [payment](src/services/payment/README.md)           |
 | 模型网关     | `/api/v1/gateway`                    | [gateway](src/services/gateway/README.md)           |
 | 单点登录     | `/api/v1/sso`                        | [sso](src/services/sso/README.md)                   |
 | 应用         | `/api/v1/application`                | [application](src/services/application/README.md)   |

@@ -19,7 +19,7 @@ use crate::filters::exception::Exception;
 use crate::services::subscription::schema::{QuotaR, SubscribeP, SubscriptionR};
 use crate::services::tenant::schema::TenantType;
 use crate::services::tenant::service::{TenantError, TenantService};
-use crate::utils::code::{auth as auth_codes, external, request, resource};
+use crate::utils::code::{auth as auth_codes, business, external, request, resource};
 use crate::utils::db::is_unique_violation;
 
 /// 订阅状态：生效中 / 已取消 / 已到期。
@@ -46,6 +46,8 @@ pub enum SubscriptionError {
     NotFound,
     #[error("Subscription conflict")]
     Conflict,
+    #[error("Plan requires payment")]
+    PlanRequiresPayment,
     #[error("Database error: {0}")]
     Db(String),
 }
@@ -53,7 +55,9 @@ pub enum SubscriptionError {
 impl From<SubscriptionError> for Exception {
     fn from(err: SubscriptionError) -> Self {
         match err {
-            SubscriptionError::TenantNotFound => Exception::custom(resource::NOT_FOUND, "租户不存在"),
+            SubscriptionError::TenantNotFound => {
+                Exception::custom(resource::NOT_FOUND, "租户不存在")
+            }
             SubscriptionError::NotPersonal => Exception::custom(
                 request::INVALID_PARAMETER_VALUE,
                 "仅个人租户可订阅，团队租户使用全局配额",
@@ -65,9 +69,12 @@ impl From<SubscriptionError> for Exception {
                 Exception::custom(request::INVALID_PARAMETER_VALUE, msg)
             }
             SubscriptionError::NotFound => Exception::custom(resource::NOT_FOUND, "订阅不存在"),
-            SubscriptionError::Conflict => Exception::custom(
-                resource::ALREADY_EXISTS,
-                "该租户已有生效订阅，请重试",
+            SubscriptionError::Conflict => {
+                Exception::custom(resource::ALREADY_EXISTS, "该租户已有生效订阅，请重试")
+            }
+            SubscriptionError::PlanRequiresPayment => Exception::custom(
+                business::payment::PLAN_NOT_PURCHASABLE,
+                "该档位需通过支付开通",
             ),
             SubscriptionError::Db(msg) => {
                 tracing::error!(error = %msg, "subscription database error");
@@ -106,15 +113,22 @@ pub struct QuotaInfo {
     pub limit: i64,
 }
 
+/// 此刻生效的订阅（供支付等模块计算续费基数）。
+#[derive(Debug, Clone)]
+pub struct ActiveSubscription {
+    pub id: Uuid,
+    pub plan: String,
+    /// 到期时间；`None` = 永久有效
+    pub expires_at: Option<DateTime<FixedOffset>>,
+}
+
 pub struct SubscriptionService;
 
 impl SubscriptionService {
-    /// 开通 / 续订。订阅**创建即生效**（`createdAt` 即生效时间）。
+    /// 开通 / 续订（自助入口）。
     ///
-    /// 同一租户同一时刻最多一条 ACTIVE 订阅，故在一个事务内：
-    /// 1. 旧 ACTIVE 订阅——已过期的标 `EXPIRED`；否则标 `CANCELED` 并把 `expiresAt`
-    ///    **截断到当前时间**（新订阅即刻接管，续费不浪费剩余天数）；
-    /// 2. 插入新订阅。
+    /// 自助开通只对**未定价档位**开放：`pay.plans` 里定了价（`amount > 0`）的档位必须走支付流程，
+    /// 否则任何租户管理员都能绕过收银台白拿付费配额。平台管理员保留代开通道（客服补单 / 本地联调）。
     pub async fn subscribe(
         db: &Storage,
         config: &Configure,
@@ -125,7 +139,28 @@ impl SubscriptionService {
         req: SubscribeP,
     ) -> Result<SubscriptionR, SubscriptionError> {
         require_manage(db, user_id, tenant_id, platform_admin).await?;
+        ensure_self_service_allowed(config, &req.plan, platform_admin)?;
+        Self::grant(db, config, redis, user_id, tenant_id, req).await
+    }
 
+    /// 开通 / 续订（可信通道：支付核销后开通、平台管理员代开）。
+    ///
+    /// 与 [`Self::subscribe`] 的唯一区别是**不做「已定价档位需走支付」的守卫** —— 鉴权与「钱有没有到」
+    /// 由调用方保证（支付模块在验签 + 核对金额之后才会调到这里）。
+    ///
+    /// 订阅**创建即生效**（`createdAt` 即生效时间）。同一租户同一时刻最多一条 ACTIVE 订阅，故在一个
+    /// 事务内：
+    /// 1. 旧 ACTIVE 订阅——已过期的标 `EXPIRED`；否则标 `CANCELED` 并把 `expiresAt`
+    ///    **截断到当前时间**（新订阅即刻接管，续费不浪费剩余天数）；
+    /// 2. 插入新订阅。
+    pub async fn grant(
+        db: &Storage,
+        config: &Configure,
+        redis: &RedisPool,
+        user_id: Uuid,
+        tenant_id: Uuid,
+        req: SubscribeP,
+    ) -> Result<SubscriptionR, SubscriptionError> {
         let tenant = tenant::Entity::find_by_id(tenant_id)
             .one(&db.db)
             .await
@@ -347,6 +382,25 @@ impl SubscriptionService {
         cache_set(redis, &key, plan.as_deref()).await;
         Ok(plan)
     }
+
+    /// 此刻生效的订阅记录（无有效订阅则 `None`）。不走缓存。
+    ///
+    /// 支付开通需要它来算续费基数：生效订阅未到期时应从其到期时间续期，而不是从当前时间。
+    pub async fn active_subscription(
+        db: &Storage,
+        tenant_id: Uuid,
+    ) -> Result<Option<ActiveSubscription>, DbErr> {
+        let now = Utc::now().fixed_offset();
+        Ok(active_rows(db, tenant_id)
+            .await?
+            .into_iter()
+            .find(|row| in_effect(row, now))
+            .map(|row| ActiveSubscription {
+                id: row.id,
+                plan: row.plan,
+                expires_at: row.expires_at,
+            }))
+    }
 }
 
 fn plan_cache_key(tenant_id: Uuid) -> String {
@@ -376,7 +430,8 @@ async fn cache_set(redis: &RedisPool, key: &str, plan: Option<&str>) {
     }
 }
 
-async fn cache_invalidate(redis: &RedisPool, tenant_id: Uuid) {
+/// 失效生效档位缓存。订阅发生变更的模块（如支付开通成功后）应主动调用，避免档位短暂不一致。
+pub async fn cache_invalidate(redis: &RedisPool, tenant_id: Uuid) {
     let key = plan_cache_key(tenant_id);
     let result: Result<(), fred::error::Error> = async {
         let _: () = redis.pool().del(key).await?;
@@ -389,10 +444,7 @@ async fn cache_invalidate(redis: &RedisPool, tenant_id: Uuid) {
 }
 
 /// 该租户状态为 ACTIVE 的订阅（未按时间过滤），按创建时间倒序。
-async fn active_rows(
-    db: &Storage,
-    tenant_id: Uuid,
-) -> Result<Vec<subscription::Model>, DbErr> {
+async fn active_rows(db: &Storage, tenant_id: Uuid) -> Result<Vec<subscription::Model>, DbErr> {
     subscription::Entity::find()
         .filter(subscription::Column::TenantId.eq(tenant_id))
         .filter(subscription::Column::Status.eq(ACTIVE))
@@ -431,6 +483,23 @@ fn in_effect(row: &subscription::Model, now: DateTime<FixedOffset>) -> bool {
     match row.expires_at {
         Some(end) => end > now,
         None => true,
+    }
+}
+
+/// 自助开通守卫：已定价（`amount > 0`）的档位只能由支付回调开通。
+///
+/// 判断只看 `pay.plans` 这一张表：配置里删掉定价即恢复自助开通，不需要改代码。
+fn ensure_self_service_allowed(
+    config: &Configure,
+    plan: &str,
+    platform_admin: bool,
+) -> Result<(), SubscriptionError> {
+    if platform_admin {
+        return Ok(());
+    }
+    match config.pay_plan(plan) {
+        Some(spec) if spec.amount > 0 => Err(SubscriptionError::PlanRequiresPayment),
+        _ => Ok(()),
     }
 }
 
@@ -491,4 +560,59 @@ fn to_r(m: subscription::Model) -> SubscriptionR {
 
 fn db_err(err: DbErr) -> SubscriptionError {
     SubscriptionError::Db(err.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SubscriptionError, ensure_self_service_allowed};
+    use crate::configures::configure::{Configure, PayPlanConfig};
+
+    /// 定价档位：`pay.plans` 里有 `amount > 0` 的条目。
+    fn priced_config(plan: &str) -> Configure {
+        let mut config = Configure::default();
+        config.pay.plans.insert(
+            plan.to_string(),
+            PayPlanConfig {
+                amount: 1990,
+                duration_days: Some(30),
+                label: None,
+            },
+        );
+        config
+    }
+
+    #[test]
+    fn self_service_cannot_open_a_priced_plan() {
+        let config = priced_config("pro");
+
+        assert!(matches!(
+            ensure_self_service_allowed(&config, "pro", false),
+            Err(SubscriptionError::PlanRequiresPayment)
+        ));
+    }
+
+    #[test]
+    fn platform_admin_may_open_a_priced_plan() {
+        let config = priced_config("pro");
+
+        assert!(ensure_self_service_allowed(&config, "pro", true).is_ok());
+    }
+
+    #[test]
+    fn self_service_still_opens_unpriced_or_unlisted_plans() {
+        // 未在 pay.plans 里：可自助开通
+        assert!(ensure_self_service_allowed(&priced_config("pro"), "team", false).is_ok());
+
+        // 在 pay.plans 里但未定价（amount <= 0）：视为不可售，可自助开通
+        let mut config = Configure::default();
+        config.pay.plans.insert(
+            "legacy".to_string(),
+            PayPlanConfig {
+                amount: 0,
+                duration_days: Some(30),
+                label: None,
+            },
+        );
+        assert!(ensure_self_service_allowed(&config, "legacy", false).is_ok());
+    }
 }

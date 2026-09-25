@@ -9,6 +9,7 @@
 | 能力        | 说明                                                                                       |
 | ----------- | ------------------------------------------------------------------------------------------ |
 | 开通 / 续订 | 事务内：旧订阅标 `EXPIRED`/`CANCELED`（未过期的 `expiresAt` 截断到当前时间），再插入新订阅 |
+| 免费档自助  | 只对**未定价**档位（`amount <= 0`）开放自助开通；已定价档位必须走支付（`payment` 模块）     |
 | 列表        | 返回订阅历史（含已取消 / 已到期），按创建时间倒序                                          |
 | 取消        | 立即失效：状态置 CANCELED，`expiresAt` 截断到当前时间                                      |
 | 当前配额    | 返回生效配额及其来源（`PLAN` / `FREE` / `GLOBAL`）                                         |
@@ -19,17 +20,27 @@
 - [`tenant`](../tenant/README.md)：只管租户与成员（`tenant.type` 区分 PERSONAL / TEAM），不知道订阅的存在。
 - `subscription`（本模块）：只管**个人租户的档位与有效期**。团队租户不可订阅，走全局配额。
 - [`gateway`](../gateway/README.md)：消费本模块的 `effective_quota()` 决定日配额，并做 Redis 日窗计数。
+- [`payment`](../payment/README.md)：收钱才开通（订阅是支付的结果）。它通过**可信通道** `SubscriptionService::grant` 调用本模块。
+
+### 两条开通通道（信任边界）
+
+| 函数                          | 调用方                                    | 鉴权                                     | 定价档位                              |
+| ----------------------------- | ----------------------------------------- | ---------------------------------------- | ------------------------------------- |
+| `subscribe(...)`（自助入口）   | `POST /tenants/{id}/subscriptions`        | 内置 `require_manage` + 自助规则校验     | **拒绝**：`pay.plans[plan].amount > 0` 时返回 `500408` |
+| `grant(...)`（可信通道）       | `payment` 核销回调、平台管理员直接开通     | **调用方负责鉴权**，本函数不再校验角色   | 允许（钱已收 / 运维代开）              |
+
+判断逻辑只依赖配置：`pay.plans` 里 `amount > 0` 即视为「已定价，须付费」。这样既防止租户 OWNER（个人租户里就是用户本人）绕过收银台白拿付费档位，又保留客服代开与联调的可信路径。
 
 三者的配额优先级见 [`guide/configuration.md`](../../../guide/configuration.md#模型网关配额)。
 
 ## 路由一览
 
-| 方法   | 路径                                                  | 鉴权              | 说明                          |
-| ------ | ----------------------------------------------------- | ----------------- | ----------------------------- |
-| GET    | `/api/v1/tenants/{id}/subscriptions`                  | JWT + 租户成员    | 订阅历史（含已取消 / 已到期） |
-| POST   | `/api/v1/tenants/{id}/subscriptions`                  | JWT + OWNER/ADMIN | 开通 / 续订                   |
-| DELETE | `/api/v1/tenants/{id}/subscriptions/{subscriptionID}` | JWT + OWNER/ADMIN | 取消订阅（立即失效）          |
-| GET    | `/api/v1/tenants/{id}/quota`                          | JWT + 租户成员    | 当前生效配额及来源            |
+| 方法   | 路径                                                  | 鉴权              | 说明                                  |
+| ------ | ----------------------------------------------------- | ----------------- | ------------------------------------- |
+| GET    | `/api/v1/tenants/{id}/subscriptions`                  | JWT + 租户成员    | 订阅历史（含已取消 / 已到期）         |
+| POST   | `/api/v1/tenants/{id}/subscriptions`                  | JWT + OWNER/ADMIN | 开通 / 续订（仅未定价档位，见上表）   |
+| DELETE | `/api/v1/tenants/{id}/subscriptions/{subscriptionID}` | JWT + OWNER/ADMIN | 取消订阅（立即失效）                  |
+| GET    | `/api/v1/tenants/{id}/quota`                          | JWT + 租户成员    | 当前生效配额及来源                    |
 
 ## 鉴权说明
 
@@ -87,17 +98,21 @@ CREATE UNIQUE INDEX uidx_subscription_active
 ## 实现架构
 
 ```
-SubscriptionModule::configure            # src/services/subscription/module.rs
-  ├── scope("/tenants/{id}/subscriptions")  .wrap(Auth::isRequired())
-  │     ├── GET    ""                        → SubscriptionController::toList
-  │     ├── POST   ""                        → SubscriptionController::toWrite
-  │     └── DELETE "/{subscriptionID}"       → SubscriptionController::toRemove
-  └── scope("/tenants/{id}/quota")           .wrap(Auth::isRequired())
-        └── GET    ""                        → SubscriptionController::quota
+TenantModule 的 scope("/tenants")        # src/services/tenant/module.rs（Auth::isRequired() 在此统一挂载）
+  └── .configure(SubscriptionModule::configure)
+        # 订阅路由以**相对 /tenants 的相对路径**注册（src/services/subscription/module.rs）：
+        # 若改回自建 scope("/tenants/{id}/…")，会与同层的 /tenants 前缀 scope 并列，
+        # actix ResourceMap 只进入先命中的前缀节点 → 整片 404（曾因此断掉订阅闭环）
+        ├── resource("/{id}/subscriptions")                  GET  ""  → SubscriptionController::toList
+        │                                                   POST ""  → SubscriptionController::toWrite
+        ├── resource("/{id}/subscriptions/{subscriptionID}") DELETE   → SubscriptionController::toRemove
+        └── resource("/{id}/quota")                          GET  ""  → SubscriptionController::quota
               └── SubscriptionService        # src/services/subscription/service.rs
                     ├── require_member / require_manage
                     │     └── TenantService::require_role   # 跨模块复用（tenant 拥有该领域）
-                    ├── subscribe       → 作废旧 ACTIVE 订阅 + 插入新订阅（事务）
+                    ├── subscribe       → 自助入口：require_manage + 自助规则校验 → grant
+                    ├── grant           → 可信通道：作废旧 ACTIVE 订阅 + 插入新订阅（事务，调用方负责鉴权）
+                    ├── ensure_self_service_allowed → 已定价档位（amount > 0）禁止自助开通（500408）
                     ├── list            → 按 createdAt 倒序（顺带惰性标 EXPIRED）
                     ├── cancel          → status=CANCELED，expiresAt 截断
                     ├── quota           → 当前生效配额（接口用）
@@ -157,6 +172,8 @@ Content-Type: application/json
 
 重复调用即**续订**：旧订阅被置为 CANCELED 且 `expiresAt` 截断到当前时间，新订阅即刻生效。
 
+> **自助开通只对未定价档位开放。** 若 `pay.plans[plan].amount > 0`（已定价），此端点返回 `500408`，客户端应引导用户走收银台（`GET /api/v1/tenants/{id}/pay/catalog` → `POST /api/v1/tenants/{id}/orders`）；支付成功由 `payment` 模块经 `grant` 开通。
+
 ### GET 订阅历史
 
 返回 `data` 为订阅数组（含已取消 / 已到期），按 `createdAt` 倒序。
@@ -205,4 +222,5 @@ Authorization: Bearer {token}
 | 300006 | 非租户成员，或租户内角色非 OWNER/ADMIN                                           |
 | 400001 | 租户或订阅不存在（含订阅不属于该租户）                                           |
 | 400002 | 并发订阅冲突（部分唯一索引拒绝，重试即可）                                       |
+| 500408 | 档位已定价，须通过支付开通（自助开通被拒）                                       |
 | 600001 | 数据库错误                                                                       |

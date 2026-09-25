@@ -78,8 +78,8 @@ pub mod interceptors {
 }
 
 pub mod utils {
-    pub mod code;
     pub mod client_ip;
+    pub mod code;
     pub mod db;
     pub mod encryption;
     pub mod generate;
@@ -172,6 +172,14 @@ pub mod services {
     }
 
     pub mod subscription {
+        pub mod controller;
+        pub mod module;
+        pub mod schema;
+        pub mod service;
+    }
+
+    pub mod payment {
+        pub mod channel;
         pub mod controller;
         pub mod module;
         pub mod schema;

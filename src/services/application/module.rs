@@ -3,9 +3,9 @@ use actix_web::web;
 use crate::middlewares::rate_limit::AuthGovernor;
 use crate::services::{
     application::controller::ApplicationController, auth::module::AuthModule,
-    engine::module::EngineModule, gateway::module::GatewayModule, search::module::SearchModule,
-    sso::module::SsoModule, subscription::module::SubscriptionModule, tenant::module::TenantModule,
-    upload::module::UploadModule, user::module::UserModule,
+    engine::module::EngineModule, gateway::module::GatewayModule,
+    payment::module::PaymentModule, search::module::SearchModule, sso::module::SsoModule,
+    tenant::module::TenantModule, upload::module::UploadModule, user::module::UserModule,
 };
 
 pub struct ApplicationModule;
@@ -20,9 +20,10 @@ impl ApplicationModule {
                 .configure(EngineModule::configure)
                 .configure(SearchModule::configure)
                 .configure(TenantModule::configure)
-                .configure(SubscriptionModule::configure)
                 .configure(GatewayModule::configure)
                 .configure(SsoModule::configure)
+                // 支付渠道回调（匿名，验签在业务层完成）
+                .configure(PaymentModule::configure_notify)
                 .service(
                     web::scope("/application")
                         .route("/toRead", web::get().to(ApplicationController::toRead)),

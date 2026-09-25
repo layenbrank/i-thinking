@@ -51,6 +51,10 @@
 | `gateway.upstream_timeout_ms`         | `120000`                           | 上游模型流式读超时                                             |
 | `gateway.usage_es_index`              | `gateway_usage`                    | 用量事件写入的 ES 索引                                         |
 | `gateway.audit_enabled`               | `true`                             | 审计落库开关                                                   |
+| `pay.order_ttl_secs`                  | `300`                              | 支付订单有效期（秒），超时自动关单                             |
+| `pay.plans`                           | `PRO`                              | 可售档位定价（`档位名 → {amount, duration_days, label}`），`amount` 单位为分；档位名须与 `gateway.plan_daily_token_quota` 同名 |
+| `pay.wechat.*`                        | `enabled: false`                   | 微信支付凭据（`mch_id` / `app_id` / `api_v3_key` / `serial_no` / `private_key` / `platform_public_key` / `notify_url` / `api_base`） |
+| `pay.alipay.*`                        | `enabled: false`                   | 支付宝凭据（`app_id` / `private_key` / `alipay_public_key` / `gateway_url` / `notify_url`） |
 
 ### 模型网关配额
 
@@ -69,6 +73,56 @@
 档位解析结果带 **60s Redis 缓存**（`gateway:plan:{tenantID}`，开通/取消订阅时立即失效），避免聊天热路径每次请求都查库。
 
 完整字段见 [`config.yaml`](../config.yaml)。集成总览见 [`integrations.md`](integrations.md)。
+
+## 支付（微信 / 支付宝）
+
+扫码支付把「定价档位」卖给用户：下单 → 扫码 → 渠道异步回调 → 开通订阅。实现与安全细节见 [`src/services/payment/README.md`](../src/services/payment/README.md)。
+
+- `pay.wechat.enabled` / `pay.alipay.enabled` 默认 `false`，未启用的渠道在 `GET /api/v1/tenants/{id}/pay/catalog` 里不出现在可选渠道中（下单返回 `500405`）。
+- `enabled: true` 时启动会强校验必填项与格式（`api_v3_key` 必须 32 字符、微信 `notify_url` 必须 `https://`）：**宁可启动失败，也不要带半截凭据上线**。
+- `pay.plans` 的档位名必须能在 `gateway.plan_daily_token_quota` 找到同名项，否则启动失败（付费后拿到的仍是免费档配额）。
+- **已定价档位（`amount > 0`）禁止自助开通**：`POST /api/v1/tenants/{id}/subscriptions` 会以 `500408` 拒绝，只能走支付回调开通；`amount <= 0`（未定价）的档位仍允许自助开通，便于联调。平台管理员不受此限制。
+- 回调地址必须**公网 HTTPS** 且能被微信/支付宝访问：本机开发用内网穿透或反向代理暴露 `/api/v1/pay/notify/{wechat,alipay}`；收不到回调时用 `POST /api/v1/tenants/{id}/orders/{orderNo}/sync` 主动查单兜底。
+- 凭据是敏感值，只写 `config.local.yaml`（或部署平台密钥管理），不要提交入库。
+
+最小可跑配置（`config.local.yaml`）：
+
+```yaml
+pay:
+  order_ttl_secs: 300
+  plans:
+    PRO:
+      amount: 1990 # 分
+      duration_days: 30
+      label: 专业版
+  wechat:
+    enabled: true
+    mch_id: '16xxxxxxxx'
+    app_id: 'wxxxxxxxxxxxxxxxxx'
+    api_v3_key: '32位APIv3密钥'
+    serial_no: '商户API证书序列号'
+    private_key: |
+      -----BEGIN PRIVATE KEY-----
+      ...
+      -----END PRIVATE KEY-----
+    platform_public_key: |
+      -----BEGIN PUBLIC KEY-----
+      ...
+      -----END PUBLIC KEY-----
+    notify_url: https://your-domain.com/api/v1/pay/notify/wechat
+  alipay:
+    enabled: true
+    app_id: '20210xxxxxxxxxxxxx'
+    private_key: |
+      -----BEGIN PRIVATE KEY-----
+      ...
+      -----END PRIVATE KEY-----
+    alipay_public_key: |
+      -----BEGIN PUBLIC KEY-----
+      ...
+      -----END PUBLIC KEY-----
+    notify_url: https://your-domain.com/api/v1/pay/notify/alipay
+```
 
 ## 行为验证码（go-captcha-service）
 
