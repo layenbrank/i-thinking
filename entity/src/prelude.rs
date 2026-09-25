@@ -5,6 +5,7 @@ pub use super::gateway_audit::Entity as GatewayAudit;
 pub use super::gateway_model::Entity as GatewayModel;
 pub use super::gateway_provider::Entity as GatewayProvider;
 pub use super::gateway_usage::Entity as GatewayUsage;
+pub use super::payment_order::Entity as PaymentOrder;
 pub use super::sso_connection::Entity as SsoConnection;
 pub use super::subscription::Entity as Subscription;
 pub use super::tenant::Entity as Tenant;

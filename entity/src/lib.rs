@@ -7,6 +7,7 @@ pub mod gateway_audit;
 pub mod gateway_model;
 pub mod gateway_provider;
 pub mod gateway_usage;
+pub mod payment_order;
 pub mod sso_connection;
 pub mod subscription;
 pub mod tenant;

@@ -22,6 +22,7 @@ impl MigrationTrait for Migration {
                 Table::drop()
                     .if_exists()
                     .table(SsoConnection::Table)
+                    .table(PaymentOrder::Table)
                     .table(Subscription::Table)
                     .table(GatewayAudit::Table)
                     .table(GatewayUsage::Table)
@@ -410,6 +411,90 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // ---------- payment_order ----------
+        manager
+            .create_table(
+                Table::create()
+                    .table(PaymentOrder::Table)
+                    .if_not_exists()
+                    .col(pk_uuid(PaymentOrder::Id))
+                    .col(text(PaymentOrder::OrderNo))
+                    .col(uuid(PaymentOrder::TenantId))
+                    .col(uuid(PaymentOrder::UserId))
+                    .col(text(PaymentOrder::Plan))
+                    .col(text(PaymentOrder::Channel))
+                    // 金额（分）：下单时快照，回调核对以此为准
+                    .col(big_integer(PaymentOrder::Amount))
+                    .col(text(PaymentOrder::Currency).default("CNY"))
+                    .col(text(PaymentOrder::Status).default("PENDING"))
+                    // 开通时长（天）；NULL = 永久
+                    .col(integer_null(PaymentOrder::DurationDays))
+                    .col(text_null(PaymentOrder::TransactionId))
+                    .col(text_null(PaymentOrder::CodeUrl))
+                    .col(uuid_null(PaymentOrder::SubscriptionId))
+                    .col(timestamp_with_time_zone_null(PaymentOrder::PaidAt))
+                    .col(timestamp_with_time_zone(PaymentOrder::ExpiresAt))
+                    .col(text_null(PaymentOrder::Remark))
+                    .col(timestamp_with_time_zone_null(PaymentOrder::ArchivedAt))
+                    .col(timestamp_with_time_zone(PaymentOrder::CreatedAt))
+                    .col(uuid_null(PaymentOrder::Creator))
+                    .col(timestamp_with_time_zone(PaymentOrder::UpdatedAt))
+                    .col(uuid_null(PaymentOrder::Updater))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_payment_order_tenant")
+                            .from(PaymentOrder::Table, PaymentOrder::TenantId)
+                            .to(Tenant::Table, Tenant::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_payment_order_user")
+                            .from(PaymentOrder::Table, PaymentOrder::UserId)
+                            .to(Auth::Table, Auth::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("uidx_payment_order_no")
+                    .table(PaymentOrder::Table)
+                    .col(PaymentOrder::OrderNo)
+                    .unique()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_payment_order_tenant")
+                    .table(PaymentOrder::Table)
+                    .col(PaymentOrder::TenantId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_payment_order_status")
+                    .table(PaymentOrder::Table)
+                    .col(PaymentOrder::Status)
+                    .col(PaymentOrder::ExpiresAt)
+                    .to_owned(),
+            )
+            .await?;
+
         // ---------- gateway ----------
         manager
             .create_table(
@@ -473,6 +558,8 @@ impl MigrationTrait for Migration {
                     .col(json_binary_null(GatewayModel::AllowRoles))
                     .col(boolean(GatewayModel::Enabled).default(true))
                     .col(big_integer(GatewayModel::DailyTokenQuota).default(0))
+                    .col(json_binary_null(GatewayModel::Capabilities))
+                    .col(big_integer_null(GatewayModel::ContextWindow))
                     .col(timestamp_with_time_zone_null(GatewayModel::ArchivedAt))
                     .col(timestamp_with_time_zone(GatewayModel::CreatedAt))
                     .col(uuid_null(GatewayModel::Creator))
@@ -664,6 +751,7 @@ impl MigrationTrait for Migration {
                 Table::drop()
                     .if_exists()
                     .table(SsoConnection::Table)
+                    .table(PaymentOrder::Table)
                     .table(Subscription::Table)
                     .table(GatewayAudit::Table)
                     .table(GatewayUsage::Table)
@@ -856,6 +944,9 @@ enum GatewayModel {
     Enabled,
     #[sea_orm(iden = "dailyTokenQuota")]
     DailyTokenQuota,
+    Capabilities,
+    #[sea_orm(iden = "contextWindow")]
+    ContextWindow,
     #[sea_orm(iden = "archivedAt")]
     ArchivedAt,
     #[sea_orm(iden = "createdAt")]
@@ -933,4 +1024,42 @@ enum SsoConnection {
     Updater,
     #[sea_orm(iden = "expiresAt")]
     ExpiresAt,
+}
+
+#[derive(DeriveIden)]
+enum PaymentOrder {
+    Table,
+    Id,
+    #[sea_orm(iden = "orderNo")]
+    OrderNo,
+    #[sea_orm(iden = "tenantID")]
+    TenantId,
+    #[sea_orm(iden = "userID")]
+    UserId,
+    Plan,
+    Channel,
+    Amount,
+    Currency,
+    Status,
+    #[sea_orm(iden = "durationDays")]
+    DurationDays,
+    #[sea_orm(iden = "transactionID")]
+    TransactionId,
+    #[sea_orm(iden = "codeUrl")]
+    CodeUrl,
+    #[sea_orm(iden = "subscriptionID")]
+    SubscriptionId,
+    #[sea_orm(iden = "paidAt")]
+    PaidAt,
+    #[sea_orm(iden = "expiresAt")]
+    ExpiresAt,
+    Remark,
+    #[sea_orm(iden = "archivedAt")]
+    ArchivedAt,
+    #[sea_orm(iden = "createdAt")]
+    CreatedAt,
+    Creator,
+    #[sea_orm(iden = "updatedAt")]
+    UpdatedAt,
+    Updater,
 }

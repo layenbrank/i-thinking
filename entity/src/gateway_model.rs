@@ -24,6 +24,12 @@ pub struct Model {
     /// 模型级日 token 配额；0 = 继承租户
     #[sea_orm(column_name = "dailyTokenQuota")]
     pub daily_token_quota: i64,
+    /// 能力声明 `{ tools, reasoning, vision }`；NULL = 未声明（客户端按默认处理）
+    #[sea_orm(column_type = "JsonBinary", nullable)]
+    pub capabilities: Option<Json>,
+    /// 上下文窗口（token）；NULL = 未知
+    #[sea_orm(column_name = "contextWindow", nullable)]
+    pub context_window: Option<i64>,
     #[sea_orm(column_name = "archivedAt", nullable)]
     pub archived_at: Option<DateTimeWithTimeZone>,
     #[sea_orm(column_name = "createdAt")]

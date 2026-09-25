@@ -38,7 +38,7 @@ sea-orm-cli migrate generate NAME_OF_MIGRATION
 
 ## 单世代策略
 
-迁移**只保留一代**：`000001_20260819` 一次性建出全部业务表（auth / asset / chunk / tenant / tenant_member / subscription / gateway_* / sso_connection）。其 `up` 会先按依赖倒序 **DROP** 全部业务表（`cascade`）再重建，因此改 schema 时**直接改这个文件**，不要再追加新版本。
+迁移**只保留一代**：`000001_20260819` 一次性建出全部业务表（auth / asset / chunk / tenant / tenant_member / subscription / payment_order / gateway_* / sso_connection）。其 `up` 会先按依赖倒序 **DROP** 全部业务表（`cascade`）再重建，因此改 schema 时**直接改这个文件**，不要再追加新版本。
 
 代价是：该迁移面向**全新空库**或**可重建的开发库**。已经跑过它的库，因为记账表 `migration` 里同名记录仍在，`up` 会被跳过——需要重建时执行：
 
