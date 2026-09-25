@@ -1,6 +1,6 @@
 # Monorepo CI/CD 指南
 
-本文说明本仓库的 GitHub Actions 设计：质量门禁、Client / Service 发版、文档站点部署，以及 **Secrets 从哪里来、两类签名分别做什么**。
+本文说明本仓库的 GitHub Actions 设计：质量门禁、Client 发版、文档站点部署，以及 **Secrets 从哪里来、两类签名分别做什么**。
 
 相关文件：
 
@@ -118,11 +118,11 @@ base64 -i ./codesign.pfx | pbcopy   # 或重定向到文件再粘贴进 Secret
 
 ### 2.3 其他工作流
 
-| Secret / Token | 工作流             | 说明                                           |
-| -------------- | ------------------ | ---------------------------------------------- |
-| `GITHUB_TOKEN` | service-release 等 | Actions 自动提供；推 GHCR 需 `packages: write` |
-| `QODANA_TOKEN` | qodana（若启用）   | JetBrains Qodana                               |
-| `NPM_TOKEN`    | （按需自行接入）   | 私有 npm 源；当前默认 workflow 未接            |
+| Secret / Token | 工作流           | 说明                                |
+| -------------- | ---------------- | ----------------------------------- |
+| `GITHUB_TOKEN` | 各发布工作流     | Actions 自动提供                    |
+| `QODANA_TOKEN` | qodana（若启用） | JetBrains Qodana                    |
+| `NPM_TOKEN`    | （按需自行接入） | 私有 npm 源；当前默认 workflow 未接 |
 
 ---
 
@@ -132,10 +132,9 @@ base64 -i ./codesign.pfx | pbcopy   # 或重定向到文件再粘贴进 Secret
 | ----------------------------- | ---------------------- | ----------------------------------------- | ---------------------------------------------------- |
 | `continuous-integration.yaml` | Continuous Integration | PR → `master`/`develop`；push → `develop` | lint / 类型检查 / 测试 / 构建（Client 仅 Vite）      |
 | `client-release.yaml`         | Client Release         | tag `v*`；或手动 `workflow_dispatch`      | Tauri Windows 安装包 + GitHub Release + updater 清单 |
-| `service-release.yaml`        | Service Release        | tag `v*`；或手动                          | NestJS 镜像推 GHCR                                   |
 | `studio-desktop.yaml`         | Studio Desktop         | 手动；或 push 变更 `apps/studio/**`       | Electron 多平台安装包 artifact                       |
 
-同一 `v*` tag 会**并行**触发 Client Release 与 Service Release。
+`v*` tag 会触发 Client Release。
 
 运行时约定：Node 24 + pnpm（根 `package.json` 的 `packageManager`）。Actions 使用支持 Node 24 的版本（如 `checkout@v6`、`setup-node@v6`）。不要依赖 `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION`。
 
@@ -152,7 +151,7 @@ base64 -i ./codesign.pfx | pbcopy   # 或重定向到文件再粘贴进 Secret
 1. `pnpm install --frozen-lockfile`
 2. `pnpm lint`
 3. 类型检查（extension / client）
-4. 单元测试（service）
+4. 单元测试（`pnpm turbo run unit`，失败不阻断）
 5. `pnpm turbo run build --filter=!@i-thinking/client`
 6. `pnpm --filter @i-thinking/client run build:core`（仅 Web，避免 Ubuntu 上跑 Tauri）
 7. 上传 `dist` 等为 artifact
@@ -193,14 +192,6 @@ Runner：`windows-latest`
 
 这样用的是 **所选分支上的 YAML**，构建的是 **tag 指向的代码**。
 
-### 4.3 Service Release
-
-文件：`.github/workflows/service-release.yaml`
-
-- 使用 `apps/service/Dockerfile`，多架构 `linux/amd64,linux/arm64`
-- 镜像：`ghcr.io/<owner>/<repo>-service:<tag>`
-- 登录 GHCR：默认 `GITHUB_TOKEN`（需 `packages: write`）
-
 ### 4.4 Studio Desktop
 
 文件：`.github/workflows/studio-desktop.yaml`
@@ -215,7 +206,6 @@ Runner：`windows-latest`
 | 命令                  | 配置                                                       |
 | --------------------- | ---------------------------------------------------------- |
 | `pnpm bump:client`    | `apps/client/bump.client.ts`（含 tauri.conf / Cargo.toml） |
-| `pnpm bump:service`   | `apps/service/bump.service.ts`                             |
 | `pnpm bump:studio`    | `apps/studio/bump.studio.ts`                               |
 | `pnpm bump:extension` | `apps/extension/bump.extension.ts`                         |
 | `pnpm bump:devtools`  | `apps/devtools/bump.devtools.ts`                           |
@@ -266,13 +256,6 @@ pnpm --filter @i-thinking/client build
 ---
 
 ## 6. Docker（补充）
-
-### 服务镜像
-
-```bash
-docker build -t my-service -f apps/service/Dockerfile .
-docker run -p 9000:9000 my-service
-```
 
 ### 通用前端镜像（Nginx）
 

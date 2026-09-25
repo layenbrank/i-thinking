@@ -66,28 +66,6 @@
           "endsPattern": "ready in"
         }
       }
-    },
-    {
-      "type": "shell",
-      "command": "bun",
-      "args": ["dev:service"],
-      "label": "dev:service",
-      "detail": "启动 Service 应用开发服务器",
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "custom",
-        "pattern": {
-          "regexp": ".",
-          "file": 1,
-          "location": 2,
-          "message": 3
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": ".",
-          "endsPattern": "Application successfully started"
-        }
-      }
     }
   ]
 }

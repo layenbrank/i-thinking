@@ -22,10 +22,6 @@
       "path": "apps/client"
     },
     {
-      "name": "service",
-      "path": "apps/service"
-    },
-    {
       "name": "devtools",
       "path": "apps/devtools"
     },
@@ -464,15 +460,12 @@
       ".turbo/**",
       ".husky/**",
       ".idea/**",
-      "service/**",
-      "**/service/**",
       "**/node_modules/**",
       "**/dist/**",
       "**/build/**",
       "apps/**/node_modules/**",
       "apps/**/dist/**",
       "apps/**/build/**",
-      "apps/service/**",
       "**/*.test.*",
       "**/*.spec.*",
       "**/tests/**",
@@ -529,7 +522,6 @@
       "@core": "${workspaceFolder:core}/src",
       "@devtools": "${workspaceFolder:devtools}/src",
       "@extension": "${workspaceFolder:extension}/src",
-      "@service": "${workspaceFolder:service}/src",
       "@shared": "${workspaceFolder:shared}/src",
       "@ui": "${workspaceFolder:ui}/src"
     },
@@ -692,28 +684,6 @@
             "activeOnStart": true,
             "beginsPattern": ".",
             "endsPattern": "ready in"
-          },
-          "owner": "custom",
-          "pattern": {
-            "file": 1,
-            "location": 2,
-            "message": 3,
-            "regexp": "."
-          }
-        },
-        "type": "shell"
-      },
-      {
-        "args": ["dev:service"],
-        "command": "bun",
-        "detail": "启动 Service 应用开发服务器",
-        "isBackground": true,
-        "label": "dev:service",
-        "problemMatcher": {
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".",
-            "endsPattern": "Application successfully started"
           },
           "owner": "custom",
           "pattern": {

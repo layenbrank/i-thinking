@@ -56,7 +56,7 @@ jobs:
 
       - name: Unit tests
         run: |
-          pnpm --filter=@i-thinking/service test || true
+          pnpm turbo run unit --continue || true
 
       - name: Build (exclude Tauri desktop)
         env:

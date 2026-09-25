@@ -17,7 +17,6 @@
 
 ### 不使用 Vitest 的项目
 
-- **apps/service** — NestJS（Jest，`*.spec.ts`）
 - **packages/shared** — 以类型为主（无独立测试套件时跳过）
 
 ---

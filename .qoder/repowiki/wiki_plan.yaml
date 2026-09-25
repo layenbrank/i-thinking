@@ -5,7 +5,6 @@ scope:
     - apps/client/src/**
     - apps/studio/src/**
     - apps/extension/src/**
-    - apps/service/src/**
     - packages/core/src/**
     - packages/composables/src/**
     - packages/hooks/src/**
@@ -31,10 +30,9 @@ repowiki:
     - text: client 是基于 React 19 + Ant Design 6 + Tauri 2 的桌面客户端应用，入口为 App.tsx/main.tsx，使用 Zustand 管理状态。
     - text: studio 是基于 Electron Forge + React 19 + Ant Design 6 的桌面编辑器应用，采用 main/preload/renderer 三进程架构，使用 Prisma + better-sqlite3 做本地数据持久化。
     - text: extension 是基于 Vue 3 + vue-router + vue-i18n 的浏览器扩展应用，采用 Composition API 风格，使用 Dexie (IndexedDB) 做本地存储。
-    - text: service 是基于 NestJS 11 的后端服务，采用 Controller/Service/Module 分层架构，使用 MongoDB (Mongoose) + JWT 认证 + Winston 日志。
     - text: 前端双框架共存：client 和 studio 使用 React，extension 使用 Vue 3；packages 中 hooks 服务 React，composables/directives 服务 Vue，core/utils/shared 跨框架复用。
     - text: 富文本协作是核心能力，基于 TipTap 3 + Yjs + Hocuspocus 实现多人实时协同编辑，extension 中大量使用此能力。
-    - text: 构建工具统一使用 Vite 8，service 使用 NestJS CLI 构建，所有包通过 Turbo 管道编排构建任务。
+    - text: 构建工具统一使用 Vite 8，所有包通过 Turbo 管道编排构建任务。
 
 knowledgecard:
   notes:
