@@ -17,9 +17,7 @@
     "test:unit": "vitest"
   },
   "dependencies": {
-    "@assistant-ui/ai-sdk": "catalog:",
     "@assistant-ui/react": "catalog:",
-    "ai": "catalog:",
     "assistant-stream": "catalog:",
     "react": "catalog:"
   },

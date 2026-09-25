@@ -95,23 +95,24 @@ catalog:
   '@base-ui/react': ^1.8.0
   'sonner': ^2.0.8
   'go-captcha-react': 1.0.5
+  # 收银台要在本地渲染渠道支付二维码（微信 Native / 支付宝当面付）——
+  # 绝不用第三方二维码图片服务：code_url 是支付凭证，透出去等于把订单递给别人
+  'qrcode.react': ^4.2.0
   'react-hook-form': ^7.88.0
   '@hookform/resolvers': ^5.9.1
   'remark-gfm': ^4.0.1
 
-  # —— assistant-ui + AI SDK v7 ——
+  # —— opencode：studio 内嵌的 agent 运行时（server 由 sidecar 提供，客户端包须与二进制同版本）——
+  '@opencode/client': ^2.0.15
+
+  # —— assistant-ui ——
   # assistant-ui 组件经 shadcn registry（copy-in）落入 packages/design；runtime/传输在各 app
   '@assistant-ui/react': ^0.15.19
   '@assistant-ui/react-markdown': ^0.14.15
   '@assistant-ui/react-devtools': ^1.2.18
-  '@assistant-ui/ai-sdk': ^0.0.5
   # assistant-ui 的底层流库（本仓直接 import 它的 createAssistantStream）
   'assistant-stream': ^0.3.42
   'tw-shimmer': ^0.4.13
-  'ai': ^7.0.99
-  '@ai-sdk/react': ^4.0.102
-  # 主进程离线 provider：Ollama / LM Studio / vLLM 等 OpenAI 兼容端点
-  '@ai-sdk/openai-compatible': ^3.0.48
 
   # —— Forge：CLI + makers ——
   '@electron-forge/cli': ^7.11.2
@@ -199,3 +200,6 @@ minimumReleaseAgeExclude:
   - '@typescript-eslint/utils@8.70.0'
   - '@typescript-eslint/visitor-keys@8.70.0'
   - typescript-eslint@8.70.0
+  - '@opencode/client@2.0.15'
+  - '@opencode/protocol@2.0.15'
+  - '@opencode/schema@2.0.15'
