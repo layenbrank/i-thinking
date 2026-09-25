@@ -12,7 +12,7 @@ use crate::interceptors::envelope::{Envelope, Paginated};
 use crate::services::gateway::client::Upstream;
 use crate::services::gateway::schema::{
     AuditQueryP, ChatCompletionsP, ModelUpdateP, ModelWriteP, ProviderUpdateP, ProviderWriteP,
-    UsageQueryP,
+    SelfQuotaP, UsageQueryP,
 };
 use crate::services::gateway::service::GatewayService;
 use crate::utils::jwt::Claims;
@@ -79,10 +79,7 @@ impl GatewayController {
         }
     }
 
-    pub async fn models(
-        db: web::Data<Arc<Storage>>,
-        http: HttpRequest,
-    ) -> Result<HttpResponse> {
+    pub async fn models(db: web::Data<Arc<Storage>>, http: HttpRequest) -> Result<HttpResponse> {
         let (user_id, role) = identity(&http)?;
         let tenant_id = tenant_from_header(&http);
         match GatewayService::list_models(&db, user_id, &role, tenant_id).await {
@@ -91,12 +88,44 @@ impl GatewayController {
         }
     }
 
-    // ---- 后台 provider CRUD ----
-
-    pub async fn providers(
+    /// 只读自助配额：登录用户查自己（或自己所属租户）此刻的日窗用量与上限。
+    pub async fn quota_me(
         db: web::Data<Arc<Storage>>,
+        redis: web::Data<Arc<RedisPool>>,
+        config: web::Data<Arc<Configure>>,
+        http: HttpRequest,
+        query: web::Query<SelfQuotaP>,
+    ) -> Result<HttpResponse> {
+        let (user_id, _role) = identity(&http)?;
+        let tenant_id = tenant_from_header(&http);
+        match GatewayService::self_quota(
+            &db,
+            &config,
+            &redis,
+            user_id,
+            tenant_id,
+            query.model.as_deref(),
+        )
+        .await
+        {
+            Ok(data) => Envelope::success(data, "获取配额成功").transform(),
+            Err(e) => Exception::from(e).transform(),
+        }
+    }
+
+    /// 档位目录：可开通档位与免费档基线（登录即可读，用于渲染档位卡）。
+    pub async fn plans(
+        config: web::Data<Arc<Configure>>,
         http: HttpRequest,
     ) -> Result<HttpResponse> {
+        let _ = identity(&http)?;
+        let data = GatewayService::list_plans(&config);
+        Envelope::success(data, "获取档位成功").transform()
+    }
+
+    // ---- 后台 provider CRUD ----
+
+    pub async fn providers(db: web::Data<Arc<Storage>>, http: HttpRequest) -> Result<HttpResponse> {
         let _ = identity(&http)?;
         match GatewayService::list_providers(&db).await {
             Ok(items) => Envelope::success(items, "获取供应商列表成功").transform(),
@@ -208,11 +237,10 @@ impl GatewayController {
         let page = query.page.unwrap_or(1).max(1);
         let size = query.size.unwrap_or(50).clamp(1, 200);
         match GatewayService::list_usage(&db, query.into_inner()).await {
-            Ok((items, count)) => Envelope::success(
-                Paginated::new(items, count, page, size),
-                "获取用量成功",
-            )
-            .transform(),
+            Ok((items, count)) => {
+                Envelope::success(Paginated::new(items, count, page, size), "获取用量成功")
+                    .transform()
+            }
             Err(e) => Exception::from(e).transform(),
         }
     }
@@ -230,11 +258,10 @@ impl GatewayController {
         let page = query.page.unwrap_or(1).max(1);
         let size = query.size.unwrap_or(50).clamp(1, 200);
         match GatewayService::list_audit(&db, tenant_id, page, size).await {
-            Ok((items, count)) => Envelope::success(
-                Paginated::new(items, count, page, size),
-                "获取审计日志成功",
-            )
-            .transform(),
+            Ok((items, count)) => {
+                Envelope::success(Paginated::new(items, count, page, size), "获取审计日志成功")
+                    .transform()
+            }
             Err(e) => Exception::from(e).transform(),
         }
     }
