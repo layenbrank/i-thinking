@@ -29,10 +29,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const MIGRATIONS_FOLDER = join(PACKAGE_ROOT, 'drizzle', 'migrations')
 
-/** 业务表数量（不含 Drizzle 记账表）：v1 的 8 张 + chat 域 3 张 + workspace/workspaceFolder 2 张 = 13 */
-const BUSINESS_TABLE_COUNT = 13
-/** 迁移文件数：只有 0000_init（建表 + 种子） */
-const MIGRATION_COUNT = 1
+/** 业务表数量（不含 Drizzle 记账表）：v1 的 8 张 + chat 域 4 张 + workspace/workspaceFolder 2 张 = 14 */
+const BUSINESS_TABLE_COUNT = 14
+/** 迁移文件数：0000_init（建表 + 种子）+ 0001_chat_usage（用量账本） */
+const MIGRATION_COUNT = 2
 /** 种子行数（139 条 INSERT OR IGNORE；client 已废弃，不再同步） */
 const SEED_ROWS = { magneticTile: 137, mirror: 1, countdown: 1 }
 

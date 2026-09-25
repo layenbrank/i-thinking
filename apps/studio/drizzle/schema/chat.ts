@@ -1,4 +1,11 @@
-import { index, integer, sqliteTable, text, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+  type AnySQLiteColumn
+} from 'drizzle-orm/sqlite-core'
 
 /**
  * Chat 域：chatProvider / chatSession / chatMessage（studio 主进程自有，非 Tauri 共享实体）。
@@ -9,7 +16,7 @@ import { index, integer, sqliteTable, text, type AnySQLiteColumn } from 'drizzle
  *   因此**不再单列 `thinking` / `parts`**（旧 ai 域那样存会造成双轨）。
  * - `parentID` 是分支指针（assistant-ui 历史适配器的 `parent_id`）：编辑/重生成产生兄弟分支。
  *
- * 时间戳统一 `timestamp_ms`（Date ↔ INTEGER 毫秒），与同为主进程自有的 Auth 表一致。
+ * 时间戳统一 `timestamp_ms`（Date ↔ INTEGER 毫秒），与同为主进程自有的 auth 表一致。
  */
 
 /** apiKey 不落库（存 plugin-store / safeStorage），渲染进程只拿元数据 */
@@ -20,7 +27,7 @@ export const chatProvider = sqliteTable(
     kind: text('kind').notNull(),
     name: text('name').notNull(),
     baseUrl: text('baseUrl'),
-    /** JSON 数组文本：可选模型清单 */
+    /** JSON 数组文本：模型条目（`@i-thinking/agent/provider` 的 `ModelEntry`）；早期只存模型名，读取时归一 */
     models: text('models'),
     /** 该 provider 的默认模型 */
     model: text('model'),
@@ -100,6 +107,48 @@ export const chatMessage = sqliteTable(
       index('idx_chatMessage_sessionID').on(table.sessionID),
       index('idx_chatMessage_parentID').on(table.parentID),
       index('idx_chatMessage_createdAt').on(table.createdAt)
+    ]
+  }
+)
+
+/**
+ * 用量账本：**每次运行一条**，只增不改（studio 主进程自己记账）。
+ *
+ * 为什么不复用消息里的 usage：那条路（`metadata.custom.usage`）由 assistant-ui 的历史适配器
+ * 落库，而**取消时它会把最后一轮的结果丢掉**（见 `packages/chat/src/adapters/chat-model.ts`），
+ * 用户中途点停同样花了钱。账本由引擎在 `settle()`（终态唯一汇聚点）写，与渲染进程的
+ * 消息快照解耦；`runID` 唯一约束让重复结算无害。
+ *
+ * `sessionID` / `providerID` **刻意不加外键**：账本要落得下、也要留得住 ——
+ * 会话或 provider 被删不该让历史用量消失，会话行还没落库也不该让这次记账失败。
+ * 聚合按 `sessionID` 匹配即可（与 `chatSession.workspaceID` 同样的取舍）。
+ *
+ * 时间戳 `timestamp_ms`（本地时区），「今日」按本地零点切。
+ */
+export const chatUsage = sqliteTable(
+  'chatUsage',
+  {
+    id: text('id').primaryKey(),
+    /** 渲染进程为每次运行生成的 uuid：一次运行只记一条 */
+    runID: text('runID').notNull(),
+    /** 归属的 studio 会话（线程）；未知时为 null，仍计入今日合计 */
+    sessionID: text('sessionID'),
+    providerID: text('providerID').notNull(),
+    model: text('model').notNull(),
+    /** 计费归属：`platform`（组织网关，服务端也会计数）/ `local`（自带密钥、本机运行时） */
+    source: text('source').notNull(),
+    /** 终态：`finish` / `aborted` / `error` —— 后两者同样花钱 */
+    outcome: text('outcome').notNull(),
+    inputTokens: integer('inputTokens').notNull().default(0),
+    outputTokens: integer('outputTokens').notNull().default(0),
+    totalTokens: integer('totalTokens').notNull().default(0),
+    createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull()
+  },
+  function (table) {
+    return [
+      uniqueIndex('idx_chatUsage_runID').on(table.runID),
+      index('idx_chatUsage_sessionID').on(table.sessionID),
+      index('idx_chatUsage_createdAt').on(table.createdAt)
     ]
   }
 )
