@@ -16,6 +16,7 @@
 ## 与同域其他模块的区别
 
 - [`subscription`](../subscription/README.md)：只管个人租户的付费档位与有效期，路由挂在本模块前缀下（`/tenants/{id}/subscriptions`）。
+- [`payment`](../payment/README.md)：收钱并开通订阅，路由同样挂在本模块前缀下（`/tenants/{id}/orders`、`/tenants/{id}/pay/catalog`）。
 - [`sso`](../sso/README.md)：按 `tenantID` 配置 OIDC 连接。
 - [`gateway`](../gateway/README.md)：消费租户身份做配额与审计。
 
@@ -54,6 +55,7 @@
 ```
 TenantModule::configure
   └── scope("/tenants") .wrap(Auth::isRequired())
+        ├── configure(SubscriptionModule::configure)   # 订阅 / 配额，注册相对路径的 web::resource
         └── TenantController → TenantService
               ├── create / list / get / update / remove
               ├── list_members / add_member / update_member / remove_member
