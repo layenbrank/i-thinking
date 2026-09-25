@@ -43,6 +43,10 @@ export function buildChatHandlers(): DomainHandlers<'chat'> {
     },
     [CHANNELS.CHAT.MESSAGE.REMOVE]: function (input) {
       return chat.removeMessage(input)
+    },
+
+    [CHANNELS.CHAT.USAGE.READ]: function (input) {
+      return chat.findUsage(input)
     }
   }
 }

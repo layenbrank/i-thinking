@@ -34,6 +34,26 @@ export function useWorkspaces() {
   })
 }
 
+/**
+ * 已归档的工作区（侧栏「已归档」分区）。
+ *
+ * 与主列表同一个 IPC（`includeArchived`），但列表本身已经把归档项滤掉了 ——
+ * 所以必须**另开一个 query**：主列表的开合、指针回落都不该看见归档项，
+ * 而归档区是显式展开的次要视图。键以 `WORKSPACES_KEY` 开头，
+ * 归档 / 恢复后的 `invalidateQueries` 一次刷两处。
+ */
+export function useArchivedWorkspaces() {
+  return useQuery({
+    queryKey: [...WORKSPACES_KEY, 'archived'] as const,
+    queryFn: async function () {
+      const rows = await itc.workspace.toRead({ includeArchived: true })
+      return rows.filter(function (item) {
+        return item.archived
+      })
+    }
+  })
+}
+
 /** @deprecated 用 `useWorkspaces` */
 export function useWorkspaceRoots() {
   return useWorkspaces()
@@ -134,10 +154,42 @@ export function useWorkspaceActions() {
     }
   })
 
+  /** 固定：只动 `pinned`，不碰归档状态（同一条 `workspace:update`） */
+  const pinWorkspace = useMutation({
+    mutationFn: function (input: { id: string; pinned: boolean }) {
+      return itc.workspace.toUpdate({ id: input.id, pinned: input.pinned })
+    },
+    onSuccess: async function () {
+      await client.invalidateQueries({ queryKey: WORKSPACES_KEY })
+    }
+  })
+
+  /** 归档：`workspace:archive` 是单向的；取消归档走 `workspace:update` 的 `archived: false` */
+  const archiveWorkspace = useMutation({
+    mutationFn: function (id: string) {
+      return itc.workspace.toArchive({ id })
+    },
+    onSuccess: async function () {
+      await client.invalidateQueries({ queryKey: WORKSPACES_KEY })
+    }
+  })
+
+  const restoreWorkspace = useMutation({
+    mutationFn: function (id: string) {
+      return itc.workspace.toUpdate({ id, archived: false })
+    },
+    onSuccess: async function () {
+      await client.invalidateQueries({ queryKey: WORKSPACES_KEY })
+    }
+  })
+
   return {
     addWorkspace,
     removeWorkspace,
     selectWorkspace,
+    pinWorkspace,
+    archiveWorkspace,
+    restoreWorkspace,
     /** @deprecated */
     addRoot: addWorkspace,
     /** @deprecated */

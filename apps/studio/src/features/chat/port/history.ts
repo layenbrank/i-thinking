@@ -57,6 +57,10 @@ function createHistoryPort(): ChatHistoryPort {
     },
 
     async createThread(input) {
+      // 存储是异步水合的（`initialize()`），没等它就读指针只会读到 null：
+      // 会话于是挂到"当前工作区"的兜底值上，用户在新会话里找不到自己刚建的那个。
+      // `initialize()` 幂等，已水合时是一次同步返回。
+      if (!input?.workspaceID) await useAgentStore.getState().initialize()
       const session = await itc.chat.session.toWrite({
         ...(input?.title ? { title: input.title } : {}),
         providerID: input?.providerID ?? null,

@@ -1,7 +1,8 @@
 import { useAui } from '@assistant-ui/react'
-import { BookOpenIcon, ListTodoIcon, PuzzleIcon, SparklesIcon } from 'lucide-react'
+import { BookOpenIcon, HistoryIcon, ListTodoIcon, PuzzleIcon, SparklesIcon } from 'lucide-react'
 
 import { useActiveWorkspace } from '@/features/agent/workspace/client.ts'
+import { useSessionID } from '@/features/chat/session.ts'
 
 /**
  * 新会话欢迎页 —— 对齐 Qoder / client：只有标题与提示卡，不放「添加目录」主按钮。
@@ -26,7 +27,41 @@ const SUGGESTIONS = [
   }
 ]
 
+/**
+ * 打开一个老会话却没有消息可读时，别摆欢迎页 —— 那会让人以为这是个新会话，
+ * 用户看到的就是「点了会话什么都没有」。成因是早期版本的会话身份缺失，
+ * 历史写入被静默丢弃（见 `packages/chat/src/adapters/thread-history.ts` 的 `requireThreadID`），
+ * 那批消息没能落库，且已无法找回。
+ */
+function NoHistoryNotice() {
+  return (
+    <div className="mb-2 flex w-full flex-col items-center gap-6 px-2 text-center">
+      <div className="flex flex-col items-center gap-3">
+        <span className="bg-muted text-muted-foreground inline-flex size-12 items-center justify-center rounded-lg">
+          <HistoryIcon className="size-6" />
+        </span>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-foreground text-2xl leading-[1.35] font-semibold tracking-[-0.01em]">
+            这个会话没有历史消息
+          </h1>
+          <p className="text-muted-foreground max-w-[36em] text-sm leading-[1.65] text-balance">
+            它的消息没能保存下来，本地数据库里没有可读的记录，已经找不回来了。直接在这里继续说即可，
+            新消息都会正常保存。
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ThreadWelcome() {
+  // 有 remoteId = 这是从库里打开的老会话；新会话要等首条消息发出去才拿到这个 id
+  const sessionID = useSessionID()
+
+  return sessionID ? <NoHistoryNotice /> : <ThreadGreeting />
+}
+
+function ThreadGreeting() {
   const aui = useAui()
   const activeWorkspace = useActiveWorkspace()
 
