@@ -20,7 +20,7 @@
     "publish:github": "electron-forge publish",
     "lint": "eslint . --report-unused-disable-directives",
     "postinstall": "electron-rebuild",
-    "rebuild": "electron-rebuild",
+    "rebuild": "electron-rebuild -f",
     "preview": "vite preview",
     "test:coverage": "vitest --coverage",
     "test:db": "node scripts/run-db-tests.mjs",

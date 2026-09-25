@@ -43,11 +43,14 @@ allowBuilds:
   '@prisma/engines': true
   '@scarf/scarf': true
   '@swc/core': true
-  better-sqlite3: true
+  # 必须为 false：better-sqlite3 的 install 脚本（prebuild-install）会为「宿主 Node」下载/编译二进制，
+  # 覆盖 apps/studio postinstall 产出的 Electron ABI 构建。构建交给 @electron/rebuild。
+  better-sqlite3: false
   core-js: true
   electron: true
   electron-winstaller: true
   esbuild: true
+  msgpackr-extract: true
   msw: true
   prisma: true
   unrs-resolver: true

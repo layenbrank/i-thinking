@@ -117,7 +117,9 @@ jobs:
         run: pnpm --filter @i-thinking/studio exec prisma generate
 
       - name: Rebuild natives
-        run: pnpm --filter @i-thinking/studio rebuild
+        # 必须是 `run rebuild`：裸 `pnpm rebuild` 是 pnpm 内置命令，不会执行 studio 的
+        # electron-rebuild 脚本（会对全仓包重跑 install 脚本，把 Electron ABI 的 better-sqlite3 换成宿主 ABI）
+        run: pnpm --filter @i-thinking/studio run rebuild
 
       - name: Download sidecar artifact
         uses: actions/download-artifact@v6
