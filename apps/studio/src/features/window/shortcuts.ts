@@ -14,6 +14,7 @@ const WINDOW_SHORTCUTS = [
   { id: 'toggle-aside', label: '打开或关闭右侧栏', key: 'b', shift: true },
   { id: 'new-task', label: '新任务', key: 'n', shift: false },
   { id: 'search-threads', label: '搜索任务', key: 'f', shift: false },
+  { id: 'cycle-model', label: '切换到下一个模型', key: '/', shift: false },
   { id: 'open-settings', label: '设置', key: ',', shift: false }
 ] as const
 

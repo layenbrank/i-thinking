@@ -20,17 +20,18 @@ import { Switch } from '@i-thinking/design/components/switch'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useState } from 'react'
-import { useForm, type Control, type ControllerRenderProps } from 'react-hook-form'
+import { useForm, useWatch, type Control, type ControllerRenderProps } from 'react-hook-form'
 
 import { PROVIDER_KINDS } from '@/features/chat/provider/constants.ts'
+import { ModelChips, ModelField, ModelsField } from '@/features/chat/provider/model-field.tsx'
+import { collectModelOptions } from '@/features/chat/provider/models.ts'
+import { applyProviderPreset, PROVIDER_FORM_DEFAULTS } from '@/features/chat/provider/preset.ts'
+import type { ProviderRow } from '@/features/chat/provider/row.ts'
 import {
-  formatModels,
   PROVIDER_SCHEMA,
+  toModelIDs,
   type ProviderValues
 } from '@/features/chat/provider/schema.ts'
-
-/** 主进程 provider 行的展示类型（渲染进程不 import 主进程类型） */
-type ProviderRow = Awaited<ReturnType<typeof itc.chat.provider.toRead>>[number]
 
 interface ProviderFormProps {
   provider: ProviderRow | null
@@ -42,15 +43,17 @@ interface ProviderFormProps {
 }
 
 function toDefaults(provider: ProviderRow | null): ProviderValues {
+  if (!provider) return { ...PROVIDER_FORM_DEFAULTS }
+
   return {
-    kind: provider?.kind ?? PROVIDER_KINDS[0].value,
-    name: provider?.name ?? '',
-    baseUrl: provider?.baseUrl ?? PROVIDER_KINDS[0].baseUrl,
-    model: provider?.model ?? '',
-    models: formatModels(provider?.models ?? null),
+    kind: provider.kind,
+    name: provider.name ?? '',
+    baseUrl: provider.baseUrl ?? '',
+    model: provider.model ?? '',
+    models: toModelIDs(provider.models ?? null),
     // 已存的 Key 不读回（主进程只有写/问有没有/删），留空表示不改
     apiKey: '',
-    enabled: provider?.enabled ?? true
+    enabled: provider.enabled
   }
 }
 
@@ -121,6 +124,13 @@ function ProviderForm(props: ProviderFormProps) {
     defaultValues: toDefaults(provider)
   })
 
+  // 候选清单跟着厂商 + 已声明的名字走；当前默认模型也算一个候选（见 collectModelOptions）
+  // 用 useWatch 订阅而不是 form.watch()：后者返回的函数不能被安全记忆化（React Compiler 会跳过本组件）
+  const kind = useWatch({ control: form.control, name: 'kind' })
+  const declared = useWatch({ control: form.control, name: 'models' })
+  const current = useWatch({ control: form.control, name: 'model' })
+  const modelOptions = collectModelOptions({ kind, declared, current })
+
   return (
     <Form {...form}>
       <form
@@ -144,16 +154,13 @@ function ProviderForm(props: ProviderFormProps) {
                   value={field.value}
                   onValueChange={function (value) {
                     field.onChange(value)
-                    const next = PROVIDER_KINDS.find(function (item) {
-                      return item.value === value
-                    })
-                    const current = form.getValues('baseUrl')
-                    const isPreset = PROVIDER_KINDS.some(function (item) {
-                      return item.baseUrl !== '' && item.baseUrl === current
-                    })
-                    if (next && (current === '' || isPreset)) {
-                      form.setValue('baseUrl', next.baseUrl)
-                    }
+
+                    // 换厂商时把这一家的出厂值填回去（规则见 applyProviderPreset）
+                    const patch = applyProviderPreset(value, form.getValues())
+                    form.setValue('name', patch.name)
+                    form.setValue('baseUrl', patch.baseUrl)
+                    form.setValue('model', patch.model)
+                    form.setValue('models', patch.models)
                   }}>
                   <FormControl>
                     <SelectTrigger aria-label="Provider">
@@ -172,6 +179,10 @@ function ProviderForm(props: ProviderFormProps) {
                     })}
                   </SelectContent>
                 </Select>
+                <FormDescription>
+                  选云端厂商会自动填好服务地址与常用模型，密钥要自己填；本地运行时模型名请照 `ollama
+                  list` 填。
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )
@@ -226,13 +237,18 @@ function ProviderForm(props: ProviderFormProps) {
           render={function ({ field }) {
             return (
               <FormItem>
-                <FormLabel>模型</FormLabel>
+                <FormLabel>默认模型</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    placeholder="qwen3:8b"
+                  <ModelField
+                    value={field.value}
+                    options={modelOptions}
+                    placeholder="选择或输入模型名"
+                    onChange={field.onChange}
                   />
                 </FormControl>
+                <FormDescription>
+                  发送时默认用它。清单只是预填，清单外的名字直接输入后回车也能用。
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )
@@ -247,12 +263,20 @@ function ProviderForm(props: ProviderFormProps) {
               <FormItem>
                 <FormLabel>可选用模型</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    placeholder="qwen3:8b, llama3.2:3b"
+                  <ModelsField
+                    value={field.value}
+                    options={modelOptions}
+                    placeholder="选择可用模型"
+                    onChange={field.onChange}
                   />
                 </FormControl>
-                <FormDescription>逗号分隔，可留空</FormDescription>
+                <ModelChips
+                  models={field.value}
+                  onChange={field.onChange}
+                />
+                <FormDescription>
+                  会出现在对话页的模型选择器里；留空表示只提供默认模型。
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )
@@ -303,4 +327,4 @@ function ProviderForm(props: ProviderFormProps) {
   )
 }
 
-export { ProviderForm, type ProviderRow }
+export { ProviderForm }
