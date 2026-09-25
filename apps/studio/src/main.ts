@@ -4,6 +4,7 @@ import path from 'node:path'
 
 import type { BrowserWindow } from 'electron'
 
+import { disposeEngine } from './host/capabilities/assistant'
 import { buildPlugin as buildDatabasePlugin } from './host/capabilities/database'
 import { buildOverlayWindowPort } from './host/capabilities/overlay-window'
 import { buildPlugin as buildSecurityPlugin } from './host/capabilities/security'
@@ -12,6 +13,7 @@ import { buildPlugin as buildTrayPlugin } from './host/capabilities/tray'
 import { buildPlugin as buildWindowPlugin } from './host/capabilities/window'
 import { buildWindowPorts } from './host/capabilities/window-registry'
 import { buildContext } from './host/framework/context'
+import { attachFileLog } from './host/framework/log-file'
 import { buildLogger } from './host/framework/logger'
 import type { Plugin } from './host/framework/module'
 import { registerStudioIpc } from './host/ipc'
@@ -20,8 +22,23 @@ import {
   attachSecondInstanceFocus
 } from './host/lifecycle/single-instance'
 
+/** 日志目录取不到就退回 stdout：取证少一份，但不能因此起不来 */
+function findDataDir(): string | null {
+  try {
+    return app.getPath('userData')
+  } catch (error) {
+    console.warn('[bootstrap] 取不到 userData，日志只进 stdout', error)
+    return null
+  }
+}
+
 export async function bootstrap(): Promise<void> {
   const log = buildLogger('bootstrap')
+
+  // 落盘越早越好：内存里的那份终端输出，用户报障时早就滚没了（排查时只有它能还原现场）
+  const dataDir = findDataDir()
+  const detachFileLog = dataDir ? attachFileLog(dataDir) : function () {}
+  if (dataDir) log.info('日志文件', { dir: path.join(dataDir, 'logs') })
 
   if (started) return app.quit()
 
@@ -116,6 +133,17 @@ export async function bootstrap(): Promise<void> {
       } catch (error) {
         log.error('ipc dispose failed', error)
       }
+
+      // 内嵌 opencode server 不属于任何插件（它活在整个应用生命周期），单独收尾：
+      // Windows 上父进程退出不会带走子进程，不显式停就会在后台留下孤儿进程
+      try {
+        await disposeEngine()
+      } catch (error) {
+        log.error('opencode engine dispose failed', error)
+      }
+
+      // 收尾日志写完之后再摘出口，避免最后几行（尤其是报错）留在内存里
+      detachFileLog()
 
       app.exit(0)
     }

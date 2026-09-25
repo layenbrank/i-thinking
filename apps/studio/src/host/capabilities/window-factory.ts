@@ -85,6 +85,28 @@ function toReveal(win: BrowserWindow, isFocusOnShow: boolean) {
   else win.showInactive()
 }
 
+/**
+ * 渲染进程的 `console` 落不进主进程日志（`log-file.ts` 拦的是主进程自己的 `console`），
+ * 而渲染进程的失败**常常没有别的出口**：历史写入的 rejection 被 assistant-ui 吞掉，
+ * 只剩一行 `console.error`。结果就是「点了没反应，日志里也什么都没有」。
+ *
+ * warn / error 一律转发；info / debug 只在 `STUDIO_DEBUG` 下转发 —— 否则开发态的
+ * React / HMR 噪音会把日志冲掉。
+ */
+const CONSOLE_LEVELS = { error: 'error', warning: 'warn', info: 'info', debug: 'debug' } as const
+
+function attachConsoleForwarding(win: BrowserWindow, log: ReturnType<Context['logger']['child']>) {
+  win.webContents.on('console-message', function (details) {
+    const level = CONSOLE_LEVELS[details.level]
+    if ((level === 'info' || level === 'debug') && !process.env.STUDIO_DEBUG) return
+
+    log[level](`renderer: ${details.message}`, {
+      source: details.sourceId,
+      line: details.lineNumber
+    })
+  })
+}
+
 function attachLifecycle(
   ctx: Context,
   win: BrowserWindow,
@@ -96,6 +118,7 @@ function attachLifecycle(
 
   ctx.trustWebContents(win.webContents)
   attachGuards(ctx, win.webContents)
+  attachConsoleForwarding(win, log)
 
   win.once('ready-to-show', function () {
     if (!isAutoShow || win.isDestroyed()) return

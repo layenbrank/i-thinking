@@ -28,20 +28,25 @@ function stringify(extra: unknown) {
   }
 }
 
+function log(level: LogLevel, module: string, message: string, extra?: unknown): void {
+  if (level === 'debug' && !process.env.STUDIO_DEBUG) return
+
+  console[level](format(level, module, message, extra))
+}
+
 function buildLogger(module: string): Logger {
   return {
     debug(message, extra) {
-      if (!process.env.STUDIO_DEBUG) return
-      console.debug(format('debug', module, message, extra))
+      log('debug', module, message, extra)
     },
     info(message, extra) {
-      console.info(format('info', module, message, extra))
+      log('info', module, message, extra)
     },
     warn(message, extra) {
-      console.warn(format('warn', module, message, extra))
+      log('warn', module, message, extra)
     },
     error(message, extra) {
-      console.error(format('error', module, message, extra))
+      log('error', module, message, extra)
     },
     child(childModule) {
       return buildLogger(`${module}:${childModule}`)
