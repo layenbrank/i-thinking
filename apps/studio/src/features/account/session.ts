@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, type QueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 
@@ -142,8 +142,6 @@ function useAuthCacheSync(queryClient: QueryClient): void {
 }
 
 function useSignOut(): { signOut: () => void; isPending: boolean } {
-  const queryClient = useQueryClient()
-
   const mutation = useMutation({
     mutationFn: async function () {
       try {

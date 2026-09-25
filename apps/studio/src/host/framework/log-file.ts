@@ -23,9 +23,17 @@ const PATCHED_METHODS = ['debug', 'log', 'info', 'warn', 'error'] as const
 type ConsoleMethod = (typeof PATCHED_METHODS)[number]
 type ConsoleCall = (...args: unknown[]) => void
 
+/**
+ * 本模块自己的告警出口：模块加载时（早于 `attachFileLog` 接管）抓住的原始 `console.warn`，
+ * 落盘出口自己坏掉时既不能绕回来递归落盘，也不能跟着一起消失。
+ */
+const reportFailure: ConsoleCall = console.warn.bind(console)
+
 /** 按**本地**日期切分：用户看的是本地时间，跨时区用 UTC 反而对不上号 */
 function toDayKey(now: Date): string {
-  const pad = (value: number) => String(value).padStart(2, '0')
+  function pad(value: number): string {
+    return String(value).padStart(2, '0')
+  }
 
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
@@ -33,7 +41,9 @@ function toDayKey(now: Date): string {
 function findFileSize(file: string): number {
   try {
     return existsSync(file) ? statSync(file).size : 0
-  } catch {
+  } catch (error) {
+    // 读不到就当 0：上限判断宁松不严，不值得为它中断落盘
+    reportFailure(`[log-file] 读不到日志文件大小，按 0 处理: ${file}`, error)
     return 0
   }
 }
@@ -46,8 +56,9 @@ function formatArg(value: unknown): string {
   try {
     const encoded = JSON.stringify(value)
     return encoded === undefined ? String(value) : encoded
-  } catch {
+  } catch (error) {
     // 循环引用等：`String()` 至少还留个大概，总比丢掉这一条强
+    reportFailure('[log-file] 参数无法序列化，退化成 String()', error)
     return String(value)
   }
 }
@@ -76,7 +87,7 @@ function attachFileLog(dataDir: string): () => void {
       appendFileSync(file, text)
     } catch (error) {
       isUsable = false
-      originals.get('warn')?.(`[log-file] 写日志失败，后续只进 stdout: ${file}`, error)
+      reportFailure(`[log-file] 写日志失败，后续只进 stdout: ${file}`, error)
     }
   }
 
@@ -93,7 +104,7 @@ function attachFileLog(dataDir: string): () => void {
       mkdirSync(dir, { recursive: true })
     } catch (error) {
       isUsable = false
-      originals.get('warn')?.(`[log-file] 日志目录不可用，日志只进 stdout: ${dir}`, error)
+      reportFailure(`[log-file] 日志目录不可用，日志只进 stdout: ${dir}`, error)
     }
   }
 
@@ -132,10 +143,12 @@ function attachFileLog(dataDir: string): () => void {
 
   write('INFO', `--- studio main 启动（日志目录 ${dir}）---`)
 
-  return function detach(): void {
+  function detach(): void {
     for (const [method, original] of originals) consoleRef[method] = original
     originals.clear()
   }
+
+  return detach
 }
 
 export { attachFileLog }
