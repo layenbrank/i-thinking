@@ -1,0 +1,141 @@
+[workspace]
+resolver = "3"
+members  = [".", "entity", "migration", "configures"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+sea-orm = { version = "2.0.2", features = [
+  "sqlx-postgres",
+  "runtime-tokio-native-tls",
+  "macros",
+  "with-uuid",
+  "with-chrono",
+  "postgres-array",
+] }
+sea-orm-migration = { version = "2.0.2", features = [
+  "runtime-tokio-native-tls",
+  "sqlx-postgres",
+  "cli",
+] }
+tokio = { version = "1.53.1", features = ["full"] }
+
+[package]
+name              = "service"
+version.workspace = true
+edition.workspace = true
+
+# [profile.release]
+# opt-level = 2       # 降低优化级别 (从 3 改为 2)
+# lto = true          # 链接时优化（平衡大小与速度）
+# codegen-units = 1   # 单线程代码生成（提升优化）
+# incremental = false # 禁用增量编译（避免优化冲突）
+# panic = "abort"     # 替换展开为直接终止（减小体积）
+# strip = "symbols"   # 移除调试符号（Rust 1.59+）
+
+[profile.dev]
+incremental = true
+
+[lib]
+path       = "src/lib.rs"
+crate-type = ["rlib"]
+doctest    = false
+
+[[bin]]
+name = "service"
+path = "src/bin/service.rs"
+
+[[bin]]
+name = "generate"
+path = "src/bin/generate.rs"
+
+[[bin]]
+name = "docs"
+path = "src/bin/docs.rs"
+
+[features]
+default = []
+openapi = ["dep:utoipa-swagger-ui"]
+
+[dependencies]
+# Web 框架
+actix-web = { version = "4.14.1", features = [
+  "rustls",
+] } # HTTP 服务（TLS 使用 rustls）
+actix-cors = "0.7.1" # CORS 跨域
+actix-files = "0.7.0" # 静态文件 / 下载
+actix-multipart = "0.8.0" # multipart 文件上传
+actix-governor = "0.10.0" # auth 路由 IP 限流
+
+# 异步运行时
+tokio   = { workspace = true } # 异步运行时（文件 I/O 等）
+futures = "0.3.34"             # Stream / Future 组合子
+
+# 序列化
+serde      = { version = "1.0.229", features = ["derive"] } # 结构体序列化派生
+serde_json = "1.0.151"                                      # JSON 编解码
+
+# 数据库
+sea-orm   = { workspace = true }   # SeaORM 2 Entity API
+entity    = { path = "entity" }
+migration = { path = "migration" }
+log       = "0.4.33"
+
+# HTTP 客户端
+reqwest = { version = "0.13.4", features = [
+  "json",
+  "query",
+  "rustls",
+  "stream",
+  "form",
+] } # 出站 HTTP 请求（stream：模型网关 SSE 直传）
+
+# Redis / Elasticsearch
+fred = { version = "10", features = ["enable-rustls", "partial-tracing"] }
+elasticsearch = { version = "9.1.0-alpha.1", default-features = false, features = [
+  "rustls-tls",
+] }
+url = "2"
+
+# 安全 / 加密
+argon2       = "0.5.3"                                            # 密码哈希
+aes-gcm      = "0.11.0"                                           # AES-256-GCM 加解密
+rsa = { version = "0.9.9", features = ["sha2"] }                  # 微信/支付宝 RSA-SHA256 签名验签
+jsonwebtoken = { version = "11.0.0", features = ["rust_crypto"] } # JWT 签发与校验
+sha2         = "0.11.0"                                           # SHA-256（文件摘要等）
+base64       = "0.23.1"                                           # Base64 编解码
+rand         = "0.10.2"                                           # 随机数（密钥生成）
+uuid         = { version = "1.24.1", features = ["v4"] }          # UUID v4（请求 ID 等）
+
+# 错误处理
+anyhow    = "1.0.104" # 应用层错误传播
+thiserror = "2.0.20"  # 类型化错误定义
+
+# 时间
+chrono = { version = "0.4.45", features = ["serde"] } # 时间戳 / JWT 过期
+
+# 配置
+config    = "0.15.19"
+configures = { path = "configures" }
+tracing = "0.1.44" # 结构化日志 / 追踪
+tracing-subscriber = { version = "0.3.22", features = [
+  "env-filter",
+  "json",
+  "chrono",
+] } # EnvFilter、fmt、JSON、毫秒时间
+tracing-appender = "0.2.4" # 按日轮转 + 非阻塞写入
+tracing-log = "0.2.0" # 将 log crate 接到 tracing
+
+# CLI / 终端输出
+dialoguer = "0.12.0" # generate 交互式菜单
+
+# OpenAPI 文档
+utoipa = { version = "5.5.0", features = ["chrono"] }
+utoipa-swagger-ui = { version = "9.0.2", features = [
+  "actix-web",
+], optional = true }
+
+[dev-dependencies]
+actix-web = { version = "4.14.1" }

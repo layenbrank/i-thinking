@@ -1,0 +1,26 @@
+@host = http://127.0.0.1:3000
+@username = admin
+@password = 123456
+
+# @name signin
+POST {{host}}/api/v1/auth/signin
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+###
+@token = {{signin.response.body.data.token}}
+
+POST {{host}}/api/v1/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "test-user",
+  "password": "123456"
+}

@@ -1,0 +1,12 @@
+app:
+  swagger: true
+
+auth:
+  captcha:
+    # 开发默认关闭行为验证码校验，便于 curl / REST Client 联调
+    enabled: true
+  otp:
+    mock: true
+
+logging:
+  format: pretty

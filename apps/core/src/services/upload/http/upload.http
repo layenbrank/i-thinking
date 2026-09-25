@@ -1,0 +1,114 @@
+# 上传模块 — prepare(可无 hash) → chunk → PATCH hash → finalize → 列表 / asset 下载
+# 鉴权: 全部需 JWT
+# Node 端到端（需 Node >= 24）:
+#   pnpm run upload
+#   pnpm run upload -- ./your-file.bin
+
+@host = http://127.0.0.1:3000
+@username = admin
+@password = 123456
+@fileHash = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+### 0. 登录（必须先执行）
+# @name signin
+POST {{host}}/api/v1/auth/signin
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+###
+@token = {{signin.response.body.data.token}}
+
+### 1. 初始化上传 — POST /api/v1/upload/prepare（hash 可选）
+# @name prepare
+POST {{host}}/api/v1/upload/prepare
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "sample.pdf",
+  "size": 1048576,
+  "mime": "application/pdf",
+  "chunk": 1048576
+}
+
+###
+@uploadId = {{prepare.response.body.data.id}}
+
+### 1b. 绑定整文件哈希 — PATCH /api/v1/upload/hash
+PATCH {{host}}/api/v1/upload/hash
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": "{{uploadId}}",
+  "hash": "{{fileHash}}"
+}
+
+### 2. 上传分片 — POST /api/v1/upload/chunk
+# 表单: id, index, hash, chunk(文件；CAS 命中时可省略)
+POST {{host}}/api/v1/upload/chunk
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=UploadBoundary
+
+--UploadBoundary
+Content-Disposition: form-data; name="id"
+
+{{uploadId}}
+--UploadBoundary
+Content-Disposition: form-data; name="index"
+
+0
+--UploadBoundary
+Content-Disposition: form-data; name="hash"
+
+{{fileHash}}
+--UploadBoundary
+Content-Disposition: form-data; name="chunk"; filename="chunk-0.part"
+Content-Type: application/octet-stream
+
+< ../../../../http/fixtures/chunk-0.bin
+--UploadBoundary--
+
+### 3. 完成上传 — POST /api/v1/upload/finalize
+# Body: { id }
+# @name finalize
+POST {{host}}/api/v1/upload/finalize
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": "{{uploadId}}"
+}
+
+### 4. 查询进度 — GET /api/v1/upload/progress/{id}
+GET {{host}}/api/v1/upload/progress/{{uploadId}}
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 5. 本人文件列表 — GET /api/v1/upload/files
+GET {{host}}/api/v1/upload/files?page=1&size=20
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 6. 按资产 id 下载 — GET /api/v1/upload/asset/{id}
+GET {{host}}/api/v1/upload/asset/{{uploadId}}
+Authorization: Bearer {{token}}
+Accept: application/octet-stream
+
+### 7. 按 hash 下载 — GET /api/v1/upload/files/{hash}
+GET {{host}}/api/v1/upload/files/{{fileHash}}
+Authorization: Bearer {{token}}
+Accept: application/octet-stream
+
+### 8. 取消上传 — DELETE /api/v1/upload/cancel/{id}
+DELETE {{host}}/api/v1/upload/cancel/{{uploadId}}
+Authorization: Bearer {{token}}
+Accept: application/json

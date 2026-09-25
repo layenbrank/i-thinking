@@ -1,0 +1,142 @@
+# 本地依赖：PostgreSQL + Redis + Elasticsearch
+# 数据目录：./data/{postgres,redis,elasticsearch}（绑定挂载，便于备份/清理）
+# 用法：docker compose up -d
+# 停止：docker compose down
+# 清空绑定挂载数据：删掉 ./data 下对应目录后重新 up
+#
+# 项目名固定为 corex（替代 COMPOSE_PROJECT_NAME / .env.compose；本文件无 ${VAR} 插值，不依赖 .env）
+
+name: corex
+
+services:
+  postgres:
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
+    image: corex-postgres:18-zh
+    container_name: corex-postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: machenike
+      POSTGRES_PASSWORD: 'Li33333.'
+      POSTGRES_DB: i-thinking
+      # locale 仅在首次 initdb（空 data/postgres）时生效
+      LANG: zh_CN.UTF-8
+      LC_ALL: zh_CN.UTF-8
+      POSTGRES_INITDB_ARGS: '--locale=zh_CN.UTF-8 --encoding=UTF8'
+    volumes:
+      # Postgres 18+ 挂载 /var/lib/postgresql
+      - ./data/postgres:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U machenike -d i-thinking']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - corex
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: corex-redis
+    ports:
+      - '6379:6379'
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - corex
+    restart: unless-stopped
+
+  gocaptcha:
+    # 官方最新镜像标签为 1.0.5（内嵌 go-captcha/v2 v2.0.5）；无 2.x / latest 标签
+    image: wenlng/go-captcha-service:1.0.5
+    platform: linux/amd64
+    container_name: corex-gocaptcha
+    ports:
+      - '8080:8080'
+    expose:
+      - '8080'
+      - '50051'
+    volumes:
+      - ./docker/gocaptcha/config.json:/app/config.json:ro
+      - ./docker/gocaptcha/gocaptcha.json:/app/gocaptcha.json:ro
+    environment:
+      CONFIG: config.json
+      GO_CAPTCHA_CONFIG: gocaptcha.json
+      SERVICE_NAME: go-captcha-service
+      CACHE_TYPE: redis
+      CACHE_ADDRS: redis:6379
+      LOG_LEVEL: info
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', '/app/go-captcha-service', '--health-check']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - corex
+    restart: unless-stopped
+
+  # --- 集成层：阿里云 API 网关（Go Sidecar，封装官方 SDK）---
+  aliyun-gateway:
+    build:
+      context: ./sidecars/aliyun-gateway
+      dockerfile: Dockerfile
+    image: corex-aliyun-gateway:local
+    container_name: corex-aliyun-gateway
+    ports:
+      - '8090:8090'
+    volumes:
+      - ./docker/aliyun-gateway/config.json:/app/config.json:ro
+      # 真实短信联调：复制 config.local.json.example → config.local.json 填入 AK/SK，并取消下行注释
+      # 未挂载时容器内 SMS 返回 503（缺凭证）
+      # - ./docker/aliyun-gateway/config.local.json:/app/config.local.json:ro
+    environment:
+      CONFIG: /app/config.json
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:8090/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - corex
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.3
+    container_name: corex-elasticsearch
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'false'
+      xpack.security.http.ssl.enabled: 'false'
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      cluster.name: corex-es
+    volumes:
+      - ./data/elasticsearch:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:9200 >/dev/null || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+    networks:
+      - corex
+    restart: unless-stopped
+
+networks:
+  corex:
+    driver: bridge

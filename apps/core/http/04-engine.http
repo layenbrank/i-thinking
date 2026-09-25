@@ -1,0 +1,20 @@
+# ============================================================
+# 搜索引擎模块 /api/v1/engine
+# 鉴权: 无
+# 说明: 代理 Bing 搜索建议 API
+# ============================================================
+
+@host = http://127.0.0.1:3000
+
+### GET /api/v1/engine/suggestion — 获取搜索建议
+# 说明: 转发 Bing AS/Suggestions 接口
+# 查询参数:
+#   pt    string  必填  页面类型，如 page.home
+#   qry   string  必填  搜索关键词
+#   cp    number  必填  关键词长度（字符数）
+#   csr   string  必填  客户端标识，如 1
+#   pths  string  必填  路径标识，如 1
+#   cvid  string  必填  客户端版本/会话 ID（UUID 或随机串）
+# 响应 data: Bing Suggestion JSON { s: [...], i: { ig: "..." } }
+GET {{host}}/api/v1/engine/suggestion?pt=page.home&qry=rust&cp=4&csr=1&pths=1&cvid=00000000-0000-0000-0000-000000000001
+Accept: application/json

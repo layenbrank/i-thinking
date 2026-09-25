@@ -1,0 +1,7225 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CoreX Service API",
+    "description": "HTTP 状态码始终为 200；业务结果见响应体 body.code（200000=成功）。错误码规则见 /guide/error-codes.md。Exception.details 字段仅在开发环境返回。鉴权：JWT Bearer；Apifox 环境变量统一使用 {{token}}（来自 signin.data.token）。密码登录 / 注册 / 发 OTP 前须先 POST /api/v1/auth/captcha 获取 captchaKey（go-captcha 行为验证码）。",
+    "contact": {
+      "name": "CoreX Team",
+      "email": "15638470820@163.com"
+    },
+    "license": {
+      "name": "Proprietary"
+    },
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3000",
+      "description": "development"
+    },
+    {
+      "url": "https://api.example.com",
+      "description": "production"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "健康检查",
+        "description": "检查服务与 PostgreSQL / Redis / Elasticsearch 依赖状态，无需鉴权。HTTP 状态码始终为 200。",
+        "operationId": "system.health",
+        "responses": {
+          "200": {
+            "description": "服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/application/toRead": {
+      "get": {
+        "tags": [
+          "Application"
+        ],
+        "summary": "读取应用配置",
+        "description": "返回 mock 应用配置，无需鉴权。",
+        "operationId": "application.toRead",
+        "responses": {
+          "200": {
+            "description": "服务错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/captcha": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "获取行为验证码",
+        "description": "公开接口。按客户端 IP 限流（`auth.captcha.ip_rate_limit` / 分钟）。\n\n后端代理 **go-captcha-service** `get-data`，返回滑块拼图数据，供前端 `go-captcha-react` 渲染。\n\n**联调流程（signin / signup / otp 前必做）：**\n1. 调用本接口（可选 body `kind`，默认 `auth.captcha.kind` 如 `slide-default`）\n2. 取 `data.captchaKey`、`masterImage`、`thumbImage`、`thumbX`/`thumbY` 等\n3. 用户完成交互后，在后续请求填写 `captchaKey` + `captchaValue`\n\n校验由侧车 `check-data` 完成；TTL 由侧车 Redis 缓存管理。",
+        "operationId": "auth.captcha",
+        "requestBody": {
+          "description": "可选：指定题型 ID",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptchaP"
+              },
+              "example": {
+                "kind": "slide-default"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "缓存异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/otp": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "发送 OTP",
+        "description": "公开接口。先通过行为验证码防刷，再向手机或邮箱发送一次性验证码。\n\n- `channel`：`PHONE` 或 `EMAIL`\n- `target`：手机号或邮箱（须与账号资料一致时用于登录）\n- `captchaKey` / `captchaValue`：来自 `POST /api/v1/auth/captcha` 与用户交互结果\n- 冷却时间 `auth.otp.cooldown_secs`（默认 60s）\n- 开发环境 `auth.otp.mock=true` 时 OTP 写入服务日志（`otp mock send`），不真正发短信/邮件\n\n成功时 `data` 为空，仅 `msg` 提示已发送。",
+        "operationId": "auth.otp",
+        "requestBody": {
+          "description": "渠道、目标与行为验证码",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpP"
+              },
+              "example": {
+                "captchaKey": "xxxx-xxxxx",
+                "captchaValue": "120",
+                "channel": "PHONE",
+                "target": "13800138000"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "参数无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password": {
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "修改密码",
+        "description": "需要 JWT。校验原密码后更新；成功后吊销当前 token，须重新登录。",
+        "operationId": "auth.password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/password/forgot": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "找回密码（发 OTP）",
+        "description": "公开接口。须行为验证码。提供 `username` **或** `channel`+`target`（二选一）。\n\n向账号已绑定的手机/邮箱发送找回密码 OTP（`password_reset` 用途，与登录 OTP 隔离）。\n用户不存在或未绑定渠道时仍返回成功，防止枚举。\n受 `auth.rate_limit` IP 限流保护（超限 code=200005）。",
+        "operationId": "auth.passwordForgot",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "验证码或参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password/reset": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "重置密码",
+        "description": "公开接口。凭找回密码 OTP 设置新密码（不自动登录）。\n提供 `username` **或** `channel`+`target`（须与发码时一致或能匹配绑定渠道）。",
+        "operationId": "auth.passwordReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "重置失败（code=500305）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/profile": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "获取个人信息",
+        "description": "需要 JWT 鉴权，返回当前登录用户的 profile（含 avatar 元数据）。",
+        "operationId": "auth.toRead",
+        "responses": {
+          "200": {
+            "description": "未登录（code=300001）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "更新个人信息",
+        "description": "需要 JWT 鉴权。可更新 `email`、`phone`、`gender`、`birthday`、`avatar`（asset UUID）。\n所有字段可选；`avatar` 传 `null` 可清空头像。",
+        "operationId": "auth.toUpdate",
+        "requestBody": {
+          "description": "可更新字段（均为可选）",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileP"
+              },
+              "example": {
+                "avatar": "550e8400-e29b-41d4-a716-446655440000",
+                "birthday": "1990-01-01",
+                "email": "admin@example.com",
+                "gender": "MALE",
+                "phone": "13800138000"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/signin": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "用户登录（密码）",
+        "description": "公开接口。须携带**行为验证码**字段，否则 JSON 反序列化失败（400）。\n\n**推荐顺序：**\n1. `POST /api/v1/auth/captcha` → 拼图数据 + `captchaKey`\n2. 本接口：`username` + `password` + `captchaKey` + `captchaValue`\n\n成功后返回 JWT；Apifox 将 `data.token` 写入环境变量 `token`。\n联调默认账号：`admin` / `123456`。",
+        "operationId": "auth.signin",
+        "requestBody": {
+          "description": "登录凭证（验证码字段均为必填）",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SigninP"
+              },
+              "example": {
+                "captchaKey": "dev",
+                "captchaValue": "0",
+                "password": "123456",
+                "username": "admin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "失败次数过多锁定（code=500304）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/signin/email": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "邮箱登录（OTP）",
+        "description": "公开接口。须先 `POST /api/v1/auth/otp`（`channel=EMAIL`）获取邮件验证码。\n\n- `email`：与 OTP 发送目标一致\n- `code`：OTP 六位数字（开发环境见服务日志）",
+        "operationId": "auth.signinEmail",
+        "requestBody": {
+          "description": "邮箱与 OTP",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailSigninP"
+              },
+              "example": {
+                "code": "123456",
+                "email": "admin@example.com"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OTP 锁定（code=500304）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/signin/phone": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "手机号登录（OTP）",
+        "description": "公开接口。须先 `POST /api/v1/auth/otp`（`channel=PHONE`）获取短信验证码。\n\n- `phone`：与 OTP 发送目标一致\n- `code`：OTP 六位数字（开发环境见服务日志）\n\n无需行为验证码；OTP 校验成功后消费。",
+        "operationId": "auth.signinPhone",
+        "requestBody": {
+          "description": "手机号与 OTP",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneSigninP"
+              },
+              "example": {
+                "code": "123456",
+                "phone": "13800138000"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OTP 锁定（code=500304）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/signout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "用户登出",
+        "description": "需要 JWT。将当前 token 写入 Redis 黑名单直至过期，之后该 token 不可再用。",
+        "operationId": "auth.signout",
+        "responses": {
+          "200": {
+            "description": "未登录或缓存异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/signup": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "用户注册",
+        "description": "公开接口，须携带行为验证码。注册成功后自动登录并返回 JWT。\n\n字段与 `signin` 相同（`username` / `password` / `captchaKey` / `captchaValue`）。\n建议先 `POST /api/v1/auth/captcha`。",
+        "operationId": "auth.signup",
+        "requestBody": {
+          "description": "注册凭证（验证码字段均为必填）",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupP"
+              },
+              "example": {
+                "captchaKey": "dev",
+                "captchaValue": "0",
+                "password": "123456",
+                "username": "admin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "其他业务错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/engine/suggestion": {
+      "get": {
+        "tags": [
+          "Engine"
+        ],
+        "summary": "获取搜索建议",
+        "description": "代理 Bing AS Suggestions API。需要 JWT。",
+        "operationId": "engine.toRead",
+        "parameters": [
+          {
+            "name": "pt",
+            "in": "query",
+            "description": "页面类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "page.home"
+          },
+          {
+            "name": "qry",
+            "in": "query",
+            "description": "搜索关键词",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "rust"
+          },
+          {
+            "name": "cp",
+            "in": "query",
+            "description": "光标位置",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            },
+            "example": 4
+          },
+          {
+            "name": "csr",
+            "in": "query",
+            "description": "CSR 参数",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "pths",
+            "in": "query",
+            "description": "路径参数",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "cvid",
+            "in": "query",
+            "description": "客户端 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未登录或上游失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gateway/admin/models": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "模型列表（后台）",
+        "operationId": "gateway.modelsAdmin",
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "创建模型",
+        "operationId": "gateway.modelWrite",
+        "requestBody": {
+          "description": "模型信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelWriteP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gateway/admin/models/{id}": {
+      "put": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "更新模型",
+        "operationId": "gateway.modelUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "模型 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "模型信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelUpdateP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未找到",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "删除模型",
+        "operationId": "gateway.modelRemove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "模型 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未找到",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gateway/audit": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "审计日志",
+        "operationId": "gateway.audit",
+        "parameters": [
+          {
+            "name": "tenantID",
+            "in": "query",
+            "description": "租户 ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "每页条数",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gateway/chat/completions": {
+      "post": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "模型转发（OpenAI 兼容）",
+        "description": "需要 JWT。body 兼容 OpenAI chat/completions；stream=true 返回 SSE，否则返回原始 JSON。",
+        "operationId": "gateway.chat",
+        "requestBody": {
+          "description": "OpenAI 兼容请求",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionsP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "鉴权/白名单/配额错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gateway/models": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "可用模型列表",
+        "operationId": "gateway.models",
+        "responses": {
+          "200": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gateway/plans": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "档位目录",
+        "description": "可开通档位（档位名 + 日 token 配额）与免费档基线，来自服务端配置而非数据库。",
+        "operationId": "gateway.plans",
+        "responses": {
+          "200": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gateway/providers": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "供应商列表",
+        "operationId": "gateway.providers",
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "创建供应商",
+        "operationId": "gateway.providerWrite",
+        "requestBody": {
+          "description": "供应商信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderWriteP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gateway/providers/{id}": {
+      "put": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "更新供应商",
+        "operationId": "gateway.providerUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "供应商 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "供应商信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderUpdateP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未找到",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "删除供应商",
+        "operationId": "gateway.providerRemove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "供应商 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未找到",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gateway/quota/me": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "自助配额（只读）",
+        "description": "返回当前身份此刻的日窗用量与上限，口径与聊天热路径同源（模型覆盖 > 档位 > 免费档）。带 `X-Tenant-ID` 且确为成员时按租户作用域回答，否则按用户作用域。",
+        "operationId": "gateway.quotaMe",
+        "parameters": [
+          {
+            "name": "model",
+            "in": "query",
+            "description": "目录里的模型名；缺省或 auto 时按身份级配额回答",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/gateway/usage": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "用量报表",
+        "operationId": "gateway.usage",
+        "parameters": [
+          {
+            "name": "tenantID",
+            "in": "query",
+            "description": "租户 ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "modelID",
+            "in": "query",
+            "description": "模型 ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "起始毫秒时间戳",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "结束毫秒时间戳",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "每页条数",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/pay/notify/alipay": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "支付宝回调",
+        "description": "**支付宝服务器调用，匿名**：表单参数 RSA2 验签、`app_id` 防串号、金额核对、幂等核销。响应不是平台信封：成功返回**纯文本** `success`，失败返回 `failure`（支付宝按重试策略重发）。",
+        "operationId": "payment.notifyAlipay",
+        "requestBody": {
+          "description": "支付宝异步通知表单原文",
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "验签失败或订单不存在，返回 failure",
+            "content": {
+              "text/plain": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pay/notify/wechat": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "微信支付回调",
+        "description": "**渠道服务器调用，匿名**：验签（`Wechatpay-Signature` + 平台证书公钥）、APIv3 密钥解密 `resource`、金额与币种核对、幂等核销。响应不是平台信封：成功 `{\"code\":\"SUCCESS\"}`（HTTP 200），失败 `{\"code\":\"FAIL\"}`（HTTP 500，微信会重试）。",
+        "operationId": "payment.notifyWechat",
+        "requestBody": {
+          "description": "微信回调原始 JSON 报文（验签对象即原始 body）",
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "已受理",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "500": {
+            "description": "验签或处理失败，微信将重试",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search/docs": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "全文检索",
+        "description": "需要 JWT。按 q 在 title/content 上 multi_match 检索。",
+        "operationId": "search.toRead",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "搜索关键词",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Redis"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "返回条数，默认 10，最大 100",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未登录或参数/ES 错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "索引文档",
+        "description": "需要 JWT。将文档写入 Elasticsearch（示范搜索投影，不以 ES 为权威库）。",
+        "operationId": "search.toWrite",
+        "requestBody": {
+          "description": "待索引文档",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteP"
+              },
+              "example": {
+                "content": "接入 Redis 与 Elasticsearch",
+                "id": "doc-1",
+                "title": "Rust 服务端"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或参数/ES 错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/sso/connections": {
+      "get": {
+        "tags": [
+          "SSO"
+        ],
+        "summary": "SSO 连接列表",
+        "operationId": "sso.connections",
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "SSO"
+        ],
+        "summary": "创建 SSO 连接",
+        "operationId": "sso.connectionWrite",
+        "requestBody": {
+          "description": "连接信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SsoConnectionWriteP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/sso/connections/{id}": {
+      "put": {
+        "tags": [
+          "SSO"
+        ],
+        "summary": "更新 SSO 连接",
+        "operationId": "sso.connectionUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "连接 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "连接信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SsoConnectionUpdateP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未找到",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "SSO"
+        ],
+        "summary": "删除 SSO 连接",
+        "operationId": "sso.connectionRemove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "连接 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未找到",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/sso/{id}/authorize": {
+      "get": {
+        "tags": [
+          "SSO"
+        ],
+        "summary": "发起 OIDC 授权（302 到 IdP）",
+        "operationId": "sso.authorize",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "连接 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "连接不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "重定向到身份提供商"
+          }
+        }
+      }
+    },
+    "/api/v1/sso/{id}/callback": {
+      "get": {
+        "tags": [
+          "SSO"
+        ],
+        "summary": "OIDC 回调（换取 token）",
+        "operationId": "sso.callback",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "连接 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "description": "授权码",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "state",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "登录失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenants": {
+      "get": {
+        "tags": [
+          "Tenant"
+        ],
+        "summary": "我所属的租户",
+        "operationId": "tenant.toList",
+        "responses": {
+          "200": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Tenant"
+        ],
+        "summary": "创建租户",
+        "operationId": "tenant.toWrite",
+        "requestBody": {
+          "description": "租户信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TenantWriteP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}": {
+      "get": {
+        "tags": [
+          "Tenant"
+        ],
+        "summary": "租户详情",
+        "operationId": "tenant.toReadById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未找到",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Tenant"
+        ],
+        "summary": "更新租户",
+        "operationId": "tenant.toUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "租户信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TenantUpdateP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Tenant"
+        ],
+        "summary": "删除租户",
+        "operationId": "tenant.toRemove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/members": {
+      "get": {
+        "tags": [
+          "Tenant"
+        ],
+        "summary": "成员列表",
+        "operationId": "tenant.members",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未找到",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Tenant"
+        ],
+        "summary": "添加成员",
+        "operationId": "tenant.memberAdd",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "成员信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberWriteP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/members/{userID}": {
+      "put": {
+        "tags": [
+          "Tenant"
+        ],
+        "summary": "更新成员角色",
+        "operationId": "tenant.memberUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userID",
+            "in": "path",
+            "description": "成员用户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "角色/状态",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberUpdateP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Tenant"
+        ],
+        "summary": "移除成员",
+        "operationId": "tenant.memberRemove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userID",
+            "in": "path",
+            "description": "成员用户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/orders": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "订单历史",
+        "description": "按创建时间倒序返回最近 20 条；返回前会惰性关闭已超时的待支付订单。",
+        "operationId": "payment.toList",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "创建支付订单",
+        "description": "**金额由服务端按档位定价**，请求体只接受档位与渠道；同一用户 + 档位 + 渠道的未过期待支付订单会直接复用（避免重复下单）。返回 `codeUrl` 由客户端渲染二维码，`orderExpiresAt` 为支付截止时间。",
+        "operationId": "payment.toWrite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "档位与支付渠道",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "档位不可购买 / 渠道未配置 / 上游下单失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/orders/{orderNo}": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "订单详情",
+        "operationId": "payment.toReadByNo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderNo",
+            "in": "path",
+            "description": "商户订单号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "订单不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/orders/{orderNo}/close": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "关闭订单",
+        "description": "仅待支付订单可关闭；已支付订单返回 `500402`。",
+        "operationId": "payment.close",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderNo",
+            "in": "path",
+            "description": "商户订单号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "订单不存在 / 已支付不可关闭",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/orders/{orderNo}/sync": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "同步支付状态",
+        "description": "回调丢失时的兜底（也是「刷新支付状态」按钮的实现）：向渠道查单，支付成功则核销并开通订阅；已收款未开通会自动补齐；超时未支付则关单。",
+        "operationId": "payment.sync",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderNo",
+            "in": "path",
+            "description": "商户订单号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "订单不存在 / 上游查询失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/pay/catalog": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "summary": "可售档位与支付渠道",
+        "description": "收银台唯一数据源：档位价格由服务端定价，渠道按配置返回可用性与不可用原因。",
+        "operationId": "payment.catalog",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "非个人租户或权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/quota": {
+      "get": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "当前生效配额",
+        "description": "返回该租户当前生效的日 token 配额及其来源：\n\n- `PLAN`：个人租户且有此刻生效的订阅，取 `gateway.plan_daily_token_quota[plan]`\n- `FREE`：个人租户无有效订阅（含订阅已过期、未知档位回落）\n- `GLOBAL`：团队租户或无租户身份\n\n需 JWT；调用者须为该租户 ACTIVE 成员（平台 ADMIN 可旁路）。\n\n注：单个模型可用 `gateway_model.dailyTokenQuota` 覆盖该值。\n\n`body.code`：200000 成功；非成员为权限类错误码。",
+        "operationId": "subscription.quota",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "非租户成员",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/subscriptions": {
+      "get": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "租户订阅历史",
+        "description": "返回该租户的全部订阅（含已取消 / 已到期），按创建时间倒序。\n\n个人租户的当日配额取决于此刻生效的订阅档位：有效订阅档位 > 免费档；团队租户与无租户身份走全局配额。\n\n需 JWT；调用者须为该租户 ACTIVE 成员（平台 ADMIN 可旁路）。\n\n`body.code`：200000 成功；非成员为权限类错误码。",
+        "operationId": "subscription.toList",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "非租户成员",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "开通 / 续订订阅",
+        "description": "为**个人租户**开通或续订订阅（付费档位）。订阅**创建即生效**（`createdAt` 即生效时间）。\n\n同一时刻最多一条生效订阅：调用时会先把该租户仍为 ACTIVE 的旧订阅作废（未过期的 `expiresAt` 截断到当前时间），再插入新订阅。\n\n`plan` 必须存在于配置 `gateway.plan_daily_token_quota`；`expiresAt` 缺省或 null 表示永久有效。团队租户不可订阅（回落全局配额）。\n\n需 JWT；调用者须为租户 OWNER/ADMIN（平台 ADMIN 可旁路）。\n\n`body.code`：200000 成功；参数类错误码用于档位不存在、到期时间非法、非个人租户。",
+        "operationId": "subscription.toWrite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "订阅信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "参数错误 / 权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/subscriptions/{subscriptionID}": {
+      "delete": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "取消订阅",
+        "description": "立即取消订阅：状态置为 CANCELED，并把有效期截断到当前时间；该租户配额随即回落免费档。\n\n需 JWT；调用者须为租户 OWNER/ADMIN（平台 ADMIN 可旁路）。\n\n`body.code`：200000 成功；订阅不存在或不属于该租户返回未找到类错误码。",
+        "operationId": "subscription.toRemove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "租户 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subscriptionID",
+            "in": "path",
+            "description": "订阅 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未找到",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/asset/{id}": {
+      "get": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "按资产 id 下载文件",
+        "description": "下载 COMPLETED 资产（按 chunk 表顺序流式输出）。\n\n路径对 Auth **放行匿名**；ACL：`PUBLIC` 无需登录；创建者始终可下；`RESTRICTED` 须 JWT 且在 `viewers` 中；`PRIVATE` 仅创建者。\n秒传会话 id（SUPERSEDED）仅创建者可跟随到目标资产。",
+        "operationId": "upload.serveAsset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "资产 UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "文件不存在或未完成",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/cancel/{id}": {
+      "delete": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "取消上传",
+        "operationId": "upload.cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "上传会话 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未登录或会话不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/chunk": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "上传分片",
+        "description": "multipart：id / index / hash / chunk(可选)。分片写入全局 CAS；命中则 reused。SUPERSEDED/COMPLETED 会话幂等 200。需要 JWT。",
+        "operationId": "upload.chunk",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ChunkUploadForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或分片错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/files": {
+      "get": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "本人文件列表",
+        "description": "按 JWT 身份返回当前用户资产列表（默认 COMPLETED），支持 page/size/status 分页过滤。",
+        "operationId": "upload.toRead",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码，从 1 开始，默认 1",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            },
+            "example": 1
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "每页条数，默认 20，最大 100",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            },
+            "example": 20
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "状态过滤，如 COMPLETED；默认 COMPLETED",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "COMPLETED"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/files/{hash}": {
+      "get": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "按 hash 下载文件",
+        "description": "仅当前用户 COMPLETED 且同 hash 的资产可读；流式拼接 CAS。需要 JWT。",
+        "operationId": "upload.serveFile",
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "path",
+            "description": "文件 SHA-256 hash",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "文件不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/finalize": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "完成上传",
+        "description": "校验 chunk 表分片齐全并流式计算整文件 SHA-256；不合并落盘。返回按 asset id 的下载 URL。需要 JWT。",
+        "operationId": "upload.finalize",
+        "requestBody": {
+          "description": "上传会话 id",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeP"
+              },
+              "example": {
+                "id": "550e8400-e29b-41d4-a716-446655440000"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/hash": {
+      "patch": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "绑定整文件哈希",
+        "description": "为会话补绑整文件 SHA-256。命中已有 COMPLETED 时当前会话标 SUPERSEDED（不删除），返回 exists 与目标 id。在途 chunk 对 SUPERSEDED 幂等成功。需要 JWT。",
+        "operationId": "upload.bindHash",
+        "requestBody": {
+          "description": "会话 id + 整文件 SHA-256",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HashP"
+              },
+              "example": {
+                "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "id": "550e8400-e29b-41d4-a716-446655440000"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/prepare": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "初始化上传",
+        "description": "创建上传会话。`hash` 可选。文件秒传：本人已完成直接返回；他人已完成则为当前用户克隆 COMPLETED（共享 CAS，克隆行默认 PRIVATE）。\n\n**可见性**（`visibility`，默认 `PRIVATE`）：\n- `PRIVATE`：仅创建者可按 id 下载（需 JWT）\n- `PUBLIC`：匿名或已登录均可按 id 下载（`GET /asset/{id}` 对 Auth 放行）\n- `RESTRICTED`：创建者 + `viewers`（用户 UUID 列表，最多 100）可下载（需 JWT）\n\n上传会话写操作（chunk/hash/finalize 等）仍仅创建者。需要 JWT。",
+        "operationId": "upload.prepare",
+        "requestBody": {
+          "description": "初始化参数；hash / visibility 可省略（默认 PRIVATE）",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareP"
+              },
+              "example": {
+                "chunk": 1048576,
+                "mime": "application/pdf",
+                "name": "sample.pdf",
+                "size": 1048576,
+                "visibility": "PRIVATE"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "未登录或参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/upload/progress/{id}": {
+      "get": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "查询上传进度",
+        "description": "SUPERSEDED 时 progress=100 并返回 superseded（目标 COMPLETED）。需要 JWT。",
+        "operationId": "upload.progress",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "上传会话 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "未登录或会话不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "获取用户列表",
+        "description": "后台管理员接口，返回全部用户，需要 JWT 鉴权。",
+        "operationId": "user.toRead",
+        "responses": {
+          "200": {
+            "description": "未登录或权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "创建用户",
+        "description": "后台管理员接口，需要 JWT 鉴权。",
+        "operationId": "user.toWrite",
+        "requestBody": {
+          "description": "新用户账号",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteP"
+              },
+              "example": {
+                "password": "123456",
+                "role": "USER",
+                "username": "alice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "用户名已存在等业务错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "获取用户详情",
+        "operationId": "user.toReadById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "用户 UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "3c430c21-0891-43e1-bcd2-1a22eb4a5389"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户不存在（code=500101）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "summary": "更新用户",
+        "operationId": "user.toUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "用户 UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "3c430c21-0891-43e1-bcd2-1a22eb4a5389"
+          }
+        ],
+        "requestBody": {
+          "description": "可更新字段（均为可选）",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateP"
+              },
+              "example": {
+                "age": 30,
+                "birthday": "1990-01-01",
+                "email": "alice@example.com",
+                "gender": "FEMALE",
+                "phone": "13800138000",
+                "role": "USER",
+                "status": "ACTIVE",
+                "username": "alice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "用户不存在或参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "summary": "删除用户",
+        "operationId": "user.toRemove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "用户 UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "3c430c21-0891-43e1-bcd2-1a22eb4a5389"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exception"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "App": {
+        "type": "object",
+        "required": [
+          "id",
+          "index",
+          "name",
+          "size",
+          "shape",
+          "mirrorID",
+          "updated_at",
+          "created_at",
+          "component",
+          "direction",
+          "description",
+          "download_count"
+        ],
+        "properties": {
+          "background_color": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "background_image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "collectionID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "component": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "created_at": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1700000000000
+          },
+          "description": {
+            "type": "string",
+            "example": "应用入口配置"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "download_count": {
+            "type": "integer",
+            "format": "int32",
+            "example": 0,
+            "minimum": 0
+          },
+          "height": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "example": "app-1"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int32",
+            "example": 0,
+            "minimum": 0
+          },
+          "marker": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mirrorID": {
+            "type": "string",
+            "example": "mirror-1"
+          },
+          "name": {
+            "type": "string",
+            "example": "CoreX"
+          },
+          "round": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "shape": {
+            "$ref": "#/components/schemas/Shape"
+          },
+          "size": {
+            "$ref": "#/components/schemas/Size"
+          },
+          "text_color": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "text_size": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1700000000000
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "https://example.com"
+          },
+          "width": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ApplicationEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/App"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AssetR": {
+        "type": "object",
+        "description": "列表中的资产摘要",
+        "required": [
+          "id",
+          "name",
+          "size",
+          "mime",
+          "hash",
+          "index",
+          "status",
+          "visibility",
+          "createdAt",
+          "url"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1700000000000
+          },
+          "hash": {
+            "type": "string",
+            "example": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int64",
+            "description": "租户内列表排序（与分片序号无关）",
+            "example": 0
+          },
+          "mime": {
+            "type": "string",
+            "example": "application/pdf"
+          },
+          "name": {
+            "type": "string",
+            "example": "sample.pdf"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1048576,
+            "minimum": 0
+          },
+          "status": {
+            "$ref": "#/components/schemas/UploadStatus"
+          },
+          "tenantID": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "tenant-demo"
+          },
+          "url": {
+            "type": "string",
+            "description": "按 id 下载：`/api/v1/upload/asset/{id}`",
+            "example": "/api/v1/upload/asset/550e8400-e29b-41d4-a716-446655440000"
+          },
+          "viewers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "RESTRICTED 时的可访问用户 id；其它模式为空数组"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          }
+        }
+      },
+      "AuthR": {
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "role",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1700000000000
+          },
+          "id": {
+            "type": "string",
+            "example": "3c430c21-0891-43e1-bcd2-1a22eb4a5389"
+          },
+          "role": {
+            "type": "string",
+            "example": "USER"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1700000000000
+          },
+          "username": {
+            "type": "string",
+            "example": "admin"
+          }
+        }
+      },
+      "Avatar": {
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "mime",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "mime": {
+            "type": "string",
+            "example": "image/png"
+          },
+          "name": {
+            "type": "string",
+            "example": "avatar.png"
+          },
+          "url": {
+            "type": "string",
+            "example": "/api/v1/upload/asset/550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      },
+      "CaptchaEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CaptchaR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CaptchaP": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "题型 ID，默认 `auth.captcha.kind`",
+            "example": "slide-default"
+          }
+        }
+      },
+      "CaptchaR": {
+        "type": "object",
+        "required": [
+          "kind",
+          "captchaKey",
+          "masterImage",
+          "thumbImage",
+          "thumbX",
+          "thumbY",
+          "thumbWidth",
+          "thumbHeight"
+        ],
+        "properties": {
+          "captchaKey": {
+            "type": "string",
+            "description": "提交登录/注册/OTP 时作为 `captchaKey`",
+            "example": "xxxx-xxxxx"
+          },
+          "kind": {
+            "type": "string",
+            "description": "题型 ID（如 `slide-default`）",
+            "example": "slide-default"
+          },
+          "masterImage": {
+            "type": "string",
+            "description": "主图 Base64（对齐 go-captcha-react `data.image`）",
+            "example": "/9j/4AAQSkZJRg..."
+          },
+          "thumbHeight": {
+            "type": "integer",
+            "format": "int32",
+            "example": 60
+          },
+          "thumbImage": {
+            "type": "string",
+            "description": "滑块/拼图块 Base64（对齐 `data.thumb`）",
+            "example": "iVBORw0KGgo..."
+          },
+          "thumbWidth": {
+            "type": "integer",
+            "format": "int32",
+            "example": 60
+          },
+          "thumbX": {
+            "type": "integer",
+            "format": "int32",
+            "example": 0
+          },
+          "thumbY": {
+            "type": "integer",
+            "format": "int32",
+            "example": 80
+          }
+        }
+      },
+      "CatalogChannelR": {
+        "type": "object",
+        "description": "支付渠道。",
+        "required": [
+          "code",
+          "label",
+          "enabled"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CatalogEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CatalogR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CatalogPlanR": {
+        "type": "object",
+        "description": "可售档位。",
+        "required": [
+          "plan",
+          "label",
+          "amount",
+          "currency",
+          "dailyTokenQuota",
+          "purchasable"
+        ],
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "dailyTokenQuota": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "durationDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "生效时长（天）；null = 永久"
+          },
+          "label": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "purchasable": {
+            "type": "boolean",
+            "description": "是否可下单（未定价 / 档位已下线时为 false）"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "不可下单原因"
+          }
+        }
+      },
+      "CatalogR": {
+        "type": "object",
+        "description": "价格 / 渠道目录：客户端渲染「档位 → 渠道 → 下单」三步的唯一数据源。",
+        "required": [
+          "currency",
+          "orderTtlSecs",
+          "plans",
+          "channels"
+        ],
+        "properties": {
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogChannelR"
+            }
+          },
+          "currency": {
+            "type": "string"
+          },
+          "currentPlan": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "当前租户当前生效档位；null = 免费档"
+          },
+          "orderTtlSecs": {
+            "type": "integer",
+            "format": "int64",
+            "description": "订单有效期（秒）",
+            "minimum": 0
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogPlanR"
+            }
+          }
+        }
+      },
+      "ChatCompletionsP": {
+        "type": "object",
+        "description": "OpenAI 兼容 chat/completions 请求；`model` 用于解析上游，其余字段原样透传。",
+        "required": [
+          "model"
+        ],
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "stream": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": {
+          "description": "messages / tools / temperature / … 原样透传给上游供应商"
+        }
+      },
+      "ChunkR": {
+        "type": "object",
+        "required": [
+          "success",
+          "index",
+          "reused",
+          "message"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "format": "int32",
+            "example": 0,
+            "minimum": 0
+          },
+          "message": {
+            "type": "string",
+            "example": "分片 0 上传成功"
+          },
+          "reused": {
+            "type": "boolean",
+            "description": "分片内容已在 CAS 中，本次未写入新字节",
+            "example": false
+          },
+          "success": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ChunkUploadEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ChunkR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ChunkUploadForm": {
+        "type": "object",
+        "description": "multipart 分片上传表单",
+        "required": [
+          "id",
+          "index",
+          "hash"
+        ],
+        "properties": {
+          "chunk": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "binary",
+            "description": "分片二进制；CAS 已存在时可省略（分片秒传）",
+            "contentMediaType": "application/octet-stream"
+          },
+          "hash": {
+            "type": "string",
+            "description": "分片 SHA-256（64 hex）",
+            "example": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+          },
+          "id": {
+            "type": "string",
+            "description": "上传会话 ID",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int32",
+            "description": "分片序号（从 0 开始）",
+            "example": 0,
+            "minimum": 0
+          }
+        }
+      },
+      "Component": {
+        "type": "string",
+        "enum": [
+          "Bookmark",
+          "Calendar",
+          "Markdown",
+          "Settings",
+          "Clipchamp",
+          "Intelligence",
+          "Navigation",
+          "Marketplace",
+          "Developer",
+          "Collection",
+          "Signboard",
+          "Clock",
+          "Gallery"
+        ]
+      },
+      "Direction": {
+        "type": "string",
+        "enum": [
+          "Horizontal",
+          "Vertical"
+        ]
+      },
+      "EmailSigninP": {
+        "type": "object",
+        "required": [
+          "email",
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "OTP 六位数字",
+            "example": "123456"
+          },
+          "email": {
+            "type": "string",
+            "description": "邮箱（须已绑定账号）",
+            "example": "admin@example.com"
+          }
+        },
+        "example": {
+          "code": "123456",
+          "email": "admin@example.com"
+        }
+      },
+      "EmptyEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EmptyR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "EmptyR": {
+        "type": "object",
+        "description": "无 data 载荷（如登出成功）"
+      },
+      "EmptySchema": {
+        "type": "object",
+        "required": [
+          "id",
+          "q",
+          "u",
+          "t"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "q": {
+            "type": "string"
+          },
+          "t": {
+            "$ref": "#/components/schemas/TSchema"
+          },
+          "u": {
+            "type": "string"
+          }
+        }
+      },
+      "Exception": {
+        "type": "object",
+        "description": "异常响应结构",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务错误码 (非0表示各种业务错误)"
+          },
+          "data": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "details": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "详细错误信息（仅非生产环境返回）"
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "FilesP": {
+        "type": "object",
+        "description": "本人文件列表查询",
+        "properties": {
+          "page": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "页码，从 1 开始，默认 1",
+            "example": 1,
+            "minimum": 0
+          },
+          "size": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "每页条数，默认 20，最大 100",
+            "example": 20,
+            "minimum": 0
+          },
+          "status": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UploadStatus",
+                "description": "状态过滤；默认只返回 COMPLETED"
+              }
+            ]
+          }
+        }
+      },
+      "FilesR": {
+        "type": "object",
+        "description": "分页列表 data",
+        "required": [
+          "items",
+          "count",
+          "page",
+          "size",
+          "total",
+          "next",
+          "prev"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssetR"
+            }
+          },
+          "next": {
+            "type": "boolean"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "prev": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "FinalizeP": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "example": {
+          "id": "550e8400-e29b-41d4-a716-446655440000"
+        }
+      },
+      "FinalizeR": {
+        "type": "object",
+        "required": [
+          "success",
+          "url",
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "url": {
+            "type": "string",
+            "example": "/api/v1/upload/asset/550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      },
+      "FinalizeUploadEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FinalizeR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ForgotPasswordP": {
+        "type": "object",
+        "required": [
+          "captchaKey",
+          "captchaValue"
+        ],
+        "properties": {
+          "captchaKey": {
+            "type": "string",
+            "example": "xxxx-xxxxx"
+          },
+          "captchaKind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "slide-default"
+          },
+          "captchaValue": {
+            "type": "string",
+            "example": "120"
+          },
+          "channel": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OtpChannel"
+              }
+            ]
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "13800138000"
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "admin"
+          }
+        },
+        "example": {
+          "captchaKey": "xxxx-xxxxx",
+          "captchaValue": "120",
+          "username": "admin"
+        }
+      },
+      "Gender": {
+        "type": "string",
+        "enum": [
+          "MALE",
+          "FEMALE"
+        ]
+      },
+      "HashP": {
+        "type": "object",
+        "required": [
+          "id",
+          "hash"
+        ],
+        "properties": {
+          "hash": {
+            "type": "string",
+            "example": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "example": {
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "id": "550e8400-e29b-41d4-a716-446655440000"
+        }
+      },
+      "HashR": {
+        "type": "object",
+        "required": [
+          "id",
+          "exists",
+          "chunks",
+          "uploaded"
+        ],
+        "properties": {
+          "chunks": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          "exists": {
+            "type": "boolean",
+            "example": false
+          },
+          "id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "uploaded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UploadedChunk"
+            }
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "description": "健康检查 data 字段",
+        "required": [
+          "status",
+          "version",
+          "timestamp",
+          "uptime",
+          "postgres",
+          "redis",
+          "elasticsearch"
+        ],
+        "properties": {
+          "elasticsearch": {
+            "type": "string",
+            "description": "Elasticsearch 集群状态或 down"
+          },
+          "postgres": {
+            "type": "string",
+            "description": "PostgreSQL：up / down"
+          },
+          "redis": {
+            "type": "string",
+            "description": "Redis：up / down"
+          },
+          "status": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uptime": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Health"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "HitR": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ISchema": {
+        "type": "object",
+        "required": [
+          "ig"
+        ],
+        "properties": {
+          "ig": {
+            "type": "string"
+          }
+        }
+      },
+      "MemberEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MemberR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MemberListEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/MemberR"
+            }
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MemberR": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenantID",
+          "userID",
+          "role",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tenantID": {
+            "type": "string"
+          },
+          "userID": {
+            "type": "string"
+          }
+        }
+      },
+      "MemberUpdateP": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "MemberWriteP": {
+        "type": "object",
+        "required": [
+          "userID",
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "OWNER / ADMIN / MEMBER"
+          },
+          "userID": {
+            "type": "string"
+          }
+        }
+      },
+      "ModelEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ModelR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ModelListEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ModelR"
+            }
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ModelR": {
+        "type": "object",
+        "required": [
+          "id",
+          "providerID",
+          "name",
+          "label",
+          "enabled",
+          "dailyTokenQuota",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "allowRoles": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "能力声明；未声明时不下发（客户端按默认兜底）"
+          },
+          "contextWindow": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "上下文窗口（token）；未知时不下发"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dailyTokenQuota": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "providerID": {
+            "type": "string"
+          },
+          "providerName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "上游供应商展示名。用户面目录下发给**所有**登录用户（含非管理员，\n他们读不到 `/gateway/providers`），客户端据此展示模型挂在谁家。"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ModelUpdateP": {
+        "type": "object",
+        "required": [
+          "capabilities"
+        ],
+        "properties": {
+          "allowRoles": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "提供即覆盖；空对象 / null 表示清空声明"
+          },
+          "contextWindow": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "提供即覆盖；≤ 0 表示清空（未知）"
+          },
+          "dailyTokenQuota": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ModelWriteP": {
+        "type": "object",
+        "required": [
+          "providerID",
+          "name",
+          "label",
+          "capabilities"
+        ],
+        "properties": {
+          "allowRoles": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "允许调用的角色；空 = 全角色放行"
+          },
+          "capabilities": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "能力声明（`{\"tools\":true,\"reasoning\":true,\"vision\":false}`）；缺省 = 未声明"
+          },
+          "contextWindow": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "上下文窗口（token）；缺省或 ≤ 0 = 未知"
+          },
+          "dailyTokenQuota": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "日 token 配额；0 = 继承租户"
+          },
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "模型标识（如 gpt-4o）"
+          },
+          "providerID": {
+            "type": "string"
+          }
+        }
+      },
+      "OrderEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrderR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "OrderListEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/OrderR"
+            }
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "OrderP": {
+        "type": "object",
+        "description": "创建订单请求。\n\n**只接受档位与渠道**：金额由服务端按 `pay.plans` 定价，客户端无法指定价格。",
+        "required": [
+          "plan",
+          "channel"
+        ],
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "支付渠道：`WECHAT` / `ALIPAY`"
+          },
+          "plan": {
+            "type": "string",
+            "description": "档位名（须同时存在于 `pay.plans` 与 `gateway.planDailyTokenQuota`）"
+          }
+        }
+      },
+      "OrderR": {
+        "type": "object",
+        "description": "订单视图。",
+        "required": [
+          "orderNo",
+          "tenantID",
+          "plan",
+          "channel",
+          "amount",
+          "currency",
+          "status",
+          "dailyTokenQuota",
+          "createdAt",
+          "orderExpiresAt"
+        ],
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "金额（**分**）"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "codeUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "支付凭证链接（微信 `weixin://wxpay/...`；支付宝 `https://qr.alipay.com/...`），\n客户端据此渲染二维码；异常情况下可能为 null，此时可调用 `sync` 重新获取"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "dailyTokenQuota": {
+            "type": "integer",
+            "format": "int64",
+            "description": "档位对应的日 token 配额（展示用）"
+          },
+          "durationDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "生效时长（天）；null = 永久"
+          },
+          "orderExpiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "支付截止时间（超过即自动关单）"
+          },
+          "orderNo": {
+            "type": "string"
+          },
+          "paidAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "remark": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "`PENDING` / `PAID` / `CLOSED` / `REFUNDED`"
+          },
+          "subscriptionID": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "开通后生效的订阅 ID，未开通为 null"
+          },
+          "tenantID": {
+            "type": "string"
+          },
+          "transactionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "上游交易号（微信 `transaction_id` / 支付宝 `trade_no`），未支付为 null"
+          }
+        }
+      },
+      "OtpChannel": {
+        "type": "string",
+        "enum": [
+          "PHONE",
+          "EMAIL"
+        ]
+      },
+      "OtpP": {
+        "type": "object",
+        "required": [
+          "channel",
+          "target",
+          "captchaKey",
+          "captchaValue"
+        ],
+        "properties": {
+          "captchaKey": {
+            "type": "string",
+            "example": "xxxx-xxxxx"
+          },
+          "captchaKind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "slide-default"
+          },
+          "captchaValue": {
+            "type": "string",
+            "example": "120"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/OtpChannel"
+          },
+          "target": {
+            "type": "string",
+            "description": "手机号或邮箱",
+            "example": "13800138000"
+          }
+        },
+        "example": {
+          "captchaKey": "xxxx-xxxxx",
+          "captchaValue": "120",
+          "channel": "PHONE",
+          "target": "13800138000"
+        }
+      },
+      "PasswordP": {
+        "type": "object",
+        "required": [
+          "oldPassword",
+          "newPassword"
+        ],
+        "properties": {
+          "newPassword": {
+            "type": "string",
+            "example": "654321"
+          },
+          "oldPassword": {
+            "type": "string",
+            "example": "123456"
+          }
+        },
+        "example": {
+          "newPassword": "654321",
+          "oldPassword": "123456"
+        }
+      },
+      "PhoneSigninP": {
+        "type": "object",
+        "required": [
+          "phone",
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "OTP 六位数字",
+            "example": "123456"
+          },
+          "phone": {
+            "type": "string",
+            "description": "手机号（须已绑定账号）",
+            "example": "13800138000"
+          }
+        },
+        "example": {
+          "code": "123456",
+          "phone": "13800138000"
+        }
+      },
+      "PlanR": {
+        "type": "object",
+        "description": "可开通档位：配额数字来自 `gateway.plan_daily_token_quota`，不落库。",
+        "required": [
+          "plan",
+          "dailyTokenQuota"
+        ],
+        "properties": {
+          "dailyTokenQuota": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "plan": {
+            "type": "string"
+          }
+        }
+      },
+      "PlansEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PlansR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PlansR": {
+        "type": "object",
+        "description": "档位目录：可开通档位 + 免费档基线。",
+        "required": [
+          "plans",
+          "freeDailyTokenQuota"
+        ],
+        "properties": {
+          "freeDailyTokenQuota": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanR"
+            }
+          }
+        }
+      },
+      "PrepareP": {
+        "type": "object",
+        "required": [
+          "name",
+          "size",
+          "mime",
+          "chunk"
+        ],
+        "properties": {
+          "chunk": {
+            "type": "integer",
+            "format": "int32",
+            "description": "分片大小（字节），须在 10MB~100MB",
+            "example": 1048576,
+            "minimum": 0
+          },
+          "hash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "整文件 SHA-256；可省略，稍后再 `PATCH /upload/hash` 绑定",
+            "example": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "index": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "租户内列表排序；省略则默认 0",
+            "example": 0
+          },
+          "mime": {
+            "type": "string",
+            "example": "application/pdf"
+          },
+          "name": {
+            "type": "string",
+            "example": "sample.pdf"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1048576,
+            "minimum": 0
+          },
+          "tenantID": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "租户 ID（租户模型未接线前可选）",
+            "example": "tenant-demo"
+          },
+          "viewers": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "RESTRICTED 时的可访问用户 id 列表；其它可见性忽略",
+            "example": [
+              "550e8400-e29b-41d4-a716-446655440000"
+            ]
+          },
+          "visibility": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Visibility",
+                "description": "可见性；省略则 PRIVATE"
+              }
+            ]
+          }
+        },
+        "example": {
+          "chunk": 1048576,
+          "mime": "application/pdf",
+          "name": "sample.pdf",
+          "size": 1048576
+        }
+      },
+      "PrepareR": {
+        "type": "object",
+        "required": [
+          "id",
+          "exists",
+          "chunks",
+          "uploaded",
+          "url"
+        ],
+        "properties": {
+          "chunks": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          "exists": {
+            "type": "boolean",
+            "example": false
+          },
+          "id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "uploaded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UploadedChunk"
+            }
+          },
+          "url": {
+            "type": "string",
+            "example": "/api/v1/upload/chunk"
+          }
+        }
+      },
+      "ProfileEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ProfileP": {
+        "type": "object",
+        "properties": {
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "birthday": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "1990-01-01"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "admin@example.com"
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "MALE"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "13800138000"
+          }
+        },
+        "example": {
+          "avatar": "550e8400-e29b-41d4-a716-446655440000",
+          "birthday": "1990-01-01",
+          "email": "admin@example.com",
+          "gender": "MALE",
+          "phone": "13800138000"
+        }
+      },
+      "ProfileR": {
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "role",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "age": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "avatar": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Avatar"
+              }
+            ]
+          },
+          "birthday": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "ProgressR": {
+        "type": "object",
+        "required": [
+          "id",
+          "progress",
+          "chunks",
+          "uploaded",
+          "total",
+          "status"
+        ],
+        "properties": {
+          "chunks": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          "id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "progress": {
+            "type": "number",
+            "format": "double",
+            "example": 50.0
+          },
+          "status": {
+            "$ref": "#/components/schemas/UploadStatus"
+          },
+          "superseded": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "秒传后的目标 COMPLETED 资产 id",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32",
+            "example": 2,
+            "minimum": 0
+          },
+          "uploaded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UploadedChunk"
+            }
+          }
+        }
+      },
+      "ProviderEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProviderR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ProviderListEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ProviderR"
+            }
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ProviderR": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "baseUrl",
+          "status",
+          "hasApiKey",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hasApiKey": {
+            "type": "boolean",
+            "description": "是否已托管密钥（不回传明文/密文）"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ProviderUpdateP": {
+        "type": "object",
+        "properties": {
+          "apiKey": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "提供时重新加密；缺省保留原密钥"
+          },
+          "baseUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ProviderWriteP": {
+        "type": "object",
+        "required": [
+          "kind",
+          "name",
+          "baseUrl"
+        ],
+        "properties": {
+          "apiKey": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "明文 API Key；入库前 AES 加密"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "openai / anthropic / deepseek / qwen / zhipu / ollama"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ACTIVE / DISABLED"
+          }
+        }
+      },
+      "QueryP": {
+        "type": "object",
+        "required": [
+          "q"
+        ],
+        "properties": {
+          "q": {
+            "type": "string",
+            "example": "Redis"
+          },
+          "size": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "example": 10
+          }
+        },
+        "example": {
+          "q": "Redis",
+          "size": 10
+        }
+      },
+      "QuotaEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/QuotaR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "QuotaR": {
+        "type": "object",
+        "description": "租户当前生效的日 token 配额。",
+        "required": [
+          "tenantID",
+          "type",
+          "source",
+          "dailyTokenQuota"
+        ],
+        "properties": {
+          "dailyTokenQuota": {
+            "type": "integer",
+            "format": "int64",
+            "description": "当前生效的日 token 配额（单模型可用 `gateway_model.dailyTokenQuota` 另行覆盖）"
+          },
+          "plan": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "生效档位名；`source != PLAN` 时为 null"
+          },
+          "source": {
+            "type": "string",
+            "description": "PLAN（生效订阅档位）/ FREE（免费档）/ GLOBAL（全局兜底）"
+          },
+          "tenantID": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "PERSONAL / TEAM"
+          }
+        }
+      },
+      "ResetPasswordP": {
+        "type": "object",
+        "required": [
+          "code",
+          "newPassword"
+        ],
+        "properties": {
+          "channel": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OtpChannel"
+              }
+            ]
+          },
+          "code": {
+            "type": "string",
+            "example": "123456"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "654321"
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "13800138000"
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "example": {
+          "channel": "PHONE",
+          "code": "123456",
+          "newPassword": "654321",
+          "target": "13800138000"
+        }
+      },
+      "SearchEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SearchR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SearchR": {
+        "type": "object",
+        "required": [
+          "took",
+          "total",
+          "hits"
+        ],
+        "properties": {
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HitR"
+            }
+          },
+          "took": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SearchWriteEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WriteR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SelfQuotaEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SelfQuotaR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SelfQuotaP": {
+        "type": "object",
+        "description": "自助配额查询参数。",
+        "properties": {
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "目录里的模型名；缺省（或 `auto`）时按身份级配额回答"
+          }
+        }
+      },
+      "SelfQuotaR": {
+        "type": "object",
+        "description": "当前身份此刻的日窗配额状态（只读：不改计数、不落库）。",
+        "required": [
+          "scope",
+          "scopeID",
+          "source",
+          "limit",
+          "used",
+          "remaining",
+          "exhausted",
+          "resetsAt"
+        ],
+        "properties": {
+          "exhausted": {
+            "type": "boolean",
+            "description": "是否已触顶；触顶后平台模型的新请求会被拒（400006）"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int64",
+            "description": "日配额上限（token）"
+          },
+          "plan": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "档位名；仅 `PLAN` 有"
+          },
+          "remaining": {
+            "type": "integer",
+            "format": "int64",
+            "description": "剩余（不小于 0）"
+          },
+          "resetsAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "日窗重置时刻（毫秒时间戳）"
+          },
+          "scope": {
+            "type": "string",
+            "description": "配额归属：`TENANT`（有租户身份）/ `USER`（无租户身份）"
+          },
+          "scopeID": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "上限来源：`MODEL` 单模型覆盖 / `PLAN` 订阅档位 / `FREE` 免费档 / `GLOBAL` 全局兜底"
+          },
+          "tenantID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tenantType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "归属租户类型：`PERSONAL` / `TEAM`；无租户身份时不发"
+          },
+          "used": {
+            "type": "integer",
+            "format": "int64",
+            "description": "今日已用（token，取 Redis 日窗计数）"
+          }
+        }
+      },
+      "Shape": {
+        "type": "string",
+        "enum": [
+          "Square",
+          "Circle",
+          "Rectangle"
+        ]
+      },
+      "SigninEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SigninR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SigninErrorExample": {
+        "type": "object",
+        "description": "登录失败示例（凭证无效）",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SigninExampleData": {
+        "type": "object",
+        "required": [
+          "token",
+          "id",
+          "username",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "SigninP": {
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "captchaKey",
+          "captchaValue"
+        ],
+        "properties": {
+          "captchaKey": {
+            "type": "string",
+            "description": "行为验证码 key（来自 `POST /api/v1/auth/captcha` 的 `data.captchaKey`）",
+            "example": "xxxx-xxxxx"
+          },
+          "captchaKind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "题型 ID，默认 `auth.captcha.kind`（如 `slide-default`）",
+            "example": "slide-default"
+          },
+          "captchaValue": {
+            "type": "string",
+            "description": "滑块 X 偏移或点选坐标（与 go-captcha-service `check-data` 的 `value` 一致）",
+            "example": "120"
+          },
+          "password": {
+            "type": "string",
+            "description": "密码",
+            "default": "123456",
+            "example": "123456"
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名",
+            "default": "admin",
+            "example": "admin"
+          }
+        },
+        "example": {
+          "captchaKey": "xxxx-xxxxx",
+          "captchaValue": "120",
+          "password": "123456",
+          "username": "admin"
+        }
+      },
+      "SigninR": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AuthR"
+          },
+          {
+            "type": "object",
+            "required": [
+              "token"
+            ],
+            "properties": {
+              "token": {
+                "type": "string",
+                "description": "JWT；Apifox 请写入环境变量 `token`，鉴权填 `{{token}}`",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example"
+              }
+            }
+          }
+        ]
+      },
+      "SigninSuccessExample": {
+        "type": "object",
+        "description": "登录成功示例",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SigninExampleData"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SignupEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SignupR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SignupP": {
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "captchaKey",
+          "captchaValue"
+        ],
+        "properties": {
+          "captchaKey": {
+            "type": "string",
+            "example": "xxxx-xxxxx"
+          },
+          "captchaKind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "slide-default"
+          },
+          "captchaValue": {
+            "type": "string",
+            "example": "120"
+          },
+          "password": {
+            "type": "string",
+            "description": "密码",
+            "example": "123456"
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名（唯一）",
+            "example": "newuser"
+          }
+        },
+        "example": {
+          "captchaKey": "xxxx-xxxxx",
+          "captchaValue": "120",
+          "password": "123456",
+          "username": "newuser"
+        }
+      },
+      "SignupR": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AuthR"
+          },
+          {
+            "type": "object",
+            "required": [
+              "token"
+            ],
+            "properties": {
+              "token": {
+                "type": "string",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example"
+              }
+            }
+          }
+        ]
+      },
+      "Size": {
+        "type": "string",
+        "enum": [
+          "Mini",
+          "Small",
+          "Medium",
+          "Large",
+          "Huge",
+          "Massive",
+          "Ultra"
+        ]
+      },
+      "SsoConnectionEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SsoConnectionR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SsoConnectionListEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SsoConnectionR"
+            }
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SsoConnectionR": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenantID",
+          "provider",
+          "issuer",
+          "clientID",
+          "redirectUri",
+          "status",
+          "hasClientSecret",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "clientID": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hasClientSecret": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "redirectUri": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tenantID": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SsoConnectionUpdateP": {
+        "type": "object",
+        "properties": {
+          "clientID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "clientSecret": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issuer": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provider": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "redirectUri": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "SsoConnectionWriteP": {
+        "type": "object",
+        "required": [
+          "tenantID",
+          "provider",
+          "issuer",
+          "clientID",
+          "redirectUri"
+        ],
+        "properties": {
+          "clientID": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "明文 client secret；入库前 AES 加密"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "description": "oidc / saml（saml 预留）"
+          },
+          "redirectUri": {
+            "type": "string"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tenantID": {
+            "type": "string"
+          }
+        }
+      },
+      "SsoLoginEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SsoLoginR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SsoLoginR": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "JWT，登录成功后前端持有"
+          }
+        }
+      },
+      "SubscribeP": {
+        "type": "object",
+        "description": "开通 / 续订请求。同一租户同一时刻最多一条生效订阅，重复调用即续订。",
+        "required": [
+          "plan"
+        ],
+        "properties": {
+          "expiresAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "到期时间（毫秒时间戳）；缺省或 null 为永久有效"
+          },
+          "plan": {
+            "type": "string",
+            "description": "档位名（须存在于 `gateway.plan_daily_token_quota`）"
+          }
+        }
+      },
+      "SubscriptionEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SubscriptionR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SubscriptionListEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionR"
+            }
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SubscriptionR": {
+        "type": "object",
+        "required": [
+          "id",
+          "tenantID",
+          "plan",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "订阅创建即生效，故也是生效开始时间"
+          },
+          "expiresAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "到期时间；null = 永久有效"
+          },
+          "id": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tenantID": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SuggestionEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SuggestionR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "SuggestionR": {
+        "type": "object",
+        "required": [
+          "s",
+          "i"
+        ],
+        "properties": {
+          "i": {
+            "$ref": "#/components/schemas/ISchema"
+          },
+          "s": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmptySchema"
+            }
+          }
+        }
+      },
+      "TSchema": {
+        "type": "string",
+        "enum": [
+          "LT",
+          "MT",
+          "SC",
+          "CT",
+          "UT",
+          "PN",
+          "MB",
+          "RI",
+          "NWB",
+          "OS"
+        ]
+      },
+      "TenantEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TenantR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TenantListEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TenantR"
+            }
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TenantR": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "status",
+          "type",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "PERSONAL / TEAM"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TenantRole": {
+        "type": "string",
+        "description": "租户内角色：OWNER / ADMIN / MEMBER",
+        "enum": [
+          "OWNER",
+          "ADMIN",
+          "MEMBER"
+        ]
+      },
+      "TenantUpdateP": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "PERSONAL / TEAM"
+          }
+        }
+      },
+      "TenantWriteP": {
+        "type": "object",
+        "required": [
+          "name",
+          "slug"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "description": "唯一标识（小写字母/数字/中划线）"
+          },
+          "type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "PERSONAL / TEAM；缺省 PERSONAL"
+          }
+        }
+      },
+      "UpdateP": {
+        "type": "object",
+        "description": "后台管理员更新用户（账号/密码/资料运维）\n用户自助修改个人信息请使用 PUT /api/v1/auth/profile",
+        "properties": {
+          "age": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "example": 30,
+            "minimum": 0
+          },
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "birthday": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "1990-01-01"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "alice@example.com"
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "FEMALE"
+          },
+          "password": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "123456"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "13800138000"
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "USER"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "ACTIVE"
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "alice"
+          }
+        },
+        "example": {
+          "age": 30,
+          "birthday": "1990-01-01",
+          "email": "alice@example.com",
+          "gender": "FEMALE",
+          "phone": "13800138000",
+          "role": "USER",
+          "status": "ACTIVE",
+          "username": "alice"
+        }
+      },
+      "UploadFilesEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FilesR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UploadHashEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HashR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UploadPrepareEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PrepareR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UploadProgressEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProgressR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UploadStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "UPLOADING",
+          "COMPLETED",
+          "SUPERSEDED",
+          "FAILED",
+          "EXPIRED"
+        ]
+      },
+      "UploadedChunk": {
+        "type": "object",
+        "description": "已上传分片（含 hash，供续传对比与分片秒传）",
+        "required": [
+          "index",
+          "hash"
+        ],
+        "properties": {
+          "hash": {
+            "type": "string",
+            "example": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int32",
+            "example": 0,
+            "minimum": 0
+          }
+        }
+      },
+      "UserEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UserR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UserListEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "业务状态码（200000=成功）"
+          },
+          "data": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/UserR"
+            }
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UserR": {
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "role",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "age": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "example": 30,
+            "minimum": 0
+          },
+          "avatar": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Avatar"
+              }
+            ]
+          },
+          "birthday": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "1990-01-01"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1700000000000
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "admin@example.com"
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "MALE"
+          },
+          "id": {
+            "type": "string",
+            "example": "3c430c21-0891-43e1-bcd2-1a22eb4a5389"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "13800138000"
+          },
+          "role": {
+            "type": "string",
+            "example": "USER"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1700000000000
+          },
+          "username": {
+            "type": "string",
+            "example": "admin"
+          }
+        }
+      },
+      "Visibility": {
+        "type": "string",
+        "description": "资产可见性：私有 / 公开 / 指定用户",
+        "enum": [
+          "PRIVATE",
+          "PUBLIC",
+          "RESTRICTED"
+        ]
+      },
+      "WriteP": {
+        "type": "object",
+        "required": [
+          "title",
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "example": "接入 Redis 与 Elasticsearch"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "文档 ID；省略则自动生成 UUID",
+            "example": "doc-1"
+          },
+          "title": {
+            "type": "string",
+            "example": "Rust 服务端"
+          }
+        },
+        "example": {
+          "content": "接入 Redis 与 Elasticsearch",
+          "id": "doc-1",
+          "title": "Rust 服务端"
+        }
+      },
+      "WriteR": {
+        "type": "object",
+        "required": [
+          "id",
+          "index"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "index": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearer_auth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "登录 `POST /api/v1/auth/signin` 返回的 `data.token`。\n\n请求头：`Authorization: Bearer <token>`。\n\n**Apifox**：鉴权组件 Token 请填 `{{token}}`（勿用 `{{bearerToken}}`）；环境变量名统一为 `token`，可在登录接口后置操作写入。",
+        "x-default": "{{token}}",
+        "x-apifox-default": "{{token}}"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "System",
+      "description": "系统级接口"
+    },
+    {
+      "name": "Auth",
+      "description": "认证与个人资料（图形验证码、OTP、密码/手机/邮箱登录）"
+    },
+    {
+      "name": "User",
+      "description": "后台用户管理（需 JWT）"
+    },
+    {
+      "name": "Upload",
+      "description": "分片文件上传"
+    },
+    {
+      "name": "Engine",
+      "description": "搜索引擎代理"
+    },
+    {
+      "name": "Search",
+      "description": "Elasticsearch 全文检索"
+    },
+    {
+      "name": "Application",
+      "description": "应用入口（Mock）"
+    },
+    {
+      "name": "Tenant",
+      "description": "多租户组织与成员（需 JWT）"
+    },
+    {
+      "name": "Subscription",
+      "description": "个人租户订阅：免费/付费档位配额（需 JWT）"
+    },
+    {
+      "name": "Gateway",
+      "description": "模型网关：转发/配额/用量/审计（需 JWT）"
+    },
+    {
+      "name": "SSO",
+      "description": "单点登录（OIDC）"
+    },
+    {
+      "name": "Payment",
+      "description": "支付：档位/渠道目录、订单、渠道回调（下单需 JWT）"
+    }
+  ],
+  "externalDocs": {
+    "url": "/guide/error-codes.md",
+    "description": "业务错误码说明"
+  }
+}

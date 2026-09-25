@@ -1,0 +1,7 @@
+# 供 ripgrep / cargo-watch 过滤运行时目录（cargo watch 默认读本文件）。
+cas/
+chunks/
+logs/
+data/
+uploads/
+target/

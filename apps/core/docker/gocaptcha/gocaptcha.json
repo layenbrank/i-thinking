@@ -1,0 +1,30 @@
+{
+  "config_version": 1,
+  "resources": {
+    "version": "0.0.1",
+    "char": { "languages": { "chinese": [], "english": [] } },
+    "font": {},
+    "shape_image": {},
+    "master_image": {},
+    "thumb_image": {},
+    "tile_image": {}
+  },
+  "builder": {
+    "slide_config_maps": {
+      "slide-default": {
+        "version": "0.0.1",
+        "master": {
+          "image_size": { "width": 300, "height": 220 },
+          "image_alpha": 1
+        },
+        "thumb": {
+          "range_graph_size": { "min": 60, "max": 70 },
+          "range_graph_angles": [{ "min": 20, "max": 35 }],
+          "generate_graph_number": 1,
+          "enable_graph_vertical_random": false,
+          "range_dead_zone_directions": ["left", "right"]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+# ============================================================
+# 应用入口 /api/v1/application
+# 鉴权: 无
+# ============================================================
+
+@host = http://127.0.0.1:3000
+
+### GET /api/v1/application/toRead — 读取应用配置
+# 说明: 获取应用 App 配置（当前为 mock 数据）
+GET {{host}}/api/v1/application/toRead
+Accept: application/json

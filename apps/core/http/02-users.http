@@ -1,0 +1,62 @@
+# ============================================================
+# 用户模块 /api/v1/users
+# 鉴权: Bearer JWT（先执行下方 signin）
+# ============================================================
+
+@host = http://127.0.0.1:3000
+@username = admin
+@password = 123456
+
+### POST /api/v1/auth/signin — 登录（必须先执行）
+# @name signin
+POST {{host}}/api/v1/auth/signin
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+###
+@token = {{signin.response.body.data.token}}
+@userId = {{signin.response.body.data.id}}
+
+### GET /api/v1/users — 获取用户列表
+GET {{host}}/api/v1/users
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET /api/v1/users/{id} — 获取单个用户
+GET {{host}}/api/v1/users/{{userId}}
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### POST /api/v1/users — 创建用户
+# @name createUser
+POST {{host}}/api/v1/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "test-user",
+  "password": "123456"
+}
+
+### PUT /api/v1/users/{id} — 更新用户
+PUT {{host}}/api/v1/users/{{userId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "admin-updated",
+  "email": "admin@example.com",
+  "age": 25
+}
+
+### DELETE /api/v1/users/{id} — 删除用户
+DELETE {{host}}/api/v1/users/{{userId}}
+Authorization: Bearer {{token}}
+Accept: application/json

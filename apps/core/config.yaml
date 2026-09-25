@@ -1,0 +1,126 @@
+app:
+  env: development
+  swagger: true
+
+server:
+  host: 0.0.0.0
+  port: 3000
+
+database:
+  url: postgres://machenike:Li33333.@127.0.0.1:5432/i-thinking
+
+redis:
+  url: redis://127.0.0.1:6379
+  pool_size: 8
+
+elasticsearch:
+  url: http://127.0.0.1:9200
+  index: corex_docs
+  insecure: false
+  username: null
+  password: null
+  api_key: null
+  cloud_id: null
+
+security:
+  # 通用应用密钥（预留；生产环境禁止占位值，当前业务代码未直接读取）
+  secret: change-me-secret
+  # JWT 签发/校验密钥（signin 等返回的 token）；至少 32 字符
+  jwt_secret: bWQkgpKWScV@r7HoX#WBaEXrGLlUt%kTIO&%keKQVW#Js#QYwzzJ9dPDAPczT@sb
+  # 用户密码入库算法：argon2（推荐）| aes（仅开发/迁移，生产禁用）
+  encryption: aes # argon2, aes
+  # encryption=aes 时必填；AES-256 密钥，Base64 编码（cargo run --bin generate）
+  aes_key: nFXrKNkTp/HcFcaRCbiyocEu19vg1TyqfDdDz67E6Nw=
+
+auth:
+  captcha:
+    # false：跳过 check-data（终端/Apifox 联调）；生产必须 true
+    enabled: true
+    base_url: http://127.0.0.1:8080
+    # 与 docker/gocaptcha/config.json 的 api_keys 一致；请求侧车时放在 X-API-Key 头
+    api_key: change-me-gocaptcha-key
+    kind: slide-default
+    timeout_ms: 5000
+    ip_rate_limit: 30
+  otp:
+    ttl_secs: 300
+    cooldown_secs: 60
+    max_attempts: 5
+    lock_secs: 900
+    mock: true
+  signin:
+    max_failures: 5
+  rate_limit:
+    enabled: true
+    burst_size: 20
+    requests_per_minute: 30
+  trust_proxy: false
+
+logging:
+  filter: info
+  dir: logs
+  retention_days: 14
+  format: pretty
+  body_max: 8192
+
+cors:
+  origins: []
+
+aliyun:
+  gateway:
+    base_url: http://127.0.0.1:8090
+    # 与 docker/aliyun-gateway/config.json 的 api_keys 一致
+    api_key: change-me-aliyun-gateway-key
+    timeout_ms: 10000
+    sms_template_code: SMS_xxxx
+
+gateway:
+  # 全局兜底：无租户身份（用户维度）与团队租户使用
+  daily_token_quota: 1000000
+  # 个人租户免费档：无有效订阅时使用
+  free_daily_token_quota: 100000
+  # 个人租户订阅档位：档位名 -> 日 token 配额（与 subscription.plan 对应）
+  plan_daily_token_quota:
+    BASIC: 500000
+    PRO: 5000000
+  # 上游模型流式读超时（毫秒）
+  upstream_timeout_ms: 120000
+  # 用量事件写入的 Elasticsearch 索引
+  usage_es_index: gateway_usage
+  # 审计落库开关
+  audit_enabled: true
+
+# 支付（订单与渠道凭据）。凭据放 config.local.yaml / 部署环境的 profile 覆盖，不入库。
+# plans 里定价（amount > 0）的档位只能由支付回调开通：自助开通用 500408 拒绝。
+# 详见 src/services/payment/README.md
+pay:
+  # 订单有效期（秒）：超过即自动关单，逾期支付走「迟到支付」补偿
+  order_ttl_secs: 300
+  plans:
+    PRO:
+      amount: 1990 # 分（CNY）
+      duration_days: 30 # null = 永久
+      label: 专业版
+  wechat:
+    enabled: false
+    mch_id: ''
+    app_id: ''
+    # APIv3 密钥（32 字符），同时用于回调解密与应答签名
+    api_v3_key: ''
+    # 商户 API 证书序列号（请求签名头 serial_no）
+    serial_no: ''
+    # 商户 API 私钥（PKCS#8 PEM，即 apiclient_key.pem 的内容）
+    private_key: ''
+    # 微信支付平台证书公钥（PEM：openssl x509 -pubkey -noout -in cert.pem）
+    platform_public_key: ''
+    # 必须为公网可达的 https 地址，微信只回调这里
+    notify_url: https://example.com/api/v1/pay/notify/wechat
+    api_base: https://api.mch.weixin.qq.com
+  alipay:
+    enabled: false
+    app_id: ''
+    # 应用私钥（PKCS#8 PEM）与支付宝公钥（PEM 内容）
+    private_key: ''
+    alipay_public_key: ''
+    gateway_url: https://openapi.alipay.com/gateway.do
+    notify_url: https://example.com/api/v1/pay/notify/alipay

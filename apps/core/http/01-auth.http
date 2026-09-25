@@ -1,0 +1,137 @@
+# ============================================================
+# 认证模块 /api/v1/auth
+# 鉴权: 无（公开接口）
+# ============================================================
+
+@host = http://127.0.0.1:3000
+@username = admin
+@password = 123456
+
+### POST /api/v1/auth/signup — 用户注册
+# 说明: 创建新用户并返回 JWT
+# Body 参数:
+#   username  string  必填  用户名
+#   password  string  必填  密码
+# 响应 data: { token, id, username, createdAt, updatedAt }
+# @name signup
+POST {{host}}/api/v1/auth/signup
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### POST /api/v1/auth/signin — 用户登录
+# 说明: 校验账号密码并返回 JWT，后续接口需携带 Authorization
+# Body 参数:
+#   username  string  必填  用户名
+#   password  string  必填  密码
+# 响应 data: { token, id, username, createdAt, updatedAt }
+# @name signin
+POST {{host}}/api/v1/auth/signin
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+###
+# 从登录响应提取 token / userId，供后续请求使用
+@token = {{signin.response.body.data.token}}
+@userId = {{signin.response.body.data.id}}
+
+### GET /api/v1/auth/profile — 获取当前用户个人信息
+# 鉴权: Bearer JWT
+GET {{host}}/api/v1/auth/profile
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### PUT /api/v1/auth/profile — 更新当前用户个人信息
+# Body（均可选）: email, phone, gender, birthday, avatar
+# gender: MALE | FEMALE
+# birthday: YYYY-MM-DD
+# avatar: asset UUID（需先 upload 完成）或 null 清除
+PUT {{host}}/api/v1/auth/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "admin@example.com",
+  "phone": "13800138000",
+  "gender": "MALE",
+  "birthday": "1990-01-01"
+}
+
+### POST /api/v1/auth/signout — 登出（JWT 进 Redis 黑名单）
+POST {{host}}/api/v1/auth/signout
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# 上传头像 asset（先执行 prepare → chunk → finalize，再绑定 profile）
+@avatarFileHash = 46ffabaecc44bf964158d1723fb0ff9d3c5918cb70686a613f5aa471413a3682
+
+# @name prepareAvatar
+POST {{host}}/api/v1/upload/prepare
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "avatar.png",
+  "size": 37,
+  "hash": "{{avatarFileHash}}",
+  "mime": "image/png",
+  "chunk": 1048576
+}
+
+###
+@avatarAssetId = {{prepareAvatar.response.body.data.id}}
+
+POST {{host}}/api/v1/upload/chunk
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=AvatarBoundary
+
+--AvatarBoundary
+Content-Disposition: form-data; name="id"
+
+{{avatarAssetId}}
+--AvatarBoundary
+Content-Disposition: form-data; name="index"
+
+0
+--AvatarBoundary
+Content-Disposition: form-data; name="hash"
+
+{{avatarFileHash}}
+--AvatarBoundary
+Content-Disposition: form-data; name="chunk"; filename="avatar.png"
+Content-Type: application/octet-stream
+
+< ./fixtures/chunk-0.bin
+--AvatarBoundary--
+
+###
+POST {{host}}/api/v1/upload/finalize
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": "{{avatarAssetId}}"
+}
+
+### PUT /api/v1/auth/profile — 绑定头像
+PUT {{host}}/api/v1/auth/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "avatar": "{{avatarAssetId}}"
+}

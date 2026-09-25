@@ -1,0 +1,20 @@
+# 认证 — 用户登录
+# POST /api/v1/auth/signin
+# Body: { username, password }
+# 响应 data.token 用于后续 Authorization: Bearer
+
+@host = http://127.0.0.1:3000
+
+# @name signin
+POST {{host}}/api/v1/auth/signin
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "admin",
+  "password": "123456"
+}
+
+###
+@token = {{signin.response.body.data.token}}
+@userId = {{signin.response.body.data.id}}
