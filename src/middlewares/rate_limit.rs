@@ -3,12 +3,12 @@
 use std::net::IpAddr;
 use std::sync::Arc;
 
+use actix_governor::governor::NotUntil;
+use actix_governor::governor::clock::QuantaInstant;
+use actix_governor::governor::middleware::NoOpMiddleware;
 use actix_governor::{
     GovernorConfig, GovernorConfigBuilder, KeyExtractor, SimpleKeyExtractionError,
 };
-use actix_governor::governor::clock::QuantaInstant;
-use actix_governor::governor::middleware::NoOpMiddleware;
-use actix_governor::governor::NotUntil;
 use actix_web::HttpResponse;
 use actix_web::dev::ServiceRequest;
 
@@ -54,7 +54,10 @@ impl KeyExtractor for ClientIpKeyExtractor {
     ) -> HttpResponse {
         response
             .status(actix_web::http::StatusCode::OK)
-            .json(Exception::custom(request::RATE_LIMIT_EXCEEDED, "请求频率过高"))
+            .json(Exception::custom(
+                request::RATE_LIMIT_EXCEEDED,
+                "请求频率过高",
+            ))
     }
 }
 

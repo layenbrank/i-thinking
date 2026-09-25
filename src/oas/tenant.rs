@@ -1,5 +1,6 @@
 use super::common::{
-    EmptyEnvelope, Exception, MemberEnvelope, MemberListEnvelope, TenantEnvelope, TenantListEnvelope,
+    EmptyEnvelope, Exception, MemberEnvelope, MemberListEnvelope, TenantEnvelope,
+    TenantListEnvelope,
 };
 use crate::services::tenant::schema::{MemberUpdateP, MemberWriteP, TenantUpdateP, TenantWriteP};
 

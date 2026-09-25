@@ -11,10 +11,10 @@ use uuid::Uuid;
 use crate::databases::database::Storage;
 use crate::services::upload::error::UploadError;
 use crate::services::upload::schema::{
-    viewers_from_json, AssetR, PrepareP, UploadStatus, UploadedChunk, Visibility,
+    AssetR, PrepareP, UploadStatus, UploadedChunk, Visibility, viewers_from_json,
 };
 use crate::services::upload::validation::{
-    visibility_for_insert, ASSET_URL_PREFIX, EXPIRE_HOURS, FILE_URL_PREFIX, KIND, normalize_hash,
+    ASSET_URL_PREFIX, EXPIRE_HOURS, FILE_URL_PREFIX, KIND, normalize_hash, visibility_for_insert,
 };
 
 pub async fn find_completed(db: &Storage, hash: &str) -> Result<Option<asset::Model>, UploadError> {

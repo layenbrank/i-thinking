@@ -135,9 +135,10 @@ impl From<AuthError> for Exception {
                 CaptchaError::Expired => {
                     Exception::custom(business::login::CAPTCHA_EXPIRED, "验证码已过期")
                 }
-                CaptchaError::RateLimited => {
-                    Exception::custom(business::login::TOO_MANY_ATTEMPTS, "尝试次数过多，请稍后再试")
-                }
+                CaptchaError::RateLimited => Exception::custom(
+                    business::login::TOO_MANY_ATTEMPTS,
+                    "尝试次数过多，请稍后再试",
+                ),
                 CaptchaError::Cache(msg) => {
                     tracing::error!(error = %msg, "captcha cache error");
                     Exception::custom(external::CACHE_ERROR, "缓存错误")
@@ -148,15 +149,14 @@ impl From<AuthError> for Exception {
                 }
             },
             AuthError::Otp(e) => match e {
-                OtpError::Invalid => {
-                    Exception::custom(business::login::INVALID_OTP, "验证码错误")
-                }
+                OtpError::Invalid => Exception::custom(business::login::INVALID_OTP, "验证码错误"),
                 OtpError::Expired => {
                     Exception::custom(business::login::OTP_EXPIRED, "验证码已过期")
                 }
-                OtpError::RateLimited | OtpError::Locked => {
-                    Exception::custom(business::login::TOO_MANY_ATTEMPTS, "尝试次数过多，请稍后再试")
-                }
+                OtpError::RateLimited | OtpError::Locked => Exception::custom(
+                    business::login::TOO_MANY_ATTEMPTS,
+                    "尝试次数过多，请稍后再试",
+                ),
                 OtpError::SendFailed => {
                     Exception::custom(system::SERVICE_UNAVAILABLE, "验证码发送失败，请稍后再试")
                 }
@@ -165,9 +165,10 @@ impl From<AuthError> for Exception {
                     Exception::custom(external::CACHE_ERROR, "缓存错误")
                 }
             },
-            AuthError::TooManyAttempts => {
-                Exception::custom(business::login::TOO_MANY_ATTEMPTS, "尝试次数过多，请稍后再试")
-            }
+            AuthError::TooManyAttempts => Exception::custom(
+                business::login::TOO_MANY_ATTEMPTS,
+                "尝试次数过多，请稍后再试",
+            ),
         }
     }
 }
@@ -312,19 +313,14 @@ impl AuthService {
         )
         .await?;
 
-        let mode = parse_password_identifier(
-            req.username.as_deref(),
-            req.channel,
-            req.target.as_deref(),
-        )?;
+        let mode =
+            parse_password_identifier(req.username.as_deref(), req.channel, req.target.as_deref())?;
 
         let user = match mode {
-            PasswordIdentifier::Username(username) => {
-                auth::Entity::find_by_username(&username)
-                    .one(&db.db)
-                    .await
-                    .map_err(|e| AuthError::DatabaseError(e.to_string()))?
-            }
+            PasswordIdentifier::Username(username) => auth::Entity::find_by_username(&username)
+                .one(&db.db)
+                .await
+                .map_err(|e| AuthError::DatabaseError(e.to_string()))?,
             PasswordIdentifier::Channel(channel, target) => {
                 validate_otp_target(channel, &target)?;
                 match channel {
@@ -335,7 +331,11 @@ impl AuthService {
         };
 
         let Some(user) = user else {
-            tracing::info!(event = "auth.password.forgot", skipped = true, "user not found");
+            tracing::info!(
+                event = "auth.password.forgot",
+                skipped = true,
+                "user not found"
+            );
             return Ok(());
         };
 
@@ -349,10 +349,8 @@ impl AuthService {
             return Ok(());
         }
 
-        let target_refs: Vec<(OtpChannel, &str)> = targets
-            .iter()
-            .map(|(ch, t)| (*ch, t.as_str()))
-            .collect();
+        let target_refs: Vec<(OtpChannel, &str)> =
+            targets.iter().map(|(ch, t)| (*ch, t.as_str())).collect();
 
         OtpService::send_same_code_to_targets(
             redis,
@@ -372,11 +370,8 @@ impl AuthService {
     ) -> Result<(), AuthError> {
         validate_password_strength(&req.new_password)?;
 
-        let mode = parse_password_identifier(
-            req.username.as_deref(),
-            req.channel,
-            req.target.as_deref(),
-        )?;
+        let mode =
+            parse_password_identifier(req.username.as_deref(), req.channel, req.target.as_deref())?;
 
         let user = match mode {
             PasswordIdentifier::Username(username) => {
@@ -850,7 +845,10 @@ fn signin_fail_key(username: &str) -> String {
 
 fn validate_phone(phone: &str) -> Result<(), AuthError> {
     let p = phone.trim();
-    if p.len() >= 8 && p.chars().all(|c| c.is_ascii_digit() || c == '+' || c == '-') {
+    if p.len() >= 8
+        && p.chars()
+            .all(|c| c.is_ascii_digit() || c == '+' || c == '-')
+    {
         Ok(())
     } else {
         Err(AuthError::InvalidParameter("手机号格式无效".to_string()))

@@ -98,8 +98,8 @@ fn identity(http: &HttpRequest) -> Result<(Uuid, bool), Exception> {
         .get::<Claims>()
         .cloned()
         .ok_or_else(|| Exception::unauthorized("用户未登录"))?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| Exception::unauthorized("用户未登录"))?;
+    let user_id =
+        Uuid::parse_str(&claims.sub).map_err(|_| Exception::unauthorized("用户未登录"))?;
     Ok((user_id, claims.role().is_admin()))
 }
 

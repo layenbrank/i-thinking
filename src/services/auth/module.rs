@@ -13,8 +13,14 @@ macro_rules! auth_routes {
             .route("/captcha", web::post().to(AuthController::captcha))
             .route("/otp", web::post().to(AuthController::otp))
             .route("/signin", web::post().to(AuthController::signin))
-            .route("/signin/phone", web::post().to(AuthController::signin_phone))
-            .route("/signin/email", web::post().to(AuthController::signin_email))
+            .route(
+                "/signin/phone",
+                web::post().to(AuthController::signin_phone),
+            )
+            .route(
+                "/signin/email",
+                web::post().to(AuthController::signin_email),
+            )
             .route("/signup", web::post().to(AuthController::signup))
             .route(
                 "/password/forgot",

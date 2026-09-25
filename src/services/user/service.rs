@@ -92,8 +92,7 @@ impl UserService {
             return Err(UserError::UserAlreadyExists);
         }
 
-        let password =
-            encrypt_password(&req.password, &config.encryption(), config.aes_key())?;
+        let password = encrypt_password(&req.password, &config.encryption(), config.aes_key())?;
         let role = match req.role.as_deref() {
             None => Role::User,
             Some(v) => Role::parse(v).ok_or_else(|| {

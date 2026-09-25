@@ -75,7 +75,10 @@ impl Visibility {
             "RESTRICTED" => Self::Restricted,
             "PRIVATE" => Self::Private,
             other => {
-                tracing::warn!(visibility = other, "unknown asset visibility; treat as PRIVATE");
+                tracing::warn!(
+                    visibility = other,
+                    "unknown asset visibility; treat as PRIVATE"
+                );
                 Self::Private
             }
         }

@@ -357,11 +357,7 @@ mod tests {
     #[test]
     fn purpose_key_isolation() {
         let login = otp_key(OtpPurpose::Login, OtpChannel::Phone, "13800138000");
-        let reset = otp_key(
-            OtpPurpose::PasswordReset,
-            OtpChannel::Phone,
-            "13800138000",
-        );
+        let reset = otp_key(OtpPurpose::PasswordReset, OtpChannel::Phone, "13800138000");
         assert_ne!(login, reset);
         assert!(login.contains("login"));
         assert!(reset.contains("password_reset"));

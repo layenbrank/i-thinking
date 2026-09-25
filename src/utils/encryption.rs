@@ -110,7 +110,9 @@ pub fn decrypt_field(encrypted: &str, key_str: &str) -> Result<String, Encryptio
         .map_err(|e| EncryptionError::Base64Error(e.to_string()))?;
 
     if combined.len() < 12 {
-        return Err(EncryptionError::AesError("Invalid ciphertext length".to_string()));
+        return Err(EncryptionError::AesError(
+            "Invalid ciphertext length".to_string(),
+        ));
     }
 
     let nonce_bytes: [u8; 12] = combined[..12]

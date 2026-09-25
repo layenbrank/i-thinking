@@ -110,8 +110,15 @@ impl TenantController {
         let (tenant_raw, member_raw) = path.into_inner();
         let tenant_id = parse_id(&tenant_raw)?;
         let member_user = parse_id(&member_raw)?;
-        match TenantService::update_member(&db, user_id, tenant_id, member_user, admin, req.into_inner())
-            .await
+        match TenantService::update_member(
+            &db,
+            user_id,
+            tenant_id,
+            member_user,
+            admin,
+            req.into_inner(),
+        )
+        .await
         {
             Ok(item) => Envelope::success(item, "更新成员成功").transform(),
             Err(err) => Exception::from(err).transform(),
@@ -140,8 +147,8 @@ fn identity(http: &HttpRequest) -> Result<(Uuid, bool), Exception> {
         .get::<Claims>()
         .cloned()
         .ok_or_else(|| Exception::unauthorized("用户未登录"))?;
-    let user_id = Uuid::parse_str(&claims.sub)
-        .map_err(|_| Exception::unauthorized("用户未登录"))?;
+    let user_id =
+        Uuid::parse_str(&claims.sub).map_err(|_| Exception::unauthorized("用户未登录"))?;
     Ok((user_id, claims.role().is_admin()))
 }
 

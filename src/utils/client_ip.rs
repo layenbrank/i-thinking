@@ -49,7 +49,14 @@ fn forwarded_ip(req: &HttpRequest) -> Option<String> {
         .get(header::FORWARDED)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.split("for=").nth(1))
-        .map(|v| v.split(';').next().unwrap_or(v).trim().trim_matches('"').to_string())
+        .map(|v| {
+            v.split(';')
+                .next()
+                .unwrap_or(v)
+                .trim()
+                .trim_matches('"')
+                .to_string()
+        })
         .or_else(|| {
             req.headers()
                 .get("X-Forwarded-For")

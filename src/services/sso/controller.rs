@@ -8,9 +8,7 @@ use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
 use crate::interceptors::envelope::Envelope;
-use crate::services::sso::schema::{
-    SsoCallbackP, SsoConnectionUpdateP, SsoConnectionWriteP,
-};
+use crate::services::sso::schema::{SsoCallbackP, SsoConnectionUpdateP, SsoConnectionWriteP};
 use crate::services::sso::service::SsoService;
 use crate::utils::jwt::Claims;
 

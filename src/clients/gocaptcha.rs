@@ -108,9 +108,9 @@ impl GoCaptchaClient {
             )));
         }
 
-        let payload = parsed.data.ok_or_else(|| {
-            GoCaptchaError::Upstream("get-data missing data payload".to_string())
-        })?;
+        let payload = parsed
+            .data
+            .ok_or_else(|| GoCaptchaError::Upstream("get-data missing data payload".to_string()))?;
 
         let captcha_key = payload.captcha_key();
         if captcha_key.is_empty() {
@@ -280,7 +280,11 @@ fn map_reqwest_error(err: reqwest::Error) -> GoCaptchaError {
 }
 
 fn map_check_failure(resp: &CheckDataResponse) -> GoCaptchaError {
-    let msg = resp.message.as_deref().unwrap_or_default().to_ascii_lowercase();
+    let msg = resp
+        .message
+        .as_deref()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
     if msg.contains("expire") {
         GoCaptchaError::Expired
     } else {
@@ -331,6 +335,11 @@ mod tests {
     fn check_ok_when_data_ok() {
         let json = r#"{"code":200,"message":"ok","data":"ok"}"#;
         let parsed: CheckDataResponse = serde_json::from_str(json).expect("parse");
-        assert!(parsed.data.as_deref().is_some_and(|d| d.eq_ignore_ascii_case("ok")));
+        assert!(
+            parsed
+                .data
+                .as_deref()
+                .is_some_and(|d| d.eq_ignore_ascii_case("ok"))
+        );
     }
 }

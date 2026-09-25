@@ -203,11 +203,7 @@ impl SsoService {
 
     // ---- OIDC 流程 ----
 
-    pub async fn authorize(
-        db: &Storage,
-        redis: &RedisPool,
-        id: Uuid,
-    ) -> Result<String, SsoError> {
+    pub async fn authorize(db: &Storage, redis: &RedisPool, id: Uuid) -> Result<String, SsoError> {
         let conn = load_connection(db, id).await?;
         let discovery = discover(&conn.issuer).await?;
 
@@ -338,9 +334,9 @@ async fn discover(issuer: &str) -> Result<Discovery, SsoError> {
             resp.status().as_u16()
         )));
     }
-    resp.json::<Discovery>().await.map_err(|e| {
-        SsoError::Idp(format!("discovery parse: {e}"))
-    })
+    resp.json::<Discovery>()
+        .await
+        .map_err(|e| SsoError::Idp(format!("discovery parse: {e}")))
 }
 
 async fn exchange_code(
@@ -378,7 +374,10 @@ async fn fetch_userinfo(endpoint: &str, access_token: &str) -> Result<UserInfo, 
     let client = Client::new();
     let resp = client
         .get(endpoint)
-        .header(reqwest::header::AUTHORIZATION, format!("Bearer {access_token}"))
+        .header(
+            reqwest::header::AUTHORIZATION,
+            format!("Bearer {access_token}"),
+        )
         .send()
         .await?;
     if !resp.status().is_success() {

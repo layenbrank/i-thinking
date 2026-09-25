@@ -110,7 +110,10 @@ fn resolve_credentials(config: &Configure) -> Result<Option<Credentials>> {
         return Ok(Some(Credentials::EncodedApiKey(api_key.into())));
     }
 
-    match (config.elasticsearch_username(), config.elasticsearch_password()) {
+    match (
+        config.elasticsearch_username(),
+        config.elasticsearch_password(),
+    ) {
         (Some(user), Some(pass)) => Ok(Some(Credentials::Basic(user.into(), pass.into()))),
         (None, None) => Ok(None),
         _ => bail!("ELASTICSEARCH_USERNAME and ELASTICSEARCH_PASSWORD must both be set"),

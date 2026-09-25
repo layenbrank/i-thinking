@@ -9,8 +9,8 @@ use crate::filters::exception::Exception;
 use crate::interceptors::envelope::Envelope;
 use crate::services::auth::captcha::client_ip_from_request;
 use crate::services::auth::schema::{
-    CaptchaP, EmailSigninP, ForgotPasswordP, OtpP, PasswordP, PhoneSigninP, ProfileP, ResetPasswordP,
-    SigninP, SignupP,
+    CaptchaP, EmailSigninP, ForgotPasswordP, OtpP, PasswordP, PhoneSigninP, ProfileP,
+    ResetPasswordP, SigninP, SignupP,
 };
 use crate::services::auth::service::AuthService;
 use crate::utils::jwt::Claims;

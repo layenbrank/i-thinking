@@ -2,9 +2,7 @@ use entity::asset;
 use uuid::Uuid;
 
 use crate::services::upload::error::UploadError;
-use crate::services::upload::schema::{
-    viewers_to_json, PrepareP, UploadStatus, Visibility,
-};
+use crate::services::upload::schema::{PrepareP, UploadStatus, Visibility, viewers_to_json};
 
 pub const CAS_DIR: &str = "cas";
 pub const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024 * 1024; // 10GB
@@ -83,9 +81,8 @@ pub fn parse_viewers(
     }
     let mut out = Vec::with_capacity(raw.len());
     for id in raw {
-        let uid = Uuid::parse_str(id.trim()).map_err(|_| {
-            UploadError::BadRequest(format!("viewers 含无效用户 ID: {id}"))
-        })?;
+        let uid = Uuid::parse_str(id.trim())
+            .map_err(|_| UploadError::BadRequest(format!("viewers 含无效用户 ID: {id}")))?;
         if !out.contains(&uid) {
             out.push(uid);
         }
@@ -98,10 +95,7 @@ pub fn visibility_for_insert(
 ) -> Result<(String, Option<sea_orm::prelude::Json>), UploadError> {
     let visibility = req.visibility();
     let viewers = parse_viewers(visibility.clone(), req.viewers.as_deref())?;
-    Ok((
-        visibility.as_str().to_string(),
-        viewers_to_json(&viewers),
-    ))
+    Ok((visibility.as_str().to_string(), viewers_to_json(&viewers)))
 }
 
 pub fn validate_status(asset: &asset::Model) -> Result<(), UploadError> {
@@ -209,10 +203,7 @@ pub fn ensure_owner_id(creator: Option<Uuid>, user_id: &str) -> Result<(), Uploa
 }
 
 /// 下载 ACL：PUBLIC 可匿名；创建者始终可下；RESTRICTED 须登录且在 viewers（或本人）。
-pub fn ensure_can_download(
-    asset: &asset::Model,
-    user_id: Option<&str>,
-) -> Result<(), UploadError> {
+pub fn ensure_can_download(asset: &asset::Model, user_id: Option<&str>) -> Result<(), UploadError> {
     match Visibility::from_db(&asset.visibility) {
         Visibility::Public => Ok(()),
         Visibility::Private => {
