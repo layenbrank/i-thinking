@@ -2,25 +2,42 @@
 //!
 //! 配额不落库，档位对应的日 token 配额由 `gateway.plan_daily_token_quota` 提供；
 //! 本模块负责「某租户此刻生效的是哪个档位」以及「该租户当前生效的日配额」。
+//!
+//! 两条通道，边界不同：
+//! - **请求通道**（[`SubscriptionService::subscribe`] / `list` / `cancel` / `quota`）收 [`TenantCtx`]，
+//!   权限由 `authz` 判定，事务由调用方（控制器）提交。
+//! - **可信通道**（[`SubscriptionService::grant`]）只收 [`TenantScope`]：调用方已确权（支付验签后核销、
+//!   平台代开），因此这里不做权限判定，只保证「写进作用域自己的租户」。
+//!
+//! 热路径按 `tenant_id` 读档位（[`SubscriptionService::active_plan`] 等）自带**只读短作用域**：
+//! 查完即回滚归还连接，绝不跨外部调用持有。
 
 use chrono::{DateTime, FixedOffset, TimeZone, Utc};
 use entity::{subscription, tenant};
 use fred::interfaces::KeysInterface;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, Set,
-    TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseTransaction, DbErr, EntityTrait, QueryFilter,
+    QueryOrder, Set,
 };
 use uuid::Uuid;
+
+use authz::{Action, Permission, Resource};
+use identity::{TenantId, UserId};
 
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::tenant::{TenantCtx, TenantScope};
 use crate::services::subscription::schema::{QuotaR, SubscribeP, SubscriptionR};
 use crate::services::tenant::schema::TenantType;
-use crate::services::tenant::service::{TenantError, TenantService};
-use crate::utils::code::{auth as auth_codes, business, external, request, resource};
+use crate::utils::code::{business, external, request, resource};
 use crate::utils::db::is_unique_violation;
+
+/// 看订阅与配额：租户内任何有效成员都可以（含 MEMBER）。
+const READ_SUBSCRIPTION: Permission = Permission::new(Resource::Subscription, Action::Read);
+/// 开通 / 取消订阅：仅 OWNER。花钱与配额口径只由 Owner 决定，ADMIN 连自助开通也不放行。
+const MANAGE_SUBSCRIPTION: Permission = Permission::new(Resource::Subscription, Action::Manage);
 
 /// 订阅状态：生效中 / 已取消 / 已到期。
 pub const ACTIVE: &str = "ACTIVE";
@@ -38,8 +55,6 @@ pub enum SubscriptionError {
     TenantNotFound,
     #[error("Only personal tenants can subscribe")]
     NotPersonal,
-    #[error("Insufficient permission")]
-    Forbidden,
     #[error("Invalid parameter: {0}")]
     BadParam(String),
     #[error("Subscription not found")]
@@ -62,9 +77,6 @@ impl From<SubscriptionError> for Exception {
                 request::INVALID_PARAMETER_VALUE,
                 "仅个人租户可订阅，团队租户使用全局配额",
             ),
-            SubscriptionError::Forbidden => {
-                Exception::custom(auth_codes::INSUFFICIENT_PERMISSIONS, "权限不足")
-            }
             SubscriptionError::BadParam(msg) => {
                 Exception::custom(request::INVALID_PARAMETER_VALUE, msg)
             }
@@ -129,40 +141,50 @@ impl SubscriptionService {
     ///
     /// 自助开通只对**未定价档位**开放：`pay.plans` 里定了价（`amount > 0`）的档位必须走支付流程，
     /// 否则任何租户管理员都能绕过收银台白拿付费配额。平台管理员保留代开通道（客服补单 / 本地联调）。
+    ///
+    /// 事务由调用方提交：出错返回即随作用域回滚，不会留下半截订阅。
+    ///
+    /// # Errors
+    /// 权限不足 403；档位需支付 500408；租户不存在 404；档位未配置或到期时间非法 400。
     pub async fn subscribe(
-        db: &Storage,
+        ctx: &TenantCtx,
         config: &Configure,
         redis: &RedisPool,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
         req: SubscribeP,
-    ) -> Result<SubscriptionR, SubscriptionError> {
-        require_manage(db, user_id, tenant_id, platform_admin).await?;
-        ensure_self_service_allowed(config, &req.plan, platform_admin)?;
-        Self::grant(db, config, redis, user_id, tenant_id, req).await
+    ) -> Result<SubscriptionR, Exception> {
+        ctx.require(MANAGE_SUBSCRIPTION)?;
+        ensure_self_service_allowed(config, &req.plan, ctx.principal().is_platform_admin())?;
+        Self::grant(ctx.scope(), config, redis, ctx.principal().user_id(), req)
+            .await
+            .map_err(Exception::from)
     }
 
     /// 开通 / 续订（可信通道：支付核销后开通、平台管理员代开）。
     ///
-    /// 与 [`Self::subscribe`] 的唯一区别是**不做「已定价档位需走支付」的守卫** —— 鉴权与「钱有没有到」
-    /// 由调用方保证（支付模块在验签 + 核对金额之后才会调到这里）。
+    /// 与 [`Self::subscribe`] 的唯一区别是**不做「已定价档位需走支付」的守卫**，也不做权限判定 ——
+    /// 鉴权与「钱有没有到」由调用方保证（支付模块在验签 + 核对金额之后才会调到这里）。
+    /// 租户取自作用域本身，调用方无法把它写到别的租户名下。
     ///
-    /// 订阅**创建即生效**（`createdAt` 即生效时间）。同一租户同一时刻最多一条 ACTIVE 订阅，故在一个
+    /// 订阅**创建即生效**（`createdAt` 即生效时间）。同一租户同一时刻最多一条 ACTIVE 订阅，故在同一个
     /// 事务内：
     /// 1. 旧 ACTIVE 订阅——已过期的标 `EXPIRED`；否则标 `CANCELED` 并把 `expiresAt`
     ///    **截断到当前时间**（新订阅即刻接管，续费不浪费剩余天数）；
     /// 2. 插入新订阅。
+    ///
+    /// # Errors
+    /// 租户不存在 404；非个人租户 400；档位未配置 / 到期时间非法 400；并发开通 409；库错 500。
     pub async fn grant(
-        db: &Storage,
+        scope: &TenantScope,
         config: &Configure,
         redis: &RedisPool,
-        user_id: Uuid,
-        tenant_id: Uuid,
+        actor: UserId,
         req: SubscribeP,
     ) -> Result<SubscriptionR, SubscriptionError> {
-        let tenant = tenant::Entity::find_by_id(tenant_id)
-            .one(&db.db)
+        let tenant_id = scope.tenant_id();
+        let tx = scope.tx();
+
+        let tenant = tenant::Entity::find_by_id(tenant_id.as_uuid())
+            .one(tx)
             .await
             .map_err(db_err)?
             .ok_or(SubscriptionError::TenantNotFound)?;
@@ -189,10 +211,8 @@ impl SubscriptionService {
             ));
         }
 
-        let olds = active_rows(db, tenant_id).await.map_err(db_err)?;
-        let txn = db.db.begin().await.map_err(db_err)?;
-
-        for old in olds {
+        // 读旧订阅与写新订阅在同一事务内，避免并发开通各自读到「无生效订阅」后双开
+        for old in active_rows(tx).await.map_err(db_err)? {
             // 已过期的按 EXPIRED 归档；未结束的统一截断到当前时间（新订阅即刻接管）
             let expired = old.expires_at.is_some_and(|end| end <= now);
             let mut active: subscription::ActiveModel = old.into();
@@ -201,23 +221,23 @@ impl SubscriptionService {
                 active.expires_at = Set(Some(now));
             }
             active.updated_at = Set(now);
-            active.updater = Set(Some(user_id));
-            active.update(&txn).await.map_err(db_err)?;
+            active.updater = Set(Some(actor.as_uuid()));
+            active.update(tx).await.map_err(db_err)?;
         }
 
         let model = subscription::ActiveModel {
             id: Set(Uuid::new_v4()),
-            tenant_id: Set(tenant_id),
+            tenant_id: Set(tenant_id.as_uuid()),
             plan: Set(req.plan),
             status: Set(ACTIVE.to_string()),
             expires_at: Set(expires_at),
             archived_at: Set(None),
             created_at: Set(now),
-            creator: Set(Some(user_id)),
+            creator: Set(Some(actor.as_uuid())),
             updated_at: Set(now),
-            updater: Set(Some(user_id)),
+            updater: Set(Some(actor.as_uuid())),
         }
-        .insert(&txn)
+        .insert(tx)
         .await
         .map_err(|err| {
             if is_unique_violation(&err) {
@@ -227,50 +247,51 @@ impl SubscriptionService {
             }
         })?;
 
-        txn.commit().await.map_err(db_err)?;
-        cache_invalidate(redis, tenant_id).await;
+        cache_invalidate(redis, tenant_id.as_uuid()).await;
 
         Ok(to_r(model))
     }
 
     /// 租户订阅历史（含已取消 / 已到期），按创建时间倒序。
     ///
-    /// 顺带把「已过 `expiresAt` 但仍为 ACTIVE」的订阅标记为 `EXPIRED`（惰性清理，无需定时任务）。
-    pub async fn list(
-        db: &Storage,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
-    ) -> Result<Vec<SubscriptionR>, SubscriptionError> {
-        require_member(db, user_id, tenant_id, platform_admin).await?;
-        expire_stale(db, tenant_id).await.map_err(db_err)?;
+    /// 顺带把「已过 `expiresAt` 但仍为 ACTIVE」的订阅标记为 `EXPIRED`（惰性清理，无需定时任务）——
+    /// 这条清理是写操作，因此调用方成功时必须提交事务。
+    ///
+    /// # Errors
+    /// 权限不足 403（非成员由守卫拦下）；库错 500。
+    pub async fn list(ctx: &TenantCtx) -> Result<Vec<SubscriptionR>, Exception> {
+        ctx.require(READ_SUBSCRIPTION)?;
+
+        let tx = ctx.tx();
+        expire_stale(tx).await.map_err(err_db)?;
 
         let rows = subscription::Entity::find()
-            .filter(subscription::Column::TenantId.eq(tenant_id))
             .order_by_desc(subscription::Column::CreatedAt)
-            .all(&db.db)
+            .all(tx)
             .await
-            .map_err(db_err)?;
+            .map_err(err_db)?;
+
         Ok(rows.into_iter().map(to_r).collect())
     }
 
     /// 取消订阅：状态置 CANCELED，并把有效期截断到当前时间。
+    ///
+    /// # Errors
+    /// 权限不足 403（仅 OWNER）；订阅不存在（或不属于本租户）404；库错 500。
     pub async fn cancel(
-        db: &Storage,
+        ctx: &TenantCtx,
         redis: &RedisPool,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
         subscription_id: Uuid,
-    ) -> Result<(), SubscriptionError> {
-        require_manage(db, user_id, tenant_id, platform_admin).await?;
+    ) -> Result<(), Exception> {
+        ctx.require(MANAGE_SUBSCRIPTION)?;
 
+        let tx = ctx.tx();
         let model = subscription::Entity::find_by_id(subscription_id)
-            .filter(subscription::Column::TenantId.eq(tenant_id))
-            .one(&db.db)
+            .one(tx)
             .await
-            .map_err(db_err)?
-            .ok_or(SubscriptionError::NotFound)?;
+            .map_err(err_db)?
+            .ok_or(SubscriptionError::NotFound)
+            .map_err(Exception::from)?;
 
         let now = Utc::now().fixed_offset();
         let expires_at = match model.expires_at {
@@ -281,14 +302,19 @@ impl SubscriptionService {
         active.status = Set(CANCELED.to_string());
         active.expires_at = Set(Some(expires_at));
         active.updated_at = Set(now);
-        active.updater = Set(Some(user_id));
-        active.update(&db.db).await.map_err(db_err)?;
+        active.updater = Set(Some(ctx.principal().user_id().as_uuid()));
+        active.update(tx).await.map_err(err_db)?;
 
-        cache_invalidate(redis, tenant_id).await;
+        cache_invalidate(redis, ctx.tenant_id().as_uuid()).await;
         Ok(())
     }
 
-    /// 租户当前生效配额（含来源与档位），供接口与聊天热路径共用。
+    /// 租户当前生效配额（含来源与档位），供聊天热路径按 `tenant_id` 直接调用。
+    ///
+    /// 自带只读短作用域：查完立刻结束，不把连接挂在调用方手里。
+    ///
+    /// # Errors
+    /// 库错时返回底层错误（调用方自行决定降级策略）。
     pub async fn effective_quota(
         db: &Storage,
         config: &Configure,
@@ -303,54 +329,42 @@ impl SubscriptionService {
         let Some(tid) = tenant_id else {
             return Ok(global);
         };
-        let Some(member) = tenant::Entity::find_by_id(tid).one(&db.db).await? else {
-            return Ok(global);
-        };
-        if !TenantType::is_personal(&member.tenant_type) {
-            return Ok(global);
-        }
 
-        match Self::active_plan(db, redis, tid).await? {
-            Some(plan) => match config.gateway_plan_daily_token_quota(&plan) {
-                Some(limit) => Ok(QuotaInfo {
-                    source: QuotaSource::Plan,
-                    plan: Some(plan),
-                    limit,
-                }),
-                // 未知档位（配置删改后残留）回落免费档，避免超发
-                None => Ok(QuotaInfo {
-                    source: QuotaSource::Free,
-                    plan: None,
-                    limit: config.gateway_free_daily_token_quota(),
-                }),
-            },
-            None => Ok(QuotaInfo {
-                source: QuotaSource::Free,
-                plan: None,
-                limit: config.gateway_free_daily_token_quota(),
-            }),
-        }
+        let scope = TenantScope::open(db, TenantId::from_uuid(tid)).await?;
+        let result = quota_in(scope.tx(), config, redis, scope.tenant_id())
+            .await
+            .map(|info| info.unwrap_or(global));
+        end_read(scope).await;
+        result
     }
 
     /// 当前生效配额（接口用；带租户类型与鉴权）。
+    ///
+    /// # Errors
+    /// 权限不足 403；库错 500。
     pub async fn quota(
-        db: &Storage,
+        ctx: &TenantCtx,
         config: &Configure,
         redis: &RedisPool,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
-    ) -> Result<QuotaR, SubscriptionError> {
-        require_member(db, user_id, tenant_id, platform_admin).await?;
+    ) -> Result<QuotaR, Exception> {
+        ctx.require(READ_SUBSCRIPTION)?;
 
-        let member = tenant::Entity::find_by_id(tenant_id)
-            .one(&db.db)
+        let tx = ctx.tx();
+        let tenant_id = ctx.tenant_id();
+        let member = tenant::Entity::find_by_id(tenant_id.as_uuid())
+            .one(tx)
             .await
-            .map_err(db_err)?
-            .ok_or(SubscriptionError::TenantNotFound)?;
-        let info = Self::effective_quota(db, config, redis, Some(tenant_id))
+            .map_err(err_db)?
+            .ok_or(SubscriptionError::TenantNotFound)
+            .map_err(Exception::from)?;
+        let info = quota_in(tx, config, redis, tenant_id)
             .await
-            .map_err(db_err)?;
+            .map_err(err_db)?
+            .unwrap_or(QuotaInfo {
+                source: QuotaSource::Global,
+                plan: None,
+                limit: config.gateway_daily_token_quota(),
+            });
 
         Ok(QuotaR {
             tenant_id: tenant_id.to_string(),
@@ -364,42 +378,109 @@ impl SubscriptionService {
     /// 此刻生效的档位名（无有效订阅则 `None`）。走 Redis 缓存（TTL 60s）。
     ///
     /// 缓存故障时降级为直查数据库，不打断聊天链路。
+    ///
+    /// # Errors
+    /// 库错时返回底层错误。
     pub async fn active_plan(
         db: &Storage,
         redis: &RedisPool,
         tenant_id: Uuid,
     ) -> Result<Option<String>, DbErr> {
-        let key = plan_cache_key(tenant_id);
-        if let Some(cached) = cache_get(redis, &key).await {
-            return Ok(if cached == PLAN_CACHE_NONE {
-                None
-            } else {
-                Some(cached)
-            });
-        }
-
-        let plan = query_active_plan(db, tenant_id).await?;
-        cache_set(redis, &key, plan.as_deref()).await;
-        Ok(plan)
+        let scope = TenantScope::open(db, TenantId::from_uuid(tenant_id)).await?;
+        let plan = active_plan_in(scope.tx(), redis, scope.tenant_id()).await;
+        end_read(scope).await;
+        plan
     }
 
     /// 此刻生效的订阅记录（无有效订阅则 `None`）。不走缓存。
     ///
     /// 支付开通需要它来算续费基数：生效订阅未到期时应从其到期时间续期，而不是从当前时间。
+    ///
+    /// # Errors
+    /// 库错时返回底层错误。
     pub async fn active_subscription(
         db: &Storage,
         tenant_id: Uuid,
     ) -> Result<Option<ActiveSubscription>, DbErr> {
+        let scope = TenantScope::open(db, TenantId::from_uuid(tenant_id)).await?;
         let now = Utc::now().fixed_offset();
-        Ok(active_rows(db, tenant_id)
-            .await?
-            .into_iter()
-            .find(|row| in_effect(row, now))
-            .map(|row| ActiveSubscription {
-                id: row.id,
-                plan: row.plan,
-                expires_at: row.expires_at,
-            }))
+        let found = active_rows(scope.tx()).await.map(|rows| {
+            rows.into_iter()
+                .find(|row| in_effect(row, now))
+                .map(|row| ActiveSubscription {
+                    id: row.id,
+                    plan: row.plan,
+                    expires_at: row.expires_at,
+                })
+        });
+        end_read(scope).await;
+        found
+    }
+}
+
+/// 个人租户的配额口径；非个人租户 / 租户不存在返回 `None`（调用方回落到全局配额）。
+async fn quota_in(
+    tx: &DatabaseTransaction,
+    config: &Configure,
+    redis: &RedisPool,
+    tenant_id: TenantId,
+) -> Result<Option<QuotaInfo>, DbErr> {
+    let Some(tenant) = tenant::Entity::find_by_id(tenant_id.as_uuid())
+        .one(tx)
+        .await?
+    else {
+        return Ok(None);
+    };
+    if !TenantType::is_personal(&tenant.tenant_type) {
+        return Ok(None);
+    }
+
+    Ok(Some(match active_plan_in(tx, redis, tenant_id).await? {
+        Some(plan) => match config.gateway_plan_daily_token_quota(&plan) {
+            Some(limit) => QuotaInfo {
+                source: QuotaSource::Plan,
+                plan: Some(plan),
+                limit,
+            },
+            // 未知档位（配置删改后残留）回落免费档，避免超发
+            None => QuotaInfo {
+                source: QuotaSource::Free,
+                plan: None,
+                limit: config.gateway_free_daily_token_quota(),
+            },
+        },
+        None => QuotaInfo {
+            source: QuotaSource::Free,
+            plan: None,
+            limit: config.gateway_free_daily_token_quota(),
+        },
+    }))
+}
+
+/// 生效档位（带缓存）：先在给定作用域内查。
+async fn active_plan_in(
+    tx: &DatabaseTransaction,
+    redis: &RedisPool,
+    tenant_id: TenantId,
+) -> Result<Option<String>, DbErr> {
+    let key = plan_cache_key(tenant_id.as_uuid());
+    if let Some(cached) = cache_get(redis, &key).await {
+        return Ok(if cached == PLAN_CACHE_NONE {
+            None
+        } else {
+            Some(cached)
+        });
+    }
+
+    let plan = query_active_plan(tx).await?;
+    cache_set(redis, &key, plan.as_deref()).await;
+    Ok(plan)
+}
+
+/// 只读作用域结束：显式回滚归还连接；回滚失败只记日志，不覆盖主流程的结果。
+async fn end_read(scope: TenantScope) {
+    if let Err(err) = scope.rollback().await {
+        tracing::warn!(error = %err, "subscription read scope rollback failed");
     }
 }
 
@@ -443,21 +524,22 @@ pub async fn cache_invalidate(redis: &RedisPool, tenant_id: Uuid) {
     }
 }
 
-/// 该租户状态为 ACTIVE 的订阅（未按时间过滤），按创建时间倒序。
-async fn active_rows(db: &Storage, tenant_id: Uuid) -> Result<Vec<subscription::Model>, DbErr> {
+/// 本作用域内状态为 ACTIVE 的订阅（未按时间过滤），按创建时间倒序。
+///
+/// 不带 `tenantID` 条件：作用域（`app.tenant_id` + 行级策略）已经把可见行限定在当前租户。
+async fn active_rows(tx: &DatabaseTransaction) -> Result<Vec<subscription::Model>, DbErr> {
     subscription::Entity::find()
-        .filter(subscription::Column::TenantId.eq(tenant_id))
         .filter(subscription::Column::Status.eq(ACTIVE))
         .filter(subscription::Column::ArchivedAt.is_null())
         .order_by_desc(subscription::Column::CreatedAt)
-        .all(&db.db)
+        .all(tx)
         .await
 }
 
 /// 实查当前生效档位（走 DB，不带缓存）。
-async fn query_active_plan(db: &Storage, tenant_id: Uuid) -> Result<Option<String>, DbErr> {
+async fn query_active_plan(tx: &DatabaseTransaction) -> Result<Option<String>, DbErr> {
     let now = Utc::now().fixed_offset();
-    let rows = active_rows(db, tenant_id).await?;
+    let rows = active_rows(tx).await?;
     Ok(rows
         .into_iter()
         .find(|row| in_effect(row, now))
@@ -465,14 +547,14 @@ async fn query_active_plan(db: &Storage, tenant_id: Uuid) -> Result<Option<Strin
 }
 
 /// 惰性把已过 `expiresAt` 的 ACTIVE 订阅标记为 EXPIRED。
-async fn expire_stale(db: &Storage, tenant_id: Uuid) -> Result<(), DbErr> {
+async fn expire_stale(tx: &DatabaseTransaction) -> Result<(), DbErr> {
     let now = Utc::now().fixed_offset();
-    for row in active_rows(db, tenant_id).await? {
+    for row in active_rows(tx).await? {
         if row.expires_at.is_some_and(|end| end <= now) {
             let mut active: subscription::ActiveModel = row.into();
             active.status = Set(EXPIRED.to_string());
             active.updated_at = Set(now);
-            active.update(&db.db).await?;
+            active.update(tx).await?;
         }
     }
     Ok(())
@@ -503,42 +585,6 @@ fn ensure_self_service_allowed(
     }
 }
 
-async fn require_member(
-    db: &Storage,
-    user_id: Uuid,
-    tenant_id: Uuid,
-    platform_admin: bool,
-) -> Result<(), SubscriptionError> {
-    TenantService::require_role(db, user_id, tenant_id, platform_admin)
-        .await
-        .map(|_| ())
-        .map_err(role_error)
-}
-
-async fn require_manage(
-    db: &Storage,
-    user_id: Uuid,
-    tenant_id: Uuid,
-    platform_admin: bool,
-) -> Result<(), SubscriptionError> {
-    let role = TenantService::require_role(db, user_id, tenant_id, platform_admin)
-        .await
-        .map_err(role_error)?;
-    if role.can_manage() {
-        Ok(())
-    } else {
-        Err(SubscriptionError::Forbidden)
-    }
-}
-
-/// `require_role` 的 `Db` 错误不能吞成「权限不足」，否则数据库故障会被伪装成 403。
-fn role_error(err: TenantError) -> SubscriptionError {
-    match err {
-        TenantError::Db(msg) => SubscriptionError::Db(msg),
-        _ => SubscriptionError::Forbidden,
-    }
-}
-
 fn from_millis(millis: i64) -> Result<DateTime<FixedOffset>, SubscriptionError> {
     Utc.timestamp_millis_opt(millis)
         .single()
@@ -560,6 +606,11 @@ fn to_r(m: subscription::Model) -> SubscriptionR {
 
 fn db_err(err: DbErr) -> SubscriptionError {
     SubscriptionError::Db(err.to_string())
+}
+
+/// 请求通道的数据库错误：直接落成 500，不再在服务层里转来转去。
+fn err_db(err: DbErr) -> Exception {
+    db_err(err).into()
 }
 
 #[cfg(test)]

@@ -104,8 +104,20 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+      # 订阅配额/计划缓存走 Redis，且 Redis 不可达时连接池直接失败，因此必须真起一个。
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
       TEST_DATABASE_URL: "postgres://postgres:postgres@127.0.0.1:5432/i_thinking_test"
+      TEST_REDIS_URL: "redis://127.0.0.1:6379"
 
     steps:
       - name: Checkout
@@ -129,6 +141,9 @@ jobs:
 
       - name: Run identity context tests
         run: cargo test --test identity_context
+
+      - name: Run subscription scope tests
+        run: cargo test --test subscription_scope
 
   contract:
     runs-on: ubuntu-latest

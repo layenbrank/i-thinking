@@ -26,10 +26,14 @@
 
 | 函数                          | 调用方                                    | 鉴权                                     | 定价档位                              |
 | ----------------------------- | ----------------------------------------- | ---------------------------------------- | ------------------------------------- |
-| `subscribe(...)`（自助入口）   | `POST /tenants/{id}/subscriptions`        | 内置 `require_manage` + 自助规则校验     | **拒绝**：`pay.plans[plan].amount > 0` 时返回 `500408` |
-| `grant(...)`（可信通道）       | `payment` 核销回调、平台管理员直接开通     | **调用方负责鉴权**，本函数不再校验角色   | 允许（钱已收 / 运维代开）              |
+| `subscribe(ctx, ...)`（自助入口） | `POST /tenants/{id}/subscriptions`     | `ctx.require(MANAGE_SUBSCRIPTION)`（OWNER）+ 自助规则校验 | **拒绝**：`pay.plans[plan].amount > 0` 时返回 `500408` |
+| `grant(scope, ..., actor, ...)`（可信通道） | `payment` 核销回调、平台管理员直接开通 | **调用方负责鉴权**，本函数不再校验角色   | 允许（钱已收 / 运维代开）              |
 
 判断逻辑只依赖配置：`pay.plans` 里 `amount > 0` 即视为「已定价，须付费」。这样既防止租户 OWNER（个人租户里就是用户本人）绕过收银台白拿付费档位，又保留客服代开与联调的可信路径。
+
+两条通道的租户来源也不同：自助通道从 `TenantCtx` 取租户（即 URL 里那个租户，进入时已校验成员关系），
+可信通道从传入的 [`TenantScope`](../../guards/tenant.rs) 取租户，调用方必须把租户锁定为可信数据（如支付订单行）。
+**`grant` 不 commit**：它只写，由打开作用域的一方提交或回滚，这样与支付侧的回写能落在同一个事务里。
 
 三者的配额优先级见 [`guide/configuration.md`](../../../guide/configuration.md#模型网关配额)。
 
@@ -38,17 +42,21 @@
 | 方法   | 路径                                                  | 鉴权              | 说明                                  |
 | ------ | ----------------------------------------------------- | ----------------- | ------------------------------------- |
 | GET    | `/api/v1/tenants/{id}/subscriptions`                  | JWT + 租户成员    | 订阅历史（含已取消 / 已到期）         |
-| POST   | `/api/v1/tenants/{id}/subscriptions`                  | JWT + OWNER/ADMIN | 开通 / 续订（仅未定价档位，见上表）   |
-| DELETE | `/api/v1/tenants/{id}/subscriptions/{subscriptionID}` | JWT + OWNER/ADMIN | 取消订阅（立即失效）                  |
+| POST   | `/api/v1/tenants/{id}/subscriptions`                  | JWT + 租户 OWNER  | 开通 / 续订（仅未定价档位，见上表）   |
+| DELETE | `/api/v1/tenants/{id}/subscriptions/{subscriptionID}` | JWT + 租户 OWNER  | 取消订阅（立即失效）                  |
 | GET    | `/api/v1/tenants/{id}/quota`                          | JWT + 租户成员    | 当前生效配额及来源                    |
 
 ## 鉴权说明
 
 - 中间件 `Auth::isRequired()` 挂在整个 scope 上，未登录直接 401 类。
-- 列表要求调用者是该租户 **ACTIVE 成员**；开通与取消要求租户内角色为 **OWNER / ADMIN**。
-- 平台 ADMIN（库中平台角色为 `ADMIN`，即 `Session::is_platform_admin()`）走 `TenantService::require_role` 的旁路，视为租户 ADMIN。
-- `require_role` 是**迁移期垫层**：内部已改为「`membership_role` 读成员关系 + `authz` 判权限」，本模块迁到 `TenantCtx` 后即删除。
-- 非成员返回 `300006`（权限不足），未登录返回 `300001`。
+- handler 首行 `TenantCtx::enter(&db, &session, id)` 一次性完成「进租户作用域 + 读成员关系」：
+  列表与配额要求 **ACTIVE 成员**（`Subscription/Read`，MEMBER 也有），开通与取消要求 **租户 OWNER**
+  （`Subscription/Manage`，ADMIN 不具备——开通/取消会改变计费归属，只应由所有者决定）。
+- 平台 ADMIN（库中平台角色为 `ADMIN`，即 `Session::is_platform_admin()`）在 `Auth` 中间件里就按 `Resource::Account` 放行，
+  作用域内权限判定同样旁路，属运维通道。
+- 角色不再由本模块比较：`ctx.require(..)` 失败即 `300006`，非成员在 `enter` 阶段即 `300007`。
+- 该租户/订阅不属于当前作用域时统一返回 `400001`（不区分「不存在」与「不属于你」，避免泄漏存在性）。
+- 未登录返回 `300001`。
 
 ## 数据表
 
@@ -93,6 +101,7 @@ CREATE UNIQUE INDEX uidx_subscription_active
 **续订语义**：旧未结束订阅的 `expiresAt` 会被**截断到当前时间**（永久订阅亦如此）——新订阅即刻接管，不浪费剩余天数。
 
 **过期标记**：订阅不靠定时任务。`list` 时顺带把已过 `expiresAt` 的 ACTIVE 行标为 `EXPIRED`；配额判定本身只看时间，不依赖该状态。
+注意这条清理是**写操作**，所以 `GET /subscriptions` 的控制器在读完后仍要 `commit()`，否则清理会被回滚（对客户端不可见，但会让历史列表一直显示 ACTIVE）。
 
 **取舍**：不支持「预约未来生效」与「补录历史开始时间」；若产品需要，须重新引入独立的 `startAt`。
 
@@ -109,17 +118,19 @@ TenantModule 的 scope("/tenants")        # src/services/tenant/module.rs（Auth
         ├── resource("/{id}/subscriptions/{subscriptionID}") DELETE   → SubscriptionController::toRemove
         └── resource("/{id}/quota")                          GET  ""  → SubscriptionController::quota
               └── SubscriptionService        # src/services/subscription/service.rs
-                    ├── require_member / require_manage
-                    │     └── TenantService::require_role   # 跨模块复用；迁移期垫层（内部走 authz + 成员关系）
-                    ├── subscribe       → 自助入口：require_manage + 自助规则校验 → grant
-                    ├── grant           → 可信通道：作废旧 ACTIVE 订阅 + 插入新订阅（事务，调用方负责鉴权）
+                    ├── 自助通道（收 TenantCtx）：ctx.require(权限) 判角色，租户取自作用域
+                    │     ├── subscribe     → require(Manage) + 自助规则校验 → grant(ctx.scope(), ..)
+                    │     ├── list          → require(Read)；顺带惰性标 EXPIRED（是写，故控制器需 commit）
+                    │     ├── cancel        → require(Manage)
+                    │     └── quota         → require(Read)
+                    ├── 可信通道（收 &TenantScope）：不带主体，不判角色、不 commit
+                    │     └── grant         → 作废旧 ACTIVE 订阅 + 插入新订阅，由调用方提交/回滚
+                    ├── 热点只读包装（自开私有短作用域并立即回滚，供 gateway 等无请求上下文路径）
+                    │     ├── effective_quota(db, config, redis, tenantID?)
+                    │     ├── active_plan(db, redis, tenantID)
+                    │     └── active_subscription(db, tenantID)
                     ├── ensure_self_service_allowed → 已定价档位（amount > 0）禁止自助开通（500408）
-                    ├── list            → 按 createdAt 倒序（顺带惰性标 EXPIRED）
-                    ├── cancel          → status=CANCELED，expiresAt 截断
-                    ├── quota           → 当前生效配额（接口用）
-                    ├── effective_quota → 租户级配额（订阅档位 > 免费档 / 全局兜底）
-                    └── active_plan(db, redis, tenantID) -> Option<String>   # 60s Redis 缓存
-                          └── 被 effective_quota 及 gateway 复用
+                    └── 配额缓存（Redis 60s，读写失败都降级为直查数据库）
 ```
 
 配额解析链路（在 `gateway` 侧）：
@@ -220,7 +231,8 @@ Authorization: Bearer {token}
 | ------ | -------------------------------------------------------------------------------- |
 | 200003 | 档位不存在或未配置配额、时间戳无效、`expiresAt` 不晚于当前时间、团队租户试图订阅 |
 | 300001 | 未登录                                                                           |
-| 300006 | 非租户成员，或租户内角色非 OWNER/ADMIN                                           |
+| 300006 | 租户内角色不足以执行该动作（开通 / 取消要求 OWNER）                                |
+| 300007 | 不是该租户成员（在 `TenantCtx::enter` 阶段拒绝）                                  |
 | 400001 | 租户或订阅不存在（含订阅不属于该租户）                                           |
 | 400002 | 并发订阅冲突（部分唯一索引拒绝，重试即可）                                       |
 | 500408 | 档位已定价，须通过支付开通（自助开通被拒）                                       |

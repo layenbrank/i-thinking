@@ -60,22 +60,32 @@ Middleware → Guard → Interceptor(pre) → Pipe → Handler
 
 ### 租户作用域管道
 
-中间件只到「是谁」为止；「在哪个租户、是什么角色」由 handler 首行的 [`TenantCtx`](../src/guards/tenant.rs) 决定（[`database.md`](database.md#租户隔离rls)）：
+中间件只到「是谁」为止；「在哪个租户、是什么角色」由 handler 首行的租户作用域句柄决定（[`database.md`](database.md#租户隔离rls)）。
+句柄有两条通道，选择依据是**有没有请求主体**：
 
 ```
-TenantCtx::enter(storage, &session, tenant_id)
-  → Storage::tenant_tx(tenant_id)（事务 + SET LOCAL app.tenant_id）
+[请求通道] TenantCtx::enter(storage, &session, tenant_id)
+  → TenantScope::open（事务 + SET LOCAL app.tenant_id）
   → identity::persistence::membership（在作用域内读成员关系）
   → 非成员且非平台管理员 → 403(300007)
   → Principal::with_tenant(..) → Session 的 principal 变成当前租户的身份
 
 handler 只用：ctx.tx() 读写 / ctx.require(permission) 判权限 / ctx.commit() 提交
+
+[可信机器通道] TenantScope::open(storage, tenant_id)
+  → 只带事务与租户 id，不带主体；用于支付回调、定时任务等无请求主体的路径
+  → 租户 id 必须来自可信数据（如订单行），不得取自请求参数
 ```
 
+- **谁持有句柄谁 commit**：下游 service 接收 `&TenantScope` / `&TenantCtx` 时只写不提交，把「读旧值 + 写新值」留在同一事务里；
+  写操作必须显式 `commit()`，未提交即随事务回滚，作用域同时失效。
+- 语义上是写、即使实现是只读查询也必须 commit（典型是「顺带标记过期订阅」的惰性清理）。
 - 权限判定统一走 [`authz`](../crates/authz/src/lib.rs)：`Resource::Tenant`、`Resource::Member` … 的策略表决定角色能否执行动作；
   平台管理员走运维通道（上下文的租户角色为空也放行）。
 - 角色不再由业务代码比较：`ctx.require(..)` 失败即 403(300006)，`tenantID = ?` 不再手写。
-- 写操作必须显式 `commit()`，未提交即随事务回滚，租户作用域同时失效。
+  `TenantScope` 不带主体，因此**只有 `TenantCtx` 判权限**；机器通道的授权由调用侧保证。
+- 作用域只能从 [`src/guards/tenant.rs`](../src/guards/tenant.rs) 进入：`Storage::tenant_tx` / `user_tx` 等原语仅
+  [`src/guards/`](../src/guards) 与 [`src/databases/scope.rs`](../src/databases/scope.rs) 可直接调用（R7 门禁，逐文件限额只减不增）。
 
 ## 目录约定
 

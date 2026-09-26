@@ -9,6 +9,7 @@
 
 use chrono::{Duration, Utc};
 use entity::{payment_order, tenant};
+use identity::{TenantId, UserId};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
@@ -18,6 +19,7 @@ use crate::clients::redis::RedisPool;
 use crate::configures::configure::{Configure, PayPlanConfig};
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::tenant::TenantScope;
 use crate::services::payment::channel::{
     self, ALIPAY, ChannelError, NotifyInput, PrepayInput, WECHAT, availability,
 };
@@ -540,19 +542,35 @@ impl PaymentService {
             .duration_days
             .map(|days| (base + Duration::days(days as i64)).timestamp_millis());
 
-        let subscription_id = match SubscriptionService::grant(
-            db,
+        // 订阅写入走租户作用域（机器路径：验签与金额核对都已在本函数之前完成）。
+        // 作用域只包住这一次写入：冲突即回滚，不跨越后面的订单回写。
+        let scope = TenantScope::open(db, TenantId::from_uuid(order.tenant_id))
+            .await
+            .map_err(|err| PaymentError::Db(err.to_string()))?;
+        let granted = SubscriptionService::grant(
+            &scope,
             config,
             redis,
-            order.user_id,
-            order.tenant_id,
+            UserId::from_uuid(order.user_id),
             SubscribeP {
                 plan: order.plan.clone(),
                 expires_at,
             },
         )
-        .await
-        {
+        .await;
+        if granted.is_ok() {
+            scope
+                .commit()
+                .await
+                .map_err(|err| PaymentError::Db(err.to_string()))?;
+        } else {
+            scope
+                .rollback()
+                .await
+                .map_err(|err| PaymentError::Db(err.to_string()))?;
+        }
+
+        let subscription_id = match granted {
             Ok(item) => Uuid::parse_str(&item.id).ok(),
             // 并发核销下另一方已完成开通：回读生效订阅作为本次结果（订阅集合等价）
             Err(SubscriptionError::Conflict) => {

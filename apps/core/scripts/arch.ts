@@ -20,7 +20,10 @@ import {
   FORBIDDEN_CRATE_DEPS,
   LEGACY_SERVICES,
   ROLE_VOCAB_LEGACY,
-  ROLE_VOCAB_PATTERN
+  ROLE_VOCAB_PATTERN,
+  TENANT_SCOPE_LEGACY,
+  TENANT_SCOPE_OWNER_PATHS,
+  TENANT_SCOPE_PATTERN
 } from './capabilities'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -388,6 +391,41 @@ function checkLegacyServices(errors: string[], hints: string[]) {
   }
 }
 
+/** R7：进入租户作用域的唯一入口是 src/guards（遗留调用点按名单只减不增） */
+function checkTenantScopeEntry(errors: string[], hints: string[]) {
+  const seen = new Set<string>()
+
+  for (const file of walk(SRC)) {
+    const path = rel(file)
+    if (TENANT_SCOPE_OWNER_PATHS.some((p) => path === p || path.startsWith(p))) continue
+    const count = readFileSync(file, 'utf8').match(TENANT_SCOPE_PATTERN)?.length ?? 0
+    if (!count) continue
+    seen.add(path)
+    const allow = TENANT_SCOPE_LEGACY[path]
+    if (!allow) {
+      fail(
+        `进入租户作用域只能走 src/guards：${path}（${count} 处）——请求路径用 TenantCtx::enter/open_new，机器路径把调用点登记到 scripts/capabilities.ts 的 TENANT_SCOPE_LEGACY`,
+        errors
+      )
+      continue
+    }
+    if (count > allow.max) {
+      fail(
+        `租户作用域入口新增了 ${count - allow.max} 处: ${path}（豁免上限 ${allow.max}，原因：${allow.reason}）`,
+        errors
+      )
+    } else if (count < allow.max) {
+      hints.push(`${path} 的作用域入口已减少到 ${count} 处，请把豁免上限下调为 ${count}`)
+    }
+  }
+
+  for (const path of Object.keys(TENANT_SCOPE_LEGACY)) {
+    if (!seen.has(path)) {
+      hints.push(`${path} 已无作用域入口，请从 scripts/capabilities.ts 的 TENANT_SCOPE_LEGACY 移除`)
+    }
+  }
+}
+
 function main(): number {
   const errors: string[] = []
   const hints: string[] = []
@@ -403,6 +441,7 @@ function main(): number {
   checkCapabilityCrates(errors, hints)
   checkCapabilitySurface(errors)
   checkRoleVocabulary(errors, hints)
+  checkTenantScopeEntry(errors, hints)
   checkTableOwnership(errors)
   checkLegacyServices(errors, hints)
 

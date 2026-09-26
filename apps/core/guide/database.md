@@ -246,23 +246,44 @@ Entity：[`entity/src/sso_connection.rs`](../entity/src/sso_connection.rs)
 | gateway_provider / gateway_model | 读：`"tenantID" IS NULL OR "tenantID" = app_current_tenant_id()`（保留全局目录行）；写：只允许本租户 |
 | auth / chunk | **无 RLS**：账号是全局身份；chunk 没有租户列，隔离经 asset 传递 |
 
-Rust 侧分两层：
+Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/scope.rs)）与**作用域句柄**（[`src/guards/tenant.rs`](../src/guards/tenant.rs)）分开：
 
-- [`src/databases/scope.rs`](../src/databases/scope.rs) 提供机制：`Storage::tenant_tx` / `user_tx` 开一个事务并设好对应作用域
-  （`apply_tenant_scope` / `apply_user_scope`），之后的读写复用这条事务，业务代码不必再逐条手写租户条件。
-- [`src/guards/tenant.rs`](../src/guards/tenant.rs) 的 `TenantCtx` 是**业务代码进入租户作用域的唯一入口**：
-  `enter` 先开作用域事务、再在作用域内读成员关系（读不到即「不是成员」；平台管理员例外，属运维通道，须在业务侧留审计），
+- 机制层：`Storage::tenant_tx` / `user_tx` 开一个事务并设好对应作用域（`apply_tenant_scope` / `apply_user_scope`），
+  之后的读写复用这条事务，业务代码不必再逐条手写租户条件。只有 [`src/guards/`](../src/guards) 与
+  [`src/databases/scope.rs`](../src/databases/scope.rs) 能直接调用它们（R7 门禁）。
+- 句柄层：**谁持有作用域句柄，谁负责 commit / rollback**。依调用方身份分两条通道：
+
+| 通道 | 句柄 | 适用 | 语义 |
+| --- | --- | --- | --- |
+| 请求通道 | [`TenantCtx`](../src/guards/tenant.rs) | HTTP handler 及其下游 service | 句柄里同时带 `TenantScope` 与 `Principal`，所以**只有它**能判权限 |
+| 可信机器通道 | [`TenantScope`](../src/guards/tenant.rs) | 支付回调、定时任务、内部调用等无请求主体的路径 | 只带事务与租户 id，不带主体；权限由调用侧自行保证 |
+
+两条通道的实际行为：
+
+- `TenantCtx::enter` 先开作用域事务、再在作用域内读成员关系（读不到即「不是成员」；平台管理员例外，属运维通道，须在业务侧留审计），
   之后 handler 只用 `ctx.tx()` 读写、用 `ctx.require(..)` 判权限、用 `ctx.commit()` 收尾。
   建租户走 `open_new`：作用域指向尚未落库的新租户 id，`tenant` / `tenant_member` 的写策略自约束在这个作用域内，
   因此**建租户不再需要特权连接**。
+- `TenantScope::open(storage, tenant_id)` 供可信路径使用；下游 service 形如 `fn grant(scope: &TenantScope, …)`
+  时**自身不 commit**，只写，由打开者决定提交还是回滚——这样「读旧值 + 写新值」能落在同一个事务里，消除检查与写入之间的竞态。
+- `TenantScope` 只保证数据落在某个租户内，不保证「操作者有权操作这个租户」。因此机器通道必须由调用方把租户来源锁定为
+  可信数据（如支付订单行），不能直接取自请求参数。
+- 热点只读路径（网关取配额、计划探测等）允许在 service 内部开一个私有短作用域并立即 `rollback`（不回写任何东西），
+  避免为一个只读查询多绕一层调用；这类包装器在 R7 门禁里逐文件限额，只减不增。
+- 审计属性只看执行效果：**语义上是写即使实现是只读查询也要 commit**（例如「顺带把过期订阅标记为 EXPIRED」的惰性清理），
+  否则清理结果会被回滚。
 - 账号作用域（`user_tx`）只服务「列出我所属的租户」这类跨租户只读，不参与租户内业务。
 - 成员关系读取（`identity::persistence::membership`）只在作用域事务内调用；`tenant_member.role` 字面量无法识别时报错而非降级。
 
 跨租户写入会以 SQLSTATE `42501` 失败，用 [`src/utils/db.rs`](../src/utils/db.rs) 的 `is_row_security_violation` 判别。
 仍需特权连接的系统任务只剩迁移、全局目录行与 outbox 发布器，不靠放宽策略。
 
-端到端验证见 [`tests/tenant_isolation.rs`](../tests/tenant_isolation.rs)：库名必须含 `test`（防误连生产），
-未设置 `TEST_DATABASE_URL` 时整个文件跳过。
+端到端验证分两个层次：
+
+- RLS 策略本身见 [`tests/tenant_isolation.rs`](../tests/tenant_isolation.rs)（13 例）；
+- 「service 层是否真的只在作用域内读写」见 [`tests/subscription_scope.rs`](../tests/subscription_scope.rs)（7 例，
+  覆盖两条通道、成员只读、跨租户拒绝、热点短作用域、惰性过期清理）。
+  两者都要求库名含 `test`（防误连生产），未设置 `TEST_DATABASE_URL` 时整个文件跳过；后者还需要 `TEST_REDIS_URL`（配额/计划走缓存）。
 
 ## outbox / consumed_event
 

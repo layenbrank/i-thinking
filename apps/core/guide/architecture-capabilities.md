@@ -44,6 +44,7 @@
 | R4 | 表所有权唯一：同一张表只能被一个能力声明 | `asset` 同时出现在 document 与 gateway |
 | R5 | 表所有权完整：`migration/src/*.rs` 建的表必须全部有归属，且声明里不能出现不存在的表 | 新增迁移表但没登记归属 |
 | R6 | 遗留布局冻结：`src/services/` 不得新增模块（新能力一律建 crate）；标记 `status: 'migrated'` 的能力不得再留下 `absorbs` 路径 | 在 `src/services/` 下新建 `report/` |
+| R7 | 租户作用域唯一入口：`tenant_tx` / `user_tx` / `apply_*_scope` / `TenantScope::open` 只允许出现在 `src/guards/` 与 `src/databases/scope.rs` | 在 `services/foo/service.rs` 里直接 `storage.tenant_tx(id)` 开作用域 |
 
 ## 棘轮（ratchet）
 
@@ -52,6 +53,10 @@ R3 允许遗留代码里**现存**的角色判断，但数量只能减少：
 - `ROLE_VOCAB_LEGACY` 记录 `路径 → 上限 + 原因`；新增一处即失败。
 - 迁完一块就把对应条目删掉；条目对应的文件删了也会提示清理。
 - 上限高于实际值时只给出**提示**（非失败），提醒你下调上限——这样棘轮只会越拧越紧，不会悄悄放松。
+
+`TENANT_SCOPE_LEGACY` 是 R7 的同款棘轮，记录「尚未完全改造完、仍在自己开作用域」的文件。
+它允许的例外只有两类：热点只读路径的私有短作用域包装器，以及待接入守卫的可信机器路径；
+两者都必须在 `reason` 里写明为何暂时无法由调用方携带作用域。
 
 `LEGACY_SERVICES`（`src/services/` 模块集合）同理：只能减少，删干净后提示把 `status` 改为 `migrated`。
 

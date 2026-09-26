@@ -21,7 +21,10 @@
 | `src/services/subscription` | 权益：订阅增删查、生效判定、配额来源                                       |
 | `src/services/gateway`      | 用权益：聊天热路径按订阅档位取日配额                                       |
 
-**信任边界**：`SubscriptionService::subscribe` 是自助入口（租户 OWNER/ADMIN 即可调），`SubscriptionService::grant` 是可信通道（仅本模块等已确权链路内部调用）。**已定价档位（`amount > 0`）只允许走 `grant`**：自助调用会被 500408 拒绝，避免绕过收银台白拿付费档位。
+**信任边界**：`SubscriptionService::subscribe` 是自助入口（要求租户 OWNER），`SubscriptionService::grant` 是可信通道（仅本模块等已确权链路内部调用，且**不判角色、不提交事务**）。**已定价档位（`amount > 0`）只允许走 `grant`**：自助调用会被 500408 拒绝，避免绕过收银台白拿付费档位。
+
+本模块的 `activate` 走**可信机器通道**：先 `TenantScope::open(db, order.tenant_id)` 打开订单所属租户的作用域（租户来源是订单行本身，不是请求参数），
+再在其中调 `grant`，最后按开通结果提交或回滚。这样订阅写入与 `payment_order` 回写落在同一个租户作用域事务里，不会跨租户。
 
 ## 路由一览
 
@@ -78,6 +81,9 @@ payment/
 
 新增渠道 = 实现 `Channel` 并在注册表加一项（`code` + 工厂），**不需要**改 `service.rs`；`require_ready(config, code)` 负责「未启用 / 未配置」的拒绝与原因文案。
 
+> 迁移状态：开通链路（`activate`）已走可信机器通道 `TenantScope`；下单 / 关单 / 列表等仍使用
+> [`tenant`](../tenant/README.md) 的 `require_role` 垫层，待 P3b-3c 一并迁到 `TenantCtx` 后删除。
+
 ## 下单 → 支付 → 开通
 
 ```
@@ -94,8 +100,9 @@ POST /tenants/{id}/orders {plan, channel}
   │  ③ 幂等：已 PAID 且有 subscriptionID 直接 200
   │  ④ 金额 / 币种核对：不一致 → 500404，写 remark，**绝不开通**
   └─ settle()：条件更新 PENDING/CLOSED → PAID（并发只有一方翻转成功）
-       └─ activate()：SubscriptionService::grant（可信通道）→ 回写 subscriptionID
-                      → 失效 gateway:plan:{tenantID} 缓存
+       └─ activate()：TenantScope::open(order.tenant_id)（可信机器通道，不带主体）
+                      → SubscriptionService::grant（只写不提交）→ 按结果 commit / rollback
+                      → 回写 subscriptionID → 失效 gateway:plan:{tenantID} 缓存
 ```
 
 ## 安全设计要点

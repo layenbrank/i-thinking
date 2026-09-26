@@ -147,3 +147,33 @@ export const ROLE_VOCAB_LEGACY: Record<string, { max: number; reason: string }> 
 /** 角色词汇的出现模式：枚举路径、is_admin 谓词、与角色字面量的比较 */
 export const ROLE_VOCAB_PATTERN =
   /\b(?:TenantRole|PlatformRole|Role)\s*::|\.is_admin\s*\(|(?:==|!=)\s*"(?:OWNER|ADMIN|MEMBER|USER)"/g
+
+/**
+ * R7 豁免名单：`src/guards/` 与 `src/databases/scope.rs` 之外的作用域入口，数量只能减少。
+ *
+ * 目标状态下进入租户作用域只有两条路：请求侧 `TenantCtx::enter/open_new`、机器侧显式
+ * `TenantScope::open` 且调用点登记在这里。任何新增作用域入口都必须先想清楚归属，而不是就地打开事务。
+ */
+export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }> = {
+  'src/services/subscription/service.rs': {
+    max: 3,
+    reason:
+      '只读/短事务包装器（effective_quota、active_plan、active_subscription），待调用方携带作用域后移除'
+  },
+  'src/services/payment/service.rs': {
+    max: 1,
+    reason: '支付回调可信机器路径，P3b-3c 接入支付守卫后收敛'
+  },
+  'src/services/tenant/service.rs': {
+    max: 3,
+    reason:
+      'select_tenant 的 user_tx、membership_role 遗留垫片（含一处文档提及），垫片删除后一并移除'
+  }
+}
+
+/** 作用域入口模式：直接开事务或自行设置会话变量 */
+export const TENANT_SCOPE_PATTERN =
+  /\b(?:tenant_tx|user_tx|apply_tenant_scope|apply_user_scope|TenantScope::open)\b/g
+
+/** R7 允许的作用域入口归属路径（定义与唯一入口） */
+export const TENANT_SCOPE_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const
