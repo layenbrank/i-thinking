@@ -80,6 +80,50 @@ jobs:
       - name: Build with openapi feature
         run: cargo build --features openapi --bin service
 
+  tenant-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # RLS/outbox 的真实语义只能在真 Postgres 上验证；
+    # 库名必须含 test（测试自身会校验，防止误连非测试库）。
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: i_thinking_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: "postgres://postgres:postgres@127.0.0.1:5432/i_thinking_test"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/core
+
+      - name: Neutralize local cargo wrappers for CI
+        run: |
+          # .cargo/config.toml 面向 Windows + sccache，不适合 GitHub Linux runner
+          printf '%s\n' '[build]' 'target-dir = "target"' > .cargo/config.toml
+
+      - name: Run tenant isolation tests
+        run: cargo test --test tenant_isolation
+
   contract:
     runs-on: ubuntu-latest
     timeout-minutes: 20

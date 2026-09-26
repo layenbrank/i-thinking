@@ -28,6 +28,16 @@ pub fn is_fk_violation(err: &DbErr) -> bool {
     msg.contains("foreign key") || msg.contains("违反外键")
 }
 
+/// PostgreSQL insufficient_privilege (SQLSTATE 42501)。
+/// RLS 拒绝越租户写入时 PostgreSQL 报此码，可用于把"越权"与"脏数据"区分开。
+pub fn is_row_security_violation(err: &DbErr) -> bool {
+    if sqlstate(err).as_deref() == Some("42501") {
+        return true;
+    }
+    let msg = err.to_string().to_lowercase();
+    msg.contains("row-level security") || msg.contains("行级安全")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -46,9 +56,19 @@ mod tests {
     }
 
     #[test]
+    fn detects_row_security_violation_message() {
+        let err = DbErr::Custom(
+            "new row violates row-level security policy for table \"subscription\"".into(),
+        );
+        assert!(is_row_security_violation(&err));
+        assert!(!is_unique_violation(&err));
+    }
+
+    #[test]
     fn ignores_unrelated_error() {
         let err = DbErr::Custom("connection reset".into());
         assert!(!is_unique_violation(&err));
         assert!(!is_fk_violation(&err));
+        assert!(!is_row_security_violation(&err));
     }
 }

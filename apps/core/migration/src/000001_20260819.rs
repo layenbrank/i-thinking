@@ -21,6 +21,9 @@ impl MigrationTrait for Migration {
             .drop_table(
                 Table::drop()
                     .if_exists()
+                    // outbox / consumed_event 无外键，先清即可
+                    .table(Outbox::Table)
+                    .table(ConsumedEvent::Table)
                     .table(SsoConnection::Table)
                     .table(PaymentOrder::Table)
                     .table(Subscription::Table)
@@ -742,6 +745,122 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // ---------- outbox（事务性发件箱） ----------
+        // 与聚合变更同事务写入，P4 的发布器只搬运、不判定业务；写入方是业务事务，读取方是特权连接。
+        manager
+            .create_table(
+                Table::create()
+                    .table(Outbox::Table)
+                    .if_not_exists()
+                    .col(pk_uuid(Outbox::Id))
+                    // 单调递增序号：给消费者全局全序（时间戳会因时钟回拨产生并列）
+                    .col(big_integer(Outbox::Seq).auto_increment())
+                    // 聚合名（如 "subscription"），配合 aggregateID 构成分区键
+                    .col(text(Outbox::Aggregate))
+                    .col(uuid(Outbox::AggregateId))
+                    // 不可变过去式事件名（如 "subscription.renewed"）
+                    .col(text(Outbox::EventType))
+                    .col(integer(Outbox::SchemaVersion))
+                    .col(json_binary(Outbox::Payload))
+                    .col(text_null(Outbox::Traceparent))
+                    .col(uuid_null(Outbox::TenantId))
+                    .col(timestamp_with_time_zone(Outbox::CreatedAt))
+                    .col(timestamp_with_time_zone_null(Outbox::PublishedAt))
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_outbox_unpublished")
+                    .table(Outbox::Table)
+                    .col(Outbox::Seq)
+                    .and_where(Expr::col(Outbox::PublishedAt).is_null())
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_outbox_aggregate")
+                    .table(Outbox::Table)
+                    .col(Outbox::Aggregate)
+                    .col(Outbox::AggregateId)
+                    .col(Outbox::Seq)
+                    .to_owned(),
+            )
+            .await?;
+
+        // ---------- consumed_event（消费幂等去重） ----------
+        manager
+            .create_table(
+                Table::create()
+                    .table(ConsumedEvent::Table)
+                    .if_not_exists()
+                    // 消费者标识（服务名/进程组），与 eventID 一起构成幂等键
+                    .col(text(ConsumedEvent::Consumer))
+                    .col(uuid(ConsumedEvent::EventId))
+                    .col(timestamp_with_time_zone(ConsumedEvent::ConsumedAt))
+                    .primary_key(
+                        Index::create()
+                            .name("pk_consumed_event")
+                            .col(ConsumedEvent::Consumer)
+                            .col(ConsumedEvent::EventId),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // ---------- 租户隔离（RLS） ----------
+        // 隔离从"调用约定"下沉为数据库机制：应用角色即便漏传条件也拿不到别人的行。
+        manager
+            .get_connection()
+            .execute_unprepared(RLS_FUNCTION_SQL)
+            .await?;
+
+        // 严格隔离：只见本租户行；"tenantID" 为 NULL 的行不属于任何租户作用域
+        for table in STRICT_TENANT_TABLES {
+            enable_rls(
+                manager,
+                table,
+                r#""tenantID" = app_current_tenant_id()"#,
+                r#""tenantID" = app_current_tenant_id()"#,
+            )
+            .await?;
+        }
+
+        // asset."tenantID" 是 text（历史列型），比较时显式转型
+        enable_rls(
+            manager,
+            "asset",
+            r#""tenantID" = app_current_tenant_id()::text"#,
+            r#""tenantID" = app_current_tenant_id()::text"#,
+        )
+        .await?;
+
+        // 全局目录：内置行（"tenantID" IS NULL）对所有租户可见；WITH CHECK 只放行本租户行，
+        // 应用角色因此无法在租户作用域内新建全局行（全局行的写入属于特权连接）
+        for table in ["gateway_provider", "gateway_model"] {
+            enable_rls(
+                manager,
+                table,
+                r#""tenantID" IS NULL OR "tenantID" = app_current_tenant_id()"#,
+                r#""tenantID" = app_current_tenant_id()"#,
+            )
+            .await?;
+        }
+
+        // tenant 自身按主键隔离：只能读写自己那一行，新建租户走特权连接
+        enable_rls(
+            manager,
+            "tenant",
+            "id = app_current_tenant_id()",
+            "id = app_current_tenant_id()",
+        )
+        .await?;
+
         Ok(())
     }
 
@@ -750,6 +869,8 @@ impl MigrationTrait for Migration {
             .drop_table(
                 Table::drop()
                     .if_exists()
+                    .table(Outbox::Table)
+                    .table(ConsumedEvent::Table)
                     .table(SsoConnection::Table)
                     .table(PaymentOrder::Table)
                     .table(Subscription::Table)
@@ -768,6 +889,54 @@ impl MigrationTrait for Migration {
             .await?;
         Ok(())
     }
+}
+
+/// `app.tenant_id` 的读取器：未设置或不是合法 uuid 时一律返回 `NULL`（fail-closed）。
+/// `STABLE` 保证同语句内多次引用只求值一次，并允许调用方在事务内用
+/// `set_config('app.tenant_id', $1, true)` 设定作用域。
+const RLS_FUNCTION_SQL: &str = r#"CREATE OR REPLACE FUNCTION app_current_tenant_id() RETURNS uuid
+LANGUAGE sql STABLE AS $fn$
+    SELECT CASE
+        WHEN current_setting('app.tenant_id', true)
+             ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+        THEN current_setting('app.tenant_id', true)::uuid
+        ELSE NULL
+    END
+$fn$"#;
+
+/// 严格按 `"tenantID" = app_current_tenant_id()` 隔离的表。
+const STRICT_TENANT_TABLES: [&str; 7] = [
+    "tenant_member",
+    "subscription",
+    "payment_order",
+    "sso_connection",
+    "gateway_usage",
+    "gateway_audit",
+    "outbox",
+];
+
+/// 逐表启用行级安全：`ENABLE` 约束普通角色，`FORCE` 连表属主一起约束，
+/// 单角色直连部署下也不会失效；策略用固定名，重跑时可先删后建。
+async fn enable_rls(
+    manager: &SchemaManager<'_>,
+    table: &str,
+    using: &str,
+    with_check: &str,
+) -> Result<(), DbErr> {
+    let conn = manager.get_connection();
+    // sqlx 扩展协议不接受多语句，逐条执行
+    let statements = [
+        format!("ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"),
+        format!("ALTER TABLE {table} FORCE ROW LEVEL SECURITY"),
+        format!("DROP POLICY IF EXISTS tenant_isolation ON {table}"),
+        format!(
+            "CREATE POLICY tenant_isolation ON {table} USING ({using}) WITH CHECK ({with_check})"
+        ),
+    ];
+    for statement in statements {
+        conn.execute_unprepared(&statement).await?;
+    }
+    Ok(())
 }
 
 #[derive(DeriveIden)]
@@ -1062,4 +1231,38 @@ enum PaymentOrder {
     #[sea_orm(iden = "updatedAt")]
     UpdatedAt,
     Updater,
+}
+
+/// 事务性发件箱：事件是历史事实，不随聚合级联删除，故无外键。
+#[derive(DeriveIden)]
+enum Outbox {
+    Table,
+    Id,
+    Seq,
+    Aggregate,
+    #[sea_orm(iden = "aggregateID")]
+    AggregateId,
+    #[sea_orm(iden = "eventType")]
+    EventType,
+    #[sea_orm(iden = "schemaVersion")]
+    SchemaVersion,
+    Payload,
+    Traceparent,
+    #[sea_orm(iden = "tenantID")]
+    TenantId,
+    #[sea_orm(iden = "createdAt")]
+    CreatedAt,
+    #[sea_orm(iden = "publishedAt")]
+    PublishedAt,
+}
+
+/// 消费幂等去重表：每个消费者对每个事件最多处理一次。
+#[derive(DeriveIden)]
+enum ConsumedEvent {
+    Table,
+    Consumer,
+    #[sea_orm(iden = "eventID")]
+    EventId,
+    #[sea_orm(iden = "consumedAt")]
+    ConsumedAt,
 }

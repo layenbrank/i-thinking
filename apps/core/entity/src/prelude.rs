@@ -1,10 +1,12 @@
 pub use super::asset::Entity as Asset;
 pub use super::auth::Entity as Auth;
 pub use super::chunk::Entity as Chunk;
+pub use super::consumed_event::Entity as ConsumedEvent;
 pub use super::gateway_audit::Entity as GatewayAudit;
 pub use super::gateway_model::Entity as GatewayModel;
 pub use super::gateway_provider::Entity as GatewayProvider;
 pub use super::gateway_usage::Entity as GatewayUsage;
+pub use super::outbox::Entity as Outbox;
 pub use super::payment_order::Entity as PaymentOrder;
 pub use super::sso_connection::Entity as SsoConnection;
 pub use super::subscription::Entity as Subscription;

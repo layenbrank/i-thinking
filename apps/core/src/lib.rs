@@ -53,6 +53,7 @@ pub mod clients {
 
 pub mod databases {
     pub mod database;
+    pub mod scope;
 }
 
 pub extern crate configures;
