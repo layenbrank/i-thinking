@@ -101,7 +101,7 @@ const ADMIN_COUNTS: [(&str, i64); 11] = [
 ];
 
 /// outbox 列清单即事件契约：实体、消费者、下游都依赖它。
-const OUTBOX_COLUMNS: [&str; 11] = [
+const OUTBOX_COLUMNS: [&str; 13] = [
     "id",
     "seq",
     "aggregate",
@@ -113,6 +113,8 @@ const OUTBOX_COLUMNS: [&str; 11] = [
     "tenantID",
     "createdAt",
     "publishedAt",
+    "attempts",
+    "lastError",
 ];
 
 /// 每个用例都要 `fresh` 整个库，因此必须串行。
@@ -977,6 +979,8 @@ async fn outbox_and_consumed_event_are_rebuildable() {
         tenant_id: Set(Some(fixture.tenant_a)),
         created_at: Set(chrono::Utc::now().fixed_offset()),
         published_at: Set(None),
+        attempts: Set(0),
+        last_error: Set(None),
     }
     .insert(&tx)
     .await
@@ -985,6 +989,7 @@ async fn outbox_and_consumed_event_are_rebuildable() {
     assert!(row.seq > 0, "seq 应由数据库分配，实际：{}", row.seq);
     assert_eq!(row.payload, serde_json::json!({ "plan": "TEAM" }));
     assert!(row.published_at.is_none());
+    assert_eq!(row.attempts, 0);
 
     let consumed = ConsumedEvent {
         consumer: Set("subscription".to_owned()),

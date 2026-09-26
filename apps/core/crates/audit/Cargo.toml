@@ -3,3 +3,13 @@ name              = "audit"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+
+[dependencies]
+chrono     = { workspace = true } # 事件时间戳与信封的 RFC 3339 序列化
+entity     = { workspace = true } # outbox / consumed_event 实体
+identity   = { workspace = true } # 租户标识
+sea-orm    = { workspace = true } # 存储通道与事务
+serde      = { workspace = true }
+serde_json = { workspace = true }
+thiserror  = { workspace = true }
+uuid       = { workspace = true }

@@ -82,7 +82,7 @@ export const CAPABILITIES: readonly Capability[] = [
     dependsOn: ['identity'],
     publicModules: [],
     absorbs: [],
-    status: 'pending'
+    status: 'migrated'
   },
   {
     name: 'notify',

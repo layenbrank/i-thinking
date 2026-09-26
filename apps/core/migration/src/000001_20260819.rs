@@ -766,6 +766,10 @@ impl MigrationTrait for Migration {
                     .col(uuid_null(Outbox::TenantId))
                     .col(timestamp_with_time_zone(Outbox::CreatedAt))
                     .col(timestamp_with_time_zone_null(Outbox::PublishedAt))
+                    // 已投递尝试次数与最近一次失败原因：只用于可观测与退避判断，
+                    // 不改变「至少一次」语义（去重永远靠事件的 id）
+                    .col(integer(Outbox::Attempts).default(0))
+                    .col(text_null(Outbox::LastError))
                     .to_owned(),
             )
             .await?;
@@ -1436,6 +1440,9 @@ enum Outbox {
     CreatedAt,
     #[sea_orm(iden = "publishedAt")]
     PublishedAt,
+    Attempts,
+    #[sea_orm(iden = "lastError")]
+    LastError,
 }
 
 /// 消费幂等去重表：每个消费者对每个事件最多处理一次。

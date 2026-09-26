@@ -35,6 +35,11 @@ pub struct Model {
     /// NULL 表示尚未发布
     #[sea_orm(column_name = "publishedAt", nullable, indexed)]
     pub published_at: Option<DateTimeWithTimeZone>,
+    /// 已投递尝试次数（可观测：一直失败的事件在库里会持续增长）
+    pub attempts: i32,
+    /// 最近一次投递失败的原因；发布成功时清空
+    #[sea_orm(column_name = "lastError", column_type = "Text", nullable)]
+    pub last_error: Option<String>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
