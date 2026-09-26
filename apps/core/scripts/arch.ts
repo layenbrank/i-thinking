@@ -19,7 +19,6 @@ import {
   CAPABILITIES,
   FORBIDDEN_CRATE_DEPS,
   LEGACY_SERVICES,
-  ROLE_VOCAB_LEGACY,
   ROLE_VOCAB_PATTERN,
   TENANT_SCOPE_LEGACY,
   TENANT_SCOPE_OWNER_PATHS,
@@ -209,7 +208,7 @@ function checkServices(errors: string[], hints: string[]) {
 function checkCrossCutting(errors: string[]) {
   const requiredDirs: Record<string, readonly string[]> = {
     middlewares: ['access_log', 'cors'],
-    guards: ['auth', 'blacklist', 'permission', 'public'],
+    guards: ['auth', 'blacklist', 'public', 'session', 'tenant'],
     filters: ['exception'],
     interceptors: ['envelope']
   }
@@ -296,40 +295,20 @@ function checkCapabilitySurface(errors: string[]) {
   }
 }
 
-/** R3：角色词汇只允许出现在 identity（定义）与 authz（判定）中，遗留调用点按名单只减不增 */
-function checkRoleVocabulary(errors: string[], hints: string[]) {
+/** R3：角色/状态词汇只允许出现在 identity（定义）与 authz（判定）中，零容忍 */
+function checkRoleVocabulary(errors: string[]) {
   const ownerPrefixes = ROLE_VOCAB_OWNERS.map((p) => `${p}/`)
   const files = [...walk(SRC), ...CAPABILITIES.flatMap((cap) => crateSrc(cap.name))]
-  const seen = new Set<string>()
 
   for (const file of files) {
     const path = rel(file)
     if (ownerPrefixes.some((p) => path.startsWith(p))) continue
-    const count = readFileSync(file, 'utf8').match(ROLE_VOCAB_PATTERN)?.length ?? 0
-    if (!count) continue
-    seen.add(path)
-    const allow = ROLE_VOCAB_LEGACY[path]
-    if (!allow) {
-      fail(
-        `角色词汇只能出现在 crates/identity 与 crates/authz: ${path}（${count} 处）——身份解析走 identity，权限判定走 authz`,
-        errors
-      )
-      continue
-    }
-    if (count > allow.max) {
-      fail(
-        `遗留角色判断新增了 ${count - allow.max} 处: ${path}（豁免上限 ${allow.max}，原因：${allow.reason}）`,
-        errors
-      )
-    } else if (count < allow.max) {
-      hints.push(`${path} 的角色判断已减少到 ${count} 处，请把豁免上限下调为 ${count}`)
-    }
-  }
-
-  for (const [path, allow] of Object.entries(ROLE_VOCAB_LEGACY)) {
-    if (!seen.has(path) && !existsSync(join(ROOT, path))) {
-      hints.push(`${path} 已删除，请从 scripts/capabilities.ts 的 ROLE_VOCAB_LEGACY 移除`)
-    }
+    const hits = readFileSync(file, 'utf8').match(ROLE_VOCAB_PATTERN)
+    if (!hits) continue
+    fail(
+      `角色词汇只能出现在 crates/identity（定义）与 crates/authz（判定）: ${path}（${hits.length} 处，如 ${hits[0]}）——身份解析走 identity，权限判定走 authz`,
+      errors
+    )
   }
 }
 
@@ -440,7 +419,7 @@ function main(): number {
   checkCrossCutting(errors)
   checkCapabilityCrates(errors, hints)
   checkCapabilitySurface(errors)
-  checkRoleVocabulary(errors, hints)
+  checkRoleVocabulary(errors)
   checkTenantScopeEntry(errors, hints)
   checkTableOwnership(errors)
   checkLegacyServices(errors, hints)

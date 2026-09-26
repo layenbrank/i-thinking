@@ -2,6 +2,7 @@ use chrono::Utc;
 use entity::{auth, sso_connection, tenant_member};
 use fred::interfaces::KeysInterface;
 use fred::prelude::*;
+use identity::{AccountStatus, PlatformRole, TenantRole};
 use reqwest::Client;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set};
 use serde::Deserialize;
@@ -300,7 +301,7 @@ impl SsoService {
         let jwt = generate_token(
             &user.id.to_string(),
             &user.username,
-            crate::guards::permission::Role::User,
+            PlatformRole::User,
             config.jwt_secret(),
             None,
         )?;
@@ -477,8 +478,8 @@ async fn upsert_user(
             gender: Set(None),
             birthday: Set(None),
             avatar: Set(None),
-            role: Set("USER".to_string()),
-            status: Set("ACTIVE".to_string()),
+            role: Set(PlatformRole::User.as_str().to_string()),
+            status: Set(AccountStatus::Active.as_str().to_string()),
             archived_at: Set(None),
             created_at: Set(now),
             creator: Set(None),
@@ -509,8 +510,8 @@ async fn upsert_user(
         gender: Set(None),
         birthday: Set(None),
         avatar: Set(None),
-        role: Set("USER".to_string()),
-        status: Set("ACTIVE".to_string()),
+        role: Set(PlatformRole::User.as_str().to_string()),
+        status: Set(AccountStatus::Active.as_str().to_string()),
         archived_at: Set(None),
         created_at: Set(now),
         creator: Set(None),
@@ -539,14 +540,18 @@ async fn bind_membership(db: &Storage, tenant_id: Uuid, user_id: Uuid) -> Result
         .count(&db.db)
         .await
         .map_err(db_err)?;
-    let role = if count == 0 { "OWNER" } else { "MEMBER" };
+    let role = if count == 0 {
+        TenantRole::Owner
+    } else {
+        TenantRole::Member
+    };
     let now = Utc::now().fixed_offset();
     tenant_member::ActiveModel {
         id: Set(Uuid::new_v4()),
         tenant_id: Set(tenant_id),
         user_id: Set(user_id),
-        role: Set(role.to_string()),
-        status: Set("ACTIVE".to_string()),
+        role: Set(role.as_str().to_string()),
+        status: Set(AccountStatus::Active.as_str().to_string()),
         archived_at: Set(None),
         created_at: Set(now),
         creator: Set(Some(user_id)),

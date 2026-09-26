@@ -5,8 +5,6 @@ use jsonwebtoken::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::guards::permission::Role;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,
@@ -40,7 +38,7 @@ pub enum JwtError {
 pub fn generate_token(
     user_id: &str,
     username: &str,
-    role: Role,
+    role: PlatformRole,
     secret: &str,
     expiration_hours: Option<u64>,
 ) -> Result<String, JwtError> {
@@ -85,7 +83,8 @@ mod tests {
         let user_id = "123456";
         let username = "testuser";
 
-        let token = generate_token(user_id, username, Role::Admin, secret, Some(1)).unwrap();
+        let token =
+            generate_token(user_id, username, PlatformRole::Admin, secret, Some(1)).unwrap();
         assert!(!token.is_empty());
 
         let claims = verify_token(&token, secret).unwrap();

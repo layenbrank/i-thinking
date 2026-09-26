@@ -17,7 +17,7 @@ import { SettingRow, SettingsSection } from '@/views/agent/settings/components/s
  * 头像还要求先上传拿到资源 id，那是另一个功能，先不摆假入口。
  */
 
-/** 账号状态只有两种（服务端 `guards/permission.rs` 的 `Status`） */
+/** 账号状态只有两种（服务端 `crates/identity` 的 `AccountStatus`） */
 const STATUS_LABELS: Record<string, string> = {
   ACTIVE: '正常',
   DISABLED: '已禁用'

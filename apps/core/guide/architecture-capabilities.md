@@ -40,23 +40,25 @@
 |------|------|---------|
 | R1 | 能力 crate 的形态与依赖方向：必须在 `[workspace] members` 登记；不得依赖 `service` 或任何 Web 框架；依赖其他能力前必须先在 `dependsOn` 声明 | `crates/notify` 里写 `service = { path = ".." }` |
 | R2 | 对外表面：`src/lib.rs`、`README.md`（含 `## 数据所有权`、`## 对外接口`）必备；每个 `pub mod` 必须在 `publicModules` 登记 | 在 `identity` 里加 `pub mod repository;` 而不更新声明 |
-| R3 | 权限判定唯一入口：角色词汇（`Role::` / `TenantRole::` / `.is_admin()` / 与 `"ADMIN"` 等字面量比较）只允许出现在 `crates/identity`（定义）与 `crates/authz`（判定） | 控制器里写 `if principal.role == "ADMIN"` |
+| R3 | 权限判定唯一入口：角色词汇（`Role::` / `Status::` / `.is_admin()` / 与 `"ADMIN"` 等字面量比较）只允许出现在 `crates/identity`（定义）与 `crates/authz`（判定） | 控制器里写 `if principal.role == "ADMIN"` |
 | R4 | 表所有权唯一：同一张表只能被一个能力声明 | `asset` 同时出现在 document 与 gateway |
 | R5 | 表所有权完整：`migration/src/*.rs` 建的表必须全部有归属，且声明里不能出现不存在的表 | 新增迁移表但没登记归属 |
 | R6 | 遗留布局冻结：`src/services/` 不得新增模块（新能力一律建 crate）；标记 `status: 'migrated'` 的能力不得再留下 `absorbs` 路径 | 在 `src/services/` 下新建 `report/` |
 | R7 | 租户作用域唯一入口：`tenant_tx` / `user_tx` / `apply_*_scope` / `TenantScope::open` 只允许出现在 `src/guards/` 与 `src/databases/scope.rs` | 在 `services/foo/service.rs` 里直接 `storage.tenant_tx(id)` 开作用域 |
 
+## R3：零容忍
+
+R3 没有棘轮、没有 allowlist：`src/` 与各能力 crate 里不得再出现任何角色/状态词汇。
+在 `src/` 中**引用** `crates/identity` 的领域类型（`PlatformRole::User`、`AccountStatus::Active`）是允许的——
+模式里的 `\bRole::` / `\bStatus::` 只匹配类型名本身，不会误伤 `PlatformRole::` / `TenantRole::` / `AccountStatus::`。
+“定义”落在 `crates/identity`，“判定”落在 `crates/authz`。
+
 ## 棘轮（ratchet）
 
-R3 允许遗留代码里**现存**的角色判断，但数量只能减少：
-
-- `ROLE_VOCAB_LEGACY` 记录 `路径 → 上限 + 原因`；新增一处即失败。
-- 迁完一块就把对应条目删掉；条目对应的文件删了也会提示清理。
-- 上限高于实际值时只给出**提示**（非失败），提醒你下调上限——这样棘轮只会越拧越紧，不会悄悄放松。
-
-`TENANT_SCOPE_LEGACY` 是 R7 的同款棘轮，记录「尚未完全改造完、仍在自己开作用域」的文件。
+`TENANT_SCOPE_LEGACY` 是 R7 的棘轮，记录「尚未完全改造完、仍在自己开作用域」的文件。
 它允许的例外只有两类：热点只读路径的私有短作用域包装器，以及待接入守卫的可信机器路径；
 两者都必须在 `reason` 里写明为何暂时无法由调用方携带作用域。
+上限高于实际值时只给出**提示**（非失败），提醒你下调上限——这样棘轮只会越拧越紧，不会悄悄放松。
 
 `LEGACY_SERVICES`（`src/services/` 模块集合）同理：只能减少，删干净后提示把 `status` 改为 `migrated`。
 
@@ -64,5 +66,5 @@ R3 允许遗留代码里**现存**的角色判断，但数量只能减少：
 
 1. 在 `crates/<name>` 实装领域逻辑（只依赖 `entity`/`migration` 与已声明的能力），对外接口写进 README。
 2. `service` 侧改为调用能力 crate；所有 SQL 通过已限定租户的连接（见 [database.md](database.md)）。
-3. 删除对应的 `src/services/<x>`，同步更新 `capabilities.ts`（`absorbs`、`LEGACY_SERVICES`、`ROLE_VOCAB_LEGACY`）。
+3. 删除对应的 `src/services/<x>`，同步更新 `capabilities.ts`（`absorbs`、`LEGACY_SERVICES`）。
 4. `bun run arch` 通过、`cargo test --workspace --lib` 通过，能力 `status` 推进到 `migrated`。

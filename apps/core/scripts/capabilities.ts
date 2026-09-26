@@ -129,24 +129,15 @@ export const FORBIDDEN_CRATE_DEPS = [
 ] as const
 
 /**
- * R3 豁免名单：遗留代码里现存的角色词汇使用点，数量只能减少。
+ * R3：角色词汇的出现模式。
  *
- * 目标状态下 `service/` 里不应出现任何角色词汇（`Role::`、`TenantRole::`、`.is_admin()`、
- * 角色字面量比较）：身份解析走 `identity`，权限判断走 `authz`。每迁完一块就把对应的行删掉。
+ * 目标状态下 `src/` 与能力 crate 里不再出现重复的角色词汇或散写的权限判断：遗留的
+ * `Role::` / `Status::`（identity 的领域类型一律带命名空间前缀）、`.is_admin()` 谓词、
+ * 与角色字面量的比较。引用 identity 的领域类型（如 `PlatformRole::User`）是允许的——
+ * 词汇只定义在 `crates/identity`，判定只写在 `crates/authz`。
  */
-export const ROLE_VOCAB_LEGACY: Record<string, { max: number; reason: string }> = {
-  'src/guards/auth.rs': { max: 2, reason: '遗留认证守卫，P3b 收敛到 identity' },
-  'src/guards/permission.rs': { max: 6, reason: '遗留权限守卫，P3b 由 authz 取代' },
-  'src/services/auth/schema.rs': { max: 1, reason: 'P3b 迁入 identity' },
-  'src/services/auth/service.rs': { max: 4, reason: 'P3b 迁入 identity' },
-  'src/services/sso/service.rs': { max: 1, reason: 'P3b 迁入 identity' },
-  'src/services/user/service.rs': { max: 3, reason: 'P3b 迁入 identity' },
-  'src/utils/jwt.rs': { max: 1, reason: 'JWT 载荷解析，P3b 收敛到 identity' }
-}
-
-/** 角色词汇的出现模式：枚举路径、is_admin 谓词、与角色字面量的比较 */
 export const ROLE_VOCAB_PATTERN =
-  /\b(?:TenantRole|PlatformRole|Role)\s*::|\.is_admin\s*\(|(?:==|!=)\s*"(?:OWNER|ADMIN|MEMBER|USER)"/g
+  /\b(?:Role|Status)\s*::|\.is_admin\s*\(|(?:==|!=)\s*"(?:OWNER|ADMIN|MEMBER|USER)"/g
 
 /**
  * R7 豁免名单：`src/guards/` 与 `src/databases/scope.rs` 之外的作用域入口，数量只能减少。

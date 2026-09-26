@@ -1,6 +1,8 @@
 use chrono::{Datelike, Utc};
 use entity::{asset, auth};
+use identity::{AccountStatus, PlatformRole};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::clients::redis::RedisPool;
@@ -12,7 +14,7 @@ use crate::services::auth::captcha::{CaptchaError, CaptchaService};
 use crate::services::auth::otp::{OtpError, OtpPurpose, OtpService};
 use crate::services::auth::schema::{
     CaptchaR, EmailSigninP, ForgotPasswordP, Gender, OtpChannel, OtpP, PasswordP, PhoneSigninP,
-    ProfileP, ProfileR, ResetPasswordP, Role, SigninP, SigninR, SignupP, SignupR, Status,
+    ProfileP, ProfileR, ResetPasswordP, SigninP, SigninR, SignupP, SignupR,
 };
 use crate::utils::code::{auth as auth_codes, business, external, request, resource, system};
 use crate::utils::db::is_unique_violation;
@@ -594,8 +596,8 @@ impl AuthService {
             gender: Set(None),
             birthday: Set(None),
             avatar: Set(None),
-            role: Set(Role::User.as_str().to_string()),
-            status: Set(Status::Active.as_str().to_string()),
+            role: Set(PlatformRole::User.as_str().to_string()),
+            status: Set(AccountStatus::Active.as_str().to_string()),
             archived_at: Set(None),
             created_at: Set(now),
             creator: Set(None),
@@ -610,7 +612,7 @@ impl AuthService {
         let token = generate_token(
             &user.id.to_string(),
             &user.username,
-            Role::User,
+            PlatformRole::User,
             config.jwt_secret(),
             None,
         )?;
@@ -739,7 +741,9 @@ impl AuthService {
 
     fn issue_token(user: &auth::Model, config: &Configure) -> Result<SigninR, AuthError> {
         Self::ensure_active(user)?;
-        let role = Role::parse(&user.role).unwrap_or(Role::User);
+        // 声明里的角色只是提示，无法识别的字面量按最小权限签发：
+        // 每次请求的授权结论由 `guards::session::Session` 依库重新判定。
+        let role = PlatformRole::from_str(&user.role).unwrap_or(PlatformRole::User);
         let token = generate_token(
             &user.id.to_string(),
             &user.username,
@@ -754,7 +758,8 @@ impl AuthService {
     }
 
     fn ensure_active(user: &auth::Model) -> Result<(), AuthError> {
-        if Status::parse(&user.status).unwrap_or(Status::Disabled) != Status::Active {
+        let status = AccountStatus::from_str(&user.status).unwrap_or(AccountStatus::Disabled);
+        if !status.is_active() {
             return Err(AuthError::AccountDisabled);
         }
         Ok(())

@@ -34,7 +34,7 @@ Middleware → Guard → Interceptor(pre) → Pipe → Handler
 | Guard | [`Auth`](../src/guards/auth.rs)、[`Session`](../src/guards/session.rs)（请求身份上下文）、[`TenantCtx`](../src/guards/tenant.rs)（租户作用域入口）、[`blacklist`](../src/guards/blacklist.rs)、[`public`](../src/guards/public.rs) |
 | Interceptor | [`Envelope` / `Paginated`](../src/interceptors/envelope.rs) |
 | Filter | [`Exception`](../src/filters/exception.rs)（`details` 非生产才写入） |
-| Guard | [`Auth::required` / `Auth::admin`](../src/guards/auth.rs) + [`permission`](../src/guards/permission.rs) |
+| Guard | [`Auth::required`](../src/guards/auth.rs) + [`authz`](architecture-capabilities.md)（`crates/authz` 统一判定） |
 | CORS | [`cors(config)`](../src/middlewares/cors.rs)，`CORS_ORIGINS` / 生产收紧 |
 | 状态码 | [`code`](../src/utils/code.rs) |
 | Pipe | `web::Json` + schema `*P` |

@@ -234,11 +234,11 @@ pub fn jwt_exception(err: JwtError) -> Exception {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::guards::permission::Role;
     use crate::utils::code::{auth as auth_codes, system};
     use actix_web::http::StatusCode;
     use actix_web::test as awtest;
     use actix_web::{App, HttpResponse, web};
+    use identity::PlatformRole;
     use serde_json::Value;
     use std::sync::Arc;
 
@@ -333,9 +333,14 @@ mod tests {
     #[actix_web::test]
     async fn required_without_redis_returns_cache_envelope() {
         let cfg = test_configure();
-        let token =
-            crate::utils::jwt::generate_token("u1", "bob", Role::User, cfg.jwt_secret(), Some(1))
-                .unwrap();
+        let token = crate::utils::jwt::generate_token(
+            "u1",
+            "bob",
+            PlatformRole::User,
+            cfg.jwt_secret(),
+            Some(1),
+        )
+        .unwrap();
         let app = awtest::init_service(
             App::new()
                 .app_data(web::Data::new(Arc::new(cfg)))
@@ -396,9 +401,14 @@ mod tests {
     #[actix_web::test]
     async fn admin_only_rejects_user_role_token() {
         let cfg = test_configure();
-        let token =
-            crate::utils::jwt::generate_token("u1", "bob", Role::User, cfg.jwt_secret(), Some(1))
-                .unwrap();
+        let token = crate::utils::jwt::generate_token(
+            "u1",
+            "bob",
+            PlatformRole::User,
+            cfg.jwt_secret(),
+            Some(1),
+        )
+        .unwrap();
 
         let app = awtest::init_service(
             App::new()

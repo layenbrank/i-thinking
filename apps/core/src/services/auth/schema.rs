@@ -3,8 +3,6 @@ use entity::{asset, auth};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-pub use crate::guards::permission::{Role, Status};
-
 const ASSET_URL_PREFIX: &str = "/api/v1/upload/asset";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -388,7 +386,7 @@ pub struct SignupR {
 
 #[cfg(test)]
 mod tests {
-    use super::{Gender, ProfileP, Role, Status};
+    use super::{Gender, ProfileP};
 
     #[test]
     fn gender_roundtrip() {
@@ -405,11 +403,5 @@ mod tests {
         let date = ProfileP::parse_birthday("1990-01-01");
         assert!(date.is_some());
         assert_eq!(date.unwrap().format("%Y-%m-%d").to_string(), "1990-01-01");
-    }
-
-    #[test]
-    fn role_status_defaults() {
-        assert_eq!(Role::default().as_str(), "USER");
-        assert_eq!(Status::default().as_str(), "ACTIVE");
     }
 }

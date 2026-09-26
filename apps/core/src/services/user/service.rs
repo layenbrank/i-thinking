@@ -1,6 +1,8 @@
 use chrono::Utc;
 use entity::auth;
+use identity::{AccountStatus, PlatformRole};
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::{
@@ -9,7 +11,7 @@ use crate::{
     filters::exception::Exception,
     services::{
         auth::{
-            schema::{Gender, ProfileP, Role, Status},
+            schema::{Gender, ProfileP},
             service::{ProfileError, age_from_birthday, check_avatar, load_avatar, phone_free},
         },
         user::schema::{UpdateP, UserR, WriteP},
@@ -94,10 +96,9 @@ impl UserService {
 
         let password = encrypt_password(&req.password, &config.encryption(), config.aes_key())?;
         let role = match req.role.as_deref() {
-            None => Role::User,
-            Some(v) => Role::parse(v).ok_or_else(|| {
-                UserError::InvalidParameter("角色无效，应为 USER 或 ADMIN".into())
-            })?,
+            None => PlatformRole::User,
+            Some(v) => PlatformRole::from_str(v)
+                .map_err(|_| UserError::InvalidParameter("角色无效，应为 USER 或 ADMIN".into()))?,
         };
         let now = Utc::now().fixed_offset();
         let user = auth::ActiveModel {
@@ -111,7 +112,7 @@ impl UserService {
             birthday: Set(None),
             avatar: Set(None),
             role: Set(role.as_str().to_string()),
-            status: Set(Status::Active.as_str().to_string()),
+            status: Set(AccountStatus::Active.as_str().to_string()),
             archived_at: Set(None),
             created_at: Set(now),
             creator: Set(None),
@@ -216,13 +217,12 @@ impl UserService {
             active.avatar = Set(avatar);
         }
         if let Some(role) = req.role {
-            let role = Role::parse(&role).ok_or_else(|| {
-                UserError::InvalidParameter("角色无效，应为 USER 或 ADMIN".into())
-            })?;
+            let role = PlatformRole::from_str(&role)
+                .map_err(|_| UserError::InvalidParameter("角色无效，应为 USER 或 ADMIN".into()))?;
             active.role = Set(role.as_str().to_string());
         }
         if let Some(status) = req.status {
-            let status = Status::parse(&status).ok_or_else(|| {
+            let status = AccountStatus::from_str(&status).map_err(|_| {
                 UserError::InvalidParameter("状态无效，应为 ACTIVE 或 DISABLED".into())
             })?;
             active.status = Set(status.as_str().to_string());
