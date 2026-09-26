@@ -182,6 +182,11 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
     max: 1,
     reason:
       '管理面用户列表：一批账号的头像共用一个匿名读事务（只读 PUBLIC 头像），不给每个账号单开作用域'
+  },
+  'src/services/sso/service.rs': {
+    max: 2,
+    reason:
+      'OIDC 匿名流程的引导调用点（连接 id 读回连接行、再按该租户开写事务）；守卫本身在 src/guards/sso.rs，这里只是调用'
   }
 }
 
@@ -192,10 +197,12 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
  * 是**能力键引导**（支付回调：订单号 → 租户）用到的入口，只允许出现在 `src/guards/`。
  * `AssetReader::enter` / `AssetContentScope::open` / `asset_hash_tx` / `apply_asset_capability`
  * 是资产面的三条通道（账号 / 匿名 / 内容寻址能力键），同样只允许出现在 `src/guards/`；
- * `anon_tx`（无作用域）另受 R9 约束。
+ * `SsoConnectionScope::open` / `sso_connection_tx` / `apply_sso_capability` 是 SSO 匿名流程的
+ * 连接 id 能力键通道，`SsoLoginScope::open` 是它引导出来的租户作用域，同样只允许出现在
+ * `src/guards/`；`anon_tx`（无作用域）另受 R9 约束。
  */
 export const TENANT_SCOPE_PATTERN =
-  /\b(?:tenant_tx|user_tx|order_tx|asset_hash_tx|anon_tx|apply_tenant_scope|apply_user_scope|apply_order_capability|apply_asset_capability|TenantScope::open|TenantScope::adopt|AccountScope::open|PaymentNotifyScope::open|AssetReader::enter|AssetContentScope::open)\b/g
+  /\b(?:tenant_tx|user_tx|order_tx|asset_hash_tx|sso_connection_tx|anon_tx|apply_tenant_scope|apply_user_scope|apply_order_capability|apply_asset_capability|apply_sso_capability|TenantScope::open|TenantScope::adopt|AccountScope::open|PaymentNotifyScope::open|AssetReader::enter|AssetContentScope::open|SsoConnectionScope::open|SsoLoginScope::open)\b/g
 
 /** R7 允许的作用域入口归属路径（定义与唯一入口） */
 export const TENANT_SCOPE_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const
@@ -218,6 +225,11 @@ export const PLATFORM_ENTRY_ALLOWED: Record<string, { max: number; reason: strin
     max: 10,
     reason:
       '平台目录运维面（供应商/模型全局行、跨租户用量与审计汇总）：10 个 handler 各开一段特权作用域，业务逻辑在 service.rs 内按 scope.tx() 收口'
+  },
+  'src/services/sso/controller.rs': {
+    max: 4,
+    reason:
+      'SSO 连接管理面（平台运维按平台管理员指定的租户建连接、跨租户列连接）：4 个 handler 各开一段特权作用域，业务逻辑在 service.rs 内按 scope.tx() 收口'
   }
 }
 

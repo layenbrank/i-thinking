@@ -2,9 +2,12 @@ use chrono::Utc;
 use entity::{auth, sso_connection, tenant_member};
 use fred::interfaces::KeysInterface;
 use fred::prelude::*;
-use identity::{AccountStatus, PlatformRole, TenantRole};
+use identity::{AccountStatus, PlatformRole, TenantId, TenantRole};
 use reqwest::Client;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseTransaction, EntityTrait, PaginatorTrait, QueryFilter,
+    Set,
+};
 use serde::Deserialize;
 use serde_json::Value;
 use url::Url;
@@ -14,6 +17,8 @@ use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::platform::PlatformScope;
+use crate::guards::sso::{SsoConnectionScope, SsoLoginScope};
 use crate::services::sso::schema::{
     SsoConnectionR, SsoConnectionUpdateP, SsoConnectionWriteP, SsoLoginR,
 };
@@ -114,17 +119,21 @@ pub struct SsoService;
 
 impl SsoService {
     // ---- 后台连接 CRUD ----
+    //
+    // 管理面是**平台运维面**：连接列表跨租户，连接本身又按租户隔离，因此四个入口
+    // 一律走 [`PlatformScope`]（由 controller 在 `Auth::admin()` 之后开），
+    // 领域函数只拿到已经带特权的连接。
 
-    pub async fn list_connections(db: &Storage) -> Result<Vec<SsoConnectionR>, SsoError> {
+    pub async fn list_connections(scope: &PlatformScope) -> Result<Vec<SsoConnectionR>, SsoError> {
         let rows = sso_connection::Entity::find()
-            .all(&db.db)
+            .all(scope.tx())
             .await
             .map_err(db_err)?;
         Ok(rows.into_iter().map(connection_to_r).collect())
     }
 
     pub async fn create_connection(
-        db: &Storage,
+        scope: &PlatformScope,
         config: &Configure,
         actor: Uuid,
         req: SsoConnectionWriteP,
@@ -149,21 +158,21 @@ impl SsoService {
             updater: Set(Some(actor)),
             expires_at: Set(None),
         }
-        .insert(&db.db)
+        .insert(scope.tx())
         .await
         .map_err(db_err)?;
         Ok(connection_to_r(model))
     }
 
     pub async fn update_connection(
-        db: &Storage,
+        scope: &PlatformScope,
         config: &Configure,
         actor: Uuid,
         id: Uuid,
         req: SsoConnectionUpdateP,
     ) -> Result<SsoConnectionR, SsoError> {
         let model = sso_connection::Entity::find_by_id(id)
-            .one(&db.db)
+            .one(scope.tx())
             .await
             .map_err(db_err)?
             .ok_or(SsoError::NotFound)?;
@@ -190,19 +199,23 @@ impl SsoService {
         active.updated_at = Set(Utc::now().fixed_offset());
         active.updater = Set(Some(actor));
 
-        let updated = active.update(&db.db).await.map_err(db_err)?;
+        let updated = active.update(scope.tx()).await.map_err(db_err)?;
         Ok(connection_to_r(updated))
     }
 
-    pub async fn delete_connection(db: &Storage, id: Uuid) -> Result<(), SsoError> {
+    pub async fn delete_connection(scope: &PlatformScope, id: Uuid) -> Result<(), SsoError> {
         sso_connection::Entity::delete_by_id(id)
-            .exec(&db.db)
+            .exec(scope.tx())
             .await
             .map_err(db_err)?;
         Ok(())
     }
 
     // ---- OIDC 流程 ----
+    //
+    // 这两个入口是匿名的：IdP 把浏览器跳回来时没有我们的会话，唯一的凭证就是回调地址里的
+    // 连接 id。因此先按连接 id 走[能力键](../../guards/sso.rs)读回那一行连接，
+    // 拿到它的租户，再按租户作用域落库。中间夹着的 IdP 往返（可能几秒）绝不能跨事务。
 
     pub async fn authorize(db: &Storage, redis: &RedisPool, id: Uuid) -> Result<String, SsoError> {
         let conn = load_connection(db, id).await?;
@@ -295,24 +308,54 @@ impl SsoService {
             ),
         };
 
-        let user = upsert_user(db, config, &sub, email.as_deref()).await?;
-        bind_membership(db, conn.tenant_id, user.id).await?;
+        // 网络往返都结束了，现在才开租户作用域：账号与成员关系必须一起落库
+        let scope = SsoLoginScope::open(db, TenantId::from_uuid(conn.tenant_id))
+            .await
+            .map_err(db_err)?;
 
-        let jwt = generate_token(
-            &user.id.to_string(),
-            &user.username,
-            PlatformRole::User,
-            config.jwt_secret(),
-            None,
-        )?;
+        let outcome = async {
+            let user = upsert_user(scope.tx(), config, &sub, email.as_deref()).await?;
+            bind_membership(scope.tx(), conn.tenant_id, user.id).await?;
+            let jwt = generate_token(
+                &user.id.to_string(),
+                &user.username,
+                PlatformRole::User,
+                config.jwt_secret(),
+                None,
+            )?;
+            Ok::<SsoLoginR, SsoError>(SsoLoginR { token: jwt })
+        }
+        .await;
 
-        Ok(SsoLoginR { token: jwt })
+        match outcome {
+            Ok(login) => {
+                scope.commit().await.map_err(db_err)?;
+                Ok(login)
+            }
+            Err(err) => {
+                scope.rollback().await.map_err(db_err)?;
+                Err(err)
+            }
+        }
     }
 }
 
+/// 阶段一：按连接 id 走能力键读回那一行未归档连接，**读完立刻放开能力键事务**
+/// （后面紧接着就要调 IdP，事务不能跨网络）。
 async fn load_connection(db: &Storage, id: Uuid) -> Result<sso_connection::Model, SsoError> {
+    let scope = SsoConnectionScope::open(db, id).await.map_err(db_err)?;
+    let loaded = load_connection_in(scope.tx(), id).await;
+    scope.close().await.map_err(db_err)?;
+    loaded
+}
+
+/// 能力键事务里的那一次查询：读不到（含已归档）就是「连接不存在」。
+async fn load_connection_in(
+    tx: &DatabaseTransaction,
+    id: Uuid,
+) -> Result<sso_connection::Model, SsoError> {
     let conn = sso_connection::Entity::find_by_id(id)
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(db_err)?
         .ok_or(SsoError::NotFound)?;
@@ -445,7 +488,7 @@ async fn validate_id_token(
 }
 
 async fn upsert_user(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     config: &Configure,
     sub: &str,
     email: Option<&str>,
@@ -454,7 +497,7 @@ async fn upsert_user(
         let lower = email.trim().to_ascii_lowercase();
         let existing = auth::Entity::find()
             .filter(auth::Column::Email.eq(lower.clone()))
-            .one(&db.db)
+            .one(tx)
             .await
             .map_err(db_err)?;
         if let Some(user) = existing {
@@ -487,7 +530,7 @@ async fn upsert_user(
             updater: Set(None),
             expires_at: Set(None),
         }
-        .insert(&db.db)
+        .insert(tx)
         .await
         .map_err(db_err);
     }
@@ -519,16 +562,20 @@ async fn upsert_user(
         updater: Set(None),
         expires_at: Set(None),
     }
-    .insert(&db.db)
+    .insert(tx)
     .await
     .map_err(db_err)
 }
 
-async fn bind_membership(db: &Storage, tenant_id: Uuid, user_id: Uuid) -> Result<(), SsoError> {
+async fn bind_membership(
+    tx: &DatabaseTransaction,
+    tenant_id: Uuid,
+    user_id: Uuid,
+) -> Result<(), SsoError> {
     let existing = tenant_member::Entity::find()
         .filter(tenant_member::Column::TenantId.eq(tenant_id))
         .filter(tenant_member::Column::UserId.eq(user_id))
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(db_err)?;
     if existing.is_some() {
@@ -537,7 +584,7 @@ async fn bind_membership(db: &Storage, tenant_id: Uuid, user_id: Uuid) -> Result
 
     let count = tenant_member::Entity::find()
         .filter(tenant_member::Column::TenantId.eq(tenant_id))
-        .count(&db.db)
+        .count(tx)
         .await
         .map_err(db_err)?;
     let role = if count == 0 {
@@ -559,7 +606,7 @@ async fn bind_membership(db: &Storage, tenant_id: Uuid, user_id: Uuid) -> Result
         updater: Set(Some(user_id)),
         expires_at: Set(None),
     }
-    .insert(&db.db)
+    .insert(tx)
     .await
     .map_err(db_err)?;
     Ok(())

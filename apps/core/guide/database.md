@@ -214,7 +214,7 @@ Entity：[`entity/src/sso_connection.rs`](../entity/src/sso_connection.rs)
 | status                                                             | text    | ACTIVE / DISABLED，默认 ACTIVE |
 | archivedAt / createdAt / creator / updatedAt / updater / expiresAt |         | 审计字段                       |
 
-**使用模块**：sso（连接 CRUD、OIDC 授权码流程）
+**使用模块**：sso（连接 CRUD 走平台运维通道；OIDC 授权码流程靠连接 id 能力键引导，见「租户隔离（RLS）」）
 
 ## 审计字段约定
 
@@ -242,9 +242,10 @@ Entity：[`entity/src/sso_connection.rs`](../entity/src/sso_connection.rs)
 | --- | --- |
 | tenant | 读：`id = app_current_tenant_id()`，或 `id` 属于「我（`app_current_user_id()`）的 ACTIVE 成员行」；写：只允许 `id = app_current_tenant_id()` |
 | tenant_member | 读：`"tenantID" = app_current_tenant_id() OR "userID" = app_current_user_id()`（账号作用域下只列出自己的成员关系）；写：只允许本租户 |
-| subscription / sso_connection / outbox | `"tenantID" = app_current_tenant_id()` |
+| subscription / outbox | `"tenantID" = app_current_tenant_id()` |
 | gateway_usage / gateway_audit | 读/写：`"tenantID" = app_current_tenant_id()`，**或**无租户行且归属本人（`"tenantID" IS NULL AND "userID"／"actor" = app_current_user_id()`） |
 | payment_order | 读：`"tenantID" = app_current_tenant_id()`，**或**订单号能力键（`"orderNo" = current_setting('app.order_no', true) AND "archivedAt" IS NULL`）；写：只允许本租户（`WITH CHECK` 不含能力键） |
+| sso_connection | 读：`"tenantID" = app_current_tenant_id()`，**或**连接 id 能力键（`"id" = app_current_sso_connection_id() AND "archivedAt" IS NULL`）；写：只允许本租户（管理面走平台运维通道） |
 | asset | 读：`"creator" = app_current_user_id()` **或** `"tenantID" = app_current_tenant_id()::text`（该列是 text，显式转型）**或** `"visibility" = 'PUBLIC'` **或** `"viewers" ? app_current_user_id()::text` **或** hash 能力键（见下）；写：只允许 `"creator" = app_current_user_id()` |
 | gateway_provider / gateway_model | 读：`"tenantID" IS NULL OR "tenantID" = app_current_tenant_id()`（保留全局目录行）；写：只允许本租户（全局行由平台运维通道写） |
 | auth / chunk | **无 RLS**：账号是全局身份；chunk 没有租户列，隔离经 asset 传递（有意延后，先有可见的 asset 才谈得上它的分片） |
@@ -253,10 +254,15 @@ Entity：[`entity/src/sso_connection.rs`](../entity/src/sso_connection.rs)
 于是「引导作用域」与「读那一行」发生在同一条语句、同一个事务里；`WITH CHECK` 里没有能力键，
 写入仍然必须满足租户条件——引导出来的作用域不可能被用来改别人的订单。
 
+`sso_connection` 的读策略多一条**连接 id 能力键**，成因与订单号相同但结论更极端：OIDC 的 authorize / callback
+是匿名端点，浏览器从第三方 IdP 跳回来时没有我们的会话，唯一能当凭证的就是回调地址里的连接 id。
+它只借出那一行**未归档**连接（归档等于作废回调地址），而且借到的只是「读回租户」这一步；
+拿到租户之后另开一段租户作用域写账号与成员关系，两段之间隔着对 IdP 的网络往返，绝不跨事务。
+
 Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/scope.rs)）与**作用域句柄**（[`src/guards/tenant.rs`](../src/guards/tenant.rs)）分开：
 
-- 机制层：`Storage::tenant_tx` / `user_tx` / `order_tx` / `asset_hash_tx` / `anon_tx` 开一个事务并设好对应作用域
-  （`apply_tenant_scope` / `apply_user_scope` / `apply_order_capability` / `apply_asset_capability`），
+- 机制层：`Storage::tenant_tx` / `user_tx` / `order_tx` / `asset_hash_tx` / `sso_connection_tx` / `anon_tx` 开一个事务并设好对应作用域
+  （`apply_tenant_scope` / `apply_user_scope` / `apply_order_capability` / `apply_asset_capability` / `apply_sso_capability`），
   之后的读写复用这条事务，业务代码不必再逐条手写租户条件。只有 [`src/guards/`](../src/guards) 与
   [`src/databases/scope.rs`](../src/databases/scope.rs) 能直接调用它们（R7 门禁）。
 - 句柄层：**谁持有作用域句柄，谁负责 commit / rollback**。按调用方身份分成下面几类（末行是唯一的提权例外）：
@@ -267,6 +273,7 @@ Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/sco
 | 账号作用域 | [`AccountScope`](../src/guards/account.rs) | 已登录但**未选定租户**的请求面（网关目录 / 聊天 / 自助配额） | 只带事务与账号 id；能读全局行（`"tenantID" IS NULL`）与「本人 + 无租户」的行 |
 | 可信机器通道 | [`TenantScope`](../src/guards/tenant.rs) | 定时任务、内部调用等**已知道租户 id** 的无主体路径 | 只带事务与租户 id，不带主体；权限由调用侧自行保证 |
 | 能力键引导 | [`PaymentNotifyScope`](../src/guards/payment.rs) | 匿名渠道回调（只有订单号） | 同一事务内由订单号能力键升格为租户作用域；只读，命不中返回 `None` |
+| 登录引导（SSO） | [`SsoConnectionScope`](../src/guards/sso.rs) → [`SsoLoginScope`](../src/guards/sso.rs) | 匿名 OIDC 回调（只有连接 id） | 第一段只凭连接 id 读回那一行未归档连接并**立即回滚**（先读取、后动网络）；第二段按读到的租户开写事务落账号与成员关系 |
 | 资产读（含匿名） | [`AssetReader`](../src/guards/asset.rs) | 按 id 单条读、分片元数据读；匿名下载走 `None` | 事务 + `app.user_id`（或匿名读事务 `anon_tx`）；可见性完全由 asset 策略决定，代码不写 `WHERE` |
 | 内容能力键 | [`AssetContentScope`](../src/guards/asset.rs) | 秒传引导：只有内容 hash | 事务 + `app.asset_hash`，只借已完成内容；PUBLIC 是全局分支，同样可见 |
 | 平台运维通道 | [`PlatformScope`](../src/guards/platform.rs) | 运维面（平台目录全局行、跨租户汇总） | **提权**绕过行级策略（`SET LOCAL ROLE`，事务局部）；确权在路由层 |
@@ -300,7 +307,8 @@ OR ("hash" = app_current_asset_hash() AND "status" = 'COMPLETED')  -- ⑤ 内容
 [`src/databases/scope.rs`](../src/databases/scope.rs) 的 `Storage::platform_tx`，句柄层在
 [`src/guards/platform.rs`](../src/guards/platform.rs)。
 
-- 用途只有两件：平台目录的**全局行**（`"tenantID" IS NULL` 的 `gateway_provider` / `gateway_model`）与跨租户用量、审计汇总。
+- 用途只有三种：平台目录的**全局行**（`"tenantID" IS NULL` 的 `gateway_provider` / `gateway_model`）、跨租户用量与审计汇总，
+  以及 SSO 连接的**运维面**（`/sso/connections` 列的是所有租户的连接，建连接时由请求体指定租户）。
   租户面与账号面一律走作用域，不需要它
 - 提权是**事务局部**的（`SET LOCAL ROLE`）：提交/回滚后自动退回应用角色，不会残留在池化连接上串到下一个请求
 - 确权不在句柄里：调用点都在 `Auth::admin()` 之后，句柄只表示「这段代码在特权角色下跑」
@@ -334,6 +342,9 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO core_platform;
   可信数据（如支付订单行），不能直接取自请求参数。
 - 匿名回调连租户 id 都没有：`PaymentNotifyScope::open(storage, order_no)` 用**订单号能力键**在同一条语句里
   「找出租户 + 读出那一行」（见上表 `payment_order` 行）；命不中返回 `None`，由调用方回执「订单不存在」。
+  匿名 OIDC 同理但分得更开：`SsoConnectionScope::open(storage, connection_id)` 读出连接所属租户后**立刻回滚**，
+  之后才去访问 IdP，最后用 `SsoLoginScope::open(storage, tenant_id)` 开一段只写账号与成员关系的短事务
+  （见 [`src/guards/sso.rs`](../src/guards/sso.rs)）。
 - **作用域不跨外部调用**：查单这类「读 → 调外部 → 写回」的流程必须先用 `TenantCtx::renew` 提交当前事务、
   以同一租户开新事务，回来后再重新读一次订单；否则一次网络往返期间事务空开着，读到的旧状态与写回的新状态之间
   就留了竞态。
@@ -360,7 +371,9 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO core_platform;
 - 「service 层是否真的只在作用域内读写」见 [`tests/subscription_scope.rs`](../tests/subscription_scope.rs)（7 例，
   覆盖两条通道、成员只读、跨租户拒绝、热点短作用域、惰性过期清理）与
   [`tests/payment_scope.rs`](../tests/payment_scope.rs)（8 例，覆盖订单号能力键、跨租户不可见、OWNER/ADMIN 权限粒度、
-  已收款未开通的自愈）。
+  已收款未开通的自愈）；
+- SSO 连接见 [`tests/sso_scope.rs`](../tests/sso_scope.rs)（6 例：能力键只借自己那一行且不借归档行、能力键不能写、
+  租户作用域只读本租户、账号作用域读不到、平台面跨租户增删、两段式登录能写成员关系而越租户写被拒）。
   这些文件都要求库名含 `test`（防误连生产），未设置 `TEST_DATABASE_URL` 时整个文件跳过；后两个还需要 `TEST_REDIS_URL`（配额/计划走缓存）。
 
 ## outbox / consumed_event
@@ -383,7 +396,8 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO core_platform;
 | 数据 | 归属 | 写入口 |
 | --- | --- | --- |
 | auth | 全局 | 认证模块 |
-| tenant / tenant_member / subscription / payment_order / sso_connection | 单一租户 | 各自模块，必须带租户作用域 |
+| tenant / tenant_member / subscription / payment_order | 单一租户 | 各自模块，必须带租户作用域 |
+| sso_connection | 单一租户（读写都按 `"tenantID"` 隔离） | sso 模块：管理面走平台运维通道，匿名 OIDC 走连接 id 能力键引导 |
 | asset / chunk | **全局内容寻址**：`hash` 跨账号唯一，行按 `visibility` + 创建者判可见（`chunk` 经 asset 传递） | 上传模块；读走 `AssetReader` / `AssetContentScope` |
 | gateway_provider / gateway_model | 租户行或全局行（`"tenantID" IS NULL`） | 网关管理；全局行走平台运维通道 |
 | gateway_usage / gateway_audit | 单一租户，或无租户行（`"tenantID" IS NULL`，归属本人） | 网关 |

@@ -818,6 +818,7 @@ impl MigrationTrait for Migration {
         for (function, setting) in [
             ("app_current_tenant_id", TENANT_SETTING),
             ("app_current_user_id", USER_SETTING),
+            ("app_current_sso_connection_id", SSO_CONNECTION_SETTING),
         ] {
             manager
                 .get_connection()
@@ -883,6 +884,23 @@ impl MigrationTrait for Migration {
             manager,
             "tenant_member",
             r#""tenantID" = app_current_tenant_id() OR "userID" = app_current_user_id()"#,
+            r#""tenantID" = app_current_tenant_id()"#,
+        )
+        .await?;
+
+        // SSO 连接比严格租户隔离多一条**能力键**分支：OIDC 的 authorize / callback 是匿名端点
+        // ——浏览器从第三方 IdP 跳回来时没有我们的会话，唯一能当凭证的就是回调地址里的连接 id。
+        // 该分支只放宽 `USING`（且只放行那一行**未归档**连接），`WITH CHECK` 仍是租户限定：
+        // 拿到连接 id 也写不进任何一行，后台管理面照旧走平台特权通道。
+        // 变量未设置（或不是 uuid）时读取器返回 NULL，条件恒不成立——fail-closed。
+        let sso_connection_using = format!(
+            r#""tenantID" = app_current_tenant_id()
+               OR ("id" = app_current_sso_connection_id() AND "archivedAt" IS NULL)"#
+        );
+        enable_rls(
+            manager,
+            "sso_connection",
+            &sso_connection_using,
             r#""tenantID" = app_current_tenant_id()"#,
         )
         .await?;
@@ -986,6 +1004,11 @@ const ORDER_SETTING: &str = "app.order_no";
 /// 只被 `asset` 的只读分支识别，且只借出 hash 命中那一行**已完成**资产：
 /// 同一份字节被多个账号各自持有一行，秒传必须先看到内容才知道要克隆什么。
 const ASSET_HASH_SETTING: &str = "app.asset_hash";
+/// SSO 登录流程的能力键作用域变量：SSO 连接 id。
+///
+/// OIDC 的 authorize / callback 是**匿名**端点（浏览器从第三方 IdP 跳回来，没有我们的会话），
+/// 只有回调地址里的连接 id 可以当凭证用：它只借出那一行未归档连接，写入仍要求租户作用域。
+const SSO_CONNECTION_SETTING: &str = "app.sso_connection_id";
 /// 平台运维角色：唯一一条绕过行级策略的通道。
 ///
 /// 必须与 `service::databases::scope::PLATFORM_ROLE` 一致（迁移 crate 不能依赖 service）。
@@ -1031,8 +1054,9 @@ $fn$"#
 /// 不在其中的表都另有分支，见 `up()`：
 /// - `tenant_member`："只读自己"（账号作用域下列出自己的成员关系）；
 /// - `payment_order`：按订单号（能力键）反解租户的只读分支；
+/// - `sso_connection`：按连接 id（能力键）读回匿名 OIDC 流程的那一行；
 /// - `gateway_usage` / `gateway_audit`：无租户行的归属分支（NULL 租户 + 本人）。
-const STRICT_TENANT_TABLES: [&str; 3] = ["subscription", "sso_connection", "outbox"];
+const STRICT_TENANT_TABLES: [&str; 2] = ["subscription", "outbox"];
 
 /// 逐表启用行级安全：`ENABLE` 约束普通角色，`FORCE` 连表属主一起约束，
 /// 单角色直连部署下也不会失效；策略用固定名，重跑时可先删后建。

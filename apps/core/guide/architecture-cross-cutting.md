@@ -31,7 +31,7 @@ Middleware → Guard → Interceptor(pre) → Pipe → Handler
 | Nest | Actix / 本仓库 |
 |------|----------------|
 | Middleware | [`cors`](../src/middlewares/cors.rs)、[`access_log`](../src/middlewares/access_log.rs)、[`logger`](../src/utils/logger.rs) |
-| Guard | [`Auth`](../src/guards/auth.rs)、[`Session`](../src/guards/session.rs)（请求身份上下文）、[`TenantCtx`](../src/guards/tenant.rs)（租户作用域入口）、[`AssetReader` / `AssetContentScope`](../src/guards/asset.rs)（资产读写与内容能力键）、[`blacklist`](../src/guards/blacklist.rs)、[`public`](../src/guards/public.rs) |
+| Guard | [`Auth`](../src/guards/auth.rs)、[`Session`](../src/guards/session.rs)（请求身份上下文）、[`TenantCtx`](../src/guards/tenant.rs)（租户作用域入口）、[`AssetReader` / `AssetContentScope`](../src/guards/asset.rs)（资产读写与内容能力键）、[`SsoConnectionScope` / `SsoLoginScope`](../src/guards/sso.rs)（匿名 OIDC 的连接 id 能力键引导）、[`blacklist`](../src/guards/blacklist.rs)、[`public`](../src/guards/public.rs) |
 | Interceptor | [`Envelope` / `Paginated`](../src/interceptors/envelope.rs) |
 | Filter | [`Exception`](../src/filters/exception.rs)（`details` 非生产才写入） |
 | Guard | [`Auth::required`](../src/guards/auth.rs) + [`authz`](architecture-capabilities.md)（`crates/authz` 统一判定） |
@@ -85,6 +85,11 @@ handler 只用：ctx.tx() 读写 / ctx.require(permission) 判权限 / ctx.commi
   → 匿名回调只递进一串订单号：策略里的能力键让「找出租户」与「读那一行」在同一条语句里发生
   → 只命中一行未归档订单；命不中返回 None，调用方按「订单不存在」回执（不是权限失败）
 
+[登录引导] SsoConnectionScope::open(storage, connection_id) → SsoLoginScope::open(storage, tenant_id)
+  → 匿名 OIDC 回调只递进一个连接 id：第一段读回那一行未归档连接、拿到归属租户后**立刻回滚**
+  → 中间隔着对 IdP 的若干次网络往返（事务绝不跨越它们），第二段按该租户开写事务落账号与成员关系
+  → 两段串起来才是完整引导，但没有同一段事务：连接是只读的，写入只发生在确权之后
+
 [资产读通道] AssetReader::enter(storage, Option<user_id>)
   → 事务 + SET LOCAL app.user_id；None 即匿名读事务（只见 PUBLIC）
   → 可见性完全由 asset 的策略决定（创建者 / 租户 / PUBLIC / viewers / hash 五分支）
@@ -106,7 +111,7 @@ handler 只用：ctx.tx() 读写 / ctx.require(permission) 判权限 / ctx.commi
   平台管理员走运维通道（上下文的租户角色为空也放行）。
 - 角色不再由业务代码比较：`ctx.require(..)` 失败即 403(300006)，`tenantID = ?` 不再手写。
   `TenantScope` 不带主体，因此**只有 `TenantCtx` 判权限**；机器通道的授权由调用侧保证。
-- 作用域只能从 [`src/guards/`](../src/guards) 进入：`Storage::tenant_tx` / `user_tx` / `order_tx` / `asset_hash_tx` / `anon_tx`
+- 作用域只能从 [`src/guards/`](../src/guards) 进入：`Storage::tenant_tx` / `user_tx` / `order_tx` / `asset_hash_tx` / `sso_connection_tx` / `anon_tx`
   等原语仅 [`src/guards/`](../src/guards) 与 [`src/databases/scope.rs`](../src/databases/scope.rs) 可直接调用（R7 门禁，逐文件限额只减不增）。
 - 「读不到」应当来自策略，而不是忘了设作用域：无作用域的裸读（`anon_tx`）同样只允许出现在 `src/guards/`，
   其余调用点按 `UNSCOPED_DB_ALLOWED` 正向登记（R9 门禁）。当前名单为空，只有[资产读通道](../src/guards/asset.rs)需要它。
@@ -114,6 +119,8 @@ handler 只用：ctx.tx() 读写 / ctx.require(permission) 判权限 / ctx.commi
   且其余调用点按 `PLATFORM_ENTRY_ALLOWED` 白名单正向登记（R8 门禁）——提权是绕过隔离，每多一处都要写明用途。
 - `asset` 的策略是**五分支**（创建者 / 租户 / `PUBLIC` / `viewers` / hash 能力键），其中 `PUBLIC` 是**全局**分支，
   在任何作用域（含只带 hash 的能力键作用域）里都成立；`WITH CHECK` 只认创建者。详见 [`database.md`](database.md)。
+- `sso_connection` 的策略是**两分支**（租户 / 连接 id 能力键，且能力键只借未归档行），并且是本仓唯一
+  「读能力键 → 动网络 → 另开租户事务写」的两段式路径；管理面（`/sso/connections`）不走能力键，走平台运维通道。
 
 ## 目录约定
 

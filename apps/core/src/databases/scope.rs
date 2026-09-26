@@ -8,6 +8,7 @@ use identity::{TenantId, UserId};
 use sea_orm::{
     ConnectionTrait, DatabaseBackend, DatabaseTransaction, DbErr, Statement, TransactionTrait,
 };
+use uuid::Uuid;
 
 use super::database::Storage;
 
@@ -27,6 +28,12 @@ pub const ORDER_SETTING: &str = "app.order_no";
 /// `asset` 的只读分支据此把那一行**已完成**资产借给上传代码——同一份字节被多个账号
 /// 各自持有一行，秒传必须先看到内容才知道要克隆什么。
 pub const ASSET_HASH_SETTING: &str = "app.asset_hash";
+
+/// 会话级能力键变量：SSO 连接 id。
+///
+/// OIDC 的 authorize / callback 是匿名端点（浏览器从第三方 IdP 跳回来时没有我们的会话），
+/// `sso_connection` 的只读分支据此把那一行**未归档**连接借给流程代码。
+pub const SSO_CONNECTION_SETTING: &str = "app.sso_connection_id";
 
 /// 平台运维角色：**唯一**一条绕过行级策略的通道（迁移里创建，`NOLOGIN`，只能由应用角色 `SET ROLE` 进入）。
 ///
@@ -89,6 +96,18 @@ where
     set_scope(conn, ASSET_HASH_SETTING, hash).await
 }
 
+/// 在当前连接/事务上设定 SSO 连接能力键（连接 id）。
+///
+/// 同样是**能力键而不是作用域**：只让 `sso_connection` 里那一行未归档连接可读。
+/// 匿名 OIDC 流程没有别的身份可用（IdP 跳回来时没有我们的会话），因此它是那条路径上
+/// 「读回连接」的唯一办法；读到 `"tenantID"` 之后必须立刻换成真正的租户作用域。
+pub async fn apply_sso_capability<C>(conn: &C, connection_id: Uuid) -> Result<(), DbErr>
+where
+    C: ConnectionTrait,
+{
+    set_scope(conn, SSO_CONNECTION_SETTING, &connection_id.to_string()).await
+}
+
 /// 在当前事务上提权到平台运维角色。
 ///
 /// 与作用域变量同样的性质：**事务局部**（`SET LOCAL ROLE`），提交或回滚后当前角色自动
@@ -141,6 +160,17 @@ impl Storage {
     pub async fn asset_hash_tx(&self, hash: &str) -> Result<DatabaseTransaction, DbErr> {
         let tx = self.db.begin().await?;
         apply_asset_capability(&tx, hash).await?;
+        Ok(tx)
+    }
+
+    /// 开启只带 SSO 连接能力键的事务：`sso_connection` 里那一行未归档连接可读，
+    /// 用来把匿名 OIDC 流程接回它所属的租户（见 `guards::sso::SsoConnectionScope`）。
+    pub async fn sso_connection_tx(
+        &self,
+        connection_id: Uuid,
+    ) -> Result<DatabaseTransaction, DbErr> {
+        let tx = self.db.begin().await?;
+        apply_sso_capability(&tx, connection_id).await?;
         Ok(tx)
     }
 

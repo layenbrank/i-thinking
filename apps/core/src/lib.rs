@@ -77,6 +77,7 @@ pub mod guards {
     pub mod platform;
     pub mod public;
     pub mod session;
+    pub mod sso;
     pub mod tenant;
 }
 
