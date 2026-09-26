@@ -6,7 +6,7 @@
 
 | 能力        | 说明                                                            |
 | ----------- | --------------------------------------------------------------- |
-| 登录 / 注册 | 公开接口，返回 JWT（含 `role`）；注册默认 `USER` + `ACTIVE` |
+| 登录 / 注册 | 公开接口，返回 JWT（含 `role` 声明，仅作快速拒绝）；注册默认 `USER` + `ACTIVE` |
 | 行为验证码  | go-captcha-service 侧车；`POST /captcha` 取题，`captchaKey` 校验 |
 | OTP         | 手机/邮箱一次性验证码登录或发码防刷                               |
 | 找回/重置密码 | username 或 channel+target 发 OTP，OTP 一步重置新密码           |

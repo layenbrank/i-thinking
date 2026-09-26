@@ -31,7 +31,7 @@ Middleware → Guard → Interceptor(pre) → Pipe → Handler
 | Nest | Actix / 本仓库 |
 |------|----------------|
 | Middleware | [`cors`](../src/middlewares/cors.rs)、[`access_log`](../src/middlewares/access_log.rs)、[`logger`](../src/utils/logger.rs) |
-| Guard | [`Auth`](../src/guards/auth.rs)、[`blacklist`](../src/guards/blacklist.rs)、[`public`](../src/guards/public.rs) |
+| Guard | [`Auth`](../src/guards/auth.rs)、[`Session`](../src/guards/session.rs)（请求身份上下文）、[`blacklist`](../src/guards/blacklist.rs)、[`public`](../src/guards/public.rs) |
 | Interceptor | [`Envelope` / `Paginated`](../src/interceptors/envelope.rs) |
 | Filter | [`Exception`](../src/filters/exception.rs)（`details` 非生产才写入） |
 | Guard | [`Auth::required` / `Auth::admin`](../src/guards/auth.rs) + [`permission`](../src/guards/permission.rs) |
@@ -43,12 +43,27 @@ Middleware → Guard → Interceptor(pre) → Pipe → Handler
 统一响应形状：`code` / `success` / `msg` / `data` / `timestamp` / `traceID`。HTTP 状态码由错误码归属推导（成功恒为 200，失败按 `code` 段位返回 4xx/5xx），业务仍以 `code` 为准（见 [error-codes.md](error-codes.md)）。
 链路追踪：请求可带 W3C `traceparent`（缺省由服务端生成），响应始终回显该头，信封 `traceID` 即其 trace-id（见 [`trace`](../src/middlewares/trace.rs)）。
 
+### 请求身份管道
+
+[`Auth`](../src/guards/auth.rs) 中间件按固定顺序执行，任一步失败即短路返回：
+
+```
+令牌解析 → 公开路由放行 → Configure(500) → verify_token(401)
+  → 声明级快速拒绝(403) → Redis 黑名单(500/300002) → Storage(500)
+  → Session::resolve(401/500) → authz 复核(403) → 注入 Session
+```
+
+- 令牌只证明身份（`sub` + 过期时间）；**平台角色与账号状态以库为准**，每请求读取一次。
+- `Session`（[`guards/session.rs`](../src/guards/session.rs)）是 handler 取用身份的唯一途径，取代了原先直接读 `Claims` 的做法。
+- 解析失败一律 fail-closed：未知角色字面量、`sub` 非 UUID、账号不存在、账号被停用都会拒绝请求，不会静默降级为普通用户。
+- 声明级快速拒绝保证「令牌里不是 ADMIN」时无需访问 Redis / 数据库即可 403；`Auth::admin()` 再以 `authz::require(Resource::Account, Action::Manage)` 复核，避免散落的角色字面量比较（R3）。
+
 ## 目录约定
 
 | 目录 | 角色 |
 |------|------|
 | `src/middlewares/` | CORS、访问日志 |
-| `src/guards/` | `auth` / `blacklist` / `public` |
+| `src/guards/` | `auth` / `session` / `blacklist` / `permission` / `public` |
 | `src/interceptors/` | 成功信封 |
 | `src/filters/` | 失败信封 |
 | `src/utils/code.rs` | 业务码 |

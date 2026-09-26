@@ -16,11 +16,14 @@ use futures::future::{LocalBoxFuture, Ready, ok};
 
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
+use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
 use crate::guards::blacklist;
-use crate::utils::code::{auth as auth_codes, external};
-use crate::utils::jwt::{JwtError, verify_token};
+use crate::guards::session::{Session, SessionError};
+use crate::utils::code::{auth as auth_codes, external, system};
+use crate::utils::jwt::{Claims, JwtError, verify_token};
 use crate::utils::token::bearer;
+use authz::{Action, Permission, Resource, require};
 
 /// 鉴权守卫。
 #[derive(Clone, Copy)]
@@ -116,7 +119,8 @@ where
             }
         };
 
-        if admin_only && !claims.role().is_admin() {
+        // 先用令牌声明快速拒绝（不触库、不触缓存）；真正的判定在会话建立之后
+        if admin_only && !claim_allows_admin(&claims) {
             return Box::pin(async move {
                 Ok(json_error(
                     req,
@@ -154,7 +158,35 @@ where
                 }
             }
 
-            req.extensions_mut().insert(claims);
+            let Some(storage) = req.app_data::<web::Data<Arc<Storage>>>().cloned() else {
+                return Ok(json_error(req, Exception::internal_error("存储服务未配置")));
+            };
+
+            // 令牌只证明「是谁」；角色与账号状态一律以库为准
+            let session = match Session::resolve(storage.as_ref(), &claims, &token).await {
+                Ok(session) => session,
+                Err(err) => {
+                    tracing::warn!(error = %err, "会话建立失败");
+                    return Ok(json_error(req, session_exception(err)));
+                }
+            };
+
+            if admin_only {
+                let decision = require(
+                    &session.principal(),
+                    Permission::new(Resource::Account, Action::Manage),
+                );
+
+                if let Err(denied) = decision {
+                    tracing::warn!(reason = denied.reason().as_str(), "平台角色不足");
+                    return Ok(json_error(
+                        req,
+                        Exception::custom(auth_codes::INSUFFICIENT_PERMISSIONS, "权限不足"),
+                    ));
+                }
+            }
+
+            req.extensions_mut().insert(session);
             Ok(service.call(req).await?.map_into_left_body())
         })
     }
@@ -164,6 +196,29 @@ fn json_error<B>(req: ServiceRequest, body: Exception) -> ServiceResponse<Either
     let (http_req, _) = req.into_parts();
     let status = body.status();
     ServiceResponse::new(http_req, HttpResponse::build(status).json(body)).map_into_right_body()
+}
+
+/// 令牌声明的平台角色是否允许进入 ADMIN 路由。
+///
+/// 仅用于快速拒绝：声明缺失或字面量无法识别一律返回 `false`（fail-closed）。
+/// 真正的授权结论由 [`Session`] 结合库中的角色给出。
+fn claim_allows_admin(claims: &Claims) -> bool {
+    claims
+        .platform_role()
+        .is_ok_and(|role| role.is_platform_admin())
+}
+
+/// 会话建立失败 → 业务错误信封（可单测）。
+pub fn session_exception(err: SessionError) -> Exception {
+    match err {
+        SessionError::InvalidSubject | SessionError::UnknownAccount => {
+            Exception::custom(auth_codes::INVALID_CREDENTIALS, "登录凭证无效")
+        }
+        SessionError::AccountDisabled => {
+            Exception::custom(auth_codes::ACCOUNT_DISABLED, "账号已停用")
+        }
+        SessionError::Persist(_) => Exception::custom(system::INTERNAL_ERROR, "账号数据异常"),
+    }
 }
 
 /// JWT 校验失败 → 业务错误信封（可单测）。
@@ -208,6 +263,50 @@ mod tests {
     fn admin_flag() {
         assert!(Auth::admin().admin_only);
         assert!(!Auth::isRequired().admin_only);
+    }
+
+    fn claims_with_role(role: &str) -> Claims {
+        Claims {
+            sub: "u1".into(),
+            username: "bob".into(),
+            role: role.into(),
+            exp: 0,
+            iat: 0,
+        }
+    }
+
+    #[test]
+    fn claim_admin_fast_path_is_fail_closed() {
+        assert!(claim_allows_admin(&claims_with_role("ADMIN")));
+        assert!(!claim_allows_admin(&claims_with_role("USER")));
+        // 声明缺失（老令牌）或字面量无法识别：不猜测，直接拒绝
+        assert!(!claim_allows_admin(&claims_with_role("")));
+        assert!(!claim_allows_admin(&claims_with_role("SUPERUSER")));
+    }
+
+    #[test]
+    fn session_errors_map_to_envelopes() {
+        assert_eq!(
+            session_exception(SessionError::InvalidSubject).code,
+            auth_codes::INVALID_CREDENTIALS
+        );
+        assert_eq!(
+            session_exception(SessionError::UnknownAccount).code,
+            auth_codes::INVALID_CREDENTIALS
+        );
+        assert_eq!(
+            session_exception(SessionError::AccountDisabled).code,
+            auth_codes::ACCOUNT_DISABLED
+        );
+
+        let broken = identity::PersistError::UnknownLiteral {
+            column: "auth.role".into(),
+            literal: "SUPERUSER".into(),
+        };
+        assert_eq!(
+            session_exception(SessionError::Persist(broken)).code,
+            system::INTERNAL_ERROR
+        );
     }
 
     #[actix_web::test]

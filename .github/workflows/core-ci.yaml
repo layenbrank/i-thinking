@@ -127,6 +127,9 @@ jobs:
       - name: Run tenant isolation tests
         run: cargo test --test tenant_isolation
 
+      - name: Run identity context tests
+        run: cargo test --test identity_context
+
   contract:
     runs-on: ubuntu-latest
     timeout-minutes: 20

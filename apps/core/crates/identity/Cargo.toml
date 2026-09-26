@@ -5,9 +5,11 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
-serde    = { workspace = true }
+entity    = { workspace = true } # 账号 / 成员关系实体
+sea-orm   = { workspace = true } # 身份持久化查询
+serde     = { workspace = true }
 thiserror = { workspace = true }
-uuid     = { workspace = true }
+uuid      = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }

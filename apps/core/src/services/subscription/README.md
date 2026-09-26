@@ -46,7 +46,7 @@
 
 - 中间件 `Auth::isRequired()` 挂在整个 scope 上，未登录直接 401 类。
 - 列表要求调用者是该租户 **ACTIVE 成员**；开通与取消要求租户内角色为 **OWNER / ADMIN**（`TenantRole::can_manage`）。
-- 平台 ADMIN（`Claims::role().is_admin()`）走 `TenantService::require_role` 的旁路，视为租户 ADMIN。
+- 平台 ADMIN（库中平台角色为 `ADMIN`，即 `Session::is_platform_admin()`）走 `TenantService::require_role` 的旁路，视为租户 ADMIN。
 - 非成员返回 `300006`（权限不足），未登录返回 `300001`。
 
 ## 数据表

@@ -1,4 +1,5 @@
 use chrono::{Duration, Utc};
+use identity::{PlatformRole, UnknownRole};
 use jsonwebtoken::{
     DecodingKey, EncodingKey, Header, Validation, decode, encode, errors::ErrorKind,
 };
@@ -10,7 +11,8 @@ use crate::guards::permission::Role;
 pub struct Claims {
     pub sub: String,
     pub username: String,
-    /// USER / ADMIN
+    /// 签发时的平台角色字面量（USER / ADMIN），仅作提示；
+    /// 授权结论一律以库为准（见 `guards::session`），这里不提供任何回退默认值的入口。
     #[serde(default)]
     pub role: String,
     pub exp: i64,
@@ -18,8 +20,9 @@ pub struct Claims {
 }
 
 impl Claims {
-    pub fn role(&self) -> Role {
-        Role::parse(&self.role).unwrap_or(Role::User)
+    /// 声明中的平台角色；字面量无法识别即报错。
+    pub fn platform_role(&self) -> Result<PlatformRole, UnknownRole> {
+        self.role.parse()
     }
 }
 
@@ -88,7 +91,7 @@ mod tests {
         let claims = verify_token(&token, secret).unwrap();
         assert_eq!(claims.sub, user_id);
         assert_eq!(claims.username, username);
-        assert_eq!(claims.role(), Role::Admin);
+        assert!(claims.platform_role().unwrap().is_platform_admin());
     }
 
     #[test]
@@ -125,7 +128,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_role_defaults_to_user() {
+    fn missing_role_is_rejected_instead_of_defaulting() {
         let secret = "test-secret-key-at-least-32-characters-long";
         let now = Utc::now();
         #[derive(Serialize)]
@@ -147,6 +150,30 @@ mod tests {
         )
         .unwrap();
         let claims = verify_token(&token, secret).unwrap();
-        assert_eq!(claims.role(), Role::User);
+
+        // 老令牌没有 role：不猜测，交给调用方按「无效凭证」处理。
+        assert!(claims.platform_role().is_err());
+    }
+
+    #[test]
+    fn unknown_role_literal_is_rejected() {
+        let secret = "test-secret-key-at-least-32-characters-long";
+        let now = Utc::now();
+        let claims = Claims {
+            sub: "u1".into(),
+            username: "alice".into(),
+            role: "SUPERUSER".into(),
+            exp: (now + Duration::hours(1)).timestamp(),
+            iat: now.timestamp(),
+        };
+        let token = encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(secret.as_ref()),
+        )
+        .unwrap();
+        let claims = verify_token(&token, secret).unwrap();
+
+        assert_eq!(claims.platform_role().unwrap_err().as_str(), "SUPERUSER");
     }
 }

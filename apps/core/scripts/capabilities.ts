@@ -35,7 +35,7 @@ export const CAPABILITIES: readonly Capability[] = [
     title: '身份与租户',
     owns: ['auth', 'tenant', 'tenant_member', 'sso_connection'],
     dependsOn: [],
-    publicModules: [],
+    publicModules: ['account', 'persistence'],
     absorbs: ['src/services/auth', 'src/services/user', 'src/services/tenant', 'src/services/sso'],
     status: 'migrating'
   },
@@ -135,17 +135,14 @@ export const FORBIDDEN_CRATE_DEPS = [
  * 角色字面量比较）：身份解析走 `identity`，权限判断走 `authz`。每迁完一块就把对应的行删掉。
  */
 export const ROLE_VOCAB_LEGACY: Record<string, { max: number; reason: string }> = {
-  'src/guards/auth.rs': { max: 3, reason: '遗留认证守卫，P3b 收敛到 identity' },
+  'src/guards/auth.rs': { max: 2, reason: '遗留认证守卫，P3b 收敛到 identity' },
   'src/guards/permission.rs': { max: 6, reason: '遗留权限守卫，P3b 由 authz 取代' },
   'src/services/auth/schema.rs': { max: 1, reason: 'P3b 迁入 identity' },
   'src/services/auth/service.rs': { max: 4, reason: 'P3b 迁入 identity' },
-  'src/services/payment/controller.rs': { max: 1, reason: 'P3b 迁入 billing' },
   'src/services/sso/service.rs': { max: 1, reason: 'P3b 迁入 identity' },
-  'src/services/subscription/controller.rs': { max: 1, reason: 'P3b 迁入 billing' },
-  'src/services/tenant/controller.rs': { max: 1, reason: 'P3b 迁入 identity' },
   'src/services/tenant/service.rs': { max: 5, reason: 'P3b 迁入 identity' },
   'src/services/user/service.rs': { max: 3, reason: 'P3b 迁入 identity' },
-  'src/utils/jwt.rs': { max: 5, reason: 'JWT 载荷解析，P3b 收敛到 identity' }
+  'src/utils/jwt.rs': { max: 1, reason: 'JWT 载荷解析，P3b 收敛到 identity' }
 }
 
 /** 角色词汇的出现模式：枚举路径、is_admin 谓词、与角色字面量的比较 */

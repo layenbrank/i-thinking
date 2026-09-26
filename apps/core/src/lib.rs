@@ -73,6 +73,7 @@ pub mod guards {
     pub mod blacklist;
     pub mod permission;
     pub mod public;
+    pub mod session;
 }
 
 /// 异常响应信封（Nest Filter 角色）

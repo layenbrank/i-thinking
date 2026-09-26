@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Result, web};
+use actix_web::{HttpRequest, HttpResponse, Result, web};
 use uuid::Uuid;
 
 use crate::clients::elasticsearch::EsClient;
@@ -8,6 +8,7 @@ use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::session::Session;
 use crate::interceptors::envelope::{Envelope, Paginated};
 use crate::services::gateway::client::Upstream;
 use crate::services::gateway::schema::{
@@ -15,7 +16,6 @@ use crate::services::gateway::schema::{
     SelfQuotaP, UsageQueryP,
 };
 use crate::services::gateway::service::GatewayService;
-use crate::utils::jwt::Claims;
 
 pub struct GatewayController;
 
@@ -268,14 +268,12 @@ impl GatewayController {
 }
 
 fn identity(http: &HttpRequest) -> Result<(Uuid, String), Exception> {
-    let claims = http
-        .extensions()
-        .get::<Claims>()
-        .cloned()
-        .ok_or_else(|| Exception::unauthorized("用户未登录"))?;
-    let user_id =
-        Uuid::parse_str(&claims.sub).map_err(|_| Exception::unauthorized("用户未登录"))?;
-    Ok((user_id, claims.role().as_str().to_string()))
+    let session = Session::of(http).ok_or_else(|| Exception::unauthorized("用户未登录"))?;
+
+    Ok((
+        session.user_id().as_uuid(),
+        session.platform_role().as_str().to_string(),
+    ))
 }
 
 fn tenant_from_header(http: &HttpRequest) -> Option<Uuid> {

@@ -8,6 +8,12 @@ use std::{fmt, str::FromStr};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+pub mod account;
+pub mod persistence;
+
+pub use account::{Account, AccountStatus};
+pub use persistence::PersistError;
+
 /// 租户标识。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -102,8 +108,8 @@ impl UnknownRole {
     }
 }
 
-/// 解析大写存储的角色字面量；大小写不敏感，前后空白忽略。
-fn parse_role<'a, T, I>(value: &str, table: I) -> Result<T, UnknownRole>
+/// 解析大写存储的字面量（角色、状态等）；大小写不敏感，前后空白忽略。
+fn parse_literal<'a, T, I>(value: &str, table: I) -> Result<T, UnknownRole>
 where
     I: IntoIterator<Item = (&'a str, T)>,
 {
@@ -141,13 +147,19 @@ impl PlatformRole {
     pub const fn all() -> &'static [Self] {
         &[Self::User, Self::Admin]
     }
+
+    /// 是否为平台管理员。
+    #[must_use]
+    pub const fn is_platform_admin(self) -> bool {
+        matches!(self, Self::Admin)
+    }
 }
 
 impl FromStr for PlatformRole {
     type Err = UnknownRole;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        parse_role(value, Self::all().iter().map(|role| (role.as_str(), *role)))
+        parse_literal(value, Self::all().iter().map(|role| (role.as_str(), *role)))
     }
 }
 
@@ -192,7 +204,7 @@ impl FromStr for TenantRole {
     type Err = UnknownRole;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        parse_role(value, Self::all().iter().map(|role| (role.as_str(), *role)))
+        parse_literal(value, Self::all().iter().map(|role| (role.as_str(), *role)))
     }
 }
 

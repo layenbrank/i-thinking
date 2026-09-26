@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Result, web};
+use actix_web::{HttpRequest, HttpResponse, Result, web};
 use uuid::Uuid;
 
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::session::Session;
 use crate::interceptors::envelope::Envelope;
 use crate::services::tenant::schema::{MemberUpdateP, MemberWriteP, TenantUpdateP, TenantWriteP};
 use crate::services::tenant::service::TenantService;
-use crate::utils::jwt::Claims;
 
 pub struct TenantController;
 
 impl TenantController {
     pub async fn toList(db: web::Data<Arc<Storage>>, http: HttpRequest) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
+        let (user_id, _) = identity(&http)?;
         match TenantService::list(&db, user_id).await {
             Ok(items) => Envelope::success(items, "获取租户列表成功").transform(),
             Err(err) => Exception::from(err).transform(),
@@ -142,14 +142,9 @@ impl TenantController {
 }
 
 fn identity(http: &HttpRequest) -> Result<(Uuid, bool), Exception> {
-    let claims = http
-        .extensions()
-        .get::<Claims>()
-        .cloned()
-        .ok_or_else(|| Exception::unauthorized("用户未登录"))?;
-    let user_id =
-        Uuid::parse_str(&claims.sub).map_err(|_| Exception::unauthorized("用户未登录"))?;
-    Ok((user_id, claims.role().is_admin()))
+    let session = Session::of(http).ok_or_else(|| Exception::unauthorized("用户未登录"))?;
+
+    Ok((session.user_id().as_uuid(), session.is_platform_admin()))
 }
 
 fn parse_id(value: &str) -> Result<Uuid, Exception> {

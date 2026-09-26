@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Result, web};
+use actix_web::{HttpRequest, HttpResponse, Result, web};
 use uuid::Uuid;
 
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::session::Session;
 use crate::interceptors::envelope::Envelope;
 use crate::services::payment::channel::{ALIPAY, NotifyInput, WECHAT};
 use crate::services::payment::schema::OrderP;
 use crate::services::payment::service::PaymentService;
-use crate::utils::jwt::Claims;
 
 /// 订单列表一次返回的条数。
 const ORDER_LIST_LIMIT: u64 = 20;
@@ -183,14 +183,9 @@ impl PaymentController {
 }
 
 fn identity(http: &HttpRequest) -> Result<(Uuid, bool), Exception> {
-    let claims = http
-        .extensions()
-        .get::<Claims>()
-        .cloned()
-        .ok_or_else(|| Exception::unauthorized("用户未登录"))?;
-    let user_id =
-        Uuid::parse_str(&claims.sub).map_err(|_| Exception::unauthorized("用户未登录"))?;
-    Ok((user_id, claims.role().is_admin()))
+    let session = Session::of(http).ok_or_else(|| Exception::unauthorized("用户未登录"))?;
+
+    Ok((session.user_id().as_uuid(), session.is_platform_admin()))
 }
 
 fn parse_id(value: &str) -> Result<Uuid, Exception> {

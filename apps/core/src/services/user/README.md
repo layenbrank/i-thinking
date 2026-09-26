@@ -31,7 +31,7 @@
 
 ## 鉴权说明
 
-全路由挂载 [`Auth::admin()`](../../guards/auth.rs)：JWT 有效且 `Claims.role == ADMIN`，否则 `300006` 权限不足。
+全路由挂载 [`Auth::admin()`](../../guards/auth.rs)：令牌有效，且**库中的平台角色**为 `ADMIN`（令牌里的声明只用于快速拒绝），否则 `300006` 权限不足。
 
 注册默认 `role=USER`；管理员可通过本模块 `WriteP.role` / `UpdateP.role` 提升为 `ADMIN`。
 

@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Result, web};
+use actix_web::{HttpRequest, HttpResponse, Result, web};
 use uuid::Uuid;
 
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::session::Session;
 use crate::interceptors::envelope::Envelope;
 use crate::services::subscription::schema::SubscribeP;
 use crate::services::subscription::service::SubscriptionService;
-use crate::utils::jwt::Claims;
 
 pub struct SubscriptionController;
 
@@ -93,14 +93,9 @@ impl SubscriptionController {
 }
 
 fn identity(http: &HttpRequest) -> Result<(Uuid, bool), Exception> {
-    let claims = http
-        .extensions()
-        .get::<Claims>()
-        .cloned()
-        .ok_or_else(|| Exception::unauthorized("用户未登录"))?;
-    let user_id =
-        Uuid::parse_str(&claims.sub).map_err(|_| Exception::unauthorized("用户未登录"))?;
-    Ok((user_id, claims.role().is_admin()))
+    let session = Session::of(http).ok_or_else(|| Exception::unauthorized("用户未登录"))?;
+
+    Ok((session.user_id().as_uuid(), session.is_platform_admin()))
 }
 
 fn parse_id(value: &str) -> Result<Uuid, Exception> {

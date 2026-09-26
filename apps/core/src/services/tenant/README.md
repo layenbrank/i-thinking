@@ -38,7 +38,7 @@
 
 - 整个 scope 挂 `Auth::isRequired()`，未登录返回 `300001`。
 - 租户内角色 `TenantRole`：`OWNER` / `ADMIN` / `MEMBER`，`can_manage()` 仅前两者可改租户与成员。
-- 平台 ADMIN（`Claims::role().is_admin()`）经 `TenantService::require_role` 旁路，视为租户 ADMIN。
+- 平台 ADMIN（库中平台角色为 `ADMIN`，即 `Session::is_platform_admin()`）经 `TenantService::require_role` 旁路，视为租户 ADMIN。
 - `require_role` / `membership_role` 是跨模块复用的公开入口（`subscription`、`gateway` 都调用）。
 
 ## 数据表

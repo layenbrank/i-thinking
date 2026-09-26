@@ -37,7 +37,7 @@
 
 ## 鉴权说明
 
-- `connections` 系列在 `Auth::admin()` 下，仅平台 ADMIN。
+- `connections` 系列在 `Auth::admin()` 下，需令牌有效且库中平台角色为 `ADMIN`（令牌 `role` 声明只用于快速拒绝）。
 - `authorize` / `callback` 是浏览器重定向入口，**不挂鉴权**，靠 `state` / `id_token` 校验。
 
 ## 数据表

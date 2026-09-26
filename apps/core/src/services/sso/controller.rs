@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Result, web};
+use actix_web::{HttpRequest, HttpResponse, Result, web};
 use uuid::Uuid;
 
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::session::Session;
 use crate::interceptors::envelope::Envelope;
 use crate::services::sso::schema::{SsoCallbackP, SsoConnectionUpdateP, SsoConnectionWriteP};
 use crate::services::sso::service::SsoService;
-use crate::utils::jwt::Claims;
 
 pub struct SsoController;
 
@@ -102,12 +102,9 @@ impl SsoController {
 }
 
 fn actor(http: &HttpRequest) -> Result<Uuid, Exception> {
-    let claims = http
-        .extensions()
-        .get::<Claims>()
-        .cloned()
-        .ok_or_else(|| Exception::unauthorized("用户未登录"))?;
-    Uuid::parse_str(&claims.sub).map_err(|_| Exception::unauthorized("用户未登录"))
+    let session = Session::of(http).ok_or_else(|| Exception::unauthorized("用户未登录"))?;
+
+    Ok(session.user_id().as_uuid())
 }
 
 fn parse_id(value: &str) -> Result<Uuid, Exception> {

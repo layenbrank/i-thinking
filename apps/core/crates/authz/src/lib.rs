@@ -4,21 +4,26 @@
 //! （[`Permission`]）交给 [`authorize`] / [`require`]，不做任何自己的角色比较。
 //!
 //! 判定顺序（全部 fail-closed）：
-//! 1. 没有当前租户上下文 → 拒绝（租户内资源必须先选定租户，与 RLS 的 `app.tenant_id` 一致）；
-//! 2. 平台管理员 → 放行（运维通道，调用方必须留审计记录）；
-//! 3. 否则查租户角色策略表，命中即放行，未命中即拒绝。
+//! 1. 先看资源归属哪个作用域（[`Scope`]）：
+//!    - 平台级（[`Resource::Account`] 等）：不看租户，只按平台角色查平台策略表；
+//!    - 租户级：必须已选定租户（与 RLS 的 `app.tenant_id` 一致），
+//!      缺失即拒绝（`NoTenantContext`，平台管理员也不例外）；
+//! 2. 租户级资源：平台管理员 → 放行（运维通道，调用方必须留审计记录）；
+//! 3. 否则查角色策略表，命中即放行，未命中即拒绝。
 //!
 //! 迁移点：策略表的形状是「角色 → 权限集合」。将来出现资源共享、组织树、
 //! 代理授权等关系型需求时，替换本 crate 内部的求值即可（ReBAC），调用方无感。
 
 use std::fmt;
 
-use identity::{Principal, TenantRole};
+use identity::{PlatformRole, Principal, TenantRole};
 
 /// 受保护的资源类型。新增资源时必须同时补策略表与测试。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Resource {
+    /// 平台账号（不属于任何租户）。
+    Account,
     /// 租户本身（名称、状态、生命周期）。
     Tenant,
     /// 租户成员与成员角色。
@@ -50,6 +55,7 @@ impl Resource {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Account => "account",
             Self::Tenant => "tenant",
             Self::Member => "member",
             Self::SsoConnection => "sso_connection",
@@ -69,6 +75,7 @@ impl Resource {
     #[must_use]
     pub const fn all() -> &'static [Self] {
         &[
+            Self::Account,
             Self::Tenant,
             Self::Member,
             Self::SsoConnection,
@@ -83,6 +90,28 @@ impl Resource {
             Self::Notification,
         ]
     }
+
+    /// 资源归属的作用域。
+    ///
+    /// 归属决定判定路径：平台级资源不看租户，租户级资源必须选定租户。
+    #[must_use]
+    pub const fn scope(self) -> Scope {
+        match self {
+            Self::Account => Scope::Platform,
+            // 其余资源都属于某个租户；新增资源时若归属不同，必须在这里显式表态。
+            _ => Scope::Tenant,
+        }
+    }
+}
+
+/// 权限判定所处的作用域。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum Scope {
+    /// 平台级：不属于任何租户，只由平台角色决定。
+    Platform,
+    /// 租户级：必须选定租户，先要求租户上下文，再查租户角色策略表。
+    Tenant,
 }
 
 /// 操作类型。
@@ -159,6 +188,8 @@ pub enum DenyReason {
     NoTenantContext,
     /// 当前租户角色不包含该权限。
     TenantRoleInsufficient,
+    /// 平台级资源要求平台角色，而当前账号不具备。
+    PlatformRoleInsufficient,
 }
 
 impl DenyReason {
@@ -168,6 +199,7 @@ impl DenyReason {
         match self {
             Self::NoTenantContext => "no_tenant_context",
             Self::TenantRoleInsufficient => "tenant_role_insufficient",
+            Self::PlatformRoleInsufficient => "platform_role_insufficient",
         }
     }
 }
@@ -216,14 +248,25 @@ impl Denied {
 /// 判定 `principal` 是否有权执行 `permission`。
 #[must_use]
 pub fn authorize(principal: &Principal, permission: Permission) -> Decision {
-    let Some(membership) = principal.tenant() else {
-        return Decision::Deny(DenyReason::NoTenantContext);
-    };
+    match permission.resource().scope() {
+        Scope::Platform => {
+            if platform_role_allows(principal.platform_role(), permission) {
+                Decision::Allow
+            } else {
+                Decision::Deny(DenyReason::PlatformRoleInsufficient)
+            }
+        }
+        Scope::Tenant => {
+            let Some(membership) = principal.tenant() else {
+                return Decision::Deny(DenyReason::NoTenantContext);
+            };
 
-    if principal.is_platform_admin() || tenant_role_allows(membership.role(), permission) {
-        Decision::Allow
-    } else {
-        Decision::Deny(DenyReason::TenantRoleInsufficient)
+            if principal.is_platform_admin() || tenant_role_allows(membership.role(), permission) {
+                Decision::Allow
+            } else {
+                Decision::Deny(DenyReason::TenantRoleInsufficient)
+            }
+        }
     }
 }
 
@@ -236,6 +279,21 @@ pub fn require(principal: &Principal, permission: Permission) -> Result<(), Deni
         Decision::Allow => Ok(()),
         Decision::Deny(reason) => Err(Denied { permission, reason }),
     }
+}
+
+/// 平台角色策略表：平台级资源只由平台角色决定，与租户角色无关。
+///
+/// 约束：平台级资源默认对普通用户关闭；确需放开时（如「读自己的账号」）在这里显式加回。
+const fn platform_role_allows(role: PlatformRole, permission: Permission) -> bool {
+    let table: &[(Resource, Action)] = match role {
+        PlatformRole::Admin => &[
+            (Resource::Account, Action::Read),
+            (Resource::Account, Action::Manage),
+        ],
+        _ => &[],
+    };
+
+    table_allows(table, permission)
 }
 
 /// 租户角色策略表：角色 → 权限集合。
@@ -312,6 +370,11 @@ const fn tenant_role_allows(role: TenantRole, permission: Permission) -> bool {
         _ => &[],
     };
 
+    table_allows(table, permission)
+}
+
+/// 策略表求值：命中即放行。按判别值比较，避免两张枚举表的顺序耦合。
+const fn table_allows(table: &[(Resource, Action)], permission: Permission) -> bool {
     let mut index = 0;
     while index < table.len() {
         let (resource, action) = table[index];
@@ -348,6 +411,13 @@ mod tests {
         .is_allowed()
     }
 
+    /// 断言「已判定」：放行，或以 `expected` 原因拒绝。
+    fn assert_decided(decision: Decision, expected: DenyReason, context: &str) {
+        if let Decision::Deny(reason) = decision {
+            assert_eq!(reason, expected, "{context}");
+        }
+    }
+
     #[test]
     fn every_role_and_permission_combination_is_decided() {
         for role in TenantRole::all() {
@@ -357,12 +427,37 @@ mod tests {
                         &principal(*role, PlatformRole::User),
                         permission(*resource, *action),
                     );
-                    assert!(
-                        matches!(
-                            decision,
-                            Decision::Allow | Decision::Deny(DenyReason::TenantRoleInsufficient)
-                        ),
-                        "{role:?} {resource:?} {action:?} => {decision:?}"
+                    let expected = match resource.scope() {
+                        Scope::Platform => DenyReason::PlatformRoleInsufficient,
+                        Scope::Tenant => DenyReason::TenantRoleInsufficient,
+                    };
+                    assert_decided(
+                        decision,
+                        expected,
+                        &format!("{role:?} {resource:?} {action:?}"),
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn every_platform_role_and_permission_combination_is_decided() {
+        for role in PlatformRole::all() {
+            for resource in Resource::all() {
+                for action in Action::all() {
+                    let decision = authorize(
+                        &Principal::new(UserId::generate(), *role),
+                        permission(*resource, *action),
+                    );
+                    let expected = match resource.scope() {
+                        Scope::Platform => DenyReason::PlatformRoleInsufficient,
+                        Scope::Tenant => DenyReason::NoTenantContext,
+                    };
+                    assert_decided(
+                        decision,
+                        expected,
+                        &format!("{role:?} {resource:?} {action:?}"),
                     );
                 }
             }
@@ -431,6 +526,28 @@ mod tests {
     fn platform_admin_bypasses_tenant_role_within_a_tenant() {
         let principal = principal(TenantRole::Member, PlatformRole::Admin);
         assert!(authorize(&principal, permission(Resource::Tenant, Action::Manage)).is_allowed());
+    }
+
+    #[test]
+    fn platform_scope_ignores_tenant_membership() {
+        // 租户内最高角色也不能触碰平台级资源：作用域不同，策略不同。
+        let owner = principal(TenantRole::Owner, PlatformRole::User);
+
+        assert_eq!(
+            authorize(&owner, permission(Resource::Account, Action::Manage)),
+            Decision::Deny(DenyReason::PlatformRoleInsufficient)
+        );
+    }
+
+    #[test]
+    fn platform_scope_needs_no_tenant_context_and_does_not_leak_into_tenants() {
+        let admin = Principal::new(UserId::generate(), PlatformRole::Admin);
+
+        assert!(authorize(&admin, permission(Resource::Account, Action::Manage)).is_allowed());
+        assert_eq!(
+            authorize(&admin, permission(Resource::Asset, Action::Read)),
+            Decision::Deny(DenyReason::NoTenantContext)
+        );
     }
 
     #[test]

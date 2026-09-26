@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Result, web};
+use actix_web::{HttpRequest, HttpResponse, Result, web};
 
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::session::Session;
 use crate::interceptors::envelope::Envelope;
 use crate::services::auth::captcha::client_ip_from_request;
 use crate::services::auth::schema::{
@@ -13,8 +14,6 @@ use crate::services::auth::schema::{
     ResetPasswordP, SigninP, SignupP,
 };
 use crate::services::auth::service::AuthService;
-use crate::utils::jwt::Claims;
-use crate::utils::token::bearer;
 
 pub struct AuthController;
 
@@ -133,21 +132,19 @@ impl AuthController {
         http: HttpRequest,
         req: web::Json<PasswordP>,
     ) -> Result<HttpResponse> {
-        let Some(claims) = http.extensions().get::<Claims>().cloned() else {
+        let Some(session) = Session::of(&http) else {
             return Exception::unauthorized("用户未登录").transform();
         };
 
-        let Some(token) = bearer(http.headers()) else {
-            return Exception::unauthorized("用户未登录").transform();
-        };
+        let user_id = session.user_id().to_string();
 
         match AuthService::change_password(
             &db,
             &redis,
             &config,
-            &claims.sub,
-            &token,
-            claims.exp,
+            &user_id,
+            session.token(),
+            session.expires_at(),
             req.into_inner(),
         )
         .await
@@ -159,11 +156,11 @@ impl AuthController {
 
     /// 获取当前用户 profile
     pub async fn toRead(db: web::Data<Arc<Storage>>, http: HttpRequest) -> Result<HttpResponse> {
-        let Some(claims) = http.extensions().get::<Claims>().cloned() else {
+        let Some(session) = Session::of(&http) else {
             return Exception::unauthorized("用户未登录").transform();
         };
 
-        match AuthService::toRead(&db, &claims.sub).await {
+        match AuthService::toRead(&db, &session.user_id().to_string()).await {
             Ok(response) => Envelope::success(response, "获取个人信息成功").transform(),
             Err(err) => Exception::from(err).transform(),
         }
@@ -175,11 +172,11 @@ impl AuthController {
         http: HttpRequest,
         req: web::Json<ProfileP>,
     ) -> Result<HttpResponse> {
-        let Some(claims) = http.extensions().get::<Claims>().cloned() else {
+        let Some(session) = Session::of(&http) else {
             return Exception::unauthorized("用户未登录").transform();
         };
 
-        match AuthService::toUpdate(&db, &claims.sub, req.into_inner()).await {
+        match AuthService::toUpdate(&db, &session.user_id().to_string(), req.into_inner()).await {
             Ok(response) => Envelope::success(response, "更新个人信息成功").transform(),
             Err(err) => Exception::from(err).transform(),
         }
@@ -190,15 +187,11 @@ impl AuthController {
         redis: web::Data<Arc<RedisPool>>,
         http: HttpRequest,
     ) -> Result<HttpResponse> {
-        let Some(claims) = http.extensions().get::<Claims>().cloned() else {
+        let Some(session) = Session::of(&http) else {
             return Exception::unauthorized("用户未登录").transform();
         };
 
-        let Some(token) = bearer(http.headers()) else {
-            return Exception::unauthorized("用户未登录").transform();
-        };
-
-        match AuthService::signout(&redis, &token, claims.exp).await {
+        match AuthService::signout(&redis, session.token(), session.expires_at()).await {
             Ok(()) => Envelope::message_only("登出成功").transform(),
             Err(err) => Exception::from(err).transform(),
         }

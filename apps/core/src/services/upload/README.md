@@ -46,7 +46,7 @@
 
 全路由挂载 [`Auth::isRequired()`](../../guards/auth.rs)；其中 `GET /asset/{id}` 由 [`guards::public`](../../guards/public.rs) 放行匿名（可选 JWT）。
 
-`prepare` 从 JWT `Claims.sub` 写入 `asset.creator`；`visibility` 默认 `PRIVATE`。  
+`prepare` 从请求身份上下文 `Session` 的 `user_id()` 写入 `asset.creator`；`visibility` 默认 `PRIVATE`。  
 `chunk` / `hash` / `finalize` / `progress` / `cancel` 校验归属（仅创建者）。  
 `GET /files` 与按 hash 下载仍仅本人；`GET /asset/{id}`：`PUBLIC` 可匿名，其余按 ACL。  
 跨用户文件秒传会为命中用户克隆逻辑行（克隆默认 `PRIVATE`）。分片 CAS **全局**共享。
