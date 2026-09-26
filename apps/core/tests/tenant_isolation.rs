@@ -16,13 +16,16 @@ use std::time::Duration;
 
 use entity::consumed_event::ActiveModel as ConsumedEvent;
 use entity::outbox::ActiveModel as Outbox;
+use identity::{TenantId, UserId};
 use migration::MigratorTrait;
 use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::{
     ActiveModelTrait, ConnectOptions, ConnectionTrait, Database, DatabaseBackend,
     DatabaseConnection, DatabaseTransaction, QueryResult, Statement, TransactionTrait,
 };
-use service::databases::scope::{TENANT_SETTING, apply_tenant_scope};
+use service::databases::scope::{
+    TENANT_SETTING, USER_SETTING, apply_tenant_scope, apply_user_scope,
+};
 use service::utils::db::{is_row_security_violation, is_unique_violation};
 use tokio::sync::Mutex;
 use uuid::Uuid;
@@ -31,15 +34,20 @@ use uuid::Uuid;
 const APP_ROLE: &str = "core_app_test";
 
 /// 严格策略：只能看到本租户的行。
-const STRICT_TABLES: [&str; 7] = [
+const STRICT_TABLES: [&str; 6] = [
     "outbox",
     "gateway_audit",
     "gateway_usage",
     "payment_order",
     "sso_connection",
     "subscription",
-    "tenant_member",
 ];
+
+/// 双作用域表：租户作用域 ∪ 账号自读（`userID = app_current_user_id()`）。
+///
+/// 账号作用域下这几张表只放宽「读自己的行」：租户作用域未设时同样读空，
+/// 写入仍要求行落在当前租户作用域内，因此账号作用域是纯只读通道。
+const SELF_VISIBLE_TABLES: [&str; 2] = ["tenant", "tenant_member"];
 
 /// 目录表：`tenantID IS NULL` 表示内置全局行，对本租户只读可见。
 const CATALOG_TABLES: [&str; 2] = ["gateway_model", "gateway_provider"];
@@ -117,6 +125,8 @@ struct Fixture {
     uri: String,
     tenant_a: Uuid,
     tenant_b: Uuid,
+    user_a: Uuid,
+    user_b: Uuid,
 }
 
 /// 读取测试库地址；未配置或库名不合法时返回 `None`（调用方直接跳过）。
@@ -207,6 +217,20 @@ async fn app_tx(fixture: &Fixture) -> DatabaseTransaction {
     tx
 }
 
+/// 进入指定租户的作用域（RLS 策略读的就是它）。
+async fn scope_tenant<C: ConnectionTrait>(conn: &C, tenant: Uuid) {
+    apply_tenant_scope(conn, TenantId::from_uuid(tenant))
+        .await
+        .expect("设置租户作用域失败");
+}
+
+/// 进入账号作用域（跨租户只读自己）。
+async fn scope_user<C: ConnectionTrait>(conn: &C, user: Uuid) {
+    apply_user_scope(conn, UserId::from_uuid(user))
+        .await
+        .expect("设置账号作用域失败");
+}
+
 /// 重建库、建角色、授权、种数据；锁未持有时不得调用。
 async fn setup() -> Option<Fixture> {
     let uri = test_database_url()?;
@@ -250,6 +274,8 @@ async fn setup() -> Option<Fixture> {
         uri,
         tenant_a: Uuid::new_v4(),
         tenant_b: Uuid::new_v4(),
+        user_a: Uuid::new_v4(),
+        user_b: Uuid::new_v4(),
     };
     seed(&fixture).await;
     Some(fixture)
@@ -261,8 +287,8 @@ async fn seed(fixture: &Fixture) {
     let suffix = &suffix[..8];
 
     for (tag, tenant, user) in [
-        ("a", fixture.tenant_a, Uuid::new_v4()),
-        ("b", fixture.tenant_b, Uuid::new_v4()),
+        ("a", fixture.tenant_a, fixture.user_a),
+        ("b", fixture.tenant_b, fixture.user_b),
     ] {
         let admin = &fixture.admin;
         exec(
@@ -396,9 +422,7 @@ async fn scoped_reads_are_limited_to_the_current_tenant() {
     }
 
     let tx = app_tx(&fixture).await;
-    apply_tenant_scope(&tx, fixture.tenant_a)
-        .await
-        .expect("设置租户作用域失败");
+    scope_tenant(&tx, fixture.tenant_a).await;
     for (table, expected) in SCOPED_COUNTS {
         assert_eq!(
             count(&tx, &format!("SELECT count(*) FROM {table}")).await,
@@ -427,19 +451,19 @@ async fn unset_scope_reads_nothing() {
     let Some(fixture) = setup().await else { return };
 
     let tx = app_tx(&fixture).await;
-    // 作用域未设置时 `app_current_tenant_id()` 为 NULL，受保护的表全部读空（fail-closed）
-    for table in STRICT_TABLES.iter().chain(TEXT_TENANT_TABLES.iter()) {
+    // 作用域未设置时 `app_current_tenant_id()` / `app_current_user_id()` 均为 NULL，
+    // 受保护的表全部读空（fail-closed）
+    for table in STRICT_TABLES
+        .iter()
+        .chain(TEXT_TENANT_TABLES.iter())
+        .chain(SELF_VISIBLE_TABLES.iter())
+    {
         assert_eq!(
             count(&tx, &format!("SELECT count(*) FROM {table}")).await,
             0,
             "未设作用域时 {table} 不应可读"
         );
     }
-    assert_eq!(
-        count(&tx, "SELECT count(*) FROM tenant").await,
-        0,
-        "未设作用域时不应看到任何租户"
-    );
     // 目录表只暴露内置全局行
     for table in CATALOG_TABLES {
         assert_eq!(
@@ -452,14 +476,144 @@ async fn unset_scope_reads_nothing() {
 }
 
 #[tokio::test]
+async fn user_scope_reads_own_rows_only() {
+    let _guard = DB_LOCK.lock().await;
+    let Some(fixture) = setup().await else { return };
+
+    let tx = app_tx(&fixture).await;
+    scope_user(&tx, fixture.user_a).await;
+    assert_eq!(
+        scalar_text(&tx, "SELECT id::text FROM tenant").await,
+        fixture.tenant_a.to_string(),
+        "账号作用域只应看到自己加入的租户"
+    );
+    assert_eq!(
+        count(&tx, "SELECT count(*) FROM tenant_member").await,
+        1,
+        "账号作用域只应看到自己的成员行"
+    );
+    assert_eq!(
+        count(&tx, "SELECT count(*) FROM subscription").await,
+        0,
+        "账号作用域不放开租户内其他数据"
+    );
+    tx.rollback().await.expect("回滚失败");
+}
+
+#[tokio::test]
+async fn user_scope_cannot_write_tenant_data() {
+    let _guard = DB_LOCK.lock().await;
+    let Some(fixture) = setup().await else { return };
+
+    let tx = app_tx(&fixture).await;
+    scope_user(&tx, fixture.user_a).await;
+    let err = tx
+        .execute_unprepared(&format!(
+            r#"INSERT INTO tenant_member (id, "tenantID", "userID", role, "createdAt", "updatedAt")
+               VALUES ('{}', '{}', '{}', 'MEMBER', now(), now())"#,
+            Uuid::new_v4(),
+            fixture.tenant_a,
+            fixture.user_a
+        ))
+        .await
+        .err()
+        .expect("账号作用域不得写入租户数据");
+    assert!(
+        is_row_security_violation(&err),
+        "错误应被识别为 RLS 违规，实际：{err}"
+    );
+    tx.rollback().await.expect("回滚失败");
+}
+
+#[tokio::test]
+async fn new_tenant_is_created_inside_its_own_scope() {
+    let _guard = DB_LOCK.lock().await;
+    let Some(fixture) = setup().await else { return };
+
+    // 建租户的路径：作用域先指向尚不存在的新标识，租户与首条成员关系都落在它里面
+    let new_tenant = Uuid::new_v4();
+    let tx = app_tx(&fixture).await;
+    scope_tenant(&tx, new_tenant).await;
+    exec(
+        &tx,
+        &format!(
+            r#"INSERT INTO tenant (id, name, slug, "createdAt", "updatedAt")
+               VALUES ('{new_tenant}', '新建租户', 'scoped-{}', now(), now())"#,
+            &new_tenant.simple().to_string()[..8]
+        ),
+    )
+    .await;
+    exec(
+        &tx,
+        &format!(
+            r#"INSERT INTO tenant_member (id, "tenantID", "userID", role, "createdAt", "updatedAt")
+               VALUES ('{}', '{new_tenant}', '{}', 'OWNER', now(), now())"#,
+            Uuid::new_v4(),
+            fixture.user_a
+        ),
+    )
+    .await;
+    assert_eq!(
+        count(&tx, "SELECT count(*) FROM tenant").await,
+        1,
+        "新租户的作用域里只有它自己"
+    );
+    assert_eq!(
+        count(
+            &tx,
+            &format!(
+                r#"SELECT count(*) FROM tenant WHERE id = '{}'"#,
+                fixture.tenant_a
+            )
+        )
+        .await,
+        0,
+        "新租户的作用域里不应看到别的租户"
+    );
+    tx.rollback().await.expect("回滚失败");
+
+    assert_eq!(
+        count(
+            &fixture.admin,
+            &format!(r#"SELECT count(*) FROM tenant WHERE id = '{new_tenant}'"#)
+        )
+        .await,
+        0,
+        "回滚后不应留下没有所有者的租户"
+    );
+}
+
+#[tokio::test]
+async fn tenant_row_cannot_be_created_outside_its_scope() {
+    let _guard = DB_LOCK.lock().await;
+    let Some(fixture) = setup().await else { return };
+
+    let tx = app_tx(&fixture).await;
+    scope_tenant(&tx, fixture.tenant_a).await;
+    let err = tx
+        .execute_unprepared(&format!(
+            r#"INSERT INTO tenant (id, name, slug, "createdAt", "updatedAt")
+               VALUES ('{}', '伪造租户', 'forged-{}', now(), now())"#,
+            fixture.tenant_b,
+            Uuid::new_v4().simple()
+        ))
+        .await
+        .err()
+        .expect("不得在当前作用域外插入租户");
+    assert!(
+        is_row_security_violation(&err),
+        "错误应被识别为 RLS 违规，实际：{err}"
+    );
+    tx.rollback().await.expect("回滚失败");
+}
+
+#[tokio::test]
 async fn cross_tenant_insert_is_rejected() {
     let _guard = DB_LOCK.lock().await;
     let Some(fixture) = setup().await else { return };
 
     let tx = app_tx(&fixture).await;
-    apply_tenant_scope(&tx, fixture.tenant_a)
-        .await
-        .expect("设置租户作用域失败");
+    scope_tenant(&tx, fixture.tenant_a).await;
     let err = tx
         .execute_unprepared(&format!(
             r#"INSERT INTO subscription (id, "tenantID", plan, "createdAt", "updatedAt")
@@ -483,9 +637,7 @@ async fn tenant_cannot_write_global_catalog_rows() {
     let Some(fixture) = setup().await else { return };
 
     let tx = app_tx(&fixture).await;
-    apply_tenant_scope(&tx, fixture.tenant_a)
-        .await
-        .expect("设置租户作用域失败");
+    scope_tenant(&tx, fixture.tenant_a).await;
     let err = tx
         .execute_unprepared(&format!(
             r#"INSERT INTO gateway_provider (id, kind, name, "baseURL", "createdAt", "updatedAt", "tenantID")
@@ -508,9 +660,7 @@ async fn cross_tenant_update_affects_nothing() {
     let Some(fixture) = setup().await else { return };
 
     let tx = app_tx(&fixture).await;
-    apply_tenant_scope(&tx, fixture.tenant_a)
-        .await
-        .expect("设置租户作用域失败");
+    scope_tenant(&tx, fixture.tenant_a).await;
     let result = tx
         .execute_unprepared(&format!(
             r#"UPDATE subscription SET plan = 'ENTERPRISE' WHERE "tenantID" = '{}'"#,
@@ -541,9 +691,7 @@ async fn own_tenant_insert_succeeds() {
     let Some(fixture) = setup().await else { return };
 
     let tx = app_tx(&fixture).await;
-    apply_tenant_scope(&tx, fixture.tenant_a)
-        .await
-        .expect("设置租户作用域失败");
+    scope_tenant(&tx, fixture.tenant_a).await;
     // gateway_audit 是追加型表（无唯一约束），用它验证 `WITH CHECK` 对本租户放行
     let id = Uuid::new_v4();
     exec(
@@ -576,9 +724,8 @@ async fn scope_is_transaction_local() {
     let single = connect(&fixture.uri, 1).await;
     let tx = single.begin().await.expect("开启事务失败");
     exec(&tx, &format!("SET ROLE {APP_ROLE}")).await;
-    apply_tenant_scope(&tx, fixture.tenant_a)
-        .await
-        .expect("设置租户作用域失败");
+    scope_tenant(&tx, fixture.tenant_a).await;
+    scope_user(&tx, fixture.user_a).await;
     assert_eq!(
         count(&tx, "SELECT count(*) FROM subscription").await,
         1,
@@ -596,6 +743,15 @@ async fn scope_is_transaction_local() {
         .await,
         fixture.tenant_a.to_string(),
         "会话变量残留租户 ID 会导致池化连接串租户"
+    );
+    assert_ne!(
+        scalar_text(
+            &tx,
+            &format!("SELECT coalesce(current_setting('{USER_SETTING}', true), '<unset>')")
+        )
+        .await,
+        fixture.user_a.to_string(),
+        "会话变量残留用户 ID 会让租户成员表多出可见行"
     );
     assert_eq!(
         scalar_text(
@@ -722,9 +878,7 @@ async fn outbox_and_consumed_event_are_rebuildable() {
 
     // 用实体写入：验证字段映射、数据库分配的 seq、jsonb 负载往返、幂等键冲突可识别
     let tx = app_tx(&fixture).await;
-    apply_tenant_scope(&tx, fixture.tenant_a)
-        .await
-        .expect("设置租户作用域失败");
+    scope_tenant(&tx, fixture.tenant_a).await;
     let event_id = Uuid::new_v4();
     let row = Outbox {
         id: Set(event_id),

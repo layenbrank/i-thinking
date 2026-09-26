@@ -28,7 +28,17 @@ impl TenantRole {
         }
     }
 
+    /// 领域角色 → 契约角色。
+    ///
+    /// 两侧字面量一一对应；领域侧新增角色而这里没跟上时按最小权限（`MEMBER`）处理，
+    /// 不放大权限。
+    pub fn from_domain(role: identity::TenantRole) -> Self {
+        Self::parse(role.as_str()).unwrap_or(Self::Member)
+    }
+
     /// 能否管理租户（改租户/成员）
+    ///
+    /// 迁移遗留：新代码用 `authz` 判定权限，本方法只服务订阅 / 支付尚未迁走的分支。
     pub fn can_manage(self) -> bool {
         matches!(self, Self::Owner | Self::Admin)
     }

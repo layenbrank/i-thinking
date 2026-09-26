@@ -815,10 +815,15 @@ impl MigrationTrait for Migration {
 
         // ---------- 租户隔离（RLS） ----------
         // 隔离从"调用约定"下沉为数据库机制：应用角色即便漏传条件也拿不到别人的行。
-        manager
-            .get_connection()
-            .execute_unprepared(RLS_FUNCTION_SQL)
-            .await?;
+        for (function, setting) in [
+            ("app_current_tenant_id", TENANT_SETTING),
+            ("app_current_user_id", USER_SETTING),
+        ] {
+            manager
+                .get_connection()
+                .execute_unprepared(&scope_reader(function, setting))
+                .await?;
+        }
 
         // 严格隔离：只见本租户行；"tenantID" 为 NULL 的行不属于任何租户作用域
         for table in STRICT_TENANT_TABLES {
@@ -830,6 +835,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
         }
+
+        // 成员关系额外允许"只读自己"：未进入任何租户时，账号作用域仍能列出自己的成员关系
+        // （`/tenants` 需要它）；写入一律要求租户作用域。
+        enable_rls(
+            manager,
+            "tenant_member",
+            r#""tenantID" = app_current_tenant_id() OR "userID" = app_current_user_id()"#,
+            r#""tenantID" = app_current_tenant_id()"#,
+        )
+        .await?;
 
         // asset."tenantID" 是 text（历史列型），比较时显式转型
         enable_rls(
@@ -852,11 +867,17 @@ impl MigrationTrait for Migration {
             .await?;
         }
 
-        // tenant 自身按主键隔离：只能读写自己那一行，新建租户走特权连接
+        // tenant 自身按主键隔离：只能读写自己那一行；新建租户时作用域就是新租户 id，
+        // 因此插入能自洽通过 WITH CHECK（创建者随后在同一事务里补上 OWNER 成员行）。
+        // 额外允许"只读自己加入的租户"：账号作用域下可按 id 读回自己的租户行（列表页需要）。
         enable_rls(
             manager,
             "tenant",
-            "id = app_current_tenant_id()",
+            r#"id = app_current_tenant_id()
+               OR id IN (
+                   SELECT "tenantID" FROM tenant_member
+                   WHERE "userID" = app_current_user_id() AND status = 'ACTIVE'
+               )"#,
             "id = app_current_tenant_id()",
         )
         .await?;
@@ -891,22 +912,34 @@ impl MigrationTrait for Migration {
     }
 }
 
-/// `app.tenant_id` 的读取器：未设置或不是合法 uuid 时一律返回 `NULL`（fail-closed）。
+/// 会话级作用域变量名。
+///
+/// 必须与 `service::databases::scope` 的常量一致（迁移 crate 不能依赖 service）；
+/// 两边一旦漂移，隔离用例会立刻失败。
+const TENANT_SETTING: &str = "app.tenant_id";
+const USER_SETTING: &str = "app.user_id";
+
+/// 作用域的读取器：未设置或不是合法 uuid 时一律返回 `NULL`（fail-closed）。
+///
 /// `STABLE` 保证同语句内多次引用只求值一次，并允许调用方在事务内用
-/// `set_config('app.tenant_id', $1, true)` 设定作用域。
-const RLS_FUNCTION_SQL: &str = r#"CREATE OR REPLACE FUNCTION app_current_tenant_id() RETURNS uuid
+/// `set_config('<setting>', $1, true)` 设定作用域。
+fn scope_reader(function: &str, setting: &str) -> String {
+    format!(
+        r#"CREATE OR REPLACE FUNCTION {function}() RETURNS uuid
 LANGUAGE sql STABLE AS $fn$
     SELECT CASE
-        WHEN current_setting('app.tenant_id', true)
-             ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
-        THEN current_setting('app.tenant_id', true)::uuid
+        WHEN current_setting('{setting}', true)
+             ~ '^[0-9a-fA-F]{{8}}-[0-9a-fA-F]{{4}}-[0-9a-fA-F]{{4}}-[0-9a-fA-F]{{4}}-[0-9a-fA-F]{{12}}$'
+        THEN current_setting('{setting}', true)::uuid
         ELSE NULL
     END
-$fn$"#;
+$fn$"#
+    )
+}
 
 /// 严格按 `"tenantID" = app_current_tenant_id()` 隔离的表。
-const STRICT_TENANT_TABLES: [&str; 7] = [
-    "tenant_member",
+/// `tenant_member` 不在其中：它另有一条"只读自己"的策略，见 `up()`。
+const STRICT_TENANT_TABLES: [&str; 6] = [
     "subscription",
     "payment_order",
     "sso_connection",

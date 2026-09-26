@@ -27,8 +27,8 @@
 | GET    | `/api/v1/tenants`                       | JWT               | 我所属的租户                          |
 | POST   | `/api/v1/tenants`                       | JWT               | 创建租户（创建者自动成为 OWNER 成员） |
 | GET    | `/api/v1/tenants/{id}`                  | JWT + 成员        | 租户详情                              |
-| PUT    | `/api/v1/tenants/{id}`                  | JWT + OWNER/ADMIN | 更新名称 / 状态 / 类型                |
-| DELETE | `/api/v1/tenants/{id}`                  | JWT + OWNER/ADMIN | 删除租户                              |
+| PUT    | `/api/v1/tenants/{id}`                  | JWT + OWNER       | 更新名称 / 状态 / 类型                |
+| DELETE | `/api/v1/tenants/{id}`                  | JWT + OWNER       | 删除租户                              |
 | GET    | `/api/v1/tenants/{id}/members`          | JWT + 成员        | 成员列表                              |
 | POST   | `/api/v1/tenants/{id}/members`          | JWT + OWNER/ADMIN | 添加成员                              |
 | PUT    | `/api/v1/tenants/{id}/members/{userId}` | JWT + OWNER/ADMIN | 改成员角色 / 状态                     |
@@ -37,9 +37,17 @@
 ## 鉴权说明
 
 - 整个 scope 挂 `Auth::isRequired()`，未登录返回 `300001`。
-- 租户内角色 `TenantRole`：`OWNER` / `ADMIN` / `MEMBER`，`can_manage()` 仅前两者可改租户与成员。
-- 平台 ADMIN（库中平台角色为 `ADMIN`，即 `Session::is_platform_admin()`）经 `TenantService::require_role` 旁路，视为租户 ADMIN。
-- `require_role` / `membership_role` 是跨模块复用的公开入口（`subscription`、`gateway` 都调用）。
+- 租户作用域由 [`TenantCtx`](../../guards/tenant.rs) 建立：先开 `app.tenant_id` 作用域事务，再在作用域内读成员关系；
+  读不到即「不是成员」（`300007`，HTTP 403）。
+- 平台 ADMIN（库中平台角色为 `ADMIN`，即 `Session::is_platform_admin()`）不要求成员身份即可进入（运维通道），
+  此时上下文的租户角色为空，`authz` 依平台角色放行，越过成员关系的那一步须在业务侧留审计。
+- 权限判定一律交给 `authz`（`Resource::Tenant` / `Resource::Member`）：租户改名/删除只允许 **OWNER**，
+  成员增删改允许 **OWNER/ADMIN**，其余为读。
+- 跨模块复用入口：`TenantService::require_role` / `membership_role`（`subscription`、`payment`、`gateway` 调用）。
+  平台管理员经 `platform_operator_role()` 呈现为租户 ADMIN。
+- 已知策略缺口（不在本步修复）：`update_member` 是资源/动作级判定而非取值级，因此 **ADMIN 可以把自己提升为 OWNER**；
+  收紧需要在策略层引入「目标角色不得高于自身」的取值约束。
+- 作用域之外的租户一律按「不存在」处理（`400001`，HTTP 404）：`update` / `remove` 不再出现静默成功的空操作。
 
 ## 数据表
 
@@ -56,22 +64,25 @@
 TenantModule::configure
   └── scope("/tenants") .wrap(Auth::isRequired())
         ├── configure(SubscriptionModule::configure)   # 订阅 / 配额，注册相对路径的 web::resource
-        └── TenantController → TenantService
-              ├── create / list / get / update / remove
-              ├── list_members / add_member / update_member / remove_member
-              └── require_role / membership_role     # 被 subscription、gateway 复用
-                    └── 读写 tenant / tenant_member
+        └── TenantController
+              ├── TenantCtx::open_new → 建租户（作用域 = 新租户）
+              ├── TenantCtx::enter    → 已有租户（作用域内读成员关系 → Principal）
+              └── TenantService            # 无作用域、无鉴权：只做 HTTP 语义与错误码映射
+                    ├── create / list / get / update / remove
+                    ├── list_members / add_member / update_member / remove_member
+                    ├── require_role / membership_role     # 被 subscription、payment、gateway 复用
+                    └── identity::tenant::*                # 领域写入（事务都由 TenantCtx 提供）
 ```
 
 ## 错误码
 
-| code   | 场景                               |
-| ------ | ---------------------------------- |
-| 200003 | 名称/slug 非法、状态或租户类型无效 |
-| 300001 | 未登录                             |
-| 300006 | 权限不足（非 OWNER/ADMIN）         |
-| 300007 | 非租户成员                         |
-| 400001 | 租户不存在                         |
-| 400002 | slug 已存在、该用户已是成员        |
-| 500101 | 待添加的用户不存在                 |
-| 600001 | 数据库错误                         |
+| code   | 场景                                     |
+| ------ | ---------------------------------------- |
+| 200003 | 名称/slug 非法、状态或租户类型无效、用户 ID 非法 |
+| 300001 | 未登录                                   |
+| 300006 | 权限不足（租户改名/删除需 OWNER，成员写入需 OWNER/ADMIN） |
+| 300007 | 非租户成员                               |
+| 400001 | 租户不存在（含作用域之外的租户，HTTP 404） |
+| 400002 | slug 已存在、该用户已是成员（HTTP 409）  |
+| 500101 | 待添加的用户不存在                       |
+| 600001 | 数据库错误（含成员角色字面量无法识别）   |

@@ -45,8 +45,9 @@
 ## 鉴权说明
 
 - 中间件 `Auth::isRequired()` 挂在整个 scope 上，未登录直接 401 类。
-- 列表要求调用者是该租户 **ACTIVE 成员**；开通与取消要求租户内角色为 **OWNER / ADMIN**（`TenantRole::can_manage`）。
+- 列表要求调用者是该租户 **ACTIVE 成员**；开通与取消要求租户内角色为 **OWNER / ADMIN**。
 - 平台 ADMIN（库中平台角色为 `ADMIN`，即 `Session::is_platform_admin()`）走 `TenantService::require_role` 的旁路，视为租户 ADMIN。
+- `require_role` 是**迁移期垫层**：内部已改为「`membership_role` 读成员关系 + `authz` 判权限」，本模块迁到 `TenantCtx` 后即删除。
 - 非成员返回 `300006`（权限不足），未登录返回 `300001`。
 
 ## 数据表
@@ -109,7 +110,7 @@ TenantModule 的 scope("/tenants")        # src/services/tenant/module.rs（Auth
         └── resource("/{id}/quota")                          GET  ""  → SubscriptionController::quota
               └── SubscriptionService        # src/services/subscription/service.rs
                     ├── require_member / require_manage
-                    │     └── TenantService::require_role   # 跨模块复用（tenant 拥有该领域）
+                    │     └── TenantService::require_role   # 跨模块复用；迁移期垫层（内部走 authz + 成员关系）
                     ├── subscribe       → 自助入口：require_manage + 自助规则校验 → grant
                     ├── grant           → 可信通道：作废旧 ACTIVE 订阅 + 插入新订阅（事务，调用方负责鉴权）
                     ├── ensure_self_service_allowed → 已定价档位（amount > 0）禁止自助开通（500408）

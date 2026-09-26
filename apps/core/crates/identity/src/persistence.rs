@@ -7,8 +7,7 @@ use entity::{auth, tenant_member};
 use sea_orm::{ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter};
 
 use crate::{
-    Account, AccountStatus, PlatformRole, TenantId, TenantMembership, TenantRole, UnknownRole,
-    UserId,
+    Account, AccountStatus, PlatformRole, TenantContext, TenantId, TenantRole, UnknownRole, UserId,
 };
 
 /// 身份读写的失败原因。
@@ -47,7 +46,7 @@ pub async fn membership<C: ConnectionTrait>(
     conn: &C,
     tenant: TenantId,
     user: UserId,
-) -> Result<Option<TenantMembership>, PersistError> {
+) -> Result<Option<TenantContext>, PersistError> {
     let model = tenant_member::Entity::find()
         .filter(tenant_member::Column::TenantId.eq(tenant.as_uuid()))
         .filter(tenant_member::Column::UserId.eq(user.as_uuid()))
@@ -67,8 +66,8 @@ fn account_from_model(model: auth::Model) -> Result<Account, PersistError> {
     ))
 }
 
-fn membership_from_model(model: tenant_member::Model) -> Result<TenantMembership, PersistError> {
-    Ok(TenantMembership::new(
+fn membership_from_model(model: tenant_member::Model) -> Result<TenantContext, PersistError> {
+    Ok(TenantContext::member(
         TenantId::from_uuid(model.tenant_id),
         tenant_role_of(&model.role)?,
     ))
@@ -81,21 +80,22 @@ fn platform_role_of(literal: &str) -> Result<PlatformRole, PersistError> {
         .map_err(|err| unknown("auth.role", err))
 }
 
-/// `auth.status` → 账号状态。
-fn account_status_of(literal: &str) -> Result<AccountStatus, PersistError> {
+/// `auth.status` / `tenant.status` / `tenant_member.status` → 状态。
+pub(crate) fn account_status_of(literal: &str) -> Result<AccountStatus, PersistError> {
     literal
         .parse::<AccountStatus>()
         .map_err(|err| unknown("auth.status", err))
 }
 
 /// `tenant_member.role` → 租户内角色。
-fn tenant_role_of(literal: &str) -> Result<TenantRole, PersistError> {
+pub(crate) fn tenant_role_of(literal: &str) -> Result<TenantRole, PersistError> {
     literal
         .parse::<TenantRole>()
         .map_err(|err| unknown("tenant_member.role", err))
 }
 
-fn unknown(column: &'static str, err: UnknownRole) -> PersistError {
+/// 把解析失败包装成带列名的持久化错误。
+pub(crate) fn unknown(column: &'static str, err: UnknownRole) -> PersistError {
     PersistError::UnknownLiteral {
         column,
         literal: err.as_str().to_owned(),
@@ -111,10 +111,7 @@ mod tests {
         assert_eq!(platform_role_of("ADMIN").unwrap(), PlatformRole::Admin);
         assert_eq!(platform_role_of("user").unwrap(), PlatformRole::User);
         assert_eq!(tenant_role_of("OWNER").unwrap(), TenantRole::Owner);
-        assert_eq!(
-            account_status_of("ACTIVE").unwrap(),
-            AccountStatus::Active
-        );
+        assert_eq!(account_status_of("ACTIVE").unwrap(), AccountStatus::Active);
     }
 
     #[test]

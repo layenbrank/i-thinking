@@ -229,25 +229,37 @@ Entity：[`entity/src/sso_connection.rs`](../entity/src/sso_connection.rs)
 
 带租户列的业务表由 PostgreSQL **行级安全（RLS）** 兜底：即使某条 SQL 漏写 `WHERE "tenantID" = ?`，也读不到别的租户的行。
 
-- 判定函数 `app_current_tenant_id()`：读取会话变量 `app.tenant_id`；未设置、或值不是合法 uuid 时返回 `NULL`
+- 判定函数 `app_current_tenant_id()` / `app_current_user_id()`：分别读取会话变量 `app.tenant_id` / `app.user_id`；
+  未设置、或值不是合法 uuid 时一律返回 `NULL`（fail-closed）
 - 策略名统一为 `tenant_isolation`，`USING` 与 `WITH CHECK` 用同一表达式，所以**没有作用域时写入同样被拒**
 - 逐表 `ENABLE` + `FORCE ROW LEVEL SECURITY`：`FORCE` 让**表属主**也受约束，单账号直连部署下不会失效；
   代价是**连接账号不得是超级用户，也不得带 `BYPASSRLS`**，否则 RLS 形同虚设
-- 作用域是**事务局部**的：`set_config('app.tenant_id', $1, true)`（第三个参数 `true` = 只在本事务生效），
+- 作用域是**事务局部**的：`set_config('app.tenant_id' | 'app.user_id', $1, true)`（第三个参数 `true` = 只在本事务生效），
   提交/回滚后自动失效，不会残留在池化连接上串到下一个请求
 
 | 表 | 判定依据 |
 | --- | --- |
-| tenant | `id = app_current_tenant_id()`（自作用域） |
-| tenant_member / subscription / payment_order / sso_connection / gateway_usage / gateway_audit / outbox | `"tenantID" = app_current_tenant_id()` |
+| tenant | 读：`id = app_current_tenant_id()`，或 `id` 属于「我（`app_current_user_id()`）的 ACTIVE 成员行」；写：只允许 `id = app_current_tenant_id()` |
+| tenant_member | 读：`"tenantID" = app_current_tenant_id() OR "userID" = app_current_user_id()`（账号作用域下只列出自己的成员关系）；写：只允许本租户 |
+| subscription / payment_order / sso_connection / gateway_usage / gateway_audit / outbox | `"tenantID" = app_current_tenant_id()` |
 | asset | `"tenantID" = app_current_tenant_id()::text`（该列是 text，显式转型） |
 | gateway_provider / gateway_model | 读：`"tenantID" IS NULL OR "tenantID" = app_current_tenant_id()`（保留全局目录行）；写：只允许本租户 |
 | auth / chunk | **无 RLS**：账号是全局身份；chunk 没有租户列，隔离经 asset 传递 |
 
-Rust 侧入口是 [`src/databases/scope.rs`](../src/databases/scope.rs) 的 `Storage::tenant_tx` / `apply_tenant_scope`：
-开一个事务、设好作用域，之后的读写都复用这条事务，业务代码不必再逐条手写租户条件。
+Rust 侧分两层：
+
+- [`src/databases/scope.rs`](../src/databases/scope.rs) 提供机制：`Storage::tenant_tx` / `user_tx` 开一个事务并设好对应作用域
+  （`apply_tenant_scope` / `apply_user_scope`），之后的读写复用这条事务，业务代码不必再逐条手写租户条件。
+- [`src/guards/tenant.rs`](../src/guards/tenant.rs) 的 `TenantCtx` 是**业务代码进入租户作用域的唯一入口**：
+  `enter` 先开作用域事务、再在作用域内读成员关系（读不到即「不是成员」；平台管理员例外，属运维通道，须在业务侧留审计），
+  之后 handler 只用 `ctx.tx()` 读写、用 `ctx.require(..)` 判权限、用 `ctx.commit()` 收尾。
+  建租户走 `open_new`：作用域指向尚未落库的新租户 id，`tenant` / `tenant_member` 的写策略自约束在这个作用域内，
+  因此**建租户不再需要特权连接**。
+- 账号作用域（`user_tx`）只服务「列出我所属的租户」这类跨租户只读，不参与租户内业务。
+- 成员关系读取（`identity::persistence::membership`）只在作用域事务内调用；`tenant_member.role` 字面量无法识别时报错而非降级。
+
 跨租户写入会以 SQLSTATE `42501` 失败，用 [`src/utils/db.rs`](../src/utils/db.rs) 的 `is_row_security_violation` 判别。
-需要跨租户的系统任务（建租户、全局目录、事件发布器）用独立的高权限连接，不靠放宽策略。
+仍需特权连接的系统任务只剩迁移、全局目录行与 outbox 发布器，不靠放宽策略。
 
 端到端验证见 [`tests/tenant_isolation.rs`](../tests/tenant_isolation.rs)：库名必须含 `test`（防误连生产），
 未设置 `TEST_DATABASE_URL` 时整个文件跳过。

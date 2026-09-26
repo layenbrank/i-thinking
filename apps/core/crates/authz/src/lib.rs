@@ -9,7 +9,8 @@
 //!    - 租户级：必须已选定租户（与 RLS 的 `app.tenant_id` 一致），
 //!      缺失即拒绝（`NoTenantContext`，平台管理员也不例外）；
 //! 2. 租户级资源：平台管理员 → 放行（运维通道，调用方必须留审计记录）；
-//! 3. 否则查角色策略表，命中即放行，未命中即拒绝。
+//! 3. 否则查角色策略表（上下文里的租户角色可能为空：已进入作用域但无成员身份，
+//!    此时一律拒绝），命中即放行，未命中即拒绝。
 //!
 //! 迁移点：策略表的形状是「角色 → 权限集合」。将来出现资源共享、组织树、
 //! 代理授权等关系型需求时，替换本 crate 内部的求值即可（ReBAC），调用方无感。
@@ -257,14 +258,18 @@ pub fn authorize(principal: &Principal, permission: Permission) -> Decision {
             }
         }
         Scope::Tenant => {
-            let Some(membership) = principal.tenant() else {
+            let Some(context) = principal.tenant() else {
                 return Decision::Deny(DenyReason::NoTenantContext);
             };
 
-            if principal.is_platform_admin() || tenant_role_allows(membership.role(), permission) {
-                Decision::Allow
-            } else {
-                Decision::Deny(DenyReason::TenantRoleInsufficient)
+            // 平台管理员走运维通道，不要求成员身份（上下文里 `role` 可能为空）。
+            if principal.is_platform_admin() {
+                return Decision::Allow;
+            }
+
+            match context.role() {
+                Some(role) if tenant_role_allows(role, permission) => Decision::Allow,
+                _ => Decision::Deny(DenyReason::TenantRoleInsufficient),
             }
         }
     }
@@ -390,13 +395,13 @@ const fn table_allows(table: &[(Resource, Action)], permission: Permission) -> b
 
 #[cfg(test)]
 mod tests {
-    use identity::{PlatformRole, TenantId, TenantMembership, UserId};
+    use identity::{PlatformRole, TenantContext, TenantId, UserId};
 
     use super::*;
 
     fn principal(role: TenantRole, platform_role: PlatformRole) -> Principal {
         Principal::new(UserId::generate(), platform_role)
-            .with_tenant(TenantMembership::new(TenantId::generate(), role))
+            .with_tenant(TenantContext::member(TenantId::generate(), role))
     }
 
     fn permission(resource: Resource, action: Action) -> Permission {
@@ -526,6 +531,27 @@ mod tests {
     fn platform_admin_bypasses_tenant_role_within_a_tenant() {
         let principal = principal(TenantRole::Member, PlatformRole::Admin);
         assert!(authorize(&principal, permission(Resource::Tenant, Action::Manage)).is_allowed());
+    }
+
+    #[test]
+    fn platform_admin_needs_no_membership_to_reach_a_tenant() {
+        // 运维通道：进入作用域但无成员身份（`role` 为空）仍放行。
+        let admin = Principal::new(UserId::generate(), PlatformRole::Admin)
+            .with_tenant(TenantContext::new(TenantId::generate()));
+
+        assert!(authorize(&admin, permission(Resource::Tenant, Action::Manage)).is_allowed());
+    }
+
+    #[test]
+    fn tenant_context_without_role_cannot_use_role_policies() {
+        // 非平台管理员即使进入了作用域，没有成员身份也一样拒绝。
+        let outsider = Principal::new(UserId::generate(), PlatformRole::User)
+            .with_tenant(TenantContext::new(TenantId::generate()));
+
+        assert_eq!(
+            authorize(&outsider, permission(Resource::Tenant, Action::Read)),
+            Decision::Deny(DenyReason::TenantRoleInsufficient)
+        );
     }
 
     #[test]

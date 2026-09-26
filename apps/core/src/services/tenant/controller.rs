@@ -1,11 +1,17 @@
+//! `/tenants` 的 HTTP 入口。
+//!
+//! 每个 Handler 只做三件事：取会话、进入租户作用域（[`TenantCtx`]）、把结果交给信封。
+//! 权限判定不在这一层，业务也不在这一层。
+
 use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, Result, web};
-use uuid::Uuid;
+use identity::{TenantId, UserId};
 
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
 use crate::guards::session::Session;
+use crate::guards::tenant::TenantCtx;
 use crate::interceptors::envelope::Envelope;
 use crate::services::tenant::schema::{MemberUpdateP, MemberWriteP, TenantUpdateP, TenantWriteP};
 use crate::services::tenant::service::TenantService;
@@ -13,22 +19,29 @@ use crate::services::tenant::service::TenantService;
 pub struct TenantController;
 
 impl TenantController {
+    /// 我参与的有效成员关系覆盖到的租户；账号级，不需要选定租户。
     pub async fn toList(db: web::Data<Arc<Storage>>, http: HttpRequest) -> Result<HttpResponse> {
-        let (user_id, _) = identity(&http)?;
-        match TenantService::list(&db, user_id).await {
+        let session = session(&http)?;
+        match TenantService::list(&db, &session).await {
             Ok(items) => Envelope::success(items, "获取租户列表成功").transform(),
             Err(err) => Exception::from(err).transform(),
         }
     }
 
+    /// 新建租户：作用域先指向新标识，调用者随成为它的 Owner。
     pub async fn toWrite(
         db: web::Data<Arc<Storage>>,
         http: HttpRequest,
         req: web::Json<TenantWriteP>,
     ) -> Result<HttpResponse> {
-        let (user_id, _) = identity(&http)?;
-        match TenantService::create(&db, user_id, req.into_inner()).await {
-            Ok(item) => Envelope::write(item).transform(),
+        let session = session(&http)?;
+        let ctx = TenantCtx::open_new(&db, &session, TenantId::generate()).await?;
+
+        match TenantService::create(&ctx, req.into_inner()).await {
+            Ok(item) => {
+                ctx.commit().await?;
+                Envelope::write(item).transform()
+            }
             Err(err) => Exception::from(err).transform(),
         }
     }
@@ -38,9 +51,10 @@ impl TenantController {
         http: HttpRequest,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
-        let tenant_id = parse_id(&path.into_inner())?;
-        match TenantService::get(&db, user_id, tenant_id, admin).await {
+        let session = session(&http)?;
+        let ctx = enter(&db, &session, &path.into_inner()).await?;
+
+        match TenantService::get(&ctx).await {
             Ok(item) => Envelope::success(item, "获取租户成功").transform(),
             Err(err) => Exception::from(err).transform(),
         }
@@ -52,10 +66,14 @@ impl TenantController {
         path: web::Path<String>,
         req: web::Json<TenantUpdateP>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
-        let tenant_id = parse_id(&path.into_inner())?;
-        match TenantService::update(&db, user_id, tenant_id, admin, req.into_inner()).await {
-            Ok(item) => Envelope::success(item, "更新租户成功").transform(),
+        let session = session(&http)?;
+        let ctx = enter(&db, &session, &path.into_inner()).await?;
+
+        match TenantService::update(&ctx, req.into_inner()).await {
+            Ok(item) => {
+                ctx.commit().await?;
+                Envelope::success(item, "更新租户成功").transform()
+            }
             Err(err) => Exception::from(err).transform(),
         }
     }
@@ -65,10 +83,14 @@ impl TenantController {
         http: HttpRequest,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
-        let tenant_id = parse_id(&path.into_inner())?;
-        match TenantService::remove(&db, user_id, tenant_id, admin).await {
-            Ok(()) => Envelope::message_only("删除租户成功").transform(),
+        let session = session(&http)?;
+        let ctx = enter(&db, &session, &path.into_inner()).await?;
+
+        match TenantService::remove(&ctx).await {
+            Ok(()) => {
+                ctx.commit().await?;
+                Envelope::message_only("删除租户成功").transform()
+            }
             Err(err) => Exception::from(err).transform(),
         }
     }
@@ -78,9 +100,10 @@ impl TenantController {
         http: HttpRequest,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
-        let tenant_id = parse_id(&path.into_inner())?;
-        match TenantService::list_members(&db, user_id, tenant_id, admin).await {
+        let session = session(&http)?;
+        let ctx = enter(&db, &session, &path.into_inner()).await?;
+
+        match TenantService::list_members(&ctx).await {
             Ok(items) => Envelope::success(items, "获取成员列表成功").transform(),
             Err(err) => Exception::from(err).transform(),
         }
@@ -92,10 +115,14 @@ impl TenantController {
         path: web::Path<String>,
         req: web::Json<MemberWriteP>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
-        let tenant_id = parse_id(&path.into_inner())?;
-        match TenantService::add_member(&db, user_id, tenant_id, admin, req.into_inner()).await {
-            Ok(item) => Envelope::write(item).transform(),
+        let session = session(&http)?;
+        let ctx = enter(&db, &session, &path.into_inner()).await?;
+
+        match TenantService::add_member(&ctx, req.into_inner()).await {
+            Ok(item) => {
+                ctx.commit().await?;
+                Envelope::write(item).transform()
+            }
             Err(err) => Exception::from(err).transform(),
         }
     }
@@ -106,21 +133,16 @@ impl TenantController {
         path: web::Path<(String, String)>,
         req: web::Json<MemberUpdateP>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
+        let session = session(&http)?;
         let (tenant_raw, member_raw) = path.into_inner();
-        let tenant_id = parse_id(&tenant_raw)?;
-        let member_user = parse_id(&member_raw)?;
-        match TenantService::update_member(
-            &db,
-            user_id,
-            tenant_id,
-            member_user,
-            admin,
-            req.into_inner(),
-        )
-        .await
-        {
-            Ok(item) => Envelope::success(item, "更新成员成功").transform(),
+        let ctx = enter(&db, &session, &tenant_raw).await?;
+        let member = parse_user_id(&member_raw)?;
+
+        match TenantService::update_member(&ctx, member, req.into_inner()).await {
+            Ok(item) => {
+                ctx.commit().await?;
+                Envelope::success(item, "更新成员成功").transform()
+            }
             Err(err) => Exception::from(err).transform(),
         }
     }
@@ -130,23 +152,38 @@ impl TenantController {
         http: HttpRequest,
         path: web::Path<(String, String)>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
+        let session = session(&http)?;
         let (tenant_raw, member_raw) = path.into_inner();
-        let tenant_id = parse_id(&tenant_raw)?;
-        let member_user = parse_id(&member_raw)?;
-        match TenantService::remove_member(&db, user_id, tenant_id, member_user, admin).await {
-            Ok(()) => Envelope::message_only("移除成员成功").transform(),
+        let ctx = enter(&db, &session, &tenant_raw).await?;
+        let member = parse_user_id(&member_raw)?;
+
+        match TenantService::remove_member(&ctx, member).await {
+            Ok(()) => {
+                ctx.commit().await?;
+                Envelope::message_only("移除成员成功").transform()
+            }
             Err(err) => Exception::from(err).transform(),
         }
     }
 }
 
-fn identity(http: &HttpRequest) -> Result<(Uuid, bool), Exception> {
-    let session = Session::of(http).ok_or_else(|| Exception::unauthorized("用户未登录"))?;
-
-    Ok((session.user_id().as_uuid(), session.is_platform_admin()))
+/// 已确认的请求会话；未认证即 401。
+fn session(http: &HttpRequest) -> Result<Session, Exception> {
+    Session::of(http).ok_or_else(|| Exception::unauthorized("用户未登录"))
 }
 
-fn parse_id(value: &str) -> Result<Uuid, Exception> {
-    Uuid::parse_str(value).map_err(|_| Exception::bad_request("ID 格式无效"))
+/// 进入路径上的租户作用域（内含「是不是成员」的判定）。
+async fn enter(db: &Storage, session: &Session, tenant_raw: &str) -> Result<TenantCtx, Exception> {
+    let tenant = tenant_raw
+        .parse::<TenantId>()
+        .map_err(|_| Exception::bad_request("ID 格式无效"))?;
+
+    TenantCtx::enter(db, session, tenant).await
+}
+
+/// 路径里的成员账号标识。
+fn parse_user_id(value: &str) -> Result<UserId, Exception> {
+    value
+        .parse::<UserId>()
+        .map_err(|_| Exception::bad_request("ID 格式无效"))
 }

@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 pub mod account;
 pub mod persistence;
+pub mod tenant;
 
 pub use account::{Account, AccountStatus};
 pub use persistence::PersistError;
@@ -214,29 +215,59 @@ impl fmt::Display for TenantRole {
     }
 }
 
+/// 运维通道下平台管理员在租户内的等效角色：租户管理员。
+///
+/// 只是给「按角色判断」的老调用方一个字面量，运维放行的依据始终是平台角色
+/// （`authz` 在已选定租户上下文时依平台角色放行，见 `crates/authz`）。
+#[must_use]
+pub const fn platform_operator_role() -> TenantRole {
+    TenantRole::Admin
+}
+
 /// 一次请求的身份上下文：账号 + 平台角色 + 当前租户与租户内角色。
 ///
-/// 由调用方在认证阶段构造，之后只读传递；`tenant_id` / `tenant_role` 同时为 `None`
-/// 表示「未进入任何租户上下文」，此时租户内权限一律拒绝。
+/// 由调用方在认证阶段构造，之后只读传递；`tenant()` 为 `None` 表示「未进入任何租户
+/// 上下文」，此时租户内权限一律拒绝。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Principal {
     user_id: UserId,
     platform_role: PlatformRole,
-    tenant: Option<TenantMembership>,
+    tenant: Option<TenantContext>,
 }
 
-/// 当前租户上下文。
+/// 当前租户上下文：作用域与租户内角色解耦。
+///
+/// `role` 为 `None` 表示「已进入租户作用域但没有成员身份」，只有平台角色持有者会走到
+/// 这个状态（运维通道）；权限判定由 `authz` 依据平台角色另行放行。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TenantMembership {
+pub struct TenantContext {
     tenant_id: TenantId,
-    role: TenantRole,
+    role: Option<TenantRole>,
 }
 
-impl TenantMembership {
-    /// 以租户与租户内角色构造。
+impl TenantContext {
+    /// 仅作用域，无成员身份（平台运维通道）。
     #[must_use]
-    pub const fn new(tenant_id: TenantId, role: TenantRole) -> Self {
-        Self { tenant_id, role }
+    pub const fn new(tenant_id: TenantId) -> Self {
+        Self {
+            tenant_id,
+            role: None,
+        }
+    }
+
+    /// 带租户内成员角色的上下文。
+    #[must_use]
+    pub const fn member(tenant_id: TenantId, role: TenantRole) -> Self {
+        Self {
+            tenant_id,
+            role: Some(role),
+        }
+    }
+
+    /// 租户创建者的上下文：新建租户时调用者即为它的 Owner。
+    #[must_use]
+    pub const fn owner(tenant_id: TenantId) -> Self {
+        Self::member(tenant_id, TenantRole::Owner)
     }
 
     /// 租户标识。
@@ -245,10 +276,16 @@ impl TenantMembership {
         self.tenant_id
     }
 
-    /// 租户内角色。
+    /// 租户内角色（无成员身份时为 `None`）。
     #[must_use]
-    pub const fn role(&self) -> TenantRole {
+    pub const fn role(&self) -> Option<TenantRole> {
         self.role
+    }
+
+    /// 是否持有该租户的成员身份。
+    #[must_use]
+    pub const fn is_member(&self) -> bool {
+        self.role.is_some()
     }
 }
 
@@ -265,8 +302,8 @@ impl Principal {
 
     /// 追加当前租户上下文。
     #[must_use]
-    pub const fn with_tenant(mut self, membership: TenantMembership) -> Self {
-        self.tenant = Some(membership);
+    pub const fn with_tenant(mut self, tenant: TenantContext) -> Self {
+        self.tenant = Some(tenant);
         self
     }
 
@@ -284,7 +321,7 @@ impl Principal {
 
     /// 当前租户（未选择租户时为 `None`）。
     #[must_use]
-    pub const fn tenant(&self) -> Option<TenantMembership> {
+    pub const fn tenant(&self) -> Option<TenantContext> {
         self.tenant
     }
 
@@ -292,16 +329,16 @@ impl Principal {
     #[must_use]
     pub const fn tenant_id(&self) -> Option<TenantId> {
         match self.tenant {
-            Some(membership) => Some(membership.tenant_id),
+            Some(context) => Some(context.tenant_id),
             None => None,
         }
     }
 
-    /// 当前租户内的角色。
+    /// 当前租户内的角色（进入作用域但无成员身份时为 `None`）。
     #[must_use]
     pub const fn tenant_role(&self) -> Option<TenantRole> {
         match self.tenant {
-            Some(membership) => Some(membership.role),
+            Some(context) => context.role,
             None => None,
         }
     }
@@ -353,10 +390,27 @@ mod tests {
     fn principal_carries_tenant_membership() {
         let tenant_id = TenantId::generate();
         let principal = Principal::new(UserId::generate(), PlatformRole::User)
-            .with_tenant(TenantMembership::new(tenant_id, TenantRole::Owner));
+            .with_tenant(TenantContext::member(tenant_id, TenantRole::Owner));
 
         assert_eq!(principal.tenant_id(), Some(tenant_id));
         assert_eq!(principal.tenant_role(), Some(TenantRole::Owner));
+        assert!(
+            principal
+                .tenant()
+                .is_some_and(|context| context.is_member())
+        );
+    }
+
+    #[test]
+    fn tenant_context_without_membership_has_no_role() {
+        let tenant_id = TenantId::generate();
+        let principal = Principal::new(UserId::generate(), PlatformRole::Admin)
+            .with_tenant(TenantContext::new(tenant_id));
+
+        assert_eq!(principal.tenant_id(), Some(tenant_id));
+        assert_eq!(principal.tenant_role(), None);
+        assert!(!principal.tenant().unwrap().is_member());
+        assert!(principal.is_platform_admin());
     }
 
     #[test]

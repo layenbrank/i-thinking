@@ -15,12 +15,15 @@
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use actix_web::http::StatusCode;
 use authz::{Action, Decision, DenyReason, Permission, Resource};
 use identity::{PersistError, PlatformRole, TenantId, TenantRole, UserId, persistence};
 use migration::MigratorTrait;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend, DatabaseConnection};
 use service::databases::database::Storage;
 use service::guards::session::{Session, SessionError};
+use service::guards::tenant::TenantCtx;
+use service::utils::code::auth;
 use service::utils::jwt::Claims;
 use tokio::sync::Mutex;
 use uuid::Uuid;
@@ -340,12 +343,12 @@ async fn membership_is_only_visible_inside_its_tenant_scope() {
     let visible = persistence::membership(&fixture.admin, tenant_a, fixture.member)
         .await
         .expect("特权连接查询失败");
-    assert_eq!(visible.map(|m| m.role()), Some(TenantRole::Owner));
+    assert_eq!(visible.and_then(|m| m.role()), Some(TenantRole::Owner));
 
     // 进入 tenant_a 作用域：读得到 OWNER
     let tx = fixture
         .storage
-        .tenant_tx(fixture.tenant_a)
+        .tenant_tx(TenantId::from_uuid(fixture.tenant_a))
         .await
         .expect("开启租户事务失败");
     let membership = persistence::membership(&tx, tenant_a, fixture.member)
@@ -353,7 +356,7 @@ async fn membership_is_only_visible_inside_its_tenant_scope() {
         .expect("作用域内查询失败")
         .expect("tenant_a 的成员关系应当可见");
     assert_eq!(membership.tenant_id(), tenant_a);
-    assert_eq!(membership.role(), TenantRole::Owner);
+    assert_eq!(membership.role(), Some(TenantRole::Owner));
 
     // 作用域与目标租户不一致：跨租户读不到
     assert!(
@@ -384,7 +387,7 @@ async fn inactive_membership_is_not_a_membership() {
 
     let tx = fixture
         .storage
-        .tenant_tx(fixture.tenant_b)
+        .tenant_tx(TenantId::from_uuid(fixture.tenant_b))
         .await
         .expect("开启租户事务失败");
     assert!(
@@ -394,4 +397,57 @@ async fn inactive_membership_is_not_a_membership() {
             .is_none(),
         "停用的成员关系不构成成员身份"
     );
+}
+
+#[tokio::test]
+async fn tenant_scope_guard_admits_members_and_platform_operators() {
+    let _guard = DB_LOCK.lock().await;
+    let Some(fixture) = setup().await else { return };
+
+    let tenant_a = TenantId::from_uuid(fixture.tenant_a);
+    let tenant_b = TenantId::from_uuid(fixture.tenant_b);
+    let manage_tenant = Permission::new(Resource::Tenant, Action::Manage);
+
+    // 成员：进入 tenant_a 作用域后身份为 OWNER，改租户放行
+    let member_session = resolve(&fixture, fixture.member, "USER")
+        .await
+        .expect("库中为 USER 的账号也可以建立会话");
+    {
+        let ctx = TenantCtx::enter(&fixture.storage, &member_session, tenant_a)
+            .await
+            .expect("tenant_a 的 OWNER 应当可以进入作用域");
+        assert_eq!(ctx.tenant_id(), tenant_a);
+        assert_eq!(ctx.principal().tenant_role(), Some(TenantRole::Owner));
+        assert!(ctx.require(manage_tenant).is_ok(), "OWNER 可以管理租户");
+    }
+
+    // 非成员（tenant_b 的成员关系已停用）：拒绝，且是权限类 403
+    let err = TenantCtx::enter(&fixture.storage, &member_session, tenant_b)
+        .await
+        .err()
+        .expect("停用的成员关系不得进入作用域");
+    assert_eq!(err.code, auth::ACCESS_DENIED);
+    assert_eq!(err.status(), StatusCode::FORBIDDEN);
+
+    // 平台管理员：无成员身份也可进入（运维通道），此时上下文不带租户角色
+    let admin_session = resolve(&fixture, fixture.platform_admin, "USER")
+        .await
+        .expect("库中为 ADMIN 的账号应当可以建立会话");
+    {
+        let ctx = TenantCtx::enter(&fixture.storage, &admin_session, tenant_b)
+            .await
+            .expect("平台管理员可以进入任意租户作用域");
+        assert!(ctx.principal().tenant_role().is_none());
+        assert!(
+            ctx.require(manage_tenant).is_ok(),
+            "运维通道由平台角色放行，不要求成员身份"
+        );
+    }
+
+    // 建租户：作用域指向新标识，身份即为它的 OWNER
+    let ctx = TenantCtx::open_new(&fixture.storage, &admin_session, TenantId::generate())
+        .await
+        .expect("建租户不应要求成员身份");
+    assert_eq!(ctx.principal().tenant_role(), Some(TenantRole::Owner));
+    assert!(ctx.require(manage_tenant).is_ok());
 }

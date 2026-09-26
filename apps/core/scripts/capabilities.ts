@@ -35,7 +35,7 @@ export const CAPABILITIES: readonly Capability[] = [
     title: '身份与租户',
     owns: ['auth', 'tenant', 'tenant_member', 'sso_connection'],
     dependsOn: [],
-    publicModules: ['account', 'persistence'],
+    publicModules: ['account', 'persistence', 'tenant'],
     absorbs: ['src/services/auth', 'src/services/user', 'src/services/tenant', 'src/services/sso'],
     status: 'migrating'
   },
@@ -140,7 +140,6 @@ export const ROLE_VOCAB_LEGACY: Record<string, { max: number; reason: string }> 
   'src/services/auth/schema.rs': { max: 1, reason: 'P3b 迁入 identity' },
   'src/services/auth/service.rs': { max: 4, reason: 'P3b 迁入 identity' },
   'src/services/sso/service.rs': { max: 1, reason: 'P3b 迁入 identity' },
-  'src/services/tenant/service.rs': { max: 5, reason: 'P3b 迁入 identity' },
   'src/services/user/service.rs': { max: 3, reason: 'P3b 迁入 identity' },
   'src/utils/jwt.rs': { max: 1, reason: 'JWT 载荷解析，P3b 收敛到 identity' }
 }

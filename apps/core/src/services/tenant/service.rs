@@ -1,16 +1,40 @@
-use chrono::Utc;
-use entity::{auth, tenant, tenant_member};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+//! 租户与成员的业务编排。
+//!
+//! 读写一律发生在**已进入租户作用域**的事务里（[`TenantCtx`]），查询条件里不再出现
+//! `tenantID = ?`：作用域由守卫建立、行级安全兜底。这里只做三件事——把 wire 入参解析成
+//! 领域入参、把领域结果映射成 wire 出参、把失败翻译成契约错误码；「能不能做」交给 `authz`。
+
+use sea_orm::DbErr;
 use uuid::Uuid;
+
+use authz::{Action, Permission, Resource};
+use identity::tenant::{
+    self as tenants, Member, MemberChanges, Tenant as TenantRecord, TenantChanges, TenantDraft,
+    TenantType,
+};
+use identity::{AccountStatus, PersistError, TenantId, TenantRole, UserId};
 
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::session::Session;
+use crate::guards::tenant::TenantCtx;
 use crate::services::tenant::schema::{
-    MemberR, MemberUpdateP, MemberWriteP, TenantR, TenantRole, TenantType, TenantUpdateP,
+    MemberR, MemberUpdateP, MemberWriteP, TenantR, TenantRole as WireRole, TenantUpdateP,
     TenantWriteP,
 };
 use crate::utils::code::{auth as auth_codes, business, external, request, resource};
 use crate::utils::db::is_unique_violation;
+
+/// 读租户本身（成员均可）。
+const READ_TENANT: Permission = Permission::new(Resource::Tenant, Action::Read);
+/// 管理租户本身（改名、停用、删除）：仅 Owner。
+const MANAGE_TENANT: Permission = Permission::new(Resource::Tenant, Action::Manage);
+/// 读成员名单（成员均可）。
+const READ_MEMBER: Permission = Permission::new(Resource::Member, Action::Read);
+/// 增改成员：Owner / Admin。
+const WRITE_MEMBER: Permission = Permission::new(Resource::Member, Action::Write);
+/// 移除成员：Owner / Admin。
+const DELETE_MEMBER: Permission = Permission::new(Resource::Member, Action::Delete);
 
 #[derive(Debug, thiserror::Error)]
 pub enum TenantError {
@@ -57,375 +81,252 @@ impl From<TenantError> for Exception {
 pub struct TenantService;
 
 impl TenantService {
-    pub async fn create(
-        db: &Storage,
-        user_id: Uuid,
-        req: TenantWriteP,
-    ) -> Result<TenantR, TenantError> {
-        let slug = req.slug.trim().to_ascii_lowercase();
-        validate_slug(&slug)?;
-        if req.name.trim().is_empty() {
-            return Err(TenantError::BadParam("租户名称不能为空".to_string()));
-        }
+    /// 新建租户：调用者是它的 Owner。
+    ///
+    /// 标识由调用方生成并已写进作用域，这里直接用——租户行与首条成员关系都必须落在
+    /// 当前作用域内，因此两者由 `identity` 一起写。
+    pub async fn create(ctx: &TenantCtx, req: TenantWriteP) -> Result<TenantR, TenantError> {
+        let name = normalized_name(&req.name)?;
+        let slug = normalized_slug(&req.slug)?;
+        let tenant_type = match req.r#type.as_deref() {
+            Some(value) => parse_tenant_type(value)?,
+            None => TenantType::Personal,
+        };
 
-        let taken = tenant::Entity::find()
-            .filter(tenant::Column::Slug.eq(&slug))
-            .one(&db.db)
+        let draft = TenantDraft {
+            id: ctx.tenant_id(),
+            name,
+            slug,
+            tenant_type,
+        };
+        let tenant = tenants::create_owned(ctx.tx(), draft, ctx.principal().user_id())
             .await
-            .map_err(db_err)?
-            .is_some();
-        if taken {
-            return Err(TenantError::SlugTaken);
-        }
+            .map_err(|err| conflict(err, TenantError::SlugTaken))?;
 
-        let now = Utc::now().fixed_offset();
-        let model = tenant::ActiveModel {
-            id: Set(Uuid::new_v4()),
-            name: Set(req.name.trim().to_string()),
-            slug: Set(slug),
-            status: Set("ACTIVE".to_string()),
-            tenant_type: Set(parse_type(req.r#type.as_deref())?),
-            archived_at: Set(None),
-            created_at: Set(now),
-            creator: Set(Some(user_id)),
-            updated_at: Set(now),
-            updater: Set(Some(user_id)),
-            expires_at: Set(None),
-        }
-        .insert(&db.db)
+        Ok(tenant_to_r(&tenant))
+    }
+
+    /// 我参与的有效成员关系覆盖到的租户（账号作用域，跨租户只读）。
+    ///
+    /// 还没有选定租户，因此走 `user_tx`：成员表只放行自己的行，租户表只放行
+    /// 「我是其有效成员」的行。
+    pub async fn list(storage: &Storage, session: &Session) -> Result<Vec<TenantR>, TenantError> {
+        let tx = storage.user_tx(session.user_id()).await.map_err(db_err)?;
+        let tenants = tenants::list_for_user(&tx, session.user_id())
+            .await
+            .map_err(persist_err)?;
+
+        Ok(tenants.iter().map(tenant_to_r).collect())
+    }
+
+    /// 读租户本身。
+    pub async fn get(ctx: &TenantCtx) -> Result<TenantR, TenantError> {
+        authorize(ctx, READ_TENANT)?;
+        let tenant = tenants::find(ctx.tx(), ctx.tenant_id())
+            .await
+            .map_err(persist_err)?
+            .ok_or(TenantError::NotFound)?;
+
+        Ok(tenant_to_r(&tenant))
+    }
+
+    /// 改租户本身：仅 Owner。
+    pub async fn update(ctx: &TenantCtx, req: TenantUpdateP) -> Result<TenantR, TenantError> {
+        authorize(ctx, MANAGE_TENANT)?;
+        let changes = TenantChanges {
+            name: req.name.as_deref().map(normalized_name).transpose()?,
+            status: req.status.as_deref().map(parse_status).transpose()?,
+            tenant_type: req.r#type.as_deref().map(parse_tenant_type).transpose()?,
+        };
+
+        let tenant = tenants::update(
+            ctx.tx(),
+            ctx.tenant_id(),
+            changes,
+            ctx.principal().user_id(),
+        )
         .await
-        .map_err(db_err)?;
+        .map_err(persist_err)?
+        .ok_or(TenantError::NotFound)?;
 
-        insert_member(db, model.id, user_id, TenantRole::Owner, user_id).await?;
-        Ok(tenant_to_r(model))
+        Ok(tenant_to_r(&tenant))
     }
 
-    pub async fn list(db: &Storage, user_id: Uuid) -> Result<Vec<TenantR>, TenantError> {
-        let memberships = tenant_member::Entity::find()
-            .filter(tenant_member::Column::UserId.eq(user_id))
-            .filter(tenant_member::Column::Status.eq("ACTIVE"))
-            .all(&db.db)
+    /// 删除租户：仅 Owner。成员关系随外键级联删除。
+    pub async fn remove(ctx: &TenantCtx) -> Result<(), TenantError> {
+        authorize(ctx, MANAGE_TENANT)?;
+        let removed = tenants::delete(ctx.tx(), ctx.tenant_id())
             .await
-            .map_err(db_err)?;
+            .map_err(persist_err)?;
 
-        if memberships.is_empty() {
-            return Ok(vec![]);
+        if removed {
+            Ok(())
+        } else {
+            Err(TenantError::NotFound)
         }
-
-        let ids: Vec<Uuid> = memberships.iter().map(|m| m.tenant_id).collect();
-        let tenants = tenant::Entity::find()
-            .filter(tenant::Column::Id.is_in(ids))
-            .all(&db.db)
-            .await
-            .map_err(db_err)?;
-
-        Ok(tenants.into_iter().map(tenant_to_r).collect())
     }
 
-    pub async fn get(
-        db: &Storage,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
-    ) -> Result<TenantR, TenantError> {
-        Self::require_role(db, user_id, tenant_id, platform_admin).await?;
-        let model = tenant::Entity::find_by_id(tenant_id)
-            .one(&db.db)
+    /// 成员名单（含已停用成员）。
+    pub async fn list_members(ctx: &TenantCtx) -> Result<Vec<MemberR>, TenantError> {
+        authorize(ctx, READ_MEMBER)?;
+        let members = tenants::members(ctx.tx(), ctx.tenant_id())
             .await
-            .map_err(db_err)?
-            .ok_or(TenantError::NotFound)?;
-        Ok(tenant_to_r(model))
+            .map_err(persist_err)?;
+
+        Ok(members.iter().map(member_to_r).collect())
     }
 
-    pub async fn update(
-        db: &Storage,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
-        req: TenantUpdateP,
-    ) -> Result<TenantR, TenantError> {
-        let role = Self::require_role(db, user_id, tenant_id, platform_admin).await?;
-        if !role.can_manage() {
-            return Err(TenantError::Forbidden);
-        }
+    /// 新增成员：账号必须存在，重复成员由唯一索引拒绝。
+    pub async fn add_member(ctx: &TenantCtx, req: MemberWriteP) -> Result<MemberR, TenantError> {
+        authorize(ctx, WRITE_MEMBER)?;
+        let user = parse_user_id(&req.user_id)?;
+        let role = parse_role(&req.role)?;
 
-        let model = tenant::Entity::find_by_id(tenant_id)
-            .one(&db.db)
+        let account = identity::persistence::find_account(ctx.tx(), user)
             .await
-            .map_err(db_err)?
-            .ok_or(TenantError::NotFound)?;
-
-        let mut active: tenant::ActiveModel = model.into();
-        if let Some(name) = req.name {
-            if name.trim().is_empty() {
-                return Err(TenantError::BadParam("租户名称不能为空".to_string()));
-            }
-            active.name = Set(name.trim().to_string());
-        }
-        if let Some(status) = req.status {
-            active.status = Set(parse_status(&status)?);
-        }
-        if let Some(kind) = req.r#type {
-            active.tenant_type = Set(parse_type(Some(&kind))?);
-        }
-        active.updated_at = Set(Utc::now().fixed_offset());
-        active.updater = Set(Some(user_id));
-
-        let updated = active.update(&db.db).await.map_err(db_err)?;
-        Ok(tenant_to_r(updated))
-    }
-
-    pub async fn remove(
-        db: &Storage,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
-    ) -> Result<(), TenantError> {
-        let role = Self::require_role(db, user_id, tenant_id, platform_admin).await?;
-        if !role.can_manage() {
-            return Err(TenantError::Forbidden);
-        }
-        tenant::Entity::delete_by_id(tenant_id)
-            .exec(&db.db)
-            .await
-            .map_err(db_err)?;
-        Ok(())
-    }
-
-    pub async fn list_members(
-        db: &Storage,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
-    ) -> Result<Vec<MemberR>, TenantError> {
-        Self::require_role(db, user_id, tenant_id, platform_admin).await?;
-        let members = tenant_member::Entity::find()
-            .filter(tenant_member::Column::TenantId.eq(tenant_id))
-            .all(&db.db)
-            .await
-            .map_err(db_err)?;
-        Ok(members.into_iter().map(member_to_r).collect())
-    }
-
-    pub async fn add_member(
-        db: &Storage,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
-        req: MemberWriteP,
-    ) -> Result<MemberR, TenantError> {
-        let role = Self::require_role(db, user_id, tenant_id, platform_admin).await?;
-        if !role.can_manage() {
-            return Err(TenantError::Forbidden);
-        }
-
-        let member_user = parse_uuid(&req.user_id)
-            .map_err(|_| TenantError::BadParam("用户 ID 无效".to_string()))?;
-        let member_role = TenantRole::parse(&req.role)
-            .ok_or_else(|| TenantError::BadParam("角色无效".to_string()))?;
-
-        let exists = auth::Entity::find_by_id(member_user)
-            .one(&db.db)
-            .await
-            .map_err(db_err)?
-            .is_none();
-        if exists {
+            .map_err(persist_err)?;
+        if account.is_none() {
             return Err(TenantError::UserNotFound);
         }
 
-        let dup = tenant_member::Entity::find()
-            .filter(tenant_member::Column::TenantId.eq(tenant_id))
-            .filter(tenant_member::Column::UserId.eq(member_user))
-            .one(&db.db)
-            .await
-            .map_err(db_err)?
-            .is_some();
-        if dup {
-            return Err(TenantError::AlreadyMember);
-        }
+        let member = tenants::add_member(
+            ctx.tx(),
+            ctx.tenant_id(),
+            user,
+            role,
+            ctx.principal().user_id(),
+        )
+        .await
+        .map_err(|err| conflict(err, TenantError::AlreadyMember))?;
 
-        let model = insert_member(db, tenant_id, member_user, member_role, user_id).await?;
-        Ok(member_to_r(model))
+        Ok(member_to_r(&member))
     }
 
+    /// 改成员的角色或状态。
     pub async fn update_member(
-        db: &Storage,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        member_user_id: Uuid,
-        platform_admin: bool,
+        ctx: &TenantCtx,
+        user: UserId,
         req: MemberUpdateP,
     ) -> Result<MemberR, TenantError> {
-        let role = Self::require_role(db, user_id, tenant_id, platform_admin).await?;
-        if !role.can_manage() {
-            return Err(TenantError::Forbidden);
-        }
+        authorize(ctx, WRITE_MEMBER)?;
+        let changes = MemberChanges {
+            role: req.role.as_deref().map(parse_role).transpose()?,
+            status: req.status.as_deref().map(parse_status).transpose()?,
+        };
 
-        let member = tenant_member::Entity::find()
-            .filter(tenant_member::Column::TenantId.eq(tenant_id))
-            .filter(tenant_member::Column::UserId.eq(member_user_id))
-            .one(&db.db)
-            .await
-            .map_err(db_err)?
-            .ok_or(TenantError::NotFound)?;
+        let member = tenants::update_member(
+            ctx.tx(),
+            ctx.tenant_id(),
+            user,
+            changes,
+            ctx.principal().user_id(),
+        )
+        .await
+        .map_err(persist_err)?
+        .ok_or(TenantError::NotFound)?;
 
-        let mut active: tenant_member::ActiveModel = member.into();
-        if let Some(value) = req.role {
-            let parsed = TenantRole::parse(&value)
-                .ok_or_else(|| TenantError::BadParam("角色无效".to_string()))?;
-            active.role = Set(parsed.as_str().to_string());
-        }
-        if let Some(value) = req.status {
-            active.status = Set(parse_status(&value)?);
-        }
-        active.updated_at = Set(Utc::now().fixed_offset());
-        active.updater = Set(Some(user_id));
-
-        let updated = active.update(&db.db).await.map_err(db_err)?;
-        Ok(member_to_r(updated))
+        Ok(member_to_r(&member))
     }
 
-    pub async fn remove_member(
-        db: &Storage,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        member_user_id: Uuid,
-        platform_admin: bool,
-    ) -> Result<(), TenantError> {
-        let role = Self::require_role(db, user_id, tenant_id, platform_admin).await?;
-        if !role.can_manage() {
-            return Err(TenantError::Forbidden);
+    /// 移除成员。
+    pub async fn remove_member(ctx: &TenantCtx, user: UserId) -> Result<(), TenantError> {
+        authorize(ctx, DELETE_MEMBER)?;
+        let removed = tenants::remove_member(ctx.tx(), ctx.tenant_id(), user)
+            .await
+            .map_err(persist_err)?;
+
+        if removed {
+            Ok(())
+        } else {
+            Err(TenantError::NotFound)
         }
-
-        let member = tenant_member::Entity::find()
-            .filter(tenant_member::Column::TenantId.eq(tenant_id))
-            .filter(tenant_member::Column::UserId.eq(member_user_id))
-            .one(&db.db)
-            .await
-            .map_err(db_err)?
-            .ok_or(TenantError::NotFound)?;
-
-        tenant_member::Entity::delete_by_id(member.id)
-            .exec(&db.db)
-            .await
-            .map_err(db_err)?;
-        Ok(())
     }
 
-    /// 校验成员关系；平台 ADMIN 旁路。返回租户内角色。
+    /// 校验成员关系并返回租户内角色；平台管理员旁路。
+    ///
+    /// 迁移遗留：订阅 / 支付 / 网关仍是「先取角色、再自己比大小」的老写法，
+    /// 本方法保持原签名只为让它们继续编译。新代码用 [`TenantCtx::require`] 判定权限。
     pub async fn require_role(
-        db: &Storage,
+        storage: &Storage,
         user_id: Uuid,
         tenant_id: Uuid,
         platform_admin: bool,
-    ) -> Result<TenantRole, TenantError> {
+    ) -> Result<WireRole, TenantError> {
         if platform_admin {
-            return Ok(TenantRole::Admin);
+            return Ok(WireRole::from_domain(identity::platform_operator_role()));
         }
-        Self::membership_role(db, user_id, tenant_id)
+
+        Self::membership_role(storage, user_id, tenant_id)
             .await?
             .ok_or(TenantError::NotMember)
     }
 
-    /// 查询用户在租户内的角色（ACTIVE 成员才有）。
+    /// 账号在租户内的有效成员角色；不是成员（或没有角色）返回 `None`。
     pub async fn membership_role(
-        db: &Storage,
+        storage: &Storage,
         user_id: Uuid,
         tenant_id: Uuid,
-    ) -> Result<Option<TenantRole>, TenantError> {
-        let member = tenant_member::Entity::find()
-            .filter(tenant_member::Column::TenantId.eq(tenant_id))
-            .filter(tenant_member::Column::UserId.eq(user_id))
-            .filter(tenant_member::Column::Status.eq("ACTIVE"))
-            .one(&db.db)
+    ) -> Result<Option<WireRole>, TenantError> {
+        let tenant_id = TenantId::from_uuid(tenant_id);
+        let user_id = UserId::from_uuid(user_id);
+
+        let tx = storage.tenant_tx(tenant_id).await.map_err(db_err)?;
+        let membership = identity::persistence::membership(&tx, tenant_id, user_id)
             .await
-            .map_err(db_err)?;
-        Ok(member.and_then(|m| TenantRole::parse(&m.role)))
+            .map_err(persist_err)?;
+
+        Ok(membership
+            .and_then(|context| context.role())
+            .map(WireRole::from_domain))
     }
 }
 
-fn tenant_to_r(m: tenant::Model) -> TenantR {
+/// 权限判定：`authz` 拒绝一律 403（判定原因已由守卫记入日志）。
+fn authorize(ctx: &TenantCtx, permission: Permission) -> Result<(), TenantError> {
+    ctx.require(permission).map_err(|_| TenantError::Forbidden)
+}
+
+fn tenant_to_r(tenant: &TenantRecord) -> TenantR {
     TenantR {
-        id: m.id.to_string(),
-        name: m.name,
-        slug: m.slug,
-        status: m.status,
-        r#type: m.tenant_type,
-        created_at: m.created_at.timestamp_millis(),
-        updated_at: m.updated_at.timestamp_millis(),
+        id: tenant.id().to_string(),
+        name: tenant.name().to_owned(),
+        slug: tenant.slug().to_owned(),
+        status: tenant.status().as_str().to_owned(),
+        r#type: tenant.tenant_type().as_str().to_owned(),
+        created_at: tenant.created_at_ms(),
+        updated_at: tenant.updated_at_ms(),
     }
 }
 
-fn member_to_r(m: tenant_member::Model) -> MemberR {
+fn member_to_r(member: &Member) -> MemberR {
     MemberR {
-        id: m.id.to_string(),
-        tenant_id: m.tenant_id.to_string(),
-        user_id: m.user_id.to_string(),
-        role: m.role,
-        status: m.status,
+        id: member.row_id().to_string(),
+        tenant_id: member.tenant_id().to_string(),
+        user_id: member.user_id().to_string(),
+        role: member.role().as_str().to_owned(),
+        status: member.status().as_str().to_owned(),
     }
 }
 
-async fn insert_member(
-    db: &Storage,
-    tenant_id: Uuid,
-    user_id: Uuid,
-    role: TenantRole,
-    actor: Uuid,
-) -> Result<tenant_member::Model, TenantError> {
-    let now = Utc::now().fixed_offset();
-    tenant_member::ActiveModel {
-        id: Set(Uuid::new_v4()),
-        tenant_id: Set(tenant_id),
-        user_id: Set(user_id),
-        role: Set(role.as_str().to_string()),
-        status: Set("ACTIVE".to_string()),
-        archived_at: Set(None),
-        created_at: Set(now),
-        creator: Set(Some(actor)),
-        updated_at: Set(now),
-        updater: Set(Some(actor)),
-        expires_at: Set(None),
+/// 租户名称：去空白，空即拒绝。
+fn normalized_name(value: &str) -> Result<String, TenantError> {
+    let name = value.trim();
+    if name.is_empty() {
+        return Err(TenantError::BadParam("租户名称不能为空".to_string()));
     }
-    .insert(&db.db)
-    .await
-    .map_err(|e| {
-        if is_unique_violation(&e) {
-            TenantError::AlreadyMember
-        } else {
-            db_err(e)
-        }
-    })
+
+    Ok(name.to_owned())
 }
 
-fn parse_uuid(value: &str) -> Result<Uuid, ()> {
-    Uuid::parse_str(value).map_err(|_| ())
-}
-
-fn parse_status(value: &str) -> Result<String, TenantError> {
-    match value {
-        "ACTIVE" | "DISABLED" => Ok(value.to_string()),
-        _ => Err(TenantError::BadParam("状态无效".to_string())),
-    }
-}
-
-/// 租户类型；缺省 PERSONAL。
-fn parse_type(value: Option<&str>) -> Result<String, TenantError> {
-    match value {
-        None => Ok(TenantType::Personal.as_str().to_string()),
-        Some(value) => TenantType::parse(value)
-            .map(|kind| kind.as_str().to_string())
-            .ok_or_else(|| TenantError::BadParam("租户类型无效".to_string())),
-    }
-}
-
-fn validate_slug(slug: &str) -> Result<(), TenantError> {
+/// 租户标识：去空白 + 转小写，只允许小写字母 / 数字 / 中划线。
+fn normalized_slug(value: &str) -> Result<String, TenantError> {
+    let slug = value.trim().to_ascii_lowercase();
     let valid = !slug.is_empty()
         && slug
             .chars()
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
     if valid {
-        Ok(())
+        Ok(slug)
     } else {
         Err(TenantError::BadParam(
             "租户标识须为小写字母/数字/中划线".to_string(),
@@ -433,6 +334,44 @@ fn validate_slug(slug: &str) -> Result<(), TenantError> {
     }
 }
 
-fn db_err(err: sea_orm::DbErr) -> TenantError {
+fn parse_role(value: &str) -> Result<TenantRole, TenantError> {
+    value
+        .parse::<TenantRole>()
+        .map_err(|_| TenantError::BadParam("角色无效".to_string()))
+}
+
+fn parse_status(value: &str) -> Result<AccountStatus, TenantError> {
+    value
+        .parse::<AccountStatus>()
+        .map_err(|_| TenantError::BadParam("状态无效".to_string()))
+}
+
+fn parse_tenant_type(value: &str) -> Result<TenantType, TenantError> {
+    value
+        .parse::<TenantType>()
+        .map_err(|_| TenantError::BadParam("租户类型无效".to_string()))
+}
+
+fn parse_user_id(value: &str) -> Result<UserId, TenantError> {
+    value
+        .parse::<UserId>()
+        .map_err(|_| TenantError::BadParam("用户 ID 无效".to_string()))
+}
+
+/// 作用域事务开启失败（500）。
+fn db_err(err: DbErr) -> TenantError {
     TenantError::Db(err.to_string())
+}
+
+/// 身份数据不可读（500）；字面量识别不了也走这里，不降级成「不是成员」。
+fn persist_err(err: PersistError) -> TenantError {
+    TenantError::Db(err.to_string())
+}
+
+/// 唯一索引冲突归为 `taken`，其余仍是 500。
+fn conflict(err: PersistError, taken: TenantError) -> TenantError {
+    match err {
+        PersistError::Db(db) if is_unique_violation(&db) => taken,
+        other => persist_err(other),
+    }
 }
