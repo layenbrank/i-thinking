@@ -1,6 +1,19 @@
 [workspace]
 resolver = "3"
-members  = [".", "entity", "migration", "configures"]
+# 能力 crate（业务内核，与 HTTP 框架解耦）见 crates/；边界与数据所有权由 scripts/arch.ts 强制
+members = [
+  ".",
+  "entity",
+  "migration",
+  "configures",
+  "crates/identity",
+  "crates/authz",
+  "crates/billing",
+  "crates/gateway",
+  "crates/document",
+  "crates/audit",
+  "crates/notify",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -23,6 +36,22 @@ sea-orm-migration = { version = "2.0.2", features = [
   "cli",
 ] }
 tokio = { version = "1.53.1", features = ["full"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+uuid = { version = "1.24.1", features = ["v4", "serde"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+entity = { version = "0.1.0", path = "entity" }
+migration = { version = "0.1.0", path = "migration" }
+
+# 能力 crate（业务内核）
+identity = { version = "0.1.0", path = "crates/identity" }
+authz = { version = "0.1.0", path = "crates/authz" }
+billing = { version = "0.1.0", path = "crates/billing" }
+gateway = { version = "0.1.0", path = "crates/gateway" }
+document = { version = "0.1.0", path = "crates/document" }
+audit = { version = "0.1.0", path = "crates/audit" }
+notify = { version = "0.1.0", path = "crates/notify" }
 
 [package]
 name              = "service"
@@ -75,13 +104,13 @@ tokio   = { workspace = true } # 异步运行时（文件 I/O 等）
 futures = "0.3.34"             # Stream / Future 组合子
 
 # 序列化
-serde      = { version = "1.0.229", features = ["derive"] } # 结构体序列化派生
-serde_json = "1.0.151"                                      # JSON 编解码
+serde      = { workspace = true } # 结构体序列化派生
+serde_json = { workspace = true } # JSON 编解码
 
 # 数据库
 sea-orm   = { workspace = true }   # SeaORM 2 Entity API
-entity    = { version = "0.1.0", path = "entity" }
-migration = { version = "0.1.0", path = "migration" }
+entity    = { workspace = true }
+migration = { workspace = true }
 log       = "0.4.33"
 
 # HTTP 客户端
@@ -108,14 +137,23 @@ jsonwebtoken = { version = "11.0.0", features = ["rust_crypto"] } # JWT 签发�
 sha2         = "0.11.0"                                           # SHA-256（文件摘要等）
 base64       = "0.23.1"                                           # Base64 编解码
 rand         = "0.10.2"                                           # 随机数（密钥生成）
-uuid         = { version = "1.24.1", features = ["v4"] }          # UUID v4（请求 ID 等）
+uuid         = { workspace = true }          # UUID v4（请求 ID 等）
 
 # 错误处理
 anyhow    = "1.0.104" # 应用层错误传播
-thiserror = "2.0.20"  # 类型化错误定义
+thiserror = { workspace = true } # 类型化错误定义
 
 # 时间
-chrono = { version = "0.4.45", features = ["serde"] } # 时间戳 / JWT 过期
+chrono = { workspace = true } # 时间戳 / JWT 过期
+
+# 能力 crate（业务内核，逐块迁入；见 crates/*/README.md）
+identity = { workspace = true }
+authz    = { workspace = true }
+billing  = { workspace = true }
+gateway  = { workspace = true }
+document = { workspace = true }
+audit    = { workspace = true }
+notify   = { workspace = true }
 
 # 配置
 config    = "0.15.19"

@@ -63,8 +63,11 @@ jobs:
       - name: Architecture hygiene
         run: bun run arch
 
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
       - name: Run unit tests
-        run: cargo test --lib -p service
+        run: cargo test --workspace --lib
 
       - name: Run integration tests
         run: |

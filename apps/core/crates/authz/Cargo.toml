@@ -1,0 +1,9 @@
+[package]
+name              = "authz"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+identity = { workspace = true }
+thiserror = { workspace = true }

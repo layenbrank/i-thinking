@@ -1,0 +1,13 @@
+[package]
+name              = "identity"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde    = { workspace = true }
+thiserror = { workspace = true }
+uuid     = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
