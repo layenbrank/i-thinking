@@ -37,7 +37,9 @@
 ## 鉴权说明
 
 - 整个 scope 挂 `Auth::isRequired()`，未登录返回 `300001`。
-- 租户作用域由 [`TenantCtx`](../../guards/tenant.rs) 建立：先开 `app.tenant_id` 作用域事务，再在作用域内读成员关系；
+- 列表接口（`GET /tenants`）还没选定租户，走 [`AccountScope`](../../guards/account.rs)：账号级只读，
+  只放行自己的成员行，由 Controller 开、只读结束即回滚。
+- 其余租户内的路由由租户作用域 [`TenantCtx`](../../guards/tenant.rs) 建立：先开 `app.tenant_id` 作用域事务，再在作用域内读成员关系；
   读不到即「不是成员」（`300007`，HTTP 403）。
 - 平台 ADMIN（库中平台角色为 `ADMIN`，即 `Session::is_platform_admin()`）不要求成员身份即可进入（运维通道），
   此时上下文的租户角色为空，`authz` 依平台角色放行，越过成员关系的那一步须在业务侧留审计。
@@ -67,6 +69,7 @@ TenantModule::configure
   └── scope("/tenants") .wrap(Auth::isRequired())
         ├── configure(SubscriptionModule::configure)   # 订阅 / 配额，注册相对路径的 web::resource
         └── TenantController
+              ├── AccountScope::enter → 列表（账号级只读，未选定租户）
               ├── TenantCtx::open_new → 建租户（作用域 = 新租户）
               ├── TenantCtx::enter    → 已有租户（作用域内读成员关系 → Principal）
               └── TenantService            # 只做 HTTP 语义与错误码映射：作用域与鉴权由 TenantCtx / authz 提供

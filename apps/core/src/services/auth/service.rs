@@ -247,7 +247,7 @@ pub async fn phone_free(
 ) -> Result<(), ProfileError> {
     let existing = auth::Entity::find()
         .filter(auth::Column::Phone.eq(phone))
-        .one(&db.db)
+        .one(db.raw())
         .await
         .map_err(|e| ProfileError::Db(e.to_string()))?;
 
@@ -386,7 +386,7 @@ impl AuthService {
 
         let user = match mode {
             PasswordIdentifier::Username(username) => auth::Entity::find_by_username(&username)
-                .one(&db.db)
+                .one(db.raw())
                 .await
                 .map_err(|e| AuthError::DatabaseError(e.to_string()))?,
             PasswordIdentifier::Channel(channel, target) => {
@@ -444,7 +444,7 @@ impl AuthService {
         let user = match mode {
             PasswordIdentifier::Username(username) => {
                 let user = auth::Entity::find_by_username(&username)
-                    .one(&db.db)
+                    .one(db.raw())
                     .await
                     .map_err(|e| AuthError::DatabaseError(e.to_string()))?
                     .ok_or(AuthError::ResetPasswordFailed)?;
@@ -534,7 +534,7 @@ impl AuthService {
         .await?;
 
         let user = auth::Entity::find_by_username(&req.username)
-            .one(&db.db)
+            .one(db.raw())
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))?
             .ok_or(AuthError::UserNotFound)?;
@@ -638,7 +638,7 @@ impl AuthService {
         .await?;
 
         let existing = auth::Entity::find_by_username(&req.username)
-            .one(&db.db)
+            .one(db.raw())
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
 
@@ -671,7 +671,7 @@ impl AuthService {
             updater: Set(None),
             expires_at: Set(None),
         }
-        .insert(&db.db)
+        .insert(db.raw())
         .await
         .map_err(map_db_err)?;
 
@@ -761,7 +761,7 @@ impl AuthService {
         active.updated_at = Set(now);
         active.updater = Set(Some(id));
 
-        let updated = active.update(&db.db).await.map_err(|err| {
+        let updated = active.update(db.raw()).await.map_err(|err| {
             if is_unique_violation(&err) {
                 AuthError::Profile(ProfileError::PhoneTaken)
             } else {
@@ -777,7 +777,7 @@ impl AuthService {
         let id = Uuid::parse_str(user_id)
             .map_err(|_| AuthError::InvalidParameter("用户 ID 无效".to_string()))?;
         auth::Entity::find_by_id(id)
-            .one(&db.db)
+            .one(db.raw())
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))?
             .ok_or(AuthError::UserNotFound)
@@ -789,7 +789,7 @@ impl AuthService {
     ) -> Result<Option<auth::Model>, AuthError> {
         auth::Entity::find()
             .filter(auth::Column::Phone.eq(phone.trim()))
-            .one(&db.db)
+            .one(db.raw())
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))
     }
@@ -800,7 +800,7 @@ impl AuthService {
     ) -> Result<Option<auth::Model>, AuthError> {
         auth::Entity::find()
             .filter(auth::Column::Email.eq(email.trim().to_ascii_lowercase()))
-            .one(&db.db)
+            .one(db.raw())
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))
     }
@@ -903,7 +903,7 @@ impl AuthService {
         active.password = Set(encrypted);
         active.updated_at = Set(Utc::now().fixed_offset());
         active
-            .update(&db.db)
+            .update(db.raw())
             .await
             .map_err(|e| AuthError::DatabaseError(e.to_string()))?;
         Ok(())

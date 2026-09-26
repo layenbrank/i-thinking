@@ -190,14 +190,14 @@ async fn setup() -> Option<Fixture> {
 
     let fixture = Fixture {
         admin,
-        storage: Storage {
-            db: connect(&role_uri(&uri, APP_ROLE), 2).await,
-            database: database_of(&uri),
-        },
-        outsider: Storage {
-            db: connect(&role_uri(&uri, NON_MEMBER_ROLE), 2).await,
-            database: database_of(&uri),
-        },
+        storage: Storage::from_parts(
+            connect(&role_uri(&uri, APP_ROLE), 2).await,
+            database_of(&uri),
+        ),
+        outsider: Storage::from_parts(
+            connect(&role_uri(&uri, NON_MEMBER_ROLE), 2).await,
+            database_of(&uri),
+        ),
         tenant_a: Uuid::new_v4(),
         tenant_b: Uuid::new_v4(),
     };
@@ -382,7 +382,7 @@ async fn global_catalog_rows_are_written_through_the_platform_channel() {
     scope.commit().await.expect("提交失败");
 
     // 全局行对所有应用角色只读可见（内置目录），但看不见别的租户的目录行
-    let tx = fixture.storage.db.begin().await.expect("开启事务失败");
+    let tx = fixture.storage.raw().begin().await.expect("开启事务失败");
     assert_eq!(
         count(
             &tx,
@@ -416,7 +416,7 @@ async fn escalation_does_not_leak_past_the_transaction() {
     );
     scope.commit().await.expect("提交失败");
 
-    let tx = fixture.storage.db.begin().await.expect("开启事务失败");
+    let tx = fixture.storage.raw().begin().await.expect("开启事务失败");
     assert_eq!(
         scalar_text(&tx, "SELECT current_user").await,
         APP_ROLE,
@@ -468,7 +468,7 @@ async fn tenant_scope_still_hides_other_tenants() {
     let _guard = DB_LOCK.lock().await;
     let Some(fixture) = setup().await else { return };
 
-    let tx = fixture.storage.db.begin().await.expect("开启事务失败");
+    let tx = fixture.storage.raw().begin().await.expect("开启事务失败");
     apply_tenant_scope(&tx, TenantId::from_uuid(fixture.tenant_b))
         .await
         .expect("设置租户作用域失败");

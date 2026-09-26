@@ -254,10 +254,7 @@ async fn setup() -> Option<Fixture> {
     let suffix = &suffix[..8];
     let fixture = Fixture {
         admin,
-        storage: Storage {
-            db: connect(&app_uri(&uri), 2).await,
-            database: database_of(&uri),
-        },
+        storage: Storage::from_parts(connect(&app_uri(&uri), 2).await, database_of(&uri)),
         redis: RedisPool::new(&redis_url, 2)
             .await
             .expect("连接测试 Redis 失败"),

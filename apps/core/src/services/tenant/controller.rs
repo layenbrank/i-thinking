@@ -1,6 +1,6 @@
 //! `/tenants` 的 HTTP 入口。
 //!
-//! 每个 Handler 只做三件事：取会话、进入租户作用域（[`TenantCtx`]）、把结果交给信封。
+//! 每个 Handler 只做三件事：取会话、进入作用域（[`TenantCtx`]，没选租户的用 [`AccountScope`]）、把结果交给信封。
 //! 权限判定不在这一层，业务也不在这一层。
 
 use std::sync::Arc;
@@ -10,11 +10,13 @@ use identity::{TenantId, UserId};
 
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::account::AccountScope;
 use crate::guards::session::Session;
 use crate::guards::tenant::TenantCtx;
 use crate::interceptors::envelope::Envelope;
 use crate::services::tenant::schema::{MemberUpdateP, MemberWriteP, TenantUpdateP, TenantWriteP};
 use crate::services::tenant::service::TenantService;
+use crate::utils::code::external;
 
 pub struct TenantController;
 
@@ -22,7 +24,12 @@ impl TenantController {
     /// 我参与的有效成员关系覆盖到的租户；账号级，不需要选定租户。
     pub async fn toList(db: web::Data<Arc<Storage>>, http: HttpRequest) -> Result<HttpResponse> {
         let session = session(&http)?;
-        match TenantService::list(&db, &session).await {
+        let scope = AccountScope::enter(&db, &session).await?;
+        let listed = TenantService::list(&scope).await;
+        // 只读请求：当场回滚，连接立即归还。
+        scope.rollback().await.map_err(db_error)?;
+
+        match listed {
             Ok(items) => Envelope::success(items, "获取租户列表成功").transform(),
             Err(err) => Exception::from(err).transform(),
         }
@@ -186,4 +193,10 @@ fn parse_user_id(value: &str) -> Result<UserId, Exception> {
     value
         .parse::<UserId>()
         .map_err(|_| Exception::bad_request("ID 格式无效"))
+}
+
+/// 数据库错误：日志留因，响应只给码。
+fn db_error(err: sea_orm::DbErr) -> Exception {
+    tracing::error!(error = %err, "tenant scope transaction failed");
+    Exception::custom(external::DATABASE_ERROR, "数据库错误")
 }

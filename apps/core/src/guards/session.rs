@@ -38,7 +38,7 @@ impl Session {
             .parse::<UserId>()
             .map_err(|_| SessionError::InvalidSubject)?;
 
-        let Some(account) = persistence::find_account(&storage.db, user_id).await? else {
+        let Some(account) = persistence::find_account(storage.raw(), user_id).await? else {
             return Err(SessionError::UnknownAccount);
         };
 

@@ -46,7 +46,7 @@
 | R6 | 遗留布局冻结：`src/services/` 不得新增模块（新能力一律建 crate）；标记 `status: 'migrated'` 的能力不得再留下 `absorbs` 路径 | 在 `src/services/` 下新建 `report/` |
 | R7 | 作用域唯一入口：`tenant_tx` / `user_tx` / `order_tx` / `asset_hash_tx` / `sso_connection_tx` / `anon_tx` / `apply_*_scope` / `apply_*_capability` / `TenantScope::open` / `TenantScope::adopt` / `AccountScope::open` / `PaymentNotifyScope::open` / `AssetReader::enter` / `AssetContentScope::open` / `SsoConnectionScope::open` / `SsoLoginScope::open` 只允许出现在 `src/guards/` 与 `src/databases/scope.rs` | 在 `services/foo/service.rs` 里直接 `storage.tenant_tx(id)` 开作用域 |
 | R8 | 平台特权唯一入口：`platform_tx` / `PlatformScope::open` 只允许出现在 `src/guards/`、`src/databases/scope.rs` 与 `PLATFORM_ENTRY_ALLOWED` 白名单 | 在 service 里直接 `storage.platform_tx()` 读跨租户汇总 |
-| R9 | 无作用域访问唯一入口：`anon_tx`（不开任何作用域变量的裸读，只用于「只读公开行」）只允许出现在 `src/guards/`，其余调用点必须登记进 `UNSCOPED_DB_ALLOWED` | 在 service 里 `storage.anon_tx()` 绕开策略读全表 |
+| R9 | 无作用域访问唯一入口：`anon_tx`（只读公开行）与 `Storage::raw()`（绕开行级隔离的裸连接）只允许出现在 `src/guards/` 与 `src/databases/`，其余调用点必须登记进 `UNSCOPED_DB_ALLOWED` | 在 service 里 `storage.anon_tx()` 绕开策略读全表 |
 
 ## R3：零容忍
 
@@ -70,8 +70,10 @@ R8、R9 不是棘轮而是**正向白名单**——提权绕过行级隔离、�
 
 - R8：除 `src/guards/` 与 `src/databases/scope.rs`，任何文件出现 `platform_tx` / `PlatformScope::open` 都是失败，
   除非登记进 `PLATFORM_ENTRY_ALLOWED` 并写明用途（登记值高于实际时同样只提示下调）。
-- R9：规则针对 `anon_tx`（当前名单为空）。后续（P3e-3）会把 `Storage::db` 直连一并纳入，届时
-  「读不到」的全部来源都收敛到作用域与策略上。
+- R9：规则针对两条**无作用域通道**——`anon_tx`（只读公开行，当前名单为空）与 `Storage::raw()`（逃开行级隔离的裸连接）。
+  两者的定义与守卫层调用都在 `src/guards/`、`src/databases/` 内，其余调用点登记进 `UNSCOPED_DB_ALLOWED` 并写明为何该数据天生全局：
+  `bootstrap/system.rs`（健康检查 `ping`，不读业务数据）、`services/auth/service.rs`、`services/user/service.rs`
+  （`auth` 表是全局身份表，没有行级安全，账号查询本就跨租户）。
 
 ## 迁移一个能力的动作清单
 

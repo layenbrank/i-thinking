@@ -90,7 +90,7 @@ impl UserService {
         req: WriteP,
     ) -> Result<UserR, UserError> {
         if auth::Entity::find_by_username(&req.username)
-            .one(&db.db)
+            .one(db.raw())
             .await
             .map_err(|e| UserError::DatabaseError(e.to_string()))?
             .is_some()
@@ -124,7 +124,7 @@ impl UserService {
             updater: Set(None),
             expires_at: Set(None),
         }
-        .insert(&db.db)
+        .insert(db.raw())
         .await
         .map_err(map_db_err)?;
 
@@ -140,7 +140,7 @@ impl UserService {
             }
             None => {
                 let users = auth::Entity::find()
-                    .all(&db.db)
+                    .all(db.raw())
                     .await
                     .map_err(|e| UserError::DatabaseError(e.to_string()))?;
 
@@ -245,7 +245,7 @@ impl UserService {
         }
         active.updated_at = Set(Utc::now().fixed_offset());
 
-        let updated = active.update(&db.db).await.map_err(|err| {
+        let updated = active.update(db.raw()).await.map_err(|err| {
             if is_unique_violation(&err) {
                 UserError::Profile(ProfileError::PhoneTaken)
             } else {
@@ -260,7 +260,7 @@ impl UserService {
     pub async fn toRemove(db: &Storage, id: &str) -> Result<(), UserError> {
         let id = Uuid::parse_str(id).map_err(|_| UserError::InvalidId)?;
         let result = auth::Entity::delete_by_id(id)
-            .exec(&db.db)
+            .exec(db.raw())
             .await
             .map_err(|e| UserError::DatabaseError(e.to_string()))?;
 
@@ -274,7 +274,7 @@ impl UserService {
     async fn find_model(db: &Storage, id: &str) -> Result<auth::Model, UserError> {
         let id = Uuid::parse_str(id).map_err(|_| UserError::InvalidId)?;
         auth::Entity::find_by_id(id)
-            .one(&db.db)
+            .one(db.raw())
             .await
             .map_err(|e| UserError::DatabaseError(e.to_string()))?
             .ok_or(UserError::UserNotFound)

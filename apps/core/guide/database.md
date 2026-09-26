@@ -265,6 +265,10 @@ Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/sco
   （`apply_tenant_scope` / `apply_user_scope` / `apply_order_capability` / `apply_asset_capability` / `apply_sso_capability`），
   之后的读写复用这条事务，业务代码不必再逐条手写租户条件。只有 [`src/guards/`](../src/guards) 与
   [`src/databases/scope.rs`](../src/databases/scope.rs) 能直接调用它们（R7 门禁）。
+- 无作用域通道：`anon_tx`（只读公开行）与 [`Storage::raw()`](../src/databases/database.rs)（不设任何作用域变量，
+  直接借出裸连接）只允许出现在 [`src/guards/`](../src/guards) 与 [`src/databases/`](../src/databases)；
+  其余调用点必须写明「为什么这份数据天生全局」并登记进 `UNSCOPED_DB_ALLOWED`（R9 门禁）。
+  `Storage` 的连接字段本身是私有的，所以「绕过作用域」只有 `raw()` 这一条可数的出口。
 - 句柄层：**谁持有作用域句柄，谁负责 commit / rollback**。按调用方身份分成下面几类（末行是唯一的提权例外）：
 
 | 通道 | 句柄 | 适用 | 语义 |
@@ -277,6 +281,7 @@ Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/sco
 | 资产读（含匿名） | [`AssetReader`](../src/guards/asset.rs) | 按 id 单条读、分片元数据读；匿名下载走 `None` | 事务 + `app.user_id`（或匿名读事务 `anon_tx`）；可见性完全由 asset 策略决定，代码不写 `WHERE` |
 | 内容能力键 | [`AssetContentScope`](../src/guards/asset.rs) | 秒传引导：只有内容 hash | 事务 + `app.asset_hash`，只借已完成内容；PUBLIC 是全局分支，同样可见 |
 | 平台运维通道 | [`PlatformScope`](../src/guards/platform.rs) | 运维面（平台目录全局行、跨租户汇总） | **提权**绕过行级策略（`SET LOCAL ROLE`，事务局部）；确权在路由层 |
+| 无作用域裸连接 | [`Storage::raw()`](../src/databases/database.rs) | 天生全局、没有行级安全的数据：健康检查 `ping`、全局身份表 `auth` | 不设任何作用域变量；调用点按 `UNSCOPED_DB_ALLOWED` 正向登记 |
 
 ### asset 的可见性模型
 

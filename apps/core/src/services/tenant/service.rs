@@ -1,10 +1,9 @@
 //! 租户与成员的业务编排。
 //!
-//! 读写一律发生在**已进入租户作用域**的事务里（[`TenantCtx`]），查询条件里不再出现
-//! `tenantID = ?`：作用域由守卫建立、行级安全兜底。这里只做三件事——把 wire 入参解析成
-//! 领域入参、把领域结果映射成 wire 出参、把失败翻译成契约错误码；「能不能做」交给 `authz`。
-
-use sea_orm::DbErr;
+//! 读写一律发生在**已进入作用域**的事务里（租户内的走 [`TenantCtx`]，账号级的走
+//! [`AccountScope`]），查询条件里不再出现 `tenantID = ?`：作用域由守卫建立、行级安全兜底。
+//! 这里只做三件事——把 wire 入参解析成领域入参、把领域结果映射成 wire 出参、
+//! 把失败翻译成契约错误码；「能不能做」交给 `authz`。
 
 use authz::{Action, Permission, Resource};
 use identity::tenant::{
@@ -13,9 +12,8 @@ use identity::tenant::{
 };
 use identity::{AccountStatus, PersistError, TenantRole, UserId};
 
-use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
-use crate::guards::session::Session;
+use crate::guards::account::AccountScope;
 use crate::guards::tenant::TenantCtx;
 use crate::services::tenant::schema::{
     MemberR, MemberUpdateP, MemberWriteP, TenantR, TenantUpdateP, TenantWriteP,
@@ -106,11 +104,10 @@ impl TenantService {
 
     /// 我参与的有效成员关系覆盖到的租户（账号作用域，跨租户只读）。
     ///
-    /// 还没有选定租户，因此走 `user_tx`：成员表只放行自己的行，租户表只放行
-    /// 「我是其有效成员」的行。
-    pub async fn list(storage: &Storage, session: &Session) -> Result<Vec<TenantR>, TenantError> {
-        let tx = storage.user_tx(session.user_id()).await.map_err(db_err)?;
-        let tenants = tenants::list_for_user(&tx, session.user_id())
+    /// 还没有选定租户，因此走 [`AccountScope`]：成员表只放行自己的行，租户表只放行
+    /// 「我是其有效成员」的行。作用域由 Controller 开、只读结束即回滚。
+    pub async fn list(scope: &AccountScope) -> Result<Vec<TenantR>, TenantError> {
+        let tenants = tenants::list_for_user(scope.tx(), scope.user_id())
             .await
             .map_err(persist_err)?;
 
@@ -316,11 +313,6 @@ fn parse_user_id(value: &str) -> Result<UserId, TenantError> {
     value
         .parse::<UserId>()
         .map_err(|_| TenantError::BadParam("用户 ID 无效".to_string()))
-}
-
-/// 作用域事务开启失败（500）。
-fn db_err(err: DbErr) -> TenantError {
-    TenantError::Db(err.to_string())
 }
 
 /// 身份数据不可读（500）；字面量识别不了也走这里，不降级成「不是成员」。

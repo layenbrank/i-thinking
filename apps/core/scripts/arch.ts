@@ -456,7 +456,7 @@ function checkPlatformScopeEntry(errors: string[], hints: string[]) {
   }
 }
 
-/** R9：无作用域数据库访问只能走 src/guards（调用点正向登记） */
+/** R9：无作用域数据库访问只能走 src/guards 与 src/databases 的具名通道（调用点正向登记） */
 function checkUnscopedDbAccess(errors: string[], hints: string[]) {
   const seen = new Set<string>()
 
@@ -469,7 +469,7 @@ function checkUnscopedDbAccess(errors: string[], hints: string[]) {
     const allow = UNSCOPED_DB_ALLOWED[path]
     if (!allow) {
       fail(
-        `无作用域数据库访问只能走 src/guards::AssetReader：${path}（${count} 处）——「读不到」应当来自策略，而不是忘了设作用域；确需读取对匿名开放的行请登记到 scripts/capabilities.ts 的 UNSCOPED_DB_ALLOWED 并写明用途`,
+        `无作用域数据库访问只能走 src/guards 与 src/databases 的具名通道（AssetReader::enter / Storage::raw）：${path}（${count} 处）——「读不到」应当来自策略，而不是忘了设作用域；确需读全局表（如没有行级安全的 auth）请登记到 scripts/capabilities.ts 的 UNSCOPED_DB_ALLOWED 并写明用途`,
         errors
       )
       continue

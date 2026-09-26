@@ -20,7 +20,7 @@ async fn health_check(
     redis: web::Data<Arc<RedisPool>>,
     es: web::Data<Arc<EsClient>>,
 ) -> impl Responder {
-    let postgres = match db.db.ping().await {
+    let postgres = match db.raw().ping().await {
         Ok(()) => "up".to_string(),
         Err(_) => "down".to_string(),
     };

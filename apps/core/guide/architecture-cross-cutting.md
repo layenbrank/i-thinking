@@ -113,8 +113,10 @@ handler 只用：ctx.tx() 读写 / ctx.require(permission) 判权限 / ctx.commi
   `TenantScope` 不带主体，因此**只有 `TenantCtx` 判权限**；机器通道的授权由调用侧保证。
 - 作用域只能从 [`src/guards/`](../src/guards) 进入：`Storage::tenant_tx` / `user_tx` / `order_tx` / `asset_hash_tx` / `sso_connection_tx` / `anon_tx`
   等原语仅 [`src/guards/`](../src/guards) 与 [`src/databases/scope.rs`](../src/databases/scope.rs) 可直接调用（R7 门禁，逐文件限额只减不增）。
-- 「读不到」应当来自策略，而不是忘了设作用域：无作用域的裸读（`anon_tx`）同样只允许出现在 `src/guards/`，
-  其余调用点按 `UNSCOPED_DB_ALLOWED` 正向登记（R9 门禁）。当前名单为空，只有[资产读通道](../src/guards/asset.rs)需要它。
+- 「读不到」应当来自策略，而不是忘了设作用域：两条**无作用域通道**——`anon_tx`（只读公开行）与 `Storage::raw()`
+  （逃开行级隔离的裸连接，`Storage` 的 `db` 字段已私有，只能这样取）——只允许出现在 `src/guards/` 与 `src/databases/`，
+  其余调用点按 `UNSCOPED_DB_ALLOWED` 正向登记（R9 门禁）。当前名单只有健康检查 `ping`（[`src/bootstrap/system.rs`](../src/bootstrap/system.rs)）
+  与全局身份表 `auth` 的账号查询（[`services/auth`](../src/services/auth)、[`services/user`](../src/services/user)，该表没有行级安全）。
 - 提权只能从 [`src/guards/platform.rs`](../src/guards/platform.rs) 进入：`Storage::platform_tx` 同上受限，
   且其余调用点按 `PLATFORM_ENTRY_ALLOWED` 白名单正向登记（R8 门禁）——提权是绕过隔离，每多一处都要写明用途。
 - `asset` 的策略是**五分支**（创建者 / 租户 / `PUBLIC` / `viewers` / hash 能力键），其中 `PUBLIC` 是**全局**分支，

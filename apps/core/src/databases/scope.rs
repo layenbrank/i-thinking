@@ -135,14 +135,14 @@ impl Storage {
     /// 开启只带支付能力键的事务：唯一用途是回调引导阶段「订单号 → 租户」的反解，
     /// 反解成功后由守卫在同一事务上补租户作用域（见 `guards::payment`）。
     pub async fn order_tx(&self, order_no: &str) -> Result<DatabaseTransaction, DbErr> {
-        let tx = self.db.begin().await?;
+        let tx = self.raw().begin().await?;
         apply_order_capability(&tx, order_no).await?;
         Ok(tx)
     }
 
     /// 开启受租户作用域约束的事务。租户内的读写走这个入口。
     pub async fn tenant_tx(&self, tenant_id: TenantId) -> Result<DatabaseTransaction, DbErr> {
-        let tx = self.db.begin().await?;
+        let tx = self.raw().begin().await?;
         apply_tenant_scope(&tx, tenant_id).await?;
         Ok(tx)
     }
@@ -150,7 +150,7 @@ impl Storage {
     /// 开启只受账号作用域约束的事务：可读自己所属的租户与自己的成员行，
     /// 但没有租户作用域，写不进任何租户数据。
     pub async fn user_tx(&self, user_id: UserId) -> Result<DatabaseTransaction, DbErr> {
-        let tx = self.db.begin().await?;
+        let tx = self.raw().begin().await?;
         apply_user_scope(&tx, user_id).await?;
         Ok(tx)
     }
@@ -158,7 +158,7 @@ impl Storage {
     /// 开启只带内容寻址能力键的事务：`asset` 里 hash 命中且已完成的那一行可读，
     /// 用来找秒传源（见 `guards::asset::AssetContentScope`）。
     pub async fn asset_hash_tx(&self, hash: &str) -> Result<DatabaseTransaction, DbErr> {
-        let tx = self.db.begin().await?;
+        let tx = self.raw().begin().await?;
         apply_asset_capability(&tx, hash).await?;
         Ok(tx)
     }
@@ -169,7 +169,7 @@ impl Storage {
         &self,
         connection_id: Uuid,
     ) -> Result<DatabaseTransaction, DbErr> {
-        let tx = self.db.begin().await?;
+        let tx = self.raw().begin().await?;
         apply_sso_capability(&tx, connection_id).await?;
         Ok(tx)
     }
@@ -180,7 +180,7 @@ impl Storage {
     /// **不要直接调用**：入口是 [`crate::guards::asset::AssetReader`] 的匿名分支，
     /// 调用点被门禁限制在白名单文件内（见 `scripts/capabilities.ts`）。
     pub async fn anon_tx(&self) -> Result<DatabaseTransaction, DbErr> {
-        self.db.begin().await
+        self.raw().begin().await
     }
 
     /// 开启平台运维事务：在行级策略之上提权到 [`PLATFORM_ROLE`]，用于平台目录的全局行
@@ -189,7 +189,7 @@ impl Storage {
     /// **不要直接调用**：入口是 [`crate::guards::platform::PlatformScope`]，
     /// 调用点被门禁限制在白名单文件内（见 `scripts/capabilities.ts`）。
     pub async fn platform_tx(&self) -> Result<DatabaseTransaction, DbErr> {
-        let tx = self.db.begin().await?;
+        let tx = self.raw().begin().await?;
         apply_platform_role(&tx).await?;
         Ok(tx)
     }

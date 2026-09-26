@@ -153,10 +153,7 @@ async fn setup() -> Option<Fixture> {
 
     let fixture = Fixture {
         admin,
-        storage: Storage {
-            db: connect(&app_uri(&uri), 2).await,
-            database: database_of(&uri),
-        },
+        storage: Storage::from_parts(connect(&app_uri(&uri), 2).await, database_of(&uri)),
         tenant_a: Uuid::new_v4(),
         tenant_b: Uuid::new_v4(),
         platform_admin: UserId::generate(),
@@ -336,7 +333,7 @@ async fn membership_is_only_visible_inside_its_tenant_scope() {
     let tenant_b = TenantId::from_uuid(fixture.tenant_b);
 
     // 无租户作用域：应用连接看不到任何成员行（行级安全，而非行不存在）
-    let hidden = persistence::membership(&fixture.storage.db, tenant_a, fixture.member)
+    let hidden = persistence::membership(fixture.storage.raw(), tenant_a, fixture.member)
         .await
         .expect("无作用域的查询本身应当成功");
     assert!(hidden.is_none(), "未进入租户作用域时不得读到成员关系");

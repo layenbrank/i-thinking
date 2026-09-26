@@ -188,10 +188,7 @@ async fn setup() -> Option<Fixture> {
 
     let fixture = Fixture {
         admin,
-        storage: Storage {
-            db: connect(&app_uri(&uri), 2).await,
-            database: database_of(&uri),
-        },
+        storage: Storage::from_parts(connect(&app_uri(&uri), 2).await, database_of(&uri)),
         tenant: Uuid::new_v4(),
         owner: UserId::generate(),
         outsider: UserId::generate(),

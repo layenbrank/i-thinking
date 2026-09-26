@@ -6,7 +6,8 @@ use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 
 #[derive(Clone)]
 pub struct Storage {
-    pub db: DatabaseConnection,
+    /// 未作用域连接：只能通过 [`Storage::raw`] 取，调用点由门禁 R9 正向登记。
+    db: DatabaseConnection,
     pub database: String,
 }
 
@@ -35,6 +36,26 @@ impl Storage {
             .context("Failed to migrate PostgreSQL schema")?;
 
         Ok(Storage { db, database })
+    }
+
+    /// 组一个只带连接与库名的 [`Storage`]：集成测试夹具用（自带池大小与角色），
+    /// 正式路径一律走 [`Storage::new`]。
+    #[must_use]
+    pub const fn from_parts(db: DatabaseConnection, database: String) -> Self {
+        Self { db, database }
+    }
+
+    /// 未作用域连接：不带任何会话变量，也不受 `*_tx` 通道约束。
+    ///
+    /// 它只对**天生全局**的数据成立：`auth` 是账号表、没有行级安全（登录必须先按
+    /// 用户名/手机号/邮箱跨租户查到账号），以及健康检查的 `ping`。其余读写一律走
+    /// 作用域通道——「读不到」应当是策略决定的，而不是忘了进作用域。
+    ///
+    /// 这是门禁 R9 的观察面：新增调用点会被 `bun run arch` 拦下，需要连同理由登记到
+    /// `scripts/capabilities.ts` 的 `UNSCOPED_DB_ALLOWED`。
+    #[must_use]
+    pub const fn raw(&self) -> &DatabaseConnection {
+        &self.db
     }
 }
 

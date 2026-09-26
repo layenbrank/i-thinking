@@ -159,10 +159,6 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
     reason:
       '支付回调的引导调用点（PaymentNotifyScope::open 把订单号换成租户作用域）；守卫本身在 src/guards/payment.rs，这里只是调用'
   },
-  'src/services/tenant/service.rs': {
-    max: 2,
-    reason: 'select_tenant 的 user_tx（选定租户前读成员表）与一处文档提及，待迁到 AccountScope 后移除'
-  },
   'src/services/gateway/service.rs': {
     max: 2,
     reason:
@@ -239,16 +235,30 @@ export const PLATFORM_ENTRY_OWNER_PATHS = ['src/guards/', 'src/databases/scope.r
 /**
  * R9：无作用域数据库访问模式。
  *
- * `Storage::anon_tx` 是唯一一条「什么身份都不带」的通道：行级策略只放行对匿名开放的行
- * （目前只有 `PUBLIC` 资产），写路径一律会被 `WITH CHECK` 挡回。它只允许出现在 `src/guards/`
- * 里，且每个出现都必须在这里登记用途——「读不到」应当是设计出来的，而不是忘了设作用域。
- *
- * 后续（P3e-3）会把 `Storage::db` 直连（不受行级策略约束的全局表）一并纳入本规则。
+ * 两条通道是「什么身份都不带」的：`Storage::anon_tx` 只放行策略里对匿名开放的行
+ * （目前只有 `PUBLIC` 资产），`Storage::raw()` 干脆绕过行级策略（`auth` 这类没有
+ * 行级安全的全局表、健康检查的 `ping`）。两者都只允许出现在 `src/guards/` 与
+ * `src/databases/` 里，且每个出现都必须在这里登记用途——「读不到」应当是设计出来的，
+ * 而不是忘了设作用域。
  */
-export const UNSCOPED_DB_PATTERN = /\banon_tx\b/g
+export const UNSCOPED_DB_PATTERN = /\b(?:anon_tx|raw\(\))/g
 
 /** R9 允许的定义与唯一入口归属路径 */
-export const UNSCOPED_DB_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const
+export const UNSCOPED_DB_OWNER_PATHS = ['src/guards/', 'src/databases/'] as const
 
 /** R9 名单：`src/guards/` 之外允许出现的无作用域访问，**正向登记**（不在名单内即违规） */
-export const UNSCOPED_DB_ALLOWED: Record<string, { max: number; reason: string }> = {}
+export const UNSCOPED_DB_ALLOWED: Record<string, { max: number; reason: string }> = {
+  'src/bootstrap/system.rs': {
+    max: 1,
+    reason: '健康检查：只对连接做 ping，不读任何业务表'
+  },
+  'src/services/auth/service.rs': {
+    max: 11,
+    reason:
+      '账号与认证：按用户名/手机号/邮箱跨租户查账号、建号、改密、改角色。auth 是全局身份表——没有行级安全、也不属于任何租户，登录时先查到账号才知道进哪个作用域，所以这些读写只能走未作用域连接'
+  },
+  'src/services/user/service.rs': {
+    max: 6,
+    reason: '平台管理面的账号增删改查（列表/建号/改资料/删号），同上：只碰 auth 这张全局身份表'
+  }
+}
