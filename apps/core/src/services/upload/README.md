@@ -25,7 +25,8 @@
 | SESSION_GONE | `500207`：会话 id 无效或已被 cancel/GC。秒传路径不用此码，也不再用 `200003` |
 | 不合并落盘 | finalize 只校验；下载时按 `chunk` 表顺序流式输出 |
 | 可见性 | `PRIVATE`（默认）/ `PUBLIC`（可匿名下载）/ `RESTRICTED`+`viewers`；仅影响按 id 下载 |
-| 下载隔离 | 按可见性 ACL；按 hash 下载仍仅本人 COMPLETED |
+| 下载隔离 | 按可见性 ACL，且**行级策略**二次兜底：看不见的行直接按「不存在」处理（404，不泄露存在性） |
+| 行级策略 | `asset` 的可见性判定写在数据库策略里（五个分支，见下文「行级策略」）；service 只开作用域，不手写 `WHERE` |
 | 本人列表 | `GET /files` 分页列出当前用户资产（默认 COMPLETED） |
 
 ## 路由一览
@@ -50,6 +51,39 @@
 `chunk` / `hash` / `finalize` / `progress` / `cancel` 校验归属（仅创建者）。  
 `GET /files` 与按 hash 下载仍仅本人；`GET /asset/{id}`：`PUBLIC` 可匿名，其余按 ACL。  
 跨用户文件秒传会为命中用户克隆逻辑行（克隆默认 `PRIVATE`）。分片 CAS **全局**共享。
+
+## 行级策略（RLS）
+
+`asset` 不做「service 里手写 `WHERE`」，可见性由数据库行级策略兜底；service 只负责**开作用域**，
+作用域句柄都在 [`src/guards/asset.rs`](../../guards/asset.rs)：
+
+| 通道 | 句柄 | 作用域 | 判定依据 |
+| ---- | ---- | ------ | -------- |
+| 本人写路径 | `AccountScope` | `app.user_id` | 创建者分支（写入时 `WITH CHECK` 只认 `creator = 当前用户`） |
+| 单条读 / 裸读 | `AssetReader::enter(db, user_id)` | `app.user_id`，或匿名（`app.user_id` 缺省） | 创建者分支 / 公开分支 / `viewers` 分支 |
+| 内容寻址（秒传） | `AssetContentScope::open(db, hash)` | `app.asset_hash` | `hash` + `status = COMPLETED` 的能力键 |
+
+读策略 `USING` 的五个分支（任一成立即可见）：
+
+```
+"creator" = app_current_user_id()                      -- 自己建的
+OR "tenantID" = app_current_tenant_id()::text           -- 租户内（仅租户作用域成立）
+OR "visibility" = 'PUBLIC'                              -- 公开：全局成立，匿名也看得见
+OR "viewers" ? app_current_user_id()::text              -- RESTRICTED 白名单点到自己
+OR ("hash" = app_current_asset_hash() AND "status" = 'COMPLETED')  -- 秒传借用他人已完成内容
+```
+
+- `PUBLIC` 是**全局分支**：它在**任何**作用域里都成立，包括只带 hash 的能力键作用域。
+  因此按 hash 读到的集合是「命中 hash 的已完成行 ∪ 公开行」——后者本就可匿名读，不构成泄露。
+- `AssetContentScope` 只借**内容**不借所有权：命中的是别人的行，也读得到（跨账号秒传的前提）；
+  但要求 `status = COMPLETED`，避免猜到 hash 的人续传别人的上传会话。
+- 账号作用域下没有租户，`tenantID` 分支恒不成立；跨账号秒传必须走 `AssetContentScope`。
+- 头像属于档案数据、按下 id 直接渲染，因此绑定头像时会把 `visibility` 提为 `PUBLIC`（见 [auth README](../auth/README.md)）。
+- `chunk` 表**暂时没有** RLS：隔离经 `asset` 传递（先有可见的 asset 才谈得上它的分片）。
+
+**403 → 404**：`GET /asset/{id}` 与按 hash 下载先取行、再判权限。策略看不见的行等同于不存在，
+返回 `500204`（FILE_NOT_FOUND，HTTP 404）；只有**看得见但没权限**（如 `RESTRICTED` 而不在白名单）才返回
+`400004`（ACCESS_RESTRICTED，HTTP 403）。旧实现先判 ACL 再读行，任何行都能被探测出「存在」，已修正。
 
 ## 数据表 — asset
 
@@ -215,7 +249,17 @@ Query：`page`（默认 1）、`size`（默认 20，最大 100）、`status`（�
 
 ### GET /api/v1/upload/asset/{id}
 
-按资产 id 流式下载；仅本人 COMPLETED。
+按资产 id 流式下载。判定顺序是**先可见、再判权**：
+
+| 情况 | 结果 |
+| ---- | ---- |
+| `PUBLIC` | 匿名即可下载 |
+| `PRIVATE` 且本人是创建者 | 可下载 |
+| `RESTRICTED` 且本人在 `viewers` | 可下载 |
+| 行级策略看不见（他人 `PRIVATE`、不在白名单、账号作用域下带 `tenantID` 的行…） | `500204` 文件不存在（HTTP 404），不暴露存在性 |
+| 看得见但无下载权限 | `400004` 资源访问被限制（HTTP 403） |
+| 尚未 `COMPLETED` | `200003` 请求参数值无效：`文件尚未完成上传` |
+| 秒传后的老会话 id | 跟随 `superseded` 指向的目标，再按上表判定 |
 
 ## 手工测试
 

@@ -3,12 +3,12 @@ use std::path::Path;
 use chrono::{Duration, Utc};
 use entity::{asset, chunk};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseBackend, EntityTrait,
-    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, Statement,
+    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseBackend,
+    DatabaseTransaction, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    Statement,
 };
 use uuid::Uuid;
 
-use crate::databases::database::Storage;
 use crate::services::upload::error::UploadError;
 use crate::services::upload::schema::{
     AssetR, PrepareP, UploadStatus, UploadedChunk, Visibility, viewers_from_json,
@@ -17,7 +17,10 @@ use crate::services::upload::validation::{
     ASSET_URL_PREFIX, EXPIRE_HOURS, FILE_URL_PREFIX, KIND, normalize_hash, visibility_for_insert,
 };
 
-pub async fn find_completed(db: &Storage, hash: &str) -> Result<Option<asset::Model>, UploadError> {
+pub async fn find_completed(
+    tx: &DatabaseTransaction,
+    hash: &str,
+) -> Result<Option<asset::Model>, UploadError> {
     if normalize_hash(Some(hash)).is_none() {
         return Ok(None);
     }
@@ -27,13 +30,13 @@ pub async fn find_completed(db: &Storage, hash: &str) -> Result<Option<asset::Mo
         .filter(asset::Column::ArchivedAt.is_null())
         .order_by_desc(asset::Column::CreatedAt)
         .limit(1)
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
 pub async fn find_completed_owned(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     hash: &str,
     creator: &str,
 ) -> Result<Option<asset::Model>, UploadError> {
@@ -48,21 +51,21 @@ pub async fn find_completed_owned(
         .filter(asset::Column::ArchivedAt.is_null())
         .order_by_desc(asset::Column::CreatedAt)
         .limit(1)
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
 pub async fn find_file_for_download(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     hash: &str,
     user_id: &str,
 ) -> Result<Option<asset::Model>, UploadError> {
-    find_completed_owned(db, hash, user_id).await
+    find_completed_owned(tx, hash, user_id).await
 }
 
 pub async fn find_pending(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     hash: &str,
     creator: Option<&str>,
 ) -> Result<Option<asset::Model>, UploadError> {
@@ -90,15 +93,15 @@ pub async fn find_pending(
         )
         .order_by_desc(asset::Column::CreatedAt)
         .limit(1)
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
-pub async fn find_by_id(db: &Storage, id: &str) -> Result<asset::Model, UploadError> {
+pub async fn find_by_id(tx: &DatabaseTransaction, id: &str) -> Result<asset::Model, UploadError> {
     let id = UploadError::parse_asset_id(id)?;
     asset::Entity::find_by_id(id)
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?
         .ok_or(UploadError::NotFound)
@@ -148,9 +151,12 @@ pub fn build_record(
     })
 }
 
-pub async fn insert(db: &Storage, record: asset::ActiveModel) -> Result<asset::Model, UploadError> {
+pub async fn insert(
+    tx: &DatabaseTransaction,
+    record: asset::ActiveModel,
+) -> Result<asset::Model, UploadError> {
     record
-        .insert(&db.db)
+        .insert(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
 }
@@ -158,7 +164,7 @@ pub async fn insert(db: &Storage, record: asset::ActiveModel) -> Result<asset::M
 /// 全局秒传：为当前用户克隆 COMPLETED 资产 + chunk 行（共享 CAS，不拷贝字节）。
 /// `name` 使用当前会话/请求文件名，不用源用户文件名。
 pub async fn clone_completed_for(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     source: &asset::Model,
     creator: &str,
     name: &str,
@@ -193,8 +199,8 @@ pub async fn clone_completed_for(
         expires_at: Set(None),
         ..Default::default()
     };
-    let inserted = insert(db, record).await?;
-    copy_chunks(db, source.id, inserted.id, Some(creator_id)).await?;
+    let inserted = insert(tx, record).await?;
+    copy_chunks(tx, source.id, inserted.id, Some(creator_id)).await?;
     Ok(inserted)
 }
 
@@ -204,22 +210,25 @@ pub fn layout_matches(pending: &asset::Model, existing: &asset::Model) -> bool {
 }
 
 /// Abort 未完成会话：硬删 asset（CASCADE 清 chunk 元数据），不动 CAS。
-pub async fn discard_session(db: &Storage, asset: asset::Model) -> Result<(), UploadError> {
+pub async fn discard_session(
+    tx: &DatabaseTransaction,
+    asset: asset::Model,
+) -> Result<(), UploadError> {
     let id = asset.id;
     asset::Entity::delete_by_id(id)
-        .exec(&db.db)
+        .exec(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
     Ok(())
 }
 
 async fn copy_chunks(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     from_asset: Uuid,
     to_asset: Uuid,
     creator: Option<Uuid>,
 ) -> Result<(), UploadError> {
-    let rows = list_chunk_rows(db, from_asset).await?;
+    let rows = list_chunk_rows(tx, from_asset).await?;
     let now = Utc::now().fixed_offset();
     for row in rows {
         let model = chunk::ActiveModel {
@@ -233,7 +242,7 @@ async fn copy_chunks(
             ..Default::default()
         };
         model
-            .insert(&db.db)
+            .insert(tx)
             .await
             .map_err(|e| UploadError::Database(e.to_string()))?;
     }
@@ -241,22 +250,22 @@ async fn copy_chunks(
 }
 
 pub async fn list_chunk_rows(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     asset_id: Uuid,
 ) -> Result<Vec<chunk::Model>, UploadError> {
     chunk::Entity::find()
         .filter(chunk::Column::AssetId.eq(asset_id))
         .order_by_asc(chunk::Column::Index)
-        .all(&db.db)
+        .all(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
 pub async fn uploaded_list(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     asset_id: Uuid,
 ) -> Result<Vec<UploadedChunk>, UploadError> {
-    let rows = list_chunk_rows(db, asset_id).await?;
+    let rows = list_chunk_rows(tx, asset_id).await?;
     Ok(rows
         .into_iter()
         .map(|r| UploadedChunk {
@@ -267,10 +276,10 @@ pub async fn uploaded_list(
 }
 
 pub async fn ordered_chunk_hashes(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     asset: &asset::Model,
 ) -> Result<Vec<String>, UploadError> {
-    let rows = list_chunk_rows(db, asset.id).await?;
+    let rows = list_chunk_rows(tx, asset.id).await?;
     if rows.len() != asset.total as usize {
         return Err(UploadError::BadRequest(format!(
             "分片记录不完整：{} / {}",
@@ -292,36 +301,36 @@ pub async fn ordered_chunk_hashes(
 }
 
 pub async fn find_chunk(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     asset_id: Uuid,
     index: u32,
 ) -> Result<Option<chunk::Model>, UploadError> {
     chunk::Entity::find()
         .filter(chunk::Column::AssetId.eq(asset_id))
         .filter(chunk::Column::Index.eq(index as i32))
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
-pub async fn count_chunks(db: &Storage, asset_id: Uuid) -> Result<u64, UploadError> {
+pub async fn count_chunks(tx: &DatabaseTransaction, asset_id: Uuid) -> Result<u64, UploadError> {
     chunk::Entity::find()
         .filter(chunk::Column::AssetId.eq(asset_id))
-        .count(&db.db)
+        .count(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
 /// 登记分片：UPSERT，同 index 同 hash 幂等；同 index 不同 hash 拒绝。
 pub async fn upsert_chunk(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     asset: &asset::Model,
     index: u32,
     chunk_hash: &str,
     size: i64,
     creator: Option<&str>,
 ) -> Result<(), UploadError> {
-    if let Some(existing) = find_chunk(db, asset.id, index).await? {
+    if let Some(existing) = find_chunk(tx, asset.id, index).await? {
         if existing.hash != chunk_hash {
             return Err(UploadError::BadRequest(format!(
                 "分片 {index} 已存在但 hash 不一致，请取消后重传"
@@ -338,7 +347,7 @@ pub async fn upsert_chunk(
 
     // cancel 硬删可能与并发 chunk 竞态：插入前再确认会话仍在。
     if asset::Entity::find_by_id(asset.id)
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?
         .is_none()
@@ -346,8 +355,7 @@ pub async fn upsert_chunk(
         return Err(UploadError::SessionGone);
     }
 
-    let result = db
-        .db
+    let result = tx
         .execute_raw(Statement::from_sql_and_values(
             DatabaseBackend::Postgres,
             r#"INSERT INTO chunk (id, "assetID", "index", hash, size, "createdAt", creator)
@@ -374,7 +382,7 @@ pub async fn upsert_chunk(
 
     if result.rows_affected() == 0 {
         // 并发插入：再读校验
-        if let Some(existing) = find_chunk(db, asset.id, index).await? {
+        if let Some(existing) = find_chunk(tx, asset.id, index).await? {
             if existing.hash != chunk_hash {
                 return Err(UploadError::BadRequest(format!(
                     "分片 {index} 已存在但 hash 不一致，请取消后重传"
@@ -390,7 +398,7 @@ pub async fn upsert_chunk(
     active.status = Set(UploadStatus::Uploading.as_str().to_string());
     active.updated_at = Set(now);
     active
-        .update(&db.db)
+        .update(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
 
@@ -398,7 +406,7 @@ pub async fn upsert_chunk(
 }
 
 pub async fn bind_hash(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     asset: asset::Model,
     hash: &str,
 ) -> Result<asset::Model, UploadError> {
@@ -406,14 +414,14 @@ pub async fn bind_hash(
     active.hash = Set(hash.to_string());
     active.updated_at = Set(Utc::now().fixed_offset());
     active
-        .update(&db.db)
+        .update(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
 /// 秒传：保留当前会话行，标记 SUPERSEDED 并指向已完成资产。
 pub async fn mark_superseded(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     asset: asset::Model,
     target: Uuid,
 ) -> Result<(), UploadError> {
@@ -422,14 +430,14 @@ pub async fn mark_superseded(
     active.superseded = Set(Some(target));
     active.updated_at = Set(Utc::now().fixed_offset());
     active
-        .update(&db.db)
+        .update(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
     Ok(())
 }
 
 pub async fn mark_completed(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     asset: &asset::Model,
     sha: &str,
 ) -> Result<(), UploadError> {
@@ -439,13 +447,13 @@ pub async fn mark_completed(
     active.expires_at = Set(None);
     active.updated_at = Set(Utc::now().fixed_offset());
     active
-        .update(&db.db)
+        .update(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
     Ok(())
 }
 
-pub async fn mark_failed(db: &Storage, asset: asset::Model) -> Result<(), UploadError> {
+pub async fn mark_failed(tx: &DatabaseTransaction, asset: asset::Model) -> Result<(), UploadError> {
     let now = Utc::now().fixed_offset();
     let asset_id = asset.id;
     let mut active: asset::ActiveModel = asset.into();
@@ -453,20 +461,20 @@ pub async fn mark_failed(db: &Storage, asset: asset::Model) -> Result<(), Upload
     active.archived_at = Set(Some(now));
     active.updated_at = Set(now);
     active
-        .update(&db.db)
+        .update(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
 
     chunk::Entity::delete_many()
         .filter(chunk::Column::AssetId.eq(asset_id))
-        .exec(&db.db)
+        .exec(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
     Ok(())
 }
 
 pub async fn list_owned(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     user_id: &str,
     page: u32,
     size: u32,
@@ -486,14 +494,14 @@ pub async fn list_owned(
 
     let count = selector
         .clone()
-        .count(&db.db)
+        .count(tx)
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
 
     let page = page.max(1);
     let size = size.clamp(1, 100);
     let rows = selector
-        .paginate(&db.db, size as u64)
+        .paginate(tx, size as u64)
         .fetch_page((page as u64).saturating_sub(1))
         .await
         .map_err(|e| UploadError::Database(e.to_string()))?;
@@ -528,11 +536,11 @@ pub fn asset_to_r(asset: asset::Model) -> AssetR {
 }
 
 pub async fn prepare_response(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     asset: &asset::Model,
     exists: bool,
 ) -> Result<crate::services::upload::schema::PrepareR, UploadError> {
-    let uploaded = uploaded_list(db, asset.id).await?;
+    let uploaded = uploaded_list(tx, asset.id).await?;
     Ok(crate::services::upload::schema::PrepareR {
         id: asset.id.to_string(),
         exists,

@@ -1,7 +1,7 @@
 use chrono::{Datelike, Utc};
 use entity::{asset, auth};
-use identity::{AccountStatus, PlatformRole};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use identity::{AccountStatus, PlatformRole, UserId};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseTransaction, EntityTrait, QueryFilter, Set};
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -9,6 +9,7 @@ use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::{self, Storage};
 use crate::filters::exception::Exception;
+use crate::guards::account::AccountScope;
 use crate::guards::blacklist;
 use crate::services::auth::captcha::{CaptchaError, CaptchaService};
 use crate::services::auth::otp::{OtpError, OtpPurpose, OtpService};
@@ -16,6 +17,7 @@ use crate::services::auth::schema::{
     CaptchaR, EmailSigninP, ForgotPasswordP, Gender, OtpChannel, OtpP, PasswordP, PhoneSigninP,
     ProfileP, ProfileR, ResetPasswordP, SigninP, SigninR, SignupP, SignupR,
 };
+use crate::services::upload::schema::Visibility;
 use crate::utils::code::{auth as auth_codes, business, external, request, resource, system};
 use crate::utils::db::is_unique_violation;
 use crate::utils::encryption::{EncryptionError, encrypt_password, verify_password};
@@ -192,17 +194,50 @@ pub fn age_from_birthday(birthday: chrono::NaiveDate) -> i32 {
     age.max(0)
 }
 
+/// 在**已开启的作用域**里读头像行；可见性完全交给 `asset` 的策略决定
+/// （看不到的行返回 `None`，不区分「不存在」与「不可见」）。
+///
+/// # Errors
+/// 查询失败时返回 [`ProfileError::Db`]。
 pub async fn load_avatar(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     avatar_id: Option<Uuid>,
 ) -> Result<Option<asset::Model>, ProfileError> {
     let Some(id) = avatar_id else {
         return Ok(None);
     };
     asset::Entity::find_by_id(id)
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(|e| ProfileError::Db(e.to_string()))
+}
+
+/// 以**头像所属账号**的账号作用域读一份档案的头像。
+///
+/// 头像是档案数据（`asset.creator` 就是这个人），所以读它用这个人的作用域最贴切：
+/// 本人档案、管理面单账号档案都走这一条；批量列表按公开可见性读，见 `user::service`。
+///
+/// # Errors
+/// 作用域无法开启或查询失败时返回 [`ProfileError::Db`]。
+pub async fn load_avatar_of(
+    db: &Storage,
+    owner: Uuid,
+    avatar_id: Option<Uuid>,
+) -> Result<Option<asset::Model>, ProfileError> {
+    if avatar_id.is_none() {
+        return Ok(None);
+    }
+
+    let scope = AccountScope::open(db, UserId::from_uuid(owner))
+        .await
+        .map_err(|e| ProfileError::Db(e.to_string()))?;
+    let avatar = load_avatar(scope.tx(), avatar_id).await;
+    scope
+        .rollback()
+        .await
+        .map_err(|e| ProfileError::Db(e.to_string()))?;
+
+    avatar
 }
 
 pub async fn phone_free(
@@ -225,6 +260,15 @@ pub async fn phone_free(
     Ok(())
 }
 
+/// 校验「这份资产可以当这个人的头像吗」，并把头像登记为**公开档案数据**。
+///
+/// 头像会出现在别人的档案与列表里，所以绑定成功时把 `visibility` 提升为 `PUBLIC`：
+/// 公开档案数据就该按公开可见性读，读的人也不必是本人。历史头像由运维 SQL 回填
+/// （见 `auth/README.md`）。
+///
+/// # Errors
+/// 资产不可见/未完成时返回 [`ProfileError::AvatarMissing`]，
+/// 不是本人上传的返回 [`ProfileError::AvatarDenied`]，非图片返回 [`ProfileError::BadParam`]。
 pub async fn check_avatar(
     db: &Storage,
     user_id: Uuid,
@@ -233,8 +277,12 @@ pub async fn check_avatar(
     let id = Uuid::parse_str(asset_id)
         .map_err(|_| ProfileError::BadParam("头像资源 ID 无效".to_string()))?;
 
+    let scope = AccountScope::open(db, UserId::from_uuid(user_id))
+        .await
+        .map_err(|e| ProfileError::Db(e.to_string()))?;
+
     let asset = asset::Entity::find_by_id(id)
-        .one(&db.db)
+        .one(scope.tx())
         .await
         .map_err(|e| ProfileError::Db(e.to_string()))?
         .ok_or(ProfileError::AvatarMissing)?;
@@ -250,6 +298,24 @@ pub async fn check_avatar(
     if !asset.mime.starts_with("image/") {
         return Err(ProfileError::BadParam("头像文件必须是图片类型".to_string()));
     }
+
+    if asset.visibility != Visibility::Public.as_str() {
+        asset::ActiveModel {
+            id: Set(id),
+            visibility: Set(Visibility::Public.as_str().to_string()),
+            updated_at: Set(Utc::now().fixed_offset()),
+            updater: Set(Some(user_id)),
+            ..Default::default()
+        }
+        .update(scope.tx())
+        .await
+        .map_err(|e| ProfileError::Db(e.to_string()))?;
+    }
+
+    scope
+        .commit()
+        .await
+        .map_err(|e| ProfileError::Db(e.to_string()))?;
 
     Ok(id)
 }
@@ -625,7 +691,7 @@ impl AuthService {
 
     pub async fn toRead(db: &database::Storage, user_id: &str) -> Result<ProfileR, AuthError> {
         let user = Self::find_user(db, user_id).await?;
-        let avatar = load_avatar(db, user.avatar).await?;
+        let avatar = load_avatar_of(db, user.id, user.avatar).await?;
         Ok(ProfileR::from_user(user, avatar))
     }
 
@@ -703,7 +769,7 @@ impl AuthService {
             }
         })?;
 
-        let avatar_model = load_avatar(db, updated.avatar).await?;
+        let avatar_model = load_avatar_of(db, id, updated.avatar).await?;
         Ok(ProfileR::from_user(updated, avatar_model))
     }
 

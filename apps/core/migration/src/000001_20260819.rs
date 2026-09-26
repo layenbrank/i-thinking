@@ -825,6 +825,14 @@ impl MigrationTrait for Migration {
                 .await?;
         }
 
+        manager
+            .get_connection()
+            .execute_unprepared(&text_scope_reader(
+                "app_current_asset_hash",
+                ASSET_HASH_SETTING,
+            ))
+            .await?;
+
         // 严格隔离：只见本租户行；"tenantID" 为 NULL 的行不属于任何租户作用域
         for table in STRICT_TENANT_TABLES {
             enable_rls(
@@ -879,12 +887,29 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
-        // asset."tenantID" 是 text（历史列型），比较时显式转型
+        // asset 是**内容寻址**的资源：同一份字节被多个账号各自持有一行（秒传克隆），
+        // 所以它的可见性不是「一个租户一份」，而要按四条通道分层：
+        //   1. 创建者永远看得见自己的行（上传会话、我的文件、下载自己的文件）；
+        //   2. 同租户（`"tenantID"` 是 text 历史列型，比较时显式转型）；
+        //   3. 公开分发（`PUBLIC`）对匿名可读，也是唯一对匿名开放的分支；
+        //   4. 白名单分发（`RESTRICTED`）额外放行 `viewers` 里点到名的账号
+        //      （`viewers` 是 uuid 字符串数组，`?` 判定数组成员）。
+        // 再加一条**能力键**分支给秒传：跨账号读到同一份内容必须靠 hash，
+        // 所以只有 hash 命中且那一行 `COMPLETED` 时才借出；未完成会话照旧读不到
+        // （否则猜到 hash 的人就能续传别人的上传会话）。变量未设置时读取器返回 NULL，
+        // 条件恒不成立——fail-closed。
+        // `WITH CHECK` 只认创建者：任何写入都必须是「我自己的行」。秒传克隆出来的副本
+        // `"tenantID"` 为 NULL，租户分支写不进去，创建者分支才写得进。
+        let asset_using = r#""creator" = app_current_user_id()
+               OR "tenantID" = app_current_tenant_id()::text
+               OR "visibility" = 'PUBLIC'
+               OR "viewers" ? app_current_user_id()::text
+               OR ("hash" = app_current_asset_hash() AND "status" = 'COMPLETED')"#;
         enable_rls(
             manager,
             "asset",
-            r#""tenantID" = app_current_tenant_id()::text"#,
-            r#""tenantID" = app_current_tenant_id()::text"#,
+            asset_using,
+            r#""creator" = app_current_user_id()"#,
         )
         .await?;
 
@@ -956,6 +981,11 @@ const TENANT_SETTING: &str = "app.tenant_id";
 const USER_SETTING: &str = "app.user_id";
 /// 支付回调的能力键（订单号）作用域变量：只被 `payment_order` 的只读分支识别。
 const ORDER_SETTING: &str = "app.order_no";
+/// 内容寻址（秒传）的能力键作用域变量：文件 hash。
+///
+/// 只被 `asset` 的只读分支识别，且只借出 hash 命中那一行**已完成**资产：
+/// 同一份字节被多个账号各自持有一行，秒传必须先看到内容才知道要克隆什么。
+const ASSET_HASH_SETTING: &str = "app.asset_hash";
 /// 平台运维角色：唯一一条绕过行级策略的通道。
 ///
 /// 必须与 `service::databases::scope::PLATFORM_ROLE` 一致（迁移 crate 不能依赖 service）。
@@ -973,6 +1003,23 @@ LANGUAGE sql STABLE AS $fn$
         WHEN current_setting('{setting}', true)
              ~ '^[0-9a-fA-F]{{8}}-[0-9a-fA-F]{{4}}-[0-9a-fA-F]{{4}}-[0-9a-fA-F]{{4}}-[0-9a-fA-F]{{12}}$'
         THEN current_setting('{setting}', true)::uuid
+        ELSE NULL
+    END
+$fn$"#
+    )
+}
+
+/// 文本型能力键的读取器：未设置或不是 64 位十六进制时一律返回 `NULL`（fail-closed）。
+///
+/// 与 [`scope_reader`] 分开是必须的：hash 不是 uuid，用 uuid 读取器会永远读不出来，
+/// 而把 `scope_reader` 改成文本又会破坏 `"tenantID" = app_current_tenant_id()`（uuid 列）的比较。
+fn text_scope_reader(function: &str, setting: &str) -> String {
+    format!(
+        r#"CREATE OR REPLACE FUNCTION {function}() RETURNS text
+LANGUAGE sql STABLE AS $fn$
+    SELECT CASE
+        WHEN current_setting('{setting}', true) ~ '^[0-9a-fA-F]{{64}}$'
+        THEN current_setting('{setting}', true)
         ELSE NULL
     END
 $fn$"#

@@ -48,8 +48,11 @@
 
 ## 表协作
 
-- **avatar**：更新时与 auth profile 相同规则（`asset` 须 COMPLETED、creator 匹配目标用户）
-- 读 avatar 时 `JOIN` asset 拼 `AvatarSummary`
+- **avatar**：更新时与 auth profile 相同规则（`asset` 须 COMPLETED、creator 匹配目标用户），绑定后把该 asset 的 `visibility` 提为 `PUBLIC`
+- 读 avatar 时 `JOIN` asset 拼 `AvatarSummary`，并过 `asset` 的行级策略：
+  - **列表**（`GET /users`）：头像可能跨账号，走匿名的 `AssetReader`，「只见 `PUBLIC`」——即列表里只显示公开头像
+  - **详情 / 更新**（按 id）：走头像所属账号的 `AccountScope`，本人 `PRIVATE` 头像也能读到
+- 头像可见性的完整规则见 [auth README](../auth/README.md)
 
 详见 [`guide/database.md`](../../../guide/database.md)。
 
@@ -59,7 +62,7 @@
 UserController::find_all / find_one / insert / update / remove
   └── UserService
         └── auth::Entity（CRUD）
-        └── asset::Entity::find_by_id（avatar 联查）
+        └── asset::Entity::find_by_id（avatar 联查，包在作用域里）
         └── encrypt_password（create/update 密码）
 ```
 

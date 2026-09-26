@@ -16,6 +16,7 @@ use crate::services::upload::schema::{FinalizeP, HashP, PrepareP};
         - `PRIVATE`：仅创建者可按 id 下载（需 JWT）\n\
         - `PUBLIC`：匿名或已登录均可按 id 下载（`GET /asset/{id}` 对 Auth 放行）\n\
         - `RESTRICTED`：创建者 + `viewers`（用户 UUID 列表，最多 100）可下载（需 JWT）\n\n\
+        可见性由数据库行级策略兜底（创建者 / 租户 / PUBLIC / viewers / hash 能力键五分支），写入只允许 `creator` 为当前用户。\n\
         上传会话写操作（chunk/hash/finalize 等）仍仅创建者。需要 JWT。",
     security(("bearer_auth" = [])),
     request_body(
@@ -186,6 +187,8 @@ pub fn serve_file_doc() {}
     summary = "按资产 id 下载文件",
     description = "下载 COMPLETED 资产（按 chunk 表顺序流式输出）。\n\n\
         路径对 Auth **放行匿名**；ACL：`PUBLIC` 无需登录；创建者始终可下；`RESTRICTED` 须 JWT 且在 `viewers` 中；`PRIVATE` 仅创建者。\n\
+        判定顺序是**先可见、再判权**：行级策略看不见的行等同不存在（`500204`，HTTP 404，不暴露存在性），\n\
+        看得见但无下载权限才是 `400004`（HTTP 403）；尚未完成返回 `200003`。\n\
         秒传会话 id（SUPERSEDED）仅创建者可跟随到目标资产。",
     security(("bearer_auth" = [])),
     params(

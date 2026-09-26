@@ -31,7 +31,7 @@ Middleware → Guard → Interceptor(pre) → Pipe → Handler
 | Nest | Actix / 本仓库 |
 |------|----------------|
 | Middleware | [`cors`](../src/middlewares/cors.rs)、[`access_log`](../src/middlewares/access_log.rs)、[`logger`](../src/utils/logger.rs) |
-| Guard | [`Auth`](../src/guards/auth.rs)、[`Session`](../src/guards/session.rs)（请求身份上下文）、[`TenantCtx`](../src/guards/tenant.rs)（租户作用域入口）、[`blacklist`](../src/guards/blacklist.rs)、[`public`](../src/guards/public.rs) |
+| Guard | [`Auth`](../src/guards/auth.rs)、[`Session`](../src/guards/session.rs)（请求身份上下文）、[`TenantCtx`](../src/guards/tenant.rs)（租户作用域入口）、[`AssetReader` / `AssetContentScope`](../src/guards/asset.rs)（资产读写与内容能力键）、[`blacklist`](../src/guards/blacklist.rs)、[`public`](../src/guards/public.rs) |
 | Interceptor | [`Envelope` / `Paginated`](../src/interceptors/envelope.rs) |
 | Filter | [`Exception`](../src/filters/exception.rs)（`details` 非生产才写入） |
 | Guard | [`Auth::required`](../src/guards/auth.rs) + [`authz`](architecture-capabilities.md)（`crates/authz` 统一判定） |
@@ -85,6 +85,15 @@ handler 只用：ctx.tx() 读写 / ctx.require(permission) 判权限 / ctx.commi
   → 匿名回调只递进一串订单号：策略里的能力键让「找出租户」与「读那一行」在同一条语句里发生
   → 只命中一行未归档订单；命不中返回 None，调用方按「订单不存在」回执（不是权限失败）
 
+[资产读通道] AssetReader::enter(storage, Option<user_id>)
+  → 事务 + SET LOCAL app.user_id；None 即匿名读事务（只见 PUBLIC）
+  → 可见性完全由 asset 的策略决定（创建者 / 租户 / PUBLIC / viewers / hash 五分支）
+  → 调用方拿到句柄后自己 rollback / commit
+
+[内容能力键] AssetContentScope::open(storage, hash)
+  → 只有内容 hash、没有身份：秒传要跨账号借用已上传字节时用
+  → 只借内容不借所有权，且要求 status = COMPLETED
+  
 [平台运维通道] PlatformScope::open(storage)
   → 提权到 core_platform（SET LOCAL ROLE，事务局部）：唯一一条绕过行级策略的通道
   → 只用于平台目录的全局行（"tenantID" IS NULL）与跨租户用量/审计汇总，确权在路由层（Auth::admin）
@@ -97,17 +106,21 @@ handler 只用：ctx.tx() 读写 / ctx.require(permission) 判权限 / ctx.commi
   平台管理员走运维通道（上下文的租户角色为空也放行）。
 - 角色不再由业务代码比较：`ctx.require(..)` 失败即 403(300006)，`tenantID = ?` 不再手写。
   `TenantScope` 不带主体，因此**只有 `TenantCtx` 判权限**；机器通道的授权由调用侧保证。
-- 作用域只能从 [`src/guards/tenant.rs`](../src/guards/tenant.rs) 进入：`Storage::tenant_tx` / `user_tx` / `order_tx` 等原语仅
-  [`src/guards/`](../src/guards) 与 [`src/databases/scope.rs`](../src/databases/scope.rs) 可直接调用（R7 门禁，逐文件限额只减不增）。
+- 作用域只能从 [`src/guards/`](../src/guards) 进入：`Storage::tenant_tx` / `user_tx` / `order_tx` / `asset_hash_tx` / `anon_tx`
+  等原语仅 [`src/guards/`](../src/guards) 与 [`src/databases/scope.rs`](../src/databases/scope.rs) 可直接调用（R7 门禁，逐文件限额只减不增）。
+- 「读不到」应当来自策略，而不是忘了设作用域：无作用域的裸读（`anon_tx`）同样只允许出现在 `src/guards/`，
+  其余调用点按 `UNSCOPED_DB_ALLOWED` 正向登记（R9 门禁）。当前名单为空，只有[资产读通道](../src/guards/asset.rs)需要它。
 - 提权只能从 [`src/guards/platform.rs`](../src/guards/platform.rs) 进入：`Storage::platform_tx` 同上受限，
   且其余调用点按 `PLATFORM_ENTRY_ALLOWED` 白名单正向登记（R8 门禁）——提权是绕过隔离，每多一处都要写明用途。
+- `asset` 的策略是**五分支**（创建者 / 租户 / `PUBLIC` / `viewers` / hash 能力键），其中 `PUBLIC` 是**全局**分支，
+  在任何作用域（含只带 hash 的能力键作用域）里都成立；`WITH CHECK` 只认创建者。详见 [`database.md`](database.md)。
 
 ## 目录约定
 
 | 目录 | 角色 |
 |------|------|
 | `src/middlewares/` | CORS、访问日志 |
-| `src/guards/` | `auth` / `session` / `tenant` / `account` / `blacklist` / `permission` / `public` / `payment` / `platform` |
+| `src/guards/` | `auth` / `session` / `tenant` / `account` / `asset` / `blacklist` / `permission` / `public` / `payment` / `platform` |
 | `src/interceptors/` | 成功信封 |
 | `src/filters/` | 失败信封 |
 | `src/utils/code.rs` | 业务码 |

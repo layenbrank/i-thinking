@@ -90,6 +90,26 @@ import GoCaptcha from 'go-captcha-react'
 - Auth 路由受 `governor` IP 限流（`auth.rate_limit`），超限 `code=200005`
 - 未登录返回 `300001`；已登出 token 返回 `300002`
 
+## 头像与可见性
+
+`auth.avatar` 指向 `asset.id`，读/写头像都要过 `asset` 的**行级策略**（见 [upload README](../upload/README.md)）：
+
+- **读**：走 [`AccountScope`](../../guards/account.rs)，作用域取**头像所属账号**而非当前登录者。
+  这样「本人看自己的 `PRIVATE` 头像」与「按 id 联查他人头像」都能拿到行；
+  `load_avatar_of(db, owner, avatar_id)` 在作用域内读、随后 rollback。
+- **写**（`PUT /auth/profile` 带 `avatar`）：在同一 `AccountScope` 内校验
+  「asset 存在 + `COMPLETED` + `creator` = 当前用户」，通过后把 `visibility` **提为 `PUBLIC`** 再 commit。
+- 头像属于**公开档案数据**（要按 id 直接渲染，且会被他人页面引用），因此统一按 `PUBLIC` 处理；
+  提权只发生在绑定路径上，不会放宽其它资产。
+- 历史行（在行级策略上线前绑定、仍是 `PRIVATE` 的头像）需要运维回填一次：
+
+```sql
+UPDATE asset SET visibility = 'PUBLIC'
+WHERE id IN (SELECT avatar FROM auth WHERE avatar IS NOT NULL);
+```
+
+未回填时，批量列表（匿名读作用域）看不到这些头像，但单人档案页仍可见（读的是所属账号作用域）。
+
 ## 接口示例
 
 ### POST /api/v1/auth/signin

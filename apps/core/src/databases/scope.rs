@@ -22,6 +22,12 @@ pub const USER_SETTING: &str = "app.user_id";
 /// `payment_order` 的只读分支据此把那一行订单借给回调代码（见迁移里的策略）。
 pub const ORDER_SETTING: &str = "app.order_no";
 
+/// 会话级能力键变量：内容寻址（秒传）的文件 hash。
+///
+/// `asset` 的只读分支据此把那一行**已完成**资产借给上传代码——同一份字节被多个账号
+/// 各自持有一行，秒传必须先看到内容才知道要克隆什么。
+pub const ASSET_HASH_SETTING: &str = "app.asset_hash";
+
 /// 平台运维角色：**唯一**一条绕过行级策略的通道（迁移里创建，`NOLOGIN`，只能由应用角色 `SET ROLE` 进入）。
 ///
 /// 只给运维面用：平台目录的全局行（`"tenantID" IS NULL`）与跨租户汇总，租户面永远不需要它。
@@ -72,6 +78,17 @@ where
     set_scope(conn, ORDER_SETTING, order_no).await
 }
 
+/// 在当前连接/事务上设定内容寻址能力键（文件 hash）。
+///
+/// 与订单号同理：**不等于**作用域。它只让 `asset` 里 hash 命中且已完成的那一行可读，
+/// 写入仍被 `WITH CHECK` 挡住，所以只能短暂存在，读到内容后立刻释放。
+pub async fn apply_asset_capability<C>(conn: &C, hash: &str) -> Result<(), DbErr>
+where
+    C: ConnectionTrait,
+{
+    set_scope(conn, ASSET_HASH_SETTING, hash).await
+}
+
 /// 在当前事务上提权到平台运维角色。
 ///
 /// 与作用域变量同样的性质：**事务局部**（`SET LOCAL ROLE`），提交或回滚后当前角色自动
@@ -117,6 +134,23 @@ impl Storage {
         let tx = self.db.begin().await?;
         apply_user_scope(&tx, user_id).await?;
         Ok(tx)
+    }
+
+    /// 开启只带内容寻址能力键的事务：`asset` 里 hash 命中且已完成的那一行可读，
+    /// 用来找秒传源（见 `guards::asset::AssetContentScope`）。
+    pub async fn asset_hash_tx(&self, hash: &str) -> Result<DatabaseTransaction, DbErr> {
+        let tx = self.db.begin().await?;
+        apply_asset_capability(&tx, hash).await?;
+        Ok(tx)
+    }
+
+    /// 开启**无作用域**事务：什么都读不到，除了策略里对匿名开放的那部分
+    /// （目前只有 `PUBLIC` 资产）。
+    ///
+    /// **不要直接调用**：入口是 [`crate::guards::asset::AssetReader`] 的匿名分支，
+    /// 调用点被门禁限制在白名单文件内（见 `scripts/capabilities.ts`）。
+    pub async fn anon_tx(&self) -> Result<DatabaseTransaction, DbErr> {
+        self.db.begin().await
     }
 
     /// 开启平台运维事务：在行级策略之上提权到 [`PLATFORM_ROLE`]，用于平台目录的全局行

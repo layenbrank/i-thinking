@@ -32,7 +32,7 @@ impl UploadController {
         };
         let user_id = session.user_id().to_string();
 
-        match UploadService::prepare(&db, req.into_inner(), Some(user_id)).await {
+        match UploadService::prepare(&db, req.into_inner(), &user_id).await {
             Ok(response) => Envelope::success(response, "初始化上传成功").transform(),
             Err(err) => Exception::from(err).transform(),
         }
@@ -153,7 +153,7 @@ impl UploadController {
         let id = path.into_inner();
 
         match UploadService::find_owned_asset(&db, &id, user_id.as_deref()).await {
-            Ok(asset) => Self::stream_asset(&db, asset).await,
+            Ok(asset) => Self::stream_asset(&db, asset, user_id.as_deref()).await,
             Err(err) => Exception::from(err).transform(),
         }
     }
@@ -171,14 +171,18 @@ impl UploadController {
         let hash = path.into_inner();
 
         match UploadService::find_file_for_download(&db, &hash, &user_id).await {
-            Ok(Some(asset)) => Self::stream_asset(&db, asset).await,
+            Ok(Some(asset)) => Self::stream_asset(&db, asset, Some(&user_id)).await,
             Ok(None) => Exception::not_found("文件不存在").transform(),
             Err(err) => Exception::from(err).transform(),
         }
     }
 
-    async fn stream_asset(db: &Arc<Storage>, asset: entity::asset::Model) -> Result<HttpResponse> {
-        let chunk_hashes = match UploadService::stream_hashes_for_asset(db, &asset).await {
+    async fn stream_asset(
+        db: &Arc<Storage>,
+        asset: entity::asset::Model,
+        user_id: Option<&str>,
+    ) -> Result<HttpResponse> {
+        let chunk_hashes = match UploadService::stream_hashes_for_asset(db, &asset, user_id).await {
             Ok(hashes) => hashes,
             Err(err) => return Exception::from(err).transform(),
         };

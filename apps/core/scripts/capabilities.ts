@@ -142,8 +142,11 @@ export const ROLE_VOCAB_PATTERN =
 /**
  * R7 豁免名单：`src/guards/` 与 `src/databases/scope.rs` 之外的作用域入口，数量只能减少。
  *
- * 目标状态下进入租户作用域只有两条路：请求侧 `TenantCtx::enter/open_new`、机器侧显式
- * `TenantScope::open` 且调用点登记在这里。任何新增作用域入口都必须先想清楚归属，而不是就地打开事务。
+ * 目标状态下进入作用域只有两条路：请求侧由守卫按请求上下文开（`TenantCtx::enter/open_new`、
+ * `AccountScope::enter`、`AssetReader::enter`），机器侧是显式能力键引导且调用点登记在这里。
+ * 任何新增作用域入口都必须先想清楚归属，而不是就地打开事务。
+ *
+ * 名单名保留（历史原因），实际涵盖租户 / 账号 / 支付 / 资产四类作用域入口。
  */
 export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }> = {
   'src/services/subscription/service.rs': {
@@ -164,6 +167,21 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
     max: 2,
     reason:
       '用量/审计落库的机器路径：上游调用结束后按身份重开一段短作用域（租户面 TenantScope::open、账号面 AccountScope::open）'
+  },
+  'src/services/upload/service.rs': {
+    max: 4,
+    reason:
+      '资产面请求路径：一次请求内分段开短作用域（秒传引导 AssetContentScope::open、账号 AccountScope::open、读资产 AssetReader::enter），长 CAS I/O 在事务外，不跨网络持有作用域'
+  },
+  'src/services/auth/service.rs': {
+    max: 2,
+    reason:
+      '头像是档案数据：以头像所属账号的账号作用域读（load_avatar_of），绑定头像时在同一作用域内校验并提升为 PUBLIC（check_avatar）'
+  },
+  'src/services/user/service.rs': {
+    max: 1,
+    reason:
+      '管理面用户列表：一批账号的头像共用一个匿名读事务（只读 PUBLIC 头像），不给每个账号单开作用域'
   }
 }
 
@@ -172,9 +190,12 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
  *
  * `order_tx` / `apply_order_capability` / `TenantScope::adopt` / `PaymentNotifyScope::open`
  * 是**能力键引导**（支付回调：订单号 → 租户）用到的入口，只允许出现在 `src/guards/`。
+ * `AssetReader::enter` / `AssetContentScope::open` / `asset_hash_tx` / `apply_asset_capability`
+ * 是资产面的三条通道（账号 / 匿名 / 内容寻址能力键），同样只允许出现在 `src/guards/`；
+ * `anon_tx`（无作用域）另受 R9 约束。
  */
 export const TENANT_SCOPE_PATTERN =
-  /\b(?:tenant_tx|user_tx|order_tx|apply_tenant_scope|apply_user_scope|apply_order_capability|TenantScope::open|TenantScope::adopt|AccountScope::open|PaymentNotifyScope::open)\b/g
+  /\b(?:tenant_tx|user_tx|order_tx|asset_hash_tx|anon_tx|apply_tenant_scope|apply_user_scope|apply_order_capability|apply_asset_capability|TenantScope::open|TenantScope::adopt|AccountScope::open|PaymentNotifyScope::open|AssetReader::enter|AssetContentScope::open)\b/g
 
 /** R7 允许的作用域入口归属路径（定义与唯一入口） */
 export const TENANT_SCOPE_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const
@@ -202,3 +223,20 @@ export const PLATFORM_ENTRY_ALLOWED: Record<string, { max: number; reason: strin
 
 /** R8 允许的定义与唯一入口归属路径 */
 export const PLATFORM_ENTRY_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const
+
+/**
+ * R9：无作用域数据库访问模式。
+ *
+ * `Storage::anon_tx` 是唯一一条「什么身份都不带」的通道：行级策略只放行对匿名开放的行
+ * （目前只有 `PUBLIC` 资产），写路径一律会被 `WITH CHECK` 挡回。它只允许出现在 `src/guards/`
+ * 里，且每个出现都必须在这里登记用途——「读不到」应当是设计出来的，而不是忘了设作用域。
+ *
+ * 后续（P3e-3）会把 `Storage::db` 直连（不受行级策略约束的全局表）一并纳入本规则。
+ */
+export const UNSCOPED_DB_PATTERN = /\banon_tx\b/g
+
+/** R9 允许的定义与唯一入口归属路径 */
+export const UNSCOPED_DB_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const
+
+/** R9 名单：`src/guards/` 之外允许出现的无作用域访问，**正向登记**（不在名单内即违规） */
+export const UNSCOPED_DB_ALLOWED: Record<string, { max: number; reason: string }> = {}

@@ -70,6 +70,7 @@ pub mod middlewares {
 /// 鉴权守卫（Nest Guard 角色）：能否进入受保护 Handler。
 pub mod guards {
     pub mod account;
+    pub mod asset;
     pub mod auth;
     pub mod blacklist;
     pub mod payment;

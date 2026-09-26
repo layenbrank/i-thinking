@@ -182,6 +182,7 @@ export interface paths {
          * 更新个人信息
          * @description 需要 JWT 鉴权。可更新 `email`、`phone`、`gender`、`birthday`、`avatar`（asset UUID）。
          *     所有字段可选；`avatar` 传 `null` 可清空头像。
+         *     `avatar` 须是本人已完成（COMPLETED）的资产；绑定后该资产可见性会提为 `PUBLIC`（头像属于公开档案数据）。
          */
         put: operations["auth.toUpdate"];
         post?: never;
@@ -933,6 +934,8 @@ export interface paths {
          * @description 下载 COMPLETED 资产（按 chunk 表顺序流式输出）。
          *
          *     路径对 Auth **放行匿名**；ACL：`PUBLIC` 无需登录；创建者始终可下；`RESTRICTED` 须 JWT 且在 `viewers` 中；`PRIVATE` 仅创建者。
+         *     判定顺序是**先可见、再判权**：行级策略看不见的行等同不存在（`500204`，HTTP 404，不暴露存在性），
+         *     看得见但无下载权限才是 `400004`（HTTP 403）；尚未完成返回 `200003`。
          *     秒传会话 id（SUPERSEDED）仅创建者可跟随到目标资产。
          */
         get: operations["upload.serveAsset"];
@@ -1079,6 +1082,7 @@ export interface paths {
          *     - `PUBLIC`：匿名或已登录均可按 id 下载（`GET /asset/{id}` 对 Auth 放行）
          *     - `RESTRICTED`：创建者 + `viewers`（用户 UUID 列表，最多 100）可下载（需 JWT）
          *
+         *     可见性由数据库行级策略兜底（创建者 / 租户 / PUBLIC / viewers / hash 能力键五分支），写入只允许 `creator` 为当前用户。
          *     上传会话写操作（chunk/hash/finalize 等）仍仅创建者。需要 JWT。
          */
         post: operations["upload.prepare"];

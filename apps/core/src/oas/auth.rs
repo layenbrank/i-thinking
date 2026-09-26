@@ -195,7 +195,8 @@ pub fn toRead_doc() {}
     operation_id = "auth.toUpdate",
     summary = "更新个人信息",
     description = "需要 JWT 鉴权。可更新 `email`、`phone`、`gender`、`birthday`、`avatar`（asset UUID）。\n\
-        所有字段可选；`avatar` 传 `null` 可清空头像。",
+        所有字段可选；`avatar` 传 `null` 可清空头像。\n\
+        `avatar` 须是本人已完成（COMPLETED）的资产；绑定后该资产可见性会提为 `PUBLIC`（头像属于公开档案数据）。",
     security(("bearer_auth" = [])),
     request_body(
         content = ProfileP,

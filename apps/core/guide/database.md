@@ -245,9 +245,9 @@ Entity：[`entity/src/sso_connection.rs`](../entity/src/sso_connection.rs)
 | subscription / sso_connection / outbox | `"tenantID" = app_current_tenant_id()` |
 | gateway_usage / gateway_audit | 读/写：`"tenantID" = app_current_tenant_id()`，**或**无租户行且归属本人（`"tenantID" IS NULL AND "userID"／"actor" = app_current_user_id()`） |
 | payment_order | 读：`"tenantID" = app_current_tenant_id()`，**或**订单号能力键（`"orderNo" = current_setting('app.order_no', true) AND "archivedAt" IS NULL`）；写：只允许本租户（`WITH CHECK` 不含能力键） |
-| asset | `"tenantID" = app_current_tenant_id()::text`（该列是 text，显式转型） |
+| asset | 读：`"creator" = app_current_user_id()` **或** `"tenantID" = app_current_tenant_id()::text`（该列是 text，显式转型）**或** `"visibility" = 'PUBLIC'` **或** `"viewers" ? app_current_user_id()::text` **或** hash 能力键（见下）；写：只允许 `"creator" = app_current_user_id()` |
 | gateway_provider / gateway_model | 读：`"tenantID" IS NULL OR "tenantID" = app_current_tenant_id()`（保留全局目录行）；写：只允许本租户（全局行由平台运维通道写） |
-| auth / chunk | **无 RLS**：账号是全局身份；chunk 没有租户列，隔离经 asset 传递 |
+| auth / chunk | **无 RLS**：账号是全局身份；chunk 没有租户列，隔离经 asset 传递（有意延后，先有可见的 asset 才谈得上它的分片） |
 
 `payment_order` 的读策略多一条**订单号能力键**：匿名渠道回调只带来一个订单号，策略用它把租户找出来，
 于是「引导作用域」与「读那一行」发生在同一条语句、同一个事务里；`WITH CHECK` 里没有能力键，
@@ -255,7 +255,8 @@ Entity：[`entity/src/sso_connection.rs`](../entity/src/sso_connection.rs)
 
 Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/scope.rs)）与**作用域句柄**（[`src/guards/tenant.rs`](../src/guards/tenant.rs)）分开：
 
-- 机制层：`Storage::tenant_tx` / `user_tx` 开一个事务并设好对应作用域（`apply_tenant_scope` / `apply_user_scope`），
+- 机制层：`Storage::tenant_tx` / `user_tx` / `order_tx` / `asset_hash_tx` / `anon_tx` 开一个事务并设好对应作用域
+  （`apply_tenant_scope` / `apply_user_scope` / `apply_order_capability` / `apply_asset_capability`），
   之后的读写复用这条事务，业务代码不必再逐条手写租户条件。只有 [`src/guards/`](../src/guards) 与
   [`src/databases/scope.rs`](../src/databases/scope.rs) 能直接调用它们（R7 门禁）。
 - 句柄层：**谁持有作用域句柄，谁负责 commit / rollback**。按调用方身份分成下面几类（末行是唯一的提权例外）：
@@ -266,7 +267,32 @@ Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/sco
 | 账号作用域 | [`AccountScope`](../src/guards/account.rs) | 已登录但**未选定租户**的请求面（网关目录 / 聊天 / 自助配额） | 只带事务与账号 id；能读全局行（`"tenantID" IS NULL`）与「本人 + 无租户」的行 |
 | 可信机器通道 | [`TenantScope`](../src/guards/tenant.rs) | 定时任务、内部调用等**已知道租户 id** 的无主体路径 | 只带事务与租户 id，不带主体；权限由调用侧自行保证 |
 | 能力键引导 | [`PaymentNotifyScope`](../src/guards/payment.rs) | 匿名渠道回调（只有订单号） | 同一事务内由订单号能力键升格为租户作用域；只读，命不中返回 `None` |
+| 资产读（含匿名） | [`AssetReader`](../src/guards/asset.rs) | 按 id 单条读、分片元数据读；匿名下载走 `None` | 事务 + `app.user_id`（或匿名读事务 `anon_tx`）；可见性完全由 asset 策略决定，代码不写 `WHERE` |
+| 内容能力键 | [`AssetContentScope`](../src/guards/asset.rs) | 秒传引导：只有内容 hash | 事务 + `app.asset_hash`，只借已完成内容；PUBLIC 是全局分支，同样可见 |
 | 平台运维通道 | [`PlatformScope`](../src/guards/platform.rs) | 运维面（平台目录全局行、跨租户汇总） | **提权**绕过行级策略（`SET LOCAL ROLE`，事务局部）；确权在路由层 |
+
+### asset 的可见性模型
+
+`asset` 是**内容寻址**表（`hash` 是全局唯一的内容键），所以它的策略不是单一租户条件，而是五个「谁看得见」的分支：
+
+```
+"creator" = app_current_user_id()                      -- ① 自己建的
+OR "tenantID" = app_current_tenant_id()::text           -- ② 租户内（只在租户作用域成立）
+OR "visibility" = 'PUBLIC'                              -- ③ 公开：全局分支，匿名也看得见
+OR "viewers" ? app_current_user_id()::text              -- ④ RESTRICTED 白名单点到自己
+OR ("hash" = app_current_asset_hash() AND "status" = 'COMPLETED')  -- ⑤ 内容能力键
+```
+
+- ③ 是**全局**的：它在任何作用域里都成立，**包括只带 hash 的能力键作用域**。因此按 hash 读到的集合是
+  「命中 hash 的已完成行 ∪ 公开行」；后者本就可匿名读，不构成泄露。
+- ⑤ 是内容寻址能力键（`app.asset_hash`）：秒传要跨账号借用已上传的字节，但**只借内容不借所有权**；
+  要求 `status = 'COMPLETED'`，以免猜到 hash 的人续传别人的上传会话。
+- `WITH CHECK` 只认 ①：租户、可见性、能力键都只是**读**的便利，写入永远只能写自己的行。
+  这样也修掉了两个旧回归——全局秒传克隆（`tenantID IS NULL`）在「写必须属于本租户」下必然失败，
+  以及按 hash / 按 id 读头像在「只认租户」下恒为 0 行。
+- 账号作用域（`AccountScope`）**不带租户**，分支 ② 恒不成立：跨账号秒传必须走
+  [`AssetContentScope`](../src/guards/asset.rs)（能力键），不能指望 `AccountScope`。
+- 头像按下 id 直接渲染、且会被他人页面引用，属于公开档案数据，因此绑定路径会把 `visibility` 提为 `PUBLIC`。
 
 ### 平台运维通道
 
@@ -358,7 +384,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO core_platform;
 | --- | --- | --- |
 | auth | 全局 | 认证模块 |
 | tenant / tenant_member / subscription / payment_order / sso_connection | 单一租户 | 各自模块，必须带租户作用域 |
-| asset / chunk | 单一租户（chunk 经 asset 传递） | 上传模块 |
+| asset / chunk | **全局内容寻址**：`hash` 跨账号唯一，行按 `visibility` + 创建者判可见（`chunk` 经 asset 传递） | 上传模块；读走 `AssetReader` / `AssetContentScope` |
 | gateway_provider / gateway_model | 租户行或全局行（`"tenantID" IS NULL`） | 网关管理；全局行走平台运维通道 |
 | gateway_usage / gateway_audit | 单一租户，或无租户行（`"tenantID" IS NULL`，归属本人） | 网关 |
 | outbox / consumed_event | 单一租户，或 `tenantID IS NULL` 的系统事件 | 各模块只写自己的事件 |
@@ -382,9 +408,15 @@ sequenceDiagram
   Client->>Upload: POST /upload/finalize
   Upload->>Asset: UPDATE status=COMPLETED
   Client->>Auth: PUT /auth/profile avatar=assetID
-  Auth->>Asset: 校验 COMPLETED + creator=当前用户
-  Auth->>AuthTbl: UPDATE avatar FK
+  Note over Auth: AccountScope（app.user_id = 当前用户）
+  Auth->>Asset: 读行（creator 分支）→ 校验 COMPLETED + creator=当前用户
+  Auth->>Asset: UPDATE visibility='PUBLIC'（头像按公开档案数据处理）
+  Auth->>AuthTbl: UPDATE avatar FK（同一事务 commit）
 ```
+
+头像的读取同样是跨模块读 `asset`，但它走 [`AccountScope`](../src/guards/account.rs)（作用域取头像**所属账号**），
+而不是 upload 模块的公开接口——这是档案数据按下 id 联查的既定做法；批量列表因为可能跨账号，
+改用匿名读作用域，只会看到 `PUBLIC` 头像。
 
 ## 迁移
 

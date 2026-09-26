@@ -44,8 +44,9 @@
 | R4 | 表所有权唯一：同一张表只能被一个能力声明 | `asset` 同时出现在 document 与 gateway |
 | R5 | 表所有权完整：`migration/src/*.rs` 建的表必须全部有归属，且声明里不能出现不存在的表 | 新增迁移表但没登记归属 |
 | R6 | 遗留布局冻结：`src/services/` 不得新增模块（新能力一律建 crate）；标记 `status: 'migrated'` 的能力不得再留下 `absorbs` 路径 | 在 `src/services/` 下新建 `report/` |
-| R7 | 租户作用域唯一入口：`tenant_tx` / `user_tx` / `order_tx` / `apply_*_scope` / `TenantScope::open` / `TenantScope::adopt` / `AccountScope::open` / `PaymentNotifyScope::open` 只允许出现在 `src/guards/` 与 `src/databases/scope.rs` | 在 `services/foo/service.rs` 里直接 `storage.tenant_tx(id)` 开作用域 |
+| R7 | 作用域唯一入口：`tenant_tx` / `user_tx` / `order_tx` / `asset_hash_tx` / `anon_tx` / `apply_*_scope` / `apply_*_capability` / `TenantScope::open` / `TenantScope::adopt` / `AccountScope::open` / `PaymentNotifyScope::open` / `AssetReader::enter` / `AssetContentScope::open` 只允许出现在 `src/guards/` 与 `src/databases/scope.rs` | 在 `services/foo/service.rs` 里直接 `storage.tenant_tx(id)` 开作用域 |
 | R8 | 平台特权唯一入口：`platform_tx` / `PlatformScope::open` 只允许出现在 `src/guards/`、`src/databases/scope.rs` 与 `PLATFORM_ENTRY_ALLOWED` 白名单 | 在 service 里直接 `storage.platform_tx()` 读跨租户汇总 |
+| R9 | 无作用域访问唯一入口：`anon_tx`（不开任何作用域变量的裸读，只用于「只读公开行」）只允许出现在 `src/guards/`，其余调用点必须登记进 `UNSCOPED_DB_ALLOWED` | 在 service 里 `storage.anon_tx()` 绕开策略读全表 |
 
 ## R3：零容忍
 
@@ -59,14 +60,18 @@ R3 没有棘轮、没有 allowlist：`src/` 与各能力 crate 里不得再出�
 `TENANT_SCOPE_LEGACY` 是 R7 的棘轮，记录「尚未完全改造完、仍在自己开作用域」的文件。
 它允许的例外只有两类：热点只读路径的私有短作用域包装器，以及待接入守卫的可信机器路径；
 两者都必须在 `reason` 里写明为何暂时无法由调用方携带作用域。
-新增的作用域入口必须**定义**在 `src/guards/`（如支付回调引导用的 `PaymentNotifyScope`），service 侧只留一个调用点。
+新增的作用域入口必须**定义**在 `src/guards/`（如支付回调引导用的 `PaymentNotifyScope`、资产面的 `AssetReader` /
+`AssetContentScope`），service 侧只留一个调用点。
 上限高于实际值时只给出**提示**（非失败），提醒你下调上限——这样棘轮只会越拧越紧，不会悄悄放松。
 
 `LEGACY_SERVICES`（`src/services/` 模块集合）同理：只能减少，删干净后提示把 `status` 改为 `migrated`。
 
-R8 不是棘轮而是**正向白名单**：提权绕过行级隔离，因此没有「默认允许」这一档——
-除了 `src/guards/` 与 `src/databases/scope.rs`，任何文件出现 `platform_tx` / `PlatformScope::open` 都是失败，
-除非登记进 `PLATFORM_ENTRY_ALLOWED` 并写明用途（登记值高于实际时同样只提示下调）。
+R8、R9 不是棘轮而是**正向白名单**——提权绕过行级隔离、无作用域访问绕开可见性判定，因此没有「默认允许」这一档：
+
+- R8：除 `src/guards/` 与 `src/databases/scope.rs`，任何文件出现 `platform_tx` / `PlatformScope::open` 都是失败，
+  除非登记进 `PLATFORM_ENTRY_ALLOWED` 并写明用途（登记值高于实际时同样只提示下调）。
+- R9：规则针对 `anon_tx`（当前名单为空）。后续（P3e-3）会把 `Storage::db` 直连一并纳入，届时
+  「读不到」的全部来源都收敛到作用域与策略上。
 
 ## 迁移一个能力的动作清单
 

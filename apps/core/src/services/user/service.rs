@@ -9,10 +9,14 @@ use crate::{
     configures::configure::Configure,
     databases::database::Storage,
     filters::exception::Exception,
+    guards::asset::AssetReader,
     services::{
         auth::{
             schema::{Gender, ProfileP},
-            service::{ProfileError, age_from_birthday, check_avatar, load_avatar, phone_free},
+            service::{
+                ProfileError, age_from_birthday, check_avatar, load_avatar, load_avatar_of,
+                phone_free,
+            },
         },
         user::schema::{UpdateP, UserR, WriteP},
     },
@@ -131,7 +135,7 @@ impl UserService {
         match id {
             Some(id) => {
                 let user = Self::find_model(db, id).await?;
-                let avatar = load_avatar(db, user.avatar).await?;
+                let avatar = load_avatar_of(db, user.id, user.avatar).await?;
                 Ok(ReadR::One(UserR::from_parts(user, avatar)))
             }
             None => {
@@ -140,11 +144,23 @@ impl UserService {
                     .await
                     .map_err(|e| UserError::DatabaseError(e.to_string()))?;
 
+                // 列表是批量公开视图：一个匿名读事务读完全部头像，不给每个账号单开作用域；
+                // 因此只读得到 `PUBLIC` 的头像（绑定头像时会提升为 PUBLIC，见 auth::check_avatar）。
+                let reader = AssetReader::enter(db, None)
+                    .await
+                    .map_err(|e| UserError::DatabaseError(e.to_string()))?;
+
                 let mut result = Vec::with_capacity(users.len());
                 for user in users {
-                    let avatar = load_avatar(db, user.avatar).await?;
+                    let avatar = load_avatar(reader.tx(), user.avatar).await?;
                     result.push(UserR::from_parts(user, avatar));
                 }
+
+                reader
+                    .rollback()
+                    .await
+                    .map_err(|e| UserError::DatabaseError(e.to_string()))?;
+
                 Ok(ReadR::Many(result))
             }
         }
@@ -237,7 +253,7 @@ impl UserService {
             }
         })?;
 
-        let avatar_model = load_avatar(db, updated.avatar).await?;
+        let avatar_model = load_avatar_of(db, user_id, updated.avatar).await?;
         Ok(UserR::from_parts(updated, avatar_model))
     }
 

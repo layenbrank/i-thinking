@@ -25,7 +25,10 @@ import {
   ROLE_VOCAB_PATTERN,
   TENANT_SCOPE_LEGACY,
   TENANT_SCOPE_OWNER_PATHS,
-  TENANT_SCOPE_PATTERN
+  TENANT_SCOPE_PATTERN,
+  UNSCOPED_DB_ALLOWED,
+  UNSCOPED_DB_OWNER_PATHS,
+  UNSCOPED_DB_PATTERN
 } from './capabilities'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -213,6 +216,7 @@ function checkCrossCutting(errors: string[]) {
     middlewares: ['access_log', 'cors'],
     guards: [
       'account',
+      'asset',
       'auth',
       'blacklist',
       'payment',
@@ -395,14 +399,14 @@ function checkTenantScopeEntry(errors: string[], hints: string[]) {
     const allow = TENANT_SCOPE_LEGACY[path]
     if (!allow) {
       fail(
-        `进入租户作用域只能走 src/guards：${path}（${count} 处）——请求路径用 TenantCtx::enter/open_new，机器路径把调用点登记到 scripts/capabilities.ts 的 TENANT_SCOPE_LEGACY`,
+        `进入作用域只能走 src/guards：${path}（${count} 处）——请求路径用对应守卫（TenantCtx/AccountScope/AssetReader::enter），机器路径把调用点登记到 scripts/capabilities.ts 的 TENANT_SCOPE_LEGACY`,
         errors
       )
       continue
     }
     if (count > allow.max) {
       fail(
-        `租户作用域入口新增了 ${count - allow.max} 处: ${path}（豁免上限 ${allow.max}，原因：${allow.reason}）`,
+        `作用域入口新增了 ${count - allow.max} 处: ${path}（豁免上限 ${allow.max}，原因：${allow.reason}）`,
         errors
       )
     } else if (count < allow.max) {
@@ -452,6 +456,41 @@ function checkPlatformScopeEntry(errors: string[], hints: string[]) {
   }
 }
 
+/** R9：无作用域数据库访问只能走 src/guards（调用点正向登记） */
+function checkUnscopedDbAccess(errors: string[], hints: string[]) {
+  const seen = new Set<string>()
+
+  for (const file of walk(SRC)) {
+    const path = rel(file)
+    if (UNSCOPED_DB_OWNER_PATHS.some((p) => path === p || path.startsWith(p))) continue
+    const count = readFileSync(file, 'utf8').match(UNSCOPED_DB_PATTERN)?.length ?? 0
+    if (!count) continue
+    seen.add(path)
+    const allow = UNSCOPED_DB_ALLOWED[path]
+    if (!allow) {
+      fail(
+        `无作用域数据库访问只能走 src/guards::AssetReader：${path}（${count} 处）——「读不到」应当来自策略，而不是忘了设作用域；确需读取对匿名开放的行请登记到 scripts/capabilities.ts 的 UNSCOPED_DB_ALLOWED 并写明用途`,
+        errors
+      )
+      continue
+    }
+    if (count > allow.max) {
+      fail(
+        `无作用域访问新增了 ${count - allow.max} 处: ${path}（登记上限 ${allow.max}，原因：${allow.reason}）`,
+        errors
+      )
+    } else if (count < allow.max) {
+      hints.push(`${path} 的无作用域访问已减少到 ${count} 处，请把登记上限下调为 ${count}`)
+    }
+  }
+
+  for (const path of Object.keys(UNSCOPED_DB_ALLOWED)) {
+    if (!seen.has(path)) {
+      hints.push(`${path} 已无无作用域访问，请从 scripts/capabilities.ts 的 UNSCOPED_DB_ALLOWED 移除`)
+    }
+  }
+}
+
 function main(): number {
   const errors: string[] = []
   const hints: string[] = []
@@ -469,6 +508,7 @@ function main(): number {
   checkRoleVocabulary(errors)
   checkTenantScopeEntry(errors, hints)
   checkPlatformScopeEntry(errors, hints)
+  checkUnscopedDbAccess(errors, hints)
   checkTableOwnership(errors)
   checkLegacyServices(errors, hints)
 
