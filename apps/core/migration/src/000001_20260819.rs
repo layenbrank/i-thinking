@@ -836,6 +836,21 @@ impl MigrationTrait for Migration {
             .await?;
         }
 
+        // 用量与审计允许落在**没有租户**的账号上：新账号尚未建租户时走全局配额，
+        // 这些行的 "tenantID" 为 NULL，严格租户策略下既读不到也写不进。
+        // 因此额外放开「自己那一份」：`"tenantID" IS NULL` 且行归属当前账号（`userID` / `actor`）。
+        // 两个方向都只放宽到本人：别人的无租户行照旧不可见、不可写，租户作用域也看不到它们。
+        for (table, owner_column) in [
+            ("gateway_usage", r#""userID""#),
+            ("gateway_audit", r#""actor""#),
+        ] {
+            let clause = format!(
+                r#""tenantID" = app_current_tenant_id()
+                   OR ("tenantID" IS NULL AND {owner_column} = app_current_user_id())"#
+            );
+            enable_rls(manager, table, &clause, &clause).await?;
+        }
+
         // 订单表在严格隔离之上多一条**能力键**分支：支付渠道回调是匿名端点，没有会话，
         // 只有一个由渠道回传、等价于一次性凭证的订单号，因此必须先用订单号反解出租户。
         // 该分支只放宽 `USING`（且只放行那一行**未归档**订单的可见性），`WITH CHECK` 仍是租户限定：
@@ -900,6 +915,9 @@ impl MigrationTrait for Migration {
         )
         .await?;
 
+        // 特权通道的角色也在这里就位（超级用户迁移账号下自建；否则只告警）
+        ensure_platform_role(manager).await?;
+
         Ok(())
     }
 
@@ -938,6 +956,10 @@ const TENANT_SETTING: &str = "app.tenant_id";
 const USER_SETTING: &str = "app.user_id";
 /// 支付回调的能力键（订单号）作用域变量：只被 `payment_order` 的只读分支识别。
 const ORDER_SETTING: &str = "app.order_no";
+/// 平台运维角色：唯一一条绕过行级策略的通道。
+///
+/// 必须与 `service::databases::scope::PLATFORM_ROLE` 一致（迁移 crate 不能依赖 service）。
+const PLATFORM_ROLE: &str = "core_platform";
 
 /// 作用域的读取器：未设置或不是合法 uuid 时一律返回 `NULL`（fail-closed）。
 ///
@@ -959,15 +981,11 @@ $fn$"#
 
 /// 严格按 `"tenantID" = app_current_tenant_id()` 隔离的表。
 ///
-/// `tenant_member` 不在其中：它另有一条"只读自己"的策略，见 `up()`；
-/// `payment_order` 也不在其中：它另有一条按订单号（能力键）反解租户的只读分支，见 `up()`。
-const STRICT_TENANT_TABLES: [&str; 5] = [
-    "subscription",
-    "sso_connection",
-    "gateway_usage",
-    "gateway_audit",
-    "outbox",
-];
+/// 不在其中的表都另有分支，见 `up()`：
+/// - `tenant_member`："只读自己"（账号作用域下列出自己的成员关系）；
+/// - `payment_order`：按订单号（能力键）反解租户的只读分支；
+/// - `gateway_usage` / `gateway_audit`：无租户行的归属分支（NULL 租户 + 本人）。
+const STRICT_TENANT_TABLES: [&str; 3] = ["subscription", "sso_connection", "outbox"];
 
 /// 逐表启用行级安全：`ENABLE` 约束普通角色，`FORCE` 连表属主一起约束，
 /// 单角色直连部署下也不会失效；策略用固定名，重跑时可先删后建。
@@ -990,6 +1008,45 @@ async fn enable_rls(
     for statement in statements {
         conn.execute_unprepared(&statement).await?;
     }
+    Ok(())
+}
+
+/// 就位平台运维角色（`BYPASSRLS` 只能由超级用户授予，因此这里是**尽力而为**）。
+///
+/// 顺序：角色不存在则创建（`NOLOGIN`：只能被 `SET ROLE` 进入，不能独立登录）→
+/// 迁移账号还不是它的成员则补授权 → 授予表权限（`SET ROLE` 之后权限判定用的是该角色**自己**的权限）。
+/// 任何一步因权限不足失败都只告警：运维面会明确报错，租户面不受影响；
+/// 生产环境通常由 DBA 预先执行同样的语句（见 `guide/database.md`）。
+async fn ensure_platform_role(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
+    let statement = format!(
+        r#"DO $do$
+BEGIN
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{PLATFORM_ROLE}') THEN
+            EXECUTE 'CREATE ROLE {PLATFORM_ROLE} NOLOGIN BYPASSRLS';
+        END IF;
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_auth_members m
+            JOIN pg_roles r ON r.oid = m.roleid
+            WHERE r.rolname = '{PLATFORM_ROLE}'
+              AND m.member = (SELECT oid FROM pg_roles WHERE rolname = current_user)
+        ) THEN
+            EXECUTE format('GRANT {PLATFORM_ROLE} TO %I', current_user);
+        END IF;
+        EXECUTE 'GRANT USAGE ON SCHEMA public TO {PLATFORM_ROLE}';
+        EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {PLATFORM_ROLE}';
+        EXECUTE 'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {PLATFORM_ROLE}';
+    EXCEPTION WHEN insufficient_privilege THEN
+        RAISE WARNING '平台角色 {PLATFORM_ROLE} 未就位（权限不足）：运维面不可用，请由超级用户创建该角色并授予应用角色';
+    END;
+END
+$do$"#
+    );
+
+    manager
+        .get_connection()
+        .execute_unprepared(&statement)
+        .await?;
     Ok(())
 }
 

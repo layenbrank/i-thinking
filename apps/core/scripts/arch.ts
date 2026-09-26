@@ -19,6 +19,9 @@ import {
   CAPABILITIES,
   FORBIDDEN_CRATE_DEPS,
   LEGACY_SERVICES,
+  PLATFORM_ENTRY_ALLOWED,
+  PLATFORM_ENTRY_OWNER_PATHS,
+  PLATFORM_ENTRY_PATTERN,
   ROLE_VOCAB_PATTERN,
   TENANT_SCOPE_LEGACY,
   TENANT_SCOPE_OWNER_PATHS,
@@ -208,7 +211,7 @@ function checkServices(errors: string[], hints: string[]) {
 function checkCrossCutting(errors: string[]) {
   const requiredDirs: Record<string, readonly string[]> = {
     middlewares: ['access_log', 'cors'],
-    guards: ['auth', 'blacklist', 'payment', 'public', 'session', 'tenant'],
+    guards: ['auth', 'blacklist', 'payment', 'platform', 'public', 'session', 'tenant'],
     filters: ['exception'],
     interceptors: ['envelope']
   }
@@ -405,6 +408,41 @@ function checkTenantScopeEntry(errors: string[], hints: string[]) {
   }
 }
 
+/** R8：提权到平台角色只能走 src/guards 下的 PlatformScope（调用点正向登记） */
+function checkPlatformScopeEntry(errors: string[], hints: string[]) {
+  const seen = new Set<string>()
+
+  for (const file of walk(SRC)) {
+    const path = rel(file)
+    if (PLATFORM_ENTRY_OWNER_PATHS.some((p) => path === p || path.startsWith(p))) continue
+    const count = readFileSync(file, 'utf8').match(PLATFORM_ENTRY_PATTERN)?.length ?? 0
+    if (!count) continue
+    seen.add(path)
+    const allow = PLATFORM_ENTRY_ALLOWED[path]
+    if (!allow) {
+      fail(
+        `提权到平台角色只能走 src/guards::PlatformScope：${path}（${count} 处）——只有平台目录全局行与跨租户运维汇总需要提权；确需新增请登记到 scripts/capabilities.ts 的 PLATFORM_ENTRY_ALLOWED 并写明用途`,
+        errors
+      )
+      continue
+    }
+    if (count > allow.max) {
+      fail(
+        `平台特权入口新增了 ${count - allow.max} 处: ${path}（登记上限 ${allow.max}，原因：${allow.reason}）`,
+        errors
+      )
+    } else if (count < allow.max) {
+      hints.push(`${path} 的平台特权入口已减少到 ${count} 处，请把登记上限下调为 ${count}`)
+    }
+  }
+
+  for (const path of Object.keys(PLATFORM_ENTRY_ALLOWED)) {
+    if (!seen.has(path)) {
+      hints.push(`${path} 已无平台特权入口，请从 scripts/capabilities.ts 的 PLATFORM_ENTRY_ALLOWED 移除`)
+    }
+  }
+}
+
 function main(): number {
   const errors: string[] = []
   const hints: string[] = []
@@ -421,6 +459,7 @@ function main(): number {
   checkCapabilitySurface(errors)
   checkRoleVocabulary(errors)
   checkTenantScopeEntry(errors, hints)
+  checkPlatformScopeEntry(errors, hints)
   checkTableOwnership(errors)
   checkLegacyServices(errors, hints)
 

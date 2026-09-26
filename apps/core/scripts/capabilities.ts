@@ -174,3 +174,21 @@ export const TENANT_SCOPE_PATTERN =
 
 /** R7 允许的作用域入口归属路径（定义与唯一入口） */
 export const TENANT_SCOPE_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const
+
+/**
+ * 平台特权入口模式：直接开特权事务，或走守卫的唯一入口。
+ *
+ * 提权（`SET LOCAL ROLE core_platform`）绕过行级隔离，因此**只有**平台目录的全局行
+ * （`"tenantID" IS NULL`）与跨租户运维汇总需要它；租户面与账号面一律走作用域。
+ */
+export const PLATFORM_ENTRY_PATTERN = /\b(?:platform_tx|PlatformScope::open)\b/g
+
+/**
+ * R8 名单：`src/guards/` 之外允许出现的平台特权入口，**正向登记**（不在名单内即违规）。
+ *
+ * 与 R7 的「只减不增豁免」不同：这里每多一个调用点都是一次显式决策，必须写明用途。
+ */
+export const PLATFORM_ENTRY_ALLOWED: Record<string, { max: number; reason: string }> = {}
+
+/** R8 允许的定义与唯一入口归属路径 */
+export const PLATFORM_ENTRY_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const

@@ -72,6 +72,7 @@ pub mod guards {
     pub mod auth;
     pub mod blacklist;
     pub mod payment;
+    pub mod platform;
     pub mod public;
     pub mod session;
     pub mod tenant;

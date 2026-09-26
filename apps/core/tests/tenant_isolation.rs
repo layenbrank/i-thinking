@@ -34,14 +34,13 @@ use uuid::Uuid;
 const APP_ROLE: &str = "core_app_test";
 
 /// 严格策略：只能看到本租户的行。
-const STRICT_TABLES: [&str; 6] = [
-    "outbox",
-    "gateway_audit",
-    "gateway_usage",
-    "payment_order",
-    "sso_connection",
-    "subscription",
-];
+const STRICT_TABLES: [&str; 4] = ["outbox", "payment_order", "sso_connection", "subscription"];
+
+/// 无租户行表：本租户行之外，还允许读到「自己没有租户的那一份」（`"tenantID" IS NULL` 且行归属本人）。
+///
+/// 新账号尚未建租户时用量与审计仍要落库（走全局配额），这些行没有租户可挂；
+/// 放宽只在本人身上，跨账号照旧互不可见，租户作用域下也看不到。
+const TENANTLESS_OWNER_TABLES: [&str; 2] = ["gateway_audit", "gateway_usage"];
 
 /// 双作用域表：租户作用域 ∪ 账号自读（`userID = app_current_user_id()`）。
 ///
@@ -457,6 +456,7 @@ async fn unset_scope_reads_nothing() {
         .iter()
         .chain(TEXT_TENANT_TABLES.iter())
         .chain(SELF_VISIBLE_TABLES.iter())
+        .chain(TENANTLESS_OWNER_TABLES.iter())
     {
         assert_eq!(
             count(&tx, &format!("SELECT count(*) FROM {table}")).await,
@@ -518,6 +518,91 @@ async fn user_scope_cannot_write_tenant_data() {
         .await
         .err()
         .expect("账号作用域不得写入租户数据");
+    assert!(
+        is_row_security_violation(&err),
+        "错误应被识别为 RLS 违规，实际：{err}"
+    );
+    tx.rollback().await.expect("回滚失败");
+}
+
+/// 无租户行只归本人：账号作用域能读能写自己那份，别人的与租户作用域都碰不到。
+#[tokio::test]
+async fn tenantless_rows_belong_to_the_account_alone() {
+    let _guard = DB_LOCK.lock().await;
+    let Some(fixture) = setup().await else { return };
+
+    let model = scalar_text(
+        &fixture.admin,
+        r#"SELECT id::text FROM gateway_model WHERE "tenantID" IS NOT NULL LIMIT 1"#,
+    )
+    .await;
+    let provider = scalar_text(
+        &fixture.admin,
+        &format!(r#"SELECT "providerID"::text FROM gateway_model WHERE id = '{model}'"#),
+    )
+    .await;
+
+    // 两个账号各一条无租户用量与审计：账号还没建租户时走全局配额，这些行没有租户可挂
+    for (user, tag) in [(fixture.user_a, "a"), (fixture.user_b, "b")] {
+        exec(&fixture.admin, &format!(
+            r#"INSERT INTO gateway_usage (id, "tenantID", "userID", "providerID", "modelID", status, "createdAt")
+               VALUES ('{}', NULL, '{user}', '{provider}', '{model}', 'SUCCESS', now())"#,
+            Uuid::new_v4()
+        ))
+        .await;
+        exec(
+            &fixture.admin,
+            &format!(
+                r#"INSERT INTO gateway_audit (id, "tenantID", actor, action, resource, "createdAt")
+               VALUES ('{}', NULL, '{user}', 'gateway.invoke', 'tenantless-{tag}', now())"#,
+                Uuid::new_v4()
+            ),
+        )
+        .await;
+    }
+
+    // 租户作用域看不见任何无租户行：它不属于任何租户
+    let tx = app_tx(&fixture).await;
+    scope_tenant(&tx, fixture.tenant_a).await;
+    for table in TENANTLESS_OWNER_TABLES {
+        assert_eq!(
+            count(&tx, &format!("SELECT count(*) FROM {table}")).await,
+            1,
+            "租户 A 作用域下 {table} 只应看到本租户行"
+        );
+    }
+    tx.rollback().await.expect("回滚失败");
+
+    // 账号作用域只看到自己那一份
+    let tx = app_tx(&fixture).await;
+    scope_user(&tx, fixture.user_a).await;
+    for table in TENANTLESS_OWNER_TABLES {
+        assert_eq!(
+            count(&tx, &format!("SELECT count(*) FROM {table}")).await,
+            1,
+            "账号作用域下 {table} 只应看到自己的无租户行"
+        );
+    }
+    exec(
+        &tx,
+        &format!(
+            r#"INSERT INTO gateway_usage (id, "tenantID", "userID", "providerID", "modelID", status, "createdAt")
+               VALUES ('{}', NULL, '{}', '{provider}', '{model}', 'SUCCESS', now())"#,
+            Uuid::new_v4(),
+            fixture.user_a
+        ),
+    )
+    .await;
+    let err = tx
+        .execute_unprepared(&format!(
+            r#"INSERT INTO gateway_usage (id, "tenantID", "userID", "providerID", "modelID", status, "createdAt")
+               VALUES ('{}', NULL, '{}', '{provider}', '{model}', 'SUCCESS', now())"#,
+            Uuid::new_v4(),
+            fixture.user_b
+        ))
+        .await
+        .err()
+        .expect("账号作用域不得替别的账号记用量");
     assert!(
         is_row_security_violation(&err),
         "错误应被识别为 RLS 违规，实际：{err}"

@@ -22,6 +22,11 @@ pub const USER_SETTING: &str = "app.user_id";
 /// `payment_order` 的只读分支据此把那一行订单借给回调代码（见迁移里的策略）。
 pub const ORDER_SETTING: &str = "app.order_no";
 
+/// 平台运维角色：**唯一**一条绕过行级策略的通道（迁移里创建，`NOLOGIN`，只能由应用角色 `SET ROLE` 进入）。
+///
+/// 只给运维面用：平台目录的全局行（`"tenantID" IS NULL`）与跨租户汇总，租户面永远不需要它。
+pub const PLATFORM_ROLE: &str = "core_platform";
+
 /// 在当前连接/事务上设定作用域变量。
 ///
 /// 值以参数传入而非拼接 SQL；值非法时对应的 `app_current_*()` 返回 NULL，
@@ -67,6 +72,29 @@ where
     set_scope(conn, ORDER_SETTING, order_no).await
 }
 
+/// 在当前事务上提权到平台运维角色。
+///
+/// 与作用域变量同样的性质：**事务局部**（`SET LOCAL ROLE`），提交或回滚后当前角色自动
+/// 退回应用角色，不会残留在池化连接上串到下一个请求。角色名是编译期常量
+/// （标识符无法参数化），不含任何外部输入。
+async fn apply_platform_role<C>(conn: &C) -> Result<(), DbErr>
+where
+    C: ConnectionTrait,
+{
+    conn.execute_raw(Statement::from_string(
+        DatabaseBackend::Postgres,
+        format!("SET LOCAL ROLE {PLATFORM_ROLE}"),
+    ))
+    .await
+    .map_err(|err| {
+        DbErr::Custom(format!(
+            "平台通道不可用（SET LOCAL ROLE {PLATFORM_ROLE} 失败）：{err}；\
+             数据库需要先创建该角色并把应用角色加为成员（见 guide/database.md）"
+        ))
+    })?;
+    Ok(())
+}
+
 impl Storage {
     /// 开启只带支付能力键的事务：唯一用途是回调引导阶段「订单号 → 租户」的反解，
     /// 反解成功后由守卫在同一事务上补租户作用域（见 `guards::payment`）。
@@ -88,6 +116,17 @@ impl Storage {
     pub async fn user_tx(&self, user_id: UserId) -> Result<DatabaseTransaction, DbErr> {
         let tx = self.db.begin().await?;
         apply_user_scope(&tx, user_id).await?;
+        Ok(tx)
+    }
+
+    /// 开启平台运维事务：在行级策略之上提权到 [`PLATFORM_ROLE`]，用于平台目录的全局行
+    /// 与跨租户汇总读。
+    ///
+    /// **不要直接调用**：入口是 [`crate::guards::platform::PlatformScope`]，
+    /// 调用点被门禁限制在白名单文件内（见 `scripts/capabilities.ts`）。
+    pub async fn platform_tx(&self) -> Result<DatabaseTransaction, DbErr> {
+        let tx = self.db.begin().await?;
+        apply_platform_role(&tx).await?;
         Ok(tx)
     }
 }
