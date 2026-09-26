@@ -147,9 +147,9 @@ export const ROLE_VOCAB_PATTERN =
  */
 export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }> = {
   'src/services/subscription/service.rs': {
-    max: 3,
+    max: 2,
     reason:
-      '只读/短事务包装器（effective_quota、active_plan、active_subscription），待调用方携带作用域后移除'
+      '只读包装器（active_plan、active_subscription），待调用方携带作用域后移除；配额判定已在调用方作用域内完成'
   },
   'src/services/payment/service.rs': {
     max: 1,
@@ -157,9 +157,13 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
       '支付回调的引导调用点（PaymentNotifyScope::open 把订单号换成租户作用域）；守卫本身在 src/guards/payment.rs，这里只是调用'
   },
   'src/services/tenant/service.rs': {
-    max: 3,
+    max: 2,
+    reason: 'select_tenant 的 user_tx（选定租户前读成员表）与一处文档提及，待迁到 AccountScope 后移除'
+  },
+  'src/services/gateway/service.rs': {
+    max: 2,
     reason:
-      'select_tenant 的 user_tx、membership_role 遗留垫片（含一处文档提及），垫片删除后一并移除'
+      '用量/审计落库的机器路径：上游调用结束后按身份重开一段短作用域（租户面 TenantScope::open、账号面 AccountScope::open）'
   }
 }
 
@@ -170,7 +174,7 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
  * 是**能力键引导**（支付回调：订单号 → 租户）用到的入口，只允许出现在 `src/guards/`。
  */
 export const TENANT_SCOPE_PATTERN =
-  /\b(?:tenant_tx|user_tx|order_tx|apply_tenant_scope|apply_user_scope|apply_order_capability|TenantScope::open|TenantScope::adopt|PaymentNotifyScope::open)\b/g
+  /\b(?:tenant_tx|user_tx|order_tx|apply_tenant_scope|apply_user_scope|apply_order_capability|TenantScope::open|TenantScope::adopt|AccountScope::open|PaymentNotifyScope::open)\b/g
 
 /** R7 允许的作用域入口归属路径（定义与唯一入口） */
 export const TENANT_SCOPE_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const
@@ -188,7 +192,13 @@ export const PLATFORM_ENTRY_PATTERN = /\b(?:platform_tx|PlatformScope::open)\b/g
  *
  * 与 R7 的「只减不增豁免」不同：这里每多一个调用点都是一次显式决策，必须写明用途。
  */
-export const PLATFORM_ENTRY_ALLOWED: Record<string, { max: number; reason: string }> = {}
+export const PLATFORM_ENTRY_ALLOWED: Record<string, { max: number; reason: string }> = {
+  'src/services/gateway/controller.rs': {
+    max: 10,
+    reason:
+      '平台目录运维面（供应商/模型全局行、跨租户用量与审计汇总）：10 个 handler 各开一段特权作用域，业务逻辑在 service.rs 内按 scope.tx() 收口'
+  }
+}
 
 /** R8 允许的定义与唯一入口归属路径 */
 export const PLATFORM_ENTRY_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const

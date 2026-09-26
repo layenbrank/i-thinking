@@ -73,10 +73,21 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 - `PUT /admin/models/{id}` 的 `capabilities`：给了就整体覆盖（**空对象 `{}` = 清空该列**）；`contextWindow ≤ 0` 也等于清空。
   非对象或非布尔的 `capabilities` 值回 `200003`（如 `capabilities.tools 必须是布尔值`）。
 
-## 鉴权说明
+## 鉴权说明与作用域
 
-- 用户面：`Auth::isRequired()`，并额外校验模型 `allowRoles` 与租户角色（`role_allowed`）。
-- 后台：`Auth::admin()`，仅平台 ADMIN。
+每个 handler 的第一件事是**进入作用域**（详见 [guide/architecture-cross-cutting.md](../../../guide/architecture-cross-cutting.md)）：
+领域函数只收作用域对象，拿不到「裸连接」，可见行由数据库行级策略兜底（见 [guide/database.md](../../../guide/database.md)）。
+
+| 面     | 鉴权                       | 进入的作用域                                            | 可见行                                        |
+| ------ | -------------------------- | ------------------------------------------------------- | --------------------------------------------- |
+| 用户面 | `Auth::isRequired()`       | 带 `X-Tenant-ID` → `TenantCtx`；否则 `AccountScope`     | 本租户私有行 + 全局行（无租户时只有全局行）   |
+| 运维面 | `Auth::admin()`            | `PlatformScope`（特权角色，`BYPASSRLS`）                | 全局行与**所有**租户的行                      |
+
+- `X-Tenant-ID` 不再是「盲信通行证」而是**选择器**：带了就必须是该租户的成员（或平台管理员），否则 403；
+  不带则落在账号作用域。用户面四个接口口径一致（目录、聊天、自助配额、档位）。
+- 运维面写入只写全局目录行（`tenantID IS NULL`）；改 / 删租户私有行一律 `400001`（不存在），
+  不会「静默成功却一行没动」。
+- 用户面额外校验模型 `allowRoles` 与租户角色（`role_allowed`）；同名模型下租户私有行优先于全局行。
 
 ## 配额
 
@@ -96,8 +107,8 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 
 - `?model=<name>` 命中该模型的覆盖配额时按模型回答（`source=MODEL`）；缺省或 `auto` 按身份级回答
   —— `auto` 要等网关挑完才知道具体模型，客户端应在选完模型后再查一次。
-- 只读接口会校验 `X-Tenant-ID` 的成员身份（不通过则按用户作用域回答）：聊天与目录为了兼容旧
-  客户端直接信任该头部，但只读接口没有理由把他人租户的档位与用量透出去。
+- 只读接口与聊天/目录共用同一条作用域入口：`X-Tenant-ID` 是选择器而非通行证，不是成员就 403，
+  不会把他人租户的档位与用量透出去。
 - 计数只读，不写 Redis、不落库、不记审计。
 
 `GET /plans` 的档位只有「名字 + 日配额」两个事实，都出自 `gateway.plan_daily_token_quota`
@@ -115,6 +126,10 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 
 各表的完整列定义见 [`guide/database.md`](../../../guide/database.md#gateway_provider--gateway_model-表)。
 
+四张表都 `ENABLE` + **`FORCE`** 行级安全策略：供应商与模型按 `tenantID IS NULL OR tenantID = 当前租户`
+可读、只允许写本租户行；用量与审计按 `tenantID = 当前租户 OR (tenantID IS NULL AND 属主 = 当前用户)`。
+平台面靠 `PlatformScope` 的 `BYPASSRLS` 角色跨租户读、只写全局行。
+
 - `apiKeyEnc` 为 AES-256-GCM 密文（`security.aes_key`）。
 - 用量事件另写入 ES 索引 `gateway.usage_es_index`（默认 `gateway_usage`），可经 `gateway.audit_enabled` 关闭审计落库。
 
@@ -123,24 +138,26 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 ```
 GatewayModule::configure
   └── scope("/gateway") .wrap(Auth::isRequired())
-        ├── POST /chat/completions → GatewayController::chat → GatewayService::chat_json / chat_stream
-        ├── GET  /models           → GatewayController::models
+        ├── POST /chat/completions → GatewayController::chat  → Target::enter → GatewayService::prepare → chat_json / chat_stream
+        ├── GET  /models           → GatewayController::models → GatewayService::list_models(tx, principal)
+        ├── GET  /quota/me         → GatewayController::quota_me → GatewayService::self_quota(tx, principal)
         └── admin_routes（每条各自 .wrap(Auth::admin())）
-              providers / admin/models / usage / audit → GatewayController → GatewayService
+              providers / admin/models / usage / audit → PlatformScope::open → GatewayService::*
                                                        └── repository::record_usage / record_audit / index_usage
 ```
 
 管理面按 `web::resource` **逐条**注册，不再套第二层 `web::scope("")`：同一层级出现两个空前缀 scope 时，
 actix 的 `ResourceMap` 只在第一个匹配节点内继续查找，后注册的 scope 永远不会命中（管理面曾因此全部 404）。
 
-解析链路（`GatewayService::resolve`）：
+解析链路（`GatewayService::prepare`）：
 
 ```
-find_model（租户内优先，其次平台默认）；model = "auto" 时先 pick_auto_model 补全成具体模型名
+Target::enter（X-Tenant-ID → 租户作用域 / 账号作用域；作用域即行可见性）
+  → find_model（同名时租户私有行优先，其次全局行）；model = "auto" 时先 pick_auto_model 补全成具体模型名
   → 校验 enabled / allow_roles / provider.status
   → 取 provider.api_key_enc 并解密
-  → personal_quota（订阅档位 > 免费档；团队租户回落全局）
-  → quota_key_for(scope)
+  → resolve_quota（模型覆盖 > 订阅档位 > 免费档 > 全局兜底）
+  → Prepared{model, provider, api_key, scope, quota_limit, …}
 ```
 
 ## 错误码

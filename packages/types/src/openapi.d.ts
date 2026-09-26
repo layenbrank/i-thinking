@@ -372,7 +372,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 审计日志 */
+        /**
+         * 审计日志
+         * @description 仅平台 ADMIN。运行在平台特权作用域，可见**所有**租户的审计；`tenantID` 是查询过滤条件。
+         */
         get: operations["gateway.audit"];
         put?: never;
         post?: never;
@@ -393,7 +396,7 @@ export interface paths {
         put?: never;
         /**
          * 模型转发（OpenAI 兼容）
-         * @description 需要 JWT。body 兼容 OpenAI chat/completions；stream=true 返回 SSE，否则返回原始 JSON。
+         * @description 需要 JWT。body 兼容 OpenAI chat/completions；stream=true 返回 SSE，否则返回原始 JSON。带 `X-Tenant-ID` 时按该租户作用域执行（需为成员或平台管理员，否则 403）；不带则按账号作用域，只见全局目录。
          */
         post: operations["gateway.chat"];
         delete?: never;
@@ -409,7 +412,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 可用模型列表 */
+        /**
+         * 可用模型列表
+         * @description 返回当前作用域可见的模型：本租户私有行 + 全局行（带 `X-Tenant-ID` 且为成员时）；不带租户头时只剩全局行。行可见性由数据库行级策略兜底，再按平台/租户角色过滤。
+         */
         get: operations["gateway.models"];
         put?: never;
         post?: never;
@@ -484,7 +490,7 @@ export interface paths {
         };
         /**
          * 自助配额（只读）
-         * @description 返回当前身份此刻的日窗用量与上限，口径与聊天热路径同源（模型覆盖 > 档位 > 免费档）。带 `X-Tenant-ID` 且确为成员时按租户作用域回答，否则按用户作用域。
+         * @description 返回当前身份此刻的日窗用量与上限，口径与聊天热路径同源（模型覆盖 > 档位 > 免费档）。带 `X-Tenant-ID` 且确为成员时按租户作用域回答，否则 403；不带租户头时按账号作用域回答。
          */
         get: operations["gateway.quotaMe"];
         put?: never;
@@ -502,7 +508,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 用量报表 */
+        /**
+         * 用量报表
+         * @description 仅平台 ADMIN。运行在平台特权作用域，可见**所有**租户的用量（含无租户的账号级行）；`tenantID` 是查询过滤条件，不是可见性边界。
+         */
         get: operations["gateway.usage"];
         put?: never;
         post?: never;

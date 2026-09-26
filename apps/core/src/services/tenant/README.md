@@ -42,9 +42,11 @@
 - 平台 ADMIN（库中平台角色为 `ADMIN`，即 `Session::is_platform_admin()`）不要求成员身份即可进入（运维通道），
   此时上下文的租户角色为空，`authz` 依平台角色放行，越过成员关系的那一步须在业务侧留审计。
 - 权限判定一律交给 `authz`（`Resource::Tenant` / `Resource::Member`）：租户改名/删除只允许 **OWNER**，
-  成员增删改允许 **OWNER/ADMIN**，其余为读。
-- 跨模块复用入口：`TenantService::require_role` / `membership_role`（`subscription`、`payment`、`gateway` 调用）。
-  平台管理员经 `platform_operator_role()` 呈现为租户 ADMIN。
+  成员增删改允许 **OWNER/ADMIN**，其余为读。平台管理员越过成员关系的那一步由 `authz` 依平台角色放行
+  （不再折算成租户角色），须在业务侧留审计。
+- 跨模块复用入口只保留作用域与身份本身：`TenantCtx`（作用域 + `Principal` + `require`）与
+  [`identity::Principal`](../../../crates/identity/README.md)，不再提供 `require_role` / `membership_role`
+  这类「代为判角色」的旁路。
 - 已知策略缺口（不在本步修复）：`update_member` 是资源/动作级判定而非取值级，因此 **ADMIN 可以把自己提升为 OWNER**；
   收紧需要在策略层引入「目标角色不得高于自身」的取值约束。
 - 作用域之外的租户一律按「不存在」处理（`400001`，HTTP 404）：`update` / `remove` 不再出现静默成功的空操作。
@@ -67,10 +69,9 @@ TenantModule::configure
         └── TenantController
               ├── TenantCtx::open_new → 建租户（作用域 = 新租户）
               ├── TenantCtx::enter    → 已有租户（作用域内读成员关系 → Principal）
-              └── TenantService            # 无作用域、无鉴权：只做 HTTP 语义与错误码映射
+              └── TenantService            # 只做 HTTP 语义与错误码映射：作用域与鉴权由 TenantCtx / authz 提供
                     ├── create / list / get / update / remove
                     ├── list_members / add_member / update_member / remove_member
-                    ├── require_role / membership_role     # 被 subscription、payment、gateway 复用
                     └── identity::tenant::*                # 领域写入（事务都由 TenantCtx 提供）
 ```
 

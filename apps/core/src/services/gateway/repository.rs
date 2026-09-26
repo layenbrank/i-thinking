@@ -4,12 +4,11 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use elasticsearch::IndexParts;
 use entity::{gateway_audit, gateway_usage};
-use sea_orm::{ActiveModelTrait, Set};
+use sea_orm::{ActiveModelTrait, DatabaseTransaction, Set};
 use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::clients::elasticsearch::EsClient;
-use crate::databases::database::Storage;
 
 /// 一次模型调用的用量输入。
 pub struct UsageInput {
@@ -24,7 +23,11 @@ pub struct UsageInput {
     pub latency_ms: i64,
 }
 
-pub async fn record_usage(db: &Storage, input: &UsageInput) -> Result<Uuid, sea_orm::DbErr> {
+/// 落一行用量；事务由调用方提供（必须是租户或账号作用域，否则策略会挡下写入）。
+pub async fn record_usage(
+    tx: &DatabaseTransaction,
+    input: &UsageInput,
+) -> Result<Uuid, sea_orm::DbErr> {
     let id = Uuid::new_v4();
     gateway_usage::ActiveModel {
         id: Set(id),
@@ -39,13 +42,14 @@ pub async fn record_usage(db: &Storage, input: &UsageInput) -> Result<Uuid, sea_
         latency_ms: Set(input.latency_ms),
         created_at: Set(Utc::now().fixed_offset()),
     }
-    .insert(&db.db)
+    .insert(tx)
     .await?;
     Ok(id)
 }
 
+/// 落一行审计；事务由调用方提供（必须是租户或账号作用域）。
 pub async fn record_audit(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     tenant_id: Option<Uuid>,
     actor: Uuid,
     action: &str,
@@ -63,7 +67,7 @@ pub async fn record_audit(
         ip: Set(ip),
         created_at: Set(Utc::now().fixed_offset()),
     }
-    .insert(&db.db)
+    .insert(tx)
     .await?;
     Ok(())
 }

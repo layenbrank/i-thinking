@@ -5,22 +5,20 @@
 //! 领域入参、把领域结果映射成 wire 出参、把失败翻译成契约错误码；「能不能做」交给 `authz`。
 
 use sea_orm::DbErr;
-use uuid::Uuid;
 
 use authz::{Action, Permission, Resource};
 use identity::tenant::{
     self as tenants, Member, MemberChanges, Tenant as TenantRecord, TenantChanges, TenantDraft,
     TenantType,
 };
-use identity::{AccountStatus, PersistError, TenantId, TenantRole, UserId};
+use identity::{AccountStatus, PersistError, TenantRole, UserId};
 
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
 use crate::guards::session::Session;
 use crate::guards::tenant::TenantCtx;
 use crate::services::tenant::schema::{
-    MemberR, MemberUpdateP, MemberWriteP, TenantR, TenantRole as WireRole, TenantUpdateP,
-    TenantWriteP,
+    MemberR, MemberUpdateP, MemberWriteP, TenantR, TenantUpdateP, TenantWriteP,
 };
 use crate::utils::code::{auth as auth_codes, business, external, request, resource};
 use crate::utils::db::is_unique_violation;
@@ -240,44 +238,6 @@ impl TenantService {
         } else {
             Err(TenantError::NotFound)
         }
-    }
-
-    /// 校验成员关系并返回租户内角色；平台管理员旁路。
-    ///
-    /// 迁移遗留：订阅 / 支付 / 网关仍是「先取角色、再自己比大小」的老写法，
-    /// 本方法保持原签名只为让它们继续编译。新代码用 [`TenantCtx::require`] 判定权限。
-    pub async fn require_role(
-        storage: &Storage,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
-    ) -> Result<WireRole, TenantError> {
-        if platform_admin {
-            return Ok(WireRole::from_domain(identity::platform_operator_role()));
-        }
-
-        Self::membership_role(storage, user_id, tenant_id)
-            .await?
-            .ok_or(TenantError::NotMember)
-    }
-
-    /// 账号在租户内的有效成员角色；不是成员（或没有角色）返回 `None`。
-    pub async fn membership_role(
-        storage: &Storage,
-        user_id: Uuid,
-        tenant_id: Uuid,
-    ) -> Result<Option<WireRole>, TenantError> {
-        let tenant_id = TenantId::from_uuid(tenant_id);
-        let user_id = UserId::from_uuid(user_id);
-
-        let tx = storage.tenant_tx(tenant_id).await.map_err(db_err)?;
-        let membership = identity::persistence::membership(&tx, tenant_id, user_id)
-            .await
-            .map_err(persist_err)?;
-
-        Ok(membership
-            .and_then(|context| context.role())
-            .map(WireRole::from_domain))
     }
 }
 

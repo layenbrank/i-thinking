@@ -12,14 +12,14 @@
 | 免费档自助  | 只对**未定价**档位（`amount <= 0`）开放自助开通；已定价档位必须走支付（`payment` 模块）     |
 | 列表        | 返回订阅历史（含已取消 / 已到期），按创建时间倒序                                          |
 | 取消        | 立即失效：状态置 CANCELED，`expiresAt` 截断到当前时间                                      |
-| 当前配额    | 返回生效配额及其来源（`PLAN` / `FREE` / `GLOBAL`）                                         |
-| 生效判定    | `effective_quota()` 供聊天热路径调用，带 60s Redis 缓存                                    |
+| 当前配额    | `quota(ctx, config, redis)`：返回生效配额及其来源（`PLAN` / `FREE` / `GLOBAL`），并做鉴权 |
+| 生效判定    | 热路径共用 `quota_in(tx, …)`，带 60s Redis 缓存                                            |
 
 ## 与同域其他模块的区别
 
 - [`tenant`](../tenant/README.md)：只管租户与成员（`tenant.type` 区分 PERSONAL / TEAM），不知道订阅的存在。
 - `subscription`（本模块）：只管**个人租户的档位与有效期**。团队租户不可订阅，走全局配额。
-- [`gateway`](../gateway/README.md)：消费本模块的 `effective_quota()` 决定日配额，并做 Redis 日窗计数。
+- [`gateway`](../gateway/README.md)：在同一个事务里调用 `quota_in(tx, …)` 决定日配额，并做 Redis 日窗计数。
 - [`payment`](../payment/README.md)：收钱才开通（订阅是支付的结果）。它通过**可信通道** `SubscriptionService::grant` 调用本模块。
 
 ### 两条开通通道（信任边界）
@@ -126,9 +126,12 @@ TenantModule 的 scope("/tenants")        # src/services/tenant/module.rs（Auth
                     ├── 可信通道（收 &TenantScope）：不带主体，不判角色、不 commit
                     │     └── grant         → 作废旧 ACTIVE 订阅 + 插入新订阅，由调用方提交/回滚
                     ├── 热点只读包装（自开私有短作用域并立即回滚，供 gateway 等无请求上下文路径）
-                    │     ├── effective_quota(db, config, redis, tenantID?)
                     │     ├── active_plan(db, redis, tenantID)
                     │     └── active_subscription(db, tenantID)
+                    ├── 事务内复用（不自己收尾，由调用方持有事务）
+                    │     ├── quota_in(tx, config, redis, tenantID)   → gateway 热路径
+                    │     ├── active_plan_in / active_subscription_in → payment 同事务读写
+                    │     └── global_quota(config)                    → 无订阅/无租户兜底
                     ├── ensure_self_service_allowed → 已定价档位（amount > 0）禁止自助开通（500408）
                     └── 配额缓存（Redis 60s，读写失败都降级为直查数据库）
 ```

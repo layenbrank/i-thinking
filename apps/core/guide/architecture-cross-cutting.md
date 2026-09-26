@@ -72,6 +72,11 @@ Middleware → Guard → Interceptor(pre) → Pipe → Handler
 
 handler 只用：ctx.tx() 读写 / ctx.require(permission) 判权限 / ctx.commit() 提交
 
+[账号通道] AccountScope::enter(storage, &session)
+  → user_tx（事务 + SET LOCAL app.user_id），不带租户
+  → 请求没有选定租户时的落点：全局目录行（"tenantID" IS NULL）与「本人 + 无租户」的行
+  → 网关的用户面（目录 / 聊天 / 自助配额）与「列出我所属的租户」都走这条
+
 [可信机器通道] TenantScope::open(storage, tenant_id)
   → 只带事务与租户 id，不带主体；用于定时任务、内部调用等**已知道租户 id** 的无主体路径
   → 租户 id 必须来自可信数据（如订单行），不得取自请求参数
@@ -102,7 +107,7 @@ handler 只用：ctx.tx() 读写 / ctx.require(permission) 判权限 / ctx.commi
 | 目录 | 角色 |
 |------|------|
 | `src/middlewares/` | CORS、访问日志 |
-| `src/guards/` | `auth` / `session` / `tenant` / `blacklist` / `permission` / `public` / `payment` / `platform` |
+| `src/guards/` | `auth` / `session` / `tenant` / `account` / `blacklist` / `permission` / `public` / `payment` / `platform` |
 | `src/interceptors/` | 成功信封 |
 | `src/filters/` | 失败信封 |
 | `src/utils/code.rs` | 业务码 |

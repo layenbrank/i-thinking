@@ -262,7 +262,8 @@ Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/sco
 
 | 通道 | 句柄 | 适用 | 语义 |
 | --- | --- | --- | --- |
-| 请求通道 | [`TenantCtx`](../src/guards/tenant.rs) | HTTP handler 及其下游 service | 句柄里同时带 `TenantScope` 与 `Principal`，所以**只有它**能判权限 |
+| 请求通道 | [`TenantCtx`](../src/guards/tenant.rs) | 已选定租户的 HTTP handler 及其下游 service | 句柄里同时带 `TenantScope` 与 `Principal`，所以**只有它**能判权限 |
+| 账号作用域 | [`AccountScope`](../src/guards/account.rs) | 已登录但**未选定租户**的请求面（网关目录 / 聊天 / 自助配额） | 只带事务与账号 id；能读全局行（`"tenantID" IS NULL`）与「本人 + 无租户」的行 |
 | 可信机器通道 | [`TenantScope`](../src/guards/tenant.rs) | 定时任务、内部调用等**已知道租户 id** 的无主体路径 | 只带事务与租户 id，不带主体；权限由调用侧自行保证 |
 | 能力键引导 | [`PaymentNotifyScope`](../src/guards/payment.rs) | 匿名渠道回调（只有订单号） | 同一事务内由订单号能力键升格为租户作用域；只读，命不中返回 `None` |
 | 平台运维通道 | [`PlatformScope`](../src/guards/platform.rs) | 运维面（平台目录全局行、跨租户汇总） | **提权**绕过行级策略（`SET LOCAL ROLE`，事务局部）；确权在路由层 |
@@ -316,7 +317,10 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO core_platform;
   避免为一个只读查询多绕一层调用；这类包装器在 R7 门禁里逐文件限额，只减不增。
 - 审计属性只看执行效果：**语义上是写即使实现是只读查询也要 commit**（例如「顺带把过期订阅标记为 EXPIRED」的惰性清理），
   否则清理结果会被回滚。
-- 账号作用域（`user_tx`）只服务「列出我所属的租户」这类跨租户只读，不参与租户内业务。
+- 账号作用域服务于「还没有租户上下文」的请求面：`AccountScope::enter(storage, &session)` 是请求入口，
+  `Storage::user_tx` 是它的机制层。可见范围是全局行（`"tenantID" IS NULL`）与「本人 + 无租户」的行，
+  因此既支撑「列出我所属的租户」这类跨租户只读，也支撑网关在未选租户时的目录 / 聊天 / 用量落库；
+  租户内的私有行与业务数据一律不可见（那是 `TenantCtx` 的事）。
 - 成员关系读取（`identity::persistence::membership`）只在作用域事务内调用；`tenant_member.role` 字面量无法识别时报错而非降级。
 
 跨租户写入会以 SQLSTATE `42501` 失败，用 [`src/utils/db.rs`](../src/utils/db.rs) 的 `is_row_security_violation` 判别。

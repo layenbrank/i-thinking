@@ -26,7 +26,7 @@ use service::databases::database::Storage;
 use service::guards::session::Session;
 use service::guards::tenant::{TenantCtx, TenantScope};
 use service::services::subscription::schema::SubscribeP;
-use service::services::subscription::service::{QuotaSource, SubscriptionService};
+use service::services::subscription::service::SubscriptionService;
 use service::utils::code::{auth, resource};
 use service::utils::jwt::Claims;
 use tokio::sync::Mutex;
@@ -418,44 +418,41 @@ async fn hot_path_reads_open_their_own_scope() {
     assert_eq!(active.plan, "basic");
     assert!(active.expires_at.is_none());
 
-    for (tenant, source, plan, limit) in [
+    // 配额口径只对**持租户作用域**的调用方开放：团队租户在服务层回落到全局配额，
+    // 「没有租户身份」的全局兜底（`global_quota`）只在网关热路径内部走到。
+    for (user, tenant, source, plan, limit) in [
         (
+            fixture.owner_a,
             fixture.tenant_a,
-            QuotaSource::Plan,
+            "PLAN",
             Some("pro"),
             PLAN_PRO_QUOTA,
         ),
         (
+            fixture.owner_b,
             fixture.tenant_b,
-            QuotaSource::Plan,
+            "PLAN",
             Some("basic"),
             PLAN_BASIC_QUOTA,
         ),
         // 团队租户不参与个人订阅口径，回落全局配额
-        (fixture.tenant_team, QuotaSource::Global, None, 1_000_000),
+        (
+            fixture.owner_team,
+            fixture.tenant_team,
+            "GLOBAL",
+            None,
+            1_000_000,
+        ),
     ] {
-        let quota = SubscriptionService::effective_quota(
-            &fixture.storage,
-            &fixture.config,
-            &fixture.redis,
-            Some(tenant),
-        )
-        .await
-        .expect("读取生效配额失败");
+        let ctx = enter(&fixture, user, tenant).await;
+        let quota = SubscriptionService::quota(&ctx, &fixture.config, &fixture.redis)
+            .await
+            .expect("读取生效配额失败");
         assert_eq!(quota.source, source);
         assert_eq!(quota.plan.as_deref(), plan);
-        assert_eq!(quota.limit, limit);
+        assert_eq!(quota.daily_token_quota, limit);
+        ctx.rollback().await.expect("只读作用域回滚失败");
     }
-
-    let anonymous = SubscriptionService::effective_quota(
-        &fixture.storage,
-        &fixture.config,
-        &fixture.redis,
-        None,
-    )
-    .await
-    .expect("读取全局配额失败");
-    assert_eq!(anonymous.source, QuotaSource::Global);
 }
 
 #[tokio::test]

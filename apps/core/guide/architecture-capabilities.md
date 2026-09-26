@@ -44,7 +44,7 @@
 | R4 | 表所有权唯一：同一张表只能被一个能力声明 | `asset` 同时出现在 document 与 gateway |
 | R5 | 表所有权完整：`migration/src/*.rs` 建的表必须全部有归属，且声明里不能出现不存在的表 | 新增迁移表但没登记归属 |
 | R6 | 遗留布局冻结：`src/services/` 不得新增模块（新能力一律建 crate）；标记 `status: 'migrated'` 的能力不得再留下 `absorbs` 路径 | 在 `src/services/` 下新建 `report/` |
-| R7 | 租户作用域唯一入口：`tenant_tx` / `user_tx` / `order_tx` / `apply_*_scope` / `TenantScope::open` / `TenantScope::adopt` / `PaymentNotifyScope::open` 只允许出现在 `src/guards/` 与 `src/databases/scope.rs` | 在 `services/foo/service.rs` 里直接 `storage.tenant_tx(id)` 开作用域 |
+| R7 | 租户作用域唯一入口：`tenant_tx` / `user_tx` / `order_tx` / `apply_*_scope` / `TenantScope::open` / `TenantScope::adopt` / `AccountScope::open` / `PaymentNotifyScope::open` 只允许出现在 `src/guards/` 与 `src/databases/scope.rs` | 在 `services/foo/service.rs` 里直接 `storage.tenant_tx(id)` 开作用域 |
 | R8 | 平台特权唯一入口：`platform_tx` / `PlatformScope::open` 只允许出现在 `src/guards/`、`src/databases/scope.rs` 与 `PLATFORM_ENTRY_ALLOWED` 白名单 | 在 service 里直接 `storage.platform_tx()` 读跨租户汇总 |
 
 ## R3：零容忍

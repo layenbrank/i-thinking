@@ -211,7 +211,16 @@ function checkServices(errors: string[], hints: string[]) {
 function checkCrossCutting(errors: string[]) {
   const requiredDirs: Record<string, readonly string[]> = {
     middlewares: ['access_log', 'cors'],
-    guards: ['auth', 'blacklist', 'payment', 'platform', 'public', 'session', 'tenant'],
+    guards: [
+      'account',
+      'auth',
+      'blacklist',
+      'payment',
+      'platform',
+      'public',
+      'session',
+      'tenant'
+    ],
     filters: ['exception'],
     interceptors: ['envelope']
   }

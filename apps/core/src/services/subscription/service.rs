@@ -310,35 +310,6 @@ impl SubscriptionService {
         Ok(())
     }
 
-    /// 租户当前生效配额（含来源与档位），供聊天热路径按 `tenant_id` 直接调用。
-    ///
-    /// 自带只读短作用域：查完立刻结束，不把连接挂在调用方手里。
-    ///
-    /// # Errors
-    /// 库错时返回底层错误（调用方自行决定降级策略）。
-    pub async fn effective_quota(
-        db: &Storage,
-        config: &Configure,
-        redis: &RedisPool,
-        tenant_id: Option<Uuid>,
-    ) -> Result<QuotaInfo, DbErr> {
-        let global = QuotaInfo {
-            source: QuotaSource::Global,
-            plan: None,
-            limit: config.gateway_daily_token_quota(),
-        };
-        let Some(tid) = tenant_id else {
-            return Ok(global);
-        };
-
-        let scope = TenantScope::open(db, TenantId::from_uuid(tid)).await?;
-        let result = quota_in(scope.tx(), config, redis, scope.tenant_id())
-            .await
-            .map(|info| info.unwrap_or(global));
-        end_read(scope).await;
-        result
-    }
-
     /// 当前生效配额（接口用；带租户类型与鉴权）。
     ///
     /// # Errors
@@ -361,11 +332,7 @@ impl SubscriptionService {
         let info = quota_in(tx, config, redis, tenant_id)
             .await
             .map_err(err_db)?
-            .unwrap_or(QuotaInfo {
-                source: QuotaSource::Global,
-                plan: None,
-                limit: config.gateway_daily_token_quota(),
-            });
+            .unwrap_or_else(|| global_quota(config));
 
         Ok(QuotaR {
             tenant_id: tenant_id.to_string(),
@@ -433,8 +400,23 @@ impl SubscriptionService {
     }
 }
 
-/// 个人租户的配额口径；非个人租户 / 租户不存在返回 `None`（调用方回落到全局配额）。
-async fn quota_in(
+/// 全局兜底配额：没有租户身份（账号作用域），或租户不是个人租户时的日窗上限。
+///
+/// 只定义一次：聊天拦截（`gateway` 热路径）与只读自助查询都取它，
+/// 保证「界面显示的剩余」与「服务端拦截的数字」同源。
+pub(crate) fn global_quota(config: &Configure) -> QuotaInfo {
+    QuotaInfo {
+        source: QuotaSource::Global,
+        plan: None,
+        limit: config.gateway_daily_token_quota(),
+    }
+}
+
+/// 个人租户的配额口径；非个人租户 / 租户不存在返回 `None`（调用方回落到 [`global_quota`]）。
+///
+/// 由**持有租户作用域**的调用方给出事务：`tenant` 与 `subscription` 两行都按 `tenantID`
+/// 读，脱离作用域会读到 0 行（策略见迁移里的 `tenant_isolation`）。
+pub(crate) async fn quota_in(
     tx: &DatabaseTransaction,
     config: &Configure,
     redis: &RedisPool,

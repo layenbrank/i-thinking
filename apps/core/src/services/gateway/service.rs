@@ -1,3 +1,19 @@
+//! 网关领域服务：模型解析、配额判定、上游转发、用量落库。
+//!
+//! **作用域约定**：本模块不自己开请求作用域，也不接受「裸」的数据库连接——所有查询都跑在
+//! 调用方给的事务上，事务由 [`TenantCtx`](crate::guards::tenant::TenantCtx)（选了租户）、
+//! [`AccountScope`](crate::guards::account::AccountScope)（没选租户）或
+//! [`PlatformScope`](crate::guards::platform::PlatformScope)（运维面）建立。
+//! 这样做的原因有两个：
+//!
+//! 1. 看得见哪些行由行级策略决定，作用域是唯一的事实来源，服务层不再自己拼 `tenantID = ?`；
+//! 2. 上游模型调用是长耗时网络等待，作用域绝不能跨越它——于是解析
+//!    （[`GatewayService::prepare`]）与落库（`record_completion`）被切成两段，
+//!    各自只包住自己的数据库工作。
+//!
+//! 唯一的例外在 `StoreScope`：用量/审计写在上游调用结束之后，那时请求作用域已经结束，
+//! 于是按 [`Prepared`] 里带出来的身份重新开一段短作用域（租户或账号），写完立即提交。
+
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -5,8 +21,10 @@ use actix_web::web::Bytes;
 use chrono::Utc;
 use entity::{gateway_audit, gateway_model, gateway_provider, gateway_usage, tenant};
 use futures::{Stream, StreamExt};
+use identity::{PlatformRole, Principal, TenantId, TenantRole, UserId};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseTransaction, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, Set,
 };
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -16,6 +34,9 @@ use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
+use crate::guards::account::AccountScope;
+use crate::guards::platform::PlatformScope;
+use crate::guards::tenant::TenantScope;
 use crate::services::gateway::client::{Upstream, UpstreamError};
 use crate::services::gateway::quota::{
     QuotaError, exhausted, quota_key, resets_at_millis, used_tokens,
@@ -25,9 +46,7 @@ use crate::services::gateway::schema::{
     AuditR, ChatCompletionsP, ModelR, ModelUpdateP, ModelWriteP, PlanR, PlansR, ProviderR,
     ProviderUpdateP, ProviderWriteP, SelfQuotaR, UsageQueryP, UsageR,
 };
-use crate::services::subscription::service::{QuotaInfo, SubscriptionService};
-use crate::services::tenant::schema::TenantRole;
-use crate::services::tenant::service::{TenantError, TenantService};
+use crate::services::subscription::service::{QuotaInfo, global_quota, quota_in};
 use crate::utils::code::{auth as auth_codes, external, request, resource, system};
 use crate::utils::db::is_unique_violation;
 use crate::utils::encryption::{EncryptionError, decrypt_field, encrypt_field};
@@ -63,8 +82,6 @@ pub enum GatewayError {
     Quota(#[from] QuotaError),
     #[error(transparent)]
     Encryption(#[from] EncryptionError),
-    #[error(transparent)]
-    Tenant(#[from] TenantError),
     #[error("Database error: {0}")]
     Db(String),
 }
@@ -97,7 +114,6 @@ impl From<GatewayError> for Exception {
             GatewayError::Encryption(_) => {
                 Exception::custom(system::INTERNAL_ERROR, "密钥服务异常")
             }
-            GatewayError::Tenant(e) => Exception::from(e),
             GatewayError::Db(msg) => {
                 tracing::error!(error = %msg, "gateway database error");
                 Exception::custom(external::DATABASE_ERROR, "数据库错误")
@@ -106,6 +122,9 @@ impl From<GatewayError> for Exception {
     }
 }
 
+/// 配额的归属维度：有租户身份就记在租户上，否则记在账号上。
+///
+/// 与作用域无关：账号作用域下聊天（没选租户）同样按账号记账，两者共用一个键。
 enum QuotaScope {
     User(Uuid),
     Tenant(Uuid),
@@ -134,14 +153,21 @@ fn quota_scope(user_id: Uuid, tenant_id: Option<Uuid>) -> QuotaScope {
     }
 }
 
-struct Resolved {
+/// 进入上游之前就已经定下来的事实：模型、供应商、密钥、配额归属与上限。
+///
+/// 它必须能被带出请求作用域——上游调用的耗时不允许被事务包住，用量落库只能发生在其后，
+/// 于是落库需要的身份（`user_id` / `tenant_id`）一并带上。
+pub struct Prepared {
     model: gateway_model::Model,
     provider: gateway_provider::Model,
     api_key: Option<String>,
     scope: QuotaScope,
     quota_limit: i64,
+    user_id: Uuid,
+    tenant_id: Option<Uuid>,
 }
 
+/// 一次调用在落库时需要的身份与目标（不随请求作用域存活）。
 struct CompletionMeta {
     user_id: Uuid,
     tenant_id: Option<Uuid>,
@@ -154,54 +180,107 @@ struct CompletionMeta {
 pub struct GatewayService;
 
 impl GatewayService {
+    /// 在**调用方给的作用域**里解析一次聊天请求。
+    ///
+    /// 身份来自 [`Principal`]：模型可见性（`allow_roles`）与配额归属都由它决定，
+    /// 而它已经在进作用域时确定过（成员关系、平台角色），服务层不再查第二遍。
+    ///
+    /// # Errors
+    /// 模型/供应商不存在或停用、角色不允许、数据库读取失败、密钥解密失败。
+    pub async fn prepare(
+        tx: &DatabaseTransaction,
+        principal: &Principal,
+        config: &Configure,
+        redis: &RedisPool,
+        model_name: &str,
+    ) -> Result<Prepared, GatewayError> {
+        let user_id = principal.user_id().as_uuid();
+        let tenant_id = principal.tenant_id().map(|tenant| tenant.as_uuid());
+        let tenant_role = principal.tenant_role();
+        let platform_role = principal.platform_role();
+
+        let model = if model_name.eq_ignore_ascii_case(AUTO_MODEL_NAME) {
+            pick_auto_model(tx, platform_role, tenant_role).await?
+        } else {
+            find_model(tx, model_name, tenant_id).await?
+        };
+        if !model.enabled {
+            return Err(GatewayError::ModelDisabled);
+        }
+        if !role_allowed(&model, platform_role, tenant_role) {
+            return Err(GatewayError::NotAllowed);
+        }
+
+        let provider = gateway_provider::Entity::find_by_id(model.provider_id)
+            .one(tx)
+            .await
+            .map_err(db_err)?
+            .ok_or(GatewayError::ProviderNotFound)?;
+        if provider.status != "ACTIVE" {
+            return Err(GatewayError::ProviderDisabled);
+        }
+
+        let api_key = if provider.api_key_enc.is_empty() {
+            None
+        } else {
+            let aes_key = config.aes_key().ok_or(EncryptionError::InvalidKeyLength)?;
+            Some(decrypt_field(&provider.api_key_enc, aes_key)?)
+        };
+
+        // 配额优先级：模型覆盖 > 租户级（订阅档位 > 免费档 / 全局兜底）
+        let (quota_limit, _) = resolve_quota(tx, config, redis, tenant_id, Some(&model)).await?;
+
+        Ok(Prepared {
+            model,
+            provider,
+            api_key,
+            scope: quota_scope(user_id, tenant_id),
+            quota_limit,
+            user_id,
+            tenant_id,
+        })
+    }
+
+    /// 流式转发（SSE 直传）。解析与配额判定已在 [`prepare`](Self::prepare) 里完成。
+    ///
+    /// 用 `Arc` 收参数是为了 `'static` 的流：上游连接要活到客户端读完为止，
+    /// 落库时机（`record_completion`）也在流结束之后，那时借用早已失效。
+    #[allow(clippy::too_many_arguments)]
     pub async fn chat_stream(
         db: Arc<Storage>,
         redis: Arc<RedisPool>,
         config: Arc<Configure>,
         es: Arc<EsClient>,
         upstream: &Upstream,
-        user_id: Uuid,
-        platform_role: &str,
-        tenant_id: Option<Uuid>,
+        prepared: Prepared,
         req: &ChatCompletionsP,
         ip: Option<String>,
     ) -> Result<impl Stream<Item = Result<Bytes, actix_web::Error>> + 'static, GatewayError> {
-        let resolved = resolve(
-            &db,
-            &config,
-            &redis,
-            user_id,
-            platform_role,
-            tenant_id,
-            &req.model,
-        )
-        .await?;
-
-        let key = quota_key_for(&resolved.scope);
-        if exhausted(&redis, &key, resolved.quota_limit).await? {
+        let key = quota_key_for(&prepared.scope);
+        if exhausted(&redis, &key, prepared.quota_limit).await? {
             return Err(GatewayError::QuotaExceeded);
         }
 
-        let body = build_body(req, &resolved.model.name, true);
-        let url = chat_url(&resolved.provider)?;
+        let body = build_body(req, &prepared.model.name, true);
+        let url = chat_url(&prepared.provider)?;
         let resp = upstream
-            .post_chat(&url, resolved.api_key.as_deref(), &body)
+            .post_chat(&url, prepared.api_key.as_deref(), &body)
             .await?;
 
         let meta = CompletionMeta {
-            user_id,
-            tenant_id,
-            provider_id: resolved.provider.id,
-            model_id: resolved.model.id,
-            model_name: resolved.model.name.clone(),
+            user_id: prepared.user_id,
+            tenant_id: prepared.tenant_id,
+            provider_id: prepared.provider.id,
+            model_id: prepared.model.id,
+            model_name: prepared.model.name.clone(),
             quota_key: key,
         };
         let record = Record {
             meta,
-            db: Arc::clone(&db),
-            redis: Arc::clone(&redis),
-            config: Arc::clone(&config),
-            es: Arc::clone(&es),
+            db,
+            redis,
+            config,
+            es,
             ip,
             started: Instant::now(),
             buffer: String::new(),
@@ -212,39 +291,27 @@ impl GatewayService {
         Ok(sse_stream(resp, record))
     }
 
+    /// 非流式转发：上游 JSON 原样返回，落库在响应之前完成（调用方无事务在身）。
     pub async fn chat_json(
-        db: Arc<Storage>,
-        redis: Arc<RedisPool>,
-        config: Arc<Configure>,
-        es: Arc<EsClient>,
+        db: &Storage,
+        redis: &RedisPool,
+        config: &Configure,
+        es: &EsClient,
         upstream: &Upstream,
-        user_id: Uuid,
-        platform_role: &str,
-        tenant_id: Option<Uuid>,
+        prepared: Prepared,
         req: &ChatCompletionsP,
         ip: Option<String>,
     ) -> Result<Value, GatewayError> {
-        let resolved = resolve(
-            &db,
-            &config,
-            &redis,
-            user_id,
-            platform_role,
-            tenant_id,
-            &req.model,
-        )
-        .await?;
-
-        let key = quota_key_for(&resolved.scope);
-        if exhausted(&redis, &key, resolved.quota_limit).await? {
+        let key = quota_key_for(&prepared.scope);
+        if exhausted(redis, &key, prepared.quota_limit).await? {
             return Err(GatewayError::QuotaExceeded);
         }
 
-        let body = build_body(req, &resolved.model.name, false);
-        let url = chat_url(&resolved.provider)?;
+        let body = build_body(req, &prepared.model.name, false);
+        let url = chat_url(&prepared.provider)?;
         let started = Instant::now();
         let resp = upstream
-            .post_chat(&url, resolved.api_key.as_deref(), &body)
+            .post_chat(&url, prepared.api_key.as_deref(), &body)
             .await?;
         let text = resp.text().await.map_err(UpstreamError::Http)?;
         let latency = started.elapsed().as_millis() as i64;
@@ -253,16 +320,16 @@ impl GatewayService {
         let usage = value.get("usage").map(parse_usage_json);
 
         record_completion(
-            &db,
-            &redis,
-            &config,
-            &es,
+            db,
+            redis,
+            config,
+            es,
             &CompletionMeta {
-                user_id,
-                tenant_id,
-                provider_id: resolved.provider.id,
-                model_id: resolved.model.id,
-                model_name: resolved.model.name.clone(),
+                user_id: prepared.user_id,
+                tenant_id: prepared.tenant_id,
+                provider_id: prepared.provider.id,
+                model_id: prepared.model.id,
+                model_name: prepared.model.name.clone(),
                 quota_key: key,
             },
             usage,
@@ -275,43 +342,30 @@ impl GatewayService {
         Ok(value)
     }
 
-    /// 用户可见模型列表（平台 + 租户，按 enabled + allow_roles 过滤）。
+    /// 用户可见模型列表（全局 + 当前租户，按 enabled + allow_roles 过滤）。
+    ///
+    /// 可见行不再手写 `tenantID = ?`：策略已经保证「全局行 + 当前租户行」正好是能看到的那些，
+    /// 于是同一个查询在租户作用域与账号作用域下各自得到正确的集合。
     ///
     /// 有可见模型时会在首位插入 `auto`（自动路由）伪条目 —— 目录即契约，
     /// 客户端点它就能让网关代挑模型。
+    ///
+    /// # Errors
+    /// 数据库读取失败。
     pub async fn list_models(
-        db: &Storage,
-        user_id: Uuid,
-        platform_role: &str,
-        tenant_id: Option<Uuid>,
+        tx: &DatabaseTransaction,
+        principal: &Principal,
     ) -> Result<Vec<ModelR>, GatewayError> {
-        let tenant_role = match tenant_id {
-            Some(tid) => TenantService::membership_role(db, user_id, tid).await?,
-            None => None,
-        };
-
-        let platform = gateway_model::Entity::find()
-            .filter(gateway_model::Column::TenantId.is_null())
+        let models = gateway_model::Entity::find()
             .filter(gateway_model::Column::Enabled.eq(true))
-            .all(&db.db)
+            .all(tx)
             .await
             .map_err(db_err)?;
 
-        let mut models = platform;
-        if let Some(tid) = tenant_id {
-            let scoped = gateway_model::Entity::find()
-                .filter(gateway_model::Column::TenantId.eq(Some(tid)))
-                .filter(gateway_model::Column::Enabled.eq(true))
-                .all(&db.db)
-                .await
-                .map_err(db_err)?;
-            models.extend(scoped);
-        }
-
-        let names = provider_names(db).await?;
+        let names = provider_names(tx).await?;
         let mut out: Vec<ModelR> = models
             .into_iter()
-            .filter(|m| role_allowed(m, platform_role, tenant_role))
+            .filter(|m| role_allowed(m, principal.platform_role(), principal.tenant_role()))
             .map(|m| {
                 let provider_name = names.get(&m.provider_id).cloned();
                 model_to_r(m, provider_name)
@@ -327,28 +381,25 @@ impl GatewayService {
     /// 只读自助配额：当前身份此刻的日窗用量与上限。
     ///
     /// 上限与归属与聊天热路径共用（`quota_scope` / `resolve_quota`），否则界面上的剩余量
-    /// 与真正拦截请求的数字会对不上。唯一区别是这里会校验租户成员身份：目录与聊天都直接
-    /// 信任 `X-Tenant-ID`，只读接口没理由把别人租户的档位与用量透出去。
+    /// 与真正拦截请求的数字会对不上。成员关系不在这里判：作用域由守卫建立，
+    /// 不是成员且不是平台管理员就进不了租户作用域（403）。
+    ///
+    /// # Errors
+    /// 数据库读取失败、缓存不可用。
     pub async fn self_quota(
-        db: &Storage,
+        tx: &DatabaseTransaction,
+        principal: &Principal,
         config: &Configure,
         redis: &RedisPool,
-        user_id: Uuid,
-        tenant_id: Option<Uuid>,
         model_name: Option<&str>,
     ) -> Result<SelfQuotaR, GatewayError> {
-        let tenant_id = match tenant_id {
-            Some(tid) => TenantService::membership_role(db, user_id, tid)
-                .await?
-                .map(|_| tid),
-            None => None,
-        };
-        let scope = quota_scope(user_id, tenant_id);
+        let tenant_id = principal.tenant_id().map(|tenant| tenant.as_uuid());
+        let scope = quota_scope(principal.user_id().as_uuid(), tenant_id);
         let key = quota_key_for(&scope);
         let model = match model_name {
             // `auto` 要等网关挑完才知道是哪条模型，这里按身份级配额回答
             Some(name) if !name.eq_ignore_ascii_case(AUTO_MODEL_NAME) => {
-                match find_model(db, name, tenant_id).await {
+                match find_model(tx, name, tenant_id).await {
                     Ok(model) => Some(model),
                     Err(GatewayError::ModelNotFound(_)) => None,
                     Err(err) => return Err(err),
@@ -356,7 +407,7 @@ impl GatewayService {
             }
             _ => None,
         };
-        let (limit, info) = resolve_quota(db, config, redis, tenant_id, model.as_ref()).await?;
+        let (limit, info) = resolve_quota(tx, config, redis, tenant_id, model.as_ref()).await?;
         let used = used_tokens(redis, &key).await?;
         let (source, plan) = match info {
             Some(info) => (info.source.as_str().to_string(), info.plan),
@@ -364,7 +415,7 @@ impl GatewayService {
         };
         let tenant_type = match tenant_id {
             Some(tid) => tenant::Entity::find_by_id(tid)
-                .one(&db.db)
+                .one(tx)
                 .await
                 .map_err(db_err)?
                 .map(|row| row.tenant_type),
@@ -411,19 +462,27 @@ impl GatewayService {
         }
     }
 
-    // ---- 后台 provider CRUD（平台级：tenant_id IS NULL）----
+    // ---- 后台 provider CRUD（平台级：tenant_id IS NULL，跑在平台特权作用域里）----
 
-    pub async fn list_providers(db: &Storage) -> Result<Vec<ProviderR>, GatewayError> {
+    /// 平台供应商列表。
+    ///
+    /// # Errors
+    /// 数据库读取失败。
+    pub async fn list_providers(scope: &PlatformScope) -> Result<Vec<ProviderR>, GatewayError> {
         let providers = gateway_provider::Entity::find()
             .filter(gateway_provider::Column::TenantId.is_null())
-            .all(&db.db)
+            .all(scope.tx())
             .await
             .map_err(db_err)?;
         Ok(providers.into_iter().map(provider_to_r).collect())
     }
 
+    /// 新建平台供应商（`tenant_id IS NULL`）。
+    ///
+    /// # Errors
+    /// 参数非法、密钥加密失败、数据库写入失败。
     pub async fn create_provider(
-        db: &Storage,
+        scope: &PlatformScope,
         config: &Configure,
         actor: Uuid,
         req: ProviderWriteP,
@@ -451,21 +510,26 @@ impl GatewayService {
             updater: Set(Some(actor)),
             expires_at: Set(None),
         }
-        .insert(&db.db)
+        .insert(scope.tx())
         .await
         .map_err(db_err)?;
         Ok(provider_to_r(model))
     }
 
+    /// 改平台供应商；只认 `tenant_id IS NULL` 的行（改不到即 404，不再静默成功）。
+    ///
+    /// # Errors
+    /// 供应商不存在、参数非法、密钥加密失败、数据库写入失败。
     pub async fn update_provider(
-        db: &Storage,
+        scope: &PlatformScope,
         config: &Configure,
         actor: Uuid,
         id: Uuid,
         req: ProviderUpdateP,
     ) -> Result<ProviderR, GatewayError> {
         let model = gateway_provider::Entity::find_by_id(id)
-            .one(&db.db)
+            .filter(gateway_provider::Column::TenantId.is_null())
+            .one(scope.tx())
             .await
             .map_err(db_err)?
             .ok_or(GatewayError::ProviderNotFound)?;
@@ -496,27 +560,40 @@ impl GatewayService {
         active.updated_at = Set(Utc::now().fixed_offset());
         active.updater = Set(Some(actor));
 
-        let updated = active.update(&db.db).await.map_err(db_err)?;
+        let updated = active.update(scope.tx()).await.map_err(db_err)?;
         Ok(provider_to_r(updated))
     }
 
-    pub async fn delete_provider(db: &Storage, id: Uuid) -> Result<(), GatewayError> {
-        gateway_provider::Entity::delete_by_id(id)
-            .exec(&db.db)
+    /// 删平台供应商；只认 `tenant_id IS NULL` 的行（删不到即 404）。
+    ///
+    /// # Errors
+    /// 供应商不存在、数据库写入失败。
+    pub async fn delete_provider(scope: &PlatformScope, id: Uuid) -> Result<(), GatewayError> {
+        let deleted = gateway_provider::Entity::delete_many()
+            .filter(gateway_provider::Column::Id.eq(id))
+            .filter(gateway_provider::Column::TenantId.is_null())
+            .exec(scope.tx())
             .await
             .map_err(db_err)?;
+        if deleted.rows_affected == 0 {
+            return Err(GatewayError::ProviderNotFound);
+        }
         Ok(())
     }
 
-    // ---- 后台 model CRUD（平台级）----
+    // ---- 后台 model CRUD（平台级：tenant_id IS NULL）----
 
-    pub async fn list_models_admin(db: &Storage) -> Result<Vec<ModelR>, GatewayError> {
+    /// 平台模型列表。
+    ///
+    /// # Errors
+    /// 数据库读取失败。
+    pub async fn list_models_admin(scope: &PlatformScope) -> Result<Vec<ModelR>, GatewayError> {
         let models = gateway_model::Entity::find()
             .filter(gateway_model::Column::TenantId.is_null())
-            .all(&db.db)
+            .all(scope.tx())
             .await
             .map_err(db_err)?;
-        let names = provider_names(db).await?;
+        let names = provider_names(scope.tx()).await?;
         Ok(models
             .into_iter()
             .map(|m| {
@@ -526,8 +603,12 @@ impl GatewayService {
             .collect())
     }
 
+    /// 新建平台模型（`tenant_id IS NULL`）。
+    ///
+    /// # Errors
+    /// 参数非法、模型重名、数据库写入失败。
     pub async fn create_model(
-        db: &Storage,
+        scope: &PlatformScope,
         actor: Uuid,
         req: ModelWriteP,
     ) -> Result<ModelR, GatewayError> {
@@ -560,7 +641,7 @@ impl GatewayService {
             updater: Set(Some(actor)),
             expires_at: Set(None),
         }
-        .insert(&db.db)
+        .insert(scope.tx())
         .await
         .map_err(|e| {
             if is_unique_violation(&e) {
@@ -569,21 +650,26 @@ impl GatewayService {
                 db_err(e)
             }
         })?;
-        let provider_name = find_provider_name(db, model.provider_id).await;
+        let provider_name = find_provider_name(scope.tx(), model.provider_id).await;
         Ok(model_to_r(model, provider_name))
     }
 
+    /// 改平台模型；只认 `tenant_id IS NULL` 的行（改不到即 404）。
+    ///
+    /// # Errors
+    /// 模型不存在、参数非法、数据库写入失败。
     pub async fn update_model(
-        db: &Storage,
+        scope: &PlatformScope,
         actor: Uuid,
         id: Uuid,
         req: ModelUpdateP,
     ) -> Result<ModelR, GatewayError> {
         let model = gateway_model::Entity::find_by_id(id)
-            .one(&db.db)
+            .filter(gateway_model::Column::TenantId.is_null())
+            .one(scope.tx())
             .await
             .map_err(db_err)?
-            .ok_or(GatewayError::ModelNotFound(id.to_string()))?;
+            .ok_or_else(|| GatewayError::ModelNotFound(id.to_string()))?;
 
         let mut active: gateway_model::ActiveModel = model.into();
         if let Some(name) = req.name {
@@ -613,23 +699,36 @@ impl GatewayService {
         active.updated_at = Set(Utc::now().fixed_offset());
         active.updater = Set(Some(actor));
 
-        let updated = active.update(&db.db).await.map_err(db_err)?;
-        let provider_name = find_provider_name(db, updated.provider_id).await;
+        let updated = active.update(scope.tx()).await.map_err(db_err)?;
+        let provider_name = find_provider_name(scope.tx(), updated.provider_id).await;
         Ok(model_to_r(updated, provider_name))
     }
 
-    pub async fn delete_model(db: &Storage, id: Uuid) -> Result<(), GatewayError> {
-        gateway_model::Entity::delete_by_id(id)
-            .exec(&db.db)
+    /// 删平台模型；只认 `tenant_id IS NULL` 的行（删不到即 404）。
+    ///
+    /// # Errors
+    /// 模型不存在、数据库写入失败。
+    pub async fn delete_model(scope: &PlatformScope, id: Uuid) -> Result<(), GatewayError> {
+        let deleted = gateway_model::Entity::delete_many()
+            .filter(gateway_model::Column::Id.eq(id))
+            .filter(gateway_model::Column::TenantId.is_null())
+            .exec(scope.tx())
             .await
             .map_err(db_err)?;
+        if deleted.rows_affected == 0 {
+            return Err(GatewayError::ModelNotFound(id.to_string()));
+        }
         Ok(())
     }
 
-    // ---- 用量 / 审计查询 ----
+    // ---- 用量 / 审计查询（跨租户汇总，平台特权作用域）----
 
+    /// 用量明细分页；`tenantID` 过滤是查询条件的一部分（特权作用域看得到所有行）。
+    ///
+    /// # Errors
+    /// 数据库读取失败。
     pub async fn list_usage(
-        db: &Storage,
+        scope: &PlatformScope,
         req: UsageQueryP,
     ) -> Result<(Vec<UsageR>, u64), GatewayError> {
         let size = req.size.unwrap_or(50).clamp(1, 200);
@@ -665,11 +764,11 @@ impl GatewayService {
             );
         }
 
-        let count = query.clone().count(&db.db).await.map_err(db_err)?;
+        let count = query.clone().count(scope.tx()).await.map_err(db_err)?;
         // 对外 page 从 1 起（与 Paginated::new 的 next/prev 语义一致），sea-orm 从 0 起
         let items = query
             .order_by_desc(gateway_usage::Column::CreatedAt)
-            .paginate(&db.db, size as u64)
+            .paginate(scope.tx(), size as u64)
             .fetch_page((page as u64).saturating_sub(1))
             .await
             .map_err(db_err)?;
@@ -677,8 +776,12 @@ impl GatewayService {
         Ok((items.into_iter().map(usage_to_r).collect(), count))
     }
 
+    /// 审计日志分页（可选按租户过滤）。
+    ///
+    /// # Errors
+    /// 数据库读取失败。
     pub async fn list_audit(
-        db: &Storage,
+        scope: &PlatformScope,
         tenant_id: Option<Uuid>,
         page: u32,
         size: u32,
@@ -689,10 +792,10 @@ impl GatewayService {
         if let Some(tid) = tenant_id {
             query = query.filter(gateway_audit::Column::TenantId.eq(Some(tid)));
         }
-        let count = query.clone().count(&db.db).await.map_err(db_err)?;
+        let count = query.clone().count(scope.tx()).await.map_err(db_err)?;
         let items = query
             .order_by_desc(gateway_audit::Column::CreatedAt)
-            .paginate(&db.db, size as u64)
+            .paginate(scope.tx(), size as u64)
             .fetch_page((page as u64).saturating_sub(1))
             .await
             .map_err(db_err)?;
@@ -700,70 +803,12 @@ impl GatewayService {
     }
 }
 
-// ---- 解析 ----
-
-async fn resolve(
-    db: &Storage,
-    config: &Configure,
-    redis: &RedisPool,
-    user_id: Uuid,
-    platform_role: &str,
-    tenant_id: Option<Uuid>,
-    model_name: &str,
-) -> Result<Resolved, GatewayError> {
-    let tenant_role = match tenant_id {
-        Some(tid) => TenantService::membership_role(db, user_id, tid).await?,
-        None => None,
-    };
-
-    let model = if model_name.eq_ignore_ascii_case(AUTO_MODEL_NAME) {
-        pick_auto_model(db, platform_role, tenant_role, tenant_id).await?
-    } else {
-        find_model(db, model_name, tenant_id).await?
-    };
-    if !model.enabled {
-        return Err(GatewayError::ModelDisabled);
-    }
-
-    if !role_allowed(&model, platform_role, tenant_role) {
-        return Err(GatewayError::NotAllowed);
-    }
-
-    let provider = gateway_provider::Entity::find_by_id(model.provider_id)
-        .one(&db.db)
-        .await
-        .map_err(db_err)?
-        .ok_or(GatewayError::ProviderNotFound)?;
-    if provider.status != "ACTIVE" {
-        return Err(GatewayError::ProviderDisabled);
-    }
-
-    let api_key = if provider.api_key_enc.is_empty() {
-        None
-    } else {
-        let aes_key = config.aes_key().ok_or(EncryptionError::InvalidKeyLength)?;
-        Some(decrypt_field(&provider.api_key_enc, aes_key)?)
-    };
-
-    // 配额优先级：模型覆盖 > 租户级（订阅档位 > 免费档 / 全局兜底）
-    let (quota_limit, _) = resolve_quota(db, config, redis, tenant_id, Some(&model)).await?;
-    let scope = quota_scope(user_id, tenant_id);
-
-    Ok(Resolved {
-        model,
-        provider,
-        api_key,
-        scope,
-        quota_limit,
-    })
-}
-
-/// 日配额上限及其身份级来源：模型覆盖 > 租户/用户级（订阅档位 > 免费档 > 全局兜底）。
+/// 日配额上限及其身份级来源：模型覆盖 > 租户/账号级（订阅档位 > 免费档 > 全局兜底）。
 ///
 /// 命中模型覆盖时**不查**身份级配额，返回 `None` —— 聊天热路径不必为此多打一次 Redis。
 /// 聊天拦截与只读自助查询共用它，保证「界面显示的剩余」与「服务端拦截的数字」同源。
 async fn resolve_quota(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     config: &Configure,
     redis: &RedisPool,
     tenant_id: Option<Uuid>,
@@ -772,14 +817,24 @@ async fn resolve_quota(
     if let Some(quota) = model.map(|m| m.daily_token_quota).filter(|q| *q > 0) {
         return Ok((quota, None));
     }
-    let info = SubscriptionService::effective_quota(db, config, redis, tenant_id)
-        .await
-        .map_err(db_err)?;
+    // 没有租户身份（账号作用域）时读不到 `tenant` / `subscription` 任何一行，
+    // 直接取全局兜底，不白跑一趟数据库
+    let info = match tenant_id {
+        Some(tid) => quota_in(tx, config, redis, TenantId::from_uuid(tid))
+            .await
+            .map_err(db_err)?
+            .unwrap_or_else(|| global_quota(config)),
+        None => global_quota(config),
+    };
     Ok((info.limit, Some(info)))
 }
 
+/// 取模型：当前租户的私有模型优先，其次全局模型。
+///
+/// 两种来源都要显式区分（策略只保证「可见」，不保证 `name` 唯一），
+/// 因此这里逐个查而不是一次 `one()`——多行时 `one()` 会报错。
 async fn find_model(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     name: &str,
     tenant_id: Option<Uuid>,
 ) -> Result<gateway_model::Model, GatewayError> {
@@ -787,7 +842,7 @@ async fn find_model(
         let scoped = gateway_model::Entity::find()
             .filter(gateway_model::Column::Name.eq(name))
             .filter(gateway_model::Column::TenantId.eq(Some(tid)))
-            .one(&db.db)
+            .one(tx)
             .await
             .map_err(db_err)?;
         if let Some(m) = scoped {
@@ -798,7 +853,7 @@ async fn find_model(
     gateway_model::Entity::find()
         .filter(gateway_model::Column::Name.eq(name))
         .filter(gateway_model::Column::TenantId.is_null())
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(db_err)?
         .ok_or(GatewayError::ModelNotFound(name.to_string()))
@@ -809,27 +864,15 @@ async fn find_model(
 /// 排序偏好（越靠前越优先）：平台模型 → 支持工具的模型 → 创建早的（稳定优先）。
 /// 不做语义路由（不猜「这条消息该用谁」），只保证「目录里有 auto 就一定挑得出模型」。
 async fn pick_auto_model(
-    db: &Storage,
-    platform_role: &str,
+    tx: &DatabaseTransaction,
+    platform_role: PlatformRole,
     tenant_role: Option<TenantRole>,
-    tenant_id: Option<Uuid>,
 ) -> Result<gateway_model::Model, GatewayError> {
     let mut models = gateway_model::Entity::find()
         .filter(gateway_model::Column::Enabled.eq(true))
-        .filter(gateway_model::Column::TenantId.is_null())
-        .all(&db.db)
+        .all(tx)
         .await
         .map_err(db_err)?;
-
-    if let Some(tid) = tenant_id {
-        let scoped = gateway_model::Entity::find()
-            .filter(gateway_model::Column::Enabled.eq(true))
-            .filter(gateway_model::Column::TenantId.eq(Some(tid)))
-            .all(&db.db)
-            .await
-            .map_err(db_err)?;
-        models.extend(scoped);
-    }
 
     models.retain(|m| role_allowed(m, platform_role, tenant_role));
     models.sort_by_key(|m| {
@@ -890,18 +933,18 @@ fn normalize_context_window(raw: Option<i64>) -> Option<i64> {
 
 /// 一次性取 `providerID → 展示名`，避免逐条模型查库。
 async fn provider_names(
-    db: &Storage,
+    tx: &DatabaseTransaction,
 ) -> Result<std::collections::HashMap<Uuid, String>, GatewayError> {
     let providers = gateway_provider::Entity::find()
-        .all(&db.db)
+        .all(tx)
         .await
         .map_err(db_err)?;
     Ok(providers.into_iter().map(|p| (p.id, p.name)).collect())
 }
 
-async fn find_provider_name(db: &Storage, provider_id: Uuid) -> Option<String> {
+async fn find_provider_name(tx: &DatabaseTransaction, provider_id: Uuid) -> Option<String> {
     gateway_provider::Entity::find_by_id(provider_id)
-        .one(&db.db)
+        .one(tx)
         .await
         .ok()
         .flatten()
@@ -926,9 +969,13 @@ fn auto_model_r() -> ModelR {
     }
 }
 
+/// 模型是否对该身份开放：`allow_roles` 未声明 / 空数组 = 所有人可用。
+///
+/// 角色来自 [`Principal`]（平台角色 + 当前租户角色），不再另行查库；
+/// 字面量比较留在网关这一层（`allow_roles` 是网关自己的列，不是权限判定）。
 fn role_allowed(
     model: &gateway_model::Model,
-    platform_role: &str,
+    platform: PlatformRole,
     tenant_role: Option<TenantRole>,
 ) -> bool {
     let Some(json) = model.allow_roles.as_ref() else {
@@ -941,7 +988,8 @@ fn role_allowed(
         return true;
     }
     let roles: Vec<&str> = arr.iter().filter_map(|v| v.as_str()).collect();
-    roles.contains(&platform_role) || tenant_role.is_some_and(|t| roles.contains(&t.as_str()))
+    roles.contains(&platform.as_str())
+        || tenant_role.is_some_and(|role| roles.contains(&role.as_str()))
 }
 
 fn chat_url(provider: &gateway_provider::Model) -> Result<String, GatewayError> {
@@ -977,6 +1025,54 @@ fn quota_key_for(scope: &QuotaScope) -> String {
 
 // ---- 用量/审计落库 ----
 
+/// 落库用的短作用域：按 [`CompletionMeta`] 里的身份重新申请一段事务。
+///
+/// 时序上落库必然发生在请求作用域结束之后（上游调用不允许被事务包住），所以不能沿用请求
+/// 那个事务。两种情形各有归属：有租户记租户作用域，没租户记账号作用域——都由行级策略
+/// 自约束，写不出别人的行。
+enum StoreScope {
+    Tenant(TenantScope),
+    Account(AccountScope),
+}
+
+impl StoreScope {
+    async fn open(
+        storage: &Storage,
+        tenant_id: Option<Uuid>,
+        user_id: Uuid,
+    ) -> Result<Self, sea_orm::DbErr> {
+        Ok(match tenant_id {
+            Some(tid) => Self::Tenant(TenantScope::open(storage, TenantId::from_uuid(tid)).await?),
+            None => Self::Account(AccountScope::open(storage, UserId::from_uuid(user_id)).await?),
+        })
+    }
+
+    const fn tx(&self) -> &DatabaseTransaction {
+        match self {
+            Self::Tenant(scope) => scope.tx(),
+            Self::Account(scope) => scope.tx(),
+        }
+    }
+
+    async fn commit(self) -> Result<(), sea_orm::DbErr> {
+        match self {
+            Self::Tenant(scope) => scope.commit().await,
+            Self::Account(scope) => scope.commit().await,
+        }
+    }
+
+    async fn rollback(self) -> Result<(), sea_orm::DbErr> {
+        match self {
+            Self::Tenant(scope) => scope.rollback().await,
+            Self::Account(scope) => scope.rollback().await,
+        }
+    }
+}
+
+/// 一次调用结束后：累计 token 用量、落用量与审计、同步 ES 索引。
+///
+/// 三个动作都是**尽力而为**：走到这里响应体已经发完（流式）或已经拿到上游结果，
+/// 记账失败不该把一个已经成功的回答变成 500。失败只留日志。
 #[allow(clippy::too_many_arguments)]
 async fn record_completion(
     db: &Storage,
@@ -1002,7 +1098,8 @@ async fn record_completion(
         latency_ms,
     };
 
-    let _ = record_usage(db, &input).await;
+    persist(db, config, meta, &input, status, total, ip).await;
+
     let _ = crate::services::gateway::quota::add_tokens(redis, &meta.quota_key, total).await;
     let _ = crate::services::gateway::repository::index_usage(
         es,
@@ -1010,9 +1107,34 @@ async fn record_completion(
         &input,
     )
     .await;
+}
+
+/// 用量与审计在同一段作用域里落下：要么都成，要么都不成（不留半截记录）。
+#[allow(clippy::too_many_arguments)]
+async fn persist(
+    db: &Storage,
+    config: &Configure,
+    meta: &CompletionMeta,
+    input: &UsageInput,
+    status: &str,
+    total: i64,
+    ip: Option<String>,
+) {
+    let scope = match StoreScope::open(db, meta.tenant_id, meta.user_id).await {
+        Ok(scope) => scope,
+        Err(err) => {
+            tracing::warn!(error = %err, "网关用量落库作用域不可用，跳过记账");
+            return;
+        }
+    };
+
+    let mut failed = record_usage(scope.tx(), input).await.is_err();
+    if failed {
+        tracing::warn!("网关用量落库失败");
+    }
     if config.gateway_audit_enabled() {
-        let _ = record_audit(
-            db,
+        let audit = record_audit(
+            scope.tx(),
             meta.tenant_id,
             meta.user_id,
             "gateway.chat",
@@ -1021,6 +1143,19 @@ async fn record_completion(
             ip,
         )
         .await;
+        if audit.is_err() {
+            tracing::warn!("网关审计落库失败");
+            failed = true;
+        }
+    }
+
+    let result = if failed {
+        scope.rollback().await
+    } else {
+        scope.commit().await
+    };
+    if let Err(err) = result {
+        tracing::warn!(error = %err, "网关用量落库收尾失败");
     }
 }
 
@@ -1079,9 +1214,9 @@ impl Record {
 
 fn sse_stream(
     resp: reqwest::Response,
-    mut record: Record,
+    record: Record,
 ) -> impl Stream<Item = Result<Bytes, actix_web::Error>> + 'static {
-    let mut upstream = resp.bytes_stream();
+    let upstream = resp.bytes_stream();
     futures::stream::unfold(
         (upstream, record),
         |(mut upstream, mut record)| async move {

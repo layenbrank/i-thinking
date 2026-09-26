@@ -215,15 +215,6 @@ impl fmt::Display for TenantRole {
     }
 }
 
-/// 运维通道下平台管理员在租户内的等效角色：租户管理员。
-///
-/// 只是给「按角色判断」的老调用方一个字面量，运维放行的依据始终是平台角色
-/// （`authz` 在已选定租户上下文时依平台角色放行，见 `crates/authz`）。
-#[must_use]
-pub const fn platform_operator_role() -> TenantRole {
-    TenantRole::Admin
-}
-
 /// 一次请求的身份上下文：账号 + 平台角色 + 当前租户与租户内角色。
 ///
 /// 由调用方在认证阶段构造，之后只读传递；`tenant()` 为 `None` 表示「未进入任何租户
