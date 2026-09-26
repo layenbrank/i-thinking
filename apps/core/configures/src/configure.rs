@@ -443,6 +443,47 @@ impl Default for CorsConfig {
     }
 }
 
+/// 事件发布（outbox → 下游）。由 `worker` 二进制读取。
+///
+/// `endpoint` 留空表示「只记日志」：开发与联调默认如此，事件照样被标记为已发布，
+/// 便于在不部署下游的情况下跑通链路。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct EventsConfig {
+    /// 轮询间隔（毫秒）：一轮发布结束到下一轮开始之间的等待。
+    pub poll_interval_ms: u64,
+    /// 每轮最多读取的待发布事件数。
+    pub batch_size: u64,
+    /// 投递失败聚合的退避基数（毫秒）。
+    pub backoff_base_ms: u64,
+    /// 投递失败聚合的退避上限（毫秒）。
+    pub backoff_max_ms: u64,
+    /// 下游接收端点（HTTP POST 事件信封）。
+    pub endpoint: String,
+    /// 单次投递超时（毫秒）。
+    pub timeout_ms: u64,
+    /// 下游鉴权 token（`Authorization: Bearer`）。
+    pub token: String,
+    /// 是否让系统/环境变量代理接管投递。默认 `false`：事件终点按内网直连处理，
+    /// 免得本机系统代理（如 127.0.0.1:7892）拦截内网地址并回 502。
+    pub use_system_proxy: bool,
+}
+
+impl Default for EventsConfig {
+    fn default() -> Self {
+        Self {
+            poll_interval_ms: 500,
+            batch_size: 64,
+            backoff_base_ms: 1000,
+            backoff_max_ms: 60_000,
+            endpoint: String::new(),
+            timeout_ms: 5_000,
+            token: String::new(),
+            use_system_proxy: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct Configure {
@@ -458,6 +499,7 @@ pub struct Configure {
     pub pay: PayConfig,
     pub logging: LoggingConfig,
     pub cors: CorsConfig,
+    pub events: EventsConfig,
     /// 合并时使用的 profile（`resolve_profile()`）。
     #[serde(skip)]
     pub profile: String,
@@ -481,6 +523,7 @@ impl Default for Configure {
             pay: PayConfig::default(),
             logging: LoggingConfig::default(),
             cors: CorsConfig::default(),
+            events: EventsConfig::default(),
             profile: "development".to_string(),
             config_dir: PathBuf::from("."),
         }
@@ -532,6 +575,50 @@ impl Configure {
         }
 
         self.validate_pay()?;
+        self.validate_events()?;
+
+        Ok(())
+    }
+
+    /// 事件发布配置的形状校验（各 profile 一致）。
+    ///
+    /// 「终点与鉴权是否齐全」不在这里判定：api 二进制不读 `events`，不该因为 worker 的
+    /// 配置缺失而起不来；该判定见 [`Configure::require_events_endpoint`]，由 worker 调用。
+    fn validate_events(&self) -> Result<()> {
+        let events = &self.events;
+        if events.batch_size == 0 {
+            bail!("events.batch_size must be greater than 0");
+        }
+        if events.poll_interval_ms == 0 {
+            bail!("events.poll_interval_ms must be greater than 0");
+        }
+        if events.timeout_ms == 0 {
+            bail!("events.timeout_ms must be greater than 0");
+        }
+        if events.backoff_base_ms == 0 || events.backoff_max_ms < events.backoff_base_ms {
+            bail!("events.backoff_max_ms must be greater than or equal to events.backoff_base_ms");
+        }
+
+        Ok(())
+    }
+
+    /// worker 专用：生产环境必须有终点与鉴权，否则事件只会留在 outbox 里（且没有任何报错）。
+    ///
+    /// 非生产环境允许留空 = 只记日志，方便在没有下游时跑通链路。
+    pub fn require_events_endpoint(&self) -> Result<()> {
+        if !self.is_production() {
+            return Ok(());
+        }
+        let endpoint = self.events.endpoint.trim();
+        if endpoint.is_empty() {
+            bail!("events.endpoint is required in production（worker 会一直只记日志）");
+        }
+        if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
+            bail!("events.endpoint must be an http(s) url");
+        }
+        if self.events.token.trim().is_empty() {
+            bail!("events.token is required in production：事件终点不接受匿名投递");
+        }
 
         Ok(())
     }

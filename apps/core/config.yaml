@@ -66,6 +66,19 @@ logging:
 cors:
   origins: []
 
+# 事件发布（outbox → 下游）。由 `worker` 二进制读取；`endpoint` 留空 = 只记日志。
+# 生产环境（app.env=production）必须配好 endpoint 与 token，否则 worker 只会把事件留在 outbox 里。
+events:
+  poll_interval_ms: 500
+  batch_size: 64
+  backoff_base_ms: 1000
+  backoff_max_ms: 60000
+  endpoint: ''
+  timeout_ms: 5000
+  token: ''
+  # 默认直连内网终点：禁用系统/环境变量代理（同 clients/ 下的内部客户端）
+  use_system_proxy: false
+
 aliyun:
   gateway:
     base_url: http://127.0.0.1:8090

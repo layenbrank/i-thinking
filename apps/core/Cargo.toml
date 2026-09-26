@@ -87,6 +87,10 @@ path = "src/bin/generate.rs"
 name = "docs"
 path = "src/bin/docs.rs"
 
+[[bin]]
+name = "worker"
+path = "src/bin/worker.rs"
+
 [features]
 default = []
 openapi = ["dep:utoipa-swagger-ui"]

@@ -151,9 +151,10 @@ impl Event {
 
 /// 投递到下游的线上信封。
 ///
-/// 这是 outbox 行**对外**的形状：字段名固定为 camelCase，`eventType` 是字符串而非
-/// [`EventType`]——消费者可能与写入方版本不同，解析失败必须由消费者自己决定如何处理，
-/// 不能因为本地类型表不认就丢弃事件。内部表结构变化不应改变本类型。
+/// 这是 outbox 行**对外**的形状：字段名与列名一致（camelCase，标识后缀用 `xxxID`），
+/// `eventType` 是字符串而非 [`EventType`]——消费者可能与写入方版本不同，解析失败必须
+/// 由消费者自己决定如何处理，不能因为本地类型表不认就丢弃事件。内部表结构变化不应改变
+/// 本类型。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Envelope {
@@ -162,6 +163,7 @@ pub struct Envelope {
     /// 聚合名。
     pub aggregate: String,
     /// 聚合标识。
+    #[serde(rename = "aggregateID")]
     pub aggregate_id: Uuid,
     /// 事件类型字面量。
     pub event_type: String,
@@ -170,6 +172,7 @@ pub struct Envelope {
     /// 事件负载。
     pub payload: serde_json::Value,
     /// 所属租户；平台级事件为 `null`。
+    #[serde(rename = "tenantID")]
     pub tenant_id: Option<Uuid>,
     /// W3C `traceparent`。
     pub traceparent: Option<String>,
@@ -239,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn envelope_uses_camel_case_wire_keys() {
+    fn envelope_uses_the_outbox_wire_keys() {
         let event = Event::new(
             "subscription",
             Uuid::nil(),
@@ -256,20 +259,20 @@ mod tests {
             keys,
             [
                 "aggregate",
-                "aggregateId",
+                "aggregateID",
                 "createdAt",
                 "eventType",
                 "id",
                 "payload",
                 "schemaVersion",
-                "tenantId",
+                "tenantID",
                 "traceparent",
             ],
             "线上字段名是对外契约，改名等于破坏兼容"
         );
         assert_eq!(value["eventType"], "subscription.renewed");
-        assert_eq!(value["aggregateId"], Uuid::nil().to_string());
-        assert_eq!(value["tenantId"], Uuid::max().to_string());
+        assert_eq!(value["aggregateID"], Uuid::nil().to_string());
+        assert_eq!(value["tenantID"], Uuid::max().to_string());
         assert_eq!(value["schemaVersion"], 1);
         assert_eq!(value["payload"]["plan"], "TEAM");
         assert_eq!(value["traceparent"], serde_json::Value::Null);

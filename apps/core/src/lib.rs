@@ -56,6 +56,12 @@ pub mod databases {
     pub mod scope;
 }
 
+/// 后台进程（事件发布 worker）：不监听端口，只连数据库与下游端点。
+pub mod worker {
+    pub mod dispatcher;
+    pub mod runner;
+}
+
 pub extern crate configures;
 
 pub mod middlewares {

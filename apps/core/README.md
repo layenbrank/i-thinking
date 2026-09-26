@@ -55,6 +55,19 @@ cargo run --bin service --release
 
 服务默认监听 `http://127.0.0.1:3000`。
 
+### 启动 worker（outbox 发布）
+
+HTTP 服务只写事件，投递由独立进程负责（二者共用同一份配置与数据库）：
+
+```bash
+cargo run --bin worker --release
+```
+
+- 以配置里的 `events.endpoint` 为下游终点，把 outbox 里未发布的事件推出去；返回 2xx 记为已发布，
+  其余码累加 `attempts` 并阻塞同一聚合的后续事件（退避重试）
+- **首轮失败直接退出**（多半是平台角色没授予或库连不上），由编排器拉起重试；之后的单轮失败只记日志继续
+- `events.endpoint` 为空时退化为只记日志，事件照样算已发布（本地联调）
+
 **Swagger UI**（debug 构建 + `openapi` feature 默认开启）：
 
 - UI：`http://127.0.0.1:3000/swagger-ui/`
@@ -94,7 +107,11 @@ scripts/                  # Bun 脚本（bun run …）
   utils/                  # http（ky）/ auth / http.errors
   arch.ts | dev.ts | imports.ts | upload.ts
 src/
-  bin/service.rs          # 入口
+  bin/service.rs          # HTTP 入口
+  bin/worker.rs           # outbox 发布入口（事件投递由独立进程负责）
+  worker/
+    dispatcher.rs         # 终点装配：HTTP 下游 / 只记日志
+    runner.rs             # 发布循环 + 停机（平台通道在这里登记，见 R8）
   services/
     auth/                 # 登录、注册、个人 profile（含 profile 辅助）
     user/                 # 后台用户 CRUD（复用 auth::service 中 profile 辅助）

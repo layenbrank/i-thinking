@@ -315,6 +315,9 @@ OR ("hash" = app_current_asset_hash() AND "status" = 'COMPLETED')  -- ⑤ 内容
 - 用途只有三种：平台目录的**全局行**（`"tenantID" IS NULL` 的 `gateway_provider` / `gateway_model`）、跨租户用量与审计汇总，
   以及 SSO 连接的**运维面**（`/sso/connections` 列的是所有租户的连接，建连接时由请求体指定租户）。
   租户面与账号面一律走作用域，不需要它
+- 唯一一个**请求路径之外**的调用点是 outbox 发布器（[`src/worker/runner.rs`](../src/worker/runner.rs)，`cargo run --bin worker`）：
+  它要读的是「所有租户的未发布事件」，没有更窄的作用域可选。因此生产环境必须先把下面的角色建好，
+  否则 worker **启动即失败退出**（首轮失败 = 起不来，由编排器重试）
 - 提权是**事务局部**的（`SET LOCAL ROLE`）：提交/回滚后自动退回应用角色，不会残留在池化连接上串到下一个请求
 - 确权不在句柄里：调用点都在 `Auth::admin()` 之后，句柄只表示「这段代码在特权角色下跑」
 - 提权失败**明确报错**，不会静默降级成「少看见几行」
@@ -366,7 +369,8 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO core_platform;
 - 成员关系读取（`identity::persistence::membership`）只在作用域事务内调用；`tenant_member.role` 字面量无法识别时报错而非降级。
 
 跨租户写入会以 SQLSTATE `42501` 失败，用 [`src/utils/db.rs`](../src/utils/db.rs) 的 `is_row_security_violation` 判别。
-仍需特权的系统任务只剩迁移、outbox 发布器与平台目录的全局行；前两者用独立连接，后者走「平台运维通道」，都不靠放宽策略。
+仍需特权的系统任务只剩迁移与 outbox 发布器：迁移用独立连接（超级用户），发布器走「平台运维通道」，
+都不靠放宽策略。
 
 端到端验证分两个层次：
 
@@ -395,6 +399,13 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO core_platform;
   entity 里映射为普通 `i64`，**插入必须用 `NotSet`**，由数据库分配
 - 扫描未发布事件用 `idx_outbox_unpublished`（部分索引），按聚合回放用 `idx_outbox_aggregate`
 - outbox 同样受 RLS 约束；`tenantID` 为 NULL 表示系统级事件，只有特权连接能写、能读
+- `attempts` / `lastError` 记投递失败：失败**不删行**，只累加计数并把错误留在行上，下一轮带退避重投
+- 同一聚合内按 `seq` 顺序投递：一条失败会阻塞该聚合的后续事件（不能让「改了」跑在「建了」前面），其他聚合并行推进
+- 至少一次：投递成功后置位 `publishedAt` 前崩溃会重投，消费者侧靠 `consumed_event` 去重
+- 下游收到的是 camelCase 信封，且字段名与列名一致（`aggregateID` / `tenantID`，见
+  [`crates/audit/README.md`](../crates/audit/README.md)）
+- 端到端契约见 [`tests/outbox_publisher.rs`](../tests/outbox_publisher.rs)（10 例：事务边界、跨租户、失败阻塞与退避、
+  崩溃重投去重、HTTP 线格式、循环的首轮失败与停机）
 
 ## 数据所有权
 

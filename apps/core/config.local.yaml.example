@@ -18,6 +18,12 @@ aliyun:
   gateway:
     api_key: change-me-aliyun-gateway-key
 
+# 事件发布终点与鉴权（只有 worker 用得到；api 二进制不读它）。
+# 本机联调可留空：endpoint 为空时 worker 只记日志。
+events:
+  endpoint: ''
+  token: ''
+
 redis:
   url: redis://127.0.0.1:6379
 

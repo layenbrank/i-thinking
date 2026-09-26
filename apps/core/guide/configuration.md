@@ -156,6 +156,23 @@ docker compose up -d aliyun-gateway
 
 邮箱 OTP 尚未接入（DirectMail 阶段 2）。
 
+## 事件发布（outbox → 下游）
+
+业务事务把事件写进 `outbox`，**[`worker`](../src/bin/worker.rs) 二进制**（`cargo run --bin worker`）负责投递：
+
+| 字段                       | 默认值  | 说明                                                   |
+| -------------------------- | ------- | ------------------------------------------------------ |
+| `events.endpoint`          | `""`    | 下游接收端点；留空 = 只记日志（事件照样标记为已发布）   |
+| `events.token`             | `""`    | `Authorization: Bearer` 凭据（生产必填）               |
+| `events.timeout_ms`        | `5000`  | 单次投递超时                                           |
+| `events.poll_interval_ms`  | `500`   | 一轮结束到下一轮开始之间的等待                         |
+| `events.batch_size`        | `64`    | 每轮最多读取的待发布事件数                             |
+| `events.backoff_base_ms`   | `1000`  | 投递失败聚合的退避基数（指数增长，进程内记忆）         |
+| `events.backoff_max_ms`    | `60000` | 退避上限                                               |
+| `events.use_system_proxy`  | `false` | 是否让系统/环境变量代理接管投递；默认直连（同 `clients/` 下的内部客户端） |
+
+生产环境 `require_events_endpoint()` 会强制要求 `endpoint` 与 `token`：缺了就是事件静默堆在 `outbox` 里。
+
 ## 本地覆盖
 
 ```powershell

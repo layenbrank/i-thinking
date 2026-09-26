@@ -226,6 +226,11 @@ export const PLATFORM_ENTRY_ALLOWED: Record<string, { max: number; reason: strin
     max: 4,
     reason:
       'SSO 连接管理面（平台运维按平台管理员指定的租户建连接、跨租户列连接）：4 个 handler 各开一段特权作用域，业务逻辑在 service.rs 内按 scope.tx() 收口'
+  },
+  'src/worker/runner.rs': {
+    max: 1,
+    reason:
+      '事件发布 worker：outbox 强制行级安全，而发布者要跨租户读全部待发布事件，只属于平台级消费者——这是请求路径之外唯一的提权点，作用域是「读一批 outbox + 回写置位」'
   }
 }
 

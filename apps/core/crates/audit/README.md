@@ -13,7 +13,8 @@
 ## 对外接口
 
 - `Event` / `EventType` / `Envelope`：事件载荷、类型标识（`<聚合>.<过去式动词>`）与线上信封
-  （字段名固定 camelCase，`eventType` 是字符串——消费者版本可以落后于写入方）。
+  （字段名与 outbox 列名一致：camelCase + `xxxID` 后缀，如 `aggregateID` / `tenantID`；
+  `eventType` 是字符串——消费者版本可以落后于写入方）。
 - `append(tx, &Event)`：在**调用方的事务**内追加事件，保证业务写入与事件写入同生共死。
 - `Publisher` + `Dispatcher` + `PlatformChannel`：读待发布事件、投递、置位 `publishedAt`。
   投递方式与特权通道都由调用方注入，本 crate 不引入 HTTP 框架、不起事件循环。
