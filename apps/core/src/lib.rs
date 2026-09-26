@@ -71,6 +71,7 @@ pub mod middlewares {
 pub mod guards {
     pub mod auth;
     pub mod blacklist;
+    pub mod payment;
     pub mod public;
     pub mod session;
     pub mod tenant;

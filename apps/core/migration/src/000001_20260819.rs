@@ -836,6 +836,24 @@ impl MigrationTrait for Migration {
             .await?;
         }
 
+        // 订单表在严格隔离之上多一条**能力键**分支：支付渠道回调是匿名端点，没有会话，
+        // 只有一个由渠道回传、等价于一次性凭证的订单号，因此必须先用订单号反解出租户。
+        // 该分支只放宽 `USING`（且只放行那一行**未归档**订单的可见性），`WITH CHECK` 仍是租户限定：
+        // 拿到订单号也写不进任何一行，写入照旧必须先建立租户作用域。
+        // 反解不到（订单号未知 / 已归档 / 变量未设置）时 `current_setting(..., true)` 为 NULL，
+        // 条件恒不成立——fail-closed。
+        let payment_order_using = format!(
+            r#""tenantID" = app_current_tenant_id()
+               OR ("orderNo" = current_setting('{ORDER_SETTING}', true) AND "archivedAt" IS NULL)"#
+        );
+        enable_rls(
+            manager,
+            "payment_order",
+            &payment_order_using,
+            r#""tenantID" = app_current_tenant_id()"#,
+        )
+        .await?;
+
         // 成员关系额外允许"只读自己"：未进入任何租户时，账号作用域仍能列出自己的成员关系
         // （`/tenants` 需要它）；写入一律要求租户作用域。
         enable_rls(
@@ -918,6 +936,8 @@ impl MigrationTrait for Migration {
 /// 两边一旦漂移，隔离用例会立刻失败。
 const TENANT_SETTING: &str = "app.tenant_id";
 const USER_SETTING: &str = "app.user_id";
+/// 支付回调的能力键（订单号）作用域变量：只被 `payment_order` 的只读分支识别。
+const ORDER_SETTING: &str = "app.order_no";
 
 /// 作用域的读取器：未设置或不是合法 uuid 时一律返回 `NULL`（fail-closed）。
 ///
@@ -938,10 +958,11 @@ $fn$"#
 }
 
 /// 严格按 `"tenantID" = app_current_tenant_id()` 隔离的表。
-/// `tenant_member` 不在其中：它另有一条"只读自己"的策略，见 `up()`。
-const STRICT_TENANT_TABLES: [&str; 6] = [
+///
+/// `tenant_member` 不在其中：它另有一条"只读自己"的策略，见 `up()`；
+/// `payment_order` 也不在其中：它另有一条按订单号（能力键）反解租户的只读分支，见 `up()`。
+const STRICT_TENANT_TABLES: [&str; 5] = [
     "subscription",
-    "payment_order",
     "sso_connection",
     "gateway_usage",
     "gateway_audit",

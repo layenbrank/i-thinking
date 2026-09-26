@@ -1,17 +1,24 @@
+//! 支付接口层：每个 Handler 只做三件事：取会话、进入租户作用域（[`TenantCtx`]）、把结果交给信封。
+//! 权限判定在领域层由 `authz` 完成，这里不再自己比角色。
+//!
+//! 例外是两条**渠道回调**（微信 / 支付宝）：它们是匿名端点，没有会话也没有租户路径参数，
+//! 作用域由领域层用订单号（能力键）引导，回执必须是渠道要求的原始报文、不能经过平台信封。
+
 use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, Result, web};
-use uuid::Uuid;
+use identity::TenantId;
 
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
 use crate::guards::session::Session;
+use crate::guards::tenant::TenantCtx;
 use crate::interceptors::envelope::Envelope;
 use crate::services::payment::channel::{ALIPAY, NotifyInput, WECHAT};
 use crate::services::payment::schema::OrderP;
-use crate::services::payment::service::PaymentService;
+use crate::services::payment::service::{PaymentError, PaymentService};
 
 /// 订单列表一次返回的条数。
 const ORDER_LIST_LIMIT: u64 = 20;
@@ -27,6 +34,8 @@ pub struct PaymentController;
 
 impl PaymentController {
     /// 价格 / 渠道目录（含当前生效档位）。
+    ///
+    /// 领域层可能顺手结算已过期的订阅，所以读路径也要提交。
     pub async fn catalog(
         db: web::Data<Arc<Storage>>,
         config: web::Data<Arc<Configure>>,
@@ -34,26 +43,35 @@ impl PaymentController {
         http: HttpRequest,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
-        let tenant_id = parse_id(&path.into_inner())?;
-        match PaymentService::catalog(&db, &config, &redis, user_id, tenant_id, admin).await {
-            Ok(item) => Envelope::success(item, "获取支付目录成功").transform(),
+        let session = session(&http)?;
+        let ctx = enter(&db, &session, &path.into_inner()).await?;
+
+        match PaymentService::catalog(&ctx, &config, &redis).await {
+            Ok(item) => {
+                ctx.commit().await?;
+                Envelope::success(item, "获取支付目录成功").transform()
+            }
             Err(err) => Exception::from(err).transform(),
         }
     }
 
     /// 订单列表（最近 20 条）。
+    ///
+    /// 领域层会顺手关闭本租户的超时订单，所以读路径也要提交。
     pub async fn toList(
         db: web::Data<Arc<Storage>>,
         config: web::Data<Arc<Configure>>,
         http: HttpRequest,
         path: web::Path<String>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
-        let tenant_id = parse_id(&path.into_inner())?;
-        match PaymentService::list(&db, &config, user_id, tenant_id, admin, ORDER_LIST_LIMIT).await
-        {
-            Ok(items) => Envelope::success(items, "获取订单列表成功").transform(),
+        let session = session(&http)?;
+        let ctx = enter(&db, &session, &path.into_inner()).await?;
+
+        match PaymentService::list(&ctx, &config, ORDER_LIST_LIMIT).await {
+            Ok(items) => {
+                ctx.commit().await?;
+                Envelope::success(items, "获取订单列表成功").transform()
+            }
             Err(err) => Exception::from(err).transform(),
         }
     }
@@ -66,13 +84,15 @@ impl PaymentController {
         path: web::Path<String>,
         req: web::Json<OrderP>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
-        let tenant_id = parse_id(&path.into_inner())?;
-        match PaymentService::create(&db, &config, user_id, tenant_id, admin, req.into_inner())
-            .await
-        {
-            Ok(item) => Envelope::write(item).transform(),
-            Err(err) => Exception::from(err).transform(),
+        let session = session(&http)?;
+        let mut ctx = enter(&db, &session, &path.into_inner()).await?;
+
+        match PaymentService::create(&mut ctx, &db, &config, req.into_inner()).await {
+            Ok(item) => {
+                ctx.commit().await?;
+                Envelope::write(item).transform()
+            }
+            Err(err) => keep_writes(ctx, err).await,
         }
     }
 
@@ -83,11 +103,15 @@ impl PaymentController {
         http: HttpRequest,
         path: web::Path<(String, String)>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
+        let session = session(&http)?;
         let (tenant_id, order_no) = path.into_inner();
-        let tenant_id = parse_id(&tenant_id)?;
-        match PaymentService::get(&db, &config, user_id, tenant_id, admin, &order_no).await {
-            Ok(item) => Envelope::success(item, "获取订单成功").transform(),
+        let ctx = enter(&db, &session, &tenant_id).await?;
+
+        match PaymentService::get(&ctx, &config, &order_no).await {
+            Ok(item) => {
+                ctx.commit().await?;
+                Envelope::success(item, "获取订单成功").transform()
+            }
             Err(err) => Exception::from(err).transform(),
         }
     }
@@ -100,13 +124,16 @@ impl PaymentController {
         http: HttpRequest,
         path: web::Path<(String, String)>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
+        let session = session(&http)?;
         let (tenant_id, order_no) = path.into_inner();
-        let tenant_id = parse_id(&tenant_id)?;
-        match PaymentService::sync(&db, &config, &redis, user_id, tenant_id, admin, &order_no).await
-        {
-            Ok(item) => Envelope::success(item, "订单状态已同步").transform(),
-            Err(err) => Exception::from(err).transform(),
+        let mut ctx = enter(&db, &session, &tenant_id).await?;
+
+        match PaymentService::sync(&mut ctx, &db, &config, &redis, &order_no).await {
+            Ok(item) => {
+                ctx.commit().await?;
+                Envelope::success(item, "订单状态已同步").transform()
+            }
+            Err(err) => keep_writes(ctx, err).await,
         }
     }
 
@@ -117,11 +144,15 @@ impl PaymentController {
         http: HttpRequest,
         path: web::Path<(String, String)>,
     ) -> Result<HttpResponse> {
-        let (user_id, admin) = identity(&http)?;
+        let session = session(&http)?;
         let (tenant_id, order_no) = path.into_inner();
-        let tenant_id = parse_id(&tenant_id)?;
-        match PaymentService::close(&db, &config, user_id, tenant_id, admin, &order_no).await {
-            Ok(item) => Envelope::success(item, "订单已关闭").transform(),
+        let ctx = enter(&db, &session, &tenant_id).await?;
+
+        match PaymentService::close(&ctx, &config, &order_no).await {
+            Ok(item) => {
+                ctx.commit().await?;
+                Envelope::success(item, "订单已关闭").transform()
+            }
             Err(err) => Exception::from(err).transform(),
         }
     }
@@ -182,14 +213,29 @@ impl PaymentController {
     }
 }
 
-fn identity(http: &HttpRequest) -> Result<(Uuid, bool), Exception> {
-    let session = Session::of(http).ok_or_else(|| Exception::unauthorized("用户未登录"))?;
-
-    Ok((session.user_id().as_uuid(), session.is_platform_admin()))
+fn session(http: &HttpRequest) -> Result<Session, Exception> {
+    Session::of(http).ok_or_else(|| Exception::unauthorized("用户未登录"))
 }
 
-fn parse_id(value: &str) -> Result<Uuid, Exception> {
-    Uuid::parse_str(value).map_err(|_| Exception::bad_request("ID 格式无效"))
+/// 收尾「已经动过账」的失败：提交事务再返回错误。
+///
+/// 支付域的失败不总是「什么都没发生」：下单失败会把订单关掉、超时查单会关单、金额不符会留 `remark`，
+/// 这些写入必须落库（否则用户看到的是一张永远不过期的待支付订单，对账也少了依据）。
+/// 由 [`PaymentError::keeps_writes`] 表态，没动过账（或事务已中止）的错误直接回滚。
+async fn keep_writes(ctx: TenantCtx, err: PaymentError) -> Result<HttpResponse> {
+    if err.keeps_writes() {
+        ctx.commit().await?;
+    }
+    Exception::from(err).transform()
+}
+
+/// 进入 `{tenantID}` 指向的租户作用域：非成员在这里就被拒（403）。
+async fn enter(db: &Storage, session: &Session, tenant_raw: &str) -> Result<TenantCtx, Exception> {
+    let tenant = tenant_raw
+        .parse::<TenantId>()
+        .map_err(|_| Exception::bad_request("ID 格式无效"))?;
+
+    TenantCtx::enter(db, session, tenant).await
 }
 
 /// 读取请求头（缺失 / 非 UTF-8 视为缺失，交由渠道层报「签名头不全」）。

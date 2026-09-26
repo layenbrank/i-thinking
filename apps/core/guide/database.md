@@ -241,10 +241,15 @@ Entity：[`entity/src/sso_connection.rs`](../entity/src/sso_connection.rs)
 | --- | --- |
 | tenant | 读：`id = app_current_tenant_id()`，或 `id` 属于「我（`app_current_user_id()`）的 ACTIVE 成员行」；写：只允许 `id = app_current_tenant_id()` |
 | tenant_member | 读：`"tenantID" = app_current_tenant_id() OR "userID" = app_current_user_id()`（账号作用域下只列出自己的成员关系）；写：只允许本租户 |
-| subscription / payment_order / sso_connection / gateway_usage / gateway_audit / outbox | `"tenantID" = app_current_tenant_id()` |
+| subscription / sso_connection / gateway_usage / gateway_audit / outbox | `"tenantID" = app_current_tenant_id()` |
+| payment_order | 读：`"tenantID" = app_current_tenant_id()`，**或**订单号能力键（`"orderNo" = current_setting('app.order_no', true) AND "archivedAt" IS NULL`）；写：只允许本租户（`WITH CHECK` 不含能力键） |
 | asset | `"tenantID" = app_current_tenant_id()::text`（该列是 text，显式转型） |
 | gateway_provider / gateway_model | 读：`"tenantID" IS NULL OR "tenantID" = app_current_tenant_id()`（保留全局目录行）；写：只允许本租户 |
 | auth / chunk | **无 RLS**：账号是全局身份；chunk 没有租户列，隔离经 asset 传递 |
+
+`payment_order` 的读策略多一条**订单号能力键**：匿名渠道回调只带来一个订单号，策略用它把租户找出来，
+于是「引导作用域」与「读那一行」发生在同一条语句、同一个事务里；`WITH CHECK` 里没有能力键，
+写入仍然必须满足租户条件——引导出来的作用域不可能被用来改别人的订单。
 
 Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/scope.rs)）与**作用域句柄**（[`src/guards/tenant.rs`](../src/guards/tenant.rs)）分开：
 
@@ -256,7 +261,8 @@ Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/sco
 | 通道 | 句柄 | 适用 | 语义 |
 | --- | --- | --- | --- |
 | 请求通道 | [`TenantCtx`](../src/guards/tenant.rs) | HTTP handler 及其下游 service | 句柄里同时带 `TenantScope` 与 `Principal`，所以**只有它**能判权限 |
-| 可信机器通道 | [`TenantScope`](../src/guards/tenant.rs) | 支付回调、定时任务、内部调用等无请求主体的路径 | 只带事务与租户 id，不带主体；权限由调用侧自行保证 |
+| 可信机器通道 | [`TenantScope`](../src/guards/tenant.rs) | 定时任务、内部调用等**已知道租户 id** 的无主体路径 | 只带事务与租户 id，不带主体；权限由调用侧自行保证 |
+| 能力键引导 | [`PaymentNotifyScope`](../src/guards/payment.rs) | 匿名渠道回调（只有订单号） | 同一事务内由订单号能力键升格为租户作用域；只读，命不中返回 `None` |
 
 两条通道的实际行为：
 
@@ -268,6 +274,13 @@ Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/sco
   时**自身不 commit**，只写，由打开者决定提交还是回滚——这样「读旧值 + 写新值」能落在同一个事务里，消除检查与写入之间的竞态。
 - `TenantScope` 只保证数据落在某个租户内，不保证「操作者有权操作这个租户」。因此机器通道必须由调用方把租户来源锁定为
   可信数据（如支付订单行），不能直接取自请求参数。
+- 匿名回调连租户 id 都没有：`PaymentNotifyScope::open(storage, order_no)` 用**订单号能力键**在同一条语句里
+  「找出租户 + 读出那一行」（见上表 `payment_order` 行）；命不中返回 `None`，由调用方回执「订单不存在」。
+- **作用域不跨外部调用**：查单这类「读 → 调外部 → 写回」的流程必须先用 `TenantCtx::renew` 提交当前事务、
+  以同一租户开新事务，回来后再重新读一次订单；否则一次网络往返期间事务空开着，读到的旧状态与写回的新状态之间
+  就留了竞态。
+- **失败要分「留痕」与「回滚」**：判断写在错误类型上（如 `PaymentError::keeps_writes()`），
+  已经动过账的失败（收款成功却开通失败、金额不符留了 `remark`）必须 commit，否则会出现「钱收了却没有记录」。
 - 热点只读路径（网关取配额、计划探测等）允许在 service 内部开一个私有短作用域并立即 `rollback`（不回写任何东西），
   避免为一个只读查询多绕一层调用；这类包装器在 R7 门禁里逐文件限额，只减不增。
 - 审计属性只看执行效果：**语义上是写即使实现是只读查询也要 commit**（例如「顺带把过期订阅标记为 EXPIRED」的惰性清理），
@@ -282,8 +295,10 @@ Rust 侧分两层，**机制**（[`src/databases/scope.rs`](../src/databases/sco
 
 - RLS 策略本身见 [`tests/tenant_isolation.rs`](../tests/tenant_isolation.rs)（13 例）；
 - 「service 层是否真的只在作用域内读写」见 [`tests/subscription_scope.rs`](../tests/subscription_scope.rs)（7 例，
-  覆盖两条通道、成员只读、跨租户拒绝、热点短作用域、惰性过期清理）。
-  两者都要求库名含 `test`（防误连生产），未设置 `TEST_DATABASE_URL` 时整个文件跳过；后者还需要 `TEST_REDIS_URL`（配额/计划走缓存）。
+  覆盖两条通道、成员只读、跨租户拒绝、热点短作用域、惰性过期清理）与
+  [`tests/payment_scope.rs`](../tests/payment_scope.rs)（8 例，覆盖订单号能力键、跨租户不可见、OWNER/ADMIN 权限粒度、
+  已收款未开通的自愈）。
+  这些文件都要求库名含 `test`（防误连生产），未设置 `TEST_DATABASE_URL` 时整个文件跳过；后两个还需要 `TEST_REDIS_URL`（配额/计划走缓存）。
 
 ## outbox / consumed_event
 

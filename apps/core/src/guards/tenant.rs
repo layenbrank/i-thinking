@@ -48,6 +48,15 @@ impl TenantScope {
         Ok(Self { tx, tenant_id })
     }
 
+    /// 接续一个**已经写好租户作用域**的事务（能力键引导路径的第二步）。
+    ///
+    /// 只给 [`crate::guards::payment`] 用：支付回调先按订单号反解租户、写下 `app.tenant_id`，
+    /// 再把同一个事务交给统一的句柄类型，之后领域函数与请求路径共用同一套作用域语义。
+    /// 本函数**不做任何确权或校验**，调用方必须自己保证作用域已经写好。
+    pub(crate) const fn adopt(tx: DatabaseTransaction, tenant_id: TenantId) -> Self {
+        Self { tx, tenant_id }
+    }
+
     /// 带作用域的事务；租户内的读写都从这里出发。
     #[must_use]
     pub const fn tx(&self) -> &DatabaseTransaction {
@@ -180,6 +189,25 @@ impl TenantCtx {
             );
             Exception::custom(auth::INSUFFICIENT_PERMISSIONS, "权限不足")
         })
+    }
+
+    /// 结束当前事务并在**同一租户上立刻开启新事务**（前一段的写入就此提交）。
+    ///
+    /// 用途只有一个：把「一段数据库工作 → 外部网络调用 → 再一段数据库工作」切成两段短事务。
+    /// [`TenantScope`] 约定作用域不得跨越外部调用持有（支付渠道、模型上游会占住连接与行锁），
+    /// 于是外部调用前先落定前一段、调用后再开一段。身份与权限在 [`enter`](Self::enter)
+    /// 时已经确定，换事务不改变判定结果。
+    ///
+    /// # Errors
+    /// 提交或开启新事务失败返回 500（`external::DATABASE_ERROR`）；此时本段作用域已不可用，
+    /// 调用方直接返回错误结束请求即可。
+    pub async fn renew(&mut self, storage: &Storage) -> Result<(), Exception> {
+        let fresh = TenantScope::open(storage, self.scope.tenant_id())
+            .await
+            .map_err(db_error)?;
+        let previous = std::mem::replace(&mut self.scope, fresh);
+
+        previous.commit().await.map_err(db_error)
     }
 
     /// 提交事务；作用域随之结束。

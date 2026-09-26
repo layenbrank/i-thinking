@@ -35,7 +35,8 @@ use crate::utils::code::{business, external, request, resource};
 use crate::utils::db::is_unique_violation;
 
 /// 看订阅与配额：租户内任何有效成员都可以（含 MEMBER）。
-const READ_SUBSCRIPTION: Permission = Permission::new(Resource::Subscription, Action::Read);
+pub(crate) const READ_SUBSCRIPTION: Permission =
+    Permission::new(Resource::Subscription, Action::Read);
 /// 开通 / 取消订阅：仅 OWNER。花钱与配额口径只由 Owner 决定，ADMIN 连自助开通也不放行。
 const MANAGE_SUBSCRIPTION: Permission = Permission::new(Resource::Subscription, Action::Manage);
 
@@ -394,7 +395,7 @@ impl SubscriptionService {
 
     /// 此刻生效的订阅记录（无有效订阅则 `None`）。不走缓存。
     ///
-    /// 支付开通需要它来算续费基数：生效订阅未到期时应从其到期时间续期，而不是从当前时间。
+    /// 自带只读短作用域：查完即结束，不把连接留在调用方手里。
     ///
     /// # Errors
     /// 库错时返回底层错误。
@@ -403,8 +404,24 @@ impl SubscriptionService {
         tenant_id: Uuid,
     ) -> Result<Option<ActiveSubscription>, DbErr> {
         let scope = TenantScope::open(db, TenantId::from_uuid(tenant_id)).await?;
+        let found = Self::active_subscription_in(scope.tx()).await;
+        end_read(scope).await;
+        found
+    }
+
+    /// 给定事务里此刻生效的订阅（无有效订阅则 `None`）。不走缓存，也不自己做事务收尾。
+    ///
+    /// 支付开通要在**同一个事务**里先算续费基数、再写新订阅，读与写必须共用一个连接；
+    /// 由调用方（[`crate::services::payment::service::PaymentService`]）持有事务与提交时机。
+    ///
+    /// # Errors
+    /// 库错时返回底层错误。
+    pub(crate) async fn active_subscription_in(
+        tx: &DatabaseTransaction,
+    ) -> Result<Option<ActiveSubscription>, DbErr> {
         let now = Utc::now().fixed_offset();
-        let found = active_rows(scope.tx()).await.map(|rows| {
+
+        active_rows(tx).await.map(|rows| {
             rows.into_iter()
                 .find(|row| in_effect(row, now))
                 .map(|row| ActiveSubscription {
@@ -412,9 +429,7 @@ impl SubscriptionService {
                     plan: row.plan,
                     expires_at: row.expires_at,
                 })
-        });
-        end_read(scope).await;
-        found
+        })
     }
 }
 
@@ -458,7 +473,7 @@ async fn quota_in(
 }
 
 /// 生效档位（带缓存）：先在给定作用域内查。
-async fn active_plan_in(
+pub(crate) async fn active_plan_in(
     tx: &DatabaseTransaction,
     redis: &RedisPool,
     tenant_id: TenantId,

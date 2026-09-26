@@ -18,6 +18,10 @@ pub const TENANT_SETTING: &str = "app.tenant_id";
 /// 用于「跨租户、只读自己」的场景（例如列出我加入的租户、读我自己的成员行）。
 pub const USER_SETTING: &str = "app.user_id";
 
+/// 会话级能力键变量：支付回调没有会话，只有渠道回传的订单号，
+/// `payment_order` 的只读分支据此把那一行订单借给回调代码（见迁移里的策略）。
+pub const ORDER_SETTING: &str = "app.order_no";
+
 /// 在当前连接/事务上设定作用域变量。
 ///
 /// 值以参数传入而非拼接 SQL；值非法时对应的 `app_current_*()` 返回 NULL，
@@ -51,7 +55,27 @@ where
     set_scope(conn, USER_SETTING, &user_id.to_string()).await
 }
 
+/// 在当前连接/事务上设定支付能力键（订单号）。
+///
+/// 它**不等于**租户作用域：只让 `payment_order` 里那一行未归档订单可读，
+/// 写入仍被 `WITH CHECK` 挡住，所以只能在引导阶段短暂存在，拿到 `tenantID`
+/// 后必须立刻 [`apply_tenant_scope`]。
+pub async fn apply_order_capability<C>(conn: &C, order_no: &str) -> Result<(), DbErr>
+where
+    C: ConnectionTrait,
+{
+    set_scope(conn, ORDER_SETTING, order_no).await
+}
+
 impl Storage {
+    /// 开启只带支付能力键的事务：唯一用途是回调引导阶段「订单号 → 租户」的反解，
+    /// 反解成功后由守卫在同一事务上补租户作用域（见 `guards::payment`）。
+    pub async fn order_tx(&self, order_no: &str) -> Result<DatabaseTransaction, DbErr> {
+        let tx = self.db.begin().await?;
+        apply_order_capability(&tx, order_no).await?;
+        Ok(tx)
+    }
+
     /// 开启受租户作用域约束的事务。租户内的读写走这个入口。
     pub async fn tenant_tx(&self, tenant_id: TenantId) -> Result<DatabaseTransaction, DbErr> {
         let tx = self.db.begin().await?;

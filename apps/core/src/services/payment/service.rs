@@ -6,30 +6,42 @@
 //! - **幂等**：同一订单重复回调 / 重复查单只开通一次；`PAID` 但未开通（异常中断）可自愈重试；
 //! - **惰性关单**：超过 `expiresAt` 的订单在下单 / 查单时被关闭，无需定时任务；
 //! - **迟到支付**：订单已关闭后收到成功回调仍会开通（钱已到账），但记 `remark` 并告警，便于对账。
+//!
+//! 两条例外通道，入口凭证不同：
+//! - **请求通道**收 [`TenantCtx`]：权限由 `authz` 判定，事务由控制器提交；
+//! - **匿名回调**收 [`PaymentNotifyScope`]：订单号（能力键）是唯一入口凭证，守卫在同一个事务里
+//!   把它换成租户作用域。
+//!
+//! 渠道是外部系统，作用域**不得跨越它持有**：下单 / 查单在外部调用前用 [`TenantCtx::renew`] 收尾、
+//! 调用后另起一段。出错时由 [`PaymentError::keeps_writes`] 说明「这一段里有没有必须落库的写入」，
+//! 事务持有者据此提交或回滚 —— 已经收到的钱和留下的账务痕迹，不能因为最终返回了错误码就一起丢掉。
 
 use chrono::{Duration, Utc};
 use entity::{payment_order, tenant};
 use identity::{TenantId, UserId};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseTransaction, DbErr, EntityTrait, QueryFilter,
+    QueryOrder, QuerySelect, Set,
 };
 use uuid::Uuid;
+
+use authz::{Action, Permission, Resource};
 
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::{Configure, PayPlanConfig};
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
-use crate::guards::tenant::TenantScope;
+use crate::guards::payment::PaymentNotifyScope;
+use crate::guards::tenant::{TenantCtx, TenantScope};
 use crate::services::payment::channel::{
-    self, ALIPAY, ChannelError, NotifyInput, PrepayInput, WECHAT, availability,
+    self, ALIPAY, ChannelError, NotifyInput, NotifyOutcome, PrepayInput, WECHAT, availability,
 };
 use crate::services::payment::schema::{CatalogChannelR, CatalogPlanR, CatalogR, OrderP, OrderR};
 use crate::services::subscription::schema::SubscribeP;
 use crate::services::subscription::service::{
-    SubscriptionError, SubscriptionService, cache_invalidate,
+    READ_SUBSCRIPTION, SubscriptionError, SubscriptionService, active_plan_in, cache_invalidate,
 };
 use crate::services::tenant::schema::TenantType;
-use crate::services::tenant::service::{TenantError, TenantService};
 use crate::utils::code::{auth as auth_codes, business, external, request, resource};
 
 /// 待支付。
@@ -47,6 +59,13 @@ const ORDER_NO_RANDOM_LEN: usize = 8;
 
 /// 订单列表一次最多返回的条数（设置页只需最近几条）。
 const ORDER_LIST_MAX: u64 = 50;
+
+/// 看支付目录：与看订阅同权（任何有效成员，含 MEMBER）——能看到自己的配额却看不到价格是说不通的。
+const READ_PAYMENT_CATALOG: Permission = READ_SUBSCRIPTION;
+/// 看订单（详情 / 列表 / 查单）：账单属于租户经营数据，MEMBER 不看。
+const READ_PAYMENT_ORDER: Permission = Permission::new(Resource::PaymentOrder, Action::Read);
+/// 下单 / 关单：花钱只由 OWNER 决定。
+const MANAGE_PAYMENT_ORDER: Permission = Permission::new(Resource::PaymentOrder, Action::Manage);
 
 #[derive(Debug, thiserror::Error)]
 pub enum PaymentError {
@@ -76,6 +95,37 @@ pub enum PaymentError {
     Upstream(String),
     #[error("Database error: {0}")]
     Db(String),
+    /// 已收款却没能开通订阅：订单保持 `PAID` + 空 `subscriptionID`，等下次查单自愈或人工处理。
+    ///
+    /// 对外与 [`PaymentError::Db`] 同码同文案（历史契约不变），分成两个变体只为让
+    /// [`PaymentError::keeps_writes`] 能表态「这条账必须留痕」。
+    #[error("Subscription activation failed: {0}")]
+    ActivationFailed(String),
+    /// 下单失败后订单已被关闭：保留**原错误**的状态码与文案，只额外声明「本段有必须落库的写入」。
+    #[error("{0}")]
+    ClosedByFailure(Box<Self>),
+}
+
+impl PaymentError {
+    /// 这个错误是否伴随**必须落库**的写入。
+    ///
+    /// 支付域的失败分两类，事务持有者（控制器 / 回调守卫）据此决定提交还是回滚：
+    /// - 已经动过账 —— 订单被翻转成 `PAID` / `CLOSED`、金额不符留了 `remark`、开通失败留了 `remark`、
+    ///   下单失败把订单关掉了 —— 必须提交，否则出现「钱收了却没有记录」；
+    /// - 什么都没写，或者语句报错（含唯一索引冲突）**中止了事务** —— 回滚即可，此时提交也写不进东西。
+    ///
+    /// 判断刻意写在错误类型上而不是散落在调用点：新增错误变体时必须在这里显式表态。
+    #[must_use]
+    pub const fn keeps_writes(&self) -> bool {
+        matches!(
+            self,
+            Self::AmountMismatch
+                | Self::OrderExpired
+                | Self::OrderClosed
+                | Self::ActivationFailed(_)
+                | Self::ClosedByFailure(_)
+        )
+    }
 }
 
 impl From<PaymentError> for Exception {
@@ -122,6 +172,11 @@ impl From<PaymentError> for Exception {
                 tracing::error!(error = %msg, "payment database error");
                 Exception::custom(external::DATABASE_ERROR, "数据库错误")
             }
+            PaymentError::ActivationFailed(msg) => {
+                tracing::error!(error = %msg, "payment subscription activation failed");
+                Exception::custom(external::DATABASE_ERROR, "数据库错误")
+            }
+            PaymentError::ClosedByFailure(cause) => Exception::from(*cause),
         }
     }
 }
@@ -142,15 +197,16 @@ pub struct PaymentService;
 
 impl PaymentService {
     /// 价格 / 渠道目录：客户端渲染「档位 → 渠道 → 下单」的唯一数据源。
+    ///
+    /// # Errors
+    /// 权限不足 403；库错 500。
     pub async fn catalog(
-        db: &Storage,
+        ctx: &TenantCtx,
         config: &Configure,
         redis: &RedisPool,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
     ) -> Result<CatalogR, PaymentError> {
-        require_member(db, user_id, tenant_id, platform_admin).await?;
+        ctx.require(READ_PAYMENT_CATALOG)
+            .map_err(|_| PaymentError::Forbidden)?;
 
         let plans = config
             .pay_plans()
@@ -187,7 +243,7 @@ impl PaymentService {
             order_ttl_secs: config.pay_order_ttl_secs(),
             plans,
             channels,
-            current_plan: SubscriptionService::active_plan(db, redis, tenant_id)
+            current_plan: active_plan_in(ctx.tx(), redis, ctx.tenant_id())
                 .await
                 .map_err(db_err)?,
         })
@@ -196,16 +252,22 @@ impl PaymentService {
     /// 下单：返回可渲染二维码的 `codeUrl`。
     ///
     /// 同一用户 + 档位 + 渠道的未过期待支付订单会被复用，避免反复点击产生一堆并行订单。
+    ///
+    /// 事务切两段：第一段把订单落库，第二段（渠道返回后）写二维码。渠道是外部系统，
+    /// 作用域不跨越它持有；第一段先提交，即使渠道调用失败或进程中断，也不会留下「永远没有凭证」
+    /// 的待支付订单——重试下单时会补一次。
+    ///
+    /// # Errors
+    /// 权限不足 403（仅 OWNER）；非个人租户 / 档位不可售 / 渠道不可用 400；渠道错误 5xx；库错 500。
     pub async fn create(
+        ctx: &mut TenantCtx,
         db: &Storage,
         config: &Configure,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
         req: OrderP,
     ) -> Result<OrderR, PaymentError> {
-        require_manage(db, user_id, tenant_id, platform_admin).await?;
-        require_personal_tenant(db, tenant_id).await?;
+        ctx.require(MANAGE_PAYMENT_ORDER)
+            .map_err(|_| PaymentError::Forbidden)?;
+        require_personal(ctx.tx(), ctx.tenant_id()).await?;
 
         let channel_code = channel::require_ready(config, &req.channel)?.code;
         let spec = config
@@ -215,16 +277,18 @@ impl PaymentService {
             return Err(PaymentError::PlanNotPurchasable(reason));
         }
 
-        close_stale(db, tenant_id).await?;
+        let tenant_id = ctx.tenant_id().as_uuid();
+        let user_id = ctx.principal().user_id().as_uuid();
+        close_stale(ctx.tx()).await?;
 
+        // 不带 `tenantID` 条件：作用域（`app.tenant_id` + 行级策略）已经把可见行限定在本租户。
         if let Some(existing) = payment_order::Entity::find()
-            .filter(payment_order::Column::TenantId.eq(tenant_id))
             .filter(payment_order::Column::UserId.eq(user_id))
             .filter(payment_order::Column::Plan.eq(req.plan.as_str()))
             .filter(payment_order::Column::Channel.eq(channel_code))
             .filter(payment_order::Column::Status.eq(PENDING))
             .filter(payment_order::Column::ArchivedAt.is_null())
-            .one(&db.db)
+            .one(ctx.tx())
             .await
             .map_err(db_err)?
         {
@@ -232,7 +296,7 @@ impl PaymentService {
             if existing.code_url.is_some() {
                 return Ok(to_r(existing, config));
             }
-            return Self::prepay_and_store(db, config, existing).await;
+            return Self::prepay_and_store(ctx, db, config, existing).await;
         }
 
         let now = Utc::now().fixed_offset();
@@ -259,44 +323,47 @@ impl PaymentService {
             updated_at: Set(now),
             updater: Set(Some(user_id)),
         }
-        .insert(&db.db)
+        .insert(ctx.tx())
         .await
         .map_err(db_err)?;
 
-        Self::prepay_and_store(db, config, order).await
+        Self::prepay_and_store(ctx, db, config, order).await
     }
 
-    /// 订单详情（按租户隔离）。
+    /// 订单详情（租户作用域内的订单号是唯一键，跨租户订单号查不到）。
+    ///
+    /// # Errors
+    /// 权限不足 403；订单不存在 404；库错 500。
     pub async fn get(
-        db: &Storage,
+        ctx: &TenantCtx,
         config: &Configure,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
         order_no: &str,
     ) -> Result<OrderR, PaymentError> {
-        require_member(db, user_id, tenant_id, platform_admin).await?;
-        Ok(to_r(load(db, tenant_id, order_no).await?, config))
+        ctx.require(READ_PAYMENT_ORDER)
+            .map_err(|_| PaymentError::Forbidden)?;
+
+        Ok(to_r(load(ctx.tx(), order_no).await?, config))
     }
 
     /// 订单列表（按创建时间倒序）：设置页「订单历史」；顺带惰性关单，展示的状态不会过期。
+    ///
+    /// # Errors
+    /// 权限不足 403；库错 500。
     pub async fn list(
-        db: &Storage,
+        ctx: &TenantCtx,
         config: &Configure,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
         limit: u64,
     ) -> Result<Vec<OrderR>, PaymentError> {
-        require_member(db, user_id, tenant_id, platform_admin).await?;
-        close_stale(db, tenant_id).await?;
+        ctx.require(READ_PAYMENT_ORDER)
+            .map_err(|_| PaymentError::Forbidden)?;
+
+        close_stale(ctx.tx()).await?;
 
         let orders = payment_order::Entity::find()
-            .filter(payment_order::Column::TenantId.eq(tenant_id))
             .filter(payment_order::Column::ArchivedAt.is_null())
             .order_by_desc(payment_order::Column::CreatedAt)
             .limit(limit.clamp(1, ORDER_LIST_MAX))
-            .all(&db.db)
+            .all(ctx.tx())
             .await
             .map_err(db_err)?;
         Ok(orders
@@ -311,57 +378,68 @@ impl PaymentService {
     /// - 待支付已过期 → 关单；
     /// - 待支付但缺二维码 → 补下单拿新凭证；
     /// - 其余情况向上游查单，成功即核销。
+    ///
+    /// # Errors
+    /// 权限不足 403；订单不存在 404；订单过期 / 已关闭 400；渠道错误 5xx；库错 500。
     pub async fn sync(
+        ctx: &mut TenantCtx,
         db: &Storage,
         config: &Configure,
         redis: &RedisPool,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
         order_no: &str,
     ) -> Result<OrderR, PaymentError> {
-        require_member(db, user_id, tenant_id, platform_admin).await?;
-        let order = load(db, tenant_id, order_no).await?;
+        ctx.require(READ_PAYMENT_ORDER)
+            .map_err(|_| PaymentError::Forbidden)?;
+
+        let order = load(ctx.tx(), order_no).await?;
 
         if order.status == PAID {
             if order.subscription_id.is_some() {
                 return Ok(to_r(order, config));
             }
-            return Self::settle(db, config, redis, order, None).await;
+            // 已收款未开通：自愈补齐（写入随作用域提交）
+            return Self::settle(ctx.scope(), config, redis, order, None).await;
         }
         if order.status != PENDING {
             return Err(PaymentError::OrderClosed);
         }
         if order.expires_at <= Utc::now().fixed_offset() {
-            mark_closed(db, order, "超时未支付", None).await?;
+            mark_closed(ctx.tx(), order, "超时未支付", None).await?;
             return Err(PaymentError::OrderExpired);
         }
         if order.code_url.is_none() {
-            return Self::prepay_and_store(db, config, order).await;
+            return Self::prepay_and_store(ctx, db, config, order).await;
         }
 
-        let remote = channel::query(config, &order.channel, &order.order_no).await?;
+        // 上游查单是外部调用：先收尾当前这一段，回来按最新状态核销
+        let channel_code = order.channel.clone();
+        ctx.renew(db).await.map_err(scope_err)?;
+
+        let remote = channel::query(config, &channel_code, order_no).await?;
+        let order = load(ctx.tx(), order_no).await?;
         if remote.paid {
-            return Self::settle(db, config, redis, order, remote.transaction_id).await;
+            return Self::settle(ctx.scope(), config, redis, order, remote.transaction_id).await;
         }
         if remote.closed {
-            mark_closed(db, order, "上游已关单", None).await?;
+            mark_closed(ctx.tx(), order, "上游已关单", None).await?;
             return Err(PaymentError::OrderClosed);
         }
         Ok(to_r(order, config))
     }
 
     /// 主动关单：用户取消支付。
+    ///
+    /// # Errors
+    /// 权限不足 403（仅 OWNER）；订单不存在 404；订单已支付 400；库错 500。
     pub async fn close(
-        db: &Storage,
+        ctx: &TenantCtx,
         config: &Configure,
-        user_id: Uuid,
-        tenant_id: Uuid,
-        platform_admin: bool,
         order_no: &str,
     ) -> Result<OrderR, PaymentError> {
-        require_manage(db, user_id, tenant_id, platform_admin).await?;
-        let order = load(db, tenant_id, order_no).await?;
+        ctx.require(MANAGE_PAYMENT_ORDER)
+            .map_err(|_| PaymentError::Forbidden)?;
+
+        let order = load(ctx.tx(), order_no).await?;
         if order.status == PAID {
             return Err(PaymentError::BadParam(
                 "订单已支付，无法关闭；如需退款请走原渠道退款流程".to_string(),
@@ -370,16 +448,27 @@ impl PaymentService {
         if order.status == CLOSED {
             return Ok(to_r(order, config));
         }
+        let updater = ctx.principal().user_id().as_uuid();
+
         Ok(to_r(
-            mark_closed(db, order, "用户取消", Some(user_id)).await?,
+            mark_closed(ctx.tx(), order, "用户取消", Some(updater)).await?,
             config,
         ))
     }
 
     /// 渠道回调：验签 + 核销。
     ///
+    /// 回调是匿名入口，订单号是唯一凭证：由 [`PaymentNotifyScope`] 把它反解成租户作用域
+    /// （反解不到就是「订单不存在」，不是 500 —— 让渠道停下来，而不是无限重试一个不存在的订单号）。
+    ///
     /// 调用方（控制器）负责按渠道约定应答：微信 JSON、支付宝纯文本 `success`，
     /// 且**不能**经过平台响应信封。
+    ///
+    /// 核销中途可能写下必须留痕的东西，因此「结论」与「提交还是回滚」分开决定：
+    /// 由 [`PaymentError::keeps_writes`] 给出答案，最后才把原始错误交给调用方。
+    ///
+    /// # Errors
+    /// 验签失败 / 渠道不匹配 400；订单不存在 404；金额不符 409 级业务错误（已记 `remark`）；库错 500。
     pub async fn notify(
         db: &Storage,
         config: &Configure,
@@ -388,10 +477,40 @@ impl PaymentService {
         input: NotifyInput<'_>,
     ) -> Result<(), PaymentError> {
         let outcome = channel::verify_notify(config, channel_code, &input)?;
+
+        let Some(scope) = PaymentNotifyScope::open(db, &outcome.order_no)
+            .await
+            .map_err(db_err)?
+        else {
+            return Err(PaymentError::OrderNotFound);
+        };
+
+        let result = Self::handle_notify(&scope, config, redis, channel_code, outcome).await;
+        if result.as_ref().err().is_none_or(PaymentError::keeps_writes) {
+            scope.commit().await.map_err(db_err)?;
+        } else {
+            scope.rollback().await.map_err(db_err)?;
+        }
+
+        result
+    }
+
+    /// 核销主体：跑在回调引导出来的租户作用域里。
+    ///
+    /// 幂等由两层保证：`PAID` 且已开通直接返回；并发回调只有一次能把订单条件更新成 `PAID`
+    /// （见 [`Self::settle`]），未翻转成功的一方回读后接手开通。
+    async fn handle_notify(
+        scope: &PaymentNotifyScope,
+        config: &Configure,
+        redis: &RedisPool,
+        channel_code: &str,
+        outcome: NotifyOutcome,
+    ) -> Result<(), PaymentError> {
+        let tx = scope.tx();
         let order = payment_order::Entity::find()
             .filter(payment_order::Column::OrderNo.eq(outcome.order_no.as_str()))
             .filter(payment_order::Column::ArchivedAt.is_null())
-            .one(&db.db)
+            .one(tx)
             .await
             .map_err(db_err)?
             .ok_or(PaymentError::OrderNotFound)?;
@@ -419,7 +538,7 @@ impl PaymentService {
                 order.amount, order.currency, outcome.amount, outcome.currency
             );
             tracing::error!(order_no = %order.order_no, remark = %remark, "payment amount mismatch");
-            set_remark(db, &order, &remark).await?;
+            set_remark(tx, &order, &remark).await?;
             return Err(PaymentError::AmountMismatch);
         }
 
@@ -430,12 +549,17 @@ impl PaymentService {
             );
         }
 
-        Self::settle(db, config, redis, order, outcome.transaction_id).await?;
-        Ok(())
+        Self::settle(scope.scope(), config, redis, order, outcome.transaction_id)
+            .await
+            .map(|_| ())
     }
 
     /// 向上游下单并把凭证落库；失败即关单，避免留下永远没有二维码的待支付订单。
+    ///
+    /// 渠道调用发生在两段事务之间：进入时先结束当前这一段（订单已落库），调用后在新的一段里写
+    /// 二维码或关单备注。
     async fn prepay_and_store(
+        ctx: &mut TenantCtx,
         db: &Storage,
         config: &Configure,
         order: payment_order::Model,
@@ -448,20 +572,25 @@ impl PaymentService {
             subject: &subject,
             expires_at: order.expires_at,
         };
+
+        ctx.renew(db).await.map_err(scope_err)?;
+
         match channel::prepay(config, &order.channel, &input).await {
             Ok(code_url) => {
                 let now = Utc::now().fixed_offset();
                 let mut active: payment_order::ActiveModel = order.into();
                 active.code_url = Set(Some(code_url));
                 active.updated_at = Set(now);
-                let saved = active.update(&db.db).await.map_err(db_err)?;
+                let saved = active.update(ctx.tx()).await.map_err(db_err)?;
                 Ok(to_r(saved, config))
             }
             Err(err) => {
                 let reason = err.to_string();
                 tracing::error!(order_no = %order.order_no, error = %reason, "prepay failed");
-                mark_closed(db, order, &format!("下单失败：{reason}"), None).await?;
-                Err(PaymentError::from(err))
+                mark_closed(ctx.tx(), order, &format!("下单失败：{reason}"), None).await?;
+                // 关单备注必须留痕（否则用户看到的是一张永远不过期的待支付订单），
+                // 因此保留原错误的映射与文案，只额外声明「本段有写入要保留」。
+                Err(PaymentError::ClosedByFailure(Box::new(err.into())))
             }
         }
     }
@@ -470,8 +599,11 @@ impl PaymentService {
     ///
     /// 先尝试把订单从 `PENDING` / `CLOSED` **条件更新**为 `PAID`：并发回调只有一次能翻转，
     /// 翻转成功者负责开通订阅；未翻转成功者回读最新状态，若仍未开通则接手开通（自愈）。
+    ///
+    /// 全程跑在调用方给的作用域里：开通是纯本地写入，不需要跨越外部调用，因此读续费基数与写订阅
+    /// 共用同一个事务（不再另开连接）；提交 / 回滚由作用域持有者决定。
     async fn settle(
-        db: &Storage,
+        scope: &TenantScope,
         config: &Configure,
         redis: &RedisPool,
         order: payment_order::Model,
@@ -483,6 +615,7 @@ impl PaymentService {
 
         let now = Utc::now().fixed_offset();
         let transaction = transaction_id.or_else(|| order.transaction_id.clone());
+        let tx = scope.tx();
         let order = if order.status == PAID {
             order
         } else {
@@ -501,12 +634,12 @@ impl PaymentService {
                 )
                 .filter(payment_order::Column::Id.eq(order.id))
                 .filter(payment_order::Column::Status.is_in([PENDING, CLOSED]))
-                .exec(&db.db)
+                .exec(tx)
                 .await
                 .map_err(db_err)?;
 
             let latest = payment_order::Entity::find_by_id(order.id)
-                .one(&db.db)
+                .one(tx)
                 .await
                 .map_err(db_err)?
                 .ok_or(PaymentError::OrderNotFound)?;
@@ -516,12 +649,16 @@ impl PaymentService {
             latest
         };
 
-        Self::activate(db, config, redis, order, transaction).await
+        Self::activate(scope, config, redis, order, transaction).await
     }
 
     /// 按订单快照开通 / 续订订阅，并回写 `subscriptionID`。
+    ///
+    /// 与订单状态写在同一个事务里：要么「已付款 + 已开通」一起落库，要么一起回滚。
+    /// 唯一例外是开通失败后只留 `remark`（订单保持 `PAID` + 空 `subscriptionID`），
+    /// 下次查单会重新走到这里补齐。
     async fn activate(
-        db: &Storage,
+        scope: &TenantScope,
         config: &Configure,
         redis: &RedisPool,
         order: payment_order::Model,
@@ -531,8 +668,8 @@ impl PaymentService {
             return Ok(to_r(order, config));
         }
 
-        // 续费不浪费剩余时长：生效订阅未到期时从其到期时间续期
-        let base = SubscriptionService::active_subscription(db, order.tenant_id)
+        // 续费不浪费剩余时长：生效订阅未到期时从其到期时间续期（同一事务内读，与写入共用一个连接）
+        let base = SubscriptionService::active_subscription_in(scope.tx())
             .await
             .map_err(db_err)?
             .and_then(|active| active.expires_at)
@@ -542,13 +679,9 @@ impl PaymentService {
             .duration_days
             .map(|days| (base + Duration::days(days as i64)).timestamp_millis());
 
-        // 订阅写入走租户作用域（机器路径：验签与金额核对都已在本函数之前完成）。
-        // 作用域只包住这一次写入：冲突即回滚，不跨越后面的订单回写。
-        let scope = TenantScope::open(db, TenantId::from_uuid(order.tenant_id))
-            .await
-            .map_err(|err| PaymentError::Db(err.to_string()))?;
+        // 订阅写入走同一个租户作用域（机器路径：验签与金额核对都已在本函数之前完成）
         let granted = SubscriptionService::grant(
-            &scope,
+            scope,
             config,
             redis,
             UserId::from_uuid(order.user_id),
@@ -558,34 +691,22 @@ impl PaymentService {
             },
         )
         .await;
-        if granted.is_ok() {
-            scope
-                .commit()
-                .await
-                .map_err(|err| PaymentError::Db(err.to_string()))?;
-        } else {
-            scope
-                .rollback()
-                .await
-                .map_err(|err| PaymentError::Db(err.to_string()))?;
-        }
 
         let subscription_id = match granted {
             Ok(item) => Uuid::parse_str(&item.id).ok(),
-            // 并发核销下另一方已完成开通：回读生效订阅作为本次结果（订阅集合等价）
+            // 并发核销下另一方已完成开通：本次不写订阅，回读生效订阅作为结果（订阅集合等价）。
+            // 唯一索引已经中止了本事务，后面写什么都失败，因此直接交给持有者回滚重试。
             Err(SubscriptionError::Conflict) => {
                 tracing::warn!(order_no = %order.order_no, "subscription activated concurrently");
-                SubscriptionService::active_subscription(db, order.tenant_id)
-                    .await
-                    .map_err(db_err)?
-                    .map(|active| active.id)
+                return Err(PaymentError::Db("订阅已被并发开通，请重试".to_string()));
             }
             Err(err) => {
-                // 已收款但开通失败：保留 PAID + 空 subscriptionID，等待下次 sync 自愈或人工处理
+                // 已收款但开通失败：保留 PAID + 空 subscriptionID，等待下次 sync 自愈或人工处理。
+                // 备注必须落库，所以返回「伴随写入」的错误，让持有者提交。
                 let remark = format!("已收款，开通订阅失败：{err}");
                 tracing::error!(order_no = %order.order_no, error = %remark, "activate failed");
-                set_remark(db, &order, &remark).await?;
-                return Err(PaymentError::Db(err.to_string()));
+                set_remark(scope.tx(), &order, &remark).await?;
+                return Err(PaymentError::ActivationFailed(err.to_string()));
             }
         };
 
@@ -605,7 +726,7 @@ impl PaymentService {
         });
         active.paid_at = Set(previous_paid_at.or(Some(now)));
         active.updated_at = Set(now);
-        let saved = active.update(&db.db).await.map_err(db_err)?;
+        let saved = active.update(scope.tx()).await.map_err(db_err)?;
 
         // 订阅变更后立刻失效档位缓存，避免「已付款但配额仍是免费档」的观感问题
         cache_invalidate(redis, saved.tenant_id).await;
@@ -635,23 +756,22 @@ fn order_no() -> String {
     format!("P{}{}", Utc::now().format("%Y%m%d%H%M%S"), random)
 }
 
+/// 按订单号取单：不带 `tenantID` 条件，租户隔离由作用域负责。
 async fn load(
-    db: &Storage,
-    tenant_id: Uuid,
+    tx: &DatabaseTransaction,
     order_no: &str,
 ) -> Result<payment_order::Model, PaymentError> {
     payment_order::Entity::find()
-        .filter(payment_order::Column::TenantId.eq(tenant_id))
         .filter(payment_order::Column::OrderNo.eq(order_no))
         .filter(payment_order::Column::ArchivedAt.is_null())
-        .one(&db.db)
+        .one(tx)
         .await
         .map_err(db_err)?
         .ok_or(PaymentError::OrderNotFound)
 }
 
-/// 惰性关单：关闭该租户所有已过期的待支付订单。
-async fn close_stale(db: &Storage, tenant_id: Uuid) -> Result<(), PaymentError> {
+/// 惰性关单：关闭**本租户**所有已过期的待支付订单。
+async fn close_stale(tx: &DatabaseTransaction) -> Result<(), PaymentError> {
     let now = Utc::now().fixed_offset();
     payment_order::Entity::update_many()
         .col_expr(
@@ -666,18 +786,17 @@ async fn close_stale(db: &Storage, tenant_id: Uuid) -> Result<(), PaymentError> 
             payment_order::Column::UpdatedAt,
             sea_orm::sea_query::Expr::value(now),
         )
-        .filter(payment_order::Column::TenantId.eq(tenant_id))
         .filter(payment_order::Column::Status.eq(PENDING))
         .filter(payment_order::Column::ExpiresAt.lte(now))
         .filter(payment_order::Column::ArchivedAt.is_null())
-        .exec(&db.db)
+        .exec(tx)
         .await
         .map_err(db_err)?;
     Ok(())
 }
 
 async fn mark_closed(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     order: payment_order::Model,
     remark: &str,
     updater: Option<Uuid>,
@@ -690,12 +809,12 @@ async fn mark_closed(
     if updater.is_some() {
         active.updater = Set(updater);
     }
-    active.update(&db.db).await.map_err(db_err)
+    active.update(tx).await.map_err(db_err)
 }
 
 /// 只写备注，不改状态（用于「已收款但开通失败」「金额不符」这类待人工核对的情况）。
 async fn set_remark(
-    db: &Storage,
+    tx: &DatabaseTransaction,
     order: &payment_order::Model,
     remark: &str,
 ) -> Result<(), PaymentError> {
@@ -709,7 +828,7 @@ async fn set_remark(
             sea_orm::sea_query::Expr::value(Utc::now().fixed_offset()),
         )
         .filter(payment_order::Column::Id.eq(order.id))
-        .exec(&db.db)
+        .exec(tx)
         .await
         .map_err(db_err)?;
     Ok(())
@@ -738,41 +857,17 @@ fn to_r(order: payment_order::Model, config: &Configure) -> OrderR {
     }
 }
 
-async fn require_member(
-    db: &Storage,
-    user_id: Uuid,
-    tenant_id: Uuid,
-    platform_admin: bool,
+/// 充值只对个人租户开放：团队租户的配额由平台统一分配。
+async fn require_personal(
+    tx: &DatabaseTransaction,
+    tenant_id: TenantId,
 ) -> Result<(), PaymentError> {
-    TenantService::require_role(db, user_id, tenant_id, platform_admin)
-        .await
-        .map(|_| ())
-        .map_err(role_error)
-}
-
-async fn require_manage(
-    db: &Storage,
-    user_id: Uuid,
-    tenant_id: Uuid,
-    platform_admin: bool,
-) -> Result<(), PaymentError> {
-    let role = TenantService::require_role(db, user_id, tenant_id, platform_admin)
-        .await
-        .map_err(role_error)?;
-    if role.can_manage() {
-        Ok(())
-    } else {
-        Err(PaymentError::Forbidden)
-    }
-}
-
-async fn require_personal_tenant(db: &Storage, tenant_id: Uuid) -> Result<(), PaymentError> {
-    let member = tenant::Entity::find_by_id(tenant_id)
-        .one(&db.db)
+    let tenant = tenant::Entity::find_by_id(tenant_id.as_uuid())
+        .one(tx)
         .await
         .map_err(db_err)?
         .ok_or(PaymentError::TenantNotFound)?;
-    if TenantType::is_personal(&member.tenant_type) {
+    if TenantType::is_personal(&tenant.tenant_type) {
         Ok(())
     } else {
         Err(PaymentError::NotPersonal)
@@ -793,16 +888,12 @@ fn unsellable_reason(config: &Configure, plan: &str, spec: &PayPlanConfig) -> Op
     None
 }
 
-/// 数据库故障不能伪装成「权限不足」，否则排查方向会被带偏。
-fn role_error(err: TenantError) -> PaymentError {
-    match err {
-        TenantError::Db(msg) => PaymentError::Db(msg),
-        _ => PaymentError::Forbidden,
-    }
-}
-
 fn db_err(err: DbErr) -> PaymentError {
     PaymentError::Db(err.to_string())
+}
+
+fn scope_err(err: Exception) -> PaymentError {
+    PaymentError::Db(err.msg)
 }
 
 #[cfg(test)]
@@ -834,6 +925,48 @@ mod tests {
             "回调签名校验失败".to_string(),
         )));
         assert_eq!(signature.code, business::payment::SIGNATURE_INVALID);
+    }
+
+    /// 包一层的「下单失败已关单」不改状态码与文案，只改「有没有写入要保留」。
+    #[test]
+    fn closed_by_failure_keeps_the_original_mapping_and_the_writes() {
+        let plain = Exception::from(PaymentError::BadParam("响应无法解析".to_string()));
+        let wrapped = Exception::from(PaymentError::ClosedByFailure(Box::new(
+            PaymentError::BadParam("响应无法解析".to_string()),
+        )));
+        assert_eq!(plain.code, wrapped.code);
+        assert_eq!(plain.msg, wrapped.msg);
+        assert!(!PaymentError::BadParam("响应无法解析".to_string()).keeps_writes());
+        assert!(
+            PaymentError::ClosedByFailure(Box::new(PaymentError::BadParam(
+                "响应无法解析".to_string()
+            )))
+            .keeps_writes()
+        );
+    }
+
+    /// 事务收尾的依据：动过账的错误必须提交，没动过账（或事务已中止）的错误回滚。
+    #[test]
+    fn only_errors_that_carry_writes_ask_for_a_commit() {
+        for err in [
+            PaymentError::AmountMismatch,
+            PaymentError::OrderExpired,
+            PaymentError::OrderClosed,
+            PaymentError::ActivationFailed("订阅写入失败".to_string()),
+            PaymentError::ClosedByFailure(Box::new(PaymentError::Upstream("渠道 500".to_string()))),
+        ] {
+            assert!(err.keeps_writes(), "{err} 伴随写入，必须提交");
+        }
+
+        for err in [
+            PaymentError::Forbidden,
+            PaymentError::OrderNotFound,
+            PaymentError::Signature("验签失败".to_string()),
+            PaymentError::Upstream("渠道 500".to_string()),
+            PaymentError::Db("事务已中止".to_string()),
+        ] {
+            assert!(!err.keeps_writes(), "{err} 没有写入，应当回滚");
+        }
     }
 
     #[test]

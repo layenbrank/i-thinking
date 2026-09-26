@@ -153,7 +153,8 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
   },
   'src/services/payment/service.rs': {
     max: 1,
-    reason: '支付回调可信机器路径，P3b-3c 接入支付守卫后收敛'
+    reason:
+      '支付回调的引导调用点（PaymentNotifyScope::open 把订单号换成租户作用域）；守卫本身在 src/guards/payment.rs，这里只是调用'
   },
   'src/services/tenant/service.rs': {
     max: 3,
@@ -162,9 +163,14 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
   }
 }
 
-/** 作用域入口模式：直接开事务或自行设置会话变量 */
+/**
+ * 作用域入口模式：直接开事务、自行设置会话变量，或接续已写好作用域的事务。
+ *
+ * `order_tx` / `apply_order_capability` / `TenantScope::adopt` / `PaymentNotifyScope::open`
+ * 是**能力键引导**（支付回调：订单号 → 租户）用到的入口，只允许出现在 `src/guards/`。
+ */
 export const TENANT_SCOPE_PATTERN =
-  /\b(?:tenant_tx|user_tx|apply_tenant_scope|apply_user_scope|TenantScope::open)\b/g
+  /\b(?:tenant_tx|user_tx|order_tx|apply_tenant_scope|apply_user_scope|apply_order_capability|TenantScope::open|TenantScope::adopt|PaymentNotifyScope::open)\b/g
 
 /** R7 允许的作用域入口归属路径（定义与唯一入口） */
 export const TENANT_SCOPE_OWNER_PATHS = ['src/guards/', 'src/databases/scope.rs'] as const

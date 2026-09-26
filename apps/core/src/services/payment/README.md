@@ -31,15 +31,25 @@
 | 方法 | 路径                                            | 鉴权                 | 说明                     |
 | ---- | ----------------------------------------------- | -------------------- | ------------------------ |
 | GET  | `/api/v1/tenants/{id}/pay/catalog`              | JWT + 租户成员       | 档位定价 + 渠道可用性    |
-| GET  | `/api/v1/tenants/{id}/orders`                   | JWT + 租户成员       | 订单历史（最近 20 条）   |
-| POST | `/api/v1/tenants/{id}/orders`                   | JWT + OWNER/ADMIN    | 下单（`plan` + `channel`）|
-| GET  | `/api/v1/tenants/{id}/orders/{orderNo}`         | JWT + 租户成员       | 订单详情（顺带惰性关单） |
-| POST | `/api/v1/tenants/{id}/orders/{orderNo}/sync`    | JWT + 租户成员       | 主动查单（回调兜底）     |
-| POST | `/api/v1/tenants/{id}/orders/{orderNo}/close`   | JWT + OWNER/ADMIN    | 关闭订单（用户取消）     |
+| GET  | `/api/v1/tenants/{id}/orders`                   | JWT + OWNER/ADMIN    | 订单历史（最近 20 条）   |
+| POST | `/api/v1/tenants/{id}/orders`                   | JWT + 租户 OWNER     | 下单（`plan` + `channel`） |
+| GET  | `/api/v1/tenants/{id}/orders/{orderNo}`         | JWT + OWNER/ADMIN    | 订单详情（顺带惰性关单） |
+| POST | `/api/v1/tenants/{id}/orders/{orderNo}/sync`    | JWT + OWNER/ADMIN    | 主动查单（回调兜底）     |
+| POST | `/api/v1/tenants/{id}/orders/{orderNo}/close`   | JWT + 租户 OWNER     | 关闭订单（用户取消）     |
 | POST | `/api/v1/pay/notify/wechat`                     | 无（验签即鉴权）     | 微信支付结果通知         |
 | POST | `/api/v1/pay/notify/alipay`                     | 无（验签即鉴权）     | 支付宝异步通知           |
 
 回调端点**不套平台响应信封**：微信要求 `200 {"code":"SUCCESS"}` / `500 {"code":"FAIL"}`，支付宝要求纯文本 `success` / `failure`，否则渠道会持续重试或标记异常。
+
+鉴权粒度按「谁能看见账单、谁能花钱」两把尺子切：
+
+| 端点                          | 鉴权粒度              | 谁能过                                          |
+| ----------------------------- | --------------------- | ----------------------------------------------- |
+| GET `catalog`                 | `Subscription/Read`   | 全部 ACTIVE 成员（看得到价格，看不到账单）      |
+| GET 列表 / 详情 / POST `sync` | `PaymentOrder/Read`   | OWNER + ADMIN（账单是经营数据，普通成员不可见） |
+| POST 下单 / POST `close`      | `PaymentOrder/Manage` | 仅 OWNER（花钱的动作只留给租户所有者）          |
+
+平台管理员走运维通道，不受租户内角色限制。P3b-3c 之前 MEMBER 能读订单列表、ADMIN 能下单与关单，现在都不再成立。
 
 ## 数据表
 
@@ -81,29 +91,56 @@ payment/
 
 新增渠道 = 实现 `Channel` 并在注册表加一项（`code` + 工厂），**不需要**改 `service.rs`；`require_ready(config, code)` 负责「未启用 / 未配置」的拒绝与原因文案。
 
-> 迁移状态：开通链路（`activate`）已走可信机器通道 `TenantScope`；下单 / 关单 / 列表等仍使用
-> [`tenant`](../tenant/README.md) 的 `require_role` 垫层，待 P3b-3c 一并迁到 `TenantCtx` 后删除。
+本模块的全部入口都已落在租户作用域上：带主体的路由用 [`TenantCtx`](../../guards/tenant.rs)（成员校验 + `ctx.require` 判权限），
+匿名回调没有主体，用 [`PaymentNotifyScope`](../../guards/payment.rs) 由订单号把作用域引导出来（见下）。
 
 ## 下单 → 支付 → 开通
 
 ```
 POST /tenants/{id}/orders {plan, channel}
-  │  鉴权 OWNER/ADMIN + 个人租户校验
+  │  鉴权 OWNER（TenantCtx::require）+ 个人租户校验
   │  渠道就绪？(channel::require_ready) 档位定价且可售？(unsellable_reason)
   │  惰性关单 → 同用户+档位+渠道的未过期 PENDING 订单直接复用二维码
   ├─ 落库 PENDING（金额/时长/过期时间均为快照，orderNo 唯一）
   └─ 渠道 prepay → 写 codeUrl；失败即关单（不留永远没有二维码的待支付订单）
        ↓ 客户端渲染二维码
 渠道回调 /api/v1/pay/notify/*（或客户端 sync 主动查单）
+  │  ⓪ 引导作用域：PaymentNotifyScope::open(orderNo)（匿名入口只有订单号，命不中即「订单不存在」）
   │  ① 验签：微信 AES-256-GCM 解密 + 平台证书公钥验签；支付宝公钥验签
   │  ② 渠道归属：回调渠道必须等于下单时选择的渠道（否则 500406）
   │  ③ 幂等：已 PAID 且有 subscriptionID 直接 200
   │  ④ 金额 / 币种核对：不一致 → 500404，写 remark，**绝不开通**
   └─ settle()：条件更新 PENDING/CLOSED → PAID（并发只有一方翻转成功）
-       └─ activate()：TenantScope::open(order.tenant_id)（可信机器通道，不带主体）
-                      → SubscriptionService::grant（只写不提交）→ 按结果 commit / rollback
+       └─ activate()：SubscriptionService::grant（只写不提交）
+                      → 按 PaymentError::keeps_writes() 决定 commit / rollback（钱已收，失败也要留痕）
                       → 回写 subscriptionID → 失效 gateway:plan:{tenantID} 缓存
 ```
+
+## 订单号能力键
+
+匿名回调只带来一个订单号：没有令牌、没有租户 id，而 `payment_order` 是 FORCE RLS 的严格租户表。
+出路是在读策略上加一条**能力键**分支：
+
+```sql
+-- USING
+"tenantID" = app_current_tenant_id()
+OR ("orderNo" = current_setting('app.order_no', true) AND "archivedAt" IS NULL)
+```
+
+- 读一行的同时把租户找出来：`PaymentNotifyScope::open(storage, order_no)` 用 `SET LOCAL app.order_no` 开事务，
+  再读那行订单；后续写操作都落在这个已经升格为租户作用域的事务里。
+- **只放宽读**：`WITH CHECK` 里没有能力键，写入仍必须满足 `"tenantID" = app_current_tenant_id()`，
+  所以引导出来的作用域不能用来改别人的订单，枚举订单号也最多看到一行未归档订单。
+- 命不中时返回 `Ok(None)`，调用方回执「订单不存在」——比抛 403 或 SQL 错误更贴近事实，也让渠道停止重试一个不存在的订单号。
+- 有主体的路径（客户端 `sync`）不需要能力键，它走 `TenantCtx` + `PaymentOrder/Read`。
+- 这是 R7 门禁里 `order_tx` 的唯一使用点，`PaymentNotifyScope` 只定义在 [`src/guards/payment.rs`](../../guards/payment.rs)；匿名端点因此不需要特权连接。
+
+### 两条容易踩的规则
+
+- **作用域不跨外部调用**：`sync` 在调 `channel::query` 之前先 `TenantCtx::renew(db)`（提交当前段、以同一租户开新事务），
+  回来后再重新读一次订单。否则一次网络往返期间事务一直开着，读到的旧状态与写回的新状态之间就留了竞态。
+- **失败也要分「留痕」和「回滚」**：结论由 `PaymentError::keeps_writes()` 给出。钱已经动过的失败（已收款却开通失败、
+  金额不符写了 `remark`、下单失败已关单）必须 commit，否则会出现「钱收了却没有记录」；什么都没写的失败才 rollback。
 
 ## 安全设计要点
 
@@ -118,6 +155,9 @@ POST /tenants/{id}/orders {plan, channel}
 | 未配置渠道被误用       | `pay.*.enabled: false` 时目录标不可用、下单返回 500405；凭据为空时启动即失败（宁启动失败不带半截凭据上线） |
 | 未定价 / 配额缺失档位  | `unsellable_reason` 判定（`amount <= 0` 或 `gateway.plan_daily_token_quota` 缺项）→ 目录 `purchasable: false` + 下单 500408 |
 | 已收款但开通失败       | 保留 `PAID` + 空 `subscriptionID` + remark，`sync` 可自愈补齐订阅，人工也能按 remark 定位          |
+| 枚举订单号             | 订单号能力键最多命中一行未归档订单，且只放宽**读**（`WITH CHECK` 只认租户作用域），枚举不出别人的订单 |
+| 跨租户改单             | 订单号只负责把租户找出来，升格后的写入仍受租户策略约束；能力键使用点被 R7 门禁锁在 `src/guards/`   |
+| 越权下单 / 关单        | 花钱要求 `PaymentOrder/Manage`（仅 OWNER）；账单要 `PaymentOrder/Read`（OWNER + ADMIN），普通成员连列表都读不到 |
 
 ## 时效性设计要点
 
@@ -161,7 +201,7 @@ POST /tenants/{id}/orders {plan, channel}
 | ------ | ------------------------------------------------------------------------ |
 | 200003 | 参数非法（如关闭已支付订单）                                             |
 | 300001 | 未登录                                                                   |
-| 300006 | 非租户成员，或租户内角色非 OWNER/ADMIN                                   |
+| 300006 | 非租户成员，或权限不足（下单 / 关单要求 OWNER；查单要求 OWNER / ADMIN）  |
 | 400001 | 订单不存在（含订单不属于该租户）                                         |
 | 500401 | 支付订单不存在                                                           |
 | 500402 | 支付订单已关闭                                                           |
