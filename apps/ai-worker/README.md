@@ -32,9 +32,7 @@
 | --- | --- | --- |
 | 换取短期服务令牌 | `POST /api/v1/service/token` | `X-Internal-Token` |
 | 读取资产正文 | `GET /api/v1/service/assets/{assetID}/content` | `X-Service-Token`（`scope=asset-read`） |
-| 请求嵌入算力 | `POST /api/v1/service/embeddings` | `X-Service-Token`（`scope=embeddings`） |
-
-第三条例外在 P6b-4 落地。
+| 请求嵌入算力 | `POST /api/v1/service/embeddings` | `X-Service-Token`（`scope=embeddings` + `model`） |
 
 ### 两种令牌，别搞混
 
@@ -59,20 +57,24 @@ src/ai_worker/
 ├── migrations.py      # 启动时按 sql/NNNN_*.sql 顺序迁移
 ├── idempotency.py     # Idempotency-Key 预定/重放/冲突
 ├── capabilities.py    # 能力注册表（健康探针据此上报）
-├── core_client.py     # 唯一的出站客户端：token / 资产正文 / （后续）嵌入
+├── core_client.py     # 唯一的出站客户端：token / 资产正文 / 嵌入
 ├── api/
 │   └── health.py      # GET /internal/v1/health
 ├── rag_ingest/
 │   ├── extract.py     # MIME → 纯文本（plain / json / html / pdf）
 │   ├── chunking.py    # 纯函数切块器：尽量落在段落/句子边界，块可回溯原文偏移
-│   ├── store.py       # 块集与块落库（按 chunk_set_id 幂等覆盖）
+│   ├── store.py       # 块集/块/向量/索引落库（按 chunk_set_id 与 (tenant, asset) 幂等覆盖）
 │   ├── schemas.py     # 请求/响应模型
-│   └── router.py      # POST /internal/v1/assets/{assetID}/chunks
+│   ├── router.py      # POST /internal/v1/assets/{assetID}/chunks
+│   ├── embed.py       # POST /internal/v1/assets/{assetID}/embeddings
+│   └── index.py       # PUT  /internal/v1/assets/{assetID}/index
+├── providers/
+│   └── embeddings.py  # 上游嵌入响应的严格校验与分批
 ├── sql/
 │   ├── 0001_init.sql  # 迁移脚本（随包分发）
-│   └── 0002_rag_chunk.sql
-├── agent_runtime/     # agent 运行时（P7 之后）
-└── providers/         # 具体模型/向量库适配（P6b-4）
+│   ├── 0002_rag_chunk.sql
+│   └── 0003_rag_embedding.sql
+└── agent_runtime/     # agent 运行时（P7 之后）
 ```
 
 ## 本地开发
@@ -135,6 +137,45 @@ ai-worker 的表是自己的私有数据（幂等表、块表、向量表），s
 用随机 id 的话，接管者只能看出「这行卡住了」，没法知道上一次写的是哪一份。
 载荷指纹取的是**生效后**的参数（省略 `chunkSize` 与显式写默认值视为同一个请求），
 否则 core 少带一个可选字段就会被判成 409。
+
+**嵌入为什么按区间分批，而不是一次把整个资产发过去？**
+一个资产的块可能有上千个，一次性发过去的响应体又大又慢，上游超时会把整批算力都作废。
+分批之后每批算完就落库，超时重试时**只补缺**（`rag_embedding` 里已有的 `(chunk_set_id, ordinal, model)`
+不再重算），重试成本随进度递减。批大小看 `AI_WORKER_EMBED_BATCH_SIZE`。
+分批的边界是**块序号区间**（`from` / `to`），core 的编排也用同样的区间做活动幂等键
+（`<instance>:embed:0-16`），所以「同一段区间重放」天然对上。
+响应里回 `embedded: 0` 表示「这次没有算新东西、全是复用」——core 只看 `from` / `to` / `dimensions`
+是否与请求一致，不看 `embedded`，所以**重放时回 0 是安全的**。
+
+**为什么模型名要写进令牌，而不是只写进请求体？**
+令牌的 `scope=embeddings` + `model` 一起构成「这枚令牌只能用来算这个模型」。
+不然一枚令牌可以拿去调任何模型，模型维度不同就直接污染向量表。
+令牌的缓存键也是 `(scope, tenant, asset, model)`，换模型 = 换令牌 = 重新签一次。
+
+**上游响应为什么要严格校验，而不是「拿不到就跳过」？**
+向量维度一旦写错，会静静地在库里留下一批没法检索的数据，事后只能全量重算。
+所以 `providers/embeddings.py` 逐条核对 `index` 去重与越界、逐条量向量长度、拒绝 `NaN` / `Inf`，
+任何形状不对就当**上游故障**（503，可重试），维度真的不一致就当**请求问题**（400，不重试）。
+
+**为什么向量表的维度用 `CHECK (vector_dims(embedding) = dimensions)` 钉住，而不是建表时写死 `vector(1536)`？**
+同一个库要装多个模型的向量，`vector(1536)` 会把表锁死在单一模型上。
+用「每行自带 `dimensions` + CHECK 自洽」换来多模型共存，代价是 ANN 索引要按 `(model, dimensions)`
+分组建（部分索引），这件事留给 P8 按真实数据分布做。
+
+**为什么 `rag_embedding` 不建外键指向 `rag_chunk`？**
+重跑分块层时 `store.save()` 会**整批重插**块（先删后插），带 `ON DELETE CASCADE` 的话
+已经算好的向量会被连带删掉 —— 而这些向量的值只跟文本有关，跟块行的物理 id 无关。
+所以这里刻意不建外键，用 `(chunk_set_id, ordinal)` 做逻辑关联。
+
+**为什么 `rag_index` 的主键是 `(tenant_id, asset_id)`？**
+「索引」描述的是资产**当前**这一版块集，不是历史快照。主键落在资产上，
+「重复提交收敛到一行」和「旧版本被新版本替换」就是表结构自带的性质，
+不需要应用层先删后插，也永远不会出现两行互相矛盾。
+块数为 0 的资产同样要写这一行 —— 那是「这一版没有任何块了」的正式声明，不能靠删行表达。
+
+**`collection` 为什么是 `asset-<assetID>`？**
+它是向量库那边的一级命名空间。派生而非随机，是为了让「同一资产的块永远落在同一个 collection」
+不依赖任何一张表；等 P8 接外部向量库时，它同时也是可直接使用的物理名。
 
 **为什么切块要记 `char_start` / `char_end`？**
 检索命中后要能把块定位回原文，高亮和「引用出处」都靠这两个偏移。

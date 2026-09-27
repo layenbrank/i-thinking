@@ -68,6 +68,10 @@ class Settings(BaseSettings):
     #: 默认重叠：块大小的 1/6。留重叠是为了「答案跨在块边界上」时不至于完全丢上下文。
     default_chunk_overlap: int = Field(default=200, ge=0)
 
+    #: 一次上游嵌入调用送多少条文本。与 core 的分批是两件事：core 按自己的批量把块集切成
+    #: 幂等区间，这里只在单个区间内部再切，避免一条区间（可能上千块）压成一次超大请求。
+    embed_batch_size: int = Field(default=64, ge=1)
+
     @field_validator("internal_token", "database_url", "core_base_url")
     @classmethod
     def _strip(cls, value: str) -> str:

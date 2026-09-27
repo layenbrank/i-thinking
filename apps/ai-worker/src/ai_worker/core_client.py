@@ -7,7 +7,8 @@ ai-worker 是叶子进程：不直连模型厂商、不碰 core 的对象存储�
 1. `POST /api/v1/service/token`，头 `X-Internal-Token`（值 = core 的 `ai_worker.token`）
    → 换一枚**带作用域**的短期令牌（`scope=asset-read` + `assetID`，
    或 `scope=embeddings` + `model`）；
-2. 拿这枚令牌去消费：内容端点用 `X-Service-Token`（嵌入端点见 P6b-4）。
+2. 拿这枚令牌去消费：内容端点用 `X-Service-Token`，嵌入端点是
+   `POST /api/v1/service/embeddings`（响应是上游的**裸 JSON**，不套统一信封）。
 
 令牌**必须缓存**：core 的配额与审计都记在出网调用上，但换令牌本身不便宜
 （要查租户、查资产可读性），按 `(scope, tenantID, assetID, model)` 缓存并在过期前
@@ -22,9 +23,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import NoReturn
+from typing import Any, NoReturn
 
 import httpx
 
@@ -38,6 +40,7 @@ SERVICE_TOKEN_HEADER = "X-Service-Token"  # noqa: S105 - HTTP 头名，不是密
 
 SERVICE_TOKEN_PATH = "/api/v1/service/token"  # noqa: S105 - 路径常量，不是密钥
 ASSET_CONTENT_PATH = "/api/v1/service/assets/{asset_id}/content"
+EMBEDDINGS_PATH = "/api/v1/service/embeddings"
 
 SCOPE_ASSET_READ = "asset-read"
 SCOPE_EMBEDDINGS = "embeddings"
@@ -104,6 +107,28 @@ class CoreClient:
                 chunks.append(chunk)
 
         return b"".join(chunks)
+
+    async def embeddings(self, *, tenant_id: str, model: str, inputs: Sequence[str]) -> Any:
+        """算一批文本的嵌入，返回上游的**裸 JSON**（OpenAI 形状，`data[].embedding`）。
+
+        两个刻意的取舍：
+
+        - `model` 只是**自检**：core 一律用令牌作用域里的模型覆盖请求体里的 `model`，
+          传错了会在 core 侧 400，而不是悄悄换成另一个模型；
+        - 不传 `dimensions`：不少模型不认这个参数（传了就 400），维度差距按响应里向量的
+          实际长度读，比「向 core 要一个数字」更可信。
+
+        形状校验交给 `ai_worker.providers.embeddings`，这里只负责传输与错误映射。
+        """
+        token = await self.service_token(tenant_id=tenant_id, scope=SCOPE_EMBEDDINGS, model=model)
+        response = await self._request(
+            "POST",
+            EMBEDDINGS_PATH,
+            json={"model": model, "input": list(inputs)},
+            headers=self._headers(service_token=token),
+            action=f"计算 {len(inputs)} 条文本的嵌入",
+        )
+        return response.json()
 
     async def service_token(
         self,

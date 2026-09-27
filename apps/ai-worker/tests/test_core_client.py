@@ -16,8 +16,10 @@ import pytest
 
 from ai_worker import errors, trace
 from ai_worker.core_client import (
+    EMBEDDINGS_PATH,
     INTERNAL_TOKEN_HEADER,
     SCOPE_ASSET_READ,
+    SCOPE_EMBEDDINGS,
     SERVICE_TOKEN_HEADER,
     SERVICE_TOKEN_PATH,
     CoreClient,
@@ -26,13 +28,18 @@ from support import INTERNAL_TOKEN, TRACEPARENT, MakeCore
 
 TENANT = "tenant-a"
 ASSET = "asset-1"
+MODEL = "text-embedding-3-small"
 CONTENT_PATH = f"/api/v1/service/assets/{ASSET}/content"
 
 
 def token_body(
-    *, scope: str = SCOPE_ASSET_READ, asset_id: str = ASSET, expires_in: int = 300
+    *,
+    scope: str = SCOPE_ASSET_READ,
+    asset_id: str = ASSET,
+    model: str | None = None,
+    expires_in: int = 300,
 ) -> dict[str, Any]:
-    return {
+    body: dict[str, Any] = {
         "token": f"tok-{scope}",
         "expiresAt": int(time.time()) + expires_in,
         "tenantID": TENANT,
@@ -40,6 +47,9 @@ def token_body(
         "assetID": asset_id,
         "tokenType": "service",
     }
+    if model is not None:
+        body["model"] = model
+    return body
 
 
 def core_error(status: int, *, retry_after: str | None = None) -> httpx.Response:
@@ -286,3 +296,78 @@ async def test_outbound_requests_omit_traceparent_without_a_current_context(
     await client.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id=ASSET)
 
     assert "traceparent" not in requests[0].headers
+
+
+async def test_embeddings_request_matches_the_gateway_contract(make_core: MakeCore) -> None:
+    """嵌入走 `scope=embeddings` + `model` 的令牌：`model` 同时是 core 侧的模型自检。"""
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == SERVICE_TOKEN_PATH:
+            return httpx.Response(200, json=token_body(scope=SCOPE_EMBEDDINGS, model=MODEL))
+        return httpx.Response(200, json={"data": [{"index": 0, "embedding": [0.1, 0.2]}]})
+
+    client: CoreClient = make_core(handler)
+
+    payload = await client.embeddings(tenant_id=TENANT, model=MODEL, inputs=["a", "b"])
+
+    assert payload == {"data": [{"index": 0, "embedding": [0.1, 0.2]}]}  # 裸 JSON，不套信封
+    token_request, embed_request = requests
+    assert json.loads(token_request.content) == {
+        "tenantID": TENANT,
+        "scope": SCOPE_EMBEDDINGS,
+        "model": MODEL,
+    }
+    assert (embed_request.method, embed_request.url.path) == ("POST", EMBEDDINGS_PATH)
+    assert embed_request.headers[SERVICE_TOKEN_HEADER] == f"tok-{SCOPE_EMBEDDINGS}"
+    # 不传 dimensions：不少模型不认这个参数，传了直接 400；维度按响应里向量的长度读。
+    assert json.loads(embed_request.content) == {"model": MODEL, "input": ["a", "b"]}
+
+
+@pytest.mark.parametrize(
+    ("core_status", "expected_status", "expected_code"),
+    [
+        (400, 400, errors.ErrorCode.INVALID_REQUEST),
+        (401, 503, errors.ErrorCode.DEPENDENCY_UNAVAILABLE),
+        (429, 429, errors.ErrorCode.RATE_LIMITED),
+        (503, 503, errors.ErrorCode.DEPENDENCY_UNAVAILABLE),
+    ],
+)
+async def test_embedding_errors_are_mapped_by_retryability(
+    make_core: MakeCore, core_status: int, expected_status: int, expected_code: errors.ErrorCode
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == SERVICE_TOKEN_PATH:
+            return httpx.Response(200, json=token_body(scope=SCOPE_EMBEDDINGS, model=MODEL))
+        return core_error(core_status, retry_after="7" if core_status == 429 else None)
+
+    client: CoreClient = make_core(handler)
+
+    with pytest.raises(errors.ApiError) as raised:
+        await client.embeddings(tenant_id=TENANT, model=MODEL, inputs=["a"])
+
+    assert raised.value.status == expected_status
+    assert raised.value.code is expected_code
+
+
+async def test_embedding_tokens_are_not_shared_across_models(make_core: MakeCore) -> None:
+    """换模型就是换一枚令牌：拿 A 模型的令牌去算 B 模型，core 侧会当成越权。"""
+    minted: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == SERVICE_TOKEN_PATH:
+            body: dict[str, Any] = json.loads(request.content)
+            minted.append(body)
+            return httpx.Response(
+                200, json=token_body(scope=SCOPE_EMBEDDINGS, model=str(body["model"]))
+            )
+        return httpx.Response(200, json={"data": [{"index": 0, "embedding": [0.5]}]})
+
+    client: CoreClient = make_core(handler)
+
+    await client.embeddings(tenant_id=TENANT, model=MODEL, inputs=["a"])
+    await client.embeddings(tenant_id=TENANT, model=MODEL, inputs=["a"])
+    await client.embeddings(tenant_id=TENANT, model="another-model", inputs=["a"])
+
+    assert [body["model"] for body in minted] == [MODEL, "another-model"]
