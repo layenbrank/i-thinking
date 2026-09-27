@@ -62,9 +62,15 @@ src/ai_worker/
 ├── core_client.py     # 唯一的出站客户端：token / 资产正文 / （后续）嵌入
 ├── api/
 │   └── health.py      # GET /internal/v1/health
+├── rag_ingest/
+│   ├── extract.py     # MIME → 纯文本（plain / json / html / pdf）
+│   ├── chunking.py    # 纯函数切块器：尽量落在段落/句子边界，块可回溯原文偏移
+│   ├── store.py       # 块集与块落库（按 chunk_set_id 幂等覆盖）
+│   ├── schemas.py     # 请求/响应模型
+│   └── router.py      # POST /internal/v1/assets/{assetID}/chunks
 ├── sql/
-│   └── 0001_init.sql  # 迁移脚本（随包分发）
-├── rag_ingest/        # RAG 摄取：切块、嵌入、写向量（P6b-3 / P6b-4）
+│   ├── 0001_init.sql  # 迁移脚本（随包分发）
+│   └── 0002_rag_chunk.sql
 ├── agent_runtime/     # agent 运行时（P7 之后）
 └── providers/         # 具体模型/向量库适配（P6b-4）
 ```
@@ -122,6 +128,17 @@ ai-worker 的表是自己的私有数据（幂等表、块表、向量表），s
 编排会重试活动。同一个 `Idempotency-Key` 重放必须返回**和第一次完全相同**的结果
 （包括那次分配的 `chunkSetID`），否则重试会在向量库里留下两套平行数据。
 所以先 `INSERT` 预定，跑完后把状态与响应体写回；同键不同载荷 → 409，同键仍在跑 → 409 + `Retry-After`。
+
+**`chunkSetID` 为什么是推导出来的，而不是随机生成？**
+`uuid5(endpoint, 幂等键, 载荷指纹)`。这样「块已经写进库、账本那一行还没写、进程被杀」的半截状态
+会在重跑时落到**同一个** `chunkSetID` 上：`store.save()` 按 `chunk_set_id` 覆盖写，自己把半截数据修好。
+用随机 id 的话，接管者只能看出「这行卡住了」，没法知道上一次写的是哪一份。
+载荷指纹取的是**生效后**的参数（省略 `chunkSize` 与显式写默认值视为同一个请求），
+否则 core 少带一个可选字段就会被判成 409。
+
+**为什么切块要记 `char_start` / `char_end`？**
+检索命中后要能把块定位回原文，高亮和「引用出处」都靠这两个偏移。
+所以切块器不"重排"文本：块文本必须是原文的连续子串，块与块之间可以不重叠，但不能凭空造字。
 
 **为什么中间件用裸 ASGI 而不是 `BaseHTTPMiddleware`？**
 `BaseHTTPMiddleware` 会把请求体与下游执行挪进anyio 的独立 task，

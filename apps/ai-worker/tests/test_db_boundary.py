@@ -11,9 +11,9 @@ import pytest
 from pgvector import Vector
 
 from ai_worker.db import Database, DatabaseUnavailableError
-from support import UNREACHABLE_DATABASE_URL, make_settings
+from support import OWNED_TABLES, UNREACHABLE_DATABASE_URL, make_settings
 
-OWN_TABLES = {"schema_migration", "idempotency_key"}
+OWN_TABLES = {"schema_migration", *OWNED_TABLES}
 
 
 async def test_database_contains_only_ai_worker_owned_tables(database: Database) -> None:

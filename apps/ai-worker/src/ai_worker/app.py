@@ -28,7 +28,12 @@ CAPABILITY_MODULES = (
 )
 
 
-def create_app(settings: Settings | None = None, *, database: Database | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    *,
+    database: Database | None = None,
+    core: CoreClient | None = None,
+) -> FastAPI:
     resolved = settings or get_settings()
     app = FastAPI(
         title="ai-worker",
@@ -41,12 +46,18 @@ def create_app(settings: Settings | None = None, *, database: Database | None = 
     )
     app.state.settings = resolved
     app.state.db = database or Database(resolved)
-    app.state.core = CoreClient(resolved)
+    # 注入点是为了测试：注入 core 时连 `MockTransport` 一起进来，不必把请求真发出去。
+    app.state.core = core or CoreClient(resolved)
 
     errors.install_error_handlers(app)
     app.include_router(health.router)
     for module in CAPABILITY_MODULES:
-        importlib.import_module(module)
+        imported = importlib.import_module(module)
+        # 用 `getattr` 取约定名：能力包只暴露 `ROUTER` 一个路由对象，
+        # 避免误拾取包内同名的其他变量。
+        capability_router = getattr(imported, "ROUTER", None)
+        if capability_router is not None:
+            app.include_router(capability_router)
 
     # 顺序（后加的在外层）：内部令牌 → traceparent。令牌不对就先 401，
     # 不因为「顺带撞上 traceparent 规则」而把内部细节回给不可信的调用方。

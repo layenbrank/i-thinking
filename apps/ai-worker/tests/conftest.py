@@ -19,7 +19,14 @@ from ai_worker.config import Settings
 from ai_worker.core_client import CoreClient
 from ai_worker.db import Database
 from routes import router
-from support import UNREACHABLE_DATABASE_URL, MakeCore, make_settings
+from support import (
+    OWNED_TABLES,
+    UNREACHABLE_DATABASE_URL,
+    CoreHandler,
+    HandlerClient,
+    MakeCore,
+    make_settings,
+)
 
 
 @pytest.fixture(scope="session")
@@ -38,7 +45,10 @@ async def database(settings: Settings) -> AsyncIterator[Database]:
         if not probe.ok:
             pytest.skip(f"测试数据库不可用：{probe.detail}")
         async with db.acquire() as conn:
-            await conn.execute("DELETE FROM idempotency_key")
+            # 每个用例都从空表开始：`rag_chunk` 有外键，顺序按 support.OWNED_TABLES 来。
+            # 表名是模块常量（不是用户输入），这里用 f-string 拼是安全的。
+            for table in OWNED_TABLES:
+                await conn.execute(f"DELETE FROM {table}")  # noqa: S608 - 表名来自常量白名单
         yield db
     finally:
         await db.close()
@@ -98,3 +108,29 @@ async def make_core() -> AsyncIterator[MakeCore]:
     yield factory
     for client in created:
         await client.close()
+
+
+@pytest_asyncio.fixture
+async def core_backed_client(
+    database: Database, make_core: MakeCore
+) -> AsyncIterator[HandlerClient]:
+    """造一个「真库 + 假 core」的客户端：RAG 端点两头都要碰，缺哪一头都测不下去。
+
+    core 用 `create_app(..., core=...)` 的注入点替换成桩，所以这里的 handler 就是
+    「core 怎么回」的剧本；`overrides` 同时作用于应用配置与 core 客户端配置。
+    """
+    created: list[AsyncClient] = []
+
+    def factory(handler: CoreHandler, **overrides: object) -> AsyncClient:
+        settings = make_settings(**overrides)
+        application = create_app(settings, database=database, core=make_core(handler, **overrides))
+        application.include_router(router)
+        client = AsyncClient(
+            transport=ASGITransport(app=application), base_url="http://ai-worker.test"
+        )
+        created.append(client)
+        return client
+
+    yield factory
+    for client in created:
+        await client.aclose()

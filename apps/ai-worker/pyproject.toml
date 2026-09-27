@@ -12,6 +12,8 @@ dependencies = [
 	"pgvector>=0.3.6",
 	"pydantic>=2.10.0",
 	"pydantic-settings>=2.7.0",
+	# PDF 抽取：纯 Python 实现，没有系统库依赖（不用 poppler 那类二进制）。
+	"pypdf>=5.1.0",
 	"uvicorn[standard]>=0.34.0",
 ]
 

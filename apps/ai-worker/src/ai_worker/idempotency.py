@@ -191,6 +191,10 @@ async def release(connection: Connection, *, key: str, endpoint: str, payload_sh
 class IdempotencyRun:
     """正在执行的一次调用。路由用它记录最终响应。"""
 
+    #: 这次调用占用的幂等键与载荷指纹。路由据此推导**确定性**的产物 id
+    #: （例如 RAG 的 `chunk_set_id`），让「写库成功但记账前被杀」也能自愈。
+    key: str = ""
+    payload_sha: str = ""
     replay: Replay | None = None
     recorded: tuple[int, Any] | None = field(default=None, repr=False)
 
@@ -238,7 +242,7 @@ async def guarded(
                     message, retry_after_seconds=_IN_FLIGHT_RETRY_AFTER_SECONDS
                 )
 
-            run = IdempotencyRun(replay=reservation.replay)
+            run = IdempotencyRun(key=key, payload_sha=payload_sha, replay=reservation.replay)
             if run.replay is not None:
                 yield run
                 return

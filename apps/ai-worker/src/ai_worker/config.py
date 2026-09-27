@@ -9,7 +9,7 @@ import logging
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -62,6 +62,12 @@ class Settings(BaseSettings):
     #: 数据库不可用时，两次重连尝试之间的最小间隔（秒），避免健康探针把它变成压力源。
     db_reconnect_interval_seconds: float = Field(default=5.0, ge=0)
 
+    #: 切块的部署级默认值（core 不指定 `chunkSize` 时生效）。约等于中文 500–700 字：
+    #: 再小，检索会命中太多碎片；再大，一块里塞进多个主题，嵌入的语义被稀释。
+    default_chunk_size: int = Field(default=1200, ge=1)
+    #: 默认重叠：块大小的 1/6。留重叠是为了「答案跨在块边界上」时不至于完全丢上下文。
+    default_chunk_overlap: int = Field(default=200, ge=0)
+
     @field_validator("internal_token", "database_url", "core_base_url")
     @classmethod
     def _strip(cls, value: str) -> str:
@@ -107,6 +113,17 @@ class Settings(BaseSettings):
             message = f"AI_WORKER_LOG_LEVEL 不是合法的日志级别：{value!r}"
             raise ValueError(message)
         return level
+
+    @model_validator(mode="after")
+    def _require_overlap_below_size(self) -> Settings:
+        """默认值自相矛盾时**启动即失败**，好过每个请求都回 400 让人去猜。"""
+        if self.default_chunk_overlap >= self.default_chunk_size:
+            message = (
+                "AI_WORKER_DEFAULT_CHUNK_OVERLAP 必须小于 AI_WORKER_DEFAULT_CHUNK_SIZE，"
+                f"当前是 {self.default_chunk_overlap} >= {self.default_chunk_size}"
+            )
+            raise ValueError(message)
+        return self
 
 
 @lru_cache(maxsize=1)

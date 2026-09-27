@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import os
+import time
 from collections.abc import Callable
 from typing import Any
 
+import httpx
+from httpx import AsyncClient
+
 from ai_worker.config import Settings
-from ai_worker.core_client import CoreClient
+from ai_worker.core_client import SCOPE_ASSET_READ, SERVICE_TOKEN_PATH, CoreClient
 
 #: `conftest.make_core` 的类型：传进来的第一个参数是 `httpx.MockTransport` 的 handler。
 MakeCore = Callable[..., CoreClient]
@@ -22,6 +26,10 @@ UNREACHABLE_DATABASE_URL = "postgres://postgres:postgres@127.0.0.1:1/ai_worker_t
 
 #: 合法的最小 traceparent（全 0 非法，所以这里用非零十六进制）。
 TRACEPARENT = "00-11111111111111111111111111111111-2222222222222222-01"
+
+#: ai-worker 自己的表，**顺序即清空顺序**（子表在前，避免外键报错）。
+#: `tests/test_db_boundary.py` 用它反证「这库里没有 core 的业务表」。
+OWNED_TABLES = ("rag_chunk", "rag_chunk_set", "idempotency_key")
 
 
 def database_url() -> str:
@@ -64,3 +72,52 @@ def traceparent_only(traceparent: str = TRACEPARENT) -> dict[str, str]:
 
 def echo_payload(tag: str = "a") -> dict[str, str]:
     return {"tag": tag}
+
+
+#: core 的「剧本」：`httpx.MockTransport` 的 handler，决定 core 怎么回应每次调用。
+CoreHandler = Callable[[httpx.Request], httpx.Response]
+
+#: `conftest.core_backed_client` 的类型：传一个 core 剧本，拿回一个可用的异步客户端。
+HandlerClient = Callable[..., AsyncClient]
+
+
+def service_token_body(
+    *,
+    scope: str = SCOPE_ASSET_READ,
+    tenant_id: str = "tenant-a",
+    asset_id: str | None = None,
+    expires_in: int = 300,
+) -> dict[str, Any]:
+    """core `POST /api/v1/service/token` 的成功响应体（`CoreClient` 就按这些键解）。"""
+    body: dict[str, Any] = {
+        "token": f"tok-{scope}",
+        "expiresAt": int(time.time()) + expires_in,
+        "tenantID": tenant_id,
+        "scope": scope,
+        "tokenType": "service",
+    }
+    if asset_id is not None:
+        body["assetID"] = asset_id
+    return body
+
+
+def core_error(status: int, *, retry_after: str | None = None) -> httpx.Response:
+    """core **服务面**的错误信封（`{code, success, msg, timestamp}`），别和我们的混淆。"""
+    return httpx.Response(
+        status,
+        headers={"Retry-After": retry_after} if retry_after is not None else None,
+        json={"code": "500204", "success": False, "msg": "boom", "timestamp": "x"},
+    )
+
+
+def stub_core(content: bytes, *, content_status: int = 200) -> CoreHandler:
+    """最小 core 桩：换令牌 → 给正文。`content_status` 非 200 时改回错误信封。"""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == SERVICE_TOKEN_PATH:
+            return httpx.Response(200, json=service_token_body())
+        if content_status != 200:
+            return core_error(content_status, retry_after="7" if content_status == 429 else None)
+        return httpx.Response(200, content=content)
+
+    return handler
