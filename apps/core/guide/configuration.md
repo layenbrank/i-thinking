@@ -255,8 +255,11 @@ ai-worker 是叶子进程，不直连模型厂商、不碰对象存储布局，�
 都是 `300002`（401）。`/chunks` 这类出站请求因此**不带对象键**——正文由 ai-worker 自己回打内容端点取，
 换存储布局不牵动它。
 
-两条约束值得注意：`gateway.service_token_secret` 两侧值是**同一份密钥**（core 用它签发，ai-worker 把它当
-`X-Internal-Token` 发过来），必须通过 `config.local.yaml` / profile 覆盖，因为它同时是「能不能烧配额」的开关；
+两条约束值得注意：`gateway.service_token_secret` **只有 core 自己用**——它既签发又校验服务令牌，
+所以只需要在 core 的配置里存在（留空则整个服务面关闭，`100002`/503）。ai-worker 不需要、也不应该拿到它。
+两侧共享的密钥是另一把：`ai_worker.token`，core 用它比对请求头的 `X-Internal-Token`
+（`src/guards/service.rs::verify_internal`），ai-worker 用它换服务令牌。因为它是「能不能烧配额」的开关，
+必须通过 `config.local.yaml` / profile 覆盖；
 被要求嵌入的模型必须声明 `capabilities.embeddings = true`（后台模型编辑里给），否则 `200003` ——
 把「供应商不支持嵌入」这类错误挡在配置期而不是第一次调用。
 

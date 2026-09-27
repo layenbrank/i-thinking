@@ -109,6 +109,14 @@ apps/browser/gn/*.local.gn
 *.pyc
 __pycache__/
 .coverage
+# Python 虚拟环境与工具缓存（ai-worker 用 uv 管理，见 apps/ai-worker/README.md）
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# ai-worker 的本地 .env（示例见 apps/ai-worker/.env.example）
+apps/ai-worker/.env
 
 # planning-with-files-zh 的「磁盘工作记忆」：skill 写在 cwd，属临时状态，勿提交
 findings.md

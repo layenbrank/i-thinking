@@ -1,0 +1,70 @@
+[project]
+name = "ai-worker"
+version = "0.1.0"
+description = "core 的叶子计算服务：RAG 摄取与 agent 运行时（Python 专属生态）"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+	"asyncpg>=0.30.0",
+	"fastapi>=0.115.0",
+	"httpx>=0.28.0",
+	"numpy>=2.0.0",
+	"pgvector>=0.3.6",
+	"pydantic>=2.10.0",
+	"pydantic-settings>=2.7.0",
+	"uvicorn[standard]>=0.34.0",
+]
+
+[project.scripts]
+ai-worker = "ai_worker.__main__:main"
+
+[dependency-groups]
+dev = [
+	"mypy>=1.14.0",
+	"pytest>=8.3.0",
+	"pytest-asyncio>=0.25.0",
+	"pyyaml>=6.0.2",
+	"ruff>=0.9.0",
+	"types-pyyaml>=6.0.12",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ai_worker"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["A", "ASYNC", "B", "C4", "DTZ", "E", "F", "I", "N", "RUF", "S", "SIM", "UP"]
+# RUF001/2/3 是「全角标点看起来像 ASCII」的提醒：本项目的注释与文档一律用中文标点，
+# 这些提醒全部是噪声，关掉。
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ai_worker"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src", "tests"]
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["asyncpg", "asyncpg.*", "pgvector", "pgvector.*"]
+ignore_missing_imports = true
