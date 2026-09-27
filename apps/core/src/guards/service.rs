@@ -4,12 +4,13 @@
 //! 两个请求头对应两种信任，彼此不能互相替代：
 //!
 //! * `X-Internal-Token`（[`InternalCaller`]）：core ↔ ai-worker 的共享密钥，只能换令牌；
-//! * `X-Service-Token`（[`ServiceScope`]）：core 签发的短期令牌，**自带作用域**
-//!   （租户 + 模型），是出站端点的唯一有效凭据。
+//! * `X-Service-Token`（[`ServiceScope`] / [`AssetScope`]）：core 签发的短期令牌，**自带作用域**
+//!   （租户 + 模型，或租户 + 单个资产），是出站端点的唯一有效凭据。
 //!
 //! 实现成 [`FromRequest`] 而不是中间件，是为了让「没验身份就拿不到入参」这件事由类型系统
 //! 保证：handler 的形参里出现 `ServiceScope`，就等于声明了该端点只对服务身份开放，
 //! 也没有「忘了加守卫」这种可能（中间件写在 scope 上，改一行 wrap 就能漏掉整层）。
+//! 两个提取器各自写死受众：拿嵌入令牌打内容端点会 401，反之亦然。
 
 use std::future::{Ready, ready};
 
@@ -18,7 +19,7 @@ use identity::{PlatformRole, Principal, TenantContext, TenantId, UserId};
 
 use crate::configures::configure::Configure;
 use crate::filters::exception::Exception;
-use crate::services::gateway::service_token::{self, ServiceTokenError};
+use crate::services::gateway::service_token::{self, Audience, ServiceTokenError};
 use crate::utils::code::{auth as auth_codes, system};
 
 /// 服务身份令牌请求头。
@@ -66,6 +67,38 @@ impl ServiceScope {
 /// 与任何真实账号都不冲突（`gateway_usage.userID` 没有外键）。
 pub const SERVICE_ACTOR_ID: uuid::Uuid = uuid::Uuid::nil();
 
+/// 已验签的资产读取作用域（`AssetContent` 受众）。
+///
+/// 与 [`ServiceScope`] 的差别只有一件事：作用域里带的是一个**具体资产**而不是模型。
+/// 于是「拿到的令牌只能读这一个资产」同样是结构上的事实——端点从令牌里取 assetID，
+/// 路径上的 assetID 只用于比对，不用于授权。
+#[derive(Debug, Clone)]
+pub struct AssetScope {
+    tenant_id: TenantId,
+    asset_id: String,
+}
+
+impl AssetScope {
+    /// 作用域租户。
+    #[must_use]
+    pub const fn tenant_id(&self) -> TenantId {
+        self.tenant_id
+    }
+
+    /// 作用域资产 ID（原始字符串，领域层再解析）。
+    #[must_use]
+    pub fn asset_id(&self) -> &str {
+        &self.asset_id
+    }
+
+    /// 该身份在领域层的样子：租户内的一个无成员角色主体。
+    #[must_use]
+    pub fn principal(&self) -> Principal {
+        Principal::new(UserId::from_uuid(SERVICE_ACTOR_ID), PlatformRole::User)
+            .with_tenant(TenantContext::new(self.tenant_id))
+    }
+}
+
 /// 已确认的内部共享调用方（`X-Internal-Token` 校验通过）。
 #[derive(Debug, Clone, Copy)]
 pub struct InternalCaller;
@@ -79,6 +112,15 @@ impl FromRequest for ServiceScope {
     }
 }
 
+impl FromRequest for AssetScope {
+    type Error = Exception;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+        ready(verify_asset(req))
+    }
+}
+
 impl FromRequest for InternalCaller {
     type Error = Exception;
     type Future = Ready<Result<Self, Self::Error>>;
@@ -88,11 +130,39 @@ impl FromRequest for InternalCaller {
     }
 }
 
-/// 校验服务身份令牌，成功返回作用域。
+/// 校验服务身份令牌（嵌入受众），成功返回作用域。
 ///
 /// # Errors
-/// 配置缺失、密钥未启用、请求头缺失/格式错误、签名或有效期不通过。
+/// 配置缺失、密钥未启用、请求头缺失/格式错误、签名/受众/有效期不通过。
 pub fn verify_service(req: &HttpRequest) -> Result<ServiceScope, Exception> {
+    let claims = verify_claims(req, Audience::Embeddings)?;
+    let tenant_id = parse_tenant(&claims.tenant_id)?;
+    // 受众已保证 model 存在且非空（见 `service_token::verify`）。
+    let model = claims.model.unwrap_or_default();
+
+    Ok(ServiceScope { tenant_id, model })
+}
+
+/// 校验服务身份令牌（资产内容受众），成功返回作用域。
+///
+/// # Errors
+/// 同 [`verify_service`]，另加「受众不是资产内容」与「作用域缺少 assetID」。
+pub fn verify_asset(req: &HttpRequest) -> Result<AssetScope, Exception> {
+    let claims = verify_claims(req, Audience::AssetContent)?;
+    let tenant_id = parse_tenant(&claims.tenant_id)?;
+    let asset_id = claims.asset_id.unwrap_or_default();
+
+    Ok(AssetScope {
+        tenant_id,
+        asset_id,
+    })
+}
+
+/// 两条服务身份通道的公共部分：取密钥、验签、按端点受众校验。
+fn verify_claims(
+    req: &HttpRequest,
+    audience: Audience,
+) -> Result<service_token::ServiceClaims, Exception> {
     let config = config(req)?;
     let secret = config.gateway_service_token_secret();
     if secret.is_empty() {
@@ -104,7 +174,7 @@ pub fn verify_service(req: &HttpRequest) -> Result<ServiceScope, Exception> {
     }
 
     let raw = header(req, SERVICE_TOKEN_HEADER, "缺少服务身份令牌")?;
-    let claims = service_token::verify(secret, raw).map_err(|err| match err {
+    service_token::verify(secret, raw, audience).map_err(|err| match err {
         ServiceTokenError::Invalid => {
             Exception::custom(auth_codes::INVALID_CREDENTIALS, "服务身份令牌无效或已过期")
         }
@@ -112,20 +182,13 @@ pub fn verify_service(req: &HttpRequest) -> Result<ServiceScope, Exception> {
             tracing::error!(error = %msg, "服务身份令牌校验异常");
             Exception::internal_error("服务身份令牌校验失败")
         }
-    })?;
-
-    let tenant_id = claims
-        .tenant_id
-        .parse::<uuid::Uuid>()
-        .map(TenantId::from_uuid)
-        .map_err(|_| {
-            Exception::custom(auth_codes::INVALID_CREDENTIALS, "服务身份令牌无效或已过期")
-        })?;
-
-    Ok(ServiceScope {
-        tenant_id,
-        model: claims.model,
     })
+}
+
+fn parse_tenant(raw: &str) -> Result<TenantId, Exception> {
+    raw.parse::<uuid::Uuid>()
+        .map(TenantId::from_uuid)
+        .map_err(|_| Exception::custom(auth_codes::INVALID_CREDENTIALS, "服务身份令牌无效或已过期"))
 }
 
 /// 校验内部共享令牌（core ↔ ai-worker 双向信任的那一把）。
@@ -233,8 +296,10 @@ mod tests {
         let tenant = uuid::Uuid::new_v4();
         let (token, _) = service_token::mint(
             config.gateway_service_token_secret(),
-            &tenant.to_string(),
-            "text-embedding-3-small",
+            service_token::Scope::Embeddings {
+                tenant_id: &tenant.to_string(),
+                model: "text-embedding-3-small",
+            },
             60,
         )
         .unwrap();
@@ -251,6 +316,73 @@ mod tests {
         assert_eq!(principal.tenant_id(), Some(scope.tenant_id()));
         assert_eq!(principal.tenant_role(), None, "服务身份不是租户成员");
         assert_eq!(principal.user_id().as_uuid(), SERVICE_ACTOR_ID);
+    }
+
+    #[test]
+    fn asset_token_yields_asset_scope() {
+        let config = enabled_config();
+        let tenant = uuid::Uuid::new_v4();
+        let (token, _) = service_token::mint(
+            config.gateway_service_token_secret(),
+            service_token::Scope::AssetContent {
+                tenant_id: &tenant.to_string(),
+                asset_id: "0193f0b1-0000-7000-8000-000000000001",
+            },
+            60,
+        )
+        .unwrap();
+        let req = TestRequest::default()
+            .app_data(web::Data::new(std::sync::Arc::new(config)))
+            .insert_header((SERVICE_TOKEN_HEADER, token))
+            .to_http_request();
+
+        let scope = verify_asset(&req).unwrap();
+
+        assert_eq!(scope.tenant_id().as_uuid(), tenant);
+        assert_eq!(scope.asset_id(), "0193f0b1-0000-7000-8000-000000000001");
+        assert_eq!(scope.principal().user_id().as_uuid(), SERVICE_ACTOR_ID);
+    }
+
+    /// 两个提取器写死了各自的受众：令牌串门必须被拒。
+    #[test]
+    fn scopes_do_not_cross_endpoints() {
+        let config = enabled_config();
+        let tenant = uuid::Uuid::new_v4().to_string();
+        let secret = config.gateway_service_token_secret();
+
+        let (embeddings_token, _) = service_token::mint(
+            secret,
+            service_token::Scope::Embeddings {
+                tenant_id: &tenant,
+                model: "m",
+            },
+            60,
+        )
+        .unwrap();
+        let (asset_token, _) = service_token::mint(
+            secret,
+            service_token::Scope::AssetContent {
+                tenant_id: &tenant,
+                asset_id: "asset-1",
+            },
+            60,
+        )
+        .unwrap();
+
+        let with_embeddings = TestRequest::default()
+            .app_data(web::Data::new(std::sync::Arc::new(config.clone())))
+            .insert_header((SERVICE_TOKEN_HEADER, embeddings_token))
+            .to_http_request();
+        let with_asset = TestRequest::default()
+            .app_data(web::Data::new(std::sync::Arc::new(config)))
+            .insert_header((SERVICE_TOKEN_HEADER, asset_token))
+            .to_http_request();
+
+        assert!(
+            verify_asset(&with_embeddings).is_err(),
+            "嵌入令牌不能读内容"
+        );
+        assert!(verify_service(&with_asset).is_err(), "内容令牌不能做嵌入");
     }
 
     #[test]

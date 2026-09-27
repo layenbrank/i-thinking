@@ -28,13 +28,19 @@ pub struct EmbeddingsP {
     pub extra: Map<String, serde_json::Value>,
 }
 
-/// 服务令牌申请：作用域由 core 判定，调用方只能**请求**租户与时长。
+/// 服务令牌申请：作用域由 core 判定，调用方只能**请求**租户、作用域与时长。
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ServiceTokenP {
     #[serde(rename = "tenantID")]
     pub tenant_id: String,
-    pub model: String,
+    /// 作用域：`embeddings`（缺省，嵌入出站）或 `asset-read`（读单个资产内容）。
+    pub scope: Option<String>,
+    /// `scope=embeddings` 时必填：令牌只对这个模型有效。
+    pub model: Option<String>,
+    /// `scope=asset-read` 时必填：令牌只对这个资产有效。
+    #[serde(rename = "assetID")]
+    pub asset_id: Option<String>,
     /// 期望有效期（秒）；缺省用配置值，且一律被上限收敛。
     pub ttl_secs: Option<u64>,
 }
@@ -48,7 +54,14 @@ pub struct ServiceTokenR {
     pub expires_at: i64,
     #[serde(rename = "tenantID")]
     pub tenant_id: String,
-    pub model: String,
+    /// 实际生效的作用域（`embeddings` / `asset-read`）。
+    pub scope: String,
+    /// 仅 `scope=embeddings` 有值。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// 仅 `scope=asset-read` 有值。
+    #[serde(rename = "assetID", skip_serializing_if = "Option::is_none")]
+    pub asset_id: Option<String>,
     /// 固定为 `service`，与用户会话令牌区分。
     pub token_type: String,
 }

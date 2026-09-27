@@ -98,7 +98,6 @@ async fn rag_index_batches_every_step_and_reports_progress() {
             &json!({
                 "tenantID": TENANT,
                 "assetID": ASSET,
-                "objectKey": "tenants/t1/assets/asset-1",
                 "mime": "text/plain",
                 "name": "readme.md",
                 "traceparent": TRACEPARENT,
@@ -138,10 +137,13 @@ async fn rag_index_batches_every_step_and_reports_progress() {
     assert_eq!(chunks[0].method, "POST");
     assert_eq!(chunks[0].internal_token(), "test-internal-token");
     assert_eq!(chunks[0].idempotency_key(), format!("{INSTANCE}:chunk"));
-    assert_eq!(
-        chunks[0].json()["objectKey"],
-        json!("tenants/t1/assets/asset-1")
+    // 对象存储布局是 core 的实现细节：出站请求里不带对象键，正文由 ai-worker 回打内容端点取。
+    assert!(
+        chunks[0].json().get("objectKey").is_none(),
+        "分块请求不该带对象存储键：{}",
+        chunks[0].json()
     );
+    assert_eq!(chunks[0].json()["mime"], json!("text/plain"));
     assert_eq!(chunks[0].json()["name"], json!("readme.md"));
     assert_eq!(chunks[0].json()["schemaVersion"], json!(1));
 

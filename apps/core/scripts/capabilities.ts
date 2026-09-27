@@ -221,9 +221,9 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
       '服务身份端点的机器路径：签发令牌与准备出站各开一段短作用域（只做租户存在性/模型与配额解析），事务在出站前结束'
   },
   'src/services/upload/service.rs': {
-    max: 4,
+    max: 5,
     reason:
-      '资产面请求路径：一次请求内分段开短作用域（秒传引导 AssetContentScope::open、账号 AccountScope::open、读资产 AssetReader::enter），长 CAS I/O 在事务外，不跨网络持有作用域'
+      '资产面请求路径：一次请求内分段开短作用域（秒传引导 AssetContentScope::open、账号 AccountScope::open、读资产 AssetReader::enter、服务身份按租户读内容 TenantScope::open），长 CAS I/O 在事务外，不跨网络持有作用域'
   },
   'src/services/auth/service.rs': {
     max: 2,

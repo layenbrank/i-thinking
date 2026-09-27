@@ -13,9 +13,13 @@ use crate::services::gateway::schema::{
     tag = "Service",
     operation_id = "service.token",
     summary = "服务身份令牌（内部）",
-    description = "**仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，\
-        令牌自带作用域（`tenantID` + `model`）。这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。\
-        换取失败一律按错误信封返回；租户不存在返回 404。",
+    description = "**仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，\n\n\
+        令牌自带作用域：`scope=embeddings`（缺省）限定 `tenantID` + `model`，\n\
+        `scope=asset-read` 限定 `tenantID` + 单个 `assetID`。受众由 `scope` 决定并在消费端点写死，\n\
+        所以换成嵌入的令牌打不开资产内容端点，反之亦然（`300002`，HTTP 401）。\n\
+        这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。\n\
+        换取失败一律按错误信封返回；租户不存在返回 404。`scope=asset-read` 时作用域里引用的资产在签发前先校验：\n\
+        不存在或对本租户不可见返回 `500204`（HTTP 404），尚未完成上传返回 `200003`（HTTP 400）。",
     request_body(content = ServiceTokenP, description = "作用域申请"),
     responses(
         (status = 200, description = "成功（raw JSON，不套信封）", body = ServiceTokenR),
@@ -40,6 +44,29 @@ pub fn service_token_doc() {}
     )
 )]
 pub fn service_embeddings_doc() {}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/service/assets/{id}/content",
+    tag = "Service",
+    operation_id = "service.assetContent",
+    summary = "资产内容读取（内部）",
+    description = "**仅限受信服务进程**：用 `scope=asset-read` 换来的 `X-Service-Token` 按资产 id 读取**原始内容**（流式拼接 CAS 分片）。\n\n\
+        授权来自令牌而不是路径：作用域里的 `assetID` 是唯一授权依据，路径参数只用于比对，\n\
+        不一致返回 `400004`（HTTP 403）——拿 A 的令牌换不出 B 的内容。\n\
+        租户作用域的行级策略决定可见性：别的租户的行等同不存在（`500204`，HTTP 404，不暴露存在性）；\n\
+        本租户内尚未完成上传的资产返回 `200003`。\n\
+        受众是硬边界：嵌入受众的令牌打到这里一律 `300002`（HTTP 401），反之亦然。\n\
+        这是 ai-worker 取分片字节的通道，不做用量计量（计量发生在出站调用上）。",
+    params(
+        ("id" = String, Path, description = "资产 UUID（须与令牌作用域一致）", example = "550e8400-e29b-41d4-a716-446655440000")
+    ),
+    responses(
+        (status = 200, description = "文件二进制流", content_type = "application/octet-stream"),
+        (status = "default", description = "业务异常（令牌无效或过期 / 受众不符 / 作用域与路径不符 / 资产不存在或未完成 / 端点未启用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
+    )
+)]
+pub fn service_asset_content_doc() {}
 
 #[utoipa::path(
     post,

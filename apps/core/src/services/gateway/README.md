@@ -50,8 +50,9 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 
 | 方法 | 路径                          | 鉴权                | 说明                     |
 | ---- | ----------------------------- | ------------------- | ------------------------ |
-| POST | `/api/v1/service/token`       | `X-Internal-Token`  | 换一枚短期嵌入令牌       |
+| POST | `/api/v1/service/token`       | `X-Internal-Token`  | 按 `scope` 换一枚短期令牌（`embeddings` / `asset-read`） |
 | POST | `/api/v1/service/embeddings`  | `X-Service-Token`   | 转发嵌入请求（裸 JSON）  |
+| GET  | `/api/v1/service/assets/{id}/content` | `X-Service-Token` | 按资产 id 读原始字节（`scope=asset-read`，路由挂在 upload 模块） |
 
 ## 目录契约（`GET /models` 与 `GET /admin/models`）
 
@@ -101,31 +102,43 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 ## 服务身份（`/api/v1/service/*`）
 
 AI 计算车间（[`guide/configuration.md`](../../../guide/configuration.md#ai-计算车间ai-worker--orchestrator) 的
-ai-worker）需要嵌入算力，但**出网与计量只能有一个出口**，否则配额与用量就会分裂。所以它自己不算嵌入，
-而是回打 core 的两个端点：先用内部共享令牌换一枚**带作用域的短期令牌**，再用它转发嵌入。
+ai-worker）需要两样东西：**资产正文**（它要自己抽取分块）与**嵌入算力**。两者都不能让它直连：正文
+读的是 core 的对象存储布局，嵌入出的是 core 的配额账。所以它回打 core 的服务身份面：先用内部共享
+令牌换一枚**带作用域的短期令牌**，再用它去取字节或转发嵌入。
 
 ```
-ai-worker ──X-Internal-Token──▶ POST /api/v1/service/token {tenantID, model} ──▶ {token, expiresAt}
-          ──X-Service-Token ──▶ POST /api/v1/service/embeddings {input, …}   ──▶ 上游裸 JSON
+ai-worker ──X-Internal-Token──▶ POST /api/v1/service/token {scope, tenantID, model|assetID} ──▶ {token, expiresAt}
+          ──X-Service-Token ──▶ POST /api/v1/service/embeddings {input, …}            ──▶ 上游裸 JSON
+          ──X-Service-Token ──▶ GET  /api/v1/service/assets/{id}/content              ──▶ 原始字节流
 ```
 
 | 端点                 | 请求头              | 语义                                                                     |
 | -------------------- | ------------------- | ------------------------------------------------------------------------ |
-| `POST /service/token`| `X-Internal-Token`  | 校验租户存在性后签发 HS256 令牌；载荷 `{sub, aud, tenantID, model, exp, iat}` |
+| `POST /service/token`| `X-Internal-Token`  | 按 `scope` 校验（租户存在 + 嵌入模型已声明能力 / 资产可读）后签发 HS256 令牌 |
 | `POST /service/embeddings` | `X-Service-Token` | 按令牌作用域解析模型与配额 → 出站 `/embeddings` → 记账 → **原样返回上游 JSON** |
+| `GET /service/assets/{id}/content` | `X-Service-Token` | 按令牌作用域取 `assetID` 的原始字节（流式拼 CAS 分片），不计量、不记账 |
 
+- **一件受众一件事**：`scope` 决定受众（`embeddings` → `core.service.gateway.embeddings`，
+  `asset-read` → `core.service.asset.content`），受众在端点里写死。拿嵌入令牌打内容端点、或反过来，
+  都是 `300002`（HTTP 401）——「越权」不是一处需要记得写的判断，而是签名载荷里就没有那个受众。
+  不写 `scope` 即默认 `embeddings`（老调用方不用改），非法值直接 `200003`（宁可拒了也不猜）。
 - **令牌不是共享密钥的替代品，而是它的收窄**：共享密钥是长期凭据，落到编排历史或子进程日志里就一直有效；
-  短期令牌把窗口压到分钟级，并且**自带作用域**（租户 + 模型）。请求体里的 `model` 与令牌不一致直接 `200003`，
-  换不了别的租户也换不了别的模型（`model` 只用于告诉上游要哪个模型，由令牌覆盖）。
-- `gateway.service_token_secret` 留空 = 整个服务面**整体关闭**（`100002`，且先于读请求头判断），
+  短期令牌把窗口压到分钟级，并且**自带作用域**（租户 + 模型，或租户 + 单个资产）。请求体里的 `model` 与令牌不一致
+  直接 `200003`，换不了别的租户也换不了别的模型 / 别的资产（`model` 只用于告诉上游要哪个模型，由令牌覆盖）。
+- `gateway.service_token_secret` 留空 = 整个服务面**整体关闭**（`100002`，HTTP 503，且先于读请求头判断），
   没配密钥的部署不会留下一条「谁都能用来烧配额」的裸口子。密钥与 `security.jwt_secret` **必须分开**。
-- `ttlSecs` 由调用方给，服务端收敛到 `[1, gateway.service_token_ttl_secs]` 且硬上限 3600；令牌受众固定为
-  `core.service.gateway.embeddings`、主体固定为 `ai-worker`，所以别的用途的 HS256 令牌拿不进来。
-- 两道头**不可互换**：内部共享令牌只在换令牌时用，服务令牌只在转发时用；换与用都在 core 内完成，
-  所以验签不需要时钟宽限窗口。
+- `ttlSecs` 由调用方给，服务端收敛到 `[1, gateway.service_token_ttl_secs]` 且硬上限 3600；主体固定为
+  `ai-worker`，所以别的用途的 HS256 令牌拿不进来。
+- 两道头**不可互换**：内部共享令牌只在换令牌时用，服务令牌只在取字节 / 转发时用；换与用都在 core 内完成，
+  所以验签不需要时钟宽限窗口（`leeway = 0`）。
+- 内容端点上**授权来自令牌，路径参数只用于比对**：`assetID` 与作用域不一致返回 `400004`（HTTP 403），
+  所以拿 A 的令牌换不出 B 的字节；是否存在由行级策略判定，别的租户的行等同不存在（`500204`，HTTP 404，
+  不暴露存在性），本租户尚未完成上传的资产返回 `200003`。签发时就用同一段判定校验资产，避免「签得出来
+  却读不到」的口径漂移。
 - 计量与用户面**同一套**：同一个 `resolve_quota` + 同一把 `gateway:quota:tenant:{id}:{yyyy-mm-dd}` 键，
   用量行记在令牌租户上（`userID` 为全零 UUID，表示「服务身份」），`audit_enabled` 时另记一条
   `action = gateway.embeddings` 审计。**失败不记账**：上游非 2xx 回 `600005`，不扣配额也不写用量。
+  内容读取是内部读，不进配额也不写用量。
 - 响应是**裸 JSON**（OpenAI 形状），不套 `code/success/data` 信封 —— 上游契约就是最终契约，
   调用方按 OpenAI 客户端解析即可；错误仍是统一信封（`code/msg/timestamp`）。
 - 模型必须声明 `capabilities.embeddings = true`，否则 `200003` —— 不是所有上游供应商都有 `/embeddings`，
@@ -188,6 +201,19 @@ GatewayModule::configure
                                                        └── repository::record_usage / record_audit / index_usage
 ```
 
+同一模块还挂了服务面（无用户 JWT，两道服务头各自校验）：
+
+```
+GatewayModule::configure
+  └── scope("/service")
+        ├── POST /token                    → GatewayController::service_token  → 按 scope 校验 → ServiceToken::mint
+        ├── POST /embeddings               → GatewayController::service_embeddings → ServiceScope::open → GatewayService::embeddings
+        └── GET  /assets/{id}/content      → UploadController::service_content（handler 在 upload 模块，路由挂在这里）
+```
+
+服务面**不分两个** `web::scope`：`/service` 前缀下同一层级只会命中第一个注册的 scope，所以内容端点
+（handler 属于 upload）也登记在这一个 scope 里，见 [`module.rs`](module.rs)。
+
 管理面按 `web::resource` **逐条**注册，不再套第二层 `web::scope("")`：同一层级出现两个空前缀 scope 时，
 actix 的 `ResourceMap` 只在第一个匹配节点内继续查找，后注册的 scope 永远不会命中（管理面曾因此全部 404）。
 
@@ -206,9 +232,13 @@ Target::enter（X-Tenant-ID → 租户作用域 / 账号作用域；作用域即
 
 | code            | 场景                                              |
 | --------------- | ------------------------------------------------- |
-| 200003          | 参数无效（含 `capabilities` 非布尔、占用保留名 `auto`） |
+| 100002          | 服务身份面未启用（`gateway.service_token_secret` 为空，HTTP 503） |
+| 200003          | 参数无效（含 `capabilities` 非布尔、占用保留名 `auto`、非法 `scope`、资产未完成） |
+| 300002          | 服务身份令牌无效 / 已过期 / 受众不符 / 请求头缺失（HTTP 401） |
 | 300006 / 300007 | 权限不足 / 访问被拒绝（模型 `allowRoles` 不允许） |
 | 400001          | 供应商或模型不存在（`model=auto` 时表示没有候选模型） |
+| 400004          | 令牌作用域与路径不符（拿 A 的令牌读 B 的内容） |
 | 400006          | 配额已用尽                                        |
+| 500204          | 资产不存在或对本租户不可见（不暴露存在性）        |
 | 600001          | 数据库错误                                        |
 | 600003          | 配额缓存异常                                      |

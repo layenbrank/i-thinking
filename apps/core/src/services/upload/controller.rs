@@ -9,6 +9,7 @@ use actix_web::{HttpRequest, HttpResponse, Result, web};
 use crate::{
     databases::database::Storage,
     filters::exception::Exception,
+    guards::service::AssetScope,
     guards::session::Session,
     interceptors::envelope::Envelope,
     services::upload::{
@@ -17,6 +18,7 @@ use crate::{
         service::UploadService,
         storage::{self, safe_filename},
     },
+    utils::code::resource,
 };
 
 pub struct UploadController;
@@ -177,16 +179,47 @@ impl UploadController {
         }
     }
 
+    /// 服务身份按资产 id 流式读取内容（`asset-read` 作用域令牌）。
+    ///
+    /// 与 [`serve_asset`](Self::serve_asset) 的差别是凭据：这里没有用户会话，作用域来自令牌
+    /// （租户 + 单个资产）。于是路径参数只用于**比对**，不用于授权——授权的唯一来源是令牌
+    /// 里的 assetID，请求打错资产只会 403，不会被当成「换了个人来读」。
+    pub async fn service_content(
+        db: web::Data<Arc<Storage>>,
+        path: web::Path<String>,
+        scope: AssetScope,
+    ) -> Result<HttpResponse> {
+        if path.into_inner() != scope.asset_id() {
+            // 与资产面的口径一致（`UploadError::Forbidden`）：无权读这个资源，而不是「参数写错了」
+            return Exception::custom(
+                resource::ACCESS_RESTRICTED,
+                "服务身份令牌作用域与该资产不符",
+            )
+            .transform();
+        }
+
+        match UploadService::service_asset_content(&db, scope.tenant_id(), scope.asset_id()).await {
+            Ok((asset, hashes)) => Self::stream_hashes(asset, hashes),
+            Err(err) => Exception::from(err).transform(),
+        }
+    }
+
     async fn stream_asset(
         db: &Arc<Storage>,
         asset: entity::asset::Model,
         user_id: Option<&str>,
     ) -> Result<HttpResponse> {
-        let chunk_hashes = match UploadService::stream_hashes_for_asset(db, &asset, user_id).await {
-            Ok(hashes) => hashes,
-            Err(err) => return Exception::from(err).transform(),
-        };
+        match UploadService::stream_hashes_for_asset(db, &asset, user_id).await {
+            Ok(chunk_hashes) => Self::stream_hashes(asset, chunk_hashes),
+            Err(err) => Exception::from(err).transform(),
+        }
+    }
 
+    /// 分片清单已就位（CAS 已校验）时构造流式响应：用户路径与服务身份路径共用。
+    fn stream_hashes(
+        asset: entity::asset::Model,
+        chunk_hashes: Vec<String>,
+    ) -> Result<HttpResponse> {
         let filename = safe_filename(&asset.name);
         let stream = storage::stream_cas_chunks(chunk_hashes);
         Ok(HttpResponse::Ok()

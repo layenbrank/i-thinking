@@ -41,8 +41,6 @@ pub struct IndexAssetInput {
     pub tenant_id: String,
     #[serde(rename = "assetID")]
     pub asset_id: String,
-    /// 对象存储键（core 侧 `asset.hash` 指向的对象）。
-    pub object_key: String,
     pub mime: String,
     /// 原始文件名，用于抽取器选择策略。
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -109,7 +107,6 @@ pub fn register_activities(activities: Activities, client: Arc<AiWorkerClient>) 
             let request = ChunkRequest {
                 schema_version: INTERNAL_SCHEMA_VERSION,
                 tenant_id: step.tenant_id,
-                object_key: step.object_key,
                 mime: step.mime,
                 name: step.name,
                 chunk_size: None,
@@ -320,7 +317,6 @@ mod tests {
         IndexAssetInput {
             tenant_id: "t-1".into(),
             asset_id: "a-1".into(),
-            object_key: "cas/ab".into(),
             mime: "text/markdown".into(),
             name: Some("readme.md".into()),
             traceparent: None,
@@ -340,7 +336,11 @@ mod tests {
     fn input_round_trips_with_camel_case() {
         let json = encode(&input()).expect("encode");
         assert!(json.contains(r#""tenantID":"t-1""#), "{json}");
-        assert!(json.contains(r#""objectKey":"cas/ab""#), "{json}");
+        assert!(json.contains(r#""mime":"text/markdown""#), "{json}");
+        assert!(
+            !json.contains("objectKey"),
+            "编排输入不该带对象存储键：正文由 ai-worker 回打 core 内容端点取 —— {json}"
+        );
         assert!(!json.contains("traceparent"), "缺省链路不该出现在输入里");
 
         let parsed: IndexAssetInput = decode(&json).expect("decode");

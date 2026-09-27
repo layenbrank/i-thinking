@@ -15,12 +15,15 @@ info:
     三条约定：
 
     1. **方向单向**：只有 core 调 ai-worker。ai-worker 是叶子：不调别的东西、不直连业务表、
-       不持长期云凭据（对象读取凭据由 core 随请求签发/限定作用域）。
-       **唯一例外（P6a 起）**：ai-worker 需要嵌入算力时，只能回打 core 的两个服务身份端点
-       `POST /api/v1/service/token`（用 `X-Internal-Token` 换短期令牌）与
-       `POST /api/v1/service/embeddings`（用 `X-Service-Token` 转发嵌入）。这两条是 core 的
-       公开 OpenAPI（`spec/openapi.json`）的一部分，**不**列在本文件的 `paths` 里——本文件只描述
-       core → ai-worker 的方向。除这两条外，ai-worker 不得对 core 发起任何其他请求。
+       不持长期云凭据、不接触对象存储布局（它拿不到对象存储键，也没有能直接读对象的凭据）。
+       **例外只有三条（P6a / P6b 起）**：ai-worker 需要**资产正文**时，回打 core 的
+       `POST /api/v1/service/token`（用 `X-Internal-Token` 换 `scope=asset-read` 的短期令牌）
+       再带 `X-Service-Token` 调 `GET /api/v1/service/assets/{assetID}/content` 取字节；
+       需要**嵌入算力**时，同样先换 `scope=embeddings` 的令牌，再调
+       `POST /api/v1/service/embeddings` 转发嵌入。这三条是 core 的公开 OpenAPI
+       （`spec/openapi.json`）的一部分，**不**列在本文件的 `paths` 里——本文件只描述
+       core → ai-worker 的方向。除这三条外，ai-worker 不得对 core 发起任何其他请求：
+       令牌自带受众与作用域（租户 + 模型 / 租户 + 单个资产），拿到手就换不了别的用途。
     2. **响应不用公开信封**：内部调用用 HTTP 状态码 + 裸 JSON（公开契约的 `code/message/data`
        信封只服务前端）。错误体统一为 `{"error":{"code","message"}}`。
     3. **写操作必须带幂等键**：`Idempotency-Key` 由 core 用「编排实例 id + 步骤」派生，同一
@@ -79,12 +82,14 @@ paths:
       tags: [rag]
       summary: 抽取文本并分块（core 侧长任务的第一步）
       description: |
-        ai-worker 按对象存储键读取资产、抽取纯文本、切成块并**自己持有块数据**（chunk 表
-        属于 ai-worker）。它只把「切了多少块、块集 id」回给 core —— 文本不进编排历史，
-        否则历史会被正文撑爆，重放成本也会失控。
+        ai-worker 自己把资产正文取来：先回打 core 换一枚 `scope=asset-read` 的服务身份令牌，
+        再带 `X-Service-Token` 调 core 的 `GET /api/v1/service/assets/{assetID}/content`
+        （令牌作用域锁死租户与这一个资产，路径参数只是比对，不符即 403）。取出正文后抽取
+        纯文本、切成块，并**自己持有块数据**（chunk 表属于 ai-worker）。它只把「切了多少块、
+        块集 id」回给 core —— 文本不进编排历史，否则历史会被正文撑爆，重放成本也会失控。
 
         同一个 `Idempotency-Key` 重复调用必须返回同一份 `chunkSetID`，且不重复切分/写入。
-        对象读取凭据由 core 随请求给出，ai-worker 不持有长期的云凭据。
+        对象存储布局只存在于 core 内：请求体里没有对象键，ai-worker 也不持长期的云凭据。
       parameters:
         - $ref: '#/components/parameters/AssetID'
         - $ref: '#/components/parameters/InternalToken'
@@ -292,7 +297,7 @@ components:
 
     ChunkRequest:
       type: object
-      required: [schemaVersion, tenantID, objectKey, mime]
+      required: [schemaVersion, tenantID, mime]
       properties:
         schemaVersion:
           type: integer
@@ -300,11 +305,9 @@ components:
         tenantID:
           type: string
           description: 租户 id；ai-worker 只用于分区与日志，不参与授权判定。
-        objectKey:
-          type: string
-          description: 对象存储键（core 侧 `asset.hash` 对应的对象）。
         mime:
           type: string
+          description: 资产类型（core 的 `asset.mime`）；内容端点响应的 `content-type` 与之同一来源。
         name:
           type: string
           description: 原始文件名，用于抽取器选择策略（可为空）。

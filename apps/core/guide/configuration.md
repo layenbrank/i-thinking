@@ -234,15 +234,26 @@ OOM、断电）时没人续期，租约到期后框架把这一步**重新投给
 `require_ai_worker_settings()` 同样只在 orchestrator 启动路径上校验：地址与令牌必须齐全。
 模型由 core 决定——出网与计量都以 core 的网关为唯一入口，ai-worker 不许自己换模型。
 
-### 嵌入算力回打 core（服务身份）
+### 资产正文与嵌入算力回打 core（服务身份）
 
-ai-worker 是叶子进程，不直连模型厂商，也不持长期云凭据；它要嵌入算力时回打 core 的
-**服务身份面**（契约与语义见 [`src/services/gateway/README.md`](../src/services/gateway/README.md#服务身份apiv1service)）：
+ai-worker 是叶子进程，不直连模型厂商、不碰对象存储布局，也不持长期云凭据；它要算力或资产字节时回打 core 的
+**服务身份面**（契约与语义见 [`src/services/gateway/README.md`](../src/services/gateway/README.md#服务身份apiv1service)）。
+两条链路都是「先换令牌、再用令牌」：
 
-1. `POST /api/v1/service/token`，头 `X-Internal-Token`（值 = `ai_worker.token`），体 `{tenantID, model, ttlSecs?}`
+1. `POST /api/v1/service/token`，头 `X-Internal-Token`（值 = `ai_worker.token`），
+   体 `{scope, tenantID, model?, assetID?, ttlSecs?}`
    → 得到一枚 HS256 短期令牌（`ttlSecs` 收敛到 `1..gateway.service_token_ttl_secs`，硬上限 3600）。
-2. `POST /api/v1/service/embeddings`，头 `X-Service-Token`（上一步的令牌），体 `{input, dimensions?, …}`
-   → core 按令牌作用域解析模型、查配额、出站 `/embeddings`、记账，并把上游裸 JSON 原样返回。
+   `scope` 缺省为 `embeddings`（要 `model`）；`scope=asset-read` 要 `assetID`，签发前先校验该资产对本租户可读，
+   不可读回 `500204`（404）、未完成上传回 `200003`（400）。非法 `scope` 直接 400——宁可拒了也不猜。
+2. 用这枚令牌二选一：
+   - `POST /api/v1/service/embeddings`（`scope=embeddings` 的令牌），头 `X-Service-Token`，体 `{input, dimensions?, …}`
+     → core 按令牌作用域解析模型、查配额、出站 `/embeddings`、记账，并把上游裸 JSON 原样返回。
+   - `GET /api/v1/service/assets/{id}/content`（`scope=asset-read` 的令牌）→ 原始字节流。
+     授权来自令牌里的 `assetID`，路径参数只用于比对：不一致 `400004`（403）。内部读不计量、不记账。
+
+**受众是硬边界**：`scope` 决定 `aud`，且每个端点只认自己的受众，所以嵌入令牌打不开内容端点（反之亦然），
+都是 `300002`（401）。`/chunks` 这类出站请求因此**不带对象键**——正文由 ai-worker 自己回打内容端点取，
+换存储布局不牵动它。
 
 两条约束值得注意：`gateway.service_token_secret` 两侧值是**同一份密钥**（core 用它签发，ai-worker 把它当
 `X-Internal-Token` 发过来），必须通过 `config.local.yaml` / profile 覆盖，因为它同时是「能不能烧配额」的开关；

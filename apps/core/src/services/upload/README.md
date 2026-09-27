@@ -42,10 +42,15 @@
 | GET    | `/api/v1/upload/files`         | JWT    | 本人资产列表（分页）          |
 | GET    | `/api/v1/upload/files/{hash}`  | JWT    | 按 hash 流式下载（仅本人）    |
 | GET    | `/api/v1/upload/asset/{id}`    | 可选 JWT | 按资产 id 流式下载（PUBLIC 可匿名） |
+| GET    | `/api/v1/service/assets/{id}/content` | 服务令牌 | 服务身份读原始字节（叶子服务用，见下） |
+
+> 最后一条**不在** `/upload` 前缀下，也不在本模块注册路由：它是服务身份面的第三个端点，
+> 挂在 [`gateway/module.rs`](../gateway/module.rs) 的 `/service` scope 上，但 handler 与下载逻辑在本模块
+> （否则「能不能读」会有两处判定）。语义见 [`gateway/README.md`](../gateway/README.md#服务身份apiv1service)。
 
 ## 鉴权说明
 
-全路由挂载 [`Auth::isRequired()`](../../guards/auth.rs)；其中 `GET /asset/{id}` 由 [`guards::public`](../../guards/public.rs) 放行匿名（可选 JWT）。
+`/upload` 前缀下全路由挂载 [`Auth::isRequired()`](../../guards/auth.rs)；其中 `GET /asset/{id}` 由 [`guards::public`](../../guards/public.rs) 放行匿名（可选 JWT）。
 
 `prepare` 从请求身份上下文 `Session` 的 `user_id()` 写入 `asset.creator`；`visibility` 默认 `PRIVATE`。  
 `chunk` / `hash` / `finalize` / `progress` / `cancel` 校验归属（仅创建者）。  
@@ -186,6 +191,9 @@ UploadController::toRead_files
 
 UploadController::serve_asset / serve_file
   └── 按序 stream_cas_chunks → 单一响应体
+
+UploadController::service_content（路由挂在 gateway 的 /service scope）
+  └── UploadService::service_asset_content → service_asset_parts（与签发令牌同一段判定）
 ```
 
 常量（[`validation.rs`](validation.rs)）：最大 10GB、分片 10MB~100MB、过期 24h。
@@ -260,6 +268,19 @@ Query：`page`（默认 1）、`size`（默认 20，最大 100）、`status`（�
 | 看得见但无下载权限 | `400004` 资源访问被限制（HTTP 403） |
 | 尚未 `COMPLETED` | `200003` 请求参数值无效：`文件尚未完成上传` |
 | 秒传后的老会话 id | 跟随 `superseded` 指向的目标，再按上表判定 |
+
+### GET /api/v1/service/assets/{id}/content
+
+服务身份读原始字节，给叶子服务（ai-worker）用。与 `GET /upload/asset/{id}` 的差别是**授权来源**：
+
+|  | `/upload/asset/{id}` | `/service/assets/{id}/content` |
+| ---- | ---- | ---- |
+| 身份 | 用户 JWT（可匿名，靠 `PUBLIC`） | `X-Service-Token`（`scope=asset-read`，见 [`gateway/README.md`](../gateway/README.md#服务身份apiv1service)） |
+| 授权依据 | 行可见性 + ACL（`visibility` / `viewers` / 创建者） | 令牌作用域里的单个 `assetID`；**路径参数只用于比对**，不一致 `400004`（403） |
+| 响应 | 同上下载 | 原始字节流，**不计量、不记账** |
+
+可见性口径与上表共用同一段判定（`service_asset_parts`），只是放行条件换成「令牌里就是这个资产」；
+所以「别的租户的行 → 404、未完成 → 400」完全一致。
 
 ## 手工测试
 

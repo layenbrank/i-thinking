@@ -3013,10 +3013,28 @@
         "type": "object"
       },
       "ServiceTokenP": {
-        "description": "服务令牌申请：作用域由 core 判定，调用方只能**请求**租户与时长。",
+        "description": "服务令牌申请：作用域由 core 判定，调用方只能**请求**租户、作用域与时长。",
         "properties": {
+          "assetID": {
+            "description": "`scope=asset-read` 时必填：令牌只对这个资产有效。",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "model": {
-            "type": "string"
+            "description": "`scope=embeddings` 时必填：令牌只对这个模型有效。",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scope": {
+            "description": "作用域：`embeddings`（缺省，嵌入出站）或 `asset-read`（读单个资产内容）。",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tenantID": {
             "type": "string"
@@ -3032,20 +3050,34 @@
           }
         },
         "required": [
-          "tenantID",
-          "model"
+          "tenantID"
         ],
         "type": "object"
       },
       "ServiceTokenR": {
         "description": "服务令牌响应：裸结构、不套信封（调用方是服务进程，不是浏览器）。",
         "properties": {
+          "assetID": {
+            "description": "仅 `scope=asset-read` 有值。",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "expiresAt": {
             "description": "过期时间（Unix 秒），调用方据此决定何时续签。",
             "format": "int64",
             "type": "integer"
           },
           "model": {
+            "description": "仅 `scope=embeddings` 有值。",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scope": {
+            "description": "实际生效的作用域（`embeddings` / `asset-read`）。",
             "type": "string"
           },
           "tenantID": {
@@ -3063,7 +3095,7 @@
           "token",
           "expiresAt",
           "tenantID",
-          "model",
+          "scope",
           "tokenType"
         ],
         "type": "object"
@@ -7399,6 +7431,81 @@
         ]
       }
     },
+    "/api/v1/service/assets/{id}/content": {
+      "get": {
+        "description": "**仅限受信服务进程**：用 `scope=asset-read` 换来的 `X-Service-Token` 按资产 id 读取**原始内容**（流式拼接 CAS 分片）。\n\n授权来自令牌而不是路径：作用域里的 `assetID` 是唯一授权依据，路径参数只用于比对，\n不一致返回 `400004`（HTTP 403）——拿 A 的令牌换不出 B 的内容。\n租户作用域的行级策略决定可见性：别的租户的行等同不存在（`500204`，HTTP 404，不暴露存在性）；\n本租户内尚未完成上传的资产返回 `200003`。\n受众是硬边界：嵌入受众的令牌打到这里一律 `300002`（HTTP 401），反之亦然。\n这是 ai-worker 取分片字节的通道，不做用量计量（计量发生在出站调用上）。",
+        "operationId": "service.assetContent",
+        "parameters": [
+          {
+            "description": "资产 UUID（须与令牌作用域一致）",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {}
+            },
+            "description": "文件二进制流",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（令牌无效或过期 / 受众不符 / 作用域与路径不符 / 资产不存在或未完成 / 端点未启用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "资产内容读取（内部）",
+        "tags": [
+          "Service"
+        ]
+      }
+    },
     "/api/v1/service/embeddings": {
       "post": {
         "description": "**仅限受信服务进程**：用 `X-Service-Token` 携带的短期令牌调用，模型取自令牌作用域（请求体里给了不一致的 `model` 会 400），`input`/`dimensions` 等字段原样透传给上游供应商。core 仍是唯一出网点：配额预检、用量与审计记账都走与聊天相同的路径。",
@@ -7481,7 +7588,7 @@
     },
     "/api/v1/service/token": {
       "post": {
-        "description": "**仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，令牌自带作用域（`tenantID` + `model`）。这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。换取失败一律按错误信封返回；租户不存在返回 404。",
+        "description": "**仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，\n\n令牌自带作用域：`scope=embeddings`（缺省）限定 `tenantID` + `model`，\n`scope=asset-read` 限定 `tenantID` + 单个 `assetID`。受众由 `scope` 决定并在消费端点写死，\n所以换成嵌入的令牌打不开资产内容端点，反之亦然（`300002`，HTTP 401）。\n这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。\n换取失败一律按错误信封返回；租户不存在返回 404。`scope=asset-read` 时作用域里引用的资产在签发前先校验：\n不存在或对本租户不可见返回 `500204`（HTTP 404），尚未完成上传返回 `200003`（HTTP 400）。",
         "operationId": "service.token",
         "parameters": [
           {

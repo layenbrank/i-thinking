@@ -586,6 +586,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service/assets/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 资产内容读取（内部）
+         * @description **仅限受信服务进程**：用 `scope=asset-read` 换来的 `X-Service-Token` 按资产 id 读取**原始内容**（流式拼接 CAS 分片）。
+         *
+         *     授权来自令牌而不是路径：作用域里的 `assetID` 是唯一授权依据，路径参数只用于比对，
+         *     不一致返回 `400004`（HTTP 403）——拿 A 的令牌换不出 B 的内容。
+         *     租户作用域的行级策略决定可见性：别的租户的行等同不存在（`500204`，HTTP 404，不暴露存在性）；
+         *     本租户内尚未完成上传的资产返回 `200003`。
+         *     受众是硬边界：嵌入受众的令牌打到这里一律 `300002`（HTTP 401），反之亦然。
+         *     这是 ai-worker 取分片字节的通道，不做用量计量（计量发生在出站调用上）。
+         */
+        get: operations["service.assetContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/service/embeddings": {
         parameters: {
             query?: never;
@@ -617,7 +644,14 @@ export interface paths {
         put?: never;
         /**
          * 服务身份令牌（内部）
-         * @description **仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，令牌自带作用域（`tenantID` + `model`）。这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。换取失败一律按错误信封返回；租户不存在返回 404。
+         * @description **仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，
+         *
+         *     令牌自带作用域：`scope=embeddings`（缺省）限定 `tenantID` + `model`，
+         *     `scope=asset-read` 限定 `tenantID` + 单个 `assetID`。受众由 `scope` 决定并在消费端点写死，
+         *     所以换成嵌入的令牌打不开资产内容端点，反之亦然（`300002`，HTTP 401）。
+         *     这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。
+         *     换取失败一律按错误信封返回；租户不存在返回 404。`scope=asset-read` 时作用域里引用的资产在签发前先校验：
+         *     不存在或对本租户不可见返回 `500204`（HTTP 404），尚未完成上传返回 `200003`（HTTP 400）。
          */
         post: operations["service.token"];
         delete?: never;
@@ -2356,9 +2390,14 @@ export interface components {
              */
             used: number;
         };
-        /** @description 服务令牌申请：作用域由 core 判定，调用方只能**请求**租户与时长。 */
+        /** @description 服务令牌申请：作用域由 core 判定，调用方只能**请求**租户、作用域与时长。 */
         ServiceTokenP: {
-            model: string;
+            /** @description `scope=asset-read` 时必填：令牌只对这个资产有效。 */
+            assetID?: string | null;
+            /** @description `scope=embeddings` 时必填：令牌只对这个模型有效。 */
+            model?: string | null;
+            /** @description 作用域：`embeddings`（缺省，嵌入出站）或 `asset-read`（读单个资产内容）。 */
+            scope?: string | null;
             tenantID: string;
             /**
              * Format: int64
@@ -2368,12 +2407,17 @@ export interface components {
         };
         /** @description 服务令牌响应：裸结构、不套信封（调用方是服务进程，不是浏览器）。 */
         ServiceTokenR: {
+            /** @description 仅 `scope=asset-read` 有值。 */
+            assetID?: string | null;
             /**
              * Format: int64
              * @description 过期时间（Unix 秒），调用方据此决定何时续签。
              */
             expiresAt: number;
-            model: string;
+            /** @description 仅 `scope=embeddings` 有值。 */
+            model?: string | null;
+            /** @description 实际生效的作用域（`embeddings` / `asset-read`）。 */
+            scope: string;
             tenantID: string;
             token: string;
             /** @description 固定为 `service`，与用户会话令牌区分。 */
@@ -4314,6 +4358,48 @@ export interface operations {
                 };
             };
             /** @description 业务异常（未登录或参数/ES 错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "service.assetContent": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path: {
+                /**
+                 * @description 资产 UUID（须与令牌作用域一致）
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 文件二进制流 */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description 业务异常（令牌无效或过期 / 受众不符 / 作用域与路径不符 / 资产不存在或未完成 / 端点未启用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
             default: {
                 headers: {
                     /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */

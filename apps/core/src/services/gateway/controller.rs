@@ -30,7 +30,8 @@ use crate::services::gateway::schema::{
     ProviderWriteP, SelfQuotaP, ServiceTokenP, ServiceTokenR, UsageQueryP,
 };
 use crate::services::gateway::service::{GatewayError, GatewayService};
-use crate::services::gateway::service_token;
+use crate::services::gateway::service_token::{self, Audience};
+use crate::services::upload::service::UploadService;
 use crate::utils::code::{external, system};
 
 pub struct GatewayController;
@@ -155,11 +156,14 @@ impl GatewayController {
     /// 服务身份出站：申请一枚短期令牌。
     ///
     /// 调用方是受信服务进程（当前只有 ai-worker），用它自己的共享令牌（`X-Internal-Token`）
-    /// 换取一枚**带作用域**的短期令牌。响应是裸结构而不是信封：取令牌的是机器，
-    /// 出错时才走信封（与 chat 的返回形状口径一致）。
+    /// 换取一枚**带作用域**的短期令牌。作用域有两件事：嵌入出站（租户 + 模型）与资产内容
+    /// （租户 + 单个资产）；一件事一个受众，令牌串门会在端点侧被拒。响应是裸结构而不是
+    /// 信封：取令牌的是机器，出错时才走信封（与 chat 的返回形状口径一致）。
     ///
-    /// 这里只校验「租户存在」——模型是否存在、是否声明嵌入能力，由真正出站的那次调用
-    /// （[`service_embeddings`](Self::service_embeddings)）判定，令牌段不做多余查库。
+    /// 这里只校验「租户存在」与「资产在本租户可见且已完成」——模型是否存在、是否声明嵌入
+    /// 能力，由真正出站的那次调用（[`service_embeddings`](Self::service_embeddings)）判定，
+    /// 令牌段不做多余查库。资产那一项必须在这里查：令牌一旦签出去就无法收回，
+    /// 不能在签发时放过一个读不到的资产。
     pub async fn service_token(
         db: web::Data<Arc<Storage>>,
         config: web::Data<Arc<Configure>>,
@@ -172,20 +176,58 @@ impl GatewayController {
             .parse::<Uuid>()
             .map(TenantId::from_uuid)
             .map_err(|_| Exception::bad_request("租户ID格式无效"))?;
-        let model = req.model.trim();
-        if model.is_empty() {
-            return Exception::bad_request("model 不能为空").transform();
-        }
+        let audience = match req.scope.as_deref().map(str::trim) {
+            None | Some("") => Audience::Embeddings,
+            Some(raw) => match Audience::from_scope(raw) {
+                Some(audience) => audience,
+                None => {
+                    return Exception::bad_request("scope 仅支持 embeddings 或 asset-read")
+                        .transform();
+                }
+            },
+        };
+        // 作用域必填字段按受众判定：嵌入要模型，内容要资产——两者都在请求体里，
+        // 但真正生效的永远是签名进令牌的那一份。
+        let model = match audience {
+            Audience::Embeddings => {
+                let model = req.model.as_deref().unwrap_or_default().trim();
+                if model.is_empty() {
+                    return Exception::bad_request("model 不能为空").transform();
+                }
+                Some(model.to_string())
+            }
+            Audience::AssetContent => None,
+        };
+        let asset_id = match audience {
+            Audience::AssetContent => {
+                let asset_id = req.asset_id.as_deref().unwrap_or_default().trim();
+                if asset_id.is_empty() {
+                    return Exception::bad_request("assetID 不能为空").transform();
+                }
+                Some(asset_id.to_string())
+            }
+            Audience::Embeddings => None,
+        };
 
         let scope = TenantScope::open(&db, tenant_id).await.map_err(db_error)?;
         let known = tenant::Entity::find_by_id(tenant_id.as_uuid())
             .one(scope.tx())
             .await;
+        // 资产存在性检查复用读内容时的同一处判定，两处口径不会漂移。
+        let readable = match (known.as_ref(), asset_id.as_deref()) {
+            (Ok(Some(_)), Some(asset_id)) => {
+                Some(UploadService::service_asset_parts(scope.tx(), asset_id).await)
+            }
+            _ => None,
+        };
         scope.rollback().await.map_err(db_error)?;
         match known {
             Ok(Some(_)) => {}
             Ok(None) => return Exception::not_found("租户不存在").transform(),
             Err(err) => return db_error(err).transform(),
+        }
+        if let Some(Err(err)) = readable {
+            return Exception::from(err).transform();
         }
 
         let secret = config.gateway_service_token_secret();
@@ -198,19 +240,30 @@ impl GatewayController {
             .ttl_secs
             .unwrap_or_else(|| config.gateway_service_token_ttl_secs())
             .clamp(1, SERVICE_TOKEN_MAX_TTL_SECS);
-        let (token, expires_at) =
-            service_token::mint(secret, &tenant_id.as_uuid().to_string(), model, ttl).map_err(
-                |err| {
-                    tracing::error!(error = %err, "服务身份令牌签发失败");
-                    Exception::internal_error("服务身份令牌签发失败")
-                },
-            )?;
+        let tenant_raw = tenant_id.as_uuid().to_string();
+        let token_scope = match (model.as_deref(), asset_id.as_deref()) {
+            (Some(model), _) => service_token::Scope::Embeddings {
+                tenant_id: &tenant_raw,
+                model,
+            },
+            (None, Some(asset_id)) => service_token::Scope::AssetContent {
+                tenant_id: &tenant_raw,
+                asset_id,
+            },
+            (None, None) => unreachable!("作用域必填字段已在上面校验"),
+        };
+        let (token, expires_at) = service_token::mint(secret, token_scope, ttl).map_err(|err| {
+            tracing::error!(error = %err, "服务身份令牌签发失败");
+            Exception::internal_error("服务身份令牌签发失败")
+        })?;
 
         Ok(HttpResponse::Ok().json(ServiceTokenR {
             token,
             expires_at,
-            tenant_id: tenant_id.as_uuid().to_string(),
-            model: model.to_string(),
+            tenant_id: tenant_raw,
+            scope: audience.scope().to_string(),
+            model,
+            asset_id,
             token_type: "service".to_string(),
         }))
     }

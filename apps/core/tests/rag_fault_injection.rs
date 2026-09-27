@@ -88,7 +88,6 @@ async fn killed_orchestrator_resumes_in_flight_step_without_replaying_finished_o
             &json!({
                 "tenantID": TENANT,
                 "assetID": ASSET,
-                "objectKey": "tenants/t2/assets/asset-fault",
                 "mime": "application/pdf",
             }),
         )

@@ -76,6 +76,7 @@ pub const GATEWAY_PLANS: &str = "/api/v1/gateway/plans";
 // --- Service（服务身份出站面，非用户面） ---
 pub const SERVICE_TOKEN: &str = "/api/v1/service/token";
 pub const SERVICE_EMBEDDINGS: &str = "/api/v1/service/embeddings";
+pub const SERVICE_ASSET_CONTENT: &str = "/api/v1/service/assets/{id}/content";
 
 // --- SSO ---
 pub const SSO_CONNECTIONS: &str = "/api/v1/sso/connections";
@@ -356,6 +357,10 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "POST",
         path: SERVICE_EMBEDDINGS,
+    },
+    RouteDef {
+        method: "GET",
+        path: SERVICE_ASSET_CONTENT,
     },
     RouteDef {
         method: "GET",

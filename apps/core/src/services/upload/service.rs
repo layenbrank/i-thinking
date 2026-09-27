@@ -7,12 +7,13 @@
 //! 「指向不存在目标」的会话。
 
 use entity::asset;
-use identity::UserId;
+use identity::{TenantId, UserId};
 use sea_orm::{DatabaseTransaction, DbErr};
 
 use crate::databases::database::Storage;
 use crate::guards::account::AccountScope;
 use crate::guards::asset::{AssetContentScope, AssetReader};
+use crate::guards::tenant::TenantScope;
 use crate::services::upload::error::UploadError;
 use crate::services::upload::repository;
 use crate::services::upload::schema::{
@@ -407,6 +408,42 @@ impl UploadService {
         Ok(hashes)
     }
 
+    /// 服务身份按 **(租户, 资产)** 取内容：`asset-read` 令牌的落地方式。
+    ///
+    /// 与用户路径的差别只在「凭据从哪来」：这里没有账号，只有租户作用域，于是行级策略
+    /// 只放行本租户可见的行——别的租户的 `PRIVATE` 行根本查不到（404，连存在性都不外泄）。
+    /// 令牌里的 assetID 由调用方比对，本函数不做 ACL 判定：作用域已经把它定死在一个资产上，
+    /// 再补一层「像用户那样判权」只会多出一处可能与策略漂移的判定。
+    pub async fn service_asset_content(
+        db: &Storage,
+        tenant_id: TenantId,
+        asset_id: &str,
+    ) -> Result<(asset::Model, Vec<String>), UploadError> {
+        let scope = tenant_scope(db, tenant_id).await?;
+        let loaded = Self::service_asset_parts(scope.tx(), asset_id).await;
+        scope.rollback().await.map_err(db_error)?;
+        let (asset, hashes) = loaded?;
+        // 跨事务的文件 I/O 绝不持连接：CAS 就位校验放在事务外。
+        storage::ensure_cas_present(&hashes).await?;
+        Ok((asset, hashes))
+    }
+
+    /// 在**已开好的**作用域里确认「资产可见且已完成」并取分片清单。
+    ///
+    /// 单独暴露是给签发内容令牌用的：令牌段只要知道「这个资产确实可读」，不必再开一个事务；
+    /// 签发与读内容共用同一处判定，两处口径不会漂移。
+    pub async fn service_asset_parts(
+        tx: &DatabaseTransaction,
+        asset_id: &str,
+    ) -> Result<(asset::Model, Vec<String>), UploadError> {
+        let asset = repository::find_by_id(tx, asset_id).await?;
+        if UploadStatus::from_db(&asset.status) != UploadStatus::Completed {
+            return Err(UploadError::BadRequest("文件尚未完成上传".into()));
+        }
+        let hashes = repository::ordered_chunk_hashes(tx, &asset).await?;
+        Ok((asset, hashes))
+    }
+
     /// 自己已有同布局的完成资产：上传其实早就完成了，给回同一行（幂等）。
     async fn reuse_own(
         db: &Storage,
@@ -502,6 +539,11 @@ async fn reader(db: &Storage, user_id: Option<&str>) -> Result<AssetReader, Uplo
         None => None,
     };
     AssetReader::enter(db, user_id).await.map_err(db_error)
+}
+
+/// 服务身份读资产的作用域：机器路径没有账号，只有租户。
+async fn tenant_scope(db: &Storage, tenant_id: TenantId) -> Result<TenantScope, UploadError> {
+    TenantScope::open(db, tenant_id).await.map_err(db_error)
 }
 
 /// 守卫的错误只有一种来源：事务开不起来。

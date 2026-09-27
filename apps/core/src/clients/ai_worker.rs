@@ -325,13 +325,16 @@ fn truncate(value: &str, max: usize) -> String {
     format!("{}...", &value[..end])
 }
 
+/// 分块请求：只说「租户 + 资产 + 类型」，**不带对象存储键**。
+///
+/// 正文由 ai-worker 自己回打 core 的 `GET /api/v1/service/assets/{assetID}/content`
+/// （先换 `scope=asset-read` 的服务身份令牌）取，CAS 布局不外泄给叶子服务。
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChunkRequest {
     pub schema_version: i32,
     #[serde(rename = "tenantID")]
     pub tenant_id: String,
-    pub object_key: String,
     pub mime: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -481,7 +484,6 @@ mod tests {
         let request = ChunkRequest {
             schema_version: INTERNAL_SCHEMA_VERSION,
             tenant_id: "t-1".into(),
-            object_key: "cas/ab".into(),
             mime: "text/markdown".into(),
             name: None,
             chunk_size: None,
@@ -490,7 +492,11 @@ mod tests {
         let json = serde_json::to_value(&request).expect("serialize");
         assert_eq!(json["schemaVersion"], serde_json::json!(1));
         assert_eq!(json["tenantID"], serde_json::json!("t-1"));
-        assert_eq!(json["objectKey"], serde_json::json!("cas/ab"));
+        assert_eq!(json["mime"], serde_json::json!("text/markdown"));
         assert!(json.get("name").is_none());
+        assert!(
+            json.get("objectKey").is_none(),
+            "对象存储键是对外泄漏实现细节，读取走 core 的服务身份内容端点"
+        );
     }
 }

@@ -1,8 +1,12 @@
-//! 服务身份出站面的端到端验证（P6a）。
+//! 服务身份面的端到端验证（P6a / P6b-1）。
 //!
 //! 这是 core 第一次对外提供「机器调用机器」的接口：受信服务进程（当前只有 ai-worker）用
 //! 共享令牌换一枚**带作用域**的短期令牌，再拿这枚令牌把嵌入调用打回 core——出网与计量
 //! 都留在 core 这一侧，服务进程自己不需要供应商密钥。
+//!
+//! 令牌按**受众**分发、一件受众一件事：`embeddings` 只能打嵌入端点，`asset-read` 只能
+//! 按令牌里写死的那个资产打内容端点。内容端点是同一副面孔的另一半——ai-worker 要切分
+//! 文件，就得有人把字节递过去，而字节只有 core 这一侧存着（CAS）。
 //!
 //! 需要独立测试库（库名必须含 `test`，避免误伤开发库）与一个真 Redis：
 //!
@@ -16,14 +20,20 @@
 //! （失败只留日志），这里把它指向本地桩，断言只盯 Postgres 与 Redis 上的记账。
 //!
 //! 覆盖的都是用户面测不到、而这条路径上真会出事的地方：两道请求头不能互换、共享密钥留空
-//! 即整面关闭、令牌自带的租户/模型作用域无法被请求体放大、以及服务调用的用量必须和用户
-//! 调用走同一套配额与审计（否则「gateway 是唯一出网点」这句话就漏在服务调用上）。
+//! 即整面关闭、令牌自带的租户/模型作用域无法被请求体放大、两类受众不能互相串门、以及
+//! 服务调用的用量必须和用户调用走同一套配额与审计（否则「gateway 是唯一出网点」这句话
+//! 就漏在服务调用上）。
+//!
+//! 内容端点还会把文件真写到 `cas/`（相对 cwd，和开发环境同一个目录），所以用例的内容里
+//! 带随机后缀，收尾只删自己**新建**过的那些对象。
 
 mod support;
 
+use std::cell::RefCell;
 use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 
+use actix_web::http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use actix_web::{App, test, web};
 use migration::MigratorTrait;
 use sea_orm::{
@@ -39,8 +49,9 @@ use service::guards::service::{INTERNAL_TOKEN_HEADER, SERVICE_ACTOR_ID, SERVICE_
 use service::oas::paths;
 use service::services::gateway::module::GatewayModule;
 use service::services::gateway::quota;
-use service::services::gateway::service_token;
-use service::utils::code::{auth, external, request as request_codes, resource, system};
+use service::services::gateway::service_token::{self, Audience, Scope};
+use service::services::upload::storage;
+use service::utils::code::{auth, business, external, request as request_codes, resource, system};
 use support::{StubHttp, StubResponse, bypass_proxy_for_local_stubs, test_database_url};
 use tokio::sync::Mutex;
 use uuid::Uuid;
@@ -91,8 +102,35 @@ struct Fixture {
     /// 乙租户私有模型（用来验证跨租户不可见）。
     model_b: Uuid,
     model_b_name: String,
+    /// `asset-read` 受众用到的样本资产（跨租户 / 未完成两条都要有）。
+    assets: Assets,
+    /// 本次用例写进 CAS 的文件（`cas/` 与开发环境共用）：用例结束删掉，只删自己新建的。
+    cas_files: RefCell<Vec<String>>,
     /// Elasticsearch 桩：只为让 `EsClient::new` 的 `ping` 有个应答。
     _es_stub: StubHttp,
+}
+
+/// 内容端点的样本资产：可读的一份、别的租户的一份、本租户未完成的一份。
+#[derive(Default)]
+struct Assets {
+    tenant_a: SeededAsset,
+    tenant_b: SeededAsset,
+    pending: SeededAsset,
+}
+
+/// 一份资产在库里的 id 与它在 CAS 里的明文——断言要拿两者直接对拍。
+#[derive(Default)]
+struct SeededAsset {
+    id: Uuid,
+    content: String,
+}
+
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        for hash in self.cas_files.borrow().iter() {
+            let _ = std::fs::remove_file(storage::cas_path(hash));
+        }
+    }
 }
 
 /// 只挂网关模块的最小 App：`/api/v1` 前缀与生产一致，中间件与鉴权不参与断言。
@@ -226,7 +264,7 @@ async fn setup(upstream_base_url: &str, service_secret: Option<&str>) -> Option<
     let suffix = Uuid::new_v4().simple().to_string();
     let suffix = &suffix[..8];
 
-    let fixture = Fixture {
+    let mut fixture = Fixture {
         admin,
         shared: Shared {
             storage: Arc::new(Storage::from_parts(
@@ -254,15 +292,21 @@ async fn setup(upstream_base_url: &str, service_secret: Option<&str>) -> Option<
         model_plain_name: format!("svc-plain-{suffix}"),
         model_b: Uuid::new_v4(),
         model_b_name: format!("svc-embed-b-{suffix}"),
+        assets: Assets::default(),
+        cas_files: RefCell::new(Vec::new()),
         _es_stub: es_stub,
     };
-    seed(&fixture, upstream_base_url).await;
+    let assets = seed(&fixture, upstream_base_url).await;
+    fixture.assets = assets;
 
     Some(fixture)
 }
 
 /// 两个租户各一条目录行；甲租户下三个模型：一个声明嵌入能力、一个没声明、一个是乙租户私有（同样声明了能力）。
-async fn seed(fixture: &Fixture, upstream_base_url: &str) {
+///
+/// 顺带种下 `asset-read` 要读的三份资产：甲租户可读的一份、乙租户的一份（验证作用域不会
+/// 被路径放大）、甲租户**未完成**的一份（验证未完成的上传签发不出读取令牌）。
+async fn seed(fixture: &Fixture, upstream_base_url: &str) -> Assets {
     let admin = &fixture.admin;
 
     for (tag, tenant) in [("a", fixture.tenant_a), ("b", fixture.tenant_b)] {
@@ -319,6 +363,88 @@ async fn seed(fixture: &Fixture, upstream_base_url: &str) {
         )
         .await;
     }
+
+    // 内容都带随机后缀：`cas/` 是所有用例（也是开发环境）共用的目录，内容不同才不会互相命中
+    let suffix = Uuid::new_v4().simple().to_string();
+    let suffix = &suffix[..8];
+    Assets {
+        tenant_a: seed_asset(
+            fixture,
+            fixture.tenant_a,
+            "COMPLETED",
+            &[
+                &format!("alpha-{suffix}-"),
+                &format!("beta-{suffix}-"),
+                &format!("gamma-{suffix}"),
+            ],
+        )
+        .await,
+        tenant_b: seed_asset(
+            fixture,
+            fixture.tenant_b,
+            "COMPLETED",
+            &[&format!("other-tenant-{suffix}")],
+        )
+        .await,
+        pending: seed_asset(
+            fixture,
+            fixture.tenant_a,
+            "UPLOADING",
+            &[&format!("half-uploaded-{suffix}")],
+        )
+        .await,
+    }
+}
+
+/// 种一份「库里的行 + CAS 里的字节都自洽」的资产：分片按内容寻址写进 CAS，`asset` / `chunk`
+/// 两行按同一份分片清单登记。
+///
+/// 走的是真文件系统（内容端点真的会去读 `cas/`），所以用 `store_cas` 而不是手工造目录，并在
+/// 返回时记下**新建**的对象，交给 [`Fixture::drop`] 收拾——已经存在（说明别人写过同一份内容）
+/// 的就不能删。
+async fn seed_asset(fixture: &Fixture, tenant: Uuid, status: &str, chunks: &[&str]) -> SeededAsset {
+    let id = Uuid::new_v4();
+    let content = chunks.concat();
+
+    // 行级策略按「本租户」放行 asset 的只读分支，`creator` 留空即可（服务身份不是某个用户）
+    exec(
+        &fixture.admin,
+        &format!(
+            r#"INSERT INTO asset
+                 (id, "tenantID", kind, hash, size, "index", mime, name, status, visibility,
+                  chunk, total, "createdAt", "updatedAt")
+               VALUES ('{id}', '{tenant}', 'file', '{}', {}, 0, 'text/plain', 'svc-{id}',
+                       '{status}', 'PRIVATE', {}, {}, now(), now())"#,
+            storage::calculate_hash(content.as_bytes()),
+            content.len() as i64,
+            chunks.first().map_or(0, |chunk| chunk.len() as i32),
+            chunks.len() as i32
+        ),
+    )
+    .await;
+
+    // 分片行带 asset 外键，所以必须排在 asset 之后
+    for (index, chunk) in chunks.iter().enumerate() {
+        let hash = storage::calculate_hash(chunk.as_bytes());
+        let reused = storage::store_cas(&hash, chunk.as_bytes())
+            .await
+            .expect("写 CAS 失败");
+        if !reused {
+            fixture.cas_files.borrow_mut().push(hash.clone());
+        }
+        exec(
+            &fixture.admin,
+            &format!(
+                r#"INSERT INTO chunk (id, "assetID", "index", hash, size, "createdAt")
+                   VALUES ('{}', '{id}', {index}, '{hash}', {}, now())"#,
+                Uuid::new_v4(),
+                chunk.len() as i64
+            ),
+        )
+        .await;
+    }
+
+    SeededAsset { id, content }
 }
 
 /// 发一条请求，读出 `(HTTP 状态, JSON 体)`。
@@ -336,6 +462,22 @@ macro_rules! call {
                 status,
                 serde_json::from_slice::<Value>(&body).unwrap_or(Value::Null),
             )
+        }
+    };
+}
+
+/// 发一条请求，读出 `(HTTP 状态, 响应头, 原始字节)`。
+///
+/// 内容端点回的是文件本身而不是 JSON，所以要能拿到字节流与头部——与 `cas/` 里的明文逐字节
+/// 对拍这件事，只能这么验。
+macro_rules! call_raw {
+    ($app:expr, $request:expr $(,)?) => {
+        async {
+            let response = test::call_service(&$app, $request.to_request()).await;
+            let status = response.status().as_u16();
+            let headers = response.headers().clone();
+
+            (status, headers, test::read_body(response).await)
         }
     };
 }
@@ -363,6 +505,25 @@ fn embeddings_request(token: &str, body: Value) -> test::TestRequest {
         .uri(paths::SERVICE_EMBEDDINGS)
         .insert_header((SERVICE_TOKEN_HEADER, token))
         .set_json(body)
+}
+
+/// 申请一枚**内容读取**令牌（`scope = asset-read`）：作用域是「一个租户的一个资产」。
+fn asset_token_request(tenant: Uuid, scope: &str, asset_id: &str) -> test::TestRequest {
+    test::TestRequest::post()
+        .uri(paths::SERVICE_TOKEN)
+        .insert_header((INTERNAL_TOKEN_HEADER, INTERNAL_TOKEN))
+        .set_json(json!({
+            "tenantID": tenant.to_string(),
+            "scope": scope,
+            "assetID": asset_id,
+        }))
+}
+
+/// 打内容端点。路径里的 `{id}` 占位符是给文档/路由清单用的，请求时得换成真 id。
+fn asset_content_request(asset_id: &str, token: &str) -> test::TestRequest {
+    test::TestRequest::get()
+        .uri(&paths::SERVICE_ASSET_CONTENT.replace("{id}", asset_id))
+        .insert_header((SERVICE_TOKEN_HEADER, token))
 }
 
 /// 上游在 `usage` 里报 [`TOTAL_TOKENS`] 个 token，并回一条可识别的向量。
@@ -406,11 +567,29 @@ macro_rules! token_for_own_model {
     };
 }
 
-/// 令牌里的作用域就是 core 认定的作用域：验签一遍再断言，而不是只信响应字段。
-fn claims_of(body: &Value) -> service_token::ServiceClaims {
+/// 用正确的内部令牌换一枚**内容读取**令牌（断言 200），返回响应体。
+macro_rules! mint_asset_token {
+    ($app:expr, $tenant:expr, $asset:expr $(,)?) => {
+        async {
+            let (status, body) =
+                call!($app, asset_token_request($tenant, "asset-read", $asset)).await;
+            assert_eq!(status, 200, "签发资产读取令牌失败：{body}");
+
+            body
+        }
+    };
+}
+
+/// 从响应体里取令牌串。
+fn token_of(body: &Value) -> String {
+    body["token"].as_str().expect("响应缺少 token").to_owned()
+}
+
+/// 令牌里的作用域就是 core 认定的作用域：按该端点的受众验签一遍再断言，而不是只信响应字段。
+fn claims_of(body: &Value, audience: Audience) -> service_token::ServiceClaims {
     let token = body["token"].as_str().expect("响应缺少 token");
 
-    service_token::verify(SERVICE_SECRET, token).expect("刚签发的令牌应当可验签")
+    service_token::verify(SERVICE_SECRET, token, audience).expect("刚签发的令牌应当可验签")
 }
 
 #[actix_web::test]
@@ -446,8 +625,15 @@ async fn internal_token_is_required_and_not_interchangeable() {
     assert_eq!(status, 401);
 
     // 拿**合法的服务令牌**冒充内部令牌：两道头对应两种信任，不能互换
-    let (minted, _) =
-        service_token::mint(SERVICE_SECRET, &fixture.tenant_a.to_string(), "m", 60).unwrap();
+    let (minted, _) = service_token::mint(
+        SERVICE_SECRET,
+        Scope::Embeddings {
+            tenant_id: &fixture.tenant_a.to_string(),
+            model: &fixture.model_embed_name,
+        },
+        60,
+    )
+    .unwrap();
     let (status, _) = call!(
         &app,
         test::TestRequest::post()
@@ -551,11 +737,18 @@ async fn token_carries_scope_and_clamps_ttl() {
     assert_eq!(body["tokenType"], json!("service"));
     assert_eq!(body["model"], json!(fixture.model_embed_name));
     assert_eq!(body["tenantID"], json!(fixture.tenant_a.to_string()));
+    // 不写 scope 就是嵌入：默认值是唯一的，不能靠调用方每次都记得写
+    assert_eq!(body["scope"], json!("embeddings"));
+    assert!(body.get("assetID").is_none(), "嵌入令牌不该带 assetID");
 
-    let claims = claims_of(&body);
+    let claims = claims_of(&body, Audience::Embeddings);
     assert_eq!(claims.sub, service_token::SUBJECT);
-    assert_eq!(claims.aud, service_token::AUDIENCE);
-    assert_eq!(claims.model, fixture.model_embed_name);
+    assert_eq!(claims.aud, service_token::AUDIENCE_EMBEDDINGS);
+    assert_eq!(
+        claims.model.as_deref(),
+        Some(fixture.model_embed_name.as_str())
+    );
+    assert!(claims.asset_id.is_none());
     assert_eq!(claims.tenant_id, fixture.tenant_a.to_string());
     assert_eq!(body["expiresAt"], json!(claims.exp));
     assert_eq!(claims.exp - claims.iat, SERVICE_TOKEN_TTL_SECS as i64);
@@ -568,7 +761,7 @@ async fn token_carries_scope_and_clamps_ttl() {
     .await;
     assert_eq!(status, 200);
     assert_eq!(
-        claims_of(&body).exp - claims_of(&body).iat,
+        claims_of(&body, Audience::Embeddings).exp - claims_of(&body, Audience::Embeddings).iat,
         SERVICE_TOKEN_MAX_TTL_SECS as i64
     );
 
@@ -579,7 +772,7 @@ async fn token_carries_scope_and_clamps_ttl() {
     )
     .await;
     assert_eq!(status, 200);
-    let claims = claims_of(&body);
+    let claims = claims_of(&body, Audience::Embeddings);
     assert_eq!(claims.exp - claims.iat, 1);
 
     assert!(upstream.requests().is_empty());
@@ -626,8 +819,10 @@ async fn forged_token_is_rejected_before_any_egress() {
     // 密钥不同 → 签名对不上；形状不对 → 连解析都过不去。两者都必须是 401
     let (forged, _) = service_token::mint(
         OTHER_SECRET,
-        &fixture.tenant_a.to_string(),
-        &fixture.model_embed_name,
+        Scope::Embeddings {
+            tenant_id: &fixture.tenant_a.to_string(),
+            model: &fixture.model_embed_name,
+        },
         300,
     )
     .unwrap();
@@ -874,4 +1069,242 @@ async fn another_tenants_model_is_invisible() {
     .await;
     assert_eq!(status, 200);
     assert_eq!(upstream.requests().len(), 1);
+}
+
+#[actix_web::test]
+async fn asset_token_reads_exactly_one_asset() {
+    let _guard = DB_LOCK.lock().await;
+    let upstream = StubHttp::start(vec![StubResponse::json(200, upstream_body())]).await;
+    let Some(fixture) = setup(&upstream.base_url(), None).await else {
+        return;
+    };
+    let app = build_app!(fixture.shared);
+
+    let own = &fixture.assets.tenant_a;
+    let own_id = own.id.to_string();
+    let body = mint_asset_token!(&app, fixture.tenant_a, &own_id).await;
+
+    // 令牌把作用域交回调用方（ai-worker 不必自己拼资产 id），且不夹带嵌入才需要的模型
+    assert_eq!(body["tokenType"], json!("service"));
+    assert_eq!(body["scope"], json!("asset-read"));
+    assert_eq!(body["assetID"], json!(own_id));
+    assert_eq!(body["tenantID"], json!(fixture.tenant_a.to_string()));
+    assert!(body.get("model").is_none(), "读取令牌不该带 model");
+
+    let claims = claims_of(&body, Audience::AssetContent);
+    assert_eq!(claims.aud, service_token::AUDIENCE_ASSET_CONTENT);
+    assert_eq!(claims.asset_id.as_deref(), Some(own_id.as_str()));
+    assert!(claims.model.is_none());
+
+    // 读出来的必须是上传那份字节：分片顺序、拼接口径、`content-length` 三者一起验
+    let token = token_of(&body);
+    let (status, headers, bytes) = call_raw!(&app, asset_content_request(&own_id, &token)).await;
+    assert_eq!(status, 200, "读内容失败");
+    assert_eq!(
+        headers
+            .get(CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok()),
+        Some("text/plain")
+    );
+    assert_eq!(
+        headers
+            .get(CONTENT_LENGTH)
+            .and_then(|value| value.to_str().ok()),
+        Some(own.content.len().to_string().as_str())
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&bytes).as_ref(),
+        own.content.as_str()
+    );
+
+    // 路径里的资产只用于**比对**：换成别人的资产是 403，而不是「换个人来读」
+    let other_id = fixture.assets.tenant_b.id.to_string();
+    let (status, response) = call!(&app, asset_content_request(&other_id, &token)).await;
+    assert_eq!(status, 403);
+    assert_eq!(error_code(&response), resource::ACCESS_RESTRICTED);
+
+    // 也不能靠签发去够别人的资产：甲租户签乙租户的资产 → 404，连存在性都不外泄
+    let (status, response) = call!(
+        &app,
+        asset_token_request(fixture.tenant_a, "asset-read", &other_id),
+    )
+    .await;
+    assert_eq!(status, 404);
+    assert_eq!(error_code(&response), business::upload::FILE_NOT_FOUND);
+
+    // 反证：乙租户拿自己的令牌读自己的资产是 200——上一条 404 来自作用域，不是资产读不出
+    let other_token = token_of(&mint_asset_token!(&app, fixture.tenant_b, &other_id).await);
+    let (status, _, bytes) = call_raw!(&app, asset_content_request(&other_id, &other_token)).await;
+    assert_eq!(status, 200);
+    assert_eq!(
+        String::from_utf8_lossy(&bytes).as_ref(),
+        fixture.assets.tenant_b.content.as_str()
+    );
+
+    // 没传完的资产签不出读取令牌——否则等于把「续传别人的上传会话」的入口递出去
+    let pending_id = fixture.assets.pending.id.to_string();
+    let (status, response) = call!(
+        &app,
+        asset_token_request(fixture.tenant_a, "asset-read", &pending_id),
+    )
+    .await;
+    assert_eq!(status, 400);
+    assert_eq!(
+        error_code(&response),
+        request_codes::INVALID_PARAMETER_VALUE
+    );
+
+    assert!(upstream.requests().is_empty(), "这条面孔不该触网");
+}
+
+#[actix_web::test]
+async fn asset_read_token_cannot_cross_audiences() {
+    let _guard = DB_LOCK.lock().await;
+    let upstream = StubHttp::start(vec![StubResponse::json(200, upstream_body())]).await;
+    let Some(fixture) = setup(&upstream.base_url(), None).await else {
+        return;
+    };
+    let app = build_app!(fixture.shared);
+
+    let asset_id = fixture.assets.tenant_a.id.to_string();
+    let tenant_id = fixture.tenant_a.to_string();
+
+    // 嵌入令牌打内容端点：401（受众写死在端点里，令牌自己说了不算）
+    let embed_token = token_of(&mint!(&app, fixture.tenant_a, &fixture.model_embed_name).await);
+    let (status, body) = call!(&app, asset_content_request(&asset_id, &embed_token)).await;
+    assert_eq!(status, 401);
+    assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+
+    // 反过来：读取令牌打嵌入端点同样 401，而且一分钱都不出网
+    let asset_token = token_of(&mint_asset_token!(&app, fixture.tenant_a, &asset_id).await);
+    let (status, body) = call!(
+        &app,
+        embeddings_request(&asset_token, json!({ "input": ["hi"] })),
+    )
+    .await;
+    assert_eq!(status, 401);
+    assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+
+    // 伪造签名 / 形状不对 / 干脆不带：内容端点一样拒
+    let (forged, _) = service_token::mint(
+        OTHER_SECRET,
+        Scope::AssetContent {
+            tenant_id: &tenant_id,
+            asset_id: &asset_id,
+        },
+        300,
+    )
+    .unwrap();
+    for token in [forged.as_str(), "not-a-jwt", ""] {
+        let (status, body) = call!(&app, asset_content_request(&asset_id, token)).await;
+        assert_eq!(status, 401, "令牌 {token:?} 不该被接受");
+        assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+    }
+
+    // 过期令牌：最短 1 秒有效期，等它过期。
+    // 等一下的时长不是随手写的：`jsonwebtoken` 默认容差 60 秒（故 `verify` 里 leeway=0），
+    // 且 `exp` 是秒级整数、判定式是 `exp < now`。要跨越「签发在下半秒、验签在整秒边界」的
+    // 最坏情况，就得让验签时刻至少比签发时刻的整秒大 2 秒。
+    let (expiring, _) = service_token::mint(
+        SERVICE_SECRET,
+        Scope::AssetContent {
+            tenant_id: &tenant_id,
+            asset_id: &asset_id,
+        },
+        1,
+    )
+    .unwrap();
+    tokio::time::sleep(Duration::from_millis(2_200)).await;
+    let (status, body) = call!(&app, asset_content_request(&asset_id, &expiring)).await;
+    assert_eq!(status, 401);
+    assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+
+    assert!(upstream.requests().is_empty());
+}
+
+#[actix_web::test]
+async fn asset_token_issuance_validates_scope() {
+    let _guard = DB_LOCK.lock().await;
+    let upstream = StubHttp::start(vec![StubResponse::json(200, upstream_body())]).await;
+    let Some(fixture) = setup(&upstream.base_url(), None).await else {
+        return;
+    };
+    let app = build_app!(fixture.shared);
+
+    let asset_id = fixture.assets.tenant_a.id.to_string();
+
+    // 不写 scope 就还是嵌入（默认值唯一），且不会因为请求体多带 assetID 就变成读取令牌
+    let (status, body) = call!(
+        &app,
+        test::TestRequest::post()
+            .uri(paths::SERVICE_TOKEN)
+            .insert_header((INTERNAL_TOKEN_HEADER, INTERNAL_TOKEN))
+            .set_json(json!({
+                "tenantID": fixture.tenant_a.to_string(),
+                "model": fixture.model_embed_name,
+                "assetID": asset_id,
+            })),
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert_eq!(body["scope"], json!("embeddings"));
+    assert!(body.get("assetID").is_none(), "嵌入令牌不该带 assetID");
+
+    // 未知 scope：400（宁可拒了也不猜调用方想要什么）
+    let (status, body) = call!(
+        &app,
+        asset_token_request(fixture.tenant_a, "asset-write", &asset_id),
+    )
+    .await;
+    assert_eq!(status, 400);
+    assert_eq!(error_code(&body), request_codes::INVALID_PARAMETER_VALUE);
+
+    // asset-read 不带 assetID / 带空白：400——没有资产的读取令牌没有意义
+    for missing in [Value::Null, json!("  ")] {
+        let mut payload = json!({
+            "tenantID": fixture.tenant_a.to_string(),
+            "scope": "asset-read",
+        });
+        if !missing.is_null() {
+            payload["assetID"] = missing.clone();
+        }
+        let (status, body) = call!(
+            &app,
+            test::TestRequest::post()
+                .uri(paths::SERVICE_TOKEN)
+                .insert_header((INTERNAL_TOKEN_HEADER, INTERNAL_TOKEN))
+                .set_json(&payload),
+        )
+        .await;
+        assert_eq!(status, 400, "payload {payload} 不该通过");
+        assert_eq!(error_code(&body), request_codes::INVALID_PARAMETER_VALUE);
+    }
+
+    // assetID 不是 UUID：400，且不能落到「查不到」的 404 上
+    let (status, body) = call!(
+        &app,
+        asset_token_request(fixture.tenant_a, "asset-read", "not-a-uuid"),
+    )
+    .await;
+    assert_eq!(status, 400);
+    assert_eq!(error_code(&body), request_codes::INVALID_PARAMETER_VALUE);
+
+    // 资产不存在：404（与读内容同一个口径：FILE_NOT_FOUND）
+    let (status, body) = call!(
+        &app,
+        asset_token_request(fixture.tenant_a, "asset-read", &Uuid::new_v4().to_string(),),
+    )
+    .await;
+    assert_eq!(status, 404);
+    assert_eq!(error_code(&body), business::upload::FILE_NOT_FOUND);
+
+    // 读取令牌同样认租户：未知租户 404
+    let (status, _) = call!(
+        &app,
+        asset_token_request(Uuid::new_v4(), "asset-read", &asset_id),
+    )
+    .await;
+    assert_eq!(status, 404);
+
+    assert!(upstream.requests().is_empty());
 }

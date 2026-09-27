@@ -8,7 +8,10 @@ Rust 服务对外的 HTTP 出站只有三处，都归在 `src/clients/`：
   [`src/clients/gocaptcha.rs`](../src/clients/gocaptcha.rs)。
 - **同集群独立进程**：Python ai-worker（AI 计算车间）——契约在 [`spec/internal.yaml`](../spec/internal.yaml)，
   客户端 [`src/clients/ai_worker.rs`](../src/clients/ai_worker.rs)。它是**叶子**：不直连业务表、
-  不持长期云凭据，要模型算力时回打 core 的服务身份面（见 [gateway README](../src/services/gateway/README.md#服务身份apiv1service)）。
+  不持长期云凭据，要模型算力或资产正文时回打 core 的服务身份面
+  （见 [gateway README](../src/services/gateway/README.md#服务身份apiv1service)）。资产正文**只经服务身份内容端点**
+  `GET /api/v1/service/assets/{id}/content` 取字节：对象存储 / CAS 分片布局是 core 的实现细节，
+  所以出站请求里没有 `objectKey` 这类存储键，换桶换路径不影响它。
 
 历史上有过一个自研 Go 侧车 `aliyun-gateway`（HTTP 信封 + `X-API-Key` 转发短信）。它只覆盖了
 短信一条链路（邮件/OSS 是 501 占位），却把「一个云厂商 = 一个容器」的成本固定下来。现在阿里云
@@ -33,7 +36,9 @@ Rust 服务对外的 HTTP 出站只有三处，都归在 `src/clients/`：
 4. 凭据只出现在 `config.yaml` / `config.local.yaml`（后者不进版本库），不写进代码或测试
 5. **模型出网只有一个出口**：ai-worker 的嵌入必须回打 core 的 `/api/v1/service/**`，不许自己连厂商——
    否则配额与用量会分裂成两份账，`gateway.*` 的档位配置也就管不住它了
-6. 新增集成时同步更新本文件与 [`guide/configuration.md`](configuration.md)
+6. **正文入站也只有一个出口**：ai-worker 读资产字节必须走服务身份内容端点（拿 `scope=asset-read` 令牌），
+   出站请求里不带对象存储键——换存储布局不该牵动叶子服务
+7. 新增集成时同步更新本文件与 [`guide/configuration.md`](configuration.md)
 
 ## 侧车契约（仅 go-captcha）
 
@@ -46,7 +51,7 @@ Rust 服务对外的 HTTP 出站只有三处，都归在 `src/clients/`：
 | 系统 | 形态 | 客户端 | 配置 |
 |------|------|--------|------|
 | 阿里云短信 / 邮件 / OSS | 进程内（`crates/aliyun`） | [`clients/aliyun.rs`](../src/clients/aliyun.rs) | `aliyun.*` |
-| ai-worker（Python 计算车间） | 同集群独立进程 :8081（如 `http://ai-worker:8081`） | [`clients/ai_worker.rs`](../src/clients/ai_worker.rs) | `ai_worker.*`（+ 反向嵌入面 `gateway.service_token_secret`） |
+| ai-worker（Python 计算车间） | 同集群独立进程 :8081（如 `http://ai-worker:8081`） | [`clients/ai_worker.rs`](../src/clients/ai_worker.rs) | `ai_worker.*`（+ 反向出站面 `/api/v1/service/token`、`/embeddings`、`/assets/{id}/content`） |
 | go-captcha | 容器 `gocaptcha` :8080（第三方镜像） | [`clients/gocaptcha.rs`](../src/clients/gocaptcha.rs) | `auth.captcha.*` + [`docker/gocaptcha/`](../docker/gocaptcha/) |
 
 ## 新增能力 crate 的检查清单

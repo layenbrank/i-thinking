@@ -2,6 +2,7 @@ use actix_web::web;
 
 use crate::guards::auth::Auth;
 use crate::services::gateway::controller::GatewayController;
+use crate::services::upload::controller::UploadController;
 
 pub struct GatewayModule;
 
@@ -30,6 +31,12 @@ impl GatewayModule {
                 .route(
                     "/embeddings",
                     web::post().to(GatewayController::service_embeddings),
+                )
+                // 资产内容：handler 住在 upload 域（读的是资产与 CAS），
+                // 但路由必须注册在这里——`/service` 只能有一份注册点（见下）。
+                .route(
+                    "/assets/{id}/content",
+                    web::get().to(UploadController::service_content),
                 ),
         );
     }
