@@ -59,7 +59,18 @@ fn yaml_file(dir: &Path, name: &str) -> PathBuf {
     dir.join(name)
 }
 
-/// 合并 `config.yaml` → `config.{profile}.yaml` → `config.local.yaml`。
+/// 环境变量覆盖源（优先级最高）：前缀 `CORE__`，层级用 `__` 分隔，例：
+/// `CORE__DATABASE__URL` → `database.url`、`CORE__SERVER__PORT` → `server.port`。
+///
+/// 容器/编排里用它注入密钥与跨服务地址（配置文件里不落明文），本机不设这些变量时行为不变。
+fn env_overrides() -> config::Environment {
+    config::Environment::with_prefix("CORE")
+        .prefix_separator("__")
+        .separator("__")
+        .try_parsing(true)
+}
+
+/// 合并 `config.yaml` → `config.{profile}.yaml` → `config.local.yaml` → `CORE__*` 环境变量。
 pub fn load_merged_config(profile: &str) -> Result<Config> {
     let dir = config_dir();
     let base = yaml_file(&dir, "config.yaml");
@@ -86,6 +97,8 @@ pub fn load_merged_config(profile: &str) -> Result<Config> {
         builder = builder.add_source(File::from(local_file.as_path()).format(FileFormat::Yaml));
     }
 
+    builder = builder.add_source(env_overrides());
+
     builder
         .build()
         .with_context(|| format!("failed to build config from dir {}", dir.display()))
@@ -99,5 +112,15 @@ mod tests {
     fn config_dir_points_at_repo_config_in_tests() {
         let dir = config_dir();
         assert!(dir.join("config.yaml").exists());
+    }
+
+    #[test]
+    fn environment_variables_override_config_files() {
+        // SAFETY: 本测试独占 `CORE__SERVER__PORT`，设置后立即还原
+        unsafe { std::env::set_var("CORE__SERVER__PORT", "3456") };
+        let merged = load_merged_config(&resolve_profile()).expect("配置应能合并");
+        unsafe { std::env::remove_var("CORE__SERVER__PORT") };
+
+        assert_eq!(merged.get_int("server.port").expect("server.port"), 3456);
     }
 }

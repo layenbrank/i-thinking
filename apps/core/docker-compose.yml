@@ -1,25 +1,64 @@
-# 本地依赖：PostgreSQL + Redis + Elasticsearch
-# 数据目录：./data/{postgres,redis,elasticsearch}（绑定挂载，便于备份/清理）
-# 用法：docker compose up -d
-# 停止：docker compose down
-# 清空绑定挂载数据：删掉 ./data 下对应目录后重新 up
+# corex 全栈编排：依赖（Postgres+pgvector / Redis / go-captcha / Elasticsearch）+ 四个后端进程
+# （core-api / core-worker / core-orchestrator / ai-worker）一次起齐。
 #
-# 项目名固定为 corex（替代 COMPOSE_PROJECT_NAME / .env.compose；本文件无 ${VAR} 插值，不依赖 .env）
+# 用法：
+#   全栈       docker compose up -d
+#   只起依赖   docker compose up -d postgres redis gocaptcha elasticsearch
+#   看 core    docker compose logs -f core-api
+#   停止       docker compose down
+#   清数据     删掉 ./data 下对应目录后重新 up（绑定挂载，便于备份/清理）
+#
+# 项目名固定为 corex（替代 COMPOSE_PROJECT_NAME / .env.compose）。
+#
+# 变量：所有 ${VAR} 都由 docker compose 插值，默认值都指向本机开发环境，
+# 不建 .env 也能 `up -d` 跑起来。生产/改动密钥时在 **apps/core/.env** 写（已在 .gitignore 里），
+# 可复制 docker/stack.env.example 作为模板。密钥类变量一律通过 CORE__* / AI_WORKER_* 注入容器，
+# 不写进 config*.yaml（见 guide/deployment.md）。
 
 name: corex
+
+# core 的四个进程是同一个镜像、同一份配置，只是 command 不同：
+# service=HTTP API、worker=outbox 投递、orchestrator=可靠执行运行时、migration=一次性迁移。
+x-core-image: &core-image
+  build:
+    context: .
+    dockerfile: docker/core/Dockerfile
+  image: corex-core:local
+  # 可选的额外覆盖（任意 CORE__* 键）：不存在时跳过，所以不建这个文件也能 up。
+  # 下面 environment 里显式列出的键优先级更高（连接串要改就改 .env 的插值变量）。
+  env_file:
+    - path: docker/stack.env
+      required: false
+
+# 三个常驻 core 进程共享的环境：容器内互访用服务名，宿主机默认值（127.0.0.1）全部失效于此。
+x-core-env: &core-env
+  CORE__APP__ENV: ${APP_ENV:-development}
+  CORE__SERVER__HOST: 0.0.0.0
+  CORE__SERVER__PORT: '3000'
+  CORE__DATABASE__URL: postgres://machenike:${POSTGRES_PASSWORD:-Li33333.}@postgres:5432/i-thinking
+  CORE__REDIS__URL: redis://redis:6379
+  CORE__ELASTICSEARCH__URL: http://elasticsearch:9200
+  CORE__AUTH__CAPTCHA__BASE_URL: http://gocaptcha:8080
+  CORE__AI_WORKER__BASE_URL: http://ai-worker:8081
+  CORE__AI_WORKER__TOKEN: ${AI_WORKER_INTERNAL_TOKEN:-dev-internal-token}
+  # ai-worker 用它在 /api/v1/service/** 上换短期服务令牌；留空则整个服务面 503（ai-worker 的
+  # 摄取与嵌入会因此失败）。默认值与 config.yaml 的开发值一致。
+  CORE__GATEWAY__SERVICE_TOKEN_SECRET: ${SERVICE_TOKEN_SECRET:-dev-service-token-secret}
+  # 生产必须显式给出（占位值会被 validate() 拒绝，且 worker 要求 events.endpoint 非空）。
+  # CORE__SECURITY__SECRET / CORE__SECURITY__JWT_SECRET / CORE__EVENTS__ENDPOINT 见 stack.env.example
 
 services:
   postgres:
     build:
       context: ./docker/postgres
       dockerfile: Dockerfile
-    image: corex-postgres:18-zh
+    image: corex-postgres:18-zh-pgvector
     container_name: corex-postgres
     ports:
       - '5432:5432'
     environment:
       POSTGRES_USER: machenike
-      POSTGRES_PASSWORD: 'Li33333.'
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Li33333.}
       POSTGRES_DB: i-thinking
       # locale 仅在首次 initdb（空 data/postgres）时生效
       LANG: zh_CN.UTF-8
@@ -77,12 +116,12 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    # 故意禁用 healthcheck：该镜像是 distroless（无 sh/curl/wget），镜像自带的自检
+    # （`/app/go-captcha-service --health-check`）在 1.0.5 里恒失败——它少传参且要求
+    # /status/health 返回 404，而实际返回 200。留着只会永远是 unhealthy。
+    # 手工验证用：curl http://127.0.0.1:8080/status/health   # 期望 HTTP 200
     healthcheck:
-      test: ['CMD', '/app/go-captcha-service', '--health-check']
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
+      disable: true
     networks:
       - corex
     restart: unless-stopped
@@ -110,6 +149,126 @@ services:
       timeout: 5s
       retries: 30
       start_period: 40s
+    networks:
+      - corex
+    restart: unless-stopped
+
+  # 一次性迁移：core 的业务库（migration crate 的 sea-orm CLI 世代）。
+  # ai-worker 的库由它自己启动时 apply（apps/ai-worker/src/ai_worker/db.py）。
+  migrate:
+    <<: *core-image
+    container_name: corex-migrate
+    command: ['./migration', 'up']
+    environment:
+      <<: *core-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - corex
+    restart: 'no'
+
+  # HTTP API（端口 3000；8080 是 go-captcha 侧车，不是它）。
+  core-api:
+    <<: *core-image
+    container_name: corex-core-api
+    command: ['./service']
+    environment:
+      <<: *core-env
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      gocaptcha:
+        condition: service_started
+      elasticsearch:
+        condition: service_started
+    healthcheck:
+      # /api/live 只判进程活着；依赖是否就绪看 /api/ready（见 guide/deployment.md）
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:3000/api/live >/dev/null || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - corex
+    restart: unless-stopped
+
+  # outbox → 下游事件投递。development 下 events.endpoint 留空 = 只记日志。
+  core-worker:
+    <<: *core-image
+    container_name: corex-core-worker
+    command: ['./worker']
+    environment:
+      <<: *core-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - corex
+    restart: unless-stopped
+
+  # 可靠执行运行时（durable schema + 调 ai-worker）。停机时给在跑活动留收尾窗口，
+  # 所以 stop_grace_period 要大于 durable.shutdown_grace_ms（默认 5000）。
+  core-orchestrator:
+    <<: *core-image
+    container_name: corex-core-orchestrator
+    command: ['./orchestrator']
+    environment:
+      <<: *core-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      ai-worker:
+        condition: service_started
+    stop_grace_period: 30s
+    networks:
+      - corex
+    restart: unless-stopped
+
+  # Python 叶子计算服务（RAG 摄取 / agent 运行时）。只在内网监听，不对宿主机发布端口：
+  # 它的 X-Internal-Token 是一把长期共享密钥，暴露出去等于把内部接口挂到公网。
+  ai-worker:
+    build:
+      context: ../ai-worker
+      dockerfile: Dockerfile
+    image: corex-ai-worker:local
+    container_name: corex-ai-worker
+    # 可选的额外覆盖（分块、批量、超时等）：下面的 environment 优先级更高，
+    # 所以本机开发用的 .env（127.0.0.1 的 DSN）不会把容器里的地址带偏。
+    env_file:
+      - path: ../ai-worker/.env
+        required: false
+    environment:
+      AI_WORKER_ENVIRONMENT: ${AI_WORKER_ENVIRONMENT:-development}
+      # 镜像里必须监听 0.0.0.0：默认 127.0.0.1 只会在容器自己的 loopback 上开端口。
+      AI_WORKER_HOST: 0.0.0.0
+      AI_WORKER_PORT: '8081'
+      # 与 core 的 ai_worker.token（上面那个环境变量）必须完全一致
+      AI_WORKER_INTERNAL_TOKEN: ${AI_WORKER_INTERNAL_TOKEN:-dev-internal-token}
+      AI_WORKER_DATABASE_URL: postgres://machenike:${POSTGRES_PASSWORD:-Li33333.}@postgres:5432/ai_worker
+      AI_WORKER_CORE_BASE_URL: http://core-api:3000
+    expose:
+      - '8081'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # /internal/v1/health 免令牌；DB/pgvector 不可用时回 503（迁移是启动时自动 apply 的）
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:8081/internal/v1/health >/dev/null || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     networks:
       - corex
     restart: unless-stopped
