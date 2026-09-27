@@ -1,0 +1,12 @@
+[package]
+name              = "durable"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+duroxide    = { workspace = true } # 可靠执行运行时（进程内嵌，不需要独立服务端）
+duroxide-pg = { workspace = true } # 编排历史的 PostgreSQL 存储（独立 schema、自带迁移）
+serde       = { workspace = true } # 实例输入 / 输出的 JSON 编解码
+serde_json  = { workspace = true }
+thiserror   = { workspace = true } # 端口错误类型

@@ -13,6 +13,7 @@ members = [
   "crates/document",
   "crates/audit",
   "crates/notify",
+  "crates/durable",
 ]
 
 [workspace.package]
@@ -44,6 +45,10 @@ chrono = { version = "0.4.45", features = ["serde"] }
 entity = { version = "0.1.0", path = "entity" }
 migration = { version = "0.1.0", path = "migration" }
 
+# 可靠执行（duroxide 是被包在 crates/durable 里的实现细节，见 crates/durable/README.md）
+duroxide = "0.1.30"
+duroxide-pg = "0.1.35"
+
 # 能力 crate（业务内核）
 identity = { version = "0.1.0", path = "crates/identity" }
 authz = { version = "0.1.0", path = "crates/authz" }
@@ -52,6 +57,7 @@ gateway = { version = "0.1.0", path = "crates/gateway" }
 document = { version = "0.1.0", path = "crates/document" }
 audit = { version = "0.1.0", path = "crates/audit" }
 notify = { version = "0.1.0", path = "crates/notify" }
+durable  = { version = "0.1.0", path = "crates/durable" }
 
 [package]
 name              = "service"
@@ -90,6 +96,10 @@ path = "src/bin/docs.rs"
 [[bin]]
 name = "worker"
 path = "src/bin/worker.rs"
+
+[[bin]]
+name = "orchestrator"
+path = "src/bin/orchestrator.rs"
 
 [features]
 default = []
@@ -158,6 +168,7 @@ gateway  = { workspace = true }
 document = { workspace = true }
 audit    = { workspace = true }
 notify   = { workspace = true }
+durable  = { workspace = true }
 
 # 配置
 config    = "0.15.19"

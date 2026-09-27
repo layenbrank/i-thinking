@@ -62,6 +62,9 @@ pub mod worker {
     pub mod runner;
 }
 
+/// 长任务（可靠执行）：编排与活动的装配点，只有 orchestrator 二进制会运行它。
+pub mod orchestrations;
+
 pub extern crate configures;
 
 pub mod middlewares {

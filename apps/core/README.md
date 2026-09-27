@@ -68,6 +68,23 @@ cargo run --bin worker --release
 - **首轮失败直接退出**（多半是平台角色没授予或库连不上），由编排器拉起重试；之后的单轮失败只记日志继续
 - `events.endpoint` 为空时退化为只记日志，事件照样算已发布（本地联调）
 
+### 启动 orchestrator（长任务）
+
+跨步骤、跨重启的长流程（文档索引、批量导入、需要重试与补偿的作业）由可靠执行引擎负责，
+运行时的宿主是独立进程（同样共用这份配置）：
+
+```bash
+cargo run --bin orchestrator --release
+```
+
+- 从 `durable.database_url`（留空则回落 `database.url`）连库，在 `durable.schema`（默认 `durable`，**不允许 `public`**）里建自己的表
+- 编排与活动的注册表在 [`src/orchestrations/`](src/orchestrations/mod.rs) 里装配：**只有这个二进制**会跑编排
+- **一个部署单元只能有一个 orchestrator 进程**：多个进程同时跑没有意义（实现本体用锁保证正确性，但会互相抢同一实例的轮次）
+- 停机时先给在跑的活动 `durable.shutdown_grace_ms` 毫秒收尾，再退出；进度都在库里，重启接着跑，不需要任何补偿脚本
+- 其他进程（api / worker）用 `durable::Client` 起实例、投事件、查状态，不跑运行时
+
+引擎细节（端口、语义、边界）见 [`crates/durable/README.md`](crates/durable/README.md)，配置见 [`guide/configuration.md`](guide/configuration.md#长任务durable--orchestrator)。
+
 **Swagger UI**（debug 构建 + `openapi` feature 默认开启）：
 
 - UI：`http://127.0.0.1:3000/swagger-ui/`
@@ -96,6 +113,10 @@ bun run docs
 bun run arch
 cargo test --lib -p service
 cargo test --test oas_consistency
+
+# 长任务（需要独立测试库，见 tests/orchestration.rs 头部）
+TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/i_thinking_test \
+  cargo test --test orchestration -- --test-threads=1
 ```
 
 ## 项目结构
@@ -106,12 +127,17 @@ scripts/                  # Bun 脚本（bun run …）
   types/                  # 请求/响应类型
   utils/                  # http（ky）/ auth / http.errors
   arch.ts | dev.ts | imports.ts | upload.ts
+crates/
+  audit/                  # 能力 crate：跨模块审计（事件信封契约）
+  durable/                # 能力 crate：可靠执行端口（编排/活动/停机，实现本体只在这里）
 src/
   bin/service.rs          # HTTP 入口
   bin/worker.rs           # outbox 发布入口（事件投递由独立进程负责）
+  bin/orchestrator.rs     # 长任务宿主（编排运行时；一个部署单元只能有一个）
   worker/
     dispatcher.rs         # 终点装配：HTTP 下游 / 只记日志
     runner.rs             # 发布循环 + 停机（平台通道在这里登记，见 R8）
+  orchestrations/         # 编排与活动注册表（只有 orchestrator 会用）
   services/
     auth/                 # 登录、注册、个人 profile（含 profile 辅助）
     user/                 # 后台用户 CRUD（复用 auth::service 中 profile 辅助）

@@ -3,7 +3,8 @@
  *
  * 组成：
  *  - 遗留布局卫生：孤儿文件、模块必备文件、禁止路径
- *  - 能力边界门禁（R1–R6）：依赖方向、对外表面、权限判定唯一入口、表所有权、遗留模块冻结
+ *  - 能力边界门禁（R1–R6、R10）：依赖方向、对外表面、权限判定唯一入口、表所有权、遗留模块冻结、
+ *    封禁依赖的封装
  *
  * 能力边界的声明在 scripts/capabilities.ts；本文件只做强制。
  *
@@ -17,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 import {
   CAPABILITIES,
+  CONFINED_CRATE_DEPS,
   FORBIDDEN_CRATE_DEPS,
   LEGACY_SERVICES,
   PLATFORM_ENTRY_ALLOWED,
@@ -491,6 +493,33 @@ function checkUnscopedDbAccess(errors: string[], hints: string[]) {
   }
 }
 
+/** R10：封禁依赖只允许出现在声明的那个 crate 的 manifest 里 */
+function checkConfinedCrateDeps(errors: string[], hints: string[]) {
+  // 根 manifest 是 api 二进制自己，同样受约束：只有能力 crate 才能碰封禁依赖。
+  const manifests = ['Cargo.toml', ...workspaceMembers().map((m) => `${m}/Cargo.toml`)]
+  const seen = new Set<string>()
+
+  for (const manifest of manifests) {
+    const path = join(ROOT, manifest)
+    if (!existsSync(path)) continue
+    const deps = manifestDepNames(readFileSync(path, 'utf8'))
+    for (const [dep, owner] of Object.entries(CONFINED_CRATE_DEPS)) {
+      if (!deps.has(dep)) continue
+      seen.add(dep)
+      const dir = dirname(manifest).split('\\').join('/')
+      if (dir !== owner) {
+        fail(`封禁依赖 ${dep} 只允许出现在 ${owner}/Cargo.toml，实际出现在 ${manifest}`, errors)
+      }
+    }
+  }
+
+  for (const dep of Object.keys(CONFINED_CRATE_DEPS)) {
+    if (!seen.has(dep)) {
+      hints.push(`封禁依赖 ${dep} 已无人使用，请从 scripts/capabilities.ts 的 CONFINED_CRATE_DEPS 移除`)
+    }
+  }
+}
+
 function main(): number {
   const errors: string[] = []
   const hints: string[] = []
@@ -511,6 +540,7 @@ function main(): number {
   checkUnscopedDbAccess(errors, hints)
   checkTableOwnership(errors)
   checkLegacyServices(errors, hints)
+  checkConfinedCrateDeps(errors, hints)
 
   if (errors.length) {
     console.log('Architecture check FAILED:')

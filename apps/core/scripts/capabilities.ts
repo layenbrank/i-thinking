@@ -92,8 +92,31 @@ export const CAPABILITIES: readonly Capability[] = [
     publicModules: [],
     absorbs: [],
     status: 'pending'
+  },
+  {
+    name: 'durable',
+    title: '可靠执行',
+    // 编排历史在 provider 自带的独立 schema 里（默认 `durable`），不进 migration 世代，也不归任何租户。
+    owns: [],
+    dependsOn: [],
+    publicModules: [],
+    absorbs: [],
+    status: 'migrated'
   }
 ]
+
+/**
+ * R10：被「封禁」的依赖——只允许出现在指定的一个 crate 里。
+ *
+ * 可靠执行（duroxide / duroxide-pg）是 0.1.x preview，且它的编排/活动语义会渗透到
+ * 每一个调用点。所以把它压在 `crates/durable` 后面：上层只用 `durable` 的端口，
+ * 将来换实现或升级时改动面就是这一个 crate。任何其它 crate（含 api 二进制自己的
+ * Cargo.toml）出现这些依赖都算违规。
+ */
+export const CONFINED_CRATE_DEPS: Record<string, string> = {
+  duroxide: 'crates/durable',
+  'duroxide-pg': 'crates/durable'
+}
 
 /**
  * 遗留 src/services 模块的冻结集合：只减不增。

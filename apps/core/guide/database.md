@@ -418,6 +418,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO core_platform;
 | gateway_provider / gateway_model | 租户行或全局行（`"tenantID" IS NULL`） | 网关管理；全局行走平台运维通道 |
 | gateway_usage / gateway_audit | 单一租户，或无租户行（`"tenantID" IS NULL`，归属本人） | 网关 |
 | outbox / consumed_event | 单一租户，或 `tenantID IS NULL` 的系统事件 | 各模块只写自己的事件 |
+| 编排实例 / 历史 / 事件（`durable` schema） | 引擎自治，无租户维度（见[长任务表](#长任务表durable-schema)） | 只有 orchestrator 跑运行时；其他进程用 `durable::Client` 起实例、投事件 |
 
 跨模块**不直接改别人的表**：需要对方数据时调对方的公开接口，或消费对方写出的 outbox 事件。
 
@@ -448,6 +449,23 @@ sequenceDiagram
 而不是 upload 模块的公开接口——这是档案数据按下 id 联查的既定做法；批量列表因为可能跨账号，
 改用匿名读作用域，只会看到 `PUBLIC` 头像。
 
+## 长任务表（`durable` schema）
+
+跨步骤的长流程由可靠执行引擎（[`crates/durable`](../crates/durable/README.md)）自己建表、自己迁移，
+表都落在**独立 schema**（默认 `durable`）里：
+
+| 归属 | 谁建 | 谁读写 |
+| --- | --- | --- |
+| 编排实例、历史、事件、活动锁（provider 内部表） | provider 在 orchestrator 启动时建（`durable.auto_migrate`） | 只有 orchestrator（`api` / `worker` 都不碰） |
+
+- **不属于 `migration` 世代**：这些表不在 [`migration/src/000001_20260819.rs`](../migration/src/000001_20260819.rs) 的建表/drop 列表里，改它们不需要重建业务库；`Migrator::fresh` 只重建 `public`，`durable` schema 会原样留着（要清干净就 `durable` 里删掉 schema）
+- **不受 RLS 约束**：schema 里没有 `tenantID`、没有策略，也不该有业务数据；业务行仍然只经各自的模块写
+- **租户作用域要靠入参传递**：编排的输入里带 `tenantID`，活动再走正常的租户作用域访问业务表，引擎自己不认租户
+- **schema 名不允许 `public`**：与业务表混在一起会让「重建业务库」和「编排状态」互相牵连
+- 实例 id 是唯一的对账键（也是活动的幂等键），日志与排障都以它为索引
+
+端到端契约见 [`tests/orchestration.rs`](../tests/orchestration.rs)（完成、重启续跑、已完成活动不重跑）。
+
 ## 迁移
 
 全部表由**单一代际**迁移 [`migration/src/000001_20260819.rs`](../migration/src/000001_20260819.rs) 建出（含 `auth` 的 `phone` / `gender` / `birthday` / `avatar`、`outbox` / `consumed_event`，以及 RLS 函数与全部策略）；
@@ -461,6 +479,8 @@ cd apps/core && bun run migrate:fresh   # 等价于 cargo run -p migration -- fr
 
 - `up` 的建表列表和 `down` 的 drop 列表必须一一对应，漏一张就会在重建后残留旧结构（`down` 是 `cascade`）
 - `fresh` 是**先 drop 再重建**，所以改完 schema 后**已有环境的库必须重建**才会带上新列与新策略，增量升级不做保证
+
+长任务的表（`durable` schema）不在这份清单里：它们由 provider 自治，见上文「长任务表」。
 
 列名与 `DeriveIden` 的注意事项见 [`migration/README.md`](../migration/README.md#列名约定)。
 

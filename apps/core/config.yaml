@@ -79,6 +79,21 @@ events:
   # 默认直连内网终点：禁用系统/环境变量代理（同 clients/ 下的内部客户端）
   use_system_proxy: false
 
+# 可靠执行（编排运行时）。由 `orchestrator` 二进制读取。
+# 编排历史不是业务表：provider 自己建表、自己管迁移，放在独立 schema 里，
+# 不进 `migration` 世代，也不参与租户/平台通道。schema 不可为 public/空。
+durable:
+  # 留空 = 复用 database.url
+  database_url: ''
+  schema: durable
+  # 启动时自动建表（生产可置 false 改为仅校验，缺表则启动失败）
+  auto_migrate: true
+  # 并发数最小为 1
+  orchestration_concurrency: 2
+  worker_concurrency: 2
+  # 停机时给在跑活动留的收尾窗口（毫秒）
+  shutdown_grace_ms: 5000
+
 aliyun:
   gateway:
     base_url: http://127.0.0.1:8090

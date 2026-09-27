@@ -484,6 +484,40 @@ impl Default for EventsConfig {
     }
 }
 
+/// 可靠执行（编排运行时）。由 `orchestrator` 二进制读取。
+///
+/// 编排历史不是业务表：它由 provider 自己建在独立 schema 里，不属于 `migration` 世代，
+/// 也不参与租户/平台通道。`schema` 留空或填 `public` 都会被拒绝，免得编排表和业务表混在一个命名空间。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct DurableConfig {
+    /// 编排库连接串；留空表示复用 `database.url`。
+    pub database_url: String,
+    /// 编排历史所在 schema（必须独立、非 `public`）。
+    pub schema: String,
+    /// 启动时自动建表（`ApplyAll`）；关闭则只做校验（`VerifyOnly`），缺表直接启动失败。
+    pub auto_migrate: bool,
+    /// 可同时推进的编排实例数。
+    pub orchestration_concurrency: usize,
+    /// 可同时执行的活动数。
+    pub worker_concurrency: usize,
+    /// 停机时给在跑活动留的收尾窗口（毫秒）。
+    pub shutdown_grace_ms: u64,
+}
+
+impl Default for DurableConfig {
+    fn default() -> Self {
+        Self {
+            database_url: String::new(),
+            schema: "durable".to_string(),
+            auto_migrate: true,
+            orchestration_concurrency: 2,
+            worker_concurrency: 2,
+            shutdown_grace_ms: 5_000,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct Configure {
@@ -500,6 +534,7 @@ pub struct Configure {
     pub logging: LoggingConfig,
     pub cors: CorsConfig,
     pub events: EventsConfig,
+    pub durable: DurableConfig,
     /// 合并时使用的 profile（`resolve_profile()`）。
     #[serde(skip)]
     pub profile: String,
@@ -524,6 +559,7 @@ impl Default for Configure {
             logging: LoggingConfig::default(),
             cors: CorsConfig::default(),
             events: EventsConfig::default(),
+            durable: DurableConfig::default(),
             profile: "development".to_string(),
             config_dir: PathBuf::from("."),
         }
@@ -576,6 +612,7 @@ impl Configure {
 
         self.validate_pay()?;
         self.validate_events()?;
+        self.validate_durable()?;
 
         Ok(())
     }
@@ -621,6 +658,62 @@ impl Configure {
         }
 
         Ok(())
+    }
+
+    /// 可靠执行配置的形状校验（各 profile 一致）。
+    ///
+    /// 「连接串是否可达」不在这里判定：api 二进制不读 `durable`，不该因为编排库的配置而起不来；
+    /// 该判定见 [`Configure::require_durable_settings`]，由 orchestrator 调用。
+    fn validate_durable(&self) -> Result<()> {
+        let durable = &self.durable;
+        let schema = durable.schema.trim();
+        if schema.is_empty() {
+            bail!("durable.schema must not be empty：编排历史必须放在独立 schema 里");
+        }
+        if schema.eq_ignore_ascii_case("public") {
+            bail!("durable.schema must not be `public`：编排表不能和业务表混在一个 schema");
+        }
+        if !is_valid_schema_name(schema) {
+            bail!("durable.schema must match ^[A-Za-z_][A-Za-z0-9_]*$");
+        }
+        if !durable.database_url.trim().is_empty() && !is_postgres_url(durable.database_url.trim())
+        {
+            bail!("durable.database_url must be a postgres:// or postgresql:// url");
+        }
+        if durable.orchestration_concurrency == 0 {
+            bail!("durable.orchestration_concurrency must be greater than 0");
+        }
+        if durable.worker_concurrency == 0 {
+            bail!("durable.worker_concurrency must be greater than 0");
+        }
+        if durable.shutdown_grace_ms == 0 {
+            bail!("durable.shutdown_grace_ms must be greater than 0");
+        }
+
+        Ok(())
+    }
+
+    /// orchestrator 专用：编排库连接串必须能定下来（空值会回落到 `database.url`）。
+    ///
+    /// 返回解析后的连接串，调用方直接拿它去连库；schema 与并发数用 [`Configure::durable`] 的字段。
+    pub fn require_durable_settings(&self) -> Result<&str> {
+        let url = if self.durable.database_url.trim().is_empty() {
+            self.database_uri().trim()
+        } else {
+            self.durable.database_url.trim()
+        };
+        if url.is_empty() {
+            bail!(
+                "durable.database_url 与 database.url 不能同时为空（orchestrator 无法连接编排库）"
+            );
+        }
+        if !is_postgres_url(url) {
+            bail!(
+                "durable 编排库必须是 postgres:// 或 postgresql:// url（duroxide-pg 只支持 PostgreSQL）"
+            );
+        }
+
+        Ok(url)
     }
 
     /// 支付配置校验：宁可启动失败，也不要带着半截凭据上线（下单/验签会静默失效）。
@@ -894,6 +987,20 @@ fn is_placeholder_secret(value: &str) -> bool {
     lower.contains("change-me") || lower == "secret" || lower.starts_with("your-")
 }
 
+/// PostgreSQL schema 名（duroxide-pg 会把它直接拼进 SQL，所以白名单必须收紧）。
+fn is_valid_schema_name(value: &str) -> bool {
+    let mut chars = value.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_alphabetic() || c == '_' => {}
+        _ => return false,
+    }
+    chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+fn is_postgres_url(value: &str) -> bool {
+    value.starts_with("postgres://") || value.starts_with("postgresql://")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -940,5 +1047,60 @@ mod tests {
             .plan_daily_token_quota
             .insert("PRO".to_string(), 5_000_000);
         assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn durable_defaults_are_valid() {
+        let cfg = Configure::default();
+        assert_eq!(cfg.durable.schema, "durable");
+        assert!(cfg.durable.auto_migrate);
+        assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_public_durable_schema() {
+        let mut cfg = Configure::default();
+        cfg.durable.schema = "public".into();
+        let err = cfg.validate().expect_err("public schema must fail");
+        assert!(err.to_string().contains("durable.schema"));
+    }
+
+    #[test]
+    fn validate_rejects_malformed_durable_schema() {
+        let mut cfg = Configure::default();
+        cfg.durable.schema = "durable-history".into();
+        assert!(cfg.validate().is_err());
+
+        cfg.durable.schema = "9durable".into();
+        assert!(cfg.validate().is_err());
+
+        cfg.durable.schema = "_durable2".into();
+        assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_zero_durable_concurrency() {
+        let mut cfg = Configure::default();
+        cfg.durable.worker_concurrency = 0;
+        assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn require_durable_settings_falls_back_to_database_url() {
+        let mut cfg = Configure::default();
+        cfg.database.url = "postgres://postgres:postgres@127.0.0.1:5432/app".into();
+        assert_eq!(
+            cfg.require_durable_settings().expect("resolved"),
+            "postgres://postgres:postgres@127.0.0.1:5432/app"
+        );
+
+        cfg.durable.database_url = "postgresql://postgres:postgres@127.0.0.1:55432/durable".into();
+        assert_eq!(
+            cfg.require_durable_settings().expect("resolved"),
+            "postgresql://postgres:postgres@127.0.0.1:55432/durable"
+        );
+
+        cfg.durable.database_url = "mysql://root@127.0.0.1/app".into();
+        assert!(cfg.validate().is_err());
     }
 }

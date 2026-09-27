@@ -173,6 +173,21 @@ docker compose up -d aliyun-gateway
 
 生产环境 `require_events_endpoint()` 会强制要求 `endpoint` 与 `token`：缺了就是事件静默堆在 `outbox` 里。
 
+## 长任务（durable → orchestrator）
+
+跨步骤、跨重启的长流程（文档索引、批量导入、需要重试与补偿的作业）交给 **[`orchestrator`](../src/bin/orchestrator.rs) 二进制**（`cargo run --bin orchestrator`）：
+
+| 字段                                    | 默认值     | 说明                                                                     |
+| --------------------------------------- | ---------- | ------------------------------------------------------------------------ |
+| `durable.database_url`                  | `""`       | 编排库连接串；留空 = 复用 `database.url`（可以，但没必要另起一个库）      |
+| `durable.schema`                        | `durable`  | 编排表所在 schema（provider 自治，**不能**填 `public` 或业务 schema）     |
+| `durable.auto_migrate`                  | `true`     | 启动时由 provider 自己建表/迁移；生产若由 DBA 管表可设 `false`            |
+| `durable.orchestration_concurrency`     | `2`        | 同时推进的编排轮次数                                                     |
+| `durable.worker_concurrency`            | `2`        | 同时执行的活动数（真正干活的并行度）                                     |
+| `durable.shutdown_grace_ms`             | `5000`     | 停机时留给在跑活动的收尾时间；超时强制中止（进度不丢，下次接着跑）        |
+
+`require_durable_settings()` 只在 orchestrator 启动路径上校验（api / worker 不读 `durable`）：解析出的连接串必须非空且以 `postgres` 开头，schema 必须是合法标识符且不是 `public`。
+
 ## 本地覆盖
 
 ```powershell
