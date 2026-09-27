@@ -10,6 +10,10 @@ use super::runtime;
 /// 邮件正文模板里的验证码占位符（单占位符，替换时不转义）。
 pub const MAIL_CODE_PLACEHOLDER: &str = "{code}";
 
+/// 服务身份令牌的有效期上限（秒）：令牌只在一次外部调用往返里用得上，
+/// 长于这个数就失去了「短期凭据」的意义。
+pub const SERVICE_TOKEN_MAX_TTL_SECS: u64 = 3_600;
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Encryption {
@@ -379,6 +383,13 @@ pub struct GatewayConfig {
     pub usage_es_index: String,
     /// 审计落库开关
     pub audit_enabled: bool,
+    /// 服务身份令牌的签发密钥（HMAC-SHA256）。留空 = 服务身份端点整体关闭（503）。
+    ///
+    /// 与 `security.jwt_secret` 分开：终端用户的会话令牌与服务身份的短期令牌用途不同，
+    /// 轮换其一不该牵连另一侧的签发。
+    pub service_token_secret: String,
+    /// 服务身份令牌的有效期（秒）。调用方按需重换，因此越短越安全；上限 3600。
+    pub service_token_ttl_secs: u64,
 }
 
 impl Default for GatewayConfig {
@@ -390,6 +401,8 @@ impl Default for GatewayConfig {
             upstream_timeout_ms: 120_000,
             usage_es_index: "gateway_usage".to_string(),
             audit_enabled: true,
+            service_token_secret: String::new(),
+            service_token_ttl_secs: 300,
         }
     }
 }
@@ -733,11 +746,32 @@ impl Configure {
             }
         }
 
+        self.validate_gateway()?;
+
         self.validate_pay()?;
         self.validate_events()?;
         self.validate_durable()?;
         self.validate_ai_worker()?;
         self.validate_aliyun()?;
+
+        Ok(())
+    }
+
+    /// 网关配置的形状校验（各 profile 一致）。
+    ///
+    /// 服务身份令牌的密钥允许为空（= 端点关闭，见 [`Configure::gateway_service_token_secret`]），
+    /// 但**半截配置**（配了时长却忘了密钥，或时长超出上限）一定是事故：
+    /// 前者的表现是「令牌永远签不出来」，后者会让本该短命的凭据长期有效。
+    fn validate_gateway(&self) -> Result<()> {
+        let gateway = &self.gateway;
+        if !self.gateway_service_token_secret().is_empty()
+            && gateway.service_token_ttl_secs > SERVICE_TOKEN_MAX_TTL_SECS
+        {
+            bail!(
+                "gateway.service_token_ttl_secs must not exceed {SERVICE_TOKEN_MAX_TTL_SECS}: \
+                 服务身份令牌是短期凭据"
+            );
+        }
 
         Ok(())
     }
@@ -1178,6 +1212,19 @@ impl Configure {
         self.gateway.audit_enabled
     }
 
+    /// 服务身份令牌的签发密钥；空表示服务身份端点未启用。
+    pub fn gateway_service_token_secret(&self) -> &str {
+        self.gateway.service_token_secret.trim()
+    }
+
+    /// 服务身份令牌有效期（秒）：`0` 视为未配置走默认值，并夹到 `[1, 3600]`。
+    pub fn gateway_service_token_ttl_secs(&self) -> u64 {
+        match self.gateway.service_token_ttl_secs {
+            0 => 300,
+            secs => secs.clamp(1, SERVICE_TOKEN_MAX_TTL_SECS),
+        }
+    }
+
     pub fn pay_order_ttl_secs(&self) -> u64 {
         self.pay.order_ttl_secs.clamp(60, 24 * 3600)
     }
@@ -1397,5 +1444,30 @@ mod tests {
 
         cfg.ai_worker.embed_model = "text-embedding-3-small".into();
         assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn gateway_service_token_defaults_are_off_but_shaped() {
+        let cfg = Configure::default();
+        // 默认不带密钥：服务身份端点整体关闭，只有显式配置才开门。
+        assert!(cfg.gateway_service_token_secret().is_empty());
+        assert_eq!(cfg.gateway_service_token_ttl_secs(), 300);
+        assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn gateway_service_token_ttl_is_clamped_and_validated() {
+        let mut cfg = Configure::default();
+        cfg.gateway.service_token_ttl_secs = 0;
+        assert_eq!(cfg.gateway_service_token_ttl_secs(), 300, "0 视为未配置");
+
+        cfg.gateway.service_token_secret = "dev-service-token-secret".into();
+        cfg.gateway.service_token_ttl_secs = 60;
+        assert_eq!(cfg.gateway_service_token_ttl_secs(), 60);
+        assert!(cfg.validate().is_ok());
+
+        cfg.gateway.service_token_ttl_secs = 86_400;
+        let err = cfg.validate().expect_err("超上限必须拦下");
+        assert!(err.to_string().contains("service_token_ttl_secs"));
     }
 }

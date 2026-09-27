@@ -8,27 +8,30 @@
 use std::sync::Arc;
 
 use actix_web::{HttpRequest, HttpResponse, Result, web};
+use entity::tenant;
 use identity::{Principal, TenantId};
-use sea_orm::DatabaseTransaction;
+use sea_orm::{DatabaseTransaction, EntityTrait};
 use uuid::Uuid;
 
 use crate::clients::elasticsearch::EsClient;
 use crate::clients::redis::RedisPool;
-use crate::configures::configure::Configure;
+use crate::configures::configure::{Configure, SERVICE_TOKEN_MAX_TTL_SECS};
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
 use crate::guards::account::AccountScope;
 use crate::guards::platform::PlatformScope;
+use crate::guards::service::{InternalCaller, ServiceScope};
 use crate::guards::session::Session;
-use crate::guards::tenant::TenantCtx;
+use crate::guards::tenant::{TenantCtx, TenantScope};
 use crate::interceptors::envelope::{Envelope, Paginated};
 use crate::services::gateway::client::Upstream;
 use crate::services::gateway::schema::{
-    AuditQueryP, ChatCompletionsP, ModelUpdateP, ModelWriteP, ProviderUpdateP, ProviderWriteP,
-    SelfQuotaP, UsageQueryP,
+    AuditQueryP, ChatCompletionsP, EmbeddingsP, ModelUpdateP, ModelWriteP, ProviderUpdateP,
+    ProviderWriteP, SelfQuotaP, ServiceTokenP, ServiceTokenR, UsageQueryP,
 };
 use crate::services::gateway::service::{GatewayError, GatewayService};
-use crate::utils::code::external;
+use crate::services::gateway::service_token;
+use crate::utils::code::{external, system};
 
 pub struct GatewayController;
 
@@ -146,6 +149,113 @@ impl GatewayController {
                 Ok(value) => Ok(HttpResponse::Ok().json(value)),
                 Err(e) => Exception::from(e).transform(),
             }
+        }
+    }
+
+    /// 服务身份出站：申请一枚短期令牌。
+    ///
+    /// 调用方是受信服务进程（当前只有 ai-worker），用它自己的共享令牌（`X-Internal-Token`）
+    /// 换取一枚**带作用域**的短期令牌。响应是裸结构而不是信封：取令牌的是机器，
+    /// 出错时才走信封（与 chat 的返回形状口径一致）。
+    ///
+    /// 这里只校验「租户存在」——模型是否存在、是否声明嵌入能力，由真正出站的那次调用
+    /// （[`service_embeddings`](Self::service_embeddings)）判定，令牌段不做多余查库。
+    pub async fn service_token(
+        db: web::Data<Arc<Storage>>,
+        config: web::Data<Arc<Configure>>,
+        _caller: InternalCaller,
+        body: web::Json<ServiceTokenP>,
+    ) -> Result<HttpResponse> {
+        let req = body.into_inner();
+        let tenant_id = req
+            .tenant_id
+            .parse::<Uuid>()
+            .map(TenantId::from_uuid)
+            .map_err(|_| Exception::bad_request("租户ID格式无效"))?;
+        let model = req.model.trim();
+        if model.is_empty() {
+            return Exception::bad_request("model 不能为空").transform();
+        }
+
+        let scope = TenantScope::open(&db, tenant_id).await.map_err(db_error)?;
+        let known = tenant::Entity::find_by_id(tenant_id.as_uuid())
+            .one(scope.tx())
+            .await;
+        scope.rollback().await.map_err(db_error)?;
+        match known {
+            Ok(Some(_)) => {}
+            Ok(None) => return Exception::not_found("租户不存在").transform(),
+            Err(err) => return db_error(err).transform(),
+        }
+
+        let secret = config.gateway_service_token_secret();
+        if secret.is_empty() {
+            return Exception::custom(system::SERVICE_UNAVAILABLE, "服务身份端点未启用")
+                .transform();
+        }
+
+        let ttl = req
+            .ttl_secs
+            .unwrap_or_else(|| config.gateway_service_token_ttl_secs())
+            .clamp(1, SERVICE_TOKEN_MAX_TTL_SECS);
+        let (token, expires_at) =
+            service_token::mint(secret, &tenant_id.as_uuid().to_string(), model, ttl).map_err(
+                |err| {
+                    tracing::error!(error = %err, "服务身份令牌签发失败");
+                    Exception::internal_error("服务身份令牌签发失败")
+                },
+            )?;
+
+        Ok(HttpResponse::Ok().json(ServiceTokenR {
+            token,
+            expires_at,
+            tenant_id: tenant_id.as_uuid().to_string(),
+            model: model.to_string(),
+            token_type: "service".to_string(),
+        }))
+    }
+
+    /// 服务身份出站：嵌入转发（模型由令牌作用域决定，不接受客户端指定）。
+    pub async fn service_embeddings(
+        db: web::Data<Arc<Storage>>,
+        redis: web::Data<Arc<RedisPool>>,
+        config: web::Data<Arc<Configure>>,
+        es: web::Data<Arc<EsClient>>,
+        http: HttpRequest,
+        scope: ServiceScope,
+        body: web::Json<EmbeddingsP>,
+    ) -> Result<HttpResponse> {
+        let req = body.into_inner();
+        if let Some(requested) = req.model.as_deref().map(str::trim)
+            && !requested.is_empty()
+            && requested != scope.model()
+        {
+            return Exception::bad_request("model 与令牌作用域不一致").transform();
+        }
+
+        let ip = client_ip(&http);
+        let upstream = Upstream::new(config.as_ref());
+
+        // 与用户路径同一套时序：解析在作用域内，出站与记账在作用域外。
+        let tenant = TenantScope::open(&db, scope.tenant_id())
+            .await
+            .map_err(db_error)?;
+        let prepared = GatewayService::prepare_for_service(
+            tenant.tx(),
+            scope.tenant_id(),
+            &config,
+            &redis,
+            scope.model(),
+        )
+        .await;
+        tenant.rollback().await.map_err(db_error)?;
+        let prepared = prepared.map_err(Exception::from)?;
+
+        match GatewayService::embed_json(&db, &redis, &config, &es, &upstream, prepared, &req, ip)
+            .await
+        {
+            Ok(value) => Ok(HttpResponse::Ok().json(value)),
+            Err(e) => Exception::from(e).transform(),
         }
     }
 

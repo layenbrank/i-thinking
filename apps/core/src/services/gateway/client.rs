@@ -12,6 +12,8 @@ pub enum UpstreamError {
     Http(#[from] reqwest::Error),
     #[error("upstream status {status}: {detail}")]
     Status { status: u16, detail: String },
+    #[error("upstream returned a non-JSON body: {0}")]
+    Body(String),
 }
 
 pub struct Upstream {
@@ -61,6 +63,47 @@ impl Upstream {
             });
         }
         Ok(resp)
+    }
+
+    /// POST 一个非流式端点，成功后把响应体解成 JSON。
+    ///
+    /// 单独开一条路径而不是复用 [`post_chat`](Self::post_chat)：流式响应不能被整体读走
+    /// （读走就等于把 SSE 缓冲成内存字符串，直传的意义全没了），而嵌入这类一次性调用
+    /// 恰恰需要「读完 + 解析」。错误语义两边一致：非 2xx 是 [`UpstreamError::Status`]。
+    pub async fn post_json(
+        &self,
+        url: &str,
+        api_key: Option<&str>,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, UpstreamError> {
+        let mut req = self.http.post(url).json(body);
+        if let Some(key) = api_key.filter(|k| !k.is_empty()) {
+            req = req.header(reqwest::header::AUTHORIZATION, format!("Bearer {}", key));
+        }
+        let resp = req.send().await.map_err(|err| {
+            tracing::error!(error = %err, url = %url, "gateway upstream request failed");
+            UpstreamError::Http(err)
+        })?;
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let detail = resp.text().await.unwrap_or_default();
+            tracing::warn!(
+                status,
+                url = %url,
+                detail = %truncate(&detail, 500),
+                "gateway upstream returned non-success status"
+            );
+            return Err(UpstreamError::Status {
+                status,
+                detail: truncate(&detail, 500),
+            });
+        }
+
+        let text = resp.text().await.map_err(UpstreamError::Http)?;
+        serde_json::from_str(&text).map_err(|err| {
+            tracing::warn!(error = %err, url = %url, "gateway upstream body is not JSON");
+            UpstreamError::Body(truncate(&text, 500))
+        })
     }
 }
 

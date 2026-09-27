@@ -73,6 +73,10 @@ pub const GATEWAY_AUDIT: &str = "/api/v1/gateway/audit";
 pub const GATEWAY_QUOTA_ME: &str = "/api/v1/gateway/quota/me";
 pub const GATEWAY_PLANS: &str = "/api/v1/gateway/plans";
 
+// --- Service（服务身份出站面，非用户面） ---
+pub const SERVICE_TOKEN: &str = "/api/v1/service/token";
+pub const SERVICE_EMBEDDINGS: &str = "/api/v1/service/embeddings";
+
 // --- SSO ---
 pub const SSO_CONNECTIONS: &str = "/api/v1/sso/connections";
 pub const SSO_CONNECTIONS_BY_ID: &str = "/api/v1/sso/connections/{id}";
@@ -344,6 +348,14 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: GATEWAY_PLANS,
+    },
+    RouteDef {
+        method: "POST",
+        path: SERVICE_TOKEN,
+    },
+    RouteDef {
+        method: "POST",
+        path: SERVICE_EMBEDDINGS,
     },
     RouteDef {
         method: "GET",

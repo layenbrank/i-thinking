@@ -3,8 +3,43 @@ use super::common::{
     ProviderListEnvelope, SelfQuotaEnvelope,
 };
 use crate::services::gateway::schema::{
-    ChatCompletionsP, ModelUpdateP, ModelWriteP, ProviderUpdateP, ProviderWriteP,
+    ChatCompletionsP, EmbeddingsP, ModelUpdateP, ModelWriteP, ProviderUpdateP, ProviderWriteP,
+    ServiceTokenP, ServiceTokenR,
 };
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/service/token",
+    tag = "Service",
+    operation_id = "service.token",
+    summary = "服务身份令牌（内部）",
+    description = "**仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，\
+        令牌自带作用域（`tenantID` + `model`）。这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。\
+        换取失败一律按错误信封返回；租户不存在返回 404。",
+    request_body(content = ServiceTokenP, description = "作用域申请"),
+    responses(
+        (status = 200, description = "成功（raw JSON，不套信封）", body = ServiceTokenR),
+        (status = "default", description = "业务异常（内部令牌无效 / 租户不存在 / 端点未启用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
+    )
+)]
+pub fn service_token_doc() {}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/service/embeddings",
+    tag = "Service",
+    operation_id = "service.embeddings",
+    summary = "嵌入转发（内部）",
+    description = "**仅限受信服务进程**：用 `X-Service-Token` 携带的短期令牌调用，模型取自令牌作用域\
+        （请求体里给了不一致的 `model` 会 400），`input`/`dimensions` 等字段原样透传给上游供应商。\
+        core 仍是唯一出网点：配额预检、用量与审计记账都走与聊天相同的路径。",
+    request_body(content = EmbeddingsP, description = "OpenAI 兼容嵌入请求（`model` 可省）"),
+    responses(
+        (status = 200, description = "成功（raw 上游 JSON）", body = Object),
+        (status = "default", description = "业务异常（令牌无效或过期 / 模型未声明 embeddings 能力 / 配额已用尽 / 上游失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
+    )
+)]
+pub fn service_embeddings_doc() {}
 
 #[utoipa::path(
     post,

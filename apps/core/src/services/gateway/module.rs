@@ -17,6 +17,20 @@ impl GatewayModule {
                 .route("/plans", web::get().to(GatewayController::plans))
                 // 后台：供应商/模型/用量/审计（平台 ADMIN）
                 .configure(admin_routes),
+        )
+        // 服务身份面：给受信服务进程（ai-worker）用的出站端点。
+        //
+        // 单独成一个前缀而不是塞进 `/gateway`：那一层整层挂着 `Auth::isRequired()`，
+        // 服务进程没有用户会话，套进去只会每个请求都 401。这里的身份由请求头承载，
+        // 校验实现为 `FromRequest`（见 `guards::service`），不是中间件——
+        // 端点是否受保护由 handler 的形参决定，改一处不会漏掉整层。
+        .service(
+            web::scope("/service")
+                .route("/token", web::post().to(GatewayController::service_token))
+                .route(
+                    "/embeddings",
+                    web::post().to(GatewayController::service_embeddings),
+                ),
         );
     }
 }

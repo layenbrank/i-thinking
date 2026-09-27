@@ -158,6 +158,12 @@ gateway:
   usage_es_index: gateway_usage
   # 审计落库开关
   audit_enabled: true
+  # 服务身份出站面（/api/v1/service/**）：ai-worker 等受信服务换短期令牌用的共享密钥。
+  # 默认留空 = 整个服务面关闭（503）：这些端点在公开的 api 端口上，不能靠「别人不知道」来兜底。
+  # 本机联调 / 部署时放 config.local.yaml 或 profile 覆盖，不入库。
+  service_token_secret: ''
+  # 服务令牌有效期（秒）：1..3600，0 视为默认 300
+  service_token_ttl_secs: 300
 
 # 支付（订单与渠道凭据）。凭据放 config.local.yaml / 部署环境的 profile 覆盖，不入库。
 # plans 里定价（amount > 0）的档位只能由支付回调开通：自助开通用 500408 拒绝。

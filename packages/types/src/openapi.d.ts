@@ -586,6 +586,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service/embeddings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 嵌入转发（内部）
+         * @description **仅限受信服务进程**：用 `X-Service-Token` 携带的短期令牌调用，模型取自令牌作用域（请求体里给了不一致的 `model` 会 400），`input`/`dimensions` 等字段原样透传给上游供应商。core 仍是唯一出网点：配额预检、用量与审计记账都走与聊天相同的路径。
+         */
+        post: operations["service.embeddings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 服务身份令牌（内部）
+         * @description **仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，令牌自带作用域（`tenantID` + `model`）。这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。换取失败一律按错误信封返回；租户不存在返回 404。
+         */
+        post: operations["service.token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sso/connections": {
         parameters: {
             query?: never;
@@ -1485,6 +1525,17 @@ export interface components {
              */
             email: string;
         };
+        /**
+         * @description OpenAI 兼容 embeddings 请求：`input`/`dimensions`/… 由调用方透传，**模型名不由客户端决定**。
+         *
+         *     `model` 只做一致性校验（与令牌作用域不符即 400）——真正生效的模型来自服务令牌，
+         *     这样一枚令牌就只能用在自己被授权的那一个模型上。
+         */
+        EmbeddingsP: {
+            model?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         EmptyEnvelope: {
             /**
              * Format: int32
@@ -2304,6 +2355,29 @@ export interface components {
              * @description 今日已用（token，取 Redis 日窗计数）
              */
             used: number;
+        };
+        /** @description 服务令牌申请：作用域由 core 判定，调用方只能**请求**租户与时长。 */
+        ServiceTokenP: {
+            model: string;
+            tenantID: string;
+            /**
+             * Format: int64
+             * @description 期望有效期（秒）；缺省用配置值，且一律被上限收敛。
+             */
+            ttlSecs?: number | null;
+        };
+        /** @description 服务令牌响应：裸结构、不套信封（调用方是服务进程，不是浏览器）。 */
+        ServiceTokenR: {
+            /**
+             * Format: int64
+             * @description 过期时间（Unix 秒），调用方据此决定何时续签。
+             */
+            expiresAt: number;
+            model: string;
+            tenantID: string;
+            token: string;
+            /** @description 固定为 `service`，与用户会话令牌区分。 */
+            tokenType: string;
         };
         /** @enum {string} */
         Shape: "Square" | "Circle" | "Rectangle";
@@ -4240,6 +4314,88 @@ export interface operations {
                 };
             };
             /** @description 业务异常（未登录或参数/ES 错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "service.embeddings": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /** @description OpenAI 兼容嵌入请求（`model` 可省） */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmbeddingsP"];
+            };
+        };
+        responses: {
+            /** @description 成功（raw 上游 JSON） */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description 业务异常（令牌无效或过期 / 模型未声明 embeddings 能力 / 配额已用尽 / 上游失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "service.token": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 作用域申请 */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceTokenP"];
+            };
+        };
+        responses: {
+            /** @description 成功（raw JSON，不套信封） */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceTokenR"];
+                };
+            };
+            /** @description 业务异常（内部令牌无效 / 租户不存在 / 端点未启用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
             default: {
                 headers: {
                     /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */

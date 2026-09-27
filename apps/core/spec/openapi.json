@@ -765,6 +765,21 @@
         ],
         "type": "object"
       },
+      "EmbeddingsP": {
+        "additionalProperties": {
+          "description": "input / dimensions / encoding_format / … 原样透传给上游供应商"
+        },
+        "description": "OpenAI 兼容 embeddings 请求：`input`/`dimensions`/… 由调用方透传，**模型名不由客户端决定**。\n\n`model` 只做一致性校验（与令牌作用域不符即 400）——真正生效的模型来自服务令牌，\n这样一枚令牌就只能用在自己被授权的那一个模型上。",
+        "properties": {
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "EmptyEnvelope": {
         "properties": {
           "code": {
@@ -2994,6 +3009,62 @@
           "remaining",
           "exhausted",
           "resetsAt"
+        ],
+        "type": "object"
+      },
+      "ServiceTokenP": {
+        "description": "服务令牌申请：作用域由 core 判定，调用方只能**请求**租户与时长。",
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "tenantID": {
+            "type": "string"
+          },
+          "ttlSecs": {
+            "description": "期望有效期（秒）；缺省用配置值，且一律被上限收敛。",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "tenantID",
+          "model"
+        ],
+        "type": "object"
+      },
+      "ServiceTokenR": {
+        "description": "服务令牌响应：裸结构、不套信封（调用方是服务进程，不是浏览器）。",
+        "properties": {
+          "expiresAt": {
+            "description": "过期时间（Unix 秒），调用方据此决定何时续签。",
+            "format": "int64",
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "tenantID": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "tokenType": {
+            "description": "固定为 `service`，与用户会话令牌区分。",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt",
+          "tenantID",
+          "model",
+          "tokenType"
         ],
         "type": "object"
       },
@@ -7328,6 +7399,166 @@
         ]
       }
     },
+    "/api/v1/service/embeddings": {
+      "post": {
+        "description": "**仅限受信服务进程**：用 `X-Service-Token` 携带的短期令牌调用，模型取自令牌作用域（请求体里给了不一致的 `model` 会 400），`input`/`dimensions` 等字段原样透传给上游供应商。core 仍是唯一出网点：配额预检、用量与审计记账都走与聊天相同的路径。",
+        "operationId": "service.embeddings",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmbeddingsP"
+              }
+            }
+          },
+          "description": "OpenAI 兼容嵌入请求（`model` 可省）",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "成功（raw 上游 JSON）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（令牌无效或过期 / 模型未声明 embeddings 能力 / 配额已用尽 / 上游失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "嵌入转发（内部）",
+        "tags": [
+          "Service"
+        ]
+      }
+    },
+    "/api/v1/service/token": {
+      "post": {
+        "description": "**仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，令牌自带作用域（`tenantID` + `model`）。这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。换取失败一律按错误信封返回；租户不存在返回 404。",
+        "operationId": "service.token",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceTokenP"
+              }
+            }
+          },
+          "description": "作用域申请",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceTokenR"
+                }
+              }
+            },
+            "description": "成功（raw JSON，不套信封）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（内部令牌无效 / 租户不存在 / 端点未启用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "服务身份令牌（内部）",
+        "tags": [
+          "Service"
+        ]
+      }
+    },
     "/api/v1/sso/connections": {
       "get": {
         "operationId": "sso.connections",
@@ -10736,6 +10967,10 @@
     {
       "description": "模型网关：转发/配额/用量/审计（需 JWT）",
       "name": "Gateway"
+    },
+    {
+      "description": "服务身份出站面：短期令牌与嵌入转发（仅内部服务进程，无 JWT）",
+      "name": "Service"
     },
     {
       "description": "单点登录（OIDC）",

@@ -36,6 +36,7 @@ use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
 use crate::guards::account::AccountScope;
 use crate::guards::platform::PlatformScope;
+use crate::guards::service::SERVICE_ACTOR_ID;
 use crate::guards::tenant::TenantScope;
 use crate::services::gateway::client::{Upstream, UpstreamError};
 use crate::services::gateway::quota::{
@@ -43,8 +44,8 @@ use crate::services::gateway::quota::{
 };
 use crate::services::gateway::repository::{UsageInput, record_audit, record_usage};
 use crate::services::gateway::schema::{
-    AuditR, ChatCompletionsP, ModelR, ModelUpdateP, ModelWriteP, PlanR, PlansR, ProviderR,
-    ProviderUpdateP, ProviderWriteP, SelfQuotaR, UsageQueryP, UsageR,
+    AuditR, ChatCompletionsP, EmbeddingsP, ModelR, ModelUpdateP, ModelWriteP, PlanR, PlansR,
+    ProviderR, ProviderUpdateP, ProviderWriteP, SelfQuotaR, UsageQueryP, UsageR,
 };
 use crate::services::subscription::service::{QuotaInfo, global_quota, quota_in};
 use crate::utils::code::{auth as auth_codes, external, request, resource, system};
@@ -175,6 +176,9 @@ struct CompletionMeta {
     model_id: Uuid,
     model_name: String,
     quota_key: String,
+    /// 审计行的动作名（`gateway.chat` / `gateway.embeddings`）：
+    /// 用量表只需要模型与 token，审计表需要能区分「这次调用干了什么」。
+    action: &'static str,
 }
 
 pub struct GatewayService;
@@ -211,34 +215,38 @@ impl GatewayService {
             return Err(GatewayError::NotAllowed);
         }
 
-        let provider = gateway_provider::Entity::find_by_id(model.provider_id)
-            .one(tx)
-            .await
-            .map_err(db_err)?
-            .ok_or(GatewayError::ProviderNotFound)?;
-        if provider.status != "ACTIVE" {
-            return Err(GatewayError::ProviderDisabled);
+        assemble(tx, config, redis, model, user_id, tenant_id).await
+    }
+
+    /// 在**调用方给的作用域**里解析一次服务身份的嵌入请求。
+    ///
+    /// 与 [`prepare`](Self::prepare) 的关键差别是「授权从哪来」：这里没有人员角色，
+    /// 授权完全来自服务令牌的作用域（租户 + 模型），因此不做 `role_allowed` 判定；
+    /// 反过来，模型必须显式声明嵌入能力，且不接受 `auto`（服务进程要的是确定性，
+    /// 不是「帮我挑一个」）。配额与记账按令牌里的租户归属。
+    ///
+    /// # Errors
+    /// 模型不存在/停用/未声明嵌入能力、供应商不存在或停用、数据库读取失败、密钥解密失败。
+    pub async fn prepare_for_service(
+        tx: &DatabaseTransaction,
+        tenant_id: TenantId,
+        config: &Configure,
+        redis: &RedisPool,
+        model_name: &str,
+    ) -> Result<Prepared, GatewayError> {
+        let tid = tenant_id.as_uuid();
+        let model = find_model(tx, model_name, Some(tid)).await?;
+        if !model.enabled {
+            return Err(GatewayError::ModelDisabled);
+        }
+        if !supports_embeddings(&model) {
+            return Err(GatewayError::BadParam(format!(
+                "模型 {} 未声明 embeddings 能力",
+                model.name
+            )));
         }
 
-        let api_key = if provider.api_key_enc.is_empty() {
-            None
-        } else {
-            let aes_key = config.aes_key().ok_or(EncryptionError::InvalidKeyLength)?;
-            Some(decrypt_field(&provider.api_key_enc, aes_key)?)
-        };
-
-        // 配额优先级：模型覆盖 > 租户级（订阅档位 > 免费档 / 全局兜底）
-        let (quota_limit, _) = resolve_quota(tx, config, redis, tenant_id, Some(&model)).await?;
-
-        Ok(Prepared {
-            model,
-            provider,
-            api_key,
-            scope: quota_scope(user_id, tenant_id),
-            quota_limit,
-            user_id,
-            tenant_id,
-        })
+        assemble(tx, config, redis, model, SERVICE_ACTOR_ID, Some(tid)).await
     }
 
     /// 流式转发（SSE 直传）。解析与配额判定已在 [`prepare`](Self::prepare) 里完成。
@@ -274,6 +282,7 @@ impl GatewayService {
             model_id: prepared.model.id,
             model_name: prepared.model.name.clone(),
             quota_key: key,
+            action: "gateway.chat",
         };
         let record = Record {
             meta,
@@ -331,6 +340,61 @@ impl GatewayService {
                 model_id: prepared.model.id,
                 model_name: prepared.model.name.clone(),
                 quota_key: key,
+                action: "gateway.chat",
+            },
+            usage,
+            "OK",
+            latency,
+            ip,
+        )
+        .await;
+
+        Ok(value)
+    }
+
+    /// 服务身份的嵌入转发：上游 JSON 原样返回，记账在响应之前完成。
+    ///
+    /// 与 [`chat_json`](Self::chat_json) 是同一套时序（配额预检 → 出站 → 落库 → 返回），
+    /// 差别只有出站路径、请求体组装与审计动作名——记账这一块必须共用，否则服务调用的
+    /// 用量会悄悄绕过配额（那正是「gateway 是唯一出网点」这句话要防的事）。
+    #[allow(clippy::too_many_arguments)]
+    pub async fn embed_json(
+        db: &Storage,
+        redis: &RedisPool,
+        config: &Configure,
+        es: &EsClient,
+        upstream: &Upstream,
+        prepared: Prepared,
+        req: &EmbeddingsP,
+        ip: Option<String>,
+    ) -> Result<Value, GatewayError> {
+        let key = quota_key_for(&prepared.scope);
+        if exhausted(redis, &key, prepared.quota_limit).await? {
+            return Err(GatewayError::QuotaExceeded);
+        }
+
+        let body = build_embeddings_body(req, &prepared.model.name);
+        let url = embeddings_url(&prepared.provider)?;
+        let started = Instant::now();
+        let value = upstream
+            .post_json(&url, prepared.api_key.as_deref(), &body)
+            .await?;
+        let latency = started.elapsed().as_millis() as i64;
+        let usage = value.get("usage").map(parse_usage_json);
+
+        record_completion(
+            db,
+            redis,
+            config,
+            es,
+            &CompletionMeta {
+                user_id: prepared.user_id,
+                tenant_id: prepared.tenant_id,
+                provider_id: prepared.provider.id,
+                model_id: prepared.model.id,
+                model_name: prepared.model.name.clone(),
+                quota_key: key,
+                action: "gateway.embeddings",
             },
             usage,
             "OK",
@@ -829,6 +893,48 @@ async fn resolve_quota(
     Ok((info.limit, Some(info)))
 }
 
+/// 模型已选定之后的部分：供应商可用性、密钥解密、配额上限、归属身份。
+///
+/// 聊天与服务身份两条解析路径的**唯一**差别只在「模型怎么挑、谁被授权」，
+/// 剩下的（供应商/密钥/配额/记账归属）完全一致，于是抽在这里，避免两份实现漂移。
+async fn assemble(
+    tx: &DatabaseTransaction,
+    config: &Configure,
+    redis: &RedisPool,
+    model: gateway_model::Model,
+    user_id: Uuid,
+    tenant_id: Option<Uuid>,
+) -> Result<Prepared, GatewayError> {
+    let provider = gateway_provider::Entity::find_by_id(model.provider_id)
+        .one(tx)
+        .await
+        .map_err(db_err)?
+        .ok_or(GatewayError::ProviderNotFound)?;
+    if provider.status != "ACTIVE" {
+        return Err(GatewayError::ProviderDisabled);
+    }
+
+    let api_key = if provider.api_key_enc.is_empty() {
+        None
+    } else {
+        let aes_key = config.aes_key().ok_or(EncryptionError::InvalidKeyLength)?;
+        Some(decrypt_field(&provider.api_key_enc, aes_key)?)
+    };
+
+    // 配额优先级：模型覆盖 > 租户级（订阅档位 > 免费档 / 全局兜底）
+    let (quota_limit, _) = resolve_quota(tx, config, redis, tenant_id, Some(&model)).await?;
+
+    Ok(Prepared {
+        model,
+        provider,
+        api_key,
+        scope: quota_scope(user_id, tenant_id),
+        quota_limit,
+        user_id,
+        tenant_id,
+    })
+}
+
 /// 取模型：当前租户的私有模型优先，其次全局模型。
 ///
 /// 两种来源都要显式区分（策略只保证「可见」，不保证 `name` 唯一），
@@ -899,6 +1005,20 @@ fn supports_tools(model: &gateway_model::Model) -> bool {
         .unwrap_or(true)
 }
 
+/// 模型是否**显式**声明了嵌入能力。
+///
+/// 与 [`supports_tools`] 的默认值相反，这里未声明就是「不支持」：聊天模型全都吃
+/// `tools` 字段的缺省宽松口径，而把一个纯聊天模型当成嵌入模型用只会得到上游的
+/// 400/404，与其把失败推给上游，不如在目录这一层就说清楚。
+fn supports_embeddings(model: &gateway_model::Model) -> bool {
+    model
+        .capabilities
+        .as_ref()
+        .and_then(|c| c.get("embeddings"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+}
+
 /// 收敛能力声明：`None` / `null` / 空对象 → 未声明；只保留 `tools/reasoning/vision` 的布尔值。
 fn normalize_capabilities(raw: Option<Value>) -> Result<Option<Value>, GatewayError> {
     let Some(raw) = raw else {
@@ -912,7 +1032,7 @@ fn normalize_capabilities(raw: Option<Value>) -> Result<Option<Value>, GatewayEr
         .ok_or_else(|| GatewayError::BadParam("capabilities 必须是对象".to_string()))?;
 
     let mut out = serde_json::Map::new();
-    for key in ["tools", "reasoning", "vision"] {
+    for key in ["tools", "reasoning", "vision", "embeddings"] {
         if let Some(value) = obj.get(key) {
             let flag = value.as_bool().ok_or_else(|| {
                 GatewayError::BadParam(format!("capabilities.{key} 必须是布尔值"))
@@ -993,14 +1113,23 @@ fn role_allowed(
 }
 
 fn chat_url(provider: &gateway_provider::Model) -> Result<String, GatewayError> {
+    endpoint_url(provider, "/chat/completions")
+}
+
+fn embeddings_url(provider: &gateway_provider::Model) -> Result<String, GatewayError> {
+    endpoint_url(provider, "/embeddings")
+}
+
+/// 按供应商类型拼出站 URL + 路径。
+///
+/// `kind` 白名单放在这里而不是各调用点：不认识的供应商类型必须**在出站之前**拒绝，
+/// 否则就会拿一个「看着像 baseURL」的字符串去发请求。
+fn endpoint_url(provider: &gateway_provider::Model, path: &str) -> Result<String, GatewayError> {
     let kind = provider.kind.as_str();
     if !matches!(kind, "openai" | "deepseek" | "qwen" | "zhipu" | "ollama") {
         return Err(GatewayError::UnsupportedKind(provider.kind.clone()));
     }
-    Ok(format!(
-        "{}/chat/completions",
-        provider.base_url.trim_end_matches('/')
-    ))
+    Ok(format!("{}{path}", provider.base_url.trim_end_matches('/')))
 }
 
 fn build_body(req: &ChatCompletionsP, model_name: &str, stream: bool) -> Value {
@@ -1013,6 +1142,14 @@ fn build_body(req: &ChatCompletionsP, model_name: &str, stream: bool) -> Value {
             json!({ "include_usage": true }),
         );
     }
+    Value::Object(map)
+}
+
+/// 嵌入请求体：`model` 一律用**令牌作用域里的**模型覆盖客户端给的字段，
+/// 其余（`input`/`dimensions`/…）原样透传。
+fn build_embeddings_body(req: &EmbeddingsP, model_name: &str) -> Value {
+    let mut map = req.extra.clone();
+    map.insert("model".to_string(), json!(model_name));
     Value::Object(map)
 }
 
@@ -1137,7 +1274,7 @@ async fn persist(
             scope.tx(),
             meta.tenant_id,
             meta.user_id,
-            "gateway.chat",
+            meta.action,
             &meta.model_name,
             Some(json!({ "status": status, "totalTokens": total })),
             ip,

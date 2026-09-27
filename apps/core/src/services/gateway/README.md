@@ -9,6 +9,7 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 | 能力        | 说明                                                                    |
 | ----------- | ----------------------------------------------------------------------- |
 | 对话转发    | `POST /chat/completions`，`stream: true` 时 SSE 直传，否则返回原始 JSON |
+| 嵌入转发    | 服务面 `POST /service/embeddings`，模型由令牌作用域决定，不走用户鉴权 |
 | 可用模型    | 按平台角色 / 租户角色过滤后返回                                         |
 | 自动路由    | 目录内置 `auto`：请求 `model=auto` 时按「租户内优先、支持工具优先」挑一条 |
 | 供应商管理  | 上游 base_url 与（加密）API Key 的 CRUD                                 |
@@ -45,6 +46,13 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 | GET          | `/api/v1/gateway/usage`             | 用量查询（分页）  |
 | GET          | `/api/v1/gateway/audit`             | 审计查询（分页）  |
 
+服务面（受信服务进程，非终端用户）：
+
+| 方法 | 路径                          | 鉴权                | 说明                     |
+| ---- | ----------------------------- | ------------------- | ------------------------ |
+| POST | `/api/v1/service/token`       | `X-Internal-Token`  | 换一枚短期嵌入令牌       |
+| POST | `/api/v1/service/embeddings`  | `X-Service-Token`   | 转发嵌入请求（裸 JSON）  |
+
 ## 目录契约（`GET /models` 与 `GET /admin/models`）
 
 两个接口返回同一组字段，客户端**只按目录渲染**，不写死任何模型名：
@@ -53,7 +61,7 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 | --------------- | ------------------------------------------------------------------------------------------------ |
 | `name`          | 请求 `model` 字段要用的值（上游约定的名字）                                                       |
 | `label`         | 界面上显示的名字                                                                                 |
-| `capabilities`  | `{ tools?, reasoning?, vision? }`，客户端据此决定是否挂工具、要不要显示推理/图片入口；未声明时客户端按「工具可用、推理与视觉未知」兜底 |
+| `capabilities`  | `{ tools?, reasoning?, vision?, embeddings? }`（白名单外的键后台写入即 `200003`），客户端据此决定是否挂工具、要不要显示推理/图片入口；未声明时客户端按「工具可用、推理与视觉未知」兜底 |
 | `contextWindow` | 上下文窗口（token）；未声明则不下发                                                               |
 | `providerName`  | 上游供应商展示名。用户面也下发 —— 普通用户读不到 `/providers`（ADMIN），无法自己把 `providerID` 解析成名字 |
 
@@ -82,12 +90,46 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 | ------ | -------------------------- | ------------------------------------------------------- | --------------------------------------------- |
 | 用户面 | `Auth::isRequired()`       | 带 `X-Tenant-ID` → `TenantCtx`；否则 `AccountScope`     | 本租户私有行 + 全局行（无租户时只有全局行）   |
 | 运维面 | `Auth::admin()`            | `PlatformScope`（特权角色，`BYPASSRLS`）                | 全局行与**所有**租户的行                      |
+| 服务面 | `X-Internal-Token` / `X-Service-Token` | 按令牌作用域开短事务（`TenantScope::open`），出站前结束 | 令牌租户的私有行 + 全局行                     |
 
 - `X-Tenant-ID` 不再是「盲信通行证」而是**选择器**：带了就必须是该租户的成员（或平台管理员），否则 403；
   不带则落在账号作用域。用户面四个接口口径一致（目录、聊天、自助配额、档位）。
 - 运维面写入只写全局目录行（`tenantID IS NULL`）；改 / 删租户私有行一律 `400001`（不存在），
   不会「静默成功却一行没动」。
 - 用户面额外校验模型 `allowRoles` 与租户角色（`role_allowed`）；同名模型下租户私有行优先于全局行。
+
+## 服务身份（`/api/v1/service/*`）
+
+AI 计算车间（[`guide/configuration.md`](../../../guide/configuration.md#ai-计算车间ai-worker--orchestrator) 的
+ai-worker）需要嵌入算力，但**出网与计量只能有一个出口**，否则配额与用量就会分裂。所以它自己不算嵌入，
+而是回打 core 的两个端点：先用内部共享令牌换一枚**带作用域的短期令牌**，再用它转发嵌入。
+
+```
+ai-worker ──X-Internal-Token──▶ POST /api/v1/service/token {tenantID, model} ──▶ {token, expiresAt}
+          ──X-Service-Token ──▶ POST /api/v1/service/embeddings {input, …}   ──▶ 上游裸 JSON
+```
+
+| 端点                 | 请求头              | 语义                                                                     |
+| -------------------- | ------------------- | ------------------------------------------------------------------------ |
+| `POST /service/token`| `X-Internal-Token`  | 校验租户存在性后签发 HS256 令牌；载荷 `{sub, aud, tenantID, model, exp, iat}` |
+| `POST /service/embeddings` | `X-Service-Token` | 按令牌作用域解析模型与配额 → 出站 `/embeddings` → 记账 → **原样返回上游 JSON** |
+
+- **令牌不是共享密钥的替代品，而是它的收窄**：共享密钥是长期凭据，落到编排历史或子进程日志里就一直有效；
+  短期令牌把窗口压到分钟级，并且**自带作用域**（租户 + 模型）。请求体里的 `model` 与令牌不一致直接 `200003`，
+  换不了别的租户也换不了别的模型（`model` 只用于告诉上游要哪个模型，由令牌覆盖）。
+- `gateway.service_token_secret` 留空 = 整个服务面**整体关闭**（`100002`，且先于读请求头判断），
+  没配密钥的部署不会留下一条「谁都能用来烧配额」的裸口子。密钥与 `security.jwt_secret` **必须分开**。
+- `ttlSecs` 由调用方给，服务端收敛到 `[1, gateway.service_token_ttl_secs]` 且硬上限 3600；令牌受众固定为
+  `core.service.gateway.embeddings`、主体固定为 `ai-worker`，所以别的用途的 HS256 令牌拿不进来。
+- 两道头**不可互换**：内部共享令牌只在换令牌时用，服务令牌只在转发时用；换与用都在 core 内完成，
+  所以验签不需要时钟宽限窗口。
+- 计量与用户面**同一套**：同一个 `resolve_quota` + 同一把 `gateway:quota:tenant:{id}:{yyyy-mm-dd}` 键，
+  用量行记在令牌租户上（`userID` 为全零 UUID，表示「服务身份」），`audit_enabled` 时另记一条
+  `action = gateway.embeddings` 审计。**失败不记账**：上游非 2xx 回 `600005`，不扣配额也不写用量。
+- 响应是**裸 JSON**（OpenAI 形状），不套 `code/success/data` 信封 —— 上游契约就是最终契约，
+  调用方按 OpenAI 客户端解析即可；错误仍是统一信封（`code/msg/timestamp`）。
+- 模型必须声明 `capabilities.embeddings = true`，否则 `200003` —— 不是所有上游供应商都有 `/embeddings`，
+  凭模型名猜会变成运行期 404 而不是配置期报错。
 
 ## 配额
 

@@ -1,11 +1,14 @@
 # 外部集成（出站）
 
-Rust 服务对外的 HTTP 出站只有两处，都归在 `src/clients/`：
+Rust 服务对外的 HTTP 出站只有三处，都归在 `src/clients/`：
 
 - **进程内直连**：云厂商 API（阿里云短信 / 邮件 / OSS）——签名与协议在能力 crate `crates/aliyun`，
   策略层在 [`src/clients/aliyun.rs`](../src/clients/aliyun.rs)。
 - **容器侧车**：go-captcha 行为验证码——第三方镜像 `wenlng/go-captcha-service`，客户端
   [`src/clients/gocaptcha.rs`](../src/clients/gocaptcha.rs)。
+- **同集群独立进程**：Python ai-worker（AI 计算车间）——契约在 [`spec/internal.yaml`](../spec/internal.yaml)，
+  客户端 [`src/clients/ai_worker.rs`](../src/clients/ai_worker.rs)。它是**叶子**：不直连业务表、
+  不持长期云凭据，要模型算力时回打 core 的服务身份面（见 [gateway README](../src/services/gateway/README.md#服务身份apiv1service)）。
 
 历史上有过一个自研 Go 侧车 `aliyun-gateway`（HTTP 信封 + `X-API-Key` 转发短信）。它只覆盖了
 短信一条链路（邮件/OSS 是 501 占位），却把「一个云厂商 = 一个容器」的成本固定下来。现在阿里云
@@ -28,7 +31,9 @@ Rust 服务对外的 HTTP 出站只有两处，都归在 `src/clients/`：
 2. **禁止**在 `src/clients/*` 里写签名/协议细节——那是能力 crate 的活
 3. 新增一个云厂商先问「能不能进程内直连」：只有**必须独立进程**（如第三方的 Go 镜像）才加容器
 4. 凭据只出现在 `config.yaml` / `config.local.yaml`（后者不进版本库），不写进代码或测试
-5. 新增集成时同步更新本文件与 [`guide/configuration.md`](configuration.md)
+5. **模型出网只有一个出口**：ai-worker 的嵌入必须回打 core 的 `/api/v1/service/**`，不许自己连厂商——
+   否则配额与用量会分裂成两份账，`gateway.*` 的档位配置也就管不住它了
+6. 新增集成时同步更新本文件与 [`guide/configuration.md`](configuration.md)
 
 ## 侧车契约（仅 go-captcha）
 
@@ -41,6 +46,7 @@ Rust 服务对外的 HTTP 出站只有两处，都归在 `src/clients/`：
 | 系统 | 形态 | 客户端 | 配置 |
 |------|------|--------|------|
 | 阿里云短信 / 邮件 / OSS | 进程内（`crates/aliyun`） | [`clients/aliyun.rs`](../src/clients/aliyun.rs) | `aliyun.*` |
+| ai-worker（Python 计算车间） | 同集群独立进程 :8081（如 `http://ai-worker:8081`） | [`clients/ai_worker.rs`](../src/clients/ai_worker.rs) | `ai_worker.*`（+ 反向嵌入面 `gateway.service_token_secret`） |
 | go-captcha | 容器 `gocaptcha` :8080（第三方镜像） | [`clients/gocaptcha.rs`](../src/clients/gocaptcha.rs) | `auth.captcha.*` + [`docker/gocaptcha/`](../docker/gocaptcha/) |
 
 ## 新增能力 crate 的检查清单

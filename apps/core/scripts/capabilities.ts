@@ -215,6 +215,11 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
     reason:
       '用量/审计落库的机器路径：上游调用结束后按身份重开一段短作用域（租户面 TenantScope::open、账号面 AccountScope::open）'
   },
+  'src/services/gateway/controller.rs': {
+    max: 2,
+    reason:
+      '服务身份端点的机器路径：签发令牌与准备出站各开一段短作用域（只做租户存在性/模型与配额解析），事务在出站前结束'
+  },
   'src/services/upload/service.rs': {
     max: 4,
     reason:

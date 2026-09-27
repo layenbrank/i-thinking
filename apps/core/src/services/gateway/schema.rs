@@ -14,6 +14,45 @@ pub struct ChatCompletionsP {
     pub extra: Map<String, serde_json::Value>,
 }
 
+/// OpenAI 兼容 embeddings 请求：`input`/`dimensions`/… 由调用方透传，**模型名不由客户端决定**。
+///
+/// `model` 只做一致性校验（与令牌作用域不符即 400）——真正生效的模型来自服务令牌，
+/// 这样一枚令牌就只能用在自己被授权的那一个模型上。
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EmbeddingsP {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// input / dimensions / encoding_format / … 原样透传给上游供应商
+    #[serde(flatten)]
+    pub extra: Map<String, serde_json::Value>,
+}
+
+/// 服务令牌申请：作用域由 core 判定，调用方只能**请求**租户与时长。
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceTokenP {
+    #[serde(rename = "tenantID")]
+    pub tenant_id: String,
+    pub model: String,
+    /// 期望有效期（秒）；缺省用配置值，且一律被上限收敛。
+    pub ttl_secs: Option<u64>,
+}
+
+/// 服务令牌响应：裸结构、不套信封（调用方是服务进程，不是浏览器）。
+#[derive(Debug, Clone, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceTokenR {
+    pub token: String,
+    /// 过期时间（Unix 秒），调用方据此决定何时续签。
+    pub expires_at: i64,
+    #[serde(rename = "tenantID")]
+    pub tenant_id: String,
+    pub model: String,
+    /// 固定为 `service`，与用户会话令牌区分。
+    pub token_type: String,
+}
+
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderWriteP {

@@ -19,6 +19,11 @@ aliyun:
   access_key_id: your-local-access-key-id
   access_key_secret: your-local-access-key-secret
 
+gateway:
+  # 服务身份出站面共享密钥（ai-worker 用它换短期令牌）。config.yaml 默认留空（端点关闭），
+  # 本机联调必须在这里给出，否则 /api/v1/service/** 一律 503。
+  service_token_secret: your-local-service-token-secret
+
 # 事件发布终点与鉴权（只有 worker 用得到；api 二进制不读它）。
 # 本机联调可留空：endpoint 为空时 worker 只记日志。
 events:

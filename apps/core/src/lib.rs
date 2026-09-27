@@ -86,6 +86,7 @@ pub mod guards {
     pub mod payment;
     pub mod platform;
     pub mod public;
+    pub mod service;
     pub mod session;
     pub mod sso;
     pub mod tenant;
@@ -188,6 +189,7 @@ pub mod services {
         pub mod repository;
         pub mod schema;
         pub mod service;
+        pub mod service_token;
     }
 
     pub mod sso {

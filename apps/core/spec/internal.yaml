@@ -16,6 +16,11 @@ info:
 
     1. **方向单向**：只有 core 调 ai-worker。ai-worker 是叶子：不调别的东西、不直连业务表、
        不持长期云凭据（对象读取凭据由 core 随请求签发/限定作用域）。
+       **唯一例外（P6a 起）**：ai-worker 需要嵌入算力时，只能回打 core 的两个服务身份端点
+       `POST /api/v1/service/token`（用 `X-Internal-Token` 换短期令牌）与
+       `POST /api/v1/service/embeddings`（用 `X-Service-Token` 转发嵌入）。这两条是 core 的
+       公开 OpenAPI（`spec/openapi.json`）的一部分，**不**列在本文件的 `paths` 里——本文件只描述
+       core → ai-worker 的方向。除这两条外，ai-worker 不得对 core 发起任何其他请求。
     2. **响应不用公开信封**：内部调用用 HTTP 状态码 + 裸 JSON（公开契约的 `code/message/data`
        信封只服务前端）。错误体统一为 `{"error":{"code","message"}}`。
     3. **写操作必须带幂等键**：`Idempotency-Key` 由 core 用「编排实例 id + 步骤」派生，同一

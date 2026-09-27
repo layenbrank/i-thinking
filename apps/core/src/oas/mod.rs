@@ -37,8 +37,8 @@ use crate::services::auth::schema::{
 };
 use crate::services::engine::schema::{EmptySchema, ISchema, QueryP, SuggestionR, TSchema};
 use crate::services::gateway::schema::{
-    ChatCompletionsP, ModelR, ModelUpdateP, ModelWriteP, PlanR, PlansR, ProviderR, ProviderUpdateP,
-    ProviderWriteP, SelfQuotaP, SelfQuotaR,
+    ChatCompletionsP, EmbeddingsP, ModelR, ModelUpdateP, ModelWriteP, PlanR, PlansR, ProviderR,
+    ProviderUpdateP, ProviderWriteP, SelfQuotaP, SelfQuotaR, ServiceTokenP, ServiceTokenR,
 };
 use crate::services::payment::schema::{CatalogR, OrderP, OrderR};
 use crate::services::search::schema::{
@@ -139,6 +139,8 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         gateway::audit_doc,
         gateway::quota_me_doc,
         gateway::plans_doc,
+        gateway::service_token_doc,
+        gateway::service_embeddings_doc,
         sso::connections_doc,
         sso::connection_write_doc,
         sso::connection_update_doc,
@@ -265,6 +267,9 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
             PlanR,
             PlansR,
             PlansEnvelope,
+            EmbeddingsP,
+            ServiceTokenP,
+            ServiceTokenR,
             SsoConnectionR,
             SsoConnectionWriteP,
             SsoConnectionUpdateP,
@@ -291,6 +296,7 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         (name = "Tenant", description = "多租户组织与成员（需 JWT）"),
         (name = "Subscription", description = "个人租户订阅：免费/付费档位配额（需 JWT）"),
         (name = "Gateway", description = "模型网关：转发/配额/用量/审计（需 JWT）"),
+        (name = "Service", description = "服务身份出站面：短期令牌与嵌入转发（仅内部服务进程，无 JWT）"),
         (name = "SSO", description = "单点登录（OIDC）"),
         (name = "Payment", description = "支付：档位/渠道目录、订单、渠道回调（下单需 JWT）"),
     ),

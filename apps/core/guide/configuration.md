@@ -67,6 +67,8 @@
 | `gateway.upstream_timeout_ms`         | `120000`                           | 上游模型流式读超时                                             |
 | `gateway.usage_es_index`              | `gateway_usage`                    | 用量事件写入的 ES 索引                                         |
 | `gateway.audit_enabled`               | `true`                             | 审计落库开关                                                   |
+| `gateway.service_token_secret`        | `''`                               | 服务身份面共享密钥（HMAC-SHA256）。**留空 = `/api/v1/service/**` 整体 503**；与 `security.jwt_secret` 分开 |
+| `gateway.service_token_ttl_secs`      | `300`                              | 换出来的短期令牌有效期（秒），上限 3600                        |
 | `pay.order_ttl_secs`                  | `300`                              | 支付订单有效期（秒），超时自动关单                             |
 | `pay.plans`                           | `PRO`                              | 可售档位定价（`档位名 → {amount, duration_days, label}`），`amount` 单位为分；档位名须与 `gateway.plan_daily_token_quota` 同名 |
 | `pay.wechat.*`                        | `enabled: false`                   | 微信支付凭据（`mch_id` / `app_id` / `api_v3_key` / `serial_no` / `private_key` / `platform_public_key` / `notify_url` / `api_base`） |
@@ -231,6 +233,21 @@ OOM、断电）时没人续期，租约到期后框架把这一步**重新投给
 
 `require_ai_worker_settings()` 同样只在 orchestrator 启动路径上校验：地址与令牌必须齐全。
 模型由 core 决定——出网与计量都以 core 的网关为唯一入口，ai-worker 不许自己换模型。
+
+### 嵌入算力回打 core（服务身份）
+
+ai-worker 是叶子进程，不直连模型厂商，也不持长期云凭据；它要嵌入算力时回打 core 的
+**服务身份面**（契约与语义见 [`src/services/gateway/README.md`](../src/services/gateway/README.md#服务身份apiv1service)）：
+
+1. `POST /api/v1/service/token`，头 `X-Internal-Token`（值 = `ai_worker.token`），体 `{tenantID, model, ttlSecs?}`
+   → 得到一枚 HS256 短期令牌（`ttlSecs` 收敛到 `1..gateway.service_token_ttl_secs`，硬上限 3600）。
+2. `POST /api/v1/service/embeddings`，头 `X-Service-Token`（上一步的令牌），体 `{input, dimensions?, …}`
+   → core 按令牌作用域解析模型、查配额、出站 `/embeddings`、记账，并把上游裸 JSON 原样返回。
+
+两条约束值得注意：`gateway.service_token_secret` 两侧值是**同一份密钥**（core 用它签发，ai-worker 把它当
+`X-Internal-Token` 发过来），必须通过 `config.local.yaml` / profile 覆盖，因为它同时是「能不能烧配额」的开关；
+被要求嵌入的模型必须声明 `capabilities.embeddings = true`（后台模型编辑里给），否则 `200003` ——
+把「供应商不支持嵌入」这类错误挡在配置期而不是第一次调用。
 
 ## 本地覆盖
 
