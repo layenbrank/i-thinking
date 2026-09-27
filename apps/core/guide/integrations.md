@@ -1,49 +1,55 @@
-# 外部集成（Sidecar / Client）
+# 外部集成（出站）
 
-Rust 主服务不直接持有云厂商 AK/SK。所有外部 HTTP 集成统一走 `src/clients/*`。
+Rust 服务对外的 HTTP 出站只有两处，都归在 `src/clients/`：
 
-## 第一次改 sidecar 读什么
+- **进程内直连**：云厂商 API（阿里云短信 / 邮件 / OSS）——签名与协议在能力 crate `crates/aliyun`，
+  策略层在 [`src/clients/aliyun.rs`](../src/clients/aliyun.rs)。
+- **容器侧车**：go-captcha 行为验证码——第三方镜像 `wenlng/go-captcha-service`，客户端
+  [`src/clients/gocaptcha.rs`](../src/clients/gocaptcha.rs)。
 
-1. [`sidecars/README.md`](../sidecars/README.md) — Go 命令速查、JS/Rust/Go 对照、目录语义
-2. 子项目 README（如 [`sidecars/aliyun-gateway/README.md`](../sidecars/aliyun-gateway/README.md)）— 架构、配置、排错
-3. 本文件 — 分层规则与检查清单
+历史上有过一个自研 Go 侧车 `aliyun-gateway`（HTTP 信封 + `X-API-Key` 转发短信）。它只覆盖了
+短信一条链路（邮件/OSS 是 501 占位），却把「一个云厂商 = 一个容器」的成本固定下来。现在阿里云
+出站是**进程内**的：少一跳网络、少一份配置、少一个登录态，且能在本地用 HTTP 桩做契约测试
+（`cargo test --test aliyun`）。
 
 ## 分层
 
 | 层 | 目录 | 职责 |
 |----|------|------|
 | 业务 | `src/services/` | OTP、上传等业务逻辑 |
-| 客户端 | `src/clients/` | HTTP 调用侧车或外部 API |
-| 侧车 | `sidecars/` | 自研 Go 服务（含官方 SDK） |
-| 侧车配置 | `docker/*/` | JSON 配置、示例密钥文件 |
-| 应用配置 | `config.yaml` | 仅 `base_url` / `api_key` / `timeout` |
+| 策略 | `src/clients/` | 把配置翻译成能力 crate 的调用；不写签名、不拼协议 |
+| 协议 | `crates/<capability>/` | 单个外部系统的协议实现（签名、请求形状、错误分类）|
+| 第三方侧车 | `docker/<name>/` | 自研 Go 已无；仅剩第三方镜像的挂载配置 |
+| 应用配置 | `config.yaml` | 端点、模板、超时；凭据只放 `config.local.yaml` |
 
-## 侧车契约
+## 规则
+
+1. **禁止**在 `services/` 中直接使用 `reqwest` 调外部 API——出站只能经过 `src/clients/*`
+2. **禁止**在 `src/clients/*` 里写签名/协议细节——那是能力 crate 的活
+3. 新增一个云厂商先问「能不能进程内直连」：只有**必须独立进程**（如第三方的 Go 镜像）才加容器
+4. 凭据只出现在 `config.yaml` / `config.local.yaml`（后者不进版本库），不写进代码或测试
+5. 新增集成时同步更新本文件与 [`guide/configuration.md`](configuration.md)
+
+## 侧车契约（仅 go-captcha）
 
 - `GET /healthz` — compose healthcheck
-- `X-API-Key` — Rust ↔ 侧车鉴权（密钥在两侧配置一致）
+- `X-API-Key` — Rust ↔ 侧车鉴权（两侧配置一致）
 - 响应信封 `{ "code": 0, "message": "ok", "data": ... }`
 
 ## 当前集成
 
-| 服务 | compose 名 | 端口 | 客户端 | 配置 |
-|------|------------|------|--------|------|
-| go-captcha | `gocaptcha` | 8080 | `clients/gocaptcha.rs` | `auth.captcha.*` + `docker/gocaptcha/` |
-| 阿里云网关 | `aliyun-gateway` | 8090 | `clients/aliyun_gateway.rs` | `aliyun.gateway.*` + `docker/aliyun-gateway/` |
+| 系统 | 形态 | 客户端 | 配置 |
+|------|------|--------|------|
+| 阿里云短信 / 邮件 / OSS | 进程内（`crates/aliyun`） | [`clients/aliyun.rs`](../src/clients/aliyun.rs) | `aliyun.*` |
+| go-captcha | 容器 `gocaptcha` :8080（第三方镜像） | [`clients/gocaptcha.rs`](../src/clients/gocaptcha.rs) | `auth.captcha.*` + [`docker/gocaptcha/`](../docker/gocaptcha/) |
 
-## 规则
+## 新增能力 crate 的检查清单
 
-1. **禁止**在 `services/` 中直接使用 `reqwest` 调外部 API
-2. **禁止**在 Rust YAML 中存放阿里云 AK/SK
-3. 同一云厂商多个产品共用一个 sidecar（如 `aliyun-gateway`），不拆多个容器
-4. 新增集成时同步更新本文件与 [`guide/configuration.md`](configuration.md)
+出站协议一律按能力 crate 走（门禁规则见 [`scripts/capabilities.ts`](../scripts/capabilities.ts)）：
 
-## 新增 sidecar 检查清单
-
-- [ ] `sidecars/<name>/` + `go.mod`，入口目录 `command/<bin>/`
-- [ ] `internal/`（config、handler、middleware、server、service）
-- [ ] `docker/<name>/config.json` + `config.local.json.example`
-- [ ] [`docker-compose.yml`](../docker-compose.yml) 服务 + healthcheck
-- [ ] Rust `src/clients/<name>.rs` + `config.yaml` 连接字段
-- [ ] [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) Go job
-- [ ] [`sidecars/README.md`](../sidecars/README.md) 子项目表格
+- [ ] `crates/<name>/` + `src/lib.rs` + `README.md`（含 `## 数据所有权`、`## 对外接口`）
+- [ ] 在根 [`Cargo.toml`](../Cargo.toml) 的 `[workspace] members` 与 `[workspace.dependencies]` 登记
+- [ ] 不依赖 `service` / web 框架 / 其他能力 crate（门禁 R1）
+- [ ] `scripts/capabilities.ts` 加条目（`publicModules`、`absorbs`）
+- [ ] `src/clients/<name>.rs` 策略层 + `configures` 配置结构（含 `validate_*`）
+- [ ] 契约测试（本地 HTTP 桩，见 [`tests/support/mod.rs`](../tests/support/mod.rs)）+ [`guide/configuration.md`](configuration.md)

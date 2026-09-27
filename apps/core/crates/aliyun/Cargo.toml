@@ -1,0 +1,20 @@
+[package]
+name              = "aliyun"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+reqwest    = { workspace = true } # 出站 HTTPS（与 service 共用同一份 feature 集合）
+serde_json = { workspace = true } # 响应解析与模板参数序列化
+sha2       = { workspace = true } # V3 签名的 SHA-256
+hmac       = { workspace = true } # V1 / V3 的 HMAC
+sha1       = { workspace = true } # V1 签名的 HMAC-SHA1
+base64     = { workspace = true } # V1 签名的 Base64
+chrono     = { workspace = true } # x-acs-date / Timestamp
+uuid       = { workspace = true } # x-acs-signature-nonce / SignatureNonce
+thiserror  = { workspace = true } # 端口错误类型
+opendal    = { workspace = true } # OSS 对象读写（仅 oss 模块使用）
+
+[dev-dependencies]
+tokio = { workspace = true } # 内联异步测试

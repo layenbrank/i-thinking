@@ -41,10 +41,26 @@
 | `auth.rate_limit.burst_size`          | `20`                               | 突发请求上限                                                   |
 | `auth.rate_limit.requests_per_minute` | `30`                               | 每分钟每 IP 补充配额                                           |
 | `auth.trust_proxy`                    | `false`                            | 是否信任 `X-Forwarded-For`（反向代理场景）                     |
-| `aliyun.gateway.base_url`             | `http://127.0.0.1:8090`            | aliyun-gateway HTTP（仅内网）                                  |
-| `aliyun.gateway.api_key`              | （见 `config.yaml`）               | 侧车 `X-API-Key`，生产放 `config.local.yaml`                   |
-| `aliyun.gateway.timeout_ms`           | `10000`                            | 调用侧车超时                                                   |
-| `aliyun.gateway.sms_template_code`    | `SMS_xxxx`                         | 默认短信模板 ID                                                |
+| `aliyun.access_key_id`                | `''`                               | 出站凭据（短信 / 邮件 / OSS 共用），生产放 `config.local.yaml` |
+| `aliyun.access_key_secret`            | `''`                               | 同上；两个都为空表示「本部署不发出站请求」                     |
+| `aliyun.signature_version`            | `v3`                               | `v3`（`ACS3-HMAC-SHA256`）或 `v1`（`HMAC-SHA1`，只留给老网关） |
+| `aliyun.timeout_ms`                   | `10000`                            | 单次出站调用超时                                               |
+| `aliyun.sms.endpoint`                 | `https://dysmsapi.aliyuncs.com`    | 短信（Dysmsapi `SendSms`），必须是裸 origin（不带路径）         |
+| `aliyun.sms.sign_name`                | `你的应用`                         | 控制台审核通过的签名（`SignName`）                             |
+| `aliyun.sms.template_code`            | `SMS_xxxx`                         | 模板编号（`TemplateCode`），模板变量名必须是 `code`            |
+| `aliyun.mail.endpoint`                | `https://dm.aliyuncs.com`          | 邮件（DirectMail `SingleSendMail`），必须是裸 origin           |
+| `aliyun.mail.account_name`            | `noreply@example.com`              | 控制台验证过的发信地址（`AccountName`）                        |
+| `aliyun.mail.from_alias`              | `你的应用`                         | 发件人显示名（`FromAlias`）                                    |
+| `aliyun.mail.address_type`            | `1`                                | `1` 随机账号、`0` 用 `account_name`                            |
+| `aliyun.mail.reply_to_address`        | `true`                             | 是否允许回信（`ReplyToAddress`）                               |
+| `aliyun.mail.subject`                 | `验证码`                           | 邮件主题                                                       |
+| `aliyun.mail.body_template`           | `您的验证码是 {code}…`             | 纯文本正文，**必须**包含 `{code}`（缺了启动即失败）            |
+| `aliyun.oss.endpoint`                 | `https://oss-cn-hangzhou.aliyuncs.com` | OSS origin；`bucket` 非空时必填                           |
+| `aliyun.oss.bucket`                   | `''`                               | 留空表示本部署不使用对象存储                                   |
+| `aliyun.oss.root`                     | `''`                               | bucket 内的逻辑根前缀                                          |
+| `aliyun.oss.addressing_style`         | `virtual`                          | `virtual` / `cname` / `path`（自建或本地网关必须 `path`）       |
+| `aliyun.oss.presign_endpoint`         | `''`                               | 生成预签名 URL 时改用另一个 origin（如内网写、公网读）         |
+| `aliyun.oss.presign_expires_secs`     | `900`                              | 预签名 URL 有效期（秒）                                        |
 | `gateway.daily_token_quota`           | `1000000`                          | 全局兜底日 token 配额（无租户身份、团队租户）                  |
 | `gateway.free_daily_token_quota`      | `100000`                           | 个人租户免费档日 token 配额（无有效订阅时）                    |
 | `gateway.plan_daily_token_quota`      | `BASIC` / `PRO`                    | 订阅档位日配额（`档位名 → 配额`），与 `subscription.plan` 对应 |
@@ -141,20 +157,16 @@ docker compose up -d gocaptcha
 
 与 hCaptcha 对比：hCaptcha 为云端 Widget + `siteverify` token；本仓库为自托管 go-captcha 侧车 + 坐标校验。
 
-## 阿里云网关（OTP 短信）
+## 阿里云出站（OTP 短信 / 邮件）
 
-手机 OTP 在非 mock 环境下经 **aliyun-gateway** 侧车发送（Docker 服务 `aliyun-gateway`）：
+短信与邮件都由 **Rust 服务自己直连**阿里云（无侧车、无容器）：签名与请求形状在
+[`crates/aliyun`](../crates/aliyun/)，配置到调用的翻译在 [`src/clients/aliyun.rs`](../src/clients/aliyun.rs)。
 
-```powershell
-docker compose up -d aliyun-gateway
-```
-
-- Rust 配置：`aliyun.gateway.*`（连接信息与模板 ID）
-- 侧车配置：[`docker/aliyun-gateway/`](../docker/aliyun-gateway/)（AK/SK、签名放 `config.local.json`）
-- 客户端：[`src/clients/aliyun_gateway.rs`](../src/clients/aliyun_gateway.rs)
-- 开发期 `auth.otp.mock: true` 时验证码仅写日志；生产 `mock: false` 且通道为手机时调用 `POST /api/v1/sms/send`
-
-邮箱 OTP 尚未接入（DirectMail 阶段 2）。
+- 凭据：`aliyun.access_key_id` / `access_key_secret`（放 `config.local.yaml`，不进版本库）
+- 短信：`aliyun.sms.*`（`dysmsapi` 的 `SendSms`，模板变量名必须是 `code`）
+- 邮件：`aliyun.mail.*`（`dm` 的 `SingleSendMail`，正文模板必须含 `{code}`）
+- 开发期 `auth.otp.mock: true` 时验证码仅写日志；生产 `mock: false` 时按通道调 `SendSms` / `SingleSendMail`
+- 集成契约测试（本地 HTTP 桩，不需要真凭据）：`cargo test --test aliyun`
 
 ## 事件发布（outbox → 下游）
 
@@ -260,7 +272,6 @@ docker compose up -d postgres
 
 | redis | 6379 | [`data/redis`](../data/redis) |
 | gocaptcha | 8080 | 行为验证码侧车（`wenlng/go-captcha-service:1.0.5`，内嵌 [go-captcha v2.0.5](https://github.com/wenlng/go-captcha/releases/tag/v2.0.5)；Docker Hub 无 `latest`） |
-| aliyun-gateway | 8090 | 阿里云 API 网关（自研 Go，[`sidecars/aliyun-gateway`](../sidecars/aliyun-gateway)） |
 | elasticsearch | 9200 | [`data/elasticsearch`](../data/elasticsearch) |
 
 配置见 [`docker-compose.yml`](../docker-compose.yml)。`data/` 已 gitignore。

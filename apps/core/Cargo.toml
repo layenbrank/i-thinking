@@ -14,6 +14,7 @@ members = [
   "crates/audit",
   "crates/notify",
   "crates/durable",
+  "crates/aliyun",
 ]
 
 [workspace.package]
@@ -43,6 +44,20 @@ thiserror = "2.0.20"
 uuid = { version = "1.24.1", features = ["v4", "serde"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 entity = { version = "0.1.0", path = "entity" }
+
+# 出站 HTTP 与其签名原语（service 与能力 crate 共用同一份 feature 集合）
+reqwest = { version = "0.13.4", features = [
+  "json",
+  "query",
+  "rustls",
+  "stream",
+  "form",
+] }
+sha2 = "0.11.0"
+sha1 = "0.11.0"
+hmac = "0.13.0"
+base64 = "0.23.1"
+opendal = { version = "0.59.3", features = ["services-oss"] }
 migration = { version = "0.1.0", path = "migration" }
 
 # 可靠执行（duroxide 是被包在 crates/durable 里的实现细节，见 crates/durable/README.md）
@@ -58,6 +73,7 @@ document = { version = "0.1.0", path = "crates/document" }
 audit = { version = "0.1.0", path = "crates/audit" }
 notify = { version = "0.1.0", path = "crates/notify" }
 durable  = { version = "0.1.0", path = "crates/durable" }
+aliyun   = { version = "0.1.0", path = "crates/aliyun" }
 
 [package]
 name              = "service"
@@ -128,13 +144,7 @@ migration = { workspace = true }
 log       = "0.4.33"
 
 # HTTP 客户端
-reqwest = { version = "0.13.4", features = [
-  "json",
-  "query",
-  "rustls",
-  "stream",
-  "form",
-] } # 出站 HTTP 请求（stream：模型网关 SSE 直传）
+reqwest = { workspace = true } # 出站 HTTP 请求（stream：模型网关 SSE 直传）
 
 # Redis / Elasticsearch
 fred = { version = "10", features = ["enable-rustls", "partial-tracing"] }
@@ -148,8 +158,8 @@ argon2       = "0.5.3"                                            # 密码哈希
 aes-gcm      = "0.11.0"                                           # AES-256-GCM 加解密
 rsa = { version = "0.9.9", features = ["sha2"] }                  # 微信/支付宝 RSA-SHA256 签名验签
 jsonwebtoken = { version = "11.0.0", features = ["rust_crypto"] } # JWT 签发与校验
-sha2         = "0.11.0"                                           # SHA-256（文件摘要等）
-base64       = "0.23.1"                                           # Base64 编解码
+sha2         = { workspace = true }                              # SHA-256（文件摘要等）
+base64       = { workspace = true }                              # Base64 编解码
 rand         = "0.10.2"                                           # 随机数（密钥生成）
 uuid         = { workspace = true }          # UUID v4（请求 ID 等）
 
@@ -169,6 +179,7 @@ document = { workspace = true }
 audit    = { workspace = true }
 notify   = { workspace = true }
 durable  = { workspace = true }
+aliyun   = { workspace = true }
 
 # 配置
 config    = "0.15.19"
@@ -193,3 +204,4 @@ utoipa-swagger-ui = { version = "9.0.2", features = [
 
 [dev-dependencies]
 actix-web = { version = "4.14.1" }
+aliyun = { workspace = true }

@@ -15,8 +15,9 @@ auth:
     api_key: change-me-gocaptcha-key
 
 aliyun:
-  gateway:
-    api_key: change-me-aliyun-gateway-key
+  # 出站凭据由 config.local.yaml 提供（不入库）
+  access_key_id: your-local-access-key-id
+  access_key_secret: your-local-access-key-secret
 
 # 事件发布终点与鉴权（只有 worker 用得到；api 二进制不读它）。
 # 本机联调可留空：endpoint 为空时 worker 只记日志。

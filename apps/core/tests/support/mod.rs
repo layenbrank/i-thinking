@@ -18,7 +18,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use uuid::Uuid;
 
-/// 桩收到的一条请求（头已小写，便于按名字查）。
+/// 桩收到的一条请求（头的**名字**已小写，便于按名字查；值保持原样）。
 #[derive(Debug, Clone)]
 pub struct Recorded {
     pub method: String,
@@ -38,7 +38,7 @@ impl Recorded {
             method: parts.next().unwrap_or_default().to_ascii_uppercase(),
             path: parts.next().unwrap_or_default().to_string(),
             body: body.to_string(),
-            head: head.to_ascii_lowercase(),
+            head: lower_header_names(head),
         }
     }
 
@@ -72,6 +72,27 @@ impl Recorded {
         serde_json::from_str(&self.body)
             .unwrap_or_else(|error| panic!("请求体不是 JSON（{error}）：{}", self.body))
     }
+}
+
+/// 头名字小写化，值原样保留：`Authorization` 这类值本身大小写敏感（`ACS3-HMAC-SHA256`），
+/// 整段小写会把「签名算法没写对」这类断言变成假阴性。请求行不参与小写化。
+fn lower_header_names(head: &str) -> String {
+    let mut out = String::with_capacity(head.len());
+    for (index, line) in head.split("\r\n").enumerate() {
+        if index > 0 {
+            out.push_str("\r\n");
+        }
+        match line.split_once(':') {
+            Some((name, value)) if index > 0 => {
+                out.push_str(&name.to_ascii_lowercase());
+                out.push(':');
+                out.push_str(value);
+            }
+            _ => out.push_str(line),
+        }
+    }
+
+    out
 }
 
 /// 桩的行为脚本。
@@ -254,6 +275,141 @@ impl StubAiWorker {
     }
 }
 
+/// 通用 HTTP 桩：按「第几次请求」回预设响应，并把收到的请求原样记下来。
+///
+/// 与 [`StubAiWorker`] 的分工：那个是 ai-worker 的**语义**桩（按路径造业务 JSON），
+/// 这个只回调用方写好的响应，用来验证**协议**细节（请求落位、签名头、错误分支）。
+/// 只懂 HTTP/1.1 的一部分（不含 chunked 请求体），够验签与表单/查询参数用。
+pub struct StubHttp {
+    base_url: String,
+    script: Arc<Vec<StubResponse>>,
+    requests: Arc<Mutex<Vec<Recorded>>>,
+    _accept: tokio::task::JoinHandle<()>,
+}
+
+/// 一条预设响应。
+#[derive(Debug, Clone)]
+pub struct StubResponse {
+    status: u16,
+    content_type: String,
+    body: Vec<u8>,
+}
+
+impl StubResponse {
+    pub fn json(status: u16, body: Value) -> Self {
+        Self {
+            status,
+            content_type: "application/json".to_owned(),
+            body: body.to_string().into_bytes(),
+        }
+    }
+
+    pub fn text(status: u16, body: impl Into<String>) -> Self {
+        Self {
+            status,
+            content_type: "text/plain; charset=utf-8".to_owned(),
+            body: body.into().into_bytes(),
+        }
+    }
+
+    pub fn bytes(status: u16, content_type: &str, body: impl Into<Vec<u8>>) -> Self {
+        Self {
+            status,
+            content_type: content_type.to_owned(),
+            body: body.into(),
+        }
+    }
+}
+
+impl StubHttp {
+    /// 按顺序回 `script`；请求数超出脚本长度时**一直回最后一条**（轮询/重试用例省事）。
+    pub async fn start(script: Vec<StubResponse>) -> Self {
+        assert!(!script.is_empty(), "HTTP 桩至少要有一条响应");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("绑定 HTTP 桩端口失败");
+        let address = listener.local_addr().expect("取桩端口失败");
+
+        let script = Arc::new(script);
+        let requests: Arc<Mutex<Vec<Recorded>>> = Arc::new(Mutex::new(Vec::new()));
+
+        let accept_script = Arc::clone(&script);
+        let accept_requests = Arc::clone(&requests);
+        let accept = tokio::spawn(async move {
+            loop {
+                let Ok((socket, _)) = listener.accept().await else {
+                    return;
+                };
+                let script = Arc::clone(&accept_script);
+                let requests = Arc::clone(&accept_requests);
+                tokio::spawn(async move { serve_stub_http(socket, script, requests).await });
+            }
+        });
+
+        Self {
+            base_url: format!("http://{address}"),
+            script,
+            requests,
+            _accept: accept,
+        }
+    }
+
+    /// 桩地址（不含路径）：直接填进 `aliyun.*.endpoint`。
+    pub fn base_url(&self) -> String {
+        self.base_url.clone()
+    }
+
+    pub fn requests(&self) -> Vec<Recorded> {
+        self.requests.lock().expect("请求日志锁").clone()
+    }
+
+    /// 只收到一条请求时取它；多于/少于一条都失败（用来确认「没有重试」）。
+    pub fn only(&self) -> Recorded {
+        let requests = self.requests();
+        assert_eq!(
+            requests.len(),
+            1,
+            "期望恰好一条请求，实际 {}：{requests:#?}",
+            requests.len()
+        );
+
+        requests.into_iter().next().expect("已断言非空")
+    }
+
+    pub fn script_len(&self) -> usize {
+        self.script.len()
+    }
+}
+
+async fn serve_stub_http(
+    mut socket: TcpStream,
+    script: Arc<Vec<StubResponse>>,
+    requests: Arc<Mutex<Vec<Recorded>>>,
+) {
+    let raw = read_request(&mut socket).await;
+    let request = Recorded::parse(&raw);
+    let index = {
+        let mut log = requests.lock().expect("请求日志锁");
+        let index = log.len();
+        log.push(request);
+        index
+    };
+
+    let response = script
+        .get(index)
+        .or_else(|| script.last())
+        .expect("脚本非空");
+    let head = format!(
+        "HTTP/1.1 {} OK\r\ncontent-type: {}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n",
+        response.status,
+        response.content_type,
+        response.body.len()
+    );
+    let mut raw = head.into_bytes();
+    raw.extend_from_slice(&response.body);
+    let _ = socket.write_all(&raw).await;
+}
+
 /// 桩的一轮处理：记录 → 判断是否按住 → 回包。
 async fn serve(
     mut socket: TcpStream,
@@ -362,6 +518,22 @@ fn content_length(head: &str) -> usize {
 }
 
 /// 读取测试库地址；未配置或库名不合法时返回 `None`（调用方直接跳过）。
+/// 让本地桩免遭本机代理劫持。
+///
+/// Windows 桌面代理（Clash 之类）会把发往 `127.0.0.1:桩端口` 的请求也代理走，于是桩收到
+/// 0 个请求、客户端拿到 502。`reqwest`（以及 `opendal` 底下的 reqwest）只认 `NO_PROXY`
+/// 环境变量，不看注册表 `ProxyOverride`。只写这一个常量值、且在每个 HTTP 客户端构造之前
+/// 完成，所以并发测试之间没有可观察的竞态。
+pub fn bypass_proxy_for_local_stubs() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        for name in ["NO_PROXY", "no_proxy"] {
+            // SAFETY: 见上文；值恒定，写在任何客户端构造之前。
+            unsafe { std::env::set_var(name, "127.0.0.1,localhost") };
+        }
+    });
+}
+
 pub fn test_database_url() -> Option<String> {
     let uri = std::env::var("TEST_DATABASE_URL").ok()?;
     let uri = uri.trim().to_owned();

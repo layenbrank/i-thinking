@@ -7,6 +7,9 @@ use serde::Deserialize;
 use super::loader::{load_merged_config, resolve_profile};
 use super::runtime;
 
+/// 邮件正文模板里的验证码占位符（单占位符，替换时不转义）。
+pub const MAIL_CODE_PLACEHOLDER: &str = "{code}";
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Encryption {
@@ -253,36 +256,110 @@ impl Default for LoggingConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(default)]
-pub struct AliyunGatewayConfig {
-    pub base_url: String,
-    pub api_key: String,
-    pub timeout_ms: u64,
-    pub sms_template_code: String,
-}
-
-impl Default for AliyunGatewayConfig {
-    fn default() -> Self {
-        Self {
-            base_url: "http://127.0.0.1:8090".to_string(),
-            api_key: String::new(),
-            timeout_ms: 10_000,
-            sms_template_code: String::new(),
-        }
-    }
-}
-
+/// 阿里云出站：凭据与签名（短信、邮件、对象存储共用一套）。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct AliyunConfig {
-    pub gateway: AliyunGatewayConfig,
+    pub access_key_id: String,
+    pub access_key_secret: String,
+    /// `v3`（`ACS3-HMAC-SHA256`，默认）或 `v1`（`HMAC-SHA1`，只留给老网关）。
+    pub signature_version: String,
+    pub timeout_ms: u64,
+    pub sms: AliyunSmsConfig,
+    pub mail: AliyunMailConfig,
+    pub oss: AliyunOssConfig,
 }
 
 impl Default for AliyunConfig {
     fn default() -> Self {
         Self {
-            gateway: AliyunGatewayConfig::default(),
+            access_key_id: String::new(),
+            access_key_secret: String::new(),
+            signature_version: "v3".to_string(),
+            timeout_ms: 10_000,
+            sms: AliyunSmsConfig::default(),
+            mail: AliyunMailConfig::default(),
+            oss: AliyunOssConfig::default(),
+        }
+    }
+}
+
+/// Dysmsapi `SendSms`。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct AliyunSmsConfig {
+    pub endpoint: String,
+    /// 控制台里审核通过的签名（`SignName`）。
+    pub sign_name: String,
+    /// 模板编号（`TemplateCode`），模板里的变量名必须是 `code`。
+    pub template_code: String,
+}
+
+impl Default for AliyunSmsConfig {
+    fn default() -> Self {
+        Self {
+            endpoint: "https://dysmsapi.aliyuncs.com".to_string(),
+            sign_name: String::new(),
+            template_code: String::new(),
+        }
+    }
+}
+
+/// DirectMail `SingleSendMail`。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct AliyunMailConfig {
+    pub endpoint: String,
+    /// 控制台里验证过的发信地址（`AccountName`）。
+    pub account_name: String,
+    /// 发件人显示名（`FromAlias`）。
+    pub from_alias: String,
+    /// `1`（随机账号，官方默认）或 `0`（用 `account_name`）。
+    pub address_type: u8,
+    pub reply_to_address: bool,
+    pub subject: String,
+    /// 纯文本正文模板，必须包含 `{code}` 占位符。
+    pub body_template: String,
+}
+
+impl Default for AliyunMailConfig {
+    fn default() -> Self {
+        Self {
+            endpoint: "https://dm.aliyuncs.com".to_string(),
+            account_name: String::new(),
+            from_alias: String::new(),
+            address_type: 1,
+            reply_to_address: true,
+            subject: "验证码".to_string(),
+            body_template: "您的验证码是 {code}，请勿泄露给他人。".to_string(),
+        }
+    }
+}
+
+/// OSS 对象存储（`opendal` 的 OSS 后端）。bucket 为空表示「本部署不使用对象存储」。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct AliyunOssConfig {
+    pub endpoint: String,
+    pub bucket: String,
+    /// bucket 内的逻辑根前缀；空串表示直接用 bucket 根。
+    pub root: String,
+    /// `virtual`（默认）、`cname` 或 `path`（本地/自建网关必须用 `path`）。
+    pub addressing_style: String,
+    /// 生成预签名 URL 时改用另一个 endpoint（如内网写、公网读）。
+    pub presign_endpoint: String,
+    pub presign_expires_secs: u64,
+}
+
+impl Default for AliyunOssConfig {
+    fn default() -> Self {
+        Self {
+            endpoint: String::new(),
+            bucket: String::new(),
+            root: String::new(),
+            addressing_style: "virtual".to_string(),
+            presign_endpoint: String::new(),
+            presign_expires_secs: 900,
         }
     }
 }
@@ -660,6 +737,62 @@ impl Configure {
         self.validate_events()?;
         self.validate_durable()?;
         self.validate_ai_worker()?;
+        self.validate_aliyun()?;
+
+        Ok(())
+    }
+
+    /// 阿里云出站配置的形状校验（各 profile 一致）。
+    ///
+    /// 这里不强制「凭据必须齐全」：`auth.otp.mock` 与不使用对象存储的部署都不需要凭据，
+    /// 真正缺凭据时由客户端的构造失败直说。但**半截凭据**（只填 key 或只填 secret）
+    /// 一定是配置事故，就地报错，免得线上表现为「签名错误」这种看不出来源的现象。
+    fn validate_aliyun(&self) -> Result<()> {
+        let aliyun = &self.aliyun;
+        if aliyun.timeout_ms == 0 {
+            bail!("aliyun.timeout_ms must be greater than 0");
+        }
+        if !matches!(
+            aliyun
+                .signature_version
+                .trim()
+                .to_ascii_lowercase()
+                .as_str(),
+            "v1" | "v3" | "1" | "1.0" | "3" | "3.0"
+        ) {
+            bail!("aliyun.signature_version must be one of v1, v3");
+        }
+
+        let access_key_id = aliyun.access_key_id.trim();
+        let access_key_secret = aliyun.access_key_secret.trim();
+        if access_key_id.is_empty() != access_key_secret.is_empty() {
+            bail!("aliyun.access_key_id and aliyun.access_key_secret must be set together");
+        }
+
+        require_http_origin("aliyun.sms.endpoint", &aliyun.sms.endpoint)?;
+        require_http_origin("aliyun.mail.endpoint", &aliyun.mail.endpoint)?;
+        if aliyun.mail.address_type > 1 {
+            bail!("aliyun.mail.address_type must be 0 (account_name) or 1 (random account)");
+        }
+        if !aliyun.mail.body_template.contains(MAIL_CODE_PLACEHOLDER) {
+            bail!("aliyun.mail.body_template must contain {MAIL_CODE_PLACEHOLDER}");
+        }
+
+        if !aliyun.oss.bucket.trim().is_empty() {
+            require_http_origin("aliyun.oss.endpoint", &aliyun.oss.endpoint)?;
+        }
+        if !aliyun.oss.presign_endpoint.trim().is_empty() {
+            require_http_origin("aliyun.oss.presign_endpoint", &aliyun.oss.presign_endpoint)?;
+        }
+        if !matches!(
+            aliyun.oss.addressing_style.trim(),
+            "virtual" | "cname" | "path"
+        ) {
+            bail!("aliyun.oss.addressing_style must be one of virtual, cname, path");
+        }
+        if aliyun.oss.presign_expires_secs == 0 {
+            bail!("aliyun.oss.presign_expires_secs must be greater than 0");
+        }
 
         Ok(())
     }
@@ -992,20 +1125,20 @@ impl Configure {
         self.auth.captcha.ip_rate_limit.max(1)
     }
 
-    pub fn aliyun_gateway_base_url(&self) -> &str {
-        &self.aliyun.gateway.base_url
+    pub fn aliyun_timeout_ms(&self) -> u64 {
+        self.aliyun.timeout_ms.max(1)
     }
 
-    pub fn aliyun_gateway_api_key(&self) -> &str {
-        &self.aliyun.gateway.api_key
+    pub fn aliyun_sms(&self) -> &AliyunSmsConfig {
+        &self.aliyun.sms
     }
 
-    pub fn aliyun_gateway_timeout_ms(&self) -> u64 {
-        self.aliyun.gateway.timeout_ms.max(1)
+    pub fn aliyun_mail(&self) -> &AliyunMailConfig {
+        &self.aliyun.mail
     }
 
-    pub fn aliyun_sms_template_code(&self) -> &str {
-        &self.aliyun.gateway.sms_template_code
+    pub fn aliyun_oss(&self) -> &AliyunOssConfig {
+        &self.aliyun.oss
     }
 
     pub fn gateway_daily_token_quota(&self) -> i64 {
@@ -1092,6 +1225,26 @@ fn is_valid_schema_name(value: &str) -> bool {
 
 fn is_postgres_url(value: &str) -> bool {
     value.starts_with("postgres://") || value.starts_with("postgresql://")
+}
+
+/// 阿里云 RPC 的 endpoint 必须是裸 origin：带路径会让签名覆盖的 URI 与实际请求不一致。
+fn require_http_origin(name: &str, value: &str) -> Result<()> {
+    let value = value.trim();
+    let rest = value
+        .strip_prefix("https://")
+        .or_else(|| value.strip_prefix("http://"));
+    let Some(rest) = rest else {
+        bail!("{name} must be an http(s) url");
+    };
+    let host = rest.split('/').next().unwrap_or_default();
+    if host.is_empty() {
+        bail!("{name} must include a host");
+    }
+    if rest.len() > host.len() {
+        bail!("{name} must be an origin without a path（只填 https://host）");
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

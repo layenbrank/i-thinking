@@ -102,6 +102,17 @@ export const CAPABILITIES: readonly Capability[] = [
     publicModules: [],
     absorbs: [],
     status: 'migrated'
+  },
+  {
+    name: 'aliyun',
+    title: '阿里云出站',
+    // 无表、无 schema：只有进程内的凭据与连接池，以及 OSS 里的对象（归调用方的存储策略）。
+    owns: [],
+    dependsOn: [],
+    publicModules: ['mail', 'oss', 'rpc', 'sms'],
+    // 从 Go 边车收敛进进程：这些路径必须消失（R6）。
+    absorbs: ['sidecars/aliyun-gateway', 'docker/aliyun-gateway'],
+    status: 'migrated'
   }
 ]
 

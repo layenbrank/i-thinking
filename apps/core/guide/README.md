@@ -15,8 +15,7 @@
 | 事件发布（outbox → 下游） | [`../crates/audit/README.md`](../crates/audit/README.md) |
 | 能力边界（crate 划分与门禁） | [`architecture-capabilities.md`](architecture-capabilities.md) |
 | 配置（YAML） | [`configuration.md`](configuration.md) |
-| 外部集成（Sidecar） | [`integrations.md`](integrations.md) |
-| sidecars（Go 侧车入门） | [`../sidecars/README.md`](../sidecars/README.md) |
+| 外部集成（出站） | [`integrations.md`](integrations.md) |
 | Redis / Elasticsearch（调研） | [`redis-elasticsearch.md`](redis-elasticsearch.md) |
 | 横切架构（Nest ↔ Actix） | [`architecture-cross-cutting.md`](architecture-cross-cutting.md) |
 | 模块接口详情 | [`src/services/*/README.md`](../src/services/auth/README.md) |

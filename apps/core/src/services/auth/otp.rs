@@ -4,7 +4,7 @@ use fred::interfaces::KeysInterface;
 use fred::prelude::*;
 use rand::RngExt;
 
-use crate::clients::aliyun_gateway::{AliyunGatewayClient, AliyunGatewayError};
+use crate::clients::aliyun::{AliyunClient, AliyunError};
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::services::auth::schema::OtpChannel;
@@ -206,32 +206,38 @@ impl OtpService {
             return Ok(());
         }
 
+        let client = AliyunClient::from_configure(config).map_err(map_aliyun_build_error)?;
+
         match channel {
             OtpChannel::Phone => {
-                let client = AliyunGatewayClient::new(config)
-                    .map_err(|e| map_gateway_build_error(e.to_string()))?;
-                client
-                    .send_sms(target, code, None)
+                let biz_id = client
+                    .send_sms_code(target, code)
                     .await
-                    .map_err(map_gateway_error)?;
+                    .map_err(map_aliyun_error)?;
                 tracing::info!(
                     event = "auth.otp.send",
                     purpose = purpose.as_str(),
                     channel = channel.as_str(),
                     target = %mask_target(channel, target),
-                    "otp sms sent via aliyun-gateway"
+                    biz_id = %biz_id,
+                    "otp sms sent via aliyun"
                 );
                 Ok(())
             }
             OtpChannel::Email => {
-                tracing::warn!(
+                let env_id = client
+                    .send_mail_code(target, code)
+                    .await
+                    .map_err(map_aliyun_error)?;
+                tracing::info!(
                     event = "auth.otp.send",
                     purpose = purpose.as_str(),
                     channel = channel.as_str(),
                     target = %mask_target(channel, target),
-                    "otp email sender not configured"
+                    env_id = env_id.as_deref().unwrap_or_default(),
+                    "otp email sent via aliyun"
                 );
-                Err(OtpError::SendFailed)
+                Ok(())
             }
         }
     }
@@ -315,14 +321,15 @@ fn normalize_target(target: &str) -> String {
     target.trim().to_ascii_lowercase()
 }
 
-fn map_gateway_error(err: AliyunGatewayError) -> OtpError {
+fn map_aliyun_error(err: AliyunError) -> OtpError {
     match err {
-        AliyunGatewayError::RateLimited => OtpError::RateLimited,
-        AliyunGatewayError::Timeout | AliyunGatewayError::Upstream(_) => OtpError::SendFailed,
+        AliyunError::RateLimited(_) => OtpError::RateLimited,
+        AliyunError::NotConfigured(_) | AliyunError::Failed(_) => OtpError::SendFailed,
     }
 }
 
-fn map_gateway_build_error(_msg: String) -> OtpError {
+fn map_aliyun_build_error(err: AliyunError) -> OtpError {
+    tracing::warn!(event = "auth.otp.send", error = %err, "aliyun client unavailable");
     OtpError::SendFailed
 }
 

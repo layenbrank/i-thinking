@@ -73,15 +73,18 @@ import GoCaptcha from 'go-captcha-react'
 
 生产环境禁止关闭。
 
-## OTP 短信（aliyun-gateway）
+## OTP 短信 / 邮件（阿里云直连）
 
 | 模式 | 行为 |
 | ---- | ---- |
-| `auth.otp.mock: true`（开发默认） | 验证码写入日志，不调用侧车 |
-| `auth.otp.mock: false` + 手机 | `OtpService` → `AliyunGatewayClient` → `POST /api/v1/sms/send` |
-| `auth.otp.mock: false` + 邮箱 | 返回发送失败（DirectMail 待接入） |
+| `auth.otp.mock: true`（开发默认） | 验证码写入日志，不出站 |
+| `auth.otp.mock: false` + 手机 | `OtpService` → `AliyunClient` → `dysmsapi` `SendSms` |
+| `auth.otp.mock: false` + 邮箱 | `OtpService` → `AliyunClient` → `dm` `SingleSendMail` |
 
-联调：`docker compose up -d aliyun-gateway`，配置 `docker/aliyun-gateway/config.local.json` 中的 AK/SK 与短信签名。
+出站为**进程内直连**（无侧车）：协议在 [`crates/aliyun`](../../crates/aliyun/)，策略层在
+[`src/clients/aliyun.rs`](../../src/clients/aliyun.rs)。凭据放 `config.local.yaml` 的
+`aliyun.access_key_id` / `access_key_secret`，模板与签名见 `aliyun.sms.*` / `aliyun.mail.*`。
+阿里云返回的限流码（如 `isv.BUSINESS_LIMIT_CONTROL`，大小写不敏感）映射为 `RateLimited` → HTTP 429。
 
 ## 鉴权说明
 
