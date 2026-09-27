@@ -119,6 +119,23 @@ export const CONFINED_CRATE_DEPS: Record<string, string> = {
 }
 
 /**
+ * R11：内部调用契约（core ↔ ai-worker）。
+ *
+ * 跨语言边界最容易烂的地方是「路由在代码里长出来、契约文件跟不上」。所以反过来管：
+ * `/internal/**` 的路径只允许出现在 `clientDir` 下的出站客户端里，且必须是
+ * `spec/internal.yaml` 里声明过的路径，一字不差（占位符用 `{assetID}` 这种具名形式，
+ * 不做归一化，避免「看起来对」的路径混过去）。
+ */
+export const INTERNAL_CONTRACT = {
+  /** 契约文件（相对 apps/core），唯一声明源 */
+  spec: 'spec/internal.yaml',
+  /** 出站客户端目录：只有这里允许出现 /internal 路径字面量 */
+  clientDir: 'src/clients',
+  /** 契约里 paths 段的缩进（顶格 `paths:` 之下的 2 空格子键） */
+  pathsKey: 'paths:'
+} as const
+
+/**
  * 遗留 src/services 模块的冻结集合：只减不增。
  *
  * 新能力一律建 crate（见 CAPABILITIES），不允许再往 src/services 里加模块。

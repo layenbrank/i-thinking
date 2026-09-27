@@ -17,10 +17,17 @@
 //! 注册表不在这里构建：[`durable::Runtime::start`] 会构建它，重名 / 保留名字之类的注册
 //! 错误因此在启动时报出来，而不是静默丢处理器。
 //!
-//! 迁移状态：P4c 只搭装配骨架（空注册表），第一条真实工作流（RAG 索引：分块 → 嵌入 →
-//! 落索引）在 P4d 加入。
+//! 迁移状态：P4c 搭好装配骨架；P4d 加入第一条真实工作流 RAG 索引
+//! （`rag.index-asset`，见 [`rag`]），它同时是「长任务长什么样」的样板。
+
+pub mod rag;
+pub mod retry;
+
+use std::sync::Arc;
 
 use durable::{Activities, Orchestrations};
+
+use crate::clients::ai_worker::AiWorkerClient;
 
 /// `orchestrator` 启动时注册的处理器集合。
 #[derive(Debug)]
@@ -30,9 +37,21 @@ pub struct Registrations {
 }
 
 /// 装配全部编排与活动。
-pub fn registrations() -> Registrations {
+///
+/// 只被 `orchestrator` 二进制调用：它必须手里有出站客户端（长任务的每一步都要出站），
+/// 以及一批会影响历史的参数（嵌入批大小、模型）——这些参数在装卸时一次性注入，
+/// 保证同一个运行时里的实例看到的是同一套值。
+pub fn registrations(
+    ai_worker: Arc<AiWorkerClient>,
+    embed_batch_size: usize,
+    embed_model: String,
+) -> Registrations {
+    let activities = rag::register_activities(Activities::builder(), ai_worker);
+    let orchestrations =
+        rag::register_orchestration(Orchestrations::builder(), embed_batch_size, embed_model);
+
     Registrations {
-        activities: Activities::builder(),
-        orchestrations: Orchestrations::builder(),
+        activities,
+        orchestrations,
     }
 }

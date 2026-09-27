@@ -185,8 +185,40 @@ docker compose up -d aliyun-gateway
 | `durable.orchestration_concurrency`     | `2`        | 同时推进的编排轮次数                                                     |
 | `durable.worker_concurrency`            | `2`        | 同时执行的活动数（真正干活的并行度）                                     |
 | `durable.shutdown_grace_ms`             | `5000`     | 停机时留给在跑活动的收尾时间；超时强制中止（进度不丢，下次接着跑）        |
+| `durable.worker_lock_timeout_ms`        | `30000`    | 活动执行者持有租约的时长；**同时决定进程被硬杀后最慢多久恢复**（见下）    |
+| `durable.worker_lock_renewal_buffer_ms` | `5000`     | 租约续期的提前量，必须小于 `worker_lock_timeout_ms`                       |
 
 `require_durable_settings()` 只在 orchestrator 启动路径上校验（api / worker 不读 `durable`）：解析出的连接串必须非空且以 `postgres` 开头，schema 必须是合法标识符且不是 `public`。
+
+### 租约（锁）旋钮
+
+活动一被取走就带上租约：执行者**一边跑一边续期**，进程活着就不会丢；进程被硬杀（`kill -9`、
+OOM、断电）时没人续期，租约到期后框架把这一步**重新投给活着的进程**。
+
+- 所以 `worker_lock_timeout_ms` 是「崩溃恢复最慢多久」的上限：调小恢复快，但网络抖动/长 GC
+  造成的短暂停顿可能被误判成失联，导致同一步被两个进程同时跑（靠活动幂等键兜底）。
+- 续期提前量小于锁时长才有意义：锁时长 ≥ 15s 时按 `timeout - buffer` 续期，< 15s 时按
+  `timeout / 2` 续期（此时 buffer 不生效）。
+- 两个值都必须是正数、buffer 必须小于 timeout，且「`timeout - buffer`」必须小于运行时的会话
+  空闲超时（实现本体固定 5 分钟），否则启动直接报配置错误——而不是跑到一半 panic。
+
+## AI 计算车间（ai-worker → orchestrator）
+
+长任务里的 AI 步骤（分块、嵌入、落索引）不在 core 里做，而是由 orchestrator 通过内部 HTTP
+契约调用 Python 的 **ai-worker**（契约唯一源为 [`spec/internal.yaml`](../spec/internal.yaml)，
+由 R11 门禁强制）：
+
+| 字段                              | 默认值                   | 说明                                                       |
+| --------------------------------- | ------------------------ | ---------------------------------------------------------- |
+| `ai_worker.base_url`              | `""`                     | 内部调用基址，例如 `http://127.0.0.1:8081`                  |
+| `ai_worker.token`                 | `""`                     | 内部共享令牌，请求头 `X-Internal-Token`                     |
+| `ai_worker.timeout_ms`            | `30000`                  | 单次调用超时；**一步 = 一次调用**，超时即失败并交给活动重试 |
+| `ai_worker.use_system_proxy`      | `false`                  | 默认直连，别让本机系统代理（如 `127.0.0.1:7892`）拦内网地址 |
+| `ai_worker.embed_batch_size`      | `16`                     | 一次嵌入活动处理的块数；越小则崩溃后重跑越省，历史越长      |
+| `ai_worker.embed_model`           | `text-embedding-3-small` | 嵌入模型。装配时注入，所以同一实例重放看到的模型恒定        |
+
+`require_ai_worker_settings()` 同样只在 orchestrator 启动路径上校验：地址与令牌必须齐全。
+模型由 core 决定——出网与计量都以 core 的网关为唯一入口，ai-worker 不许自己换模型。
 
 ## 本地覆盖
 

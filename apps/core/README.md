@@ -82,6 +82,11 @@ cargo run --bin orchestrator --release
 - **一个部署单元只能有一个 orchestrator 进程**：多个进程同时跑没有意义（实现本体用锁保证正确性，但会互相抢同一实例的轮次）
 - 停机时先给在跑的活动 `durable.shutdown_grace_ms` 毫秒收尾，再退出；进度都在库里，重启接着跑，不需要任何补偿脚本
 - 其他进程（api / worker）用 `durable::Client` 起实例、投事件、查状态，不跑运行时
+- 内置的第一条长任务是 **RAG 索引**（`rag.index-asset`：分块 → 嵌入 → 落索引）。AI 步骤不在
+  Rust 侧做，而是由活动通过内部 HTTP 契约调用 Python 的 ai-worker（契约见 [`spec/internal.yaml`](spec/internal.yaml)，
+  配置见 [`guide/configuration.md`](guide/configuration.md#ai-计算车间ai-worker--orchestrator)）
+- 活动是**至少一次**语义：崩溃后已完成步骤不重跑，但在飞的那一步会重跑，靠幂等键
+  （`<实例>:<步骤>`）让 ai-worker 去重
 
 引擎细节（端口、语义、边界）见 [`crates/durable/README.md`](crates/durable/README.md)，配置见 [`guide/configuration.md`](guide/configuration.md#长任务durable--orchestrator)。
 
@@ -117,6 +122,10 @@ cargo test --test oas_consistency
 # 长任务（需要独立测试库，见 tests/orchestration.rs 头部）
 TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/i_thinking_test \
   cargo test --test orchestration -- --test-threads=1
+
+# 同一测试库（先 export / set 一次 TEST_DATABASE_URL 即可复用）
+cargo test --test rag_index -- --test-threads=1
+cargo test --test rag_fault_injection -- --test-threads=1
 ```
 
 ## 项目结构
@@ -137,7 +146,8 @@ src/
   worker/
     dispatcher.rs         # 终点装配：HTTP 下游 / 只记日志
     runner.rs             # 发布循环 + 停机（平台通道在这里登记，见 R8）
-  orchestrations/         # 编排与活动注册表（只有 orchestrator 会用）
+  clients/                # 出站调用（内部 ai-worker 契约客户端）
+  orchestrations/         # 编排与活动注册表（只有 orchestrator 会用；retry 重试策略 + rag 索引流水线）
   services/
     auth/                 # 登录、注册、个人 profile（含 profile 辅助）
     user/                 # 后台用户 CRUD（复用 auth::service 中 profile 辅助）
@@ -160,7 +170,7 @@ entity/                   # SeaORM Entity（auth / asset / chunk / tenant / tena
 migration/                # 数据库迁移
 http/                     # REST Client 测试文件
 guide/                    # 项目指南（人工文档）
-spec/                     # OpenAPI 生成物
+spec/                     # OpenAPI 生成物 + core↔ai-worker 内部契约（internal.yaml，R11 强制）
 ```
 
 ## 模块文档

@@ -1,5 +1,8 @@
 use durable::{DurableSettings, Runtime, RuntimeTuning, Store};
-use service::{configures::configure::Configure, orchestrations, utils};
+use service::{
+    clients::ai_worker::AiWorkerClient, configures::configure::Configure, orchestrations, utils,
+};
+use std::sync::Arc;
 
 /// 可靠执行运行时（orchestrator）：领活、重放历史、执行活动。不监听端口。
 ///
@@ -11,6 +14,9 @@ async fn main() {
     let durable_url = configure
         .require_durable_settings()
         .expect("durable 配置不完整（需要 postgres 连接串）");
+    configure
+        .require_ai_worker_settings()
+        .expect("ai_worker 配置不完整（需要 base_url 与 token）");
 
     let _log_guard = utils::logger::init(&configure.logging).expect("Failed to initialize logger");
 
@@ -19,6 +25,9 @@ async fn main() {
         config_dir = %configure.config_dir.display(),
         schema = %configure.durable.schema,
         auto_migrate = configure.durable.auto_migrate,
+        worker_lock_timeout_ms = configure.durable.worker_lock_timeout_ms,
+        embed_batch_size = configure.ai_worker.embed_batch_size,
+        embed_model = %configure.ai_worker.embed_model,
         "orchestrator starting"
     );
 
@@ -31,10 +40,24 @@ async fn main() {
         .await
         .expect("Failed to connect to the durable store");
 
-    let registrations = orchestrations::registrations();
-    let tuning = RuntimeTuning::new(
+    let ai_worker =
+        Arc::new(AiWorkerClient::new(&configure).expect("Failed to build ai-worker client"));
+    let registrations = orchestrations::registrations(
+        ai_worker,
+        configure.ai_worker.embed_batch_size,
+        configure.ai_worker.embed_model.clone(),
+    );
+    tracing::info!(
+        orchestrations = ?registrations.orchestrations.names(),
+        activities = ?registrations.activities.names(),
+        "处理器已注册"
+    );
+
+    let tuning = RuntimeTuning::with_worker_lock_timeouts(
         configure.durable.orchestration_concurrency,
         configure.durable.worker_concurrency,
+        configure.durable.worker_lock_timeout_ms,
+        configure.durable.worker_lock_renewal_buffer_ms,
     );
     let runtime = Runtime::start(
         &store,

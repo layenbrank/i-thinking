@@ -93,6 +93,25 @@ durable:
   worker_concurrency: 2
   # 停机时给在跑活动留的收尾窗口（毫秒）
   shutdown_grace_ms: 5000
+  # 活动租约时长：进程被硬杀后，这一步要等租约过期才会被别人接手，
+  # 所以它同时是「崩溃恢复最慢多久」。调小 = 恢复更快（本地/测试常用 3000）。
+  worker_lock_timeout_ms: 30000
+  # 租约续期提前量，必须小于 worker_lock_timeout_ms
+  worker_lock_renewal_buffer_ms: 5000
+
+# AI 计算车间（ai-worker，Python）内部调用。契约在 spec/internal.yaml。
+# 由 `orchestrator` 读取：长任务的每一步都要调它，地址或令牌缺失则启动即失败。
+# 本地没有 ai-worker 时（P6 才实现）orchestrator 起不来是预期行为。
+ai_worker:
+  base_url: http://127.0.0.1:8081
+  # 与 ai-worker 侧的内部共享令牌一致（请求头 X-Internal-Token）
+  token: dev-internal-token
+  timeout_ms: 30000
+  # 默认直连内网终点：禁用系统/环境变量代理
+  use_system_proxy: false
+  # 每次嵌入活动处理的块数（编排历史的一步）
+  embed_batch_size: 16
+  embed_model: text-embedding-3-small
 
 aliyun:
   gateway:

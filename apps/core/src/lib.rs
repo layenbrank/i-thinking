@@ -45,6 +45,7 @@ macro_rules! bootstrap_app {
 }
 
 pub mod clients {
+    pub mod ai_worker;
     pub mod aliyun_gateway;
     pub mod elasticsearch;
     pub mod gocaptcha;

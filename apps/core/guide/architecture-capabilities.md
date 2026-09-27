@@ -19,6 +19,21 @@
 - 依赖方向单向：`service → 能力`、`authz → identity`；能力之间默认不互相依赖。
 - 能力 crate 不含 Web 框架、不含 `service`，因此可以被 worker 二进制、测试、未来的独立服务直接复用。
 
+### 运行时宿主（二进制）
+
+同一个内核，三个宿主，各有各的进程边界（`apps/core/src/bin/`）：
+
+| 二进制 | 职责 | 关键依赖 |
+|--------|------|---------|
+| `service` | HTTP 协议、路由、DTO、事务边界；不跑长任务 | 全部能力 crate |
+| `worker` | 消费 `outbox`，把已提交事件投给下游 | `audit`（表所有权） |
+| `orchestrator` | 跑可靠执行运行时、执行长任务的每个活动；**不监听端口** | [`crates/durable`](../crates/durable/README.md) + 内部契约客户端 |
+
+`orchestrator` 是长任务唯一的执行者：它只连编排库（独立 schema），不碰业务表，
+所以不需要 Redis / Elasticsearch。一个部署单元里只应有一个进程跑运行时——多开会把同一实例的
+轮次抢来抢去（正确性由锁保证，但没有意义）。长任务的 AI 步骤不在 Rust 侧做，而是通过内部
+HTTP 契约交给 Python 的 ai-worker（见 [configuration.md](configuration.md#ai-计算车间ai-worker--orchestrator)）。
+
 | 能力 | 数据所有权 | 吸收的遗留对象 |
 |------|-----------|---------------|
 | identity | `auth` `tenant` `tenant_member` `sso_connection` | 目录 `src/services/{auth,user,tenant,sso}` |

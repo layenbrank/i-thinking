@@ -1,0 +1,394 @@
+openapi: 3.1.0
+
+info:
+  title: core ↔ ai-worker 内部契约
+  version: 0.1.0-draft
+  x-contract-owner: core
+  x-status: draft
+  description: |
+    `core` 调用 `ai-worker`（Python 计算车间）的内部契约，**唯一契约源**。
+
+    谁在被约束：`core` 侧只有 `src/clients/ai_worker.rs` 允许出站调这些路径；写在这个文件
+    之外的 `/internal/**` 路径一律由 `bun run arch`（R11）拦住，不允许手写路由游离在契约外。
+    `ai-worker` 侧（P6）按本文件实现，先用 `spec/internal.yaml` 定形，Python 侧照它写路由。
+
+    三条约定：
+
+    1. **方向单向**：只有 core 调 ai-worker。ai-worker 是叶子：不调别的东西、不直连业务表、
+       不持长期云凭据（对象读取凭据由 core 随请求签发/限定作用域）。
+    2. **响应不用公开信封**：内部调用用 HTTP 状态码 + 裸 JSON（公开契约的 `code/message/data`
+       信封只服务前端）。错误体统一为 `{"error":{"code","message"}}`。
+    3. **写操作必须带幂等键**：`Idempotency-Key` 由 core 用「编排实例 id + 步骤」派生，同一
+       键重复投递必须收敛为同一个结果（core 侧活动是「至少执行一次」，重试是常态）。同一个
+       键带着**不同载荷**到达时返回 409，不允许悄悄按新载荷执行。
+
+    重试语义：core 把 429 / 5xx / 超时视为可重试（活动级重试，退避由可靠执行运行时负责）；
+    4xx（除 429）视为不可重试，直接把实例判失败。所以 ai-worker 只有「确定没做成」才能回 4xx。
+
+    字段命名：JSON 一律 camelCase，标识后缀固定 `ID`（`assetID` / `tenantID`）。
+    所有非健康检查端点都必须带 `traceparent`（W3C），跨语言排障只能靠它。
+  contact:
+    name: i-thinking core
+    url: https://github.com/i-thinking
+license:
+  name: UNLICENSED
+
+servers:
+  - url: http://127.0.0.1:8081
+    description: 本地开发（docker-compose 的 ai-worker）
+  - url: http://ai-worker:8081
+    description: 容器内网络（docker-compose 服务名）
+
+tags:
+  - name: health
+    description: 健康与能力自述
+  - name: rag
+    description: RAG 索引（分块 → 嵌入 → 落索引）
+
+paths:
+  /internal/v1/health:
+    get:
+      operationId: internalHealth
+      tags: [health]
+      summary: 健康与能力自述
+      description: |
+        给 core 的 readiness 检查用（P7）：进程活着不够，还要能自报依赖与能力。
+        本端点不需要令牌，也不做任何 IO 以外的副作用。
+      responses:
+        '200':
+          description: 进程可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: 进程活着但依赖不可用（core 的 readiness 应当转失败）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /internal/v1/assets/{assetID}/chunks:
+    post:
+      operationId: internalChunkAsset
+      tags: [rag]
+      summary: 抽取文本并分块（core 侧长任务的第一步）
+      description: |
+        ai-worker 按对象存储键读取资产、抽取纯文本、切成块并**自己持有块数据**（chunk 表
+        属于 ai-worker）。它只把「切了多少块、块集 id」回给 core —— 文本不进编排历史，
+        否则历史会被正文撑爆，重放成本也会失控。
+
+        同一个 `Idempotency-Key` 重复调用必须返回同一份 `chunkSetID`，且不重复切分/写入。
+        对象读取凭据由 core 随请求给出，ai-worker 不持有长期的云凭据。
+      parameters:
+        - $ref: '#/components/parameters/AssetID'
+        - $ref: '#/components/parameters/InternalToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Traceparent'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChunkRequest'
+      responses:
+        '200':
+          description: 分块完成（或幂等命中，返回首次结果）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChunkResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+
+  /internal/v1/assets/{assetID}/embeddings:
+    post:
+      operationId: internalEmbedChunkRange
+      tags: [rag]
+      summary: 为一组块算嵌入（可分批、可重试）
+      description: |
+        只处理块集的 `[from, to)` 区间：core 把长任务切成小步，每步一个活动，崩了只重跑
+        没做完的那几步。`model` 由 core 决定（core 的 gateway 是唯一出网点与唯一计量点），
+        ai-worker 只按给定模型算，不许自己换模型或静默降级。
+      parameters:
+        - $ref: '#/components/parameters/AssetID'
+        - $ref: '#/components/parameters/InternalToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Traceparent'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbedRequest'
+      responses:
+        '200':
+          description: 该区间的嵌入已算好（或幂等命中）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+
+  /internal/v1/assets/{assetID}/index:
+    put:
+      operationId: internalUpsertAssetIndex
+      tags: [rag]
+      summary: 把块集与向量落进检索索引（长任务最后一步）
+      description: |
+        索引（含向量）属于 ai-worker，可重建。core 只提供块集 id 与统计值，不搬运向量。
+        重复提交同一个 `chunkSetID` 必须收敛：索引条数不叠加、旧版本被替换而不是并存。
+      parameters:
+        - $ref: '#/components/parameters/AssetID'
+        - $ref: '#/components/parameters/InternalToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Traceparent'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IndexRequest'
+      responses:
+        '200':
+          description: 索引已落库（或幂等命中）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+
+components:
+  parameters:
+    AssetID:
+      name: assetID
+      in: path
+      required: true
+      description: core 的资产 id（uuid）。
+      schema:
+        type: string
+        format: uuid
+    InternalToken:
+      name: X-Internal-Token
+      in: header
+      required: true
+      description: 内部共享令牌（`ai_worker.token`）。公网不可达，但不做 IP 白名单依赖。
+      schema:
+        type: string
+        minLength: 1
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        core 用「编排实例 id + 步骤」派生：`<实例 id>:<步骤>`，例如
+        `rag-index-<assetID>:embed:0-16`。同键重复投递 → 返回首次结果；同键不同载荷 → 409。
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 200
+    Traceparent:
+      name: traceparent
+      in: header
+      required: true
+      description: W3C Trace Context。core 的活动必须透传当前链路的 traceparent。
+      schema:
+        type: string
+        pattern: '^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$'
+
+  responses:
+    BadRequest:
+      description: 请求体不合法（core 侧当不可重试失败处理）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: 令牌缺失或无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    IdempotencyConflict:
+      description: 同一个幂等键带着不同载荷到达（不按新载荷执行）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: 限流，可重试
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    DependencyUnavailable:
+      description: 依赖（模型、向量库、对象存储）暂不可用，可重试
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: 稳定的机器可读代码，例如 `invalid_request` / `idempotency_conflict`。
+            message:
+              type: string
+
+    HealthResponse:
+      type: object
+      required: [status, version]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        version:
+          type: string
+          description: ai-worker 版本号（排障用，非契约版本）。
+        capabilities:
+          type: array
+          items:
+            type: string
+          description: 自述能力清单，例如 `["rag.chunk", "rag.embed", "rag.index"]`。
+
+    ChunkRequest:
+      type: object
+      required: [schemaVersion, tenantID, objectKey, mime]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        tenantID:
+          type: string
+          description: 租户 id；ai-worker 只用于分区与日志，不参与授权判定。
+        objectKey:
+          type: string
+          description: 对象存储键（core 侧 `asset.hash` 对应的对象）。
+        mime:
+          type: string
+        name:
+          type: string
+          description: 原始文件名，用于抽取器选择策略（可为空）。
+        chunkSize:
+          type: integer
+          minimum: 1
+          description: 目标块大小（字符数）。缺省由 ai-worker 自己定。
+        chunkOverlap:
+          type: integer
+          minimum: 0
+          description: 相邻块重叠字符数。缺省由 ai-worker 自己定。
+
+    ChunkResponse:
+      type: object
+      required: [chunkSetID, chunkCount]
+      properties:
+        chunkSetID:
+          type: string
+          description: 块集 id（ai-worker 生成）；后续嵌入与落索引都用它，不再传文本。
+        chunkCount:
+          type: integer
+          minimum: 0
+        textSha:
+          type: string
+          description: 抽取后纯文本的 sha256（十六进制），用于幂等核对与审计。
+
+    EmbedRequest:
+      type: object
+      required: [schemaVersion, tenantID, chunkSetID, model, from, to]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        tenantID:
+          type: string
+        chunkSetID:
+          type: string
+        model:
+          type: string
+          description: 由 core 指定（core 的 gateway 是唯一出网点与计量点）。
+        from:
+          type: integer
+          minimum: 0
+          description: 起始块下标（含）。
+        to:
+          type: integer
+          minimum: 0
+          description: 结束块下标（不含）；`to > from`。
+
+    EmbedResponse:
+      type: object
+      required: [from, to, embedded, dimensions]
+      properties:
+        from:
+          type: integer
+        to:
+          type: integer
+        embedded:
+          type: integer
+          description: 本次实际写入的向量数（幂等命中时为 0）。
+        dimensions:
+          type: integer
+
+    IndexRequest:
+      type: object
+      required: [schemaVersion, tenantID, chunkSetID, chunkCount, model, dimensions]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        tenantID:
+          type: string
+        chunkSetID:
+          type: string
+        chunkCount:
+          type: integer
+          minimum: 0
+        model:
+          type: string
+        dimensions:
+          type: integer
+
+    IndexResponse:
+      type: object
+      required: [indexed, collection]
+      properties:
+        indexed:
+          type: integer
+          description: 索引里的块数（幂等命中时返回首次结果，不叠加）。
+        collection:
+          type: string
+          description: 索引集合名（排障与审计用）。

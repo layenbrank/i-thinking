@@ -24,6 +24,10 @@ pub enum DurableError {
         source: serde_json::Error,
     },
 
+    /// 运行时参数不合法：启动前自检拦下来的（例如租约时长与 session 空闲超时冲突）。
+    #[error("可靠执行运行时参数不合法: {0}")]
+    Config(String),
+
     /// 处理器注册表有问题：重名、用了保留名字等。启动即失败，不带病运行。
     #[error("{kind}注册失败: {message}")]
     Registration { kind: &'static str, message: String },

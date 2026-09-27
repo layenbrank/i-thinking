@@ -503,6 +503,11 @@ pub struct DurableConfig {
     pub worker_concurrency: usize,
     /// 停机时给在跑活动留的收尾窗口（毫秒）。
     pub shutdown_grace_ms: u64,
+    /// 活动执行者持有租约的时长（毫秒）。进程被硬杀后，它手里那一步要等租约过期才能被别人接手，
+    /// 所以这个值同时决定「崩溃恢复最慢多久」；调小 = 恢复更快，但网络抖动时更容易被误判为失联。
+    pub worker_lock_timeout_ms: u64,
+    /// 租约续期的提前量（毫秒），必须小于 `worker_lock_timeout_ms`。
+    pub worker_lock_renewal_buffer_ms: u64,
 }
 
 impl Default for DurableConfig {
@@ -514,6 +519,45 @@ impl Default for DurableConfig {
             orchestration_concurrency: 2,
             worker_concurrency: 2,
             shutdown_grace_ms: 5_000,
+            worker_lock_timeout_ms: 30_000,
+            worker_lock_renewal_buffer_ms: 5_000,
+        }
+    }
+}
+
+/// AI 计算车间（ai-worker，Python）的内部调用配置。契约在 `spec/internal.yaml`。
+///
+/// 由 `orchestrator` 读取（活动要调它）；api 二进制不读它，所以「地址/令牌是否齐全」
+/// 不放进 [`Configure::validate`]，见 [`Configure::require_ai_worker_settings`]。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct AiWorkerConfig {
+    /// 内部调用基址，例如 `http://127.0.0.1:8081`（不带尾斜杠也可）。
+    pub base_url: String,
+    /// 内部共享令牌（请求头 `X-Internal-Token`）。
+    pub token: String,
+    /// 单次调用超时（毫秒）。长任务的一步 = 一次调用，超时即失败并交给活动重试。
+    pub timeout_ms: u64,
+    /// 是否让系统/环境变量代理接管调用。默认 `false`：内网直连，
+    /// 免得本机系统代理（如 127.0.0.1:7892）拦截内网地址并回 502。
+    pub use_system_proxy: bool,
+    /// 每次嵌入活动处理的块数。一次活动 = 编排历史里的一步：越小则崩溃后重跑越省，
+    /// 但历史越长、往返越多。
+    pub embed_batch_size: usize,
+    /// 嵌入模型。模型由 core 决定：出网与计量都以 core 的 gateway 为唯一入口，
+    /// ai-worker 不许自己换模型。它在装配编排时注入，因此同一实例重放时模型恒定。
+    pub embed_model: String,
+}
+
+impl Default for AiWorkerConfig {
+    fn default() -> Self {
+        Self {
+            base_url: String::new(),
+            token: String::new(),
+            timeout_ms: 30_000,
+            use_system_proxy: false,
+            embed_batch_size: 16,
+            embed_model: "text-embedding-3-small".to_string(),
         }
     }
 }
@@ -535,6 +579,7 @@ pub struct Configure {
     pub cors: CorsConfig,
     pub events: EventsConfig,
     pub durable: DurableConfig,
+    pub ai_worker: AiWorkerConfig,
     /// 合并时使用的 profile（`resolve_profile()`）。
     #[serde(skip)]
     pub profile: String,
@@ -560,6 +605,7 @@ impl Default for Configure {
             cors: CorsConfig::default(),
             events: EventsConfig::default(),
             durable: DurableConfig::default(),
+            ai_worker: AiWorkerConfig::default(),
             profile: "development".to_string(),
             config_dir: PathBuf::from("."),
         }
@@ -613,6 +659,7 @@ impl Configure {
         self.validate_pay()?;
         self.validate_events()?;
         self.validate_durable()?;
+        self.validate_ai_worker()?;
 
         Ok(())
     }
@@ -689,6 +736,15 @@ impl Configure {
         if durable.shutdown_grace_ms == 0 {
             bail!("durable.shutdown_grace_ms must be greater than 0");
         }
+        if durable.worker_lock_timeout_ms == 0 {
+            bail!("durable.worker_lock_timeout_ms must be greater than 0");
+        }
+        if durable.worker_lock_renewal_buffer_ms >= durable.worker_lock_timeout_ms {
+            bail!(
+                "durable.worker_lock_renewal_buffer_ms must be less than durable.worker_lock_timeout_ms：\
+                 续期提前量不小于租约时长的话，租约会在续期前就过期"
+            );
+        }
 
         Ok(())
     }
@@ -714,6 +770,43 @@ impl Configure {
         }
 
         Ok(url)
+    }
+
+    /// AI 计算车间的形状校验（各 profile 一致）；「地址与令牌是否齐全」见
+    /// [`Configure::require_ai_worker_settings`]。
+    fn validate_ai_worker(&self) -> Result<()> {
+        let ai_worker = &self.ai_worker;
+        let base_url = ai_worker.base_url.trim();
+        if !base_url.is_empty()
+            && !base_url.starts_with("http://")
+            && !base_url.starts_with("https://")
+        {
+            bail!("ai_worker.base_url must be an http(s) url");
+        }
+        if ai_worker.timeout_ms == 0 {
+            bail!("ai_worker.timeout_ms must be greater than 0");
+        }
+        if ai_worker.embed_batch_size == 0 {
+            bail!("ai_worker.embed_batch_size must be greater than 0");
+        }
+        if ai_worker.embed_model.trim().is_empty() {
+            bail!("ai_worker.embed_model must not be empty：模型由 core 指定，不能留空");
+        }
+
+        Ok(())
+    }
+
+    /// orchestrator 专用：长任务的每一步都要调 ai-worker，地址或令牌缺失就没有「能跑起来」的
+    /// 状态可言，因此不做「非生产放行」的豁免——缺了就在启动时直说。
+    pub fn require_ai_worker_settings(&self) -> Result<()> {
+        if self.ai_worker.base_url.trim().is_empty() {
+            bail!("ai_worker.base_url is required（orchestrator 的活动全部要调 ai-worker）");
+        }
+        if self.ai_worker.token.trim().is_empty() {
+            bail!("ai_worker.token is required：内部端点不接受匿名调用");
+        }
+
+        Ok(())
     }
 
     /// 支付配置校验：宁可启动失败，也不要带着半截凭据上线（下单/验签会静默失效）。
@@ -1102,5 +1195,54 @@ mod tests {
 
         cfg.durable.database_url = "mysql://root@127.0.0.1/app".into();
         assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn validate_rejects_lock_renewal_buffer_not_smaller_than_timeout() {
+        let mut cfg = Configure::default();
+        cfg.durable.worker_lock_renewal_buffer_ms = cfg.durable.worker_lock_timeout_ms;
+        let err = cfg.validate().expect_err("buffer == timeout must fail");
+        assert!(err.to_string().contains("worker_lock_renewal_buffer_ms"));
+    }
+
+    #[test]
+    fn ai_worker_defaults_are_valid_but_not_runnable() {
+        let cfg = Configure::default();
+        assert_eq!(cfg.ai_worker.embed_batch_size, 16);
+        assert!(!cfg.ai_worker.use_system_proxy);
+        assert!(cfg.validate().is_ok());
+        // 形状合法 ≠ 能跑：地址与令牌缺失由 orchestrator 启动时判定。
+        let err = cfg
+            .require_ai_worker_settings()
+            .expect_err("empty ai_worker must fail");
+        assert!(err.to_string().contains("ai_worker.base_url"));
+    }
+
+    #[test]
+    fn require_ai_worker_settings_needs_both_url_and_token() {
+        let mut cfg = Configure::default();
+        cfg.ai_worker.base_url = "http://127.0.0.1:8081".into();
+        assert!(cfg.require_ai_worker_settings().is_err());
+
+        cfg.ai_worker.token = "dev-internal-token".into();
+        assert!(cfg.require_ai_worker_settings().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_malformed_ai_worker_config() {
+        let mut cfg = Configure::default();
+        cfg.ai_worker.base_url = "127.0.0.1:8081".into();
+        assert!(cfg.validate().is_err());
+
+        cfg.ai_worker.base_url = "http://127.0.0.1:8081".into();
+        cfg.ai_worker.embed_batch_size = 0;
+        assert!(cfg.validate().is_err());
+
+        cfg.ai_worker.embed_batch_size = 16;
+        cfg.ai_worker.embed_model = "  ".into();
+        assert!(cfg.validate().is_err());
+
+        cfg.ai_worker.embed_model = "text-embedding-3-small".into();
+        assert!(cfg.validate().is_ok());
     }
 }

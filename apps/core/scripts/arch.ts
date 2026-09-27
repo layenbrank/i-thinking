@@ -3,8 +3,8 @@
  *
  * 组成：
  *  - 遗留布局卫生：孤儿文件、模块必备文件、禁止路径
- *  - 能力边界门禁（R1–R6、R10）：依赖方向、对外表面、权限判定唯一入口、表所有权、遗留模块冻结、
- *    封禁依赖的封装
+ *  - 能力边界门禁（R1–R6、R10、R11）：依赖方向、对外表面、权限判定唯一入口、表所有权、
+ *    遗留模块冻结、封禁依赖的封装、内部调用契约路径
  *
  * 能力边界的声明在 scripts/capabilities.ts；本文件只做强制。
  *
@@ -20,6 +20,7 @@ import {
   CAPABILITIES,
   CONFINED_CRATE_DEPS,
   FORBIDDEN_CRATE_DEPS,
+  INTERNAL_CONTRACT,
   LEGACY_SERVICES,
   PLATFORM_ENTRY_ALLOWED,
   PLATFORM_ENTRY_OWNER_PATHS,
@@ -520,6 +521,97 @@ function checkConfinedCrateDeps(errors: string[], hints: string[]) {
   }
 }
 
+/** 从 spec/internal.yaml 的 paths 段取出声明的路径（2 空格缩进 + `/` 开头） */
+function declaredInternalPaths(text: string): Set<string> {
+  const out = new Set<string>()
+  let inPaths = false
+  for (const raw of text.split(/\r?\n/)) {
+    if (/^\S/.test(raw)) {
+      inPaths = raw.replace(/#.*$/, '').trim() === INTERNAL_CONTRACT.pathsKey
+      continue
+    }
+    if (!inPaths) continue
+    const m = raw.match(/^ {2}(\/\S*?):\s*$/)
+    if (m) out.add(m[1])
+  }
+  return out
+}
+
+/** 去掉 `#[cfg(test)]` 标注的项（单测里的期望值不是调用点）。
+ *
+ * 依赖 rustfmt 的缩进惯例：`#[cfg(test)]` 标注的项以第 0 列的 `}`（或 `;`）收尾，
+ * 所以跳过范围是有界的，不会把文件后半段一起吞掉。
+ */
+function stripTestRegions(text: string): string {
+  const out: string[] = []
+  let skipping = false
+  let armed = false
+  for (const line of text.split(/\r?\n/)) {
+    if (!skipping) {
+      if (/^\s*#\[cfg\(test\)\]/.test(line)) {
+        skipping = true
+        armed = true
+        out.push('')
+        continue
+      }
+      out.push(line)
+      continue
+    }
+    out.push('')
+    if (armed) {
+      // 属性标注的是紧接着的那个项：先进到它的 `{`；单行项（如 `use`）以 `;` 收尾。
+      if (line.includes('{')) {
+        armed = false
+      } else if (/;\s*$/.test(line)) {
+        skipping = false
+      }
+      continue
+    }
+    if (/^\}/.test(line)) skipping = false
+  }
+  return out.join('\n')
+}
+
+/** R11：内部调用契约的路径只允许出现在出站客户端里，且必须已登记在 spec/internal.yaml */
+function checkInternalContractPaths(errors: string[], hints: string[]) {
+  const specPath = join(ROOT, INTERNAL_CONTRACT.spec)
+  if (!existsSync(specPath)) {
+    fail(`内部契约 ${INTERNAL_CONTRACT.spec} 不存在（core ↔ ai-worker 的路径声明源）`, errors)
+    return
+  }
+
+  const declared = declaredInternalPaths(readFileSync(specPath, 'utf8'))
+  if (!declared.size) {
+    fail(`${INTERNAL_CONTRACT.spec} 的 paths 段没有任何路径声明，R11 会形同虚设`, errors)
+    return
+  }
+
+  const used = new Set<string>()
+  for (const file of walk(SRC)) {
+    const fileRel = rel(file)
+    const ownsContract = fileRel.startsWith(`${INTERNAL_CONTRACT.clientDir}/`)
+    const source = stripTestRegions(readFileSync(file, 'utf8'))
+    for (const m of source.matchAll(/["'`](\/internal\/[A-Za-z0-9_{}./-]*)["'`]/g)) {
+      const path = m[1]
+      used.add(path)
+      if (!ownsContract) {
+        fail(
+          `内部契约路径 ${path} 出现在 ${fileRel}；/internal/** 只允许出现在 ${INTERNAL_CONTRACT.clientDir}/ 的客户端里`,
+          errors
+        )
+      } else if (!declared.has(path)) {
+        fail(`${fileRel} 调用了未登记的内部契约路径 ${path}（请先写进 ${INTERNAL_CONTRACT.spec}）`, errors)
+      }
+    }
+  }
+
+  if (!used.size) {
+    hints.push(
+      `${INTERNAL_CONTRACT.spec} 声明了内部契约，但 src/ 里没有任何调用点（P6 实现 ai-worker 后应接入客户端）`
+    )
+  }
+}
+
 function main(): number {
   const errors: string[] = []
   const hints: string[] = []
@@ -541,6 +633,7 @@ function main(): number {
   checkTableOwnership(errors)
   checkLegacyServices(errors, hints)
   checkConfinedCrateDeps(errors, hints)
+  checkInternalContractPaths(errors, hints)
 
   if (errors.length) {
     console.log('Architecture check FAILED:')

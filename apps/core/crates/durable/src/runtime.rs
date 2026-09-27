@@ -1,32 +1,86 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use duroxide::runtime::{Runtime as DuroxideRuntime, RuntimeOptions};
 
 use crate::{Activities, DurableError, Orchestrations, Store};
 
-/// 运行时并发档位。
+/// 运行时并发与租约档位。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RuntimeTuning {
     /// 同时推进的编排轮次数（每个轮次处理一个实例的一步）。
     pub orchestration_concurrency: usize,
     /// 同时执行的活动数（真正干活的并行度）。
     pub worker_concurrency: usize,
+    /// 活动租约时长（毫秒）：执行者领到一步后，多久没续期就算失联。
+    /// 进程被硬杀时它手里那一步要等租约过期才能被别人接手，所以这个值同时是
+    /// 「崩溃恢复最慢多久」的上界。
+    pub worker_lock_timeout_ms: u64,
+    /// 租约续期提前量（毫秒），恒小于 `worker_lock_timeout_ms`。
+    pub worker_lock_renewal_buffer_ms: u64,
 }
 
 impl RuntimeTuning {
+    /// 活动租约默认时长（毫秒）。与实现本体的默认值一致。
+    pub const DEFAULT_WORKER_LOCK_TIMEOUT_MS: u64 = 30_000;
+    /// 租约续期默认提前量（毫秒）。与实现本体的默认值一致。
+    pub const DEFAULT_WORKER_LOCK_RENEWAL_BUFFER_MS: u64 = 5_000;
+
+    /// 只调并发：租约用默认值（恢复最慢 30s 量级）。
     pub fn new(orchestration_concurrency: usize, worker_concurrency: usize) -> Self {
+        Self::with_worker_lock_timeouts(
+            orchestration_concurrency,
+            worker_concurrency,
+            Self::DEFAULT_WORKER_LOCK_TIMEOUT_MS,
+            Self::DEFAULT_WORKER_LOCK_RENEWAL_BUFFER_MS,
+        )
+    }
+
+    /// 连租约一起调。入参离谱时钳到合法区间（`timeout` 至少 1ms，`buffer` 至少比 `timeout`
+    /// 小 1ms），免得把「配置写错了」变成运行时的 panic。
+    pub fn with_worker_lock_timeouts(
+        orchestration_concurrency: usize,
+        worker_concurrency: usize,
+        worker_lock_timeout_ms: u64,
+        worker_lock_renewal_buffer_ms: u64,
+    ) -> Self {
+        let timeout = worker_lock_timeout_ms.max(1);
         Self {
             orchestration_concurrency: orchestration_concurrency.max(1),
             worker_concurrency: worker_concurrency.max(1),
+            worker_lock_timeout_ms: timeout,
+            worker_lock_renewal_buffer_ms: worker_lock_renewal_buffer_ms.min(timeout - 1),
         }
     }
 }
 
 impl Default for RuntimeTuning {
-    /// 与实现本体的默认值一致：编排 2、活动 2。够用且不抢资源，按需再调。
+    /// 与实现本体的默认值一致：编排 2、活动 2、租约 30s。够用且不抢资源，按需再调。
     fn default() -> Self {
         Self::new(2, 2)
     }
+}
+
+/// duroxide 在 `session_idle_timeout <= worker_lock_timeout - worker_lock_renewal_buffer` 时
+/// 直接 panic（它担心长活动期间 session 被解绑）。启动前照着它的公式算一遍：把 panic
+/// 换成一条能看懂的启动错误。
+fn ensure_lock_invariant(options: &RuntimeOptions) -> Result<(), DurableError> {
+    let renewal_interval = options
+        .worker_lock_timeout
+        .checked_sub(options.worker_lock_renewal_buffer)
+        .unwrap_or(Duration::from_secs(1));
+    if options.session_idle_timeout <= renewal_interval {
+        return Err(DurableError::Config(format!(
+            "租约参数不合法：worker_lock_timeout_ms ({}) - worker_lock_renewal_buffer_ms ({}) \
+             必须小于 session 空闲超时（{}ms）。请调小 worker_lock_timeout_ms，\
+             或保留默认租约。",
+            options.worker_lock_timeout.as_millis(),
+            options.worker_lock_renewal_buffer.as_millis(),
+            options.session_idle_timeout.as_millis(),
+        )));
+    }
+
+    Ok(())
 }
 
 /// 可靠执行运行时：从存储里领活、重放历史、执行活动、写回结果。
@@ -56,8 +110,11 @@ impl Runtime {
         let options = RuntimeOptions {
             orchestration_concurrency: tuning.orchestration_concurrency.max(1),
             worker_concurrency: tuning.worker_concurrency.max(1),
+            worker_lock_timeout: Duration::from_millis(tuning.worker_lock_timeout_ms),
+            worker_lock_renewal_buffer: Duration::from_millis(tuning.worker_lock_renewal_buffer_ms),
             ..Default::default()
         };
+        ensure_lock_invariant(&options)?;
 
         let inner = DuroxideRuntime::start_with_options(
             store.provider_ref(),
@@ -80,5 +137,55 @@ impl Runtime {
 impl std::fmt::Debug for Runtime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Runtime")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tuning_clamps_concurrency_and_lock_timeouts() {
+        let tuning = RuntimeTuning::with_worker_lock_timeouts(0, 0, 0, 9_999);
+        assert_eq!(tuning.orchestration_concurrency, 1);
+        assert_eq!(tuning.worker_concurrency, 1);
+        assert_eq!(tuning.worker_lock_timeout_ms, 1);
+        assert_eq!(tuning.worker_lock_renewal_buffer_ms, 0);
+
+        let tuning = RuntimeTuning::with_worker_lock_timeouts(4, 4, 3_000, 45_000);
+        assert_eq!(tuning.worker_lock_timeout_ms, 3_000);
+        assert_eq!(tuning.worker_lock_renewal_buffer_ms, 2_999);
+    }
+
+    #[test]
+    fn default_tuning_matches_implementation_defaults() {
+        let tuning = RuntimeTuning::default();
+        assert_eq!(tuning.orchestration_concurrency, 2);
+        assert_eq!(tuning.worker_concurrency, 2);
+        assert_eq!(tuning.worker_lock_timeout_ms, 30_000);
+        assert_eq!(tuning.worker_lock_renewal_buffer_ms, 5_000);
+    }
+
+    #[test]
+    fn lock_invariant_rejects_oversized_lock_timeout() {
+        let options = RuntimeOptions {
+            worker_lock_timeout: Duration::from_secs(600),
+            worker_lock_renewal_buffer: Duration::from_secs(5),
+            ..Default::default()
+        };
+        let err = ensure_lock_invariant(&options).expect_err("must be rejected");
+        assert!(err.to_string().contains("worker_lock_timeout_ms"));
+    }
+
+    #[test]
+    fn lock_invariant_accepts_defaults_and_short_timeouts() {
+        assert!(ensure_lock_invariant(&RuntimeOptions::default()).is_ok());
+
+        let tight = RuntimeOptions {
+            worker_lock_timeout: Duration::from_secs(3),
+            worker_lock_renewal_buffer: Duration::from_millis(500),
+            ..Default::default()
+        };
+        assert!(ensure_lock_invariant(&tight).is_ok());
     }
 }
