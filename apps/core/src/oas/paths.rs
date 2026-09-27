@@ -7,6 +7,10 @@ pub struct RouteDef {
 
 // --- 系统 ---
 pub const HEALTH: &str = "/api/health";
+/// 存活探针：只证明进程活着，不触碰任何依赖（依赖故障不该触发重启）
+pub const LIVE: &str = "/api/live";
+/// 就绪探针：能否接流量，关键依赖故障时 503
+pub const READY: &str = "/api/ready";
 
 // --- Auth ---
 pub const AUTH_CAPTCHA: &str = "/api/v1/auth/captcha";
@@ -89,6 +93,14 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: HEALTH,
+    },
+    RouteDef {
+        method: "GET",
+        path: LIVE,
+    },
+    RouteDef {
+        method: "GET",
+        path: READY,
     },
     RouteDef {
         method: "POST",

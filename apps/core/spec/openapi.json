@@ -735,6 +735,36 @@
         ],
         "type": "string"
       },
+      "DependencyCheck": {
+        "description": "单个依赖的探测结果",
+        "properties": {
+          "critical": {
+            "description": "是否关键依赖：关键依赖故障 ⇒ 503（不接流量）",
+            "type": "boolean"
+          },
+          "detail": {
+            "description": "补充说明（如 Elasticsearch 集群状态、ai-worker 版本与能力）",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "`postgres` / `redis` / `elasticsearch` / `ai-worker`",
+            "type": "string"
+          },
+          "status": {
+            "description": "`up` / `down` / `unconfigured`",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "critical",
+          "status"
+        ],
+        "type": "object"
+      },
       "Direction": {
         "enum": [
           "Horizontal",
@@ -1292,6 +1322,71 @@
         },
         "required": [
           "ig"
+        ],
+        "type": "object"
+      },
+      "Liveness": {
+        "description": "存活探针 data：只描述进程自身，**不含任何依赖**",
+        "properties": {
+          "status": {
+            "description": "恒为 `alive`",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "LivenessEnvelope": {
+        "properties": {
+          "code": {
+            "description": "业务状态码（200000=成功）",
+            "format": "int32",
+            "type": "integer"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Liveness"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
         ],
         "type": "object"
       },
@@ -2726,6 +2821,78 @@
           "type",
           "source",
           "dailyTokenQuota"
+        ],
+        "type": "object"
+      },
+      "Readiness": {
+        "description": "就绪探针 data：能否接流量 + 各依赖快照",
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/DependencyCheck"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "`ready`（关键依赖全通）/ `degraded`（关键依赖全通但有非关键依赖异常）",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "timestamp",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "ReadinessEnvelope": {
+        "properties": {
+          "code": {
+            "description": "业务状态码（200000=成功）",
+            "format": "int32",
+            "type": "integer"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Readiness"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
         ],
         "type": "object"
       },
@@ -4710,6 +4877,144 @@
           }
         },
         "summary": "健康检查",
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/api/live": {
+      "get": {
+        "description": "只证明进程存活且能响应 HTTP，**不检查任何依赖**：依赖故障不该让编排器重启实例。恒定 200（code=200000）。",
+        "operationId": "system.live",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LivenessEnvelope"
+                }
+              }
+            },
+            "description": "进程存活（code=200000）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（服务异常）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "存活探针（liveness）",
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/api/ready": {
+      "get": {
+        "description": "检查各依赖后回答「能否接流量」。data.status=ready 表示关键依赖全通（个别非关键依赖异常时为 degraded，仍返回 200 并照常接流量）；任一关键依赖故障则返回 503（code=100002，system.SERVICE_UNAVAILABLE，msg 列出故障项）。各依赖的探测结果与是否关键见 data.checks[].critical；需要完整依赖快照（恒 200）请用 /api/health。",
+        "operationId": "system.ready",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessEnvelope"
+                }
+              }
+            },
+            "description": "就绪（code=200000）：data.status=ready|degraded，data.checks 为各依赖快照",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（未就绪 / 服务异常）：关键依赖故障返回 503（code=100002），非生产环境 details 附完整依赖快照；HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "就绪探针（readiness）",
         "tags": [
           "System"
         ]

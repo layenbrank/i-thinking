@@ -19,15 +19,15 @@ use utoipa::OpenApi;
 
 use crate::oas::common::{
     ApplicationEnvelope, CaptchaEnvelope, CatalogEnvelope, ChunkUploadEnvelope, ChunkUploadForm,
-    EmptyEnvelope, EmptyR, Exception, FinalizeUploadEnvelope, Health, HealthEnvelope,
-    MemberEnvelope, MemberListEnvelope, ModelEnvelope, ModelListEnvelope, OrderEnvelope,
-    OrderListEnvelope, PlansEnvelope, ProfileEnvelope, ProviderEnvelope, ProviderListEnvelope,
-    QuotaEnvelope, SearchEnvelope, SearchWriteEnvelope, SelfQuotaEnvelope, SigninEnvelope,
-    SigninErrorExample, SigninSuccessExample, SignupEnvelope, SsoConnectionEnvelope,
-    SsoConnectionListEnvelope, SsoLoginEnvelope, SubscriptionEnvelope, SubscriptionListEnvelope,
-    SuggestionEnvelope, TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope,
-    UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope,
-    UserListEnvelope,
+    DependencyCheck, EmptyEnvelope, EmptyR, Exception, FinalizeUploadEnvelope, Health,
+    HealthEnvelope, Liveness, LivenessEnvelope, MemberEnvelope, MemberListEnvelope, ModelEnvelope,
+    ModelListEnvelope, OrderEnvelope, OrderListEnvelope, PlansEnvelope, ProfileEnvelope,
+    ProviderEnvelope, ProviderListEnvelope, QuotaEnvelope, Readiness, ReadinessEnvelope,
+    SearchEnvelope, SearchWriteEnvelope, SelfQuotaEnvelope, SigninEnvelope, SigninErrorExample,
+    SigninSuccessExample, SignupEnvelope, SsoConnectionEnvelope, SsoConnectionListEnvelope,
+    SsoLoginEnvelope, SubscriptionEnvelope, SubscriptionListEnvelope, SuggestionEnvelope,
+    TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope, UploadHashEnvelope,
+    UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope, UserListEnvelope,
 };
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
@@ -82,6 +82,8 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
     ),
     paths(
         system::health_doc,
+        system::live_doc,
+        system::ready_doc,
         auth::captcha_doc,
         auth::otp_doc,
         auth::signin_doc,
@@ -162,6 +164,11 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
             Exception,
             Health,
             HealthEnvelope,
+            Liveness,
+            LivenessEnvelope,
+            Readiness,
+            ReadinessEnvelope,
+            DependencyCheck,
             EmptyR,
             EmptyEnvelope,
             SigninP,

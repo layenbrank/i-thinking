@@ -6,3 +6,15 @@
 # 响应 data: { status, version, timestamp, uptime }
 GET {{host}}/api/health
 Accept: application/json
+
+### GET /api/live — 存活探针
+# 说明: 只证明进程活着，不触碰任何依赖，恒 200（data.status=alive）
+GET {{host}}/api/live
+Accept: application/json
+
+### GET /api/ready — 就绪探针
+# 说明: 能否接流量。关键依赖（postgres/redis）故障 → 503（code=100002）；
+#       非关键依赖（elasticsearch/ai-worker）异常 → 200 + data.status=degraded
+# 响应 data: { status, version, timestamp, checks[] }
+GET {{host}}/api/ready
+Accept: application/json

@@ -78,7 +78,9 @@ HTTP 示例：[`http/06-search.http`](../http/06-search.http)。
 
 ### 健康检查
 
-`GET /api/health` 返回 `postgres` / `redis` / `elasticsearch` 状态字段。
+`GET /api/health` 返回 `postgres` / `redis` / `elasticsearch` 状态字段（恒 200，异常只体现在 `data.status`）。
+`GET /api/ready` 复用同一批探测并按「关键依赖」判定能否接流量：Redis 与 PostgreSQL 是关键依赖，
+故障即 503；Elasticsearch 与 ai-worker 只是 `degraded`，不摘流量。运维含义见 [`deployment.md`](deployment.md)。
 
 ---
 

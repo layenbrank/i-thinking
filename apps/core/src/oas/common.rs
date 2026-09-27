@@ -37,6 +37,8 @@ macro_rules! envelope {
 
 envelope!(CaptchaEnvelope, CaptchaR);
 envelope!(HealthEnvelope, Health);
+envelope!(LivenessEnvelope, Liveness);
+envelope!(ReadinessEnvelope, Readiness);
 envelope!(SigninEnvelope, SigninR);
 envelope!(SignupEnvelope, SignupR);
 envelope!(ProfileEnvelope, ProfileR);
@@ -87,6 +89,42 @@ pub struct Health {
     pub redis: String,
     /// Elasticsearch 集群状态或 down
     pub elasticsearch: String,
+}
+
+/// 存活探针 data：只描述进程自身，**不含任何依赖**
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Liveness {
+    /// 恒为 `alive`
+    pub status: String,
+    pub version: String,
+    pub timestamp: i64,
+}
+
+/// 就绪探针 data：能否接流量 + 各依赖快照
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Readiness {
+    /// `ready`（关键依赖全通）/ `degraded`（关键依赖全通但有非关键依赖异常）
+    pub status: String,
+    pub version: String,
+    pub timestamp: i64,
+    pub checks: Vec<DependencyCheck>,
+}
+
+/// 单个依赖的探测结果
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DependencyCheck {
+    /// `postgres` / `redis` / `elasticsearch` / `ai-worker`
+    pub name: String,
+    /// 是否关键依赖：关键依赖故障 ⇒ 503（不接流量）
+    pub critical: bool,
+    /// `up` / `down` / `unconfigured`
+    pub status: String,
+    /// 补充说明（如 Elasticsearch 集群状态、ai-worker 版本与能力）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
 }
 
 /// 无 data 载荷（如登出成功）

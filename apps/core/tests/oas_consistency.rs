@@ -256,7 +256,7 @@ fn statuses_of(block: &str) -> Vec<String> {
 fn paths_follow_the_version_policy() {
     let spec = OpenDoc::openapi();
     // 运维探针不参与主版本前缀，其余端点必须在 /api/v1 下
-    const VERSION_FREE_PATHS: &[&str] = &["/api/health"];
+    const VERSION_FREE_PATHS: &[&str] = &["/api/health", "/api/live", "/api/ready"];
 
     for path in spec.paths.paths.keys() {
         assert!(

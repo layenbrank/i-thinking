@@ -12,6 +12,7 @@
 | API 版本与兼容策略 | [`api-versioning.md`](api-versioning.md) |
 | 契约代码生成 | [`contract-codegen.md`](contract-codegen.md) |
 | 数据库协作 | [`database.md`](database.md) |
+| 部署与运维探针 | [`deployment.md`](deployment.md) |
 | 事件发布（outbox → 下游） | [`../crates/audit/README.md`](../crates/audit/README.md) |
 | 能力边界（crate 划分与门禁） | [`architecture-capabilities.md`](architecture-capabilities.md) |
 | 配置（YAML） | [`configuration.md`](configuration.md) |
@@ -42,7 +43,7 @@ Token 来自 `POST /api/v1/auth/signin` 或 `signup` 响应的 `data.token`。
 
 | 模块 | 前缀 | 文档 | HTTP 测试 |
 |------|------|------|-----------|
-| 系统 | `/api/health` | OpenAPI | [`http/00-health.http`](../http/00-health.http) |
+| 系统 | `/api/health` · `/api/live` · `/api/ready` | [deployment](./deployment.md) | [`http/00-health.http`](../http/00-health.http) |
 | 认证 | `/api/v1/auth` | [auth](../src/services/auth/README.md) | [`http/01-auth.http`](../http/01-auth.http) |
 | 用户(后台) | `/api/v1/users` | [user](../src/services/user/README.md) | [`http/02-users.http`](../http/02-users.http) |
 | 上传 | `/api/v1/upload` | [upload](../src/services/upload/README.md) | [`http/03-upload.http`](../http/03-upload.http) |
