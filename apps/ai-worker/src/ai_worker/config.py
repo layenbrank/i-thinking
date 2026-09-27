@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     #: core 的 `ai_worker.token`，请求头 `X-Internal-Token` 的值。
     internal_token: str = Field(min_length=1)
     database_url: str = Field(min_length=1)
-    #: core 的基址，例如 `http://127.0.0.1:8080`；不带尾斜杠。
+    #: core 的基址，例如 `http://127.0.0.1:3000`（core 的 `server.port`，默认 3000）；不带尾斜杠。
     core_base_url: str = Field(min_length=1)
 
     core_timeout_seconds: float = Field(default=30.0, gt=0)

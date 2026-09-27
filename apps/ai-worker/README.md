@@ -101,6 +101,99 @@ uv run mypy
 默认测试库是 `postgres://postgres:postgres@127.0.0.1:55433/ai_worker_test`，
 可用 `AI_WORKER_TEST_DATABASE_URL` 覆盖。连不上数据库时测试会 **skip 并说明原因**，而不是假装通过。
 
+## 与 core 联调
+
+两个进程、两个库：core 连着业务库（`database.url`），ai-worker 连着自己那个带 pgvector 的库。
+**ai-worker 不直连 core 的业务库**，这条边界由 `tests/test_db_boundary.py` 反证（库里只有
+`OWNED_TABLES` 那几张表）。
+
+两侧的取值必须对上，对不上就是 401/503，而且报错信息不会告诉你「是哪一个没对上」：
+
+| ai-worker 侧 | core 侧 | 说明 |
+| --- | --- | --- |
+| `AI_WORKER_INTERNAL_TOKEN` | `ai_worker.token` | 请求头 `X-Internal-Token` 的值（默认 `dev-internal-token`） |
+| `AI_WORKER_CORE_BASE_URL` | `server.port` | core 默认监听 3000（**不是** 8080，8080 是 gocaptcha 侧车） |
+| —— | `gateway.service_token_secret` | 必须显式给值：`config.yaml` 默认空串 = `/api/v1/service/**` 整体 503 |
+
+第三个必填项 `AI_WORKER_DATABASE_URL` 没有对应的 core 配置：它就是 ai-worker 自己的库，
+**不能**填成 core 的业务库。
+
+```bash
+# ── core ──（cwd: apps/core）
+cp config.local.yaml.example config.local.yaml   # 至少填 gateway.service_token_secret
+cargo run -p migration -- up
+cargo run --bin service                          # :3000
+
+# ── ai-worker ──（cwd: apps/ai-worker）
+uv sync
+cp .env.example .env                             # 填三个必填项：内部令牌 / 自己的库 / core 基址
+uv run ai-worker                                 # :8081
+```
+
+先看 ai-worker 自己活没活（`capabilities` 里应出现 `rag.chunk` / `rag.embed` / `rag.index`）：
+
+```bash
+curl -s -H 'X-Internal-Token: dev-internal-token' http://127.0.0.1:8081/internal/v1/health
+```
+
+再打一条真实的摄取链路。注意 `Idempotency-Key` 有 **8–200 字符**的长度约束，太短会得到 400；
+`tenantID` / `assetID` 由 core 在编排里传下来，这里手工发就得自己编。前提是 core 的库里
+**已经有一个带正文的资产**，且 core 的 gateway 能真的连上嵌入模型（`ai_worker.embed_model`，
+默认 `text-embedding-3-small`）——否则第三步（嵌入）会卡在上游：
+
+```bash
+ASSET=8f14e45f-ceea-467a-9a3e-1b7c2d5e9f01
+H=(-H 'X-Internal-Token: dev-internal-token'
+   -H 'Idempotency-Key: local-run-0001'
+   -H "traceparent: 00-$(openssl rand -hex 16)-$(openssl rand -hex 8)-01"
+   -H 'Content-Type: application/json')
+
+# 1) 切块：正文由 ai-worker 反向调 core 的 /api/v1/service/assets/{id}/content 取
+curl -s "${H[@]}" -X POST "http://127.0.0.1:8081/internal/v1/assets/$ASSET/chunks" \
+  -d '{"schemaVersion":1,"tenantID":"tenant-a","mime":"text/plain","name":"local.txt"}'
+
+# 2) 嵌入：以返回的 chunkSetID / chunkCount 继续（区间左闭右开，to 必须大于 from）
+SET=$(...); N=$(...)
+curl -s "${H[@]}" -X POST "http://127.0.0.1:8081/internal/v1/assets/$ASSET/embeddings" \
+  -d "{\"schemaVersion\":1,\"tenantID\":\"tenant-a\",\"chunkSetID\":\"$SET\",\
+\"model\":\"text-embedding-3-small\",\"from\":0,\"to\":$N}"
+
+# 3) 落索引
+curl -s "${H[@]}" -X PUT "http://127.0.0.1:8081/internal/v1/assets/$ASSET/index" \
+  -d "{\"schemaVersion\":1,\"tenantID\":\"tenant-a\",\"chunkSetID\":\"$SET\",\
+\"chunkCount\":$N,\"model\":\"text-embedding-3-small\",\"dimensions\":1536}"
+```
+
+带同一个 `Idempotency-Key` 再发一次第二步，会回 200 且 `embedded == 0`（幂等命中，不重复计费、
+不重复写库）——这条不是猜的，`tests/test_contract_conformance.py` 把它钉住了。
+
+真实联调的推荐姿势不是手工 curl，而是让 **core 自己发起**：起 `cargo run --bin orchestrator`
+（长任务宿主）后触发 `rag.index-asset` 编排，它会按 `ai_worker.embed_batch_size` 分批调
+ai-worker，进度写进 custom status（`chunked:<n>` / `embedded:<to>` / `indexed`）。
+
+> 仓库里的 `apps/core/tests/rag_index.rs` 用的是 `StubAiWorker` 桩，**跨语言真实报文漂移它抓不到**；
+> 下面两个测试文件补的就是这个空档。
+
+### 契约一致性（`tests/test_contract_conformance.py`）
+
+直接读 core 的契约文件 `apps/core/spec/internal.yaml`（`SPEC_PATH` 从仓库根定位），用
+`referencing.Registry` + `jsonschema.Draft202012Validator` 校验 ai-worker 的真实响应报文：
+
+- 状态码必须在该操作的 `responses` 里（多一个没声明的码就红）；
+- 报文必须过对应 schema（`$ref` 指向 `#/components/schemas/*`）；
+- 错误体的 `code` 必须是 `errors.ErrorCode` 认识的码；
+- core 真实发出的请求体必须先过 `ChunkRequest` / `EmbedRequest` / `IndexRequest`；
+- 有一组**自检**用例专门证明这套校验器抓得住错形状——否则 schema 一变宽松，整组测试会静默空转。
+
+契约文件不在（比如只 checkout 了 `apps/ai-worker`）时整个文件 **skip**，不假装通过。
+
+### 跨进程链路贯通（`tests/test_trace_handoff.py`）
+
+用一个记账桩记录**每一次**出站请求带的 `traceparent`，断言：trace-id 与采样标记与入站一致、
+每次出站的 span-id 都是全新的（既不复用入站的，彼此也不重复）。这条断言就是「core 的链路
+真的接到了 ai-worker，再接到 ai-worker 打回 core 的那一跳」的机器判据；缺 `traceparent`
+的请求必须 400 **且一个字节都不出网**。
+
 ## 设计决策
 
 **为什么是独立的 uv 项目，而不是 uv workspace？**

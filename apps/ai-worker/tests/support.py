@@ -30,7 +30,7 @@ INTERNAL_TOKEN = "test-internal-token-0123456789abcdef"
 #: 本地 pgvector 容器（见 README 的 `docker run` 一行）；CI 用同一个端口。
 DEFAULT_DATABASE_URL = "postgres://postgres:postgres@127.0.0.1:55433/ai_worker_test"
 #: `.invalid` 是 RFC 2606 保留的不可解析 TLD：防止测试意外打到真实的 core。
-UNREACHABLE_CORE_URL = "http://core.invalid:8080"
+UNREACHABLE_CORE_URL = "http://core.invalid:3000"
 #: 必然连不上的库（端口 1 上不会有人监听），用来验证降级路径。
 UNREACHABLE_DATABASE_URL = "postgres://postgres:postgres@127.0.0.1:1/ai_worker_test"
 
