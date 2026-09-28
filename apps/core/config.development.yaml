@@ -10,3 +10,8 @@ auth:
 
 logging:
   format: pretty
+
+# 本机想联调链路：把 enabled 改成 true（配合 docker compose up jaeger），
+# 导出地址 http://localhost:4318/v1/traces
+telemetry:
+  enabled: false

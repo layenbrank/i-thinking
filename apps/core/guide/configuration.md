@@ -187,6 +187,29 @@ docker compose up -d gocaptcha
 
 生产环境 `require_events_endpoint()` 会强制要求 `endpoint` 与 `token`：缺了就是事件静默堆在 `outbox` 里。
 
+## 链路追踪（OTLP/HTTP）
+
+三端（core / ai-worker / 前端）用 W3C `traceparent` 串成一条链路，core 用 OTLP/HTTP 把 span 推到 collector（本地是 Jaeger）：
+
+| 字段                   | 默认值                              | 说明                                                             |
+| ---------------------- | ----------------------------------- | ---------------------------------------------------------------- |
+| `telemetry.enabled`    | `false`                             | 关掉时整条链路零开销，只保留 `traceparent` 透传                  |
+| `telemetry.endpoint`   | `http://127.0.0.1:4318/v1/traces`   | OTLP/HTTP 端点，**要写全路径**（不像 `OTEL_EXPORTER_OTLP_ENDPOINT` 会自动补 `/v1/traces`） |
+| `telemetry.service_name` | `i-thinking-core`                 | 资源里的 `service.name`；二进制会加上自身角色后缀（如 `…-api`）  |
+| `telemetry.sample_ratio` | `1.0`                             | 采样率（`ParentBased`，上游已采样的链路一定保留）                |
+| `telemetry.timeout_ms` | `10000`                             | 单次导出超时                                                     |
+| `logging.filter`       | `info`                              | 想让出站/依赖库的 span 也进来，用 `info,opentelemetry=debug` 之类 |
+
+开启方式（本地联调走 `config.local.yaml`）：
+
+```yaml
+telemetry:
+  enabled: true
+  endpoint: http://localhost:4318/v1/traces
+```
+
+打开后：入站请求按 `traceparent` 续链（没有就新起一条），`http.request.method` / `url.path` / `http.response.status_code` 按语义约定落属性，5xx 才把 span 标成 `ERROR`；core 出站调 `ai-worker` 时把当前链路塞进 `traceparent`，于是 Python 侧的 span 直接挂在同一棵树上。关掉则退回原来的本地生成、纯透传行为。
+
 ## 长任务（durable → orchestrator）
 
 跨步骤、跨重启的长流程（文档索引、批量导入、需要重试与补偿的作业）交给 **[`orchestrator`](../src/bin/orchestrator.rs) 二进制**（`cargo run --bin orchestrator`）：

@@ -8,3 +8,8 @@ auth:
 
 logging:
   format: compact
+
+# 生产的采集端点由部署侧注入（CORE__TELEMETRY__ENDPOINT），开之前先确认能连上
+telemetry:
+  enabled: false
+  service_name: i-thinking-core

@@ -6,8 +6,8 @@
 //! 调用约定（与契约一致）：
 //! - `X-Internal-Token`：共享令牌，来自 `ai_worker.token`；
 //! - `Idempotency-Key`：由编排实例 id + 步骤派生，重试不会产生重复副作用；
-//! - `traceparent`：由上游链路 + 步骤**确定性**派生，重放时下游看到同一条链路
-//!   （P7 接入 OTel 后换成真实上下文）。
+//! - `traceparent`：有活跃 OTel span 时用真实上下文，否则由上游链路 + 步骤**确定性**派生，
+//!   重放时下游看到同一条链路。
 //!
 //! 错误分类（`is_retryable`）决定编排是重试还是直接判失败，分类必须在这里定：
 //! 429 与 5xx/超时/传输失败可重试，其它 4xx 是「请求本身有问题」，重试只会重复失败。
@@ -20,6 +20,7 @@ use std::time::Duration;
 
 use crate::configures::configure::Configure;
 use crate::middlewares::trace::TraceContext;
+use crate::utils::telemetry;
 
 /// 契约路径模板（占位符具名，与 `spec/internal.yaml` 完全一致）
 pub const HEALTH_PATH: &str = "/internal/v1/health";
@@ -221,7 +222,11 @@ impl AiWorkerClient {
             .header(IDEMPOTENCY_HEADER, &meta.idempotency_key)
             .header(
                 TRACEPARENT_HEADER,
-                step_traceparent(meta.traceparent.as_deref(), &meta.idempotency_key),
+                // 有活跃 span（OTel 开启）时用真实上下文，让下游挂到当前 span 上；
+                // 否则退回确定性派生，重放同一个步骤时下游仍看到同一条链路
+                telemetry::current_traceparent().unwrap_or_else(|| {
+                    step_traceparent(meta.traceparent.as_deref(), &meta.idempotency_key)
+                }),
             )
     }
 }

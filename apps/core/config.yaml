@@ -63,6 +63,16 @@ logging:
   format: pretty
   body_max: 8192
 
+# 链路追踪（OTLP/HTTP）。`enabled: false` 时整条链路零开销，只保留请求头里的 traceparent 透传。
+# 端点要写全路径（默认的 /v1/traces 不会被自动补上）。
+telemetry:
+  enabled: false
+  endpoint: http://127.0.0.1:4318/v1/traces
+  service_name: i-thinking-core
+  # 1.0 = 全采样；多副本/高流量下按需下调
+  sample_ratio: 1.0
+  timeout_ms: 10000
+
 cors:
   origins: []
 

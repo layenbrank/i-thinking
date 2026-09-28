@@ -112,6 +112,7 @@ pub mod utils {
     pub mod generate;
     pub mod jwt;
     pub mod logger;
+    pub mod telemetry;
     pub mod timestamp;
     pub mod token;
 }

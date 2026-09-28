@@ -18,7 +18,10 @@ async fn main() {
         .require_ai_worker_settings()
         .expect("ai_worker 配置不完整（需要 base_url 与 token）");
 
-    let _log_guard = utils::logger::init(&configure.logging).expect("Failed to initialize logger");
+    let telemetry =
+        utils::telemetry::init(&configure, "orchestrator").expect("Failed to initialize telemetry");
+    let log_guard =
+        utils::logger::init(&configure.logging, telemetry).expect("Failed to initialize logger");
 
     tracing::info!(
         profile = %configure.profile,
@@ -84,4 +87,5 @@ async fn main() {
     runtime.shutdown(configure.durable.shutdown_grace_ms).await;
     signal.abort();
     tracing::info!("orchestrator 已停机");
+    log_guard.shutdown();
 }

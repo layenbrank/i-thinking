@@ -12,6 +12,7 @@ use tracing_subscriber::{
 };
 
 use crate::configures::configure::LoggingConfig;
+use crate::utils::telemetry::Telemetry;
 
 pub const DEFAULT_LOG_DIR: &str = "logs";
 pub const DEFAULT_FILTER: &str = "info";
@@ -27,10 +28,31 @@ pub fn body_max() -> usize {
     BODY_MAX.get().copied().unwrap_or(DEFAULT_BODY_MAX)
 }
 
-/// 初始化 tracing：控制台人类可读 + 按日文件 `YYYY-MM-DD.log`（JSON）。
+/// 日志 + 链路的手柄：进程存活期间必须持有，退出前调用 [`LoggingGuard::shutdown`]。
+pub struct LoggingGuard {
+    appender: WorkerGuard,
+    telemetry: Option<Telemetry>,
+}
+
+impl LoggingGuard {
+    /// 刷干链路、停掉文件写入（此后不再导出 span）
+    pub fn shutdown(self) {
+        let Self {
+            appender,
+            telemetry,
+        } = self;
+        if let Some(telemetry) = &telemetry {
+            telemetry.shutdown();
+        }
+        drop(appender);
+    }
+}
+
+/// 初始化 tracing：控制台人类可读 + 按日文件 `YYYY-MM-DD.log`（JSON）；接了 `telemetry` 时
+/// 追加 OTel 层（span 会随 `traceparent` 串成链路）。
 ///
-/// 返回的 `WorkerGuard` 必须持有到进程退出。
-pub fn init(logging: &LoggingConfig) -> Result<WorkerGuard> {
+/// 返回的手柄必须持有到进程退出。
+pub fn init(logging: &LoggingConfig, telemetry: Option<Telemetry>) -> Result<LoggingGuard> {
     let log_dir = logging
         .dir
         .trim()
@@ -83,9 +105,15 @@ pub fn init(logging: &LoggingConfig) -> Result<WorkerGuard> {
         .with_timer(fmt::time::ChronoUtc::new(TIME_FMT_UTC.to_string()))
         .with_writer(non_blocking);
 
+    // `Option` 也实现 Layer：关掉链路时这里退化成空层，订阅者类型不变
+    let otel_layer = telemetry
+        .as_ref()
+        .map(|telemetry| tracing_opentelemetry::layer().with_tracer(telemetry.tracer()));
+
     let registry = tracing_subscriber::registry()
         .with(env_filter)
-        .with(file_layer);
+        .with(file_layer)
+        .with(otel_layer);
 
     if log_format == "compact" {
         registry
@@ -124,10 +152,14 @@ pub fn init(logging: &LoggingConfig) -> Result<WorkerGuard> {
         retention_days,
         log_format = %log_format,
         body_max,
+        telemetry = telemetry.is_some(),
         "logger initialized"
     );
 
-    Ok(guard)
+    Ok(LoggingGuard {
+        appender: guard,
+        telemetry,
+    })
 }
 
 fn prune_old_logs(log_dir: &str, retention_days: u64) -> Result<()> {

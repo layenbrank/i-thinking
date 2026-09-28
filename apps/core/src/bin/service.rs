@@ -15,7 +15,10 @@ use service::{
 async fn main() -> std::io::Result<()> {
     let configure = Configure::load().expect("Failed to load configuration");
 
-    let _log_guard = utils::logger::init(&configure.logging).expect("Failed to initialize logger");
+    let telemetry =
+        utils::telemetry::init(&configure, "api").expect("Failed to initialize telemetry");
+    let log_guard =
+        utils::logger::init(&configure.logging, telemetry).expect("Failed to initialize logger");
 
     tracing::info!(
         profile = %configure.profile,
@@ -77,7 +80,7 @@ async fn main() -> std::io::Result<()> {
         use utoipa::OpenApi;
         use utoipa_swagger_ui::SwaggerUi;
 
-        return HttpServer::new(move || {
+        let result = HttpServer::new(move || {
             bootstrap_app!(
                 store.clone(),
                 config.clone(),
@@ -95,9 +98,12 @@ async fn main() -> std::io::Result<()> {
         .bind((host, port))?
         .run()
         .await;
+
+        log_guard.shutdown();
+        return result;
     }
 
-    HttpServer::new(move || {
+    let result = HttpServer::new(move || {
         bootstrap_app!(
             store.clone(),
             config.clone(),
@@ -109,5 +115,8 @@ async fn main() -> std::io::Result<()> {
     })
     .bind((host, port))?
     .run()
-    .await
+    .await;
+
+    log_guard.shutdown();
+    result
 }

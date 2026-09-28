@@ -3,6 +3,10 @@
 //! 契约约定：所有跨进程端点都接受并回显 `traceparent`；响应信封的 `traceID` 取自本
 //! 中间件，入口日志同样记录它。于是用户只要提供一个 `traceID`，就能把「客户端反馈 →
 //! 本服务访问日志 → 下游调用」串成一条链路。
+//!
+//! 开启 OTel（`telemetry.enabled`）后，本进程的 `trace_id` / `span_id` 改由 server span
+//! 生成，上游 `traceparent` 作为它的父 span —— 于是导出的链路与日志、响应信封、出站
+//! `traceparent` 完全对齐。关闭时全部走本模块的内置实现，行为不变。
 
 use std::rc::Rc;
 
@@ -10,10 +14,21 @@ use actix_web::{
     Error, HttpMessage,
     body::MessageBody,
     dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready},
-    http::header::{HeaderName, HeaderValue},
+    http::{
+        StatusCode,
+        header::{HeaderName, HeaderValue},
+    },
 };
 use futures::future::{LocalBoxFuture, Ready, ok};
+use opentelemetry::{
+    Context as OtelContext,
+    trace::{Status as SpanStatus, TraceContextExt},
+};
 use rand::Rng;
+use tracing::Instrument;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
+
+use crate::utils::telemetry;
 
 /// W3C Trace Context 请求 / 响应头
 pub const TRACEPARENT: &str = "traceparent";
@@ -160,19 +175,68 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let service = Rc::clone(&self.service);
-        let ctx = TraceContext::from_header(req.headers().get(TRACEPARENT));
+        // 上游链路：OTel 关闭时它就是全部依据；开启时还是 server span 的父 span
+        let upstream = TraceContext::from_header(req.headers().get(TRACEPARENT));
+
+        let span = telemetry::is_enabled().then(|| server_span(&req));
+        if let Some(span) = &span {
+            if let Some(remote) = telemetry::extract_parent(req.headers()) {
+                // 必须在 span 建成之前设置；这里紧接着创建，失败只会是层缺失
+                let _ = span.set_parent(OtelContext::new().with_remote_span_context(remote));
+            }
+        }
+
+        // OTel 开启时用它生成的标识覆盖内置标识，保证日志 / 信封 / 出站头 / 导出 span 同源
+        let mut ctx = upstream;
+        if let Some(w3c) = span.as_ref().and_then(telemetry::span_w3c) {
+            ctx.trace_id = w3c.trace_id;
+            ctx.span_id = w3c.span_id;
+            ctx.sampled = w3c.sampled;
+        }
         let traceparent = ctx.to_traceparent();
 
         req.extensions_mut().insert(ctx.clone());
 
         Box::pin(async move {
-            let mut res = CURRENT.scope(ctx, service.call(req)).await?;
+            let call = service.call(req);
+            let result = match &span {
+                Some(span) => CURRENT.scope(ctx, call.instrument(span.clone())).await,
+                None => CURRENT.scope(ctx, call).await,
+            };
+            let mut res = result?;
+
+            if let Some(span) = &span {
+                record_status(span, res.status());
+            }
             if let Ok(value) = HeaderValue::from_str(&traceparent) {
                 res.headers_mut()
                     .insert(HeaderName::from_static(TRACEPARENT), value);
             }
             Ok(res)
         })
+    }
+}
+
+/// 本进程的 server span：`otel.name` 给后端一个好读的名字，方法与路径按语义约定落属性
+fn server_span(req: &ServiceRequest) -> tracing::Span {
+    let method = req.method().as_str();
+    let path = req.path();
+    tracing::info_span!(
+        "http.request",
+        "otel.kind" = "server",
+        "otel.name" = %format!("{method} {path}"),
+        "http.request.method" = %method,
+        "url.path" = %path,
+    )
+}
+
+/// 响应状态落回 span：5xx 记为错误（服务端故障），4xx 只作属性（客户端问题）
+fn record_status(span: &tracing::Span, status: StatusCode) {
+    span.set_attribute("http.response.status_code", i64::from(status.as_u16()));
+    if status.is_server_error() {
+        span.set_status(SpanStatus::error(
+            status.canonical_reason().unwrap_or("server error"),
+        ));
     }
 }
 
@@ -194,8 +258,18 @@ fn random_hex<const N: usize>() -> String {
 mod tests {
     use super::*;
     use actix_web::{App, HttpResponse, test as awtest, web};
+    use opentelemetry::propagation::TextMapPropagator;
+    use opentelemetry::trace::{SpanId, SpanKind, TraceId, TracerProvider};
+    use opentelemetry_sdk::{
+        propagation::TraceContextPropagator,
+        trace::{Sampler, SdkTracerProvider, SpanData},
+    };
+    use std::collections::HashMap;
+    use tracing_subscriber::layer::SubscriberExt;
 
     const UPSTREAM: &str = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+    const UPSTREAM_TRACE_ID: &str = "4bf92f3577b34da6a3ce929d0e0e4736";
+    const UPSTREAM_SPAN_ID: &str = "00f067aa0ba902b7";
 
     #[test]
     fn parses_valid_upstream_context() {
@@ -329,5 +403,123 @@ mod tests {
     fn context_is_absent_outside_request_scope() {
         assert!(current().is_none());
         assert!(current_trace_id().is_none());
+    }
+
+    /// 在只对本测试生效的订阅者里跑 `body`：span 收进内存导出器，不碰全局状态也不发网络。
+    fn with_otel(body: impl FnOnce()) -> Vec<SpanData> {
+        let (exporter, mut exported, _shutdown) =
+            opentelemetry_sdk::testing::trace::new_test_exporter();
+        let provider = SdkTracerProvider::builder()
+            .with_simple_exporter(exporter)
+            .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
+                1.0,
+            ))))
+            .build();
+        let subscriber = tracing_subscriber::registry()
+            .with(tracing_opentelemetry::layer().with_tracer(provider.tracer("test")));
+
+        tracing::subscriber::with_default(subscriber, body);
+        provider.force_flush().expect("刷干应成功");
+
+        let mut spans = Vec::new();
+        while let Ok(data) = exported.try_recv() {
+            spans.push(data);
+        }
+        spans
+    }
+
+    /// 造一个与中间件同源的 server span；顺带校验父 span 与本进程标识都取自上游 traceparent。
+    fn start_request(uri: &str) -> tracing::Span {
+        let mut carrier = HashMap::new();
+        carrier.insert(TRACEPARENT.to_string(), UPSTREAM.to_string());
+        let remote = TraceContextPropagator::new()
+            .extract(&carrier)
+            .span()
+            .span_context()
+            .clone();
+
+        let request = awtest::TestRequest::get().uri(uri).to_srv_request();
+        let span = server_span(&request);
+        span.set_parent(OtelContext::new().with_remote_span_context(remote))
+            .expect("层已就位，应能设置父 span");
+
+        let w3c = telemetry::span_w3c(&span).expect("server span 必须有效");
+        assert_eq!(w3c.trace_id, UPSTREAM_TRACE_ID);
+        assert_ne!(w3c.span_id, UPSTREAM_SPAN_ID, "本进程要自己取号");
+        assert!(w3c.sampled);
+
+        // 活跃 span 内出站头取真实上下文（与导出数据同源）
+        span.in_scope(|| {
+            assert_eq!(
+                telemetry::current_traceparent().expect("活跃 span 应有上下文"),
+                format!("00-{}-{}-01", w3c.trace_id, w3c.span_id)
+            );
+        });
+        span
+    }
+
+    /// 属性是追加写，同名属性只应出现一次
+    fn attribute(data: &SpanData, key: &str) -> Option<String> {
+        let mut found = data
+            .attributes
+            .iter()
+            .filter(|kv| kv.key.as_str() == key)
+            .map(|kv| kv.value.as_str().into_owned());
+        let value = found.next();
+        assert!(found.next().is_none(), "{key} 不应重复");
+        value
+    }
+
+    /// OTel 开启时中间件的取号方式：上游 traceparent 成为 server span 的父 span，语义约定落成属性
+    #[test]
+    fn server_span_inherits_upstream_traceparent() {
+        let spans = with_otel(|| {
+            record_status(&start_request("/x"), StatusCode::OK);
+        });
+
+        assert_eq!(spans.len(), 1, "每个请求应恰好导出一个 span");
+        let data = &spans[0];
+        assert_eq!(data.name, "GET /x");
+        assert_eq!(data.span_kind, SpanKind::Server);
+        assert_eq!(
+            data.parent_span_id,
+            SpanId::from_hex(UPSTREAM_SPAN_ID).expect("合法 span_id")
+        );
+        assert_eq!(
+            data.span_context.trace_id(),
+            TraceId::from_hex(UPSTREAM_TRACE_ID).expect("合法 trace_id")
+        );
+        assert!(data.span_context.is_sampled());
+        assert_eq!(
+            attribute(data, "http.request.method").as_deref(),
+            Some("GET")
+        );
+        assert_eq!(attribute(data, "url.path").as_deref(), Some("/x"));
+        assert_eq!(
+            attribute(data, "http.response.status_code").as_deref(),
+            Some("200")
+        );
+        assert_eq!(data.status, SpanStatus::Unset, "2xx 不算失败");
+    }
+
+    /// 只有服务端故障才算失败：客户端错误照实记状态码，但不改 span 状态
+    #[test]
+    fn record_status_marks_only_server_faults_as_error() {
+        let spans = with_otel(|| {
+            record_status(&start_request("/missing"), StatusCode::NOT_FOUND);
+            record_status(&start_request("/boom"), StatusCode::INTERNAL_SERVER_ERROR);
+        });
+
+        assert_eq!(spans.len(), 2);
+        assert_eq!(
+            attribute(&spans[0], "http.response.status_code").as_deref(),
+            Some("404")
+        );
+        assert_eq!(spans[0].status, SpanStatus::Unset, "4xx 是客户端问题");
+        assert_eq!(
+            attribute(&spans[1], "http.response.status_code").as_deref(),
+            Some("500")
+        );
+        assert_eq!(spans[1].status, SpanStatus::error("Internal Server Error"));
     }
 }

@@ -17,7 +17,10 @@ async fn main() {
         .require_events_endpoint()
         .expect("events 配置不完整（生产环境必须提供 endpoint 与 token）");
 
-    let _log_guard = utils::logger::init(&configure.logging).expect("Failed to initialize logger");
+    let telemetry =
+        utils::telemetry::init(&configure, "worker").expect("Failed to initialize telemetry");
+    let log_guard =
+        utils::logger::init(&configure.logging, telemetry).expect("Failed to initialize logger");
 
     tracing::info!(
         profile = %configure.profile,
@@ -50,6 +53,9 @@ async fn main() {
 
     if let Err(error) = result {
         tracing::error!(error = %error, "worker 退出");
+        log_guard.shutdown();
         std::process::exit(1);
     }
+
+    log_guard.shutdown();
 }

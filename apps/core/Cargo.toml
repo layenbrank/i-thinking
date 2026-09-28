@@ -193,6 +193,17 @@ tracing-subscriber = { version = "0.3.22", features = [
 tracing-appender = "0.2.4" # 按日轮转 + 非阻塞写入
 tracing-log = "0.2.0" # 将 log crate 接到 tracing
 
+# 可观测性（链路 → OTLP/HTTP）
+opentelemetry = "0.33.0" # Trace API 与 W3C TraceContext 传播器
+opentelemetry_sdk = { version = "0.33.0", features = ["rt-tokio"] } # 资源、采样与批量导出
+opentelemetry-otlp = { version = "0.33.0", default-features = false, features = [
+  "trace",
+  "http-proto",
+  "reqwest-client",
+  "reqwest-rustls",
+] } # 只导 trace，用异步 reqwest 客户端（默认含 logs/metrics 与阻塞客户端）
+tracing-opentelemetry = "0.34.0" # tracing span → OTel span
+
 # CLI / 终端输出
 dialoguer = "0.12.0" # generate 交互式菜单
 
@@ -205,3 +216,5 @@ utoipa-swagger-ui = { version = "9.0.2", features = [
 [dev-dependencies]
 actix-web = { version = "4.14.1" }
 aliyun = { workspace = true }
+# 链路测试用内存导出器（只在测试构建里启用 testing 特性）
+opentelemetry_sdk = { version = "0.33.0", features = ["rt-tokio", "testing"] }

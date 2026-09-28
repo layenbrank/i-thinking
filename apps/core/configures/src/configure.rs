@@ -260,6 +260,36 @@ impl Default for LoggingConfig {
     }
 }
 
+/// 链路追踪（OTel → OTLP/HTTP）。默认关闭：关闭时不注册传播器、不导出 span，
+/// 跨进程仍靠内置的 W3C 实现透传 `traceparent`（见 `middlewares::trace`）。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct TelemetryConfig {
+    pub enabled: bool,
+    /// OTLP/HTTP 基址，例如 `http://127.0.0.1:4318`。带路径则按原样使用；
+    /// 不带路径时补上 traces 的默认路径 `/v1/traces`。
+    pub endpoint: String,
+    /// 资源里的 `service.name` 前缀：实际值是 `{service_name}-{角色}`（角色 = api / worker /
+    /// orchestrator）。留空则只用角色名，便于同一个 collector 里区分多个进程。
+    pub service_name: String,
+    /// 采样比例 `0.0`–`1.0`。上游已带采样决定时跟随上游（ParentBased）。
+    pub sample_ratio: f64,
+    /// 单次导出超时（毫秒）。
+    pub timeout_ms: u64,
+}
+
+impl Default for TelemetryConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            endpoint: "http://127.0.0.1:4318".to_string(),
+            service_name: "i-thinking-core".to_string(),
+            sample_ratio: 1.0,
+            timeout_ms: 10_000,
+        }
+    }
+}
+
 /// 阿里云出站：凭据与签名（短信、邮件、对象存储共用一套）。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
@@ -666,6 +696,7 @@ pub struct Configure {
     pub gateway: GatewayConfig,
     pub pay: PayConfig,
     pub logging: LoggingConfig,
+    pub telemetry: TelemetryConfig,
     pub cors: CorsConfig,
     pub events: EventsConfig,
     pub durable: DurableConfig,
@@ -692,6 +723,7 @@ impl Default for Configure {
             gateway: GatewayConfig::default(),
             pay: PayConfig::default(),
             logging: LoggingConfig::default(),
+            telemetry: TelemetryConfig::default(),
             cors: CorsConfig::default(),
             events: EventsConfig::default(),
             durable: DurableConfig::default(),
@@ -748,6 +780,7 @@ impl Configure {
 
         self.validate_gateway()?;
 
+        self.validate_telemetry()?;
         self.validate_pay()?;
         self.validate_events()?;
         self.validate_durable()?;
@@ -771,6 +804,33 @@ impl Configure {
                 "gateway.service_token_ttl_secs must not exceed {SERVICE_TOKEN_MAX_TTL_SECS}: \
                  服务身份令牌是短期凭据"
             );
+        }
+
+        Ok(())
+    }
+
+    /// 链路追踪配置的形状校验（各 profile 一致）。
+    ///
+    /// 关闭时一律放过（默认配置必须能通过 `validate()`）；开启后「地址/采样/超时」写错
+    /// 一定是事故：地址写错会静默丢 span，采样比例越界会让 SDK 反复告警。
+    fn validate_telemetry(&self) -> Result<()> {
+        let telemetry = &self.telemetry;
+        if !telemetry.enabled {
+            return Ok(());
+        }
+
+        let endpoint = telemetry.endpoint.trim();
+        if endpoint.is_empty() {
+            bail!("telemetry.endpoint is required when telemetry.enabled is true");
+        }
+        if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
+            bail!("telemetry.endpoint must be an http(s) url");
+        }
+        if !(0.0..=1.0).contains(&telemetry.sample_ratio) {
+            bail!("telemetry.sample_ratio must be within 0.0..=1.0");
+        }
+        if telemetry.timeout_ms == 0 {
+            bail!("telemetry.timeout_ms must be greater than 0");
         }
 
         Ok(())
@@ -1426,6 +1486,42 @@ mod tests {
 
         cfg.ai_worker.token = "dev-internal-token".into();
         assert!(cfg.require_ai_worker_settings().is_ok());
+    }
+
+    #[test]
+    fn telemetry_defaults_are_off_and_valid() {
+        let cfg = Configure::default();
+        assert!(!cfg.telemetry.enabled);
+        assert_eq!(cfg.telemetry.endpoint, "http://127.0.0.1:4318");
+        assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_malformed_telemetry_config() {
+        let mut cfg = Configure::default();
+        // 关闭时地址写错也不拦：默认配置必须能过校验。
+        cfg.telemetry.endpoint = "not-a-url".into();
+        assert!(cfg.validate().is_ok());
+
+        cfg.telemetry.enabled = true;
+        assert!(cfg.validate().is_err());
+
+        cfg.telemetry.endpoint = "127.0.0.1:4318".into();
+        let err = cfg.validate().expect_err("缺少 scheme 必须失败");
+        assert!(err.to_string().contains("telemetry.endpoint"));
+
+        cfg.telemetry.endpoint = "http://127.0.0.1:4318".into();
+        cfg.telemetry.sample_ratio = 1.5;
+        let err = cfg.validate().expect_err("采样比例越界必须失败");
+        assert!(err.to_string().contains("telemetry.sample_ratio"));
+
+        cfg.telemetry.sample_ratio = 0.0;
+        cfg.telemetry.timeout_ms = 0;
+        let err = cfg.validate().expect_err("超时为 0 必须失败");
+        assert!(err.to_string().contains("telemetry.timeout_ms"));
+
+        cfg.telemetry.timeout_ms = 10_000;
+        assert!(cfg.validate().is_ok());
     }
 
     #[test]
