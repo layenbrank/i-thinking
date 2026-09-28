@@ -1,0 +1,141 @@
+# ============================================================
+# Gateway 审计读取与导出
+#   GET /api/v1/gateway/audit              — 平台视图（所有租户）
+#   GET /api/v1/gateway/audit/export       — 平台导出（文件流）
+#   GET /api/v1/tenants/{id}/audit         — 本租户视图
+#   GET /api/v1/tenants/{id}/audit/export  — 本租户导出（文件流）
+# 鉴权: Bearer（四个端点都要 audit_event:read；租户 OWNER/ADMIN 有、MEMBER 没有）
+# ============================================================
+
+@host = http://127.0.0.1:3000
+@username = admin
+@password = 123456
+
+### 先登录取 token
+# @name signin
+POST {{host}}/api/v1/auth/signin
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+###
+@token = {{signin.response.body.data.token}}
+
+### POST /api/v1/tenants — 建一个租户，后续用来演示租户面审计
+# Body 参数:
+#   name  string  必填  租户名
+#   slug  string  必填  唯一标识（小写字母/数字/中划线）
+#   type  string  可选  PERSONAL | TEAM（缺省 PERSONAL）
+# @name createTenant
+POST {{host}}/api/v1/tenants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Audit Demo",
+  "slug": "audit-demo",
+  "type": "TEAM"
+}
+
+###
+@tenantId = {{createTenant.response.body.data.id}}
+
+# ============================================================
+# 一、平台视图
+# ============================================================
+
+### GET /api/v1/gateway/audit — 平台审计列表（可见所有租户）
+# 说明: 运行在平台特权作用域，tenantID 只做过滤，不是可见性边界
+# Query 参数:
+#   tenantID  string  可选  租户 ID（非法 UUID 直接 400，不会被静默忽略）
+#   actor     string  可选  操作者用户 ID（精确匹配）
+#   action    string  可选  动作（精确匹配，如 gateway.chat）
+#   from      number  可选  起始毫秒时间戳（含）
+#   to        number  可选  结束毫秒时间戳（含；from > to 一律 400）
+#   page      number  可选  页码（缺省 1）
+#   size      number  可选  每页条数（缺省 50，上限 200）
+GET {{host}}/api/v1/gateway/audit?size=20
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET /api/v1/gateway/audit — 按动作 + 时间窗口过滤
+GET {{host}}/api/v1/gateway/audit?action=gateway.chat&from=1735689600000&to=1767225600000&size=20
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET /api/v1/gateway/audit — 只看某个租户的事件（过滤而非隔离）
+GET {{host}}/api/v1/gateway/audit?tenantID={{tenantId}}&size=20
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET /api/v1/gateway/audit — 参数非法示例：from > to
+# 期望: HTTP 400 / 错误码 200003
+GET {{host}}/api/v1/gateway/audit?from=1767225600000&to=1735689600000
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET /api/v1/gateway/audit/export — 导出 CSV（缺省格式）
+# 说明: 不套 JSON 信封，直接返回文件字节
+# 响应头: Content-Disposition（文件名含实际生效窗口）、X-Export-Rows、X-Export-Truncated
+# Query 参数: 同列表（无 page/size），另加
+#   format  string  可选  csv（缺省，Excel 友好）| ndjson（SIEM / 流式消费友好）
+# 窗口缺省: from/to 都不给才补成「最近 30 天」，给了一端只补另一端
+GET {{host}}/api/v1/gateway/audit/export
+Authorization: Bearer {{token}}
+Accept: text/csv
+
+### GET /api/v1/gateway/audit/export — 导出 NDJSON（每行一个对象，createdAt 为毫秒）
+GET {{host}}/api/v1/gateway/audit/export?format=ndjson&action=gateway.chat
+Authorization: Bearer {{token}}
+Accept: application/x-ndjson
+
+### GET /api/v1/gateway/audit/export — 显式窗口导出
+GET {{host}}/api/v1/gateway/audit/export?from=1735689600000&to=1767225600000&format=csv
+Authorization: Bearer {{token}}
+Accept: text/csv
+
+# ============================================================
+# 二、租户视图
+# ============================================================
+
+### GET /api/v1/tenants/{id}/audit — 本租户审计列表
+# 说明: 租户来自**路径**而不是 X-Tenant-ID，可见性由租户作用域收口，只返回本租户的行
+# 权限: 租户 OWNER / ADMIN；普通 MEMBER 一律 403
+# 特殊规则: tenantID 查询参数与路径一致时按缺省处理，不一致即 400（提示改用平台接口），
+#           所以拿这个端点做跨租户汇总永远拿不到别人的数据
+GET {{host}}/api/v1/tenants/{{tenantId}}/audit?size=20
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET /api/v1/tenants/{{tenantId}}/audit — 带上与路径一致的 tenantID（等价于上面）
+GET {{host}}/api/v1/tenants/{{tenantId}}/audit?tenantID={{tenantId}}&size=20
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET /api/v1/tenants/{{tenantId}}/audit — 跨租户示例：tenantID 与路径不一致
+# 期望: HTTP 400 / 错误码 200003
+GET {{host}}/api/v1/tenants/{{tenantId}}/audit?tenantID=00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET /api/v1/tenants/{{tenantId}}/audit — 非成员示例：换个不是本租户成员的 token
+# 期望: 403（租户作用域进入失败）；同一 token 调平台面 /api/v1/gateway/audit 仍会因缺 audit_event:read 而 403
+GET {{host}}/api/v1/tenants/{{tenantId}}/audit
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### GET /api/v1/tenants/{id}/audit/export — 本租户导出 CSV
+# 响应头与平台导出一致：Content-Disposition / X-Export-Rows / X-Export-Truncated
+GET {{host}}/api/v1/tenants/{{tenantId}}/audit/export
+Authorization: Bearer {{token}}
+Accept: text/csv
+
+### GET /api/v1/tenants/{{tenantId}}/audit/export — 本租户导出 NDJSON
+GET {{host}}/api/v1/tenants/{{tenantId}}/audit/export?format=ndjson&from=1735689600000
+Authorization: Bearer {{token}}
+Accept: application/x-ndjson

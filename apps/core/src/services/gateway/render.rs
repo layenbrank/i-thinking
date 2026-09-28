@@ -238,6 +238,23 @@ gateway.chat,gateway,10.0.0.1,2026-09-10T00:26:40.123Z,\"{\"\"model\"\":\"\"auto
     }
 
     #[test]
+    fn csv_quotes_every_column_through_the_same_escaper() {
+        // 整行走一遍：确认 `csv()` 对**每一列**都过 `push_field`，而不是只照顾显眼的几列。
+        // 字段形态目前都是服务端生成的结构化值，用逗号 + 引号正是为了将来加入自由文本列时
+        // 这条不变量仍然成立。
+        let mut row = row("a,b", "gateway.chat");
+        row.resource = "say \"hi\"".to_owned();
+        let text = body(AuditExportFormat::Csv, &[row]);
+        let line = last_data_line(&text);
+        assert_eq!(
+            line,
+            "\"a,b\",11111111-1111-1111-1111-111111111111,22222222-2222-2222-2222-222222222222,\
+             gateway.chat,\"say \"\"hi\"\"\",10.0.0.1,2026-09-10T00:26:40.123Z,\
+             \"{\"\"model\"\":\"\"auto\"\"}\""
+        );
+    }
+
+    #[test]
     fn csv_leaves_absent_optionals_empty() {
         let mut row = row("a", "gateway.chat");
         row.tenant_id = None;

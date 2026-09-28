@@ -1060,8 +1060,7 @@ async fn audit_list(
 
 /// 审计导出：补齐默认时间窗口 → 多取一行探边界 → 截断到上限。
 ///
-/// 「多取一行」是为了区分「正好取满」与「还有更多」：只按 `len == cap` 判断会把取满的
-/// 结果误报成截断。截断保留的是**最新**的行（倒序取，丢尾部）。
+/// 截断保留的是**最新**的行（倒序取，丢尾部）。
 async fn audit_export(
     tx: &DatabaseTransaction,
     filter: AuditFilter,
@@ -1073,14 +1072,9 @@ async fn audit_export(
         .all(tx)
         .await
         .map_err(db_err)?;
-    let truncated = rows.len() as u64 > AUDIT_EXPORT_MAX_ROWS;
-    let rows = rows
-        .into_iter()
-        .take(AUDIT_EXPORT_MAX_ROWS as usize)
-        .map(audit_to_r)
-        .collect();
+    let (rows, truncated) = cap_rows(rows, AUDIT_EXPORT_MAX_ROWS as usize);
     Ok(AuditExport {
-        rows,
+        rows: rows.into_iter().map(audit_to_r).collect(),
         truncated,
         from: filter
             .from
@@ -1088,6 +1082,16 @@ async fn audit_export(
             .unwrap_or_default(),
         to: filter.to.map(|t| t.timestamp_millis()).unwrap_or_default(),
     })
+}
+
+/// 按硬上限截断：「多取一行」是探边界的手段，截断前先判断再丢尾，
+/// 才能区分「正好取满」与「还有更多」——只按 `len == cap` 判断会把取满的结果误报成截断。
+///
+/// 抽成泛型纯函数是为了能不起数据库就测这条边界。
+fn cap_rows<T>(mut rows: Vec<T>, cap: usize) -> (Vec<T>, bool) {
+    let truncated = rows.len() > cap;
+    rows.truncate(cap);
+    (rows, truncated)
 }
 
 /// 日配额上限及其身份级来源：模型覆盖 > 租户/账号级（订阅档位 > 免费档 > 全局兜底）。
@@ -1824,6 +1828,25 @@ mod tests {
             AuditFilter::parse_for_tenant(tenant, Some("not-a-uuid"), None, None, None, None)
                 .expect_err("非法 tenantID")
         ));
+    }
+
+    #[test]
+    fn export_cap_reports_truncation_only_when_rows_exceed_it() {
+        // 少于上限：原样返回
+        let (rows, truncated) = cap_rows(vec![1, 2, 3], 5);
+        assert_eq!(rows, vec![1, 2, 3]);
+        assert!(!truncated);
+
+        // **正好取满**：不算截断。这一条是「多取一行」的存在理由——
+        // 只看 len == cap 会把取满误报成截断，让运维去追一个不存在的窗口。
+        let (rows, truncated) = cap_rows(vec![1, 2, 3, 4, 5], 5);
+        assert_eq!(rows, vec![1, 2, 3, 4, 5]);
+        assert!(!truncated);
+
+        // 多取到的那一行即「还有更多」：截断，且丢掉尾巴（保留最新）
+        let (rows, truncated) = cap_rows(vec![1, 2, 3, 4, 5, 6], 5);
+        assert_eq!(rows, vec![1, 2, 3, 4, 5]);
+        assert!(truncated);
     }
 
     #[test]

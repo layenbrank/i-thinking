@@ -18,7 +18,7 @@
 - [`subscription`](../subscription/README.md)：只管个人租户的付费档位与有效期，路由挂在本模块前缀下（`/tenants/{id}/subscriptions`）。
 - [`payment`](../payment/README.md)：收钱并开通订阅，路由同样挂在本模块前缀下（`/tenants/{id}/orders`、`/tenants/{id}/pay/catalog`）。
 - [`sso`](../sso/README.md)：按 `tenantID` 配置 OIDC 连接。
-- [`gateway`](../gateway/README.md)：消费租户身份做配额与审计。
+- [`gateway`](../gateway/README.md)：消费租户身份做配额与审计；审计**读侧**（列表 / 导出）的路由挂在本模块前缀下，可见性由租户作用域收口。
 
 ## 路由一览
 
@@ -33,6 +33,8 @@
 | POST   | `/api/v1/tenants/{id}/members`          | JWT + OWNER/ADMIN | 添加成员                              |
 | PUT    | `/api/v1/tenants/{id}/members/{userId}` | JWT + OWNER/ADMIN | 改成员角色 / 状态                     |
 | DELETE | `/api/v1/tenants/{id}/members/{userId}` | JWT + OWNER/ADMIN | 移除成员                              |
+| GET    | `/api/v1/tenants/{id}/audit`            | JWT + OWNER/ADMIN | 本租户审计查询（handler 在 gateway 模块） |
+| GET    | `/api/v1/tenants/{id}/audit/export`     | JWT + OWNER/ADMIN | 本租户审计导出（文件流，同上）        |
 
 ## 鉴权说明
 

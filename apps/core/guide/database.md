@@ -196,7 +196,7 @@ Entity：[`entity/src/gateway_usage.rs`](../entity/src/gateway_usage.rs)、[`ent
 | createdAt                                     | timestamptz | 索引                          |
 
 用量另同步写入 ES 索引 `gateway.usage_es_index`（默认 `gateway_usage`）。
-**使用模块**：gateway（转发落库/审计，后台用量与审计查询）
+**使用模块**：gateway（转发落库 / 审计写入；平台与租户两面的审计读取与文件导出，见 [gateway README](../src/services/gateway/README.md#审计读取与导出)）
 
 ## sso_connection 表
 

@@ -45,6 +45,14 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 | PUT / DELETE | `/api/v1/gateway/admin/models/{id}` | 模型更新 / 删除   |
 | GET          | `/api/v1/gateway/usage`             | 用量查询（分页）  |
 | GET          | `/api/v1/gateway/audit`             | 审计查询（分页）  |
+| GET          | `/api/v1/gateway/audit/export`      | 审计导出（文件流）|
+
+租户面（路由挂在 [`tenant`](../tenant/README.md) 的 `/tenants` 前缀下，handler 在本模块）：
+
+| 方法 | 路径                                | 鉴权              | 说明              |
+| ---- | ----------------------------------- | ----------------- | ----------------- |
+| GET  | `/api/v1/tenants/{id}/audit`        | JWT + OWNER/ADMIN | 本租户审计查询    |
+| GET  | `/api/v1/tenants/{id}/audit/export` | JWT + OWNER/ADMIN | 本租户审计导出    |
 
 服务面（受信服务进程，非终端用户）：
 
@@ -169,6 +177,46 @@ ai-worker ──X-Internal-Token──▶ POST /api/v1/service/token {scope, ten
 `GET /plans` 的档位只有「名字 + 日配额」两个事实，都出自 `gateway.plan_daily_token_quota`
 （不落库、无档位表），按配额升序返回，并附带免费档基线 `freeDailyTokenQuota`：
 客户端据此渲染可选档位，而不是让用户手填档位名。档位为空表示平台未开放任何付费档位。
+
+## 审计读取与导出
+
+审计是**事后追溯**入口，所以读侧口径比写侧更严：过滤条件非法一律 `200003`（HTTP 400），
+不像用量查询那样宽容解析——「条件写错了却看起来查到了结果」在追溯场景里比多一次报错危险得多。
+
+四个端点（平台与租户面各有「列表 + 导出」）共用一组过滤条件：
+
+| 参数          | 说明                                        |
+| ------------- | ------------------------------------------- |
+| `tenantID`    | 租户 ID（非法 UUID 不会被静默忽略）         |
+| `actor`       | 操作者用户 ID，精确匹配                     |
+| `action`      | 动作，精确匹配（如 `gateway.chat`）         |
+| `from` / `to` | 闭区间毫秒时间戳；`from > to` 一律 400      |
+| `page` / `size` | 仅列表端点；缺省 1 / 50，`size` 上限 200  |
+
+两面的差别只有**可见性从哪来**：
+
+| 端点                                      | 鉴权                                            | 可见行   | `tenantID` 的角色                            |
+| ----------------------------------------- | ----------------------------------------------- | -------- | -------------------------------------------- |
+| `GET /api/v1/gateway/audit`               | 平台 ADMIN（`PlatformScope`，`BYPASSRLS`）      | 所有租户 | 过滤条件，不是可见性边界                     |
+| `GET /api/v1/tenants/{id}/audit`          | 租户 OWNER / ADMIN（`audit_event:read`，MEMBER 无此权限） | 只本租户 | 与路径一致或缺省，不一致即 400 |
+
+- 租户面租户取自**路径**而不是 `X-Tenant-ID`：可见范围不该由请求头决定；路径写明是哪个租户、
+  再走一次成员关系判定，读起来没有歧义。用它做跨租户汇总永远拿不到别人的数据——`tenantID`
+  与路径不一致直接报错并提示改用平台接口，不会静默换成别的租户。
+- 导出端点（`/audit/export`）与对应列表**同一套过滤条件、同一份可见性**，但返回**文件流**而不是 JSON 信封：
+  - `format=csv`（缺省）→ `text/csv; charset=utf-8`：UTF-8 BOM + CRLF 行尾 + RFC 4180 字段转义，Excel 直接打开；
+  - `format=ndjson` → `application/x-ndjson`：每行一个对象，`createdAt` 为毫秒时间戳，便于 SIEM / 流式消费；
+  - 缺省窗口＝**最近 30 天**（`from` / `to` 都不给才补；给了一端只补另一端）；
+  - 有硬上限：命中时 `X-Export-Truncated: true`，文件里只保留**最新**的一批，`X-Export-Rows` 给出实际行数。
+    只看文件内容无法区分「就这么多」与「被截断了」，所以要先按过滤条件收窄再导出；
+  - `Content-Disposition` 的文件名形如 `audit-<from>-<to>.<ext>`，其中时间戳是**实际生效**的窗口，
+    消费方不必回看响应头；
+  - 窗口内 0 行不是 404：CSV 只输出表头（空结果报错会把「真的没发生」误判成「导出坏了」）。
+- 导出读在**只读**作用域里进行，事务归还之后才渲染，几十万行的拼串不会一直占着数据库连接。
+- 字段全部由服务端生成（ID、时间、固定动词、上游状态码），因此不做 CSV 公式注入转义，
+  理由见 [`render.rs`](render.rs) 模块注释；将来加入自由文本列时需重新评估。
+
+请求样例见 [`http/07-gateway-audit.http`](../../../http/07-gateway-audit.http)。
 
 ## 数据表
 
