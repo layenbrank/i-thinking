@@ -3,3 +3,10 @@ name              = "billing"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+
+[dependencies]
+# 只依赖「类型化原语」：本 crate 是纯算账逻辑（无数据库、无 HTTP、无序列化），
+# 因此 SQL 与协议留在 service 层，这里只保证口径本身能被单测钉死。
+chrono    = { workspace = true }
+thiserror = { workspace = true }
+uuid      = { workspace = true }

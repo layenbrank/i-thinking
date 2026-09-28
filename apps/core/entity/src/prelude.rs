@@ -1,5 +1,6 @@
 pub use super::asset::Entity as Asset;
 pub use super::auth::Entity as Auth;
+pub use super::billing_price::Entity as BillingPrice;
 pub use super::chunk::Entity as Chunk;
 pub use super::consumed_event::Entity as ConsumedEvent;
 pub use super::gateway_audit::Entity as GatewayAudit;
@@ -10,5 +11,5 @@ pub use super::outbox::Entity as Outbox;
 pub use super::payment_order::Entity as PaymentOrder;
 pub use super::sso_connection::Entity as SsoConnection;
 pub use super::subscription::Entity as Subscription;
-pub use super::tenant::Entity as Tenant;
 pub use super::tenant_member::Entity as TenantMember;
+pub use super::tenant::Entity as Tenant;

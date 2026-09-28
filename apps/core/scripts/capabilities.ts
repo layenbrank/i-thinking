@@ -51,7 +51,7 @@ export const CAPABILITIES: readonly Capability[] = [
   {
     name: 'billing',
     title: '订阅与计费',
-    owns: ['subscription', 'payment_order'],
+    owns: ['subscription', 'payment_order', 'billing_price'],
     dependsOn: ['identity'],
     publicModules: [],
     absorbs: ['src/services/subscription', 'src/services/payment'],

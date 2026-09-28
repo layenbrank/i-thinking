@@ -26,6 +26,7 @@ impl MigrationTrait for Migration {
                     .table(ConsumedEvent::Table)
                     .table(SsoConnection::Table)
                     .table(PaymentOrder::Table)
+                    .table(BillingPrice::Table)
                     .table(Subscription::Table)
                     .table(GatewayAudit::Table)
                     .table(GatewayUsage::Table)
@@ -498,6 +499,72 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // ---------- billing_price ----------
+        // 模型价目表：网关只记用量（token 数），金额要由计费侧按「用量 × 单价」折算，
+        // 所以价格单独成表。取价维度是 `(租户, 型号, 时间)`：
+        // `"tenantID" IS NULL` 是平台默认价，非空是该租户的专属价（优先）。
+        // 单价单位是**分 / 百万 token**，整数存储：折算只在乘加之后做一次四舍五入，
+        // 全程无浮点，避免「0.1 + 0.2」式的对账尾差。
+        manager
+            .create_table(
+                Table::create()
+                    .table(BillingPrice::Table)
+                    .if_not_exists()
+                    .col(pk_uuid(BillingPrice::Id))
+                    .col(uuid_null(BillingPrice::TenantId))
+                    .col(uuid(BillingPrice::ModelId))
+                    // 型号名的写入时快照：报告要显示可读名字，但不做跨能力 JOIN
+                    // （网关的 `gateway_model` 可以改名或删除，历史对账不能被它牵动）
+                    .col(text(BillingPrice::ModelName))
+                    .col(text(BillingPrice::Currency).default("CNY"))
+                    .col(big_integer(BillingPrice::InputPricePerMillion))
+                    .col(big_integer(BillingPrice::OutputPricePerMillion))
+                    // 生效区间 `[effectiveFrom, effectiveTo)`；`effectiveTo` 为 NULL = 至今。
+                    // 同一 `(tenantID, modelID)` 的区间不得重叠（应用层校验），缺口即「未定价」，
+                    // 会在对账报告里显式列出来，而不是静默按 0 计。
+                    .col(timestamp_with_time_zone(BillingPrice::EffectiveFrom))
+                    .col(timestamp_with_time_zone_null(BillingPrice::EffectiveTo))
+                    .col(timestamp_with_time_zone_null(BillingPrice::ArchivedAt))
+                    .col(timestamp_with_time_zone(BillingPrice::CreatedAt))
+                    .col(uuid_null(BillingPrice::Creator))
+                    .col(timestamp_with_time_zone(BillingPrice::UpdatedAt))
+                    .col(uuid_null(BillingPrice::Updater))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_billing_price_tenant")
+                            .from(BillingPrice::Table, BillingPrice::TenantId)
+                            .to(Tenant::Table, Tenant::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // 取价路径是 `modelID` 等值 + 区间比较，故（型号, 生效时间）联合索引。
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_billing_price_model")
+                    .table(BillingPrice::Table)
+                    .col(BillingPrice::ModelId)
+                    .col(BillingPrice::EffectiveFrom)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_billing_price_tenant")
+                    .table(BillingPrice::Table)
+                    .col(BillingPrice::TenantId)
+                    .to_owned(),
+            )
+            .await?;
+
         // ---------- gateway ----------
         manager
             .create_table(
@@ -947,6 +1014,12 @@ impl MigrationTrait for Migration {
             .await?;
         }
 
+        // 价目表与上面两张目录表不同：它**没有任何租户面**。
+        // 价格是商业信息，租户作用域既不该读到（否则租户能反推别人的专属价与成本），
+        // 也不该写到（改写价格 = 改写账单口径）。因此策略恒假：租户面 fail-closed，
+        // 读写一律走平台特权连接（`core_platform`，BYPASSRLS）。
+        enable_rls(manager, "billing_price", "false", "false").await?;
+
         // tenant 自身按主键隔离：只能读写自己那一行；新建租户时作用域就是新租户 id，
         // 因此插入能自洽通过 WITH CHECK（创建者随后在同一事务里补上 OWNER 成员行）。
         // 额外允许"只读自己加入的租户"：账号作用域下可按 id 读回自己的租户行（列表页需要）。
@@ -977,6 +1050,7 @@ impl MigrationTrait for Migration {
                     .table(ConsumedEvent::Table)
                     .table(SsoConnection::Table)
                     .table(PaymentOrder::Table)
+                    .table(BillingPrice::Table)
                     .table(Subscription::Table)
                     .table(GatewayAudit::Table)
                     .table(GatewayUsage::Table)
@@ -1409,6 +1483,39 @@ enum PaymentOrder {
     #[sea_orm(iden = "expiresAt")]
     ExpiresAt,
     Remark,
+    #[sea_orm(iden = "archivedAt")]
+    ArchivedAt,
+    #[sea_orm(iden = "createdAt")]
+    CreatedAt,
+    Creator,
+    #[sea_orm(iden = "updatedAt")]
+    UpdatedAt,
+    Updater,
+}
+
+/// 模型价目表：`(租户, 型号, 有效区间)` → 单价（分 / 百万 token）。
+///
+/// 不指向 `gateway_model` 的外键：价格是账单依据，型号被删/改名都不能让历史价格消失，
+/// 型号名的可读副本在写入时快照进 `modelName`。
+#[derive(DeriveIden)]
+enum BillingPrice {
+    Table,
+    Id,
+    #[sea_orm(iden = "tenantID")]
+    TenantId,
+    #[sea_orm(iden = "modelID")]
+    ModelId,
+    #[sea_orm(iden = "modelName")]
+    ModelName,
+    Currency,
+    #[sea_orm(iden = "inputPricePerMillion")]
+    InputPricePerMillion,
+    #[sea_orm(iden = "outputPricePerMillion")]
+    OutputPricePerMillion,
+    #[sea_orm(iden = "effectiveFrom")]
+    EffectiveFrom,
+    #[sea_orm(iden = "effectiveTo")]
+    EffectiveTo,
     #[sea_orm(iden = "archivedAt")]
     ArchivedAt,
     #[sea_orm(iden = "createdAt")]

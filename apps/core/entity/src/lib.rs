@@ -2,6 +2,7 @@ pub mod prelude;
 
 pub mod asset;
 pub mod auth;
+pub mod billing_price;
 pub mod chunk;
 pub mod consumed_event;
 pub mod gateway_audit;
