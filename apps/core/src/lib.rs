@@ -153,6 +153,19 @@ pub mod services {
         pub mod service;
     }
 
+    /// rag 索引任务：起任务、查进度与结果。
+    ///
+    /// 与 `agent` 同形：`error.rs` 是领域错误，`dispatch.rs` 是编排状态回收，
+    /// 台账归 `crates/rag`，编排在 `orchestrations/rag.rs`。
+    pub mod rag {
+        pub mod controller;
+        pub mod dispatch;
+        pub mod error;
+        pub mod module;
+        pub mod schema;
+        pub mod service;
+    }
+
     pub mod user {
         pub mod controller;
         pub mod module;

@@ -238,6 +238,29 @@ pub mod business {
             TOOL_NOT_ALLOWED,
         ];
     }
+
+    /// RAG 索引（50xx06 段）
+    pub mod rag {
+        /// 索引任务不存在（或不属于当前租户）
+        pub const TASK_NOT_FOUND: i32 = 500601;
+        /// 资产不存在、不可见或已归档
+        pub const ASSET_NOT_FOUND: i32 = 500602;
+        /// 资产当前不可索引（未完成上传）
+        pub const ASSET_NOT_INDEXABLE: i32 = 500603;
+        /// 该资产已有正在运行的索引任务
+        pub const INDEX_ALREADY_RUNNING: i32 = 500604;
+        /// 编排不可用：可靠执行运行时未接或起实例失败
+        pub const ORCHESTRATION_UNAVAILABLE: i32 = 500605;
+
+        /// 本模块全部状态码
+        pub const ALL: &[i32] = &[
+            TASK_NOT_FOUND,
+            ASSET_NOT_FOUND,
+            ASSET_NOT_INDEXABLE,
+            INDEX_ALREADY_RUNNING,
+            ORCHESTRATION_UNAVAILABLE,
+        ];
+    }
 }
 
 /// 外部服务错误 (60xxxx)
@@ -291,6 +314,7 @@ pub fn all_codes() -> Vec<i32> {
         business::login::ALL,
         business::payment::ALL,
         business::agent::ALL,
+        business::rag::ALL,
         external::ALL,
         data::ALL,
     ] {
@@ -379,6 +403,12 @@ pub fn description(code: i32) -> &'static str {
         business::agent::ORCHESTRATION_UNAVAILABLE => "任务编排不可用",
         business::agent::MAX_STEPS_INVALID => "轮次上限超出允许范围",
         business::agent::TOOL_NOT_ALLOWED => "工具不在允许清单内",
+
+        business::rag::TASK_NOT_FOUND => "索引任务不存在",
+        business::rag::ASSET_NOT_FOUND => "资产不存在",
+        business::rag::ASSET_NOT_INDEXABLE => "资产不可索引",
+        business::rag::INDEX_ALREADY_RUNNING => "该资产已有正在运行的索引任务",
+        business::rag::ORCHESTRATION_UNAVAILABLE => "索引编排不可用",
 
         external::DATABASE_ERROR => "数据库连接失败",
         external::DATABASE_OPERATION_FAILED => "数据库操作失败",
@@ -488,6 +518,12 @@ pub fn http_status(code: i32) -> u16 {
         business::agent::ORCHESTRATION_UNAVAILABLE => 503,
         business::agent::MAX_STEPS_INVALID => 422,
         business::agent::TOOL_NOT_ALLOWED => 422,
+
+        business::rag::TASK_NOT_FOUND => 404,
+        business::rag::ASSET_NOT_FOUND => 404,
+        business::rag::ASSET_NOT_INDEXABLE => 422,
+        business::rag::INDEX_ALREADY_RUNNING => 409,
+        business::rag::ORCHESTRATION_UNAVAILABLE => 503,
 
         // 60xxxx 外部依赖（我方视角的服务端故障）
         external::DATABASE_ERROR => 500,

@@ -150,6 +150,10 @@ jobs:
       - name: Run agent orchestration end-to-end tests
         run: cargo test --test agent_scope -- --test-threads=1
 
+      # rag 索引任务的用户面判据：同一条链路，验的是「长任务的生产入口」本身。
+      - name: Run rag index task end-to-end tests
+        run: cargo test --test rag_index_scope -- --test-threads=1
+
   contract:
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -24,8 +24,10 @@ impl MigrationTrait for Migration {
                     // outbox / consumed_event 无外键，先清即可
                     .table(Outbox::Table)
                     .table(ConsumedEvent::Table)
-                    // agent_task 引用 tenant / auth，排在它们之前（cascade 是兜底，顺序才是意图）
+                    // agent_task / rag_index_task 引用 tenant / auth / asset，排在它们之前
+                    // （cascade 是兜底，顺序才是意图）
                     .table(AgentTask::Table)
+                    .table(RagIndexTask::Table)
                     .table(SsoConnection::Table)
                     .table(PaymentOrder::Table)
                     .table(BillingPrice::Table)
@@ -946,6 +948,80 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // ---------- rag_index_task（RAG 索引任务台账） ----------
+        // 「哪个租户的哪份资产正在/曾经被索引」的唯一记录。切块与向量在 ai-worker 的库里，
+        // 编排实例历史在 durable 自己的 schema 里 —— 这里只留台账，不重复别人的事实。
+        manager
+            .create_table(
+                Table::create()
+                    .table(RagIndexTask::Table)
+                    .if_not_exists()
+                    .col(pk_uuid(RagIndexTask::Id))
+                    .col(uuid(RagIndexTask::TenantId))
+                    // 发起人；服务身份（无会话）触发时为空
+                    .col(uuid_null(RagIndexTask::UserId))
+                    // 被索引的资产。资产是本表的输入而非所有者，子资源形态（同一资产可多次重建索引）
+                    .col(uuid(RagIndexTask::AssetId))
+                    // RUNNING / SUCCEEDED / FAILED（词汇见 crates/rag）
+                    .col(text(RagIndexTask::Status).default("RUNNING"))
+                    // 编排实例标识（`rag-index-{id}`）
+                    .col(text(RagIndexTask::InstanceId))
+                    // 终态输出快照（IndexAssetOutput）
+                    .col(json_binary_null(RagIndexTask::Result))
+                    // 终态失败原因
+                    .col(text_null(RagIndexTask::Error))
+                    .col(timestamp_with_time_zone(RagIndexTask::CreatedAt))
+                    .col(timestamp_with_time_zone(RagIndexTask::UpdatedAt))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_rag_index_task_tenant")
+                            .from(RagIndexTask::Table, RagIndexTask::TenantId)
+                            .to(Tenant::Table, Tenant::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_rag_index_task_asset")
+                            .from(RagIndexTask::Table, RagIndexTask::AssetId)
+                            .to(Asset::Table, Asset::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_rag_index_task_user")
+                            .from(RagIndexTask::Table, RagIndexTask::UserId)
+                            .to(Auth::Table, Auth::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_rag_index_task_tenant")
+                    .table(RagIndexTask::Table)
+                    .col(RagIndexTask::TenantId)
+                    .col(RagIndexTask::CreatedAt)
+                    .to_owned(),
+            )
+            .await?;
+
+        // 同一租户的同一资产同时只能有一个在跑的索引任务。SeaORM 的 Index builder 表达不了
+        // 部分索引（WHERE），只能用原始 SQL —— 与 uidx_subscription_active 同一理由。
+        manager
+            .get_connection()
+            .execute_unprepared(
+                r#"CREATE UNIQUE INDEX IF NOT EXISTS uidx_rag_index_task_running
+                   ON rag_index_task ("tenantID", "assetID") WHERE status = 'RUNNING'"#,
+            )
+            .await?;
+
         // ---------- 租户隔离（RLS） ----------
         // 隔离从"调用约定"下沉为数据库机制：应用角色即便漏传条件也拿不到别人的行。
         for (function, setting) in [
@@ -1111,6 +1187,7 @@ impl MigrationTrait for Migration {
                     .table(Outbox::Table)
                     .table(ConsumedEvent::Table)
                     .table(AgentTask::Table)
+                    .table(RagIndexTask::Table)
                     .table(SsoConnection::Table)
                     .table(PaymentOrder::Table)
                     .table(BillingPrice::Table)
@@ -1197,7 +1274,7 @@ $fn$"#
 /// - `payment_order`：按订单号（能力键）反解租户的只读分支；
 /// - `sso_connection`：按连接 id（能力键）读回匿名 OIDC 流程的那一行；
 /// - `gateway_usage` / `gateway_audit`：无租户行的归属分支（NULL 租户 + 本人）。
-const STRICT_TENANT_TABLES: [&str; 3] = ["subscription", "outbox", "agent_task"];
+const STRICT_TENANT_TABLES: [&str; 4] = ["subscription", "outbox", "agent_task", "rag_index_task"];
 
 /// 逐表启用行级安全：`ENABLE` 约束普通角色，`FORCE` 连表属主一起约束，
 /// 单角色直连部署下也不会失效；策略用固定名，重跑时可先删后建。
@@ -1645,6 +1722,28 @@ enum AgentTask {
     #[sea_orm(iden = "instanceID")]
     InstanceId,
     Steps,
+    Result,
+    Error,
+    #[sea_orm(iden = "createdAt")]
+    CreatedAt,
+    #[sea_orm(iden = "updatedAt")]
+    UpdatedAt,
+}
+
+/// RAG 索引任务台账。
+#[derive(DeriveIden)]
+enum RagIndexTask {
+    Table,
+    Id,
+    #[sea_orm(iden = "tenantID")]
+    TenantId,
+    #[sea_orm(iden = "userID")]
+    UserId,
+    #[sea_orm(iden = "assetID")]
+    AssetId,
+    Status,
+    #[sea_orm(iden = "instanceID")]
+    InstanceId,
     Result,
     Error,
     #[sea_orm(iden = "createdAt")]

@@ -93,6 +93,10 @@ pub const SERVICE_ASSET_CONTENT: &str = "/api/v1/service/assets/{id}/content";
 pub const AGENT_TASKS: &str = "/api/v1/agent/tasks";
 pub const AGENT_TASK_BY_ID: &str = "/api/v1/agent/tasks/{id}";
 
+// --- RAG（索引任务，需 JWT + X-Tenant-ID） ---
+pub const RAG_INDEX_TASKS: &str = "/api/v1/rag/index-tasks";
+pub const RAG_INDEX_TASK_BY_ID: &str = "/api/v1/rag/index-tasks/{id}";
+
 // --- SSO ---
 pub const SSO_CONNECTIONS: &str = "/api/v1/sso/connections";
 pub const SSO_CONNECTIONS_BY_ID: &str = "/api/v1/sso/connections/{id}";
@@ -400,6 +404,14 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: AGENT_TASK_BY_ID,
+    },
+    RouteDef {
+        method: "POST",
+        path: RAG_INDEX_TASKS,
+    },
+    RouteDef {
+        method: "GET",
+        path: RAG_INDEX_TASK_BY_ID,
     },
     RouteDef {
         method: "GET",

@@ -13,6 +13,8 @@
 [`configuration.md`](configuration.md)；HTTP 契约、入参与鉴权见
 [`../src/services/agent/README.md`](../src/services/agent/README.md)；
 台账表本身见 [`../crates/agent/README.md`](../crates/agent/README.md)。
+同一套「台账 + durable 编排」入口模式也被 RAG 索引长任务复用，见
+[`../src/services/rag/README.md`](../src/services/rag/README.md)。
 
 ## 三个进程各做什么
 

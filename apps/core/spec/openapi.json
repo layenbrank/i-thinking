@@ -1294,6 +1294,126 @@
         ],
         "type": "object"
       },
+      "IndexTaskEnvelope": {
+        "properties": {
+          "code": {
+            "description": "业务状态码（200000=成功）",
+            "format": "int32",
+            "type": "integer"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IndexTaskR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "IndexTaskP": {
+        "description": "起索引任务请求。",
+        "properties": {
+          "assetID": {
+            "description": "要索引的资产 id；资产必须已完成上传且未归档",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetID"
+        ],
+        "type": "object"
+      },
+      "IndexTaskR": {
+        "description": "索引任务台账行。\n\n出参里没有「轮次」「批数」这类过程量：索引的批数随资产大小而变，写死一个数字只会\n误导调用方；实时进度看 `progress`，最终规模看 `result`。",
+        "properties": {
+          "assetID": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "description": "失败原因（已分类的运维文案）；失败后才有",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "progress": {
+            "description": "编排自报的进度原文（`chunked:n` / `embedded:to` / `indexed`）；还在跑且问得到时才有",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "result": {
+            "description": "编排输出快照（`chunkSetID` / `chunkCount` / `batches` / `dimensions` / `indexed` / `collection`）；成功后才有",
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "`RUNNING` / `SUCCEEDED` / `FAILED`",
+            "type": "string"
+          },
+          "tenantID": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "userID": {
+            "description": "发起人；服务身份触发时为 null",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "tenantID",
+          "assetID",
+          "status",
+          "result",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "Liveness": {
         "description": "存活探针 data：只描述进程自身，**不含任何依赖**",
         "properties": {
@@ -9170,6 +9290,192 @@
         "x-response-shape": "vendor"
       }
     },
+    "/api/v1/rag/index-tasks": {
+      "post": {
+        "description": "把一份已上传完成的资产切块、算嵌入、写入向量索引，供后续检索使用。\n\n**立刻返回**：响应里的任务通常还是 `RUNNING`，进度与结果用查询接口取。一份文档的索引要跑\n抽取、分批嵌入、落索引，同步等待会把一个 HTTP 请求拖成分钟级。\n\n**同一资产同时只允许一个在跑的任务**：重复调用会拿到 `500604` 并附带已有任务 ID，\n直接去查那个任务即可，不要重试起新的。\n\n资产必须是 `COMPLETED` 且未归档：在途、失败或已删除的资产在下游取不到内容，\n这里会提前拒绝（`500602` / `500603`），不会留下一条注定失败的任务记录。\n\n嵌入用的模型与批大小由部署配置决定（`ai_worker.embed_model` / `ai_worker.embed_batch_size`），\n向量维度取自嵌入服务的实际返回，调用方都**不能指定**。\n\n切片与嵌入都由 ai-worker 完成，模型调用走 core 网关，所以**配额、用量与审计自动生效**。\n\n索引是派生数据：重跑同一资产是安全操作（旧索引被覆盖），不需要先删除。\n\n需 JWT 且 `X-Tenant-ID` 指向的租户内有效成员，并具备该资产的写权限。\n\n`body.code`：200000 成功；`200001` 缺少 `X-Tenant-ID`；`200007` `X-Tenant-ID` 格式无效；\n`500602` 资产不存在、不属于该租户或已归档；`500603` 资产尚未完成上传；\n`500604` 该资产已有正在运行的索引任务；`500605` 编排运行时未接通或实例启动失败\n（台账那一行会被落成失败，可直接重试）。",
+        "operationId": "rag.createIndexTask",
+        "parameters": [
+          {
+            "description": "目标租户 ID（UUID）。**必填**：被索引的资产按租户隔离，缺了这个头没有正确的作用域可进。\n调用者须为该租户有效成员，且需要该资产的可读权限（平台 ADMIN 可旁路）。",
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndexTaskP"
+              }
+            }
+          },
+          "description": "要索引的资产",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexTaskEnvelope"
+                }
+              }
+            },
+            "description": "成功（任务已受理，通常仍在 RUNNING）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（资产不可索引 / 已有任务在跑 / 非租户成员 / 编排不可用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "给一份资产建索引",
+        "tags": [
+          "RAG"
+        ]
+      }
+    },
+    "/api/v1/rag/index-tasks/{id}": {
+      "get": {
+        "description": "返回索引任务台账：状态、编排自报的当前进度、结果与失败原因。\n\n**台账是权威记录**：任务已经结束时不再去问编排，实例存不存在都不影响「这个任务结束了」。\n还在跑时会顺带问一次编排的当前进度（`progress`，形如 `chunked:48` / `embedded:32` / `indexed`），\n问不到不影响返回；编排运行时没接通时也照样返回台账原样。\n\n成功结束时 `result` 是索引结果（区块集 ID、块数、批次数、维度、集合名），\n可以拿 `chunkSetID` 去 ai-worker 的检索面查这份资产的内容。\n\n有一处刻意的延迟：台账显示 `RUNNING` 但编排里查不到该实例时，5 分钟内仍按 `RUNNING` 返回，\n超过才判定失败。原因是「刚起、还没被运行时领走」与「实例真丢了」在编排侧长得一样，只有行龄能区分。\n\n需 JWT 且 `X-Tenant-ID` 指向的租户内有效成员，并具备该资产的读权限。\n\n`body.code`：200000 成功；`200001` 缺少 `X-Tenant-ID`；`200007` `X-Tenant-ID` 格式无效；\n`500601` 索引任务不存在、不属于该租户，或 id 不是 UUID（三种情况合并，避免用 id 探测别的租户）。",
+        "operationId": "rag.readIndexTask",
+        "parameters": [
+          {
+            "description": "目标租户 ID（UUID）。**必填**：被索引的资产按租户隔离，缺了这个头没有正确的作用域可进。\n调用者须为该租户有效成员，且需要该资产的可读权限（平台 ADMIN 可旁路）。",
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "索引任务 ID（UUID）",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexTaskEnvelope"
+                }
+              }
+            },
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（任务不存在 / 非租户成员）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "查询索引任务",
+        "tags": [
+          "RAG"
+        ]
+      }
+    },
     "/api/v1/service/assets/{id}/content": {
       "get": {
         "description": "**仅限受信服务进程**：用 `scope=asset-read` 换来的 `X-Service-Token` 按资产 id 读取**原始内容**（流式拼接 CAS 分片）。\n\n授权来自令牌而不是路径：作用域里的 `assetID` 是唯一授权依据，路径参数只用于比对，\n不一致返回 `400004`（HTTP 403）——拿 A 的令牌换不出 B 的内容。\n租户作用域的行级策略决定可见性：别的租户的行等同不存在（`500204`，HTTP 404，不暴露存在性）；\n本租户内尚未完成上传的资产返回 `200003`。\n受众是硬边界：嵌入受众的令牌打到这里一律 `300002`（HTTP 401），反之亦然。\n这是 ai-worker 取分片字节的通道，不做用量计量（计量发生在出站调用上）。",
@@ -13193,6 +13499,10 @@
     {
       "description": "租户级自治 agent：长任务编排与台账（需 JWT + X-Tenant-ID）",
       "name": "Agent"
+    },
+    {
+      "description": "RAG 索引任务：起任务 / 查任务（需 JWT + X-Tenant-ID）",
+      "name": "RAG"
     }
   ]
 }

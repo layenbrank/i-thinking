@@ -54,6 +54,7 @@ Token 来自 `POST /api/v1/auth/signin` 或 `signup` 响应的 `data.token`。
 | 支付 | `/api/v1/tenants/{id}/orders` | [payment](../src/services/payment/README.md) | OpenAPI |
 | 模型网关 | `/api/v1/gateway` · `/api/v1/tenants/{id}/audit` | [gateway](../src/services/gateway/README.md) | [`http/07-gateway-audit.http`](../http/07-gateway-audit.http) |
 | agent 任务 | `/api/v1/agent/tasks` | [agent](../src/services/agent/README.md) · [运行时](./agent-runtime.md) | OpenAPI |
+| rag 索引任务 | `/api/v1/rag/index-tasks` | [rag](../src/services/rag/README.md) | OpenAPI |
 
 ## 典型调用顺序
 

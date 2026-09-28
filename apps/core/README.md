@@ -125,6 +125,7 @@ TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/i_thinking_test \
 
 # 同一测试库（先 export / set 一次 TEST_DATABASE_URL 即可复用）
 cargo test --test rag_index -- --test-threads=1
+cargo test --test rag_index_scope -- --test-threads=1
 cargo test --test rag_fault_injection -- --test-threads=1
 cargo test --test agent_scope -- --test-threads=1
 cargo test --test agent_fault_injection -- --test-threads=1
@@ -142,6 +143,7 @@ crates/
   agent/                  # 能力 crate：agent 任务台账（agent_task 表的唯一写者）
   audit/                  # 能力 crate：跨模块审计（事件信封契约）
   durable/                # 能力 crate：可靠执行端口（编排/活动/停机，实现本体只在这里）
+  rag/                    # 能力 crate：rag 索引任务台账（rag_index_task 表的唯一写者）
 src/
   bin/service.rs          # HTTP 入口
   bin/worker.rs           # outbox 发布入口（事件投递由独立进程负责）
@@ -163,6 +165,7 @@ src/
     sso/                  # 单点登录（OIDC）
     application/          # 应用入口（挂载 v1 路由）
     agent/                # 服务端 agent 任务（起任务 / 查进度；运行时见 guide/agent-runtime.md）
+    rag/                  # rag 索引长任务（起任务 / 查进度；复用 agent 域的入口模式）
   middlewares/            # CORS、AccessLog（Nest Middleware）
   guards/                 # Auth、黑名单、公开路径（Nest Guard）
   interceptors/envelope.rs    # Body / Paginated（Nest Interceptor）
@@ -194,6 +197,7 @@ spec/                     # OpenAPI 生成物 + core↔ai-worker 内部契约（
 | 单点登录     | `/api/v1/sso`                        | [sso](src/services/sso/README.md)                   |
 | 应用         | `/api/v1/application`                | [application](src/services/application/README.md)   |
 | agent 任务   | `/api/v1/agent/tasks`                | [agent](src/services/agent/README.md)               |
+| rag 索引任务 | `/api/v1/rag/index-tasks`            | [rag](src/services/rag/README.md)                   |
 
 模块导航（含 HTTP 测试文件）见 [`guide/README.md`](guide/README.md#模块导航)。
 

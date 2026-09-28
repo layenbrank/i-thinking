@@ -8,6 +8,7 @@ use crate::services::{
     engine::schema::SuggestionR,
     gateway::schema::{ModelR, PlansR, ProviderR, SelfQuotaR},
     payment::schema::{CatalogR, OrderR, PriceR, ReconcileR},
+    rag::schema::IndexTaskR,
     sso::schema::{SsoConnectionR, SsoLoginR},
     subscription::schema::{QuotaR, SubscriptionR},
     tenant::schema::{MemberR, TenantR},
@@ -76,6 +77,7 @@ envelope!(PriceEnvelope, PriceR);
 envelope!(PriceListEnvelope, Vec<PriceR>);
 envelope!(ReconcileEnvelope, ReconcileR);
 envelope!(TaskEnvelope, TaskR);
+envelope!(IndexTaskEnvelope, IndexTaskR);
 
 /// 健康检查 data 字段
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

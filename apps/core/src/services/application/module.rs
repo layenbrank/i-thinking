@@ -4,8 +4,8 @@ use crate::middlewares::rate_limit::AuthGovernor;
 use crate::services::{
     agent::module::AgentModule, application::controller::ApplicationController,
     auth::module::AuthModule, engine::module::EngineModule, gateway::module::GatewayModule,
-    payment::module::PaymentModule, sso::module::SsoModule, tenant::module::TenantModule,
-    upload::module::UploadModule, user::module::UserModule,
+    payment::module::PaymentModule, rag::module::RagModule, sso::module::SsoModule,
+    tenant::module::TenantModule, upload::module::UploadModule, user::module::UserModule,
 };
 
 pub struct ApplicationModule;
@@ -23,6 +23,8 @@ impl ApplicationModule {
                 .configure(SsoModule::configure)
                 // agent 任务：起任务 / 查任务（`/api/v1/agent/tasks`）
                 .configure(AgentModule::configure)
+                // rag 索引：起任务 / 查任务（`/api/v1/rag/index-tasks`）
+                .configure(RagModule::configure)
                 // 支付渠道回调（匿名，验签在业务层完成）
                 .configure(PaymentModule::configure_notify)
                 // 计费运维面：价目管理与计量对账（平台 ADMIN）

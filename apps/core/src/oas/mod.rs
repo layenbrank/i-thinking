@@ -8,6 +8,7 @@ pub mod engine;
 pub mod gateway;
 pub mod paths;
 pub mod payment;
+pub mod rag;
 pub mod sso;
 pub mod subscription;
 pub mod system;
@@ -21,15 +22,15 @@ use utoipa::OpenApi;
 use crate::oas::common::{
     ApplicationEnvelope, CaptchaEnvelope, CatalogEnvelope, ChunkUploadEnvelope, ChunkUploadForm,
     DependencyCheck, EmptyEnvelope, EmptyR, Exception, FinalizeUploadEnvelope, Health,
-    HealthEnvelope, Liveness, LivenessEnvelope, MemberEnvelope, MemberListEnvelope, ModelEnvelope,
-    ModelListEnvelope, OrderEnvelope, OrderListEnvelope, PlansEnvelope, PriceEnvelope,
-    PriceListEnvelope, ProfileEnvelope, ProviderEnvelope, ProviderListEnvelope, QuotaEnvelope,
-    Readiness, ReadinessEnvelope, ReconcileEnvelope, SelfQuotaEnvelope, SigninEnvelope,
-    SigninErrorExample, SigninSuccessExample, SignupEnvelope, SsoConnectionEnvelope,
-    SsoConnectionListEnvelope, SsoLoginEnvelope, SubscriptionEnvelope, SubscriptionListEnvelope,
-    SuggestionEnvelope, TaskEnvelope, TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope,
-    UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope,
-    UserListEnvelope,
+    HealthEnvelope, IndexTaskEnvelope, Liveness, LivenessEnvelope, MemberEnvelope,
+    MemberListEnvelope, ModelEnvelope, ModelListEnvelope, OrderEnvelope, OrderListEnvelope,
+    PlansEnvelope, PriceEnvelope, PriceListEnvelope, ProfileEnvelope, ProviderEnvelope,
+    ProviderListEnvelope, QuotaEnvelope, Readiness, ReadinessEnvelope, ReconcileEnvelope,
+    SelfQuotaEnvelope, SigninEnvelope, SigninErrorExample, SigninSuccessExample, SignupEnvelope,
+    SsoConnectionEnvelope, SsoConnectionListEnvelope, SsoLoginEnvelope, SubscriptionEnvelope,
+    SubscriptionListEnvelope, SuggestionEnvelope, TaskEnvelope, TenantEnvelope, TenantListEnvelope,
+    UploadFilesEnvelope, UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope,
+    UserEnvelope, UserListEnvelope,
 };
 use crate::services::agent::schema::{TaskP, TaskR};
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
@@ -48,6 +49,7 @@ use crate::services::payment::schema::{
     ReconcileExportFormat, ReconcileExportP, ReconcileModelR, ReconcileQueryP, ReconcileR,
     ReconcileTenantR, ReconcileTotalsR,
 };
+use crate::services::rag::schema::{IndexTaskP, IndexTaskR};
 use crate::services::sso::schema::{
     SsoConnectionR, SsoConnectionUpdateP, SsoConnectionWriteP, SsoLoginR,
 };
@@ -172,6 +174,8 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         billing::reconciliation_export_doc,
         agent::create_task_doc,
         agent::read_task_doc,
+        rag::create_index_task_doc,
+        rag::read_index_task_doc,
     ),
     components(
         schemas(
@@ -316,6 +320,9 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
             TaskP,
             TaskR,
             TaskEnvelope,
+            IndexTaskP,
+            IndexTaskR,
+            IndexTaskEnvelope,
         )
     ),
     tags(
@@ -333,6 +340,7 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         (name = "Payment", description = "支付：档位/渠道目录、订单、渠道回调（下单需 JWT）"),
         (name = "Billing", description = "计费运维面：模型价目与计量对账（仅平台 ADMIN）"),
         (name = "Agent", description = "租户级自治 agent：长任务编排与台账（需 JWT + X-Tenant-ID）"),
+        (name = "RAG", description = "RAG 索引任务：起任务 / 查任务（需 JWT + X-Tenant-ID）"),
     ),
     modifiers(&ContractAddon),
     external_docs(

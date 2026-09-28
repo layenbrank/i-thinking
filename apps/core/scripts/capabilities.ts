@@ -124,6 +124,17 @@ export const CAPABILITIES: readonly Capability[] = [
     absorbs: [],
     // 边界与实现都已就位：crate + services/agent + orchestrations/agent.rs + e2e（agent_scope / agent_fault_injection）。
     status: 'migrated'
+  },
+  {
+    name: 'rag',
+    title: 'RAG 索引任务',
+    owns: ['rag_index_task'],
+    dependsOn: [],
+    publicModules: ['persistence'],
+    // 台账是**新写**的（编排早已存在，但一直没有生产入口）：HTTP 层按 R6 留在 api 二进制。
+    absorbs: [],
+    // crate + services/rag + e2e（rag_index_scope）；编排本体在 orchestrations/rag.rs，早于本能力存在。
+    status: 'migrated'
   }
 ]
 
@@ -174,6 +185,10 @@ export const LEGACY_SERVICES: Record<string, { owner: string; note: string }> = 
   gateway: { owner: 'gateway', note: '模型网关' },
   markdown: { owner: 'document', note: '文档解析' },
   payment: { owner: 'billing', note: '支付渠道' },
+  rag: {
+    owner: 'rag',
+    note: 'RAG 索引任务的 HTTP 层（新写，非遗留）：台账与状态词汇在 crates/rag'
+  },
   sso: { owner: 'identity', note: 'SSO 连接' },
   subscription: { owner: 'billing', note: '订阅与配额' },
   tenant: { owner: 'identity', note: '租户与成员' },
@@ -258,6 +273,11 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
     max: 1,
     reason:
       'agent 台账收尾的机器路径：等待者与读路径都在请求事务之外跑，收尾时按已记死的租户重开一段短作用域（只写 status/steps/result 那一行）'
+  },
+  'src/services/rag/dispatch.rs': {
+    max: 1,
+    reason:
+      'rag 台账收尾的机器路径：等待者与读路径都在请求事务之外跑，收尾时按已记死的租户重开一段短作用域（只写 status/result/error 那一行）'
   }
 }
 
