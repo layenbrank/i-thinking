@@ -26,8 +26,8 @@ use crate::guards::tenant::{TenantCtx, TenantScope};
 use crate::interceptors::envelope::{Envelope, Paginated};
 use crate::services::gateway::client::Upstream;
 use crate::services::gateway::schema::{
-    AuditQueryP, ChatCompletionsP, EmbeddingsP, ModelUpdateP, ModelWriteP, ProviderUpdateP,
-    ProviderWriteP, SelfQuotaP, ServiceTokenP, ServiceTokenR, UsageQueryP,
+    AuditFilter, AuditQueryP, ChatCompletionsP, EmbeddingsP, ModelUpdateP, ModelWriteP,
+    ProviderUpdateP, ProviderWriteP, SelfQuotaP, ServiceTokenP, ServiceTokenR, UsageQueryP,
 };
 use crate::services::gateway::service::{GatewayError, GatewayService};
 use crate::services::gateway::service_token::{self, Audience};
@@ -514,14 +514,22 @@ impl GatewayController {
         query: web::Query<AuditQueryP>,
     ) -> Result<HttpResponse> {
         let _ = session(&http)?;
-        let tenant_id = query
-            .tenant_id
-            .as_deref()
-            .and_then(|s| Uuid::parse_str(s).ok());
+        // 过滤条件非法时直接 400：审计是事后追溯入口，「条件写错了却看起来查到了结果」
+        // 比多一次报错危险得多（与用量查询的宽容解析有意不同）。
+        let filter = match AuditFilter::parse(
+            query.tenant_id.as_deref(),
+            query.actor.as_deref(),
+            query.action.as_deref(),
+            query.from,
+            query.to,
+        ) {
+            Ok(filter) => filter,
+            Err(err) => return Exception::from(err).transform(),
+        };
         let page = query.page.unwrap_or(1).max(1);
         let size = query.size.unwrap_or(50).clamp(1, 200);
         let scope = PlatformScope::open(&db).await.map_err(db_error)?;
-        let result = GatewayService::list_audit(&scope, tenant_id, page, size)
+        let result = GatewayService::list_audit(&scope, filter, page, size)
             .await
             .map(|(items, count)| Paginated::new(items, count, page, size));
         platform_read(scope, result, |paginated| {

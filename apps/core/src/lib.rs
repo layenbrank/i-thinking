@@ -186,6 +186,7 @@ pub mod services {
         pub mod controller;
         pub mod module;
         pub mod quota;
+        pub mod render;
         pub mod repository;
         pub mod schema;
         pub mod service;

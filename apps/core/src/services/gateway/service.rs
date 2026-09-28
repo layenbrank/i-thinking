@@ -18,16 +18,18 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use actix_web::web::Bytes;
-use chrono::Utc;
+use chrono::{DateTime, FixedOffset, Utc};
 use entity::{gateway_audit, gateway_model, gateway_provider, gateway_usage, tenant};
 use futures::{Stream, StreamExt};
 use identity::{PlatformRole, Principal, TenantId, TenantRole, UserId};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseTransaction, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Set,
+    QueryOrder, QuerySelect, Set,
 };
 use serde_json::{Value, json};
 use uuid::Uuid;
+
+use authz::{Action, Permission, Resource};
 
 use crate::clients::elasticsearch::EsClient;
 use crate::clients::redis::RedisPool;
@@ -37,15 +39,15 @@ use crate::filters::exception::Exception;
 use crate::guards::account::AccountScope;
 use crate::guards::platform::PlatformScope;
 use crate::guards::service::SERVICE_ACTOR_ID;
-use crate::guards::tenant::TenantScope;
+use crate::guards::tenant::{TenantCtx, TenantScope};
 use crate::services::gateway::client::{Upstream, UpstreamError};
 use crate::services::gateway::quota::{
     QuotaError, exhausted, quota_key, resets_at_millis, used_tokens,
 };
 use crate::services::gateway::repository::{UsageInput, record_audit, record_usage};
 use crate::services::gateway::schema::{
-    AuditR, ChatCompletionsP, EmbeddingsP, ModelR, ModelUpdateP, ModelWriteP, PlanR, PlansR,
-    ProviderR, ProviderUpdateP, ProviderWriteP, SelfQuotaR, UsageQueryP, UsageR,
+    AuditFilter, AuditR, ChatCompletionsP, EmbeddingsP, ModelR, ModelUpdateP, ModelWriteP, PlanR,
+    PlansR, ProviderR, ProviderUpdateP, ProviderWriteP, SelfQuotaR, UsageQueryP, UsageR,
 };
 use crate::services::subscription::service::{QuotaInfo, global_quota, quota_in};
 use crate::utils::code::{auth as auth_codes, external, request, resource, system};
@@ -59,6 +61,90 @@ use crate::utils::encryption::{EncryptionError, decrypt_field, encrypt_field};
 const AUTO_MODEL_NAME: &str = "auto";
 const AUTO_MODEL_LABEL: &str = "自动选择";
 
+/// 审计导出的行数硬上限：超过即截断（保留最新），并在响应头标注。
+const AUDIT_EXPORT_MAX_ROWS: u64 = 50_000;
+/// 导出未指定时间范围时的默认回看窗口（天）。
+const AUDIT_EXPORT_DEFAULT_WINDOW_DAYS: i64 = 30;
+/// 租户面读审计需要的权限（Owner/Admin 具备、Member 不具备，判定表在 `authz`）。
+const READ_AUDIT_EVENT: Permission = Permission::new(Resource::AuditEvent, Action::Read);
+
+/// 审计导出结果：行已按时间倒序取好，序列化（CSV / NDJSON）交给
+/// [`render`](crate::services::gateway::render)。
+pub struct AuditExport {
+    pub rows: Vec<AuditR>,
+    /// 是否因超过 [`AUDIT_EXPORT_MAX_ROWS`] 被截断
+    pub truncated: bool,
+    /// 实际生效的窗口起点（毫秒时间戳），用于响应头与文件名
+    pub from: i64,
+    pub to: i64,
+}
+
+impl AuditFilter {
+    /// 解析查询参数：平台面按 `tenantID` 收窄，租户面传 `None`（可见范围由路径与作用域决定）。
+    ///
+    /// 与用量查询不同，这里对非法 UUID **报错**而不是静默忽略：审计是事后追溯入口，
+    /// 「过滤条件写错了却看起来查到了结果」比多一次 400 危险得多。
+    ///
+    /// # Errors
+    /// `tenantID`/`actor` 不是合法 UUID、时间戳超出可表示范围、或 `from > to`。
+    pub fn parse(
+        tenant_id: Option<&str>,
+        actor: Option<&str>,
+        action: Option<&str>,
+        from: Option<i64>,
+        to: Option<i64>,
+    ) -> Result<Self, GatewayError> {
+        let tenant_id = parse_opt_uuid(tenant_id, "tenantID")?;
+        let actor = parse_opt_uuid(actor, "actor")?;
+        let action = action
+            .map(str::trim)
+            .filter(|a| !a.is_empty())
+            .map(str::to_owned);
+        let from = from.map(|ms| millis(ms, "from")).transpose()?;
+        let to = to.map(|ms| millis(ms, "to")).transpose()?;
+        if let (Some(from), Some(to)) = (from, to) {
+            if from > to {
+                return Err(GatewayError::BadParam("from 不能晚于 to".into()));
+            }
+        }
+        Ok(Self {
+            tenant_id,
+            actor,
+            action,
+            from,
+            to,
+        })
+    }
+
+    /// 补齐导出窗口：缺 `to` 取当前时刻，缺 `from` 取 `to` 往前 [`AUDIT_EXPORT_DEFAULT_WINDOW_DAYS`] 天。
+    ///
+    /// 导出必须有一个有界窗口——不限时间的全表导出正是这个接口最容易被误用的方式。
+    fn with_default_window(mut self) -> Self {
+        let to = self.to.unwrap_or_else(|| Utc::now().fixed_offset());
+        let from = self
+            .from
+            .unwrap_or_else(|| to - chrono::Duration::days(AUDIT_EXPORT_DEFAULT_WINDOW_DAYS));
+        self.from = Some(from);
+        self.to = Some(to);
+        self
+    }
+}
+
+fn parse_opt_uuid(raw: Option<&str>, field: &str) -> Result<Option<Uuid>, GatewayError> {
+    match raw.map(str::trim).filter(|v| !v.is_empty()) {
+        Some(value) => Uuid::parse_str(value)
+            .map(Some)
+            .map_err(|_| GatewayError::BadParam(format!("{field} 必须是合法 UUID"))),
+        None => Ok(None),
+    }
+}
+
+fn millis(value: i64, field: &str) -> Result<DateTime<FixedOffset>, GatewayError> {
+    DateTime::<Utc>::from_timestamp_millis(value)
+        .map(|t| t.fixed_offset())
+        .ok_or_else(|| GatewayError::BadParam(format!("{field} 必须是毫秒时间戳")))
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum GatewayError {
     #[error("Model not found: {0}")]
@@ -71,6 +157,8 @@ pub enum GatewayError {
     ProviderDisabled,
     #[error("Model not allowed for role")]
     NotAllowed,
+    #[error("Forbidden")]
+    Forbidden,
     #[error("Quota exceeded")]
     QuotaExceeded,
     #[error("Provider kind unsupported: {0}")]
@@ -99,6 +187,9 @@ impl From<GatewayError> for Exception {
             }
             GatewayError::NotAllowed => {
                 Exception::custom(auth_codes::INSUFFICIENT_PERMISSIONS, "无权使用该模型")
+            }
+            GatewayError::Forbidden => {
+                Exception::custom(auth_codes::INSUFFICIENT_PERMISSIONS, "权限不足")
             }
             GatewayError::QuotaExceeded => {
                 Exception::custom(resource::QUOTA_EXCEEDED, "配额已用尽")
@@ -840,31 +931,135 @@ impl GatewayService {
         Ok((items.into_iter().map(usage_to_r).collect(), count))
     }
 
-    /// 审计日志分页（可选按租户过滤）。
+    /// 审计日志分页（可选按租户/操作者/动作/时间过滤）。
     ///
     /// # Errors
     /// 数据库读取失败。
     pub async fn list_audit(
         scope: &PlatformScope,
-        tenant_id: Option<Uuid>,
+        filter: AuditFilter,
         page: u32,
         size: u32,
     ) -> Result<(Vec<AuditR>, u64), GatewayError> {
-        let size = size.clamp(1, 200);
-        let page = page.max(1);
-        let mut query = gateway_audit::Entity::find();
-        if let Some(tid) = tenant_id {
-            query = query.filter(gateway_audit::Column::TenantId.eq(Some(tid)));
-        }
-        let count = query.clone().count(scope.tx()).await.map_err(db_err)?;
-        let items = query
-            .order_by_desc(gateway_audit::Column::CreatedAt)
-            .paginate(scope.tx(), size as u64)
-            .fetch_page((page as u64).saturating_sub(1))
-            .await
-            .map_err(db_err)?;
-        Ok((items.into_iter().map(audit_to_r).collect(), count))
+        audit_list(scope.tx(), &filter, page, size).await
     }
+
+    /// 审计日志分页（租户面：只看得到本租户的行，外加无租户归属但属于本人的行）。
+    ///
+    /// # Errors
+    /// 权限不足（需要 `audit_event:read`，租户 Owner/Admin 具备）；数据库读取失败。
+    pub async fn list_audit_in_tenant(
+        ctx: &TenantCtx,
+        filter: AuditFilter,
+        page: u32,
+        size: u32,
+    ) -> Result<(Vec<AuditR>, u64), GatewayError> {
+        require_audit_read(ctx)?;
+        audit_list(ctx.tx(), &filter, page, size).await
+    }
+
+    /// 审计导出（平台特权作用域，跨租户）：按时间倒序取窗口内的行，最多 [`AUDIT_EXPORT_MAX_ROWS`] 行。
+    ///
+    /// # Errors
+    /// 数据库读取失败。
+    pub async fn export_audit(
+        scope: &PlatformScope,
+        filter: AuditFilter,
+    ) -> Result<AuditExport, GatewayError> {
+        audit_export(scope.tx(), filter).await
+    }
+
+    /// 审计导出（租户面）。
+    ///
+    /// # Errors
+    /// 权限不足（需要 `audit_event:read`）；数据库读取失败。
+    pub async fn export_audit_in_tenant(
+        ctx: &TenantCtx,
+        filter: AuditFilter,
+    ) -> Result<AuditExport, GatewayError> {
+        require_audit_read(ctx)?;
+        audit_export(ctx.tx(), filter).await
+    }
+}
+
+/// 租户面审计读权限：Owner/Admin 具备、Member 不具备（判定表在 `authz`，这里不重复业务规则）。
+fn require_audit_read(ctx: &TenantCtx) -> Result<(), GatewayError> {
+    ctx.require(READ_AUDIT_EVENT)
+        .map_err(|_| GatewayError::Forbidden)
+}
+
+/// 审计行收窄条件：**不含可见性**——看得到哪些行完全由作用域的行级策略决定。
+fn audit_query(filter: &AuditFilter) -> sea_orm::Select<gateway_audit::Entity> {
+    let mut query = gateway_audit::Entity::find();
+    if let Some(tenant_id) = filter.tenant_id {
+        // `tenantID` 可空，平台面按租户收窄时**不**包含无租户归属的行
+        query = query.filter(gateway_audit::Column::TenantId.eq(Some(tenant_id)));
+    }
+    if let Some(actor) = filter.actor {
+        query = query.filter(gateway_audit::Column::Actor.eq(actor));
+    }
+    if let Some(action) = filter.action.as_deref() {
+        query = query.filter(gateway_audit::Column::Action.eq(action));
+    }
+    if let Some(from) = filter.from {
+        query = query.filter(gateway_audit::Column::CreatedAt.gte(from));
+    }
+    if let Some(to) = filter.to {
+        query = query.filter(gateway_audit::Column::CreatedAt.lte(to));
+    }
+    query
+}
+
+/// 审计列表：列表与导出共用同一段查询，差别只在分页/取行。
+async fn audit_list(
+    tx: &DatabaseTransaction,
+    filter: &AuditFilter,
+    page: u32,
+    size: u32,
+) -> Result<(Vec<AuditR>, u64), GatewayError> {
+    let size = size.clamp(1, 200);
+    let page = page.max(1);
+    let count = audit_query(filter).count(tx).await.map_err(db_err)?;
+    // 对外 page 从 1 起（与 Paginated::new 的 next/prev 语义一致），sea-orm 从 0 起
+    let items = audit_query(filter)
+        .order_by_desc(gateway_audit::Column::CreatedAt)
+        .paginate(tx, size as u64)
+        .fetch_page((page as u64).saturating_sub(1))
+        .await
+        .map_err(db_err)?;
+    Ok((items.into_iter().map(audit_to_r).collect(), count))
+}
+
+/// 审计导出：补齐默认时间窗口 → 多取一行探边界 → 截断到上限。
+///
+/// 「多取一行」是为了区分「正好取满」与「还有更多」：只按 `len == cap` 判断会把取满的
+/// 结果误报成截断。截断保留的是**最新**的行（倒序取，丢尾部）。
+async fn audit_export(
+    tx: &DatabaseTransaction,
+    filter: AuditFilter,
+) -> Result<AuditExport, GatewayError> {
+    let filter = filter.with_default_window();
+    let rows = audit_query(&filter)
+        .order_by_desc(gateway_audit::Column::CreatedAt)
+        .limit(AUDIT_EXPORT_MAX_ROWS + 1)
+        .all(tx)
+        .await
+        .map_err(db_err)?;
+    let truncated = rows.len() as u64 > AUDIT_EXPORT_MAX_ROWS;
+    let rows = rows
+        .into_iter()
+        .take(AUDIT_EXPORT_MAX_ROWS as usize)
+        .map(audit_to_r)
+        .collect();
+    Ok(AuditExport {
+        rows,
+        truncated,
+        from: filter
+            .from
+            .map(|t| t.timestamp_millis())
+            .unwrap_or_default(),
+        to: filter.to.map(|t| t.timestamp_millis()).unwrap_or_default(),
+    })
 }
 
 /// 日配额上限及其身份级来源：模型覆盖 > 租户/账号级（订阅档位 > 免费档 > 全局兜底）。
@@ -1491,4 +1686,112 @@ fn parse_uuid(value: &str) -> Result<Uuid, ()> {
 
 fn db_err(err: sea_orm::DbErr) -> GatewayError {
     GatewayError::Db(err.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn bad_param(err: GatewayError) -> bool {
+        matches!(err, GatewayError::BadParam(_))
+    }
+
+    #[test]
+    fn audit_filter_parses_the_full_condition_set() {
+        let filter = AuditFilter::parse(
+            Some("11111111-1111-1111-1111-111111111111"),
+            Some("22222222-2222-2222-2222-222222222222"),
+            Some("  gateway.chat  "),
+            Some(1_789_000_000_000),
+            Some(1_789_000_060_000),
+        )
+        .expect("全部合法");
+        assert_eq!(
+            filter.tenant_id,
+            Some(Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap())
+        );
+        assert_eq!(
+            filter.actor,
+            Some(Uuid::parse_str("22222222-2222-2222-2222-222222222222").unwrap())
+        );
+        // 动作是精确匹配，首尾空白必须被裁掉，否则永远查不到
+        assert_eq!(filter.action.as_deref(), Some("gateway.chat"));
+        assert_eq!(
+            filter.from.map(|t| t.timestamp_millis()),
+            Some(1_789_000_000_000)
+        );
+        assert_eq!(
+            filter.to.map(|t| t.timestamp_millis()),
+            Some(1_789_000_060_000)
+        );
+    }
+
+    #[test]
+    fn audit_filter_treats_blank_strings_as_absent() {
+        // 前端把「未选择」序列化成空串是常态，不该因此 400
+        let filter =
+            AuditFilter::parse(Some("  "), Some(""), Some(""), None, None).expect("空串即缺省");
+        assert_eq!(filter.tenant_id, None);
+        assert_eq!(filter.actor, None);
+        assert_eq!(filter.action, None);
+    }
+
+    #[test]
+    fn audit_filter_rejects_malformed_uuid_instead_of_ignoring_it() {
+        assert!(bad_param(
+            AuditFilter::parse(Some("not-a-uuid"), None, None, None, None)
+                .expect_err("非法 tenantID")
+        ));
+        assert!(bad_param(
+            AuditFilter::parse(None, Some("not-a-uuid"), None, None, None).expect_err("非法 actor")
+        ));
+    }
+
+    #[test]
+    fn audit_filter_rejects_reversed_and_unrepresentable_time_ranges() {
+        assert!(bad_param(
+            AuditFilter::parse(None, None, None, Some(2), Some(1)).expect_err("from 晚于 to")
+        ));
+        // from == to 是合法窗口（毫秒级排查单点事件）
+        assert!(AuditFilter::parse(None, None, None, Some(7), Some(7)).is_ok());
+        assert!(bad_param(
+            AuditFilter::parse(None, None, None, Some(i64::MAX), None).expect_err("时间戳越界")
+        ));
+    }
+
+    #[test]
+    fn export_window_defaults_to_the_last_thirty_days() {
+        let filter = AuditFilter::parse(None, None, None, None, Some(1_789_000_000_000))
+            .expect("合法")
+            .with_default_window();
+        assert_eq!(
+            filter.to.map(|t| t.timestamp_millis()),
+            Some(1_789_000_000_000)
+        );
+        assert_eq!(
+            filter.from.map(|t| t.timestamp_millis()),
+            Some(1_789_000_000_000 - 30 * 24 * 60 * 60 * 1000)
+        );
+    }
+
+    #[test]
+    fn export_window_keeps_an_explicit_range_untouched() {
+        let filter = AuditFilter::parse(
+            None,
+            None,
+            None,
+            Some(1_700_000_000_000),
+            Some(1_700_000_001_000),
+        )
+        .expect("合法")
+        .with_default_window();
+        assert_eq!(
+            filter.from.map(|t| t.timestamp_millis()),
+            Some(1_700_000_000_000)
+        );
+        assert_eq!(
+            filter.to.map(|t| t.timestamp_millis()),
+            Some(1_700_000_001_000)
+        );
+    }
 }

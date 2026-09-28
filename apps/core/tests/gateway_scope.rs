@@ -33,7 +33,7 @@ use service::guards::session::Session;
 use service::guards::tenant::{TenantCtx, TenantScope};
 use service::services::gateway::repository::{UsageInput, record_audit, record_usage};
 use service::services::gateway::schema::{
-    ModelR, ModelWriteP, ProviderUpdateP, ProviderWriteP, UsageQueryP,
+    AuditFilter, ModelR, ModelWriteP, ProviderUpdateP, ProviderWriteP, UsageQueryP,
 };
 use service::services::gateway::service::{GatewayError, GatewayService};
 use service::utils::db::is_row_security_violation;
@@ -401,14 +401,18 @@ async fn platform_scope_reaches_global_catalog_and_cross_tenant_usage() {
         );
     }
 
-    let (audit, audit_total) = GatewayService::list_audit(&scope, None, 1, 50)
+    let (audit, audit_total) = GatewayService::list_audit(&scope, AuditFilter::default(), 1, 50)
         .await
         .expect("列举审计失败");
     assert_eq!(audit_total, 2, "平台面应看到两个租户的审计");
     assert_eq!(audit.len(), 2);
 
     // 按租户过滤是查询条件，不是可见性
-    let (only_a, only_a_total) = GatewayService::list_audit(&scope, Some(fixture.tenant_a), 1, 50)
+    let only_a = AuditFilter {
+        tenant_id: Some(fixture.tenant_a),
+        ..Default::default()
+    };
+    let (only_a, only_a_total) = GatewayService::list_audit(&scope, only_a, 1, 50)
         .await
         .expect("按租户过滤审计失败");
     assert_eq!(only_a_total, 1);

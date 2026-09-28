@@ -182,13 +182,60 @@ pub struct UsageQueryP {
     pub size: Option<u32>,
 }
 
+/// 审计日志查询参数（平台面「跨租户汇总」与租户面「本租户」共用）。
+///
+/// 平台面用 `tenantID` 收窄到某个租户；租户面的租户由路径与作用域决定，传了不一致的值即 400。
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AuditQueryP {
     #[serde(rename = "tenantID")]
     pub tenant_id: Option<String>,
+    /// 操作者用户 ID（精确匹配）
+    pub actor: Option<String>,
+    /// 动作（精确匹配，如 `gateway.chat`）
+    pub action: Option<String>,
+    /// 起始毫秒时间戳（含）
+    pub from: Option<i64>,
+    /// 结束毫秒时间戳（含）
+    pub to: Option<i64>,
     pub page: Option<u32>,
     pub size: Option<u32>,
+}
+
+/// 审计导出参数：与列表同一组过滤条件，外加导出格式（缺省 CSV）。
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AuditExportP {
+    #[serde(rename = "tenantID")]
+    pub tenant_id: Option<String>,
+    pub actor: Option<String>,
+    pub action: Option<String>,
+    pub from: Option<i64>,
+    pub to: Option<i64>,
+    pub format: Option<AuditExportFormat>,
+}
+
+/// 导出格式：`csv`（Excel 友好，带 UTF-8 BOM）或 `ndjson`（SIEM / 流式消费友好）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum AuditExportFormat {
+    Csv,
+    Ndjson,
+}
+
+/// 审计查询的过滤条件：**可见性由作用域决定**，这里只做收窄。
+///
+/// 与查询参数分成两个类型是因为 `web::Query` 走 `serde_urlencoded`，它不支持
+/// `#[serde(flatten)]`——把「已解析、已校验」的条件与「字符串形态的入参」分开，
+/// 列表与导出两条路径才能共用同一段查询实现。
+#[derive(Debug, Clone, Default)]
+pub struct AuditFilter {
+    /// 平台面的租户收窄；租户面为 `None`（作用域已经把可见性收口到本租户）
+    pub tenant_id: Option<uuid::Uuid>,
+    pub actor: Option<uuid::Uuid>,
+    pub action: Option<String>,
+    pub from: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub to: Option<chrono::DateTime<chrono::FixedOffset>>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
