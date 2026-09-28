@@ -163,6 +163,8 @@ orchestrator                                  ai-worker
 | 每步都拿不到工具 | 模型不支持工具调用（`capabilities.tools = false`）：这一项**不在提交路径校验**，跑起来才暴露 |
 | 缺 `X-Tenant-ID` 直接报错 | 这个域**不降级到账号作用域**：agent 任务属于「哪个租户的知识」，没有账号级落脚点，与其猜一个不如拒（`200001`） |
 | 跨租户查同一个 id 也是 404 | 隔离靠 RLS，不靠应用判断；分开报错会让调用方能探测别的租户 |
+| ai-worker 回 502、响应体为空，core 侧没有访问记录 | 请求被**本机系统代理**接走了，根本没出到 core：两侧都默认直连（见下文联调一节） |
+| 改了代码跑起来还是老行为 | 跑的是别的目录下的旧二进制，`CARGO_TARGET_DIR` 被覆盖过（见下文联调一节） |
 
 ## 门禁与调试
 
@@ -194,3 +196,57 @@ cargo test --test agent_fault_injection -- --test-threads=1
 
 `--test-threads=1` 不是可选项：用例共用同一个库（各自开独立 schema），
 并发跑会互相干扰。故障注入那条还会**故意等 3 秒租约**，整体约 5 秒。
+
+## 跨进程联调（真 core + 真 ai-worker）
+
+上面那些门禁都是单侧的：core 的用例把 ai-worker 换成桩，ai-worker 的用例把 core 换成桩。
+「两边的契约真的对得上」只有一条路能证明——**两个真进程对着真库跑一遍完整任务**。
+
+```
+api(3000) ◄── 服务身份面 ── orchestrator ──► ai-worker(8081) ──► api(3000) ──► 模型桩(9099)
+    │                                                                              ▲
+    └── core 业务库 / Redis                    ai-worker 自己的库 ────────────────┘
+```
+
+**唯一允许打桩的是模型厂商**：它是最外层的上游，联调不该依赖外网、更不该花钱。
+其余全真——真库、真迁移、真服务身份令牌、真审批闸门。
+
+前提：
+
+- 真 Postgres（`55433`）与 Redis（`6379`）；core 与 ai-worker 各一个库、各跑一遍自己的迁移
+  （两个库**不能是同一个**）
+- core 侧：`gateway.service_token_secret`（默认空串 = 服务身份面整体 503）、
+  `ai_worker.base_url` / `ai_worker.token`、`agent.chat_model`、
+  `agent.allowed_tools`（写工具默认不在白名单里，不显式打开就永远看不到审批闸门那一幕）
+- ai-worker 侧：`AI_WORKER_CORE_BASE_URL`、`AI_WORKER_INTERNAL_TOKEN`（与 core 的 `ai_worker.token` 同值）、
+  `AI_WORKER_DATABASE_URL`
+- 播种：一个用户 + 一个租户 + 一个**带 `tenantID`** 的资产（没有租户的资产，服务身份在租户作用域里看不到）；
+  网关侧一个 provider（`baseURL` 指向模型桩）和两个 model——对话模型 `capabilities` 留空即可（缺省按「支持工具」），
+  而**嵌入模型必须显式 `capabilities.embeddings = true`**：未声明=不支持，收尾记忆会 404，
+  任务本身不受影响但会少一条长期记忆
+
+模型桩要满足两件事：`baseURL + /chat/completions` 第一次回一个 `tool_calls`（参数指向要改的那个资产），
+拿到 `role="tool"` 的结果后回一段正文收尾；`baseURL + /embeddings` 回 OpenAI 形状的向量。
+
+跑通的样子（按顺序）：
+
+1. `POST /api/v1/agent/tasks` → 台账 `RUNNING`
+2. 第一步的进度串里出现 `pendingApproval`，core 日志一行 `等待人工审批：{taskID}:1:0`
+3. `POST /api/v1/agent/tasks/{id}/approvals/{approvalID}`（owner 的 JWT + `X-Tenant-ID`）→
+   编排换 `scope=asset-write` 令牌 → `PUT /api/v1/service/assets/{id}/visibility`
+4. 第二次推理 → core 日志 `任务收尾：steps=2 toolCalls=1` → 台账 `SUCCEEDED`，`result.memoryID` 有值
+5. 落库核对：资产 `visibility` / `viewers` 已改；`agent_approval` 一行 `APPROVED` 且 `appliedAt` 非空；
+   `gateway_usage` / `gateway_audit` 里 `gateway.chat` 与 `gateway.embeddings` 各按次记账
+   （**失败不记账**：嵌入 404 那次在两张表里都不该有行）；`agent_memory` 一行，
+   `dimensions` 与桩返回的向量长度一致
+6. 链路：ai-worker 每条日志的 `trace_id` 都能在 core 日志里找到同值的那几行，
+   且网关那次出站与 ai-worker 的那次回打同 trace
+
+两个会让人白查半天的地方：
+
+- **改了代码、行为却没变**：先确认跑的是刚构建出来的那个二进制。用户级 `CARGO_TARGET_DIR`
+  会盖掉 `apps/core/.cargo/config.toml` 里的 `target-dir`，再叠加一份就是嵌套目录
+  （`…\x86_64-pc-windows-msvc\x86_64-pc-windows-msvc\debug`），于是「新代码」根本没被加载。
+  在 `apps/core` 下**不要**覆盖 `CARGO_TARGET_DIR`，直接 `cargo build --bins`。
+- **ai-worker 回 502、响应体为空、core 侧连一条访问记录都没有**：请求根本没出发到 core。
+  见 [`../../ai-worker/README.md`](../../ai-worker/README.md) 里的 `AI_WORKER_CORE_USE_SYSTEM_PROXY`。
