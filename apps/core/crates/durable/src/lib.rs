@@ -51,4 +51,4 @@ pub use store::Store;
 
 /// 处理器签名里的上下文类型。由实现本体提供、这里转发：调用方不必在 Cargo.toml 里
 /// 直接依赖 duroxide（那样就绕过了 `CONFINED_CRATE_DEPS` 的门禁）。
-pub use duroxide::{ActivityContext, OrchestrationContext};
+pub use duroxide::{ActivityContext, Either2, OrchestrationContext};

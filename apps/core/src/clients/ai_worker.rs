@@ -32,6 +32,8 @@ pub const EMBED_RANGE_PATH: &str = "/internal/v1/assets/{assetID}/embeddings";
 pub const UPSERT_INDEX_PATH: &str = "/internal/v1/assets/{assetID}/index";
 /// 服务端 agent 的一步（无状态：一次推理 + 至多一轮工具）
 pub const AGENT_STEP_PATH: &str = "/internal/v1/agents/steps";
+/// 执行一次**已获人工批准**的工具调用（审批通道的执行半边）
+pub const AGENT_TOOL_EXECUTION_PATH: &str = "/internal/v1/agents/tool-executions";
 /// 记下一次任务的最终结论（长期记忆）
 pub const AGENT_REMEMBER_PATH: &str = "/internal/v1/agents/memories";
 
@@ -206,6 +208,19 @@ impl AiWorkerClient {
         meta: &CallMeta,
     ) -> Result<AgentMemoryResponse, AiWorkerError> {
         let url = format!("{}{}", self.base_url, AGENT_REMEMBER_PATH);
+        self.post_json_url(&url, request, meta).await
+    }
+
+    /// 执行一次**已经过人工批准**的工具调用（审批通道的执行半边）。
+    ///
+    /// `/agents/steps` 遇到需要审批的工具只留占位结果，真正干活的是这里：所以「执行」永远
+    /// 只有一个入口，被拒或超时根本不会走到这一段（那两种情况由编排自己合成结果）。
+    pub async fn agent_tool_execution(
+        &self,
+        request: &AgentToolExecutionRequest,
+        meta: &CallMeta,
+    ) -> Result<AgentToolExecutionResponse, AiWorkerError> {
+        let url = format!("{}{}", self.base_url, AGENT_TOOL_EXECUTION_PATH);
         self.post_json_url(&url, request, meta).await
     }
 
@@ -561,6 +576,46 @@ pub struct AgentToolResult {
     /// 失败时的稳定机器码：只进日志与审计，**不喂模型**。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// 这次调用**没有执行**、正在等人工审批（占位结果）。
+    ///
+    /// 缺省或 `false` 表示「这一段语义下游不认识」，按普通结果处理；只有下游主动说
+    /// `true` 才走审批通道——审批是 core 的编排能力，不是下游开关。
+    #[serde(
+        rename = "awaitingApproval",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub awaiting_approval: Option<bool>,
+}
+
+/// 一次**已获人工批准**的工具调用（审批通道的执行半边，见 `spec/internal.yaml`）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentToolExecutionRequest {
+    pub schema_version: i32,
+    #[serde(rename = "tenantID")]
+    pub tenant_id: String,
+    #[serde(rename = "taskID")]
+    pub task_id: String,
+    /// core 的审批标识（`<taskID>:<步骤>:<第几次调用>`），只用于幂等键与日志。
+    #[serde(rename = "approvalID")]
+    pub approval_id: String,
+    /// 与 `/agents/steps` 同义：需要写长期记忆的工具用它算向量。
+    #[serde(rename = "embedModel")]
+    pub embed_model: String,
+    /// 本步的工具白名单（下游还会再核一遍名字在不在里面）。
+    #[serde(rename = "allowedTools", default)]
+    pub allowed_tools: Vec<String>,
+    pub tool_call: AgentToolCall,
+}
+
+/// 执行结果：就一条工具结果（成功与「工具自己失败」都是 200）。
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentToolExecutionResponse {
+    pub schema_version: i32,
+    #[serde(rename = "toolResult")]
+    pub tool_result: AgentToolResult,
 }
 
 /// 上游给的 token 用量。用 `i64` 而不是 `i32`：上游的计数没有上界承诺。

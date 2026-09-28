@@ -161,6 +161,38 @@ impl Client {
             .map_err(|e| DurableError::client(instance, "投递事件", e))
     }
 
+    /// 把一条消息投进实例的**邮箱**，编排里的 `ctx.dequeue_event(name)` 按先到先得取走它。
+    ///
+    /// 与 [`Self::raise_event`] 的差别是**匹配语义**，不是风格：
+    /// 事件按位置配对（订阅必须已经绑上，早到的投递没人接），邮箱是缓冲的（早到就存着、
+    /// 谁先订阅给谁、跨 `continue_as_new` 存活）。所以「决定什么时候来无法预知、来了必须被
+    /// 接住」的通知（人工审批）走这条路径。两者是两条独立通道，不能互换。
+    pub async fn enqueue_event<D: Serialize>(
+        &self,
+        instance: &str,
+        queue: &str,
+        data: &D,
+    ) -> Result<(), DurableError> {
+        let payload = serde_json::to_string(data).map_err(|source| DurableError::Input {
+            instance: instance.to_string(),
+            source,
+        })?;
+        self.enqueue_event_json(instance, queue, &payload).await
+    }
+
+    /// 投进邮箱，数据是已经拼好的 JSON 文本（理由同 [`Self::start_json`]）。
+    pub async fn enqueue_event_json(
+        &self,
+        instance: &str,
+        queue: &str,
+        data_json: &str,
+    ) -> Result<(), DurableError> {
+        self.inner
+            .enqueue_event(instance, queue, data_json)
+            .await
+            .map_err(|e| DurableError::client(instance, "投递邮箱消息", e))
+    }
+
     /// 请求取消：正在跑的活动收到取消信号（能否立刻停下由活动自己决定），编排随后判为失败。
     pub async fn cancel(&self, instance: &str, reason: &str) -> Result<(), DurableError> {
         self.inner

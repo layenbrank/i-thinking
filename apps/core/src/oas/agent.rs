@@ -1,5 +1,5 @@
-use super::common::{Exception, TaskEnvelope};
-use crate::services::agent::schema::TaskP;
+use super::common::{ApprovalEnvelope, Exception, TaskEnvelope};
+use crate::services::agent::schema::{ApprovalP, TaskP};
 
 /// `X-Tenant-ID` 在 agent 域是**必填**请求头：没有「账号级 agent」这种落脚点。
 /// 与 gateway 的差别是那里缺头会降级到账号作用域，这里直接 400。
@@ -63,3 +63,36 @@ pub fn create_task_doc() {}
     )
 )]
 pub fn read_task_doc() {}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/agent/tasks/{id}/approvals/{approvalID}",
+    tag = "Agent",
+    operation_id = "agent.decideApproval",
+    summary = "对一次待审批的工具调用做决定",
+    description = "任务跑到需要人工批准的工具（改业务数据的那类）时会**停在原地等**，\
+        把「在等哪一次调用」写进查询接口的 `pendingApproval` 字段。这个接口就是人对它的回答。\n\n\
+        **批准**：这次调用真的执行，结果照常进任务历史，任务继续跑。\n\
+        **驳回**：不执行，模型会收到一条「这次没执行、换个做法」的结果并接着跑。\n\n\
+        `approvalID` 对不上、已经批过、任务已经结束，都回 409——决定只认**当前正在等的那一次**。\n\
+        同一方向重复提交是幂等的（返回 `applied=false`），不会执行两次。\n\n\
+        没人处理时会在 `approvalTtlSecs` 之后超时，任务拿到一条「超时未处理」的结果继续跑；\n\
+        超时由编排判定，**不能**由调用方送进来（送 `EXPIRED` 是 422）。\n\n\
+        需 JWT 且 `X-Tenant-ID` 指向的租户内有效成员。\n\n\
+        `body.code`：200000 成功；`200001` 缺少 `X-Tenant-ID`；`200007` `X-Tenant-ID` 格式无效；\n\
+        `500501` 任务不存在或不属于该租户；`500506` 当前没有在等这次调用；\n\
+        `500507` 已有相反的决定；`500508` 决定不是 `APPROVED` / `REJECTED`；\n\
+        `500503` 编排运行时未接通或决定投递失败（决定已记账，同一方向重发即为补投）。",
+    security(("bearer_auth" = [])),
+    params(
+        ("X-Tenant-ID" = String, Header, description = tenant_header()),
+        ("id" = String, Path, description = "任务 ID（UUID）"),
+        ("approvalID" = String, Path, description = "待审批项 ID，取自查询接口的 `pendingApproval.approvalID`"),
+    ),
+    request_body(content = ApprovalP, description = "批准或驳回，驳回时给理由"),
+    responses(
+        (status = 200, description = "成功（决定已记账）", body = ApprovalEnvelope),
+        (status = "default", description = "业务异常（任务不存在 / 没有待审批项 / 决定非法 / 编排不可用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
+    )
+)]
+pub fn decide_approval_doc() {}

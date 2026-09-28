@@ -43,7 +43,7 @@ HTTP 契约交给 Python 的 ai-worker（见 [configuration.md](configuration.md
 | document | `asset` `chunk` | `src/services/{upload,markdown}` |
 | audit | `outbox` `consumed_event` | —（新建） |
 | notify | —（无表） | —（新建） |
-| agent | `agent_task` | —（新建，P9c） |
+| agent | `agent_task` `agent_approval` | —（新建，P9c；审批台账见 [审批通道 ADR](../../../docs/decisions/approval-channel.md)） |
 | rag | `rag_index_task` | —（新建，P9 收尾；长任务入口，编排见 [agent-runtime.md](agent-runtime.md) 同模式） |
 
 `src/services/{application,engine}` 是应用层编排（对话/智能体），归属 api 二进制，不进能力 crate。

@@ -228,6 +228,12 @@ pub mod business {
         pub const MAX_STEPS_INVALID: i32 = 500504;
         /// 工具名不在服务端白名单内
         pub const TOOL_NOT_ALLOWED: i32 = 500505;
+        /// 这次调用没在等人批（已经批过/超时/任务已结束）
+        pub const APPROVAL_NOT_PENDING: i32 = 500506;
+        /// 同一次审批已经被给出过相反的决定
+        pub const APPROVAL_ALREADY_DECIDED: i32 = 500507;
+        /// 决定字面量不合法（人只能批准或驳回）
+        pub const APPROVAL_DECISION_INVALID: i32 = 500508;
 
         /// 本模块全部状态码
         pub const ALL: &[i32] = &[
@@ -236,6 +242,9 @@ pub mod business {
             ORCHESTRATION_UNAVAILABLE,
             MAX_STEPS_INVALID,
             TOOL_NOT_ALLOWED,
+            APPROVAL_NOT_PENDING,
+            APPROVAL_ALREADY_DECIDED,
+            APPROVAL_DECISION_INVALID,
         ];
     }
 
@@ -403,6 +412,9 @@ pub fn description(code: i32) -> &'static str {
         business::agent::ORCHESTRATION_UNAVAILABLE => "任务编排不可用",
         business::agent::MAX_STEPS_INVALID => "轮次上限超出允许范围",
         business::agent::TOOL_NOT_ALLOWED => "工具不在允许清单内",
+        business::agent::APPROVAL_NOT_PENDING => "这次调用没有在等待审批",
+        business::agent::APPROVAL_ALREADY_DECIDED => "这次审批已有相反的决定",
+        business::agent::APPROVAL_DECISION_INVALID => "审批决定不合法",
 
         business::rag::TASK_NOT_FOUND => "索引任务不存在",
         business::rag::ASSET_NOT_FOUND => "资产不存在",
@@ -518,6 +530,9 @@ pub fn http_status(code: i32) -> u16 {
         business::agent::ORCHESTRATION_UNAVAILABLE => 503,
         business::agent::MAX_STEPS_INVALID => 422,
         business::agent::TOOL_NOT_ALLOWED => 422,
+        business::agent::APPROVAL_NOT_PENDING => 409,
+        business::agent::APPROVAL_ALREADY_DECIDED => 409,
+        business::agent::APPROVAL_DECISION_INVALID => 422,
 
         business::rag::TASK_NOT_FOUND => 404,
         business::rag::ASSET_NOT_FOUND => 404,

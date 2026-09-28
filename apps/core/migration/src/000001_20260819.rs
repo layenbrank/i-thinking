@@ -26,6 +26,7 @@ impl MigrationTrait for Migration {
                     .table(ConsumedEvent::Table)
                     // agent_task / rag_index_task 引用 tenant / auth / asset，排在它们之前
                     // （cascade 是兜底，顺序才是意图）
+                    .table(AgentApproval::Table)
                     .table(AgentTask::Table)
                     .table(RagIndexTask::Table)
                     .table(SsoConnection::Table)
@@ -948,6 +949,77 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // ---------- agent_approval（审批台账：人做的决定） ----------
+        // 记的是**人做了什么**，不是「最后怎么了」：最后结局在 agent_task.result 的
+        // `approvals[]` 快照里（工具执行失败、决定送晚了而算超时，都只改结局不改这条记录），
+        // 两者一比对就能看出「批了但没赶上」这类裂缝。
+        //
+        // 主键是编排确定性生成的审批标识（`<taskID>:<步骤>:<第几次调用>`）而不是代理键：
+        // 同一次调用天然只有一行，重复提交靠主键撞上既有行来识别（同决定=补投，异决定=拒绝）。
+        manager
+            .create_table(
+                Table::create()
+                    .table(AgentApproval::Table)
+                    .if_not_exists()
+                    .col(text(AgentApproval::Id).primary_key())
+                    .col(uuid(AgentApproval::TenantId))
+                    // 所属任务：任务没了，它的审批记录也没有独立意义
+                    .col(uuid(AgentApproval::TaskId))
+                    .col(integer(AgentApproval::Step))
+                    .col(text(AgentApproval::Tool))
+                    // 参数原文，不解析成 jsonb：解析失败不该让「人批过什么」落不了库
+                    .col(text(AgentApproval::Arguments))
+                    // APPROVED / REJECTED（人的两种决定；EXPIRED 是编排的结局，不落这张表）
+                    .col(text(AgentApproval::State))
+                    .col(uuid_null(AgentApproval::DecidedBy))
+                    .col(timestamp_with_time_zone(AgentApproval::DecidedAt))
+                    .col(text_null(AgentApproval::Reason))
+                    // 这次待办的逾期时间（编排给的）
+                    .col(timestamp_with_time_zone(AgentApproval::ExpiresAt))
+                    // 决定送进编排邮箱的时刻；NULL = 已提交但还没送达
+                    .col(timestamp_with_time_zone_null(AgentApproval::AppliedAt))
+                    .col(timestamp_with_time_zone(AgentApproval::CreatedAt))
+                    .col(timestamp_with_time_zone(AgentApproval::UpdatedAt))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_agent_approval_tenant")
+                            .from(AgentApproval::Table, AgentApproval::TenantId)
+                            .to(Tenant::Table, Tenant::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_agent_approval_task")
+                            .from(AgentApproval::Table, AgentApproval::TaskId)
+                            .to(AgentTask::Table, AgentTask::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_agent_approval_decider")
+                            .from(AgentApproval::Table, AgentApproval::DecidedBy)
+                            .to(Auth::Table, Auth::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_agent_approval_task")
+                    .table(AgentApproval::Table)
+                    .col(AgentApproval::TaskId)
+                    .col(AgentApproval::DecidedAt)
+                    .to_owned(),
+            )
+            .await?;
+
         // ---------- rag_index_task（RAG 索引任务台账） ----------
         // 「哪个租户的哪份资产正在/曾经被索引」的唯一记录。切块与向量在 ai-worker 的库里，
         // 编排实例历史在 durable 自己的 schema 里 —— 这里只留台账，不重复别人的事实。
@@ -1274,7 +1346,13 @@ $fn$"#
 /// - `payment_order`：按订单号（能力键）反解租户的只读分支；
 /// - `sso_connection`：按连接 id（能力键）读回匿名 OIDC 流程的那一行；
 /// - `gateway_usage` / `gateway_audit`：无租户行的归属分支（NULL 租户 + 本人）。
-const STRICT_TENANT_TABLES: [&str; 4] = ["subscription", "outbox", "agent_task", "rag_index_task"];
+const STRICT_TENANT_TABLES: [&str; 5] = [
+    "subscription",
+    "outbox",
+    "agent_task",
+    "agent_approval",
+    "rag_index_task",
+];
 
 /// 逐表启用行级安全：`ENABLE` 约束普通角色，`FORCE` 连表属主一起约束，
 /// 单角色直连部署下也不会失效；策略用固定名，重跑时可先删后建。
@@ -1724,6 +1802,34 @@ enum AgentTask {
     Steps,
     Result,
     Error,
+    #[sea_orm(iden = "createdAt")]
+    CreatedAt,
+    #[sea_orm(iden = "updatedAt")]
+    UpdatedAt,
+}
+
+/// 服务端 agent 的审批台账。
+#[derive(DeriveIden)]
+enum AgentApproval {
+    Table,
+    Id,
+    #[sea_orm(iden = "tenantID")]
+    TenantId,
+    #[sea_orm(iden = "taskID")]
+    TaskId,
+    Step,
+    Tool,
+    Arguments,
+    State,
+    #[sea_orm(iden = "decidedBy")]
+    DecidedBy,
+    #[sea_orm(iden = "decidedAt")]
+    DecidedAt,
+    Reason,
+    #[sea_orm(iden = "expiresAt")]
+    ExpiresAt,
+    #[sea_orm(iden = "appliedAt")]
+    AppliedAt,
     #[sea_orm(iden = "createdAt")]
     CreatedAt,
     #[sea_orm(iden = "updatedAt")]

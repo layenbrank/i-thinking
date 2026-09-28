@@ -209,6 +209,24 @@ impl Script {
                 .or_else(|| self.agent_steps.last())
                 .cloned()
                 .unwrap_or_else(|| json!({ "error": "脚本没有预设 agent 单步响应" })),
+            // 审批通过后真的去执行：结果必须对齐**请求里那一次调用**（编排会核对
+            // `toolCallID`），所以从请求体回填，不能自己造一个 id。
+            "tool-executions" => {
+                let payload = request.json();
+                let call = &payload["toolCall"];
+                let call_id = call["id"].as_str().unwrap_or("unknown-call");
+                let name = call["name"].as_str().unwrap_or("unknown-tool");
+
+                json!({
+                    "schemaVersion": INTERNAL_SCHEMA_VERSION,
+                    "toolResult": {
+                        "toolCallID": call_id,
+                        "name": name,
+                        "ok": true,
+                        "content": format!("{name} 执行完成（桩）"),
+                    },
+                })
+            }
             // 长期记忆写入：诚实回一个 uuid + `created`。真实实现按 (租户, 任务) 派生确定性
             // id，桩里固定一个常量就够——core 只把它当字符串带进台账。
             "memories" => json!({
@@ -512,6 +530,7 @@ async fn serve(
 fn route(path: &str) -> Option<&'static str> {
     for (suffix, name) in [
         ("/agents/steps", "steps"),
+        ("/agents/tool-executions", "tool-executions"),
         ("/agents/memories", "memories"),
         ("/chunks", "chunks"),
         ("/embeddings", "embeddings"),

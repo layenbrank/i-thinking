@@ -92,6 +92,7 @@ pub const SERVICE_ASSET_CONTENT: &str = "/api/v1/service/assets/{id}/content";
 // --- Agent（租户级自治 agent，需 JWT + X-Tenant-ID） ---
 pub const AGENT_TASKS: &str = "/api/v1/agent/tasks";
 pub const AGENT_TASK_BY_ID: &str = "/api/v1/agent/tasks/{id}";
+pub const AGENT_TASK_APPROVAL: &str = "/api/v1/agent/tasks/{id}/approvals/{approvalID}";
 
 // --- RAG（索引任务，需 JWT + X-Tenant-ID） ---
 pub const RAG_INDEX_TASKS: &str = "/api/v1/rag/index-tasks";
@@ -404,6 +405,10 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: AGENT_TASK_BY_ID,
+    },
+    RouteDef {
+        method: "POST",
+        path: AGENT_TASK_APPROVAL,
     },
     RouteDef {
         method: "POST",

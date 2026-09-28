@@ -17,8 +17,10 @@ impl AgentModule {
             web::scope("/agent")
                 .wrap(Auth::isRequired())
                 .service(web::resource("/tasks").route(web::post().to(AgentController::toWrite)))
+                .service(web::resource("/tasks/{id}").route(web::get().to(AgentController::toRead)))
                 .service(
-                    web::resource("/tasks/{id}").route(web::get().to(AgentController::toRead)),
+                    web::resource("/tasks/{id}/approvals/{approvalID}")
+                        .route(web::post().to(AgentController::toDecide)),
                 ),
         );
     }

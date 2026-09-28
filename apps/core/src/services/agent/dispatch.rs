@@ -186,6 +186,8 @@ fn reported_steps(status: &InstanceStatus) -> Option<i32> {
 mod tests {
     use super::*;
 
+    use crate::orchestrations::agent::{ApprovalRecord, ApprovalState};
+
     fn output(steps: i32, finished: bool) -> String {
         serde_json::to_string(&AgentRunOutput {
             task_id: "t-1".into(),
@@ -194,6 +196,7 @@ mod tests {
             answer: Some("答案".into()),
             tool_calls: 2,
             memory_id: Some("0b0e1e1e-1c1c-4c4c-8c8c-1c1c1c1c1c1c".into()),
+            approvals: vec![],
         })
         .expect("序列化失败")
     }
@@ -243,6 +246,35 @@ mod tests {
             outcome.error.expect("要留原因").contains("无法解析"),
             "失败原因要指向产出本身"
         );
+    }
+
+    #[test]
+    fn approvals_reach_the_snapshot_with_their_verdict() {
+        // 「超时」不是人做的决定，它只活在快照里；台账里不会有这一行。
+        let output = serde_json::to_string(&AgentRunOutput {
+            task_id: "t-1".into(),
+            steps: 1,
+            finished: true,
+            answer: None,
+            tool_calls: 1,
+            memory_id: None,
+            approvals: vec![ApprovalRecord {
+                approval_id: "t-1:0:0".into(),
+                step: 0,
+                tool: "asset_write".into(),
+                decision: ApprovalState::Expired,
+                reason: None,
+            }],
+        })
+        .expect("序列化失败");
+
+        let outcome = outcome_of(InstanceStatus::Completed { output }, 1);
+        let result = outcome.result.expect("成功必须有快照");
+        assert_eq!(
+            result["approvals"][0]["decision"],
+            serde_json::json!("EXPIRED")
+        );
+        assert_eq!(result["approvals"][0]["approvalID"], "t-1:0:0");
     }
 
     #[test]

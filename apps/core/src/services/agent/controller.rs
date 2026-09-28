@@ -19,7 +19,7 @@ use crate::filters::exception::Exception;
 use crate::guards::session::Session;
 use crate::guards::tenant::TenantCtx;
 use crate::interceptors::envelope::Envelope;
-use crate::services::agent::schema::TaskP;
+use crate::services::agent::schema::{ApprovalP, TaskP};
 use crate::services::agent::service::AgentService;
 use crate::utils::code::request;
 
@@ -69,6 +69,36 @@ impl AgentController {
         // `ctx` 按值交给领域层：这条路径在发外部调用前要把只读事务还回去。
         match AgentService::read(&db, ctx, durable.get_ref().as_ref(), &path.into_inner()).await {
             Ok(task) => Envelope::success(task, "获取任务成功").transform(),
+            Err(err) => err.transform(),
+        }
+    }
+
+    /// 对一次待审批的工具调用做决定：批准就放行执行，驳回就让模型换个做法。
+    ///
+    /// 这个 Handler 是「一个人说了一句话」的唯一入口：写台账、投邮箱都在领域层，
+    /// 这里只负责取会话、进作用域、把结果交给信封。
+    pub async fn toDecide(
+        db: web::Data<Arc<Storage>>,
+        durable: web::Data<Option<Arc<durable::Client>>>,
+        http: HttpRequest,
+        path: web::Path<(String, String)>,
+        req: web::Json<ApprovalP>,
+    ) -> Result<HttpResponse> {
+        let session = session(&http)?;
+        let ctx = enter(&db, &session, &http).await?;
+        let (id, approval_id) = path.into_inner();
+
+        match AgentService::decide(
+            &db,
+            ctx,
+            durable.get_ref().as_ref(),
+            &id,
+            &approval_id,
+            req.into_inner(),
+        )
+        .await
+        {
+            Ok(approval) => Envelope::success(approval, "审批决定已记录").transform(),
             Err(err) => err.transform(),
         }
     }

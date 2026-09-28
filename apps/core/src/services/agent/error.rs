@@ -23,6 +23,18 @@ pub enum AgentError {
     /// 两者合并成同一个错误：分开会让调用方能拿它探测「某个 id 在别的租户存在」。
     #[error("任务不存在")]
     NotFound,
+    /// 这次调用没在等人批：审批标识对不上，或者它已经被决定/超时，或者任务已经结束。
+    ///
+    /// 「过期」与「不存在」合并成同一个错误，理由同 [`AgentError::NotFound`] 外加一条：
+    /// 分开会告诉调用方「这个审批 id 真存在过」，而它本来不该知道别人的审批。
+    #[error("{0}")]
+    ApprovalNotPending(String),
+    /// 同一次审批已经被给出过**相反**的决定。
+    #[error("{0}")]
+    ApprovalAlreadyDecided(String),
+    /// 决定字面量不合法：人只能批准或驳回，未知词与 `EXPIRED` 都进不到台账。
+    #[error("{0}")]
+    ApprovalDecisionInvalid(String),
     /// 编排运行时不可用：未接通，或起实例失败。
     #[error("{0}")]
     OrchestrationUnavailable(String),
@@ -57,6 +69,24 @@ impl From<AgentError> for Exception {
             }
             AgentError::NotFound => {
                 Exception::custom(business::agent::TASK_NOT_FOUND, "任务不存在")
+            }
+            AgentError::ApprovalNotPending(msg) => {
+                // 细节（对不上的 id、已终态）留在日志里：调用方只需要知道「现在没什么可批的」。
+                tracing::info!(reason = %msg, "agent 审批决定被拒：没有在等审批");
+                Exception::custom(
+                    business::agent::APPROVAL_NOT_PENDING,
+                    "这次调用没有在等待审批（可能已批过、已超时，或任务已结束）",
+                )
+            }
+            AgentError::ApprovalAlreadyDecided(msg) => {
+                tracing::info!(reason = %msg, "agent 审批改判被拒");
+                Exception::custom(
+                    business::agent::APPROVAL_ALREADY_DECIDED,
+                    "这次审批已有相反的决定，不能改判",
+                )
+            }
+            AgentError::ApprovalDecisionInvalid(msg) => {
+                Exception::custom(business::agent::APPROVAL_DECISION_INVALID, msg)
             }
             AgentError::OrchestrationUnavailable(msg) => {
                 // 调用方看得见「暂时起不了」，排查线索留在日志里。

@@ -221,6 +221,11 @@ paths:
         `allowedTools` 是 core 给的**白名单**，不在名单里的工具名模型给了也不执行，
         记为一条失败的工具结果喂回模型（让它自己改口），而不是把整个步骤判失败。
 
+        **需要审批的工具在本端点一律不执行**：被模型点名时只回一条占位结果
+        （`ok=false` + `awaitingApproval=true`），真正执行发生在人工批准之后，由 core 换一条
+        路径调 `POST /internal/v1/agents/tool-executions`。这样「执行」这个动作永远只有一个
+        入口，本端点也不需要在等审批时挂住一个 HTTP 连接。
+
         失败面的分界是「重试有没有意义」：
 
         * **工具失败是正常流程**：参数 JSON 不合法、未知工具名、资产不存在、正文抽不出文本
@@ -228,7 +233,8 @@ paths:
         * **只有暂时性故障才回 429 / 503**（core 限流、模型或向量库不可用），交给 core 的活动级
           重试；4xx 不可重试（参数不合法、白名单词汇不认识等）。
 
-        能力自述：`agent.step` 是本端点；`rag.search` 是本步内部用的检索面
+        能力自述：`agent.step` 是本端点（以及批准后的 `POST /internal/v1/agents/tool-executions`）；
+        `rag.search` 是本步内部用的检索面
         （向量相似度走 ai-worker 自己的 pgvector），它**不单独开端点**，只作为工具被本步骤调用；
         `agent.memory` 是长期记忆的读写面（本端点内的两个工具 + `POST /internal/v1/agents/memories`）。
       parameters:
@@ -248,6 +254,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AgentStepResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+
+  /internal/v1/agents/tool-executions:
+    post:
+      operationId: internalAgentToolExecution
+      tags: [agent]
+      summary: 执行一次**已经过人工批准**的工具调用
+      description: |
+        审批通道的**执行半边**：`/agents/steps` 遇到需要审批的工具只回占位结果
+        （`awaitingApproval=true`），core 把这件事记进自己的审批台账、等人做决定，
+        批准之后才调到这里真的把工具跑掉。被拒或超时**不会**调到这里——那两种情况由 core
+        自己合成一条结果，所以「执行」永远只有一个入口。
+
+        准入规则（只认这两条，不看工具最近有没有被标记过）：
+
+        * 工具必须**声明了需要审批**——不需要审批的工具从这条路径进来一律 400。
+          否则这条路会变成绕过 `/agents/steps` 白名单的第二扇门；
+        * 工具名必须在 `allowedTools` 里（与 `/agents/steps` 同一套白名单语义）。
+
+        **审批本身不在这里核验**：ai-worker 读不到 core 的台账（按设计它不直连业务库）。
+        信任边界是内部令牌 + 上面两条准入规则，而「只有落过账的批准才会走到这里」由 core 保证。
+        `approvalID` 随载荷一起进来，只用于幂等键与日志（同一个批准重投收敛成同一次执行）。
+
+        工具自身失败（参数不合法、正文抽不出文本等）仍是 200 + `ok=false` 的正常结果；
+        429 / 503 才表示可重试的暂时性故障。
+      parameters:
+        - $ref: '#/components/parameters/InternalToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Traceparent'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentToolExecutionRequest'
+      responses:
+        '200':
+          description: 这一次调用有结果了（含「工具自己失败了」这种正常结果）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentToolExecutionResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -331,7 +388,9 @@ components:
       required: true
       description: |
         core 用「编排实例 id + 步骤」派生：`<实例 id>:<步骤>`，例如
-        `rag-index-<assetID>:embed:0-16`。同键重复投递 → 返回首次结果；同键不同载荷 → 409。
+        `rag-index-<assetID>:embed:0-16`。走审批通道的执行用
+        `<实例 id>:approval:<approvalID>`——同一个批准只可能重投这一段。
+        同键重复投递 → 返回首次结果；同键不同载荷 → 409。
       schema:
         type: string
         minLength: 8
@@ -549,8 +608,9 @@ components:
           type: array
           description: |
             本步允许调用的工具名白名单（词汇：`knowledge_search` / `asset_read` /
-            `memory_recall` / `memory_write`）。写入类工具由部署配置控制是否默认启用——
-            模型写下的内容会被**之后的其它任务**读到，属于持续性副作用。
+            `memory_recall` / `memory_write`）。写入类工具由部署配置控制是否默认启用；
+            标记了需要审批的写入工具（当前是 `memory_write`）在这里出现也不会被执行——
+            见 `AgentToolResult.awaitingApproval`。
             空数组 = 不给工具，只要一条结论。
           items:
             type: string
@@ -572,7 +632,8 @@ components:
           type: boolean
           description: |
             当且仅当 `message.toolCalls` 为空时为 true —— 模型没有再要工具，core 据此收尾。
-            本阶段没有别的收尾途径（没有「结束」工具，也没有人在环审批）。
+            本阶段没有别的收尾途径（没有「结束」工具）：**等审批不算收尾**——
+            要审批的工具在这里只回一条占位结果，`finished` 仍是 false，core 批完会再走一步。
         message:
           $ref: '#/components/schemas/AgentMessage'
         toolResults:
@@ -642,6 +703,55 @@ components:
         error:
           type: string
           description: 失败时的稳定机器码（只进 core 的日志与审计，不喂模型）；成功时为空。
+        awaitingApproval:
+          type: boolean
+          default: false
+          description: |-
+            **这一次调用没有执行**：工具被标记为需要人工审批，这一步只留了占位结果。
+            core 看到它就去走审批通道（人批了再调
+            `POST /internal/v1/agents/tool-executions` 真的执行），获批/被拒/超时之后
+            **同一次调用**只留一条最终结果进历史。
+            缺省（false）表示「这一段语义 ai-worker 不认识」，core 按普通结果处理。
+
+    AgentToolExecutionRequest:
+      type: object
+      required:
+        [schemaVersion, tenantID, taskID, approvalID, embedModel, allowedTools, toolCall]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        tenantID:
+          type: string
+          description: 租户 id；审批记录与工具副作用都只在这个租户范围内。
+        taskID:
+          type: string
+          description: core 的任务台账 id（审计与日志用）。
+        approvalID:
+          type: string
+          description: |-
+            core 的审批标识（确定性派生自 `<taskID>:<步骤>:<第几次调用>`）。
+            它只是载荷的一部分——幂等键由 core 另外拼在 `Idempotency-Key` 头里。
+        embedModel:
+          type: string
+          description: 与 `/agents/steps` 同义：需要写长期记忆的工具用它算向量。
+        allowedTools:
+          type: array
+          description: 本步的工具白名单（与 `/agents/steps` 同一份）。
+          items:
+            type: string
+        toolCall:
+          $ref: '#/components/schemas/AgentToolCall'
+
+    AgentToolExecutionResponse:
+      type: object
+      required: [schemaVersion, toolResult]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        toolResult:
+          $ref: '#/components/schemas/AgentToolResult'
 
     AgentUsage:
       type: object

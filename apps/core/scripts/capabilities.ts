@@ -117,7 +117,7 @@ export const CAPABILITIES: readonly Capability[] = [
   {
     name: 'agent',
     title: '服务端 agent',
-    owns: ['agent_task'],
+    owns: ['agent_task', 'agent_approval'],
     dependsOn: [],
     publicModules: ['persistence'],
     // 新增能力，没有遗留路径可吸收：HTTP 层是**新写**的，按 R6 留在 api 二进制（见 LEGACY_SERVICES）。

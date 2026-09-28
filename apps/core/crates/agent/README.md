@@ -5,6 +5,8 @@
 ## 数据所有权
 
 - `agent_task`：任务台账一行一次任务（发起人、目标、模型、轮次上限与工具白名单、进度、终态结果）。
+- `agent_approval`：审批台账一行一次**人做的决定**（谁、第几步、哪个工具、参数原文、批还是驳回、理由、逾期时间）。
+  `applied_at IS NULL` 表示「已提交、还没投递出去」；`EXPIRED` 不落这张表——超时没有人参与。
 - 只拥有台账，不重复记别人的数据：模型调用的用量与主体归 `gateway`（`gateway_usage` / `gateway_audit`），
   编排实例历史在 `durable` 自己的 schema 里，知识库与长期记忆归 ai-worker。
 
@@ -12,8 +14,13 @@
 
 - `persistence::{create, find, finish}`：建行、读行、终态写回，三件事之外什么都不做。
   `finish` 是**唯一的终态入口**，靠「读行加锁 + 条件判断」保证终态只写一次。
+- `persistence::{record_approval, find_approval, mark_applied}`：记一次人的决定、读一条决定、
+  标记「决定已经送进编排邮箱」。同一审批不能改判（`Error::DecisionConflict`），
+  「超时」不能由记进来冒充（`Error::NotHumanDecision`）。
 - `TaskState`（`RUNNING` / `SUCCEEDED` / `FAILED`）与 `TaskState::parse`：状态词汇的唯一落点。
-- `NewTask` / `TaskOutcome`：写入与收尾的入参形状。
+- `ApprovalState`（`APPROVED` / `REJECTED` / `EXPIRED`）与 `ApprovalState::parse`：决定词汇的唯一落点
+  （编排侧复用同一份，见 `src/orchestrations/agent.rs` 的 `pub use`）。
+- `NewTask` / `TaskOutcome` / `NewApproval`：写入与收尾的入参形状。
 
 ## 边界约束
 

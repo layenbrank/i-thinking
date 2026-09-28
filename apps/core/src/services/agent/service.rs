@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use chrono::{TimeDelta, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use durable::{Client, InstanceStatus};
 use entity::agent_task;
 use identity::TenantId;
@@ -26,10 +26,13 @@ use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
 use crate::guards::tenant::TenantCtx;
-use crate::orchestrations::agent::{AGENT_RUN, AgentRunInput, steps_from_progress};
+use crate::orchestrations::agent::{
+    AGENT_RUN, APPROVAL_QUEUE, AgentRunInput, ApprovalDecisionEvent, ApprovalState,
+    pending_approval, steps_from_progress,
+};
 use crate::services::agent::dispatch;
 use crate::services::agent::error::AgentError;
-use crate::services::agent::schema::{TaskP, TaskR};
+use crate::services::agent::schema::{ApprovalP, ApprovalR, TaskP, TaskR};
 use crate::utils::telemetry::current_traceparent;
 
 /// 起任务：租户内任何有效成员都可以（含 MEMBER）。
@@ -125,6 +128,7 @@ impl AgentService {
             embed_model: config.ai_worker.embed_model.clone(),
             max_steps,
             allowed_tools,
+            approval_ttl_secs: config.agent.approval_ttl_secs,
             traceparent: current_traceparent(),
         };
 
@@ -237,6 +241,175 @@ impl AgentService {
             }
         }
     }
+
+    /// 人对一次待审批的工具调用做决定：批准 = 放行执行，驳回 = 工具不执行。
+    ///
+    /// **顺序铁律**：先问编排「现在到底在等哪一次调用」，确认它报的审批标识就是路径里那一个，
+    /// 再写台账、再投邮箱。反过来（先信路径、先写台账）的话，一个人手抖写错的 id 也会在册上
+    /// 留下一条「有人批准过」，而编排从来没提过这次调用——台账从此不可信。
+    ///
+    /// 决定**不携带工具名与参数**：那些字段一律照抄编排报上来的那一份。让请求把工具与参数
+    /// 再传一遍，就等于允许「批了 A、记成 B」。
+    ///
+    /// # Errors
+    /// 权限不足 403；任务 id 非法或不在本租户 404；决定字面量非法 422；这次没有在等审批
+    /// （id 对不上、已超时、任务已结束）409；已有相反决定 409；编排不可用 503。
+    pub async fn decide(
+        storage: &Storage,
+        mut ctx: TenantCtx,
+        client: Option<&Arc<Client>>,
+        id: &str,
+        approval_id: &str,
+        req: ApprovalP,
+    ) -> Result<ApprovalR, Exception> {
+        ctx.require(WRITE_AGENT_TASK)?;
+
+        let decision = human_decision(&req.decision)?;
+
+        // 非法 id 与「不是我的 id」回同一个 404（理由同 `read`）。
+        let task_id = Uuid::parse_str(id).map_err(|_| AgentError::NotFound)?;
+        let row = agent::persistence::find(ctx.tx(), task_id)
+            .await
+            .map_err(AgentError::from)?;
+        let decider = ctx.principal().user_id().as_uuid();
+
+        let Some(row) = row else {
+            return Err(AgentError::NotFound.into());
+        };
+
+        // 这一刻起要发网络调用（问编排在等什么、投决定），作用域不能跨着它持有：
+        // `renew` 落定前一段、原地换一段新的，身份与权限仍是在 `enter` 时定下的那一份。
+        ctx.renew(storage).await?;
+
+        let Some(client) = client else {
+            return Err(AgentError::OrchestrationUnavailable(
+                "编排运行时未接通，问不到在等什么".to_owned(),
+            )
+            .into());
+        };
+
+        // 待审批项只在编排手里：台账上那条「有人批准过」是这次决定的**结果**，不是它的前提。
+        let pending = match client.status(&row.instance_id).await {
+            Ok(InstanceStatus::Running { custom_status }) => {
+                custom_status.as_deref().and_then(pending_approval)
+            }
+            // 实例不在，或已经跑完：没有待办可批。
+            Ok(_) => None,
+            Err(err) => {
+                return Err(AgentError::OrchestrationUnavailable(format!(
+                    "查询 agent 编排状态失败：{err}"
+                ))
+                .into());
+            }
+        };
+
+        let Some(pending) = pending.filter(|pending| pending.approval_id == approval_id) else {
+            return Err(AgentError::ApprovalNotPending(format!(
+                "任务 {task_id} 当前没有在等审批 {approval_id}"
+            ))
+            .into());
+        };
+
+        // 逾期时间照抄编排给的：判定在编排侧，台账记下来只为让「批了但送晚了」事后对得上账。
+        let expires_at = DateTime::from_timestamp_millis(pending.expires_at).ok_or_else(|| {
+            AgentError::Ledger(format!("编排报的逾期时间无法解析：{}", pending.expires_at))
+        })?;
+
+        let tenant_id = ctx.tenant_id();
+
+        let recorded = match agent::persistence::record_approval(
+            ctx.tx(),
+            &agent::NewApproval {
+                id: pending.approval_id.clone(),
+                tenant_id: tenant_id.as_uuid(),
+                task_id,
+                step: pending.step,
+                tool: pending.tool.clone(),
+                arguments: pending.arguments.clone(),
+                state: decision,
+                decided_by: decider,
+                reason: req.reason.clone(),
+                expires_at: expires_at.fixed_offset(),
+            },
+        )
+        .await
+        {
+            Ok(recorded) => recorded,
+            // 改判是**业务冲突**（409），必须在「台账错误 → 内部错误」的通用映射之前认出来。
+            Err(agent::Error::DecisionConflict {
+                existing, incoming, ..
+            }) => {
+                return Err(AgentError::ApprovalAlreadyDecided(format!(
+                    "审批 {approval_id} 已记为 {existing}，不能改判为 {incoming}"
+                ))
+                .into());
+            }
+            Err(err) => return Err(AgentError::from(err).into()),
+        };
+
+        // `applied_at` 为空 = 上一次提交死在了「提交」与「投递」之间，这一次要把决定补投出去。
+        let needs_delivery = recorded.applied_at.is_none();
+        let decided_at = recorded.decided_at.timestamp_millis();
+        let state = ApprovalState::parse(&recorded.state).map_err(AgentError::from)?;
+        // 投的是**台账里那一份**理由，不是这一次请求里的：重复提交给的新理由不该让编排看到
+        // 与台账不一致的版本。
+        let reason = recorded.reason.clone();
+
+        if needs_delivery {
+            // 先提交再投递：投递失败时那一行仍在册（`appliedAt` 为空），调用方重发就是补投。
+            ctx.renew(storage).await?;
+
+            let event = ApprovalDecisionEvent {
+                approval_id: pending.approval_id.clone(),
+                decision,
+                reason,
+            };
+            client
+                .enqueue_event(&row.instance_id, APPROVAL_QUEUE, &event)
+                .await
+                .map_err(|err| {
+                    // 决定已经在册（`applied_at` 仍为空），调用方重发同方向的决定就是补投——
+                    // 所以这里如实报 503，而不是假装成功。
+                    AgentError::OrchestrationUnavailable(format!("投递审批决定失败：{err}"))
+                })?;
+
+            if let Err(err) = agent::persistence::mark_applied(ctx.tx(), &pending.approval_id).await
+            {
+                tracing::error!(error = %err, approval = %pending.approval_id, "审批投递标记未能落库");
+            }
+        }
+
+        // 决定这时已经在编排邮箱里了，收尾这笔账没写上，最坏让下一次重复提交多投一次
+        // （编排按 id 忽略重复）；反过来把「没记上」报成失败，会让调用方以为决定没送到而反复重投。
+        if let Err(err) = ctx.commit().await {
+            tracing::error!(error = %err, approval = %pending.approval_id, "审批决定的收尾提交失败");
+        }
+
+        Ok(ApprovalR {
+            task_id: task_id.to_string(),
+            approval_id: pending.approval_id,
+            decision: state.as_str().to_owned(),
+            applied: needs_delivery,
+            decided_at,
+        })
+    }
+}
+
+/// 决定字面量 → 人的两种决定之一。
+///
+/// 只放行批准与驳回：`EXPIRED` 与任何未知词都拒掉。人**等不出**超时——那是编排在逾期时自己
+/// 判的；接口允许送 `EXPIRED` 进来，就等于开了一条「把别人正等着的调用直接判死」的旁路。
+///
+/// 大小写与前后空白不计较（契约里的正写是 `APPROVED`/`REJECTED`，落库一律用正写）；
+/// 这是格式上的宽容，与上面那条「词汇上不宽容」是两件事。
+fn human_decision(literal: &str) -> Result<ApprovalState, AgentError> {
+    let literal = literal.trim();
+    match ApprovalState::parse(&literal.to_ascii_uppercase()) {
+        Ok(state) if state != ApprovalState::Expired => Ok(state),
+        _ => Err(AgentError::ApprovalDecisionInvalid(format!(
+            "决定只能是 APPROVED 或 REJECTED，收到 {literal:?}"
+        ))),
+    }
 }
 
 /// 编排里没有这个实例：只有行龄够老才判失败，否则保持 `RUNNING` 等它被领走。
@@ -295,6 +468,7 @@ fn render(row: &agent_task::Model, progress: Option<&str>) -> TaskR {
         allowed_tools: tools_of(row),
         steps: progress.and_then(steps_from_progress).unwrap_or(row.steps),
         progress: progress.map(str::to_owned),
+        pending_approval: progress.and_then(pending_approval),
         finished: row
             .result
             .as_ref()
@@ -428,5 +602,40 @@ mod tests {
         let message = err.to_string();
         assert!(message.contains("shell"), "要点名拒绝的是哪个");
         assert!(message.contains("asset_read"), "要列出可用的");
+    }
+
+    #[test]
+    fn humans_can_only_approve_or_reject() {
+        assert_eq!(human_decision("APPROVED").unwrap(), ApprovalState::Approved);
+        assert_eq!(
+            human_decision(" rejected ").unwrap(),
+            ApprovalState::Rejected,
+            "大小写与前后空白不该让合法决定被拒"
+        );
+    }
+
+    #[test]
+    fn expiry_is_not_something_a_human_can_decide() {
+        let err = human_decision("EXPIRED").unwrap_err();
+        assert!(
+            matches!(err, AgentError::ApprovalDecisionInvalid(_)),
+            "放行 EXPIRED 等于开一条把别人正等着的调用直接判死的旁路"
+        );
+
+        assert!(matches!(
+            human_decision("maybe").unwrap_err(),
+            AgentError::ApprovalDecisionInvalid(_)
+        ));
+        assert!(
+            matches!(
+                human_decision("expired").unwrap_err(),
+                AgentError::ApprovalDecisionInvalid(_)
+            ),
+            "小写不是放行的理由"
+        );
+        assert!(matches!(
+            human_decision("").unwrap_err(),
+            AgentError::ApprovalDecisionInvalid(_)
+        ));
     }
 }

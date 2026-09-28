@@ -1,5 +1,6 @@
 pub mod prelude;
 
+pub mod agent_approval;
 pub mod agent_task;
 pub mod asset;
 pub mod auth;

@@ -1,3 +1,4 @@
+pub use super::agent_approval::Entity as AgentApproval;
 pub use super::agent_task::Entity as AgentTask;
 pub use super::asset::Entity as Asset;
 pub use super::auth::Entity as Auth;

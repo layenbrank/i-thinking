@@ -443,6 +443,7 @@ fn step(call_id: &str, tool: &str) -> AgentStepResponse {
             ok: true,
             content: format!("{call_id} 的结果"),
             error: None,
+            awaiting_approval: None,
         }],
         usage,
     }

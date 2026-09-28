@@ -43,6 +43,11 @@ pub struct TaskR {
     pub steps: i32,
     /// 编排自报的进度（形如 `step:2/6 tools:2`）；取不到时为 null
     pub progress: Option<String>,
+    /// 当前正等着人批的那一次工具调用；没有待审批时为 null。
+    ///
+    /// 从编排的进度串里投影出来，**不改台账**：待审批是编排的瞬时状态（可能几秒后就超时），
+    /// 落库只会多出一行需要清理的中间态。人批的时候才写台账。
+    pub pending_approval: Option<PendingApprovalR>,
     /// 是否得出了结论；仅有结论的成功任务有值（`false` = 轮次预算耗尽而停）
     pub finished: Option<bool>,
     /// 编排输出快照；成功后才有
@@ -54,4 +59,40 @@ pub struct TaskR {
     pub created_at: i64,
     #[serde(rename = "updatedAt")]
     pub updated_at: i64,
+}
+
+/// 待审批的一次工具调用（出参里的只读视图）。
+///
+/// 形状直接复用编排那边的 [`crate::orchestrations::agent::PendingApproval`]：同一个 JSON
+/// 既是编排写给运维的进度串、又是调用方看到的待办，中间不再翻译一遍（字段名漂移就是这么来的）。
+/// 编排那边因此也派生了 `ToSchema`——**契约与协议共用一份形状**，是这里刻意的取舍。
+pub type PendingApprovalR = crate::orchestrations::agent::PendingApproval;
+
+/// 审批决定请求。
+///
+/// 用**与台账、编排快照同一套字面量**（`APPROVED` / `REJECTED`）而不是自己再定一套动词：
+/// 多一层映射就多一个漂移点，而且 `EXPIRED` 在这里是天然的非法的值（人能批能驳，等不出超时）。
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalP {
+    /// `APPROVED` = 批准执行；`REJECTED` = 驳回（工具不执行）
+    pub decision: String,
+    /// 驳回理由，原样记进台账、也告诉模型「为什么不行」；批准时忽略
+    pub reason: Option<String>,
+}
+
+/// 审批决定的结果。
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalR {
+    #[serde(rename = "taskID")]
+    pub task_id: String,
+    #[serde(rename = "approvalID")]
+    pub approval_id: String,
+    /// 台账里的决定：`APPROVED` / `REJECTED`（超时不是人做的决定，只出现在任务快照里）
+    pub decision: String,
+    /// 这次调用是否**刚刚**落定（`false` = 同方向的决定之前已经提交过，这次只是把决定重投了一遍）
+    pub applied: bool,
+    #[serde(rename = "decidedAt")]
+    pub decided_at: i64,
 }

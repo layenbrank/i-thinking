@@ -8,6 +8,7 @@ publish.workspace = true
 chrono     = { workspace = true } # 台账时间戳（createdAt / updatedAt）
 entity     = { workspace = true } # agent_task 实体
 sea-orm    = { workspace = true } # 台账读写（含原子终态闸门）
+serde      = { workspace = true } # 审批词汇的跨进程字面量
 serde_json = { workspace = true } # 终态结果快照的形状
 thiserror  = { workspace = true }
 uuid       = { workspace = true }

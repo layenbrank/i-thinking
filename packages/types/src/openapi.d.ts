@@ -132,6 +132,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/tasks/{id}/approvals/{approvalID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 对一次待审批的工具调用做决定
+         * @description 任务跑到需要人工批准的工具（改业务数据的那类）时会**停在原地等**，把「在等哪一次调用」写进查询接口的 `pendingApproval` 字段。这个接口就是人对它的回答。
+         *
+         *     **批准**：这次调用真的执行，结果照常进任务历史，任务继续跑。
+         *     **驳回**：不执行，模型会收到一条「这次没执行、换个做法」的结果并接着跑。
+         *
+         *     `approvalID` 对不上、已经批过、任务已经结束，都回 409——决定只认**当前正在等的那一次**。
+         *     同一方向重复提交是幂等的（返回 `applied=false`），不会执行两次。
+         *
+         *     没人处理时会在 `approvalTtlSecs` 之后超时，任务拿到一条「超时未处理」的结果继续跑；
+         *     超时由编排判定，**不能**由调用方送进来（送 `EXPIRED` 是 422）。
+         *
+         *     需 JWT 且 `X-Tenant-ID` 指向的租户内有效成员。
+         *
+         *     `body.code`：200000 成功；`200001` 缺少 `X-Tenant-ID`；`200007` `X-Tenant-ID` 格式无效；
+         *     `500501` 任务不存在或不属于该租户；`500506` 当前没有在等这次调用；
+         *     `500507` 已有相反的决定；`500508` 决定不是 `APPROVED` / `REJECTED`；
+         *     `500503` 编排运行时未接通或决定投递失败（决定已记账，同一方向重发即为补投）。
+         */
+        post: operations["agent.decideApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/application/toRead": {
         parameters: {
             query?: never;
@@ -1693,6 +1729,43 @@ export interface components {
             /** @description 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用 */
             traceID?: string | null;
         };
+        ApprovalEnvelope: {
+            /**
+             * Format: int32
+             * @description 业务状态码（200000=成功）
+             */
+            code: number;
+            data?: null | components["schemas"]["ApprovalR"];
+            msg: string;
+            success: boolean;
+            /** Format: int64 */
+            timestamp: number;
+            /** @description 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用 */
+            traceID?: string | null;
+        };
+        /**
+         * @description 审批决定请求。
+         *
+         *     用**与台账、编排快照同一套字面量**（`APPROVED` / `REJECTED`）而不是自己再定一套动词：
+         *     多一层映射就多一个漂移点，而且 `EXPIRED` 在这里是天然的非法的值（人能批能驳，等不出超时）。
+         */
+        ApprovalP: {
+            /** @description `APPROVED` = 批准执行；`REJECTED` = 驳回（工具不执行） */
+            decision: string;
+            /** @description 驳回理由，原样记进台账、也告诉模型「为什么不行」；批准时忽略 */
+            reason?: string | null;
+        };
+        /** @description 审批决定的结果。 */
+        ApprovalR: {
+            /** @description 这次调用是否**刚刚**落定（`false` = 同方向的决定之前已经提交过，这次只是把决定重投了一遍） */
+            applied: boolean;
+            approvalID: string;
+            /** Format: int64 */
+            decidedAt: number;
+            /** @description 台账里的决定：`APPROVED` / `REJECTED`（超时不是人做的决定，只出现在任务快照里） */
+            decision: string;
+            taskID: string;
+        };
         /** @description 列表中的资产摘要 */
         AssetR: {
             /**
@@ -2471,6 +2544,30 @@ export interface components {
             newPassword: string;
             /** @example 123456 */
             oldPassword: string;
+        };
+        /**
+         * @description 待审批项：写进 custom status，api 从那里投影出「等谁批什么」（见 [`pending_approval`]）。
+         *
+         *     放的是**模型给的参数原文**：人批的就是这一份，执行时照它执行。审批不能批一个「意思」，
+         *     批的是一次具体调用。
+         */
+        PendingApproval: {
+            /** @description 审批标识（`<taskID>:<步骤>:<第几次调用>`），决定端点路径里用的就是它。 */
+            approvalID: string;
+            /** @description 模型给的参数 **JSON 字符串**（原文，不做任何改写）。 */
+            arguments: string;
+            /**
+             * Format: int64
+             * @description 逾期时间（epoch 毫秒，编排的时钟）。过了这个点这次调用就作废。
+             */
+            expiresAt: number;
+            /**
+             * Format: int32
+             * @description 第几轮请求的（人需要这个上下文才知道模型在干什么）。
+             */
+            step: number;
+            /** @description 工具名。 */
+            tool: string;
         };
         /**
          * @example {
@@ -3490,6 +3587,7 @@ export interface components {
             maxSteps: number;
             model: string;
             objective: string;
+            pendingApproval?: null | components["schemas"]["PendingApproval"];
             /** @description 编排自报的进度（形如 `step:2/6 tools:2`）；取不到时为 null */
             progress?: string | null;
             /** @description 编排输出快照；成功后才有 */
@@ -3953,6 +4051,57 @@ export interface operations {
                 };
             };
             /** @description 业务异常（任务不存在 / 非租户成员）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "agent.decideApproval": {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description 目标租户 ID（UUID）。**必填**：agent 任务的工具作用域（知识库检索 / 资产读取）都按租户划定，
+                 *     缺了这个头没有正确的作用域可进。调用者须为该租户有效成员（平台 ADMIN 可旁路）。
+                 */
+                "X-Tenant-ID": string;
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path: {
+                /** @description 任务 ID（UUID） */
+                id: string;
+                /** @description 待审批项 ID，取自查询接口的 `pendingApproval.approvalID` */
+                approvalID: string;
+            };
+            cookie?: never;
+        };
+        /** @description 批准或驳回，驳回时给理由 */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalP"];
+            };
+        };
+        responses: {
+            /** @description 成功（决定已记账） */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalEnvelope"];
+                };
+            };
+            /** @description 业务异常（任务不存在 / 没有待审批项 / 决定非法 / 编排不可用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
             default: {
                 headers: {
                     /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */

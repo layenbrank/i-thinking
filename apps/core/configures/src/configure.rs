@@ -670,12 +670,26 @@ pub struct AgentConfig {
     pub chat_model: String,
     /// 轮次上限（一次任务最多几次「推理 + 工具」）。
     pub max_steps: usize,
+    /// 单次人工审批最多等多久（秒）。
+    ///
+    /// 只对需要审批的写工具有效：到点没人处理就按「超时」作废这次调用（工具不执行）。
+    /// **必须明显小于等待者的预算**（`services::agent::dispatch` 的 3600s），否则任务会先被
+    /// 等待者判超时，人在批准时实例已经没人接了。这个下限由 `service` 侧的测试钉住。
+    pub approval_ttl_secs: u64,
     /// 允许 agent 使用的工具（OpenAI 函数名规则：字母数字加下划线，**不能带点号**——
     /// 点号是能力名的写法，工具名带点上不了模型接口）。
     ///
     /// 写入类工具（`memory_write`）**不进默认值**：它写下的记忆会被之后的任务召回，
-    /// 投毒一次就持续影响后续任务，必须由运维显式开启。
+    /// 投毒一次就持续影响后续任务，必须由运维显式开启。开启后它的每次调用都要先过人工审批。
     pub allowed_tools: Vec<String>,
+}
+
+impl AgentConfig {
+    /// 审批等待时长的下限：比这更短，人根本来不及看到待办（等于没开审批）。
+    pub const MIN_APPROVAL_TTL_SECS: u64 = 60;
+
+    /// 缺省的审批等待时长（秒）。
+    pub const DEFAULT_APPROVAL_TTL_SECS: u64 = 1800;
 }
 
 impl Default for AgentConfig {
@@ -683,6 +697,7 @@ impl Default for AgentConfig {
         Self {
             chat_model: "deepseek-chat".to_string(),
             max_steps: 6,
+            approval_ttl_secs: Self::DEFAULT_APPROVAL_TTL_SECS,
             allowed_tools: vec![
                 "knowledge_search".to_string(),
                 "asset_read".to_string(),
@@ -1050,7 +1065,7 @@ impl Configure {
 
     /// 服务端 agent 的形状校验（各 profile 一致）。
     ///
-    /// 这三项都是**天花板**：起任务时用不上一个空模型名、用不上 0 轮预算，也认不出带点号的
+    /// 这几项都是**天花板**：起任务时用不上一个空模型名、用不上 0 轮预算，也认不出带点号的
     /// 工具名（那是能力名的写法，模型接口不认）。所以宁可在启动时报，而不是等到第一条任务。
     fn validate_agent(&self) -> Result<()> {
         let agent = &self.agent;
@@ -1059,6 +1074,13 @@ impl Configure {
         }
         if agent.max_steps == 0 {
             bail!("agent.max_steps must be greater than 0");
+        }
+        if agent.approval_ttl_secs < AgentConfig::MIN_APPROVAL_TTL_SECS {
+            bail!(
+                "agent.approval_ttl_secs 至少 {} 秒（当前 {}）：比这更短，人来不及看到待办，等于没开审批",
+                AgentConfig::MIN_APPROVAL_TTL_SECS,
+                agent.approval_ttl_secs
+            );
         }
         for tool in &agent.allowed_tools {
             if !is_tool_name(tool) {
@@ -1653,6 +1675,10 @@ mod tests {
         let cfg = Configure::default();
         assert_eq!(cfg.agent.chat_model, "deepseek-chat");
         assert_eq!(cfg.agent.max_steps, 6);
+        assert_eq!(
+            cfg.agent.approval_ttl_secs,
+            AgentConfig::DEFAULT_APPROVAL_TTL_SECS
+        );
         assert!(
             cfg.agent.allowed_tools.iter().all(|t| is_tool_name(t)),
             "默认工具名必须过得了模型接口的名字规则"
@@ -1679,6 +1705,11 @@ mod tests {
         assert!(err.to_string().contains("agent.max_steps"));
 
         cfg.agent.max_steps = 6;
+        cfg.agent.approval_ttl_secs = AgentConfig::MIN_APPROVAL_TTL_SECS - 1;
+        let err = cfg.validate().expect_err("过短的审批等待必须失败");
+        assert!(err.to_string().contains("agent.approval_ttl_secs"));
+
+        cfg.agent.approval_ttl_secs = AgentConfig::MIN_APPROVAL_TTL_SECS;
         cfg.agent.allowed_tools = vec!["rag.search".into()];
         let err = cfg.validate().expect_err("带点号的工具名必须失败");
         assert!(err.to_string().contains("agent.allowed_tools"));

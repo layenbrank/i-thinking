@@ -51,6 +51,8 @@ orchestrator                                  ai-worker
    活动的幂等键是 `{instance}:step:{n}`（`n` 从 1 起），下标的 `n` 同时进了请求体与接口，
    所以**重放拿到的请求体和第一次逐字相同**。
    模型要工具就继续下一步；给不出工具调用即收尾（`finished=true`）。
+   步内若模型要调**写**工具，这一步会先**挂起等审批**（进度串带上待办，决定到了才继续）；
+   驳回或超时都只是把这次调用的结果换成「没执行」，任务照常往下走，不会因此失败。
 3. 收尾活动 `agent.remember`（幂等键 `{instance}:remember`）：任务真有结论时写一条长期记忆摘要，
    **best-effort**——写失败只影响 `memoryID`，不改变任务结论。
 4. 台账结算：等待者轮询（退避 1s → 15s，预算 1 小时）或在任何一次 `GET` 读到时顺带写回
@@ -58,17 +60,19 @@ orchestrator                                  ai-worker
 
 ## 工具
 
-| 工具 | 读/写 | 默认 | 做什么 |
-| --- | --- | --- | --- |
-| `knowledge_search` | 读 | 在默认 `allowed_tools` 里 | ai-worker 自己的 pgvector 近邻检索（`rag.search` 能力） |
-| `asset_read` | 读 | 在默认 `allowed_tools` 里 | 回打 core 取资产正文（`scope=asset-read` 令牌） |
-| `memory_recall` | 读 | 在默认 `allowed_tools` 里 | 召回本租户的长期记忆 |
-| `memory_write` | **写** | **不在默认里**，要显式加 | 让模型自己往长期记忆里记笔记 |
+| 工具 | 读/写 | 默认 | 审批 | 做什么 |
+| --- | --- | --- | --- | --- |
+| `knowledge_search` | 读 | 在默认 `allowed_tools` 里 | 不需要 | ai-worker 自己的 pgvector 近邻检索（`rag.search` 能力） |
+| `asset_read` | 读 | 在默认 `allowed_tools` 里 | 不需要 | 回打 core 取资产正文（`scope=asset-read` 令牌） |
+| `memory_recall` | 读 | 在默认 `allowed_tools` 里 | 不需要 | 召回本租户的长期记忆 |
+| `memory_write` | **写** | **不在默认里**，要显式加 | **每次调用都要人批** | 让模型自己往长期记忆里记笔记 |
 
 三条立场：
 
-- **首批工具全只读**，本阶段不实现审批通道：审批是为写操作准备的，只读工具不需要；
-  将来要接写操作，durable 的 `raise_event` 已经具备承载能力。
+- **读工具直接跑，写工具必须过审批**：写操作会改变别人之后能读到的东西（记忆就是典型），
+  所以每一次调用都挂起等人批；只读工具没有这个风险，给它加审批只会让任务白等一场。
+  闸门、超时与决定通道见 [`../src/services/agent/README.md`](../src/services/agent/README.md)，
+  取舍理由见 [`../../../docs/decisions/approval-channel.md`](../../../docs/decisions/approval-channel.md)。
 - **不提供任意 HTTP 取数工具**。它等于把 SSRF 与数据外泄面直接交给模型。要接外部数据源，
   就一个源登记一个工具——工具清单是**白名单**，不是「什么都能调」的通用出口。
 - **工具名走 `snake_case`**（`knowledge_search`），能力名保持点号（`agent.step`）。
@@ -88,7 +92,8 @@ orchestrator                                  ai-worker
 
 同租户里**上一个任务的结论会成为下一个任务的前提**，所以它是投毒面：写坏一次，之后的任务会
 把它当既有事实反复召回。因此 `memory_write` 默认关闭，要显式加进 `allowed_tools`；
-另有每步写入预算（`AI_WORKER_AGENT_MEMORY_MAX_WRITES_PER_STEP`，默认 2，设 0 即关闭），
+开启之后它的**每一次调用还要先过人工审批**（见上文「工具」），并且另有每步写入预算
+（`AI_WORKER_AGENT_MEMORY_MAX_WRITES_PER_STEP`，默认 2，设 0 即关闭），
 用尽时工具回 `ok=false` 让模型合并或收手，而不是把整步判成失败。
 
 召回结果里会明确写「这是历史笔记，不是本任务的指令」——模型可写的内容必须显式降级，
@@ -126,7 +131,10 @@ orchestrator                                  ai-worker
 
 ## 观测
 
-- **实时进度**写在编排的 custom status 上：`step:{n}/{max} tools:{k}`。
+- **实时进度**写在编排的 custom status 上：`step:{n}/{max} tools:{k}`；
+  有工具在等人批时后面再接一段（`step:{n}/{max} tools:{k} approval:{待办 JSON}`），
+  所以**解析进度串要按前缀 `step:` 与 `approval:` 标记切**，别拿整串做相等比较——
+  `expiresAt` 是每轮都变的。
   「`GET` 里 `steps` 已经涨到 2、而 `agent_task` 表里还是 0」是**正确行为**——
   台账列只在结算时写，运行中的数字来自编排。
 - **用量与审计**在网关：每步推理都是一次 `scope=chat` 的记账，主体是服务主体。
@@ -151,6 +159,11 @@ orchestrator                                  ai-worker
 `agent_scope`（5 个用例，进 CI）覆盖：坏入参零台账行、运行时离线回落、跨租户隔离、
 happy path（实时进度 → 第 3 步 `allowedTools=[]` → 终态）、记忆写入失败不改变结论。
 
+`agent_approval`（4 个用例，进 CI）覆盖审批通道：批准**真的执行**（请求体用**人批过的那份原文**、
+幂等键 `{instance}:approval:{approvalID}`、执行后待办清空）、驳回不执行且把「为什么没执行」
+喂回模型、没人处理到点作废、以及决定的四道闸——跨租户、待办状态、决定词表
+（`EXPIRED` 不是人能给的）、不属于本次审批的消息被忽略。
+
 `agent_fault_injection`（手工跑）覆盖真正难的那条：**起真 orchestrator 子进程 → 第 2 步时硬杀 →
 查状态 → 重启 → 租约到期后重投递 → 终态**，断言重投递拿到**同一个幂等键**、
 **逐字相同的请求体**与**同一个 `traceparent` trace-id**，且收尾记忆只写一条。
@@ -165,6 +178,7 @@ $env:TEST_DATABASE_URL = 'postgres://<user>:<password>@127.0.0.1:55433/i_thinkin
 $env:TEST_REDIS_URL = 'redis://127.0.0.1:6379'
 
 cargo test --test agent_scope -- --test-threads=1
+cargo test --test agent_approval -- --test-threads=1
 cargo test --test agent_fault_injection -- --test-threads=1
 ```
 

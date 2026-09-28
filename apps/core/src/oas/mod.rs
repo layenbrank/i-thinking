@@ -20,9 +20,9 @@ use crate::oas::addons::ContractAddon;
 use utoipa::OpenApi;
 
 use crate::oas::common::{
-    ApplicationEnvelope, CaptchaEnvelope, CatalogEnvelope, ChunkUploadEnvelope, ChunkUploadForm,
-    DependencyCheck, EmptyEnvelope, EmptyR, Exception, FinalizeUploadEnvelope, Health,
-    HealthEnvelope, IndexTaskEnvelope, Liveness, LivenessEnvelope, MemberEnvelope,
+    ApplicationEnvelope, ApprovalEnvelope, CaptchaEnvelope, CatalogEnvelope, ChunkUploadEnvelope,
+    ChunkUploadForm, DependencyCheck, EmptyEnvelope, EmptyR, Exception, FinalizeUploadEnvelope,
+    Health, HealthEnvelope, IndexTaskEnvelope, Liveness, LivenessEnvelope, MemberEnvelope,
     MemberListEnvelope, ModelEnvelope, ModelListEnvelope, OrderEnvelope, OrderListEnvelope,
     PlansEnvelope, PriceEnvelope, PriceListEnvelope, ProfileEnvelope, ProviderEnvelope,
     ProviderListEnvelope, QuotaEnvelope, Readiness, ReadinessEnvelope, ReconcileEnvelope,
@@ -32,7 +32,7 @@ use crate::oas::common::{
     UploadFilesEnvelope, UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope,
     UserEnvelope, UserListEnvelope,
 };
-use crate::services::agent::schema::{TaskP, TaskR};
+use crate::services::agent::schema::{ApprovalP, ApprovalR, TaskP, TaskR};
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
     AuthR, Avatar, CaptchaP, CaptchaR, EmailSigninP, ForgotPasswordP, Gender, OtpChannel, OtpP,
@@ -174,6 +174,7 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         billing::reconciliation_export_doc,
         agent::create_task_doc,
         agent::read_task_doc,
+        agent::decide_approval_doc,
         rag::create_index_task_doc,
         rag::read_index_task_doc,
     ),
@@ -320,6 +321,9 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
             TaskP,
             TaskR,
             TaskEnvelope,
+            ApprovalP,
+            ApprovalR,
+            ApprovalEnvelope,
             IndexTaskP,
             IndexTaskR,
             IndexTaskEnvelope,
