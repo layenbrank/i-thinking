@@ -7,6 +7,11 @@
 整个仓库只有这里依赖它们（由 `scripts/capabilities.ts` 的 `CONFINED_CRATE_DEPS` 声明、
 `scripts/arch.ts` 的 R10 强制）。上层只看本 crate 的端口，换实现或升级只动这一个 crate。
 
+为什么是它、不是最初建议的 `pg_durable`（Postgres 扩展形态）：见
+[`docs/decisions/durable-execution-engine.md`](../../../../docs/decisions/durable-execution-engine.md)。
+一句话版本——扩展形态要把执行体放进数据库服务器（超级用户世界、能出网），与本仓库「隔离靠 RLS、
+出网只有 gateway」两条不变量直接冲突；而这个库把风险关在一个可被换掉的 crate 后面。
+
 ## 数据所有权
 
 | 对象 | 说明 |

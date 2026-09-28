@@ -99,6 +99,7 @@
 | ------------------------------------------------------------------- | --------------------------------------------- |
 | [prisma-to-drizzle.md](./decisions/prisma-to-drizzle.md)            | Studio 本地库从 Prisma 迁到 Drizzle 的选型依据 |
 | [renderer-vite-root-cause.md](./decisions/renderer-vite-root-cause.md) | Studio renderer 构建根因分析               |
+| [durable-execution-engine.md](./decisions/durable-execution-engine.md)  | core 可靠执行引擎：duroxide 而非 pg_durable   |
 
 ## 调试入口
 
