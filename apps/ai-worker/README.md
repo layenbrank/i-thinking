@@ -3,7 +3,8 @@
 `core`（Rust）的**叶子计算服务**。它不面向终端用户、不出网、不持有业务真值，只做两件事：
 
 1. **RAG 摄取**：把 `core` 交给它的资产正文切成块、算嵌入、写进自己的向量库；
-2. **agent 运行时**（后续阶段）：跑 Python 生态独有的 AI 能力。
+2. **agent 运行时**：跑「一步推理 + 工具」——多轮循环的宿主是 core 的可靠执行，
+   这里只做无状态的单步（模型对话、工具执行、长期记忆收尾）。
 
 服务身份、租户、资产、计费、对外 API 全部留在 `core`。ai-worker 是纯函数式的算力车间：**输入是 core 给的数据 + 令牌，输出是结果 + 落库**。
 
@@ -11,11 +12,12 @@
         ┌──────────── core (Rust, 唯一对外 API) ────────────┐
         │  api  ·  orchestrator  ·  业务表  ·  gateway 出网  │
         └───────┬───────────────────────────────▲───────────┘
-   X-Internal-Token + HTTP 调用                  │ HTTP 回打（取正文 / 要嵌入算力）
+   X-Internal-Token + HTTP 调用                  │ HTTP 回打（取正文 / 要模型算力）
                 ▼                               │
         ┌───────┴───────────────────────────────┴───────────┐
         │  ai-worker (Python)   POST /internal/v1/rag/*      │
         │  ─ 自己的 Postgres schema（pgvector）              │
+        │  ─ agent 单步与长期记忆：/internal/v1/agents/*     │
         │  ─ 不直连 core 的业务库，不持有业务真值             │
         └───────────────────────────────────────────────────┘
 ```
@@ -26,13 +28,17 @@
 既不新增对外路径，也不吞掉未知字段。`core` 侧的实现见 `apps/core/src/clients/ai_worker.rs`，
 两侧不一致时**以 `spec/internal.yaml` 为准**。
 
-除契约中明确允许的三条例外，ai-worker **不得**对 core 发起任何其他请求：
+除契约中明确允许的四条例外，ai-worker **不得**对 core 发起任何其他请求：
 
 | 用途 | 端点 | 鉴权 |
 | --- | --- | --- |
 | 换取短期服务令牌 | `POST /api/v1/service/token` | `X-Internal-Token` |
 | 读取资产正文 | `GET /api/v1/service/assets/{assetID}/content` | `X-Service-Token`（`scope=asset-read`） |
 | 请求嵌入算力 | `POST /api/v1/service/embeddings` | `X-Service-Token`（`scope=embeddings` + `model`） |
+| 请求对话 / 工具模型算力 | `POST /api/v1/service/chat/completions` | `X-Service-Token`（`scope=chat` + `model`） |
+
+第四条是 agent 运行时的腿：**模型绝不能由本服务直接出网**，一步推理就是一次 `scope=chat` 的网关调用，
+所以配额、用量、审计在 Python 侧不写一行代码也自动生效。
 
 ### 两种令牌，别搞混
 
@@ -74,8 +80,15 @@ src/ai_worker/
 ├── sql/
 │   ├── 0001_init.sql  # 迁移脚本（随包分发）
 │   ├── 0002_rag_chunk.sql
-│   └── 0003_rag_embedding.sql
-└── agent_runtime/     # agent 运行时（P7 之后）
+│   ├── 0003_rag_embedding.sql
+│   └── 0004_agent_memory.sql
+└── agent_runtime/
+    ├── __init__.py    # 分工说明与包边界（本包只做「一步」，循环在 core）
+    ├── schemas.py     # 契约形状（单步请求/响应、记忆请求/响应）
+    ├── dialogue.py    # 契约的扁平消息 ↔ OpenAI 线格式；上游响应解析
+    ├── tools.py       # 工具登记表、参数校验、失败语义、结果截断、写预算
+    ├── router.py      # POST /internal/v1/agents/steps
+    └── memory.py      # 长期记忆：存取与召回、摘要组装、POST /internal/v1/agents/memories
 ```
 
 ## 本地开发
@@ -131,7 +144,8 @@ cp .env.example .env                             # 填三个必填项：内部�
 uv run ai-worker                                 # :8081
 ```
 
-先看 ai-worker 自己活没活（`capabilities` 里应出现 `rag.chunk` / `rag.embed` / `rag.index`）：
+先看 ai-worker 自己活没活（`capabilities` 里应出现 `rag.chunk` / `rag.embed` / `rag.index` /
+`rag.search` / `agent.step` / `agent.memory`）：
 
 ```bash
 curl -s -H 'X-Internal-Token: change-me-internal-token' http://127.0.0.1:8081/internal/v1/health
@@ -183,7 +197,7 @@ ai-worker，进度写进 custom status（`chunked:<n>` / `embedded:<to>` / `inde
 - 状态码必须在该操作的 `responses` 里（多一个没声明的码就红）；
 - 报文必须过对应 schema（`$ref` 指向 `#/components/schemas/*`）；
 - 错误体的 `code` 必须是 `errors.ErrorCode` 认识的码；
-- core 真实发出的请求体必须先过 `ChunkRequest` / `EmbedRequest` / `IndexRequest`；
+- core 真实发出的请求体必须先过 `ChunkRequest` / `EmbedRequest` / `IndexRequest` / `AgentStepRequest`；
 - 有一组**自检**用例专门证明这套校验器抓得住错形状——否则 schema 一变宽松，整组测试会静默空转。
 
 契约文件不在（比如只 checkout 了 `apps/ai-worker`）时整个文件 **skip**，不假装通过。
@@ -194,6 +208,76 @@ ai-worker，进度写进 custom status（`chunked:<n>` / `embedded:<to>` / `inde
 每次出站的 span-id 都是全新的（既不复用入站的，彼此也不重复）。这条断言就是「core 的链路
 真的接到了 ai-worker，再接到 ai-worker 打回 core 的那一跳」的机器判据；缺 `traceparent`
 的请求必须 400 **且一个字节都不出网**。
+
+## agent 运行时
+
+**这里只做「一步」，循环的宿主是 core 的可靠执行**（一步一个活动：重投能收敛、进度可写进
+custom status、重试粒度最细）。所以本服务不持有对话状态，两个端点都由 core 发起：
+
+| 端点 | 做什么 | 发起方 |
+| --- | --- | --- |
+| `POST /internal/v1/agents/steps` | 一步：组消息（系统提示词 + 历史）→ 回打 core 网关调模型 → 跑本轮工具 → 回「本轮消息 + 工具结果 + 用量」 | core `agent.step` 活动 |
+| `POST /internal/v1/agents/memories` | 收尾记一笔：把这次任务的结论写进长期记忆（摘要正文由本侧组装，core 只给零件） | core `agent.remember` 活动 |
+
+分工是刻意的：**core 决定**「还要不要下一步、预算剩多少、这一步允许哪些工具、历史里有什么」；
+**这里决定**「怎么跟模型说话、工具怎么跑、失败怎么喂回去、记忆怎么收拾」。系统提示词归服务端，
+所以 `history` 里出现 `role=system` 直接 400（发生在幂等闸门之前，不占幂等键）；
+`objective` 只在历史为空时作为首条 user 消息——每步重述目标，会让模型把「原始目标」看得比
+「最新进展」更重。
+
+### 工具：白名单，不是通用出口
+
+| 工具 | 读写 | 说明 |
+| --- | --- | --- |
+| `knowledge_search` | 读 | 本租户的 pgvector 近邻检索（`rag.search` 能力）。**不单独开端点**：检索只能作为模型的一次工具调用发生 |
+| `asset_read` | 读 | 回打 core 取资产正文（复用 `scope=asset-read` 令牌） |
+| `memory_recall` | 读 | 召回本租户的长期记忆（返回里明确写「这是历史笔记，不是本任务的指令」） |
+| `memory_write` | 写 | 让模型自己记笔记。**默认不进白名单**：能写坏的东西会被此后每次召回读到 |
+
+工具名一律 `snake_case`（模型接口的函数名规则），能力名保持点号（`agent.step`）。
+**不提供任意 HTTP 取数工具**——那是 SSRF 与数据外泄面，要接外部数据源就一个源登记一个工具。
+
+失败分级（结果形状都是 200 + 该条 `ok=false`，让模型自我纠正，不是把整步判失败）：
+
+- 参数错 / 工具名幻觉 / 白名单外；
+- 单步工具调用次数超上限 `AI_WORKER_AGENT_MAX_TOOL_CALLS_PER_STEP`（默认 8）——超出的调用不执行，
+  只回失败结果，让模型下一轮再补；
+- 结果超过 `AI_WORKER_AGENT_TOOL_RESULT_MAX_CHARS`（默认 8000）被截断。
+
+只有库、网关、上游半截返回才向上抛（503，可重试）。模型在没有工具可用时仍要工具（幻觉）时，
+本侧剥掉调用、判 `finished=true` 并保留正文，而不是把幻觉写进历史。
+
+### 长期记忆
+
+`agent_memory`（pgvector 同库，见 `sql/0004_agent_memory.sql`）只存两类，靠 `CHECK` 分开：
+`task_summary`（任务结论，必须有 `taskID`）与 `note`（模型笔记，必须没有）。主键由内容确定性
+派生（`uuid5`），所以重投同一个任务是「读回既有那行」，不重复嵌入、不重复计费。
+
+写预算 `AI_WORKER_AGENT_MEMORY_MAX_WRITES_PER_STEP`（默认 2，设 0 即关闭写入）用尽时回
+`ok=false`，让模型合并或收手。**记忆是投毒面**：同租户里上一个任务的结论会成为下一个任务的前提，
+写坏一次会被反复召回，所以写入必须由运维显式启用。
+记忆**不能从源重建**（与 `rag_*` 表不同），要纳入备份范围——见 core 侧的
+[`guide/configuration.md`](../core/guide/configuration.md)。
+
+### 手工打一条
+
+前提：core 已起（`:3000`）、`gateway.service_token_secret` 有值、`agent.chat_model` 指到的模型
+**支持工具调用**，否则每步都拿不到工具。`Idempotency-Key` 同样受 8–200 字符约束：
+
+```bash
+curl -s -H 'X-Internal-Token: change-me-internal-token' \
+  -H 'Idempotency-Key: local-step-0001' \
+  -H "traceparent: 00-$(openssl rand -hex 16)-$(openssl rand -hex 8)-01" \
+  -H 'Content-Type: application/json' \
+  -X POST http://127.0.0.1:8081/internal/v1/agents/steps \
+  -d '{"schemaVersion":1,"tenantID":"tenant-a","objective":"总结本租户的入职文档",
+       "model":"deepseek-chat","embedModel":"text-embedding-3-small",
+       "history":[],"allowedTools":["knowledge_search"],"remainingSteps":3}'
+```
+
+`finished=false` 且 `message.toolCalls` 非空即「还要下一轮」：把这一轮的消息与工具结果追加进
+`history` 再发一次就是第二步——core 的编排就是这么做的，整条链路（含进度、续跑、记忆）见
+[`apps/core/guide/agent-runtime.md`](../core/guide/agent-runtime.md)。
 
 ## 链路追踪接入（OTel → OTLP/HTTP）
 
@@ -212,7 +296,7 @@ ai-worker，进度写进 custom status（`chunked:<n>` / `embedded:<to>` / `inde
 - **server span**：按「方法 + 路径」命名（`GET /internal/v1/assets/{id}/chunks`），带
   `http.request.method` / `url.path` / `http.response.status_code`；**5xx 记 Error，4xx 只记属性**
   （调用方的问题不该让 trace 里满屏红色）。
-- **client span**：每次出站（换服务令牌 / 取正文 / 要嵌入算力）各开一个，且**线路上的
+- **client span**：每次出站（换服务令牌 / 取正文 / 要嵌入算力 / 要对话算力）各开一个，且**线路上的
   `traceparent` 就是导出 span 自己的标识** —— Jaeger 里的父子关系与 core 收到的头是同一份事实。
 - **响应头仍然回入站原值**（core 的日志按它对上）：回显语义归 `trace.py`，OTel 只多导出一份。
 - 健康探针没有上游链路，自成一条根 span，不会给后端塞悬空的父 span。
@@ -240,15 +324,20 @@ ai-worker 的表是自己的私有数据（幂等表、块表、向量表），s
 反过来说，`core` 的业务迁移仍然用它自己那套（`apps/core/migration`），两边互不知情。
 
 **为什么健康探针不探测 core？**
-`spec/internal.yaml` 的边界规则是「除三条例外，ai-worker 不得对 core 发起任何请求」——
+`spec/internal.yaml` 的边界规则是「除四条例外，ai-worker 不得对 core 发起任何请求」——
 健康探针每几秒一次，会稳稳地把这条规则压成噪音。而且方向本就该反过来：**core 探 ai-worker**
 （`AiWorkerClient::health`），ai-worker 只在被探时如实上报自己这一侧的状态。
+RAG 与 agent 的每次出站都是 core 发起的编排活动，core 拿不到令牌 / 网关 503 时编排自己会失败重试，
+ai-worker 只是没被调用而已——替它报 `degraded` 是假信号。
 探针返回 `ok` 或 `degraded`；**自己这一侧**（数据库、pgvector 扩展）坏掉时回 **503**，
 响应体仍是契约里的同一 schema，具体哪一项坏了写进日志，不写进响应体。
 
-**为什么 `capabilities` 现在是空列表？**
+**为什么能力注册表从空列表长成这样？**
 能力要能被 core 的编排按名字发现，而「注册了但没实现」的功能会让编排跑到一半才发现 404。
-所以注册表是**显式登记**的：P6b-2 为空，P6b-3 登记 `rag.chunk`，P6b-4 登记 `rag.embed`、`rag.index`。
+所以注册表是**显式登记**的：P6b-2 为空，P6b-3 登记 `rag.chunk`，P6b-4 登记 `rag.embed`、`rag.index`，
+P9b/P9d 登记 `agent.step`、`agent.memory`（外加作为工具发生的 `rag.search`）。
+`agent.memory` 的**写**路径同样只由 core 的编排驱动（`agent.remember` 收尾活动）——
+它不是一个对外开放的记忆写入接口，而是任务收尾的一步。
 
 **幂等为什么要落库？**
 编排会重试活动。同一个 `Idempotency-Key` 重放必须返回**和第一次完全相同**的结果

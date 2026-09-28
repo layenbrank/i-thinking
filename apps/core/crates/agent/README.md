@@ -25,6 +25,8 @@
 
 ## 迁移状态
 
-- `migrating`：本能力是 P9c 新增的，没有遗留路径可吸收（`absorbs` 为空）。
+- `migrated`：本能力没有遗留路径可吸收（`absorbs` 为空），边界与实现都已就位——
+  `crates/agent` + `src/services/agent` + `src/orchestrations/agent.rs` +
+  `tests/agent_scope.rs` / `tests/agent_fault_injection.rs`。
   `src/services/agent` 的 HTTP 层按 R6 留在 api 二进制，归属登记在 `scripts/capabilities.ts`
   的 `LEGACY_SERVICES`。

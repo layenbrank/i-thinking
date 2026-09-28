@@ -17,6 +17,7 @@
 | 能力边界（crate 划分与门禁） | [`architecture-capabilities.md`](architecture-capabilities.md) |
 | 配置（YAML） | [`configuration.md`](configuration.md) |
 | 外部集成（出站） | [`integrations.md`](integrations.md) |
+| 服务端 agent 运行时（长任务 · 无人在环） | [`agent-runtime.md`](agent-runtime.md) |
 | Redis | [`redis.md`](redis.md) |
 | 横切架构（Nest ↔ Actix） | [`architecture-cross-cutting.md`](architecture-cross-cutting.md) |
 | 模块接口详情 | [`src/services/*/README.md`](../src/services/auth/README.md) |
@@ -52,6 +53,7 @@ Token 来自 `POST /api/v1/auth/signin` 或 `signup` 响应的 `data.token`。
 | 订阅 | `/api/v1/tenants/{id}/subscriptions` | [subscription](../src/services/subscription/README.md) | OpenAPI |
 | 支付 | `/api/v1/tenants/{id}/orders` | [payment](../src/services/payment/README.md) | OpenAPI |
 | 模型网关 | `/api/v1/gateway` · `/api/v1/tenants/{id}/audit` | [gateway](../src/services/gateway/README.md) | [`http/07-gateway-audit.http`](../http/07-gateway-audit.http) |
+| agent 任务 | `/api/v1/agent/tasks` | [agent](../src/services/agent/README.md) · [运行时](./agent-runtime.md) | OpenAPI |
 
 ## 典型调用顺序
 

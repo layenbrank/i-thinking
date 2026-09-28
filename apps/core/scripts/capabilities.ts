@@ -122,7 +122,8 @@ export const CAPABILITIES: readonly Capability[] = [
     publicModules: ['persistence'],
     // 新增能力，没有遗留路径可吸收：HTTP 层是**新写**的，按 R6 留在 api 二进制（见 LEGACY_SERVICES）。
     absorbs: [],
-    status: 'migrating'
+    // 边界与实现都已就位：crate + services/agent + orchestrations/agent.rs + e2e（agent_scope / agent_fault_injection）。
+    status: 'migrated'
   }
 ]
 

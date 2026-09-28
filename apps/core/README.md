@@ -126,6 +126,8 @@ TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/i_thinking_test \
 # 同一测试库（先 export / set 一次 TEST_DATABASE_URL 即可复用）
 cargo test --test rag_index -- --test-threads=1
 cargo test --test rag_fault_injection -- --test-threads=1
+cargo test --test agent_scope -- --test-threads=1
+cargo test --test agent_fault_injection -- --test-threads=1
 ```
 
 ## 项目结构
@@ -137,6 +139,7 @@ scripts/                  # Bun 脚本（bun run …）
   utils/                  # http（ky）/ auth / http.errors
   arch.ts | dev.ts | imports.ts | upload.ts
 crates/
+  agent/                  # 能力 crate：agent 任务台账（agent_task 表的唯一写者）
   audit/                  # 能力 crate：跨模块审计（事件信封契约）
   durable/                # 能力 crate：可靠执行端口（编排/活动/停机，实现本体只在这里）
 src/
@@ -159,6 +162,7 @@ src/
     gateway/              # 模型网关：转发 / 配额 / 用量 / 审计
     sso/                  # 单点登录（OIDC）
     application/          # 应用入口（挂载 v1 路由）
+    agent/                # 服务端 agent 任务（起任务 / 查进度；运行时见 guide/agent-runtime.md）
   middlewares/            # CORS、AccessLog（Nest Middleware）
   guards/                 # Auth、黑名单、公开路径（Nest Guard）
   interceptors/envelope.rs    # Body / Paginated（Nest Interceptor）
@@ -189,6 +193,7 @@ spec/                     # OpenAPI 生成物 + core↔ai-worker 内部契约（
 | 模型网关     | `/api/v1/gateway`                    | [gateway](src/services/gateway/README.md)           |
 | 单点登录     | `/api/v1/sso`                        | [sso](src/services/sso/README.md)                   |
 | 应用         | `/api/v1/application`                | [application](src/services/application/README.md)   |
+| agent 任务   | `/api/v1/agent/tasks`                | [agent](src/services/agent/README.md)               |
 
 模块导航（含 HTTP 测试文件）见 [`guide/README.md`](guide/README.md#模块导航)。
 
