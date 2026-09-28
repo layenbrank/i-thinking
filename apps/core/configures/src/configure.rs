@@ -769,6 +769,15 @@ impl Configure {
             bail!("security.aes_key is required when security.encryption is aes");
         }
 
+        // 空串不是密钥：`CORE__SECURITY__SECRET=""` / `CORE__SECURITY__JWT_SECRET=""` 这类空覆盖
+        // 既逃过 `is_placeholder_secret`（它只看占位词），也逃过长度检查（`secret` 没有下限）。
+        if self.security.secret.trim().is_empty() {
+            bail!("security.secret must not be empty");
+        }
+        if self.security.jwt_secret.trim().is_empty() {
+            bail!("security.jwt_secret must not be empty");
+        }
+
         if self.is_production() {
             if is_placeholder_secret(&self.security.secret) {
                 bail!("security.secret must not use placeholder values in production");
@@ -1371,6 +1380,19 @@ mod tests {
         let mut cfg = Configure::default();
         cfg.security.jwt_secret = "short".into();
         assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn validate_rejects_empty_secrets() {
+        let mut cfg = Configure::default();
+        cfg.security.jwt_secret = String::new();
+        let err = cfg.validate().expect_err("empty jwt_secret must fail");
+        assert!(err.to_string().contains("security.jwt_secret"));
+
+        let mut cfg = Configure::default();
+        cfg.security.secret = "   ".into();
+        let err = cfg.validate().expect_err("blank secret must fail");
+        assert!(err.to_string().contains("security.secret"));
     }
 
     #[test]

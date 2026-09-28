@@ -2,7 +2,7 @@
 
 配置来源：[`configures/configure.rs`](../configures/src/configure.rs) · 加载器 [`configures/loader.rs`](../configures/src/loader.rs)
 
-应用配置使用分层 YAML（见 [`config.yaml`](../config.yaml)），**不使用**任何 `.env` 文件。Docker 依赖栈见 [`docker-compose.yml`](../docker-compose.yml)（内置 `name: corex`，直接 `docker compose up -d` 即可）。
+应用配置使用分层 YAML（见 [`config.yaml`](../config.yaml)），**不使用**任何 `.env` 文件。Docker 依赖栈见 [`docker-compose.yml`](../docker-compose.yml)（内置 `name: corex`）：compose 的三个凭据变量没有默认值，先 `cp .env.example .env` 再 `docker compose up -d`（见 [guide/deployment.md](./deployment.md) §6-§7）。
 
 | 文件                    | 说明                                                           |
 | ----------------------- | -------------------------------------------------------------- |
@@ -27,7 +27,8 @@
 | `server.host`                         | `127.0.0.1`                        | 监听地址                                                       |
 | `server.port`                         | `3000`                             | 监听端口                                                       |
 | `database.url`                        | 见 `config.yaml`                   | PostgreSQL 连接串                                              |
-| `security.jwt_secret`                 | （占位）                           | JWT 签名，至少 32 字符                                         |
+| `security.jwt_secret`                 | （占位）                           | JWT 签名，至少 32 字符，不允许为空                             |
+| `security.secret`                     | （占位）                           | 通用共享密钥；生产禁止占位值，任何环境下都不允许为空           |
 | `security.encryption`                 | `argon2`                           | `argon2` 或 `aes`（生产禁止 aes 存密码）                       |
 | `logging.dir`                         | `logs`                             | 日志目录                                                       |
 | `app.swagger`                         | `development: true`                | 是否启用 Swagger UI                                            |
@@ -307,6 +308,7 @@ cargo run -p migration -- status
 ## Docker 本地依赖
 
 ```powershell
+Copy-Item .env.example .env      # compose 的三个凭据变量是必填的
 docker compose up -d
 docker compose ps
 ```
@@ -337,5 +339,6 @@ docker compose up -d postgres
 ## 生产部署
 
 1. 设置 `APP_ENV=production`（或 `config.production.yaml` + `app.env: production`）
-2. 通过 `config.local.yaml` 或部署平台注入 `security.*`、`database.url`
+2. 通过 `config.local.yaml` 或部署平台注入 `security.*`、`database.url`；
+   `security.secret` / `security.jwt_secret` 为空或仍是占位值都会被 `validate()` 拒绝启动
 3. 生产环境 `auth.otp.mock` 自动为 `false`

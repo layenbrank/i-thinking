@@ -1,7 +1,7 @@
 # corex 全栈编排：依赖（Postgres+pgvector / Redis / go-captcha / Elasticsearch）+ 四个后端进程
 # （core-api / core-worker / core-orchestrator / ai-worker）一次起齐，外加一个 Jaeger 收链路。
 #
-# 用法：
+# 用法（任何 up 之前都要先 `cp .env.example .env`，见下）：
 #   全栈       docker compose up -d
 #   只起依赖   docker compose up -d postgres redis gocaptcha elasticsearch
 #   看 core    docker compose logs -f core-api
@@ -11,10 +11,11 @@
 #
 # 项目名固定为 corex（替代 COMPOSE_PROJECT_NAME / .env.compose）。
 #
-# 变量：所有 ${VAR} 都由 docker compose 插值，默认值都指向本机开发环境，
-# 不建 .env 也能 `up -d` 跑起来。生产/改动密钥时在 **apps/core/.env** 写（已在 .gitignore 里），
-# 可复制 docker/stack.env.example 作为模板。密钥类变量一律通过 CORE__* / AI_WORKER_* 注入容器，
-# 不写进 config*.yaml（见 guide/deployment.md）。
+# 变量：三个凭据变量（POSTGRES_PASSWORD /
+# AI_WORKER_INTERNAL_TOKEN / SERVICE_TOKEN_SECRET）**没有默认值**，必须先在 apps/core/.env 里给出
+# （`cp .env.example .env`，该文件不入库），否则 compose 直接报错退出——只起依赖也一样，插值发生在
+# 启动任何服务之前；其余变量都有指向本机开发环境的默认值。密钥类变量一律通过 CORE__* / AI_WORKER_*
+# 注入容器，不写进 config*.yaml；额外的 CORE__* 覆盖项可写 docker/stack.env（模板 docker/stack.env.example）。
 
 name: corex
 
@@ -36,21 +37,22 @@ x-core-env: &core-env
   CORE__APP__ENV: ${APP_ENV:-development}
   CORE__SERVER__HOST: 0.0.0.0
   CORE__SERVER__PORT: '3000'
-  CORE__DATABASE__URL: postgres://machenike:${POSTGRES_PASSWORD:-Li33333.}@postgres:5432/i-thinking
+  CORE__DATABASE__URL: postgres://machenike:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 必填，见 apps/core/.env.example}@postgres:5432/i-thinking
   CORE__REDIS__URL: redis://redis:6379
   CORE__ELASTICSEARCH__URL: http://elasticsearch:9200
   CORE__AUTH__CAPTCHA__BASE_URL: http://gocaptcha:8080
   CORE__AI_WORKER__BASE_URL: http://ai-worker:8081
-  CORE__AI_WORKER__TOKEN: ${AI_WORKER_INTERNAL_TOKEN:-dev-internal-token}
+  CORE__AI_WORKER__TOKEN: ${AI_WORKER_INTERNAL_TOKEN:?AI_WORKER_INTERNAL_TOKEN 必填，见 apps/core/.env.example}
   # ai-worker 用它在 /api/v1/service/** 上换短期服务令牌；留空则整个服务面 503（ai-worker 的
-  # 摄取与嵌入会因此失败）。默认值与 config.yaml 的开发值一致。
-  CORE__GATEWAY__SERVICE_TOKEN_SECRET: ${SERVICE_TOKEN_SECRET:-dev-service-token-secret}
+  # 摄取与嵌入会因此失败）。本机开发值见 .env.example，生产换随机值。
+  CORE__GATEWAY__SERVICE_TOKEN_SECRET: ${SERVICE_TOKEN_SECRET:?SERVICE_TOKEN_SECRET 必填，见 apps/core/.env.example}
   # 链路追踪：默认开，span 走 OTLP/HTTP 送到同网络的 jaeger；服务名由 core 自己拼成
   # i-thinking-core-{api,worker,orchestrator}（telemetry.service_name + 进程角色）。
   # 不想要链路就 TELEMETRY_ENABLED=0（导出器只影响后台批量上报，失败不影响请求）。
   CORE__TELEMETRY__ENABLED: ${TELEMETRY_ENABLED:-true}
   CORE__TELEMETRY__ENDPOINT: ${OTLP_ENDPOINT:-http://jaeger:4318}
-  # 生产必须显式给出（占位值会被 validate() 拒绝，且 worker 要求 events.endpoint 非空）。
+  # 生产必须显式给出（占位值会被 validate() 拒绝，空串则被 validate() 直接拦下，
+  # 且 worker 要求 events.endpoint 非空）。
   # CORE__SECURITY__SECRET / CORE__SECURITY__JWT_SECRET / CORE__EVENTS__ENDPOINT 见 stack.env.example
 
 services:
@@ -64,7 +66,7 @@ services:
       - '5432:5432'
     environment:
       POSTGRES_USER: machenike
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Li33333.}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 必填，见 apps/core/.env.example}
       POSTGRES_DB: i-thinking
       # locale 仅在首次 initdb（空 data/postgres）时生效
       LANG: zh_CN.UTF-8
@@ -275,8 +277,8 @@ services:
       AI_WORKER_HOST: 0.0.0.0
       AI_WORKER_PORT: '8081'
       # 与 core 的 ai_worker.token（上面那个环境变量）必须完全一致
-      AI_WORKER_INTERNAL_TOKEN: ${AI_WORKER_INTERNAL_TOKEN:-dev-internal-token}
-      AI_WORKER_DATABASE_URL: postgres://machenike:${POSTGRES_PASSWORD:-Li33333.}@postgres:5432/ai_worker
+      AI_WORKER_INTERNAL_TOKEN: ${AI_WORKER_INTERNAL_TOKEN:?AI_WORKER_INTERNAL_TOKEN 必填，见 apps/core/.env.example}
+      AI_WORKER_DATABASE_URL: postgres://machenike:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 必填，见 apps/core/.env.example}@postgres:5432/ai_worker
       AI_WORKER_CORE_BASE_URL: http://core-api:3000
       # 与 core 共用一条链路：端点写成基址，ai-worker 自己补 /v1/traces（core 侧同规则）。
       # 关掉就 TELEMETRY_ENABLED=0，两个服务一起静默。

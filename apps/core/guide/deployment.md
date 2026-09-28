@@ -101,6 +101,8 @@ readinessProbe: { httpGet: { path: /api/ready, port: 3000 }, periodSeconds: 10 }
 
 ```bash
 cd apps/core
+cp .env.example .env          # 首次：compose 的三个凭据变量没有默认值，必须给
+$EDITOR .env                  # 本机开发可直接用样例里的值
 docker compose up -d          # 全栈
 docker compose logs -f core-api
 docker compose down
@@ -173,15 +175,21 @@ docker compose exec postgres psql -U machenike -d postgres -c 'SELECT datname FR
 容器态的地址与密钥全部由环境变量注入，键名规则：`CORE__` 前缀 + 层级用 `__` 分隔，
 例：`CORE__DATABASE__URL` → `database.url`、`CORE__SERVER__PORT` → `server.port`。
 
-两个放环境变量的位置（都在 `.gitignore` 里）：
+两个放环境变量的位置（都在 `apps/core/.gitignore` 里，不入库）：
 
 | 文件 | 作用 | 例子 |
 |------|------|------|
 | `apps/core/.env` | 只参与 compose 的 `${VAR}` 插值 | `POSTGRES_PASSWORD`、`AI_WORKER_INTERNAL_TOKEN`、`SERVICE_TOKEN_SECRET`、`APP_ENV` |
 | `apps/core/docker/stack.env` | 直接注入 core 容器的额外 `CORE__*` | `CORE__EVENTS__ENDPOINT`、`CORE__LOGGING__FORMAT` |
 
-模板：`cp docker/stack.env.example docker/stack.env`（不建这两个文件也能 `up -d` 跑起来，默认值指向本机开发环境）。
+`apps/core/.env` 是**必建**的：`cp .env.example .env`，三个凭据变量（`POSTGRES_PASSWORD`、
+`AI_WORKER_INTERNAL_TOKEN`、`SERVICE_TOKEN_SECRET`）刻意没有默认值，缺任何一个 compose 直接报错退出，
+不会被弱默认值悄悄顶上。`docker/stack.env` 可选：`cp docker/stack.env.example docker/stack.env`。
 优先级：compose 里显式写的 `CORE__*` > `stack.env` > 镜像内的 `config*.yaml`。
+
+`CORE__*` 环境变量的**空串视为未设置**（`configures/src/loader.rs` 的 `ignore_empty(true)`）：
+编排里 `${VAR}` 展开成空串不会把配置清空，也就不会把密钥悄悄抹成空串。
+要「关掉」某个可选项，用它的关闭值（例如 `CORE__GATEWAY__AUDIT_ENABLED=false`），别用空串。
 
 三处**必须成对一致**的值，不一致的表现往往是「能起但一发请求就 401/503」：
 
@@ -197,9 +205,12 @@ docker compose exec postgres psql -U machenike -d postgres -c 'SELECT datname FR
 ## 8. 切到生产要改什么
 
 1. `APP_ENV=production`（compose 里 `CORE__APP__ENV` 随之切换；ai-worker 用 `AI_WORKER_ENVIRONMENT`）。
-2. 换掉三个默认值：`POSTGRES_PASSWORD`、`AI_WORKER_INTERNAL_TOKEN`、`SERVICE_TOKEN_SECRET`。
+2. `apps/core/.env` 里那三个凭据换成随机值（`openssl rand -base64 36`）：
+   `POSTGRES_PASSWORD`、`AI_WORKER_INTERNAL_TOKEN`、`SERVICE_TOKEN_SECRET`。
+   改 Postgres 密码后需 `ALTER USER` 或重建 `./data/postgres`。
 3. `CORE__SECURITY__SECRET` / `CORE__SECURITY__JWT_SECRET` 必须是真随机值：
-   生产下占位值（含 `change-me`、`your-` 前缀等）会被 `validate()` 直接拒绝启动。
+   生产下占位值（含 `change-me`、`your-` 前缀等）会被 `validate()` 直接拒绝启动；
+   空串也已被 `validate()` 拦下（`security.secret` / `security.jwt_secret` 都不允许为空）。
 4. `CORE__EVENTS__ENDPOINT` 不能为空：`worker` 二进制在 production 下启动即校验；
    留空等于让事件永远压在 outbox 里。
 5. `auth.captcha.enabled` 必须为 `true`、`otp.mock` 强制为 `false`（生产校验项，配置文件里已是安全值）。

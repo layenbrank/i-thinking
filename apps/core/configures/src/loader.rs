@@ -68,6 +68,9 @@ fn env_overrides() -> config::Environment {
         .prefix_separator("__")
         .separator("__")
         .try_parsing(true)
+        // 空串视为「未设置」：编排模板里 `${VAR}` 展开成空串时，不该静默把配置清空
+        // （`CORE__SECURITY__JWT_SECRET=` 这类空覆盖会把密钥抹成空串，见 `Configure::validate`）。
+        .ignore_empty(true)
 }
 
 /// 合并 `config.yaml` → `config.{profile}.yaml` → `config.local.yaml` → `CORE__*` 环境变量。
@@ -122,5 +125,23 @@ mod tests {
         unsafe { std::env::remove_var("CORE__SERVER__PORT") };
 
         assert_eq!(merged.get_int("server.port").expect("server.port"), 3456);
+    }
+
+    #[test]
+    fn empty_environment_variables_are_treated_as_unset() {
+        let expected = load_merged_config(&resolve_profile())
+            .expect("配置应能合并")
+            .get_string("logging.filter")
+            .expect("logging.filter");
+
+        // SAFETY: 本测试独占 `CORE__LOGGING__FILTER`，设置后立即还原
+        unsafe { std::env::set_var("CORE__LOGGING__FILTER", "") };
+        let merged = load_merged_config(&resolve_profile()).expect("配置应能合并");
+        unsafe { std::env::remove_var("CORE__LOGGING__FILTER") };
+
+        assert_eq!(
+            merged.get_string("logging.filter").expect("logging.filter"),
+            expected
+        );
     }
 }

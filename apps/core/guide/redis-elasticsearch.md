@@ -2,7 +2,7 @@
 
 > **状态：已落地**  
 > 选型与风险详见根目录 [`findings.md`](../findings.md)。  
-> **推荐开发依赖**：`docker compose up -d`（见 [`docker-compose.yml`](../docker-compose.yml)）；ES 9.4.3 HTTP、安全关闭。
+> **推荐开发依赖**：`docker compose up -d`（先 `cp .env.example .env`，见 [`docker-compose.yml`](../docker-compose.yml)）；ES 9.4.3 HTTP、安全关闭。
 
 注入方式：
 
@@ -51,6 +51,7 @@ elasticsearch = { version = "9.1.0-alpha.1", default-features = false, features 
 ### 本机联调（Docker）
 
 ```powershell
+Copy-Item .env.example .env      # compose 的三个凭据变量是必填的
 docker compose up -d
 docker compose ps
 docker exec corex-redis redis-cli PING

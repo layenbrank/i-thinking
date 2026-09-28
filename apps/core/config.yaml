@@ -23,9 +23,9 @@ elasticsearch:
   cloud_id: null
 
 security:
-  # 通用应用密钥（预留；生产环境禁止占位值，当前业务代码未直接读取）
+  # 通用应用密钥（预留；生产环境禁止占位值，任何环境下都不允许为空，当前业务代码未直接读取）
   secret: change-me-secret
-  # JWT 签发/校验密钥（signin 等返回的 token）；至少 32 字符
+  # JWT 签发/校验密钥（signin 等返回的 token）；至少 32 字符，不允许为空
   jwt_secret: bWQkgpKWScV@r7HoX#WBaEXrGLlUt%kTIO&%keKQVW#Js#QYwzzJ9dPDAPczT@sb
   # 用户密码入库算法：argon2（推荐）| aes（仅开发/迁移，生产禁用）
   encryption: aes # argon2, aes
