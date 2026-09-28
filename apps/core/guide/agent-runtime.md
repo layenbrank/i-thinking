@@ -250,3 +250,18 @@ api(3000) ◄── 服务身份面 ── orchestrator ──► ai-worker(8081
   在 `apps/core` 下**不要**覆盖 `CARGO_TARGET_DIR`，直接 `cargo build --bins`。
 - **ai-worker 回 502、响应体为空、core 侧连一条访问记录都没有**：请求根本没出发到 core。
   见 [`../../ai-worker/README.md`](../../ai-worker/README.md) 里的 `AI_WORKER_CORE_USE_SYSTEM_PROXY`。
+- **`service.exe` 直接跑不起来，报 `missing config file: …\debug\config.yaml`**：配置目录取的是
+  **可执行文件所在目录**（debug 构建再回退到 `CARGO_MANIFEST_DIR`）。从 `CARGO_TARGET_DIR` 里
+  直接起 exe 时要显式给 `CARGO_MANIFEST_DIR=<repo>\apps\core`，否则它是在构建产物目录里找配置。
+
+上面这一趟已经在 [`tests/interop/`](../tests/interop) 里脚本化了（目录名是 `interop` 而不是
+`e2e`：仓库 `.gitignore` 有一条裸 `e2e` 规则，`tests/e2e/` 会被整体忽略）：
+
+- `seed_gateway.sql` → 网关侧的供应商 + 两个模型（`psql -f` 跑，幂等）
+- `seed_app.ps1` → 用户 / 租户 / **带 `tenantID`** 的资产，产出 `seed.json`
+- `model_stub.py` → 模型桩（`STUB_ASSET_ID` 必须是 `seed_app.ps1` 播出来的那个资产）
+- `run_agent_task.ps1` → 建任务、遇审批就批准、等终态；任务没到 `SUCCEEDED` 或少了
+  `result.memoryID` 就非 0 退出，可以直接当门禁
+
+四个都是独立脚本，跑的顺序与前置条件写在各自文件头部；产物（`seed.json` / `task_final.json`）
+落在系统临时目录，不落工作树。
