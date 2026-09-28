@@ -8,7 +8,7 @@ core 的网关把 `POST /api/v1/service/chat/completions` 原样转发到
 脚本化行为：历史里还没有 `role="tool"` 的结果时，先要一次 `asset_visibility_write`；
 拿到工具结果后给一条纯文本结论。这样才会经过审批闸门，而不是一路直行。
 
-    python apps/core/tests/interop/model_stub.py      # 默认监听 127.0.0.1:9099
+    python apps/core/tests/e2e/model_stub.py      # 默认监听 127.0.0.1:9099
 
 环境变量：
 

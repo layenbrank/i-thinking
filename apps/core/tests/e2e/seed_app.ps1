@@ -1,7 +1,7 @@
 # 跨进程联调的业务数据播种：两个用户（owner = 资产创建者兼审批人、viewer = 可见性名单）
 # + 一个租户 + 一个带 tenantID 的资产。
 #
-#   pwsh apps/core/tests/interop/seed_app.ps1
+#   pwsh apps/core/tests/e2e/seed_app.ps1
 #
 # 前提：core 已在跑（默认 http://127.0.0.1:3000，可用 E2E_CORE_BASE 覆盖），
 # 且核心配置里 `auth.captcha.enabled = false`（终端联调过不了图形验证码）。

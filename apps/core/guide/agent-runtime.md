@@ -254,8 +254,8 @@ api(3000) ◄── 服务身份面 ── orchestrator ──► ai-worker(8081
   **可执行文件所在目录**（debug 构建再回退到 `CARGO_MANIFEST_DIR`）。从 `CARGO_TARGET_DIR` 里
   直接起 exe 时要显式给 `CARGO_MANIFEST_DIR=<repo>\apps\core`，否则它是在构建产物目录里找配置。
 
-上面这一趟已经在 [`tests/interop/`](../tests/interop) 里脚本化了（目录名是 `interop` 而不是
-`e2e`：仓库 `.gitignore` 有一条裸 `e2e` 规则，`tests/e2e/` 会被整体忽略）：
+上面这一趟已经在 [`tests/e2e/`](../tests/e2e) 里脚本化了（这个目录名被根 `.gitignore` 的
+`e2e` 规则命中，所以那里带一条 `!apps/core/tests/e2e/` 把它捞回来）：
 
 - `seed_gateway.sql` → 网关侧的供应商 + 两个模型（`psql -f` 跑，幂等）
 - `seed_app.ps1` → 用户 / 租户 / **带 `tenantID`** 的资产，产出 `seed.json`

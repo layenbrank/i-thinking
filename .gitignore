@@ -20,6 +20,9 @@ lerna-debug.log*
 
 # Test
 e2e
+# …但 apps/core 的跨进程联调工装就叫这个名（是配方，不是产物），别把它的目录也忽略掉。
+# 只否定「目录本身」是有效的：父目录没被排除，git 会进去逐文件判断。
+!apps/core/tests/e2e/
 playwright-report
 coverage
 .vitest

@@ -1,6 +1,6 @@
 # 跨进程联调的任务驱动：建一条 agent 任务，等它停在审批闸门上，批准，然后看结局。
 #
-#   pwsh apps/core/tests/interop/run_agent_task.ps1
+#   pwsh apps/core/tests/e2e/run_agent_task.ps1
 #
 # 前提：
 #   * 先跑过 seed_app.ps1（要它写出的 seed.json）；
