@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_ENGINE: string
   readonly VITE_THINKING: string
   readonly VITE_INTELLIGENCE: string
+  readonly VITE_INTELLIGENCE_TOKEN?: string
 }
 
 interface ImportMeta {

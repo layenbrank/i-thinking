@@ -11,26 +11,21 @@ export function POST_COMMUNICATE(
   data: CommunicateParams,
   options?: { signal?: AbortSignal }
 ) {
-  const token = 'b38cf8b7ca1e4bb18b00893d66093c00.WgxFSgb9H0u4CdE0twgqsqNB'
+  // 本地推理服务通常不校验凭证；需要时由构建环境注入，不落仓库
+  const token = import.meta.env.VITE_INTELLIGENCE_TOKEN
   const timeoutSignal = AbortSignal.timeout(1000 * 60 * 10)
   const signal = options?.signal
     ? typeof AbortSignal.any === 'function'
       ? AbortSignal.any([options.signal, timeoutSignal])
       : options.signal
     : timeoutSignal
-  // return fetch(`${ENVURL.intelligence}/chat`, {
-  return fetch(`/api/chat`, {
+  return fetch(`${import.meta.env.VITE_INTELLIGENCE}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/x-ndjson',
-      Authorization: `Bearer ${token}`
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
       // Accept: 'text/event-stream'
-    },
-    proxy: {
-      all: {
-        url: 'http://localhost:11434'
-      }
     },
     signal: signal, // 10分钟超时或外部中止
     body: JSON.stringify(data)
