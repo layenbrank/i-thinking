@@ -6,11 +6,12 @@
 
 OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，并负责**日 token 配额**、**用量记录**与**审计**。
 
-| 能力        | 说明                                                                    |
-| ----------- | ----------------------------------------------------------------------- |
-| 对话转发    | `POST /chat/completions`，`stream: true` 时 SSE 直传，否则返回原始 JSON |
-| 嵌入转发    | 服务面 `POST /service/embeddings`，模型由令牌作用域决定，不走用户鉴权 |
-| 可用模型    | 按平台角色 / 租户角色过滤后返回                                         |
+| 能力               | 说明                                                                   |
+| ------------------ | ---------------------------------------------------------------------- |
+| 对话转发           | `POST /chat/completions`，`stream: true` 时 SSE 直传，否则返回原始 JSON |
+| 嵌入转发           | 服务面 `POST /service/embeddings`，模型由令牌作用域决定，不走用户鉴权   |
+| 对话转发（服务面） | 服务面 `POST /service/chat/completions`，与用户面同一套转发与记账，一律非流式 |
+| 可用模型           | 按平台角色 / 租户角色过滤后返回                                        |
 | 自动路由    | 目录内置 `auto`：请求 `model=auto` 时按「租户内优先、支持工具优先」挑一条 |
 | 供应商管理  | 上游 base_url 与（加密）API Key 的 CRUD                                 |
 | 模型管理    | 模型 ↔ 供应商绑定、允许角色、能力声明、上下文窗口、单模型配额覆盖       |
@@ -57,8 +58,9 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 
 | 方法 | 路径                          | 鉴权                | 说明                     |
 | ---- | ----------------------------- | ------------------- | ------------------------ |
-| POST | `/api/v1/service/token`       | `X-Internal-Token`  | 按 `scope` 换一枚短期令牌（`embeddings` / `asset-read`） |
+| POST | `/api/v1/service/token`       | `X-Internal-Token`  | 按 `scope` 换一枚短期令牌（`embeddings` / `asset-read` / `chat`） |
 | POST | `/api/v1/service/embeddings`  | `X-Service-Token`   | 转发嵌入请求（裸 JSON）  |
+| POST | `/api/v1/service/chat/completions` | `X-Service-Token` | 转发对话请求（`scope=chat`，一律非流式） |
 | GET  | `/api/v1/service/assets/{id}/content` | `X-Service-Token` | 按资产 id 读原始字节（`scope=asset-read`，路由挂在 upload 模块） |
 
 ## 目录契约（`GET /models` 与 `GET /admin/models`）
@@ -109,25 +111,29 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 ## 服务身份（`/api/v1/service/*`）
 
 AI 计算车间（[`guide/configuration.md`](../../../guide/configuration.md#ai-计算车间ai-worker--orchestrator) 的
-ai-worker）需要两样东西：**资产正文**（它要自己抽取分块）与**嵌入算力**。两者都不能让它直连：正文
-读的是 core 的对象存储布局，嵌入出的是 core 的配额账。所以它回打 core 的服务身份面：先用内部共享
-令牌换一枚**带作用域的短期令牌**，再用它去取字节或转发嵌入。
+ai-worker）需要三样东西：**资产正文**（它要自己抽取分块）、**嵌入算力**，以及**对话算力**（服务端 agent
+的单步推理）。这些都不能让它直连：正文读的是 core 的对象存储布局，嵌入与对话出的是 core 的配额账。
+所以它回打 core 的服务身份面：先用内部共享令牌换一枚**带作用域的短期令牌**，再用它去取字节、
+转发嵌入或转发对话。
 
 ```
 ai-worker ──X-Internal-Token──▶ POST /api/v1/service/token {scope, tenantID, model|assetID} ──▶ {token, expiresAt}
-          ──X-Service-Token ──▶ POST /api/v1/service/embeddings {input, …}            ──▶ 上游裸 JSON
-          ──X-Service-Token ──▶ GET  /api/v1/service/assets/{id}/content              ──▶ 原始字节流
+          ──X-Service-Token ──▶ POST /api/v1/service/embeddings {input, …}             ──▶ 上游裸 JSON
+          ──X-Service-Token ──▶ POST /api/v1/service/chat/completions {messages, …}    ──▶ 上游裸 JSON
+          ──X-Service-Token ──▶ GET  /api/v1/service/assets/{id}/content               ──▶ 原始字节流
 ```
 
 | 端点                 | 请求头              | 语义                                                                     |
 | -------------------- | ------------------- | ------------------------------------------------------------------------ |
-| `POST /service/token`| `X-Internal-Token`  | 按 `scope` 校验（租户存在 + 嵌入模型已声明能力 / 资产可读）后签发 HS256 令牌 |
+| `POST /service/token`| `X-Internal-Token`  | 按 `scope` 校验（租户存在 + 模型已声明所需能力 / 资产可读）后签发 HS256 令牌 |
 | `POST /service/embeddings` | `X-Service-Token` | 按令牌作用域解析模型与配额 → 出站 `/embeddings` → 记账 → **原样返回上游 JSON** |
+| `POST /service/chat/completions` | `X-Service-Token` | 按令牌作用域解析模型与配额 → 出站 `/chat/completions`（强制非流式）→ 记账 → **原样返回上游 JSON** |
 | `GET /service/assets/{id}/content` | `X-Service-Token` | 按令牌作用域取 `assetID` 的原始字节（流式拼 CAS 分片），不计量、不记账 |
 
 - **一件受众一件事**：`scope` 决定受众（`embeddings` → `core.service.gateway.embeddings`，
-  `asset-read` → `core.service.asset.content`），受众在端点里写死。拿嵌入令牌打内容端点、或反过来，
-  都是 `300002`（HTTP 401）——「越权」不是一处需要记得写的判断，而是签名载荷里就没有那个受众。
+  `chat` → `core.service.gateway.chat`，`asset-read` → `core.service.asset.content`），受众在端点里写死。
+  拿嵌入令牌打对话端点、或反过来，都是 `300002`（HTTP 401）——「越权」不是一处需要记得写的判断，
+  而是签名载荷里就没有那个受众。
   不写 `scope` 即默认 `embeddings`（老调用方不用改），非法值直接 `200003`（宁可拒了也不猜）。
 - **令牌不是共享密钥的替代品，而是它的收窄**：共享密钥是长期凭据，落到编排历史或子进程日志里就一直有效；
   短期令牌把窗口压到分钟级，并且**自带作用域**（租户 + 模型，或租户 + 单个资产）。请求体里的 `model` 与令牌不一致
@@ -138,14 +144,18 @@ ai-worker ──X-Internal-Token──▶ POST /api/v1/service/token {scope, ten
   `ai-worker`，所以别的用途的 HS256 令牌拿不进来。
 - 两道头**不可互换**：内部共享令牌只在换令牌时用，服务令牌只在取字节 / 转发时用；换与用都在 core 内完成，
   所以验签不需要时钟宽限窗口（`leeway = 0`）。
+- 对话面与嵌入面**口径不同，是故意的**：嵌入必须显式声明 `capabilities.embeddings`（未声明=不支持，与
+  用户面 `supports_embeddings` 同款）；对话只有显式写了 `capabilities.tools = false` 才拒（未声明按支持
+  处理）。理由是对称门禁等于要求每个部署先把整张模型表的 `tools` 补齐，否则服务端 agent 一上线就全被拒；
+  没声明 `tools` 的模型上游到底能不能收 `tools`，只能靠调用方按目录挑，拒了比猜错更糟。
 - 内容端点上**授权来自令牌，路径参数只用于比对**：`assetID` 与作用域不一致返回 `400004`（HTTP 403），
   所以拿 A 的令牌换不出 B 的字节；是否存在由行级策略判定，别的租户的行等同不存在（`500204`，HTTP 404，
   不暴露存在性），本租户尚未完成上传的资产返回 `200003`。签发时就用同一段判定校验资产，避免「签得出来
   却读不到」的口径漂移。
 - 计量与用户面**同一套**：同一个 `resolve_quota` + 同一把 `gateway:quota:tenant:{id}:{yyyy-mm-dd}` 键，
   用量行记在令牌租户上（`userID` 为全零 UUID，表示「服务身份」），`audit_enabled` 时另记一条
-  `action = gateway.embeddings` 审计。**失败不记账**：上游非 2xx 回 `600005`，不扣配额也不写用量。
-  内容读取是内部读，不进配额也不写用量。
+  `action = gateway.embeddings`（对话面为 `gateway.chat`）审计。**失败不记账**：上游非 2xx 回 `600005`，
+  不扣配额也不写用量。内容读取是内部读，不进配额也不写用量。
 - 响应是**裸 JSON**（OpenAI 形状），不套 `code/success/data` 信封 —— 上游契约就是最终契约，
   调用方按 OpenAI 客户端解析即可；错误仍是统一信封（`code/msg/timestamp`）。
 - 模型必须声明 `capabilities.embeddings = true`，否则 `200003` —— 不是所有上游供应商都有 `/embeddings`，

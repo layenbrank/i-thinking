@@ -17,10 +17,12 @@ use serde::{Deserialize, Serialize};
 pub const AUDIENCE_EMBEDDINGS: &str = "core.service.gateway.embeddings";
 /// 令牌受众：资产内容端点（`GET /api/v1/service/assets/{assetID}/content`）。
 pub const AUDIENCE_ASSET_CONTENT: &str = "core.service.asset.content";
+/// 令牌受众：聊天出站端点（`POST /api/v1/service/chat/completions`）。
+pub const AUDIENCE_CHAT: &str = "core.service.gateway.chat";
 /// 令牌主体：目前唯一的受信服务进程。
 pub const SUBJECT: &str = "ai-worker";
 
-/// 服务身份能做的两件事。
+/// 服务身份能做的三件事。
 ///
 /// 一件事一个受众，而不是「一个令牌管全部」：受众是 JWT 的标准字段，验签时按端点写死，
 /// 于是嵌入用的令牌拿到内容端点上会直接 401——「越权」在这里不是一处需要记得写的判断，
@@ -31,6 +33,8 @@ pub enum Audience {
     Embeddings,
     /// 资产内容读取。
     AssetContent,
+    /// 聊天出站（agent 运行时用）。
+    Chat,
 }
 
 impl Audience {
@@ -40,6 +44,7 @@ impl Audience {
         match self {
             Self::Embeddings => AUDIENCE_EMBEDDINGS,
             Self::AssetContent => AUDIENCE_ASSET_CONTENT,
+            Self::Chat => AUDIENCE_CHAT,
         }
     }
 
@@ -49,6 +54,7 @@ impl Audience {
         match self {
             Self::Embeddings => "embeddings",
             Self::AssetContent => "asset-read",
+            Self::Chat => "chat",
         }
     }
 
@@ -58,6 +64,7 @@ impl Audience {
         match value.trim() {
             "embeddings" => Some(Self::Embeddings),
             "asset-read" => Some(Self::AssetContent),
+            "chat" => Some(Self::Chat),
             _ => None,
         }
     }
@@ -73,6 +80,8 @@ pub enum Scope<'a> {
         tenant_id: &'a str,
         asset_id: &'a str,
     },
+    /// 聊天：限定租户与模型（同嵌入，但打的是聊天端点）。
+    Chat { tenant_id: &'a str, model: &'a str },
 }
 
 impl Scope<'_> {
@@ -82,18 +91,21 @@ impl Scope<'_> {
         match self {
             Self::Embeddings { .. } => Audience::Embeddings,
             Self::AssetContent { .. } => Audience::AssetContent,
+            Self::Chat { .. } => Audience::Chat,
         }
     }
 
     const fn tenant_id(&self) -> &str {
         match self {
-            Self::Embeddings { tenant_id, .. } | Self::AssetContent { tenant_id, .. } => tenant_id,
+            Self::Embeddings { tenant_id, .. }
+            | Self::AssetContent { tenant_id, .. }
+            | Self::Chat { tenant_id, .. } => tenant_id,
         }
     }
 
     const fn model(&self) -> Option<&str> {
         match self {
-            Self::Embeddings { model, .. } => Some(model),
+            Self::Embeddings { model, .. } | Self::Chat { model, .. } => Some(model),
             Self::AssetContent { .. } => None,
         }
     }
@@ -101,7 +113,7 @@ impl Scope<'_> {
     const fn asset_id(&self) -> Option<&str> {
         match self {
             Self::AssetContent { asset_id, .. } => Some(asset_id),
-            Self::Embeddings { .. } => None,
+            Self::Embeddings { .. } | Self::Chat { .. } => None,
         }
     }
 }
@@ -197,7 +209,9 @@ pub fn verify(
         return Err(ServiceTokenError::Invalid);
     }
     let scope_present = match audience {
-        Audience::Embeddings => claims.model.as_ref().is_some_and(|m| !m.trim().is_empty()),
+        Audience::Embeddings | Audience::Chat => {
+            claims.model.as_ref().is_some_and(|m| !m.trim().is_empty())
+        }
         Audience::AssetContent => claims
             .asset_id
             .as_ref()
@@ -227,14 +241,29 @@ mod tests {
         }
     }
 
+    fn chat<'a>(tenant_id: &'a str, model: &'a str) -> Scope<'a> {
+        Scope::Chat { tenant_id, model }
+    }
+
     #[test]
     fn scope_maps_to_audience_and_back() {
-        for audience in [Audience::Embeddings, Audience::AssetContent] {
+        for audience in [Audience::Embeddings, Audience::AssetContent, Audience::Chat] {
             assert_eq!(Audience::from_scope(audience.scope()), Some(audience));
         }
         // 未知作用域不能被当成缺省值悄悄放行
         assert_eq!(Audience::from_scope("asset-content"), None);
         assert_eq!(Audience::from_scope(""), None);
+    }
+
+    #[test]
+    fn mint_chat_scope_carries_model_and_no_asset() {
+        let (token, _) = mint(SECRET, chat("tenant-1", "gpt-4o"), 300).unwrap();
+        let claims = verify(SECRET, &token, Audience::Chat).unwrap();
+
+        assert_eq!(claims.aud, AUDIENCE_CHAT);
+        assert_eq!(claims.model.as_deref(), Some("gpt-4o"));
+        assert_eq!(claims.asset_id, None);
+        assert_eq!(claims.tenant_id, "tenant-1");
     }
 
     #[test]
@@ -347,6 +376,12 @@ mod tests {
 
         let (asset_token, _) = mint(SECRET, asset("tenant-1", "asset-1"), 300).unwrap();
         assert!(verify(SECRET, &asset_token, Audience::Embeddings).is_err());
+
+        // 嵌入与聊天都是「租户 + 模型」，载荷形状一模一样：只有受众能把它们分开，
+        // 所以嵌入令牌打聊天端点、聊天令牌打嵌入端点都必须被拒。
+        let (chat_token, _) = mint(SECRET, chat("tenant-1", "m"), 300).unwrap();
+        assert!(verify(SECRET, &embeddings_token, Audience::Chat).is_err());
+        assert!(verify(SECRET, &chat_token, Audience::Embeddings).is_err());
     }
 
     #[test]
@@ -388,6 +423,8 @@ mod tests {
         )
         .unwrap();
         assert!(verify(SECRET, &missing_model, Audience::Embeddings).is_err());
+        // 聊天的作用域字段与嵌入同形，缺失一样必须被拒
+        assert!(verify(SECRET, &missing_model, Audience::Chat).is_err());
 
         let missing_asset = encode(
             &Header::new(Algorithm::HS256),
@@ -424,6 +461,7 @@ mod tests {
         )
         .unwrap();
         assert!(verify(SECRET, &blank_model, Audience::Embeddings).is_err());
+        assert!(verify(SECRET, &blank_model, Audience::Chat).is_err());
 
         let blank_asset = encode(
             &Header::new(Algorithm::HS256),

@@ -20,7 +20,7 @@ use crate::databases::database::Storage;
 use crate::filters::exception::Exception;
 use crate::guards::account::AccountScope;
 use crate::guards::platform::PlatformScope;
-use crate::guards::service::{InternalCaller, ServiceScope};
+use crate::guards::service::{ChatScope, InternalCaller, ServiceScope};
 use crate::guards::session::Session;
 use crate::guards::tenant::{TenantCtx, TenantScope};
 use crate::interceptors::envelope::{Envelope, Paginated};
@@ -31,7 +31,9 @@ use crate::services::gateway::schema::{
     ModelUpdateP, ModelWriteP, ProviderUpdateP, ProviderWriteP, SelfQuotaP, ServiceTokenP,
     ServiceTokenR, UsageQueryP,
 };
-use crate::services::gateway::service::{AuditExport, GatewayError, GatewayService};
+use crate::services::gateway::service::{
+    AuditExport, GatewayError, GatewayService, Prepared, ServiceCapability,
+};
 use crate::services::gateway::service_token::{self, Audience};
 use crate::services::upload::service::UploadService;
 use crate::utils::code::{external, system};
@@ -154,14 +156,14 @@ impl GatewayController {
     /// 服务身份出站：申请一枚短期令牌。
     ///
     /// 调用方是受信服务进程（当前只有 ai-worker），用它自己的共享令牌（`X-Internal-Token`）
-    /// 换取一枚**带作用域**的短期令牌。作用域有两件事：嵌入出站（租户 + 模型）与资产内容
-    /// （租户 + 单个资产）；一件事一个受众，令牌串门会在端点侧被拒。响应是裸结构而不是
-    /// 信封：取令牌的是机器，出错时才走信封（与 chat 的返回形状口径一致）。
+    /// 换取一枚**带作用域**的短期令牌。作用域有三件事：嵌入出站（租户 + 模型）、资产内容
+    /// （租户 + 单个资产）、聊天出站（租户 + 模型）；一件事一个受众，令牌串门会在端点侧被拒。
+    /// 响应是裸结构而不是信封：取令牌的是机器，出错时才走信封（与 chat 的返回形状口径一致）。
     ///
-    /// 这里只校验「租户存在」与「资产在本租户可见且已完成」——模型是否存在、是否声明嵌入
-    /// 能力，由真正出站的那次调用（[`service_embeddings`](Self::service_embeddings)）判定，
-    /// 令牌段不做多余查库。资产那一项必须在这里查：令牌一旦签出去就无法收回，
-    /// 不能在签发时放过一个读不到的资产。
+    /// 这里只校验「租户存在」与「资产在本租户可见且已完成」——模型是否存在、是否具备所需
+    /// 能力，由真正出站的那次调用（[`service_embeddings`](Self::service_embeddings) /
+    /// [`service_chat`](Self::service_chat)）判定，令牌段不做多余查库。资产那一项必须在这里查：
+    /// 令牌一旦签出去就无法收回，不能在签发时放过一个读不到的资产。
     pub async fn service_token(
         db: web::Data<Arc<Storage>>,
         config: web::Data<Arc<Configure>>,
@@ -179,15 +181,15 @@ impl GatewayController {
             Some(raw) => match Audience::from_scope(raw) {
                 Some(audience) => audience,
                 None => {
-                    return Exception::bad_request("scope 仅支持 embeddings 或 asset-read")
+                    return Exception::bad_request("scope 仅支持 embeddings / asset-read / chat")
                         .transform();
                 }
             },
         };
-        // 作用域必填字段按受众判定：嵌入要模型，内容要资产——两者都在请求体里，
+        // 作用域必填字段按受众判定：嵌入与聊天要模型，内容要资产——两者都在请求体里，
         // 但真正生效的永远是签名进令牌的那一份。
         let model = match audience {
-            Audience::Embeddings => {
+            Audience::Embeddings | Audience::Chat => {
                 let model = req.model.as_deref().unwrap_or_default().trim();
                 if model.is_empty() {
                     return Exception::bad_request("model 不能为空").transform();
@@ -204,9 +206,8 @@ impl GatewayController {
                 }
                 Some(asset_id.to_string())
             }
-            Audience::Embeddings => None,
+            Audience::Embeddings | Audience::Chat => None,
         };
-
         let scope = TenantScope::open(&db, tenant_id).await.map_err(db_error)?;
         let known = tenant::Entity::find_by_id(tenant_id.as_uuid())
             .one(scope.tx())
@@ -239,16 +240,20 @@ impl GatewayController {
             .unwrap_or_else(|| config.gateway_service_token_ttl_secs())
             .clamp(1, SERVICE_TOKEN_MAX_TTL_SECS);
         let tenant_raw = tenant_id.as_uuid().to_string();
-        let token_scope = match (model.as_deref(), asset_id.as_deref()) {
-            (Some(model), _) => service_token::Scope::Embeddings {
+        let token_scope = match (audience, model.as_deref(), asset_id.as_deref()) {
+            (Audience::Embeddings, Some(model), _) => service_token::Scope::Embeddings {
                 tenant_id: &tenant_raw,
                 model,
             },
-            (None, Some(asset_id)) => service_token::Scope::AssetContent {
+            (Audience::Chat, Some(model), _) => service_token::Scope::Chat {
+                tenant_id: &tenant_raw,
+                model,
+            },
+            (Audience::AssetContent, _, Some(asset_id)) => service_token::Scope::AssetContent {
                 tenant_id: &tenant_raw,
                 asset_id,
             },
-            (None, None) => unreachable!("作用域必填字段已在上面校验"),
+            _ => unreachable!("作用域必填字段已在上面校验"),
         };
         let (token, expires_at) = service_token::mint(secret, token_scope, ttl).map_err(|err| {
             tracing::error!(error = %err, "服务身份令牌签发失败");
@@ -285,24 +290,58 @@ impl GatewayController {
 
         let ip = client_ip(&http);
         let upstream = Upstream::new(config.as_ref());
-
-        // 与用户路径同一套时序：解析在作用域内，出站与记账在作用域外。
-        let tenant = TenantScope::open(&db, scope.tenant_id())
-            .await
-            .map_err(db_error)?;
-        let prepared = GatewayService::prepare_for_service(
-            tenant.tx(),
-            scope.tenant_id(),
-            &config,
+        let prepared = prepare_service_call(
+            &db,
             &redis,
+            &config,
+            scope.tenant_id(),
             scope.model(),
+            ServiceCapability::Embeddings,
         )
-        .await;
-        tenant.rollback().await.map_err(db_error)?;
-        let prepared = prepared.map_err(Exception::from)?;
+        .await?;
 
         match GatewayService::embed_json(&db, &redis, &config, &upstream, prepared, &req, ip).await
         {
+            Ok(value) => Ok(HttpResponse::Ok().json(value)),
+            Err(e) => Exception::from(e).transform(),
+        }
+    }
+
+    /// 服务身份出站：聊天转发（模型由令牌作用域决定，不接受客户端指定）。
+    ///
+    /// 转发本身走的是用户面同一个 [`GatewayService::chat_json`]：配额预检、用量与审计记账
+    /// **完全共用**，差别只有身份（`SERVICE_ACTOR_ID` + 令牌租户）。这正是「gateway 是唯一
+    /// 出网点」这句话的兑现方式——服务调用不可能绕过配额，因为它压根不走别的代码路径。
+    ///
+    /// 一律非流式：调用方是机器，请求与响应一对一才谈得上活动级重试与幂等键。
+    pub async fn service_chat(
+        db: web::Data<Arc<Storage>>,
+        redis: web::Data<Arc<RedisPool>>,
+        config: web::Data<Arc<Configure>>,
+        http: HttpRequest,
+        scope: ChatScope,
+        body: web::Json<ChatCompletionsP>,
+    ) -> Result<HttpResponse> {
+        let req = body.into_inner();
+        // 真正生效的模型来自令牌；请求体里带了不一致的 model 说明调用方搞错了，
+        // 直接报错而不是「悄悄按令牌执行」（与 service_embeddings 同一口径）。
+        if req.model.trim() != scope.model() {
+            return Exception::bad_request("model 与令牌作用域不一致").transform();
+        }
+
+        let ip = client_ip(&http);
+        let upstream = Upstream::new(config.as_ref());
+        let prepared = prepare_service_call(
+            &db,
+            &redis,
+            &config,
+            scope.tenant_id(),
+            scope.model(),
+            ServiceCapability::Chat,
+        )
+        .await?;
+
+        match GatewayService::chat_json(&db, &redis, &config, &upstream, prepared, &req, ip).await {
             Ok(value) => Ok(HttpResponse::Ok().json(value)),
             Err(e) => Exception::from(e).transform(),
         }
@@ -624,6 +663,32 @@ impl GatewayController {
         let result = GatewayService::export_audit_in_tenant(&ctx, filter).await;
         tenant_read(ctx, result, |export| Ok(audit_download(format, &export))).await
     }
+}
+
+/// 服务身份出站前的共同前半段：开一段只读租户作用域解析模型与配额，**出站前就结束事务**。
+///
+/// 嵌入与对话共用同一段，是为了不让两条链路的门禁口径与事务边界分叉——服务面只有一个
+/// 入口点，「配额与记账是同一套」这句话才成立。
+async fn prepare_service_call(
+    db: &Storage,
+    redis: &RedisPool,
+    config: &Configure,
+    tenant_id: TenantId,
+    model: &str,
+    capability: ServiceCapability,
+) -> Result<Prepared, Exception> {
+    let tenant = TenantScope::open(db, tenant_id).await.map_err(db_error)?;
+    let prepared = GatewayService::prepare_for_service(
+        tenant.tx(),
+        tenant_id,
+        config,
+        redis,
+        model,
+        capability,
+    )
+    .await;
+    tenant.rollback().await.map_err(db_error)?;
+    prepared.map_err(Exception::from)
 }
 
 /// 把导出行渲染成下载响应：原始字节 + 下载头，**不套 JSON 信封**。

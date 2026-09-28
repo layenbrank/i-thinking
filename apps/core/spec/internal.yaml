@@ -16,13 +16,15 @@ info:
 
     1. **方向单向**：只有 core 调 ai-worker。ai-worker 是叶子：不调别的东西、不直连业务表、
        不持长期云凭据、不接触对象存储布局（它拿不到对象存储键，也没有能直接读对象的凭据）。
-       **例外只有三条（P6a / P6b 起）**：ai-worker 需要**资产正文**时，回打 core 的
+       **例外只有四条（P6a / P6b / P9a 起）**：ai-worker 需要**资产正文**时，回打 core 的
        `POST /api/v1/service/token`（用 `X-Internal-Token` 换 `scope=asset-read` 的短期令牌）
        再带 `X-Service-Token` 调 `GET /api/v1/service/assets/{assetID}/content` 取字节；
        需要**嵌入算力**时，同样先换 `scope=embeddings` 的令牌，再调
-       `POST /api/v1/service/embeddings` 转发嵌入。这三条是 core 的公开 OpenAPI
+       `POST /api/v1/service/embeddings` 转发嵌入；需要**对话算力**（服务端 agent 的单步推理）
+       时，先换 `scope=chat` 的令牌，再调 `POST /api/v1/service/chat/completions`。
+       这四条是 core 的公开 OpenAPI
        （`spec/openapi.json`）的一部分，**不**列在本文件的 `paths` 里——本文件只描述
-       core → ai-worker 的方向。除这三条外，ai-worker 不得对 core 发起任何其他请求：
+       core → ai-worker 的方向。除这四条外，ai-worker 不得对 core 发起任何其他请求：
        令牌自带受众与作用域（租户 + 模型 / 租户 + 单个资产），拿到手就换不了别的用途。
     2. **响应不用公开信封**：内部调用用 HTTP 状态码 + 裸 JSON（公开契约的 `code/message/data`
        信封只服务前端）。错误体统一为 `{"error":{"code","message"}}`。

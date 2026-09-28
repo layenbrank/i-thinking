@@ -257,26 +257,29 @@ OOM、断电）时没人续期，租约到期后框架把这一步**重新投给
 `require_ai_worker_settings()` 同样只在 orchestrator 启动路径上校验：地址与令牌必须齐全。
 模型由 core 决定——出网与计量都以 core 的网关为唯一入口，ai-worker 不许自己换模型。
 
-### 资产正文与嵌入算力回打 core（服务身份）
+### 资产正文、嵌入与对话算力回打 core（服务身份）
 
 ai-worker 是叶子进程，不直连模型厂商、不碰对象存储布局，也不持长期云凭据；它要算力或资产字节时回打 core 的
 **服务身份面**（契约与语义见 [`src/services/gateway/README.md`](../src/services/gateway/README.md#服务身份apiv1service)）。
-两条链路都是「先换令牌、再用令牌」：
+每条链路都是「先换令牌、再用令牌」：
 
 1. `POST /api/v1/service/token`，头 `X-Internal-Token`（值 = `ai_worker.token`），
    体 `{scope, tenantID, model?, assetID?, ttlSecs?}`
    → 得到一枚 HS256 短期令牌（`ttlSecs` 收敛到 `1..gateway.service_token_ttl_secs`，硬上限 3600）。
-   `scope` 缺省为 `embeddings`（要 `model`）；`scope=asset-read` 要 `assetID`，签发前先校验该资产对本租户可读，
-   不可读回 `500204`（404）、未完成上传回 `200003`（400）。非法 `scope` 直接 400——宁可拒了也不猜。
-2. 用这枚令牌二选一：
+   `scope` 缺省为 `embeddings`（要 `model`）；`scope=chat` 也要 `model`；`scope=asset-read` 要 `assetID`，
+   签发前先校验该资产对本租户可读，不可读回 `500204`（404）、未完成上传回 `200003`（400）。
+   非法 `scope` 直接 400——宁可拒了也不猜。
+2. 用这枚令牌三选一：
    - `POST /api/v1/service/embeddings`（`scope=embeddings` 的令牌），头 `X-Service-Token`，体 `{input, dimensions?, …}`
      → core 按令牌作用域解析模型、查配额、出站 `/embeddings`、记账，并把上游裸 JSON 原样返回。
+   - `POST /api/v1/service/chat/completions`（`scope=chat` 的令牌），体 `{model, messages, tools?, …}`
+     → 同一套配额 / 记账路径，出站 `/chat/completions` 并**强制非流式**。服务端 agent 的每步推理走这里。
    - `GET /api/v1/service/assets/{id}/content`（`scope=asset-read` 的令牌）→ 原始字节流。
      授权来自令牌里的 `assetID`，路径参数只用于比对：不一致 `400004`（403）。内部读不计量、不记账。
 
-**受众是硬边界**：`scope` 决定 `aud`，且每个端点只认自己的受众，所以嵌入令牌打不开内容端点（反之亦然），
-都是 `300002`（401）。`/chunks` 这类出站请求因此**不带对象键**——正文由 ai-worker 自己回打内容端点取，
-换存储布局不牵动它。
+**受众是硬边界**：`scope` 决定 `aud`，且每个端点只认自己的受众，所以嵌入令牌打不开内容端点或对话端点
+（反之亦然），都是 `300002`（401）。`/chunks` 这类出站请求因此**不带对象键**——正文由 ai-worker 自己回打
+内容端点取，换存储布局不牵动它。
 
 两条约束值得注意：`gateway.service_token_secret` **只有 core 自己用**——它既签发又校验服务令牌，
 所以只需要在 core 的配置里存在（留空则整个服务面关闭，`100002`/503）。ai-worker 不需要、也不应该拿到它。
@@ -284,7 +287,8 @@ ai-worker 是叶子进程，不直连模型厂商、不碰对象存储布局，�
 （`src/guards/service.rs::verify_internal`），ai-worker 用它换服务令牌。因为它是「能不能烧配额」的开关，
 必须通过 `config.local.yaml` / profile 覆盖；
 被要求嵌入的模型必须声明 `capabilities.embeddings = true`（后台模型编辑里给），否则 `200003` ——
-把「供应商不支持嵌入」这类错误挡在配置期而不是第一次调用。
+把「供应商不支持嵌入」这类错误挡在配置期而不是第一次调用。对话面则相反：只有显式声明
+`capabilities.tools = false` 的模型会被拒，未声明按支持处理（口径与用户面 `supports_tools` 一致）。
 
 ## 本地覆盖
 

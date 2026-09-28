@@ -18,6 +18,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use actix_web::web::Bytes;
+use authz::{Action, Permission, Resource};
 use chrono::{DateTime, FixedOffset, Utc};
 use entity::{gateway_audit, gateway_model, gateway_provider, gateway_usage, tenant};
 use futures::{Stream, StreamExt};
@@ -28,8 +29,6 @@ use sea_orm::{
 };
 use serde_json::{Value, json};
 use uuid::Uuid;
-
-use authz::{Action, Permission, Resource};
 
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
@@ -336,33 +335,29 @@ impl GatewayService {
         assemble(tx, config, redis, model, user_id, tenant_id).await
     }
 
-    /// 在**调用方给的作用域**里解析一次服务身份的嵌入请求。
+    /// 在**调用方给的作用域**里解析一次服务身份的出站请求。
     ///
     /// 与 [`prepare`](Self::prepare) 的关键差别是「授权从哪来」：这里没有人员角色，
     /// 授权完全来自服务令牌的作用域（租户 + 模型），因此不做 `role_allowed` 判定；
-    /// 反过来，模型必须显式声明嵌入能力，且不接受 `auto`（服务进程要的是确定性，
-    /// 不是「帮我挑一个」）。配额与记账按令牌里的租户归属。
+    /// 反过来，模型必须显式声明[所需能力](ServiceCapability)，且不接受 `auto`
+    /// （服务进程要的是确定性，不是「帮我挑一个」）。配额与记账按令牌里的租户归属。
     ///
     /// # Errors
-    /// 模型不存在/停用/未声明嵌入能力、供应商不存在或停用、数据库读取失败、密钥解密失败。
+    /// 模型不存在/停用/缺所需能力、供应商不存在或停用、数据库读取失败、密钥解密失败。
     pub async fn prepare_for_service(
         tx: &DatabaseTransaction,
         tenant_id: TenantId,
         config: &Configure,
         redis: &RedisPool,
         model_name: &str,
+        capability: ServiceCapability,
     ) -> Result<Prepared, GatewayError> {
         let tid = tenant_id.as_uuid();
         let model = find_model(tx, model_name, Some(tid)).await?;
         if !model.enabled {
             return Err(GatewayError::ModelDisabled);
         }
-        if !supports_embeddings(&model) {
-            return Err(GatewayError::BadParam(format!(
-                "模型 {} 未声明 embeddings 能力",
-                model.name
-            )));
-        }
+        capability.check(&model)?;
 
         assemble(tx, config, redis, model, SERVICE_ACTOR_ID, Some(tid)).await
     }
@@ -1213,6 +1208,38 @@ async fn pick_auto_model(
         .into_iter()
         .next()
         .ok_or_else(|| GatewayError::ModelNotFound(AUTO_MODEL_NAME.to_string()))
+}
+
+/// 服务身份出站需要的模型能力。
+///
+/// 两个变体的判定口径**故意不对称**，因为 `tools` 与 `embeddings` 在这个目录里的默认值
+/// 本来就相反（见 [`supports_tools`] / [`supports_embeddings`]）：
+///
+/// * 嵌入必须**显式声明**：把一个纯聊天模型当嵌入模型用只会拿到上游的 400/404；
+/// * 聊天只有**显式关闭** `tools` 才拒绝：绝大多数模型行不写 `capabilities`，
+///   若按「必须显式声明」判定，等于要求把整张模型表补一遍，而它们本来就能调工具。
+///
+/// 服务进程不接受「悄悄降级」：能力不足在目录这一层就说清楚，不推给上游。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ServiceCapability {
+    /// 嵌入出站。
+    Embeddings,
+    /// 聊天出站（agent 运行时用，需要工具调用）。
+    Chat,
+}
+
+impl ServiceCapability {
+    fn check(self, model: &gateway_model::Model) -> Result<(), GatewayError> {
+        let missing = match self {
+            Self::Embeddings if !supports_embeddings(model) => "未声明 embeddings 能力",
+            Self::Chat if !supports_tools(model) => "已声明不支持工具调用",
+            Self::Embeddings | Self::Chat => return Ok(()),
+        };
+        Err(GatewayError::BadParam(format!(
+            "模型 {} {missing}",
+            model.name
+        )))
+    }
 }
 
 /// 模型是否声明了工具调用能力；**未声明视为支持**（与客户端 opt-out 口径一致）。

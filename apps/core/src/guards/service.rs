@@ -4,13 +4,14 @@
 //! 两个请求头对应两种信任，彼此不能互相替代：
 //!
 //! * `X-Internal-Token`（[`InternalCaller`]）：core ↔ ai-worker 的共享密钥，只能换令牌；
-//! * `X-Service-Token`（[`ServiceScope`] / [`AssetScope`]）：core 签发的短期令牌，**自带作用域**
-//!   （租户 + 模型，或租户 + 单个资产），是出站端点的唯一有效凭据。
+//! * `X-Service-Token`（[`ServiceScope`] / [`AssetScope`] / [`ChatScope`]）：core 签发的短期令牌，
+//!   **自带作用域**（租户 + 模型，或租户 + 单个资产），是出站端点的唯一有效凭据。
 //!
 //! 实现成 [`FromRequest`] 而不是中间件，是为了让「没验身份就拿不到入参」这件事由类型系统
 //! 保证：handler 的形参里出现 `ServiceScope`，就等于声明了该端点只对服务身份开放，
 //! 也没有「忘了加守卫」这种可能（中间件写在 scope 上，改一行 wrap 就能漏掉整层）。
-//! 两个提取器各自写死受众：拿嵌入令牌打内容端点会 401，反之亦然。
+//! 每个提取器各自写死受众：拿嵌入令牌打内容端点会 401，反之亦然；嵌入与聊天虽然
+//! 作用域同形（租户 + 模型），也各自对应一个提取器——受众是硬边界，它不能在类型上被合并。
 
 use std::future::{Ready, ready};
 
@@ -99,6 +100,34 @@ impl AssetScope {
     }
 }
 
+/// 已验签的聊天出站作用域（`Chat` 受众）。
+///
+/// 载荷形状与 [`ServiceScope`] 完全一样（租户 + 模型），但**必须是独立类型**：
+/// 受众是在提取器的 [`FromRequest`] 里写死的，复用同一个类型就等于让聊天端点
+/// 接受嵌入令牌（反之亦然）。两件事共用一个类型，是「受众是硬边界」这句话唯一会漏的地方。
+#[derive(Debug, Clone)]
+pub struct ChatScope(ServiceScope);
+
+impl ChatScope {
+    /// 作用域租户。
+    #[must_use]
+    pub const fn tenant_id(&self) -> TenantId {
+        self.0.tenant_id()
+    }
+
+    /// 作用域模型名。
+    #[must_use]
+    pub fn model(&self) -> &str {
+        self.0.model()
+    }
+
+    /// 该身份在领域层的样子：租户内的一个无成员角色主体。
+    #[must_use]
+    pub fn principal(&self) -> Principal {
+        self.0.principal()
+    }
+}
+
 /// 已确认的内部共享调用方（`X-Internal-Token` 校验通过）。
 #[derive(Debug, Clone, Copy)]
 pub struct InternalCaller;
@@ -118,6 +147,15 @@ impl FromRequest for AssetScope {
 
     fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
         ready(verify_asset(req))
+    }
+}
+
+impl FromRequest for ChatScope {
+    type Error = Exception;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+        ready(verify_chat(req))
     }
 }
 
@@ -156,6 +194,21 @@ pub fn verify_asset(req: &HttpRequest) -> Result<AssetScope, Exception> {
         tenant_id,
         asset_id,
     })
+}
+
+/// 校验服务身份令牌（聊天受众），成功返回作用域。
+///
+/// 与 [`verify_service`] 只在受众上不同：嵌入令牌打聊天端点会在这里被拒
+/// （反之亦然），因为受众是端点写死的，调用方无法「按请求体决定信任谁」。
+///
+/// # Errors
+/// 同 [`verify_service`]。
+pub fn verify_chat(req: &HttpRequest) -> Result<ChatScope, Exception> {
+    let claims = verify_claims(req, Audience::Chat)?;
+    let tenant_id = parse_tenant(&claims.tenant_id)?;
+    let model = claims.model.unwrap_or_default();
+
+    Ok(ChatScope(ServiceScope { tenant_id, model }))
 }
 
 /// 两条服务身份通道的公共部分：取密钥、验签、按端点受众校验。

@@ -1,12 +1,12 @@
-//! 服务身份面的端到端验证（P6a / P6b-1）。
+//! 服务身份面的端到端验证（P6a / P6b-1 / P9a）。
 //!
 //! 这是 core 第一次对外提供「机器调用机器」的接口：受信服务进程（当前只有 ai-worker）用
-//! 共享令牌换一枚**带作用域**的短期令牌，再拿这枚令牌把嵌入调用打回 core——出网与计量
-//! 都留在 core 这一侧，服务进程自己不需要供应商密钥。
+//! 共享令牌换一枚**带作用域**的短期令牌，再拿这枚令牌把嵌入 / 对话调用打回 core——出网与
+//! 计量都留在 core 这一侧，服务进程自己不需要供应商密钥。
 //!
-//! 令牌按**受众**分发、一件受众一件事：`embeddings` 只能打嵌入端点，`asset-read` 只能
-//! 按令牌里写死的那个资产打内容端点。内容端点是同一副面孔的另一半——ai-worker 要切分
-//! 文件，就得有人把字节递过去，而字节只有 core 这一侧存着（CAS）。
+//! 令牌按**受众**分发、一件受众一件事：`embeddings` 只能打嵌入端点，`chat` 只能打对话端点，
+//! `asset-read` 只能按令牌里写死的那个资产打内容端点。内容端点是同一副面孔的另一半——
+//! ai-worker 要切分文件，就得有人把字节递过去，而字节只有 core 这一侧存着（CAS）。
 //!
 //! 需要独立测试库（库名必须含 `test`，避免误伤开发库）与一个真 Redis：
 //!
@@ -19,7 +19,7 @@
 //! 任一环境变量缺失即整体跳过。断言只盯 Postgres 与 Redis 上的记账。
 //!
 //! 覆盖的都是用户面测不到、而这条路径上真会出事的地方：两道请求头不能互换、共享密钥留空
-//! 即整面关闭、令牌自带的租户/模型作用域无法被请求体放大、两类受众不能互相串门、以及
+//! 即整面关闭、令牌自带的租户/模型作用域无法被请求体放大、三类受众不能互相串门、以及
 //! 服务调用的用量必须和用户调用走同一套配额与审计（否则「gateway 是唯一出网点」这句话
 //! 就漏在服务调用上）。
 //!
@@ -96,6 +96,9 @@ struct Fixture {
     /// 未声明嵌入能力的甲租户私有模型（用来验证能力闸门）。
     model_plain: Uuid,
     model_plain_name: String,
+    /// 显式声明「不支持工具调用」的甲租户私有模型（用来验证对话面的能力闸门）。
+    model_notools: Uuid,
+    model_notools_name: String,
     /// 乙租户私有模型（用来验证跨租户不可见）。
     model_b: Uuid,
     model_b_name: String,
@@ -270,6 +273,8 @@ async fn setup(upstream_base_url: &str, service_secret: Option<&str>) -> Option<
         model_embed_name: format!("svc-embed-{suffix}"),
         model_plain: Uuid::new_v4(),
         model_plain_name: format!("svc-plain-{suffix}"),
+        model_notools: Uuid::new_v4(),
+        model_notools_name: format!("svc-notools-{suffix}"),
         model_b: Uuid::new_v4(),
         model_b_name: format!("svc-embed-b-{suffix}"),
         assets: Assets::default(),
@@ -323,6 +328,12 @@ async fn seed(fixture: &Fixture, upstream_base_url: &str) -> Assets {
             &fixture.model_plain_name,
             fixture.tenant_a,
             json!({ "chat": true }),
+        ),
+        (
+            fixture.model_notools,
+            &fixture.model_notools_name,
+            fixture.tenant_a,
+            json!({ "tools": false }),
         ),
         (
             fixture.model_b,
@@ -486,6 +497,26 @@ fn embeddings_request(token: &str, body: Value) -> test::TestRequest {
         .set_json(body)
 }
 
+/// 打服务面**对话**端点。
+fn chat_request(token: &str, body: Value) -> test::TestRequest {
+    test::TestRequest::post()
+        .uri(paths::SERVICE_CHAT)
+        .insert_header((SERVICE_TOKEN_HEADER, token))
+        .set_json(body)
+}
+
+/// 申请一枚**对话**令牌（`scope = chat`）：作用域是「一个租户的一个模型」。
+fn chat_token_request(tenant: Uuid, model: &str) -> test::TestRequest {
+    test::TestRequest::post()
+        .uri(paths::SERVICE_TOKEN)
+        .insert_header((INTERNAL_TOKEN_HEADER, INTERNAL_TOKEN))
+        .set_json(json!({
+            "tenantID": tenant.to_string(),
+            "scope": "chat",
+            "model": model,
+        }))
+}
+
 /// 申请一枚**内容读取**令牌（`scope = asset-read`）：作用域是「一个租户的一个资产」。
 fn asset_token_request(tenant: Uuid, scope: &str, asset_id: &str) -> test::TestRequest {
     test::TestRequest::post()
@@ -512,6 +543,21 @@ fn upstream_body() -> Value {
         "data": [{ "object": "embedding", "index": 0, "embedding": [0.5, 0.25] }],
         "model": "upstream-model",
         "usage": { "prompt_tokens": TOTAL_TOKENS, "total_tokens": TOTAL_TOKENS },
+    })
+}
+
+/// 上游回的对话形状：同样带 `usage`，好核对记账落的是上游报的数而不是我们猜的数。
+fn upstream_chat_body() -> Value {
+    json!({
+        "id": "chatcmpl-stub",
+        "object": "chat.completion",
+        "model": "upstream-model",
+        "choices": [{
+            "index": 0,
+            "message": { "role": "assistant", "content": "pong" },
+            "finish_reason": "stop",
+        }],
+        "usage": { "prompt_tokens": 7, "completion_tokens": 4, "total_tokens": TOTAL_TOKENS },
     })
 }
 
@@ -553,6 +599,18 @@ macro_rules! mint_asset_token {
             let (status, body) =
                 call!($app, asset_token_request($tenant, "asset-read", $asset)).await;
             assert_eq!(status, 200, "签发资产读取令牌失败：{body}");
+
+            body
+        }
+    };
+}
+
+/// 用正确的内部令牌换一枚**对话**令牌（断言 200），返回响应体。
+macro_rules! mint_chat_token {
+    ($app:expr, $tenant:expr, $model:expr $(,)?) => {
+        async {
+            let (status, body) = call!($app, chat_token_request($tenant, $model)).await;
+            assert_eq!(status, 200, "签发对话令牌失败：{body}");
 
             body
         }
@@ -1132,6 +1190,247 @@ async fn asset_token_reads_exactly_one_asset() {
         error_code(&response),
         request_codes::INVALID_PARAMETER_VALUE
     );
+
+    assert!(upstream.requests().is_empty(), "这条面孔不该触网");
+}
+
+#[actix_web::test]
+async fn chat_forwards_and_meters() {
+    let _guard = DB_LOCK.lock().await;
+    let upstream = StubHttp::start(vec![StubResponse::json(200, upstream_chat_body())]).await;
+    let Some(fixture) = setup(&upstream.base_url(), None).await else {
+        return;
+    };
+    let app = build_app!(fixture.shared);
+
+    let body = mint_chat_token!(&app, fixture.tenant_a, &fixture.model_plain_name).await;
+    assert_eq!(body["scope"], json!("chat"));
+    assert_eq!(body["model"], json!(fixture.model_plain_name));
+    assert!(body.get("assetID").is_none(), "对话令牌不该带 assetID");
+    // 作用域写进了签名：按对话受众验签能过，且只带模型不带资产
+    let claims = claims_of(&body, Audience::Chat);
+    assert_eq!(claims.aud, service_token::AUDIENCE_CHAT);
+    assert_eq!(
+        claims.model.as_deref(),
+        Some(fixture.model_plain_name.as_str())
+    );
+    assert!(claims.asset_id.is_none());
+    let token = token_of(&body);
+
+    let (status, response_body) = call!(
+        &app,
+        chat_request(
+            &token,
+            json!({
+                "model": fixture.model_plain_name,
+                "messages": [{ "role": "user", "content": "ping" }],
+                "stream": true,
+            }),
+        ),
+    )
+    .await;
+    assert_eq!(status, 200, "对话转发失败：{response_body}");
+    // 上游 JSON 原样返回（裸结构，不套信封）
+    assert_eq!(
+        response_body["choices"][0]["message"]["content"],
+        json!("pong")
+    );
+
+    let request = upstream.only();
+    assert_eq!(request.method, "POST");
+    assert_eq!(request.path, "/chat/completions");
+    let sent = request.json();
+    // 模型来自令牌作用域，`messages` 由调用方透传
+    assert_eq!(sent["model"], json!(fixture.model_plain_name));
+    assert_eq!(sent["messages"][0]["content"], json!("ping"));
+    // 服务面一律非流式：调用方就算写了 `stream: true` 也会被按下去
+    assert_eq!(sent["stream"], json!(false));
+    assert!(request.header("authorization").is_none());
+
+    // 与用户面同一套记账：用量行、日窗配额、审计三件套
+    let usage_rows = scalar(
+        &fixture.admin,
+        &format!(
+            r#"SELECT count(*) FROM gateway_usage
+               WHERE "tenantID" = '{}' AND "modelID" = '{}' AND "providerID" = '{}'"#,
+            fixture.tenant_a, fixture.model_plain, fixture.provider_a
+        ),
+    )
+    .await;
+    assert_eq!(usage_rows, 1);
+
+    let tokens = scalar(
+        &fixture.admin,
+        &format!(
+            r#"SELECT coalesce(sum("totalTokens"), 0)::bigint FROM gateway_usage WHERE "tenantID" = '{}'"#,
+            fixture.tenant_a
+        ),
+    )
+    .await;
+    assert_eq!(tokens, TOTAL_TOKENS);
+
+    let key = quota::quota_key("tenant", &fixture.tenant_a);
+    assert_eq!(
+        quota::used_tokens(&fixture.shared.redis, &key)
+            .await
+            .expect("读配额失败"),
+        TOTAL_TOKENS,
+        "服务调用的用量必须计入同一个日窗配额"
+    );
+
+    let audits = scalar(
+        &fixture.admin,
+        &format!(
+            r#"SELECT count(*) FROM gateway_audit
+               WHERE action = 'gateway.chat' AND actor = '{SERVICE_ACTOR_ID}'
+                 AND "tenantID" = '{}'"#,
+            fixture.tenant_a
+        ),
+    )
+    .await;
+    assert_eq!(audits, 1);
+}
+
+#[actix_web::test]
+async fn chat_token_scope_and_capability_are_enforced_at_egress() {
+    let _guard = DB_LOCK.lock().await;
+    let upstream = StubHttp::start(vec![StubResponse::json(200, upstream_chat_body())]).await;
+    let Some(fixture) = setup(&upstream.base_url(), None).await else {
+        return;
+    };
+    let app = build_app!(fixture.shared);
+
+    // 请求体换个模型：400，一分钱都不出网（真正生效的模型只在令牌里）
+    let token =
+        token_of(&mint_chat_token!(&app, fixture.tenant_a, &fixture.model_plain_name).await);
+    let (status, response) = call!(
+        &app,
+        chat_request(
+            &token,
+            json!({
+                "model": "gpt-4o",
+                "messages": [{ "role": "user", "content": "ping" }],
+            }),
+        ),
+    )
+    .await;
+    assert_eq!(status, 400);
+    assert_eq!(
+        error_code(&response),
+        request_codes::INVALID_PARAMETER_VALUE
+    );
+    assert!(upstream.requests().is_empty());
+
+    // 显式声明 `tools: false` 的模型：令牌签得出来，出站时被挡下（400，不触网）——
+    // 对话面的能力闸门口径与嵌入面相反：未声明按支持处理，只有显式否认才拒
+    let token =
+        token_of(&mint_chat_token!(&app, fixture.tenant_a, &fixture.model_notools_name).await);
+    let (status, response) = call!(
+        &app,
+        chat_request(
+            &token,
+            json!({
+                "model": fixture.model_notools_name,
+                "messages": [{ "role": "user", "content": "ping" }],
+            }),
+        ),
+    )
+    .await;
+    assert_eq!(status, 400);
+    assert_eq!(
+        error_code(&response),
+        request_codes::INVALID_PARAMETER_VALUE
+    );
+    assert!(upstream.requests().is_empty());
+
+    // 未声明 `tools` 的模型照样放行（默认支持工具，否则每个部署都得先补全整张模型表）
+    let token =
+        token_of(&mint_chat_token!(&app, fixture.tenant_a, &fixture.model_plain_name).await);
+    let (status, _) = call!(
+        &app,
+        chat_request(
+            &token,
+            json!({
+                "model": fixture.model_plain_name,
+                "messages": [{ "role": "user", "content": "ping" }],
+            }),
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert_eq!(upstream.requests().len(), 1);
+
+    // 别租户的模型名换成同租户令牌也一样取不到：对话面并没有因为「服务身份」就跨出租户作用域
+    let token = token_of(&mint_chat_token!(&app, fixture.tenant_a, &fixture.model_b_name).await);
+    let (status, body) = call!(
+        &app,
+        chat_request(
+            &token,
+            json!({
+                "model": fixture.model_b_name,
+                "messages": [{ "role": "user", "content": "ping" }],
+            }),
+        ),
+    )
+    .await;
+    assert_eq!(status, 404);
+    assert_eq!(error_code(&body), resource::NOT_FOUND);
+}
+
+#[actix_web::test]
+async fn chat_token_cannot_cross_audiences() {
+    let _guard = DB_LOCK.lock().await;
+    let upstream = StubHttp::start(vec![StubResponse::json(200, upstream_chat_body())]).await;
+    let Some(fixture) = setup(&upstream.base_url(), None).await else {
+        return;
+    };
+    let app = build_app!(fixture.shared);
+
+    let chat_payload = json!({
+        "model": fixture.model_plain_name,
+        "messages": [{ "role": "user", "content": "ping" }],
+    });
+
+    // 嵌入令牌打对话端点：401（受众写死在端点里，令牌自己说了不算）
+    let embed_token = token_of(&mint!(&app, fixture.tenant_a, &fixture.model_embed_name).await);
+    let (status, body) = call!(&app, chat_request(&embed_token, chat_payload.clone())).await;
+    assert_eq!(status, 401);
+    assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+
+    // 反过来：对话令牌打嵌入端点同样 401
+    let chat_token =
+        token_of(&mint_chat_token!(&app, fixture.tenant_a, &fixture.model_plain_name).await);
+    let (status, body) = call!(
+        &app,
+        embeddings_request(&chat_token, json!({ "input": ["hi"] })),
+    )
+    .await;
+    assert_eq!(status, 401);
+    assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+
+    // 读取令牌打对话端点也不行——三件受众两两不通
+    let asset_id = fixture.assets.tenant_a.id.to_string();
+    let asset_token = token_of(&mint_asset_token!(&app, fixture.tenant_a, &asset_id).await);
+    let (status, body) = call!(&app, chat_request(&asset_token, chat_payload.clone())).await;
+    assert_eq!(status, 401);
+    assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+
+    // 伪造签名 / 形状不对 / 干脆不带：一样拒
+    let tenant_id = fixture.tenant_a.to_string();
+    let (forged, _) = service_token::mint(
+        OTHER_SECRET,
+        Scope::Chat {
+            tenant_id: &tenant_id,
+            model: &fixture.model_plain_name,
+        },
+        300,
+    )
+    .unwrap();
+    for token in [forged.as_str(), "not-a-jwt", ""] {
+        let (status, body) = call!(&app, chat_request(token, chat_payload.clone())).await;
+        assert_eq!(status, 401, "令牌 {token:?} 不该被接受");
+        assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+    }
 
     assert!(upstream.requests().is_empty(), "这条面孔不该触网");
 }

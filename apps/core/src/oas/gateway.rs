@@ -15,8 +15,9 @@ use crate::services::gateway::schema::{
     summary = "服务身份令牌（内部）",
     description = "**仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，\n\n\
         令牌自带作用域：`scope=embeddings`（缺省）限定 `tenantID` + `model`，\n\
-        `scope=asset-read` 限定 `tenantID` + 单个 `assetID`。受众由 `scope` 决定并在消费端点写死，\n\
-        所以换成嵌入的令牌打不开资产内容端点，反之亦然（`300002`，HTTP 401）。\n\
+        `scope=chat` 限定 `tenantID` + `model`，`scope=asset-read` 限定 `tenantID` + 单个 `assetID`。\n\
+        受众由 `scope` 决定并在消费端点写死，\n\
+        所以换成嵌入的令牌打不开资产内容端点或对话端点，反之亦然（`300002`，HTTP 401）。\n\
         这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。\n\
         换取失败一律按错误信封返回；租户不存在返回 404。`scope=asset-read` 时作用域里引用的资产在签发前先校验：\n\
         不存在或对本租户不可见返回 `500204`（HTTP 404），尚未完成上传返回 `200003`（HTTP 400）。",
@@ -44,6 +45,27 @@ pub fn service_token_doc() {}
     )
 )]
 pub fn service_embeddings_doc() {}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/service/chat/completions",
+    tag = "Service",
+    operation_id = "service.chat",
+    summary = "聊天转发（内部）",
+    description = "**仅限受信服务进程**：用 `scope=chat` 换来的 `X-Service-Token` 调用，模型取自令牌作用域\
+        （请求体里给了不一致的 `model` 会 400），`messages`/`tools`/`tool_choice` 等字段原样透传给上游供应商。\n\n\
+        一律非流式：`stream` 被强制为 `false`——调用方是机器，请求与响应一对一才谈得上活动级重试与幂等键。\n\
+        模型能力门禁在目录这一层：显式声明 `capabilities.tools=false` 的模型会被拒（400），\n\
+        未声明 `capabilities` 的按支持工具处理（与用户面 `supports_tools` 同口径）。\n\
+        走的是用户面同一个转发与记账路径：配额预检、用量与审计记账完全共用，\n\
+        用量行主体为服务主体（全零 UUID），租户取自令牌。",
+    request_body(content = ChatCompletionsP, description = "OpenAI 兼容请求（`model` 须与令牌作用域一致）"),
+    responses(
+        (status = 200, description = "成功（raw 上游 JSON）", body = Object),
+        (status = "default", description = "业务异常（令牌无效或过期 / 模型与作用域不一致 / 模型不支持工具调用 / 配额已用尽 / 上游失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
+    )
+)]
+pub fn service_chat_doc() {}
 
 #[utoipa::path(
     get,

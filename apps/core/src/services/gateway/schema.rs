@@ -34,9 +34,9 @@ pub struct EmbeddingsP {
 pub struct ServiceTokenP {
     #[serde(rename = "tenantID")]
     pub tenant_id: String,
-    /// 作用域：`embeddings`（缺省，嵌入出站）或 `asset-read`（读单个资产内容）。
+    /// 作用域：`embeddings`（缺省，嵌入出站）、`asset-read`（读单个资产内容）或 `chat`（聊天出站）。
     pub scope: Option<String>,
-    /// `scope=embeddings` 时必填：令牌只对这个模型有效。
+    /// `scope=embeddings` / `scope=chat` 时必填：令牌只对这个模型有效。
     pub model: Option<String>,
     /// `scope=asset-read` 时必填：令牌只对这个资产有效。
     #[serde(rename = "assetID")]
@@ -54,9 +54,9 @@ pub struct ServiceTokenR {
     pub expires_at: i64,
     #[serde(rename = "tenantID")]
     pub tenant_id: String,
-    /// 实际生效的作用域（`embeddings` / `asset-read`）。
+    /// 实际生效的作用域（`embeddings` / `asset-read` / `chat`）。
     pub scope: String,
-    /// 仅 `scope=embeddings` 有值。
+    /// 仅 `scope=embeddings` / `scope=chat` 有值。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     /// 仅 `scope=asset-read` 有值。
