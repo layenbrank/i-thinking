@@ -582,6 +582,95 @@ async fn tenant_scope_sees_own_and_global_rows_only() {
     ctx.rollback().await.expect("租户只读作用域回滚失败");
 }
 
+/// 租户面审计：只读得到本租户的行，且必须是具备 `audit_event:read` 的角色。
+#[tokio::test]
+async fn tenant_audit_reads_own_rows_and_requires_audit_permission() {
+    let _guard = DB_LOCK.lock().await;
+    let Some(fixture) = setup().await else { return };
+
+    // 种子里的两人都是 OWNER，读不了审计的对照物只能另加一名普通成员
+    let member = UserId::generate();
+    let suffix = Uuid::new_v4().simple().to_string();
+    let suffix = &suffix[..8];
+    exec(
+        &fixture.admin,
+        &format!(
+            r#"INSERT INTO auth (id, username, password, role, status, "createdAt", "updatedAt")
+               VALUES ('{member}', 'gw-member-{suffix}', '!', 'USER', 'ACTIVE', now(), now())"#
+        ),
+    )
+    .await;
+    exec(
+        &fixture.admin,
+        &format!(
+            r#"INSERT INTO tenant_member (id, "tenantID", "userID", role, status, "createdAt", "updatedAt")
+               VALUES ('{}', '{}', '{member}', 'MEMBER', 'ACTIVE', now(), now())"#,
+            Uuid::new_v4(),
+            fixture.tenant_a
+        ),
+    )
+    .await;
+
+    // 1) A 租户的 OWNER 只看到 A 的行：可见性归作用域，不靠调用方拼条件
+    let ctx = enter_tenant(&fixture, fixture.owner_a, fixture.tenant_a).await;
+    let (rows, total) = GatewayService::list_audit_in_tenant(&ctx, AuditFilter::default(), 1, 50)
+        .await
+        .expect("租户面列举审计失败");
+    assert_eq!(total, 1, "只应有 A 租户的种子行");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].tenant_id, Some(fixture.tenant_a.to_string()));
+
+    let export = GatewayService::export_audit_in_tenant(&ctx, AuditFilter::default())
+        .await
+        .expect("租户面导出审计失败");
+    assert_eq!(export.rows.len(), 1, "导出与列举必须同源");
+    assert_eq!(export.rows[0].tenant_id, Some(fixture.tenant_a.to_string()));
+    ctx.rollback().await.expect("租户只读作用域回滚失败");
+
+    // 2) B 租户看自己那一行，A 的行连条件都拼不出来
+    let ctx = enter_tenant(&fixture, fixture.owner_b, fixture.tenant_b).await;
+    let (rows, total) = GatewayService::list_audit_in_tenant(&ctx, AuditFilter::default(), 1, 50)
+        .await
+        .expect("租户面列举审计失败");
+    assert_eq!(total, 1);
+    assert_eq!(rows[0].tenant_id, Some(fixture.tenant_b.to_string()));
+    ctx.rollback().await.expect("租户只读作用域回滚失败");
+
+    // 3) 跨租户条件在进作用域之前就该被拒（400），而不是「查出来是空的」
+    let cross = AuditFilter::parse_for_tenant(
+        TenantId::from_uuid(fixture.tenant_a),
+        Some(&fixture.tenant_b.to_string()),
+        None,
+        None,
+        None,
+        None,
+    )
+    .expect_err("跨租户 tenantID 必须拒绝");
+    assert!(
+        matches!(cross, GatewayError::BadParam(_)),
+        "跨租户 tenantID 应报参数错误，实际：{cross:?}"
+    );
+
+    // 4) 普通成员没有 `audit_event:read`：读与导出同一处判定，都必须 403
+    let ctx = enter_tenant(&fixture, member, fixture.tenant_a).await;
+    let denied = GatewayService::list_audit_in_tenant(&ctx, AuditFilter::default(), 1, 50)
+        .await
+        .expect_err("成员不得读审计");
+    assert!(
+        matches!(denied, GatewayError::Forbidden),
+        "成员读审计应被拒，实际：{denied:?}"
+    );
+    let denied = match GatewayService::export_audit_in_tenant(&ctx, AuditFilter::default()).await {
+        Ok(_) => panic!("成员不得导出审计"),
+        Err(err) => err,
+    };
+    assert!(
+        matches!(denied, GatewayError::Forbidden),
+        "成员导出审计应被拒，实际：{denied:?}"
+    );
+    ctx.rollback().await.expect("租户只读作用域回滚失败");
+}
+
 /// 账号面：没有租户时只看得到全局行，连自己加入的租户的私有行也看不到。
 #[tokio::test]
 async fn account_scope_sees_global_rows_only() {

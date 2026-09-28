@@ -569,6 +569,68 @@ impl GatewayController {
         // 几十万行级别的拼串不会把数据库连接一直占着。
         platform_read(scope, result, |export| Ok(audit_download(format, &export))).await
     }
+
+    // ---- 租户面审计（挂在 `TenantModule` 的 `/tenants` scope 下，见 module.rs）----
+
+    /// 本租户审计列表。租户来自**路径**而不是 `X-Tenant-ID`：审计接口的可见范围不该由
+    /// 请求头决定，路径上写明哪个租户、再走一次成员关系判定，读起来没有歧义。
+    pub async fn tenant_audit(
+        db: web::Data<Arc<Storage>>,
+        http: HttpRequest,
+        path: web::Path<String>,
+        query: web::Query<AuditQueryP>,
+    ) -> Result<HttpResponse> {
+        let session = session(&http)?;
+        let tenant = parse_tenant(&path.into_inner())?;
+        let filter = match AuditFilter::parse_for_tenant(
+            tenant,
+            query.tenant_id.as_deref(),
+            query.actor.as_deref(),
+            query.action.as_deref(),
+            query.from,
+            query.to,
+        ) {
+            Ok(filter) => filter,
+            Err(err) => return Exception::from(err).transform(),
+        };
+        let page = query.page.unwrap_or(1).max(1);
+        let size = query.size.unwrap_or(50).clamp(1, 200);
+        // 作用域在过滤条件之后才开：参数写错不该先占一条数据库连接
+        let ctx = TenantCtx::enter(&db, &session, tenant).await?;
+        let result = GatewayService::list_audit_in_tenant(&ctx, filter, page, size)
+            .await
+            .map(|(items, count)| Paginated::new(items, count, page, size));
+        tenant_read(ctx, result, |paginated| {
+            Envelope::success(paginated, "获取审计日志成功").transform()
+        })
+        .await
+    }
+
+    /// 本租户审计导出：与平台面同一套文件字节与下载头，窗口收窄在作用域之内。
+    pub async fn tenant_audit_export(
+        db: web::Data<Arc<Storage>>,
+        http: HttpRequest,
+        path: web::Path<String>,
+        query: web::Query<AuditExportP>,
+    ) -> Result<HttpResponse> {
+        let session = session(&http)?;
+        let tenant = parse_tenant(&path.into_inner())?;
+        let format = query.format.unwrap_or(AuditExportFormat::Csv);
+        let filter = match AuditFilter::parse_for_tenant(
+            tenant,
+            query.tenant_id.as_deref(),
+            query.actor.as_deref(),
+            query.action.as_deref(),
+            query.from,
+            query.to,
+        ) {
+            Ok(filter) => filter,
+            Err(err) => return Exception::from(err).transform(),
+        };
+        let ctx = TenantCtx::enter(&db, &session, tenant).await?;
+        let result = GatewayService::export_audit_in_tenant(&ctx, filter).await;
+        tenant_read(ctx, result, |export| Ok(audit_download(format, &export))).await
+    }
 }
 
 /// 把导出行渲染成下载响应：原始字节 + 下载头，**不套 JSON 信封**。
@@ -608,6 +670,30 @@ where
         Err(err) => {
             if let Err(e) = scope.rollback().await {
                 tracing::warn!(error = %e, "平台作用域回滚失败");
+            }
+            Exception::from(err).transform()
+        }
+    }
+}
+
+/// 只读处理（租户面）：与 [`platform_read`] 同一套收尾顺序——先归还事务再出响应，
+/// 失败时尽力回滚且不让回滚错误盖掉原始错误。
+async fn tenant_read<T, F>(
+    ctx: TenantCtx,
+    result: std::result::Result<T, GatewayError>,
+    ok: F,
+) -> Result<HttpResponse>
+where
+    F: FnOnce(T) -> Result<HttpResponse>,
+{
+    match result {
+        Ok(data) => {
+            ctx.rollback().await?;
+            ok(data)
+        }
+        Err(err) => {
+            if let Err(e) = ctx.rollback().await {
+                tracing::warn!(error = %e, "租户作用域回滚失败");
             }
             Exception::from(err).transform()
         }
@@ -654,6 +740,14 @@ fn client_ip(http: &HttpRequest) -> Option<String> {
 
 fn parse_id(value: &str) -> Result<Uuid, Exception> {
     Uuid::parse_str(value).map_err(|_| Exception::bad_request("ID 格式无效"))
+}
+
+/// 路径上的租户标识；不合法的 UUID 是 400，不是 404——路由已经匹配上了，
+/// 是参数写错而不是资源不存在。
+fn parse_tenant(value: &str) -> Result<TenantId, Exception> {
+    value
+        .parse::<TenantId>()
+        .map_err(|_| Exception::bad_request("ID 格式无效"))
 }
 
 fn db_error(err: sea_orm::DbErr) -> Exception {

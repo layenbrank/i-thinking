@@ -116,6 +116,34 @@ impl AuditFilter {
         })
     }
 
+    /// 租户面解析：`tenantID` 只允许等于路径上的租户，其余与 [`parse`](Self::parse) 相同。
+    ///
+    /// 传一致的值是允许的（同一个过滤条件两边都照抄得动），指向别的租户即 400 ——
+    /// 静默忽略会让人以为「查的就是那个租户」，而结果里只有本租户的行。
+    ///
+    /// # Errors
+    /// `tenantID` 与路径租户不一致、或同 [`parse`](Self::parse) 的校验失败。
+    pub fn parse_for_tenant(
+        tenant: TenantId,
+        tenant_id: Option<&str>,
+        actor: Option<&str>,
+        action: Option<&str>,
+        from: Option<i64>,
+        to: Option<i64>,
+    ) -> Result<Self, GatewayError> {
+        if let Some(raw) = tenant_id.map(str::trim).filter(|v| !v.is_empty()) {
+            let parsed = Uuid::parse_str(raw)
+                .map_err(|_| GatewayError::BadParam("tenantID 必须是合法 UUID".into()))?;
+            if parsed != tenant.as_uuid() {
+                return Err(GatewayError::BadParam(
+                    "tenantID 与路径中的租户不一致；跨租户查询请用平台接口".into(),
+                ));
+            }
+        }
+        // 可见性交给作用域：这里把 `tenantID` 归零，查询条件里就没有租户这一项
+        Self::parse(None, actor, action, from, to)
+    }
+
     /// 补齐导出窗口：缺 `to` 取当前时刻，缺 `from` 取 `to` 往前 [`AUDIT_EXPORT_DEFAULT_WINDOW_DAYS`] 天。
     ///
     /// 导出必须有一个有界窗口——不限时间的全表导出正是这个接口最容易被误用的方式。
@@ -1756,6 +1784,45 @@ mod tests {
         assert!(AuditFilter::parse(None, None, None, Some(7), Some(7)).is_ok());
         assert!(bad_param(
             AuditFilter::parse(None, None, None, Some(i64::MAX), None).expect_err("时间戳越界")
+        ));
+    }
+
+    #[test]
+    fn tenant_filter_accepts_only_the_path_tenant() {
+        let tenant =
+            TenantId::from_uuid(Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap());
+
+        // 与路径一致（含空白）→ 通过，但过滤条件里不保留租户项：可见性归作用域
+        let filter = AuditFilter::parse_for_tenant(
+            tenant,
+            Some("  11111111-1111-1111-1111-111111111111  "),
+            None,
+            Some("gateway.chat"),
+            None,
+            None,
+        )
+        .expect("与路径一致即合法");
+        assert_eq!(filter.tenant_id, None);
+        assert_eq!(filter.action.as_deref(), Some("gateway.chat"));
+
+        // 缺省同样通过
+        assert!(AuditFilter::parse_for_tenant(tenant, None, None, None, None, None).is_ok());
+
+        // 指向别的租户 → 400，而不是「静默只给本租户的行」
+        assert!(bad_param(
+            AuditFilter::parse_for_tenant(
+                tenant,
+                Some("33333333-3333-3333-3333-333333333333"),
+                None,
+                None,
+                None,
+                None
+            )
+            .expect_err("跨租户 tenantID")
+        ));
+        assert!(bad_param(
+            AuditFilter::parse_for_tenant(tenant, Some("not-a-uuid"), None, None, None, None)
+                .expect_err("非法 tenantID")
         ));
     }
 

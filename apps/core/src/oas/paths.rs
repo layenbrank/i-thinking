@@ -57,6 +57,8 @@ pub const TENANT_MEMBER_BY_ID: &str = "/api/v1/tenants/{id}/members/{userID}";
 pub const TENANT_SUBSCRIPTIONS: &str = "/api/v1/tenants/{id}/subscriptions";
 pub const TENANT_SUBSCRIPTION_BY_ID: &str = "/api/v1/tenants/{id}/subscriptions/{subscriptionID}";
 pub const TENANT_QUOTA: &str = "/api/v1/tenants/{id}/quota";
+pub const TENANT_AUDIT: &str = "/api/v1/tenants/{id}/audit";
+pub const TENANT_AUDIT_EXPORT: &str = "/api/v1/tenants/{id}/audit/export";
 pub const TENANT_PAY_CATALOG: &str = "/api/v1/tenants/{id}/pay/catalog";
 pub const TENANT_PAY_ORDERS: &str = "/api/v1/tenants/{id}/orders";
 pub const TENANT_PAY_ORDER_BY_NO: &str = "/api/v1/tenants/{id}/orders/{orderNo}";
@@ -74,6 +76,7 @@ pub const GATEWAY_ADMIN_MODELS: &str = "/api/v1/gateway/admin/models";
 pub const GATEWAY_ADMIN_MODELS_BY_ID: &str = "/api/v1/gateway/admin/models/{id}";
 pub const GATEWAY_USAGE: &str = "/api/v1/gateway/usage";
 pub const GATEWAY_AUDIT: &str = "/api/v1/gateway/audit";
+pub const GATEWAY_AUDIT_EXPORT: &str = "/api/v1/gateway/audit/export";
 pub const GATEWAY_QUOTA_ME: &str = "/api/v1/gateway/quota/me";
 pub const GATEWAY_PLANS: &str = "/api/v1/gateway/plans";
 

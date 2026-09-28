@@ -1,6 +1,7 @@
 use actix_web::web;
 
 use crate::guards::auth::Auth;
+use crate::services::gateway::module::GatewayModule;
 use crate::services::payment::module::PaymentModule;
 use crate::services::subscription::module::SubscriptionModule;
 use crate::services::tenant::controller::TenantController;
@@ -16,6 +17,8 @@ impl TenantModule {
                 .configure(SubscriptionModule::configure)
                 // 支付订单 / 价格目录：同一套相对路径注册法则
                 .configure(PaymentModule::configure_tenant)
+                // 网关审计（本租户只读）：同一套相对路径注册法则
+                .configure(GatewayModule::configure_tenant)
                 .route("", web::get().to(TenantController::toList))
                 .route("", web::post().to(TenantController::toWrite))
                 .route("/{id}", web::get().to(TenantController::toRead_by_id))

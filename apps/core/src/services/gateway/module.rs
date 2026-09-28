@@ -7,6 +7,23 @@ use crate::services::upload::controller::UploadController;
 pub struct GatewayModule;
 
 impl GatewayModule {
+    /// 租户面：审计读取与导出挂在 `TenantModule` 的 `/tenants` scope 下。
+    ///
+    /// 只注册相对路径的 `web::resource`（与订阅/支付同一法则，见 `PaymentModule` 注释）：
+    /// 自建 `/tenants/{id}/…` 前缀 scope 会与父级同级并列，actix 的 `ResourceMap`
+    /// 只进先命中的前缀节点，后注册的那片永远 404。
+    ///
+    /// 日志表是网关域的，但「哪个租户」由路径决定，于是路由归这里、前缀归父级。
+    pub fn configure_tenant(cfg: &mut web::ServiceConfig) {
+        cfg.service(
+            web::resource("/{id}/audit").route(web::get().to(GatewayController::tenant_audit)),
+        )
+        .service(
+            web::resource("/{id}/audit/export")
+                .route(web::get().to(GatewayController::tenant_audit_export)),
+        );
+    }
+
     pub fn configure(cfg: &mut web::ServiceConfig) {
         cfg.service(
             web::scope("/gateway")

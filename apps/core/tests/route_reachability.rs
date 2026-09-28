@@ -11,13 +11,18 @@
 //! 2. `subscription_routes_are_registered_relative_to_tenant_scope`：对订阅 / 配额这类
 //!    曾整片 404 的路由做**可判别**的模块契约测试：去掉鉴权中间件但保持生产的父子 scope
 //!    结构，注册成了绝对路径或漏注册都会真 404。
+//! 3. `gateway_audit_routes_are_registered_relative_to_tenant_scope`：同样的契约，针对
+//!    租户面审计（路由也住在网关模块里、前缀归 `/tenants`）。
 
 use actix_web::{App, http::Method, test, web};
 use service::{
     bootstrap::{BootstrapModule, BootstrapOptions},
     middlewares::rate_limit::AuthGovernor,
     oas::paths::{self, ALL_ROUTES},
-    services::{application::module::ApplicationModule, subscription::module::SubscriptionModule},
+    services::{
+        application::module::ApplicationModule, gateway::module::GatewayModule,
+        subscription::module::SubscriptionModule,
+    },
 };
 
 /// 订阅 / 配额路由挂载的父 scope（完整路径，与 `TenantModule` 中一致）
@@ -108,6 +113,49 @@ async fn subscription_routes_are_registered_relative_to_tenant_scope() {
         assert!(
             seen.contains(path),
             "{path} 不在 ALL_ROUTES 中，逐条覆盖会漏"
+        );
+    }
+}
+
+/// 网关模块契约：租户面审计的两条路由同样必须以**相对 `/api/v1/tenants` 的相对路径**注册。
+///
+/// 回归目标与订阅那条相同——只是这次的注册点在 `GatewayModule::configure_tenant`：
+/// 网关的其余路由挂在自己的 `/gateway` scope 下，很容易顺手写成绝对路径。
+///
+/// 这两条**还没有**登记进 `ALL_ROUTES`（OAS 与 spec 的同步在 P7c-oas-routes 一并做），
+/// 所以这里按路径常量逐条发请求，而不是从 `ALL_ROUTES` 里筛。
+#[actix_web::test]
+async fn gateway_audit_routes_are_registered_relative_to_tenant_scope() {
+    let owned = [paths::TENANT_AUDIT, paths::TENANT_AUDIT_EXPORT];
+
+    for path in owned {
+        assert!(
+            path.starts_with(TENANT_SCOPE),
+            "{path} 不再位于 {TENANT_SCOPE} 之下，本测试的挂载结构需要同步调整"
+        );
+    }
+
+    let app =
+        test::init_service(App::new().service(web::scope("/api/v1").service(
+            web::scope(TENANT_SCOPE_RELATIVE).configure(GatewayModule::configure_tenant),
+        )))
+        .await;
+
+    for path in owned {
+        let response = test::call_service(
+            &app,
+            test::TestRequest::default()
+                .method(Method::GET)
+                .uri(&resolve_path(path))
+                .to_request(),
+        )
+        .await;
+
+        assert_ne!(
+            response.status(),
+            404,
+            "GET {path} 未被网关模块命中：只能注册相对 {TENANT_SCOPE} 的 web::resource，\
+             自建同层 web::scope 会被 actix 前缀节点吞掉"
         );
     }
 }
