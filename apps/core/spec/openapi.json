@@ -3952,8 +3952,15 @@
       "ServiceTokenP": {
         "description": "服务令牌申请：作用域由 core 判定，调用方只能**请求**租户、作用域与时长。",
         "properties": {
+          "approvalID": {
+            "description": "`scope=asset-write` 时必填：这次写依据的审批。core 会核对「批的就是这个资产、批的人\n是它的创建者」，并把审批原文里的可见性与名单钉进令牌。",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "assetID": {
-            "description": "`scope=asset-read` 时必填：令牌只对这个资产有效。",
+            "description": "`scope=asset-read` / `scope=asset-write` 时必填：令牌只对这个资产有效。",
             "type": [
               "string",
               "null"
@@ -3967,7 +3974,7 @@
             ]
           },
           "scope": {
-            "description": "作用域：`embeddings`（缺省，嵌入出站）、`asset-read`（读单个资产内容）或 `chat`（聊天出站）。",
+            "description": "作用域：`embeddings`（缺省，嵌入出站）、`asset-read`（读单个资产内容）、`chat`（聊天出站）\n或 `asset-write`（按一次已批准的审批改单个资产的可见性）。",
             "type": [
               "string",
               "null"
@@ -3994,8 +4001,15 @@
       "ServiceTokenR": {
         "description": "服务令牌响应：裸结构、不套信封（调用方是服务进程，不是浏览器）。",
         "properties": {
+          "approvalID": {
+            "description": "仅 `scope=asset-write` 有值：回执里带上是哪张单子换来的这枚令牌，便于对账。",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "assetID": {
-            "description": "仅 `scope=asset-read` 有值。",
+            "description": "仅 `scope=asset-read` / `scope=asset-write` 有值。",
             "type": [
               "string",
               "null"
@@ -4014,7 +4028,7 @@
             ]
           },
           "scope": {
-            "description": "实际生效的作用域（`embeddings` / `asset-read` / `chat`）。",
+            "description": "实际生效的作用域（`embeddings` / `asset-read` / `chat` / `asset-write`）。",
             "type": "string"
           },
           "tenantID": {
@@ -9803,6 +9817,85 @@
         ]
       }
     },
+    "/api/v1/service/assets/{id}/visibility": {
+      "put": {
+        "description": "**仅限受信服务进程**：用 `scope=asset-write` 换来的 `X-Service-Token` 改一个资产的可见性。\n\n这是唯一一个「写」的服务身份端点，也是唯一一处**人批过才动得了**的机器写：\n改成什么样、给谁看，都在换令牌时由人批过，并签名进了令牌（见 `POST /api/v1/service/token`）。\n**没有请求体**；路径参数只用于比对令牌里的 `assetID`，不一致返回 `400004`（HTTP 403）。\n写以批准人的身份落地：资产行的写策略只认 `creator`，而签发时已核对「批准人 = 创建者」，\n所以只有创建者自己的资产改得动；令牌里的可见性字面量必须认识，名单必须是 uuid 且只在\n`RESTRICTED` 下出现，任何一条不成立都按「令牌无效」处理（`300002`，HTTP 401）。\n资产不存在或不在令牌租户/批准人视野内返回 `500204`（HTTP 404）。\n受众是硬边界：别的受众的令牌打到这里一律 `300002`（HTTP 401），反之亦然。\n响应是裸结构（不是信封），与取令牌口径一致。",
+        "operationId": "service.assetVisibility",
+        "parameters": [
+          {
+            "description": "资产 UUID（须与令牌作用域一致）",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetR"
+                }
+              }
+            },
+            "description": "成功（raw JSON，不套信封）",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（令牌无效或过期 / 受众不符 / 作用域与路径不符 / 无权写入该资产 / 资产不存在 / 端点未启用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "资产可见性写入（内部，须已批准）",
+        "tags": [
+          "Service"
+        ]
+      }
+    },
     "/api/v1/service/chat/completions": {
       "post": {
         "description": "**仅限受信服务进程**：用 `scope=chat` 换来的 `X-Service-Token` 调用，模型取自令牌作用域（请求体里给了不一致的 `model` 会 400），`messages`/`tools`/`tool_choice` 等字段原样透传给上游供应商。\n\n一律非流式：`stream` 被强制为 `false`——调用方是机器，请求与响应一对一才谈得上活动级重试与幂等键。\n模型能力门禁在目录这一层：显式声明 `capabilities.tools=false` 的模型会被拒（400），\n未声明 `capabilities` 的按支持工具处理（与用户面 `supports_tools` 同口径）。\n走的是用户面同一个转发与记账路径：配额预检、用量与审计记账完全共用，\n用量行主体为服务主体（全零 UUID），租户取自令牌。",
@@ -9965,7 +10058,7 @@
     },
     "/api/v1/service/token": {
       "post": {
-        "description": "**仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，\n\n令牌自带作用域：`scope=embeddings`（缺省）限定 `tenantID` + `model`，\n`scope=chat` 限定 `tenantID` + `model`，`scope=asset-read` 限定 `tenantID` + 单个 `assetID`。\n受众由 `scope` 决定并在消费端点写死，\n所以换成嵌入的令牌打不开资产内容端点或对话端点，反之亦然（`300002`，HTTP 401）。\n这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。\n换取失败一律按错误信封返回；租户不存在返回 404。`scope=asset-read` 时作用域里引用的资产在签发前先校验：\n不存在或对本租户不可见返回 `500204`（HTTP 404），尚未完成上传返回 `200003`（HTTP 400）。",
+        "description": "**仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，\n\n令牌自带作用域：`scope=embeddings`（缺省）限定 `tenantID` + `model`，\n`scope=chat` 限定 `tenantID` + `model`，`scope=asset-read` 限定 `tenantID` + 单个 `assetID`。\n`scope=asset-write` 还要 `approvalID`：core 在这一刻回读审批台账，核对「批的就是这个资产、\n批的人是它的创建者」，再把审批原文里的可见性与名单签名进令牌——之后写端点只看令牌。\n受众由 `scope` 决定并在消费端点写死，\n所以换成嵌入的令牌打不开资产内容端点或对话端点，反之亦然（`300002`，HTTP 401）。\n这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。\n换取失败一律按错误信封返回；租户不存在返回 404。`scope=asset-read` 时作用域里引用的资产在签发前先校验：\n不存在或对本租户不可见返回 `500204`（HTTP 404），尚未完成上传返回 `200003`（HTTP 400）；\n`scope=asset-write` 时审批不合规（不存在 / 未批准 / 参数与资产不符 / 批准人不是创建者）返回 `500509`（HTTP 403）。",
         "operationId": "service.token",
         "parameters": [
           {

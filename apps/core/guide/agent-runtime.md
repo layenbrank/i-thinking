@@ -66,6 +66,7 @@ orchestrator                                  ai-worker
 | `asset_read` | 读 | 在默认 `allowed_tools` 里 | 不需要 | 回打 core 取资产正文（`scope=asset-read` 令牌） |
 | `memory_recall` | 读 | 在默认 `allowed_tools` 里 | 不需要 | 召回本租户的长期记忆 |
 | `memory_write` | **写** | **不在默认里**，要显式加 | **每次调用都要人批** | 让模型自己往长期记忆里记笔记 |
+| `asset_visibility_write` | **写** | **不在默认里**，要显式加 | **每次调用都要人批** | 改一个资产的可见性（改的是 core 的业务数据，走「拿审批换写令牌」那条路，见下） |
 
 三条立场：
 
@@ -77,6 +78,15 @@ orchestrator                                  ai-worker
   就一个源登记一个工具——工具清单是**白名单**，不是「什么都能调」的通用出口。
 - **工具名走 `snake_case`**（`knowledge_search`），能力名保持点号（`agent.step`）。
   前者是模型接口的命名规则，`validate()` 在启动时就拦。
+
+批准之后由谁执行，取决于「凭据在谁手里」：
+
+- `memory_write` 写的是 ai-worker 自己的存储，编排拿着凭据 —— 批准后由编排**自己**执行。
+- `asset_visibility_write` 写的是 core 的业务数据，叶子服务不该持这种长期凭据 —— 于是批准过的
+  **那行台账本身**成了凭据：ai-worker 拿 `approvalID` 换一枚短期写令牌，用令牌去写 core（见
+  [写令牌](../src/services/gateway/README.md#写令牌scope--asset-write把人批过的参数当唯一输入)）。
+
+两条路共用同一份审批台账、同一套超时语义，区别只在「决定到了之后谁来动手」。
 
 白名单是**上限**：请求体可以往下收（更少的轮次、更小的工具集合），不能往上越。
 还有一条硬止损——**剩余轮次 ≤ 1 时清空工具白名单**，逼模型先给结论，而不是下一步撞预算。

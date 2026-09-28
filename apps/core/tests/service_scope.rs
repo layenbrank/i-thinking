@@ -8,6 +8,11 @@
 //! `asset-read` 只能按令牌里写死的那个资产打内容端点。内容端点是同一副面孔的另一半——
 //! ai-worker 要切分文件，就得有人把字节递过去，而字节只有 core 这一侧存着（CAS）。
 //!
+//! `asset-write` 是这条通道上唯一的**写**，因此它比别的受众多一道门：先得有一张**人批过的**
+//! 审批单，签发时回读台账把审批原文（可见性 + 名单）钉进令牌，写端点不再收请求体，也就不用
+//! 相信调用方的任何输入。写以批准人的身份落地——资产行的写策略只认创建者，所以「审批人必须
+//! 是资产创建者」不是额外加的规矩，而是唯一能写成功的组合。
+//!
 //! 需要独立测试库（库名必须含 `test`，避免误伤开发库）与一个真 Redis：
 //!
 //! ```text
@@ -200,6 +205,130 @@ async fn scalar<C: ConnectionTrait>(conn: &C, sql: &str) -> i64 {
     .unwrap_or_else(|| panic!("查询没有返回结果：{sql}"))
     .try_get_by_index::<i64>(0)
     .expect("结果不是 bigint")
+}
+
+/// 单个文本标量；查询失败或没结果都是断言失败。
+async fn text_scalar<C: ConnectionTrait>(conn: &C, sql: &str) -> String {
+    conn.query_one_raw(Statement::from_string(
+        DatabaseBackend::Postgres,
+        sql.to_owned(),
+    ))
+    .await
+    .unwrap_or_else(|err| panic!("查询失败：{sql}\n{err}"))
+    .unwrap_or_else(|| panic!("查询没有返回结果：{sql}"))
+    .try_get_by_index::<String>(0)
+    .expect("结果不是文本")
+}
+
+/// 资产行的「可见性 + 谁建的 + 谁最后改的」——三个字段一起断言，才看得出写入是以谁的身份落地的。
+async fn visibility_of<C: ConnectionTrait>(conn: &C, asset: Uuid) -> String {
+    text_scalar(
+        conn,
+        &format!(
+            r#"SELECT "visibility" || '|' || coalesce("creator"::text, '-') || '|'
+              || coalesce("updater"::text, '-')
+         FROM asset WHERE id = '{asset}'"#
+        ),
+    )
+    .await
+}
+
+/// 资产行的可见对象名单，按库里的原样读回来再解析（免得断言依赖 jsonb 的排版）。
+async fn viewers_of<C: ConnectionTrait>(conn: &C, asset: Uuid) -> Value {
+    let raw = text_scalar(
+        conn,
+        &format!(r#"SELECT coalesce("viewers"::text, 'null') FROM asset WHERE id = '{asset}'"#),
+    )
+    .await;
+
+    serde_json::from_str(&raw).unwrap_or_else(|err| panic!("viewers 不是 JSON：{raw}\n{err}"))
+}
+
+/// 种一个用户：写字工具要「以人的身份」落地，而 `asset."creator"` 指向 `auth` 行。
+async fn seed_user(fixture: &Fixture, tag: &str) -> Uuid {
+    let id = Uuid::new_v4();
+    let tail = &id.simple().to_string()[..8];
+
+    exec(
+        &fixture.admin,
+        &format!(
+            r#"INSERT INTO auth (id, username, password, role, status, "createdAt", "updatedAt")
+       VALUES ('{id}', 'svc-{tag}-{tail}', 'x', 'USER', 'ACTIVE', now(), now())"#
+        ),
+    )
+    .await;
+
+    id
+}
+
+/// 种一个**有主**的资产（`creator` 指向真人）：只有创建者本人才能改可见性。
+///
+/// 不种分片也不进 CAS——这组用例只关心可见性的落库，不关心字节。
+async fn seed_owned_asset(fixture: &Fixture, tenant: Uuid, creator: Uuid) -> Uuid {
+    let id = Uuid::new_v4();
+    let content = id.as_bytes();
+
+    exec(
+        &fixture.admin,
+        &format!(
+            r#"INSERT INTO asset
+         (id, "tenantID", kind, hash, size, "index", mime, name, status, visibility,
+          chunk, total, creator, "createdAt", "updatedAt")
+       VALUES ('{id}', '{tenant}', 'file', '{}', {}, 0, 'text/plain', 'owned-{id}',
+               'COMPLETED', 'PRIVATE', 0, 0, '{creator}', now(), now())"#,
+            storage::calculate_hash(content),
+            content.len() as i64
+        ),
+    )
+    .await;
+
+    id
+}
+
+/// 种一条审批台账：一个任务 + 它的第 0 步待批记录，返回审批号。
+///
+/// 审批号在主程序里是 `{taskID}:{step}:{index}`——这里照这个形状拼，好让「审批号不存在」的
+/// 负例和真货长得一样。
+async fn seed_approval(
+    fixture: &Fixture,
+    tenant: Uuid,
+    requester: Uuid,
+    state: &str,
+    decided_by: Option<Uuid>,
+    arguments: &str,
+) -> String {
+    let task = Uuid::new_v4();
+    let approval = format!("{task}:0:0");
+    let escaped = arguments.replace('\'', "''");
+    let decider = decided_by.map_or_else(|| "NULL".to_owned(), |id| format!("'{id}'"));
+    let reason = if state == "REJECTED" { "不同意" } else { "" };
+
+    exec(
+        &fixture.admin,
+        &format!(
+            r#"INSERT INTO agent_task
+         (id, "tenantID", "userID", status, objective, model, "maxSteps", "allowedTools",
+          "instanceID", "createdAt", "updatedAt")
+       VALUES ('{task}', '{tenant}', '{requester}', 'RUNNING', '把这份文件标成只给这几个人看',
+               'stub-model', 4, '["asset_visibility_write"]'::jsonb, 'agent-{task}',
+               now(), now())"#
+        ),
+    )
+    .await;
+    exec(
+        &fixture.admin,
+        &format!(
+            r#"INSERT INTO agent_approval
+         (id, "tenantID", "taskID", step, tool, arguments, state, "decidedBy", "decidedAt",
+          reason, "expiresAt", "createdAt", "updatedAt")
+       VALUES ('{approval}', '{tenant}', '{task}', 0, 'asset_visibility_write', '{escaped}',
+               '{state}', {decider}, now(), '{reason}', now() + interval '1 hour',
+               now(), now())"#
+        ),
+    )
+    .await;
+
+    approval
 }
 
 /// 重建库、建应用角色、授权、种两个租户的目录；锁未持有时不得调用。
@@ -529,10 +658,32 @@ fn asset_token_request(tenant: Uuid, scope: &str, asset_id: &str) -> test::TestR
         }))
 }
 
+/// 申请一枚**可见性写入**令牌（`scope = asset-write`）：作用域是「一个租户的一个资产 + 一次审批」。
+///
+/// 这里没有可见性也没有名单——参数不在请求体里，而在那张审批单上。
+fn asset_write_request(tenant: Uuid, asset_id: &str, approval_id: &str) -> test::TestRequest {
+    test::TestRequest::post()
+        .uri(paths::SERVICE_TOKEN)
+        .insert_header((INTERNAL_TOKEN_HEADER, INTERNAL_TOKEN))
+        .set_json(json!({
+            "tenantID": tenant.to_string(),
+            "scope": "asset-write",
+            "assetID": asset_id,
+            "approvalID": approval_id,
+        }))
+}
+
 /// 打内容端点。路径里的 `{id}` 占位符是给文档/路由清单用的，请求时得换成真 id。
 fn asset_content_request(asset_id: &str, token: &str) -> test::TestRequest {
     test::TestRequest::get()
         .uri(&paths::SERVICE_ASSET_CONTENT.replace("{id}", asset_id))
+        .insert_header((SERVICE_TOKEN_HEADER, token))
+}
+
+/// 打可见性写入端点：写什么全在令牌里，所以这里**不发请求体**。
+fn asset_visibility_request(asset_id: &str, token: &str) -> test::TestRequest {
+    test::TestRequest::put()
+        .uri(&paths::SERVICE_ASSET_VISIBILITY.replace("{id}", asset_id))
         .insert_header((SERVICE_TOKEN_HEADER, token))
 }
 
@@ -611,6 +762,19 @@ macro_rules! mint_chat_token {
         async {
             let (status, body) = call!($app, chat_token_request($tenant, $model)).await;
             assert_eq!(status, 200, "签发对话令牌失败：{body}");
+
+            body
+        }
+    };
+}
+
+/// 换一枚写令牌，断言签发成功并回响应体。
+macro_rules! mint_write_token {
+    ($app:expr, $tenant:expr, $asset:expr, $approval:expr $(,)?) => {
+        async {
+            let (status, body) =
+                call!($app, asset_write_request($tenant, $asset, $approval),).await;
+            assert_eq!(status, 200, "签发写令牌失败：{body}");
 
             body
         }
@@ -1528,10 +1692,10 @@ async fn asset_token_issuance_validates_scope() {
     assert_eq!(body["scope"], json!("embeddings"));
     assert!(body.get("assetID").is_none(), "嵌入令牌不该带 assetID");
 
-    // 未知 scope：400（宁可拒了也不猜调用方想要什么）
+    // 未知 scope：400（宁可拒了也不猜调用方想要什么；asset-write 已是真受众，拿 asset-delete 当反例）
     let (status, body) = call!(
         &app,
-        asset_token_request(fixture.tenant_a, "asset-write", &asset_id),
+        asset_token_request(fixture.tenant_a, "asset-delete", &asset_id),
     )
     .await;
     assert_eq!(status, 400);
@@ -1584,5 +1748,322 @@ async fn asset_token_issuance_validates_scope() {
     .await;
     assert_eq!(status, 404);
 
+    assert!(upstream.requests().is_empty());
+}
+
+/// 写令牌的整条链：审批原文 → 签发时回读定稿 → 写端点落地。
+///
+/// 这条路径上「谁说了算」只有一处：**人批过的那张单子**。所以要验的不只是写成功，而是
+/// 写进去的字面量确实出自那张单子、落地确实落在批准人头上、以及令牌越界用不动。
+#[actix_web::test]
+async fn approved_visibility_write_lands_as_approver() {
+    let _guard = DB_LOCK.lock().await;
+    let upstream = StubHttp::start(vec![StubResponse::json(200, upstream_body())]).await;
+    let Some(fixture) = setup(&upstream.base_url(), None).await else {
+        return;
+    };
+    let app = build_app!(fixture.shared);
+
+    let tenant = fixture.tenant_a;
+    let tenant_id = tenant.to_string();
+    let owner = seed_user(&fixture, "owner").await;
+    let owner_id = owner.to_string();
+    let viewer = seed_user(&fixture, "viewer").await;
+    let asset = seed_owned_asset(&fixture, tenant, owner).await;
+    let asset_id = asset.to_string();
+
+    // 人批的是「只给这两个人看」；名单里带着创建者本人，是因为他也要能读回自己刚改过的东西
+    let arguments = json!({
+        "assetID": asset_id,
+        "visibility": "RESTRICTED",
+        "viewers": [viewer.to_string(), owner_id],
+    });
+    let approval = seed_approval(
+        &fixture,
+        tenant,
+        owner,
+        "APPROVED",
+        Some(owner),
+        &arguments.to_string(),
+    )
+    .await;
+
+    let body = mint_write_token!(&app, tenant, &asset_id, &approval).await;
+    assert_eq!(body["scope"], json!("asset-write"));
+    assert_eq!(body["assetID"], json!(asset_id));
+    assert_eq!(body["approvalID"], json!(approval));
+    assert!(body.get("model").is_none(), "写令牌没有模型这一说");
+
+    // 响应的字段不算数，令牌里的作用域才算数：按该受众验签一遍，看审批原文有没有真被钉进去
+    let grant = claims_of(&body, Audience::AssetVisibility)
+        .approval
+        .expect("写令牌必须带审批凭据");
+    assert_eq!(grant.approval_id, approval);
+    assert_eq!(grant.actor_id, owner_id);
+    assert_eq!(grant.visibility, "RESTRICTED");
+    assert_eq!(
+        grant.viewers,
+        vec![viewer.to_string(), owner_id.clone()],
+        "名单以审批原文为准，顺序不变"
+    );
+
+    // 换令牌读的是自己的台账，不出网
+    assert!(upstream.requests().is_empty());
+
+    let token = token_of(&body);
+    let (status, written) = call!(&app, asset_visibility_request(&asset_id, &token)).await;
+    assert_eq!(status, 200, "写入失败：{written}");
+    assert_eq!(written["id"], json!(asset_id));
+    assert_eq!(written["visibility"], json!("RESTRICTED"));
+    assert_eq!(
+        written["viewers"],
+        json!([viewer.to_string(), owner_id.clone()])
+    );
+
+    // 库里的真行才算数：可见性、名单、以及「是谁改的」
+    assert_eq!(
+        visibility_of(&fixture.admin, asset).await,
+        format!("RESTRICTED|{owner_id}|{owner_id}")
+    );
+    assert_eq!(
+        viewers_of(&fixture.admin, asset).await,
+        json!([viewer.to_string(), owner_id.clone()])
+    );
+
+    // 写令牌是「能力」不是「一次性凭据」：没人能回收它，只能靠短有效期兜着
+    let (status, _) = call!(&app, asset_visibility_request(&asset_id, &token)).await;
+    assert_eq!(status, 200, "同一枚写令牌重放应当仍然生效");
+
+    // 但能力只覆盖那一个资产：拿它去打另一个资产，什么都不写
+    let other = seed_owned_asset(&fixture, tenant, owner).await;
+    let (status, body) = call!(&app, asset_visibility_request(&other.to_string(), &token),).await;
+    assert_eq!(status, 403);
+    assert_eq!(error_code(&body), resource::ACCESS_RESTRICTED);
+    assert_eq!(
+        visibility_of(&fixture.admin, other).await,
+        format!("PRIVATE|{owner_id}|-"),
+        "越界的那一下不能留下任何痕迹"
+    );
+
+    // 受众是硬边界：写令牌读不了内容，读令牌也写不动
+    let (status, body) = call!(&app, asset_content_request(&asset_id, &token)).await;
+    assert_eq!(status, 401);
+    assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+    let read_token = token_of(&mint_asset_token!(&app, tenant, &asset_id).await);
+    let (status, body) = call!(&app, asset_visibility_request(&asset_id, &read_token)).await;
+    assert_eq!(status, 401);
+    assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+
+    // 签名对不上 / 形状不对 / 干脆不带：这里连审批都不必读，先过令牌这一关
+    let (forged, _) = service_token::mint(
+        OTHER_SECRET,
+        Scope::AssetVisibility {
+            tenant_id: &tenant_id,
+            asset_id: &asset_id,
+            approval_id: &approval,
+            actor_id: &owner_id,
+            visibility: "RESTRICTED",
+            viewers: &[viewer.to_string()],
+        },
+        300,
+    )
+    .unwrap();
+    for token in [forged.as_str(), "not-a-jwt", ""] {
+        let (status, body) = call!(&app, asset_visibility_request(&asset_id, token)).await;
+        assert_eq!(status, 401, "令牌 {token:?} 不该被接受");
+        assert_eq!(error_code(&body), auth::INVALID_CREDENTIALS);
+    }
+
+    // 第二条链：这次批的是 PRIVATE，名单必须被清干净。
+    // 留着旧名单的话，下次有人把它改回 RESTRICTED 就会悄悄沿用上一批人。
+    let arguments = json!({ "assetID": asset_id, "visibility": "PRIVATE" });
+    let approval = seed_approval(
+        &fixture,
+        tenant,
+        owner,
+        "APPROVED",
+        Some(owner),
+        &arguments.to_string(),
+    )
+    .await;
+    let token = token_of(&mint_write_token!(&app, tenant, &asset_id, &approval).await);
+    let (status, written) = call!(&app, asset_visibility_request(&asset_id, &token)).await;
+    assert_eq!(status, 200, "写入失败：{written}");
+    assert_eq!(written["visibility"], json!("PRIVATE"));
+    assert_eq!(written["viewers"], json!([]), "非 RESTRICTED 不该回名单");
+    assert_eq!(viewers_of(&fixture.admin, asset).await, Value::Null);
+    assert_eq!(
+        visibility_of(&fixture.admin, asset).await,
+        format!("PRIVATE|{owner_id}|{owner_id}")
+    );
+
+    assert!(upstream.requests().is_empty());
+}
+
+/// 单子不对就不签：审批台账里的每一种「不该签」的样子都试一遍。
+///
+/// 全部落在同一个业务码上（500509，HTTP 403），消息也不区分原因——外人在能拿到码之前
+/// 不该从响应里看出「这条审批存在吗 / 被谁批的 / 批的是什么」。
+#[actix_web::test]
+async fn visibility_write_requires_a_valid_approval() {
+    let _guard = DB_LOCK.lock().await;
+    let upstream = StubHttp::start(vec![StubResponse::json(200, upstream_body())]).await;
+    let Some(fixture) = setup(&upstream.base_url(), None).await else {
+        return;
+    };
+    let app = build_app!(fixture.shared);
+
+    let tenant = fixture.tenant_a;
+    let owner = seed_user(&fixture, "owner").await;
+    let stranger = seed_user(&fixture, "stranger").await;
+    let viewer = seed_user(&fixture, "viewer").await;
+    let asset = seed_owned_asset(&fixture, tenant, owner).await;
+    let asset_id = asset.to_string();
+    let other = seed_owned_asset(&fixture, tenant, owner).await.to_string();
+
+    let approved = json!({
+        "assetID": asset_id,
+        "visibility": "RESTRICTED",
+        "viewers": [viewer.to_string()],
+    })
+    .to_string();
+
+    // 台账里那一行长什么样，直接决定签不签得出来
+    let cases = [
+        ("审批还在等人批", "PENDING", Some(owner), approved.clone()),
+        ("审批被人驳回了", "REJECTED", Some(owner), approved.clone()),
+        ("没记是谁批的", "APPROVED", None, approved.clone()),
+        (
+            "参数原文不是 JSON",
+            "APPROVED",
+            Some(owner),
+            "就是一段普通文字".to_owned(),
+        ),
+        (
+            "参数里有工具不认识的字段",
+            "APPROVED",
+            Some(owner),
+            json!({ "assetID": asset_id, "visibility": "PUBLIC", "extra": 1 }).to_string(),
+        ),
+        (
+            "批的是另一个资产",
+            "APPROVED",
+            Some(owner),
+            json!({ "assetID": other, "visibility": "PUBLIC" }).to_string(),
+        ),
+        (
+            "可见性字面量不认识",
+            "APPROVED",
+            Some(owner),
+            json!({ "assetID": asset_id, "visibility": "SECRET" }).to_string(),
+        ),
+        (
+            "非 RESTRICTED 却带着名单",
+            "APPROVED",
+            Some(owner),
+            json!({
+                "assetID": asset_id,
+                "visibility": "PUBLIC",
+                "viewers": [viewer.to_string()],
+            })
+            .to_string(),
+        ),
+        (
+            "名单里不是用户 id",
+            "APPROVED",
+            Some(owner),
+            json!({ "assetID": asset_id, "visibility": "RESTRICTED", "viewers": ["who?"] })
+                .to_string(),
+        ),
+        (
+            "名单里是空白",
+            "APPROVED",
+            Some(owner),
+            json!({ "assetID": asset_id, "visibility": "RESTRICTED", "viewers": ["  "] })
+                .to_string(),
+        ),
+        (
+            "批准人另有其人",
+            "APPROVED",
+            Some(stranger),
+            approved.clone(),
+        ),
+    ];
+
+    for (name, state, decider, arguments) in cases {
+        let approval =
+            seed_approval(&fixture, tenant, owner, state, decider, arguments.as_str()).await;
+        let (status, body) = call!(&app, asset_write_request(tenant, &asset_id, &approval)).await;
+        assert_eq!(status, 403, "{name}：不该签出写令牌（{body}）");
+        assert_eq!(
+            error_code(&body),
+            business::agent::APPROVAL_INVALID,
+            "{name}"
+        );
+    }
+
+    // 台账里根本没有这条（审批号连形状都不对也一样）：照 403 回，不回答存在性
+    for approval in [
+        Uuid::new_v4().to_string(),
+        format!("{}:0:0", Uuid::new_v4()),
+        "not-an-approval".to_owned(),
+    ] {
+        let (status, body) = call!(&app, asset_write_request(tenant, &asset_id, &approval)).await;
+        assert_eq!(status, 403, "审批 {approval} 不该签出写令牌");
+        assert_eq!(error_code(&body), business::agent::APPROVAL_INVALID);
+    }
+
+    // 别的租户的单子：租户作用域下读不到，等于没批过（同上，不泄露别人的台账）
+    let foreign = seed_approval(
+        &fixture,
+        fixture.tenant_b,
+        owner,
+        "APPROVED",
+        Some(owner),
+        &approved,
+    )
+    .await;
+    let (status, body) = call!(&app, asset_write_request(tenant, &asset_id, &foreign)).await;
+    assert_eq!(status, 403, "跨租户的审批不该签出写令牌");
+    assert_eq!(error_code(&body), business::agent::APPROVAL_INVALID);
+
+    // 单子合规但资产不存在：404，与「读不到这个资产」同一个口径
+    let ghost = Uuid::new_v4().to_string();
+    let arguments = json!({ "assetID": ghost, "visibility": "PUBLIC" }).to_string();
+    let approval =
+        seed_approval(&fixture, tenant, owner, "APPROVED", Some(owner), &arguments).await;
+    let (status, body) = call!(&app, asset_write_request(tenant, &ghost, &approval)).await;
+    assert_eq!(status, 404);
+    assert_eq!(error_code(&body), business::upload::FILE_NOT_FOUND);
+
+    // 请求体少字段是「调用方自己写错了」：400，还没轮到查台账
+    for payload in [
+        json!({ "tenantID": tenant.to_string(), "scope": "asset-write", "assetID": asset_id }),
+        json!({ "tenantID": tenant.to_string(), "scope": "asset-write", "approvalID": "a:0:0" }),
+        json!({
+            "tenantID": tenant.to_string(),
+            "scope": "asset-write",
+            "assetID": asset_id,
+            "approvalID": "  ",
+        }),
+    ] {
+        let (status, body) = call!(
+            &app,
+            test::TestRequest::post()
+                .uri(paths::SERVICE_TOKEN)
+                .insert_header((INTERNAL_TOKEN_HEADER, INTERNAL_TOKEN))
+                .set_json(&payload),
+        )
+        .await;
+        assert_eq!(status, 400, "payload {payload} 不该通过");
+        assert_eq!(error_code(&body), request_codes::INVALID_PARAMETER_VALUE);
+    }
+
+    // 折腾了一圈，这个资产必须一个字都没变
+    assert_eq!(
+        visibility_of(&fixture.admin, asset).await,
+        format!("PRIVATE|{owner}|-"),
+        "没有任何一条负例该写进库里"
+    );
     assert!(upstream.requests().is_empty());
 }

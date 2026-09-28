@@ -38,7 +38,10 @@ Rust 服务对外的 HTTP 出站只有三处，都归在 `src/clients/`：
    否则配额与用量会分裂成两份账，`gateway.*` 的档位配置也就管不住它了
 6. **正文入站也只有一个出口**：ai-worker 读资产字节必须走服务身份内容端点（拿 `scope=asset-read` 令牌），
    出站请求里不带对象存储键——换存储布局不该牵动叶子服务
-7. 新增集成时同步更新本文件与 [`guide/configuration.md`](configuration.md)
+7. **写 core 业务数据同样只有一个出口**：叶子服务不许持长期凭据，所以「改资产可见性」这种写走
+   **拿审批行换写令牌**（`scope=asset-write`），写端点**不带请求体**——要写的参数在签令牌时就按审批原文
+   定稿了，见 [`docs/decisions/approval-channel.md`](../../../docs/decisions/approval-channel.md#5-第二种落地拿审批换写令牌p10b)
+8. 新增集成时同步更新本文件与 [`guide/configuration.md`](configuration.md)
 
 ## 侧车契约（仅 go-captcha）
 
@@ -51,7 +54,7 @@ Rust 服务对外的 HTTP 出站只有三处，都归在 `src/clients/`：
 | 系统 | 形态 | 客户端 | 配置 |
 |------|------|--------|------|
 | 阿里云短信 / 邮件 / OSS | 进程内（`crates/aliyun`） | [`clients/aliyun.rs`](../src/clients/aliyun.rs) | `aliyun.*` |
-| ai-worker（Python 计算车间） | 同集群独立进程 :8081（如 `http://ai-worker:8081`） | [`clients/ai_worker.rs`](../src/clients/ai_worker.rs) | `ai_worker.*`（+ 反向出站面 `/api/v1/service/token`、`/embeddings`、`/assets/{id}/content`） |
+| ai-worker（Python 计算车间） | 同集群独立进程 :8081（如 `http://ai-worker:8081`） | [`clients/ai_worker.rs`](../src/clients/ai_worker.rs) | `ai_worker.*`（+ 反向出站面 `/api/v1/service/token`、`/embeddings`、`/assets/{id}/content`、`/assets/{id}/visibility`） |
 | go-captcha | 容器 `gocaptcha` :8080（第三方镜像） | [`clients/gocaptcha.rs`](../src/clients/gocaptcha.rs) | `auth.captcha.*` + [`docker/gocaptcha/`](../docker/gocaptcha/) |
 
 ## 新增能力 crate 的检查清单

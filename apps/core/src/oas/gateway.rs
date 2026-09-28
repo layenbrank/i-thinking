@@ -6,6 +6,7 @@ use crate::services::gateway::schema::{
     ChatCompletionsP, EmbeddingsP, ModelUpdateP, ModelWriteP, ProviderUpdateP, ProviderWriteP,
     ServiceTokenP, ServiceTokenR,
 };
+use crate::services::upload::schema::AssetR;
 
 #[utoipa::path(
     post,
@@ -16,11 +17,14 @@ use crate::services::gateway::schema::{
     description = "**仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，\n\n\
         令牌自带作用域：`scope=embeddings`（缺省）限定 `tenantID` + `model`，\n\
         `scope=chat` 限定 `tenantID` + `model`，`scope=asset-read` 限定 `tenantID` + 单个 `assetID`。\n\
+        `scope=asset-write` 还要 `approvalID`：core 在这一刻回读审批台账，核对「批的就是这个资产、\n\
+        批的人是它的创建者」，再把审批原文里的可见性与名单签名进令牌——之后写端点只看令牌。\n\
         受众由 `scope` 决定并在消费端点写死，\n\
         所以换成嵌入的令牌打不开资产内容端点或对话端点，反之亦然（`300002`，HTTP 401）。\n\
         这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。\n\
         换取失败一律按错误信封返回；租户不存在返回 404。`scope=asset-read` 时作用域里引用的资产在签发前先校验：\n\
-        不存在或对本租户不可见返回 `500204`（HTTP 404），尚未完成上传返回 `200003`（HTTP 400）。",
+        不存在或对本租户不可见返回 `500204`（HTTP 404），尚未完成上传返回 `200003`（HTTP 400）；\n\
+        `scope=asset-write` 时审批不合规（不存在 / 未批准 / 参数与资产不符 / 批准人不是创建者）返回 `500509`（HTTP 403）。",
     request_body(content = ServiceTokenP, description = "作用域申请"),
     responses(
         (status = 200, description = "成功（raw JSON，不套信封）", body = ServiceTokenR),
@@ -89,6 +93,32 @@ pub fn service_chat_doc() {}
     )
 )]
 pub fn service_asset_content_doc() {}
+
+#[utoipa::path(
+    put,
+    path = "/api/v1/service/assets/{id}/visibility",
+    tag = "Service",
+    operation_id = "service.assetVisibility",
+    summary = "资产可见性写入（内部，须已批准）",
+    description = "**仅限受信服务进程**：用 `scope=asset-write` 换来的 `X-Service-Token` 改一个资产的可见性。\n\n\
+        这是唯一一个「写」的服务身份端点，也是唯一一处**人批过才动得了**的机器写：\n\
+        改成什么样、给谁看，都在换令牌时由人批过，并签名进了令牌（见 `POST /api/v1/service/token`）。\n\
+        **没有请求体**；路径参数只用于比对令牌里的 `assetID`，不一致返回 `400004`（HTTP 403）。\n\
+        写以批准人的身份落地：资产行的写策略只认 `creator`，而签发时已核对「批准人 = 创建者」，\n\
+        所以只有创建者自己的资产改得动；令牌里的可见性字面量必须认识，名单必须是 uuid 且只在\n\
+        `RESTRICTED` 下出现，任何一条不成立都按「令牌无效」处理（`300002`，HTTP 401）。\n\
+        资产不存在或不在令牌租户/批准人视野内返回 `500204`（HTTP 404）。\n\
+        受众是硬边界：别的受众的令牌打到这里一律 `300002`（HTTP 401），反之亦然。\n\
+        响应是裸结构（不是信封），与取令牌口径一致。",
+    params(
+        ("id" = String, Path, description = "资产 UUID（须与令牌作用域一致）", example = "550e8400-e29b-41d4-a716-446655440000")
+    ),
+    responses(
+        (status = 200, description = "成功（raw JSON，不套信封）", body = AssetR),
+        (status = "default", description = "业务异常（令牌无效或过期 / 受众不符 / 作用域与路径不符 / 无权写入该资产 / 资产不存在 / 端点未启用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
+    )
+)]
+pub fn service_asset_visibility_doc() {}
 
 #[utoipa::path(
     post,

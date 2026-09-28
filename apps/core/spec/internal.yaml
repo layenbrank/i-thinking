@@ -16,16 +16,20 @@ info:
 
     1. **方向单向**：只有 core 调 ai-worker。ai-worker 是叶子：不调别的东西、不直连业务表、
        不持长期云凭据、不接触对象存储布局（它拿不到对象存储键，也没有能直接读对象的凭据）。
-       **例外只有四条（P6a / P6b / P9a 起）**：ai-worker 需要**资产正文**时，回打 core 的
+       **例外只有五条（P6a / P6b / P9a / P10b 起）**：ai-worker 需要**资产正文**时，回打 core 的
        `POST /api/v1/service/token`（用 `X-Internal-Token` 换 `scope=asset-read` 的短期令牌）
        再带 `X-Service-Token` 调 `GET /api/v1/service/assets/{assetID}/content` 取字节；
        需要**嵌入算力**时，同样先换 `scope=embeddings` 的令牌，再调
        `POST /api/v1/service/embeddings` 转发嵌入；需要**对话算力**（服务端 agent 的单步推理）
-       时，先换 `scope=chat` 的令牌，再调 `POST /api/v1/service/chat/completions`。
-       这四条是 core 的公开 OpenAPI
+       时，先换 `scope=chat` 的令牌，再调 `POST /api/v1/service/chat/completions`；
+       需要**改资产可见性**时（人批过的工具调用），先带 `approvalID` 换 `scope=asset-write`
+       的令牌（core 当场核审批台账），再调 `PUT /api/v1/service/assets/{assetID}/visibility`
+       —— 写端点**不带请求体**，要写的参数在签发时就按审批原文钉进令牌了。
+       这五条是 core 的公开 OpenAPI
        （`spec/openapi.json`）的一部分，**不**列在本文件的 `paths` 里——本文件只描述
-       core → ai-worker 的方向。除这四条外，ai-worker 不得对 core 发起任何其他请求：
-       令牌自带受众与作用域（租户 + 模型 / 租户 + 单个资产），拿到手就换不了别的用途。
+       core → ai-worker 的方向。除这五条外，ai-worker 不得对 core 发起任何其他请求：
+       令牌自带受众与作用域（租户 + 模型 / 租户 + 单个资产 / 租户 + 单个资产 + 那张审批），
+       拿到手就换不了别的用途。
     2. **响应不用公开信封**：内部调用用 HTTP 状态码 + 裸 JSON（公开契约的 `code/message/data`
        信封只服务前端）。错误体统一为 `{"error":{"code","message"}}`。
     3. **写操作必须带幂等键**：`Idempotency-Key` 由 core 用「编排实例 id + 步骤」派生，同一
@@ -215,8 +219,10 @@ paths:
         本进程里没有 API Key，也没有厂商 base_url 配置，换不了别的用途。
 
         **工具几乎全是只读**（`knowledge_search` 检索本租户已索引的块、`asset_read` 读单个资产
-        正文）。唯一的例外是 `memory_recall` / `memory_write`：它们读写**长期记忆**
-        （本租户内跨任务共享，见 `POST /internal/v1/agents/memories`）。发消息、改业务状态
+        正文）。例外是三个写工具：`memory_recall` / `memory_write` 读写**长期记忆**
+        （本租户内跨任务共享，见 `POST /internal/v1/agents/memories`）；`asset_visibility_write`
+        改 core 里的资产可见性——它自己不改库，而是拿 `approvalID` 回打 core 换一枚 `scope=asset-write`
+        的短期令牌再写（见 `POST /api/v1/service/token`）。发消息、改业务状态
         一律不进本阶段；也没有任意 HTTP 取数工具（SSRF）。
         `allowedTools` 是 core 给的**白名单**，不在名单里的工具名模型给了也不执行，
         记为一条失败的工具结果喂回模型（让它自己改口），而不是把整个步骤判失败。
@@ -285,6 +291,11 @@ paths:
         **审批本身不在这里核验**：ai-worker 读不到 core 的台账（按设计它不直连业务库）。
         信任边界是内部令牌 + 上面两条准入规则，而「只有落过账的批准才会走到这里」由 core 保证。
         `approvalID` 随载荷一起进来，只用于幂等键与日志（同一个批准重投收敛成同一次执行）。
+
+        唯一的例外是写 **core 业务数据**的工具（`asset_visibility_write`）：它还得凭 `approvalID`
+        去 core 换写令牌，而 core 在签发时会**真的回读审批台账**再决定给不给（不是「已批准」、
+        批的不是这个资产、批准人不是资产创建者一律 403）。也就是说这类工具的授权最终由 core
+        自己认定，本端点的准入规则只是**提前筛掉**明显不该走这条路径的调用。
 
         工具自身失败（参数不合法、正文抽不出文本等）仍是 200 + `ok=false` 的正常结果；
         429 / 503 才表示可重试的暂时性故障。
@@ -608,8 +619,8 @@ components:
           type: array
           description: |
             本步允许调用的工具名白名单（词汇：`knowledge_search` / `asset_read` /
-            `memory_recall` / `memory_write`）。写入类工具由部署配置控制是否默认启用；
-            标记了需要审批的写入工具（当前是 `memory_write`）在这里出现也不会被执行——
+            `memory_recall` / `memory_write` / `asset_visibility_write`）。写入类工具由部署配置控制是否默认启用；
+            标记了需要审批的写入工具（`memory_write` / `asset_visibility_write`）在这里出现也不会被执行——
             见 `AgentToolResult.awaitingApproval`。
             空数组 = 不给工具，只要一条结论。
           items:
@@ -672,7 +683,7 @@ components:
           description: 模型给的调用 id（回灌结果时按它对齐）。
         name:
           type: string
-          description: 工具名（`knowledge_search` / `asset_read` / `memory_recall` / `memory_write`）。
+          description: 工具名（`knowledge_search` / `asset_read` / `memory_recall` / `memory_write` / `asset_visibility_write`）。
         arguments:
           type: string
           description: |

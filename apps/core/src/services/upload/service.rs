@@ -9,6 +9,7 @@
 use entity::asset;
 use identity::{TenantId, UserId};
 use sea_orm::{DatabaseTransaction, DbErr};
+use uuid::Uuid;
 
 use crate::databases::database::Storage;
 use crate::guards::account::AccountScope;
@@ -17,7 +18,8 @@ use crate::guards::tenant::TenantScope;
 use crate::services::upload::error::UploadError;
 use crate::services::upload::repository;
 use crate::services::upload::schema::{
-    ChunkR, FilesP, FilesR, FinalizeR, HashP, HashR, PrepareP, PrepareR, ProgressR, UploadStatus,
+    AssetR, ChunkR, FilesP, FilesR, FinalizeR, HashP, HashR, PrepareP, PrepareR, ProgressR,
+    UploadStatus, Visibility, viewers_to_json,
 };
 use crate::services::upload::storage;
 use crate::services::upload::validation::{self, normalize_hash};
@@ -442,6 +444,64 @@ impl UploadService {
         }
         let hashes = repository::ordered_chunk_hashes(tx, &asset).await?;
         Ok((asset, hashes))
+    }
+
+    /// 服务身份改一个资产的可见性：`asset-write` 令牌的落地方式。
+    ///
+    /// 与读的两条服务路径不同，写**不能走租户作用域**：资产行的写策略只认 `creator`，租户作用域
+    /// 下这次 UPDATE 会一行都改不到。于是这里以**批准人（= 资产创建者）的账号作用域**落地——
+    /// 这正是「审批通道」的意义所在：机器拿到了人的授权，就以那个人的身份去写一次。
+    ///
+    /// 可见性与可见对象都已经由调用方从**令牌**里解析成类型（人批过的那一份），这里不再接受
+    /// 请求体里来的任何东西。
+    ///
+    /// # Errors
+    /// 作用域开不起来、资产不存在（含不属于批准人）、创建者不是批准人、写库失败。
+    pub async fn service_asset_visibility(
+        db: &Storage,
+        actor_id: &str,
+        asset_id: &str,
+        visibility: &Visibility,
+        viewers: &[Uuid],
+    ) -> Result<AssetR, UploadError> {
+        let actor = UploadError::parse_user_id(actor_id)?;
+        let scope = reader(db, Some(actor_id)).await?;
+        let written =
+            Self::write_visibility(scope.tx(), asset_id, actor, visibility, viewers).await;
+        let asset = match written {
+            Ok(asset) => asset,
+            Err(err) => {
+                scope.rollback().await.map_err(db_error)?;
+                return Err(err);
+            }
+        };
+        // 写路径必须显式提交；失败即没写成，调用方拿到 500 而不是「以为成功了」。
+        scope.commit().await.map_err(db_error)?;
+        Ok(repository::asset_to_r(asset))
+    }
+
+    /// 短事务里的那一次写：读一行 → 核归属 → 改可见性。
+    ///
+    /// 归属在领域层再核一次：策略挡人的方式是「改 0 行」，那看起来会像写成功了（响应还是那一行），
+    /// 所以这里主动比对创建者，把「不是你的资产」明确判成 403。
+    async fn write_visibility(
+        tx: &DatabaseTransaction,
+        asset_id: &str,
+        actor: Uuid,
+        visibility: &Visibility,
+        viewers: &[Uuid],
+    ) -> Result<asset::Model, UploadError> {
+        let asset = repository::find_by_id(tx, asset_id).await?;
+        if asset.creator != Some(actor) {
+            return Err(UploadError::AssetForbidden);
+        }
+        let viewers = match visibility {
+            Visibility::Restricted => viewers_to_json(viewers),
+            // 非 RESTRICTED 一律清空名单：留着旧的名单会让后续从 PUBLIC 改回 RESTRICTED 时
+            // 悄悄沿用上一批人，而名单必须是每次显式给的。
+            _ => None,
+        };
+        repository::update_visibility(tx, asset, visibility.as_str(), viewers, actor).await
     }
 
     /// 自己已有同布局的完成资产：上传其实早就完成了，给回同一行（幂等）。

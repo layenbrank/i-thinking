@@ -234,6 +234,8 @@ pub mod business {
         pub const APPROVAL_ALREADY_DECIDED: i32 = 500507;
         /// 决定字面量不合法（人只能批准或驳回）
         pub const APPROVAL_DECISION_INVALID: i32 = 500508;
+        /// 审批凭据不合规：批的不是这个资产，或批准人动不了它
+        pub const APPROVAL_INVALID: i32 = 500509;
 
         /// 本模块全部状态码
         pub const ALL: &[i32] = &[
@@ -245,6 +247,7 @@ pub mod business {
             APPROVAL_NOT_PENDING,
             APPROVAL_ALREADY_DECIDED,
             APPROVAL_DECISION_INVALID,
+            APPROVAL_INVALID,
         ];
     }
 
@@ -415,6 +418,7 @@ pub fn description(code: i32) -> &'static str {
         business::agent::APPROVAL_NOT_PENDING => "这次调用没有在等待审批",
         business::agent::APPROVAL_ALREADY_DECIDED => "这次审批已有相反的决定",
         business::agent::APPROVAL_DECISION_INVALID => "审批决定不合法",
+        business::agent::APPROVAL_INVALID => "审批凭据不合规",
 
         business::rag::TASK_NOT_FOUND => "索引任务不存在",
         business::rag::ASSET_NOT_FOUND => "资产不存在",
@@ -533,6 +537,8 @@ pub fn http_status(code: i32) -> u16 {
         business::agent::APPROVAL_NOT_PENDING => 409,
         business::agent::APPROVAL_ALREADY_DECIDED => 409,
         business::agent::APPROVAL_DECISION_INVALID => 422,
+        // 凭据不合规是「无权这么写」，不是「参数写错了」：令牌已经发出去，改不了它
+        business::agent::APPROVAL_INVALID => 403,
 
         business::rag::TASK_NOT_FOUND => 404,
         business::rag::ASSET_NOT_FOUND => 404,

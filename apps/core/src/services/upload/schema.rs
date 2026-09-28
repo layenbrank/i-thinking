@@ -69,19 +69,25 @@ impl Visibility {
         }
     }
 
-    pub fn from_db(s: &str) -> Self {
-        match s {
-            "PUBLIC" => Self::Public,
-            "RESTRICTED" => Self::Restricted,
-            "PRIVATE" => Self::Private,
-            other => {
-                tracing::warn!(
-                    visibility = other,
-                    "unknown asset visibility; treat as PRIVATE"
-                );
-                Self::Private
-            }
+    /// 认识的字面量就认，不认识返回 `None`。
+    ///
+    /// 与 [`Self::from_db`] 的差别是**不兜底**：读库遇到脏值降级成 PRIVATE 是无害的保守选择，
+    /// 但要把一个字符串当真写成可见性（或写进令牌）时，猜错方向就是权限事故，
+    /// 所以调用方必须自己处理「不认识」。
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim() {
+            "PRIVATE" => Some(Self::Private),
+            "PUBLIC" => Some(Self::Public),
+            "RESTRICTED" => Some(Self::Restricted),
+            _ => None,
         }
+    }
+
+    pub fn from_db(s: &str) -> Self {
+        Self::parse(s).unwrap_or_else(|| {
+            tracing::warn!(visibility = s, "unknown asset visibility; treat as PRIVATE");
+            Self::Private
+        })
     }
 }
 
@@ -113,6 +119,20 @@ mod status_tests {
         assert_eq!(Visibility::from_db("bogus"), Visibility::Private);
         assert_eq!(Visibility::from_db("PUBLIC"), Visibility::Public);
         assert_eq!(Visibility::from_db("RESTRICTED"), Visibility::Restricted);
+    }
+
+    /// 写路径用 `parse`：不认识就是 `None`，绝不悄悄降级成某个可见性。
+    #[test]
+    fn parse_rejects_unknown_visibility() {
+        assert_eq!(Visibility::parse("PRIVATE"), Some(Visibility::Private));
+        assert_eq!(Visibility::parse("PUBLIC"), Some(Visibility::Public));
+        assert_eq!(
+            Visibility::parse("RESTRICTED"),
+            Some(Visibility::Restricted)
+        );
+        assert_eq!(Visibility::parse("public"), None);
+        assert_eq!(Visibility::parse("INTERNAL"), None);
+        assert_eq!(Visibility::parse(""), None);
     }
 }
 

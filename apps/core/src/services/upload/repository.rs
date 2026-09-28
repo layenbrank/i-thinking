@@ -419,6 +419,28 @@ pub async fn bind_hash(
         .map_err(|e| UploadError::Database(e.to_string()))
 }
 
+/// 改可见性与可见对象；`updater` 记进审计列。
+///
+/// 行级策略只认创建者：调用方必须已经以创建者身份进入作用域，否则这次 UPDATE 会一行都改不到
+/// （而不是改错行）。
+pub async fn update_visibility(
+    tx: &DatabaseTransaction,
+    asset: asset::Model,
+    visibility: &str,
+    viewers: Option<sea_orm::prelude::Json>,
+    updater: Uuid,
+) -> Result<asset::Model, UploadError> {
+    let mut active: asset::ActiveModel = asset.into();
+    active.visibility = Set(visibility.to_string());
+    active.viewers = Set(viewers);
+    active.updater = Set(Some(updater));
+    active.updated_at = Set(Utc::now().fixed_offset());
+    active
+        .update(tx)
+        .await
+        .map_err(|e| UploadError::Database(e.to_string()))
+}
+
 /// 秒传：保留当前会话行，标记 SUPERSEDED 并指向已完成资产。
 pub async fn mark_superseded(
     tx: &DatabaseTransaction,

@@ -58,6 +58,12 @@ impl GatewayModule {
                 .route(
                     "/assets/{id}/content",
                     web::get().to(UploadController::service_content),
+                )
+                // 资产可见性写入：同样住在 upload 域。这条路要 `asset-write` 令牌，
+                // 而令牌里的可见性是**人批过的**（见 `GatewayController::service_token`）。
+                .route(
+                    "/assets/{id}/visibility",
+                    web::put().to(UploadController::service_visibility),
                 ),
         );
     }

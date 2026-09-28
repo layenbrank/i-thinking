@@ -24,6 +24,7 @@ use crate::guards::service::{ChatScope, InternalCaller, ServiceScope};
 use crate::guards::session::Session;
 use crate::guards::tenant::{TenantCtx, TenantScope};
 use crate::interceptors::envelope::{Envelope, Paginated};
+use crate::services::agent::error::AgentError;
 use crate::services::gateway::client::Upstream;
 use crate::services::gateway::render;
 use crate::services::gateway::schema::{
@@ -35,8 +36,8 @@ use crate::services::gateway::service::{
     AuditExport, GatewayError, GatewayService, Prepared, ServiceCapability,
 };
 use crate::services::gateway::service_token::{self, Audience};
-use crate::services::upload::service::UploadService;
-use crate::utils::code::{external, system};
+use crate::services::upload::{repository, schema::Visibility, service::UploadService, validation};
+use crate::utils::code::{business, external, system};
 
 pub struct GatewayController;
 
@@ -156,14 +157,18 @@ impl GatewayController {
     /// 服务身份出站：申请一枚短期令牌。
     ///
     /// 调用方是受信服务进程（当前只有 ai-worker），用它自己的共享令牌（`X-Internal-Token`）
-    /// 换取一枚**带作用域**的短期令牌。作用域有三件事：嵌入出站（租户 + 模型）、资产内容
-    /// （租户 + 单个资产）、聊天出站（租户 + 模型）；一件事一个受众，令牌串门会在端点侧被拒。
+    /// 换取一枚**带作用域**的短期令牌。作用域有四件事：嵌入出站（租户 + 模型）、资产内容
+    /// （租户 + 单个资产）、聊天出站（租户 + 模型）、资产可见性写入（租户 + 单个资产 + 一次
+    /// 已批准的审批）；一件事一个受众，令牌串门会在端点侧被拒。
     /// 响应是裸结构而不是信封：取令牌的是机器，出错时才走信封（与 chat 的返回形状口径一致）。
     ///
     /// 这里只校验「租户存在」与「资产在本租户可见且已完成」——模型是否存在、是否具备所需
     /// 能力，由真正出站的那次调用（[`service_embeddings`](Self::service_embeddings) /
     /// [`service_chat`](Self::service_chat)）判定，令牌段不做多余查库。资产那一项必须在这里查：
     /// 令牌一旦签出去就无法收回，不能在签发时放过一个读不到的资产。
+    ///
+    /// 写令牌还要读一次审批台账，理由相同：**令牌签出去就收不回**，所以「批的是不是这个资产、
+    /// 批的人是不是它的创建者、批成什么样」必须在签发这一刻判定完，之后写端点只看令牌。
     pub async fn service_token(
         db: web::Data<Arc<Storage>>,
         config: web::Data<Arc<Configure>>,
@@ -181,12 +186,14 @@ impl GatewayController {
             Some(raw) => match Audience::from_scope(raw) {
                 Some(audience) => audience,
                 None => {
-                    return Exception::bad_request("scope 仅支持 embeddings / asset-read / chat")
-                        .transform();
+                    return Exception::bad_request(
+                        "scope 仅支持 embeddings / asset-read / chat / asset-write",
+                    )
+                    .transform();
                 }
             },
         };
-        // 作用域必填字段按受众判定：嵌入与聊天要模型，内容要资产——两者都在请求体里，
+        // 作用域必填字段按受众判定：嵌入与聊天要模型，两类资产作用域要资产——前者在请求体里，
         // 但真正生效的永远是签名进令牌的那一份。
         let model = match audience {
             Audience::Embeddings | Audience::Chat => {
@@ -196,10 +203,10 @@ impl GatewayController {
                 }
                 Some(model.to_string())
             }
-            Audience::AssetContent => None,
+            Audience::AssetContent | Audience::AssetVisibility => None,
         };
         let asset_id = match audience {
-            Audience::AssetContent => {
+            Audience::AssetContent | Audience::AssetVisibility => {
                 let asset_id = req.asset_id.as_deref().unwrap_or_default().trim();
                 if asset_id.is_empty() {
                     return Exception::bad_request("assetID 不能为空").transform();
@@ -208,15 +215,40 @@ impl GatewayController {
             }
             Audience::Embeddings | Audience::Chat => None,
         };
+        // 写令牌不带一张单子就只是一枚无名写权限：这一项缺失算参数错误（调用方写错了请求），
+        // 单子本身对不对是后面查库的事（那算 403）。
+        let approval_id = match audience {
+            Audience::AssetVisibility => {
+                let approval_id = req.approval_id.as_deref().unwrap_or_default().trim();
+                if approval_id.is_empty() {
+                    return Exception::bad_request("approvalID 不能为空").transform();
+                }
+                Some(approval_id.to_string())
+            }
+            Audience::Embeddings | Audience::Chat | Audience::AssetContent => None,
+        };
         let scope = TenantScope::open(&db, tenant_id).await.map_err(db_error)?;
         let known = tenant::Entity::find_by_id(tenant_id.as_uuid())
             .one(scope.tx())
             .await;
         // 资产存在性检查复用读内容时的同一处判定，两处口径不会漂移。
         let readable = match (known.as_ref(), asset_id.as_deref()) {
-            (Ok(Some(_)), Some(asset_id)) => {
+            (Ok(Some(_)), Some(asset_id)) if audience == Audience::AssetContent => {
                 Some(UploadService::service_asset_parts(scope.tx(), asset_id).await)
             }
+            _ => None,
+        };
+        // 写令牌的凭据核对也在**即将结束时才回滚的同一个窗口**里做：它要读审批台账与资产的
+        // 创建者，两件事都必须按这一租户的行级策略去读（跨租户读到 `None`，等于没批过）。
+        let grant = match (known.as_ref(), audience, approval_id.as_deref()) {
+            (Ok(Some(_)), Audience::AssetVisibility, Some(approval_id)) => Some(
+                Self::approved_visibility_write(
+                    scope.tx(),
+                    approval_id,
+                    asset_id.as_deref().unwrap_or_default(),
+                )
+                .await,
+            ),
             _ => None,
         };
         scope.rollback().await.map_err(db_error)?;
@@ -228,6 +260,11 @@ impl GatewayController {
         if let Some(Err(err)) = readable {
             return Exception::from(err).transform();
         }
+        let grant = match grant {
+            Some(Ok(grant)) => Some(grant),
+            Some(Err(err)) => return err.transform(),
+            None => None,
+        };
 
         let secret = config.gateway_service_token_secret();
         if secret.is_empty() {
@@ -253,6 +290,17 @@ impl GatewayController {
                 tenant_id: &tenant_raw,
                 asset_id,
             },
+            (Audience::AssetVisibility, _, Some(asset_id)) => {
+                let grant = grant.as_ref().expect("写受众的凭据已在上面核对过");
+                service_token::Scope::AssetVisibility {
+                    tenant_id: &tenant_raw,
+                    asset_id,
+                    approval_id: &grant.approval_id,
+                    actor_id: &grant.actor_id,
+                    visibility: grant.visibility.as_str(),
+                    viewers: &grant.viewers,
+                }
+            }
             _ => unreachable!("作用域必填字段已在上面校验"),
         };
         let (token, expires_at) = service_token::mint(secret, token_scope, ttl).map_err(|err| {
@@ -267,8 +315,85 @@ impl GatewayController {
             scope: audience.scope().to_string(),
             model,
             asset_id,
+            approval_id,
             token_type: "service".to_string(),
         }))
+    }
+
+    /// 把一次审批翻成「可以写这个资产的可见性」的凭据；读不到、不合规一律 403。
+    ///
+    /// 判定顺序是刻意的：先问「有没有这么一张批准了的单子」，再问「单子上写的是不是这次要做的
+    /// 事」，最后问「批的人有没有资格」——每一步不通过都归到同一个业务码
+    /// （[`APPROVAL_INVALID`](crate::utils::code::business::agent::APPROVAL_INVALID)），
+    /// 具体原因只落日志，免得别的租户能拿它探「某个审批 id 存在过」。
+    ///
+    /// # Errors
+    /// 审批不存在/未批准/没人批、参数原文与资产不符或不可解析、资产不存在、批准人不是资产创建者。
+    async fn approved_visibility_write(
+        tx: &DatabaseTransaction,
+        approval_id: &str,
+        asset_id: &str,
+    ) -> Result<VisibilityGrant, Exception> {
+        let Some(recorded) = agent::persistence::find_approval(tx, approval_id)
+            .await
+            .map_err(|err| Exception::from(AgentError::from(err)))?
+        else {
+            return Err(Self::invalid_approval("租户里没有这条审批"));
+        };
+        if recorded.state != APPROVED_STATE {
+            return Err(Self::invalid_approval("审批不是已批准状态"));
+        }
+        let Some(actor) = recorded.decided_by else {
+            return Err(Self::invalid_approval("审批没有记下是谁批的"));
+        };
+
+        let arguments = serde_json::from_str::<VisibilityWriteArguments>(&recorded.arguments)
+            .map_err(|err| {
+                tracing::info!(error = %err, approval_id, "审批参数无法按可见性写入解析");
+                Self::invalid_approval("审批参数不是一次可见性写入")
+            })?;
+        if arguments.asset_id.trim() != asset_id {
+            return Err(Self::invalid_approval("审批针对的是另一个资产"));
+        }
+        let Some(visibility) = Visibility::parse(&arguments.visibility) else {
+            return Err(Self::invalid_approval("审批里的可见性字面量不认识"));
+        };
+        if visibility != Visibility::Restricted && !arguments.viewers.is_empty() {
+            // `parse_viewers` 对非 RESTRICTED 会静默丢掉名单——那会写出一个和人批的不一样的
+            // 权限，所以这里宁可拒。
+            return Err(Self::invalid_approval(
+                "审批内容自相矛盾：非 RESTRICTED 却给了名单",
+            ));
+        }
+        let viewers = validation::parse_viewers(visibility.clone(), Some(&arguments.viewers))
+            .map(|ids| ids.iter().map(Uuid::to_string).collect::<Vec<_>>())
+            .map_err(|err| {
+                tracing::info!(error = %err, approval_id, "审批里的可见对象名单不合法");
+                Self::invalid_approval("审批里的可见对象名单不合法")
+            })?;
+
+        // 资产行的写策略只认创建者，所以「审批人 = 创建者」不是我们的额外规矩，而是唯一能落地
+        // 的写法：别人批了也写不进去。查不到（含跨租户）是 404，不承认它存在过。
+        let asset = repository::find_by_id(tx, asset_id).await?;
+        if asset.creator != Some(actor) {
+            return Err(Self::invalid_approval("这次审批不是资产创建者批的"));
+        }
+
+        Ok(VisibilityGrant {
+            approval_id: approval_id.to_string(),
+            actor_id: actor.to_string(),
+            visibility,
+            viewers,
+        })
+    }
+
+    /// 审批不能用来写资产时的统一答法（细节留日志）。
+    fn invalid_approval(reason: &str) -> Exception {
+        tracing::info!(reason, "审批凭据被拒：不能用于资产可见性写入");
+        Exception::custom(
+            business::agent::APPROVAL_INVALID,
+            "这次审批不能用于写入该资产",
+        )
     }
 
     /// 服务身份出站：嵌入转发（模型由令牌作用域决定，不接受客户端指定）。
@@ -811,4 +936,35 @@ fn parse_tenant(value: &str) -> Result<TenantId, Exception> {
 fn db_error(err: sea_orm::DbErr) -> Exception {
     tracing::error!(error = %err, "gateway scope transaction failed");
     Exception::custom(external::DATABASE_ERROR, "数据库错误")
+}
+
+/// 审批台账里「已批准」的字面量。
+const APPROVED_STATE: &str = "APPROVED";
+
+/// 一条已被批准的可见性写入申请：**原样**来自审批台账里的参数原文。
+///
+/// 字段名与工具入参口径一致（`assetID`）；这里不接受别的拼法——人批的就是这些字，核心按
+/// 同样的字去理解，拼错了就是「批的不是我们能执行的事」，宁可拒。
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct VisibilityWriteArguments {
+    /// 要改的资产。必须与令牌作用域里的那一个一致。
+    #[serde(rename = "assetID")]
+    asset_id: String,
+    /// `PRIVATE` / `PUBLIC` / `RESTRICTED`。
+    visibility: String,
+    /// 可见对象；仅 `RESTRICTED` 有值。
+    #[serde(default)]
+    viewers: Vec<String>,
+}
+
+/// 核过的审批凭据：令牌签发后写端点只看它，不再回读台账。
+#[derive(Debug, Clone)]
+struct VisibilityGrant {
+    approval_id: String,
+    /// 批准人（= 资产创建者），写以他的身份落地。
+    actor_id: String,
+    visibility: Visibility,
+    /// 已规范化成小写带连字符的 uuid 字符串。
+    viewers: Vec<String>,
 }

@@ -152,6 +152,7 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         gateway::service_embeddings_doc,
         gateway::service_chat_doc,
         gateway::service_asset_content_doc,
+        gateway::service_asset_visibility_doc,
         sso::connections_doc,
         sso::connection_write_doc,
         sso::connection_update_doc,

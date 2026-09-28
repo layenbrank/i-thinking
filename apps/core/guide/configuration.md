@@ -264,18 +264,23 @@ ai-worker 是叶子进程，不直连模型厂商、不碰对象存储布局，�
 每条链路都是「先换令牌、再用令牌」：
 
 1. `POST /api/v1/service/token`，头 `X-Internal-Token`（值 = `ai_worker.token`），
-   体 `{scope, tenantID, model?, assetID?, ttlSecs?}`
+   体 `{scope, tenantID, model?, assetID?, approvalID?, ttlSecs?}`
    → 得到一枚 HS256 短期令牌（`ttlSecs` 收敛到 `1..gateway.service_token_ttl_secs`，硬上限 3600）。
    `scope` 缺省为 `embeddings`（要 `model`）；`scope=chat` 也要 `model`；`scope=asset-read` 要 `assetID`，
-   签发前先校验该资产对本租户可读，不可读回 `500204`（404）、未完成上传回 `200003`（400）。
-   非法 `scope` 直接 400——宁可拒了也不猜。
-2. 用这枚令牌三选一：
+   签发前先校验该资产对本租户可读，不可读回 `500204`（404）、未完成上传回 `200003`（400）；
+   `scope=asset-write` 要 `approvalID`，签发前回读审批台账，批的不是这个资产 / 批准人不是资产创建者
+   一律 `500509`（403）。非法 `scope` 直接 400——宁可拒了也不猜。
+2. 用这枚令牌四选一：
    - `POST /api/v1/service/embeddings`（`scope=embeddings` 的令牌），头 `X-Service-Token`，体 `{input, dimensions?, …}`
      → core 按令牌作用域解析模型、查配额、出站 `/embeddings`、记账，并把上游裸 JSON 原样返回。
    - `POST /api/v1/service/chat/completions`（`scope=chat` 的令牌），体 `{model, messages, tools?, …}`
      → 同一套配额 / 记账路径，出站 `/chat/completions` 并**强制非流式**。服务端 agent 的每步推理走这里。
    - `GET /api/v1/service/assets/{id}/content`（`scope=asset-read` 的令牌）→ 原始字节流。
      授权来自令牌里的 `assetID`，路径参数只用于比对：不一致 `400004`（403）。内部读不计量、不记账。
+   - `PUT /api/v1/service/assets/{id}/visibility`（`scope=asset-write` 的令牌）→ 改资产可见性，
+     **不带请求体**（要写的参数在换令牌时就钉进令牌了，见
+     [`gateway/README.md`](../src/services/gateway/README.md#写令牌scope--asset-write把人批过的参数当唯一输入)），
+     以批准人（= 资产创建者）身份落地，返回该资产的裸 JSON；不计量、不记账。
 
 **受众是硬边界**：`scope` 决定 `aud`，且每个端点只认自己的受众，所以嵌入令牌打不开内容端点或对话端点
 （反之亦然），都是 `300002`（401）。`/chunks` 这类出站请求因此**不带对象键**——正文由 ai-worker 自己回打
@@ -311,12 +316,18 @@ agent 做什么」是部署级的决定，不必去翻每一条请求。
   没给结论也照样收尾（结果里标 `finished: false`），不会无限转下去。
 - 工具名走**下划线**命名（`knowledge_search`），不能像能力名那样带点号——那是模型接口的名字规则，
   `validate()` 在启动时就拦。
-- `approval_ttl_secs` 只对**需要审批的写工具**有效（`memory_write`）：到点没人处理就作废这次调用，
+- `approval_ttl_secs` 只对**需要审批的写工具**有效（`memory_write` / `asset_visibility_write`）：到点没人处理就作废这次调用，
   工具不执行，任务继续。它必须**明显小于等待者的预算**（`services::agent::dispatch` 的 3600s），
   否则任务会先被判失败，人在批准时实例已经没人接了——这个下限由 `service` 侧的测试钉住；
   启动时另有 `60s` 的硬下限（比这更短，人根本来不及看到待办，等于没开审批）。
-- 写工具（`memory_write`）**不在默认 `allowed_tools` 里**：它写下的记忆会被之后的任务召回，
-  投毒一次就持续影响后续任务。开启它等于同时开了「人工审批」这条路径——每次调用都要人批。
+- 写工具**都不在默认 `allowed_tools` 里**。`memory_write` 的理由是「它写下的记忆会被之后的任务召回，
+  投毒一次就持续影响后续任务」；`asset_visibility_write` 的理由更直接——它改的是 core 的**业务数据**
+  （资产可见性，等于改谁能看到这个文件）。开启它等于同时开了「人工审批」这条路径——每次调用都要人批。
+- `asset_visibility_write` 的执行路径与 `memory_write` 不同：批准之后**不由编排动手**，而是
+  ai-worker 拿 `approvalID` 回打 core 换一枚 `scope=asset-write` 的短期写令牌（core 签发时回读审批台账，
+  批的不是这个资产 / 批准人不是资产创建者一律 `500509`），再用令牌调
+  `PUT /api/v1/service/assets/{id}/visibility`——**不带请求体**，参数在签发时就钉进令牌了。
+  写以**批准人**（= 资产创建者）身份落地，因为 `asset` 的行级策略只认创建者。
 - 起任务与查进度两个端点见 [`src/services/agent/README.md`](../src/services/agent/README.md)；
   任务台账是 `agent_task`（本域唯一拥有的表），token 用量的唯一落点仍是网关。
 

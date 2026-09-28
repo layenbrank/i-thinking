@@ -88,6 +88,7 @@ pub const SERVICE_TOKEN: &str = "/api/v1/service/token";
 pub const SERVICE_EMBEDDINGS: &str = "/api/v1/service/embeddings";
 pub const SERVICE_CHAT: &str = "/api/v1/service/chat/completions";
 pub const SERVICE_ASSET_CONTENT: &str = "/api/v1/service/assets/{id}/content";
+pub const SERVICE_ASSET_VISIBILITY: &str = "/api/v1/service/assets/{id}/visibility";
 
 // --- Agent（租户级自治 agent，需 JWT + X-Tenant-ID） ---
 pub const AGENT_TASKS: &str = "/api/v1/agent/tasks";
@@ -397,6 +398,10 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: SERVICE_ASSET_CONTENT,
+    },
+    RouteDef {
+        method: "PUT",
+        path: SERVICE_ASSET_VISIBILITY,
     },
     RouteDef {
         method: "POST",

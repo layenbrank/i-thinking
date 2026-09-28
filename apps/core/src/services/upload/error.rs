@@ -15,6 +15,9 @@ pub enum UploadError {
     SessionGone,
     #[error("无权操作该上传会话")]
     Forbidden,
+    /// 资产可见性写入被拒：只有创建者能改自己资产的可见性。
+    #[error("无权写入该资产")]
+    AssetForbidden,
     #[error("创建者 ID 无效")]
     InvalidCreator,
     #[error("资源 ID 无效")]
@@ -59,6 +62,9 @@ impl From<UploadError> for Exception {
             }
             UploadError::Forbidden => {
                 Exception::custom(resource::ACCESS_RESTRICTED, "无权操作该上传会话")
+            }
+            UploadError::AssetForbidden => {
+                Exception::custom(resource::ACCESS_RESTRICTED, "无权写入该资产")
             }
             UploadError::InvalidCreator => {
                 Exception::custom(request::INVALID_PARAMETER_VALUE, "创建者 ID 无效")

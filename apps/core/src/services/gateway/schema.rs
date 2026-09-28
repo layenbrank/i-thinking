@@ -34,13 +34,18 @@ pub struct EmbeddingsP {
 pub struct ServiceTokenP {
     #[serde(rename = "tenantID")]
     pub tenant_id: String,
-    /// 作用域：`embeddings`（缺省，嵌入出站）、`asset-read`（读单个资产内容）或 `chat`（聊天出站）。
+    /// 作用域：`embeddings`（缺省，嵌入出站）、`asset-read`（读单个资产内容）、`chat`（聊天出站）
+    /// 或 `asset-write`（按一次已批准的审批改单个资产的可见性）。
     pub scope: Option<String>,
     /// `scope=embeddings` / `scope=chat` 时必填：令牌只对这个模型有效。
     pub model: Option<String>,
-    /// `scope=asset-read` 时必填：令牌只对这个资产有效。
+    /// `scope=asset-read` / `scope=asset-write` 时必填：令牌只对这个资产有效。
     #[serde(rename = "assetID")]
     pub asset_id: Option<String>,
+    /// `scope=asset-write` 时必填：这次写依据的审批。core 会核对「批的就是这个资产、批的人
+    /// 是它的创建者」，并把审批原文里的可见性与名单钉进令牌。
+    #[serde(rename = "approvalID")]
+    pub approval_id: Option<String>,
     /// 期望有效期（秒）；缺省用配置值，且一律被上限收敛。
     pub ttl_secs: Option<u64>,
 }
@@ -54,14 +59,17 @@ pub struct ServiceTokenR {
     pub expires_at: i64,
     #[serde(rename = "tenantID")]
     pub tenant_id: String,
-    /// 实际生效的作用域（`embeddings` / `asset-read` / `chat`）。
+    /// 实际生效的作用域（`embeddings` / `asset-read` / `chat` / `asset-write`）。
     pub scope: String,
     /// 仅 `scope=embeddings` / `scope=chat` 有值。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
-    /// 仅 `scope=asset-read` 有值。
+    /// 仅 `scope=asset-read` / `scope=asset-write` 有值。
     #[serde(rename = "assetID", skip_serializing_if = "Option::is_none")]
     pub asset_id: Option<String>,
+    /// 仅 `scope=asset-write` 有值：回执里带上是哪张单子换来的这枚令牌，便于对账。
+    #[serde(rename = "approvalID", skip_serializing_if = "Option::is_none")]
+    pub approval_id: Option<String>,
     /// 固定为 `service`，与用户会话令牌区分。
     pub token_type: String,
 }

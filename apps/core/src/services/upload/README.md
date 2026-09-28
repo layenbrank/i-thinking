@@ -24,7 +24,7 @@
 | FAILED | 仅真实失败（校验等）；**不是**秒传或取消 |
 | SESSION_GONE | `500207`：会话 id 无效或已被 cancel/GC。秒传路径不用此码，也不再用 `200003` |
 | 不合并落盘 | finalize 只校验；下载时按 `chunk` 表顺序流式输出 |
-| 可见性 | `PRIVATE`（默认）/ `PUBLIC`（可匿名下载）/ `RESTRICTED`+`viewers`；仅影响按 id 下载 |
+| 可见性 | `PRIVATE`（默认）/ `PUBLIC`（可匿名下载）/ `RESTRICTED`+`viewers`；仅影响按 id 下载。写入口只有创建者自己的路径（`prepare` 时设定、绑定头像时提升为 `PUBLIC`）与本节的服务令牌通道 |
 | 下载隔离 | 按可见性 ACL，且**行级策略**二次兜底：看不见的行直接按「不存在」处理（404，不泄露存在性） |
 | 行级策略 | `asset` 的可见性判定写在数据库策略里（五个分支，见下文「行级策略」）；service 只开作用域，不手写 `WHERE` |
 | 本人列表 | `GET /files` 分页列出当前用户资产（默认 COMPLETED） |
@@ -43,10 +43,12 @@
 | GET    | `/api/v1/upload/files/{hash}`  | JWT    | 按 hash 流式下载（仅本人）    |
 | GET    | `/api/v1/upload/asset/{id}`    | 可选 JWT | 按资产 id 流式下载（PUBLIC 可匿名） |
 | GET    | `/api/v1/service/assets/{id}/content` | 服务令牌 | 服务身份读原始字节（叶子服务用，见下） |
+| PUT    | `/api/v1/service/assets/{id}/visibility` | 服务令牌 | 服务身份改可见性（无请求体，见下） |
 
-> 最后一条**不在** `/upload` 前缀下，也不在本模块注册路由：它是服务身份面的第三个端点，
-> 挂在 [`gateway/module.rs`](../gateway/module.rs) 的 `/service` scope 上，但 handler 与下载逻辑在本模块
-> （否则「能不能读」会有两处判定）。语义见 [`gateway/README.md`](../gateway/README.md#服务身份apiv1service)。
+> 最后两条**不在** `/upload` 前缀下，也不在本模块注册路由：它们是服务身份面的写读端点，挂在本模块
+> 公开的 handler 上，路由由 [`gateway/module.rs`](../gateway/module.rs) 的 `/service` scope 注册
+> （否则「能不能读 / 能不能写」会有两处判定）。语义见
+> [`gateway/README.md`](../gateway/README.md#服务身份apiv1service)。
 
 ## 鉴权说明
 
@@ -281,6 +283,29 @@ Query：`page`（默认 1）、`size`（默认 20，最大 100）、`status`（�
 
 可见性口径与上表共用同一段判定（`service_asset_parts`），只是放行条件换成「令牌里就是这个资产」；
 所以「别的租户的行 → 404、未完成 → 400」完全一致。
+
+### PUT /api/v1/service/assets/{id}/visibility
+
+服务身份改可见性，给「AI 提议、人批准」的场景用。**没有请求体**——要写的参数在换令牌时就已经定稿了：
+
+| | |
+| ---- | ---- |
+| 身份 | `X-Service-Token`（`scope=asset-write`，见 [`gateway/README.md`](../gateway/README.md#服务身份apiv1service)） |
+| 参数来源 | 令牌载荷里的 `visibility` / `viewers`（签发时从 `agent_approval` 台账的审批原文解析而来） |
+| 落地身份 | 审批里的**批准人**（必须等于资产创建者，否则签不出令牌）——写的是**该用户的**作用域 |
+| 成功响应 | 裸 `AssetR`（与下载同族，便于调用方直接回显新状态） |
+| 幂等 | 是：同一枚令牌重放结果相同（`visibility` / `viewers` 是绝对赋值，不是增量） |
+
+要表达的口径：
+
+- **`id` 与令牌里的 `assetID` 必须一致**，不一致 `400004`（HTTP 403）；不存在 / 看不见的行 `500204`（HTTP 404）——
+  与读内容完全同款，不给探测留缝。
+- **审批凭据不合规一律 `500509`（HTTP 403）**：审批不是「已批准」、批的不是这个资产、批准人不是创建者、
+  审批原文里的可见性不是三个字面量之一、名单里有非用户 id、非 `RESTRICTED` 却带了名单……
+  全都归到同一个码，具体原因只进日志。
+- **`PRIVATE` / `PUBLIC` 会清空名单**：`update_visibility` 只在 `RESTRICTED` 下写入 `viewers`，
+  其余情况一律置 `null`，避免「改回私有却留着半张白名单」这种沉默的权限残留。
+- 写入**不计量、不记账**：它不是算力消耗，改的是一行元数据。
 
 ## 手工测试
 

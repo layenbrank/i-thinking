@@ -58,10 +58,11 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 
 | 方法 | 路径                          | 鉴权                | 说明                     |
 | ---- | ----------------------------- | ------------------- | ------------------------ |
-| POST | `/api/v1/service/token`       | `X-Internal-Token`  | 按 `scope` 换一枚短期令牌（`embeddings` / `asset-read` / `chat`） |
+| POST | `/api/v1/service/token`       | `X-Internal-Token`  | 按 `scope` 换一枚短期令牌（`embeddings` / `asset-read` / `chat` / `asset-write`） |
 | POST | `/api/v1/service/embeddings`  | `X-Service-Token`   | 转发嵌入请求（裸 JSON）  |
 | POST | `/api/v1/service/chat/completions` | `X-Service-Token` | 转发对话请求（`scope=chat`，一律非流式） |
 | GET  | `/api/v1/service/assets/{id}/content` | `X-Service-Token` | 按资产 id 读原始字节（`scope=asset-read`，路由挂在 upload 模块） |
+| PUT  | `/api/v1/service/assets/{id}/visibility` | `X-Service-Token` | 按审批单改资产可见性（`scope=asset-write`，无请求体，路由挂在 upload 模块） |
 
 ## 目录契约（`GET /models` 与 `GET /admin/models`）
 
@@ -117,21 +118,24 @@ ai-worker）需要三样东西：**资产正文**（它要自己抽取分块）�
 转发嵌入或转发对话。
 
 ```
-ai-worker ──X-Internal-Token──▶ POST /api/v1/service/token {scope, tenantID, model|assetID} ──▶ {token, expiresAt}
+ai-worker ──X-Internal-Token──▶ POST /api/v1/service/token {scope, tenantID, model|assetID|approvalID} ──▶ {token, expiresAt}
           ──X-Service-Token ──▶ POST /api/v1/service/embeddings {input, …}             ──▶ 上游裸 JSON
           ──X-Service-Token ──▶ POST /api/v1/service/chat/completions {messages, …}    ──▶ 上游裸 JSON
           ──X-Service-Token ──▶ GET  /api/v1/service/assets/{id}/content               ──▶ 原始字节流
+          ──X-Service-Token ──▶ PUT  /api/v1/service/assets/{id}/visibility（无请求体）──▶ 资产行
 ```
 
 | 端点                 | 请求头              | 语义                                                                     |
 | -------------------- | ------------------- | ------------------------------------------------------------------------ |
-| `POST /service/token`| `X-Internal-Token`  | 按 `scope` 校验（租户存在 + 模型已声明所需能力 / 资产可读）后签发 HS256 令牌 |
+| `POST /service/token`| `X-Internal-Token`  | 按 `scope` 校验（租户存在 + 模型已声明所需能力 / 资产可读 / 审批单可写）后签发 HS256 令牌 |
 | `POST /service/embeddings` | `X-Service-Token` | 按令牌作用域解析模型与配额 → 出站 `/embeddings` → 记账 → **原样返回上游 JSON** |
 | `POST /service/chat/completions` | `X-Service-Token` | 按令牌作用域解析模型与配额 → 出站 `/chat/completions`（强制非流式）→ 记账 → **原样返回上游 JSON** |
 | `GET /service/assets/{id}/content` | `X-Service-Token` | 按令牌作用域取 `assetID` 的原始字节（流式拼 CAS 分片），不计量、不记账 |
+| `PUT /service/assets/{id}/visibility` | `X-Service-Token` | 按令牌里钉住的审批参数改可见性，以**批准人**身份落地；不计量、不记账 |
 
 - **一件受众一件事**：`scope` 决定受众（`embeddings` → `core.service.gateway.embeddings`，
-  `chat` → `core.service.gateway.chat`，`asset-read` → `core.service.asset.content`），受众在端点里写死。
+  `chat` → `core.service.gateway.chat`，`asset-read` → `core.service.asset.content`，
+  `asset-write` → `core.service.asset.visibility`），受众在端点里写死。
   拿嵌入令牌打对话端点、或反过来，都是 `300002`（HTTP 401）——「越权」不是一处需要记得写的判断，
   而是签名载荷里就没有那个受众。
   不写 `scope` 即默认 `embeddings`（老调用方不用改），非法值直接 `200003`（宁可拒了也不猜）。
@@ -160,6 +164,25 @@ ai-worker ──X-Internal-Token──▶ POST /api/v1/service/token {scope, ten
   调用方按 OpenAI 客户端解析即可；错误仍是统一信封（`code/msg/timestamp`）。
 - 模型必须声明 `capabilities.embeddings = true`，否则 `200003` —— 不是所有上游供应商都有 `/embeddings`，
   凭模型名猜会变成运行期 404 而不是配置期报错。
+
+### 写令牌（`scope = asset-write`）：把「人批过的参数」当唯一输入
+
+服务面上唯一会**改库**的端点（`PUT /service/assets/{id}/visibility`），所以它比别的受众多一道门：
+写进去的东西不能由调用方在请求里现编。
+
+- **参数在签发时定稿**：换令牌时带 `approvalID`，core 当场回读 `agent_approval` 台账，只有
+  「这条审批确实批过、批的就是这个资产、而且是**资产创建者**亲手批的」才签得出令牌。审批原文里的
+  `visibility` / `viewers` 解析后钉进令牌载荷，写端点因此**没有请求体**——调用方没有任何可以撒谎的地方。
+- **写以批准人身份落地**：资产的行级策略里 `WITH CHECK` 只认 `creator`，所以「审批人必须是创建者」
+  不是额外加的规矩，而是唯一能写成功的组合（写路径进的是**该用户的**作用域，不是租户作用域）。
+- **令牌是能力，不是一次性凭据**：没有回收通道，只能靠短有效期（`ttlSecs`）兜着；同一枚令牌可重放，
+  落地结果相同。
+- **参数解析不降级**：`assetID` 只认这一种拼法（多一个未知字段即拒）、可见性只认
+  `PRIVATE` / `PUBLIC` / `RESTRICTED` 三个字面量、名单必须是用户 id、非 `RESTRICTED` 不得带名单——
+  任何一条不成立都不「猜一个接近的意思」，直接拒签。
+- **失败只有一个答案**：`500509`（HTTP 403，审批凭据不合规），原因只进日志——跨租户探测
+  「这条审批存在吗」不该能从响应里读出来。只有两种例外：请求体少字段回 `200003`（还没轮到查台账），
+  资产不存在或读不到回 `500204`（HTTP 404，与读内容同一口径）。
 
 ## 配额
 
