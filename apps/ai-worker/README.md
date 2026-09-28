@@ -369,6 +369,15 @@ ai-worker 的表是自己的私有数据（幂等表、块表、向量表），s
 记账（40 行）就够，且迁移在启动时完成、多副本用 `pg_advisory_xact_lock` 串行化。
 反过来说，`core` 的业务迁移仍然用它自己那套（`apps/core/migration`），两边互不知情。
 
+**为什么不引入 LangChain / LangGraph？**
+agent 运行时要的三件事都已经有主：循环宿主是 core 的 durable 编排（`/agents/steps` 只跑一步）、
+持久化是 duroxide + Postgres、审批闸门在编排里，而厂商适配与密钥在 core 的 `gateway`。
+更硬的一条：`langchain` 1.x **直接依赖 `langgraph`**，连 `langgraph-checkpoint` / `langgraph-sdk`
+都是必装，「只用抽象、不碰编排」这个折中不存在。所以这一层是自持的薄运行时（`agent_runtime/`，
+约 1,950 行，运行期依赖只有 pydantic / httpx 与契约本身）。
+完整取舍（候选对照、会破掉的不变量、推翻条件）见
+[`no-langchain.md`](../../docs/decisions/no-langchain.md)。
+
 **为什么健康探针不探测 core？**
 `spec/internal.yaml` 的边界规则是「除五条例外，ai-worker 不得对 core 发起任何请求」——
 健康探针每几秒一次，会稳稳地把这条规则压成噪音。而且方向本就该反过来：**core 探 ai-worker**
