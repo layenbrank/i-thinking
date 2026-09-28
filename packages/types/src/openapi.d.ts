@@ -415,9 +415,45 @@ export interface paths {
         };
         /**
          * 审计日志
-         * @description 仅平台 ADMIN。运行在平台特权作用域，可见**所有**租户的审计；`tenantID` 是查询过滤条件。
+         * @description 仅平台 ADMIN。运行在平台特权作用域，可见**所有**租户的审计；`tenantID` 是查询过滤条件，不是可见性边界。
+         *
+         *     `action` 精确匹配（如 `gateway.chat`），`actor` 为操作者用户 ID，`from`/`to` 是闭区间毫秒时间戳；
+         *
+         *     `from` 晚于 `to` 一律 `200003`（HTTP 400），非法 UUID 不会被静默忽略。
          */
         get: operations["gateway.audit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gateway/audit/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 导出审计日志（平台）
+         * @description 仅平台 ADMIN，与 `gateway.audit` 同一组过滤条件与同一份可见性（所有租户），但返回**文件流**而不是 JSON。
+         *
+         *     过滤条件缺省时窗口补齐为「最近 30 天」（`from`/`to` 都不给才补，给了一端就只补另一端）；
+         *
+         *     导出有硬上限，命中上限时 `X-Export-Truncated` 为 `true` 且只返回上限内的行——**先按过滤条件收窄再导出**。
+         *
+         *     `format=csv`（缺省）返回 `text/csv; charset=utf-8`，带 UTF-8 BOM 且字段按 RFC 4180 转义；
+         *
+         *     `format=ndjson` 返回 `application/x-ndjson`，每行一个对象、`createdAt` 为毫秒时间戳。
+         *
+         *     文件名由 `Content-Disposition` 给出，形如 `audit-<from>-<to>.<ext>`，时间戳即**实际生效**的窗口，
+         *
+         *     消费方不必回看响应头。
+         */
+        get: operations["gateway.auditExport"];
         put?: never;
         post?: never;
         delete?: never;
@@ -802,6 +838,54 @@ export interface paths {
         post?: never;
         /** 删除租户 */
         delete: operations["tenant.toRemove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 审计日志（本租户）
+         * @description 租户 OWNER / ADMIN（`audit_event:read`）。可见性由租户作用域收口：**只返回本租户的行**，
+         *
+         *     普通成员一律 403。`tenantID` 与路径一致时按缺省处理，不一致即 `200003`（HTTP 400，提示改用平台接口），
+         *
+         *     所以拿这个端点做跨租户汇总永远拿不到别人的数据。
+         */
+        get: operations["gateway.tenantAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{id}/audit/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 导出审计日志（本租户）
+         * @description 与 `gateway.tenantAudit` 同一套过滤条件、同一份可见性与同一个权限判定，返回**文件流**。
+         *
+         *     响应头与格式同 `gateway.auditExport`：缺省窗口为最近 30 天，`X-Export-Rows` / `X-Export-Truncated` 描述行数与截断，
+         *
+         *     `Content-Disposition` 给出带实际窗口的文件名。
+         */
+        get: operations["gateway.tenantAuditExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3973,6 +4057,14 @@ export interface operations {
             query?: {
                 /** @description 租户 ID */
                 tenantID?: string;
+                /** @description 操作者用户 ID（精确匹配） */
+                actor?: string;
+                /** @description 动作（精确匹配，如 `gateway.chat`） */
+                action?: string;
+                /** @description 起始毫秒时间戳（含） */
+                from?: number;
+                /** @description 结束毫秒时间戳（含） */
+                to?: number;
                 /** @description 页码 */
                 page?: number;
                 /** @description 每页条数 */
@@ -3999,6 +4091,53 @@ export interface operations {
                 };
             };
             /** @description 业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "gateway.auditExport": {
+        parameters: {
+            query?: {
+                /** @description 租户 ID */
+                tenantID?: string;
+                /** @description 操作者用户 ID（精确匹配） */
+                actor?: string;
+                /** @description 动作（精确匹配，如 `gateway.chat`） */
+                action?: string;
+                /** @description 起始毫秒时间戳（含） */
+                from?: number;
+                /** @description 结束毫秒时间戳（含） */
+                to?: number;
+                /** @description 导出格式：`csv`（缺省，Excel 友好）或 `ndjson`（SIEM / 流式消费友好） */
+                format?: string;
+            };
+            header?: {
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 审计文件流（`text/csv` 或 `application/x-ndjson`）；`X-Export-Rows` 为实际行数，`X-Export-Truncated` 为是否命中硬上限，`Content-Disposition` 给出文件名 */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 业务异常（权限不足或参数非法）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
             default: {
                 headers: {
                     /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
@@ -5090,6 +5229,110 @@ export interface operations {
                 };
             };
             /** @description 业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "gateway.tenantAudit": {
+        parameters: {
+            query?: {
+                /** @description 租户 ID（与路径一致或缺省，否则报参数错误） */
+                tenantID?: string;
+                /** @description 操作者用户 ID（精确匹配） */
+                actor?: string;
+                /** @description 动作（精确匹配，如 `gateway.chat`） */
+                action?: string;
+                /** @description 起始毫秒时间戳（含） */
+                from?: number;
+                /** @description 结束毫秒时间戳（含） */
+                to?: number;
+                /** @description 页码 */
+                page?: number;
+                /** @description 每页条数 */
+                size?: number;
+            };
+            header?: {
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path: {
+                /** @description 租户 ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description 业务异常（权限不足或租户不匹配）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "gateway.tenantAuditExport": {
+        parameters: {
+            query?: {
+                /** @description 租户 ID（与路径一致或缺省，否则报参数错误） */
+                tenantID?: string;
+                /** @description 操作者用户 ID（精确匹配） */
+                actor?: string;
+                /** @description 动作（精确匹配，如 `gateway.chat`） */
+                action?: string;
+                /** @description 起始毫秒时间戳（含） */
+                from?: number;
+                /** @description 结束毫秒时间戳（含） */
+                to?: number;
+                /** @description 导出格式：`csv`（缺省）或 `ndjson` */
+                format?: string;
+            };
+            header?: {
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path: {
+                /** @description 租户 ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 审计文件流（`text/csv` 或 `application/x-ndjson`），响应头同平台导出 */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 业务异常（权限不足、租户不匹配或参数非法）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
             default: {
                 headers: {
                     /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */

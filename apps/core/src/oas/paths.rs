@@ -279,6 +279,14 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     },
     RouteDef {
         method: "GET",
+        path: TENANT_AUDIT,
+    },
+    RouteDef {
+        method: "GET",
+        path: TENANT_AUDIT_EXPORT,
+    },
+    RouteDef {
+        method: "GET",
         path: TENANT_PAY_CATALOG,
     },
     RouteDef {
@@ -356,6 +364,10 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: GATEWAY_AUDIT,
+    },
+    RouteDef {
+        method: "GET",
+        path: GATEWAY_AUDIT_EXPORT,
     },
     RouteDef {
         method: "GET",

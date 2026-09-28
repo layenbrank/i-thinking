@@ -285,10 +285,16 @@ pub fn usage_doc() {}
     tag = "Gateway",
     operation_id = "gateway.audit",
     summary = "审计日志",
-    description = "仅平台 ADMIN。运行在平台特权作用域，可见**所有**租户的审计；`tenantID` 是查询过滤条件。",
+    description = "仅平台 ADMIN。运行在平台特权作用域，可见**所有**租户的审计；`tenantID` 是查询过滤条件，不是可见性边界。\n\n\
+        `action` 精确匹配（如 `gateway.chat`），`actor` 为操作者用户 ID，`from`/`to` 是闭区间毫秒时间戳；\n\n\
+        `from` 晚于 `to` 一律 `200003`（HTTP 400），非法 UUID 不会被静默忽略。",
     security(("bearer_auth" = [])),
     params(
         ("tenantID" = Option<String>, Query, description = "租户 ID"),
+        ("actor" = Option<String>, Query, description = "操作者用户 ID（精确匹配）"),
+        ("action" = Option<String>, Query, description = "动作（精确匹配，如 `gateway.chat`）"),
+        ("from" = Option<i64>, Query, description = "起始毫秒时间戳（含）"),
+        ("to" = Option<i64>, Query, description = "结束毫秒时间戳（含）"),
         ("page" = Option<u32>, Query, description = "页码"),
         ("size" = Option<u32>, Query, description = "每页条数"),
     ),
@@ -298,3 +304,85 @@ pub fn usage_doc() {}
     )
 )]
 pub fn audit_doc() {}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/gateway/audit/export",
+    tag = "Gateway",
+    operation_id = "gateway.auditExport",
+    summary = "导出审计日志（平台）",
+    description = "仅平台 ADMIN，与 `gateway.audit` 同一组过滤条件与同一份可见性（所有租户），但返回**文件流**而不是 JSON。\n\n\
+        过滤条件缺省时窗口补齐为「最近 30 天」（`from`/`to` 都不给才补，给了一端就只补另一端）；\n\n\
+        导出有硬上限，命中上限时 `X-Export-Truncated` 为 `true` 且只返回上限内的行——**先按过滤条件收窄再导出**。\n\n\
+        `format=csv`（缺省）返回 `text/csv; charset=utf-8`，带 UTF-8 BOM 且字段按 RFC 4180 转义；\n\n\
+        `format=ndjson` 返回 `application/x-ndjson`，每行一个对象、`createdAt` 为毫秒时间戳。\n\n\
+        文件名由 `Content-Disposition` 给出，形如 `audit-<from>-<to>.<ext>`，时间戳即**实际生效**的窗口，\n\n\
+        消费方不必回看响应头。",
+    security(("bearer_auth" = [])),
+    params(
+        ("tenantID" = Option<String>, Query, description = "租户 ID"),
+        ("actor" = Option<String>, Query, description = "操作者用户 ID（精确匹配）"),
+        ("action" = Option<String>, Query, description = "动作（精确匹配，如 `gateway.chat`）"),
+        ("from" = Option<i64>, Query, description = "起始毫秒时间戳（含）"),
+        ("to" = Option<i64>, Query, description = "结束毫秒时间戳（含）"),
+        ("format" = Option<String>, Query, description = "导出格式：`csv`（缺省，Excel 友好）或 `ndjson`（SIEM / 流式消费友好）"),
+    ),
+    responses(
+        (status = 200, description = "审计文件流（`text/csv` 或 `application/x-ndjson`）；`X-Export-Rows` 为实际行数，`X-Export-Truncated` 为是否命中硬上限，`Content-Disposition` 给出文件名"),
+        (status = "default", description = "业务异常（权限不足或参数非法）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
+    )
+)]
+pub fn audit_export_doc() {}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/tenants/{id}/audit",
+    tag = "Gateway",
+    operation_id = "gateway.tenantAudit",
+    summary = "审计日志（本租户）",
+    description = "租户 OWNER / ADMIN（`audit_event:read`）。可见性由租户作用域收口：**只返回本租户的行**，\n\n\
+        普通成员一律 403。`tenantID` 与路径一致时按缺省处理，不一致即 `200003`（HTTP 400，提示改用平台接口），\n\n\
+        所以拿这个端点做跨租户汇总永远拿不到别人的数据。",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = String, Path, description = "租户 ID"),
+        ("tenantID" = Option<String>, Query, description = "租户 ID（与路径一致或缺省，否则报参数错误）"),
+        ("actor" = Option<String>, Query, description = "操作者用户 ID（精确匹配）"),
+        ("action" = Option<String>, Query, description = "动作（精确匹配，如 `gateway.chat`）"),
+        ("from" = Option<i64>, Query, description = "起始毫秒时间戳（含）"),
+        ("to" = Option<i64>, Query, description = "结束毫秒时间戳（含）"),
+        ("page" = Option<u32>, Query, description = "页码"),
+        ("size" = Option<u32>, Query, description = "每页条数"),
+    ),
+    responses(
+        (status = 200, description = "成功", body = Object),
+        (status = "default", description = "业务异常（权限不足或租户不匹配）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
+    )
+)]
+pub fn tenant_audit_doc() {}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/tenants/{id}/audit/export",
+    tag = "Gateway",
+    operation_id = "gateway.tenantAuditExport",
+    summary = "导出审计日志（本租户）",
+    description = "与 `gateway.tenantAudit` 同一套过滤条件、同一份可见性与同一个权限判定，返回**文件流**。\n\n\
+        响应头与格式同 `gateway.auditExport`：缺省窗口为最近 30 天，`X-Export-Rows` / `X-Export-Truncated` 描述行数与截断，\n\n\
+        `Content-Disposition` 给出带实际窗口的文件名。",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = String, Path, description = "租户 ID"),
+        ("tenantID" = Option<String>, Query, description = "租户 ID（与路径一致或缺省，否则报参数错误）"),
+        ("actor" = Option<String>, Query, description = "操作者用户 ID（精确匹配）"),
+        ("action" = Option<String>, Query, description = "动作（精确匹配，如 `gateway.chat`）"),
+        ("from" = Option<i64>, Query, description = "起始毫秒时间戳（含）"),
+        ("to" = Option<i64>, Query, description = "结束毫秒时间戳（含）"),
+        ("format" = Option<String>, Query, description = "导出格式：`csv`（缺省）或 `ndjson`"),
+    ),
+    responses(
+        (status = 200, description = "审计文件流（`text/csv` 或 `application/x-ndjson`），响应头同平台导出"),
+        (status = "default", description = "业务异常（权限不足、租户不匹配或参数非法）：HTTP 状态码按错误码归属返回，响应体为统一错误信封", body = Exception),
+    )
+)]
+pub fn tenant_audit_export_doc() {}

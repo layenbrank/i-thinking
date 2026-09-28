@@ -6543,7 +6543,7 @@
     },
     "/api/v1/gateway/audit": {
       "get": {
-        "description": "仅平台 ADMIN。运行在平台特权作用域，可见**所有**租户的审计；`tenantID` 是查询过滤条件。",
+        "description": "仅平台 ADMIN。运行在平台特权作用域，可见**所有**租户的审计；`tenantID` 是查询过滤条件，不是可见性边界。\n\n`action` 精确匹配（如 `gateway.chat`），`actor` 为操作者用户 ID，`from`/`to` 是闭区间毫秒时间戳；\n\n`from` 晚于 `to` 一律 `200003`（HTTP 400），非法 UUID 不会被静默忽略。",
         "operationId": "gateway.audit",
         "parameters": [
           {
@@ -6553,6 +6553,44 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "description": "操作者用户 ID（精确匹配）",
+            "in": "query",
+            "name": "actor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "动作（精确匹配，如 `gateway.chat`）",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "起始毫秒时间戳（含）",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "结束毫秒时间戳（含）",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
             }
           },
           {
@@ -6641,6 +6679,129 @@
           }
         ],
         "summary": "审计日志",
+        "tags": [
+          "Gateway"
+        ]
+      }
+    },
+    "/api/v1/gateway/audit/export": {
+      "get": {
+        "description": "仅平台 ADMIN，与 `gateway.audit` 同一组过滤条件与同一份可见性（所有租户），但返回**文件流**而不是 JSON。\n\n过滤条件缺省时窗口补齐为「最近 30 天」（`from`/`to` 都不给才补，给了一端就只补另一端）；\n\n导出有硬上限，命中上限时 `X-Export-Truncated` 为 `true` 且只返回上限内的行——**先按过滤条件收窄再导出**。\n\n`format=csv`（缺省）返回 `text/csv; charset=utf-8`，带 UTF-8 BOM 且字段按 RFC 4180 转义；\n\n`format=ndjson` 返回 `application/x-ndjson`，每行一个对象、`createdAt` 为毫秒时间戳。\n\n文件名由 `Content-Disposition` 给出，形如 `audit-<from>-<to>.<ext>`，时间戳即**实际生效**的窗口，\n\n消费方不必回看响应头。",
+        "operationId": "gateway.auditExport",
+        "parameters": [
+          {
+            "description": "租户 ID",
+            "in": "query",
+            "name": "tenantID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "操作者用户 ID（精确匹配）",
+            "in": "query",
+            "name": "actor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "动作（精确匹配，如 `gateway.chat`）",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "起始毫秒时间戳（含）",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "结束毫秒时间戳（含）",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "导出格式：`csv`（缺省，Excel 友好）或 `ndjson`（SIEM / 流式消费友好）",
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "审计文件流（`text/csv` 或 `application/x-ndjson`）；`X-Export-Rows` 为实际行数，`X-Export-Truncated` 为是否命中硬上限，`Content-Disposition` 给出文件名",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足或参数非法）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "导出审计日志（平台）",
         "tags": [
           "Gateway"
         ]
@@ -8869,6 +9030,290 @@
         "summary": "更新租户",
         "tags": [
           "Tenant"
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/audit": {
+      "get": {
+        "description": "租户 OWNER / ADMIN（`audit_event:read`）。可见性由租户作用域收口：**只返回本租户的行**，\n\n普通成员一律 403。`tenantID` 与路径一致时按缺省处理，不一致即 `200003`（HTTP 400，提示改用平台接口），\n\n所以拿这个端点做跨租户汇总永远拿不到别人的数据。",
+        "operationId": "gateway.tenantAudit",
+        "parameters": [
+          {
+            "description": "租户 ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "租户 ID（与路径一致或缺省，否则报参数错误）",
+            "in": "query",
+            "name": "tenantID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "操作者用户 ID（精确匹配）",
+            "in": "query",
+            "name": "actor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "动作（精确匹配，如 `gateway.chat`）",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "起始毫秒时间戳（含）",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "结束毫秒时间戳（含）",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "页码",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "每页条数",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足或租户不匹配）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "审计日志（本租户）",
+        "tags": [
+          "Gateway"
+        ]
+      }
+    },
+    "/api/v1/tenants/{id}/audit/export": {
+      "get": {
+        "description": "与 `gateway.tenantAudit` 同一套过滤条件、同一份可见性与同一个权限判定，返回**文件流**。\n\n响应头与格式同 `gateway.auditExport`：缺省窗口为最近 30 天，`X-Export-Rows` / `X-Export-Truncated` 描述行数与截断，\n\n`Content-Disposition` 给出带实际窗口的文件名。",
+        "operationId": "gateway.tenantAuditExport",
+        "parameters": [
+          {
+            "description": "租户 ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "租户 ID（与路径一致或缺省，否则报参数错误）",
+            "in": "query",
+            "name": "tenantID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "操作者用户 ID（精确匹配）",
+            "in": "query",
+            "name": "actor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "动作（精确匹配，如 `gateway.chat`）",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "起始毫秒时间戳（含）",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "结束毫秒时间戳（含）",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "导出格式：`csv`（缺省）或 `ndjson`",
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "审计文件流（`text/csv` 或 `application/x-ndjson`），响应头同平台导出",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足、租户不匹配或参数非法）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "导出审计日志（本租户）",
+        "tags": [
+          "Gateway"
         ]
       }
     },
