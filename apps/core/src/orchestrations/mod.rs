@@ -18,8 +18,11 @@
 //! 错误因此在启动时报出来，而不是静默丢处理器。
 //!
 //! 迁移状态：P4c 搭好装配骨架；P4d 加入第一条真实工作流 RAG 索引
-//! （`rag.index-asset`，见 [`rag`]），它同时是「长任务长什么样」的样板。
+//! （`rag.index-asset`，见 [`rag`]），它同时是「长任务长什么样」的样板；
+//! P9c 加入服务端 agent 的多轮循环（`agent.run`，见 [`agent`]）——它是第一条
+//! 「循环次数不固定、由上游模型的输出决定分支」的编排，与 RAG 那种固定阶段的形状不同。
 
+pub mod agent;
 pub mod rag;
 pub mod retry;
 
@@ -46,9 +49,12 @@ pub fn registrations(
     embed_batch_size: usize,
     embed_model: String,
 ) -> Registrations {
-    let activities = rag::register_activities(Activities::builder(), ai_worker);
+    let activities = rag::register_activities(Activities::builder(), Arc::clone(&ai_worker));
+    let activities = agent::register_activities(activities, ai_worker);
+
     let orchestrations =
         rag::register_orchestration(Orchestrations::builder(), embed_batch_size, embed_model);
+    let orchestrations = agent::register_orchestration(orchestrations);
 
     Registrations {
         activities,

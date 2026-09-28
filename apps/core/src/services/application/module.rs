@@ -2,10 +2,10 @@ use actix_web::web;
 
 use crate::middlewares::rate_limit::AuthGovernor;
 use crate::services::{
-    application::controller::ApplicationController, auth::module::AuthModule,
-    engine::module::EngineModule, gateway::module::GatewayModule, payment::module::PaymentModule,
-    sso::module::SsoModule, tenant::module::TenantModule, upload::module::UploadModule,
-    user::module::UserModule,
+    agent::module::AgentModule, application::controller::ApplicationController,
+    auth::module::AuthModule, engine::module::EngineModule, gateway::module::GatewayModule,
+    payment::module::PaymentModule, sso::module::SsoModule, tenant::module::TenantModule,
+    upload::module::UploadModule, user::module::UserModule,
 };
 
 pub struct ApplicationModule;
@@ -21,6 +21,8 @@ impl ApplicationModule {
                 .configure(TenantModule::configure)
                 .configure(GatewayModule::configure)
                 .configure(SsoModule::configure)
+                // agent 任务：起任务 / 查任务（`/api/v1/agent/tasks`）
+                .configure(AgentModule::configure)
                 // 支付渠道回调（匿名，验签在业务层完成）
                 .configure(PaymentModule::configure_notify)
                 // 计费运维面：价目管理与计量对账（平台 ADMIN）

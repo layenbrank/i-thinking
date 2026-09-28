@@ -24,6 +24,8 @@ impl MigrationTrait for Migration {
                     // outbox / consumed_event 无外键，先清即可
                     .table(Outbox::Table)
                     .table(ConsumedEvent::Table)
+                    // agent_task 引用 tenant / auth，排在它们之前（cascade 是兜底，顺序才是意图）
+                    .table(AgentTask::Table)
                     .table(SsoConnection::Table)
                     .table(PaymentOrder::Table)
                     .table(BillingPrice::Table)
@@ -884,6 +886,66 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // ---------- agent_task（服务端 agent 台账） ----------
+        // 「谁在哪个租户下起了一次什么任务」的唯一记录。编排实例历史在 durable 自己的 schema 里，
+        // 模型用量在 gateway_usage / gateway_audit —— 这里只留台账，不重复别人的事实。
+        manager
+            .create_table(
+                Table::create()
+                    .table(AgentTask::Table)
+                    .if_not_exists()
+                    .col(pk_uuid(AgentTask::Id))
+                    .col(uuid(AgentTask::TenantId))
+                    // 发起人；服务身份（无会话）触发时为空
+                    .col(uuid_null(AgentTask::UserId))
+                    // RUNNING / SUCCEEDED / FAILED（词汇见 crates/agent）
+                    .col(text(AgentTask::Status).default("RUNNING"))
+                    .col(text(AgentTask::Objective))
+                    .col(text(AgentTask::Model))
+                    .col(integer(AgentTask::MaxSteps))
+                    // 工具白名单；空数组 = 不给工具（与「没记录」不同，故非空）
+                    .col(json_binary(AgentTask::AllowedTools))
+                    // 编排实例标识（`agent-{id}`）
+                    .col(text(AgentTask::InstanceId))
+                    .col(integer(AgentTask::Steps).default(0))
+                    // 终态输出快照
+                    .col(json_binary_null(AgentTask::Result))
+                    // 终态失败原因
+                    .col(text_null(AgentTask::Error))
+                    .col(timestamp_with_time_zone(AgentTask::CreatedAt))
+                    .col(timestamp_with_time_zone(AgentTask::UpdatedAt))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_agent_task_tenant")
+                            .from(AgentTask::Table, AgentTask::TenantId)
+                            .to(Tenant::Table, Tenant::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_agent_task_user")
+                            .from(AgentTask::Table, AgentTask::UserId)
+                            .to(Auth::Table, Auth::Id)
+                            .on_delete(ForeignKeyAction::SetNull)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .if_not_exists()
+                    .name("idx_agent_task_tenant")
+                    .table(AgentTask::Table)
+                    .col(AgentTask::TenantId)
+                    .col(AgentTask::CreatedAt)
+                    .to_owned(),
+            )
+            .await?;
+
         // ---------- 租户隔离（RLS） ----------
         // 隔离从"调用约定"下沉为数据库机制：应用角色即便漏传条件也拿不到别人的行。
         for (function, setting) in [
@@ -1048,6 +1110,7 @@ impl MigrationTrait for Migration {
                     .if_exists()
                     .table(Outbox::Table)
                     .table(ConsumedEvent::Table)
+                    .table(AgentTask::Table)
                     .table(SsoConnection::Table)
                     .table(PaymentOrder::Table)
                     .table(BillingPrice::Table)
@@ -1134,7 +1197,7 @@ $fn$"#
 /// - `payment_order`：按订单号（能力键）反解租户的只读分支；
 /// - `sso_connection`：按连接 id（能力键）读回匿名 OIDC 流程的那一行；
 /// - `gateway_usage` / `gateway_audit`：无租户行的归属分支（NULL 租户 + 本人）。
-const STRICT_TENANT_TABLES: [&str; 2] = ["subscription", "outbox"];
+const STRICT_TENANT_TABLES: [&str; 3] = ["subscription", "outbox", "agent_task"];
 
 /// 逐表启用行级安全：`ENABLE` 约束普通角色，`FORCE` 连表属主一起约束，
 /// 单角色直连部署下也不会失效；策略用固定名，重跑时可先删后建。
@@ -1561,4 +1624,31 @@ enum ConsumedEvent {
     EventId,
     #[sea_orm(iden = "consumedAt")]
     ConsumedAt,
+}
+
+/// 服务端 agent 任务台账。
+#[derive(DeriveIden)]
+enum AgentTask {
+    Table,
+    Id,
+    #[sea_orm(iden = "tenantID")]
+    TenantId,
+    #[sea_orm(iden = "userID")]
+    UserId,
+    Status,
+    Objective,
+    Model,
+    #[sea_orm(iden = "maxSteps")]
+    MaxSteps,
+    #[sea_orm(iden = "allowedTools")]
+    AllowedTools,
+    #[sea_orm(iden = "instanceID")]
+    InstanceId,
+    Steps,
+    Result,
+    Error,
+    #[sea_orm(iden = "createdAt")]
+    CreatedAt,
+    #[sea_orm(iden = "updatedAt")]
+    UpdatedAt,
 }

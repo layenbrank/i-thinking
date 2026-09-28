@@ -653,6 +653,38 @@ impl Default for AiWorkerConfig {
     }
 }
 
+/// 服务端 agent（P9c）的任务默认值。由 **api** 读取：起任务时把这几个值写进编排输入。
+///
+/// 三个字段都是**上限**而不是请求的唯一来源：起任务时请求体可以调小轮次、缩小工具集合，
+/// 但不能越过这里——配置是天花板，请求只能往下收。这样「这套部署允许 agent 做什么」
+/// 是一个部署级的决定，不用去翻每一条请求。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct AgentConfig {
+    /// 推理用的对话模型（`gateway_model` 目录里的一行）。core 的网关是唯一出网点，
+    /// 所以 ai-worker 不许自己挑模型，模型名字从这里往下传。
+    ///
+    /// 目录行必须支持工具调用（`capabilities.tools` 不为 false），否则每一步都拿不到工具、
+    /// agent 会退化成一次性问答。**不在提交路径校验**：读目录表要跨域，且模型可以后补；
+    /// 缺行 / 不支持工具会在跑起来时以失败落台账。
+    pub chat_model: String,
+    /// 轮次上限（一次任务最多几次「推理 + 工具」）。
+    pub max_steps: usize,
+    /// 允许 agent 使用的工具（OpenAI 函数名规则：字母数字加下划线，**不能带点号**——
+    /// 点号是能力名的写法，工具名带点上不了模型接口）。
+    pub allowed_tools: Vec<String>,
+}
+
+impl Default for AgentConfig {
+    fn default() -> Self {
+        Self {
+            chat_model: "deepseek-chat".to_string(),
+            max_steps: 6,
+            allowed_tools: vec!["knowledge_search".to_string(), "asset_read".to_string()],
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct Configure {
@@ -671,6 +703,7 @@ pub struct Configure {
     pub events: EventsConfig,
     pub durable: DurableConfig,
     pub ai_worker: AiWorkerConfig,
+    pub agent: AgentConfig,
     /// 合并时使用的 profile（`resolve_profile()`）。
     #[serde(skip)]
     pub profile: String,
@@ -697,6 +730,7 @@ impl Default for Configure {
             events: EventsConfig::default(),
             durable: DurableConfig::default(),
             ai_worker: AiWorkerConfig::default(),
+            agent: AgentConfig::default(),
             profile: "development".to_string(),
             config_dir: PathBuf::from("."),
         }
@@ -763,6 +797,7 @@ impl Configure {
         self.validate_events()?;
         self.validate_durable()?;
         self.validate_ai_worker()?;
+        self.validate_agent()?;
         self.validate_aliyun()?;
 
         Ok(())
@@ -1001,6 +1036,30 @@ impl Configure {
         }
         if ai_worker.embed_model.trim().is_empty() {
             bail!("ai_worker.embed_model must not be empty：模型由 core 指定，不能留空");
+        }
+
+        Ok(())
+    }
+
+    /// 服务端 agent 的形状校验（各 profile 一致）。
+    ///
+    /// 这三项都是**天花板**：起任务时用不上一个空模型名、用不上 0 轮预算，也认不出带点号的
+    /// 工具名（那是能力名的写法，模型接口不认）。所以宁可在启动时报，而不是等到第一条任务。
+    fn validate_agent(&self) -> Result<()> {
+        let agent = &self.agent;
+        if agent.chat_model.trim().is_empty() {
+            bail!("agent.chat_model must not be empty：模型由 core 指定，不能留空");
+        }
+        if agent.max_steps == 0 {
+            bail!("agent.max_steps must be greater than 0");
+        }
+        for tool in &agent.allowed_tools {
+            if !is_tool_name(tool) {
+                bail!(
+                    "agent.allowed_tools 里的 {tool:?} 不是合法的工具名：只允许字母数字、下划线与连字符（1–64 字符），\
+                     不能带点号——点号是能力名的写法"
+                );
+            }
         }
 
         Ok(())
@@ -1277,6 +1336,17 @@ fn is_postgres_url(value: &str) -> bool {
     value.starts_with("postgres://") || value.starts_with("postgresql://")
 }
 
+/// 模型接口认的工具名：`[A-Za-z0-9_-]{1,64}`。
+///
+/// 与契约里的**能力名**（`rag.search` 这种带点号的）是两套命名，混用会在模型接口上被拒。
+fn is_tool_name(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 64
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+}
+
 /// 阿里云 RPC 的 endpoint 必须是裸 origin：带路径会让签名覆盖的 URI 与实际请求不一致。
 fn require_http_origin(name: &str, value: &str) -> Result<()> {
     let value = value.trim();
@@ -1307,6 +1377,25 @@ mod tests {
         assert_eq!(cfg.profile, "development");
         assert_eq!(cfg.app.env, "development");
         assert!(cfg.auth.otp.mock);
+    }
+
+    #[test]
+    fn shipped_config_has_the_agent_section() {
+        // 段名写错时 serde 会静默套用默认值（没有 deny_unknown_fields），所以这里直接看
+        // 合并后的原始配置：键在不在、形状对不对。
+        let merged = load_merged_config("development").expect("load merged");
+        let model = merged
+            .get_string("agent.chat_model")
+            .expect("agent.chat_model 缺失或不是字符串");
+        assert_eq!(model, "deepseek-chat");
+        let max_steps = merged
+            .get_int("agent.max_steps")
+            .expect("agent.max_steps 缺失或不是整数");
+        assert_eq!(max_steps, 6);
+        let tools = merged
+            .get_array("agent.allowed_tools")
+            .expect("agent.allowed_tools 缺失或不是数组");
+        assert_eq!(tools.len(), 2, "默认给两个只读工具");
     }
 
     #[test]
@@ -1538,6 +1627,52 @@ mod tests {
 
         cfg.ai_worker.embed_model = "text-embedding-3-small".into();
         assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn agent_defaults_are_usable_and_shaped() {
+        let cfg = Configure::default();
+        assert_eq!(cfg.agent.chat_model, "deepseek-chat");
+        assert_eq!(cfg.agent.max_steps, 6);
+        assert!(
+            cfg.agent.allowed_tools.iter().all(|t| is_tool_name(t)),
+            "默认工具名必须过得了模型接口的名字规则"
+        );
+        assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_malformed_agent_config() {
+        let mut cfg = Configure::default();
+
+        cfg.agent.chat_model = "  ".into();
+        let err = cfg.validate().expect_err("空模型名必须失败");
+        assert!(err.to_string().contains("agent.chat_model"));
+
+        cfg.agent.chat_model = "deepseek-chat".into();
+        cfg.agent.max_steps = 0;
+        let err = cfg.validate().expect_err("0 轮预算必须失败");
+        assert!(err.to_string().contains("agent.max_steps"));
+
+        cfg.agent.max_steps = 6;
+        cfg.agent.allowed_tools = vec!["rag.search".into()];
+        let err = cfg.validate().expect_err("带点号的工具名必须失败");
+        assert!(err.to_string().contains("agent.allowed_tools"));
+
+        cfg.agent.allowed_tools = vec!["knowledge_search".into()];
+        assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn tool_names_follow_the_model_api_rules() {
+        assert!(is_tool_name("knowledge_search"));
+        assert!(is_tool_name("asset-read"));
+        assert!(is_tool_name("a"));
+
+        assert!(!is_tool_name(""), "空名字会被模型接口拒");
+        assert!(!is_tool_name("rag.search"), "点号是能力名的写法");
+        assert!(!is_tool_name("knowledge search"));
+        assert!(!is_tool_name(&"a".repeat(65)), "长度上限 64");
     }
 
     #[test]

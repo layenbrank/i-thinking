@@ -64,6 +64,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 起一个 agent 任务
+         * @description 给一个目标，服务端自己跑完多轮「模型思考 → 调工具 → 再思考」，最终把答案与过程落进台账。
+         *
+         *     **立刻返回**：响应里的任务通常还是 `RUNNING`，进度与结果用查询接口取。任务可能跑好几分钟，
+         *     同步等待会把一个 HTTP 请求拖成几分钟，也会让客户端超时重发变成起两个任务。
+         *
+         *     模型由部署配置决定（`agent.chat_model`），调用方**不能指定**；`maxSteps` 与 `tools` 只能比部署配置更小。
+         *     工具名用下划线（如 `knowledge_search`），不是能力名的点号写法。`tools: []` 是合法输入，
+         *     含义是「不给工具，只要一条结论」。
+         *
+         *     agent 的每一轮模型调用都走 core 网关（`scope=chat`），所以**配额、用量与审计自动生效**。
+         *
+         *     需 JWT 且 `X-Tenant-ID` 指向的租户内有效成员。
+         *
+         *     `body.code`：200000 成功；`200001` 缺少 `X-Tenant-ID`；`200007` `X-Tenant-ID` 格式无效；
+         *     `500502` 目标为空或超长；`500504` 轮次上限越界；`500505` 工具不在白名单；
+         *     `500503` 编排运行时未接通或实例启动失败（台账那一行会被落成失败，可直接重试）。
+         */
+        post: operations["agent.createTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agent/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 查询 agent 任务
+         * @description 返回任务台账：状态、步数、模型自报的进度、结果与失败原因。
+         *
+         *     **台账是权威记录**：任务已经结束时不再去问编排，实例存不存在都不影响「这个任务结束了」。
+         *     还在跑时会顺带问一次编排的当前进度（`progress`），问不到不影响返回；
+         *     编排运行时没接通时也照样返回台账原样。
+         *
+         *     有一处刻意的延迟：台账显示 `RUNNING` 但编排里查不到该实例时，5 分钟内仍按 `RUNNING` 返回，
+         *     超过才判定失败。原因是「刚起、还没被运行时领走」与「实例真丢了」在编排侧长得一样，只有行龄能区分。
+         *
+         *     需 JWT 且 `X-Tenant-ID` 指向的租户内有效成员。
+         *
+         *     `body.code`：200000 成功；`200001` 缺少 `X-Tenant-ID`；`200007` `X-Tenant-ID` 格式无效；
+         *     `500501` 任务不存在、不属于该租户，或 id 不是 UUID（三种情况合并，
+         *     避免用 id 探测别的租户）。
+         */
+        get: operations["agent.readTask"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/application/toRead": {
         parameters: {
             query?: never;
@@ -793,6 +861,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service/chat/completions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 聊天转发（内部）
+         * @description **仅限受信服务进程**：用 `scope=chat` 换来的 `X-Service-Token` 调用，模型取自令牌作用域（请求体里给了不一致的 `model` 会 400），`messages`/`tools`/`tool_choice` 等字段原样透传给上游供应商。
+         *
+         *     一律非流式：`stream` 被强制为 `false`——调用方是机器，请求与响应一对一才谈得上活动级重试与幂等键。
+         *     模型能力门禁在目录这一层：显式声明 `capabilities.tools=false` 的模型会被拒（400），
+         *     未声明 `capabilities` 的按支持工具处理（与用户面 `supports_tools` 同口径）。
+         *     走的是用户面同一个转发与记账路径：配额预检、用量与审计记账完全共用，
+         *     用量行主体为服务主体（全零 UUID），租户取自令牌。
+         */
+        post: operations["service.chat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/service/embeddings": {
         parameters: {
             query?: never;
@@ -827,8 +921,9 @@ export interface paths {
          * @description **仅限受信服务进程**（当前只有 ai-worker）：用共享的 `X-Internal-Token` 换取一枚短期令牌，
          *
          *     令牌自带作用域：`scope=embeddings`（缺省）限定 `tenantID` + `model`，
-         *     `scope=asset-read` 限定 `tenantID` + 单个 `assetID`。受众由 `scope` 决定并在消费端点写死，
-         *     所以换成嵌入的令牌打不开资产内容端点，反之亦然（`300002`，HTTP 401）。
+         *     `scope=chat` 限定 `tenantID` + `model`，`scope=asset-read` 限定 `tenantID` + 单个 `assetID`。
+         *     受众由 `scope` 决定并在消费端点写死，
+         *     所以换成嵌入的令牌打不开资产内容端点或对话端点，反之亦然（`300002`，HTTP 401）。
          *     这不是用户端点，没有 JWT 也不会带上 `traceparent` 之外的会话语义。
          *     换取失败一律按错误信封返回；租户不存在返回 404。`scope=asset-read` 时作用域里引用的资产在签发前先校验：
          *     不存在或对本租户不可见返回 `500204`（HTTP 404），尚未完成上传返回 `200003`（HTTP 400）。
@@ -2910,9 +3005,9 @@ export interface components {
         ServiceTokenP: {
             /** @description `scope=asset-read` 时必填：令牌只对这个资产有效。 */
             assetID?: string | null;
-            /** @description `scope=embeddings` 时必填：令牌只对这个模型有效。 */
+            /** @description `scope=embeddings` / `scope=chat` 时必填：令牌只对这个模型有效。 */
             model?: string | null;
-            /** @description 作用域：`embeddings`（缺省，嵌入出站）或 `asset-read`（读单个资产内容）。 */
+            /** @description 作用域：`embeddings`（缺省，嵌入出站）、`asset-read`（读单个资产内容）或 `chat`（聊天出站）。 */
             scope?: string | null;
             tenantID: string;
             /**
@@ -2930,9 +3025,9 @@ export interface components {
              * @description 过期时间（Unix 秒），调用方据此决定何时续签。
              */
             expiresAt: number;
-            /** @description 仅 `scope=embeddings` 有值。 */
+            /** @description 仅 `scope=embeddings` / `scope=chat` 有值。 */
             model?: string | null;
-            /** @description 实际生效的作用域（`embeddings` / `asset-read`）。 */
+            /** @description 实际生效的作用域（`embeddings` / `asset-read` / `chat`）。 */
             scope: string;
             tenantID: string;
             token: string;
@@ -3228,6 +3323,68 @@ export interface components {
         };
         /** @enum {string} */
         TSchema: "LT" | "MT" | "SC" | "CT" | "UT" | "PN" | "MB" | "RI" | "NWB" | "OS";
+        TaskEnvelope: {
+            /**
+             * Format: int32
+             * @description 业务状态码（200000=成功）
+             */
+            code: number;
+            data?: null | components["schemas"]["TaskR"];
+            msg: string;
+            success: boolean;
+            /** Format: int64 */
+            timestamp: number;
+            /** @description 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用 */
+            traceID?: string | null;
+        };
+        /** @description 起任务请求。 */
+        TaskP: {
+            /** @description 轮次上限；缺省用部署配置 `agent.max_steps`，**只能往小收，不能往大放** */
+            maxSteps?: number | null;
+            /** @description 任务目标，原样交给模型 */
+            objective: string;
+            /** @description 工具白名单；缺省用部署配置 `agent.allowed_tools`，给了就必须是它的子集；**空数组合法且有意义**（不给工具，直接要结论） */
+            tools?: string[] | null;
+        };
+        /**
+         * @description 任务台账行。
+         *
+         *     模型名不回给调用方选择，只在出参里如实反映「这一轮用的是哪个模型」。
+         */
+        TaskR: {
+            /** @description 本次任务实际生效的工具白名单；空数组 = 全程不给工具 */
+            allowedTools: string[];
+            /** Format: int64 */
+            createdAt: number;
+            /** @description 失败原因（已分类的运维文案）；失败后才有 */
+            error?: string | null;
+            /** @description 是否得出了结论；仅有结论的成功任务有值（`false` = 轮次预算耗尽而停） */
+            finished?: boolean | null;
+            id: string;
+            /**
+             * Format: int32
+             * @description 轮次上限（本次任务实际生效的值，可能小于部署上限）
+             */
+            maxSteps: number;
+            model: string;
+            objective: string;
+            /** @description 编排自报的进度（形如 `step:2/6 tools:2`）；取不到时为 null */
+            progress?: string | null;
+            /** @description 编排输出快照；成功后才有 */
+            result: Record<string, never> | null;
+            /** @description `RUNNING` / `SUCCEEDED` / `FAILED` */
+            status: string;
+            /**
+             * Format: int32
+             * @description 已完成的轮次；还在跑时由编排的进度汇报推出
+             */
+            steps: number;
+            tenantID: string;
+            /** Format: int64 */
+            updatedAt: number;
+            /** @description 发起人；服务身份触发时为 null */
+            userID?: string | null;
+        };
         TenantEnvelope: {
             /**
              * Format: int32
@@ -3584,6 +3741,96 @@ export interface operations {
                 };
             };
             /** @description 业务异常（未就绪 / 服务异常）：关键依赖故障返回 503（code=100002），非生产环境 details 附完整依赖快照；HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "agent.createTask": {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description 目标租户 ID（UUID）。**必填**：agent 任务的工具作用域（知识库检索 / 资产读取）都按租户划定，
+                 *     缺了这个头没有正确的作用域可进。调用者须为该租户有效成员（平台 ADMIN 可旁路）。
+                 */
+                "X-Tenant-ID": string;
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 任务目标与可选收窄项 */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskP"];
+            };
+        };
+        responses: {
+            /** @description 成功（任务已受理，通常仍在 RUNNING） */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskEnvelope"];
+                };
+            };
+            /** @description 业务异常（参数错误 / 非租户成员 / 编排不可用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "agent.readTask": {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description 目标租户 ID（UUID）。**必填**：agent 任务的工具作用域（知识库检索 / 资产读取）都按租户划定，
+                 *     缺了这个头没有正确的作用域可进。调用者须为该租户有效成员（平台 ADMIN 可旁路）。
+                 */
+                "X-Tenant-ID": string;
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path: {
+                /** @description 任务 ID（UUID） */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskEnvelope"];
+                };
+            };
+            /** @description 业务异常（任务不存在 / 非租户成员）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
             default: {
                 headers: {
                     /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
@@ -5204,6 +5451,47 @@ export interface operations {
                 };
             };
             /** @description 业务异常（令牌无效或过期 / 受众不符 / 作用域与路径不符 / 资产不存在或未完成 / 端点未启用）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "service.chat": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /** @description OpenAI 兼容请求（`model` 须与令牌作用域一致） */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatCompletionsP"];
+            };
+        };
+        responses: {
+            /** @description 成功（raw 上游 JSON） */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description 业务异常（令牌无效或过期 / 模型与作用域不一致 / 模型不支持工具调用 / 配额已用尽 / 上游失败）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
             default: {
                 headers: {
                     /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */

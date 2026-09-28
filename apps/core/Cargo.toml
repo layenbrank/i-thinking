@@ -15,6 +15,7 @@ members = [
   "crates/notify",
   "crates/durable",
   "crates/aliyun",
+  "crates/agent",
 ]
 
 [workspace.package]
@@ -74,6 +75,7 @@ audit = { version = "0.1.0", path = "crates/audit" }
 notify = { version = "0.1.0", path = "crates/notify" }
 durable  = { version = "0.1.0", path = "crates/durable" }
 aliyun   = { version = "0.1.0", path = "crates/aliyun" }
+agent    = { version = "0.1.0", path = "crates/agent" }
 
 [package]
 name              = "service"
@@ -177,6 +179,7 @@ audit    = { workspace = true }
 notify   = { workspace = true }
 durable  = { workspace = true }
 aliyun   = { workspace = true }
+agent    = { workspace = true }
 
 # 配置
 config    = "0.15.19"

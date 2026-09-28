@@ -106,6 +106,9 @@ pub struct Script {
     /// 请求体已经读完才开始按，所以「第 n 次调用」这级栅栏仍然成立：测试能在下游一直不回包
     /// 的状态下继续观察编排进度。永不调用 [`StubAiWorker::release`] 就是「下游卡死」。
     hangs: Vec<(String, usize)>,
+    /// 单步 agent 的预设响应，按到达顺序取；用完之后一直复用最后一条。
+    /// 与 `chunks` / `embeddings` 不同：这一步的产出不是从请求里推出来的，只能预设。
+    agent_steps: Vec<Value>,
 }
 
 impl Script {
@@ -116,6 +119,15 @@ impl Script {
             collection: "stub_chunks".to_owned(),
             chunk_set_id: "chunk-set-0001".to_owned(),
             hangs: Vec::new(),
+            agent_steps: Vec::new(),
+        }
+    }
+
+    /// 只跑 agent 的脚本：不分块、不嵌入，按顺序回预设的单步结果。
+    pub fn agent(steps: Vec<Value>) -> Self {
+        Self {
+            agent_steps: steps,
+            ..Self::new(0, 0)
         }
     }
 
@@ -143,7 +155,7 @@ impl Script {
             .map(|(fragment, _)| fragment.as_str())
     }
 
-    fn body_for(&self, fragment: &str, request: &Recorded) -> Value {
+    fn body_for(&self, fragment: &str, request: &Recorded, ordinal: usize) -> Value {
         match fragment {
             "chunks" => json!({
                 "chunkSetID": self.chunk_set_id,
@@ -167,6 +179,14 @@ impl Script {
                 "indexed": self.chunk_count,
                 "collection": self.collection,
             }),
+            // 第 n 轮到第 n 条预设；用完之后一直复用最后一条（「模型不再改口」）。
+            // 忘了预设时不 panic：回一条能被看见的错误体，失败会落在客户端的解析上。
+            "steps" => self
+                .agent_steps
+                .get(ordinal.saturating_sub(1))
+                .or_else(|| self.agent_steps.last())
+                .cloned()
+                .unwrap_or_else(|| json!({ "error": "脚本没有预设 agent 单步响应" })),
             _ => json!({
                 "status": "ok",
                 "version": "0.0.0-stub",
@@ -448,13 +468,14 @@ async fn serve(
         }
     }
 
-    let body = script.body_for(route_name, &request);
+    let body = script.body_for(route_name, &request, ordinal);
     let _ = write_json(&mut socket, 200, &body).await;
 }
 
 /// 路径 → 路由名；不认识的路径回 `None`。
 fn route(path: &str) -> Option<&'static str> {
     for (suffix, name) in [
+        ("/agents/steps", "steps"),
         ("/chunks", "chunks"),
         ("/embeddings", "embeddings"),
         ("/index", "index"),

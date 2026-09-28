@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::services::{
+    agent::schema::TaskR,
     application::schema::App,
     auth::schema::{AuthR, Avatar, CaptchaR, ProfileR, SigninR, SignupR},
     engine::schema::SuggestionR,
@@ -74,6 +75,7 @@ envelope!(OrderListEnvelope, Vec<OrderR>);
 envelope!(PriceEnvelope, PriceR);
 envelope!(PriceListEnvelope, Vec<PriceR>);
 envelope!(ReconcileEnvelope, ReconcileR);
+envelope!(TaskEnvelope, TaskR);
 
 /// 健康检查 data 字段
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

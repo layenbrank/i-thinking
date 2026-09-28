@@ -16,7 +16,7 @@ pub mod bootstrap {
 /// 构建基础 Actix App（须在 `HttpServer::new` 闭包内展开，以保证类型推断）
 #[macro_export]
 macro_rules! bootstrap_app {
-    ($store:expr, $config:expr, $redis:expr, $bootstrap:expr, $auth_governor:expr) => {{
+    ($store:expr, $config:expr, $redis:expr, $durable:expr, $bootstrap:expr, $auth_governor:expr) => {{
         use actix_web::{App, web::Data};
         use $crate::middlewares::access_log::AccessLog;
         use $crate::middlewares::cors::cors;
@@ -27,6 +27,8 @@ macro_rules! bootstrap_app {
             .app_data(Data::new($store))
             .app_data(Data::new($config))
             .app_data(Data::new($redis))
+            // `None` = 编排运行时没接通：进程照常起，用到它的接口才回 503
+            .app_data(Data::new($durable))
             // 归一中间件最内层：最先接住框架自产响应（如 405 空体），其余 wrap 都在信封之外
             .wrap(RejectNormalizer)
             .wrap(cors($config.as_ref()))
@@ -125,6 +127,20 @@ pub mod services {
 
     pub mod markdown {
         pub mod controller;
+        pub mod module;
+        pub mod schema;
+        pub mod service;
+    }
+
+    /// agent 任务：编排入口与台账查询。
+    ///
+    /// 四文件约定之外多两个文件——`error.rs` 是领域错误，`dispatch.rs` 是编排状态回收。
+    /// 本域按能力 crate 的方向组织（能力在 `crates/agent`，这里只有 HTTP 与接线），
+    /// 所以不套用那套以「单文件分层」为前提的约定。
+    pub mod agent {
+        pub mod controller;
+        pub mod dispatch;
+        pub mod error;
         pub mod module;
         pub mod schema;
         pub mod service;

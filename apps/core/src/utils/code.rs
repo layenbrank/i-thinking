@@ -215,6 +215,29 @@ pub mod business {
             RECONCILE_AMOUNT_OVERFLOW,
         ];
     }
+
+    /// 服务端 agent（50xx05 段）
+    pub mod agent {
+        /// 任务不存在（或不属于当前租户）
+        pub const TASK_NOT_FOUND: i32 = 500501;
+        /// 任务目标不合法（空白、过短或过长）
+        pub const OBJECTIVE_INVALID: i32 = 500502;
+        /// 编排不可用：可靠执行运行时未接或起实例失败
+        pub const ORCHESTRATION_UNAVAILABLE: i32 = 500503;
+        /// 轮次上限超出允许范围
+        pub const MAX_STEPS_INVALID: i32 = 500504;
+        /// 工具名不在服务端白名单内
+        pub const TOOL_NOT_ALLOWED: i32 = 500505;
+
+        /// 本模块全部状态码
+        pub const ALL: &[i32] = &[
+            TASK_NOT_FOUND,
+            OBJECTIVE_INVALID,
+            ORCHESTRATION_UNAVAILABLE,
+            MAX_STEPS_INVALID,
+            TOOL_NOT_ALLOWED,
+        ];
+    }
 }
 
 /// 外部服务错误 (60xxxx)
@@ -267,6 +290,7 @@ pub fn all_codes() -> Vec<i32> {
         business::upload::ALL,
         business::login::ALL,
         business::payment::ALL,
+        business::agent::ALL,
         external::ALL,
         data::ALL,
     ] {
@@ -349,6 +373,12 @@ pub fn description(code: i32) -> &'static str {
         business::payment::PRICE_CURRENCY_UNSUPPORTED => "价格币种不受支持",
         business::payment::RECONCILE_WINDOW_INVALID => "对账窗口无效",
         business::payment::RECONCILE_AMOUNT_OVERFLOW => "对账合计溢出",
+
+        business::agent::TASK_NOT_FOUND => "任务不存在",
+        business::agent::OBJECTIVE_INVALID => "任务目标不合法",
+        business::agent::ORCHESTRATION_UNAVAILABLE => "任务编排不可用",
+        business::agent::MAX_STEPS_INVALID => "轮次上限超出允许范围",
+        business::agent::TOOL_NOT_ALLOWED => "工具不在允许清单内",
 
         external::DATABASE_ERROR => "数据库连接失败",
         external::DATABASE_OPERATION_FAILED => "数据库操作失败",
@@ -452,6 +482,12 @@ pub fn http_status(code: i32) -> u16 {
         business::payment::PRICE_CURRENCY_UNSUPPORTED => 422,
         business::payment::RECONCILE_WINDOW_INVALID => 422,
         business::payment::RECONCILE_AMOUNT_OVERFLOW => 500,
+
+        business::agent::TASK_NOT_FOUND => 404,
+        business::agent::OBJECTIVE_INVALID => 422,
+        business::agent::ORCHESTRATION_UNAVAILABLE => 503,
+        business::agent::MAX_STEPS_INVALID => 422,
+        business::agent::TOOL_NOT_ALLOWED => 422,
 
         // 60xxxx 外部依赖（我方视角的服务端故障）
         external::DATABASE_ERROR => 500,

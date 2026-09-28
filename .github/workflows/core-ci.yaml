@@ -145,6 +145,11 @@ jobs:
       - name: Run subscription scope tests
         run: cargo test --test subscription_scope
 
+      # agent 域的端到端判据：真起 core（非 stub）+ durable 编排，桩掉 ai-worker。
+      # 用例内部自带 DB_LOCK 串行，显式单线程是为了让失败输出可读、资源占用可预测。
+      - name: Run agent orchestration end-to-end tests
+        run: cargo test --test agent_scope -- --test-threads=1
+
   contract:
     runs-on: ubuntu-latest
     timeout-minutes: 20

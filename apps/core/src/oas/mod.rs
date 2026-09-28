@@ -1,4 +1,5 @@
 pub mod addons;
+pub mod agent;
 pub mod application;
 pub mod auth;
 pub mod billing;
@@ -26,10 +27,11 @@ use crate::oas::common::{
     Readiness, ReadinessEnvelope, ReconcileEnvelope, SelfQuotaEnvelope, SigninEnvelope,
     SigninErrorExample, SigninSuccessExample, SignupEnvelope, SsoConnectionEnvelope,
     SsoConnectionListEnvelope, SsoLoginEnvelope, SubscriptionEnvelope, SubscriptionListEnvelope,
-    SuggestionEnvelope, TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope,
+    SuggestionEnvelope, TaskEnvelope, TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope,
     UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope,
     UserListEnvelope,
 };
+use crate::services::agent::schema::{TaskP, TaskR};
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
     AuthR, Avatar, CaptchaP, CaptchaR, EmailSigninP, ForgotPasswordP, Gender, OtpChannel, OtpP,
@@ -168,6 +170,8 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         billing::price_archive_doc,
         billing::reconciliation_doc,
         billing::reconciliation_export_doc,
+        agent::create_task_doc,
+        agent::read_task_doc,
     ),
     components(
         schemas(
@@ -309,6 +313,9 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
             ReconcileExceptionR,
             ReconcileR,
             ReconcileEnvelope,
+            TaskP,
+            TaskR,
+            TaskEnvelope,
         )
     ),
     tags(
@@ -325,6 +332,7 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         (name = "SSO", description = "单点登录（OIDC）"),
         (name = "Payment", description = "支付：档位/渠道目录、订单、渠道回调（下单需 JWT）"),
         (name = "Billing", description = "计费运维面：模型价目与计量对账（仅平台 ADMIN）"),
+        (name = "Agent", description = "租户级自治 agent：长任务编排与台账（需 JWT + X-Tenant-ID）"),
     ),
     modifiers(&ContractAddon),
     external_docs(

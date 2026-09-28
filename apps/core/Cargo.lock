@@ -302,6 +302,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "agent"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "entity",
+ "sea-orm",
+ "serde_json",
+ "thiserror 2.0.20",
+ "uuid",
+]
+
+[[package]]
 name = "ahash"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5110,6 +5122,7 @@ dependencies = [
  "actix-multipart",
  "actix-web",
  "aes-gcm",
+ "agent",
  "aliyun",
  "anyhow",
  "argon2",

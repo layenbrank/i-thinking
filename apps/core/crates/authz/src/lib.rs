@@ -45,6 +45,8 @@ pub enum Resource {
     Asset,
     /// 文档切片。
     Chunk,
+    /// agent 任务台账（起任务、读进度与结果）。
+    AgentTask,
     /// 审计事件与事件流。
     AuditEvent,
     /// 出站通知。
@@ -67,6 +69,7 @@ impl Resource {
             Self::GatewayUsage => "gateway_usage",
             Self::Asset => "asset",
             Self::Chunk => "chunk",
+            Self::AgentTask => "agent_task",
             Self::AuditEvent => "audit_event",
             Self::Notification => "notification",
         }
@@ -87,6 +90,7 @@ impl Resource {
             Self::GatewayUsage,
             Self::Asset,
             Self::Chunk,
+            Self::AgentTask,
             Self::AuditEvent,
             Self::Notification,
         ]
@@ -329,6 +333,8 @@ const fn tenant_role_allows(role: TenantRole, permission: Permission) -> bool {
             (Resource::Chunk, Action::Read),
             (Resource::Chunk, Action::Write),
             (Resource::Chunk, Action::Delete),
+            (Resource::AgentTask, Action::Read),
+            (Resource::AgentTask, Action::Write),
             (Resource::AuditEvent, Action::Read),
             (Resource::Notification, Action::Read),
             (Resource::Notification, Action::Write),
@@ -353,6 +359,8 @@ const fn tenant_role_allows(role: TenantRole, permission: Permission) -> bool {
             (Resource::Chunk, Action::Read),
             (Resource::Chunk, Action::Write),
             (Resource::Chunk, Action::Delete),
+            (Resource::AgentTask, Action::Read),
+            (Resource::AgentTask, Action::Write),
             (Resource::AuditEvent, Action::Read),
             (Resource::Notification, Action::Read),
             (Resource::Notification, Action::Write),
@@ -368,6 +376,8 @@ const fn tenant_role_allows(role: TenantRole, permission: Permission) -> bool {
             (Resource::Asset, Action::Write),
             (Resource::Chunk, Action::Read),
             (Resource::Chunk, Action::Write),
+            (Resource::AgentTask, Action::Read),
+            (Resource::AgentTask, Action::Write),
             (Resource::Notification, Action::Read),
             (Resource::Notification, Action::Write),
         ],

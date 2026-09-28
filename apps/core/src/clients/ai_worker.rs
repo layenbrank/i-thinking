@@ -30,6 +30,8 @@ pub const CHUNK_OBJECT_PATH: &str = "/internal/v1/assets/{assetID}/chunks";
 pub const EMBED_RANGE_PATH: &str = "/internal/v1/assets/{assetID}/embeddings";
 /// 把块集落进检索索引
 pub const UPSERT_INDEX_PATH: &str = "/internal/v1/assets/{assetID}/index";
+/// 服务端 agent 的一步（无状态：一次推理 + 至多一轮只读工具）
+pub const AGENT_STEP_PATH: &str = "/internal/v1/agents/steps";
 
 /// 内部契约版本（`schemaVersion`）。契约不兼容变更时才 +1。
 pub const INTERNAL_SCHEMA_VERSION: i32 = 1;
@@ -180,6 +182,18 @@ impl AiWorkerClient {
         read_json(response).await
     }
 
+    /// 走一步 agent：一次推理 + 至多一轮只读工具。
+    ///
+    /// 路径没有占位符（租户与目标都在请求体里），所以不走 `post_json` 的占位符填充。
+    pub async fn agent_step(
+        &self,
+        request: &AgentStepRequest,
+        meta: &CallMeta,
+    ) -> Result<AgentStepResponse, AiWorkerError> {
+        let url = format!("{}{}", self.base_url, AGENT_STEP_PATH);
+        self.post_json_url(&url, request, meta).await
+    }
+
     async fn post_json<Req, Res>(
         &self,
         template: &str,
@@ -193,6 +207,19 @@ impl AiWorkerClient {
         Res: for<'de> Deserialize<'de>,
     {
         let url = self.url(template, placeholder, asset_id);
+        self.post_json_url(&url, request, meta).await
+    }
+
+    async fn post_json_url<Req, Res>(
+        &self,
+        url: &str,
+        request: &Req,
+        meta: &CallMeta,
+    ) -> Result<Res, AiWorkerError>
+    where
+        Req: Serialize + ?Sized,
+        Res: for<'de> Deserialize<'de>,
+    {
         let response = self
             .headers(self.http.post(url), meta)
             .json(request)
@@ -401,6 +428,144 @@ pub struct IndexResponse {
     pub collection: String,
 }
 
+/// 单步 agent 的请求：目标 + **到目前为止的历史** + 本步可用工具 + 剩余轮次。
+///
+/// `history` 由 core 攒（上一轮的 assistant 消息 + 每条工具结果翻成 `role=tool` 的消息）：
+/// ai-worker 侧是无状态的，它不知道任务走到哪一步了。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentStepRequest {
+    pub schema_version: i32,
+    #[serde(rename = "tenantID")]
+    pub tenant_id: String,
+    pub objective: String,
+    pub model: String,
+    /// 检索用的嵌入模型：必须与 `rag.index` 落库时用的模型一致，这是 core 的责任。
+    #[serde(rename = "embedModel")]
+    pub embed_model: String,
+    /// 空数组与缺失同义（第一步）。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub history: Vec<AgentMessage>,
+    /// 空数组 = 不给工具（显式发出去：这是「要一条结论」的意图，不是一个可省的默认值）。
+    #[serde(rename = "allowedTools", default)]
+    pub allowed_tools: Vec<String>,
+    /// 还剩几步（含本步）；`<= 1` 时下游不再提供工具。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remaining_steps: Option<i32>,
+}
+
+/// 一条对话消息（契约形状：工具调用**扁平**在消息里，参数是 JSON 字符串）。
+///
+/// 刻意不做成枚举：core 只构造 `assistant`（回灌上一轮）与 `tool`（回灌工具结果）两种，
+/// 从不对角色做分支判断，多一层类型只是多一个要维护的映射。
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentMessage {
+    /// `system` / `user` / `assistant` / `tool`。core 只发前两者之外的两种。
+    pub role: String,
+    /// 要求了工具的 assistant 消息可以没有正文。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
+    /// 只有 assistant 会有。`None`（缺席）与 `Some(vec![])` 是两个意思：前者「与工具无关」，
+    /// 后者「这一步没有再要工具」——合并它们会让下游误解出「重复调用同一个工具」。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<AgentToolCall>>,
+    /// 只有 `role=tool` 会有：指回它所回应的那次调用。
+    #[serde(
+        rename = "toolCallID",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub tool_call_id: Option<String>,
+}
+
+impl AgentMessage {
+    /// 回灌上一轮的助手消息（正文与工具调用原样带过去）。
+    #[must_use]
+    pub fn assistant(message: &AgentStepResponse) -> Self {
+        Self {
+            role: "assistant".to_owned(),
+            content: message.message.content.clone(),
+            tool_calls: message.message.tool_calls.clone(),
+            tool_call_id: None,
+        }
+    }
+
+    /// 回灌一条工具结果（`error` 不进历史：它是给日志与审计看的机器码，不是给模型看的白话）。
+    #[must_use]
+    pub fn tool(result: &AgentToolResult) -> Self {
+        Self {
+            role: "tool".to_owned(),
+            content: Some(result.content.clone()),
+            tool_calls: None,
+            tool_call_id: Some(result.tool_call_id.clone()),
+        }
+    }
+}
+
+/// 模型要求调用的一次工具。
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentToolCall {
+    /// 模型给的调用 id（回灌结果时按它对齐）。
+    pub id: String,
+    pub name: String,
+    /// 参数对象的 **JSON 字符串**：保持线格式，core 不必反序列化再序列化一遍。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<String>,
+    /// 上游字段 `type`（固定 `function`），照抄不改写。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_call_type: Option<String>,
+}
+
+/// 单步 agent 的产出。
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentStepResponse {
+    pub schema_version: i32,
+    /// 当且仅当 `message.tool_calls` 为空时为 true。
+    pub finished: bool,
+    pub message: AgentMessage,
+    /// 与 `message.tool_calls` 同序一一对应。
+    #[serde(rename = "toolResults")]
+    pub tool_results: Vec<AgentToolResult>,
+    pub usage: AgentUsage,
+}
+
+/// 一次工具调用的结果。
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentToolResult {
+    #[serde(rename = "toolCallID")]
+    pub tool_call_id: String,
+    pub name: String,
+    /// false 也是**正常结果**（模型会读到 `content` 里的原因并自己纠正）。
+    pub ok: bool,
+    /// 交给模型读的文本（失败时是失败原因），已由下游按配置截断。
+    pub content: String,
+    /// 失败时的稳定机器码：只进日志与审计，**不喂模型**。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+/// 上游给的 token 用量。用 `i64` 而不是 `i32`：上游的计数没有上界承诺。
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentUsage {
+    pub prompt_tokens: i64,
+    pub completion_tokens: i64,
+    pub total_tokens: i64,
+}
+
+impl AgentUsage {
+    /// 累加一轮用量（编排跨多步统计总量）。
+    pub fn add(&mut self, other: &Self) {
+        self.prompt_tokens += other.prompt_tokens;
+        self.completion_tokens += other.completion_tokens;
+        self.total_tokens += other.total_tokens;
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HealthResponse {
@@ -503,5 +668,118 @@ mod tests {
             json.get("objectKey").is_none(),
             "对象存储键是对外泄漏实现细节，读取走 core 的服务身份内容端点"
         );
+    }
+
+    #[test]
+    fn agent_step_request_uses_the_contract_field_names() {
+        let request = AgentStepRequest {
+            schema_version: INTERNAL_SCHEMA_VERSION,
+            tenant_id: "t-1".into(),
+            objective: "总结这批文档".into(),
+            model: "deepseek-chat".into(),
+            embed_model: "text-embedding-3-small".into(),
+            history: vec![],
+            allowed_tools: vec!["knowledge_search".into()],
+            remaining_steps: Some(6),
+        };
+        let json = serde_json::to_value(&request).expect("serialize");
+
+        // 通用驼峰转换会给出 `tenantId` / `embedModel` 之外的一堆错拼，契约里是
+        // `tenantID` / `toolCallID` 这种写法，所以每个多字母缩写都必须显式对齐。
+        assert_eq!(json["tenantID"], serde_json::json!("t-1"));
+        assert_eq!(
+            json["embedModel"],
+            serde_json::json!("text-embedding-3-small")
+        );
+        assert_eq!(
+            json["allowedTools"],
+            serde_json::json!(["knowledge_search"])
+        );
+        assert_eq!(json["remainingSteps"], serde_json::json!(6));
+        assert!(
+            json.get("history").is_none(),
+            "空历史与缺失同义，不必发出去"
+        );
+        assert!(json.get("tenantId").is_none(), "{json}");
+
+        // 空工具是「要一条结论」的显式意图，不能因为空就被省掉。
+        let no_tools = AgentStepRequest {
+            allowed_tools: vec![],
+            ..request
+        };
+        let json = serde_json::to_value(&no_tools).expect("serialize");
+        assert_eq!(json["allowedTools"], serde_json::json!([]));
+    }
+
+    #[test]
+    fn agent_step_response_round_trips_through_history() {
+        let raw = r#"{
+            "schemaVersion": 1,
+            "finished": false,
+            "message": {
+                "role": "assistant",
+                "content": null,
+                "toolCalls": [
+                    {"id": "call-1", "name": "knowledge_search", "arguments": "{\"query\":\"预算\"}"}
+                ]
+            },
+            "toolResults": [
+                {"toolCallID": "call-1", "name": "knowledge_search", "ok": true, "content": "段 1"}
+            ],
+            "usage": {"promptTokens": 120, "completionTokens": 8, "totalTokens": 128}
+        }"#;
+        let response: AgentStepResponse = serde_json::from_str(raw).expect("parse step");
+
+        assert!(!response.finished);
+        assert_eq!(response.tool_results[0].tool_call_id, "call-1");
+        assert_eq!(response.usage.total_tokens, 128);
+        let call = &response.message.tool_calls.as_ref().expect("calls")[0];
+        assert_eq!(
+            call.arguments.as_deref(),
+            Some(r#"{"query":"预算"}"#),
+            "参数必须原样保持 JSON 字符串：反序列化再序列化会漂"
+        );
+
+        // 回灌：助手消息 + 每个工具结果翻成一条 tool 消息（下游按 toolCallID 对齐）。
+        let history = vec![
+            AgentMessage::assistant(&response),
+            AgentMessage::tool(&response.tool_results[0]),
+        ];
+        let json = serde_json::to_value(&history).expect("serialize");
+        assert_eq!(json[0]["role"], serde_json::json!("assistant"));
+        assert_eq!(json[0]["toolCalls"][0]["id"], serde_json::json!("call-1"));
+        assert!(
+            json[0].get("content").is_none(),
+            "没有正文的助手消息不该发 null"
+        );
+        assert_eq!(json[1]["role"], serde_json::json!("tool"));
+        assert_eq!(json[1]["toolCallID"], serde_json::json!("call-1"));
+        assert!(
+            json[1].get("toolCalls").is_none(),
+            "tool 消息与工具调用无关"
+        );
+        assert!(
+            json[1].get("error").is_none(),
+            "机器码只进日志与审计，不喂模型"
+        );
+        assert!(json[0].get("toolCallId").is_none(), "{json}");
+    }
+
+    #[test]
+    fn usage_adds_up_across_steps() {
+        let mut total = AgentUsage {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+        };
+        let step = AgentUsage {
+            prompt_tokens: 100,
+            completion_tokens: 10,
+            total_tokens: 110,
+        };
+        total.add(&step);
+        total.add(&step);
+        assert_eq!(total.total_tokens, 220);
+        assert_eq!(total.prompt_tokens, 200);
     }
 }

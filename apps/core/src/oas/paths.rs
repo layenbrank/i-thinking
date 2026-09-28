@@ -89,6 +89,10 @@ pub const SERVICE_EMBEDDINGS: &str = "/api/v1/service/embeddings";
 pub const SERVICE_CHAT: &str = "/api/v1/service/chat/completions";
 pub const SERVICE_ASSET_CONTENT: &str = "/api/v1/service/assets/{id}/content";
 
+// --- Agent（租户级自治 agent，需 JWT + X-Tenant-ID） ---
+pub const AGENT_TASKS: &str = "/api/v1/agent/tasks";
+pub const AGENT_TASK_BY_ID: &str = "/api/v1/agent/tasks/{id}";
+
 // --- SSO ---
 pub const SSO_CONNECTIONS: &str = "/api/v1/sso/connections";
 pub const SSO_CONNECTIONS_BY_ID: &str = "/api/v1/sso/connections/{id}";
@@ -388,6 +392,14 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: SERVICE_ASSET_CONTENT,
+    },
+    RouteDef {
+        method: "POST",
+        path: AGENT_TASKS,
+    },
+    RouteDef {
+        method: "GET",
+        path: AGENT_TASK_BY_ID,
     },
     RouteDef {
         method: "GET",

@@ -117,6 +117,19 @@ ai_worker:
   embed_batch_size: 16
   embed_model: text-embedding-3-small
 
+# 服务端 agent（P9c）的任务默认值。由 `api` 读取：起任务时把它写进编排输入。
+# 三项都是**上限**：请求体可以往下收（更少轮次、更小的工具集合），不能往上越。
+agent:
+  # 推理用的对话模型：必须是 gateway_model 目录里的一行，且支持工具调用
+  # （capabilities.tools 不为 false），否则 agent 会退化成一次性问答
+  chat_model: deepseek-chat
+  # 一次任务最多几步「推理 + 工具」
+  max_steps: 6
+  # 允许 agent 使用的工具（下划线命名，不能带点号——点号是能力名的写法）
+  allowed_tools:
+    - knowledge_search
+    - asset_read
+
 aliyun:
   # 出站凭据（短信 / 邮件 / OSS 共用）。本地留空：`auth.otp.mock` 打开时不会真的发出去。
   access_key_id: ''

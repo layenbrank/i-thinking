@@ -113,6 +113,16 @@ export const CAPABILITIES: readonly Capability[] = [
     // 从 Go 边车收敛进进程：这些路径必须消失（R6）。
     absorbs: ['sidecars/aliyun-gateway', 'docker/aliyun-gateway'],
     status: 'migrated'
+  },
+  {
+    name: 'agent',
+    title: '服务端 agent',
+    owns: ['agent_task'],
+    dependsOn: [],
+    publicModules: ['persistence'],
+    // 新增能力，没有遗留路径可吸收：HTTP 层是**新写**的，按 R6 留在 api 二进制（见 LEGACY_SERVICES）。
+    absorbs: [],
+    status: 'migrating'
   }
 ]
 
@@ -153,6 +163,10 @@ export const INTERNAL_CONTRACT = {
  * `core` 标记的模块是应用层编排（对话/引擎/应用），归属 api 二进制，不会被能力 crate 吸收。
  */
 export const LEGACY_SERVICES: Record<string, { owner: string; note: string }> = {
+  agent: {
+    owner: 'agent',
+    note: '服务端 agent 的 HTTP 层（新写，非遗留）：领域数据与状态词汇在 crates/agent'
+  },
   application: { owner: 'core', note: '应用层编排，留在 api 二进制' },
   auth: { owner: 'identity', note: '账号与认证' },
   engine: { owner: 'core', note: '对话/智能体编排，留在 api 二进制' },
@@ -238,6 +252,11 @@ export const TENANT_SCOPE_LEGACY: Record<string, { max: number; reason: string }
     max: 2,
     reason:
       'OIDC 匿名流程的引导调用点（连接 id 读回连接行、再按该租户开写事务）；守卫本身在 src/guards/sso.rs，这里只是调用'
+  },
+  'src/services/agent/dispatch.rs': {
+    max: 1,
+    reason:
+      'agent 台账收尾的机器路径：等待者与读路径都在请求事务之外跑，收尾时按已记死的租户重开一段短作用域（只写 status/steps/result 那一行）'
   }
 }
 
