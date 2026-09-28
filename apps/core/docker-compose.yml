@@ -1,10 +1,11 @@
 # corex 全栈编排：依赖（Postgres+pgvector / Redis / go-captcha / Elasticsearch）+ 四个后端进程
-# （core-api / core-worker / core-orchestrator / ai-worker）一次起齐。
+# （core-api / core-worker / core-orchestrator / ai-worker）一次起齐，外加一个 Jaeger 收链路。
 #
 # 用法：
 #   全栈       docker compose up -d
 #   只起依赖   docker compose up -d postgres redis gocaptcha elasticsearch
 #   看 core    docker compose logs -f core-api
+#   看链路     http://127.0.0.1:16686（三端 span 都往 jaeger 送，见 guide/deployment.md §9）
 #   停止       docker compose down
 #   清数据     删掉 ./data 下对应目录后重新 up（绑定挂载，便于备份/清理）
 #
@@ -44,6 +45,11 @@ x-core-env: &core-env
   # ai-worker 用它在 /api/v1/service/** 上换短期服务令牌；留空则整个服务面 503（ai-worker 的
   # 摄取与嵌入会因此失败）。默认值与 config.yaml 的开发值一致。
   CORE__GATEWAY__SERVICE_TOKEN_SECRET: ${SERVICE_TOKEN_SECRET:-dev-service-token-secret}
+  # 链路追踪：默认开，span 走 OTLP/HTTP 送到同网络的 jaeger；服务名由 core 自己拼成
+  # i-thinking-core-{api,worker,orchestrator}（telemetry.service_name + 进程角色）。
+  # 不想要链路就 TELEMETRY_ENABLED=0（导出器只影响后台批量上报，失败不影响请求）。
+  CORE__TELEMETRY__ENABLED: ${TELEMETRY_ENABLED:-true}
+  CORE__TELEMETRY__ENDPOINT: ${OTLP_ENDPOINT:-http://jaeger:4318}
   # 生产必须显式给出（占位值会被 validate() 拒绝，且 worker 要求 events.endpoint 非空）。
   # CORE__SECURITY__SECRET / CORE__SECURITY__JWT_SECRET / CORE__EVENTS__ENDPOINT 见 stack.env.example
 
@@ -153,6 +159,21 @@ services:
       - corex
     restart: unless-stopped
 
+  # 链路追踪后端（OTel Collector + UI 一体的 Jaeger v2）：4318 是 OTLP/HTTP 入口，
+  # 16686 是查询界面。core 三个进程与 ai-worker 都在同一条链路上，按 trace-id 就能看到
+  # 「Rust → Python → Rust」的跨语言调用树。存储是内存，容器重启即清空（开发够用）。
+  # 只起依赖时（up -d postgres redis gocaptcha elasticsearch）不启这个，链路导出会打警告，
+  # 但请求本身不受影响。
+  jaeger:
+    image: jaegertracing/jaeger:2.9.0
+    container_name: corex-jaeger
+    ports:
+      - '16686:16686'
+      - '4318:4318'
+    networks:
+      - corex
+    restart: unless-stopped
+
   # 一次性迁移：core 的业务库（migration crate 的 sea-orm CLI 世代）。
   # ai-worker 的库由它自己启动时 apply（apps/ai-worker/src/ai_worker/db.py）。
   migrate:
@@ -257,6 +278,10 @@ services:
       AI_WORKER_INTERNAL_TOKEN: ${AI_WORKER_INTERNAL_TOKEN:-dev-internal-token}
       AI_WORKER_DATABASE_URL: postgres://machenike:${POSTGRES_PASSWORD:-Li33333.}@postgres:5432/ai_worker
       AI_WORKER_CORE_BASE_URL: http://core-api:3000
+      # 与 core 共用一条链路：端点写成基址，ai-worker 自己补 /v1/traces（core 侧同规则）。
+      # 关掉就 TELEMETRY_ENABLED=0，两个服务一起静默。
+      AI_WORKER_TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-true}
+      AI_WORKER_TELEMETRY_ENDPOINT: ${OTLP_ENDPOINT:-http://jaeger:4318}
     expose:
       - '8081'
     depends_on:

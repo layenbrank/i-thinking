@@ -3737,7 +3737,6 @@ dependencies = [
  "prost",
  "reqwest 0.13.4",
  "thiserror 2.0.20",
- "tokio",
 ]
 
 [[package]]
@@ -4560,6 +4559,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
+ "futures-channel",
  "futures-core",
  "futures-util",
  "h2 0.4.19",

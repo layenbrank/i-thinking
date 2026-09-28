@@ -199,9 +199,11 @@ opentelemetry_sdk = { version = "0.33.0", features = ["rt-tokio"] } # 资源、�
 opentelemetry-otlp = { version = "0.33.0", default-features = false, features = [
   "trace",
   "http-proto",
-  "reqwest-client",
   "reqwest-rustls",
-] } # 只导 trace，用异步 reqwest 客户端（默认含 logs/metrics 与阻塞客户端）
+  # 阻塞式 reqwest 客户端：`with_batch_exporter` 的导出跑在**独立线程**上，那里没有 Tokio
+  # reactor，异步客户端一 poll 就 panic（把批处理器线程带走）。见 src/utils/telemetry.rs。
+  "reqwest-blocking-client",
+] } # 只导 trace，用阻塞 reqwest 客户端（默认含 logs/metrics）
 tracing-opentelemetry = "0.34.0" # tracing span → OTel span
 
 # CLI / 终端输出

@@ -74,6 +74,9 @@ pub fn init(configure: &Configure, role: &str) -> Result<Option<Telemetry>> {
 
     let scope = service_name(&telemetry.service_name, role);
 
+    // 注意：导出由 `with_batch_exporter` 的**独立线程**驱动，那里没有 Tokio reactor，
+    // 所以只能配 `reqwest-blocking-client`（见 Cargo.toml）。用异步客户端会在首个导出时
+    // panic（no reactor running），批处理器线程随之死掉，所有 span 静默丢失。
     let exporter = SpanExporter::builder()
         .with_http()
         .with_endpoint(traces_endpoint(&telemetry.endpoint))
