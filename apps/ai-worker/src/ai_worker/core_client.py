@@ -104,6 +104,11 @@ class CoreClient:
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self._settings = settings
+        # 内部端点直连：httpx 判定 `allow_env_proxies = trust_env and transport is None`，所以显式
+        # 给一个 transport 就等于关掉「环境变量 + Windows 注册表」里的代理，同时保住 `trust_env`
+        # 带来的 `SSL_CERT_FILE` / `SSL_CERT_DIR`（用 `trust_env=False` 会连证书路径一起丢）。
+        if transport is None and not settings.core_use_system_proxy:
+            transport = httpx.AsyncHTTPTransport()
         self._client = httpx.AsyncClient(
             base_url=settings.core_base_url,
             timeout=httpx.Timeout(settings.core_timeout_seconds),

@@ -137,6 +137,12 @@ uv run mypy
 第三个必填项 `AI_WORKER_DATABASE_URL` 没有对应的 core 配置：它就是 ai-worker 自己的库，
 **不能**填成 core 的业务库。
 
+还有一条不在这张表里、但能让人排查很久的开关：`AI_WORKER_CORE_USE_SYSTEM_PROXY`（默认 `false`）。
+关着时回打 core 的请求一律直连——httpx 除了读 `HTTP_PROXY` 这类环境变量，在 Windows 上还会读
+**注册表里的系统代理**，本机代理软件（如 `127.0.0.1:7892`）会把内网地址一起接走，症状是
+ai-worker 拿到 **502 且响应体为空**，而 core 侧连一条访问记录都没有（请求根本没到）。core 侧
+对应的开关是 `ai_worker.use_system_proxy`，默认同样是直连。
+
 ```bash
 # ── core ──（cwd: apps/core）
 cp config.local.yaml.example config.local.yaml   # 至少填 gateway.service_token_secret
@@ -190,6 +196,9 @@ curl -s "${H[@]}" -X PUT "http://127.0.0.1:8081/internal/v1/assets/$ASSET/index"
 真实联调的推荐姿势不是手工 curl，而是让 **core 自己发起**：起 `cargo run --bin orchestrator`
 （长任务宿主）后触发 `rag.index-asset` 编排，它会按 `ai_worker.embed_batch_size` 分批调
 ai-worker，进度写进 custom status（`chunked:<n>` / `embedded:<to>` / `indexed`）。
+
+agent 那条链路的完整一趟（服务身份令牌 → 审批闸门 → 写工具 → 收尾记忆）连同要看的观测点，
+写在 [`../core/guide/agent-runtime.md`](../core/guide/agent-runtime.md) 的「跨进程联调」一节。
 
 > 仓库里的 `apps/core/tests/rag_index.rs` 用的是 `StubAiWorker` 桩，**跨语言真实报文漂移它抓不到**；
 > 下面两个测试文件补的就是这个空档。

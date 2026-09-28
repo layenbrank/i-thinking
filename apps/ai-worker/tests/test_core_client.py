@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from typing import Any
@@ -29,7 +30,7 @@ from ai_worker.core_client import (
     SERVICE_TOKEN_PATH,
     CoreClient,
 )
-from support import INTERNAL_TOKEN, TRACEPARENT, MakeCore
+from support import INTERNAL_TOKEN, TRACEPARENT, MakeCore, make_settings
 
 TENANT = "tenant-a"
 ASSET = "asset-1"
@@ -610,3 +611,100 @@ async def test_write_errors_are_mapped_by_retryability(
 
     assert raised.value.status == expected_status
     assert raised.value.code is expected_code
+
+
+# ── 代理 ────────────────────────────────────────────────────────────────────────
+#
+# 内网地址被系统代理接走时的症状最不好认：502、响应体为空、core 侧连一条访问记录都没有。
+# 下面用两个最小 HTTP 桩把「请求到底发给了谁」变成可判定的事实：一个扮演行为可疑的本机代理
+# （回 502 空响应），一个扮演 core（回令牌）。
+
+
+async def _start_stub(status: str, body: bytes = b"") -> tuple[asyncio.Server, int, list[str]]:
+    """只回一条固定响应的 HTTP 桩。第三个返回值是它收到的请求行，用来判断谁被访问了。"""
+    hits: list[str] = []
+
+    async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        hits.append((await reader.readline()).decode("latin-1").strip())
+        length = 0
+        while True:
+            line = await reader.readline()
+            if line in (b"\r\n", b""):
+                break
+            if line.lower().startswith(b"content-length:"):
+                length = int(line.split(b":", 1)[1])
+        if length:
+            await reader.readexactly(length)
+        head = f"HTTP/1.1 {status}\r\ncontent-length: {len(body)}\r\nconnection: close\r\n\r\n"
+        writer.write(head.encode() + body)
+        await writer.drain()
+        writer.close()
+
+    server = await asyncio.start_server(handle, "127.0.0.1", 0)
+    sockets = server.sockets
+    assert sockets is not None  # 监听成功就一定有套接字
+    return server, int(sockets[0].getsockname()[1]), hits
+
+
+async def _close_stubs(*servers: asyncio.Server) -> None:
+    for server in servers:
+        server.close()
+    for server in servers:
+        await server.wait_closed()
+
+
+def _ambient_proxy(monkeypatch: pytest.MonkeyPatch, port: int) -> None:
+    """把环境变量代理指向本机的桩；`NO_PROXY` 也要清掉，否则测试可能因为「代理被豁免」而变绿。"""
+    monkeypatch.setenv("HTTP_PROXY", f"http://127.0.0.1:{port}")
+    monkeypatch.setenv("HTTPS_PROXY", f"http://127.0.0.1:{port}")
+    monkeypatch.delenv("NO_PROXY", raising=False)
+    monkeypatch.delenv("no_proxy", raising=False)
+
+
+async def test_core_calls_ignore_an_ambient_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """回打 core 一律直连：环境变量代理与 Windows 注册表里的系统代理都不该接管它。"""
+    proxy, proxy_port, proxy_hits = await _start_stub("502 Bad Gateway")
+    body = json.dumps(token_body(scope=SCOPE_EMBEDDINGS, model=MODEL)).encode()
+    upstream, upstream_port, upstream_hits = await _start_stub("200 OK", body)
+    _ambient_proxy(monkeypatch, proxy_port)
+
+    client = CoreClient(make_settings(core_base_url=f"http://127.0.0.1:{upstream_port}"))
+    try:
+        token = await client.service_token(tenant_id=TENANT, scope=SCOPE_EMBEDDINGS, model=MODEL)
+    finally:
+        await client.close()
+        await _close_stubs(proxy, upstream)
+
+    assert token.token == f"tok-{SCOPE_EMBEDDINGS}"
+    assert proxy_hits == []  # 代理一次都没被访问
+    assert len(upstream_hits) == 1  # core 那边确实收到了
+
+
+async def test_system_proxy_is_used_only_when_the_switch_is_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """反向控制：开关打开时代理确实会接走请求。
+
+    没有这一条，上面那条断言可能只是因为「代理从来没生效过」——那时测试是绿的，问题还在。
+    """
+    proxy, proxy_port, proxy_hits = await _start_stub("502 Bad Gateway")
+    body = json.dumps(token_body(scope=SCOPE_EMBEDDINGS, model=MODEL)).encode()
+    upstream, upstream_port, upstream_hits = await _start_stub("200 OK", body)
+    _ambient_proxy(monkeypatch, proxy_port)
+
+    client = CoreClient(
+        make_settings(core_base_url=f"http://127.0.0.1:{upstream_port}", core_use_system_proxy=True)
+    )
+    try:
+        with pytest.raises(errors.ApiError) as raised:
+            await client.service_token(tenant_id=TENANT, scope=SCOPE_EMBEDDINGS, model=MODEL)
+    finally:
+        await client.close()
+        await _close_stubs(proxy, upstream)
+
+    # 代理回的 502 是空响应体：这正是线上那次的原始症状。
+    assert raised.value.code is errors.ErrorCode.DEPENDENCY_UNAVAILABLE
+    assert "core 返回 502" in raised.value.message
+    assert len(proxy_hits) == 1
+    assert SERVICE_TOKEN_PATH in proxy_hits[0]
+    assert upstream_hits == []

@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     database_url: str = Field(min_length=1)
     #: core 的基址，例如 `http://127.0.0.1:3000`（core 的 `server.port`，默认 3000）；不带尾斜杠。
     core_base_url: str = Field(min_length=1)
+    #: 回打 core 时是否让系统/环境变量代理接管。默认直连：core 是内网端点，而 httpx 走
+    #: `urllib.request.getproxies()`，在 Windows 上**连注册表里的系统代理一起读**（开发机上常见
+    #: `127.0.0.1:7892` 这类本机代理），内网地址被它接走后表现为 502 且响应体为空、
+    #: core 侧连一条访问记录都没有。开关名与 core 侧的 `ai_worker.use_system_proxy` 对齐。
+    core_use_system_proxy: bool = False
 
     core_timeout_seconds: float = Field(default=30.0, gt=0)
     #: 服务令牌提前续签的余量（秒）：避免「刚好在过期那一瞬间发出请求」。
