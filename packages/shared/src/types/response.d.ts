@@ -19,6 +19,10 @@ interface RSF<F> {
    * @description 响应时间戳
    */
   timestamp: number
+  /**
+   * @description 链路追踪 ID（服务端 `traceparent` 的 trace-id，无链路上下文时省略）
+   */
+  traceID?: string
 }
 
 interface RSP<P> extends RSF<P> {

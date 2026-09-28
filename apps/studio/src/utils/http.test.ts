@@ -3,10 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http } from '@/utils/http.ts'
 
 /**
- * 请求拦截器的两条规矩：
+ * 请求拦截器的三条规矩：
  *   1. 网关路径（`/gateway/*`）带 `X-Tenant-ID` —— 不带的话服务端按账号归属兜底，
  *      团队共享的模型会整批看不见（「模型目录是空的」就是这么来的）；
- *   2. 登录令牌只发给自家接口，别的域名一律不带（网关那个头也不许外泄）。
+ *   2. 登录令牌只发给自家接口，别的域名一律不带（网关那个头也不许外泄）；
+ *   3. 自家接口带一条新链路的 `traceparent`（服务端据此串起日志与下游调用）。
  *
  * 这里直接抓住 `ofetch.create` 收到的 `onRequest` 调用它，比真起一个 server 更贴近
  * 「头是在哪一行加的」这件事。
@@ -55,8 +56,7 @@ vi.mock('./tenant.ts', function () {
 
 const THINKING_BASE = 'https://api.example.com/api/v1'
 
-function send(request: RequestInfo | URL): Headers {
-  const headers = new Headers()
+function send(request: RequestInfo | URL, headers = new Headers()): Headers {
   ofetchMock.configs[0].onRequest({ request, options: { headers } })
   return headers
 }
@@ -119,6 +119,39 @@ describe('auth token header', function () {
 
   it('sends no token to another host', function () {
     expect(send('https://evil.example.com/api/v1/tenants').get('Authorization')).toBeNull()
+  })
+})
+
+describe('traceparent header', function () {
+  const TRACEPARENT = /^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/
+
+  it('opens a trace on our own api, sampled', function () {
+    expect(send('/gateway/models').get('traceparent')).toMatch(TRACEPARENT)
+    expect(send(`${THINKING_BASE}/tenants`).get('traceparent')).toMatch(TRACEPARENT)
+  })
+
+  it('opens a fresh trace per request', function () {
+    expect(send('/tenants').get('traceparent')).not.toBe(send('/tenants').get('traceparent'))
+  })
+
+  it('still opens a trace when signed out', function () {
+    auth.findAuthToken.mockReturnValue(null)
+
+    expect(send('/tenants').get('traceparent')).toMatch(TRACEPARENT)
+  })
+
+  it('keeps the traceparent the caller set', function () {
+    const headers = new Headers({
+      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+    })
+
+    expect(send('/tenants', headers).get('traceparent')).toBe(
+      '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+    )
+  })
+
+  it('never sends a trace to another host', function () {
+    expect(send('https://evil.example.com/api/v1/tenants').get('traceparent')).toBeNull()
   })
 })
 

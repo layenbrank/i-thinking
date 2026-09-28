@@ -3,6 +3,7 @@ import { ofetch, type FetchOptions } from 'ofetch'
 import { TIMEOUT_MS } from '@/utils/http.errors'
 import { findAuthToken } from './auth'
 import { findActiveTenantID } from './tenant'
+import { createTraceparent, TRACEPARENT_HEADER } from './trace'
 
 type HttpOptions = Omit<FetchOptions<'json'>, 'method' | 'body'>
 type HttpBody = FetchOptions['body']
@@ -12,6 +13,11 @@ const fetcher = ofetch.create({
   timeout: TIMEOUT_MS,
   onRequest({ request, options }) {
     const url = findRequestUrl(request)
+    // 自家接口带上链路：服务端据此把入口日志、下游调用与响应回显串成同一条链路
+    if (isThinkingUrl(url) && !options.headers.has(TRACEPARENT_HEADER)) {
+      options.headers.set(TRACEPARENT_HEADER, createTraceparent())
+    }
+
     const tenantID = isGatewayUrl(url) ? findActiveTenantID() : null
     if (tenantID) options.headers.set('X-Tenant-ID', tenantID)
 
