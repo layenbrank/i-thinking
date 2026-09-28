@@ -35,6 +35,20 @@ class Settings(BaseSettings):
     environment: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
 
+    # ── 链路追踪（OTel → OTLP/HTTP）─────────────────────────────────────────
+    # 默认关闭：关闭时进程里不注册任何全局状态（见 `ai_worker.telemetry`），跨进程仍靠内置的
+    # W3C 实现透传 `traceparent`（见 `ai_worker.trace`），行为与接入前完全一致。
+    telemetry_enabled: bool = False
+    #: OTLP/HTTP 基址，例如 `http://127.0.0.1:4318`；带路径则按原样使用，
+    #: 不带路径时补上 traces 的默认路径 `/v1/traces`。
+    telemetry_endpoint: str = "http://127.0.0.1:4318"
+    #: 资源里的 `service.name`（core 侧是 `{service_name}-{角色}`，这边只有一个进程角色）。
+    telemetry_service_name: str = "i-thinking-ai-worker"
+    #: 采样比例 `0.0`–`1.0`。上游已带采样决定时跟随上游（ParentBased）。
+    telemetry_sample_ratio: float = Field(default=1.0, ge=0.0, le=1.0)
+    #: 单次导出超时（毫秒）。
+    telemetry_timeout_ms: int = 10_000
+
     # 只监听内网地址：外部可达时 X-Internal-Token 就成了一把暴露在公网的共享密钥。
     host: str = "127.0.0.1"
     port: int = Field(default=DEFAULT_PORT, ge=1, le=65535)
@@ -117,6 +131,27 @@ class Settings(BaseSettings):
             message = f"AI_WORKER_LOG_LEVEL 不是合法的日志级别：{value!r}"
             raise ValueError(message)
         return level
+
+    @model_validator(mode="after")
+    def _validate_telemetry(self) -> Settings:
+        """只在开启时校验：关着的时候不该因为一个没用的 endpoint 而启动失败。"""
+        if not self.telemetry_enabled:
+            return self
+        endpoint = self.telemetry_endpoint.strip()
+        if not endpoint.startswith(("http://", "https://")):
+            message = f"AI_WORKER_TELEMETRY_ENDPOINT 必须是 http(s) 开头的 OTLP 基址：{endpoint!r}"
+            raise ValueError(message)
+        if self.telemetry_timeout_ms <= 0:
+            message = (
+                f"AI_WORKER_TELEMETRY_TIMEOUT_MS 必须大于 0，当前是 {self.telemetry_timeout_ms}"
+            )
+            raise ValueError(message)
+        if not self.telemetry_service_name.strip():
+            message = (
+                "AI_WORKER_TELEMETRY_SERVICE_NAME 不能为空：service.name 是后端里找 trace 的入口"
+            )
+            raise ValueError(message)
+        return self
 
     @model_validator(mode="after")
     def _require_overlap_below_size(self) -> Settings:

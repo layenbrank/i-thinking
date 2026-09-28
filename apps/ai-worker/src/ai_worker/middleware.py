@@ -5,9 +5,12 @@
 
 顺序（后 `add_middleware` 的在外层）：
 1. [`InternalTokenMiddleware`]：缺令牌时先回 401，不因为「先撞上 traceparent 规则」而泄露内部细节；
-2. [`TraceparentMiddleware`]：校验并回写 `traceparent`。
+2. [`TraceparentMiddleware`]：校验并回写 `traceparent`，接 OTel 时顺手开一个 server span。
 
 健康探针两侧都跳过：core 的 readiness 不能因为网关规则而失败（契约里该端点无需令牌）。
+
+**被闸门拒掉的请求（400 / 401）不会产生 span**：拒它的是闸门本身，没有可归属的 server span
+（401 更是连本中间件都还没进）；这类请求只能在两侧日志里按状态码排查。
 """
 
 from __future__ import annotations
@@ -15,12 +18,13 @@ from __future__ import annotations
 import hmac
 import logging
 from collections.abc import Iterable
+from contextlib import AbstractContextManager, nullcontext
 
 from fastapi.responses import JSONResponse
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from ai_worker import errors, trace
+from ai_worker import errors, telemetry, trace
 from ai_worker.api.health import HEALTH_PATH
 
 logger = logging.getLogger(__name__)
@@ -63,7 +67,7 @@ class InternalTokenMiddleware:
 
 
 class TraceparentMiddleware:
-    """校验 + 回写 `traceparent`。"""
+    """校验 + 回写 `traceparent`（接 OTel 时同时开 server span）。"""
 
     def __init__(self, app: ASGIApp) -> None:
         self._app = app
@@ -74,32 +78,42 @@ class TraceparentMiddleware:
             return
 
         is_health = scope.get("path") == HEALTH_PATH
-        context = trace.TraceContext.parse(header_value(scope, _TRACEPARENT_RAW))
+        upstream = trace.TraceContext.parse(header_value(scope, _TRACEPARENT_RAW))
 
-        if context is None:
-            if not is_health:
-                await _send_error(
-                    scope,
-                    receive,
-                    send,
-                    errors.invalid_request(
-                        "traceparent 缺失或不合规（W3C Trace Context，形如 "
-                        "00-<32 位小写十六进制>-<16 位小写十六进制>-<2 位小写十六进制>）"
-                    ),
-                )
-                return
-            context = trace.new_trace_context()
+        if upstream is None and not is_health:
+            await _send_error(
+                scope,
+                receive,
+                send,
+                errors.invalid_request(
+                    "traceparent 缺失或不合规（W3C Trace Context，形如 "
+                    "00-<32 位小写十六进制>-<16 位小写十六进制>-<2 位小写十六进制>）"
+                ),
+            )
+            return
+
+        # 回写与进程内传递用的都是**上游发来的那枚**（没上游就是自建的一条）：调用方拿到原样
+        # 的值就能对上自己的链路。OTel 打开时上游仍是 server span 的父 span，只是 span 里带着
+        # 本进程自己的 span-id。
+        context = upstream if upstream is not None else trace.new_trace_context()
+        span = telemetry.start_server_span(
+            upstream, method=str(scope.get("method", "")), path=str(scope.get("path", ""))
+        )
+        active: AbstractContextManager[object] = nullcontext() if span is None else span.active()
 
         token = trace.set_current(context)
         try:
-            await self._app(scope, receive, _append_traceparent(send, context.raw))
+            with active:
+                await self._app(scope, receive, _append_traceparent(send, context.raw, span))
         finally:
             trace.reset_current(token)
 
 
-def _append_traceparent(send: Send, raw: str) -> Send:
+def _append_traceparent(send: Send, raw: str, span: telemetry.ServerSpan | None) -> Send:
     async def wrapped(message: Message) -> None:
         if message["type"] == "http.response.start":
+            if span is not None:
+                span.record_status(int(message["status"]))
             # `http.response.start` 的头部本身就是 MutableMapping，Starlette 的标注比实现窄。
             headers = MutableHeaders(scope=message)
             headers[trace.TRACEPARENT_HEADER] = raw

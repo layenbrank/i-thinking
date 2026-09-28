@@ -50,7 +50,8 @@ src/ai_worker/
 ├── app.py             # create_app(settings)：装配中间件与路由
 ├── config.py          # Settings（pydantic-settings，前缀 AI_WORKER_，可选 .env）
 ├── errors.py          # 统一错误体 {error:{code,message}} 与错误码枚举
-├── trace.py           # W3C traceparent 解析/生成 + ContextVar
+├── trace.py           # W3C traceparent 解析/生成 + ContextVar（内置，默认路径）
+├── telemetry.py       # OTel 装配：server/client span + OTLP/HTTP 导出（默认关闭）
 ├── logging_setup.py   # JSON 行日志（带 trace_id）
 ├── middleware.py      # 裸 ASGI 中间件：内部令牌闸门 + traceparent
 ├── db.py              # asyncpg 连接池 + pgvector 注册
@@ -194,6 +195,36 @@ ai-worker，进度写进 custom status（`chunked:<n>` / `embedded:<to>` / `inde
 真的接到了 ai-worker，再接到 ai-worker 打回 core 的那一跳」的机器判据；缺 `traceparent`
 的请求必须 400 **且一个字节都不出网**。
 
+## 链路追踪接入（OTel → OTLP/HTTP）
+
+**默认关闭**：`AI_WORKER_TELEMETRY_ENABLED=false` 时进程里不注册任何 OTel 全局状态、不联网，
+跨进程仍靠内置的 W3C 实现透传 `traceparent`（`trace.py`），行为与接入前逐字一致。
+
+打开后与 core 共用一套约定（参照实现：`apps/core/src/utils/telemetry.rs`）：
+
+| 项 | 取值 | 为什么 |
+| --- | --- | --- |
+| 资源 | `service.name` / `service.version` / `deployment.environment.name` | 后端按它筛服务与版本 |
+| 采样 | `ParentBased(TraceIdRatioBased)` | 上游已定就跟随上游，只有根 span 才掷骰子 |
+| 传播 | W3C `traceparent` | core 发来的 span-id 成为本进程 server span 的父 span |
+| 导出 | OTLP/HTTP `POST {endpoint}/v1/traces` | 与 core 送到同一个 collector |
+
+- **server span**：按「方法 + 路径」命名（`GET /internal/v1/assets/{id}/chunks`），带
+  `http.request.method` / `url.path` / `http.response.status_code`；**5xx 记 Error，4xx 只记属性**
+  （调用方的问题不该让 trace 里满屏红色）。
+- **client span**：每次出站（换服务令牌 / 取正文 / 要嵌入算力）各开一个，且**线路上的
+  `traceparent` 就是导出 span 自己的标识** —— Jaeger 里的父子关系与 core 收到的头是同一份事实。
+- **响应头仍然回入站原值**（core 的日志按它对上）：回显语义归 `trace.py`，OTel 只多导出一份。
+- 健康探针没有上游链路，自成一条根 span，不会给后端塞悬空的父 span。
+
+本地想看一条真实的跨语言 trace（P7d-d 之后会并进 `apps/core/docker-compose.yml`）：
+
+```bash
+docker run -d --name jaeger -p 16686:16686 -p 4318:4318 jaegertracing/jaeger:2.9.0
+# ai-worker 侧：AI_WORKER_TELEMETRY_ENABLED=true，ENDPOINT 用 http://127.0.0.1:4318
+# core 侧同步打开，UI 在 http://127.0.0.1:16686
+```
+
 ## 设计决策
 
 **为什么是独立的 uv 项目，而不是 uv workspace？**
@@ -279,6 +310,11 @@ ai-worker 的表是自己的私有数据（幂等表、块表、向量表），s
 `ContextVar` 的写入不会传回给路由处理函数 —— trace_id 会静默丢失。
 裸 ASGI 中间件在同一个任务里跑，`ContextVar` 正常传播。
 
+**为什么接了 OTel 还要留着内置的 W3C 实现（`trace.py`）？**
+内置实现不是"备用方案"而是**默认路径**：它保证没接 collector 的部署、以及全部单元测试，
+行为与接入前逐字一致；同时让「`traceparent` 的校验规则」和「响应头回显」只有一份来源。
+OTel 打开后 `trace.py` 照旧负责 400 判定与回显，OTel 只负责多导出（并把出站头指向导出的 span）。
+
 ## 部署要点
 
 - **不暴露到公网**：只监听内网地址；`X-Internal-Token` 是共享密钥，泄漏即等于拿到内部调用权。
@@ -290,3 +326,6 @@ ai-worker 的表是自己的私有数据（幂等表、块表、向量表），s
   不会带着半截 schema 提供服务；迁移一旦真的失败（例如 SQL 报错），日志里会有完整原因。
 - **OpenAPI / docs 关闭**：`docs_url` / `redoc_url` / `openapi_url` 全为 `None`；
   契约以 `apps/core/spec/internal.yaml` 为唯一来源，避免出现第二份会漂移的定义。
+- **追踪是可选依赖**：只有 `AI_WORKER_TELEMETRY_ENABLED=true` 才需要 collector 可达；导出是
+  后台批量的，collector 挂掉只丢 span、不影响业务。`AI_WORKER_TELEMETRY_ENDPOINT` 不带路径时
+  自动补 `/v1/traces`，带了路径就按原样用（collector 挂在网关后面时用得上）。

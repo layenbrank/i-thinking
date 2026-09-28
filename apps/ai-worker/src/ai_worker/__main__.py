@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uvicorn
 
-from ai_worker import __version__
+from ai_worker import __version__, telemetry
 from ai_worker.app import create_app
 from ai_worker.config import get_settings
 from ai_worker.logging_setup import configure_logging
@@ -18,12 +18,17 @@ from ai_worker.logging_setup import configure_logging
 def main() -> None:
     settings = get_settings()
     configure_logging(level=settings.log_level, service="ai-worker", version=__version__)
-    uvicorn.run(
-        create_app(settings),
-        host=settings.host,
-        port=settings.port,
-        log_config=None,
-    )
+    telemetry.setup(settings, version=__version__)
+    try:
+        uvicorn.run(
+            create_app(settings),
+            host=settings.host,
+            port=settings.port,
+            log_config=None,
+        )
+    finally:
+        # 退出前把队列里剩下的 span 冲出去，否则最后几个请求在 Jaeger 里会缺一段。
+        telemetry.shutdown()
 
 
 if __name__ == "__main__":

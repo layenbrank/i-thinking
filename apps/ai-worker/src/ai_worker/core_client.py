@@ -30,7 +30,7 @@ from typing import Any, NoReturn
 
 import httpx
 
-from ai_worker import errors, trace
+from ai_worker import errors, telemetry, trace
 from ai_worker.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -91,10 +91,12 @@ class CoreClient:
             tenant_id=tenant_id, scope=SCOPE_ASSET_READ, asset_id=asset_id
         )
         path = ASSET_CONTENT_PATH.format(asset_id=asset_id)
+        headers = self._headers(service_token=token)
 
-        async with self._client.stream(
-            "GET", path, headers=self._headers(service_token=token)
-        ) as response:
+        async with (
+            telemetry.outbound_span("GET", path, headers),
+            self._client.stream("GET", path, headers=headers) as response,
+        ):
             if response.status_code >= 400:
                 await self._raise_for_status(response, action=f"读取资产 {asset_id} 内容")
             chunks: list[bytes] = []
@@ -216,7 +218,8 @@ class CoreClient:
         action: str,
     ) -> httpx.Response:
         try:
-            response = await self._client.request(method, path, json=json, headers=headers)
+            async with telemetry.outbound_span(method, path, headers):
+                response = await self._client.request(method, path, json=json, headers=headers)
         except httpx.HTTPError as exc:
             logger.warning("%s失败（网络层）：%s", action, exc)
             raise errors.dependency_unavailable(f"{action}失败：core 不可达") from exc
