@@ -24,6 +24,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 存活探针（liveness）
+         * @description 只证明进程存活且能响应 HTTP，**不检查任何依赖**：依赖故障不该让编排器重启实例。恒定 200（code=200000）。
+         */
+        get: operations["system.live"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 就绪探针（readiness）
+         * @description 检查各依赖后回答「能否接流量」。data.status=ready 表示关键依赖全通（个别非关键依赖异常时为 degraded，仍返回 200 并照常接流量）；任一关键依赖故障则返回 503（code=100002，system.SERVICE_UNAVAILABLE，msg 列出故障项）。各依赖的探测结果与是否关键见 data.checks[].critical；需要完整依赖快照（恒 200）请用 /api/health。
+         */
+        get: operations["system.ready"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/application/toRead": {
         parameters: {
             query?: never;
@@ -1539,6 +1579,17 @@ export interface components {
         };
         /** @enum {string} */
         Component: "Bookmark" | "Calendar" | "Markdown" | "Settings" | "Clipchamp" | "Intelligence" | "Navigation" | "Marketplace" | "Developer" | "Collection" | "Signboard" | "Clock" | "Gallery";
+        /** @description 单个依赖的探测结果 */
+        DependencyCheck: {
+            /** @description 是否关键依赖：关键依赖故障 ⇒ 503（不接流量） */
+            critical: boolean;
+            /** @description 补充说明（如 Elasticsearch 集群状态、ai-worker 版本与能力） */
+            detail?: string | null;
+            /** @description `postgres` / `redis` / `elasticsearch` / `ai-worker` */
+            name: string;
+            /** @description `up` / `down` / `unconfigured` */
+            status: string;
+        };
         /** @enum {string} */
         Direction: "Horizontal" | "Vertical";
         /**
@@ -1749,6 +1800,28 @@ export interface components {
         };
         ISchema: {
             ig: string;
+        };
+        /** @description 存活探针 data：只描述进程自身，**不含任何依赖** */
+        Liveness: {
+            /** @description 恒为 `alive` */
+            status: string;
+            /** Format: int64 */
+            timestamp: number;
+            version: string;
+        };
+        LivenessEnvelope: {
+            /**
+             * Format: int32
+             * @description 业务状态码（200000=成功）
+             */
+            code: number;
+            data?: null | components["schemas"]["Liveness"];
+            msg: string;
+            success: boolean;
+            /** Format: int64 */
+            timestamp: number;
+            /** @description 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用 */
+            traceID?: string | null;
         };
         MemberEnvelope: {
             /**
@@ -2282,6 +2355,29 @@ export interface components {
             tenantID: string;
             /** @description PERSONAL / TEAM */
             type: string;
+        };
+        /** @description 就绪探针 data：能否接流量 + 各依赖快照 */
+        Readiness: {
+            checks: components["schemas"]["DependencyCheck"][];
+            /** @description `ready`（关键依赖全通）/ `degraded`（关键依赖全通但有非关键依赖异常） */
+            status: string;
+            /** Format: int64 */
+            timestamp: number;
+            version: string;
+        };
+        ReadinessEnvelope: {
+            /**
+             * Format: int32
+             * @description 业务状态码（200000=成功）
+             */
+            code: number;
+            data?: null | components["schemas"]["Readiness"];
+            msg: string;
+            success: boolean;
+            /** Format: int64 */
+            timestamp: number;
+            /** @description 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用 */
+            traceID?: string | null;
         };
         /**
          * @example {
@@ -2999,6 +3095,78 @@ export interface operations {
                 };
             };
             /** @description 业务异常（服务异常）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "system.live": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 进程存活（code=200000） */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LivenessEnvelope"];
+                };
+            };
+            /** @description 业务异常（服务异常）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
+            default: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    "system.ready": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                traceparent?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 就绪（code=200000）：data.status=ready|degraded，data.checks 为各依赖快照 */
+            200: {
+                headers: {
+                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
+                    traceparent?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessEnvelope"];
+                };
+            };
+            /** @description 业务异常（未就绪 / 服务异常）：关键依赖故障返回 503（code=100002），非生产环境 details 附完整依赖快照；HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
             default: {
                 headers: {
                     /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
