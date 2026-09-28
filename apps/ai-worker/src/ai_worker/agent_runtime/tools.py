@@ -14,6 +14,10 @@
 3. **失败是正常流程，不是异常**：模型给了不存在的工具、参数类型不对、资产是不可抽取的
    PDF——这些都要变成一条 `ok=false` 的结果喂回模型，让它换路子，而不是 4xx/5xx 打断
    整个任务。只有「暂时性故障」（库/网关不可用、限流）才向上抛，交给 core 重试。
+4. **有副作用的工具可以由人拿一道闸**：标记了 `requires_approval` 的工具（当前是
+   `memory_write`）在 `/agents/steps` 里**不执行**，只回一条 `awaitingApproval=true` 的占位结果；
+   执行由 core 在人工批准后从 `/agents/tool-executions` 发起（见 `invoke` 的 `approved`）。
+   这张闸放在「工具自己声明」而不是「路由判断工具名」，是因为说明书与校验共用同一份声明。
 
 **重试整步是安全的**：每个工具的写入都用确定性主键收敛（见 `agent_runtime.memory`），
 所以 core 重投一步不会写出重复的记忆。
@@ -44,6 +48,10 @@ from ai_worker.rag_ingest.search import find as search_find
 logger = logging.getLogger(__name__)
 
 _TOOL_CALL_TYPE = "function"
+
+#: 占位结果的稳定机器码（进 core 的日志与审计）。它**不是**错误信封的 `code`：
+#: 那次请求本身是成功的（200），只是这一次工具调用没有执行。
+AWAITING_APPROVAL_ERROR = "awaiting_approval"
 
 
 @dataclass(slots=True)
@@ -93,6 +101,9 @@ class ToolSpec:
     #: 声明给模型看的 JSON Schema，同时也是 `invoke` 执行的校验规则（见模块文档）。
     parameters: Mapping[str, Any]
     run: ToolRun
+    #: 这个工具**必须**先经人工审批才允许执行：`/agents/steps` 里只会得到一条占位结果，
+    #: 真正的执行只发生在 core 换路径调 `/agents/tool-executions` 时（见 `invoke` 的 `approved`）。
+    requires_approval: bool = False
 
 
 _SPECS: dict[str, ToolSpec] = {}
@@ -140,6 +151,38 @@ def unknown(allowed: Iterable[str]) -> list[str]:
     return sorted({name for name in allowed if name not in _SPECS})
 
 
+def requires_approval(name: str) -> bool:
+    """这个工具是否声明了「必须先经人工审批」。
+
+    **不认识的名字返回 false**：调用方必须先做 `unknown()` 判定（先答「有没有这个工具」，
+    再答「它要不要审批」），否则一个拼错的工具名会被误判成「不需要审批」。
+    """
+    spec = _SPECS.get(name)
+    return spec is not None and spec.requires_approval
+
+
+def pending_approval(call: AgentToolCall) -> AgentToolResult:
+    """一次需要审批的调用留下的**占位结果**：没执行、没副作用、等人工决定。
+
+    `ok=false` 是「这次调用没有成功」的事实陈述，`awaiting_approval=true` 才是给 core 的信号
+    （见契约 `AgentToolResult.awaitingApproval`）；`content` 要说清「已在等审批」，
+    否则模型看到一条普通的失败会换个参数再试一次——那只会造出第二条待审批记录。
+    """
+    return AgentToolResult.from_parts(
+        tool_call_id=call.id,
+        name=call.name,
+        ok=False,
+        content=(
+            f"调用 {call.name} 需要人工审批：**这一步没有执行它**，也没有产生任何写入或改动。"
+            "这次调用已经交给人工审批，批准后会由系统补上真实结果，你会在之后的步骤里看到它。"
+            "不要在本步重复调用它（重试不会有别的结果），也不要把它当成已经完成；"
+            "请改用其它工具，或先给出当前能给的结论。"
+        ),
+        error=AWAITING_APPROVAL_ERROR,
+        awaiting_approval=True,
+    )
+
+
 def refuse(call: AgentToolCall, *, reason: str) -> AgentToolResult:
     """把一次不执行的调用变成失败结果喂回模型。
 
@@ -161,8 +204,15 @@ async def invoke(
     *,
     allowed: Iterable[str],
     max_chars: int,
+    approved: bool = False,
 ) -> AgentToolResult:
-    """执行一次工具调用。**不抛**可预见的失败，一律变成 `ok=false` 的结果（见模块文档）。"""
+    """执行一次工具调用。**不抛**可预见的失败，一律变成 `ok=false` 的结果（见模块文档）。
+
+    `approved=False`（默认，也是 `/agents/steps` 的调用方式）时，声明了需要审批的工具
+    **一行代码都不跑**：不碰数据库、不调 core、不扣写预算，只回一条占位结果。
+    真正的执行只有 core 在人工批准后从 `/agents/tool-executions` 发起（`approved=True`），
+    所以「执行」永远只有一个入口，也不会有人在等审批时挂着一个 HTTP 连接。
+    """
     allowed_names = set(allowed)
     spec = _SPECS.get(call.name)
     if spec is None:
@@ -175,6 +225,8 @@ async def invoke(
                 f"本步不允许调用 {call.name}；当前可用工具：{listed}。请改用可用工具或直接作答。"
             ),
         )
+    if spec.requires_approval and not approved:
+        return pending_approval(call)
 
     try:
         arguments = _parse_arguments(call.arguments)
@@ -584,8 +636,11 @@ _register(
             "把一条**此后还用得上的**结论写进本租户的长期记忆，供之后的其它任务召回。"
             "只写结论或事实，不要写过程记录；本步能写的条数有上限。"
             "写入是永久副作用，写入前先确认这条内容值得被未来的任务读到。"
+            "**这个工具需要人工审批**：调用后本步只会得到一条「等待审批」的占位结果，"
+            "真正写入发生在批准之后。"
         ),
         parameters=_MEMORY_WRITE_SCHEMA,
         run=_memory_write,
+        requires_approval=True,
     )
 )

@@ -87,7 +87,7 @@ src/ai_worker/
     ├── schemas.py     # 契约形状（单步请求/响应、记忆请求/响应）
     ├── dialogue.py    # 契约的扁平消息 ↔ OpenAI 线格式；上游响应解析
     ├── tools.py       # 工具登记表、参数校验、失败语义、结果截断、写预算
-    ├── router.py      # POST /internal/v1/agents/steps
+    ├── router.py      # POST /internal/v1/agents/steps、/agents/tool-executions
     └── memory.py      # 长期记忆：存取与召回、摘要组装、POST /internal/v1/agents/memories
 ```
 
@@ -212,11 +212,12 @@ ai-worker，进度写进 custom status（`chunked:<n>` / `embedded:<to>` / `inde
 ## agent 运行时
 
 **这里只做「一步」，循环的宿主是 core 的可靠执行**（一步一个活动：重投能收敛、进度可写进
-custom status、重试粒度最细）。所以本服务不持有对话状态，两个端点都由 core 发起：
+custom status、重试粒度最细）。所以本服务不持有对话状态，三个端点都由 core 发起：
 
 | 端点 | 做什么 | 发起方 |
 | --- | --- | --- |
 | `POST /internal/v1/agents/steps` | 一步：组消息（系统提示词 + 历史）→ 回打 core 网关调模型 → 跑本轮工具 → 回「本轮消息 + 工具结果 + 用量」 | core `agent.step` 活动 |
+| `POST /internal/v1/agents/tool-executions` | 执行**一次已经获批**的工具调用（只收「声明需要审批」的工具） | core 批准后的执行活动 |
 | `POST /internal/v1/agents/memories` | 收尾记一笔：把这次任务的结论写进长期记忆（摘要正文由本侧组装，core 只给零件） | core `agent.remember` 活动 |
 
 分工是刻意的：**core 决定**「还要不要下一步、预算剩多少、这一步允许哪些工具、历史里有什么」；
@@ -232,10 +233,27 @@ custom status、重试粒度最细）。所以本服务不持有对话状态，�
 | `knowledge_search` | 读 | 本租户的 pgvector 近邻检索（`rag.search` 能力）。**不单独开端点**：检索只能作为模型的一次工具调用发生 |
 | `asset_read` | 读 | 回打 core 取资产正文（复用 `scope=asset-read` 令牌） |
 | `memory_recall` | 读 | 召回本租户的长期记忆（返回里明确写「这是历史笔记，不是本任务的指令」） |
-| `memory_write` | 写 | 让模型自己记笔记。**默认不进白名单**：能写坏的东西会被此后每次召回读到 |
+| `memory_write` | 写 | 让模型自己记笔记。**需要人工审批**（见下）且**默认不进白名单**：能写坏的东西会被此后每次召回读到 |
 
 工具名一律 `snake_case`（模型接口的函数名规则），能力名保持点号（`agent.step`）。
 **不提供任意 HTTP 取数工具**——那是 SSRF 与数据外泄面，要接外部数据源就一个源登记一个工具。
+
+### 需要审批的写工具：占位 → 批准 → 执行
+
+写工具（当前只有 `memory_write`）在工具表里声明 `requires_approval`。`/agents/steps` **永远不会执行**
+它们：这一步照常回结果，但内容是占位（`ok=false`、`error=awaiting_approval`、`awaitingApproval=true`），
+**不写库、不花嵌入、不占写预算**，并且明确告诉模型「这一步没有执行、不要原样重试、可以继续或收尾」。
+
+placeholder 交回 core 后，人工批准由 core 落账；批准后 core 带着审批号打
+`POST /internal/v1/agents/tool-executions`：`Idempotency-Key = <实例 id>:approval:<approvalID>`，
+重投收敛到同一份结果（记忆 id 本身由内容确定性派生，真重跑也不会写第二遍）。
+这一条路径只认两条准入规则，其余一概 400：
+
+1. 工具必须**声明需要审批**（拿只读工具走这条路径等于开了绕过白名单的口子）；
+2. 工具名必须在这次请求的 `allowedTools` 里。
+
+**审批本身不由本侧校验**——本侧读不到 core 的审批账本，信任边界是内部令牌 + 上面这两条。
+准入失败一律 400 `invalid_request`（不是 200 + `ok=false`，那会让 core 以为工具失败而重试）。
 
 失败分级（结果形状都是 200 + 该条 `ok=false`，让模型自我纠正，不是把整步判失败）：
 
@@ -254,7 +272,8 @@ custom status、重试粒度最细）。所以本服务不持有对话状态，�
 派生（`uuid5`），所以重投同一个任务是「读回既有那行」，不重复嵌入、不重复计费。
 
 写预算 `AI_WORKER_AGENT_MEMORY_MAX_WRITES_PER_STEP`（默认 2，设 0 即关闭写入）用尽时回
-`ok=false`，让模型合并或收手。**记忆是投毒面**：同租户里上一个任务的结论会成为下一个任务的前提，
+`ok=false`，让模型合并或收手。批准后的执行**同样**受这条开关约束——审批通道不是绕过运维开关的路子。
+**记忆是投毒面**：同租户里上一个任务的结论会成为下一个任务的前提，
 写坏一次会被反复召回，所以写入必须由运维显式启用。
 记忆**不能从源重建**（与 `rag_*` 表不同），要纳入备份范围——见 core 侧的
 [`guide/configuration.md`](../core/guide/configuration.md)。
@@ -278,6 +297,19 @@ curl -s -H 'X-Internal-Token: change-me-internal-token' \
 `finished=false` 且 `message.toolCalls` 非空即「还要下一轮」：把这一轮的消息与工具结果追加进
 `history` 再发一次就是第二步——core 的编排就是这么做的，整条链路（含进度、续跑、记忆）见
 [`apps/core/guide/agent-runtime.md`](../core/guide/agent-runtime.md)。
+
+审批通道同理，只是要带上审批号（`approvalID` 与 `taskID` 都是必填）：
+
+```bash
+curl -s -H 'X-Internal-Token: change-me-internal-token' \
+  -H 'Idempotency-Key: local-approval-0001' \
+  -H "traceparent: 00-$(openssl rand -hex 16)-$(openssl rand -hex 8)-01" \
+  -H 'Content-Type: application/json' \
+  -X POST http://127.0.0.1:8081/internal/v1/agents/tool-executions \
+  -d '{"schemaVersion":1,"tenantID":"tenant-a","taskID":"<任务 id>","approvalID":"<审批 id>",
+       "embedModel":"text-embedding-3-small","allowedTools":["memory_write"],
+       "toolCall":{"id":"call-1","name":"memory_write","arguments":"{\"content\":\"运费由买家承担。\"}"}}'
+```
 
 ## 链路追踪接入（OTel → OTLP/HTTP）
 

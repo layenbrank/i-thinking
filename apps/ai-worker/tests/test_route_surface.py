@@ -34,12 +34,16 @@ BASELINE_ROUTES = {("GET", HEALTH_PATH)}
 #: 能力名 → 该能力落地时必须存在的路由。与 `capabilities.registry` 的取值一一对应。
 #: **空集不是漏写**：`rag.search` 是 agent 步内部用的检索面，按设计不暴露端点
 #: （见 `agent_runtime/__init__.py`），所以它只出现在能力登记表里。
+#: 一个能力可以有不止一条路径：`agent.step` 同时收单步推理与审批通过后的工具执行。
 CAPABILITY_ROUTES: dict[str, set[tuple[str, str]]] = {
     "rag.chunk": {("POST", "/internal/v1/assets/{}/chunks")},
     "rag.embed": {("POST", "/internal/v1/assets/{}/embeddings")},
     "rag.index": {("PUT", "/internal/v1/assets/{}/index")},
     "rag.search": set(),
-    "agent.step": {("POST", "/internal/v1/agents/steps")},
+    "agent.step": {
+        ("POST", "/internal/v1/agents/steps"),
+        ("POST", "/internal/v1/agents/tool-executions"),
+    },
     "agent.memory": {("POST", "/internal/v1/agents/memories")},
 }
 

@@ -52,10 +52,17 @@ TEXTS = ("第一块正文。", "第二块正文。", "第三块正文。")
 #: 分块端点的正文来源（core 会先换令牌再取资产正文）。
 SOURCE = "第一块正文。\n\n第二块正文。"
 
+#: 审批通道（唯一需要审批的工具是 `memory_write`）用到的任务号、审批号与笔记正文。
+TASK_ID = "0d3f1f7c-1b2a-4c5d-8e9f-0a1b2c3d4e5f"
+APPROVAL_ID = "0f5b0a2c-91f3-4e77-9a1e-2b3c4d5e6f70"
+NOTE = "运费由买家承担。"
+NOTE_ARGUMENTS = f'{{"content":"{NOTE}"}}'
+
 CHUNKS_PATH = "/internal/v1/assets/{}/chunks"
 EMBEDDINGS_PATH = "/internal/v1/assets/{}/embeddings"
 INDEX_PATH = "/internal/v1/assets/{}/index"
 AGENT_PATH = "/internal/v1/agents/steps"
+AGENT_APPROVAL_PATH = "/internal/v1/agents/tool-executions"
 
 #: 对话模型的「名字」：在测试里只是一个字符串（上游也是桩），但要与 `embedModel` 区分开。
 CHAT_MODEL = "stub-chat-model"
@@ -230,6 +237,25 @@ def agent_body(**overrides: Any) -> dict[str, Any]:
     return body
 
 
+def approval_body(**overrides: Any) -> dict[str, Any]:
+    """core 在人工批准后发来的执行请求（`AgentToolExecutionRequest`）。
+
+    注意 `allowedTools` 在这里是**必填**（`AgentStepRequest` 里它可以缺省为空列表）：
+    审批通道靠它回答「这条路径上的白名单是什么」，缺了就无从准入。
+    """
+    body: dict[str, Any] = {
+        "schemaVersion": 1,
+        "tenantID": TENANT_ID,
+        "taskID": TASK_ID,
+        "approvalID": APPROVAL_ID,
+        "embedModel": MODEL,
+        "allowedTools": ["memory_write"],
+        "toolCall": {"id": "call-1", "name": "memory_write", "arguments": NOTE_ARGUMENTS},
+    }
+    body.update(overrides)
+    return body
+
+
 async def post_chunks(client: AsyncClient, *, key: str | None = KEY) -> Response:
     return await client.post(
         f"/internal/v1/assets/{ASSET_ID}/chunks",
@@ -260,6 +286,16 @@ async def post_agent(
     return await client.post(
         AGENT_PATH,
         json=body if body is not None else agent_body(),
+        headers=internal_headers(idempotency_key=key),
+    )
+
+
+async def post_approval(
+    client: AsyncClient, *, body: dict[str, Any] | None = None, key: str | None = KEY
+) -> Response:
+    return await client.post(
+        AGENT_APPROVAL_PATH,
+        json=body if body is not None else approval_body(),
         headers=internal_headers(idempotency_key=key),
     )
 
@@ -331,6 +367,7 @@ async def test_index_success_matches_the_contract(
         EMBEDDINGS_PATH.format(ASSET_ID),
         INDEX_PATH.format(ASSET_ID),
         AGENT_PATH,
+        AGENT_APPROVAL_PATH,
     ],
 )
 async def test_missing_token_matches_the_contract(
@@ -355,6 +392,7 @@ async def test_missing_token_matches_the_contract(
         EMBEDDINGS_PATH.format(ASSET_ID),
         INDEX_PATH.format(ASSET_ID),
         AGENT_PATH,
+        AGENT_APPROVAL_PATH,
     ],
 )
 async def test_missing_traceparent_matches_the_contract(
@@ -592,3 +630,147 @@ async def test_core_agent_request_bodies_satisfy_the_contract(
     assert response.status_code == 200
     assert_conforms(response, "AgentStepResponse")
     assert response.json()["finished"] is True
+
+
+# ----------------------------------------------------------------- 审批执行通道
+
+
+async def stored_notes(database: Any) -> list[str]:
+    """直接读库：端点的返回值只说明它自己以为做了什么。"""
+    async with database.acquire() as connection:
+        rows = await connection.fetch(
+            "SELECT content FROM agent_memory WHERE tenant_id = $1", TENANT_ID
+        )
+    return sorted(row["content"] for row in rows)
+
+
+async def test_agent_approval_success_matches_the_contract(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """人工批准后真的执行：响应体是 `AgentToolExecutionResponse`，而且不再是占位。"""
+    stub = RagStub()
+    client = core_backed_client(stub)
+
+    response = await post_approval(client)
+
+    assert response.status_code == 200
+    assert_conforms(response, "AgentToolExecutionResponse")
+    tool_result = response.json()["toolResult"]
+    assert tool_result["ok"] is True
+    # `awaitingApproval` 在契约里可省（缺省 false），我们总是显式给出：core 不必依赖缺省语义。
+    assert tool_result["awaitingApproval"] is False
+    assert stub.embed_calls == 1
+    assert await stored_notes(database) == [NOTE]
+
+
+async def test_agent_step_pending_approval_matches_the_contract(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """需要一个审批的步：`/agents/steps` 只留占位结果，`awaitingApproval` 必须显式为 true。"""
+    stub = AgentStub(
+        replies=[completion(None, tool_calls=[tool_call("memory_write", NOTE_ARGUMENTS)])]
+    )
+    client = core_backed_client(stub)
+
+    response = await post_agent(client, body=agent_body(allowedTools=["memory_write"]))
+
+    assert response.status_code == 200
+    assert_conforms(response, "AgentStepResponse")
+    tool_result = response.json()["toolResults"][0]
+    assert tool_result["ok"] is False
+    assert tool_result["awaitingApproval"] is True
+    assert tool_result["error"] == "awaiting_approval"
+    assert "审批" in tool_result["content"]
+    assert stub.embed_calls == 0
+    assert await stored_notes(database) == []
+
+
+async def test_agent_approval_replay_matches_the_contract(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """同一把幂等键重投：回放第一次的报文，且不会写第二遍（嵌入也不该再花一次）。"""
+    stub = RagStub()
+    client = core_backed_client(stub)
+
+    first = await post_approval(client)
+    replay = await post_approval(client)
+
+    assert_conforms(replay, "AgentToolExecutionResponse")
+    assert replay.json() == first.json()
+    assert stub.embed_calls == 1
+    assert await stored_notes(database) == [NOTE]
+
+
+async def test_agent_approval_rejections_match_the_contract(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """准入失败一律是 400（不是 200 + ok=false）：这三种请求连工具都不该碰到。"""
+    stub = RagStub()
+    client = core_backed_client(stub)
+
+    not_gated = await post_approval(
+        client,
+        body=approval_body(
+            allowedTools=["knowledge_search"],
+            toolCall={"id": "call-1", "name": "knowledge_search", "arguments": '{"query":"退款"}'},
+        ),
+    )
+    outside_allowlist = await post_approval(
+        client, body=approval_body(allowedTools=["knowledge_search"])
+    )
+    unknown = await post_approval(
+        client,
+        body=approval_body(toolCall={"id": "call-1", "name": "no_such_tool", "arguments": "{}"}),
+    )
+
+    for response in (not_gated, outside_allowlist, unknown):
+        assert response.status_code == 400
+        assert_error_conforms(response)
+        assert response.json()["error"]["code"] == errors.ErrorCode.INVALID_REQUEST.value
+    assert stub.paths == []
+    assert await stored_notes(database) == []
+
+
+async def test_agent_approval_conflict_matches_the_contract(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """同一把键换一份负载是 409：静默回放会让 core 拿到另一笔审批的结果。"""
+    client = core_backed_client(RagStub())
+
+    await post_approval(client)
+    conflicting = await post_approval(client, body=approval_body(approvalID=str(uuid4())))
+
+    assert conflicting.status_code == 409
+    assert_error_conforms(conflicting)
+    assert conflicting.json()["error"]["code"] == errors.ErrorCode.IDEMPOTENCY_CONFLICT.value
+
+
+async def test_agent_approval_upstream_failures_match_the_contract(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """嵌入挂了仍要按「暂时性」上报：429/503 是 core 退避重试的依据，`Retry-After` 也要带上。"""
+    limited = core_backed_client(RagStub(embed_status=429))
+    broken = core_backed_client(RagStub(embedding_response=lambda inputs, call: {"data": []}))
+
+    rate_limited = await post_approval(limited)
+    unavailable = await post_approval(broken)
+
+    assert rate_limited.status_code == 429
+    assert rate_limited.headers["Retry-After"] == "7"
+    assert unavailable.status_code == 503
+    assert_error_conforms(rate_limited)
+    assert_error_conforms(unavailable)
+    assert await stored_notes(database) == []
+
+
+async def test_core_agent_tool_execution_request_bodies_satisfy_the_contract(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """反方向：core 攒出来的审批执行报文必须能通过 `AgentToolExecutionRequest` 并被接受。"""
+    body = approval_body()
+    assert_request_matches(body, "AgentToolExecutionRequest")
+
+    response = await post_approval(core_backed_client(RagStub()), body=body)
+
+    assert response.status_code == 200
+    assert_conforms(response, "AgentToolExecutionResponse")

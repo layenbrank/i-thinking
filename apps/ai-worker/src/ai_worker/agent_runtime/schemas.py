@@ -1,7 +1,7 @@
 """`/internal/v1/agents/*` 的请求/响应模型（契约 `spec/internal.yaml`）。
 
-`steps` 与 `memories` 两族模型都放在这里：它们都要与同一份契约逐字对齐，
-分成两个文件反而会让人以为「契约形状可以按端点切」。
+`steps`、`tool-executions` 与 `memories` 三族模型都放在这里：它们都要与同一份契约逐字对齐，
+分成多个文件反而会让人以为「契约形状可以按端点切」。
 
 字段名直接抄契约（camelCase，用 `alias` 而不是 `alias_generator`：契约里是 `tenantID` /
 `toolCallID`，通用驼峰转换会生成 `tenantId`，对不上）。
@@ -103,6 +103,10 @@ class AgentToolResult(BaseModel):
     content: str
     #: 失败时的稳定机器码。只进 core 的日志与审计，**不喂模型**（模型读 `content` 里的白话）。
     error: str | None = None
+    #: 「这一次调用没有执行」的占位标记：工具需要人工审批，本步只留了占位结果
+    #: （见 `tools.invoke` 的 `approved`）。core 看到它就去走审批通道，批准后再从
+    #: `/agents/tool-executions` 真的执行。缺省 false 表示「按普通结果处理」。
+    awaiting_approval: bool = Field(default=False, alias="awaitingApproval")
 
     @classmethod
     def from_parts(
@@ -113,6 +117,7 @@ class AgentToolResult(BaseModel):
         ok: bool,
         content: str,
         error: str | None = None,
+        awaiting_approval: bool = False,
     ) -> AgentToolResult:
         return cls.model_validate(
             {
@@ -121,6 +126,7 @@ class AgentToolResult(BaseModel):
                 "ok": ok,
                 "content": content,
                 "error": error,
+                "awaiting_approval": awaiting_approval,
             }
         )
 
@@ -207,6 +213,45 @@ class AgentStepResponse(BaseModel):
         不给它加 `nullable`，所以「助手只要工具、没有正文」时这个键必须缺席，而不是 `null`。
         `toolResults` 是必填，空列表照常输出（`[]` 不是 `None`）。
         """
+        return self.model_dump(by_alias=True, mode="json", exclude_none=True)
+
+
+class AgentToolExecutionRequest(BaseModel):
+    """契约 `AgentToolExecutionRequest`：core 说「这次调用批了，去执行它」。
+
+    载荷里**没有**「谁批的/批没批」这类证据：审批台账在 core 那边，ai-worker 读不到也不该读。
+    这里只用 `approvalID` 拼日志与幂等键（`Idempotency-Key` 由 core 另外给），
+    准入只认 [`ai_worker.agent_runtime.router`] 里那两条规则（工具声明了需要审批 + 在白名单里）。
+    """
+
+    model_config = _CONTRACT
+
+    schema_version: Literal[1] = Field(alias="schemaVersion")
+    tenant_id: str = Field(alias="tenantID", min_length=1)
+    #: core 的任务台账 id（审计与日志用）。
+    task_id: str = Field(alias="taskID", min_length=1)
+    #: core 的审批标识（确定性派生自 `<taskID>:<步骤>:<第几次调用>`）。
+    approval_id: str = Field(alias="approvalID", min_length=1)
+    #: 与 `AgentStepRequest.embed_model` 同义：需要算向量的工具（写记忆）用它。
+    embed_model: str = Field(alias="embedModel", min_length=1)
+    #: 白名单是**必填**（契约如此）：少给一份就等于把「不在名单里」判成「没给名单」。
+    allowed_tools: list[str] = Field(alias="allowedTools")
+    tool_call: AgentToolCall = Field(alias="toolCall")
+
+
+class AgentToolExecutionResponse(BaseModel):
+    """契约 `AgentToolExecutionResponse`：这一次调用的最终结果（`ok=false` 也可能是正常结果）。"""
+
+    model_config = _CONTRACT
+
+    schema_version: Literal[1] = Field(alias="schemaVersion")
+    tool_result: AgentToolResult = Field(alias="toolResult")
+
+    @classmethod
+    def from_parts(cls, *, tool_result: AgentToolResult) -> AgentToolExecutionResponse:
+        return cls.model_validate({"schema_version": 1, "tool_result": tool_result})
+
+    def wire(self) -> dict[str, Any]:
         return self.model_dump(by_alias=True, mode="json", exclude_none=True)
 
 

@@ -169,6 +169,7 @@ class RagStub:
         content_type: str | None = None,
         dimensions: int | Callable[[int], int] = 8,
         embedding_response: Callable[[list[str], int], Any] | None = None,
+        embed_status: int = 200,
     ) -> None:
         self.content = content
         self.content_status = content_status
@@ -177,6 +178,8 @@ class RagStub:
         self.content_type = content_type
         self.dimensions = dimensions
         self.embedding_response = embedding_response
+        #: 嵌入端点的**错误**状态（429/503）：写路径要证明暂时性故障是整体重试，不是 `ok=false`。
+        self.embed_status = embed_status
         self.paths: list[str] = []
         self.token_bodies: list[dict[str, Any]] = []
         self.embed_inputs: list[list[str]] = []
@@ -215,6 +218,10 @@ class RagStub:
         inputs: list[str] = json.loads(request.content)["input"]
         call = len(self.embed_inputs)
         self.embed_inputs.append(inputs)
+        if self.embed_status != 200:
+            return core_error(
+                self.embed_status, retry_after="7" if self.embed_status == 429 else None
+            )
         if self.embedding_response is not None:
             return httpx.Response(200, json=self.embedding_response(inputs, call))
 

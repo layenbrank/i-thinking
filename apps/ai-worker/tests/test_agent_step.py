@@ -10,6 +10,9 @@
   守住契约里 `finished ⟺ toolCalls 为空` 的不变式；
 * **工具失败是结果，不是错误**：参数写错、工具名幻觉、超出白名单、结果超长截断——
   全都回 200 + `ok=false`，因为模型有机会据此自我纠正；只有库/网关坏掉才向上抛（可重试）。
+* **要审批的工具有一道闸**：声明了 `requires_approval` 的工具（现在只有 `memory_write`）
+  在本步只回 `awaitingApproval=true` 的占位结果、不做任何写入；真正执行走
+  `/internal/v1/agents/tool-executions`（行为面在 `test_agent_approval.py`）。
 
 真库是必需的（幂等账本每一步都要写），所以这一组跟着 `database` 夹具走。
 """
@@ -547,148 +550,66 @@ async def test_asset_read_rejects_an_asset_id_that_is_not_a_uuid(
 # --------------------------------------------------------------------------- 记忆工具
 
 
-async def test_memory_write_records_a_note_that_later_tasks_can_recall(
+async def test_a_gated_tool_leaves_a_placeholder_instead_of_writing(
     core_backed_client: HandlerClient, database: Any
 ) -> None:
-    """写笔记：落库的是**笔记**（`task_id` 为空，不是任务摘要），并明说本步读不到它。"""
+    """`memory_write` 声明了需要审批：本步**不执行**它，只留一条占位结果。
+
+    占位是「事实陈述 + 信号」的组合：`ok=false` 说这次调用没成功，`awaitingApproval` 说
+    「没执行是因为在等人批」。两者都不能少——`core` 只会拿 `error=awaiting_approval` 去开
+    审批单，而库里一行都不该有。
+    """
     stub = AgentStub(
-        replies=[
-            completion(tool_calls=[tool_call(name="memory_write", arguments=NOTE_ARGUMENTS)]),
-            completion("记下了。"),
-        ]
+        replies=[completion(tool_calls=[tool_call(name="memory_write", arguments=NOTE_ARGUMENTS)])]
     )
     client = core_backed_client(stub)
 
     response = await step(client, payload=body(allowedTools=["memory_write"], remainingSteps=3))
 
     result = only_result(response)
-    assert result["ok"] is True
-    assert "之后的其它任务" in result["content"]
-    assert await stored_notes(database) == [
-        {"kind": memory.KIND_NOTE, "content": NOTE, "task_id": None}
-    ]
+    assert result["ok"] is False
+    assert result["awaitingApproval"] is True
+    assert result["error"] == tools.AWAITING_APPROVAL_ERROR
+    assert "审批" in result["content"]
+    # 真的执行过就会留下笔记与一次嵌入调用，所以这两个断言才是「没执行」的证据。
+    assert await stored_notes(database) == []
+    assert stub.embed_calls == 0
+    # `finished` 仍然是 false：模型**确实**要了工具，这一轮不是「没工具可用了，可以收尾」。
+    assert response.json()["finished"] is False
 
 
-async def test_the_write_budget_is_consumed_per_step_and_says_so(
+async def test_the_approval_gate_short_circuits_before_the_write_budget(
     core_backed_client: HandlerClient, database: Any
 ) -> None:
-    """预算用尽回 `ok=false`（模型据此合并或收手），不是把整步变成失败。"""
+    """预算为 0 时也不该出现「已用尽」：闸门在预算**之前**，占位结果与额度无关。"""
     stub = AgentStub(
-        replies=[
-            completion(
-                tool_calls=[
-                    tool_call(name="memory_write", arguments=NOTE_ARGUMENTS, call_id="call-1"),
-                    tool_call(
-                        name="memory_write",
-                        arguments='{"content":"发票在订单详情页下载。"}',
-                        call_id="call-2",
-                    ),
-                ]
-            ),
-            completion("合并成一条。"),
-        ]
+        replies=[completion(tool_calls=[tool_call(name="memory_write", arguments=NOTE_ARGUMENTS)])]
     )
-    client = core_backed_client(stub, agent_memory_max_writes_per_step=1)
+    client = core_backed_client(stub, agent_memory_max_writes_per_step=0)
 
     response = await step(client, payload=body(allowedTools=["memory_write"], remainingSteps=3))
 
-    results: list[dict[str, Any]] = response.json()["toolResults"]
-    assert [result["ok"] for result in results] == [True, False]
-    assert "已用尽" in results[1]["content"]
-    # 只有第一条落了库：第二条只回话，不产生副作用。
-    assert len(await stored_notes(database)) == 1
+    result = only_result(response)
+    assert result["awaitingApproval"] is True
+    assert "已用尽" not in result["content"]
+    assert await stored_notes(database) == []
 
 
-async def test_a_note_rejected_by_validation_does_not_spend_the_budget(
+async def test_a_gated_tool_outside_the_allowlist_is_still_refused(
     core_backed_client: HandlerClient, database: Any
 ) -> None:
-    """校验先于扣预算：超长内容被拒之后，本步仍然写得下真正那条（否则模型白丢一次额度）。"""
-    declared = tools.catalog(["memory_write"])[0]["function"]["parameters"]["properties"]["content"]
-    # 说明书与执行共用同一份声明，所以「模型看到的 2000」就是「执行时校验的 2000」。
-    assert declared["maxLength"] == memory.MAX_CONTENT_CHARS
-
+    """白名单先于审批闸：没被允许的工具不能靠「反正要审批」绕进来。"""
     stub = AgentStub(
-        replies=[
-            completion(
-                tool_calls=[
-                    tool_call(
-                        name="memory_write",
-                        arguments='{"content":"' + "长" * (memory.MAX_CONTENT_CHARS + 1) + '"}',
-                        call_id="call-1",
-                    ),
-                    tool_call(name="memory_write", arguments=NOTE_ARGUMENTS, call_id="call-2"),
-                ]
-            ),
-            completion("记下那条。"),
-        ]
-    )
-    client = core_backed_client(stub, agent_memory_max_writes_per_step=1)
-
-    response = await step(client, payload=body(allowedTools=["memory_write"], remainingSteps=3))
-
-    results: list[dict[str, Any]] = response.json()["toolResults"]
-    assert results[0]["ok"] is False
-    assert f"最多 {memory.MAX_CONTENT_CHARS} 个字符" in results[0]["content"]
-    assert results[1]["ok"] is True
-    assert await stored_notes(database) == [
-        {"kind": memory.KIND_NOTE, "content": NOTE, "task_id": None}
-    ]
-
-
-async def test_a_blank_note_is_refused_without_spending_the_budget(
-    core_backed_client: HandlerClient, database: Any
-) -> None:
-    """`minLength: 1` 拦不住一个空格：执行前的去空白校验要把这种调用拦在写库之前。"""
-    stub = AgentStub(
-        replies=[
-            completion(
-                tool_calls=[
-                    tool_call(name="memory_write", arguments='{"content":"   "}', call_id="call-1"),
-                    tool_call(name="memory_write", arguments=NOTE_ARGUMENTS, call_id="call-2"),
-                ]
-            ),
-            completion("记下那条。"),
-        ]
-    )
-    client = core_backed_client(stub, agent_memory_max_writes_per_step=1)
-
-    response = await step(client, payload=body(allowedTools=["memory_write"], remainingSteps=3))
-
-    results: list[dict[str, Any]] = response.json()["toolResults"]
-    assert results[0]["ok"] is False
-    assert "空白" in results[0]["content"]
-    assert results[1]["ok"] is True
-    assert await stored_notes(database) == [
-        {"kind": memory.KIND_NOTE, "content": NOTE, "task_id": None}
-    ]
-
-
-async def test_the_same_note_written_twice_only_lands_once(
-    core_backed_client: HandlerClient, database: Any
-) -> None:
-    """同一个租户里正文相同的笔记只占一行：core 重投一步不会把它变成两条噪声。"""
-    stub = AgentStub(
-        replies=[
-            completion(tool_calls=[tool_call(name="memory_write", arguments=NOTE_ARGUMENTS)]),
-            completion(tool_calls=[tool_call(name="memory_write", arguments=NOTE_ARGUMENTS)]),
-        ]
+        replies=[completion(tool_calls=[tool_call(name="memory_write", arguments=NOTE_ARGUMENTS)])]
     )
     client = core_backed_client(stub)
 
-    first = await step(client, payload=body(allowedTools=["memory_write"], remainingSteps=3))
-    second = await step(
-        client,
-        payload=body(allowedTools=["memory_write"], remainingSteps=3),
-        key="step-key-0002",
-    )
+    response = await step(client, payload=body(allowedTools=["knowledge_search"], remainingSteps=3))
 
-    assert only_result(first)["ok"] is True
-    repeated = only_result(second)
-    assert repeated["ok"] is True
-    assert "此前已经记过" in repeated["content"]
-    assert len(await stored_notes(database)) == 1
-    # 命中主键就不再花一次嵌入算力（重放是常见路径，不该按首次写入计价）。
-    assert stub.embed_calls == 1
+    result = only_result(response)
+    assert result["ok"] is False
+    assert result.get("awaitingApproval", False) is False
+    assert "不允许调用" in result["content"]
 
 
 async def test_memory_recall_says_when_nothing_was_ever_recorded(
