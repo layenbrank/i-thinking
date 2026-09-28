@@ -43,9 +43,6 @@ pub const UPLOAD_ASSET: &str = "/api/v1/upload/asset/{id}";
 // --- Engine ---
 pub const ENGINE_SUGGESTION: &str = "/api/v1/engine/suggestion";
 
-// --- Search ---
-pub const SEARCH_DOCS: &str = "/api/v1/search/docs";
-
 // --- Application ---
 pub const APPLICATION_TO_READ: &str = "/api/v1/application/toRead";
 
@@ -218,14 +215,6 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: ENGINE_SUGGESTION,
-    },
-    RouteDef {
-        method: "POST",
-        path: SEARCH_DOCS,
-    },
-    RouteDef {
-        method: "GET",
-        path: SEARCH_DOCS,
     },
     RouteDef {
         method: "GET",

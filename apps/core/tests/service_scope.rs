@@ -16,8 +16,7 @@
 //!   cargo test --test service_scope
 //! ```
 //!
-//! 任一环境变量缺失即整体跳过。Elasticsearch **不需要**：用量索引写在 best-effort 分支里
-//! （失败只留日志），这里把它指向本地桩，断言只盯 Postgres 与 Redis 上的记账。
+//! 任一环境变量缺失即整体跳过。断言只盯 Postgres 与 Redis 上的记账。
 //!
 //! 覆盖的都是用户面测不到、而这条路径上真会出事的地方：两道请求头不能互换、共享密钥留空
 //! 即整面关闭、令牌自带的租户/模型作用域无法被请求体放大、两类受众不能互相串门、以及
@@ -40,7 +39,6 @@ use sea_orm::{
     ConnectOptions, ConnectionTrait, Database, DatabaseBackend, DatabaseConnection, Statement,
 };
 use serde_json::{Value, json};
-use service::clients::elasticsearch::EsClient;
 use service::clients::redis::RedisPool;
 use service::configures::configure::{Configure, SERVICE_TOKEN_MAX_TTL_SECS};
 use service::databases::database::Storage;
@@ -81,7 +79,6 @@ static DB_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 struct Shared {
     storage: Arc<Storage>,
     redis: Arc<RedisPool>,
-    es: Arc<EsClient>,
     config: Arc<Configure>,
 }
 
@@ -106,8 +103,6 @@ struct Fixture {
     assets: Assets,
     /// 本次用例写进 CAS 的文件（`cas/` 与开发环境共用）：用例结束删掉，只删自己新建的。
     cas_files: RefCell<Vec<String>>,
-    /// Elasticsearch 桩：只为让 `EsClient::new` 的 `ping` 有个应答。
-    _es_stub: StubHttp,
 }
 
 /// 内容端点的样本资产：可读的一份、别的租户的一份、本租户未完成的一份。
@@ -143,7 +138,6 @@ macro_rules! build_app {
             App::new()
                 .app_data(web::Data::new(Arc::clone(&$shared.storage)))
                 .app_data(web::Data::new(Arc::clone(&$shared.redis)))
-                .app_data(web::Data::new(Arc::clone(&$shared.es)))
                 .app_data(web::Data::new(Arc::clone(&$shared.config)))
                 .service(web::scope("/api/v1").configure(GatewayModule::configure)),
         )
@@ -246,19 +240,10 @@ async fn setup(upstream_base_url: &str, service_secret: Option<&str>) -> Option<
         exec(&admin, &sql).await;
     }
 
-    // ES 桩：`ping` 与 best-effort 的索引写入都只要一个「接通了」的 JSON
-    let es_stub = StubHttp::start(vec![StubResponse::json(
-        200,
-        json!({ "acknowledged": true }),
-    )])
-    .await;
-
     let mut config = Configure::default();
     config.ai_worker.token = INTERNAL_TOKEN.to_owned();
     config.gateway.service_token_secret = service_secret.unwrap_or(SERVICE_SECRET).to_owned();
     config.gateway.service_token_ttl_secs = SERVICE_TOKEN_TTL_SECS;
-    // 用量索引是 best-effort 分支：指向桩，测试就不必拖一个真 Elasticsearch
-    config.elasticsearch.url = es_stub.base_url();
 
     // 模型名带随机后缀：目录行的 `name` 没有库级唯一约束，串行用例之间不该互相踩到
     let suffix = Uuid::new_v4().simple().to_string();
@@ -276,11 +261,6 @@ async fn setup(upstream_base_url: &str, service_secret: Option<&str>) -> Option<
                     .await
                     .expect("连接测试 Redis 失败"),
             ),
-            es: Arc::new(
-                EsClient::new(&config)
-                    .await
-                    .expect("装配测试 Elasticsearch 客户端失败"),
-            ),
             config: Arc::new(config),
         },
         tenant_a: Uuid::new_v4(),
@@ -294,7 +274,6 @@ async fn setup(upstream_base_url: &str, service_secret: Option<&str>) -> Option<
         model_b_name: format!("svc-embed-b-{suffix}"),
         assets: Assets::default(),
         cas_files: RefCell::new(Vec::new()),
-        _es_stub: es_stub,
     };
     let assets = seed(&fixture, upstream_base_url).await;
     fixture.assets = assets;

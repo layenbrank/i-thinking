@@ -1,6 +1,6 @@
 # document · 文档与资产
 
-资产（上传文件）元数据、文本抽取与切片、检索索引同步。
+资产（上传文件）元数据、文本抽取与切片。
 
 ## 数据所有权
 
@@ -13,7 +13,7 @@
 
 - 资产登记与查询、生命周期（软删 / 清理）。
 - 对象存储端口（`trait BlobStore`）：S3 / OSS 等实现由调用方注入，本 crate 不直接出站上传。
-- 文本抽取与切片、索引同步（Elasticsearch 侧的写入通过端口注入）。
+- 文本抽取与切片（检索侧的索引写入属于 ai-worker，core 只出资产正文）。
 
 ## 边界约束
 
@@ -24,4 +24,4 @@
 
 ## 迁移状态
 
-- 待迁入（P3b）：来源为 `service/src/services/{upload,markdown,search}`；迁完后删除。
+- 待迁入（P3b）：来源为 `service/src/services/{upload,markdown}`；迁完后删除。

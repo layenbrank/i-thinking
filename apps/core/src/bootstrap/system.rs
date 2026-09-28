@@ -3,7 +3,6 @@ use std::sync::Arc;
 use actix_web::{HttpResponse, Responder, ResponseError, get, web};
 
 use crate::clients::ai_worker::AiWorkerClient;
-use crate::clients::elasticsearch::EsClient;
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
@@ -21,19 +20,17 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(readiness);
 }
 
-/// 健康检查（含 Redis / Elasticsearch）
+/// 健康检查（含 Redis）
 #[get("/api/health")]
 async fn health_check(
     db: web::Data<Arc<Storage>>,
     redis: web::Data<Arc<RedisPool>>,
-    es: web::Data<Arc<EsClient>>,
 ) -> impl Responder {
     let postgres = postgres_status(db.get_ref().as_ref()).await;
     let redis = redis_status(redis.get_ref().as_ref()).await;
-    let elasticsearch = es_cluster(es.get_ref().as_ref()).await;
 
     // 既有口径：依赖异常不改变 HTTP 状态码，只用 data.status 表达
-    let all_up = postgres.status == "up" && redis.status == "up" && elasticsearch != "down";
+    let all_up = postgres.status == "up" && redis.status == "up";
     let health = Health {
         status: if all_up {
             "healthy".into()
@@ -45,7 +42,6 @@ async fn health_check(
         uptime: "N/A".into(),
         postgres: postgres.status,
         redis: redis.status,
-        elasticsearch,
     };
 
     let msg = if all_up {
@@ -78,13 +74,11 @@ async fn liveness() -> impl Responder {
 async fn readiness(
     db: web::Data<Arc<Storage>>,
     redis: web::Data<Arc<RedisPool>>,
-    es: web::Data<Arc<EsClient>>,
     config: web::Data<Arc<Configure>>,
 ) -> HttpResponse {
     let checks = vec![
         postgres_status(db.get_ref().as_ref()).await,
         redis_status(redis.get_ref().as_ref()).await,
-        elasticsearch_status(es.get_ref().as_ref()).await,
         ai_worker_status(config.get_ref().as_ref()).await,
     ];
 
@@ -151,27 +145,6 @@ async fn redis_status(redis: &RedisPool) -> DependencyCheck {
         Ok(()) => dependency("redis", true, "up", None),
         Err(err) => dependency("redis", true, "down", Some(err.to_string())),
     }
-}
-
-/// Elasticsearch 集群颜色（green/yellow/red），取不到时为 `down`
-async fn es_cluster(es: &EsClient) -> String {
-    match es.cluster_health().await {
-        Ok(status) => status,
-        Err(_) => "down".to_string(),
-    }
-}
-
-/// Elasticsearch：只影响检索类接口，不摘流量
-async fn elasticsearch_status(es: &EsClient) -> DependencyCheck {
-    let cluster = es_cluster(es).await;
-    let status = if cluster == "down" { "down" } else { "up" };
-
-    dependency(
-        "elasticsearch",
-        false,
-        status,
-        Some(format!("集群状态 {cluster}")),
-    )
 }
 
 /// ai-worker（Python 计算车间）：**可选**依赖——只影响 RAG 长任务，且 api 二进制默认不配置它，
@@ -263,7 +236,6 @@ mod tests {
         let response = readiness_response(vec![
             check("postgres", true, "up"),
             check("redis", true, "up"),
-            check("elasticsearch", false, "down"),
             check("ai-worker", false, "unconfigured"),
         ]);
 
@@ -271,7 +243,7 @@ mod tests {
         let body = body_of(response).await;
         assert_eq!(body["code"], 200000);
         assert_eq!(body["data"]["status"], "degraded");
-        assert_eq!(body["data"]["checks"][2]["name"], "elasticsearch");
+        assert_eq!(body["data"]["checks"][2]["name"], "ai-worker");
     }
 
     #[actix_web::test]
@@ -279,7 +251,6 @@ mod tests {
         let response = readiness_response(vec![
             check("postgres", true, "down"),
             check("redis", true, "up"),
-            check("elasticsearch", false, "up"),
         ]);
 
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
@@ -295,7 +266,6 @@ mod tests {
         let response = readiness_response(vec![
             check("postgres", true, "up"),
             check("redis", true, "up"),
-            check("elasticsearch", false, "up"),
             check("ai-worker", false, "up"),
         ]);
 

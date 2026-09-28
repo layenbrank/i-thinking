@@ -152,7 +152,6 @@ src/
     auth/                 # 登录、注册、个人 profile（含 profile 辅助）
     user/                 # 后台用户 CRUD（复用 auth::service 中 profile 辅助）
     upload/               # 分片上传（validation/storage/repository）
-    search/               # ES 检索（repository 领域查询）
     engine/               # Bing 搜索建议代理
     markdown/             # Markdown 占位脚手架（未挂载到路由）
     tenant/               # 多租户组织与成员
@@ -184,7 +183,6 @@ spec/                     # OpenAPI 生成物 + core↔ai-worker 内部契约（
 | 上传         | `/api/v1/upload`                     | [upload](src/services/upload/README.md)             |
 | 搜索引擎代理 | `/api/v1/engine`                     | [engine](src/services/engine/README.md)             |
 | Markdown     | —（未挂载）                          | [markdown](src/services/markdown/README.md)         |
-| ES 全文检索  | `/api/v1/search`                     | [search](src/services/search/README.md)             |
 | 租户         | `/api/v1/tenants`                    | [tenant](src/services/tenant/README.md)             |
 | 订阅         | `/api/v1/tenants/{id}/subscriptions` | [subscription](src/services/subscription/README.md) |
 | 支付         | `/api/v1/tenants/{id}/orders`        | [payment](src/services/payment/README.md)           |
@@ -228,7 +226,6 @@ spec/                     # OpenAPI 生成物 + core↔ai-worker 内部契约（
 | 认证             | [src/services/auth/README.md](src/services/auth/README.md)               |
 | 用户(后台)       | [src/services/user/README.md](src/services/user/README.md)               |
 | 上传             | [src/services/upload/README.md](src/services/upload/README.md)           |
-| 搜索 (ES)        | [src/services/search/README.md](src/services/search/README.md)           |
 | 搜索引擎         | [src/services/engine/README.md](src/services/engine/README.md)           |
 | 应用             | [src/services/application/README.md](src/services/application/README.md) |
 | Markdown（占位） | [src/services/markdown/README.md](src/services/markdown/README.md)       |

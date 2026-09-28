@@ -197,7 +197,7 @@ Entity：[`entity/src/gateway_usage.rs`](../entity/src/gateway_usage.rs)、[`ent
 | ip                                            | text        | 可空                          |
 | createdAt                                     | timestamptz | 索引                          |
 
-用量另同步写入 ES 索引 `gateway.usage_es_index`（默认 `gateway_usage`）。
+用量只落在 Postgres（`gateway_usage`），不再向外部检索引擎投一份只写不读的副本。
 **使用模块**：gateway（转发落库 / 审计写入；平台与租户两面的审计读取与文件导出，见 [gateway README](../src/services/gateway/README.md#审计读取与导出)）
 
 ## billing_price 表

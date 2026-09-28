@@ -72,7 +72,7 @@ export const CAPABILITIES: readonly Capability[] = [
     owns: ['asset', 'chunk'],
     dependsOn: ['identity'],
     publicModules: [],
-    absorbs: ['src/services/upload', 'src/services/markdown', 'src/services/search'],
+    absorbs: ['src/services/upload', 'src/services/markdown'],
     status: 'pending'
   },
   {
@@ -159,7 +159,6 @@ export const LEGACY_SERVICES: Record<string, { owner: string; note: string }> = 
   gateway: { owner: 'gateway', note: '模型网关' },
   markdown: { owner: 'document', note: '文档解析' },
   payment: { owner: 'billing', note: '支付渠道' },
-  search: { owner: 'document', note: '检索索引' },
   sso: { owner: 'identity', note: 'SSO 连接' },
   subscription: { owner: 'billing', note: '订阅与配额' },
   tenant: { owner: 'identity', note: '租户与成员' },

@@ -146,11 +146,8 @@ log       = "0.4.33"
 # HTTP 客户端
 reqwest = { workspace = true } # 出站 HTTP 请求（stream：模型网关 SSE 直传）
 
-# Redis / Elasticsearch
+# Redis
 fred = { version = "10", features = ["enable-rustls", "partial-tracing"] }
-elasticsearch = { version = "9.1.0-alpha.1", default-features = false, features = [
-  "rustls-tls",
-] }
 url = "2"
 
 # 安全 / 加密

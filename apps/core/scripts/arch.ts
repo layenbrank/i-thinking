@@ -49,8 +49,7 @@ const STANDARD_SERVICES = ['auth', 'user', 'engine', 'application', 'markdown'] 
 const COMPLEX_SERVICES: Record<string, { extra: Set<string> }> = {
   upload: {
     extra: new Set(['error.rs', 'multipart.rs', 'repository.rs', 'storage.rs', 'validation.rs'])
-  },
-  search: { extra: new Set(['repository.rs']) }
+  }
 }
 
 /** 标准服务模块允许出现的额外文件；新增文件必须在此登记，避免模块悄悄膨胀 */

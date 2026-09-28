@@ -17,7 +17,7 @@
 | 能力边界（crate 划分与门禁） | [`architecture-capabilities.md`](architecture-capabilities.md) |
 | 配置（YAML） | [`configuration.md`](configuration.md) |
 | 外部集成（出站） | [`integrations.md`](integrations.md) |
-| Redis / Elasticsearch（调研） | [`redis-elasticsearch.md`](redis-elasticsearch.md) |
+| Redis | [`redis.md`](redis.md) |
 | 横切架构（Nest ↔ Actix） | [`architecture-cross-cutting.md`](architecture-cross-cutting.md) |
 | 模块接口详情 | [`src/services/*/README.md`](../src/services/auth/README.md) |
 | HTTP 测试 | [`http/`](../http/) |
@@ -48,7 +48,6 @@ Token 来自 `POST /api/v1/auth/signin` 或 `signup` 响应的 `data.token`。
 | 用户(后台) | `/api/v1/users` | [user](../src/services/user/README.md) | [`http/02-users.http`](../http/02-users.http) |
 | 上传 | `/api/v1/upload` | [upload](../src/services/upload/README.md) | [`http/03-upload.http`](../http/03-upload.http) |
 | 搜索引擎代理 | `/api/v1/engine` | [engine](../src/services/engine/README.md) | [`http/04-engine.http`](../http/04-engine.http) |
-| ES 全文检索 | `/api/v1/search` | [search](../src/services/search/README.md) | [`http/06-search.http`](../http/06-search.http) |
 | 应用 | `/api/v1/application` | [application](../src/services/application/README.md) | [`http/05-application.http`](../http/05-application.http) |
 | 订阅 | `/api/v1/tenants/{id}/subscriptions` | [subscription](../src/services/subscription/README.md) | OpenAPI |
 | 支付 | `/api/v1/tenants/{id}/orders` | [payment](../src/services/payment/README.md) | OpenAPI |

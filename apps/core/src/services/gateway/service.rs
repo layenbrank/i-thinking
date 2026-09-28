@@ -31,7 +31,6 @@ use uuid::Uuid;
 
 use authz::{Action, Permission, Resource};
 
-use crate::clients::elasticsearch::EsClient;
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::Configure;
 use crate::databases::database::Storage;
@@ -377,7 +376,6 @@ impl GatewayService {
         db: Arc<Storage>,
         redis: Arc<RedisPool>,
         config: Arc<Configure>,
-        es: Arc<EsClient>,
         upstream: &Upstream,
         prepared: Prepared,
         req: &ChatCompletionsP,
@@ -408,7 +406,6 @@ impl GatewayService {
             db,
             redis,
             config,
-            es,
             ip,
             started: Instant::now(),
             buffer: String::new(),
@@ -424,7 +421,6 @@ impl GatewayService {
         db: &Storage,
         redis: &RedisPool,
         config: &Configure,
-        es: &EsClient,
         upstream: &Upstream,
         prepared: Prepared,
         req: &ChatCompletionsP,
@@ -451,7 +447,6 @@ impl GatewayService {
             db,
             redis,
             config,
-            es,
             &CompletionMeta {
                 user_id: prepared.user_id,
                 tenant_id: prepared.tenant_id,
@@ -481,7 +476,6 @@ impl GatewayService {
         db: &Storage,
         redis: &RedisPool,
         config: &Configure,
-        es: &EsClient,
         upstream: &Upstream,
         prepared: Prepared,
         req: &EmbeddingsP,
@@ -505,7 +499,6 @@ impl GatewayService {
             db,
             redis,
             config,
-            es,
             &CompletionMeta {
                 user_id: prepared.user_id,
                 tenant_id: prepared.tenant_id,
@@ -1433,16 +1426,15 @@ impl StoreScope {
     }
 }
 
-/// 一次调用结束后：累计 token 用量、落用量与审计、同步 ES 索引。
+/// 一次调用结束后：累计 token 用量、落用量与审计。
 ///
-/// 三个动作都是**尽力而为**：走到这里响应体已经发完（流式）或已经拿到上游结果，
+/// 两个动作都是**尽力而为**：走到这里响应体已经发完（流式）或已经拿到上游结果，
 /// 记账失败不该把一个已经成功的回答变成 500。失败只留日志。
 #[allow(clippy::too_many_arguments)]
 async fn record_completion(
     db: &Storage,
     redis: &RedisPool,
     config: &Configure,
-    es: &EsClient,
     meta: &CompletionMeta,
     usage: Option<(i64, i64, i64)>,
     status: &str,
@@ -1465,12 +1457,6 @@ async fn record_completion(
     persist(db, config, meta, &input, status, total, ip).await;
 
     let _ = crate::services::gateway::quota::add_tokens(redis, &meta.quota_key, total).await;
-    let _ = crate::services::gateway::repository::index_usage(
-        es,
-        config.gateway_usage_es_index(),
-        &input,
-    )
-    .await;
 }
 
 /// 用量与审计在同一段作用域里落下：要么都成，要么都不成（不留半截记录）。
@@ -1528,7 +1514,6 @@ struct Record {
     db: Arc<Storage>,
     redis: Arc<RedisPool>,
     config: Arc<Configure>,
-    es: Arc<EsClient>,
     ip: Option<String>,
     started: Instant,
     buffer: String,
@@ -1565,7 +1550,6 @@ impl Record {
             &self.db,
             &self.redis,
             &self.config,
-            &self.es,
             &self.meta,
             self.usage,
             status,

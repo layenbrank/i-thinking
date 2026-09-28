@@ -14,7 +14,6 @@ use identity::{Principal, TenantId};
 use sea_orm::{DatabaseTransaction, EntityTrait};
 use uuid::Uuid;
 
-use crate::clients::elasticsearch::EsClient;
 use crate::clients::redis::RedisPool;
 use crate::configures::configure::{Configure, SERVICE_TOKEN_MAX_TTL_SECS};
 use crate::databases::database::Storage;
@@ -102,7 +101,6 @@ impl GatewayController {
         db: web::Data<Arc<Storage>>,
         redis: web::Data<Arc<RedisPool>>,
         config: web::Data<Arc<Configure>>,
-        es: web::Data<Arc<EsClient>>,
         http: HttpRequest,
         body: web::Json<ChatCompletionsP>,
     ) -> Result<HttpResponse> {
@@ -129,7 +127,6 @@ impl GatewayController {
                 db.get_ref().clone(),
                 redis.get_ref().clone(),
                 config.get_ref().clone(),
-                es.get_ref().clone(),
                 &upstream,
                 prepared,
                 &req,
@@ -145,10 +142,8 @@ impl GatewayController {
                 Err(e) => Exception::from(e).transform(),
             }
         } else {
-            match GatewayService::chat_json(
-                &db, &redis, &config, &es, &upstream, prepared, &req, ip,
-            )
-            .await
+            match GatewayService::chat_json(&db, &redis, &config, &upstream, prepared, &req, ip)
+                .await
             {
                 Ok(value) => Ok(HttpResponse::Ok().json(value)),
                 Err(e) => Exception::from(e).transform(),
@@ -276,7 +271,6 @@ impl GatewayController {
         db: web::Data<Arc<Storage>>,
         redis: web::Data<Arc<RedisPool>>,
         config: web::Data<Arc<Configure>>,
-        es: web::Data<Arc<EsClient>>,
         http: HttpRequest,
         scope: ServiceScope,
         body: web::Json<EmbeddingsP>,
@@ -307,8 +301,7 @@ impl GatewayController {
         tenant.rollback().await.map_err(db_error)?;
         let prepared = prepared.map_err(Exception::from)?;
 
-        match GatewayService::embed_json(&db, &redis, &config, &es, &upstream, prepared, &req, ip)
-            .await
+        match GatewayService::embed_json(&db, &redis, &config, &upstream, prepared, &req, ip).await
         {
             Ok(value) => Ok(HttpResponse::Ok().json(value)),
             Err(e) => Exception::from(e).transform(),

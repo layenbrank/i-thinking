@@ -26,8 +26,7 @@ liveness 只证明事件循环还在转；依赖坏了由 readiness 摘流量，
 | 依赖 | 关键 | 缺失后果 | 探针判定 |
 |------|------|----------|----------|
 | PostgreSQL | ✅ | 连接池一断，读写全线失败；两个二进制启动即 `expect` 它 | `ping()`：`up` / `down` |
-| Redis | ✅ | 会话、限流、幂等、JWT 黑名单都在它上面，鉴权入口直接不可用 | `ping()`：`up` / `down` |
-| Elasticsearch | ❌ | 只影响检索类接口 | 集群颜色（green/yellow/red）取不到即 `down`；只要可达即 `up` |
+| Redis | ✅ | JWT 黑名单、验证码/OTP 挑战与限流、网关日配额计数、订阅档位缓存都在它上面，鉴权入口直接不可用 | `ping()`：`up` / `down` |
 | ai-worker（Python） | ❌ | 只影响 RAG 长任务 | 未配置 → `unconfigured`（不算故障）；配了就按 2s 超时探 `/internal/v1/health` |
 
 - 关键依赖任一故障 → `/api/ready` 返回 **503**，`code = 100002`（`system.SERVICE_UNAVAILABLE`），
@@ -59,7 +58,6 @@ liveness 只证明事件循环还在转；依赖坏了由 readiness 摘流量，
     "checks": [
       { "name": "postgres", "critical": true, "status": "up" },
       { "name": "redis", "critical": true, "status": "up" },
-      { "name": "elasticsearch", "critical": false, "status": "up", "detail": "集群状态 yellow" },
       { "name": "ai-worker", "critical": false, "status": "unconfigured", "detail": "未配置 ai_worker.base_url" }
     ]
   }
@@ -95,8 +93,8 @@ readinessProbe: { httpGet: { path: /api/ready, port: 3000 }, periodSeconds: 10 }
 
 ## 6. 全栈一键起（`apps/core/docker-compose.yml`）
 
-本文件描述的是「进程怎么被编排」，落地形态就在仓库里的 compose：依赖四个
-（Postgres+pgvector / Redis / go-captcha / Elasticsearch）+ 后端四个进程
+本文件描述的是「进程怎么被编排」，落地形态就在仓库里的 compose：依赖三个
+（Postgres+pgvector / Redis / go-captcha）+ 后端四个进程
 （core-api / core-worker / core-orchestrator / ai-worker），外加一个 Jaeger 收链路，一条命令起齐。
 
 ```bash
@@ -115,7 +113,6 @@ docker compose down
 | `postgres` | `corex-postgres:18-zh-pgvector` | 5432 | 带 pgvector 与 zh_CN locale，首次 initdb 会建 `ai_worker` 库 |
 | `redis` | `redis:7-alpine` | 6379 | 会话/限流/幂等/JWT 黑名单 |
 | `gocaptcha` | `wenlng/go-captcha-service:1.0.5` | 8080 | 侧车，不是 core |
-| `elasticsearch` | `elasticsearch:9.4.3` | 9200 | 非关键依赖 |
 | `migrate` | core 镜像 | — | 一次性 `./migration up`，跑完即退（core-api 等它成功） |
 | `core-api` | core 镜像 | 3000 | `./service` |
 | `core-worker` | core 镜像 | — | `./worker`，outbox 投递 |
@@ -143,25 +140,16 @@ docker compose down
 
 ```bash
 curl -sS http://127.0.0.1:3000/api/live                       # 进程活着
-curl -sS http://127.0.0.1:3000/api/ready                      # 四个依赖 + ai-worker 全部 up
+curl -sS http://127.0.0.1:3000/api/ready                      # 三个依赖 + ai-worker 全部 up
 docker compose exec ai-worker curl -fsS http://127.0.0.1:8081/internal/v1/health
 docker compose exec postgres psql -U machenike -d postgres -c 'SELECT datname FROM pg_database'
 ```
 
-### 6.2 两个容易误判的现象
+### 6.2 一个容易误判的现象
 
-- **首次冷启动慢**：`core-api` 要等 Elasticsearch 初始化完再建索引，全栈从零（`./data` 为空）
-  起齐大约 2–3 分钟；之后 `down` 再 `up` 约 30 秒就 `/api/live` 200。
-  这就是 §4 里 `startupProbe` 给 30×2s 宽限的原因，别把冷启动慢当成卡死。
-- **`/api/ready` 里 elasticsearch 显示 `集群状态 red`**：这是 ES 的磁盘水位保护
-  （默认 `cluster.routing.allocation.disk.watermark.high=90%`），宿主机磁盘用量超线后
-  ES 拒绝分配任何分片。此时 ES 端口通、探针判 `up`（非关键依赖），但**索引不进去**。
-  宿主机腾出空间即可，或者临时调低要求（不要长期关掉水位保护，那是唯一的磁盘护栏）：
-
-  ```bash
-  curl -X PUT http://127.0.0.1:9200/_cluster/settings -H 'Content-Type: application/json' \
-    -d '{"persistent":{"cluster.routing.allocation.disk.watermark.high":"97%"}}'
-  ```
+- **首次冷启动慢**：全栈从零（`./data` 为空）起齐要等 Postgres 首次 initdb、`migrate` 跑完，
+  以及 ai-worker 首次在自己库上 apply 迁移，大约 1–2 分钟；之后 `down` 再 `up` 约 30 秒就
+  `/api/live` 200。这就是 §4 里 `startupProbe` 给 30×2s 宽限的原因，别把冷启动慢当成卡死。
 - **容器里 `/guide/*.md` 打不开**：这是故意的——镜像只装二进制与 `config*.yaml`，不放仓库文档
   （`docker/core/Dockerfile` 里建的是空 `guide/` 目录，只为了不让 actix 在构造静态挂载时报
   `Specified path is not a directory`）。看文档直接看仓库里的 [guide/](.)。
@@ -237,7 +225,7 @@ core 的三个进程（Rust）与 ai-worker（Python）都接了 OpenTelemetry�
 - **关掉**：`TELEMETRY_ENABLED=0 docker compose up -d core-api core-worker core-orchestrator ai-worker`
   （或写进 `.env`）。关闭时是零开销：不建导出器、不入全局 Provider，trace-id 退回内置的 W3C 实现，
   **响应信封的 `traceID` 与响应头 `traceparent` 照旧**，所以关链路不会破坏前端的错误上报。
-- **只起依赖**（`up -d postgres redis gocaptcha elasticsearch`）时 Jaeger 不在，导出侧只会打警告，
+- **只起依赖**（`up -d postgres redis gocaptcha`）时 Jaeger 不在，导出侧只会打警告，
   请求本身不受影响——链路导出失败永远不阻塞业务。
 
 ### 9.2 冒烟：一次请求打穿两种语言

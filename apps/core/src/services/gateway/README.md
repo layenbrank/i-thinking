@@ -16,13 +16,12 @@ OpenAI 兼容的**模型网关**：转发对话补全请求到上游供应商，
 | 模型管理    | 模型 ↔ 供应商绑定、允许角色、能力声明、上下文窗口、单模型配额覆盖       |
 | 配额        | Redis 日窗计数，按 UTC 午夜重置；`GET /quota/me` 自助只读查询 |
 | 档位目录    | `GET /plans` 下发可开通档位与免费档基线（源自配置，不落库）      |
-| 用量 / 审计 | 落库 + 写入 ES 用量索引                                                 |
+| 用量 / 审计 | 落库 Postgres：用量 `gateway_usage`、审计 `gateway_audit` |
 
 ## 与同域其他模块的区别
 
 - [`tenant`](../tenant/README.md)：提供租户身份与角色；本模块据此决定配额来源与可见模型。
 - [`subscription`](../subscription/README.md)：提供「此刻生效的档位」，本模块查配置得到档位配额。
-- [`search`](../search/README.md)：面向业务文档检索；本模块只把**用量事件**写入 ES。
 
 ## 路由一览
 
@@ -234,7 +233,7 @@ ai-worker ──X-Internal-Token──▶ POST /api/v1/service/token {scope, ten
 平台面靠 `PlatformScope` 的 `BYPASSRLS` 角色跨租户读、只写全局行。
 
 - `apiKeyEnc` 为 AES-256-GCM 密文（`security.aes_key`）。
-- 用量事件另写入 ES 索引 `gateway.usage_es_index`（默认 `gateway_usage`），可经 `gateway.audit_enabled` 关闭审计落库。
+- 用量只落 Postgres `gateway_usage`；审计落库可用 `gateway.audit_enabled` 关闭。
 
 ## 实现架构
 
@@ -246,7 +245,7 @@ GatewayModule::configure
         ├── GET  /quota/me         → GatewayController::quota_me → GatewayService::self_quota(tx, principal)
         └── admin_routes（每条各自 .wrap(Auth::admin())）
               providers / admin/models / usage / audit → PlatformScope::open → GatewayService::*
-                                                       └── repository::record_usage / record_audit / index_usage
+                                                       └── repository::record_usage / record_audit
 ```
 
 同一模块还挂了服务面（无用户 JWT，两道服务头各自校验）：

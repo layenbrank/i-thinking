@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 /// 可靠执行运行时（orchestrator）：领活、重放历史、执行活动。不监听端口。
 ///
-/// 它只连编排库（独立 schema），不碰业务表，因此不需要 Redis / Elasticsearch。
+/// 它只连编排库（独立 schema），不碰业务表，因此不需要 Redis。
 /// 停机信号（Ctrl-C / SIGTERM）留出收尾时间：编排状态在存储里，收不完的实例下次启动接着跑。
 #[tokio::main]
 async fn main() {

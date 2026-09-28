@@ -743,14 +743,14 @@
             "type": "boolean"
           },
           "detail": {
-            "description": "补充说明（如 Elasticsearch 集群状态、ai-worker 版本与能力）",
+            "description": "补充说明（如 ai-worker 版本与能力）",
             "type": [
               "string",
               "null"
             ]
           },
           "name": {
-            "description": "`postgres` / `redis` / `elasticsearch` / `ai-worker`",
+            "description": "`postgres` / `redis` / `ai-worker`",
             "type": "string"
           },
           "status": {
@@ -1208,10 +1208,6 @@
       "Health": {
         "description": "健康检查 data 字段",
         "properties": {
-          "elasticsearch": {
-            "description": "Elasticsearch 集群状态或 down",
-            "type": "string"
-          },
           "postgres": {
             "description": "PostgreSQL：up / down",
             "type": "string"
@@ -1240,8 +1236,7 @@
           "timestamp",
           "uptime",
           "postgres",
-          "redis",
-          "elasticsearch"
+          "redis"
         ],
         "type": "object"
       },
@@ -1285,32 +1280,6 @@
           "success",
           "msg",
           "timestamp"
-        ],
-        "type": "object"
-      },
-      "HitR": {
-        "properties": {
-          "content": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "score": {
-            "format": "double",
-            "type": [
-              "number",
-              "null"
-            ]
-          },
-          "title": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "content"
         ],
         "type": "object"
       },
@@ -2992,26 +2961,35 @@
         "type": "object"
       },
       "QueryP": {
-        "example": {
-          "q": "Redis",
-          "size": 10
-        },
         "properties": {
-          "q": {
-            "example": "Redis",
+          "cp": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "csr": {
             "type": "string"
           },
-          "size": {
-            "example": 10,
-            "format": "int64",
-            "type": [
-              "integer",
-              "null"
-            ]
+          "cvid": {
+            "type": "string"
+          },
+          "pt": {
+            "type": "string"
+          },
+          "pths": {
+            "type": "string"
+          },
+          "qry": {
+            "type": "string"
           }
         },
         "required": [
-          "q"
+          "pt",
+          "qry",
+          "cp",
+          "csr",
+          "pths",
+          "cvid"
         ],
         "type": "object"
       },
@@ -3592,116 +3570,6 @@
         "required": [
           "code",
           "newPassword"
-        ],
-        "type": "object"
-      },
-      "SearchEnvelope": {
-        "properties": {
-          "code": {
-            "description": "业务状态码（200000=成功）",
-            "format": "int32",
-            "type": "integer"
-          },
-          "data": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/SearchR"
-              }
-            ]
-          },
-          "msg": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "traceID": {
-            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "code",
-          "success",
-          "msg",
-          "timestamp"
-        ],
-        "type": "object"
-      },
-      "SearchR": {
-        "properties": {
-          "hits": {
-            "items": {
-              "$ref": "#/components/schemas/HitR"
-            },
-            "type": "array"
-          },
-          "took": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "total": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "took",
-          "total",
-          "hits"
-        ],
-        "type": "object"
-      },
-      "SearchWriteEnvelope": {
-        "properties": {
-          "code": {
-            "description": "业务状态码（200000=成功）",
-            "format": "int32",
-            "type": "integer"
-          },
-          "data": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/WriteR"
-              }
-            ]
-          },
-          "msg": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "traceID": {
-            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "code",
-          "success",
-          "msg",
-          "timestamp"
         ],
         "type": "object"
       },
@@ -5391,47 +5259,33 @@
         "type": "string"
       },
       "WriteP": {
+        "description": "后台管理员创建用户",
         "example": {
-          "content": "接入 Redis 与 Elasticsearch",
-          "id": "doc-1",
-          "title": "Rust 服务端"
+          "password": "123456",
+          "role": "USER",
+          "username": "alice"
         },
         "properties": {
-          "content": {
-            "example": "接入 Redis 与 Elasticsearch",
+          "password": {
+            "example": "123456",
             "type": "string"
           },
-          "id": {
-            "description": "文档 ID；省略则自动生成 UUID",
-            "example": "doc-1",
+          "role": {
+            "description": "USER / ADMIN，默认 USER",
+            "example": "USER",
             "type": [
               "string",
               "null"
             ]
           },
-          "title": {
-            "example": "Rust 服务端",
+          "username": {
+            "example": "alice",
             "type": "string"
           }
         },
         "required": [
-          "title",
-          "content"
-        ],
-        "type": "object"
-      },
-      "WriteR": {
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "index": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "index"
+          "username",
+          "password"
         ],
         "type": "object"
       }
@@ -5468,7 +5322,7 @@
   "paths": {
     "/api/health": {
       "get": {
-        "description": "检查服务与 PostgreSQL / Redis / Elasticsearch 依赖状态，无需鉴权。依赖异常不改变 HTTP 状态码（200），通过 data.status=degraded 与各依赖项 up/down 表达。",
+        "description": "检查服务与 PostgreSQL / Redis 依赖状态，无需鉴权。依赖异常不改变 HTTP 状态码（200），通过 data.status=degraded 与各依赖项 up/down 表达。",
         "operationId": "system.health",
         "parameters": [
           {
@@ -8959,189 +8813,6 @@
           "Payment"
         ],
         "x-response-shape": "vendor"
-      }
-    },
-    "/api/v1/search/docs": {
-      "get": {
-        "description": "需要 JWT。按 q 在 title/content 上 multi_match 检索。",
-        "operationId": "search.toRead",
-        "parameters": [
-          {
-            "description": "搜索关键词",
-            "example": "Redis",
-            "in": "query",
-            "name": "q",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "返回条数，默认 10，最大 100",
-            "example": 10,
-            "in": "query",
-            "name": "size",
-            "required": false,
-            "schema": {
-              "format": "int64",
-              "type": "integer"
-            }
-          },
-          {
-            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
-            "in": "header",
-            "name": "traceparent",
-            "required": false,
-            "schema": {
-              "examples": [
-                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
-              ],
-              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchEnvelope"
-                }
-              }
-            },
-            "description": "搜索成功（code=200000）",
-            "headers": {
-              "traceparent": {
-                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
-                "schema": {
-                  "examples": [
-                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
-                  ],
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "业务异常（未登录或参数/ES 错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
-            "headers": {
-              "traceparent": {
-                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
-                "schema": {
-                  "examples": [
-                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
-                  ],
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ],
-        "summary": "全文检索",
-        "tags": [
-          "Search"
-        ]
-      },
-      "post": {
-        "description": "需要 JWT。将文档写入 Elasticsearch（示范搜索投影，不以 ES 为权威库）。",
-        "operationId": "search.toWrite",
-        "parameters": [
-          {
-            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
-            "in": "header",
-            "name": "traceparent",
-            "required": false,
-            "schema": {
-              "examples": [
-                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
-              ],
-              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "example": {
-                "content": "接入 Redis 与 Elasticsearch",
-                "id": "doc-1",
-                "title": "Rust 服务端"
-              },
-              "schema": {
-                "$ref": "#/components/schemas/WriteP"
-              }
-            }
-          },
-          "description": "待索引文档",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchWriteEnvelope"
-                }
-              }
-            },
-            "description": "索引成功（code=200000）",
-            "headers": {
-              "traceparent": {
-                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
-                "schema": {
-                  "examples": [
-                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
-                  ],
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "业务异常（未登录或参数/ES 错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
-            "headers": {
-              "traceparent": {
-                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
-                "schema": {
-                  "examples": [
-                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
-                  ],
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer_auth": []
-          }
-        ],
-        "summary": "索引文档",
-        "tags": [
-          "Search"
-        ]
       }
     },
     "/api/v1/service/assets/{id}/content": {
@@ -13051,10 +12722,6 @@
     {
       "description": "搜索引擎代理",
       "name": "Engine"
-    },
-    {
-      "description": "Elasticsearch 全文检索",
-      "name": "Search"
     },
     {
       "description": "应用入口（Mock）",

@@ -13,15 +13,6 @@ redis:
   url: redis://127.0.0.1:6379
   pool_size: 8
 
-elasticsearch:
-  url: http://127.0.0.1:9200
-  index: corex_docs
-  insecure: false
-  username: null
-  password: null
-  api_key: null
-  cloud_id: null
-
 security:
   # 通用应用密钥（预留；生产环境禁止占位值，任何环境下都不允许为空，当前业务代码未直接读取）
   secret: change-me-secret
@@ -167,8 +158,6 @@ gateway:
     PRO: 5000000
   # 上游模型流式读超时（毫秒）
   upstream_timeout_ms: 120000
-  # 用量事件写入的 Elasticsearch 索引
-  usage_es_index: gateway_usage
   # 审计落库开关
   audit_enabled: true
   # 服务身份出站面（/api/v1/service/**）：ai-worker 等受信服务换短期令牌用的共享密钥。

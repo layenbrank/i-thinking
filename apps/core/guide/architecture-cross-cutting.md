@@ -135,7 +135,6 @@ handler 只用：ctx.tx() 读写 / ctx.require(permission) 判权限 / ctx.commi
 | `src/utils/code.rs` | 业务码 |
 | `src/services/upload/{validation,storage,repository,error,multipart}` | 上传拆分 + creator 校验（四文件例外） |
 | `src/services/auth/service.rs` | 含 profile 辅助（user 等可复用） |
-| `src/services/search/repository.rs` | ES 索引/检索（client 仅连接） |
 | `scripts/arch.ts`（`bun run arch`） | 模块结构 / 禁止路径卫生检查（CI） |
 
 ## 参考路径（Nest）

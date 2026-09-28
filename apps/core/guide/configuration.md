@@ -66,7 +66,6 @@
 | `gateway.free_daily_token_quota`      | `100000`                           | 个人租户免费档日 token 配额（无有效订阅时）                    |
 | `gateway.plan_daily_token_quota`      | `BASIC` / `PRO`                    | 订阅档位日配额（`档位名 → 配额`），与 `subscription.plan` 对应 |
 | `gateway.upstream_timeout_ms`         | `120000`                           | 上游模型流式读超时                                             |
-| `gateway.usage_es_index`              | `gateway_usage`                    | 用量事件写入的 ES 索引                                         |
 | `gateway.audit_enabled`               | `true`                             | 审计落库开关                                                   |
 | `gateway.service_token_secret`        | `''`                               | 服务身份面共享密钥（HMAC-SHA256）。**留空 = `/api/v1/service/**` 整体 503**；与 `security.jwt_secret` 分开；生产禁用占位值 |
 | `gateway.service_token_ttl_secs`      | `300`                              | 换出来的短期令牌有效期（秒），上限 3600                        |
@@ -328,7 +327,6 @@ docker compose up -d postgres
 
 | redis | 6379 | [`data/redis`](../data/redis) |
 | gocaptcha | 8080 | 行为验证码侧车（`wenlng/go-captcha-service:1.0.5`，内嵌 [go-captcha v2.0.5](https://github.com/wenlng/go-captcha/releases/tag/v2.0.5)；Docker Hub 无 `latest`） |
-| elasticsearch | 9200 | [`data/elasticsearch`](../data/elasticsearch) |
 
 配置见 [`docker-compose.yml`](../docker-compose.yml)。`data/` 已 gitignore。
 

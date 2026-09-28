@@ -33,9 +33,6 @@ events:
 redis:
   url: redis://127.0.0.1:6379
 
-elasticsearch:
-  url: http://127.0.0.1:9200
-
 # 支付渠道凭据（均为敏感值，只放本机/部署环境，见 src/services/payment/README.md）。
 # enabled: true 时会强校验必填项：宁启动失败，也不带半截凭据上线。
 # 回调地址必须公网 HTTPS；本机联调用内网穿透或反向代理，否则只能靠订单 sync 兜底。

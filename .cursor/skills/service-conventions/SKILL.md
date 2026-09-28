@@ -136,7 +136,6 @@ src/services/{name}/
 | 模块 | 额外文件 | 原因 |
 |------|----------|------|
 | `upload` | `validation` / `storage` / `repository` / `error` / `multipart` | 分片上传 + 归属校验，单文件过重 |
-| `search` | `repository` | ES 领域查询与 client 连接分离 |
 
 禁止新建 `services/shared`；跨模块复用优先放在**拥有该领域**的模块（如 profile 辅助在 `auth::service`），或 `utils/` / `guards/` 等横切层。
 

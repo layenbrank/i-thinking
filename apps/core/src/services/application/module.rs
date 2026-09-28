@@ -4,8 +4,8 @@ use crate::middlewares::rate_limit::AuthGovernor;
 use crate::services::{
     application::controller::ApplicationController, auth::module::AuthModule,
     engine::module::EngineModule, gateway::module::GatewayModule, payment::module::PaymentModule,
-    search::module::SearchModule, sso::module::SsoModule, tenant::module::TenantModule,
-    upload::module::UploadModule, user::module::UserModule,
+    sso::module::SsoModule, tenant::module::TenantModule, upload::module::UploadModule,
+    user::module::UserModule,
 };
 
 pub struct ApplicationModule;
@@ -18,7 +18,6 @@ impl ApplicationModule {
                 .configure(UserModule::configure)
                 .configure(UploadModule::configure)
                 .configure(EngineModule::configure)
-                .configure(SearchModule::configure)
                 .configure(TenantModule::configure)
                 .configure(GatewayModule::configure)
                 .configure(SsoModule::configure)

@@ -7,7 +7,6 @@ use crate::services::{
     engine::schema::SuggestionR,
     gateway::schema::{ModelR, PlansR, ProviderR, SelfQuotaR},
     payment::schema::{CatalogR, OrderR, PriceR, ReconcileR},
-    search::schema::{SearchR, WriteR as SearchWriteR},
     sso::schema::{SsoConnectionR, SsoLoginR},
     subscription::schema::{QuotaR, SubscriptionR},
     tenant::schema::{MemberR, TenantR},
@@ -52,8 +51,6 @@ envelope!(UploadProgressEnvelope, ProgressR);
 envelope!(UploadFilesEnvelope, FilesR);
 envelope!(SuggestionEnvelope, SuggestionR);
 envelope!(ApplicationEnvelope, App);
-envelope!(SearchWriteEnvelope, SearchWriteR);
-envelope!(SearchEnvelope, SearchR);
 envelope!(EmptyEnvelope, EmptyR);
 envelope!(TenantEnvelope, TenantR);
 envelope!(TenantListEnvelope, Vec<TenantR>);
@@ -90,8 +87,6 @@ pub struct Health {
     pub postgres: String,
     /// Redis：up / down
     pub redis: String,
-    /// Elasticsearch 集群状态或 down
-    pub elasticsearch: String,
 }
 
 /// 存活探针 data：只描述进程自身，**不含任何依赖**
@@ -119,13 +114,13 @@ pub struct Readiness {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct DependencyCheck {
-    /// `postgres` / `redis` / `elasticsearch` / `ai-worker`
+    /// `postgres` / `redis` / `ai-worker`
     pub name: String,
     /// 是否关键依赖：关键依赖故障 ⇒ 503（不接流量）
     pub critical: bool,
     /// `up` / `down` / `unconfigured`
     pub status: String,
-    /// 补充说明（如 Elasticsearch 集群状态、ai-worker 版本与能力）
+    /// 补充说明（如 ai-worker 版本与能力）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
 }

@@ -30,7 +30,7 @@
 | `orchestrator` | 跑可靠执行运行时、执行长任务的每个活动；**不监听端口** | [`crates/durable`](../crates/durable/README.md) + 内部契约客户端 |
 
 `orchestrator` 是长任务唯一的执行者：它只连编排库（独立 schema），不碰业务表，
-所以不需要 Redis / Elasticsearch。一个部署单元里只应有一个进程跑运行时——多开会把同一实例的
+所以不需要 Redis。一个部署单元里只应有一个进程跑运行时——多开会把同一实例的
 轮次抢来抢去（正确性由锁保证，但没有意义）。长任务的 AI 步骤不在 Rust 侧做，而是通过内部
 HTTP 契约交给 Python 的 ai-worker（见 [configuration.md](configuration.md#ai-计算车间ai-worker--orchestrator)）。
 
@@ -40,7 +40,7 @@ HTTP 契约交给 Python 的 ai-worker（见 [configuration.md](configuration.md
 | authz | —（无表） | 遗留角色判断散点（由 R3 棘轮逐个收敛：`src/guards/*`、`src/utils/jwt.rs` 等改为调用 authz） |
 | billing | `subscription` `payment_order` | `src/services/{subscription,payment}` |
 | gateway | `gateway_provider` `gateway_model` `gateway_usage` `gateway_audit` | `src/services/gateway` |
-| document | `asset` `chunk` | `src/services/{upload,markdown,search}` |
+| document | `asset` `chunk` | `src/services/{upload,markdown}` |
 | audit | `outbox` `consumed_event` | —（新建） |
 | notify | —（无表） | —（新建） |
 

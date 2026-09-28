@@ -7,7 +7,7 @@ use service::{
 
 /// 事件发布 worker：把 outbox 里已提交的事件投递给下游。
 ///
-/// 不监听端口，因此不需要 Redis / Elasticsearch；只需要数据库和一个下游端点。
+/// 不监听端口，因此不需要 Redis；只需要数据库和一个下游端点。
 /// 停机信号（Ctrl-C / 编排器 SIGTERM）只在一轮与下一轮之间生效：正在投递的那一轮走完，
 /// 剩下的留在 outbox 里等重启。
 #[tokio::main]

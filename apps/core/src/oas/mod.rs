@@ -7,7 +7,6 @@ pub mod engine;
 pub mod gateway;
 pub mod paths;
 pub mod payment;
-pub mod search;
 pub mod sso;
 pub mod subscription;
 pub mod system;
@@ -24,12 +23,12 @@ use crate::oas::common::{
     HealthEnvelope, Liveness, LivenessEnvelope, MemberEnvelope, MemberListEnvelope, ModelEnvelope,
     ModelListEnvelope, OrderEnvelope, OrderListEnvelope, PlansEnvelope, PriceEnvelope,
     PriceListEnvelope, ProfileEnvelope, ProviderEnvelope, ProviderListEnvelope, QuotaEnvelope,
-    Readiness, ReadinessEnvelope, ReconcileEnvelope, SearchEnvelope, SearchWriteEnvelope,
-    SelfQuotaEnvelope, SigninEnvelope, SigninErrorExample, SigninSuccessExample, SignupEnvelope,
-    SsoConnectionEnvelope, SsoConnectionListEnvelope, SsoLoginEnvelope, SubscriptionEnvelope,
-    SubscriptionListEnvelope, SuggestionEnvelope, TenantEnvelope, TenantListEnvelope,
-    UploadFilesEnvelope, UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope,
-    UserEnvelope, UserListEnvelope,
+    Readiness, ReadinessEnvelope, ReconcileEnvelope, SelfQuotaEnvelope, SigninEnvelope,
+    SigninErrorExample, SigninSuccessExample, SignupEnvelope, SsoConnectionEnvelope,
+    SsoConnectionListEnvelope, SsoLoginEnvelope, SubscriptionEnvelope, SubscriptionListEnvelope,
+    SuggestionEnvelope, TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope,
+    UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope,
+    UserListEnvelope,
 };
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
@@ -46,9 +45,6 @@ use crate::services::payment::schema::{
     CatalogR, OrderP, OrderR, PriceQueryP, PriceR, PriceUpdateP, PriceWriteP, ReconcileExceptionR,
     ReconcileExportFormat, ReconcileExportP, ReconcileModelR, ReconcileQueryP, ReconcileR,
     ReconcileTenantR, ReconcileTotalsR,
-};
-use crate::services::search::schema::{
-    HitR, QueryP as SearchQueryP, SearchR, WriteP as SearchWriteP, WriteR as SearchWriteR,
 };
 use crate::services::sso::schema::{
     SsoConnectionR, SsoConnectionUpdateP, SsoConnectionWriteP, SsoLoginR,
@@ -117,8 +113,6 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         upload::serve_file_doc,
         upload::serve_asset_doc,
         engine::toRead_doc,
-        search::toWrite_doc,
-        search::toRead_doc,
         application::toRead_doc,
         tenant::toList_doc,
         tenant::toWrite_doc,
@@ -243,13 +237,6 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
             ISchema,
             SuggestionR,
             SuggestionEnvelope,
-            SearchWriteP,
-            SearchWriteR,
-            SearchQueryP,
-            HitR,
-            SearchR,
-            SearchWriteEnvelope,
-            SearchEnvelope,
             App,
             ApplicationEnvelope,
             Size,
@@ -329,7 +316,6 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         (name = "User", description = "后台用户管理（需 JWT）"),
         (name = "Upload", description = "分片文件上传"),
         (name = "Engine", description = "搜索引擎代理"),
-        (name = "Search", description = "Elasticsearch 全文检索"),
         (name = "Application", description = "应用入口（Mock）"),
         (name = "Tenant", description = "多租户组织与成员（需 JWT）"),
         (name = "Subscription", description = "个人租户订阅：免费/付费档位配额（需 JWT）"),

@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * 健康检查
-         * @description 检查服务与 PostgreSQL / Redis / Elasticsearch 依赖状态，无需鉴权。依赖异常不改变 HTTP 状态码（200），通过 data.status=degraded 与各依赖项 up/down 表达。
+         * @description 检查服务与 PostgreSQL / Redis 依赖状态，无需鉴权。依赖异常不改变 HTTP 状态码（200），通过 data.status=degraded 与各依赖项 up/down 表达。
          */
         get: operations["system.health"];
         put?: never;
@@ -760,30 +760,6 @@ export interface paths {
          * @description **渠道服务器调用，匿名**：验签（`Wechatpay-Signature` + 平台证书公钥）、APIv3 密钥解密 `resource`、金额与币种核对、幂等核销。响应不是平台信封：成功 `{"code":"SUCCESS"}`（HTTP 200），失败 `{"code":"FAIL"}`（HTTP 500，微信会重试）。
          */
         post: operations["payment.notifyWechat"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/search/docs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 全文检索
-         * @description 需要 JWT。按 q 在 title/content 上 multi_match 检索。
-         */
-        get: operations["search.toRead"];
-        put?: never;
-        /**
-         * 索引文档
-         * @description 需要 JWT。将文档写入 Elasticsearch（示范搜索投影，不以 ES 为权威库）。
-         */
-        post: operations["search.toWrite"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1795,9 +1771,9 @@ export interface components {
         DependencyCheck: {
             /** @description 是否关键依赖：关键依赖故障 ⇒ 503（不接流量） */
             critical: boolean;
-            /** @description 补充说明（如 Elasticsearch 集群状态、ai-worker 版本与能力） */
+            /** @description 补充说明（如 ai-worker 版本与能力） */
             detail?: string | null;
-            /** @description `postgres` / `redis` / `elasticsearch` / `ai-worker` */
+            /** @description `postgres` / `redis` / `ai-worker` */
             name: string;
             /** @description `up` / `down` / `unconfigured` */
             status: string;
@@ -1977,8 +1953,6 @@ export interface components {
         };
         /** @description 健康检查 data 字段 */
         Health: {
-            /** @description Elasticsearch 集群状态或 down */
-            elasticsearch: string;
             /** @description PostgreSQL：up / down */
             postgres: string;
             /** @description Redis：up / down */
@@ -2002,13 +1976,6 @@ export interface components {
             timestamp: number;
             /** @description 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用 */
             traceID?: string | null;
-        };
-        HitR: {
-            content: string;
-            id: string;
-            /** Format: double */
-            score?: number | null;
-            title: string;
         };
         ISchema: {
             ig: string;
@@ -2649,20 +2616,14 @@ export interface components {
             /** @description ACTIVE / DISABLED */
             status?: string | null;
         };
-        /**
-         * @example {
-         *       "q": "Redis",
-         *       "size": 10
-         *     }
-         */
         QueryP: {
-            /** @example Redis */
-            q: string;
-            /**
-             * Format: int64
-             * @example 10
-             */
-            size?: number | null;
+            /** Format: int64 */
+            cp: number;
+            csr: string;
+            cvid: string;
+            pt: string;
+            pths: string;
+            qry: string;
         };
         QuotaEnvelope: {
             /**
@@ -2890,41 +2851,6 @@ export interface components {
             /** @example 13800138000 */
             target?: string | null;
             username?: string | null;
-        };
-        SearchEnvelope: {
-            /**
-             * Format: int32
-             * @description 业务状态码（200000=成功）
-             */
-            code: number;
-            data?: null | components["schemas"]["SearchR"];
-            msg: string;
-            success: boolean;
-            /** Format: int64 */
-            timestamp: number;
-            /** @description 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用 */
-            traceID?: string | null;
-        };
-        SearchR: {
-            hits: components["schemas"]["HitR"][];
-            /** Format: int64 */
-            took: number;
-            /** Format: int64 */
-            total: number;
-        };
-        SearchWriteEnvelope: {
-            /**
-             * Format: int32
-             * @description 业务状态码（200000=成功）
-             */
-            code: number;
-            data?: null | components["schemas"]["WriteR"];
-            msg: string;
-            success: boolean;
-            /** Format: int64 */
-            timestamp: number;
-            /** @description 链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用 */
-            traceID?: string | null;
         };
         SelfQuotaEnvelope: {
             /**
@@ -3535,26 +3461,23 @@ export interface components {
          */
         Visibility: "PRIVATE" | "PUBLIC" | "RESTRICTED";
         /**
+         * @description 后台管理员创建用户
          * @example {
-         *       "content": "接入 Redis 与 Elasticsearch",
-         *       "id": "doc-1",
-         *       "title": "Rust 服务端"
+         *       "password": "123456",
+         *       "role": "USER",
+         *       "username": "alice"
          *     }
          */
         WriteP: {
-            /** @example 接入 Redis 与 Elasticsearch */
-            content: string;
+            /** @example 123456 */
+            password: string;
             /**
-             * @description 文档 ID；省略则自动生成 UUID
-             * @example doc-1
+             * @description USER / ADMIN，默认 USER
+             * @example USER
              */
-            id?: string | null;
-            /** @example Rust 服务端 */
-            title: string;
-        };
-        WriteR: {
-            id: string;
-            index: string;
+            role?: string | null;
+            /** @example alice */
+            username: string;
         };
     };
     responses: never;
@@ -5247,101 +5170,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    "search.toRead": {
-        parameters: {
-            query: {
-                /**
-                 * @description 搜索关键词
-                 * @example Redis
-                 */
-                q: string;
-                /**
-                 * @description 返回条数，默认 10，最大 100
-                 * @example 10
-                 */
-                size?: number;
-            };
-            header?: {
-                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
-                traceparent?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 搜索成功（code=200000） */
-            200: {
-                headers: {
-                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
-                    traceparent?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SearchEnvelope"];
-                };
-            };
-            /** @description 业务异常（未登录或参数/ES 错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
-            default: {
-                headers: {
-                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
-                    traceparent?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    "search.toWrite": {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
-                traceparent?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        /** @description 待索引文档 */
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "content": "接入 Redis 与 Elasticsearch",
-                 *       "id": "doc-1",
-                 *       "title": "Rust 服务端"
-                 *     }
-                 */
-                "application/json": components["schemas"]["WriteP"];
-            };
-        };
-        responses: {
-            /** @description 索引成功（code=200000） */
-            200: {
-                headers: {
-                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
-                    traceparent?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SearchWriteEnvelope"];
-                };
-            };
-            /** @description 业务异常（未登录或参数/ES 错误）：HTTP 状态码按错误码归属返回，响应体为统一错误信封 */
-            default: {
-                headers: {
-                    /** @description W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。 */
-                    traceparent?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

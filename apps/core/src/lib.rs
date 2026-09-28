@@ -16,7 +16,7 @@ pub mod bootstrap {
 /// 构建基础 Actix App（须在 `HttpServer::new` 闭包内展开，以保证类型推断）
 #[macro_export]
 macro_rules! bootstrap_app {
-    ($store:expr, $config:expr, $redis:expr, $es:expr, $bootstrap:expr, $auth_governor:expr) => {{
+    ($store:expr, $config:expr, $redis:expr, $bootstrap:expr, $auth_governor:expr) => {{
         use actix_web::{App, web::Data};
         use $crate::middlewares::access_log::AccessLog;
         use $crate::middlewares::cors::cors;
@@ -27,7 +27,6 @@ macro_rules! bootstrap_app {
             .app_data(Data::new($store))
             .app_data(Data::new($config))
             .app_data(Data::new($redis))
-            .app_data(Data::new($es))
             // 归一中间件最内层：最先接住框架自产响应（如 405 空体），其余 wrap 都在信封之外
             .wrap(RejectNormalizer)
             .wrap(cors($config.as_ref()))
@@ -47,7 +46,6 @@ macro_rules! bootstrap_app {
 pub mod clients {
     pub mod ai_worker;
     pub mod aliyun;
-    pub mod elasticsearch;
     pub mod gocaptcha;
     pub mod redis;
 }
@@ -135,14 +133,6 @@ pub mod services {
     pub mod engine {
         pub mod controller;
         pub mod module;
-        pub mod schema;
-        pub mod service;
-    }
-
-    pub mod search {
-        pub mod controller;
-        pub mod module;
-        pub mod repository;
         pub mod schema;
         pub mod service;
     }

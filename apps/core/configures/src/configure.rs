@@ -95,32 +95,6 @@ impl Default for RedisConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
-pub struct ElasticsearchConfig {
-    pub url: String,
-    pub index: String,
-    pub insecure: bool,
-    pub username: Option<String>,
-    pub password: Option<String>,
-    pub api_key: Option<String>,
-    pub cloud_id: Option<String>,
-}
-
-impl Default for ElasticsearchConfig {
-    fn default() -> Self {
-        Self {
-            url: "http://127.0.0.1:9200".to_string(),
-            index: "corex_docs".to_string(),
-            insecure: false,
-            username: None,
-            password: None,
-            api_key: None,
-            cloud_id: None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(default)]
 pub struct SecurityConfig {
     pub secret: String,
     pub jwt_secret: String,
@@ -409,8 +383,6 @@ pub struct GatewayConfig {
     pub plan_daily_token_quota: HashMap<String, i64>,
     /// 上游模型流式读超时（毫秒）
     pub upstream_timeout_ms: u64,
-    /// 用量事件写入的 Elasticsearch 索引
-    pub usage_es_index: String,
     /// 审计落库开关
     pub audit_enabled: bool,
     /// 服务身份令牌的签发密钥（HMAC-SHA256）。留空 = 服务身份端点整体关闭（503）。
@@ -429,7 +401,6 @@ impl Default for GatewayConfig {
             free_daily_token_quota: 100_000,
             plan_daily_token_quota: HashMap::new(),
             upstream_timeout_ms: 120_000,
-            usage_es_index: "gateway_usage".to_string(),
             audit_enabled: true,
             service_token_secret: String::new(),
             service_token_ttl_secs: 300,
@@ -689,7 +660,6 @@ pub struct Configure {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub redis: RedisConfig,
-    pub elasticsearch: ElasticsearchConfig,
     pub security: SecurityConfig,
     pub auth: AuthConfig,
     pub aliyun: AliyunConfig,
@@ -716,7 +686,6 @@ impl Default for Configure {
             server: ServerConfig::default(),
             database: DatabaseConfig::default(),
             redis: RedisConfig::default(),
-            elasticsearch: ElasticsearchConfig::default(),
             security: SecurityConfig::default(),
             auth: AuthConfig::default(),
             aliyun: AliyunConfig::default(),
@@ -1173,46 +1142,6 @@ impl Configure {
         &self.cors.origins
     }
 
-    pub fn elasticsearch_url(&self) -> &str {
-        &self.elasticsearch.url
-    }
-
-    pub fn elasticsearch_index(&self) -> &str {
-        &self.elasticsearch.index
-    }
-
-    pub fn elasticsearch_api_key(&self) -> Option<&str> {
-        self.elasticsearch
-            .api_key
-            .as_deref()
-            .filter(|s| !s.is_empty())
-    }
-
-    pub fn elasticsearch_username(&self) -> Option<&str> {
-        self.elasticsearch
-            .username
-            .as_deref()
-            .filter(|s| !s.is_empty())
-    }
-
-    pub fn elasticsearch_password(&self) -> Option<&str> {
-        self.elasticsearch
-            .password
-            .as_deref()
-            .filter(|s| !s.is_empty())
-    }
-
-    pub fn elasticsearch_cloud_id(&self) -> Option<&str> {
-        self.elasticsearch
-            .cloud_id
-            .as_deref()
-            .filter(|s| !s.is_empty())
-    }
-
-    pub fn elasticsearch_insecure(&self) -> bool {
-        self.elasticsearch.insecure
-    }
-
     pub fn captcha_enabled(&self) -> bool {
         self.auth.captcha.enabled
     }
@@ -1280,10 +1209,6 @@ impl Configure {
 
     pub fn gateway_upstream_timeout_ms(&self) -> u64 {
         self.gateway.upstream_timeout_ms.max(1)
-    }
-
-    pub fn gateway_usage_es_index(&self) -> &str {
-        &self.gateway.usage_es_index
     }
 
     pub fn gateway_audit_enabled(&self) -> bool {
