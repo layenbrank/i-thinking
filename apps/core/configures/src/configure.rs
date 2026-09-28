@@ -804,6 +804,7 @@ impl Configure {
     /// 服务身份令牌的密钥允许为空（= 端点关闭，见 [`Configure::gateway_service_token_secret`]），
     /// 但**半截配置**（配了时长却忘了密钥，或时长超出上限）一定是事故：
     /// 前者的表现是「令牌永远签不出来」，后者会让本该短命的凭据长期有效。
+    /// 生产下模板里的占位密钥同样直接拒（抄一份上线 = 公开 HMAC 密钥）。
     fn validate_gateway(&self) -> Result<()> {
         let gateway = &self.gateway;
         if !self.gateway_service_token_secret().is_empty()
@@ -813,6 +814,10 @@ impl Configure {
                 "gateway.service_token_ttl_secs must not exceed {SERVICE_TOKEN_MAX_TTL_SECS}: \
                  服务身份令牌是短期凭据"
             );
+        }
+        // 占位密钥在本机够用，但在生产等于把「伪造服务令牌」的能力公开。
+        if self.is_production() && is_placeholder_secret(self.gateway_service_token_secret()) {
+            bail!("gateway.service_token_secret must not use placeholder values in production");
         }
 
         Ok(())
@@ -1040,6 +1045,10 @@ impl Configure {
         }
         if self.ai_worker.token.trim().is_empty() {
             bail!("ai_worker.token is required：内部端点不接受匿名调用");
+        }
+        // 生产下这把令牌是「能不能烧配额」的开关，不能被模板里的占位值糊过去。
+        if self.is_production() && is_placeholder_secret(self.ai_worker.token.trim()) {
+            bail!("ai_worker.token must not use placeholder values in production");
         }
 
         Ok(())
@@ -1395,6 +1404,34 @@ mod tests {
         assert!(err.to_string().contains("security.secret"));
     }
 
+    /// 生产基线：`security.*` 换成真值，避免被 security 的占位检查先拦下。
+    fn production_baseline() -> Configure {
+        let mut cfg = Configure::default();
+        cfg.app.env = "production".into();
+        cfg.security.secret = "sY8wQ2nVt5rLk0dZb3xPm7aC".into();
+        cfg.security.jwt_secret = "Qd7tRn0kLc7dYb3xM8s2wvQ1Zp5tRn0kLc7dYb3x".into();
+        cfg
+    }
+
+    /// 模板里的占位凭据抄一份就上线，是最常见的翻车姿势（生产必须拒绝，本地必须放过）。
+    #[test]
+    fn validate_rejects_placeholder_gateway_secret_in_production() {
+        let mut cfg = production_baseline();
+        assert!(cfg.validate().is_ok(), "生产基线本身必须合法");
+
+        cfg.gateway.service_token_secret = "change-me-service-token-secret".into();
+        let err = cfg.validate().expect_err("占位服务令牌密钥在生产必须失败");
+        assert!(err.to_string().contains("gateway.service_token_secret"));
+
+        // 留空 = 服务身份面整体关闭（是明确选择），不算占位。
+        cfg.gateway.service_token_secret = String::new();
+        assert!(cfg.validate().is_ok());
+
+        cfg.app.env = "development".into();
+        cfg.gateway.service_token_secret = "change-me-service-token-secret".into();
+        assert!(cfg.validate().is_ok(), "非生产保留占位值必须能启动");
+    }
+
     #[test]
     fn validate_rejects_half_configured_wechat_pay() {
         let mut cfg = Configure::default();
@@ -1507,6 +1544,20 @@ mod tests {
         assert!(cfg.require_ai_worker_settings().is_err());
 
         cfg.ai_worker.token = "dev-internal-token".into();
+        assert!(cfg.require_ai_worker_settings().is_ok());
+    }
+
+    #[test]
+    fn require_ai_worker_settings_rejects_placeholder_token_in_production() {
+        let mut cfg = production_baseline();
+        cfg.ai_worker.base_url = "http://ai-worker:8081".into();
+        cfg.ai_worker.token = "change-me-internal-token".into();
+        let err = cfg
+            .require_ai_worker_settings()
+            .expect_err("占位内部令牌在生产必须失败");
+        assert!(err.to_string().contains("ai_worker.token"));
+
+        cfg.app.env = "development".into();
         assert!(cfg.require_ai_worker_settings().is_ok());
     }
 

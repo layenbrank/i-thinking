@@ -208,9 +208,11 @@ docker compose exec postgres psql -U machenike -d postgres -c 'SELECT datname FR
 2. `apps/core/.env` 里那三个凭据换成随机值（`openssl rand -base64 36`）：
    `POSTGRES_PASSWORD`、`AI_WORKER_INTERNAL_TOKEN`、`SERVICE_TOKEN_SECRET`。
    改 Postgres 密码后需 `ALTER USER` 或重建 `./data/postgres`。
-3. `CORE__SECURITY__SECRET` / `CORE__SECURITY__JWT_SECRET` 必须是真随机值：
-   生产下占位值（含 `change-me`、`your-` 前缀等）会被 `validate()` 直接拒绝启动；
-   空串也已被 `validate()` 拦下（`security.secret` / `security.jwt_secret` 都不允许为空）。
+3. `CORE__SECURITY__SECRET` / `CORE__SECURITY__JWT_SECRET` /
+   `CORE__GATEWAY__SERVICE_TOKEN_SECRET` 必须是真随机值：生产下占位值（含 `change-me`、
+   `your-` 前缀等）会被 `validate()` 直接拒绝启动，空串也已被拦下
+   （`security.secret` / `security.jwt_secret` 都不允许为空）。
+   `CORE__AI_WORKER__TOKEN` 的占位值由 `orchestrator` 启动时拒绝。
 4. `CORE__EVENTS__ENDPOINT` 不能为空：`worker` 二进制在 production 下启动即校验；
    留空等于让事件永远压在 outbox 里。
 5. `auth.captcha.enabled` 必须为 `true`、`otp.mock` 强制为 `false`（生产校验项，配置文件里已是安全值）。

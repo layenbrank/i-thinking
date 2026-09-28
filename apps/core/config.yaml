@@ -26,7 +26,9 @@ security:
   # 通用应用密钥（预留；生产环境禁止占位值，任何环境下都不允许为空，当前业务代码未直接读取）
   secret: change-me-secret
   # JWT 签发/校验密钥（signin 等返回的 token）；至少 32 字符，不允许为空
-  jwt_secret: bWQkgpKWScV@r7HoX#WBaEXrGLlUt%kTIO&%keKQVW#Js#QYwzzJ9dPDAPczT@sb
+  # 本机留占位值即可（改了会让已发出的 token 失效）；生产必须由
+  # CORE__SECURITY__JWT_SECRET 注入真随机值，占位值会被 validate() 拒绝启动
+  jwt_secret: change-me-jwt-secret-at-least-32-characters-long
   # 用户密码入库算法：argon2（推荐）| aes（仅开发/迁移，生产禁用）
   encryption: aes # argon2, aes
   # encryption=aes 时必填；AES-256 密钥，Base64 编码（cargo run --bin generate）
@@ -115,7 +117,8 @@ durable:
 ai_worker:
   base_url: http://127.0.0.1:8081
   # 与 ai-worker 侧的内部共享令牌一致（请求头 X-Internal-Token）
-  token: dev-internal-token
+  # 本机可改成自己的值；生产必须真随机，占位值会被 orchestrator 拒绝启动
+  token: change-me-internal-token
   timeout_ms: 30000
   # 默认直连内网终点：禁用系统/环境变量代理
   use_system_proxy: false

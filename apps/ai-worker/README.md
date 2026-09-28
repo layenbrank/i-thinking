@@ -112,7 +112,7 @@ uv run mypy
 
 | ai-worker 侧 | core 侧 | 说明 |
 | --- | --- | --- |
-| `AI_WORKER_INTERNAL_TOKEN` | `ai_worker.token` | 请求头 `X-Internal-Token` 的值（默认 `dev-internal-token`） |
+| `AI_WORKER_INTERNAL_TOKEN` | `ai_worker.token` | 请求头 `X-Internal-Token` 的值（core `config.yaml` 默认 `change-me-internal-token`；生产禁用占位值） |
 | `AI_WORKER_CORE_BASE_URL` | `server.port` | core 默认监听 3000（**不是** 8080，8080 是 gocaptcha 侧车） |
 | —— | `gateway.service_token_secret` | 必须显式给值：`config.yaml` 默认空串 = `/api/v1/service/**` 整体 503 |
 
@@ -134,7 +134,7 @@ uv run ai-worker                                 # :8081
 先看 ai-worker 自己活没活（`capabilities` 里应出现 `rag.chunk` / `rag.embed` / `rag.index`）：
 
 ```bash
-curl -s -H 'X-Internal-Token: dev-internal-token' http://127.0.0.1:8081/internal/v1/health
+curl -s -H 'X-Internal-Token: change-me-internal-token' http://127.0.0.1:8081/internal/v1/health
 ```
 
 再打一条真实的摄取链路。注意 `Idempotency-Key` 有 **8–200 字符**的长度约束，太短会得到 400；
@@ -144,7 +144,7 @@ curl -s -H 'X-Internal-Token: dev-internal-token' http://127.0.0.1:8081/internal
 
 ```bash
 ASSET=8f14e45f-ceea-467a-9a3e-1b7c2d5e9f01
-H=(-H 'X-Internal-Token: dev-internal-token'
+H=(-H 'X-Internal-Token: change-me-internal-token'
    -H 'Idempotency-Key: local-run-0001'
    -H "traceparent: 00-$(openssl rand -hex 16)-$(openssl rand -hex 8)-01"
    -H 'Content-Type: application/json')

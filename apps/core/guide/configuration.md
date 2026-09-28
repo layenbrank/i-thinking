@@ -27,7 +27,7 @@
 | `server.host`                         | `127.0.0.1`                        | 监听地址                                                       |
 | `server.port`                         | `3000`                             | 监听端口                                                       |
 | `database.url`                        | 见 `config.yaml`                   | PostgreSQL 连接串                                              |
-| `security.jwt_secret`                 | （占位）                           | JWT 签名，至少 32 字符，不允许为空                             |
+| `security.jwt_secret`                 | （占位）                           | JWT 签名，至少 32 字符，不允许为空；生产禁用占位值             |
 | `security.secret`                     | （占位）                           | 通用共享密钥；生产禁止占位值，任何环境下都不允许为空           |
 | `security.encryption`                 | `argon2`                           | `argon2` 或 `aes`（生产禁止 aes 存密码）                       |
 | `logging.dir`                         | `logs`                             | 日志目录                                                       |
@@ -68,7 +68,7 @@
 | `gateway.upstream_timeout_ms`         | `120000`                           | 上游模型流式读超时                                             |
 | `gateway.usage_es_index`              | `gateway_usage`                    | 用量事件写入的 ES 索引                                         |
 | `gateway.audit_enabled`               | `true`                             | 审计落库开关                                                   |
-| `gateway.service_token_secret`        | `''`                               | 服务身份面共享密钥（HMAC-SHA256）。**留空 = `/api/v1/service/**` 整体 503**；与 `security.jwt_secret` 分开 |
+| `gateway.service_token_secret`        | `''`                               | 服务身份面共享密钥（HMAC-SHA256）。**留空 = `/api/v1/service/**` 整体 503**；与 `security.jwt_secret` 分开；生产禁用占位值 |
 | `gateway.service_token_ttl_secs`      | `300`                              | 换出来的短期令牌有效期（秒），上限 3600                        |
 | `pay.order_ttl_secs`                  | `300`                              | 支付订单有效期（秒），超时自动关单                             |
 | `pay.plans`                           | `PRO`                              | 可售档位定价（`档位名 → {amount, duration_days, label}`），`amount` 单位为分；档位名须与 `gateway.plan_daily_token_quota` 同名 |
@@ -249,7 +249,7 @@ OOM、断电）时没人续期，租约到期后框架把这一步**重新投给
 | 字段                              | 默认值                   | 说明                                                       |
 | --------------------------------- | ------------------------ | ---------------------------------------------------------- |
 | `ai_worker.base_url`              | `""`                     | 内部调用基址，例如 `http://127.0.0.1:8081`                  |
-| `ai_worker.token`                 | `""`                     | 内部共享令牌，请求头 `X-Internal-Token`                     |
+| `ai_worker.token`                 | `""`                     | 内部共享令牌，请求头 `X-Internal-Token`；生产禁用占位值（orchestrator 启动即校验） |
 | `ai_worker.timeout_ms`            | `30000`                  | 单次调用超时；**一步 = 一次调用**，超时即失败并交给活动重试 |
 | `ai_worker.use_system_proxy`      | `false`                  | 默认直连，别让本机系统代理（如 `127.0.0.1:7892`）拦内网地址 |
 | `ai_worker.embed_batch_size`      | `16`                     | 一次嵌入活动处理的块数；越小则崩溃后重跑越省，历史越长      |
@@ -340,5 +340,7 @@ docker compose up -d postgres
 
 1. 设置 `APP_ENV=production`（或 `config.production.yaml` + `app.env: production`）
 2. 通过 `config.local.yaml` 或部署平台注入 `security.*`、`database.url`；
-   `security.secret` / `security.jwt_secret` 为空或仍是占位值都会被 `validate()` 拒绝启动
+   四把共享密钥/密码都不许用模板里的占位值（`change-me-*`、`your-` 前缀等）：
+   `security.secret` / `security.jwt_secret` 为空或仍是占位值会被 `validate()` 拒绝启动，
+   `gateway.service_token_secret`（`validate()`）与 `ai_worker.token`（`orchestrator` 启动）同理
 3. 生产环境 `auth.otp.mock` 自动为 `false`
