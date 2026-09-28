@@ -1,4 +1,4 @@
-"""回打 core 的客户端：换令牌、读资产正文、以及错误映射。
+"""回打 core 的客户端：换令牌、读资产正文、借网关算嵌入与对话，以及错误映射。
 
 错误映射是这里最要紧的部分——它的口径是「core 能不能重试」：请求本身不对就回 400 让 core
 别再试，暂时性的问题回 503/429 让 core 重试。映射错了会表现为「core 无限重试一个永远失败的请求」
@@ -16,9 +16,11 @@ import pytest
 
 from ai_worker import errors, trace
 from ai_worker.core_client import (
+    CHAT_PATH,
     EMBEDDINGS_PATH,
     INTERNAL_TOKEN_HEADER,
     SCOPE_ASSET_READ,
+    SCOPE_CHAT,
     SCOPE_EMBEDDINGS,
     SERVICE_TOKEN_HEADER,
     SERVICE_TOKEN_PATH,
@@ -147,15 +149,34 @@ async def test_asset_content_uses_the_scoped_token(make_core: MakeCore) -> None:
         if request.url.path == SERVICE_TOKEN_PATH:
             return httpx.Response(200, json=token_body())
         seen.append(request)
-        return httpx.Response(200, content=b"hello bytes")
+        return httpx.Response(
+            200, content=b"hello bytes", headers={"Content-Type": "application/pdf"}
+        )
 
     client: CoreClient = make_core(handler)
 
-    data = await client.asset_content(tenant_id=TENANT, asset_id=ASSET, max_bytes=1024)
+    content = await client.asset_content(tenant_id=TENANT, asset_id=ASSET, max_bytes=1024)
 
-    assert data == b"hello bytes"
+    assert content.data == b"hello bytes"
+    # MIME 只能信响应头：调用方以为的 mime 与资产真实的 mime 可能不是一回事。
+    assert content.mime == "application/pdf"
     assert (seen[0].method, seen[0].url.path) == ("GET", CONTENT_PATH)
     assert seen[0].headers[SERVICE_TOKEN_HEADER] == f"tok-{SCOPE_ASSET_READ}"
+
+
+async def test_asset_content_tolerates_a_missing_content_type(make_core: MakeCore) -> None:
+    """没有 `Content-Type` 时给空串：抽取器会自己判「不支持」，而不是在这里猜一个类型。"""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == SERVICE_TOKEN_PATH:
+            return httpx.Response(200, json=token_body())
+        return httpx.Response(200, content=b"raw")
+
+    client: CoreClient = make_core(handler)
+
+    content = await client.asset_content(tenant_id=TENANT, asset_id=ASSET, max_bytes=1024)
+
+    assert content.mime == ""
 
 
 async def test_asset_content_above_the_limit_is_a_request_error(make_core: MakeCore) -> None:
@@ -371,3 +392,106 @@ async def test_embedding_tokens_are_not_shared_across_models(make_core: MakeCore
     await client.embeddings(tenant_id=TENANT, model="another-model", inputs=["a"])
 
     assert [body["model"] for body in minted] == [MODEL, "another-model"]
+
+
+CHAT_MODEL = "gpt-4o-mini"
+MESSAGES: list[dict[str, Any]] = [{"role": "user", "content": "你好"}]
+TOOLS: list[dict[str, Any]] = [
+    {"type": "function", "function": {"name": "knowledge_search", "parameters": {}}}
+]
+
+
+async def test_chat_request_matches_the_gateway_contract(make_core: MakeCore) -> None:
+    """对话走 `scope=chat` + `model` 的令牌，报文是 OpenAI 线格式的原样透传。"""
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == SERVICE_TOKEN_PATH:
+            return httpx.Response(200, json=token_body(scope=SCOPE_CHAT, model=CHAT_MODEL))
+        return httpx.Response(200, json={"choices": [{"message": {"role": "assistant"}}]})
+
+    client: CoreClient = make_core(handler)
+
+    payload = await client.chat(tenant_id=TENANT, model=CHAT_MODEL, messages=MESSAGES, tools=TOOLS)
+
+    assert payload == {"choices": [{"message": {"role": "assistant"}}]}  # 裸 JSON，不套信封
+    token_request, chat_request = requests
+    assert json.loads(token_request.content) == {
+        "tenantID": TENANT,
+        "scope": SCOPE_CHAT,
+        "model": CHAT_MODEL,
+    }
+    assert (chat_request.method, chat_request.url.path) == ("POST", CHAT_PATH)
+    assert chat_request.headers[SERVICE_TOKEN_HEADER] == f"tok-{SCOPE_CHAT}"
+    assert json.loads(chat_request.content) == {
+        "model": CHAT_MODEL,
+        "messages": MESSAGES,
+        "tools": TOOLS,
+    }
+
+
+async def test_chat_omits_tools_when_there_are_none(make_core: MakeCore) -> None:
+    """没有工具时**不要**发一个空数组：有些上游把空 `tools` 当成非法参数直接 400。"""
+    bodies: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == SERVICE_TOKEN_PATH:
+            return httpx.Response(200, json=token_body(scope=SCOPE_CHAT, model=CHAT_MODEL))
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={"choices": []})
+
+    client: CoreClient = make_core(handler)
+
+    await client.chat(tenant_id=TENANT, model=CHAT_MODEL, messages=MESSAGES)
+    await client.chat(tenant_id=TENANT, model=CHAT_MODEL, messages=MESSAGES, tools=[])
+
+    assert [sorted(body) for body in bodies] == [["messages", "model"], ["messages", "model"]]
+
+
+@pytest.mark.parametrize(
+    ("core_status", "expected_status", "expected_code"),
+    [
+        (400, 400, errors.ErrorCode.INVALID_REQUEST),
+        (401, 503, errors.ErrorCode.DEPENDENCY_UNAVAILABLE),
+        (429, 429, errors.ErrorCode.RATE_LIMITED),
+        (503, 503, errors.ErrorCode.DEPENDENCY_UNAVAILABLE),
+    ],
+)
+async def test_chat_errors_are_mapped_by_retryability(
+    make_core: MakeCore, core_status: int, expected_status: int, expected_code: errors.ErrorCode
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == SERVICE_TOKEN_PATH:
+            return httpx.Response(200, json=token_body(scope=SCOPE_CHAT, model=CHAT_MODEL))
+        return core_error(core_status, retry_after="7" if core_status == 429 else None)
+
+    client: CoreClient = make_core(handler)
+
+    with pytest.raises(errors.ApiError) as raised:
+        await client.chat(tenant_id=TENANT, model=CHAT_MODEL, messages=MESSAGES)
+
+    assert raised.value.status == expected_status
+    assert raised.value.code is expected_code
+
+
+async def test_chat_and_embedding_tokens_are_not_interchangeable(make_core: MakeCore) -> None:
+    """受众不同就是两枚令牌：共用会让审计把「对话」记到「嵌入」上，作用域也互相越权。"""
+    scopes: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == SERVICE_TOKEN_PATH:
+            body: dict[str, Any] = json.loads(request.content)
+            scopes.append(str(body["scope"]))
+            return httpx.Response(
+                200, json=token_body(scope=str(body["scope"]), model=str(body["model"]))
+            )
+        return httpx.Response(200, json={"data": [{"index": 0, "embedding": [0.5]}]})
+
+    client: CoreClient = make_core(handler)
+
+    await client.chat(tenant_id=TENANT, model=MODEL, messages=MESSAGES)
+    await client.embeddings(tenant_id=TENANT, model=MODEL, inputs=["a"])
+    await client.chat(tenant_id=TENANT, model=MODEL, messages=MESSAGES)
+
+    assert scopes == [SCOPE_CHAT, SCOPE_EMBEDDINGS]

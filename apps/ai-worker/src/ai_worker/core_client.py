@@ -1,14 +1,15 @@
-"""回打 core 的客户端：换服务令牌 + 读资产正文。
+"""回打 core 的客户端：换服务令牌 + 读资产正文 + 借 core 的网关算嵌入与对话。
 
 ai-worker 是叶子进程：不直连模型厂商、不碰 core 的对象存储布局、不持长期云凭据。
 要算力或要字节，只能回打 core 的服务身份面（语义见
 `apps/core/src/services/gateway/README.md#服务身份apiv1service`）。两道门：
 
 1. `POST /api/v1/service/token`，头 `X-Internal-Token`（值 = core 的 `ai_worker.token`）
-   → 换一枚**带作用域**的短期令牌（`scope=asset-read` + `assetID`，
-   或 `scope=embeddings` + `model`）；
+   → 换一枚**带作用域**的短期令牌（`scope=asset-read` + `assetID`、
+   `scope=embeddings` + `model`，或 `scope=chat` + `model`）；
 2. 拿这枚令牌去消费：内容端点用 `X-Service-Token`，嵌入端点是
-   `POST /api/v1/service/embeddings`（响应是上游的**裸 JSON**，不套统一信封）。
+   `POST /api/v1/service/embeddings`，对话端点是
+   `POST /api/v1/service/chat/completions`（两者的响应都是上游的**裸 JSON**，不套统一信封）。
 
 令牌**必须缓存**：core 的配额与审计都记在出网调用上，但换令牌本身不便宜
 （要查租户、查资产可读性），按 `(scope, tenantID, assetID, model)` 缓存并在过期前
@@ -23,7 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, NoReturn
@@ -41,9 +42,11 @@ SERVICE_TOKEN_HEADER = "X-Service-Token"  # noqa: S105 - HTTP 头名，不是密
 SERVICE_TOKEN_PATH = "/api/v1/service/token"  # noqa: S105 - 路径常量，不是密钥
 ASSET_CONTENT_PATH = "/api/v1/service/assets/{asset_id}/content"
 EMBEDDINGS_PATH = "/api/v1/service/embeddings"
+CHAT_PATH = "/api/v1/service/chat/completions"
 
 SCOPE_ASSET_READ = "asset-read"
 SCOPE_EMBEDDINGS = "embeddings"
+SCOPE_CHAT = "chat"
 
 _READ_CHUNK_BYTES = 64 * 1024
 
@@ -62,6 +65,20 @@ class ServiceToken:
 
     def expires_at_datetime(self) -> datetime:
         return datetime.fromtimestamp(self.expires_at, tz=UTC)
+
+
+@dataclass(frozen=True, slots=True)
+class AssetContent:
+    """资产正文与它自报的类型。
+
+    `mime` 取自响应头（core 的内容端点用 `asset.mime` 当 `Content-Type`），
+    **不能**用请求里带的那个值顶替：读一个「调用方以为是 text/plain」的 PDF 时，
+    选错抽取器会得到一堆乱码而不是一个明确的 400。带 `; charset=` 也照收，
+    `rag_ingest.extract` 自己会归一化。
+    """
+
+    data: bytes
+    mime: str
 
 
 class CoreClient:
@@ -85,8 +102,8 @@ class CoreClient:
     async def close(self) -> None:
         await self._client.aclose()
 
-    async def asset_content(self, *, tenant_id: str, asset_id: str, max_bytes: int) -> bytes:
-        """取资产原始字节。超限直接判为请求问题（不重试），因为重试也只会再超一次。"""
+    async def asset_content(self, *, tenant_id: str, asset_id: str, max_bytes: int) -> AssetContent:
+        """取资产原始字节与它的 MIME。超限直接判为请求问题（不重试），因为重试也只会再超一次。"""
         token = await self.service_token(
             tenant_id=tenant_id, scope=SCOPE_ASSET_READ, asset_id=asset_id
         )
@@ -99,6 +116,7 @@ class CoreClient:
         ):
             if response.status_code >= 400:
                 await self._raise_for_status(response, action=f"读取资产 {asset_id} 内容")
+            mime = response.headers.get("content-type", "")
             chunks: list[bytes] = []
             size = 0
             async for chunk in response.aiter_bytes(_READ_CHUNK_BYTES):
@@ -108,7 +126,7 @@ class CoreClient:
                     raise errors.invalid_request(message)
                 chunks.append(chunk)
 
-        return b"".join(chunks)
+        return AssetContent(data=b"".join(chunks), mime=mime)
 
     async def embeddings(self, *, tenant_id: str, model: str, inputs: Sequence[str]) -> Any:
         """算一批文本的嵌入，返回上游的**裸 JSON**（OpenAI 形状，`data[].embedding`）。
@@ -129,6 +147,37 @@ class CoreClient:
             json={"model": model, "input": list(inputs)},
             headers=self._headers(service_token=token),
             action=f"计算 {len(inputs)} 条文本的嵌入",
+        )
+        return response.json()
+
+    async def chat(
+        self,
+        *,
+        tenant_id: str,
+        model: str,
+        messages: Sequence[Mapping[str, Any]],
+        tools: Sequence[Mapping[str, Any]] | None = None,
+    ) -> Any:
+        """借 core 的网关调一次对话模型，返回上游的**裸 JSON**（OpenAI 形状）。
+
+        `messages` / `tools` 都按 OpenAI 线格式**原样透传**：core 的网关不做语义改写
+        （它只做受众校验、非流式强制与计量），所以这里能收到的 `choices[0].message`
+        与厂商给的形状一致，工具调用轮次的形状校验交给
+        `ai_worker.agent_runtime.dialogue`。
+
+        `model` 与 `embeddings` 一样只是**自检**：core 用令牌作用域里的模型覆盖请求体，
+        传错了会在 core 侧 400，而不是悄悄换成另一个模型。
+        """
+        token = await self.service_token(tenant_id=tenant_id, scope=SCOPE_CHAT, model=model)
+        payload: dict[str, object] = {"model": model, "messages": list(messages)}
+        if tools:
+            payload["tools"] = list(tools)
+        response = await self._request(
+            "POST",
+            CHAT_PATH,
+            json=payload,
+            headers=self._headers(service_token=token),
+            action="执行一步对话模型调用",
         )
         return response.json()
 

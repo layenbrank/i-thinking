@@ -54,6 +54,8 @@ tags:
     description: 健康与能力自述
   - name: rag
     description: RAG 索引（分块 → 嵌入 → 落索引）
+  - name: agent
+    description: 服务端智能体（单步推理 + 只读工具）
 
 paths:
   /internal/v1/health:
@@ -196,6 +198,64 @@ paths:
         '503':
           $ref: '#/components/responses/DependencyUnavailable'
 
+  /internal/v1/agents/steps:
+    post:
+      operationId: internalAgentStep
+      tags: [agent]
+      summary: 服务端智能体的**一步**（一次推理 + 至多一轮只读工具）
+      description: |
+        多轮循环的宿主是 core 的可靠执行（一个步骤一个活动），这里只做**无状态的一步**：
+        拿到「目标 + 到上一步为止的历史」，调一次对话模型，若模型要求调工具就把工具跑掉，
+        把结果原样交回 core。**循环、状态、历史都在 core**——所以本端点没有对话会话概念，
+        同一步骤重投必须收敛为同一个结果（幂等键 = `<实例 id>:<步骤>`）。
+
+        模型自己不出网：这里用 `scope=chat` 的服务身份令牌回打 core 的
+        `POST /api/v1/service/chat/completions`（core 是唯一出网点与唯一计量点），
+        检索时用 `scope=embeddings` 的令牌调 core 的 `POST /api/v1/service/embeddings`。
+        本进程里没有 API Key，也没有厂商 base_url 配置，换不了别的用途。
+
+        **工具只能读**（`knowledge_search` 检索本租户已索引的块、`asset_read` 读单个资产
+        正文）：写操作、发消息、改状态一律不进本阶段。没有任意 HTTP 取数工具（SSRF）。
+        `allowedTools` 是 core 给的**白名单**，不在名单里的工具名模型给了也不执行，
+        记为一条失败的工具结果喂回模型（让它自己改口），而不是把整个步骤判失败。
+
+        失败面的分界是「重试有没有意义」：
+
+        * **工具失败是正常流程**：参数 JSON 不合法、未知工具名、资产不存在、正文抽不出文本
+          ——都回一条 `ok=false` 的 `AgentToolResult`，让模型自己纠错，整个步骤仍然是 200；
+        * **只有暂时性故障才回 429 / 503**（core 限流、模型或向量库不可用），交给 core 的活动级
+          重试；4xx 不可重试（参数不合法、白名单词汇不认识等）。
+
+        能力自述：`agent.step` 是本端点；`rag.search` 是本步内部用的检索面
+        （向量相似度走 ai-worker 自己的 pgvector），它**不单独开端点**，只作为工具被本步骤调用。
+      parameters:
+        - $ref: '#/components/parameters/InternalToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Traceparent'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentStepRequest'
+      responses:
+        '200':
+          description: 这一步完成了（含「模型要求了一次失败的工具调用」这种正常结果）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentStepResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+
 components:
   parameters:
     AssetID:
@@ -295,7 +355,9 @@ components:
           type: array
           items:
             type: string
-          description: 自述能力清单，例如 `["rag.chunk", "rag.embed", "rag.index"]`。
+          description: |
+            自述能力清单（不只是端点，也含只被编排内部调用的能力）：
+            `["rag.chunk", "rag.embed", "rag.index", "agent.step", "rag.search"]`。
 
     ChunkRequest:
       type: object
@@ -402,3 +464,143 @@ components:
         collection:
           type: string
           description: 索引集合名（排障与审计用）。
+
+    AgentStepRequest:
+      type: object
+      required: [schemaVersion, tenantID, objective, model, embedModel]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        tenantID:
+          type: string
+          description: 租户 id；本步的全部检索与读资产都只在这个租户范围内进行。
+        objective:
+          type: string
+          description: 任务的原始目标（自然语言）。只有第一步（`history` 为空）用它起头。
+        model:
+          type: string
+          description: 对话模型，由 core 指定（core 的 gateway 是唯一出网点与计量点）。
+        embedModel:
+          type: string
+          description: |
+            检索用的嵌入模型。必须与 `rag.index` 落库时用的 `model` 一致——
+            向量空间不同算不出可比的相似度，所以这是 core 的责任，不是这里猜的。
+        history:
+          type: array
+          description: |-
+            到上一步为止的对话历史；缺失或空数组表示这是第一步。
+            **不要放 `role=system` 的消息**：系统提示词由 ai-worker 每步自己前置，
+            core 塞一条进来会变成重复/冲突指令，服务端会直接判 400。
+          items:
+            $ref: '#/components/schemas/AgentMessage'
+        allowedTools:
+          type: array
+          description: |
+            本步允许调用的**只读**工具名白名单（词汇：`knowledge_search` / `asset_read`）。
+            空数组 = 不给工具，只要一条结论。
+          items:
+            type: string
+        remainingSteps:
+          type: integer
+          minimum: 0
+          description: |
+            预算：还剩几步（含本步）。小于等于 1 时本步不再提供工具——
+            模型必须给出结论，否则 core 就会在下一次调用上撞到硬止损。
+
+    AgentStepResponse:
+      type: object
+      required: [schemaVersion, finished, message, toolResults, usage]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        finished:
+          type: boolean
+          description: |
+            当且仅当 `message.toolCalls` 为空时为 true —— 模型没有再要工具，core 据此收尾。
+            本阶段没有别的收尾途径（没有「结束」工具，也没有人在环审批）。
+        message:
+          $ref: '#/components/schemas/AgentMessage'
+        toolResults:
+          type: array
+          description: 本步每次工具调用的结果，与 `message.toolCalls` 一一对应（同序）。
+          items:
+            $ref: '#/components/schemas/AgentToolResult'
+        usage:
+          $ref: '#/components/schemas/AgentUsage'
+
+    AgentMessage:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant, tool]
+        content:
+          type: string
+          description: 文本内容；要求了工具的 assistant 消息可以没有文本。
+        toolCalls:
+          type: array
+          description: 只有 `role=assistant` 会有；模型要求调用的工具（可能为空数组）。
+          items:
+            $ref: '#/components/schemas/AgentToolCall'
+        toolCallID:
+          type: string
+          description: 只有 `role=tool` 会有；指回它所回应的那次调用。
+
+    AgentToolCall:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          description: 模型给的调用 id（回灌结果时按它对齐）。
+        name:
+          type: string
+          description: 工具名（`knowledge_search` / `asset_read`）。
+        arguments:
+          type: string
+          description: |
+            参数对象 **JSON 字符串**（`"{\"query\":\"…\"}"`）：这就是 OpenAI 工具调用的线格式，
+            所以 core 不需要在中间反序列化再序列化一遍，历史可以整条原样回灌。
+            解析失败不算服务故障——见 `AgentToolResult.ok`。
+        toolCallType:
+          type: string
+          description: 上游字段 `type`（固定 `function`），照抄不改写。
+
+    AgentToolResult:
+      type: object
+      required: [toolCallID, name, ok, content]
+      properties:
+        toolCallID:
+          type: string
+          description: 对应 `AgentToolCall.id`。
+        name:
+          type: string
+        ok:
+          type: boolean
+          description: 工具是否真的执行成功。false 也是**正常结果**（模型会读到 `content` 里的原因）。
+        content:
+          type: string
+          description: |
+            交给模型读的结果文本（失败时是失败原因）。已按服务端配置截断（超长结果只留头部
+            与说明），否则一次工具调用就能把上下文撑爆。
+        error:
+          type: string
+          description: 失败时的稳定机器码（只进 core 的日志与审计，不喂模型）；成功时为空。
+
+    AgentUsage:
+      type: object
+      required: [promptTokens, completionTokens, totalTokens]
+      properties:
+        promptTokens:
+          type: integer
+          minimum: 0
+        completionTokens:
+          type: integer
+          minimum: 0
+        totalTokens:
+          type: integer
+          minimum: 0
+          description: 上游没给用量时三个值都是 0（不编造）。

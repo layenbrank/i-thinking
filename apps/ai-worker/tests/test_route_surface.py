@@ -6,6 +6,10 @@ core 只会看到一次莫名的失败重试。
 
 规则：**已登记的能力必须真的有路由**（否则测试红），且**不许有契约之外的路由**
 （否则就是绕过契约开了个后门）。所以 P6b-3/P6b-4 登记能力时，这里会自动跟着收紧。
+
+一个例外是**空集**：`rag.search` 是 agent 步内部用的检索面，按设计不单独开端点
+（检索只能作为模型的一次工具调用发生），所以它的路由集是空的——空集是声明，
+不是漏写，`test_registered_capabilities_have_their_routes` 照样会检查它被认领过。
 """
 
 from __future__ import annotations
@@ -28,10 +32,14 @@ SPEC_PATH = Path(__file__).resolve().parents[2] / "core" / "spec" / "internal.ya
 BASELINE_ROUTES = {("GET", HEALTH_PATH)}
 
 #: 能力名 → 该能力落地时必须存在的路由。与 `capabilities.registry` 的取值一一对应。
+#: **空集不是漏写**：`rag.search` 是 agent 步内部用的检索面，按设计不暴露端点
+#: （见 `agent_runtime/__init__.py`），所以它只出现在能力登记表里。
 CAPABILITY_ROUTES: dict[str, set[tuple[str, str]]] = {
     "rag.chunk": {("POST", "/internal/v1/assets/{}/chunks")},
     "rag.embed": {("POST", "/internal/v1/assets/{}/embeddings")},
     "rag.index": {("PUT", "/internal/v1/assets/{}/index")},
+    "rag.search": set(),
+    "agent.step": {("POST", "/internal/v1/agents/steps")},
 }
 
 _PATH_PARAM = re.compile(r"\{[^}]*\}")
@@ -111,7 +119,7 @@ def test_every_contract_path_is_accounted_for() -> None:
 
 def test_capability_route_mapping_matches_registry_vocabulary() -> None:
     """能力名的拼写必须两边一致——它出现在健康探针的响应里，是契约的一部分。"""
-    documented = {"rag.chunk", "rag.embed", "rag.index"}
+    documented = {"rag.chunk", "rag.embed", "rag.index", "rag.search", "agent.step"}
 
     assert set(CAPABILITY_ROUTES) == documented
     assert set(capabilities.registry.names()) <= documented

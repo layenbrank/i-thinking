@@ -5,7 +5,8 @@
 
 * P6b-2：空表（只有骨架）；
 * P6b-3：`rag.chunk`；
-* P6b-4：`rag.embed`、`rag.index`。
+* P6b-4：`rag.embed`、`rag.index`；
+* P9b：`agent.step`（一步推理 + 只读工具）、`rag.search`（只被 agent 步内部调用的检索面）。
 
 登录点在各能力包的 `__init__.py` 里（由 [`ai_worker.app.create_app`] 导入触发），
 `implemented_in` 记录归属，排查时不用再猜这个能力住哪。

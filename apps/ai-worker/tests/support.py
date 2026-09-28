@@ -15,6 +15,7 @@ from httpx import AsyncClient
 
 from ai_worker.config import Settings
 from ai_worker.core_client import (
+    CHAT_PATH,
     EMBEDDINGS_PATH,
     SCOPE_ASSET_READ,
     SERVICE_TOKEN_PATH,
@@ -158,11 +159,15 @@ class RagStub:
         content: bytes = b"",
         *,
         content_status: int = 200,
+        content_type: str | None = None,
         dimensions: int | Callable[[int], int] = 8,
         embedding_response: Callable[[list[str], int], Any] | None = None,
     ) -> None:
         self.content = content
         self.content_status = content_status
+        #: 正文响应里的 `Content-Type`。**默认不给**（旧的用例据此验证「mime 缺失」的路径）；
+        #: 但 `asset_read` 这种以响应头为准的用例必须设它，否则抽取器无从选择。
+        self.content_type = content_type
         self.dimensions = dimensions
         self.embedding_response = embedding_response
         self.paths: list[str] = []
@@ -180,7 +185,11 @@ class RagStub:
             return core_error(
                 self.content_status, retry_after="7" if self.content_status == 429 else None
             )
-        return httpx.Response(200, content=self.content)
+        return httpx.Response(
+            200,
+            content=self.content,
+            headers={"Content-Type": self.content_type} if self.content_type else None,
+        )
 
     def _token(self, request: httpx.Request) -> httpx.Response:
         body: dict[str, Any] = json.loads(request.content)
@@ -218,6 +227,91 @@ class RagStub:
     def embedded_texts(self) -> list[str]:
         """所有被送去嵌入的文本，按调用顺序摊平。"""
         return [text for batch in self.embed_inputs for text in batch]
+
+
+def completion(
+    content: str | None = None,
+    *,
+    tool_calls: list[dict[str, Any]] | None = None,
+    usage: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    """上游对话响应（OpenAI 形状）。`tool_calls` 非空时 `finish_reason` 也跟着变。"""
+    message: dict[str, Any] = {"role": "assistant", "content": content}
+    if tool_calls:
+        message["tool_calls"] = tool_calls
+    return {
+        "id": "chatcmpl-stub",
+        "object": "chat.completion",
+        "model": "stub",
+        "choices": [
+            {
+                "index": 0,
+                "message": message,
+                "finish_reason": "tool_calls" if tool_calls else "stop",
+            }
+        ],
+        "usage": usage or {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18},
+    }
+
+
+def tool_call(
+    name: str = "knowledge_search",
+    arguments: Any = '{"query":"退款政策"}',
+    *,
+    call_id: str = "call-1",
+    kind: str = "function",
+) -> dict[str, Any]:
+    """一次工具调用。`arguments` 故意是 `Any`：真实上游偶尔会直接给对象。"""
+    return {
+        "id": call_id,
+        "type": kind,
+        "function": {"name": name, "arguments": arguments},
+    }
+
+
+class AgentStub(RagStub):
+    """`RagStub` + 对话端点：`replies` 按**调用序号**依次消费（用尽后再被调用就是测试写漏了）。
+
+    记录 `chat_bodies`（原始请求体）而不是解析后的结构：断言要能看见「我们真发给上游什么」，
+    包括 `tools[]` 的形状与 `messages` 的翻译结果。
+    """
+
+    def __init__(
+        self,
+        content: bytes = b"",
+        *,
+        replies: Sequence[dict[str, Any]] | None = None,
+        chat_status: int = 200,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(content, **kwargs)
+        self.replies: list[dict[str, Any]] = list(replies or [])
+        self.chat_status = chat_status
+        self.chat_bodies: list[dict[str, Any]] = []
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        if request.url.path == CHAT_PATH:
+            self.paths.append(request.url.path)
+            return self._chat(request)
+        return super().__call__(request)
+
+    def _chat(self, request: httpx.Request) -> httpx.Response:
+        self.chat_bodies.append(json.loads(request.content))
+        if self.chat_status != 200:
+            return core_error(
+                self.chat_status, retry_after="7" if self.chat_status == 429 else None
+            )
+        if not self.replies:
+            raise AssertionError("AgentStub 的回复用完了：用例少准备了一条 reply")
+        return httpx.Response(200, json=self.replies.pop(0))
+
+    @property
+    def chat_calls(self) -> int:
+        return len(self.chat_bodies)
+
+    @property
+    def last_chat(self) -> dict[str, Any]:
+        return self.chat_bodies[-1]
 
 
 #: 向量与索引用例的默认归属：任意 UUID 即可，只要各文件保持一致。
@@ -279,6 +373,46 @@ async def save_embeddings(
                 dimensions=len(vector),
                 items=[(ordinal, vector)],
             )
+
+
+async def seed_indexed_asset(
+    database: Database,
+    *,
+    chunk_set_id: str,
+    texts: Sequence[str],
+    model: str,
+    tenant_id: str = TENANT_ID,
+    asset_id: str = ASSET_ID,
+    dimensions: int = 8,
+) -> store.ChunkSet:
+    """造一个**可检索**的资产：块集 + 向量 + 索引行（向量由 `embedding_vector` 确定性算出）。
+
+    检索用例必须能自己控制「哪一块最相近」：查询文本与某个块的文本一致时余弦距离为 0，
+    所以「取回来的第一条是不是期望那块」是确定性的，不依赖任何模型行为。
+    """
+    chunk_set = await seed_chunk_set(
+        database, chunk_set_id=chunk_set_id, texts=texts, tenant_id=tenant_id, asset_id=asset_id
+    )
+    await save_embeddings(
+        database,
+        chunk_set_id=chunk_set_id,
+        items=[(ordinal, embedding_vector(text, dimensions)) for ordinal, text in enumerate(texts)],
+        model=model,
+    )
+    async with database.acquire() as connection:
+        await store.save_index(
+            connection,
+            entry=store.IndexEntry(
+                tenant_id=tenant_id,
+                asset_id=UUID(asset_id),
+                chunk_set_id=UUID(chunk_set_id),
+                model=model,
+                dimensions=dimensions,
+                chunk_count=len(texts),
+                collection=f"stub-{tenant_id}",
+            ),
+        )
+    return chunk_set
 
 
 async def stored_vectors(

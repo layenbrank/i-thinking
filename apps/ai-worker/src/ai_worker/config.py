@@ -86,6 +86,14 @@ class Settings(BaseSettings):
     #: 幂等区间，这里只在单个区间内部再切，避免一条区间（可能上千块）压成一次超大请求。
     embed_batch_size: int = Field(default=64, ge=1)
 
+    #: 智能体一步里最多真正执行几次工具调用。超出的调用不执行、只回一条失败结果：
+    #: 模型偶尔会一口气要十个工具，串行跑完会让这一步的耗时不可预测（而 core 的活动超时
+    #: 是固定的），所以宁可让模型下一轮再补。
+    agent_max_tool_calls_per_step: int = Field(default=8, ge=1)
+    #: 单条工具结果喂回模型前的字符上限。检索一次可能命中几十块，不截断的话一步就能把
+    #: 上下文撑爆（代价是下一次调用更贵、更容易被上游拒）。
+    agent_tool_result_max_chars: int = Field(default=8000, ge=1)
+
     @field_validator("internal_token", "database_url", "core_base_url")
     @classmethod
     def _strip(cls, value: str) -> str:

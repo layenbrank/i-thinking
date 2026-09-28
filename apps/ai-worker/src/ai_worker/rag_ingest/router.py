@@ -134,7 +134,7 @@ async def _build(
         asset_id=str(asset_id),
         max_bytes=settings.asset_max_bytes,
     )
-    extracted = extract.extract(data, mime=body.mime, name=body.name)
+    extracted = extract.extract(data.data, mime=body.mime, name=body.name)
     plan = chunking.split(extracted.text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     if not plan.chunks:
@@ -144,14 +144,14 @@ async def _build(
             asset_id,
             body.mime,
             extracted.extractor,
-            len(data),
+            len(data.data),
         )
 
     return _Document(
         plan=plan,
         text_sha=hashlib.sha256(extracted.text.encode("utf-8")).hexdigest(),
         extractor=extracted.extractor,
-        source_bytes=len(data),
+        source_bytes=len(data.data),
     )
 
 
