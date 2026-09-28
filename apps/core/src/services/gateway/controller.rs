@@ -7,6 +7,7 @@
 
 use std::sync::Arc;
 
+use actix_web::http::header::{ContentDisposition, DispositionParam, DispositionType};
 use actix_web::{HttpRequest, HttpResponse, Result, web};
 use entity::tenant;
 use identity::{Principal, TenantId};
@@ -25,11 +26,13 @@ use crate::guards::session::Session;
 use crate::guards::tenant::{TenantCtx, TenantScope};
 use crate::interceptors::envelope::{Envelope, Paginated};
 use crate::services::gateway::client::Upstream;
+use crate::services::gateway::render;
 use crate::services::gateway::schema::{
-    AuditFilter, AuditQueryP, ChatCompletionsP, EmbeddingsP, ModelUpdateP, ModelWriteP,
-    ProviderUpdateP, ProviderWriteP, SelfQuotaP, ServiceTokenP, ServiceTokenR, UsageQueryP,
+    AuditExportFormat, AuditExportP, AuditFilter, AuditQueryP, ChatCompletionsP, EmbeddingsP,
+    ModelUpdateP, ModelWriteP, ProviderUpdateP, ProviderWriteP, SelfQuotaP, ServiceTokenP,
+    ServiceTokenR, UsageQueryP,
 };
-use crate::services::gateway::service::{GatewayError, GatewayService};
+use crate::services::gateway::service::{AuditExport, GatewayError, GatewayService};
 use crate::services::gateway::service_token::{self, Audience};
 use crate::services::upload::service::UploadService;
 use crate::utils::code::{external, system};
@@ -537,6 +540,55 @@ impl GatewayController {
         })
         .await
     }
+
+    /// 审计导出：与列表同一组过滤条件，输出**原始文件字节**而不是 JSON 信封
+    /// （`Content-Disposition: attachment`，浏览器直接落盘）。
+    ///
+    /// 命中 0 行不是 404：窗口内没有事件是合法结果，此时 CSV 只有表头。让空结果报错，
+    /// 排查脚本会把「真的没发生」误判成「导出坏了」。
+    pub async fn audit_export(
+        db: web::Data<Arc<Storage>>,
+        http: HttpRequest,
+        query: web::Query<AuditExportP>,
+    ) -> Result<HttpResponse> {
+        let _ = session(&http)?;
+        let format = query.format.unwrap_or(AuditExportFormat::Csv);
+        let filter = match AuditFilter::parse(
+            query.tenant_id.as_deref(),
+            query.actor.as_deref(),
+            query.action.as_deref(),
+            query.from,
+            query.to,
+        ) {
+            Ok(filter) => filter,
+            Err(err) => return Exception::from(err).transform(),
+        };
+        let scope = PlatformScope::open(&db).await.map_err(db_error)?;
+        let result = GatewayService::export_audit(&scope, filter).await;
+        // 渲染交给 platform_read 的回调：它归还事务在前、构造响应在后，
+        // 几十万行级别的拼串不会把数据库连接一直占着。
+        platform_read(scope, result, |export| Ok(audit_download(format, &export))).await
+    }
+}
+
+/// 把导出行渲染成下载响应：原始字节 + 下载头，**不套 JSON 信封**。
+///
+/// `X-Export-*` 两个头是给脚本读的：`rows` 说明拿到多少行，`truncated=true` 说明命中量
+/// 超过硬上限、文件里只有最新的那一批——只看文件内容无法区分「就这么多」和「被截断了」。
+fn audit_download(format: AuditExportFormat, export: &AuditExport) -> HttpResponse {
+    HttpResponse::Ok()
+        .content_type(render::content_type(format))
+        .insert_header(("X-Export-Rows", export.rows.len().to_string()))
+        .insert_header(("X-Export-Truncated", export.truncated.to_string()))
+        .insert_header(ContentDisposition {
+            disposition: DispositionType::Attachment,
+            parameters: vec![DispositionParam::Filename(render::filename(
+                export.from,
+                export.to,
+                format,
+            ))],
+        })
+        .body(render::render(format, &export.rows))
 }
 
 /// 只读处理：成功先归还事务再出响应；失败尽力回滚（回滚失败也不能盖掉原始错误）。

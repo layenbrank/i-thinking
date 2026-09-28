@@ -74,7 +74,7 @@ pub struct AuditExport {
     pub rows: Vec<AuditR>,
     /// 是否因超过 [`AUDIT_EXPORT_MAX_ROWS`] 被截断
     pub truncated: bool,
-    /// 实际生效的窗口起点（毫秒时间戳），用于响应头与文件名
+    /// 实际生效的窗口起点（毫秒时间戳）；已补齐默认值，拼下载文件名用
     pub from: i64,
     pub to: i64,
 }

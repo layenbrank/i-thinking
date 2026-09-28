@@ -81,5 +81,12 @@ fn admin_routes(cfg: &mut web::ServiceConfig) {
         web::resource("/audit")
             .wrap(Auth::admin())
             .route(web::get().to(GatewayController::audit)),
+    )
+    // 导出与列表同一层权限，但**必须是独立的 resource**：`/audit` 上挂的是
+    // `web::get().to(handler)` 单端点，路径再长一段不会落进它。
+    .service(
+        web::resource("/audit/export")
+            .wrap(Auth::admin())
+            .route(web::get().to(GatewayController::audit_export)),
     );
 }

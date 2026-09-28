@@ -20,6 +20,7 @@
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use chrono::{Duration as ChronoDuration, Utc};
 use identity::{PlatformRole, Principal, TenantId, UserId};
 use migration::MigratorTrait;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend, DatabaseConnection};
@@ -31,9 +32,11 @@ use service::guards::account::AccountScope;
 use service::guards::platform::PlatformScope;
 use service::guards::session::Session;
 use service::guards::tenant::{TenantCtx, TenantScope};
+use service::services::gateway::render;
 use service::services::gateway::repository::{UsageInput, record_audit, record_usage};
 use service::services::gateway::schema::{
-    AuditFilter, ModelR, ModelWriteP, ProviderUpdateP, ProviderWriteP, UsageQueryP,
+    AuditExportFormat, AuditFilter, ModelR, ModelWriteP, ProviderUpdateP, ProviderWriteP,
+    UsageQueryP,
 };
 use service::services::gateway::service::{GatewayError, GatewayService};
 use service::utils::db::is_row_security_violation;
@@ -701,4 +704,110 @@ async fn usage_writes_follow_the_scope() {
         3,
         "两个租户各一行种子 + 一次合法审计"
     );
+}
+
+/// 审计导出：过滤条件真的落到 SQL 上、缺省窗口真的补齐、渲染出来就是文件字节。
+#[tokio::test]
+async fn audit_export_applies_filters_and_fills_the_window() {
+    let _guard = DB_LOCK.lock().await;
+    let Some(fixture) = setup().await else { return };
+
+    // 一条 40 天前的记录：缺省窗口是「最近 30 天」，它是这条规则的对照物
+    exec(
+        &fixture.admin,
+        &format!(
+            r#"INSERT INTO gateway_audit (id, "tenantID", actor, action, resource, "createdAt")
+               VALUES ('{}', '{}', '{}', 'gateway.export', 'model', now() - interval '40 days')"#,
+            Uuid::new_v4(),
+            fixture.tenant_a,
+            fixture.owner_a
+        ),
+    )
+    .await;
+
+    let scope = PlatformScope::open(&fixture.storage)
+        .await
+        .expect("进入平台特权作用域失败");
+
+    // 1) 不带任何条件：窗口两端被补齐，且把 40 天前那条挡住
+    let export = GatewayService::export_audit(&scope, AuditFilter::default())
+        .await
+        .expect("审计导出失败");
+    assert_eq!(export.rows.len(), 2, "缺省窗口只覆盖最近 30 天");
+    assert!(!export.truncated, "两行远不到硬上限");
+    assert!(
+        export.from > 0 && export.from < export.to,
+        "缺省窗口两端都该被补齐：{}..{}",
+        export.from,
+        export.to
+    );
+
+    // 2) 放宽窗口 + 按 action 收窄：只剩那条旧记录
+    let now = Utc::now();
+    let wide = AuditFilter::parse(
+        None,
+        None,
+        Some("gateway.export"),
+        Some((now - ChronoDuration::days(60)).timestamp_millis()),
+        Some(now.timestamp_millis()),
+    )
+    .expect("过滤条件解析失败");
+    let export = GatewayService::export_audit(&scope, wide)
+        .await
+        .expect("导出失败");
+    assert_eq!(export.rows.len(), 1, "action 过滤没有生效");
+    assert_eq!(export.rows[0].action, "gateway.export");
+
+    // 3) 按 actor 收窄：owner_a 名下两行（本租户种子行 + 那条旧记录），owner_b 的行被挡掉
+    let by_actor = AuditFilter::parse(
+        None,
+        Some(&fixture.owner_a.to_string()),
+        None,
+        Some((now - ChronoDuration::days(60)).timestamp_millis()),
+        Some(now.timestamp_millis()),
+    )
+    .expect("过滤条件解析失败");
+    let export = GatewayService::export_audit(&scope, by_actor)
+        .await
+        .expect("导出失败");
+    assert_eq!(export.rows.len(), 2, "actor 过滤没有生效");
+    assert!(
+        export
+            .rows
+            .iter()
+            .all(|row| row.actor == fixture.owner_a.to_string()),
+        "导出里混进了别人名下的行"
+    );
+
+    // 4) 渲染出来的是文件字节：CSV 以 BOM + 表头开头，内容里能看到动作码
+    let csv = String::from_utf8(render::render(AuditExportFormat::Csv, &export.rows))
+        .expect("渲染结果必须是合法 UTF-8");
+    assert!(
+        csv.starts_with("\u{feff}id,tenantID,actor,action,resource,ip,createdAt,detail\r\n"),
+        "CSV 必须带 BOM 且列序即契约，实际开头：{:?}",
+        csv.chars().take(60).collect::<String>()
+    );
+    assert!(csv.contains("gateway.invoke"));
+
+    // 文件名带上实际生效的窗口，消费方不必回看响应头
+    let name = render::filename(export.from, export.to, AuditExportFormat::Csv);
+    assert_eq!(
+        name,
+        format!(
+            "audit-{}-{}.csv",
+            stamp_of(export.from),
+            stamp_of(export.to)
+        )
+    );
+    assert!(name.is_ascii());
+
+    scope.rollback().await.expect("平台只读作用域回滚失败");
+}
+
+/// 与 `render::filename` 内部同一格式，用来独立复核窗口被写进了文件名。
+fn stamp_of(millis: i64) -> String {
+    chrono::DateTime::<Utc>::from_timestamp_millis(millis)
+        .expect("导出的窗口必须落在可表示范围内")
+        .format("%Y%m%dT%H%M%SZ")
+        .to_string()
 }

@@ -4,6 +4,8 @@
 //! 1. 导出格式是**对外契约**（列序、编码、行分隔），与查询实现正交、改动节奏不同；
 //! 2. 纯函数可以在单测里逐字节断言 BOM / CRLF / 引号转义，不必起数据库。
 //!
+//! 下载文件名也在这里拼：窗口与扩展名是同一份导出契约的一部分，分开放只会各自漂移。
+//!
 //! 两种格式面向不同消费者，因此同一字段的形态**有意不一致**：
 //! * `csv`：给 Excel 与人工排查。带 UTF-8 BOM（Excel 不看 `Content-Type`，没 BOM 会把中文
 //!   按本地代码页解码成乱码）、CRLF 行分隔，时间列用 RFC 3339——表格里一列 `1789000000000`
@@ -37,6 +39,9 @@ const BOM: char = '\u{feff}';
 /// RFC 4180 规定的行分隔符；也是 Excel 在 Windows 上最稳的选择。
 const CRLF: &str = "\r\n";
 
+/// 文件名里的时间格式：UTC，无分隔符（`20260910T002640Z`）。
+const UTC_STAMP: &str = "%Y%m%dT%H%M%SZ";
+
 /// 把已按时间倒序取好的行渲染成响应体字节。
 pub fn render(format: AuditExportFormat, rows: &[AuditR]) -> Vec<u8> {
     match format {
@@ -59,6 +64,27 @@ pub const fn extension(format: AuditExportFormat) -> &'static str {
         AuditExportFormat::Csv => "csv",
         AuditExportFormat::Ndjson => "ndjson",
     }
+}
+
+/// 下载文件名：`audit-<窗口起点>-<窗口终点>.<扩展名>`，时间用 UTC 紧凑格式。
+///
+/// 窗口写进文件名是因为导出可能被截断：拿到文件的人不用回看响应头就知道自己下的是哪一段。
+/// 字符集保持纯 ASCII —— `Content-Disposition` 里裸 `filename` 不做 RFC 5987 编码，
+/// 中文在部分客户端会变成乱码。
+pub fn filename(from_millis: i64, to_millis: i64, format: AuditExportFormat) -> String {
+    format!(
+        "audit-{}-{}.{}",
+        stamp(from_millis),
+        stamp(to_millis),
+        extension(format)
+    )
+}
+
+/// 毫秒时间戳 → `20260910T002640Z`（`iso8601` 的紧凑版，去掉冒号与短横线）。
+fn stamp(millis: i64) -> String {
+    DateTime::<Utc>::from_timestamp_millis(millis)
+        .map(|t| t.format(UTC_STAMP).to_string())
+        .unwrap_or_else(|| "unknown".to_string())
 }
 
 fn csv(rows: &[AuditR]) -> Vec<u8> {
@@ -259,5 +285,27 @@ gateway.chat,gateway,10.0.0.1,2026-09-10T00:26:40.123Z,\"{\"\"model\"\":\"\"auto
         );
         assert_eq!(extension(AuditExportFormat::Csv), "csv");
         assert_eq!(extension(AuditExportFormat::Ndjson), "ndjson");
+    }
+
+    #[test]
+    fn filename_carries_the_window_and_stays_ascii() {
+        // 1_789_000_000_123 ms == 2026-09-10T00:26:40.123Z；起点取同一时刻的 30 天前
+        let to = 1_789_000_000_123_i64;
+        let from = to - 30 * 24 * 60 * 60 * 1000;
+        let name = filename(from, to, AuditExportFormat::Csv);
+        assert_eq!(name, "audit-20260811T002640Z-20260910T002640Z.csv");
+        assert!(name.is_ascii(), "文件名必须纯 ASCII：{name}");
+        assert_eq!(
+            filename(from, to, AuditExportFormat::Ndjson),
+            "audit-20260811T002640Z-20260910T002640Z.ndjson"
+        );
+    }
+
+    #[test]
+    fn filename_degrades_instead_of_panicking_on_unrepresentable_millis() {
+        assert_eq!(
+            filename(i64::MAX, i64::MIN, AuditExportFormat::Csv),
+            "audit-unknown-unknown.csv"
+        );
     }
 }

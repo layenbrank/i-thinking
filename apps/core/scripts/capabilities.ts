@@ -274,9 +274,9 @@ export const PLATFORM_ENTRY_PATTERN = /\b(?:platform_tx|PlatformScope::open)\b/g
  */
 export const PLATFORM_ENTRY_ALLOWED: Record<string, { max: number; reason: string }> = {
   'src/services/gateway/controller.rs': {
-    max: 10,
+    max: 11,
     reason:
-      '平台目录运维面（供应商/模型全局行、跨租户用量与审计汇总）：10 个 handler 各开一段特权作用域，业务逻辑在 service.rs 内按 scope.tx() 收口'
+      '平台目录运维面（供应商/模型全局行、跨租户用量与审计汇总、审计导出）：11 个 handler 各开一段特权作用域，业务逻辑在 service.rs 内按 scope.tx() 收口'
   },
   'src/services/sso/controller.rs': {
     max: 4,
