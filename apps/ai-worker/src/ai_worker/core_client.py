@@ -1,23 +1,27 @@
-"""回打 core 的客户端：换服务令牌 + 读资产正文 + 借 core 的网关算嵌入与对话。
+"""回打 core 的客户端：换服务令牌 + 读资产正文 + 借 core 的网关算嵌入与对话 + 按审批写可见性。
 
 ai-worker 是叶子进程：不直连模型厂商、不碰 core 的对象存储布局、不持长期云凭据。
-要算力或要字节，只能回打 core 的服务身份面（语义见
+要算力、要字节，或要改 core 里的一份元数据，只能回打 core 的服务身份面（语义见
 `apps/core/src/services/gateway/README.md#服务身份apiv1service`）。两道门：
 
 1. `POST /api/v1/service/token`，头 `X-Internal-Token`（值 = core 的 `ai_worker.token`）
    → 换一枚**带作用域**的短期令牌（`scope=asset-read` + `assetID`、
-   `scope=embeddings` + `model`，或 `scope=chat` + `model`）；
+   `scope=embeddings` + `model`、`scope=chat` + `model`，或 `scope=asset-write` +
+   `assetID` + `approvalID`）；
 2. 拿这枚令牌去消费：内容端点用 `X-Service-Token`，嵌入端点是
    `POST /api/v1/service/embeddings`，对话端点是
-   `POST /api/v1/service/chat/completions`（两者的响应都是上游的**裸 JSON**，不套统一信封）。
+   `POST /api/v1/service/chat/completions`（两者的响应都是上游的**裸 JSON**，不套统一信封），
+   写端点是 `PUT /api/v1/service/assets/{id}/visibility`（**没有请求体**：改什么在换令牌
+   那一步就定死了，见 `asset_visibility_write`）。
 
 令牌**必须缓存**：core 的配额与审计都记在出网调用上，但换令牌本身不便宜
-（要查租户、查资产可读性），按 `(scope, tenantID, assetID, model)` 缓存并在过期前
-`refresh_skew_seconds` 续签。
+（要查租户、查资产可读性、查审批），按 `(scope, tenantID, assetID, model, approvalID)`
+缓存并在过期前 `refresh_skew_seconds` 续签。
 
 错误映射的口径是「core 能不能重试」：4xx（请求本身不对）原样变成 400，让 core 别浪费重试；
 401/403 说明**我们自己**配错或写错（密钥不对 / 受众用错），记 `error` 日志并按 503 上报；
-429 原样透出限流；其余网络与 5xx 都是暂时的 503。
+429 原样透出限流；其余网络与 5xx 都是暂时的 503。唯一的例外是审批不合规
+（403 + `approval_invalid`）：那是一次**终局拒绝**而不是配置错误，翻成 400 让工具回 `ok=false`。
 """
 
 from __future__ import annotations
@@ -41,12 +45,19 @@ SERVICE_TOKEN_HEADER = "X-Service-Token"  # noqa: S105 - HTTP 头名，不是密
 
 SERVICE_TOKEN_PATH = "/api/v1/service/token"  # noqa: S105 - 路径常量，不是密钥
 ASSET_CONTENT_PATH = "/api/v1/service/assets/{asset_id}/content"
+ASSET_VISIBILITY_PATH = "/api/v1/service/assets/{asset_id}/visibility"
 EMBEDDINGS_PATH = "/api/v1/service/embeddings"
 CHAT_PATH = "/api/v1/service/chat/completions"
 
 SCOPE_ASSET_READ = "asset-read"
 SCOPE_EMBEDDINGS = "embeddings"
 SCOPE_CHAT = "chat"
+SCOPE_ASSET_WRITE = "asset-write"
+
+#: core 在「审批凭据不合规」时回的稳定错误码（HTTP 403）。命中它说明这次调用是**终局失败**：
+#: 审批过期了、被驳回了、批的不是这个资产……它不是我们配错了，也不是 core 暂时不可用，
+#: 所以不能按 503 报上去让 core 重试整步（见 `_raise_for_status`）。
+APPROVAL_INVALID_CODE = 500509
 
 _READ_CHUNK_BYTES = 64 * 1024
 
@@ -62,6 +73,8 @@ class ServiceToken:
     token_type: str
     model: str | None = None
     asset_id: str | None = None
+    #: 写令牌的凭据来源（审批号）。读令牌没有这个字段，core 也不回它。
+    approval_id: str | None = None
 
     def expires_at_datetime(self) -> datetime:
         return datetime.fromtimestamp(self.expires_at, tz=UTC)
@@ -96,7 +109,7 @@ class CoreClient:
             timeout=httpx.Timeout(settings.core_timeout_seconds),
             transport=transport,
         )
-        self._tokens: dict[tuple[str, str, str, str], ServiceToken] = {}
+        self._tokens: dict[tuple[str, str, str, str, str], ServiceToken] = {}
         self._lock = asyncio.Lock()
 
     async def close(self) -> None:
@@ -181,6 +194,33 @@ class CoreClient:
         )
         return response.json()
 
+    async def asset_visibility_write(
+        self, *, tenant_id: str, approval_id: str, asset_id: str
+    ) -> Any:
+        """按一次人工批准改写资产的可见性，返回 core 落地后的资产**裸 JSON**。
+
+        这是审批通道的最后一跳：拿审批号换一枚只能写**这一个**资产的短期写令牌，再用它调
+        写端点。可见性与可见名单**不在这两个请求里传**——它们在换令牌时由 core 从审批台账里
+        读出来钉进令牌，写端点连请求体都不收（`json=None` 就是不带 body）。所以哪怕调用方
+        临时改了主意，写下去的仍然是批准时的那一份。
+
+        返回的 `visibility` / `viewers` 是**落地值**，调用方应当照它描述结果，而不是照自己
+        请求时说的那份。
+        """
+        token = await self.service_token(
+            tenant_id=tenant_id,
+            scope=SCOPE_ASSET_WRITE,
+            asset_id=asset_id,
+            approval_id=approval_id,
+        )
+        response = await self._request(
+            "PUT",
+            ASSET_VISIBILITY_PATH.format(asset_id=asset_id),
+            headers=self._headers(service_token=token),
+            action=f"按审批改写资产 {asset_id} 的可见性",
+        )
+        return response.json()
+
     async def service_token(
         self,
         *,
@@ -188,9 +228,14 @@ class CoreClient:
         scope: str,
         asset_id: str | None = None,
         model: str | None = None,
+        approval_id: str | None = None,
     ) -> ServiceToken:
-        """取（必要时换）一枚短期令牌。"""
-        cache_key = (scope, tenant_id, asset_id or "", model or "")
+        """取（必要时换）一枚短期令牌。
+
+        `approval_id` 只对写作用域有意义，且**必须进缓存键**：写令牌是「一张单子一份能力」，
+        两次不同审批换来的令牌不能互相顶替。
+        """
+        cache_key = (scope, tenant_id, asset_id or "", model or "", approval_id or "")
         cached = self._tokens.get(cache_key)
         if cached is not None and not self._is_stale(cached):
             return cached
@@ -200,7 +245,11 @@ class CoreClient:
             if cached is not None and not self._is_stale(cached):
                 return cached
             token = await self._mint_token(
-                tenant_id=tenant_id, scope=scope, asset_id=asset_id, model=model
+                tenant_id=tenant_id,
+                scope=scope,
+                asset_id=asset_id,
+                model=model,
+                approval_id=approval_id,
             )
             self._tokens[cache_key] = token
             return token
@@ -212,12 +261,15 @@ class CoreClient:
         scope: str,
         asset_id: str | None,
         model: str | None,
+        approval_id: str | None,
     ) -> ServiceToken:
         payload: dict[str, object] = {"tenantID": tenant_id, "scope": scope}
         if asset_id is not None:
             payload["assetID"] = asset_id
         if model is not None:
             payload["model"] = model
+        if approval_id is not None:
+            payload["approvalID"] = approval_id
         if self._settings.core_service_token_ttl_seconds is not None:
             payload["ttlSecs"] = self._settings.core_service_token_ttl_seconds
 
@@ -237,6 +289,7 @@ class CoreClient:
             token_type=data["tokenType"],
             model=data.get("model"),
             asset_id=data.get("assetID"),
+            approval_id=data.get("approvalID"),
         )
 
     def _is_stale(self, token: ServiceToken) -> bool:
@@ -262,7 +315,7 @@ class CoreClient:
         method: str,
         path: str,
         *,
-        json: object,
+        json: object | None = None,
         headers: dict[str, str],
         action: str,
     ) -> httpx.Response:
@@ -284,6 +337,12 @@ class CoreClient:
         detail = _error_detail(response)
         message = f"{action}失败：core 返回 {status}（{detail}）"
 
+        if status == 403 and _error_code(response) == APPROVAL_INVALID_CODE:
+            # 审批不合规是**这一次调用的终局**（过期、被驳回、批的不是这个资产……）：
+            # 既不是我们配错了，也不是 core 暂时不可用。按 503 上报会让 core 重试整步，
+            # 而重试一百次也是同一个 403。翻成 400 让工具回 `ok=false`，模型据此收手。
+            logger.info("%s被审批拒绝：%s", action, message)
+            raise errors.invalid_request(message)
         if status in (401, 403):
             # 只可能是我们自己配错/用错（内部令牌不符、受众用错），重试没有意义，必须有人看日志。
             logger.error("%s（疑似配置或作用域错误，非暂时性）：%s", action, message)
@@ -294,6 +353,15 @@ class CoreClient:
             logger.warning("%s（core 侧故障）：%s", action, message)
             raise errors.dependency_unavailable(message)
         raise errors.invalid_request(message)
+
+
+def _error_code(response: httpx.Response) -> Any:
+    """core 错误信封里的机器码。读不出形状就给 `None`（那样只按状态码分类）。"""
+    try:
+        body = response.json()
+    except ValueError:
+        return None
+    return body.get("code") if isinstance(body, dict) else None
 
 
 def _error_detail(response: httpx.Response) -> str:

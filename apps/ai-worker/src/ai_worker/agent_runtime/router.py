@@ -4,8 +4,8 @@
 * `POST /internal/v1/agents/tool-executions` —— 审批通道的**执行半边**：core 在人工批准后
   用这条路径把 `steps` 里那次被挂起的调用真的跑掉。两条路径都属于 `agent.step` 能力。
 
-为什么执行要单独开一条路径：有副作用的工具（当前是 `memory_write`）在 `steps` 里只回
-`awaitingApproval=true` 的占位结果，真正的执行永远只从这一条路径进来，所以
+为什么执行要单独开一条路径：有副作用的工具（`memory_write` 与 `asset_visibility_write`）在
+`steps` 里只回 `awaitingApproval=true` 的占位结果，真正的执行永远只从这一条路径进来，所以
 「谁执行了什么」只有一个入口，也不需要在等审批时挂住一个 HTTP 连接。准入只认两条规则
 （工具声明了需要审批 + 在白名单里）——审批台账在 core 那边，ai-worker 读不到也不该读。
 
@@ -195,6 +195,8 @@ async def agent_tool_execution(request: Request, body: AgentToolExecutionRequest
             database=database,
             settings=settings,
             memory_writes=tools.WriteBudget(remaining=settings.agent_memory_max_writes_per_step),
+            # 审批号是这一次调用的凭据来源：写工具拿它去 core 换对应那一次批准的写令牌。
+            approval_id=body.approval_id,
         )
         result = await tools.invoke(
             context,

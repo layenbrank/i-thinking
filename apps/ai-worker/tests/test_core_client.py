@@ -1,4 +1,4 @@
-"""回打 core 的客户端：换令牌、读资产正文、借网关算嵌入与对话，以及错误映射。
+"""回打 core 的客户端：换令牌、读资产正文、借网关算嵌入与对话、按审批改可见性，以及错误映射。
 
 错误映射是这里最要紧的部分——它的口径是「core 能不能重试」：请求本身不对就回 400 让 core
 别再试，暂时性的问题回 503/429 让 core 重试。映射错了会表现为「core 无限重试一个永远失败的请求」
@@ -16,10 +16,13 @@ import pytest
 
 from ai_worker import errors, trace
 from ai_worker.core_client import (
+    APPROVAL_INVALID_CODE,
+    ASSET_VISIBILITY_PATH,
     CHAT_PATH,
     EMBEDDINGS_PATH,
     INTERNAL_TOKEN_HEADER,
     SCOPE_ASSET_READ,
+    SCOPE_ASSET_WRITE,
     SCOPE_CHAT,
     SCOPE_EMBEDDINGS,
     SERVICE_TOKEN_HEADER,
@@ -32,6 +35,8 @@ TENANT = "tenant-a"
 ASSET = "asset-1"
 MODEL = "text-embedding-3-small"
 CONTENT_PATH = f"/api/v1/service/assets/{ASSET}/content"
+VISIBILITY_PATH = ASSET_VISIBILITY_PATH.format(asset_id=ASSET)
+APPROVAL = "approval-1"
 
 
 def token_body(
@@ -39,6 +44,7 @@ def token_body(
     scope: str = SCOPE_ASSET_READ,
     asset_id: str = ASSET,
     model: str | None = None,
+    approval_id: str | None = None,
     expires_in: int = 300,
 ) -> dict[str, Any]:
     body: dict[str, Any] = {
@@ -51,16 +57,24 @@ def token_body(
     }
     if model is not None:
         body["model"] = model
+    if approval_id is not None:
+        body["approvalID"] = approval_id  # core 会把写令牌的凭据来源回显出来
     return body
 
 
-def core_error(status: int, *, retry_after: str | None = None) -> httpx.Response:
-    """core 服务面的错误信封（`{code, success, msg, timestamp}`），不是我们的那个。"""
+def core_error(
+    status: int, *, code: int = 500204, retry_after: str | None = None
+) -> httpx.Response:
+    """core 服务面的错误信封（`{code, success, msg, timestamp}`），不是我们的那个。
+
+    `code` 在 core 侧是 `i32`，所以这里也要发数字：发字符串会让 ai-worker 认不出 500509 这类
+    有语义的码，只能退化成「看 HTTP 状态猜」。
+    """
     headers = {"Retry-After": retry_after} if retry_after is not None else None
     return httpx.Response(
         status,
         headers=headers,
-        json={"code": "500204", "success": False, "msg": "boom", "timestamp": "x"},
+        json={"code": code, "success": False, "msg": "boom", "timestamp": "x"},
     )
 
 
@@ -495,3 +509,104 @@ async def test_chat_and_embedding_tokens_are_not_interchangeable(make_core: Make
     await client.chat(tenant_id=TENANT, model=MODEL, messages=MESSAGES)
 
     assert scopes == [SCOPE_CHAT, SCOPE_EMBEDDINGS]
+
+
+async def test_visibility_write_matches_the_gateway_contract(make_core: MakeCore) -> None:
+    """改可见性：拿审批号换一枚 `scope=asset-write` 的令牌，写请求**连 body 都没有**。
+
+    「改什么」不在这条线路上传：core 从审批台账里读出原文，签发令牌时就钉进 claims，写端点只按
+    令牌办事。所以这里多传一个字段不是「冗余」，而是让 core 有机会去比对两处说法是否一致。
+    """
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == SERVICE_TOKEN_PATH:
+            return httpx.Response(
+                200,
+                json=token_body(scope=SCOPE_ASSET_WRITE, asset_id=ASSET, approval_id=APPROVAL),
+            )
+        return httpx.Response(
+            200,
+            json={"id": ASSET, "visibility": "RESTRICTED", "viewers": ["viewer-1"]},
+        )
+
+    client: CoreClient = make_core(handler)
+
+    landed = await client.asset_visibility_write(
+        tenant_id=TENANT, approval_id=APPROVAL, asset_id=ASSET
+    )
+
+    assert landed == {"id": ASSET, "visibility": "RESTRICTED", "viewers": ["viewer-1"]}
+    token_request, write_request = requests
+    assert json.loads(token_request.content) == {
+        "tenantID": TENANT,
+        "scope": SCOPE_ASSET_WRITE,
+        "assetID": ASSET,
+        "approvalID": APPROVAL,
+    }
+    assert (write_request.method, write_request.url.path) == ("PUT", VISIBILITY_PATH)
+    assert write_request.headers[SERVICE_TOKEN_HEADER] == f"tok-{SCOPE_ASSET_WRITE}"
+    assert write_request.content == b""
+
+
+@pytest.mark.parametrize("failing_path", [SERVICE_TOKEN_PATH, VISIBILITY_PATH])
+async def test_an_invalid_approval_is_mapped_to_a_request_error(
+    make_core: MakeCore, failing_path: str
+) -> None:
+    """`403 + 500509` 是终局拒绝：换令牌和写这两条腿上都得翻成 400，不能按 503 报上去。
+
+    503 会被 core 当成「暂时性故障」一遍遍重试同一个永远不会通过的写；400 才是让工具把
+    `ok=false` 喂回模型、让它在对话里收手。
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == SERVICE_TOKEN_PATH and failing_path != SERVICE_TOKEN_PATH:
+            return httpx.Response(
+                200,
+                json=token_body(scope=SCOPE_ASSET_WRITE, asset_id=ASSET, approval_id=APPROVAL),
+            )
+        return core_error(403, code=APPROVAL_INVALID_CODE)
+
+    client: CoreClient = make_core(handler)
+
+    with pytest.raises(errors.ApiError) as raised:
+        await client.asset_visibility_write(tenant_id=TENANT, approval_id=APPROVAL, asset_id=ASSET)
+
+    assert raised.value.status == 400
+    assert raised.value.code is errors.ErrorCode.INVALID_REQUEST
+
+
+@pytest.mark.parametrize(
+    ("core_status", "core_code", "expected_status", "expected_code"),
+    [
+        # 403 但不是审批不合规：别的越权原因照样是暂时性/环境性故障，不能跟着一起判终局。
+        (403, 500204, 503, errors.ErrorCode.DEPENDENCY_UNAVAILABLE),
+        (401, 300002, 503, errors.ErrorCode.DEPENDENCY_UNAVAILABLE),
+        # 资产不存在或看不见：再试一次也还是看不见。
+        (404, 500204, 400, errors.ErrorCode.INVALID_REQUEST),
+        (503, 500204, 503, errors.ErrorCode.DEPENDENCY_UNAVAILABLE),
+    ],
+)
+async def test_write_errors_are_mapped_by_retryability(
+    make_core: MakeCore,
+    core_status: int,
+    core_code: int,
+    expected_status: int,
+    expected_code: errors.ErrorCode,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == SERVICE_TOKEN_PATH:
+            return httpx.Response(
+                200,
+                json=token_body(scope=SCOPE_ASSET_WRITE, asset_id=ASSET, approval_id=APPROVAL),
+            )
+        return core_error(core_status, code=core_code)
+
+    client: CoreClient = make_core(handler)
+
+    with pytest.raises(errors.ApiError) as raised:
+        await client.asset_visibility_write(tenant_id=TENANT, approval_id=APPROVAL, asset_id=ASSET)
+
+    assert raised.value.status == expected_status
+    assert raised.value.code is expected_code

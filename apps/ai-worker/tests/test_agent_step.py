@@ -10,9 +10,9 @@
   守住契约里 `finished ⟺ toolCalls 为空` 的不变式；
 * **工具失败是结果，不是错误**：参数写错、工具名幻觉、超出白名单、结果超长截断——
   全都回 200 + `ok=false`，因为模型有机会据此自我纠正；只有库/网关坏掉才向上抛（可重试）。
-* **要审批的工具有一道闸**：声明了 `requires_approval` 的工具（现在只有 `memory_write`）
-  在本步只回 `awaitingApproval=true` 的占位结果、不做任何写入；真正执行走
-  `/internal/v1/agents/tool-executions`（行为面在 `test_agent_approval.py`）。
+* **要审批的工具有一道闸**：声明了 `requires_approval` 的工具（`memory_write`、
+  `asset_visibility_write`）在本步只回 `awaitingApproval=true` 的占位结果、不做任何写入；
+  真正执行走 `/internal/v1/agents/tool-executions`（行为面在 `test_agent_approval.py`）。
 
 真库是必需的（幂等账本每一步都要写），所以这一组跟着 `database` 夹具走。
 """

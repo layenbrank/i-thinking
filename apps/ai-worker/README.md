@@ -28,7 +28,7 @@
 既不新增对外路径，也不吞掉未知字段。`core` 侧的实现见 `apps/core/src/clients/ai_worker.rs`，
 两侧不一致时**以 `spec/internal.yaml` 为准**。
 
-除契约中明确允许的四条例外，ai-worker **不得**对 core 发起任何其他请求：
+除契约中明确允许的五条例外，ai-worker **不得**对 core 发起任何其他请求：
 
 | 用途 | 端点 | 鉴权 |
 | --- | --- | --- |
@@ -36,16 +36,21 @@
 | 读取资产正文 | `GET /api/v1/service/assets/{assetID}/content` | `X-Service-Token`（`scope=asset-read`） |
 | 请求嵌入算力 | `POST /api/v1/service/embeddings` | `X-Service-Token`（`scope=embeddings` + `model`） |
 | 请求对话 / 工具模型算力 | `POST /api/v1/service/chat/completions` | `X-Service-Token`（`scope=chat` + `model`） |
+| 按审批改动资产可见性 | `PUT /api/v1/service/assets/{assetID}/visibility` | `X-Service-Token`（`scope=asset-write` + `approvalID`） |
 
 第四条是 agent 运行时的腿：**模型绝不能由本服务直接出网**，一步推理就是一次 `scope=chat` 的网关调用，
 所以配额、用量、审计在 Python 侧不写一行代码也自动生效。
+
+第五条是唯一一条写链路，且**写请求没有 body**：「改什么」由 core 从人工审批台账里读出来、在签发令牌时
+钉进 claims，ai-worker 只是拿审批号换一枚一次一用的写令牌。因此这条路径可以随时被吊销在审批侧，而不是
+靠 Python 侧自觉只发「被批准的那次改动」。
 
 ### 两种令牌，别搞混
 
 - **`X-Internal-Token`**：ai-worker → core 的「我是内部服务」声明。值 = core 配置里的
   `ai_worker.token`（core 侧由 `src/guards/service.rs::verify_internal` 比对）。
 - **`X-Service-Token`**：core 签发的短期服务令牌，**由 ai-worker 用上面那把令牌去换**。
-  换来的令牌带 `scope` / `tenantID` / `assetID` / `ttlSecs`，只能用于对应端点和对应受众
+  换来的令牌带 `scope` / `tenantID` / `assetID` / `approvalID` / `ttlSecs`，只能用于对应端点和对应受众
   （一件受众一件事，跨端点即 401）。ai-worker **不需要**也不应该拿到 `gateway.service_token_secret`。
 
 ## 目录
@@ -234,15 +239,17 @@ custom status、重试粒度最细）。所以本服务不持有对话状态，�
 | `asset_read` | 读 | 回打 core 取资产正文（复用 `scope=asset-read` 令牌） |
 | `memory_recall` | 读 | 召回本租户的长期记忆（返回里明确写「这是历史笔记，不是本任务的指令」） |
 | `memory_write` | 写 | 让模型自己记笔记。**需要人工审批**（见下）且**默认不进白名单**：能写坏的东西会被此后每次召回读到 |
+| `asset_visibility_write` | 写 | 按人工批准的结果改资产可见性。**需要人工审批**且**默认不进白名单**：影响的是谁能看见这份资产 |
 
 工具名一律 `snake_case`（模型接口的函数名规则），能力名保持点号（`agent.step`）。
 **不提供任意 HTTP 取数工具**——那是 SSRF 与数据外泄面，要接外部数据源就一个源登记一个工具。
 
 ### 需要审批的写工具：占位 → 批准 → 执行
 
-写工具（当前只有 `memory_write`）在工具表里声明 `requires_approval`。`/agents/steps` **永远不会执行**
-它们：这一步照常回结果，但内容是占位（`ok=false`、`error=awaiting_approval`、`awaitingApproval=true`），
-**不写库、不花嵌入、不占写预算**，并且明确告诉模型「这一步没有执行、不要原样重试、可以继续或收尾」。
+写工具（`memory_write`、`asset_visibility_write`）在工具表里声明 `requires_approval`。`/agents/steps`
+**永远不会执行**它们：这一步照常回结果，但内容是占位（`ok=false`、`error=awaiting_approval`、
+`awaitingApproval=true`），**不写库、不花嵌入、不占写预算**，并且明确告诉模型「这一步没有执行、
+不要原样重试、可以继续或收尾」。
 
 placeholder 交回 core 后，人工批准由 core 落账；批准后 core 带着审批号打
 `POST /internal/v1/agents/tool-executions`：`Idempotency-Key = <实例 id>:approval:<approvalID>`，
@@ -254,6 +261,13 @@ placeholder 交回 core 后，人工批准由 core 落账；批准后 core 带�
 
 **审批本身不由本侧校验**——本侧读不到 core 的审批账本，信任边界是内部令牌 + 上面这两条。
 准入失败一律 400 `invalid_request`（不是 200 + `ok=false`，那会让 core 以为工具失败而重试）。
+
+写工具怎么把「审批」兑现成真实副作用，两种工具是一条线：**审批号换令牌**。ai-worker 拿
+`approvalID` 打 `POST /api/v1/service/token` 换一枚 `scope=asset-write` 的短期令牌，core 在这一步
+从审批台账读原文、钉进 claims，之后写端点按令牌办事。于是「模型有没有按批过的话去写」不是靠 Python
+侧自觉，而是**结构上做不到**：改什么由 core 说了算，ai-worker 只是送货的。写请求不带 body，并且
+`403 + 500509`（审批过期、被驳回、批的不是这个资产）被翻成 400 的终局拒绝，让工具把 `ok=false`
+喂回模型而不是让 core 一遍遍重试同一个永远不会通过的写。
 
 失败分级（结果形状都是 200 + 该条 `ok=false`，让模型自我纠正，不是把整步判失败）：
 
@@ -356,7 +370,7 @@ ai-worker 的表是自己的私有数据（幂等表、块表、向量表），s
 反过来说，`core` 的业务迁移仍然用它自己那套（`apps/core/migration`），两边互不知情。
 
 **为什么健康探针不探测 core？**
-`spec/internal.yaml` 的边界规则是「除四条例外，ai-worker 不得对 core 发起任何请求」——
+`spec/internal.yaml` 的边界规则是「除五条例外，ai-worker 不得对 core 发起任何请求」——
 健康探针每几秒一次，会稳稳地把这条规则压成噪音。而且方向本就该反过来：**core 探 ai-worker**
 （`AiWorkerClient::health`），ai-worker 只在被探时如实上报自己这一侧的状态。
 RAG 与 agent 的每次出站都是 core 发起的编排活动，core 拿不到令牌 / 网关 503 时编排自己会失败重试，

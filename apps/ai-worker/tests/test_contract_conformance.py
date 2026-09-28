@@ -52,7 +52,8 @@ TEXTS = ("第一块正文。", "第二块正文。", "第三块正文。")
 #: 分块端点的正文来源（core 会先换令牌再取资产正文）。
 SOURCE = "第一块正文。\n\n第二块正文。"
 
-#: 审批通道（唯一需要审批的工具是 `memory_write`）用到的任务号、审批号与笔记正文。
+#: 审批通道（两个需要审批的工具：`memory_write`、`asset_visibility_write`）的
+#: 任务号、审批号与笔记正文。
 TASK_ID = "0d3f1f7c-1b2a-4c5d-8e9f-0a1b2c3d4e5f"
 APPROVAL_ID = "0f5b0a2c-91f3-4e77-9a1e-2b3c4d5e6f70"
 NOTE = "运费由买家承担。"

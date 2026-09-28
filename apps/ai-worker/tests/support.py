@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 from uuid import UUID
 
@@ -15,6 +15,7 @@ from httpx import AsyncClient
 
 from ai_worker.config import Settings
 from ai_worker.core_client import (
+    ASSET_VISIBILITY_PATH,
     CHAT_PATH,
     EMBEDDINGS_PATH,
     SCOPE_ASSET_READ,
@@ -105,6 +106,7 @@ def service_token_body(
     tenant_id: str = "tenant-a",
     asset_id: str | None = None,
     model: str | None = None,
+    approval_id: str | None = None,
     expires_in: int = 300,
 ) -> dict[str, Any]:
     """core `POST /api/v1/service/token` 的成功响应体（`CoreClient` 就按这些键解）。"""
@@ -119,15 +121,23 @@ def service_token_body(
         body["assetID"] = asset_id
     if model is not None:
         body["model"] = model
+    if approval_id is not None:
+        body["approvalID"] = approval_id
     return body
 
 
-def core_error(status: int, *, retry_after: str | None = None) -> httpx.Response:
-    """core **服务面**的错误信封（`{code, success, msg, timestamp}`），别和我们的混淆。"""
+def core_error(
+    status: int, *, retry_after: str | None = None, code: int = 500204
+) -> httpx.Response:
+    """core **服务面**的错误信封（`{code, success, msg, timestamp}`），别和我们的混淆。
+
+    `code` 必须是**数字**：core 的信封是 `code: i32`，而 ai-worker 会拿它分辨「审批不合规」
+    这种有语义的 403（传 `code=core_client.APPROVAL_INVALID_CODE`）。
+    """
     return httpx.Response(
         status,
         headers={"Retry-After": retry_after} if retry_after is not None else None,
-        json={"code": "500204", "success": False, "msg": "boom", "timestamp": "x"},
+        json={"code": code, "success": False, "msg": "boom", "timestamp": "x"},
     )
 
 
@@ -211,6 +221,8 @@ class RagStub:
                 tenant_id=body["tenantID"],
                 asset_id=body.get("assetID"),
                 model=body.get("model"),
+                # 真 core 会把审批号回显出来（写令牌），这里照做：调用方要读得到它。
+                approval_id=body.get("approvalID"),
             ),
         )
 
@@ -284,10 +296,14 @@ def tool_call(
 
 
 class AgentStub(RagStub):
-    """`RagStub` + 对话端点：`replies` 按**调用序号**依次消费（用尽后再被调用就是测试写漏了）。
+    """`RagStub` + 对话端点 + 可见性写端点：
+
+    * `replies` 按**调用序号**依次消费（用尽后再被调用就是测试写漏了）；
+    * `visibility_*` 三个参数描述 core 对「按审批改可见性」的回答。
 
     记录 `chat_bodies`（原始请求体）而不是解析后的结构：断言要能看见「我们真发给上游什么」，
-    包括 `tools[]` 的形状与 `messages` 的翻译结果。
+    包括 `tools[]` 的形状与 `messages` 的翻译结果。可见性写同理只记原始 `httpx.Request`
+    ——写端点**不该**带 body，这个事实只有原始请求能证明。
     """
 
     def __init__(
@@ -296,17 +312,31 @@ class AgentStub(RagStub):
         *,
         replies: Sequence[dict[str, Any]] | None = None,
         chat_status: int = 200,
+        visibility_response: Mapping[str, Any] | None = None,
+        visibility_status: int = 200,
+        visibility_code: int = 500204,
         **kwargs: Any,
     ) -> None:
         super().__init__(content, **kwargs)
         self.replies: list[dict[str, Any]] = list(replies or [])
         self.chat_status = chat_status
         self.chat_bodies: list[dict[str, Any]] = []
+        #: 可见性写端点的响应体。默认给一份「私密化」的落地值：真实 core 落到什么由**审批台账**
+        #: 决定，跟这一次请求里说的可以不同——用例正是靠这个差别验证「描述用的是落地值」。
+        self.visibility_response = visibility_response
+        #: 可见性写端点的错误状态与错误码：`403 + 500509` 是「审批不合规」那条特殊路径。
+        self.visibility_status = visibility_status
+        self.visibility_code = visibility_code
+        #: 可见性写端点的原始请求：方法、路径、以及「有没有 body」都要看得见。
+        self.visibility_writes: list[httpx.Request] = []
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         if request.url.path == CHAT_PATH:
             self.paths.append(request.url.path)
             return self._chat(request)
+        if request.url.path.endswith(_VISIBILITY_SUFFIX):
+            self.paths.append(request.url.path)
+            return self._visibility(request)
         return super().__call__(request)
 
     def _chat(self, request: httpx.Request) -> httpx.Response:
@@ -319,6 +349,19 @@ class AgentStub(RagStub):
             raise AssertionError("AgentStub 的回复用完了：用例少准备了一条 reply")
         return httpx.Response(200, json=self.replies.pop(0))
 
+    def _visibility(self, request: httpx.Request) -> httpx.Response:
+        self.visibility_writes.append(request)
+        if self.visibility_status != 200:
+            return core_error(self.visibility_status, code=self.visibility_code)
+        asset_id = _asset_id_of(request.url.path)
+        body: dict[str, Any] = (
+            dict(self.visibility_response)
+            if self.visibility_response is not None
+            else {"visibility": "PRIVATE", "viewers": []}
+        )
+        body.setdefault("id", asset_id)
+        return httpx.Response(200, json=body)
+
     @property
     def chat_calls(self) -> int:
         return len(self.chat_bodies)
@@ -326,6 +369,20 @@ class AgentStub(RagStub):
     @property
     def last_chat(self) -> dict[str, Any]:
         return self.chat_bodies[-1]
+
+    @property
+    def visibility_urls(self) -> list[str]:
+        return [request.url.path for request in self.visibility_writes]
+
+
+#: 可见性写端点的路径后缀，用来把请求分流到 `AgentStub._visibility`。
+_VISIBILITY_SUFFIX = "/visibility"
+
+
+def _asset_id_of(path: str) -> str:
+    """从 `/api/v1/service/assets/{id}/visibility` 里抠出资产 id（按声明的模板切，不猜段号）。"""
+    prefix, suffix = ASSET_VISIBILITY_PATH.split("{asset_id}")
+    return path.removeprefix(prefix).removesuffix(suffix)
 
 
 #: 向量与索引用例的默认归属：任意 UUID 即可，只要各文件保持一致。
