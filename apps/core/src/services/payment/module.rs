@@ -1,5 +1,7 @@
 use actix_web::web;
 
+use crate::guards::auth::Auth;
+use crate::services::payment::billing_controller::BillingController;
 use crate::services::payment::controller::PaymentController;
 
 /// 支付路由。
@@ -42,6 +44,41 @@ impl PaymentModule {
         .service(
             web::resource("/pay/notify/alipay")
                 .route(web::post().to(PaymentController::notify_alipay)),
+        );
+    }
+
+    /// 计费运维面：挂在 `/api/v1` scope 下，自带 `/billing` 前缀，逐条要求平台 ADMIN。
+    ///
+    /// 价目决定全平台怎么计费、对账看的是全平台的钱，所以这一组接口**没有租户面**：
+    /// 可见范围由角色决定，而不是由请求头里写了哪个租户决定。
+    pub fn configure_billing(cfg: &mut web::ServiceConfig) {
+        cfg.service(
+            web::scope("/billing")
+                .wrap(Auth::isRequired())
+                .service(
+                    web::resource("/prices")
+                        .wrap(Auth::admin())
+                        .route(web::get().to(BillingController::prices))
+                        .route(web::post().to(BillingController::price_write)),
+                )
+                .service(
+                    web::resource("/prices/{id}")
+                        .wrap(Auth::admin())
+                        .route(web::put().to(BillingController::price_update))
+                        .route(web::delete().to(BillingController::price_archive)),
+                )
+                .service(
+                    web::resource("/reconciliation")
+                        .wrap(Auth::admin())
+                        .route(web::get().to(BillingController::reconciliation)),
+                )
+                // 导出必须是独立 resource：`/reconciliation` 上挂的是单端点，路径再长一段
+                // 不会落进它（与网关 `/audit` 和 `/audit/export` 的关系同理）。
+                .service(
+                    web::resource("/reconciliation/export")
+                        .wrap(Auth::admin())
+                        .route(web::get().to(BillingController::reconciliation_export)),
+                ),
         );
     }
 }

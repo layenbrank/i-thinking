@@ -38,8 +38,17 @@
 | POST | `/api/v1/tenants/{id}/orders/{orderNo}/close`   | JWT + 租户 OWNER     | 关闭订单（用户取消）     |
 | POST | `/api/v1/pay/notify/wechat`                     | 无（验签即鉴权）     | 微信支付结果通知         |
 | POST | `/api/v1/pay/notify/alipay`                     | 无（验签即鉴权）     | 支付宝异步通知           |
+| GET  | `/api/v1/billing/prices`                        | 平台 ADMIN           | 价目列表（租户 / 型号 / 生效中 / 含归档） |
+| POST | `/api/v1/billing/prices`                        | 平台 ADMIN           | 新建价目                 |
+| PUT  | `/api/v1/billing/prices/{id}`                   | 平台 ADMIN           | 改展示名 / 收窄窗口      |
+| DELETE | `/api/v1/billing/prices/{id}`                 | 平台 ADMIN           | 归档（软删除，幂等）     |
+| GET  | `/api/v1/billing/reconciliation`                | 平台 ADMIN           | 计量对账（平台信封）     |
+| GET  | `/api/v1/billing/reconciliation/export`         | 平台 ADMIN           | 对账导出（csv / ndjson） |
 
 回调端点**不套平台响应信封**：微信要求 `200 {"code":"SUCCESS"}` / `500 {"code":"FAIL"}`，支付宝要求纯文本 `success` / `failure`，否则渠道会持续重试或标记异常。
+
+`/api/v1/billing/*` 是**计费运维面**：整段 scope 只挂平台 ADMIN 守卫，租户角色一律进不来，业务逻辑也只走平台特权作用域
+（`billing_price` 的 RLS 策略恒假，租户面连接读不到这张表）。它与上面的租户面、匿名回调面三者在路由树上完全分开。
 
 鉴权粒度按「谁能看见账单、谁能花钱」两把尺子切：
 
@@ -74,6 +83,33 @@
 
 `{id}/orders/{orderNo}/sync` 与订单列表都会顺带把该租户过期未支付的订单置为 `CLOSED`（惰性关单），因此客户端拿到的状态不会滞留。
 
+`billing_price`（模型价目：单价 `分 / 百万 token`，按 `(租户, 型号, 时间段)` 取价）
+
+| 列 (DB)                      | 类型          | 说明                                                            |
+| ---------------------------- | ------------- | --------------------------------------------------------------- |
+| id                           | uuid PK       | 主键                                                            |
+| tenantID                     | uuid NULL FK  | → `tenant.id`，CASCADE；NULL = **平台默认价**，非空 = 租户专属价 |
+| modelID                      | uuid          | → `gateway_model.id`（无外键约束：型号下线不能牵连历史价目）     |
+| modelName                    | text          | 写入时的型号名快照，对账报告显示用，不跨能力 JOIN                |
+| currency                     | text          | 固定 `CNY`（结算币种）                                          |
+| inputPricePerMillion         | bigint        | 输入价，分 / 百万 token                                          |
+| outputPricePerMillion        | bigint        | 输出价，分 / 百万 token                                          |
+| effectiveFrom / effectiveTo  | timestamptz   | 左闭右开窗口；`effectiveTo` NULL = 至今                          |
+| archivedAt / creator / updatedAt / updater |   | 审计字段；`archivedAt` 非空即归档（软删除）                      |
+
+索引：`idx_billing_price_model(modelID, effectiveFrom)`（取价路径）、`idx_billing_price_tenant(tenantID)`。
+
+## 数据所有权
+
+| 表                                  | 归属        | 读写关系                                                                |
+| ----------------------------------- | ----------- | ----------------------------------------------------------------------- |
+| `payment_order`                     | payment     | 本模块独占写入（订单生命周期唯一写入方）                                |
+| `billing_price`                     | payment     | 本模块独占写入；RLS 策略恒假，只有平台连接看得见，租户面读写都拿不到   |
+| `gateway_usage` / `gateway_model`   | gateway     | 只读：对账聚合直接读这两张表，不写                                      |
+| `tenant`                            | tenant      | 只读：价目 / 订单的归属校验用 `tenant.id` 做外键                        |
+| `subscription`                      | subscription | 支付成功后的开通 / 续订由 `subscription` 能力写入（`PaymentService::activate` 在同一事务内调用） |
+
+
 ## 实现架构
 
 ```
@@ -85,9 +121,16 @@ payment/
 │   └── alipay.rs       支付宝当面付：precreate / query / verify_notify
 ├── service.rs          订单生命周期 + 核销状态机（只依赖 channel 抽象）
 ├── controller.rs       HTTP 出入口（含渠道回执格式差异）
-├── schema.rs           请求 / 响应 DTO（`OrderP` / `OrderR` / `CatalogR`）
-└── module.rs           路由注册
+├── billing_controller.rs  计费运维面 HTTP 出入口（价目管理 + 对账 / 导出）
+├── billing_price.rs    价目 service：窗口重叠判定、不可原地改价、归档
+├── reconcile.rs        对账 service：用量/订单聚合 → 调 crates/billing 装配报告
+├── render.rs           对账导出渲染（csv / ndjson 纯函数）
+├── schema.rs           请求 / 响应 DTO（`OrderP` / `OrderR` / `CatalogR` / `PriceR` / `ReconcileR` …）
+└── module.rs           路由注册（租户面 / 匿名回调面 / 平台运维面）
 ```
+
+价目与对账只做「取数 + 落库 + 出入口」，折算与报告装配的纯逻辑在 [`crates/billing`](../../../crates/billing/README.md) 里
+（`money` / `price` / `report`），因此重叠判定、金额公式、异常分类都能脱离数据库单测。
 
 新增渠道 = 实现 `Channel` 并在注册表加一项（`code` + 工厂），**不需要**改 `service.rs`；`require_ready(config, code)` 负责「未启用 / 未配置」的拒绝与原因文案。
 
@@ -211,7 +254,79 @@ OR ("orderNo" = current_setting('app.order_no', true) AND "archivedAt" IS NULL)
 | 500406 | 支付签名校验失败（含跨渠道回调）                                         |
 | 500407 | 支付渠道返回错误（下单 / 查单上游失败）                                  |
 | 500408 | 档位不可购买（未定价 / 缺配额 / 已定价档位走自助开通）                    |
+| 500409 | 价目不存在（改 / 归档的 `id` 查不到）                                     |
+| 500410 | 价目窗口重叠（同一「租户 + 型号」同一层级里出现两条重叠的有效价目）        |
+| 500411 | 价目窗口非法（结束不晚于开始）                                            |
+| 500412 | 价目金额非法（负数或超过上限）                                            |
+| 500413 | 币种不是结算币种（当前只支持 `CNY`）                                      |
+| 500414 | 对账窗口非法（起点不早于终点，或跨度超过 31 天）                           |
+| 500415 | 对账金额溢出（折算或合计超出 i64）                                        |
 | 600001 | 数据库错误                                                               |
+
+## 计费运维面（`/api/v1/billing/*`，仅平台 ADMIN）
+
+网关只记 token 用量，「用量值多少钱、实收对不对得上」在这里算。整段只对平台管理员开放，
+业务逻辑全部走平台特权作用域（`PlatformScope`），事务的提交 / 回滚由出入口容器统一收口：
+读操作成功后先归还事务再出响应，写操作先提交再出响应。
+
+### 价目管理
+
+- **取价维度是 `(tenantID, modelID, 时间点)`**：租户专属价优先，回落平台默认价（`tenantID IS NULL`）；
+  同层级内取 `effectiveFrom` 最大的一条，再按 id 定序，保证同一次查询结果稳定。
+- **窗口左闭右开** `[effectiveFrom, effectiveTo)`，`effectiveTo` 为 NULL 表示至今。同一「租户 + 型号」同一层级的
+  有效窗口**不得重叠**（写入前用 `windows_of` 拉同层级窗口判重）；中间的缺口不算错，但对账会把它报成「未定价」。
+- **不可原地改价**：`PUT` 只允许改 `modelName` 快照，以及把 `effectiveTo` **往早收窄**。延后终点、跨过原终点、
+  改单价一律返回 `500411`——价格变动要做成「关旧窗口 + 开新窗口」，历史对账才不会随后续改价漂移。
+- **`DELETE` 是软归档**（写 `archivedAt`），重复归档幂等；归档后不再参与取价，历史对账仍指向它，因此删不掉历史账。
+- 价格变更**不发 outbox 事件**：价目不是租户面数据，对账在查询时用 SQL 现取当时生效价，不需要通知下游。
+- `modelID` 必须指向一个未归档的 `gateway_model`，`modelName` 只做写入时快照，报告里显示用（不跨能力 JOIN）。
+
+### 计量对账
+
+`GET /api/v1/billing/reconciliation`，查询参数：`from` / `to`（毫秒时间戳，缺省 = 最近 24 小时，跨度上限 31 天）、
+`tenantID`（缺省 = 全租户）、`currency`（缺省 = 结算币种 `CNY`）。
+
+参数解析**有意比价目列表严格**：对账结果是拿去核账的，「条件写错了却看起来算出了结果」比多报一次错危险得多，
+所以时间戳 / 租户 id / 非法币种都会直接报错（空串仍按「没给」处理）。
+
+口径（左闭右开，端点内四条聚合 SQL）：
+
+| 项       | 取数                                                                                                                                   |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 用量金额 | `gateway_usage.status = 'OK'` 的记录按「租户 × 型号 × 命中价目」聚合，金额 = 单价 × token；取价规则与价目管理同源，写在 SQL 的 `LEFT JOIN LATERAL` 里，命中不到即「未定价」（按 0 计并进异常清单） |
+| 实收金额 | `payment_order.status = 'PAID'`、未归档，且 `COALESCE(paidAt, updatedAt)` 落在窗口内的订单                                              |
+| 差额     | `delta = usageAmount - orderAmount`                                                                                                     |
+| 币种不符 | 金额不进合计，只记 `mismatchedAmount` / `mismatchedOrderAmount`，并作为异常列出（避免把不同币种加在一起）                                |
+
+异常清单（`exceptions[].kind`，六类，全部来自内核 `ExceptionKind`）：
+
+| kind                    | 含义                                     |
+| ----------------------- | ---------------------------------------- |
+| `UNPRICED_USAGE`        | 用量没有匹配到价目，金额未计入合计       |
+| `CURRENCY_MISMATCH`     | 币种与结算币种不一致，金额未计入合计     |
+| `USAGE_WITHOUT_ORDER`   | 有用量但没有已支付订单                   |
+| `ORDER_WITHOUT_USAGE`   | 有已支付订单但没有用量                   |
+| `PAID_NOT_ACTIVATED`    | 已收款（`PAID`）但 `subscriptionID` 为空 |
+| `REMARKED`              | 订单 `remark` 非空，可能经过人工处理     |
+
+响应信封里是 `totals` + `tenants[]` + `models[]` + `exceptions[]`；`models[]` 的每一行都带命中的
+`priceID` / 单价 / token 数，可以用「token × 单价」独立复算，不必相信汇总数。
+
+### 对账导出
+
+`GET /api/v1/billing/reconciliation/export`：参数与 JSON 端点一致，多一个 `format`（`csv` 缺省 / `ndjson`）。
+响应**不是平台信封**，而是文件流：
+
+| 响应头                 | 说明                                                        |
+| ---------------------- | ----------------------------------------------------------- |
+| `Content-Disposition`  | `attachment; filename="billing-<from>-<to>.<ext>"`（UTC 紧凑格式） |
+| `X-Export-Rows`        | 实际导出行数                                                |
+| `X-Export-Truncated`   | `true` 表示触到 50 000 行上限被截断（只截尾，不报错）       |
+
+- CSV：UTF-8 带 BOM、CRLF 行尾、RFC4180 引号规则（含分隔符 / 引号 / 换行 / 首尾空白才加引号，内部引号翻倍）。
+- 行序固定 `TOTAL → TENANT → MODEL → EXCEPTION`，`section` 列标明分段；列共 23 列，从 `section,kind,tenantID,modelID,modelName,priceID,currency,inputPricePerMillion,outputPricePerMillion,promptTokens,completionTokens,requests,usageAmount,orderAmount,delta,unpricedRequests,failedRequests,mismatchedAmount,mismatchedOrderAmount,paidOrders,orderNo,amount,detail` 依次展开，不适用的列留空（不是 0）。
+- 未做 CSV 公式注入转义：当前单元格全是服务端生成的 id / 数字 / 枚举（含 `remark`，也是服务端代码写入的），没有用户自由文本列。**将来若新增自由文本列必须重新评估这一条。**
+- CSV / NDJSON 的拼装是纯函数（`render.rs`），只吃事务内已经取好的报告结构，事务归还后才渲染，因此导出不会把连接占在磁盘写入上。
 
 ## 配置
 
@@ -233,5 +348,8 @@ OR ("orderNo" = current_setting('app.order_no', true) AND "archivedAt" IS NULL)
 ## 对账建议
 
 - 每日按 `paid_at` 导出 `PAID` 订单，与渠道账单核对 `transactionID` / 金额。
+- 用 `GET /api/v1/billing/reconciliation/export?from=<毫秒>&to=<毫秒>` 出对账底稿：`totals` 看总量差额，
+  `TENANT` 段定位到租户，`MODEL` 段定位到型号，`EXCEPTION` 段就是待人工处理的清单。
 - 巡检两类异常订单：`status = PAID AND subscriptionID IS NULL`（已收款未开通）与 `remark` 非空的订单（金额不符 / 迟到支付 / 下单失败）。
+- 出现大量「未定价」通常意味着价目窗口有缺口：补价目时不要改历史窗口，新开一条覆盖缺口的窗口即可。
 - `REFUNDED` 未实现：退款走渠道后台，本模块只保证「已支付订单不可关闭」。

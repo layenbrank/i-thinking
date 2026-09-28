@@ -18,6 +18,7 @@ erDiagram
   tenant ||--o{ sso_connection : has
   gateway_provider ||--o{ gateway_model : provides
   auth ||--o| subscription : creator
+  tenant ||--o{ billing_price : has
 ```
 
 | 关系                                               | 说明                                 |
@@ -33,6 +34,7 @@ erDiagram
 | `gateway_model.providerID` → `gateway_provider.id` | 模型所属供应商，删除供应商时 CASCADE |
 | `subscription.tenantID` → `tenant.id`              | 订阅归属，删除租户时 CASCADE         |
 | `subscription.creator/updater` → `auth.id`         | 订阅审计                             |
+| `billing_price.tenantID` → `tenant.id`             | 租户专属价归属，删除租户时 CASCADE（平台默认价该列为 NULL，无外键） |
 
 ## auth 表
 
@@ -198,6 +200,33 @@ Entity：[`entity/src/gateway_usage.rs`](../entity/src/gateway_usage.rs)、[`ent
 用量另同步写入 ES 索引 `gateway.usage_es_index`（默认 `gateway_usage`）。
 **使用模块**：gateway（转发落库 / 审计写入；平台与租户两面的审计读取与文件导出，见 [gateway README](../src/services/gateway/README.md#审计读取与导出)）
 
+## billing_price 表
+
+Entity：[`entity/src/billing_price.rs`](../entity/src/billing_price.rs)
+
+网关只记 token 数，金额由计费侧按「用量 × 单价」折算，所以价格单独成表。
+取价维度是 **`(tenantID, modelID, 时间点)`**：`"tenantID" IS NULL` 是平台默认价，非空是该租户的专属价，**同层级内专属价优先**。
+
+| 列 (DB)                                                        | 类型        | 说明                                             |
+| -------------------------------------------------------------- | ----------- | ------------------------------------------------ |
+| **id**                                                         | uuid PK     | 价目 ID                                          |
+| tenantID                                                       | uuid FK     | → tenant.id，CASCADE；NULL = 平台默认价，索引    |
+| modelID                                                        | uuid        | 型号 ID，**无外键**，索引（与 `effectiveFrom` 联合） |
+| modelName                                                      | text        | 型号名的**写入时快照**，仅用于报告显示           |
+| currency                                                       | text        | 结算币种，默认 `CNY`                             |
+| inputPricePerMillion / outputPricePerMillion                   | bigint      | 单价，单位 **分 / 百万 token**，整数存储         |
+| effectiveFrom                                                  | timestamptz | 生效起点（**闭**）                               |
+| effectiveTo                                                    | timestamptz | 生效终点（**开**）；NULL = 至今                  |
+| archivedAt / createdAt / creator / updatedAt / updater         |             | 审计字段；软归档（不回删行）                     |
+
+- 单价用整数（分 / 百万 token）而不是小数：折算只在乘加之后做一次四舍五入，全程无浮点，避免对账尾差
+- 索引：`idx_billing_price_model (modelID, effectiveFrom)` 服务取价路径（等值 + 区间比较）；`idx_billing_price_tenant (tenantID)` 服务列表
+- **无 `modelID` 外键、无 Relation**：型号改名或下线不应牵动历史价目，`modelName` 快照就是为此保留的可读名字
+- **窗口左闭右开** `[effectiveFrom, effectiveTo)`，同一 `(tenantID, modelID)` 同一层级内不得重叠（应用层校验，DB 不做约束）；缺口不算错，但对账会把它报成「未定价」
+- 变更规则见 [payment README 的计费运维面](../src/services/payment/README.md#计费运维面apiv1billing仅平台-admin)
+
+**使用模块**：payment（价目管理 `/api/v1/billing/prices` 走平台运维通道；对账取价写在报表 SQL 里）
+
 ## sso_connection 表
 
 Entity：[`entity/src/sso_connection.rs`](../entity/src/sso_connection.rs)
@@ -248,6 +277,7 @@ Entity：[`entity/src/sso_connection.rs`](../entity/src/sso_connection.rs)
 | sso_connection | 读：`"tenantID" = app_current_tenant_id()`，**或**连接 id 能力键（`"id" = app_current_sso_connection_id() AND "archivedAt" IS NULL`）；写：只允许本租户（管理面走平台运维通道） |
 | asset | 读：`"creator" = app_current_user_id()` **或** `"tenantID" = app_current_tenant_id()::text`（该列是 text，显式转型）**或** `"visibility" = 'PUBLIC'` **或** `"viewers" ? app_current_user_id()::text` **或** hash 能力键（见下）；写：只允许 `"creator" = app_current_user_id()` |
 | gateway_provider / gateway_model | 读：`"tenantID" IS NULL OR "tenantID" = app_current_tenant_id()`（保留全局目录行）；写：只允许本租户（全局行由平台运维通道写） |
+| billing_price | **恒假**（`USING false` + `WITH CHECK false`）：价目是商业信息，租户面既不该读（能反推别人的专属价与成本）也不该写（改价 = 改账单口径），读写一律走平台运维通道 |
 | auth / chunk | **无 RLS**：账号是全局身份；chunk 没有租户列，隔离经 asset 传递（有意延后，先有可见的 asset 才谈得上它的分片） |
 
 `payment_order` 的读策略多一条**订单号能力键**：匿名渠道回调只带来一个订单号，策略用它把租户找出来，
@@ -312,8 +342,9 @@ OR ("hash" = app_current_asset_hash() AND "status" = 'COMPLETED')  -- ⑤ 内容
 [`src/databases/scope.rs`](../src/databases/scope.rs) 的 `Storage::platform_tx`，句柄层在
 [`src/guards/platform.rs`](../src/guards/platform.rs)。
 
-- 用途只有三种：平台目录的**全局行**（`"tenantID" IS NULL` 的 `gateway_provider` / `gateway_model`）、跨租户用量与审计汇总，
-  以及 SSO 连接的**运维面**（`/sso/connections` 列的是所有租户的连接，建连接时由请求体指定租户）。
+- 用途只有四种：平台目录的**全局行**（`"tenantID" IS NULL` 的 `gateway_provider` / `gateway_model`）、跨租户用量与审计汇总、
+  SSO 连接的**运维面**（`/sso/connections` 列的是所有租户的连接，建连接时由请求体指定租户），
+  以及**计费运维面**（`/api/v1/billing/*` 的价目与对账，含 `billing_price` 的策略恒假表）。
   租户面与账号面一律走作用域，不需要它
 - 唯一一个**请求路径之外**的调用点是 outbox 发布器（[`src/worker/runner.rs`](../src/worker/runner.rs)，`cargo run --bin worker`）：
   它要读的是「所有租户的未发布事件」，没有更窄的作用域可选。因此生产环境必须先把下面的角色建好，
@@ -416,6 +447,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO core_platform;
 | sso_connection | 单一租户（读写都按 `"tenantID"` 隔离） | sso 模块：管理面走平台运维通道，匿名 OIDC 走连接 id 能力键引导 |
 | asset / chunk | **全局内容寻址**：`hash` 跨账号唯一，行按 `visibility` + 创建者判可见（`chunk` 经 asset 传递） | 上传模块；读走 `AssetReader` / `AssetContentScope` |
 | gateway_provider / gateway_model | 租户行或全局行（`"tenantID" IS NULL`） | 网关管理；全局行走平台运维通道 |
+| billing_price | 平台级商业信息（平台默认价 `"tenantID" IS NULL`，租户专属价非空） | payment（计费运维面 `/api/v1/billing/prices`），读写都走平台运维通道；对账只读 |
 | gateway_usage / gateway_audit | 单一租户，或无租户行（`"tenantID" IS NULL`，归属本人） | 网关 |
 | outbox / consumed_event | 单一租户，或 `tenantID IS NULL` 的系统事件 | 各模块只写自己的事件 |
 | 编排实例 / 历史 / 事件（`durable` schema） | 引擎自治，无租户维度（见[长任务表](#长任务表durable-schema)） | 只有 orchestrator 跑运行时；其他进程用 `durable::Client` 起实例、投事件 |

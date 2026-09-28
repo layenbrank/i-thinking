@@ -21,7 +21,7 @@ pub struct UsageGroup {
     /// `None` = 用量没有归属租户（`gateway_usage.tenantID` 可空）。
     pub tenant_id: Option<Uuid>,
     pub model_id: Uuid,
-    /// 由服务层按型号 id 二次查询补齐；SQL 里不做 JOIN。
+    /// 由服务层的对账 SQL `LEFT JOIN gateway_model` 补齐；内核不查库。
     pub model_name: Option<String>,
     pub prompt_tokens: i64,
     pub completion_tokens: i64,

@@ -67,6 +67,12 @@ pub const TENANT_PAY_ORDER_CLOSE: &str = "/api/v1/tenants/{id}/orders/{orderNo}/
 pub const PAY_NOTIFY_WECHAT: &str = "/api/v1/pay/notify/wechat";
 pub const PAY_NOTIFY_ALIPAY: &str = "/api/v1/pay/notify/alipay";
 
+// --- Billing（计费运维面，仅平台 ADMIN） ---
+pub const BILLING_PRICES: &str = "/api/v1/billing/prices";
+pub const BILLING_PRICES_BY_ID: &str = "/api/v1/billing/prices/{id}";
+pub const BILLING_RECONCILIATION: &str = "/api/v1/billing/reconciliation";
+pub const BILLING_RECONCILIATION_EXPORT: &str = "/api/v1/billing/reconciliation/export";
+
 // --- Gateway ---
 pub const GATEWAY_CHAT: &str = "/api/v1/gateway/chat/completions";
 pub const GATEWAY_MODELS: &str = "/api/v1/gateway/models";
@@ -412,5 +418,29 @@ pub const ALL_ROUTES: &[RouteDef] = &[
     RouteDef {
         method: "GET",
         path: SSO_CALLBACK,
+    },
+    RouteDef {
+        method: "GET",
+        path: BILLING_PRICES,
+    },
+    RouteDef {
+        method: "POST",
+        path: BILLING_PRICES,
+    },
+    RouteDef {
+        method: "PUT",
+        path: BILLING_PRICES_BY_ID,
+    },
+    RouteDef {
+        method: "DELETE",
+        path: BILLING_PRICES_BY_ID,
+    },
+    RouteDef {
+        method: "GET",
+        path: BILLING_RECONCILIATION,
+    },
+    RouteDef {
+        method: "GET",
+        path: BILLING_RECONCILIATION_EXPORT,
     },
 ];

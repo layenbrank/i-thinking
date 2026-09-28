@@ -2307,6 +2307,275 @@
         ],
         "type": "object"
       },
+      "PriceEnvelope": {
+        "properties": {
+          "code": {
+            "description": "业务状态码（200000=成功）",
+            "format": "int32",
+            "type": "integer"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PriceR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "PriceListEnvelope": {
+        "properties": {
+          "code": {
+            "description": "业务状态码（200000=成功）",
+            "format": "int32",
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PriceR"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "PriceQueryP": {
+        "description": "价目列表查询参数。**不做分页**：一个平台的价目量级是「型号数 × 改价次数」，\n量小到一次取全更利于核对；因此只提供收窄条件。",
+        "properties": {
+          "activeOnly": {
+            "description": "只看此刻生效的窗口（未归档 且 `effectiveFrom <= now < effectiveTo`）",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "includeArchived": {
+            "description": "是否包含已归档价目（缺省 false）",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "modelID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tenantID": {
+            "description": "租户收窄；缺省 = 不过滤（含平台默认价）",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "PriceR": {
+        "description": "价目视图。",
+        "properties": {
+          "active": {
+            "description": "此刻是否生效（未归档 且 窗口覆盖 now）",
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "effectiveFrom": {
+            "description": "生效起点（毫秒时间戳，含）",
+            "format": "int64",
+            "type": "integer"
+          },
+          "effectiveTo": {
+            "description": "生效终点（毫秒时间戳，不含）；缺省 = 长期生效",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "inputPricePerMillion": {
+            "description": "分 / 百万 token",
+            "format": "int64",
+            "type": "integer"
+          },
+          "modelID": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "outputPricePerMillion": {
+            "description": "分 / 百万 token",
+            "format": "int64",
+            "type": "integer"
+          },
+          "tenantID": {
+            "description": "`null` = 平台默认价",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "modelID",
+          "modelName",
+          "currency",
+          "inputPricePerMillion",
+          "outputPricePerMillion",
+          "effectiveFrom",
+          "active",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "PriceUpdateP": {
+        "description": "改价目：**只开放 `modelName` 与 `effectiveTo`**。\n\n金额与生效起点不可改：历史用量必须能被「当时的单价」唯一复算，一旦允许原地改价，\n过去的账目就会随之后的一次编辑而漂移。改价 = 关旧窗口（本接口补 `effectiveTo`）\n+ 建新窗口（`POST /billing/prices`）。",
+        "properties": {
+          "effectiveTo": {
+            "description": "把窗口收窄到此刻之前；缺省不动（窗口一旦收窄就不能再退回长期生效）",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "modelName": {
+            "description": "型号名快照；缺省不动",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "PriceWriteP": {
+        "description": "新建价目。\n\n`currency` 缺省取结算币种；给了就必须等于结算币种（对账只在同一币种里比金额）。",
+        "properties": {
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "effectiveFrom": {
+            "description": "生效起点（毫秒时间戳，含）",
+            "format": "int64",
+            "type": "integer"
+          },
+          "effectiveTo": {
+            "description": "生效终点（毫秒时间戳，不含；null = 长期生效）",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "inputPricePerMillion": {
+            "description": "分 / 百万 token",
+            "format": "int64",
+            "type": "integer"
+          },
+          "modelID": {
+            "type": "string"
+          },
+          "outputPricePerMillion": {
+            "description": "分 / 百万 token",
+            "format": "int64",
+            "type": "integer"
+          },
+          "tenantID": {
+            "description": "`null` = 平台默认价，`Some` = 该租户的专属价（取价时专属价优先）",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "modelID",
+          "inputPricePerMillion",
+          "outputPricePerMillion",
+          "effectiveFrom"
+        ],
+        "type": "object"
+      },
       "ProfileEnvelope": {
         "properties": {
           "code": {
@@ -2893,6 +3162,390 @@
           "success",
           "msg",
           "timestamp"
+        ],
+        "type": "object"
+      },
+      "ReconcileEnvelope": {
+        "properties": {
+          "code": {
+            "description": "业务状态码（200000=成功）",
+            "format": "int32",
+            "type": "integer"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReconcileR"
+              }
+            ]
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "traceID": {
+            "description": "链路追踪 ID（W3C `traceparent` 的 trace-id），用于串联入口日志与下游调用",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "success",
+          "msg",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "ReconcileExceptionR": {
+        "description": "需要人工确认的一条异常。",
+        "properties": {
+          "amount": {
+            "description": "涉及金额（分）；未定价与纯计数类异常为 null",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "description": {
+            "description": "类型码的中文说明",
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "kind": {
+            "description": "类型码：`UNPRICED_USAGE` / `CURRENCY_MISMATCH` / `USAGE_WITHOUT_ORDER` /\n`ORDER_WITHOUT_USAGE` / `PAID_NOT_ACTIVATED` / `REMARKED`",
+            "type": "string"
+          },
+          "modelID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "orderNo": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tenantID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "description",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "ReconcileExportFormat": {
+        "description": "导出格式：`csv`（Excel 友好，带 UTF-8 BOM）或 `ndjson`（流式消费友好）。",
+        "enum": [
+          "csv",
+          "ndjson"
+        ],
+        "type": "string"
+      },
+      "ReconcileExportP": {
+        "description": "对账导出参数：与查询同一组窗口条件，外加导出格式（缺省 CSV）。",
+        "properties": {
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "format": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReconcileExportFormat"
+              }
+            ]
+          },
+          "from": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "tenantID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "to": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "ReconcileModelR": {
+        "description": "型号明细：每一行都能用「token 数 × 单价」独立复算。",
+        "properties": {
+          "amount": {
+            "description": "null = 未定价；此时租户合计只是「下限」",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "completionTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "inputPricePerMillion": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "mismatchedCurrency": {
+            "description": "币种与结算币种不一致，金额被排除在合计之外",
+            "type": "boolean"
+          },
+          "modelID": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outputPricePerMillion": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "priceID": {
+            "description": "命中并生效的那条价目；null = 未定价",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "promptTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tenantID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "modelID",
+          "promptTokens",
+          "completionTokens",
+          "requests",
+          "mismatchedCurrency"
+        ],
+        "type": "object"
+      },
+      "ReconcileQueryP": {
+        "description": "对账窗口参数。窗口是**左闭右开** `[from, to)`，单位毫秒；缺省最近 24 小时。",
+        "properties": {
+          "currency": {
+            "description": "结算币种；缺省取服务配置里的结算币种",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "from": {
+            "description": "窗口起点（毫秒，含）；缺省 = 终点往前 24 小时",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "tenantID": {
+            "description": "只对这一个租户对账；缺省 = 全平台",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "to": {
+            "description": "窗口终点（毫秒，不含）；缺省 = 此刻",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "ReconcileR": {
+        "description": "一次对账的完整结果。",
+        "properties": {
+          "currency": {
+            "description": "结算币种",
+            "type": "string"
+          },
+          "exceptions": {
+            "items": {
+              "$ref": "#/components/schemas/ReconcileExceptionR"
+            },
+            "type": "array"
+          },
+          "from": {
+            "description": "窗口起点（毫秒，含）",
+            "format": "int64",
+            "type": "integer"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/ReconcileModelR"
+            },
+            "type": "array"
+          },
+          "tenants": {
+            "items": {
+              "$ref": "#/components/schemas/ReconcileTenantR"
+            },
+            "type": "array"
+          },
+          "to": {
+            "description": "窗口终点（毫秒，不含）",
+            "format": "int64",
+            "type": "integer"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ReconcileTotalsR"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "currency",
+          "totals",
+          "tenants",
+          "models",
+          "exceptions"
+        ],
+        "type": "object"
+      },
+      "ReconcileTenantR": {
+        "description": "单租户合计。`tenantID` 为 null 表示用量没有归属租户。",
+        "properties": {
+          "tenantID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ReconcileTotalsR"
+          }
+        },
+        "required": [
+          "totals"
+        ],
+        "type": "object"
+      },
+      "ReconcileTotalsR": {
+        "description": "对账合计（分）。",
+        "properties": {
+          "delta": {
+            "description": "`usageAmount - orderAmount`：正数 = 用了没付，负数 = 付了没用",
+            "format": "int64",
+            "type": "integer"
+          },
+          "failedRequests": {
+            "description": "`status != 'OK'` 的请求数（只计数，不折算金额）",
+            "format": "int64",
+            "type": "integer"
+          },
+          "mismatchedAmount": {
+            "description": "因币种不一致被排除在 `usageAmount` 之外的金额",
+            "format": "int64",
+            "type": "integer"
+          },
+          "mismatchedOrderAmount": {
+            "description": "因币种不一致被排除在 `orderAmount` 之外的金额",
+            "format": "int64",
+            "type": "integer"
+          },
+          "orderAmount": {
+            "description": "订单实收（分），只含结算币种",
+            "format": "int64",
+            "type": "integer"
+          },
+          "paidOrders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unpricedRequests": {
+            "description": "没有匹配到价目的请求数（金额未计入）",
+            "format": "int64",
+            "type": "integer"
+          },
+          "usageAmount": {
+            "description": "用量折算金额（分），只含结算币种",
+            "format": "int64",
+            "type": "integer"
+          },
+          "usageRequests": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "usageAmount",
+          "orderAmount",
+          "delta",
+          "usageRequests",
+          "unpricedRequests",
+          "failedRequests",
+          "mismatchedAmount",
+          "mismatchedOrderAmount",
+          "paidOrders"
         ],
         "type": "object"
       },
@@ -6075,6 +6728,600 @@
         "summary": "用户注册",
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/api/v1/billing/prices": {
+      "get": {
+        "description": "仅平台 ADMIN。**不分页**：价目量级是「型号数 × 改价次数」，一次取全更利于核对，\n\n故只提供收窄条件（`tenantID` / `modelID` / `activeOnly` / `includeArchived`）。\n\n`tenantID` 缺省 = 不过滤（平台默认价与各租户专属价都返回）；已归档价目缺省不返回。",
+        "operationId": "billing.prices",
+        "parameters": [
+          {
+            "description": "租户 ID；缺省 = 不过滤",
+            "in": "query",
+            "name": "tenantID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "模型 ID",
+            "in": "query",
+            "name": "modelID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "只看此刻生效的窗口（未归档且窗口覆盖当前时刻）",
+            "in": "query",
+            "name": "activeOnly",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "是否包含已归档价目，缺省 false",
+            "in": "query",
+            "name": "includeArchived",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListEnvelope"
+                }
+              }
+            },
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "价目列表",
+        "tags": [
+          "Billing"
+        ]
+      },
+      "post": {
+        "description": "仅平台 ADMIN。**价格不可原地修改**，改价一律「关旧窗口 + 开新窗口」：\n\n历史用量必须能被它发生当时的那条价目唯一复算，否则过去的账会随之后的一次编辑而漂移。\n\n写入前校验窗口不与同租户同型号（含平台默认价）的既有窗口重叠，相邻不算重叠（`[a,b)` 与 `[b,c)` 可以相接）；\n\n`currency` 缺省取结算币种，给了就必须等于它（对账只在同一币种里比金额）；\n\n`tenantID` 缺省 = 平台默认价，取价时租户专属价优先于平台默认价。\n\n冲突返回 `500410`（HTTP 409），窗口非法 `500411`、金额超范围 `500412`、币种不符 `500413`（均 HTTP 422）。",
+        "operationId": "billing.priceWrite",
+        "parameters": [
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceWriteP"
+              }
+            }
+          },
+          "description": "价目内容（金额单位：分 / 百万 token）",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceEnvelope"
+                }
+              }
+            },
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（型号不存在 / 窗口重叠 / 参数非法）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "新建价目",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/v1/billing/prices/{id}": {
+      "delete": {
+        "description": "仅平台 ADMIN。**软删除**：`archivedAt` 置位后不再参与取价，\n\n但历史对账快照仍指向这一行，所以它永远不物理消失。重复归档返回成功（幂等）。",
+        "operationId": "billing.priceArchive",
+        "parameters": [
+          {
+            "description": "价目 ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyEnvelope"
+                }
+              }
+            },
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（价目不存在）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "归档价目",
+        "tags": [
+          "Billing"
+        ]
+      },
+      "put": {
+        "description": "仅平台 ADMIN。**只开放 `modelName`（快照名）与 `effectiveTo`（收窄窗口）**：\n\n金额与生效起点写入后不可改。窗口一旦收窄就不能再退回长期生效，因此改价 = 本接口补上 `effectiveTo`\n\n+ `POST /billing/prices` 建新窗口。两个字段都不给返回 `200003`（HTTP 400）。",
+        "operationId": "billing.priceUpdate",
+        "parameters": [
+          {
+            "description": "价目 ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceUpdateP"
+              }
+            }
+          },
+          "description": "只允许改型号名快照与结束时间",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceEnvelope"
+                }
+              }
+            },
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（价目不存在 / 窗口未收窄 / 参数非法）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "改价目（收窄窗口）",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/v1/billing/reconciliation": {
+      "get": {
+        "description": "仅平台 ADMIN。把「用量折算出的金额」与「订单实收」放进同一个窗口比，返回全平台合计、\n\n按租户合计、按型号明细（每行都能用 token 数 × 单价独立复算）与需要人工确认的异常列表。\n\n窗口**左闭右开** `[from, to)`、单位毫秒：缺省「最近 24 小时」，跨度上限 31 天（超出 `500414`，HTTP 422）。\n\n取价按**用量发生的时刻**命中当时生效的价目（租户专属价优先于平台默认价），匹配不到就是未定价用量——\n\n它会显式出现在异常列表里，绝不静默按 0 计价。`tenantID` 缺省 = 全平台；参数非法一律报错，不静默忽略。",
+        "operationId": "billing.reconciliation",
+        "parameters": [
+          {
+            "description": "窗口起点（毫秒，含）；缺省 = 终点往前 24 小时",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "窗口终点（毫秒，不含）；缺省 = 此刻",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "只对这一个租户对账；缺省 = 全平台",
+            "in": "query",
+            "name": "tenantID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "结算币种；缺省取服务配置里的结算币种",
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconcileEnvelope"
+                }
+              }
+            },
+            "description": "成功",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足 / 窗口或参数非法 / 合计溢出）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "计量对账",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/v1/billing/reconciliation/export": {
+      "get": {
+        "description": "仅平台 ADMIN，与 `billing.reconciliation` 同一组窗口条件、同一份口径，但返回**文件流**。\n\n行序固定为 合计 → 租户 → 型号 → 异常，`section` 列即所在分段；`format=csv`（缺省）返回\n\n`text/csv; charset=utf-8`，带 UTF-8 BOM 且字段按 RFC 4180 转义；`format=ndjson` 返回\n\n`application/x-ndjson; charset=utf-8`，每行一个对象。\n\n命中 0 行是合法结果（窗口内没有流水），此时文件只有表头，不报 404；命中硬上限时\n\n`X-Export-Truncated` 为 `true` 且只返回靠前的行——**先按窗口或租户收窄再导出**。\n\n`Content-Disposition` 给出的文件名形如 `billing-<from>-<to>.<ext>`，时间戳即**实际生效**的窗口。",
+        "operationId": "billing.reconciliationExport",
+        "parameters": [
+          {
+            "description": "窗口起点（毫秒，含）；缺省 = 终点往前 24 小时",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "窗口终点（毫秒，不含）；缺省 = 此刻",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "只对这一个租户对账；缺省 = 全平台",
+            "in": "query",
+            "name": "tenantID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "结算币种；缺省取服务配置里的结算币种",
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "导出格式：`csv`（缺省，Excel 友好）或 `ndjson`（流式消费友好）",
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "examples": [
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+              ],
+              "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "对账文件流（`text/csv` 或 `application/x-ndjson`）；`X-Export-Rows` 为实际行数，`X-Export-Truncated` 为是否命中硬上限，`Content-Disposition` 给出文件名",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "业务异常（权限不足 / 窗口或参数非法）：HTTP 状态码按错误码归属返回，响应体为统一错误信封",
+            "headers": {
+              "traceparent": {
+                "description": "W3C Trace Context 链路头（可选）。缺省由服务端生成；响应始终回显该头，响应体信封的 `traceID` 即其 trace-id，可用于串联日志、下游调用与用户反馈。",
+                "schema": {
+                  "examples": [
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "summary": "导出对账结果",
+        "tags": [
+          "Billing"
         ]
       }
     },
@@ -11836,6 +13083,10 @@
     {
       "description": "支付：档位/渠道目录、订单、渠道回调（下单需 JWT）",
       "name": "Payment"
+    },
+    {
+      "description": "计费运维面：模型价目与计量对账（仅平台 ADMIN）",
+      "name": "Billing"
     }
   ]
 }

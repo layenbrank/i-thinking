@@ -1,0 +1,275 @@
+# ============================================================
+# 计费运维面（价目 + 计量对账）
+#   GET    /api/v1/billing/prices                  — 价目列表
+#   POST   /api/v1/billing/prices                  — 新建价目（开一条新窗口）
+#   PUT    /api/v1/billing/prices/{id}             — 改价目（只收窄窗口 / 改型号名快照）
+#   DELETE /api/v1/billing/prices/{id}             — 归档价目（软删除，幂等）
+#   GET    /api/v1/billing/reconciliation          — 计量对账（JSON）
+#   GET    /api/v1/billing/reconciliation/export   — 计量对账导出（文件流）
+# 鉴权: Bearer + **平台 ADMIN**（六条全部；租户 OWNER / ADMIN 也不行）
+# 说明: 价目与对账都是商业信息，整段跑在平台特权作用域（`PlatformScope`）下
+# ============================================================
+
+@host = http://127.0.0.1:3000
+@username = admin
+@password = 123456
+
+### 先登录取 token（账号必须是平台 ADMIN）
+# @name signin
+POST {{host}}/api/v1/auth/signin
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+###
+@token = {{signin.response.body.data.token}}
+
+### GET /api/v1/gateway/admin/models — 找一个 modelID 给下面用
+# 价目的 modelID 必须指向一个**未归档**的 gateway_model；这里只取第一条当占位
+# 注意: 这个端点没有查询参数，`data` 直接是数组
+# @name adminModels
+GET {{host}}/api/v1/gateway/admin/models
+Authorization: ******
+Accept: application/json
+
+###
+@modelId = {{adminModels.response.body.data[0].id}}
+
+# ============================================================
+# 一、价目管理 `/api/v1/billing/prices`
+# ============================================================
+
+### GET /api/v1/billing/prices — 列出全部价目（含平台默认价与租户专属价）
+# 说明: **不做分页**。一个平台的价目量级是「型号数 × 改价次数」，量小到一次取全更利于核对
+# Query 参数:
+#   tenantID         string   可选  只看这个租户的专属价（空串按「没给」处理）
+#   modelID          string   可选  只看这个型号
+#   activeOnly       boolean  可选  只看此刻生效的窗口（缺省 false）
+#   includeArchived  boolean  可选  是否带上已归档价目（缺省 false）
+# 注意: 这里的参数校验**偏宽松**——列表是排查入口，条件写错时宁可少过滤也不要多挡人；
+#       但给了值的字段仍要能解析（非法 UUID → 400 / 错误码 200003）
+GET {{host}}/api/v1/billing/prices
+Authorization: ******
+Accept: application/json
+
+### GET /api/v1/billing/prices — 只看某型号此刻生效的价
+GET {{host}}/api/v1/billing/prices?modelID={{modelId}}&activeOnly=true
+Authorization: ******
+Accept: application/json
+
+### GET /api/v1/billing/prices — 带上已归档的（复核历史账单时用）
+GET {{host}}/api/v1/billing/prices?modelID={{modelId}}&includeArchived=true
+Authorization: ******
+Accept: application/json
+
+### POST /api/v1/billing/prices — 新建平台默认价
+# Body 参数:
+#   tenantID                 string  可选  null / 不给 = 平台默认价；给了 = 该租户专属价（取价时专属价优先）
+#   modelID                  string  必填  未归档的 gateway_model.id
+#   currency                 string  可选  缺省取结算币种；给了就必须等于它（否则 500413）
+#   inputPricePerMillion     number  必填  分 / 百万 token（0 ~ 上限，超出 500412）
+#   outputPricePerMillion    number  必填  分 / 百万 token
+#   effectiveFrom            number  必填  生效起点（毫秒，**含**）
+#   effectiveTo              number  可选  生效终点（毫秒，**不含**）；不给 = 长期生效
+# 规则: 同一「租户 + 型号」同一层级内窗口不得重叠（重叠 500410）；缺口不算错，但对账会报「未定价」
+# @name createPrice
+POST {{host}}/api/v1/billing/prices
+Authorization: ******
+Content-Type: application/json
+Accept: application/json
+
+{
+  "modelID": "{{modelId}}",
+  "inputPricePerMillion": 200,
+  "outputPricePerMillion": 800,
+  "effectiveFrom": 1735689600000
+}
+
+###
+@priceId = {{createPrice.response.body.data.id}}
+
+### POST /api/v1/billing/prices — 给某个租户开专属价（比平台价低）
+# 说明: `tenantID` 非空即专属价；取价时**专属价优先**，窗口到期自动回落平台默认价
+POST {{host}}/api/v1/billing/prices
+Authorization: ******
+Content-Type: application/json
+Accept: application/json
+
+{
+  "tenantID": "00000000-0000-0000-0000-000000000000",
+  "modelID": "{{modelId}}",
+  "inputPricePerMillion": 150,
+  "outputPricePerMillion": 600,
+  "effectiveFrom": 1735689600000,
+  "effectiveTo": 1767225600000
+}
+
+### POST /api/v1/billing/prices — 重叠示例
+# 期望: HTTP 409 / 错误码 500410（与上面那条平台默认价同层级且区间相交）
+POST {{host}}/api/v1/billing/prices
+Authorization: ******
+Content-Type: application/json
+Accept: application/json
+
+{
+  "modelID": "{{modelId}}",
+  "inputPricePerMillion": 300,
+  "outputPricePerMillion": 900,
+  "effectiveFrom": 1735689600000
+}
+
+### POST /api/v1/billing/prices — 金额越界示例
+# 期望: HTTP 422 / 错误码 500412
+POST {{host}}/api/v1/billing/prices
+Authorization: ******
+Content-Type: application/json
+Accept: application/json
+
+{
+  "modelID": "{{modelId}}",
+  "inputPricePerMillion": -1,
+  "outputPricePerMillion": 800,
+  "effectiveFrom": 1735689600000
+}
+
+### PUT /api/v1/billing/prices/{id} — 把长期生效的窗口收窄到此刻（改价的正确姿势之一）
+# Body 参数:
+#   modelName    string  可选  型号名快照
+#   effectiveTo  number  可选  新的生效终点（毫秒，不含）
+# 规则: **只允许收窄**——必须晚于 effectiveFrom 且不晚于原终点，否则 500411；
+#       想延后 / 想改单价一律 500411，因为历史用量必须能被「当时的单价」唯一复算。
+#       两个字段都不给，或 modelName 为空串 / effectiveTo 不是合法毫秒 → 400 / 错误码 200003
+PUT {{host}}/api/v1/billing/prices/{{priceId}}
+Authorization: ******
+Content-Type: application/json
+Accept: application/json
+
+{
+  "effectiveTo": 1767225600000
+}
+
+### PUT /api/v1/billing/prices/{id} — 只改型号名快照（不影响计费口径）
+PUT {{host}}/api/v1/billing/prices/{{priceId}}
+Authorization: ******
+Content-Type: application/json
+Accept: application/json
+
+{
+  "modelName": "GPT-4o（2024-11 价）"
+}
+
+### PUT /api/v1/billing/prices/{id} — 试图延后终点
+# 期望: HTTP 422 / 错误码 500411
+PUT {{host}}/api/v1/billing/prices/{{priceId}}
+Authorization: ******
+Content-Type: application/json
+Accept: application/json
+
+{
+  "effectiveTo": 4102444800000
+}
+
+### PUT /api/v1/billing/prices/{id} — 一个字段都不给
+# 期望: HTTP 400 / 错误码 200003
+PUT {{host}}/api/v1/billing/prices/{{priceId}}
+Authorization: ******
+Content-Type: application/json
+Accept: application/json
+
+{}
+
+### DELETE /api/v1/billing/prices/{id} — 归档（软删除，幂等）
+# 说明: 只写 archivedAt，行不消失——历史对账仍然指向这条价目；重复调用同样返回成功
+# 响应: 不带 data，只有 success / msg
+DELETE {{host}}/api/v1/billing/prices/{{priceId}}
+Authorization: ******
+Accept: application/json
+
+### DELETE /api/v1/billing/prices/{id} — 再来一次
+# 期望: 仍然成功（幂等）
+DELETE {{host}}/api/v1/billing/prices/{{priceId}}
+Authorization: ******
+Accept: application/json
+
+# ============================================================
+# 二、计量对账 `/api/v1/billing/reconciliation`
+# ============================================================
+
+### GET /api/v1/billing/reconciliation — 缺省窗口（最近 24 小时，全平台）
+# Query 参数:
+#   from      number  可选  窗口起点（毫秒，含）；缺省 = to 往前 24 小时
+#   to        number  可选  窗口终点（毫秒，不含）；缺省 = 此刻
+#   tenantID  string  可选  只对这一个租户对账；缺省 = 全平台
+#   currency  string  可选  结算币种；缺省取服务配置（大小写不敏感）
+# **参数校验偏严格**（不同于价目列表）：对账结果是拿去核账的，条件写错却看起来算出了结果最危险，
+# 所以非法时间戳 / 租户 / 币种一律报错，只有空串按「没给」处理
+# 响应结构: totals（合计）+ tenants[]（按租户）+ models[]（按型号，可逐行复算）+ exceptions[]（待人工清单）
+GET {{host}}/api/v1/billing/reconciliation
+Authorization: ******
+Accept: application/json
+
+### GET /api/v1/billing/reconciliation — 显式窗口 + 单租户
+GET {{host}}/api/v1/billing/reconciliation?from=1735689600000&to=1767225600000&tenantID=00000000-0000-0000-0000-000000000000
+Authorization: ******
+Accept: application/json
+
+### GET /api/v1/billing/reconciliation — 参数非法示例：from >= to
+# 期望: HTTP 422 / 错误码 500414
+GET {{host}}/api/v1/billing/reconciliation?from=1767225600000&to=1735689600000
+Authorization: ******
+Accept: application/json
+
+### GET /api/v1/billing/reconciliation — 参数非法示例：跨度超过 31 天
+# 期望: HTTP 422 / 错误码 500414（上限 31 天，硬编码，避免一次对账把库拖垮）
+GET {{host}}/api/v1/billing/reconciliation?from=1700000000000&to=1767225600000
+Authorization: ******
+Accept: application/json
+
+### GET /api/v1/billing/reconciliation/export — 导出 CSV（缺省格式）
+# 说明: **不套 JSON 信封**，直接返回文件字节
+# Query 参数: 同 JSON 端点，另加
+#   format  string  可选  csv（缺省，UTF-8 BOM + CRLF，Excel 友好）| ndjson（流式消费友好）
+# 响应头:
+#   Content-Disposition   attachment; filename="billing-<from>-<to>.<ext>"（UTC 紧凑格式）
+#   X-Export-Rows         实际导出行数
+#   X-Export-Truncated    true = 命中量超过 50 000 行上限被截尾（只看文件内容区分不出来）
+# 结构: 23 列，行序固定 TOTAL → TENANT → MODEL → EXCEPTION，`section` 列标明分段
+# 注意: 命中 0 条不是 404，文件只有表头（「真的没发生」不该长得像「导出坏了」）
+GET {{host}}/api/v1/billing/reconciliation/export
+Authorization: ******
+Accept: text/csv
+
+### GET /api/v1/billing/reconciliation/export — 显式窗口导出 CSV
+GET {{host}}/api/v1/billing/reconciliation/export?from=1735689600000&to=1767225600000
+Authorization: ******
+Accept: text/csv
+
+### GET /api/v1/billing/reconciliation/export — 导出 NDJSON（每行一个对象，时间戳为毫秒）
+GET {{host}}/api/v1/billing/reconciliation/export?format=ndjson&tenantID=00000000-0000-0000-0000-000000000000
+Authorization: ******
+Accept: application/x-ndjson
+
+### GET /api/v1/billing/reconciliation/export — 格式非法示例
+# 期望: HTTP 400（serde 反序列化失败，格式只接受 csv / ndjson）
+GET {{host}}/api/v1/billing/reconciliation/export?format=xlsx
+Authorization: ******
+Accept: application/json
+
+# ============================================================
+# 三、权限对照：非平台管理员一律 403
+# ============================================================
+
+### GET /api/v1/billing/prices — 换一个租户 OWNER 的 token 再试
+# 期望: 403（整段只挂 Auth::admin()，租户角色拿不到）
+GET {{host}}/api/v1/billing/prices
+Authorization: ******
+Accept: application/json
+
+### GET /api/v1/billing/reconciliation — 未登录
+# 期望: 401
+GET {{host}}/api/v1/billing/reconciliation
+Accept: application/json

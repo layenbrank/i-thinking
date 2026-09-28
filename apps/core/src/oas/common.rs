@@ -6,7 +6,7 @@ use crate::services::{
     auth::schema::{AuthR, Avatar, CaptchaR, ProfileR, SigninR, SignupR},
     engine::schema::SuggestionR,
     gateway::schema::{ModelR, PlansR, ProviderR, SelfQuotaR},
-    payment::schema::{CatalogR, OrderR},
+    payment::schema::{CatalogR, OrderR, PriceR, ReconcileR},
     search::schema::{SearchR, WriteR as SearchWriteR},
     sso::schema::{SsoConnectionR, SsoLoginR},
     subscription::schema::{QuotaR, SubscriptionR},
@@ -74,6 +74,9 @@ envelope!(SsoLoginEnvelope, SsoLoginR);
 envelope!(CatalogEnvelope, CatalogR);
 envelope!(OrderEnvelope, OrderR);
 envelope!(OrderListEnvelope, Vec<OrderR>);
+envelope!(PriceEnvelope, PriceR);
+envelope!(PriceListEnvelope, Vec<PriceR>);
+envelope!(ReconcileEnvelope, ReconcileR);
 
 /// 健康检查 data 字段
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

@@ -24,6 +24,8 @@ impl ApplicationModule {
                 .configure(SsoModule::configure)
                 // 支付渠道回调（匿名，验签在业务层完成）
                 .configure(PaymentModule::configure_notify)
+                // 计费运维面：价目管理与计量对账（平台 ADMIN）
+                .configure(PaymentModule::configure_billing)
                 .service(
                     web::scope("/application")
                         .route("/toRead", web::get().to(ApplicationController::toRead)),

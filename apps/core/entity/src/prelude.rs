@@ -11,5 +11,5 @@ pub use super::outbox::Entity as Outbox;
 pub use super::payment_order::Entity as PaymentOrder;
 pub use super::sso_connection::Entity as SsoConnection;
 pub use super::subscription::Entity as Subscription;
-pub use super::tenant_member::Entity as TenantMember;
 pub use super::tenant::Entity as Tenant;
+pub use super::tenant_member::Entity as TenantMember;

@@ -209,9 +209,13 @@ pub mod services {
     }
 
     pub mod payment {
+        pub mod billing_controller;
+        pub mod billing_price;
         pub mod channel;
         pub mod controller;
         pub mod module;
+        pub mod reconcile;
+        pub mod render;
         pub mod schema;
         pub mod service;
     }

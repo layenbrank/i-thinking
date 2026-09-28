@@ -278,6 +278,11 @@ export const PLATFORM_ENTRY_ALLOWED: Record<string, { max: number; reason: strin
     reason:
       '平台目录运维面（供应商/模型全局行、跨租户用量与审计汇总、审计导出）：11 个 handler 各开一段特权作用域，业务逻辑在 service.rs 内按 scope.tx() 收口'
   },
+  'src/services/payment/billing_controller.rs': {
+    max: 6,
+    reason:
+      '计费运维面（价目管理与计量对账、对账导出）：6 个 handler 各开一段平台特权作用域，业务逻辑在 billing_price.rs / reconcile.rs 内按 scope.tx() 收口'
+  },
   'src/services/sso/controller.rs': {
     max: 4,
     reason:

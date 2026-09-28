@@ -1,6 +1,7 @@
 pub mod addons;
 pub mod application;
 pub mod auth;
+pub mod billing;
 pub mod common;
 pub mod engine;
 pub mod gateway;
@@ -21,13 +22,14 @@ use crate::oas::common::{
     ApplicationEnvelope, CaptchaEnvelope, CatalogEnvelope, ChunkUploadEnvelope, ChunkUploadForm,
     DependencyCheck, EmptyEnvelope, EmptyR, Exception, FinalizeUploadEnvelope, Health,
     HealthEnvelope, Liveness, LivenessEnvelope, MemberEnvelope, MemberListEnvelope, ModelEnvelope,
-    ModelListEnvelope, OrderEnvelope, OrderListEnvelope, PlansEnvelope, ProfileEnvelope,
-    ProviderEnvelope, ProviderListEnvelope, QuotaEnvelope, Readiness, ReadinessEnvelope,
-    SearchEnvelope, SearchWriteEnvelope, SelfQuotaEnvelope, SigninEnvelope, SigninErrorExample,
-    SigninSuccessExample, SignupEnvelope, SsoConnectionEnvelope, SsoConnectionListEnvelope,
-    SsoLoginEnvelope, SubscriptionEnvelope, SubscriptionListEnvelope, SuggestionEnvelope,
-    TenantEnvelope, TenantListEnvelope, UploadFilesEnvelope, UploadHashEnvelope,
-    UploadPrepareEnvelope, UploadProgressEnvelope, UserEnvelope, UserListEnvelope,
+    ModelListEnvelope, OrderEnvelope, OrderListEnvelope, PlansEnvelope, PriceEnvelope,
+    PriceListEnvelope, ProfileEnvelope, ProviderEnvelope, ProviderListEnvelope, QuotaEnvelope,
+    Readiness, ReadinessEnvelope, ReconcileEnvelope, SearchEnvelope, SearchWriteEnvelope,
+    SelfQuotaEnvelope, SigninEnvelope, SigninErrorExample, SigninSuccessExample, SignupEnvelope,
+    SsoConnectionEnvelope, SsoConnectionListEnvelope, SsoLoginEnvelope, SubscriptionEnvelope,
+    SubscriptionListEnvelope, SuggestionEnvelope, TenantEnvelope, TenantListEnvelope,
+    UploadFilesEnvelope, UploadHashEnvelope, UploadPrepareEnvelope, UploadProgressEnvelope,
+    UserEnvelope, UserListEnvelope,
 };
 use crate::services::application::schema::{App, Component, Direction, Shape, Size};
 use crate::services::auth::schema::{
@@ -40,7 +42,11 @@ use crate::services::gateway::schema::{
     ChatCompletionsP, EmbeddingsP, ModelR, ModelUpdateP, ModelWriteP, PlanR, PlansR, ProviderR,
     ProviderUpdateP, ProviderWriteP, SelfQuotaP, SelfQuotaR, ServiceTokenP, ServiceTokenR,
 };
-use crate::services::payment::schema::{CatalogR, OrderP, OrderR};
+use crate::services::payment::schema::{
+    CatalogR, OrderP, OrderR, PriceQueryP, PriceR, PriceUpdateP, PriceWriteP, ReconcileExceptionR,
+    ReconcileExportFormat, ReconcileExportP, ReconcileModelR, ReconcileQueryP, ReconcileR,
+    ReconcileTenantR, ReconcileTotalsR,
+};
 use crate::services::search::schema::{
     HitR, QueryP as SearchQueryP, SearchR, WriteP as SearchWriteP, WriteR as SearchWriteR,
 };
@@ -161,6 +167,12 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         payment::close_doc,
         payment::notify_wechat_doc,
         payment::notify_alipay_doc,
+        billing::prices_doc,
+        billing::price_write_doc,
+        billing::price_update_doc,
+        billing::price_archive_doc,
+        billing::reconciliation_doc,
+        billing::reconciliation_export_doc,
     ),
     components(
         schemas(
@@ -294,6 +306,21 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
             OrderR,
             OrderEnvelope,
             OrderListEnvelope,
+            PriceQueryP,
+            PriceWriteP,
+            PriceUpdateP,
+            PriceR,
+            PriceEnvelope,
+            PriceListEnvelope,
+            ReconcileQueryP,
+            ReconcileExportP,
+            ReconcileExportFormat,
+            ReconcileTotalsR,
+            ReconcileTenantR,
+            ReconcileModelR,
+            ReconcileExceptionR,
+            ReconcileR,
+            ReconcileEnvelope,
         )
     ),
     tags(
@@ -310,6 +337,7 @@ use crate::services::user::schema::{Avatar as UserAvatar, UpdateP, UserR, WriteP
         (name = "Service", description = "服务身份出站面：短期令牌与嵌入转发（仅内部服务进程，无 JWT）"),
         (name = "SSO", description = "单点登录（OIDC）"),
         (name = "Payment", description = "支付：档位/渠道目录、订单、渠道回调（下单需 JWT）"),
+        (name = "Billing", description = "计费运维面：模型价目与计量对账（仅平台 ADMIN）"),
     ),
     modifiers(&ContractAddon),
     external_docs(

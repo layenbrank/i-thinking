@@ -52,7 +52,7 @@ pub const PAID: &str = "PAID";
 pub const CLOSED: &str = "CLOSED";
 
 /// 平台结算币种（微信、支付宝当前仅支持人民币）。
-const CURRENCY: &str = "CNY";
+pub const CURRENCY: &str = "CNY";
 
 /// 订单号随机段长度（配合秒级时间戳，冲突概率可忽略且订单号仍在 32 字符内）。
 const ORDER_NO_RANDOM_LEN: usize = 8;

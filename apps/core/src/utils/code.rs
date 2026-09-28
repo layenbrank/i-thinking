@@ -181,6 +181,20 @@ pub mod business {
         pub const UPSTREAM_ERROR: i32 = 500407;
         /// 档位未定价 / 不可售
         pub const PLAN_NOT_PURCHASABLE: i32 = 500408;
+        /// 价目不存在（或已被归档）
+        pub const PRICE_NOT_FOUND: i32 = 500409;
+        /// 同一租户同一型号已存在重叠的价格窗口
+        pub const PRICE_WINDOW_OVERLAP: i32 = 500410;
+        /// 价格生效区间无效（结束早于开始，或窗口未收窄）
+        pub const PRICE_WINDOW_INVALID: i32 = 500411;
+        /// 单价超出允许范围
+        pub const PRICE_INVALID_AMOUNT: i32 = 500412;
+        /// 价格币种与结算币种不一致
+        pub const PRICE_CURRENCY_UNSUPPORTED: i32 = 500413;
+        /// 对账窗口无效（起点不早于终点，或跨度超过上限）
+        pub const RECONCILE_WINDOW_INVALID: i32 = 500414;
+        /// 对账合计超出 64 位整数范围
+        pub const RECONCILE_AMOUNT_OVERFLOW: i32 = 500415;
 
         /// 本模块全部状态码
         pub const ALL: &[i32] = &[
@@ -192,6 +206,13 @@ pub mod business {
             SIGNATURE_INVALID,
             UPSTREAM_ERROR,
             PLAN_NOT_PURCHASABLE,
+            PRICE_NOT_FOUND,
+            PRICE_WINDOW_OVERLAP,
+            PRICE_WINDOW_INVALID,
+            PRICE_INVALID_AMOUNT,
+            PRICE_CURRENCY_UNSUPPORTED,
+            RECONCILE_WINDOW_INVALID,
+            RECONCILE_AMOUNT_OVERFLOW,
         ];
     }
 }
@@ -321,6 +342,13 @@ pub fn description(code: i32) -> &'static str {
         business::payment::SIGNATURE_INVALID => "支付签名校验失败",
         business::payment::UPSTREAM_ERROR => "支付渠道返回错误",
         business::payment::PLAN_NOT_PURCHASABLE => "该档位暂不可购买",
+        business::payment::PRICE_NOT_FOUND => "价目不存在",
+        business::payment::PRICE_WINDOW_OVERLAP => "价格窗口重叠",
+        business::payment::PRICE_WINDOW_INVALID => "价格生效区间无效",
+        business::payment::PRICE_INVALID_AMOUNT => "单价超出允许范围",
+        business::payment::PRICE_CURRENCY_UNSUPPORTED => "价格币种不受支持",
+        business::payment::RECONCILE_WINDOW_INVALID => "对账窗口无效",
+        business::payment::RECONCILE_AMOUNT_OVERFLOW => "对账合计溢出",
 
         external::DATABASE_ERROR => "数据库连接失败",
         external::DATABASE_OPERATION_FAILED => "数据库操作失败",
@@ -417,6 +445,13 @@ pub fn http_status(code: i32) -> u16 {
         business::payment::SIGNATURE_INVALID => 401,
         business::payment::UPSTREAM_ERROR => 502,
         business::payment::PLAN_NOT_PURCHASABLE => 409,
+        business::payment::PRICE_NOT_FOUND => 404,
+        business::payment::PRICE_WINDOW_OVERLAP => 409,
+        business::payment::PRICE_WINDOW_INVALID => 422,
+        business::payment::PRICE_INVALID_AMOUNT => 422,
+        business::payment::PRICE_CURRENCY_UNSUPPORTED => 422,
+        business::payment::RECONCILE_WINDOW_INVALID => 422,
+        business::payment::RECONCILE_AMOUNT_OVERFLOW => 500,
 
         // 60xxxx 外部依赖（我方视角的服务端故障）
         external::DATABASE_ERROR => 500,
