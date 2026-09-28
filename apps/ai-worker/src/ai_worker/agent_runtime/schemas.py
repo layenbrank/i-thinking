@@ -1,4 +1,7 @@
-"""`/internal/v1/agents/steps` 的请求/响应模型（契约 `spec/internal.yaml`）。
+"""`/internal/v1/agents/*` 的请求/响应模型（契约 `spec/internal.yaml`）。
+
+`steps` 与 `memories` 两族模型都放在这里：它们都要与同一份契约逐字对齐，
+分成两个文件反而会让人以为「契约形状可以按端点切」。
 
 字段名直接抄契约（camelCase，用 `alias` 而不是 `alias_generator`：契约里是 `tenantID` /
 `toolCallID`，通用驼峰转换会生成 `tenantId`，对不上）。
@@ -14,6 +17,7 @@
 from __future__ import annotations
 
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -203,4 +207,48 @@ class AgentStepResponse(BaseModel):
         不给它加 `nullable`，所以「助手只要工具、没有正文」时这个键必须缺席，而不是 `null`。
         `toolResults` 是必填，空列表照常输出（`[]` 不是 `None`）。
         """
+        return self.model_dump(by_alias=True, mode="json", exclude_none=True)
+
+
+class AgentMemoryRequest(BaseModel):
+    """契约 `AgentMemoryRequest`：core 说「这个任务收尾了，把结论记下来」。
+
+    摘要正文由 ai-worker 组装（[`memory.summarise`]），所以这里给的是**零件**而不是成品文本：
+    组装规则是服务端的事，core 只管把事实交出来——和「系统提示词归服务端」（P9b）同一个立场。
+    """
+
+    model_config = _CONTRACT
+
+    schema_version: Literal[1] = Field(alias="schemaVersion")
+    tenant_id: str = Field(alias="tenantID", min_length=1)
+    #: 任务标识。摘要在库里的 id 由它确定性派生，所以它也是幂等键的一半。
+    task_id: str = Field(alias="taskID", min_length=1)
+    objective: str = Field(min_length=1)
+    #: 收尾时模型的最后一条正文（core 只在非空时才会调本端点）。
+    answer: str = Field(min_length=1)
+    #: 规模信息，进摘要正文的末行，让之后读到这条记忆的模型知道它有多"重"。
+    steps: int = Field(ge=0)
+    tool_calls: int = Field(alias="toolCalls", ge=0)
+    #: 嵌入模型：记忆的召回边界按它划分，必须与检索面（`embedModel`）一致。
+    embed_model: str = Field(alias="embedModel", min_length=1)
+
+
+class AgentMemoryResponse(BaseModel):
+    """契约 `AgentMemoryResponse`：记下来的那条记忆的 id。
+
+    `created` 区分「这次真写了」与「这条记忆早就在库里」——重投同一个任务时是后者。
+    两种都算成功：core 的调用方只关心「这条任务的结论有没有落进长期记忆」。
+    """
+
+    model_config = _CONTRACT
+
+    schema_version: Literal[1] = Field(alias="schemaVersion")
+    memory_id: UUID = Field(alias="memoryID")
+    created: bool
+
+    @classmethod
+    def from_parts(cls, *, memory_id: UUID, created: bool) -> AgentMemoryResponse:
+        return cls.model_validate({"schema_version": 1, "memory_id": memory_id, "created": created})
+
+    def wire(self) -> dict[str, Any]:
         return self.model_dump(by_alias=True, mode="json", exclude_none=True)

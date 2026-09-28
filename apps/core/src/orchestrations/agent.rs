@@ -1,6 +1,6 @@
 //! 服务端 agent 的多轮循环（`agent.run`）：一步一个活动，跑到模型给出结论或用尽轮次预算。
 //!
-//! 循环的宿主是**编排**，不是 ai-worker（D6）：它无状态，只做「一次推理 + 至多一轮只读工具」。
+//! 循环的宿主是**编排**，不是 ai-worker（D6）：它无状态，只做「一次推理 + 至多一轮工具」。
 //! 这样每一步都是历史里的一步——崩了只重跑当前这一步，重试粒度最细，进度也能写进 custom status。
 //! 反例（把整个循环塞进一次调用）会让一个活动跑几分钟、丢掉步骤可见性，并把「至少执行一次」
 //! 的重试语义变粗。
@@ -12,6 +12,11 @@
 //!
 //! 确定性约束（见 `mod.rs` 的铁律）：编排里不碰系统时间、不碰网络、不遍历 HashMap。
 //! 每一步的输入都由上一步的产出决定，所以重放时会重新算出同一串历史。
+//!
+//! 拿到结论后还有一步 `agent.remember`（长期记忆）。它是**best-effort**：失败只留一条 warn，
+//! 绝不改变任务的成败——结论已经算出来了，把「记不住」升级成「任务失败」是拿用户的结果
+//! 去赌一个附加动作。它也只在**真正收尾**时才跑（轮次耗尽那种半截结论不写记忆，见
+//! [`agent_run`](self) 里两处 return 的差别）。
 
 use std::sync::Arc;
 
@@ -20,15 +25,17 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 use crate::clients::ai_worker::{
-    AgentMessage, AgentStepRequest, AgentStepResponse, AiWorkerClient, AiWorkerError, CallMeta,
-    INTERNAL_SCHEMA_VERSION,
+    AgentMemoryRequest, AgentMemoryResponse, AgentMessage, AgentStepRequest, AgentStepResponse,
+    AiWorkerClient, AiWorkerError, CallMeta, INTERNAL_SCHEMA_VERSION,
 };
 use crate::orchestrations::retry;
 
 /// 编排名。名字是持久化契约：改名等于换了工作流，正在跑的实例会找不到实现。
 pub const AGENT_RUN: &str = "agent.run";
-/// 活动：走一步（一次推理 + 至多一轮只读工具）。
+/// 活动：走一步（一次推理 + 至多一轮工具）。
 pub const AGENT_STEP: &str = "agent.step";
+/// 活动：把最终结论写进长期记忆（best-effort，见模块文档）。
+pub const AGENT_REMEMBER: &str = "agent.remember";
 
 /// 编排输入：起任务时定死的全部参数。
 ///
@@ -81,6 +88,10 @@ pub struct AgentRunOutput {
     /// 一共执行了多少次工具调用（给运维看这个任务有多"重"）。
     #[serde(rename = "toolCalls")]
     pub tool_calls: i32,
+    /// 结论写进长期记忆后拿到的 id。`None` = 没写或写失败（**不是**任务失败）：
+    /// 长期记忆是附加产物，缺了它任务依然成功。
+    #[serde(rename = "memoryID", default, skip_serializing_if = "Option::is_none")]
+    pub memory_id: Option<String>,
 }
 
 /// 一步活动的输入：契约请求体的外面套一层**不进下游请求体**的元信息。
@@ -97,10 +108,25 @@ struct AgentStepActivity {
     request: AgentStepRequest,
 }
 
-/// 注册唯一的活动。`client` 是唯一出站口，活动只负责「调用 + 分类错误」。
+/// 收尾活动的输入（与一步活动同构：元信息包在契约请求体外面）。
+///
+/// 这里**不需要** `step` 之类的确定性序号：记忆的幂等不是靠键，而是靠 ai-worker 侧按
+/// `(tenantID, taskID)` 派生的确定性 memoryID（见 `POST /internal/v1/agents/memories`）。
+/// 幂等键仍然要发，因为契约要求所有写操作带键，但它不再是幂等的唯一防线。
+#[derive(Debug, Serialize, Deserialize)]
+struct AgentMemoryActivity {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    traceparent: Option<String>,
+    #[serde(flatten)]
+    request: AgentMemoryRequest,
+}
+
+/// 注册活动。`client` 是唯一出站口，活动只负责「调用 + 分类错误」。
 pub fn register_activities(activities: Activities, client: Arc<AiWorkerClient>) -> Activities {
-    activities.register(AGENT_STEP, move |ctx, input: String| {
-        let client = Arc::clone(&client);
+    // 两个活动各自持一份 Arc：注册时各克隆一次，闭包内部再按调用克隆（活动可能并发）。
+    let stepping = Arc::clone(&client);
+    let activities = activities.register(AGENT_STEP, move |ctx, input: String| {
+        let client = Arc::clone(&stepping);
         async move {
             let step: AgentStepActivity = decode(&input)?;
             let meta = CallMeta::new(
@@ -110,6 +136,25 @@ pub fn register_activities(activities: Activities, client: Arc<AiWorkerClient>) 
 
             let response = client
                 .agent_step(&step.request, &meta)
+                .await
+                .map_err(classify)?;
+
+            encode(&response)
+        }
+    });
+
+    let remembering = Arc::clone(&client);
+    activities.register(AGENT_REMEMBER, move |ctx, input: String| {
+        let client = Arc::clone(&remembering);
+        async move {
+            let remember: AgentMemoryActivity = decode(&input)?;
+            let meta = CallMeta::new(
+                idempotency_key(ctx.instance_id(), "remember"),
+                remember.traceparent,
+            );
+
+            let response = client
+                .agent_remember(&remember.request, &meta)
                 .await
                 .map_err(classify)?;
 
@@ -166,31 +211,96 @@ async fn agent_run(ctx: OrchestrationContext, input: String) -> Result<String, S
         tool_calls += response.tool_results.len() as i32;
 
         if response.finished {
+            let answer = response.message.content.clone();
             ctx.trace_info(format!("任务收尾：steps={steps} toolCalls={tool_calls}"));
+
+            // 只有正文非空才写记忆：空白结论到了下游会被判 400（它只会污染之后的每次召回），
+            // 而且「收尾但没有正文」是合法形状（模型只要了一次工具）。
+            let memory_id = match answer.as_deref() {
+                Some(text) if !text.trim().is_empty() => {
+                    remember_conclusion(&ctx, &step, steps, tool_calls, text).await
+                }
+                _ => None,
+            };
+
             return encode(&AgentRunOutput {
-                task_id: step.task_id,
+                task_id: step.task_id.clone(),
                 steps,
                 finished: true,
-                answer: response.message.content.clone(),
+                answer,
                 tool_calls,
+                memory_id,
             });
         }
 
         if steps >= max_steps {
             // 预算耗尽。最后一步本来就不给工具，理论上不会再出现工具调用；真出现了说明下游
             // 没看懂 `remainingSteps`。此时按「结论不完整」收尾，而不是继续转下去。
+            //
+            // **半截结论不写长期记忆**：记忆会被之后的任务当成既有事实召回，把「没查完的
+            // 推断」写成永久记忆，比不写更坏。
             ctx.trace_warn(format!(
                 "轮次预算耗尽（{max_steps} 步）仍未得到结论，按未完成收尾"
             ));
             return encode(&AgentRunOutput {
-                task_id: step.task_id,
+                task_id: step.task_id.clone(),
                 steps,
                 finished: false,
                 answer: response.message.content.clone(),
                 tool_calls,
+                memory_id: None,
             });
         }
     }
+}
+
+/// 把收尾结论写进长期记忆，best-effort：返回拿到的记忆 id，任何失败都只留 warn。
+///
+/// 这里**不重试整任务**。记忆写失败最多让之后的任务少一条可召回的经验，而任务结论本身
+/// 已经在手里了；把两者绑在一起等于用「用户的结果」去赌「附加动作」。
+/// （下游的一次性失败由 `retry::run_activity` 在下游侧退避重试；它写记忆是幂等的。）
+async fn remember_conclusion(
+    ctx: &OrchestrationContext,
+    step: &AgentRunInput,
+    steps: i32,
+    tool_calls: i32,
+    answer: &str,
+) -> Option<String> {
+    let activity = AgentMemoryActivity {
+        traceparent: step.traceparent.clone(),
+        request: AgentMemoryRequest {
+            schema_version: INTERNAL_SCHEMA_VERSION,
+            tenant_id: step.tenant_id.clone(),
+            task_id: step.task_id.clone(),
+            objective: step.objective.clone(),
+            answer: answer.to_owned(),
+            steps,
+            tool_calls,
+            embed_model: step.embed_model.clone(),
+        },
+    };
+
+    match remember_once(ctx, &activity).await {
+        Ok(memory_id) => Some(memory_id),
+        Err(reason) => {
+            ctx.trace_warn(format!(
+                "结论未能写进长期记忆（{reason}）；任务结论不受影响"
+            ));
+            None
+        }
+    }
+}
+
+/// 单次收尾记忆活动：编码 → 调用 → 解回记忆 id。编码/解码失败也走 `Err`（同样是可忽略的）。
+async fn remember_once(
+    ctx: &OrchestrationContext,
+    activity: &AgentMemoryActivity,
+) -> Result<String, String> {
+    let input = encode(activity)?;
+    let output = retry::run_activity(ctx, AGENT_REMEMBER, &input).await?;
+    let response: AgentMemoryResponse = decode(&output)?;
+
+    Ok(response.memory_id)
 }
 
 /// 两条不变式都在契约里写着；违反即判失败，且不可重试（重试同一份输入只会得到同一份矛盾）。
@@ -345,6 +455,7 @@ mod tests {
         // 名字进的是数据库（编排历史），改字面量等于换工作流。
         assert_eq!(AGENT_RUN, "agent.run");
         assert_eq!(AGENT_STEP, "agent.step");
+        assert_eq!(AGENT_REMEMBER, "agent.remember");
     }
 
     #[test]
@@ -488,10 +599,15 @@ mod tests {
             finished: false,
             answer: None,
             tool_calls: 4,
+            memory_id: None,
         };
         let json = encode(&output).expect("encode");
         assert!(json.contains(r#""taskID":"task-1""#), "{json}");
         assert!(!json.contains("answer"), "没有结论时不该发一个 null");
+        assert!(
+            !json.contains("memoryID"),
+            "没写记忆时不该发一个 null：缺字段就是「没有记忆」的意思 —— {json}"
+        );
         assert!(
             !json.contains("usage") && !json.contains("Tokens"),
             "token 用量的唯一落点是网关，台账里不重复记 —— {json}"
@@ -500,5 +616,54 @@ mod tests {
         let parsed: AgentRunOutput = decode(&json).expect("decode");
         assert!(!parsed.finished);
         assert_eq!(parsed.tool_calls, 4);
+        assert_eq!(parsed.memory_id, None);
+    }
+
+    #[test]
+    fn output_carries_the_memory_id_when_one_was_written() {
+        let output = AgentRunOutput {
+            task_id: "task-1".into(),
+            steps: 1,
+            finished: true,
+            answer: Some("结论".into()),
+            tool_calls: 0,
+            memory_id: Some("0b0e1e1e-1c1c-4c4c-8c8c-1c1c1c1c1c1c".into()),
+        };
+        let json = encode(&output).expect("encode");
+        assert!(json.contains(r#""memoryID""#), "{json}");
+
+        let parsed: AgentRunOutput = decode(&json).expect("decode");
+        assert_eq!(
+            parsed.memory_id.as_deref(),
+            Some("0b0e1e1e-1c1c-4c4c-8c8c-1c1c1c1c1c1c")
+        );
+    }
+
+    #[test]
+    fn memory_activity_flattens_the_contract_body_and_keeps_the_trace() {
+        let activity = AgentMemoryActivity {
+            traceparent: Some("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01".into()),
+            request: AgentMemoryRequest {
+                schema_version: INTERNAL_SCHEMA_VERSION,
+                tenant_id: "t-1".into(),
+                task_id: "task-1".into(),
+                objective: "总结".into(),
+                answer: "结论".into(),
+                steps: 3,
+                tool_calls: 2,
+                embed_model: "text-embedding-3-small".into(),
+            },
+        };
+        let json = encode(&activity).expect("encode");
+
+        // 摊平后就是「多带一个 traceparent 的记忆请求」：活动输入是 core 自己的载荷，
+        // 下游只看 request 部分，所以这里的字段名必须与契约逐字一致。
+        assert!(json.contains(r#""tenantID":"t-1""#), "{json}");
+        assert!(json.contains(r#""taskID":"task-1""#), "{json}");
+        assert!(json.contains(r#""toolCalls":2"#), "{json}");
+        assert!(json.contains(r#""embedModel""#), "{json}");
+
+        let parsed: AgentMemoryActivity = decode(&json).expect("decode");
+        assert_eq!(parsed.request.steps, 3);
     }
 }

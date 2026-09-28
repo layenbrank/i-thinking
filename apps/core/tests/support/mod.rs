@@ -14,9 +14,13 @@ use std::time::{Duration, Instant};
 
 use durable::{Client, DurableSettings, InstanceStatus};
 use serde_json::{Value, json};
+use service::clients::ai_worker::INTERNAL_SCHEMA_VERSION;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use uuid::Uuid;
+
+/// 桩回给 core 的长期记忆 id（真实实现按 (租户, 任务) 派生，这里固定一个即可）。
+pub const MEMORY_ID: &str = "6f1d1f2a-0b7c-5c8f-9b0e-2c3d4e5f6a7b";
 
 /// 桩收到的一条请求（头的**名字**已小写，便于按名字查；值保持原样）。
 #[derive(Debug, Clone)]
@@ -109,6 +113,8 @@ pub struct Script {
     /// 单步 agent 的预设响应，按到达顺序取；用完之后一直复用最后一条。
     /// 与 `chunks` / `embeddings` 不同：这一步的产出不是从请求里推出来的，只能预设。
     agent_steps: Vec<Value>,
+    /// 路由名 -> 状态码覆盖（默认 200）。用来演练「下游明确拒绝」这类**不可重试**的失败。
+    statuses: Vec<(String, u16)>,
 }
 
 impl Script {
@@ -120,6 +126,7 @@ impl Script {
             chunk_set_id: "chunk-set-0001".to_owned(),
             hangs: Vec::new(),
             agent_steps: Vec::new(),
+            statuses: Vec::new(),
         }
     }
 
@@ -155,6 +162,21 @@ impl Script {
             .map(|(fragment, _)| fragment.as_str())
     }
 
+    /// 覆盖某条路由的状态码（默认 200）。**不可重试**的失败（4xx 里除 429 之外，或
+    /// 5xx 之外的业务错）用这个演练，比按路径「构造不认识的端点」更直白。
+    pub fn status(mut self, route: &str, status: u16) -> Self {
+        self.statuses.push((route.to_owned(), status));
+        self
+    }
+
+    fn status_for(&self, route: &str) -> u16 {
+        self.statuses
+            .iter()
+            .find(|(name, _)| name == route)
+            .map(|(_, status)| *status)
+            .unwrap_or(200)
+    }
+
     fn body_for(&self, fragment: &str, request: &Recorded, ordinal: usize) -> Value {
         match fragment {
             "chunks" => json!({
@@ -187,6 +209,13 @@ impl Script {
                 .or_else(|| self.agent_steps.last())
                 .cloned()
                 .unwrap_or_else(|| json!({ "error": "脚本没有预设 agent 单步响应" })),
+            // 长期记忆写入：诚实回一个 uuid + `created`。真实实现按 (租户, 任务) 派生确定性
+            // id，桩里固定一个常量就够——core 只把它当字符串带进台账。
+            "memories" => json!({
+                "schemaVersion": INTERNAL_SCHEMA_VERSION,
+                "memoryID": MEMORY_ID,
+                "created": true,
+            }),
             _ => json!({
                 "status": "ok",
                 "version": "0.0.0-stub",
@@ -468,14 +497,22 @@ async fn serve(
         }
     }
 
-    let body = script.body_for(route_name, &request, ordinal);
-    let _ = write_json(&mut socket, 200, &body).await;
+    let status = script.status_for(route_name);
+    let body = if status == 200 {
+        script.body_for(route_name, &request, ordinal)
+    } else {
+        // 非 200 一律回 ai-worker 的错误信封：分类依据是状态码，但报文形状也要像真的，
+        // 免得「用错形状的桩验出了对的分类」。
+        json!({ "error": { "code": "invalid_request", "message": "桩拒绝了这次调用" } })
+    };
+    let _ = write_json(&mut socket, status, &body).await;
 }
 
 /// 路径 → 路由名；不认识的路径回 `None`。
 fn route(path: &str) -> Option<&'static str> {
     for (suffix, name) in [
         ("/agents/steps", "steps"),
+        ("/agents/memories", "memories"),
         ("/chunks", "chunks"),
         ("/embeddings", "embeddings"),
         ("/index", "index"),

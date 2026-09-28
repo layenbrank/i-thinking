@@ -1,35 +1,58 @@
-"""Agent 运行时：单步推理 + 只读工具（Python 生态在这里才无可替代）。
+"""Agent 运行时：单步推理 + 工具（Python 生态在这里才无可替代）。
 
-对外只有 `POST /internal/v1/agents/steps`，而且它是**一步**：多轮循环的宿主是 core 的
-可靠执行（一步一个活动，重投能收敛），本服务不持有对话状态。分工是刻意的：
+两个端点，都只服务 core：
+
+* `POST /internal/v1/agents/steps` —— **一步**：多轮循环的宿主是 core 的可靠执行
+  （一步一个活动，重投能收敛），本服务不持有对话状态；
+* `POST /internal/v1/agents/memories` —— **收尾记一笔**：任务有结论时把结论写进长期记忆，
+  供**之后的任务**按语义召回。同样是 core 发起的（`agent.remember` 活动），
+  所以「谁写了什么记忆」在 core 的编排历史里可查。
+
+分工是刻意的：
 
 * core 决定「要不要再来一步、预算还剩多少、这一步允许哪些工具、历史里有什么」——
   这些问题都需要任务状态与租户策略，那是 core 的地盘；
-* ai-worker 决定「这一步怎么跟模型说话、工具怎么跑、失败怎么喂回去」——模型与工具的
-  细节都封在这里，core 不必跟着上游厂商的形状改。
+* ai-worker 决定「这一步怎么跟模型说话、工具怎么跑、失败怎么喂回去、记忆怎么收拾」——
+  模型、工具与向量空间的细节都封在这里，core 不必跟着上游厂商的形状改。
 
-登记两个能力（词汇见 `apps/core/spec/internal.yaml`）：
+登记三个能力（词汇见 `apps/core/spec/internal.yaml`）：
 
-* `agent.step` —— 就是本端点；
-* `rag.search` —— 本步骤的工具所用的检索面（向量相似度在 ai-worker 自己的 pgvector 上做）。
+* `agent.step` —— 单步端点；
+* `rag.search` —— 单步的工具所用的检索面（向量相似度在 ai-worker 自己的 pgvector 上做）。
   它由 [`ai_worker.rag_ingest`] 登记且**不单独开端点**：检索不该是别人能直接调的能力，
-  它只能作为模型的一次工具调用发生，这样「谁在什么租户下查了什么」永远有一条完整因果链。
+  它只能作为模型的一次工具调用发生，这样「谁在什么租户下查了什么」永远有一条完整因果链；
+* `agent.memory` —— 长期记忆面（`memories` 端点 + `memory_recall` / `memory_write` 两个工具）。
+  和 `rag.search` 不同，它**有**端点：写入必须由 core 的编排驱动——那是唯一知道
+  「任务真的收尾了」的地方，不能让模型自己宣称任务完成。
 
 模块分工：
 
 * `schemas.py` —— 契约形状的 pydantic 模型（含导出时 `exclude_none` 的理由）；
 * `dialogue.py` —— 契约的扁平消息 ↔ OpenAI 线格式的翻译，以及上游响应的解析；
 * `tools.py` —— 工具登记表、参数校验、失败语义、结果截断；
-* `router.py` —— 端点流程（校验 → 幂等 → 调模型 → 跑工具 → 记账）。
+* `router.py` —— 单步端点的流程（校验 → 幂等 → 调模型 → 跑工具 → 记账）；
+* `memory.py` —— 长期记忆：存储与召回、摘要组装、`memories` 端点。
 """
 
 from __future__ import annotations
 
-from ai_worker import capabilities
-from ai_worker.agent_runtime.router import ROUTER
+from fastapi import APIRouter
 
-__all__ = ["ROUTER", "registry"]
+from ai_worker import capabilities
+from ai_worker.agent_runtime.memory import ROUTER as MEMORY_ROUTER
+from ai_worker.agent_runtime.router import ROUTER as STEP_ROUTER
+
+__all__ = ["ROUTER", "memory_registry", "registry"]
+
+# 能力包对外只暴露一个 `ROUTER`，所以这里把两条子路由合成一个
+# （`app.create_app()` 只按 `CAPABILITY_MODULES` 里的 `ROUTER` 名字取路由）。
+ROUTER = APIRouter()
+ROUTER.include_router(STEP_ROUTER)
+ROUTER.include_router(MEMORY_ROUTER)
 
 registry = capabilities.registry.register(
     "agent.step", implemented_in="ai_worker.agent_runtime.router"
+)
+memory_registry = capabilities.registry.register(
+    "agent.memory", implemented_in="ai_worker.agent_runtime.memory"
 )

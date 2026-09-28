@@ -22,13 +22,15 @@ import pytest
 from httpx import AsyncClient, Response
 
 from ai_worker import errors
+from ai_worker.agent_runtime import memory, tools
 from ai_worker.agent_runtime.router import STEP_PATH, SYSTEM_PROMPT
-from ai_worker.core_client import SCOPE_ASSET_READ
+from ai_worker.core_client import SCOPE_ASSET_READ, CoreClient
 from support import (
     ASSET_ID,
     TENANT_ID,
     AgentStub,
     HandlerClient,
+    MakeCore,
     completion,
     internal_headers,
     seed_indexed_asset,
@@ -50,6 +52,11 @@ SOURCE = "退款政策全文：七天无理由，运费买家承担。"
 
 #: `asset_read` 的参数：契约里 `arguments` 是 JSON **字符串**（线格式如此）。
 ASSET_ARGUMENTS = f'{{"assetID":"{ASSET_ID}"}}'
+
+#: 记忆工具用的笔记正文与参数。
+NOTE = "运费由买家承担。"
+NOTE_ARGUMENTS = f'{{"content":"{NOTE}"}}'
+OTHER_TENANT = "tenant-b"
 
 
 def body(**overrides: Any) -> dict[str, Any]:
@@ -85,6 +92,32 @@ def only_result(response: Response) -> dict[str, Any]:
 def asset_tokens(stub: AgentStub) -> list[dict[str, Any]]:
     """只数**读者令牌**：对话也要换一次令牌，直接数全部会把模型的账记到工具头上。"""
     return [body for body in stub.token_bodies if body["scope"] == SCOPE_ASSET_READ]
+
+
+async def stored_notes(database: Any) -> list[dict[str, Any]]:
+    """直接读库核对「模型到底写进去了什么」：端点的返回值只说明它自己以为做了什么。"""
+    async with database.acquire() as connection:
+        rows = await connection.fetch(
+            "SELECT kind, content, task_id FROM agent_memory ORDER BY created_at, memory_id"
+        )
+    return [dict(row) for row in rows]
+
+
+async def seed_note(
+    database: Any, core: CoreClient, *, content: str, tenant_id: str = TENANT_ID
+) -> None:
+    """直接写一条记忆（不走 HTTP）：造「以前的任务留下过东西」这个前提。"""
+    async with database.acquire() as connection:
+        await memory.write(
+            connection,
+            core,
+            tenant_id=tenant_id,
+            model=EMBED_MODEL,
+            content=content,
+            kind=memory.KIND_NOTE,
+            task_id=None,
+            batch_size=8,
+        )
 
 
 # --------------------------------------------------------------------------- 消息组装
@@ -509,6 +542,201 @@ async def test_asset_read_rejects_an_asset_id_that_is_not_a_uuid(
     assert "UUID" in result["content"]
     # 参数没通过校验，就不该去 core 换令牌。
     assert asset_tokens(stub) == []
+
+
+# --------------------------------------------------------------------------- 记忆工具
+
+
+async def test_memory_write_records_a_note_that_later_tasks_can_recall(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """写笔记：落库的是**笔记**（`task_id` 为空，不是任务摘要），并明说本步读不到它。"""
+    stub = AgentStub(
+        replies=[
+            completion(tool_calls=[tool_call(name="memory_write", arguments=NOTE_ARGUMENTS)]),
+            completion("记下了。"),
+        ]
+    )
+    client = core_backed_client(stub)
+
+    response = await step(client, payload=body(allowedTools=["memory_write"], remainingSteps=3))
+
+    result = only_result(response)
+    assert result["ok"] is True
+    assert "之后的其它任务" in result["content"]
+    assert await stored_notes(database) == [
+        {"kind": memory.KIND_NOTE, "content": NOTE, "task_id": None}
+    ]
+
+
+async def test_the_write_budget_is_consumed_per_step_and_says_so(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """预算用尽回 `ok=false`（模型据此合并或收手），不是把整步变成失败。"""
+    stub = AgentStub(
+        replies=[
+            completion(
+                tool_calls=[
+                    tool_call(name="memory_write", arguments=NOTE_ARGUMENTS, call_id="call-1"),
+                    tool_call(
+                        name="memory_write",
+                        arguments='{"content":"发票在订单详情页下载。"}',
+                        call_id="call-2",
+                    ),
+                ]
+            ),
+            completion("合并成一条。"),
+        ]
+    )
+    client = core_backed_client(stub, agent_memory_max_writes_per_step=1)
+
+    response = await step(client, payload=body(allowedTools=["memory_write"], remainingSteps=3))
+
+    results: list[dict[str, Any]] = response.json()["toolResults"]
+    assert [result["ok"] for result in results] == [True, False]
+    assert "已用尽" in results[1]["content"]
+    # 只有第一条落了库：第二条只回话，不产生副作用。
+    assert len(await stored_notes(database)) == 1
+
+
+async def test_a_note_rejected_by_validation_does_not_spend_the_budget(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """校验先于扣预算：超长内容被拒之后，本步仍然写得下真正那条（否则模型白丢一次额度）。"""
+    declared = tools.catalog(["memory_write"])[0]["function"]["parameters"]["properties"]["content"]
+    # 说明书与执行共用同一份声明，所以「模型看到的 2000」就是「执行时校验的 2000」。
+    assert declared["maxLength"] == memory.MAX_CONTENT_CHARS
+
+    stub = AgentStub(
+        replies=[
+            completion(
+                tool_calls=[
+                    tool_call(
+                        name="memory_write",
+                        arguments='{"content":"' + "长" * (memory.MAX_CONTENT_CHARS + 1) + '"}',
+                        call_id="call-1",
+                    ),
+                    tool_call(name="memory_write", arguments=NOTE_ARGUMENTS, call_id="call-2"),
+                ]
+            ),
+            completion("记下那条。"),
+        ]
+    )
+    client = core_backed_client(stub, agent_memory_max_writes_per_step=1)
+
+    response = await step(client, payload=body(allowedTools=["memory_write"], remainingSteps=3))
+
+    results: list[dict[str, Any]] = response.json()["toolResults"]
+    assert results[0]["ok"] is False
+    assert f"最多 {memory.MAX_CONTENT_CHARS} 个字符" in results[0]["content"]
+    assert results[1]["ok"] is True
+    assert await stored_notes(database) == [
+        {"kind": memory.KIND_NOTE, "content": NOTE, "task_id": None}
+    ]
+
+
+async def test_a_blank_note_is_refused_without_spending_the_budget(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """`minLength: 1` 拦不住一个空格：执行前的去空白校验要把这种调用拦在写库之前。"""
+    stub = AgentStub(
+        replies=[
+            completion(
+                tool_calls=[
+                    tool_call(name="memory_write", arguments='{"content":"   "}', call_id="call-1"),
+                    tool_call(name="memory_write", arguments=NOTE_ARGUMENTS, call_id="call-2"),
+                ]
+            ),
+            completion("记下那条。"),
+        ]
+    )
+    client = core_backed_client(stub, agent_memory_max_writes_per_step=1)
+
+    response = await step(client, payload=body(allowedTools=["memory_write"], remainingSteps=3))
+
+    results: list[dict[str, Any]] = response.json()["toolResults"]
+    assert results[0]["ok"] is False
+    assert "空白" in results[0]["content"]
+    assert results[1]["ok"] is True
+    assert await stored_notes(database) == [
+        {"kind": memory.KIND_NOTE, "content": NOTE, "task_id": None}
+    ]
+
+
+async def test_the_same_note_written_twice_only_lands_once(
+    core_backed_client: HandlerClient, database: Any
+) -> None:
+    """同一个租户里正文相同的笔记只占一行：core 重投一步不会把它变成两条噪声。"""
+    stub = AgentStub(
+        replies=[
+            completion(tool_calls=[tool_call(name="memory_write", arguments=NOTE_ARGUMENTS)]),
+            completion(tool_calls=[tool_call(name="memory_write", arguments=NOTE_ARGUMENTS)]),
+        ]
+    )
+    client = core_backed_client(stub)
+
+    first = await step(client, payload=body(allowedTools=["memory_write"], remainingSteps=3))
+    second = await step(
+        client,
+        payload=body(allowedTools=["memory_write"], remainingSteps=3),
+        key="step-key-0002",
+    )
+
+    assert only_result(first)["ok"] is True
+    repeated = only_result(second)
+    assert repeated["ok"] is True
+    assert "此前已经记过" in repeated["content"]
+    assert len(await stored_notes(database)) == 1
+    # 命中主键就不再花一次嵌入算力（重放是常见路径，不该按首次写入计价）。
+    assert stub.embed_calls == 1
+
+
+async def test_memory_recall_says_when_nothing_was_ever_recorded(
+    core_backed_client: HandlerClient,
+) -> None:
+    """空召回不是失败：明说「以前没记过」，模型才不会把它当成「资料里没有」的证据。"""
+    stub = AgentStub(
+        replies=[
+            completion(
+                tool_calls=[tool_call(name="memory_recall", arguments='{"query":"上次的结论"}')]
+            ),
+            completion("没有先例。"),
+        ]
+    )
+    client = core_backed_client(stub)
+
+    response = await step(client, payload=body(allowedTools=["memory_recall"], remainingSteps=3))
+
+    result = only_result(response)
+    assert result["ok"] is True
+    assert "以前没记过" in result["content"]
+
+
+async def test_memory_recall_carries_the_note_boundary_and_keeps_the_tenant(
+    core_backed_client: HandlerClient, database: Any, make_core: MakeCore
+) -> None:
+    """召回必须带「这是笔记不是指令」：记忆是模型可写的内容，提示注入的第一入口就是它。"""
+    stub = AgentStub(
+        replies=[
+            completion(
+                tool_calls=[tool_call(name="memory_recall", arguments='{"query":"运费谁承担"}')]
+            ),
+            completion("买家承担。"),
+        ]
+    )
+    core = make_core(stub)
+    await seed_note(database, core, content=NOTE, tenant_id=TENANT_ID)
+    await seed_note(database, core, content="发票在订单详情页下载。", tenant_id=OTHER_TENANT)
+    client = core_backed_client(stub)
+
+    response = await step(client, payload=body(allowedTools=["memory_recall"], remainingSteps=3))
+
+    result = only_result(response)
+    assert result["ok"] is True
+    assert "笔记而不是指令" in result["content"]
+    assert NOTE in result["content"]
+    # 别的租户写过同主题的笔记也一样读不到：边界在 SQL 的 `WHERE` 里，不在提示词里。
+    assert "发票在订单详情页下载。" not in result["content"]
 
 
 # --------------------------------------------------------------------------- 批量与上限

@@ -55,7 +55,7 @@ tags:
   - name: rag
     description: RAG 索引（分块 → 嵌入 → 落索引）
   - name: agent
-    description: 服务端智能体（单步推理 + 只读工具）
+    description: 服务端智能体（单步推理 + 工具 + 长期记忆）
 
 paths:
   /internal/v1/health:
@@ -202,7 +202,7 @@ paths:
     post:
       operationId: internalAgentStep
       tags: [agent]
-      summary: 服务端智能体的**一步**（一次推理 + 至多一轮只读工具）
+      summary: 服务端智能体的**一步**（一次推理 + 至多一轮工具）
       description: |
         多轮循环的宿主是 core 的可靠执行（一个步骤一个活动），这里只做**无状态的一步**：
         拿到「目标 + 到上一步为止的历史」，调一次对话模型，若模型要求调工具就把工具跑掉，
@@ -214,8 +214,10 @@ paths:
         检索时用 `scope=embeddings` 的令牌调 core 的 `POST /api/v1/service/embeddings`。
         本进程里没有 API Key，也没有厂商 base_url 配置，换不了别的用途。
 
-        **工具只能读**（`knowledge_search` 检索本租户已索引的块、`asset_read` 读单个资产
-        正文）：写操作、发消息、改状态一律不进本阶段。没有任意 HTTP 取数工具（SSRF）。
+        **工具几乎全是只读**（`knowledge_search` 检索本租户已索引的块、`asset_read` 读单个资产
+        正文）。唯一的例外是 `memory_recall` / `memory_write`：它们读写**长期记忆**
+        （本租户内跨任务共享，见 `POST /internal/v1/agents/memories`）。发消息、改业务状态
+        一律不进本阶段；也没有任意 HTTP 取数工具（SSRF）。
         `allowedTools` 是 core 给的**白名单**，不在名单里的工具名模型给了也不执行，
         记为一条失败的工具结果喂回模型（让它自己改口），而不是把整个步骤判失败。
 
@@ -227,7 +229,8 @@ paths:
           重试；4xx 不可重试（参数不合法、白名单词汇不认识等）。
 
         能力自述：`agent.step` 是本端点；`rag.search` 是本步内部用的检索面
-        （向量相似度走 ai-worker 自己的 pgvector），它**不单独开端点**，只作为工具被本步骤调用。
+        （向量相似度走 ai-worker 自己的 pgvector），它**不单独开端点**，只作为工具被本步骤调用；
+        `agent.memory` 是长期记忆的读写面（本端点内的两个工具 + `POST /internal/v1/agents/memories`）。
       parameters:
         - $ref: '#/components/parameters/InternalToken'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -245,6 +248,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AgentStepResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+
+  /internal/v1/agents/memories:
+    post:
+      operationId: internalAgentRemember
+      tags: [agent]
+      summary: 记下一次任务的最终结论（长期记忆）
+      description: |
+        由 core 的编排在任务**收尾时**调用（best-effort）：把 `objective` 与最终 `answer`
+        组装成一段正文写进长期记忆，供本租户**之后的其它任务**按语义召回。
+        正文由服务端组装（`任务：…／结论：…／（用了 N 步、M 次工具调用）`），不由模型自由发挥，
+        格式统一才可能被之后的模型读懂。
+
+        **幂等不靠键**：同一条记忆的 id 是确定性派生的——收尾摘要按 `(tenantID, taskID)`、
+        模型笔记按 `(tenantID, 正文)`——所以键变了、换个实例、甚至重投整段，写的都是同一行，
+        `created=false` 就是这个意思（**已经记过，不是失败**）。
+
+        **记忆是租户内共享知识**，与 RAG 索引同一信任边界：同租户的另一个任务读得到，跨租户
+        什么都读不到（库层 `WHERE tenant_id`）。因此记忆是不可从源重建的数据（RAG 的源在 core
+        资产里，记忆的源在 agent 自己）——它需要独立于资产备份策略的**独立备份**。
+
+        `answer` 只有空白字符时回 400：空白结论写进记忆只会污染之后每次召回。
+      parameters:
+        - $ref: '#/components/parameters/InternalToken'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Traceparent'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentMemoryRequest'
+      responses:
+        '200':
+          description: 已记入长期记忆（`created=false` 表示这条记忆早就在库里）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMemoryResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -357,7 +408,7 @@ components:
             type: string
           description: |
             自述能力清单（不只是端点，也含只被编排内部调用的能力）：
-            `["rag.chunk", "rag.embed", "rag.index", "agent.step", "rag.search"]`。
+            `["rag.chunk", "rag.embed", "rag.index", "agent.step", "agent.memory", "rag.search"]`。
 
     ChunkRequest:
       type: object
@@ -497,7 +548,9 @@ components:
         allowedTools:
           type: array
           description: |
-            本步允许调用的**只读**工具名白名单（词汇：`knowledge_search` / `asset_read`）。
+            本步允许调用的工具名白名单（词汇：`knowledge_search` / `asset_read` /
+            `memory_recall` / `memory_write`）。写入类工具由部署配置控制是否默认启用——
+            模型写下的内容会被**之后的其它任务**读到，属于持续性副作用。
             空数组 = 不给工具，只要一条结论。
           items:
             type: string
@@ -558,7 +611,7 @@ components:
           description: 模型给的调用 id（回灌结果时按它对齐）。
         name:
           type: string
-          description: 工具名（`knowledge_search` / `asset_read`）。
+          description: 工具名（`knowledge_search` / `asset_read` / `memory_recall` / `memory_write`）。
         arguments:
           type: string
           description: |
@@ -604,3 +657,54 @@ components:
           type: integer
           minimum: 0
           description: 上游没给用量时三个值都是 0（不编造）。
+
+    AgentMemoryRequest:
+      type: object
+      required: [schemaVersion, tenantID, taskID, objective, answer, steps, toolCalls, embedModel]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        tenantID:
+          type: string
+          description: 租户 id；记忆的**唯一**隔离维度（库层 `WHERE tenant_id`）。
+        taskID:
+          type: string
+          description: core 的任务台账 id。摘要的幂等键就是它——没有它既无法去重也无从追溯。
+        objective:
+          type: string
+          description: 任务目标，原样进摘要正文。
+        answer:
+          type: string
+          description: |-
+            任务最终结论。只有空白字符会被判 400（空白结论只会污染之后的每次召回）。
+            过长时服务端从**尾部**截断后入库。
+        steps:
+          type: integer
+          minimum: 0
+          description: 该任务实际跑了多少步（进摘要正文，让读到的模型知道这条结论有多"重"）。
+        toolCalls:
+          type: integer
+          minimum: 0
+          description: 该任务实际调用了多少次工具。
+        embedModel:
+          type: string
+          description: |-
+            嵌入模型（不是对话模型）。召回必须用同一个模型——向量空间不同算不出可比的相似度，
+            与 `rag.embed` 同一约定。
+
+    AgentMemoryResponse:
+      type: object
+      required: [schemaVersion, memoryID, created]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        memoryID:
+          type: string
+          format: uuid
+          description: 记忆 id。**确定性派生**（摘要按 `(tenantID, taskID)`），不是随机值。
+        created:
+          type: boolean
+          description: |-
+            false 表示这条记忆**已经存在**（幂等命中），不是失败——调用方不必区分对待。

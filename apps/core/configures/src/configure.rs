@@ -672,6 +672,9 @@ pub struct AgentConfig {
     pub max_steps: usize,
     /// 允许 agent 使用的工具（OpenAI 函数名规则：字母数字加下划线，**不能带点号**——
     /// 点号是能力名的写法，工具名带点上不了模型接口）。
+    ///
+    /// 写入类工具（`memory_write`）**不进默认值**：它写下的记忆会被之后的任务召回，
+    /// 投毒一次就持续影响后续任务，必须由运维显式开启。
     pub allowed_tools: Vec<String>,
 }
 
@@ -680,7 +683,11 @@ impl Default for AgentConfig {
         Self {
             chat_model: "deepseek-chat".to_string(),
             max_steps: 6,
-            allowed_tools: vec!["knowledge_search".to_string(), "asset_read".to_string()],
+            allowed_tools: vec![
+                "knowledge_search".to_string(),
+                "asset_read".to_string(),
+                "memory_recall".to_string(),
+            ],
         }
     }
 }
@@ -1395,7 +1402,19 @@ mod tests {
         let tools = merged
             .get_array("agent.allowed_tools")
             .expect("agent.allowed_tools 缺失或不是数组");
-        assert_eq!(tools.len(), 2, "默认给两个只读工具");
+        let names: Vec<String> = tools
+            .iter()
+            .map(|tool| tool.clone().into_string().expect("工具名必须是字符串"))
+            .collect();
+        assert_eq!(
+            names,
+            vec!["knowledge_search", "asset_read", "memory_recall"],
+            "默认给两个只读工具 + 记忆召回"
+        );
+        assert!(
+            !names.iter().any(|tool| tool == "memory_write"),
+            "写入类工具要运维显式开启：它写的记忆会被之后的任务召回"
+        );
     }
 
     #[test]
@@ -1637,6 +1656,11 @@ mod tests {
         assert!(
             cfg.agent.allowed_tools.iter().all(|t| is_tool_name(t)),
             "默认工具名必须过得了模型接口的名字规则"
+        );
+        assert_eq!(
+            cfg.agent.allowed_tools,
+            vec!["knowledge_search", "asset_read", "memory_recall"],
+            "默认 = 只读工具 + 记忆召回；写入类工具必须由运维显式开"
         );
         assert!(cfg.validate().is_ok());
     }

@@ -193,6 +193,7 @@ mod tests {
             finished,
             answer: Some("答案".into()),
             tool_calls: 2,
+            memory_id: Some("0b0e1e1e-1c1c-4c4c-8c8c-1c1c1c1c1c1c".into()),
         })
         .expect("序列化失败")
     }

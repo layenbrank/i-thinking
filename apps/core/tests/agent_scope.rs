@@ -881,6 +881,16 @@ async fn runs_a_task_to_a_conclusion_and_reports_live_progress() {
     // 预算耗尽与「答完了」都是 `SUCCEEDED`（编排本身没出错），唯一判据是 `finished`：
     // 这里的 `answer` 只是模型最后一段正文，不是结论。
     assert_eq!(data["result"]["answer"], "先查知识库");
+    assert_eq!(
+        data["result"]["memoryID"],
+        json!(null),
+        "轮次耗尽的半截结论不该进长期记忆：它会被之后的任务当成既有事实召回"
+    );
+    assert_eq!(
+        stub.count("/agents/memories"),
+        0,
+        "任务没真正收尾，就不该有任何记忆写入"
+    );
 
     // 7. 第二个任务：限定只用 asset_read，一步就给结论
     let (status, body) = call!(
@@ -903,6 +913,12 @@ async fn runs_a_task_to_a_conclusion_and_reports_live_progress() {
     assert_eq!(data["result"]["finished"], json!(true));
     assert_eq!(data["result"]["toolCalls"], json!(0));
     assert_eq!(data["result"]["answer"], ANSWER);
+    // 真正收尾的任务会把结论记进长期记忆，id 回到台账里（`memoryID` 是 uuid 字符串）。
+    assert_eq!(
+        data["result"]["memoryID"],
+        json!(support::MEMORY_ID),
+        "收尾的结论应当拿到一个记忆 id"
+    );
 
     let requests = stub.matching("/agents/steps");
     let fourth = requests[3].json();
@@ -923,6 +939,29 @@ async fn runs_a_task_to_a_conclusion_and_reports_live_progress() {
             format!("agent-{task_b}:step:1"),
         ]
     );
+
+    // 8.1 收尾记忆的出站报文：只发过一条，且属于收尾的那个任务
+    let memories = stub.matching("/agents/memories");
+    assert_eq!(memories.len(), 1, "只有真正收尾的任务才写记忆");
+    let memory = &memories[0];
+    assert_eq!(memory.internal_token(), INTERNAL_TOKEN);
+    assert!(
+        memory.path.ends_with("/internal/v1/agents/memories"),
+        "{}",
+        memory.path
+    );
+    let payload = memory.json();
+    assert_eq!(payload["schemaVersion"], json!(INTERNAL_SCHEMA_VERSION));
+    assert_eq!(payload["tenantID"], tenant);
+    assert_eq!(payload["taskID"], task_b, "记忆必须挂到收尾的那个任务上");
+    assert_eq!(payload["objective"], OBJECTIVE);
+    assert_eq!(payload["answer"], ANSWER);
+    assert_eq!(payload["steps"], json!(1));
+    assert_eq!(payload["toolCalls"], json!(0));
+    assert_eq!(payload["embedModel"], EMBED_MODEL);
+    assert_eq!(memory.idempotency_key(), format!("agent-{task_b}:remember"));
+    // 记忆请求也走链路（不装 OTel 时按幂等键确定性地派生根链路）。
+    assert_eq!(memory.traceparent().split('-').count(), 4);
 
     // 9. 链路：每一步都要带上一条格式合法的 traceparent，且各步互不相同。
     //    测试里没有装 OTel layer，所以这里走的是「按幂等键确定性派生」那条分支；
@@ -948,6 +987,87 @@ async fn runs_a_task_to_a_conclusion_and_reports_live_progress() {
     }
     let unique = tracings.iter().collect::<std::collections::HashSet<_>>();
     assert_eq!(unique.len(), 4, "每一步都该是独立的一条链路：{tracings:?}");
+
+    runtime.shutdown(5_000).await;
+    let _ = store.cleanup_schema().await;
+}
+
+// ---------------------------------------------------------------------------
+// 用例 5：记忆写不进去，任务结论照样成立
+// ---------------------------------------------------------------------------
+
+/// 长期记忆是**附加**产物：它的失败不能把已经得到的结论判成失败，也不能让编排重试到天亮。
+///
+/// 桩回 400 是刻意的——那是「请求本身有问题」这一类，编排必须**立刻放弃**（`is_retryable`
+/// 为假），而不是按 1s / 2s / 4s / 8s 退避重试五轮。用 503 测这条会多花 15 秒，还会把
+/// 「不可重试」和「重试后仍失败」两个不同的语义搅在一起。
+#[actix_web::test]
+async fn a_failed_memory_write_does_not_change_the_conclusion() {
+    let _guard = DB_LOCK.lock().await;
+    let Some(fixture) = setup().await else {
+        return;
+    };
+
+    let uri = test_database_url().expect("已确认设置");
+    let store = Store::connect(&settings(&uri, &test_schema()))
+        .await
+        .expect("连接 durable schema 失败");
+    let client = store.client();
+
+    let stub = StubAiWorker::start(
+        Script::agent(vec![step_json(&step("", TOOL_ASSET))]).status("memories", 400),
+    )
+    .await;
+
+    let ai_worker = AiWorkerClient::from_parts(&stub.base_url(), INTERNAL_TOKEN, 10_000, false)
+        .expect("装配 ai-worker 客户端失败");
+    let registered = orchestrations::registrations(Arc::new(ai_worker), 16, EMBED_MODEL.to_owned());
+    let runtime = Runtime::start(
+        &store,
+        registered.activities,
+        registered.orchestrations,
+        RuntimeTuning::default(),
+    )
+    .await
+    .expect("启动 durable 运行时失败");
+
+    let app = build_app!(fixture, Some(Arc::new(client.clone())));
+
+    let tenant = fixture.tenant.to_string();
+    let (tenant, token) = (tenant.as_str(), fixture.token.as_str());
+
+    let (status, body) = call!(
+        app,
+        post_task(
+            Some(token),
+            Some(tenant),
+            &json!({ "objective": OBJECTIVE, "maxSteps": MAX_STEPS, "tools": [TOOL_ASSET] }),
+        ),
+    )
+    .await;
+    let task = assert_success(&body, status)["id"]
+        .as_str()
+        .expect("任务 id")
+        .to_owned();
+
+    let data = wait_for_terminal!(app, token, tenant, task).await;
+    assert_eq!(data["status"], "SUCCEEDED", "记忆写失败不该改变任务结论");
+    assert_eq!(data["steps"], json!(1));
+    assert_eq!(data["error"], json!(null));
+    assert_eq!(data["result"]["finished"], json!(true));
+    assert_eq!(data["result"]["answer"], ANSWER);
+    assert_eq!(
+        data["result"]["memoryID"],
+        json!(null),
+        "记忆没写成，结果里就不该有 id"
+    );
+
+    // 只发过一次：400 是不可重试分类，重试就成了「对着明确的拒绝反复敲门」。
+    assert_eq!(
+        stub.count("/agents/memories"),
+        1,
+        "不可重试的失败必须立刻放弃，而不是退避重试"
+    );
 
     runtime.shutdown(5_000).await;
     let _ = store.cleanup_schema().await;

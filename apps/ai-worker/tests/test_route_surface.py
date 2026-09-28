@@ -40,6 +40,7 @@ CAPABILITY_ROUTES: dict[str, set[tuple[str, str]]] = {
     "rag.index": {("PUT", "/internal/v1/assets/{}/index")},
     "rag.search": set(),
     "agent.step": {("POST", "/internal/v1/agents/steps")},
+    "agent.memory": {("POST", "/internal/v1/agents/memories")},
 }
 
 _PATH_PARAM = re.compile(r"\{[^}]*\}")
@@ -119,7 +120,7 @@ def test_every_contract_path_is_accounted_for() -> None:
 
 def test_capability_route_mapping_matches_registry_vocabulary() -> None:
     """能力名的拼写必须两边一致——它出现在健康探针的响应里，是契约的一部分。"""
-    documented = {"rag.chunk", "rag.embed", "rag.index", "rag.search", "agent.step"}
+    documented = {"rag.chunk", "rag.embed", "rag.index", "rag.search", "agent.step", "agent.memory"}
 
     assert set(CAPABILITY_ROUTES) == documented
     assert set(capabilities.registry.names()) <= documented

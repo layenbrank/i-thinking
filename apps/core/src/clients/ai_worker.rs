@@ -30,8 +30,10 @@ pub const CHUNK_OBJECT_PATH: &str = "/internal/v1/assets/{assetID}/chunks";
 pub const EMBED_RANGE_PATH: &str = "/internal/v1/assets/{assetID}/embeddings";
 /// 把块集落进检索索引
 pub const UPSERT_INDEX_PATH: &str = "/internal/v1/assets/{assetID}/index";
-/// 服务端 agent 的一步（无状态：一次推理 + 至多一轮只读工具）
+/// 服务端 agent 的一步（无状态：一次推理 + 至多一轮工具）
 pub const AGENT_STEP_PATH: &str = "/internal/v1/agents/steps";
+/// 记下一次任务的最终结论（长期记忆）
+pub const AGENT_REMEMBER_PATH: &str = "/internal/v1/agents/memories";
 
 /// 内部契约版本（`schemaVersion`）。契约不兼容变更时才 +1。
 pub const INTERNAL_SCHEMA_VERSION: i32 = 1;
@@ -182,7 +184,7 @@ impl AiWorkerClient {
         read_json(response).await
     }
 
-    /// 走一步 agent：一次推理 + 至多一轮只读工具。
+    /// 走一步 agent：一次推理 + 至多一轮工具。
     ///
     /// 路径没有占位符（租户与目标都在请求体里），所以不走 `post_json` 的占位符填充。
     pub async fn agent_step(
@@ -191,6 +193,19 @@ impl AiWorkerClient {
         meta: &CallMeta,
     ) -> Result<AgentStepResponse, AiWorkerError> {
         let url = format!("{}{}", self.base_url, AGENT_STEP_PATH);
+        self.post_json_url(&url, request, meta).await
+    }
+
+    /// 把一个已收尾任务的结论写进长期记忆。
+    ///
+    /// 幂等由 **ai-worker 侧的确定性 memoryID** 保证（同一任务的摘要永远同一个 id），
+    /// 所以这里即便换了幂等键重投也只会写一行——调用方可以放心地 best-effort 重试。
+    pub async fn agent_remember(
+        &self,
+        request: &AgentMemoryRequest,
+        meta: &CallMeta,
+    ) -> Result<AgentMemoryResponse, AiWorkerError> {
+        let url = format!("{}{}", self.base_url, AGENT_REMEMBER_PATH);
         self.post_json_url(&url, request, meta).await
     }
 
@@ -566,6 +581,35 @@ impl AgentUsage {
     }
 }
 
+/// 把一次任务的结论写进长期记忆（收尾活动用）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentMemoryRequest {
+    pub schema_version: i32,
+    #[serde(rename = "tenantID")]
+    pub tenant_id: String,
+    #[serde(rename = "taskID")]
+    pub task_id: String,
+    pub objective: String,
+    pub answer: String,
+    pub steps: i32,
+    #[serde(rename = "toolCalls")]
+    pub tool_calls: i32,
+    /// 嵌入模型（不是对话模型），必须与召回时一致。
+    #[serde(rename = "embedModel")]
+    pub embed_model: String,
+}
+
+/// 写入结果。`created == false` 表示这条记忆早就在库里（幂等命中，**不是失败**）。
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentMemoryResponse {
+    pub schema_version: i32,
+    #[serde(rename = "memoryID")]
+    pub memory_id: String,
+    pub created: bool,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HealthResponse {
@@ -781,5 +825,42 @@ mod tests {
         total.add(&step);
         assert_eq!(total.total_tokens, 220);
         assert_eq!(total.prompt_tokens, 200);
+    }
+
+    #[test]
+    fn agent_memory_request_uses_the_contract_field_names() {
+        let request = AgentMemoryRequest {
+            schema_version: INTERNAL_SCHEMA_VERSION,
+            tenant_id: "t-1".into(),
+            task_id: "task-1".into(),
+            objective: "总结这批文档".into(),
+            answer: "结论".into(),
+            steps: 3,
+            tool_calls: 2,
+            embed_model: "text-embedding-3-small".into(),
+        };
+        let json = serde_json::to_value(&request).expect("serialize");
+
+        // 与 `AgentStepRequest` 同一个坑：`taskId` / `embedModel` 之类的自动驼峰会写错缩写，
+        // 每个多字母缩写都得显式对齐（契约里是 `taskID` / `toolCalls`）。
+        assert_eq!(json["tenantID"], serde_json::json!("t-1"));
+        assert_eq!(json["taskID"], serde_json::json!("task-1"));
+        assert_eq!(json["toolCalls"], serde_json::json!(2));
+        assert_eq!(
+            json["embedModel"],
+            serde_json::json!("text-embedding-3-small")
+        );
+        assert!(json.get("taskId").is_none(), "{json}");
+    }
+
+    #[test]
+    fn agent_memory_response_keeps_the_idempotent_hit_visible() {
+        let raw = r#"{"schemaVersion":1,"memoryID":"0b0e1e1e-1c1c-4c4c-8c8c-1c1c1c1c1c1c","created":false}"#;
+        let response: AgentMemoryResponse = serde_json::from_str(raw).expect("parse memory");
+
+        // `created=false` 是幂等命中，不是失败：解析层不该把它当成缺字段或错误。
+        assert!(!response.created);
+        assert_eq!(response.memory_id, "0b0e1e1e-1c1c-4c4c-8c8c-1c1c1c1c1c1c");
+        assert_eq!(response.schema_version, INTERNAL_SCHEMA_VERSION);
     }
 }

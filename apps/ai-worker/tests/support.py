@@ -40,7 +40,14 @@ TRACEPARENT = "00-11111111111111111111111111111111-2222222222222222-01"
 
 #: ai-worker 自己的表，**顺序即清空顺序**（子表在前，避免外键报错）。
 #: `tests/test_db_boundary.py` 用它反证「这库里没有 core 的业务表」。
-OWNED_TABLES = ("rag_embedding", "rag_index", "rag_chunk", "rag_chunk_set", "idempotency_key")
+OWNED_TABLES = (
+    "agent_memory",
+    "rag_embedding",
+    "rag_index",
+    "rag_chunk",
+    "rag_chunk_set",
+    "idempotency_key",
+)
 
 
 def database_url() -> str:

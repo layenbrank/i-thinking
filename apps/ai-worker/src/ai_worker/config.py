@@ -93,6 +93,11 @@ class Settings(BaseSettings):
     #: 单条工具结果喂回模型前的字符上限。检索一次可能命中几十块，不截断的话一步就能把
     #: 上下文撑爆（代价是下一次调用更贵、更容易被上游拒）。
     agent_tool_result_max_chars: int = Field(default=8000, ge=1)
+    #: 智能体一步里最多写几条长期记忆。写记忆是**唯一**有持久副作用的工具，而且写进去的
+    #: 文字会被本租户之后的其它任务读到，所以默认给得极小（模型一句话能塞进两条就够用）。
+    #: 设 0 等价于关闭写入。注意这只管 `memory_write` 工具；任务收尾的结论摘要由 core 的
+    #: 编排活动直接写，不受这个开关约束。
+    agent_memory_max_writes_per_step: int = Field(default=2, ge=0)
 
     @field_validator("internal_token", "database_url", "core_base_url")
     @classmethod
