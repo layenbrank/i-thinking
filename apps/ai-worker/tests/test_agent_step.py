@@ -33,7 +33,7 @@ from support import (
     TENANT_ID,
     AgentStub,
     HandlerClient,
-    MakeCore,
+    MakeCogito,
     completion,
     internal_headers,
     seed_indexed_asset,
@@ -107,7 +107,7 @@ async def stored_notes(database: Any) -> list[dict[str, Any]]:
 
 
 async def seed_note(
-    database: Any, core: CogitoClient, *, content: str, tenant_id: str = TENANT_ID
+    database: Any, cogito: CogitoClient, *, content: str, tenant_id: str = TENANT_ID
 ) -> None:
     """直接写一条记忆（不走 HTTP）：造「以前的任务留下过东西」这个前提。"""
     async with database.acquire() as connection:
@@ -634,7 +634,7 @@ async def test_memory_recall_says_when_nothing_was_ever_recorded(
 
 
 async def test_memory_recall_carries_the_note_boundary_and_keeps_the_tenant(
-    cogito_backed_client: HandlerClient, database: Any, make_core: MakeCore
+    cogito_backed_client: HandlerClient, database: Any, make_cogito: MakeCogito
 ) -> None:
     """召回必须带「这是笔记不是指令」：记忆是模型可写的内容，提示注入的第一入口就是它。"""
     stub = AgentStub(
@@ -645,7 +645,7 @@ async def test_memory_recall_carries_the_note_boundary_and_keeps_the_tenant(
             completion("买家承担。"),
         ]
     )
-    cogito = make_core(stub)
+    cogito = make_cogito(stub)
     await seed_note(database, cogito, content=NOTE, tenant_id=TENANT_ID)
     await seed_note(database, cogito, content="发票在订单详情页下载。", tenant_id=OTHER_TENANT)
     client = cogito_backed_client(stub)

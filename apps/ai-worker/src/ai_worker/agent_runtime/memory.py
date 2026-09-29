@@ -117,7 +117,7 @@ def note_id(*, tenant_id: str, content: str) -> UUID:
 
 async def recall(
     connection: Connection,
-    core: CogitoClient,
+    cogito: CogitoClient,
     *,
     tenant_id: str,
     model: str,
@@ -159,7 +159,7 @@ async def recall(
 
 async def write(
     connection: Connection,
-    core: CogitoClient,
+    cogito: CogitoClient,
     *,
     tenant_id: str,
     model: str,
@@ -282,7 +282,7 @@ async def remember(request: Request, body: AgentMemoryRequest) -> JSONResponse:
 
 async def _remember(request: Request, *, body: AgentMemoryRequest) -> AgentMemoryResponse:
     settings = request.app.state.settings
-    core: CogitoClient = request.app.state.core
+    cogito: CogitoClient = request.app.state.cogito
     database: Database = request.app.state.db
 
     content = summarise(

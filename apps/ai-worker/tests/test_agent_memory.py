@@ -27,7 +27,7 @@ from support import (
     TENANT_ID,
     AgentStub,
     HandlerClient,
-    MakeCore,
+    MakeCogito,
     internal_headers,
 )
 
@@ -225,14 +225,14 @@ async def test_a_broken_database_is_reported_as_retryable(offline_client: AsyncC
 
 
 async def test_recall_is_bounded_by_tenant_and_model(
-    cogito_backed_client: HandlerClient, make_core: MakeCore, database: Database
+    cogito_backed_client: HandlerClient, make_cogito: MakeCogito, database: Database
 ) -> None:
     """同租户读得到，别的租户读不到；模型也是边界（同一模型的两种维度会让 `<=>` 报错）。"""
     stub = AgentStub()
     client = cogito_backed_client(stub)
     await remember(client)
 
-    core: CogitoClient = make_core(stub)
+    cogito: CogitoClient = make_cogito(stub)
     async with database.acquire() as connection:
         mine = await memory.recall(
             connection,

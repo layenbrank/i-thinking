@@ -114,7 +114,7 @@ async def test_one_call_materialises_the_current_version(
     assert row["chunk_count"] == len(TEXTS)
     assert row["collection"] == COLLECTION
     # 这个端点不碰 cogito：连令牌都不用换。
-    assert core.paths == []
+    assert cogito.paths == []
 
 
 async def test_vectors_must_be_complete_and_the_gap_is_named(

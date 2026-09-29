@@ -59,7 +59,7 @@ class Hit:
 
 async def find(
     connection: Connection,
-    core: CogitoClient,
+    cogito: CogitoClient,
     *,
     tenant_id: str,
     model: str,

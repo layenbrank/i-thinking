@@ -30,7 +30,7 @@ from ai_worker.cogito_client import (
     SERVICE_TOKEN_PATH,
     CogitoClient,
 )
-from support import INTERNAL_TOKEN, TRACEPARENT, MakeCore, make_settings
+from support import INTERNAL_TOKEN, TRACEPARENT, MakeCogito, make_settings
 
 TENANT = "tenant-a"
 ASSET = "asset-1"
@@ -79,14 +79,14 @@ def cogito_error(
     )
 
 
-async def test_token_request_matches_the_gateway_contract(make_core: MakeCore) -> None:
+async def test_token_request_matches_the_gateway_contract(make_cogito: MakeCogito) -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
         return httpx.Response(200, json=token_body())
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     token = await client.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id=ASSET)
 
@@ -105,24 +105,24 @@ async def test_token_request_matches_the_gateway_contract(make_core: MakeCore) -
     }
 
 
-async def test_ttl_is_sent_only_when_configured(make_core: MakeCore) -> None:
+async def test_ttl_is_sent_only_when_configured(make_cogito: MakeCogito) -> None:
     bodies: list[dict[str, Any]] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         bodies.append(json.loads(request.content))
         return httpx.Response(200, json=token_body())
 
-    default_ttl: CogitoClient = make_core(handler)
+    default_ttl: CogitoClient = make_cogito(handler)
     await default_ttl.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id=ASSET)
 
-    explicit_ttl: CogitoClient = make_core(handler, cogito_service_token_ttl_seconds=60)
+    explicit_ttl: CogitoClient = make_cogito(handler, cogito_service_token_ttl_seconds=60)
     await explicit_ttl.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id="asset-2")
 
     assert "ttlSecs" not in bodies[0]
     assert bodies[1]["ttlSecs"] == 60
 
 
-async def test_token_is_cached_per_scope_and_asset(make_core: MakeCore) -> None:
+async def test_token_is_cached_per_scope_and_asset(make_cogito: MakeCogito) -> None:
     count = 0
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -130,7 +130,7 @@ async def test_token_is_cached_per_scope_and_asset(make_core: MakeCore) -> None:
         count += 1
         return httpx.Response(200, json=token_body(asset_id=json.loads(request.content)["assetID"]))
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     await client.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id=ASSET)
     await client.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id=ASSET)
@@ -140,7 +140,7 @@ async def test_token_is_cached_per_scope_and_asset(make_core: MakeCore) -> None:
     assert count == 2  # 作用域不同就是另一枚令牌
 
 
-async def test_token_is_renewed_before_it_expires(make_core: MakeCore) -> None:
+async def test_token_is_renewed_before_it_expires(make_cogito: MakeCogito) -> None:
     count = 0
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -149,7 +149,7 @@ async def test_token_is_renewed_before_it_expires(make_core: MakeCore) -> None:
         # 剩余 5 秒 < 默认的 30 秒 skew：宁可提前换，也不要在中途突然过期。
         return httpx.Response(200, json=token_body(expires_in=5))
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     await client.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id=ASSET)
     await client.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id=ASSET)
@@ -157,7 +157,7 @@ async def test_token_is_renewed_before_it_expires(make_core: MakeCore) -> None:
     assert count == 2
 
 
-async def test_asset_content_uses_the_scoped_token(make_core: MakeCore) -> None:
+async def test_asset_content_uses_the_scoped_token(make_cogito: MakeCogito) -> None:
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -168,7 +168,7 @@ async def test_asset_content_uses_the_scoped_token(make_core: MakeCore) -> None:
             200, content=b"hello bytes", headers={"Content-Type": "application/pdf"}
         )
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     content = await client.asset_content(tenant_id=TENANT, asset_id=ASSET, max_bytes=1024)
 
@@ -179,7 +179,7 @@ async def test_asset_content_uses_the_scoped_token(make_core: MakeCore) -> None:
     assert seen[0].headers[SERVICE_TOKEN_HEADER] == f"tok-{SCOPE_ASSET_READ}"
 
 
-async def test_asset_content_tolerates_a_missing_content_type(make_core: MakeCore) -> None:
+async def test_asset_content_tolerates_a_missing_content_type(make_cogito: MakeCogito) -> None:
     """没有 `Content-Type` 时给空串：抽取器会自己判「不支持」，而不是在这里猜一个类型。"""
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -187,14 +187,14 @@ async def test_asset_content_tolerates_a_missing_content_type(make_core: MakeCor
             return httpx.Response(200, json=token_body())
         return httpx.Response(200, content=b"raw")
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     content = await client.asset_content(tenant_id=TENANT, asset_id=ASSET, max_bytes=1024)
 
     assert content.mime == ""
 
 
-async def test_asset_content_above_the_limit_is_a_request_error(make_core: MakeCore) -> None:
+async def test_asset_content_above_the_limit_is_a_request_error(make_cogito: MakeCogito) -> None:
     """超限重试也只会再超一次，所以判成 400（不可重试）而不是 503。"""
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -202,7 +202,7 @@ async def test_asset_content_above_the_limit_is_a_request_error(make_core: MakeC
             return httpx.Response(200, json=token_body())
         return httpx.Response(200, content=b"way too long")
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     with pytest.raises(errors.ApiError) as raised:
         await client.asset_content(tenant_id=TENANT, asset_id=ASSET, max_bytes=4)
@@ -224,14 +224,17 @@ async def test_asset_content_above_the_limit_is_a_request_error(make_core: MakeC
     ],
 )
 async def test_content_errors_are_mapped_by_retryability(
-    make_core: MakeCore, cogito_status: int, expected_status: int, expected_code: errors.ErrorCode
+    make_cogito: MakeCogito,
+    cogito_status: int,
+    expected_status: int,
+    expected_code: errors.ErrorCode,
 ) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == SERVICE_TOKEN_PATH:
             return httpx.Response(200, json=token_body())
         return cogito_error(cogito_status, retry_after="7" if cogito_status == 429 else None)
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     with pytest.raises(errors.ApiError) as raised:
         await client.asset_content(tenant_id=TENANT, asset_id=ASSET, max_bytes=1024)
@@ -242,13 +245,15 @@ async def test_content_errors_are_mapped_by_retryability(
         assert raised.value.headers["Retry-After"] == "7"
 
 
-async def test_rate_limit_without_a_usable_retry_after_is_tolerated(make_core: MakeCore) -> None:
+async def test_rate_limit_without_a_usable_retry_after_is_tolerated(
+    make_cogito: MakeCogito,
+) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == SERVICE_TOKEN_PATH:
             return httpx.Response(200, json=token_body())
         return httpx.Response(429, text="slow down", headers={"Retry-After": "soon"})
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     with pytest.raises(errors.ApiError) as raised:
         await client.asset_content(tenant_id=TENANT, asset_id=ASSET, max_bytes=1024)
@@ -257,13 +262,13 @@ async def test_rate_limit_without_a_usable_retry_after_is_tolerated(make_core: M
     assert "Retry-After" not in raised.value.headers
 
 
-async def test_non_json_error_body_does_not_crash(make_core: MakeCore) -> None:
+async def test_non_json_error_body_does_not_crash(make_cogito: MakeCogito) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == SERVICE_TOKEN_PATH:
             return httpx.Response(200, json=token_body())
         return httpx.Response(502, text="<html>bad gateway</html>")
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     with pytest.raises(errors.ApiError) as raised:
         await client.asset_content(tenant_id=TENANT, asset_id=ASSET, max_bytes=1024)
@@ -271,11 +276,11 @@ async def test_non_json_error_body_does_not_crash(make_core: MakeCore) -> None:
     assert raised.value.code is errors.ErrorCode.DEPENDENCY_UNAVAILABLE
 
 
-async def test_token_exchange_failure_is_reported_as_dependency(make_core: MakeCore) -> None:
+async def test_token_exchange_failure_is_reported_as_dependency(make_cogito: MakeCogito) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return cogito_error(401)
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     with pytest.raises(errors.ApiError) as raised:
         await client.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id=ASSET)
@@ -283,11 +288,11 @@ async def test_token_exchange_failure_is_reported_as_dependency(make_core: MakeC
     assert raised.value.code is errors.ErrorCode.DEPENDENCY_UNAVAILABLE
 
 
-async def test_network_failure_is_reported_as_dependency(make_core: MakeCore) -> None:
+async def test_network_failure_is_reported_as_dependency(make_cogito: MakeCogito) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("connection refused")
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     with pytest.raises(errors.ApiError) as raised:
         await client.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id=ASSET)
@@ -295,14 +300,14 @@ async def test_network_failure_is_reported_as_dependency(make_core: MakeCore) ->
     assert raised.value.status == 503
 
 
-async def test_outbound_requests_continue_the_current_trace(make_core: MakeCore) -> None:
+async def test_outbound_requests_continue_the_current_trace(make_cogito: MakeCogito) -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
         return httpx.Response(200, json=token_body())
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
     parent = trace.TraceContext.parse(TRACEPARENT)
     assert parent is not None
     token = trace.set_current(parent)
@@ -319,7 +324,7 @@ async def test_outbound_requests_continue_the_current_trace(make_core: MakeCore)
 
 
 async def test_outbound_requests_omit_traceparent_without_a_current_context(
-    make_core: MakeCore,
+    make_cogito: MakeCogito,
 ) -> None:
     """没有上游链路时不硬造一个：cogito 那边会自己补，凭空编一个只会污染日志。"""
     requests: list[httpx.Request] = []
@@ -328,13 +333,13 @@ async def test_outbound_requests_omit_traceparent_without_a_current_context(
         requests.append(request)
         return httpx.Response(200, json=token_body())
 
-    client: CogitoClient = make_core(handler, cogito_timeout_seconds=1.0)
+    client: CogitoClient = make_cogito(handler, cogito_timeout_seconds=1.0)
     await client.service_token(tenant_id=TENANT, scope=SCOPE_ASSET_READ, asset_id=ASSET)
 
     assert "traceparent" not in requests[0].headers
 
 
-async def test_embeddings_request_matches_the_gateway_contract(make_core: MakeCore) -> None:
+async def test_embeddings_request_matches_the_gateway_contract(make_cogito: MakeCogito) -> None:
     """嵌入走 `scope=embeddings` + `model` 的令牌：`model` 同时是 cogito 侧的模型自检。"""
     requests: list[httpx.Request] = []
 
@@ -344,7 +349,7 @@ async def test_embeddings_request_matches_the_gateway_contract(make_core: MakeCo
             return httpx.Response(200, json=token_body(scope=SCOPE_EMBEDDINGS, model=MODEL))
         return httpx.Response(200, json={"data": [{"index": 0, "embedding": [0.1, 0.2]}]})
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     payload = await client.embeddings(tenant_id=TENANT, model=MODEL, inputs=["a", "b"])
 
@@ -371,14 +376,17 @@ async def test_embeddings_request_matches_the_gateway_contract(make_core: MakeCo
     ],
 )
 async def test_embedding_errors_are_mapped_by_retryability(
-    make_core: MakeCore, cogito_status: int, expected_status: int, expected_code: errors.ErrorCode
+    make_cogito: MakeCogito,
+    cogito_status: int,
+    expected_status: int,
+    expected_code: errors.ErrorCode,
 ) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == SERVICE_TOKEN_PATH:
             return httpx.Response(200, json=token_body(scope=SCOPE_EMBEDDINGS, model=MODEL))
         return cogito_error(cogito_status, retry_after="7" if cogito_status == 429 else None)
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     with pytest.raises(errors.ApiError) as raised:
         await client.embeddings(tenant_id=TENANT, model=MODEL, inputs=["a"])
@@ -387,7 +395,7 @@ async def test_embedding_errors_are_mapped_by_retryability(
     assert raised.value.code is expected_code
 
 
-async def test_embedding_tokens_are_not_shared_across_models(make_core: MakeCore) -> None:
+async def test_embedding_tokens_are_not_shared_across_models(make_cogito: MakeCogito) -> None:
     """换模型就是换一枚令牌：拿 A 模型的令牌去算 B 模型，cogito 侧会当成越权。"""
     minted: list[dict[str, Any]] = []
 
@@ -400,7 +408,7 @@ async def test_embedding_tokens_are_not_shared_across_models(make_core: MakeCore
             )
         return httpx.Response(200, json={"data": [{"index": 0, "embedding": [0.5]}]})
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     await client.embeddings(tenant_id=TENANT, model=MODEL, inputs=["a"])
     await client.embeddings(tenant_id=TENANT, model=MODEL, inputs=["a"])
@@ -416,7 +424,7 @@ TOOLS: list[dict[str, Any]] = [
 ]
 
 
-async def test_chat_request_matches_the_gateway_contract(make_core: MakeCore) -> None:
+async def test_chat_request_matches_the_gateway_contract(make_cogito: MakeCogito) -> None:
     """对话走 `scope=chat` + `model` 的令牌，报文是 OpenAI 线格式的原样透传。"""
     requests: list[httpx.Request] = []
 
@@ -426,7 +434,7 @@ async def test_chat_request_matches_the_gateway_contract(make_core: MakeCore) ->
             return httpx.Response(200, json=token_body(scope=SCOPE_CHAT, model=CHAT_MODEL))
         return httpx.Response(200, json={"choices": [{"message": {"role": "assistant"}}]})
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     payload = await client.chat(tenant_id=TENANT, model=CHAT_MODEL, messages=MESSAGES, tools=TOOLS)
 
@@ -446,7 +454,7 @@ async def test_chat_request_matches_the_gateway_contract(make_core: MakeCore) ->
     }
 
 
-async def test_chat_omits_tools_when_there_are_none(make_core: MakeCore) -> None:
+async def test_chat_omits_tools_when_there_are_none(make_cogito: MakeCogito) -> None:
     """没有工具时**不要**发一个空数组：有些上游把空 `tools` 当成非法参数直接 400。"""
     bodies: list[dict[str, Any]] = []
 
@@ -456,7 +464,7 @@ async def test_chat_omits_tools_when_there_are_none(make_core: MakeCore) -> None
         bodies.append(json.loads(request.content))
         return httpx.Response(200, json={"choices": []})
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     await client.chat(tenant_id=TENANT, model=CHAT_MODEL, messages=MESSAGES)
     await client.chat(tenant_id=TENANT, model=CHAT_MODEL, messages=MESSAGES, tools=[])
@@ -474,14 +482,17 @@ async def test_chat_omits_tools_when_there_are_none(make_core: MakeCore) -> None
     ],
 )
 async def test_chat_errors_are_mapped_by_retryability(
-    make_core: MakeCore, cogito_status: int, expected_status: int, expected_code: errors.ErrorCode
+    make_cogito: MakeCogito,
+    cogito_status: int,
+    expected_status: int,
+    expected_code: errors.ErrorCode,
 ) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == SERVICE_TOKEN_PATH:
             return httpx.Response(200, json=token_body(scope=SCOPE_CHAT, model=CHAT_MODEL))
         return cogito_error(cogito_status, retry_after="7" if cogito_status == 429 else None)
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     with pytest.raises(errors.ApiError) as raised:
         await client.chat(tenant_id=TENANT, model=CHAT_MODEL, messages=MESSAGES)
@@ -490,7 +501,7 @@ async def test_chat_errors_are_mapped_by_retryability(
     assert raised.value.code is expected_code
 
 
-async def test_chat_and_embedding_tokens_are_not_interchangeable(make_core: MakeCore) -> None:
+async def test_chat_and_embedding_tokens_are_not_interchangeable(make_cogito: MakeCogito) -> None:
     """受众不同就是两枚令牌：共用会让审计把「对话」记到「嵌入」上，作用域也互相越权。"""
     scopes: list[str] = []
 
@@ -503,7 +514,7 @@ async def test_chat_and_embedding_tokens_are_not_interchangeable(make_core: Make
             )
         return httpx.Response(200, json={"data": [{"index": 0, "embedding": [0.5]}]})
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     await client.chat(tenant_id=TENANT, model=MODEL, messages=MESSAGES)
     await client.embeddings(tenant_id=TENANT, model=MODEL, inputs=["a"])
@@ -512,7 +523,7 @@ async def test_chat_and_embedding_tokens_are_not_interchangeable(make_core: Make
     assert scopes == [SCOPE_CHAT, SCOPE_EMBEDDINGS]
 
 
-async def test_visibility_write_matches_the_gateway_contract(make_core: MakeCore) -> None:
+async def test_visibility_write_matches_the_gateway_contract(make_cogito: MakeCogito) -> None:
     """改可见性：拿审批号换一枚 `scope=asset-write` 的令牌，写请求**连 body 都没有**。
 
     「改什么」不在这条线路上传：cogito 从审批台账里读出原文，签发令牌时就钉进 claims，写端点只按
@@ -532,7 +543,7 @@ async def test_visibility_write_matches_the_gateway_contract(make_core: MakeCore
             json={"id": ASSET, "visibility": "RESTRICTED", "viewers": ["viewer-1"]},
         )
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     landed = await client.asset_visibility_write(
         tenant_id=TENANT, approval_id=APPROVAL, asset_id=ASSET
@@ -553,7 +564,7 @@ async def test_visibility_write_matches_the_gateway_contract(make_core: MakeCore
 
 @pytest.mark.parametrize("failing_path", [SERVICE_TOKEN_PATH, VISIBILITY_PATH])
 async def test_an_invalid_approval_is_mapped_to_a_request_error(
-    make_core: MakeCore, failing_path: str
+    make_cogito: MakeCogito, failing_path: str
 ) -> None:
     """`403 + 500509` 是终局拒绝：换令牌和写这两条腿上都得翻成 400，不能按 503 报上去。
 
@@ -569,7 +580,7 @@ async def test_an_invalid_approval_is_mapped_to_a_request_error(
             )
         return cogito_error(403, code=APPROVAL_INVALID_CODE)
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     with pytest.raises(errors.ApiError) as raised:
         await client.asset_visibility_write(tenant_id=TENANT, approval_id=APPROVAL, asset_id=ASSET)
@@ -590,7 +601,7 @@ async def test_an_invalid_approval_is_mapped_to_a_request_error(
     ],
 )
 async def test_write_errors_are_mapped_by_retryability(
-    make_core: MakeCore,
+    make_cogito: MakeCogito,
     cogito_status: int,
     cogito_code: int,
     expected_status: int,
@@ -604,7 +615,7 @@ async def test_write_errors_are_mapped_by_retryability(
             )
         return cogito_error(cogito_status, code=cogito_code)
 
-    client: CogitoClient = make_core(handler)
+    client: CogitoClient = make_cogito(handler)
 
     with pytest.raises(errors.ApiError) as raised:
         await client.asset_visibility_write(tenant_id=TENANT, approval_id=APPROVAL, asset_id=ASSET)
@@ -693,7 +704,9 @@ async def test_system_proxy_is_used_only_when_the_switch_is_on(
     _ambient_proxy(monkeypatch, proxy_port)
 
     client = CogitoClient(
-        make_settings(cogito_base_url=f"http://127.0.0.1:{upstream_port}", cogito_use_system_proxy=True)
+        make_settings(
+            cogito_base_url=f"http://127.0.0.1:{upstream_port}", cogito_use_system_proxy=True
+        )
     )
     try:
         with pytest.raises(errors.ApiError) as raised:

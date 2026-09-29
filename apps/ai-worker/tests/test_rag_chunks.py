@@ -30,7 +30,7 @@ from support import (
     internal_headers,
     make_settings,
     service_token_body,
-    stub_core,
+    stub_cogito,
 )
 
 ASSET_ID = "8f14e45f-ceea-467a-9a3e-1b7c2d5e9f01"
@@ -47,7 +47,7 @@ class CogitoStub:
 
     def __init__(self, content: bytes = TEXT.encode(), *, content_status: int = 200) -> None:
         self.paths: list[str] = []
-        self._handler = stub_core(content, content_status=content_status)
+        self._handler = stub_cogito(content, content_status=content_status)
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.paths.append(request.url.path)
@@ -188,9 +188,9 @@ async def test_replay_does_not_refetch_or_duplicate(
 
     assert (first.status_code, second.status_code) == (200, 200)
     assert first.json() == second.json()
-    assert core.content_calls == 1
+    assert cogito.content_calls == 1
     assert len(await load_chunks(database, first.json()["chunkSetID"])) == 3
-    assert core.paths.count(SERVICE_TOKEN_PATH) == 1
+    assert cogito.paths.count(SERVICE_TOKEN_PATH) == 1
 
 
 async def test_explicit_defaults_are_the_same_request_as_omitting_them(
@@ -229,7 +229,7 @@ async def test_missing_idempotency_key_is_rejected_before_touching_core(
 
     assert response.status_code == 400
     assert error_code(response) == errors.ErrorCode.INVALID_REQUEST
-    assert core.paths == []
+    assert cogito.paths == []
 
 
 async def test_unknown_body_field_is_rejected_before_touching_core(
@@ -243,7 +243,7 @@ async def test_unknown_body_field_is_rejected_before_touching_core(
 
     assert response.status_code == 400
     assert error_code(response) == errors.ErrorCode.INVALID_REQUEST
-    assert core.paths == []
+    assert cogito.paths == []
     assert await ledger_row(database) is None
 
 
@@ -267,7 +267,7 @@ async def test_illegal_chunk_parameters_are_rejected_before_touching_core(
 
     assert response.status_code == 400
     assert error_code(response) == errors.ErrorCode.INVALID_REQUEST
-    assert core.paths == []
+    assert cogito.paths == []
     # 参数错误不该占住幂等键，否则调用方改对参数后用同一个键会被判 409。
     assert await ledger_row(database) is None
 
@@ -428,12 +428,12 @@ async def test_replayed_response_is_not_recomputed(
     client = cogito_backed_client(cogito)
 
     first = await post_chunks(client)
-    core.paths.clear()
+    cogito.paths.clear()
 
     second = await post_chunks(client)
 
     assert first.json() == second.json()
-    assert core.paths == []
+    assert cogito.paths == []
 
 
 async def test_in_flight_key_asks_cogito_to_retry(

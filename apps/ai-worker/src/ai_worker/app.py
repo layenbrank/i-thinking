@@ -15,8 +15,8 @@ from fastapi import FastAPI
 
 from ai_worker import __version__, errors
 from ai_worker.api import health
-from ai_worker.config import Settings, get_settings
 from ai_worker.cogito_client import CogitoClient
+from ai_worker.config import Settings, get_settings
 from ai_worker.db import Database
 from ai_worker.middleware import InternalTokenMiddleware, TraceparentMiddleware
 
@@ -47,7 +47,7 @@ def create_app(
     app.state.settings = resolved
     app.state.db = database or Database(resolved)
     # 注入点是为了测试：注入 cogito 时连 `MockTransport` 一起进来，不必把请求真发出去。
-    app.state.core = cogito or CogitoClient(resolved)
+    app.state.cogito = cogito or CogitoClient(resolved)
 
     errors.install_error_handlers(app)
     app.include_router(health.router)
@@ -69,10 +69,10 @@ def create_app(
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     database: Database = app.state.db
-    core: CogitoClient = app.state.core
+    cogito: CogitoClient = app.state.cogito
     await database.start()
     try:
         yield
     finally:
         await database.close()
-        await core.close()
+        await cogito.close()

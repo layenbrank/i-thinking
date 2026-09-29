@@ -44,8 +44,8 @@ from uuid import UUID
 from ai_worker import errors
 from ai_worker.agent_runtime import memory
 from ai_worker.agent_runtime.schemas import AgentToolCall, AgentToolResult
-from ai_worker.config import Settings
 from ai_worker.cogito_client import CogitoClient
+from ai_worker.config import Settings
 from ai_worker.db import Database, DatabaseUnavailableError
 from ai_worker.rag_ingest import extract
 from ai_worker.rag_ingest.search import find as search_find
@@ -96,7 +96,7 @@ class ToolContext:
 
     tenant_id: str
     embed_model: str
-    core: CogitoClient
+    cogito: CogitoClient
     database: Database
     settings: Settings
     #: 写入预算。冻结的是「这个字段不能换人」，`WriteBudget` 自己是可变的（整步共享）。
@@ -119,7 +119,8 @@ class ToolSpec:
     parameters: Mapping[str, Any]
     run: ToolRun
     #: 这个工具**必须**先经人工审批才允许执行：`/agents/steps` 里只会得到一条占位结果，
-    #: 真正的执行只发生在 cogito 换路径调 `/agents/tool-executions` 时（见 `invoke` 的 `approved`）。
+    #: 真正的执行只发生在 cogito 换路径调 `/agents/tool-executions` 时
+    #: （见 `invoke` 的 `approved`）。
     requires_approval: bool = False
 
 
@@ -414,7 +415,7 @@ async def _knowledge_search(ctx: ToolContext, arguments: Mapping[str, Any]) -> s
         async with ctx.database.acquire() as connection:
             hits = await search_find(
                 connection,
-                ctx.core,
+                ctx.cogito,
                 tenant_id=ctx.tenant_id,
                 model=ctx.embed_model,
                 query=query,
@@ -442,7 +443,7 @@ async def _knowledge_search(ctx: ToolContext, arguments: Mapping[str, Any]) -> s
 async def _asset_read(ctx: ToolContext, arguments: Mapping[str, Any]) -> str:
     """读一个资产的正文（走 cogito 的内容端点，MIME 以响应头为准）。"""
     asset_id = str(arguments["assetID"])
-    content = await ctx.core.asset_content(
+    content = await ctx.cogito.asset_content(
         tenant_id=ctx.tenant_id,
         asset_id=asset_id,
         max_bytes=ctx.settings.asset_max_bytes,
@@ -473,7 +474,7 @@ async def _memory_recall(ctx: ToolContext, arguments: Mapping[str, Any]) -> str:
         async with ctx.database.acquire() as connection:
             found = await memory.recall(
                 connection,
-                ctx.core,
+                ctx.cogito,
                 tenant_id=ctx.tenant_id,
                 model=ctx.embed_model,
                 query=query,
@@ -528,7 +529,7 @@ async def _memory_write(ctx: ToolContext, arguments: Mapping[str, Any]) -> str:
         async with ctx.database.acquire() as connection:
             written = await memory.write(
                 connection,
-                ctx.core,
+                ctx.cogito,
                 tenant_id=ctx.tenant_id,
                 model=ctx.embed_model,
                 content=content,
@@ -572,7 +573,7 @@ async def _asset_visibility_write(ctx: ToolContext, arguments: Mapping[str, Any]
         raise errors.invalid_request("改可见性必须先经人工批准，本次调用没有审批凭据，未执行。")
 
     asset_id = str(arguments["assetID"])
-    landed = await ctx.core.asset_visibility_write(
+    landed = await ctx.cogito.asset_visibility_write(
         tenant_id=ctx.tenant_id, approval_id=ctx.approval_id, asset_id=asset_id
     )
     # 只信 cogito 回报的落地值，不信模型请求时说的那份：写下去的永远是批准时台账里的参数，

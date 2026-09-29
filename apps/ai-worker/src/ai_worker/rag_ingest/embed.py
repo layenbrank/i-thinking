@@ -76,7 +76,7 @@ async def embed_range(asset_id: UUID, request: Request, body: EmbedRequest) -> J
 async def _embed(request: Request, *, asset_id: UUID, body: EmbedRequest) -> EmbedResponse:
     """先读（不调 cogito），缺哪块算哪块，最后写。"""
     settings = request.app.state.settings
-    core: CogitoClient = request.app.state.core
+    cogito: CogitoClient = request.app.state.cogito
     database: Database = request.app.state.db
 
     try:

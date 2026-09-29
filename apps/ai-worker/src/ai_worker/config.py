@@ -56,7 +56,8 @@ class Settings(BaseSettings):
     #: cogito 的 `ai_worker.token`，请求头 `X-Internal-Token` 的值。
     internal_token: str = Field(min_length=1)
     database_url: str = Field(min_length=1)
-    #: cogito 的基址，例如 `http://127.0.0.1:3000`（cogito 的 `server.port`，默认 3000）；不带尾斜杠。
+    #: cogito 的基址，例如 `http://127.0.0.1:3000`（cogito 的 `server.port`，默认 3000）；
+    #: 不带尾斜杠。
     cogito_base_url: str = Field(min_length=1)
     #: 回打 cogito 时是否让系统/环境变量代理接管。默认直连：cogito 是内网端点，而 httpx 走
     #: `urllib.request.getproxies()`，在 Windows 上**连注册表里的系统代理一起读**（开发机上常见

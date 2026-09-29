@@ -22,7 +22,7 @@ $seed = Get-Content $seedFile -Raw | ConvertFrom-Json
 # 带租户的接口都要 X-Tenant-ID，缺了会被拒（200001）。
 $tenantHeader = @{ 'X-Tenant-ID' = $seed.tenantId }
 
-$created = Invoke-Core -Method POST -Path '/api/v1/agent/tasks' -Token $seed.ownerToken -Header $tenantHeader -Body @{
+$created = Invoke-Cogito -Method POST -Path '/api/v1/agent/tasks' -Token $seed.ownerToken -Header $tenantHeader -Body @{
     objective = "把资产 $($seed.assetId) 的可见性改成 RESTRICTED，只给 $($seed.viewerId) 看。"
 }
 $taskId = (Assert-Ok $created '创建任务').id
@@ -33,7 +33,7 @@ $last = ''
 $task = $null
 for ($i = 0; $i -lt 60; $i++) {
     Start-Sleep -Seconds 2
-    $task = Assert-Ok (Invoke-Core -Method GET -Path "/api/v1/agent/tasks/$taskId" -Token $seed.ownerToken -Header $tenantHeader) '读任务'
+    $task = Assert-Ok (Invoke-Cogito -Method GET -Path "/api/v1/agent/tasks/$taskId" -Token $seed.ownerToken -Header $tenantHeader) '读任务'
 
     # `steps` 是整数（轮次），别写成 `$task.steps.Count`：标量的 `.Count` 恒为 1，会把 2 轮显示成 1。
     $line = "status=$($task.status) progress=$($task.progress) steps=$($task.steps) approval=$($task.pendingApproval.approvalID)"
@@ -43,7 +43,7 @@ for ($i = 0; $i -lt 60; $i++) {
     if (-not $approved -and $task.pendingApproval) {
         Write-Host "pendingApproval = $($task.pendingApproval | ConvertTo-Json -Compress -Depth 8)"
         $approvalId = $task.pendingApproval.approvalID
-        $decided = Invoke-Core -Method POST -Path "/api/v1/agent/tasks/$taskId/approvals/$approvalId" `
+        $decided = Invoke-Cogito -Method POST -Path "/api/v1/agent/tasks/$taskId/approvals/$approvalId" `
             -Token $seed.ownerToken -Header $tenantHeader -Body @{ decision = 'APPROVED'; reason = '联调批准' }
         Write-Host "approval => $($decided | ConvertTo-Json -Compress -Depth 8)"
         $approved = $true

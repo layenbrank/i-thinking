@@ -198,7 +198,7 @@ curl -s "${H[@]}" -X PUT "http://127.0.0.1:8081/internal/v1/assets/$ASSET/index"
 ai-worker，进度写进 custom status（`chunked:<n>` / `embedded:<to>` / `indexed`）。
 
 agent 那条链路的完整一趟（服务身份令牌 → 审批闸门 → 写工具 → 收尾记忆）连同要看的观测点，
-写在 [`../core/guide/agent-runtime.md`](../core/guide/agent-runtime.md) 的「跨进程联调」一节。
+写在 [`../cogito/guide/agent-runtime.md`](../cogito/guide/agent-runtime.md) 的「跨进程联调」一节。
 
 > 仓库里的 `apps/cogito/tests/rag_index.rs` 用的是 `StubAiWorker` 桩，**跨语言真实报文漂移它抓不到**；
 > 下面两个测试文件补的就是这个空档。
@@ -299,7 +299,7 @@ placeholder 交回 cogito 后，人工批准由 cogito 落账；批准后 cogito
 **记忆是投毒面**：同租户里上一个任务的结论会成为下一个任务的前提，
 写坏一次会被反复召回，所以写入必须由运维显式启用。
 记忆**不能从源重建**（与 `rag_*` 表不同），要纳入备份范围——见 cogito 侧的
-[`guide/configuration.md`](../core/guide/configuration.md)。
+[`guide/configuration.md`](../cogito/guide/configuration.md)。
 
 ### 手工打一条
 
@@ -319,7 +319,7 @@ curl -s -H 'X-Internal-Token: change-me-internal-token' \
 
 `finished=false` 且 `message.toolCalls` 非空即「还要下一轮」：把这一轮的消息与工具结果追加进
 `history` 再发一次就是第二步——cogito 的编排就是这么做的，整条链路（含进度、续跑、记忆）见
-[`apps/cogito/guide/agent-runtime.md`](../core/guide/agent-runtime.md)。
+[`apps/cogito/guide/agent-runtime.md`](../cogito/guide/agent-runtime.md)。
 
 审批通道同理，只是要带上审批号（`approvalID` 与 `taskID` 都是必填）：
 

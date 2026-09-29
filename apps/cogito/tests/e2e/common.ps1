@@ -25,7 +25,7 @@ function Save-E2EJson {
 
 # 用 curl.exe 而不是 Invoke-RestMethod：分片上传要 `-F`，而且失败时必须能看到**原始**响应体
 # ——「响应体不是 JSON」这类故障只有拿到原文才判得出来。
-function Invoke-Core {
+function Invoke-Cogito {
     param(
         [Parameter(Mandatory)][string]$Method,
         [Parameter(Mandatory)][string]$Path,

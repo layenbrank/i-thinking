@@ -93,7 +93,7 @@ def _malformed(reason: str) -> errors.ApiError:
 
 
 async def embed_texts(
-    core: CogitoClient,
+    cogito: CogitoClient,
     *,
     tenant_id: str,
     model: str,
@@ -108,7 +108,7 @@ async def embed_texts(
     dimensions: int | None = None
     for start in range(0, len(texts), batch_size):
         window = list(texts[start : start + batch_size])
-        payload = await core.embeddings(tenant_id=tenant_id, model=model, inputs=window)
+        payload = await cogito.embeddings(tenant_id=tenant_id, model=model, inputs=window)
         batch = parse_embeddings(payload, expected=len(window))
         if dimensions is None:
             dimensions = batch.dimensions

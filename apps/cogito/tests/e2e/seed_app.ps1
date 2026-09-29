@@ -19,10 +19,10 @@ function Ensure-User {
     param([Parameter(Mandatory)][string]$Name)
 
     $creds = @{ username = $Name; password = 'e2e-pass-1234'; captchaKey = 'e2e'; captchaValue = 'e2e' }
-    $signup = Invoke-Core -Method POST -Path '/api/v1/auth/signup' -Body $creds
+    $signup = Invoke-Cogito -Method POST -Path '/api/v1/auth/signup' -Body $creds
     if ($signup.success) { return $signup.data }
     if ($signup.msg -ne '用户名已存在') { throw "注册 $Name 失败：$($signup | ConvertTo-Json -Compress -Depth 8)" }
-    return Assert-Ok (Invoke-Core -Method POST -Path '/api/v1/auth/signin' -Body $creds) "登录 $Name"
+    return Assert-Ok (Invoke-Cogito -Method POST -Path '/api/v1/auth/signin' -Body $creds) "登录 $Name"
 }
 
 $owner = Ensure-User -Name 'e2euser'
@@ -31,13 +31,13 @@ $ownerToken = $owner.token
 
 # 租户：asset 必须挂在租户下，否则 agent 的服务身份在租户作用域里看不到它，
 # 工具会回「资产不存在」——这是最容易误判成「工具坏了」的一处。
-$tenantResp = Invoke-Core -Method POST -Path '/api/v1/tenants' -Token $ownerToken -Body @{
+$tenantResp = Invoke-Cogito -Method POST -Path '/api/v1/tenants' -Token $ownerToken -Body @{
     name = 'E2E Team'; slug = 'e2e-team'; type = 'TEAM'
 }
 if ($tenantResp.success) {
     $tenant = $tenantResp.data
 } elseif ($tenantResp.msg -eq '租户标识已存在') {
-    $page = Assert-Ok (Invoke-Core -Method GET -Path '/api/v1/tenants?page=1&size=50' -Token $ownerToken) '列出租户'
+    $page = Assert-Ok (Invoke-Cogito -Method GET -Path '/api/v1/tenants?page=1&size=50' -Token $ownerToken) '列出租户'
     $rows = if ($page.PSObject.Properties.Name -contains 'list') { $page.list } else { $page }
     $tenant = $rows | Where-Object { $_.slug -eq 'e2e-team' } | Select-Object -First 1
     if (-not $tenant) { throw "租户已存在但当前用户看不到：$($tenantResp | ConvertTo-Json -Compress)" }
@@ -45,18 +45,18 @@ if ($tenantResp.success) {
     throw "创建租户失败：$($tenantResp | ConvertTo-Json -Compress -Depth 8)"
 }
 
-$prep = Assert-Ok (Invoke-Core -Method POST -Path '/api/v1/upload/prepare' -Token $ownerToken -Body @{
+$prep = Assert-Ok (Invoke-Cogito -Method POST -Path '/api/v1/upload/prepare' -Token $ownerToken -Body @{
         name = 'e2e-note.txt'; size = $fileSize; hash = $fileHash; mime = 'text/plain'
         chunk = 10485760; tenantID = $tenant.id; visibility = 'PRIVATE'
     }) '初始化上传'
 
-# 分片走 `-F`（multipart），所以这里单独用一次 curl，不复用 Invoke-Core。
+# 分片走 `-F`（multipart），所以这里单独用一次 curl，不复用 Invoke-Cogito。
 $chunkRaw = curl.exe -sS -X POST "$script:E2EBase/api/v1/upload/chunk" -H "Authorization: Bearer $ownerToken" `
     -F "id=$($prep.id)" -F 'index=0' -F "hash=$fileHash" -F "chunk=@$fixture;type=application/octet-stream"
 $chunk = $chunkRaw | ConvertFrom-Json
 if (-not $chunk.success) { throw "分片上传失败：$chunkRaw" }
 
-$fin = Assert-Ok (Invoke-Core -Method POST -Path '/api/v1/upload/finalize' -Token $ownerToken -Body @{
+$fin = Assert-Ok (Invoke-Cogito -Method POST -Path '/api/v1/upload/finalize' -Token $ownerToken -Body @{
         id = $prep.id
     }) '完成上传'
 

@@ -24,7 +24,7 @@ from support import (
     UNREACHABLE_DATABASE_URL,
     CogitoHandler,
     HandlerClient,
-    MakeCore,
+    MakeCogito,
     make_settings,
 )
 
@@ -94,7 +94,7 @@ async def offline_client(offline_app: FastAPI) -> AsyncIterator[AsyncClient]:
 
 
 @pytest_asyncio.fixture
-async def make_core() -> AsyncIterator[MakeCore]:
+async def make_cogito() -> AsyncIterator[MakeCogito]:
     """用 `httpx.MockTransport` 造 CogitoClient，并在用例结束后统一关掉连接。"""
     created: list[CogitoClient] = []
 
@@ -112,7 +112,7 @@ async def make_core() -> AsyncIterator[MakeCore]:
 
 @pytest_asyncio.fixture
 async def cogito_backed_client(
-    database: Database, make_core: MakeCore
+    database: Database, make_cogito: MakeCogito
 ) -> AsyncIterator[HandlerClient]:
     """造一个「真库 + 假 cogito」的客户端：RAG 端点两头都要碰，缺哪一头都测不下去。
 
@@ -124,7 +124,7 @@ async def cogito_backed_client(
     def factory(handler: CogitoHandler, **overrides: object) -> AsyncClient:
         settings = make_settings(**overrides)
         application = create_app(
-            settings, database=database, cogito=make_core(handler, **overrides)
+            settings, database=database, cogito=make_cogito(handler, **overrides)
         )
         application.include_router(router)
         client = AsyncClient(

@@ -128,8 +128,8 @@ async def test_a_range_is_embedded_in_order_and_persisted(
         assert vector == pytest.approx(embedding_vector(text, DIMENSIONS))
 
     # 令牌作用域带上了模型：cogito 用它是为了把嵌入算在正确的模型配额与计量上。
-    assert core.token_bodies == [{"tenantID": TENANT_ID, "scope": "embeddings", "model": MODEL}]
-    assert core.embed_inputs == [list(TEXTS)]
+    assert cogito.token_bodies == [{"tenantID": TENANT_ID, "scope": "embeddings", "model": MODEL}]
+    assert cogito.embed_inputs == [list(TEXTS)]
 
 
 async def test_only_the_missing_ordinals_are_sent_upstream(
@@ -144,7 +144,7 @@ async def test_only_the_missing_ordinals_are_sent_upstream(
     assert (first.status_code, second.status_code) == (200, 200)
     assert first.json()["embedded"] == 2
     assert second.json() == {"from": 2, "to": 4, "embedded": 2, "dimensions": DIMENSIONS}
-    assert core.embed_inputs == [list(TEXTS[:2]), list(TEXTS[2:])]
+    assert cogito.embed_inputs == [list(TEXTS[:2]), list(TEXTS[2:])]
     assert len(await stored_vectors(database, chunk_set_id=CHUNK_SET_ID, model=MODEL)) == 4
 
 
@@ -157,7 +157,7 @@ async def test_batching_follows_the_configured_size(
     response = await post_embed(client)
 
     assert response.status_code == 200
-    assert core.embed_inputs == [list(TEXTS[:2]), list(TEXTS[2:])]
+    assert cogito.embed_inputs == [list(TEXTS[:2]), list(TEXTS[2:])]
     assert response.json()["embedded"] == 4
     assert len(await stored_vectors(database, chunk_set_id=CHUNK_SET_ID, model=MODEL)) == 4
 
@@ -174,7 +174,7 @@ async def test_a_fully_embedded_range_skips_the_upstream_call(
 
     assert again.status_code == 200
     assert again.json() == {"from": 0, "to": 4, "embedded": 0, "dimensions": DIMENSIONS}
-    assert core.embed_calls == 1
+    assert cogito.embed_calls == 1
     assert len(await stored_vectors(database, chunk_set_id=CHUNK_SET_ID, model=MODEL)) == 4
 
 
@@ -195,7 +195,7 @@ async def test_replaying_the_same_key_reports_zero_embedded(
     assert (first.status_code, second.status_code) == (200, 200)
     assert first.json() == {"from": 0, "to": 4, "embedded": 4, "dimensions": DIMENSIONS}
     assert second.json() == {"from": 0, "to": 4, "embedded": 0, "dimensions": DIMENSIONS}
-    assert core.embed_calls == 1
+    assert cogito.embed_calls == 1
     assert len(await stored_vectors(database, chunk_set_id=CHUNK_SET_ID, model=MODEL)) == 4
     assert (await ledger_row(database))["status"] == "completed"
 
@@ -210,7 +210,7 @@ async def test_missing_idempotency_key_is_rejected_before_touching_core(
 
     assert response.status_code == 400
     assert error_code(response) == errors.ErrorCode.INVALID_REQUEST
-    assert core.paths == []
+    assert cogito.paths == []
 
 
 async def test_same_key_with_a_different_range_conflicts(
@@ -236,7 +236,7 @@ async def test_unknown_body_field_is_rejected(
 
     assert response.status_code == 400
     assert error_code(response) == errors.ErrorCode.INVALID_REQUEST
-    assert core.paths == []
+    assert cogito.paths == []
     assert await ledger_row(database) is None
 
 
@@ -252,7 +252,7 @@ async def test_unknown_chunk_set_is_a_request_error_before_touching_core(
     assert response.status_code == 400
     assert error_code(response) == errors.ErrorCode.INVALID_REQUEST
     assert "不存在" in response.json()["error"]["message"]
-    assert core.embed_calls == 0
+    assert cogito.embed_calls == 0
 
 
 @pytest.mark.parametrize(
@@ -272,7 +272,7 @@ async def test_a_chunk_set_outside_this_request_is_rejected(
 
     assert response.status_code == 400
     assert error_code(response) == errors.ErrorCode.INVALID_REQUEST
-    assert core.embed_calls == 0
+    assert cogito.embed_calls == 0
     assert await stored_vectors(database, chunk_set_id=CHUNK_SET_ID, model=MODEL) == []
 
 
@@ -287,7 +287,7 @@ async def test_a_chunk_set_of_another_asset_is_rejected(
 
     assert response.status_code == 400
     assert "不属于" in response.json()["error"]["message"]
-    assert core.embed_calls == 0
+    assert cogito.embed_calls == 0
 
 
 async def test_a_range_beyond_the_chunk_set_is_rejected(
@@ -300,7 +300,7 @@ async def test_a_range_beyond_the_chunk_set_is_rejected(
 
     assert response.status_code == 400
     assert "超出块集范围" in response.json()["error"]["message"]
-    assert core.embed_calls == 0
+    assert cogito.embed_calls == 0
 
 
 async def test_a_range_that_does_not_line_up_with_the_chunks_is_rejected(
@@ -315,7 +315,7 @@ async def test_a_range_that_does_not_line_up_with_the_chunks_is_rejected(
 
     assert response.status_code == 400
     assert "不连续" in response.json()["error"]["message"]
-    assert core.embed_calls == 0
+    assert cogito.embed_calls == 0
 
 
 @pytest.mark.parametrize("start, end", [(2, 2), (3, 1), (0, 0)])
@@ -329,7 +329,7 @@ async def test_an_empty_or_backwards_range_is_rejected(
 
     assert response.status_code == 400
     assert error_code(response) == errors.ErrorCode.INVALID_REQUEST
-    assert core.paths == []
+    assert cogito.paths == []
     # 参数问题不该占住幂等键，否则调用方改对参数后用同一个键会被判 409。
     assert await ledger_row(database) is None
 
@@ -345,7 +345,7 @@ async def test_a_malformed_upstream_response_is_not_persisted(
 
     assert response.status_code == 503
     assert error_code(response) == errors.ErrorCode.DEPENDENCY_UNAVAILABLE
-    assert core.embed_calls == 1
+    assert cogito.embed_calls == 1
     assert await stored_vectors(database, chunk_set_id=CHUNK_SET_ID, model=MODEL) == []
     assert await ledger_row(database) is None  # 占位已释放，同一个键还能重试
 
@@ -415,7 +415,7 @@ async def test_mixed_dimensions_already_in_the_table_are_rejected(
 
     assert response.status_code == 400
     assert "有多种维度" in response.json()["error"]["message"]
-    assert core.embed_calls == 0
+    assert cogito.embed_calls == 0
 
 
 async def test_a_sibling_model_does_not_disturb_the_range(
@@ -435,7 +435,7 @@ async def test_a_sibling_model_does_not_disturb_the_range(
 
     assert response.status_code == 200
     assert response.json()["dimensions"] == DIMENSIONS
-    assert core.embed_inputs == [list(TEXTS)]
+    assert cogito.embed_inputs == [list(TEXTS)]
 
 
 def test_the_wire_shape_matches_the_contract() -> None:

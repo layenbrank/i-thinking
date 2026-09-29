@@ -127,9 +127,9 @@ async def _build(
 ) -> _Document:
     """取正文、抽文本、切块；只算不写库。"""
     settings = request.app.state.settings
-    core: CogitoClient = request.app.state.core
+    cogito: CogitoClient = request.app.state.cogito
 
-    data = await core.asset_content(
+    data = await cogito.asset_content(
         tenant_id=body.tenant_id,
         asset_id=str(asset_id),
         max_bytes=settings.asset_max_bytes,

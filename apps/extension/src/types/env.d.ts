@@ -6,7 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_ENGINE: string
   readonly VITE_EXTENSION: string
   readonly VITE_INTELLIGENCE: string
-  readonly VITE_COREX: string
+  readonly VITE_COGITO: string
 }
 
 interface ImportMeta {

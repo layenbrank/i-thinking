@@ -140,7 +140,9 @@ class CogitoClient:
             async for chunk in response.aiter_bytes(_READ_CHUNK_BYTES):
                 size += len(chunk)
                 if size > max_bytes:
-                    message = f"资产正文超过 {max_bytes} 字节上限，请先在 cogito 侧裁剪或降低上限配置"
+                    message = (
+                        f"资产正文超过 {max_bytes} 字节上限，请先在 cogito 侧裁剪或降低上限配置"
+                    )
                     raise errors.invalid_request(message)
                 chunks.append(chunk)
 

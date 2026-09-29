@@ -13,7 +13,6 @@ from uuid import UUID
 import httpx
 from httpx import AsyncClient
 
-from ai_worker.config import Settings
 from ai_worker.cogito_client import (
     ASSET_VISIBILITY_PATH,
     CHAT_PATH,
@@ -22,17 +21,18 @@ from ai_worker.cogito_client import (
     SERVICE_TOKEN_PATH,
     CogitoClient,
 )
+from ai_worker.config import Settings
 from ai_worker.db import Database
 from ai_worker.rag_ingest import store
 
-#: `conftest.make_core` 的类型：传进来的第一个参数是 `httpx.MockTransport` 的 handler。
-MakeCore = Callable[..., CogitoClient]
+#: `conftest.make_cogito` 的类型：传进来的第一个参数是 `httpx.MockTransport` 的 handler。
+MakeCogito = Callable[..., CogitoClient]
 
 INTERNAL_TOKEN = "test-internal-token-0123456789abcdef"
 #: 本地 pgvector 容器（见 README 的 `docker run` 一行）；CI 用同一个端口。
 DEFAULT_DATABASE_URL = "postgres://postgres:postgres@127.0.0.1:55433/ai_worker_test"
 #: `.invalid` 是 RFC 2606 保留的不可解析 TLD：防止测试意外打到真实的 cogito。
-UNREACHABLE_COGITO_URL = "http://core.invalid:3000"
+UNREACHABLE_COGITO_URL = "http://cogito.invalid:3000"
 #: 必然连不上的库（端口 1 上不会有人监听），用来验证降级路径。
 UNREACHABLE_DATABASE_URL = "postgres://postgres:postgres@127.0.0.1:1/ai_worker_test"
 
@@ -141,7 +141,7 @@ def cogito_error(
     )
 
 
-def stub_core(content: bytes, *, content_status: int = 200) -> CogitoHandler:
+def stub_cogito(content: bytes, *, content_status: int = 200) -> CogitoHandler:
     """最小 cogito 桩：换令牌 → 给正文。`content_status` 非 200 时改回错误信封。"""
 
     def handler(request: httpx.Request) -> httpx.Response:

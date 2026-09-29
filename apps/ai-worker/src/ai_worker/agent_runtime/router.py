@@ -50,8 +50,8 @@ from ai_worker.agent_runtime.schemas import (
     AgentToolResult,
     AgentUsage,
 )
-from ai_worker.config import Settings
 from ai_worker.cogito_client import CogitoClient
+from ai_worker.config import Settings
 from ai_worker.db import Database
 
 logger = logging.getLogger(__name__)
@@ -128,11 +128,11 @@ async def agent_step(request: Request, body: AgentStepRequest) -> JSONResponse:
             return replayed
 
         settings = request.app.state.settings
-        core: CogitoClient = request.app.state.core
+        cogito: CogitoClient = request.app.state.cogito
         database: Database = request.app.state.db
 
         completion = dialogue.parse_completion(
-            await core.chat(
+            await cogito.chat(
                 tenant_id=body.tenant_id,
                 model=body.model,
                 messages=dialogue.to_upstream(_messages(body)),
@@ -183,7 +183,7 @@ async def agent_tool_execution(request: Request, body: AgentToolExecutionRequest
             return replayed
 
         settings = request.app.state.settings
-        core: CogitoClient = request.app.state.core
+        cogito: CogitoClient = request.app.state.cogito
         database: Database = request.app.state.db
 
         # 一次请求就是一次调用，所以预算按「一步的额度」给：写入预算仍然是运维开关，
@@ -271,7 +271,7 @@ async def _run_tools(
     completion_usage: AgentUsage,
     body: AgentStepRequest,
     offered: list[dict[str, Any]],
-    core: CogitoClient,
+    cogito: CogitoClient,
     database: Database,
     settings: Settings,
 ) -> AgentStepResponse:

@@ -40,7 +40,7 @@ from support import (
     TENANT_ID,
     AgentStub,
     HandlerClient,
-    MakeCore,
+    MakeCogito,
     completion,
     internal_headers,
     make_settings,
@@ -274,7 +274,7 @@ async def test_visibility_arguments_are_rejected_before_any_outbound_call(
 
 
 async def test_a_write_tool_without_an_approval_never_reaches_core(
-    make_core: MakeCore, database: Database
+    make_cogito: MakeCogito, database: Database
 ) -> None:
     """直接把写工具跑在「没有审批号」的上下文里（例如误把 `requires_approval` 摘掉）。
 
@@ -285,7 +285,7 @@ async def test_a_write_tool_without_an_approval_never_reaches_core(
     context = tools.ToolContext(
         tenant_id=TENANT_ID,
         embed_model=EMBED_MODEL,
-        cogito=make_core(stub),
+        cogito=make_cogito(stub),
         database=database,
         settings=make_settings(),
         memory_writes=tools.WriteBudget(remaining=1),

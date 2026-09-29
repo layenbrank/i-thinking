@@ -28,6 +28,9 @@ x-cogito-image: &cogito-image
     context: .
     dockerfile: docker/cogito/Dockerfile
   image: cogito:local
+  # 本地自建 tag：compose 默认「先 pull 再 build」，而加速镜像站对自建 tag 有白名单，
+  # 拉不到就直接报错。声明 build 即表明这个 tag 只在本机构建，不必去 registry 问。
+  pull_policy: build
   # 可选的额外覆盖（任意 COGITO__* 键）：不存在时跳过，所以不建这个文件也能 up。
   # 下面 environment 里显式列出的键优先级更高（连接串要改就改 .env 的插值变量）。
   env_file:
@@ -62,6 +65,8 @@ services:
       context: ./docker/postgres
       dockerfile: Dockerfile
     image: cogito-postgres:18-zh-pgvector
+    # 同 x-cogito-image：本地自建（带 zh_CN locale），别去 registry 拉。
+    pull_policy: build
     container_name: cogito-postgres
     ports:
       - '5432:5432'
@@ -224,6 +229,8 @@ services:
       context: ../ai-worker
       dockerfile: Dockerfile
     image: cogito-ai-worker:local
+    # 同 x-cogito-image：本地自建，别去 registry 拉。
+    pull_policy: build
     container_name: cogito-ai-worker
     # 可选的额外覆盖（分块、批量、超时等）：下面的 environment 优先级更高，
     # 所以本机开发用的 .env（127.0.0.1 的 DSN）不会把容器里的地址带偏。
