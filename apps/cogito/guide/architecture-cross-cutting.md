@@ -35,7 +35,7 @@ Middleware → Guard → Interceptor(pre) → Pipe → Handler
 | Interceptor | [`Envelope` / `Paginated`](../src/interceptors/envelope.rs) |
 | Filter | [`Exception`](../src/filters/exception.rs)（`details` 非生产才写入） |
 | Guard | [`Auth::required`](../src/guards/auth.rs) + [`authz`](architecture-capabilities.md)（`crates/authz` 统一判定） |
-| CORS | [`cors(config)`](../src/middlewares/cors.rs)，`CORS_ORIGINS` / 生产收紧 |
+| CORS | [`cors(config)`](../src/middlewares/cors.rs)，`COGITO__CORS__ORIGINS`（`*` 仅非生产生效）/ 生产收紧 |
 | 状态码 | [`code`](../src/utils/code.rs) |
 | Pipe | `web::Json` + schema `*P` |
 | Decorator | 模块 `configure` + Auth 作用域 |

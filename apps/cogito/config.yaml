@@ -67,7 +67,10 @@ telemetry:
   timeout_ms: 10000
 
 cors:
-  origins: []
+  # 浏览器跨域白名单，**精确匹配**（协议 + 主机 + 端口都要一致；`localhost` 与 `127.0.0.1` 算两个来源）。
+  # `*` = 放行任意 Origin，仅非生产生效：生产会告警并拒绝（见 src/middlewares/cors.rs）。
+  # 本文件是 COPY 进镜像的：改了这里要重建镜像；不想重建就用环境变量覆盖（见 docker/stack.env.example）。
+  origins: ['*']
 
 # 事件发布（outbox → 下游）。由 `worker` 二进制读取；`endpoint` 留空 = 只记日志。
 # 生产环境（app.env=production）必须配好 endpoint 与 token，否则 worker 只会把事件留在 outbox 里。

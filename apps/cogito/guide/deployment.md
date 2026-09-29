@@ -168,12 +168,16 @@ docker compose exec postgres psql -U machenike -d postgres -c 'SELECT datname FR
 | 文件 | 作用 | 例子 |
 |------|------|------|
 | `apps/cogito/.env` | 只参与 compose 的 `${VAR}` 插值 | `POSTGRES_PASSWORD`、`AI_WORKER_INTERNAL_TOKEN`、`SERVICE_TOKEN_SECRET`、`APP_ENV` |
-| `apps/cogito/docker/stack.env` | 直接注入 cogito 容器的额外 `COGITO__*` | `COGITO__EVENTS__ENDPOINT`、`COGITO__LOGGING__FORMAT` |
+| `apps/cogito/docker/stack.env` | 直接注入 cogito 容器的额外 `COGITO__*` | `COGITO__EVENTS__ENDPOINT`、`COGITO__CORS__ORIGINS`、`COGITO__LOGGING__FORMAT` |
 
 `apps/cogito/.env` 是**必建**的：`cp .env.example .env`，三个凭据变量（`POSTGRES_PASSWORD`、
 `AI_WORKER_INTERNAL_TOKEN`、`SERVICE_TOKEN_SECRET`）刻意没有默认值，缺任何一个 compose 直接报错退出，
 不会被弱默认值悄悄顶上。`docker/stack.env` 可选：`cp docker/stack.env.example docker/stack.env`。
 优先级：compose 里显式写的 `COGITO__*` > `stack.env` > 镜像内的 `config*.yaml`。
+
+配置是**烤进镜像**的（`docker/cogito/Dockerfile` 里 `COPY config.yaml config.development.yaml config.production.yaml /app/`）：
+改了仓库里的 `config*.yaml` 必须重建镜像才生效，否则容器跑的还是旧值（看起来像「改了没用」）。
+不想重建就写 `stack.env`，例如跨域：`COGITO__CORS__ORIGINS=http://localhost:9523`（列表用逗号分隔）。
 
 `COGITO__*` 环境变量的**空串视为未设置**（`configures/src/loader.rs` 的 `ignore_empty(true)`）：
 编排里 `${VAR}` 展开成空串不会把配置清空，也就不会把密钥悄悄抹成空串。
