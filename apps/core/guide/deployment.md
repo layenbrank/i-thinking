@@ -111,7 +111,7 @@ docker compose down
 | compose 服务 | 二进制 / 镜像 | 端口 | 说明 |
 |--------------|---------------|------|------|
 | `postgres` | `corex-postgres:18-zh-pgvector` | 5432 | 带 pgvector 与 zh_CN locale，首次 initdb 会建 `ai_worker` 库 |
-| `redis` | `redis:7-alpine` | 6379 | 会话/限流/幂等/JWT 黑名单 |
+| `redis` | `redis:8-alpine` | 6379 | 会话/限流/幂等/JWT 黑名单 |
 | `gocaptcha` | `wenlng/go-captcha-service:1.0.5` | 8080 | 侧车，不是 core |
 | `migrate` | core 镜像 | — | 一次性 `./migration up`，跑完即退（core-api 等它成功） |
 | `core-api` | core 镜像 | 3000 | `./service` |
