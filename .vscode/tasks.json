@@ -1,71 +1,91 @@
 {
+  // 任务只负责把开发服务器挂起来；调试配置用 preLaunchTask 引用下面的 label（不是 npm 脚本名）。
+  // 背景任务的「已就绪」信号来自 problemMatcher.background.endsPattern —— Vite 会打印
+  // `ready in xxx ms`，经 turbo 转发时该行前面只多一个包名前缀，所以照样能匹配。
+  // pattern.regexp 用永不命中的正则：这些日志不该被当成「问题」报出来。
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "dev:extension",
+      "detail": "extension 开发服务器（https://<本机 IP>:1024，自签证书）",
       "type": "shell",
       "command": "bun",
       "args": ["dev:extension"],
-      "label": "dev:extension",
-      "detail": "启动 extension 应用开发服务器",
       "isBackground": true,
       "problemMatcher": {
-        "owner": "custom",
-        "pattern": {
-          "regexp": ".",
-          "file": 1,
-          "location": 2,
-          "message": 3
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": ".",
-          "endsPattern": "ready in"
-        }
+        "owner": "vite-dev-server",
+        "pattern": { "regexp": "^(?!)" },
+        "background": { "activeOnStart": true, "beginsPattern": ".", "endsPattern": "ready in" }
       }
     },
     {
+      "label": "dev:client",
+      "detail": "client 开发服务器（Tauri：http://<本机 IP>:5173）",
       "type": "shell",
       "command": "bun",
       "args": ["dev:client"],
-      "label": "dev:client",
-      "detail": "启动 Client 应用开发服务器",
       "isBackground": true,
       "problemMatcher": {
-        "owner": "custom",
-        "pattern": {
-          "regexp": ".",
-          "file": 1,
-          "location": 2,
-          "message": 3
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": ".",
-          "endsPattern": "ready in"
-        }
+        "owner": "vite-dev-server",
+        "pattern": { "regexp": "^(?!)" },
+        "background": { "activeOnStart": true, "beginsPattern": ".", "endsPattern": "ready in" }
       }
     },
     {
+      "label": "dev:devtools",
+      "detail": "devtools 开发服务器（端口与 extension 同为 1024；同时启动时 Vite 会自行落到 1025）",
       "type": "shell",
       "command": "bun",
       "args": ["dev:devtools"],
-      "label": "dev:devtools",
-      "detail": "启动 DevTools 应用开发服务器",
       "isBackground": true,
       "problemMatcher": {
-        "owner": "custom",
-        "pattern": {
-          "regexp": ".",
-          "file": 1,
-          "location": 2,
-          "message": 3
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": ".",
-          "endsPattern": "ready in"
-        }
+        "owner": "vite-dev-server",
+        "pattern": { "regexp": "^(?!)" },
+        "background": { "activeOnStart": true, "beginsPattern": ".", "endsPattern": "ready in" }
       }
+    },
+    {
+      "label": "dev:studio",
+      "detail": "studio（Electron：forge 启动，renderer dev server 9523）",
+      "type": "shell",
+      "command": "bun",
+      "args": ["dev:studio"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite-dev-server",
+        "pattern": { "regexp": "^(?!)" },
+        "background": { "activeOnStart": true, "beginsPattern": ".", "endsPattern": "ready in|Local:" }
+      }
+    },
+    {
+      "label": "dev",
+      "detail": "全量开发服务器（turbo run dev，排除 client）",
+      "type": "shell",
+      "command": "bun",
+      "args": ["dev"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite-dev-server",
+        "pattern": { "regexp": "^(?!)" },
+        "background": { "activeOnStart": true, "beginsPattern": ".", "endsPattern": "ready in" }
+      }
+    },
+    {
+      "label": "lint",
+      "detail": "全仓 lint（turbo run lint，排除 client）",
+      "type": "shell",
+      "command": "bun",
+      "args": ["lint"],
+      "problemMatcher": []
+    },
+    {
+      "label": "unit",
+      "detail": "单元测试（turbo run unit，排除 client）",
+      "type": "shell",
+      "command": "bun",
+      "args": ["unit"],
+      "group": "test",
+      "problemMatcher": []
     }
   ]
 }

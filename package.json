@@ -21,6 +21,8 @@
     "command": "node scripts/commands/index.ts",
     "sidecar": "node scripts/commands/index.ts sidecar",
     "worker": "node scripts/commands/index.ts worker",
+    "check:vscode": "node scripts/infra/vscode-settings.ts --check",
+    "sync:vscode": "node scripts/infra/vscode-settings.ts",
     "coverage": "turbo run coverage --filter=!@i-thinking/client",
     "dev": "turbo run dev --filter=!@i-thinking/client",
     "dev:client": "turbo run dev --filter=@i-thinking/client",

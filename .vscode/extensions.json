@@ -1,4 +1,6 @@
 {
+  // 前一段是仓库通用工具链；后一段是 settings.json 里**实际被引用**的格式化器/语言扩展 ——
+  // 不装上，settings.json 里对应的键会被标成「未知配置设置」。
   "recommendations": [
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
@@ -9,6 +11,14 @@
     "vue.volar",
     "christian-kohler.path-intellisense",
     "oxc.oxc-vscode",
-    "rust-lang.rust-analyzer"
+    "rust-lang.rust-analyzer",
+    "charliermarsh.ruff",
+    "tamasfe.even-better-toml",
+    "redhat.vscode-yaml",
+    "lokalise.i18n-ally",
+    "antfu.iconify",
+    "ChakrounAnas.turbo-console-log",
+    "ms-python.python",
+    "ms-azuretools.vscode-docker"
   ]
 }

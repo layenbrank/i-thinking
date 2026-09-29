@@ -1,20 +1,27 @@
 {
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "version": "0.2.0",
+  // 三个 Vite 开发服务器各一条；preLaunchTask 指向 .vscode/tasks.json 里的 label（不是 npm 脚本名）。
+  // 端口与协议以各 app 的 vite 配置为准：
+  //   extension  https://localhost:1024   （server.https 自签证书，所以要忽略证书错误）
+  //   client     http://localhost:5173
+  //   devtools   http://localhost:1024    （与 extension 撞端口：同时跑时 Vite 自行 +1 到 1025）
+  // studio 是 Electron（由 forge 启动 `dev:studio`），浏览器调试配置对它没有意义，故不提供。
   "configurations": [
     {
-      "type": "chrome",
-      "name": "extension Debug Development",
+      "name": "extension（Vite dev / https 1024）",
+      "type": "pwa-chrome",
       "request": "launch",
-      "url": "http://localhost:1024",
+      "url": "https://localhost:1024",
       "env": { "NODE_ENV": "development" },
-      "sourceMaps": true,
       "webRoot": "${workspaceFolder}/apps/extension",
-      "preLaunchTask": "pnpm dev:extension",
+      "preLaunchTask": "dev:extension",
+      "runtimeArgs": ["--ignore-certificate-errors"],
+      "sourceMaps": true,
+      "smartStep": true,
       "sourceMapPathOverrides": {
         ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
         ".tmp": "${webRoot}/node_modules/.tmp/*",
-        "@slide": "${webRoot}/node_modules/@slide/*",
         "/@fs/*": "${webRoot}/*",
         "/*": "${webRoot}/*",
         "/src/*": "${webRoot}/src/*",
@@ -26,7 +33,6 @@
         "/@id/*": "${webRoot}/src/*",
         "/@id/.*": "${webRoot}/src/*"
       },
-      "smartStep": true,
       "resolveSourceMapLocations": [
         "${workspaceFolder}/**",
         "!**/node_modules/.vite/deps/**",
@@ -36,122 +42,54 @@
         "<node_internals>/**",
         "${workspaceFolder}/node_modules/**/*.js",
         "**/node_modules/.vite/deps/**",
-        "${workspaceFolder}/dist/extension/**"
+        "${workspaceFolder}/apps/extension/dist/**"
       ]
     },
     {
-      "type": "chrome",
-      "name": "extension (快速启动)",
+      "name": "client（Vite dev / http 5173）",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "env": { "NODE_ENV": "development" },
+      "webRoot": "${workspaceFolder}/apps/client",
+      "preLaunchTask": "dev:client",
+      "sourceMaps": true,
+      "smartStep": true,
+      "sourceMapPathOverrides": {
+        ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
+        "/@fs/*": "${webRoot}/*",
+        "/*": "${webRoot}/*",
+        "/src/*": "${webRoot}/src/*",
+        "/@/*": "${webRoot}/src/*",
+        "/@vite/*": "${workspaceFolder}/node_modules/*",
+        "/./*": "${webRoot}/*",
+        "/components/*": "${webRoot}/src/components/*",
+        "/node_modules/*": "${workspaceFolder}/node_modules/*",
+        "/@id/*": "${webRoot}/src/*",
+        "/@id/.*": "${webRoot}/src/*"
+      },
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/.vite/deps/**",
+        "!**/node_modules/*/**"
+      ],
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**/*.js",
+        "**/node_modules/.vite/deps/**",
+        "${workspaceFolder}/apps/client/dist/**"
+      ]
+    },
+    {
+      "name": "devtools（Vite dev / http 1024 或 1025）",
+      "type": "pwa-chrome",
       "request": "launch",
       "url": "http://localhost:1024",
       "env": { "NODE_ENV": "development" },
-      "sourceMaps": true,
-      "webRoot": "${workspaceFolder}/apps/extension",
-      "sourceMapPathOverrides": {
-        ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
-        "/@fs/*": "${webRoot}/*",
-        "/*": "${webRoot}/*",
-        "/src/*": "${webRoot}/src/*",
-        "/@/*": "${webRoot}/src/*",
-        "/@vite/*": "${workspaceFolder}/node_modules/*",
-        "/./*": "${webRoot}/*",
-        "/components/*": "${webRoot}/src/components/*",
-        "/node_modules/*": "${workspaceFolder}/node_modules/*",
-        "/@id/*": "${webRoot}/src/*",
-        "/@id/.*": "${webRoot}/src/*"
-      },
-      "smartStep": true,
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/**",
-        "!**/node_modules/.vite/deps/**",
-        "!**/node_modules/*/**"
-      ],
-      "skipFiles": [
-        "<node_internals>/**",
-        "${workspaceFolder}/node_modules/**/*.js",
-        "**/node_modules/.vite/deps/**",
-        "${workspaceFolder}/dist/extension/**"
-      ]
-    },
-    {
-      "type": "chrome",
-      "name": "Desktop-G Debug Development",
-      "request": "launch",
-      "url": "http://localhost:10011",
-      "env": { "NODE_ENV": "development" },
-      "sourceMaps": true,
-      "webRoot": "${workspaceFolder}/apps/desktop-g",
-      "preLaunchTask": "pnpm dev:desktop-g",
-      "sourceMapPathOverrides": {
-        ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
-        "/@fs/*": "${webRoot}/*",
-        "/*": "${webRoot}/*",
-        "/src/*": "${webRoot}/src/*",
-        "/@/*": "${webRoot}/src/*",
-        "/@vite/*": "${workspaceFolder}/node_modules/*",
-        "/./*": "${webRoot}/*",
-        "/components/*": "${webRoot}/src/components/*",
-        "/node_modules/*": "${workspaceFolder}/node_modules/*",
-        "/@id/*": "${webRoot}/src/*",
-        "/@id/.*": "${webRoot}/src/*"
-      },
-      "smartStep": true,
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/**",
-        "!**/node_modules/.vite/deps/**",
-        "!**/node_modules/*/**"
-      ],
-      "skipFiles": [
-        "<node_internals>/**",
-        "${workspaceFolder}/node_modules/**/*.js",
-        "**/node_modules/.vite/deps/**",
-        "${workspaceFolder}/dist/desktop-g/**"
-      ]
-    },
-    {
-      "type": "chrome",
-      "name": "Extension Debug Development",
-      "request": "launch",
-      "url": "http://localhost:10012",
-      "env": { "NODE_ENV": "development" },
-      "sourceMaps": true,
-      "webRoot": "${workspaceFolder}/apps/extension",
-      "preLaunchTask": "pnpm dev:extension",
-      "sourceMapPathOverrides": {
-        ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
-        "/@fs/*": "${webRoot}/*",
-        "/*": "${webRoot}/*",
-        "/src/*": "${webRoot}/src/*",
-        "/@/*": "${webRoot}/src/*",
-        "/@vite/*": "${workspaceFolder}/node_modules/*",
-        "/./*": "${webRoot}/*",
-        "/components/*": "${webRoot}/src/components/*",
-        "/node_modules/*": "${workspaceFolder}/node_modules/*",
-        "/@id/*": "${webRoot}/src/*",
-        "/@id/.*": "${webRoot}/src/*"
-      },
-      "smartStep": true,
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/**",
-        "!**/node_modules/.vite/deps/**",
-        "!**/node_modules/*/**"
-      ],
-      "skipFiles": [
-        "<node_internals>/**",
-        "${workspaceFolder}/node_modules/**/*.js",
-        "**/node_modules/.vite/deps/**",
-        "${workspaceFolder}/dist/extension/**"
-      ]
-    },
-    {
-      "type": "chrome",
-      "name": "DevTools Debug Development",
-      "request": "launch",
-      "url": "http://localhost:10013",
-      "env": { "NODE_ENV": "development" },
-      "sourceMaps": true,
       "webRoot": "${workspaceFolder}/apps/devtools",
-      "preLaunchTask": "pnpm dev:devtools",
+      "preLaunchTask": "dev:devtools",
+      "sourceMaps": true,
+      "smartStep": true,
       "sourceMapPathOverrides": {
         ".vite/deps/*": "${webRoot}/node_modules/.vite/deps/*",
         "/@fs/*": "${webRoot}/*",
@@ -165,7 +103,6 @@
         "/@id/*": "${webRoot}/src/*",
         "/@id/.*": "${webRoot}/src/*"
       },
-      "smartStep": true,
       "resolveSourceMapLocations": [
         "${workspaceFolder}/**",
         "!**/node_modules/.vite/deps/**",
@@ -175,7 +112,7 @@
         "<node_internals>/**",
         "${workspaceFolder}/node_modules/**/*.js",
         "**/node_modules/.vite/deps/**",
-        "${workspaceFolder}/dist/devtools/**"
+        "${workspaceFolder}/apps/devtools/dist/**"
       ]
     }
   ]

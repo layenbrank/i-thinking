@@ -36,10 +36,16 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    // Markdown 的硬换行靠行尾两个空格，保存时别trim掉
+    "files.trimTrailingWhitespace": false
   },
-  "[prisma]": {
-    "editor.defaultFormatter": "Prisma.prisma"
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true
   },
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
@@ -59,7 +65,8 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[toml]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    // prettier 不解析 TOML，写它等于不格式化
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
   },
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -71,7 +78,8 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[yaml]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    // pnpm-workspace.yaml / docker-compose 走 redhat（prettier 的 yaml 不在 `pnpm format` 的 glob 里）
+    "editor.defaultFormatter": "redhat.vscode-yaml"
   },
   "breadcrumbs.filePath": "on",
   "breadcrumbs.symbolSortOrder": "type",
@@ -190,13 +198,18 @@
     "**/.git": true,
     "**/.gitignore": false,
     "**/.idea": false,
+    "**/.pytest_cache": true,
     "**/.svn": true,
+    "**/.turbo": true,
+    "**/.venv": true,
     "**/.vscode": false,
+    "**/__pycache__": true,
     "**/build": false,
     "**/dist": false,
     "**/node_modules": false,
     "**/package-lock.json": false,
     "**/pnpm-lock.yaml": false,
+    "**/target": true,
     "**/Thumbs.db": true,
     "**/tmp": true,
     "**/yarn.lock": false
@@ -208,9 +221,13 @@
     "**/.git": true,
     "**/.gitignore": true,
     "**/.idea": true,
+    "**/.pytest_cache": true,
     "**/.svn": true,
     "**/.tmp": true,
+    "**/.turbo": true,
+    "**/.venv": true,
     "**/.vscode": true,
+    "**/__pycache__": true,
     "**/apps/cogito/cas": true,
     "**/apps/cogito/chunks": true,
     "**/apps/cogito/data": true,
@@ -299,21 +316,33 @@
   "iconify.languageIds": ["typescript", "typescriptreact", "vue"],
   "iconify.preview.exclude": ["package.json"],
   "iconify.preview.include": ["**/*.vue", "**/*.jsx", "**/*.tsx"],
-  "javascript.format.semicolons": "remove",
-  "javascript.inlayHints.functionLikeReturnTypes.enabled": false,
-  "javascript.inlayHints.parameterNames.enabled": "none",
-  "javascript.preferences.importModuleSpecifier": "shortest",
-  "javascript.preferences.quoteStyle": "single",
-  "javascript.suggest.autoImports": true,
-  "javascript.updateImportsOnFileMove.enabled": "always",
+  // JS/TS 一律用新的 js/ts.* 键名：旧的 javascript.* / typescript.* 在本机 VS Code 已弃用并会报警告
+  "js/ts.enablePromptUseWorkspaceTsdk": true,
+  "js/ts.format.semicolons": "remove",
+  "js/ts.implicitProjectConfig.checkJs": true,
   "js/ts.implicitProjectConfig.target": "ESNext",
+  "js/ts.inlayHints.functionLikeReturnTypes.enabled": false,
+  "js/ts.inlayHints.parameterNames.enabled": "none",
+  "js/ts.preferences.importModuleSpecifier": "shortest",
+  "js/ts.preferences.quoteStyle": "single",
+  "js/ts.suggest.autoImports": true,
+  "js/ts.updateImportsOnFileMove.enabled": "always",
   "merge-conflict.decorators.enabled": true,
   "notebook.compactView": true,
+  "npm.packageManager": "pnpm",
   "npm.scriptRunner": "pnpm",
   "oxc.enable": true,
+  "path-intellisense.absolutePathToWorkspace": true,
   "path-intellisense.extensionOnImport": true,
+  // 下面这些 ${workspaceFolder:<名>} 别名只在「多根工作区」里能解析；单根打开时无效（无害）。
+  // `@ui` 已删：packages/ui 早改名 packages/design，且 design 不在工作区 folders 里。
   "path-intellisense.mappings": {
-    "@": "${workspaceFolder}/src"
+    "@": "${workspaceFolder}/src",
+    "@client": "${workspaceFolder:client}/src",
+    "@cogito": "${workspaceFolder:cogito}/src",
+    "@devtools": "${workspaceFolder:devtools}/src",
+    "@extension": "${workspaceFolder:extension}/src",
+    "@shared": "${workspaceFolder:shared}/src"
   },
   "prettier.arrowParens": "always",
   "prettier.bracketSameLine": false,
@@ -323,12 +352,15 @@
   "prettier.printWidth": 100,
   "prettier.requireConfig": false,
   "prettier.semi": false,
+  // 与用户习惯的模板写法一致：属性各自一行
+  "prettier.singleAttributePerLine": true,
   "prettier.singleQuote": true,
   "prettier.tabWidth": 2,
   "prettier.trailingComma": "none",
   "prettier.useTabs": true,
   "prettier.vueIndentScriptAndStyle": false,
-  "prisma.pinToPrisma6": false,
+  // ai-worker 的实测环境由 uv 建在 apps/ai-worker/.venv（见该目录 README 的 uv sync）
+  "python.defaultInterpreterPath": "${workspaceFolder}/apps/ai-worker/.venv/Scripts/python.exe",
   "scm.inputFontSize": 16,
   "scss.format.newlineBetweenSelectors": true,
   "scss.hover.documentation": true,
@@ -341,9 +373,13 @@
     "**/.git": true,
     "**/.gitignore": true,
     "**/.idea": true,
+    "**/.pytest_cache": true,
     "**/.svn": true,
     "**/.tmp": true,
+    "**/.turbo": true,
+    "**/.venv": true,
     "**/.vscode": true,
+    "**/__pycache__": true,
     "**/apps/cogito/cas": true,
     "**/apps/cogito/chunks": true,
     "**/apps/cogito/data": true,
@@ -376,18 +412,25 @@
   "turboConsoleLog.includeLineNum": true,
   "turboConsoleLog.insertEmptyLineAfterLogMessage": true,
   "turboConsoleLog.insertEmptyLineBeforeLogMessage": true,
-  "typescript.autoClosingTags": true,
-  "typescript.format.semicolons": "remove",
-  "typescript.inlayHints.enumMemberValues.enabled": true,
-  "typescript.locale": "zh-CN",
-  "typescript.preferences.importModuleSpecifier": "shortest",
-  "typescript.preferences.importModuleSpecifierEnding": "auto",
-  "typescript.preferences.includePackageJsonAutoImports": "on",
-  "typescript.preferences.preferTypeOnlyAutoImports": true,
-  "typescript.preferences.quoteStyle": "single",
-  "typescript.suggest.autoImports": true,
-  "typescript.tsdk": "node_modules\\typescript\\lib",
-  "typescript.updateImportsOnFileMove.enabled": "always",
+  "js/ts.autoClosingTags.enabled": true,
+  "js/ts.inlayHints.enumMemberValues.enabled": true,
+  "js/ts.locale": "zh-CN",
+  "js/ts.preferences.autoImportFileExcludePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/.git/**",
+    "**/.svn/**",
+    "**/.vscode/**",
+    "**/.idea/**",
+    "**/.DS_Store"
+  ],
+  "js/ts.preferences.importModuleSpecifierEnding": "auto",
+  "js/ts.preferences.includePackageJsonAutoImports": "on",
+  "js/ts.preferences.jsxAttributeCompletionStyle": "braces",
+  "js/ts.preferences.preferTypeOnlyAutoImports": true,
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
   "vue.autoInsert.bracketSpacing": true,
   "vue.autoInsert.dotValue": true,
   "vue.codeActions.askNewComponentName": true,
