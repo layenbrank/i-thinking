@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use actix_web::{HttpResponse, Responder, ResponseError, get, web};
 
@@ -13,6 +14,10 @@ use crate::utils::code;
 
 /// 探活超时：探针要快速给结论，不能沿用长任务默认的 30s 调用超时
 const AI_WORKER_PROBE_TIMEOUT_MS: u64 = 2_000;
+
+/// Redis 探针上限：fred 默认 `fail_fast = false`，断连时命令会排队等重连而不报错，
+/// 缺少超时会让 `/api/ready` 挂住不返回（重建 redis 容器断开既有连接即可复现）。
+const REDIS_PROBE_TIMEOUT_MS: u64 = 2_000;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(health_check);
@@ -141,9 +146,16 @@ async fn postgres_status(db: &Storage) -> DependencyCheck {
 
 /// Redis：会话、限流、幂等都在它上面，缺了鉴权入口直接不可用 ⇒ 关键依赖
 async fn redis_status(redis: &RedisPool) -> DependencyCheck {
-    match redis.ping().await {
-        Ok(()) => dependency("redis", true, "up", None),
-        Err(err) => dependency("redis", true, "down", Some(err.to_string())),
+    let timeout = Duration::from_millis(REDIS_PROBE_TIMEOUT_MS);
+    match tokio::time::timeout(timeout, redis.ping()).await {
+        Ok(Ok(())) => dependency("redis", true, "up", None),
+        Ok(Err(err)) => dependency("redis", true, "down", Some(err.to_string())),
+        Err(_) => dependency(
+            "redis",
+            true,
+            "down",
+            Some(format!("探针超时（{REDIS_PROBE_TIMEOUT_MS}ms）")),
+        ),
     }
 }
 

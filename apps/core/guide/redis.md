@@ -37,6 +37,11 @@ fred = { version = "10", features = ["enable-rustls", "partial-tracing"] }
 
 启动时 **fail-fast**：`RedisPool::new` 会 `init` + `ping`，连不上则 `service` 进程直接退出（与 PostgreSQL 一致）。
 
+运行期带**重连**：连接池显式设置了 `ReconnectPolicy`（默认每 1s 重试、永不放弃）。
+fred 的 `Builder` 不会自动套用默认值——其 `policy` 为 `None` 时 `should_reconnect()` 返回 `false`，
+即**不设就等于完全关闭重连**（连接断开后池永久空转、命令一直排队）。所以这里必须显式设置，
+详见 `src/clients/redis.rs`。有此策略后 redis 容器重建/重启，进程会自行恢复，无需重启服务。
+
 ### 本机联调（Docker）
 
 ```powershell
