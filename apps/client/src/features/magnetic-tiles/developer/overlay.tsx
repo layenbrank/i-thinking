@@ -5,7 +5,7 @@ import {
   MessageOutlined,
   StarOutlined
 } from '@ant-design/icons'
-import { core } from '@tauri-apps/api'
+import { cogito } from '@tauri-apps/api'
 import { Avatar, Button, Card, Drawer, List as Entries, Segmented, Space } from 'antd'
 import type { SegmentedOptions } from 'antd/es/segmented'
 import clsx from 'clsx'

@@ -14,7 +14,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
-#: 契约 `spec/internal.yaml` 里 core 侧配置的默认地址（server url）。
+#: 契约 `spec/internal.yaml` 里 cogito 侧配置的默认地址（server url）。
 DEFAULT_PORT = 8081
 _MIB = 1024 * 1024
 _SHORT_TOKEN_WARNING_LENGTH = 32
@@ -42,8 +42,8 @@ class Settings(BaseSettings):
     #: OTLP/HTTP 基址，例如 `http://127.0.0.1:4318`；带路径则按原样使用，
     #: 不带路径时补上 traces 的默认路径 `/v1/traces`。
     telemetry_endpoint: str = "http://127.0.0.1:4318"
-    #: 资源里的 `service.name`（core 侧是 `{service_name}-{角色}`，这边只有一个进程角色）。
-    telemetry_service_name: str = "i-thinking-ai-worker"
+    #: 资源里的 `service.name`（cogito 侧是 `{service_name}-{角色}`，这边只有一个进程角色）。
+    telemetry_service_name: str = "cogito-ai-worker"
     #: 采样比例 `0.0`–`1.0`。上游已带采样决定时跟随上游（ParentBased）。
     telemetry_sample_ratio: float = Field(default=1.0, ge=0.0, le=1.0)
     #: 单次导出超时（毫秒）。
@@ -53,22 +53,22 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = Field(default=DEFAULT_PORT, ge=1, le=65535)
 
-    #: core 的 `ai_worker.token`，请求头 `X-Internal-Token` 的值。
+    #: cogito 的 `ai_worker.token`，请求头 `X-Internal-Token` 的值。
     internal_token: str = Field(min_length=1)
     database_url: str = Field(min_length=1)
-    #: core 的基址，例如 `http://127.0.0.1:3000`（core 的 `server.port`，默认 3000）；不带尾斜杠。
-    core_base_url: str = Field(min_length=1)
-    #: 回打 core 时是否让系统/环境变量代理接管。默认直连：core 是内网端点，而 httpx 走
+    #: cogito 的基址，例如 `http://127.0.0.1:3000`（cogito 的 `server.port`，默认 3000）；不带尾斜杠。
+    cogito_base_url: str = Field(min_length=1)
+    #: 回打 cogito 时是否让系统/环境变量代理接管。默认直连：cogito 是内网端点，而 httpx 走
     #: `urllib.request.getproxies()`，在 Windows 上**连注册表里的系统代理一起读**（开发机上常见
     #: `127.0.0.1:7892` 这类本机代理），内网地址被它接走后表现为 502 且响应体为空、
-    #: core 侧连一条访问记录都没有。开关名与 core 侧的 `ai_worker.use_system_proxy` 对齐。
-    core_use_system_proxy: bool = False
+    #: cogito 侧连一条访问记录都没有。开关名与 cogito 侧的 `ai_worker.use_system_proxy` 对齐。
+    cogito_use_system_proxy: bool = False
 
-    core_timeout_seconds: float = Field(default=30.0, gt=0)
+    cogito_timeout_seconds: float = Field(default=30.0, gt=0)
     #: 服务令牌提前续签的余量（秒）：避免「刚好在过期那一瞬间发出请求」。
-    core_token_refresh_skew_seconds: int = Field(default=30, ge=0)
-    #: 申请服务令牌时希望的有效期（秒）；None = 用 core 的默认值。
-    core_service_token_ttl_seconds: int | None = Field(default=None, gt=0)
+    cogito_token_refresh_skew_seconds: int = Field(default=30, ge=0)
+    #: 申请服务令牌时希望的有效期（秒）；None = 用 cogito 的默认值。
+    cogito_service_token_ttl_seconds: int | None = Field(default=None, gt=0)
     #: 单个资产正文的大小上限（字节）。超过即判为不可重试的请求问题。
     asset_max_bytes: int = Field(default=64 * _MIB, gt=0)
     #: 幂等键在「进行中」状态停留超过多久即可被接管（秒）。
@@ -81,18 +81,18 @@ class Settings(BaseSettings):
     #: 数据库不可用时，两次重连尝试之间的最小间隔（秒），避免健康探针把它变成压力源。
     db_reconnect_interval_seconds: float = Field(default=5.0, ge=0)
 
-    #: 切块的部署级默认值（core 不指定 `chunkSize` 时生效）。约等于中文 500–700 字：
+    #: 切块的部署级默认值（cogito 不指定 `chunkSize` 时生效）。约等于中文 500–700 字：
     #: 再小，检索会命中太多碎片；再大，一块里塞进多个主题，嵌入的语义被稀释。
     default_chunk_size: int = Field(default=1200, ge=1)
     #: 默认重叠：块大小的 1/6。留重叠是为了「答案跨在块边界上」时不至于完全丢上下文。
     default_chunk_overlap: int = Field(default=200, ge=0)
 
-    #: 一次上游嵌入调用送多少条文本。与 core 的分批是两件事：core 按自己的批量把块集切成
+    #: 一次上游嵌入调用送多少条文本。与 cogito 的分批是两件事：cogito 按自己的批量把块集切成
     #: 幂等区间，这里只在单个区间内部再切，避免一条区间（可能上千块）压成一次超大请求。
     embed_batch_size: int = Field(default=64, ge=1)
 
     #: 智能体一步里最多真正执行几次工具调用。超出的调用不执行、只回一条失败结果：
-    #: 模型偶尔会一口气要十个工具，串行跑完会让这一步的耗时不可预测（而 core 的活动超时
+    #: 模型偶尔会一口气要十个工具，串行跑完会让这一步的耗时不可预测（而 cogito 的活动超时
     #: 是固定的），所以宁可让模型下一轮再补。
     agent_max_tool_calls_per_step: int = Field(default=8, ge=1)
     #: 单条工具结果喂回模型前的字符上限。检索一次可能命中几十块，不截断的话一步就能把
@@ -100,11 +100,11 @@ class Settings(BaseSettings):
     agent_tool_result_max_chars: int = Field(default=8000, ge=1)
     #: 智能体一步里最多写几条长期记忆。写记忆是**唯一**有持久副作用的工具，而且写进去的
     #: 文字会被本租户之后的其它任务读到，所以默认给得极小（模型一句话能塞进两条就够用）。
-    #: 设 0 等价于关闭写入。注意这只管 `memory_write` 工具；任务收尾的结论摘要由 core 的
+    #: 设 0 等价于关闭写入。注意这只管 `memory_write` 工具；任务收尾的结论摘要由 cogito 的
     #: 编排活动直接写，不受这个开关约束。
     agent_memory_max_writes_per_step: int = Field(default=2, ge=0)
 
-    @field_validator("internal_token", "database_url", "core_base_url")
+    @field_validator("internal_token", "database_url", "cogito_base_url")
     @classmethod
     def _strip(cls, value: str) -> str:
         return value.strip()
@@ -132,12 +132,12 @@ class Settings(BaseSettings):
             raise ValueError(message)
         return value
 
-    @field_validator("core_base_url")
+    @field_validator("cogito_base_url")
     @classmethod
     def _require_base_url(cls, value: str) -> str:
         trimmed = value.rstrip("/")
         if not trimmed.startswith(("http://", "https://")):
-            message = f"AI_WORKER_CORE_BASE_URL 必须是 http(s) 开头的基址，当前是 {value[:16]!r}"
+            message = f"AI_WORKER_COGITO_BASE_URL 必须是 http(s) 开头的基址，当前是 {value[:16]!r}"
             raise ValueError(message)
         return trimmed
 

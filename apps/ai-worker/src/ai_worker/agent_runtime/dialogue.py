@@ -2,12 +2,12 @@
 
 两侧形状本来就不同，这里只做翻译，不做业务判断：
 
-* 契约（core ↔ ai-worker）是扁平的：`{"id","name","arguments"}`，
-  参数是 JSON **字符串**，core 不必反序列化就能整条存下再回灌；
+* 契约（cogito ↔ ai-worker）是扁平的：`{"id","name","arguments"}`，
+  参数是 JSON **字符串**，cogito 不必反序列化就能整条存下再回灌；
 * OpenAI 线格式是嵌套的：`{"id","type":"function","function":{"name","arguments"}}`，
   工具结果则是一条独立的 `{"role":"tool","tool_call_id","content"}` 消息。
 
-翻译只发生在一个位置（本模块），所以「core 看到的历史」和「模型看到的历史」不可能各自漂移
+翻译只发生在一个位置（本模块），所以「cogito 看到的历史」和「模型看到的历史」不可能各自漂移
 ——那类 bug 在别处表现为「模型莫名其妙地重复调用同一个工具」，极难排查。
 
 上游响应的解析口径与 `providers.embeddings` 一致：**形状不对一律 503（可重试）**。
@@ -38,7 +38,7 @@ class Completion:
 
 
 def to_upstream(messages: Sequence[AgentMessage]) -> list[dict[str, Any]]:
-    """把（契约形状的）消息翻成 OpenAI 线格式，供 `core_client.chat` 原样透传。"""
+    """把（契约形状的）消息翻成 OpenAI 线格式，供 `cogito_client.chat` 原样透传。"""
     wire: list[dict[str, Any]] = []
     for message in messages:
         if message.role == "assistant":
@@ -73,7 +73,7 @@ def parse_completion(payload: object) -> Completion:
 
     choices = payload.get("choices")
     if not isinstance(choices, list) or len(choices) != 1:
-        # core 强制非流式且不传 `n`，所以「只有一条选择」是它的承诺；多了说明上游或网关
+        # cogito 强制非流式且不传 `n`，所以「只有一条选择」是它的承诺；多了说明上游或网关
         # 的行为变了，挑第一条继续跑等于悄悄改变语义。
         count = len(choices) if isinstance(choices, list) else "非数组"
         raise _malformed(f"choices 期望恰好 1 条，实际 {count}")

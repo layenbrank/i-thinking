@@ -1,13 +1,13 @@
-"""把一批文本变成向量：分批调用 + 解析 core 转发的上游响应（P6b-4）。
+"""把一批文本变成向量：分批调用 + 解析 cogito 转发的上游响应（P6b-4）。
 
-上游响应是 **OpenAI 形状**，core 原样转发、不套统一信封：
+上游响应是 **OpenAI 形状**，cogito 原样转发、不套统一信封：
 
 ```json
 {"data": [{"object": "embedding", "index": 0, "embedding": [0.1, -0.2, ...]}, ...]}
 ```
 
 这里只做三件事：**校验形状**、**按 `index` 还原顺序**、**分批**。形状不对一律按 503（可重试）
-上报：上游半截返回（网关截断、模型侧限流）时，把算出来的一半向量写进库、让 core 把整个
+上报：上游半截返回（网关截断、模型侧限流）时，把算出来的一半向量写进库、让 cogito 把整个
 资产判成永久失败，代价远大于重试一次。
 """
 
@@ -18,7 +18,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ai_worker import errors
-from ai_worker.core_client import CoreClient
+from ai_worker.cogito_client import CogitoClient
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,7 +93,7 @@ def _malformed(reason: str) -> errors.ApiError:
 
 
 async def embed_texts(
-    core: CoreClient,
+    core: CogitoClient,
     *,
     tenant_id: str,
     model: str,

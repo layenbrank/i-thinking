@@ -1,4 +1,4 @@
-# 02 — 架构：Command / Core / Database
+# 02 — 架构：Command / Cogito / Database
 
 ## 分层职责
 
@@ -9,18 +9,18 @@
 | `thinking-database` | `apps/client/src-tauri/crates/database` | DDL 迁移、Entity / DTO（`*P`）、`Storage` 连接 |
 | App bootstrap | `apps/client/src-tauri/src/app` | 打开 DB、跑迁移、`manage(Storage)`、注册 handlers、启动 worker |
 
-**边界**：Command **不写**业务规则；Database **不写**业务规则；校验与事务在 Core。
+**边界**：Command **不写**业务规则；Database **不写**业务规则；校验与事务在 Cogito。
 
 ## 调用链
 
 ```mermaid
 flowchart LR
   FE[Frontend invoke] --> CMD[thinking_command]
-  CMD --> CORE[thinking_core Service]
-  CORE --> DB[thinking_database Entity]
+  CMD --> COGITO[thinking_core Service]
+  COGITO --> DB[thinking_database Entity]
   BOOT[bootstrap] --> STOR[Storage]
   BOOT --> WORK[reminder worker]
-  WORK --> CORE
+  WORK --> COGITO
 ```
 
 前端：

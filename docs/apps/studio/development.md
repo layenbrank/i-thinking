@@ -49,7 +49,7 @@ pnpm install
 
 > **业务后端不在这个仓库**：`apps/service`（NestJS）已下线 —— 登录 / 注册 / 租户 / 配额 / 订阅与
 > AI 网关（`/gateway/*`）都在独立的 Rust 仓库里维护，本地这样起：
-> `cargo watch -x "run --bin service --features openapi"`，再把 `VITE_THINKING` 指到它的 `/api/v1`
+> `cargo watch -x "run --bin cogito --features openapi"`，再把 `VITE_THINKING` 指到它的 `/api/v1`
 > （如 `http://127.0.0.1:3000/api/v1`）。studio 只依赖这套 HTTP 契约，不 vendor 后端代码；
 > agent 的运行则在 studio 自己的内嵌 opencode 里，与服务端无关。
 

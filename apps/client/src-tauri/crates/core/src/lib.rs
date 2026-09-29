@@ -10,31 +10,31 @@ pub mod reminder;
 #[allow(non_snake_case)]
 pub mod aiWorkspace {
     mod service;
-    pub use service::Service;
+    pub use cogito::Service;
 }
 
 #[allow(non_snake_case)]
 pub mod aiWorkspaceFolder {
     mod service;
-    pub use service::Service;
+    pub use cogito::Service;
 }
 
 #[allow(non_snake_case)]
 pub mod aiSession {
     mod service;
-    pub use service::Service;
+    pub use cogito::Service;
 }
 
 #[allow(non_snake_case)]
 pub mod aiMessage {
     mod service;
-    pub use service::Service;
+    pub use cogito::Service;
 }
 
 #[allow(non_snake_case)]
 pub mod aiProvider {
     mod service;
-    pub use service::Service;
+    pub use cogito::Service;
 }
 
 pub use exception::{CommandResult, Exception};

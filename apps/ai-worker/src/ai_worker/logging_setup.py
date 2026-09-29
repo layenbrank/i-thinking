@@ -1,6 +1,6 @@
 """日志：每行一条 JSON，带上 `trace_id`。
 
-JSON 行日志是为了让 core 侧的链路日志能和这里直接对齐（同一条 trace-id）；
+JSON 行日志是为了让 cogito 侧的链路日志能和这里直接对齐（同一条 trace-id）；
 uvicorn 自带的 handler 会被清掉并改成向 root 传播，避免出现两种格式混在同一个流里。
 """
 

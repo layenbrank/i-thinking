@@ -24,7 +24,7 @@ import { useSettingsStore } from '@/stores/setting.ts'
 import { applyCliMatches } from '@/utils/cli'
 import { checkUpdate } from '@/utils/updater'
 
-const { Content: Core, Header: Prefix, Footer: Suffix } = Payload
+const { Content: Cogito, Header: Prefix, Footer: Suffix } = Payload
 
 const plugins: Plugin[] = [
   {
@@ -143,7 +143,7 @@ export default function Overview() {
         <Prefix className={clsx(styles.overview, styles.prefix)}>
           <EngineSearch />
         </Prefix>
-        <Core className={clsx(styles.overview, styles.core)}>
+        <Cogito className={clsx(styles.overview, styles.core)}>
           <Controller.Mirror>
             <Controller.MagneticTile />
           </Controller.Mirror>

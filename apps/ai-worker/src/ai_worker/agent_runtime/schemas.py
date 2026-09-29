@@ -6,12 +6,12 @@
 字段名直接抄契约（camelCase，用 `alias` 而不是 `alias_generator`：契约里是 `tenantID` /
 `toolCallID`，通用驼峰转换会生成 `tenantId`，对不上）。
 
-`extra="forbid"` 是刻意的，而且这里比 RAG 那几个模型更关键：本端点的**请求体是 core 从上一轮
-响应里攒出来的**（历史 + 工具结果）。两侧形状只要漂一点，core 攒出来的历史就会在下一步
+`extra="forbid"` 是刻意的，而且这里比 RAG 那几个模型更关键：本端点的**请求体是 cogito 从上一轮
+响应里攒出来的**（历史 + 工具结果）。两侧形状只要漂一点，cogito 攒出来的历史就会在下一步
 被拒；宁可当场 400 把版本不一致暴露出来，也不要静默丢掉半个工具调用。
 
 **`arguments` 是字符串**（`"{\\"query\\":\\"…\\"}"`）而不是对象：这就是 OpenAI 工具调用的线格式，
-保持原样能让 core 不必在中间反序列化再序列化一遍，历史可以整条回灌。
+保持原样能让 cogito 不必在中间反序列化再序列化一遍，历史可以整条回灌。
 """
 
 from __future__ import annotations
@@ -101,10 +101,10 @@ class AgentToolResult(BaseModel):
     name: str
     ok: bool
     content: str
-    #: 失败时的稳定机器码。只进 core 的日志与审计，**不喂模型**（模型读 `content` 里的白话）。
+    #: 失败时的稳定机器码。只进 cogito 的日志与审计，**不喂模型**（模型读 `content` 里的白话）。
     error: str | None = None
     #: 「这一次调用没有执行」的占位标记：工具需要人工审批，本步只留了占位结果
-    #: （见 `tools.invoke` 的 `approved`）。core 看到它就去走审批通道，批准后再从
+    #: （见 `tools.invoke` 的 `approved`）。cogito 看到它就去走审批通道，批准后再从
     #: `/agents/tool-executions` 真的执行。缺省 false 表示「按普通结果处理」。
     awaiting_approval: bool = Field(default=False, alias="awaitingApproval")
 
@@ -160,7 +160,7 @@ class AgentUsage(BaseModel):
 
 
 class AgentStepRequest(BaseModel):
-    """契约 `AgentStepRequest`：core 说「目标 + 到目前为止的历史 + 可用工具」。"""
+    """契约 `AgentStepRequest`：cogito 说「目标 + 到目前为止的历史 + 可用工具」。"""
 
     model_config = _CONTRACT
 
@@ -176,7 +176,7 @@ class AgentStepRequest(BaseModel):
 
 
 class AgentStepResponse(BaseModel):
-    """契约 `AgentStepResponse`：这一步的产出，core 追加进历史后决定要不要再来一步。"""
+    """契约 `AgentStepResponse`：这一步的产出，cogito 追加进历史后决定要不要再来一步。"""
 
     model_config = _CONTRACT
 
@@ -217,10 +217,10 @@ class AgentStepResponse(BaseModel):
 
 
 class AgentToolExecutionRequest(BaseModel):
-    """契约 `AgentToolExecutionRequest`：core 说「这次调用批了，去执行它」。
+    """契约 `AgentToolExecutionRequest`：cogito 说「这次调用批了，去执行它」。
 
-    载荷里**没有**「谁批的/批没批」这类证据：审批台账在 core 那边，ai-worker 读不到也不该读。
-    这里只用 `approvalID` 拼日志与幂等键（`Idempotency-Key` 由 core 另外给），
+    载荷里**没有**「谁批的/批没批」这类证据：审批台账在 cogito 那边，ai-worker 读不到也不该读。
+    这里只用 `approvalID` 拼日志与幂等键（`Idempotency-Key` 由 cogito 另外给），
     准入只认 [`ai_worker.agent_runtime.router`] 里那两条规则（工具声明了需要审批 + 在白名单里）。
     """
 
@@ -228,9 +228,9 @@ class AgentToolExecutionRequest(BaseModel):
 
     schema_version: Literal[1] = Field(alias="schemaVersion")
     tenant_id: str = Field(alias="tenantID", min_length=1)
-    #: core 的任务台账 id（审计与日志用）。
+    #: cogito 的任务台账 id（审计与日志用）。
     task_id: str = Field(alias="taskID", min_length=1)
-    #: core 的审批标识（确定性派生自 `<taskID>:<步骤>:<第几次调用>`）。
+    #: cogito 的审批标识（确定性派生自 `<taskID>:<步骤>:<第几次调用>`）。
     approval_id: str = Field(alias="approvalID", min_length=1)
     #: 与 `AgentStepRequest.embed_model` 同义：需要算向量的工具（写记忆）用它。
     embed_model: str = Field(alias="embedModel", min_length=1)
@@ -256,10 +256,10 @@ class AgentToolExecutionResponse(BaseModel):
 
 
 class AgentMemoryRequest(BaseModel):
-    """契约 `AgentMemoryRequest`：core 说「这个任务收尾了，把结论记下来」。
+    """契约 `AgentMemoryRequest`：cogito 说「这个任务收尾了，把结论记下来」。
 
     摘要正文由 ai-worker 组装（[`memory.summarise`]），所以这里给的是**零件**而不是成品文本：
-    组装规则是服务端的事，core 只管把事实交出来——和「系统提示词归服务端」（P9b）同一个立场。
+    组装规则是服务端的事，cogito 只管把事实交出来——和「系统提示词归服务端」（P9b）同一个立场。
     """
 
     model_config = _CONTRACT
@@ -269,7 +269,7 @@ class AgentMemoryRequest(BaseModel):
     #: 任务标识。摘要在库里的 id 由它确定性派生，所以它也是幂等键的一半。
     task_id: str = Field(alias="taskID", min_length=1)
     objective: str = Field(min_length=1)
-    #: 收尾时模型的最后一条正文（core 只在非空时才会调本端点）。
+    #: 收尾时模型的最后一条正文（cogito 只在非空时才会调本端点）。
     answer: str = Field(min_length=1)
     #: 规模信息，进摘要正文的末行，让之后读到这条记忆的模型知道它有多"重"。
     steps: int = Field(ge=0)
@@ -282,7 +282,7 @@ class AgentMemoryResponse(BaseModel):
     """契约 `AgentMemoryResponse`：记下来的那条记忆的 id。
 
     `created` 区分「这次真写了」与「这条记忆早就在库里」——重投同一个任务时是后者。
-    两种都算成功：core 的调用方只关心「这条任务的结论有没有落进长期记忆」。
+    两种都算成功：cogito 的调用方只关心「这条任务的结论有没有落进长期记忆」。
     """
 
     model_config = _CONTRACT

@@ -1,4 +1,4 @@
-"""ai-worker：core 的叶子计算服务（RAG 摄取 / agent 运行时）。
+"""ai-worker：cogito 的叶子计算服务（RAG 摄取 / agent 运行时）。
 
 模块只做定义，不在 import 期建立连接或启动后台任务；进程入口是 [`ai_worker.__main__`](__main__.py)。
 """

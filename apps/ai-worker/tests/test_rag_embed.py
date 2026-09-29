@@ -1,11 +1,11 @@
 """`POST /internal/v1/assets/{assetID}/embeddings`：区间嵌入与它的重试语义。
 
-core 的编排把嵌入切成一串 `[from, to)` 区间来发，而且**同一个区间可能被投递多次**
+cogito 的编排把嵌入切成一串 `[from, to)` 区间来发，而且**同一个区间可能被投递多次**
 （自己重试、另一个实例接管后重发）。所以这一组盯的不是「算出了向量」，而是：
 
 * **只补缺**：区间里已算好的 ordinal 不重算，一次上游调用都不发（`embedded=0`）；
-* **不写半截**：上游响应形状不对就 503，库里干干净净，让 core 重试；
-* **结构性问题立刻判死**：同一 `(块集, 模型)` 出现两种维度是配置问题，回 400 让 core
+* **不写半截**：上游响应形状不对就 503，库里干干净净，让 cogito 重试；
+* **结构性问题立刻判死**：同一 `(块集, 模型)` 出现两种维度是配置问题，回 400 让 cogito
   别再重试（回 503 会把它挂在那儿无限重试）。
 
 真库是必须的：只看响应体的话，「写了一半」「顺序写反了」「重发又写了一遍」都看不出来。
@@ -111,10 +111,10 @@ async def seeded(database: Database) -> None:
 
 
 async def test_a_range_is_embedded_in_order_and_persisted(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client)
 
@@ -127,16 +127,16 @@ async def test_a_range_is_embedded_in_order_and_persisted(
     for (_, vector), text in zip(vectors, TEXTS, strict=True):
         assert vector == pytest.approx(embedding_vector(text, DIMENSIONS))
 
-    # 令牌作用域带上了模型：core 用它是为了把嵌入算在正确的模型配额与计量上。
+    # 令牌作用域带上了模型：cogito 用它是为了把嵌入算在正确的模型配额与计量上。
     assert core.token_bodies == [{"tenantID": TENANT_ID, "scope": "embeddings", "model": MODEL}]
     assert core.embed_inputs == [list(TEXTS)]
 
 
 async def test_only_the_missing_ordinals_are_sent_upstream(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     first = await post_embed(client, key="embed-key-0001", payload=embed_body(end=2))
     second = await post_embed(client, key="embed-key-0002", payload=embed_body(start=2))
@@ -149,10 +149,10 @@ async def test_only_the_missing_ordinals_are_sent_upstream(
 
 
 async def test_batching_follows_the_configured_size(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
-    core = RagStub()
-    client = core_backed_client(core, embed_batch_size=2)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito, embed_batch_size=2)
 
     response = await post_embed(client)
 
@@ -163,11 +163,11 @@ async def test_batching_follows_the_configured_size(
 
 
 async def test_a_fully_embedded_range_skips_the_upstream_call(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
     """重发与接管后的常态：向量齐了就别再花钱算一遍。"""
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     assert (await post_embed(client, key="embed-key-0001")).status_code == 200
     again = await post_embed(client, key="embed-key-0002")
@@ -179,15 +179,15 @@ async def test_a_fully_embedded_range_skips_the_upstream_call(
 
 
 async def test_replaying_the_same_key_reports_zero_embedded(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
     """幂等命中回放首次结果，但 `embedded` 必须归零——契约里它是「**本次**写入的条数」。
 
-    core 不读这个字段（它只用 `from`/`to` 对账、用 `dimensions` 判一致性），
+    cogito 不读这个字段（它只用 `from`/`to` 对账、用 `dimensions` 判一致性），
     但库里回放一条「写了 4 条」的响应会让审计口径与事实对不上。
     """
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     first = await post_embed(client)
     second = await post_embed(client)
@@ -201,10 +201,10 @@ async def test_replaying_the_same_key_reports_zero_embedded(
 
 
 async def test_missing_idempotency_key_is_rejected_before_touching_core(
-    core_backed_client: HandlerClient, seeded: None
+    cogito_backed_client: HandlerClient, seeded: None
 ) -> None:
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client, key=None)
 
@@ -214,9 +214,9 @@ async def test_missing_idempotency_key_is_rejected_before_touching_core(
 
 
 async def test_same_key_with_a_different_range_conflicts(
-    core_backed_client: HandlerClient, seeded: None
+    cogito_backed_client: HandlerClient, seeded: None
 ) -> None:
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     assert (await post_embed(client)).status_code == 200
     response = await post_embed(client, payload=embed_body(end=2))
@@ -226,11 +226,11 @@ async def test_same_key_with_a_different_range_conflicts(
 
 
 async def test_unknown_body_field_is_rejected(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
-    """`extra="forbid"`：多出来的字段只可能是 core 与这里的契约版本不一致。"""
-    core = RagStub()
-    client = core_backed_client(core)
+    """`extra="forbid"`：多出来的字段只可能是 cogito 与这里的契约版本不一致。"""
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client, payload=embed_body(surprise=1))
 
@@ -241,11 +241,11 @@ async def test_unknown_body_field_is_rejected(
 
 
 async def test_unknown_chunk_set_is_a_request_error_before_touching_core(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
-    """契约里这个端点没有 404，而 core 重试也拿不到这个块集，所以判 400。"""
-    core = RagStub()
-    client = core_backed_client(core)
+    """契约里这个端点没有 404，而 cogito 重试也拿不到这个块集，所以判 400。"""
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client, payload=embed_body(chunk_set_id=str(uuid4())))
 
@@ -263,10 +263,10 @@ async def test_unknown_chunk_set_is_a_request_error_before_touching_core(
     ],
 )
 async def test_a_chunk_set_outside_this_request_is_rejected(
-    core_backed_client: HandlerClient, database: Database, seeded: None, payload: dict[str, Any]
+    cogito_backed_client: HandlerClient, database: Database, seeded: None, payload: dict[str, Any]
 ) -> None:
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client, payload=payload)
 
@@ -277,11 +277,11 @@ async def test_a_chunk_set_outside_this_request_is_rejected(
 
 
 async def test_a_chunk_set_of_another_asset_is_rejected(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS, asset_id=OTHER_ASSET_ID)
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client)
 
@@ -291,10 +291,10 @@ async def test_a_chunk_set_of_another_asset_is_rejected(
 
 
 async def test_a_range_beyond_the_chunk_set_is_rejected(
-    core_backed_client: HandlerClient, seeded: None
+    cogito_backed_client: HandlerClient, seeded: None
 ) -> None:
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client, payload=embed_body(end=len(TEXTS) + 1))
 
@@ -304,11 +304,11 @@ async def test_a_range_beyond_the_chunk_set_is_rejected(
 
 
 async def test_a_range_that_does_not_line_up_with_the_chunks_is_rejected(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
     """块号断了只可能是块集被重新切过（旧 id 还在被引用的那块窗口）。"""
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
     await delete_chunk(database, 1)
 
     response = await post_embed(client)
@@ -320,10 +320,10 @@ async def test_a_range_that_does_not_line_up_with_the_chunks_is_rejected(
 
 @pytest.mark.parametrize("start, end", [(2, 2), (3, 1), (0, 0)])
 async def test_an_empty_or_backwards_range_is_rejected(
-    core_backed_client: HandlerClient, database: Database, seeded: None, start: int, end: int
+    cogito_backed_client: HandlerClient, database: Database, seeded: None, start: int, end: int
 ) -> None:
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client, payload=embed_body(start=start, end=end))
 
@@ -335,11 +335,11 @@ async def test_an_empty_or_backwards_range_is_rejected(
 
 
 async def test_a_malformed_upstream_response_is_not_persisted(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
-    """宁可整体 503 让 core 重试，也不要把半截向量写进库（那会变成检索时的脏数据）。"""
-    core = RagStub(embedding_response=lambda inputs, call: {"data": []})
-    client = core_backed_client(core)
+    """宁可整体 503 让 cogito 重试，也不要把半截向量写进库（那会变成检索时的脏数据）。"""
+    cogito = RagStub(embedding_response=lambda inputs, call: {"data": []})
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client)
 
@@ -351,9 +351,9 @@ async def test_a_malformed_upstream_response_is_not_persisted(
 
 
 async def test_a_malformed_response_can_be_retried_with_the_same_key(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
-    """503 之后占位必须被释放：core 用同一个幂等键重试时要能真正重跑，而不是拿到 409。"""
+    """503 之后占位必须被释放：cogito 用同一个幂等键重试时要能真正重跑，而不是拿到 409。"""
 
     def flaky(inputs: list[str], call: int) -> Any:
         if call == 0:
@@ -365,7 +365,7 @@ async def test_a_malformed_response_can_be_retried_with_the_same_key(
             ]
         }
 
-    client = core_backed_client(RagStub(embedding_response=flaky))
+    client = cogito_backed_client(RagStub(embedding_response=flaky))
 
     failed = await post_embed(client)
     retried = await post_embed(client)
@@ -377,7 +377,7 @@ async def test_a_malformed_response_can_be_retried_with_the_same_key(
 
 
 async def test_a_dimension_switch_upstream_is_a_request_error(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
     """库里已有 4 维向量，上游这次给 8 维：同一索引不能混用两种维度，重试也一样。"""
     await save_embeddings(
@@ -386,8 +386,8 @@ async def test_a_dimension_switch_upstream_is_a_request_error(
         model=MODEL,
         items=[(0, embedding_vector(TEXTS[0], 4))],
     )
-    core = RagStub(dimensions=DIMENSIONS)
-    client = core_backed_client(core)
+    cogito = RagStub(dimensions=DIMENSIONS)
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client, payload=embed_body(end=2))
 
@@ -400,7 +400,7 @@ async def test_a_dimension_switch_upstream_is_a_request_error(
 
 
 async def test_mixed_dimensions_already_in_the_table_are_rejected(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
     await save_embeddings(
         database,
@@ -408,8 +408,8 @@ async def test_mixed_dimensions_already_in_the_table_are_rejected(
         model=MODEL,
         items=[(0, embedding_vector(TEXTS[0], 4)), (1, embedding_vector(TEXTS[1], DIMENSIONS))],
     )
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client, payload=embed_body(end=2))
 
@@ -419,7 +419,7 @@ async def test_mixed_dimensions_already_in_the_table_are_rejected(
 
 
 async def test_a_sibling_model_does_not_disturb_the_range(
-    core_backed_client: HandlerClient, database: Database, seeded: None
+    cogito_backed_client: HandlerClient, database: Database, seeded: None
 ) -> None:
     """另一个模型的向量与本次无关：维度、补齐的 ordinal 都按 (块集, 模型) 分别算。"""
     await save_embeddings(
@@ -428,8 +428,8 @@ async def test_a_sibling_model_does_not_disturb_the_range(
         model="another-model",
         items=[(0, embedding_vector(TEXTS[0], 4)), (1, embedding_vector(TEXTS[1], 4))],
     )
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_embed(client)
 

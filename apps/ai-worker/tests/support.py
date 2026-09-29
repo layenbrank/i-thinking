@@ -14,25 +14,25 @@ import httpx
 from httpx import AsyncClient
 
 from ai_worker.config import Settings
-from ai_worker.core_client import (
+from ai_worker.cogito_client import (
     ASSET_VISIBILITY_PATH,
     CHAT_PATH,
     EMBEDDINGS_PATH,
     SCOPE_ASSET_READ,
     SERVICE_TOKEN_PATH,
-    CoreClient,
+    CogitoClient,
 )
 from ai_worker.db import Database
 from ai_worker.rag_ingest import store
 
 #: `conftest.make_core` 的类型：传进来的第一个参数是 `httpx.MockTransport` 的 handler。
-MakeCore = Callable[..., CoreClient]
+MakeCore = Callable[..., CogitoClient]
 
 INTERNAL_TOKEN = "test-internal-token-0123456789abcdef"
 #: 本地 pgvector 容器（见 README 的 `docker run` 一行）；CI 用同一个端口。
 DEFAULT_DATABASE_URL = "postgres://postgres:postgres@127.0.0.1:55433/ai_worker_test"
-#: `.invalid` 是 RFC 2606 保留的不可解析 TLD：防止测试意外打到真实的 core。
-UNREACHABLE_CORE_URL = "http://core.invalid:3000"
+#: `.invalid` 是 RFC 2606 保留的不可解析 TLD：防止测试意外打到真实的 cogito。
+UNREACHABLE_COGITO_URL = "http://core.invalid:3000"
 #: 必然连不上的库（端口 1 上不会有人监听），用来验证降级路径。
 UNREACHABLE_DATABASE_URL = "postgres://postgres:postgres@127.0.0.1:1/ai_worker_test"
 
@@ -40,7 +40,7 @@ UNREACHABLE_DATABASE_URL = "postgres://postgres:postgres@127.0.0.1:1/ai_worker_t
 TRACEPARENT = "00-11111111111111111111111111111111-2222222222222222-01"
 
 #: ai-worker 自己的表，**顺序即清空顺序**（子表在前，避免外键报错）。
-#: `tests/test_db_boundary.py` 用它反证「这库里没有 core 的业务表」。
+#: `tests/test_db_boundary.py` 用它反证「这库里没有 cogito 的业务表」。
 OWNED_TABLES = (
     "agent_memory",
     "rag_embedding",
@@ -62,7 +62,7 @@ def make_settings(**overrides: Any) -> Settings:
         "log_level": "WARNING",
         "internal_token": INTERNAL_TOKEN,
         "database_url": database_url(),
-        "core_base_url": UNREACHABLE_CORE_URL,
+        "cogito_base_url": UNREACHABLE_COGITO_URL,
         "db_connect_timeout_seconds": 2.0,
         "db_reconnect_interval_seconds": 0.0,
     }
@@ -93,10 +93,10 @@ def echo_payload(tag: str = "a") -> dict[str, str]:
     return {"tag": tag}
 
 
-#: core 的「剧本」：`httpx.MockTransport` 的 handler，决定 core 怎么回应每次调用。
-CoreHandler = Callable[[httpx.Request], httpx.Response]
+#: cogito 的「剧本」：`httpx.MockTransport` 的 handler，决定 cogito 怎么回应每次调用。
+CogitoHandler = Callable[[httpx.Request], httpx.Response]
 
-#: `conftest.core_backed_client` 的类型：传一个 core 剧本，拿回一个可用的异步客户端。
+#: `conftest.cogito_backed_client` 的类型：传一个 cogito 剧本，拿回一个可用的异步客户端。
 HandlerClient = Callable[..., AsyncClient]
 
 
@@ -109,7 +109,7 @@ def service_token_body(
     approval_id: str | None = None,
     expires_in: int = 300,
 ) -> dict[str, Any]:
-    """core `POST /api/v1/service/token` 的成功响应体（`CoreClient` 就按这些键解）。"""
+    """cogito `POST /api/v1/service/token` 的成功响应体（`CogitoClient` 就按这些键解）。"""
     body: dict[str, Any] = {
         "token": f"tok-{scope}",
         "expiresAt": int(time.time()) + expires_in,
@@ -126,13 +126,13 @@ def service_token_body(
     return body
 
 
-def core_error(
+def cogito_error(
     status: int, *, retry_after: str | None = None, code: int = 500204
 ) -> httpx.Response:
-    """core **服务面**的错误信封（`{code, success, msg, timestamp}`），别和我们的混淆。
+    """cogito **服务面**的错误信封（`{code, success, msg, timestamp}`），别和我们的混淆。
 
-    `code` 必须是**数字**：core 的信封是 `code: i32`，而 ai-worker 会拿它分辨「审批不合规」
-    这种有语义的 403（传 `code=core_client.APPROVAL_INVALID_CODE`）。
+    `code` 必须是**数字**：cogito 的信封是 `code: i32`，而 ai-worker 会拿它分辨「审批不合规」
+    这种有语义的 403（传 `code=cogito_client.APPROVAL_INVALID_CODE`）。
     """
     return httpx.Response(
         status,
@@ -141,14 +141,14 @@ def core_error(
     )
 
 
-def stub_core(content: bytes, *, content_status: int = 200) -> CoreHandler:
-    """最小 core 桩：换令牌 → 给正文。`content_status` 非 200 时改回错误信封。"""
+def stub_core(content: bytes, *, content_status: int = 200) -> CogitoHandler:
+    """最小 cogito 桩：换令牌 → 给正文。`content_status` 非 200 时改回错误信封。"""
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == SERVICE_TOKEN_PATH:
             return httpx.Response(200, json=service_token_body())
         if content_status != 200:
-            return core_error(content_status, retry_after="7" if content_status == 429 else None)
+            return cogito_error(content_status, retry_after="7" if content_status == 429 else None)
         return httpx.Response(200, content=content)
 
     return handler
@@ -161,7 +161,7 @@ def embedding_vector(text: str, dimensions: int) -> list[float]:
 
 
 class RagStub:
-    """RAG 三端点共用的 core 桩：换令牌、给正文、算嵌入。
+    """RAG 三端点共用的 cogito 桩：换令牌、给正文、算嵌入。
 
     两个刻意的行为，用来盯住真实上游会犯的错：
 
@@ -202,7 +202,7 @@ class RagStub:
         if path == EMBEDDINGS_PATH:
             return self._embeddings(request)
         if self.content_status != 200:
-            return core_error(
+            return cogito_error(
                 self.content_status, retry_after="7" if self.content_status == 429 else None
             )
         return httpx.Response(
@@ -221,7 +221,7 @@ class RagStub:
                 tenant_id=body["tenantID"],
                 asset_id=body.get("assetID"),
                 model=body.get("model"),
-                # 真 core 会把审批号回显出来（写令牌），这里照做：调用方要读得到它。
+                # 真 cogito 会把审批号回显出来（写令牌），这里照做：调用方要读得到它。
                 approval_id=body.get("approvalID"),
             ),
         )
@@ -231,7 +231,7 @@ class RagStub:
         call = len(self.embed_inputs)
         self.embed_inputs.append(inputs)
         if self.embed_status != 200:
-            return core_error(
+            return cogito_error(
                 self.embed_status, retry_after="7" if self.embed_status == 429 else None
             )
         if self.embedding_response is not None:
@@ -299,7 +299,7 @@ class AgentStub(RagStub):
     """`RagStub` + 对话端点 + 可见性写端点：
 
     * `replies` 按**调用序号**依次消费（用尽后再被调用就是测试写漏了）；
-    * `visibility_*` 三个参数描述 core 对「按审批改可见性」的回答。
+    * `visibility_*` 三个参数描述 cogito 对「按审批改可见性」的回答。
 
     记录 `chat_bodies`（原始请求体）而不是解析后的结构：断言要能看见「我们真发给上游什么」，
     包括 `tools[]` 的形状与 `messages` 的翻译结果。可见性写同理只记原始 `httpx.Request`
@@ -321,7 +321,7 @@ class AgentStub(RagStub):
         self.replies: list[dict[str, Any]] = list(replies or [])
         self.chat_status = chat_status
         self.chat_bodies: list[dict[str, Any]] = []
-        #: 可见性写端点的响应体。默认给一份「私密化」的落地值：真实 core 落到什么由**审批台账**
+        #: 可见性写端点的响应体。默认给一份「私密化」的落地值：真实 cogito 落到什么由**审批台账**
         #: 决定，跟这一次请求里说的可以不同——用例正是靠这个差别验证「描述用的是落地值」。
         self.visibility_response = visibility_response
         #: 可见性写端点的错误状态与错误码：`403 + 500509` 是「审批不合规」那条特殊路径。
@@ -342,7 +342,7 @@ class AgentStub(RagStub):
     def _chat(self, request: httpx.Request) -> httpx.Response:
         self.chat_bodies.append(json.loads(request.content))
         if self.chat_status != 200:
-            return core_error(
+            return cogito_error(
                 self.chat_status, retry_after="7" if self.chat_status == 429 else None
             )
         if not self.replies:
@@ -352,7 +352,7 @@ class AgentStub(RagStub):
     def _visibility(self, request: httpx.Request) -> httpx.Response:
         self.visibility_writes.append(request)
         if self.visibility_status != 200:
-            return core_error(self.visibility_status, code=self.visibility_code)
+            return cogito_error(self.visibility_status, code=self.visibility_code)
         asset_id = _asset_id_of(request.url.path)
         body: dict[str, Any] = (
             dict(self.visibility_response)

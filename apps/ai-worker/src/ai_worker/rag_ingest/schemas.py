@@ -3,7 +3,7 @@
 字段名直接抄契约 `spec/internal.yaml`（camelCase，别名而不是 `alias_generator`：
 契约里是 `tenantID` / `chunkSetID`，通用的驼峰转换会生成 `tenantId`，对不上）。
 
-`extra="forbid"` 是刻意的：core 与这里的契约是一对一编译期生成的，多出来的字段只可能是
+`extra="forbid"` 是刻意的：cogito 与这里的契约是一对一编译期生成的，多出来的字段只可能是
 **版本不一致**，静默忽略会让这种不一致一直藏到线上。未知字段 → 400。
 """
 
@@ -77,7 +77,7 @@ class EmbedRequest(BaseModel):
 
     @model_validator(mode="after")
     def _require_forward_range(self) -> EmbedRequest:
-        """空区间没有任何意义（core 的分批循环也不会发出空区间），判为请求问题。"""
+        """空区间没有任何意义（cogito 的分批循环也不会发出空区间），判为请求问题。"""
         if self.end <= self.start:
             raise ValueError(f"to 必须大于 from，当前是 [{self.start}, {self.end})")
         return self
@@ -108,7 +108,7 @@ class IndexRequest(BaseModel):
     """契约 `IndexRequest`：把块集的当前版本物化进检索索引。
 
     `dimensions` **允许 0**：空块集（空文件、纯图片 PDF）同样要走这一步把旧版本替换掉，
-    此时 core 压根没跑嵌入循环，传下来的就是 0。
+    此时 cogito 压根没跑嵌入循环，传下来的就是 0。
     """
 
     model_config = _CONTRACT

@@ -1,11 +1,11 @@
 """从资产原始字节里抽出纯文本。
 
-抽取器按 **mime** 选（契约 `ChunkRequest.mime` 是 core 的 `asset.mime`，内容端点的
+抽取器按 **mime** 选（契约 `ChunkRequest.mime` 是 cogito 的 `asset.mime`，内容端点的
 ``content-type`` 与它同一来源），这是唯一可靠的选择依据：文件名会被用户改，字节里也没有
-统一的自述类型，而 mime 在 core 上传时就定下来了。
+统一的自述类型，而 mime 在 cogito 上传时就定下来了。
 
 抽不出来就**明确拒绝**（400 `invalid_request`），不要静默返回空文本：空文本会切出 0 块，
-core 那边看起来「成功了」，但检索永远命中不了这个资产——这类静默失败比一个 400 贵得多。
+cogito 那边看起来「成功了」，但检索永远命中不了这个资产——这类静默失败比一个 400 贵得多。
 
 注册表是显式的：新增一种格式 = 加一条 `_register(...)`。不做按扩展名的兜底猜测。
 """
@@ -25,7 +25,7 @@ from ai_worker import errors
 logger = logging.getLogger(__name__)
 
 #: 单个抽取器最多产出多少字符。超长资产（例如一本 PDF）切块后再乘重叠会把内存顶穿，
-#: 而 core 侧的超时更短，所以这里先截断并明确记日志，而不是让进程被 OOM 杀掉。
+#: 而 cogito 侧的超时更短，所以这里先截断并明确记日志，而不是让进程被 OOM 杀掉。
 MAX_TEXT_CHARS = 8 * 1024 * 1024
 
 _BOM_ENCODINGS: tuple[tuple[bytes, str], ...] = (
@@ -60,7 +60,7 @@ def extract(data: bytes, *, mime: str, name: str | None = None) -> Extracted:
     extracted = extractor(data)
     if len(extracted.text) > MAX_TEXT_CHARS:
         logger.warning(
-            "抽取结果 %d 字符，超过 %d 上限，已截断（更长的资产请先在 core 侧切分再上传）",
+            "抽取结果 %d 字符，超过 %d 上限，已截断（更长的资产请先在 cogito 侧切分再上传）",
             len(extracted.text),
             MAX_TEXT_CHARS,
         )

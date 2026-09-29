@@ -1,4 +1,4 @@
-"""切块器：纯函数，所以这一组不碰数据库、不碰 core。
+"""切块器：纯函数，所以这一组不碰数据库、不碰 cogito。
 
 这里真正要守住的是三条不那么显眼的性质：
 
@@ -30,7 +30,7 @@ def test_empty_text_yields_no_chunks() -> None:
 
 
 def test_whitespace_only_text_yields_no_chunks() -> None:
-    """只有空白不算内容：否则 core 会拿到一堆检索得到的空块。"""
+    """只有空白不算内容：否则 cogito 会拿到一堆检索得到的空块。"""
     assert chunking.split("   \n\n \t \n", chunk_size=100, chunk_overlap=0).chunks == ()
 
 

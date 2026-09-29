@@ -1,7 +1,7 @@
 """链路追踪：把本进程的 span 通过 OTLP/HTTP 送到 collector。
 
-与 core 侧 `apps/core/src/utils/telemetry.rs` 是同一套约定：资源属性、采样策略、W3C 传播
-都对得上，于是 core 发来的 `traceparent` 在这里成为 server span 的父 span，出站调用再往
+与 cogito 侧 `apps/cogito/src/utils/telemetry.rs` 是同一套约定：资源属性、采样策略、W3C 传播
+都对得上，于是 cogito 发来的 `traceparent` 在这里成为 server span 的父 span，出站调用再往
 下续 —— 一次跨语言调用在 Jaeger 里是一条 trace。
 
 **默认关闭时本模块不留任何全局状态**：不建 provider、不建 exporter、不联网，请求入口原样
@@ -130,7 +130,7 @@ async def outbound_span(
 
     内置实现给的 `traceparent` 与这里给的是同一个 trace-id，但 span-id 不同（各自新开一个
     span 才是对的）。接了 OTel 就以 OTel 的标识为准，保证「导出 span 的父子关系」与
-    「core 侧收到的 traceparent」是同一份事实。
+    「cogito 侧收到的 traceparent」是同一份事实。
     """
     tracer = _tracer
     if tracer is None:
@@ -181,7 +181,7 @@ def _build_provider(settings: Settings, *, version: str) -> TracerProvider:
     )
     provider = TracerProvider(
         resource=resource,
-        # 与 core 同款：上游已带采样决定时跟随上游，只有根 span 才掷骰子。
+        # 与 cogito 同款：上游已带采样决定时跟随上游，只有根 span 才掷骰子。
         sampler=ParentBased(root=TraceIdRatioBased(settings.telemetry_sample_ratio)),
     )
     provider.add_span_processor(BatchSpanProcessor(exporter))

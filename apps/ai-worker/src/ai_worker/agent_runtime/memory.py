@@ -1,6 +1,6 @@
 """长期记忆：agent 把「此后还用得上的结论」写下来，之后的**其它任务**能按语义召回。
 
-记忆与 RAG 检索的唯一区别是**数据是谁产生的**：RAG 的源在 core（资产正文），记忆的源在
+记忆与 RAG 检索的唯一区别是**数据是谁产生的**：RAG 的源在 cogito（资产正文），记忆的源在
 agent 自己。所以写入路径与检索路径都必须自己成立，也就三件事：
 
 1. **租户是硬边界**：`tenant_id` 进 `WHERE` 由库过滤（同 `rag_ingest/search.py`）。
@@ -12,10 +12,10 @@ agent 自己。所以写入路径与检索路径都必须自己成立，也就�
    （`INSERT ... ON CONFLICT (memory_id) DO NOTHING`）。这不是「顺手去重」，而是可靠执行的
    前提：活动是「至少执行一次」，做不到幂等就会写出 N 条一模一样的记忆，召回时白占上下文。
    同一条笔记被两个任务先后写下也只会留一行——同一句话就是这个事实，多一份副本没有价值。
-3. **嵌入只有一条出口**：查询与正文都走 `providers.embeddings.embed_texts`（回打 core 的
+3. **嵌入只有一条出口**：查询与正文都走 `providers.embeddings.embed_texts`（回打 cogito 的
    `scope=embeddings` 服务面），和 RAG 完全同一条路，不在 Python 侧另开算力出口。
 
-`task_summary` 与 `note` 的区别只有出处：前者是 core 在任务收尾时写的（正文由本模块组装，
+`task_summary` 与 `note` 的区别只有出处：前者是 cogito 在任务收尾时写的（正文由本模块组装，
 所以格式统一、可预期），后者是模型在任务中途自己写的（正文由模型给）。
 """
 
@@ -32,7 +32,7 @@ from fastapi.responses import JSONResponse
 
 from ai_worker import errors, idempotency
 from ai_worker.agent_runtime.schemas import AgentMemoryRequest, AgentMemoryResponse
-from ai_worker.core_client import CoreClient
+from ai_worker.cogito_client import CogitoClient
 from ai_worker.db import Database, DatabaseUnavailableError
 from ai_worker.providers import embeddings
 
@@ -117,7 +117,7 @@ def note_id(*, tenant_id: str, content: str) -> UUID:
 
 async def recall(
     connection: Connection,
-    core: CoreClient,
+    core: CogitoClient,
     *,
     tenant_id: str,
     model: str,
@@ -131,7 +131,7 @@ async def recall(
     两种维度」的历史数据——那种数据会让 `<=>` 直接报维度不匹配。
     """
     batch = await embeddings.embed_texts(
-        core, tenant_id=tenant_id, model=model, texts=[query], batch_size=batch_size
+        cogito, tenant_id=tenant_id, model=model, texts=[query], batch_size=batch_size
     )
     if not batch.vectors:  # pragma: no cover - 空输入在上面就被调用方拦住了
         return []
@@ -159,7 +159,7 @@ async def recall(
 
 async def write(
     connection: Connection,
-    core: CoreClient,
+    core: CogitoClient,
     *,
     tenant_id: str,
     model: str,
@@ -195,7 +195,7 @@ async def write(
         return Written(memory_id=memory_id, created=False)
 
     batch = await embeddings.embed_texts(
-        core, tenant_id=tenant_id, model=model, texts=[text], batch_size=batch_size
+        cogito, tenant_id=tenant_id, model=model, texts=[text], batch_size=batch_size
     )
     if not batch.vectors:  # pragma: no cover - 空正文在上面就被拦住了
         message = "空文本无法嵌入"
@@ -252,7 +252,7 @@ async def remember(request: Request, body: AgentMemoryRequest) -> JSONResponse:
     """把一个已收尾任务的结论写进长期记忆。
 
     响应码：200 成功（`created=false` 表示这条记忆早就在库里）；400 正文为空或参数不合法；
-    401 内部令牌不对；409 幂等键冲突或仍在执行中；429 core 限流；503 数据库或 core 暂时不可用。
+    401 内部令牌不对；409 幂等键冲突或仍在执行中；429 cogito 限流；503 数据库或 cogito 暂时不可用。
     """
     # 空白正文拼出来的摘要等于「任务：xxx / 结论：」，召回时只会污染上下文，当场拒掉。
     if not body.answer.strip():
@@ -282,7 +282,7 @@ async def remember(request: Request, body: AgentMemoryRequest) -> JSONResponse:
 
 async def _remember(request: Request, *, body: AgentMemoryRequest) -> AgentMemoryResponse:
     settings = request.app.state.settings
-    core: CoreClient = request.app.state.core
+    core: CogitoClient = request.app.state.core
     database: Database = request.app.state.db
 
     content = summarise(
@@ -297,7 +297,7 @@ async def _remember(request: Request, *, body: AgentMemoryRequest) -> AgentMemor
         async with database.acquire() as connection:
             written = await write(
                 connection,
-                core,
+                cogito,
                 tenant_id=body.tenant_id,
                 model=body.embed_model,
                 content=content,

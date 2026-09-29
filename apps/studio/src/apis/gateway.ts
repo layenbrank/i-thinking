@@ -14,7 +14,7 @@ import { http } from '@/utils/http.ts'
  * 300006 权限不足，所以设置页里只对管理员显示。
  */
 
-/** 网关能路由的供应商类型（与 `service` 的 `chat_url` 放行列表一致） */
+/** 网关能路由的供应商类型（与 `cogito` 的 `chat_url` 放行列表一致） */
 const GATEWAY_PROVIDER_KINDS = ['openai', 'deepseek', 'qwen', 'zhipu', 'ollama'] as const
 
 const GATEWAY_PROVIDER_KIND_LABELS: Record<string, string> = {

@@ -3,7 +3,7 @@
 形状与状态码的合规由 `test_contract_conformance.py` 管，这里管的是「记下来的到底是什么、
 以及它在什么情况下会变味」：
 
-* **摘要由服务端组装**：core 只给零件（目标 / 结论 / 规模），格式统一了才可能被之后的模型读懂；
+* **摘要由服务端组装**：cogito 只给零件（目标 / 结论 / 规模），格式统一了才可能被之后的模型读懂；
 * **写入幂等**：`memory_id` 由 `(租户, 任务)` 确定性派生，所以活动重试、实例续跑、换进程接管
   写的都是同一行——「至少执行一次」的活动做不到幂等，召回时就会白占上下文；
 * **空白结论当场拒掉**：拼出来等于「任务：xxx / 结论：」的正文只会污染之后的召回；
@@ -21,7 +21,7 @@ from httpx import AsyncClient, Response
 
 from ai_worker import errors
 from ai_worker.agent_runtime import memory
-from ai_worker.core_client import CoreClient
+from ai_worker.cogito_client import CogitoClient
 from ai_worker.db import Database
 from support import (
     TENANT_ID,
@@ -47,7 +47,7 @@ KEY = "memory-key-0001"
 
 
 def body(**overrides: Any) -> dict[str, Any]:
-    """core 会发来的最小记忆请求：一个已收尾任务的零件。"""
+    """cogito 会发来的最小记忆请求：一个已收尾任务的零件。"""
     payload: dict[str, Any] = {
         "schemaVersion": 1,
         "tenantID": TENANT_ID,
@@ -96,11 +96,11 @@ def expected_summary(**overrides: Any) -> str:
 
 
 async def test_a_conclusion_is_summarised_embedded_and_stored(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """一次成功写入：正文由服务端拼好、拿去嵌入、连向量一起落库。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await remember(client)
 
@@ -132,11 +132,11 @@ async def test_a_conclusion_is_summarised_embedded_and_stored(
 
 
 async def test_replaying_a_task_with_a_new_key_does_not_write_twice(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """换一个幂等键重投同一个任务（活动重试 / 换进程接管）：同一行，且不重复花嵌入算力。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
     memory_id = memory.summary_id(tenant_id=TENANT_ID, task_id=TASK_ID)
 
     first = await remember(client, key=KEY)
@@ -155,11 +155,11 @@ async def test_replaying_a_task_with_a_new_key_does_not_write_twice(
 
 
 async def test_the_same_key_replays_the_recorded_response(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
     """同一个键重复投递：回放第一次的响应，不重新嵌入（更不会写出第二行）。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     first = await remember(client)
     replay = await remember(client)
@@ -170,11 +170,11 @@ async def test_the_same_key_replays_the_recorded_response(
 
 
 async def test_a_blank_answer_never_reaches_the_database(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """空白结论拼出来等于「任务：xxx / 结论：」：当场拒掉，别让它污染之后的召回。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await remember(client, payload=body(answer="   \n "))
 
@@ -185,11 +185,11 @@ async def test_a_blank_answer_never_reaches_the_database(
 
 
 async def test_a_long_conclusion_is_cut_from_the_tail(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """超长结论从尾部截断并附上原始长度：结论的开头通常是要点，而模型要知道自己没看全。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
     long_answer = "退款说明。" * 400
 
     response = await remember(client, payload=body(answer=long_answer))
@@ -212,7 +212,7 @@ async def test_a_long_conclusion_is_cut_from_the_tail(
 
 
 async def test_a_broken_database_is_reported_as_retryable(offline_client: AsyncClient) -> None:
-    """库连不上是暂时性故障（503）：core 会重试，而重试写的是同一行（id 是确定性派生的）。"""
+    """库连不上是暂时性故障（503）：cogito 会重试，而重试写的是同一行（id 是确定性派生的）。"""
     response = await offline_client.post(
         memory.MEMORY_PATH, json=body(), headers=internal_headers(idempotency_key=KEY)
     )
@@ -225,18 +225,18 @@ async def test_a_broken_database_is_reported_as_retryable(offline_client: AsyncC
 
 
 async def test_recall_is_bounded_by_tenant_and_model(
-    core_backed_client: HandlerClient, make_core: MakeCore, database: Database
+    cogito_backed_client: HandlerClient, make_core: MakeCore, database: Database
 ) -> None:
     """同租户读得到，别的租户读不到；模型也是边界（同一模型的两种维度会让 `<=>` 报错）。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
     await remember(client)
 
-    core: CoreClient = make_core(stub)
+    core: CogitoClient = make_core(stub)
     async with database.acquire() as connection:
         mine = await memory.recall(
             connection,
-            core,
+            cogito,
             tenant_id=TENANT_ID,
             model=EMBED_MODEL,
             query=OBJECTIVE,
@@ -245,7 +245,7 @@ async def test_recall_is_bounded_by_tenant_and_model(
         )
         foreign = await memory.recall(
             connection,
-            core,
+            cogito,
             tenant_id=OTHER_TENANT,
             model=EMBED_MODEL,
             query=OBJECTIVE,
@@ -254,7 +254,7 @@ async def test_recall_is_bounded_by_tenant_and_model(
         )
         other_model = await memory.recall(
             connection,
-            core,
+            cogito,
             tenant_id=TENANT_ID,
             model="another-embedding-model",
             query=OBJECTIVE,

@@ -9,23 +9,23 @@
    资产的可见性。两个写动作都不是模型能自己启动的（见第 4 条）。
    记忆是**本租户内的共享知识**（跨租户由库的 `WHERE` 挡死），所以写入的价值与风险是同一件事：
    之后的**其它任务**会读到它。这就是为什么写记忆有每步预算（见 `WriteBudget`），
-   且 core 默认不给模型这个工具（`agent.allowed_tools` 由运维显式开启）；
-2. **名字即权限**：core 每步用 `allowedTools` 说明允许哪些（它可以按步骤阶段收紧），
+   且 cogito 默认不给模型这个工具（`agent.allowed_tools` 由运维显式开启）；
+2. **名字即权限**：cogito 每步用 `allowedTools` 说明允许哪些（它可以按步骤阶段收紧），
    不在清单里的调用一律不执行，只回一条失败结果让模型自己纠正；
 3. **失败是正常流程，不是异常**：模型给了不存在的工具、参数类型不对、资产是不可抽取的
    PDF——这些都要变成一条 `ok=false` 的结果喂回模型，让它换路子，而不是 4xx/5xx 打断
-   整个任务。只有「暂时性故障」（库/网关不可用、限流）才向上抛，交给 core 重试。
+   整个任务。只有「暂时性故障」（库/网关不可用、限流）才向上抛，交给 cogito 重试。
 4. **有副作用的工具必须由人拿一道闸**：标记了 `requires_approval` 的工具（当前是
    `memory_write` 与 `asset_visibility_write`）在 `/agents/steps` 里**不执行**，只回一条
-   `awaitingApproval=true` 的占位结果；执行由 core 在人工批准后从 `/agents/tool-executions`
+   `awaitingApproval=true` 的占位结果；执行由 cogito 在人工批准后从 `/agents/tool-executions`
    发起（见 `invoke` 的 `approved`）。这张闸放在「工具自己声明」而不是「路由判断工具名」，
    是因为说明书与校验共用同一份声明。
-   两道闸拦住的**程度**不同：记忆写下去的是本进程的一行数据，而改可见性是 core 侧的落地动作，
-   它的参数在换令牌时由 core 从审批台账重读并钉进令牌（写端点连请求体都不收），
+   两道闸拦住的**程度**不同：记忆写下去的是本进程的一行数据，而改可见性是 cogito 侧的落地动作，
+   它的参数在换令牌时由 cogito 从审批台账重读并钉进令牌（写端点连请求体都不收），
    所以即使模型在执行那一步临时改口，写下去的仍然是批准时的那一份。
 
 **重试整步是安全的**：每个工具的写入都用确定性主键收敛（见 `agent_runtime.memory`），
-所以 core 重投一步不会写出重复的记忆。
+所以 cogito 重投一步不会写出重复的记忆。
 
 参数校验是**手写的 JSON Schema 子集**（`jsonschema` 包只在开发依赖里，运行时不可用）。
 校验规则直接读工具自己声明的 `parameters`——给模型看的说明书和真正执行的校验是同一份数据，
@@ -45,7 +45,7 @@ from ai_worker import errors
 from ai_worker.agent_runtime import memory
 from ai_worker.agent_runtime.schemas import AgentToolCall, AgentToolResult
 from ai_worker.config import Settings
-from ai_worker.core_client import CoreClient
+from ai_worker.cogito_client import CogitoClient
 from ai_worker.db import Database, DatabaseUnavailableError
 from ai_worker.rag_ingest import extract
 from ai_worker.rag_ingest.search import find as search_find
@@ -54,13 +54,13 @@ logger = logging.getLogger(__name__)
 
 _TOOL_CALL_TYPE = "function"
 
-#: 占位结果的稳定机器码（进 core 的日志与审计）。它**不是**错误信封的 `code`：
+#: 占位结果的稳定机器码（进 cogito 的日志与审计）。它**不是**错误信封的 `code`：
 #: 那次请求本身是成功的（200），只是这一次工具调用没有执行。
 AWAITING_APPROVAL_ERROR = "awaiting_approval"
 
-# 可见性的三个字面量，与 core 的 `asset` 域取值一一对应。**不在本地做跨字段校验**
-# （「RESTRICTED 必须给名单、别的可见性不许给名单」那条规则的真身在 core 的审批台账里，
-# 落地时也是 core 拿台账去写），在这里再抄一遍只会多出一个会漂移的副本。
+# 可见性的三个字面量，与 cogito 的 `asset` 域取值一一对应。**不在本地做跨字段校验**
+# （「RESTRICTED 必须给名单、别的可见性不许给名单」那条规则的真身在 cogito 的审批台账里，
+# 落地时也是 cogito 拿台账去写），在这里再抄一遍只会多出一个会漂移的副本。
 _PRIVATE = "PRIVATE"
 _RESTRICTED = "RESTRICTED"
 _PUBLIC = "PUBLIC"
@@ -96,13 +96,13 @@ class ToolContext:
 
     tenant_id: str
     embed_model: str
-    core: CoreClient
+    core: CogitoClient
     database: Database
     settings: Settings
     #: 写入预算。冻结的是「这个字段不能换人」，`WriteBudget` 自己是可变的（整步共享）。
     memory_writes: WriteBudget
     #: 本次调用是由哪一次人工批准发起的（`/agents/tool-executions` 才有值）。它只对写工具
-    #: 有意义：写工具拿它去 core 换那一次批准的写令牌，`/agents/steps` 里恒为 `None`。
+    #: 有意义：写工具拿它去 cogito 换那一次批准的写令牌，`/agents/steps` 里恒为 `None`。
     approval_id: str | None = None
 
 
@@ -119,7 +119,7 @@ class ToolSpec:
     parameters: Mapping[str, Any]
     run: ToolRun
     #: 这个工具**必须**先经人工审批才允许执行：`/agents/steps` 里只会得到一条占位结果，
-    #: 真正的执行只发生在 core 换路径调 `/agents/tool-executions` 时（见 `invoke` 的 `approved`）。
+    #: 真正的执行只发生在 cogito 换路径调 `/agents/tool-executions` 时（见 `invoke` 的 `approved`）。
     requires_approval: bool = False
 
 
@@ -141,7 +141,7 @@ def names() -> list[str]:
 def catalog(allowed: Iterable[str]) -> list[dict[str, Any]]:
     """按 OpenAI 线格式生成 `tools[]`，只含 `allowed` 里认识的工具。
 
-    顺序按登记顺序而不是 `allowed` 的传入顺序：模型侧的 prompt 因此对「core 换了
+    顺序按登记顺序而不是 `allowed` 的传入顺序：模型侧的 prompt 因此对「cogito 换了
     `allowedTools` 的次序」不敏感，幂等载荷同一份就永远命中同一次调用。
     """
     wanted = set(allowed)
@@ -162,7 +162,7 @@ def catalog(allowed: Iterable[str]) -> list[dict[str, Any]]:
 def unknown(allowed: Iterable[str]) -> list[str]:
     """`allowed` 里我们不认识的名字。
 
-    core 拼错工具名要当场报错（400），不能静默漏掉——否则模型拿到一个空工具集，
+    cogito 拼错工具名要当场报错（400），不能静默漏掉——否则模型拿到一个空工具集，
     会「合理地」编一个答案出来。
     """
     return sorted({name for name in allowed if name not in _SPECS})
@@ -181,7 +181,7 @@ def requires_approval(name: str) -> bool:
 def pending_approval(call: AgentToolCall) -> AgentToolResult:
     """一次需要审批的调用留下的**占位结果**：没执行、没副作用、等人工决定。
 
-    `ok=false` 是「这次调用没有成功」的事实陈述，`awaiting_approval=true` 才是给 core 的信号
+    `ok=false` 是「这次调用没有成功」的事实陈述，`awaiting_approval=true` 才是给 cogito 的信号
     （见契约 `AgentToolResult.awaitingApproval`）；`content` 要说清「已在等审批」，
     否则模型看到一条普通的失败会换个参数再试一次——那只会造出第二条待审批记录。
     """
@@ -203,7 +203,7 @@ def pending_approval(call: AgentToolCall) -> AgentToolResult:
 def refuse(call: AgentToolCall, *, reason: str) -> AgentToolResult:
     """把一次不执行的调用变成失败结果喂回模型。
 
-    `content` 与 `error` 装同样的字：`error` 是给 core 日志/审计的机器码，
+    `content` 与 `error` 装同样的字：`error` 是给 cogito 日志/审计的机器码，
     `content` 是给模型的白话（模型只读后者）。
     """
     return AgentToolResult.from_parts(
@@ -226,8 +226,8 @@ async def invoke(
     """执行一次工具调用。**不抛**可预见的失败，一律变成 `ok=false` 的结果（见模块文档）。
 
     `approved=False`（默认，也是 `/agents/steps` 的调用方式）时，声明了需要审批的工具
-    **一行代码都不跑**：不碰数据库、不调 core、不扣写预算，只回一条占位结果。
-    真正的执行只有 core 在人工批准后从 `/agents/tool-executions` 发起（`approved=True`），
+    **一行代码都不跑**：不碰数据库、不调 cogito、不扣写预算，只回一条占位结果。
+    真正的执行只有 cogito 在人工批准后从 `/agents/tool-executions` 发起（`approved=True`），
     所以「执行」永远只有一个入口，也不会有人在等审批时挂着一个 HTTP 连接。
     """
     allowed_names = set(allowed)
@@ -255,7 +255,7 @@ async def invoke(
         text = await spec.run(ctx, arguments)
     except errors.ApiError as exc:
         if exc.code is not errors.ErrorCode.INVALID_REQUEST:
-            # 暂时性故障：向上抛，由 core 决定重试整步。重试是安全的——工具的写入
+            # 暂时性故障：向上抛，由 cogito 决定重试整步。重试是安全的——工具的写入
             # 都用确定性主键收敛（见模块文档），重投一步不会写出重复的记忆。
             raise
         logger.info("工具 %s 拒绝了本次调用：%s", call.name, exc.message)
@@ -440,7 +440,7 @@ async def _knowledge_search(ctx: ToolContext, arguments: Mapping[str, Any]) -> s
 
 
 async def _asset_read(ctx: ToolContext, arguments: Mapping[str, Any]) -> str:
-    """读一个资产的正文（走 core 的内容端点，MIME 以响应头为准）。"""
+    """读一个资产的正文（走 cogito 的内容端点，MIME 以响应头为准）。"""
     asset_id = str(arguments["assetID"])
     content = await ctx.core.asset_content(
         tenant_id=ctx.tenant_id,
@@ -548,7 +548,7 @@ async def _memory_write(ctx: ToolContext, arguments: Mapping[str, Any]) -> str:
 
 
 def _visibility_label(visibility: Any, viewers: Any) -> str:
-    """把 core 回报的**落地值**说成一句话。名单只报人数：回显一串用户 ID 既没用又会外泄。"""
+    """把 cogito 回报的**落地值**说成一句话。名单只报人数：回显一串用户 ID 既没用又会外泄。"""
     if visibility == _PUBLIC:
         return "现在对本租户全部成员可见"
     if visibility == _RESTRICTED:
@@ -556,15 +556,15 @@ def _visibility_label(visibility: Any, viewers: Any) -> str:
         return f"现在只对可见名单上的 {count} 个人可见"
     if visibility == _PRIVATE:
         return "现在是私有的：只有创建者与获得授权的人能看见"
-    return f"现在的可见性是 {visibility!r}"  # pragma: no cover - core 只回三个字面量
+    return f"现在的可见性是 {visibility!r}"  # pragma: no cover - cogito 只回三个字面量
 
 
 async def _asset_visibility_write(ctx: ToolContext, arguments: Mapping[str, Any]) -> str:
     """按一次人工批准改写一个资产的可见性。
 
     这个工具存在的方式与其它工具不同：本步调用它时什么也不会发生（`invoke` 会先短路成占位
-    结果），只有 core 带着审批号从 `/agents/tool-executions` 回来时才真的执行——所以下面这段
-    代码是替**批准过的那一次具体调用**跑的，而「那一次」的内容由 core 的台账认定。
+    结果），只有 cogito 带着审批号从 `/agents/tool-executions` 回来时才真的执行——所以下面这段
+    代码是替**批准过的那一次具体调用**跑的，而「那一次」的内容由 cogito 的台账认定。
     """
     if ctx.approval_id is None:
         # 正常路径到不了这里：`invoke` 已经在没有审批时短路成占位结果。挡在这里是为了让
@@ -575,7 +575,7 @@ async def _asset_visibility_write(ctx: ToolContext, arguments: Mapping[str, Any]
     landed = await ctx.core.asset_visibility_write(
         tenant_id=ctx.tenant_id, approval_id=ctx.approval_id, asset_id=asset_id
     )
-    # 只信 core 回报的落地值，不信模型请求时说的那份：写下去的永远是批准时台账里的参数，
+    # 只信 cogito 回报的落地值，不信模型请求时说的那份：写下去的永远是批准时台账里的参数，
     # 两者不一致时模型必须从这句话里看出差别，否则它会以为自己改成了想要的样子。
     visibility = landed.get("visibility") if isinstance(landed, Mapping) else None
     viewers = landed.get("viewers") if isinstance(landed, Mapping) else None

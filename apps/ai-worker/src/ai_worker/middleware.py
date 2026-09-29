@@ -7,7 +7,7 @@
 1. [`InternalTokenMiddleware`]：缺令牌时先回 401，不因为「先撞上 traceparent 规则」而泄露内部细节；
 2. [`TraceparentMiddleware`]：校验并回写 `traceparent`，接 OTel 时顺手开一个 server span。
 
-健康探针两侧都跳过：core 的 readiness 不能因为网关规则而失败（契约里该端点无需令牌）。
+健康探针两侧都跳过：cogito 的 readiness 不能因为网关规则而失败（契约里该端点无需令牌）。
 
 **被闸门拒掉的请求（400 / 401）不会产生 span**：拒它的是闸门本身，没有可归属的 server span
 （401 更是连本中间件都还没进）；这类请求只能在两侧日志里按状态码排查。

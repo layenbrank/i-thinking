@@ -1,4 +1,4 @@
-"""RAG 摄入与检索：把 core 的资产正文变成可检索的分块与向量，再按查询取回最相近的块。
+"""RAG 摄入与检索：把 cogito 的资产正文变成可检索的分块与向量，再按查询取回最相近的块。
 
 三个阶段各自一个模块、各自一个路由，`ROUTER` 把它们聚成一个能力包：
 
@@ -7,8 +7,8 @@
 * 落索引 `rag.index`（**P6b-4**）：`PUT /internal/v1/assets/{assetID}/index`。
 
 检索面 `rag.search`（**P9b**）与前三个不一样：它**不暴露端点**，只作为 agent 步内部的工具被调用
-（`search.find()`），因为「查一次」不是一个 core 会自己发起的编排步骤——那是模型的决定。
-能力登记表里仍然要出现它：核心能力要能被 core 与运维看见（见 `tests/test_route_surface.py`
+（`search.find()`），因为「查一次」不是一个 cogito 会自己发起的编排步骤——那是模型的决定。
+能力登记表里仍然要出现它：核心能力要能被 cogito 与运维看见（见 `tests/test_route_surface.py`
 里 `CAPABILITY_ROUTES["rag.search"]` 的空集语义）。
 
 一个能力包只暴露一个 `ROUTER`（`app.create_app` 按这个名字取），所以新增路由要在这里聚合，

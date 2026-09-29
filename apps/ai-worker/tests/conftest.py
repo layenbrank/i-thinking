@@ -15,14 +15,14 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from ai_worker.app import create_app
+from ai_worker.cogito_client import CogitoClient
 from ai_worker.config import Settings
-from ai_worker.core_client import CoreClient
 from ai_worker.db import Database
 from routes import router
 from support import (
     OWNED_TABLES,
     UNREACHABLE_DATABASE_URL,
-    CoreHandler,
+    CogitoHandler,
     HandlerClient,
     MakeCore,
     make_settings,
@@ -95,13 +95,13 @@ async def offline_client(offline_app: FastAPI) -> AsyncIterator[AsyncClient]:
 
 @pytest_asyncio.fixture
 async def make_core() -> AsyncIterator[MakeCore]:
-    """用 `httpx.MockTransport` 造 CoreClient，并在用例结束后统一关掉连接。"""
-    created: list[CoreClient] = []
+    """用 `httpx.MockTransport` 造 CogitoClient，并在用例结束后统一关掉连接。"""
+    created: list[CogitoClient] = []
 
     def factory(
         handler: Callable[[httpx.Request], httpx.Response], **overrides: object
-    ) -> CoreClient:
-        client = CoreClient(make_settings(**overrides), transport=httpx.MockTransport(handler))
+    ) -> CogitoClient:
+        client = CogitoClient(make_settings(**overrides), transport=httpx.MockTransport(handler))
         created.append(client)
         return client
 
@@ -111,19 +111,21 @@ async def make_core() -> AsyncIterator[MakeCore]:
 
 
 @pytest_asyncio.fixture
-async def core_backed_client(
+async def cogito_backed_client(
     database: Database, make_core: MakeCore
 ) -> AsyncIterator[HandlerClient]:
-    """造一个「真库 + 假 core」的客户端：RAG 端点两头都要碰，缺哪一头都测不下去。
+    """造一个「真库 + 假 cogito」的客户端：RAG 端点两头都要碰，缺哪一头都测不下去。
 
-    core 用 `create_app(..., core=...)` 的注入点替换成桩，所以这里的 handler 就是
-    「core 怎么回」的剧本；`overrides` 同时作用于应用配置与 core 客户端配置。
+    cogito 用 `create_app(..., cogito=...)` 的注入点替换成桩，所以这里的 handler 就是
+    「cogito 怎么回」的剧本；`overrides` 同时作用于应用配置与 cogito 客户端配置。
     """
     created: list[AsyncClient] = []
 
-    def factory(handler: CoreHandler, **overrides: object) -> AsyncClient:
+    def factory(handler: CogitoHandler, **overrides: object) -> AsyncClient:
         settings = make_settings(**overrides)
-        application = create_app(settings, database=database, core=make_core(handler, **overrides))
+        application = create_app(
+            settings, database=database, cogito=make_core(handler, **overrides)
+        )
         application.include_router(router)
         client = AsyncClient(
             transport=ASGITransport(app=application), base_url="http://ai-worker.test"

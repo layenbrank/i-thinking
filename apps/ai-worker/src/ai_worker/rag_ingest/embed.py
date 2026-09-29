@@ -1,19 +1,19 @@
 """`POST /internal/v1/assets/{assetID}/embeddings`：为块集的一个区间补向量。
 
-core 把嵌入切成 `[from, to)` 区间来发（见 `apps/core/src/orchestrations/rag.rs`），所以这里的
+cogito 把嵌入切成 `[from, to)` 区间来发（见 `apps/cogito/src/orchestrations/rag.rs`），所以这里的
 口径必须跟它的重试语义对齐：
 
 * 区间内的向量**已经全有** → 一次上游调用都不发，`embedded=0`（重发与接管后的常态）；
 * 只补缺的那些 ordinal，算完一个事务写库，`embedded` 是本次真正写入的条数；
-* 上游响应形状不对 → 503 让 core 重试，绝不写半截（理由见 `providers.embeddings`）；
-* 但「同一个 (块集, 模型) 出现两种维度」是结构性问题（上游换了模型/灰度切流），回 400 让 core
+* 上游响应形状不对 → 503 让 cogito 重试，绝不写半截（理由见 `providers.embeddings`）；
+* 但「同一个 (块集, 模型) 出现两种维度」是结构性问题（上游换了模型/灰度切流），回 400 让 cogito
   立刻判定永久失败，而不是拿 503 把它挂在那儿无限重试。
 
-**块集不存在或不属于这个资产也回 400**：契约里这个端点没有 404，而且对 core 来说
+**块集不存在或不属于这个资产也回 400**：契约里这个端点没有 404，而且对 cogito 来说
 「重试也拿不到这个块集」就是请求问题。
 
 幂等命中时回放的响应里 `embedded` 会被改写成 0 —— 契约对它的定义是「**本次**实际写入的
-向量数」，重放这次一条都没写。core 只用 `from`/`to` 对账、用 `dimensions` 判一致性，
+向量数」，重放这次一条都没写。cogito 只用 `from`/`to` 对账、用 `dimensions` 判一致性，
 不读 `embedded`，所以这个改写对它无影响。
 """
 
@@ -26,7 +26,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ai_worker import errors, idempotency
-from ai_worker.core_client import CoreClient
+from ai_worker.cogito_client import CogitoClient
 from ai_worker.db import Database, DatabaseUnavailableError
 from ai_worker.providers import embeddings
 from ai_worker.rag_ingest import store
@@ -46,7 +46,7 @@ async def embed_range(asset_id: UUID, request: Request, body: EmbedRequest) -> J
     """补齐一个区间的向量。
 
     响应码：200 成功（含「一条都没补」）；400 请求或归属/维度问题；401 内部令牌不对；
-    409 幂等键冲突或仍在执行中；429 core 限流；503 数据库或 core 暂时不可用。
+    409 幂等键冲突或仍在执行中；429 cogito 限流；503 数据库或 cogito 暂时不可用。
     """
     payload = {
         "assetID": str(asset_id),
@@ -65,7 +65,7 @@ async def embed_range(asset_id: UUID, request: Request, body: EmbedRequest) -> J
                 body.start,
                 body.end,
             )
-            # 只改 embedded：其余字段（from/to/dimensions）必须与首次一致，core 拿它们对账。
+            # 只改 embedded：其余字段（from/to/dimensions）必须与首次一致，cogito 拿它们对账。
             return JSONResponse({**run.replay.body, "embedded": 0}, status_code=run.replay.status)
 
         response = await _embed(request, asset_id=asset_id, body=body)
@@ -74,9 +74,9 @@ async def embed_range(asset_id: UUID, request: Request, body: EmbedRequest) -> J
 
 
 async def _embed(request: Request, *, asset_id: UUID, body: EmbedRequest) -> EmbedResponse:
-    """先读（不调 core），缺哪块算哪块，最后写。"""
+    """先读（不调 cogito），缺哪块算哪块，最后写。"""
     settings = request.app.state.settings
-    core: CoreClient = request.app.state.core
+    core: CogitoClient = request.app.state.core
     database: Database = request.app.state.db
 
     try:
@@ -143,7 +143,7 @@ async def _embed(request: Request, *, asset_id: UUID, body: EmbedRequest) -> Emb
         )
 
     batch = await embeddings.embed_texts(
-        core,
+        cogito,
         tenant_id=body.tenant_id,
         model=body.model,
         texts=[chunk.text for chunk in missing],
@@ -153,7 +153,7 @@ async def _embed(request: Request, *, asset_id: UUID, body: EmbedRequest) -> Emb
         message = (
             f"块集 {body.chunk_set_id} 在模型 {body.model} 下已有 {dimensions} 维向量，"
             f"本次上游给出 {batch.dimensions} 维；同一索引里不能混用两种维度，"
-            "请确认 core 侧的嵌入模型配置"
+            "请确认 cogito 侧的嵌入模型配置"
         )
         raise errors.invalid_request(message)
 

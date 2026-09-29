@@ -1,7 +1,7 @@
 [project]
 name = "ai-worker"
 version = "0.1.0"
-description = "core 的叶子计算服务：RAG 摄取与 agent 运行时（Python 专属生态）"
+description = "cogito 的叶子计算服务：RAG 摄取与 agent 运行时（Python 专属生态）"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

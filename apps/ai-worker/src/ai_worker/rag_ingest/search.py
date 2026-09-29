@@ -8,7 +8,7 @@
 
 三件必须做对的事：
 
-1. **模型与维度都要对上**：不同向量空间的距离没有可比性，所以 `model` 由调用方（core）指定，
+1. **模型与维度都要对上**：不同向量空间的距离没有可比性，所以 `model` 由调用方（cogito）指定，
    必须与 `rag.index` 落库时用的 `model` 一致；`dimensions` 再从查询向量自己的长度取，
    加进 `WHERE` 里挡掉「同一个模型、两种维度」的历史数据——否则 `<=>` 会因为维度不等直接报错；
 2. **租户是硬边界**：`tenant_id` 进 `WHERE` 由数据库过滤，不是捞回来再在应用层筛；
@@ -23,7 +23,7 @@ from uuid import UUID
 
 from asyncpg import Connection
 
-from ai_worker.core_client import CoreClient
+from ai_worker.cogito_client import CogitoClient
 from ai_worker.providers import embeddings
 
 #: 用 `ORDER BY` 里的别名 `distance` 排序，避免把 `<=>` 写两遍（那会让两边有机会写岔）。
@@ -59,7 +59,7 @@ class Hit:
 
 async def find(
     connection: Connection,
-    core: CoreClient,
+    core: CogitoClient,
     *,
     tenant_id: str,
     model: str,
@@ -69,11 +69,11 @@ async def find(
 ) -> list[Hit]:
     """把 `query` 嵌成向量，再在 `tenant_id` 的索引里取最相近的 `top_k` 块。
 
-    查询用**同一枚** `scope=embeddings` 令牌回打 core：嵌入算力的唯一出口仍然是 core 的网关，
+    查询用**同一枚** `scope=embeddings` 令牌回打 cogito：嵌入算力的唯一出口仍然是 cogito 的网关，
     这里不另开一条路。嵌入响应的形状校验在 `providers.embeddings`（形状不对 → 503 可重试）。
     """
     batch = await embeddings.embed_texts(
-        core, tenant_id=tenant_id, model=model, texts=[query], batch_size=batch_size
+        cogito, tenant_id=tenant_id, model=model, texts=[query], batch_size=batch_size
     )
     if not batch.vectors:  # pragma: no cover - 空输入在上面就被调用方拦住了
         return []

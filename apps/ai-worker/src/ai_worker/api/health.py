@@ -1,6 +1,6 @@
 """健康探针 `GET /internal/v1/health`（契约：唯一不需要令牌的端点）。
 
-core 用它的 `status` 决定要不要把活动派过来。判定标准是**「能不能干活」**：
+cogito 用它的 `status` 决定要不要把活动派过来。判定标准是**「能不能干活」**：
 数据库或 pgvector 不可用就回 503 `degraded`，绝不自报 `ok`。
 
 失败原因只写日志：这是内部探针，但仍不该把 DSN、堆栈这类东西回给调用方。
@@ -21,7 +21,7 @@ from ai_worker.db import Database
 logger = logging.getLogger(__name__)
 
 HEALTH_PATH = "/internal/v1/health"
-#: core 对 readiness 的超时很短，所以这里只做「一次 SELECT + 一次目录查询」，不做迁移检查。
+#: cogito 对 readiness 的超时很短，所以这里只做「一次 SELECT + 一次目录查询」，不做迁移检查。
 router = APIRouter()
 
 

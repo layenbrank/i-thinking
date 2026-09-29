@@ -1,6 +1,6 @@
 """W3C Trace Context（`traceparent`）的解析与进程内传递。
 
-跨语言排障只能靠它：core 的每个活动都确定性地派生一条 `traceparent` 发过来，
+跨语言排障只能靠它：cogito 的每个活动都确定性地派生一条 `traceparent` 发过来，
 ai-worker 只做两件事 —— **校验**（不合规即 400，见契约的 header pattern）与**回写响应头**，
 好让两侧的日志能按同一个 trace-id 对上。
 
@@ -14,7 +14,7 @@ import secrets
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 
-#: 契约里 `Traceparent` 参数的 pattern，与 `apps/core/spec/internal.yaml` 逐字一致。
+#: 契约里 `Traceparent` 参数的 pattern，与 `apps/cogito/spec/internal.yaml` 逐字一致。
 TRACEPARENT_PATTERN = r"^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
 #: 同一套字符集，只是加了分组以便从匹配结果里取值。
 _TRACEPARENT_RE = re.compile(r"^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$")

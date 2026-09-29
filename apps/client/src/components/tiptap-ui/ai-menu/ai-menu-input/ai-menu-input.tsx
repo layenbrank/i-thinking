@@ -3,7 +3,7 @@
 
 import { useCallback, useState } from 'react'
 
-// Tiptap Core Extensions
+// Tiptap Cogito Extensions
 import type { Tone } from '@tiptap-pro/extension-ai'
 
 // Icons

@@ -84,7 +84,7 @@ export interface paths {
          *     工具名用下划线（如 `knowledge_search`），不是能力名的点号写法。`tools: []` 是合法输入，
          *     含义是「不给工具，只要一条结论」。
          *
-         *     agent 的每一轮模型调用都走 core 网关（`scope=chat`），所以**配额、用量与审计自动生效**。
+         *     agent 的每一轮模型调用都走 cogito 网关（`scope=chat`），所以**配额、用量与审计自动生效**。
          *
          *     需 JWT 且 `X-Tenant-ID` 指向的租户内有效成员。
          *
@@ -895,7 +895,7 @@ export interface paths {
          *     嵌入用的模型与批大小由部署配置决定（`ai_worker.embed_model` / `ai_worker.embed_batch_size`），
          *     向量维度取自嵌入服务的实际返回，调用方都**不能指定**。
          *
-         *     切片与嵌入都由 ai-worker 完成，模型调用走 core 网关，所以**配额、用量与审计自动生效**。
+         *     切片与嵌入都由 ai-worker 完成，模型调用走 cogito 网关，所以**配额、用量与审计自动生效**。
          *
          *     索引是派生数据：重跑同一资产是安全操作（旧索引被覆盖），不需要先删除。
          *
@@ -1042,7 +1042,7 @@ export interface paths {
         put?: never;
         /**
          * 嵌入转发（内部）
-         * @description **仅限受信服务进程**：用 `X-Service-Token` 携带的短期令牌调用，模型取自令牌作用域（请求体里给了不一致的 `model` 会 400），`input`/`dimensions` 等字段原样透传给上游供应商。core 仍是唯一出网点：配额预检、用量与审计记账都走与聊天相同的路径。
+         * @description **仅限受信服务进程**：用 `X-Service-Token` 携带的短期令牌调用，模型取自令牌作用域（请求体里给了不一致的 `model` 会 400），`input`/`dimensions` 等字段原样透传给上游供应商。cogito 仍是唯一出网点：配额预检、用量与审计记账都走与聊天相同的路径。
          */
         post: operations["service.embeddings"];
         delete?: never;
@@ -1066,7 +1066,7 @@ export interface paths {
          *
          *     令牌自带作用域：`scope=embeddings`（缺省）限定 `tenantID` + `model`，
          *     `scope=chat` 限定 `tenantID` + `model`，`scope=asset-read` 限定 `tenantID` + 单个 `assetID`。
-         *     `scope=asset-write` 还要 `approvalID`：core 在这一刻回读审批台账，核对「批的就是这个资产、
+         *     `scope=asset-write` 还要 `approvalID`：cogito 在这一刻回读审批台账，核对「批的就是这个资产、
          *     批的人是它的创建者」，再把审批原文里的可见性与名单签名进令牌——之后写端点只看令牌。
          *     受众由 `scope` 决定并在消费端点写死，
          *     所以换成嵌入的令牌打不开资产内容端点或对话端点，反之亦然（`300002`，HTTP 401）。
@@ -3253,10 +3253,10 @@ export interface components {
              */
             used: number;
         };
-        /** @description 服务令牌申请：作用域由 core 判定，调用方只能**请求**租户、作用域与时长。 */
+        /** @description 服务令牌申请：作用域由 cogito 判定，调用方只能**请求**租户、作用域与时长。 */
         ServiceTokenP: {
             /**
-             * @description `scope=asset-write` 时必填：这次写依据的审批。core 会核对「批的就是这个资产、批的人
+             * @description `scope=asset-write` 时必填：这次写依据的审批。cogito 会核对「批的就是这个资产、批的人
              *     是它的创建者」，并把审批原文里的可见性与名单钉进令牌。
              */
             approvalID?: string | null;

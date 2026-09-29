@@ -1,4 +1,4 @@
-"""块集、向量与索引当前版本的读写。正文只落在这里，core 侧只持有 `chunkSetID`。
+"""块集、向量与索引当前版本的读写。正文只落在这里，cogito 侧只持有 `chunkSetID`。
 
 写入是**按 `chunk_set_id` 幂等**的：`chunk_set_id` 由幂等键确定性地推导（见
 [`ai_worker.rag_ingest.router.chunk_set_id_for`]），所以同一个键重跑不会产生第二份块集，

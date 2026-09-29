@@ -7,12 +7,12 @@ export const chunks: CodeSplitting[] = [
     name: 'workspace-deps',
     priority: 100,
     test(id) {
-      const patterns = [/[\\/]packages[\\/](core|wasm)[\\/]/]
+      const patterns = [/[\\/]packages[\\/](cogito|wasm)[\\/]/]
       return patterns.some((pattern) => pattern.test(id))
     }
   },
   {
-    name: 'core-apis',
+    name: 'cogito-apis',
     priority: 100,
     test(id) {
       const patterns = [/[\\/]src[\\/]apis[\\/]/]

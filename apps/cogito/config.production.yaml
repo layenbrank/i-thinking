@@ -1,0 +1,15 @@
+app:
+  env: production
+  swagger: false
+
+auth:
+  otp:
+    mock: false
+
+logging:
+  format: compact
+
+# 生产的采集端点由部署侧注入（COGITO__TELEMETRY__ENDPOINT），开之前先确认能连上
+telemetry:
+  enabled: false
+  service_name: cogito

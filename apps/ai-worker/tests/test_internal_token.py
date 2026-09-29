@@ -10,7 +10,7 @@ from httpx import AsyncClient, Response
 
 from ai_worker import errors
 from ai_worker.api.health import HEALTH_PATH
-from ai_worker.core_client import INTERNAL_TOKEN_HEADER
+from ai_worker.cogito_client import INTERNAL_TOKEN_HEADER
 from support import INTERNAL_TOKEN, TRACEPARENT, internal_headers, traceparent_only
 
 PING = "/internal/v1/_test/ping"

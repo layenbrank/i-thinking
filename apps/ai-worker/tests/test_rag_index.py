@@ -1,13 +1,13 @@
 """`PUT /internal/v1/assets/{assetID}/index`：把块集的当前版本物化进检索索引。
 
-这一步是 core 编排 `rag.index-asset` 的**收尾**，而且**空块集也会走到这里** —— 资产变成
+这一步是 cogito 编排 `rag.index-asset` 的**收尾**，而且**空块集也会走到这里** —— 资产变成
 「无可检索内容」和资产变成「有新内容」同等重要，索引里的旧版本必须被替换掉。
 
 所以这一组盯三件事：
 
 * **一遍做完才认**：向量不齐就 400 并指出第一个缺口，绝不留下「看起来建好了」的索引；
 * **旧版本被替换**：一个资产永远只有一行，0 块的资产也能把旧行顶掉（不是并存）；
-* **不调上游**：这个端点只做校验与记账，core 也不会因为这里去等一个模型。
+* **不调上游**：这个端点只做校验与记账，cogito 也不会因为这里去等一个模型。
 
 真库同样是必须的：`rag_index` 的「一行」性质是靠主键与 upsert 保证的，假库验不出来。
 """
@@ -94,12 +94,12 @@ async def embed_all(database: Database, *, chunk_set_id: str = CHUNK_SET_ID) -> 
 
 
 async def test_one_call_materialises_the_current_version(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
     await embed_all(database)
-    core = RagStub()
-    client = core_backed_client(core)
+    cogito = RagStub()
+    client = cogito_backed_client(cogito)
 
     response = await put_index(client)
 
@@ -113,12 +113,12 @@ async def test_one_call_materialises_the_current_version(
     assert row["dimensions"] == DIMENSIONS
     assert row["chunk_count"] == len(TEXTS)
     assert row["collection"] == COLLECTION
-    # 这个端点不碰 core：连令牌都不用换。
+    # 这个端点不碰 cogito：连令牌都不用换。
     assert core.paths == []
 
 
 async def test_vectors_must_be_complete_and_the_gap_is_named(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """缺向量时「建索引成功」会在检索时才暴露，宁可在这一步指名道姓地拒绝。"""
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
@@ -128,7 +128,7 @@ async def test_vectors_must_be_complete_and_the_gap_is_named(
         model=MODEL,
         items=[(0, embedding_vector(TEXTS[0], DIMENSIONS))],
     )
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     response = await put_index(client)
 
@@ -139,13 +139,13 @@ async def test_vectors_must_be_complete_and_the_gap_is_named(
 
 
 async def test_an_asset_with_no_chunks_still_replaces_the_previous_version(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """资产被清空（空文件、全是图片的 PDF）也要走这一步：不替换的话旧内容还能被检索到。"""
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
     await embed_all(database)
     await seed_chunk_set(database, chunk_set_id=EMPTY_CHUNK_SET_ID, texts=())
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     first = await put_index(client, key="index-key-0001")
     emptied = await put_index(
@@ -165,7 +165,7 @@ async def test_an_asset_with_no_chunks_still_replaces_the_previous_version(
 
 
 async def test_re_indexing_a_narrower_chunk_set_keeps_one_row(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
     await embed_all(database)
@@ -176,7 +176,7 @@ async def test_re_indexing_a_narrower_chunk_set_keeps_one_row(
         model=MODEL,
         items=[(0, embedding_vector(TEXTS[0], DIMENSIONS))],
     )
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     await put_index(client, key="index-key-0001")
     again = await put_index(
@@ -194,11 +194,11 @@ async def test_re_indexing_a_narrower_chunk_set_keeps_one_row(
 
 
 async def test_replaying_the_same_key_returns_the_first_result(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
     await embed_all(database)
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     first = await put_index(client)
     second = await put_index(client)
@@ -209,10 +209,10 @@ async def test_replaying_the_same_key_returns_the_first_result(
 
 
 async def test_missing_idempotency_key_is_rejected(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     response = await put_index(client, key=None)
 
@@ -222,11 +222,11 @@ async def test_missing_idempotency_key_is_rejected(
 
 
 async def test_same_key_with_a_different_chunk_count_conflicts(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
     await embed_all(database)
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     assert (await put_index(client)).status_code == 200
     response = await put_index(client, payload=index_body(chunk_count=2))
@@ -236,9 +236,9 @@ async def test_same_key_with_a_different_chunk_count_conflicts(
 
 
 async def test_unknown_chunk_set_is_a_request_error(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     response = await put_index(client, payload=index_body(chunk_set_id=str(uuid4())))
 
@@ -248,10 +248,10 @@ async def test_unknown_chunk_set_is_a_request_error(
 
 
 async def test_a_chunk_set_of_another_asset_is_rejected(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS, tenant_id="tenant-b")
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     response = await put_index(client)
 
@@ -261,12 +261,12 @@ async def test_a_chunk_set_of_another_asset_is_rejected(
 
 
 async def test_a_chunk_count_that_disagrees_with_the_chunk_set_is_rejected(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
-    """core 传错块数说明它手里那份块集与我们的不是同一份，绝不能照单建索引。"""
+    """cogito 传错块数说明它手里那份块集与我们的不是同一份，绝不能照单建索引。"""
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
     await embed_all(database)
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     response = await put_index(client, payload=index_body(chunk_count=5))
 
@@ -276,11 +276,11 @@ async def test_a_chunk_count_that_disagrees_with_the_chunk_set_is_rejected(
 
 
 async def test_declared_dimensions_must_match_the_stored_vectors(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
     await embed_all(database)
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     response = await put_index(client, payload=index_body(dimensions=4))
 
@@ -290,7 +290,7 @@ async def test_declared_dimensions_must_match_the_stored_vectors(
 
 
 async def test_vectors_from_another_model_do_not_count(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """向量是按 (块集, 模型) 存的：另一个模型的向量不能拿来给这个模型建索引。"""
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
@@ -300,7 +300,7 @@ async def test_vectors_from_another_model_do_not_count(
         model="another-model",
         items=[(ordinal, embedding_vector(text, DIMENSIONS)) for ordinal, text in enumerate(TEXTS)],
     )
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     response = await put_index(client)
 
@@ -310,7 +310,7 @@ async def test_vectors_from_another_model_do_not_count(
 
 
 async def test_vectors_beyond_the_chunk_count_are_rejected(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """多出块集之外的 ordinal：块集与向量对不上，建了索引也只会检索出孤儿块。"""
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS[:2])
@@ -320,7 +320,7 @@ async def test_vectors_beyond_the_chunk_count_are_rejected(
         model=MODEL,
         items=[(ordinal, embedding_vector(text, DIMENSIONS)) for ordinal, text in enumerate(TEXTS)],
     )
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     response = await put_index(client, payload=index_body(chunk_count=2))
 
@@ -348,12 +348,12 @@ def test_the_ledger_uses_a_stable_endpoint_name() -> None:
 
 
 async def test_stored_vectors_are_readable_after_indexing(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """索引只是记录「当前版本」，向量本身照旧留在 `rag_embedding`（检索面要用）。"""
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
     await embed_all(database)
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     await put_index(client)
 

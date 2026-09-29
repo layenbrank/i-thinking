@@ -1,11 +1,11 @@
-"""`POST /internal/v1/assets/{assetID}/chunks`：两端都要碰的端点，所以这一组用真库 + 假 core。
+"""`POST /internal/v1/assets/{assetID}/chunks`：两端都要碰的端点，所以这一组用真库 + 假 cogito。
 
-假 core 只回答两件事：换令牌、给正文。真库是为了验「块真的落进去了」与幂等账本的状态——
+假 cogito 只回答两件事：换令牌、给正文。真库是为了验「块真的落进去了」与幂等账本的状态——
 只看响应体的话，写库失败、写重复、写半截都发现不了。
 
 最要紧的两条：
 
-* **重发必须回放**：core 超时后会原样重发，第二次不能再取一次正文，也不能产生第二份块集；
+* **重发必须回放**：cogito 超时后会原样重发，第二次不能再取一次正文，也不能产生第二份块集；
 * **写库成功但记账前被杀**：块集 id 由幂等键确定性推导，重跑必须落在同一行上自愈。
 """
 
@@ -21,7 +21,7 @@ import pytest
 from httpx import AsyncClient, Response
 
 from ai_worker import errors, idempotency
-from ai_worker.core_client import SERVICE_TOKEN_PATH
+from ai_worker.cogito_client import SERVICE_TOKEN_PATH
 from ai_worker.db import Database
 from ai_worker.rag_ingest import store
 from ai_worker.rag_ingest.router import ENDPOINT, chunk_set_id_for
@@ -42,8 +42,8 @@ TEXT = "第一段正文，讲清一件事。\n\n第二段正文，讲清另一�
 SHA_OF_TEXT = hashlib.sha256(TEXT.encode()).hexdigest()
 
 
-class CoreStub:
-    """带计数的 core 桩：记录被打了哪些路径，才能断言「重发没有再取一次正文」。"""
+class CogitoStub:
+    """带计数的 cogito 桩：记录被打了哪些路径，才能断言「重发没有再取一次正文」。"""
 
     def __init__(self, content: bytes = TEXT.encode(), *, content_status: int = 200) -> None:
         self.paths: list[str] = []
@@ -129,10 +129,10 @@ async def load_chunks(database: Database, chunk_set_id: str) -> list[store.Store
 
 
 async def test_successful_chunking_is_persisted_and_reported(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
-    core = CoreStub()
-    client = core_backed_client(core)
+    cogito = CogitoStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_chunks(client, payload=chunk_body(chunkSize=20, chunkOverlap=0))
 
@@ -178,10 +178,10 @@ async def test_chunk_set_id_is_derived_from_the_idempotency_key() -> None:
 
 
 async def test_replay_does_not_refetch_or_duplicate(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
-    core = CoreStub()
-    client = core_backed_client(core)
+    cogito = CogitoStub()
+    client = cogito_backed_client(cogito)
 
     first = await post_chunks(client, payload=chunk_body(chunkSize=20, chunkOverlap=0))
     second = await post_chunks(client, payload=chunk_body(chunkSize=20, chunkOverlap=0))
@@ -194,10 +194,10 @@ async def test_replay_does_not_refetch_or_duplicate(
 
 
 async def test_explicit_defaults_are_the_same_request_as_omitting_them(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
-    """core 重发时少带一个可选字段不能被判成 409：载荷指纹取的是**生效后**的参数。"""
-    client = core_backed_client(CoreStub())
+    """cogito 重发时少带一个可选字段不能被判成 409：载荷指纹取的是**生效后**的参数。"""
+    client = cogito_backed_client(CogitoStub())
 
     first = await post_chunks(client, payload=chunk_body())
     second = await post_chunks(client, payload=chunk_body(chunkSize=1200, chunkOverlap=200))
@@ -208,9 +208,9 @@ async def test_explicit_defaults_are_the_same_request_as_omitting_them(
 
 
 async def test_same_key_with_a_different_payload_conflicts(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
-    client = core_backed_client(CoreStub())
+    client = cogito_backed_client(CogitoStub())
 
     assert (await post_chunks(client)).status_code == 200
     response = await post_chunks(client, payload=chunk_body(mime="text/html", name="page.html"))
@@ -220,10 +220,10 @@ async def test_same_key_with_a_different_payload_conflicts(
 
 
 async def test_missing_idempotency_key_is_rejected_before_touching_core(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
-    core = CoreStub()
-    client = core_backed_client(core)
+    cogito = CogitoStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_chunks(client, key=None)
 
@@ -233,11 +233,11 @@ async def test_missing_idempotency_key_is_rejected_before_touching_core(
 
 
 async def test_unknown_body_field_is_rejected_before_touching_core(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
-    """`extra="forbid"`：多出来的字段只可能是 core 与这里的契约版本不一致。"""
-    core = CoreStub()
-    client = core_backed_client(core)
+    """`extra="forbid"`：多出来的字段只可能是 cogito 与这里的契约版本不一致。"""
+    cogito = CogitoStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_chunks(client, payload=chunk_body(mime="text/plain", surprise=1))
 
@@ -256,10 +256,10 @@ def seeded_token(request: httpx.Request) -> httpx.Response:
     [(20, 20), (20, 21), (0, 0), (32001, 0)],
 )
 async def test_illegal_chunk_parameters_are_rejected_before_touching_core(
-    core_backed_client: HandlerClient, database: Database, chunk_size: int, chunk_overlap: int
+    cogito_backed_client: HandlerClient, database: Database, chunk_size: int, chunk_overlap: int
 ) -> None:
-    core = CoreStub()
-    client = core_backed_client(core)
+    cogito = CogitoStub()
+    client = cogito_backed_client(cogito)
 
     response = await post_chunks(
         client, payload=chunk_body(chunkSize=chunk_size, chunkOverlap=chunk_overlap)
@@ -273,9 +273,9 @@ async def test_illegal_chunk_parameters_are_rejected_before_touching_core(
 
 
 async def test_unsupported_mime_is_rejected_and_releases_the_key(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
-    client = core_backed_client(CoreStub(b"binary"))
+    client = cogito_backed_client(CogitoStub(b"binary"))
 
     rejected = await post_chunks(client, payload=chunk_body(mime="image/png", name="scan.png"))
 
@@ -290,9 +290,9 @@ async def test_unsupported_mime_is_rejected_and_releases_the_key(
 
 
 async def test_asset_larger_than_the_configured_limit_is_a_400(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
-    client = core_backed_client(CoreStub(b"x" * 100), asset_max_bytes=8)
+    client = cogito_backed_client(CogitoStub(b"x" * 100), asset_max_bytes=8)
 
     response = await post_chunks(client)
 
@@ -309,14 +309,14 @@ async def test_asset_larger_than_the_configured_limit_is_a_400(
         (429, 429, errors.ErrorCode.RATE_LIMITED),
     ],
 )
-async def test_core_failures_map_to_the_contract_codes_and_release_the_key(
-    core_backed_client: HandlerClient,
+async def test_cogito_failures_map_to_the_contract_codes_and_release_the_key(
+    cogito_backed_client: HandlerClient,
     database: Database,
     content_status: int,
     expected_status: int,
     expected_code: errors.ErrorCode,
 ) -> None:
-    client = core_backed_client(CoreStub(content_status=content_status))
+    client = cogito_backed_client(CogitoStub(content_status=content_status))
 
     response = await post_chunks(client)
 
@@ -328,7 +328,7 @@ async def test_core_failures_map_to_the_contract_codes_and_release_the_key(
 
 
 async def test_database_outage_is_reported_as_retryable(offline_client: AsyncClient) -> None:
-    """库没起来时既不能 500 也不能丢幂等键：core 应该重试而不是把实例判失败。"""
+    """库没起来时既不能 500 也不能丢幂等键：cogito 应该重试而不是把实例判失败。"""
     response = await offline_client.post(
         PATH,
         json=chunk_body(),
@@ -340,10 +340,10 @@ async def test_database_outage_is_reported_as_retryable(offline_client: AsyncCli
 
 
 async def test_empty_asset_is_a_success_with_zero_chunks(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """空文件合法：0 块不是错误，但不能算成功得毫无痕迹。"""
-    client = core_backed_client(CoreStub(b""))
+    client = cogito_backed_client(CogitoStub(b""))
 
     response = await post_chunks(client)
 
@@ -359,10 +359,10 @@ async def test_empty_asset_is_a_success_with_zero_chunks(
 
 
 async def test_defaults_come_from_settings(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
-    client = core_backed_client(
-        CoreStub(TEXT.encode()), default_chunk_size=20, default_chunk_overlap=0
+    client = cogito_backed_client(
+        CogitoStub(TEXT.encode()), default_chunk_size=20, default_chunk_overlap=0
     )
 
     response = await post_chunks(client, payload=chunk_body())
@@ -375,10 +375,10 @@ async def test_defaults_come_from_settings(
 
 
 async def test_restart_between_write_and_record_heals_in_place(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """块已落库、账本没记上：用同一个键重跑必须落在同一个块集上，而不是再建一份。"""
-    client = core_backed_client(CoreStub())
+    client = cogito_backed_client(CogitoStub())
 
     first = await post_chunks(client)
     assert first.status_code == 200
@@ -395,9 +395,9 @@ async def test_restart_between_write_and_record_heals_in_place(
 
 
 async def test_html_asset_is_extracted_with_the_html_extractor(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
-    client = core_backed_client(CoreStub(b"<p>alpha</p><p>beta</p>"))
+    client = cogito_backed_client(CogitoStub(b"<p>alpha</p><p>beta</p>"))
 
     response = await post_chunks(client, payload=chunk_body(mime="text/html", name="page.html"))
 
@@ -409,10 +409,10 @@ async def test_html_asset_is_extracted_with_the_html_extractor(
 
 
 async def test_ledger_uses_the_stable_endpoint_name(
-    core_backed_client: HandlerClient, database: Database
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
     """端点名是历史账本的键：跟着 URL 改等于把已完成的调用作废。"""
-    client = core_backed_client(CoreStub())
+    client = cogito_backed_client(CogitoStub())
 
     await post_chunks(client)
 
@@ -421,11 +421,11 @@ async def test_ledger_uses_the_stable_endpoint_name(
 
 
 async def test_replayed_response_is_not_recomputed(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
-    """回放拿的是账本里存的响应体：core 换令牌失败也不该影响第二次调用。"""
-    core = CoreStub()
-    client = core_backed_client(core)
+    """回放拿的是账本里存的响应体：cogito 换令牌失败也不该影响第二次调用。"""
+    cogito = CogitoStub()
+    client = cogito_backed_client(cogito)
 
     first = await post_chunks(client)
     core.paths.clear()
@@ -436,10 +436,10 @@ async def test_replayed_response_is_not_recomputed(
     assert core.paths == []
 
 
-async def test_in_flight_key_asks_core_to_retry(
-    core_backed_client: HandlerClient, database: Database
+async def test_in_flight_key_asks_cogito_to_retry(
+    cogito_backed_client: HandlerClient, database: Database
 ) -> None:
-    client = core_backed_client(CoreStub())
+    client = cogito_backed_client(CogitoStub())
     settings = make_settings()
     async with database.acquire() as connection:
         await connection.execute(
@@ -465,7 +465,7 @@ async def test_in_flight_key_asks_core_to_retry(
 
 
 async def test_tenant_and_asset_are_passed_through_to_core(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
     """令牌是按 (租户, 资产) 换的：换错租户就是跨租户读数据。"""
     seen: list[tuple[str, str]] = []
@@ -477,7 +477,7 @@ async def test_tenant_and_asset_are_passed_through_to_core(
         seen.append(("content", request.url.path))
         return httpx.Response(200, content=TEXT.encode())
 
-    client = core_backed_client(handler)
+    client = cogito_backed_client(handler)
 
     await post_chunks(client, payload=chunk_body(tenant_id="tenant-z"))
 

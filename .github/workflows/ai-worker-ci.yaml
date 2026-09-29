@@ -2,20 +2,20 @@ name: AI Worker CI
 
 # ai-worker（apps/ai-worker，Python）的独立流水线：与根 pnpm/turbo 流水线解耦，
 # 由 apps/ai-worker 自己的 uv 工具链负责。
-# 同时监听 apps/core/spec/internal.yaml —— 它是两侧唯一的契约源，
+# 同时监听 apps/cogito/spec/internal.yaml —— 它是两侧唯一的契约源，
 # tests/test_route_surface.py 会直接读这份文件做跨包校验。
 on:
   push:
     branches: [main, master]
     paths:
       - 'apps/ai-worker/**'
-      - 'apps/core/spec/internal.yaml'
+      - 'apps/cogito/spec/internal.yaml'
       - '.github/workflows/ai-worker-ci.yaml'
   pull_request:
     branches: [main, master]
     paths:
       - 'apps/ai-worker/**'
-      - 'apps/core/spec/internal.yaml'
+      - 'apps/cogito/spec/internal.yaml'
       - '.github/workflows/ai-worker-ci.yaml'
 
 permissions:

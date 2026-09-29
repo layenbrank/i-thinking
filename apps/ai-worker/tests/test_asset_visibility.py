@@ -1,18 +1,18 @@
 """按审批改可见性（`asset_visibility_write`）：单步只占位，批准之后才真的写。
 
-P10b 把「写」从本进程的一行数据扩到了 core 侧的落地动作。这一组盯的是它比 `memory_write`
+P10b 把「写」从本进程的一行数据扩到了 cogito 侧的落地动作。这一组盯的是它比 `memory_write`
 更严的那几条不变量：
 
 * **两半的对照**：`/agents/steps` 里不换令牌、不碰写端点，只回一条占位结果；
 * **凭据即能力**：批准之后才用 `approvalID` 换一枚 `scope=asset-write` 的写令牌，
-  写请求**没有 body**——改什么在换令牌那一步就由 core 从台账读出来钉死了；
-* **描述用落地值**：真正写下去的是批准时那一份，所以结果只能照 core 回报的
+  写请求**没有 body**——改什么在换令牌那一步就由 cogito 从台账读出来钉死了；
+* **描述用落地值**：真正写下去的是批准时那一份，所以结果只能照 cogito 回报的
   `visibility` / `viewers` 说话，不能照模型请求的那一份；
 * **一次审批一份令牌**：写令牌按 `approvalID` 分开缓存，两次不同的审批不会互相顶替；
-* **拒绝是终局**：`403 + 500509`（审批不合规）变成 `ok=false` 的 200，而不是让 core
+* **拒绝是终局**：`403 + 500509`（审批不合规）变成 `ok=false` 的 200，而不是让 cogito
   反复重试整步的 503；但 `401`（我们自己令牌配错）仍然必须是 503。
 
-真库是必需的（幂等账本要落库），所以这一组跟着 `core_backed_client` 夹具走。
+真库是必需的（幂等账本要落库），所以这一组跟着 `cogito_backed_client` 夹具走。
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from ai_worker import errors
 from ai_worker.agent_runtime import tools
 from ai_worker.agent_runtime.router import STEP_PATH, TOOL_EXECUTION_PATH
 from ai_worker.agent_runtime.schemas import AgentToolCall
-from ai_worker.core_client import (
+from ai_worker.cogito_client import (
     APPROVAL_INVALID_CODE,
     ASSET_VISIBILITY_PATH,
     SCOPE_ASSET_WRITE,
@@ -66,7 +66,7 @@ _KEYS = count(1)
 def execution_body(
     arguments: str = PUBLIC_ARGUMENTS, *, approval_id: str = APPROVAL_ID
 ) -> dict[str, Any]:
-    """core 在人工批准之后发来的执行请求（`AgentToolExecutionRequest`）。"""
+    """cogito 在人工批准之后发来的执行请求（`AgentToolExecutionRequest`）。"""
     return {
         "schemaVersion": 1,
         "tenantID": TENANT_ID,
@@ -110,7 +110,7 @@ async def step(client: AsyncClient, *, key: str | None = None) -> Response:
 
 
 def stub_with_landing_value(*viewers: str) -> AgentStub:
-    """一个「批准的是 RESTRICTED + 名单」的 core 桩，与模型请求的 PUBLIC 故意不同。"""
+    """一个「批准的是 RESTRICTED + 名单」的 cogito 桩，与模型请求的 PUBLIC 故意不同。"""
     return AgentStub(
         replies=[completion(tool_calls=[tool_call(name=TOOL, arguments=PUBLIC_ARGUMENTS)])],
         visibility_response={"visibility": "RESTRICTED", "viewers": list(viewers)},
@@ -126,11 +126,11 @@ def tool_result(response: Response) -> dict[str, Any]:
 
 
 async def test_a_visibility_change_only_lands_after_approval(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
     """单步里只有占位；批过之后同一份调用才真的写，且写的是批准时那一份。"""
     stub = stub_with_landing_value(*VIEWERS)
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     pending = await step(client)
 
@@ -169,7 +169,7 @@ async def test_a_visibility_change_only_lands_after_approval(
     assert write.content == b""
     assert write.headers[SERVICE_TOKEN_HEADER] == f"tok-{SCOPE_ASSET_WRITE}"
 
-    # 描述的是 core 回报的落地值（名单上两个人），不是模型请求的 PUBLIC：
+    # 描述的是 cogito 回报的落地值（名单上两个人），不是模型请求的 PUBLIC：
     # 两者不一致时模型必须看得出来，否则它会以为自己改成了想要的样子。
     assert "2 个人可见" in result["content"]
     assert "PUBLIC" not in result["content"]
@@ -177,10 +177,10 @@ async def test_a_visibility_change_only_lands_after_approval(
         assert viewer not in result["content"]
 
 
-async def test_the_write_token_is_cached_per_approval(core_backed_client: HandlerClient) -> None:
+async def test_the_write_token_is_cached_per_approval(cogito_backed_client: HandlerClient) -> None:
     """一次审批换一份能力：同一个审批号只换一次令牌，换了审批号就是另一枚。"""
     stub = stub_with_landing_value(*VIEWERS)
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     await execute(client, key="visibility-key-0001")
     await execute(client, key="visibility-key-0002")  # 换个幂等键：同一个审批号，重跑一次
@@ -194,13 +194,13 @@ async def test_the_write_token_is_cached_per_approval(core_backed_client: Handle
 
 
 async def test_an_invalid_approval_is_a_final_refusal_not_a_retry(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
-    """审批不合规（403 + 500509）是终局：回 `ok=false` 的 200，不是让 core 重试整步的 503。"""
+    """审批不合规（403 + 500509）是终局：回 `ok=false` 的 200，不是让 cogito 重试整步的 503。"""
     stub = stub_with_landing_value(*VIEWERS)
     stub.visibility_status = 403
     stub.visibility_code = APPROVAL_INVALID_CODE
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await execute(client)
 
@@ -209,18 +209,18 @@ async def test_an_invalid_approval_is_a_final_refusal_not_a_retry(
     assert result["ok"] is False
     assert result["error"] == errors.ErrorCode.INVALID_REQUEST.value
     assert "403" in result["content"]
-    # 写是没有落地的（core 拒了），但请求确实发出去过——重试一百次也是同一个 403。
+    # 写是没有落地的（cogito 拒了），但请求确实发出去过——重试一百次也是同一个 403。
     assert len(stub.visibility_writes) == 1
 
 
 async def test_our_own_broken_credential_stays_a_dependency_failure(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
     """401 是**我们自己**配错/写错（令牌无效），必须留着 503 让人从日志里看见。"""
     stub = stub_with_landing_value(*VIEWERS)
     stub.visibility_status = 401
     stub.visibility_code = 300002
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await execute(client)
 
@@ -254,11 +254,11 @@ async def test_our_own_broken_credential_stays_a_dependency_failure(
     ],
 )
 async def test_visibility_arguments_are_rejected_before_any_outbound_call(
-    core_backed_client: HandlerClient, arguments: str, fragment: str
+    cogito_backed_client: HandlerClient, arguments: str, fragment: str
 ) -> None:
     """参数不合法时一行出网代码都不跑：说明书写着三个参数，多一个少一个都不行。"""
     stub = stub_with_landing_value(*VIEWERS)
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await execute(client, arguments=arguments)
 
@@ -285,7 +285,7 @@ async def test_a_write_tool_without_an_approval_never_reaches_core(
     context = tools.ToolContext(
         tenant_id=TENANT_ID,
         embed_model=EMBED_MODEL,
-        core=make_core(stub),
+        cogito=make_core(stub),
         database=database,
         settings=make_settings(),
         memory_writes=tools.WriteBudget(remaining=1),

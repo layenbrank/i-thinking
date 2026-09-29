@@ -6,11 +6,11 @@
 > 结论：**闸门（等待 + 判定）放在 durable 编排里**，人的决定由 api 落台账后投进实例的
 > **邮箱**（`enqueue_event`），编排 `select` 「邮箱消息 vs 超时定时器」二者之一。
 
-> 这条 ADR 修正了 P9c 留下的一个说法：[`../apps/core/guide/agent-runtime.md`](../apps/core/guide/agent-runtime.md)
+> 这条 ADR 修正了 P9c 留下的一个说法：[`../apps/cogito/guide/agent-runtime.md`](../apps/cogito/guide/agent-runtime.md)
 > 当时写「将来要接写操作，durable 的 `raise_event` 已经具备承载能力」——**能力具备，但语义不对**，
-> 见 §2.2。落地在 P10a（core 侧审批闸门 + `agent_approval` 台账 + 审批接口），
+> 见 §2.2。落地在 P10a（cogito 侧审批闸门 + `agent_approval` 台账 + 审批接口），
 > ai-worker 侧只负责「申报这次调用要人批」。P10b 补上第二条落地路径——**拿审批行换写令牌**，
-> 让编排不必持有能改 core 业务数据的凭据，见 §5。
+> 让编排不必持有能改 cogito 业务数据的凭据，见 §5。
 
 ## 0. 候选对照
 
@@ -19,7 +19,7 @@
 | **编排闸门 + 邮箱投递**                                    | 编排挂起等人，把待办编码进 custom status；决定经 api 落台账后投进邮箱                                                     | **采用**                                                   |
 | 接口同步等待                                               | 单独一个「审批」接口，处理请求的协程里 `select` 编排状态直到人批或超时                                                     | 不采用，见 §2.1                                            |
 | 编排闸门 + `raise_event`                                   | 同上，但决定用事件而不是邮箱                                                                                              | 不采用，见 §2.2（P9c 的原设想）                            |
-| 待审批落 core 表、编排轮询表                               | api 只写一行「等审批」，编排反复读表看决定来了没有                                                                        | 不采用，见 §2.3                                            |
+| 待审批落 cogito 表、编排轮询表                               | api 只写一行「等审批」，编排反复读表看决定来了没有                                                                        | 不采用，见 §2.3                                            |
 | 只靠 `allowed_tools` 开关（不开写工具就没有风险）           | 干脆不让 agent 写                                                                                                         | 不够：这是「全开或全关」，写工具就永远用不了，见 §2.4      |
 | 把写操作做成「生成一条待办、由人另外走一个业务接口」        | agent 只提议，人自己走业务流程                                                                                            | 不采纳为**本通道**：那是产品形态的选择，不是这条链路的替代 |
 
@@ -95,7 +95,7 @@
 | 多了一张表（`agent_approval`）与一条路由                     | 落台账是审计要求：**谁**在**什么时候**批了**哪一次**调用、理由是什么，只靠编排快照答不出来             |
 | `EXPIRED` 只出现在任务快照里、不在审批台账里                 | 台账记的是**人做的决定**，超时没有人参与。把它写成一行会让人以为「有个人超时了」                        |
 | 编排要会解析 `approvalID`、忽略「不属于本次」的消息           | 决定的到达顺序不可控（重复提交、旧消息），忽略比吃掉安全：属于本次的那条迟早会到                        |
-| 审批时长与等待者预算必须分档：`approval_ttl_secs`（默认 1800s，下限 60s）**必须明显小于** `dispatch.rs` 的 `WAIT_BUDGET`（3600s） | 否则任务先被等待者判失败，人在批准时实例已经没人接了——这个下限由 `service` 侧测试钉住                   |
+| 审批时长与等待者预算必须分档：`approval_ttl_secs`（默认 1800s，下限 60s）**必须明显小于** `dispatch.rs` 的 `WAIT_BUDGET`（3600s） | 否则任务先被等待者判失败，人在批准时实例已经没人接了——这个下限由 `cogito` 侧测试钉住                   |
 
 ## 4. 落地与门禁
 
@@ -113,19 +113,19 @@
 
 门禁：
 
-- `apps/core/tests/agent_approval.rs`（4 个用例，进 CI）：批准真的执行 / 驳回不执行并把理由喂回模型 /
+- `apps/cogito/tests/agent_approval.rs`（4 个用例，进 CI）：批准真的执行 / 驳回不执行并把理由喂回模型 /
   没人处理到点作废 / 决定的四道闸（跨租户、待办状态、决定词表、不属于本次的消息被忽略）。
-- `apps/core/crates/agent` 单测钉住状态机（`EXPIRED` 不是人能给的、改判是冲突）。
+- `apps/cogito/crates/agent` 单测钉住状态机（`EXPIRED` 不是人能给的、改判是冲突）。
 
 ## 5. 第二种落地：拿审批换「写令牌」（P10b）
 
 P10a 走的是「编排拿到决定后**自己**执行」——适用 `memory_write`（写的是 ai-worker 自己的存储，编排有凭据）。
-`asset_visibility_write`（改 core 里的资产可见性）不能照抄：叶子服务不该持有能改 core 业务数据的长期凭据，
+`asset_visibility_write`（改 cogito 里的资产可见性）不能照抄：叶子服务不该持有能改 cogito 业务数据的长期凭据，
 所以改成**审批行本身当凭据**去换一枚短期令牌。
 
 三条不变量：
 
-1. **令牌即能力**：`POST /api/v1/service/token` 带 `approvalID`，core 当场回读 `agent_approval`，
+1. **令牌即能力**：`POST /api/v1/service/token` 带 `approvalID`，cogito 当场回读 `agent_approval`，
    确认「存在 / `APPROVED` / 批的是这个资产 / 批准人是资产创建者」后，把审批原文里的
    `visibility`、`viewers` 解析并钉进令牌载荷。写端点因此**没有请求体**——调用方没有可以撒谎的地方。
    代价是令牌不可回收，只能靠短有效期（`ttlSecs`）兜着；判定全在签发那刻做完，写端点只重放。
@@ -139,7 +139,7 @@ P10a 走的是「编排拿到决定后**自己**执行」——适用 `memory_wr
 早先的推进记录里记的是用户面的 `/api/v1/assets/{assetID}/visibility`，实现时改到服务面，理由三条：
 
 - **调用方是 ai-worker，不是用户会话**。放用户面就得让叶子服务持有用户 JWT——把用户的长期凭据塞进
-  计算车间，正是服务身份面存在的意义（见 [`architecture-capabilities.md`](../apps/core/guide/architecture-capabilities.md)）。
+  计算车间，正是服务身份面存在的意义（见 [`architecture-capabilities.md`](../apps/cogito/guide/architecture-capabilities.md)）。
   而 P10b 的授权输入（真凭实据的审批原文 + 批准人）在签发那刻就齐了，端点连请求体都没有，
   它本来就是服务面的形状。
 - **与读内容同族**：`GET /service/assets/{id}/content` 已经在这里，可见性判定共用同一段逻辑

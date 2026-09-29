@@ -1,8 +1,8 @@
-# ai-worker（Python / FastAPI）：core 的叶子计算服务，RAG 摄取与 agent 运行时。
+# ai-worker（Python / FastAPI）：cogito 的叶子计算服务，RAG 摄取与 agent 运行时。
 #
 # 构建（上下文必须是 apps/ai-worker）：
 #   docker compose build ai-worker
-#   docker build -t corex-ai-worker:local ../ai-worker
+#   docker build -t cogito-ai-worker:local ../ai-worker
 #
 # Python 3.12 是硬约束（pyproject 的 requires-python 是 >=3.12,<3.13），
 # 用官方 slim 而不是 distroless：迁移 SQL 与健康探针都要靠 shell / curl 排障。

@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from ai_worker import __version__, errors
 from ai_worker.api import health
 from ai_worker.config import Settings, get_settings
-from ai_worker.core_client import CoreClient
+from ai_worker.cogito_client import CogitoClient
 from ai_worker.db import Database
 from ai_worker.middleware import InternalTokenMiddleware, TraceparentMiddleware
 
@@ -32,13 +32,13 @@ def create_app(
     settings: Settings | None = None,
     *,
     database: Database | None = None,
-    core: CoreClient | None = None,
+    cogito: CogitoClient | None = None,
 ) -> FastAPI:
     resolved = settings or get_settings()
     app = FastAPI(
         title="ai-worker",
         version=__version__,
-        # 没有对外文档面：这个进程只被 core 调用，契约在 core 的 spec/internal.yaml 里。
+        # 没有对外文档面：这个进程只被 cogito 调用，契约在 cogito 的 spec/internal.yaml 里。
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
@@ -46,8 +46,8 @@ def create_app(
     )
     app.state.settings = resolved
     app.state.db = database or Database(resolved)
-    # 注入点是为了测试：注入 core 时连 `MockTransport` 一起进来，不必把请求真发出去。
-    app.state.core = core or CoreClient(resolved)
+    # 注入点是为了测试：注入 cogito 时连 `MockTransport` 一起进来，不必把请求真发出去。
+    app.state.core = cogito or CogitoClient(resolved)
 
     errors.install_error_handlers(app)
     app.include_router(health.router)
@@ -69,7 +69,7 @@ def create_app(
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     database: Database = app.state.db
-    core: CoreClient = app.state.core
+    core: CogitoClient = app.state.core
     await database.start()
     try:
         yield

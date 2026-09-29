@@ -9,7 +9,7 @@ import {
   type AnyExtension
 } from '@tiptap/react'
 
-// --- Tiptap Core Extensions ---
+// --- Tiptap Cogito Extensions ---
 import { Image } from '@/components/tiptap-node/image-node/image-node-extension'
 import { TableKit } from '@/components/tiptap-node/table-node/extensions/table-node-extension'
 import { Highlight } from '@tiptap/extension-highlight'

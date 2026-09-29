@@ -1,13 +1,13 @@
 """审批通道（`POST /internal/v1/agents/tool-executions`）的**行为**面。
 
 P10a 把「写」拆成了两拍：`/agents/steps` 遇到声明了 `requires_approval` 的工具只回一条
-`awaitingApproval=true` 的占位结果（不执行、不落库），人工批准之后 core 再从这条路径把那次
+`awaitingApproval=true` 的占位结果（不执行、不落库），人工批准之后 cogito 再从这条路径把那次
 调用真的跑掉。这一组管的是这条路径的**门槛与后果**：
 
 * **准入只有两条**：工具自己声明了需要审批、且在 `allowedTools` 里。三种不通过（不认识的名字、
   不在白名单、不需要审批）都是 400 `invalid_request`——那是「这次请求不该发过来」，
   不是「工具跑起来失败了」；**执行之后**才失败仍然是 `ok=false` 的 200；
-* **不校验审批本身**：台账在 core，信任边界是内部令牌加上面两条规则。所以这里也**不假装**
+* **不校验审批本身**：台账在 cogito，信任边界是内部令牌加上面两条规则。所以这里也**不假装**
   校验过批准——没有任何断言能证明「它被批准过」；
 * **写入的后果是真的**：落一行笔记（`task_id` 为空），并且照样受校验与写预算约束；
 * **重投收敛**：同一个键回放第一次的报文，换个键也不会写出第二行（`memory_id` 是确定性派生的）。
@@ -57,7 +57,7 @@ def pending_call(
 
 
 def body(**overrides: Any) -> dict[str, Any]:
-    """core 在人工批准后发来的执行请求（`AgentToolExecutionRequest`）。"""
+    """cogito 在人工批准后发来的执行请求（`AgentToolExecutionRequest`）。"""
     payload: dict[str, Any] = {
         "schemaVersion": 1,
         "tenantID": TENANT_ID,
@@ -122,13 +122,13 @@ def tool_result(response: Response) -> dict[str, Any]:
 
 
 async def test_a_gated_call_only_really_runs_after_approval(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """单步里只留占位；批过之后同一份调用真的写进去。这是 P10a 的全部意义。"""
     stub = AgentStub(
         replies=[completion(tool_calls=[tool_call(name="memory_write", arguments=NOTE_ARGUMENTS)])]
     )
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     pending = await step(client)
 
@@ -153,11 +153,11 @@ async def test_a_gated_call_only_really_runs_after_approval(
 
 
 async def test_the_approved_write_is_a_note_later_tasks_can_recall(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """落库的是**笔记**（`task_id` 为空，不是任务摘要），并明说本步读不到它。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await execute(client)
 
@@ -170,11 +170,11 @@ async def test_the_approved_write_is_a_note_later_tasks_can_recall(
 
 
 async def test_the_execution_does_not_call_the_model(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
     """执行一次已经想清楚了的调用：不需要再问模型一遍（那样会把成本翻倍）。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     await execute(client)
 
@@ -185,11 +185,11 @@ async def test_the_execution_does_not_call_the_model(
 
 
 async def test_a_tool_that_does_not_need_approval_is_rejected(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """只读工具走普通工具调用：拿这条路径跑它等于开了一个绕过白名单的口子。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await execute(
         client,
@@ -207,11 +207,11 @@ async def test_a_tool_that_does_not_need_approval_is_rejected(
 
 
 async def test_a_gated_tool_outside_the_allowlist_is_rejected(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """审批不能绕开白名单：`allowedTools` 是 core 的策略，不是可以事后补的手续。"""
+    """审批不能绕开白名单：`allowedTools` 是 cogito 的策略，不是可以事后补的手续。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await execute(client, payload=body(allowedTools=["knowledge_search"]))
 
@@ -222,11 +222,11 @@ async def test_a_gated_tool_outside_the_allowlist_is_rejected(
 
 
 async def test_an_unknown_tool_name_is_rejected(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """不认识的名字要当场说清可用清单：静默放行只会让模型以为「批了但没效果」。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await execute(
         client,
@@ -240,11 +240,11 @@ async def test_an_unknown_tool_name_is_rejected(
 
 
 async def test_a_rejected_request_does_not_consume_the_idempotency_key(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """准入在账本**之前**：core 用同一个键改对参数重发，不能被判成 409。"""
+    """准入在账本**之前**：cogito 用同一个键改对参数重发，不能被判成 409。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     rejected = await execute(client, payload=body(allowedTools=["knowledge_search"]))
     accepted = await execute(client)
@@ -258,11 +258,11 @@ async def test_a_rejected_request_does_not_consume_the_idempotency_key(
 
 
 async def test_a_repeated_delivery_converges_on_the_first_result(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """同一个键重复投递：回放第一次的报文，不再写一次、也不再花一次嵌入算力。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     first = await execute(client)
     replay = await execute(client)
@@ -274,11 +274,11 @@ async def test_a_repeated_delivery_converges_on_the_first_result(
 
 
 async def test_a_new_key_does_not_write_the_note_twice(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """换一个键（活动重试 / 换进程接管）：`memory_id` 是确定性派生的，所以只有一行。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     first = await execute(client)
     again = await execute(client, key="approval-key-0002")
@@ -293,11 +293,11 @@ async def test_a_new_key_does_not_write_the_note_twice(
 
 
 async def test_the_same_key_with_a_different_payload_is_a_conflict(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """同一个键换了载荷 = 调用方在复用别人的键，必须 409（否则会静默回放错的结果）。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
     await execute(client)
 
     response = await execute(
@@ -310,11 +310,11 @@ async def test_the_same_key_with_a_different_payload_is_a_conflict(
 
 
 async def test_the_allowlist_order_does_not_change_the_key(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """`allowedTools` 是**集合**语义：换个顺序重发不该变成另一次写入。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     first = await execute(client, payload=body(allowedTools=["memory_write", "knowledge_search"]))
     replay = await execute(client, payload=body(allowedTools=["knowledge_search", "memory_write"]))
@@ -327,11 +327,11 @@ async def test_the_allowlist_order_does_not_change_the_key(
 
 
 async def test_an_execution_failure_stays_a_two_hundred_with_ok_false(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """写预算用尽：工具**跑起来了**才失败，所以是 200 + `ok=false`，不是 4xx。"""
     stub = AgentStub()
-    client = core_backed_client(stub, agent_memory_max_writes_per_step=0)
+    client = cogito_backed_client(stub, agent_memory_max_writes_per_step=0)
 
     response = await execute(client)
 
@@ -344,11 +344,11 @@ async def test_an_execution_failure_stays_a_two_hundred_with_ok_false(
 
 
 async def test_a_blank_note_is_refused_without_writing(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """`minLength: 1` 拦不住一个空格：执行前的去空白校验仍要拦在写库之前。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await execute(client, payload=body(toolCall=pending_call('{"content":"   "}')))
 
@@ -360,14 +360,14 @@ async def test_a_blank_note_is_refused_without_writing(
 
 
 async def test_an_over_long_note_is_refused_by_the_shared_schema(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """说明书与执行共用同一份声明：模型看到的 `maxLength` 就是执行时校验的那个。"""
     declared = tools.catalog(["memory_write"])[0]["function"]["parameters"]["properties"]["content"]
     assert declared["maxLength"] == memory.MAX_CONTENT_CHARS
 
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
     too_long = "长" * (memory.MAX_CONTENT_CHARS + 1)
 
     response = await execute(
@@ -381,14 +381,14 @@ async def test_an_over_long_note_is_refused_by_the_shared_schema(
 
 
 async def test_a_broken_upstream_is_retryable_and_writes_nothing(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """嵌入响应畸形：宁可整体 503 让 core 重试，也不要把半条记忆写进库。
+    """嵌入响应畸形：宁可整体 503 让 cogito 重试，也不要把半条记忆写进库。
 
     这一条也钉住「暂时性故障向上抛」与「工具失败回 `ok=false`」的分界。
     """
     stub = RagStub(embedding_response=lambda inputs, call: {"data": []})
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await execute(client)
 
@@ -403,17 +403,17 @@ async def test_a_broken_upstream_is_retryable_and_writes_nothing(
 
 @pytest.mark.parametrize("label", ["missing", "wrong"])
 async def test_a_bad_internal_token_is_unauthorized(
-    core_backed_client: HandlerClient, database: Any, label: str
+    cogito_backed_client: HandlerClient, database: Any, label: str
 ) -> None:
     """审批通道是**更高价值**的入口（它能真的写东西），令牌这一层不能比别处松。"""
     stub = AgentStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
     headers = traceparent_only() if label == "missing" else internal_headers(token="not-the-token")
 
     response = await client.post(TOOL_EXECUTION_PATH, json=body(), headers=headers)
 
     assert response.status_code == 401
     assert error_code(response) == errors.ErrorCode.UNAUTHORIZED.value
-    # 401 发生在任何业务之前：没跑工具（连 core 都没碰），也没有落库。
+    # 401 发生在任何业务之前：没跑工具（连 cogito 都没碰），也没有落库。
     assert stub.paths == []
     assert await stored_notes(database) == []

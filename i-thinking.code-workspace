@@ -26,6 +26,10 @@
       "path": "apps/devtools"
     },
     {
+      "name": "cogito",
+      "path": "apps/cogito"
+    },
+    {
       "name": "docs",
       "path": "docs"
     },
@@ -230,6 +234,14 @@
   "mcp": {
     "inputs": [],
     "servers": {
+      "corex": {
+        "args": [
+          "--directives",
+          "examples/directives"
+        ],
+        "command": "corex-mcp",
+        "type": "stdio"
+      },
       "github-mcp": {
         "type": "http",
         "url": "https://api.githubcopilot.com/mcp"
@@ -256,7 +268,15 @@
       "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "[markdown]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "files.trimTrailingWhitespace": false
+    },
+    "[python]": {
+      "editor.codeActionsOnSave": {
+        "source.fixAll.ruff": "explicit"
+      },
+      "editor.defaultFormatter": "charliermarsh.ruff",
+      "editor.formatOnSave": true
     },
     "[sass]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -271,7 +291,7 @@
       "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "[toml]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "tamasfe.even-better-toml"
     },
     "[typescript]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -283,10 +303,15 @@
       "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "[yaml]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "redhat.vscode-yaml"
+    },
+    "accessibility.signals.terminalCommandFailed": {
+      "announcement": "auto",
+      "sound": "auto"
     },
     "breadcrumbs.filePath": "on",
     "breadcrumbs.symbolSortOrder": "type",
+    "chat.extensionUnification.enabled": false,
     "chat.mcp.serverSampling": {
       "desktop-apps/.vscode/mcp.json: github-mcp": {
         "allowedModels": [
@@ -298,7 +323,6 @@
         ]
       }
     },
-    "chat.extensionUnification.enabled": false,
     "css.format.newlineBetweenSelectors": true,
     "css.hover.documentation": true,
     "css.hover.references": true,
@@ -319,15 +343,15 @@
     "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
     "editor.codeActionsOnSave": {
       "source.addMissingImports.ts": "always",
-      "source.fixAll": "explicit",
-      "source.fixAll.eslint": "explicit",
-      "source.fixAll.oxc": "explicit",
-      "source.fixAll.ts": "explicit",
+      "source.fixAll": "always",
+      "source.fixAll.eslint": "always",
+      "source.fixAll.oxc": "always",
+      "source.fixAll.ts": "always",
       "source.organizeImports": "explicit",
-      "source.removeUnused.ts": "never",
-      "source.removeUnusedImports": "never",
-      "source.sort.json": "explicit",
-      "source.sortImports": "explicit"
+      "source.removeUnused.ts": "explicit",
+      "source.removeUnusedImports": "explicit",
+      "source.sort.json": "never",
+      "source.sortImports": "always"
     },
     "editor.cursorBlinking": "smooth",
     "editor.cursorSmoothCaretAnimation": "on",
@@ -367,10 +391,16 @@
       "vue": "html",
       "vue-html": "html"
     },
-    "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "vue"],
+    "eslint.validate": [
+      "javascript",
+      "javascriptreact",
+      "typescript",
+      "typescriptreact",
+      "vue"
+    ],
     "eslint.workingDirectories": [
       {
-        "mode": "auto"
+        "mode": "location"
       }
     ],
     "explorer.compactFolders": false,
@@ -381,13 +411,13 @@
       ".gitignore": ".gitattributes, .gitconfig, .gitpod.yml, .git*, git*",
       "*.env": "$(capture).env.*",
       "dist.pem": "dist.*",
-      "Dockerfile": "docker-compose.*, .dockerignore",
-      "eslint.config.ts": ".eslint*, eslint*, .prettier*, prettier*, oxlint*, oxlint*, .editorconfig, .lintstagedrc, .browserslistrc",
+      "docker-compose.*": "Dockerfile, .dockerignore",
+      "eslint.config.*": ".eslint*, eslint*, .prettier*, prettier*, oxlint*, oxlint*, .editorconfig, .lintstagedrc, .browserslistrc",
       "index.html": "*.html",
       "package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .node-version, .npmrc",
-      "tailwind.config.ts": "postcss.config.js, tailwind.config.ts, tailwind.config.cjs, tailwind.config.mjs, tailwind.config.jsx, tailwind.config.tsx, tailwind.config.jsx",
+      "tailwind.config.*": "postcss.config.*",
       "tsconfig.json": "tsconfig.*.json, env.d.ts",
-      "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*.ts"
+      "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, vite.config.*"
     },
     "files.associations": {
       "*.ts": "typescript",
@@ -397,6 +427,7 @@
     "files.autoSave": "onWindowChange",
     "files.encoding": "utf8",
     "files.exclude": {
+      "**/__pycache__": true,
       "**/.DS_Store": true,
       "**/.git": true,
       "**/.gitignore": false,
@@ -415,14 +446,18 @@
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
     "files.watcherExclude": {
+      "**/__pycache__": true,
       "**/.DS_Store": true,
       "**/.git": true,
       "**/.gitignore": true,
       "**/.idea": true,
+      "**/.pytest_cache": true,
       "**/.svn": true,
+      "**/.venv": true,
       "**/.vscode": true,
       "**/build": true,
       "**/dist": true,
+      "**/logs": true,
       "**/node_modules": true,
       "**/package-lock.json": true,
       "**/pnpm-lock.yaml": true,
@@ -435,16 +470,33 @@
     "i18n-ally.annotationInPlace": true,
     "i18n-ally.dirStructure": "dir",
     "i18n-ally.displayLanguage": "zh-CN",
-    "i18n-ally.enabledFrameworks": ["vue", "vue-sfc"],
-    "i18n-ally.enabledParsers": ["ts", "json"],
+    "i18n-ally.enabledFrameworks": [
+      "vue",
+      "vue-sfc"
+    ],
+    "i18n-ally.enabledParsers": [
+      "ts",
+      "json"
+    ],
     "i18n-ally.encoding": "utf-8",
     "i18n-ally.extract.autoDetect": true,
     "i18n-ally.extract.keygenStrategy": "source",
     "i18n-ally.extract.keygenStyle": "kebab-case",
     "i18n-ally.extract.keyPrefix": "prefix-",
     "i18n-ally.extract.parsers.html": {
-      "attributes": ["title", "alt", "aria-label", "placeholder", "label", "text", "sub-title"],
-      "ignoredTags": ["script", "style"],
+      "attributes": [
+        "title",
+        "alt",
+        "aria-label",
+        "placeholder",
+        "label",
+        "text",
+        "sub-title"
+      ],
+      "ignoredTags": [
+        "script",
+        "style"
+      ],
       "inlineText": true,
       "vBind": true
     },
@@ -473,7 +525,9 @@
     ],
     "i18n-ally.indent": 2,
     "i18n-ally.keystyle": "nested",
-    "i18n-ally.localesPaths": ["apps/extension/src/locales"],
+    "i18n-ally.localesPaths": [
+      "apps/extension/src/locales"
+    ],
     "i18n-ally.pathMatcher": "{locale}/index.ts",
     "i18n-ally.preferredDelimiter": "-",
     "i18n-ally.review.enabled": true,
@@ -496,18 +550,43 @@
     "iconify.customCollectionIdsMap": {
       "local": "local"
     },
-    "iconify.customCollectionJsonPaths": ["packages/shared/src/assets/icons"],
-    "iconify.languageIds": ["typescript", "typescriptreact", "vue"],
-    "javascript.format.semicolons": "remove",
-    "javascript.inlayHints.functionLikeReturnTypes.enabled": false,
-    "javascript.inlayHints.parameterNames.enabled": "none",
-    "javascript.preferences.importModuleSpecifier": "shortest",
-    "javascript.preferences.jsxAttributeCompletionStyle": "braces",
-    "javascript.preferences.quoteStyle": "single",
-    "javascript.suggest.autoImports": true,
-    "javascript.updateImportsOnFileMove.enabled": "always",
+    "iconify.customCollectionJsonPaths": [
+      "packages/shared/src/assets/icons"
+    ],
+    "iconify.languageIds": [
+      "typescript",
+      "typescriptreact",
+      "vue"
+    ],
+    "js/ts.autoClosingTags": true,
+    "js/ts.enablePromptUseWorkspaceTsdk": true,
+    "js/ts.format.semicolons": "remove",
     "js/ts.implicitProjectConfig.checkJs": true,
     "js/ts.implicitProjectConfig.target": "ESNext",
+    "js/ts.inlayHints.enumMemberValues.enabled": true,
+    "js/ts.inlayHints.functionLikeReturnTypes.enabled": false,
+    "js/ts.inlayHints.parameterNames.enabled": "none",
+    "js/ts.locale": "zh-CN",
+    "js/ts.preferences.autoImportFileExcludePatterns": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+      "**/.git/**",
+      "**/.svn/**",
+      "**/.vscode/**",
+      "**/.idea/**",
+      "**/.DS_Store"
+    ],
+    "js/ts.preferences.importModuleSpecifier": "shortest",
+    "js/ts.preferences.includePackageJsonAutoImports": "on",
+    "js/ts.preferences.jsxAttributeCompletionStyle": "braces",
+    "js/ts.preferences.preferTypeOnlyAutoImports": true,
+    "js/ts.preferences.quoteStyle": "single",
+    "js/ts.suggest.autoImports": true,
+    "js/ts.tsdk": "node_modules\\typescript\\lib",
+    "js/ts.tsserver.enableTracing": true,
+    "js/ts.updateImportsOnFileMove.enabled": "always",
     "merge-conflict.decorators.enabled": true,
     "notebook.compactView": true,
     "npm.packageManager": "pnpm",
@@ -519,7 +598,7 @@
     "path-intellisense.mappings": {
       "@": "${workspaceFolder}/src",
       "@client": "${workspaceFolder:client}/src",
-      "@core": "${workspaceFolder:core}/src",
+      "@cogito": "${workspaceFolder:core}/src",
       "@devtools": "${workspaceFolder:devtools}/src",
       "@extension": "${workspaceFolder:extension}/src",
       "@shared": "${workspaceFolder:shared}/src",
@@ -547,11 +626,14 @@
     "scss.lint.duplicateProperties": "error",
     "scss.lint.important": "warning",
     "search.exclude": {
+      "**/__pycache__": true,
       "**/.DS_Store": true,
       "**/.git": true,
       "**/.gitignore": true,
       "**/.idea": true,
+      "**/.pytest_cache": true,
       "**/.svn": true,
+      "**/.venv": true,
       "**/.vscode": true,
       "**/build": true,
       "**/dist": true,
@@ -564,7 +646,12 @@
     "search.followSymlinks": false,
     "search.searchEditor.singleClickBehaviour": "peekDefinition",
     "tailwindcss-intellisense.trace.server": "messages",
-    "tailwindCSS.files.exclude": ["**/.git/**", "**/node_modules/**", "**/.hg/**", "**/.svn/**"],
+    "tailwindCSS.files.exclude": [
+      "**/.git/**",
+      "**/node_modules/**",
+      "**/.hg/**",
+      "**/.svn/**"
+    ],
     "tailwindCSS.suggestions": true,
     "terminal.explorerKind": "external",
     "terminal.integrated.cursorBlinking": true,
@@ -579,19 +666,6 @@
     "turboConsoleLog.includeLineNum": true,
     "turboConsoleLog.insertEmptyLineAfterLogMessage": true,
     "turboConsoleLog.insertEmptyLineBeforeLogMessage": true,
-    "typescript.autoClosingTags": true,
-    "typescript.enablePromptUseWorkspaceTsdk": true,
-    "typescript.format.semicolons": "remove",
-    "typescript.inlayHints.enumMemberValues.enabled": true,
-    "typescript.locale": "zh-CN",
-    "typescript.preferences.importModuleSpecifier": "shortest",
-    "typescript.preferences.includePackageJsonAutoImports": "on",
-    "typescript.preferences.preferTypeOnlyAutoImports": true,
-    "typescript.preferences.quoteStyle": "single",
-    "typescript.suggest.autoImports": true,
-    "typescript.tsdk": "node_modules\\typescript\\lib",
-    "typescript.tsserver.enableTracing": true,
-    "typescript.updateImportsOnFileMove.enabled": "always",
     "vue.autoInsert.bracketSpacing": true,
     "vue.autoInsert.dotValue": true,
     "vue.codeActions.askNewComponentName": true,
@@ -630,7 +704,9 @@
   "tasks": {
     "tasks": [
       {
-        "args": ["dev:extension"],
+        "args": [
+          "dev:extension"
+        ],
         "command": "bun",
         "detail": "启动 extension 应用开发服务器",
         "isBackground": true,
@@ -652,7 +728,9 @@
         "type": "shell"
       },
       {
-        "args": ["dev:client"],
+        "args": [
+          "dev:client"
+        ],
         "command": "bun",
         "detail": "启动 Client 应用开发服务器",
         "isBackground": true,
@@ -674,7 +752,9 @@
         "type": "shell"
       },
       {
-        "args": ["dev:devtools"],
+        "args": [
+          "dev:devtools"
+        ],
         "command": "bun",
         "detail": "启动 DevTools 应用开发服务器",
         "isBackground": true,

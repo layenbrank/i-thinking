@@ -265,7 +265,7 @@ const ImageActionGroup: React.FC = () => {
   )
 }
 
-const CoreActionGroup: React.FC = () => {
+const CogitoActionGroup: React.FC = () => {
   const {
     handleDuplicate,
     canDuplicate,
@@ -504,7 +504,7 @@ export const DragContextMenu: React.FC<DragContextMenuProps> = ({
                   <ImageActionGroup />
                 </MenuGroup>
 
-                <CoreActionGroup />
+                <CogitoActionGroup />
 
                 <AIActionGroup />
 

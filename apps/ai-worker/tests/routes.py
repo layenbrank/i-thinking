@@ -21,7 +21,7 @@ BOOM_ENDPOINT = "test:boom"
 
 @router.get("/internal/v1/_test/ping")
 async def ping() -> dict[str, bool]:
-    """不碰数据库、不碰 core，用来单独观察中间件行为。"""
+    """不碰数据库、不碰 cogito，用来单独观察中间件行为。"""
     return {"pong": True}
 
 

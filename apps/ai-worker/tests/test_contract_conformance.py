@@ -1,13 +1,13 @@
-"""契约一致性：把**真实**的响应体逐条交给 `apps/core/spec/internal.yaml` 的 schema 校验。
+"""契约一致性：把**真实**的响应体逐条交给 `apps/cogito/spec/internal.yaml` 的 schema 校验。
 
 `test_route_surface.py` 钉的是「路径 + 方法」，这一条钉的是「报文的形状」。两者的失败方式
-完全不同：路径错是静默 404（core 只看到一次莫名重试），形状错要等 core **运行时**才炸——
-少一个 required 字段、类型不对、状态码不在契约里，core 那边要么反序列化失败、要么把
+完全不同：路径错是静默 404（cogito 只看到一次莫名重试），形状错要等 cogito **运行时**才炸——
+少一个 required 字段、类型不对、状态码不在契约里，cogito 那边要么反序列化失败、要么把
 一个本该 400 的响应当成 5xx 无限重试。
 
 所以这里不重写规则，只用契约本身当裁判：每个端点、每种状态码都跑一遍真实请求，
-再把响应体与状态码交给契约。请求方向同理——core 真的会发来的那几个报文（照
-`apps/core/tests/rag_index.rs` 与 agent 编排的形状）也必须能通过 `ChunkRequest` / `EmbedRequest` /
+再把响应体与状态码交给契约。请求方向同理——cogito 真的会发来的那几个报文（照
+`apps/cogito/tests/rag_index.rs` 与 agent 编排的形状）也必须能通过 `ChunkRequest` / `EmbedRequest` /
 `IndexRequest` / `AgentStepRequest` 的校验，否则就是两侧对同一个字段的理解已经漂了。
 """
 
@@ -42,14 +42,14 @@ from support import (
     tool_call,
 )
 
-SPEC_PATH = Path(__file__).resolve().parents[2] / "core" / "spec" / "internal.yaml"
+SPEC_PATH = Path(__file__).resolve().parents[2] / "cogito" / "spec" / "internal.yaml"
 SPEC_URI = "urn:i-thinking:internal-contract"
 
 CHUNK_SET_ID = "7a1c9f2e-3b4d-4c5e-8f60-1a2b3c4d5e6f"
 MODEL = "text-embedding-3-small"
 DIMENSIONS = 8
 TEXTS = ("第一块正文。", "第二块正文。", "第三块正文。")
-#: 分块端点的正文来源（core 会先换令牌再取资产正文）。
+#: 分块端点的正文来源（cogito 会先换令牌再取资产正文）。
 SOURCE = "第一块正文。\n\n第二块正文。"
 
 #: 审批通道（两个需要审批的工具：`memory_write`、`asset_visibility_write`）的
@@ -198,7 +198,7 @@ def test_the_harness_actually_rejects_wrong_shapes() -> None:
 
 
 def chunk_body() -> dict[str, Any]:
-    """core 真的会发来的分块请求（`AiWorkerClient::ChunkRequest`）。"""
+    """cogito 真的会发来的分块请求（`AiWorkerClient::ChunkRequest`）。"""
     return {"schemaVersion": 1, "tenantID": TENANT_ID, "mime": "text/plain", "name": "readme.md"}
 
 
@@ -225,7 +225,7 @@ def index_body(*, chunk_count: int = len(TEXTS)) -> dict[str, Any]:
 
 
 def agent_body(**overrides: Any) -> dict[str, Any]:
-    """core 真的会发来的智能体步请求（`AgentStepRequest`）。默认不给工具。"""
+    """cogito 真的会发来的智能体步请求（`AgentStepRequest`）。默认不给工具。"""
     body: dict[str, Any] = {
         "schemaVersion": 1,
         "tenantID": TENANT_ID,
@@ -239,7 +239,7 @@ def agent_body(**overrides: Any) -> dict[str, Any]:
 
 
 def approval_body(**overrides: Any) -> dict[str, Any]:
-    """core 在人工批准后发来的执行请求（`AgentToolExecutionRequest`）。
+    """cogito 在人工批准后发来的执行请求（`AgentToolExecutionRequest`）。
 
     注意 `allowedTools` 在这里是**必填**（`AgentStepRequest` 里它可以缺省为空列表）：
     审批通道靠它回答「这条路径上的白名单是什么」，缺了就无从准入。
@@ -310,34 +310,34 @@ async def test_health_response_matches_the_contract(client: AsyncClient) -> None
 async def test_degraded_health_response_matches_the_contract(
     offline_client: AsyncClient,
 ) -> None:
-    """降级也走同一个 schema：core 的 readiness 只按状态码判定，但响应体不能变成另一种形状。"""
+    """降级也走同一个 schema：cogito 的 readiness 只按状态码判定，但响应体不能变成另一种形状。"""
     response = await offline_client.get(HEALTH_PATH)
 
     assert_conforms(response, "HealthResponse")
     assert response.json()["status"] == "degraded"
 
 
-async def test_chunk_success_matches_the_contract(core_backed_client: HandlerClient) -> None:
-    client = core_backed_client(RagStub(SOURCE.encode()))
+async def test_chunk_success_matches_the_contract(cogito_backed_client: HandlerClient) -> None:
+    client = cogito_backed_client(RagStub(SOURCE.encode()))
 
     assert_conforms(await post_chunks(client), "ChunkResponse")
 
 
 async def test_embed_success_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     assert_conforms(await post_embeddings(client), "EmbedResponse")
 
 
 async def test_embed_replay_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """幂等命中是一等公民：core 重试时拿到的仍然是合契约的报文（`embedded` 为 0）。"""
+    """幂等命中是一等公民：cogito 重试时拿到的仍然是合契约的报文（`embedded` 为 0）。"""
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     await post_embeddings(client)
     replay = await post_embeddings(client)
@@ -347,7 +347,7 @@ async def test_embed_replay_matches_the_contract(
 
 
 async def test_index_success_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
     await save_embeddings(
@@ -356,7 +356,7 @@ async def test_index_success_matches_the_contract(
         items=[(ordinal, [0.1] * DIMENSIONS) for ordinal in range(len(TEXTS))],
         model=MODEL,
     )
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
 
     assert_conforms(await put_index(client), "IndexResponse")
 
@@ -372,10 +372,10 @@ async def test_index_success_matches_the_contract(
     ],
 )
 async def test_missing_token_matches_the_contract(
-    core_backed_client: HandlerClient, path: str
+    cogito_backed_client: HandlerClient, path: str
 ) -> None:
-    """401 也是契约的一部分：整条鉴别链断在最外层时，报文体仍要能被 core 解出来。"""
-    client = core_backed_client(RagStub())
+    """401 也是契约的一部分：整条鉴别链断在最外层时，报文体仍要能被 cogito 解出来。"""
+    client = cogito_backed_client(RagStub())
     method = "PUT" if path.endswith("/index") else "POST"
 
     response = await client.request(
@@ -397,10 +397,10 @@ async def test_missing_token_matches_the_contract(
     ],
 )
 async def test_missing_traceparent_matches_the_contract(
-    core_backed_client: HandlerClient, path: str
+    cogito_backed_client: HandlerClient, path: str
 ) -> None:
     """契约把 `traceparent` 声明成**必填参数**，所以缺了它只能回 400（且不能顺手开工）。"""
-    client = core_backed_client(RagStub())
+    client = cogito_backed_client(RagStub())
     method = "PUT" if path.endswith("/index") else "POST"
 
     response = await client.request(
@@ -411,8 +411,8 @@ async def test_missing_traceparent_matches_the_contract(
     assert_error_conforms(response)
 
 
-async def test_bad_request_matches_the_contract(core_backed_client: HandlerClient) -> None:
-    client = core_backed_client(RagStub(SOURCE.encode()))
+async def test_bad_request_matches_the_contract(cogito_backed_client: HandlerClient) -> None:
+    client = cogito_backed_client(RagStub(SOURCE.encode()))
 
     response = await client.post(
         f"/internal/v1/assets/{ASSET_ID}/chunks",
@@ -425,9 +425,9 @@ async def test_bad_request_matches_the_contract(core_backed_client: HandlerClien
 
 
 async def test_idempotency_conflict_matches_the_contract(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
-    client = core_backed_client(RagStub(SOURCE.encode()))
+    client = cogito_backed_client(RagStub(SOURCE.encode()))
     await post_chunks(client, key=KEY)
 
     response = await client.post(
@@ -440,9 +440,9 @@ async def test_idempotency_conflict_matches_the_contract(
     assert_error_conforms(response)
 
 
-async def test_rate_limited_matches_the_contract(core_backed_client: HandlerClient) -> None:
-    """429 是 core 侧「退避后重试」的信号，报文与 `Retry-After` 都不能变形。"""
-    client = core_backed_client(RagStub(content_status=429))
+async def test_rate_limited_matches_the_contract(cogito_backed_client: HandlerClient) -> None:
+    """429 是 cogito 侧「退避后重试」的信号，报文与 `Retry-After` 都不能变形。"""
+    client = cogito_backed_client(RagStub(content_status=429))
 
     response = await post_chunks(client)
 
@@ -452,10 +452,10 @@ async def test_rate_limited_matches_the_contract(core_backed_client: HandlerClie
 
 
 async def test_dependency_failure_matches_the_contract(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
-    """上游坏掉回 503 + `Retry-After` 是 core 侧「可重试」的唯一依据，报文不能变形。"""
-    client = core_backed_client(RagStub(b"", content_status=503))
+    """上游坏掉回 503 + `Retry-After` 是 cogito 侧「可重试」的唯一依据，报文不能变形。"""
+    client = cogito_backed_client(RagStub(b"", content_status=503))
 
     response = await post_chunks(client)
 
@@ -463,10 +463,10 @@ async def test_dependency_failure_matches_the_contract(
     assert_error_conforms(response)
 
 
-async def test_core_request_bodies_satisfy_the_contract(
-    core_backed_client: HandlerClient, database: Any
+async def test_cogito_request_bodies_satisfy_the_contract(
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """反方向：core 发过来的报文必须能通过请求 schema，并且真的被接受（200）。
+    """反方向：cogito 发过来的报文必须能通过请求 schema，并且真的被接受（200）。
 
     这条是防「契约改了字段名、两侧却各自自洽」——只验响应的话，请求侧的漂移照样漏网。
     """
@@ -475,7 +475,7 @@ async def test_core_request_bodies_satisfy_the_contract(
     assert_request_matches(index_body(), "IndexRequest")
 
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
-    client = core_backed_client(RagStub(SOURCE.encode()))
+    client = cogito_backed_client(RagStub(SOURCE.encode()))
 
     assert (await post_chunks(client)).status_code == 200
     assert (await post_embeddings(client)).status_code == 200
@@ -489,7 +489,7 @@ async def test_core_request_bodies_satisfy_the_contract(
 
 
 async def test_capability_names_are_vocabulary_from_the_contract(client: AsyncClient) -> None:
-    """能力名是 core 用来发现功能的键：注册表里出现的名字必须在契约里出现过。"""
+    """能力名是 cogito 用来发现功能的键：注册表里出现的名字必须在契约里出现过。"""
     document = SPEC_PATH.read_text(encoding="utf-8")
     names = capabilities.registry.names()
 
@@ -499,13 +499,13 @@ async def test_capability_names_are_vocabulary_from_the_contract(client: AsyncCl
 
 
 async def test_agent_step_success_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """无工具的「只要一条结论」也要完全合契约。
 
     注意这一条**需要真库**：即便不跑任何工具，幂等闸门也要落账本（重投才会收敛）。
     """
-    client = core_backed_client(AgentStub(replies=[completion("退款政策是七天无理由。")]))
+    client = cogito_backed_client(AgentStub(replies=[completion("退款政策是七天无理由。")]))
 
     response = await post_agent(client)
 
@@ -516,11 +516,11 @@ async def test_agent_step_success_matches_the_contract(
 
 
 async def test_agent_step_with_tools_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """带工具调用的那一步：`message` / `toolResults` 都是契约形状（真库 + 真检索 SQL）。"""
     await seed_indexed_asset(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS, model=MODEL)
-    client = core_backed_client(
+    client = cogito_backed_client(
         AgentStub(
             replies=[
                 completion(tool_calls=[tool_call(arguments='{"query":"第二块"}')]),
@@ -537,10 +537,10 @@ async def test_agent_step_with_tools_matches_the_contract(
 
 
 async def test_agent_step_errors_match_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """4xx 面：契约里声明的每一个都可能被 core 看到，形状都不能变形。"""
-    client = core_backed_client(AgentStub(replies=[completion("ok")]))
+    """4xx 面：契约里声明的每一个都可能被 cogito 看到，形状都不能变形。"""
+    client = cogito_backed_client(AgentStub(replies=[completion("ok")]))
 
     bad_tool = await post_agent(client, body=agent_body(allowedTools=["shell_exec"]))
     bad_history = await post_agent(
@@ -560,9 +560,9 @@ async def test_agent_step_errors_match_the_contract(
 
 
 async def test_agent_step_idempotency_conflict_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    client = core_backed_client(AgentStub(replies=[completion("ok")]))
+    client = cogito_backed_client(AgentStub(replies=[completion("ok")]))
     await post_agent(client)
 
     response = await post_agent(client, body=agent_body(objective="换一个目标"))
@@ -572,11 +572,11 @@ async def test_agent_step_idempotency_conflict_matches_the_contract(
 
 
 async def test_agent_step_replay_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """重投必须回放**第一次**的那份报文，而不是再问一次模型（模型调用是要花钱的）。"""
     stub = AgentStub(replies=[completion("第一次的结论。")])
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     first = await post_agent(client)
     replay = await post_agent(client)
@@ -587,11 +587,11 @@ async def test_agent_step_replay_matches_the_contract(
 
 
 async def test_agent_step_upstream_failures_match_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """429/503 是 core「退避后重试」的依据，报文与 `Retry-After` 都不能变形。"""
-    limited = core_backed_client(AgentStub(chat_status=429))
-    broken = core_backed_client(AgentStub(chat_status=503))
+    """429/503 是 cogito「退避后重试」的依据，报文与 `Retry-After` 都不能变形。"""
+    limited = cogito_backed_client(AgentStub(chat_status=429))
+    broken = cogito_backed_client(AgentStub(chat_status=503))
 
     rate_limited = await post_agent(limited)
     unavailable = await post_agent(broken)
@@ -603,10 +603,10 @@ async def test_agent_step_upstream_failures_match_the_contract(
     assert_error_conforms(unavailable)
 
 
-async def test_core_agent_request_bodies_satisfy_the_contract(
-    core_backed_client: HandlerClient, database: Any
+async def test_cogito_agent_request_bodies_satisfy_the_contract(
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """反方向：core 攒出来的历史（含工具调用与工具结果）必须能通过请求 schema 并被接受。"""
+    """反方向：cogito 攒出来的历史（含工具调用与工具结果）必须能通过请求 schema 并被接受。"""
     body = agent_body(
         allowedTools=["knowledge_search", "asset_read"],
         remainingSteps=3,
@@ -624,7 +624,7 @@ async def test_core_agent_request_bodies_satisfy_the_contract(
     assert_request_matches(body, "AgentStepRequest")
 
     await seed_indexed_asset(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS, model=MODEL)
-    client = core_backed_client(AgentStub(replies=[completion("依据如上。")]))
+    client = cogito_backed_client(AgentStub(replies=[completion("依据如上。")]))
 
     response = await post_agent(client, body=body)
 
@@ -646,11 +646,11 @@ async def stored_notes(database: Any) -> list[str]:
 
 
 async def test_agent_approval_success_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """人工批准后真的执行：响应体是 `AgentToolExecutionResponse`，而且不再是占位。"""
     stub = RagStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await post_approval(client)
 
@@ -658,20 +658,20 @@ async def test_agent_approval_success_matches_the_contract(
     assert_conforms(response, "AgentToolExecutionResponse")
     tool_result = response.json()["toolResult"]
     assert tool_result["ok"] is True
-    # `awaitingApproval` 在契约里可省（缺省 false），我们总是显式给出：core 不必依赖缺省语义。
+    # `awaitingApproval` 在契约里可省（缺省 false），我们总是显式给出：cogito 不必依赖缺省语义。
     assert tool_result["awaitingApproval"] is False
     assert stub.embed_calls == 1
     assert await stored_notes(database) == [NOTE]
 
 
 async def test_agent_step_pending_approval_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """需要一个审批的步：`/agents/steps` 只留占位结果，`awaitingApproval` 必须显式为 true。"""
     stub = AgentStub(
         replies=[completion(None, tool_calls=[tool_call("memory_write", NOTE_ARGUMENTS)])]
     )
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     response = await post_agent(client, body=agent_body(allowedTools=["memory_write"]))
 
@@ -687,11 +687,11 @@ async def test_agent_step_pending_approval_matches_the_contract(
 
 
 async def test_agent_approval_replay_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """同一把幂等键重投：回放第一次的报文，且不会写第二遍（嵌入也不该再花一次）。"""
     stub = RagStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     first = await post_approval(client)
     replay = await post_approval(client)
@@ -703,11 +703,11 @@ async def test_agent_approval_replay_matches_the_contract(
 
 
 async def test_agent_approval_rejections_match_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """准入失败一律是 400（不是 200 + ok=false）：这三种请求连工具都不该碰到。"""
     stub = RagStub()
-    client = core_backed_client(stub)
+    client = cogito_backed_client(stub)
 
     not_gated = await post_approval(
         client,
@@ -733,10 +733,10 @@ async def test_agent_approval_rejections_match_the_contract(
 
 
 async def test_agent_approval_conflict_matches_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """同一把键换一份负载是 409：静默回放会让 core 拿到另一笔审批的结果。"""
-    client = core_backed_client(RagStub())
+    """同一把键换一份负载是 409：静默回放会让 cogito 拿到另一笔审批的结果。"""
+    client = cogito_backed_client(RagStub())
 
     await post_approval(client)
     conflicting = await post_approval(client, body=approval_body(approvalID=str(uuid4())))
@@ -747,11 +747,11 @@ async def test_agent_approval_conflict_matches_the_contract(
 
 
 async def test_agent_approval_upstream_failures_match_the_contract(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """嵌入挂了仍要按「暂时性」上报：429/503 是 core 退避重试的依据，`Retry-After` 也要带上。"""
-    limited = core_backed_client(RagStub(embed_status=429))
-    broken = core_backed_client(RagStub(embedding_response=lambda inputs, call: {"data": []}))
+    """嵌入挂了仍要按「暂时性」上报：429/503 是 cogito 退避重试的依据，`Retry-After` 也要带上。"""
+    limited = cogito_backed_client(RagStub(embed_status=429))
+    broken = cogito_backed_client(RagStub(embedding_response=lambda inputs, call: {"data": []}))
 
     rate_limited = await post_approval(limited)
     unavailable = await post_approval(broken)
@@ -764,14 +764,14 @@ async def test_agent_approval_upstream_failures_match_the_contract(
     assert await stored_notes(database) == []
 
 
-async def test_core_agent_tool_execution_request_bodies_satisfy_the_contract(
-    core_backed_client: HandlerClient, database: Any
+async def test_cogito_agent_tool_execution_request_bodies_satisfy_the_contract(
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """反方向：core 攒出来的审批执行报文必须能通过 `AgentToolExecutionRequest` 并被接受。"""
+    """反方向：cogito 攒出来的审批执行报文必须能通过 `AgentToolExecutionRequest` 并被接受。"""
     body = approval_body()
     assert_request_matches(body, "AgentToolExecutionRequest")
 
-    response = await post_approval(core_backed_client(RagStub()), body=body)
+    response = await post_approval(cogito_backed_client(RagStub()), body=body)
 
     assert response.status_code == 200
     assert_conforms(response, "AgentToolExecutionResponse")

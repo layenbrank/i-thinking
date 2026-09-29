@@ -2,8 +2,8 @@
 
 一趟走完的顺序是刻意的：
 
-1. **先解析并校验参数**（400 不碰数据库、不碰 core）：请求本身就错的时候不该占幂等键，
-   也不该浪费一次 core 的取正文调用；
+1. **先解析并校验参数**（400 不碰数据库、不碰 cogito）：请求本身就错的时候不该占幂等键，
+   也不该浪费一次 cogito 的取正文调用；
 2. 再进幂等闸门：重发直接回放第一次的响应；
 3. 取正文、抽取、切块（纯计算，不写库）；
 4. 最后**一个事务**写块集与块，然后才在幂等账本上记账。
@@ -13,7 +13,7 @@
 垃圾；确定性 id 让重跑落到同一行上，`save()` 覆盖掉半截数据就自愈了
 （见 [`ai_worker.rag_ingest.store`]）。
 
-正文不进响应，也不进 core 的编排历史：core 只拿到 `chunkSetID` + `chunkCount` + `textSha`，
+正文不进响应，也不进 cogito 的编排历史：cogito 只拿到 `chunkSetID` + `chunkCount` + `textSha`，
 后续嵌入与落索引都只带这个 id。
 """
 
@@ -28,7 +28,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ai_worker import errors, idempotency
-from ai_worker.core_client import CoreClient
+from ai_worker.cogito_client import CogitoClient
 from ai_worker.db import Database, DatabaseUnavailableError
 from ai_worker.rag_ingest import chunking, extract, store
 from ai_worker.rag_ingest.schemas import ChunkRequest, ChunkResponse
@@ -63,9 +63,9 @@ class _Document:
 async def chunk_asset(asset_id: UUID, request: Request, body: ChunkRequest) -> JSONResponse:
     """切分一个资产的正文。
 
-    响应码：200 成功（含 0 块）；400 请求或格式问题（不支持的 MIME、正文超限、core 说资产
+    响应码：200 成功（含 0 块）；400 请求或格式问题（不支持的 MIME、正文超限、cogito 说资产
     不存在等「重试也没用」的原因）；401 内部令牌不对；409 幂等键冲突或仍在执行中；
-    429 core 限流；503 数据库或 core 暂时不可用。
+    429 cogito 限流；503 数据库或 cogito 暂时不可用。
     """
     settings = request.app.state.settings
     chunk_size = settings.default_chunk_size if body.chunk_size is None else body.chunk_size
@@ -75,7 +75,7 @@ async def chunk_asset(asset_id: UUID, request: Request, body: ChunkRequest) -> J
     chunking.validate_params(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     # 幂等载荷用「生效后」的参数：省略 chunkSize 与显式写出服务端默认值必须算同一个请求，
-    # 否则 core 的一次重发（少带一个可选字段）会被判成 409 冲突。
+    # 否则 cogito 的一次重发（少带一个可选字段）会被判成 409 冲突。
     payload = {
         "assetID": str(asset_id),
         "tenantID": body.tenant_id,
@@ -127,7 +127,7 @@ async def _build(
 ) -> _Document:
     """取正文、抽文本、切块；只算不写库。"""
     settings = request.app.state.settings
-    core: CoreClient = request.app.state.core
+    core: CogitoClient = request.app.state.core
 
     data = await core.asset_content(
         tenant_id=body.tenant_id,

@@ -13,12 +13,12 @@
 
 ## 1. 目标
 
-为 `apps/studio`（Electron 客户端）、`corex`（Rust 工具运行时）、`service`（Rust 后端）补齐企业级在线模型接入：
+为 `apps/studio`（Electron 客户端）、`corex`（Rust 工具运行时）、`cogito`（Rust 后端）补齐企业级在线模型接入：
 
 1. **BYOK 云供应商**：OpenAI / Anthropic / DeepSeek / Qwen / 智谱，密钥托管、流式、模型列表。
-2. **托管网关**：Rust `service` 提供托管模型 + 企业管控。
+2. **托管网关**：Rust `cogito` 提供托管模型 + 企业管控。
 
-已确认边界：agent 运行时 = TS + Effect（内嵌 studio 主进程）；corex = MCP 工具提供者；后端统一在 Rust `service`；全套对齐 opencode v2；禁用 ACP v1（`@agentclientprotocol/sdk@1.3.0` + goose WSS）。
+已确认边界：agent 运行时 = TS + Effect（内嵌 studio 主进程）；corex = MCP 工具提供者；后端统一在 Rust `cogito`；全套对齐 opencode v2；禁用 ACP v1（`@agentclientprotocol/sdk@1.3.0` + goose WSS）。
 
 ## 2. opencode v2 架构映射
 

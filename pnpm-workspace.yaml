@@ -3,7 +3,7 @@ packages:
   - apps/*
   - packages/*
   # Rust / Python 应用依赖各自生态（cargo / uv）管理，不进入 pnpm workspace
-  - '!apps/core'
+  - '!apps/cogito'
   - '!apps/ai-worker'
 
 # 注册源（替代 .npmrc 中的 registry / @scope:registry）

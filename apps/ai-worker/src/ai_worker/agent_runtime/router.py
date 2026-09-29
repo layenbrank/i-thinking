@@ -1,18 +1,18 @@
 """agent 运行时的两条写路径：
 
 * `POST /internal/v1/agents/steps` —— 智能体的**一步**（一次推理 + 至多一轮工具）；
-* `POST /internal/v1/agents/tool-executions` —— 审批通道的**执行半边**：core 在人工批准后
+* `POST /internal/v1/agents/tool-executions` —— 审批通道的**执行半边**：cogito 在人工批准后
   用这条路径把 `steps` 里那次被挂起的调用真的跑掉。两条路径都属于 `agent.step` 能力。
 
 为什么执行要单独开一条路径：有副作用的工具（`memory_write` 与 `asset_visibility_write`）在
 `steps` 里只回 `awaitingApproval=true` 的占位结果，真正的执行永远只从这一条路径进来，所以
 「谁执行了什么」只有一个入口，也不需要在等审批时挂住一个 HTTP 连接。准入只认两条规则
-（工具声明了需要审批 + 在白名单里）——审批台账在 core 那边，ai-worker 读不到也不该读。
+（工具声明了需要审批 + 在白名单里）——审批台账在 cogito 那边，ai-worker 读不到也不该读。
 
 单步端点的顺序是刻意的：
 
-1. **先做纯校验**（400 不碰幂等键、不碰数据库、不碰 core）：`history` 里出现 `system`
-   消息、`allowedTools` 里有我们不认识的名字——这些是 core 的拼接错了，当场说清楚比
+1. **先做纯校验**（400 不碰幂等键、不碰数据库、不碰 cogito）：`history` 里出现 `system`
+   消息、`allowedTools` 里有我们不认识的名字——这些是 cogito 的拼接错了，当场说清楚比
    让它带着一个空工具集继续跑强得多；
 2. 算清本步**实际**提供的工具（见下），再组幂等载荷：重发必须落到同一份额外输入上；
 3. 进幂等闸门（重发回放第一次的响应）；
@@ -21,13 +21,13 @@
 
 三处不太显然但必须守住的地方：
 
-* **系统提示词由本服务拥有**，每步前置同一份。core 只需要维护「业务历史」，
+* **系统提示词由本服务拥有**，每步前置同一份。cogito 只需要维护「业务历史」，
   不必也不该知道工具环境的规则；这也让 `history` 里出现 `system` 成为明确错误；
 * **`remainingSteps <= 1` 时不给工具**：这是硬止损。模型仍可能凭印象要工具（它是从
   prompt 里看到过工具说明的），这种调用一律不执行、把 `toolCalls` 剥掉并判 `finished=true`
   ——契约里 `finished` 等价于「没有再要工具」，不能让一个不存在的工具破坏这个不变式。
-  正文照常交给 core（模型通常会直接作答说资料不足）；
-* **`allowedTools` 去重排序后再进幂等载荷**：工具清单对模型来说是集合，core 换了顺序
+  正文照常交给 cogito（模型通常会直接作答说资料不足）；
+* **`allowedTools` 去重排序后再进幂等载荷**：工具清单对模型来说是集合，cogito 换了顺序
   不该算另一次调用（否则一次无害的重排重发会变成 409）。
 """
 
@@ -51,7 +51,7 @@ from ai_worker.agent_runtime.schemas import (
     AgentUsage,
 )
 from ai_worker.config import Settings
-from ai_worker.core_client import CoreClient
+from ai_worker.cogito_client import CogitoClient
 from ai_worker.db import Database
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ TOOL_EXECUTION_PATH = "/internal/v1/agents/tool-executions"
 #: 同 `ENDPOINT`：账本里的键，与路径解耦。
 TOOL_EXECUTION_ENDPOINT = "agents.tool-executions"
 
-#: 每步前置的系统提示词。写在这里而不是让 core 传：工具环境是**本服务**的实现细节，
+#: 每步前置的系统提示词。写在这里而不是让 cogito 传：工具环境是**本服务**的实现细节，
 #: 而且固定文本才能让「同一份历史」在不同步骤上得到一致的模型行为。
 #:
 #: 关于记忆的两句是**安全边界**，不是风格建议：记忆是本租户内的共享文本，谁写进去的字
@@ -98,7 +98,7 @@ ROUTER = APIRouter()
 @ROUTER.post(STEP_PATH, summary="执行一步智能体推理")
 async def agent_step(request: Request, body: AgentStepRequest) -> JSONResponse:
     """执行一步。响应码：200 完成（含「工具失败」这种正常结果）；400 请求或历史拼接不合法；
-    401 内部令牌不对；409 幂等键冲突或仍在执行中；429 core 限流；503 数据库、模型或向量库
+    401 内部令牌不对；409 幂等键冲突或仍在执行中；429 cogito 限流；503 数据库、模型或向量库
     暂时不可用。**工具自身的失败不会变成 4xx/5xx**，它只是 `toolResults[].ok=false`。
     """
     _reject_system_history(body)
@@ -128,7 +128,7 @@ async def agent_step(request: Request, body: AgentStepRequest) -> JSONResponse:
             return replayed
 
         settings = request.app.state.settings
-        core: CoreClient = request.app.state.core
+        core: CogitoClient = request.app.state.core
         database: Database = request.app.state.db
 
         completion = dialogue.parse_completion(
@@ -145,7 +145,7 @@ async def agent_step(request: Request, body: AgentStepRequest) -> JSONResponse:
             completion_usage=completion.usage,
             body=body,
             offered=offered,
-            core=core,
+            cogito=cogito,
             database=database,
             settings=settings,
         )
@@ -159,10 +159,10 @@ async def agent_tool_execution(request: Request, body: AgentToolExecutionRequest
 
     响应码与 `steps` 一致：200 完成（**含「工具自己失败」这种正常结果**）；400 请求不合法或
     准入不过（不认识的工具、不在白名单、不需要审批）；401 内部令牌不对；409 幂等键冲突或仍在
-    执行中；429 core 限流；503 数据库、模型或向量库暂时不可用。
+    执行中；429 cogito 限流；503 数据库、模型或向量库暂时不可用。
 
-    **这里不校验审批本身**：台账在 core 那边，ai-worker 既读不到也不该读。信任边界是内部令牌
-    加这两条准入规则，core 负责「没批准就别调这里」。
+    **这里不校验审批本身**：台账在 cogito 那边，ai-worker 既读不到也不该读。信任边界是内部令牌
+    加这两条准入规则，cogito 负责「没批准就别调这里」。
     """
     _admit_approved_tool(body)
     payload = {
@@ -183,7 +183,7 @@ async def agent_tool_execution(request: Request, body: AgentToolExecutionRequest
             return replayed
 
         settings = request.app.state.settings
-        core: CoreClient = request.app.state.core
+        core: CogitoClient = request.app.state.core
         database: Database = request.app.state.db
 
         # 一次请求就是一次调用，所以预算按「一步的额度」给：写入预算仍然是运维开关，
@@ -191,11 +191,11 @@ async def agent_tool_execution(request: Request, body: AgentToolExecutionRequest
         context = tools.ToolContext(
             tenant_id=body.tenant_id,
             embed_model=body.embed_model,
-            core=core,
+            cogito=cogito,
             database=database,
             settings=settings,
             memory_writes=tools.WriteBudget(remaining=settings.agent_memory_max_writes_per_step),
-            # 审批号是这一次调用的凭据来源：写工具拿它去 core 换对应那一次批准的写令牌。
+            # 审批号是这一次调用的凭据来源：写工具拿它去 cogito 换对应那一次批准的写令牌。
             approval_id=body.approval_id,
         )
         result = await tools.invoke(
@@ -214,7 +214,7 @@ def _admit_approved_tool(body: AgentToolExecutionRequest) -> None:
     """审批通道的准入，只有两条规则，顺序固定：工具必须声明需要审批，且在 `allowedTools` 里。
 
     三条失败一律 400 `invalid_request`，**不是** `ok=false` 的 200：它们说的是「这次请求不该
-    发过来」（core 拼错了、或者想拿这条路径跑只读工具），而不是「工具跑起来失败了」。
+    发过来」（cogito 拼错了、或者想拿这条路径跑只读工具），而不是「工具跑起来失败了」。
     工具真的执行之后失败，仍然是 `ok=false` 的 200。
     """
     name = body.tool_call.name
@@ -224,7 +224,7 @@ def _admit_approved_tool(body: AgentToolExecutionRequest) -> None:
         listed = "、".join(sorted(set(body.allowed_tools))) or "（空）"
         raise errors.invalid_request(
             f"工具 {name} 不在本步的 allowedTools 里（白名单：{listed}）："
-            "审批不能绕开白名单，请核对 core 送来的清单"
+            "审批不能绕开白名单，请核对 cogito 送来的清单"
         )
     if not tools.requires_approval(name):
         raise errors.invalid_request(
@@ -271,7 +271,7 @@ async def _run_tools(
     completion_usage: AgentUsage,
     body: AgentStepRequest,
     offered: list[dict[str, Any]],
-    core: CoreClient,
+    core: CogitoClient,
     database: Database,
     settings: Settings,
 ) -> AgentStepResponse:
@@ -288,7 +288,7 @@ async def _run_tools(
 
     if not offered:
         # 没给工具它却要工具：这是幻觉，不是故障。剥掉调用、判 finished，
-        # 保住契约的「finished ⟺ toolCalls 为空」，让 core 收尾时拿到的是模型的原话。
+        # 保住契约的「finished ⟺ toolCalls 为空」，让 cogito 收尾时拿到的是模型的原话。
         names = "、".join(call.name for call in calls)
         logger.warning(
             "模型在无工具可用时仍要求调用 %s（剩余步数 %s），已忽略并判为完成",
@@ -305,10 +305,10 @@ async def _run_tools(
     context = tools.ToolContext(
         tenant_id=body.tenant_id,
         embed_model=body.embed_model,
-        core=core,
+        cogito=cogito,
         database=database,
         settings=settings,
-        # 预算按**步**重置（不是按任务）：core 每步一次调用，本服务无状态，
+        # 预算按**步**重置（不是按任务）：cogito 每步一次调用，本服务无状态，
         # 也只该按自己看得见的那一步来限流。
         memory_writes=tools.WriteBudget(remaining=settings.agent_memory_max_writes_per_step),
     )
@@ -333,7 +333,7 @@ async def _run_tools(
                 allowed=body.allowed_tools,
                 max_chars=settings.agent_tool_result_max_chars,
                 # 显式写出：本步**不**执行需要审批的工具，只留占位结果。
-                # 真正的执行由 core 在人工批准后走 `/agents/tool-executions`。
+                # 真正的执行由 cogito 在人工批准后走 `/agents/tool-executions`。
                 approved=False,
             )
         )

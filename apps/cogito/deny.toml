@@ -1,0 +1,59 @@
+# 依赖合规策略：许可证白名单 + 禁用清单 + 安全公告 + 源白名单。
+# 本地执行：cargo deny check
+# CI 入口：.github/workflows/cogito-ci.yaml 的 licenses job
+# 文档：https://embarkstudios.github.io/cargo-deny/checks/
+
+[graph]
+# 审计范围 = 实际编译进产物的依赖闭包，而非“所有 crate 的所有 feature”。
+# all-features = true 会启用无人使用的历史 feature（如 actix-tls 的 rustls-0_20 别名），
+# 凭空把 ring 0.16 / webpki 0.22 等早已下线的依赖拉进审计图，制造假阳性
+all-features = false
+# 本项目唯一的非默认 feature，会额外引入 utoipa-swagger-ui，故显式纳入闭包
+features = ["openapi"]
+
+[licenses]
+# 宽松许可白名单：不在名单内的许可（GPL / AGPL / SSPL / BUSL 等）一律拒绝
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "MPL-2.0",
+  "OpenSSL",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+confidence-threshold = 0.9
+
+# 本仓库自身的 crate 无需许可证声明
+[licenses.private]
+ignore = true
+
+[advisories]
+# 唯一允许豁免安全公告的地方：每条必须写明“为什么不可达”与“何时解除”，
+# 否则不得豁免。可升级解决的问题一律升级，不用 ignore 掩盖。
+ignore = [
+  { id = "RUSTSEC-2026-0258", reason = "h2 0.3.27 由最新版 actix-http 3.18.9 传递引入，0.3.x 分支无补丁；公告自评 Low，且服务位于网关之后不直接暴露 h2。待 actix-web 迁移到 h2 0.4 后解除" },
+  { id = "RUSTSEC-2023-0071", reason = "Marvin 时序攻击需要 RSA 解密预言机；本项目仅用 rsa 做 PKCS#1 v1.5 + SHA-256 的签名与验签（payment/channel/signature.rs），不存在解密路径。上游 0.9.10 仍无补丁" },
+]
+
+[bans]
+multiple-versions = "warn"
+# 禁止通配符版本约束
+wildcards = "deny"
+deny = [
+  { name = "actix-governor", reason = "GPL-3.0-or-later 传染性许可，已由 MIT 的 governor 自实现替换" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

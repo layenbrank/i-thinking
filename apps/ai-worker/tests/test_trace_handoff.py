@@ -1,7 +1,7 @@
 """跨进程链路贯通：入站的 `traceparent` 必须一路续到 ai-worker 发出去的每一个请求上。
 
 `test_traceparent.py` 钉的是入口那一段（校验、回写、`ContextVar` 真的到了路由），
-`test_core_client.py` 钉的是出站那一段（沿用当前 trace-id、换新 span-id）。两段各自都对，
+`test_cogito_client.py` 钉的是出站那一段（沿用当前 trace-id、换新 span-id）。两段各自都对，
 **接起来还是可能漏**：中间件设了上下文、某个调用点却没读它（或者换了任务、换了令牌、
 换了批次就重开一条链路），照样能通过上面两组测试。
 
@@ -20,7 +20,7 @@ import pytest
 from httpx import AsyncClient, Response
 
 from ai_worker import trace
-from ai_worker.core_client import ASSET_CONTENT_PATH, EMBEDDINGS_PATH, SERVICE_TOKEN_PATH
+from ai_worker.cogito_client import ASSET_CONTENT_PATH, EMBEDDINGS_PATH, SERVICE_TOKEN_PATH
 from support import (
     ASSET_ID,
     TENANT_ID,
@@ -125,11 +125,11 @@ async def post_embeddings(
 
 
 async def test_chunk_flow_hands_the_trace_over_on_every_call(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
     """分块要换令牌 + 取正文：两次出站都得续上，且各自新开一个 span。"""
     recorder = TraceRecorder(RagStub(SOURCE.encode()))
-    client = core_backed_client(recorder)
+    client = cogito_backed_client(recorder)
 
     response = await post_chunks(client)
 
@@ -140,12 +140,12 @@ async def test_chunk_flow_hands_the_trace_over_on_every_call(
 
 
 async def test_embed_flow_hands_the_trace_over_across_batches(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
     """分批是一处典型的断点：每批都要读当前上下文，而不是第一次调用时抓一次就不管了。"""
     await seed_chunk_set(database, chunk_set_id=CHUNK_SET_ID, texts=TEXTS)
     recorder = TraceRecorder(RagStub())
-    client = core_backed_client(recorder, embed_batch_size=2)
+    client = cogito_backed_client(recorder, embed_batch_size=2)
 
     response = await post_embeddings(client)
 
@@ -157,11 +157,11 @@ async def test_embed_flow_hands_the_trace_over_across_batches(
 
 
 async def test_token_exchange_is_part_of_the_same_trace(
-    core_backed_client: HandlerClient, database: Any
+    cogito_backed_client: HandlerClient, database: Any
 ) -> None:
-    """换令牌是**链路内**的一跳，不是另起一条：core 侧要靠它看清「取正文慢」还是「换令牌慢」。"""
+    """换令牌是**链路内**的一跳，不是另起一条：cogito 侧要靠它看清「取正文慢」还是「换令牌慢」。"""
     recorder = TraceRecorder(RagStub(SOURCE.encode()))
-    client = core_backed_client(recorder)
+    client = cogito_backed_client(recorder)
 
     await post_chunks(client)
 
@@ -174,11 +174,11 @@ async def test_token_exchange_is_part_of_the_same_trace(
     [(CHUNKS_ROUTE, "POST"), (EMBEDDINGS_ROUTE, "POST")],
 )
 async def test_missing_traceparent_stops_before_any_outbound_call(
-    core_backed_client: HandlerClient, path: str, method: str
+    cogito_backed_client: HandlerClient, path: str, method: str
 ) -> None:
-    """缺链路 = 请求本身不合契约：应当在入口就停下，而不是先去 core 那边留一圈痕迹。"""
+    """缺链路 = 请求本身不合契约：应当在入口就停下，而不是先去 cogito 那边留一圈痕迹。"""
     recorder = TraceRecorder(RagStub(SOURCE.encode()))
-    client = core_backed_client(recorder)
+    client = cogito_backed_client(recorder)
 
     response = await client.request(
         method, path, json={}, headers=internal_headers(traceparent=None)
@@ -189,11 +189,11 @@ async def test_missing_traceparent_stops_before_any_outbound_call(
 
 
 async def test_rejected_traceparent_never_leaks_into_the_outbound_call(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
-    """全 0 的 id 非法（W3C）：不能「凑合着用」——那样 core 侧会把两条无关的请求算成同一条链路。"""
+    """全 0 的 id 非法（W3C）：不能「凑合着用」——那样 cogito 侧会把两条无关的请求算成同一条链路。"""
     recorder = TraceRecorder(RagStub(SOURCE.encode()))
-    client = core_backed_client(recorder)
+    client = cogito_backed_client(recorder)
     illegal = f"00-{'0' * 32}-{INBOUND_SPAN_ID}-01"
 
     response = await post_chunks(client, traceparent=illegal)
@@ -203,11 +203,11 @@ async def test_rejected_traceparent_never_leaks_into_the_outbound_call(
 
 
 async def test_a_second_request_starts_from_its_own_traceparent(
-    core_backed_client: HandlerClient,
+    cogito_backed_client: HandlerClient,
 ) -> None:
     """上下文是**每个请求**各自的：第一条链路不能泄进第二条，否则日志会串线。"""
     recorder = TraceRecorder(RagStub(SOURCE.encode()))
-    client = core_backed_client(recorder)
+    client = cogito_backed_client(recorder)
     second = f"00-{'3' * 32}-{'4' * 16}-01"
 
     await post_chunks(client, key="trace-key-0003")

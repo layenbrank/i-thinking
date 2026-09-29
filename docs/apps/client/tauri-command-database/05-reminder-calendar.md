@@ -1,6 +1,6 @@
 # 05 — Reminder 与 Calendar：语义与正确用法
 
-本文避免把闹钟、待办、日程混用。Core：[`reminder/service.rs`](../../../../apps/client/src-tauri/crates/core/src/reminder/service.rs)、[`calendar/`](../../../../apps/client/src-tauri/crates/core/src/calendar/)。
+本文避免把闹钟、待办、日程混用。Cogito：[`reminder/service.rs`](../../../../apps/client/src-tauri/crates/core/src/reminder/service.rs)、[`calendar/`](../../../../apps/client/src-tauri/crates/core/src/calendar/)。
 
 ## 角色划分
 
@@ -65,7 +65,7 @@ fireTime != null && archivedAt == null
 | `reminderID` | 可选关联提醒 |
 | `archivedAt` | 软归档；**无** `enabled` / `fireTime` |
 
-读区间：`endAt >= rangeFrom` 且 `startAt < rangeTo`（与 Core 过滤一致）。
+读区间：`endAt >= rangeFrom` 且 `startAt < rangeTo`（与 Cogito 过滤一致）。
 
 **不要**用 Reminder 的 `dueAt`/`endAt` 代替日程区间；不要用 Calendar 当闹钟表。
 

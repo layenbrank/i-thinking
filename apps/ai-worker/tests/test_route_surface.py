@@ -1,8 +1,8 @@
 """路由面：把「契约里写了什么」和「这个进程真的暴露了什么」钉在一起。
 
-这是唯一一条跨包的测试：它读 `apps/core/spec/internal.yaml`（契约唯一源）。值得这么做，
+这是唯一一条跨包的测试：它读 `apps/cogito/spec/internal.yaml`（契约唯一源）。值得这么做，
 因为两侧最容易犯的错不是逻辑错，而是**路径或方法对不上**——那是静默的 404，
-core 只会看到一次莫名的失败重试。
+cogito 只会看到一次莫名的失败重试。
 
 规则：**已登记的能力必须真的有路由**（否则测试红），且**不许有契约之外的路由**
 （否则就是绕过契约开了个后门）。所以 P6b-3/P6b-4 登记能力时，这里会自动跟着收紧。
@@ -26,7 +26,7 @@ from starlette.routing import BaseRoute, Route
 from ai_worker import capabilities
 from ai_worker.api.health import HEALTH_PATH
 
-SPEC_PATH = Path(__file__).resolve().parents[2] / "core" / "spec" / "internal.yaml"
+SPEC_PATH = Path(__file__).resolve().parents[2] / "cogito" / "spec" / "internal.yaml"
 
 #: 骨架自己就有的路由（不属于任何可选能力）。
 BASELINE_ROUTES = {("GET", HEALTH_PATH)}

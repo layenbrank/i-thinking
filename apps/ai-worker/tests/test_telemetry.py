@@ -3,8 +3,8 @@
 * **没接 collector 时什么都不做**：不建 provider、不联网、出站头原样不动 —— 这是「接入前后
   行为一致」的前提，所以逐个入口都要钉住。
 * **接上之后**：server span 认上游的 `traceparent` 当父 span，出站再续一层，且**线路上的
-  `traceparent` 与导出的 span 是同一份事实**（否则 Jaeger 里的父子关系会与 core 侧对不上）。
-* **规则对齐 core**：endpoint 的补路径规则、4xx/5xx 的状态记法，两侧同源。
+  `traceparent` 与导出的 span 是同一份事实**（否则 Jaeger 里的父子关系会与 cogito 侧对不上）。
+* **规则对齐 cogito**：endpoint 的补路径规则、4xx/5xx 的状态记法，两侧同源。
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ CHUNK_BODY: dict[str, Any] = {
 }
 IDEMPOTENCY_KEY = "telemetry-key-0001"
 
-#: 上游（core）发来的链路坐标：32 个 1 的 trace-id、16 个 2 的 span-id。
+#: 上游（cogito）发来的链路坐标：32 个 1 的 trace-id、16 个 2 的 span-id。
 UPSTREAM = trace.TraceContext(trace_id="1" * 32, span_id="2" * 16, flags="01")
 
 
@@ -99,7 +99,7 @@ def exported_parent_id(span: ReadableSpan) -> int:
         ("collector:4318", "collector:4318"),
     ],
 )
-def test_traces_endpoint_follows_the_core_rules(endpoint: str, expected: str) -> None:
+def test_traces_endpoint_follows_the_cogito_rules(endpoint: str, expected: str) -> None:
     assert telemetry.traces_endpoint(endpoint) == expected
 
 
@@ -166,7 +166,7 @@ async def test_server_span_continues_the_upstream_trace(
 ) -> None:
     response = await offline_client.get(PING, headers=internal_headers())
 
-    # 回显语义归内置实现：响应头逐字等于入站值（core 的日志照旧能按它对上）。
+    # 回显语义归内置实现：响应头逐字等于入站值（cogito 的日志照旧能按它对上）。
     assert response.headers[trace.TRACEPARENT_HEADER] == TRACEPARENT
 
     span = only_span(spans)

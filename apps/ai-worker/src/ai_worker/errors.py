@@ -1,11 +1,11 @@
-"""错误口径：唯一契约源 `apps/core/spec/internal.yaml` 的 ``ErrorResponse``。
+"""错误口径：唯一契约源 `apps/cogito/spec/internal.yaml` 的 ``ErrorResponse``。
 
 ```
 {"error": {"code": "...", "message": "..."}}
 ```
 
-`code` 是机器可读的稳定值（core 侧据此决定重试与否），`message` 给人看。
-**只有「确定没做成」才回 4xx**：core 把 429/5xx/超时当可重试，其余 4xx 直接把实例判失败。
+`code` 是机器可读的稳定值（cogito 侧据此决定重试与否），`message` 给人看。
+**只有「确定没做成」才回 4xx**：cogito 把 429/5xx/超时当可重试，其余 4xx 直接把实例判失败。
 """
 
 from __future__ import annotations
