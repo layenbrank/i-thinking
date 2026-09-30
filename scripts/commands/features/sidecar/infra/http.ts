@@ -1,6 +1,6 @@
 import { createWriteStream, existsSync, mkdirSync, renameSync, statSync, unlinkSync } from 'node:fs'
 import path from 'node:path'
-import { Readable } from 'node:stream'
+import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import chalk from 'chalk'
@@ -8,6 +8,9 @@ import ky, { type KyInstance, type Progress } from 'ky'
 
 const DOWNLOAD_RETRIES = 3
 const DOWNLOAD_TIMEOUT_MS = 120_000
+/** 读流期间多久没新字节就认定连接死了：卡住的连接不会自己报错，只会一直挂着 */
+const IDLE_TIMEOUT_MS = 60_000
+const IDLE_POLL_MS = 5_000
 const PROGRESS_INTERVAL_MS = 200
 const BAR_WIDTH = 24
 const LOG_PREFIX = '[download]'
@@ -97,19 +100,39 @@ function hasFilledFile(filePath: string): boolean {
 
 async function downloadOnce(url: string, partialPath: string): Promise<void> {
   const report = createProgressReporter()
-  const response = await http.get(url, {
-    onDownloadProgress(progress) {
-      report(progress)
+  const controller = new AbortController()
+  let lastByteAt = Date.now()
+
+  // `timeout` 只覆盖到响应开始，正文读多久它不管：卡住的连接得靠这个看门狗断开
+  const ticker = new Transform({
+    transform(chunk, _encoding, callback) {
+      lastByteAt = Date.now()
+      callback(null, chunk)
     }
   })
-
-  if (!response.body) {
-    throw new Error(`${LOG_PREFIX} 响应体为空 ${url}`)
-  }
+  const watchdog = setInterval(function () {
+    if (Date.now() - lastByteAt < IDLE_TIMEOUT_MS) {
+      return
+    }
+    console.log(chalk.red(`${LOG_PREFIX} ${IDLE_TIMEOUT_MS / 1000} 秒没有新字节，断开重连 ${url}`))
+    controller.abort()
+  }, IDLE_POLL_MS)
 
   try {
-    await pipeline(Readable.fromWeb(response.body as never), createWriteStream(partialPath))
+    const response = await http.get(url, {
+      signal: controller.signal,
+      onDownloadProgress(progress) {
+        report(progress)
+      }
+    })
+
+    if (!response.body) {
+      throw new Error(`${LOG_PREFIX} 响应体为空 ${url}`)
+    }
+
+    await pipeline(Readable.fromWeb(response.body as never), ticker, createWriteStream(partialPath))
   } finally {
+    clearInterval(watchdog)
     finishProgressLine()
   }
 

@@ -22,14 +22,30 @@ function findProxyUrl(): string | undefined {
 /** ky 不可达时的兜底（例如仅 curl 能吃代理环境变量）。 */
 async function downloadWithCurl(url: string, destPath: string): Promise<void> {
   const probe = spawnSync('curl.exe', ['--version'], { encoding: 'utf8' })
-  const curlBin = !probe.error && (probe.status === 0 || probe.status === null) ? 'curl.exe' : 'curl'
+  const curlBin =
+    !probe.error && (probe.status === 0 || probe.status === null) ? 'curl.exe' : 'curl'
   const version = spawnSync(curlBin, ['--version'], { encoding: 'utf8' })
   if (version.error || (version.status !== 0 && version.status !== null)) {
     throw new Error('[download] 本机无 curl')
   }
 
   mkdirSync(path.dirname(destPath), { recursive: true })
-  const args = ['-L', '--fail', '--retry', '5', '--retry-delay', '2', '--connect-timeout', '30']
+  // 同样要防「连上但不给数据」：慢于 64KB/s 持续 30s 就断开，交给上面的 --retry
+  const args = [
+    '-L',
+    '--fail',
+    '--retry',
+    '5',
+    '--retry-delay',
+    '2',
+    '--retry-all-errors',
+    '--connect-timeout',
+    '30',
+    '--speed-limit',
+    '65536',
+    '--speed-time',
+    '30'
+  ]
   const proxy = findProxyUrl()
   if (proxy) {
     args.push('-x', proxy)
