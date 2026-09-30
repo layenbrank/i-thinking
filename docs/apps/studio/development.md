@@ -37,6 +37,10 @@ pnpm install
 | `pnpm --filter @i-thinking/studio build`     | 同 `package`（供 turbo / PR CI）                 |
 | `pnpm --filter @i-thinking/studio make`      | `electron-forge make` → `out/make`               |
 
+> 改了 `tools.lock.json` 的 pin 要重跑一次 `bootstrap` 才会换版本：缓存命中按
+> `<工具>/.version` 记号判定（不是「文件在不在」），对不上就重装；版本没变的工具只会
+> 从本地缓存的归档重新解压一次，不走网络。判定逻辑见 `infra/vendor.ts`。
+
 > 全新检出（含 CI）直接 `make` 会失败在 renderer 解析上：`@i-thinking/hooks`、`@i-thinking/utils`
 > 的 `exports` 指向 `dist`（见 `vite.renderer.config.mts` 的 `linkedMarker` 与 `optimizeDeps.exclude`
 > 注释），本地之所以没暴露，是因为 `dist` 早就构建过、且被 gitignore。先补一步：

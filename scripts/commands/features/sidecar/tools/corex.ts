@@ -1,13 +1,4 @@
-import {
-  chmodSync,
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs'
+import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
 import { COREX_CLI, COREX_DAEMON, VENDOR_DIR } from '../infra/constants.ts'
@@ -15,6 +6,7 @@ import { fetchVerified } from '../infra/download.ts'
 import { extractArchive, findFileInTree } from '../infra/extract.ts'
 import { findToolPin, parseToolsLock } from '../infra/lock.ts'
 import { findBinaryName, findPlatformKey } from '../infra/platform.ts'
+import { isVendorReady, writeVendorVersion } from '../infra/vendor.ts'
 
 import type { ToolStrategy } from './types.ts'
 
@@ -30,35 +22,22 @@ function findDaemonBinary(key = findPlatformKey()): string {
   return path.join(findCorexBinDir(key), findBinaryName(COREX_DAEMON))
 }
 
-/** 缓存命中不是「有文件就算」，而是「有 lock 里那个版本」：版本记号对不上就重下 */
-const VERSION_MARKER = '.version'
-
-function findCorexVersionMarker(key = findPlatformKey()): string {
-  return path.join(findCorexVendorDir(key), VERSION_MARKER)
-}
-
-function hasCorexVendor(version: string, key = findPlatformKey()): boolean {
-  const marker = findCorexVersionMarker(key)
-  if (!existsSync(marker) || !existsSync(findDaemonBinary(key))) {
-    return false
-  }
-  return readFileSync(marker, 'utf8').trim() === version
-}
-
 /**
  * 按 tools.lock 下载 layenbrank/corex release zip 到缓存 corex/<platform>/bin。
  * Layout: corex-daemon(.exe), corex(.exe), optional pdfium.dll / *.so
+ *
+ * 缓存命中不是「有文件就算」，而是「有 lock 里那个版本」：见 infra/vendor.ts
  */
 async function ensureCorexVendor(key = findPlatformKey()): Promise<string> {
   const lock = parseToolsLock()
   const pin = findToolPin(lock.corex, 'corex', key)
+  const vendorDir = findCorexVendorDir(key)
   const daemonPath = findDaemonBinary(key)
-  if (hasCorexVendor(pin.version, key)) {
+  if (isVendorReady(vendorDir, pin.version, daemonPath)) {
     console.log(`[corex] 缓存命中 ${pin.version} → ${daemonPath}`)
     return daemonPath
   }
 
-  const vendorDir = findCorexVendorDir(key)
   mkdirSync(vendorDir, { recursive: true })
 
   const archivePath = path.join(vendorDir, `corex-${pin.version}.zip`)
@@ -107,7 +86,7 @@ async function ensureCorexVendor(key = findPlatformKey()): Promise<string> {
   }
 
   rmSync(extractDir, { recursive: true, force: true })
-  writeFileSync(findCorexVersionMarker(key), `${pin.version}\n`, 'utf8')
+  writeVendorVersion(vendorDir, pin.version)
   console.log(`[corex] 已落盘 ${pin.version} → ${binDir}`)
   return daemonPath
 }
@@ -142,6 +121,5 @@ export {
   findCorexBinDir,
   findCorexVendorDir,
   findDaemonBinary,
-  hasCorexVendor,
   listCorexRuntimeFiles
 }

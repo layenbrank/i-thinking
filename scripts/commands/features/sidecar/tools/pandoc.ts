@@ -6,6 +6,7 @@ import { fetchVerified } from '../infra/download.ts'
 import { extractArchive, findFileInTree, parseArchiveExt } from '../infra/extract.ts'
 import { findToolPin, parseToolsLock } from '../infra/lock.ts'
 import { findBinaryName, findPlatformKey } from '../infra/platform.ts'
+import { isVendorReady, writeVendorVersion } from '../infra/vendor.ts'
 
 import type { ToolStrategy } from './types.ts'
 
@@ -17,20 +18,17 @@ function findPandocBinary(key = findPlatformKey()): string {
   return path.join(findPandocVendorDir(key), 'bin', findBinaryName(PANDOC_BINARY))
 }
 
-function hasPandocBinary(key = findPlatformKey()): boolean {
-  return existsSync(findPandocBinary(key))
-}
-
+/** 缓存命中不是「有文件就算」，而是「有 lock 里那个版本」：见 infra/vendor.ts */
 async function ensurePandocVendor(key = findPlatformKey()): Promise<string> {
-  const binary = findPandocBinary(key)
-  if (hasPandocBinary(key)) {
-    console.log(`[pandoc] 缓存命中 ${binary}`)
-    return binary
-  }
-
   const lock = parseToolsLock()
   const pin = findToolPin(lock.pandoc, 'pandoc', key)
   const vendorDir = findPandocVendorDir(key)
+  const binary = findPandocBinary(key)
+  if (isVendorReady(vendorDir, pin.version, binary)) {
+    console.log(`[pandoc] 缓存命中 ${pin.version} → ${binary}`)
+    return binary
+  }
+
   mkdirSync(vendorDir, { recursive: true })
 
   const ext = parseArchiveExt(pin.url)
@@ -57,6 +55,7 @@ async function ensurePandocVendor(key = findPlatformKey()): Promise<string> {
   }
 
   rmSync(extractDir, { recursive: true, force: true })
+  writeVendorVersion(vendorDir, pin.version)
   console.log(`[pandoc] 已落盘 ${pin.version} → ${dest}`)
   return dest
 }
@@ -84,6 +83,5 @@ export {
   ensurePandocVendor,
   findPandocBinary,
   findPandocVendorDir,
-  hasPandocBinary,
   listPandocRuntimeFiles
 }

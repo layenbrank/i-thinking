@@ -1,12 +1,4 @@
-import {
-  chmodSync,
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs'
+import { chmodSync, cpSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 
@@ -15,6 +7,7 @@ import { fetchVerified } from '../infra/download.ts'
 import { extractArchive, findFileInTree, parseArchiveExt } from '../infra/extract.ts'
 import { findToolPin, parseToolsLock } from '../infra/lock.ts'
 import { findBinaryName, findPlatformKey } from '../infra/platform.ts'
+import { clearVendorVersion, isVendorReady, writeVendorVersion } from '../infra/vendor.ts'
 
 import type { ToolStrategy } from './types.ts'
 
@@ -44,25 +37,6 @@ function findOpencodeBinDir(key = findPlatformKey()): string {
 
 function findOpencodeBinary(key = findPlatformKey()): string {
   return path.join(findOpencodeBinDir(key), findBinaryName(OPENCODE_BINARY))
-}
-
-function hasOpencodeBinary(key = findPlatformKey()): boolean {
-  return existsSync(findOpencodeBinary(key))
-}
-
-/** 缓存命中不是「有文件就算」，而是「有 lock 里那个版本」：版本记号对不上就重下 */
-const VERSION_MARKER = '.version'
-
-function findOpencodeVersionMarker(key = findPlatformKey()): string {
-  return path.join(findOpencodeVendorDir(key), VERSION_MARKER)
-}
-
-function hasOpencodeVendor(version: string, key = findPlatformKey()): boolean {
-  const marker = findOpencodeVersionMarker(key)
-  if (!existsSync(marker) || !existsSync(findOpencodeBinary(key))) {
-    return false
-  }
-  return readFileSync(marker, 'utf8').trim() === version
 }
 
 /** 落盘目录里这版二进制自称的版本；读不到返回 null（探针失败不该拦住流水线） */
@@ -141,7 +115,7 @@ async function ensureOpencodeFromRelease(key: string): Promise<string> {
   const staged = stageOpencodeFiles(found, key)
   rmSync(extractDir, { recursive: true, force: true })
   assertOpencodeVersion(staged, pin.version)
-  writeFileSync(findOpencodeVersionMarker(key), `${pin.version}\n`, 'utf8')
+  writeVendorVersion(vendorDir, pin.version)
   console.log(`[opencode] 已从官方发布包安装 ${pin.version}`)
   return staged
 }
@@ -151,7 +125,7 @@ async function ensureOpencodeVendor(key = findPlatformKey()): Promise<string> {
   const local = findExplicitOpencodePath()
   if (local) {
     const staged = stageOpencodeFiles(local, key)
-    rmSync(findOpencodeVersionMarker(key), { force: true })
+    clearVendorVersion(findOpencodeVendorDir(key))
     const reported = readOpencodeBinaryVersion(staged)
     console.log(
       `[opencode] 使用 OPENCODE_BINARY 指定的二进制 ${local}（自述版本 ${reported ?? '未知'}，` +
@@ -162,12 +136,14 @@ async function ensureOpencodeVendor(key = findPlatformKey()): Promise<string> {
 
   const lock = parseToolsLock()
   const pin = findToolPin(lock.opencode ?? {}, 'opencode', key)
-  if (hasOpencodeVendor(pin.version, key)) {
-    console.log(`[opencode] 缓存命中 ${pin.version} → ${findOpencodeBinary(key)}`)
-    return findOpencodeBinary(key)
+  const vendorDir = findOpencodeVendorDir(key)
+  const binary = findOpencodeBinary(key)
+  if (isVendorReady(vendorDir, pin.version, binary)) {
+    console.log(`[opencode] 缓存命中 ${pin.version} → ${binary}`)
+    return binary
   }
 
-  if (hasOpencodeBinary(key)) {
+  if (existsSync(binary)) {
     console.log(`[opencode] 缓存版本不是 ${pin.version}，按 lock 重下`)
   }
   return ensureOpencodeFromRelease(key)
@@ -194,7 +170,5 @@ export {
   findOpencodeBinDir,
   findOpencodeBinary,
   findOpencodeVendorDir,
-  findOpencodeVersionMarker,
-  hasOpencodeVendor,
   listOpencodeRuntimeFiles
 }

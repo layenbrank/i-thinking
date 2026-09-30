@@ -7,6 +7,7 @@ import { fetchVerified } from '../infra/download.ts'
 import { extractArchive, findFileInTree, parseArchiveExt } from '../infra/extract.ts'
 import { findToolPin, parseToolsLock } from '../infra/lock.ts'
 import { findBinaryName, findPlatformKey } from '../infra/platform.ts'
+import { LOCAL_VENDOR_VERSION, isVendorReady, writeVendorVersion } from '../infra/vendor.ts'
 
 import type { ToolStrategy } from './types.ts'
 
@@ -20,10 +21,6 @@ function findGooseBinDir(key = findPlatformKey()): string {
 
 function findGooseBinary(key = findPlatformKey()): string {
   return path.join(findGooseBinDir(key), findBinaryName(GOOSE_BINARY))
-}
-
-function hasGooseBinary(key = findPlatformKey()): boolean {
-  return existsSync(findGooseBinary(key))
 }
 
 function findLocalGoosePath(): string | null {
@@ -115,13 +112,21 @@ async function ensureGooseFromRelease(key: string): Promise<string> {
 
   const staged = stageGooseFiles(found, key)
   rmSync(extractDir, { recursive: true, force: true })
+  writeVendorVersion(vendorDir, pin.version)
   console.log(`[goose] 已从 release 安装 ${pin.version}`)
   return staged
 }
 
 async function ensureGooseVendor(key = findPlatformKey()): Promise<string> {
+  const lock = parseToolsLock()
+  const pin = findToolPin(lock.goose ?? {}, 'goose', key)
+  const vendorDir = findGooseVendorDir(key)
   const binary = findGooseBinary(key)
-  if (hasGooseBinary(key)) {
+  // 本机那份（`local`）只要还是它自己就算命中：版本由用户自己负责，pin 变了也不重装
+  if (
+    isVendorReady(vendorDir, pin.version, binary) ||
+    isVendorReady(vendorDir, LOCAL_VENDOR_VERSION, binary)
+  ) {
     console.log(`[goose] 缓存命中 ${binary}`)
     return binary
   }
@@ -129,7 +134,9 @@ async function ensureGooseVendor(key = findPlatformKey()): Promise<string> {
   const local = findLocalGoosePath()
   if (local) {
     console.log(`[goose] 使用本机二进制 ${local}`)
-    return stageGooseFiles(local, key)
+    const staged = stageGooseFiles(local, key)
+    writeVendorVersion(vendorDir, LOCAL_VENDOR_VERSION)
+    return staged
   }
 
   return ensureGooseFromRelease(key)
@@ -165,6 +172,5 @@ export {
   findGooseBinDir,
   findGooseBinary,
   findGooseVendorDir,
-  hasGooseBinary,
   listGooseRuntimeFiles
 }

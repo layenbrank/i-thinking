@@ -6,6 +6,7 @@ import { fetchVerified } from '../infra/download.ts'
 import { extractArchive, findFileInTree, parseArchiveExt } from '../infra/extract.ts'
 import { findToolPin, parseToolsLock } from '../infra/lock.ts'
 import { findBinaryName, findPlatformKey } from '../infra/platform.ts'
+import { isVendorReady, writeVendorVersion } from '../infra/vendor.ts'
 
 import type { ToolStrategy } from './types.ts'
 
@@ -21,27 +22,25 @@ function findFfmpegBinary(key = findPlatformKey()): string {
   return path.join(findFfmpegBinDir(key), findBinaryName(FFMPEG_BINARY))
 }
 
-function hasFfmpegBinary(key = findPlatformKey()): boolean {
-  return existsSync(findFfmpegBinary(key))
-}
-
 /**
  * 按 tools.lock 下载 BtbN/FFmpeg-Builds release 到缓存 ffmpeg/<platform>/bin。
  * 落盘 ffmpeg(.exe)；归档内若有 ffprobe/ffplay 一并拷贝。
+ *
+ * 缓存命中不是「有文件就算」，而是「有 lock 里那个版本」：见 infra/vendor.ts
  */
 async function ensureFfmpegVendor(key = findPlatformKey()): Promise<string> {
-  const binary = findFfmpegBinary(key)
-  if (hasFfmpegBinary(key)) {
-    console.log(`[ffmpeg] 缓存命中 ${binary}`)
-    return binary
-  }
-
   const lock = parseToolsLock()
   if (!lock.ffmpeg) {
     throw new Error('[ffmpeg] tools.lock 中无钉死版本')
   }
   const pin = findToolPin(lock.ffmpeg, 'ffmpeg', key)
   const vendorDir = findFfmpegVendorDir(key)
+  const binary = findFfmpegBinary(key)
+  if (isVendorReady(vendorDir, pin.version, binary)) {
+    console.log(`[ffmpeg] 缓存命中 ${pin.version} → ${binary}`)
+    return binary
+  }
+
   mkdirSync(vendorDir, { recursive: true })
 
   const ext = parseArchiveExt(pin.url)
@@ -85,6 +84,7 @@ async function ensureFfmpegVendor(key = findPlatformKey()): Promise<string> {
   }
 
   rmSync(extractDir, { recursive: true, force: true })
+  writeVendorVersion(vendorDir, pin.version)
   console.log(`[ffmpeg] 已落盘 ${pin.version} → ${binDir}`)
   return binary
 }
@@ -119,6 +119,5 @@ export {
   findFfmpegBinary,
   findFfmpegBinDir,
   findFfmpegVendorDir,
-  hasFfmpegBinary,
   listFfmpegRuntimeFiles
 }
