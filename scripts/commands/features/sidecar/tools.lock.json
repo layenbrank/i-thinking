@@ -33,14 +33,14 @@
   },
   "ffmpeg": {
     "win32-x64": {
-      "version": "master-latest",
-      "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
-      "sha256": "71bc125cee1337d2e5b74cb2c400ff86a3120b8b6de20502c80a5c97c2fe1725"
+      "version": "autobuild-2026-09-29-13-10",
+      "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-29-13-10/ffmpeg-N-126965-gd85cdd2597-win64-gpl.zip",
+      "sha256": "094eb1636ebe03d940ba2429ed8a0fbf4d0bd1dfccdc4863152c8f33e7a3d489"
     },
     "linux-x64": {
-      "version": "master-latest",
-      "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz",
-      "sha256": "e2eae6dea51fe70b25861652e73302c15103957ee731f24d85fc49f0fd294388"
+      "version": "autobuild-2026-09-29-13-10",
+      "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-29-13-10/ffmpeg-N-126965-gd85cdd2597-linux64-gpl.tar.xz",
+      "sha256": "25e48c5155a1a7c9b0c76b5f303504f679455ba190fcb1785ae410f6083ba16d"
     }
   },
   "pandoc": {
