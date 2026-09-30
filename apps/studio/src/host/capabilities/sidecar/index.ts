@@ -279,8 +279,8 @@ class CorexHost {
   async importDirectives(fields: {
     path: string
     folder?: string
-    overwrite?: boolean
-    dry_run?: boolean
+    is_overwrite?: boolean
+    is_dry_run?: boolean
   }): Promise<ImportResult> {
     return parseImportResult(await this.call('import_directives', fields))
   }

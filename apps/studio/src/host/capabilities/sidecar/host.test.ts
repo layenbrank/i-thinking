@@ -46,12 +46,15 @@ const log = {
 
 let server: net.Server | null = null
 let disconnectOnList = false
+/** 假 daemon 收到的原始请求帧：用来钉住「我们发出去的字段名」 */
+const frames: Record<string, unknown>[] = []
 
 /** 假 daemon：认 ping，list_actions 回一条动作，shutdown 用契约里的终帧 `bye` 道别 */
 function serve(socket: net.Socket): void {
   const reader = createInterface({ input: socket })
   reader.on('line', function (raw) {
     const request = JSON.parse(raw) as { id: number; type: string }
+    frames.push(request as Record<string, unknown>)
     if (disconnectOnList && request.type === 'list_directives') {
       socket.destroy()
       return
@@ -83,6 +86,7 @@ afterEach(async function () {
   }
   server = null
   disconnectOnList = false
+  frames.length = 0
 })
 
 describe('CorexHost.start', function () {
@@ -115,6 +119,60 @@ describe('CorexHost.start', function () {
 
     await expect(host.listDirectives()).rejects.toThrow()
     expect(host.isRunning()).toBe(false)
+  })
+})
+
+describe('outbound frames', function () {
+  /**
+   * 钉住发出去的字段名。真源是 corex 的 `crates/ipc/src/protocol.rs`：字段名对不上时
+   * serde 会把未知字段**静默忽略**（`overwrite: true` 变成不覆盖），比报错更难查。
+   */
+  function keysOf(type: string): string[] {
+    const frame = frames.find(function (f) {
+      return f.type === type
+    })
+    return frame ? Object.keys(frame).sort() : []
+  }
+
+  it('names every field the way the daemon declares it', async function () {
+    await listen()
+    const host = new CorexHost(log)
+    await host.start()
+    frames.length = 0
+
+    await host.readDirective('a')
+    await host.saveDirective({ name: 'a' } as never, 'b')
+    await host.deleteDirective('a')
+    await host.importDirectives({
+      path: 'C:\\y',
+      folder: 'f',
+      is_overwrite: true,
+      is_dry_run: true
+    })
+    await host.runDirective('a', { x: 1 })
+    await host.invokeAction('file.copy', { from: 'a', to: 'b' })
+
+    expect(keysOf('read_directive')).toEqual(['auth_token', 'id', 'name', 'type'])
+    expect(keysOf('save_directive')).toEqual([
+      'auth_token',
+      'definition',
+      'id',
+      'name',
+      'original_name',
+      'type'
+    ])
+    expect(keysOf('delete_directive')).toEqual(['auth_token', 'id', 'name', 'type'])
+    expect(keysOf('import_directives')).toEqual([
+      'auth_token',
+      'folder',
+      'id',
+      'is_dry_run',
+      'is_overwrite',
+      'path',
+      'type'
+    ])
+    expect(keysOf('run_directive')).toEqual(['auth_token', 'id', 'input', 'name', 'type'])
+    expect(keysOf('invoke')).toEqual(['action', 'auth_token', 'id', 'params', 'type'])
   })
 })
 

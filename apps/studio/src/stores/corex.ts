@@ -108,8 +108,8 @@ interface CorexStore {
   importDirectives: (options: {
     path: string
     folder?: string
-    overwrite?: boolean
-    dry_run?: boolean
+    is_overwrite?: boolean
+    is_dry_run?: boolean
   }) => Promise<ImportResult>
   /**
    * 起一次运行，**立刻**返回它的编号；进度与结果随后落进 `runs`，调用方不等它结束。

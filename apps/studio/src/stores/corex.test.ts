@@ -126,11 +126,11 @@ describe('directives', function () {
     })
 
     await useCorexStore.getState().deleteDirective('gone')
-    await useCorexStore.getState().importDirectives({ path: 'D:\\y', overwrite: true })
+    await useCorexStore.getState().importDirectives({ path: 'D:\\y', is_overwrite: true })
 
     expect(calls).toEqual([
       ['delete', { name: 'gone' }],
-      ['import', { path: 'D:\\y', overwrite: true }]
+      ['import', { path: 'D:\\y', is_overwrite: true }]
     ])
   })
 })

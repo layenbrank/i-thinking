@@ -138,7 +138,7 @@ function parseImportStatus(raw: unknown): ImportStatus | null {
 
 /**
  * 导入结果：逐条尽量留（排错要看是哪几个文件出问题），汇总数信 corex 的 ——
- * 它才知道 dry_run 下算不算数。汇总数缺了就从条目里数出来。
+ * 它才知道 is_dry_run 下算不算数。汇总数缺了就从条目里数出来。
  */
 function parseImportResult(data: unknown): ImportResult {
   const doc = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}

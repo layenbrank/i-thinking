@@ -368,9 +368,9 @@ const ImportSchema = z.object({
   /** 导进哪个分组；不写 = 未分组 */
   folder: z.string().optional(),
   /** 同名已存在时是否覆盖；不写交给 corex 的默认 */
-  overwrite: z.boolean().optional(),
+  is_overwrite: z.boolean().optional(),
   /** 只报告会做什么，不落库 */
-  dry_run: z.boolean().optional()
+  is_dry_run: z.boolean().optional()
 })
 
 type DirectiveContent = z.infer<typeof DirectiveContentSchema>
