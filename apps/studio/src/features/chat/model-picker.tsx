@@ -1,4 +1,9 @@
-import { findProviderSource, supportsTools } from '@i-thinking/agent/provider'
+import {
+  findProviderSource,
+  PROVIDER_SOURCE_LABELS,
+  PROVIDER_SOURCE_NOTES,
+  supportsTools
+} from '@i-thinking/agent/provider'
 import { Button } from '@i-thinking/design/components/button'
 import {
   DropdownMenu,
@@ -37,9 +42,11 @@ import { useAgentStore } from '@/stores/agent.ts'
 /**
  * 模型选择器：**一份清单，两种来源分组**。
  *
- * 对照 Cursor / Copilot 的模型菜单：分组只表达「这个模型谁提供的」（组织 ／ 我的），
- * 不表达「走哪条链路」—— 调用都由主进程发出，工具、审批、计划、用量对组织模型与
- * 个人模型完全一致（见 `features/chat/platform.ts` 的说明）。
+ * 对照 Cursor / Copilot 的模型菜单：分组表达「这个模型谁提供的」（组织 ／ 我的）；能力、工具、
+ * 审批对两组完全一致（调用都由主进程发出，见 `features/chat/platform.ts` 的说明），**只有计费口径
+ * 不一样** —— 同一个模型名两组各有一份，组织模型经平台网关（占平台额度），我的模型直连上游
+ * （只进本机账本）。所以分组标题带上 `PROVIDER_SOURCE_NOTES`，否则「用了某个模型但额度不动」
+ * 看起来就像个 bug（实例见 docs/apps/studio/troubleshooting.md 的额度一节）。
  *
  * 选中项落 `chat.providerID` + `chat.model`，是发送链路唯一认的两个字段；
  * 组织模型那一行由登录态与网关目录派生，在设置页只读。
@@ -153,13 +160,16 @@ export function ModelPicker(props: ModelPickerProps) {
     return label.toLowerCase().includes(keyword)
   }
 
-  function renderGroup(label: string, options: ModelOption[], hint: string | null) {
+  function renderGroup(label: string, note: string, options: ModelOption[], hint: string | null) {
     const visible = options.filter(isVisible)
     if (visible.length === 0 && !hint) return null
 
     return (
       <DropdownMenuGroup>
-        <DropdownMenuLabel className="text-muted-foreground text-xs">{label}</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-muted-foreground text-xs leading-relaxed">
+          <span>{label}</span>
+          <span className="text-muted-foreground/80 text-3xs font-normal">{` · ${note}`}</span>
+        </DropdownMenuLabel>
 
         {visible.length === 0 ? (
           <p className="text-muted-foreground px-2 py-1.5 text-xs leading-relaxed">{hint}</p>
@@ -280,8 +290,18 @@ export function ModelPicker(props: ModelPickerProps) {
 
             <DropdownMenuSeparator className="my-1" />
 
-            {renderGroup('组织模型', grouped.platform, blocker ?? '服务端没有可用模型')}
-            {renderGroup('我的模型', grouped.local, null)}
+            {renderGroup(
+              PROVIDER_SOURCE_LABELS.platform,
+              PROVIDER_SOURCE_NOTES.platform,
+              grouped.platform,
+              blocker ?? '服务端没有可用模型'
+            )}
+            {renderGroup(
+              PROVIDER_SOURCE_LABELS.local,
+              PROVIDER_SOURCE_NOTES.local,
+              grouped.local,
+              null
+            )}
 
             {providersQuery.isLoading ? (
               <p className="text-muted-foreground px-2 py-1.5 text-xs">正在读取模型…</p>

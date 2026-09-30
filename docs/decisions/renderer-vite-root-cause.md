@@ -54,3 +54,36 @@
 3. 若仍报错，再考虑在 studio 的 package.json 显式依赖 highlight.js（及必要时 lowlight），或调整 node-linker/deploy，最后再考虑是否用 alias 兜底。
 
 这样可以从「monorepo 依赖在根 + Vite 未对根目录下该文件做预构建」这一根因出发做决策，而不是依赖一堆 alias。
+
+## 补记：反方向 —— 源码包**被**预构建，新增导出拿不到
+
+上面说的是「该预构建的没预构建」。同一条链上还有一个反方向的坑，症状完全不同：
+
+```
+SyntaxError: The requested module '/node_modules/.vite/deps/@i-thinking_agent_provider.js?v=73b0e299'
+does not provide an export named 'PROVIDER_SOURCE_NOTES'
+```
+
+（2026-09 实测：给 `@i-thinking/agent/provider` 加了 `PROVIDER_SOURCE_NOTES`，dev 里整页被
+ErrorBoundary 接住。）
+
+**根因**：这套包的 `exports` 指向 `src/*.ts`。一旦它没被 `optimizeDeps.exclude`，
+Vite 会把**启动那一刻的那份源码**冻进 `.vite/deps/*.js`；之后改源码，HMR 推的是**源码模块**，
+而浏览器里 `import` 到的仍是旧 bundle → 导出名对不上。预构建没跟着失效的原因与
+`vite.renderer.config.mts` 里 `WorkSpace` 插件注释是同一个：这些包在 vite root 之外、
+又经 pnpm 软链，watcher 上报的路径与模块图里的 id 不是同一种形式。
+
+**判据（`vite.renderer.config.mts` 的 `optimizeDeps`）**：
+
+- `exports` 指向 `src` 的包 → **必须 exclude**（当前：`@i-thinking/design`、`@i-thinking/chat`、
+  `@i-thinking/agent`）。它们因此走源码，`packages/*` 的改动是真 HMR；若这类包有第三方依赖，
+  再把源码 glob 登记进 `entries`，让优化器在启动时仍能顺着包内 import 收全依赖
+  （`agent` 是纯 TS，`dependencies` 为空，所以没有这一项）。
+- `exports` 指向 `dist` 的包（如 `@i-thinking/hooks`）→ **保持预构建**：它们本来就靠各自的
+  `build` 出新产物，排除只会让它读同一个 `dist` 文件。
+
+**改完怎么办**：`optimizeDeps` 是启动时读的，旧会话里那份 `deps/*.js` 还在磁盘上 ——
+**重启 dev** 让优化器重跑（判据：`apps/studio/node_modules/.vite/deps/_metadata.json` 的
+写入时间会更新）。若重启后仍报同样的错，删掉 `apps/studio/node_modules/.vite` 再启。
+以后遇到「改了源码新增导出、dev 里报 `does not provide an export named`」，
+先看这个包是不是**源码导出却没 exclude**，而不是去翻业务代码。

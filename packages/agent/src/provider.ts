@@ -44,6 +44,16 @@ const PROVIDER_SOURCE_LABELS: Record<ProviderSource, string> = {
   platform: '组织模型'
 }
 
+/**
+ * 来源的**计费口径**：同一个模型名在两组里各有一份，走的路却不一样 —— 组织模型经平台网关
+ * （服务端计数、占平台额度），我的模型直连上游（只进本机账本）。名字一样、路不一样，
+ * 界面上不说清就必然被读成「明明用了某个模型，额度却一动不动」。
+ */
+const PROVIDER_SOURCE_NOTES: Record<ProviderSource, string> = {
+  local: '用你的密钥，不占平台额度',
+  platform: '走平台网关，占用平台额度'
+}
+
 /** 来源由 kind 派生：只有网关是平台来源，其余都是本机 BYOK */
 function findProviderSource(kind: string): ProviderSource {
   return kind === GATEWAY_PROVIDER_KIND ? 'platform' : 'local'
@@ -337,6 +347,7 @@ export {
   PROVIDER_KIND_LABELS,
   PROVIDER_PRESETS,
   PROVIDER_SOURCE_LABELS,
+  PROVIDER_SOURCE_NOTES,
   requiresApiKey,
   supportsTools,
   toModel,

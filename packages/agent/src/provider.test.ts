@@ -10,11 +10,14 @@ import {
   GATEWAY_PROVIDER_KIND,
   normalizeModelEntries,
   PROVIDER_PRESETS,
+  PROVIDER_SOURCE_LABELS,
+  PROVIDER_SOURCE_NOTES,
   requiresApiKey,
   supportsTools,
   toModel,
   toModelEntry
 } from './provider'
+import type { ProviderSource } from './provider'
 
 describe('findProviderSource / findCredentialKind', function () {
   it('只有网关是平台来源，凭据是登录令牌', function () {
@@ -30,6 +33,20 @@ describe('findProviderSource / findCredentialKind', function () {
   it('未知 kind 按本机 BYOK 处理', function () {
     expect(findProviderSource('whatever')).toBe('local')
     expect(findCredentialKind('whatever')).toBe('api-key')
+  })
+})
+
+describe('来源文案', function () {
+  it('每个来源都有名字与计费口径，且两条路说得不一样', function () {
+    const sources: ProviderSource[] = ['local', 'platform']
+
+    for (const source of sources) {
+      expect(PROVIDER_SOURCE_LABELS[source]).toBeTruthy()
+      expect(PROVIDER_SOURCE_NOTES[source]).toBeTruthy()
+    }
+
+    // 同一个模型名两组都有，计费口径必须能区分开，否则界面等于什么都没说
+    expect(PROVIDER_SOURCE_NOTES.local).not.toBe(PROVIDER_SOURCE_NOTES.platform)
   })
 })
 

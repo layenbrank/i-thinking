@@ -155,13 +155,28 @@ export default defineConfig(function ({ mode }: ConfigEnv): UserConfig {
        * 被 exclude 的包不再参与启动扫描，它们的第三方依赖要靠这里补回来：
        * 指向源码 glob，让优化器在启动时就顺着包内 import 把依赖收全，
        * 避免进入懒加载路由时才触发 re-optimize + 整页 reload（以及中间那段裸 CJS 窗口）。
+       *
+       * 只登记**有第三方依赖**的包：`agent` 是纯 TS（`dependencies` 为空、源码只 import 相对路径），
+       * 没有要收的依赖，也就没有 glob。
        */
       entries: [
         'index.html',
         '../../packages/design/src/**/*.{ts,tsx}',
         '../../packages/chat/src/**/*.{ts,tsx}'
       ],
-      exclude: ['@i-thinking/design', '@i-thinking/chat']
+      /**
+       * 渲染进程直接 import 的**源码包**必须排除预构建，否则每次给包加导出都要重启 dev。
+       *
+       * 这些包 exports 指向 `src/*.ts`（不是 dist），预构建会把它们的**当前一份**源码冻进
+       * `.vite/deps/*.js`：改源码加个导出，vite 侧确实热更了（源码包不在 vite root 内、
+       * 又是 pnpm 软链，见上面的 `WorkSpace` 插件说明），但浏览器拿的仍是旧 bundle ——
+       * 报 `The requested module '/node_modules/.vite/deps/@i-thinking_agent_provider.js'
+       * does not provide an export named 'X'`，整页被 ErrorBoundary 接住。
+       *
+       * 判据：凭 `exports` 指向 `src` 的包都排除；指向 `dist` 的（如 `@i-thinking/hooks`）保持
+       * 预构建 —— 那些包本来就靠各自 `build` 出新产物，排除只会让它读同一个 dist 文件。
+       */
+      exclude: ['@i-thinking/design', '@i-thinking/chat', '@i-thinking/agent']
     },
     build: {
       target: 'esnext',
