@@ -39,6 +39,12 @@ function DirectiveWall(props: Props) {
     onNew: function () {
       props.onOpen(list.findNewName())
     },
+    onImportFolder: function () {
+      void list.importFrom('dir')
+    },
+    onImportFile: function () {
+      void list.importFrom('file')
+    },
     onClearQuery: function () {
       list.updateQuery('')
     },

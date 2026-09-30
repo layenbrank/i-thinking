@@ -1,17 +1,18 @@
 /**
  * 列表的排序与分组。
  *
- * 两种看问题的角度：按分类找功能，按最近执行找「刚在弄的那条」。分组规则是**数据**而不是
- * 分支 —— 每种排序一个函数，按模式从表里取；加一种排序只需再补一行。
+ * 三种看问题的角度：按分类找功能，按分组找「哪一摊的」，按最近执行找「刚在弄的那条」。
+ * 分组规则是**数据**而不是分支 —— 每种排序一个函数，按模式从表里取；加一种排序只需再补一行。
  */
 
 import type { DirectiveEntry } from '@/shared/ipc/specs/sidecar'
 
 import { DAY_MS, HOUR_MS, WEEK_MS, type DirectiveRuns } from '../run/run-status'
 import { groupByBucket } from './bucket'
+import { groupByFolder } from './folder'
 import type { DirectiveGroup } from './types'
 
-const SORT_MODES = ['BUCKET', 'RECENT'] as const
+const SORT_MODES = ['BUCKET', 'FOLDER', 'RECENT'] as const
 
 type SortMode = (typeof SORT_MODES)[number]
 
@@ -19,11 +20,13 @@ const DEFAULT_SORT: SortMode = 'BUCKET'
 
 const SORT_LABELS: Record<SortMode, string> = {
   BUCKET: '分类',
+  FOLDER: '分组',
   RECENT: '最近执行'
 }
 
 const SORT_ICONS: Record<SortMode, string> = {
   BUCKET: 'mdi:folder-outline',
+  FOLDER: 'mdi:folder-multiple-outline',
   RECENT: 'mdi:history'
 }
 
@@ -87,6 +90,9 @@ function groupByRecency(
 const GROUPERS: Record<SortMode, Grouper> = {
   BUCKET: function (entries) {
     return groupByBucket(entries)
+  },
+  FOLDER: function (entries) {
+    return groupByFolder(entries)
   },
   RECENT: groupByRecency
 }

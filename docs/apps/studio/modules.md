@@ -45,6 +45,14 @@
 > **频道注册不再由各域承担** —— `host/ipc` 遍历契约统一注册。
 > 多数域已经不再导出 `buildPlugin()`。
 
+## UI 约定
+
+- **弹层（Popover / Dialog）里的长列表必须自带滚动容器**：用
+  `<div className="max-h-64 overflow-y-auto">`，不要用 `ScrollArea`。Radix 的 ScrollArea
+  Viewport 是 `size-full`（`height: 100%`），而弹层中的父元素通常只有 `max-height`
+  （高度不确定），百分比高度会退化成 `auto` —— 列表直接溢出弹层，看着像「弹层没有滚动条」。
+  搜索框之类固定元素要放在滚动容器**外面**，否则会跟着列表一起滚走。
+
 ## 新增域检查清单
 
 1. `shared/ipc/channels.ts` 加频道

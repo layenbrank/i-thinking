@@ -8,6 +8,10 @@ import type { PlaceholderAction, PlaceholderState } from './placeholder'
 interface PlaceholderActionsOptions {
   isCompact?: boolean
   onNew: () => void
+  /** 导入一个 YAML 目录 */
+  onImportFolder: () => void
+  /** 导入单个 YAML 文件 */
+  onImportFile: () => void
   onClearQuery: () => void
   onRetry: () => void
   onRefresh: () => void
@@ -21,12 +25,23 @@ const PLACEHOLDER_ACTIONS: Record<
     return []
   },
   empty: function (options) {
+    // 一条指令都没有时，除了现写一条，最常见的来路是导入手上已有的 YAML
     return [
       {
         label: options.isCompact ? '新增' : '新增指令',
         icon: 'mdi:plus',
         variant: 'default',
         onClick: options.onNew
+      },
+      {
+        label: options.isCompact ? '导入目录' : '导入 YAML 目录…',
+        icon: 'mdi:folder-open-outline',
+        onClick: options.onImportFolder
+      },
+      {
+        label: options.isCompact ? '导入文件' : '导入 YAML 文件…',
+        icon: 'mdi:file-import-outline',
+        onClick: options.onImportFile
       },
       { label: '重新读取', onClick: options.onRefresh }
     ]

@@ -112,7 +112,7 @@ describe('registerAll', function () {
     disposable = registerAll(ipc as never, stubCtx({ isDev: false }), stubHandlers())
 
     expect(ipc.size()).toBe(INVOKE_CHANNELS.length)
-    expect(ipc.size()).toBe(72)
+    expect(ipc.size()).toBe(75)
     for (const channel of INVOKE_CHANNELS) {
       expect(ipc.has(channel)).toBe(true)
     }

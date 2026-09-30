@@ -1,4 +1,3 @@
-import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import { Card, CardContent } from '@i-thinking/design/components/card'
 import {
@@ -12,7 +11,6 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@i-thinking/design/components/popover'
-import { ScrollArea } from '@i-thinking/design/components/scroll-area'
 import {
   Select,
   SelectContent,
@@ -41,7 +39,17 @@ import {
 } from './condition'
 import { CONTROL_CLASS, Field, Glyph } from './controls'
 import { OnErrorSelect } from './on-error'
-import { cloneStep, moveStep, nextStepId } from './step-utils'
+import {
+  CONTROL_KINDS,
+  STEP_KINDS,
+  buildControlStep,
+  cloneStep,
+  moveStep,
+  nextStepId,
+  switchStepKind,
+  type ControlKind,
+  type StepKind
+} from './step-utils'
 import type { Condition, Step, StepsStep } from './types'
 
 const STEP_KIND_LABEL = {
@@ -50,7 +58,16 @@ const STEP_KIND_LABEL = {
   repeat: '循环',
   parallel: '并行',
   steps: '顺序块'
-} as const
+} as const satisfies Record<StepKind, string>
+
+/** 类型下拉与「添加步骤」的控制流一栏共用同一套图标，免得两处各挑一个 */
+const STEP_KIND_ICONS: Record<StepKind, string> = {
+  action: 'mdi:play-circle-outline',
+  if: 'mdi:source-branch',
+  repeat: 'mdi:repeat',
+  parallel: 'mdi:call-split',
+  steps: 'mdi:format-list-numbered'
+}
 
 function findAction(catalog: CorexAction[], id: string | undefined): CorexAction | undefined {
   if (!id) return undefined
@@ -287,9 +304,24 @@ function ConditionNode(props: ConditionNodeProps) {
   )
 }
 
+/**
+ * 切换步骤类型：换成动作要一份动作目录来填 `action`（取目录里的第一条，之后可在标题上换），
+ * 其余四种按 step-utils 的规则原地重建 —— 保留 id 与还说得通的子步骤。
+ */
+function toKind(step: Step, kind: StepKind, catalog: CorexAction[]): Step {
+  if (kind !== 'action') return switchStepKind(step, kind)
+  const action = catalog[0]
+  // 目录空着时就没什么可选的动作，保持原样好过造一个空 action
+  if (!action) return step
+  // 顺序块的 id 是可选的：没写就现推一个，别把空 id 塞进 React key
+  return buildStep(action, step.id ?? nextStepId(action.id, []))
+}
+
 interface AddStepButtonProps {
   catalog: CorexAction[]
   onPick: (action: CorexAction) => void
+  /** 加一个控制流步骤：新增的指令要拿到 if / repeat / parallel / steps 只能走这里 */
+  onAddKind: (kind: ControlKind) => void
 }
 
 function AddStepButton(props: AddStepButtonProps) {
@@ -297,26 +329,40 @@ function AddStepButton(props: AddStepButtonProps) {
   const [query, setQuery] = useState('')
 
   const keyword = query.trim().toLowerCase()
-  const list = keyword
+  const actions = keyword
     ? props.catalog.filter(function (action) {
         return (
           action.name.toLowerCase().includes(keyword) || action.id.toLowerCase().includes(keyword)
         )
       })
     : props.catalog
+  const kinds = keyword
+    ? CONTROL_KINDS.filter(function (kind) {
+        return STEP_KIND_LABEL[kind].toLowerCase().includes(keyword) || kind.includes(keyword)
+      })
+    : CONTROL_KINDS
+
+  function close() {
+    setOpen(false)
+    setQuery('')
+  }
 
   function pick(action: CorexAction) {
     props.onPick(action)
-    setOpen(false)
-    setQuery('')
+    close()
+  }
+
+  function addKind(kind: ControlKind) {
+    props.onAddKind(kind)
+    close()
   }
 
   return (
     <Popover
       open={open}
       onOpenChange={function (next) {
-        setOpen(next)
-        if (!next) setQuery('')
+        if (next) setOpen(true)
+        else close()
       }}>
       <PopoverTrigger asChild>
         <Button
@@ -338,45 +384,85 @@ function AddStepButton(props: AddStepButtonProps) {
           <Input
             autoFocus
             value={query}
-            placeholder="搜索动作…"
+            placeholder="搜索动作或控制流…"
             className="h-9 border-0 px-0 shadow-none focus-visible:ring-0"
             onChange={function (event) {
               setQuery(event.target.value)
             }}
           />
         </div>
-        <ScrollArea className="max-h-64">
-          <ul className="flex flex-col gap-0.5 p-1.5">
-            {list.map(function (action) {
-              const mark = findBucketMark(action.bucket).icon
-              return (
-                <li key={action.id}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="h-auto w-full justify-start gap-2.5 px-2 py-1.5 font-normal"
-                    onClick={function () {
-                      pick(action)
-                    }}>
-                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <Glyph
-                        icon={mark}
-                        className="size-3.5"
-                      />
-                    </span>
-                    <span className="truncate text-sm">{action.name}</span>
-                    <code className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">
-                      {action.id}
-                    </code>
-                  </Button>
-                </li>
-              )
-            })}
-            {list.length === 0 ? (
-              <li className="px-2 py-3 text-center text-xs text-muted-foreground">没有匹配的动作</li>
-            ) : null}
-          </ul>
-        </ScrollArea>
+        {/*
+          弹层里的长列表必须自带滚动容器：Radix 的 ScrollArea 视口是 `size-full`，
+          父元素只有 max-height（高度不确定）时百分比高度退化成 auto，列表会直接溢出弹层。
+        */}
+        <div className="max-h-64 overflow-y-auto p-1.5">
+          {actions.length > 0 ? (
+            <>
+              <p className="px-2 py-1 text-[11px] font-medium text-muted-foreground">动作</p>
+              <ul className="flex flex-col gap-0.5">
+                {actions.map(function (action) {
+                  const mark = findBucketMark(action.bucket).icon
+                  return (
+                    <li key={action.id}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-auto w-full justify-start gap-2.5 px-2 py-1.5 font-normal"
+                        onClick={function () {
+                          pick(action)
+                        }}>
+                        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                          <Glyph
+                            icon={mark}
+                            className="size-3.5"
+                          />
+                        </span>
+                        <span className="truncate text-sm">{action.name}</span>
+                        <code className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">
+                          {action.id}
+                        </code>
+                      </Button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </>
+          ) : null}
+          {kinds.length > 0 ? (
+            <>
+              <p className="px-2 py-1 text-[11px] font-medium text-muted-foreground">控制流</p>
+              <ul className="flex flex-col gap-0.5">
+                {kinds.map(function (kind) {
+                  return (
+                    <li key={kind}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-auto w-full justify-start gap-2.5 px-2 py-1.5 font-normal"
+                        onClick={function () {
+                          addKind(kind)
+                        }}>
+                        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                          <Glyph
+                            icon={STEP_KIND_ICONS[kind]}
+                            className="size-3.5"
+                          />
+                        </span>
+                        <span className="truncate text-sm">{STEP_KIND_LABEL[kind]}</span>
+                        <code className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">
+                          {kind}
+                        </code>
+                      </Button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </>
+          ) : null}
+          {actions.length === 0 && kinds.length === 0 ? (
+            <p className="px-2 py-3 text-center text-xs text-muted-foreground">没有匹配的步骤</p>
+          ) : null}
+        </div>
       </PopoverContent>
     </Popover>
   )
@@ -386,12 +472,18 @@ interface ChildStepsProps {
   steps: Step[]
   catalog: CorexAction[]
   onChange: (steps: Step[]) => void
+  /** 给分支加一个「收进顺序块」：parallel 的分支只吃一个步骤，两步的分支得先包起来 */
+  onWrap?: (index: number) => void
 }
 
 function ChildSteps(props: ChildStepsProps) {
+  const wrap = props.onWrap
+
   return (
     <div className="flex flex-col gap-2 border-l-2 pl-3.5">
       {props.steps.map(function (child, index) {
+        // 本身就是顺序块 / 循环的，再包一层只是白套
+        const canWrap = wrap !== undefined && !('steps' in child)
         return (
           <StepNode
             key={child.id || index}
@@ -416,6 +508,13 @@ function ChildSteps(props: ChildStepsProps) {
               next.splice(index + 1, 0, cloneStep(child))
               props.onChange(next)
             }}
+            onWrapSteps={
+              canWrap
+                ? function () {
+                    wrap(index)
+                  }
+                : undefined
+            }
             onMoveUp={
               index > 0
                 ? function () {
@@ -437,6 +536,9 @@ function ChildSteps(props: ChildStepsProps) {
         catalog={props.catalog}
         onPick={function (action) {
           props.onChange([...props.steps, buildStep(action, nextStepId(action.id, props.steps))])
+        }}
+        onAddKind={function (kind) {
+          props.onChange([...props.steps, buildControlStep(kind, nextStepId(kind, props.steps))])
         }}
       />
     </div>
@@ -472,14 +574,17 @@ function IconAction(props: IconActionProps) {
 
 interface StepHeaderProps {
   icon: ReactNode
-  kindLabel: string
+  /** 当前类型；下拉里可以直接换一种（就地重建，id 保留） */
+  kind: StepKind
   id: string
   title: ReactNode
   onIdChange: (id: string) => void
+  onKindChange: (kind: StepKind) => void
   onRemove: () => void
   onDuplicate?: () => void
   onMoveUp?: () => void
   onMoveDown?: () => void
+  onWrapSteps?: () => void
 }
 
 function StepHeader(props: StepHeaderProps) {
@@ -494,11 +599,29 @@ function StepHeader(props: StepHeaderProps) {
         ) : (
           props.title
         )}
-        <Badge
-          variant="secondary"
-          className="w-fit">
-          {props.kindLabel}
-        </Badge>
+        <Select
+          value={props.kind}
+          onValueChange={function (value) {
+            props.onKindChange(value as StepKind)
+          }}>
+          <SelectTrigger
+            size="sm"
+            aria-label="切换步骤类型"
+            className="h-5 w-fit gap-1 border-transparent bg-secondary px-1.5 text-[11px] font-normal text-secondary-foreground shadow-none [&_svg]:size-3">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper">
+            {STEP_KINDS.map(function (kind) {
+              return (
+                <SelectItem
+                  key={kind}
+                  value={kind}>
+                  {STEP_KIND_LABEL[kind]}
+                </SelectItem>
+              )
+            })}
+          </SelectContent>
+        </Select>
       </div>
       <Input
         className="ml-auto h-7 w-28 border-transparent bg-transparent text-right font-mono text-xs text-muted-foreground shadow-none hover:border-input focus-visible:bg-background"
@@ -509,6 +632,13 @@ function StepHeader(props: StepHeaderProps) {
         }}
       />
       <div className="flex shrink-0 items-center gap-0.5">
+        {props.onWrapSteps ? (
+          <IconAction
+            label="收进顺序块"
+            icon="mdi:format-list-numbered"
+            onClick={props.onWrapSteps}
+          />
+        ) : null}
         {props.onMoveUp ? (
           <IconAction
             label="上移"
@@ -545,6 +675,10 @@ interface StepOps {
   onDuplicate?: () => void
   onMoveUp?: () => void
   onMoveDown?: () => void
+  /** 换一种步骤类型；StepNode 负责保留 id 与还说得通的子步骤 */
+  onKindChange: (kind: StepKind) => void
+  /** 把这一条收进顺序块（并行分支只吃一个步骤时用得着） */
+  onWrapSteps?: () => void
 }
 
 interface ActionSelectProps {
@@ -602,7 +736,9 @@ function ActionStepCard(props: ActionStepCardProps) {
     <Card className="gap-3 rounded-xl py-3 shadow-sm">
       <StepHeader
         icon={<Glyph icon={mark} className="size-4" />}
-        kindLabel={STEP_KIND_LABEL.action}
+        kind="action"
+        onKindChange={props.onKindChange}
+        onWrapSteps={props.onWrapSteps}
         id={step.id}
         title={
           <ActionSelect
@@ -724,7 +860,9 @@ function IfStepCard(props: IfStepCardProps) {
     <Card className="gap-3 rounded-xl py-3 shadow-sm">
       <StepHeader
         icon={<Glyph icon="mdi:source-branch" className="size-4" />}
-        kindLabel={STEP_KIND_LABEL.if}
+        kind="if"
+        onKindChange={props.onKindChange}
+        onWrapSteps={props.onWrapSteps}
         id={step.id}
         title="条件分支"
         onIdChange={function (id) {
@@ -794,7 +932,9 @@ function RepeatStepCard(props: RepeatStepCardProps) {
     <Card className="gap-3 rounded-xl py-3 shadow-sm">
       <StepHeader
         icon={<Glyph icon="mdi:repeat" className="size-4" />}
-        kindLabel={STEP_KIND_LABEL.repeat}
+        kind="repeat"
+        onKindChange={props.onKindChange}
+        onWrapSteps={props.onWrapSteps}
         id={step.id}
         title="循环"
         onIdChange={function (id) {
@@ -897,7 +1037,9 @@ function ParallelStepCard(props: ParallelStepCardProps) {
     <Card className="gap-3 rounded-xl py-3 shadow-sm">
       <StepHeader
         icon={<Glyph icon="mdi:call-split" className="size-4" />}
-        kindLabel={STEP_KIND_LABEL.parallel}
+        kind="parallel"
+        onKindChange={props.onKindChange}
+        onWrapSteps={props.onWrapSteps}
         id={step.id}
         title="并行"
         onIdChange={function (id) {
@@ -930,6 +1072,14 @@ function ParallelStepCard(props: ParallelStepCardProps) {
           onChange={function (next) {
             props.onChange({ ...step, parallel: next })
           }}
+          onWrap={function (index) {
+            const next = [...step.parallel]
+            next[index] = {
+              id: nextStepId('steps', step.parallel),
+              steps: [next[index]]
+            }
+            props.onChange({ ...step, parallel: next })
+          }}
         />
       </CardContent>
     </Card>
@@ -950,7 +1100,9 @@ function StepsStepCard(props: StepsStepCardProps) {
     <Card className="gap-3 rounded-xl py-3 shadow-sm">
       <StepHeader
         icon={<Glyph icon="mdi:format-list-numbered" className="size-4" />}
-        kindLabel={STEP_KIND_LABEL.steps}
+        kind="steps"
+        onKindChange={props.onKindChange}
+        onWrapSteps={props.onWrapSteps}
         id={step.id ?? ''}
         title="顺序块"
         onIdChange={function (id) {
@@ -982,6 +1134,8 @@ interface StepNodeProps {
   onDuplicate?: () => void
   onMoveUp?: () => void
   onMoveDown?: () => void
+  /** 只有并行分支会传：把这一条包进顺序块（一个分支只吃一个步骤） */
+  onWrapSteps?: () => void
 }
 
 function StepNode(props: StepNodeProps) {
@@ -989,9 +1143,14 @@ function StepNode(props: StepNodeProps) {
     catalog: props.catalog,
     onChange: props.onChange,
     onRemove: props.onRemove,
+    onKindChange: function (kind: StepKind) {
+      const rebuilt = toKind(props.step, kind, props.catalog)
+      if (rebuilt !== props.step) props.onChange(rebuilt)
+    },
     ...(props.onDuplicate ? { onDuplicate: props.onDuplicate } : {}),
     ...(props.onMoveUp ? { onMoveUp: props.onMoveUp } : {}),
-    ...(props.onMoveDown ? { onMoveDown: props.onMoveDown } : {})
+    ...(props.onMoveDown ? { onMoveDown: props.onMoveDown } : {}),
+    ...(props.onWrapSteps ? { onWrapSteps: props.onWrapSteps } : {})
   }
 
   if ('action' in props.step) {

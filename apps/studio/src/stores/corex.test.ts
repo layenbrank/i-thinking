@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { DirectiveContent } from '@/shared/ipc/specs/sidecar'
 import type { CorexFrame } from '@/stores/run-logs'
 import { appendRunFrame, findRunFrames, flushRunFrames } from '@/stores/run-logs'
 
@@ -61,6 +62,77 @@ beforeEach(function () {
 
 afterEach(function () {
   vi.unstubAllGlobals()
+})
+
+/** 只留被测方法要碰的那几个频道；其余调用出现即报错，免得测试悄悄依赖了没桩的东西 */
+function stubSidecar(handlers: Record<string, (...args: unknown[]) => unknown>): void {
+  vi.stubGlobal('itc', {
+    sidecar: handlers,
+    store: {
+      toRead: async function () {
+        return undefined
+      },
+      toWrite: async function () {
+        return undefined
+      }
+    }
+  })
+}
+
+describe('directives', function () {
+  function content(name: string): DirectiveContent {
+    return { name, description: '', version: '', inputs: [], steps: [] }
+  }
+
+  it('passes the original name so a rename leaves no orphan behind', async function () {
+    const calls: unknown[] = []
+    stubSidecar({
+      saveDirective: function (input: unknown) {
+        calls.push(input)
+        return { name: 'renamed', definition: content('renamed') }
+      }
+    })
+
+    await useCorexStore.getState().saveDirective(content('renamed'), 'old')
+
+    expect(calls).toEqual([{ definition: content('renamed'), original_name: 'old' }])
+  })
+
+  it('leaves original_name out when the name did not change', async function () {
+    const calls: unknown[] = []
+    stubSidecar({
+      saveDirective: function (input: unknown) {
+        calls.push(input)
+        return { name: 'same', definition: content('same') }
+      }
+    })
+
+    await useCorexStore.getState().saveDirective(content('same'))
+
+    expect(calls).toEqual([{ definition: content('same') }])
+  })
+
+  it('forwards delete and import to the daemon', async function () {
+    const calls: unknown[] = []
+    stubSidecar({
+      deleteDirective: function (input: unknown) {
+        calls.push(['delete', input])
+        return { name: 'gone' }
+      },
+      importDirectives: function (input: unknown) {
+        calls.push(['import', input])
+        return { entries: [], created: 0, updated: 0, skipped: 0, failed: 0 }
+      }
+    })
+
+    await useCorexStore.getState().deleteDirective('gone')
+    await useCorexStore.getState().importDirectives({ path: 'D:\\y', overwrite: true })
+
+    expect(calls).toEqual([
+      ['delete', { name: 'gone' }],
+      ['import', { path: 'D:\\y', overwrite: true }]
+    ])
+  })
 })
 
 describe('runs', function () {

@@ -5,12 +5,13 @@ import { createInterface } from 'node:readline'
 
 import type { CHANNELS } from '../../../shared/ipc/channels'
 import type { Out } from '../../../shared/ipc/specs'
-import type { DirectiveContent } from '../../../shared/ipc/specs/sidecar'
+import type { DirectiveContent, ImportResult } from '../../../shared/ipc/specs/sidecar'
+import { isValidDirectiveName } from '../../../shared/ipc/specs/sidecar'
 import type { Context } from '../../framework/context'
 import type { Logger } from '../../framework/logger'
 import type { Plugin } from '../../framework/module'
 import type { DirectiveDocument, DirectiveEntry } from './directive'
-import { parseDirectiveDocument, parseDirectiveEntries } from './directive'
+import { parseDirectiveDocument, parseDirectiveEntries, parseImportResult } from './directive'
 import { findCorexInstall, hasPandoc, resolveAuthToken, type CorexInstall } from './install'
 
 const READY_TIMEOUT_MS = 15_000
@@ -100,6 +101,7 @@ class CorexHost {
   private isBundledInstall = false
   private version = ''
   private dataDir = ''
+  private directivesDb = ''
   private actions: string[] = []
   private catalog: CorexAction[] = []
   private authToken = ''
@@ -125,6 +127,11 @@ class CorexHost {
 
   findDataDir(): string {
     return this.dataDir
+  }
+
+  /** 指令库文件；界面把它显示出来，用户才知道自己改的是哪一份 */
+  findDirectivesDb(): string {
+    return this.directivesDb
   }
 
   isBundled(): boolean {
@@ -172,6 +179,7 @@ class CorexHost {
       : { ...found, tokenFile: path.join(found.dataDir, 'token') }
     this.endpoint = this.install.endpoint
     this.dataDir = this.install.dataDir
+    this.directivesDb = this.install.directivesDb
     this.isBundledInstall = this.install.isBundled
     this.version = this.install.version
     this.authToken = resolveAuthToken(this.install)
@@ -227,20 +235,87 @@ class CorexHost {
     )
   }
 
-  /** 指令目录里的指令（corex `list_directives`）；dir 是数据目录下的子目录。 */
-  async listDirectives(dir?: string): Promise<DirectiveEntry[]> {
-    return parseDirectiveEntries(await this.call('list_directives', dir ? { dir } : {}))
+  /**
+   * 指令库里的指令（corex `list_directives`）。v13 起指令全在库里，
+   * 不再有「哪个目录」这一说 —— 分组是条目自己的 `folder` 列。
+   */
+  async listDirectives(): Promise<DirectiveEntry[]> {
+    return parseDirectiveEntries(await this.call('list_directives'))
   }
 
   async readDirective(name: string): Promise<DirectiveDocument> {
     return parseDirectiveDocument(await this.call('read_directive', { name }))
   }
 
-  /** 保存指令：模型交给 corex 校验并落盘，返回它写下的那一份（含原文）。 */
-  async saveDirective(definition: DirectiveContent): Promise<DirectiveDocument> {
+  /**
+   * 保存指令：模型交给 corex 校验并落库，返回它写下的那一份（含 YAML）。
+   *
+   * `originalName` 与 `definition.name` 不同即改名 —— daemon 原子完成，旧行随之消失，
+   * 不会像过去那样在目录里留下一条孤儿。
+   */
+  async saveDirective(
+    definition: DirectiveContent,
+    originalName?: string
+  ): Promise<DirectiveDocument> {
     return parseDirectiveDocument(
-      await this.call('save_directive', { name: definition.name, definition })
+      await this.call('save_directive', {
+        name: definition.name,
+        definition,
+        ...(originalName && originalName !== definition.name
+          ? { original_name: originalName }
+          : {})
+      })
     )
+  }
+
+  /** 删掉一条指令；返回 corex 报回来的名字（与请求同名，纯回执） */
+  async deleteDirective(name: string): Promise<{ name: string }> {
+    const data = await this.call('delete_directive', { name })
+    const doc = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}
+    return { name: typeof doc.name === 'string' ? doc.name : name }
+  }
+
+  /** 从目录或单个 YAML 文件导入（corex `import_directives`） */
+  async importDirectives(fields: {
+    path: string
+    folder?: string
+    overwrite?: boolean
+    dry_run?: boolean
+  }): Promise<ImportResult> {
+    return parseImportResult(await this.call('import_directives', fields))
+  }
+
+  /**
+   * 用外部编辑器改这条指令：拉起 `corex edit <name>`。
+   *
+   * 编辑器是独立程序，不该跟着 Studio 的进程树一起死，所以 detached + unref；
+   * 名字先在宿主这一侧再挡一次 —— 这里没有界面兜底，拼错的参数会直接进 argv。
+   */
+  async editDirective(name: string): Promise<void> {
+    if (!isValidDirectiveName(name)) {
+      throw new Error(`指令名不合法：${name}`)
+    }
+    if (!this.isReady) {
+      await this.start()
+    }
+    if (!this.install) {
+      throw new Error('没找到 corex，无法用外部编辑器打开')
+    }
+
+    const host = this
+    const child = spawn(this.install.cli, ['edit', name], {
+      stdio: 'ignore',
+      shell: false,
+      windowsHide: true,
+      detached: true,
+      cwd: path.dirname(this.install.cli),
+      env: { ...process.env, [COREX_DATA_DIR_ENV]: this.dataDir }
+    })
+    // detached 子进程的 error 没人接就会掀翻整个主进程
+    child.on('error', function (error) {
+      host.logger.error('corex edit 启动失败', error)
+    })
+    child.unref()
   }
 
   async stop(): Promise<void> {
@@ -592,6 +667,7 @@ function findStatus(corex: CorexHost): FindStatusR {
     hasCorex: corex.hasInstall(),
     hasPandoc: hasPandoc(),
     dataDir: corex.findDataDir(),
+    directivesDb: corex.findDirectivesDb(),
     isBundled: corex.isBundled()
   }
 }

@@ -89,11 +89,25 @@ Preload 的 `invoke` 失败时抛 `IpcClientError`，**code 已编进 message �
 
 ## sidecar
 
-| 方法     | Channel          | 入参 | 返回                   |
-| -------- | ---------------- | ---- | ---------------------- |
-| `toRead` | `sidecar:toRead` | 无   | `Promise<FindStatusR>` |
+| 方法                | Channel                    | 入参                                        | 返回                       |
+| ------------------- | -------------------------- | ------------------------------------------- | -------------------------- |
+| `toRead`            | `sidecar:toRead`           | 无                                          | `Promise<FindStatusR>`     |
+| `actions`           | `sidecar:actions`          | 无                                          | `Promise<ActionEntry[]>`   |
+| `directives`        | `sidecar:directives`       | 无                                          | `Promise<DirectiveEntry[]>` |
+| `directive`         | `sidecar:directive`        | `{ name }`                                  | `Promise<DirectiveDocument>` |
+| `saveDirective`     | `sidecar:saveDirective`    | `{ definition, original_name? }`            | `Promise<DirectiveDocument>` |
+| `deleteDirective`   | `sidecar:deleteDirective`  | `{ name }`                                  | `Promise<{ name }>`        |
+| `importDirectives`  | `sidecar:importDirectives` | `{ path, folder?, overwrite?, dry_run? }`   | `Promise<ImportResult>`    |
+| `editDirective`     | `sidecar:editDirective`    | `{ name }`                                  | `Promise<void>`（拉 `corex edit`） |
+| `invoke`            | `sidecar:invoke`           | `{ action, params?, runId }`                | `Promise<unknown>`         |
+| `run`               | `sidecar:run`              | `{ name, input?, runId }`                   | `Promise<unknown>`         |
+| `onProgress`        | `sidecar:progress`（推送） | –                                           | 订阅，帧带 `runId`         |
 
-`FindStatusR`：`{ isReady, version, actions, hasCorex, hasPandoc }`。
+`FindStatusR`：`{ isReady, version, actions, hasCorex, hasPandoc, dataDir, directivesDb, isBundled }`。
+
+`DirectiveEntry`：`{ name, folder, source, updated_at_ms, bucket, summary, last_run? }`；
+`DirectiveDocument`：`{ name, folder, source, created_at_ms, updated_at_ms, yaml, definition }`。
+`definition.name` 是名字，`original_name` 与它不同即改名（daemon 原子完成）。
 
 ---
 

@@ -24,13 +24,13 @@ void 0 as unknown as _ScreenshotOnlyCapture
 void 0 as unknown as _UpdaterHasOnEvent
 
 describe('channel derivation', function () {
-  it('flattens to exactly 75 channels', function () {
-    expect(flattenChannels()).toHaveLength(75)
+  it('flattens to exactly 78 channels', function () {
+    expect(flattenChannels()).toHaveLength(78)
   })
 
-  it('splits invoke (72) from push (3) with no overlap', function () {
+  it('splits invoke (75) from push (3) with no overlap', function () {
     expect(PUSH_CHANNELS).toHaveLength(3)
-    expect(INVOKE_CHANNELS).toHaveLength(72)
+    expect(INVOKE_CHANNELS).toHaveLength(75)
     for (const push of PUSH_CHANNELS) {
       expect(INVOKE_CHANNELS).not.toContain(push)
     }
@@ -52,6 +52,9 @@ describe('channel derivation', function () {
     expect(CHANNELS.SIDECAR.RUN).toBe('sidecar:run')
     expect(CHANNELS.SIDECAR.DIRECTIVE).toBe('sidecar:directive')
     expect(CHANNELS.SIDECAR.SAVE).toBe('sidecar:saveDirective')
+    expect(CHANNELS.SIDECAR.DELETE).toBe('sidecar:deleteDirective')
+    expect(CHANNELS.SIDECAR.IMPORT).toBe('sidecar:importDirectives')
+    expect(CHANNELS.SIDECAR.EDIT).toBe('sidecar:editDirective')
     expect(CHANNELS.SIDECAR.PROGRESS).toBe('sidecar:progress')
     expect(CHANNELS.ASSISTANT.PORT).toBe('assistant:port')
     expect(CHANNELS.UPDATER.EVENT).toBe('updater:event')

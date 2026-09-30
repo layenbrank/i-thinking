@@ -28,14 +28,23 @@ export function buildSidecarHandlers(ctx: Context): DomainHandlers<'sidecar'> {
     [CHANNELS.SIDECAR.ACTIONS]: function () {
       return ctx.corex.findCatalog() as Out<typeof CHANNELS.SIDECAR.ACTIONS>
     },
-    [CHANNELS.SIDECAR.DIRECTIVES]: function (input) {
-      return ctx.corex.listDirectives(input?.dir)
+    [CHANNELS.SIDECAR.DIRECTIVES]: function () {
+      return ctx.corex.listDirectives()
     },
     [CHANNELS.SIDECAR.DIRECTIVE]: async function (input) {
       return (await ctx.corex.readDirective(input.name)) as Out<typeof CHANNELS.SIDECAR.DIRECTIVE>
     },
     [CHANNELS.SIDECAR.SAVE]: function (input) {
-      return ctx.corex.saveDirective(input)
+      return ctx.corex.saveDirective(input.definition, input.original_name)
+    },
+    [CHANNELS.SIDECAR.DELETE]: function (input) {
+      return ctx.corex.deleteDirective(input.name)
+    },
+    [CHANNELS.SIDECAR.IMPORT]: function (input) {
+      return ctx.corex.importDirectives(input)
+    },
+    [CHANNELS.SIDECAR.EDIT]: function (input) {
+      return ctx.corex.editDirective(input.name)
     },
     [CHANNELS.SIDECAR.INVOKE]: function (input, event) {
       return ctx.corex.invokeAction(

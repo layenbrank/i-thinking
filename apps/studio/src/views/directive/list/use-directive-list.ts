@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import { useCorexStore } from '@/stores/corex'
 
@@ -126,6 +127,57 @@ function useDirectiveList() {
     void useCorexStore.getState().initialize()
   }
 
+  /**
+   * 导入 YAML：先选目录或文件，再交给 corex 的 `import_directives`。
+   *
+   * 结果用 toast 报出四个数（新增 / 更新 / 跳过 / 失败），失败的文件逐个列出来 ——
+   * 只说「失败 3 个」等于没说，用户还得自己猜是哪三个。导完刷新列表。
+   */
+  async function importFrom(kind: 'dir' | 'file') {
+    let picked: string[] | null
+    try {
+      picked = await itc.dialog.open(
+        kind === 'dir'
+          ? { directory: true }
+          : { filters: [{ name: 'YAML', extensions: ['yaml', 'yml'] }] }
+      )
+    } catch (error) {
+      console.error('[directive] 打开选择框失败', error)
+      toast.error('没能打开选择框', {
+        description: error instanceof Error ? error.message : String(error)
+      })
+      return
+    }
+
+    const path = picked?.[0]
+    if (!path) return
+
+    try {
+      const result = await useCorexStore.getState().importDirectives({ path })
+      toast.success('导入完成', {
+        description: `新增 ${result.created} · 更新 ${result.updated} · 跳过 ${result.skipped} · 失败 ${result.failed}`
+      })
+      const failures = result.entries.filter(function (entry) {
+        return entry.status === 'failed'
+      })
+      if (failures.length > 0) {
+        toast.error(`${failures.length} 个文件没能导入`, {
+          description: failures
+            .map(function (entry) {
+              return `${entry.name}：${entry.error ?? '原因未知'}`
+            })
+            .join('\n')
+        })
+      }
+      await useCorexStore.getState().refreshDirectives()
+    } catch (error) {
+      console.error('[directive] 导入指令失败', error)
+      toast.error('导入失败', {
+        description: error instanceof Error ? error.message : String(error)
+      })
+    }
+  }
+
   return {
     catalog,
     directives,
@@ -143,6 +195,7 @@ function useDirectiveList() {
     unread,
     findNewName,
     handleSort,
+    importFrom,
     retry,
     updateQuery
   }

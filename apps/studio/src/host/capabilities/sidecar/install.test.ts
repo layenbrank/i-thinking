@@ -13,9 +13,9 @@ import {
 } from './install'
 
 const PATHS_JSON = JSON.stringify({
-  version: '12.0.0',
+  version: '13.0.0',
   data_dir: String.raw`C:\Users\x\.corex`,
-  directives_dir: String.raw`C:\Users\x\.corex\directives`,
+  directives_db: String.raw`C:\Users\x\.corex\directives.db`,
   endpoint: String.raw`\\.\pipe\corex`,
   token_file: String.raw`C:\Users\x\.corex\token`
 })
@@ -23,17 +23,18 @@ const PATHS_JSON = JSON.stringify({
 describe('parsePaths', function () {
   it('reads the paths corex reports', function () {
     expect(parsePaths(PATHS_JSON)).toEqual({
-      version: '12.0.0',
+      version: '13.0.0',
       data_dir: String.raw`C:\Users\x\.corex`,
-      directives_dir: String.raw`C:\Users\x\.corex\directives`,
+      directives_db: String.raw`C:\Users\x\.corex\directives.db`,
       endpoint: String.raw`\\.\pipe\corex`,
       token_file: String.raw`C:\Users\x\.corex\token`
     })
   })
 
-  it('derives directives_dir when corex leaves it out', function () {
+  // 旧版 corex 还不认识指令库，界面至少要显示出一个说得通的路径
+  it('derives directives_db when corex leaves it out', function () {
     const text = JSON.stringify({ data_dir: 'D:\\corex', endpoint: 'corex.sock' })
-    expect(parsePaths(text)?.directives_dir).toBe(path.join('D:\\corex', 'directives'))
+    expect(parsePaths(text)?.directives_db).toBe(path.join('D:\\corex', 'directives.db'))
   })
 
   it('keeps token_file null when the token is not file-borne', function () {
@@ -84,6 +85,7 @@ describe('findCorexInstall', function () {
   it('always resolves to a usable install, user-installed or bundled', async function () {
     const install = await findCorexInstall()
     expect(install.dataDir).not.toBe('')
+    expect(install.directivesDb).not.toBe('')
     expect(install.endpoint).not.toBe('')
     expect(install.daemon.endsWith(findBinaryName('corex-daemon'))).toBe(true)
   })

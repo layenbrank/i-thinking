@@ -98,6 +98,9 @@ const api = {
     directives: toInvoke(CHANNELS.SIDECAR.DIRECTIVES),
     directive: toInvoke(CHANNELS.SIDECAR.DIRECTIVE),
     saveDirective: toInvoke(CHANNELS.SIDECAR.SAVE),
+    deleteDirective: toInvoke(CHANNELS.SIDECAR.DELETE),
+    importDirectives: toInvoke(CHANNELS.SIDECAR.IMPORT),
+    editDirective: toInvoke(CHANNELS.SIDECAR.EDIT),
     invoke: toInvoke(CHANNELS.SIDECAR.INVOKE),
     run: toInvoke(CHANNELS.SIDECAR.RUN),
     onProgress: toSubscribe(CHANNELS.SIDECAR.PROGRESS, toSidecarProgress)

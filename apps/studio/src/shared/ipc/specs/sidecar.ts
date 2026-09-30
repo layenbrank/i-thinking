@@ -12,6 +12,8 @@ const StatusSchema = z.object({
   hasPandoc: z.boolean(),
   /** corex 实际在用的数据目录（指令 / 历史都在这），供界面显示与排错 */
   dataDir: z.string(),
+  /** 指令库（SQLite）文件：v13 起指令的唯一真相，界面直接把它显示出来 */
+  directivesDb: z.string(),
   /** true = 用的是 Studio 自带的那份 corex（用户机器上没装） */
   isBundled: z.boolean()
 })
@@ -78,9 +80,19 @@ const RunSchema = z.object({
   runId: RunIdSchema
 })
 
-const DirectivesSchema = z.object({ dir: z.string().optional() }).optional()
+const DirectiveNameSchema = z.object({ name: z.string().min(1) })
 
-const DirectiveReadSchema = z.object({ name: z.string().min(1) })
+/**
+ * 指令名规则（与 corex 同一条）：裸名字，不带路径分隔符、不带 `..`、非空。
+ *
+ * 放在契约里是因为两边都要用：渲染侧在保存前先拦一道并把错误显示在输入框旁，
+ * 宿主侧（`corex edit`）没有任何 UI，只能自己再挡一次。规则只有一份才不会再漂移。
+ */
+const INVALID_DIRECTIVE_NAME = /[\\/]|\.\./
+
+function isValidDirectiveName(name: string): boolean {
+  return name.length > 0 && !INVALID_DIRECTIVE_NAME.test(name)
+}
 
 /** 卡片的元信息；corex 解析不了这条指令时为 `null` */
 const DirectiveSummarySchema = z.object({
@@ -106,11 +118,15 @@ const DirectiveRunSchema = RunOutcomeSchema.extend({
   failed_count: z.number().int()
 })
 
-/** 指令目录里的一条（corex `list_directives` 的一项） */
+/** 指令库（SQLite）里的一条（corex `list_directives` 的一项） */
 const DirectiveEntrySchema = z.object({
   name: z.string(),
-  /** 指令文件路径，排错用 */
-  path: z.string(),
+  /** 分组；`null` = 未分组。v13 起分组就是这一列，没有目录层级了 */
+  folder: z.string().nullable(),
+  /** 这条指令当初从哪个 YAML 导进来；不是导入来的、或来源已无从得知时为 `null` */
+  source: z.string().nullable(),
+  /** 最后一次落库的时刻（epoch ms），卡片按它排「刚改过的」 */
+  updated_at_ms: z.number(),
   /** 分类；解析不了的指令没有分类 */
   bucket: BucketSchema.nullable(),
   summary: DirectiveSummarySchema.nullable(),
@@ -310,17 +326,59 @@ const DirectiveContentSchema = z
   })
   .catchall(z.unknown())
 
-/** 一条指令：原文（保住自己没懂的字段）+ 模型（corex 反序列化出的那份） */
+/** 一条指令：corex 从模型序列化出的 YAML（只读展示 / 导出）+ 模型本身 */
 const DirectiveDocumentSchema = z.object({
   name: z.string(),
-  path: z.string(),
-  text: z.string(),
+  folder: z.string().nullable(),
+  source: z.string().nullable(),
+  created_at_ms: z.number(),
+  updated_at_ms: z.number(),
+  /** 规范化的 YAML 原文；只用于显示与对账，改它不会生效 */
+  yaml: z.string(),
   definition: DirectiveContentSchema
+})
+
+/** 保存：`definition.name` 是新名字，`original_name` 不同即改名（daemon 原子完成，不留旧行） */
+const DirectiveSaveSchema = z.object({
+  definition: DirectiveContentSchema,
+  original_name: z.string().optional()
+})
+
+const ImportStatusSchema = z.enum(['created', 'updated', 'skipped', 'failed'])
+
+/** 导入结果里的一条：`path` 是它来自的那个 YAML 文件（排错用） */
+const ImportEntrySchema = z.object({
+  name: z.string(),
+  path: z.string(),
+  status: ImportStatusSchema,
+  error: z.string().optional()
+})
+
+const ImportResultSchema = z.object({
+  entries: z.array(ImportEntrySchema),
+  created: z.number().int(),
+  updated: z.number().int(),
+  skipped: z.number().int(),
+  failed: z.number().int()
+})
+
+const ImportSchema = z.object({
+  /** 要导入的目录或单个 YAML 文件 */
+  path: z.string().min(1),
+  /** 导进哪个分组；不写 = 未分组 */
+  folder: z.string().optional(),
+  /** 同名已存在时是否覆盖；不写交给 corex 的默认 */
+  overwrite: z.boolean().optional(),
+  /** 只报告会做什么，不落库 */
+  dry_run: z.boolean().optional()
 })
 
 type DirectiveContent = z.infer<typeof DirectiveContentSchema>
 type DirectiveDocument = z.infer<typeof DirectiveDocumentSchema>
 type DirectiveEntry = z.infer<typeof DirectiveEntrySchema>
+type ImportEntry = z.infer<typeof ImportEntrySchema>
+type ImportResult = z.infer<typeof ImportResultSchema>
+type ImportStatus = z.infer<typeof ImportStatusSchema>
 type DirectiveStep = Step
 type DirectiveCondition = Condition
 type DirectiveTrigger = z.infer<typeof TriggerSchema>
@@ -332,9 +390,12 @@ type DirectiveSummary = z.infer<typeof DirectiveSummarySchema>
 export const sidecarSpecs = {
   [CHANNELS.SIDECAR.READ]: { in: z.void(), out: StatusSchema },
   [CHANNELS.SIDECAR.ACTIONS]: { in: z.void(), out: z.array(ActionEntrySchema) },
-  [CHANNELS.SIDECAR.DIRECTIVES]: { in: DirectivesSchema, out: z.array(DirectiveEntrySchema) },
-  [CHANNELS.SIDECAR.DIRECTIVE]: { in: DirectiveReadSchema, out: DirectiveDocumentSchema },
-  [CHANNELS.SIDECAR.SAVE]: { in: DirectiveContentSchema, out: DirectiveDocumentSchema },
+  [CHANNELS.SIDECAR.DIRECTIVES]: { in: z.void(), out: z.array(DirectiveEntrySchema) },
+  [CHANNELS.SIDECAR.DIRECTIVE]: { in: DirectiveNameSchema, out: DirectiveDocumentSchema },
+  [CHANNELS.SIDECAR.SAVE]: { in: DirectiveSaveSchema, out: DirectiveDocumentSchema },
+  [CHANNELS.SIDECAR.DELETE]: { in: DirectiveNameSchema, out: DirectiveNameSchema },
+  [CHANNELS.SIDECAR.IMPORT]: { in: ImportSchema, out: ImportResultSchema },
+  [CHANNELS.SIDECAR.EDIT]: { in: DirectiveNameSchema, out: z.void() },
   [CHANNELS.SIDECAR.INVOKE]: { in: InvokeSchema, out: z.unknown() },
   [CHANNELS.SIDECAR.RUN]: { in: RunSchema, out: z.unknown() }
 } as const satisfies Record<
@@ -357,8 +418,15 @@ export {
   DirectiveDocumentSchema,
   DirectiveEntrySchema,
   DirectiveInputSchema,
+  DirectiveNameSchema,
   DirectiveRunSchema,
+  DirectiveSaveSchema,
   DirectiveSummarySchema,
+  ImportEntrySchema,
+  ImportResultSchema,
+  ImportSchema,
+  ImportStatusSchema,
+  isValidDirectiveName,
   PermissionsSchema,
   ProgressSchema,
   RunOutcomeSchema,
@@ -380,6 +448,9 @@ export type {
   DirectiveSummary,
   DirectiveTrigger,
   IfStep,
+  ImportEntry,
+  ImportResult,
+  ImportStatus,
   OnError,
   ParallelStep,
   RepeatStep,

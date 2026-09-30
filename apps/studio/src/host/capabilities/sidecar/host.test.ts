@@ -3,7 +3,7 @@ import { createInterface } from 'node:readline'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Logger } from '../../framework/logger'
-import { CorexHost, parseCatalog } from './index'
+import { CorexHost, findStatus, parseCatalog } from './index'
 
 /** 复用路径没有 child，测试要点是它别被当成「启动失败」 */
 const { ENDPOINT } = vi.hoisted(function () {
@@ -18,6 +18,7 @@ vi.mock('./install', function () {
       return {
         daemon: 'corex-daemon',
         dataDir: '/tmp/corex-test',
+        directivesDb: '/tmp/corex-test/directives.db',
         endpoint: ENDPOINT,
         version: '11.0.0',
         isBundled: false,
@@ -93,6 +94,8 @@ describe('CorexHost.start', function () {
     expect(host.isRunning()).toBe(true)
     expect(host.findVersion()).toBe('11.0.0')
     expect(host.findActions()).toEqual(['file.copy'])
+    // 指令库路径要跟着 discovery 走，界面显示的就是真在用的那一份
+    expect(findStatus(host).directivesDb).toBe('/tmp/corex-test/directives.db')
   })
 
   it('shares the startup promise with requests arriving during startup', async function () {

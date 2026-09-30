@@ -44,6 +44,9 @@ export interface Api {
     directives: IpcFn<typeof CHANNELS.SIDECAR.DIRECTIVES>
     directive: IpcFn<typeof CHANNELS.SIDECAR.DIRECTIVE>
     saveDirective: IpcFn<typeof CHANNELS.SIDECAR.SAVE>
+    deleteDirective: IpcFn<typeof CHANNELS.SIDECAR.DELETE>
+    importDirectives: IpcFn<typeof CHANNELS.SIDECAR.IMPORT>
+    editDirective: IpcFn<typeof CHANNELS.SIDECAR.EDIT>
     invoke: IpcFn<typeof CHANNELS.SIDECAR.INVOKE>
     run: IpcFn<typeof CHANNELS.SIDECAR.RUN>
     onProgress: Subscribe<PushOut<typeof CHANNELS.SIDECAR.PROGRESS>>

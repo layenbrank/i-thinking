@@ -4,16 +4,20 @@ import type {
   DirectiveEntry,
   DirectiveDocument,
   DirectiveRun,
-  DirectiveSummary
+  DirectiveSummary,
+  ImportEntry,
+  ImportStatus,
+  ImportResult
 } from '../../../shared/ipc/specs/sidecar'
-import { BucketSchema } from '../../../shared/ipc/specs/sidecar'
+import { BucketSchema, ImportStatusSchema } from '../../../shared/ipc/specs/sidecar'
 
 /**
- * 指令的文件形状（corex daemon 的 `list_directives` / `read_directive` / `save_directive`）。
+ * 指令的库内形状（corex daemon 的 `list_directives` / `read_directive` / `save_directive`
+ * / `import_directives`）。
  *
  * 宿主不再自己拆 YAML：模型（`definition`）由 corex 交过来，就是它刚反序列化的那一份。
  * 两边各拆一次的话，编辑器里的形状迟早会和真跑的那份悄悄错位 —— 那正是「改了没生效」
- * 这类问题的来源。
+ * 这类问题的来源。`yaml` 是 corex 从模型重新序列化出来的，只给人看。
  */
 
 /** corex 会省略空字段，编辑器按「必有」渲染，这里补默认值。 */
@@ -37,6 +41,11 @@ function parseBucket(raw: unknown): Bucket | null {
 
 function toCount(raw: unknown): number {
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : 0
+}
+
+/** 可空文本：空串按「没有」算 —— 界面上显示一个空分组名比不显示更让人困惑 */
+function toOptionalText(raw: unknown): string | null {
+  return typeof raw === 'string' && raw ? raw : null
 }
 
 /**
@@ -96,7 +105,9 @@ function parseDirectiveEntries(data: unknown): DirectiveEntry[] {
     }
     entries.push({
       name: row.name,
-      path: typeof row.path === 'string' ? row.path : '',
+      folder: toOptionalText(row.folder),
+      source: toOptionalText(row.source),
+      updated_at_ms: toCount(row.updated_at_ms),
       bucket: parseBucket(row.bucket),
       summary: parseSummary(row.summary),
       last_run: parseDirectiveRun(row.last_run)
@@ -110,11 +121,63 @@ function parseDirectiveDocument(data: unknown): DirectiveDocument {
   const name = typeof doc.name === 'string' ? doc.name : ''
   return {
     name,
-    path: typeof doc.path === 'string' ? doc.path : '',
-    text: typeof doc.text === 'string' ? doc.text : '',
+    folder: toOptionalText(doc.folder),
+    source: toOptionalText(doc.source),
+    created_at_ms: toCount(doc.created_at_ms),
+    updated_at_ms: toCount(doc.updated_at_ms),
+    yaml: typeof doc.yaml === 'string' ? doc.yaml : '',
     definition: normalizeDefinition(doc.definition, name)
   }
 }
 
-export { normalizeDefinition, parseDirectiveDocument, parseDirectiveEntries }
+/** 认不出的状态不当成四种里的任何一种：宁可那条不显示，也不要报一个假结论 */
+function parseImportStatus(raw: unknown): ImportStatus | null {
+  const parsed = ImportStatusSchema.safeParse(raw)
+  return parsed.success ? parsed.data : null
+}
+
+/**
+ * 导入结果：逐条尽量留（排错要看是哪几个文件出问题），汇总数信 corex 的 ——
+ * 它才知道 dry_run 下算不算数。汇总数缺了就从条目里数出来。
+ */
+function parseImportResult(data: unknown): ImportResult {
+  const doc = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}
+  const entries: ImportEntry[] = []
+  const counted: Record<ImportStatus, number> = { created: 0, updated: 0, skipped: 0, failed: 0 }
+
+  if (Array.isArray(doc.entries)) {
+    for (const item of doc.entries) {
+      if (!item || typeof item !== 'object') {
+        continue
+      }
+      const row = item as Record<string, unknown>
+      const status = parseImportStatus(row.status)
+      if (typeof row.name !== 'string' || !row.name || !status) {
+        continue
+      }
+      counted[status] += 1
+      entries.push({
+        name: row.name,
+        path: typeof row.path === 'string' ? row.path : '',
+        status,
+        error: typeof row.error === 'string' ? row.error : undefined
+      })
+    }
+  }
+
+  return {
+    entries,
+    created: toCount(doc.created) || counted.created,
+    updated: toCount(doc.updated) || counted.updated,
+    skipped: toCount(doc.skipped) || counted.skipped,
+    failed: toCount(doc.failed) || counted.failed
+  }
+}
+
+export {
+  normalizeDefinition,
+  parseDirectiveDocument,
+  parseDirectiveEntries,
+  parseImportResult
+}
 export type { DirectiveDocument, DirectiveEntry, DirectiveSummary }

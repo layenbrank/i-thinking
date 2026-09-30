@@ -79,7 +79,7 @@ function DirectivePlaceholder(props: Props) {
         </p>
       ) : null}
       {actions.length > 0 ? (
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
           {actions.map(function (action) {
             return (
               <Button

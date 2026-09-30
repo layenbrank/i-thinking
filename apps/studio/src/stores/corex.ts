@@ -4,7 +4,8 @@ import { create } from 'zustand'
 import type {
   DirectiveContent,
   DirectiveDocument,
-  DirectiveEntry
+  DirectiveEntry,
+  ImportResult
 } from '@/shared/ipc/specs/sidecar'
 import { toIpcMessage } from '@/utils/ipc.errors.ts'
 
@@ -91,10 +92,25 @@ interface CorexStore {
   markSeen: (name: string) => void
   /** 一次记下一批（列表页的「全部已读」）；只写一次存档 */
   markSeenAll: (names: readonly string[]) => void
-  /** 读一条指令，返回 corex 反序列化出的模型（编辑器只认这一份） */
-  loadDirective: (name: string) => Promise<DirectiveContent>
-  /** 落盘一条指令，返回 corex 写下的那份（名字可能被它规范化） */
-  saveDirective: (content: DirectiveContent) => Promise<DirectiveDocument>
+  /**
+   * 读一条指令，返回 corex 交回来的那一份（模型 + 它序列化出的 YAML）。
+   * 编辑器只认这一份模型，YAML 只用于对账显示。
+   */
+  loadDirective: (name: string) => Promise<DirectiveDocument>
+  /**
+   * 落库一条指令，返回 corex 写下的那份（名字可能被它规范化）。
+   * `originalName` 与 `content.name` 不同即改名，由 daemon 原子完成 —— 不会留下旧行。
+   */
+  saveDirective: (content: DirectiveContent, originalName?: string) => Promise<DirectiveDocument>
+  /** 删掉一条指令（corex 里就没了）；刷新列表由调用方决定 */
+  deleteDirective: (name: string) => Promise<void>
+  /** 从目录或单个 YAML 文件导入；返回 corex 的逐条结果 */
+  importDirectives: (options: {
+    path: string
+    folder?: string
+    overwrite?: boolean
+    dry_run?: boolean
+  }) => Promise<ImportResult>
   /**
    * 起一次运行，**立刻**返回它的编号；进度与结果随后落进 `runs`，调用方不等它结束。
    * 返回编号而不是 Promise —— 界面要的是「拿到哪一次」，不是「跑完了没」。
@@ -272,12 +288,22 @@ export const useCorexStore = create<CorexStore>(function (setter, getter) {
     },
 
     async loadDirective(name) {
-      const document = await itc.sidecar.directive({ name })
-      return document.definition
+      return itc.sidecar.directive({ name })
     },
 
-    async saveDirective(content) {
-      return itc.sidecar.saveDirective(content)
+    async saveDirective(content, originalName) {
+      return itc.sidecar.saveDirective({
+        definition: content,
+        ...(originalName ? { original_name: originalName } : {})
+      })
+    },
+
+    async deleteDirective(name) {
+      await itc.sidecar.deleteDirective({ name })
+    },
+
+    async importDirectives(options) {
+      return itc.sidecar.importDirectives(options)
     },
 
     startRun(name, input) {

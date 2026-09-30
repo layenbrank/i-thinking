@@ -29,6 +29,9 @@ export const CHANNELS = {
     DIRECTIVES: 'sidecar:directives',
     DIRECTIVE: 'sidecar:directive',
     SAVE: 'sidecar:saveDirective',
+    DELETE: 'sidecar:deleteDirective',
+    IMPORT: 'sidecar:importDirectives',
+    EDIT: 'sidecar:editDirective',
     INVOKE: 'sidecar:invoke',
     RUN: 'sidecar:run',
     PROGRESS: 'sidecar:progress'

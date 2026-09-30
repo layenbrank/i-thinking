@@ -1,7 +1,25 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@i-thinking/design/components/alert-dialog'
 import { Badge } from '@i-thinking/design/components/badge'
 import { Button } from '@i-thinking/design/components/button'
 import { Card, CardContent } from '@i-thinking/design/components/card'
 import { Checkbox } from '@i-thinking/design/components/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@i-thinking/design/components/dialog'
 import { Input } from '@i-thinking/design/components/input'
 import { Label } from '@i-thinking/design/components/label'
 import {
@@ -25,6 +43,7 @@ import { toast } from 'sonner'
 
 import { Glide } from '@/components/glide/glide'
 import { findModifierLabel } from '@/features/window/shortcuts'
+import { isValidDirectiveName } from '@/shared/ipc/specs/sidecar'
 import { useCorexStore, type CorexAction } from '@/stores/corex'
 
 import { createDirective } from '../draft'
@@ -42,13 +61,17 @@ import {
   writeSplitterLayout
 } from '../splitter'
 import { CONTROL_CLASS, Field, Glyph, Section } from './controls'
+import InputsEditor from './inputs-editor'
 import { OnErrorSelect } from './on-error'
 import StepNode, { AddStepButton } from './step-node'
-import { cloneStep, moveStep, nextStepId } from './step-utils'
+import { buildControlStep, cloneStep, moveStep, nextStepId } from './step-utils'
 import type { DirectiveContent, DirectivePermissions, DirectiveTrigger } from './types'
 
 /** Radix Select 不允许空字符串作为选项值 */
 const UNCATEGORIZED = 'uncategorized'
+
+/** 名字不合法的说法只有一处，输入框下的提示与保存时的拦截共用 */
+const NAME_RULE_HINT = '名字不能为空，也不能带 / \\ 或 ..'
 
 /** corex watch 触发器支持的文件事件 */
 const WATCH_EVENTS = ['create', 'modify', 'remove', 'access'] as const
@@ -562,10 +585,14 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
   const [drafts, setDrafts] = useState<Record<string, DirectiveContent>>({})
   /** 已落盘内容的 JSON 快照，用来判断草稿脏没脏 */
   const [saved, setSaved] = useState<Record<string, string>>({})
+  /** corex 序列化出来的 YAML：只读对账用，改它不会生效 */
+  const [yamls, setYamls] = useState<Record<string, string>>({})
   const [inputValues, setInputValues] = useState<Record<string, Record<string, string>>>({})
   /** 按指令名记错误：切走再切回来还看得到当初为什么没跑起来 */
   const [errors, setErrors] = useState<Record<string, string | null>>({})
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isYamlOpen, setIsYamlOpen] = useState(false)
   const [defaultLayout] = useState(findSplitterState)
   /** 快捷键提示里的修饰键：macOS 是 ⌘，其余是 Ctrl */
   const modifier = findModifierLabel()
@@ -584,6 +611,8 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
   const values = inputValues[activeName] ?? {}
   const error = errors[activeName] ?? null
   const isDirty = content !== null && saved[activeName] !== JSON.stringify(content)
+  /** 名字不合法就别保存：corex 会拒，界面得先把话说在前面（提示在名字输入框下） */
+  const nameError = content && !isValidDirectiveName(content.name) ? NAME_RULE_HINT : null
 
   useEffect(
     function () {
@@ -592,9 +621,13 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
       void useCorexStore
         .getState()
         .loadDirective(activeName)
-        .then(function (loaded) {
+        .then(function (document) {
+          const loaded = document.definition
           setSaved(function (prev) {
             return { ...prev, [loaded.name]: JSON.stringify(loaded) }
+          })
+          setYamls(function (prev) {
+            return { ...prev, [loaded.name]: document.yaml }
           })
           setDrafts(function (prev) {
             return { ...prev, [loaded.name]: loaded }
@@ -644,12 +677,24 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
 
   async function save(): Promise<string | null> {
     if (!content) return null
+    if (nameError) {
+      reportError(activeName, nameError)
+      toast.error('不能保存', { description: nameError })
+      return null
+    }
     const saving = activeName
+    // 原名与草稿里的名字不同 = 改名：把原名一起交给 daemon，它会原子地换掉那一行
+    const originalName = saving && content.name !== saving ? saving : undefined
     setIsSaving(true)
     try {
-      const document = await useCorexStore.getState().saveDirective(content)
+      const document = await useCorexStore.getState().saveDirective(content, originalName)
       setSaved(function (prev) {
         const next = { ...prev, [document.name]: JSON.stringify(document.definition) }
+        if (document.name !== saving) delete next[saving]
+        return next
+      })
+      setYamls(function (prev) {
+        const next = { ...prev, [document.name]: document.yaml }
         if (document.name !== saving) delete next[saving]
         return next
       })
@@ -660,14 +705,13 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
         return next
       })
       if (document.name !== saving) {
-        // corex 会规范化名字：草稿跟着改名，标题栏与列表都不该停在旧名字上
+        // 名字变了（用户改名，或 corex 规范化了它）：草稿、运行参数与已读标记一起搬过去，
+        // 旧名字的缓存留着只会挡住下一条指令的加载
         setInputValues(function (prev) {
           const next = { ...prev, [document.name]: prev[saving] ?? {} }
           delete next[saving]
           return next
         })
-        // 旧名字的文件 corex 不删，切回去时它还在目录里；不撤掉「已读」标记，
-        // 加载器会一直早退，而旧名的草稿刚被删掉 —— 界面就卡在「读取中…」。
         loadedRef.current.delete(saving)
         onOpen(document.name)
       }
@@ -680,6 +724,63 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
       return null
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  /**
+   * 删掉这条指令。corex 那边删掉就没了，所以先问一次；
+   * 删完把本地缓存一并清掉（草稿、已读标记、YAML），免得下一条指令被旧名字的状态挡住。
+   */
+  async function remove() {
+    const target = activeName
+    setIsDeleting(true)
+    try {
+      await useCorexStore.getState().deleteDirective(target)
+      setDrafts(function (prev) {
+        const next = { ...prev }
+        delete next[target]
+        return next
+      })
+      setSaved(function (prev) {
+        const next = { ...prev }
+        delete next[target]
+        return next
+      })
+      setYamls(function (prev) {
+        const next = { ...prev }
+        delete next[target]
+        return next
+      })
+      setInputValues(function (prev) {
+        const next = { ...prev }
+        delete next[target]
+        return next
+      })
+      loadedRef.current.delete(target)
+      await useCorexStore.getState().refreshDirectives()
+      const next = useCorexStore
+        .getState()
+        .directives.find(function (entry) {
+          return entry.name !== target
+        })
+      toast.success(`已删除指令 ${target}`)
+      onOpen(next?.name ?? '')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      reportError(target, message)
+      toast.error('删除失败', { description: message })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  /** 交给 corex 自己开外部编辑器（`corex edit <name>`）：它认得自己那份指令库 */
+  async function openInEditor() {
+    try {
+      await itc.sidecar.editDirective({ name: activeName })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      toast.error('没能打开外部编辑器', { description: message })
     }
   }
 
@@ -769,10 +870,68 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground"
+          aria-label="查看 YAML"
+          title="查看 corex 落库的那份 YAML（只读）"
+          disabled={!content || isPending}
+          onClick={function () {
+            setIsYamlOpen(true)
+          }}>
+          <Glyph icon="mdi:code-json" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground"
+          aria-label="用外部编辑器打开"
+          title="用外部编辑器打开（corex edit）"
+          disabled={!content || isDirty || isPending}
+          onClick={function () {
+            void openInEditor()
+          }}>
+          <Glyph icon="mdi:pencil-outline" />
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:text-destructive"
+              aria-label="删除指令"
+              title="删除指令"
+              disabled={!content || isPending || isDeleting}>
+              <Glyph icon="mdi:trash-can-outline" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>删除「{activeName}」？</AlertDialogTitle>
+              <AlertDialogDescription>
+                指令库里这一条会被删掉，删掉后无法从 Studio 恢复。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={function () {
+                  void remove()
+                }}>
+                删除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <Button
+          type="button"
           variant="outline"
           size="sm"
           title={`保存（${modifier} + S）`}
-          disabled={!content || !isDirty || isSaving}
+          disabled={!content || !isDirty || isSaving || nameError !== null}
           onClick={function () {
             void save()
           }}>
@@ -848,11 +1007,18 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                   <Input
                     className={CONTROL_CLASS}
                     value={content.name}
+                    aria-invalid={nameError !== null}
                     onChange={function (event) {
                       patchContent({ name: event.target.value })
                     }}
                   />
                 </Field>
+                {nameError ? (
+                  <p className="flex items-center gap-1 text-xs text-destructive">
+                    <Glyph icon="mdi:alert-circle-outline" />
+                    {nameError}
+                  </p>
+                ) : null}
                 <Field label="描述">
                   <Textarea
                     className="field-sizing-fixed min-h-16 text-xs"
@@ -907,18 +1073,32 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                 icon={<Glyph icon="mdi:import" />}
                 title="输入"
                 count={content.inputs.length}>
+                <InputsEditor
+                  inputs={content.inputs}
+                  onChange={function (next) {
+                    patchContent({ inputs: next })
+                  }}
+                />
+              </Section>
+
+              <Separator />
+
+              {/*
+                运行参数与输入声明分开：这里填的只是**这一次**运行传什么，不写回指令；
+                过去两者挤在一个「输入」区里，看着像在改指令，其实只是填表单。
+              */}
+              <Section
+                icon={<Glyph icon="mdi:play-circle-outline" />}
+                title="运行参数（不写入指令）">
                 {content.inputs.length === 0 ? (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Glyph icon="mdi:import" />
-                    无输入
-                  </p>
+                  <p className="text-xs text-muted-foreground">这条指令没有声明输入</p>
                 ) : (
                   <div className="flex flex-col gap-2.5">
-                    {content.inputs.map(function (input) {
+                    {content.inputs.map(function (input, index) {
                       return (
                         <Field
-                          key={input.name}
-                          label={input.name}
+                          key={index}
+                          label={input.name || '(未命名)'}
                           required={Boolean(input.required)}>
                           <Input
                             className={CONTROL_CLASS}
@@ -1090,12 +1270,40 @@ export default function Editor({ name, isListOpen, onOpen, onToggleList, onRun }
                       }
                     })
                   }}
+                  onAddKind={function (kind) {
+                    updateContent(function (prev) {
+                      return {
+                        ...prev,
+                        steps: [...prev.steps, buildControlStep(kind, nextStepId(kind, prev.steps))]
+                      }
+                    })
+                  }}
                 />
               </div>
             </main>
           </Glide.Y>
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      {/*
+        YAML 只读：这一份是 corex 从模型序列化出来的，用来和「编辑器里看到的」对账；
+        要改就改上面的表单 —— 在这里改不会生效，也没有回写通道。
+      */}
+      <Dialog
+        open={isYamlOpen}
+        onOpenChange={setIsYamlOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>YAML · {content.name}</DialogTitle>
+            <DialogDescription>
+              corex 落库的那一份（只读）。改这里不会生效，请改表单。
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="max-h-[60vh] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre">
+            {yamls[activeName] ?? ''}
+          </pre>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

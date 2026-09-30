@@ -8,8 +8,12 @@ import { groupDirectives, parseSortMode } from './group'
 
 const NOW = new Date(2026, 0, 8, 12, 0, 0, 0).getTime()
 
-function entry(name: string, bucket: DirectiveEntry['bucket'] = 'system'): DirectiveEntry {
-  return { name, path: `${name}.yaml`, bucket, summary: null }
+function entry(
+  name: string,
+  bucket: DirectiveEntry['bucket'] = 'system',
+  folder: string | null = null
+): DirectiveEntry {
+  return { name, folder, source: null, updated_at_ms: 0, bucket, summary: null }
 }
 
 function summary(lastAt: Date | null): DirectiveRuns {
@@ -48,6 +52,22 @@ describe('groupDirectives', function () {
       })
     ).toEqual(['界面', '其他'])
     expect(namesOf(groups, 0)).toEqual(['a', 'c'])
+  })
+
+  it('groups by folder when asked to sort by grouping, ungrouped last', function () {
+    const groups = groupDirectives(
+      [entry('c', 'system', null), entry('b', 'system', '发布'), entry('a', 'system', '整理')],
+      {},
+      'FOLDER',
+      NOW
+    )
+
+    expect(
+      groups.map(function (group) {
+        return group.label
+      })
+    ).toEqual(['发布', '整理', '未分组'])
+    expect(namesOf(groups, 2)).toEqual(['c'])
   })
 
   it('bands by age when asked to sort by recency', function () {
@@ -115,6 +135,7 @@ describe('groupDirectives', function () {
 describe('parseSortMode', function () {
   it('accepts a stored mode', function () {
     expect(parseSortMode('RECENT')).toBe('RECENT')
+    expect(parseSortMode('FOLDER')).toBe('FOLDER')
   })
 
   it('falls back to the default for a missing or unknown value', function () {
