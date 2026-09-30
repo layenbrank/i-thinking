@@ -7,12 +7,21 @@ import type { ReactNode } from 'react'
  * 必须完全一致；各写各的迟早会歪。
  */
 
-export function SettingsSection(props: { title: string; hint?: string; children: ReactNode }) {
+export function SettingsSection(props: {
+  title: string
+  hint?: string
+  /** 标题行右侧的动作位（如「刷新」），默认没有 */
+  action?: ReactNode
+  children: ReactNode
+}) {
   return (
     <section className="flex flex-col gap-2">
-      <div className="flex flex-col gap-0.5">
-        <h2 className="text-sm font-medium">{props.title}</h2>
-        {props.hint ? <p className="text-muted-foreground text-xs">{props.hint}</p> : null}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-sm font-medium">{props.title}</h2>
+          {props.hint ? <p className="text-muted-foreground text-xs">{props.hint}</p> : null}
+        </div>
+        {props.action ? <div className="shrink-0">{props.action}</div> : null}
       </div>
       <div className="border-border divide-border flex flex-col divide-y rounded-lg border px-3">
         {props.children}

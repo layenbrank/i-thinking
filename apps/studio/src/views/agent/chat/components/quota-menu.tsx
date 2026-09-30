@@ -15,9 +15,10 @@ import { useNavigate } from 'react-router-dom'
 
 import { useAccountSession } from '@/features/account/session.ts'
 import { formatTokens, toQuotaView, type QuotaView } from '@/features/quota/quota.ts'
-import { useSelfQuota } from '@/features/quota/usage.ts'
+import { RefreshButton } from '@/features/quota/refresh-button.tsx'
+import { useInvalidateQuota, useSelfQuota } from '@/features/quota/usage.ts'
 import { HttpError } from '@/utils/http.errors.ts'
-import { formatDateTime } from '@/views/agent/settings/components/format.ts'
+import { formatClock, formatDateTime } from '@/views/agent/settings/components/format.ts'
 
 /**
  * 左栏底栏的额度入口，排在设置齿轮左边。
@@ -42,18 +43,36 @@ function findTriggerTitle(view: QuotaView | null): string {
 function QuotaPanel() {
   const navigate = useNavigate()
   const quotaQuery = useSelfQuota()
+  const refreshQuota = useInvalidateQuota()
   const view = toQuotaView(quotaQuery.data)
+
+  // 「更新于」是这一屏的自证：手动刷新与对话结束后的自动刷新都会把它往前推一格
+  const stampText = quotaQuery.isFetching
+    ? '刷新中…'
+    : quotaQuery.dataUpdatedAt > 0
+      ? `更新于 ${formatClock(quotaQuery.dataUpdatedAt)}`
+      : null
 
   return (
     <div className="flex flex-col gap-3">
       <PopoverHeader>
         <div className="flex items-center justify-between gap-2">
           <PopoverTitle className="text-sm">平台模型额度</PopoverTitle>
-          {view ? (
-            <Badge variant="secondary">
-              {view.plan ? `${view.sourceLabel} · ${view.plan}` : view.sourceLabel}
-            </Badge>
-          ) : null}
+          <div className="flex items-center gap-1">
+            {view ? (
+              <Badge variant="secondary">
+                {view.plan ? `${view.sourceLabel} · ${view.plan}` : view.sourceLabel}
+              </Badge>
+            ) : null}
+            <RefreshButton
+              iconOnly
+              isFetching={quotaQuery.isFetching}
+              label={stampText ? `刷新 · ${stampText}` : '刷新'}
+              onRefresh={function () {
+                void refreshQuota()
+              }}
+            />
+          </div>
         </div>
         <PopoverDescription className="text-xs">
           按 UTC 日窗计 token，与发送前的拦截判定同一口径。
@@ -88,9 +107,12 @@ function QuotaPanel() {
         <>
           <div className="flex flex-col gap-1.5">
             <Progress value={view.percent} />
-            <span className="text-muted-foreground text-xs tabular-nums">
-              {`今日已用 ${formatTokens(view.used)} / ${formatTokens(view.limit)} tokens`}
-            </span>
+            <div className="text-muted-foreground flex items-center justify-between gap-2 text-xs tabular-nums">
+              <span>
+                {`今日已用 ${formatTokens(view.used)} / ${formatTokens(view.limit)} tokens`}
+              </span>
+              {stampText ? <span>{stampText}</span> : null}
+            </div>
           </div>
 
           <dl className="flex flex-col gap-1 text-xs">

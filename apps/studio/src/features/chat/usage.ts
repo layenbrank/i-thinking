@@ -118,18 +118,18 @@ function useUsageLedger(sessionID: string | null) {
 }
 
 /**
- * 运行结束后把用量与配额的缓存作废。
+ * 一轮跑完（true → false）就把用量与配额的缓存作废 —— 这是「对话结束后自动取一次」。
  *
  * 为什么要界面来拉这一下：这一轮的消耗要等**终态落地**才写进账本（主进程 `engine.settle`
  * 先记账再发终态），平台侧的 `used` 更要等网关自己汇总 —— 不主动失效就一直显示运行前的
  * 数字，用户看到的就是「花了 token 但用量没动」。
  *
  * 只在「true → false」的这个边沿触发：挂载时也来一发的话，每次切会话都白发一轮请求。
+ *
+ * 入参是**运行状态**而不是自己去读 aui：这样这层逻辑能在测试里直接驱动
+ * （见 `usage.refresh.test.tsx`），读状态那一步留在 `useRefreshUsageOnRunEnd`。
  */
-function useRefreshUsageOnRunEnd(): void {
-  const isRunning = useAuiState(function (state) {
-    return state.thread.isRunning
-  })
+function useRefreshOnRunEnd(isRunning: boolean): void {
   const client = useQueryClient()
   const wasRunning = useRef(false)
 
@@ -149,6 +149,15 @@ function useRefreshUsageOnRunEnd(): void {
     },
     [isRunning, client]
   )
+}
+
+/** 会话底栏常驻，所以运行结束的那次刷新它自己就能做（见 `useRefreshOnRunEnd`） */
+function useRefreshUsageOnRunEnd(): void {
+  const isRunning = useAuiState(function (state) {
+    return state.thread.isRunning
+  })
+
+  useRefreshOnRunEnd(isRunning)
 }
 
 function formatCount(value: number | undefined): string {
@@ -186,6 +195,7 @@ export {
   readUsage,
   sumUsage,
   USAGE_KEY,
+  useRefreshOnRunEnd,
   useRefreshUsageOnRunEnd,
   useThreadUsage,
   useUsageLedger

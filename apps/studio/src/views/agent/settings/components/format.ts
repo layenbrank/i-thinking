@@ -12,4 +12,10 @@ function formatDateTime(ms: number): string {
   return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`
 }
 
-export { formatDateTime }
+/** 只要时刻：「数据更新于 12:03:45」这种行内提示用（日期部分与上面同一套格式） */
+function formatClock(ms: number): string {
+  const full = formatDateTime(ms)
+  return full === '—' ? full : full.slice(-8)
+}
+
+export { formatClock, formatDateTime }

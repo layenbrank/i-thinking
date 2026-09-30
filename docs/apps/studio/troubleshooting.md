@@ -218,6 +218,40 @@ python `sqlite3` 查 `chatSession` / `chatMessage`（Node 跑不了 better-sqlit
 `VITE_THINKING` 时会被 `dropStalePlatformRow` 滤掉，那只是暂时不给用；按已过滤清单自愈会把
 用户「我用组织模型」的选择永久改写成自动。
 
+## 平台额度一直是 0 / 用量数字看着不动
+
+先看用的是哪条链路，两个口径只差在「占不占额度」：
+
+| 口径     | 谁在记                                                    | 计不计入平台额度                                 |
+| -------- | --------------------------------------------------------- | ------------------------------------------------ |
+| 平台额度 | 服务端 `GET /gateway/quota/me`（Redis UTC 日窗）          | 是，且只计 `platform-gateway` 那一行发出的请求   |
+| 本机账本 | studio 自己记（`chatUsage`，每轮 `engine.settle` 记一笔） | 否，本机模型、自备密钥（BYOK）的模型都只落在这里 |
+
+所以「发了很多但平台额度是 0」通常是**对的**：查一下 `chatUsage` 的 `providerID` / `source`，
+`source = local` 的那几笔来自 BYOK 行（例如 `kind = deepseek` 的 `deepseek-flash`），
+平台额度不计它们 —— 模型菜单的分组标题也写着这条差异（组织模型 · 走平台网关，占用平台额度／
+我的模型 · 用你的密钥，不占平台额度），额度面板里同样写着「本机模型与自备密钥的模型不占额度」。
+
+同一个模型名（例如 `deepseek-flash`）在两组里**各有一份**，选哪一组决定计不计额度：要占额度就选
+「组织模型」那个，只进本机账本就选「我的模型」那个。
+
+dev 态下平台额度问的是**本机 service**（`.env.development` 的 `VITE_THINKING`，通常是
+`http://127.0.0.1:3000/api/v1`，provider 行的 `baseUrl` 同样指向它），与线上账号的额度互不相干。
+
+### 数字什么时候刷新
+
+- 对话结束（运行态 true → false）自动拉一次：`features/chat/usage.ts` 的
+  `useRefreshOnRunEnd`（它同时清掉发送前拦截的缓存判定）。
+- 手动：额度弹层、右栏「用量」「平台额度」卡片、设置 → 额度，各有一颗刷新按钮；
+  额度弹层与设置页还会显示「更新于 HH:mm:ss」，数字没动时用它确认到底有没有取到新值。
+
+### 用量与额度存在哪里
+
+| 数据     | 位置                                                                                          |
+| -------- | --------------------------------------------------------------------------------------------- |
+| 本机账本 | `%LOCALAPPDATA%\com.i-thinking.corex\i-thinking.db` 的 `chatUsage`（与 Tauri 版 client 共用） |
+| 平台额度 | 服务端 `services/gateway`，studio 只读镜像（`GET /gateway/quota/me`）                         |
+
 ## IPC 信任排查步骤
 
 1. 是否 Electron 窗口（非 `dev:core`）？

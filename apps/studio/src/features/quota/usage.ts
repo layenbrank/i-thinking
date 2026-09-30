@@ -97,7 +97,12 @@ function useTenantSubscriptions(tenantID: string | null) {
   })
 }
 
-/** 开着订阅之后，发送链路那份判定立刻作废，不然一分钟后才承认档位变了 */
+/**
+ * 把额度相关的查询全部作废，并清掉发送前那份判定缓存。
+ *
+ * 两个用途：开着订阅之后立刻承认档位变了；以及界面上的**手动刷新** —— 不清判定缓存的话，
+ * 用户点了刷新、数字变了，下一次发送却还按 60s 内的旧结论拦（见 `gate.ts`）。
+ */
 function useInvalidateQuota() {
   const queryClient = useQueryClient()
   // 收银台那边把这个函数放进 `useEffect` 依赖：身份必须稳定，否则每渲染一次就重新取一遍额度

@@ -25,17 +25,19 @@ import {
 } from '@/features/payment/checkout.ts'
 import { usePaymentCatalog, useTenantOrders } from '@/features/payment/orders.ts'
 import { formatTokens, toQuotaView } from '@/features/quota/quota.ts'
+import { RefreshButton } from '@/features/quota/refresh-button.tsx'
 import {
   useActiveTenant,
   useCancelSubscription,
   useGatewayPlans,
+  useInvalidateQuota,
   useSelfQuota,
   useSubscribe,
   useTenantSubscriptions
 } from '@/features/quota/usage.ts'
 import { HttpError } from '@/utils/http.errors.ts'
 import { CheckoutDialog } from '@/views/agent/settings/components/checkout-dialog.tsx'
-import { formatDateTime } from '@/views/agent/settings/components/format.ts'
+import { formatClock, formatDateTime } from '@/views/agent/settings/components/format.ts'
 import { SettingRow, SettingsSection } from '@/views/agent/settings/components/section.tsx'
 import {
   DataTable,
@@ -68,6 +70,7 @@ function findScopeText(quota: GatewaySelfQuota): string {
 export function QuotaSection() {
   const admin = useIsAdmin()
   const quotaQuery = useSelfQuota()
+  const refreshQuota = useInvalidateQuota()
   const plansQuery = useGatewayPlans()
   const activeTenant = useActiveTenant()
   const tenantID = activeTenant.tenant ? activeTenant.tenant.id : null
@@ -83,6 +86,12 @@ export function QuotaSection() {
 
   const quota = quotaQuery.data
   const view = toQuotaView(quota)
+  // 「这屏数字是什么时候的」：手动刷新与对话结束后的自动刷新都会把它往前推一格
+  const stampText = quotaQuery.isFetching
+    ? '刷新中…'
+    : quotaQuery.dataUpdatedAt > 0
+      ? `更新于 ${formatClock(quotaQuery.dataUpdatedAt)}`
+      : null
   const catalog = catalogQuery.data
   const orders = ordersQuery.data ?? []
   const subscriptions = subscriptionsQuery.data ?? []
@@ -176,7 +185,16 @@ export function QuotaSection() {
     <div className="flex flex-col gap-6">
       <SettingsSection
         title="额度"
-        hint="平台模型按 UTC 日窗计 token；本地模型、自备密钥的模型不占配额。">
+        hint="平台模型按 UTC 日窗计 token；本地模型、自备密钥的模型不占配额。"
+        action={
+          <RefreshButton
+            isFetching={quotaQuery.isFetching}
+            label={stampText ? `刷新 · ${stampText}` : '刷新'}
+            onRefresh={function () {
+              void refreshQuota()
+            }}
+          />
+        }>
         {quotaQuery.isPending ? (
           <div className="flex flex-col gap-2 py-4">
             <Skeleton className="h-4 w-40" />
@@ -249,6 +267,7 @@ export function QuotaSection() {
               <span className="text-muted-foreground text-xs leading-relaxed">
                 {`${view.percent}% · 剩余 ${formatTokens(view.remaining)} tokens`}
                 {view.exhausted ? ' · 配额已用尽，平台模型暂不可用' : ''}
+                {stampText ? ` · ${stampText}` : ''}
               </span>
             </div>
           </>

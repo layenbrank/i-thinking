@@ -7,10 +7,11 @@ import { useNavigate } from 'react-router-dom'
 import { useAccountSession } from '@/features/account/session.ts'
 import { formatUsage, useThreadUsage, useUsageLedger } from '@/features/chat/usage.ts'
 import { formatTokens, toQuotaView } from '@/features/quota/quota.ts'
-import { useSelfQuota } from '@/features/quota/usage.ts'
+import { RefreshButton } from '@/features/quota/refresh-button.tsx'
+import { useInvalidateQuota, useSelfQuota } from '@/features/quota/usage.ts'
 import { HttpError } from '@/utils/http.errors.ts'
 import { AsideCard, AsideHint, AsideRow } from '@/views/agent/chat/components/aside-ui.tsx'
-import { formatDateTime } from '@/views/agent/settings/components/format.ts'
+import { formatClock, formatDateTime } from '@/views/agent/settings/components/format.ts'
 
 /**
  * 用量与额度 —— **两个口径分开标名**，这是这一屏最容易出错的地方：
@@ -41,7 +42,17 @@ export function AsideUsage(props: { sessionID: string | null }) {
   return (
     <AsideCard
       id="usage"
-      label="用量（本机账本）">
+      label="用量（本机账本）"
+      action={
+        <RefreshButton
+          iconOnly
+          isFetching={ledger.isFetching}
+          label="刷新用量"
+          onRefresh={function () {
+            void ledger.refetch()
+          }}
+        />
+      }>
       {ledger.isError ? (
         <div className="flex items-center justify-between gap-2">
           <AsideHint>账本读取失败。</AsideHint>
@@ -86,18 +97,35 @@ export function AsideQuota() {
   const session = useAccountSession()
   const signedIn = Boolean(session.token)
   const quotaQuery = useSelfQuota(null, signedIn)
+  const refreshQuota = useInvalidateQuota()
   const view = toQuotaView(quotaQuery.data)
+
+  // 卡片没地方摆「更新于」，就把它挂到刷新按钮的 title 上（同一个口径的数字与时间戳挨在一起）
+  const stampText =
+    quotaQuery.dataUpdatedAt > 0 ? `更新于 ${formatClock(quotaQuery.dataUpdatedAt)}` : null
 
   return (
     <AsideCard
       id="quota"
       label="平台额度"
       action={
-        view ? (
-          <Badge variant="secondary">
-            {view.plan ? `${view.sourceLabel} · ${view.plan}` : view.sourceLabel}
-          </Badge>
-        ) : null
+        <div className="flex items-center gap-1">
+          {view ? (
+            <Badge variant="secondary">
+              {view.plan ? `${view.sourceLabel} · ${view.plan}` : view.sourceLabel}
+            </Badge>
+          ) : null}
+          {signedIn ? (
+            <RefreshButton
+              iconOnly
+              isFetching={quotaQuery.isFetching}
+              label={stampText ? `刷新 · ${stampText}` : '刷新'}
+              onRefresh={function () {
+                void refreshQuota()
+              }}
+            />
+          ) : null}
+        </div>
       }>
       {!signedIn ? (
         <>
