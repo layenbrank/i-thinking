@@ -37,6 +37,11 @@ pnpm install
 | `pnpm --filter @i-thinking/studio build`     | 同 `package`（供 turbo / PR CI）                 |
 | `pnpm --filter @i-thinking/studio make`      | `electron-forge make` → `out/make`               |
 
+> 全新检出（含 CI）直接 `make` 会失败在 renderer 解析上：`@i-thinking/hooks`、`@i-thinking/utils`
+> 的 `exports` 指向 `dist`（见 `vite.renderer.config.mts` 的 `linkedMarker` 与 `optimizeDeps.exclude`
+> 注释），本地之所以没暴露，是因为 `dist` 早就构建过、且被 gitignore。先补一步：
+> `pnpm turbo run build --filter=@i-thinking/studio^...`（只构建 studio 的 workspace 依赖）。
+
 ## 3. 环境变量
 
 由 Vite / 类型声明使用（见 `src/types/env.d.ts`）：

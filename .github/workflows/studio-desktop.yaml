@@ -114,6 +114,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build workspace packages
+        # make 的 vite 构建要解析 @i-thinking/hooks / utils 这类 exports 指向 dist 的包，
+        # 全新检出必须先构建它们（本地有 dist 才不会暴露这个问题）
+        env:
+          NODE_ENV: production
+        run: pnpm turbo run build --filter=@i-thinking/studio^...
+
       - name: Rebuild natives
         # 必须是 `run rebuild`：裸 `pnpm rebuild` 是 pnpm 内置命令，不会执行 studio 的
         # electron-rebuild 脚本（会对全仓包重跑 install 脚本，把 Electron ABI 的 better-sqlite3 换成宿主 ABI）
