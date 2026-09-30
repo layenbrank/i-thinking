@@ -48,6 +48,11 @@ type AssistantLabels = {
   // 部件
   /** 推理折叠条：`seconds` 只在有耗时时给出 */
   reasoning: (seconds?: number) => string
+  /**
+   * 过程折叠条（整轮：思考 + 工具 + 中间解说）：`steps` 是过程区的 part 数，
+   * `seconds` 只在有耗时时给出。
+   */
+  process: (steps: number, seconds?: number) => string
   /** 工具折叠条：`failed` 只在确实有失败时给出 */
   toolCalls: (count: number, failed?: number) => string
   attachmentType: (type: string) => string
@@ -110,6 +115,8 @@ const ASSISTANT_LABELS_EN: AssistantLabels = {
   messageInput: 'Message input',
 
   reasoning: (seconds) => `Reasoning${seconds ? ` (${seconds}s)` : ''}`,
+  process: (steps, seconds) =>
+    `Process · ${steps} ${steps === 1 ? 'step' : 'steps'}${seconds ? ` · ${seconds}s` : ''}`,
   toolCalls: (count, failed) =>
     `${count} tool ${count === 1 ? 'call' : 'calls'}${failed ? `, ${failed} failed` : ''}`,
   attachmentType: (type) => {

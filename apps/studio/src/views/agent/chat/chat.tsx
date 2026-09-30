@@ -28,7 +28,10 @@ import { ComposerEnd } from '@/views/agent/chat/components/composer-end.tsx'
 import { ComposerFooter } from '@/views/agent/chat/components/composer-footer.tsx'
 import { ComposerTriggers } from '@/views/agent/chat/components/composer-triggers.tsx'
 import AgentHead from '@/views/agent/chat/components/head.tsx'
-import { AgentProcessGroup } from '@/views/agent/chat/components/process-group.tsx'
+import {
+  AgentProcessFold,
+  AgentProcessGroup
+} from '@/views/agent/chat/components/process-group.tsx'
 import AgentSidebar from '@/views/agent/chat/components/sidebar.tsx'
 import {
   MAIN_ID,
@@ -310,6 +313,7 @@ export default function Agent() {
                         ToolFallback: AgentToolCard,
                         ToolGroup: AgentToolGroup,
                         ReasoningGroup: AgentProcessGroup,
+                        ProcessGroup: AgentProcessFold,
                         ComposerStart: ComposerActions,
                         ComposerAttach: null,
                         ComposerEnd: ComposerEnd,

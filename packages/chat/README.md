@@ -44,4 +44,10 @@ packages/chat/
       `initialize()` 之前只有 `__LOCALID_x`），且 promotion / reconcile 期间快照可能是旧值；
       拿空值去写会撞 `chatMessage.sessionID` 外键，而 assistant-ui 会**静默吞掉**写入 rejection。
 - `createThreadListAdapter(port)`：`list/rename/initialize/delete/fetch` 已实现；`generateTitle` 用本地启发式（首条用户文本）并落库；**归档暂不支持**（`archive`/`unarchive` 抛可展示错误）。
-- `createChatModelAdapter(port, { findHost })`：把 `ChatStreamEvent` 增量聚合成 assistant-ui 需要的快照；文本、推理与工具调用（含审批回执 `requires-action`）都已实现。`findHost` 可以是异步的 —— 会话 id 同样要 `ensure()` 后才权威。
+  - `updateCustom` 只认 `custom.workspaceID`（归属落库），键缺席时什么都不做 —— 列表项的
+    `custom` 是 app 侧分组（如 studio 左栏按工作区归拢会话）唯一的数据源，而 `initialize()`
+    的返回契约只有 `remoteId`/`externalId`，所以**新建会话后要由 app 调一次 `updateCustom`
+    把归属补上**，否则它只能等 `list()` 重载才归位。
+- `createChatModelAdapter(port, { findHost })`：把 `ChatStreamEvent` 增量聚合成 assistant-ui 需要的快照；文本、推理与工具调用（含审批回执 `requires-action`）都已实现。
+  - **part 的次序 = 事件到达的次序**（界面按 part 顺序渲染）：一轮里的「思考 → 工具 → 正文」
+    必须保留先后，按类型归堆会让工具调用跑到回答下方，看上去像"先给了结论才去读文件"。`findHost` 可以是异步的 —— 会话 id 同样要 `ensure()` 后才权威。

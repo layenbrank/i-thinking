@@ -1,8 +1,10 @@
 import {
   AssistantRuntimeProvider,
   useAui,
+  useAuiState,
   useLocalRuntime,
   useRemoteThreadListRuntime,
+  type AssistantClient,
   type AssistantRuntime,
   type ThreadHistoryAdapter
 } from '@assistant-ui/react'
@@ -12,7 +14,7 @@ import {
   type ThreadIdentity
 } from '@i-thinking/chat/adapters/thread-history'
 import { createThreadListAdapter } from '@i-thinking/chat/adapters/thread-list'
-import { useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 
 import { createHistoryPort } from '@/features/chat/port/history.ts'
 import { chatModelPort, findHostOptions } from '@/features/chat/port/instance.ts'
@@ -36,6 +38,33 @@ import { chatModelPort, findHostOptions } from '@/features/chat/port/instance.ts
 const historyPort = createHistoryPort()
 
 /**
+ * 把会话的**归属**发回列表项 —— 左栏按条目的 `custom.workspaceID` 归拢会话
+ * （见 `views/agent/chat/components/thread-groups.ts`）。
+ *
+ * 库**不会**把 `createThread` 拿到的 `custom` 带回来（`initialize()` 的返回契约只有
+ * `remoteId` / `externalId`），所以新建会话的归属得在这里补一次：不补，它在左栏就落到
+ * 「未关联工作区」，直到列表重载（重启）才归位。
+ *
+ * 归属读**落库的那一行**，而不是重读一次「当前工作区」指针：`createThread` 解析完指针才
+ * 落库，两次读之间用户可能已经切了工作区 —— 那样左栏显示的和库里存的就对不上了。
+ *
+ * 失败不抛：列表项的归属只是侧栏分组的乐观视图（库里那行仍然是对的），不该连累这次写入。
+ */
+async function publishAssociation(aui: AssistantClient, threadID: string): Promise<void> {
+  try {
+    const item = aui.threadListItem.getState()
+    // 老会话的归属随 `list()` 一起来（`custom` 里已经带着这个键）—— 不必再问一次库
+    if (item.custom && 'workspaceID' in item.custom) return
+
+    const thread = await historyPort.findThread(threadID)
+    if (!thread) return
+    aui.threadListItem.updateCustom({ ...item.custom, workspaceID: thread.workspaceID })
+  } catch (error) {
+    console.warn('[CHAT] 会话归属未能发回列表项', error)
+  }
+}
+
+/**
  * 本线程的 DB 会话 id。
  *
  * **同步快照会骗人**：会话 id 是落库后才有的，而列表项状态（`remoteId`）在
@@ -50,11 +79,21 @@ const historyPort = createHistoryPort()
  */
 function useThreadIdentity(): ThreadIdentity {
   const aui = useAui()
+  /**
+   * 落库之后才有的权威 id —— 归属的发布挂在**这个跳变**上。
+   *
+   * 为什么不能挂在 `ensure()` 上：`ensure()` 是「要不要建会话」的兜底，而库自己会抢先建
+   * —— `RemoteThreadResource` 一看到本线程开始写内容就调 `threadListItem.initialize()`，
+   * 于是新建会话这件事大多数时候轮不到 `ensure()`，挂在那里等于不发布。
+   */
+  const remoteId = useAuiState(function (state) {
+    return state.threadListItem.remoteId
+  })
 
   // 「这一线程的那次建会话」放在 ref 里：它在渲染之外被读写，且要跨重渲染活着
   const created = useRef<{ localID: string; task: Promise<string> } | null>(null)
 
-  return useMemo(
+  const identity = useMemo(
     function () {
       function itemState() {
         return aui.threadListItem.getState()
@@ -106,6 +145,17 @@ function useThreadIdentity(): ThreadIdentity {
     },
     [aui]
   )
+
+  // 不 await：`updateCustom` 同步改列表项状态（乐观），落库在后台 —— 首条消息不该等它
+  useEffect(
+    function () {
+      if (!remoteId) return
+      void publishAssociation(aui, remoteId)
+    },
+    [aui, remoteId]
+  )
+
+  return identity
 }
 
 function useThreadHistory(identity: ThreadIdentity): ThreadHistoryAdapter {

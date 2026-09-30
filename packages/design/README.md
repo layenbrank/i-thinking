@@ -29,10 +29,10 @@ packages/design/
 
 `package.json` 里 **`exports`（对外）与 `imports`（包内自引用）两张表并存** —— 官方模板同款：
 
-| 表        | 前缀                                     | 用途                       |
-| --------- | ---------------------------------------- | -------------------------- |
-| `exports` | `@i-thinking/design/*`                   | 各 app 消费                |
-| `imports` | `#components/*`、`#assistant/*`、`#hooks/*` | 本包组件之间互相引用       |
+| 表        | 前缀                                        | 用途                 |
+| --------- | ------------------------------------------- | -------------------- |
+| `exports` | `@i-thinking/design/*`                      | 各 app 消费          |
+| `imports` | `#components/*`、`#assistant/*`、`#hooks/*` | 本包组件之间互相引用 |
 
 新增一类组件 = 在 `src/` 建目录，并同时补 `exports` 与 `imports` 两张表。
 
@@ -60,6 +60,19 @@ CLI 靠本包 `tsconfig.json` 的 `paths`（`@i-thinking/design/*` → `./src/*`
 
 `src/assistant/**` 是上游原样代码（已用 eslint override 放宽 `== null` / 空 catch / ref 读取），
 不逐次改写——否则每次重新 add 都要重做一遍。
+
+**例外：`thread.aui.tsx` 已按产品需要改造过**，重新 `registry:add` 覆盖后要重做这几处
+（这几条也在文件里有对应注释）：
+
+1. `ThreadComponents` 的扩展槽：`AssistantMessage` / `Welcome` / `ToolFallback` / `ToolGroup` /
+   `ReasoningGroup` / `ProcessGroup` / `Composer*`；文案一律走 `labels`，组件里不写死字符串。
+2. **助手消息排版 = [过程折叠区][最终回答]**：`AssistantMessage` 不再用上游的
+   `MessagePrimitive.GroupedParts`，而是自己算 `findResponseStart`（最终回答的起点）、把
+   之前的一切按原时序装进 `ProcessGroup`，最终回答留在外面常驻可见。叶子 part 仍走
+   `MessagePrimitive.PartByIndex`，注册过的工具 / data UI 由库优先接管。
+3. `ReasoningRoot` 包了一层滚动锁（见 `reasoning.aui.tsx`），`ReasoningTrigger` 多一个
+   `label` 覆盖。
+4. 会话列表按工作区分组、`ThreadListSearch` 等改造在 `thread-list.aui.tsx`。
 
 - 不执行 `shadcn eject`：保持 `shadcn/tailwind.css` 跟随上游更新。
 - 商店/打包注意：本包只产出标准 React + 静态 CSS，无 `eval`，满足 MV3 CSP。

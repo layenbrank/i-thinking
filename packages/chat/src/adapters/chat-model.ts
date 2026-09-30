@@ -17,6 +17,10 @@ import type { ChatModelPort, ChatRunMessage, ChatTarget, ChatUsage } from '../po
  * 工具调用（P2）：`tool-call` 变成 content 里的 tool-call part，
  * `tool-approval-request` 把它标成 `requires-action`（UI 拿到 `approval` 后决定放行/拒绝），
  * `tool-result` 回填结果并收束为 `complete`。
+ *
+ * **part 的次序 = 事件到达的次序**：界面按 part 顺序渲染，所以一轮里的
+ * 「思考 → 工具 → 正文」不能按类型归堆 —— 归堆会把工具调用挪到回答下方，
+ * 看上去像是"先给了结论才去读文件"（见 `createContentAccumulator`）。
  */
 
 /** 取消息里的纯文本（发给模型的上下文；工具 part 由宿主执行、不参与重放） */
@@ -124,18 +128,71 @@ function collectImages(message: ThreadMessage): { mediaType: string; data: strin
   return images
 }
 
-function buildContent(
-  text: string,
-  reasoning: string,
-  tools: Map<string, ToolAccumulator>
-): ThreadAssistantMessagePart[] {
-  const parts: ThreadAssistantMessagePart[] = []
-  if (reasoning) parts.push({ type: 'reasoning', text: reasoning })
-  if (text) parts.push({ type: 'text', text })
-  tools.forEach(function append(tool) {
-    parts.push(toToolPart(tool))
-  })
-  return parts
+/**
+ * 内容块。事件流是增量的，而 part 是快照 —— 块的先后**必须就是事件的先后**：
+ * assistant-ui 按 part 的次序分组渲染（`MessagePrimitive.GroupedParts`），
+ * 按类型归堆会把工具调用挪到回答下方，用户看到的时序就反了（"先给结论，才跑的工具"）。
+ */
+type StreamBlock =
+  | { type: 'text' | 'reasoning'; blockID: string; text: string }
+  | { type: 'tool'; tool: ToolAccumulator }
+
+/**
+ * 累积器：
+ * - 文本 / 推理：`blockID` 相同**且紧邻**的增量接在同一块上（换块、或中间插了工具就另起一块）
+ * - 工具调用：占它出现那一刻的位置，结果 / 审批回来时**原地**回填，不重新排序
+ */
+function createContentAccumulator() {
+  const blocks: StreamBlock[] = []
+  /** 工具调用 id → 在 `blocks` 里的下标：回填要原地改 */
+  const toolIndices = new Map<string, number>()
+
+  function appendBlock(kind: 'text' | 'reasoning', blockID: string, text: string): void {
+    // 空增量不建块：块的位置就是 part 的位置，建了又不出现在快照里会让后面的下标白挪
+    if (!text) return
+
+    const last = blocks[blocks.length - 1]
+    if (last && last.type !== 'tool' && last.type === kind && last.blockID === blockID) {
+      last.text += text
+      return
+    }
+    blocks.push({ type: kind, blockID, text })
+  }
+
+  /** 更新工具块；`build` 返回 null 表示保持原样（没建过就什么都不做） */
+  function updateTool(
+    toolCallId: string,
+    build: (previous: ToolAccumulator | undefined) => ToolAccumulator | null
+  ): void {
+    const index = toolIndices.get(toolCallId)
+    const indexed = index === undefined ? undefined : blocks[index]
+    const next = build(indexed?.type === 'tool' ? indexed.tool : undefined)
+    if (next === null) return
+
+    if (index === undefined) {
+      toolIndices.set(toolCallId, blocks.length)
+      blocks.push({ type: 'tool', tool: next })
+      return
+    }
+    blocks[index] = { type: 'tool', tool: next }
+  }
+
+  /** 快照：一个字都没吐过的块不进 parts */
+  function parts(): ThreadAssistantMessagePart[] {
+    const result: ThreadAssistantMessagePart[] = []
+    for (const block of blocks) {
+      if (block.type === 'tool') {
+        result.push(toToolPart(block.tool))
+        continue
+      }
+      if (!block.text) continue
+      const text = block.text
+      result.push(block.type === 'reasoning' ? { type: 'reasoning', text } : { type: 'text', text })
+    }
+    return result
+  }
+
+  return { appendBlock, updateTool, parts }
 }
 
 function toStatus(finishReason: string): ChatModelRunResult['status'] {
@@ -177,74 +234,68 @@ function createChatModelAdapter(
       const extras = Object.keys(host).length > 0 ? { host } : {}
       const input = { ...target, messages, ...extras }
 
-      let text = ''
-      let reasoning = ''
-      const tools = new Map<string, ToolAccumulator>()
+      const content = createContentAccumulator()
 
       for await (const event of port.run(input, runOptions.abortSignal)) {
         switch (event.kind) {
           case 'text':
-            text += event.text
+            content.appendBlock('text', event.blockID, event.text)
             break
           case 'reasoning':
-            reasoning += event.text
+            content.appendBlock('reasoning', event.blockID, event.text)
             break
           case 'tool-call':
-            tools.set(event.toolCallId, {
-              toolCallId: event.toolCallId,
-              toolName: event.toolName,
-              args: event.input,
-              argsText: JSON.stringify(event.input ?? {})
-            })
-            break
-          case 'tool-approval-request': {
-            const existing = tools.get(event.toolCallId)
-            tools.set(event.toolCallId, {
-              toolCallId: event.toolCallId,
-              toolName: event.toolName,
-              args: event.input,
-              argsText: JSON.stringify(event.input ?? {}),
-              ...existing,
-              approval: {
-                id: event.toolCallId,
-                ...(event.prompt ? { prompt: event.prompt } : {})
+            content.updateTool(event.toolCallId, function () {
+              return {
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+                args: event.input,
+                argsText: JSON.stringify(event.input ?? {})
               }
             })
             break
-          }
-          case 'tool-result': {
-            const existing = tools.get(event.toolCallId)
-            tools.set(event.toolCallId, {
-              toolCallId: event.toolCallId,
-              toolName: event.toolName,
-              args: existing?.args ?? null,
-              argsText: existing?.argsText ?? '',
-              ...existing,
-              result: event.output,
-              isError: event.isError === true,
-              approval: existing?.approval
-                ? { ...existing.approval, approved: event.isError ? false : true }
-                : undefined
+          case 'tool-approval-request':
+            content.updateTool(event.toolCallId, function (previous) {
+              return {
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+                args: event.input,
+                argsText: JSON.stringify(event.input ?? {}),
+                ...previous,
+                approval: {
+                  id: event.toolCallId,
+                  ...(event.prompt ? { prompt: event.prompt } : {})
+                }
+              }
             })
             break
-          }
-          case 'tool-approval-failed': {
-            const existing = tools.get(event.toolCallId)
-            // 回执没被受理（发起它的那次运行已经不在等待）：把这一项按失败收敛。
-            // 不收敛的话卡片会永远停在「待审批」，用户以为点了没反应
-            if (existing) {
-              tools.set(event.toolCallId, {
-                ...existing,
-                result: event.message,
-                isError: true,
-                approval: undefined
-              })
-            }
+          case 'tool-result':
+            content.updateTool(event.toolCallId, function (previous) {
+              return {
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+                args: previous?.args ?? null,
+                argsText: previous?.argsText ?? '',
+                ...previous,
+                result: event.output,
+                isError: event.isError === true,
+                approval: previous?.approval
+                  ? { ...previous.approval, approved: event.isError ? false : true }
+                  : undefined
+              }
+            })
             break
-          }
+          case 'tool-approval-failed':
+            content.updateTool(event.toolCallId, function (previous) {
+              // 回执没被受理（发起它的那次运行已经不在等待）：把这一项按失败收敛。
+              // 不收敛的话卡片会永远停在「待审批」，用户以为点了没反应
+              if (!previous) return null
+              return { ...previous, result: event.message, isError: true, approval: undefined }
+            })
+            break
           case 'finish':
             yield {
-              content: buildContent(text, reasoning, tools),
+              content: content.parts(),
               status: toStatus(event.finishReason),
               metadata: { custom: toCustom(event.usage) }
             }
@@ -257,7 +308,7 @@ function createChatModelAdapter(
             // local-thread-runtime-core）；被服务端「取代」那种取消则会正常收下。
             // 真正的账在主进程的用量账本里（`engine.settle` 先记账再发终态）。
             yield {
-              content: buildContent(text, reasoning, tools),
+              content: content.parts(),
               status: { type: 'incomplete', reason: 'cancelled' },
               metadata: { custom: toCustom(event.usage) }
             }
@@ -265,13 +316,13 @@ function createChatModelAdapter(
           case 'error':
             // 报错前先交一份带用量的快照：runtime 的 catch 只改 status，不动这份 metadata。
             yield {
-              content: buildContent(text, reasoning, tools),
+              content: content.parts(),
               metadata: { custom: toCustom(event.usage) }
             }
             throw new Error(event.message)
         }
 
-        yield { content: buildContent(text, reasoning, tools) }
+        yield { content: content.parts() }
       }
     }
   }

@@ -153,11 +153,14 @@ function ReasoningFade({
 function ReasoningTrigger({
   active,
   duration,
+  label,
   className,
   ...props
 }: React.ComponentProps<typeof CollapsibleTrigger> & {
   active?: boolean
   duration?: number
+  /** 覆盖文案。过程折叠条拿它换成「过程」那套说法，不用再拼一个 trigger */
+  label?: string
 }) {
   const labels = useAssistantLabels()
 
@@ -179,7 +182,7 @@ function ReasoningTrigger({
           'aui-reasoning-trigger-label-wrapper inline-block leading-none tabular-nums',
           active && 'shimmer motion-reduce:animate-none'
         )}>
-        {labels.reasoning(duration)}
+        {label ?? labels.reasoning(duration)}
       </span>
       <ChevronDownIcon
         data-slot="reasoning-trigger-chevron"

@@ -63,6 +63,22 @@ function createThreadListAdapter(port: ChatHistoryPort): RemoteThreadListAdapter
     },
 
     /**
+     * 列表项的 `custom` 由 app 发布（左栏按 `workspaceID` 归拢会话）。
+     *
+     * `initialize()` 的返回契约只有 `remoteId` / `externalId`：库**不会**把
+     * `createThread` 拿到的 custom 带回来，所以新建会话的归属只能走这条通路补。
+     * 只认 `workspaceID` —— `pinned` 有自己的一列，不从这条通路写；键缺席（调用方
+     * 只想改别的键）时什么都不做，免得把已有的归属误清成 null。
+     */
+    async updateCustom(remoteId, custom) {
+      if (!custom || !('workspaceID' in custom)) return
+      const workspaceID = custom.workspaceID
+      await port.updateThread(remoteId, {
+        workspaceID: typeof workspaceID === 'string' ? workspaceID : null
+      })
+    },
+
+    /**
      * 归档暂不支持（chat 域暂无 `archivedAt` 列）：抛可展示的错误，
      * 而不是静默成功 —— 否则 UI 会显示"已归档"但状态没落库。
      */

@@ -2,6 +2,7 @@ import {
   fromThreadMessageLike,
   type MessageFormatItem,
   type MessageStorageEntry,
+  type RemoteThreadListAdapter,
   type ThreadMessage
 } from '@assistant-ui/react'
 import { describe, expect, it, vi } from 'vitest'
@@ -426,6 +427,28 @@ describe('createChatModelAdapter', function () {
     }
   }
 
+  /**
+   * 收快照：适配器每个事件后推一份累计内容，界面拿到的就是这些。
+   * 断言 part 的**次序**用它 —— 次序错了界面上的时序就反了（工具调用跑到回答下方）。
+   */
+  async function collectSnapshots(adapter: ReturnType<typeof createChatModelAdapter>) {
+    const snapshots: Array<readonly { type: string; text?: string }[]> = []
+    for await (const result of (
+      adapter.run as (input: never) => AsyncGenerator<{
+        content?: readonly { type: string; text?: string }[]
+      }>
+    )({ messages: [buildMessage('m1', '你好')] } as never)) {
+      if (result.content) snapshots.push(result.content)
+    }
+    return snapshots
+  }
+
+  function orderOf(parts: readonly { type: string }[] | undefined) {
+    return parts?.map(function (part) {
+      return part.type
+    })
+  }
+
   it('把增量聚合成快照，finish 时带状态与用量', async function () {
     const adapter = createChatModelAdapter(
       buildModelPort([
@@ -460,6 +483,56 @@ describe('createChatModelAdapter', function () {
       { type: 'reasoning', text: '想想' },
       { type: 'text', text: '你好' }
     ])
+  })
+
+  it('part 按事件的先后排：工具调用留在它跑的位置，正文在它之后', async function () {
+    const adapter = createChatModelAdapter(
+      buildModelPort([
+        { kind: 'reasoning', blockID: 'r1', text: '先看目录' },
+        { kind: 'text', blockID: 't1', text: '我读一下入口文件。' },
+        { kind: 'tool-call', toolCallId: 'call-1', toolName: 'fs_read', input: { path: 'a.ts' } },
+        { kind: 'tool-result', toolCallId: 'call-1', toolName: 'fs_read', output: 'ok' },
+        { kind: 'text', blockID: 't2', text: '结论是 A。' },
+        { kind: 'text', blockID: 't2', text: '要继续吗？' },
+        { kind: 'finish', finishReason: 'stop', usage: { totalTokens: 9 } }
+      ])
+    )
+
+    const snapshots = await collectSnapshots(adapter)
+
+    // 工具调用一出现就落在自己的位置上（不是攒到最下方）
+    expect(orderOf(snapshots[2])).toEqual(['reasoning', 'text', 'tool-call'])
+
+    // 结果回填不重排；换 blockID 的正文另起一块，仍在工具之后
+    const final = snapshots.at(-1)
+    expect(orderOf(final)).toEqual(['reasoning', 'text', 'tool-call', 'text'])
+    expect(final?.[2]).toMatchObject({ toolCallId: 'call-1', status: { type: 'complete' } })
+    expect(final?.[3]).toEqual({ type: 'text', text: '结论是 A。要继续吗？' })
+  })
+
+  it('工具块按它**首次**出现的事件排位；失效回执不留空块', async function () {
+    // 没有 tool-call 就先来了结果：块占结果那一刻的位置（仍在正文之前）
+    const early = createChatModelAdapter(
+      buildModelPort([
+        { kind: 'tool-result', toolCallId: 'call-9', toolName: 'fs_read', output: 'ok' },
+        { kind: 'text', blockID: 't1', text: '读完了' },
+        { kind: 'finish', finishReason: 'stop' }
+      ])
+    )
+    expect(orderOf((await collectSnapshots(early)).at(-1))).toEqual(['tool-call', 'text'])
+
+    // 回执失效（这次运行的审批已经不在等待）只收敛已有卡片：没建过的就不该凭空出现
+    const ghost = createChatModelAdapter(
+      buildModelPort([
+        { kind: 'tool-approval-failed', toolCallId: 'ghost', message: '审批已失效' },
+        { kind: 'finish', finishReason: 'stop' }
+      ])
+    )
+    expect(
+      (await collectSnapshots(ghost)).every(function (parts) {
+        return parts.length === 0
+      })
+    ).toBe(true)
   })
 
   it('error 事件抛出可展示错误，aborted 交出终态快照', async function () {
@@ -531,6 +604,13 @@ describe('createChatModelAdapter', function () {
   })
 })
 
+/** 取可选实现的 `updateCustom`：缺了就是缺陷，不该让断言静默跳过 */
+function requireUpdateCustom(adapter: RemoteThreadListAdapter) {
+  const updateCustom = adapter.updateCustom
+  if (!updateCustom) throw new Error('thread-list 适配器必须实现 updateCustom')
+  return updateCustom
+}
+
 describe('createThreadListAdapter', function () {
   it('list / initialize / rename / delete / fetch', async function () {
     const port = new MemoryPort()
@@ -551,6 +631,28 @@ describe('createThreadListAdapter', function () {
 
     await adapter.delete(created.remoteId)
     expect((await adapter.list()).threads).toHaveLength(0)
+  })
+
+  it('updateCustom 只写 workspaceID：把归属落库，别的键不碰', async function () {
+    const port = new MemoryPort()
+    const adapter = createThreadListAdapter(port)
+    const created = await adapter.initialize('local-1')
+    // 契约里 `updateCustom` 是可选的（缺了它库只会报「不支持更新 custom 元数据」）
+    const updateCustom = requireUpdateCustom(adapter)
+
+    await updateCustom(created.remoteId, { workspaceID: 'ws-a', pinned: true })
+    expect((await adapter.fetch(created.remoteId)).custom).toEqual({
+      pinned: false,
+      workspaceID: 'ws-a'
+    })
+
+    // 键缺席 = 调用方只想改别的键：不该把已有的归属误清成 null
+    await updateCustom(created.remoteId, { pinned: true })
+    expect((await adapter.fetch(created.remoteId)).custom?.workspaceID).toBe('ws-a')
+
+    // 明确的 null 才是「解除归属」
+    await updateCustom(created.remoteId, { workspaceID: null })
+    expect((await adapter.fetch(created.remoteId)).custom?.workspaceID).toBeNull()
   })
 
   it('fetch 不存在的会话抛错；归档明确不支持', async function () {

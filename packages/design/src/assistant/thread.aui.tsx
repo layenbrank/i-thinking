@@ -5,7 +5,6 @@ import {
   BranchPickerPrimitive,
   ComposerPrimitive,
   ErrorPrimitive,
-  groupPartByType,
   MessagePrimitive,
   SuggestionPrimitive,
   ThreadPrimitive,
@@ -13,7 +12,9 @@ import {
   type AssistantState,
   type FileMessagePartComponent,
   type ImageMessagePartComponent,
-  type ToolCallMessagePartComponent
+  type MessagePartStatus,
+  type ToolCallMessagePartComponent,
+  type ToolCallMessagePartStatus
 } from '@assistant-ui/react'
 import { cn } from 'cn'
 import {
@@ -32,7 +33,9 @@ import {
 } from 'lucide-react'
 import {
   createContext,
+  Fragment,
   useContext,
+  useMemo,
   type ComponentType,
   type FC,
   type PropsWithChildren
@@ -75,6 +78,17 @@ export type ThreadComponents = {
   ToolFallback?: ToolCallMessagePartComponent | undefined
   ToolGroup?: ComponentType<PropsWithChildren<{ group: ThreadGroupPart }>> | undefined
   ReasoningGroup?: ComponentType<PropsWithChildren<{ group: ThreadGroupPart }>> | undefined
+  /**
+   * 整轮「过程」的折叠壳：**最终回答之前的一切**（思考、工具、中间解说）都装在里面，
+   * 最终回答留在外面常驻可见。这是 VS Code Copilot / Cursor / Claude Code 的共同排版
+   * ——「过程收成一条、结论留在底部」，边界由 `findResponseStart` 算出来。
+   *
+   * `running` 是**整条消息**是否在跑（不是过程区的 part 状态）：回合没结束时它保持展开，
+   * 结束才回到 `defaultOpen`。app 用它接自己的「折叠回复过程」偏好。
+   * 不传就用内置的折叠条（默认折叠，`labels.process` 文案）。
+   */
+  ProcessGroup?:
+    ComponentType<PropsWithChildren<{ group: ThreadGroupPart; running: boolean }>> | undefined
   /**
    * 输入区左下角的自定义动作，渲染在附件按钮之前。
    * app 用它挂自己的工作区引用 / 文件选择 —— 库不关心引用从哪来。
@@ -195,10 +209,7 @@ const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({ isEmpty, aut
 
           <div
             data-slot="aui_message-group"
-            className={cn(
-              'flex flex-col gap-y-6 empty:hidden',
-              isEmpty ? 'mb-0' : 'mb-6'
-            )}>
+            className={cn('flex flex-col gap-y-6 empty:hidden', isEmpty ? 'mb-0' : 'mb-6')}>
             <ThreadPrimitive.Messages>{() => <ThreadMessage />}</ThreadPrimitive.Messages>
           </div>
         </div>
@@ -413,14 +424,228 @@ const MessageError: FC = () => {
   )
 }
 
+/** 过程区的 part 只读这一段就够：切段按 `type`，折叠条的状态按 `status` */
+interface PartLike {
+  readonly type: string
+  readonly status: MessagePartStatus | ToolCallMessagePartStatus
+  readonly text?: string
+}
+
+/** 过程区的一段：连续的工具调用 / 推理各自成段（段上挂折叠条），其余 part 各占一段 */
+interface ProcessRun {
+  kind: 'tool' | 'reasoning' | 'single'
+  indices: number[]
+}
+
+/**
+ * 最终回答的起点：从末尾往回找**最后一段非空正文**，紧邻它的正文段一起算进来。
+ *
+ * 边界是**算出来的**，不要求模型标注「哪段是总结」（VS Code Copilot 的
+ * `getFinalResponseStartIndex` 是同一思路）。找不到正文就返回 `parts.length`
+ * —— 那一轮还没给出结论，整条都算过程。
+ */
+function findResponseStart(parts: readonly PartLike[]): number {
+  let start = -1
+  for (let index = parts.length - 1; index >= 0; index -= 1) {
+    const part = parts[index]
+    if (part.type !== 'text' || !part.text?.trim()) continue
+    start = index
+    break
+  }
+  if (start < 0) return parts.length
+
+  while (start > 0 && parts[start - 1].type === 'text') start -= 1
+  return start
+}
+
+/** 按 part 类型切段：同类且相邻才合成一段，所以解说不影响工具段的完整性 */
+function toProcessRuns(parts: readonly PartLike[], from: number, to: number): ProcessRun[] {
+  const runs: ProcessRun[] = []
+  for (let index = from; index < to; index += 1) {
+    const type = parts[index].type
+    const kind: ProcessRun['kind'] =
+      type === 'tool-call' ? 'tool' : type === 'reasoning' ? 'reasoning' : 'single'
+    const last = runs[runs.length - 1]
+    if (last && kind !== 'single' && last.kind === kind) {
+      last.indices.push(index)
+      continue
+    }
+    runs.push({ kind, indices: [index] })
+  }
+  return runs
+}
+
+/** 段状态：有 part 在跑就是 running，否则随最后一个（与库的 `getGroupStatus` 同规则） */
+function toRunStatus(
+  parts: readonly PartLike[],
+  indices: readonly number[]
+): MessagePartStatus | ToolCallMessagePartStatus {
+  for (const index of indices) {
+    if (parts[index].status.type === 'running') return parts[index].status
+  }
+  const last = indices[indices.length - 1]
+  return parts[last].status
+}
+
+/** 内置的过程折叠壳：回合结束即回到折叠（app 可以用 `ProcessGroup` 换成自己的偏好） */
+function DefaultProcessGroup(
+  props: PropsWithChildren<{ group: ThreadGroupPart; running: boolean }>
+) {
+  const labels = useAssistantLabels()
+  const running = props.running
+
+  return (
+    <ReasoningRoot streaming={running}>
+      <ReasoningTrigger
+        active={running}
+        label={labels.process(props.group.indices.length)}
+      />
+      <ReasoningContent aria-busy={running}>
+        <ReasoningText>{props.children}</ReasoningText>
+      </ReasoningContent>
+    </ReasoningRoot>
+  )
+}
+
+const AssistantFile: FileMessagePartComponent = (props) => (
+  <div
+    data-slot="aui_assistant-message-file"
+    className="py-1">
+    <File {...props} />
+  </div>
+)
+
+const AssistantImage: ImageMessagePartComponent = (props) => (
+  <div
+    data-slot="aui_assistant-message-image"
+    className="py-1">
+    <Image {...props} />
+  </div>
+)
+
+/**
+ * 助手消息 = [过程折叠区][最终回答]。
+ *
+ * 过程区装「最终回答之前的一切」并保持**原时序**（`toProcessRuns` 只把同类相邻的合并），
+ * 最终回答常驻可见 —— 见 `ThreadComponents.ProcessGroup` 的说明。
+ *
+ * 叶子 part 统一走 `MessagePrimitive.PartByIndex`：注册过的工具 / data UI 由库优先接管
+ * （`MessagePartComponent` 内部查 `toolUIs` / `dataRenderers`），这里只提供兜底组件。
+ */
 const AssistantMessage: FC = () => {
   const {
     ToolFallback: ToolFallbackComponent = ToolFallback,
     ToolGroup,
-    ReasoningGroup
+    ReasoningGroup,
+    ProcessGroup: ProcessShell = DefaultProcessGroup
   } = useContext(ThreadComponentsContext)
 
   const labels = useAssistantLabels()
+  const parts = useAuiState(function (state) {
+    return state.message.parts
+  })
+  const isRunning = useAuiState(function (state) {
+    return state.message.status?.type === 'running'
+  })
+
+  const responseStart = findResponseStart(parts)
+  const processRuns = useMemo(
+    function () {
+      return toProcessRuns(parts, 0, responseStart)
+    },
+    [parts, responseStart]
+  )
+  const processIndices = useMemo(
+    function () {
+      return parts.slice(0, responseStart).map(function (_part, index) {
+        return index
+      })
+    },
+    [parts, responseStart]
+  )
+  const partComponents = useMemo(
+    function () {
+      return {
+        Text: MarkdownText,
+        Reasoning,
+        File: AssistantFile,
+        Image: AssistantImage,
+        tools: { Fallback: ToolFallbackComponent }
+      }
+    },
+    [ToolFallbackComponent]
+  )
+
+  function renderLeaf(index: number) {
+    return (
+      <MessagePrimitive.PartByIndex
+        key={index}
+        index={index}
+        components={partComponents}
+      />
+    )
+  }
+
+  function renderRun(run: ProcessRun, runIndex: number) {
+    const children = run.indices.map(function (index) {
+      return renderLeaf(index)
+    })
+    let content = <Fragment>{children}</Fragment>
+
+    if (run.kind === 'tool') {
+      const group: ThreadGroupPart = {
+        type: 'group-tool',
+        status: toRunStatus(parts, run.indices),
+        indices: run.indices
+      }
+      content = ToolGroup ? (
+        <ToolGroup group={group}>{children}</ToolGroup>
+      ) : (
+        <ToolGroupRoot variant="ghost">
+          <ToolGroupTrigger
+            count={run.indices.length}
+            active={group.status.type === 'running'}
+          />
+          <ToolGroupContent>{children}</ToolGroupContent>
+        </ToolGroupRoot>
+      )
+    } else if (run.kind === 'reasoning') {
+      const group: ThreadGroupPart = {
+        type: 'group-reasoning',
+        status: toRunStatus(parts, run.indices),
+        indices: run.indices
+      }
+      const running = group.status.type === 'running'
+      content = ReasoningGroup ? (
+        <ReasoningGroup group={group}>{children}</ReasoningGroup>
+      ) : (
+        <ReasoningRoot streaming={running}>
+          <ReasoningTrigger active={running} />
+          <ReasoningContent aria-busy={running}>
+            <ReasoningText>{children}</ReasoningText>
+          </ReasoningContent>
+        </ReasoningRoot>
+      )
+    }
+
+    return <Fragment key={runIndex}>{content}</Fragment>
+  }
+
+  /**
+   * 只有**动过手**的回合才加外层折叠区：一次「思考 → 答」不该出现两条折叠条
+   * （里层那条思考条自己就够用，与改造前一致）。VS Code Copilot 的口径也是如此
+   * —— 步数 < 2 的回合不折。
+   */
+  const hasToolCalls = processIndices.some(function (index) {
+    return parts[index].type === 'tool-call'
+  })
+
+  // 最后一段不是正文（还在跑、或刚起工具）时补一个脉冲点，别让消息区空着
+  const lastPart = parts[parts.length - 1]
+  const showIndicator =
+    isRunning &&
+    (lastPart === undefined || (lastPart.type !== 'text' && lastPart.type !== 'reasoning'))
+
   const ACTION_BAR_PT = 'pt-1.5'
   // Keep the action bar inside the contained root's paint box, then cancel its reserved space in flow.
   const ACTION_BAR_HEIGHT = `min-h-7.5 ${ACTION_BAR_PT}`
@@ -433,81 +658,35 @@ const AssistantMessage: FC = () => {
       <div
         data-slot="aui_assistant-message-content"
         className="text-foreground px-2 leading-relaxed wrap-break-word">
-        <MessagePrimitive.GroupedParts
-          groupBy={groupPartByType({
-            reasoning: ['group-chainOfThought', 'group-reasoning'],
-            'tool-call': ['group-chainOfThought', 'group-tool'],
-            'standalone-tool-call': []
-          })}>
-          {({ part, children }) => {
-            switch (part.type) {
-              case 'group-chainOfThought':
-                return <div data-slot="aui_chain-of-thought">{children}</div>
-              case 'group-tool':
-                if (ToolGroup) {
-                  return <ToolGroup group={part}>{children}</ToolGroup>
-                }
-                return (
-                  <ToolGroupRoot variant="ghost">
-                    <ToolGroupTrigger
-                      count={part.indices.length}
-                      active={part.status.type === 'running'}
-                    />
-                    <ToolGroupContent>{children}</ToolGroupContent>
-                  </ToolGroupRoot>
-                )
-              case 'group-reasoning': {
-                if (ReasoningGroup) {
-                  return <ReasoningGroup group={part}>{children}</ReasoningGroup>
-                }
-                const running = part.status.type === 'running'
-                return (
-                  <ReasoningRoot streaming={running}>
-                    <ReasoningTrigger active={running} />
-                    <ReasoningContent aria-busy={running}>
-                      <ReasoningText>{children}</ReasoningText>
-                    </ReasoningContent>
-                  </ReasoningRoot>
-                )
-              }
-              case 'text':
-                return <MarkdownText />
-              case 'reasoning':
-                return <Reasoning {...part} />
-              case 'tool-call':
-                return part.toolUI ?? <ToolFallbackComponent {...part} />
-              case 'data':
-                return part.dataRendererUI
-              case 'file':
-                return (
-                  <div
-                    data-slot="aui_assistant-message-file"
-                    className="py-1">
-                    <File {...part} />
-                  </div>
-                )
-              case 'image':
-                return (
-                  <div
-                    data-slot="aui_assistant-message-image"
-                    className="py-1">
-                    <Image {...part} />
-                  </div>
-                )
-              case 'indicator':
-                return (
-                  <span
-                    data-slot="aui_assistant-message-indicator"
-                    className="animate-pulse font-sans"
-                    aria-label={labels.working}>
-                    {'●'}
-                  </span>
-                )
-              default:
-                return null
-            }
-          }}
-        </MessagePrimitive.GroupedParts>
+        {processIndices.length > 0 ? (
+          hasToolCalls ? (
+            <ProcessShell
+              group={{
+                type: 'group-process',
+                status: toRunStatus(parts, processIndices),
+                indices: processIndices
+              }}
+              running={isRunning}>
+              {processRuns.map(renderRun)}
+            </ProcessShell>
+          ) : (
+            processRuns.map(renderRun)
+          )
+        ) : null}
+
+        {parts.slice(responseStart).map(function (_part, offset) {
+          return renderLeaf(responseStart + offset)
+        })}
+
+        {showIndicator ? (
+          <span
+            data-slot="aui_assistant-message-indicator"
+            className="animate-pulse font-sans"
+            aria-label={labels.working}>
+            {'●'}
+          </span>
+        ) : null}
+
         <MessageError />
       </div>
 

@@ -170,6 +170,11 @@ export default function AgentSidebar(props: SidebarProps) {
     }
   }
 
+  /**
+   * 在这里只**切指针 + 开空会话**，不钉住归属：会话行要到首条消息才落库，归属按那一刻的
+   * 活跃工作区算（与运行时的沙箱根同一口径）。所以中途又切了工作区，这个任务就跟着走
+   * —— 这是刻意的：归属随运行上下文，而不是随点按钮那一刻的界面。
+   */
   function handleNewThreadIn(workspaceID: string) {
     void selectWorkspace.mutateAsync(workspaceID).then(function () {
       void aui.threads.switchToNewThread()

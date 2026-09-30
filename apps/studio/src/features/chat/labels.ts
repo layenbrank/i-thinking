@@ -55,7 +55,11 @@ const ASSISTANT_LABELS_ZH: AssistantLabelsOverride = {
 
   // 部件
   reasoning(seconds) {
-    // 回合摘要（Qoder 口径）：秒数由调用方按「耗时显示」设置算好，这里只管拼
+    // 思考段自己的折叠条：秒数只在调用方拿得到**这一段**的耗时时给（拿整轮耗时贴上就是骗人）
+    return seconds === undefined ? '思考' : `思考 · ${seconds}s`
+  },
+  process(_steps, seconds) {
+    // 整轮回合摘要（Qoder 口径）：秒数由调用方按「耗时显示」设置算好，这里只管拼
     return seconds === undefined ? '已处理' : `已处理 · ${seconds}s`
   },
   toolCalls(count, failed) {
