@@ -6,15 +6,18 @@ import path from 'node:path'
 import { findAppRoot } from '../../framework/paths'
 
 /**
- * 怎么找到 corex：**优先用户自己装的那份**。
+ * 怎么找到 corex。三份来源**各归各位**，谁也不顶替谁：
  *
- * 宿主过去自己复刻一遍 corex 的数据目录规则（`%LOCALAPPDATA%\corex`），于是和用户
- * CLI 的 `~/.corex` 各读一棵树：编辑器里看到、跑起来执行、`corex` 命令行读到的可以是
- * 三份不同的指令。现在改成问 corex 自己（`corex paths --json`）：数据目录、端点、
- * token 文件都由它算，宿主只负责转交。
+ * - **用户自己装的那份**（`COREX_CLI` 指定 / PATH / `%LOCALAPPDATA%\corex\bin` / `Program Files\corex`）：
+ *   数据目录、端点、token 都由它自己算（问 `corex paths --json`）。它是用户的，指令就在他的数据目录里。
+ * - **Studio 自带的那份**：打包态在 `resources/sidecar`，开发态在
+ *   `apps/studio/sidecar/staging/<platform>`（`pnpm command sidecar bootstrap studio` 按 tools.lock
+ *   拉下来并校验 sha256）。自带那份一律用应用私有的数据目录 + 私有端点，不与用户环境共享任何东西。
+ * - **数据目录不是安装目录**：`~/.corex` 只放数据（指令库、token、历史），不放进候选安装位置。
+ *   它曾经也在候选里 —— 那会让「开发时用哪份二进制」被用户环境里那份旧 corex 悄悄决定。
  *
- * 找不到（没装，或装的那份还不认识 `paths` —— 10.x 及更早）才退回 Studio 自带的那份，
- * 并用私有端点 + 私有数据目录，免得和用户环境互相踩。
+ * 优先级按「谁来用」分：打包态用户那份优先（尊重用户环境），开发态自带那份优先（tools.lock 钉版本、
+ * 可复现）；`COREX_CLI` 永远最高 —— 显式指定说了算。
  */
 
 const COREX_CLI = 'corex'
@@ -23,6 +26,8 @@ const PANDOC_BINARY = 'pandoc'
 
 /** 显式指定 corex 可执行文件；优先于 PATH 与常见安装位置。 */
 const COREX_CLI_ENV = 'COREX_CLI'
+/** 数据目录：corex 自己认它（优先级最高），宿主也用它钉住自带那份的落点。 */
+const COREX_DATA_DIR_ENV = 'COREX_DATA_DIR'
 const COREX_TOKEN_ENV = 'COREX_TOKEN'
 
 /** 指令库文件名：`paths --json` 没报 `directives_db` 时按数据目录下的这个默认名推 */
@@ -115,21 +120,18 @@ function findUserDataDir(): string {
   return path.join(os.homedir(), '.corex-studio')
 }
 
-/** 找 corex 的去处：显式指定 → PATH → 各家安装位置；先出现者优先。 */
+/** 找用户装 corex 的常见位置。**不含数据目录** —— `~/.corex` 只放数据。 */
 function findCandidateDirs(): string[] {
   const dirs: string[] = []
-  const explicit = process.env[COREX_CLI_ENV]?.trim()
-  if (explicit) {
-    dirs.push(path.dirname(explicit))
-  }
   for (const entry of (process.env.PATH ?? '').split(path.delimiter)) {
     if (entry) {
       dirs.push(entry)
     }
   }
-  dirs.push(path.join(os.homedir(), '.corex'))
   if (process.platform === 'win32') {
     const local = process.env.LOCALAPPDATA ?? path.join(os.homedir(), 'AppData', 'Local')
+    // install.ps1 的默认安装目录，外加老版本的落点
+    dirs.push(path.join(local, 'corex', 'bin'))
     dirs.push(path.join(local, 'corex'))
     if (process.env.ProgramFiles) {
       dirs.push(path.join(process.env.ProgramFiles, 'corex'))
@@ -150,26 +152,73 @@ function findCandidateDirs(): string[] {
   })
 }
 
-async function findCorexInstall(): Promise<CorexInstall> {
+/** `COREX_CLI` 显式指定的那份：说了算，两种模式都排最前。 */
+async function findExplicitInstall(): Promise<CorexInstall | null> {
+  const explicit = process.env[COREX_CLI_ENV]?.trim()
+  return explicit ? probeDir(path.dirname(explicit)) : null
+}
+
+/** 探一个目录：得同时有 cli 与 daemon，且那份 corex 自己认得路。 */
+async function probeDir(dir: string): Promise<CorexInstall | null> {
+  const cli = path.join(dir, findBinaryName(COREX_CLI))
+  const daemon = path.join(dir, findBinaryName(COREX_DAEMON))
+  if (!existsSync(cli) || !existsSync(daemon)) {
+    return null
+  }
+  const paths = await probePaths(cli)
+  if (!paths) {
+    return null
+  }
+  return {
+    cli,
+    daemon,
+    dataDir: paths.data_dir,
+    directivesDb: paths.directives_db,
+    endpoint: paths.endpoint,
+    tokenFile: paths.token_file,
+    version: paths.version,
+    isBundled: false
+  }
+}
+
+/** 用户自己装的那份：按候选目录顺序探，第一个认路的算。 */
+async function findUserInstall(): Promise<CorexInstall | null> {
   for (const dir of findCandidateDirs()) {
-    const cli = path.join(dir, findBinaryName(COREX_CLI))
-    const daemon = path.join(dir, findBinaryName(COREX_DAEMON))
-    if (!existsSync(cli) || !existsSync(daemon)) {
-      continue
+    const install = await probeDir(dir)
+    if (install) {
+      return install
     }
-    const paths = await probePaths(cli)
-    if (!paths) {
-      continue
-    }
-    return {
-      cli,
-      daemon,
-      dataDir: paths.data_dir,
-      directivesDb: paths.directives_db,
-      endpoint: paths.endpoint,
-      tokenFile: paths.token_file,
-      version: paths.version,
-      isBundled: false
+  }
+  return null
+}
+
+/** 自带那份的二进制在不在：开发态没 bootstrap 过就没有，那时才轮到用户装的那份。 */
+function hasBundledBinary(): boolean {
+  return existsSync(findBundledPath(COREX_CLI)) && existsSync(findBundledPath(COREX_DAEMON))
+}
+
+/**
+ * 找 corex：`COREX_CLI` → 按「谁来用」排的两份来源。
+ *
+ * 两份都不可用时把自带那份的路径交出去 —— 界面至少能说明它指向哪、为什么连不上。
+ */
+async function findCorexInstall(): Promise<CorexInstall> {
+  const bundled = async function (): Promise<CorexInstall | null> {
+    return hasBundledBinary() ? findBundledInstall() : null
+  }
+
+  const explicit = await findExplicitInstall()
+  if (explicit) {
+    return explicit
+  }
+
+  const sources = isPackagedApp()
+    ? [findUserInstall, bundled]
+    : [bundled, findUserInstall]
+  for (const find of sources) {
+    const install = await find()
+    if (install) {
+      return install
     }
   }
 
@@ -227,9 +276,26 @@ function parsePaths(text: string): CorexPaths | null {
   }
 }
 
-/** Studio 自带的那份：私有数据目录 + 私有端点，不与用户环境共享任何东西。 */
+/**
+ * 自带那份的数据目录：打包态固定用应用私有的那份；开发态允许 `COREX_DATA_DIR` 指向真实数据目录
+ * —— 自带那份只认识起步指令，调编辑器时看不到自己的指令。
+ */
+function findBundledDataDir(): string {
+  const privateDir = path.join(findUserDataDir(), 'corex')
+  if (isPackagedApp()) {
+    return privateDir
+  }
+  return process.env[COREX_DATA_DIR_ENV]?.trim() || privateDir
+}
+
+/**
+ * Studio 自带的那份：私有数据目录 + 私有端点，不与用户环境共享任何东西。
+ *
+ * 数据目录**绝不用 exe 旁边**：开发态 staging 在仓库里、打包态 `resources/sidecar` 在应用目录里，
+ * 而 corex 的解析顺序里「可写的 exe 目录」排在第二位 —— 不钉住就会把指令库写进那些地方。
+ */
 function findBundledInstall(): CorexInstall {
-  const dataDir = path.join(findUserDataDir(), 'corex')
+  const dataDir = findBundledDataDir()
   return {
     cli: findBundledPath(COREX_CLI),
     daemon: findBundledPath(COREX_DAEMON),
@@ -268,12 +334,14 @@ export {
   BUNDLED_ENDPOINT,
   COREX_CLI,
   COREX_CLI_ENV,
+  COREX_DATA_DIR_ENV,
   COREX_DAEMON,
   COREX_TOKEN_ENV,
   DIRECTIVES_DB_NAME,
   PANDOC_BINARY,
   PATHS_TIMEOUT_MS,
   findBinaryName,
+  findBundledInstall,
   findBundledPath,
   findCandidateDirs,
   findCorexInstall,
@@ -281,6 +349,7 @@ export {
   findPlatformKey,
   findSidecarRoot,
   findUserDataDir,
+  hasBundledBinary,
   hasPandoc,
   parsePaths,
   resolveAuthToken

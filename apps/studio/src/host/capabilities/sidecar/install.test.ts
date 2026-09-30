@@ -4,8 +4,11 @@ import path from 'node:path'
 import os from 'node:os'
 
 import {
-  COREX_CLI_ENV,
+  BUNDLED_ENDPOINT,
+  COREX_DATA_DIR_ENV,
+  DIRECTIVES_DB_NAME,
   findBinaryName,
+  findBundledInstall,
   findCandidateDirs,
   findCorexInstall,
   findPlatformKey,
@@ -62,21 +65,67 @@ describe('discovery paths', function () {
     expect(findBinaryName('corex', 'linux')).toBe('corex')
   })
 
-  it('puts the explicit dir first and de-duplicates', function () {
-    const original = process.env[COREX_CLI_ENV]
-    process.env[COREX_CLI_ENV] = String.raw`C:\tools\corex\corex.exe`
+  it('lists user install locations and never the data directory', function () {
+    const original = process.env.PATH
     process.env.PATH = [String.raw`C:\tools\corex`, String.raw`C:\Windows`].join(path.delimiter)
     try {
       const dirs = findCandidateDirs()
       expect(dirs[0]).toBe(String.raw`C:\tools\corex`)
+      // 数据目录只放数据（指令库、token、历史），不是二进制的来源
+      expect(dirs).not.toContain(path.join(os.homedir(), '.corex'))
+      if (process.platform === 'win32') {
+        const local = process.env.LOCALAPPDATA ?? path.join(os.homedir(), 'AppData', 'Local')
+        expect(dirs).toContain(path.join(local, 'corex', 'bin'))
+      }
+    } finally {
+      process.env.PATH = original
+    }
+  })
+
+  it('de-duplicates the candidates', function () {
+    const original = process.env.PATH
+    process.env.PATH = [
+      String.raw`C:\tools\corex`,
+      String.raw`C:\Windows`,
+      String.raw`C:\tools\corex`
+    ].join(path.delimiter)
+    try {
+      const dirs = findCandidateDirs()
       expect(
         dirs.filter(function (dir) {
           return path.resolve(dir) === path.resolve(String.raw`C:\tools\corex`)
         })
       ).toHaveLength(1)
-      expect(dirs).toContain(path.join(os.homedir(), '.corex'))
     } finally {
-      process.env[COREX_CLI_ENV] = original
+      process.env.PATH = original
+    }
+  })
+})
+
+describe('bundled install', function () {
+  it('keeps its data dir off the sidecar dir', function () {
+    const install = findBundledInstall()
+    expect(install.isBundled).toBe(true)
+    // staging 在仓库里、resources/sidecar 在应用目录里：数据目录绝不许落在这些地方
+    expect(install.dataDir).not.toContain('sidecar')
+    expect(install.directivesDb).toBe(path.join(install.dataDir, DIRECTIVES_DB_NAME))
+    expect(install.tokenFile).toBe(path.join(install.dataDir, 'token'))
+    if (process.platform === 'win32') {
+      expect(install.endpoint).toBe(BUNDLED_ENDPOINT)
+    }
+  })
+
+  it('lets COREX_DATA_DIR point the bundled copy at real data', function () {
+    const original = process.env[COREX_DATA_DIR_ENV]
+    process.env[COREX_DATA_DIR_ENV] = String.raw`C:\Users\x\.corex`
+    try {
+      expect(findBundledInstall().dataDir).toBe(String.raw`C:\Users\x\.corex`)
+    } finally {
+      if (original === undefined) {
+        delete process.env[COREX_DATA_DIR_ENV]
+      } else {
+        process.env[COREX_DATA_DIR_ENV] = original
+      }
     }
   })
 })

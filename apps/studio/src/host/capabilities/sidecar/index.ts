@@ -12,7 +12,13 @@ import type { Logger } from '../../framework/logger'
 import type { Plugin } from '../../framework/module'
 import type { DirectiveDocument, DirectiveEntry } from './directive'
 import { parseDirectiveDocument, parseDirectiveEntries, parseImportResult } from './directive'
-import { findCorexInstall, hasPandoc, resolveAuthToken, type CorexInstall } from './install'
+import {
+  COREX_DATA_DIR_ENV,
+  findCorexInstall,
+  hasPandoc,
+  resolveAuthToken,
+  type CorexInstall
+} from './install'
 
 const READY_TIMEOUT_MS = 15_000
 /** 静止多久算死：收到任何一帧（含 daemon 每两秒一帧的心跳）都重新计时 */
@@ -21,9 +27,6 @@ const IDLE_TIMEOUT_MS = 60_000
 const PING_TIMEOUT_MS = 2_000
 const STOP_TIMEOUT_MS = 3_000
 const PING_INTERVAL_MS = 200
-
-/** 显式指定 daemon 数据目录（corex `data_dir()` 第一优先）：必须指到发现出来的那棵树 */
-const COREX_DATA_DIR_ENV = 'COREX_DATA_DIR'
 
 /** corex `list_actions` 返回的单个动作（宽松形状，渲染侧由 zod 校验） */
 interface CorexActionParam {

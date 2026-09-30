@@ -40,7 +40,26 @@ pnpm install
 > 全新检出（含 CI）直接 `make` 会失败在 renderer 解析上：`@i-thinking/hooks`、`@i-thinking/utils`
 > 的 `exports` 指向 `dist`（见 `vite.renderer.config.mts` 的 `linkedMarker` 与 `optimizeDeps.exclude`
 > 注释），本地之所以没暴露，是因为 `dist` 早就构建过、且被 gitignore。先补一步：
-> `pnpm turbo run build --filter=@i-thinking/studio^...`（只构建 studio 的 workspace 依赖）。
+> `pnpm turbo run build --filter=@i-thinking/studio... --filter=!@i-thinking/studio`（只构建 studio 的 workspace 依赖）。
+
+### corex 的三份来源（别混）
+
+宿主只用**三类**位置找 corex，优先级按「谁来用」分（见 `host/capabilities/sidecar/install.ts`）：
+
+| 来源                 | 位置                                                                           | 数据目录                                  | 何时优先               |
+| -------------------- | ------------------------------------------------------------------------------ | ----------------------------------------- | ---------------------- |
+| `COREX_CLI` 显式指定 | 该变量指向的 `corex.exe` 所在目录                                              | 那份 corex 自己算（`corex paths --json`） | 永远第一               |
+| 用户自己装的那份     | PATH → `%LOCALAPPDATA%\corex\bin` → `%ProgramFiles%\corex`（macOS/Linux 同理） | 用户的数据目录（如 `~/.corex`）           | 打包态                 |
+| Studio 自带的那份    | 打包态 `resources/sidecar`；开发态 `apps/studio/sidecar/staging/<platform>`    | 应用私有目录，**绝不与用户环境共享**      | 开发态（打包态为回退） |
+
+- **`~/.corex` 是数据目录，不是安装目录**：指令库（`directives.db`）、token、历史、审计都在那儿，
+  它不在「找二进制」的候选里。二进制装到 `%LOCALAPPDATA%\corex\bin`（`install.ps1` 的默认值）。
+- **自带那份的数据目录绝不用 exe 旁边**：corex 的数据目录解析顺序里「可写的 exe 目录」排第二，
+  不钉住就会把指令库写进 staging（仓库里）或 `resources/sidecar`（应用目录里）。
+  所以自带那份显式用私有数据目录 + 私有端点 `\\.\pipe\corex-studio`。
+- **开发态想让自带那份读真实数据**（调编辑器时看到自己的指令）：设 `COREX_DATA_DIR` 指向它即可
+  （自带那份的 `token` 也跟着数据目录走）。注意 corex 的 `corex.lock` 是**每个数据目录一份**的单例锁
+  —— 若你全局那个 daemon 正在跑，先停掉，否则 dev 自起的这个抢不到锁。
 
 ## 3. 环境变量
 
