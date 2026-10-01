@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Glide } from '@/components/glide/glide'
 import type { CorexRun } from '@/stores/corex'
 import { useRunFrames } from '@/stores/run-logs'
+import { copyText } from '@/utils/clipboard'
 
 import { useNow } from '../use-now'
 import { formatLogText, formatRunLogs } from './run-log'
@@ -217,11 +218,12 @@ function RunOutput(props: Props) {
   /** 复制的是**筛选后**的内容，跟眼前这片日志一致 */
   const handleCopy = useCallback(
     function () {
-      void navigator.clipboard.writeText(formatLogText(shown)).then(
+      void copyText(formatLogText(shown)).then(
         function () {
           toast.success('日志已复制', { duration: 1200 })
         },
-        function () {
+        function (error) {
+          console.error('[directive] 复制日志失败', error)
           toast.error('复制失败，可以手动选中复制')
         }
       )

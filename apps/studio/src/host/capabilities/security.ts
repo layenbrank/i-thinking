@@ -5,7 +5,8 @@ import type { Plugin } from '../framework/module'
 import { SUGGEST_ORIGIN } from '../../shared/suggest'
 import { isAllowedPageUrl } from './trusted-sender'
 
-const ALLOWED_PERMISSIONS = new Set<string>([])
+/** 渲染侧 `navigator.clipboard.writeText` 会要这个；空集合等于剪贴板一律拒绝 */
+const ALLOWED_PERMISSIONS = new Set<string>(['clipboard-sanitized-write', 'clipboard-read'])
 
 function buildPlugin(): Plugin {
   return {
